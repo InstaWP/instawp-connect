@@ -5,13 +5,7 @@ if ( ! defined('INSTAWP_PLUGIN_DIR') ) {
 }
 class InstaWP_Setting
 {   
-    //automatically call function
-    // function __construct() {
-    //     /* Call function to update api domain */
-    //     add_action( 'init', [ $this, 'instawp_update_api_domain' ] );
-    // }
-
-    public static function init_option() {
+        public static function init_option() {
         $ret = self::get_option('instawp_email_setting');
         if ( empty($ret) ) {
             self::set_default_email_option();
