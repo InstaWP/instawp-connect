@@ -64,9 +64,9 @@ class InstaWP_Setting
         self::set_default_common_option();
     }
     
-    public static function set_api_domain( ) {     
+    public static function set_api_domain( $instawp_api_url = 'https://app.instawp.io' ) {     
 
-        $instawp_api_url='';
+        /*$instawp_api_url='';
         if( isset( $_GET['internal'] ) && $_GET['page']=='instawp-settings'){
             if( 1 === intval( $_GET['internal'] ) ){
                 $instawp_api_url = 'https://instawp.io';    
@@ -75,7 +75,7 @@ class InstaWP_Setting
             }            
         }else {
             $instawp_api_url = 'https://s.instawp.io';
-        }
+        }*/
           
         update_option( 'instawp_api_url', $instawp_api_url );  
     }
