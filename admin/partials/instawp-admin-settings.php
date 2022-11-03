@@ -104,11 +104,10 @@ foreach ( $tasks as $task_id => $task ) {
 </div>
 <script type="text/javascript">
     jQuery(document).ready(function () {
-        jQuery(document).on('click','#instawp-check-key',function(){            
-                //console.log(instawp_ajax_object);
-                var api_key = jQuery('#instawp_api').val();
-                var api_heartbeat = jQuery('#instawp_api_heartbeat').val();
-                jQuery.ajax({
+        jQuery(document).on('click','#instawp-check-key',function(){     
+            var api_key = jQuery('#instawp_api').val();
+            var api_heartbeat = jQuery('#instawp_api_heartbeat').val();
+            jQuery.ajax({
                 type: 'POST',
                 url: instawp_ajax_object.ajax_url,
                 data: {
@@ -164,6 +163,31 @@ foreach ( $tasks as $task_id => $task ) {
                     }, 1200);
                 }
             }); 
+
+            site_heartbeat();
         }); 
     }); 
+
+    //heartbeat call based on time code start
+    var heartbeatInterval = 1000 * 60 * 1;
+    setInterval(site_heartbeat, heartbeatInterval);
+
+    function site_heartbeat(){       
+       jQuery.ajax({
+           type: 'POST',
+           url: instawp_ajax_object.ajax_url,
+           data: {
+               action: "instawp_heartbeat_check",
+               nonce: instawp_ajax_object.ajax_nonce,                
+           },
+           success: function (response) {
+               
+               var obj = JSON.parse(response);
+           },
+           error: function (errorThrown) {
+               console.log('error');
+           }
+       });    
+    console.log('check run');
+   }
 </script>

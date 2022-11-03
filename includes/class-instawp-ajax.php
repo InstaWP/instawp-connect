@@ -13,9 +13,32 @@ class InstaWP_AJAX
       
       add_action('wp_ajax_instawp_check_key', array( $this, 'check_key' ));
       add_action('wp_ajax_instawp_settings_call', array( $this, 'instawp_settings_call' ));
+      add_action('wp_ajax_instawp_heartbeat_check', array( $this, 'instawp_heartbeat_check' ));
       add_action('wp_ajax_instawp_connect', array( $this, 'connect' ));
       add_action('wp_ajax_instawp_check_staging', array( $this, 'instawp_check_staging' ));
      
+   }
+
+   public function instawp_heartbeat_check(){
+      $count_posts = wp_count_posts();
+      $count_users = count_users();
+      echo "<pre>";
+      print_r($count_posts);
+      print_r($count_users);
+      echo "</pre>";
+      $wp_version = bloginfo('version');
+      $php_version = phpversion();
+      $total_size = '';
+      $active_theme = wp_get_theme();
+      $published_posts = $count_posts->publish;
+      $total_pages = 'pages';
+      $total_users = 'users';
+      echo "wp_version == ". $wp_version."<br/>";
+      echo "php_version == ".$php_version ."<br/>";
+      //echo "total_size == ".$total_size ."<br/>";
+      echo "active_theme == ".$active_theme ."<br/>";
+      echo "total_posts == ".$total_posts ."<br/>";
+      wp_die();
    }
 
    public function instawp_settings_call() {
