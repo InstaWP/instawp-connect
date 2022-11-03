@@ -95,6 +95,19 @@ foreach ( $tasks as $task_id => $task ) {
                         <input type="number" min="5" max="120" value="<?php echo esc_html($instawp_heartbeat_option); ?>" name="instawp_api_heartbeat" id="instawp_api_heartbeat" />                        
                     </td>                    
                 </tr>
+
+                <?php if( isset( $_GET['internal'] ) && $_GET['page']=='instawp-settings' && 1 === intval( $_GET['internal'] ) ){ ?>                    
+                    <tr valign="top">
+                        <th scope="row">
+                            <label for="num_elements">
+                                API Domain
+                            </label> 
+                        </th>
+                        <td>
+                            <input type="text" value="" name="instawp_api_url_internal" id="instawp_api_url_internal" />                        
+                        </td>                    
+                    </tr>
+                <?php } ?>
                 
             </table>
             <?php wp_nonce_field( 'instawp_settings', 'instawp_settings_nonce' ); ?>
@@ -139,14 +152,15 @@ foreach ( $tasks as $task_id => $task ) {
         jQuery(document).on('submit','#instawp_settings', function(e){
             e.preventDefault();
             var api_heartbeat = jQuery('#instawp_api_heartbeat').val();
+            var instawp_api_url_internal = jQuery('#instawp_api_url_internal').val();
             jQuery.ajax({
                 type: 'POST',
                 url: instawp_ajax_object.ajax_url,
                 data: {
                     action: "instawp_settings_call",
                     nonce: instawp_ajax_object.ajax_nonce,
-                    api_heartbeat: api_heartbeat
-                    
+                    api_heartbeat: api_heartbeat,
+                    instawp_api_url_internal: instawp_api_url_internal                    
                 },
                 success: function ( response ) {  
 
@@ -164,7 +178,7 @@ foreach ( $tasks as $task_id => $task ) {
                 }
             }); 
 
-            site_heartbeat();
+            //site_heartbeat();
         }); 
     }); 
 

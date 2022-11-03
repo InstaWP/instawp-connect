@@ -114,7 +114,7 @@ class InstaWP_Backup_Api
       }
       $res = $this->_config_check_key($parameters['api_key']);
       if(isset($parameters['api_domain'])) {
-	InstaWP_Setting::set_api_domain($parameters['api_domain']);
+	      InstaWP_Setting::set_api_domain($parameters['api_domain']);
       }
       $this->instawp_log->CloseFile();
       if ( $res['error'] == false ) {

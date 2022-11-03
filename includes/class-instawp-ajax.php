@@ -20,31 +20,54 @@ class InstaWP_AJAX
    }
 
    public function instawp_heartbeat_check(){
-      $count_posts = wp_count_posts();
-      $count_users = count_users();
-      echo "<pre>";
-      print_r($count_posts);
-      print_r($count_users);
-      echo "</pre>";
       $wp_version = bloginfo('version');
       $php_version = phpversion();
-      $total_size = '';
-      $active_theme = wp_get_theme();
-      $published_posts = $count_posts->publish;
-      $total_pages = 'pages';
-      $total_users = 'users';
-      echo "wp_version == ". $wp_version."<br/>";
-      echo "php_version == ".$php_version ."<br/>";
-      //echo "total_size == ".$total_size ."<br/>";
-      echo "active_theme == ".$active_theme ."<br/>";
-      echo "total_posts == ".$total_posts ."<br/>";
+      $total_size = '1024 MB';
+      $active_theme = wp_get_theme()->get('Name');
+
+      $count_posts = wp_count_posts();
+      $posts = $count_posts->publish;
+
+      $count_pages = wp_count_posts('page');
+      $pages = $count_pages->publish;
+
+      $count_users = count_users();
+      $users = $count_users['total_users'];
+
+      global $InstaWP_Curl;
+      $body = array(
+         "wp_version" => $wp_version,
+         "php_version" => $php_version,
+         "total_size" => $total_size,
+         "theme" => $active_theme,
+         "posts" => $posts,
+         "pages" => $pages,
+         "users" => $users,
+     );
+
+      error_log( print_r($body, true) );
+
+      $api_doamin = InstaWP_Setting::get_api_domain();
+      $url = $api_doamin . INSTAWP_API_URL . '/connects-heartbeats';
+      $body_json     = json_encode($body);
+      $curl_response = $InstaWP_Curl->curl($url, $body_json);
+      
+      error_log( "Print Heartbeat Curl Response Start" );
+      error_log( print_r($curl_response, true) );
+      error_log( "Print Heartbeat Curl Response End" );
       wp_die();
    }
 
    public function instawp_settings_call() {
       
-      $message=''; $resType = false;
+      $message=''; $resType = false;      
       if( isset( $_REQUEST['api_heartbeat'] ) && !empty( $_REQUEST['api_heartbeat'] ) ){
+
+         if( isset( $_REQUEST['instawp_api_url_internal'] ) ){
+            $instawp_api_url_internal = $_REQUEST['instawp_api_url_internal'];
+            InstaWP_Setting::set_api_domain($instawp_api_url_internal);         
+         }
+
          $api_heartbeat = trim( $_REQUEST['api_heartbeat'] );        
          $resType = true;
          $message='Settings saved successfully';
@@ -100,7 +123,7 @@ class InstaWP_AJAX
       if ( ! empty($connect_ids) && ! empty($bkp_init_opt) && ! empty($backup_status_opt) ) {
          if ( isset($connect_ids['data']['id']) && ! empty($connect_ids['data']['id']) ) {
             $id                 = $connect_ids['data']['id'];
-            $site_id                 = $backup_status_opt['data']['site_id'];
+            $site_id            = $backup_status_opt['data']['site_id'];
             $body['connect_id'] = $id;
             $body['task_id']    = $task_id;
             $body['site_id']    = $site_id;

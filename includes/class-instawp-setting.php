@@ -30,10 +30,11 @@ class InstaWP_Setting
         if ( empty($ret) ) {
             self::set_default_common_option();
         }
-        $ret = get_option('instawp_api_url','');
-        if ( empty($ret) ) {
-            self::set_api_domain();
-        }
+
+        // $ret = get_option('instawp_api_url','');
+        // if ( empty($ret) ) {
+        //     self::set_api_domain();
+        // }
        
     }
 
@@ -65,23 +66,14 @@ class InstaWP_Setting
     }
     
     public static function set_api_domain( $instawp_api_url = 'https://app.instawp.io' ) {     
-
-        /*$instawp_api_url='';
-        if( isset( $_GET['internal'] ) && $_GET['page']=='instawp-settings'){
-            if( 1 === intval( $_GET['internal'] ) ){
-                $instawp_api_url = 'https://instawp.io';    
-            }elseif( 2 === intval( $_GET['internal'] ) ){
-                $instawp_api_url = 'https://s.instawp.io';   
-            }            
-        }else {
-            $instawp_api_url = 'https://s.instawp.io';
-        }*/
-          
         update_option( 'instawp_api_url', $instawp_api_url );  
+        error_log("Check Current URL ".$instawp_api_url);
     }
 
     public static function get_api_domain( ) {
-
+        // if( !empty( get_option('instawp_api_url_internal'))){
+        //     return get_option( 'instawp_api_url_internal' );
+        // }
         return get_option( 'instawp_api_url' );
     }
 

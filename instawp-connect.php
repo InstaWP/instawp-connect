@@ -16,24 +16,10 @@
  * Domain Path:       /languages
  */
 
-$count_posts = wp_count_posts();
-echo "<pre>";
-print_r($count_posts);
-echo "</pre>";
-$wp_version = bloginfo('version');
-$php_version = phpversion();
-$total_size = '';
-$active_theme = wp_get_theme();
-$published_posts = $count_posts->publish;
-$total_pages = 'pages';
-$total_users = 'users';
-echo "wp_version == ". $wp_version."<br/>";
-echo "php_version == ".$php_version ."<br/>";
-//echo "total_size == ".$total_size ."<br/>";
-echo "active_theme == ".$active_theme ."<br/>";
-echo "total_posts == ".$total_posts ."<br/>";
+echo phpversion();
+exit;
 
-die();
+
 // If this file is called directly, abort.
 if ( ! defined( 'WPINC' ) ) {
     die;

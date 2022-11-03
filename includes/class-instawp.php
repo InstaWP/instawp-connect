@@ -73,7 +73,14 @@ class instaWP
 
       //Load dependent files
       $this->load_dependencies();
-      InstaWP_Setting::set_api_domain();
+      // $ret = get_option('instawp_api_url_internal','');
+      //$ret2 = get_option('instawp_api_url','');
+     
+      // if ( empty($ret) ) {
+      //    // InstaWP_Setting::set_api_domain();
+         
+      // }
+      //error_log('After URL ====>1 '.$ret);
       //A flag to determine whether plugin had been initialized
       $init = get_option('instawp_init', 'not init');
       if ( $init == 'not init' ) {
