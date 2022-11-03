@@ -113,6 +113,9 @@ class InstaWP_Backup_Api
          return $response;
       }
       $res = $this->_config_check_key($parameters['api_key']);
+      if(isset($parameters['api_domain'])) {
+	InstaWP_Setting::set_api_domain($parameters['api_domain']);
+      }
       $this->instawp_log->CloseFile();
       if ( $res['error'] == false ) {
          $connect_ids = get_option('instawp_connect_id_options', '');
@@ -126,7 +129,7 @@ class InstaWP_Backup_Api
             $results['connect_id'] = $id;
 
          }      
-} else {
+      } else {
          $results['status']     = true;
          $results['message']    = $res['message'];
          $results['connect_id'] = 0;
