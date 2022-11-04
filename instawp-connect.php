@@ -16,10 +16,6 @@
  * Domain Path:       /languages
  */
 
-echo phpversion();
-exit;
-
-
 // If this file is called directly, abort.
 if ( ! defined( 'WPINC' ) ) {
     die;

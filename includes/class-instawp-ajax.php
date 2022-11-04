@@ -20,9 +20,15 @@ class InstaWP_AJAX
    }
 
    public function instawp_heartbeat_check(){
-      $wp_version = bloginfo('version');
+      
+      if ( ! class_exists( 'WP_Debug_Data' ) ) {
+         require_once ABSPATH . 'wp-admin/includes/class-wp-debug-data.php';
+      }
+      $sizes_data = WP_Debug_Data::get_sizes();
+      
+      $wp_version = get_bloginfo('version');
       $php_version = phpversion();
-      $total_size = '1024 MB';
+      $total_size = $sizes_data['total_size']['size'];
       $active_theme = wp_get_theme()->get('Name');
 
       $count_posts = wp_count_posts();
@@ -33,7 +39,7 @@ class InstaWP_AJAX
 
       $count_users = count_users();
       $users = $count_users['total_users'];
-
+      
       global $InstaWP_Curl;
       $body = array(
          "wp_version" => $wp_version,
@@ -43,10 +49,8 @@ class InstaWP_AJAX
          "posts" => $posts,
          "pages" => $pages,
          "users" => $users,
-     );
-
-      error_log( print_r($body, true) );
-
+      );     
+      error_log( print_r($body, true) );      
       $api_doamin = InstaWP_Setting::get_api_domain();
       $url = $api_doamin . INSTAWP_API_URL . '/connects-heartbeats';
       $body_json     = json_encode($body);
