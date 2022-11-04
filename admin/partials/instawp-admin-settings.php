@@ -15,6 +15,7 @@ global $instawp_plugin;
 
 
 $connect_options = get_option('instawp_api_options', '');
+$instawp_api_url = get_option('instawp_api_url', '');
 $general_setting = InstaWP_Setting::get_setting(true, "");
 $api_key = '';
 //$api_heartbeat = 15;
@@ -96,7 +97,9 @@ foreach ( $tasks as $task_id => $task ) {
                 </td>                    
             </tr>
 
-            <?php if( isset( $_GET['internal'] ) && $_GET['page']=='instawp-settings' && 1 === intval( $_GET['internal'] ) ){ ?>                    
+            <?php if( isset( $_GET['internal'] ) && $_GET['page']=='instawp-settings' && 1 === intval( $_GET['internal'] ) ){ 
+                $interal_api_domain = get_option('instawp_api_url', '');
+                ?>                    
                 <tr valign="top">
                     <th scope="row">
                         <label for="num_elements">
@@ -104,7 +107,7 @@ foreach ( $tasks as $task_id => $task ) {
                         </label> 
                     </th>
                     <td>
-                        <input type="text" value="" required="" name="instawp_api_url_internal" id="instawp_api_url_internal" />                        
+                        <input type="text" value="<?php echo esc_attr($interal_api_domain); ?>" required="" name="instawp_api_url_internal" id="instawp_api_url_internal" />                        
                     </td>                    
                 </tr>
             <?php } ?>

@@ -67,7 +67,6 @@ class InstaWP_Setting
     
     public static function set_api_domain( $instawp_api_url = 'https://app.instawp.io' ) {     
         update_option( 'instawp_api_url', $instawp_api_url );  
-        error_log("Check Current URL ".$instawp_api_url);
     }
 
     public static function get_api_domain( ) {
