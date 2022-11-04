@@ -13,15 +13,87 @@ class InstaWP_AJAX
       
       add_action('wp_ajax_instawp_check_key', array( $this, 'check_key' ));
       add_action('wp_ajax_instawp_settings_call', array( $this, 'instawp_settings_call' ));
+      add_action('wp_ajax_instawp_heartbeat_check', array( $this, 'instawp_heartbeat_check' ));
       add_action('wp_ajax_instawp_connect', array( $this, 'connect' ));
       add_action('wp_ajax_instawp_check_staging', array( $this, 'instawp_check_staging' ));
      
    }
 
+   public static function instawp_heartbeat_data_encrypt( $arg ){
+      $connect_options = get_option('instawp_api_options', '');
+      $api_key = $connect_options['api_key'];
+
+      $cipher = "aes-128-gcm";
+      $ivlen = openssl_cipher_iv_length($cipher);
+      $iv = openssl_random_pseudo_bytes($ivlen);
+      $tag = 'GCM';
+      return openssl_encrypt( $arg, $cipher, $api_key, $options=0, $iv, $tag );       
+   }
+
+   public function instawp_heartbeat_check(){
+      
+      if ( ! class_exists( 'WP_Debug_Data' ) ) {
+         require_once ABSPATH . 'wp-admin/includes/class-wp-debug-data.php';
+      }
+      $sizes_data = WP_Debug_Data::get_sizes();
+
+      $wp_version = get_bloginfo('version');
+      $php_version = phpversion();
+      $total_size = $sizes_data['total_size']['size'];
+      $active_theme = wp_get_theme()->get('Name');
+
+      $count_posts = wp_count_posts();
+      $posts = $count_posts->publish;
+
+      $count_pages = wp_count_posts('page');
+      $pages = $count_pages->publish;
+
+      $count_users = count_users();
+      $users = $count_users['total_users'];
+
+      $connect_ids = get_option('instawp_connect_id_options', '');
+
+      if ( ! empty($connect_ids) ) {
+         if ( isset($connect_ids['data']['id']) && ! empty($connect_ids['data']['id']) ) {
+            $id= $connect_ids['data']['id'];
+         }
+      }
+      
+      global $InstaWP_Curl;
+      $body = array(
+         "wp_version" => self::instawp_heartbeat_data_encrypt($wp_version),
+         "php_version" => self::instawp_heartbeat_data_encrypt($php_version),
+         "total_size" => self::instawp_heartbeat_data_encrypt($total_size),
+         "theme" => self::instawp_heartbeat_data_encrypt($active_theme),
+         "posts" => self::instawp_heartbeat_data_encrypt($posts),
+         "pages" => self::instawp_heartbeat_data_encrypt($pages),
+         "users" => self::instawp_heartbeat_data_encrypt($users),
+        // "connect_id" => $id,//self::instawp_heartbeat_data_encrypt($id),
+      );     
+      error_log( print_r($body, true) );      
+      $api_doamin = InstaWP_Setting::get_api_domain();
+      $url = $api_doamin . INSTAWP_API_URL . '/connects/'.$id.'/heartbeat';
+      $body_json     = json_encode($body);
+      $curl_response = $InstaWP_Curl->curl($url, $body_json);            
+     
+      error_log( "Heartbeat API Curl URL ".$url);
+      error_log( "Print Heartbeat API Curl Response Start" );      
+      error_log( print_r($curl_response, true) );
+      error_log( "Print Heartbeat API Curl Response End" );
+      wp_send_json($curl_response);
+      wp_die();
+   }
+
    public function instawp_settings_call() {
       
-      $message=''; $resType = false;
+      $message=''; $resType = false;      
       if( isset( $_REQUEST['api_heartbeat'] ) && !empty( $_REQUEST['api_heartbeat'] ) ){
+
+         if( isset( $_REQUEST['instawp_api_url_internal'] ) ){
+            $instawp_api_url_internal = $_REQUEST['instawp_api_url_internal'];
+            InstaWP_Setting::set_api_domain($instawp_api_url_internal);         
+         }
+
          $api_heartbeat = trim( $_REQUEST['api_heartbeat'] );        
          $resType = true;
          $message='Settings saved successfully';
@@ -77,7 +149,7 @@ class InstaWP_AJAX
       if ( ! empty($connect_ids) && ! empty($bkp_init_opt) && ! empty($backup_status_opt) ) {
          if ( isset($connect_ids['data']['id']) && ! empty($connect_ids['data']['id']) ) {
             $id                 = $connect_ids['data']['id'];
-            $site_id                 = $backup_status_opt['data']['site_id'];
+            $site_id            = $backup_status_opt['data']['site_id'];
             $body['connect_id'] = $id;
             $body['task_id']    = $task_id;
             $body['site_id']    = $site_id;

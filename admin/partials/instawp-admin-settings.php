@@ -58,57 +58,69 @@ foreach ( $tasks as $task_id => $task ) {
 ?>
 <div class="wrap instawp-settings-page">
     <h1>Settings</h1>
-     <form method="POST" action="" id="instawp_settings">
-            <table class="form-table" width="100%">
-                <tr valign="top">
-                    <th scope="row">
-                        <label for="num_elements">
-                            API Key
-                        </label> 
-                    </th>
-                    <td>
-                        <input type="text" name="api_key" id="instawp_api" value="<?php echo esc_html($api_key); ?>" />
-                        <a class="button button-primary" id="instawp-check-key">Check</a>                        
-                            <a href="https://app.instawp.io/user/api-tokens" target="_blank" class="">Generate API Key</a>                        
-                        <p class="instawp-err-msg"></p>
-                    </td>
-                    
-                </tr>
-                <tr valign="top">
-                    <th scope="row">
-                        <label for="num_elements">
-                            Kill All Process
-                        </label> 
-                    </th>
-                    <td>
-                        <input type="checkbox" name="intawp_kill_all" id="intawp_kill_all" />                        
-                    </td>                    
-                </tr>
-
-                <tr valign="top">
-                    <th scope="row">
-                        <label for="num_elements">
-                            Heartbeat min.
-                        </label> 
-                    </th>
-                    <td>
-                        <input type="number" min="5" max="120" value="<?php echo esc_html($instawp_heartbeat_option); ?>" name="instawp_api_heartbeat" id="instawp_api_heartbeat" />                        
-                    </td>                    
-                </tr>
+    <form method="POST" action="" id="instawp_settings">
+        <table class="form-table" width="100%">
+            <tr valign="top">
+                <th scope="row">
+                    <label for="num_elements">
+                        API Key
+                    </label> 
+                </th>
+                <td>
+                    <input type="text" name="api_key" id="instawp_api" value="<?php echo esc_html($api_key); ?>" />
+                    <a class="button button-primary" id="instawp-check-key">Check</a>                        
+                        <a href="https://app.instawp.io/user/api-tokens" target="_blank" class="">Generate API Key</a>                        
+                    <p class="instawp-err-msg"></p>
+                </td>
                 
-            </table>
-            <?php wp_nonce_field( 'instawp_settings', 'instawp_settings_nonce' ); ?>
-            <?php submit_button(); ?>
-        </form>
-        <p class="instawp-err-msg heartbeat"></p>
+            </tr>
+            <tr valign="top">
+                <th scope="row">
+                    <label for="num_elements">
+                        Kill All Process
+                    </label> 
+                </th>
+                <td>
+                    <input type="checkbox" name="intawp_kill_all" id="intawp_kill_all" />                        
+                </td>                    
+            </tr>
+
+            <tr valign="top">
+                <th scope="row">
+                    <label for="num_elements">
+                        Heartbeat min.
+                    </label> 
+                </th>
+                <td>
+                    <input type="number" min="1" max="120" value="<?php echo esc_html($instawp_heartbeat_option); ?>" name="instawp_api_heartbeat" id="instawp_api_heartbeat" />                        
+                </td>                    
+            </tr>
+
+            <?php if( isset( $_GET['internal'] ) && $_GET['page']=='instawp-settings' && 1 === intval( $_GET['internal'] ) ){ ?>                    
+                <tr valign="top">
+                    <th scope="row">
+                        <label for="num_elements">
+                            API Domain
+                        </label> 
+                    </th>
+                    <td>
+                        <input type="text" value="" required="" name="instawp_api_url_internal" id="instawp_api_url_internal" />                        
+                    </td>                    
+                </tr>
+            <?php } ?>
+            
+        </table>
+        <?php wp_nonce_field( 'instawp_settings', 'instawp_settings_nonce' ); ?>
+        <?php submit_button(); ?>
+    </form>
+    <p class="instawp-err-msg heartbeat"></p>
 </div>
 <script type="text/javascript">
     jQuery(document).ready(function () {
-        jQuery(document).on('click','#instawp-check-key',function(){            
-                //console.log(instawp_ajax_object);
-                var api_key = jQuery('#instawp_api').val();
-                var api_heartbeat = jQuery('#instawp_api_heartbeat').val();
-                jQuery.ajax({
+        jQuery(document).on('click','#instawp-check-key',function(){     
+            var api_key = jQuery('#instawp_api').val();
+            var api_heartbeat = jQuery('#instawp_api_heartbeat').val();
+            jQuery.ajax({
                 type: 'POST',
                 url: instawp_ajax_object.ajax_url,
                 data: {
@@ -140,14 +152,15 @@ foreach ( $tasks as $task_id => $task ) {
         jQuery(document).on('submit','#instawp_settings', function(e){
             e.preventDefault();
             var api_heartbeat = jQuery('#instawp_api_heartbeat').val();
+            var instawp_api_url_internal = jQuery('#instawp_api_url_internal').val();
             jQuery.ajax({
                 type: 'POST',
                 url: instawp_ajax_object.ajax_url,
                 data: {
                     action: "instawp_settings_call",
                     nonce: instawp_ajax_object.ajax_nonce,
-                    api_heartbeat: api_heartbeat
-                    
+                    api_heartbeat: api_heartbeat,
+                    instawp_api_url_internal: instawp_api_url_internal                    
                 },
                 success: function ( response ) {  
 
@@ -166,4 +179,34 @@ foreach ( $tasks as $task_id => $task ) {
             }); 
         }); 
     }); 
+
+   
+    //heartbeat call based on time code start
+    var call_timing = "<?php echo $instawp_heartbeat_option;?>";
+    if( call_timing=='' ){
+        call_timing = 15;
+    }
+    
+    var heartbeatInterval = 1000 * 60 * parseInt( call_timing );
+    setInterval(site_heartbeat, heartbeatInterval);
+
+    function site_heartbeat(){       
+        console.log("Call Started");
+        jQuery.ajax({
+            type: 'POST',
+            url: instawp_ajax_object.ajax_url,
+            data: {
+               action: "instawp_heartbeat_check",
+               nonce: instawp_ajax_object.ajax_nonce,                
+            },
+            success: function (response) {    
+                console.log("Call response start");           
+                console.log(response);
+                console.log("Call response end");           
+            },
+            error: function (errorThrown) {
+               console.log('error');
+           }
+       });    
+   }
 </script>
