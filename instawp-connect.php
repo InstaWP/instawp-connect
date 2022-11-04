@@ -105,6 +105,10 @@ define('INSTAWP_AUTO_LOGIN_URL','https://s.instawp.io/');
 
 
 function instawp_plugin_activate() {
+    // Set default option
+    InstaWP_Setting::set_api_domain();
+    error_log("Settled on acivation");
+    
     if ( get_option('permalink_structure') == '' ) {
         global $wp_rewrite;
         $wp_rewrite->set_permalink_structure('/%postname%/');

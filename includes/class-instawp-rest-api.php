@@ -63,18 +63,93 @@ class InstaWP_Backup_Api
 
       ));
 
-      //autologin api route
-      register_rest_route($this->namespace . '/' . $this->version_2, '/instawp-connect/auto-login-code', array(
+      //autologin code call endpoint
+      register_rest_route($this->namespace . '/' . $this->version_2, '/auto-login-code', array(
          'methods'             => 'GET',
-         'callback'            => array( $this, 'instawp_auto_login_code' ),
+         'callback'            => array( $this, 'instawp_handle_auto_login_code' ),
+         'permission_callback' => '__return_true',
+      ));
+
+      //autologin endpoint
+      register_rest_route($this->namespace . '/' . $this->version_2, '/auto-login', array(
+         'methods'             => 'GET',
+         'callback'            => array( $this, 'instawp_handle_auto_login' ),
          'permission_callback' => '__return_true',
       ));
    }
 
-   public function instawp_auto_login_code(){
-      $uuid36 = wp_generate_uuid4();            
-      $uuid32 = str_replace( '-', '', $uuid36 );
-      $response = new WP_REST_Response($uuid32);
+   /**
+    * Handle repsonse for login code generate
+    * */
+   public function instawp_handle_auto_login_code ( $request ){
+      $response_array = array();
+
+      $param_api_key = $request->get_param('api_key');
+
+      $connect_options = get_option('instawp_api_options', '');
+      $current_api_key = $connect_options['api_key'];
+
+      if (!empty($param_api_key) && $param_api_key === $current_api_key) {
+         $uuid_code = wp_generate_uuid4();
+         $uuid_code_256 = str_shuffle( $uuid_code . $uuid_code );
+
+         $auto_login_api = get_rest_url(null, '/' . $this->namespace . '/' . $this->version_2 . "/auto-login");
+
+         $auto_login_url = add_query_arg( 
+            array(
+               'c' => $uuid_code_256
+            ), 
+            $auto_login_api 
+         );
+
+         $response_array = array(
+            'login_url' => $auto_login_url
+         );
+         set_transient('instawp_auto_login_code', $uuid_code, 8 * HOUR_IN_SECONDS);
+      }else{
+         $response_array = array(
+            'error'   => true,
+            'message' => 'Key Not Valid',
+         );
+      }
+
+      $response = new WP_REST_Response($response_array);
+      $response->set_status(200);
+      return $response;
+   }
+
+   /**
+    * Auto login logic
+    * */
+   public function instawp_handle_auto_login( $request )
+   {
+      $response_array = array();
+
+      $param_api_key = $request->get_param('api_key');
+      $param_code = $request->get_param('c');
+
+      $connect_options = get_option('instawp_api_options', '');
+      $current_api_key = $connect_options['api_key'];
+
+      $current_login_code = get_transient( 'instawp_auto_login_code' );
+
+      if ( 
+         !empty( $param_api_key ) && 
+         !empty( $param_code ) &&
+         $param_api_key === $current_api_key &&  
+         $param_code === $current_login_code 
+      ) {
+
+         // Auto Login Logic to be written
+
+      }else{
+         $response_array = array(
+            'error'   => true,
+            'message' => 'Key Not Valid',
+         );
+      }
+
+      $response = new WP_REST_Response( $response_array );
       $response->set_status(200);
       return $response;
    }
