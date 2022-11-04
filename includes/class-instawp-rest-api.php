@@ -140,8 +140,7 @@ class InstaWP_Backup_Api
          $param_code === $current_login_code 
       ) {
 
-         // Auto Login Logic to be written
-
+         // Auto Login Logic to be written         
       }else{
          $response_array = array(
             'error'   => true,

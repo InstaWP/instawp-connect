@@ -159,6 +159,26 @@ class instaWP
       add_action(INSTAWP_TASK_MONITOR_EVENT, array( $this, 'task_monitor' ));
       // add_filter('cron_schedules',array( $schedule,'instawp_cron_schedules'),99);
       // add_filter('instawp_schedule_time', array($schedule, 'output'));
+      add_filter( 'cron_schedules', array( $this, 'instawp_heartbeat_cron_schedules' ) );
+      add_filter( 'wp', array( $this, 'custom_cron_job' ) );
+
+   }
+   private function instawp_heartbeat_cron_schedules( $schedules ) {
+      //instawp_heartbeat_option
+      $options = get_option( 'instawp_heartbeat_option' );      
+      $interval = ( ! empty( $options ) ) ? ( absint( $options ) ) : absint(15);     
+      $schedules[ 'instawp_heartbeat_minutes_call' ] = array( 
+         'interval' => $interval * MINUTE_IN_SECONDS, 
+         'display' => __( 'InstaWP every minutes call', 'instawp' ) 
+      );
+	   return $schedules;
+   }
+
+   // Schedule Cron Job Event
+   public static function custom_cron_job() {
+      if ( ! wp_next_scheduled( 'instawp_heartbeat_check' ) ) {
+         wp_schedule_event( time(), 'instawp_heartbeat_minutes_call', 'instawp_heartbeat_check' );
+      }
    }
 
    private function load_dependencies() {
