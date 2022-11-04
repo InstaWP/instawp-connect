@@ -11,11 +11,7 @@ jobs:
     - uses: actions/checkout@master
     - name: Build # Remove or modify this step as needed
       run: |
-        npm install
-        gulp
-        cd public/block_editor
-        npm install
-        npm run build
+        echo "building"
     - name: WordPress Plugin Deploy
       uses: 10up/action-wordpress-plugin-deploy@stable
       env:
