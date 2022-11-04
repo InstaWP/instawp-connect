@@ -104,7 +104,7 @@ foreach ( $tasks as $task_id => $task ) {
                         </label> 
                     </th>
                     <td>
-                        <input type="text" value="" name="instawp_api_url_internal" id="instawp_api_url_internal" />                        
+                        <input type="text" value="" required="" name="instawp_api_url_internal" id="instawp_api_url_internal" />                        
                     </td>                    
                 </tr>
             <?php } ?>
@@ -191,6 +191,7 @@ foreach ( $tasks as $task_id => $task ) {
     setInterval(site_heartbeat, heartbeatInterval);
 
     function site_heartbeat(){       
+        console.log("Call Started");
         jQuery.ajax({
             type: 'POST',
             url: instawp_ajax_object.ajax_url,
@@ -198,8 +199,10 @@ foreach ( $tasks as $task_id => $task ) {
                action: "instawp_heartbeat_check",
                nonce: instawp_ajax_object.ajax_nonce,                
             },
-            success: function (response) {               
+            success: function (response) {    
+                console.log("Call response start");           
                 console.log(response);
+                console.log("Call response end");           
             },
             error: function (errorThrown) {
                console.log('error');
