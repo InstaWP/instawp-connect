@@ -92,7 +92,7 @@ foreach ( $tasks as $task_id => $task ) {
                     </label> 
                 </th>
                 <td>
-                    <input type="number" min="5" max="120" value="<?php echo esc_html($instawp_heartbeat_option); ?>" name="instawp_api_heartbeat" id="instawp_api_heartbeat" />                        
+                    <input type="number" min="1" max="120" value="<?php echo esc_html($instawp_heartbeat_option); ?>" name="instawp_api_heartbeat" id="instawp_api_heartbeat" />                        
                 </td>                    
             </tr>
 

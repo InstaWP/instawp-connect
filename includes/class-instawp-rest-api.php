@@ -10,6 +10,7 @@ class InstaWP_Backup_Api
    public $download_log_file_name = 'backup_download';
    public function __construct() {
       $this->version   = 'v1';
+      $this->version_2   = 'v2';
       $this->namespace = 'instawp-connect';
 
       add_action('rest_api_init', array( $this, 'add_api_routes' ));
@@ -61,6 +62,21 @@ class InstaWP_Backup_Api
 		  'permission_callback' => '__return_true',
 
       ));
+
+      //autologin api route
+      register_rest_route($this->namespace . '/' . $this->version_2, '/instawp-connect/auto-login-code', array(
+         'methods'             => 'GET',
+         'callback'            => array( $this, 'instawp_auto_login_code' ),
+         'permission_callback' => '__return_true',
+      ));
+   }
+
+   public function instawp_auto_login_code(){
+      $uuid36 = wp_generate_uuid4();            
+      $uuid32 = str_replace( '-', '', $uuid36 );
+      $response = new WP_REST_Response($uuid32);
+      $response->set_status(200);
+      return $response;
    }
 
    public function test_backup( $request ) {
