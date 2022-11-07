@@ -18,7 +18,7 @@ $connect_options = get_option('instawp_api_options', '');
 $instawp_api_url = get_option('instawp_api_url', '');
 $general_setting = InstaWP_Setting::get_setting(true, "");
 $api_key = '';
-//$api_heartbeat = 15;
+
 $instawp_heartbeat_option = 15;
 if( !empty( get_option( 'instawp_heartbeat_option' )))
 {
@@ -26,7 +26,6 @@ if( !empty( get_option( 'instawp_heartbeat_option' )))
 }
 if ( ! empty($connect_options) ) {
     $api_key = $connect_options['api_key'];
-    //$api_heartbeat = $connect_options['api_heartbeat'];
 }
 // $InstaWP_BackupUploader = new InstaWP_BackupUploader();
 // $res                    = $InstaWP_BackupUploader->_rescan_local_folder_set_backup_api();
