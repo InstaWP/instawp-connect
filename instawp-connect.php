@@ -116,6 +116,17 @@ function instawp_plugin_activate() {
     }
     add_option('instawp_do_activation_redirect', true);
 }
+
+/*Deactivate Hook Handle*/
+function instawp_plugin_deactivate(){
+    /*heartbeat*/
+    if ( wp_get_schedule('instwp_handle_heartbeat_cron_action') ) {
+        wp_clear_scheduled_hook('instwp_handle_heartbeat_cron_action');
+        $timestamp = wp_next_scheduled('instwp_handle_heartbeat_cron_action');
+        wp_unschedule_event($timestamp,'instwp_handle_heartbeat_cron_action');
+    }
+}
+
 function instawp_init_plugin_redirect() {
     if ( get_option('instawp_do_activation_redirect', false) ) {
         delete_option('instawp_do_activation_redirect');
@@ -155,6 +166,7 @@ function instawp_init_plugin_redirect() {
     }
 }
 register_activation_hook(__FILE__, 'instawp_plugin_activate');
+register_deactivation_hook(__FILE__, 'instawp_plugin_deactivate');
 add_action('admin_init', 'instawp_init_plugin_redirect');
 
 /**

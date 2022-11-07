@@ -13,13 +13,13 @@ class InstaWP_AJAX
       
       add_action('wp_ajax_instawp_check_key', array( $this, 'check_key' ));
       add_action('wp_ajax_instawp_settings_call', array( $this, 'instawp_settings_call' ));
-      add_action('wp_ajax_instawp_heartbeat_check', array( $this, 'instawp_heartbeat_check' ));
+      // add_action('wp_ajax_instawp_heartbeat_check', array( $this, 'instawp_heartbeat_check' ));
       add_action('wp_ajax_instawp_connect', array( $this, 'connect' ));
       add_action('wp_ajax_instawp_check_staging', array( $this, 'instawp_check_staging' ));
      
    }
 
-   public static function instawp_heartbeat_data_encrypt( $arg ){
+   /*public static function instawp_heartbeat_data_encrypt( $arg ){
       $connect_options = get_option('instawp_api_options', '');
       $api_key = $connect_options['api_key'];
 
@@ -28,7 +28,7 @@ class InstaWP_AJAX
       $iv = openssl_random_pseudo_bytes($ivlen);
       $tag = 'GCM';
       return openssl_encrypt( $arg, $cipher, $api_key, $options=0, $iv, $tag );       
-   }
+   }*/
 
    public function instawp_heartbeat_check(){
       
@@ -98,6 +98,11 @@ class InstaWP_AJAX
          $resType = true;
          $message='Settings saved successfully';
          update_option( 'instawp_heartbeat_option', $api_heartbeat );
+
+         if ( intval( get_option("instawp_heartbeat_option") ) !== intval( $api_heartbeat ) ) {
+            $timestamp = wp_next_scheduled( 'instwp_handle_heartbeat_cron_action' );
+            wp_unschedule_event( $timestamp, 'instwp_handle_heartbeat_cron_action' );
+         }
       }else{
          $resType = false;
          $message='Something Wrong';         
@@ -180,8 +185,8 @@ class InstaWP_AJAX
 
       $this->ajax_check_security();
       $res = array(
-		  'error'   => true,
-		  'message' => '',
+        'error'   => true,
+        'message' => '',
       );
       $api_doamin = InstaWP_Setting::get_api_domain();
       $url = $api_doamin . INSTAWP_API_URL . '/check-key';
@@ -195,11 +200,11 @@ class InstaWP_AJAX
       //$api_heartbeat = trim( $_REQUEST['api_heartbeat'] );
       //102|SouBdaa121zb1U2DDlsWK8tXaoV8L31WsXnqMyOy';
       $response = wp_remote_get($url, array(
-		  'body'    => '',
-		  'headers' => array(
-			   'Authorization' => 'Bearer ' . $api_key,
-			   'Accept'        => 'application/json',
-		   ),
+        'body'    => '',
+        'headers' => array(
+            'Authorization' => 'Bearer ' . $api_key,
+            'Accept'        => 'application/json',
+         ),
       ));
       $response_code = wp_remote_retrieve_response_code($response);
       if ( ! is_wp_error($response) && $response_code == 200 ) {
@@ -240,8 +245,8 @@ class InstaWP_AJAX
 
       $this->ajax_check_security();
       $res = array(
-		  'error'   => true,
-		  'message' => '',
+        'error'   => true,
+        'message' => '',
       );
       $api_doamin = InstaWP_Setting::get_api_domain();
       $url = $api_doamin . INSTAWP_API_URL . '/connects';
@@ -288,8 +293,8 @@ class InstaWP_AJAX
 
       $this->ajax_check_security();
       $res = array(
-		  'error'   => true,
-		  'message' => '',
+        'error'   => true,
+        'message' => '',
       );
       $url = 'https://s.instawp.io/api/v1/connects';
 
@@ -301,9 +306,9 @@ class InstaWP_AJAX
       }
       $api_key = $connect_options['api_key'];
       $header  = array(
-		  'Authorization' => 'Bearer ' . $api_key,
-		  'Accept'        => 'application/json',
-		  'Content-Type'  => 'application/json;charset=UTF-8',
+        'Authorization' => 'Bearer ' . $api_key,
+        'Accept'        => 'application/json',
+        'Content-Type'  => 'application/json;charset=UTF-8',
 
       );
       $body = json_encode(array( 'url' => get_site_url() ));
@@ -311,8 +316,8 @@ class InstaWP_AJAX
       print_r($body);
 
       $response = wp_remote_post($url, array(
-		  'headers' => $header,
-		  'body'    => json_encode($body),
+        'headers' => $header,
+        'body'    => json_encode($body),
 
       ));
       $response_code = wp_remote_retrieve_response_code($response);

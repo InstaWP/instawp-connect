@@ -75,10 +75,10 @@ class instaWP
       $this->load_dependencies();
       // $ret = get_option('instawp_api_url_internal','');
       //$ret2 = get_option('instawp_api_url','');
-     
+
       // if ( empty($ret) ) {
       //    // InstaWP_Setting::set_api_domain();
-         
+
       // }
       //error_log('After URL ====>1 '.$ret);
       //A flag to determine whether plugin had been initialized
@@ -147,6 +147,93 @@ class instaWP
       //Initialisation log object
       $this->instawp_log          = new InstaWP_Log();
       $this->instawp_download_log = new InstaWP_Log();
+
+      /*Cron handlers*/
+      add_filter('cron_schedules', array($this, 'instawp_handle_cron_time_intervals'));
+      add_action( 'wp',  array($this, 'instawp_handle_cron_scheduler'));
+      add_action( 'instwp_handle_heartbeat_cron_action', array( $this, 'instawp_handle_heartbeat_cron_action_call' ) );
+      /*Cron handlers*/
+
+   }
+
+   // Set Cron time interval function
+   public function instawp_handle_cron_time_intervals( $schedules )
+   {  
+      $cutstom_interval = get_option('instawp_heartbeat_option', 15);
+      $schedules['instawp_heartbeat_interval'] = array(
+         'interval' => $cutstom_interval * 60,
+         'display' => 'Once '.$cutstom_interval.' minutes'
+      );
+
+      return $schedules;
+   }
+
+   /*Set Cron event*/
+   public function instawp_handle_cron_scheduler() {
+      if ( ! wp_next_scheduled( 'instwp_handle_heartbeat_cron_action' ) ) {
+         wp_schedule_event( time(), 'instawp_heartbeat_interval', 'instwp_handle_heartbeat_cron_action');
+      }
+   }
+
+   public static function instawp_heartbeat_data_encrypt( $arg ){
+      $connect_options = get_option('instawp_api_options', '');
+      $api_key = $connect_options['api_key'];
+
+      $cipher = "aes-128-gcm";
+      $ivlen = openssl_cipher_iv_length($cipher);
+      $iv = openssl_random_pseudo_bytes($ivlen);
+      $tag = 'GCM';
+      return openssl_encrypt( $arg, $cipher, $api_key, $options=0, $iv, $tag );       
+   }
+
+   /**/
+   public function instawp_handle_heartbeat_cron_action_call(){
+      error_log("RAN AT : " . date('d-m-Y, H:i:s, h:i:s'));
+
+      if ( ! class_exists( 'WP_Debug_Data' ) ) {
+         require_once ABSPATH . 'wp-admin/includes/class-wp-debug-data.php';
+      }
+      $sizes_data = WP_Debug_Data::get_sizes();
+
+      $wp_version = get_bloginfo('version');
+      $php_version = phpversion();
+      $total_size = $sizes_data['total_size']['size'];
+      $active_theme = wp_get_theme()->get('Name');
+
+      $count_posts = wp_count_posts();
+      $posts = $count_posts->publish;
+
+      $count_pages = wp_count_posts('page');
+      $pages = $count_pages->publish;
+
+      $count_users = count_users();
+      $users = $count_users['total_users'];
+
+      $connect_ids = get_option('instawp_connect_id_options', '');
+
+      if ( ! empty($connect_ids) ) {
+         if ( isset($connect_ids['data']['id']) && ! empty($connect_ids['data']['id']) ) {
+            $id= $connect_ids['data']['id'];
+         }
+      }
+
+      // Curl constant
+      global $InstaWP_Curl;
+
+      $body = array(
+         "wp_version" => self::instawp_heartbeat_data_encrypt($wp_version),
+         "php_version" => self::instawp_heartbeat_data_encrypt($php_version),
+         "total_size" => self::instawp_heartbeat_data_encrypt($total_size),
+         "theme" => self::instawp_heartbeat_data_encrypt($active_theme),
+         "posts" => self::instawp_heartbeat_data_encrypt($posts),
+         "pages" => self::instawp_heartbeat_data_encrypt($pages),
+         "users" => self::instawp_heartbeat_data_encrypt($users),
+      );
+      
+      $api_doamin = InstaWP_Setting::get_api_domain();
+      $url = $api_doamin . INSTAWP_API_URL . '/connects/'.$id.'/heartbeat';
+      $body_json     = json_encode($body);
+      $curl_response = $InstaWP_Curl->curl($url, $body_json);            
    }
 
    public function init_cron() {
@@ -159,26 +246,6 @@ class instaWP
       add_action(INSTAWP_TASK_MONITOR_EVENT, array( $this, 'task_monitor' ));
       // add_filter('cron_schedules',array( $schedule,'instawp_cron_schedules'),99);
       // add_filter('instawp_schedule_time', array($schedule, 'output'));
-      add_filter( 'cron_schedules', array( $this, 'instawp_heartbeat_cron_schedules' ) );
-      add_filter( 'wp', array( $this, 'custom_cron_job' ) );
-
-   }
-   private function instawp_heartbeat_cron_schedules( $schedules ) {
-      //instawp_heartbeat_option
-      $options = get_option( 'instawp_heartbeat_option' );      
-      $interval = ( ! empty( $options ) ) ? ( absint( $options ) ) : absint(15);     
-      $schedules[ 'instawp_heartbeat_minutes_call' ] = array( 
-         'interval' => $interval * MINUTE_IN_SECONDS, 
-         'display' => __( 'InstaWP every minutes call', 'instawp' ) 
-      );
-	   return $schedules;
-   }
-
-   // Schedule Cron Job Event
-   public static function custom_cron_job() {
-      if ( ! wp_next_scheduled( 'instawp_heartbeat_check' ) ) {
-         wp_schedule_event( time(), 'instawp_heartbeat_minutes_call', 'instawp_heartbeat_check' );
-      }
    }
 
    private function load_dependencies() {
@@ -452,65 +519,65 @@ class instaWP
                $this->end_shutdown_function=true;
                echo json_encode(array('result' => INSTAWP_FAILED,'error' => $ret['check']['error']));
                die();
-               }*/
+            }*/
 
-               $html        = '';
-               $html        = apply_filters('instawp_add_backup_list', $html);
-               $ret['html'] = $html;
-            }
-            $this->end_shutdown_function = true;
-            echo json_encode($ret);
-            die();
+            $html        = '';
+            $html        = apply_filters('instawp_add_backup_list', $html);
+            $ret['html'] = $html;
          }
-      } catch ( Exception $error ) {
          $this->end_shutdown_function = true;
-         $ret['result']               = 'failed';
-         $message                     = 'An exception has occurred. class:' . get_class($error) . ';msg:' . $error->getMessage() . ';code:' . $error->getCode() . ';line:' . $error->getLine() . ';in_file:' . $error->getFile() . ';';
-         $ret['error']                = $message;
-         $id                          = uniqid('instawp-');
-         $log_file_name               = $id . '_backup';
-         $log                         = new InstaWP_Log();
-         $log->CreateLogFile($log_file_name, 'no_folder', 'backup');
-         $log->WriteLog($message, 'notice');
-         $log->CloseFile();
-         InstaWP_error_log::create_error_log($log->log_file);
-         error_log($message);
          echo json_encode($ret);
          die();
       }
+   } catch ( Exception $error ) {
+      $this->end_shutdown_function = true;
+      $ret['result']               = 'failed';
+      $message                     = 'An exception has occurred. class:' . get_class($error) . ';msg:' . $error->getMessage() . ';code:' . $error->getCode() . ';line:' . $error->getLine() . ';in_file:' . $error->getFile() . ';';
+      $ret['error']                = $message;
+      $id                          = uniqid('instawp-');
+      $log_file_name               = $id . '_backup';
+      $log                         = new InstaWP_Log();
+      $log->CreateLogFile($log_file_name, 'no_folder', 'backup');
+      $log->WriteLog($message, 'notice');
+      $log->CloseFile();
+      InstaWP_error_log::create_error_log($log->log_file);
+      error_log($message);
+      echo json_encode($ret);
+      die();
    }
+}
 
-   public function prepare_backup_rest_api( $backup_args = null ) {
+public function prepare_backup_rest_api( $backup_args = null ) {
 
       //$this->ajax_check_security();
-      $this->end_shutdown_function = false;
-      register_shutdown_function(array( $this, 'deal_prepare_shutdown_error' ));
-      try {
-         if ( isset($backup_args) && ! empty($backup_args) ) {
-            $json           = $backup_args;
-            $json           = stripslashes($json);
-            $backup_options = json_decode($json, true);
-            if ( is_null($backup_options) ) {
-               $this->end_shutdown_function = true;
-               die();
-            }
+   $this->end_shutdown_function = false;
+   register_shutdown_function(array( $this, 'deal_prepare_shutdown_error' ));
+   try {
+      if ( isset($backup_args) && ! empty($backup_args) ) {
+         $json           = $backup_args;
+         $json           = stripslashes($json);
+         $backup_options = json_decode($json, true);
+         if ( is_null($backup_options) ) {
+            $this->end_shutdown_function = true;
+            die();
+         }
 
-            $backup_options = apply_filters('instawp_custom_backup_options', $backup_options);
+         $backup_options = apply_filters('instawp_custom_backup_options', $backup_options);
 
-            if ( ! isset($backup_options['type']) ) {
-               $backup_options['type']   = 'Manual';
-               $backup_options['action'] = 'backup';
-            }
+         if ( ! isset($backup_options['type']) ) {
+            $backup_options['type']   = 'Manual';
+            $backup_options['action'] = 'backup';
+         }
 
-            $ret = $this->check_backup_option($backup_options, $backup_options['type']);
-            if ( $ret['result'] != INSTAWP_SUCCESS ) {
-               $this->end_shutdown_function = true;
-               return json_encode($ret);
-               die();
-            }
+         $ret = $this->check_backup_option($backup_options, $backup_options['type']);
+         if ( $ret['result'] != INSTAWP_SUCCESS ) {
+            $this->end_shutdown_function = true;
+            return json_encode($ret);
+            die();
+         }
 
-            $ret = $this->pre_backup($backup_options);
-            if ( $ret['result'] == 'success' ) {
+         $ret = $this->pre_backup($backup_options);
+         if ( $ret['result'] == 'success' ) {
                //Check the website data to be backed up
                /*
                $ret['check']=$this->check_backup($ret['task_id'],$backup_options);
@@ -519,107 +586,107 @@ class instaWP
                $this->end_shutdown_function=true;
                echo json_encode(array('result' => INSTAWP_FAILED,'error' => $ret['check']['error']));
                die();
-               }*/
+            }*/
 
-               $html        = '';
-               $html        = apply_filters('instawp_add_backup_list', $html);
-               $ret['html'] = $html;
-            }
-            $this->end_shutdown_function = true;
-            return json_encode($ret);
-            die();
+            $html        = '';
+            $html        = apply_filters('instawp_add_backup_list', $html);
+            $ret['html'] = $html;
          }
-      } catch ( Exception $error ) {
          $this->end_shutdown_function = true;
-         $ret['result']               = 'failed';
-         $message                     = 'An exception has occurred. class:' . get_class($error) . ';msg:' . $error->getMessage() . ';code:' . $error->getCode() . ';line:' . $error->getLine() . ';in_file:' . $error->getFile() . ';';
-         $ret['error']                = $message;
-         $id                          = uniqid('instawp-');
-         $log_file_name               = $id . '_backup';
-         $log                         = new InstaWP_Log();
-         $log->CreateLogFile($log_file_name, 'no_folder', 'backup');
-         $log->WriteLog($message, 'notice');
-         $log->CloseFile();
-         InstaWP_error_log::create_error_log($log->log_file);
-         error_log($message);
          return json_encode($ret);
          die();
       }
+   } catch ( Exception $error ) {
+      $this->end_shutdown_function = true;
+      $ret['result']               = 'failed';
+      $message                     = 'An exception has occurred. class:' . get_class($error) . ';msg:' . $error->getMessage() . ';code:' . $error->getCode() . ';line:' . $error->getLine() . ';in_file:' . $error->getFile() . ';';
+      $ret['error']                = $message;
+      $id                          = uniqid('instawp-');
+      $log_file_name               = $id . '_backup';
+      $log                         = new InstaWP_Log();
+      $log->CreateLogFile($log_file_name, 'no_folder', 'backup');
+      $log->WriteLog($message, 'notice');
+      $log->CloseFile();
+      InstaWP_error_log::create_error_log($log->log_file);
+      error_log($message);
+      return json_encode($ret);
+      die();
    }
+}
 
-   public function deal_prepare_shutdown_error() {
-      if ( $this->end_shutdown_function == false ) {
-         $last_error = error_get_last();
-         if ( ! empty($last_error) && ! in_array($last_error['type'], array( E_NOTICE, E_WARNING, E_USER_NOTICE, E_USER_WARNING, E_DEPRECATED ), true) ) {
-            $error = $last_error;
-         } else {
-            $error = false;
-         }
-         $ret['result'] = 'failed';
-         if ( $error === false ) {
-            $ret['error'] = 'unknown Error';
-         } else {
-            $ret['error'] = 'type: ' . $error['type'] . ', ' . $error['message'] . ' file:' . $error['file'] . ' line:' . $error['line'];
-            error_log($ret['error']);
-         }
-         $id            = uniqid('instawp-');
-         $log_file_name = $id . '_backup';
-         $log           = new InstaWP_Log();
-         $log->CreateLogFile($log_file_name, 'no_folder', 'backup');
-         $log->WriteLog($ret['error'], 'notice');
-         $log->CloseFile();
-         InstaWP_error_log::create_error_log($log->log_file);
-         echo json_encode($ret);
-         die();
+public function deal_prepare_shutdown_error() {
+   if ( $this->end_shutdown_function == false ) {
+      $last_error = error_get_last();
+      if ( ! empty($last_error) && ! in_array($last_error['type'], array( E_NOTICE, E_WARNING, E_USER_NOTICE, E_USER_WARNING, E_DEPRECATED ), true) ) {
+         $error = $last_error;
+      } else {
+         $error = false;
       }
+      $ret['result'] = 'failed';
+      if ( $error === false ) {
+         $ret['error'] = 'unknown Error';
+      } else {
+         $ret['error'] = 'type: ' . $error['type'] . ', ' . $error['message'] . ' file:' . $error['file'] . ' line:' . $error['line'];
+         error_log($ret['error']);
+      }
+      $id            = uniqid('instawp-');
+      $log_file_name = $id . '_backup';
+      $log           = new InstaWP_Log();
+      $log->CreateLogFile($log_file_name, 'no_folder', 'backup');
+      $log->WriteLog($ret['error'], 'notice');
+      $log->CloseFile();
+      InstaWP_error_log::create_error_log($log->log_file);
+      echo json_encode($ret);
+      die();
    }
+}
 
-   public function check_backup_option( $data, $backup_method = 'Manual' ) {
-      $ret['result'] = INSTAWP_SUCCESS;
-      add_filter('instawp_check_backup_options_valid', array( $this, 'check_backup_options_valid' ), 10, 3);
-      $ret = apply_filters('instawp_check_backup_options_valid', $ret, $data, $backup_method);
+public function check_backup_option( $data, $backup_method = 'Manual' ) {
+   $ret['result'] = INSTAWP_SUCCESS;
+   add_filter('instawp_check_backup_options_valid', array( $this, 'check_backup_options_valid' ), 10, 3);
+   $ret = apply_filters('instawp_check_backup_options_valid', $ret, $data, $backup_method);
+   return $ret;
+}
+
+public function check_backup_options_valid( $ret, $data, $backup_method ) {
+   $ret['result'] = INSTAWP_FAILED;
+   if ( ! isset($data['backup_files']) ) {
+      $ret['error'] = __('A backup type is required.', 'instawp-connect');
       return $ret;
    }
 
-   public function check_backup_options_valid( $ret, $data, $backup_method ) {
-      $ret['result'] = INSTAWP_FAILED;
-      if ( ! isset($data['backup_files']) ) {
-         $ret['error'] = __('A backup type is required.', 'instawp-connect');
-         return $ret;
-      }
+   $data['backup_files'] = sanitize_text_field($data['backup_files']);
 
-      $data['backup_files'] = sanitize_text_field($data['backup_files']);
-
-      if ( empty($data['backup_files']) ) {
-         $ret['error'] = __('A backup type is required.', 'instawp-connect');
-         return $ret;
-      }
-
-      if ( ! isset($data['local']) && ! isset($data['remote']) ) {
-         $ret['error'] = __('Choose at least one storage location for backups.', 'instawp-connect');
-         return $ret;
-      }
-
-      $data['local']  = sanitize_text_field($data['local']);
-      $data['remote'] = isset($data['remote']) ? sanitize_text_field($data['remote']) : ''  ;
-
-      if ( empty($data['local']) && empty($data['remote']) ) {
-         $ret['error'] = __('Choose at least one storage location for backups.', 'instawp-connect');
-         return $ret;
-      }
-
-      if ( $backup_method == 'Manual' ) {
-         if ( $data['remote'] === '1' ) {
-            $remote_storage = InstaWP_Setting::get_remote_options();
-            if ( $remote_storage == false ) {
-               $ret['error'] = __('There is no default remote storage configured. Please set it up first.', 'instawp-connect');
-               return $ret;
-            }
-         }
-      }
-      $ret['result'] = INSTAWP_SUCCESS;
+   if ( empty($data['backup_files']) ) {
+      $ret['error'] = __('A backup type is required.', 'instawp-connect');
       return $ret;
    }
+
+   if ( ! isset($data['local']) && ! isset($data['remote']) ) {
+      $ret['error'] = __('Choose at least one storage location for backups.', 'instawp-connect');
+      return $ret;
+   }
+
+   $data['local']  = sanitize_text_field($data['local']);
+   $data['remote'] = isset($data['remote']) ? sanitize_text_field($data['remote']) : ''  ;
+
+   if ( empty($data['local']) && empty($data['remote']) ) {
+      $ret['error'] = __('Choose at least one storage location for backups.', 'instawp-connect');
+      return $ret;
+   }
+
+   if ( $backup_method == 'Manual' ) {
+      if ( $data['remote'] === '1' ) {
+         $remote_storage = InstaWP_Setting::get_remote_options();
+         if ( $remote_storage == false ) {
+            $ret['error'] = __('There is no default remote storage configured. Please set it up first.', 'instawp-connect');
+            return $ret;
+         }
+      }
+   }
+   $ret['result'] = INSTAWP_SUCCESS;
+   return $ret;
+}
 
    /**
     * Delete tasks had [ready] status.
@@ -637,9 +704,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       }
       echo json_encode($ret);
@@ -679,17 +746,17 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       } catch ( Error $error ) {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       }
       die();
@@ -723,17 +790,17 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       } catch ( Error $error ) {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       }
       die();
@@ -790,9 +857,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       }
       die();
@@ -843,9 +910,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       }
       die();
@@ -904,9 +971,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       }
       die();
@@ -923,102 +990,102 @@ class instaWP
          $task_id = sanitize_key($_POST['task_id']);
          $json = $this->function_realize->_backup_cancel($task_id);
          echo json_encode($json);
-         }*/
-         $json = $this->function_realize->_backup_cancel();
-         echo json_encode($json);
-      } catch ( Exception $error ) {
-         $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
-         error_log($message);
-         echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
-         die();
-      }
+      }*/
+      $json = $this->function_realize->_backup_cancel();
+      echo json_encode($json);
+   } catch ( Exception $error ) {
+      $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
+      error_log($message);
+      echo json_encode(array(
+        'result' => 'failed',
+        'error'  => $message,
+     ));
       die();
    }
+   die();
+}
 
-   public function backup_cancel_api() {
+public function backup_cancel_api() {
       //$this->ajax_check_security();
-      try {
+   try {
          /*if (isset($_POST['task_id']) && !empty($_POST['task_id']) && is_string($_POST['task_id'])) {
          $task_id = sanitize_key($_POST['task_id']);
          $json = $this->function_realize->_backup_cancel($task_id);
          echo json_encode($json);
-         }*/
-         $json = $this->function_realize->_backup_cancel();
-         return json_encode($json);
-      } catch ( Exception $error ) {
-         $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
-         error_log($message);
-         return json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
-
-      }
+      }*/
+      $json = $this->function_realize->_backup_cancel();
+      return json_encode($json);
+   } catch ( Exception $error ) {
+      $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
+      error_log($message);
+      return json_encode(array(
+        'result' => 'failed',
+        'error'  => $message,
+     ));
 
    }
 
-   public function main_schedule( $schedule_id = '' ) {
+}
+
+public function main_schedule( $schedule_id = '' ) {
       //get backup options
-      do_action('instawp_set_current_schedule_id', $schedule_id);
-      $this->end_shutdown_function = false;
-      register_shutdown_function(array( $this, 'deal_prepare_shutdown_error' ));
-      $schedule_options = InstaWP_Schedule::get_schedule($schedule_id);
-      if ( empty($schedule_options) ) {
+   do_action('instawp_set_current_schedule_id', $schedule_id);
+   $this->end_shutdown_function = false;
+   register_shutdown_function(array( $this, 'deal_prepare_shutdown_error' ));
+   $schedule_options = InstaWP_Schedule::get_schedule($schedule_id);
+   if ( empty($schedule_options) ) {
+      $this->end_shutdown_function = true;
+      die();
+   }
+   try {
+      $schedule_options['backup']['local']   = strval($schedule_options['backup']['local']);
+      $schedule_options['backup']['remote']  = strval($schedule_options['backup']['remote']);
+      $schedule_options['backup']['ismerge'] = strval($schedule_options['backup']['ismerge']);
+      $schedule_options['backup']['lock']    = strval($schedule_options['backup']['lock']);
+      $ret                                   = $this->check_backup_option($schedule_options['backup'], 'Cron');
+      if ( $ret['result'] != INSTAWP_SUCCESS ) {
          $this->end_shutdown_function = true;
+            //echo json_encode($ret);
          die();
       }
-      try {
-         $schedule_options['backup']['local']   = strval($schedule_options['backup']['local']);
-         $schedule_options['backup']['remote']  = strval($schedule_options['backup']['remote']);
-         $schedule_options['backup']['ismerge'] = strval($schedule_options['backup']['ismerge']);
-         $schedule_options['backup']['lock']    = strval($schedule_options['backup']['lock']);
-         $ret                                   = $this->check_backup_option($schedule_options['backup'], 'Cron');
-         if ( $ret['result'] != INSTAWP_SUCCESS ) {
-            $this->end_shutdown_function = true;
-            //echo json_encode($ret);
-            die();
-         }
 
-         if ( ! isset($schedule_options['backup']['type']) ) {
-            $schedule_options['backup']['type']   = 'Cron';
-            $schedule_options['backup']['action'] = 'backup';
-         }
+      if ( ! isset($schedule_options['backup']['type']) ) {
+         $schedule_options['backup']['type']   = 'Cron';
+         $schedule_options['backup']['action'] = 'backup';
+      }
 
-         $ret = $this->pre_backup($schedule_options['backup']);
-         if ( $ret['result'] == 'success' ) {
+      $ret = $this->pre_backup($schedule_options['backup']);
+      if ( $ret['result'] == 'success' ) {
             //Check the website data to be backed up.
             //$this->check_backup($ret['task_id'], $schedule_options['backup']);
             //flush buffer
-            $this->flush($ret['task_id']);
+         $this->flush($ret['task_id']);
             //start backup task.
 
-            $task_msg = InstaWP_taskmanager::get_task($ret['task_id']);
-            $this->update_last_backup_time($task_msg);
+         $task_msg = InstaWP_taskmanager::get_task($ret['task_id']);
+         $this->update_last_backup_time($task_msg);
 
-            $this->backup($ret['task_id']);
-         }
-         $this->end_shutdown_function = true;
-         die();
-      } catch ( Exception $error ) {
-         $this->end_shutdown_function = true;
-         $ret['result']               = 'failed';
-         $message                     = 'An exception has occurred. class:' . get_class($error) . ';msg:' . $error->getMessage() . ';code:' . $error->getCode() . ';line:' . $error->getLine() . ';in_file:' . $error->getFile() . ';';
-         $ret['error']                = $message;
-         $id                          = uniqid('instawp-');
-         $log_file_name               = $id . '_backup';
-         $log                         = new InstaWP_Log();
-         $log->CreateLogFile($log_file_name, 'no_folder', 'backup');
-         $log->WriteLog($message, 'notice');
-         $log->CloseFile();
-         InstaWP_error_log::create_error_log($log->log_file);
-         error_log($message);
-         //echo json_encode($ret);
-         die();
+         $this->backup($ret['task_id']);
       }
+      $this->end_shutdown_function = true;
+      die();
+   } catch ( Exception $error ) {
+      $this->end_shutdown_function = true;
+      $ret['result']               = 'failed';
+      $message                     = 'An exception has occurred. class:' . get_class($error) . ';msg:' . $error->getMessage() . ';code:' . $error->getCode() . ';line:' . $error->getLine() . ';in_file:' . $error->getFile() . ';';
+      $ret['error']                = $message;
+      $id                          = uniqid('instawp-');
+      $log_file_name               = $id . '_backup';
+      $log                         = new InstaWP_Log();
+      $log->CreateLogFile($log_file_name, 'no_folder', 'backup');
+      $log->WriteLog($message, 'notice');
+      $log->CloseFile();
+      InstaWP_error_log::create_error_log($log->log_file);
+      error_log($message);
+         //echo json_encode($ret);
+      die();
    }
+}
    /**
     * Resume backup schedule.
     *
@@ -1263,10 +1330,10 @@ class instaWP
                $url = $api_doamin . INSTAWP_API_URL . '/connects/' . $id . '/backup_init';
 
                $body = array(
-				   "task_id" => $ret['task_id'],
-				   "success" => true,
-				   "message" => "Backup Initiated",
-               );
+                 "task_id" => $ret['task_id'],
+                 "success" => true,
+                 "message" => "Backup Initiated",
+              );
                // $instawp_task_list = get_option('instawp_task_list','');
                // $instawp_task_list[ $ret['task_id'] ]['options']['remote_options'] = 1;
                // update_option('instawp_task_list',$instawp_task_list);
@@ -1540,54 +1607,54 @@ class instaWP
             do_action('instawp_handle_backup_succeed', $task);
          }
 
-        /*Setup call back to the cloud with success response*/
+         /*Setup call back to the cloud with success response*/
 
         // Get all the files paths
-        global $InstaWP_Curl;
-        $zip_file_urls = array();
+         global $InstaWP_Curl;
+         $zip_file_urls = array();
 
         // Get file paths
-        $task = new InstaWP_Backup_Task($task_id);
-        $files = $task->get_backup_files();
+         $task = new InstaWP_Backup_Task($task_id);
+         $files = $task->get_backup_files();
 
         // loop through paths
-        foreach ($files as $file) {
+         foreach ($files as $file) {
             // set url in variable
             $file_download_url = home_url() . '/wp-content/instawpbackups/' . basename($file);
             
             // push to array
             array_push($zip_file_urls, $file_download_url);   
-        }
+         }
 
-        $body = array(
+         $body = array(
             "restore_id" => $restore_id,
             "progress" => 100,
             "task_id" => $task_id,
             "restore_file_path" => $zip_file_urls
-        );
+         );
 
-        error_log( print_r($body, true) );
+         error_log( print_r($body, true) );
 
 
-        $api_doamin = InstaWP_Setting::get_api_domain();
-        $url = $api_doamin . INSTAWP_API_URL . '/s2p-restore-status';
-        $body_json     = json_encode($body);
-        $curl_response = $InstaWP_Curl->curl($url, $body_json);
+         $api_doamin = InstaWP_Setting::get_api_domain();
+         $url = $api_doamin . INSTAWP_API_URL . '/s2p-restore-status';
+         $body_json     = json_encode($body);
+         $curl_response = $InstaWP_Curl->curl($url, $body_json);
 
         // Log response from curl temoprarily
-        error_log( "Printing call response for push stage to production" );
-        error_log( print_r($curl_response, true) );
-        error_log( "Printing call response for push stage to production close" );
+         error_log( "Printing call response for push stage to production" );
+         error_log( print_r($curl_response, true) );
+         error_log( "Printing call response for push stage to production close" );
 
         // If not any errror
-        if ( $curl_response['error'] == false ) {
+         if ( $curl_response['error'] == false ) {
             $response = (array) json_decode($curl_response['curl_res'], true);
             // save response from curl temoprarily
             update_option('instawp_api_call_response_for_push_to_production_call', $response);
-        }
+         }
 
-        /*Setup call back to the cloud with success response close*/
-        return true;
+         /*Setup call back to the cloud with success response close*/
+         return true;
       } else {
          $task = InstaWP_taskmanager::get_task($task_id);
          do_action('instawp_handle_backup_failed', $task, false);
@@ -1885,19 +1952,19 @@ class instaWP
             do_action('instawp_handle_backup_failed', $task, false);
             }
              */
-            }
          }
-         die();
       }
+      die();
    }
-   public function deal_task_error( $task_id, $error_type, $error ) {
-      $message = 'An ' . $error_type . ' has occurred. class:' . get_class($error) . ';msg:' . $error->getMessage() . ';code:' . $error->getCode() . ';line:' . $error->getLine() . ';in_file:' . $error->getFile() . ';';
-      error_log($message);
-      $task = InstaWP_taskmanager::update_backup_task_status($task_id, false, 'error', false, false, $message);
-      $this->instawp_log->WriteLog($message, 'error');
+}
+public function deal_task_error( $task_id, $error_type, $error ) {
+   $message = 'An ' . $error_type . ' has occurred. class:' . get_class($error) . ';msg:' . $error->getMessage() . ';code:' . $error->getCode() . ';line:' . $error->getLine() . ';in_file:' . $error->getFile() . ';';
+   error_log($message);
+   $task = InstaWP_taskmanager::update_backup_task_status($task_id, false, 'error', false, false, $message);
+   $this->instawp_log->WriteLog($message, 'error');
 
-      do_action('instawp_handle_backup_failed', $task, false);
-   }
+   do_action('instawp_handle_backup_failed', $task, false);
+}
    /**
     * update time limit.
     *
@@ -2428,7 +2495,7 @@ class instaWP
    ob_flush();
    flush();
    }
-   }*/
+}*/
    /**
     * return initialization download page data
     *
@@ -2453,7 +2520,7 @@ class instaWP
    die();
    }
    die();
-   }*/
+}*/
 
    /**
     * return initialization download page data
@@ -2558,9 +2625,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
       }
       die();
    }
@@ -2666,9 +2733,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
       }
       die();
    }
@@ -2729,9 +2796,9 @@ class instaWP
          error_log($message);
          $this->end_shutdown_function = true;
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       }
       $this->instawp_download_log->CloseFile();
@@ -2773,32 +2840,32 @@ class instaWP
                if ( $task === false ) {
                   $ret['files'][ $file['file_name'] ]['status'] = 'need_download';
                   $ret['files'][ $file['file_name'] ]['html']   = '<div class="instawp-element-space-bottom">
-                                                                        <span class="instawp-element-space-right">Retriving (remote storage to web server)</span><span class="instawp-element-space-right">|</span><span>File Size: </span><span class="instawp-element-space-right">' . $file['size'] . '</span><span class="instawp-element-space-right">|</span><span>Downloaded Size: </span><span>0</span>
-                                                                   </div>
-                                                                   <div style="width:100%;height:10px; background-color:#dcdcdc;">
-                                                                        <div style="background-color:#0085ba; float:left;width:0%;height:10px;"></div>
-                                                                   </div>';
+                  <span class="instawp-element-space-right">Retriving (remote storage to web server)</span><span class="instawp-element-space-right">|</span><span>File Size: </span><span class="instawp-element-space-right">' . $file['size'] . '</span><span class="instawp-element-space-right">|</span><span>Downloaded Size: </span><span>0</span>
+                  </div>
+                  <div style="width:100%;height:10px; background-color:#dcdcdc;">
+                  <div style="background-color:#0085ba; float:left;width:0%;height:10px;"></div>
+                  </div>';
                   $ret['need_update'] = true;
                } else {
                   if ( $task['status'] === 'running' ) {
                      $ret['files'][ $file['file_name'] ]['status']        = 'running';
                      $ret['files'][ $file['file_name'] ]['progress_text'] = $task['progress_text'];
                      $ret['files'][ $file['file_name'] ]['html']          = '<div class="instawp-element-space-bottom">
-                                                                            <span class="instawp-element-space-right">Retriving (remote storage to web server)</span><span class="instawp-element-space-right">|</span><span>File Size: </span><span class="instawp-element-space-right">' . $file['size'] . '</span><span class="instawp-element-space-right">|</span><span>Downloaded Size: </span><span>' . $downloaded_size . '</span>
-                                                                        </div>
-                                                                        <div style="width:100%;height:10px; background-color:#dcdcdc;">
-                                                                            <div style="background-color:#0085ba; float:left;width:' . $task['progress_text'] . '%;height:10px;"></div>
-                                                                        </div>';
+                     <span class="instawp-element-space-right">Retriving (remote storage to web server)</span><span class="instawp-element-space-right">|</span><span>File Size: </span><span class="instawp-element-space-right">' . $file['size'] . '</span><span class="instawp-element-space-right">|</span><span>Downloaded Size: </span><span>' . $downloaded_size . '</span>
+                     </div>
+                     <div style="width:100%;height:10px; background-color:#dcdcdc;">
+                     <div style="background-color:#0085ba; float:left;width:' . $task['progress_text'] . '%;height:10px;"></div>
+                     </div>';
                      $ret['need_update'] = true;
                   } elseif ( $task['status'] === 'timeout' ) {
                      $ret['files'][ $file['file_name'] ]['status']        = 'timeout';
                      $ret['files'][ $file['file_name'] ]['progress_text'] = $task['progress_text'];
                      $ret['files'][ $file['file_name'] ]['html']          = '<div class="instawp-element-space-bottom">
-                                                                            <span>Download timeout, please retry.</span>
-                                                                         </div>
-                                                                         <div>
-                                                                            <span>' . __('File Size: ', 'instawp-connect') . '</span><span class="instawp-element-space-right">' . $file['size'] . '</span><span class="instawp-element-space-right">|</span><span class="instawp-element-space-right"><a class="instawp-download" style="cursor: pointer;">' . __('Prepare to Download', 'instawp-connect') . '</a></span>
-                                                                        </div>';
+                     <span>Download timeout, please retry.</span>
+                     </div>
+                     <div>
+                     <span>' . __('File Size: ', 'instawp-connect') . '</span><span class="instawp-element-space-right">' . $file['size'] . '</span><span class="instawp-element-space-right">|</span><span class="instawp-element-space-right"><a class="instawp-download" style="cursor: pointer;">' . __('Prepare to Download', 'instawp-connect') . '</a></span>
+                     </div>';
                      InstaWP_taskmanager::delete_download_task_v2($file['file_name']);
                   } elseif ( $task['status'] === 'completed' ) {
                      $ret['files'][ $file['file_name'] ]['status'] = 'completed';
@@ -2808,11 +2875,11 @@ class instaWP
                      $ret['files'][ $file['file_name'] ]['status'] = 'error';
                      $ret['files'][ $file['file_name'] ]['error']  = $task['error'];
                      $ret['files'][ $file['file_name'] ]['html']   = '<div class="instawp-element-space-bottom">
-                                                                            <span>' . $task['error'] . '</span>
-                                                                         </div>
-                                                                         <div>
-                                                                            <span>' . __('File Size: ', 'instawp-connect') . '</span><span class="instawp-element-space-right">' . $file['size'] . '</span><span class="instawp-element-space-right">|</span><span class="instawp-element-space-right"><a class="instawp-download" style="cursor: pointer;">' . __('Prepare to Download', 'instawp-connect') . '</a></span>
-                                                                         </div>';
+                     <span>' . $task['error'] . '</span>
+                     </div>
+                     <div>
+                     <span>' . __('File Size: ', 'instawp-connect') . '</span><span class="instawp-element-space-right">' . $file['size'] . '</span><span class="instawp-element-space-right">|</span><span class="instawp-element-space-right"><a class="instawp-download" style="cursor: pointer;">' . __('Prepare to Download', 'instawp-connect') . '</a></span>
+                     </div>';
                      InstaWP_taskmanager::delete_download_task_v2($file['file_name']);
                   }
                }
@@ -2823,9 +2890,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
       }
       die();
    }
@@ -2966,9 +3033,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       }
       $admin_url = admin_url();
@@ -2993,9 +3060,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       }
       die();
@@ -3022,9 +3089,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       }
       die();
@@ -3046,9 +3113,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          return json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
 
       }
 
@@ -3077,9 +3144,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       }
       die();
@@ -3134,17 +3201,17 @@ class instaWP
          if ( isset($_POST['task_id']) && ! empty($_POST['task_id']) && is_string($_POST['task_id']) ) {
             $task_id = sanitize_key($_POST['task_id']);
             InstaWP_taskmanager::delete_task($task_id);
-             $json['result'] = 'success';
-             echo esc_html( $json['result'] );
+            $json['result'] = 'success';
+            echo esc_html( $json['result'] );
 
          }
       } catch ( Exception $error ) {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       }
       die();
@@ -3206,9 +3273,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       }
       echo json_encode($ret);
@@ -3255,9 +3322,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       }
       echo json_encode($ret);
@@ -3294,9 +3361,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       }
       echo json_encode($ret);
@@ -3368,9 +3435,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       }
       echo json_encode($ret);
@@ -3404,9 +3471,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       }
       echo json_encode($ret);
@@ -3437,9 +3504,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       }
       echo json_encode($ret);
@@ -3463,9 +3530,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       }
       die();
@@ -3563,9 +3630,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       }
       die();
@@ -3645,9 +3712,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          return json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
 
       }
 
@@ -3681,63 +3748,63 @@ class instaWP
          $ret['is_migrate_ui'] = 1;
          else
          $ret['is_migrate_ui'] = 0;*/
-         } else {
-            $ret['is_migrate_ui'] = 0;
-         }
-
-         if ( $ret['result'] == INSTAWP_FAILED ) {
-            $this->instawp_handle_restore_error($ret['error'], 'Init restore page');
-         }
-
-         echo json_encode($ret);
-      } catch ( Exception $error ) {
-         $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
-         error_log($message);
-         echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
-         die();
+      } else {
+         $ret['is_migrate_ui'] = 0;
       }
+
+      if ( $ret['result'] == INSTAWP_FAILED ) {
+         $this->instawp_handle_restore_error($ret['error'], 'Init restore page');
+      }
+
+      echo json_encode($ret);
+   } catch ( Exception $error ) {
+      $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
+      error_log($message);
+      echo json_encode(array(
+        'result' => 'failed',
+        'error'  => $message,
+     ));
       die();
    }
+   die();
+}
 
-   public function delete_last_restore_data_api() {
+public function delete_last_restore_data_api() {
       //$this->ajax_check_security();
-      try {
-         $this->restore_data = new InstaWP_restore_data();
-         $this->restore_data->clean_restore_data();
-         $ret['result'] = 'success';
-         return json_encode($ret);
-      } catch ( Exception $error ) {
-         $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
-         error_log($message);
-         return json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
-         die();
-      }
+   try {
+      $this->restore_data = new InstaWP_restore_data();
+      $this->restore_data->clean_restore_data();
+      $ret['result'] = 'success';
+      return json_encode($ret);
+   } catch ( Exception $error ) {
+      $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
+      error_log($message);
+      return json_encode(array(
+        'result' => 'failed',
+        'error'  => $message,
+     ));
       die();
    }
-   public function delete_last_restore_data() {
-      $this->ajax_check_security();
-      try {
-         $this->restore_data = new InstaWP_restore_data();
-         $this->restore_data->clean_restore_data();
-         $ret['result'] = 'success';
-         echo json_encode($ret);
-      } catch ( Exception $error ) {
-         $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
-         error_log($message);
-         echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
-         die();
-      }
+   die();
+}
+public function delete_last_restore_data() {
+   $this->ajax_check_security();
+   try {
+      $this->restore_data = new InstaWP_restore_data();
+      $this->restore_data->clean_restore_data();
+      $ret['result'] = 'success';
+      echo json_encode($ret);
+   } catch ( Exception $error ) {
+      $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
+      error_log($message);
+      echo json_encode(array(
+        'result' => 'failed',
+        'error'  => $message,
+     ));
       die();
    }
+   die();
+}
 
    /**
     * Prepare backup files for restore
@@ -3770,9 +3837,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       }
       die();
@@ -3788,136 +3855,136 @@ class instaWP
          if ( ! isset($_POST['backup_id']) || empty($_POST['backup_id']) || ! is_string($_POST['backup_id'])
             || ! isset($_POST['file_name']) || empty($_POST['file_name']) || ! is_string($_POST['file_name']) ) {
             die();
-         }
+      }
 
-         @set_time_limit(600);
+      @set_time_limit(600);
 
-         $backup_id = sanitize_key($_POST['backup_id']);
-         $file_name = sanitize_file_name( wp_unslash( $_POST['file_name'] ) );
+      $backup_id = sanitize_key($_POST['backup_id']);
+      $file_name = sanitize_file_name( wp_unslash( $_POST['file_name'] ) );
          //$file_name = $_POST['file_name'];
 
-         $file['file_name'] = $file_name;
-         $file['size']      = isset($_POST['size']) ? sanitize_text_field( wp_unslash( $_POST['size'] )  ) : ''; ;
-         $file['md5']       = isset($_POST['md5']) ? sanitize_text_field( wp_unslash( $_POST['md5'] ) ) : '';
-         $backup            = InstaWP_Backuplist::get_backup_by_id($backup_id);
-         if ( ! $backup ) {
-            echo json_encode(array(
-				'result' => INSTAWP_FAILED,
-				'error'  => 'backup not found',
-            ));
-            die();
-         }
+      $file['file_name'] = $file_name;
+      $file['size']      = isset($_POST['size']) ? sanitize_text_field( wp_unslash( $_POST['size'] )  ) : ''; ;
+      $file['md5']       = isset($_POST['md5']) ? sanitize_text_field( wp_unslash( $_POST['md5'] ) ) : '';
+      $backup            = InstaWP_Backuplist::get_backup_by_id($backup_id);
+      if ( ! $backup ) {
+         echo json_encode(array(
+           'result' => INSTAWP_FAILED,
+           'error'  => 'backup not found',
+        ));
+         die();
+      }
 
-         $backup_item = new InstaWP_Backup_Item($backup);
+      $backup_item = new InstaWP_Backup_Item($backup);
 
-         $remote_option = $backup_item->get_remote();
+      $remote_option = $backup_item->get_remote();
 
-         if ( $remote_option === false ) {
-            echo json_encode(array(
-				'result' => INSTAWP_FAILED,
-				'error'  => 'Retrieving the cloud storage information failed while downloading backups. Please try again later.',
-            ));
-            die();
-         }
+      if ( $remote_option === false ) {
+         echo json_encode(array(
+           'result' => INSTAWP_FAILED,
+           'error'  => 'Retrieving the cloud storage information failed while downloading backups. Please try again later.',
+        ));
+         die();
+      }
 
          //$downloader = new InstaWP_downloader();
          //$ret = $downloader->download($file, $local_path, $remote_option);
-         $download_info              = array();
-         $download_info['backup_id'] = sanitize_key($_POST['backup_id']);
+      $download_info              = array();
+      $download_info['backup_id'] = sanitize_key($_POST['backup_id']);
          //$download_info['file_name']=sanitize_file_name($_POST['file_name']);
-         $download_info['file_name'] = sanitize_file_name( wp_unslash( $_POST['file_name'] ) );
+      $download_info['file_name'] = sanitize_file_name( wp_unslash( $_POST['file_name'] ) );
          //set_time_limit(600);
-         if ( session_id() ) {
-            session_write_close();
-         }
-
-         $downloader = new InstaWP_downloader();
-         $downloader->ready_download($download_info);
-
-         $ret['result'] = 'success';
-         echo json_encode($ret);
-      } catch ( Exception $error ) {
-         $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
-         error_log($message);
-         echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
-         die();
+      if ( session_id() ) {
+         session_write_close();
       }
+
+      $downloader = new InstaWP_downloader();
+      $downloader->ready_download($download_info);
+
+      $ret['result'] = 'success';
+      echo json_encode($ret);
+   } catch ( Exception $error ) {
+      $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
+      error_log($message);
+      echo json_encode(array(
+        'result' => 'failed',
+        'error'  => $message,
+     ));
       die();
    }
+   die();
+}
 
-   public function download_restore_progress() {
-      try {
-         if ( ! isset($_POST['file_name']) ) {
-            die();
+public function download_restore_progress() {
+   try {
+      if ( ! isset($_POST['file_name']) ) {
+         die();
+      }
+
+      $file_name = isset($_POST['file_name']) ? sanitize_file_name( wp_unslash( $_POST['file_name'] ) ) : '' ; ;
+      $file_size = isset($_POST['size']) ? sanitize_text_field( wp_unslash( $_POST['size'] ) ) : '';
+
+      $task = InstaWP_taskmanager::get_download_task_v2($file_name);
+
+      if ( $task === false ) {
+         $check_status      = false;
+         $backupdir         = InstaWP_Setting::get_backupdir();
+         $local_storage_dir = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . $backupdir;
+         $local_file        = $local_storage_dir . DIRECTORY_SEPARATOR . $file_name;
+         if ( file_exists($local_file) ) {
+            if ( filesize($local_file) == $file_size ) {
+               $check_status = true;
+            }
          }
 
-         $file_name = isset($_POST['file_name']) ? sanitize_file_name( wp_unslash( $_POST['file_name'] ) ) : '' ; ;
-         $file_size = isset($_POST['size']) ? sanitize_text_field( wp_unslash( $_POST['size'] ) ) : '';
-
-         $task = InstaWP_taskmanager::get_download_task_v2($file_name);
-
-         if ( $task === false ) {
-            $check_status      = false;
-            $backupdir         = InstaWP_Setting::get_backupdir();
-            $local_storage_dir = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . $backupdir;
-            $local_file        = $local_storage_dir . DIRECTORY_SEPARATOR . $file_name;
-            if ( file_exists($local_file) ) {
-               if ( filesize($local_file) == $file_size ) {
-                  $check_status = true;
-               }
-            }
-
-            if ( $check_status ) {
-               $ret['result'] = INSTAWP_SUCCESS;
-               $ret['status'] = 'completed';
-            } else {
-               $ret['result'] = INSTAWP_FAILED;
-               $ret['error']  = 'not found download file';
-               $this->instawp_handle_restore_error($ret['error'], 'Downloading backup file');
-            }
-            echo json_encode($ret);
-         } else {
+         if ( $check_status ) {
             $ret['result'] = INSTAWP_SUCCESS;
-            $ret['status'] = $task['status'];
-            $ret['log']    = $task['download_descript'];
-            $ret['error']  = $task['error'];
-            echo json_encode($ret);
+            $ret['status'] = 'completed';
+         } else {
+            $ret['result'] = INSTAWP_FAILED;
+            $ret['error']  = 'not found download file';
+            $this->instawp_handle_restore_error($ret['error'], 'Downloading backup file');
          }
-      } catch ( Exception $error ) {
-         $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
-         error_log($message);
-         echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
-         die();
+         echo json_encode($ret);
+      } else {
+         $ret['result'] = INSTAWP_SUCCESS;
+         $ret['status'] = $task['status'];
+         $ret['log']    = $task['download_descript'];
+         $ret['error']  = $task['error'];
+         echo json_encode($ret);
       }
+   } catch ( Exception $error ) {
+      $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
+      error_log($message);
+      echo json_encode(array(
+        'result' => 'failed',
+        'error'  => $message,
+     ));
       die();
    }
+   die();
+}
 
-   public function instawp_handle_restore_error( $error_message, $error_type ) {
-      $this->restore_data = new InstaWP_restore_data();
-      $this->restore_data->delete_restore_log();
-      $this->restore_data->write_log($error_type, 'error');
-      $this->restore_data->write_log($error_message, 'error');
-      $this->restore_data->save_error_log_to_debug();
-   }
+public function instawp_handle_restore_error( $error_message, $error_type ) {
+   $this->restore_data = new InstaWP_restore_data();
+   $this->restore_data->delete_restore_log();
+   $this->restore_data->write_log($error_type, 'error');
+   $this->restore_data->write_log($error_message, 'error');
+   $this->restore_data->save_error_log_to_debug();
+}
 
-   public function instawp_handle_remote_storage_error( $error_message, $error_type ) {
-      $id            = uniqid('instawp-');
-      $log_file_name = $id . '_add_remote';
-      $log           = new InstaWP_Log();
-      $log->CreateLogFile($log_file_name, 'no_folder', 'Add Remote Test Connection');
-      $log->WriteLog('Remote Type: ' . $error_type, 'notice');
-      if ( isset($ret['error']) ) {
-         $log->WriteLog($error_message, 'notice');
-      }
-      $log->CloseFile();
-      InstaWP_error_log::create_error_log($log->log_file);
+public function instawp_handle_remote_storage_error( $error_message, $error_type ) {
+   $id            = uniqid('instawp-');
+   $log_file_name = $id . '_add_remote';
+   $log           = new InstaWP_Log();
+   $log->CreateLogFile($log_file_name, 'no_folder', 'Add Remote Test Connection');
+   $log->WriteLog('Remote Type: ' . $error_type, 'notice');
+   if ( isset($ret['error']) ) {
+      $log->WriteLog($error_message, 'notice');
    }
+   $log->CloseFile();
+   InstaWP_error_log::create_error_log($log->log_file);
+}
 
    /**
     * Start restore
@@ -4012,9 +4079,9 @@ class instaWP
          $this->restore_data->save_error_log_to_debug();
          $this->_disable_maintenance_mode();
          echo json_encode(array(
-			 'result' => INSTAWP_FAILED,
-			 'error'  => $message,
-         ));
+           'result' => INSTAWP_FAILED,
+           'error'  => $message,
+        ));
          $this->end_shutdown_function = true;
          die();
       }
@@ -4125,9 +4192,9 @@ class instaWP
          $this->restore_data->save_error_log_to_debug();
          $this->_disable_maintenance_mode();
          return json_encode(array(
-			 'result' => INSTAWP_FAILED,
-			 'error'  => $message,
-         ));
+           'result' => INSTAWP_FAILED,
+           'error'  => $message,
+        ));
          $this->end_shutdown_function = true;
          die();
       }
@@ -4200,9 +4267,9 @@ class instaWP
             //save_error_log_to_debug
             $this->_disable_maintenance_mode();
             echo json_encode(array(
-				'result' => INSTAWP_FAILED,
-				'error'  => $message,
-            ));
+              'result' => INSTAWP_FAILED,
+              'error'  => $message,
+           ));
          } else {
             $message = __('restore failed error unknown', 'instawp-connect');
             $this->restore_data->delete_temp_files();
@@ -4211,9 +4278,9 @@ class instaWP
             $this->restore_data->save_error_log_to_debug();
             $this->_disable_maintenance_mode();
             echo json_encode(array(
-				'result' => INSTAWP_FAILED,
-				'error'  => $message,
-            ));
+              'result' => INSTAWP_FAILED,
+              'error'  => $message,
+           ));
          }
 
          die();
@@ -4238,9 +4305,9 @@ class instaWP
             //save_error_log_to_debug
             $this->_disable_maintenance_mode();
             return json_encode(array(
-				'result' => INSTAWP_FAILED,
-				'error'  => $message,
-            ));
+              'result' => INSTAWP_FAILED,
+              'error'  => $message,
+           ));
          } else {
             $message = __('restore failed error unknown', 'instawp-connect');
             $this->restore_data->delete_temp_files();
@@ -4249,9 +4316,9 @@ class instaWP
             $this->restore_data->save_error_log_to_debug();
             $this->_disable_maintenance_mode();
             return json_encode(array(
-				'result' => INSTAWP_FAILED,
-				'error'  => $message,
-            ));
+              'result' => INSTAWP_FAILED,
+              'error'  => $message,
+           ));
          }
 
          die();
@@ -4297,9 +4364,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       }
    }
@@ -4339,17 +4406,17 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       }
    }
 
    public function init_filesystem() {
       if ( ! function_exists('request_filesystem_credentials') ) {
-            require_once ABSPATH . 'wp-admin/includes/file.php';
-        }
+         require_once ABSPATH . 'wp-admin/includes/file.php';
+      }
       $credentials = request_filesystem_credentials(wp_nonce_url(admin_url('admin.php') . "?page=instawp-connect", 'instawp-nonce'));
 
       if ( ! WP_Filesystem($credentials) ) {
@@ -4435,9 +4502,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       }
       die();
@@ -4464,65 +4531,65 @@ class instaWP
          }
          else{
          $last_message=__('The last backup message not found.', 'instawp-connect');
-         }*/
-         if ( isset($message['status']['start_time']) ) {
-            $message['status']['start_time'] = date("l, F-d-Y H:i", strtotime($message['status']['start_time']));
-            $last_message                    = $message['status']['start_time'];
-         } else {
-            $last_message = __('The last backup message not found.', 'instawp-connect');
-         }
+      }*/
+      if ( isset($message['status']['start_time']) ) {
+         $message['status']['start_time'] = date("l, F-d-Y H:i", strtotime($message['status']['start_time']));
+         $last_message                    = $message['status']['start_time'];
+      } else {
+         $last_message = __('The last backup message not found.', 'instawp-connect');
       }
-      $html .= '<strong>' . __('Last Backup: ', 'instawp-connect') . '</strong>' . $last_message;
-      return $html;
    }
+   $html .= '<strong>' . __('Last Backup: ', 'instawp-connect') . '</strong>' . $last_message;
+   return $html;
+}
 
-   public function list_tasks() {
-      $this->ajax_check_security('manage_options');
-      try {
-         if ( isset($_POST['backup_id']) ) {
-            $backup_id = sanitize_key($_POST['backup_id']);
-         } else {
-            $backup_id = false;
-         }
-         $ret                  = $this->_list_tasks($backup_id);
-         $backup_success_count = InstaWP_Setting::get_option('instawp_backup_success_count');
-         if ( ! empty($backup_success_count) ) {
-            InstaWP_Setting::delete_option('instawp_backup_success_count');
-         }
-
-         $backup_error_array = InstaWP_Setting::get_option('instawp_backup_error_array');
-         if ( ! empty($backup_error_array) ) {
-            InstaWP_Setting::delete_option('instawp_backup_error_array');
-         }
-
-         echo json_encode($ret);
-      } catch ( Exception $error ) {
-         $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
-         error_log($message);
-         echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
-         die();
+public function list_tasks() {
+   $this->ajax_check_security('manage_options');
+   try {
+      if ( isset($_POST['backup_id']) ) {
+         $backup_id = sanitize_key($_POST['backup_id']);
+      } else {
+         $backup_id = false;
       }
+      $ret                  = $this->_list_tasks($backup_id);
+      $backup_success_count = InstaWP_Setting::get_option('instawp_backup_success_count');
+      if ( ! empty($backup_success_count) ) {
+         InstaWP_Setting::delete_option('instawp_backup_success_count');
+      }
+
+      $backup_error_array = InstaWP_Setting::get_option('instawp_backup_error_array');
+      if ( ! empty($backup_error_array) ) {
+         InstaWP_Setting::delete_option('instawp_backup_error_array');
+      }
+
+      echo json_encode($ret);
+   } catch ( Exception $error ) {
+      $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
+      error_log($message);
+      echo json_encode(array(
+        'result' => 'failed',
+        'error'  => $message,
+     ));
       die();
    }
+   die();
+}
 
-   public function _list_tasks( $backup_id ) {
-      $tasks      = InstaWP_Setting::get_tasks();
-      $ret        = array();
-      $list_tasks = array();
-      foreach ( $tasks as $task ) {
-         if ( $task['action'] == 'backup' ) {
-            $backup                  = new InstaWP_Backup_Task($task['id']);
-            $list_tasks[ $task['id'] ] = $backup->get_backup_task_info($task['id']);
-            if ( $list_tasks[ $task['id'] ]['task_info']['need_next_schedule'] === true ) {
-               $timestamp = wp_next_scheduled(INSTAWP_TASK_MONITOR_EVENT, array( $task['id'] ));
+public function _list_tasks( $backup_id ) {
+   $tasks      = InstaWP_Setting::get_tasks();
+   $ret        = array();
+   $list_tasks = array();
+   foreach ( $tasks as $task ) {
+      if ( $task['action'] == 'backup' ) {
+         $backup                  = new InstaWP_Backup_Task($task['id']);
+         $list_tasks[ $task['id'] ] = $backup->get_backup_task_info($task['id']);
+         if ( $list_tasks[ $task['id'] ]['task_info']['need_next_schedule'] === true ) {
+            $timestamp = wp_next_scheduled(INSTAWP_TASK_MONITOR_EVENT, array( $task['id'] ));
 
-               if ( $timestamp === false ) {
-                  $this->add_monitor_event($task['id'], 20);
-               }
+            if ( $timestamp === false ) {
+               $this->add_monitor_event($task['id'], 20);
             }
+         }
             /*if($list_tasks[$task['id']]['task_info']['need_update_last_task']===true){
             $task_msg = InstaWP_taskmanager::get_task($task['id']);
             $this->update_last_backup_task($task_msg);
@@ -4530,95 +4597,95 @@ class instaWP
             //update last backup time
             //do_action('instawp_update_schedule_last_time_addon');
             }
-            }*/
+         }*/
             //<div id="instawp_estimate_backup_info" style="float:left; ' . $list_tasks[$task['id']]['task_info']['display_estimate_backup'] . '">
             //                                                <div class="backup-basic-info"><span class="instawp-element-space-right">' . __('Database Size:', 'instawp-connect') . '</span><span id="instawp_backup_database_size">' . $list_tasks[$task['id']]['task_info']['db_size'] . '</span></div>
             //                                                <div class="backup-basic-info"><span class="instawp-element-space-right">' . __('File Size:', 'instawp-connect') . '</span><span id="instawp_backup_file_size">' . $list_tasks[$task['id']]['task_info']['file_size'] . '</span></div>
             //                                             </div>
-            $list_tasks[ $task['id'] ]['progress_html'] = '<div class="action-progress-bar" id="instawp_action_progress_bar">
-                                                <div class="action-progress-bar-percent" id="instawp_action_progress_bar_percent" style="height:24px;width:' . $list_tasks[ $task['id'] ]['task_info']['backup_percent'] . '"></div>
-                                             </div>
+         $list_tasks[ $task['id'] ]['progress_html'] = '<div class="action-progress-bar" id="instawp_action_progress_bar">
+         <div class="action-progress-bar-percent" id="instawp_action_progress_bar_percent" style="height:24px;width:' . $list_tasks[ $task['id'] ]['task_info']['backup_percent'] . '"></div>
+         </div>
 
-                                             <div style="clear:both;"></div>
-                                             <div style="margin-left:10px; float: left; width:100%;"><p id="instawp_current_doing">' . $list_tasks[ $task['id'] ]['task_info']['descript'] . '</p></div>
-                                             <div style="clear: both;"></div>
-                                             <div style="display:none;">
-                                                <div id="instawp_backup_cancel" class="backup-log-btn"><input class="button-primary" id="instawp_backup_cancel_btn" type="submit" value="' . esc_attr('Cancel', 'instawp-connect') . '" style="' . $list_tasks[ $task['id'] ]['task_info']['css_btn_cancel'] . '" /></div>
-                                                <div id="instawp_backup_log" class="backup-log-btn"><input class="button-primary" id="instawp_backup_log_btn" type="submit" value="' . esc_attr('Log', 'instawp-connect') . '" style="' . $list_tasks[ $task['id'] ]['task_info']['css_btn_log'] . '" /></div>
-                                             </div>
-                                             <div style="clear: both;"></div>';
-         }
+         <div style="clear:both;"></div>
+         <div style="margin-left:10px; float: left; width:100%;"><p id="instawp_current_doing">' . $list_tasks[ $task['id'] ]['task_info']['descript'] . '</p></div>
+         <div style="clear: both;"></div>
+         <div style="display:none;">
+         <div id="instawp_backup_cancel" class="backup-log-btn"><input class="button-primary" id="instawp_backup_cancel_btn" type="submit" value="' . esc_attr('Cancel', 'instawp-connect') . '" style="' . $list_tasks[ $task['id'] ]['task_info']['css_btn_cancel'] . '" /></div>
+         <div id="instawp_backup_log" class="backup-log-btn"><input class="button-primary" id="instawp_backup_log_btn" type="submit" value="' . esc_attr('Log', 'instawp-connect') . '" style="' . $list_tasks[ $task['id'] ]['task_info']['css_btn_log'] . '" /></div>
+         </div>
+         <div style="clear: both;"></div>';
       }
-      InstaWP_taskmanager::delete_marked_task();
+   }
+   InstaWP_taskmanager::delete_marked_task();
 
-      $ret['backuplist_html'] = false;
-      $backup_success_count   = InstaWP_Setting::get_option('instawp_backup_success_count');
-      if ( ! empty($backup_success_count) ) {
+   $ret['backuplist_html'] = false;
+   $backup_success_count   = InstaWP_Setting::get_option('instawp_backup_success_count');
+   if ( ! empty($backup_success_count) ) {
          //$notice_msg = $backup_success_count.' backup tasks have been completed. Please switch to <a href="#" onclick="instawp_click_switch_page(\'wrap\', \'instawp_tab_log\', true);">Log</a> page to check the details.';
-         $notice_msg          = sprintf(__('%d backup tasks have been completed.', 'instawp-connect'), $backup_success_count);
-         $success_notice_html = '<div class="notice notice-success is-dismissible inline"><p>' . $notice_msg . '</p>
-                                    <button type="button" class="notice-dismiss" onclick="click_dismiss_notice(this);">
-                                    <span class="screen-reader-text">Dismiss this notice.</span>
-                                    </button>
-                                    </div>';
+      $notice_msg          = sprintf(__('%d backup tasks have been completed.', 'instawp-connect'), $backup_success_count);
+      $success_notice_html = '<div class="notice notice-success is-dismissible inline"><p>' . $notice_msg . '</p>
+      <button type="button" class="notice-dismiss" onclick="click_dismiss_notice(this);">
+      <span class="screen-reader-text">Dismiss this notice.</span>
+      </button>
+      </div>';
          //InstaWP_Setting::delete_option('instawp_backup_success_count');
-         $html                   = '';
-         $html                   = apply_filters('instawp_add_backup_list', $html);
-         $ret['backuplist_html'] = $html;
-      } else {
-         $success_notice_html = false;
-      }
-      $ret['success_notice_html'] = $success_notice_html;
+      $html                   = '';
+      $html                   = apply_filters('instawp_add_backup_list', $html);
+      $ret['backuplist_html'] = $html;
+   } else {
+      $success_notice_html = false;
+   }
+   $ret['success_notice_html'] = $success_notice_html;
 
-      $backup_error_array = InstaWP_Setting::get_option('instawp_backup_error_array');
-      if ( ! empty($backup_error_array) ) {
-         $error_notice_html = array();
-         foreach ( $backup_error_array as $key => $value ) {
-            $error_notice_html['bu_error']['task_id']   = $value['task_id'];
-            $error_notice_html['bu_error']['error_msg'] = $value['error_msg'];
-         }
+   $backup_error_array = InstaWP_Setting::get_option('instawp_backup_error_array');
+   if ( ! empty($backup_error_array) ) {
+      $error_notice_html = array();
+      foreach ( $backup_error_array as $key => $value ) {
+         $error_notice_html['bu_error']['task_id']   = $value['task_id'];
+         $error_notice_html['bu_error']['error_msg'] = $value['error_msg'];
+      }
          //InstaWP_Setting::delete_option('instawp_backup_error_array');
-         $html                   = '';
-         $html                   = apply_filters('instawp_add_backup_list', $html);
-         $ret['backuplist_html'] = $html;
-      } else {
-         $error_notice_html = false;
+      $html                   = '';
+      $html                   = apply_filters('instawp_add_backup_list', $html);
+      $ret['backuplist_html'] = $html;
+   } else {
+      $error_notice_html = false;
+   }
+   $ret['error_notice_html'] = $error_notice_html;
+
+   $ret['backup']['result'] = 'success';
+   $ret['backup']['data']   = $list_tasks;
+
+   $ret['download'] = array();
+   if ( $backup_id !== false && ! empty($backup_id) ) {
+      $backup = InstaWP_Backuplist::get_backup_by_id($backup_id);
+      if ( $backup === false ) {
+         $ret['result'] = INSTAWP_FAILED;
+         $ret['error']  = 'backup id not found';
+         return $ret;
       }
-      $ret['error_notice_html'] = $error_notice_html;
-
-      $ret['backup']['result'] = 'success';
-      $ret['backup']['data']   = $list_tasks;
-
-      $ret['download'] = array();
-      if ( $backup_id !== false && ! empty($backup_id) ) {
-         $backup = InstaWP_Backuplist::get_backup_by_id($backup_id);
-         if ( $backup === false ) {
-            $ret['result'] = INSTAWP_FAILED;
-            $ret['error']  = 'backup id not found';
-            return $ret;
-         }
-         $backup_item     = new InstaWP_Backup_Item($backup);
-         $ret['download'] = $backup_item->update_download_page($backup_id);
-      }
-
-      $html                 = '';
-      $html                 = apply_filters('instawp_get_last_backup_message', $html);
-      $ret['last_msg_html'] = $html;
-
-      $html             = '';
-      $html             = apply_filters('instawp_get_log_list', $html);
-      $ret['log_html']  = $html['html'];
-      $ret['log_count'] = $html['log_count'];
-
-      return $ret;
+      $backup_item     = new InstaWP_Backup_Item($backup);
+      $ret['download'] = $backup_item->update_download_page($backup_id);
    }
 
-   public function clean_cache() {
-      delete_option('instawp_download_cache');
-      delete_option('instawp_download_task');
-      InstaWP_taskmanager::delete_out_of_date_finished_task();
-      InstaWP_taskmanager::delete_ready_task();
-   }
+   $html                 = '';
+   $html                 = apply_filters('instawp_get_last_backup_message', $html);
+   $ret['last_msg_html'] = $html;
+
+   $html             = '';
+   $html             = apply_filters('instawp_get_log_list', $html);
+   $ret['log_html']  = $html['html'];
+   $ret['log_count'] = $html['log_count'];
+
+   return $ret;
+}
+
+public function clean_cache() {
+   delete_option('instawp_download_cache');
+   delete_option('instawp_download_task');
+   InstaWP_taskmanager::delete_out_of_date_finished_task();
+   InstaWP_taskmanager::delete_ready_task();
+}
    /**
     * Get backup local storage path
     *
@@ -4654,9 +4721,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       }
       die();
@@ -4684,9 +4751,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       }
       die();
@@ -4706,9 +4773,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       }
       die();
@@ -4964,9 +5031,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       }
       die();
@@ -5003,9 +5070,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
       }
       die();
    }
@@ -5114,9 +5181,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       }
 
@@ -5219,9 +5286,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       }
 
@@ -5326,9 +5393,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       }
       die();
@@ -5351,9 +5418,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       }
       die();
@@ -5399,9 +5466,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       }
       die();
@@ -5437,9 +5504,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       }
       die();
@@ -5483,9 +5550,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       }
       die();
@@ -5569,9 +5636,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       }
       echo json_encode($ret);
@@ -5607,9 +5674,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       }
       echo json_encode($ret);
@@ -5891,9 +5958,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       }
       exit;
@@ -5927,9 +5994,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       }
       die();
@@ -5961,9 +6028,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       }
       die();
@@ -6028,9 +6095,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       }
       exit;
@@ -6053,9 +6120,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       }
       die();
@@ -6086,16 +6153,16 @@ class instaWP
             }
             $value['path'] = str_replace('\\', '/', $value['path']);
             $html .= '<tr style="' . esc_attr($log_tr_display, 'instawp-connect') . '">
-                <td class="row-title"><label for="tablecell">' . __($value['time'], 'instawp-connect') . '</label>
-                </td>
-                <td>' . __($value['des'], 'instawp-connect') . '</td>
-                <td>' . __($value['file_name'], 'instawp-connect') . '</td>
-                <td>
-                    <a onclick="instawp_read_log(\'' . 'instawp_view_log' . '\', \'' . $value['id'] . '\', \'' . 'backup' . '\')" style="cursor:pointer;">
-                    <img src="' . esc_url(INSTAWP_PLUGIN_URL . $pic_log) . '" style="vertical-align:middle;">Log
-                    </a>
-                </td>
-                </tr>';
+            <td class="row-title"><label for="tablecell">' . __($value['time'], 'instawp-connect') . '</label>
+            </td>
+            <td>' . __($value['des'], 'instawp-connect') . '</td>
+            <td>' . __($value['file_name'], 'instawp-connect') . '</td>
+            <td>
+            <a onclick="instawp_read_log(\'' . 'instawp_view_log' . '\', \'' . $value['id'] . '\', \'' . 'backup' . '\')" style="cursor:pointer;">
+            <img src="' . esc_url(INSTAWP_PLUGIN_URL . $pic_log) . '" style="vertical-align:middle;">Log
+            </a>
+            </td>
+            </tr>';
             $log_index++;
             $current_num++;
          }
@@ -6270,9 +6337,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       }
       die();
@@ -6428,9 +6495,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          return array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         );
+           'result' => 'failed',
+           'error'  => $message,
+        );
       }
       return $ret;
    }
@@ -6536,42 +6603,42 @@ class instaWP
 
             $hide = 'hide';
             $html .= '<tr style="' . $row_style . '">
-                <th class="check-column"><input name="check_backup" type="checkbox" id="' . esc_attr($key, 'instawp-connect') . '" value="' . esc_attr($key, 'instawp-connect') . '" onclick="instawp_click_check_backup(\'' . $key . '\', \'' . $list_name . '\');" /></th>
-                <td class="tablelistcolumn">
-                    <div style="float:left;padding:0 10px 10px 0;">
-                        <div class="backuptime"><strong>' . $upload_title . '</strong>' . __(date('M-d-Y H:i', $backup_time), 'instawp-connect') . '</div>
-                        <div class="common-table">
-                            <span title="To lock the backup, the backup can only be deleted manually" id="instawp_lock_' . $key . '">
-                            <img src="' . esc_url(INSTAWP_PLUGIN_URL . $backup_lock) . '" name="' . esc_attr($lock_status, 'instawp-connect') . '" onclick="instawp_set_backup_lock(\'' . $key . '\', \'' . $lock_status . '\');" style="vertical-align:middle; cursor:pointer;"/>
-                            </span>
-                            <span style="margin:0;">|</span> <span>' . __('Type:', 'instawp-connect') . '</span><span>' . __($value['type'], 'instawp-connect') . '</span>
-                            <span style="margin:0;">|</span> <span title="Backup log"><a href="#" onclick="instawp_read_log(\'' . 'instawp_view_backup_log' . '\', \'' . __($key) . '\');"><img src="' . esc_url(INSTAWP_PLUGIN_URL . '/admin/partials/images/Log.png') . '" style="vertical-align:middle;cursor:pointer;"/><span style="margin:0;">' . __('Log', 'instawp-connect') . '</span></a></span>
-                        </div>
-                    </div>
-                </td>
-                <td class="tablelistcolumn">
-                    <div style="float:left;padding:10px 10px 10px 0;">' . $remote_pic_html . '</div>
-                </td>
-                <td class="tablelistcolumn" style="min-width:100px;">
-                    <div id="instawp_file_part_' . __($key, 'instawp-connect') . '" style="float:left;padding:10px 10px 10px 0;">
-                        <div style="cursor:pointer;" onclick="instawp_initialize_download(\'' . $key . '\', \'' . $list_name . '\');" title="' . esc_html__('Prepare to download the backup', 'instawp-connect') . '">
-                            <img id="instawp_download_btn_' . __($key, 'instawp-connect') . '" src="' . esc_url(INSTAWP_PLUGIN_URL . '/admin/partials/images/download.png') . '" style="vertical-align:middle;" /><span>' . __('Download', 'instawp-connect') . '</span>
-                            <div class="spinner" id="instawp_download_loading_' . __($key, 'instawp-connect') . '" style="float:right;width:auto;height:auto;padding:10px 180px 10px 0;background-position:0 0;"></div>
-                        </div>
-                    </div>
-                </td>
-                <td class="tablelistcolumn" style="min-width:100px;">
-                    <div class="' . $tour_class . '" onclick="instawp_popup_tour(\'' . $hide . '\');">
-                        ' . $tour_message . '<div style="cursor:pointer;padding:10px 0 10px 0;" onclick="instawp_initialize_restore(\'' . __($key, 'instawp-connect') . '\',\'' . __(date('M-d-Y H:i', $backup_time), 'instawp-connect') . '\',\'' . __($value['type'], 'instawp-connect') . '\');" style="float:left;padding:10px 10px 10px 0;">
-                            <img src="' . esc_url(INSTAWP_PLUGIN_URL . '/admin/partials/images/Restore.png') . '" style="vertical-align:middle;" /><span>' . __('Restore', 'instawp-connect') . '</span>
-                        </div>
-                    </div>
-                </td>
-                <td class="tablelistcolumn">
-                    <div class="backuplist-delete-backup" style="padding:10px 0 10px 0;">
-                        <img src="' . esc_url(INSTAWP_PLUGIN_URL . '/admin/partials/images/Delete.png') . '" style="vertical-align:middle; cursor:pointer;" title="' . __('Delete the backup', 'instawp-connect') . '" onclick="instawp_delete_selected_backup(\'' . $key . '\', \'' . $list_name . '\');"/>
-                    </div>
-                </td>
+            <th class="check-column"><input name="check_backup" type="checkbox" id="' . esc_attr($key, 'instawp-connect') . '" value="' . esc_attr($key, 'instawp-connect') . '" onclick="instawp_click_check_backup(\'' . $key . '\', \'' . $list_name . '\');" /></th>
+            <td class="tablelistcolumn">
+            <div style="float:left;padding:0 10px 10px 0;">
+            <div class="backuptime"><strong>' . $upload_title . '</strong>' . __(date('M-d-Y H:i', $backup_time), 'instawp-connect') . '</div>
+            <div class="common-table">
+            <span title="To lock the backup, the backup can only be deleted manually" id="instawp_lock_' . $key . '">
+            <img src="' . esc_url(INSTAWP_PLUGIN_URL . $backup_lock) . '" name="' . esc_attr($lock_status, 'instawp-connect') . '" onclick="instawp_set_backup_lock(\'' . $key . '\', \'' . $lock_status . '\');" style="vertical-align:middle; cursor:pointer;"/>
+            </span>
+            <span style="margin:0;">|</span> <span>' . __('Type:', 'instawp-connect') . '</span><span>' . __($value['type'], 'instawp-connect') . '</span>
+            <span style="margin:0;">|</span> <span title="Backup log"><a href="#" onclick="instawp_read_log(\'' . 'instawp_view_backup_log' . '\', \'' . __($key) . '\');"><img src="' . esc_url(INSTAWP_PLUGIN_URL . '/admin/partials/images/Log.png') . '" style="vertical-align:middle;cursor:pointer;"/><span style="margin:0;">' . __('Log', 'instawp-connect') . '</span></a></span>
+            </div>
+            </div>
+            </td>
+            <td class="tablelistcolumn">
+            <div style="float:left;padding:10px 10px 10px 0;">' . $remote_pic_html . '</div>
+            </td>
+            <td class="tablelistcolumn" style="min-width:100px;">
+            <div id="instawp_file_part_' . __($key, 'instawp-connect') . '" style="float:left;padding:10px 10px 10px 0;">
+            <div style="cursor:pointer;" onclick="instawp_initialize_download(\'' . $key . '\', \'' . $list_name . '\');" title="' . esc_html__('Prepare to download the backup', 'instawp-connect') . '">
+            <img id="instawp_download_btn_' . __($key, 'instawp-connect') . '" src="' . esc_url(INSTAWP_PLUGIN_URL . '/admin/partials/images/download.png') . '" style="vertical-align:middle;" /><span>' . __('Download', 'instawp-connect') . '</span>
+            <div class="spinner" id="instawp_download_loading_' . __($key, 'instawp-connect') . '" style="float:right;width:auto;height:auto;padding:10px 180px 10px 0;background-position:0 0;"></div>
+            </div>
+            </div>
+            </td>
+            <td class="tablelistcolumn" style="min-width:100px;">
+            <div class="' . $tour_class . '" onclick="instawp_popup_tour(\'' . $hide . '\');">
+            ' . $tour_message . '<div style="cursor:pointer;padding:10px 0 10px 0;" onclick="instawp_initialize_restore(\'' . __($key, 'instawp-connect') . '\',\'' . __(date('M-d-Y H:i', $backup_time), 'instawp-connect') . '\',\'' . __($value['type'], 'instawp-connect') . '\');" style="float:left;padding:10px 10px 10px 0;">
+            <img src="' . esc_url(INSTAWP_PLUGIN_URL . '/admin/partials/images/Restore.png') . '" style="vertical-align:middle;" /><span>' . __('Restore', 'instawp-connect') . '</span>
+            </div>
+            </div>
+            </td>
+            <td class="tablelistcolumn">
+            <div class="backuplist-delete-backup" style="padding:10px 0 10px 0;">
+            <img src="' . esc_url(INSTAWP_PLUGIN_URL . '/admin/partials/images/Delete.png') . '" style="vertical-align:middle; cursor:pointer;" title="' . __('Delete the backup', 'instawp-connect') . '" onclick="instawp_delete_selected_backup(\'' . $key . '\', \'' . $list_name . '\');"/>
+            </div>
+            </td>
             </tr>';
          }
       }
@@ -6598,17 +6665,17 @@ class instaWP
          $storage_type = $value['type'];
          $storage_type = apply_filters('instawp_storage_provider_tran', $storage_type);
          $html .= '<tr>
-                <td>' . __($i++, 'instawp-connect') . '</td>
-                <td><input type="checkbox" name="remote_storage" value="' . esc_attr($key, 'instawp-connect') . '" ' . esc_attr($check_status, 'instawp-connect') . ' /></td>
-                <td>' . __($storage_type, 'instawp-connect') . '</td>
-                <td class="row-title"><label for="tablecell">' . __($value['name'], 'instawp-connect') . '</label></td>
-                <td>
-                    <div style="float: left;"><img src="' . esc_url(INSTAWP_PLUGIN_URL . '/admin/partials/images/Edit.png') . '" onclick="click_retrieve_remote_storage(\'' . esc_attr($key, 'instawp-connect') . '\',\'' . esc_attr($value['type'], 'instawp-connect') . '\',\'' . esc_attr($value['name'], 'instawp-connect') . '\'
-                    );" style="vertical-align:middle; cursor:pointer;" title="' . esc_html__('Edit the remote storage', 'instawp-connect') . '"/></div>
-                    <div><img src="' . esc_url(INSTAWP_PLUGIN_URL . '/admin/partials/images/Delete.png') . '" onclick="instawp_delete_remote_storage(\'' . esc_attr($key, 'instawp-connect') . '\'
-                    );" style="vertical-align:middle; cursor:pointer;" title="' . esc_html__('Remove the remote storage', 'instawp-connect') . '"/></div>
-                </td>
-                </tr>';
+         <td>' . __($i++, 'instawp-connect') . '</td>
+         <td><input type="checkbox" name="remote_storage" value="' . esc_attr($key, 'instawp-connect') . '" ' . esc_attr($check_status, 'instawp-connect') . ' /></td>
+         <td>' . __($storage_type, 'instawp-connect') . '</td>
+         <td class="row-title"><label for="tablecell">' . __($value['name'], 'instawp-connect') . '</label></td>
+         <td>
+         <div style="float: left;"><img src="' . esc_url(INSTAWP_PLUGIN_URL . '/admin/partials/images/Edit.png') . '" onclick="click_retrieve_remote_storage(\'' . esc_attr($key, 'instawp-connect') . '\',\'' . esc_attr($value['type'], 'instawp-connect') . '\',\'' . esc_attr($value['name'], 'instawp-connect') . '\'
+         );" style="vertical-align:middle; cursor:pointer;" title="' . esc_html__('Edit the remote storage', 'instawp-connect') . '"/></div>
+         <div><img src="' . esc_url(INSTAWP_PLUGIN_URL . '/admin/partials/images/Delete.png') . '" onclick="instawp_delete_remote_storage(\'' . esc_attr($key, 'instawp-connect') . '\'
+         );" style="vertical-align:middle; cursor:pointer;" title="' . esc_html__('Remove the remote storage', 'instawp-connect') . '"/></div>
+         </td>
+         </tr>';
       }
       return $html;
    }
@@ -6626,10 +6693,10 @@ class instaWP
       $html = '';
       if ( $notice_type ) {
          $html .= '<div class="notice notice-success is-dismissible inline"><p>' . $message . '</p>
-                                    <button type="button" class="notice-dismiss" onclick="click_dismiss_notice(this);">
-                                    <span class="screen-reader-text">Dismiss this notice.</span>
-                                    </button>
-                                    </div>';
+         <button type="button" class="notice-dismiss" onclick="click_dismiss_notice(this);">
+         <span class="screen-reader-text">Dismiss this notice.</span>
+         </button>
+         </div>';
 
       } else {
          $html .= '<div class="notice notice-error"><p>' . $message . '</p></div>';
@@ -6684,18 +6751,18 @@ class instaWP
          }
       }
       $html .= '<fieldset>
-                   <label title="">
-                        <input type="radio" option="schedule" name="save_local_remote" value="local" ' . $backup_local . ' />
-                        <span>' . __('Save backups on localhost (web server)', 'instawp-connect') . '</span>
-                   </label><br>
-                   <label title="">
-                        <input type="radio" option="schedule" name="save_local_remote" value="remote" ' . $backup_remote . ' />
-                        <span>' . __('Send backups to remote storage (You can choose whether to keep the backup in localhost after it is uploaded to cloud storage in Settings.)', 'instawp-connect') . '</span>
-                   </label>
-                   <label style="display: none;">
-                        <input type="checkbox" option="schedule" name="lock" value="0" />
-                   </label>
-                   </fieldset>';
+      <label title="">
+      <input type="radio" option="schedule" name="save_local_remote" value="local" ' . $backup_local . ' />
+      <span>' . __('Save backups on localhost (web server)', 'instawp-connect') . '</span>
+      </label><br>
+      <label title="">
+      <input type="radio" option="schedule" name="save_local_remote" value="remote" ' . $backup_remote . ' />
+      <span>' . __('Send backups to remote storage (You can choose whether to keep the backup in localhost after it is uploaded to cloud storage in Settings.)', 'instawp-connect') . '</span>
+      </label>
+      <label style="display: none;">
+      <input type="checkbox" option="schedule" name="lock" value="0" />
+      </label>
+      </fieldset>';
       return $html;
    }
 
@@ -6827,9 +6894,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       }
       die();
@@ -6856,9 +6923,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       }
       die();
@@ -6873,9 +6940,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       }
       die();
@@ -6907,9 +6974,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       }
       die();
@@ -7010,9 +7077,9 @@ class instaWP
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-			 'result' => 'failed',
-			 'error'  => $message,
-         ));
+           'result' => 'failed',
+           'error'  => $message,
+        ));
          die();
       }
       $admin_url = admin_url();
