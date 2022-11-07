@@ -233,7 +233,11 @@ class instaWP
       $api_doamin = InstaWP_Setting::get_api_domain();
       $url = $api_doamin . INSTAWP_API_URL . '/connects/'.$id.'/heartbeat';
       $body_json     = json_encode($body);
-      $curl_response = $InstaWP_Curl->curl($url, $body_json);            
+      $curl_response = $InstaWP_Curl->curl($url, $body_json);  
+      error_log( "Heartbeat API Curl URL ".$url);
+      error_log( "Print Heartbeat API Curl Response Start" );      
+      error_log( print_r($curl_response, true) );
+      error_log( "Print Heartbeat API Curl Response End" );          
    }
 
    public function init_cron() {

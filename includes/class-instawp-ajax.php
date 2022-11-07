@@ -30,59 +30,59 @@ class InstaWP_AJAX
       return openssl_encrypt( $arg, $cipher, $api_key, $options=0, $iv, $tag );       
    }*/
 
-   public function instawp_heartbeat_check(){
+   // public function instawp_heartbeat_check(){
       
-      if ( ! class_exists( 'WP_Debug_Data' ) ) {
-         require_once ABSPATH . 'wp-admin/includes/class-wp-debug-data.php';
-      }
-      $sizes_data = WP_Debug_Data::get_sizes();
+   //    if ( ! class_exists( 'WP_Debug_Data' ) ) {
+   //       require_once ABSPATH . 'wp-admin/includes/class-wp-debug-data.php';
+   //    }
+   //    $sizes_data = WP_Debug_Data::get_sizes();
 
-      $wp_version = get_bloginfo('version');
-      $php_version = phpversion();
-      $total_size = $sizes_data['total_size']['size'];
-      $active_theme = wp_get_theme()->get('Name');
+   //    $wp_version = get_bloginfo('version');
+   //    $php_version = phpversion();
+   //    $total_size = $sizes_data['total_size']['size'];
+   //    $active_theme = wp_get_theme()->get('Name');
 
-      $count_posts = wp_count_posts();
-      $posts = $count_posts->publish;
+   //    $count_posts = wp_count_posts();
+   //    $posts = $count_posts->publish;
 
-      $count_pages = wp_count_posts('page');
-      $pages = $count_pages->publish;
+   //    $count_pages = wp_count_posts('page');
+   //    $pages = $count_pages->publish;
 
-      $count_users = count_users();
-      $users = $count_users['total_users'];
+   //    $count_users = count_users();
+   //    $users = $count_users['total_users'];
 
-      $connect_ids = get_option('instawp_connect_id_options', '');
+   //    $connect_ids = get_option('instawp_connect_id_options', '');
 
-      if ( ! empty($connect_ids) ) {
-         if ( isset($connect_ids['data']['id']) && ! empty($connect_ids['data']['id']) ) {
-            $id= $connect_ids['data']['id'];
-         }
-      }
+   //    if ( ! empty($connect_ids) ) {
+   //       if ( isset($connect_ids['data']['id']) && ! empty($connect_ids['data']['id']) ) {
+   //          $id= $connect_ids['data']['id'];
+   //       }
+   //    }
       
-      global $InstaWP_Curl;
-      $body = array(
-         "wp_version" => self::instawp_heartbeat_data_encrypt($wp_version),
-         "php_version" => self::instawp_heartbeat_data_encrypt($php_version),
-         "total_size" => self::instawp_heartbeat_data_encrypt($total_size),
-         "theme" => self::instawp_heartbeat_data_encrypt($active_theme),
-         "posts" => self::instawp_heartbeat_data_encrypt($posts),
-         "pages" => self::instawp_heartbeat_data_encrypt($pages),
-         "users" => self::instawp_heartbeat_data_encrypt($users),
-        // "connect_id" => $id,//self::instawp_heartbeat_data_encrypt($id),
-      );     
-      error_log( print_r($body, true) );      
-      $api_doamin = InstaWP_Setting::get_api_domain();
-      $url = $api_doamin . INSTAWP_API_URL . '/connects/'.$id.'/heartbeat';
-      $body_json     = json_encode($body);
-      $curl_response = $InstaWP_Curl->curl($url, $body_json);            
+   //    global $InstaWP_Curl;
+   //    $body = array(
+   //       "wp_version" => self::instawp_heartbeat_data_encrypt($wp_version),
+   //       "php_version" => self::instawp_heartbeat_data_encrypt($php_version),
+   //       "total_size" => self::instawp_heartbeat_data_encrypt($total_size),
+   //       "theme" => self::instawp_heartbeat_data_encrypt($active_theme),
+   //       "posts" => self::instawp_heartbeat_data_encrypt($posts),
+   //       "pages" => self::instawp_heartbeat_data_encrypt($pages),
+   //       "users" => self::instawp_heartbeat_data_encrypt($users),
+   //      // "connect_id" => $id,//self::instawp_heartbeat_data_encrypt($id),
+   //    );     
+   //    error_log( print_r($body, true) );      
+   //    $api_doamin = InstaWP_Setting::get_api_domain();
+   //    $url = $api_doamin . INSTAWP_API_URL . '/connects/'.$id.'/heartbeat';
+   //    $body_json     = json_encode($body);
+   //    $curl_response = $InstaWP_Curl->curl($url, $body_json);            
      
-      error_log( "Heartbeat API Curl URL ".$url);
-      error_log( "Print Heartbeat API Curl Response Start" );      
-      error_log( print_r($curl_response, true) );
-      error_log( "Print Heartbeat API Curl Response End" );
-      wp_send_json($curl_response);
-      wp_die();
-   }
+   //    error_log( "Heartbeat API Curl URL ".$url);
+   //    error_log( "Print Heartbeat API Curl Response Start" );      
+   //    error_log( print_r($curl_response, true) );
+   //    error_log( "Print Heartbeat API Curl Response End" );
+   //    wp_send_json($curl_response);
+   //    wp_die();
+   // }
 
    public function instawp_settings_call() {
       
