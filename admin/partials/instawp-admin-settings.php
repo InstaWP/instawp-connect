@@ -175,6 +175,7 @@ foreach ( $tasks as $task_id => $task ) {
                         var resMsg = '<span style="color:green">'+resObj.message+'</span>';
                     }
                     jQuery('.instawp-err-msg.heartbeat').html(resMsg);
+                    location.reload();
                     setTimeout(function () {
                         jQuery('.instawp-err-msg.heartbeat').html('');
                     }, 1200);
@@ -184,8 +185,8 @@ foreach ( $tasks as $task_id => $task ) {
     }); 
 
    
-    //heartbeat call based on time code start
-    var call_timing = "<?php echo $instawp_heartbeat_option;?>";
+    /*//heartbeat call based on time code start
+    var call_timing = "<?php // echo $instawp_heartbeat_option;?>";
     if( call_timing=='' ){
         call_timing = 15;
     }
@@ -211,5 +212,5 @@ foreach ( $tasks as $task_id => $task ) {
                console.log('error');
            }
        });    
-   }
+   }*/
 </script>
