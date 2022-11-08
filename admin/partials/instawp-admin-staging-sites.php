@@ -210,7 +210,7 @@ class InstaWP_Staging_Site_Table extends WP_List_Table {
     }
 }
 
-/*function search_box( $text, $input_id ) {    
+function search_box( $text, $input_id ) {    
     
     if ( empty( $_REQUEST['s'] ) && !$this->has_items() )
         return;
@@ -232,7 +232,7 @@ class InstaWP_Staging_Site_Table extends WP_List_Table {
         <?php submit_button( $text, 'button', false, false, array('id' => 'search-submit') ); ?>
     </p>
     <?php
-}*/
+}
 
 function display_instawp_staging_site_table() {
     $instawp_staging_site_table = new InstaWP_Staging_Site_Table();
