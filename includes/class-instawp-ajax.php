@@ -165,9 +165,15 @@ class InstaWP_AJAX
 
                $curl_response = (array) json_decode($curl_response_data['curl_res'], true);
                if ( $curl_response['status'] == 1 ) {
-                     $staging_sites      = get_option('instawp_staging_list', array());
+                     $staging_sites        = get_option('instawp_staging_list', array());
+                     $staging_sites_items  = get_option('instawp_staging_list_items', array());
                      $staging_sites[ $id ] = $curl_response;
                      update_option('instawp_staging_list', $staging_sites);
+
+                     //option to add task id and items
+                     $staging_sites_items[ $id ] [ $task_id ] = $curl_response;
+                     error_log("Stagin Site List". $staging_sites_items );
+                     update_option('instawp_staging_list_items', $staging_sites_items);
                }
             }         
 }
@@ -258,8 +264,9 @@ class InstaWP_AJAX
       //    wp_die();
       // }
       // $api_key = $connect_options['api_key'];
-
-      $body          = json_encode(array( "url" => get_site_url() ));
+      $php_version  = substr( phpversion(), 0, 3);
+      $body         = json_encode(array( "url" => get_site_url(), 'php_version' => $php_version));
+      
       $curl_response = $InstaWP_Curl->curl($url, $body);
       update_option('instawp_connect_id_options_err', $curl_response);
       if ( $curl_response['error'] == false ) {

@@ -404,16 +404,16 @@ if ( ! empty($instawp_finish_upload) ) {
             </div>
             <div class="login-btn">
                 <div class="instawp-wizard-btn-wrap <?php echo esc_attr( $site_class); ?>">
-              <a  class="instawp-wizard-btn" target="_blank" href="<?php echo esc_url($auto_login_url); ?>">
-                <?php echo esc_html__('Auto login','instawp-connect'); ?>
-                
-              </a>
-          
-
-        </div>
+                    <a  class="instawp-wizard-btn" target="_blank" href="<?php echo esc_url($auto_login_url); ?>">
+                        <?php echo esc_html__('Auto login','instawp-connect'); ?> 
+                    </a>
+                    <?php $start_over = admin_url( "admin.php?page=instawp-connect" );?>
+                    <a  class="instawp-wizard-btn start-over" target="_blank" href="<?php echo esc_url($start_over); ?>">
+                        <?php echo esc_html__('Start Over','instawp-connect'); ?> 
+                    </a>  
+                </div>
             </div>
-        </div>
-        
+        </div>        
     </div>
 </div>
 <script type="text/javascript">

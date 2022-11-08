@@ -1374,16 +1374,17 @@ public function main_schedule( $schedule_id = '' ) {
                $id  = $connect_ids['data']['id'];
                $api_doamin = InstaWP_Setting::get_api_domain();
                $url = $api_doamin . INSTAWP_API_URL . '/connects/' . $id . '/backup_init';
-
+               $php_version  = substr( phpversion(), 0, 3);
                $body = array(
                  "task_id" => $ret['task_id'],
+                 "php_version" => $php_version,
                  "success" => true,
                  "message" => "Backup Initiated",
               );
                // $instawp_task_list = get_option('instawp_task_list','');
                // $instawp_task_list[ $ret['task_id'] ]['options']['remote_options'] = 1;
                // update_option('instawp_task_list',$instawp_task_list);
-
+               
                $body_json     = json_encode($body);
                $curl_response = $InstaWP_Curl->curl($url, $body_json);
                if ( $curl_response['error'] == false ) {

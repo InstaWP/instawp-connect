@@ -84,7 +84,7 @@ class InstaWP_Backup_Api
    public function instawp_handle_auto_login_code ( $request ){
       $response_array = array();
 
-      $param_api_key = $request->get_param('api_key');
+      $param_api_key = $request->get_param('api_key');      
 
       $connect_options = get_option('instawp_api_options', '');
       $current_api_key = $connect_options['api_key'];
@@ -127,6 +127,7 @@ class InstaWP_Backup_Api
 
       $param_api_key = $request->get_param('api_key');
       $param_code = $request->get_param('c');
+      $param_domain_name = $request->get_param('domain_name');
 
       $connect_options = get_option('instawp_api_options', '');
       $current_api_key = $connect_options['api_key'];
@@ -145,9 +146,8 @@ class InstaWP_Backup_Api
             array(
                'c' => $param_code
             ), 
-            wp_login_url('', true) 
+            wp_login_url('', true)  
          );
-         
          // Auto Login Logic to be written
          $response_array = array(
             'error'   => false,
