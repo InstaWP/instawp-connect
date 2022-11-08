@@ -105,7 +105,7 @@ class InstaWP_Backup_Api
          $response_array = array(
             'login_url' => $auto_login_url
          );
-         set_transient('instawp_auto_login_code', $uuid_code, 8 * HOUR_IN_SECONDS);
+         set_transient('instawp_auto_login_code', $uuid_code_256, 8 * HOUR_IN_SECONDS);
       }else{
          $response_array = array(
             'error'   => true,
@@ -140,7 +140,20 @@ class InstaWP_Backup_Api
          $param_code === $current_login_code 
       ) {
 
-         // Auto Login Logic to be written         
+         // Make url 
+         $auto_login_url = add_query_arg( 
+            array(
+               'c' => $param_code
+            ), 
+            wp_login_url('', true) 
+         );
+         
+         // Auto Login Logic to be written
+         $response_array = array(
+            'error'   => false,
+            'login_url' => $auto_login_url,
+         );
+
       }else{
          $response_array = array(
             'error'   => true,

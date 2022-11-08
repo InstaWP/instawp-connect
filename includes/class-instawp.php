@@ -153,9 +153,51 @@ class instaWP
       add_action( 'wp',  array($this, 'instawp_handle_cron_scheduler'));
       add_action( 'instwp_handle_heartbeat_cron_action', array( $this, 'instawp_handle_heartbeat_cron_action_call' ) );
       /*Cron handlers*/
-
+      
+      // Hook to run on login page
+      add_action( 'login_init', array( $this, 'instawp_auto_login_redirect' ) );
    }
 
+   // Login hook logic
+   public function instawp_auto_login_redirect()
+   {
+      include_once ABSPATH . 'wp-admin/includes/plugin.php';
+      // check for plugin using plugin name
+      if ( is_plugin_active( 'instawp-connect/instawp-connect.php' ) ) {
+         // Check for params
+         if (
+            isset($_GET['reauth']) && 
+            isset($_GET['c']) && 
+            !empty( $_GET['reauth'] ) && 
+            !empty( $_GET['c'] )
+         ) {
+            $param_code = $_GET['c'];
+            $current_code = get_transient( 'instawp_auto_login_code' );
+
+            if (
+               $param_code === $current_code &&
+               false !== $current_code
+            ) {
+               //plugin is activated
+               require_once('wp-load.php');
+               $loginusername = 'admin';
+               $user = get_user_by( 'login', $loginusername );
+               $user_id = $user->ID;
+               wp_set_current_user( $user_id, $loginusername );
+               wp_set_auth_cookie( $user_id );
+               do_action( 'wp_login', $loginusername, $user );
+
+               // Remove transient
+               delete_transient( 'instawp_auto_login_code' );
+               wp_redirect( admin_url() );
+               exit();
+            }else{
+               wp_redirect( wp_login_url('', false) );
+               exit();
+            }
+         }
+      }
+   }
    // Set Cron time interval function
    public function instawp_handle_cron_time_intervals( $schedules )
    {  
