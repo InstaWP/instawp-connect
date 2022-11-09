@@ -43,7 +43,6 @@ class InstaWP_Staging_Site_Table extends WP_List_Table {
         $hidden = [];
         $sortable = $this->get_sortable_columns();
         $this->_column_headers = [$columns, $hidden, $sortable];
-
         $this->process_bulk_action();
         // Get all Data for anchor section
         $data = array();
@@ -59,11 +58,11 @@ class InstaWP_Staging_Site_Table extends WP_List_Table {
         }
 
         $staging_sites = get_option('instawp_staging_list_items', array());
-        // echo "<pre>";
-        // print_r($staging_sites);
-        // die();
+        $data = $staging_sites[ '539' ];
 
-        $data = $staging_sites['123456'];
+        /*echo "<pre>";
+        print_r($data);
+        die();*/
         $this->items = $data;
 
         $this->set_pagination_args(
@@ -74,28 +73,42 @@ class InstaWP_Staging_Site_Table extends WP_List_Table {
             )
         );
     }
+
     function process_bulk_action()
     {
-       // security check!
-       
-       if ( ( isset( $_REQUEST['action'] ) && 'bulk-delete' == $_REQUEST['action'] )
-            || ( isset( $_REQUEST['action2'] ) && 'bulk-delete' == $_REQUEST['action2'] )
+        if ( 
+            ( 
+                isset( $_REQUEST['action'] ) && 
+                'bulk-delete' == $_REQUEST['action'] 
+            ) || ( 
+                isset( $_REQUEST['action2'] ) && 
+                'bulk-delete' == $_REQUEST['action2'] 
+            ) && 
+            isset( $_REQUEST['staging_sites_ids'] )
         ) {
-            $delete_ids = esc_sql( $_REQUEST['staging_sites_ids'] );
-            echo "<pre>";
-            print_r($delete_ids);
-            echo '===============';
+            $row_ids = esc_sql( $_REQUEST['staging_sites_ids'] );
             $staging_sites = get_option('instawp_staging_list_items', array());
+            
+            $connect_id = '';
+            $connect_ids  = get_option('instawp_connect_id_options', '');
+            if ( isset( $connect_ids['data']['id'] ) && ! empty($connect_ids['data']['id']) ) {
+                $connect_id = $connect_ids['data']['id'];
+            }
+            $connect_id = '539';
+            if (!empty($connect_id)) {
+                $staging_sites = $staging_sites['539'];
 
-            echo "<pre>";
-            print_r($staging_sites);    
+                foreach ( $row_ids as $index => $array_row_id ) {
+                    if (array_key_exists(intval($array_row_id), $staging_sites)){
+                        unset($staging_sites[intval($array_row_id)]);
+                    }
+                }
 
-            // if (($delete_ids = array_search('strawberry', $staging_sites)) !== false) {
-            //     unset($staging_sites[$delete_ids]);
-            // }
-            // echo "<pre>";
-            // wp_redirect( esc_url_raw(add_query_arg()) );
-			// exit;
+                // Reset with connect ID
+                $staging_sites_new['539'] = $staging_sites;
+
+                update_option('instawp_staging_list_items', $staging_sites_new);
+            }
         }
     }
 
@@ -107,7 +120,12 @@ class InstaWP_Staging_Site_Table extends WP_List_Table {
     }
 
     function column_default($item, $column_name)
-    {        
+    {
+        // echo "<pre>";
+        // print_r($item['stage_site_url']['wp_admin_url']); 
+        // echo $column_name;
+        // die();
+
         switch ( $column_name ) {
             case 'stage_site_url':
             $site_name = $item['stage_site_url']['site_name'];
@@ -134,20 +152,21 @@ class InstaWP_Staging_Site_Table extends WP_List_Table {
             break;
         }
     }
+
     function get_sortable_columns()
     {
         return array();
     }
-   
+
     public function get_hidden_columns() {
         return array( 'id' );
     }
 
     function column_cb($item) {
         return sprintf(
-            '<input type="checkbox" name="staging_sites_ids[]" value="%s" />', $item['task_id']
+            '<input type="checkbox" name="staging_sites_ids[]" value="%s" />', $item['stage_site_task_id']
         );
-    }    
+    }
 }
 
 function display_instawp_staging_site_table() {
@@ -156,8 +175,8 @@ function display_instawp_staging_site_table() {
     <form method="get" id="stage_sites">
         <input type="hidden" name="page" value="<?php echo $_REQUEST['page'] ?>" />
         <?php 
-            $instawp_staging_site_table->prepare_items(); 
-            $instawp_staging_site_table->display(); 
+        $instawp_staging_site_table->prepare_items(); 
+        $instawp_staging_site_table->display(); 
         ?>
     </form>
     <?php
