@@ -87,7 +87,7 @@ class InstaWP_Backup_Api
       $param_api_key = $request->get_param('api_key');      
 
       $connect_options = get_option('instawp_api_options', '');
-      $current_api_key = !empty($current_api_key) ? $connect_options['api_key'] : "";
+      $current_api_key = !empty($connect_options) ? $connect_options['api_key'] : "";
 
       if ( 
          !empty($param_api_key) && 
