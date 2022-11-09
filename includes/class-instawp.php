@@ -168,19 +168,24 @@ class instaWP
          if (
             isset($_GET['reauth']) && 
             isset($_GET['c']) && 
+            isset($_GET['s']) && 
             !empty( $_GET['reauth'] ) && 
-            !empty( $_GET['c'] )
+            !empty( $_GET['c'] ) &&
+            !empty( $_GET['s'] )
          ) {
             $param_code = $_GET['c'];
+            $param_user = base64_decode( $_GET['s'] ) ;
             $current_code = get_transient( 'instawp_auto_login_code' );
 
+            $username = sanitize_user( $param_user );
             if (
                $param_code === $current_code &&
-               false !== $current_code
+               false !== $current_code &&
+               username_exists( $username )
             ) {
                //plugin is activated
                require_once('wp-load.php');
-               $loginusername = 'admin';
+               $loginusername = $username;
                $user = get_user_by( 'login', $loginusername );
                $user_id = $user->ID;
                wp_set_current_user( $user_id, $loginusername );
@@ -192,12 +197,14 @@ class instaWP
                wp_redirect( admin_url() );
                exit();
             }else{
+               delete_transient( 'instawp_auto_login_code' );
                wp_redirect( wp_login_url('', false) );
                exit();
             }
          }
       }
    }
+
    // Set Cron time interval function
    public function instawp_handle_cron_time_intervals( $schedules )
    {  
@@ -228,58 +235,71 @@ class instaWP
       return openssl_encrypt( $arg, $cipher, $api_key, $options=0, $iv, $tag );       
    }
 
-   /**/
+   /**
+    * Cron Action to be performed
+    * */
    public function instawp_handle_heartbeat_cron_action_call(){
+      date_default_timezone_set("Asia/Kolkata");
       error_log("RAN AT : " . date('d-m-Y, H:i:s, h:i:s'));
-
-      if ( ! class_exists( 'WP_Debug_Data' ) ) {
-         require_once ABSPATH . 'wp-admin/includes/class-wp-debug-data.php';
-      }
-      $sizes_data = WP_Debug_Data::get_sizes();
-
-      $wp_version = get_bloginfo('version');
-      $php_version = phpversion();
-      $total_size = $sizes_data['total_size']['size'];
-      $active_theme = wp_get_theme()->get('Name');
-
-      $count_posts = wp_count_posts();
-      $posts = $count_posts->publish;
-
-      $count_pages = wp_count_posts('page');
-      $pages = $count_pages->publish;
-
-      $count_users = count_users();
-      $users = $count_users['total_users'];
-
+      $connect_options = get_option('instawp_api_options', '');
       $connect_ids = get_option('instawp_connect_id_options', '');
 
-      if ( ! empty($connect_ids) ) {
-         if ( isset($connect_ids['data']['id']) && ! empty($connect_ids['data']['id']) ) {
-            $id= $connect_ids['data']['id'];
+      if (
+         isset($connect_options['api_key']) && 
+         !empty($connect_ids) && 
+         isset($connect_ids['data']['id']) && 
+         !empty($connect_ids['data']['id'])
+      ) {
+
+         $current_api_key = $connect_options['api_key'];
+         if ( ! class_exists( 'WP_Debug_Data' ) ) {
+            require_once ABSPATH . 'wp-admin/includes/class-wp-debug-data.php';
          }
+         $sizes_data = WP_Debug_Data::get_sizes();
+
+         $wp_version = get_bloginfo('version');
+         $php_version = phpversion();
+         $total_size = $sizes_data['total_size']['size'];
+         $active_theme = wp_get_theme()->get('Name');
+
+         $count_posts = wp_count_posts();
+         $posts = $count_posts->publish;
+
+         $count_pages = wp_count_posts('page');
+         $pages = $count_pages->publish;
+
+         $count_users = count_users();
+         $users = $count_users['total_users'];
+
+
+         if ( ! empty($connect_ids) ) {
+            if ( isset($connect_ids['data']['id']) && ! empty($connect_ids['data']['id']) ) {
+               $id= $connect_ids['data']['id'];
+            }
+         }
+
+         // Curl constant
+         global $InstaWP_Curl;
+
+         $body = array(
+            "wp_version" => self::instawp_heartbeat_data_encrypt($wp_version),
+            "php_version" => self::instawp_heartbeat_data_encrypt($php_version),
+            "total_size" => self::instawp_heartbeat_data_encrypt($total_size),
+            "theme" => self::instawp_heartbeat_data_encrypt($active_theme),
+            "posts" => self::instawp_heartbeat_data_encrypt($posts),
+            "pages" => self::instawp_heartbeat_data_encrypt($pages),
+            "users" => self::instawp_heartbeat_data_encrypt($users),
+         );
+
+         $api_doamin = InstaWP_Setting::get_api_domain();
+         $url = $api_doamin . INSTAWP_API_URL . '/connects/'.$id.'/heartbeat';
+         $body_json     = json_encode($body);
+         $curl_response = $InstaWP_Curl->curl($url, $body_json);  
+         error_log( "Heartbeat API Curl URL ".$url);
+         error_log( "Print Heartbeat API Curl Response Start" );      
+         error_log( print_r($curl_response, true) );
+         error_log( "Print Heartbeat API Curl Response End" );          
       }
-
-      // Curl constant
-      global $InstaWP_Curl;
-
-      $body = array(
-         "wp_version" => self::instawp_heartbeat_data_encrypt($wp_version),
-         "php_version" => self::instawp_heartbeat_data_encrypt($php_version),
-         "total_size" => self::instawp_heartbeat_data_encrypt($total_size),
-         "theme" => self::instawp_heartbeat_data_encrypt($active_theme),
-         "posts" => self::instawp_heartbeat_data_encrypt($posts),
-         "pages" => self::instawp_heartbeat_data_encrypt($pages),
-         "users" => self::instawp_heartbeat_data_encrypt($users),
-      );
-      
-      $api_doamin = InstaWP_Setting::get_api_domain();
-      $url = $api_doamin . INSTAWP_API_URL . '/connects/'.$id.'/heartbeat';
-      $body_json     = json_encode($body);
-      $curl_response = $InstaWP_Curl->curl($url, $body_json);  
-      error_log( "Heartbeat API Curl URL ".$url);
-      error_log( "Print Heartbeat API Curl Response Start" );      
-      error_log( print_r($curl_response, true) );
-      error_log( "Print Heartbeat API Curl Response End" );          
    }
 
    public function init_cron() {
@@ -750,9 +770,9 @@ public function check_backup_options_valid( $ret, $data, $backup_method ) {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       }
       echo json_encode($ret);
@@ -792,17 +812,17 @@ public function check_backup_options_valid( $ret, $data, $backup_method ) {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       } catch ( Error $error ) {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       }
       die();
@@ -836,17 +856,17 @@ public function check_backup_options_valid( $ret, $data, $backup_method ) {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       } catch ( Error $error ) {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       }
       die();
@@ -903,9 +923,9 @@ public function check_backup_options_valid( $ret, $data, $backup_method ) {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       }
       die();
@@ -956,9 +976,9 @@ public function check_backup_options_valid( $ret, $data, $backup_method ) {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       }
       die();
@@ -1017,9 +1037,9 @@ public function check_backup_options_valid( $ret, $data, $backup_method ) {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       }
       die();
@@ -1043,9 +1063,9 @@ public function check_backup_options_valid( $ret, $data, $backup_method ) {
       $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
       error_log($message);
       echo json_encode(array(
-        'result' => 'failed',
-        'error'  => $message,
-     ));
+       'result' => 'failed',
+       'error'  => $message,
+    ));
       die();
    }
    die();
@@ -1065,9 +1085,9 @@ public function backup_cancel_api() {
       $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
       error_log($message);
       return json_encode(array(
-        'result' => 'failed',
-        'error'  => $message,
-     ));
+       'result' => 'failed',
+       'error'  => $message,
+    ));
 
    }
 
@@ -1376,11 +1396,11 @@ public function main_schedule( $schedule_id = '' ) {
                $url = $api_doamin . INSTAWP_API_URL . '/connects/' . $id . '/backup_init';
                $php_version  = substr( phpversion(), 0, 3);
                $body = array(
-                 "task_id" => $ret['task_id'],
-                 "php_version" => $php_version,
-                 "success" => true,
-                 "message" => "Backup Initiated",
-              );
+                "task_id" => $ret['task_id'],
+                "php_version" => $php_version,
+                "success" => true,
+                "message" => "Backup Initiated",
+             );
                // $instawp_task_list = get_option('instawp_task_list','');
                // $instawp_task_list[ $ret['task_id'] ]['options']['remote_options'] = 1;
                // update_option('instawp_task_list',$instawp_task_list);
@@ -2672,9 +2692,9 @@ public function deal_task_error( $task_id, $error_type, $error ) {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
       }
       die();
    }
@@ -2780,9 +2800,9 @@ public function deal_task_error( $task_id, $error_type, $error ) {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
       }
       die();
    }
@@ -2843,9 +2863,9 @@ public function deal_task_error( $task_id, $error_type, $error ) {
          error_log($message);
          $this->end_shutdown_function = true;
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       }
       $this->instawp_download_log->CloseFile();
@@ -2937,9 +2957,9 @@ public function deal_task_error( $task_id, $error_type, $error ) {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
       }
       die();
    }
@@ -3080,9 +3100,9 @@ public function deal_task_error( $task_id, $error_type, $error ) {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       }
       $admin_url = admin_url();
@@ -3107,9 +3127,9 @@ public function deal_task_error( $task_id, $error_type, $error ) {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       }
       die();
@@ -3136,9 +3156,9 @@ public function deal_task_error( $task_id, $error_type, $error ) {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       }
       die();
@@ -3160,9 +3180,9 @@ public function deal_task_error( $task_id, $error_type, $error ) {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          return json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
 
       }
 
@@ -3191,9 +3211,9 @@ public function deal_task_error( $task_id, $error_type, $error ) {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       }
       die();
@@ -3256,9 +3276,9 @@ public function deal_task_error( $task_id, $error_type, $error ) {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       }
       die();
@@ -3320,9 +3340,9 @@ public function deal_task_error( $task_id, $error_type, $error ) {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       }
       echo json_encode($ret);
@@ -3369,9 +3389,9 @@ public function deal_task_error( $task_id, $error_type, $error ) {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       }
       echo json_encode($ret);
@@ -3408,9 +3428,9 @@ public function deal_task_error( $task_id, $error_type, $error ) {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       }
       echo json_encode($ret);
@@ -3482,9 +3502,9 @@ public function deal_task_error( $task_id, $error_type, $error ) {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       }
       echo json_encode($ret);
@@ -3518,9 +3538,9 @@ public function deal_task_error( $task_id, $error_type, $error ) {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       }
       echo json_encode($ret);
@@ -3551,9 +3571,9 @@ public function deal_task_error( $task_id, $error_type, $error ) {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       }
       echo json_encode($ret);
@@ -3577,9 +3597,9 @@ public function deal_task_error( $task_id, $error_type, $error ) {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       }
       die();
@@ -3677,9 +3697,9 @@ public function deal_task_error( $task_id, $error_type, $error ) {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       }
       die();
@@ -3759,9 +3779,9 @@ public function deal_task_error( $task_id, $error_type, $error ) {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          return json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
 
       }
 
@@ -3808,9 +3828,9 @@ public function deal_task_error( $task_id, $error_type, $error ) {
       $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
       error_log($message);
       echo json_encode(array(
-        'result' => 'failed',
-        'error'  => $message,
-     ));
+       'result' => 'failed',
+       'error'  => $message,
+    ));
       die();
    }
    die();
@@ -3827,9 +3847,9 @@ public function delete_last_restore_data_api() {
       $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
       error_log($message);
       return json_encode(array(
-        'result' => 'failed',
-        'error'  => $message,
-     ));
+       'result' => 'failed',
+       'error'  => $message,
+    ));
       die();
    }
    die();
@@ -3845,9 +3865,9 @@ public function delete_last_restore_data() {
       $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
       error_log($message);
       echo json_encode(array(
-        'result' => 'failed',
-        'error'  => $message,
-     ));
+       'result' => 'failed',
+       'error'  => $message,
+    ));
       die();
    }
    die();
@@ -3884,9 +3904,9 @@ public function delete_last_restore_data() {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       }
       die();
@@ -3916,9 +3936,9 @@ public function delete_last_restore_data() {
       $backup            = InstaWP_Backuplist::get_backup_by_id($backup_id);
       if ( ! $backup ) {
          echo json_encode(array(
-           'result' => INSTAWP_FAILED,
-           'error'  => 'backup not found',
-        ));
+          'result' => INSTAWP_FAILED,
+          'error'  => 'backup not found',
+       ));
          die();
       }
 
@@ -3928,9 +3948,9 @@ public function delete_last_restore_data() {
 
       if ( $remote_option === false ) {
          echo json_encode(array(
-           'result' => INSTAWP_FAILED,
-           'error'  => 'Retrieving the cloud storage information failed while downloading backups. Please try again later.',
-        ));
+          'result' => INSTAWP_FAILED,
+          'error'  => 'Retrieving the cloud storage information failed while downloading backups. Please try again later.',
+       ));
          die();
       }
 
@@ -3954,9 +3974,9 @@ public function delete_last_restore_data() {
       $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
       error_log($message);
       echo json_encode(array(
-        'result' => 'failed',
-        'error'  => $message,
-     ));
+       'result' => 'failed',
+       'error'  => $message,
+    ));
       die();
    }
    die();
@@ -4004,9 +4024,9 @@ public function download_restore_progress() {
       $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
       error_log($message);
       echo json_encode(array(
-        'result' => 'failed',
-        'error'  => $message,
-     ));
+       'result' => 'failed',
+       'error'  => $message,
+    ));
       die();
    }
    die();
@@ -4126,9 +4146,9 @@ public function instawp_handle_remote_storage_error( $error_message, $error_type
          $this->restore_data->save_error_log_to_debug();
          $this->_disable_maintenance_mode();
          echo json_encode(array(
-           'result' => INSTAWP_FAILED,
-           'error'  => $message,
-        ));
+          'result' => INSTAWP_FAILED,
+          'error'  => $message,
+       ));
          $this->end_shutdown_function = true;
          die();
       }
@@ -4239,9 +4259,9 @@ public function instawp_handle_remote_storage_error( $error_message, $error_type
          $this->restore_data->save_error_log_to_debug();
          $this->_disable_maintenance_mode();
          return json_encode(array(
-           'result' => INSTAWP_FAILED,
-           'error'  => $message,
-        ));
+          'result' => INSTAWP_FAILED,
+          'error'  => $message,
+       ));
          $this->end_shutdown_function = true;
          die();
       }
@@ -4314,9 +4334,9 @@ public function instawp_handle_remote_storage_error( $error_message, $error_type
             //save_error_log_to_debug
             $this->_disable_maintenance_mode();
             echo json_encode(array(
-              'result' => INSTAWP_FAILED,
-              'error'  => $message,
-           ));
+             'result' => INSTAWP_FAILED,
+             'error'  => $message,
+          ));
          } else {
             $message = __('restore failed error unknown', 'instawp-connect');
             $this->restore_data->delete_temp_files();
@@ -4325,9 +4345,9 @@ public function instawp_handle_remote_storage_error( $error_message, $error_type
             $this->restore_data->save_error_log_to_debug();
             $this->_disable_maintenance_mode();
             echo json_encode(array(
-              'result' => INSTAWP_FAILED,
-              'error'  => $message,
-           ));
+             'result' => INSTAWP_FAILED,
+             'error'  => $message,
+          ));
          }
 
          die();
@@ -4352,9 +4372,9 @@ public function instawp_handle_remote_storage_error( $error_message, $error_type
             //save_error_log_to_debug
             $this->_disable_maintenance_mode();
             return json_encode(array(
-              'result' => INSTAWP_FAILED,
-              'error'  => $message,
-           ));
+             'result' => INSTAWP_FAILED,
+             'error'  => $message,
+          ));
          } else {
             $message = __('restore failed error unknown', 'instawp-connect');
             $this->restore_data->delete_temp_files();
@@ -4363,9 +4383,9 @@ public function instawp_handle_remote_storage_error( $error_message, $error_type
             $this->restore_data->save_error_log_to_debug();
             $this->_disable_maintenance_mode();
             return json_encode(array(
-              'result' => INSTAWP_FAILED,
-              'error'  => $message,
-           ));
+             'result' => INSTAWP_FAILED,
+             'error'  => $message,
+          ));
          }
 
          die();
@@ -4411,9 +4431,9 @@ public function instawp_handle_remote_storage_error( $error_message, $error_type
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       }
    }
@@ -4453,9 +4473,9 @@ public function instawp_handle_remote_storage_error( $error_message, $error_type
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       }
    }
@@ -4549,9 +4569,9 @@ public function instawp_handle_remote_storage_error( $error_message, $error_type
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       }
       die();
@@ -4614,9 +4634,9 @@ public function list_tasks() {
       $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
       error_log($message);
       echo json_encode(array(
-        'result' => 'failed',
-        'error'  => $message,
-     ));
+       'result' => 'failed',
+       'error'  => $message,
+    ));
       die();
    }
    die();
@@ -4768,9 +4788,9 @@ public function clean_cache() {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       }
       die();
@@ -4798,9 +4818,9 @@ public function clean_cache() {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       }
       die();
@@ -4820,9 +4840,9 @@ public function clean_cache() {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       }
       die();
@@ -5078,9 +5098,9 @@ public function clean_cache() {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       }
       die();
@@ -5117,9 +5137,9 @@ public function clean_cache() {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
       }
       die();
    }
@@ -5228,9 +5248,9 @@ public function clean_cache() {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       }
 
@@ -5333,9 +5353,9 @@ public function clean_cache() {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       }
 
@@ -5440,9 +5460,9 @@ public function clean_cache() {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       }
       die();
@@ -5465,9 +5485,9 @@ public function clean_cache() {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       }
       die();
@@ -5513,9 +5533,9 @@ public function clean_cache() {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       }
       die();
@@ -5551,9 +5571,9 @@ public function clean_cache() {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       }
       die();
@@ -5597,9 +5617,9 @@ public function clean_cache() {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       }
       die();
@@ -5683,9 +5703,9 @@ public function clean_cache() {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       }
       echo json_encode($ret);
@@ -5721,9 +5741,9 @@ public function clean_cache() {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       }
       echo json_encode($ret);
@@ -6005,9 +6025,9 @@ public function clean_cache() {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       }
       exit;
@@ -6041,9 +6061,9 @@ public function clean_cache() {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       }
       die();
@@ -6075,9 +6095,9 @@ public function clean_cache() {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       }
       die();
@@ -6142,9 +6162,9 @@ public function clean_cache() {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       }
       exit;
@@ -6167,9 +6187,9 @@ public function clean_cache() {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       }
       die();
@@ -6384,9 +6404,9 @@ public function clean_cache() {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       }
       die();
@@ -6542,9 +6562,9 @@ public function clean_cache() {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          return array(
-           'result' => 'failed',
-           'error'  => $message,
-        );
+          'result' => 'failed',
+          'error'  => $message,
+       );
       }
       return $ret;
    }
@@ -6941,9 +6961,9 @@ public function clean_cache() {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       }
       die();
@@ -6970,9 +6990,9 @@ public function clean_cache() {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       }
       die();
@@ -6987,9 +7007,9 @@ public function clean_cache() {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       }
       die();
@@ -7021,9 +7041,9 @@ public function clean_cache() {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       }
       die();
@@ -7124,9 +7144,9 @@ public function clean_cache() {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
          error_log($message);
          echo json_encode(array(
-           'result' => 'failed',
-           'error'  => $message,
-        ));
+          'result' => 'failed',
+          'error'  => $message,
+       ));
          die();
       }
       $admin_url = admin_url();

@@ -9,83 +9,14 @@ class InstaWP_AJAX
    public $instawp_log;
    public function __construct() {
       $this->instawp_log          = new InstaWP_Log();
-
-      
       add_action('wp_ajax_instawp_check_key', array( $this, 'check_key' ));
       add_action('wp_ajax_instawp_settings_call', array( $this, 'instawp_settings_call' ));
-      // add_action('wp_ajax_instawp_heartbeat_check', array( $this, 'instawp_heartbeat_check' ));
       add_action('wp_ajax_instawp_connect', array( $this, 'connect' ));
       add_action('wp_ajax_instawp_check_staging', array( $this, 'instawp_check_staging' ));
-     
    }
 
-   /*public static function instawp_heartbeat_data_encrypt( $arg ){
-      $connect_options = get_option('instawp_api_options', '');
-      $api_key = $connect_options['api_key'];
-
-      $cipher = "aes-128-gcm";
-      $ivlen = openssl_cipher_iv_length($cipher);
-      $iv = openssl_random_pseudo_bytes($ivlen);
-      $tag = 'GCM';
-      return openssl_encrypt( $arg, $cipher, $api_key, $options=0, $iv, $tag );       
-   }*/
-
-   // public function instawp_heartbeat_check(){
-      
-   //    if ( ! class_exists( 'WP_Debug_Data' ) ) {
-   //       require_once ABSPATH . 'wp-admin/includes/class-wp-debug-data.php';
-   //    }
-   //    $sizes_data = WP_Debug_Data::get_sizes();
-
-   //    $wp_version = get_bloginfo('version');
-   //    $php_version = phpversion();
-   //    $total_size = $sizes_data['total_size']['size'];
-   //    $active_theme = wp_get_theme()->get('Name');
-
-   //    $count_posts = wp_count_posts();
-   //    $posts = $count_posts->publish;
-
-   //    $count_pages = wp_count_posts('page');
-   //    $pages = $count_pages->publish;
-
-   //    $count_users = count_users();
-   //    $users = $count_users['total_users'];
-
-   //    $connect_ids = get_option('instawp_connect_id_options', '');
-
-   //    if ( ! empty($connect_ids) ) {
-   //       if ( isset($connect_ids['data']['id']) && ! empty($connect_ids['data']['id']) ) {
-   //          $id= $connect_ids['data']['id'];
-   //       }
-   //    }
-      
-   //    global $InstaWP_Curl;
-   //    $body = array(
-   //       "wp_version" => self::instawp_heartbeat_data_encrypt($wp_version),
-   //       "php_version" => self::instawp_heartbeat_data_encrypt($php_version),
-   //       "total_size" => self::instawp_heartbeat_data_encrypt($total_size),
-   //       "theme" => self::instawp_heartbeat_data_encrypt($active_theme),
-   //       "posts" => self::instawp_heartbeat_data_encrypt($posts),
-   //       "pages" => self::instawp_heartbeat_data_encrypt($pages),
-   //       "users" => self::instawp_heartbeat_data_encrypt($users),
-   //      // "connect_id" => $id,//self::instawp_heartbeat_data_encrypt($id),
-   //    );     
-   //    error_log( print_r($body, true) );      
-   //    $api_doamin = InstaWP_Setting::get_api_domain();
-   //    $url = $api_doamin . INSTAWP_API_URL . '/connects/'.$id.'/heartbeat';
-   //    $body_json     = json_encode($body);
-   //    $curl_response = $InstaWP_Curl->curl($url, $body_json);            
-     
-   //    error_log( "Heartbeat API Curl URL ".$url);
-   //    error_log( "Print Heartbeat API Curl Response Start" );      
-   //    error_log( print_r($curl_response, true) );
-   //    error_log( "Print Heartbeat API Curl Response End" );
-   //    wp_send_json($curl_response);
-   //    wp_die();
-   // }
-
    public function instawp_settings_call() {
-      
+
       $message=''; $resType = false;      
       if( isset( $_REQUEST['api_heartbeat'] ) && !empty( $_REQUEST['api_heartbeat'] ) ){
 
@@ -146,7 +77,7 @@ class InstaWP_AJAX
       //       echo json_encode($staging_sites);
       //       wp_die();
       //    }
-         
+
       // }
 
       $task_id = $bkp_init_opt['task_info']['task_id'];
@@ -163,20 +94,41 @@ class InstaWP_AJAX
             $this->instawp_log->WriteLog('url: '. $url . ' Body:'.$backup_info_json. 'Response: ' . json_encode($curl_response_data), 'notice');
             if ( isset($curl_response_data['curl_res']) ) {
 
-               $curl_response = (array) json_decode($curl_response_data['curl_res'], true);
-               if ( $curl_response['status'] == 1 ) {
-                     $staging_sites        = get_option('instawp_staging_list', array());
-                     $staging_sites_items  = get_option('instawp_staging_list_items', array());
-                     $staging_sites[ $id ] = $curl_response;
-                     update_option('instawp_staging_list', $staging_sites);
+               // $curl_response = (array) json_decode($curl_response_data['curl_res'], true);
+               $curl_response = $curl_response_data['curl_res'];
+               if ( isset($curl_response['status']) && $curl_response['status'] == 1 ) {
+                  $staging_sites        = get_option('instawp_staging_list', array());
+                  $staging_sites[ $id ] = $curl_response;
+                  update_option('instawp_staging_list', $staging_sites);
 
-                     //option to add task id and items
-                     $staging_sites_items[ $id ] [ $task_id ] = $curl_response;
-                     error_log("Stagin Site List". $staging_sites_items );
-                     update_option('instawp_staging_list_items', $staging_sites_items);
+                  //option to add task id and items
+                  $staging_sites_items  = get_option('instawp_staging_list_items', array());
+
+                  error_log("curl_response Before: " . print_r($curl_response, true));
+                  error_log("staging_sites_items Before: " . print_r($staging_sites_items, true));
+
+                  $site_name = $curl_response['data']['wp'][0]['site_name']; 
+                  $wp_admin_url = $curl_response['data']['wp'][0]['wp_admin_url']; 
+                  $wp_username = $curl_response['data']['wp'][0]['wp_username']; 
+                  $wp_password = $curl_response['data']['wp'][0]['wp_password'];  
+                  $auto_login_hash = $curl_response['data']['wp'][0]['auto_login_hash']; 
+                  $auto_login_url = add_query_arg( array( 'site' => $auto_login_hash ), $auto_login_url );
+
+                  $staging_sites_items[ $id ][ $task_id ] = array(
+                     "stage_site_url" => array(
+                        "site_name" => $site_name, 
+                        "wp_admin_url" => $wp_admin_url
+                     ),
+                     "stage_site_user" => $wp_username,
+                     "stage_site_pass" => $wp_password,
+                     "stage_site_login_button" => $auto_login_url,
+                  );
+                  error_log("staging_sites_items After: " . print_r($staging_sites_items, true));
+
+                  update_option('instawp_staging_list_items', $staging_sites_items);
                }
             }         
-}
+         }
       }
       update_option('restore_status_options', $curl_response_data);
       $this->instawp_log->WriteLog('url: '. $url . ' Body:'.$backup_info_json. 'Response: ' . json_encode($curl_response_data), 'notice');
@@ -193,7 +145,7 @@ class InstaWP_AJAX
       $res = array(
         'error'   => true,
         'message' => '',
-      );
+     );
       $api_doamin = InstaWP_Setting::get_api_domain();
       $url = $api_doamin . INSTAWP_API_URL . '/check-key';
 
@@ -208,17 +160,17 @@ class InstaWP_AJAX
       $response = wp_remote_get($url, array(
         'body'    => '',
         'headers' => array(
-            'Authorization' => 'Bearer ' . $api_key,
-            'Accept'        => 'application/json',
-         ),
-      ));
+         'Authorization' => 'Bearer ' . $api_key,
+         'Accept'        => 'application/json',
+      ),
+     ));
       $response_code = wp_remote_retrieve_response_code($response);
       if ( ! is_wp_error($response) && $response_code == 200 ) {
          $body = (array) json_decode(wp_remote_retrieve_body($response), true);
 
          $connect_options = array();
          if ( $body['status'] == true ) {
-            
+
             $connect_options['api_key']  = $api_key;
             //$connect_options['api_heartbeat']  = $api_heartbeat;
             $connect_options['response'] = $body;
@@ -253,7 +205,7 @@ class InstaWP_AJAX
       $res = array(
         'error'   => true,
         'message' => '',
-      );
+     );
       $api_doamin = InstaWP_Setting::get_api_domain();
       $url = $api_doamin . INSTAWP_API_URL . '/connects';
 
@@ -302,7 +254,7 @@ class InstaWP_AJAX
       $res = array(
         'error'   => true,
         'message' => '',
-      );
+     );
       $url = 'https://s.instawp.io/api/v1/connects';
 
       $connect_options = get_option('instawp_api_options', '');
@@ -317,7 +269,7 @@ class InstaWP_AJAX
         'Accept'        => 'application/json',
         'Content-Type'  => 'application/json;charset=UTF-8',
 
-      );
+     );
       $body = json_encode(array( 'url' => get_site_url() ));
 
       print_r($body);
@@ -326,7 +278,7 @@ class InstaWP_AJAX
         'headers' => $header,
         'body'    => json_encode($body),
 
-      ));
+     ));
       $response_code = wp_remote_retrieve_response_code($response);
       print_r($response);
       if ( ! is_wp_error($response) && $response_code == 200 ) {

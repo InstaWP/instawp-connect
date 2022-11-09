@@ -65,14 +65,14 @@ class InstaWP_Backup_Api
 
       //autologin code call endpoint
       register_rest_route($this->namespace . '/' . $this->version_2, '/auto-login-code', array(
-         'methods'             => 'GET',
+         'methods'             => 'POST',
          'callback'            => array( $this, 'instawp_handle_auto_login_code' ),
          'permission_callback' => '__return_true',
       ));
 
       //autologin endpoint
       register_rest_route($this->namespace . '/' . $this->version_2, '/auto-login', array(
-         'methods'             => 'GET',
+         'methods'             => 'POST',
          'callback'            => array( $this, 'instawp_handle_auto_login' ),
          'permission_callback' => '__return_true',
       ));
@@ -87,29 +87,25 @@ class InstaWP_Backup_Api
       $param_api_key = $request->get_param('api_key');      
 
       $connect_options = get_option('instawp_api_options', '');
-      $current_api_key = $connect_options['api_key'];
+      $current_api_key = !empty($current_api_key) ? $connect_options['api_key'] : "";
 
-      if (!empty($param_api_key) && $param_api_key === $current_api_key) {
+      if ( 
+         !empty($param_api_key) && 
+         $param_api_key === $current_api_key 
+      ) {
          $uuid_code = wp_generate_uuid4();
          $uuid_code_256 = str_shuffle( $uuid_code . $uuid_code );
 
          $auto_login_api = get_rest_url(null, '/' . $this->namespace . '/' . $this->version_2 . "/auto-login");
 
-         $auto_login_url = add_query_arg( 
-            array(
-               'c' => $uuid_code_256
-            ), 
-            $auto_login_api 
-         );
-
          $response_array = array(
-            'login_url' => $auto_login_url
+            'code' => $uuid_code_256
          );
          set_transient('instawp_auto_login_code', $uuid_code_256, 8 * HOUR_IN_SECONDS);
       }else{
          $response_array = array(
             'error'   => true,
-            'message' => 'Key Not Valid',
+            'message' => 'Invalid Parameters',
          );
       }
 
@@ -119,7 +115,7 @@ class InstaWP_Backup_Api
    }
 
    /**
-    * Auto login logic
+    * Auto login url generate
     * */
    public function instawp_handle_auto_login( $request )
    {
@@ -127,24 +123,27 @@ class InstaWP_Backup_Api
 
       $param_api_key = $request->get_param('api_key');
       $param_code = $request->get_param('c');
-      $param_domain_name = $request->get_param('domain_name');
+      $param_user = $request->get_param('s');
 
       $connect_options = get_option('instawp_api_options', '');
-      $current_api_key = $connect_options['api_key'];
+      $current_api_key = !empty($connect_options) ? $connect_options['api_key'] : '';
 
       $current_login_code = get_transient( 'instawp_auto_login_code' );
 
       if ( 
          !empty( $param_api_key ) && 
          !empty( $param_code ) &&
-         $param_api_key === $current_api_key &&  
+         !empty( $param_user ) &&
+         $param_api_key === $current_api_key && 
+         false !== $current_login_code &&
          $param_code === $current_login_code 
       ) {
 
          // Make url 
          $auto_login_url = add_query_arg( 
             array(
-               'c' => $param_code
+               'c' => $param_code,
+               's' => base64_encode( $param_user )
             ), 
             wp_login_url('', true)  
          );
@@ -153,11 +152,10 @@ class InstaWP_Backup_Api
             'error'   => false,
             'login_url' => $auto_login_url,
          );
-
       }else{
          $response_array = array(
             'error'   => true,
-            'message' => 'Key Not Valid',
+            'message' => 'Invalid Parameters',
          );
       }
 
