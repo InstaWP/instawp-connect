@@ -134,11 +134,21 @@ class InstaWP_Admin {
         $submenus[ $submenu['menu_slug'] ] = $submenu;
 
         $submenu['parent_slug'] = $this->plugin_name;
-        $submenu['page_title'] = 'InstaWP Connect';
-        $submenu['menu_title'] = __('Connect', 'instawp-connect');
+        $submenu['page_title'] = 'Create New';
+        $submenu['menu_title'] = __('Create New', 'instawp-connect');
         $submenu['capability'] = 'administrator';
         $submenu['menu_slug'] = 'instawp-connect';
         $submenu['function'] = array( $this, 'display_wizard_page' );
+        $submenu['index'] = 2;
+        $submenus[ $submenu['menu_slug'] ] = $submenu;
+
+        //new
+        $submenu['parent_slug'] = $this->plugin_name;
+        $submenu['page_title'] = 'Staging Sites';
+        $submenu['menu_title'] = __('Staging Sites', 'instawp-connect');
+        $submenu['capability'] = 'administrator';
+        $submenu['menu_slug'] = 'instawp-staging-site';
+        $submenu['function'] = array( $this, 'display_staging_sites_page' );
         $submenu['index'] = 2;
         $submenus[ $submenu['menu_slug'] ] = $submenu;
 
@@ -377,6 +387,11 @@ class InstaWP_Admin {
 
         //include_once('partials/instawp-settings-page-display.php');  
         include_once('partials/instawp-admin-settings.php');  
+    }
+
+    public function display_staging_sites_page() {
+
+        include_once('partials/instawp-admin-staging-sites.php');  
     }
 
     public function migrate_notice() {
