@@ -45,6 +45,7 @@ class InstaWP_Staging_Site_Table extends WP_List_Table {
 
     public function wp_list_table_data() {
         $data = array();
+        $listArray = array();
         $site_name = '';
         $wp_admin_url = '';
         $wp_username = '';
@@ -56,103 +57,33 @@ class InstaWP_Staging_Site_Table extends WP_List_Table {
         $connect_ids  = get_option('instawp_connect_id_options', '');
         if ( isset( $connect_ids['data']['id'] ) && ! empty($connect_ids['data']['id']) ) {
             $connect_id    = $connect_ids['data']['id'];
-            $staging_sites_list = get_option('instawp_staging_list_items', array());
-            // echo "<pre>";
-            // print_r($staging_sites_list);
-            // echo "</pre>";
-            // die();
-            // if ( isset( $staging_sites[ $connect_id ][ $task_id ] ) ) {
+            $staging_sites = get_option('instawp_staging_list_items', array());
+            
+           
+            $connect_id = '1245467637';
+            if ( isset( $staging_sites[ $connect_id ] ) ) {          
+                $staging_sites = $staging_sites[ $connect_id ];
+                foreach ( $staging_sites as $loop_task_id => $staging_site ) {
+                    echo $loop_task_id;
+                    $site_name =  $staging_site['data']['wp'][0]['site_name']; 
+                    $wp_admin_url = $staging_site['data']['wp'][0]['wp_admin_url']; 
+                    $wp_username = $staging_site['data']['wp'][0]['wp_username']; 
+                    $wp_password = $staging_site['data']['wp'][0]['wp_password']; 
+                    $auto_login_hash = $staging_site['data']['wp'][0]['auto_login_hash']; 
+                    $auto_login_url = add_query_arg( array( 'site' => $auto_login_hash ), $auto_login_url );
 
-            //     $staging_sites = $staging_sites[ $connect_id ];
-            //     foreach ($staging_sites as $key => $staging_site) {
-            //         if ( isset( $staging_site['data']['status'] ) && $staging_site['data']['status'] == 1 ) {
-            //             $site_name = $staging_site['data']['wp'][0]['site_name']; 
-            //             $wp_admin_url = $staging_site['data']['wp'][0]['wp_admin_url']; 
-            //             $wp_username = $staging_site['data']['wp'][0]['wp_username']; 
-            //             $wp_password = $staging_site['data']['wp'][0]['wp_password']; 
-            //             $wp_password = $staging_site['data']['wp'][0]['wp_password']; 
-            //             $auto_login_hash = $staging_site['data']['wp'][0]['auto_login_hash']; 
-            //             $auto_login_url = add_query_arg( array( 'site' => $auto_login_hash ), $auto_login_url );
-                        
-            //             $data = array(
-            //                 array(
-            //                     'id'    => 1,
-            //                     'website'  => 'http://localhost/instawp',
-            //                     'username' => $wp_username,
-            //                     'password' => $wp_password,
-            //                     'autologin' => $auto_login_url
-            //                 ),            
-            //             );        
-            //         }   
-            //     }
-                
-            // }   
-            $data = array(
-                array(
-                    'id'    => 1,
-                    'website'  => 'http://localhost/instawp',
-                    'username' => 'admin',
-                    'password' => 'admin',
-                    'autologin' => 'http://localhost/instawp/wp-login.php'
-                ),   
-                array(
-                    'id'    => 2,
-                    'website'  => 'http://localhost/instawp',
-                    'username' => 'admin',
-                    'password' => 'admin',
-                    'autologin' => 'http://localhost/instawp/wp-login.php'
-                ),     
-                array(
-                    'id'    => 3,
-                    'website'  => 'http://localhost/instawp',
-                    'username' => 'admin',
-                    'password' => 'admin',
-                    'autologin' => 'http://localhost/instawp/wp-login.php'
-                ),    
-                array(
-                    'id'    => 4,
-                    'website'  => 'http://localhost/instawp',
-                    'username' => 'admin',
-                    'password' => 'admin',
-                    'autologin' => 'http://localhost/instawp/wp-login.php'
-                ),    
-                array(
-                    'id'    => 5,
-                    'website'  => 'http://localhost/instawp',
-                    'username' => 'admin',
-                    'password' => 'admin',
-                    'autologin' => 'http://localhost/instawp/wp-login.php'
-                ),           
-            );        
-        }
-        
-        return $data;
-        
-        ?>
-        <?php /*
-         <div class="instawp-site-details-wrapper">
-            <p id="site-details-progress" class="<?php echo esc_attr( $progress_class); ?>">
-            <?php echo esc_html__( 'Please wait Staging Site Creation Is In Progress','instawp-connect' ); ?>
-            </p>
-            <div class="site-details <?php echo esc_attr( $site_class); ?>">
-                <p> <?php echo esc_html__('WP login Credentials','instawp-connect') ?></p>
-                <p id="instawp_site_url"> <?php echo esc_html__('URL','instawp-connect') ?> : <a target="_blank" href="<?php echo esc_url( str_replace('wp-admin', '', $wp_admin_url) ); ?>"><?php echo esc_html($site_name); ?></a></p>
-                <p id="instawp_admin_url"> <?php echo esc_html__( 'Admin URL','instawp-connect' ); ?> : <a target="_blank" href="<?php echo esc_url( $wp_admin_url ); ?>"> <?php echo esc_url( $wp_admin_url ); ?> </a></p>
-                <p id="instawp_user_name"><?php echo esc_html__( 'Admin Username','instawp-connect' ); ?> : <span> <?php echo esc_html($wp_username); ?> </span></p>
-                <p id="instawp_password"> <?php echo esc_html__( 'Admin Password','instawp-connect' ); ?> : <span> : <span> <?php echo esc_html( $wp_password ); ?> </span></p>
-            </div>
-            <div class="login-btn">
-                <div class="instawp-wizard-btn-wrap <?php echo esc_attr( $site_class); ?>">
-              <a  class="instawp-wizard-btn" target="_blank" href="<?php echo esc_url($auto_login_url); ?>">
-                <?php echo esc_html__('Auto login','instawp-connect'); ?>
-                
-              </a>
-          
-
-        </div>
-            </div>
-        </div>
-        <?php*/
+                    $listArray['id'] = $loop_task_id;
+                    $listArray['website'] = $site_name;
+                    $listArray['username'] = $wp_username;
+                    $listArray['password'] = $wp_password;
+                    $listArray['autologin'] = '<a href='.$auto_login_url.' target="_blank">Autologin</a>';  
+                }
+            }   
+                  
+        }   
+        var_export($listArray);
+        die;
+        return array($listArray);
     }
 
     public function get_hidden_columns() {
