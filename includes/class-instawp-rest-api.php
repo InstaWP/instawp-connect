@@ -78,20 +78,32 @@ class InstaWP_Backup_Api
       ));
    }
 
-   /**
+  /**
     * Handle repsonse for login code generate
     * */
    public function instawp_handle_auto_login_code ( $request ){
       $response_array = array();
 
+      // Hashed string
       $param_api_key = $request->get_param('api_key');      
 
       $connect_options = get_option('instawp_api_options', '');
-      $current_api_key = !empty($current_api_key) ? $connect_options['api_key'] : "";
 
+      // Non hashed
+      $current_api_key = !empty($connect_options) ? $connect_options['api_key'] : "";
+
+      $current_api_key_hash = "";
+
+      // check for pipe
+      if (!empty($current_api_key) && str_contains($current_api_key, '|')) { 
+         $exploded = explode('|', $current_api_key);
+         $current_api_key_hash = hash('sha256', $exploded[1]);
+      }else{
+         $current_api_key_hash = !empty($current_api_key) ? hash('sha256', $current_api_key) : "";
+      }
       if ( 
          !empty($param_api_key) && 
-         $param_api_key === $current_api_key 
+         $param_api_key === $current_api_key_hash 
       ) {
          $uuid_code = wp_generate_uuid4();
          $uuid_code_256 = str_shuffle( $uuid_code . $uuid_code );
@@ -126,15 +138,27 @@ class InstaWP_Backup_Api
       $param_user = $request->get_param('s');
 
       $connect_options = get_option('instawp_api_options', '');
+
+      // Non hashed
       $current_api_key = !empty($connect_options) ? $connect_options['api_key'] : '';
 
       $current_login_code = get_transient( 'instawp_auto_login_code' );
+
+      $current_api_key_hash = "";
+
+      // check for pipe
+      if (!empty($current_api_key) && str_contains($current_api_key, '|')) { 
+         $exploded = explode('|', $current_api_key);
+         $current_api_key_hash = hash('sha256', $exploded[1]);
+      }else{
+         $current_api_key_hash = !empty($current_api_key) ? hash('sha256', $current_api_key) : "";
+      }
 
       if ( 
          !empty( $param_api_key ) && 
          !empty( $param_code ) &&
          !empty( $param_user ) &&
-         $param_api_key === $current_api_key && 
+         $param_api_key === $current_api_key_hash && 
          false !== $current_login_code &&
          $param_code === $current_login_code 
       ) {
