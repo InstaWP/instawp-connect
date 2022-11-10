@@ -54,15 +54,11 @@ class InstaWP_Staging_Site_Table extends WP_List_Table {
             if (sizeof($staging_sites) > 0) {
                 $data = $staging_sites[ $connect_id ];
             }
-            // $data = $staging_sites['124578'];
         }
 
-        $staging_sites = get_option('instawp_staging_list_items', array());
-        $data = $staging_sites[ '539' ];
+        // $staging_sites = get_option('instawp_staging_list_items', array());
+        //$data = $staging_sites[ '539' ];
 
-        /*echo "<pre>";
-        print_r($data);
-        die();*/
         $this->items = $data;
 
         $this->set_pagination_args(
@@ -94,9 +90,10 @@ class InstaWP_Staging_Site_Table extends WP_List_Table {
             if ( isset( $connect_ids['data']['id'] ) && ! empty($connect_ids['data']['id']) ) {
                 $connect_id = $connect_ids['data']['id'];
             }
-            $connect_id = '539';
+            //$connect_id = '539';
             if (!empty($connect_id)) {
-                $staging_sites = $staging_sites['539'];
+                //$staging_sites = $staging_sites['539'];
+                $staging_sites = $staging_sites[$connect_id];
 
                 foreach ( $row_ids as $index => $array_row_id ) {
                     if (array_key_exists(intval($array_row_id), $staging_sites)){
@@ -105,7 +102,8 @@ class InstaWP_Staging_Site_Table extends WP_List_Table {
                 }
 
                 // Reset with connect ID
-                $staging_sites_new['539'] = $staging_sites;
+                //$staging_sites_new['539'] = $staging_sites;
+                $staging_sites_new[$connect_id] = $staging_sites;
 
                 update_option('instawp_staging_list_items', $staging_sites_new);
             }
@@ -120,12 +118,7 @@ class InstaWP_Staging_Site_Table extends WP_List_Table {
     }
 
     function column_default($item, $column_name)
-    {
-        // echo "<pre>";
-        // print_r($item['stage_site_url']['wp_admin_url']); 
-        // echo $column_name;
-        // die();
-
+    {       
         switch ( $column_name ) {
             case 'stage_site_url':
             $site_name = $item['stage_site_url']['site_name'];
