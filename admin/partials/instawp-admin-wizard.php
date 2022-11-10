@@ -29,8 +29,8 @@ else {
 }
 if ( ! empty($instawp_finish_upload) ) {
     $screen_1_show = false;
-    $screen_3_show = true;  
-    $screen_4_show = false;  
+    $screen_3_show = false;  
+    $screen_4_show = true;  
 }
 ?>
 <div class="wrap instawp-connect-wizard">
