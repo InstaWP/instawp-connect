@@ -50,8 +50,6 @@ class InstaWP_AJAX
       global $InstaWP_Curl;
       
       $this->instawp_log->CreateLogFile('restore_status', 'no_folder', 'Remote Config');
-
-      
       $api_doamin = InstaWP_Setting::get_api_domain();
       
       $instawp_finish_upload = get_option('instawp_finish_upload', array());
@@ -66,6 +64,7 @@ class InstaWP_AJAX
       if ( empty($backup_status_opt) ) {
          //$this->instawp_log->CloseFile();
          echo json_encode($curl_response);
+         error_log("empty backup status: " . print_r($curl_response, true));
          wp_die();
       }
       // if (!empty($connect_ids)) {
@@ -91,12 +90,25 @@ class InstaWP_AJAX
             $body['site_id']    = $site_id;
             $backup_info_json   = json_encode($body);
             $curl_response_data      = $InstaWP_Curl->curl($url, $backup_info_json);
-            $this->instawp_log->WriteLog('url: '. $url . ' Body:'.$backup_info_json. 'Response: ' . json_encode($curl_response_data), 'notice');
-            if ( isset($curl_response_data['curl_res']) ) {
 
-               // $curl_response = (array) json_decode($curl_response_data['curl_res'], true);
-               $curl_response = $curl_response_data['curl_res'];
+            $this->instawp_log->WriteLog('url: '. $url . ' Body:'.$backup_info_json. 'Response: ' . json_encode($curl_response_data), 'notice');
+
+            if ( isset($curl_response_data['curl_res']) ) {
+               error_log("ON LINE 97");
+               if (gettype($curl_response_data['curl_res']) == "string") {
+                  $curl_response = json_decode($curl_response_data['curl_res'],true);
+                  error_log("ON LINE 100");
+               }else{
+                  $curl_response = $curl_response_data['curl_res'];
+                  error_log("ON LINE 103");
+               }
+
+               error_log("ON LINE 106 curl_response type starts: " . gettype($curl_response));
+               error_log(print_r($curl_response, true));
+               error_log("ON LINE 106 curl_response type ends: " . gettype($curl_response));
                if ( isset($curl_response['status']) && $curl_response['status'] == 1 ) {
+                  error_log("ON LINE 107");
+
                   $staging_sites        = get_option('instawp_staging_list', array());
                   $staging_sites[ $id ] = $curl_response;
                   update_option('instawp_staging_list', $staging_sites);
@@ -104,8 +116,8 @@ class InstaWP_AJAX
                   //option to add task id and items
                   $staging_sites_items  = get_option('instawp_staging_list_items', array());
 
-                  error_log("curl_response Before: " . print_r($curl_response, true));
-                  error_log("staging_sites_items Before: " . print_r($staging_sites_items, true));
+                  $api_doamin = InstaWP_Setting::get_api_domain();
+                  $auto_login_url = $api_doamin . '/wordpress-auto-login';
 
                   $site_name = $curl_response['data']['wp'][0]['site_name']; 
                   $wp_admin_url = $curl_response['data']['wp'][0]['wp_admin_url']; 
@@ -115,6 +127,7 @@ class InstaWP_AJAX
                   $auto_login_url = add_query_arg( array( 'site' => $auto_login_hash ), $auto_login_url );
 
                   $staging_sites_items[ $id ][ $task_id ] = array(
+                     "stage_site_task_id" => $task_id,
                      "stage_site_url" => array(
                         "site_name" => $site_name, 
                         "wp_admin_url" => $wp_admin_url
@@ -123,16 +136,18 @@ class InstaWP_AJAX
                      "stage_site_pass" => $wp_password,
                      "stage_site_login_button" => $auto_login_url,
                   );
-                  error_log("staging_sites_items After: " . print_r($staging_sites_items, true));
+                  error_log("staging_sites_items Task ID After: " . $task_id);
 
                   update_option('instawp_staging_list_items', $staging_sites_items);
                }
             }         
          }
       }
+      error_log("ON LINE 143");
       update_option('restore_status_options', $curl_response_data);
       $this->instawp_log->WriteLog('url: '. $url . ' Body:'.$backup_info_json. 'Response: ' . json_encode($curl_response_data), 'notice');
-      //$this->instawp_log->CloseFile();
+
+      // error_log("curl_response 142 LINE : " . print_r($curl_response, true));
       echo json_encode($curl_response);
       wp_die();
    }
