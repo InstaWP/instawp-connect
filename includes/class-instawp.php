@@ -208,14 +208,14 @@ class instaWP
    // Set Cron time interval function
    public function instawp_handle_cron_time_intervals( $schedules )
    {  
-      $cutstom_interval = intval( get_option('instawp_heartbeat_option', 15) );
-      error_log( "default interval time ==> ".$cutstom_interval );
+      $cutstom_interval = intval( get_option('instawp_heartbeat_option', 2) );
+      //error_log( "default interval time ==> ".$cutstom_interval );
       $schedules['instawp_heartbeat_interval'] = array(
          'interval' => $cutstom_interval * 60,
          'display' => 'Once '.$cutstom_interval.' minutes'
-      );
-
+      );      
       return $schedules;
+      
    }
 
    /*Set Cron event*/

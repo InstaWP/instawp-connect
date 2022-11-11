@@ -19,10 +19,12 @@ $instawp_api_url = get_option('instawp_api_url', '');
 $general_setting = InstaWP_Setting::get_setting(true, "");
 $api_key = '';
 
-$instawp_heartbeat_option = 15;
+
 if( !empty( get_option( 'instawp_heartbeat_option' )))
 {
     $instawp_heartbeat_option =  get_option( 'instawp_heartbeat_option' );
+}else{
+    $instawp_heartbeat_option = 2;
 }
 if ( ! empty($connect_options) ) {
     $api_key = $connect_options['api_key'];
