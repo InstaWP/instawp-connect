@@ -25,15 +25,43 @@ class InstaWP_AJAX
             InstaWP_Setting::set_api_domain($instawp_api_url_internal);         
          }
 
-         $api_heartbeat = trim( $_REQUEST['api_heartbeat'] );        
+         $api_heartbeat = intval(trim( $_REQUEST['api_heartbeat'] ));       
+
          $resType = true;
          $message='Settings saved successfully';
          update_option( 'instawp_heartbeat_option', $api_heartbeat );
 
-         if ( intval( get_option("instawp_heartbeat_option") ) !== intval( $api_heartbeat ) ) {
+         error_log('heartbeat settings call');
+         error_log( gettype(get_option("instawp_heartbeat_option")). " <===> ". gettype( $api_heartbeat ) );
+         error_log( "db option : ".get_option("instawp_heartbeat_option") );
+         error_log( "convert option : ".gettype((int)get_option("instawp_heartbeat_option")) );
+        
+         $heartbeat_option_val = (int)get_option("instawp_heartbeat_option");
+
+         error_log( "Updated option : ".gettype( $heartbeat_option_val ) );
+         error_log("=================================");
+
+         if ( (int)$heartbeat_option_val !== intval( $api_heartbeat ) ) {
+            date_default_timezone_set("Asia/Kolkata");
+            error_log("New Schedule AT : " . date('d-m-Y, H:i:s, h:i:s'));
             $timestamp = wp_next_scheduled( 'instwp_handle_heartbeat_cron_action' );
             wp_unschedule_event( $timestamp, 'instwp_handle_heartbeat_cron_action' );
+         }else{
+            date_default_timezone_set("Asia/Kolkata");
+            error_log("Next Schedule AT : " . date('d-m-Y, H:i:s, h:i:s'));
+            //instaWP::instawp_handle_cron_time_intervals( $api_heartbeat );
+            
+            // $schedules['instawp_heartbeat_interval'] = array(
+            //    'interval' => $api_heartbeat * 60,
+            //    'display' => 'Once '.$api_heartbeat.' minutes'
+            // );
+            // return $schedules;
+
+            if ( ! wp_next_scheduled( 'instwp_handle_heartbeat_cron_action' ) ) {         
+               wp_schedule_event( $api_heartbeat * 60, 'instawp_heartbeat_interval', 'instwp_handle_heartbeat_cron_action');
+            }
          }
+         
       }else{
          $resType = false;
          $message='Something Wrong';         
@@ -163,7 +191,7 @@ class InstaWP_AJAX
      );
       $api_doamin = InstaWP_Setting::get_api_domain();
       $url = $api_doamin . INSTAWP_API_URL . '/check-key';
-
+      error_log("Check key available ?". $_REQUEST['api_key'] );
       if ( isset($_REQUEST['api_key']) && empty($_REQUEST['api_key']) ) {
          $res['message'] = 'API Key is required';
          echo json_encode($res);

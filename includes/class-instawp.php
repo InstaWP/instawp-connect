@@ -208,7 +208,8 @@ class instaWP
    // Set Cron time interval function
    public function instawp_handle_cron_time_intervals( $schedules )
    {  
-      $cutstom_interval = get_option('instawp_heartbeat_option', 15);
+      $cutstom_interval = intval( get_option('instawp_heartbeat_option', 15) );
+      error_log( "default interval time ==> ".$cutstom_interval );
       $schedules['instawp_heartbeat_interval'] = array(
          'interval' => $cutstom_interval * 60,
          'display' => 'Once '.$cutstom_interval.' minutes'
@@ -219,7 +220,7 @@ class instaWP
 
    /*Set Cron event*/
    public function instawp_handle_cron_scheduler() {
-      if ( ! wp_next_scheduled( 'instwp_handle_heartbeat_cron_action' ) ) {
+      if ( ! wp_next_scheduled( 'instwp_handle_heartbeat_cron_action' ) ) {         
          wp_schedule_event( time(), 'instawp_heartbeat_interval', 'instwp_handle_heartbeat_cron_action');
       }
    }
