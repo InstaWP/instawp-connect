@@ -115,7 +115,7 @@ foreach ( $tasks as $task_id => $task ) {
         <?php wp_nonce_field( 'instawp_settings', 'instawp_settings_nonce' ); ?>
         <?php submit_button(); ?>
     </form>
-    <p class="instawp-err-msg heartbeat"></p>
+   
 </div>
 <script type="text/javascript">
     jQuery(document).ready(function () {

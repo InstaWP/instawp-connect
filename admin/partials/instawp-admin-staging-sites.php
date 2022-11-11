@@ -71,18 +71,19 @@ class InstaWP_Staging_Site_Table extends WP_List_Table {
     }
 
     function process_bulk_action()
-    {
+    {   
         if ( 
             ( 
-                isset( $_REQUEST['action'] ) && 
-                'bulk-delete' == $_REQUEST['action'] 
+                isset( $_GET['action'] ) && 
+                'bulk-delete' == $_GET['action'] 
             ) || ( 
-                isset( $_REQUEST['action2'] ) && 
-                'bulk-delete' == $_REQUEST['action2'] 
+                isset( $_GET['action2'] ) && 
+                'bulk-delete' == $_GET['action2'] 
             ) && 
-            isset( $_REQUEST['staging_sites_ids'] )
+            isset( $_GET['staging_sites_ids'] )
         ) {
-            $row_ids = esc_sql( $_REQUEST['staging_sites_ids'] );
+            $row_ids = esc_sql( $_GET['staging_sites_ids'] );
+
             $staging_sites = get_option('instawp_staging_list_items', array());
             
             $connect_id = '';
@@ -96,8 +97,8 @@ class InstaWP_Staging_Site_Table extends WP_List_Table {
                 $staging_sites = $staging_sites[$connect_id];
 
                 foreach ( $row_ids as $index => $array_row_id ) {
-                    if (array_key_exists(intval($array_row_id), $staging_sites)){
-                        unset($staging_sites[intval($array_row_id)]);
+                    if (array_key_exists($array_row_id, $staging_sites)){
+                        unset($staging_sites[$array_row_id]);
                     }
                 }
 
@@ -124,7 +125,7 @@ class InstaWP_Staging_Site_Table extends WP_List_Table {
             $site_name = $item['stage_site_url']['site_name'];
             $site_admin_url = $item['stage_site_url']['wp_admin_url'];
 
-            $col_html = '<a href="'.$site_name.'">'.$site_name.'</p>';
+            $col_html = '<a href="'.$site_admin_url.'">'.$site_name.'</p>';
             return $col_html;
             case 'stage_site_user':
 
