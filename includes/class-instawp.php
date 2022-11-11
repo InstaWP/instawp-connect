@@ -208,12 +208,24 @@ class instaWP
    // Set Cron time interval function
    public function instawp_handle_cron_time_intervals( $schedules )
    {  
-      $cutstom_interval = intval( get_option('instawp_heartbeat_option', 2) );
+      $connect_options = get_option('instawp_api_options', '');
+      $connect_ids = get_option('instawp_connect_id_options', '');
+
+      if (
+         isset($connect_options['api_key']) && 
+         !empty($connect_options['api_key']) && 
+         !empty($connect_ids) && 
+         isset($connect_ids['data']['id']) && 
+         !empty($connect_ids['data']['id'])
+      ){
+
+         $cutstom_interval = intval( get_option('instawp_heartbeat_option', 2) );
       //error_log( "default interval time ==> ".$cutstom_interval );
-      $schedules['instawp_heartbeat_interval'] = array(
-         'interval' => $cutstom_interval * 60,
-         'display' => 'Once '.$cutstom_interval.' minutes'
-      );      
+         $schedules['instawp_heartbeat_interval'] = array(
+            'interval' => $cutstom_interval * 60,
+            'display' => 'Once '.$cutstom_interval.' minutes'
+         );      
+      }
       return $schedules;
       
    }
@@ -225,6 +237,7 @@ class instaWP
       }
    }
 
+   /*Encrypt data*/
    public static function instawp_heartbeat_data_encrypt( $arg ){
       $connect_options = get_option('instawp_api_options', '');
       $api_key = $connect_options['api_key'];
@@ -233,7 +246,9 @@ class instaWP
       $ivlen = openssl_cipher_iv_length($cipher);
       $iv = openssl_random_pseudo_bytes($ivlen);
       $tag = 'GCM';
-      return openssl_encrypt( $arg, $cipher, $api_key, $options=0, $iv, $tag );       
+      $data = openssl_encrypt( $arg, $cipher, $api_key, $options=0, $iv, $tag );
+
+      return $data;       
    }
 
    /**
@@ -242,11 +257,13 @@ class instaWP
    public function instawp_handle_heartbeat_cron_action_call(){
       date_default_timezone_set("Asia/Kolkata");
       error_log("RAN AT : " . date('d-m-Y, H:i:s, h:i:s'));
+
       $connect_options = get_option('instawp_api_options', '');
       $connect_ids = get_option('instawp_connect_id_options', '');
 
       if (
          isset($connect_options['api_key']) && 
+         !empty($connect_options['api_key']) && 
          !empty($connect_ids) && 
          isset($connect_ids['data']['id']) && 
          !empty($connect_ids['data']['id'])
@@ -282,14 +299,18 @@ class instaWP
          // Curl constant
          global $InstaWP_Curl;
 
-         $body = array(
-            "wp_version" => self::instawp_heartbeat_data_encrypt($wp_version),
-            "php_version" => self::instawp_heartbeat_data_encrypt($php_version),
-            "total_size" => self::instawp_heartbeat_data_encrypt($total_size),
-            "theme" => self::instawp_heartbeat_data_encrypt($active_theme),
-            "posts" => self::instawp_heartbeat_data_encrypt($posts),
-            "pages" => self::instawp_heartbeat_data_encrypt($pages),
-            "users" => self::instawp_heartbeat_data_encrypt($users),
+         $body = base64_encode(
+            json_encode (
+               array(
+                  "wp_version" => $wp_version,
+                  "php_version" => $php_version,
+                  "total_size" => $total_size,
+                  "theme" => $active_theme,
+                  "posts" => $posts,
+                  "pages" => $pages,
+                  "users" => $users,
+               )
+            )
          );
 
          $api_doamin = InstaWP_Setting::get_api_domain();

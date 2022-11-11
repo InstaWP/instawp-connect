@@ -95,13 +95,15 @@ class InstaWP_Backup_Api
       $current_api_key_hash = "";
 
       // check for pipe
-      //if (!empty($current_api_key) && str_contains($current_api_key, '|')) { 
       if (!empty($current_api_key) && strpos($current_api_key, '|') !== false) { 
+         error_log("RAN IF");
          $exploded = explode('|', $current_api_key);
          $current_api_key_hash = hash('sha256', $exploded[1]);
       }else{
+         error_log("RAN ELSE");
          $current_api_key_hash = !empty($current_api_key) ? hash('sha256', $current_api_key) : "";
       }
+
       if ( 
          !empty($param_api_key) && 
          $param_api_key === $current_api_key_hash 
@@ -111,14 +113,28 @@ class InstaWP_Backup_Api
 
          $auto_login_api = get_rest_url(null, '/' . $this->namespace . '/' . $this->version_2 . "/auto-login");
 
+         $message = "success";
          $response_array = array(
-            'code' => $uuid_code_256
+            'code' => $uuid_code_256,
+            'message' => $message
          );
          set_transient('instawp_auto_login_code', $uuid_code_256, 8 * HOUR_IN_SECONDS);
       }else{
+         $message = "request invalid - ";
+
+         if ( empty($param_api_key) ) { // api key parameter is empty
+            $message .= "key parameter missing";
+         }
+         elseif ($param_api_key !== $current_api_key_hash) { // local and param, api key hash not matched
+            $message .= "api key mismatch";
+         }
+         else{ // default response
+            $message = "invalid request";  
+         }
+
          $response_array = array(
             'error'   => true,
-            'message' => 'Invalid Parameters',
+            'message' => $message,
          );
       }
 
@@ -173,14 +189,40 @@ class InstaWP_Backup_Api
             wp_login_url('', true)  
          );
          // Auto Login Logic to be written
+         $message = "success";
          $response_array = array(
             'error'   => false,
+            'message' => $message,
             'login_url' => $auto_login_url,
          );
       }else{
+         $message = "request invalid - ";
+
+         if ( empty($param_api_key) ) { // api key parameter is empty
+            $message .= "key parameter missing";
+         }
+         elseif ( empty($param_code) ) { // code parameter is empty
+            $message .= "code parameter missing";
+         }
+         elseif ( empty($param_user) ) { // user parameter is empty
+            $message .= "user parameter missing";
+         }
+         elseif ($param_api_key !== $current_api_key_hash) { // local and param, api key hash not matched
+            $message .= "api key mismatch";
+         }
+         elseif ($param_code !== $current_login_code) { // local and param, code not matched
+            $message .= "code mismatch";
+         }
+         elseif (false === $current_login_code) { // local code parameter option not set
+            $message .= "code expired";
+         }
+         else{ // default response
+            $message = "invalid request";  
+         }
+
          $response_array = array(
             'error'   => true,
-            'message' => 'Invalid Parameters',
+            'message' => $message,
          );
       }
 
