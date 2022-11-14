@@ -24,7 +24,7 @@ if( !empty( get_option( 'instawp_heartbeat_option' )))
 {
     $instawp_heartbeat_option =  get_option( 'instawp_heartbeat_option' );
 }else{
-    $instawp_heartbeat_option = 2;
+    $instawp_heartbeat_option = 15;
 }
 if ( ! empty($connect_options) ) {
     $api_key = $connect_options['api_key'];
@@ -94,7 +94,7 @@ foreach ( $tasks as $task_id => $task ) {
                     </label> 
                 </th>
                 <td>
-                    <input type="number" min="1" max="120" value="<?php echo esc_html($instawp_heartbeat_option); ?>" name="instawp_api_heartbeat" id="instawp_api_heartbeat" />                        
+                    <input type="number" min="2" max="120" value="<?php echo esc_html($instawp_heartbeat_option); ?>" name="instawp_api_heartbeat" id="instawp_api_heartbeat" />                        
                 </td>                    
             </tr>
 
