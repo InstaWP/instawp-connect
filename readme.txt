@@ -4,11 +4,11 @@ Tags: move, clone, migrate, staging, backup, restore, auto backup, cloud backup
 Requires at least: 4.5
 Tested up to: 6.1
 Requires PHP: 5.3
-Stable tag: 0.0.1
+Stable tag: 0.0.2
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
-Create staging WordPress site from production sites in 1-click.
+Create staging WordPress site from production sites in 1-click. (beta version).
 
 == Description ==
 InstaWP allows you to create WordPress websites for testing, development and staging with seconds. Using this companion plugin you can connect your existing WordPress sites anywhere on the internet to your InstaWP. After your site is connected, you can create 1-click staging websites from within the WP admin panel.
