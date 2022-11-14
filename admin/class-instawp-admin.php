@@ -194,6 +194,8 @@ class InstaWP_Admin {
                 'ajax_url'   => admin_url('admin-ajax.php'), 
                 'admin_url'   => admin_url(), 
                 'ajax_nonce' => wp_create_nonce('instawp_ajax'),
+                'nlogger' => wp_create_nonce('instawp_nlogger_update_option_by-nlogger'),
+                'plugin_connect_url' => admin_url( "admin.php?page=instawp-connect" ),
             ));
 
             wp_localize_script($this->plugin_name, 'instawplion', array(

@@ -35,14 +35,14 @@ class InstaWP_Curl
       $this->set_api_key();
       $res = array();
       $headers = array();
-    //   $headers = array(
-		  // 'Authorization: Bearer ' . $this->api_key,
-		  // 'Accept: application/json',
-		  // 'Content-Type: application/json',
-    //   );
-    //   if ( ! empty($header) ) {
-    //      array_push($headers, $header);
-    //   }
+      $headers = array(
+		  'Authorization: Bearer ' . $this->api_key,
+		  'Accept: application/json',
+		  'Content-Type: application/json',
+      );
+      if ( ! empty($header) ) {
+         array_push($headers, $header);
+      }
       $instawp_plugin->instawp_log->WriteLog( 'Initiate Api Call API_URL: '. $url .' Headres: ' . json_encode( $headers ) . ' Body: '.$body,'notice');
       $InstaWP_Backup_Api->instawp_log->WriteLog( 'Initiate Api Call API_URL: '. $url .' Headres: ' . json_encode( $headers ) . ' Body: '.$body,'notice');
       $useragent =  isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '' ;

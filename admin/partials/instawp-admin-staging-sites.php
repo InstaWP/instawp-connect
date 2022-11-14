@@ -21,10 +21,10 @@ class InstaWP_Staging_Site_Table extends WP_List_Table {
     {
         return [
             'cb' => '<input type="checkbox" />',
-            'stage_site_url' => 'Stage Site URL',
-            'stage_site_user' => 'Stage Site USER',
-            'stage_site_pass' => 'Stage Site PASS',
-            'stage_site_login_button' => 'Stage Site LOGIN',
+            'stage_site_url' => strtoupper('stage site - url'),
+            'stage_site_user' => strtoupper('Stage Site - user'),
+            'stage_site_pass' => strtoupper('Stage Site - password'),
+            'stage_site_login_button' => strtoupper('Stage Site - auto login'),
         ];
     }
 
@@ -72,41 +72,45 @@ class InstaWP_Staging_Site_Table extends WP_List_Table {
 
     function process_bulk_action()
     {   
-        if ( 
-            ( 
+        if ( ( 
                 isset( $_GET['action'] ) && 
                 'bulk-delete' == $_GET['action'] 
             ) || ( 
                 isset( $_GET['action2'] ) && 
                 'bulk-delete' == $_GET['action2'] 
             ) && 
-            isset( $_GET['staging_sites_ids'] )
+            isset( $_GET['staging_sites_ids'] ) && !empty( $_GET['staging_sites_ids'] )
         ) {
-            $row_ids = esc_sql( $_GET['staging_sites_ids'] );
+            $row_ids = array();
 
-            $staging_sites = get_option('instawp_staging_list_items', array());
-            
-            $connect_id = '';
-            $connect_ids  = get_option('instawp_connect_id_options', '');
-            if ( isset( $connect_ids['data']['id'] ) && ! empty($connect_ids['data']['id']) ) {
-                $connect_id = $connect_ids['data']['id'];
+            if (!empty($_GET['staging_sites_ids'])) {
+                $row_ids = esc_sql( $_GET['staging_sites_ids'] );
             }
-            //$connect_id = '539';
-            if (!empty($connect_id)) {
-                //$staging_sites = $staging_sites['539'];
-                $staging_sites = $staging_sites[$connect_id];
 
-                foreach ( $row_ids as $index => $array_row_id ) {
-                    if (array_key_exists($array_row_id, $staging_sites)){
-                        unset($staging_sites[$array_row_id]);
-                    }
+
+            if (sizeof($row_ids) > 0) {
+
+                $staging_sites = get_option('instawp_staging_list_items', array());
+
+                $connect_id = '';
+                $connect_ids  = get_option('instawp_connect_id_options', '');
+                if ( isset( $connect_ids['data']['id'] ) && ! empty($connect_ids['data']['id']) ) {
+                    $connect_id = $connect_ids['data']['id'];
                 }
+                if (!empty($connect_id) && $staging_sites && sizeof($staging_sites) > 0) {
+                    $staging_sites = $staging_sites[$connect_id];
 
-                // Reset with connect ID
-                //$staging_sites_new['539'] = $staging_sites;
-                $staging_sites_new[$connect_id] = $staging_sites;
+                    foreach ( $row_ids as $index => $array_row_id ) {
+                        if (array_key_exists($array_row_id, $staging_sites)){
+                            unset($staging_sites[$array_row_id]);
+                        }
+                    }
 
-                update_option('instawp_staging_list_items', $staging_sites_new);
+                    // Reset with connect ID
+                    $staging_sites_new[$connect_id] = $staging_sites;
+
+                    update_option('instawp_staging_list_items', $staging_sites_new);
+                }
             }
         }
     }
@@ -122,8 +126,9 @@ class InstaWP_Staging_Site_Table extends WP_List_Table {
     {       
         switch ( $column_name ) {
             case 'stage_site_url':
+            $scheme = "https://";
             $site_name = $item['stage_site_url']['site_name'];
-            $site_admin_url = $item['stage_site_url']['wp_admin_url'];
+            $site_admin_url = $scheme . $item['stage_site_url']['wp_admin_url'];
 
             $col_html = '<a href="'.$site_admin_url.'">'.$site_name.'</p>';
             return $col_html;

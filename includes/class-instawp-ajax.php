@@ -13,6 +13,30 @@ class InstaWP_AJAX
       add_action('wp_ajax_instawp_settings_call', array( $this, 'instawp_settings_call' ));
       add_action('wp_ajax_instawp_connect', array( $this, 'connect' ));
       add_action('wp_ajax_instawp_check_staging', array( $this, 'instawp_check_staging' ));
+      add_action('wp_ajax_instawp_logger', array( $this, 'instawp_longer_handle' ));
+   }
+
+   /*Handle Js call to remove option*/
+   public function instawp_longer_handle(){
+      $res_array = array(); 
+      if( 
+         !empty( $_POST['n'] ) &&
+         wp_verify_nonce( $_POST['n'],'instawp_nlogger_update_option_by-nlogger') &&         
+         !empty( $_POST['l'] )
+      ) {        
+         $l = $_POST['l'];   
+         update_option( 'instawp_finish_upload',array() );
+         update_option( 'instawp_staging_list',array() );
+
+         $res_array['message']  = 'success';
+         $res_array['status']  = 1;
+      }else{
+         $res_array['message']  = 'failed';
+         $res_array['status']  = 0;
+      }
+
+      wp_send_json( $res_array );
+      wp_die();
    }
 
    public function instawp_settings_call() {
@@ -117,21 +141,45 @@ class InstaWP_AJAX
 
             $this->instawp_log->WriteLog('url: '. $url . ' Body:'.$backup_info_json. 'Response: ' . json_encode($curl_response_data), 'notice');
 
+            /*Debugging*/
+            error_log("Variable Type curl_response_data Line 120: " . gettype($curl_response_data));
+            error_log("Variable Print curl_response_data Line 121: " . print_r($curl_response_data, true));
+            /*Debugging*/
+
             if ( isset($curl_response_data['curl_res']) ) {
-               error_log("ON LINE 97");
+
+               /*Debugging*/
+               error_log("ON LINE 125, (curl_response_data HAS curl_res parameter)");
+               /*Debugging*/
+
                if (gettype($curl_response_data['curl_res']) == "string") {
                   $curl_response = json_decode($curl_response_data['curl_res'],true);
-                  error_log("ON LINE 100");
+                  /*Debugging*/
+                  error_log("ON LINE 129, curl_response_data was string so json decoded and assigned in curl_response Variable");
+                  /*Debugging*/
                }else{
                   $curl_response = $curl_response_data['curl_res'];
-                  error_log("ON LINE 103");
+                  /*Debugging*/
+                  error_log("ON LINE 132, curl_response_data was array so directly assigned in curl_response Variable");
+                  /*Debugging*/
                }
 
-               error_log("ON LINE 106 curl_response type starts: " . gettype($curl_response));
+               /*Debugging*/
+               error_log("curl_response Variable Type Line 135: " . gettype($curl_response));
+               error_log("ON LINE 136 curl_response print starts: ");
                error_log(print_r($curl_response, true));
-               error_log("ON LINE 106 curl_response type ends: " . gettype($curl_response));
+               error_log("ON LINE 106 curl_response print ends: ");
+               /*Debugging*/
+
                if ( isset($curl_response['status']) && $curl_response['status'] == 1 ) {
-                  error_log("ON LINE 107");
+
+                  /*Debugging*/
+                  error_log("ON LINE 153, IF is success and now sites credential data will be stored");
+                  error_log("ON LINE 154 curl_response print starts in IF: ");
+                  error_log(print_r($curl_response, true));
+                  error_log("ON LINE 156 curl_response print ends in IF: ");
+
+                  /*Debugging*/
 
                   $staging_sites        = get_option('instawp_staging_list', array());
                   $staging_sites[ $id ] = $curl_response;
@@ -139,6 +187,13 @@ class InstaWP_AJAX
 
                   //option to add task id and items
                   $staging_sites_items  = get_option('instawp_staging_list_items', array());
+
+                  /*Debugging */
+                  error_log("ON LINE 168 staging_sites_items print starts in IF BEFORE: ");
+                  error_log(print_r($staging_sites_items, true));
+                  error_log("ON LINE 170 staging_sites_items print ends in IF BEFORE: ");
+                  /*Debugging */
+
 
                   $api_doamin = InstaWP_Setting::get_api_domain();
                   $auto_login_url = $api_doamin . '/wordpress-auto-login';
@@ -160,19 +215,26 @@ class InstaWP_AJAX
                      "stage_site_pass" => $wp_password,
                      "stage_site_login_button" => $auto_login_url,
                   );
-                  error_log("staging_sites_items Task ID After: " . $task_id);
 
                   update_option('instawp_staging_list_items', $staging_sites_items);
+
+                  /*Debugging */
+                  error_log("ON LINE 198 staging_sites_items print starts in IF AFTER: ");
+                  error_log(print_r(get_option('instawp_staging_list_items', array()), true));
+                  error_log("ON LINE 200 staging_sites_items print ends in IF AFTER: ");
+                  /*Debugging */
                }
             }         
          }
       }
-      error_log("ON LINE 143");
+      error_log("ON LINE 206");
       update_option('restore_status_options', $curl_response_data);
+
       $this->instawp_log->WriteLog('url: '. $url . ' Body:'.$backup_info_json. 'Response: ' . json_encode($curl_response_data), 'notice');
 
       // error_log("curl_response 142 LINE : " . print_r($curl_response, true));
       echo json_encode($curl_response);
+      // error_log("curl_response ajax back ON LINE 213: ");
       wp_die();
    }
 
@@ -208,6 +270,7 @@ class InstaWP_AJAX
       if ( ! is_wp_error($response) && $response_code == 200 ) {
          $body = (array) json_decode(wp_remote_retrieve_body($response), true);
 
+         error_log("CHECK API KEY RESPONSE" . print_r($body, true));
          $connect_options = array();
          if ( $body['status'] == true ) {
 

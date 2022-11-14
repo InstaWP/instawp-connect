@@ -360,29 +360,25 @@ if ( ! empty($instawp_finish_upload) ) {
         $auto_login_url = $api_doamin . '/wordpress-auto-login';
         $connect_ids  = get_option('instawp_connect_id_options', '');
         if ( isset( $connect_ids['data']['id'] ) && ! empty($connect_ids['data']['id']) ) {
-            $connect_id                 = $connect_ids['data']['id'];
-            $staging_sites      = get_option('instawp_staging_list', array());
-            if ( isset( $staging_sites[ $connect_id ] ) ) {
+            $connect_id = $connect_ids['data']['id'];
+            $staging_sites_main = get_option('instawp_staging_list', array());
+            
+            if ( isset( $staging_sites_main[ $connect_id ] ) ) {
 
-                $instawp_finish_upload      = get_option('instawp_finish_upload', array());
-                error_log(print_r($instawp_finish_upload, true));
-                $task_id = $instawp_finish_upload['task_info']['task_id'];
-
-                if (isset($staging_sites[ $connect_id ][ $task_id ])) {
-
-                    $staging_site = $staging_sites[ $connect_id ][ $task_id ];
-                    if ( isset( $staging_site['data']['status'] ) && $staging_site['data']['status'] == 1 ) {
-                        $site_name = $staging_site['data']['wp'][0]['site_name']; 
-                        $wp_admin_url = $staging_site['data']['wp'][0]['wp_admin_url']; 
-                        $wp_username = $staging_site['data']['wp'][0]['wp_username']; 
-                        $wp_password = $staging_site['data']['wp'][0]['wp_password']; 
-                        $wp_password = $staging_site['data']['wp'][0]['wp_password']; 
-                        $auto_login_hash = $staging_site['data']['wp'][0]['auto_login_hash']; 
-                        $auto_login_url = add_query_arg( array( 'site' => $auto_login_hash ), $auto_login_url );
-                    } 
+                // 
+                $staging_site = $staging_sites_main[ $connect_id ];
+                if ( isset( $staging_site['data']['status'] ) && $staging_site['data']['status'] == 1 ) {
+                    $site_name = $staging_site['data']['wp'][0]['site_name']; 
+                    $wp_admin_url = $staging_site['data']['wp'][0]['wp_admin_url']; 
+                    $wp_username = $staging_site['data']['wp'][0]['wp_username']; 
+                    $wp_password = $staging_site['data']['wp'][0]['wp_password']; 
+                    $wp_password = $staging_site['data']['wp'][0]['wp_password']; 
+                    $auto_login_hash = $staging_site['data']['wp'][0]['auto_login_hash']; 
+                    $auto_login_url = add_query_arg( array( 'site' => $auto_login_hash ), $auto_login_url );
                 }
-            }        
+            }
         }
+
         if ( empty( $staging_site) ) {
             $progress_class = '';
             $site_class = 'instawp-display-none';
@@ -413,16 +409,16 @@ if ( ! empty($instawp_finish_upload) ) {
             </div>
             <div class="login-btn">
                 <div class="instawp-wizard-btn-wrap <?php echo esc_attr( $site_class); ?>">
-                    <a  class="instawp-wizard-btn" target="_blank" href="<?php echo esc_url($auto_login_url); ?>">
+                    <a class="instawp-wizard-btn" id="instawp_autologin_quick_access" target="_blank" href="<?php echo esc_url($auto_login_url); ?>">
                         <?php echo esc_html__('Auto login','instawp-connect'); ?> 
                     </a>
                     <?php $start_over = admin_url( "admin.php?page=instawp-connect" );?>
-                    <a  class="instawp-wizard-btn start-over" href="<?php echo esc_url($start_over); ?>">
+                    <a  class="instawp-wizard-btn start-over" id="instawp_startover_quick_access" href="<?php echo esc_url($start_over); ?>">
                         <?php echo esc_html__('Start Over','instawp-connect'); ?> 
                     </a>  
                 </div>
             </div>
-        </div>        
+        </div>
     </div>
 </div>
 <script type="text/javascript">
