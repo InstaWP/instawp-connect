@@ -140,7 +140,7 @@ function instawp_post_request(ajax_data, callback, error_callback, time_out){
  * Check if there are running tasks (backup and download)
  */
 function instawp_check_runningtask(){
-    
+
     var ajax_data = {
         'action': 'instawp_list_tasks',
         'backup_id': tmp_current_click_backupid
@@ -739,7 +739,7 @@ jQuery(document).on("click","#instawp_backup_cancel_btn",function(){
     instawp_cancel_backup();
 });
 function instawp_cancel_backup(){
-    
+
     var ajax_data= {
         'action': 'instawp_backup_cancel'
                 //'task_id': running_backup_taskid
@@ -767,7 +767,8 @@ function instawp_cancel_backup(){
 //instawp_check_staging();
 //clearInterval(instawp_check_staging_interval);
 function instawp_check_staging(){
-  
+    console.log("ON 770 ---> ");
+
     is_instawp_check_staging_running = true;
     console.log( 'instawp_check_staging call');
     var ajax_data= {
@@ -787,7 +788,9 @@ function instawp_check_staging(){
                 
             }
             else {
-              
+                console.log("ON 790 ---> " , jsonarray);
+                console.log("ON 791 ---> " , jsonarray.status);
+
                 if( jsonarray.status == 1 ) {
                     console.log('jsonarray.status == 1');    
                     is_instawp_check_staging_compteted = true;
@@ -801,17 +804,38 @@ function instawp_check_staging(){
                     
                     var auto_login_hash = jsonarray.data.wp[0].auto_login_hash;
                     var auto_login_url = admin_url + 'wordpress-auto-login?site='+auto_login_hash;
-                    jQuery('.instawp-site-details-wrapper .login-btn a').attr('href',auto_login_url); 
+                    jQuery('.instawp-site-details-wrapper .login-btn #instawp_autologin_quick_access').attr('href',auto_login_url); 
+
+                    var connect_page = instawp_ajax_object.plugin_connect_url;
+
+                    console.log("connect_page" , connect_page);
+                    jQuery('.instawp-site-details-wrapper .login-btn #instawp_startover_quick_access').attr('href',connect_page); 
+
                     //clearInterval(instawp_check_staging_interval);
                     clearInterval(instawp_check_staging_interval);
                     jQuery('#site-details-progress').hide();
                     jQuery('.instawp-site-details-wrapper .site-details').removeClass('instawp-display-none');
                     jQuery('.instawp-site-details-wrapper .instawp-wizard-btn-wrap').removeClass('instawp-display-none');
-                    location.reload(true);
+                    console.log("DISPLAYED INFO, NOW USER CAN RELOAD");
 
+                    jQuery.ajax({
+                        method: 'post',
+                        url: instawp_ajax_object.ajax_url,
+                        data: {
+                            action: 'instawp_logger',
+                            n: instawp_ajax_object.nlogger,
+                            l: 1,
+                        },
+                        error: function (jqXHR, textStatus, errorThrown) {
+                            console.log(errorThrown);
+                        },success: function (response) {
+                            console.log("-- Called The delete option -- ");
+                            console.log(response);
+                        }
+                    });
                 }
-                
             }
+            console.log("ON 818 ---> ");
             
             
             
@@ -836,12 +860,12 @@ function instawp_check_staging(){
         }
         catch(err){
             //clearInterval(instawp_check_staging_interval);
-           console.log(err);
+            console.log(err);
             //alert(err);
-       }
-   }, function(XMLHttpRequest, textStatus, errorThrown) {
+        }
+    }, function(XMLHttpRequest, textStatus, errorThrown) {
         // jQuery('#instawp_backup_cancel_btn').css({'pointer-events': 'auto', 'opacity': '1'});
         // var error_message = instawp_output_ajaxerror('cancelling the backup', textStatus, errorThrown);
         // instawp_add_notice('Backup', 'Error', error_message);
-   });
+    });
 }
