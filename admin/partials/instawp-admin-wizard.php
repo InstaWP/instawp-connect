@@ -14,6 +14,21 @@ $admin_email = get_option( 'admin_email' );
 $connect_ids      = get_option('instawp_connect_id_options', array());
 $instawp_finish_upload      = get_option('instawp_finish_upload', array());
 
+/* Generate API Code Start */
+$status = '';
+if( 
+    ( isset( $_REQUEST['access_token'] ) && $_REQUEST['access_token']!='' ) &&
+    ( isset( $_REQUEST['success'] ) && $_REQUEST['success']==true )
+)
+{   
+    $access_token = $_REQUEST['access_token'];
+    $status =  $_REQUEST['success'];
+    
+    InstaWP_Setting::instawp_generate_api_key( $access_token, $status );    
+    
+} 
+/* Generate API Code End */
+
 $screen_1_show = '';
 $screen_2_show = '';
 $screen_3_show = '';
@@ -32,6 +47,7 @@ if ( ! empty($instawp_finish_upload) ) {
     $screen_3_show = false;  
     $screen_4_show = true;  
 }
+  
 ?>
 <div class="wrap instawp-connect-wizard">
     <div class="postbox instawp-wizard-container wizard-screen-1 <?php echo ($screen_1_show) ? 'instawp-show' : ''; ?>" id="instawp-wizard-screen-1">
@@ -378,7 +394,7 @@ if ( ! empty($instawp_finish_upload) ) {
                 }
             }
         }
-
+        
         if ( empty( $staging_site) ) {
             $progress_class = '';
             $site_class = 'instawp-display-none';
@@ -387,36 +403,63 @@ if ( ! empty($instawp_finish_upload) ) {
             $progress_class = 'instawp-display-none';
             $site_class = '';
         }
+        error_log('progress_class == '. $progress_class );
+        error_log('site_class == '. $site_class );
+
         do_action( 'instawp_admin_wizard_img',$progress_class );
         ?>
 
         <div class="instawp-site-details-heading <?php echo esc_attr( $site_class); ?>">
             <span>
-                <strong> <?php echo esc_html__('Congrats!','instawp-connect') ?>  </strong> <?php echo esc_html__('Staging Site Is Created!','instawp-connect') ?> 
+                <strong> <?php echo esc_html__('Congrats!','instawp-connect') ?>  </strong> <?php echo esc_html__('Staging is Created!','instawp-connect') ?> 
             </span> 
         </div>
 
-        <div class="instawp-site-details-wrapper">
+        <div class="instawp-site-details-wrapper">            
             <p id="site-details-progress" class="<?php echo esc_attr( $progress_class); ?>">
                 <?php echo esc_html__( 'Please wait Staging Site Creation Is In Progress','instawp-connect' ); ?>
             </p>
             <div class="site-details <?php echo esc_attr( $site_class); ?>">
-                <p> <?php echo esc_html__('WP login Credentials','instawp-connect') ?></p>
-                <p id="instawp_site_url"> <?php echo esc_html__('URL','instawp-connect') ?> : <a target="_blank" href="<?php echo esc_url( str_replace('wp-admin', '', $wp_admin_url) ); ?>"><?php echo esc_html($site_name); ?></a></p>
+                <p> <?php echo esc_html__('WP Login Credentials.','instawp-connect') ?></p>
+                <?php
+                    $scheme = "https://";
+                    if ( !empty( $wp_admin_url ) && strpos( $wp_admin_url, $scheme ) !== false )  {
+                        $wp_admin_url = str_replace( 'wp-admin', '', $wp_admin_url );
+                    }else{
+                        $wp_admin_url = $scheme . str_replace( 'wp-admin', '', $wp_admin_url );
+                    }
+                ?>
+                <p id="instawp_site_url"> <?php echo esc_html__('URL','instawp-connect') ?> : <a target="_blank" href="<?php echo esc_url( $wp_admin_url ); ?>"><?php echo esc_html($site_name); ?></a></p>
+                <?php /*?>
                 <p id="instawp_admin_url"> <?php echo esc_html__( 'Admin URL','instawp-connect' ); ?> : <a target="_blank" href="<?php echo esc_url( $wp_admin_url ); ?>"> <?php echo esc_url( $wp_admin_url ); ?> </a></p>
+                <?php */?>
                 <p id="instawp_user_name"><?php echo esc_html__( 'Admin Username','instawp-connect' ); ?> : <span> <?php echo esc_html($wp_username); ?> </span></p>
-                <p id="instawp_password"> <?php echo esc_html__( 'Admin Password','instawp-connect' ); ?> : <span> : <span> <?php echo esc_html( $wp_password ); ?> </span></p>
+                <p id="instawp_password"> <?php echo esc_html__( 'Admin Password','instawp-connect' ); ?> : <span> <?php echo esc_html( $wp_password ); ?> </span></p>
             </div>
             <div class="login-btn">
                 <div class="instawp-wizard-btn-wrap <?php echo esc_attr( $site_class); ?>">
                     <a class="instawp-wizard-btn" id="instawp_autologin_quick_access" target="_blank" href="<?php echo esc_url($auto_login_url); ?>">
                         <?php echo esc_html__('Auto login','instawp-connect'); ?> 
                     </a>
-                    <?php $start_over = admin_url( "admin.php?page=instawp-connect" );?>
+                    <?php /*$start_over = admin_url( "admin.php?page=instawp-connect" );?>
                     <a  class="instawp-wizard-btn start-over" id="instawp_startover_quick_access" href="<?php echo esc_url($start_over); ?>">
                         <?php echo esc_html__('Start Over','instawp-connect'); ?> 
-                    </a>  
+                    </a>  */?>
                 </div>
+            </div>
+        </div>
+        <div class="instawp-stage-links <?php echo esc_attr( $site_class); ?>">
+            <div class="stage-site-left-link">
+                <?php $start_over = admin_url( "admin.php?page=instawp-connect" );?>
+                <a  class="start-over" id="instawp_startover_quick_access" href="<?php echo esc_url($start_over); ?>">
+                    <?php echo esc_html__('+Create another Staging Site','instawp-connect'); ?> 
+                </a>  
+            </div>
+            <div class="stage-site-right-link">
+                <?php $staging_lik = admin_url( "admin.php?page=instawp-staging-site" );?>
+                <a  class="stage-list" href="<?php echo esc_url($staging_lik); ?>">
+                    <?php echo esc_html__('Show my staging sites >>','instawp-connect'); ?> 
+                </a>  
             </div>
         </div>
     </div>

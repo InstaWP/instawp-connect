@@ -140,239 +140,238 @@ function instawp_post_request(ajax_data, callback, error_callback, time_out){
  * Check if there are running tasks (backup and download)
  */
 function instawp_check_runningtask(){
-
     var ajax_data = {
         'action': 'instawp_list_tasks',
         'backup_id': tmp_current_click_backupid
     };
     if(instawp_restoring === false) {
         instawp_post_request(ajax_data, function (data) {
-         setTimeout(function () {
-            instawp_manage_task();
-        }, 3000);
-         try {
-            var jsonarray = jQuery.parseJSON(data);
-            if (jsonarray.success_notice_html != false) {
-                jQuery('#instawp_backup_notice').show();
-                jQuery('#instawp_backup_notice').append(jsonarray.success_notice_html);
-            }
-            if(jsonarray.error_notice_html != false){
-                jQuery('#instawp_backup_notice').show();
-                jQuery.each(jsonarray.error_notice_html, function (index, value) {
-                    jQuery('#instawp_backup_notice').append(value.error_msg);
-                });
-            }
-            if(jsonarray.backuplist_html != false) {
-                jQuery('#instawp_backup_list').html('');
-                jQuery('#instawp_backup_list').append(jsonarray.backuplist_html);
-            }
-            var b_has_data = false;
-            if (jsonarray.backup.data.length !== 0) {
-                b_has_data = true;
-                task_retry_times = 0;
-                if (jsonarray.backup.result === 'success') {
-                    instawp_prepare_backup = false;
-                    jQuery.each(jsonarray.backup.data, function (index, value) {
-                        if (value.status.str === 'ready') {
-                            jQuery('#instawp_postbox_backup_percent').html(value.progress_html);
-                            m_need_update = true;
-                        }
-
-                        else if (value.status.str === 'running') {
-                            console.log('running');
-                            console.log(value);
-                            running_backup_taskid = index;
-                            instawp_control_backup_lock();
-                            jQuery('#instawp_postbox_backup_percent').show();
-                            jQuery('#instawp_postbox_backup_percent').html(value.progress_html);
-                            m_need_update = true;
-                            
-                        }
-                        else if (value.status.str === 'wait_resume') {
-                            running_backup_taskid = index;
-                            instawp_control_backup_lock();
-                            jQuery('#instawp_postbox_backup_percent').show();
-                            jQuery('#instawp_postbox_backup_percent').html(value.progress_html);
-                            if (value.data.next_resume_time !== 'get next resume time failed.') {
-                                instawp_resume_backup(index, value.data.next_resume_time);
-                            }
-                            else {
-                                instawp_delete_backup_task(index);
-                            }
-                        }
-                        else if (value.status.str === 'no_responds') {
-                            running_backup_taskid = index;
-                            instawp_control_backup_lock();
-                            jQuery('#instawp_postbox_backup_percent').show();
-                            jQuery('#instawp_postbox_backup_percent').html(value.progress_html);
-                            m_need_update = true;
-                        }
-                        else if (value.status.str === 'completed') {
-                            jQuery('#instawp_postbox_backup_percent').html(value.progress_html);
-                            instawp_control_backup_unlock();
-                            jQuery('#instawp_postbox_backup_percent').hide();
-                            jQuery('#instawp_last_backup_msg').html(jsonarray.last_msg_html);
-                            jQuery('#instawp_loglist').html("");
-                            jQuery('#instawp_loglist').append(jsonarray.log_html);
-                            instawp_log_count = jsonarray.log_count;
-                                //instawp_display_log_page();
-                            jQuery('#instawp-wizard-screen-3').removeClass('instawp-show');
-                            jQuery('#instawp-wizard-screen-4').addClass('instawp-show');
-                            running_backup_taskid = '';
-                            m_backup_task_id = '';
-                            m_need_update = true;
-                            console.log('completed');
-                            console.log(value);
-                            
-                            if( is_instawp_check_staging_running == false ) {
-                                console.log('is_instawp_check_staging_running');
-                                    //instawp_check_staging()
-                                    // //instawp_check_staging_interval = setTimeout(instawp_check_staging, 15000);
-                                    // console.log(is_instawp_check_staging_running);
-                                    // is_instawp_check_staging_running = true;
-                                instawp_check_staging_interval = setInterval(instawp_check_staging, 30000);
-                                is_instawp_check_staging_running = true;
-                            }
-                            if( is_instawp_check_staging_compteted == true ) {
-                                console.log('is_instawp_check_staging_compteted');
-                                clearInterval( instawp_check_staging_interval );
-                            }
-                            
-                                //
-                                //console.log('start checking staging site');
-                        }
-                        else if (value.status.str === 'upload_completed') {
-                            jQuery('#instawp_postbox_backup_percent').html(value.progress_html);
-                            instawp_control_backup_unlock();
-                            jQuery('#instawp_postbox_backup_percent').hide();
-                            jQuery('#instawp_last_backup_msg').html(jsonarray.last_msg_html);
-                            jQuery('#instawp_loglist').html("");
-                            jQuery('#instawp_loglist').append(jsonarray.log_html);
-                            instawp_log_count = jsonarray.log_count;
-                                //instawp_display_log_page();
-                            running_backup_taskid = '';
-                            m_backup_task_id = '';
-                            m_need_update = true;
-                            console.log('upload_completed');
-                            console.log(value);
-                        }
-                        else if (value.status.str === 'error') {
-                            jQuery('#instawp_postbox_backup_percent').html(value.progress_html);
-                            instawp_control_backup_unlock();
-                            jQuery('#instawp_postbox_backup_percent').hide();
-                            jQuery('#instawp_last_backup_msg').html(jsonarray.last_msg_html);
-                            jQuery('#instawp_loglist').html("");
-                            jQuery('#instawp_loglist').append(jsonarray.log_html);
-                            running_backup_taskid = '';
-                            m_backup_task_id = '';
-                            m_need_update = true;
-                        }
+            setTimeout(function () {
+                instawp_manage_task();
+            }, 3000);
+            try {
+                var jsonarray = jQuery.parseJSON(data);
+                if (jsonarray.success_notice_html != false) {
+                    jQuery('#instawp_backup_notice').show();
+                    jQuery('#instawp_backup_notice').append(jsonarray.success_notice_html);
+                }
+                if(jsonarray.error_notice_html != false){
+                    jQuery('#instawp_backup_notice').show();
+                    jQuery.each(jsonarray.error_notice_html, function (index, value) {
+                        jQuery('#instawp_backup_notice').append(value.error_msg);
                     });
-}
-}
-else
-{
-    if(running_backup_taskid !== '')
-    {
-        jQuery('#instawp_backup_cancel_btn').css({'pointer-events': 'auto', 'opacity': '1'});
-        jQuery('#instawp_backup_log_btn').css({'pointer-events': 'auto', 'opacity': '1'});
-        instawp_control_backup_unlock();
-        jQuery('#instawp_postbox_backup_percent').hide();
-        instawp_retrieve_backup_list();
-        instawp_retrieve_last_backup_message();
-        instawp_retrieve_log_list();
-        running_backup_taskid='';
-    }
-}
-                /*if (jsonarray.download.length !== 0) {
-                    if(jsonarray.download.result === 'success') {
-                        b_has_data = true;
-                        task_retry_times = 0;
-                        var i = 0;
-                        var file_name = '';
-                        jQuery('#instawp_file_part_' + tmp_current_click_backupid).html("");
-                        var b_download_finish = false;
-                        jQuery.each(jsonarray.download.files, function (index, value) {
-                            i++;
-                            file_name = index;
-                            var progress = '0%';
-                            if (value.status === 'need_download') {
-                                if (m_downloading_file_name === file_name) {
-                                    m_need_update = true;
-                                }
-                                jQuery('#instawp_file_part_' + tmp_current_click_backupid).append(value.html);
-                                //b_download_finish=true;
-                            }
-                            else if (value.status === 'running') {
-                                if (m_downloading_file_name === file_name) {
-                                    instawp_lock_download(tmp_current_click_backupid);
-                                }
+                }
+                if(jsonarray.backuplist_html != false) {
+                    jQuery('#instawp_backup_list').html('');
+                    jQuery('#instawp_backup_list').append(jsonarray.backuplist_html);
+                }
+                var b_has_data = false;
+                if (jsonarray.backup.data.length !== 0) {
+                    b_has_data = true;
+                    task_retry_times = 0;
+                    if (jsonarray.backup.result === 'success') {
+                        instawp_prepare_backup = false;
+                        jQuery.each(jsonarray.backup.data, function (index, value) {
+                            if (value.status.str === 'ready') {
+                                jQuery('#instawp_postbox_backup_percent').html(value.progress_html);
                                 m_need_update = true;
-                                jQuery('#instawp_file_part_' + tmp_current_click_backupid).append(value.html);
-                                b_download_finish = false;
                             }
-                            else if (value.status === 'completed') {
-                                if (m_downloading_file_name === file_name) {
-                                    instawp_unlock_download(tmp_current_click_backupid);
-                                    m_downloading_id = '';
-                                    m_downloading_file_name = '';
-                                }
-                                jQuery('#instawp_file_part_' + tmp_current_click_backupid).append(value.html);
-                                b_download_finish = true;
+
+                            else if (value.status.str === 'running') {
+                                console.log('running');
+                                console.log(value);
+                                running_backup_taskid = index;
+                                instawp_control_backup_lock();
+                                jQuery('#instawp_postbox_backup_percent').show();
+                                jQuery('#instawp_postbox_backup_percent').html(value.progress_html);
+                                m_need_update = true;
+                                
                             }
-                            else if (value.status === 'error') {
-                                if (m_downloading_file_name === file_name) {
-                                    instawp_unlock_download(tmp_current_click_backupid);
-                                    m_downloading_id = '';
-                                    m_downloading_file_name = '';
+                            else if (value.status.str === 'wait_resume') {
+                                running_backup_taskid = index;
+                                instawp_control_backup_lock();
+                                jQuery('#instawp_postbox_backup_percent').show();
+                                jQuery('#instawp_postbox_backup_percent').html(value.progress_html);
+                                if (value.data.next_resume_time !== 'get next resume time failed.') {
+                                    instawp_resume_backup(index, value.data.next_resume_time);
                                 }
-                                alert(value.error);
-                                jQuery('#instawp_file_part_' + tmp_current_click_backupid).append(value.html);
-                                b_download_finish = true;
+                                else {
+                                    instawp_delete_backup_task(index);
+                                }
                             }
-                            else if (value.status === 'timeout') {
-                                if (m_downloading_file_name === file_name) {
-                                    instawp_unlock_download(tmp_current_click_backupid);
-                                    m_downloading_id = '';
-                                    m_downloading_file_name = '';
+                            else if (value.status.str === 'no_responds') {
+                                running_backup_taskid = index;
+                                instawp_control_backup_lock();
+                                jQuery('#instawp_postbox_backup_percent').show();
+                                jQuery('#instawp_postbox_backup_percent').html(value.progress_html);
+                                m_need_update = true;
+                            }
+                            else if (value.status.str === 'completed') {
+                                jQuery('#instawp_postbox_backup_percent').html(value.progress_html);
+                                instawp_control_backup_unlock();
+                                jQuery('#instawp_postbox_backup_percent').hide();
+                                jQuery('#instawp_last_backup_msg').html(jsonarray.last_msg_html);
+                                jQuery('#instawp_loglist').html("");
+                                jQuery('#instawp_loglist').append(jsonarray.log_html);
+                                instawp_log_count = jsonarray.log_count;
+                                    //instawp_display_log_page();
+                                jQuery('#instawp-wizard-screen-3').removeClass('instawp-show');
+                                jQuery('#instawp-wizard-screen-4').addClass('instawp-show');
+                                running_backup_taskid = '';
+                                m_backup_task_id = '';
+                                m_need_update = true;
+                                console.log('completed');
+                                console.log(value);
+                                
+                                if( is_instawp_check_staging_running == false ) {
+                                    console.log('is_instawp_check_staging_running');
+                                        //instawp_check_staging()
+                                        // //instawp_check_staging_interval = setTimeout(instawp_check_staging, 15000);
+                                        // console.log(is_instawp_check_staging_running);
+                                        // is_instawp_check_staging_running = true;
+                                    instawp_check_staging_interval = setInterval(instawp_check_staging, 30000);
+                                    is_instawp_check_staging_running = true;
                                 }
-                                alert('Download timeout, please retry.');
-                                jQuery('#instawp_file_part_' + tmp_current_click_backupid).append(value.html);
-                                b_download_finish = true;
+                                if( is_instawp_check_staging_compteted == true ) {
+                                    console.log('is_instawp_check_staging_compteted');
+                                    clearInterval( instawp_check_staging_interval );
+                                }
+                                
+                                    //
+                                    //console.log('start checking staging site');
+                            }
+                            else if (value.status.str === 'upload_completed') {
+                                jQuery('#instawp_postbox_backup_percent').html(value.progress_html);
+                                instawp_control_backup_unlock();
+                                jQuery('#instawp_postbox_backup_percent').hide();
+                                jQuery('#instawp_last_backup_msg').html(jsonarray.last_msg_html);
+                                jQuery('#instawp_loglist').html("");
+                                jQuery('#instawp_loglist').append(jsonarray.log_html);
+                                instawp_log_count = jsonarray.log_count;
+                                    //instawp_display_log_page();
+                                running_backup_taskid = '';
+                                m_backup_task_id = '';
+                                m_need_update = true;
+                                console.log('upload_completed');
+                                console.log(value);
+                            }
+                            else if (value.status.str === 'error') {
+                                jQuery('#instawp_postbox_backup_percent').html(value.progress_html);
+                                instawp_control_backup_unlock();
+                                jQuery('#instawp_postbox_backup_percent').hide();
+                                jQuery('#instawp_last_backup_msg').html(jsonarray.last_msg_html);
+                                jQuery('#instawp_loglist').html("");
+                                jQuery('#instawp_loglist').append(jsonarray.log_html);
+                                running_backup_taskid = '';
+                                m_backup_task_id = '';
+                                m_need_update = true;
                             }
                         });
-                        jQuery('#instawp_file_part_' + tmp_current_click_backupid).append(jsonarray.download.place_html);
-                        if (b_download_finish == true) {
-                            tmp_current_click_backupid = '';
+                    }
+                }
+                else
+                {
+                    if(running_backup_taskid !== '')
+                    {
+                        jQuery('#instawp_backup_cancel_btn').css({'pointer-events': 'auto', 'opacity': '1'});
+                        jQuery('#instawp_backup_log_btn').css({'pointer-events': 'auto', 'opacity': '1'});
+                        instawp_control_backup_unlock();
+                        jQuery('#instawp_postbox_backup_percent').hide();
+                        instawp_retrieve_backup_list();
+                        instawp_retrieve_last_backup_message();
+                        instawp_retrieve_log_list();
+                        running_backup_taskid='';
+                    }
+                }
+                    /*if (jsonarray.download.length !== 0) {
+                        if(jsonarray.download.result === 'success') {
+                            b_has_data = true;
+                            task_retry_times = 0;
+                            var i = 0;
+                            var file_name = '';
+                            jQuery('#instawp_file_part_' + tmp_current_click_backupid).html("");
+                            var b_download_finish = false;
+                            jQuery.each(jsonarray.download.files, function (index, value) {
+                                i++;
+                                file_name = index;
+                                var progress = '0%';
+                                if (value.status === 'need_download') {
+                                    if (m_downloading_file_name === file_name) {
+                                        m_need_update = true;
+                                    }
+                                    jQuery('#instawp_file_part_' + tmp_current_click_backupid).append(value.html);
+                                    //b_download_finish=true;
+                                }
+                                else if (value.status === 'running') {
+                                    if (m_downloading_file_name === file_name) {
+                                        instawp_lock_download(tmp_current_click_backupid);
+                                    }
+                                    m_need_update = true;
+                                    jQuery('#instawp_file_part_' + tmp_current_click_backupid).append(value.html);
+                                    b_download_finish = false;
+                                }
+                                else if (value.status === 'completed') {
+                                    if (m_downloading_file_name === file_name) {
+                                        instawp_unlock_download(tmp_current_click_backupid);
+                                        m_downloading_id = '';
+                                        m_downloading_file_name = '';
+                                    }
+                                    jQuery('#instawp_file_part_' + tmp_current_click_backupid).append(value.html);
+                                    b_download_finish = true;
+                                }
+                                else if (value.status === 'error') {
+                                    if (m_downloading_file_name === file_name) {
+                                        instawp_unlock_download(tmp_current_click_backupid);
+                                        m_downloading_id = '';
+                                        m_downloading_file_name = '';
+                                    }
+                                    alert(value.error);
+                                    jQuery('#instawp_file_part_' + tmp_current_click_backupid).append(value.html);
+                                    b_download_finish = true;
+                                }
+                                else if (value.status === 'timeout') {
+                                    if (m_downloading_file_name === file_name) {
+                                        instawp_unlock_download(tmp_current_click_backupid);
+                                        m_downloading_id = '';
+                                        m_downloading_file_name = '';
+                                    }
+                                    alert('Download timeout, please retry.');
+                                    jQuery('#instawp_file_part_' + tmp_current_click_backupid).append(value.html);
+                                    b_download_finish = true;
+                                }
+                            });
+                            jQuery('#instawp_file_part_' + tmp_current_click_backupid).append(jsonarray.download.place_html);
+                            if (b_download_finish == true) {
+                                tmp_current_click_backupid = '';
+                            }
+                        }
+                        else{
+                            b_has_data = true;
+                            alert(jsonarray.download.error);
+                        }
+                    }*/
+                    if (!b_has_data) {
+                        task_retry_times++;
+                        if (task_retry_times < 5) {
+                            m_need_update = true;
                         }
                     }
-                    else{
-                        b_has_data = true;
-                        alert(jsonarray.download.error);
-                    }
-                }*/
-if (!b_has_data) {
-    task_retry_times++;
-    if (task_retry_times < 5) {
-        m_need_update = true;
+            }
+            catch(err){
+                alert(err);
+            }
+        }, function (XMLHttpRequest, textStatus, errorThrown)
+        {
+            task_retry_times++;
+            if (task_retry_times < 5)
+            {
+                setTimeout(function () {
+                    m_need_update = true;
+                    instawp_manage_task();
+                }, 3000);
+            }
+        });
     }
-}
-}
-catch(err){
-    alert(err);
-}
-}, function (XMLHttpRequest, textStatus, errorThrown)
-{
-    task_retry_times++;
-    if (task_retry_times < 5)
-    {
-        setTimeout(function () {
-            m_need_update = true;
-            instawp_manage_task();
-        }, 3000);
-    }
-});
-}
 }
 
 /**
@@ -516,14 +515,18 @@ function instawp_interface_flow_control(){
  * Manage backup and download tasks. Retrieve the data every 3 seconds for checking if the backup or download tasks exist or not.
  */
 function instawp_manage_task() {
+    console.log("instawp manage task call");
     if(m_need_update === true){
         //console.log(m_need_update);
         m_need_update = false;
         instawp_check_runningtask();
-
+        console.log('Mange Task IF');
+        console.count('Mange Task IF');
     }
     else{
         //console.log(m_need_update);
+        console.log('Mange Task ELSE');
+        console.count('Mange Task ELSE');
         setTimeout(function(){
             instawp_manage_task();
         }, 3000);
@@ -790,17 +793,19 @@ function instawp_check_staging(){
             else {
                 console.log("ON 790 ---> " , jsonarray);
                 console.log("ON 791 ---> " , jsonarray.status);
-
                 if( jsonarray.status == 1 ) {
+                    console.log(jsonarray);
                     console.log('jsonarray.status == 1');    
                     is_instawp_check_staging_compteted = true;
                     jQuery('#instawp_site_url a').html(jsonarray.data.wp[0].site_name); 
-                    jQuery('#instawp_site_url a').attr('href',jsonarray.data.wp[0].site_name); 
+                    jQuery('#instawp_site_url a').attr('href',jsonarray.data.wp[0].wp_admin_url); 
                     jQuery('#instawp_admin_url a').html(jsonarray.data.wp[0].wp_admin_url);
                     jQuery('#instawp_admin_url a').attr('href',jsonarray.data.wp[0].wp_admin_url);
                     jQuery('#instawp_user_name span').html(jsonarray.data.wp[0].wp_username); 
                     jQuery('#instawp_password span').html(jsonarray.data.wp[0].wp_password);  
-                    var admin_url = 'https://s.instawp.io/';
+
+                    var admin_url = instawp_ajax_object.cloud_url;
+                    //var admin_url = 'https://s.instawp.io/';
                     
                     var auto_login_hash = jsonarray.data.wp[0].auto_login_hash;
                     var auto_login_url = admin_url + 'wordpress-auto-login?site='+auto_login_hash;
@@ -815,9 +820,17 @@ function instawp_check_staging(){
                     clearInterval(instawp_check_staging_interval);
                     jQuery('#site-details-progress').hide();
                     jQuery('.instawp-site-details-wrapper .site-details').removeClass('instawp-display-none');
+                    jQuery('.instawp-site-details-wrapper .instawp-stage-links').removeClass('instawp-display-none');
                     jQuery('.instawp-site-details-wrapper .instawp-wizard-btn-wrap').removeClass('instawp-display-none');
+                    
+                    /* Hide Computer Image on Last Screen Code Start */
+                    jQuery('.instawp-wizard-container.wizard-screen-4.instawp-show .main-img').addClass('instawp-display-none');
+                    /* Hide Computer Image on Last Screen Code End */
+                    
                     console.log("DISPLAYED INFO, NOW USER CAN RELOAD");
 
+                    // delete unused zip from plugin after success or failed creating site
+                   
                     jQuery.ajax({
                         method: 'post',
                         url: instawp_ajax_object.ajax_url,
@@ -827,7 +840,7 @@ function instawp_check_staging(){
                             l: 1,
                         },
                         error: function (jqXHR, textStatus, errorThrown) {
-                            console.log(errorThrown);
+                            console.log(errorThrown);                             
                         },success: function (response) {
                             console.log("-- Called The delete option -- ");
                             console.log(response);

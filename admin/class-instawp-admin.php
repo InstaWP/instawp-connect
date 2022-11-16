@@ -190,8 +190,11 @@ class InstaWP_Admin {
 
         if ( in_array(get_current_screen()->id,$this->screen_ids) ) {
             wp_enqueue_script($this->plugin_name, INSTAWP_PLUGIN_DIR_URL . 'js/instawp-admin.js', array( 'jquery' ), $this->version, false);
+            $instawp_api_url = InstaWP_Setting::get_api_domain();
+            error_log('instawp_api_url ==>'.$instawp_api_url);
             wp_localize_script($this->plugin_name, 'instawp_ajax_object', array(
                 'ajax_url'   => admin_url('admin-ajax.php'), 
+                'cloud_url'   => $instawp_api_url, 
                 'admin_url'   => admin_url(), 
                 'ajax_nonce' => wp_create_nonce('instawp_ajax'),
                 'nlogger' => wp_create_nonce('instawp_nlogger_update_option_by-nlogger'),
@@ -232,12 +235,14 @@ class InstaWP_Admin {
          *        Administration Menus: http://codex.wordpress.org/Administration_Menus
          *
          */
+        $dash_icon = esc_url(INSTAWP_PLUGIN_IMAGES_URL.'cloud.svg'); 
         $menu['page_title'] = 'InstaWP Connect';
         $menu['menu_title'] = 'InstaWP Connect';
         $menu['capability'] = 'administrator';
         $menu['menu_slug'] = $this->plugin_name;
         $menu['function'] = array( $this, 'display_plugin_setup_page' );
         $menu['icon_url'] = 'dashicons-cloud';
+        // $menu['icon_url'] = $dash_icon;
         $menu['position'] = 100;
         $menu = apply_filters('instawp_get_main_admin_menus', $menu);
         add_menu_page( $menu['page_title'],$menu['menu_title'], $menu['capability'], $menu['menu_slug'], $menu['function'], $menu['icon_url'], $menu['position']);

@@ -90,8 +90,10 @@ class InstaWP_Curl
          $instawp_plugin->instawp_log->WriteLog( 'Response:' . $this->response, 'error');
          $InstaWP_Backup_Api->instawp_log->WriteLog( 'Response:' . $this->response, 'error');
       } else {
+         error_log('type check 1 = '.gettype( $this->response['body']));
+         error_log('type check 2 = '.gettype(json_decode($this->response['body'])));
          $respons_arr = (array) json_decode($this->response['body']);
-         
+         error_log('type check 3 = '.gettype($respons_arr));
          if ( $respons_arr['status'] == 1 ) {
 
             $res['error']    = 0;
