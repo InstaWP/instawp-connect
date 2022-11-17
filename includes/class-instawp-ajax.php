@@ -72,7 +72,7 @@ class InstaWP_AJAX
    }
 
    // Remove after success stage site created
-   public function instawp_deleter_folder_handle_1(){
+   public static function instawp_deleter_folder_handle_1(){
       $folder_name = 'instawpbackups';
       $dirPath =  WP_CONTENT_DIR .'/'. $folder_name;
       $dirPathLogFolder =  $dirPath . '/instawp_log';
@@ -130,25 +130,7 @@ class InstaWP_AJAX
          $l = $_POST['l'];   
          update_option( 'instawp_finish_upload',array() );
          update_option( 'instawp_staging_list',array() );
-
-         /* delete unnecessary folder after success upload start */
-         $folder_name = 'instawpbackups';
-         $dirPath =  WP_CONTENT_DIR .'/'. $folder_name;
-
-         if (substr($dirPath, strlen($dirPath) - 1, 1) != '/') {
-            $dirPath .= '/';
-         }   
-
-         if ( file_exists( $dirPath ) && is_dir( $dirPath ) ) {
-            $files = glob($dirPath . '*', GLOB_MARK);
-            foreach ($files as $file) {
-               if(is_file($file)){
-                  unlink($file);
-               }
-            }
-                
-         }
-         /* delete unnecessary folder after success upload end */
+         self::instawp_deleter_folder_handle_1();
 
          $res_array['message']  = 'success';
          $res_array['status']  = 1;
@@ -157,7 +139,7 @@ class InstaWP_AJAX
          $res_array['status']  = 0;
       }
 
-      self::instawp_deleter_folder_handle_1();
+      
       wp_send_json( $res_array );
       wp_die();
    }
