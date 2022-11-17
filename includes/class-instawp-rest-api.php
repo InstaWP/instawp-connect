@@ -95,12 +95,10 @@ class InstaWP_Backup_Api
       $current_api_key_hash = "";
 
       // check for pipe
-      if (!empty($current_api_key) && strpos($current_api_key, '|') !== false) { 
-         error_log("RAN IF");
+      if (!empty($current_api_key) && strpos($current_api_key, '|') !== false) {          
          $exploded = explode('|', $current_api_key);
          $current_api_key_hash = hash('sha256', $exploded[1]);
       }else{
-         error_log("RAN ELSE");
          $current_api_key_hash = !empty($current_api_key) ? hash('sha256', $current_api_key) : "";
       }
 

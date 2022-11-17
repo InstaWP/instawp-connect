@@ -61,8 +61,7 @@ class InstaWP_AJAX
    public function instawp_settings_call() {
 
       $connect_ids  = get_option('instawp_connect_id_options', '');
-      //$connect_id    = $connect_ids['data']['id'];
-
+      
       if( isset( $_POST['instawp_api_url_internal'] ) ){
          $instawp_api_url_internal = $_POST['instawp_api_url_internal'];
          InstaWP_Setting::set_api_domain($instawp_api_url_internal);
@@ -79,8 +78,6 @@ class InstaWP_AJAX
          !empty( $connect_options ) && 
          !empty( $connect_options['api_key'] )
       ) {
-         error_log("IF");
-
          $api_heartbeat = intval(trim( $_REQUEST['api_heartbeat'] ));       
 
          $resType = true;
@@ -100,8 +97,7 @@ class InstaWP_AJAX
                wp_schedule_event( time(), 'instawp_heartbeat_interval', 'instwp_handle_heartbeat_cron_action');
             }
          }
-      }else{
-         error_log("ELSE");
+      }else{         
          $resType = false;
          $message='something wrong';         
       }
@@ -293,7 +289,6 @@ class InstaWP_AJAX
       if ( ! is_wp_error($response) && $response_code == 200 ) {
          $body = (array) json_decode(wp_remote_retrieve_body($response), true);
 
-         error_log("CHECK API KEY RESPONSE" . print_r($body, true));
          $connect_options = array();
          if ( $body['status'] == true ) {
 
@@ -362,9 +357,8 @@ class InstaWP_AJAX
             /* RUN CRON ON CONNECT START */
             $timestamp = wp_next_scheduled( 'instwp_handle_heartbeat_cron_action' );
             wp_unschedule_event( $timestamp, 'instwp_handle_heartbeat_cron_action' );
-            
+
             if ( !wp_next_scheduled( 'instwp_handle_heartbeat_cron_action' ) ) {         
-               error_log("RUN CRON ON CONNECT");
                wp_schedule_event( time(), 'instawp_heartbeat_interval', 'instwp_handle_heartbeat_cron_action');
             }
             /* RUN CRON ON CONNECT END */

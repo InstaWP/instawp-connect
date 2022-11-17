@@ -133,12 +133,11 @@ class InstaWP_Setting
             wp_unschedule_event( $timestamp, 'instwp_handle_heartbeat_cron_action' );
 
             if ( !wp_next_scheduled( 'instwp_handle_heartbeat_cron_action' ) ) {         
-                error_log("RUN CRON ON CONNECT");
+                error_log("RUN CRON ON GENERATE ACTION");
                 wp_schedule_event( time(), 'instawp_heartbeat_interval', 'instwp_handle_heartbeat_cron_action');
              }
-             /* RUN CRON ON CONNECT END */
+            /* RUN CRON ON CONNECT END */
 
-            error_log("instawp_connect_id_options \n ".print_r(get_option('instawp_connect_id_options'),true));
             /* Connect ID Store Code End */
 
             $url = admin_url('admin.php?page=instawp-connect'); 

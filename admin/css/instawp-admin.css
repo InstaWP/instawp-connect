@@ -449,3 +449,44 @@
 #instawp_backuplist_table {
 	display: none !important; 
 }
+
+/* newly added css */
+.stage-site-left-link {
+    width: 50%;
+    text-align: left;
+}
+
+.stage-site-right-link {
+    width: 50%;
+    text-align: right;
+}
+
+.instawp-stage-links {
+    display: flex;
+    padding: 1% 0;
+    width: 89%;
+    margin: auto;
+}
+
+.instawp-site-details-heading span strong {
+    color: #005d54;
+}
+
+.site-details p a {
+    color: #438981;
+}
+
+.stage-site-left-link a#instawp_startover_quick_access {
+    color: #4c8d87;
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.stage-site-right-link a.stage-list {
+    color: #828992;
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 600;
+}
+/* newly added css */

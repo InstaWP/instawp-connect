@@ -28,7 +28,7 @@ if(
     
 } 
 /* Generate API Code End */
-
+$instawp_finish_upload = 'test';
 $screen_1_show = '';
 $screen_2_show = '';
 $screen_3_show = '';
@@ -366,10 +366,10 @@ if ( ! empty($instawp_finish_upload) ) {
     <div class="postbox instawp-wizard-container wizard-screen-4 <?php echo ($screen_4_show) ? 'instawp-show' : ''; ?>" id="instawp-wizard-screen-4">
 
         <?php 
-        $site_name = '';
-        $wp_admin_url = '';
-        $wp_username = '';
-        $wp_password = '';
+        $site_name = 'http://localhost/instawp/';
+        $wp_admin_url = 'http://localhost/instawp/wp-admin';
+        $wp_username = 'admin';
+        $wp_password = 'admin';
         $auto_login_hash = '';
         $staging_site = array();
         $api_doamin = InstaWP_Setting::get_api_domain();
@@ -395,6 +395,7 @@ if ( ! empty($instawp_finish_upload) ) {
             }
         }
         
+        $staging_site = 'staging_site';
         if ( empty( $staging_site) ) {
             $progress_class = '';
             $site_class = 'instawp-display-none';
@@ -403,9 +404,6 @@ if ( ! empty($instawp_finish_upload) ) {
             $progress_class = 'instawp-display-none';
             $site_class = '';
         }
-        error_log('progress_class == '. $progress_class );
-        error_log('site_class == '. $site_class );
-
         do_action( 'instawp_admin_wizard_img',$progress_class );
         ?>
 

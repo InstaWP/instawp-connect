@@ -191,7 +191,7 @@ class InstaWP_Admin {
         if ( in_array(get_current_screen()->id,$this->screen_ids) ) {
             wp_enqueue_script($this->plugin_name, INSTAWP_PLUGIN_DIR_URL . 'js/instawp-admin.js', array( 'jquery' ), $this->version, false);
             $instawp_api_url = InstaWP_Setting::get_api_domain();
-            error_log('instawp_api_url ==>'.$instawp_api_url);
+            
             wp_localize_script($this->plugin_name, 'instawp_ajax_object', array(
                 'ajax_url'   => admin_url('admin-ajax.php'), 
                 'cloud_url'   => $instawp_api_url, 
