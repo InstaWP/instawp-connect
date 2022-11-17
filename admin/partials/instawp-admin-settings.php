@@ -118,16 +118,44 @@ foreach ( $tasks as $task_id => $task ) {
                         <input type="text" value="<?php echo esc_attr($interal_api_domain); ?>" required="" name="instawp_api_url_internal" id="instawp_api_url_internal" />                        
                     </td>                    
                 </tr>
+                
             <?php } ?>
             
         </table>
         <?php wp_nonce_field( 'instawp_settings', 'instawp_settings_nonce' ); ?>
         <?php submit_button(); ?>
     </form>
+
+    <?php 
+        if( isset( $_GET['internal'] ) && $_GET['page']=='instawp-settings' && 1 === intval( $_GET['internal'] ) ){ 
+        ?> 
+        <tr valign="top">                
+            <td>
+                <input type="submit" name="delete" id="del_folder" class="button button-primary" value="Delete">
+            </td>                    
+        </tr>
+    <?php } ?>
    
 </div>
 <script type="text/javascript">
     jQuery(document).ready(function () {
+        //delete folder
+        jQuery(document).on('click','#del_folder',function(){             
+            jQuery.ajax({
+                type: 'POST',
+                url: instawp_ajax_object.ajax_url,
+                data: {
+                    action: "instawp_deleter_folder"
+                },
+                success: function (response) {
+                    //location.reload();             
+                },
+                error: function (errorThrown) {
+                    console.log('error');
+                }
+            });   
+        });
+
         jQuery(document).on('click','#instawp-check-key',function(){     
             var api_key = jQuery('#instawp_api').val();
             var api_heartbeat = jQuery('#instawp_api_heartbeat').val();

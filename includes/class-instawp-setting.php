@@ -106,7 +106,6 @@ class InstaWP_Setting
                    
                     update_option('instawp_api_options', $connect_options);                   
                 } 
-                error_log("instawp_api_options \n ".print_r(get_option('instawp_api_options'),true));
             }
             /* API KEY Store Code End */
 
@@ -140,10 +139,9 @@ class InstaWP_Setting
 
             /* Connect ID Store Code End */
 
-            $url = admin_url('admin.php?page=instawp-connect'); 
-            error_log("redirect url : ".$url);
-            wp_redirect( $url, 301 );
-            exit();
+            // $url = admin_url('admin.php?page=instawp-connect'); 
+            // wp_redirect( $url, 301 );
+            // exit();
         } 
     }
 

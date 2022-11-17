@@ -14,8 +14,106 @@ class InstaWP_AJAX
       add_action('wp_ajax_instawp_connect', array( $this, 'connect' ));
       add_action('wp_ajax_instawp_check_staging', array( $this, 'instawp_check_staging' ));
       add_action('wp_ajax_instawp_logger', array( $this, 'instawp_longer_handle' ));
+      add_action('wp_ajax_instawp_deleter_folder', array( $this, 'deleter_folder_handle' ));
    }
-   
+
+   // Remove From settings internal
+   public function deleter_folder_handle(){
+      $folder_name = 'instawpbackups';
+      $dirPath =  WP_CONTENT_DIR .'/'. $folder_name;
+      $dirPathLogFolder =  $dirPath . '/instawp_log';
+      $dirPathErrorFolder =  $dirPathLogFolder. '/error';
+      
+      if (substr($dirPath, strlen($dirPath) - 1, 1) != '/') {
+         $dirPath .= '/';
+      }  
+      if ( file_exists( $dirPath ) && is_dir( $dirPath ) ) {
+         //$files = glob($dirPath . '*', GLOB_MARK);
+         $files = glob($dirPath . '{,.}[!.,!..]*',GLOB_MARK|GLOB_BRACE);
+         rmdir($dirPathLog);      
+         foreach ($files as $file) {
+            if(is_file($file)){
+               unlink($file);
+            }
+         }
+      }
+
+      //log folder
+      if (substr($dirPathLogFolder, strlen($dirPathLogFolder) - 1, 1) != '/') {
+         $dirPathLogFolder .= '/';
+      }  
+      if ( file_exists( $dirPathLogFolder ) && is_dir( $dirPathLogFolder ) ) {
+         $logfiles = glob($dirPathLogFolder . '{,.}[!.,!..]*',GLOB_MARK|GLOB_BRACE);
+         foreach ($logfiles as $lfile) {
+            if(is_file($lfile)){
+               unlink($lfile);
+            }
+         }
+      }
+
+      //error folder
+      if (substr($dirPathErrorFolder, strlen($dirPathErrorFolder) - 1, 1) != '/') {
+         $dirPathErrorFolder .= '/';
+      }  
+      if ( file_exists( $dirPathErrorFolder ) && is_dir( $dirPathErrorFolder ) ) {
+         $errorfiles = glob($dirPathErrorFolder . '{,.}[!.,!..]*',GLOB_MARK|GLOB_BRACE);
+         foreach ($errorfiles as $efile) {
+            if(is_file($efile)){
+               unlink($efile);
+            }
+         }
+      }
+      die;
+   }
+
+   // Remove after success stage site created
+   public function instawp_deleter_folder_handle_1(){
+      $folder_name = 'instawpbackups';
+      $dirPath =  WP_CONTENT_DIR .'/'. $folder_name;
+      $dirPathLogFolder =  $dirPath . '/instawp_log';
+      $dirPathErrorFolder =  $dirPathLogFolder. '/error';
+      
+      if (substr($dirPath, strlen($dirPath) - 1, 1) != '/') {
+         $dirPath .= '/';
+      }  
+      if ( file_exists( $dirPath ) && is_dir( $dirPath ) ) {
+         //$files = glob($dirPath . '*', GLOB_MARK);
+         $files = glob($dirPath . '{,.}[!.,!..]*',GLOB_MARK|GLOB_BRACE);
+         rmdir($dirPathLog);      
+         foreach ($files as $file) {
+            if(is_file($file)){
+               unlink($file);
+            }
+         }
+      }
+
+      //log folder
+      if (substr($dirPathLogFolder, strlen($dirPathLogFolder) - 1, 1) != '/') {
+         $dirPathLogFolder .= '/';
+      }  
+      if ( file_exists( $dirPathLogFolder ) && is_dir( $dirPathLogFolder ) ) {
+         $logfiles = glob($dirPathLogFolder . '{,.}[!.,!..]*',GLOB_MARK|GLOB_BRACE);
+         foreach ($logfiles as $lfile) {
+            if(is_file($lfile)){
+               unlink($lfile);
+            }
+         }
+      }
+
+      //error folder
+      if (substr($dirPathErrorFolder, strlen($dirPathErrorFolder) - 1, 1) != '/') {
+         $dirPathErrorFolder .= '/';
+      }  
+      if ( file_exists( $dirPathErrorFolder ) && is_dir( $dirPathErrorFolder ) ) {
+         $errorfiles = glob($dirPathErrorFolder . '{,.}[!.,!..]*',GLOB_MARK|GLOB_BRACE);
+         foreach ($errorfiles as $efile) {
+            if(is_file($efile)){
+               unlink($efile);
+            }
+         }
+      }
+      die;
+   }
    /*Handle Js call to remove option*/
    public function instawp_longer_handle(){
       $res_array = array(); 
@@ -54,6 +152,7 @@ class InstaWP_AJAX
          $res_array['status']  = 0;
       }
 
+      self::instawp_deleter_folder_handle_1();
       wp_send_json( $res_array );
       wp_die();
    }
@@ -109,8 +208,7 @@ class InstaWP_AJAX
       wp_die();
    }
 
-   public function instawp_check_staging() {
-      error_log('instawp_check_staging call');
+   public function instawp_check_staging() {      
       //$this->ajax_check_security();
       global $InstaWP_Curl;
       
@@ -127,10 +225,8 @@ class InstaWP_AJAX
       $bkp_init_opt = get_option('instawp_backup_init_options', '');
       $backup_status_opt = get_option('instawp_backup_status_options', '');
       if ( empty($backup_status_opt) ) {
-         //$this->instawp_log->CloseFile();
-         error_log('backup_status_opt');
-         echo json_encode($curl_response);
-         error_log("empty backup status: " . print_r($curl_response, true));
+         //$this->instawp_log->CloseFile();         
+         echo json_encode($curl_response);         
          wp_die();
       }
       // if (!empty($connect_ids)) {
@@ -144,7 +240,7 @@ class InstaWP_AJAX
       //    }
 
       // }
-      error_log('instawp_check_staging');
+      
       $task_id = $bkp_init_opt['task_info']['task_id'];
       $id      = 0;
       if ( ! empty($connect_ids) && ! empty($bkp_init_opt) && ! empty($backup_status_opt) ) {

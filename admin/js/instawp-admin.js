@@ -798,9 +798,9 @@ function instawp_check_staging(){
                     console.log('jsonarray.status == 1');    
                     is_instawp_check_staging_compteted = true;
                     jQuery('#instawp_site_url a').html(jsonarray.data.wp[0].site_name); 
-                    jQuery('#instawp_site_url a').attr('href',jsonarray.data.wp[0].wp_admin_url); 
+                    jQuery('#instawp_site_url a').attr('href','https://'+jsonarray.data.wp[0].wp_admin_url); 
                     jQuery('#instawp_admin_url a').html(jsonarray.data.wp[0].wp_admin_url);
-                    jQuery('#instawp_admin_url a').attr('href',jsonarray.data.wp[0].wp_admin_url);
+                    jQuery('#instawp_admin_url a').attr('href','https://'+jsonarray.data.wp[0].wp_admin_url);
                     jQuery('#instawp_user_name span').html(jsonarray.data.wp[0].wp_username); 
                     jQuery('#instawp_password span').html(jsonarray.data.wp[0].wp_password);  
 

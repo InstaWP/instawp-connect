@@ -450,43 +450,88 @@
 	display: none !important; 
 }
 
-/* newly added css */
+/* newly added css start*/
 .stage-site-left-link {
-    width: 50%;
-    text-align: left;
+	width: 50%;
+	text-align: left;
 }
 
 .stage-site-right-link {
-    width: 50%;
-    text-align: right;
+	width: 50%;
+	text-align: right;
 }
 
 .instawp-stage-links {
-    display: flex;
-    padding: 1% 0;
-    width: 89%;
-    margin: auto;
+	display: flex;
+	padding: 16px 0;
+	width: 89%;
+	margin: auto;
 }
 
 .instawp-site-details-heading span strong {
-    color: #005d54;
+	color: #005d54;
 }
 
 .site-details p a {
-    color: #438981;
+	color: #438981;
 }
 
 .stage-site-left-link a#instawp_startover_quick_access {
-    color: #4c8d87;
-    text-decoration: none;
-    font-size: 15px;
-    font-weight: 600;
+	color: #005E54;
+	text-decoration: none;
+	font-size: 16px;
+	font-weight: 600;
 }
 
 .stage-site-right-link a.stage-list {
-    color: #828992;
-    text-decoration: none;
-    font-size: 15px;
-    font-weight: 600;
+	color: #4B5563;
+	text-decoration: none;
+	font-size: 16px;
+	font-weight: 500;
 }
-/* newly added css */
+.stage-site-left-link span.dashicons.dashicons-plus-alt2 {
+	font-size: 16px;
+	font-weight: 500;
+	color: #005E54;
+	margin-right: -1px;
+}
+.stage-site-right-link span {
+	font-size: 16px;
+	font-weight: 500;
+}
+.instawp-site-details-wrapper .login-btn .instawp-wizard-btn-wrap .instawp-wizard-btn {
+	width: 156px;
+	height: 44px;
+	text-align: center;
+	justify-content: center;
+	align-items: center;
+	position: relative;
+	padding: 0;
+	line-height: 43px;
+}
+.postbox.instawp-wizard-container.wizard-screen-4.instawp-show {
+	box-shadow: 0px 1px 3px rgb(0 0 0 / 10%), 0px 1px 2px rgb(0 0 0 / 6%);
+	border-radius: 10px;
+	border-color: #f0f8ff00;
+	border: 0px solid;
+	width: 1043px;
+	height: 607px;
+	margin: auto;
+	position: relative;
+}
+
+.postbox-inner-div {
+	width: 100%;
+	height: auto;
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+}
+
+.wp-menu-image.svg {
+    filter: invert(31%) sepia(14%) saturate(228%) hue-rotate(165deg) brightness(110%) contrast(78%);
+}
+
+
+/* newly added css end*/
