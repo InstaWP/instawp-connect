@@ -30,7 +30,7 @@ class InstaWP_AJAX
       if ( file_exists( $dirPath ) && is_dir( $dirPath ) ) {
          //$files = glob($dirPath . '*', GLOB_MARK);
          $files = glob($dirPath . '{,.}[!.,!..]*',GLOB_MARK|GLOB_BRACE);
-         rmdir($dirPathLog);      
+         
          foreach ($files as $file) {
             if(is_file($file)){
                unlink($file);
@@ -79,7 +79,7 @@ class InstaWP_AJAX
       if ( file_exists( $dirPath ) && is_dir( $dirPath ) ) {
          //$files = glob($dirPath . '*', GLOB_MARK);
          $files = glob($dirPath . '{,.}[!.,!..]*',GLOB_MARK|GLOB_BRACE);
-         rmdir($dirPathLog);      
+         
          foreach ($files as $file) {
             if(is_file($file)){
                unlink($file);
@@ -141,7 +141,7 @@ class InstaWP_AJAX
                   unlink($file);
                }
             }
-            rmdir($dirPath);         
+                
          }
          /* delete unnecessary folder after success upload end */
 
