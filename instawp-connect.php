@@ -92,9 +92,7 @@ define('INSTAWP_PACK_SIZE',1 << 20);
 define('INSTAWP_SUCCESS','success');
 define('INSTAWP_FAILED','failed');
 define('INSTAWP_UPLOAD_TO_CLOUD', true);
-//define('INSTAWP_API_URL','https://s.instawp.io/api/v1');
 define('INSTAWP_API_URL','/api/v1');
-define('INSTAWP_AUTO_LOGIN_URL','https://s.instawp.io/');
 @ini_set('memory_limit', '1024M');
 
 /**

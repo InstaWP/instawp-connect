@@ -93,12 +93,39 @@ class InstaWP_Admin_Wizard {
         }
 
         ?>
-         <div class="instawp-wizard-btn-wrap">
-          <a class="instawp-wizard-btn instawp-wizard-btn-js" href="javascript:void(0)" data-<?php echo esc_attr($data) ?> = "<?php echo esc_attr($data); ?>">
-            <?php echo esc_html( $btn_args['label'] ); ?>
-          </a>
-          <p class="instawp-err-msg"></p>
-
+        <div class="instawp-wizard-btn-wrap">
+            <?php
+                $api_key = '';
+                $instawp_api_options = get_option('instawp_api_options');   
+                if( !empty( $instawp_api_options ) ){
+                   $api_key = $instawp_api_options['api_key']; 
+                   if( empty( !$api_key ) ){
+                        ?>
+                        <a class="instawp-wizard-btn instawp-wizard-btn-js" href="javascript:void(0)" data-<?php echo esc_attr($data) ?> = "<?php echo esc_attr($data); ?>">
+                            <?php echo esc_html( $btn_args['label'] ); ?>
+                        </a>
+                        <?php
+                   }
+                }else{
+                    if( $data!='connect' ){
+                        ?>
+                        <a class="instawp-wizard-btn instawp-wizard-btn-js" href="javascript:void(0)" data-<?php echo esc_attr($data) ?> = "<?php echo esc_attr($data); ?>">
+                            <?php echo esc_html( $btn_args['label'] ); ?>
+                        </a>
+                        <?php
+                    }else{
+                        $instawp_api_url = InstaWP_Setting::get_api_domain();
+                        $return_url = urlencode( admin_url('admin.php?page=instawp-connect') );
+                        $source_url = $instawp_api_url.'/authorize?source=InstaWP Connect&return_url='.$return_url;
+                        ?>
+                        <a class="instawp-wizard-btn instawp-wizard-btn-js" href="<?php echo $source_url?>" data-<?php echo esc_attr($data) ?> = "<?php echo esc_attr($data); ?>">
+                            <?php echo esc_html( $btn_args['label'] ); ?>
+                        </a>
+                        <?php
+                    }
+               }
+            ?>            
+            <p class="instawp-err-msg"></p>
         </div>
         <?php 
     }

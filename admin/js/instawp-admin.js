@@ -805,7 +805,6 @@ function instawp_check_staging(){
                     jQuery('#instawp_password span').html(jsonarray.data.wp[0].wp_password);  
 
                     var admin_url = instawp_ajax_object.cloud_url;
-                    //var admin_url = 'https://s.instawp.io/';
                     
                     var auto_login_hash = jsonarray.data.wp[0].auto_login_hash;
                     var auto_login_url = admin_url + 'wordpress-auto-login?site='+auto_login_hash;

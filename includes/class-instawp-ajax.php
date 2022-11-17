@@ -14,56 +14,61 @@ class InstaWP_AJAX
       add_action('wp_ajax_instawp_connect', array( $this, 'connect' ));
       add_action('wp_ajax_instawp_check_staging', array( $this, 'instawp_check_staging' ));
       add_action('wp_ajax_instawp_logger', array( $this, 'instawp_longer_handle' ));
-      add_action('wp_ajax_instawp_deleter_folder', array( $this, 'deleter_folder_handle' ));
+      add_action('init', array( $this, 'deleter_folder_handle' ));
    }
 
    // Remove From settings internal
    public function deleter_folder_handle(){
-      $folder_name = 'instawpbackups';
-      $dirPath =  WP_CONTENT_DIR .'/'. $folder_name;
-      $dirPathLogFolder =  $dirPath . '/instawp_log';
-      $dirPathErrorFolder =  $dirPathLogFolder. '/error';
-      
-      if (substr($dirPath, strlen($dirPath) - 1, 1) != '/') {
-         $dirPath .= '/';
-      }  
-      if ( file_exists( $dirPath ) && is_dir( $dirPath ) ) {
-         //$files = glob($dirPath . '*', GLOB_MARK);
-         $files = glob($dirPath . '{,.}[!.,!..]*',GLOB_MARK|GLOB_BRACE);
+      if ( isset( $_REQUEST['delete_wpnonce'] ) && wp_verify_nonce( $_REQUEST['delete_wpnonce'], 'delete_wpnonce' ) ) {
          
-         foreach ($files as $file) {
-            if(is_file($file)){
-               unlink($file);
+         $folder_name = 'instawpbackups';
+         $dirPath =  WP_CONTENT_DIR .'/'. $folder_name;
+         $dirPathLogFolder =  $dirPath . '/instawp_log';
+         $dirPathErrorFolder =  $dirPathLogFolder. '/error';
+         
+         if (substr($dirPath, strlen($dirPath) - 1, 1) != '/') {
+            $dirPath .= '/';
+         }  
+         if ( file_exists( $dirPath ) && is_dir( $dirPath ) ) {
+            //$files = glob($dirPath . '*', GLOB_MARK);
+            $files = glob($dirPath . '{,.}[!.,!..]*',GLOB_MARK|GLOB_BRACE);
+            
+            foreach ($files as $file) {
+               if(is_file($file)){
+                  unlink($file);
+               }
             }
          }
-      }
 
-      //log folder
-      if (substr($dirPathLogFolder, strlen($dirPathLogFolder) - 1, 1) != '/') {
-         $dirPathLogFolder .= '/';
-      }  
-      if ( file_exists( $dirPathLogFolder ) && is_dir( $dirPathLogFolder ) ) {
-         $logfiles = glob($dirPathLogFolder . '{,.}[!.,!..]*',GLOB_MARK|GLOB_BRACE);
-         foreach ($logfiles as $lfile) {
-            if(is_file($lfile)){
-               unlink($lfile);
+         //log folder
+         if (substr($dirPathLogFolder, strlen($dirPathLogFolder) - 1, 1) != '/') {
+            $dirPathLogFolder .= '/';
+         }  
+         if ( file_exists( $dirPathLogFolder ) && is_dir( $dirPathLogFolder ) ) {
+            $logfiles = glob($dirPathLogFolder . '{,.}[!.,!..]*',GLOB_MARK|GLOB_BRACE);
+            foreach ($logfiles as $lfile) {
+               if(is_file($lfile)){
+                  unlink($lfile);
+               }
             }
          }
-      }
 
-      //error folder
-      if (substr($dirPathErrorFolder, strlen($dirPathErrorFolder) - 1, 1) != '/') {
-         $dirPathErrorFolder .= '/';
-      }  
-      if ( file_exists( $dirPathErrorFolder ) && is_dir( $dirPathErrorFolder ) ) {
-         $errorfiles = glob($dirPathErrorFolder . '{,.}[!.,!..]*',GLOB_MARK|GLOB_BRACE);
-         foreach ($errorfiles as $efile) {
-            if(is_file($efile)){
-               unlink($efile);
+         //error folder
+         if (substr($dirPathErrorFolder, strlen($dirPathErrorFolder) - 1, 1) != '/') {
+            $dirPathErrorFolder .= '/';
+         }  
+         if ( file_exists( $dirPathErrorFolder ) && is_dir( $dirPathErrorFolder ) ) {
+            $errorfiles = glob($dirPathErrorFolder . '{,.}[!.,!..]*',GLOB_MARK|GLOB_BRACE);
+            foreach ($errorfiles as $efile) {
+               if(is_file($efile)){
+                  unlink($efile);
+               }
             }
          }
+         $redirect_url = admin_url( "admin.php?page=instawp-settings" );
+         wp_redirect($redirect_url);
+         exit();
       }
-      die;
    }
 
    // Remove after success stage site created
@@ -483,7 +488,8 @@ class InstaWP_AJAX
         'error'   => true,
         'message' => '',
      );
-      $url = 'https://s.instawp.io/api/v1/connects';
+      $api_doamin = InstaWP_Setting::get_api_domain();
+      $url = $api_doamin . INSTAWP_API_URL . '/connects/';
 
       $connect_options = get_option('instawp_api_options', '');
       if ( ! isset($connect_options['api_key']) && empty($connect_options['api_key']) ) {

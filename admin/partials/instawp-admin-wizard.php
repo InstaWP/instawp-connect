@@ -21,21 +21,25 @@ if(
     ( isset( $_REQUEST['success'] ) && $_REQUEST['success']==true )
 )
 {   
-    $access_token = $_REQUEST['access_token'];
-    $status =  $_REQUEST['success'];
-    
-    $api_key = '';
-    $instawp_api_options = get_option('instawp_api_options');   
-    $api_key = $instawp_api_options['api_key'];   
-    if( $api_key != $access_token ){
-        InstaWP_Setting::instawp_generate_api_key( $access_token, $status );    
-    }
+   $access_token = $_REQUEST['access_token'];
+   $status =  $_REQUEST['success'];
+
+   $api_key = '';
+   $instawp_api_options = get_option('instawp_api_options');   
+   if( !empty( $instawp_api_options ) ){
+      $api_key = $instawp_api_options['api_key']; 
+   }
+
+   if( $api_key != $access_token ){
+      InstaWP_Setting::instawp_generate_api_key( $access_token, $status );          
+   }
 } 
 /* Generate API Code End */
 $screen_1_show = '';
 $screen_2_show = '';
 $screen_3_show = '';
 $screen_4_show = '';
+$staus_type = '';
 
 if ( ! empty($connect_ids) ) {
     $screen_1_show = false;
@@ -49,6 +53,12 @@ if ( ! empty($instawp_finish_upload) ) {
     $screen_1_show = false;
     $screen_3_show = false;  
     $screen_4_show = true;  
+}
+
+if( isset( $_REQUEST['success'] ) && $_REQUEST['success']==true ){
+   $screen_1_show = false;
+   $screen_3_show = true;  
+   $screen_4_show = false;  
 }
   
 ?>
@@ -255,8 +265,24 @@ if ( ! empty($instawp_finish_upload) ) {
                     instawp_completed_backup = 1;
                     instawp_prepare_backup = true;
                     instawp_post_request(ajax_data, function (data) {
+
+                        var html_code = '';
                         try {
                             var jsonarray = jQuery.parseJSON(data);
+                            console.log('type == ', jsonarray.result);
+                            if ( jsonarray.result_type == 'warning' ) {
+                                console.log('message == ',jsonarray.message);
+                                console.log('link == ',jsonarray.account_link);
+                                jQuery('#instawp_quickbackup_btn').attr("disabled","disabled");
+                                jQuery('.staging-warning').remove();
+                                html_code += '<div class="staging-warning"><p>'+jsonarray.message+'</p><p>'+jsonarray.account_link+'</p></div>';
+                                console.log('html_code == ',html_code);
+                                jQuery('.postbox instawp-wizard-container.wizard-screen-3.instawp-show .instawp-wizard-btn-prev-wrap').insertAfter(html_code);
+                            }else{
+                                jQuery('.staging-warning').remove();
+                                jQuery('#instawp_quickbackup_btn').attr("disabled","disabled");
+                            }
+
                             if (jsonarray.result === 'failed') {
                                 instawp_delete_ready_task(jsonarray.error);
                             }

@@ -236,13 +236,13 @@ class InstaWP_Admin {
          *
          */
         $dash_icon = esc_url(INSTAWP_PLUGIN_IMAGES_URL.'cloud.svg'); 
+        
         $menu['page_title'] = 'InstaWP Connect';
         $menu['menu_title'] = 'InstaWP';
         $menu['capability'] = 'administrator';
         $menu['menu_slug'] = $this->plugin_name;
         $menu['function'] = array( $this, 'display_plugin_setup_page' );
-        $menu['icon_url'] = 'dashicons-cloud';
-        // $menu['icon_url'] = $dash_icon;
+        $menu['icon_url'] = $dash_icon;
         $menu['position'] = 100;
         $menu = apply_filters('instawp_get_main_admin_menus', $menu);
         add_menu_page( $menu['page_title'],$menu['menu_title'], $menu['capability'], $menu['menu_slug'], $menu['function'], $menu['icon_url'], $menu['position']);

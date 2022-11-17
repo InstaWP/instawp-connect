@@ -128,10 +128,14 @@ foreach ( $tasks as $task_id => $task ) {
 
     <?php 
         if( isset( $_GET['internal'] ) && $_GET['page']=='instawp-settings' && 1 === intval( $_GET['internal'] ) ){ 
+            
+            $nonce = wp_create_nonce( 'delete_wpnonce' );
+            $actionurl = admin_url( "admin.php?page=instawp-settings" );
+            $delete_url = add_query_arg( array( 'delete_wpnonce' => $nonce ), $actionurl );
         ?> 
         <tr valign="top">                
             <td>
-                <input type="submit" name="delete" id="del_folder" class="button button-primary" value="Delete">
+                <a href="<?php echo $delete_url?>">Delete</a>
             </td>                    
         </tr>
     <?php } ?>
@@ -139,23 +143,7 @@ foreach ( $tasks as $task_id => $task ) {
 </div>
 <script type="text/javascript">
     jQuery(document).ready(function () {
-        //delete folder
-        jQuery(document).on('click','#del_folder',function(){             
-            jQuery.ajax({
-                type: 'POST',
-                url: instawp_ajax_object.ajax_url,
-                data: {
-                    action: "instawp_deleter_folder"
-                },
-                success: function (response) {
-                    //location.reload();             
-                },
-                error: function (errorThrown) {
-                    console.log('error');
-                }
-            });   
-        });
-
+        
         jQuery(document).on('click','#instawp-check-key',function(){     
             var api_key = jQuery('#instawp_api').val();
             var api_heartbeat = jQuery('#instawp_api_heartbeat').val();
