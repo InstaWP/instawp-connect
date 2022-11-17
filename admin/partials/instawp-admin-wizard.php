@@ -467,7 +467,7 @@ if( isset( $_REQUEST['success'] ) && $_REQUEST['success']==true ){
                     </div>
                 </div>
             </div>
-            <div class="instawp-stage-links <?php echo esc_attr( $site_class); ?>">
+            <div class="instawp-stage-links" style="display:none">
                 <div class="stage-site-left-link">
                     <?php $start_over = admin_url( "admin.php?page=instawp-connect" );?>
                     <a  class="start-over" id="instawp_startover_quick_access" href="<?php echo esc_url($start_over); ?>">

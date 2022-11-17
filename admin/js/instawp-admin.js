@@ -794,21 +794,32 @@ function instawp_check_staging(){
                 console.log("ON 790 ---> " , jsonarray);
                 console.log("ON 791 ---> " , jsonarray.status);
                 if( jsonarray.status == 1 ) {
-                    console.log(jsonarray);
+                    console.log("Console jsonarray " . jsonarray);
                     console.log('jsonarray.status == 1');    
                     is_instawp_check_staging_compteted = true;
-                    jQuery('#instawp_site_url a').html(jsonarray.data.wp[0].site_name); 
-                    jQuery('#instawp_site_url a').attr('href','https://'+jsonarray.data.wp[0].wp_admin_url); 
-                    jQuery('#instawp_admin_url a').html(jsonarray.data.wp[0].wp_admin_url);
-                    jQuery('#instawp_admin_url a').attr('href','https://'+jsonarray.data.wp[0].wp_admin_url);
-                    jQuery('#instawp_user_name span').html(jsonarray.data.wp[0].wp_username); 
-                    jQuery('#instawp_password span').html(jsonarray.data.wp[0].wp_password);  
 
-                    var admin_url = instawp_ajax_object.cloud_url;
+                    jQuery('.instawp-stage-links').show();
+
+                    jQuery('#instawp_site_url a').html(jsonarray.details.name); 
+                    jQuery('#instawp_site_url a').attr('href',jsonarray.details.url);
+
+                    jQuery('#instawp_user_name span').html(jsonarray.details.user); 
+                    jQuery('#instawp_password span').html(jsonarray.details.code);  
+
+                    jQuery('.instawp-site-details-wrapper .login-btn #instawp_autologin_quick_access').attr('href',jsonarray.details.login); 
+
+                    // jQuery('#instawp_site_url a').html(jsonarray.data.wp[0].site_name); 
+                    // jQuery('#instawp_site_url a').attr('href','https://'+jsonarray.data.wp[0].wp_admin_url); 
+                    // jQuery('#instawp_admin_url a').html(jsonarray.data.wp[0].wp_admin_url);
+                    // jQuery('#instawp_admin_url a').attr('href','https://'+jsonarray.data.wp[0].wp_admin_url);
+                    // jQuery('#instawp_user_name span').html(jsonarray.data.wp[0].wp_username); 
+                    // jQuery('#instawp_password span').html(jsonarray.data.wp[0].wp_password);  
+
+                    // var admin_url = instawp_ajax_object.cloud_url;
                     
-                    var auto_login_hash = jsonarray.data.wp[0].auto_login_hash;
-                    var auto_login_url = admin_url + 'wordpress-auto-login?site='+auto_login_hash;
-                    jQuery('.instawp-site-details-wrapper .login-btn #instawp_autologin_quick_access').attr('href',auto_login_url); 
+                    // var auto_login_hash = jsonarray.data.wp[0].auto_login_hash;
+                    // var auto_login_url = admin_url + 'wordpress-auto-login?site='+auto_login_hash;
+                    // jQuery('.instawp-site-details-wrapper .login-btn #instawp_autologin_quick_access').attr('href',auto_login_url); 
 
                     var connect_page = instawp_ajax_object.plugin_connect_url;
 
