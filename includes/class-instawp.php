@@ -219,7 +219,7 @@ class instaWP
          !empty($connect_ids['data']['id'])
       ){
 
-         $cutstom_interval = intval( get_option('instawp_heartbeat_option', 15) );
+         $cutstom_interval = intval( get_option('instawp_heartbeat_option', 2) );
          //error_log( "default interval time ==> ".$cutstom_interval );
          $schedules['instawp_heartbeat_interval'] = array(
             'interval' => $cutstom_interval * 60,
@@ -573,67 +573,165 @@ class instaWP
       $this->ajax_check_security();
       $this->end_shutdown_function = false;
       register_shutdown_function(array( $this, 'deal_prepare_shutdown_error' ));
-      try {
-         if ( isset($_POST['backup']) && ! empty($_POST['backup']) ) {
-            $json           = wp_kses_post( wp_unslash( $_POST['backup'] ) );
-            $json           = stripslashes($json);
-            $backup_options = json_decode($json, true);
-            if ( is_null($backup_options) ) {
-               $this->end_shutdown_function = true;
-               die();
-            }
+      $connect_ids = get_option('instawp_connect_id_options', '');
+	   $instawp_api_options = get_option('instawp_api_options');
+		
+		try {
+			if ( isset($_POST['backup']) && ! empty($_POST['backup']) ) {
+				$json           = wp_kses_post( wp_unslash( $_POST['backup'] ) );
+				$json           = stripslashes($json);
+				$backup_options = json_decode($json, true);
+				if ( is_null($backup_options) ) {
+					$this->end_shutdown_function = true;
+					die();
+				}
 
-            $backup_options = apply_filters('instawp_custom_backup_options', $backup_options);
+				$backup_options = apply_filters('instawp_custom_backup_options', $backup_options);
 
-            if ( ! isset($backup_options['type']) ) {
-               $backup_options['type']   = 'Manual';
-               $backup_options['action'] = 'backup';
-            }
+				if ( ! isset($backup_options['type']) ) {
+					$backup_options['type']   = 'Manual';
+					$backup_options['action'] = 'backup';
+				}
 
-            $ret = $this->check_backup_option($backup_options, $backup_options['type']);
-            if ( $ret['result'] != INSTAWP_SUCCESS ) {
-               $this->end_shutdown_function = true;
-               echo json_encode($ret);
-               die();
-            }
+				$ret = $this->check_backup_option($backup_options, $backup_options['type']);
+				if ( $ret['result'] != INSTAWP_SUCCESS ) {
+					$this->end_shutdown_function = true;
+					echo json_encode($ret);
+					die();
+				}
 
-            $ret = $this->pre_backup($backup_options);
-            if ( $ret['result'] == 'success' ) {
-               //Check the website data to be backed up
-               /*
-               $ret['check']=$this->check_backup($ret['task_id'],$backup_options);
-               if(isset($ret['check']['result']) && $ret['check']['result'] == INSTAWP_FAILED)
-               {
-               $this->end_shutdown_function=true;
-               echo json_encode(array('result' => INSTAWP_FAILED,'error' => $ret['check']['error']));
-               die();
-            }*/
+				$ret = $this->pre_backup($backup_options);
+				if ( $ret['result'] == 'success' ) {
+					//Check the website data to be backed up
+					/*
+					$ret['check']=$this->check_backup($ret['task_id'],$backup_options);
+					if(isset($ret['check']['result']) && $ret['check']['result'] == INSTAWP_FAILED)
+					{
+					$this->end_shutdown_function=true;
+					echo json_encode(array('result' => INSTAWP_FAILED,'error' => $ret['check']['error']));
+					die();
+				}*/
 
-            $html        = '';
-            $html        = apply_filters('instawp_add_backup_list', $html);
-            $ret['html'] = $html;
-         }
-         $this->end_shutdown_function = true;
-         echo json_encode($ret);
-         die();
-      }
-   } catch ( Exception $error ) {
-      $this->end_shutdown_function = true;
-      $ret['result']               = 'failed';
-      $message                     = 'An exception has occurred. class:' . get_class($error) . ';msg:' . $error->getMessage() . ';code:' . $error->getCode() . ';line:' . $error->getLine() . ';in_file:' . $error->getFile() . ';';
-      $ret['error']                = $message;
-      $id                          = uniqid('instawp-');
-      $log_file_name               = $id . '_backup';
-      $log                         = new InstaWP_Log();
-      $log->CreateLogFile($log_file_name, 'no_folder', 'backup');
-      $log->WriteLog($message, 'notice');
-      $log->CloseFile();
-      InstaWP_error_log::create_error_log($log->log_file);
-      error_log($message);
-      echo json_encode($ret);
-      die();
+				$html        = '';
+				$html        = apply_filters('instawp_add_backup_list', $html);
+				$ret['html'] = $html;
+				}
+				$this->end_shutdown_function = true;
+				echo json_encode($ret);
+				die();
+			}
+		} catch ( Exception $error ) {
+			$this->end_shutdown_function = true;
+			$ret['result']               = 'failed';
+			$message                     = 'An exception has occurred. class:' . get_class($error) . ';msg:' . $error->getMessage() . ';code:' . $error->getCode() . ';line:' . $error->getLine() . ';in_file:' . $error->getFile() . ';';
+			$ret['error']                = $message;
+			$id                          = uniqid('instawp-');
+			$log_file_name               = $id . '_backup';
+			$log                         = new InstaWP_Log();
+			$log->CreateLogFile($log_file_name, 'no_folder', 'backup');
+			$log->WriteLog($message, 'notice');
+			$log->CloseFile();
+			InstaWP_error_log::create_error_log($log->log_file);
+			error_log($message);
+			echo json_encode($ret);
+			die();
+		} 
+      // if( !empty( $connect_ids ) && !empty( $instawp_api_options ) ){
+      //    $id = $connect_ids['data']['id'];
+	   //    $api_key = $instawp_api_options['api_key'];
+		
+      //    $api_doamin = InstaWP_Setting::get_api_domain();	
+      //    $url = $api_doamin . INSTAWP_API_URL . '/connects/'.$id.'/usage';
+			
+      //    $response = wp_remote_get($url, array(
+      //       'body'    => '',
+      //       'headers' => array(
+      //       'Authorization' => 'Bearer ' . $api_key,
+      //       'Accept' => 'application/json',
+      //       ),
+      //    ));
+      //    $response_code = wp_remote_retrieve_response_code($response);
+		// 	if ( ! is_wp_error($response) && $response_code == 200 ) {
+      //       $body = (array) json_decode(wp_remote_retrieve_body($response), true);
+		// 		$remaining_site = $body['data']['remaining_site'];
+		// 		$disk_space = $body['data']['disk_space'];	
+					
+		// 		if( $remaining_site <= 0 || $disk_space <= 5000 ){
+		// 			//
+		// 			$response_array = array(
+		// 				'result_type' => 'warning',
+		// 				'message' => __('You have used your sites quota in your InstaWP account','instawp'),
+		// 				'account_link' => '<a href="https://app.instawp.io/login" target="_blank">Check Account</a>'
+		// 			);
+		// 			error_log('Array '.print_r($response_array,true));
+		// 			echo json_encode( $response_array );
+		// 			wp_die();
+		// 		}else{
+		// 			try {
+		// 				if ( isset($_POST['backup']) && ! empty($_POST['backup']) ) {
+		// 					$json           = wp_kses_post( wp_unslash( $_POST['backup'] ) );
+		// 					$json           = stripslashes($json);
+		// 					$backup_options = json_decode($json, true);
+		// 					if ( is_null($backup_options) ) {
+		// 						$this->end_shutdown_function = true;
+		// 						die();
+		// 					}
+			
+		// 					$backup_options = apply_filters('instawp_custom_backup_options', $backup_options);
+			
+		// 					if ( ! isset($backup_options['type']) ) {
+		// 						$backup_options['type']   = 'Manual';
+		// 						$backup_options['action'] = 'backup';
+		// 					}
+			
+		// 					$ret = $this->check_backup_option($backup_options, $backup_options['type']);
+		// 					if ( $ret['result'] != INSTAWP_SUCCESS ) {
+		// 						$this->end_shutdown_function = true;
+		// 						echo json_encode($ret);
+		// 						die();
+		// 					}
+			
+		// 					$ret = $this->pre_backup($backup_options);
+		// 					if ( $ret['result'] == 'success' ) {
+		// 						//Check the website data to be backed up
+		// 						/*
+		// 						$ret['check']=$this->check_backup($ret['task_id'],$backup_options);
+		// 						if(isset($ret['check']['result']) && $ret['check']['result'] == INSTAWP_FAILED)
+		// 						{
+		// 						$this->end_shutdown_function=true;
+		// 						echo json_encode(array('result' => INSTAWP_FAILED,'error' => $ret['check']['error']));
+		// 						die();
+		// 					}*/
+			
+		// 					$html        = '';
+		// 					$html        = apply_filters('instawp_add_backup_list', $html);
+		// 					$ret['html'] = $html;
+		// 					}
+		// 					$this->end_shutdown_function = true;
+		// 					echo json_encode($ret);
+		// 					die();
+		// 				}
+		// 			} catch ( Exception $error ) {
+		// 				$this->end_shutdown_function = true;
+		// 				$ret['result']               = 'failed';
+		// 				$message                     = 'An exception has occurred. class:' . get_class($error) . ';msg:' . $error->getMessage() . ';code:' . $error->getCode() . ';line:' . $error->getLine() . ';in_file:' . $error->getFile() . ';';
+		// 				$ret['error']                = $message;
+		// 				$id                          = uniqid('instawp-');
+		// 				$log_file_name               = $id . '_backup';
+		// 				$log                         = new InstaWP_Log();
+		// 				$log->CreateLogFile($log_file_name, 'no_folder', 'backup');
+		// 				$log->WriteLog($message, 'notice');
+		// 				$log->CloseFile();
+		// 				InstaWP_error_log::create_error_log($log->log_file);
+		// 				error_log($message);
+		// 				echo json_encode($ret);
+		// 				die();
+		// 			}
+		// 		}
+      //    }
+      // }
+      
    }
-}
 
 public function prepare_backup_rest_api( $backup_args = null ) {
 

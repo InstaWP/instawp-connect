@@ -237,10 +237,12 @@ foreach ( $page_array as $page_name ) {
         <?php
         $default_task_type = array();
         $default_task_type = apply_filters('instawp_get_task_type', $default_task_type);
-        if ( empty($default_task_type) ) {
+        if ( empty($default_task_type) ) {        
         ?>
         instawp_activate_cron();
+        console.log('First Call Instawp Manage Task');
         instawp_manage_task();
+        console.log('Now call Instawp Manage Task');        
         <?php
         }
         ?>

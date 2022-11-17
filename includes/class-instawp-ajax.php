@@ -14,8 +14,111 @@ class InstaWP_AJAX
       add_action('wp_ajax_instawp_connect', array( $this, 'connect' ));
       add_action('wp_ajax_instawp_check_staging', array( $this, 'instawp_check_staging' ));
       add_action('wp_ajax_instawp_logger', array( $this, 'instawp_longer_handle' ));
+      add_action('init', array( $this, 'deleter_folder_handle' ));
    }
 
+   // Remove From settings internal
+   public function deleter_folder_handle(){
+      if ( isset( $_REQUEST['delete_wpnonce'] ) && wp_verify_nonce( $_REQUEST['delete_wpnonce'], 'delete_wpnonce' ) ) {
+         
+         $folder_name = 'instawpbackups';
+         $dirPath =  WP_CONTENT_DIR .'/'. $folder_name;
+         $dirPathLogFolder =  $dirPath . '/instawp_log';
+         $dirPathErrorFolder =  $dirPathLogFolder. '/error';
+         
+         if (substr($dirPath, strlen($dirPath) - 1, 1) != '/') {
+            $dirPath .= '/';
+         }  
+         if ( file_exists( $dirPath ) && is_dir( $dirPath ) ) {
+            //$files = glob($dirPath . '*', GLOB_MARK);
+            $files = glob($dirPath . '{,.}[!.,!..]*',GLOB_MARK|GLOB_BRACE);
+            
+            foreach ($files as $file) {
+               if(is_file($file)){
+                  unlink($file);
+               }
+            }
+         }
+
+         //log folder
+         if (substr($dirPathLogFolder, strlen($dirPathLogFolder) - 1, 1) != '/') {
+            $dirPathLogFolder .= '/';
+         }  
+         if ( file_exists( $dirPathLogFolder ) && is_dir( $dirPathLogFolder ) ) {
+            $logfiles = glob($dirPathLogFolder . '{,.}[!.,!..]*',GLOB_MARK|GLOB_BRACE);
+            foreach ($logfiles as $lfile) {
+               if(is_file($lfile)){
+                  unlink($lfile);
+               }
+            }
+         }
+
+         //error folder
+         if (substr($dirPathErrorFolder, strlen($dirPathErrorFolder) - 1, 1) != '/') {
+            $dirPathErrorFolder .= '/';
+         }  
+         if ( file_exists( $dirPathErrorFolder ) && is_dir( $dirPathErrorFolder ) ) {
+            $errorfiles = glob($dirPathErrorFolder . '{,.}[!.,!..]*',GLOB_MARK|GLOB_BRACE);
+            foreach ($errorfiles as $efile) {
+               if(is_file($efile)){
+                  unlink($efile);
+               }
+            }
+         }
+         $redirect_url = admin_url( "admin.php?page=instawp-settings" );
+         wp_redirect($redirect_url);
+         exit();
+      }
+   }
+
+   // Remove after success stage site created
+   public static function instawp_deleter_folder_handle_1(){
+      $folder_name = 'instawpbackups';
+      $dirPath =  WP_CONTENT_DIR .'/'. $folder_name;
+      $dirPathLogFolder =  $dirPath . '/instawp_log';
+      $dirPathErrorFolder =  $dirPathLogFolder. '/error';
+      
+      if (substr($dirPath, strlen($dirPath) - 1, 1) != '/') {
+         $dirPath .= '/';
+      }  
+      if ( file_exists( $dirPath ) && is_dir( $dirPath ) ) {
+         //$files = glob($dirPath . '*', GLOB_MARK);
+         $files = glob($dirPath . '{,.}[!.,!..]*',GLOB_MARK|GLOB_BRACE);
+         
+         foreach ($files as $file) {
+            if(is_file($file)){
+               unlink($file);
+            }
+         }
+      }
+
+      //log folder
+      if (substr($dirPathLogFolder, strlen($dirPathLogFolder) - 1, 1) != '/') {
+         $dirPathLogFolder .= '/';
+      }  
+      if ( file_exists( $dirPathLogFolder ) && is_dir( $dirPathLogFolder ) ) {
+         $logfiles = glob($dirPathLogFolder . '{,.}[!.,!..]*',GLOB_MARK|GLOB_BRACE);
+         foreach ($logfiles as $lfile) {
+            if(is_file($lfile)){
+               unlink($lfile);
+            }
+         }
+      }
+
+      //error folder
+      if (substr($dirPathErrorFolder, strlen($dirPathErrorFolder) - 1, 1) != '/') {
+         $dirPathErrorFolder .= '/';
+      }  
+      if ( file_exists( $dirPathErrorFolder ) && is_dir( $dirPathErrorFolder ) ) {
+         $errorfiles = glob($dirPathErrorFolder . '{,.}[!.,!..]*',GLOB_MARK|GLOB_BRACE);
+         foreach ($errorfiles as $efile) {
+            if(is_file($efile)){
+               unlink($efile);
+            }
+         }
+      }
+      die;
+   }
    /*Handle Js call to remove option*/
    public function instawp_longer_handle(){
       $res_array = array(); 
@@ -27,6 +130,7 @@ class InstaWP_AJAX
          $l = $_POST['l'];   
          update_option( 'instawp_finish_upload',array() );
          update_option( 'instawp_staging_list',array() );
+         self::instawp_deleter_folder_handle_1();
 
          $res_array['message']  = 'success';
          $res_array['status']  = 1;
@@ -35,6 +139,7 @@ class InstaWP_AJAX
          $res_array['status']  = 0;
       }
 
+      
       wp_send_json( $res_array );
       wp_die();
    }
@@ -42,7 +147,7 @@ class InstaWP_AJAX
    public function instawp_settings_call() {
 
       $connect_ids  = get_option('instawp_connect_id_options', '');
-      // $connect_id    = $connect_ids['data']['id'];
+      
       if( isset( $_POST['instawp_api_url_internal'] ) ){
          $instawp_api_url_internal = $_POST['instawp_api_url_internal'];
          InstaWP_Setting::set_api_domain($instawp_api_url_internal);
@@ -50,7 +155,7 @@ class InstaWP_AJAX
 
       $message=''; $resType = false;
 
-      $connect_options = get_option('instawp_api_options', '');
+      $connect_options = get_option('instawp_api_options', '');      
       if( 
          isset($connect_ids['data']['id']) &&
          !empty($connect_ids['data']['id']) &&
@@ -59,8 +164,6 @@ class InstaWP_AJAX
          !empty( $connect_options ) && 
          !empty( $connect_options['api_key'] )
       ) {
-         error_log("IF");
-
          $api_heartbeat = intval(trim( $_REQUEST['api_heartbeat'] ));       
 
          $resType = true;
@@ -80,8 +183,7 @@ class InstaWP_AJAX
                wp_schedule_event( time(), 'instawp_heartbeat_interval', 'instwp_handle_heartbeat_cron_action');
             }
          }
-      }else{
-         error_log("ELSE");
+      }else{         
          $resType = false;
          $message='something wrong';         
       }
@@ -93,7 +195,7 @@ class InstaWP_AJAX
       wp_die();
    }
 
-   public function instawp_check_staging() {
+   public function instawp_check_staging() {      
       //$this->ajax_check_security();
       global $InstaWP_Curl;
       
@@ -103,16 +205,15 @@ class InstaWP_AJAX
       $instawp_finish_upload = get_option('instawp_finish_upload', array());
       $url                   = $api_doamin . INSTAWP_API_URL . '/connects/get_restore_status';
       $body                  = array();
-      $curl_response                  = array();
-      $staging_sites                  = array();
+      $curl_response         = array();
+      $staging_sites         = array();
 
       $connect_ids  = get_option('instawp_connect_id_options', '');
       $bkp_init_opt = get_option('instawp_backup_init_options', '');
       $backup_status_opt = get_option('instawp_backup_status_options', '');
       if ( empty($backup_status_opt) ) {
-         //$this->instawp_log->CloseFile();
-         echo json_encode($curl_response);
-         error_log("empty backup status: " . print_r($curl_response, true));
+         //$this->instawp_log->CloseFile();         
+         echo json_encode($curl_response);         
          wp_die();
       }
       // if (!empty($connect_ids)) {
@@ -126,7 +227,7 @@ class InstaWP_AJAX
       //    }
 
       // }
-
+      
       $task_id = $bkp_init_opt['task_info']['task_id'];
       $id      = 0;
       if ( ! empty($connect_ids) && ! empty($bkp_init_opt) && ! empty($backup_status_opt) ) {
@@ -204,7 +305,7 @@ class InstaWP_AJAX
                   $wp_password = $curl_response['data']['wp'][0]['wp_password'];  
                   $auto_login_hash = $curl_response['data']['wp'][0]['auto_login_hash']; 
                   $auto_login_url = add_query_arg( array( 'site' => $auto_login_hash ), $auto_login_url );
-
+                  $scheme = "https://";
                   $staging_sites_items[ $id ][ $task_id ] = array(
                      "stage_site_task_id" => $task_id,
                      "stage_site_url" => array(
@@ -234,6 +335,7 @@ class InstaWP_AJAX
 
       // error_log("curl_response 142 LINE : " . print_r($curl_response, true));
       echo json_encode($curl_response);
+      error_log("Last response".print_r($curl_response,true));
       // error_log("curl_response ajax back ON LINE 213: ");
       wp_die();
    }
@@ -270,7 +372,6 @@ class InstaWP_AJAX
       if ( ! is_wp_error($response) && $response_code == 200 ) {
          $body = (array) json_decode(wp_remote_retrieve_body($response), true);
 
-         error_log("CHECK API KEY RESPONSE" . print_r($body, true));
          $connect_options = array();
          if ( $body['status'] == true ) {
 
@@ -321,8 +422,9 @@ class InstaWP_AJAX
       // $api_key = $connect_options['api_key'];
       $php_version  = substr( phpversion(), 0, 3);
       $body         = json_encode(array( "url" => get_site_url(), 'php_version' => $php_version));
-      
+            
       $curl_response = $InstaWP_Curl->curl($url, $body);
+      
       update_option('instawp_connect_id_options_err', $curl_response);
       if ( $curl_response['error'] == false ) {
 
@@ -334,6 +436,16 @@ class InstaWP_AJAX
             $connect_options[ $connect_id ] = $response;
             update_option('instawp_connect_id_options', $response); // old
             //InstaWP_Setting::update_connect_option('instawp_connect_options',$connect_options,$connect_id);
+            
+            /* RUN CRON ON CONNECT START */
+            $timestamp = wp_next_scheduled( 'instwp_handle_heartbeat_cron_action' );
+            wp_unschedule_event( $timestamp, 'instwp_handle_heartbeat_cron_action' );
+
+            if ( !wp_next_scheduled( 'instwp_handle_heartbeat_cron_action' ) ) {         
+               wp_schedule_event( time(), 'instawp_heartbeat_interval', 'instwp_handle_heartbeat_cron_action');
+            }
+            /* RUN CRON ON CONNECT END */
+
             $res['message'] = $response['message'];
             $res['error']   = false;
          } else {
@@ -358,7 +470,8 @@ class InstaWP_AJAX
         'error'   => true,
         'message' => '',
      );
-      $url = 'https://s.instawp.io/api/v1/connects';
+      $api_doamin = InstaWP_Setting::get_api_domain();
+      $url = $api_doamin . INSTAWP_API_URL . '/connects/';
 
       $connect_options = get_option('instawp_api_options', '');
       if ( ! isset($connect_options['api_key']) && empty($connect_options['api_key']) ) {

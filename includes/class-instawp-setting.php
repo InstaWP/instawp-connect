@@ -76,6 +76,75 @@ class InstaWP_Setting
         return get_option( 'instawp_api_url' );
     }
 
+    public static function instawp_generate_api_key( $access_token, $status ) {
+        
+        global $InstaWP_Curl;
+       
+        if( !empty( $access_token ) && ( !empty( $status ) && $status == true ) )
+        {   
+            $api_doamin = InstaWP_Setting::get_api_domain();            
+
+            /* API KEY Store Code Stat */
+            $url = $api_doamin . INSTAWP_API_URL . '/check-key';
+            $api_key = $_REQUEST['access_token'];
+            $response = wp_remote_get( $url, array(
+                'body'    => '',
+                'headers' => array(
+                'Authorization' => 'Bearer ' . $api_key,
+                'Accept'        => 'application/json',
+                ),
+            ));
+            
+            $response_code = wp_remote_retrieve_response_code($response);
+            if ( ! is_wp_error($response) && $response_code == 200 ) {
+                $body = (array) json_decode(wp_remote_retrieve_body($response), true);     
+                
+                $connect_options = array();
+                if ( $body['status'] == true ) {        
+                    $connect_options['api_key']  = $api_key;
+                    $connect_options['response'] = $body;
+                   
+                    update_option('instawp_api_options', $connect_options);                   
+                } 
+            }
+            /* API KEY Store Code End */
+
+            /* Connect ID Store Code Stat */
+            $url = $api_doamin . INSTAWP_API_URL . '/connects';    
+            $php_version  = substr( phpversion(), 0, 3);
+            $body = json_encode(array( "url" => get_site_url(), 'php_version' => $php_version));
+                  
+            $curl_response = $InstaWP_Curl->curl($url, $body );
+            //die;
+            if ( $curl_response['error'] == false ) {
+                $response = (array) json_decode($curl_response['curl_res'], true);
+
+                if ( $response['status'] == true ) {
+                    $connect_options = InstaWP_Setting::get_option('instawp_connect_options',array() );
+                    $connect_id = $response['data']['id'];
+                    $connect_options[ $connect_id ] = $response;
+                    update_option('instawp_connect_id_options', $response);
+                }
+            }
+
+            /* RUN CRON ON CONNECT START */
+            $timestamp = wp_next_scheduled( 'instwp_handle_heartbeat_cron_action' );
+            wp_unschedule_event( $timestamp, 'instwp_handle_heartbeat_cron_action' );
+
+            if ( !wp_next_scheduled( 'instwp_handle_heartbeat_cron_action' ) ) {         
+                error_log("RUN CRON ON GENERATE ACTION");
+                wp_schedule_event( time(), 'instawp_heartbeat_interval', 'instwp_handle_heartbeat_cron_action');
+             }
+            /* RUN CRON ON CONNECT END */
+
+            /* Connect ID Store Code End */
+
+            // $url = admin_url('admin.php?page=instawp-connect'); 
+            // wp_redirect( $url, 301 );
+            // exit();
+        } 
+    }
+
     public static function set_default_compress_option() {
         $compress_option['compress_type'] = INSTAWP_DEFAULT_COMPRESS_TYPE;
         $compress_option['max_file_size'] = INSTAWP_DEFAULT_MAX_FILE_SIZE;

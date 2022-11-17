@@ -95,12 +95,10 @@ class InstaWP_Backup_Api
       $current_api_key_hash = "";
 
       // check for pipe
-      if (!empty($current_api_key) && strpos($current_api_key, '|') !== false) { 
-         error_log("RAN IF");
+      if (!empty($current_api_key) && strpos($current_api_key, '|') !== false) {          
          $exploded = explode('|', $current_api_key);
          $current_api_key_hash = hash('sha256', $exploded[1]);
       }else{
-         error_log("RAN ELSE");
          $current_api_key_hash = !empty($current_api_key) ? hash('sha256', $current_api_key) : "";
       }
 
@@ -403,6 +401,7 @@ class InstaWP_Backup_Api
    }
 
    public function restore_status( $task_id,$response ) {
+      error_log("Restore Status");
       global $InstaWP_Curl;
        $body = array(
 		   "task_id"         => $task_id,
@@ -433,14 +432,16 @@ class InstaWP_Backup_Api
                );
                $body_json     = json_encode($body);
                $curl_response = $InstaWP_Curl->curl($url, $body_json);
+               error_log("API Error: ==> ".$curl_response['error']);
                if ( $curl_response['error'] == false ) {
 
                   $response              = (array) json_decode($curl_response['curl_res'], true);
                   $response['task_info'] = $body;
-                  update_option('instawp_backup_status_options', $response);
+                  update_option('instawp_backup_status_options', $response);                  
                }
             }
          }
+         error_log('instawp rest api \n '.print_r(get_option( 'instawp_backup_status_options'),true));
          update_option('instawp_finish_restore', $response);
          return $body;
    }

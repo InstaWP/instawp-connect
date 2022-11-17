@@ -90,6 +90,7 @@ class InstaWP_Upload
         }
     }
     public function upload_api( $task_id,$remote_option=null ) {
+        error_log("Upload API");
         global $instawp_plugin,$InstaWP_Curl;
         
         $this->task_id = $task_id;
@@ -119,12 +120,14 @@ class InstaWP_Upload
                );
                $body_json     = json_encode($body);
                $curl_response = $InstaWP_Curl->curl($url, $body_json);
+               
                if ( $curl_response['error'] == false ) {
 
                   $response              = (array) json_decode($curl_response['curl_res'], true);
                   $response['task_info'] = $body;
                   
                   update_option('instawp_backup_status_options', $response);
+                  
                  // InstaWP_Setting::update_connect_option('instawp_connect_options',$response,$id,$this->task_id,'backup_status');
                }
                else {
@@ -132,7 +135,8 @@ class InstaWP_Upload
                }
             }
          }
-         update_option('instawp_finish_upload', $response);
+        error_log('instawp upload  \n '.print_r(get_option( 'instawp_backup_status_options'),true));
+        update_option('instawp_finish_upload', $response);
       
                 return array( 'result' => INSTAWP_SUCCESS );
             }
