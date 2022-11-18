@@ -212,9 +212,6 @@ if( isset( $_REQUEST['success'] ) && $_REQUEST['success']==true ){
         <script>
             jQuery(document).on('click','#instawp_quickbackup_btn',function(){
                 /* Check Cloud Site Usage Call Start */
-                var ajax_data = {
-                    'action': 'instawp_check_cloud_usage'
-                };
                 jQuery.ajax({
                     type: 'POST',
                     url: instawp_ajax_object.ajax_url,
@@ -222,7 +219,6 @@ if( isset( $_REQUEST['success'] ) && $_REQUEST['success']==true ){
                         action: "instawp_check_cloud_usage"
                     },
                     success: function (response) {
-                        //var jsonArr = JSON.parse(response);
                         jQuery('.limit_notice').html('');
                         console.log('Status ',typeof response.status);
                         console.log('Check Usage Response', response);
@@ -236,9 +232,9 @@ if( isset( $_REQUEST['success'] ) && $_REQUEST['success']==true ){
                             }
                             jQuery('.limit_notice').html('<p>'+response.message+'</p><p><a href='+acc_link+'>Check Account</a></p></div>');
                         }
-                        setTimeout(function () {
-                            jQuery('.limit_notice').html('');
-                        }, 5000);
+                        // setTimeout(function () {
+                        //     jQuery('.limit_notice').html('');
+                        // }, 5000);
                     },
                     error: function (XMLHttpRequest, textStatus, errorThrown) {
                         console.log(XMLHttpRequest, textStatus, errorThrown);
@@ -447,15 +443,14 @@ if( isset( $_REQUEST['success'] ) && $_REQUEST['success']==true ){
             if ( empty( $staging_site) ) {
                 $progress_class = '';
                 $site_class = 'instawp-display-none';
-            }
-            else {
+            }else {
                 $progress_class = 'instawp-display-none';
                 $site_class = '';
             }
             do_action( 'instawp_admin_wizard_img',$progress_class );
             ?>
 
-            <div class="instawp-site-details-heading <?php //echo esc_attr( $site_class); ?>" >
+            <div class="instawp-site-details-heading <?php echo esc_attr( $site_class); ?>" >
                 <span>
                     <strong> <?php echo esc_html__('Congrats!','instawp-connect') ?>  </strong> <?php echo esc_html__('Staging is Created!','instawp-connect') ?> 
                 </span> 

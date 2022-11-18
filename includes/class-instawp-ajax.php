@@ -198,6 +198,8 @@ class InstaWP_AJAX
 
             /*Debugging*/
             error_log("Variable Type curl_response_data Line 120: " . gettype($curl_response_data));
+            error_log("Variable Type curl_response_data Line 120-URL: " . $url);
+            error_log("Variable Type curl_response_data Line 120-DATA_SENT: " . print_r($body, true));
             error_log("Variable Print curl_response_data Line 121: " . print_r($curl_response_data, true));
             /*Debugging*/
 
