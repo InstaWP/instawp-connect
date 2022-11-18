@@ -13,66 +13,11 @@ class InstaWP_AJAX
       add_action('wp_ajax_instawp_settings_call', array( $this, 'instawp_settings_call' ));
       add_action('wp_ajax_instawp_connect', array( $this, 'connect' ));
       add_action('wp_ajax_instawp_check_staging', array( $this, 'instawp_check_staging' ));
-      add_action('wp_ajax_instawp_logger', array( $this, 'instawp_longer_handle' ));
+      add_action('wp_ajax_instawp_logger', array( $this, 'instawp_logger_handle' ));
       add_action('init', array( $this, 'deleter_folder_handle' ));
    }
 
-   // Remove From settings internal
-   public function deleter_folder_handle(){
-      if ( isset( $_REQUEST['delete_wpnonce'] ) && wp_verify_nonce( $_REQUEST['delete_wpnonce'], 'delete_wpnonce' ) ) {
-         
-         $folder_name = 'instawpbackups';
-         $dirPath =  WP_CONTENT_DIR .'/'. $folder_name;
-         $dirPathLogFolder =  $dirPath . '/instawp_log';
-         $dirPathErrorFolder =  $dirPathLogFolder. '/error';
-         
-         if (substr($dirPath, strlen($dirPath) - 1, 1) != '/') {
-            $dirPath .= '/';
-         }  
-         if ( file_exists( $dirPath ) && is_dir( $dirPath ) ) {
-            //$files = glob($dirPath . '*', GLOB_MARK);
-            $files = glob($dirPath . '{,.}[!.,!..]*',GLOB_MARK|GLOB_BRACE);
-            
-            foreach ($files as $file) {
-               if(is_file($file)){
-                  unlink($file);
-               }
-            }
-         }
-
-         //log folder
-         if (substr($dirPathLogFolder, strlen($dirPathLogFolder) - 1, 1) != '/') {
-            $dirPathLogFolder .= '/';
-         }  
-         if ( file_exists( $dirPathLogFolder ) && is_dir( $dirPathLogFolder ) ) {
-            $logfiles = glob($dirPathLogFolder . '{,.}[!.,!..]*',GLOB_MARK|GLOB_BRACE);
-            foreach ($logfiles as $lfile) {
-               if(is_file($lfile)){
-                  unlink($lfile);
-               }
-            }
-         }
-
-         //error folder
-         if (substr($dirPathErrorFolder, strlen($dirPathErrorFolder) - 1, 1) != '/') {
-            $dirPathErrorFolder .= '/';
-         }  
-         if ( file_exists( $dirPathErrorFolder ) && is_dir( $dirPathErrorFolder ) ) {
-            $errorfiles = glob($dirPathErrorFolder . '{,.}[!.,!..]*',GLOB_MARK|GLOB_BRACE);
-            foreach ($errorfiles as $efile) {
-               if(is_file($efile)){
-                  unlink($efile);
-               }
-            }
-         }
-         $redirect_url = admin_url( "admin.php?page=instawp-settings" );
-         wp_redirect($redirect_url);
-         exit();
-      }
-   }
-
-   // Remove after success stage site created
-   public static function instawp_deleter_folder_handle_1(){
+   public static function instawp_folder_remover_handle(){
       $folder_name = 'instawpbackups';
       $dirPath =  WP_CONTENT_DIR .'/'. $folder_name;
       $dirPathLogFolder =  $dirPath . '/instawp_log';
@@ -82,10 +27,8 @@ class InstaWP_AJAX
          $dirPath .= '/';
       }  
       if ( file_exists( $dirPath ) && is_dir( $dirPath ) ) {
-         //$files = glob($dirPath . '*', GLOB_MARK);
-         $files = glob($dirPath . '{,.}[!.,!..]*',GLOB_MARK|GLOB_BRACE);
-         
-         foreach ($files as $file) {
+         $instawpbackups_zip_files = glob($dirPath . "*.zip",GLOB_MARK|GLOB_BRACE);
+         foreach ($instawpbackups_zip_files as $file) {
             if(is_file($file)){
                unlink($file);
             }
@@ -97,8 +40,8 @@ class InstaWP_AJAX
          $dirPathLogFolder .= '/';
       }  
       if ( file_exists( $dirPathLogFolder ) && is_dir( $dirPathLogFolder ) ) {
-         $logfiles = glob($dirPathLogFolder . '{,.}[!.,!..]*',GLOB_MARK|GLOB_BRACE);
-         foreach ($logfiles as $lfile) {
+         $instawp_log_txt_files = glob($dirPathLogFolder . "*.txt",GLOB_MARK|GLOB_BRACE);
+         foreach ($instawp_log_txt_files as $lfile) {
             if(is_file($lfile)){
                unlink($lfile);
             }
@@ -117,10 +60,22 @@ class InstaWP_AJAX
             }
          }
       }
-      die;
    }
+
+   // Remove From settings internal
+   public static function deleter_folder_handle(){
+      if ( isset( $_REQUEST['delete_wpnonce'] ) && wp_verify_nonce( $_REQUEST['delete_wpnonce'], 'delete_wpnonce' ) ) {
+         
+         self::instawp_folder_remover_handle();
+
+         $redirect_url = admin_url( "admin.php?page=instawp-settings" );
+         wp_redirect($redirect_url);
+         exit();
+      }
+   }
+
    /*Handle Js call to remove option*/
-   public function instawp_longer_handle(){
+   public function instawp_logger_handle(){
       $res_array = array(); 
       if( 
          !empty( $_POST['n'] ) &&
@@ -130,7 +85,7 @@ class InstaWP_AJAX
          $l = $_POST['l'];   
          update_option( 'instawp_finish_upload',array() );
          update_option( 'instawp_staging_list',array() );
-         self::instawp_deleter_folder_handle_1();
+         self::instawp_folder_remover_handle();
 
          $res_array['message']  = 'success';
          $res_array['status']  = 1;
@@ -139,7 +94,6 @@ class InstaWP_AJAX
          $res_array['status']  = 0;
       }
 
-      
       wp_send_json( $res_array );
       wp_die();
    }
@@ -310,7 +264,7 @@ class InstaWP_AJAX
                      "stage_site_task_id" => $task_id,
                      "stage_site_url" => array(
                         "site_name" => $site_name, 
-                        "wp_admin_url" => $wp_admin_url
+                        "wp_admin_url" => $scheme . $wp_admin_url
                      ),
                      "stage_site_user" => $wp_username,
                      "stage_site_pass" => $wp_password,
@@ -319,6 +273,16 @@ class InstaWP_AJAX
 
                   update_option('instawp_staging_list_items', $staging_sites_items);
 
+                  $curl_response = array(
+                     "status" => 1,
+                     "details" => array(
+                        "name" => $site_name,
+                        "url" => $scheme . $wp_admin_url,
+                        "user" => $wp_username,
+                        "code" => $wp_password,
+                        "login" => $auto_login_url,
+                     )
+                  );
                   /*Debugging */
                   error_log("ON LINE 198 staging_sites_items print starts in IF AFTER: ");
                   error_log(print_r(get_option('instawp_staging_list_items', array()), true));

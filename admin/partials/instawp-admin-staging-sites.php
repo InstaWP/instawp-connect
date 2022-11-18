@@ -126,9 +126,8 @@ class InstaWP_Staging_Site_Table extends WP_List_Table {
     {       
         switch ( $column_name ) {
             case 'stage_site_url':
-            $scheme = "https://";
             $site_name = $item['stage_site_url']['site_name'];
-            $site_admin_url = $scheme . $item['stage_site_url']['wp_admin_url'];
+            $site_admin_url = $item['stage_site_url']['wp_admin_url'];
 
             $col_html = '<a href="'.$site_admin_url.'">'.$site_name.'</p>';
             return $col_html;
