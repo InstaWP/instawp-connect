@@ -264,7 +264,7 @@ class InstaWP_AJAX
                      "stage_site_task_id" => $task_id,
                      "stage_site_url" => array(
                         "site_name" => $site_name, 
-                        "wp_admin_url" => $scheme . $wp_admin_url
+                        "wp_admin_url" => $scheme . str_replace('/wp-admin','',$wp_admin_url)
                      ),
                      "stage_site_user" => $wp_username,
                      "stage_site_pass" => $wp_password,
@@ -277,7 +277,7 @@ class InstaWP_AJAX
                      "status" => 1,
                      "details" => array(
                         "name" => $site_name,
-                        "url" => $scheme . $wp_admin_url,
+                        "url" => $scheme .  str_replace('/wp-admin','',$wp_admin_url),
                         "user" => $wp_username,
                         "code" => $wp_password,
                         "login" => $auto_login_url,

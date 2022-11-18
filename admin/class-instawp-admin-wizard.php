@@ -139,6 +139,7 @@ class InstaWP_Admin_Wizard {
                 </svg> Back
             </a>
         </div>
+        <div class="limit_notice"></div>
         <?php
     }
     
