@@ -78,7 +78,7 @@ foreach ( $tasks as $task_id => $task ) {
                         $return_url = urlencode( admin_url('admin.php?page=instawp-connect') );
                         $source_url = $instawp_api_url.'/authorize?source=InstaWP Connect&return_url='.$return_url;
                     ?>          
-                    <a href="<?php echo $source_url;?>" target="_blank" class="">Generate API Key</a>   
+                    <a href="<?php echo $source_url;?>" class="">Generate API Key</a>   
                     <p class="instawp-err-msg"></p>
                 </td>
                 

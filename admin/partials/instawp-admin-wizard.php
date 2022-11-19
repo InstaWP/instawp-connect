@@ -80,7 +80,7 @@ if( isset( $_REQUEST['success'] ) && $_REQUEST['success']==true ){
         
         <?php 
         $btn_args = array(
-           'label' => __('Create a Site','instawp-connect'),
+           'label' => __('Create a Staging Site','instawp-connect'),
        );
 
         do_action('instawp_admin_wizard_btn',$btn_args); 
@@ -211,9 +211,38 @@ if( isset( $_REQUEST['success'] ) && $_REQUEST['success']==true ){
         
         <script>
             jQuery(document).on('click','#instawp_quickbackup_btn',function(){
-
-                instawp_clear_notice('instawp_backup_notice');
-                instawp_start_backup();
+                /* Check Cloud Site Usage Call Start */
+                jQuery.ajax({
+                    type: 'POST',
+                    url: instawp_ajax_object.ajax_url,
+                    data: {
+                        action: "instawp_check_cloud_usage"
+                    },
+                    success: function (response) {
+                        jQuery('.limit_notice').html('');
+                        console.log('Status ',typeof response.status);
+                        console.log('Check Usage Response', response);
+                        var acc_link = '';
+                        if( response.status == 1 ){
+                            instawp_clear_notice('instawp_backup_notice');
+                            instawp_start_backup();
+                        }else if( response.status == 0 ){
+                            if( response.link ){
+                                acc_link = response.acc_link;
+                            }
+                            jQuery('.limit_notice').html('<p>'+response.message+'</p><p><a href='+acc_link+'>Check Account</a></p></div>');
+                        }
+                        // setTimeout(function () {
+                        //     jQuery('.limit_notice').html('');
+                        // }, 5000);
+                    },
+                    error: function (XMLHttpRequest, textStatus, errorThrown) {
+                        console.log(XMLHttpRequest, textStatus, errorThrown);
+                    }
+                });
+                /* Check Cloud Site Usage Call End */
+                // instawp_clear_notice('instawp_backup_notice');
+                // instawp_start_backup();
             });
             
             function instawp_start_backup(){
@@ -265,24 +294,11 @@ if( isset( $_REQUEST['success'] ) && $_REQUEST['success']==true ){
                     instawp_completed_backup = 1;
                     instawp_prepare_backup = true;
                     instawp_post_request(ajax_data, function (data) {
-
+                        
                         var html_code = '';
                         try {
                             var jsonarray = jQuery.parseJSON(data);
-                            console.log('type == ', jsonarray.result);
-                            if ( jsonarray.result_type == 'warning' ) {
-                                console.log('message == ',jsonarray.message);
-                                console.log('link == ',jsonarray.account_link);
-                                jQuery('#instawp_quickbackup_btn').attr("disabled","disabled");
-                                jQuery('.staging-warning').remove();
-                                html_code += '<div class="staging-warning"><p>'+jsonarray.message+'</p><p>'+jsonarray.account_link+'</p></div>';
-                                console.log('html_code == ',html_code);
-                                jQuery('.postbox instawp-wizard-container.wizard-screen-3.instawp-show .instawp-wizard-btn-prev-wrap').insertAfter(html_code);
-                            }else{
-                                jQuery('.staging-warning').remove();
-                                jQuery('#instawp_quickbackup_btn').attr("disabled","disabled");
-                            }
-
+                           
                             if (jsonarray.result === 'failed') {
                                 instawp_delete_ready_task(jsonarray.error);
                             }
@@ -427,15 +443,14 @@ if( isset( $_REQUEST['success'] ) && $_REQUEST['success']==true ){
             if ( empty( $staging_site) ) {
                 $progress_class = '';
                 $site_class = 'instawp-display-none';
-            }
-            else {
+            }else {
                 $progress_class = 'instawp-display-none';
                 $site_class = '';
             }
             do_action( 'instawp_admin_wizard_img',$progress_class );
             ?>
 
-            <div class="instawp-site-details-heading <?php echo esc_attr( $site_class); ?>">
+            <div class="instawp-site-details-heading <?php echo esc_attr( $site_class); ?>" >
                 <span>
                     <strong> <?php echo esc_html__('Congrats!','instawp-connect') ?>  </strong> <?php echo esc_html__('Staging is Created!','instawp-connect') ?> 
                 </span> 
@@ -447,14 +462,7 @@ if( isset( $_REQUEST['success'] ) && $_REQUEST['success']==true ){
                 </p>
                 <div class="site-details <?php echo esc_attr( $site_class); ?>">
                     <p> <?php echo esc_html__('WP Login Credentials.','instawp-connect') ?></p>
-                    <?php
-                    $scheme = "https://";
-                    if ( !empty( $wp_admin_url ) && strpos( $wp_admin_url, $scheme ) !== false )  {
-                        $wp_admin_url = str_replace( 'wp-admin', '', $wp_admin_url );
-                    }else{
-                        $wp_admin_url = $scheme . str_replace( 'wp-admin', '', $wp_admin_url );
-                    }
-                    ?>
+                    
                     <p id="instawp_site_url"> <?php echo esc_html__('URL','instawp-connect') ?> : <a target="_blank" href="<?php echo esc_url( $wp_admin_url ); ?>"><?php echo esc_html($site_name); ?></a></p>
                     <p id="instawp_user_name"><?php echo esc_html__( 'Admin Username','instawp-connect' ); ?> : <span> <?php echo esc_html($wp_username); ?> </span></p>
                     <p id="instawp_password"> <?php echo esc_html__( 'Admin Password','instawp-connect' ); ?> : <span> <?php echo esc_html( $wp_password ); ?> </span></p>
@@ -514,7 +522,7 @@ if( isset( $_REQUEST['success'] ) && $_REQUEST['success']==true ){
                         
                         var msg = '<span style="color:green">'+obj.message+'</span>';
                     }
-                    jQuery('.instawp-err-msg').html(msg);
+                    //jQuery('.instawp-err-msg').html(msg);
                 },
                 error: function (errorThrown) {
                     console.log('error');

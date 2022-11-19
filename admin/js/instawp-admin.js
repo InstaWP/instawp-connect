@@ -125,8 +125,7 @@ function instawp_post_request(ajax_data, callback, error_callback, time_out){
         type: "post",
         url: instawp_ajax_object.ajax_url,
         data: ajax_data,
-        success: function (data) {
-            //console.log(ajax_data);
+        success: function (data) {                  
             callback(data);
         },
         error: function (XMLHttpRequest, textStatus, errorThrown) {
@@ -799,6 +798,7 @@ function instawp_check_staging(){
                     is_instawp_check_staging_compteted = true;
 
                     jQuery('.instawp-stage-links').show();
+                    jQuery('.instawp-site-details-heading').show();
 
                     jQuery('#instawp_site_url a').html(jsonarray.details.name); 
                     jQuery('#instawp_site_url a').attr('href',jsonarray.details.url);

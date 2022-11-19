@@ -198,6 +198,8 @@ class InstaWP_AJAX
 
             /*Debugging*/
             error_log("Variable Type curl_response_data Line 120: " . gettype($curl_response_data));
+            error_log("Variable Type curl_response_data Line 120-URL: " . $url);
+            error_log("Variable Type curl_response_data Line 120-DATA_SENT: " . print_r($body, true));
             error_log("Variable Print curl_response_data Line 121: " . print_r($curl_response_data, true));
             /*Debugging*/
 
@@ -264,7 +266,7 @@ class InstaWP_AJAX
                      "stage_site_task_id" => $task_id,
                      "stage_site_url" => array(
                         "site_name" => $site_name, 
-                        "wp_admin_url" => $scheme . $wp_admin_url
+                        "wp_admin_url" => $scheme . str_replace('/wp-admin','',$wp_admin_url)
                      ),
                      "stage_site_user" => $wp_username,
                      "stage_site_pass" => $wp_password,
@@ -277,7 +279,7 @@ class InstaWP_AJAX
                      "status" => 1,
                      "details" => array(
                         "name" => $site_name,
-                        "url" => $scheme . $wp_admin_url,
+                        "url" => $scheme .  str_replace('/wp-admin','',$wp_admin_url),
                         "user" => $wp_username,
                         "code" => $wp_password,
                         "login" => $auto_login_url,
