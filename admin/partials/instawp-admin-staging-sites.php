@@ -21,13 +21,14 @@ class InstaWP_Staging_Site_Table extends WP_List_Table {
     {
         return [
             'cb' => '<input type="checkbox" />',
-            'stage_site_url' => strtoupper('stage site - url'),
-            'stage_site_user' => strtoupper('Stage Site - user'),
-            'stage_site_pass' => strtoupper('Stage Site - password'),
-            'stage_site_login_button' => strtoupper('Stage Site - auto login'),
+            'stage_site_url' => ucwords('Url'),
+            'stage_site_user' => ucwords('User Name'),
+            'stage_site_pass' => ucwords('Password'),
+            'stage_site_login_button' => ucwords('Auto login'),
         ];
     }
 
+    
     function prepare_items()
     {
         $options = get_user_meta(get_current_user_id(), 'instawp_stagelist_page_options', true);
@@ -55,7 +56,7 @@ class InstaWP_Staging_Site_Table extends WP_List_Table {
                 $data = $staging_sites[ $connect_id ];
             }
         }
-
+        
         // $staging_sites = get_option('instawp_staging_list_items', array());
         //$data = $staging_sites[ '539' ];
 
@@ -68,8 +69,8 @@ class InstaWP_Staging_Site_Table extends WP_List_Table {
                 'total_pages' => ceil(sizeof($data) / $per_page)
             )
         );
-    }
-
+    }    
+   
     function process_bulk_action()
     {   
         if ( ( 
@@ -171,13 +172,20 @@ class InstaWP_Staging_Site_Table extends WP_List_Table {
 function display_instawp_staging_site_table() {
     $instawp_staging_site_table = new InstaWP_Staging_Site_Table();
     ?>
-    <form method="get" id="stage_sites">
-        <input type="hidden" name="page" value="<?php echo $_REQUEST['page'] ?>" />
-        <?php 
-        $instawp_staging_site_table->prepare_items(); 
-        $instawp_staging_site_table->display(); 
+    <div class="wrap instabtn">
+        <h1 class="wp-heading-inline">Staging Sites</h1>
+        <?php
+            $url = admin_url( 'admin.php?page=instawp-connect' );
         ?>
-    </form>
+        <a href="<?php echo $url?>" class="button" style="background-color: #005E54;color:#fff;margin-top:10px;border-radius:6px;">Create New</a>
+        <form method="get" id="stage_sites">
+            <input type="hidden" name="page" value="<?php echo $_REQUEST['page'] ?>" />
+            <?php 
+            $instawp_staging_site_table->prepare_items(); 
+            $instawp_staging_site_table->display(); 
+            ?>
+        </form>
+    </div>
     <?php
 }
 display_instawp_staging_site_table();

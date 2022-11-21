@@ -67,22 +67,27 @@ class InstaWP_Admin_Wizard {
             <img class="main-img <?php echo esc_attr($class); ?>" src="<?php echo esc_url(INSTAWP_PLUGIN_IMAGES_URL.'wizard/step-img.png') ?>">
         <?php 
     }
-    public function instawp_admin_wizard_two_btn( $btn_args ) {
-        
+    public function instawp_admin_wizard_two_btn( $btn_args ) {        
         ?>
-         <div class="instawp-wizard-btn-wrap button-2">
-            
-          <a class="instawp-wizard-btn inactive" href="javascript:void(0)">
-            <span><?php echo esc_html( $btn_args['button_1']['label'] ); ?></span>
-            <p>(<?php echo esc_html( $btn_args['button_1']['desc'] ); ?>)</p>
-          </a>
-          <a class="instawp-wizard-btn" id="instawp_quickbackup_btn" href="javascript:void(0)">
-            <span>
-            <?php echo esc_html( $btn_args['button_2']['label'] ); ?>
-            </span>
-             <p>(<?php echo esc_html( $btn_args['button_2']['desc'] ); ?>) </p>
-             
-          </a>
+        <div class="instawp-wizard-btn-wrap button-2">            
+            <a class="instawp-wizard-btn inactive" href="javascript:void(0)">
+                <span><?php echo esc_html( $btn_args['button_1']['label'] ); ?></span>
+                <p>(<?php echo esc_html( $btn_args['button_1']['desc'] ); ?>)</p>
+            </a>
+            <a class="instawp-wizard-btn" id="instawp_quickbackup_btn" href="javascript:void(0)">
+                <span>
+                    <?php echo esc_html( $btn_args['button_2']['label'] ); ?>
+                </span>
+                <p>(<?php echo esc_html( $btn_args['button_2']['desc'] ); ?>) </p>             
+            </a>
+
+            <?php $cancel_nonce = wp_create_nonce( 'cancel_backup' );?>
+            <?php /*?>
+            <a class="instawp-cancel-backup-btn" data-nonce="<?php echo $cancel_nonce;?>" style="display:none" id="instawp_cancel_backup_btn" href="javascript:void(0)">
+                <?php echo esc_html( $btn_args['button_3']['label'] ); ?>
+            </a>
+            <?php */?>
+            <input type="hidden" id="currentTaskId" name="currentTaskId" value="">
         </div>
         <?php 
     }
