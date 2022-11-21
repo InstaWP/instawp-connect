@@ -140,17 +140,20 @@ if( isset( $_REQUEST['success'] ) && $_REQUEST['success']==true ){
         <?php 
         
         $btn_args = array(
-         'button_1' => array(
-          'label' => __('Quick','instawp-connect'),
-          'desc'  => __('Coming Soon','instawp-connect'),
-          'data'  => __('data','instawp-connect'),
-      ),
-         'button_2' => array(
-          'label' => __('Full','instawp-connect'),
-          'desc'  => __('Copies Media Files','instawp-connect'),
-          'data'  => __('data','instawp-connect'),
-      ),
-     );
+            'button_1' => array(
+                'label' => __('Quick','instawp-connect'),
+                'desc'  => __('Coming Soon','instawp-connect'),
+                'data'  => __('data','instawp-connect'),
+            ),
+            'button_2' => array(
+                'label' => __('Full','instawp-connect'),
+                'desc'  => __('Copies Media Files','instawp-connect'),
+                'data'  => __('data','instawp-connect'),
+            ),
+            'button_3' => array(
+                'label' => __('Cancel','instawp-connect'),
+            ),
+        );
         do_action('instawp_admin_wizard_two_btn',$btn_args); 
         do_action('instawp_admin_wizard_prev_btn',null); 
 
@@ -205,11 +208,39 @@ if( isset( $_REQUEST['success'] ) && $_REQUEST['success']==true ){
                 </tfoot>
             </table>
         </div>
-        
-
-        
-        
+                
         <script>
+            /*Cancel Button Click to Stop Backup Process Code Start*/            
+            jQuery(document).on('click','#instawp_cancel_backup_btn',function(){
+                var cancel_nonce = jQuery(this).attr('data-nonce');
+                instawp_cancel_backup_process(cancel_nonce);
+            });
+
+            function instawp_cancel_backup_process(cancel_nonce){
+                var task_id = jQuery('#currentTaskId').val();
+                var data = {
+                    action : 'instawp_cancel_backup_process',
+                    task_id: task_id,
+                    cancel_nonce : cancel_nonce
+                }
+                jQuery.ajax({
+                    type: 'POST',
+                    url: instawp_ajax_object.ajax_url,
+                    data: data,
+                    success: function (response) {
+                        console.log(response)
+                        //jQuery('#instawp_current_doing').html(jsonarray.msg);
+                        if( response!=''){
+                            //location.reload();
+                        }
+                    },
+                    error: function (XMLHttpRequest, textStatus, errorThrown) {
+                        console.log(XMLHttpRequest, textStatus, errorThrown);
+                    }
+                });
+            }
+            /*Cancel Button Click to Stop Backup Process Code End*/
+
             jQuery(document).on('click','#instawp_quickbackup_btn',function(){
                 /* Check Cloud Site Usage Call Start */
                 jQuery.ajax({
@@ -223,14 +254,15 @@ if( isset( $_REQUEST['success'] ) && $_REQUEST['success']==true ){
                         console.log('Status ',typeof response.status);
                         console.log('Check Usage Response', response);
                         var acc_link = '';
+                        
                         if( response.status == 1 ){
                             instawp_clear_notice('instawp_backup_notice');
                             instawp_start_backup();
                         }else if( response.status == 0 ){
                             if( response.link ){
-                                acc_link = response.acc_link;
+                                acc_link = response.link;
                             }
-                            jQuery('.limit_notice').html('<p>'+response.message+'</p><p><a href='+acc_link+'>Check Account</a></p></div>');
+                            jQuery('.limit_notice').html('<p class="error_msg"><span class="dashicons dashicons-warning"></span> '+response.message+'</p><p class="external_link"><a href='+acc_link+' target="_blank">Check Account <span class="dashicons dashicons-external"></span></a></p></div>');
                         }
                         // setTimeout(function () {
                         //     jQuery('.limit_notice').html('');
@@ -312,6 +344,7 @@ if( isset( $_REQUEST['success'] ) && $_REQUEST['success']==true ){
                                 jQuery('#instawp_backup_list').append(jsonarray.html);
 
                                 instawp_backup_now(m_backup_task_id);
+                                jQuery('#currentTaskId').val(m_backup_task_id);
                         /*
                          var descript = '';
                         if (jsonarray.check.alert_db === true || jsonarray.check.alter_files === true) {
@@ -450,7 +483,7 @@ if( isset( $_REQUEST['success'] ) && $_REQUEST['success']==true ){
             do_action( 'instawp_admin_wizard_img',$progress_class );
             ?>
 
-            <div class="instawp-site-details-heading <?php echo esc_attr( $site_class); ?>" >
+            <div class="instawp-site-details-heading <?php //echo esc_attr( $site_class); ?>" style="display:none">
                 <span>
                     <strong> <?php echo esc_html__('Congrats!','instawp-connect') ?>  </strong> <?php echo esc_html__('Staging is Created!','instawp-connect') ?> 
                 </span> 

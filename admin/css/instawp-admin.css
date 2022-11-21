@@ -360,7 +360,7 @@
 	gap: 40px;
 }
 .instawp-wizard-btn-wrap.button-2 .instawp-wizard-btn {
-	width: 50%;
+	width: 40%;
 }
 
 .instawp-wizard-btn-wrap.button-2 .instawp-wizard-btn.inactive{
@@ -532,4 +532,7 @@
 .wp-menu-image.svg {
     filter: invert(31%) sepia(14%) saturate(228%) hue-rotate(165deg) brightness(110%) contrast(78%);
 }
+
+.limit_notice .error_msg{color: red;font-size: 16px;font-weight: 500;}
+.limit_notice .external_link a{color: #005E54;font-size: 16px;font-weight: 500;text-decoration:none;}
 /* newly added css end*/

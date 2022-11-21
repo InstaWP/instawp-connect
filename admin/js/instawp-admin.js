@@ -182,6 +182,7 @@ function instawp_check_runningtask(){
                                 running_backup_taskid = index;
                                 instawp_control_backup_lock();
                                 jQuery('#instawp_postbox_backup_percent').show();
+                                jQuery('#instawp_cancel_backup_btn').show();
                                 jQuery('#instawp_postbox_backup_percent').html(value.progress_html);
                                 m_need_update = true;
                                 
@@ -190,6 +191,7 @@ function instawp_check_runningtask(){
                                 running_backup_taskid = index;
                                 instawp_control_backup_lock();
                                 jQuery('#instawp_postbox_backup_percent').show();
+                                jQuery('#instawp_cancel_backup_btn').show();
                                 jQuery('#instawp_postbox_backup_percent').html(value.progress_html);
                                 if (value.data.next_resume_time !== 'get next resume time failed.') {
                                     instawp_resume_backup(index, value.data.next_resume_time);
@@ -202,6 +204,7 @@ function instawp_check_runningtask(){
                                 running_backup_taskid = index;
                                 instawp_control_backup_lock();
                                 jQuery('#instawp_postbox_backup_percent').show();
+                                jQuery('#instawp_cancel_backup_btn').show();
                                 jQuery('#instawp_postbox_backup_percent').html(value.progress_html);
                                 m_need_update = true;
                             }
@@ -209,6 +212,7 @@ function instawp_check_runningtask(){
                                 jQuery('#instawp_postbox_backup_percent').html(value.progress_html);
                                 instawp_control_backup_unlock();
                                 jQuery('#instawp_postbox_backup_percent').hide();
+                                jQuery('#instawp_cancel_backup_btn').hide();
                                 jQuery('#instawp_last_backup_msg').html(jsonarray.last_msg_html);
                                 jQuery('#instawp_loglist').html("");
                                 jQuery('#instawp_loglist').append(jsonarray.log_html);
@@ -243,6 +247,7 @@ function instawp_check_runningtask(){
                                 jQuery('#instawp_postbox_backup_percent').html(value.progress_html);
                                 instawp_control_backup_unlock();
                                 jQuery('#instawp_postbox_backup_percent').hide();
+                                jQuery('#instawp_cancel_backup_btn').hide();
                                 jQuery('#instawp_last_backup_msg').html(jsonarray.last_msg_html);
                                 jQuery('#instawp_loglist').html("");
                                 jQuery('#instawp_loglist').append(jsonarray.log_html);
@@ -258,6 +263,7 @@ function instawp_check_runningtask(){
                                 jQuery('#instawp_postbox_backup_percent').html(value.progress_html);
                                 instawp_control_backup_unlock();
                                 jQuery('#instawp_postbox_backup_percent').hide();
+                                jQuery('#instawp_cancel_backup_btn').hide();
                                 jQuery('#instawp_last_backup_msg').html(jsonarray.last_msg_html);
                                 jQuery('#instawp_loglist').html("");
                                 jQuery('#instawp_loglist').append(jsonarray.log_html);
@@ -276,6 +282,7 @@ function instawp_check_runningtask(){
                         jQuery('#instawp_backup_log_btn').css({'pointer-events': 'auto', 'opacity': '1'});
                         instawp_control_backup_unlock();
                         jQuery('#instawp_postbox_backup_percent').hide();
+                        jQuery('#instawp_cancel_backup_btn').hide();
                         instawp_retrieve_backup_list();
                         instawp_retrieve_last_backup_message();
                         instawp_retrieve_log_list();

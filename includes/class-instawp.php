@@ -552,6 +552,9 @@ class instaWP
       //download backup by mainwp
       add_action('wp_ajax_instawp_download_backup_mainwp', array( $this, 'download_backup_mainwp' ));
       add_action('wp_ajax_instawp_check_cloud_usage', array( $this, 'instawp_check_usage_on_cloud' ));
+
+      //process cancel button action
+      add_action('wp_ajax_instawp_cancel_backup_process', array( $this, 'instawp_cancel_backup_process_handle' ));
    }
 
    public function get_plugin_name() {
@@ -561,6 +564,45 @@ class instaWP
    public function get_version() {
       return $this->version;
    }
+   
+    /*Ajax Cancel Backup Callback Function*/
+    public function instawp_cancel_backup_process_handle(){
+        
+        if ( wp_verify_nonce( $_REQUEST['cancel_nonce'], 'cancel_backup' ) && !empty( $_POST['task_id'] ) ) {
+            $response_array = array();
+
+            $redirect_url = add_query_arg( array( 
+                'page' => 'instawp-connect' 
+            ), admin_url( 'admin.php' ) );
+            
+            $task_id = $_POST['task_id'];            
+            error_log('Current task id == '. $task_id);
+            
+            self::check_cancel_backup( $task_id ); 
+            InstaWP_taskmanager::delete_task( $task_id );
+                       
+            $default = array();
+            $options = get_option( 'instawp_task_list', $default );
+
+            error_log("Before Task List \n". print_r( get_option( 'instawp_task_list' ),true) );
+
+            unset($options[ $task_id ]);
+            update_option('instawp_task_list',$options);
+
+            error_log("After Task List \n". print_r( get_option( 'instawp_task_list' ),true) );
+            error_log('Completed');
+
+            wp_redirect($redirect_url);
+            die();
+            
+            // $response_array['redirect_url'] = $redirect_url;
+            // $response_array['message'] = __("You  have cancel staging request");
+            // echo json_encode( $response_array );
+            // //wp_redirect($redirect_url);
+            // exit();
+        }
+    }
+
    public function instawp_check_usage_on_cloud(){
       $connect_ids = get_option('instawp_connect_id_options', '');
       $instawp_api_options = get_option('instawp_api_options');

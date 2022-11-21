@@ -57,7 +57,7 @@ class InstaWP_Admin {
      */
     public function __construct( $plugin_name, $version ) {
         add_filter('instawp_get_screen_ids',array( $this, 'get_screen_ids' ),10);
-        add_filter('instawp_get_toolbar_menus',array( $this, 'get_toolbar_menus' ),10);
+        //add_filter('instawp_get_toolbar_menus',array( $this, 'get_toolbar_menus' ),10);
         add_filter('instawp_get_admin_menus',array( $this, 'get_admin_menus' ),10);
         
       
@@ -274,7 +274,7 @@ class InstaWP_Admin {
             }
         }
         
-        global $instawp_plugin;
+        /*global $instawp_plugin;
         if ( is_admin() ) {
             $show_admin_bar = $instawp_plugin->get_admin_bar_setting();
             if ( $show_admin_bar === true ) {
@@ -307,7 +307,7 @@ class InstaWP_Admin {
                     }
                 }
             }
-        }
+        }*/
     }
 
     public function add_action_links( $links ) {
