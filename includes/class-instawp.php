@@ -607,7 +607,8 @@ class instaWP
       $connect_ids = get_option('instawp_connect_id_options', '');
       $instawp_api_options = get_option('instawp_api_options');
       $response = array();
-
+      $backup_type = (int)$_REQUEST['backup_type'];
+      
       if( !empty( $connect_ids ) && !empty( $instawp_api_options ) ){
          $id = $connect_ids['data']['id'];
          $api_key = $instawp_api_options['api_key'];
@@ -644,6 +645,7 @@ class instaWP
           error_log('Site Size ==> '. $site_size );
 				// Check if remaining site it > 0 and dis
           if( intval($remaining_site) > 0 && $site_size < $disk_space ){
+               update_option( 'instawp_site_backup_type',$backup_type );
              $response = array(
                'status' => 1,
                'message' => "User can create stage site."

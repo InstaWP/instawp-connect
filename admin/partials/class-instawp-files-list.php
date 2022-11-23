@@ -379,6 +379,8 @@ function instawp_backup_do_js(){
         jQuery('#instawp_postbox_backup_percent').hide();
         jQuery('#instawp_backup_cancel_btn').css({'pointer-events': 'auto', 'opacity': '1'});
         jQuery('#instawp_quickbackup_btn').css({'pointer-events': 'auto', 'opacity': '1'});
+
+        jQuery('#instawp_quick_backup_btn').css({'pointer-events': 'auto', 'opacity': '1'});
         <?php
     }
     else {
@@ -389,6 +391,8 @@ function instawp_backup_do_js(){
                 jQuery('#instawp_postbox_backup_percent').show();
                 jQuery('#instawp_backup_cancel_btn').css({'pointer-events': 'none', 'opacity': '0.4'});
                 jQuery('#instawp_quickbackup_btn').css({'pointer-events': 'none', 'opacity': '0.4'});
+
+                jQuery('#instawp_quick_backup_btn').css({'pointer-events': 'none', 'opacity': '0.4'});
                 jQuery('#instawp_action_progress_bar_percent').css('width', <?php echo esc_html( $percent ); ?>+'%');
                 jQuery('#instawp_backup_database_size').html('<?php echo esc_html( $value['size']['db_size'] ); ?>');
                 jQuery('#instawp_backup_file_size').html('<?php echo esc_html( $value['size']['files_size']['sum'] ); ?>');
@@ -1737,6 +1741,7 @@ function instawp_backuppage_add_page_restore(){
             jQuery('#instawp_postbox_backup').css({'pointer-events': 'none', 'opacity': '1'});
             jQuery('#instawp_postbox_backup_schedule').css({'pointer-events': 'none', 'opacity': '1'});
             jQuery('#instawp_quickbackup_btn').css({'pointer-events': 'none', 'opacity': '1'});
+            jQuery('#instawp_quick_backup_btn').css({'pointer-events': 'none', 'opacity': '1'});
             jQuery('#instawp_tab_backup').css({'pointer-events': 'none', 'opacity': '1'});
             jQuery('#instawp_tab_upload').css({'pointer-events': 'none', 'opacity': '1'});
             jQuery('#instawp_tab_backup_log').css({'pointer-events': 'none', 'opacity': '1'});
@@ -1765,6 +1770,7 @@ function instawp_backuppage_add_page_restore(){
             jQuery('#instawp_postbox_backup').css({'pointer-events': 'auto', 'opacity': '1'});
             jQuery('#instawp_postbox_backup_schedule').css({'pointer-events': 'auto', 'opacity': '1'});
             jQuery('#instawp_quickbackup_btn').css({'pointer-events': 'auto', 'opacity': '1'});
+            jQuery('#instawp_quick_backup_btn').css({'pointer-events': 'auto', 'opacity': '1'});
             jQuery('#instawp_tab_backup').css({'pointer-events': 'auto', 'opacity': '1'});
             jQuery('#instawp_tab_upload').css({'pointer-events': 'auto', 'opacity': '1'});
             jQuery('#instawp_tab_backup_log').css({'pointer-events': 'auto', 'opacity': '1'});

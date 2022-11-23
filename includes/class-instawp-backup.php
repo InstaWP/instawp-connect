@@ -327,7 +327,11 @@ class InstaWP_Backup_Task
          if ( ! function_exists('get_home_path') ) {
             require_once ABSPATH . 'wp-admin/includes/file.php';
          }
-
+         $instawp_backup_type = (int)get_option( 'instawp_site_backup_type' );
+         error_log( "Backup Type 1 ==> Quick Backup");
+         error_log( "Backup Type 2 ==> Full Backup");
+         error_log( "DB Backup Type Option ==> ".$instawp_backup_type);
+         
          $backup_data['key']      = $backup;
          $backup_data['result']   = false;
          $backup_data['compress'] = $this->task['options']['backup_options']['compress'];
@@ -366,16 +370,18 @@ class InstaWP_Backup_Task
 
             $exclude_plugins = array();
             $exclude_plugins = apply_filters('instawp_exclude_plugins', $exclude_plugins);
-            $exclude_regex   = array();
+            
+            $exclude_regex   = array( );
             foreach ( $exclude_plugins as $exclude_plugin ) {
                $exclude_regex[] = '#^' . preg_quote($this->transfer_path(WP_PLUGIN_DIR . DIRECTORY_SEPARATOR . $exclude_plugin), '/') . '#';
             }
+            
             $backup_data['exclude_regex']          = $exclude_regex;
             $backup_data['include_regex']          = array();
             $backup_data['json_info']['file_type'] = 'plugin';
             $backup_data['json_info']['plugin']    = $this->get_plugins_list();
-         } elseif ( $backup == INSTAWP_BACKUP_TYPE_UPLOADS ) {
-            //$backup_data['root_path']=WP_CONTENT_DIR;
+         } elseif ( $backup == INSTAWP_BACKUP_TYPE_UPLOADS && $instawp_backup_type === 2 ) {
+            //$backup_data['root_path']=WP_CONTENT_DIR;            
             $backup_data['root_flag']  = INSTAWP_BACKUP_ROOT_WP_CONTENT;
             $backup_data['prefix']     = $this->get_prefix() . '_backup_uploads';
             $upload_dir                = wp_upload_dir();
@@ -386,8 +392,8 @@ class InstaWP_Backup_Task
             $backup_data['exclude_regex']          = $exclude_regex;
             $backup_data['include_regex']          = array();
             $backup_data['json_info']['file_type'] = 'upload';
-         } elseif ( $backup == INSTAWP_BACKUP_TYPE_UPLOADS_FILES ) {
-            //$backup_data['root_path']=WP_CONTENT_DIR;
+         } elseif ( $backup == INSTAWP_BACKUP_TYPE_UPLOADS_FILES && $instawp_backup_type === 2 ) {
+            //$backup_data['root_path']=WP_CONTENT_DIR;            
             $backup_data['root_flag']          = INSTAWP_BACKUP_ROOT_WP_CONTENT;
             $backup_data['prefix']             = $this->get_prefix() . '_backup_uploads';
             $backup_data['uploads_subpackage'] = 1;
@@ -470,6 +476,7 @@ class InstaWP_Backup_Task
 
       $exclude_plugins[] = 'instawp-connect';
       $exclude_plugins[] = 'wp-cerber';
+      $exclude_plugins[] = 'exclude_plugins';
       $exclude_plugins[] = '.';
       $exclude_plugins   = apply_filters('instawp_exclude_plugins', $exclude_plugins);
 

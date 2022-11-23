@@ -70,11 +70,11 @@ class InstaWP_Admin_Wizard {
     public function instawp_admin_wizard_two_btn( $btn_args ) {        
         ?>
         <div class="instawp-wizard-btn-wrap button-2">            
-            <a class="instawp-wizard-btn inactive" href="javascript:void(0)">
+            <a class="instawp-wizard-btn" id="instawp_quick_backup_btn" data-backup-type="1" href="javascript:void(0)">
                 <span><?php echo esc_html( $btn_args['button_1']['label'] ); ?></span>
                 <p>(<?php echo esc_html( $btn_args['button_1']['desc'] ); ?>)</p>
             </a>
-            <a class="instawp-wizard-btn" id="instawp_quickbackup_btn" href="javascript:void(0)">
+            <a class="instawp-wizard-btn" data-backup-type="2" id="instawp_quickbackup_btn" href="javascript:void(0)">
                 <span>
                     <?php echo esc_html( $btn_args['button_2']['label'] ); ?>
                 </span>
