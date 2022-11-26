@@ -284,8 +284,9 @@ class InstaWP_ZipClass extends instawp_Compress_Default
             require_once(ABSPATH . 'wp-admin/includes/file.php');
         global $instawp_plugin;
         $instawp_plugin->instawp_log->WriteLog('Start compressing '.$data['key'],'notice');
+        $instawp_plugin->instawp_log->WriteLog('Start compressing Files 287 '.print_r($data['files']),'notice');
 	    $files = $this -> filesplit($data['compress']['max_file_size'],$data['files']);
-
+        $instawp_plugin->instawp_log->WriteLog('Start compressing Files 289 '.print_r($data['files']),'notice');
         $temp_dir = $data['path'].'temp-'.$data['prefix'].DIRECTORY_SEPARATOR;
         if ( ! file_exists($temp_dir))
             @mkdir($temp_dir);

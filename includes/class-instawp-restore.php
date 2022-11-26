@@ -29,6 +29,7 @@ class InstaWP_Restore
         if ( $next_task === false ) {
             $instawp_plugin->restore_data->write_log('Restore task completed.','notice');
             $instawp_plugin->restore_data->update_status(INSTAWP_RESTORE_COMPLETED);
+            InstaWP_AJAX::instawp_folder_remover_handle();
             return array( 'result' => INSTAWP_SUCCESS );
         }
         elseif ( $next_task === INSTAWP_RESTORE_RUNNING ) {
