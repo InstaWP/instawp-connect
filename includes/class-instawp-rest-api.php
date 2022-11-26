@@ -383,6 +383,7 @@ class InstaWP_Backup_Api
          if ( isset($parameters['wp']) ) {
             $this->create_user($parameters['wp']['users']);
          }
+         InstaWP_AJAX::instawp_folder_remover_handle();
          $response['status'] = true;
          $response['message'] = 'Restore task completed.';
       } 

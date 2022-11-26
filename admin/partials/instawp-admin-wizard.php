@@ -142,7 +142,7 @@ if( isset( $_REQUEST['success'] ) && $_REQUEST['success']==true ){
         $btn_args = array(
             'button_1' => array(
                 'label' => __('Quick','instawp-connect'),
-                'desc'  => __('Coming Soon','instawp-connect'),
+                'desc'  => __('Copies Without Media','instawp-connect'),
                 'data'  => __('data','instawp-connect'),
             ),
             'button_2' => array(
@@ -242,12 +242,23 @@ if( isset( $_REQUEST['success'] ) && $_REQUEST['success']==true ){
             /*Cancel Button Click to Stop Backup Process Code End*/
 
             jQuery(document).on('click','#instawp_quickbackup_btn',function(){
-                /* Check Cloud Site Usage Call Start */
+                var backup_type = jQuery(this).attr('data-backup-type');
+                check_cloud_usage(backup_type);
+            });
+
+            jQuery(document).on('click','#instawp_quick_backup_btn',function(){
+                var backup_type = jQuery(this).attr('data-backup-type');
+                check_cloud_usage(backup_type);
+            });
+
+            /* Check Cloud Site Usage Call Start */
+            function check_cloud_usage(backup_type){
                 jQuery.ajax({
                     type: 'POST',
                     url: instawp_ajax_object.ajax_url,
                     data: {
-                        action: "instawp_check_cloud_usage"
+                        action: "instawp_check_cloud_usage",
+                        backup_type: backup_type
                     },
                     success: function (response) {
                         jQuery('.limit_notice').html('');
@@ -272,10 +283,8 @@ if( isset( $_REQUEST['success'] ) && $_REQUEST['success']==true ){
                         console.log(XMLHttpRequest, textStatus, errorThrown);
                     }
                 });
-                /* Check Cloud Site Usage Call End */
-                // instawp_clear_notice('instawp_backup_notice');
-                // instawp_start_backup();
-            });
+            }
+            /* Check Cloud Site Usage Call End */
             
             function instawp_start_backup(){
                 var bcheck=true;
@@ -405,11 +414,13 @@ if( isset( $_REQUEST['success'] ) && $_REQUEST['success']==true ){
             
             function instawp_control_backup_lock(){
                 jQuery('#instawp_quickbackup_btn').css({'pointer-events': 'none', 'opacity': '0.4'});
+                jQuery('#instawp_quick_backup_btn').css({'pointer-events': 'none', 'opacity': '0.4'});
                 jQuery('#instawp_transfer_btn').css({'pointer-events': 'none', 'opacity': '0.4'});
             }
             
             function instawp_control_backup_unlock(){
                 jQuery('#instawp_quickbackup_btn').css({'pointer-events': 'auto', 'opacity': '1'});
+                jQuery('#instawp_quick_backup_btn').css({'pointer-events': 'auto', 'opacity': '1'});
                 jQuery('#instawp_transfer_btn').css({'pointer-events': 'auto', 'opacity': '1'});
             }
             
