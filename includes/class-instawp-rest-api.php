@@ -177,12 +177,14 @@ class InstaWP_Backup_Api
          false !== $current_login_code &&
          $param_code === $current_login_code 
       ) {
-
+         // Decoded user
+         $site_user = base64_decode( $param_user );
+         
          // Make url 
          $auto_login_url = add_query_arg( 
             array(
                'c' => $param_code,
-               's' => base64_encode( $param_user )
+               's' => base64_encode( $site_user )
             ), 
             wp_login_url('', true)  
          );
