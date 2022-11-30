@@ -387,8 +387,34 @@ class InstaWP_AJAX
       // }
       // $api_key = $connect_options['api_key'];
       $php_version  = substr( phpversion(), 0, 3);
-      $body         = json_encode(array( "url" => get_site_url(), 'php_version' => $php_version));
-            
+
+      /*Get username*/
+      $username = null;
+      $admin_users = get_users(
+          array(
+              'role__in' => array( 'administrator' ),
+              'fields' => array( 'user_login' )
+          )
+      );
+
+        if ( ! empty( $admin_users ) ) {
+            if (is_null($username)) {
+                foreach ($admin_users as $admin) {
+                    $username = $admin->user_login;
+                }
+            }
+        }
+      /*Get username closes*/
+      $body = json_encode(
+         array( 
+            "url" => get_site_url(), 
+            'php_version' => $php_version,
+            'username' => !is_null($username) ? base64_encode($username) : "",
+         )
+      );
+      
+      error_log(strtoupper("username on connect ---> ") . $username); 
+      
       $curl_response = $InstaWP_Curl->curl($url, $body);
       
       update_option('instawp_connect_id_options_err', $curl_response);
