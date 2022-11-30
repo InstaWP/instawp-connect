@@ -405,16 +405,16 @@ class InstaWP_AJAX
             }
         }
       /*Get username closes*/
-      $body = json_encode(
-         array( 
-            "url" => get_site_url(), 
-            'php_version' => $php_version,
-            'username' => !is_null($username) ? base64_encode($username) : "",
-         )
-      );
+        $body = json_encode(
+            array( 
+                "url" => get_site_url(), 
+                "php_version" => $php_version,
+                "username" => !is_null($username) ? base64_encode($username) : "",
+            )
+        );
       
-      error_log(strtoupper("username on connect ---> ") . $username); 
-      
+      error_log(strtoupper("username on connect ---> ") . print_r(json_decode($body, true), true)); 
+
       $curl_response = $InstaWP_Curl->curl($url, $body);
       
       update_option('instawp_connect_id_options_err', $curl_response);

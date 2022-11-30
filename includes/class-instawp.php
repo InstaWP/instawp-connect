@@ -162,8 +162,22 @@ class instaWP
    public function instawp_auto_login_redirect()
    {
       include_once ABSPATH . 'wp-admin/includes/plugin.php';
+
+      $current_setup_plugins = array_keys(get_plugins());
+      $instawp_plugin = null; 
+      $instawp_index_default = array_search('instawp-connect/instawp-connect.php', $current_setup_plugins);
+      $instawp_index_main = array_search('instawp-connect-main/instawp-connect.php', $current_setup_plugins);
+
+      if (false !== $instawp_index_default) {
+          $instawp_plugin = $current_setup_plugins[$instawp_index_default];
+      }
+
+      if (false !== $instawp_index_main) {
+          $instawp_plugin = $current_setup_plugins[$instawp_index_main];
+      }
+
       // check for plugin using plugin name
-      if ( is_plugin_active( 'instawp-connect/instawp-connect.php' ) ) {
+      if ( !is_null($instawp_plugin) && is_plugin_active( $instawp_plugin ) ) {
          // Check for params
          if (
             isset($_GET['reauth']) && 
@@ -176,7 +190,6 @@ class instaWP
             $param_code = $_GET['c'];
             $param_user = base64_decode( $_GET['s'] ) ;
             $current_code = get_transient( 'instawp_auto_login_code' );
-
             $username = sanitize_user( $param_user );
             if (
                $param_code === $current_code &&
@@ -203,6 +216,8 @@ class instaWP
             }
          }
       }
+      wp_redirect( wp_login_url('', false) );
+      exit();
    }
 
    // Set Cron time interval function
