@@ -153,6 +153,16 @@ class InstaWP_Admin {
         $submenu['index'] = 2;
         $submenus[ $submenu['menu_slug'] ] = $submenu;
 
+        #Change Event
+        $submenu['parent_slug'] = $this->plugin_name;
+        $submenu['page_title'] = 'Change Event';
+        $submenu['menu_title'] = __('Change Event', 'instawp-connect');
+        $submenu['capability'] = 'administrator';
+        $submenu['menu_slug'] = 'instawp-change-event';
+        $submenu['function'] = array( $this, 'instawp_change_event' );
+        $submenu['index'] = 2;
+        $submenus[ $submenu['menu_slug'] ] = $submenu;
+
         $submenu['parent_slug'] = $this->plugin_name;
         $submenu['page_title'] = 'Settings';
         $submenu['menu_title'] = __('Settings', 'instawp-connect');
@@ -397,8 +407,11 @@ class InstaWP_Admin {
     }
 
     public function display_staging_sites_page() {
-
         include_once('partials/instawp-admin-staging-sites.php');  
+    }
+
+    public function instawp_change_event(){
+        include_once('instawp-change-event/instawp-admin-change-event.php'); 
     }
 
     public function migrate_notice() {

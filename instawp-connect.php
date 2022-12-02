@@ -112,6 +112,7 @@ function instawp_plugin_activate() {
         $wp_rewrite->set_permalink_structure('/%postname%/');
         $wp_rewrite->flush_rules();
     }
+    instawp_create_table();
     add_option('instawp_do_activation_redirect', true);
 }
 
@@ -187,3 +188,27 @@ function run_instawp() {
     $GLOBALS['instawp_plugin'] = $instawp_plugin;
 }
 run_instawp();
+
+/*
+* Database Tables for 'InstaWP Connect'
+*/
+function instawp_create_table(){
+    global $wpdb;
+    $sql = array();
+    $event_change_table = $wpdb->prefix . "event_change";
+    if( $wpdb->get_var("show tables like '". $event_change_table . "'") !== $event_change_table ) { 
+        $sql[] = "CREATE TABLE ". $event_change_table . "     (
+        id int(11) NOT NULL AUTO_INCREMENT,
+        event_name varchar(128) NOT NULL,
+        event_slug varchar(128) NOT NULL,
+        event_type varchar(128) NOT NULL,
+        source_id int(11) NOT NULL,
+        PRIMARY KEY  (id)
+        ) ";
+    }
+
+    if ( !empty($sql) ) {
+        require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+        dbDelta($sql);
+    }
+}
