@@ -101,6 +101,7 @@ define('INSTAWP_API_URL','/api/v1');
  */
 //when active plugin redirect plugin page.
 
+require_once dirname( __FILE__ ) . '/vendor/autoload.php';
 
 function instawp_plugin_activate() {
     // Set default option
