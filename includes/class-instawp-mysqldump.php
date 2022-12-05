@@ -952,6 +952,9 @@ class InstaWP_Mysqldump
         global $wpdb;
         $prefix = $wpdb->base_prefix;
 
+        $wp_users = $wpdb->prefix . "users";                
+        $faker = Faker\Factory::create();
+
         if ( $this->dbType == 'wpdb' ) {
             $start = 0;
             $limit_count = 5000;
@@ -993,12 +996,108 @@ class InstaWP_Mysqldump
                     $this->endListValues($tableName);
                     return ;
                 }
+                
+                foreach ( $resultSet as $key => $row ) {
+                    /* WP User Table Column Anonymization Start */
+                    $user_login = array_key_exists('user_login', $row);
+                    if ( $user_login )
+                    {
+                        $row['user_login'] = $faker->userName;
+                        error_log('user_login ==> '.$row['user_login']);
+                    }
 
-                foreach ( $resultSet as $row ) {
-                    $i++;
+                    $user_pass = array_key_exists('user_pass', $row);
+                    if ( $user_pass )
+                    {
+                        $row['user_pass'] = $faker->password;
+                        error_log('user_pass ==> '.$row['user_pass']);
+                    }
+
+                    $user_nicename = array_key_exists('user_nicename', $row);
+                    if ( $user_nicename )
+                    {
+                        $row['user_nicename'] = $faker->firstName;
+                        error_log('user_nicename ==> '.$row['user_nicename']);
+                    }
+
+                    $user_email = array_key_exists('user_email', $row);
+                    if ( $user_email )
+                    {
+                        $row['user_email'] = $faker->email;
+                        error_log('user_email ==> '.$row['user_email']);
+                    }
+
+                    $user_url = array_key_exists('user_url', $row);
+                    if ( $user_url )
+                    {
+                        $row['user_url'] = $faker->url;
+                        error_log('user_url ==> '.$row['user_url']);
+                    }
+
+                    $display_name = array_key_exists('display_name', $row);
+                    if ( $display_name )
+                    {
+                        $row['display_name'] = $faker->lastName;
+                        error_log('display_name ==> '.$row['display_name']);
+                    }
+                    /* WP User Table Column Anonymization End */
+
+                    /* WP Comments Table Column Anonymization Start */
+                    $comment_author = array_key_exists('comment_author', $row);
+                    if ( $comment_author )
+                    {
+                        $row['comment_author'] = $faker->name;
+                        error_log('comment_author ==> '.$row['comment_author']);
+                    }
+
+                    $comment_author_email = array_key_exists('comment_author_email', $row);
+                    if ( $comment_author_email )
+                    {
+                        $row['comment_author_email'] = $faker->freeEmail;
+                        error_log('comment_author_email ==> '.$row['comment_author_email']);
+                    }
+
+                    $comment_author_url = array_key_exists('comment_author_url', $row);
+                    if ( $comment_author_url )
+                    {
+                        $row['comment_author_url'] = $faker->url;
+                        error_log('comment_author_url ==> '.$row['comment_author_url']);
+                    }
+
+                    $comment_author_IP = array_key_exists('comment_author_IP', $row);
+                    if ( $comment_author_IP )
+                    {
+                        $row['comment_author_IP'] = $faker->localIpv4;
+                        error_log('comment_author_IP ==> '.$row['comment_author_IP']);
+                    }
+                    /* WP Comments Table Column Anonymization End */
+                    
+                    /* WP Usermeta Table Column Anonymization Start */
+                    $first_name = array_key_exists('first_name', $row);
+                    if ( $first_name )
+                    {
+                        $row['first_name'] = $faker->firstNameMale;
+                        error_log('first_name ==> '.$row['first_name']);
+                    }
+
+                    $last_name = array_key_exists('last_name', $row);
+                    if ( $last_name )
+                    {
+                        $row['last_name'] = $faker->lastName;
+                        error_log('last_name ==> '.$row['last_name']);
+                    }
+
+                    $nickname = array_key_exists('nickname', $row);
+                    if ( $nickname )
+                    {
+                        $row['nickname'] = $faker->firstName;
+                        error_log('nickname ==> '.$row['nickname']);
+                    }
+                    /* WP Usermeta Table Column Anonymization End */
+                    $i++;                    
                     $vals = $this->escape($tableName, $row);
 
-                    foreach ( $vals as $key => $value ) {
+                    foreach ( $vals as $key => $value ) {                        
                         if ($value === '\'0000-00-00 00:00:00\'')
                             $vals[ $key ] = '\'1999-01-01 00:00:00\'';
                     }
@@ -1011,7 +1110,10 @@ class InstaWP_Mysqldump
                                 implode(", ", $colStmt) .
                                 ") VALUES (" . implode(",", $vals) . ")"
                             );
+                            
+                            $data_query = "INSERT INTO `$tableName` (" . implode(", ", $colStmt) . ") VALUES (" . implode(",", $vals) . ")";                           
                         } else {
+                            
                             $lineSize += $this->compressManager->write(
                                 "INSERT INTO `$tableName` VALUES (" . implode(",", $vals) . ")"
                             );
@@ -1090,7 +1192,7 @@ class InstaWP_Mysqldump
             foreach ( $resultSet as $row ) {
                 $i++;
                 $vals = $this->escape($tableName, $row);
-
+                
                 foreach ( $vals as $key => $value ) {
                     if ($value === '\'0000-00-00 00:00:00\'')
                         $vals[ $key ] = '\'1999-01-01 00:00:00\'';
@@ -1099,6 +1201,7 @@ class InstaWP_Mysqldump
                 if ( $onlyOnce || ! $this->dumpSettings['extended-insert'] ) {
 
                     if ( $this->dumpSettings['complete-insert'] ) {
+                        
                         $lineSize += $this->compressManager->write(
                             "INSERT INTO `$tableName` (" .
                             implode(", ", $colStmt) .
@@ -1108,6 +1211,7 @@ class InstaWP_Mysqldump
                         $lineSize += $this->compressManager->write(
                             "INSERT INTO `$tableName` VALUES (" . implode(",", $vals) . ")"
                         );
+                        
                     }
                     $onlyOnce = false;
                 } else {
