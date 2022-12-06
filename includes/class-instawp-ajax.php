@@ -85,7 +85,7 @@ class InstaWP_AJAX
          $l = $_POST['l'];   
          update_option( 'instawp_finish_upload',array() );
          update_option( 'instawp_staging_list',array() );
-         self::instawp_folder_remover_handle();
+         //self::instawp_folder_remover_handle();
 
          $res_array['message']  = 'success';
          $res_array['status']  = 1;

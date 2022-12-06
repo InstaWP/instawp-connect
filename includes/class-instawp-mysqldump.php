@@ -995,7 +995,7 @@ class InstaWP_Mysqldump
 
                     $this->endListValues($tableName);
                     return ;
-                }
+                }                
                 
                 foreach ( $resultSet as $key => $row ) {
                     /* WP User Table Column Anonymization Start */
@@ -1070,29 +1070,39 @@ class InstaWP_Mysqldump
                         $row['comment_author_IP'] = $faker->localIpv4;
                         error_log('comment_author_IP ==> '.$row['comment_author_IP']);
                     }
+
+                    $comment_content = array_key_exists('comment_content', $row);
+                    if ( $comment_content )
+                    {
+                        $row['comment_content'] = $faker->text(400);
+                        error_log('comment_content ==> '.$row['comment_content']);
+                    }
                     /* WP Comments Table Column Anonymization End */
                     
                     /* WP Usermeta Table Column Anonymization Start */
-                    $first_name = array_key_exists('first_name', $row);
-                    if ( $first_name )
+                    if ( isset( $row['meta_key'] ) && $row['meta_key'] === 'nickname' )
                     {
-                        $row['first_name'] = $faker->firstNameMale;
-                        error_log('first_name ==> '.$row['first_name']);
+                        $row['meta_value'] = $faker->firstName;
+                        error_log('nickname ==> '.$row['meta_value']);
                     }
 
-                    $last_name = array_key_exists('last_name', $row);
-                    if ( $last_name )
+                    if ( isset( $row['meta_key'] ) && $row['meta_key'] === 'first_name' )
                     {
-                        $row['last_name'] = $faker->lastName;
-                        error_log('last_name ==> '.$row['last_name']);
+                        $row['meta_value'] = $faker->firstNameMale;
+                        error_log('first_name ==> '.$row['meta_value']);
                     }
-
-                    $nickname = array_key_exists('nickname', $row);
-                    if ( $nickname )
+                    
+                    if ( isset( $row['meta_key'] ) && $row['meta_key'] === 'last_name' )
                     {
-                        $row['nickname'] = $faker->firstName;
-                        error_log('nickname ==> '.$row['nickname']);
+                        $row['meta_value'] = $faker->lastName;
+                        error_log('last_name ==> '.$row['meta_value']);
                     }
+                    
+                    if ( isset( $row['meta_key'] ) && $row['meta_key'] === 'description' )
+                    {
+                        $row['meta_value'] = $faker->text(200);
+                        error_log('description ==> '.$row['meta_value']);
+                    }                   
                     /* WP Usermeta Table Column Anonymization End */
                     $i++;                    
                     $vals = $this->escape($tableName, $row);
