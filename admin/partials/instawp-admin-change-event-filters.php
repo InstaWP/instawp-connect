@@ -1,7 +1,7 @@
 <?php
 
 /**
- * (G.K)
+ * 
  * This file is used for change event traking 
  *
  * @link       https://instawp.com/

@@ -1,7 +1,7 @@
 <?php
 
 /**
- * (G.K)
+ * 
  * Define the database methods
  * 
  * @link       https://instawp.com/

@@ -1,6 +1,6 @@
 <?php
 /** 
- * (G.K)
+ * 
  * Provide a admin area view for the plugin
  *
  * This file is used to Change Event.
