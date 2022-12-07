@@ -390,18 +390,14 @@ class InstaWP_Admin {
      */
     public function display_plugin_setup_page() {
         do_action('instawp_before_setup_page');
-
         add_action('instawp_display_page',array( $this, 'display' ));
-
         do_action('instawp_display_page');
     }
     public function display_wizard_page() {
-
         include_once('partials/instawp-admin-wizard.php');  
     }
 
     public function display_settings_page() {
-
         //include_once('partials/instawp-settings-page-display.php');  
         include_once('partials/instawp-admin-settings.php');  
     }
@@ -411,7 +407,7 @@ class InstaWP_Admin {
     }
 
     public function instawp_change_event(){
-        include_once('instawp-change-event/instawp-admin-change-event.php'); 
+        include_once('partials/instawp-admin-change-event.php'); 
     }
 
     public function migrate_notice() {
@@ -439,7 +435,6 @@ class InstaWP_Admin {
                 //     InstaWP_Setting::update_option('instawp_review_msg',$msg);
                 // }
                 // else{
-                    
                 // }
             }
         }

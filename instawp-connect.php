@@ -195,14 +195,19 @@ run_instawp();
 function instawp_create_table(){
     global $wpdb;
     $sql = array();
-    $event_change_table = $wpdb->prefix . "event_change";
+    $event_change_table = $wpdb->prefix . "change_event";
     if( $wpdb->get_var("show tables like '". $event_change_table . "'") !== $event_change_table ) { 
         $sql[] = "CREATE TABLE ". $event_change_table . "     (
-        id int(11) NOT NULL AUTO_INCREMENT,
+        id int(20) NOT NULL AUTO_INCREMENT,
         event_name varchar(128) NOT NULL,
         event_slug varchar(128) NOT NULL,
         event_type varchar(128) NOT NULL,
-        source_id int(11) NOT NULL,
+        source_id int(20) NOT NULL,
+        title text NOT NULL,
+        details longtext NOT NULL,
+        user_id int(20) NOT NULL,
+        date datetime NOT NULL,
+        prod varchar(128) NOT NULL,
         PRIMARY KEY  (id)
         ) ";
     }
@@ -211,4 +216,29 @@ function instawp_create_table(){
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
         dbDelta($sql);
     }
+}
+
+
+add_action( 'admin_enqueue_scripts', 'enqueueScriptsAssets' );
+/**
+ * Enqueue my scripts and assets.
+ *
+ * @param $hook
+ */
+function enqueueScriptsAssets( $hook ) {
+	wp_enqueue_script(
+		'ajax_script',
+		plugins_url( '/admin/js/instaWp-change-event.js', __FILE__ ),
+		array( 'jquery' ),
+		'1.0.0',
+		true
+	);
+	wp_localize_script(
+		'ajax_script',
+		'ajax_obj',
+		array(
+			'ajax_url' => admin_url( 'admin-ajax.php' ),
+			'nonce'    => wp_create_nonce( 'instaWp_change_event' ),
+		)
+	);
 }

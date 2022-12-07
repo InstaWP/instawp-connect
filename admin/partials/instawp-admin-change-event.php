@@ -34,6 +34,12 @@ class InstaWP_Change_Event_Table extends WP_List_Table {
                             'event_slug' => $v->event_slug,
                             'event_type' => $v->event_type,
                             'source_id' => $v->source_id,
+                            'title' => $v->title,
+                            'details' => $v->details,
+                            'user_id' => $v->user_id,
+                            'date' => $v->date,
+                            'prod' => $v->prod,
+                            'sync' => '<button type="button" id="btn-sync-'.$v->id.'" data-id="'.$v->id.'" class="button button-primary two-way-sync-btn">Sync</button>',
                         ];
             }
         }  
@@ -60,17 +66,28 @@ class InstaWP_Change_Event_Table extends WP_List_Table {
           'event_name' => 'Event name',
           'event_slug' => 'Event slug',
           'event_type' => 'Event Type',
-          'source_id' => 'Source ID'
+          'source_id' => 'Source ID',
+          'title' => 'Title',
+          'details' => 'Details',
+          'user_id' => 'User ID',
+          'date' => 'Date',
+          'prod' => 'Prod',
+          'sync' => 'Sync',
         );
         return $columns;
     }
 
     public function get_sortable_columns(){
       $sortable_columns = array(
-            'event_name'  => array('name', false),
-            'event_slug' => array('status', false),
-            'event_type'   => array('order', true),
-            'source_id'   => array('source_id', true)
+            'event_name'  => array('event_name', false),
+            'event_slug' => array('event_slug', false),
+            'event_type'   => array('event_type', true),
+            'source_id'   => array('source_id', true),
+            'title'   => array('title', true),
+            'details'   => array('details', false),
+            'user_id'   => array('user_id', true),
+            'date'   => array('date', true),
+            'prod'   => array('prod', true),
       );
       return $sortable_columns;
     }
@@ -109,13 +126,19 @@ class InstaWP_Change_Event_Table extends WP_List_Table {
 
     public function column_default( $item, $column_name ) {
         switch( $column_name ) { 
-          case 'event_name':
-          case 'event_slug':
-          case 'event_type':
-          case 'source_id':
-          return $item[ $column_name ];
-          default:
-          break;
+            case 'event_name':
+            case 'event_slug':
+            case 'event_type':
+            case 'source_id':
+            case 'title':
+            case 'details':
+            case 'user_id':
+            case 'date': 
+            case 'prod': 
+            case 'sync':      
+            return $item[ $column_name ];
+            default:
+            break;
         }
     }
 
@@ -124,7 +147,7 @@ class InstaWP_Change_Event_Table extends WP_List_Table {
         if(isset($_POST['change_event_ck'])){
             $this->bulkOprations($_POST['change_event_ck']);
         }
-        echo '<div class="wrap"><h2>Change event</h2><form method="post" action="">'; 
+        echo '<div class="wrap"><div class="message-change-events"></div><h2>Change event</h2><form method="post" action="">'; 
         $this->prepare_items(); 
         $this->display(); 
         echo '</div></form>'; 

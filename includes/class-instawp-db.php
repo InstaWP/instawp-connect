@@ -33,7 +33,7 @@ class InstaWP_DB{
         $this->wpdb = $wpdb;
     }
     
-    public function insert($table_name,$data){    
+    public function insert($table_name,$data){   
         if(!empty($data) && is_array($data)){
             $this->wpdb->insert($table_name, $data); 
         } 
