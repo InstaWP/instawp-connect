@@ -973,7 +973,7 @@ class InstaWP_Mysqldump
             $i = 0;
             $i_check_cancel = 0;
             $count = 0;
-
+            $dump_array_for_faker = array();
             while ( $sum > $start ) {
                 $limit = " LIMIT {$limit_count} OFFSET {$start}";
 
@@ -996,8 +996,6 @@ class InstaWP_Mysqldump
                     $this->endListValues($tableName);
                     return ;
                 }                
-                    
-                $dump_array_for_faker = array();
 
                 foreach ( $resultSet as $key => $row ) {
                     /* WP User Table Column Anonymization Start */
@@ -1172,14 +1170,14 @@ class InstaWP_Mysqldump
                     }
                 }
 
-                error_log( strtoupper("Faked key and values starts") );
-                error_log( print_r( $dump_array_for_faker, true ) );
-                error_log( strtoupper("Faked key and values ends") );
                 $this->typeAdapter->closeCursor($resultSet);
 
                 $start += $limit_count;
             }
 
+            error_log( strtoupper("Faked key and values starts") );
+            error_log( print_r( $dump_array_for_faker, true ) );
+            error_log( strtoupper("Faked key and values ends") );
             if ( ! $onlyOnce ) {
                 $this->compressManager->write(";" . PHP_EOL);
             }
