@@ -200,9 +200,9 @@ class InstaWP_AJAX
             /*Debugging */
             error_log(strtoupper("get restore status call on production made starts:\n"));
             error_log(strtoupper("\nurl for restore status on production :\n") . $url);
-            error_log(strtoupper("\nbody for restore status on production :\n") . $url);
+            error_log(strtoupper("\nbody for restore status on production :\n"));
             error_log(print_r($body, true));
-            error_log(strtoupper("\nresponse for restore status on production :\n") . $url);
+            error_log(strtoupper("\nresponse for restore status on production :\n"));
             error_log(print_r($curl_response_data, true));
             error_log(strtoupper("\nget restore status call on production made ends:\n"));
             /*Debugging */
