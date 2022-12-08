@@ -365,7 +365,7 @@ class InstaWP_ZipClass extends instawp_Compress_Default
 
         $ret['result'] = INSTAWP_SUCCESS;
         foreach ( $files as $file ) {
-            $instawp_plugin->restore_data->write_log('start extracting file:'.$file,'notice');
+            $instawp_plugin->restore_data->write_log('start extracting file 1 - 368:'.$file,'notice');
             $archive = new PclZip($file);
             $zip_ret = $archive->extract(PCLZIP_OPT_PATH, $path,PCLZIP_OPT_REPLACE_NEWER,PCLZIP_CB_PRE_EXTRACT,'instawp_function_pre_extract_callback',PCLZIP_OPT_TEMP_FILE_THRESHOLD,16);
             if ( ! $zip_ret ) {
@@ -375,7 +375,7 @@ class InstaWP_ZipClass extends instawp_Compress_Default
                 break;
             }
             else {
-                $instawp_plugin->restore_data->write_log('extract finished file:'.$file,'notice');
+                $instawp_plugin->restore_data->write_log('extract finished file 1 - 378 :'.$file,'notice');
             }
         }
         //$this->restore_data->write_log('extract finished files:'.json_encode($all_files),'notice');
@@ -390,7 +390,7 @@ class InstaWP_ZipClass extends instawp_Compress_Default
 
         $ret['result'] = INSTAWP_SUCCESS;
         foreach ( $files as $file ) {
-            $instawp_plugin->restore_data->write_log('start extracting file:'.$file,'notice');
+            $instawp_plugin->restore_data->write_log('start extracting file 2 - 393:'.$file,'notice');
             $instawp_plugin->restore_data->write_log('extract child file:'.json_encode($extract_files),'notice');
             $archive = new PclZip($file);
             $zip_ret = $archive->extract(PCLZIP_OPT_BY_NAME,$extract_files,PCLZIP_OPT_PATH, $path,PCLZIP_OPT_REPLACE_NEWER,PCLZIP_CB_PRE_EXTRACT,'instawp_function_pre_extract_callback',PCLZIP_OPT_TEMP_FILE_THRESHOLD,16);
@@ -401,7 +401,7 @@ class InstaWP_ZipClass extends instawp_Compress_Default
                 break;
             }
             else {
-                $instawp_plugin->restore_data->write_log('extract finished file:'.$file,'notice');
+                $instawp_plugin->restore_data->write_log('extract finished file 2 - 404 :'.$file,'notice');
             }
         }
         //$this->restore_data->write_log('extract finished files:'.json_encode($all_files),'notice');

@@ -4403,6 +4403,9 @@ public function instawp_handle_remote_storage_error( $error_message, $error_type
          } else {
             $this->restore_data->init_restore_data($backup_id, $restore_options);
             $this->restore_data->write_log('init restore data restore 4405 api function', 'notice');
+
+            // restore preogress precetage
+            update_option('instawp_restore_progress_percents', "10");
          }
       } catch ( Exception $error ) {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';

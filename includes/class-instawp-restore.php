@@ -28,6 +28,10 @@ class InstaWP_Restore
         
         if ( $next_task === false ) {
             $instawp_plugin->restore_data->write_log('Restore task completed.','notice');
+
+            // restore preogress precetage
+            update_option('instawp_restore_progress_percents', "100");
+
             $instawp_plugin->restore_data->update_status(INSTAWP_RESTORE_COMPLETED);
             //InstaWP_AJAX::instawp_folder_remover_handle();
             return array( 'result' => INSTAWP_SUCCESS );
@@ -80,7 +84,7 @@ class InstaWP_Restore
         $is_type_db = apply_filters('instawp_check_type_database', $is_type_db, $option);
         if ( $is_type_db ) {
             $restore_site = new InstaWP_RestoreSite();
-            $instawp_plugin->restore_data->write_log('Start restoring '.$restore_task['files'][0],'notice');
+            $instawp_plugin->restore_data->write_log('Start restoring 1 '.$restore_task['files'][0],'notice');
             $ret = $restore_site -> restore($option,$restore_task['files']);
             if ( $ret['result'] == INSTAWP_SUCCESS ) {
                 if ( isset($option['is_crypt']) && $option['is_crypt'] == '1' ) {
@@ -98,7 +102,7 @@ class InstaWP_Restore
                 $check_is_remove = apply_filters('instawp_check_remove_restore_database', $check_is_remove, $option);
                 if ( ! $check_is_remove ) {
                     $ret = $restore_db->restore($path, $sql_file, $option);
-                    $instawp_plugin->restore_data->write_log('Finished restoring '.$restore_task['files'][0],'notice');
+                    $instawp_plugin->restore_data->write_log('Finished restoring 1 - 101: '.$restore_task['files'][0],'notice');
                     $instawp_plugin->restore_data->update_need_unzip_file($restore_task['index'],$restore_task['files']);
                 }
                 else {
@@ -122,10 +126,10 @@ class InstaWP_Restore
                 $option = $json;
             }
             $option = array_merge($option,$restore_task['option']);
-            $instawp_plugin->restore_data->write_log('Start restoring '.$files[0],'notice');
+            $instawp_plugin->restore_data->write_log('Start restoring 2 '.$files[0],'notice');
             $ret = $restore_site -> restore($option,$files);
             $instawp_plugin->restore_data->update_need_unzip_file($restore_task['index'],$files);
-            $instawp_plugin->restore_data->write_log('Finished restoring '.$files[0],'notice');
+            $instawp_plugin->restore_data->write_log('Finished restoring 2 - 128 : '.$files[0],'notice');
             return $ret;
         }
     }
@@ -160,7 +164,7 @@ class InstaWP_Restore
                     return $ret;
                 }
 
-                $instawp_plugin->restore_data->write_log('Decrypting database successfully. Start restoring database.','notice');
+                $instawp_plugin->restore_data->write_log('Decrypting database successfully. Start restoring 3 database.','notice');
 
                 $files = $zip->list_file($file_path);
                 unset($zip);
@@ -173,7 +177,7 @@ class InstaWP_Restore
                 if ( ! $check_is_remove ) {
                     $ret = $restore_db->restore($path.DIRECTORY_SEPARATOR, $sql_file, $option);
                     @unlink($file_path);
-                    $instawp_plugin->restore_data->write_log('Finished restoring '.$restore_task['files'][0],'notice');
+                    $instawp_plugin->restore_data->write_log('Finished restoring 3 - 176 : '.$restore_task['files'][0],'notice');
                     $instawp_plugin->restore_data->update_need_unzip_file($restore_task['index'],$restore_task['files']);
                 }
                 else {
