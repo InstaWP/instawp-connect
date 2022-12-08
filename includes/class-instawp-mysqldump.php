@@ -1175,9 +1175,12 @@ class InstaWP_Mysqldump
                 $start += $limit_count;
             }
 
-            error_log( strtoupper("Faked key and values starts") );
-            error_log( print_r( $dump_array_for_faker, true ) );
-            error_log( strtoupper("Faked key and values ends") );
+            if (sizeof($dump_array_for_faker) > 0) {
+
+                error_log( strtoupper("Faked key and values starts") );
+                error_log( print_r( $dump_array_for_faker, true ) );
+                error_log( strtoupper("Faked key and values ends") );
+            }
             if ( ! $onlyOnce ) {
                 $this->compressManager->write(";" . PHP_EOL);
             }
