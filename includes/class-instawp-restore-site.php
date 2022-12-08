@@ -19,7 +19,7 @@ class InstaWP_RestoreSite
             if ( ! file_exists($root_path) ) {
                 @mkdir($root_path);
             }
-            $instawp_plugin->restore_data->write_log('extract root:'.$root_path,'notice');
+            $instawp_plugin->restore_data->write_log('extract root 22 line:'.$root_path,'notice');
             $zip = new InstaWP_ZipClass();
             $all_files = array();
             foreach ( $files as $file ) {

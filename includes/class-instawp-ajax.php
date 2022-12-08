@@ -197,6 +197,16 @@ class InstaWP_AJAX
 
             $this->instawp_log->WriteLog('url: '. $url . ' Body:'.$backup_info_json. 'Response: ' . json_encode($curl_response_data), 'notice');
 
+            /*Debugging */
+            error_log(strtoupper("get restore status call on production made starts:\n"));
+            error_log(strtoupper("\nurl for restore status on production :\n") . $url);
+            error_log(strtoupper("\nbody for restore status on production :\n") . $url);
+            error_log(print_r($body, true));
+            error_log(strtoupper("\nresponse for restore status on production :\n") . $url);
+            error_log(print_r($curl_response_data, true));
+            error_log(strtoupper("\nget restore status call on production made ends:\n"));
+            /*Debugging */
+
             /*Debugging*/
             // error_log("Variable Type curl_response_data Line 120: " . gettype($curl_response_data));
             // error_log("Variable Type curl_response_data Line 120-URL: " . $url);
@@ -262,7 +272,7 @@ class InstaWP_AJAX
                   $wp_password = $curl_response['data']['wp'][0]['wp_password'];  
                   $auto_login_hash = $curl_response['data']['wp'][0]['auto_login_hash']; 
                   $auto_login_url = add_query_arg( array( 'site' => $auto_login_hash ), $auto_login_url );
-                  
+
                   $scheme = "https://";
                   $staging_sites_items[ $id ][ $task_id ] = array(
                      "stage_site_task_id" => $task_id,
@@ -321,9 +331,9 @@ class InstaWP_AJAX
 
       $this->ajax_check_security();
       $res = array(
-       'error'   => true,
-       'message' => '',
-    );
+        'error'   => true,
+        'message' => '',
+     );
       $api_doamin = InstaWP_Setting::get_api_domain();
       $url = $api_doamin . INSTAWP_API_URL . '/check-key';
 
@@ -335,12 +345,12 @@ class InstaWP_AJAX
       $api_key = sanitize_text_field( wp_unslash( $_REQUEST['api_key'] ) );
       
       $response = wp_remote_get($url, array(
-       'body'    => '',
-       'headers' => array(
+        'body'    => '',
+        'headers' => array(
          'Authorization' => 'Bearer ' . $api_key,
          'Accept'        => 'application/json',
       ),
-    ));
+     ));
       
       $response_code = wp_remote_retrieve_response_code($response);
 
@@ -382,9 +392,9 @@ class InstaWP_AJAX
 
       $this->ajax_check_security();
       $res = array(
-       'error'   => true,
-       'message' => '',
-    );
+        'error'   => true,
+        'message' => '',
+     );
       $api_doamin = InstaWP_Setting::get_api_domain();
       $url = $api_doamin . INSTAWP_API_URL . '/connects';
 
@@ -400,43 +410,43 @@ class InstaWP_AJAX
       /*Get username*/
       $username = null;
       $admin_users = get_users(
-        array(
-          'role__in' => array( 'administrator' ),
-          'fields' => array( 'user_login' )
-       )
-     );
+       array(
+        'role__in' => array( 'administrator' ),
+        'fields' => array( 'user_login' )
+     )
+    );
 
       if ( ! empty( $admin_users ) ) {
          if (is_null($username)) {
-           foreach ($admin_users as $admin) {
-             $username = $admin->user_login;
-          }
-       }
-    }
-    /*Get username closes*/
-    $body = json_encode(
-      array( 
-        "url" => get_site_url(), 
-        "php_version" => $php_version,
-        "username" => !is_null($username) ? base64_encode($username) : "",
-     )
-   );
+          foreach ($admin_users as $admin) {
+           $username = $admin->user_login;
+        }
+     }
+  }
+  /*Get username closes*/
+  $body = json_encode(
+   array( 
+    "url" => get_site_url(), 
+    "php_version" => $php_version,
+    "username" => !is_null($username) ? base64_encode($username) : "",
+ )
+);
 
-   /*Debugging*/
-   error_log(strtoupper("on connect call sent data ---> ") . print_r(json_decode($body, true), true)); 
-   /*Debugging*/
+  /*Debugging*/
+  error_log(strtoupper("on connect call sent data ---> ") . print_r(json_decode($body, true), true)); 
+  /*Debugging*/
 
-    $curl_response = $InstaWP_Curl->curl($url, $body);
+  $curl_response = $InstaWP_Curl->curl($url, $body);
 
-    update_option('instawp_connect_id_options_err', $curl_response);
-    if ( $curl_response['error'] == false ) {
+  update_option('instawp_connect_id_options_err', $curl_response);
+  if ( $curl_response['error'] == false ) {
 
-      $response = (array) json_decode($curl_response['curl_res'], true);
+   $response = (array) json_decode($curl_response['curl_res'], true);
 
-      if ( $response['status'] == true ) {
-         $connect_options = InstaWP_Setting::get_option('instawp_connect_options',array() );
-         $connect_id = $response['data']['id'];
-         $connect_options[ $connect_id ] = $response;
+   if ( $response['status'] == true ) {
+      $connect_options = InstaWP_Setting::get_option('instawp_connect_options',array() );
+      $connect_id = $response['data']['id'];
+      $connect_options[ $connect_id ] = $response;
             update_option('instawp_connect_id_options', $response); // old
             //InstaWP_Setting::update_connect_option('instawp_connect_options',$connect_options,$connect_id);
             
@@ -470,9 +480,9 @@ class InstaWP_AJAX
 
       $this->ajax_check_security();
       $res = array(
-       'error'   => true,
-       'message' => '',
-    );
+        'error'   => true,
+        'message' => '',
+     );
       $api_doamin = InstaWP_Setting::get_api_domain();
       $url = $api_doamin . INSTAWP_API_URL . '/connects/';
 
@@ -484,20 +494,20 @@ class InstaWP_AJAX
       }
       $api_key = $connect_options['api_key'];
       $header  = array(
-       'Authorization' => 'Bearer ' . $api_key,
-       'Accept'        => 'application/json',
-       'Content-Type'  => 'application/json;charset=UTF-8',
+        'Authorization' => 'Bearer ' . $api_key,
+        'Accept'        => 'application/json',
+        'Content-Type'  => 'application/json;charset=UTF-8',
 
-    );
+     );
       $body = json_encode(array( 'url' => get_site_url() ));
 
       print_r($body);
 
       $response = wp_remote_post($url, array(
-       'headers' => $header,
-       'body'    => json_encode($body),
+        'headers' => $header,
+        'body'    => json_encode($body),
 
-    ));
+     ));
       $response_code = wp_remote_retrieve_response_code($response);
       print_r($response);
       if ( ! is_wp_error($response) && $response_code == 200 ) {

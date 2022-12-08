@@ -423,10 +423,14 @@ class InstaWP_Backup_Api
                $api_doamin = InstaWP_Setting::get_api_domain();
                $url = $api_doamin . INSTAWP_API_URL . '/connects/' . $id . '/restore_status';
 
+               // restore preogress precetage
+               $restore_progress_option = get_option('instawp_restore_progress_percents', "0");
+               error_log('Restore Status percentage is : '. $restore_progress_option);
+
                $body = array(
 				   "task_id"         => $task_id,
 				   // "type"     => 'restore',
-				   "progress"        => 100,
+				   "progress"        => $restore_progress_option,
 				   "message"         => $response['message'],
 				   "connect_id"      => $id,
 				   "completed"       => true,
@@ -436,10 +440,11 @@ class InstaWP_Backup_Api
                $body_json     = json_encode($body);
 
 
-               error_log('Update Restore Status call has made the body is : '. $body_json);
+               error_log('Update Restore Status call has made the url is : '. $url);
                error_log('Update Restore Status call has made the url is : '. $url);
 
                $this->instawp_log->CreateLogFile('update_restore_status_call', 'no_folder', 'Update restore status call');
+               $this->instawp_log->WriteLog('Restore Status percentage is : '. $restore_progress_option, 'notice');
                $this->instawp_log->WriteLog('Update Restore Status call has made the body is : '. $body_json, 'notice');
                $this->instawp_log->WriteLog('Update Restore Status call has made the url is : '. $url, 'notice');
 
