@@ -17,6 +17,7 @@ class InstaWP_AJAX
       add_action('init', array( $this, 'deleter_folder_handle' ));
    }
 
+   /*Remove un-usable data after our staging creation process is done*/
    public static function instawp_folder_remover_handle(){
       $folder_name = 'instawpbackups';
       $dirPath =  WP_CONTENT_DIR .'/'. $folder_name;
@@ -65,7 +66,7 @@ class InstaWP_AJAX
    // Remove From settings internal
    public static function deleter_folder_handle(){
       if ( isset( $_REQUEST['delete_wpnonce'] ) && wp_verify_nonce( $_REQUEST['delete_wpnonce'], 'delete_wpnonce' ) ) {
-         
+
          self::instawp_folder_remover_handle();
 
          $redirect_url = admin_url( "admin.php?page=instawp-settings" );
@@ -197,44 +198,44 @@ class InstaWP_AJAX
             $this->instawp_log->WriteLog('url: '. $url . ' Body:'.$backup_info_json. 'Response: ' . json_encode($curl_response_data), 'notice');
 
             /*Debugging*/
-            error_log("Variable Type curl_response_data Line 120: " . gettype($curl_response_data));
-            error_log("Variable Type curl_response_data Line 120-URL: " . $url);
-            error_log("Variable Type curl_response_data Line 120-DATA_SENT: " . print_r($body, true));
-            error_log("Variable Print curl_response_data Line 121: " . print_r($curl_response_data, true));
+            // error_log("Variable Type curl_response_data Line 120: " . gettype($curl_response_data));
+            // error_log("Variable Type curl_response_data Line 120-URL: " . $url);
+            // error_log("Variable Type curl_response_data Line 120-DATA_SENT: " . print_r($body, true));
+            // error_log("Variable Print curl_response_data Line 121: " . print_r($curl_response_data, true));
             /*Debugging*/
 
             if ( isset($curl_response_data['curl_res']) ) {
 
                /*Debugging*/
-               error_log("ON LINE 125, (curl_response_data HAS curl_res parameter)");
+               // error_log("ON LINE 125, (curl_response_data HAS curl_res parameter)");
                /*Debugging*/
 
                if (gettype($curl_response_data['curl_res']) == "string") {
                   $curl_response = json_decode($curl_response_data['curl_res'],true);
                   /*Debugging*/
-                  error_log("ON LINE 129, curl_response_data was string so json decoded and assigned in curl_response Variable");
+                  // error_log("ON LINE 129, curl_response_data was string so json decoded and assigned in curl_response Variable");
                   /*Debugging*/
                }else{
                   $curl_response = $curl_response_data['curl_res'];
                   /*Debugging*/
-                  error_log("ON LINE 132, curl_response_data was array so directly assigned in curl_response Variable");
+                  // error_log("ON LINE 132, curl_response_data was array so directly assigned in curl_response Variable");
                   /*Debugging*/
                }
 
                /*Debugging*/
-               error_log("curl_response Variable Type Line 135: " . gettype($curl_response));
-               error_log("ON LINE 136 curl_response print starts: ");
-               error_log(print_r($curl_response, true));
-               error_log("ON LINE 106 curl_response print ends: ");
+               // error_log("curl_response Variable Type Line 135: " . gettype($curl_response));
+               // error_log("ON LINE 136 curl_response print starts: ");
+               // error_log(print_r($curl_response, true));
+               // error_log("ON LINE 106 curl_response print ends: ");
                /*Debugging*/
 
                if ( isset($curl_response['status']) && $curl_response['status'] == 1 ) {
 
                   /*Debugging*/
-                  error_log("ON LINE 153, IF is success and now sites credential data will be stored");
-                  error_log("ON LINE 154 curl_response print starts in IF: ");
-                  error_log(print_r($curl_response, true));
-                  error_log("ON LINE 156 curl_response print ends in IF: ");
+                  // error_log("ON LINE 153, IF is success and now sites credential data will be stored");
+                  // error_log("ON LINE 154 curl_response print starts in IF: ");
+                  // error_log(print_r($curl_response, true));
+                  // error_log("ON LINE 156 curl_response print ends in IF: ");
 
                   /*Debugging*/
 
@@ -246,9 +247,9 @@ class InstaWP_AJAX
                   $staging_sites_items  = get_option('instawp_staging_list_items', array());
 
                   /*Debugging */
-                  error_log("ON LINE 168 staging_sites_items print starts in IF BEFORE: ");
+                  error_log(strtoupper("logging statging list items option before updating it starts: \n"));
                   error_log(print_r($staging_sites_items, true));
-                  error_log("ON LINE 170 staging_sites_items print ends in IF BEFORE: ");
+                  error_log(strtoupper("logging statging list items option before updating it ends: \n"));
                   /*Debugging */
 
 
@@ -261,6 +262,7 @@ class InstaWP_AJAX
                   $wp_password = $curl_response['data']['wp'][0]['wp_password'];  
                   $auto_login_hash = $curl_response['data']['wp'][0]['auto_login_hash']; 
                   $auto_login_url = add_query_arg( array( 'site' => $auto_login_hash ), $auto_login_url );
+                  
                   $scheme = "https://";
                   $staging_sites_items[ $id ][ $task_id ] = array(
                      "stage_site_task_id" => $task_id,
@@ -286,23 +288,30 @@ class InstaWP_AJAX
                      )
                   );
                   /*Debugging */
-                  error_log("ON LINE 198 staging_sites_items print starts in IF AFTER: ");
+                  error_log(strtoupper("final staging site list after backup has been completed starts:\n"));
                   error_log(print_r(get_option('instawp_staging_list_items', array()), true));
-                  error_log("ON LINE 200 staging_sites_items print ends in IF AFTER: ");
+                  error_log(strtoupper("final staging site list after backup has been completed ends:\n"));
                   /*Debugging */
                }
             }         
          }
       }
-      error_log("ON LINE 206");
+
+      /*Debugging */
+      error_log(strtoupper("`restore_status_options` option update on ajax call `instawp_check_staging` action starts:\n"));
+      error_log(print_r($curl_response_data,true));
+      error_log(strtoupper("`restore_status_options` option update on ajax call `instawp_check_staging` action ends:\n"));
+      /*Debugging */
       update_option('restore_status_options', $curl_response_data);
 
       $this->instawp_log->WriteLog('url: '. $url . ' Body:'.$backup_info_json. 'Response: ' . json_encode($curl_response_data), 'notice');
+      /*Debugging */
+      error_log(strtoupper("ajax call response back to `instawp_check_staging` action starts:\n"));
+      error_log(print_r($curl_response,true));
+      error_log(strtoupper("ajax call response back to `instawp_check_staging` action ends:\n"));
+      /*Debugging */
 
-      // error_log("curl_response 142 LINE : " . print_r($curl_response, true));
       echo json_encode($curl_response);
-      error_log("Last response".print_r($curl_response,true));
-      // error_log("curl_response ajax back ON LINE 213: ");
       wp_die();
    }
 
@@ -312,9 +321,9 @@ class InstaWP_AJAX
 
       $this->ajax_check_security();
       $res = array(
-        'error'   => true,
-        'message' => '',
-     );
+       'error'   => true,
+       'message' => '',
+    );
       $api_doamin = InstaWP_Setting::get_api_domain();
       $url = $api_doamin . INSTAWP_API_URL . '/check-key';
 
@@ -326,12 +335,12 @@ class InstaWP_AJAX
       $api_key = sanitize_text_field( wp_unslash( $_REQUEST['api_key'] ) );
       
       $response = wp_remote_get($url, array(
-        'body'    => '',
-        'headers' => array(
+       'body'    => '',
+       'headers' => array(
          'Authorization' => 'Bearer ' . $api_key,
          'Accept'        => 'application/json',
       ),
-     ));
+    ));
       
       $response_code = wp_remote_retrieve_response_code($response);
 
@@ -373,9 +382,9 @@ class InstaWP_AJAX
 
       $this->ajax_check_security();
       $res = array(
-        'error'   => true,
-        'message' => '',
-     );
+       'error'   => true,
+       'message' => '',
+    );
       $api_doamin = InstaWP_Setting::get_api_domain();
       $url = $api_doamin . INSTAWP_API_URL . '/connects';
 
@@ -391,41 +400,43 @@ class InstaWP_AJAX
       /*Get username*/
       $username = null;
       $admin_users = get_users(
-          array(
-              'role__in' => array( 'administrator' ),
-              'fields' => array( 'user_login' )
-          )
-      );
+        array(
+          'role__in' => array( 'administrator' ),
+          'fields' => array( 'user_login' )
+       )
+     );
 
-        if ( ! empty( $admin_users ) ) {
-            if (is_null($username)) {
-                foreach ($admin_users as $admin) {
-                    $username = $admin->user_login;
-                }
-            }
-        }
-      /*Get username closes*/
-        $body = json_encode(
-            array( 
-                "url" => get_site_url(), 
-                "php_version" => $php_version,
-                "username" => !is_null($username) ? base64_encode($username) : "",
-            )
-        );
-      
-      error_log(strtoupper("username on connect ---> ") . print_r(json_decode($body, true), true)); 
+      if ( ! empty( $admin_users ) ) {
+         if (is_null($username)) {
+           foreach ($admin_users as $admin) {
+             $username = $admin->user_login;
+          }
+       }
+    }
+    /*Get username closes*/
+    $body = json_encode(
+      array( 
+        "url" => get_site_url(), 
+        "php_version" => $php_version,
+        "username" => !is_null($username) ? base64_encode($username) : "",
+     )
+   );
 
-      $curl_response = $InstaWP_Curl->curl($url, $body);
-      
-      update_option('instawp_connect_id_options_err', $curl_response);
-      if ( $curl_response['error'] == false ) {
+   /*Debugging*/
+   error_log(strtoupper("on connect call sent data ---> ") . print_r(json_decode($body, true), true)); 
+   /*Debugging*/
 
-         $response = (array) json_decode($curl_response['curl_res'], true);
+    $curl_response = $InstaWP_Curl->curl($url, $body);
 
-         if ( $response['status'] == true ) {
-            $connect_options = InstaWP_Setting::get_option('instawp_connect_options',array() );
-            $connect_id = $response['data']['id'];
-            $connect_options[ $connect_id ] = $response;
+    update_option('instawp_connect_id_options_err', $curl_response);
+    if ( $curl_response['error'] == false ) {
+
+      $response = (array) json_decode($curl_response['curl_res'], true);
+
+      if ( $response['status'] == true ) {
+         $connect_options = InstaWP_Setting::get_option('instawp_connect_options',array() );
+         $connect_id = $response['data']['id'];
+         $connect_options[ $connect_id ] = $response;
             update_option('instawp_connect_id_options', $response); // old
             //InstaWP_Setting::update_connect_option('instawp_connect_options',$connect_options,$connect_id);
             
@@ -459,9 +470,9 @@ class InstaWP_AJAX
 
       $this->ajax_check_security();
       $res = array(
-        'error'   => true,
-        'message' => '',
-     );
+       'error'   => true,
+       'message' => '',
+    );
       $api_doamin = InstaWP_Setting::get_api_domain();
       $url = $api_doamin . INSTAWP_API_URL . '/connects/';
 
@@ -473,20 +484,20 @@ class InstaWP_AJAX
       }
       $api_key = $connect_options['api_key'];
       $header  = array(
-        'Authorization' => 'Bearer ' . $api_key,
-        'Accept'        => 'application/json',
-        'Content-Type'  => 'application/json;charset=UTF-8',
+       'Authorization' => 'Bearer ' . $api_key,
+       'Accept'        => 'application/json',
+       'Content-Type'  => 'application/json;charset=UTF-8',
 
-     );
+    );
       $body = json_encode(array( 'url' => get_site_url() ));
 
       print_r($body);
 
       $response = wp_remote_post($url, array(
-        'headers' => $header,
-        'body'    => json_encode($body),
+       'headers' => $header,
+       'body'    => json_encode($body),
 
-     ));
+    ));
       $response_code = wp_remote_retrieve_response_code($response);
       print_r($response);
       if ( ! is_wp_error($response) && $response_code == 200 ) {

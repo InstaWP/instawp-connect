@@ -439,18 +439,19 @@ class InstaWP_Backup_Api
                error_log('Update Restore Status call has made the body is : '. $body_json);
                error_log('Update Restore Status call has made the url is : '. $url);
 
-               // $this->instawp_log->CreateLogFile('update_restore_status_call', 'no_folder', 'Update restore status call');
-               // $this->instawp_log->WriteLog('Update Restore Status call has made the body is : '. $body_json, 'notice');
-               // $this->instawp_log->WriteLog('Update Restore Status call has made the url is : '. $url, 'notice');
+               $this->instawp_log->CreateLogFile('update_restore_status_call', 'no_folder', 'Update restore status call');
+               $this->instawp_log->WriteLog('Update Restore Status call has made the body is : '. $body_json, 'notice');
+               $this->instawp_log->WriteLog('Update Restore Status call has made the url is : '. $url, 'notice');
 
                $curl_response = $InstaWP_Curl->curl($url, $body_json);
 
-               // error_log("API Error: ==> ".$curl_response['error']);
+               error_log("API Error: ==> ".$curl_response['error']);
                error_log('After Update Restore Status call made the response : '. print_r($curl_response, true));
 
                if ( $curl_response['error'] == false ) {
 
-                  // $this->instawp_log->WriteLog('After Update Restore Status call made the response : '. $curl_response['curl_res'], 'notice');
+                  $this->instawp_log->WriteLog('After Update Restore Status call made the response : '. $curl_response['curl_res'], 'notice');
+                  $this->instawp_log->CloseFile();
                   $response              = (array) json_decode($curl_response['curl_res'], true);
                   $response['task_info'] = $body;
                   update_option('instawp_backup_status_options', $response);                  
