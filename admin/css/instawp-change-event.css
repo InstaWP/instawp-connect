@@ -1,0 +1,123 @@
+.two-way-sync-btn {background: #005e54;color: white;border: none;padding: 5px 10px;border-radius: 4px;cursor: pointer;}
+.column-sync span.sync-loader img {width: 100%;max-width: 20px;margin: 0 0 0 6px;}
+span.sync-success {color: #005e54;margin: 0 0 0 6px;}
+.instawp-green-btn{background: #005e54;color: white;border: none;padding: 5px 10px;border-radius: 4px;cursor: pointer;}
+
+.bulk-sync-popup {display: none;}
+.change-event-main .top-title {display: flex;align-items: center;}
+.change-event-main .bulk-sync {margin-left: 10px;}
+
+/****************2 sync popup [start]**********************/
+.instawp-popup-main {
+    background: white;
+    border: 1px solid #5c5c5c;
+    width: 100%;
+    text-align: center;
+    max-width: 874px;
+    margin: 0 auto;
+    padding: 46px 68px 41px 98px;
+    box-sizing: border-box;
+}
+.instawp-popup-main h3 {
+    text-transform: capitalize;
+    font-weight: 400;
+    margin: 0 0 50px;
+    font-size: 30px;
+}
+.Destination-form {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0 0 45px;
+}
+.Destination-form label {
+    font-size: 25px;
+    color: #1a1a1a;
+    margin: 0 39px 0px 0px;
+}
+
+.Destination-form input#destination-url {
+    border-radius: 0;
+    font-size: 22px;
+    border-color: #4a4a4a;
+    text-align: center;
+    padding: 0px 43px;
+    margin: 0px;
+    line-height: 1.73;
+}
+.Destination-form input#destination-url::placeholder {
+    color: #808080;
+}
+.instawp-events-catagory ul, .insta-wp-catagory-name ul{
+	margin: 0;
+	padding: 0;
+}
+ul.list li::marker {
+    font-size: 18px;
+}
+.instawp-events-catagory {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 88px;
+}
+.instawp-events-catagory ul.list li {
+    font-size: 28px;
+    margin: 0 0px 20px 0px;
+    text-align: left;
+    list-style: disc;
+    color: #1a1a1a;
+    padding: 0 12px;
+}
+.insta-wp-catagory-name {
+    border: 1px solid;
+    text-align: left;
+    padding: 40px 106px 40px 35px;
+}
+.insta-wp-catagory-name ul li {
+    font-size: 21px;
+    margin: 0 0 20px;
+    color: #1a1a1a;
+}
+.insta-wp-catagory-name ul li:last-child {
+    margin: 0;
+    padding-left: 52px;
+}
+.insta-wp-catagory-name ul li img {
+    width: 100%;
+    max-width: 32px;
+    vertical-align: middle;
+    margin-right: 20px;
+}
+.insta-wp-buttons a {
+    margin: 0px 19px;
+}
+.insta-wp-buttons a.Changes-bttn, .insta-wp-buttons a.cancel-btn {
+    padding: 31px 63.3px;
+    display: inline-block;
+    border-radius: 17px;
+    font-size: 22px;
+    border: 1px solid #1a1a1a;
+    text-decoration: none;
+}
+.insta-wp-buttons a.Changes-bttn {
+    background: #4ba48a;
+    color: white;
+}   
+.insta-wp-buttons a.cancel-btn {
+    background: white;
+    padding: 30px 97px;
+    color: #1a1a1a;
+}
+/****************2 sync popup [end]**********************/
+#wpbody-content {
+    position: relative;
+}
+.bulk-sync-popup {
+    position: absolute;
+    top: 60%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    max-width: 874px;
+}

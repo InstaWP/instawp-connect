@@ -33,30 +33,69 @@ class InstaWP_DB{
         $this->wpdb = $wpdb;
     }
     
+    /**
+     * Insert 
+    */
     public function insert($table_name,$data){   
         if(!empty($data) && is_array($data)){
             $this->wpdb->insert($table_name, $data); 
         } 
     }
 
+    /**
+     * Delete 
+    */
     public function delete($table_name, $id){
         $this->wpdb->delete( $table_name, array( 'id' => $id ) );
     }
 
+    /**
+     * Update 
+    */
     public function update(){
 
     }
 
+    /**
+     * Select 
+    */
     public function get($table_name){
         $results = $this->wpdb->get_results("SELECT * FROM $table_name"); 
         return $results;
     }
     
+    /**
+     * Bulk delete 
+    */
     public function bulk($table_name, $ids = null){
         if(!empty($ids) && is_array($ids)){
             foreach($ids as $id){
                $this->delete($table_name,$id); 
             }
         }
+    }
+
+    /**
+     * Fatch row via id
+    */
+    public function getRowById($table_name = null, $id = null){
+        $results = $this->wpdb->get_results("SELECT * FROM $table_name WHERE `id` = $id"); 
+        return $results;
+    }
+
+    /*
+    * Count total traking events
+    */
+    public function totalEvnets($table_name){
+        $results = $this->wpdb->get_var("SELECT COUNT(*) FROM $table_name"); 
+        return $results;
+    }
+
+    /*
+    * Get traking events via event slug 
+    */
+    public function trakingEventsBySlug($table_name = null, $event_slug = null){
+        $results = $this->wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE `event_slug`='".$event_slug."'"); 
+        return $results;
     }
 }
