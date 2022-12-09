@@ -361,8 +361,9 @@ class InstaWP_ZipClass extends instawp_Compress_Default
 
         global $instawp_plugin;
         //$instawp_plugin->restore_data->write_log('start prepare extract','notice');
-        define(PCLZIP_TEMPORARY_DIR,dirname($path));
-
+        define(PCLZIP_TEMPORARY_DIR,dirname($path));        
+        $restore_percentage = (int)get_option('instawp_restore_progress_percents', '10');
+        $instawp_plugin->restore_data->write_log('extract restore start percentage - 367 :'.$res_per,'notice');
         $ret['result'] = INSTAWP_SUCCESS;
         foreach ( $files as $file ) {
             $instawp_plugin->restore_data->write_log('start extracting file 1 - 368:'.$file,'notice');
@@ -376,6 +377,12 @@ class InstaWP_ZipClass extends instawp_Compress_Default
             }
             else {
                 $instawp_plugin->restore_data->write_log('extract finished file 1 - 378 :'.$file,'notice');
+                if( !$restore_percentage >= 80 ){
+                    $new_restore_percentage = $restore_percentage + 10;
+                    update_option('instawp_restore_progress_percents', $new_restore_percentage);
+                }
+
+                $instawp_plugin->restore_data->write_log('extract restore progress percentage - 385 :'.(int)get_option('instawp_restore_progress_percents', 0),'notice');
             }
         }
         //$this->restore_data->write_log('extract finished files:'.json_encode($all_files),'notice');
