@@ -85,6 +85,13 @@ class InstaWP_Restore
         if ( $is_type_db ) {
             $restore_site = new InstaWP_RestoreSite();
             $instawp_plugin->restore_data->write_log('Start restoring 1 '.$restore_task['files'][0],'notice');
+
+            if ( preg_match("/_backup_db.zip/", $restore_task['files'][0]) )
+            {
+                update_option('instawp_restore_progress_percents', "80");
+                $instawp_plugin->restore_data->write_log('DB Restore Progress Status '.get_option('instawp_restore_progress_percents'),'notice');
+            }
+
             $ret = $restore_site -> restore($option,$restore_task['files']);
             if ( $ret['result'] == INSTAWP_SUCCESS ) {
                 if ( isset($option['is_crypt']) && $option['is_crypt'] == '1' ) {
@@ -103,6 +110,12 @@ class InstaWP_Restore
                 if ( ! $check_is_remove ) {
                     $ret = $restore_db->restore($path, $sql_file, $option);
                     $instawp_plugin->restore_data->write_log('Finished restoring 1 - 101: '.$restore_task['files'][0],'notice');
+
+                    if ( preg_match("/_backup_db.zip/", $restore_task['files'][0]) )
+                    {
+                        update_option('instawp_restore_progress_percents', "90");
+                        $instawp_plugin->restore_data->write_log('Final DB Restore Progress Status '.get_option('instawp_restore_progress_percents'),'notice');
+                    }
                     //update_option('instawp_restore_progress_percents', "90" );
                     $instawp_plugin->restore_data->update_need_unzip_file($restore_task['index'],$restore_task['files']);
                 }
@@ -131,6 +144,30 @@ class InstaWP_Restore
             $ret = $restore_site -> restore($option,$files);
             $instawp_plugin->restore_data->update_need_unzip_file($restore_task['index'],$files);
             $instawp_plugin->restore_data->write_log('Finished restoring 2 - 128 : '.$files[0],'notice');
+
+            if ( preg_match("/_backup_all.zip/", $files[0]) )
+            {
+                update_option('instawp_restore_progress_percents', "20");
+                $instawp_plugin->restore_data->write_log('All Restore Progress Status '.get_option('instawp_restore_progress_percents'),'notice');
+            }elseif( preg_match("/_backup_themes.zip/", $files[0]) ){
+                update_option('instawp_restore_progress_percents', "30");
+                $instawp_plugin->restore_data->write_log('Theme Restore Progress Status '.get_option('instawp_restore_progress_percents'),'notice');
+            }elseif( preg_match("/_backup_core.zip/", $files[0]) ){
+                update_option('instawp_restore_progress_percents', "40");
+                $instawp_plugin->restore_data->write_log('Core Restore Progress Status '.get_option('instawp_restore_progress_percents'),'notice');
+            }elseif( preg_match("/_backup_uploads.zip/", $files[0]) ){
+                update_option('instawp_restore_progress_percents', "50");
+                $instawp_plugin->restore_data->write_log('Upload Restore Progress Status '.get_option('instawp_restore_progress_percents'),'notice');
+            }elseif( preg_match("/_backup_content.zip/", $files[0]) ){
+                update_option('instawp_restore_progress_percents', "60");
+                $instawp_plugin->restore_data->write_log('Content Restore Progress Status '.get_option('instawp_restore_progress_percents'),'notice');
+            
+            }elseif( preg_match("/_backup_plugin.zip/", $files[0]) ){
+                update_option('instawp_restore_progress_percents', "70");
+                $instawp_plugin->restore_data->write_log('Plugin Restore Progress Status '.get_option('instawp_restore_progress_percents'),'notice');
+
+            }
+
             return $ret;
         }
     }
