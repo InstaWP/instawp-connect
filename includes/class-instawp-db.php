@@ -28,9 +28,16 @@ class InstaWP_DB{
 
     private $wpdb;
 
+    public $tables;
+
     public function __construct() {
         global $wpdb;
         $this->wpdb = $wpdb;
+
+        #tables array
+        $this->tables = [
+            'ch_table' => $this->wpdb->prefix . 'change_event'
+        ];
     }
     
     /**

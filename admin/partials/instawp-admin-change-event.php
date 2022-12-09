@@ -22,8 +22,7 @@ class InstaWP_Change_Event_Table extends WP_List_Table {
 
     public function dataChangeEvents(){
         $InstaWP_db = new InstaWP_DB();
-        $InstaWP_tb = new InstaWP_TB();
-        $tables = $InstaWP_tb->tb();
+        $tables = $InstaWP_db->tables;
         $rel = $InstaWP_db->get($tables['ch_table']);
         $data = [];
         if(!empty($rel) && is_array($rel)){
@@ -38,8 +37,6 @@ class InstaWP_Change_Event_Table extends WP_List_Table {
                             'details' => $v->details,
                             'user_id' => $v->user_id,
                             'date' => $v->date,
-                            'prod' => $v->prod,
-                            'sync' => '<button type="button" id="btn-sync-'.$v->id.'" data-id="'.$v->id.'" class="two-way-sync-btn">Sync</button> <span class="sync-loader"></span><span class="sync-success" style="display:none;">Done</span>',
                         ];
             }
         }  
@@ -72,8 +69,6 @@ class InstaWP_Change_Event_Table extends WP_List_Table {
           'details' => 'Details',
           'user_id' => 'User ID',
           'date' => 'Date',
-          'prod' => 'Prod',
-          'sync' => 'Sync',
         );
         return $columns;
     }
@@ -88,7 +83,6 @@ class InstaWP_Change_Event_Table extends WP_List_Table {
             'details'   => array('details', false),
             'user_id'   => array('user_id', true),
             'date'   => array('date', true),
-            'prod'   => array('prod', true),
       );
       return $sortable_columns;
     }
@@ -134,9 +128,7 @@ class InstaWP_Change_Event_Table extends WP_List_Table {
             case 'title':
             case 'details':
             case 'user_id':
-            case 'date': 
-            case 'prod': 
-            case 'sync':      
+            case 'date':       
             return $item[ $column_name ];
             default:
             break;
@@ -167,13 +159,12 @@ class InstaWP_Change_Event_Table extends WP_List_Table {
     #Bulk opration 
     public function bulkOprations($ids = null){
         $InstaWP_db = new InstaWP_DB();
-        $InstaWP_tb = new InstaWP_TB();
-        $tables = $InstaWP_tb->tb();
+        $tables = $InstaWP_db->tables;
 
         #Bulk Delete
         $InstaWP_db->bulk($tables['ch_table'],$ids);
 
-        #Bulk sync
+        #Bulk selected sync
         $this->bulkSync($tables['ch_table'],$ids);
         
     }
@@ -187,8 +178,8 @@ class InstaWP_Change_Event_Table extends WP_List_Table {
     
     public function bulkSyncPopup(){
         $InstaWP_db = new InstaWP_DB();
-        $InstaWP_tb = new InstaWP_TB();
-        $tables = $InstaWP_tb->tb();
+        $tables = $InstaWP_db->tables;
+        
         #Total events
         $total_events = $InstaWP_db->totalEvnets($tables['ch_table']);
         
@@ -201,29 +192,40 @@ class InstaWP_Change_Event_Table extends WP_List_Table {
 
         $html = '<div class="bulk-sync-popup"> 
                 <div class="instawp-popup-main">
-                    <h3>preparing changes for sync</h3>
-                    <div class="Destination-form">
-                        <label for="instawp-destination">Destination</label>
-                        <input type="url" id="destination-url" placeholder="mywebsite.com" name="Destination">
-                    </div>
-                    <div class="instawp-events-catagory">
-                        <ul class="list">
-                            <li>'.$post_new.' post create events</li>
-                            <li>'.$post_delete.' post delete events</li>
-                            <li>'.$post_trash.' post trash events</li>
-                            <li>'.$others.' other events</li>
-                        </ul>
-                        <div class="insta-wp-catagory-name">
-                            <ul>
-                                <li><img src="'.INSTAWP_PLUGIN_IMAGES_URL.'/verified.png">packing things</li>
-                                <li><img src="'.INSTAWP_PLUGIN_IMAGES_URL.'/Fading lines.gif">pusing to cloud</li>
-                                <li>merging to destination</li>
-                            </ul>
+                    <div class="instawppopwrap">
+                        <div class="topinstawppopwrap">
+                            <h3>Preparing changes for Sync</h3>
+                            <div class="destination_form">
+                                <label for="instawp-destination">Destination</label>
+                                <input type="url" id="destination-url" placeholder="mywebsite.com" name="Destination">
+                            </div>
+                            <div class="instawp_category">
+                                <div class="instawpcatlftcol">
+                                    <ul class="list">
+                                        <li>'.$post_new.' post create events</li>
+                                        <li>'.$post_delete.' post delete events</li>
+                                        <li>'.$post_trash.' post trash events</li>
+                                        <li>'.$others.' other events</li>
+                                    </ul>
+                                </div>
+                                <div class="instawpcatrgtcol">
+                                    <ul>
+                                        <li>Packing things</li>
+                                        <li>Pusing to cloud</li>
+                                        <li>Merging to destination</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="textarea_json destination_form ">
+                                <label for="w3review">Json data:</label>
+                                <textarea id="json_data" name="json_data" rows="4" cols="50">
+                                </textarea>
+                            </div>
                         </div>
-                    </div>
-                    <div class="insta-wp-buttons">
-                        <a class="Changes-bttn" href="#">Sync Changes</a>
-                        <a class="cancel-btn close" href="#">Cancel</a>
+                        <div class="instawp_buttons">                            
+                            <a class="cancel-btn close" href="javascript:void(0);">Cancel</a>
+                            <a class="changes-btn sync-changes-btn" href="javascript:void(0);">Sync Changes</a>
+                        </div>
                     </div>
                 </div>
              </div>';

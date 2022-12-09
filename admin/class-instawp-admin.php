@@ -197,6 +197,19 @@ class InstaWP_Admin {
      * 
      */
     public function enqueue_scripts() {
+        //change events scripts [start]
+        wp_enqueue_style( 'change-event-css', INSTAWP_PLUGIN_DIR_URL . 'css/instaWp-change-event.css' );
+        wp_enqueue_script('ajax_script',INSTAWP_PLUGIN_DIR_URL . 'js/instaWp-change-event.js' ,array( 'jquery' ),$this->version, false);
+        wp_localize_script(
+            'ajax_script',
+            'ajax_obj',
+            array(
+                'ajax_url' => admin_url( 'admin-ajax.php' ),
+                'nonce'    => wp_create_nonce( 'instaWp_change_event' ),
+                'plugin_images_url'    => INSTAWP_PLUGIN_IMAGES_URL,
+            )
+        );
+        //change events scripts [end]
         $this->screen_ids = apply_filters('instawp_get_screen_ids',$this->screen_ids);
         if ( in_array(get_current_screen()->id,$this->screen_ids) ) {
             wp_enqueue_script($this->plugin_name, INSTAWP_PLUGIN_DIR_URL . 'js/instawp-admin.js', array( 'jquery' ), $this->version, false);

@@ -359,6 +359,7 @@ class instaWP
       require_once INSTAWP_PLUGIN_DIR . '/admin/class-instawp-admin.php';
       require_once INSTAWP_PLUGIN_DIR . '/admin/class-instawp-admin-wizard.php';
       require_once INSTAWP_PLUGIN_DIR . '/admin/partials/instawp-admin-change-event-filters.php';
+      require_once INSTAWP_PLUGIN_DIR . '/includes/class-intawp-ajax-fn.php';
       //include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-setting.php';
       
       include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-error-log.php';
