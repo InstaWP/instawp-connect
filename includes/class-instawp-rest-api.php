@@ -424,7 +424,8 @@ class InstaWP_Backup_Api
                $url = $api_doamin . INSTAWP_API_URL . '/connects/' . $id . '/restore_status';
 
                // restore preogress precetage
-               $restore_progress_option = (int)get_option('instawp_restore_progress_percents', "0");
+               $restore_progress_option = get_option('instawp_restore_progress_percents', "0");
+               //$restore_progress_option = (int)get_option('instawp_restore_progress_percents', "0");
                error_log('Restore Status percentage is : '. $restore_progress_option);
 
                $body = array(
