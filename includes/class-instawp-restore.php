@@ -103,7 +103,7 @@ class InstaWP_Restore
                 if ( ! $check_is_remove ) {
                     $ret = $restore_db->restore($path, $sql_file, $option);
                     $instawp_plugin->restore_data->write_log('Finished restoring 1 - 101: '.$restore_task['files'][0],'notice');
-                    update_option('instawp_restore_progress_percents', 90 );
+                    //update_option('instawp_restore_progress_percents', "90" );
                     $instawp_plugin->restore_data->update_need_unzip_file($restore_task['index'],$restore_task['files']);
                 }
                 else {
