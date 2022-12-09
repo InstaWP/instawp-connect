@@ -25,7 +25,8 @@ class InstaWP_Ajax_Fn{
     
     public function __construct(){
         #The wp_ajax_ hook only fires for logged-in users
-        add_action( "wp_ajax_sync_changes", array( $this,"sync_changes") ); 
+        add_action( "wp_ajax_sync_changes", array( $this,"sync_changes") );
+        add_action( "wp_ajax_single_sync", array( $this,"single_sync") );  
     }
  
     function sync_changes(){
@@ -33,6 +34,17 @@ class InstaWP_Ajax_Fn{
         $tables = $InstaWP_db->tables;
         $rel = $InstaWP_db->get($tables['ch_table']);
         echo json_encode($rel);
+        wp_die();
+    }
+
+    function single_sync(){
+        if(isset($_POST['sync_id'])){
+            $sync_id = $_POST['sync_id'];
+            $InstaWP_db = new InstaWP_DB();
+            $tables = $InstaWP_db->tables;
+            $rel = $InstaWP_db->getRowById($tables['ch_table'],$sync_id);
+            echo json_encode($rel);
+        }
         wp_die();
     }
 }

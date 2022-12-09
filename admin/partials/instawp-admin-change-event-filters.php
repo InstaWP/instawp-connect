@@ -32,7 +32,7 @@ class InstaWP_Change_Event_Filters {
         add_action( 'after_delete_post', array( $this,'deletePostFilter'), 10, 2 );
         add_action( 'untrashed_post', array( $this,'untrashPostFilter'),10, 3  );
         add_action( 'save_post', array( $this,'savePostFilter'), 10, 3 );
-
+        
         #plugin actions
         add_action( 'activated_plugin', array( $this,'activatePluginAction'),10, 2 );
         add_action( 'deactivated_plugin', array( $this,'deactivatePluginAction'),10, 2 );
@@ -257,7 +257,9 @@ class InstaWP_Change_Event_Filters {
         $uid = get_current_user_id();
         $date = date('Y-m-d H:i:s');
         $post_content = isset($post->post_content) ? $post->post_content : '';
-
+        $featured_image_id = get_post_thumbnail_id($post->ID); 
+        $featured_image_url = get_the_post_thumbnail_url($post->ID);
+     
         #Data Array
         $data = [
             'event_name' => $event_name,
@@ -265,7 +267,7 @@ class InstaWP_Change_Event_Filters {
             'event_type' => isset($post->post_type) ? $post->post_type : '',
             'source_id' => isset($post->ID) ? $post->ID : $post_id,
             'title' => isset($post->post_title) ? $post->post_title : '',
-            'details' => json_encode(['content' => $post_content]),
+            'details' => json_encode(['content' => $post_content,'posts' => $post,'postmeta' => get_post_meta($post->ID),'featured_image' => ['featured_image_id'=>$featured_image_id,'featured_image_url' => $featured_image_url]]),
             'user_id' => $uid,
             'date' => $date,
             'prod' => '',

@@ -34,9 +34,10 @@ class InstaWP_Change_Event_Table extends WP_List_Table {
                             'event_type' => $v->event_type,
                             'source_id' => $v->source_id,
                             'title' => $v->title,
-                            'details' => $v->details,
+                            #'details' => $v->details,
                             'user_id' => $v->user_id,
                             'date' => $v->date,
+                            'sync' => '<button type="button" id="btn-sync-'.$v->id.'" data-id="'.$v->id.'" class="two-way-sync-btn">Sync</button> <span class="sync-loader"></span><span class="sync-success" style="display:none;">Done</span>',
                         ];
             }
         }  
@@ -66,9 +67,10 @@ class InstaWP_Change_Event_Table extends WP_List_Table {
           'event_type' => 'Event Type',
           'source_id' => 'Source ID',
           'title' => 'Title',
-          'details' => 'Details',
+          #'details' => 'Details',
           'user_id' => 'User ID',
           'date' => 'Date',
+          'sync' => 'Sync',
         );
         return $columns;
     }
@@ -80,7 +82,7 @@ class InstaWP_Change_Event_Table extends WP_List_Table {
             'event_type'   => array('event_type', true),
             'source_id'   => array('source_id', true),
             'title'   => array('title', true),
-            'details'   => array('details', false),
+            #'details'   => array('details', false),
             'user_id'   => array('user_id', true),
             'date'   => array('date', true),
       );
@@ -88,7 +90,7 @@ class InstaWP_Change_Event_Table extends WP_List_Table {
     }
 
     public function prepare_items() {
-        $per_page = 5;
+        $per_page = 20;
         $current_page = isset($_GET['paged']) ? $_GET['paged'] : 1;
         $items = $this->dataChangeEvents();
         $total_items = count($items);
@@ -126,9 +128,10 @@ class InstaWP_Change_Event_Table extends WP_List_Table {
             case 'event_type':
             case 'source_id':
             case 'title':
-            case 'details':
+            #case 'details':
             case 'user_id':
-            case 'date':       
+            case 'date': 
+            case 'sync':       
             return $item[ $column_name ];
             default:
             break;

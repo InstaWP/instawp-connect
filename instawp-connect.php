@@ -196,6 +196,7 @@ function instawp_create_table(){
     global $wpdb;
     $sql = array();
     $event_change_table = $wpdb->prefix . "change_event";
+    $sync_history_table = $wpdb->prefix . "sync_history";
     if( $wpdb->get_var("show tables like '". $event_change_table . "'") !== $event_change_table ) { 
         $sql[] = "CREATE TABLE ". $event_change_table . "     (
         id int(20) NOT NULL AUTO_INCREMENT,
@@ -211,10 +212,35 @@ function instawp_create_table(){
         PRIMARY KEY  (id)
         ) ";
     }
-
+    if( $wpdb->get_var("show tables like '". $sync_history_table . "'") !== $sync_history_table ) {
+        $sql[] = "CREATE TABLE ". $sync_history_table . "     (
+            id int(20) NOT NULL AUTO_INCREMENT,
+            encrypted_contents longtext NOT NULL,
+            changes longtext NOT NULL,
+            direction varchar(128) NOT NULL,
+            status varchar(128) NOT NULL,
+            PRIMARY KEY  (id)
+            ) ";
+    }
+    
     if ( !empty($sql) ) {
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
         dbDelta($sql);
     }
 }
 
+add_action( 'rest_api_init', function () {
+    register_rest_route( 'event/v1', '/reciver', array(
+      'methods' => 'GET',
+      'callback' => 'events_receiver',
+    ) );
+} );
+
+/**
+ * Reciver 
+ * @param array $data Options for the function.
+ * @return string|null 
+ */
+function events_receiver($data) {  
+    return "JSON Reciver";
+}

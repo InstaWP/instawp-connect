@@ -143,14 +143,13 @@ class InstaWP_Admin {
         $submenu['index'] = 2;
         $submenus[ $submenu['menu_slug'] ] = $submenu;
 
-        //new
         $submenu['parent_slug'] = $this->plugin_name;
         $submenu['page_title'] = 'Staging Sites';
         $submenu['menu_title'] = __('Staging Sites', 'instawp-connect');
         $submenu['capability'] = 'administrator';
         $submenu['menu_slug'] = 'instawp-staging-site';
         $submenu['function'] = array( $this, 'display_staging_sites_page' );
-        $submenu['index'] = 2;
+        $submenu['index'] = 3;
         $submenus[ $submenu['menu_slug'] ] = $submenu;
 
         #Change Event
@@ -160,7 +159,17 @@ class InstaWP_Admin {
         $submenu['capability'] = 'administrator';
         $submenu['menu_slug'] = 'instawp-change-event';
         $submenu['function'] = array( $this, 'instawp_change_event' );
-        $submenu['index'] = 2;
+        $submenu['index'] = 4;
+        $submenus[ $submenu['menu_slug'] ] = $submenu;
+
+        #History sync
+        $submenu['parent_slug'] = $this->plugin_name;
+        $submenu['page_title'] = 'Sync History';
+        $submenu['menu_title'] = __('Sync History', 'instawp-connect');
+        $submenu['capability'] = 'administrator';
+        $submenu['menu_slug'] = 'instawp-sync-history';
+        $submenu['function'] = array( $this, 'instawp_history_sync' );
+        $submenu['index'] = 5;
         $submenus[ $submenu['menu_slug'] ] = $submenu;
 
         $submenu['parent_slug'] = $this->plugin_name;
@@ -169,7 +178,7 @@ class InstaWP_Admin {
         $submenu['capability'] = 'administrator';
         $submenu['menu_slug'] = 'instawp-settings';
         $submenu['function'] = array( $this, 'display_settings_page' );
-        $submenu['index'] = 2;
+        $submenu['index'] = 6;
         $submenus[ $submenu['menu_slug'] ] = $submenu;
 
         return $submenus;
@@ -421,6 +430,10 @@ class InstaWP_Admin {
 
     public function instawp_change_event(){
         include_once('partials/instawp-admin-change-event.php'); 
+    }
+
+    public function instawp_history_sync(){
+        include_once('partials/instawp-admin-history-sync.php'); 
     }
 
     public function migrate_notice() {
