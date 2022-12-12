@@ -144,7 +144,7 @@ class InstaWP_Restore
             $ret = $restore_site -> restore($option,$files);
             $instawp_plugin->restore_data->update_need_unzip_file($restore_task['index'],$files);
             $instawp_plugin->restore_data->write_log('Finished restoring 2 - 128 : '.$files[0],'notice');
-            $instawp_plugin->restore_data->write_log('Finished restoring files : '.print_r($files),'notice');
+            $instawp_plugin->restore_data->write_log('Finished restoring files : '.print_r($files,true),'notice');
 
             if ( preg_match("/_backup_all.zip/", $files[0]) )
             {
@@ -173,13 +173,13 @@ class InstaWP_Restore
             $explode_bkp_val = $explode_bkp[1];
             $zipName = explode(".",$explode_bkp_val);
             $progress = 10;
-            instawp_restore_process_log_status( $zipName, $progress );
+            self::instawp_restore_process_log_status( $zipName, $progress );
 
             return $ret;
         }
     }
 
-    public function instawp_restore_process_log_status( $zipName, $progress ){
+    public static function instawp_restore_process_log_status( $zipName, $progress ){
         global $InstaWP_Curl;
         global $instawp_plugin;
         $instawp_plugin->restore_data->write_log('Start Restore Progress '.$progress,'notice');
