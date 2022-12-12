@@ -86,12 +86,6 @@ class InstaWP_Restore
             $restore_site = new InstaWP_RestoreSite();
             $instawp_plugin->restore_data->write_log('Start restoring 1 '.$restore_task['files'][0],'notice');
 
-            if ( preg_match("/_backup_db.zip/", $restore_task['files'][0]) )
-            {
-                update_option('instawp_restore_progress_percents', "80");
-                $instawp_plugin->restore_data->write_log('DB Restore Progress Status '.get_option('instawp_restore_progress_percents'),'notice');
-            }
-
             $ret = $restore_site -> restore($option,$restore_task['files']);
             if ( $ret['result'] == INSTAWP_SUCCESS ) {
                 if ( isset($option['is_crypt']) && $option['is_crypt'] == '1' ) {
@@ -110,12 +104,7 @@ class InstaWP_Restore
                 if ( ! $check_is_remove ) {
                     $ret = $restore_db->restore($path, $sql_file, $option);
                     $instawp_plugin->restore_data->write_log('Finished restoring 1 - 101: '.$restore_task['files'][0],'notice');
-
-                    if ( preg_match("/_backup_db.zip/", $restore_task['files'][0]) )
-                    {
-                        update_option('instawp_restore_progress_percents', "90");
-                        $instawp_plugin->restore_data->write_log('Final DB Restore Progress Status '.get_option('instawp_restore_progress_percents'),'notice');
-                    }
+                    
                     //update_option('instawp_restore_progress_percents', "90" );
                     $instawp_plugin->restore_data->update_need_unzip_file($restore_task['index'],$restore_task['files']);
                 }
@@ -145,75 +134,22 @@ class InstaWP_Restore
             $instawp_plugin->restore_data->update_need_unzip_file($restore_task['index'],$files);
             $instawp_plugin->restore_data->write_log('Finished restoring 2 - 128 : '.$files[0],'notice');
             $instawp_plugin->restore_data->write_log('Finished restoring files : '.print_r($files,true),'notice');
-
-            if ( preg_match("/_backup_all.zip/", $files[0]) )
-            {
-                update_option('instawp_restore_progress_percents', "20");
-                $instawp_plugin->restore_data->write_log('All Restore Progress Status '.get_option('instawp_restore_progress_percents'),'notice');
-            }elseif( preg_match("/_backup_themes.zip/", $files[0]) ){
-                update_option('instawp_restore_progress_percents', "30");
-                $instawp_plugin->restore_data->write_log('Theme Restore Progress Status '.get_option('instawp_restore_progress_percents'),'notice');
-            }elseif( preg_match("/_backup_core.zip/", $files[0]) ){
-                update_option('instawp_restore_progress_percents', "40");
-                $instawp_plugin->restore_data->write_log('Core Restore Progress Status '.get_option('instawp_restore_progress_percents'),'notice');
-            }elseif( preg_match("/_backup_uploads.zip/", $files[0]) ){
-                update_option('instawp_restore_progress_percents', "50");
-                $instawp_plugin->restore_data->write_log('Upload Restore Progress Status '.get_option('instawp_restore_progress_percents'),'notice');
-            }elseif( preg_match("/_backup_content.zip/", $files[0]) ){
-                update_option('instawp_restore_progress_percents', "60");
-                $instawp_plugin->restore_data->write_log('Content Restore Progress Status '.get_option('instawp_restore_progress_percents'),'notice');
-            
-            }elseif( preg_match("/_backup_plugin.zip/", $files[0]) ){
-                update_option('instawp_restore_progress_percents', "70");
-                $instawp_plugin->restore_data->write_log('Plugin Restore Progress Status '.get_option('instawp_restore_progress_percents'),'notice');
-
-            }
-
-            $explode_bkp = explode("_backup_",$files[0]);
-            $explode_bkp_val = $explode_bkp[1];
-            $zipName = explode(".",$explode_bkp_val);
+                        
             $progress = 10;
-            self::instawp_restore_process_log_status( $zipName, $progress );
+            self::instawp_restore_process_log_status( $progress );
 
             return $ret;
         }
     }
 
-    public static function instawp_restore_process_log_status( $zipName, $progress ){
+    public static function instawp_restore_process_log_status( $progress ){
         global $InstaWP_Curl;
         global $instawp_plugin;
-        $instawp_plugin->restore_data->write_log('Start Restore Progress '.$progress,'notice');
-        $instawp_plugin->restore_data->write_log('Start Restore zipName '.$zipName,'notice');
+        
+        $this->instawp_log->CreateLogFile('restore_process_log_call', 'no_folder', 'Restore Process Log Call');
 
-        switch ( $zipName ) {
-            case 'all':
-                $progress = $progress + 10;
-                break;
-            
-            case 'themes':
-                $progress = $progress + 10;
-                break;
-            
-            case 'core':
-                $progress = $progress + 10;
-                break;
-            
-            case 'uploads':
-                $progress = $progress + 10;
-                break;
+        $this->instawp_log->WriteLog('Start Restore Progress : '. $progress, 'notice');
 
-            case 'content':
-                $progress = $progress + 10;
-                break;
-
-            case 'plugin':
-                $progress = $progress + 10;
-                break;
-            default:
-                $progress = 0;
-                break;
-        }        
-        $instawp_plugin->restore_data->write_log('Start Restore Currrnt Progress '.$progress,'notice');
         $backup_reports = get_option( 'instawp_backup_reports', array() );
         $task_id = '';
         if( !empty( $backup_reports ) ){
@@ -254,11 +190,15 @@ class InstaWP_Restore
                     'body'    => $body,            
                 ));
 
-                $instawp_plugin->restore_data->write_log('Start Restore Response '.print_r($response),'notice');
+                
+                $this->instawp_log->WriteLog('Start Restore Response : '.print_r($response, true), 'notice');
+
                 $response_code = wp_remote_retrieve_response_code( $response );
-                $instawp_plugin->restore_data->write_log('Start Restore Response Code '.print_r($response_code),'notice');
+                $this->instawp_log->WriteLog('Start Restore Response : '.$response_code, 'notice');
+
                 if ( ! is_wp_error($response) && $response_code == 200 ) {
-                    //$body = (array) json_decode(wp_remote_retrieve_body($response), true);
+                    $body = (array) json_decode(wp_remote_retrieve_body($response), true);
+                    $this->instawp_log->WriteLog('Body Response : '.print_r($body, true), 'notice');
                     echo json_encode($response);
                     wp_die();
                 }
