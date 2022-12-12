@@ -144,6 +144,7 @@ class InstaWP_Restore
             $ret = $restore_site -> restore($option,$files);
             $instawp_plugin->restore_data->update_need_unzip_file($restore_task['index'],$files);
             $instawp_plugin->restore_data->write_log('Finished restoring 2 - 128 : '.$files[0],'notice');
+            $instawp_plugin->restore_data->write_log('Finished restoring files : '.print_r($files),'notice');
 
             if ( preg_match("/_backup_all.zip/", $files[0]) )
             {
@@ -168,7 +169,100 @@ class InstaWP_Restore
 
             }
 
+            $explode_bkp = explode("_backup_",$files[0]);
+            $explode_bkp_val = $explode_bkp[1];
+            $zipName = explode(".",$explode_bkp_val);
+            $progress = 10;
+            instawp_restore_process_log_status( $zipName, $progress );
+
             return $ret;
+        }
+    }
+
+    public function instawp_restore_process_log_status( $zipName, $progress ){
+        global $InstaWP_Curl;
+        global $instawp_plugin;
+        $instawp_plugin->restore_data->write_log('Start Restore Progress '.$progress,'notice');
+        $instawp_plugin->restore_data->write_log('Start Restore zipName '.$zipName,'notice');
+
+        switch ( $zipName ) {
+            case 'all':
+                $progress = $progress + 10;
+                break;
+            
+            case 'themes':
+                $progress = $progress + 10;
+                break;
+            
+            case 'core':
+                $progress = $progress + 10;
+                break;
+            
+            case 'uploads':
+                $progress = $progress + 10;
+                break;
+
+            case 'content':
+                $progress = $progress + 10;
+                break;
+
+            case 'plugin':
+                $progress = $progress + 10;
+                break;
+            default:
+                $progress = 0;
+                break;
+        }        
+        $instawp_plugin->restore_data->write_log('Start Restore Currrnt Progress '.$progress,'notice');
+        $backup_reports = get_option( 'instawp_backup_reports', array() );
+        $task_id = '';
+        if( !empty( $backup_reports ) ){
+            foreach ($backup_reports as $key => $report ) {
+                $task_id =  $report['task_id'];
+            }
+        }
+
+        $api_key = '';
+        $instawp_api_options = get_option('instawp_api_options'); 
+        if( !empty( $instawp_api_options ) ){
+            $api_key = $instawp_api_options['api_key']; 
+        }  
+        
+        $connect_ids = get_option('instawp_connect_id_options', '');
+        if ( ! empty($connect_ids) && !empty( $task_id ) && !empty( $api_key ) ) {
+            if ( isset($connect_ids['data']['id']) && ! empty($connect_ids['data']['id']) ) {
+                $id  = $connect_ids['data']['id'];
+                $api_doamin = InstaWP_Setting::get_api_domain();
+                $url = $api_doamin . INSTAWP_API_URL . '/connects/' . $id . '/restore_status';
+
+                $header  = array(
+                    'Authorization' => 'Bearer ' . $api_key,
+                    'Accept'        => 'application/json',
+                    //'Content-Type'  => 'application/json;charset=UTF-8',            
+                );
+                
+                $body = json_encode( 
+                    array( 
+                        'task_id' => $task_id,
+                        'progress' => $progress,
+                        'completed' => true,
+                    )
+                );
+
+                $response = wp_remote_post($url, array(
+                    'headers' => $header,
+                    'body'    => $body,            
+                ));
+
+                $instawp_plugin->restore_data->write_log('Start Restore Response '.print_r($response),'notice');
+                $response_code = wp_remote_retrieve_response_code( $response );
+                $instawp_plugin->restore_data->write_log('Start Restore Response Code '.print_r($response_code),'notice');
+                if ( ! is_wp_error($response) && $response_code == 200 ) {
+                    //$body = (array) json_decode(wp_remote_retrieve_body($response), true);
+                    echo json_encode($response);
+                    wp_die();
+                }
+            }
         }
     }
 
