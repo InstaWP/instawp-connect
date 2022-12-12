@@ -7,7 +7,6 @@ class InstaWP_restore_data
 {
     public $restore_data_file;
     public $restore_log_file;
-    public $restore_log_process_file;
     public $restore_log = false;
     public $restore_cache = false;
 
@@ -16,7 +15,6 @@ class InstaWP_restore_data
         $dir = InstaWP_Setting::get_backupdir();
         $this->restore_data_file = WP_CONTENT_DIR.DIRECTORY_SEPARATOR.$dir.DIRECTORY_SEPARATOR.'instawp_restoredata';
         $this->restore_log_file = WP_CONTENT_DIR.DIRECTORY_SEPARATOR.$dir.DIRECTORY_SEPARATOR.'instawp_restore_log.txt';
-        $this->restore_log_process_file = WP_CONTENT_DIR.DIRECTORY_SEPARATOR.$dir.DIRECTORY_SEPARATOR.'restore_log_process.txt';
     }
 
     public function has_restore() {

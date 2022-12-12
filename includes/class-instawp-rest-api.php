@@ -370,19 +370,14 @@ class InstaWP_Backup_Api
       $restore_options_json = json_encode($restore_options);
       global $instawp_plugin;
       $this->restore_log = new InstaWP_Log();
-      $this->restore_log->CreateLogFile($this->restore_log_process_file,'has_folder','restore');
       foreach ( $backuplist as $key => $backup ) {
 
          do {
 
             $results_2 = $instawp_plugin->restore_api($key, $restore_options_json);
-            error_log("REST API RESULTS 2 ".print_r($results_2,true));
-
             $instawp_plugin->restore_data->write_log('REST API RESULTS 2 '.print_r($results_2,true),'notice');
 
             $results = $instawp_plugin->get_restore_progress_api($key);
-            error_log("REST API RESULTS ".print_r($results,true));
-
             $instawp_plugin->restore_data->write_log('REST API RESULTS '.print_r($results,true),'notice');
 
             $ret     = (array) json_decode($results);
@@ -434,7 +429,6 @@ class InstaWP_Backup_Api
 
                // restore preogress precetage
                $restore_progress_option = get_option('instawp_restore_progress_percents', "0");
-               //$restore_progress_option = (int)get_option('instawp_restore_progress_percents', "0");
                error_log('Restore Status percentage is : '. $restore_progress_option);
 
                $body = array(
@@ -453,7 +447,8 @@ class InstaWP_Backup_Api
                error_log('Update Restore Status call has made the url is : '. $url);
                error_log('Update Restore Status call has made the url is : '. $url);
 
-               $this->instawp_log->CreateLogFile('update_restore_status_call', 'no_folder', 'Update restore status call');
+               $this->instawp_log->CreateLogFile('update_restore_status_call', 'no_folder', 'Update restore status call');               
+
                $this->instawp_log->WriteLog('Restore Status percentage is : '. $restore_progress_option, 'notice');
                $this->instawp_log->WriteLog('Update Restore Status call has made the body is : '. $body_json, 'notice');
                $this->instawp_log->WriteLog('Update Restore Status call has made the url is : '. $url, 'notice');
