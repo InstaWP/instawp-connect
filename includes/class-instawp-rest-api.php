@@ -368,17 +368,17 @@ class InstaWP_Backup_Api
 		  'backup_core',
       );
       $restore_options_json = json_encode($restore_options);
-      global $instawp_plugin;
-      $this->restore_log = new InstaWP_Log();
+      // global $instawp_plugin;
+      // $this->restore_log = new InstaWP_Log();
       foreach ( $backuplist as $key => $backup ) {
 
          do {
 
             $results_2 = $instawp_plugin->restore_api($key, $restore_options_json);
-            $instawp_plugin->restore_data->write_log('REST API RESULTS 2 '.print_r($results_2,true),'notice');
+            //$instawp_plugin->restore_data->write_log('REST API RESULTS 2 '.print_r($results_2,true),'notice');
 
             $results = $instawp_plugin->get_restore_progress_api($key);
-            $instawp_plugin->restore_data->write_log('REST API RESULTS '.print_r($results,true),'notice');
+            //$instawp_plugin->restore_data->write_log('REST API RESULTS '.print_r($results,true),'notice');
 
             $ret     = (array) json_decode($results);
          } while ( $ret['status'] != 'completed' || $ret['status'] == 'error' );

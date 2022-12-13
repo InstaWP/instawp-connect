@@ -135,14 +135,14 @@ class InstaWP_Restore
             $instawp_plugin->restore_data->write_log('Finished restoring 2 - 128 : '.$files[0],'notice');
             $instawp_plugin->restore_data->write_log('Finished restoring files : '.print_r($files,true),'notice');
                         
-            $progress = 23;
+            //$progress = 23;
             //self::instawp_restore_process_log_status( $progress );
 
             return $ret;
         }
     }
 
-    public static function instawp_restore_process_log_status( $progress ){
+    /*public static function instawp_restore_process_log_status( $progress ){
         global $InstaWP_Curl;
         global $instawp_plugin;
         
@@ -206,7 +206,7 @@ class InstaWP_Restore
                 // }
             }
         }
-    }
+    }*/
 
     public function restore_crypt_db( $file,$restore_task,$option,$local_path ) {
         $general_setting = InstaWP_Setting::get_setting(true, "");
