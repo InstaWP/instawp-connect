@@ -4404,7 +4404,7 @@ public function instawp_handle_remote_storage_error( $error_message, $error_type
             $this->restore_data->init_restore_data($backup_id, $restore_options);
             $this->restore_data->write_log('init restore data restore 4405 api function', 'notice');
             $progress = 10;
-            //InstaWP_Restore::instawp_restore_process_log_status( $progress ); 
+            InstaWP_Restore::instawp_restore_process_log_status( $progress ); 
 
          }
       } catch ( Exception $error ) {
