@@ -135,8 +135,8 @@ class InstaWP_Restore
             $instawp_plugin->restore_data->write_log('Finished restoring 2 - 128 : '.$files[0],'notice');
             $instawp_plugin->restore_data->write_log('Finished restoring files : '.print_r($files,true),'notice');
                         
-            $progress = 10;
-            self::instawp_restore_process_log_status( $progress );
+            $progress = 23;
+            //self::instawp_restore_process_log_status( $progress );
 
             return $ret;
         }
@@ -172,36 +172,38 @@ class InstaWP_Restore
                 $url = $api_doamin . INSTAWP_API_URL . '/connects/' . $id . '/restore_status';
 
                 $header  = array(
-                    'Authorization' => 'Bearer ' . $api_key,
-                    'Accept'        => 'application/json',
-                    //'Content-Type'  => 'application/json;charset=UTF-8',            
+                    'Authorization' => 'Bearer'.$api_key,
                 );
-                
-                $body = json_encode( 
-                    array( 
-                        'task_id' => $task_id,
-                        'progress' => $progress,
-                        'completed' => true,
-                    )
+                $body = array( 
+                    'task_id' => $task_id,
+                    'progress' => $progress,
+                    'completed' => false,
+                    "destination_url" => get_site_url(),
                 );
 
+                error_log("BODY BEFORE CALL \n : ". print_r( $body, true ) . "\n");
+                $this->instawp_log->WriteLog('BODY BEFORE CALL \n : '.print_r( $body, true ), 'notice');
+                
                 $response = wp_remote_post($url, array(
                     'headers' => $header,
                     'body'    => $body,            
                 ));
-
-                
                 $this->instawp_log->WriteLog('Start Restore Response : '.print_r($response, true), 'notice');
-
+                
                 $response_code = wp_remote_retrieve_response_code( $response );
-                $this->instawp_log->WriteLog('Start Restore Response : '.$response_code, 'notice');
+                $response_body = wp_remote_retrieve_body($response);
+                error_log("response_body \n : ". print_r( $response_body, true ) );
+                error_log("response_code : ". $response_code );                
+                
+                $this->instawp_log->WriteLog('Restore Response : '.$response_code, 'notice');
 
-                if ( ! is_wp_error($response) && $response_code == 200 ) {
-                    $body = (array) json_decode(wp_remote_retrieve_body($response), true);
-                    $this->instawp_log->WriteLog('Body Response : '.print_r($body, true), 'notice');
-                    echo json_encode($response);
-                    wp_die();
-                }
+                $this->instawp_log->WriteLog('Restore Response : '.print_r($response_body, true), 'notice');
+                // if ( ! is_wp_error($response) && $response_code == 200 ) {
+                //     $body = (array) json_decode(wp_remote_retrieve_body($response), true);
+                //     $this->instawp_log->WriteLog('Body Response : '.print_r($body, true), 'notice');
+                //     echo json_encode($response);
+                //     wp_die();
+                // }
             }
         }
     }
