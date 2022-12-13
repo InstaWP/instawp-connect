@@ -136,7 +136,7 @@ class InstaWP_Restore
             $instawp_plugin->restore_data->write_log('Finished restoring files : '.print_r($files,true),'notice');
                         
             $progress = 23;
-            //self::instawp_restore_process_log_status( $progress );
+            self::instawp_restore_process_log_status( $progress );
 
             return $ret;
         }
