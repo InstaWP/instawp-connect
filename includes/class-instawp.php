@@ -40,7 +40,6 @@ class instaWP
 
    public $instawp_log;
    public $instawp_download_log;
-   public $instawp_restore_log;
 
    public $current_task;
 
@@ -4409,84 +4408,54 @@ public function instawp_handle_remote_storage_error( $error_message, $error_type
 
 
             /*Instatiate the api call for updating the restore status statically to cloud from stage site/destination site*/
-            // $backup_reports = get_option( 'instawp_backup_reports', array() );
-            // $task_id = '';
-            // if( !empty( $backup_reports ) ){
-            //     foreach ($backup_reports as $key => $report ) {
-            //         $task_id =  $report['task_id'];
-            //     }
-            // }
-            
+
             $task_id = '';
-            $api_key = '';
             $bkp_init_opt = get_option('instawp_backup_init_options', '');
-                        
-            error_log("Restore API Task ID ===>".$task_id);
+            $task_id = $bkp_init_opt['task_info']['task_id'];
             $instawp_api_options = get_option('instawp_api_options');   
-            if( !empty( $instawp_api_options ) ){
-               $api_key = $instawp_api_options['api_key'];
-            }
-
+            $api_key = $instawp_api_options['api_key'];
             $connect_ids = get_option('instawp_connect_id_options', '');
-            if ( ! empty($connect_ids) &&  !empty( $bkp_init_opt ) && !empty( $api_key ) ) {
+            if ( ! empty($connect_ids) ) {
                if ( isset($connect_ids['data']['id']) && ! empty($connect_ids['data']['id']) ) {
+                  // Create log file
+                  $instawp_restore_update_to_cloud_log = new InstaWP_Log();
+                  $instawp_restore_update_to_cloud_log->CreateLogFile('instawp_restore_st_to_cloud', 'no_folder', 'Update restore status calls to cloud');
+
                   $id  = $connect_ids['data']['id'];
-
-                  $task_id = $bkp_init_opt['task_info']['task_id'];
-
-                  error_log("Restore API Connect ID ===>".$id);
-
                   $api_doamin = InstaWP_Setting::get_api_domain();
                   $url = $api_doamin . INSTAWP_API_URL . '/connects/' . $id . '/restore_status';
-
-                  error_log("Restore API Connect URL ===>".$url);
 
                   $args = array(
                      'headers'     => array(
                         'Authorization' => 'Bearer '.$api_key
                      ),
                      'body' => array(
-                         "task_id"         => $task_id,
-                         "progress"        => 19,
-                         "message"         => "intialized the restore process",
-                         "connect_id"      => $id,
-                         "completed"       => false,
-                         "status"          => false,
-                         "destination_url" => get_site_url(),
+                        "task_id"         => $task_id,
+                        "progress"        => 19,
+                        "message"         => "intialized the restore process",
+                        "connect_id"      => $id,
+                        "completed"       => false,
+                        "status"          => false,
+                        "destination_url" => get_site_url(),
                      )
-                  ); 
+                  );
+                  
                   $response = wp_remote_post( $url, $args );
 
-                  error_log("ARGS \n". json_encode($args));
-                  $response_code = wp_remote_retrieve_response_code($response);
-                  $body = json_decode(wp_remote_retrieve_body($response), true);
-
-                  error_log("RESPONSE CODE ==> ".$response_code);                  
-
-                  error_log("REMOTE BODY RESPONSE  ===>".print_r($body,true));
-                  if ( ! is_wp_error($response) && $response_code == 200 ) {
-                     $body = json_decode(wp_remote_retrieve_body($response), true);
-                     error_log("REMOTE BODY RESPONSE  ===>".print_r($body,true));
-                  }  
-
-                  // Create log file
-                  $this->instawp_restore_log->CreateLogFile('instawp_restore_status_update_to_cloud_calls', 'no_folder', 'Update restore status calls to cloud');               
-
-                  // Task ID
-                  $this->instawp_restore_log->WriteLog('Initial Update Restore Status call Task ID : '. $task_id, 'notice');
 
                   // log the called url
-                  $this->instawp_restore_log->WriteLog('Initial Update Restore Status call has made to cloud the url is : '. $url, 'notice');
-
+                  $instawp_restore_update_to_cloud_log->WriteLog('Initial Update Restore Status call has made to cloud the url is : '. $url, 'notice');
                   // log the body json data passed
-                  $this->instawp_restore_log->WriteLog('Initial Update Restore Status call has made to cloud the body json is : '. json_encode($args), 'notice');
+                  $instawp_restore_update_to_cloud_log->WriteLog('Initial Update Restore Status call has made to cloud the body is : '. json_encode($args), 'notice');
 
-                  error_log("REMOTE RESTORE RES".$body);
-                 
-                  // response is success and then logged
-                  $this->instawp_restore_log->WriteLog('After success Restore Status call made to cloud the response : '. json_encode($body), 'notice');
+                  $response_code = wp_remote_retrieve_response_code($response);
 
-                  $this->instawp_log->CloseFile();
+                  $response_body = wp_remote_retrieve_body($response);
+
+                  $instawp_restore_update_to_cloud_log->WriteLog('After success Restore Status call made to cloud the response code is: '. $response_code, 'notice');
+                  $instawp_restore_update_to_cloud_log->WriteLog('Initial Status call made to cloud the and response body is : '. $response_body, 'notice');
+
+                  $instawp_restore_update_to_cloud_log->CloseFile();
                }
             }
             /*Instatiate the api call for updating the restore status statically to cloud from stage site/destination site*/
