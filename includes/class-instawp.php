@@ -4407,62 +4407,7 @@ public function instawp_handle_remote_storage_error( $error_message, $error_type
             $this->restore_data->write_log('init restore data restore 4405 api function', 'notice');
 
 
-            /*Instatiate the api call for updating the restore status statically to cloud from stage site/destination site*/
-
-            $task_id = get_option('instawp_init_restore', false);
-            $instawp_api_options = get_option('instawp_api_options');   
-            $api_key = $instawp_api_options['api_key'];
-            $connect_ids = get_option('instawp_connect_id_options', '');
-            if ( ! empty($connect_ids) && $task_id != false) {
-               if ( isset($connect_ids['data']['id']) && ! empty($connect_ids['data']['id']) ) {
-                  // Create log file
-                  $instawp_restore_update_to_cloud_log = new InstaWP_Log();
-                  $instawp_restore_update_to_cloud_log->CreateLogFile('instawp_restore_st_to_cloud', 'no_folder', 'Update restore status calls to cloud');
-
-                  $id  = $connect_ids['data']['id'];
-
-                  $api_doamin = InstaWP_Setting::get_api_domain();
-                  $url = $api_doamin . INSTAWP_API_URL . '/connects/' . $id . '/restore_status';
-
-                  $args = array(
-                     'headers'     => array(
-                        'Authorization' => 'Bearer '.$api_key
-                     ),
-                     'body' => array(
-                        "task_id"         => $task_id,
-                        "progress"        => 19,
-                        "message"         => "intialized the restore process",
-                        "connect_id"      => $id,
-                        "completed"       => false,
-                        "status"          => false,
-                        "destination_url" => get_site_url(),
-                     )
-                  );
-                  
-                  $response = wp_remote_post( $url, $args );
-
-
-                  // log the called url
-                  $instawp_restore_update_to_cloud_log->WriteLog('Initial Update Restore Status call has made to cloud the url is : '. $url, 'notice');
-                  // log the body json data passed
-                  $instawp_restore_update_to_cloud_log->WriteLog('Initial Update Restore Status call has made to cloud the body is : '. json_encode($args), 'notice');
-
-                  $response_code = wp_remote_retrieve_response_code($response);
-
-                  $response_body = wp_remote_retrieve_body($response);
-
-                  $instawp_restore_update_to_cloud_log->WriteLog('After success Restore Status call made to cloud the response code is: '. $response_code, 'notice');
-                  $instawp_restore_update_to_cloud_log->WriteLog('Initial Status call made to cloud the and response body is : '. $response_body, 'notice');
-
-                  $instawp_restore_update_to_cloud_log->CloseFile();
-               }
-               
-            }
-            /*Instatiate the api call for updating the restore status statically to cloud from stage site/destination site*/
-
-
-            //$progress = 10;
-            //InstaWP_Restore::instawp_restore_process_log_status( $progress ); 
+            // $this->restore_status($response['message'], 100);
 
          }
       } catch ( Exception $error ) {

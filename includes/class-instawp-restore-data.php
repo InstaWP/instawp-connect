@@ -30,6 +30,11 @@ class InstaWP_restore_data
         global $instawp_plugin;
         $backup = $this->get_backup_data();
         $backup_item = new InstaWP_Backup_Item($backup);
+
+        //not sure why I am putting this to be honest. 
+        if(!is_array($this->restore_cache['restore_tasks']))
+            return;
+
         foreach ( $this->restore_cache['restore_tasks'] as $index => $task ) {
             if ( isset($task['option']) && isset($task['option']['has_child']) ) {
                 $has_child = 1;

@@ -420,11 +420,12 @@ class InstaWP_Backup_Api
    }
 
    public function restore_status($message, $progress = 100) {
+      error_log("Restore Status");
+
       $task_id =       get_option('instawp_init_restore', false);
       if(!$task_id)
          return;
 
-      error_log("Restore Status");
       global $InstaWP_Curl;
        $body = array(
 		   "task_id"         => $task_id,
@@ -476,11 +477,12 @@ class InstaWP_Backup_Api
                if ( $curl_response['error'] == false ) {
 
                   $this->instawp_log->WriteLog('After Update Restore Status call made the response : '. $curl_response['curl_res'], 'notice');
-                  $this->instawp_log->CloseFile();
                   $response              = (array) json_decode($curl_response['curl_res'], true);
                   $response['task_info'] = $body;
                   update_option('instawp_backup_status_options', $response);                  
                }
+
+               $this->instawp_log->CloseFile();
             }
          }
          error_log('instawp rest api \n '.print_r(get_option( 'instawp_backup_status_options'),true));
