@@ -4409,19 +4409,18 @@ public function instawp_handle_remote_storage_error( $error_message, $error_type
 
             /*Instatiate the api call for updating the restore status statically to cloud from stage site/destination site*/
 
-            $task_id = '';
-            $bkp_init_opt = get_option('instawp_backup_init_options', '');
-            $task_id = $bkp_init_opt['task_info']['task_id'];
+            $task_id = get_option('instawp_init_restore', false);
             $instawp_api_options = get_option('instawp_api_options');   
             $api_key = $instawp_api_options['api_key'];
             $connect_ids = get_option('instawp_connect_id_options', '');
-            if ( ! empty($connect_ids) ) {
+            if ( ! empty($connect_ids) && $task_id != false) {
                if ( isset($connect_ids['data']['id']) && ! empty($connect_ids['data']['id']) ) {
                   // Create log file
                   $instawp_restore_update_to_cloud_log = new InstaWP_Log();
                   $instawp_restore_update_to_cloud_log->CreateLogFile('instawp_restore_st_to_cloud', 'no_folder', 'Update restore status calls to cloud');
 
                   $id  = $connect_ids['data']['id'];
+
                   $api_doamin = InstaWP_Setting::get_api_domain();
                   $url = $api_doamin . INSTAWP_API_URL . '/connects/' . $id . '/restore_status';
 
@@ -4457,6 +4456,7 @@ public function instawp_handle_remote_storage_error( $error_message, $error_type
 
                   $instawp_restore_update_to_cloud_log->CloseFile();
                }
+               
             }
             /*Instatiate the api call for updating the restore status statically to cloud from stage site/destination site*/
 
