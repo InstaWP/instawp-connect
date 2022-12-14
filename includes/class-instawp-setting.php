@@ -109,13 +109,37 @@ class InstaWP_Setting
             }
             /* API KEY Store Code End */
 
-            /* Connect ID Store Code Stat */
+            /* Connect ID Store Code Start */     
             $url = $api_doamin . INSTAWP_API_URL . '/connects';    
             $php_version  = substr( phpversion(), 0, 3);
-            $body = json_encode(array( "url" => get_site_url(), 'php_version' => $php_version));
+            $username = null;
+            $admin_users = get_users(
+                array(
+                    'role__in' => array( 'administrator' ),
+                    'fields' => array( 'user_login' )
+                )
+            );
+
+            if ( ! empty( $admin_users ) ) {
+                    if (is_null($username)) {
+                        foreach ($admin_users as $admin) {
+                        $username = $admin->user_login;
+                    }
+                }
+            }
+
+            $body = json_encode(
+                array( 
+                    "url" => get_site_url(), 
+                    "php_version" => $php_version,
+                    "username" => !is_null($username) ? base64_encode($username) : "",
+                )
+            );
                   
             $curl_response = $InstaWP_Curl->curl($url, $body );
-            //die;
+            update_option('instawp_connect_id_options_err', $curl_response);
+            error_log("curl_response on generate \n". print_r($curl_response,true));
+            
             if ( $curl_response['error'] == false ) {
                 $response = (array) json_decode($curl_response['curl_res'], true);
 

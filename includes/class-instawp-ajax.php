@@ -63,17 +63,26 @@ class InstaWP_AJAX
       }
    }
 
-   // Remove From settings internal
-   public static function deleter_folder_handle(){
-      if ( isset( $_REQUEST['delete_wpnonce'] ) && wp_verify_nonce( $_REQUEST['delete_wpnonce'], 'delete_wpnonce' ) ) {
+    // Remove From settings internal
+    public static function deleter_folder_handle(){
+        if ( isset( $_REQUEST['delete_wpnonce'] ) && wp_verify_nonce( $_REQUEST['delete_wpnonce'], 'delete_wpnonce' ) ) {
 
-         self::instawp_folder_remover_handle();
-
-         $redirect_url = admin_url( "admin.php?page=instawp-settings" );
-         wp_redirect($redirect_url);
-         exit();
-      }
-   }
+            /* Delete Instawp related Options Start */         
+            global $wpdb;
+            $options_table = $wpdb->prefix."options";
+            $sql = "DELETE FROM $options_table WHERE option_name LIKE '%instawp%' AND option_name !='instawp_api_url'";
+            $query = $wpdb->query($sql);
+            /* Delete Instawp related Options End */
+            
+            self::instawp_folder_remover_handle();     
+            //After Delete Option Set API Domain
+            InstaWP_Setting::set_api_domain();
+            
+            $redirect_url = admin_url( "admin.php?page=instawp-settings&internal=1" );
+            wp_redirect($redirect_url);     
+            exit();
+        }
+    }
 
    /*Handle Js call to remove option*/
    public function instawp_logger_handle(){
@@ -87,7 +96,7 @@ class InstaWP_AJAX
          update_option( 'instawp_finish_upload',array() );
          update_option( 'instawp_staging_list',array() );
          //self::instawp_folder_remover_handle();
-
+         
          $res_array['message']  = 'success';
          $res_array['status']  = 1;
       }else{
@@ -327,38 +336,41 @@ class InstaWP_AJAX
 
    
 
-   public function check_key() {
+    public function check_key() {
+        global $InstaWP_Curl;
+        $this->ajax_check_security();
+        $res = array(
+            'error'   => true,
+            'message' => '',
+        );
+        $api_doamin = InstaWP_Setting::get_api_domain();
+        $url = $api_doamin . INSTAWP_API_URL . '/check-key';
 
-      $this->ajax_check_security();
-      $res = array(
-        'error'   => true,
-        'message' => '',
-     );
-      $api_doamin = InstaWP_Setting::get_api_domain();
-      $url = $api_doamin . INSTAWP_API_URL . '/check-key';
-
-      if ( isset($_REQUEST['api_key']) && empty($_REQUEST['api_key']) ) {
-         $res['message'] = 'API Key is required';
-         echo json_encode($res);
-         wp_die();
-      }
-      $api_key = sanitize_text_field( wp_unslash( $_REQUEST['api_key'] ) );
+        if ( isset($_REQUEST['api_key']) && empty($_REQUEST['api_key']) ) {
+            $res['message'] = 'API Key is required';
+            echo json_encode($res);
+            wp_die();
+        }
+        $api_key = sanitize_text_field( wp_unslash( $_REQUEST['api_key'] ) );
+        
+        $response = wp_remote_get( $url, 
+            array(
+                'body'    => '',
+                'headers' => array(
+                    'Authorization' => 'Bearer ' . $api_key,
+                    'Accept'        => 'application/json',
+                ),
+        
+            )
+        );
       
-      $response = wp_remote_get($url, array(
-        'body'    => '',
-        'headers' => array(
-         'Authorization' => 'Bearer ' . $api_key,
-         'Accept'        => 'application/json',
-      ),
-     ));
-      
-      $response_code = wp_remote_retrieve_response_code($response);
+        $response_code = wp_remote_retrieve_response_code($response);
 
-      if ( ! is_wp_error($response) && $response_code == 200 ) {
-         $body = (array) json_decode(wp_remote_retrieve_body($response), true);
+        if ( ! is_wp_error($response) && $response_code == 200 ) {
+            $body = (array) json_decode(wp_remote_retrieve_body($response), true);
 
-         $connect_options = array();
-         if ( $body['status'] == true ) {
+            $connect_options = array();
+            if ( $body['status'] == true ) {
 
             $connect_options['api_key']  = $api_key;
             //$connect_options['api_heartbeat']  = $api_heartbeat;
@@ -366,6 +378,49 @@ class InstaWP_AJAX
             
             //InstaWP_Setting::update_connect_option('instawp_connect_options',$connect_options,'api_key_opt');
             update_option('instawp_api_options', $connect_options);
+
+            /* Set Connect ID on Check API KEY Code Start */
+            $connect_url = $api_doamin . INSTAWP_API_URL . '/connects';    
+            $php_version  = substr( phpversion(), 0, 3);
+            $username = null;
+            $admin_users = get_users(
+                array(
+                    'role__in' => array( 'administrator' ),
+                    'fields' => array( 'user_login' )
+                )
+            );
+
+            if ( ! empty( $admin_users ) ) {
+                    if (is_null($username)) {
+                        foreach ($admin_users as $admin) {
+                        $username = $admin->user_login;
+                    }
+                }
+            }
+
+            $connect_body = json_encode(
+                array( 
+                    "url" => get_site_url(), 
+                    "php_version" => $php_version,
+                    "username" => !is_null($username) ? base64_encode($username) : "",
+                )
+            );
+
+            $curl_response = $InstaWP_Curl->curl($connect_url, $connect_body );
+            update_option('instawp_connect_id_options_err', $curl_response);
+                        
+            if ( $curl_response['error'] == false ) {
+                $response = (array) json_decode($curl_response['curl_res'], true);
+
+                if ( $response['status'] == true ) {
+                    $connect_options = InstaWP_Setting::get_option('instawp_connect_options',array() );
+                    $connect_id = $response['data']['id'];
+                    $connect_options[ $connect_id ] = $response;
+                    update_option('instawp_connect_id_options', $response);
+                }
+            }
+            /* Set Connect ID on Check API KEY Code End */
+            error_log("BoDY MEssage: ". $body['message'] );
             $res = array(
                'error'   => false,
                'message' => $body['message'],
@@ -389,7 +444,6 @@ class InstaWP_AJAX
    public function connect() {
 
       global $InstaWP_Curl;
-
       $this->ajax_check_security();
       $res = array(
         'error'   => true,
@@ -437,7 +491,6 @@ class InstaWP_AJAX
   /*Debugging*/
 
   $curl_response = $InstaWP_Curl->curl($url, $body);
-
   update_option('instawp_connect_id_options_err', $curl_response);
   if ( $curl_response['error'] == false ) {
 
