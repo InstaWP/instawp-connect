@@ -36,6 +36,8 @@ class instaWP
 
    protected $plugin_name;
 
+   public $instawp_log;
+
    protected $version;
 
    public $instawp_log;
@@ -70,6 +72,8 @@ class instaWP
       $this->end_shutdown_function = false;
 
       $this->restore_data = false;
+
+      $this->instawp_log = new InstaWP_Log();
 
       //Load dependent files
       $this->load_dependencies();
@@ -4407,7 +4411,7 @@ public function instawp_handle_remote_storage_error( $error_message, $error_type
 
 
             /*Instatiate the api call for updating the restore status statically to cloud from stage site/destination site*/
-            
+
             // $backup_reports = get_option( 'instawp_backup_reports', array() );
             // $task_id = '';
             // if( !empty( $backup_reports ) ){
