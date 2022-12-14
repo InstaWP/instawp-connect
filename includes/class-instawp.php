@@ -40,6 +40,7 @@ class instaWP
 
    public $instawp_log;
    public $instawp_download_log;
+   public $instawp_restore_log;
 
    public $current_task;
 
