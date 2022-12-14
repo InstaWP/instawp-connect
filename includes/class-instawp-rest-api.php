@@ -419,7 +419,7 @@ class InstaWP_Backup_Api
       return $REST_Response;
    }
 
-   public function ($message, $progress = 100) {
+   public function restore_status($message, $progress = 100) {
       // error_log("Restore Status");
 
       $task_id =       get_option('instawp_init_restore', false);
