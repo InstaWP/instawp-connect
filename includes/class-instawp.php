@@ -4406,13 +4406,18 @@ public function instawp_handle_remote_storage_error( $error_message, $error_type
 
 
             /*Instatiate the api call for updating the restore status statically to cloud from stage site/destination site*/
-            $backup_reports = get_option( 'instawp_backup_reports', array() );
+            // $backup_reports = get_option( 'instawp_backup_reports', array() );
+            // $task_id = '';
+            // if( !empty( $backup_reports ) ){
+            //     foreach ($backup_reports as $key => $report ) {
+            //         $task_id =  $report['task_id'];
+            //     }
+            // }
+            
             $task_id = '';
-            if( !empty( $backup_reports ) ){
-                foreach ($backup_reports as $key => $report ) {
-                    $task_id =  $report['task_id'];
-                }
-            }
+            $bkp_init_opt = get_option('instawp_backup_init_options', '');
+            $task_id = $bkp_init_opt['task_info']['task_id'];
+
             $connect_ids = get_option('instawp_connect_id_options', '');
                if ( ! empty($connect_ids) ) {
                   if ( isset($connect_ids['data']['id']) && ! empty($connect_ids['data']['id']) ) {
@@ -4433,6 +4438,9 @@ public function instawp_handle_remote_storage_error( $error_message, $error_type
 
                      // Create log file
                      $this->instawp_log->CreateLogFile('instawp_restore_status_update_to_cloud_calls', 'no_folder', 'Update restore status calls to cloud');               
+
+                     // Task ID
+                     $this->instawp_log->WriteLog('Initial Update Restore Status call Task ID : '. $task_id, 'notice');
 
                      // log the called url
                      $this->instawp_log->WriteLog('Initial Update Restore Status call has made to cloud the url is : '. $url, 'notice');

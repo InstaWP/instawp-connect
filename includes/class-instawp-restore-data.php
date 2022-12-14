@@ -256,6 +256,24 @@ class InstaWP_restore_data
         return $next_task;
     }
 
+    public function get_next_restore_task_count() {
+        $next_task = false;
+        if ( $this->restore_cache === false ) {
+            $this->restore_cache = InstaWP_tools::file_get_array($this->restore_data_file);
+        }
+        $wait_running = 0;
+        $total = count($this->restore_cache['restore_tasks']);
+
+        foreach ( $this->restore_cache['restore_tasks'] as $index => $task ) {
+                if ( $task['status'] === INSTAWP_RESTORE_WAIT || $task['status'] === INSTAWP_RESTORE_RUNNING ) {
+                $wait_running++;
+            }
+        }
+
+        return array( $wait_running, $total );
+    }
+
+
     public function update_error( $error,$error_task='',$table=array() ) {
         if ( $this->restore_cache === false ) {
             $this->restore_cache = InstaWP_tools::file_get_array($this->restore_data_file);
