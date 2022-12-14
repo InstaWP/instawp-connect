@@ -447,7 +447,7 @@ class InstaWP_Backup_Api
                error_log('Update Restore Status call has made the url is : '. $url);
                error_log('Update Restore Status call has made the url is : '. $url);
 
-               $this->instawp_log->CreateLogFile('update_restore_status_call', 'no_folder', 'Update restore status call');               
+               //$this->instawp_log->CreateLogFile('update_restore_status_call', 'no_folder', 'Update restore status call');               
 
                $this->instawp_log->WriteLog('Restore Status percentage is : '. $restore_progress_option, 'notice');
                $this->instawp_log->WriteLog('Update Restore Status call has made the body is : '. $body_json, 'notice');
