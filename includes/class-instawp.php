@@ -217,8 +217,6 @@ class instaWP
             }
          }
       }
-      wp_redirect( wp_login_url('', false) );
-      exit();
    }
 
    // Set Cron time interval function
