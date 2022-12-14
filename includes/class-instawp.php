@@ -4345,7 +4345,8 @@ public function instawp_handle_remote_storage_error( $error_message, $error_type
    }
 
    public function restore_api( $backup_id, $restore_options_json ) {
-      global $InstaWP_Curl;
+      global $InstaWP_Curl, $instawp_plugin;
+
       //check_ajax_referer( 'instawp_ajax', 'nonce' );
       // print_r($restore_options_json);
       // die;
@@ -4406,6 +4407,7 @@ public function instawp_handle_remote_storage_error( $error_message, $error_type
 
 
             /*Instatiate the api call for updating the restore status statically to cloud from stage site/destination site*/
+            
             // $backup_reports = get_option( 'instawp_backup_reports', array() );
             // $task_id = '';
             // if( !empty( $backup_reports ) ){
