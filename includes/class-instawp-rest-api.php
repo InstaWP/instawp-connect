@@ -411,7 +411,7 @@ class InstaWP_Backup_Api
          $response['message'] = 'Something Went Wrong';
       }
       
-      $res_result = $this->restore_status($response['message'], $progress);
+      $res_result = $this->restore_status($response['message'], 100);
       //$this->_disable_maintenance_mode();
       $res      = $instawp_plugin->delete_last_restore_data_api();
       $REST_Response = new WP_REST_Response($res_result);
