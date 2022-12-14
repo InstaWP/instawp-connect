@@ -420,7 +420,7 @@ class InstaWP_Backup_Api
    }
 
    public function restore_status($message, $progress = 100) {
-      error_log("Restore Status");
+      // error_log("Restore Status");
 
       $task_id =       get_option('instawp_init_restore', false);
       if(!$task_id)
@@ -445,19 +445,19 @@ class InstaWP_Backup_Api
                $url = $api_doamin . INSTAWP_API_URL . '/connects/' . $id . '/restore_status';
 
                // restore preogress precetage
-               $restore_progress_option = get_option('instawp_restore_progress_percents', "0");
-               error_log('Restore Status percentage is : '. $restore_progress_option);
+               // $restore_progress_option = get_option('instawp_restore_progress_percents', "0");
+               // error_log('Restore Status percentage is : '. $restore_progress_option);
 
-               $body = array(
-                  "task_id"         => $task_id,
-                  // "type"     => 'restore',
-                  "progress"        => $restore_progress_option,
-                  "message"         => $message,
-                  "connect_id"      => $id,
-                  "completed"       => true,
-                  "status"          => true,
-                  "destination_url" => get_site_url(),
-               );
+               // $body = array(
+               //    "task_id"         => $task_id,
+               //    // "type"     => 'restore',
+               //    "progress"        => $progress,
+               //    "message"         => $message,
+               //    "connect_id"      => $id,
+               //    "completed"       => true,
+               //    "status"          => true,
+               //    "destination_url" => get_site_url(),
+               // );
                $body_json     = json_encode($body);
 
 
@@ -485,7 +485,7 @@ class InstaWP_Backup_Api
                $this->instawp_log->CloseFile();
             }
          }
-         error_log('instawp rest api \n '.print_r(get_option( 'instawp_backup_status_options'),true));
+         // error_log('instawp rest api \n '.print_r(get_option( 'instawp_backup_status_options'),true));
          update_option('instawp_finish_restore', $message);
          return $body;
    }

@@ -30,7 +30,7 @@ class InstaWP_Restore
             $instawp_plugin->restore_data->write_log('Restore task completed.','notice');
 
             // restore preogress precetage
-            update_option('instawp_restore_progress_percents', "100");
+            // update_option('instawp_restore_progress_percents', "100");
 
             $instawp_plugin->restore_data->update_status(INSTAWP_RESTORE_COMPLETED);
             //InstaWP_AJAX::instawp_folder_remover_handle();
