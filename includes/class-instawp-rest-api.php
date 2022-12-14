@@ -280,10 +280,11 @@ class InstaWP_Backup_Api
          $response->set_status(200);
          return $response;
       }
-      $res = $this->_config_check_key($parameters['api_key']);
       if(isset($parameters['api_domain'])) {
-	      InstaWP_Setting::set_api_domain($parameters['api_domain']);
+	 InstaWP_Setting::set_api_domain($parameters['api_domain']);
       }
+      $res = $this->_config_check_key($parameters['api_key']);
+      
       $this->instawp_log->CloseFile();
       if ( $res['error'] == false ) {
          $connect_ids = get_option('instawp_connect_id_options', '');
