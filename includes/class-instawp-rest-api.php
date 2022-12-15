@@ -130,6 +130,17 @@ class InstaWP_Backup_Api
 			autoptimizeCache::clearall();
 	    }
 
+	    // Clear cache for - Lite Speed Cache
+	    if( is_plugin_active('litespeed-cache/litespeed-cache.php' ) ) {
+			\LiteSpeed\Purge::purge_all();
+	    }
+
+	    // Clear cache for - WP Fastest Cache
+	    if( is_plugin_active('wp-fastest-cache/wpFastestCache.php' ) ) {
+		    wpfc_clear_all_site_cache();
+		    wpfc_clear_all_cache( true );
+	    }
+
 	    return new WP_REST_Response( array( 'error' => false, 'message' => esc_html('Cache clear success' ) ) );
     }
 
