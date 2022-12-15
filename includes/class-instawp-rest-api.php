@@ -141,7 +141,13 @@ class InstaWP_Backup_Api
 		    wpfc_clear_all_cache( true );
 	    }
 
-	    return new WP_REST_Response( array( 'error' => false, 'message' => esc_html('Cache clear success' ) ) );
+	   // Clear cache for - WP Super Cache
+	   if( is_plugin_active('wp-super-cache/wp-cache.php' ) ) {
+		   global $file_prefix;
+		   wp_cache_clean_cache( $file_prefix, true );
+	   }
+
+	   return new WP_REST_Response( array( 'error' => false, 'message' => esc_html('Cache clear success' ) ) );
     }
 
 
