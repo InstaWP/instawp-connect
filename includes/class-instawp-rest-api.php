@@ -110,13 +110,21 @@ class InstaWP_Backup_Api
 		    return new WP_REST_Response( array( 'error' => true, 'message' => esc_html('API key mismatch' ) ) );
 	    }
 
+		if( ! function_exists( 'is_plugin_active' ) ) {
+			include_once ABSPATH . 'wp-admin/includes/plugin.php';
+		}
+
 	    // Clear cache of - WP Rocket
 	    if( is_plugin_active('wp-rocket/wp-rocket.php' ) ) {
 		    rocket_clean_minify();
 			rocket_clean_domain();
 	    }
 
-	    return new WP_REST_Response( array( 'error' => false, 'message' => esc_html('Cache clear success' ) ) );
+	    if( is_plugin_active('w3-total-cache/w3-total-cache.php' ) ) {
+		    w3tc_flush_all();
+	    }
+
+	   return new WP_REST_Response( array( 'error' => false, 'message' => esc_html('Cache clear success' ) ) );
     }
 
 
