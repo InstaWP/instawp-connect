@@ -379,12 +379,16 @@ class InstaWP_Backup_Api
 
    // $progress = intval($wait_running / $total);
          //calculating progress
-         $progress = intval(($index / count($backuplist))*100);
+         
 
          //updating restore status
-         $this->restore_status('in_progress', $progress);
+         
 
          do {
+            
+            $progress = intval(($index / count($backuplist))*100);
+
+            
 
             $results_2 = $instawp_plugin->restore_api($key, $restore_options_json);
             //$instawp_plugin->restore_data->write_log('REST API RESULTS 2 '.print_r($results_2,true),'notice');
@@ -392,9 +396,16 @@ class InstaWP_Backup_Api
             $results = $instawp_plugin->get_restore_progress_api($key);
             //$instawp_plugin->restore_data->write_log('REST API RESULTS '.print_r($results,true),'notice');
 
+            $progress = $instawp_plugin->restore_data->get_next_restore_task_progress();
+
+            $this->restore_status('in_progress', $progress);
+
             $ret     = (array) json_decode($results);
+
+            $index ++;
+
          } while ( $ret['status'] != 'completed' || $ret['status'] == 'error' );
-         $index ++;
+         
       }
       if ( $ret['status'] == 'completed' ) {
           $this->instawp_log->WriteLog('Restore Status: '.json_encode($ret), 'success');
@@ -404,14 +415,19 @@ class InstaWP_Backup_Api
          InstaWP_AJAX::instawp_folder_remover_handle();
          $response['status'] = true;
          $response['message'] = 'Restore task completed.';
+
+         $res_result = $this->restore_status($response['message'], 100);
+
       } 
       else {
          $this->instawp_log->WriteLog('Restore Status: '.json_encode($ret), 'error');
          $response['status'] = false;
          $response['message'] = 'Something Went Wrong';
+
+         $res_result = $this->restore_status($response['message'], 80);
       }
       
-      $res_result = $this->restore_status($response['message'], 100);
+      
       //$this->_disable_maintenance_mode();
       $res      = $instawp_plugin->delete_last_restore_data_api();
       $REST_Response = new WP_REST_Response($res_result);

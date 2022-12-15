@@ -261,12 +261,13 @@ class InstaWP_restore_data
         return $next_task;
     }
 
-    public function get_next_restore_task_count() {
+    public function get_next_restore_task_progress() {
         $next_task = false;
         if ( $this->restore_cache === false ) {
             $this->restore_cache = InstaWP_tools::file_get_array($this->restore_data_file);
         }
         $wait_running = 0;
+
         $total = count($this->restore_cache['restore_tasks']);
 
         foreach ( $this->restore_cache['restore_tasks'] as $index => $task ) {
@@ -275,7 +276,11 @@ class InstaWP_restore_data
             }
         }
 
-        return array( $wait_running, $total );
+        if($total > 0) {
+            return intval((($total - $wait_running) / $total)*100);
+        }
+
+        return 0;
     }
 
 
