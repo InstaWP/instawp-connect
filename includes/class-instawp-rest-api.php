@@ -114,17 +114,23 @@ class InstaWP_Backup_Api
 			include_once ABSPATH . 'wp-admin/includes/plugin.php';
 		}
 
-	    // Clear cache of - WP Rocket
+	    // Clear cache for - WP Rocket
 	    if( is_plugin_active('wp-rocket/wp-rocket.php' ) ) {
 		    rocket_clean_minify();
 			rocket_clean_domain();
 	    }
 
+	    // Clear cache for - W3 Total Cache
 	    if( is_plugin_active('w3-total-cache/w3-total-cache.php' ) ) {
 		    w3tc_flush_all();
 	    }
 
-	   return new WP_REST_Response( array( 'error' => false, 'message' => esc_html('Cache clear success' ) ) );
+	    // Clear cache for - Autoptimize
+		if( is_plugin_active('autoptimize/autoptimize.php' ) ) {
+			autoptimizeCache::clearall();
+	    }
+
+	    return new WP_REST_Response( array( 'error' => false, 'message' => esc_html('Cache clear success' ) ) );
     }
 
 
