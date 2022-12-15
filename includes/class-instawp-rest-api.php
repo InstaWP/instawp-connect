@@ -110,9 +110,11 @@ class InstaWP_Backup_Api
 		    return new WP_REST_Response( array( 'error' => true, 'message' => esc_html('API key mismatch' ) ) );
 	    }
 
-		// Clear cache now
-
-
+	    // Clear cache of - WP Rocket
+	    if( is_plugin_active('wp-rocket/wp-rocket.php' ) ) {
+		    rocket_clean_minify();
+			rocket_clean_domain();
+	    }
 
 	    return new WP_REST_Response( array( 'error' => false, 'message' => esc_html('Cache clear success' ) ) );
     }
