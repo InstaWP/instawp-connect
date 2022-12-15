@@ -371,23 +371,14 @@ class InstaWP_Backup_Api
       $restore_options_json = json_encode($restore_options);
       // global $instawp_plugin;
       // $this->restore_log = new InstaWP_Log();
-      $index = 1;
       foreach ( $backuplist as $key => $backup ) {
 
-         // $next_task = $instawp_plugin->restore_data->get_next_restore_task();
-   // array($wait_running, $total) = $instawp_plugin->restore_data->get_next_restore_task_count();
-
-   // $progress = intval($wait_running / $total);
-         //calculating progress
          
 
          //updating restore status
          
 
          do {
-            
-            $progress = intval(($index / count($backuplist))*100);
-
             
 
             $results_2 = $instawp_plugin->restore_api($key, $restore_options_json);
@@ -402,7 +393,6 @@ class InstaWP_Backup_Api
 
             $ret     = (array) json_decode($results);
 
-            $index ++;
 
          } while ( $ret['status'] != 'completed' || $ret['status'] == 'error' );
          
@@ -438,9 +428,9 @@ class InstaWP_Backup_Api
    public function restore_status($message, $progress = 100) {
       // error_log("Restore Status");
 
-      $task_id =       get_option('instawp_init_restore', false);
-      if(!$task_id)
-         return;
+      // $task_id =       get_option('instawp_init_restore', false);
+      // if(!$task_id)
+      //    return;
 
       global $InstaWP_Curl;
        
@@ -459,7 +449,7 @@ class InstaWP_Backup_Api
                $domain = str_replace("http://", "", $domain);
 
                $body = array(
-                  "task_id"         => $task_id,
+                  // "task_id"         => $task_id,
                   // "type"     => 'restore',
                   "progress"        => $progress,
                   "message"         => $message,
