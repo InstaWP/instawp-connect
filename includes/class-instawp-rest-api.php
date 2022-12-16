@@ -79,11 +79,11 @@ class InstaWP_Backup_Api
 
 
 	   // clear cache
-	   register_rest_route($this->namespace . '/' . $this->version_2, '/clear-cache', array(
+	   register_rest_route($this->namespace . '/' . $this->version . '/remote-control', '/clear-cache', array(
 		   'methods'             => 'POST',
 		   'callback'            => array( $this, 'instawp_handle_clear_cache' ),
 		   'permission_callback' => '__return_true',
-	   ));
+	   ) );
    }
 
 
@@ -446,13 +446,13 @@ class InstaWP_Backup_Api
       // $this->restore_log = new InstaWP_Log();
       foreach ( $backuplist as $key => $backup ) {
 
-         
+
 
          //updating restore status
-         
+
 
          do {
-            
+
 
             $results_2 = $instawp_plugin->restore_api($key, $restore_options_json);
             //$instawp_plugin->restore_data->write_log('REST API RESULTS 2 '.print_r($results_2,true),'notice');
@@ -468,7 +468,7 @@ class InstaWP_Backup_Api
 
 
          } while ( $ret['status'] != 'completed' || $ret['status'] == 'error' );
-         
+
       }
       if ( $ret['status'] == 'completed' ) {
           $this->instawp_log->WriteLog('Restore Status: '.json_encode($ret), 'success');
@@ -481,7 +481,7 @@ class InstaWP_Backup_Api
 
          $res_result = $this->restore_status($response['message'], 100);
 
-      } 
+      }
       else {
          $this->instawp_log->WriteLog('Restore Status: '.json_encode($ret), 'error');
          $response['status'] = false;
