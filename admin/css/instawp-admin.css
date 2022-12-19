@@ -94,7 +94,7 @@
 	.quickstart-btn{
 		clear:both;
 		float:none;
-		width:100%;		
+		width:100%;
 	}
 }
 @media screen and (max-width:800px){
@@ -105,7 +105,7 @@
 		display:none;
 	}
     .backuptime{
-		font-size:16px;		
+		font-size:16px;
 	}
 	.backuplist-delete-backup{
 		display:none;
@@ -134,7 +134,7 @@
 	}
 	.quickstart-btn{
 		float:none;
-		width:100%;		
+		width:100%;
 	}
 }
 
@@ -411,7 +411,7 @@
 	align-items: center;
 	justify-content: space-between;
 	border-radius: 18px;
-	
+
 }
 #site-details-progress {
 	text-align: center;
@@ -435,11 +435,11 @@
 	display: none !important;
 }
 .instawp-site-details-heading {
-	margin-bottom: 24px; 
+	margin-bottom: 24px;
 }
 .instawp-site-details-heading span {
 	font-size: 32px;
-	
+
 }
 .site-details p {
 	color: #1F2937;
@@ -447,7 +447,7 @@
 	font-weight: 500;
 }
 #instawp_backuplist_table {
-	display: none !important; 
+	display: none !important;
 }
 
 /* newly added css start*/
@@ -536,3 +536,30 @@
 .limit_notice .error_msg{color: red;font-size: 16px;font-weight: 500;}
 .limit_notice .external_link a{color: #005E54;font-size: 16px;font-weight: 500;text-decoration:none;}
 /* newly added css end*/
+
+
+.instawp-site-details-wrapper {
+	display: none;
+}
+
+.instawp-progress-site-creation {
+	display: none;
+	background: #EFFCF5;
+	width: 50%;
+	height: 30px;
+	border-radius: 50px;
+	margin: 30px auto;
+	position: relative;
+	overflow: hidden;
+}
+
+.instawp-progress-site-creation span.instawp-progress-circle {
+	background: #035d54;
+	width: 0;
+	height: 30px;
+	display: inline-block;
+	position: absolute;
+	left: 0;
+	border-radius: 50px;
+	transition: 1s;
+}

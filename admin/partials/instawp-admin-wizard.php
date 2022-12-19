@@ -500,10 +500,11 @@ if( isset( $_REQUEST['success'] ) && $_REQUEST['success']==true ){
                 </span> 
             </div>
 
+            <div class="instawp-progress-site-creation">
+                <span class="instawp-progress-circle"></span>
+            </div>
+
             <div class="instawp-site-details-wrapper">
-                <p id="site-details-progress" class="<?php echo esc_attr( $progress_class); ?>">
-                    <?php echo esc_html__( 'Please wait Staging Site Creation Is In Progress','instawp-connect' ); ?>
-                </p>
                 <div class="site-details <?php echo esc_attr( $site_class); ?>">
                     <p> <?php echo esc_html__('WP Login Credentials.','instawp-connect') ?></p>
                     

@@ -171,6 +171,7 @@ function instawp_check_runningtask(){
                     if (jsonarray.backup.result === 'success') {
                         instawp_prepare_backup = false;
                         jQuery.each(jsonarray.backup.data, function (index, value) {
+
                             if (value.status.str === 'ready') {
                                 jQuery('#instawp_postbox_backup_percent').html(value.progress_html);
                                 m_need_update = true;
@@ -209,6 +210,14 @@ function instawp_check_runningtask(){
                                 m_need_update = true;
                             }
                             else if (value.status.str === 'completed') {
+
+                                let progressSiteCreation = jQuery('.instawp-progress-site-creation'),
+                                    progressSiteCreationCircle = progressSiteCreation.find('.instawp-progress-circle');
+
+                                progressSiteCreationCircle.css('width', value.data.progress);
+                                progressSiteCreation.fadeIn();
+
+
                                 jQuery('#instawp_postbox_backup_percent').html(value.progress_html);
                                 instawp_control_backup_unlock();
                                 jQuery('#instawp_postbox_backup_percent').hide();
@@ -793,8 +802,6 @@ function instawp_check_staging(){
             if (jsonarray === null) {
                 //instawp_check_staging_interval = setTimeout(instawp_check_staging, 15000);
                 //clearInterval(instawp_check_staging_interval);
-                console.log(jsonarray);
-                
             }
             else {
                 console.log("ON 790 ---> " , jsonarray);
@@ -804,6 +811,7 @@ function instawp_check_staging(){
                     console.log('jsonarray.status == 1');    
                     is_instawp_check_staging_compteted = true;
 
+                    jQuery('.instawp-site-details-wrapper').fadeIn();
                     jQuery('.instawp-stage-links').show();
                     jQuery('.instawp-site-details-heading').show();
 
