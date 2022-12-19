@@ -75,11 +75,11 @@
 }
 @media only screen and (max-width: 1350px){
 	#poststuff #post-body.columns-2 {
-    	margin:0;
+		margin:0;
 	}
-    #wpbody-content #post-body.columns-2 #postbox-container-1 {
-        margin-right: 0;
-        width: 100%;
+	#wpbody-content #post-body.columns-2 #postbox-container-1 {
+		margin-right: 0;
+		width: 100%;
 	}
 
 }
@@ -104,7 +104,7 @@
 	.backup-list-head{
 		display:none;
 	}
-    .backuptime{
+	.backuptime{
 		font-size:16px;		
 	}
 	.backuplist-delete-backup{
@@ -319,9 +319,9 @@
 }
 .instawp-confirm-wrap {
 	display: inline-flex;
-    gap: 8px;
-    align-items: center;
-    margin: 8px 0;
+	gap: 8px;
+	align-items: center;
+	margin: 8px 0;
 }
 .instawp-wizard-container #instawp_email_confirm {
 	margin: 0;
@@ -385,7 +385,7 @@
 .instawp-custom-table-manager{
 	display: none;
 }
- #instawp_postbox_backup {
+#instawp_postbox_backup {
 	display: none;
 }
 .instawp-connect-wizard #instawp_backup_tab {
@@ -393,9 +393,9 @@
 }
 #instawp_postbox_backup_percent {
 	border: none;
-    width: 50%;
-    margin: 0px auto;
-    text-align: center;
+	width: 50%;
+	margin: 0px auto;
+	text-align: center;
 }
 /*.instawp-connect-wizard #instawp_backuplist_table {
 	display: none;
@@ -415,10 +415,10 @@
 }
 #site-details-progress {
 	text-align: center;
-    font-size: 18px;
-    margin: 0 auto;
-    color: #1F2937;
-    font-weight: 600;
+	font-size: 18px;
+	margin: 0 auto;
+	color: #1F2937;
+	font-weight: 600;
 }
 .instawp-site-details-wrapper .instawp-wizard-btn-wrap {
 	width: 100%;
@@ -530,9 +530,68 @@
 }
 
 .wp-menu-image.svg {
-    filter: invert(31%) sepia(14%) saturate(228%) hue-rotate(165deg) brightness(110%) contrast(78%);
+	filter: invert(31%) sepia(14%) saturate(228%) hue-rotate(165deg) brightness(110%) contrast(78%);
 }
 
 .limit_notice .error_msg{color: red;font-size: 16px;font-weight: 500;}
 .limit_notice .external_link a{color: #005E54;font-size: 16px;font-weight: 500;text-decoration:none;}
 /* newly added css end*/
+
+
+/*Button design changes*/
+.instawp-wizard-container .instawp-wizard-btn.figma-design {
+	background: #F3F4F6;
+	padding: 10px 24px;
+	margin-top: 8px;
+	display: block;
+	box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.05);
+	border-radius: 6px;
+	text-decoration: none;
+	font-size: 16px;
+	font-weight: 600;
+}
+
+.instawp-wizard-container .instawp-wizard-btn.figma-design.active {
+	border: 1px solid #11BF85;
+	filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.05));
+	border-radius: 6px;
+	background: #fff;
+}
+.instawp-wizard-container .instawp-wizard-btn.figma-design.active span,
+.instawp-wizard-container .instawp-wizard-btn.figma-design.active p{
+	color: #11BF85;
+}
+
+.instawp-wizard-container .instawp-wizard-btn.figma-design span{
+	color: #333333;
+}
+.instawp-wizard-container .instawp-wizard-btn.figma-design p{
+	color: #4B5563;
+}
+
+.home-screen-backup-customize-options {
+	display: flex;
+	justify-content: center;
+	padding-top: 45px;
+	cursor: pointer;
+	padding-bottom: 20px;
+}
+
+.home-screen-backup-customize-text {
+	margin-top: 4px;
+	margin-left: 4px;
+	font-size: 14px;
+}
+
+.home-screen-backup-customize-checkboxes {
+	width: 55%;
+	margin: 0 auto;
+	padding: 17px;
+	border: 1px solid #F3F4F6;
+	border-radius: 12px;
+}
+.customize-checkbox-wrap{
+	display: flex;
+	column-gap: 5px;
+}
+/*Button design changes ends*/
