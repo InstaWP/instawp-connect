@@ -33,6 +33,19 @@ class InstaWP_Ajax_Fn{
         $InstaWP_db = new InstaWP_DB();
         $tables = $InstaWP_db->tables;
         $rel = $InstaWP_db->get($tables['ch_table']);
+        $encrypted_content = [];
+        if(!empty($rel) && is_array($rel)){
+            foreach($rel as $k => $v){
+                $encrypted_content[] = [
+                    'event_name' => $v->event_name,
+                    'event_slug' => $v->event_slug,
+                    'event_type' => $v->event_type,
+                    'source_id' => $v->source_id,
+                    'user_id' => $v->user_id,
+                ];
+            }
+        }
+
         $TotalPosts = $InstaWP_db->trakingEventsBySlug($tables['ch_table'],null,'post');
         $TotalPages = $InstaWP_db->trakingEventsBySlug($tables['ch_table'],null,'page');
         $TotalPlugins = $InstaWP_db->trakingEventsBySlug($tables['ch_table'],'plugin');
@@ -53,23 +66,13 @@ class InstaWP_Ajax_Fn{
         if(!empty($TotalThemes)){
             $totalEvents['themes'] = $TotalThemes;
         }
-	
-    
-    	$encrypted_content = array(
-            array(
-                'event_slug' => 'post_trash',
-                'source_id' => 132
-            ),
-            array(
-                'event_slug' => 'post_trash',
-                'source_id' => 129
-            )
-        );
+        
         $data = json_encode([
             'encrypted_content' => json_encode($encrypted_content),
             'dest_connect_id' => '935',
             'changes' => json_encode($totalEvents),
-            'upload_wp_user' => $user_id
+            'upload_wp_user' => $user_id,
+            'sync_message' => isset($_POST['sync_message']) ? $_POST['sync_message']: '',
         ]);
       
         $resp = $this->sync_upload($data,null);
@@ -89,15 +92,20 @@ class InstaWP_Ajax_Fn{
     }
 
 
-
+    /*
+    *  Endpoint - /api/v2/connects/$connect_id/syncs
+    *  Example - https://s.instawp.io/api/v2/connects/1009/syncs
+    *  Sync upload Api
+    */
     function sync_upload($data = null, $endpoint = null){
-  
         global $InstaWP_Curl;
         $api_doamin = InstaWP_Setting::get_api_domain();
         $connect_ids  = get_option('instawp_connect_id_options', '');
-        $connect_id = $connect_ids['data']['id'];
-        $url = $api_doamin.'/connects/'.$connect_id.'/syncs';
-        
+        //$connect_id = $connect_ids['data']['id'];
+        $connect_id = 1009;
+        $endpoint = '/api/v2/connects/'.$connect_id.'/syncs';
+        $url = $api_doamin.$endpoint; #https://s.instawp.io/api/v2/connects/1009/syncs
+        $api_key = $this->get_api_key(); 
         try {
             $curl = curl_init();
             curl_setopt_array($curl, array(
@@ -111,7 +119,7 @@ class InstaWP_Ajax_Fn{
                 CURLOPT_CUSTOMREQUEST => 'POST',
                 CURLOPT_POSTFIELDS => $data,
                 CURLOPT_HTTPHEADER => array(
-                    'Authorization: Bearer P3VgWApUGRIdhB9xyPI55ZCLLrte3rIvIEDywRjQ',
+                    'Authorization: Bearer '.$api_key.'',
                     'Content-Type: application/json'
                 ),
             ));
@@ -145,6 +153,10 @@ class InstaWP_Ajax_Fn{
             return $e->getMessage();
         }
     }
-}
 
+    function get_api_key(){
+        $instawp_api_options = get_option('instawp_api_options'); 
+        return $instawp_api_options['api_key'];
+    }
+}
 new InstaWP_Ajax_Fn();
