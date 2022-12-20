@@ -9,87 +9,89 @@ class InstaWP_Upload
     public $task_id;
 
     public function upload( $task_id,$remote_option=null ) {
-        global $instawp_plugin;
-        $this->task_id = $task_id;
-        $task = new InstaWP_Backup_Task($task_id);
-        $files = $task->get_backup_files();
-        InstaWP_taskmanager::update_backup_main_task_progress($this->task_id,'upload',0,0);
 
-        if ( is_null($remote_option) ) {
-            $remote_options = InstaWP_taskmanager::get_task_options($this->task_id,'remote_options');
-
-            if ( sizeof($remote_options) > 1 ) {
-                $result = array(
-					'result' => INSTAWP_FAILED,
-					'error'  => 'not support multi remote storage',
-				);
-                $result = apply_filters('instawp_upload_files_to_multi_remote',$result,$task_id);
-
-                if ( $result['result'] == INSTAWP_SUCCESS ) {
-                    InstaWP_taskmanager::update_backup_main_task_progress($this->task_id,'upload',100,1);
-                    InstaWP_taskmanager::update_backup_task_status($task_id,false,'completed');
-                    return array( 'result' => INSTAWP_SUCCESS );
-                }
-                else {
-                    InstaWP_taskmanager::update_backup_task_status($this->task_id,false,'error',false,false,$result['error']);
-                    return array(
-						'result' => INSTAWP_FAILED,
-						'error'  => $result['error'],
-					);
-                }
-            }
-            else {
-                $remote_option = array_shift($remote_options);
-
-                if ( is_null($remote_option) ) {
-                    return array(
-						'result' => INSTAWP_FAILED,
-						'error'  => 'not select remote storage',
-					);
-                }
-
-                $remote = $instawp_plugin->remote_collection->get_remote($remote_option);
-
-                $result = $remote->upload($this->task_id,$files,array( $this, 'upload_callback' ));
-
-                if ( $result['result'] == INSTAWP_SUCCESS ) {
-                    InstaWP_taskmanager::update_backup_main_task_progress($this->task_id,'upload',100,1);
-                    InstaWP_taskmanager::update_backup_task_status($task_id,false,'completed');
-                    return array( 'result' => INSTAWP_SUCCESS );
-                }
-                else {
-                    $remote ->cleanup($files);
-
-                    InstaWP_taskmanager::update_backup_task_status($this->task_id,false,'error',false,false,$result['error']);
-                    return array(
-						'result' => INSTAWP_FAILED,
-						'error'  => $result['error'],
-					);
-                }
-            }
-        }
-        else {
-            $remote = $instawp_plugin->remote_collection->get_remote($remote_option);
-
-            $result = $remote->upload($this->task_id,$files,array( $this, 'upload_callback' ));
-
-            if ( $result['result'] == INSTAWP_SUCCESS ) {
-                InstaWP_taskmanager::update_backup_main_task_progress($this->task_id,'upload',100,1);
-                InstaWP_taskmanager::update_backup_task_status($task_id,false,'completed');
-                return array( 'result' => INSTAWP_SUCCESS );
-            }
-            else {
-                $remote ->cleanup($files);
-
-                InstaWP_taskmanager::update_backup_task_status($this->task_id,false,'error',false,false,$result['error']);
-                return array(
-					'result' => INSTAWP_FAILED,
-					'error'  => $result['error'],
-				);
-            }
-        }
+//        global $instawp_plugin;
+//        $this->task_id = $task_id;
+//        $task = new InstaWP_Backup_Task($task_id);
+//        $files = $task->get_backup_files();
+//        InstaWP_taskmanager::update_backup_main_task_progress($this->task_id,'upload',0,0);
+//
+//        if ( is_null($remote_option) ) {
+//            $remote_options = InstaWP_taskmanager::get_task_options($this->task_id,'remote_options');
+//
+//            if ( sizeof($remote_options) > 1 ) {
+//                $result = array(
+//					'result' => INSTAWP_FAILED,
+//					'error'  => 'not support multi remote storage',
+//				);
+//                $result = apply_filters('instawp_upload_files_to_multi_remote',$result,$task_id);
+//
+//                if ( $result['result'] == INSTAWP_SUCCESS ) {
+//                    InstaWP_taskmanager::update_backup_main_task_progress($this->task_id,'upload',100,1);
+//                    InstaWP_taskmanager::update_backup_task_status($task_id,false,'completed');
+//                    return array( 'result' => INSTAWP_SUCCESS );
+//                }
+//                else {
+//                    InstaWP_taskmanager::update_backup_task_status($this->task_id,false,'error',false,false,$result['error']);
+//                    return array(
+//						'result' => INSTAWP_FAILED,
+//						'error'  => $result['error'],
+//					);
+//                }
+//            }
+//            else {
+//                $remote_option = array_shift($remote_options);
+//
+//                if ( is_null($remote_option) ) {
+//                    return array(
+//						'result' => INSTAWP_FAILED,
+//						'error'  => 'not select remote storage',
+//					);
+//                }
+//
+//                $remote = $instawp_plugin->remote_collection->get_remote($remote_option);
+//
+//                $result = $remote->upload($this->task_id,$files,array( $this, 'upload_callback' ));
+//
+//                if ( $result['result'] == INSTAWP_SUCCESS ) {
+//                    InstaWP_taskmanager::update_backup_main_task_progress($this->task_id,'upload',100,1);
+//                    InstaWP_taskmanager::update_backup_task_status($task_id,false,'completed');
+//                    return array( 'result' => INSTAWP_SUCCESS );
+//                }
+//                else {
+//                    $remote ->cleanup($files);
+//
+//                    InstaWP_taskmanager::update_backup_task_status($this->task_id,false,'error',false,false,$result['error']);
+//                    return array(
+//						'result' => INSTAWP_FAILED,
+//						'error'  => $result['error'],
+//					);
+//                }
+//            }
+//        }
+//        else {
+//            $remote = $instawp_plugin->remote_collection->get_remote($remote_option);
+//
+//            $result = $remote->upload($this->task_id,$files,array( $this, 'upload_callback' ));
+//
+//            if ( $result['result'] == INSTAWP_SUCCESS ) {
+//                InstaWP_taskmanager::update_backup_main_task_progress($this->task_id,'upload',100,1);
+//                InstaWP_taskmanager::update_backup_task_status($task_id,false,'completed');
+//                return array( 'result' => INSTAWP_SUCCESS );
+//            }
+//            else {
+//                $remote ->cleanup($files);
+//
+//                InstaWP_taskmanager::update_backup_task_status($this->task_id,false,'error',false,false,$result['error']);
+//                return array(
+//					'result' => INSTAWP_FAILED,
+//					'error'  => $result['error'],
+//				);
+//            }
+//        }
     }
     public function upload_api( $task_id,$remote_option=null ) {
+
         error_log("Upload API");
         global $instawp_plugin,$InstaWP_Curl;
         
@@ -102,7 +104,6 @@ class InstaWP_Upload
         if ( $result['result'] == INSTAWP_SUCCESS ) {
                 InstaWP_taskmanager::update_backup_main_task_progress($this->task_id,'upload',100,1);
                 InstaWP_taskmanager::update_backup_task_status($task_id,false,'completed');
-                
 
          $connect_ids = get_option('instawp_connect_id_options', '');
          if ( ! empty($connect_ids) ) {
