@@ -30,6 +30,11 @@ class InstaWP_restore_data
         global $instawp_plugin;
         $backup = $this->get_backup_data();
         $backup_item = new InstaWP_Backup_Item($backup);
+
+        //not sure why I am putting this to be honest. 
+        if(!is_array($this->restore_cache['restore_tasks']))
+            return;
+
         foreach ( $this->restore_cache['restore_tasks'] as $index => $task ) {
             if ( isset($task['option']) && isset($task['option']['has_child']) ) {
                 $has_child = 1;
@@ -255,6 +260,29 @@ class InstaWP_restore_data
 
         return $next_task;
     }
+
+    public function get_next_restore_task_progress() {
+        $next_task = false;
+        if ( $this->restore_cache === false ) {
+            $this->restore_cache = InstaWP_tools::file_get_array($this->restore_data_file);
+        }
+        $wait_running = 0;
+
+        $total = count($this->restore_cache['restore_tasks']);
+
+        foreach ( $this->restore_cache['restore_tasks'] as $index => $task ) {
+                if ( $task['status'] === INSTAWP_RESTORE_WAIT || $task['status'] === INSTAWP_RESTORE_RUNNING ) {
+                $wait_running++;
+            }
+        }
+
+        if($total > 0) {
+            return intval((($total - $wait_running) / $total)*100);
+        }
+
+        return 0;
+    }
+
 
     public function update_error( $error,$error_task='',$table=array() ) {
         if ( $this->restore_cache === false ) {

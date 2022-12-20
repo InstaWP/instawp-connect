@@ -28,8 +28,12 @@ class InstaWP_Restore
         
         if ( $next_task === false ) {
             $instawp_plugin->restore_data->write_log('Restore task completed.','notice');
+
+            // restore preogress precetage
+            // update_option('instawp_restore_progress_percents', "100");
+
             $instawp_plugin->restore_data->update_status(INSTAWP_RESTORE_COMPLETED);
-            InstaWP_AJAX::instawp_folder_remover_handle();
+            //InstaWP_AJAX::instawp_folder_remover_handle();
             return array( 'result' => INSTAWP_SUCCESS );
         }
         elseif ( $next_task === INSTAWP_RESTORE_RUNNING ) {
@@ -76,11 +80,12 @@ class InstaWP_Restore
             return $ret;
         }
 
-        $is_type_db = false;
+        $is_type_db = false;        
         $is_type_db = apply_filters('instawp_check_type_database', $is_type_db, $option);
         if ( $is_type_db ) {
             $restore_site = new InstaWP_RestoreSite();
-            $instawp_plugin->restore_data->write_log('Start restoring '.$restore_task['files'][0],'notice');
+            $instawp_plugin->restore_data->write_log('Start restoring 1 '.$restore_task['files'][0],'notice');
+
             $ret = $restore_site -> restore($option,$restore_task['files']);
             if ( $ret['result'] == INSTAWP_SUCCESS ) {
                 if ( isset($option['is_crypt']) && $option['is_crypt'] == '1' ) {
@@ -98,7 +103,9 @@ class InstaWP_Restore
                 $check_is_remove = apply_filters('instawp_check_remove_restore_database', $check_is_remove, $option);
                 if ( ! $check_is_remove ) {
                     $ret = $restore_db->restore($path, $sql_file, $option);
-                    $instawp_plugin->restore_data->write_log('Finished restoring '.$restore_task['files'][0],'notice');
+                    $instawp_plugin->restore_data->write_log('Finished restoring 1 - 101: '.$restore_task['files'][0],'notice');
+                    
+                    //update_option('instawp_restore_progress_percents', "90" );
                     $instawp_plugin->restore_data->update_need_unzip_file($restore_task['index'],$restore_task['files']);
                 }
                 else {
@@ -122,13 +129,84 @@ class InstaWP_Restore
                 $option = $json;
             }
             $option = array_merge($option,$restore_task['option']);
-            $instawp_plugin->restore_data->write_log('Start restoring '.$files[0],'notice');
+            $instawp_plugin->restore_data->write_log('Start restoring 2 '.$files[0],'notice');
             $ret = $restore_site -> restore($option,$files);
             $instawp_plugin->restore_data->update_need_unzip_file($restore_task['index'],$files);
-            $instawp_plugin->restore_data->write_log('Finished restoring '.$files[0],'notice');
+            $instawp_plugin->restore_data->write_log('Finished restoring 2 - 128 : '.$files[0],'notice');
+            $instawp_plugin->restore_data->write_log('Finished restoring files : '.print_r($files,true),'notice');
+                        
+            //$progress = 23;
+            //self::instawp_restore_process_log_status( $progress );
+
             return $ret;
         }
     }
+
+    /*public static function instawp_restore_process_log_status( $progress ){
+        global $InstaWP_Curl;
+        global $instawp_plugin;
+        
+        $this->instawp_log->CreateLogFile('restore_process_log_call', 'no_folder', 'Restore Process Log Call');
+
+        $this->instawp_log->WriteLog('Start Restore Progress : '. $progress, 'notice');
+
+        $backup_reports = get_option( 'instawp_backup_reports', array() );
+        $task_id = '';
+        if( !empty( $backup_reports ) ){
+            foreach ($backup_reports as $key => $report ) {
+                $task_id =  $report['task_id'];
+            }
+        }
+
+        $api_key = '';
+        $instawp_api_options = get_option('instawp_api_options'); 
+        if( !empty( $instawp_api_options ) ){
+            $api_key = $instawp_api_options['api_key']; 
+        }  
+        
+        $connect_ids = get_option('instawp_connect_id_options', '');
+        if ( ! empty($connect_ids) && !empty( $task_id ) && !empty( $api_key ) ) {
+            if ( isset($connect_ids['data']['id']) && ! empty($connect_ids['data']['id']) ) {
+                $id  = $connect_ids['data']['id'];
+                $api_doamin = InstaWP_Setting::get_api_domain();
+                $url = $api_doamin . INSTAWP_API_URL . '/connects/' . $id . '/restore_status';
+
+                $header  = array(
+                    'Authorization' => 'Bearer'.$api_key,
+                );
+                $body = array( 
+                    'task_id' => $task_id,
+                    'progress' => $progress,
+                    'completed' => false,
+                    "destination_url" => get_site_url(),
+                );
+
+                error_log("BODY BEFORE CALL \n : ". print_r( $body, true ) . "\n");
+                $this->instawp_log->WriteLog('BODY BEFORE CALL \n : '.print_r( $body, true ), 'notice');
+                
+                $response = wp_remote_post($url, array(
+                    'headers' => $header,
+                    'body'    => $body,            
+                ));
+                $this->instawp_log->WriteLog('Start Restore Response : '.print_r($response, true), 'notice');
+                
+                $response_code = wp_remote_retrieve_response_code( $response );
+                $response_body = wp_remote_retrieve_body($response);
+                error_log("response_body \n : ". print_r( $response_body, true ) );
+                error_log("response_code : ". $response_code );                
+                
+                $this->instawp_log->WriteLog('Restore Response : '.$response_code, 'notice');
+
+                $this->instawp_log->WriteLog('Restore Response : '.print_r($response_body, true), 'notice');
+                // if ( ! is_wp_error($response) && $response_code == 200 ) {
+                //     $body = (array) json_decode(wp_remote_retrieve_body($response), true);
+                //     $this->instawp_log->WriteLog('Body Response : '.print_r($body, true), 'notice');
+                //     echo json_encode($response);
+                //     wp_die();
+                // }
+            }
+        }
+    }*/
 
     public function restore_crypt_db( $file,$restore_task,$option,$local_path ) {
         $general_setting = InstaWP_Setting::get_setting(true, "");
@@ -160,7 +238,7 @@ class InstaWP_Restore
                     return $ret;
                 }
 
-                $instawp_plugin->restore_data->write_log('Decrypting database successfully. Start restoring database.','notice');
+                $instawp_plugin->restore_data->write_log('Decrypting database successfully. Start restoring 3 database.','notice');
 
                 $files = $zip->list_file($file_path);
                 unset($zip);
@@ -173,7 +251,7 @@ class InstaWP_Restore
                 if ( ! $check_is_remove ) {
                     $ret = $restore_db->restore($path.DIRECTORY_SEPARATOR, $sql_file, $option);
                     @unlink($file_path);
-                    $instawp_plugin->restore_data->write_log('Finished restoring '.$restore_task['files'][0],'notice');
+                    $instawp_plugin->restore_data->write_log('Finished restoring 3 - 176 : '.$restore_task['files'][0],'notice');
                     $instawp_plugin->restore_data->update_need_unzip_file($restore_task['index'],$restore_task['files']);
                 }
                 else {

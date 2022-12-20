@@ -119,7 +119,7 @@ class InstaWP_Backup_Task
          
             if ($handle = opendir(WP_CONTENT_DIR)) {
                 while (false !== ($entry = readdir($handle))) {
-                    if ($entry != "." && $entry != ".." && $entry != "index.php" && $entry != "debug.log" && $entry != "plugins" && $entry != "themes" && $entry != "upgrade" && $entry != "uploads"  ) {
+                    if ($entry != "." && $entry != ".." && $entry != "index.php" && $entry != "plugins" && $entry != "themes" && $entry != "upgrade" && $entry != "uploads"  ) {
                         $exclude_regex[] = '#^' . preg_quote($this->transfer_path(WP_CONTENT_DIR) . DIRECTORY_SEPARATOR . $entry, '/') . '#';
                     }
                 }

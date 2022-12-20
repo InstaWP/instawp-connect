@@ -147,6 +147,7 @@ class instaWP
       //Initialisation log object
       $this->instawp_log          = new InstaWP_Log();
       $this->instawp_download_log = new InstaWP_Log();
+      $this->instawp_restore_log = new InstaWP_Log();
 
       /*Cron handlers*/
       add_filter('cron_schedules', array($this, 'instawp_handle_cron_time_intervals'));
@@ -216,8 +217,6 @@ class instaWP
             }
          }
       }
-      wp_redirect( wp_login_url('', false) );
-      exit();
    }
 
    // Set Cron time interval function
@@ -4292,7 +4291,7 @@ public function instawp_handle_remote_storage_error( $error_message, $error_type
             }
          } else {
             $this->restore_data->init_restore_data($backup_id, $restore_options);
-            $this->restore_data->write_log('init restore data', 'notice');
+            $this->restore_data->write_log('init restore data restore 4293', 'notice');
          }
       } catch ( Exception $error ) {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
@@ -4347,6 +4346,7 @@ public function instawp_handle_remote_storage_error( $error_message, $error_type
    }
 
    public function restore_api( $backup_id, $restore_options_json ) {
+      global $InstaWP_Curl, $instawp_plugin;
 
       //check_ajax_referer( 'instawp_ajax', 'nonce' );
       // print_r($restore_options_json);
@@ -4404,7 +4404,11 @@ public function instawp_handle_remote_storage_error( $error_message, $error_type
             }
          } else {
             $this->restore_data->init_restore_data($backup_id, $restore_options);
-            $this->restore_data->write_log('init restore data', 'notice');
+            $this->restore_data->write_log('init restore data restore 4405 api function', 'notice');
+
+
+            // $this->restore_status($response['message'], 100);
+
          }
       } catch ( Exception $error ) {
          $message = 'An exception has occurred. class: ' . get_class($error) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';

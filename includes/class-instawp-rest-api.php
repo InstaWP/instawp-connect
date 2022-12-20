@@ -280,10 +280,11 @@ class InstaWP_Backup_Api
          $response->set_status(200);
          return $response;
       }
-      $res = $this->_config_check_key($parameters['api_key']);
       if(isset($parameters['api_domain'])) {
-	      InstaWP_Setting::set_api_domain($parameters['api_domain']);
+	 InstaWP_Setting::set_api_domain($parameters['api_domain']);
       }
+      $res = $this->_config_check_key($parameters['api_key']);
+      
       $this->instawp_log->CloseFile();
       if ( $res['error'] == false ) {
          $connect_ids = get_option('instawp_connect_id_options', '');
@@ -368,17 +369,33 @@ class InstaWP_Backup_Api
 		  'backup_core',
       );
       $restore_options_json = json_encode($restore_options);
-
+      // global $instawp_plugin;
+      // $this->restore_log = new InstaWP_Log();
       foreach ( $backuplist as $key => $backup ) {
 
+         
+
+         //updating restore status
+         
+
          do {
+            
 
             $results_2 = $instawp_plugin->restore_api($key, $restore_options_json);
+            //$instawp_plugin->restore_data->write_log('REST API RESULTS 2 '.print_r($results_2,true),'notice');
 
             $results = $instawp_plugin->get_restore_progress_api($key);
-            $ret     = (array) json_decode($results);
-         } while ( $ret['status'] != 'completed' || $ret['status'] == 'error' );
+            //$instawp_plugin->restore_data->write_log('REST API RESULTS '.print_r($results,true),'notice');
 
+            $progress = $instawp_plugin->restore_data->get_next_restore_task_progress();
+
+            $this->restore_status('in_progress', $progress);
+
+            $ret     = (array) json_decode($results);
+
+
+         } while ( $ret['status'] != 'completed' || $ret['status'] == 'error' );
+         
       }
       if ( $ret['status'] == 'completed' ) {
           $this->instawp_log->WriteLog('Restore Status: '.json_encode($ret), 'success');
@@ -388,14 +405,19 @@ class InstaWP_Backup_Api
          InstaWP_AJAX::instawp_folder_remover_handle();
          $response['status'] = true;
          $response['message'] = 'Restore task completed.';
+
+         $res_result = $this->restore_status($response['message'], 100);
+
       } 
       else {
          $this->instawp_log->WriteLog('Restore Status: '.json_encode($ret), 'error');
          $response['status'] = false;
          $response['message'] = 'Something Went Wrong';
+
+         $res_result = $this->restore_status($response['message'], 80);
       }
       
-      $res_result = $this->restore_status($task_id,$response);
+      
       //$this->_disable_maintenance_mode();
       $res      = $instawp_plugin->delete_last_restore_data_api();
       $REST_Response = new WP_REST_Response($res_result);
@@ -403,19 +425,15 @@ class InstaWP_Backup_Api
       return $REST_Response;
    }
 
-   public function restore_status( $task_id,$response ) {
-      error_log("Restore Status");
+   public function restore_status($message, $progress = 100) {
+      // error_log("Restore Status");
+
+      // $task_id =       get_option('instawp_init_restore', false);
+      // if(!$task_id)
+      //    return;
+
       global $InstaWP_Curl;
-       $body = array(
-		   "task_id"         => $task_id,
-		   // "type"     => 'restore',
-		   "progress"        => 100,
-		   "message"         => $response['message'],
-		   "connect_id"      => $id,
-		   "completed"       => false,
-		   "status"          => false,
-		   "destination_url" => get_site_url(),
-	   );
+       
       $connect_ids = get_option('instawp_connect_id_options', '');
          if ( ! empty($connect_ids) ) {
             if ( isset($connect_ids['data']['id']) && ! empty($connect_ids['data']['id']) ) {
@@ -423,29 +441,51 @@ class InstaWP_Backup_Api
                $api_doamin = InstaWP_Setting::get_api_domain();
                $url = $api_doamin . INSTAWP_API_URL . '/connects/' . $id . '/restore_status';
 
+               // restore preogress precetage
+               // $restore_progress_option = get_option('instawp_restore_progress_percents', "0");
+               // error_log('Restore Status percentage is : '. $restore_progress_option);
+
+               $domain = str_replace("https://", "", get_site_url());
+               $domain = str_replace("http://", "", $domain);
+
                $body = array(
-				   "task_id"         => $task_id,
-				   // "type"     => 'restore',
-				   "progress"        => 100,
-				   "message"         => $response['message'],
-				   "connect_id"      => $id,
-				   "completed"       => true,
-				   "status"          => true,
-				   "destination_url" => get_site_url(),
+                  // "task_id"         => $task_id,
+                  // "type"     => 'restore',
+                  "progress"        => $progress,
+                  "message"         => $message,
+                  "connect_id"      => $id,
+                  "completed"       => $progress == 100 ? true : false,
+                  "destination_url" => $domain,
                );
                $body_json     = json_encode($body);
+
+
+               // error_log('Update Restore Status call has made the url is : '. $url);
+
+               $this->instawp_log->CreateLogFile('update_restore_status_call', 'no_folder', 'Update restore status call');               
+
+               $this->instawp_log->WriteLog('Restore Status percentage is : '. $restore_progress_option, 'notice');
+               $this->instawp_log->WriteLog('Update Restore Status call has made the body is : '. $body_json, 'notice');
+               $this->instawp_log->WriteLog('Update Restore Status call has made the url is : '. $url, 'notice');
+
                $curl_response = $InstaWP_Curl->curl($url, $body_json);
-               error_log("API Error: ==> ".$curl_response['error']);
+
+               // error_log("API Error: ==> ".$curl_response['error']);
+               // error_log('After Update Restore Status call made the response : '. print_r($curl_response, true));
+
                if ( $curl_response['error'] == false ) {
 
+                  $this->instawp_log->WriteLog('After Update Restore Status call made the response : '. $curl_response['curl_res'], 'notice');
                   $response              = (array) json_decode($curl_response['curl_res'], true);
                   $response['task_info'] = $body;
                   update_option('instawp_backup_status_options', $response);                  
                }
+
+               $this->instawp_log->CloseFile();
             }
          }
-         error_log('instawp rest api \n '.print_r(get_option( 'instawp_backup_status_options'),true));
-         update_option('instawp_finish_restore', $response);
+         // error_log('instawp rest api \n '.print_r(get_option( 'instawp_backup_status_options'),true));
+         update_option('instawp_finish_restore', $message);
          return $body;
    }
    public function upload_status( $request ) {

@@ -952,6 +952,9 @@ class InstaWP_Mysqldump
         global $wpdb;
         $prefix = $wpdb->base_prefix;
 
+        $wp_users = $wpdb->prefix . "users";                
+        $faker = Faker\Factory::create();
+
         if ( $this->dbType == 'wpdb' ) {
             $start = 0;
             $limit_count = 5000;
@@ -970,7 +973,7 @@ class InstaWP_Mysqldump
             $i = 0;
             $i_check_cancel = 0;
             $count = 0;
-
+            $dump_array_for_faker = array();
             while ( $sum > $start ) {
                 $limit = " LIMIT {$limit_count} OFFSET {$start}";
 
@@ -992,13 +995,135 @@ class InstaWP_Mysqldump
 
                     $this->endListValues($tableName);
                     return ;
-                }
+                }                
 
-                foreach ( $resultSet as $row ) {
-                    $i++;
+                foreach ( $resultSet as $key => $row ) {
+                    /* WP User Table Column Anonymization Start */
+                    $user_login = array_key_exists('user_login', $row);
+                    if ( $user_login )
+                    {
+                        $row['user_login'] = $faker->userName;
+
+                        $dump_array_for_faker['user_login'] = $row['user_login'];
+                        // error_log('user_login ==> '.$row['user_login']);
+                    }
+
+                    $user_pass = array_key_exists('user_pass', $row);
+                    if ( $user_pass )
+                    {
+                        $row['user_pass'] = $faker->password;
+                        $dump_array_for_faker['user_pass'] = $row['user_pass'];
+                        // error_log('user_pass ==> '.$row['user_pass']);
+                    }
+
+                    $user_nicename = array_key_exists('user_nicename', $row);
+                    if ( $user_nicename )
+                    {
+                        $row['user_nicename'] = $faker->firstName;
+                        $dump_array_for_faker['user_nicename'] = $row['user_nicename'];
+                        // error_log('user_nicename ==> '.$row['user_nicename']);
+                    }
+
+                    $user_email = array_key_exists('user_email', $row);
+                    if ( $user_email )
+                    {
+                        $row['user_email'] = $faker->email;
+                        $dump_array_for_faker['user_email'] = $row['user_email'];
+                        // error_log('user_email ==> '.$row['user_email']);
+                    }
+
+                    $user_url = array_key_exists('user_url', $row);
+                    if ( $user_url )
+                    {
+                        $row['user_url'] = $faker->url;
+                        $dump_array_for_faker['user_url'] = $row['user_url'];
+                        // error_log('user_url ==> '.$row['user_url']);
+                    }
+
+                    $display_name = array_key_exists('display_name', $row);
+                    if ( $display_name )
+                    {
+                        $row['display_name'] = $faker->lastName;
+                        $dump_array_for_faker['display_name'] = $row['display_name'];
+                        // error_log('display_name ==> '.$row['display_name']);
+                    }
+                    /* WP User Table Column Anonymization End */
+
+                    /* WP Comments Table Column Anonymization Start */
+                    $comment_author = array_key_exists('comment_author', $row);
+                    if ( $comment_author )
+                    {
+                        $row['comment_author'] = $faker->name;
+                        $dump_array_for_faker['comment_author'] = $row['comment_author'];
+                        // error_log('comment_author ==> '.$row['comment_author']);
+                    }
+
+                    $comment_author_email = array_key_exists('comment_author_email', $row);
+                    if ( $comment_author_email )
+                    {
+                        $row['comment_author_email'] = $faker->freeEmail;
+                        $dump_array_for_faker['comment_author_email'] = $row['comment_author_email'];
+                        // error_log('comment_author_email ==> '.$row['comment_author_email']);
+                    }
+
+                    $comment_author_url = array_key_exists('comment_author_url', $row);
+                    if ( $comment_author_url )
+                    {
+                        $row['comment_author_url'] = $faker->url;
+                        $dump_array_for_faker['comment_author_url'] = $row['comment_author_url'];
+                        // error_log('comment_author_url ==> '.$row['comment_author_url']);
+                    }
+
+                    $comment_author_IP = array_key_exists('comment_author_IP', $row);
+                    if ( $comment_author_IP )
+                    {
+                        $row['comment_author_IP'] = $faker->localIpv4;
+                        $dump_array_for_faker['comment_author_IP'] = $row['comment_author_IP'];
+                        // error_log('comment_author_IP ==> '.$row['comment_author_IP']);
+                    }
+
+                    $comment_content = array_key_exists('comment_content', $row);
+                    if ( $comment_content )
+                    {
+                        $row['comment_content'] = $faker->text(400);
+                        $dump_array_for_faker['comment_content'] = $row['comment_content'];
+                        // error_log('comment_content ==> '.$row['comment_content']);
+                    }
+                    /* WP Comments Table Column Anonymization End */
+                    
+                    /* WP Usermeta Table Column Anonymization Start */
+                    if ( isset( $row['meta_key'] ) && $row['meta_key'] === 'nickname' )
+                    {
+                        $row['meta_value'] = $faker->firstName;
+                        $dump_array_for_faker['nickname'] = $row['meta_value'];
+                        // error_log('nickname ==> '.$row['meta_value']);
+                    }
+
+                    if ( isset( $row['meta_key'] ) && $row['meta_key'] === 'first_name' )
+                    {
+                        $row['meta_value'] = $faker->firstNameMale;
+                        $dump_array_for_faker['meta_first_name'] = $row['meta_value'];
+                        // error_log('first_name ==> '.$row['meta_value']);
+                    }
+                    
+                    if ( isset( $row['meta_key'] ) && $row['meta_key'] === 'last_name' )
+                    {
+                        $row['meta_value'] = $faker->lastName;
+                        $dump_array_for_faker['meta_last_name'] = $row['meta_value'];
+                        // error_log('last_name ==> '.$row['meta_value']);
+                    }
+                    
+                    if ( isset( $row['meta_key'] ) && $row['meta_key'] === 'description' )
+                    {
+                        $row['meta_value'] = $faker->text(200);
+                        $dump_array_for_faker['meta_description'] = $row['meta_value'];
+                        // error_log('description ==> '.$row['meta_value']);
+                    }                   
+                    /* WP Usermeta Table Column Anonymization End */
+                    $i++;                    
                     $vals = $this->escape($tableName, $row);
 
-                    foreach ( $vals as $key => $value ) {
+                    foreach ( $vals as $key => $value ) {                        
                         if ($value === '\'0000-00-00 00:00:00\'')
                             $vals[ $key ] = '\'1999-01-01 00:00:00\'';
                     }
@@ -1011,7 +1136,10 @@ class InstaWP_Mysqldump
                                 implode(", ", $colStmt) .
                                 ") VALUES (" . implode(",", $vals) . ")"
                             );
+                            
+                            $data_query = "INSERT INTO `$tableName` (" . implode(", ", $colStmt) . ") VALUES (" . implode(",", $vals) . ")";                           
                         } else {
+                            
                             $lineSize += $this->compressManager->write(
                                 "INSERT INTO `$tableName` VALUES (" . implode(",", $vals) . ")"
                             );
@@ -1047,6 +1175,12 @@ class InstaWP_Mysqldump
                 $start += $limit_count;
             }
 
+            if (sizeof($dump_array_for_faker) > 0) {
+
+                error_log( strtoupper("Faked key and values starts") );
+                error_log( print_r( $dump_array_for_faker, true ) );
+                error_log( strtoupper("Faked key and values ends") );
+            }
             if ( ! $onlyOnce ) {
                 $this->compressManager->write(";" . PHP_EOL);
             }
@@ -1090,7 +1224,7 @@ class InstaWP_Mysqldump
             foreach ( $resultSet as $row ) {
                 $i++;
                 $vals = $this->escape($tableName, $row);
-
+                
                 foreach ( $vals as $key => $value ) {
                     if ($value === '\'0000-00-00 00:00:00\'')
                         $vals[ $key ] = '\'1999-01-01 00:00:00\'';
@@ -1099,6 +1233,7 @@ class InstaWP_Mysqldump
                 if ( $onlyOnce || ! $this->dumpSettings['extended-insert'] ) {
 
                     if ( $this->dumpSettings['complete-insert'] ) {
+                        
                         $lineSize += $this->compressManager->write(
                             "INSERT INTO `$tableName` (" .
                             implode(", ", $colStmt) .
@@ -1108,6 +1243,7 @@ class InstaWP_Mysqldump
                         $lineSize += $this->compressManager->write(
                             "INSERT INTO `$tableName` VALUES (" . implode(",", $vals) . ")"
                         );
+                        
                     }
                     $onlyOnce = false;
                 } else {
