@@ -395,6 +395,7 @@ class InstaWP_Backup_Api
 
       $backup = new InstaWP_Backup_Task();
       $ret    = $backup->new_download_task();
+
       $task_id = $ret['task_id'];
       update_option('instawp_init_restore',$task_id);
       $this->instawp_log->WriteLog('New Task Created: '.$task_id, 'notice');
