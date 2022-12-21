@@ -15,11 +15,11 @@ class InstaWP_Backup_Api
 
       add_action('rest_api_init', array( $this, 'add_api_routes' ));
        $this->instawp_log          = new InstaWP_Log();
-      
+
    }
    public function add_api_routes() {
 
-     
+
       register_rest_route($this->namespace . '/' . $this->version, 'backup', array(
 		  'methods'             => 'POST',
 		  'callback'            => array( $this, 'backup' ),
@@ -76,7 +76,80 @@ class InstaWP_Backup_Api
          'callback'            => array( $this, 'instawp_handle_auto_login' ),
          'permission_callback' => '__return_true',
       ));
+
+
+	   // clear cache
+	   register_rest_route($this->namespace . '/' . $this->version . '/remote-control', '/clear-cache', array(
+		   'methods'             => 'POST',
+		   'callback'            => array( $this, 'instawp_handle_clear_cache' ),
+		   'permission_callback' => '__return_true',
+	   ) );
    }
+
+
+	/**
+	 * Handle response for clear cache endpoint
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return WP_REST_Response
+	 */
+   function instawp_handle_clear_cache( WP_REST_Request $request ) {
+
+	    $param_api_key   = sanitize_text_field( $request->get_param('api_key') );
+	    $connect_options = get_option( 'instawp_api_options', '' );
+	    $current_api_key = $connect_options['api_key'] ?? '';
+
+		// check if the api key is empty
+	    if( empty( $param_api_key ) ) {
+			return new WP_REST_Response( array( 'error' => true, 'message' => esc_html('Key parameter missing' ) ) );
+	    }
+
+		// check is the api key mismatched
+	    if( $current_api_key !== $param_api_key ) {
+		    return new WP_REST_Response( array( 'error' => true, 'message' => esc_html('API key mismatch' ) ) );
+	    }
+
+		if( ! function_exists( 'is_plugin_active' ) ) {
+			include_once ABSPATH . 'wp-admin/includes/plugin.php';
+		}
+
+	    // Clear cache for - WP Rocket
+	    if( is_plugin_active('wp-rocket/wp-rocket.php' ) ) {
+		    rocket_clean_minify();
+			rocket_clean_domain();
+	    }
+
+	    // Clear cache for - W3 Total Cache
+	    if( is_plugin_active('w3-total-cache/w3-total-cache.php' ) ) {
+		    w3tc_flush_all();
+	    }
+
+	    // Clear cache for - Autoptimize
+		if( is_plugin_active('autoptimize/autoptimize.php' ) ) {
+			autoptimizeCache::clearall();
+	    }
+
+	    // Clear cache for - Lite Speed Cache
+	    if( is_plugin_active('litespeed-cache/litespeed-cache.php' ) ) {
+			\LiteSpeed\Purge::purge_all();
+	    }
+
+	    // Clear cache for - WP Fastest Cache
+	    if( is_plugin_active('wp-fastest-cache/wpFastestCache.php' ) ) {
+		    wpfc_clear_all_site_cache();
+		    wpfc_clear_all_cache( true );
+	    }
+
+	   // Clear cache for - WP Super Cache
+	   if( is_plugin_active('wp-super-cache/wp-cache.php' ) ) {
+		   global $file_prefix;
+		   wp_cache_clean_cache( $file_prefix, true );
+	   }
+
+	   return new WP_REST_Response( array( 'error' => false, 'message' => esc_html('Cache clear success' ) ) );
+    }
+
 
   /**
     * Handle repsonse for login code generate
@@ -85,7 +158,7 @@ class InstaWP_Backup_Api
       $response_array = array();
 
       // Hashed string
-      $param_api_key = $request->get_param('api_key');      
+      $param_api_key = $request->get_param('api_key');
 
       $connect_options = get_option('instawp_api_options', '');
 
@@ -95,16 +168,16 @@ class InstaWP_Backup_Api
       $current_api_key_hash = "";
 
       // check for pipe
-      if (!empty($current_api_key) && strpos($current_api_key, '|') !== false) {          
+      if (!empty($current_api_key) && strpos($current_api_key, '|') !== false) {
          $exploded = explode('|', $current_api_key);
          $current_api_key_hash = hash('sha256', $exploded[1]);
       }else{
          $current_api_key_hash = !empty($current_api_key) ? hash('sha256', $current_api_key) : "";
       }
 
-      if ( 
-         !empty($param_api_key) && 
-         $param_api_key === $current_api_key_hash 
+      if (
+         !empty($param_api_key) &&
+         $param_api_key === $current_api_key_hash
       ) {
          $uuid_code = wp_generate_uuid4();
          $uuid_code_256 = str_shuffle( $uuid_code . $uuid_code );
@@ -127,7 +200,7 @@ class InstaWP_Backup_Api
             $message .= "api key mismatch";
          }
          else{ // default response
-            $message = "invalid request";  
+            $message = "invalid request";
          }
 
          $response_array = array(
@@ -162,31 +235,31 @@ class InstaWP_Backup_Api
       $current_api_key_hash = "";
 
       // check for pipe
-      if (!empty($current_api_key) && strpos($current_api_key, '|') !== false) { 
+      if (!empty($current_api_key) && strpos($current_api_key, '|') !== false) {
          $exploded = explode('|', $current_api_key);
          $current_api_key_hash = hash('sha256', $exploded[1]);
       }else{
          $current_api_key_hash = !empty($current_api_key) ? hash('sha256', $current_api_key) : "";
       }
 
-      if ( 
-         !empty( $param_api_key ) && 
+      if (
+         !empty( $param_api_key ) &&
          !empty( $param_code ) &&
          !empty( $param_user ) &&
-         $param_api_key === $current_api_key_hash && 
+         $param_api_key === $current_api_key_hash &&
          false !== $current_login_code &&
-         $param_code === $current_login_code 
+         $param_code === $current_login_code
       ) {
          // Decoded user
          $site_user = base64_decode( $param_user );
-         
-         // Make url 
-         $auto_login_url = add_query_arg( 
+
+         // Make url
+         $auto_login_url = add_query_arg(
             array(
                'c' => $param_code,
                's' => base64_encode( $site_user )
-            ), 
-            wp_login_url('', true)  
+            ),
+            wp_login_url('', true)
          );
          // Auto Login Logic to be written
          $message = "success";
@@ -217,7 +290,7 @@ class InstaWP_Backup_Api
             $message .= "code expired";
          }
          else{ // default response
-            $message = "invalid request";  
+            $message = "invalid request";
          }
 
          $response_array = array(
@@ -257,7 +330,7 @@ class InstaWP_Backup_Api
       );
       $this->instawp_log->CreateLogFile($this->config_log_file_name, 'no_folder', 'Remote Config');
       $this->instawp_log->WriteLog('Inti Api Config', 'notice');
-      
+
       //$this->instawp_log->CloseFile();
       $connect_ids = get_option('instawp_connect_id_options', '');
       if ( ! empty($connect_ids) ) {
@@ -284,7 +357,7 @@ class InstaWP_Backup_Api
 	 InstaWP_Setting::set_api_domain($parameters['api_domain']);
       }
       $res = $this->_config_check_key($parameters['api_key']);
-      
+
       $this->instawp_log->CloseFile();
       if ( $res['error'] == false ) {
          $connect_ids = get_option('instawp_connect_id_options', '');
@@ -297,7 +370,7 @@ class InstaWP_Backup_Api
             $results['message']    = 'Connected';
             $results['connect_id'] = $id;
 
-         }      
+         }
       } else {
          $results['status']     = true;
          $results['message']    = $res['message'];
@@ -311,11 +384,11 @@ class InstaWP_Backup_Api
 
    public function restore( $request ) {
       global $InstaWP_Curl, $instawp_plugin;
-     // 
-      
+     //
+
       $response = array();
       $parameters = $request->get_params();
-         
+
       update_option('instawp_restore_urls',$parameters);
       $this->instawp_log->CreateLogFile($this->download_log_file_name, 'no_folder', 'Download Backup');
       $this->instawp_log->WriteLog('Restore Parameters: '.json_encode($parameters), 'notice');
@@ -334,7 +407,7 @@ class InstaWP_Backup_Api
          $curl_result = $InstaWP_Curl->download($ret['task_id'], $parameters['urls']);
       }
       // if ( $curl_result['result'] != INSTAWP_SUCCESS ) {
-         
+
       //    $curl_result['task_id'] = $task_id;
       //    $curl_result['completed'] = $task_id;
       //    $REST_Response = new WP_REST_Response($curl_result);
@@ -373,13 +446,13 @@ class InstaWP_Backup_Api
       // $this->restore_log = new InstaWP_Log();
       foreach ( $backuplist as $key => $backup ) {
 
-         
+
 
          //updating restore status
-         
+
 
          do {
-            
+
 
             $results_2 = $instawp_plugin->restore_api($key, $restore_options_json);
             //$instawp_plugin->restore_data->write_log('REST API RESULTS 2 '.print_r($results_2,true),'notice');
@@ -395,7 +468,7 @@ class InstaWP_Backup_Api
 
 
          } while ( $ret['status'] != 'completed' || $ret['status'] == 'error' );
-         
+
       }
       if ( $ret['status'] == 'completed' ) {
           $this->instawp_log->WriteLog('Restore Status: '.json_encode($ret), 'success');
@@ -408,7 +481,7 @@ class InstaWP_Backup_Api
 
          $res_result = $this->restore_status($response['message'], 100);
 
-      } 
+      }
       else {
          $this->instawp_log->WriteLog('Restore Status: '.json_encode($ret), 'error');
          $response['status'] = false;
@@ -416,8 +489,7 @@ class InstaWP_Backup_Api
 
          $res_result = $this->restore_status($response['message'], 80);
       }
-      
-      
+
       //$this->_disable_maintenance_mode();
       $res      = $instawp_plugin->delete_last_restore_data_api();
       $REST_Response = new WP_REST_Response($res_result);
@@ -433,7 +505,7 @@ class InstaWP_Backup_Api
       //    return;
 
       global $InstaWP_Curl;
-       
+
       $connect_ids = get_option('instawp_connect_id_options', '');
          if ( ! empty($connect_ids) ) {
             if ( isset($connect_ids['data']['id']) && ! empty($connect_ids['data']['id']) ) {
@@ -462,7 +534,7 @@ class InstaWP_Backup_Api
 
                // error_log('Update Restore Status call has made the url is : '. $url);
 
-               $this->instawp_log->CreateLogFile('update_restore_status_call', 'no_folder', 'Update restore status call');               
+               $this->instawp_log->CreateLogFile('update_restore_status_call', 'no_folder', 'Update restore status call');
 
                $this->instawp_log->WriteLog('Restore Status percentage is : '. $restore_progress_option, 'notice');
                $this->instawp_log->WriteLog('Update Restore Status call has made the body is : '. $body_json, 'notice');
@@ -478,7 +550,7 @@ class InstaWP_Backup_Api
                   $this->instawp_log->WriteLog('After Update Restore Status call made the response : '. $curl_response['curl_res'], 'notice');
                   $response              = (array) json_decode($curl_response['curl_res'], true);
                   $response['task_info'] = $body;
-                  update_option('instawp_backup_status_options', $response);                  
+                  update_option('instawp_backup_status_options', $response);
                }
 
                $this->instawp_log->CloseFile();
@@ -613,12 +685,12 @@ class InstaWP_Backup_Api
       );
       $api_doamin = InstaWP_Setting::get_api_domain();
       $url = $api_doamin . INSTAWP_API_URL . '/check-key';
-      $log = array( 
+      $log = array(
 		  "url"     => $url,
 		  "api_key" => $api_key,
       );
       $this->instawp_log->WriteLog('Init Check Key: '. json_encode($log), 'notice');
-      
+
 
       $api_key = sanitize_text_field($api_key);
       //102|SouBdaa121zb1U2DDlsWK8tXaoV8L31WsXnqMyOy';
@@ -632,7 +704,7 @@ class InstaWP_Backup_Api
       ));
       $response_code = wp_remote_retrieve_response_code($response);
 
-      $log = array( 
+      $log = array(
 		  "response_code" => $response_code,
 		  "response"      => $response,
       );
@@ -642,7 +714,7 @@ class InstaWP_Backup_Api
 
          $body            = (array) json_decode(wp_remote_retrieve_body($response), true);
          $this->instawp_log->WriteLog('Check Key Response Body: '. json_encode($body), 'notice');
-         
+
          $connect_options = array();
          if ( $body['status'] == true ) {
             $connect_options['api_key']  = $api_key;
@@ -678,17 +750,17 @@ class InstaWP_Backup_Api
 		  'body' => $body,
 	  );
       $this->instawp_log->WriteLog('_config_connect_init '. json_encode($log), 'notice');
-      
+
       $curl_response = $InstaWP_Curl->curl($url, $body);
 
       $this->instawp_log->WriteLog('_config_connect_response '. json_encode($curl_response), 'notice');
-      
+
       if ( $curl_response['error'] == false ) {
          $response = (array) json_decode( $curl_response['curl_res'],true);
          update_option('_config_connect_response',$response);
          $response = (array) json_decode($curl_response['curl_res'], true);
          if ( $response['status'] == true ) {
-            
+
             update_option('instawp_connect_id_options', $response);
             $this->instawp_log->WriteLog('Save instawp_connect_id_options '. json_encode($response), 'success');
             $res['message'] = $response['message'];
@@ -704,7 +776,7 @@ class InstaWP_Backup_Api
 
    public function create_user( $user_details ) {
       global $wpdb;
-        
+
       // $username = $user_details['username'];
       // $password = $user_details['password'];
       // $email    = $user_details['email'];
@@ -729,14 +801,14 @@ class InstaWP_Backup_Api
          }
          elseif ( email_exists( $user_detail['email'] ) || username_exists($user_detail['username']) ) {
             $user = get_user_by('email', $user_detail['email']);
-            
+
             $wpdb->update(
-                $wpdb->users, 
+                $wpdb->users,
                 [
-					'user_login' => $user_detail['username'], 
-					'user_pass'  => md5( $user_detail['password'] ), 
+					'user_login' => $user_detail['username'],
+					'user_pass'  => md5( $user_detail['password'] ),
 					'user_email' => $user_detail['email'],
-				], 
+				],
                 [ 'ID' => $user->ID ]
             );
 
@@ -750,5 +822,5 @@ class InstaWP_Backup_Api
 
    }
 }
-global $InstaWP_Backup_Api; 
+global $InstaWP_Backup_Api;
 $InstaWP_Backup_Api = new InstaWP_Backup_Api();
