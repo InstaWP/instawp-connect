@@ -622,6 +622,7 @@ class instaWP
       $instawp_api_options = get_option('instawp_api_options');
       $response = array();
       $backup_type = (int)$_REQUEST['backup_type'];
+      $anonymize_option = (int)$_REQUEST['anonymize_option'];
       
       if( !empty( $connect_ids ) && !empty( $instawp_api_options ) ){
          $id = $connect_ids['data']['id'];
@@ -660,6 +661,7 @@ class instaWP
 				// Check if remaining site it > 0 and dis
           if( intval($remaining_site) > 0 && $site_size < $disk_space ){
                update_option( 'instawp_site_backup_type',$backup_type );
+               update_option( 'instawp_production_anonymize_option', $anonymize_option );
              $response = array(
                'status' => 1,
                'message' => "User can create stage site."
@@ -1756,7 +1758,7 @@ public function main_schedule( $schedule_id = '' ) {
       $status = InstaWP_taskmanager::get_backup_task_status($task_id);
       if ( $status['str'] == 'running' ) {
          $this->instawp_log->WriteLog('Backup succeeded.', 'notice');
-
+         delete_option('instawp_production_anonymize_option');
          $check_res = apply_filters('instawp_check_backup_completeness', true, $task_id);
          if ( ! $check_res ) {
             $task                    = InstaWP_taskmanager::get_task($task_id);
