@@ -188,3 +188,5 @@ function run_instawp() {
     $GLOBALS['instawp_plugin'] = $instawp_plugin;
 }
 run_instawp();
+
+// file ends
