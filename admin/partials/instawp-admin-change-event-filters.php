@@ -31,7 +31,7 @@ class InstaWP_Change_Event_Filters {
         add_filter( 'pre_trash_post', array( $this, 'trashPostFilter' ), 10, 2 );
         add_action( 'after_delete_post', array( $this,'deletePostFilter'), 10, 2 );
         add_action( 'untrashed_post', array( $this,'untrashPostFilter'),10, 3  );
-        #add_action( 'save_post', array( $this,'savePostFilter'), 10, 3 );
+        add_action( 'save_post', array( $this,'savePostFilter'), 10, 3 );
         
         #plugin actions
         add_action( 'activated_plugin', array( $this,'activatePluginAction'),10, 2 );
@@ -206,6 +206,38 @@ class InstaWP_Change_Event_Filters {
         }
     }
 
+    public function eventDataUpdated($event_name = null, $event_slug = null, $post = null, $post_id = null){
+       
+        $InstaWP_db = new InstaWP_DB();
+        $tables = $InstaWP_db->tables;
+        $uid = get_current_user_id();
+        $date = date('Y-m-d H:i:s');
+        $post_id = isset($post_id) ? $post_id : $post->ID;
+        $postData = get_post($post_id);
+        $post_content = isset($postData->post_content) ? $postData->post_content : '';
+        $featured_image_id = get_post_thumbnail_id($post_id); 
+        $featured_image_url = get_the_post_thumbnail_url($post_id);
+     
+        #Data Array
+        $data = [
+            'event_name' => $event_name,
+            'event_slug' => $event_slug,
+            'event_type' => isset($postData->post_type) ? $postData->post_type : '',
+            'source_id' => isset($post_id) ? $post_id : '',
+            'title' => isset($postData->post_title) ? $postData->post_title : '',
+            'details' => json_encode(['content' => $post_content,'posts' => $postData,'postmeta' => get_post_meta($post_id),'featured_image' => ['featured_image_id'=>$featured_image_id,'featured_image_url' => $featured_image_url]]),
+            'user_id' => $uid,
+            'date' => $date,
+            'prod' => '',
+        ];
+        
+        global $wpdb;
+        $wpdb->update( 
+            $tables['ch_table'], 
+            $data, 
+            array( 'source_id' => $post_id )
+        );
+    }
     /**
      * Function for `after_delete_post` action-hook.
      * 

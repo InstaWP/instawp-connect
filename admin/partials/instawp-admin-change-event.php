@@ -217,8 +217,7 @@ class InstaWP_Change_Event_Table extends WP_List_Table {
                             </div>
                             <div class="sync_message_main textarea_json destination_form">
                                 <label for="sync_message">Message:</label>
-                                <textarea id="sync_message" name="sync_message" rows="4" cols="50">
-                                </textarea>
+                                <textarea id="sync_message" name="sync_message" rows="4"></textarea>
                             </div>
                         </div>
                         <div class="instawp_buttons">                            

@@ -108,6 +108,6 @@ class InstaWP_DB{
         }else{ //only with event_type
             $results = $this->wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE `event_type`='".$event_type."'"); 
         }
-        return $results;
+        return $results > 0 ? $results : 0;
     }
 }

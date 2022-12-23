@@ -35,13 +35,31 @@ class InstaWP_Sync_History_Table extends WP_List_Table {
                         $dir = '<img src="'.INSTAWP_PLUGIN_IMAGES_URL.'/downward.png">';
                     }
                 }
-            
+
+                $total_events = '';
+                if(isset($v->changes) && !empty($v->changes)){
+                    $changes = json_decode($v->changes);
+                    $ch_list = '<ul>';
+                    if(isset($changes->posts) && !empty($changes->posts)){
+                        $ch_list .= '<li>Total post changes : '.$changes->posts.'</li>';
+                    }
+                    if(isset($changes->pages) && !empty($changes->pages)){
+                        $ch_list .= '<li>Total page changes : '.$changes->pages.'</li>';
+                    }
+                    $ch_list .= '</ul>'; 
+                    if(isset($changes->total_events)){
+                        $total_events = $changes->total_events;
+                    }
+                }
+                
                 $data[] = [
                     'ID' => $v->id,
-                    'encrypted_contents' => $v->encrypted_contents,
-                    'changes' => $v->changes,
+                    'sync_message' => $v->sync_message,
+                    'changes' => $ch_list,
                     'direction' => $dir,
                     'status' => $v->status,
+                    'total_events' => $total_events,
+                    'changes_sync_id' => $v->changes_sync_id,
                     'sync' => '<button type="button" id="btn-sync-'.$v->id.'" data-id="'.$v->id.'" class="two-way-sync-btn">Sync</button> <span class="sync-loader"></span><span class="sync-success" style="display:none;">Done</span>',
                 ];
             }
@@ -66,19 +84,23 @@ class InstaWP_Sync_History_Table extends WP_List_Table {
     public function get_columns() {
         $columns = array(
           'cb'        => '<input type="checkbox" />',
-          'encrypted_contents' => 'Encrypted contents',
+          'sync_message' => 'Sync message',
           'changes' => 'Changes',
           'direction' => 'Direction',
-          'status' => 'Status'
+          'total_events' => 'Total events',
+          'changes_sync_id' => 'Sync id',
+          'status' => 'Status',
         );
         return $columns;
     }
 
     public function get_sortable_columns(){
       $sortable_columns = array(
-            'encrypted_contents'  => array('event_name', false),
+            'sync_message'  => array('sync_message', false),
             'changes' => array('event_slug', false),
             'direction'   => array('event_type', false),
+            'total_events'   => array('total_events', false),
+            'changes_sync_id'   => array('changes_sync_id', false),
             'status'   => array('source_id', true),
       );
       return $sortable_columns;
@@ -118,9 +140,11 @@ class InstaWP_Sync_History_Table extends WP_List_Table {
 
     public function column_default( $item, $column_name ) {
         switch( $column_name ) { 
-            case 'encrypted_contents':
+            case 'sync_message':
             case 'changes':
             case 'direction':
+            case 'total_events':
+            case 'changes_sync_id':
             case 'status':      
             return $item[ $column_name ];
             default:

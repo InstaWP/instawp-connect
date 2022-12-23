@@ -165,6 +165,7 @@ body.show {
     letter-spacing: 0.025em;
     padding-left: 39px;
     padding-bottom: 26px;
+    color: #3c434a;
 }
 .instawpcatrgtcol ul li:last-child{
     padding-bottom: 0;
@@ -209,12 +210,10 @@ body.show {
     z-index: 1;
     border-radius: 50%;
 }
-.instawpcatrgtcol ul li:nth-child(2) {
+.instawpcatrgtcol ul li.process_inprogress {
     color: #005E54;
 }
-.instawpcatrgtcol ul li:nth-child(3) {
-    color: #6B7280;
-}
+
 .instawp_buttons {
     display: grid;
     grid-template-columns: repeat(2,1fr);

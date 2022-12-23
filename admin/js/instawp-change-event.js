@@ -7,12 +7,9 @@ jQuery(document).ready(function ($) {
         $('.bulk-sync-popup').hide();
     });
 
-    
-    
     //Single sync
     $(document).on('click', '.two-way-sync-btn', function(){
         var sync_id = $(this).attr('data-id'); 
-        
         $.ajax({
             url: ajax_obj.ajax_url, 
             type: 'POST',
@@ -37,50 +34,71 @@ jQuery(document).ready(function ($) {
         });
     });
 
-    
-    const bulkSync = (sync_message) => {
-        let formData = new FormData();
-        formData.append('action', 'sync_changes');
-        formData.append('sync_message', 'John123');
-        fetch(ajax_obj.ajax_url, {
+    const baseCall = async (body) => {
+        return await fetch(ajax_obj.ajax_url, {
             method: "POST",
             credentials: 'same-origin',
-            body: formData
-        }).then((respponse90) => respponse90.json()).then((datag) => {
-            console.log(datag);
+            body
+        });
+    }
+
+    var intervalId;
+    const packThings = async (sync_message) => {
+        let formData = new FormData();
+        formData.append('action', 'pack_things');
+        baseCall(formData).then((response) => response.json()).then((data) => {
+            if(data.success === true){
+                //Complete Step 1
+                $(".sync_process .step-1")
+                .removeClass('process_inprogress')
+                .addClass('process_complete');
+                //Initiate Step 2
+                $(".sync_process .step-2")
+                    .removeClass('process_pending')
+                    .addClass('process_inprogress');
+                bulkSync(sync_message, data.data); 
+            }
+        }).catch((error) => {
+            console.log("Error Occurred: ", error);
+        });
+    }
+    clearInterval(intervalId);
+
+    const bulkSync = (sync_message, data) => {
+        let formData = new FormData();
+        formData.append('action', 'sync_changes');
+        formData.append('sync_message', sync_message);
+        console.log("Before Send: ", data);
+        console.log("Before Send Type: ", typeof data);
+        formData.append('data', data);
+        baseCall(formData).then((response) => response.json()).then((data) => {
+            if(data.success === true){
+                //Upload Data, Completed Step 2
+                $(".sync_process .step-2")
+                .removeClass('process_inprogress')
+                .addClass('process_complete');
+                //Initiated Step3
+                $(".sync_process .step-3")
+                    .removeClass('process_pending')
+                    .addClass('process_inprogress'); 
+                //Set TimeOut
+                setTimeout( function() { 
+                    $(".sync_process .step-3")
+                    .removeClass('process_inprogress')
+                    .addClass('process_complete');
+                }, 2000);
+            }
         });
     }
 
     //Bulk sync
     $(document).on('click', '.sync-changes-btn', function(){
-        var sync_message = $('#sync_message').val();
-        console.log(sync_message);
-        //bulkSync("test message");
-        $.ajax({
-            url: ajax_obj.ajax_url, 
-            type: 'POST',
-            dataType: "json",
-            data:{ 
-                action: 'sync_changes',
-                sync_message: sync_message
-            },
-            beforeSend: function() {
-                $(".sync_process .step-1").removeClass('process_pending').addClass('process_inprogress'); 
-                $(".sync_process .step-2").removeClass('process_pending').addClass('process_inprogress'); 
-                $(".sync_process .step-3").removeClass('process_pending').addClass('process_inprogress'); 
-            },
-            success: function(response){
-                var jsonobj = JSON.parse(response);
-                $(".sync_process .step-1").removeClass('process_inprogress').addClass('process_complete');
-                $(".sync_process .step-2").removeClass('process_inprogress').addClass('process_complete');
-                if(jsonobj.status == true){
-                    $(".sync_process .step-3").removeClass('process_inprogress').addClass('process_complete');
-                }
-            },
-            complete: function(){
-                
-            }
-        });
+        const sync_message = $("#sync_message").val();
+        //Initiate Step 2
+        $(".sync_process .step-1")
+            .removeClass('process_pending')
+            .addClass('process_inprogress');
+            packThings(sync_message);
     });
 });
 

@@ -232,10 +232,13 @@ function instawp_create_table(){
             id int(20) NOT NULL AUTO_INCREMENT,
             encrypted_contents longtext NOT NULL,
             changes longtext NOT NULL,
+            sync_response longtext NOT NULL,
             direction varchar(128) NOT NULL,
             status varchar(128) NOT NULL,
             user_id int(20) NOT NULL,
             changes_sync_id int(20) NOT NULL,
+            sync_message varchar(128) NOT NULL,
+            source_connect_id int(20) NOT NULL,
             date datetime NOT NULL,
             PRIMARY KEY  (id)
             ) ";
