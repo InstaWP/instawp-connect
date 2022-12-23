@@ -742,9 +742,10 @@ function instawp_check_staging() {
 
     instawp_post_request(ajax_data, function (data) {
         try {
-            console.log(JSON.parse(data));
             let jsonarray = JSON.parse(data);
 
+            console.log(jsonarray);
+            
             // console.log("ON 790 ---> ", jsonarray);
             // console.log("ON 791 ---> ", jsonarray.status);
 

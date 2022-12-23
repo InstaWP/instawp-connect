@@ -185,68 +185,83 @@ class InstaWP_AJAX {
 		$task_id    = $bkp_init_opt['task_info']['task_id'] ?? '';
 		$site_id    = $backup_status_opt['data']['site_id'] ?? '';
 
-		if ( ! empty( $connect_id ) && ! empty( $task_id ) && ! empty( $site_id ) ) {
-
-			$backup_info_json   = json_encode( array( 'connect_id' => $connect_id, 'task_id' => $task_id, 'site_id' => $site_id, ) );
-			$curl_response_data = $InstaWP_Curl->curl( $url, $backup_info_json );
-
-			$response['response'] = $curl_response_data;
-
-			if ( isset( $curl_response_data['curl_res'] ) ) {
-
-				if ( gettype( $curl_response_data['curl_res'] ) == "string" ) {
-					$curl_response = json_decode( $curl_response_data['curl_res'], true );
-				} else {
-					$curl_response = $curl_response_data['curl_res'];
-				}
-
-				// Breaking down the restore progress
-
-
-				if ( isset( $curl_response['status'] ) && $curl_response['status'] == 1 ) {
-
-					$staging_sites                = get_option( 'instawp_staging_list', array() );
-					$staging_sites[ $connect_id ] = $curl_response;
-
-					update_option( 'instawp_staging_list', $staging_sites );
-
-					$auto_login_url  = $api_doamin . '/wordpress-auto-login';
-					$site_name       = $curl_response['data']['wp'][0]['site_name'];
-					$wp_admin_url    = $curl_response['data']['wp'][0]['wp_admin_url'];
-					$wp_username     = $curl_response['data']['wp'][0]['wp_username'];
-					$wp_password     = $curl_response['data']['wp'][0]['wp_password'];
-					$auto_login_hash = $curl_response['data']['wp'][0]['auto_login_hash'];
-					$auto_login_url  = add_query_arg( array( 'site' => $auto_login_hash ), $auto_login_url );
-					$scheme          = "https://";
-
-					$staging_sites_items[ $connect_id ][ $task_id ] = array(
-						"stage_site_task_id"      => $task_id,
-						"stage_site_url"          => array(
-							"site_name"    => $site_name,
-							"wp_admin_url" => $scheme . str_replace( '/wp-admin', '', $wp_admin_url )
-						),
-						"stage_site_user"         => $wp_username,
-						"stage_site_pass"         => $wp_password,
-						"stage_site_login_button" => $auto_login_url,
-					);
-
-					update_option( 'instawp_staging_list_items', $staging_sites_items );
-
-					$response['status']   = $curl_response['status'];
-					$response['progress'] = $curl_response['data']['progress'];
-					$response['details']  = array(
-						"name"  => $site_name,
-						"url"   => $scheme . str_replace( '/wp-admin', '', $wp_admin_url ),
-						"user"  => $wp_username,
-						"code"  => $wp_password,
-						"login" => $auto_login_url,
-					);
-				}
-			} else {
-				$response['progress'] = 20;
-				$response['message']  = 'New site creation in progress';
-			}
+		if ( empty( $connect_id ) || empty( $task_id ) || empty( $site_id ) ) {
+			echo json_encode( array(
+				'progress' => 0,
+				'message'  => 'Invalid task ID or Site ID',
+			) );
+			wp_die();
 		}
+
+		$backup_info_json          = json_encode( array( 'connect_id' => $connect_id, 'task_id' => $task_id, 'site_id' => $site_id, ) );
+		$curl_response             = $InstaWP_Curl->curl( $url, $backup_info_json );
+		$_curl_response_data       = $curl_response['curl_res'] ?? '';
+		$curl_response_data        = json_decode( $_curl_response_data, true );
+		$curl_response_data_status = $curl_response_data['status'] ?? 0;
+
+		if ( $curl_response_data_status == 0 ) {
+			echo json_encode( array(
+				'progress' => 20,
+				'message'  => 'New site creation in progress',
+			) );
+			wp_die();
+		}
+
+		$presigned_urls = get_option( 'presigned_urls' );
+		$staging_sites  = get_option( 'instawp_staging_list', array() );
+
+		update_option( 'instawp_staging_list', array_merge( $staging_sites, array( $connect_id => $curl_response_data ) ) );
+
+		$auto_login_url  = $api_doamin . '/wordpress-auto-login';
+		$site_name       = $curl_response_data['data']['wp'][0]['site_name'];
+		$wp_admin_url    = $curl_response_data['data']['wp'][0]['wp_admin_url'];
+		$wp_username     = $curl_response_data['data']['wp'][0]['wp_username'];
+		$wp_password     = $curl_response_data['data']['wp'][0]['wp_password'];
+		$auto_login_hash = $curl_response_data['data']['wp'][0]['auto_login_hash'];
+		$auto_login_url  = add_query_arg( array( 'site' => $auto_login_hash ), $auto_login_url );
+		$scheme          = "https://";
+		$destination_url = $scheme . $site_name;
+
+		$staging_sites_items[ $connect_id ][ $task_id ] = array(
+			"stage_site_task_id"      => $task_id,
+			"stage_site_url"          => array(
+				"site_name"    => $site_name,
+				"wp_admin_url" => $scheme . str_replace( '/wp-admin', '', $wp_admin_url )
+			),
+			"stage_site_user"         => $wp_username,
+			"stage_site_pass"         => $wp_password,
+			"stage_site_login_button" => $auto_login_url,
+		);
+
+		update_option( 'instawp_staging_list_items', $staging_sites_items );
+
+
+		$restore_body  = array(
+			'urls' => $presigned_urls,
+			'wp'   => array(
+				'users'   => array(
+					'username' => $wp_username,
+					'password' => $wp_password,
+					'email'    => 'testemail@gmail.com',
+				),
+				'options' => array(
+					'option_name' => 'option_value',
+				),
+			),
+		);
+		$curl_response = $InstaWP_Curl->curl( $destination_url . '/wp-json/instawp-connect/v1/restore', json_encode( $restore_body ) );
+
+
+		$response['curl_response_data'] = $curl_response;
+		$response['progress']           = $curl_response_data['data']['progress'];
+		$response['details']            = array(
+			"name"  => $site_name,
+			"url"   => $scheme . str_replace( '/wp-admin', '', $wp_admin_url ),
+			"user"  => $wp_username,
+			"code"  => $wp_password,
+			"login" => $auto_login_url,
+		);
+
 
 		update_option( 'restore_status_options', $response );
 

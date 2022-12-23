@@ -396,14 +396,18 @@ class InstaWP_Backup_Api {
 		$task_id = $ret['task_id'];
 		update_option( 'instawp_init_restore', $task_id );
 		$this->instawp_log->WriteLog( 'New Task Created: ' . $task_id, 'notice' );
-		//$instawp_plugin->end_shutdown_function = false;
-		// register_shutdown_function(array($instawp_plugin, 'deal_shutdown_error'), $ret['task_id']);
-		// $instawp_plugin->set_time_limit( $ret['task_id'] );
-		// @ignore_user_abort(true);
+
+//		$instawp_plugin->end_shutdown_function = false;
+//		 register_shutdown_function(array($instawp_plugin, 'deal_shutdown_error'), $ret['task_id']);
+//		 $instawp_plugin->set_time_limit( $ret['task_id'] );
+//		 @ignore_user_abort(true);
+
+
 		if ( $ret['result'] == 'success' ) {
 			$this->instawp_log->WriteLog( 'Init Download', 'notice' );
 			$curl_result = $InstaWP_Curl->download( $ret['task_id'], $parameters['urls'] );
 		}
+
 		// if ( $curl_result['result'] != INSTAWP_SUCCESS ) {
 
 		//    $curl_result['task_id'] = $task_id;
@@ -413,11 +417,10 @@ class InstaWP_Backup_Api {
 		//    return $REST_Response;
 		// }
 
-		$res = $instawp_plugin->delete_last_restore_data_api();
+		$res        = $instawp_plugin->delete_last_restore_data_api();
+		$backuplist = InstaWP_Backuplist::get_backuplist();
 
-		//$backuplist = InstaWP_Backuplist::get_backuplist();
-
-		//$task = InstaWP_taskmanager::new_download_task_api();
+//		$task = InstaWP_taskmanager::new_download_task_api();
 
 		delete_option( 'instawp_backup_list' );
 		$InstaWP_BackupUploader = new InstaWP_BackupUploader();
@@ -425,7 +428,6 @@ class InstaWP_Backup_Api {
 
 		$backuplist = InstaWP_Backuplist::get_backuplist();
 		if ( empty( $backuplist ) ) {
-
 			$this->instawp_log->WriteLog( 'Backup List is empty', 'error' );
 		}
 		$restore_options      = array(
@@ -442,6 +444,7 @@ class InstaWP_Backup_Api {
 		$restore_options_json = json_encode( $restore_options );
 		// global $instawp_plugin;
 		// $this->restore_log = new InstaWP_Log();
+
 		foreach ( $backuplist as $key => $backup ) {
 			do {
 				$results_2 = $instawp_plugin->restore_api( $key, $restore_options_json );
@@ -452,13 +455,16 @@ class InstaWP_Backup_Api {
 
 				$progress = $instawp_plugin->restore_data->get_next_restore_task_progress();
 
-				$this->restore_status( 'in_progress', $progress );
+				$res_result = $this->restore_status( 'in_progress', $progress );
 
 				$ret = (array) json_decode( $results );
 
-			} while ( $ret['status'] != 'completed' || $ret['status'] == 'error' );
+				return new WP_REST_Response( $res_result );
 
+			} while ( $ret['status'] != 'completed' || $ret['status'] == 'error' );
 		}
+
+
 		if ( $ret['status'] == 'completed' ) {
 			$this->instawp_log->WriteLog( 'Restore Status: ' . json_encode( $ret ), 'success' );
 			if ( isset( $parameters['wp'] ) ) {
@@ -478,7 +484,7 @@ class InstaWP_Backup_Api {
 			$res_result = $this->restore_status( $response['message'], 80 );
 		}
 
-		$res_result['ret_response'] = $ret;
+//		$res_result['ret_response'] = $ret;
 
 		//$this->_disable_maintenance_mode();
 		$res           = $instawp_plugin->delete_last_restore_data_api();
