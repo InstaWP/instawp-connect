@@ -745,7 +745,7 @@ function instawp_check_staging() {
             let jsonarray = JSON.parse(data);
 
             console.log(jsonarray);
-            
+
             // console.log("ON 790 ---> ", jsonarray);
             // console.log("ON 791 ---> ", jsonarray.status);
 
