@@ -426,35 +426,19 @@ class InstaWP_Backup_Api {
 			return new WP_REST_Response( array( 'completed' => false, 'progress' => 0, 'backup_list_keys' => array_keys( $backup_list ) ) );
 		}
 
-		echo "<pre>";
-		print_r( $restore_progress );
-		echo "</pre>";
-
-		$res_result = [];
-
 		do {
 			$instawp_plugin->restore_api( $backup_list_key, $restore_options );
-			$results    = $instawp_plugin->get_restore_progress_api( $backup_list_key );
-			$progress   = $instawp_plugin->restore_data->get_next_restore_task_progress();
-			$res_result = $this->restore_status( 'in_progress', $progress );
-			$ret        = (array) json_decode( $results );
 
-			echo "<pre>";
-			print_r( [
-				'key'      => $backup_list_key,
-				'progress' => $progress,
-			] );
-			echo "</pre>";
+			$progress_results  = $instawp_plugin->get_restore_progress_api( $backup_list_key );
+			$progress_value    = $instawp_plugin->restore_data->get_next_restore_task_progress();
+			$progress_response = (array) json_decode( $progress_results );
+			$res_result        = array_merge( $this->restore_status( 'in_progress', $progress_value ), array( 'status' => ( $progress_response['status'] ?? 'wait' ) ) );
 
-//			if ( $progress > $restore_progress ) {
-//				exit;
-//			}
+			if ( $progress_value > $restore_progress ) {
+				break;
+			}
 
-		} while ( $ret['status'] != 'completed' );
-
-		echo "<pre>";
-		print_r( $res_result );
-		echo "</pre>";
+		} while ( $progress_response['status'] != 'completed' );
 
 		return new WP_REST_Response( $res_result );
 	}
