@@ -734,17 +734,27 @@ function instawp_check_staging() {
     is_instawp_check_staging_running = true;
     console.log('instawp_check_staging call');
 
-    let ajax_data = {
-        'action': 'instawp_check_staging',
-        'counter': check_staging_tried_counter,
-        //'task_id': running_backup_taskid
-    };
+
+    let el_backup_list_key = jQuery('.instawp-backup-list-key'),
+        el_restore_progress = jQuery('.instawp-restore-progress'),
+        backup_list_key = el_backup_list_key.val(),
+        restore_progress = el_restore_progress.val(),
+        ajax_data = {
+            'action': 'instawp_check_staging',
+            'counter': check_staging_tried_counter,
+            'backup_list_key': backup_list_key,
+            'restore_progress': restore_progress,
+            //'task_id': running_backup_taskid
+        };
 
     instawp_post_request(ajax_data, function (data) {
         try {
             let jsonarray = JSON.parse(data);
 
             console.log(jsonarray);
+
+            // el_backup_list_key.val(jsonarray.backup_list_key);
+            el_restore_progress.val(jsonarray.progress);
 
             // console.log("ON 790 ---> ", jsonarray);
             // console.log("ON 791 ---> ", jsonarray.status);

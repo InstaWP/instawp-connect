@@ -437,7 +437,6 @@ class InstaWP_Backup_Api {
 			if ( $progress_value > $restore_progress ) {
 				break;
 			}
-
 		} while ( $progress_response['status'] != 'completed' );
 
 		return new WP_REST_Response( $res_result );

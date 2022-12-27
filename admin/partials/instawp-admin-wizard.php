@@ -496,6 +496,9 @@ if ( isset( $_REQUEST['success'] ) && $_REQUEST['success'] == true ) {
                 </span>
             </div>
 
+            <input type="text" class="instawp-backup-list-key" value="">
+            <input type="text" class="instawp-restore-progress" value="">
+
             <div class="instawp-progress-site-creation">
                 <span class="instawp-progress-circle"></span>
                 <span class="instawp-progress-current"></span>
