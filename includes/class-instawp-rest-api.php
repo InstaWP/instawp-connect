@@ -385,9 +385,22 @@ class InstaWP_Backup_Api {
 
 		global $InstaWP_Curl, $instawp_plugin;
 
-		$parameters      = $request->get_params();
-		$backup_task     = new InstaWP_Backup_Task();
-		$backup_task_ret = $backup_task->new_download_task();
+		$parameters       = $request->get_params();
+		$restore_options  = json_encode( array(
+			'skip_backup_old_site'     => '1',
+			'skip_backup_old_database' => '1',
+			'is_migrate'               => '1',
+			'backup_db',
+			'backup_themes',
+			'backup_plugin',
+			'backup_uploads',
+			'backup_content',
+			'backup_core',
+		) );
+		$backup_task      = new InstaWP_Backup_Task();
+		$backup_task_ret  = $backup_task->new_download_task();
+		$backup_list_key  = $parameters['backup_list_key'] ?? '';
+		$restore_progress = (int) $parameters['restore_progress'] ?? 0;
 
 		if ( $backup_task_ret['result'] == 'success' ) {
 
@@ -400,32 +413,50 @@ class InstaWP_Backup_Api {
 
 		$instawp_plugin->delete_last_restore_data_api();
 
-		$backup_uploader = new InstaWP_BackupUploader();
+		if ( empty( $backup_list_key ) ) {
 
-		$backup_uploader->_rescan_local_folder_set_backup_api();
+			$backup_uploader = new InstaWP_BackupUploader();
+			$backup_uploader->_rescan_local_folder_set_backup_api();
+			$backup_list = InstaWP_Backuplist::get_backuplist();
 
-		if ( empty( $back_up_list = InstaWP_Backuplist::get_backuplist() ) ) {
-			return new WP_REST_Response( array( 'completed' => false, 'progress' => 0 ) );
+			if ( empty( $backup_list ) ) {
+				return new WP_REST_Response( array( 'completed' => false, 'progress' => 0, 'message' => 'empty backup list' ) );
+			}
+
+			return new WP_REST_Response( array( 'completed' => false, 'progress' => 0, 'backup_list_keys' => array_keys( $backup_list ) ) );
 		}
 
-		$restore_options      = array(
-			'skip_backup_old_site'     => '1',
-			'skip_backup_old_database' => '1',
-			'is_migrate'               => '1',
-			'backup_db',
-			'backup_themes',
-			'backup_plugin',
-			'backup_uploads',
-			'backup_content',
-			'backup_core',
-		);
-		$restore_options_json = json_encode( $restore_options );
-
 		echo "<pre>";
-		print_r( $back_up_list );
+		print_r( $restore_progress );
 		echo "</pre>";
 
+		$res_result = [];
 
+		do {
+			$instawp_plugin->restore_api( $backup_list_key, $restore_options );
+			$results    = $instawp_plugin->get_restore_progress_api( $backup_list_key );
+			$progress   = $instawp_plugin->restore_data->get_next_restore_task_progress();
+			$res_result = $this->restore_status( 'in_progress', $progress );
+			$ret        = (array) json_decode( $results );
+
+			echo "<pre>";
+			print_r( [
+				'key'      => $backup_list_key,
+				'progress' => $progress,
+			] );
+			echo "</pre>";
+
+//			if ( $progress > $restore_progress ) {
+//				exit;
+//			}
+
+		} while ( $ret['status'] != 'completed' );
+
+		echo "<pre>";
+		print_r( $res_result );
+		echo "</pre>";
+
+		return new WP_REST_Response( $res_result );
 	}
 
 
