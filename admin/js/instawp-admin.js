@@ -726,14 +726,9 @@ function instawp_cancel_backup() {
     });
 }
 
-let check_staging_tried_counter = 0;
-
 function instawp_check_staging() {
 
-    check_staging_tried_counter++;
     is_instawp_check_staging_running = true;
-    console.log('instawp_check_staging call');
-
 
     let el_backup_list_key = jQuery('.instawp-backup-list-key'),
         el_restore_progress = jQuery('.instawp-restore-progress'),
@@ -741,7 +736,6 @@ function instawp_check_staging() {
         restore_progress = el_restore_progress.val(),
         ajax_data = {
             'action': 'instawp_check_staging',
-            'counter': check_staging_tried_counter,
             'backup_list_key': backup_list_key,
             'restore_progress': restore_progress,
             //'task_id': running_backup_taskid
@@ -753,7 +747,7 @@ function instawp_check_staging() {
 
             console.log(jsonarray);
 
-            // el_backup_list_key.val(jsonarray.backup_list_key);
+            el_backup_list_key.val(jsonarray.backup_list_key);
             el_restore_progress.val(jsonarray.progress);
 
             // console.log("ON 790 ---> ", jsonarray);

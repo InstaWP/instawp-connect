@@ -423,7 +423,9 @@ class InstaWP_Backup_Api {
 				return new WP_REST_Response( array( 'completed' => false, 'progress' => 0, 'message' => 'empty backup list' ) );
 			}
 
-			return new WP_REST_Response( array( 'completed' => false, 'progress' => 0, 'backup_list_keys' => array_keys( $backup_list ) ) );
+			$backup_list_keys = array_keys( $backup_list );
+
+			return new WP_REST_Response( array( 'completed' => false, 'progress' => 0, 'backup_list_key' => ( $backup_list_keys[0] ?? '' ) ) );
 		}
 
 		do {

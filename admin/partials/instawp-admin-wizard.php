@@ -487,7 +487,7 @@ if ( isset( $_REQUEST['success'] ) && $_REQUEST['success'] == true ) {
 				$progress_class = 'instawp-display-none';
 				$site_class     = '';
 			}
-			do_action( 'instawp_admin_wizard_img', $progress_class );
+			do_action( 'instawp_admin_wizard_img' );
 			?>
 
             <div class="instawp-site-details-heading <?php //echo esc_attr( $site_class); ?>" style="display:none">
@@ -496,8 +496,8 @@ if ( isset( $_REQUEST['success'] ) && $_REQUEST['success'] == true ) {
                 </span>
             </div>
 
-            <input type="text" class="instawp-backup-list-key" value="">
-            <input type="text" class="instawp-restore-progress" value="">
+            <input type="hidden" class="instawp-backup-list-key" value="">
+            <input type="hidden" class="instawp-restore-progress" value="">
 
             <div class="instawp-progress-site-creation">
                 <span class="instawp-progress-circle"></span>
