@@ -380,7 +380,56 @@ class InstaWP_Backup_Api {
 		return $response;
 	}
 
-	public function restore( $request ) {
+
+	public function restore( WP_REST_Request $request ) {
+
+		global $InstaWP_Curl, $instawp_plugin;
+
+		$parameters      = $request->get_params();
+		$backup_task     = new InstaWP_Backup_Task();
+		$backup_task_ret = $backup_task->new_download_task();
+
+		if ( $backup_task_ret['result'] == 'success' ) {
+
+			$backup_download_ret = $InstaWP_Curl->download( $backup_task_ret['task_id'], $parameters['urls'] );
+
+			if ( $backup_download_ret['result'] != INSTAWP_SUCCESS ) {
+				return new WP_REST_Response( array( 'task_id' => $backup_task_ret['task_id'], 'completed' => false, 'progress' => 0 ) );
+			}
+		}
+
+		$instawp_plugin->delete_last_restore_data_api();
+
+		$backup_uploader = new InstaWP_BackupUploader();
+
+		$backup_uploader->_rescan_local_folder_set_backup_api();
+
+		if ( empty( $back_up_list = InstaWP_Backuplist::get_backuplist() ) ) {
+			return new WP_REST_Response( array( 'completed' => false, 'progress' => 0 ) );
+		}
+
+		$restore_options      = array(
+			'skip_backup_old_site'     => '1',
+			'skip_backup_old_database' => '1',
+			'is_migrate'               => '1',
+			'backup_db',
+			'backup_themes',
+			'backup_plugin',
+			'backup_uploads',
+			'backup_content',
+			'backup_core',
+		);
+		$restore_options_json = json_encode( $restore_options );
+
+		echo "<pre>";
+		print_r( $back_up_list );
+		echo "</pre>";
+
+
+	}
+
+
+	public function restore_old( $request ) {
 		global $InstaWP_Curl, $instawp_plugin;
 
 		$response   = array();
@@ -445,23 +494,45 @@ class InstaWP_Backup_Api {
 		// global $instawp_plugin;
 		// $this->restore_log = new InstaWP_Log();
 
+		$res_result = [];
+
+		echo "<pre>";
+		print_r( $backuplist );
+		echo "</pre>";
 
 		foreach ( $backuplist as $key => $backup ) {
-			do {
-				if ( get_option( 'instawp_restore_response_sent' . $key ) != 'yes' ) {
+//			do {
+//				if ( get_option( 'instawp_restore_response_sent' . $key ) != 'yes' ) {
 
-					$results_2  = $instawp_plugin->restore_api( $key, $restore_options_json );
-					$results    = $instawp_plugin->get_restore_progress_api( $key );
-					$progress   = $instawp_plugin->restore_data->get_next_restore_task_progress();
-					$res_result = $this->restore_status( 'in_progress', $progress );
-					$ret        = (array) json_decode( $results );
+//				$instawp_plugin->restore_api( $key, $restore_options_json );
+//				$results    = $instawp_plugin->get_restore_progress_api( $key );
+//				$progress   = $instawp_plugin->restore_data->get_next_restore_task_progress();
+//				$res_result = $this->restore_status( 'in_progress', $progress );
+//				$ret        = (array) json_decode( $results );
 
-					update_option( 'instawp_restore_response_sent' . $key, 'yes' );
+//				echo "<pre>";
+//				print_r( [
+//					'key'          => $key,
+//					'progress'     => $progress,
+//					'progress_old' => get_option( 'instawp_restore_progress_' . $key ),
+//					'res_result'   => $res_result
+//				] );
+//				echo "</pre>";
 
-					return new WP_REST_Response( $res_result );
-				}
 
-			} while ( $ret['status'] != 'completed' );
+//				if ( $progress > get_option( 'instawp_restore_progress_' . $key, 0 ) ) {
+//
+//					update_option( 'instawp_restore_progress_' . $key, $progress );
+//
+//					exit;
+//				}
+
+//				update_option( 'instawp_restore_progress_' . $key, $progress );
+
+//					return new WP_REST_Response( $res_result );
+//				}
+
+//			} while ( $ret['status'] != 'completed' );
 		}
 
 
@@ -475,19 +546,17 @@ class InstaWP_Backup_Api {
 			$response['message'] = 'Restore task completed.';
 
 			$res_result = $this->restore_status( $response['message'] );
-
 		} else {
-			$this->instawp_log->WriteLog( 'Restore Status: ' . json_encode( $ret ), 'error' );
-			$response['status']  = false;
-			$response['message'] = 'Something Went Wrong';
 
-			$res_result = $this->restore_status( $response['message'], 80 );
+//			$this->instawp_log->WriteLog( 'Restore Status: ' . json_encode( $ret ), 'error' );
+//			$response['status']  = false;
+//			$response['message'] = 'Something Went Wrong';
+//			$res_result = $this->restore_status( $response['message'], 80 );
 		}
 
-//		$res_result['ret_response'] = $ret;
 
-		//$this->_disable_maintenance_mode();
-		$res = $instawp_plugin->delete_last_restore_data_api();
+//		$this->_disable_maintenance_mode();
+		$instawp_plugin->delete_last_restore_data_api();
 
 		$REST_Response = new WP_REST_Response( $res_result );
 		$REST_Response->set_status( 200 );
