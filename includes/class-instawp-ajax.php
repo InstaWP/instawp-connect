@@ -169,7 +169,7 @@ class InstaWP_AJAX {
 		$backup_list_key       = isset( $_POST['backup_list_key'] ) ? sanitize_text_field( $_POST['backup_list_key'] ) : '';
 		$restore_progress      = isset( $_POST['restore_progress'] ) ? sanitize_text_field( $_POST['restore_progress'] ) : '';
 		$api_domain            = InstaWP_Setting::get_api_domain();
-		$response              = array( 'progress' => 10, 'message' => 'New site creation in progress', );
+		$response              = array( 'progress' => 0, 'message' => 'New site creation in progress', );
 		$instawp_finish_upload = get_option( 'instawp_finish_upload', array() );
 		$staging_sites_items   = get_option( 'instawp_staging_list_items', array() );
 		$connect_ids           = get_option( 'instawp_connect_id_options', '' );
@@ -246,7 +246,7 @@ class InstaWP_AJAX {
 			$response['restore_body']    = $restore_body;
 			$response['curl_res']        = $url_restore;
 			$response['backup_list_key'] = $url_restore_data['backup_list_key'] ?? '';
-			$response['progress']        = $url_restore_data['progress'] ?? 10;
+			$response['progress']        = $url_restore_data['progress'] ?? 0;
 			$response['details']         = array(
 				"name"  => $site_name,
 				"url"   => $scheme . str_replace( '/wp-admin', '', $wp_admin_url ),
