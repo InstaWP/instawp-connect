@@ -166,7 +166,7 @@ class InstaWP_AJAX {
 		global $InstaWP_Curl;
 
 		$backup_list_key       = $_POST['backup_list_key'] ?? '';
-		$restore_progress      = $_POST['restore_progress'] ?? '';
+		$restore_progress      = $_POST['restore_progress'] ?? 0;
 		$api_domain            = InstaWP_Setting::get_api_domain();
 		$response              = array( 'progress' => 0, 'message' => 'New site creation in progress', );
 		$instawp_finish_upload = get_option( 'instawp_finish_upload', array() );

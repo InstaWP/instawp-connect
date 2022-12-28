@@ -747,7 +747,9 @@ function instawp_check_staging() {
 
             console.log(jsonarray);
 
-            el_backup_list_key.val(jsonarray.backup_list_key);
+            if (typeof jsonarray.backup_list_key !== 'undefined' && jsonarray.backup_list_key.length > 0) {
+                el_backup_list_key.val(jsonarray.backup_list_key);
+            }
             el_restore_progress.val(jsonarray.progress);
 
             // console.log("ON 790 ---> ", jsonarray);
