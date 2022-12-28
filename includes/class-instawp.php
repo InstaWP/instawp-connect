@@ -4421,11 +4421,9 @@ class instaWP {
 	public function restore_api( $backup_id, $restore_options_json ) {
 		global $InstaWP_Curl, $instawp_plugin;
 
-		//check_ajax_referer( 'instawp_ajax', 'nonce' );
-		// print_r($restore_options_json);
-		// die;
+
 		$this->end_shutdown_function = false;
-		register_shutdown_function( array( $this, 'deal_restore_shutdown_error_api' ) );
+//		register_shutdown_function( array( $this, 'deal_restore_shutdown_error_api' ) );
 
 		if ( ! isset( $backup_id ) || empty( $backup_id ) || ! is_string( $backup_id ) ) {
 			$this->end_shutdown_function = true;
