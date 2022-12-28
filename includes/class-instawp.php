@@ -4426,8 +4426,8 @@ class instaWP {
 
 		if ( empty( $backup_id ) || ! is_string( $backup_id ) ) {
 			$this->end_shutdown_function = true;
-			echo json_encode( array( 'message' => 'no backup id' ) );
-			die();
+
+			return array( 'result' => INSTAWP_FAILED, 'message' => 'no backup id' );
 		}
 
 		$backup_id = sanitize_key( $backup_id );
@@ -4435,8 +4435,8 @@ class instaWP {
 
 		if ( $backup === false ) {
 			$this->end_shutdown_function = true;
-			echo json_encode( array( 'message' => 'invalid backup id' ) );
-			die();
+
+			return array( 'result' => INSTAWP_FAILED, 'message' => 'invalid backup id' );
 		}
 
 		$this->restore_data = new InstaWP_restore_data();
@@ -4455,36 +4455,40 @@ class instaWP {
 				$status = $this->restore_data->get_restore_status();
 
 				if ( $status === INSTAWP_RESTORE_ERROR ) {
+
 					$ret['result'] = INSTAWP_FAILED;
 					$ret['error']  = $this->restore_data->get_restore_error();
+
 					$this->restore_data->save_error_log_to_debug();
 					$this->restore_data->delete_temp_files();
 					$this->_disable_maintenance_mode();
-
 					$this->end_shutdown_function = true;
-					echo json_encode( $ret );
-					die();
+
+					return $ret;
 				} elseif ( $status === INSTAWP_RESTORE_COMPLETED ) {
+
 					$this->write_litespeed_rule( false );
 					$this->restore_data->write_log( 'disable maintenance mode', 'notice' );
 					$this->restore_data->delete_temp_files();
 					$this->_disable_maintenance_mode();
 
 					$this->end_shutdown_function = true;
-					echo json_encode( array( 'result' => 'finished' ) );
-					die();
+
+					return array( 'result' => INSTAWP_SUCCESS );
 				}
 			} else {
 				$this->restore_data->init_restore_data( $backup_id, $restore_options );
 				$this->restore_data->write_log( 'init restore data restore 4405 api function', 'notice' );
+
+				return array( 'result' => INSTAWP_PROCESSING );
 			}
 		} catch ( Exception $error ) {
 
 			$message = 'An exception has occurred. class: ' . get_class( $error ) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
 
 			$this->end_shutdown_function = true;
-			echo json_encode( array( 'message' => $message ) );
-			die();
+
+			return array( 'result' => INSTAWP_FAILED, 'message' => $message );
 		}
 
 		try {
@@ -4505,8 +4509,8 @@ class instaWP {
 
 			if ( $ret['result'] == INSTAWP_FAILED && $ret['error'] == 'A restore task is already running.' ) {
 				$this->end_shutdown_function = true;
-				echo json_encode( array( 'result' => INSTAWP_SUCCESS ) );
-				die();
+
+				return array( 'result' => INSTAWP_SUCCESS );
 			}
 			$this->_disable_maintenance_mode();
 		} catch ( Exception $error ) {
@@ -4520,8 +4524,7 @@ class instaWP {
 
 			$this->end_shutdown_function = true;
 
-			echo json_encode( array( 'result' => INSTAWP_FAILED, 'error' => $message, ) );
-			die();
+			return array( 'result' => INSTAWP_FAILED, 'error' => $message );
 		}
 
 		if ( $ret['result'] == INSTAWP_FAILED ) {
@@ -4530,8 +4533,8 @@ class instaWP {
 		}
 
 		$this->end_shutdown_function = true;
-		echo json_encode( $ret );
-		die();
+
+		return $ret;
 	}
 
 	public function write_litespeed_rule( $open = true ) {
