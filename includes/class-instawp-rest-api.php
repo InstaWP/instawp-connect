@@ -441,8 +441,6 @@ class InstaWP_Backup_Api {
 				)
 			);
 
-			$res_result['progress_val'] = $progress_value;
-
 			if ( $progress_value > $restore_progress ) {
 				break;
 			}

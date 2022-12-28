@@ -200,7 +200,7 @@ class InstaWP_AJAX {
 		update_option( 'instawp_staging_list', array_merge( $staging_sites, array( $connect_id => $curl_rd_restore_status ) ) );
 		update_option( 'instawp_response_get_restore_status', $curl_rd_restore_status );
 
-		$response['instawp_finish_upload'] = $instawp_finish_upload;
+//		$response['instawp_finish_upload'] = $instawp_finish_upload;
 
 		if ( is_array( $instawp_finish_upload ) && isset( $instawp_finish_upload['data']['restore_initiated'] ) ) {
 
