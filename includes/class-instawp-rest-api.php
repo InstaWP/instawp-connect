@@ -400,14 +400,14 @@ class InstaWP_Backup_Api {
 		$backup_task      = new InstaWP_Backup_Task();
 		$backup_task_ret  = $backup_task->new_download_task();
 		$backup_list_key  = $parameters['backup_list_key'] ?? '';
-		$restore_progress = (int) $parameters['restore_progress'] ?? 0;
+		$restore_progress = (int) $parameters['restore_progress'] ?? 10;
 
 		if ( $backup_task_ret['result'] == 'success' ) {
 
 			$backup_download_ret = $InstaWP_Curl->download( $backup_task_ret['task_id'], $parameters['urls'] );
 
 			if ( $backup_download_ret['result'] != INSTAWP_SUCCESS ) {
-				return new WP_REST_Response( array( 'task_id' => $backup_task_ret['task_id'], 'completed' => false, 'progress' => 0 ) );
+				return new WP_REST_Response( array( 'task_id' => $backup_task_ret['task_id'], 'completed' => false, 'progress' => 10 ) );
 			}
 		}
 
@@ -420,12 +420,12 @@ class InstaWP_Backup_Api {
 			$backup_list = InstaWP_Backuplist::get_backuplist();
 
 			if ( empty( $backup_list ) ) {
-				return new WP_REST_Response( array( 'completed' => false, 'progress' => 0, 'message' => 'empty backup list' ) );
+				return new WP_REST_Response( array( 'completed' => false, 'progress' => 10, 'message' => 'empty backup list' ) );
 			}
 
 			$backup_list_keys = array_keys( $backup_list );
 
-			return new WP_REST_Response( array( 'completed' => false, 'progress' => 0, 'backup_list_key' => ( $backup_list_keys[0] ?? '' ) ) );
+			return new WP_REST_Response( array( 'completed' => false, 'progress' => 10, 'backup_list_key' => ( $backup_list_keys[0] ?? '' ) ) );
 		}
 
 		do {
