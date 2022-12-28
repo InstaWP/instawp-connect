@@ -135,32 +135,32 @@ if ( isset( $_REQUEST['success'] ) && $_REQUEST['success'] == true ) {
 
 
         </div>
-		<?php
+        <?php 
+        
+        $btn_args = array(
+            'button_1' => array(
+                'label' => __('Quick','instawp-connect'),
+                'desc'  => __('Copies Without Media','instawp-connect'),
+                'data'  => __('data','instawp-connect'),
+            ),
+            'button_2' => array(
+                'label' => __('Full','instawp-connect'),
+                'desc'  => __('Copies Media Files','instawp-connect'),
+                'data'  => __('data','instawp-connect'),
+            ),
+            'button_3' => array(
+                'label' => __('Cancel Backup','instawp-connect'),
+            ),
+        );
+        do_action('instawp_admin_wizard_two_btn',$btn_args); 
+        do_action('instawp_admin_wizard_prev_btn',null); 
 
-		$btn_args = array(
-			'button_1' => array(
-				'label' => __( 'Quick', 'instawp-connect' ),
-				'desc'  => __( 'Copies Without Media', 'instawp-connect' ),
-				'data'  => __( 'data', 'instawp-connect' ),
-			),
-			'button_2' => array(
-				'label' => __( 'Full', 'instawp-connect' ),
-				'desc'  => __( 'Copies Media Files', 'instawp-connect' ),
-				'data'  => __( 'data', 'instawp-connect' ),
-			),
-			'button_3' => array(
-				'label' => __( 'Cancel', 'instawp-connect' ),
-			),
-		);
-		do_action( 'instawp_admin_wizard_two_btn', $btn_args );
-		do_action( 'instawp_admin_wizard_prev_btn', null );
-
-		?>
-
-		<?php
-		$backuplist           = InstaWP_Backuplist::get_backuplist();
-		$display_backup_count = InstaWP_Setting::get_max_backup_count();
-		?>
+        ?>
+        
+        <?php 
+        $backuplist = InstaWP_Backuplist::get_backuplist();
+        $display_backup_count = InstaWP_Setting::get_max_backup_count();
+        ?>
         <div class="backup-tab-content instawp_tab_backup" id="page-backups">
             <div style="margin-top:10px; margin-bottom:10px;">
 				<?php
@@ -240,7 +240,7 @@ if ( isset( $_REQUEST['success'] ) && $_REQUEST['success'] == true ) {
 
             /*Cancel Button Click to Stop Backup Process Code End*/
 
-            jQuery(document).on('click', '#instawp_quickbackup_btn', function () {
+            /*jQuery(document).on('click','#instawp_quickbackup_btn',function(){
                 var backup_type = jQuery(this).attr('data-backup-type');
                 check_cloud_usage(backup_type);
             });
@@ -248,16 +248,61 @@ if ( isset( $_REQUEST['success'] ) && $_REQUEST['success'] == true ) {
             jQuery(document).on('click', '#instawp_quick_backup_btn', function () {
                 var backup_type = jQuery(this).attr('data-backup-type');
                 check_cloud_usage(backup_type);
+            });*/
+
+            // Show cutomize options
+            jQuery(document).on('click','#instawp_customize_wrap',function(){
+                jQuery( ".home-screen-backup-customize-checkboxes" ).toggle();
+                // $(".home-screen-backup-customize-checkboxes").css("display", "flex");
+            });
+
+            // Full backup button 
+            jQuery(document).on('click','#instawp_quickbackup_btn',function(e){
+                var backup_type = jQuery(this).attr('data-backup-type');
+                jQuery('#instawp_backup_type').val(backup_type);
+                jQuery("#instawp_quick_backup_btn").removeClass('active');
+                jQuery(this).addClass('active');
+                // check_cloud_usage(backup_type);
+            });
+
+            // Quick backup button 
+            jQuery(document).on('click','#instawp_quick_backup_btn',function(){
+                var backup_type = jQuery(this).attr('data-backup-type');
+                jQuery('#instawp_backup_type').val(backup_type);
+
+                jQuery("#instawp_quickbackup_btn").removeClass('active');
+                jQuery(this).addClass('active');
+                // check_cloud_usage(backup_type);
+            });
+
+            /*Create staging button*/
+            jQuery(document).on('click','.instawp_create_stagin_button',function(e){
+                jQuery(this).addClass('disabled');
+                jQuery(this).hide();
+                jQuery(this).prop('disabled', true);
+                jQuery('#instawp_customize_wrap').hide();
+                jQuery('.instawp-wizard-btn-prev-wrap').hide();
+                jQuery( ".home-screen-backup-customize-checkboxes" ).hide();
+
+                // jQuery("#instawp_cancel_backup_btn").show();
+                var backup_type = jQuery('#instawp_backup_type').val();
+                check_cloud_usage(backup_type);
             });
 
             /* Check Cloud Site Usage Call Start */
-            function check_cloud_usage(backup_type) {
+            function check_cloud_usage(backup_type){
+                var anonymization_option = 0;
+                if (jQuery("input[name='instawp_anonymization']").is( ":checked" )) {
+                    anonymization_option = 1;
+                }
+
                 jQuery.ajax({
                     type: 'POST',
                     url: instawp_ajax_object.ajax_url,
                     data: {
                         action: "instawp_check_cloud_usage",
-                        backup_type: backup_type
+                        backup_type: backup_type,
+                        anonymize_option : anonymization_option
                     },
                     success: function (response) {
                         jQuery('.limit_notice').html('');

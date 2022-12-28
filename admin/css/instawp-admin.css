@@ -258,6 +258,7 @@
 
 .remote-storage-ftp-passive-block input,
 .remote-storage-amazons3-storage-class input,
+
 .remote-storage-amazons3-encryption input {
     display: line-block;
     margin-top: 10px;
@@ -397,6 +398,91 @@
         float: none;
         width: 100%;
     }
+=======
+.remote-storage-amazons3-encryption input{display:line-block; margin-top:10px; margin-bottom:10px;margin-right:10px;}
+.backup-list-head{}
+.storage-account-form {padding-top: 1px; padding-bottom: 1px;}
+.quicktransfer{width:100%; float:left; box-sizing:border-box;margin-right:10px; padding:10px;}
+.quicktransfer label{display:inline-block;margin-bottom:10px;}
+.quicktransfer-btn{display:block !important; margin:0 auto !important;width:220px;height:50px !important; line-height:48px !important; font-size:20px !important;}
+.instawp-feature-pro{font-size:12px;border:1px solid #f1f1f1;padding:3px 5px;margin: 10px 10px 10px 0;border-radius:5px;}
+@media screen and (max-width:1650px) {
+	.qucikbackup-schedule{
+		float:none;
+		width:100%;
+	}
+	.quickbackup{
+		float:none;
+		width:100%;
+	}
+	.export-import-block{
+		float:none;
+		width:100%;
+	}
+}
+@media only screen and (max-width: 1350px){
+	#poststuff #post-body.columns-2 {
+		margin:0;
+	}
+	#wpbody-content #post-body.columns-2 #postbox-container-1 {
+		margin-right: 0;
+		width: 100%;
+	}
+
+}
+
+@media screen and (max-width:1315px) {
+	.quickstart-storage-block{
+		width:50%;
+	}
+	.quickstart-archive-block{
+		width:50%;
+	}
+	.quickstart-btn{
+		clear:both;
+		float:none;
+		width:100%;
+	}
+}
+@media screen and (max-width:800px){
+	.tablelistcolumn{
+		display:block;
+	}
+	.backup-list-head{
+		display:none;
+	}
+	.backuptime{
+		font-size:16px;
+	}
+	.backuplist-delete-backup{
+		display:none;
+	}
+	.website-info-head{
+		display:none;
+	}
+	.log-head{
+		display:none;
+	}
+	.lafowef{
+		display:none;
+	}
+	.storage-account-form input{
+		width:360px;
+	}
+}
+@media screen and (max-width:600px) {
+	.quickstart-storage-block{
+		float:none;
+		width:100%;
+	}
+	.quickstart-archive-block{
+		float:none;
+		width:100%;
+	}
+	.quickstart-btn{
+		float:none;
+		width:100%;
+	}
 }
 
 /* Popup container */
@@ -661,10 +747,10 @@
 }
 
 .instawp-confirm-wrap {
-    display: inline-flex;
-    gap: 8px;
-    align-items: center;
-    margin: 8px 0;
+	display: inline-flex;
+	gap: 8px;
+	align-items: center;
+	margin: 8px 0;
 }
 
 .instawp-wizard-container #instawp_email_confirm {
@@ -742,7 +828,7 @@
 }
 
 #instawp_postbox_backup {
-    display: none;
+	display: none;
 }
 
 .instawp-connect-wizard #instawp_backup_tab {
@@ -774,11 +860,11 @@
 }
 
 #site-details-progress {
-    text-align: center;
-    font-size: 18px;
-    margin: 0 auto;
-    color: #1F2937;
-    font-weight: 600;
+	text-align: center;
+	font-size: 18px;
+	margin: 0 auto;
+	color: #1F2937;
+	font-weight: 600;
 }
 
 .instawp-site-details-wrapper .instawp-wizard-btn-wrap {
@@ -902,7 +988,7 @@
 }
 
 .wp-menu-image.svg {
-    filter: invert(31%) sepia(14%) saturate(228%) hue-rotate(165deg) brightness(110%) contrast(78%);
+	filter: invert(31%) sepia(14%) saturate(228%) hue-rotate(165deg) brightness(110%) contrast(78%);
 }
 
 .limit_notice .error_msg {
@@ -948,3 +1034,146 @@
     color: #fff;
     border-radius: 8px 0 0 8px;
 }
+
+/*Button design changes*/
+.instawp-wizard-container .instawp-wizard-btn.figma-design {
+	background: #F3F4F6;
+	border: 1px solid #f3f4f6;
+	padding: 10px 24px;
+	margin-top: 8px;
+	display: block;
+	box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.05);
+	border-radius: 6px;
+	text-decoration: none;
+	font-size: 16px;
+	font-weight: 600;
+}
+
+.instawp-wizard-container .instawp-wizard-btn.figma-design.active {
+	border: 1px solid #11BF85;
+	filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.05));
+	border-radius: 6px;
+	background: #fff;
+}
+.instawp-wizard-container .instawp-wizard-btn.figma-design.active span,
+.instawp-wizard-container .instawp-wizard-btn.figma-design.active p{
+	color: #11BF85;
+}
+
+.instawp-wizard-container .instawp-wizard-btn.figma-design span{
+	color: #333333;
+}
+.instawp-wizard-container .instawp-wizard-btn.figma-design p{
+	color: #4B5563;
+}
+
+.home-screen-backup-customize-options {
+	display: flex;
+	justify-content: center;
+	padding-top: 45px;
+	cursor: pointer;
+	padding-bottom: 20px;
+	width: 10%;
+	margin: 0 auto;
+}
+
+.home-screen-backup-customize-text {
+	margin-top: 4px;
+	margin-left: 4px;
+	font-size: 14px;
+}
+
+.home-screen-backup-customize-checkboxes {
+	width: 60%;
+	margin: 0 auto;
+	padding: 17px;
+	border: 1px solid #F3F4F6;
+	border-radius: 12px;
+	margin-bottom: 45px;
+	display: flex;
+	justify-content: space-between;
+}
+.customize-checkbox-wrap{
+	display: flex;
+	column-gap: 10px;
+	margin-bottom: 10px;
+}
+
+.instawp_create_stagin_button {
+	font-weight: 500;
+	padding: 8px 24px;
+	font-size: 20px;
+	color: #FFFFFF;
+	margin: 0 auto;
+	cursor: pointer;
+	width: 464px;
+	height: 44px;
+	background: #005E54;
+	border-radius: 6px;
+	border: 2px solid #006354;
+}
+button.instawp_create_stagin_button.disabled {
+	cursor: not-allowed;
+	background: #f3f4f6;
+	color: black;
+	margin-top: 20px;
+}
+
+/*.instawp_create_stagin_button_wrap {
+    background: #005E54;
+    width: 63%;
+    margin: 0 auto;
+    padding-top: 15px;
+    padding-bottom: 15px;
+    box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.05);
+    border-radius: 6px;
+    cursor: pointer;
+}*/
+.customize-checkbox-wrap label {
+	font-size: 17px;
+	line-height: 20px;
+	color: #4B5563;
+}
+.customize-checkbox-wrap input {
+	margin: unset;
+	width: 20px;
+	background: #FFFFFF;
+	border: 1px solid #D1D5DB;
+	border-radius: 4px;
+	height: 20px;
+}
+
+.customize-checkbox-tooltip {
+	background-image: url('tooltip.svg');
+	background-repeat: no-repeat;
+	background-size: cover;
+	height: 20px;
+	width: 20PX;
+	cursor: pointer;
+}
+
+.customize-checkbox-tooltip:hover{
+    background-image: url('tooltip-hover.svg');
+}
+.customize-checkbox-wrap input[type=checkbox]:checked::before {
+	margin-top: -2px !important;
+	margin-left: -2px !important;
+}
+
+.instawp-cancel-backup-btn {
+    font-weight: 500;
+    font-size: 18px;
+    color: #FFFFFF;
+    margin: 0 auto;
+    cursor: pointer;
+    width: 150px;
+    height: 35px;
+    background: #005E54;
+    border-radius: 6px;
+    border: 2px solid #006354;
+}
+.instawp-cancel-backup-btn-wrap{
+	margin-top: 20px;
+	display: none;
+}
+/*Button design changes ends*/
