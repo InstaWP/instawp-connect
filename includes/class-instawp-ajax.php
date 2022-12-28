@@ -227,15 +227,16 @@ class InstaWP_AJAX {
 						)
 					),
 				),
+				'restore_progress' => $restore_progress,
 			);
 
 			if ( ! empty( $backup_list_key ) ) {
 				$restore_body['backup_list_key'] = $backup_list_key;
 			}
 
-			if ( ! empty( $restore_progress ) ) {
-				$restore_body['restore_progress'] = $restore_progress;
-			}
+//			if ( ! empty( $restore_progress ) ) {
+//				$restore_body['restore_progress'] = $restore_progress;
+//			}
 
 			$url_restore      = $InstaWP_Curl->curl( $destination_url . '/wp-json/instawp-connect/v1/restore', json_encode( $restore_body ) );
 			$url_restore_data = $url_restore['curl_res']['body'] ?? '';

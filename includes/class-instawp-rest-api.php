@@ -386,6 +386,8 @@ class InstaWP_Backup_Api {
 		global $InstaWP_Curl, $instawp_plugin;
 
 		$parameters       = $request->get_params();
+		$backup_list_key  = $request->get_param( 'backup_list_key' );
+		$restore_progress = $request->get_param( 'restore_progress' );
 		$restore_options  = json_encode( array(
 			'skip_backup_old_site'     => '1',
 			'skip_backup_old_database' => '1',
@@ -399,8 +401,6 @@ class InstaWP_Backup_Api {
 		) );
 		$backup_task      = new InstaWP_Backup_Task();
 		$backup_task_ret  = $backup_task->new_download_task();
-		$backup_list_key  = $parameters['backup_list_key'] ?? '';
-		$restore_progress = $parameters['restore_progress'] ?? 0;
 
 		if ( $backup_task_ret['result'] == 'success' ) {
 
@@ -427,6 +427,8 @@ class InstaWP_Backup_Api {
 
 			return new WP_REST_Response( array( 'completed' => false, 'progress' => 0, 'backup_list_key' => ( $backup_list_keys[0] ?? '' ) ) );
 		}
+
+		$res_result = [ 'cus_status' => 'not_doing_do' ];
 
 		do {
 			$instawp_plugin->restore_api( $backup_list_key, $restore_options );
