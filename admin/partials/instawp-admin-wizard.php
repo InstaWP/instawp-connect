@@ -135,32 +135,32 @@ if ( isset( $_REQUEST['success'] ) && $_REQUEST['success'] == true ) {
 
 
         </div>
-        <?php 
-        
-        $btn_args = array(
-            'button_1' => array(
-                'label' => __('Quick','instawp-connect'),
-                'desc'  => __('Copies Without Media','instawp-connect'),
-                'data'  => __('data','instawp-connect'),
-            ),
-            'button_2' => array(
-                'label' => __('Full','instawp-connect'),
-                'desc'  => __('Copies Media Files','instawp-connect'),
-                'data'  => __('data','instawp-connect'),
-            ),
-            'button_3' => array(
-                'label' => __('Cancel Backup','instawp-connect'),
-            ),
-        );
-        do_action('instawp_admin_wizard_two_btn',$btn_args); 
-        do_action('instawp_admin_wizard_prev_btn',null); 
+		<?php
 
-        ?>
-        
-        <?php 
-        $backuplist = InstaWP_Backuplist::get_backuplist();
-        $display_backup_count = InstaWP_Setting::get_max_backup_count();
-        ?>
+		$btn_args = array(
+			'button_1' => array(
+				'label' => __( 'Quick', 'instawp-connect' ),
+				'desc'  => __( 'Copies Without Media', 'instawp-connect' ),
+				'data'  => __( 'data', 'instawp-connect' ),
+			),
+			'button_2' => array(
+				'label' => __( 'Full', 'instawp-connect' ),
+				'desc'  => __( 'Copies Media Files', 'instawp-connect' ),
+				'data'  => __( 'data', 'instawp-connect' ),
+			),
+			'button_3' => array(
+				'label' => __( 'Cancel Backup', 'instawp-connect' ),
+			),
+		);
+		do_action( 'instawp_admin_wizard_two_btn', $btn_args );
+		do_action( 'instawp_admin_wizard_prev_btn', null );
+
+		?>
+
+		<?php
+		$backuplist           = InstaWP_Backuplist::get_backuplist();
+		$display_backup_count = InstaWP_Setting::get_max_backup_count();
+		?>
         <div class="backup-tab-content instawp_tab_backup" id="page-backups">
             <div style="margin-top:10px; margin-bottom:10px;">
 				<?php
@@ -251,13 +251,13 @@ if ( isset( $_REQUEST['success'] ) && $_REQUEST['success'] == true ) {
             });*/
 
             // Show cutomize options
-            jQuery(document).on('click','#instawp_customize_wrap',function(){
-                jQuery( ".home-screen-backup-customize-checkboxes" ).toggle();
+            jQuery(document).on('click', '#instawp_customize_wrap', function () {
+                jQuery(".home-screen-backup-customize-checkboxes").toggle();
                 // $(".home-screen-backup-customize-checkboxes").css("display", "flex");
             });
 
             // Full backup button 
-            jQuery(document).on('click','#instawp_quickbackup_btn',function(e){
+            jQuery(document).on('click', '#instawp_quickbackup_btn', function (e) {
                 var backup_type = jQuery(this).attr('data-backup-type');
                 jQuery('#instawp_backup_type').val(backup_type);
                 jQuery("#instawp_quick_backup_btn").removeClass('active');
@@ -266,7 +266,7 @@ if ( isset( $_REQUEST['success'] ) && $_REQUEST['success'] == true ) {
             });
 
             // Quick backup button 
-            jQuery(document).on('click','#instawp_quick_backup_btn',function(){
+            jQuery(document).on('click', '#instawp_quick_backup_btn', function () {
                 var backup_type = jQuery(this).attr('data-backup-type');
                 jQuery('#instawp_backup_type').val(backup_type);
 
@@ -276,13 +276,13 @@ if ( isset( $_REQUEST['success'] ) && $_REQUEST['success'] == true ) {
             });
 
             /*Create staging button*/
-            jQuery(document).on('click','.instawp_create_stagin_button',function(e){
+            jQuery(document).on('click', '.instawp_create_stagin_button', function (e) {
                 jQuery(this).addClass('disabled');
                 jQuery(this).hide();
                 jQuery(this).prop('disabled', true);
                 jQuery('#instawp_customize_wrap').hide();
                 jQuery('.instawp-wizard-btn-prev-wrap').hide();
-                jQuery( ".home-screen-backup-customize-checkboxes" ).hide();
+                jQuery(".home-screen-backup-customize-checkboxes").hide();
 
                 // jQuery("#instawp_cancel_backup_btn").show();
                 var backup_type = jQuery('#instawp_backup_type').val();
@@ -290,9 +290,9 @@ if ( isset( $_REQUEST['success'] ) && $_REQUEST['success'] == true ) {
             });
 
             /* Check Cloud Site Usage Call Start */
-            function check_cloud_usage(backup_type){
+            function check_cloud_usage(backup_type) {
                 var anonymization_option = 0;
-                if (jQuery("input[name='instawp_anonymization']").is( ":checked" )) {
+                if (jQuery("input[name='instawp_anonymization']").is(":checked")) {
                     anonymization_option = 1;
                 }
 
@@ -302,7 +302,7 @@ if ( isset( $_REQUEST['success'] ) && $_REQUEST['success'] == true ) {
                     data: {
                         action: "instawp_check_cloud_usage",
                         backup_type: backup_type,
-                        anonymize_option : anonymization_option
+                        anonymize_option: anonymization_option
                     },
                     success: function (response) {
                         jQuery('.limit_notice').html('');
@@ -541,12 +541,13 @@ if ( isset( $_REQUEST['success'] ) && $_REQUEST['success'] == true ) {
                 </span>
             </div>
 
-            <input type="hidden" class="instawp-backup-list-key" value="">
-            <input type="hidden" class="instawp-restore-progress" value="">
+            <div id="postbox" class="instawp_postbox_restore_percent">
+                <input type="hidden" class="instawp-backup-list-key" value="">
+                <input type="hidden" class="instawp-restore-progress" value="">
 
-            <div class="instawp-progress-site-creation">
-                <span class="instawp-progress-circle"></span>
-                <span class="instawp-progress-current"></span>
+                <div class="action-progress-bar" id="instawp_action_progress_bar">
+                    <div class="action-progress-bar-percent" id="instawp_action_progress_bar_percent" style="height:24px;width:0;"></div>
+                </div>
             </div>
 
             <div class="instawp-site-details-wrapper">

@@ -753,11 +753,13 @@ function instawp_check_staging() {
             // console.log("ON 790 ---> ", jsonarray);
             // console.log("ON 791 ---> ", jsonarray.status);
 
-            let progressSiteCreation = jQuery('.instawp-progress-site-creation'),
-                progressSiteCreationCircle = progressSiteCreation.find('.instawp-progress-circle');
+            jQuery('.instawp_postbox_restore_percent #instawp_action_progress_bar_percent').css('width', jsonarray.progress + '%').parent().fadeIn();
 
-            progressSiteCreationCircle.css('width', jsonarray.progress + '%');
-            progressSiteCreation.fadeIn();
+            // let action_progress_bar = jQuery('.postbox.wizard-screen-4 #instawp_action_progress_bar #instawp_action_progress_bar_percent'),
+            //     action_progress_bar_percent = action_progress_bar.find('#instawp_action_progress_bar_percent');
+
+            // action_progress_bar_percent.css('width', jsonarray.progress + '%');
+            // action_progress_bar.fadeIn();
 
             if (jsonarray.status === 1) {
                 progressSiteCreation.fadeOut(100);
