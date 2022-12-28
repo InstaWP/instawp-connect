@@ -165,9 +165,8 @@ class InstaWP_AJAX {
 		//$this->ajax_check_security();
 		global $InstaWP_Curl;
 
-
-		$backup_list_key       = isset( $_POST['backup_list_key'] ) ? sanitize_text_field( $_POST['backup_list_key'] ) : '';
-		$restore_progress      = isset( $_POST['restore_progress'] ) ? sanitize_text_field( $_POST['restore_progress'] ) : '';
+		$backup_list_key       = $_POST['backup_list_key'] ?? '';
+		$restore_progress      = $_POST['restore_progress'] ?? '';
 		$api_domain            = InstaWP_Setting::get_api_domain();
 		$response              = array( 'progress' => 0, 'message' => 'New site creation in progress', );
 		$instawp_finish_upload = get_option( 'instawp_finish_upload', array() );
