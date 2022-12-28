@@ -4465,8 +4465,8 @@ class instaWP {
 					$this->restore_data->delete_temp_files();
 					$this->_disable_maintenance_mode();
 
-					return json_encode( $ret );
 					$this->end_shutdown_function = true;
+					echo json_encode( $ret );
 					die();
 				} elseif ( $status === INSTAWP_RESTORE_COMPLETED ) {
 					$this->write_litespeed_rule( false );
@@ -4474,8 +4474,8 @@ class instaWP {
 					$this->restore_data->delete_temp_files();
 					$this->_disable_maintenance_mode();
 
-					return json_encode( array( 'result' => 'finished' ) );
 					$this->end_shutdown_function = true;
+					echo json_encode( array( 'result' => 'finished' ) );
 					die();
 				}
 			} else {
@@ -4489,8 +4489,8 @@ class instaWP {
 		} catch ( Exception $error ) {
 			$message = 'An exception has occurred. class: ' . get_class( $error ) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
 
-			return $message;
 			$this->end_shutdown_function = true;
+			echo json_encode($message);
 			die();
 		}
 
@@ -4509,8 +4509,8 @@ class instaWP {
 			@ini_set( 'memory_limit', $memory_limit );
 			$ret = $restore->restore();
 			if ( $ret['result'] == INSTAWP_FAILED && $ret['error'] == 'A restore task is already running.' ) {
-				return json_encode( array( 'result' => INSTAWP_SUCCESS ) );
 				$this->end_shutdown_function = true;
+				echo json_encode( array( 'result' => INSTAWP_SUCCESS ) );
 				die();
 			}
 			$this->_disable_maintenance_mode();
@@ -4523,11 +4523,8 @@ class instaWP {
 			$this->restore_data->save_error_log_to_debug();
 			$this->_disable_maintenance_mode();
 
-			return json_encode( array(
-				'result' => INSTAWP_FAILED,
-				'error'  => $message,
-			) );
 			$this->end_shutdown_function = true;
+			echo json_encode( array( 'result' => INSTAWP_FAILED, 'error'  => $message, ) );
 			die();
 		}
 
@@ -4536,8 +4533,8 @@ class instaWP {
 			$this->_disable_maintenance_mode();
 		}
 
-		return json_encode( $ret );
 		$this->end_shutdown_function = true;
+		echo json_encode( $ret );
 		die();
 	}
 
