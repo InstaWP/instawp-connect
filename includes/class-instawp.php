@@ -6427,6 +6427,8 @@ public function clean_cache() {
    }
 
    public function get_log_list_ex() {
+
+
       $ret['log_list']['file'] = array();
       $log                     = new InstaWP_Log();
       $dir                     = $log->GetSaveLogFolder();

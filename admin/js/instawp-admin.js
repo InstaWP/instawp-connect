@@ -726,33 +726,40 @@ function instawp_cancel_backup() {
     });
 }
 
-let check_staging_tried_counter = 0;
-
 function instawp_check_staging() {
 
-    check_staging_tried_counter++;
     is_instawp_check_staging_running = true;
-    console.log('instawp_check_staging call');
 
-    let ajax_data = {
-        'action': 'instawp_check_staging',
-        'counter': check_staging_tried_counter,
-        //'task_id': running_backup_taskid
-    };
+    let el_backup_list_key = jQuery('.instawp-backup-list-key'),
+        el_restore_progress = jQuery('.instawp-restore-progress'),
+        backup_list_key = el_backup_list_key.val(),
+        restore_progress = el_restore_progress.val(),
+        ajax_data = {
+            'action': 'instawp_check_staging',
+            'backup_list_key': backup_list_key,
+            'restore_progress': restore_progress,
+            //'task_id': running_backup_taskid
+        };
 
     instawp_post_request(ajax_data, function (data) {
         try {
-            console.log(JSON.parse(data));
             let jsonarray = JSON.parse(data);
+
+            console.log(jsonarray);
+
+            el_backup_list_key.val(jsonarray.backup_list_key);
+            el_restore_progress.val(jsonarray.progress);
 
             // console.log("ON 790 ---> ", jsonarray);
             // console.log("ON 791 ---> ", jsonarray.status);
 
-            let progressSiteCreation = jQuery('.instawp-progress-site-creation'),
-                progressSiteCreationCircle = progressSiteCreation.find('.instawp-progress-circle');
+            jQuery('.instawp_postbox_restore_percent #instawp_action_progress_bar_percent').css('width', jsonarray.progress + '%').parent().fadeIn();
 
-            progressSiteCreationCircle.css('width', jsonarray.progress + '%');
-            progressSiteCreation.fadeIn();
+            // let action_progress_bar = jQuery('.postbox.wizard-screen-4 #instawp_action_progress_bar #instawp_action_progress_bar_percent'),
+            //     action_progress_bar_percent = action_progress_bar.find('#instawp_action_progress_bar_percent');
+
+            // action_progress_bar_percent.css('width', jsonarray.progress + '%');
+            // action_progress_bar.fadeIn();
 
             if (jsonarray.status === 1) {
                 progressSiteCreation.fadeOut(100);
