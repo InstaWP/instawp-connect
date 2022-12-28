@@ -4429,17 +4429,17 @@ class instaWP {
 
 		if ( ! isset( $backup_id ) || empty( $backup_id ) || ! is_string( $backup_id ) ) {
 			$this->end_shutdown_function = true;
+			echo json_encode( array( 'message' => 'empty backup id' ) );
 			die();
 		}
-
 
 		$backup_id = sanitize_key( $backup_id );
-		$backup    = InstaWP_Backuplist::get_backup_by_id( $backup_id );
-
-		if ( $backup === false ) {
-			echo json_encode( array( 'message' => 'invalid backup id' ) );
-			die();
-		}
+//		$backup    = InstaWP_Backuplist::get_backup_by_id( $backup_id );
+//
+//		if ( $backup === false ) {
+//			echo json_encode( array( 'message' => 'invalid backup id' ) );
+//			die();
+//		}
 
 		$this->restore_data = new InstaWP_restore_data();
 
