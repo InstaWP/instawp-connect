@@ -4437,7 +4437,7 @@ class instaWP {
 		$backup    = InstaWP_Backuplist::get_backup_by_id( $backup_id );
 
 		if ( $backup === false ) {
-			echo json_encode( array( 'message' => 'invalid backup id' ) );
+			echo json_encode( array( 'message' => 'backup id not found in destination' ) );
 			die();
 		}
 
@@ -4475,16 +4475,12 @@ class instaWP {
 					$this->_disable_maintenance_mode();
 
 					$this->end_shutdown_function = true;
-					echo json_encode( array( 'result' => 'finished' ) );
-					die();
+//					echo json_encode( array( 'result' => 'finished' ) );
+//					die();
 				}
 			} else {
 				$this->restore_data->init_restore_data( $backup_id, $restore_options );
 				$this->restore_data->write_log( 'init restore data restore 4405 api function', 'notice' );
-
-
-				// $this->restore_status($response['message'], 100);
-
 			}
 		} catch ( Exception $error ) {
 			$message = 'An exception has occurred. class: ' . get_class( $error ) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
@@ -4534,8 +4530,8 @@ class instaWP {
 		}
 
 		$this->end_shutdown_function = true;
-		echo json_encode( $ret );
-		die();
+//		echo json_encode( $ret );
+//		die();
 	}
 
 	public function write_litespeed_rule( $open = true ) {
