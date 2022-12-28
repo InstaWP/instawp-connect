@@ -429,7 +429,7 @@ class InstaWP_Backup_Api {
 		}
 
 		do {
-//			$restore_response  = $instawp_plugin->restore_api( $backup_list_key, $restore_options );
+			$instawp_plugin->restore_api( $backup_list_key, $restore_options );
 			$progress_results  = $instawp_plugin->get_restore_progress_api( $backup_list_key );
 			$progress_value    = $instawp_plugin->restore_data->get_next_restore_task_progress();
 			$progress_response = (array) json_decode( $progress_results );
