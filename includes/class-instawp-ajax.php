@@ -214,8 +214,8 @@ class InstaWP_AJAX {
 			$auto_login_url  = add_query_arg( array( 'site' => $auto_login_hash ), $auto_login_url );
 			$destination_url = $scheme . $site_name;
 			$restore_body    = array(
-				'urls' => array( $presigned_urls ),
-				'wp'   => array(
+				'urls'             => array( $presigned_urls ),
+				'wp'               => array(
 					'users'   => array(
 						array(
 							'username' => $wp_username,
@@ -225,7 +225,7 @@ class InstaWP_AJAX {
 					),
 					'options' => array(
 						array(
-							'option_name' => 'option_value',
+							'instawp_backup_list' => get_option( 'instawp_backup_list' ),
 						)
 					),
 				),

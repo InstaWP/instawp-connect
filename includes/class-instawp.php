@@ -4434,12 +4434,12 @@ class instaWP {
 		}
 
 		$backup_id = sanitize_key( $backup_id );
-//		$backup    = InstaWP_Backuplist::get_backup_by_id( $backup_id );
-//
-//		if ( $backup === false ) {
-//			echo json_encode( array( 'message' => 'invalid backup id' ) );
-//			die();
-//		}
+		$backup    = InstaWP_Backuplist::get_backup_by_id( $backup_id );
+
+		if ( $backup === false ) {
+			echo json_encode( array( 'message' => 'invalid backup id' ) );
+			die();
+		}
 
 		$this->restore_data = new InstaWP_restore_data();
 
@@ -4510,7 +4510,7 @@ class instaWP {
 			$ret = $restore->restore();
 			if ( $ret['result'] == INSTAWP_FAILED && $ret['error'] == 'A restore task is already running.' ) {
 				$this->end_shutdown_function = true;
-				echo json_encode( array( 'result' => INSTAWP_SUCCESS ) );
+				echo json_encode( array( 'result' => INSTAWP_FAILED ) );
 				die();
 			}
 			$this->_disable_maintenance_mode();
