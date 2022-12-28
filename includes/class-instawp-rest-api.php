@@ -428,8 +428,6 @@ class InstaWP_Backup_Api {
 			return new WP_REST_Response( array( 'completed' => false, 'progress' => 0, 'backup_list_key' => ( $backup_list_keys[0] ?? '' ) ) );
 		}
 
-		$res_result = [ 'cus_status' => 'not_doing_do' ];
-
 		do {
 			$instawp_plugin->restore_api( $backup_list_key, $restore_options );
 
@@ -442,6 +440,8 @@ class InstaWP_Backup_Api {
 					'status'          => ( $progress_response['status'] ?? 'wait' ),
 				)
 			);
+
+			$res_result['progress_val'] = $progress_value;
 
 			if ( $progress_value > $restore_progress ) {
 				break;
