@@ -101,7 +101,7 @@ class InstaWP_Ajax_Fn{
         $encrypted_content = $this->get_wp_events();
         $packed_data = json_encode([
             'encrypted_content' => $encrypted_content,
-            'dest_connect_id' => '45',
+            'dest_connect_id' => get_option('instawp_sync_destination', '45'),
             'changes' => $data,
             'upload_wp_user' => get_current_user_id(),
             'sync_message' => $message
@@ -116,7 +116,7 @@ class InstaWP_Ajax_Fn{
             }
             $respD = json_decode($sync_resp);// WE WILL USE IT.
             echo $this->formatSuccessReponse($resp_decode->message, json_encode($respD));
-        }else{
+        } else {
             echo $this->formatErrorReponse($resp_decode->message);  
         }
         wp_die();

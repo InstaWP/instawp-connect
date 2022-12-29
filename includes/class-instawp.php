@@ -769,7 +769,7 @@ class instaWP {
 			} else {
 				$response = array(
 					'status'  => 0,
-					'message' => "Cannot rettrieve the usage details, please check again after a while.",
+					'message' => "Cannot retrieve usage details, please check again after a while.",
 					'link'    => $api_doamin . "/subscriptions"
 				);
 				error_log( 'Step 6' );
