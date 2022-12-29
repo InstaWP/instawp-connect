@@ -51,105 +51,202 @@ class InstaWP_Rest_Apis{
         $body = $req->get_body();
         $bodyArr = json_decode($body);
         $encrypted_contents = json_decode($bodyArr->encrypted_contents);
+        $sync_id = $bodyArr->sync_id;
         if(!empty($encrypted_contents) && is_array($encrypted_contents)){
+            $total_op = count($encrypted_contents);
+            $count = 1;
+            $progress_status = 'pending';
+            $changes = [];
             foreach($encrypted_contents as $v){
-                    $status = '';
-                    #Post trash
-                    if(isset($v->event_slug) && $v->event_slug == 'post_trash'){
-                        if(isset($v->source_id)){
-                            $rel = wp_trash_post($v->source_id);  //Post data on success, false or null on failure.
-                            $status = $this->sync_post_status($rel);
-                            $response[] = $this->sync_post_response($status,$v);
-                        }
-                    }
+                $source_id = (isset($v->source_id) && !empty($v->source_id)) ? intval($v->source_id) : null;
+                
+                /*
+                *Post Oprations
+                */
 
-                    #Post permanently delete 
-                    if(isset($v->event_slug) && $v->event_slug == 'post_delete'){
-                        if(isset($v->source_id)){
-                            $rel = wp_delete_post($v->source_id,true);  // Set to False if you want to send them to Trash.
-                            $status = $this->sync_post_status($rel);
-                            $response[] = $this->sync_post_response($status,$v);
-                        }
-                    }
-
-                    #Post restored 
-                    if(isset($v->event_slug) && $v->event_slug == 'untrashed_post'){
-                        if(isset($v->source_id)){
-                            $rel = wp_untrash_post($v->source_id,true);  //Post data on success, false or null on failure.
-                            $status = $this->sync_post_status($rel);
-                            $response[] = $this->sync_post_response($status,$v);
-                        }
-                    }
-
-                    #Plugin actiavte 
-                    if(isset($v->event_slug) && $v->event_slug == 'activate_plugin'){
-                        if(isset($v->source_id) && isset($v->details)){
-                            $this->plugin_activation($v->details);
-                            $status = 'completed';
-                        }
-                    }
-
-                    #Plugin deactiavte 
-                    // if(isset($v->event_slug) && $v->event_slug == 'deactivate_plugin'){
-                    //     if(isset($v->source_id)){
-                    //         $this->plugin_deactivation($v->details);
-                    //         $status = 'completed';
-                    //     }
-                    // }
-
-                    if(isset($v->event_slug) && $v->event_slug == 'post_change'){
-                        if(isset($v->source_id)){
-                            $posts = (array) $v->details->posts;
-                            $postmeta = (array) $v->details->postmeta;
+                //create and update
+                if(isset($v->event_slug) && $v->event_slug == 'post_change'){
+                    if(isset($source_id)){
+                        $posts = (array) $v->details->posts;
+                        $postmeta = (array) $v->details->postmeta;
+                        $featured_image = (array) $v->details->featured_image;
+                        #Post array
+                        if (get_post_status($posts['ID']) ) {
+                            #The post exists
+                            #Then update
+                            $postData = $this->postData($posts,'update');
+                            wp_update_post($postData);
                             
-                            #Post array
-                            if (get_post_status($posts['ID']) ) {
-                                #The post exists
-                                #Then update
-                                $postData = $this->postData($posts,'update');
-                                wp_update_post($postData);
-                                
-                                #post meta
-                                $this->add_update_postmeta($postmeta,$posts['ID']);
-                            } else {
-                                $postData = $this->postData($posts,'insert');
-                                #The post does not exist
-                                #Then insert
-                                wp_insert_post($postData); 
-                                
-                                #post meta
-                                $this->add_update_postmeta($postmeta,$posts['ID']); 
-                            }  
+                            #post meta
+                            $this->add_update_postmeta($postmeta,$posts['ID']);
+                        } else {
+                            $postData = $this->postData($posts,'insert');
+                            #The post does not exist
+                            #Then insert
+                            wp_insert_post($postData); 
+                            
+                            #post meta
+                            $this->add_update_postmeta($postmeta,$posts['ID']); 
+                        }
+
+                        #feature image import 
+                        $attachment_id = $featured_image['featured_image_id'];
+                        $file = $featured_image['featured_image_url'];
+                        wp_delete_attachment($attachment_id,true);
+                        if(!empty($attachment_id) && !empty($file)){
+                            $att_id = $this->insert_attachment($attachment_id,$file);
+                            if(isset($att_id) && !empty($att_id)){
+                                set_post_thumbnail($posts['ID'],$att_id);
+                            }
+                        }
+                        #changes
+                        $changes[$v->event_type] = $changes[$v->event_type] + 1;
+                        
+                        #message 
+                        $message = 'Sync successfully.';
+                    }
+                }
+
+                //Post trash
+                if(isset($v->event_slug) && $v->event_slug == 'post_trash'){
+                    if(isset($source_id)){
+                        $rel = wp_trash_post($source_id);  //Post data on success, false or null on failure.
+                        #changes
+                        $changes[$v->event_type] = $changes[$v->event_type] + 1; 
+                    }
+                }
+
+                //Post permanently delete 
+                if(isset($v->event_slug) && $v->event_slug == 'post_delete'){
+                    if(isset($source_id)){
+                        $rel = wp_delete_post($source_id,true);  // Set to False if you want to send them to Trash.
+                        #changes
+                        $changes[$v->event_type] = $changes[$v->event_type] + 1;
+                        #message 
+                        $message = $this->sync_message($rel);
+                    }
+                }
+
+                //Post restored 
+                if(isset($v->event_slug) && $v->event_slug == 'untrashed_post'){
+                    if(isset($source_id)){
+                        $rel = wp_untrash_post($source_id,true);  //Post data on success, false or null on failure.
+                        #changes
+                        $changes[$v->event_type] = $changes[$v->event_type] + 1;
+                        #message 
+                        $message = $this->sync_message($rel);
+                    }
+                }
+               
+                /*
+                *Plugin Oprations
+                */
+
+                //Plugin actiavte 
+                if(isset($v->event_slug) && $v->event_slug == 'activate_plugin'){
+                    if(isset($source_id) && isset($v->details)){
+                        $this->plugin_activation($v->details);
+                        $status = 'completed';
+                        #changes
+                        $changes[$v->event_type] = $changes[$v->event_type] + 1;
+                        #message 
+                        $message = $this->sync_message($rel);
+                    }
+                }
+
+                //Plugin deactiavte 
+                // if(isset($v->event_slug) && $v->event_slug == 'deactivate_plugin'){
+                //     if(isset($source_id)){
+                //         $this->plugin_deactivation($v->details);
+                //         $status = 'completed';
+                //     }
+                // }
+  
+                /*
+                * Taxonomy Oprations
+                */
+      
+                //create and update
+                if(isset($v->event_slug) && ($v->event_slug == 'create_taxonomy' || $v->event_slug == 'edit_taxonomy')){
+                    if(isset($source_id)){
+                        $details = (array) $v->details;
+                        $wp_terms = [
+                            'term_id' => $source_id,
+                            'name' => $details['name'],
+                            'slug' => $details['slug']
+                        ];
+                        $wp_term_taxonomy = [
+                            'term_taxonomy_id' => $source_id,
+                            'term_id' => $source_id,
+                            'taxonomy' => $details['taxonomy'],
+                            'description' => $details['description'],
+                            'parent' => $details['parent']
+                        ];
+                        if(!term_exists($source_id,$v->event_type)){
+                            if($v->event_slug == 'create_taxonomy'){
+                                $this->insert_taxonomy($source_id,$wp_terms,$wp_term_taxonomy);
+                            }   
+                        }
+                        if(term_exists($source_id,$v->event_type)){
+                            if($v->event_slug == 'edit_taxonomy'){
+                                $this->update_taxonomy($source_id,$wp_terms,$wp_term_taxonomy);
+                            }
                         }
                     }
+                }
+
+                //Delete 
+                if(isset($v->event_slug) && $v->event_slug == 'delete_taxonomy'){
+                    if(isset($source_id)){
+                        if(term_exists($source_id,$v->event_type)){
+                            wp_delete_term($source_id,$v->event_type);
+                        }
+                    }
+                }
+               
+                /*
+                * Update api for cloud
+                */
+                $progress = intval($count/$total_op * 100);
+                $progress_status = ($progress > 100 ) ?  'in_progress': 'completed';
+                #Sync update
+                $syncUpdate = [
+                    'progress' => $progress,
+                    'status' => $progress_status,
+                    'message' => $message,
+                    'changes' => json_encode($changes)
+                ];
+                $this->sync_update($sync_id,$syncUpdate,'null');
+                $count++; 
             }
         }
         
         #Sync history save
-        $this->sync_history_save($body,$response,'Complete');
-
-        #Sync update
-        $syncUpdate = [
-            'progress' => 100,
-            'status' => 'completed',
-            'message' => '',
-            'changes' => $bodyArr->changes
-        ];
-        $sync_id = $bodyArr->sync_id;
-        $this->sync_update($sync_id,$syncUpdate,'null');
-        
+        $this->sync_history_save($body,$changes,'Complete');
+     
         return new WP_REST_Response( 
             array(
                 'encrypted_contents' => $body,
-                'status' => 'Complete', #we will also check error then according to that we will change status
-                'sync_response' => json_encode($response),
-                'changes' => $bodyArr->changes
+                'source_connect_id' => '',
+                'changes' => $changes,
+                'sync_id' => $sync_id
             ) 
         );
     }
 
+    public function insert_taxonomy($term_id = null, $wp_terms = null, $wp_term_taxonomy = null){
+        global $wpdb;
+        $wpdb->insert($wpdb->prefix.'terms',$wp_terms);
+        $wpdb->insert($wpdb->prefix.'term_taxonomy',$wp_term_taxonomy);
+    }
+
+    public function update_taxonomy($term_id = null, $wp_terms = null, $wp_term_taxonomy = null){
+        global $wpdb;
+        $wpdb->update($wpdb->prefix.'terms',$wp_terms,array( 'term_id' => $term_id ));
+        $wpdb->update($wpdb->prefix.'term_taxonomy',$wp_term_taxonomy,array( 'term_id' => $term_id ));
+    }
+
     public function add_update_postmeta($meta_data = null, $post_id = null){
-        $post_type = get_post_type($post_id);
         if(!empty($meta_data) && is_array($meta_data)){
             foreach($meta_data as $k => $v){
                 if ( metadata_exists('post',$post_id,$k) ) {
@@ -196,9 +293,40 @@ class InstaWP_Rest_Apis{
         $Arr_merge = array_merge($data,$args);
         return $Arr_merge;
     }
-    
+
+    # import attechments form source to destination.
+    public function insert_attachment($attachment_id = null, $file = null){
+        $filename = basename($file);
+        $arrContextOptions=array(
+            "ssl"=>array(
+                "verify_peer"=>false,
+                "verify_peer_name"=>false,
+            ),
+        );
+        $parent_post_id = 0;
+        $upload_file = wp_upload_bits($filename, null, file_get_contents($file,false, stream_context_create($arrContextOptions)));
+        if (!$upload_file['error']) {
+            $wp_filetype = wp_check_filetype($filename, null );
+            $attachment = array(
+                'import_id' => $attachment_id,
+                'post_mime_type' => $wp_filetype['type'],
+                'post_parent' => $parent_post_id,
+                'post_title' => preg_replace('/\.[^.]+$/', '', $filename),
+                'post_content' => '',
+                'post_status' => 'inherit'
+            );
+            $attachment_id = wp_insert_attachment( $attachment, $upload_file['file'], $parent_post_id );
+            if (!is_wp_error($attachment_id)) {
+                require_once(ABSPATH . "wp-admin" . '/includes/image.php');
+                $attachment_data = wp_generate_attachment_metadata( $attachment_id, $upload_file['file'] );
+                wp_update_attachment_metadata( $attachment_id,  $attachment_data );
+            }
+        }
+        return $attachment_id;  
+    }
+
     #Insert history  
-    public function sync_history_save($body = null, $response = null, $status = null){
+    public function sync_history_save($body = null, $changes = null,$status = null){
         $InstaWP_db = new InstaWP_DB();
         $tables = $InstaWP_db->tables;
         $dir = 'dev-to-live';
@@ -207,8 +335,8 @@ class InstaWP_Rest_Apis{
         $message = isset($bodyArr->sync_message) ? $bodyArr->sync_message : '';
         $data = [
             'encrypted_contents' => $bodyArr->encrypted_contents,
-            'changes' => $bodyArr->changes,
-            'sync_response' => json_encode($response),
+            'changes' => json_encode($changes),
+            'sync_response' => '',
             'direction' => $dir,
             'status' => $status,
             'user_id' => $bodyArr->upload_wp_user,
@@ -241,6 +369,15 @@ class InstaWP_Rest_Apis{
         }
     }
 
+    public function sync_message($rel = null){
+        if(isset($rel->ID)){
+            $message = 'Sync successfully.';     
+        }else{
+            $message = 'Something went wrong.';    
+        }
+        return $message;
+    }
+
     public function sync_post_status($rel = null){
         $status = 'in_progress';
         if(isset($rel->ID)){
@@ -253,7 +390,6 @@ class InstaWP_Rest_Apis{
 
     public function sync_post_response($status = null, $v = null){
        return [
-                #'id' => $v->id,
                 'event_name' => $v->event_name,
                 'event_slug' => $v->event_slug,
                 'event_type' => $v->event_type,

@@ -186,7 +186,7 @@ class InstaWP_Change_Event_Table extends WP_List_Table {
         $post_new = $InstaWP_db->trakingEventsBySlug($tables['ch_table'],'post_new','post');
         $post_delete = $InstaWP_db->trakingEventsBySlug($tables['ch_table'],'post_delete','post');
         $post_trash = $InstaWP_db->trakingEventsBySlug($tables['ch_table'],'post_trash','post');
-
+        
         #others
         $others = (abs($total_events) - abs($post_new+$post_delete+$post_trash));
         $html = '<div class="bulk-sync-popup"> 

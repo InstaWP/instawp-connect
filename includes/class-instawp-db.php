@@ -110,4 +110,12 @@ class InstaWP_DB{
         }
         return $results > 0 ? $results : 0;
     }
+
+    /*
+    * Existing update event for source id
+    */
+    function existing_update_events($table_name = null, $event_slug = null, $source_id = null){
+        $results = $this->wpdb->get_var("SELECT id FROM $table_name WHERE `event_slug`='".$event_slug."' AND `source_id`='".$source_id."'"); 
+        return $results;
+    }
 }

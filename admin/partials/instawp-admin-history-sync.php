@@ -40,16 +40,10 @@ class InstaWP_Sync_History_Table extends WP_List_Table {
                 if(isset($v->changes) && !empty($v->changes)){
                     $changes = json_decode($v->changes);
                     $ch_list = '<ul>';
-                    if(isset($changes->posts) && !empty($changes->posts)){
-                        $ch_list .= '<li>Total post changes : '.$changes->posts.'</li>';
+                    foreach($changes as $k => $ch){
+                        $ch_list .= '<li><strong>Total '.$k.' changes : </strong>'.$ch.'</li>';
                     }
-                    if(isset($changes->pages) && !empty($changes->pages)){
-                        $ch_list .= '<li>Total page changes : '.$changes->pages.'</li>';
-                    }
-                    $ch_list .= '</ul>'; 
-                    if(isset($changes->total_events)){
-                        $total_events = $changes->total_events;
-                    }
+                    $ch_list .= '</ul>';
                 }
                 
                 $data[] = [

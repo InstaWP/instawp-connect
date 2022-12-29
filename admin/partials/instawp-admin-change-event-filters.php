@@ -31,8 +31,9 @@ class InstaWP_Change_Event_Filters {
         add_filter( 'pre_trash_post', array( $this, 'trashPostFilter' ), 10, 2 );
         add_action( 'after_delete_post', array( $this,'deletePostFilter'), 10, 2 );
         add_action( 'untrashed_post', array( $this,'untrashPostFilter'),10, 3  );
-        add_action( 'save_post', array( $this,'savePostFilter'), 10, 3 );
-        
+        #add_action( 'save_post', array( $this,'savePostFilter'), 10, 3 );
+        add_action( 'wp_after_insert_post', array( $this,'savePostFilter'), 10, 4 );
+
         #plugin actions
         add_action( 'activated_plugin', array( $this,'activatePluginAction'),10, 2 );
         add_action( 'deactivated_plugin', array( $this,'deactivatePluginAction'),10, 2 );
@@ -44,6 +45,67 @@ class InstaWP_Change_Event_Filters {
         add_action( 'install_themes_new', array( $this,'installThemesNewAction') );
         add_action( 'install_themes_upload', array( $this,'installThemesUploadAction') );
         add_action( 'install_themes_updated', array( $this,'installThemesUpdatedAction') );
+
+        #taxonomy actions 
+        $taxonomies = get_taxonomies();;
+        foreach($taxonomies as $taxonomy){
+            add_action( 'created_'.$taxonomy, array( $this,'createTaxonomyAction'), 10, 3 );
+            add_action( 'delete_'.$taxonomy, array( $this,'deleteTaxonomyAction'), 10, 4 );
+            add_action( 'edit_'.$taxonomy, array( $this,'editTaxonomyAction'), 10, 3 );
+        }
+    }
+    /**
+     * Function for `edit_(taxonomy)` action-hook.
+     * 
+     * @param int   $term_id Term ID.
+     * @param int   $tt_id   Term taxonomy ID.
+     * @param array $args    Arguments passed to wp_update_term().
+     *
+     * @return void
+     */
+    function editTaxonomyAction( $term_id, $tt_id, $args ){   
+        $event_name = 'edit taxonomy';
+        $event_slug = 'edit_taxonomy';
+        $taxonomy = $args['taxonomy'];
+        $title = $args['name'];
+        $details = json_encode($args);
+        $this->eventDataAdded($event_name,$event_slug,$taxonomy,$term_id,$title,$details);
+    }
+
+    /**
+     * Function for `delete_(taxonomy)` action-hook.
+     * 
+     * @param int     $term         Term ID.
+     * @param int     $tt_id        Term taxonomy ID.
+     * @param WP_Term $deleted_term Copy of the already-deleted term.
+     * @param array   $object_ids   List of term object IDs.
+     *
+     * @return void
+     */
+    function deleteTaxonomyAction( $term, $tt_id, $deleted_term, $object_ids ){
+        $event_name = 'delete taxonomy';
+        $event_slug = 'delete_taxonomy';
+        $taxonomy = $deleted_term->taxonomy;
+        $title = $deleted_term->name;
+        $details = json_encode($deleted_term);
+        $this->eventDataAdded($event_name,$event_slug,$taxonomy,$term,$title,$details);
+    }
+
+    /**
+     * Function for `created_(taxonomy)` action-hook.
+     * 
+     * @param int   $term_id Term ID.
+     * @param int   $tt_id   Term taxonomy ID.
+     * @param array $args    Arguments passed to wp_insert_term().
+     *
+     * @return void
+     */
+    public function createTaxonomyAction($term_id, $tt_id, $args){
+        $term = (array) get_term( $term_id , $args['category'] );
+        $event_name = 'Create taxonomy';
+        $event_slug = 'create_taxonomy';
+        $taxonomy = $args['taxonomy'];
+        $this->addTaxonomyData($event_name,$event_slug,$term_id,$tt_id,$taxonomy,$term);
     }
 
     /**
@@ -185,29 +247,38 @@ class InstaWP_Change_Event_Filters {
     }
 
     /**
-     * Function for `save_post` action-hook.
+     * Function for `wp_after_insert_post` action-hook.
      * 
-     * @param int     $post_ID Post ID.
-     * @param WP_Post $post    Post object.
-     * @param bool    $update  Whether this is an existing post being updated.
+     * @param int          $post_id     Post ID.
+     * @param WP_Post      $post        Post object.
+     * @param bool         $update      Whether this is an existing post being updated.
+     * @param null|WP_Post $post_before Null for new posts, the WP_Post object prior to the update for updated posts.
      *
      * @return void
      */
-    public function savePostFilter( $post_ID, $post, $update){
+    public function savePostFilter( $post_ID, $post, $update, $post_before){
         if(!$update && $post->post_status == 'auto-draft'){# new post
             $event_name = 'New Post';
             $event_slug = 'post_new';
-            $this->eventDataAdded($event_name,$event_slug,$post,$post_ID);   
+            $this->addPostData($event_name,$event_slug,$post,$post_ID);   
         }
         if($update && ($post->post_status != 'revision') ){ #update
             $event_name = 'Post Change';
             $event_slug = 'post_change';
-            $this->eventDataAdded($event_name,$event_slug,$post,$post_ID);
+            $InstaWP_db = new InstaWP_DB();
+            $tables = $InstaWP_db->tables;
+            $table_name = $tables['ch_table'];
+            $existing_update_events = $InstaWP_db->existing_update_events($table_name,'post_change',$post_ID);
+            # need to add update traking data once in db
+            if($existing_update_events){
+                $this->eventDataUpdated($event_name,$event_slug,$post,$post_ID,$existing_update_events);
+            }else{
+                $this->addPostData($event_name,$event_slug,$post,$post_ID);
+            }
         }
     }
 
-    public function eventDataUpdated($event_name = null, $event_slug = null, $post = null, $post_id = null){
-       
+    public function eventDataUpdated($event_name = null, $event_slug = null, $post = null, $post_id = null, $id = null){
         $InstaWP_db = new InstaWP_DB();
         $tables = $InstaWP_db->tables;
         $uid = get_current_user_id();
@@ -217,7 +288,7 @@ class InstaWP_Change_Event_Filters {
         $post_content = isset($postData->post_content) ? $postData->post_content : '';
         $featured_image_id = get_post_thumbnail_id($post_id); 
         $featured_image_url = get_the_post_thumbnail_url($post_id);
-     
+        $taxonomies = $this->get_taxonomies_items($post_id);
         #Data Array
         $data = [
             'event_name' => $event_name,
@@ -225,7 +296,7 @@ class InstaWP_Change_Event_Filters {
             'event_type' => isset($postData->post_type) ? $postData->post_type : '',
             'source_id' => isset($post_id) ? $post_id : '',
             'title' => isset($postData->post_title) ? $postData->post_title : '',
-            'details' => json_encode(['content' => $post_content,'posts' => $postData,'postmeta' => get_post_meta($post_id),'featured_image' => ['featured_image_id'=>$featured_image_id,'featured_image_url' => $featured_image_url]]),
+            'details' => json_encode(['content' => $post_content,'posts' => $postData,'postmeta' => get_post_meta($post_id),'featured_image' => ['featured_image_id'=>$featured_image_id,'featured_image_url' => $featured_image_url],'taxonomies' => $taxonomies]),
             'user_id' => $uid,
             'date' => $date,
             'prod' => '',
@@ -235,7 +306,7 @@ class InstaWP_Change_Event_Filters {
         $wpdb->update( 
             $tables['ch_table'], 
             $data, 
-            array( 'source_id' => $post_id )
+            array( 'id' => $id )
         );
     }
     /**
@@ -250,7 +321,7 @@ class InstaWP_Change_Event_Filters {
         if(isset($post->post_type) && $post->post_type != 'revision'){
             $event_name = 'Post Delete';
             $event_slug = 'post_delete';
-            $this->eventDataAdded($event_name,$event_slug,$post,$post_id);
+            $this->addPostData($event_name,$event_slug,$post,$post_id);
         }
     }
 
@@ -265,7 +336,7 @@ class InstaWP_Change_Event_Filters {
     public function trashPostFilter($trash, $post){
         $event_name = 'Post Trash';
         $event_slug = 'post_trash';
-        $this->eventDataAdded($event_name,$event_slug,$post,null);
+        $this->addPostData($event_name,$event_slug,$post,null);
     }
 
     /**
@@ -280,34 +351,66 @@ class InstaWP_Change_Event_Filters {
         $event_name = 'Post Restore';
         $event_slug = 'untrashed_post';
         $post = null;
-        $this->eventDataAdded($event_name,$event_slug,$post,$post_id);
+        $this->addPostData($event_name,$event_slug,$post,$post_id);
     }
 
-    public function eventDataAdded($event_name = null, $event_slug = null, $post = null, $post_id = null){
-        $InstaWP_db = new InstaWP_DB();
-        $tables = $InstaWP_db->tables;
-        $uid = get_current_user_id();
-        $date = date('Y-m-d H:i:s');
+    #post data add
+    public function addPostData($event_name = null, $event_slug = null, $post = null, $post_id = null){
         $post_id = isset($post_id) ? $post_id : $post->ID;
         $postData = get_post($post_id);
         $post_content = isset($postData->post_content) ? $postData->post_content : '';
         $featured_image_id = get_post_thumbnail_id($post_id); 
         $featured_image_url = get_the_post_thumbnail_url($post_id);
-     
+        $event_type = isset($postData->post_type) ? $postData->post_type : '';
+        $source_id = isset($post_id) ? $post_id : '';
+        $title = isset($postData->post_title) ? $postData->post_title : '';
+        $taxonomies = $this->get_taxonomies_items($post_id);
+        $details = json_encode(['content' => $post_content,'posts' => $postData,'postmeta' => get_post_meta($post_id),'featured_image' => ['featured_image_id'=>$featured_image_id,'featured_image_url' => $featured_image_url],'taxonomies' => $taxonomies]);
+        $this->eventDataAdded($event_name,$event_slug,$event_type,$source_id,$title,$details);
+    }
+
+    #Taxonomy
+    public function addTaxonomyData($event_name = null, $event_slug = null, $term_id = null, $tt_id = null, $taxonomy = null, $args= null){
+        $title = $args['name'];
+        $details = json_encode($args);
+        $this->eventDataAdded($event_name,$event_slug,$taxonomy,$term_id,$title,$details);
+    }
+
+    public function eventDataAdded($event_name = null, $event_slug = null, $event_type = null, $source_id = null, $title = null, $details = null){
+        $InstaWP_db = new InstaWP_DB();
+        $tables = $InstaWP_db->tables;
+        $uid = get_current_user_id();
+        $date = date('Y-m-d H:i:s');
         #Data Array
         $data = [
             'event_name' => $event_name,
             'event_slug' => $event_slug,
-            'event_type' => isset($postData->post_type) ? $postData->post_type : '',
-            'source_id' => isset($post_id) ? $post_id : '',
-            'title' => isset($postData->post_title) ? $postData->post_title : '',
-            'details' => json_encode(['content' => $post_content,'posts' => $postData,'postmeta' => get_post_meta($post_id),'featured_image' => ['featured_image_id'=>$featured_image_id,'featured_image_url' => $featured_image_url]]),
+            'event_type' => $event_type,
+            'source_id' => $source_id,
+            'title' => $title,
+            'details' => $details,
             'user_id' => $uid,
             'date' => $date,
             'prod' => '',
         ];
-        
         $InstaWP_db->insert($tables['ch_table'],$data);
+    }
+
+    #Get taxonomies items
+    public function get_taxonomies_items($post_id = null){        
+        $taxonomies = get_post_taxonomies($post_id);
+        $items = [];
+        if( !empty($taxonomies) && is_array($taxonomies) ){
+            foreach($taxonomies as $taxonomy){
+                $taxonomy_items = get_the_terms($post_id, $taxonomy);
+                if( !empty($taxonomy_items) && is_array($taxonomy_items) ){
+                    foreach($taxonomy_items as $item){
+                        $items[] = $item;
+                    }
+                }
+            }
+        }
+        return $items;
     }
 }
 new InstaWP_Change_Event_Filters();   

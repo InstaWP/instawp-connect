@@ -108,14 +108,17 @@ class InstaWP_Ajax_Fn{
         ]);
         
         $resp = $this->sync_upload($packed_data,null);
-        $resp_decode = json_decode($resp);  
-        $sync_resp = '';
-        if(isset($resp_decode->data->sync_id) && !empty($resp_decode->data->sync_id)){
-            $sync_resp = $this->get_Sync_Object($resp_decode->data->sync_id);
+        $resp_decode = json_decode($resp); 
+        if(isset($resp_decode->status) && $resp_decode->status === true){
+            $sync_resp = '';
+            if(isset($resp_decode->data->sync_id) && !empty($resp_decode->data->sync_id)){
+                $sync_resp = $this->get_Sync_Object($resp_decode->data->sync_id);
+            }
+            $respD = json_decode($sync_resp);// WE WILL USE IT.
+            echo $this->formatSuccessReponse($resp_decode->message, json_encode($respD));
+        }else{
+            echo $this->formatErrorReponse($resp_decode->message);  
         }
-        $respD = json_decode($sync_resp);
-        echo $this->formatSuccessReponse("The data has uploaded to cloud successfully", json_encode($respD));
-        // echo json_encode($respD);
         wp_die();
     }
 

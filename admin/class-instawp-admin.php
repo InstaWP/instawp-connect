@@ -1,130 +1,68 @@
 <?php
-
-
-
 /**
-
  * The admin-specific functionality of the plugin.
-
  *
-
  * @link       https://instawp.com/
-
  * @since      1.0
-
  *
-
  * @package    instaWP
-
  * @subpackage instaWP/admin
-
  */
 
-
-
 /**
-
  * The admin-specific functionality of the plugin.
-
  *
-
  * Defines the plugin name, version, and two examples hooks for how to
-
  * enqueue the admin-specific stylesheet and JavaScript.
-
  *
-
  * @package    instaWP
-
  * @subpackage instaWP/admin
-
  * @author     instawp team
-
  */
 
 if ( ! defined('INSTAWP_PLUGIN_DIR') ) {
-
     die;
-
 }
 
 class InstaWP_Admin {
-
-
-
     /**
-
      * The ID of this plugin.
-
      *
-
      * 
-
      * @access   private
-
      * @var      string    $plugin_name    The ID of this plugin.
-
      */
 
     private $plugin_name;
 
-
-
     /**
-
      * The version of this plugin.
-
      *
-
      * 
-
      * @access   private
-
      * @var      string    $version    The current version of this plugin.
-
      */
 
     private $version;
 
-
-
     private $screen_ids;
 
-
-
     private $toolbar_menus;
-
-
 
     private $submenus;
 
     /**
-
      * Initialize the class and set its properties.
-
      *
-
      * 
-
      * @param      string    $plugin_name       The name of this plugin.
-
      * @param      string    $version    The version of this plugin.
-
      */
 
     public function __construct( $plugin_name, $version ) {
-
         add_filter('instawp_get_screen_ids',array( $this, 'get_screen_ids' ),10);
-
         //add_filter('instawp_get_toolbar_menus',array( $this, 'get_toolbar_menus' ),10);
-
         add_filter('instawp_get_admin_menus',array( $this, 'get_admin_menus' ),10);
-
-        
-
-      
-
-
 
         add_action('instawp_before_setup_page',array( $this, 'migrate_notice' ));
 
@@ -138,15 +76,9 @@ class InstaWP_Admin {
 
         add_action('instawp_before_setup_page',array( $this, 'init_js_var' ));
 
-
-
         add_filter('instawp_add_log_tab_page', array( $this, 'add_log_tab_page' ), 10);
 
-
-
         //add_action('admin_notices', array( $this, 'check_instawp_pro_version' ));
-
-
 
         $this->plugin_name = $plugin_name;
 
@@ -154,288 +86,153 @@ class InstaWP_Admin {
 
     }
 
-
-
     public function add_log_tab_page( $setting_array ) {
-
         $setting_array['backup_log_page'] = array(
-
             'index'     => '1',
-
             'tab_func'  => array( $this, 'instawp_add_tab_log' ),
-
             'page_func' => array( $this, 'instawp_add_page_log' ),
 
         );
-
         //$setting_array['read_log_page'] = array('index' => '2', 'tab_func' =>  array($this, 'instawp_add_tab_read_log'), 'page_func' => array($this, 'instawp_add_page_read_log'));
-
         return $setting_array;
-
     }
-
-
 
     public function get_screen_ids( $screen_ids ) {       
-
-
-
         $screen_ids[] = 'toplevel_page_'.$this->plugin_name;
-
         $screen_ids[] = 'instawp-connect_page_instawp-connect';
-
         $screen_ids[] = 'instawp-connect_page_instawp-settings';
-
         $screen_ids[] = 'instawp_page_instawp-settings';
-
         $screen_ids[] = 'instawp-connect_page_instawp-transfer';
-
         $screen_ids[] = 'instawp-connect_page_instawp-setting';
-
         $screen_ids[] = 'instawp-connect_page_instawp-schedule';
-
         $screen_ids[] = 'instawp-connect_page_instawp-remote';
-
         $screen_ids[] = 'instawp-connect_page_instawp-website';
-
         $screen_ids[] = 'instawp-connect_page_instawp-log';
-
         $screen_ids[] = 'instawp-connect_page_instawp-key';
-
         $screen_ids[] = 'instawp-connect_page_instawp-mainwp';
-
         $screen_ids[] = 'instawp-connect_page_instawp_premium';
-
         return $screen_ids;
-
     }
-
-
 
     public function get_toolbar_menus( $toolbar_menus ) {
-
         $menu['id'] = 'instawp_admin_menu';
-
         $menu['title'] = 'InstaWP Connect';
-
         $toolbar_menus[ $menu['id'] ] = $menu;
-
-
-
         $admin_url = admin_url();
-
-
-
         $menu['id'] = 'instawp_admin_menu_backup';
-
         $menu['parent'] = 'instawp_admin_menu';
-
         $menu['title'] = __('Connect', 'instawp-connect');
-
         $menu['tab'] = 'admin.php?page=instawp-connect&tab-backup';
-
         $menu['href'] = $admin_url . 'admin.php?page=instawp-connect';
-
         $menu['capability'] = 'administrator';
-
         $menu['index'] = 1;
-
         $toolbar_menus[ $menu['parent'] ]['child'][ $menu['id'] ] = $menu;
-
-
-
         return $toolbar_menus;
-
     }
-
-
 
     public function get_admin_menus( $submenus ) {
-
+        #InstaWP Connect
         $submenu['parent_slug'] = $this->plugin_name;
-
         $submenu['page_title'] = 'InstaWP Connect';
-
         $submenu['menu_title'] = __('Backup & Restore', 'instawp-connect');
-
         $submenu['capability'] = 'administrator';
-
         $submenu['menu_slug'] = $this->plugin_name;
-
         $submenu['function'] = array( $this, 'display_plugin_setup_page' );
-
         $submenu['index'] = 1;
-
+        
+        #Create New
         $submenus[ $submenu['menu_slug'] ] = $submenu;
-
-
-
         $submenu['parent_slug'] = $this->plugin_name;
-
         $submenu['page_title'] = 'Create New';
-
         $submenu['menu_title'] = __('Create New', 'instawp-connect');
-
         $submenu['capability'] = 'administrator';
-
         $submenu['menu_slug'] = 'instawp-connect';
-
         $submenu['function'] = array( $this, 'display_wizard_page' );
-
         $submenu['index'] = 2;
 
+        #Staging Sites
         $submenus[ $submenu['menu_slug'] ] = $submenu;
-
-
-
         $submenu['parent_slug'] = $this->plugin_name;
-
         $submenu['page_title'] = 'Staging Sites';
-
         $submenu['menu_title'] = __('Staging Sites', 'instawp-connect');
-
         $submenu['capability'] = 'administrator';
-
         $submenu['menu_slug'] = 'instawp-staging-site';
-
         $submenu['function'] = array( $this, 'display_staging_sites_page' );
-
         $submenu['index'] = 3;
-
         $submenus[ $submenu['menu_slug'] ] = $submenu;
-
-
 
         #Change Event
-
         $submenu['parent_slug'] = $this->plugin_name;
-
         $submenu['page_title'] = 'Change Event';
-
         $submenu['menu_title'] = __('Change Event', 'instawp-connect');
-
         $submenu['capability'] = 'administrator';
-
         $submenu['menu_slug'] = 'instawp-change-event';
-
         $submenu['function'] = array( $this, 'instawp_change_event' );
-
         $submenu['index'] = 4;
-
         $submenus[ $submenu['menu_slug'] ] = $submenu;
-
-
 
         #History sync
-
         $submenu['parent_slug'] = $this->plugin_name;
-
         $submenu['page_title'] = 'Sync History';
-
         $submenu['menu_title'] = __('Sync History', 'instawp-connect');
-
         $submenu['capability'] = 'administrator';
-
         $submenu['menu_slug'] = 'instawp-sync-history';
-
         $submenu['function'] = array( $this, 'instawp_history_sync' );
-
         $submenu['index'] = 5;
-
         $submenus[ $submenu['menu_slug'] ] = $submenu;
 
-
-
+        #sync features
         $submenu['parent_slug'] = $this->plugin_name;
-
-        $submenu['page_title'] = 'Settings';
-
-        $submenu['menu_title'] = __('Settings', 'instawp-connect');
-
+        $submenu['page_title'] = 'Sync Features';
+        $submenu['menu_title'] = __('Sync Features', 'instawp-connect');
         $submenu['capability'] = 'administrator';
-
-        $submenu['menu_slug'] = 'instawp-settings';
-
-        $submenu['function'] = array( $this, 'display_settings_page' );
-
+        $submenu['menu_slug'] = 'instawp-sync-features';
+        $submenu['function'] = array( $this, 'instawp_features_sync' );
         $submenu['index'] = 6;
-
         $submenus[ $submenu['menu_slug'] ] = $submenu;
 
-
-
+        #Settings
+        $submenu['parent_slug'] = $this->plugin_name;
+        $submenu['page_title'] = 'Settings';
+        $submenu['menu_title'] = __('Settings', 'instawp-connect');
+        $submenu['capability'] = 'administrator';
+        $submenu['menu_slug'] = 'instawp-settings';
+        $submenu['function'] = array( $this, 'display_settings_page' );
+        $submenu['index'] = 7;
+        $submenus[ $submenu['menu_slug'] ] = $submenu;
         return $submenus;
-
     }
 
-
-
-    
-
-
-
     /**
-
      * Register the stylesheets for the admin area.
-
      *
-
      * 
-
      */
-
     public function enqueue_styles() {
-
         $this->screen_ids = apply_filters('instawp_get_screen_ids',$this->screen_ids);
-
-        
-
         if ( in_array(get_current_screen()->id,$this->screen_ids) ) {
-
             wp_enqueue_style($this->plugin_name, INSTAWP_PLUGIN_DIR_URL . 'css/instawp-admin.css', array(), $this->version, 'all');
-
             do_action('instawp_do_enqueue_styles');
-
         }
-
     }
 
-
-
     /**
-
      * Register the JavaScript for the admin area.
-
      *
-
      * 
-
      */
-
     public function enqueue_scripts() {
-
         //change events scripts [start]
-
         wp_enqueue_style( 'change-event-css', INSTAWP_PLUGIN_DIR_URL . 'css/instawp-change-event.css' );
-
         wp_enqueue_script('ajax_script',INSTAWP_PLUGIN_DIR_URL . 'js/instawp-change-event.js' ,array( 'jquery' ),$this->version, false);
-
         wp_localize_script(
-
             'ajax_script',
-
             'ajax_obj',
-
             array(
-
                 'ajax_url' => admin_url( 'admin-ajax.php' ),
-
                 'nonce'    => wp_create_nonce( 'instaWp_change_event' ),
-
                 'plugin_images_url'    => INSTAWP_PLUGIN_IMAGES_URL,
-
             )
-
         );
 
         //change events scripts [end]
@@ -447,9 +244,6 @@ class InstaWP_Admin {
             wp_enqueue_script($this->plugin_name, INSTAWP_PLUGIN_DIR_URL . 'js/instawp-admin.js', array( 'jquery' ), $this->version, false);
 
             $instawp_api_url = InstaWP_Setting::get_api_domain();
-
-            
-
             wp_localize_script($this->plugin_name, 'instawp_ajax_object', array(
 
                 'ajax_url'   => admin_url('admin-ajax.php'), 
@@ -521,41 +315,23 @@ class InstaWP_Admin {
 
 
         /*
-
          * Add a settings page for this plugin to the Settings menu.
-
          *
-
          * NOTE:  Alternative menu locations are available via WordPress administration menu functions.
-
          *
-
          *        Administration Menus: http://codex.wordpress.org/Administration_Menus
-
          *
-
          */
 
         $dash_icon = esc_url(INSTAWP_PLUGIN_IMAGES_URL.'cloud.svg'); 
-
-        
-
         $menu['page_title'] = 'InstaWP Connect';
-
         $menu['menu_title'] = 'InstaWP';
-
         $menu['capability'] = 'administrator';
-
         $menu['menu_slug'] = $this->plugin_name;
-
         $menu['function'] = array( $this, 'display_plugin_setup_page' );
-
         $menu['icon_url'] = $dash_icon;
-
         $menu['position'] = 100;
-
         $menu = apply_filters('instawp_get_main_admin_menus', $menu);
-
         add_menu_page( $menu['page_title'],$menu['menu_title'], $menu['capability'], $menu['menu_slug'], $menu['function'], $menu['icon_url'], $menu['position']);
 
         $this->submenus = apply_filters('instawp_get_admin_menus', $this->submenus);
@@ -563,56 +339,30 @@ class InstaWP_Admin {
         usort($this->submenus, function ( $a, $b ) {
 
             if ($a['index'] == $b['index'])
-
                 return 0;
-
-
-
             if ($a['index'] > $b['index'])
-
                 return 1;
-
             else
-
                 return -1;
-
         });
 
         foreach ( $this->submenus as $submenu ) {
-
             add_submenu_page(
-
                 $submenu['parent_slug'],
-
                 $submenu['page_title'],
-
                 $submenu['menu_title'],
-
                 $submenu['capability'],
-
                 $submenu['menu_slug'],
-
                 $submenu['function']);
-
         }
-
     }
 
-
-
     function add_toolbar_items( $wp_admin_bar ) {
-
         if ( is_multisite() ) {
-
             if ( ! is_network_admin() ) {
-
                 return ;
-
             }
-
         }
-
-        
 
         /*global $instawp_plugin;
 
@@ -684,60 +434,33 @@ class InstaWP_Admin {
 
     }
 
-
-
     public function add_action_links( $links ) {
-
         if ( ! is_multisite() ) {
-
             $active_plugins = get_option('active_plugins');
-
         }
-
         else {
-
             $active_plugins = array();
-
             //network active
-
             $mu_active_plugins = get_site_option( 'active_sitewide_plugins', array() );
-
             if ( ! empty($mu_active_plugins) ) {
-
                 foreach ( $mu_active_plugins as $plugin_name => $data ) {
-
                     $active_plugins[] = $plugin_name;
-
                 }
-
             }
-
         }
 
         if ( ! function_exists('get_plugins'))
-
             require_once(ABSPATH . 'wp-admin/includes/plugin.php');
-
         $plugins = get_plugins();
-
         $pro_instawp_slug = 'instawp-backup-pro/instawp-backup-pro.php';
-
         $is_active_pro = false;
-
         if ( ! empty($plugins) ) {
-
             if ( isset($plugins[ $pro_instawp_slug ]) ) {
-
                 if ( in_array($pro_instawp_slug, $active_plugins) ) {
-
                     $is_active_pro = true;
-
                 }
-
             }
-
         }
-
 
 
         if ( $is_active_pro ) {
@@ -833,46 +556,29 @@ class InstaWP_Admin {
     }
 
     public function display_wizard_page() {
-
         include_once('partials/instawp-admin-wizard.php');  
-
     }
-
-
 
     public function display_settings_page() {
-
         //include_once('partials/instawp-settings-page-display.php');  
-
         include_once('partials/instawp-admin-settings.php');  
-
     }
-
-
 
     public function display_staging_sites_page() {
-
         include_once('partials/instawp-admin-staging-sites.php');  
-
     }
-
-
 
     public function instawp_change_event(){
-
         include_once('partials/instawp-admin-change-event.php'); 
-
     }
-
-
 
     public function instawp_history_sync(){
-
         include_once('partials/instawp-admin-history-sync.php'); 
-
     }
 
-
+    public function instawp_features_sync(){
+        include_once('partials/instawp-admin-features-sync.php'); 
+    }
 
     public function migrate_notice() {
 
