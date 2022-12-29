@@ -540,7 +540,7 @@ if ( isset( $_REQUEST['success'] ) && $_REQUEST['success'] == true ) {
                     <strong> <?php echo esc_html__( 'Congrats!', 'instawp-connect' ) ?>  </strong> <?php echo esc_html__( 'Staging is Created!', 'instawp-connect' ) ?>
                 </span>
             </div>
-
+            <h3>Creating a Staging Site </h3>
             <div id="postbox" class="instawp_postbox_restore_percent">
                 <!-- <input type="text" class="instawp-backup-list-key" value="">
                 <input type="text" class="instawp-restore-progress" value="">

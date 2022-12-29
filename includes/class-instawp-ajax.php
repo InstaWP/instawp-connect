@@ -165,10 +165,10 @@ class InstaWP_AJAX {
         //$this->ajax_check_security();
         global $InstaWP_Curl;
 
-        $backup_list_key       = $_POST['backup_list_key'] ?? '';
-        $restore_progress      = $_POST['restore_progress'] ?? 0;
+        // $backup_list_key       = $_POST['backup_list_key'] ?? '';
+        // $restore_progress      = $_POST['restore_progress'] ?? 0;
         $api_domain            = InstaWP_Setting::get_api_domain();
-        $response              = array( 'progress' => 1, 'message' => 'New site creation in progress', );
+        $response              = array( 'progress' => 5, 'message' => 'New site creation in progress', );
         $instawp_finish_upload = get_option( 'instawp_finish_upload', array() );
         $staging_sites_items   = get_option( 'instawp_staging_list_items', array() );
         $connect_ids           = get_option( 'instawp_connect_id_options', '' );
