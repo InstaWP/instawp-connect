@@ -163,29 +163,29 @@ class InstaWP_Mysqldump
         if ( ! is_array($this->dumpSettings['include-tables']) ||
             ! is_array($this->dumpSettings['exclude-tables']) ) {
             throw new Exception("Include-tables and exclude-tables should be arrays");
-        }
+    }
 
         // Dump the same views as tables, mimic mysqldump behaviour
-        $this->dumpSettings['include-views'] = $this->dumpSettings['include-tables'];
+    $this->dumpSettings['include-views'] = $this->dumpSettings['include-tables'];
 
         // Create a new compressManager to manage compressed output
-        $this->compressManager = CompressManagerFactory::create($this->dumpSettings['compress']);
-    }
+    $this->compressManager = CompressManagerFactory::create($this->dumpSettings['compress']);
+}
 
-    public function get_db_type( $is_additional_db ) {
-        if ( $is_additional_db ) {
+public function get_db_type( $is_additional_db ) {
+    if ( $is_additional_db ) {
+        return 'mysql';
+    }
+    else {
+        $common_setting = InstaWP_Setting::get_setting(false, 'instawp_common_setting');
+        $db_connect_method = isset($common_setting['options']['instawp_common_setting']['db_connect_method']) ? $common_setting['options']['instawp_common_setting']['db_connect_method'] : 'wpdb';
+        if ( $db_connect_method === 'wpdb' ) {
+            return 'wpdb';
+        } else {
             return 'mysql';
         }
-        else {
-            $common_setting = InstaWP_Setting::get_setting(false, 'instawp_common_setting');
-            $db_connect_method = isset($common_setting['options']['instawp_common_setting']['db_connect_method']) ? $common_setting['options']['instawp_common_setting']['db_connect_method'] : 'wpdb';
-            if ( $db_connect_method === 'wpdb' ) {
-                return 'wpdb';
-            } else {
-                return 'mysql';
-            }
-        }
     }
+}
 
     /**
      * Destructor of Mysqldump. Unsets dbHandlers and database objects.
@@ -250,19 +250,19 @@ class InstaWP_Mysqldump
         if ( empty($this->dsnArray['host']) &&
             empty($this->dsnArray['unix_socket']) ) {
             throw new Exception("Missing host from DSN string");
-        }
-        $this->host = ( ! empty($this->dsnArray['host'])) ?
-            $this->dsnArray['host'] :
-            $this->dsnArray['unix_socket'];
-
-        if ( empty($this->dsnArray['dbname']) ) {
-            throw new Exception("Missing database name from DSN string");
-        }
-
-        $this->dbName = $this->dsnArray['dbname'];
-
-        return true;
     }
+    $this->host = ( ! empty($this->dsnArray['host'])) ?
+    $this->dsnArray['host'] :
+    $this->dsnArray['unix_socket'];
+
+    if ( empty($this->dsnArray['dbname']) ) {
+        throw new Exception("Missing database name from DSN string");
+    }
+
+    $this->dbName = $this->dsnArray['dbname'];
+
+    return true;
+}
 
     /**
      * Connect with PDO
@@ -418,9 +418,9 @@ class InstaWP_Mysqldump
         if ( ! $this->dumpSettings['skip-comments'] ) {
             // Some info about software, source and time
             $header = "-- mysqldump-php https://github.com/ifsnop/mysqldump-php" . PHP_EOL .
-                    "--" . PHP_EOL .
-                    "-- Host: {$this->host}\tDatabase: {$this->dbName}" . PHP_EOL .
-                    "-- ------------------------------------------------------" . PHP_EOL;
+            "--" . PHP_EOL .
+            "-- Host: {$this->host}\tDatabase: {$this->dbName}" . PHP_EOL .
+            "-- ------------------------------------------------------" . PHP_EOL;
 
             if ( ! empty($this->version) ) {
                 $header .= "-- Server version \t" . $this->version . PHP_EOL;
@@ -593,21 +593,21 @@ class InstaWP_Mysqldump
                 continue;
             }
             if ( false === $this->dumpSettings['no-data'] ) { // don't break compatibility with old trigger
-                $this->listValues($table);
-            } elseif ( true === $this->dumpSettings['no-data']
-                 || $this->matches($table, $this->dumpSettings['no-data']) ) {
-                continue;
-            } else {
-                $this->listValues($table);
-            }
-            $i++;
-            if ( $this->task_id !== '' ) {
-                $i_progress = intval($i / sizeof($this->tables) * $i_step);
-                InstaWP_taskmanager::update_backup_main_task_progress($this->task_id,'backup',$i_progress,0);
-            }
+            $this->listValues($table);
+        } elseif ( true === $this->dumpSettings['no-data']
+           || $this->matches($table, $this->dumpSettings['no-data']) ) {
+            continue;
+        } else {
+            $this->listValues($table);
         }
-        return ;
+        $i++;
+        if ( $this->task_id !== '' ) {
+            $i_progress = intval($i / sizeof($this->tables) * $i_step);
+            InstaWP_taskmanager::update_backup_main_task_progress($this->task_id,'backup',$i_progress,0);
+        }
     }
+    return ;
+}
 
     /**
      * Exports all the views found in database
@@ -681,8 +681,8 @@ class InstaWP_Mysqldump
             $ret = '';
             if ( ! $this->dumpSettings['skip-comments'] ) {
                 $ret = "--" . PHP_EOL .
-                    "-- Table structure for table `$tableName`" . PHP_EOL .
-                    "--" . PHP_EOL . PHP_EOL;
+                "-- Table structure for table `$tableName`" . PHP_EOL .
+                "--" . PHP_EOL . PHP_EOL;
             }
             $stmt = $this->typeAdapter->show_create_table($tableName);
 
@@ -768,8 +768,8 @@ class InstaWP_Mysqldump
     private function getViewStructureTable( $viewName ) {
         if ( ! $this->dumpSettings['skip-comments'] ) {
             $ret = "--" . PHP_EOL .
-                "-- Stand-In structure for view `${viewName}`" . PHP_EOL .
-                "--" . PHP_EOL . PHP_EOL;
+            "-- Stand-In structure for view `${viewName}`" . PHP_EOL .
+            "--" . PHP_EOL . PHP_EOL;
             $this->compressManager->write($ret);
         }
         $stmt = $this->typeAdapter->show_create_view($viewName);
@@ -820,8 +820,8 @@ class InstaWP_Mysqldump
     private function getViewStructureView( $viewName ) {
         if ( ! $this->dumpSettings['skip-comments'] ) {
             $ret = "--" . PHP_EOL .
-                "-- View structure for view `${viewName}`" . PHP_EOL .
-                "--" . PHP_EOL . PHP_EOL;
+            "-- View structure for view `${viewName}`" . PHP_EOL .
+            "--" . PHP_EOL . PHP_EOL;
             $this->compressManager->write($ret);
         }
         $stmt = $this->typeAdapter->show_create_view($viewName);
@@ -870,8 +870,8 @@ class InstaWP_Mysqldump
     private function getProcedureStructure( $procedureName ) {
         if ( ! $this->dumpSettings['skip-comments'] ) {
             $ret = "--" . PHP_EOL .
-                "-- Dumping routines for database '" . $this->dbName . "'" . PHP_EOL .
-                "--" . PHP_EOL . PHP_EOL;
+            "-- Dumping routines for database '" . $this->dbName . "'" . PHP_EOL .
+            "--" . PHP_EOL . PHP_EOL;
             $this->compressManager->write($ret);
         }
         $stmt = $this->typeAdapter->show_create_procedure($procedureName);
@@ -892,8 +892,8 @@ class InstaWP_Mysqldump
     private function getEventStructure( $eventName ) {
         if ( ! $this->dumpSettings['skip-comments'] ) {
             $ret = "--" . PHP_EOL .
-                "-- Dumping events for database '" . $this->dbName . "'" . PHP_EOL .
-                "--" . PHP_EOL . PHP_EOL;
+            "-- Dumping events for database '" . $this->dbName . "'" . PHP_EOL .
+            "--" . PHP_EOL . PHP_EOL;
             $this->compressManager->write($ret);
         }
         $stmt = $this->typeAdapter->show_create_event($eventName);
@@ -953,7 +953,15 @@ class InstaWP_Mysqldump
         $prefix = $wpdb->base_prefix;
 
         $wp_users = $wpdb->prefix . "users";                
-        $faker = Faker\Factory::create();
+
+        // faker intialize only when user checked the anonymize_option
+        $faker = null;
+        if (intval(get_option('instawp_production_anonymize_option', 0))) {
+            error_log('in_the_anonymize_option');
+            $faker = Faker\Factory::create();
+        }
+
+        // $faker = Faker\Factory::create();
 
         if ( $this->dbType == 'wpdb' ) {
             $start = 0;
@@ -998,128 +1006,133 @@ class InstaWP_Mysqldump
                 }                
 
                 foreach ( $resultSet as $key => $row ) {
-                    /* WP User Table Column Anonymization Start */
-                    $user_login = array_key_exists('user_login', $row);
-                    if ( $user_login )
-                    {
-                        $row['user_login'] = $faker->userName;
 
-                        $dump_array_for_faker['user_login'] = $row['user_login'];
+                    if (!is_null($faker)) {
+                        
+
+                        /* WP User Table Column Anonymization Start */
+                        $user_login = array_key_exists('user_login', $row);
+                        if ( $user_login )
+                        {
+                            $row['user_login'] = $faker->userName;
+
+                            $dump_array_for_faker['user_login'] = $row['user_login'];
                         // error_log('user_login ==> '.$row['user_login']);
-                    }
+                        }
 
-                    $user_pass = array_key_exists('user_pass', $row);
-                    if ( $user_pass )
-                    {
-                        $row['user_pass'] = $faker->password;
-                        $dump_array_for_faker['user_pass'] = $row['user_pass'];
+                        $user_pass = array_key_exists('user_pass', $row);
+                        if ( $user_pass )
+                        {
+                            $row['user_pass'] = $faker->password;
+                            $dump_array_for_faker['user_pass'] = $row['user_pass'];
                         // error_log('user_pass ==> '.$row['user_pass']);
-                    }
+                        }
 
-                    $user_nicename = array_key_exists('user_nicename', $row);
-                    if ( $user_nicename )
-                    {
-                        $row['user_nicename'] = $faker->firstName;
-                        $dump_array_for_faker['user_nicename'] = $row['user_nicename'];
+                        $user_nicename = array_key_exists('user_nicename', $row);
+                        if ( $user_nicename )
+                        {
+                            $row['user_nicename'] = $faker->firstName;
+                            $dump_array_for_faker['user_nicename'] = $row['user_nicename'];
                         // error_log('user_nicename ==> '.$row['user_nicename']);
-                    }
+                        }
 
-                    $user_email = array_key_exists('user_email', $row);
-                    if ( $user_email )
-                    {
-                        $row['user_email'] = $faker->email;
-                        $dump_array_for_faker['user_email'] = $row['user_email'];
+                        $user_email = array_key_exists('user_email', $row);
+                        if ( $user_email )
+                        {
+                            $row['user_email'] = $faker->email;
+                            $dump_array_for_faker['user_email'] = $row['user_email'];
                         // error_log('user_email ==> '.$row['user_email']);
-                    }
+                        }
 
-                    $user_url = array_key_exists('user_url', $row);
-                    if ( $user_url )
-                    {
-                        $row['user_url'] = $faker->url;
-                        $dump_array_for_faker['user_url'] = $row['user_url'];
+                        $user_url = array_key_exists('user_url', $row);
+                        if ( $user_url )
+                        {
+                            $row['user_url'] = $faker->url;
+                            $dump_array_for_faker['user_url'] = $row['user_url'];
                         // error_log('user_url ==> '.$row['user_url']);
-                    }
+                        }
 
-                    $display_name = array_key_exists('display_name', $row);
-                    if ( $display_name )
-                    {
-                        $row['display_name'] = $faker->lastName;
-                        $dump_array_for_faker['display_name'] = $row['display_name'];
+                        $display_name = array_key_exists('display_name', $row);
+                        if ( $display_name )
+                        {
+                            $row['display_name'] = $faker->lastName;
+                            $dump_array_for_faker['display_name'] = $row['display_name'];
                         // error_log('display_name ==> '.$row['display_name']);
-                    }
-                    /* WP User Table Column Anonymization End */
+                        }
+                        /* WP User Table Column Anonymization End */
 
-                    /* WP Comments Table Column Anonymization Start */
-                    $comment_author = array_key_exists('comment_author', $row);
-                    if ( $comment_author )
-                    {
-                        $row['comment_author'] = $faker->name;
-                        $dump_array_for_faker['comment_author'] = $row['comment_author'];
+                        /* WP Comments Table Column Anonymization Start */
+                        $comment_author = array_key_exists('comment_author', $row);
+                        if ( $comment_author )
+                        {
+                            $row['comment_author'] = $faker->name;
+                            $dump_array_for_faker['comment_author'] = $row['comment_author'];
                         // error_log('comment_author ==> '.$row['comment_author']);
-                    }
+                        }
 
-                    $comment_author_email = array_key_exists('comment_author_email', $row);
-                    if ( $comment_author_email )
-                    {
-                        $row['comment_author_email'] = $faker->freeEmail;
-                        $dump_array_for_faker['comment_author_email'] = $row['comment_author_email'];
+                        $comment_author_email = array_key_exists('comment_author_email', $row);
+                        if ( $comment_author_email )
+                        {
+                            $row['comment_author_email'] = $faker->freeEmail;
+                            $dump_array_for_faker['comment_author_email'] = $row['comment_author_email'];
                         // error_log('comment_author_email ==> '.$row['comment_author_email']);
-                    }
+                        }
 
-                    $comment_author_url = array_key_exists('comment_author_url', $row);
-                    if ( $comment_author_url )
-                    {
-                        $row['comment_author_url'] = $faker->url;
-                        $dump_array_for_faker['comment_author_url'] = $row['comment_author_url'];
+                        $comment_author_url = array_key_exists('comment_author_url', $row);
+                        if ( $comment_author_url )
+                        {
+                            $row['comment_author_url'] = $faker->url;
+                            $dump_array_for_faker['comment_author_url'] = $row['comment_author_url'];
                         // error_log('comment_author_url ==> '.$row['comment_author_url']);
-                    }
+                        }
 
-                    $comment_author_IP = array_key_exists('comment_author_IP', $row);
-                    if ( $comment_author_IP )
-                    {
-                        $row['comment_author_IP'] = $faker->localIpv4;
-                        $dump_array_for_faker['comment_author_IP'] = $row['comment_author_IP'];
+                        $comment_author_IP = array_key_exists('comment_author_IP', $row);
+                        if ( $comment_author_IP )
+                        {
+                            $row['comment_author_IP'] = $faker->localIpv4;
+                            $dump_array_for_faker['comment_author_IP'] = $row['comment_author_IP'];
                         // error_log('comment_author_IP ==> '.$row['comment_author_IP']);
-                    }
+                        }
 
-                    $comment_content = array_key_exists('comment_content', $row);
-                    if ( $comment_content )
-                    {
-                        $row['comment_content'] = $faker->text(400);
-                        $dump_array_for_faker['comment_content'] = $row['comment_content'];
+                        $comment_content = array_key_exists('comment_content', $row);
+                        if ( $comment_content )
+                        {
+                            $row['comment_content'] = $faker->text(400);
+                            $dump_array_for_faker['comment_content'] = $row['comment_content'];
                         // error_log('comment_content ==> '.$row['comment_content']);
-                    }
-                    /* WP Comments Table Column Anonymization End */
-                    
-                    /* WP Usermeta Table Column Anonymization Start */
-                    if ( isset( $row['meta_key'] ) && $row['meta_key'] === 'nickname' )
-                    {
-                        $row['meta_value'] = $faker->firstName;
-                        $dump_array_for_faker['nickname'] = $row['meta_value'];
+                        }
+                        /* WP Comments Table Column Anonymization End */
+                        
+                        /* WP Usermeta Table Column Anonymization Start */
+                        if ( isset( $row['meta_key'] ) && $row['meta_key'] === 'nickname' )
+                        {
+                            $row['meta_value'] = $faker->firstName;
+                            $dump_array_for_faker['nickname'] = $row['meta_value'];
                         // error_log('nickname ==> '.$row['meta_value']);
-                    }
+                        }
 
-                    if ( isset( $row['meta_key'] ) && $row['meta_key'] === 'first_name' )
-                    {
-                        $row['meta_value'] = $faker->firstNameMale;
-                        $dump_array_for_faker['meta_first_name'] = $row['meta_value'];
+                        if ( isset( $row['meta_key'] ) && $row['meta_key'] === 'first_name' )
+                        {
+                            $row['meta_value'] = $faker->firstNameMale;
+                            $dump_array_for_faker['meta_first_name'] = $row['meta_value'];
                         // error_log('first_name ==> '.$row['meta_value']);
-                    }
-                    
-                    if ( isset( $row['meta_key'] ) && $row['meta_key'] === 'last_name' )
-                    {
-                        $row['meta_value'] = $faker->lastName;
-                        $dump_array_for_faker['meta_last_name'] = $row['meta_value'];
+                        }
+                        
+                        if ( isset( $row['meta_key'] ) && $row['meta_key'] === 'last_name' )
+                        {
+                            $row['meta_value'] = $faker->lastName;
+                            $dump_array_for_faker['meta_last_name'] = $row['meta_value'];
                         // error_log('last_name ==> '.$row['meta_value']);
-                    }
-                    
-                    if ( isset( $row['meta_key'] ) && $row['meta_key'] === 'description' )
-                    {
-                        $row['meta_value'] = $faker->text(200);
-                        $dump_array_for_faker['meta_description'] = $row['meta_value'];
+                        }
+                        
+                        if ( isset( $row['meta_key'] ) && $row['meta_key'] === 'description' )
+                        {
+                            $row['meta_value'] = $faker->text(200);
+                            $dump_array_for_faker['meta_description'] = $row['meta_value'];
                         // error_log('description ==> '.$row['meta_value']);
-                    }                   
-                    /* WP Usermeta Table Column Anonymization End */
+                        }                   
+                        /* WP Usermeta Table Column Anonymization End */
+                    }
                     $i++;                    
                     $vals = $this->escape($tableName, $row);
 
@@ -1133,8 +1146,8 @@ class InstaWP_Mysqldump
                         if ( $this->dumpSettings['complete-insert'] ) {
                             $lineSize += $this->compressManager->write(
                                 "INSERT INTO `$tableName` (" .
-                                implode(", ", $colStmt) .
-                                ") VALUES (" . implode(",", $vals) . ")"
+                                    implode(", ", $colStmt) .
+                                    ") VALUES (" . implode(",", $vals) . ")"
                             );
                             
                             $data_query = "INSERT INTO `$tableName` (" . implode(", ", $colStmt) . ") VALUES (" . implode(",", $vals) . ")";                           
@@ -1151,107 +1164,6 @@ class InstaWP_Mysqldump
                     if ( ($lineSize > $this->dumpSettings['net_buffer_length']) ||
                         ! $this->dumpSettings['extended-insert'] ) {
                         $onlyOnce = true;
-                        $lineSize = $this->compressManager->write(";" . PHP_EOL);
-                    }
-
-                    if ( $i >= 200000 ) {
-                        $count += $i;
-                        $i = 0;
-                        if ( $this->task_id !== '' ) {
-                            $i_check_cancel++;
-                            if ( $i_check_cancel > 5 ) {
-                                $i_check_cancel = 0;
-                                global $instawp_plugin;
-                                $instawp_plugin->check_cancel_backup($this->task_id);
-                            }
-                            $message = 'Dumping table '.$tableName.', rows dumped: '.$count.' rows.';
-                            InstaWP_taskmanager::update_backup_sub_task_progress($this->task_id,'backup',INSTAWP_BACKUP_TYPE_DB,0,$message);
-                        }
-                    }
-                }
-
-                $this->typeAdapter->closeCursor($resultSet);
-
-                $start += $limit_count;
-            }
-
-            if (sizeof($dump_array_for_faker) > 0) {
-
-                error_log( strtoupper("Faked key and values starts") );
-                error_log( print_r( $dump_array_for_faker, true ) );
-                error_log( strtoupper("Faked key and values ends") );
-            }
-            if ( ! $onlyOnce ) {
-                $this->compressManager->write(";" . PHP_EOL);
-            }
-
-            $this->endListValues($tableName);
-        }
-        else {
-            if ( substr($tableName, strlen($prefix)) == 'options' ) {
-                $stmt = "SELECT " . implode(",", $colStmt) . " FROM `$tableName` WHERE option_name !='instawp_task_list'";
-            }
-            else {
-                $stmt = "SELECT " . implode(",", $colStmt) . " FROM `$tableName`";
-            }
-
-            if ( $this->dumpSettings['where'] ) {
-                $stmt .= " WHERE {$this->dumpSettings['where']}";
-            }
-
-            $resultSet = $this->query($stmt);
-
-            if ( $resultSet === false ) {
-                global $instawp_plugin;
-                $error = $this->typeAdapter->errorInfo();
-                if ( isset($error[2]) ) {
-                    $error = 'Error: '.$error[2];
-                }
-                else {
-                    $error = '';
-                }
-
-                $message = 'listValues failed. '.$error;
-                $instawp_plugin->instawp_log->WriteLog($message, 'warning');
-
-                $this->endListValues($tableName);
-                return ;
-            }
-
-            $i = 0;
-            $i_check_cancel = 0;
-            $count = 0;
-            foreach ( $resultSet as $row ) {
-                $i++;
-                $vals = $this->escape($tableName, $row);
-                
-                foreach ( $vals as $key => $value ) {
-                    if ($value === '\'0000-00-00 00:00:00\'')
-                        $vals[ $key ] = '\'1999-01-01 00:00:00\'';
-                }
-
-                if ( $onlyOnce || ! $this->dumpSettings['extended-insert'] ) {
-
-                    if ( $this->dumpSettings['complete-insert'] ) {
-                        
-                        $lineSize += $this->compressManager->write(
-                            "INSERT INTO `$tableName` (" .
-                            implode(", ", $colStmt) .
-                            ") VALUES (" . implode(",", $vals) . ")"
-                        );
-                    } else {
-                        $lineSize += $this->compressManager->write(
-                            "INSERT INTO `$tableName` VALUES (" . implode(",", $vals) . ")"
-                        );
-                        
-                    }
-                    $onlyOnce = false;
-                } else {
-                    $lineSize += $this->compressManager->write(",(" . implode(",", $vals) . ")");
-                }
-                if ( ($lineSize > $this->dumpSettings['net_buffer_length']) ||
-                    ! $this->dumpSettings['extended-insert'] ) {
-                    $onlyOnce = true;
                     $lineSize = $this->compressManager->write(";" . PHP_EOL);
                 }
 
@@ -1272,15 +1184,116 @@ class InstaWP_Mysqldump
             }
 
             $this->typeAdapter->closeCursor($resultSet);
-            //$resultSet->closeCursor();
 
-            if ( ! $onlyOnce ) {
-                $this->compressManager->write(";" . PHP_EOL);
+            $start += $limit_count;
+        }
+
+        if (sizeof($dump_array_for_faker) > 0) {
+
+            error_log( strtoupper("Faked key and values starts") );
+            error_log( print_r( $dump_array_for_faker, true ) );
+            error_log( strtoupper("Faked key and values ends") );
+        }
+        if ( ! $onlyOnce ) {
+            $this->compressManager->write(";" . PHP_EOL);
+        }
+
+        $this->endListValues($tableName);
+    }
+    else {
+        if ( substr($tableName, strlen($prefix)) == 'options' ) {
+            $stmt = "SELECT " . implode(",", $colStmt) . " FROM `$tableName` WHERE option_name !='instawp_task_list'";
+        }
+        else {
+            $stmt = "SELECT " . implode(",", $colStmt) . " FROM `$tableName`";
+        }
+
+        if ( $this->dumpSettings['where'] ) {
+            $stmt .= " WHERE {$this->dumpSettings['where']}";
+        }
+
+        $resultSet = $this->query($stmt);
+
+        if ( $resultSet === false ) {
+            global $instawp_plugin;
+            $error = $this->typeAdapter->errorInfo();
+            if ( isset($error[2]) ) {
+                $error = 'Error: '.$error[2];
+            }
+            else {
+                $error = '';
             }
 
+            $message = 'listValues failed. '.$error;
+            $instawp_plugin->instawp_log->WriteLog($message, 'warning');
+
             $this->endListValues($tableName);
+            return ;
+        }
+
+        $i = 0;
+        $i_check_cancel = 0;
+        $count = 0;
+        foreach ( $resultSet as $row ) {
+            $i++;
+            $vals = $this->escape($tableName, $row);
+            
+            foreach ( $vals as $key => $value ) {
+                if ($value === '\'0000-00-00 00:00:00\'')
+                    $vals[ $key ] = '\'1999-01-01 00:00:00\'';
+            }
+
+            if ( $onlyOnce || ! $this->dumpSettings['extended-insert'] ) {
+
+                if ( $this->dumpSettings['complete-insert'] ) {
+                    
+                    $lineSize += $this->compressManager->write(
+                        "INSERT INTO `$tableName` (" .
+                            implode(", ", $colStmt) .
+                            ") VALUES (" . implode(",", $vals) . ")"
+                    );
+                } else {
+                    $lineSize += $this->compressManager->write(
+                        "INSERT INTO `$tableName` VALUES (" . implode(",", $vals) . ")"
+                    );
+                    
+                }
+                $onlyOnce = false;
+            } else {
+                $lineSize += $this->compressManager->write(",(" . implode(",", $vals) . ")");
+            }
+            if ( ($lineSize > $this->dumpSettings['net_buffer_length']) ||
+                ! $this->dumpSettings['extended-insert'] ) {
+                $onlyOnce = true;
+            $lineSize = $this->compressManager->write(";" . PHP_EOL);
+        }
+
+        if ( $i >= 200000 ) {
+            $count += $i;
+            $i = 0;
+            if ( $this->task_id !== '' ) {
+                $i_check_cancel++;
+                if ( $i_check_cancel > 5 ) {
+                    $i_check_cancel = 0;
+                    global $instawp_plugin;
+                    $instawp_plugin->check_cancel_backup($this->task_id);
+                }
+                $message = 'Dumping table '.$tableName.', rows dumped: '.$count.' rows.';
+                InstaWP_taskmanager::update_backup_sub_task_progress($this->task_id,'backup',INSTAWP_BACKUP_TYPE_DB,0,$message);
+            }
         }
     }
+
+    $this->typeAdapter->closeCursor($resultSet);
+            //$resultSet->closeCursor();
+
+    if ( ! $onlyOnce ) {
+        $this->compressManager->write(";" . PHP_EOL);
+    }
+
+    $this->endListValues($tableName);
+}
+}
 
     /**
      * Table rows extractor, append information prior to dump
