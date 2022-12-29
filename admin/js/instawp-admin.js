@@ -763,9 +763,12 @@ function instawp_check_staging() {
             // action_progress_bar_percent.css('width', jsonarray.progress + '%');
             // action_progress_bar.fadeIn();
 
+            if(jsonarray.message)
+                jQuery('#instawp_restore_status_message').html(jsonarray.message);
+
             if (jsonarray.status === 1) {
-                progressSiteCreation.fadeOut(100);
-                console.log("Console jsonarray ".jsonarray);
+                //progressSiteCreation.fadeOut(100);
+                // console.log("Console jsonarray ".jsonarray);
                 console.log('jsonarray.status == 1');
                 is_instawp_check_staging_compteted = true;
 

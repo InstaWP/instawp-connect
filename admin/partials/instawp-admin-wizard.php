@@ -548,6 +548,8 @@ if ( isset( $_REQUEST['success'] ) && $_REQUEST['success'] == true ) {
                 <div class="action-progress-bar" id="instawp_action_progress_bar">
                     <div class="action-progress-bar-percent" id="instawp_action_progress_bar_percent" style="height:24px;width:0;"></div>
                 </div>
+                <div style="clear:both;"></div>
+                <div style="margin-left:10px; float: left; width:100%;"><p id="instawp_restore_status_message"></p></div>
             </div>
 
             <div class="instawp-site-details-wrapper">
