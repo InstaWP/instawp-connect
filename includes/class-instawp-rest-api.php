@@ -459,7 +459,7 @@ class InstaWP_Backup_Api {
                $message = 'Restore completed';
 
    			$progress_response = (array) json_decode( $progress_results );
-   			$res_result        = array_merge( $this->restore_status( , $progress_value ),
+   			$res_result        = array_merge( $this->restore_status( $message, $progress_value ),
    				array(
    					'backup_list_key'  => $backup_list_key,
    //					'restore_response' => $restore_response,
