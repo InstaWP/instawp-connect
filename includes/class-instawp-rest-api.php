@@ -653,7 +653,8 @@ class InstaWP_Backup_Api {
 				// $restore_progress_option = get_option('instawp_restore_progress_percents', "0");
 				// error_log('Restore Status percentage is : '. $restore_progress_option);
 
-				$domain = str_replace( "https://", "", get_site_url() );
+            // $domain = str_replace( "https://", "", "https://e-takedown-jobe.a.instawpsites.com");//get_site_url() );
+            $domain = str_replace( "https://", "", get_site_url() );
 				$domain = str_replace( "http://", "", $domain );
 
 				$body      = array(

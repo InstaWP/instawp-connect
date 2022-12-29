@@ -542,9 +542,9 @@ if ( isset( $_REQUEST['success'] ) && $_REQUEST['success'] == true ) {
             </div>
 
             <div id="postbox" class="instawp_postbox_restore_percent">
-                <input type="text" class="instawp-backup-list-key" value="">
+                <!-- <input type="text" class="instawp-backup-list-key" value="">
                 <input type="text" class="instawp-restore-progress" value="">
-
+ -->
                 <div class="action-progress-bar" id="instawp_action_progress_bar">
                     <div class="action-progress-bar-percent" id="instawp_action_progress_bar_percent" style="height:24px;width:0;"></div>
                 </div>

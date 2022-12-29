@@ -730,10 +730,10 @@ function instawp_check_staging() {
 
     is_instawp_check_staging_running = true;
 
-    let el_backup_list_key = jQuery('.instawp-backup-list-key'),
-        el_restore_progress = jQuery('.instawp-restore-progress'),
-        backup_list_key = el_backup_list_key.val(),
+    let backup_list_key = el_backup_list_key.val(),
         restore_progress = el_restore_progress.val(),
+        progressSiteCreation = jQuery('#instawp_action_progress_bar'),
+        restore_progress_text = jQuery('#instawp_restore_status_message'),
         ajax_data = {
             'action': 'instawp_check_staging',
             'backup_list_key': backup_list_key,
@@ -748,9 +748,9 @@ function instawp_check_staging() {
             console.log(jsonarray);
 
             if (typeof jsonarray.backup_list_key !== 'undefined' && jsonarray.backup_list_key.length > 0) {
-                el_backup_list_key.val(jsonarray.backup_list_key);
+                // el_backup_list_key.val(jsonarray.backup_list_key);
             }
-            el_restore_progress.val(jsonarray.progress);
+            // el_restore_progress.val(jsonarray.progress);
 
             // console.log("ON 790 ---> ", jsonarray);
             // console.log("ON 791 ---> ", jsonarray.status);
@@ -767,7 +767,8 @@ function instawp_check_staging() {
                 jQuery('#instawp_restore_status_message').html(jsonarray.message);
 
             if (jsonarray.status === 1) {
-                //progressSiteCreation.fadeOut(100);
+                progressSiteCreation.fadeOut(100);
+                restore_progress_text.hide();
                 // console.log("Console jsonarray ".jsonarray);
                 console.log('jsonarray.status == 1');
                 is_instawp_check_staging_compteted = true;
