@@ -837,10 +837,38 @@ class InstaWP_Backup_Api {
 			'error'   => true,
 			'message' => '',
 		);
+      $php_version = substr( phpversion(), 0, 3 );
+
+      /*Get username*/
+      $username    = null;
+      $admin_users = get_users(
+         array(
+            'role__in' => array( 'administrator' ),
+            'fields'   => array( 'user_login' )
+         )
+      );
+
+      if ( ! empty( $admin_users ) ) {
+         if ( is_null( $username ) ) {
+            foreach ( $admin_users as $admin ) {
+               $username = $admin->user_login;
+               break;
+            }
+         }
+      }
+      /*Get username closes*/
+      $body = json_encode(
+         array(
+            "url"         => get_site_url(),
+            "php_version" => $php_version,
+            "username"    => ! is_null( $username ) ? base64_encode( $username ) : "notfound",
+         )
+      );
+
 		$api_doamin = InstaWP_Setting::get_api_domain();
 		$url        = $api_doamin . INSTAWP_API_URL . '/connects';
 
-		$body = json_encode( array( "url" => get_site_url() ) );
+		// $body = json_encode( array( "url" => get_site_url() ) );
 		$log  = array(
 			'url'  => $url,
 			'body' => $body,
