@@ -68,8 +68,8 @@ jQuery(document).ready(function ($) {
         let formData = new FormData();
         formData.append('action', 'sync_changes');
         formData.append('sync_message', sync_message);
-        console.log("Before Send: ", data);
-        console.log("Before Send Type: ", typeof data);
+        //console.log("Before Send: ", data);
+        //console.log("Before Send Type: ", typeof data);
         formData.append('data', data);
         baseCall(formData).then((response) => response.json()).then((data) => {
             if(data.success === true){
@@ -87,6 +87,8 @@ jQuery(document).ready(function ($) {
                     .removeClass('process_inprogress')
                     .addClass('process_complete');
                 }, 2000);
+            }else{
+                $('.sync_error_success_msg').html('<p class="error">'+data.message+'</p>');
             }
         });
     }

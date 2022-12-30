@@ -56,35 +56,30 @@ class InstaWP_Rest_Apis{
             $total_op = count($encrypted_contents);
             $count = 1;
             $progress_status = 'pending';
-            $changes = [];
+            $changes = $sync_response = [];
             foreach($encrypted_contents as $v){
                 $source_id = (isset($v->source_id) && !empty($v->source_id)) ? intval($v->source_id) : null;
                 
                 /*
                 *Post Oprations
                 */
-
                 //create and update
-                if(isset($v->event_slug) && $v->event_slug == 'post_change'){
+                if(isset($v->event_slug) && ($v->event_slug == 'post_change' ||$v->event_slug == 'post_new') ){
                     if(isset($source_id)){
                         $posts = (array) $v->details->posts;
                         $postmeta = (array) $v->details->postmeta;
                         $featured_image = (array) $v->details->featured_image;
-                        #Post array
+                        
                         if (get_post_status($posts['ID']) ) {
-                            #The post exists
-                            #Then update
+                            #The post exists,Then update
                             $postData = $this->postData($posts,'update');
                             wp_update_post($postData);
-                            
                             #post meta
                             $this->add_update_postmeta($postmeta,$posts['ID']);
                         } else {
                             $postData = $this->postData($posts,'insert');
-                            #The post does not exist
-                            #Then insert
+                            #The post does not exist,Then insert
                             wp_insert_post($postData); 
-                            
                             #post meta
                             $this->add_update_postmeta($postmeta,$posts['ID']); 
                         }
@@ -99,18 +94,52 @@ class InstaWP_Rest_Apis{
                                 set_post_thumbnail($posts['ID'],$att_id);
                             }
                         }
-                        #changes
-                        $changes[$v->event_type] = $changes[$v->event_type] + 1;
-                        
+
+                        #terms in post
+                        $taxonomies = (array) $v->details->taxonomies;
+                        if(!empty($taxonomies) && is_array($taxonomies)){
+                            foreach($taxonomies as $taxonomy => $terms){
+                                $terms = (array) $terms;
+                                # if term not exist then create first
+                                 if(!empty($terms) && is_array($terms)){
+                                     foreach($terms as $term){
+                                         $term = (array) $term;
+                                         if(!term_exists($term['term_id'],$taxonomy)){
+                                            $wp_terms = $this->wp_terms_data($term['term_id'],$term);
+                                            $wp_term_taxonomy = $this->wp_term_taxonomy_data($term['term_id'],$term);
+                                            $this->insert_taxonomy($term['term_id'],$wp_terms,$wp_term_taxonomy);
+                                            wp_set_post_terms( $posts['ID'], [$term['term_id']], $taxonomy );
+                                        }
+                                     }
+                                 }
+                                
+                                #set terms in post
+                                $term_ids = array_column($terms, 'term_id');
+                                wp_set_post_terms( $posts['ID'], $term_ids, $taxonomy );
+                            }
+                        }
+
                         #message 
                         $message = 'Sync successfully.';
+                        $status = 'completed';
+                        $sync_response[] = $this->sync_opration_response($status,$message,$v);
+                        #changes
+                        $changes[$v->event_type] = $changes[$v->event_type] + 1;
                     }
                 }
 
                 //Post trash
                 if(isset($v->event_slug) && $v->event_slug == 'post_trash'){
                     if(isset($source_id)){
-                        $rel = wp_trash_post($source_id);  //Post data on success, false or null on failure.
+                        if(get_post_status($source_id)){
+                            $rel = wp_trash_post($source_id);  //Post data on success, false or null on failure.
+                            $status = $this->sync_post_status($rel);
+                            $message = $this->sync_message($rel);
+                        }else{
+                            $status = 'pending';
+                            $message = $this->notExistMsg();  
+                        }
+                        $sync_response[] = $this->sync_opration_response($status,$message,$v);
                         #changes
                         $changes[$v->event_type] = $changes[$v->event_type] + 1; 
                     }
@@ -119,22 +148,34 @@ class InstaWP_Rest_Apis{
                 //Post permanently delete 
                 if(isset($v->event_slug) && $v->event_slug == 'post_delete'){
                     if(isset($source_id)){
-                        $rel = wp_delete_post($source_id,true);  // Set to False if you want to send them to Trash.
+                        if(get_post_status($source_id)){
+                            $rel = wp_delete_post($source_id,true);  // Set to False if you want to send them to Trash.
+                            $status = $this->sync_post_status($rel);
+                            $message = $this->sync_message($rel);
+                        }else{
+                            $status = 'pending';
+                            $message = $this->notExistMsg(); 
+                        }
+                        $sync_response[] = $this->sync_opration_response($status,$message,$v);
                         #changes
                         $changes[$v->event_type] = $changes[$v->event_type] + 1;
-                        #message 
-                        $message = $this->sync_message($rel);
                     }
                 }
 
                 //Post restored 
                 if(isset($v->event_slug) && $v->event_slug == 'untrashed_post'){
                     if(isset($source_id)){
-                        $rel = wp_untrash_post($source_id,true);  //Post data on success, false or null on failure.
+                        if(get_post_status($source_id)){
+                            $rel = wp_untrash_post($source_id,true);  //Post data on success, false or null on failure.
+                            $status = $this->sync_post_status($rel);
+                            $message = $this->sync_message($rel);
+                        }else{
+                            $status = 'pending';
+                            $message = $this->notExistMsg(); 
+                        }
+                        $sync_response[] = $this->sync_opration_response($status,$message,$v);
                         #changes
                         $changes[$v->event_type] = $changes[$v->event_type] + 1;
-                        #message 
-                        $message = $this->sync_message($rel);
                     }
                 }
                
@@ -170,18 +211,8 @@ class InstaWP_Rest_Apis{
                 if(isset($v->event_slug) && ($v->event_slug == 'create_taxonomy' || $v->event_slug == 'edit_taxonomy')){
                     if(isset($source_id)){
                         $details = (array) $v->details;
-                        $wp_terms = [
-                            'term_id' => $source_id,
-                            'name' => $details['name'],
-                            'slug' => $details['slug']
-                        ];
-                        $wp_term_taxonomy = [
-                            'term_taxonomy_id' => $source_id,
-                            'term_id' => $source_id,
-                            'taxonomy' => $details['taxonomy'],
-                            'description' => $details['description'],
-                            'parent' => $details['parent']
-                        ];
+                        $wp_terms = $this->wp_terms_data($source_id,$details);
+                        $wp_term_taxonomy = $this->wp_term_taxonomy_data($source_id,$details);
                         if(!term_exists($source_id,$v->event_type)){
                             if($v->event_slug == 'create_taxonomy'){
                                 $this->insert_taxonomy($source_id,$wp_terms,$wp_term_taxonomy);
@@ -214,7 +245,7 @@ class InstaWP_Rest_Apis{
                     'progress' => $progress,
                     'status' => $progress_status,
                     'message' => $message,
-                    'changes' => json_encode($changes)
+                    'changes' => ['changes' => $changes,'sync_response' => $sync_response],
                 ];
                 $this->sync_update($sync_id,$syncUpdate,'null');
                 $count++; 
@@ -226,12 +257,33 @@ class InstaWP_Rest_Apis{
      
         return new WP_REST_Response( 
             array(
-                'encrypted_contents' => $body,
+                'encrypted_contents' => $encrypted_contents,
                 'source_connect_id' => '',
-                'changes' => $changes,
+                'changes' => ['changes' => $changes,'sync_response' => $sync_response],
                 'sync_id' => $sync_id
             ) 
         );
+    }
+
+    public function notExistMsg(){
+        return "ID is not exists.";
+    }
+
+    public function wp_terms_data($term_id = null, $arr = []){
+        return [
+            'term_id' => $term_id,
+            'name' => $arr['name'],
+            'slug' => $arr['slug']
+        ];
+    }
+    public function wp_term_taxonomy_data($term_id = null, $arr = []){
+        return [
+            'term_taxonomy_id' => $term_id,
+            'term_id' => $term_id,
+            'taxonomy' => $arr['taxonomy'],
+            'description' => $arr['description'],
+            'parent' => $arr['parent']
+        ];
     }
 
     public function insert_taxonomy($term_id = null, $wp_terms = null, $wp_term_taxonomy = null){
@@ -388,14 +440,11 @@ class InstaWP_Rest_Apis{
         return $status;
     }
 
-    public function sync_post_response($status = null, $v = null){
-       return [
-                'event_name' => $v->event_name,
-                'event_slug' => $v->event_slug,
-                'event_type' => $v->event_type,
+    public function sync_opration_response($status = null, $message = null, $v = null){
+       return [ 
+                'id' => $v->id,
                 'status' => $status,
-                'source_id' => $v->source_id,
-                'user_id' => $v->user_id
+                'message' => $message
             ];
     }
 
@@ -419,7 +468,7 @@ class InstaWP_Rest_Apis{
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_CUSTOMREQUEST => 'PATCH',
-            CURLOPT_POSTFIELDS => $data,
+            CURLOPT_POSTFIELDS => json_encode($data),
             CURLOPT_HTTPHEADER => array(
                 'Authorization: Bearer '.$api_key.'',
                 'Content-Type: application/json'

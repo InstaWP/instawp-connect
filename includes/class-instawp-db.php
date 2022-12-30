@@ -60,8 +60,9 @@ class InstaWP_DB{
     /**
      * Update 
     */
-    public function update(){
-
+    public function update($table_name = null, $data = null , $id = null){
+        $results = $this->wpdb->update($table_name,$data,array( 'id' => $id ));
+        return $results;
     }
 
     /**

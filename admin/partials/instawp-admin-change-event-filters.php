@@ -241,6 +241,8 @@ class InstaWP_Change_Event_Filters {
             'user_id' => $uid,
             'date' => $date,
             'prod' => '',
+            'status' => 'pending',
+            'synced_message' => ''
         ];
         
         $InstaWP_db->insert($tables['ch_table'],$data);
@@ -300,6 +302,8 @@ class InstaWP_Change_Event_Filters {
             'user_id' => $uid,
             'date' => $date,
             'prod' => '',
+            'status' => 'pending',
+            'synced_message' => ''
         ];
         
         global $wpdb;
@@ -392,6 +396,8 @@ class InstaWP_Change_Event_Filters {
             'user_id' => $uid,
             'date' => $date,
             'prod' => '',
+            'status' => 'pending',
+            'synced_message' => ''
         ];
         $InstaWP_db->insert($tables['ch_table'],$data);
     }
@@ -405,7 +411,7 @@ class InstaWP_Change_Event_Filters {
                 $taxonomy_items = get_the_terms($post_id, $taxonomy);
                 if( !empty($taxonomy_items) && is_array($taxonomy_items) ){
                     foreach($taxonomy_items as $item){
-                        $items[] = $item;
+                        $items[$item->taxonomy][] = (array) $item;
                     }
                 }
             }
