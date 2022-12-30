@@ -730,14 +730,12 @@ function instawp_check_staging() {
 
     is_instawp_check_staging_running = true;
 
-    let backup_list_key = el_backup_list_key.val(),
-        restore_progress = el_restore_progress.val(),
-        progressSiteCreation = jQuery('#instawp_action_progress_bar'),
+    let progressSiteCreation = jQuery('#instawp_action_progress_bar'),
         restore_progress_text = jQuery('#instawp_restore_status_message'),
         ajax_data = {
             'action': 'instawp_check_staging',
-            'backup_list_key': backup_list_key,
-            'restore_progress': restore_progress,
+            // 'backup_list_key': backup_list_key,
+            // 'restore_progress': restore_progress,
             //'task_id': running_backup_taskid
         };
 

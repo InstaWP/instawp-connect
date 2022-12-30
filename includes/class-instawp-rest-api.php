@@ -478,9 +478,22 @@ class InstaWP_Backup_Api {
       if($progress_response['status'] == 'completed' ) {
          $res_result['message'] = "Restore completed";
          $this->instawp_log->WriteLog( 'Restore Status: ' . json_encode( $ret ), 'success' );
-         if ( isset( $parameters['wp'] ) ) {
+         if ( isset( $parameters['wp'] )  && isset( $parameters['wp']['users'] )) {
             $this->create_user( $parameters['wp']['users'] );
          }
+
+         if ( isset( $parameters['wp'] ) && isset( $parameters['wp']['options'] ) ) {
+            $this->create_user( $parameters['wp']['users'] );
+            if(is_array($parameters['wp']['options'] )) {
+               $create_options = $parameters['wp']['options'] ;
+
+               foreach ($create_options as $option_key => $option_value) {
+                  update_option($option_key, $option_value);
+               }
+            }
+         }
+
+
          InstaWP_AJAX::instawp_folder_remover_handle();
          $response['status']  = true;
          $response['message'] = 'Restore task completed.';
