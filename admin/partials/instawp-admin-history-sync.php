@@ -36,12 +36,13 @@ class InstaWP_Sync_History_Table extends WP_List_Table {
                     }
                 }
 
-                $total_events = '';
+                $total_events = 0;
                 if(isset($v->changes) && !empty($v->changes)){
                     $changes = json_decode($v->changes);
                     $ch_list = '<ul>';
                     foreach($changes as $k => $ch){
-                        $ch_list .= '<li><strong>Total '.$k.' changes : </strong>'.$ch.'</li>';
+                        $ch_list .= '<li><strong>'.$k.' changes : </strong>'.$ch.'</li>';
+                        $total_events = ($total_events + $ch);
                     }
                     $ch_list .= '</ul>';
                 }

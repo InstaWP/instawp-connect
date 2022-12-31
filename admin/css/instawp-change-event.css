@@ -300,6 +300,9 @@ body.show {
 .sync-features ul li::marker {
     color: #005e54;
 }
+.sync_error_success_msg p.error {
+	color: #ff0000;
+}
 /****************2 sync popup [end]**********************/
 #wpbody-content {
     position: relative;

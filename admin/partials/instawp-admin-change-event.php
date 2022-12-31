@@ -37,6 +37,8 @@ class InstaWP_Change_Event_Table extends WP_List_Table {
                             #'details' => $v->details,
                             'user_id' => $v->user_id,
                             'date' => $v->date,
+                            'status' => $v->status,
+                            'synced_message' => $v->synced_message,
                             'sync' => '<button type="button" id="btn-sync-'.$v->id.'" data-id="'.$v->id.'" class="two-way-sync-btn">Sync</button> <span class="sync-loader"></span><span class="sync-success" style="display:none;">Done</span>',
                         ];
             }
@@ -70,6 +72,8 @@ class InstaWP_Change_Event_Table extends WP_List_Table {
           #'details' => 'Details',
           'user_id' => 'User ID',
           'date' => 'Date',
+          'status' => 'Status',
+          'synced_message' => 'Synced message',
           'sync' => 'Sync',
         );
         return $columns;
@@ -85,6 +89,8 @@ class InstaWP_Change_Event_Table extends WP_List_Table {
             #'details'   => array('details', false),
             'user_id'   => array('user_id', true),
             'date'   => array('date', true),
+            'status'   => array('status', true),
+            'synced_message' => array('synced_message', true),
       );
       return $sortable_columns;
     }
@@ -131,6 +137,8 @@ class InstaWP_Change_Event_Table extends WP_List_Table {
             #case 'details':
             case 'user_id':
             case 'date': 
+            case 'status':
+            case 'synced_message': 
             case 'sync':       
             return $item[ $column_name ];
             default:
@@ -215,6 +223,7 @@ class InstaWP_Change_Event_Table extends WP_List_Table {
                                     </ul>
                                 </div>
                             </div>
+                            <div class="sync_error_success_msg"></div>
                             <div class="sync_message_main textarea_json destination_form">
                                 <label for="sync_message">Message:</label>
                                 <textarea id="sync_message" name="sync_message" rows="4"></textarea>

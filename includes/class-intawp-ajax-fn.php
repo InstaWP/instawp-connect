@@ -49,17 +49,21 @@ class InstaWP_Ajax_Fn{
         $InstaWP_db = new InstaWP_DB();
         $tables = $InstaWP_db->tables;
         $rel = $InstaWP_db->get($tables['ch_table']);
+    
         $encrypted_content = [];
         if(!empty($rel) && is_array($rel)){
             foreach($rel as $k => $v){
-                $encrypted_content[] = [
-                    'details' => json_decode($v->details),
-                    'event_name' => $v->event_name,
-                    'event_slug' => $v->event_slug,
-                    'event_type' => $v->event_type,
-                    'source_id' => $v->source_id,
-                    'user_id' => $v->user_id,
-                ];
+                if($v->status != 'completed'){
+                    $encrypted_content[] = [
+                        'id' => $v->id,
+                        'details' => json_decode($v->details),
+                        'event_name' => $v->event_name,
+                        'event_slug' => $v->event_slug,
+                        'event_type' => $v->event_type,
+                        'source_id' => $v->source_id,
+                        'user_id' => $v->user_id,
+                    ];
+                }
             }
             return json_encode($encrypted_content);
         }
@@ -101,22 +105,39 @@ class InstaWP_Ajax_Fn{
         $encrypted_content = $this->get_wp_events();
         $packed_data = json_encode([
             'encrypted_content' => $encrypted_content,
-            'dest_connect_id' => get_option('instawp_sync_destination', '45'),
+            'dest_connect_id' => '45',
             'changes' => $data,
             'upload_wp_user' => get_current_user_id(),
             'sync_message' => $message
         ]);
         
         $resp = $this->sync_upload($packed_data,null);
+        // print_r($resp);
+        // die;
         $resp_decode = json_decode($resp); 
+       
         if(isset($resp_decode->status) && $resp_decode->status === true){
             $sync_resp = '';
             if(isset($resp_decode->data->sync_id) && !empty($resp_decode->data->sync_id)){
                 $sync_resp = $this->get_Sync_Object($resp_decode->data->sync_id);
-            }
-            $respD = json_decode($sync_resp);// WE WILL USE IT.
-            echo $this->formatSuccessReponse($resp_decode->message, json_encode($respD));
-        } else {
+                $respD = json_decode($sync_resp);// WE WILL USE IT.
+                if($respD->status === 1 || $respD->status === true){
+                    if(isset($respD->data->changes->changes->sync_response)){
+                        $sync_response = $respD->data->changes->changes->sync_response;
+                        $InstaWP_db = new InstaWP_DB();
+                        $tables = $InstaWP_db->tables;
+                        foreach($sync_response as $v){
+                            $res_data = [
+                                'status' => $v->status,
+                                'synced_message' => $v->message
+                            ];
+                            $InstaWP_db->update($tables['ch_table'],$res_data,$v->id);   
+                        }
+                    }
+                    echo $this->formatSuccessReponse($resp_decode->message, json_encode($respD));
+                }
+            } 
+        }else{
             echo $this->formatErrorReponse($resp_decode->message);  
         }
         wp_die();
@@ -129,7 +150,7 @@ class InstaWP_Ajax_Fn{
             $tables = $InstaWP_db->tables;
             $rel = $InstaWP_db->getRowById($tables['ch_table'],$sync_id);
             echo json_encode($rel);
-        }
+        }                                    
         wp_die();
     }
 
