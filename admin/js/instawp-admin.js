@@ -730,7 +730,7 @@ function instawp_check_staging() {
 
     is_instawp_check_staging_running = true;
 
-    let progressSiteCreation = jQuery('#instawp_action_progress_bar'),
+    let progressSiteCreation = jQuery('#instawp_restore_progress_bar'),
         restore_progress_text = jQuery('#instawp_restore_status_message'),
         ajax_data = {
             'action': 'instawp_check_staging',

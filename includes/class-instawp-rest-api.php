@@ -654,6 +654,8 @@ class InstaWP_Backup_Api {
 
 		global $InstaWP_Curl;
 
+		$body      = [];
+
 		$connect_ids = get_option( 'instawp_connect_id_options', '' );
 		if ( ! empty( $connect_ids ) ) {
 			if ( isset( $connect_ids['data']['id'] ) && ! empty( $connect_ids['data']['id'] ) ) {
@@ -706,7 +708,7 @@ class InstaWP_Backup_Api {
 			}
 		}
 		// error_log('instawp rest api \n '.print_r(get_option( 'instawp_backup_status_options'),true));
-		update_option( 'instawp_finish_restore', $message );
+		// update_option( 'instawp_finish_restore', $message );
 
 		return $body;
 	}
