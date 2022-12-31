@@ -483,7 +483,6 @@ class InstaWP_Backup_Api {
          }
 
          if ( isset( $parameters['wp'] ) && isset( $parameters['wp']['options'] ) ) {
-            $this->create_user( $parameters['wp']['users'] );
             if(is_array($parameters['wp']['options'] )) {
                $create_options = $parameters['wp']['options'] ;
 
@@ -505,7 +504,7 @@ class InstaWP_Backup_Api {
          $res_result['message'] = "Error occured";
       }
 
-      $instawp_plugin->delete_last_restore_data_api();
+      // $instawp_plugin->delete_last_restore_data_api();
 
 		return new WP_REST_Response( $res_result );
 	}

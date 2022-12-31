@@ -214,7 +214,8 @@ class InstaWP_AJAX {
 
         if ( isset($curl_rd_restore_status['data']) && isset($curl_rd_restore_status['data']['progress']) && $curl_rd_restore_status['data']['progress'] == 100 ) {
         //      var_dump($instawp_finish_upload);
-
+        	
+        	$id                 = $connect_ids['data']['id'];
 
             $staging_sites        = get_option('instawp_staging_list', array());
             $staging_sites[ $id ] = $curl_rd_restore_status;

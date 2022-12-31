@@ -196,6 +196,7 @@ class InstaWP_Change_Event_Table extends WP_List_Table {
         $post_trash = $InstaWP_db->trakingEventsBySlug($tables['ch_table'],'post_trash','post');
         
         #others
+        $destination_url = get_option('instawp_sync_parent_url', '') ;
         $others = (abs($total_events) - abs($post_new+$post_delete+$post_trash));
         $html = '<div class="bulk-sync-popup"> 
                 <div class="instawp-popup-main">
@@ -204,7 +205,7 @@ class InstaWP_Change_Event_Table extends WP_List_Table {
                             <h3>Preparing changes for Sync</h3>
                             <div class="destination_form">
                                 <label for="instawp-destination">Destination</label>
-                                <input type="url" id="destination-url" placeholder="mywebsite.com" name="Destination">
+                                <input type="url" id="destination-url" placeholder="mywebsite.com" value="'.$destination_url.'" name="Destination" disabled>
                             </div>
                             <div class="instawp_category">
                                 <div class="instawpcatlftcol">

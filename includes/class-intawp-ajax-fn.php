@@ -105,7 +105,7 @@ class InstaWP_Ajax_Fn{
         $encrypted_content = $this->get_wp_events();
         $packed_data = json_encode([
             'encrypted_content' => $encrypted_content,
-            'dest_connect_id' => '45',
+            'dest_connect_id' => get_option('instawp_sync_parent_id', '45'),
             'changes' => $data,
             'upload_wp_user' => get_current_user_id(),
             'sync_message' => $message
