@@ -151,15 +151,20 @@ class InstaWP_Admin {
         $submenu['index'] = 2;
 
         #Staging Sites
-        $submenus[ $submenu['menu_slug'] ] = $submenu;
-        $submenu['parent_slug'] = $this->plugin_name;
-        $submenu['page_title'] = 'Staging Sites';
-        $submenu['menu_title'] = __('Staging Sites', 'instawp-connect');
-        $submenu['capability'] = 'administrator';
-        $submenu['menu_slug'] = 'instawp-staging-site';
-        $submenu['function'] = array( $this, 'display_staging_sites_page' );
-        $submenu['index'] = 3;
-        $submenus[ $submenu['menu_slug'] ] = $submenu;
+
+        // if(get_option('instawp_is_staging') != 1) {
+            $submenus[ $submenu['menu_slug'] ] = $submenu;
+            $submenu['parent_slug'] = $this->plugin_name;
+            $submenu['page_title'] = 'Staging Sites';
+            $submenu['menu_title'] = __('Staging Sites', 'instawp-connect');
+            $submenu['capability'] = 'administrator';
+            $submenu['menu_slug'] = 'instawp-staging-site';
+            $submenu['function'] = array( $this, 'display_staging_sites_page' );
+            $submenu['index'] = 3;
+            $submenus[ $submenu['menu_slug'] ] = $submenu;
+        // } else {
+        //     $submenu['index'] = 3;
+        // }
 
         #Change Event
         $submenu['parent_slug'] = $this->plugin_name;
