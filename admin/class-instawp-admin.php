@@ -152,6 +152,8 @@ class InstaWP_Admin {
 
         #Staging Sites
 
+        
+
         // if(get_option('instawp_is_staging') != 1) {
             $submenus[ $submenu['menu_slug'] ] = $submenu;
             $submenu['parent_slug'] = $this->plugin_name;
