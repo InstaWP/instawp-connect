@@ -194,6 +194,9 @@ class InstaWP_Change_Event_Table extends WP_List_Table {
         $post_new = $InstaWP_db->trakingEventsBySlug($tables['ch_table'],'post_new','post');
         $post_delete = $InstaWP_db->trakingEventsBySlug($tables['ch_table'],'post_delete','post');
         $post_trash = $InstaWP_db->trakingEventsBySlug($tables['ch_table'],'post_trash','post');
+        $instawp_sync_destination = get_option('instawp_sync_destination');
+        echo "instawp_sync_destination :";
+        print_r($instawp_sync_destination);
         
         #others
         $others = (abs($total_events) - abs($post_new+$post_delete+$post_trash));
