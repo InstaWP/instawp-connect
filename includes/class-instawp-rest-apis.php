@@ -48,6 +48,7 @@ class InstaWP_Rest_Apis{
      * @return string|null 
      */
     public function events_receiver($req) {
+
         $body = $req->get_body();
         $bodyArr = json_decode($body);
         $encrypted_contents = json_decode($bodyArr->encrypted_contents);
@@ -223,6 +224,13 @@ class InstaWP_Rest_Apis{
                                 $this->update_taxonomy($source_id,$wp_terms,$wp_term_taxonomy);
                             }
                         }
+
+                        #message 
+                        $message = 'Sync successfully.';
+                        $status = 'completed';
+                        $sync_response[] = $this->sync_opration_response($status,$message,$v);
+                        #changes
+                        $changes[$v->event_type] = $changes[$v->event_type] + 1;
                     }
                 }
 
@@ -230,9 +238,17 @@ class InstaWP_Rest_Apis{
                 if(isset($v->event_slug) && $v->event_slug == 'delete_taxonomy'){
                     if(isset($source_id)){
                         if(term_exists($source_id,$v->event_type)){
-                            wp_delete_term($source_id,$v->event_type);
+                            $rel = wp_delete_term($source_id,$v->event_type);
+                            $status = $this->sync_post_status($rel);
+	                        $message = $this->sync_message($rel);
                         }
+                    }else{
+                        $status = 'pending';
+                        $message = $this->notExistMsg();  
                     }
+                    $sync_response[] = $this->sync_opration_response($status,$message,$v);
+                    #changes
+                    $changes[$v->event_type] = $changes[$v->event_type] + 1; 
                 }
                
                 /*
@@ -488,4 +504,3 @@ class InstaWP_Rest_Apis{
     }
 }
 new InstaWP_Rest_Apis();
-

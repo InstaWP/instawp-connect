@@ -63,7 +63,17 @@ if ( isset( $_REQUEST['success'] ) && $_REQUEST['success'] == true ) {
 <div class="wrap instawp-connect-wizard">
     <div class="postbox instawp-wizard-container wizard-screen-1 <?php echo ( $screen_1_show ) ? 'instawp-show' : ''; ?>" id="instawp-wizard-screen-1">
 
-		<?php do_action( 'instawp_admin_wizard_img' ); ?>
+		
+
+        
+
+        <?php if(get_option("instawp_is_staging", 0) == 1) { ?> 
+
+            <h3> This is a staging site</h3>
+
+        <?php } else { ?>
+
+            <?php do_action( 'instawp_admin_wizard_img' ); ?>
 
         <h3><?php echo esc_html__( 'Creating a Staging Site', 'instawp-connect' ) ?> </h3>
 
@@ -82,6 +92,8 @@ if ( isset( $_REQUEST['success'] ) && $_REQUEST['success'] == true ) {
 		);
 
 		do_action( 'instawp_admin_wizard_btn', $btn_args );
+
+        }
 
 		?>
 
@@ -104,6 +116,14 @@ if ( isset( $_REQUEST['success'] ) && $_REQUEST['success'] == true ) {
 
     </div>
     <div class="postbox instawp-wizard-container wizard-screen-3 <?php echo ( $screen_3_show ) ? 'instawp-show' : ''; ?>" id="instawp-wizard-screen-3">
+
+
+         <?php if(get_option("instawp_is_staging", 0) == 1) { ?> 
+
+            <h3> This is a staging site</h3>
+
+        <?php } else { ?>
+
 		<?php
 		do_action( 'instawp_before_setup_page' );
 		include_once INSTAWP_PLUGIN_DIR . '/admin/partials/instawp-admin-display.php';
@@ -154,7 +174,7 @@ if ( isset( $_REQUEST['success'] ) && $_REQUEST['success'] == true ) {
 		);
 		do_action( 'instawp_admin_wizard_two_btn', $btn_args );
 		do_action( 'instawp_admin_wizard_prev_btn', null );
-
+    }
 		?>
 
 		<?php
@@ -545,7 +565,7 @@ if ( isset( $_REQUEST['success'] ) && $_REQUEST['success'] == true ) {
                 <!-- <input type="text" class="instawp-backup-list-key" value="">
                 <input type="text" class="instawp-restore-progress" value="">
  -->
-                <div class="action-progress-bar" id="instawp_action_progress_bar">
+                <div class="action-progress-bar" id="instawp_restore_progress_bar">
                     <div class="action-progress-bar-percent" id="instawp_action_progress_bar_percent" style="height:24px;width:0;"></div>
                 </div>
                 <div style="clear:both;"></div>
