@@ -187,12 +187,6 @@ class InstaWP_AJAX {
 		}
 
 
-		if ( 'yes' != get_option( 'instawp_saved_themes_plugins' ) ) {
-			update_option( 'instawp_saved_themes', array_keys( wp_get_themes() ) );
-			update_option( 'instawp_saved_themes_plugins', 'yes' );
-		}
-
-
 //		if ( 'yes' != get_option( 'instawp_theme_deleted' ) ) {
 //			foreach ( wp_get_themes() as $stylesheet => $theme ) {
 //				if ( strpos( $stylesheet, 'twenty' ) !== false ) {
@@ -275,6 +269,7 @@ class InstaWP_AJAX {
 				)
 			);
 
+			update_option( 'instawp_saved_themes', array_keys( wp_get_themes() ) );
 		}
 		echo json_encode( $response );
 		wp_die();
