@@ -187,7 +187,7 @@ class InstaWP_AJAX {
 		}
 
 
-		update_option( 'instawp_saved_themes', array_keys( wp_get_themes() ) );
+//		update_option( 'instawp_saved_themes', array_keys( wp_get_themes() ) );
 
 		$url_restore_status           = $api_domain . INSTAWP_API_URL . '/connects/get_restore_status';
 		$curl_response_restore_status = $InstaWP_Curl->curl( $url_restore_status, json_encode( array( 'connect_id' => $connect_id, 'task_id' => $task_id, 'site_id' => $site_id, ) ) );
