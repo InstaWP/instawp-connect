@@ -131,30 +131,49 @@ class InstaWP_Admin {
     }
 
     public function get_admin_menus( $submenus ) {
-        #InstaWP Connect
-        $submenu['parent_slug'] = $this->plugin_name;
-        $submenu['page_title'] = 'InstaWP Connect';
-        $submenu['menu_title'] = __('Backup & Restore', 'instawp-connect');
-        $submenu['capability'] = 'administrator';
-        $submenu['menu_slug'] = $this->plugin_name;
-        $submenu['function'] = array( $this, 'display_plugin_setup_page' );
-        $submenu['index'] = 1;
-        
-        #Create New
-        $submenus[ $submenu['menu_slug'] ] = $submenu;
-        $submenu['parent_slug'] = $this->plugin_name;
-        $submenu['page_title'] = 'Create New';
-        $submenu['menu_title'] = __('Create New', 'instawp-connect');
-        $submenu['capability'] = 'administrator';
-        $submenu['menu_slug'] = 'instawp-connect';
-        $submenu['function'] = array( $this, 'display_wizard_page' );
-        $submenu['index'] = 2;
-
+        $api_doamin = InstaWP_Setting::get_api_domain();
+         #InstaWP Connect
+         $submenu['parent_slug'] = $this->plugin_name;
+         $submenu['page_title'] = 'InstaWP Connect';
+         $submenu['menu_title'] = __('Backup & Restore', 'instawp-connect');
+         $submenu['capability'] = 'administrator';
+         $submenu['menu_slug'] = $this->plugin_name;
+         $submenu['function'] = array( $this, 'display_plugin_setup_page' );
+         $submenu['index'] = 1;
+     
+         #Create New
+         $submenus[ $submenu['menu_slug'] ] = $submenu;
+         $submenu['parent_slug'] = $this->plugin_name;
+         $submenu['page_title'] = 'Create New';
+         $submenu['menu_title'] = __('Create New', 'instawp-connect');
+         $submenu['capability'] = 'administrator';
+         $submenu['menu_slug'] = 'instawp-connect';
+         $submenu['function'] = array( $this, 'display_wizard_page' );
+         $submenu['index'] = 2;
+         
         #Staging Sites
-
+        if(get_option('instawp_is_staging') && get_option('instawp_is_staging') == 1) {
+            // add other submenus for staging 
+        }else{
+            #InstaWP Connect
+            $submenu['parent_slug'] = $this->plugin_name;
+            $submenu['page_title'] = 'InstaWP Connect';
+            $submenu['menu_title'] = __('Backup & Restore', 'instawp-connect');
+            $submenu['capability'] = 'administrator';
+            $submenu['menu_slug'] = $this->plugin_name;
+            $submenu['function'] = array( $this, 'display_plugin_setup_page' );
+            $submenu['index'] = 1;
         
+            #Create New
+            $submenus[ $submenu['menu_slug'] ] = $submenu;
+            $submenu['parent_slug'] = $this->plugin_name;
+            $submenu['page_title'] = 'Create New';
+            $submenu['menu_title'] = __('Create New', 'instawp-connect');
+            $submenu['capability'] = 'administrator';
+            $submenu['menu_slug'] = 'instawp-connect';
+            $submenu['function'] = array( $this, 'display_wizard_page' );
+            $submenu['index'] = 2;
 
-        // if(get_option('instawp_is_staging') != 1) {
             $submenus[ $submenu['menu_slug'] ] = $submenu;
             $submenu['parent_slug'] = $this->plugin_name;
             $submenu['page_title'] = 'Staging Sites';
@@ -164,39 +183,46 @@ class InstaWP_Admin {
             $submenu['function'] = array( $this, 'display_staging_sites_page' );
             $submenu['index'] = 3;
             $submenus[ $submenu['menu_slug'] ] = $submenu;
-        // } else {
-        //     $submenu['index'] = 3;
-        // }
+        }
+        
+        $sync_domains = [
+            'https://app.instawp.io',
+            'https://app.instawp.io/',
+            'http://app.instawp.io',
+            'http://app.instawp.io/',
+        ];
 
-        #Change Event
-        $submenu['parent_slug'] = $this->plugin_name;
-        $submenu['page_title'] = 'Change Event';
-        $submenu['menu_title'] = __('Change Event', 'instawp-connect');
-        $submenu['capability'] = 'administrator';
-        $submenu['menu_slug'] = 'instawp-change-event';
-        $submenu['function'] = array( $this, 'instawp_change_event' );
-        $submenu['index'] = 4;
-        $submenus[ $submenu['menu_slug'] ] = $submenu;
+        if(!in_array($api_doamin,$sync_domains)){
+            #Change Event
+            $submenu['parent_slug'] = $this->plugin_name;
+            $submenu['page_title'] = 'Change Event';
+            $submenu['menu_title'] = __('Change Event', 'instawp-connect');
+            $submenu['capability'] = 'administrator';
+            $submenu['menu_slug'] = 'instawp-change-event';
+            $submenu['function'] = array( $this, 'instawp_change_event' );
+            $submenu['index'] = 4;
+            $submenus[ $submenu['menu_slug'] ] = $submenu;
 
-        #History sync
-        $submenu['parent_slug'] = $this->plugin_name;
-        $submenu['page_title'] = 'Sync History';
-        $submenu['menu_title'] = __('Sync History', 'instawp-connect');
-        $submenu['capability'] = 'administrator';
-        $submenu['menu_slug'] = 'instawp-sync-history';
-        $submenu['function'] = array( $this, 'instawp_history_sync' );
-        $submenu['index'] = 5;
-        $submenus[ $submenu['menu_slug'] ] = $submenu;
+            #History sync
+            $submenu['parent_slug'] = $this->plugin_name;
+            $submenu['page_title'] = 'Sync History';
+            $submenu['menu_title'] = __('Sync History', 'instawp-connect');
+            $submenu['capability'] = 'administrator';
+            $submenu['menu_slug'] = 'instawp-sync-history';
+            $submenu['function'] = array( $this, 'instawp_history_sync' );
+            $submenu['index'] = 5;
+            $submenus[ $submenu['menu_slug'] ] = $submenu;
 
-        #sync features
-        $submenu['parent_slug'] = $this->plugin_name;
-        $submenu['page_title'] = 'Sync Features';
-        $submenu['menu_title'] = __('Sync Features', 'instawp-connect');
-        $submenu['capability'] = 'administrator';
-        $submenu['menu_slug'] = 'instawp-sync-features';
-        $submenu['function'] = array( $this, 'instawp_features_sync' );
-        $submenu['index'] = 6;
-        $submenus[ $submenu['menu_slug'] ] = $submenu;
+            #sync features
+            $submenu['parent_slug'] = $this->plugin_name;
+            $submenu['page_title'] = 'Sync Features';
+            $submenu['menu_title'] = __('Sync Features', 'instawp-connect');
+            $submenu['capability'] = 'administrator';
+            $submenu['menu_slug'] = 'instawp-sync-features';
+            $submenu['function'] = array( $this, 'instawp_features_sync' );
+            $submenu['index'] = 6;
+            $submenus[ $submenu['menu_slug'] ] = $submenu;
+        }
 
         #Settings
         $submenu['parent_slug'] = $this->plugin_name;
@@ -352,6 +378,7 @@ class InstaWP_Admin {
             else
                 return -1;
         });
+      
 
         foreach ( $this->submenus as $submenu ) {
             add_submenu_page(

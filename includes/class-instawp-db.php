@@ -95,19 +95,20 @@ class InstaWP_DB{
     /*
     * Count total traking events
     */
-    public function totalEvnets($table_name){
-        $results = $this->wpdb->get_var("SELECT COUNT(*) FROM $table_name"); 
+    public function totalEvnets($table_name = null, $status = null){
+        $results = $this->wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE `status`='".$status."'"); 
         return $results;
     }
 
     /*
     * Get traking events via event slug 
     */
-    public function trakingEventsBySlug($table_name = null,$event_slug = null,$event_type = null){
+    public function trakingEventsBySlug($table_name = null,$event_slug = null,$event_type = null, $status = null){
+        
         if(isset($event_slug)){ //with slug
-            $results = $this->wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE `event_slug`='".$event_slug."' AND `event_type`='".$event_type."'"); 
+            $results = $this->wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE `event_slug`='".$event_slug."' AND `event_type`='".$event_type."' AND `status`='".$status."'"); 
         }else{ //only with event_type
-            $results = $this->wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE `event_type`='".$event_type."'"); 
+            $results = $this->wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE `event_type`='".$event_type."' AND `status`='".$status."'"); 
         }
         return $results > 0 ? $results : 0;
     }
