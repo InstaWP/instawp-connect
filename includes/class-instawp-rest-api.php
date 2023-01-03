@@ -383,11 +383,11 @@ class InstaWP_Backup_Api {
 
 	public function restore( WP_REST_Request $request ) {
 
-		foreach ( wp_get_themes() as $stylesheet => $theme ) {
-			if ( strpos( $stylesheet, 'twenty' ) !== false ) {
-				delete_theme( $stylesheet );
-			}
-		}
+//		foreach ( wp_get_themes() as $stylesheet => $theme ) {
+//			if ( strpos( $stylesheet, 'twenty' ) !== false ) {
+//				delete_theme( $stylesheet );
+//			}
+//		}
 
 		global $InstaWP_Curl, $instawp_plugin;
 
