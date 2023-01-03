@@ -16,7 +16,7 @@ class InstaWP_Backup_Api {
 		add_action( 'rest_api_init', array( $this, 'add_api_routes' ) );
 		$this->instawp_log = new InstaWP_Log();
 
-		add_action( 'init', array( $this, 'remove_themes_plugins_default' ) );
+		add_action( 'admin_init', array( $this, 'remove_themes_plugins_default' ) );
 	}
 
 	function remove_themes_plugins_default() {
