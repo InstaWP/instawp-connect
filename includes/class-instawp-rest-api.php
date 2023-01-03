@@ -383,12 +383,6 @@ class InstaWP_Backup_Api {
 
 	public function restore( WP_REST_Request $request ) {
 
-//		foreach ( wp_get_themes() as $stylesheet => $theme ) {
-//			if ( strpos( $stylesheet, 'twenty' ) !== false ) {
-//				delete_theme( $stylesheet );
-//			}
-//		}
-
 		global $InstaWP_Curl, $instawp_plugin;
 
 		$parameters       = $request->get_params();
@@ -511,6 +505,16 @@ class InstaWP_Backup_Api {
 		}
 
 		// $instawp_plugin->delete_last_restore_data_api();
+
+
+		$instawp_saved_themes = get_option( 'instawp_saved_themes', array() );
+		$instawp_saved_themes = ! is_array( $instawp_saved_themes ) ? array() : $instawp_saved_themes;
+
+		foreach ( wp_get_themes() as $stylesheet => $theme ) {
+			if ( ! in_array( $stylesheet, $instawp_saved_themes ) ) {
+				delete_theme( $stylesheet );
+			}
+		}
 
 		return new WP_REST_Response( $res_result );
 	}
