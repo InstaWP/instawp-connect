@@ -16,6 +16,29 @@ class InstaWP_Backup_Api {
 		add_action( 'rest_api_init', array( $this, 'add_api_routes' ) );
 		$this->instawp_log = new InstaWP_Log();
 
+		add_action( 'init', array( $this, 'remove_themes_plugins_default' ) );
+	}
+
+	function remove_themes_plugins_default() {
+
+		if ( ! function_exists( 'delete_theme' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/theme.php';
+		}
+
+		if ( 'yes' != get_option( 'instawp_removed_themes' ) ) {
+
+			$instawp_saved_themes = get_option( 'instawp_saved_themes', array() );
+			$instawp_saved_themes = ! is_array( $instawp_saved_themes ) ? array() : $instawp_saved_themes;
+
+			foreach ( wp_get_themes() as $stylesheet => $theme ) {
+				if ( ! in_array( $stylesheet, $instawp_saved_themes ) ) {
+					delete_theme( $stylesheet );
+				}
+			}
+
+			update_option( 'instawp_saved_themes', array() );
+			update_option( 'instawp_removed_themes', 'yes' );
+		}
 	}
 
 	public function add_api_routes() {
@@ -496,8 +519,6 @@ class InstaWP_Backup_Api {
 			InstaWP_AJAX::instawp_folder_remover_handle();
 			$response['status']  = true;
 			$response['message'] = 'Restore task completed.';
-
-
 		}
 
 		if ( $progress_response['status'] == 'error' ) {
@@ -505,16 +526,6 @@ class InstaWP_Backup_Api {
 		}
 
 		// $instawp_plugin->delete_last_restore_data_api();
-
-
-		$instawp_saved_themes = get_option( 'instawp_saved_themes', array() );
-		$instawp_saved_themes = ! is_array( $instawp_saved_themes ) ? array() : $instawp_saved_themes;
-
-		foreach ( wp_get_themes() as $stylesheet => $theme ) {
-			if ( ! in_array( $stylesheet, $instawp_saved_themes ) ) {
-				delete_theme( $stylesheet );
-			}
-		}
 
 		return new WP_REST_Response( $res_result );
 	}
