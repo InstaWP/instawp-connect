@@ -48,11 +48,11 @@ class InstaWP_Rest_Apis{
      * @return string|null 
      */
     public function events_receiver($req) {
-
         $body = $req->get_body();
         $bodyArr = json_decode($body);
         $encrypted_contents = json_decode($bodyArr->encrypted_contents);
         $sync_id = $bodyArr->sync_id;
+        $source_connect_id = $bodyArr->source_connect_id;
         if(!empty($encrypted_contents) && is_array($encrypted_contents)){
             $total_op = count($encrypted_contents);
             $count = 1;
@@ -263,7 +263,7 @@ class InstaWP_Rest_Apis{
                     'message' => $message,
                     'changes' => ['changes' => $changes,'sync_response' => $sync_response],
                 ];
-                $this->sync_update($sync_id,$syncUpdate,'null');
+                $this->sync_update($sync_id,$syncUpdate,$source_connect_id);
                 $count++; 
             }
         }
@@ -274,7 +274,7 @@ class InstaWP_Rest_Apis{
         return new WP_REST_Response( 
             array(
                 'encrypted_contents' => $encrypted_contents,
-                'source_connect_id' => '',
+                'source_connect_id' => $source_connect_id,
                 'changes' => ['changes' => $changes,'sync_response' => $sync_response],
                 'sync_id' => $sync_id
             ) 
@@ -464,13 +464,12 @@ class InstaWP_Rest_Apis{
             ];
     }
 
-    public function sync_update($sync_id = null, $data = null, $endpoint = null){
+    public function sync_update($sync_id = null, $data = null, $source_connect_id = null){
         global $InstaWP_Curl;
         $api_doamin = InstaWP_Setting::get_api_domain();
-        $connect_ids  = get_option('instawp_connect_id_options', '');
-        $connect_id = 53;
+        $connect_id = intval($source_connect_id);
         $endpoint = '/api/v2/connects/'.$connect_id.'/syncs/'.$sync_id;
-        $url = $api_doamin.$endpoint; #https://stage.instawp.io/api/v2/connects/53/syncs/78
+        $url = $api_doamin.$endpoint; #https://stage.instawp.io/api/v2/connects/241/syncs/450
         $api_key = $this->get_api_key(); 
 
         try{

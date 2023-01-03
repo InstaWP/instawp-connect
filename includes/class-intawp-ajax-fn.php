@@ -75,11 +75,12 @@ class InstaWP_Ajax_Fn{
             $InstaWP_db = new InstaWP_DB();
             $tables = $InstaWP_db->tables;
             
-            $total_posts = $InstaWP_db->trakingEventsBySlug($tables['ch_table'],null,'post');
-            $total_pages = $InstaWP_db->trakingEventsBySlug($tables['ch_table'],null,'page');
-            $total_plugins = $InstaWP_db->trakingEventsBySlug($tables['ch_table'],'plugin');
-            $total_themes = $InstaWP_db->trakingEventsBySlug($tables['ch_table'],'theme');
-            $total_events = $InstaWP_db->totalEvnets($tables['ch_table']);
+            $total_posts = $InstaWP_db->trakingEventsBySlug($tables['ch_table'],null,'post','pending');
+            $total_pages = $InstaWP_db->trakingEventsBySlug($tables['ch_table'],null,'page','pending');
+            $total_plugins = $InstaWP_db->trakingEventsBySlug($tables['ch_table'],'plugin','pending');
+            $total_themes = $InstaWP_db->trakingEventsBySlug($tables['ch_table'],'theme','pending');
+            $total_events = $InstaWP_db->totalEvnets($tables['ch_table'],'pending');
+
             $data = [
                 'total_events' => $total_events,
                 'posts' => $total_posts,
@@ -107,11 +108,11 @@ class InstaWP_Ajax_Fn{
         $encrypted_content = $this->get_wp_events();
         $packed_data = json_encode([
             'encrypted_content' => $encrypted_content,
-            'dest_connect_id' => $parent_id,
+            'dest_connect_id' => $parent_id, #live
             'changes' => $data,
             'upload_wp_user' => get_current_user_id(),
             'sync_message' => $message,
-            'connect_id' =>  $connect_id
+            'source_connect_id' =>  $connect_id #staging 
         ]);
         
         $resp = $this->sync_upload($packed_data,null);
@@ -165,7 +166,7 @@ class InstaWP_Ajax_Fn{
         global $InstaWP_Curl;
         $api_doamin = InstaWP_Setting::get_api_domain();
         $connect_id  = get_option('instawp_sync_connect_id');
-   
+        
         $endpoint = '/api/v2/connects/'.$connect_id.'/syncs';
         $url = $api_doamin.$endpoint; #https://stage.instawp.io/api/v2/connects/53/syncs
         $api_key = $this->get_api_key(); 

@@ -190,10 +190,10 @@ class InstaWP_Change_Event_Table extends WP_List_Table {
         $tables = $InstaWP_db->tables;
         
         #Total events
-        $total_events = $InstaWP_db->totalEvnets($tables['ch_table']);
-        $post_new = $InstaWP_db->trakingEventsBySlug($tables['ch_table'],'post_new','post');
-        $post_delete = $InstaWP_db->trakingEventsBySlug($tables['ch_table'],'post_delete','post');
-        $post_trash = $InstaWP_db->trakingEventsBySlug($tables['ch_table'],'post_trash','post');
+        $total_events = $InstaWP_db->totalEvnets($tables['ch_table'],'pending');
+        $post_new = $InstaWP_db->trakingEventsBySlug($tables['ch_table'],'post_new','post','pending');
+        $post_delete = $InstaWP_db->trakingEventsBySlug($tables['ch_table'],'post_delete','post','pending');
+        $post_trash = $InstaWP_db->trakingEventsBySlug($tables['ch_table'],'post_trash','post','pending');
         
         #others
         $destination_url = get_option('instawp_sync_parent_url', '') ;
