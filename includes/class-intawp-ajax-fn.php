@@ -100,13 +100,14 @@ class InstaWP_Ajax_Fn{
     }
 
     function sync_changes(){
-        $connect_id  = $this->get_connect_id();
+        $connect_id  = get_option('instawp_sync_connect_id');
+        $parent_id = get_option('instawp_sync_parent_id');
         $message = isset($_POST['sync_message']) ? $_POST['sync_message']: '';
         $data = stripslashes($_POST['data']);
         $encrypted_content = $this->get_wp_events();
         $packed_data = json_encode([
             'encrypted_content' => $encrypted_content,
-            'dest_connect_id' => get_option('instawp_sync_parent_id', '45'),
+            'dest_connect_id' => $parent_id,
             'changes' => $data,
             'upload_wp_user' => get_current_user_id(),
             'sync_message' => $message,
@@ -163,7 +164,7 @@ class InstaWP_Ajax_Fn{
     function sync_upload($data = null, $endpoint = null){
         global $InstaWP_Curl;
         $api_doamin = InstaWP_Setting::get_api_domain();
-        $connect_id  = $this->get_connect_id();
+        $connect_id  = get_option('instawp_sync_connect_id');
    
         $endpoint = '/api/v2/connects/'.$connect_id.'/syncs';
         $url = $api_doamin.$endpoint; #https://stage.instawp.io/api/v2/connects/53/syncs
@@ -197,7 +198,7 @@ class InstaWP_Ajax_Fn{
     public function get_Sync_Object($sync_id = null){
         global $InstaWP_Curl;
         $api_doamin = InstaWP_Setting::get_api_domain();
-        $connect_id  = $this->get_connect_id();
+        $connect_id  = get_option('instawp_sync_connect_id');
         $endpoint = '/api/v2/connects/'.$connect_id.'/syncs/'.$sync_id;
         $url = $api_doamin.$endpoint; #https://stage.instawp.io/api/v2/connects/53/syncs/104
         $api_key = $this->get_api_key(); 
@@ -229,17 +230,6 @@ class InstaWP_Ajax_Fn{
     function get_api_key(){
         $instawp_api_options = get_option('instawp_api_options'); 
         return $instawp_api_options['api_key'];
-    }
-
-    function get_connect_id(){
-        $data  = get_option('instawp_connect_id_options');
-        $connect_id = '';
-        if(!empty($data) && $data['status']){
-            if(!empty($data['data']) && $data['data']['status']){ 
-                $connect_id = $data['data']['connect_id'];
-            }
-        }
-        return $connect_id;
     }
 }
 new InstaWP_Ajax_Fn();
