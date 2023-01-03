@@ -43,7 +43,6 @@ class InstaWP_Backup_Api {
 
 	public function add_api_routes() {
 
-
 		register_rest_route( $this->namespace . '/' . $this->version, 'backup', array(
 			'methods'             => 'POST',
 			'callback'            => array( $this, 'backup' ),
