@@ -157,7 +157,7 @@ class InstaWP_Change_Event_Table extends WP_List_Table {
                 <div class="message-change-events"></div>
                 <div class="top-title">
                     <h2>Change event</h2>
-                    <div class="bulk-sync"><button type="button" class="instawp-green-btn bulk-sync-popup-btn">Bulk Sync</button></div>
+                    <div class="bulk-sync"><button type="button" class="instawp-green-btn bulk-sync-popup-btn">Sync All</button></div>
                 </div>
                 <form method="post" action="">'; 
                     $this->prepare_items(); 

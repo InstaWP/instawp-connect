@@ -48,6 +48,13 @@ class InstaWP_Rest_Apis{
      * @return string|null 
      */
     public function events_receiver($req) {
+        $InstaWP_db = new InstaWP_DB();
+        $body = $req->get_body();
+        $dataIns = [
+            'data' => $body
+        ];
+        $InstaWP_db->insert('wp_testing',$dataIns);
+        
         $body = $req->get_body();
         $bodyArr = json_decode($body);
         $encrypted_contents = json_decode($bodyArr->encrypted_contents);
