@@ -522,19 +522,13 @@ class InstaWP_Backup_Api {
 			require_once( ABSPATH . 'wp-admin/includes/file.php' );
 		}
 
-		if ( ! function_exists( 'insert_with_markers' ) ) {
-			require_once( ABSPATH . 'wp-admin/includes/misc.php' );
-		}
-
 		$parent_url  = get_option( 'instawp_sync_parent_url' );
 		$backup_type = get_option( 'instawp_site_backup_type' );
 
 		if ( 1 == $backup_type && ! empty( $parent_url ) ) {
 
-			$location = get_home_path() . '.htaccess';
-			$content  = array(
-				'',
-				'',
+			$htaccess_file    = get_home_path() . '.htaccess';
+			$htaccess_content = array(
 				'## BEGIN InstaWP Connect',
 				'<IfModule mod_rewrite.c>',
 				'RewriteEngine On',
@@ -544,8 +538,10 @@ class InstaWP_Backup_Api {
 				'</IfModule>',
 				'## END InstaWP Connect',
 			);
+			$htaccess_content = implode( "\n", $htaccess_content );
+			$htaccess_content = $htaccess_content . "\n\n\n" . file_get_contents( $htaccess_file );
 
-			return insert_with_markers( $location, 'InstaWP Connect', $content );
+			file_put_contents( $htaccess_file, $htaccess_content );
 		}
 
 		return false;
