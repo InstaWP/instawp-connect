@@ -1,13 +1,13 @@
 <?php
 /**
  * @link              https://instawp.com/
- * @since             1.0
+ * @since             0.0.1
  * @package           instawp
  *
  * @wordpress-plugin
  * Plugin Name:       InstaWP Connect
- * Description:       Create staging sites with your InstaWP account
- * Version:           0.0.6
+ * Description:       Create 1-click staging, migration and manage your prod sites.
+ * Version:           0.0.7
  * Author:            InstaWP Team
  * Author URI:        https://instawp.com/
  * License:           GPL-3.0+
@@ -21,7 +21,7 @@ if ( ! defined( 'WPINC' ) ) {
     die;
 }
 
-define( 'INSTAWP_PLUGIN_VERSION', '1.0' );
+define( 'INSTAWP_PLUGIN_VERSION', '0.0.7' );
 //
 define('INSTAWP_RESTORE_INIT','init');
 define('INSTAWP_RESTORE_READY','ready');
