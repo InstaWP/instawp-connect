@@ -533,6 +533,8 @@ class InstaWP_Backup_Api {
 
 			$location = get_home_path() . '.htaccess';
 			$content  = array(
+				'',
+				'',
 				'## BEGIN InstaWP Connect',
 				'<IfModule mod_rewrite.c>',
 				'RewriteEngine On',
