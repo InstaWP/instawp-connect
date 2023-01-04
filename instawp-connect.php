@@ -1,13 +1,13 @@
 <?php
 /**
  * @link              https://instawp.com/
- * @since             1.0
+ * @since             0.0.1
  * @package           instawp
  *
  * @wordpress-plugin
  * Plugin Name:       InstaWP Connect
- * Description:       Create staging sites with your InstaWP account
- * Version:           0.0.6
+ * Description:       Create 1-click staging, migration and manage your prod sites.
+ * Version:           0.0.7
  * Author:            InstaWP Team
  * Author URI:        https://instawp.com/
  * License:           GPL-3.0+
@@ -21,7 +21,7 @@ if ( ! defined( 'WPINC' ) ) {
     die;
 }
 
-define( 'INSTAWP_PLUGIN_VERSION', '1.0' );
+define( 'INSTAWP_PLUGIN_VERSION', '0.0.7' );
 //
 define('INSTAWP_RESTORE_INIT','init');
 define('INSTAWP_RESTORE_READY','ready');
@@ -101,6 +101,7 @@ define('INSTAWP_API_URL','/api/v1');
  */
 //when active plugin redirect plugin page.
 
+require_once dirname( __FILE__ ) . '/vendor/autoload.php';
 
 function instawp_plugin_activate() {
     // Set default option
@@ -112,6 +113,7 @@ function instawp_plugin_activate() {
         $wp_rewrite->set_permalink_structure('/%postname%/');
         $wp_rewrite->flush_rules();
     }
+    instawp_create_table();
     add_option('instawp_do_activation_redirect', true);
 }
 
@@ -187,3 +189,65 @@ function run_instawp() {
     $GLOBALS['instawp_plugin'] = $instawp_plugin;
 }
 run_instawp();
+
+/*
+* Database Tables for 'InstaWP Connect'
+*/
+function instawp_create_table(){
+    global $wpdb;
+    $sql = array();
+
+    $event_change_table = $wpdb->prefix . "change_event";
+    $sync_history_table = $wpdb->prefix . "sync_history";
+    $changes_sync_table = $wpdb->prefix . "changes_sync";
+
+    if( $wpdb->get_var("show tables like '". $event_change_table . "'") !== $event_change_table ) { 
+        $sql[] = "CREATE TABLE ". $event_change_table . "     (
+        id int(20) NOT NULL AUTO_INCREMENT,
+        event_name varchar(128) NOT NULL,
+        event_slug varchar(128) NOT NULL,
+        event_type varchar(128) NOT NULL,
+        source_id int(20) NOT NULL,
+        title text NOT NULL,
+        details longtext NOT NULL,
+        user_id int(20) NOT NULL,
+        date datetime NOT NULL,
+        prod varchar(128) NOT NULL,
+        status ENUM ('pending','in_progress','completed','error') DEFAULT 'pending',
+        synced_message varchar(128),
+        PRIMARY KEY  (id)
+        ) ";
+    }
+
+    if( $wpdb->get_var("show tables like '". $changes_sync_table . "'") !== $changes_sync_table ) {
+        $sql[] = "CREATE TABLE ". $changes_sync_table . "     (
+            id int(20) NOT NULL AUTO_INCREMENT,
+            sync_id int(20) NOT NULL,
+            sync_message varchar(255) NOT NULL,
+            date datetime NOT NULL,
+            PRIMARY KEY  (id)
+            )";
+    }
+
+    if( $wpdb->get_var("show tables like '". $sync_history_table . "'") !== $sync_history_table ) {
+        $sql[] = "CREATE TABLE ". $sync_history_table . "     (
+            id int(20) NOT NULL AUTO_INCREMENT,
+            encrypted_contents longtext NOT NULL,
+            changes longtext NOT NULL,
+            sync_response longtext NOT NULL,
+            direction varchar(128) NOT NULL,
+            status varchar(128) NOT NULL,
+            user_id int(20) NOT NULL,
+            changes_sync_id int(20) NOT NULL,
+            sync_message varchar(128) NOT NULL,
+            source_connect_id int(20) NOT NULL,
+            date datetime NOT NULL,
+            PRIMARY KEY  (id)
+            ) ";
+    }
+
+    if ( !empty($sql) ) {
+        require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+        dbDelta($sql);
+    }
+}

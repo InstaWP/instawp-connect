@@ -1,14 +1,14 @@
-=== InstaWP Connect ===
+=== InstaWP Connect - 1-click WP Staging & Migration ===
 Contributors: instawp
-Tags: move, clone, migrate, staging, backup, restore, auto backup, cloud backup
+Tags: clone, migrate, staging, backup, restore
 Requires at least: 4.5
-Tested up to: 6.1
+Tested up to: 6.1.1
 Requires PHP: 5.3
-Stable tag: 0.0.6
+Stable tag: 0.0.7
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
-Create staging WordPress site from production sites in 1-click. (beta version).
+Create a staging WordPress site from production sites in seconds. (beta version).
 
 == Description ==
 InstaWP allows you to create WordPress websites for testing, development and staging with seconds. Using this companion plugin you can connect your existing WordPress sites anywhere on the internet to your InstaWP. After your site is connected, you can create 1-click staging websites from within the WP admin panel.
@@ -16,11 +16,10 @@ InstaWP allows you to create WordPress websites for testing, development and sta
 ## Features
 
 - All staging websites are created on InstaWP, so zero mess in your hosting account.
-- 2 way push from staging to prod and vice versa. (Iterative sync coming soon..).
-- Create complete site clone as staging (partial staging and instant staging coming soon..).
-- Auto login to your Connected sites from InstaWP
+- Auto login to your Connected sites from InstaWP (https://app.instawp.io/connects)
 - Heartbeat from your Connected sites keeps you updates on site health. 
 - Basic site information shown inside InstaWP (coming soon..).
+- 2 way push from staging to prod and vice versa. (Iterative sync coming soon..).
 
 ## What is InstaWP?
 
@@ -40,7 +39,6 @@ InstaWP is an online WordPress development environment to get you started with a
 - 3rd party services integrations.
 
 
-
 == Installation ==
 
 1. Generate a new API key from your InstaWP Account from https://app.instawp.io/user/api-tokens
@@ -56,5 +54,8 @@ InstaWP is an online WordPress development environment to get you started with a
 
 == Changelog ==
 
-= 1.0.0 =
+= 0.0.1 =
 - Initial release of the plugin. 
+
+= 0.0.7 =
+- Major bug fixes and quick backup option. 

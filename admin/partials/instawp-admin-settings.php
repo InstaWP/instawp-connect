@@ -104,38 +104,38 @@ foreach ( $tasks as $task_id => $task ) {
                     <input type="number" min="2" max="120" value="<?php echo esc_html($instawp_heartbeat_option); ?>" name="instawp_api_heartbeat" id="instawp_api_heartbeat" />                        
                 </td>                    
             </tr>
-
+            
             <?php if( isset( $_GET['internal'] ) && $_GET['page']=='instawp-settings' && 1 === intval( $_GET['internal'] ) ){ 
                 $interal_api_domain = get_option('instawp_api_url', '');
                 ?>                    
-                <tr valign="top">
+                <tr valign="top" style="border-top: 1px solid;"> 
+                    <th style="border-bottom: 1px solid;padding-left: 10px;">
+                        <?php echo strtoupper('Developer options'); ?>
+                    </th>
+                </tr>
+                <tr valign="top" style="border-bottom: 1px solid;">
                     <th scope="row">
                         <label for="num_elements">
                             API Domain
                         </label> 
                     </th>
                     <td>
-                        <input type="text" value="<?php echo esc_attr($interal_api_domain); ?>" required="" name="instawp_api_url_internal" id="instawp_api_url_internal" />                        
+                        <input type="text" value="<?php echo esc_attr($interal_api_domain); ?>" required="" name="instawp_api_url_internal" id="instawp_api_url_internal" /> 
+
+                        <span> | </span>
+                        <?php 
+                        if( isset( $_GET['internal'] ) && $_GET['page']=='instawp-settings' && 1 === intval( $_GET['internal'] ) ){ 
+
+                            $nonce = wp_create_nonce( 'delete_wpnonce' );
+                            $actionurl = admin_url( "admin.php?page=instawp-settings" );
+                            $delete_url = add_query_arg( array( 'delete_wpnonce' => $nonce ), $actionurl );
+                            ?> 
+                            <a href="<?php echo $delete_url?>" class="button button-primary">
+                                <?php echo strtoupper('Reset Instawp'); ?>
+                            </a>
+                        <?php } ?>                        
                     </td>               
                 </tr>
-                <tr>
-                    <td>
-                        <?php 
-                            if( isset( $_GET['internal'] ) && $_GET['page']=='instawp-settings' && 1 === intval( $_GET['internal'] ) ){ 
-                                
-                                $nonce = wp_create_nonce( 'delete_wpnonce' );
-                                $actionurl = admin_url( "admin.php?page=instawp-settings" );
-                                $delete_url = add_query_arg( array( 'delete_wpnonce' => $nonce ), $actionurl );
-                            ?> 
-                            <!-- <tr valign="top">-->
-                                <!-- <td> -->
-                                    <a href="<?php echo $delete_url?>" class="button button-primary">Clear Backup Folder</a>
-                                <!-- </td> -->
-                            <!-- </tr> -->
-                        <?php } ?>
-                    </td>
-                </tr>
-                
             <?php } ?>
             
         </table>
