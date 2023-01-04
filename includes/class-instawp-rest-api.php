@@ -15,30 +15,6 @@ class InstaWP_Backup_Api {
 
 		add_action( 'rest_api_init', array( $this, 'add_api_routes' ) );
 		$this->instawp_log = new InstaWP_Log();
-
-//		add_action( 'admin_init', array( $this, 'remove_themes_plugins_default' ) );
-	}
-
-	function remove_themes_plugins_default() {
-
-		if ( ! function_exists( 'delete_theme' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/theme.php';
-		}
-
-		if ( 'yes' != get_option( 'instawp_removed_themes' ) ) {
-
-			$instawp_saved_themes = get_option( 'instawp_saved_themes', array() );
-			$instawp_saved_themes = ! is_array( $instawp_saved_themes ) ? array() : $instawp_saved_themes;
-
-			foreach ( wp_get_themes() as $stylesheet => $theme ) {
-				if ( ! in_array( $stylesheet, $instawp_saved_themes ) ) {
-					delete_theme( $stylesheet );
-				}
-			}
-
-			update_option( 'instawp_saved_themes', array() );
-			update_option( 'instawp_removed_themes', 'yes' );
-		}
 	}
 
 	public function add_api_routes() {
@@ -514,6 +490,7 @@ class InstaWP_Backup_Api {
 				}
 			}
 
+			$this->write_htaccess_rule();
 
 			InstaWP_AJAX::instawp_folder_remover_handle();
 			$response['status']  = true;
@@ -527,6 +504,49 @@ class InstaWP_Backup_Api {
 		// $instawp_plugin->delete_last_restore_data_api();
 
 		return new WP_REST_Response( $res_result );
+	}
+
+
+	/**
+	 * Write htaccess rule to update url for no media type
+	 *
+	 * @return bool
+	 */
+	public function write_htaccess_rule() {
+
+		if ( is_multisite() ) {
+			return false;
+		}
+
+		if ( ! function_exists( 'get_home_path' ) ) {
+			require_once( ABSPATH . 'wp-admin/includes/file.php' );
+		}
+
+		if ( ! function_exists( 'insert_with_markers' ) ) {
+			require_once( ABSPATH . 'wp-admin/includes/misc.php' );
+		}
+
+		$parent_url  = get_option( 'instawp_sync_parent_url' );
+		$backup_type = get_option( 'instawp_site_backup_type' );
+
+		if ( 1 == $backup_type && ! empty( $parent_url ) ) {
+
+			$location = get_home_path() . '.htaccess';
+			$content  = array(
+				'## BEGIN InstaWP Connect',
+				'<IfModule mod_rewrite.c>',
+				'RewriteEngine On',
+				'RewriteCond %{REQUEST_FILENAME} !-f',
+				'RewriteCond %{REQUEST_FILENAME} !-d',
+				'RewriteRule ^/?wp-content/uploads/(.*)$ ' . $parent_url . '/wp-content/uploads/$1 [L,P]',
+				'</IfModule>',
+				'## END InstaWP Connect',
+			);
+
+			return insert_with_markers( $location, 'InstaWP Connect', $content );
+		}
+
+		return false;
 	}
 
 
