@@ -7,7 +7,7 @@
  * @wordpress-plugin
  * Plugin Name:       InstaWP Connect
  * Description:       Create 1-click staging, migration and manage your prod sites.
- * Version:           0.0.7
+ * Version:           0.0.8
  * Author:            InstaWP Team
  * Author URI:        https://instawp.com/
  * License:           GPL-3.0+
@@ -21,7 +21,7 @@ if ( ! defined( 'WPINC' ) ) {
     die;
 }
 
-define( 'INSTAWP_PLUGIN_VERSION', '0.0.7' );
+define( 'INSTAWP_PLUGIN_VERSION', '0.0.8' );
 //
 define('INSTAWP_RESTORE_INIT','init');
 define('INSTAWP_RESTORE_READY','ready');
