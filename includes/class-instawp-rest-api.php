@@ -400,6 +400,8 @@ class InstaWP_Backup_Api {
 
 	public function restore( WP_REST_Request $request ) {
 
+		global $InstaWP_Curl, $instawp_plugin;
+
 //		$this->validate_api_request( $request );
 
 		$parameters      = $request->get_params();
