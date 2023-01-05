@@ -379,14 +379,33 @@ class InstaWP_Backup_Api {
 	}
 
 
+	/**
+	 * Valid api request and if invalid api key then stop executing.
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return void
+	 */
+	function validate_api_request( WP_REST_Request $request ) {
+
+		$api_key     = sanitize_text_field( $request->get_header( 'api_key' ) );
+		$api_options = get_option( 'instawp_api_options', '' );
+
+		if ( ! isset( $api_options['api_key'] ) || $api_key != $api_options['api_key'] ) {
+			echo json_encode( array( 'progress' => 0, 'message' => esc_html__( 'Invalid API key', 'instawp-connect' ) ) );
+			die();
+		}
+	}
+
+
 	public function restore( WP_REST_Request $request ) {
+
+		$this->validate_api_request( $request );
 
 		global $InstaWP_Curl, $instawp_plugin;
 
-		$parameters       = $request->get_params();
-		$backup_list_key  = $request->get_param( 'backup_list_key' );
-		$restore_progress = $request->get_param( 'restore_progress' );
-		$restore_options  = json_encode( array(
+		$parameters      = $request->get_params();
+		$restore_options = json_encode( array(
 			'skip_backup_old_site'     => '1',
 			'skip_backup_old_database' => '1',
 			'is_migrate'               => '1',
@@ -397,8 +416,8 @@ class InstaWP_Backup_Api {
 			'backup_content',
 			'backup_core',
 		) );
-		$backup_task      = new InstaWP_Backup_Task();
-		$backup_task_ret  = $backup_task->new_download_task();
+		$backup_task     = new InstaWP_Backup_Task();
+		$backup_task_ret = $backup_task->new_download_task();
 
 		if ( $backup_task_ret['result'] == 'success' ) {
 
@@ -413,19 +432,12 @@ class InstaWP_Backup_Api {
 
 		$instawp_plugin->delete_last_restore_data_api();
 
-		if ( empty( $backup_list_key ) ) {
+		$backup_uploader = new InstaWP_BackupUploader();
+		$backup_uploader->_rescan_local_folder_set_backup_api();
+		$backup_list = InstaWP_Backuplist::get_backuplist();
 
-			$backup_uploader = new InstaWP_BackupUploader();
-			$backup_uploader->_rescan_local_folder_set_backup_api();
-			$backup_list = InstaWP_Backuplist::get_backuplist();
-
-			if ( empty( $backup_list ) ) {
-				return new WP_REST_Response( array( 'completed' => false, 'progress' => 0, 'message' => 'empty backup list' ) );
-			}
-
-			$backup_list_keys = array_keys( $backup_list );
-
-			//return new WP_REST_Response( array( 'completed' => false, 'progress' => 0, 'backup_list_key' => ( $backup_list_keys[0] ?? '' ) ) );
+		if ( empty( $backup_list ) ) {
+			return new WP_REST_Response( array( 'completed' => false, 'progress' => 0, 'message' => 'empty backup list' ) );
 		}
 
 		$count_backup_list = count( $backup_list );
