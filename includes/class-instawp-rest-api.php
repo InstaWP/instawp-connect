@@ -389,10 +389,10 @@ class InstaWP_Backup_Api {
 	function validate_api_request( WP_REST_Request $request ) {
 
 		$api_key     = sanitize_text_field( $request->get_header( 'api_key' ) );
-		$api_options = get_option( 'instawp_api_options', '' );
+		$api_options = get_option( 'instawp_api_options', array() );
 
 		if ( ! isset( $api_options['api_key'] ) || $api_key != $api_options['api_key'] ) {
-			echo json_encode( array( 'progress' => 0, 'message' => esc_html__( 'Invalid API key', 'instawp-connect' ) ) );
+			echo json_encode( array( 'message' => esc_html__( 'Invalid API key', 'instawp-connect' ) ) );
 			die();
 		}
 	}
@@ -401,8 +401,6 @@ class InstaWP_Backup_Api {
 	public function restore( WP_REST_Request $request ) {
 
 //		$this->validate_api_request( $request );
-
-		global $InstaWP_Curl, $instawp_plugin;
 
 		$parameters      = $request->get_params();
 		$restore_options = json_encode( array(

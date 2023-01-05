@@ -10,7 +10,9 @@ class InstaWP_Restore_DB_Method {
 	public function __construct() {
 		global $instawp_plugin;
 		$common_setting    = InstaWP_Setting::get_setting( false, 'instawp_common_setting' );
-		$db_connect_method = isset( $common_setting['options']['instawp_common_setting']['db_connect_method'] ) ? $common_setting['options']['instawp_common_setting']['db_connect_method'] : 'wpdb';
+		$default_method    = extension_loaded( 'pdo' ) ? 'pdo' : 'wpdb';
+		$db_connect_method = isset( $common_setting['options']['instawp_common_setting']['db_connect_method'] ) ? $common_setting['options']['instawp_common_setting']['db_connect_method'] : $default_method;
+
 		if ( $db_connect_method === 'wpdb' ) {
 			$instawp_plugin->restore_data->write_log( 'wpdb', 'Warning' );
 			$this->db   = new InstaWP_Restore_DB_WPDB_Method();
