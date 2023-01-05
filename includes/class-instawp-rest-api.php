@@ -15,30 +15,6 @@ class InstaWP_Backup_Api {
 
 		add_action( 'rest_api_init', array( $this, 'add_api_routes' ) );
 		$this->instawp_log = new InstaWP_Log();
-
-//		add_action( 'admin_init', array( $this, 'remove_themes_plugins_default' ) );
-	}
-
-	function remove_themes_plugins_default() {
-
-		if ( ! function_exists( 'delete_theme' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/theme.php';
-		}
-
-		if ( 'yes' != get_option( 'instawp_removed_themes' ) ) {
-
-			$instawp_saved_themes = get_option( 'instawp_saved_themes', array() );
-			$instawp_saved_themes = ! is_array( $instawp_saved_themes ) ? array() : $instawp_saved_themes;
-
-			foreach ( wp_get_themes() as $stylesheet => $theme ) {
-				if ( ! in_array( $stylesheet, $instawp_saved_themes ) ) {
-					delete_theme( $stylesheet );
-				}
-			}
-
-			update_option( 'instawp_saved_themes', array() );
-			update_option( 'instawp_removed_themes', 'yes' );
-		}
 	}
 
 	public function add_api_routes() {
@@ -403,14 +379,31 @@ class InstaWP_Backup_Api {
 	}
 
 
+	/**
+	 * Valid api request and if invalid api key then stop executing.
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return void
+	 */
+	function validate_api_request( WP_REST_Request $request ) {
+
+		$api_key     = sanitize_text_field( $request->get_header( 'api_key' ) );
+		$api_options = get_option( 'instawp_api_options', array() );
+
+		if ( ! isset( $api_options['api_key'] ) || $api_key != $api_options['api_key'] ) {
+			echo json_encode( array( 'message' => esc_html__( 'Invalid API key', 'instawp-connect' ) ) );
+			die();
+		}
+	}
+
+
 	public function restore( WP_REST_Request $request ) {
 
-		global $InstaWP_Curl, $instawp_plugin;
+//		$this->validate_api_request( $request );
 
-		$parameters       = $request->get_params();
-		$backup_list_key  = $request->get_param( 'backup_list_key' );
-		$restore_progress = $request->get_param( 'restore_progress' );
-		$restore_options  = json_encode( array(
+		$parameters      = $request->get_params();
+		$restore_options = json_encode( array(
 			'skip_backup_old_site'     => '1',
 			'skip_backup_old_database' => '1',
 			'is_migrate'               => '1',
@@ -421,8 +414,8 @@ class InstaWP_Backup_Api {
 			'backup_content',
 			'backup_core',
 		) );
-		$backup_task      = new InstaWP_Backup_Task();
-		$backup_task_ret  = $backup_task->new_download_task();
+		$backup_task     = new InstaWP_Backup_Task();
+		$backup_task_ret = $backup_task->new_download_task();
 
 		if ( $backup_task_ret['result'] == 'success' ) {
 
@@ -437,19 +430,12 @@ class InstaWP_Backup_Api {
 
 		$instawp_plugin->delete_last_restore_data_api();
 
-		if ( empty( $backup_list_key ) ) {
+		$backup_uploader = new InstaWP_BackupUploader();
+		$backup_uploader->_rescan_local_folder_set_backup_api();
+		$backup_list = InstaWP_Backuplist::get_backuplist();
 
-			$backup_uploader = new InstaWP_BackupUploader();
-			$backup_uploader->_rescan_local_folder_set_backup_api();
-			$backup_list = InstaWP_Backuplist::get_backuplist();
-
-			if ( empty( $backup_list ) ) {
-				return new WP_REST_Response( array( 'completed' => false, 'progress' => 0, 'message' => 'empty backup list' ) );
-			}
-
-			$backup_list_keys = array_keys( $backup_list );
-
-			//return new WP_REST_Response( array( 'completed' => false, 'progress' => 0, 'backup_list_key' => ( $backup_list_keys[0] ?? '' ) ) );
+		if ( empty( $backup_list ) ) {
+			return new WP_REST_Response( array( 'completed' => false, 'progress' => 0, 'message' => 'empty backup list' ) );
 		}
 
 		$count_backup_list = count( $backup_list );
@@ -514,6 +500,7 @@ class InstaWP_Backup_Api {
 				}
 			}
 
+			$this->write_htaccess_rule();
 
 			InstaWP_AJAX::instawp_folder_remover_handle();
 			$response['status']  = true;
@@ -527,6 +514,45 @@ class InstaWP_Backup_Api {
 		// $instawp_plugin->delete_last_restore_data_api();
 
 		return new WP_REST_Response( $res_result );
+	}
+
+
+	/**
+	 * Write htaccess rule to update url for no media type
+	 *
+	 * @return bool
+	 */
+	public function write_htaccess_rule() {
+
+		if ( is_multisite() ) {
+			return false;
+		}
+
+		if ( ! function_exists( 'get_home_path' ) ) {
+			require_once( ABSPATH . 'wp-admin/includes/file.php' );
+		}
+
+		$parent_url  = get_option( 'instawp_sync_parent_url' );
+		$backup_type = get_option( 'instawp_site_backup_type' );
+
+		if ( 1 == $backup_type && ! empty( $parent_url ) ) {
+
+			$htaccess_file    = get_home_path() . '.htaccess';
+			$htaccess_content = array(
+				'## BEGIN InstaWP Connect',
+				'<IfModule mod_rewrite.c>',
+				'RewriteEngine On',
+				'RedirectMatch 301 ^/wp-content/uploads/(.*)$ ' . $parent_url . '/wp-content/uploads/$1',
+				'</IfModule>',
+				'## END InstaWP Connect',
+			);
+			$htaccess_content = implode( "\n", $htaccess_content );
+			$htaccess_content = $htaccess_content . "\n\n\n" . file_get_contents( $htaccess_file );
+
+			file_put_contents( $htaccess_file, $htaccess_content );
+		}
+
+		return false;
 	}
 
 

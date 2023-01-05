@@ -101,6 +101,36 @@ class InstaWP_DB{
     }
 
     /*
+    * To get unique or distinct values of a column in MySQL Table
+    */
+    public function get_with_distinct($table_name = null, $key = null){ 
+        $results = $this->wpdb->get_results("SELECT DISTINCT($key) FROM $table_name");
+        return $results; 
+    }
+
+    /*
+    * Single key - value query
+    */
+    public function get_with_condition($table_name = null, $key = null, $val = null){
+        $results = $this->wpdb->get_results("SELECT * FROM $table_name WHERE $key='".$val."'"); 
+        return $results; 
+    }
+
+    public function get_double_condition($table_name = null, $val1 = null, $val2 = null){
+        $rel = $this->wpdb->get_results("SELECT * FROM $table_name WHERE `event_type`='".$val1."' AND `status`='".$val2."'");
+        return $results;
+    }
+    
+    public function get_with_count($table_name = null, $key = null, $val = null){
+        $results = $this->wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE $key='".$val."'"); 
+        return $results; 
+    }
+    public function get_all_count($table_name = null){
+        $results = $this->wpdb->get_var("SELECT COUNT(*) FROM $table_name"); 
+        return $results; 
+    }
+
+    /*
     * Get traking events via event slug 
     */
     public function trakingEventsBySlug($table_name = null,$event_slug = null,$event_type = null, $status = null){
