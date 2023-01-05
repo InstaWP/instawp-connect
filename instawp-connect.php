@@ -72,7 +72,7 @@ define('INSTAWP_DEFAULT_DOMAIN_INCLUDE', false);
 //
 define('INSTAWP_DEFAULT_ESTIMATE_BACKUP', false);
 //Specify the folder and database to be backed up
-define('INSTAWP_DEFAULT_SUBPACKAGE_PLUGIN_UPLOAD', true);
+define('INSTAWP_DEFAULT_SUBPACKAGE_PLUGIN_UPLOAD', false);
 
 //define schedule hooks
 define('INSTAWP_MAIN_SCHEDULE_EVENT','instawp_main_schedule_event');
