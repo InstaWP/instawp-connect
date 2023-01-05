@@ -721,8 +721,14 @@ class instaWP {
 
 				$sizes_data = WP_Debug_Data::get_sizes();
 				$bytes      = $sizes_data['total_size']['raw'];
-				$bytes      = number_format( $bytes / 1048576, 2 );
-				$site_size  = str_replace( ',', '', $bytes );
+            $upload_dir = $sizes_data['uploads_size']['raw'];
+            $upload_dir_size = round( $upload_dir / 1048576, 2 ); //convert in mb. 
+				$site_size      = round( $bytes / 1048576, 2 );
+				// $site_size  = str_replace( ',', '', $bytes );
+            if($backup_type == 1) { //quick backup, exclude upload folder. 
+               $site_size = $site_size - $upload_dir_size;
+            }
+
 
 				error_log( 'Disk Size ==> ' . $disk_space );
 				error_log( 'Site Size ==> ' . $site_size );
@@ -746,7 +752,7 @@ class instaWP {
 					} elseif ( intval( $remaining_site ) > 0 && $site_size > $disk_space ) {
 						$response = array(
 							'status'  => 0,
-							'message' => "You have used your sites quota in your InstaWP account",
+							'message' => "Your site disk usage ($site_size mb) is greater than available disk quota ($disk_space mb) in your account",
 							'link'    => $api_doamin . "/subscriptions"
 						);
 						error_log( 'Step 3' );
