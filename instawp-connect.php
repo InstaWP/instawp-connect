@@ -70,9 +70,9 @@ define('INSTAWP_DEFAULT_ADMIN_BAR', true);
 define('INSTAWP_DEFAULT_TAB_MENU', true);
 define('INSTAWP_DEFAULT_DOMAIN_INCLUDE', false);
 //
-define('INSTAWP_DEFAULT_ESTIMATE_BACKUP', true);
+define('INSTAWP_DEFAULT_ESTIMATE_BACKUP', false);
 //Specify the folder and database to be backed up
-define('INSTAWP_DEFAULT_SUBPACKAGE_PLUGIN_UPLOAD', false);
+define('INSTAWP_DEFAULT_SUBPACKAGE_PLUGIN_UPLOAD', true);
 
 //define schedule hooks
 define('INSTAWP_MAIN_SCHEDULE_EVENT','instawp_main_schedule_event');

@@ -746,7 +746,7 @@ class instaWP {
 					} elseif ( intval( $remaining_site ) > 0 && $site_size > $disk_space ) {
 						$response = array(
 							'status'  => 0,
-							'message' => "You have used your sites quota in your InstaWP account",
+							'message' => "Your site disk usage ($site_size mb) is greater than available disk quota ($disk_space mb) in your account",
 							'link'    => $api_doamin . "/subscriptions"
 						);
 						error_log( 'Step 3' );
