@@ -532,9 +532,7 @@ class InstaWP_Backup_Api {
 				'## BEGIN InstaWP Connect',
 				'<IfModule mod_rewrite.c>',
 				'RewriteEngine On',
-				'RewriteCond %{REQUEST_FILENAME} !-f',
-				'RewriteCond %{REQUEST_FILENAME} !-d',
-				'RewriteRule ^/?wp-content/uploads/(.*)$ ' . $parent_url . '/wp-content/uploads/$1 [L,P]',
+				'RedirectMatch 301 ^/wp-content/uploads/(.*)$ ' . $parent_url . '/wp-content/uploads/$1',
 				'</IfModule>',
 				'## END InstaWP Connect',
 			);
