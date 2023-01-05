@@ -262,75 +262,38 @@ class InstaWP_Admin {
 
             $instawp_api_url = InstaWP_Setting::get_api_domain();
             wp_localize_script($this->plugin_name, 'instawp_ajax_object', array(
-
                 'ajax_url'   => admin_url('admin-ajax.php'), 
-
                 'cloud_url'   => $instawp_api_url, 
-
                 'admin_url'   => admin_url(), 
-
                 'ajax_nonce' => wp_create_nonce('instawp_ajax'),
-
                 'nlogger' => wp_create_nonce('instawp_nlogger_update_option_by-nlogger'),
-
                 'plugin_connect_url' => admin_url( "admin.php?page=instawp-connect" ),
-
             ));
 
-
-
             wp_localize_script($this->plugin_name, 'instawplion', array(
-
                 'warning'             => __('Warning:', 'instawp-connect'),
-
                 'error'               => __('Error:', 'instawp-connect'),
-
                 'remotealias'         => __('Warning: An alias for remote storage is required.', 'instawp-connect'),
-
                 'remoteexist'         => __('Warning: The alias already exists in storage list.', 'instawp-connect'),
-
                 'backup_calc_timeout' => __('Calculating the size of files, folder and database timed out. If you continue to receive this error, please go to the plugin settings, uncheck \'Calculate the size of files, folder and database before backing up\', save changes, then try again.', 'instawp-connect'),
-
                 'restore_step1'       => __('Step One: In the backup list, click the \'Restore\' button on the backup you want to restore. This will bring up the restore tab', 'instawp-connect'),
-
                 'restore_step2'       => __('Step Two: Choose an option to complete restore, if any', 'instawp-connect'),
-
                 'restore_step3'       => __('Step Three: Click \'Restore\' button', 'instawp-connect'),
-
                 'get_key_step1'       => __('1. Visit Key tab page of instaWP backup plugin of destination site.', 'instawp-connect'),
-
                 'get_key_step2'       => __('2. Generate a key by clicking Generate button and copy it.', 'instawp-connect'),
-
                 'get_key_step3'       => __('3. Go back to this page and paste the key in key box below. Lastly, click Save button.', 'instawp-connect'),
 
             ));
-
-
-
             wp_enqueue_script('plupload-all');
-
             do_action('instawp_do_enqueue_scripts');
-
         }
-
     }
 
-
-
     /**
-
      * Register the administration menu for this plugin into the WordPress Dashboard menu.
-
-     *
-
-     * 
-
      */
 
     public function add_plugin_admin_menu() {
-
-
-
         /*
          * Add a settings page for this plugin to the Settings menu.
          *
@@ -363,7 +326,6 @@ class InstaWP_Admin {
                 return -1;
         });
       
-
         foreach ( $this->submenus as $submenu ) {
             add_submenu_page(
                 $submenu['parent_slug'],
@@ -480,97 +442,49 @@ class InstaWP_Admin {
             }
         }
 
-
         if ( $is_active_pro ) {
-
             if ( ! is_multisite() ) {
-
                 $settings_link = array(
-
                     '<a href="' . admin_url( 'admin.php?page=' . strtolower(sprintf('%s-dashboard', apply_filters('instawp_white_label_slug', 'instawp'))) ) . '">' . __('Settings', 'instawp-connect') . '</a>',
-
                 );
-
-            }
-
-            else {
-
+            }else {
                 $settings_link = array(
-
                     '<a href="' . network_admin_url( 'admin.php?page=' . strtolower(sprintf('%s-dashboard', apply_filters('instawp_white_label_slug', 'instawp'))) ) . '">' . __('Settings', 'instawp-connect') . '</a>',
-
                 );
-
             }
-
-        }
-
-        else {
-
+        }else {
             if ( ! is_multisite() ) {
-
                 $settings_link = array(
-
                     '<a href="' . admin_url( 'admin.php?page=' . apply_filters('instawp_white_label_slug', $this->plugin_name) ) . '">' . __('Settings', 'instawp-connect') . '</a>',
-
                 );
-
-            }
-
-            else {
-
+            }else {
                 $settings_link = array(
-
                     '<a href="' . network_admin_url( 'admin.php?page=' . apply_filters('instawp_white_label_slug', $this->plugin_name) ) . '">' . __('Settings', 'instawp-connect') . '</a>',
-
                 );
-
             }
-
         }
-
-
 
         return array_merge(  $settings_link, $links );
-
     }
-
-
 
     public static function instawp_get_siteurl(){
-
         $instawp_siteurl = array();
-
         $instawp_siteurl['home_url'] = home_url();
-
         $instawp_siteurl['plug_url'] = plugins_url();
-
         $instawp_siteurl['site_url'] = get_option( 'siteurl' );
-
         return $instawp_siteurl;
-
     }
 
-
-
     /**
-
      * Render the settings page for this plugin.
-
      *
-
      * 
-
      */
 
     public function display_plugin_setup_page() {
-
         do_action('instawp_before_setup_page');
-
         add_action('instawp_display_page',array( $this, 'display' ));
-
         do_action('instawp_display_page');
-
     }
 
     public function display_wizard_page() {
@@ -599,39 +513,23 @@ class InstaWP_Admin {
     }
 
     public function migrate_notice() {
-
         $migrate_notice = false;
-
         $migrate_status = InstaWP_Setting::get_option('instawp_migrate_status');
-
         if ( ! empty($migrate_status) && $migrate_status == 'completed' ) {
-
             $migrate_notice = true;
-
             echo '<div class="notice notice-warning is-dismissible"><p>'.esc_html__('Migration is complete and htaccess file is replaced. In order to successfully complete the migration, you\'d better reinstall 301 redirect plugin, firewall and security plugin, and caching plugin if they exist.', 'instawp-connect').'</p></div>';
-
             InstaWP_Setting::delete_option('instawp_migrate_status');
-
         }
 
         $restore = new InstaWP_restore_data();
-
         if ( $restore->has_restore() ) {
-
             $restore_status = $restore->get_restore_status();
-
             if ( $restore_status === INSTAWP_RESTORE_COMPLETED ) {
-
                 $restore->clean_restore_data();
-
                 do_action('instawp_rebuild_backup_list');
-
                 $need_review = InstaWP_Setting::get_option('instawp_need_review');
-
                 if ( ! $migrate_notice ) {
-
                     echo '<div class="notice notice-success is-dismissible"><p>'.esc_html__('Restore completed successfully.', 'instawp-connect').'</p></div>';
-
                 }
 
                 // if($need_review=='not')
@@ -651,46 +549,21 @@ class InstaWP_Admin {
                 // }
 
             }
-
         }
-
     }
-
-
 
     public function display() {
-
         include_once('partials/instawp-admin-display.php');
-
     }
-
-
 
     public static function instawp_get_page_request() {
-
         $request_page = 'instawp_tab_general';
-
-
-
-       
-
         if ( isset($_REQUEST['tab-backup']) ) {
-
             $request_page = 'instawp_tab_general';
-
         }
-
-        
-
         $request_page = apply_filters('instawp_set_page_request',$request_page);
-
-
-
         return $request_page;
-
     }
-
-
 
     /*public static function show_add_my_review() {
 
@@ -1813,629 +1686,335 @@ class InstaWP_Admin {
                         </div>
 
                         <div class="instawp-element-space-bottom instawp-text-space-right" style="float: left;">
-
                             <input type="text" id="instawp_host_provider"/></div>
-
                         <div style="clear: both;"></div>
-
                     </div>
-
                     <div style="clear: both;"></div>
-
                 </div>
 
                 <div style="padding:0 10px;">
-
                     <textarea id="instawp_debug_comment" class="wp-editor-area" style="width:100%; height: 200px;" autocomplete="off" cols="60" placeholder="<?php esc_attr_e('Please describe your problem here.', 'instawp-connect'); ?>" ></textarea>
-
                 </div>
 
                 <div class="schedule-tab-block">
-
                     <input class="button-primary" type="submit" value="<?php esc_attr_e( 'Send Debug Information to Us', 'instawp-connect' ); ?>" onclick="instawp_click_send_debug_info();" />
-
                 </div>
 
                 <div style="clear:both;"></div>
 
                 <div style="padding-left: 10px;">
-
                     <strong><?php esc_html_e('Method 2.', 'instawp-connect'); ?></strong> <?php esc_html_e('If you didn’t configure SMTP on your site, click the button below to download the relevant information (website info and error logs) to your PC when you are encountering some errors. Sending the files to us will help us diagnose what happened.', 'instawp-connect'); ?>
-
                 </div>
 
                 <div class="schedule-tab-block">
-
                     <input class="button-primary" id="instawp_download_website_info" type="submit" name="download-website-info" value="<?php esc_attr_e( 'Download', 'instawp-connect' ); ?>" />
-
                 </div>
 
                 <thead class="website-info-head">
-
                 <tr>
-
                     <th class="row-title" style="min-width: 260px;"><?php esc_html_e( 'Website Info Key', 'instawp-connect' ); ?></th>
-
                     <th><?php esc_html_e( 'Website Info Value', 'instawp-connect' ); ?></th>
-
                 </tr>
-
                 </thead>
-
                 <tbody class="instawp-websiteinfo-list" id="instawp_websiteinfo_list">
 
                 <?php
-
                 global $instawp_plugin;
-
                 $website_info = $instawp_plugin->get_website_info();
-
                 if ( ! empty($website_info['data']) ) {
-
                     foreach ( $website_info['data'] as $key => $value ) { ?>
-
                         <?php
-
                         $website_value = '';
-
                         if ( is_array($value) ) {
-
                             foreach ( $value as $arr_value ) {
-
                                 if ( empty($website_value) ) {
-
                                     $website_value = $website_value . $arr_value;
-
                                 } else {
-
                                     $website_value = $website_value . ', ' . $arr_value;
-
                                 }
-
                             }
-
                         }
-
                         else {
-
                             if ( $value === true || $value === false ) {
-
                                 if ( $value === true ) {
-
                                     $website_value = 'true';
-
                                 }
-
                                 else {
-
                                     $website_value = 'false';
-
                                 }
-
                             }
-
                             else {
-
                                 $website_value = $value;
-
                             }
-
                         }
-
                         ?>
-
                         <tr>
-
                             <td class="row-title tablelistcolumn"><label for="tablecell"><?php echo esc_html($key); ?></label></td>
-
                             <td class="tablelistcolumn"><?php echo esc_html($website_value); ?></td>
-
                         </tr>
-
                     <?php }
-
 } ?>
-
                 </tbody>
-
             </table>
-
         </div>
-
         <script>
-
             jQuery('#instawp_download_website_info').click(function(){
-
                 instawp_download_website_info();
-
             });
-
-
 
             /**
-
              * Download the relevant website info and error logs to your PC for debugging purposes.
-
              */
-
             function instawp_download_website_info(){
-
                 instawp_location_href=true;
-
                 location.href =ajaxurl+'?_wpnonce='+instawp_ajax_object.ajax_nonce+'&action=instawp_create_debug_package';
-
             }
 
-
-
             jQuery("#instawp_debug_type").change(function()
-
             {
-
                 if(jQuery(this).val()=='sharehost')
-
                 {
-
                     jQuery("#instawp_debug_host").show();
-
                 }
-
                 else
-
                 {
-
                     jQuery("#instawp_debug_host").hide();
-
                 }
-
             });
 
-
-
             function instawp_click_send_debug_info(){
-
                 var instawp_user_mail = jQuery('#instawp_user_mail').val();
-
                 var server_type = jQuery('#instawp_debug_type').val();
-
                 var host_provider = jQuery('#instawp_host_provider').val();
-
                 var comment = jQuery('#instawp_debug_comment').val();
 
-
-
                 var ajax_data = {
-
                     'action': 'instawp_send_debug_info',
-
                     'user_mail': instawp_user_mail,
-
                     'server_type':server_type,
-
                     'host_provider':host_provider,
-
                     'comment':comment
-
                 };
 
                 instawp_post_request(ajax_data, function (data) {
-
                     try {
-
                         var jsonarray = jQuery.parseJSON(data);
-
                         if (jsonarray.result === "success") {
-
                             alert("<?php esc_html_e('Send succeeded.', 'instawp-connect'); ?>");
-
                         }
-
                         else {
-
                             alert(jsonarray.error);
-
                         }
-
                     }
-
                     catch (err) {
-
                         alert(err);
-
                     }
-
                 }, function (XMLHttpRequest, textStatus, errorThrown) {
-
                     var error_message = instawp_output_ajaxerror('sending debug information', textStatus, errorThrown);
-
                     alert(error_message);
-
                 });
-
             }
-
         </script>
-
         <?php
-
     }
 
-
-
     public function instawp_add_page_log() {
-
         global $instawp_plugin;
-
         $display_log_count = array(
-
             0 => "10", 
-
             1 => "20", 
-
             2 => "30", 
-
             3 => "40", 
-
             4 => "50",
-
         );
-
         $max_log_diaplay = 20;
-
         $loglist = $instawp_plugin->get_log_list_ex();
-
         ?>
 
         <div id="logs-page" class="log-tab-content instawp_tab_log" name="tab-logs">
-
             <table class="wp-list-table widefat plugins">
-
                 <thead class="log-head">
-
                 <tr>
-
                     <th class="row-title"><?php esc_html_e( 'Date', 'instawp-connect' ); ?></th>
-
                     <th><?php esc_html_e( 'Log Type', 'instawp-connect' ); ?></th>
-
                     <th><?php esc_html_e( 'Log File Name', 'instawp-connect' ); ?></th>
-
                     <th><?php esc_html_e( 'Action', 'instawp-connect' ); ?></th>
-
                 </tr>
-
                 </thead>
-
                 <tbody class="instawp-loglist" id="instawp_loglist">
-
                 <?php
-
-                $html = '';
-
-                $html = apply_filters('instawp_get_log_list', $html);
-
-                echo wp_kses_post( $html['html'] );
-
+                    $html = '';
+                    $html = apply_filters('instawp_get_log_list', $html);
+                    echo wp_kses_post( $html['html'] );
                 ?>
-
                 </tbody>
-
             </table>
 
             <div style="padding-top: 10px; text-align: center;">
-
                 <input class="button-secondary log-page" id="instawp_pre_log_page" type="submit" value="<?php esc_attr_e( ' < Pre page ', 'instawp-connect' ); ?>" />
-
                 <div style="font-size: 12px; display: inline-block; padding-left: 10px;">
-
                                 <span id="instawp_log_page_info" style="line-height: 35px;">
-
                                     <?php
-
                                     $current_page = 1;
-
                                     $max_page = ceil(sizeof($loglist['log_list']['file']) / $max_log_diaplay);
-
                                     if ($max_page == 0) $max_page = 1;
-
                                     echo esc_html( $current_page ).' / '.esc_html( $max_page );
-
                                     ?>
-
                                 </span>
-
                 </div>
-
                 <input class="button-secondary log-page" id="instawp_next_log_page" type="submit" value="<?php esc_attr_e( ' Next page > ', 'instawp-connect' ); ?>" />
-
                 <div style="float: right;">
-
                     <select name="" id="instawp_display_log_count">
-
                         <?php
-
-                        foreach ( $display_log_count as $value ) {
-
-                            if ( $value == $max_log_diaplay ) {
-
-                                echo '<option selected="selected" value="' . esc_attr($value) . '">' . esc_html( $value ) . '</option>';
-
+                            foreach ( $display_log_count as $value ) {
+                                if ( $value == $max_log_diaplay ) {
+                                    echo '<option selected="selected" value="' . esc_attr($value) . '">' . esc_html( $value ) . '</option>';
+                                }else {
+                                    echo '<option value="' . esc_attr( $value ) . '">' . esc_html( $value ) . '</option>';
+                                }
                             }
-
-                            else {
-
-                                echo '<option value="' . esc_attr( $value ) . '">' . esc_html( $value ) . '</option>';
-
-                            }
-
-                        }
-
                         ?>
-
                     </select>
-
                 </div>
-
             </div>
-
         </div>
 
         <script>
-
             jQuery('#instawp_display_log_count').on("change", function(){
-
                 instawp_display_log_page();
-
             });
-
-
 
             jQuery('#instawp_pre_log_page').click(function(){
-
                 instawp_pre_log_page();
-
             });
-
-
 
             jQuery('#instawp_next_log_page').click(function(){
-
                 instawp_next_log_page();
-
             });
 
-
-
             function instawp_pre_log_page(){
-
                 if(instawp_cur_log_page > 1){
-
                     instawp_cur_log_page--;
-
                 }
-
                 instawp_display_log_page();
-
             }
-
-
 
             function instawp_next_log_page(){
-
                 var display_count = jQuery("#instawp_display_log_count option:selected").val();
-
                 var max_pages=Math.ceil(instawp_log_count/display_count);
-
                 if(instawp_cur_log_page < max_pages){
-
                     instawp_cur_log_page++;
-
                 }
-
                 instawp_display_log_page();
-
             }
-
-
 
             function instawp_display_log_page(){
-
                 var display_count = jQuery("#instawp_display_log_count option:selected").val();
-
                 var max_pages=Math.ceil(instawp_log_count/display_count);
-
                 if(max_pages == 0) max_pages = 1;
-
                 jQuery('#instawp_log_page_info').html(instawp_cur_log_page+ " / "+max_pages);
-
-
-
                 var begin = (instawp_cur_log_page - 1) * display_count;
-
                 var end = parseInt(begin) + parseInt(display_count);
-
                 jQuery("#instawp_loglist tr").hide();
-
                 jQuery('#instawp_loglist tr').each(function(i){
-
                     if (i >= begin && i < end)
-
                     {
-
                         jQuery(this).show();
-
                     }
-
                 });
-
             }
 
-
-
             function instawp_retrieve_log_list()
-
             {
-
                 var ajax_data = {
 
                     'action': 'instawp_get_log_list'
-
                 };
 
                 instawp_post_request(ajax_data, function(data){
-
                     try {
-
                         var jsonarray = jQuery.parseJSON(data);
-
                         if (jsonarray.result === "success") {
-
                             jQuery('#instawp_loglist').html("");
-
                             jQuery('#instawp_loglist').append(jsonarray.html);
-
                             instawp_log_count = jsonarray.log_count;
-
                             instawp_display_log_page();
-
                         }
-
                     }
-
                     catch(err){
-
                         alert(err);
-
                     }
-
                 }, function(XMLHttpRequest, textStatus, errorThrown) {
-
                     setTimeout(function () {
-
                         instawp_retrieve_log_list();
-
                     }, 3000);
-
                 });
-
             }
-
         </script>
-
         <?php
-
     }
-
-
 
     public function instawp_add_page_read_log() {
-
         ?>
-
         <div id="log-read-page" class="wrap-tab-content instawp_tab_read_log" style="display:none;">
-
             <div class="postbox restore_log" id="instawp_read_log_content">
-
                 <div></div>
-
             </div>
-
         </div>
-
         <?php
-
     }
 
-
-
     public function instawp_add_page_mwp() {
-
         ?>
-
         <div id="mwp-page" class="wrap-tab-content instawp_tab_mainwp" name="tab-mwp" style="display:none;">
-
             <div style="padding: 10px; background-color: #fff;">
-
                 <div style="margin-bottom: 10px;">
-
                     <?php echo esc_html__('If you are a MainWP user, you can set up and control instaWP Backup Free and Pro for every child site directly from your MainWP dashboard, using our instaWP Backup for MainWP extension.', 'instawp-connect'); ?>
-
                 </div>
 
                 <div style="margin-bottom: 10px;">
-
                     <input type="button" class="button-primary" id="instawp_download_mainwp_extension" value="<?php esc_attr_e('Download instaWP Backup for MainWP', 'instawp-connect'); ?>" />
-
                 </div>
 
                 <div style="margin-bottom: 10px;">
-
                     <?php _esc_html__e('1. Create and download backups for a specific child site', 'instawp-connect'); ?>
-
                 </div>
 
                 <div style="margin-bottom: 10px;">
-
                     <?php esc_html__('2. Set backup schedules for all child sites', 'instawp-connect'); ?>
-
                 </div>
 
                 <div style="margin-bottom: 10px;">
-
                     <?php
-
-                    echo esc_html__('3. Set instaWP Backup Free and Pro settings for all child sites', 'instawp-connect');
-
+                        echo esc_html__('3. Set instaWP Backup Free and Pro settings for all child sites', 'instawp-connect');
                     ?>
-
                 </div>
 
                 <div style="margin-bottom: 10px;">
-
                     <?php
-
-                    echo esc_html__('4. Install, claim and update instaWP Backup Pro for child sites in bulk', 'instawp-connect');
-
+                        echo esc_html__('4. Install, claim and update instaWP Backup Pro for child sites in bulk', 'instawp-connect');
                     ?>
-
                 </div>
-
                 <div>
-
                     <?php
-
-                    echo esc_html__('5. Set up remote storage for child sites in bulk (for instaWP Backup Pro only)', 'instawp-connect');
-
+                        echo esc_html__('5. Set up remote storage for child sites in bulk (for instaWP Backup Pro only)', 'instawp-connect');
                     ?>
-
                 </div>
-
             </div>
-
         </div>
 
         <script>
-
             jQuery('#instawp_download_mainwp_extension').click(function(){
-
                 var tempwindow=window.open('_blank');
-
                 tempwindow.location='https://wordpress.org/plugins/instawp-backup-mainwp';
-
             });
 
             jQuery('#instawp_ask_for_discount').click(function(){
-
                 var tempwindow=window.open('_blank');
-
                 tempwindow.location='https://instawp.com//instawp-backup-for-mainwp';
-
             });
-
         </script>
-
         <?php
-
     }
 
 
