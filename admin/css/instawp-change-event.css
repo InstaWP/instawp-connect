@@ -1,7 +1,7 @@
 .two-way-sync-btn {background: #005e54;color: white;border: none;padding: 5px 10px;border-radius: 4px;cursor: pointer;}
 .column-sync span.sync-loader img {width: 100%;max-width: 20px;margin: 0 0 0 6px;}
-span.sync-success {color: #005e54;margin: 0 0 0 6px;}
-.instawp-green-btn{background: #005e54;color: white;border: none;padding: 5px 10px;border-radius: 4px;cursor: pointer;}
+span.sync-success {color: #005e54;margin: 2px 0 0 0px;display: block;}
+.instawp-green-btn{background: #005e54;color: white;border: none; min-height:30px; padding: 5px 10px;border-radius: 4px;cursor: pointer;}
 
 .bulk-sync-popup {display: none;}
 .change-event-main .top-title {display: flex;align-items: center;}
@@ -302,6 +302,13 @@ body.show {
 }
 .sync_error_success_msg p.error {
 	color: #ff0000;
+}
+.tablenav.bottom .bulk-sync-popup-btn{
+    display:none;
+}
+.sync_completed{
+    color: #005e54 !important;
+    font-weight: 500;
 }
 /****************2 sync popup [end]**********************/
 #wpbody-content {

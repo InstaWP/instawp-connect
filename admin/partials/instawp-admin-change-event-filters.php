@@ -259,11 +259,12 @@ class InstaWP_Change_Event_Filters {
      * @return void
      */
     public function savePostFilter( $post_ID, $post, $update, $post_before){
-        if(!$update && $post->post_status == 'auto-draft'){# new post
+        /*if(!$update && $post->post_status == 'auto-draft'){# new post
             $event_name = 'New Post';
             $event_slug = 'post_new';
             $this->addPostData($event_name,$event_slug,$post,$post_ID);   
         }
+        */
         if($update && ($post->post_status != 'revision') ){ #update
             $event_name = 'Post Change';
             $event_slug = 'post_change';

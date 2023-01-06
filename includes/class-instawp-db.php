@@ -116,9 +116,14 @@ class InstaWP_DB{
         return $results; 
     }
 
+    public function getByTwoCondition($table_name = null, $key1 = null, $val1 = null, $key2 = null, $val2 = null){
+        $rel = $this->wpdb->get_results("SELECT * FROM $table_name WHERE $key1='".$val1."' AND $key2='".$val2."'");
+        return $rel;
+    }
+
     public function get_double_condition($table_name = null, $val1 = null, $val2 = null){
         $rel = $this->wpdb->get_results("SELECT * FROM $table_name WHERE `event_type`='".$val1."' AND `status`='".$val2."'");
-        return $results;
+        return $rel;
     }
     
     public function get_with_count($table_name = null, $key = null, $val = null){
