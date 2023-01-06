@@ -38,6 +38,7 @@ class InstaWP_Change_Event_Table extends WP_List_Table {
         $data = [];
         if(!empty($rel) && is_array($rel)){
             foreach($rel as $v){
+                $btn = ($v->status != 'completed') ? '<button type="button" id="btn-sync-'.$v->id.'" data-id="'.$v->id.'" class="two-way-sync-btn">Sync</button> <span class="sync-loader"></span><span class="sync-success"></span>' : '<p class="sync_completed">Synced</p>'; 
                 $data[] = [
                     'ID' => $v->id,
                     'event_name' => $v->event_name,
@@ -47,8 +48,8 @@ class InstaWP_Change_Event_Table extends WP_List_Table {
                     'title' => $v->title,
                     'user_id' => $v->user_id,
                     'synced_message' => $v->synced_message,
-                    'date' => $v->status.'<br/>'.$v->date,
-                    'sync' => '<button type="button" id="btn-sync-'.$v->id.'" data-id="'.$v->id.'" class="two-way-sync-btn">Sync</button> <span class="sync-loader"></span><span class="sync-success" style="display:none;">Done</span>',
+                    'date' => '<span class="synced_status">'.$v->status.'</span><br/><span>'.$v->date.'</span>',
+                    'sync' => $btn,
                 ];
             }
         }  
@@ -174,7 +175,7 @@ class InstaWP_Change_Event_Table extends WP_List_Table {
             $html .= '</select>';
 			submit_button( __( 'Filter' ), '', 'filter_action', false, array( 'id' => 'post-query-submit' ) );
 		}
-		$html .= '</div>';
+		$html .= '</div><button type="button" class="instawp-green-btn bulk-sync-popup-btn">Sync All</button>';
         echo $html;
 	}
 
@@ -195,7 +196,6 @@ class InstaWP_Change_Event_Table extends WP_List_Table {
                 <div class="message-change-events"></div>
                 <div class="top-title">
                     <h2>Change event</h2>
-                    <div class="bulk-sync"><button type="button" class="instawp-green-btn bulk-sync-popup-btn">Sync All</button></div>
                 </div>
                 <ul class="subsubsub">
                     <li class="all"><a href="'.$siteUrl.'/wp-admin/admin.php?page=instawp-change-event&change_event_status=all">All <span class="count">('.$allCount.')</span></a> |</li>
