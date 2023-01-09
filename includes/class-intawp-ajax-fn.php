@@ -45,17 +45,19 @@ class InstaWP_Ajax_Fn{
         ]);
     }
 
-    function get_wp_events($sync_ids = null){
+    function get_wp_events($sync_ids = null, $sync_type = null){
         try {
             $InstaWP_db = new InstaWP_DB();
             $tables = $InstaWP_db->tables;
-            if(isset($sync_ids) && !empty($sync_ids)){
-                #we will use it in array and will send $sync_ids a object multiple ids  
+                   
+            if(isset($sync_type) && $sync_type == 'single_sync'){
                 $rel = $InstaWP_db->getByTwoCondition($tables['ch_table'],'id',$sync_ids,'status','pending');
+            }elseif(isset($sync_type) && $sync_type == 'selected_sync'){
+                $rel = $InstaWP_db->getByInCondition($tables['ch_table'],'id',$sync_ids,'status','pending');
             }else{
                 $rel = $InstaWP_db->get_with_condition($tables['ch_table'],'status','pending'); 
             }
-            
+        
             $encrypted_content = [];
             if(!empty($rel) && is_array($rel)){
                 foreach($rel as $k => $v){
@@ -96,6 +98,23 @@ class InstaWP_Ajax_Fn{
                     } 
                     $total_events = $count;           
                 }
+            }elseif(isset($_POST['sync_type']) && $_POST['sync_type'] == 'selected_sync'){
+                if(isset($_POST['sync_ids']) && !empty($_POST['sync_ids'])){
+                    $sync_ids = explode(',',$_POST['sync_ids']);
+                    $count = 0;
+                    if(!empty($sync_ids) && is_array($sync_ids)){
+                        foreach($sync_ids as $sync_id){
+                            $rel = $InstaWP_db->get_with_condition($tables['ch_table'],'id',$sync_id);
+                            $data['sync_type'] = $_POST['sync_type'];
+                            foreach($rel as $v){
+                                $count = $count + 1;
+                                $data['total_events'] = $count;
+                                $data[$v->event_type] = $data[$v->event_type] + 1; 
+                            }
+                            $total_events = $count; 
+                        }
+                    }
+                }
             }else{
                 //Pack Things: Form the array of events
                 $total_posts = $InstaWP_db->trakingEventsBySlug($tables['ch_table'],null,'post','pending');
@@ -112,7 +131,6 @@ class InstaWP_Ajax_Fn{
                     'theme' => $total_themes
                 ];
             }
-
             if(!empty($total_events) && $total_events > 0){
                 echo $this->formatSuccessReponse("The data has packed successfully as JSON from WP DB", json_encode($data));
             }else{
@@ -131,7 +149,8 @@ class InstaWP_Ajax_Fn{
         $message = isset($_POST['sync_message']) ? $_POST['sync_message']: '';
         $data = stripslashes($_POST['data']);
         $sync_ids = isset($_POST['sync_ids']) ? $_POST['sync_ids']: '';
-        $events = $this->get_wp_events($sync_ids);
+        $sync_type = isset($_POST['sync_type']) ? $_POST['sync_type']: '';  
+        $events = $this->get_wp_events($sync_ids,$sync_type);
         $eventsArr = json_decode($events);
         if(isset($eventsArr->success) && $eventsArr->success === true){
             $packed_data = json_encode([
@@ -142,7 +161,6 @@ class InstaWP_Ajax_Fn{
                 'sync_message' => $message,
                 'source_connect_id' =>  $connect_id #staging 
             ]);
-            
             $resp = $this->sync_upload($packed_data,null);
             $resp_decode = json_decode($resp); 
             if(isset($resp_decode->status) && $resp_decode->status === true){
@@ -150,7 +168,6 @@ class InstaWP_Ajax_Fn{
                 if(isset($resp_decode->data->sync_id) && !empty($resp_decode->data->sync_id)){
                     $sync_resp = $this->get_Sync_Object($resp_decode->data->sync_id);
                     $respD = json_decode($sync_resp);// WE WILL USE IT.
-                   
                     if($respD->status === 1 || $respD->status === true){
                         if(isset($respD->data->changes->changes->sync_response)){
                             $sync_response = $respD->data->changes->changes->sync_response;
@@ -176,7 +193,6 @@ class InstaWP_Ajax_Fn{
                                 'res_data' => $res_data
                             ];
                         }
-                       
                         echo $this->formatSuccessReponse($resp_decode->message,$repD);
                     }
                 } 

@@ -116,6 +116,12 @@ class InstaWP_DB{
         return $results; 
     }
 
+    public function getByInCondition($table_name = null, $key1 = null, $val1 = null, $key2 = null, $val2 = null){
+        $str = $val1; 
+        $rel = $this->wpdb->get_results("SELECT * FROM $table_name WHERE $key1 IN ($str) AND $key2='".$val2."'");
+        return $rel;
+    }
+
     public function getByTwoCondition($table_name = null, $key1 = null, $val1 = null, $key2 = null, $val2 = null){
         $rel = $this->wpdb->get_results("SELECT * FROM $table_name WHERE $key1='".$val1."' AND $key2='".$val2."'");
         return $rel;

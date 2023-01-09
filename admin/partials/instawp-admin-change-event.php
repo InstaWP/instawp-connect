@@ -175,7 +175,7 @@ class InstaWP_Change_Event_Table extends WP_List_Table {
             $html .= '</select>';
 			submit_button( __( 'Filter' ), '', 'filter_action', false, array( 'id' => 'post-query-submit' ) );
 		}
-		$html .= '</div><button type="button" class="instawp-green-btn bulk-sync-popup-btn">Sync All</button>';
+		$html .= '</div><button type="button" class="instawp-green-btn bulk-sync-popup-btn">Sync All</button><button type="button" class="instawp-green-btn selected-sync-popup-btn">Selcted sync</button>';
         echo $html;
 	}
 
@@ -203,7 +203,7 @@ class InstaWP_Change_Event_Table extends WP_List_Table {
                     <li class="completed"><a href="'.$siteUrl.'/wp-admin/admin.php?page=instawp-change-event&change_event_status=completed">Completed <span class="count">('.$completedCount.')</span></a> |</li>
                     <li class="errors"><a href="'.$siteUrl.'/wp-admin/admin.php?page=instawp-change-event&change_event_status=error">Error <span class="count">('.$errorCount.')</span></a></li>
                 </ul>
-                <form method="post" action="">'; 
+                <form method="post" action="" class="sync_events_form">'; 
                     $this->prepare_items(); 
                     $this->display(); 
             echo '</form>
@@ -225,6 +225,7 @@ class InstaWP_Change_Event_Table extends WP_List_Table {
     protected function bulkSync($ids = null){
         if(!empty($ids) && is_array($ids)){
             foreach($ids as $id){
+
             }
         }
     } 
@@ -242,7 +243,7 @@ class InstaWP_Change_Event_Table extends WP_List_Table {
         #others
         $destination_url = get_option('instawp_sync_parent_url', '') ;
         $others = (abs($total_events) - abs($post_new+$post_delete+$post_trash));
-        $html = '<div class="bulk-sync-popup"> 
+        $html = '<div class="bulk-sync-popup" data-sync-type=""> 
                 <div class="instawp-popup-main">
                     <div class="instawppopwrap">
                         <div class="topinstawppopwrap">
@@ -252,12 +253,20 @@ class InstaWP_Change_Event_Table extends WP_List_Table {
                                 <input type="url" id="destination-url" placeholder="mywebsite.com" value="'.$destination_url.'" name="Destination" disabled>
                             </div>
                             <div class="instawp_category">
-                                <div class="instawpcatlftcol">
+                                <div class="instawpcatlftcol bulk-events-info">
                                     <ul class="list">
-                                        <li>'.$post_new.' post create events</li>
+                                        <li>'.$post_new.' post change events</li>
                                         <li>'.$post_delete.' post delete events</li>
                                         <li>'.$post_trash.' post trash events</li>
                                         <li>'.$others.' other events</li>
+                                    </ul>
+                                </div>
+                                <div class="instawpcatlftcol selected-events-info">
+                                    <ul class="list">
+                                        <li><span class="post-change">0</span> post change events</li>
+                                        <li><span class="post-delete">0</span> post delete events</li>
+                                        <li><span class="post-trash">0</span> post trash events</li>
+                                        <li><span class="others">0</span> other events</li>
                                     </ul>
                                 </div>
                                 <div class="instawpcatrgtcol sync_process">
@@ -278,6 +287,7 @@ class InstaWP_Change_Event_Table extends WP_List_Table {
                             <a class="cancel-btn close" href="javascript:void(0);">Cancel</a>
                             <a class="changes-btn sync-changes-btn" href="javascript:void(0);">Sync Changes</a>
                         </div>
+                        <div><input type="hidden" id="selected_events" name="selected_events" value=""></div>
                     </div>
                 </div>
              </div>';

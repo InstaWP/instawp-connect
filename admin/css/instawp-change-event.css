@@ -310,6 +310,16 @@ body.show {
     color: #005e54 !important;
     font-weight: 500;
 }
+.selected-sync-popup-btn {
+    display: none;
+    margin: 0px 0px 0px 8px;
+}
+.tablenav.bottom .selected-sync-popup-btn {
+    display: none !important;
+}
+.selected-events-info{
+    display: none;
+}
 /****************2 sync popup [end]**********************/
 #wpbody-content {
     position: relative;

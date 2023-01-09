@@ -23,7 +23,7 @@ if ( ! defined('INSTAWP_PLUGIN_DIR') ) {
 class InstaWP_Rest_Apis{
     public function __construct(){
         /*
-        * In0000i0t0iate Sync
+        * Initiate Sync
         * Endpoint : /wp-json/instawp-connect/v1/sync
         * HOOK - rest_api_init
         */
