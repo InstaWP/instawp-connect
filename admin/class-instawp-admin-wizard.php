@@ -101,7 +101,7 @@ class InstaWP_Admin_Wizard {
             <div class="home-screen-backup-customize-checkboxes-left">
                 <!-- option wrap -->
                 <div class="customize-checkbox-wrap">
-                    <input type="checkbox" name="instawp_anonymization" id="instawp_anonymization" checked>
+                    <input type="checkbox" name="instawp_anonymization" id="instawp_anonymization">
                     <label for="instawp_anonymization">
                         <?php _e('Anonymize Data'); ?>
                     </label>

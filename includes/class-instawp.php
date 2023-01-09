@@ -7608,4 +7608,8 @@ class instaWP {
 
 		return $url;
 	}
+
+   public static function restore_bg($backup_list) {
+      InstaWP_Backup_Api::restore_bg($backup_list);
+   }
 }

@@ -101,6 +101,7 @@ define('INSTAWP_API_URL','/api/v1');
  */
 //when active plugin redirect plugin page.
 
+
 require_once dirname( __FILE__ ) . '/vendor/autoload.php';
 
 function instawp_plugin_activate() {
@@ -183,9 +184,12 @@ if ( isset($instawp_plugin) && is_a($instawp_plugin,'instaWP') ) {
 }
 
 require plugin_dir_path( __FILE__ ) . 'includes/class-instawp.php';
+require_once( plugin_dir_path( __FILE__ ) . '/vendor/woocommerce/action-scheduler/action-scheduler.php' );
+
 
 function run_instawp() {
     $instawp_plugin = new instaWP();
+    add_action('instawp_restore_bg', array($instawp_plugin, 'restore_bg'));
     $GLOBALS['instawp_plugin'] = $instawp_plugin;
 }
 run_instawp();
