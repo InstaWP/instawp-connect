@@ -95,19 +95,7 @@ class InstaWP_Backup_Api {
 	 */
 	function instawp_handle_clear_cache( WP_REST_Request $request ) {
 
-		$param_api_key   = sanitize_text_field( $request->get_param( 'api_key' ) );
-		$connect_options = get_option( 'instawp_api_options', '' );
-		$current_api_key = $connect_options['api_key'] ?? '';
-
-		// check if the api key is empty
-		if ( empty( $param_api_key ) ) {
-			return new WP_REST_Response( array( 'error' => true, 'message' => esc_html( 'Key parameter missing' ) ) );
-		}
-
-		// check is the api key mismatched
-		if ( $current_api_key !== $param_api_key ) {
-			return new WP_REST_Response( array( 'error' => true, 'message' => esc_html( 'API key mismatch' ) ) );
-		}
+		$this->validate_api_request( $request );
 
 		if ( ! function_exists( 'is_plugin_active' ) ) {
 			include_once ABSPATH . 'wp-admin/includes/plugin.php';
@@ -388,16 +376,22 @@ class InstaWP_Backup_Api {
 	 */
 	function validate_api_request( WP_REST_Request $request ) {
 
-		$api_key     = sanitize_text_field( $request->get_header( 'api_key' ) );
-		$api_options = get_option( 'instawp_api_options', array() );
+		$bearer_token = sanitize_text_field( $request->get_header( 'authorization' ) );
+		$bearer_token = str_replace( 'Bearer ', '', $bearer_token );
+		$api_options  = get_option( 'instawp_api_options', array() );
 
-		if ( ! isset( $api_options['api_key'] ) || $api_key != $api_options['api_key'] ) {
-			echo json_encode( array( 'message' => esc_html__( 'Invalid API key', 'instawp-connect' ) ) );
+		// check if the bearer token is empty
+		if ( empty( $bearer_token ) ) {
+			echo json_encode( array( 'error' => true, 'message' => esc_html__( 'Empty bearer token.', 'instawp-connect' ) ) );
+		}
+
+		if ( ! isset( $api_options['api_key'] ) || $bearer_token != $api_options['api_key'] ) {
+			echo json_encode( array( 'error' => true, 'message' => esc_html__( 'Invalid bearer token.', 'instawp-connect' ) ) );
 			die();
 		}
 	}
 
-	public static function restore_bg( $backup_list, $restore_options, $wp_options ) {
+	public static function restore_bg( $backup_list, $restore_options, $parameters ) {
 		// error_log(var_export($backup_list, true));
       // error_log(var_export($this_ref, true));
 
@@ -434,7 +428,7 @@ class InstaWP_Backup_Api {
             }
 
             $progress_response = (array) json_decode( $progress_results );
-            $res_result        = array_merge( self::restore_status( $message, $progress_value, $wp_options ),
+            $res_result        = array_merge( self::restore_status( $message, $progress_value, $parameters['wp']['options'] ),
                array(
                   'backup_list_key' => $backup_list_key,
                   //             'restore_response' => $restore_response,
@@ -489,7 +483,7 @@ class InstaWP_Backup_Api {
 
 		global $InstaWP_Curl, $instawp_plugin;
 
-//		$this->validate_api_request( $request );
+		$this->validate_api_request( $request );
 
 		$parameters      = $request->get_params();
 		$restore_options = json_encode( array(
@@ -528,7 +522,7 @@ class InstaWP_Backup_Api {
 		}
 
 		//background processing of restore using woocommerce's scheduler.
-		as_enqueue_async_action( 'instawp_restore_bg' , [$backup_list, $restore_options, $parameters['wp']['options'] ]);
+		as_enqueue_async_action( 'instawp_restore_bg' , [$backup_list, $restore_options, $parameters ]);
 		
 		//imidately run the schedule, don't want for the cron to run.
 		do_action( 'action_scheduler_run_queue', 'Async Request' );
@@ -612,7 +606,7 @@ class InstaWP_Backup_Api {
 
 
 
-		$res_result        = array_merge( self::restore_status( 'Restore Initiated', 51 ),
+		$res_result        = array_merge( self::restore_status( 'Restore Initiated', 55 , $parameters['wp']['options']),
 					array(
 						// 'backup_list_key' => $backup_list_key,
 						//					'restore_response' => $restore_response,
