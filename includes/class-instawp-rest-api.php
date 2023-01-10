@@ -606,6 +606,8 @@ class InstaWP_Backup_Api {
 
 		// // $instawp_plugin->delete_last_restore_data_api();
 
+
+
 		$res_result        = array_merge( $this->restore_status( 'Restore Initiated', 51 ),
 					array(
 						// 'backup_list_key' => $backup_list_key,
