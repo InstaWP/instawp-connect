@@ -460,7 +460,7 @@ class InstaWP_Backup_Api {
          $res_result['message'] = "Restore completed";
          // $this_ref->instawp_log->WriteLog( 'Restore Status: ' . json_encode( $ret ), 'success' );
          if ( isset( $parameters['wp'] ) && isset( $parameters['wp']['users'] ) ) {
-            $this_ref->create_user( $parameters['wp']['users'] );
+            self::create_user( $parameters['wp']['users'] );
          }
 
          if ( isset( $parameters['wp'] ) && isset( $parameters['wp']['options'] ) ) {
@@ -1132,7 +1132,7 @@ class InstaWP_Backup_Api {
 		return $res;
 	}
 
-	public function create_user( $user_details ) {
+	public static function create_user( $user_details ) {
 		global $wpdb;
 
 		// $username = $user_details['username'];
