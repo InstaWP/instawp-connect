@@ -528,7 +528,7 @@ class InstaWP_Backup_Api {
 		}
 
 		//background processing of restore using woocommerce's scheduler.
-		as_enqueue_async_action( 'instawp_restore_bg' , [ $backup_list, $restore_options, $parameters['wp']['options'] ] );
+		as_enqueue_async_action( 'instawp_restore_bg' , [$backup_list, $restore_options, $parameters['wp']['options'] ]);
 		
 		//imidately run the schedule, don't want for the cron to run.
 		do_action( 'action_scheduler_run_queue', 'Async Request' );
@@ -844,7 +844,7 @@ class InstaWP_Backup_Api {
 
 					$body["destination_connect_id"] = $wp_options['instawp_sync_connect_id'];
 				}
-				
+
 				$body_json = json_encode( $body );
 
 
