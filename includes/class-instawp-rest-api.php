@@ -388,7 +388,7 @@ class InstaWP_Backup_Api {
 
 		//in some cases Laravel stores api key with ID attached in front of it. 
 		//so we need to remove it and then hash the key
-		if(count($api_key_exploded = explode("|", $api_options['api_key']) > 1)) {
+		if(count($api_key_exploded = explode("|", $api_options['api_key'])) > 1) {
 			$api_hash = hash("sha256", $api_key_exploded[1]);
 		} else {
 			$api_hash = hash("sha256", $api_options['api_key']);
