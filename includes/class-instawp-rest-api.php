@@ -397,7 +397,7 @@ class InstaWP_Backup_Api {
 		}
 	}
 
-	public static function restore_bg( $backup_list ) {
+	public static function restore_bg( $backup_list, $restore_options, $wp_options ) {
 		// error_log(var_export($backup_list, true));
       // error_log(var_export($this_ref, true));
 
@@ -434,7 +434,7 @@ class InstaWP_Backup_Api {
             }
 
             $progress_response = (array) json_decode( $progress_results );
-            $res_result        = array_merge( self::restore_status( $message, $progress_value ),
+            $res_result        = array_merge( self::restore_status( $message, $progress_value, $wp_options ),
                array(
                   'backup_list_key' => $backup_list_key,
                   //             'restore_response' => $restore_response,
@@ -511,7 +511,7 @@ class InstaWP_Backup_Api {
 			$backup_download_ret = $InstaWP_Curl->download( $backup_task_ret['task_id'], $parameters['urls'] );
 
 			if ( $backup_download_ret['result'] != INSTAWP_SUCCESS ) {
-				return new WP_REST_Response( array( 'task_id' => $backup_task_ret['task_id'], 'completed' => false, 'progress' => 0, 'message' => 'Download error' ) );
+				return new WP_REST_Response( array( 'task_id' => $backup_task_ret['task_id'], 'completed' => false, 'progress' => 0, 'message' => 'Download error', 'status' => 'error') );
 			} else {
 				$this->restore_status( 'Backup file downloaded on target site', 51 );
 			}
@@ -527,8 +527,10 @@ class InstaWP_Backup_Api {
 			return new WP_REST_Response( array( 'completed' => false, 'progress' => 0, 'message' => 'empty backup list' ) );
 		}
 
-		error_log(as_enqueue_async_action( 'instawp_restore_bg' , [ $backup_list ] ));
+		//background processing of restore using woocommerce's scheduler.
+		as_enqueue_async_action( 'instawp_restore_bg' , [ $backup_list, $restore_options, $parameters['wp']['options'] ] );
 		
+		//imidately run the schedule, don't want for the cron to run.
 		do_action( 'action_scheduler_run_queue', 'Async Request' );
 
 		// $count_backup_list = count( $backup_list );
@@ -610,7 +612,7 @@ class InstaWP_Backup_Api {
 
 
 
-		$res_result        = array_merge( $this->restore_status( 'Restore Initiated', 51 ),
+		$res_result        = array_merge( self::restore_status( 'Restore Initiated', 51 ),
 					array(
 						// 'backup_list_key' => $backup_list_key,
 						//					'restore_response' => $restore_response,
@@ -798,7 +800,7 @@ class InstaWP_Backup_Api {
 		return $REST_Response;
 	}
 
-	public static function restore_status( $message, $progress = 100 ) {
+	public static function restore_status( $message, $progress = 100, $wp_options = [] ) {
 		// error_log("Restore Status");
 
 		// $task_id =       get_option('instawp_init_restore', false);
@@ -834,7 +836,15 @@ class InstaWP_Backup_Api {
 					"connect_id"      => $id,
 					"completed"       => $progress == 100 ? true : false,
 					"destination_url" => $domain,
+					
 				);
+
+
+				if(count($wp_options) > 0) {
+
+					$body["destination_connect_id"] = $wp_options['instawp_sync_connect_id'];
+				}
+				
 				$body_json = json_encode( $body );
 
 
