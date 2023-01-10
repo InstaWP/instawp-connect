@@ -383,6 +383,7 @@ class InstaWP_Backup_Api {
 		// check if the bearer token is empty
 		if ( empty( $bearer_token ) ) {
 			echo json_encode( array( 'error' => true, 'message' => esc_html__( 'Empty bearer token.', 'instawp-connect' ) ) );
+			die();
 		}
 
 
