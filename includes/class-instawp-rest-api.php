@@ -397,7 +397,7 @@ class InstaWP_Backup_Api {
 		}
 	}
 
-	public static function restore_bg( $backup_list, $restore_options, $wp_options ) {
+	public static function restore_bg( $backup_list, $restore_options, $parameters ) {
 		// error_log(var_export($backup_list, true));
       // error_log(var_export($this_ref, true));
 
@@ -434,7 +434,7 @@ class InstaWP_Backup_Api {
             }
 
             $progress_response = (array) json_decode( $progress_results );
-            $res_result        = array_merge( self::restore_status( $message, $progress_value, $wp_options ),
+            $res_result        = array_merge( self::restore_status( $message, $progress_value, $parameters['wp']['options'] ),
                array(
                   'backup_list_key' => $backup_list_key,
                   //             'restore_response' => $restore_response,
@@ -528,7 +528,7 @@ class InstaWP_Backup_Api {
 		}
 
 		//background processing of restore using woocommerce's scheduler.
-		as_enqueue_async_action( 'instawp_restore_bg' , [$backup_list, $restore_options, $parameters['wp']['options'] ]);
+		as_enqueue_async_action( 'instawp_restore_bg' , [$backup_list, $restore_options, $parameters ]);
 		
 		//imidately run the schedule, don't want for the cron to run.
 		do_action( 'action_scheduler_run_queue', 'Async Request' );
@@ -612,7 +612,7 @@ class InstaWP_Backup_Api {
 
 
 
-		$res_result        = array_merge( self::restore_status( 'Restore Initiated', 51 ),
+		$res_result        = array_merge( self::restore_status( 'Restore Initiated', 55 , $parameters['wp']['options']),
 					array(
 						// 'backup_list_key' => $backup_list_key,
 						//					'restore_response' => $restore_response,
