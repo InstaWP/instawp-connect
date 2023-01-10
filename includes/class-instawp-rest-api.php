@@ -385,7 +385,9 @@ class InstaWP_Backup_Api {
 			echo json_encode( array( 'error' => true, 'message' => esc_html__( 'Empty bearer token.', 'instawp-connect' ) ) );
 		}
 
-		if ( ! isset( $api_options['api_key'] ) || $bearer_token != $api_options['api_key'] ) {
+		$api_hash = hash("sha256", $api_options['api_key']);
+
+		if ( ! isset( $api_options['api_key'] ) || $bearer_token != $api_hash ) {
 			echo json_encode( array( 'error' => true, 'message' => esc_html__( 'Invalid bearer token.', 'instawp-connect' ) ) );
 			die();
 		}
