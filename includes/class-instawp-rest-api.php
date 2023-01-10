@@ -434,7 +434,7 @@ class InstaWP_Backup_Api {
             error_log( $progress_value );
 
             if ( $progress_value < 100 ) {
-               $message = 'in_progress';
+               $message = 'Restore in progress';
             } else {
                $message = 'Restore completed';
             }
@@ -618,15 +618,12 @@ class InstaWP_Backup_Api {
 
 
 
-		$res_result        = array_merge( self::restore_status( 'Restore Initiated', 55 , $parameters['wp']['options']),
-					array(
-						// 'backup_list_key' => $backup_list_key,
-						//					'restore_response' => $restore_response,
-						'status'          => ( $progress_response['status'] ?? 'wait' ),
-					)
-				);
+		// $res_result        = self::restore_status( 'Restore Initiated', 55 , $parameters['wp']['options']);
 
-		// $res_result = array( 'completed' => false, 'progress' => 51, 'message' => 'File downloaded, restore started..', 'status' => 'wait') ;
+		// $res_result['completed'] = false;
+		// $res_result['status'] = false;
+
+		$res_result = array( 'completed' => false, 'progress' => 55, 'message' => 'Backup downloaded, restore initiated..', 'status' => 'wait') ;
 
 		return new WP_REST_Response( $res_result );
 	}
@@ -840,7 +837,7 @@ class InstaWP_Backup_Api {
 					"progress"        => $progress,
 					"message"         => $message,
 					"connect_id"      => $id,
-					"completed"       => $progress == 100 ? true : false,
+					"completed"       => ($progress == 100) ? true : false,
 					"destination_url" => $domain,
 					
 				);
