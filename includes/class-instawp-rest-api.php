@@ -606,7 +606,15 @@ class InstaWP_Backup_Api {
 
 		// // $instawp_plugin->delete_last_restore_data_api();
 
-		$res_result = array( 'completed' => false, 'progress' => 51, 'message' => 'File downloaded, restore started..' ) ;
+		$res_result        = array_merge( $this->restore_status( 'Restore Initiated', 51 ),
+					array(
+						// 'backup_list_key' => $backup_list_key,
+						//					'restore_response' => $restore_response,
+						'status'          => ( $progress_response['status'] ?? 'wait' ),
+					)
+				);
+
+		// $res_result = array( 'completed' => false, 'progress' => 51, 'message' => 'File downloaded, restore started..', 'status' => 'wait') ;
 
 		return new WP_REST_Response( $res_result );
 	}
