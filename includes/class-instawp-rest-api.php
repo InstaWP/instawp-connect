@@ -385,7 +385,16 @@ class InstaWP_Backup_Api {
 			echo json_encode( array( 'error' => true, 'message' => esc_html__( 'Empty bearer token.', 'instawp-connect' ) ) );
 		}
 
-		$api_hash = hash("sha256", $api_options['api_key']);
+
+		//in some cases Laravel stores api key with ID attached in front of it. 
+		//so we need to remove it and then hash the key
+		if(count($api_key_exploded = explode("|", $api_options['api_key']) > 1)) {
+			$api_hash = hash("sha256", $api_key_exploded[1]);
+		} else {
+			$api_hash = hash("sha256", $api_options['api_key']);
+		}
+
+		
 
 		if ( ! isset( $api_options['api_key'] ) || $bearer_token != $api_hash ) {
 			echo json_encode( array( 'error' => true, 'message' => esc_html__( 'Invalid bearer token.', 'instawp-connect' ) ) );
