@@ -486,7 +486,7 @@ class InstaWP_Backup_Api {
 
       // error_log(var_export($res_result, true));
 
-      // $instawp_plugin->delete_last_restore_data_api();
+      $instawp_plugin->delete_last_restore_data_api();
 	}
 
 
