@@ -440,12 +440,7 @@ class InstaWP_Backup_Api {
             }
 
             $progress_response = (array) json_decode( $progress_results );
-            $res_result        = array_merge( self::restore_status( $message, $progress_value, $parameters['wp']['options'] ),
-               array(
-                  'backup_list_key' => $backup_list_key,
-                  //             'restore_response' => $restore_response,
-                  'status'          => ( $progress_response['status'] ?? 'wait' ),
-               )
+            $res_result        = array_merge( self::restore_status( $message, $progress_value, $parameters['wp']['options'] )
             );
 
             // if ( $progress_value > $restore_progress ) {
@@ -816,18 +811,15 @@ class InstaWP_Backup_Api {
 
 		$body = [];
 
-		$connect_ids = get_option( 'instawp_connect_id_options', '' );
-		if ( ! empty( $connect_ids ) ) {
-			if ( isset( $connect_ids['data']['id'] ) && ! empty( $connect_ids['data']['id'] ) ) {
-				$id         = $connect_ids['data']['id'];
+		if(count($wp_options) > 0)  {
+
+			if ( isset( $wp_options['instawp_sync_connect_id']) &&  isset( $wp_options['instawp_sync_parent_id'])) {
+
+				$parent_id         = $wp_options['instawp_sync_parent_id'];
 				$api_doamin = InstaWP_Setting::get_api_domain();
-				$url        = $api_doamin . INSTAWP_API_URL . '/connects/' . $id . '/restore_status';
+				$url        = $api_doamin . INSTAWP_API_URL . '/connects/' . $parent_id . '/restore_status';
 
-				// restore preogress precetage
-				// $restore_progress_option = get_option('instawp_restore_progress_percents', "0");
-				// error_log('Restore Status percentage is : '. $restore_progress_option);
 
-				// $domain = str_replace( "https://", "", "https://e-takedown-jobe.a.instawpsites.com");//get_site_url() );
 				$domain = str_replace( "https://", "", get_site_url() );
 				$domain = str_replace( "http://", "", $domain );
 
@@ -836,17 +828,12 @@ class InstaWP_Backup_Api {
 					// "type"     => 'restore',
 					"progress"        => $progress,
 					"message"         => $message,
-					"connect_id"      => $id,
+					"connect_id"      => $parent_id,
 					"completed"       => ($progress == 100) ? true : false,
-					"destination_url" => $domain,
+					"destination_connect_id" => $wp_options['instawp_sync_connect_id']
 					
 				);
 
-
-				if(count($wp_options) > 0) {
-
-					$body["destination_connect_id"] = $wp_options['instawp_sync_connect_id'];
-				}
 
 				$body_json = json_encode( $body );
 
@@ -873,7 +860,11 @@ class InstaWP_Backup_Api {
 				}
 
 				$instawp_log->CloseFile();
+			} else {
+				error_log("no connect id in wp options");
 			}
+		} else {
+			error_log("no wp options");
 		}
 		// error_log('instawp rest api \n '.print_r(get_option( 'instawp_backup_status_options'),true));
 		// update_option( 'instawp_finish_restore', $message );
