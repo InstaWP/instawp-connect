@@ -161,4 +161,9 @@ class InstaWP_DB{
         $results = $this->wpdb->get_var("SELECT id FROM $table_name WHERE `event_slug`='".$event_slug."' AND `source_id`='".$source_id."'"); 
         return $results;
     }
+
+    function get_event_type_counts($table_name = null, $event_type = null){
+        $results = $this->wpdb->get_results("SELECT `event_type` ,COUNT(event_type) as type_count FROM $table_name GROUP BY `event_type` HAVING COUNT(event_type) >= 1 ORDER BY COUNT(event_type)"); 
+        return $results; 
+    }
 }

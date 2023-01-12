@@ -47,14 +47,7 @@ class InstaWP_Rest_Apis{
      * @param array $data Options for the function.
      * @return string|null 
      */
-    public function events_receiver($req) {
-        $InstaWP_db = new InstaWP_DB();
-        $body = $req->get_body();
-        $dataIns = [
-            'data' => $body
-        ];
-        $InstaWP_db->insert('wp_testing',$dataIns);
-        
+    public function events_receiver($req) {        
         $body = $req->get_body();
         $bodyArr = json_decode($body);
         $encrypted_contents = json_decode($bodyArr->encrypted_contents);
@@ -67,17 +60,16 @@ class InstaWP_Rest_Apis{
             $changes = $sync_response = [];
             foreach($encrypted_contents as $v){
                 $source_id = (isset($v->source_id) && !empty($v->source_id)) ? intval($v->source_id) : null;
-                
                 /*
                 *Post Oprations
                 */
                 //create and update
                 if(isset($v->event_slug) && ($v->event_slug == 'post_change' ||$v->event_slug == 'post_new') ){
                     if(isset($source_id)){
-                        $posts = (array) $v->details->posts;
-                        $postmeta = (array) $v->details->postmeta;
-                        $featured_image = (array) $v->details->featured_image;
-                        
+                        $posts = isset($v->details->posts) ? (array) $v->details->posts : '';
+                        $postmeta = isset($v->details->postmeta) ? (array) $v->details->postmeta : '';
+                        $featured_image = isset($v->details->featured_image) ? (array) $v->details->featured_image : '';
+                        $media = isset($v->details->media) ? (array) $v->details->media : '';
                         if (get_post_status($posts['ID']) ) {
                             #The post exists,Then update
                             $postData = $this->postData($posts,'update');
@@ -126,6 +118,9 @@ class InstaWP_Rest_Apis{
                                 wp_set_post_terms( $posts['ID'], $term_ids, $taxonomy );
                             }
                         }
+
+                        # media upload from content 
+                        $this->upload_content_media($media,$posts['ID']);
 
                         #message 
                         $message = 'Sync successfully.';
@@ -247,7 +242,7 @@ class InstaWP_Rest_Apis{
                         if(term_exists($source_id,$v->event_type)){
                             $rel = wp_delete_term($source_id,$v->event_type);
                             $status = $this->sync_post_status($rel);
-	                        $message = $this->sync_message($rel);
+                            $message = $this->sync_message($rel);
                         }
                     }else{
                         $status = 'pending';
@@ -288,6 +283,32 @@ class InstaWP_Rest_Apis{
         );
     }
 
+    /**
+     * This function is for upload media which are coming form content.
+     */
+    public function upload_content_media($media = null, $post_id = null){
+        $media = json_decode(reset($media));
+        $post = get_post($post_id); 
+        $content = $post->post_content;
+        $new = $old = [];              
+        if(!empty($media)){
+            foreach($media as $v){
+                $v = (array) $v;    
+                if(isset($v['attachment_id']) && isset($v['attachment_url'])){
+                    $attachment_id = $this->insert_attachment($v['attachment_id'],$v['attachment_url']);
+                    $new[] = wp_get_attachment_url($attachment_id); 
+                    $old[] = $v['attachment_url'];
+                } 
+            }
+            $newContent = str_replace($old, $new, $content); #str_replace(old,new,str)
+            $arg = array(
+                'ID'            => $post_id,
+                'post_content'  => $newContent,
+            );
+            wp_update_post( $arg );
+        }
+    } 
+
     public function notExistMsg(){
         return "ID is not exists.";
     }
@@ -324,10 +345,28 @@ class InstaWP_Rest_Apis{
     public function add_update_postmeta($meta_data = null, $post_id = null){
         if(!empty($meta_data) && is_array($meta_data)){
             foreach($meta_data as $k => $v){
-                if ( metadata_exists('post',$post_id,$k) ) {
-                    update_post_meta($post_id,$k,$v[0]);   
-                }else{
-                    add_post_meta($post_id,$k,$v[0]);
+                if(isset($v[0])){
+                    $checkSerialize = @unserialize($v[0]);
+                    $metaVal = ($checkSerialize !== false || $v[0] === 'b:0;') ? unserialize($v[0]) : $v[0];
+                    if ( metadata_exists('post',$post_id,$k) ) {
+                        update_post_meta($post_id,$k,$metaVal);   
+                    }else{
+                        add_post_meta($post_id,$k,$metaVal);
+                    }
+                }
+            }
+            //if _elementor_css this key not existing then it's giving a error.
+            if(array_key_exists('_elementor_version',$meta_data)){
+                if(!array_key_exists('_elementor_css',$meta_data)){
+                    $elementor_css = [
+                        'time' => time(),
+                        'fonts' => [],
+                        'icons' => [],
+                        'dynamic_elements_ids' => [],
+                        'status' => 'empty',
+                        'css' => ''
+                    ];
+                    add_post_meta($post_id,'_elementor_css',$elementor_css);
                 }
             }
         }
@@ -390,9 +429,11 @@ class InstaWP_Rest_Apis{
                 'post_content' => '',
                 'post_status' => 'inherit'
             );
+            require_once(ABSPATH . "wp-admin" . '/includes/image.php');
+            require_once(ABSPATH . "wp-admin" . '/includes/file.php');
+            require_once(ABSPATH . "wp-admin" . '/includes/media.php');
             $attachment_id = wp_insert_attachment( $attachment, $upload_file['file'], $parent_post_id );
             if (!is_wp_error($attachment_id)) {
-                require_once(ABSPATH . "wp-admin" . '/includes/image.php');
                 $attachment_data = wp_generate_attachment_metadata( $attachment_id, $upload_file['file'] );
                 wp_update_attachment_metadata( $attachment_id,  $attachment_data );
             }
@@ -414,10 +455,11 @@ class InstaWP_Rest_Apis{
             'sync_response' => '',
             'direction' => $dir,
             'status' => $status,
-            'user_id' => $bodyArr->upload_wp_user,
-            'changes_sync_id' => $bodyArr->sync_id,
+            'user_id' => isset($bodyArr->upload_wp_user) ? $bodyArr->upload_wp_user : '',
+            'changes_sync_id' => isset($bodyArr->sync_id) ? $bodyArr->sync_id : '',
             'sync_message' => $message,
             'source_connect_id' => '',
+            'source_url' => isset($bodyArr->source_url) ? $bodyArr->source_url : '',
             'date' => $date,
         ];
         $InstaWP_db->insert($tables['sh_table'],$data);

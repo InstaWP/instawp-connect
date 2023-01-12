@@ -241,6 +241,7 @@ function instawp_create_table(){
             changes_sync_id int(20) NOT NULL,
             sync_message varchar(128) NOT NULL,
             source_connect_id int(20) NOT NULL,
+            source_url varchar(128),
             date datetime NOT NULL,
             PRIMARY KEY  (id)
             ) ";

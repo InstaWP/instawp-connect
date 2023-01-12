@@ -244,7 +244,6 @@ class InstaWP_Change_Event_Filters {
             'status' => 'pending',
             'synced_message' => ''
         ];
-        
         $InstaWP_db->insert($tables['ch_table'],$data);
     }
 
@@ -281,7 +280,7 @@ class InstaWP_Change_Event_Filters {
         }
     }
 
-    public function eventDataUpdated($event_name = null, $event_slug = null, $post = null, $post_id = null, $id = null){
+    public function eventDataUpdated($event_name = null, $event_slug = null, $post = null,      $post_id = null, $id = null){
         $InstaWP_db = new InstaWP_DB();
         $tables = $InstaWP_db->tables;
         $uid = get_current_user_id();
@@ -292,6 +291,8 @@ class InstaWP_Change_Event_Filters {
         $featured_image_id = get_post_thumbnail_id($post_id); 
         $featured_image_url = get_the_post_thumbnail_url($post_id);
         $taxonomies = $this->get_taxonomies_items($post_id);
+        $media = $this->get_media_from_content($post_content);
+
         #Data Array
         $data = [
             'event_name' => $event_name,
@@ -299,7 +300,7 @@ class InstaWP_Change_Event_Filters {
             'event_type' => isset($postData->post_type) ? $postData->post_type : '',
             'source_id' => isset($post_id) ? $post_id : '',
             'title' => isset($postData->post_title) ? $postData->post_title : '',
-            'details' => json_encode(['content' => $post_content,'posts' => $postData,'postmeta' => get_post_meta($post_id),'featured_image' => ['featured_image_id'=>$featured_image_id,'featured_image_url' => $featured_image_url],'taxonomies' => $taxonomies]),
+            'details' => json_encode(['content' => $post_content,'posts' => $postData,'postmeta' => get_post_meta($post_id),'featured_image' => ['featured_image_id'=>$featured_image_id,'featured_image_url' => $featured_image_url],'taxonomies' => $taxonomies,'media' => $media]),
             'user_id' => $uid,
             'date' => $date,
             'prod' => '',
@@ -314,6 +315,7 @@ class InstaWP_Change_Event_Filters {
             array( 'id' => $id )
         );
     }
+    
     /**
      * Function for `after_delete_post` action-hook.
      * 
@@ -359,7 +361,9 @@ class InstaWP_Change_Event_Filters {
         $this->addPostData($event_name,$event_slug,$post,$post_id);
     }
 
-    #post data add
+    /**
+     * Post data add 
+     */
     public function addPostData($event_name = null, $event_slug = null, $post = null, $post_id = null){
         $post_id = isset($post_id) ? $post_id : $post->ID;
         $postData = get_post($post_id);
@@ -370,11 +374,37 @@ class InstaWP_Change_Event_Filters {
         $source_id = isset($post_id) ? $post_id : '';
         $title = isset($postData->post_title) ? $postData->post_title : '';
         $taxonomies = $this->get_taxonomies_items($post_id);
-        $details = json_encode(['content' => $post_content,'posts' => $postData,'postmeta' => get_post_meta($post_id),'featured_image' => ['featured_image_id'=>$featured_image_id,'featured_image_url' => $featured_image_url],'taxonomies' => $taxonomies]);
+        $media = $this->get_media_from_content($post_content);
+        $details = json_encode(['content' => $post_content,'posts' => $postData,'postmeta' => get_post_meta($post_id),'featured_image' => ['featured_image_id'=>$featured_image_id,'featured_image_url' => $featured_image_url],'taxonomies' => $taxonomies,'media' => $media]);
         $this->eventDataAdded($event_name,$event_slug,$event_type,$source_id,$title,$details);
     }
 
-    #Taxonomy
+    /**
+     * Get media from content 
+     */
+    public function get_media_from_content($content = null){
+        #find media form content.
+        preg_match_all('!(https?:)?//\S+\.(?:jpe?g|jpg|png|gif|mp4|pdf|doc|docx|xls|xlsx|csv|txt|rtf|html|zip|mp3|wma|mpg|flv|avi)!Ui',$content, $match);
+        $media = [];
+        if(isset($match[0])){
+            $attachment_urls = array_unique($match[0]);        
+            foreach($attachment_urls as $attachment_url){
+                $attachment_id = attachment_url_to_postid($attachment_url);
+                if(isset($attachment_id) && !empty($attachment_id)){ 
+                    #It's check media exist or not 
+                    $media[] = [
+                        'attachment_url' => $attachment_url,
+                        'attachment_id' => attachment_url_to_postid($attachment_url)
+                    ];
+                } 
+            }
+        }
+        return json_encode($media);
+    } 
+
+    /**
+     * Taxonomy
+     */
     public function addTaxonomyData($event_name = null, $event_slug = null, $term_id = null, $tt_id = null, $taxonomy = null, $args= null){
         $title = $args['name'];
         $details = json_encode($args);
@@ -403,7 +433,9 @@ class InstaWP_Change_Event_Filters {
         $InstaWP_db->insert($tables['ch_table'],$data);
     }
 
-    #Get taxonomies items
+    /**
+     * Get taxonomies items
+     */
     public function get_taxonomies_items($post_id = null){        
         $taxonomies = get_post_taxonomies($post_id);
         $items = [];
