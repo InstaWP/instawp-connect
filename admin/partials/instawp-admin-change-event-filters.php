@@ -53,7 +53,83 @@ class InstaWP_Change_Event_Filters {
             add_action( 'delete_'.$taxonomy, array( $this,'deleteTaxonomyAction'), 10, 4 );
             add_action( 'edit_'.$taxonomy, array( $this,'editTaxonomyAction'), 10, 3 );
         }
+
+        #Customizer 
+        add_action( 'customize_save_after',array($this,'customizeSaveAfter'));
     }
+
+    /**
+     * Customizer settings
+     */
+    function customizeSaveAfter($manager){
+        global $wpdb;
+        $InstaWP_db = new InstaWP_DB();
+        $tables = $InstaWP_db->tables;
+        $mods = get_theme_mods();
+
+        $data['custom_logo'] = [
+                                'id' => $mods['custom_logo'],
+                                'url' => wp_get_attachment_url($mods['custom_logo'])
+                            ];
+
+        $data['background_image'] = [
+                                'id' => attachment_url_to_postid($mods['background_image']),
+                                'url' => $mods['background_image'],
+                                'background_preset' => isset($mods['background_preset']) ? $mods['background_preset'] : '',
+                                'background_position_x' => isset($mods['background_position_x']) ? $mods['background_position_x'] : '',
+                                'background_position_y' => isset($mods['background_position_y']) ? $mods['background_position_y'] : '',
+                                'background_size' => isset($mods['background_size']) ? $mods['background_size'] : '',
+                                'background_repeat' => isset($mods['background_repeat']) ? $mods['background_repeat'] : '',
+                                'background_attachment' => isset($mods['background_attachment']) ? $mods['background_attachment'] : '',
+                            ];
+
+        $data['background_color'] = $mods['background_color'];
+        $data['custom_css_post'] = wp_get_custom_css_post();
+        $data['nav_menu_locations'] = $mods['nav_menu_locations']; 
+        $data['site_title'] = get_bloginfo('name');
+        $data['tagline'] = get_bloginfo('description');
+        
+        $data['site_icon'] = [
+            'id' => get_option('site_icon'),
+            'url' => wp_get_attachment_url(get_option('site_icon'))
+        ];
+
+        $event_name = 'customizer changes';
+        $event_slug = 'customizer_changes';
+        $event_type = 'customizer';
+        $source_id = '';
+        $title = 'customizer changes';
+        $details = json_encode($data);
+
+        $customizer = $InstaWP_db->checkCustomizerChanges($tables['ch_table']);
+        $date = date('Y-m-d H:i:s');
+        if(!empty($customizer)){
+            $customize = reset($customizer);
+            #Data Array
+            $data = [
+                'event_name' => $event_name,
+                'event_slug' => $event_slug,
+                'event_type' => $event_type,
+                'source_id' => $source_id,
+                'title' => $title,
+                'details' => $details,
+                'user_id' => get_current_user_id(),
+                'date' => $date,
+                'prod' => '',
+                'status' => 'pending',
+                'synced_message' => ''
+            ];
+
+            $wpdb->update( 
+                $tables['ch_table'], 
+                $data, 
+                array( 'id' => $customize->id )
+            ); 
+        }else{
+            $this->eventDataAdded($event_name,$event_slug,$event_type,$source_id,$title,$details);
+        }
+    }
+ 
     /**
      * Function for `edit_(taxonomy)` action-hook.
      * 
@@ -121,6 +197,7 @@ class InstaWP_Change_Event_Filters {
         $details = $paged;
         $this->pluginThemeEvents($event_name,$event_slug,$details,'theme');
     }
+
     /**
      * Function for `install_themes_upload` action-hook.
      * 
@@ -134,6 +211,7 @@ class InstaWP_Change_Event_Filters {
         $details = $paged;
         $this->pluginThemeEvents($event_name,$event_slug,$details,'theme');
     }
+
     /**
      * Function for `install_themes_new` action-hook.
      * 
@@ -172,6 +250,7 @@ class InstaWP_Change_Event_Filters {
      *
      * @return void
      */
+
     function switchThemeAction( $new_name, $new_theme, $old_theme ){
         $event_name = 'Switch Theme';
         $event_slug = 'switch_theme';
@@ -292,7 +371,8 @@ class InstaWP_Change_Event_Filters {
         $featured_image_url = get_the_post_thumbnail_url($post_id);
         $taxonomies = $this->get_taxonomies_items($post_id);
         $media = $this->get_media_from_content($post_content);
-
+        $elementor_css = $this->get_elementor_css($post_id);
+        
         #Data Array
         $data = [
             'event_name' => $event_name,
@@ -300,7 +380,7 @@ class InstaWP_Change_Event_Filters {
             'event_type' => isset($postData->post_type) ? $postData->post_type : '',
             'source_id' => isset($post_id) ? $post_id : '',
             'title' => isset($postData->post_title) ? $postData->post_title : '',
-            'details' => json_encode(['content' => $post_content,'posts' => $postData,'postmeta' => get_post_meta($post_id),'featured_image' => ['featured_image_id'=>$featured_image_id,'featured_image_url' => $featured_image_url],'taxonomies' => $taxonomies,'media' => $media]),
+            'details' => json_encode(['content' => $post_content,'posts' => $postData,'postmeta' => get_post_meta($post_id),'featured_image' => ['featured_image_id'=>$featured_image_id,'featured_image_url' => $featured_image_url],'taxonomies' => $taxonomies,'media' => $media,'elementor_css' => $elementor_css]),
             'user_id' => $uid,
             'date' => $date,
             'prod' => '',
@@ -375,7 +455,8 @@ class InstaWP_Change_Event_Filters {
         $title = isset($postData->post_title) ? $postData->post_title : '';
         $taxonomies = $this->get_taxonomies_items($post_id);
         $media = $this->get_media_from_content($post_content);
-        $details = json_encode(['content' => $post_content,'posts' => $postData,'postmeta' => get_post_meta($post_id),'featured_image' => ['featured_image_id'=>$featured_image_id,'featured_image_url' => $featured_image_url],'taxonomies' => $taxonomies,'media' => $media]);
+        $elementor_css = $this->get_elementor_css($post_id);
+        $details = json_encode(['content' => $post_content,'posts' => $postData,'postmeta' => get_post_meta($post_id),'featured_image' => ['featured_image_id'=>$featured_image_id,'featured_image_url' => $featured_image_url],'taxonomies' => $taxonomies,'media' => $media,'elementor_css' => $elementor_css]);
         $this->eventDataAdded($event_name,$event_slug,$event_type,$source_id,$title,$details);
     }
 
@@ -451,5 +532,16 @@ class InstaWP_Change_Event_Filters {
         }
         return $items;
     }
+
+    /*
+    * get post css from elementor files 'post-{post_id}.css'
+    */
+    public function get_elementor_css($post_id = null){
+        $upload_dir = wp_upload_dir();
+        $filename = 'post-'.$post_id.'.css';
+        $filePath = $upload_dir['basedir'].'/elementor/css/'.$filename;
+        $fileData = file_get_contents($filePath);
+        return $fileData;
+    }  
 }
 new InstaWP_Change_Event_Filters();   

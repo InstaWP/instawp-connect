@@ -47,7 +47,7 @@ class InstaWP_Rest_Apis{
      * @param array $data Options for the function.
      * @return string|null 
      */
-    public function events_receiver($req) {        
+    public function events_receiver($req) {  
         $body = $req->get_body();
         $bodyArr = json_decode($body);
         $encrypted_contents = json_decode($bodyArr->encrypted_contents);
@@ -58,6 +58,7 @@ class InstaWP_Rest_Apis{
             $count = 1;
             $progress_status = 'pending';
             $changes = $sync_response = [];
+
             foreach($encrypted_contents as $v){
                 $source_id = (isset($v->source_id) && !empty($v->source_id)) ? intval($v->source_id) : null;
                 /*
@@ -209,7 +210,6 @@ class InstaWP_Rest_Apis{
                 /*
                 * Taxonomy Oprations
                 */
-      
                 //create and update
                 if(isset($v->event_slug) && ($v->event_slug == 'create_taxonomy' || $v->event_slug == 'edit_taxonomy')){
                     if(isset($source_id)){
@@ -252,7 +252,64 @@ class InstaWP_Rest_Apis{
                     #changes
                     $changes[$v->event_type] = $changes[$v->event_type] + 1; 
                 }
-               
+                
+                /**
+                 * Customizer settings update
+                 */
+                
+                if(isset($v->event_slug) && $v->event_slug == 'customizer_changes'){
+                    $details = isset($v->details) ? $v->details : '';
+                   
+                    #custom logo
+                    $this->customizer_custom_logo($details->custom_logo);
+        
+                    #background image
+                    $this->customizer_background_image($details->background_image);
+
+                    #site icon
+                    $this->customizer_site_icon($details->site_icon);
+                    
+                    #background color
+                    if(isset($details->background_color) && !empty($details->background_color)){
+                        set_theme_mod( 'background_color', $details->background_color );
+                    } 
+
+                    #Site Title
+                    update_option( 'name', $details->site_title );
+
+                    #Tagline
+                    update_option( 'description', $details->tagline );
+
+                    #nav menu locations
+                    if(!empty($details->nav_menu_locations)){
+                        $menu_array = (array) $details->nav_menu_locations;
+                        set_theme_mod( 'nav_menu_locations', $menu_array );
+                    }
+
+                    #Custom css post id
+                    $custom_css_post = (array) $details->custom_css_post;
+                    if(!empty($details->custom_css_post)){
+                        if (get_post_status($custom_css_post['ID']) ) {
+                            #The post exists,Then update
+                            $postData = $this->postData($custom_css_post,'update');
+                            wp_update_post($postData);
+                        
+                        } else {
+                            $postData = $this->postData($custom_css_post,'insert');
+                            #The post does not exist,Then insert
+                            wp_insert_post($postData); 
+                        }
+                        set_theme_mod( 'custom_css_post_id', $custom_css_post['ID'] );
+                    }
+
+                    #message 
+                    $message = 'Sync successfully.';
+                    $status = 'completed';
+                    $sync_response[] = $this->sync_opration_response($status,$message,$v);
+                    #changes
+                    $changes[$v->event_type] = $changes[$v->event_type] + 1;
+                }
+                
                 /*
                 * Update api for cloud
                 */
@@ -281,6 +338,79 @@ class InstaWP_Rest_Apis{
                 'sync_id' => $sync_id
             ) 
         );
+    }
+
+    public function customizer_site_icon($data = null){
+        $attachment_id = $data->id;
+        $url = $data->url;
+        if(isset($attachment_id) && !empty($attachment_id)){
+            $attUrl = wp_get_attachment_url(intval($attachment_id));
+            if(!empty($attUrl)){
+                update_option('site_icon',$attachment_id);
+            }else{
+                $attachment_id = $this->insert_attachment($attachment_id,$url);
+                update_option('site_icon',$attachment_id);
+            }
+        }else{
+            update_option('site_icon',$attachment_id);
+        }
+    }
+
+    public function customizer_custom_logo($data){
+        $attachment_id = $data->id;
+        $url = $data->url;
+        if(isset($attachment_id) && !empty($attachment_id)){
+            $attUrl = wp_get_attachment_url(intval($attachment_id));
+            if(!empty($attUrl)){
+                set_theme_mod( 'custom_logo', $attachment_id );
+            }else{
+                $attachment_id = $this->insert_attachment($attachment_id,$url);
+                set_theme_mod( 'custom_logo', $attachment_id );
+            }
+        }else{
+            set_theme_mod( 'custom_logo', $attachment_id );
+        }
+    }
+
+    public function customizer_background_image($data = null){
+        $attachment_id = $data->id;
+        $url = $data->url;
+        if(isset($attachment_id) && !empty($attachment_id)){
+            $attUrl = wp_get_attachment_url(intval($attachment_id));
+            if(!empty($attUrl)){
+                set_theme_mod( 'background_image', $attUrl );
+            }else{
+                $attachment_id = $this->insert_attachment($attachment_id,$url);
+                $attachment_url = wp_get_attachment_url(intval($attachment_id));
+                set_theme_mod( 'background_image', $attachment_url ); 
+            }
+        }else{
+            set_theme_mod( 'background_image', $url );
+        }
+        
+        if(isset($data->background_preset) && !empty($data->background_preset)){
+            set_theme_mod( 'background_preset', $data->background_preset );
+        }
+
+        if(isset($data->background_size) && !empty($data->background_size)){
+            set_theme_mod( 'background_size', $data->background_size );
+        }
+        
+        if(isset($data->background_repeat) && !empty($data->background_repeat)){
+            set_theme_mod( 'background_repeat', $data->background_repeat );
+        }
+        
+        if(isset($data->background_attachment) && !empty($data->background_attachment)){
+            set_theme_mod( 'background_attachment', $data->background_attachment );
+        }
+        
+        if(isset($data->background_position_x) && !empty($data->background_position_x)){
+            set_theme_mod( 'background_position_x', $data->background_position_x );
+        }
+        
+        if(isset($data->background_position_y) && !empty($data->background_position_y)){
+            set_theme_mod( 'background_position_y', $data->background_position_y );
+        }
     }
 
     /**
@@ -549,6 +679,18 @@ class InstaWP_Rest_Apis{
     function get_api_key(){
         $instawp_api_options = get_option('instawp_api_options'); 
         return $instawp_api_options['api_key'];
+    }
+
+    /*
+    * Create elementor css file 'post-{post_id}.css'
+    */
+    public function create_elementor_css_file($data = null, $post_id = null){
+        $upload_dir = wp_upload_dir();
+        $filename = 'post-'.$post_id.'.css';
+        $filePath = $upload_dir['basedir'].'/elementor/css/'.$filename;
+        $file = fopen($filePath, "w+");//w+,w
+        fwrite($file, $data);
+        fclose($file);
     }
 }
 new InstaWP_Rest_Apis();
