@@ -52,10 +52,10 @@ class InstaWP_Sync_History_Table extends WP_List_Table {
                     'sync_message' => $v->sync_message,
                     'changes' => $ch_list,
                     'direction' => $dir,
-                    'status' => $v->status,
                     'total_events' => $total_events,
                     'changes_sync_id' => $v->changes_sync_id,
-                    'sync' => '<button type="button" id="btn-sync-'.$v->id.'" data-id="'.$v->id.'" class="two-way-sync-btn">Sync</button> <span class="sync-loader"></span><span class="sync-success" style="display:none;">Done</span>',
+                    'status' => $v->status,
+                    'source_url' => $v->source_url,
                 ];
             }
         }  
@@ -85,6 +85,7 @@ class InstaWP_Sync_History_Table extends WP_List_Table {
           'total_events' => 'Total events',
           'changes_sync_id' => 'Sync id',
           'status' => 'Status',
+          'source_url' => 'Source url',
         );
         return $columns;
     }
@@ -97,6 +98,7 @@ class InstaWP_Sync_History_Table extends WP_List_Table {
             'total_events'   => array('total_events', false),
             'changes_sync_id'   => array('changes_sync_id', false),
             'status'   => array('source_id', true),
+            'source_url'   => array('source_id', false),
       );
       return $sortable_columns;
     }
@@ -140,7 +142,8 @@ class InstaWP_Sync_History_Table extends WP_List_Table {
             case 'direction':
             case 'total_events':
             case 'changes_sync_id':
-            case 'status':      
+            case 'status':
+            case 'source_url':      
             return $item[ $column_name ];
             default:
             break;

@@ -1,7 +1,6 @@
 jQuery(document).ready(function ($) {
     //selected sync btn...
-    
-    
+
     //bulk sync btn...
     $(document).on('click', '.bulk-sync-popup-btn', function(){
         $('.bulk-sync-popup').show();
@@ -14,27 +13,17 @@ jQuery(document).ready(function ($) {
         $('.bulk-sync-popup').hide();
     });
     
-    //get Selected sync...
-   
-    jQuery('.sync_events_form tbody').on('click','input[type=checkbox]',function(){
-        var sync_selected_arr = [];
-        jQuery(".sync_events_form tbody input[type=checkbox]:checked").each(function() {
-             sync_selected_arr.push(jQuery(this).val());
-        });
-		if (sync_selected_arr.length > 0) {
-			jQuery('.selected-sync-popup-btn').show();
-		}else{
-			jQuery('.selected-sync-popup-btn').hide();
-		}
-        var sync_selected_str = sync_selected_arr.toString(); 
-        $('#selected_events').val(sync_selected_str);
-        var events_info = 'Total selected events: '+sync_selected_arr.length
-        $('.selected-events-info').html(events_info);
-        console.log(sync_selected_str);
+    //Get Selected sync...
+    jQuery('.sync_events_form thead').on('click','input[type=checkbox]',function(){
+        console.log(jQuery(this).val());
+    });
 
+    jQuery('.sync_events_form tbody').on('click','input[type=checkbox]',function(){
+        getEventsID();
         // var event_slug = jQuery(this).parents('tr').find('.event_slug').text();
 	    // slug_arr.push(event_slug);
     });
+
 
     // slug_counts = {};
     // jQuery.each(slug_arr, function(key,value) {
@@ -151,4 +140,19 @@ jQuery(document).ready(function ($) {
     } 
 });
 
+function getEventsID(){
+    var sync_selected_arr = [];
+    jQuery(".sync_events_form tbody input[type=checkbox]:checked").each(function() {
+         sync_selected_arr.push(jQuery(this).val());
+    });
+    if (sync_selected_arr.length > 0) {
+        jQuery('.selected-sync-popup-btn').show();
+    }else{
+        jQuery('.selected-sync-popup-btn').hide();
+    }
+    var sync_selected_str = sync_selected_arr.toString(); 
+    jQuery('#selected_events').val(sync_selected_str);
+    var events_info = 'Total selected events: '+sync_selected_arr.length
+    jQuery('.selected-events-info').html(events_info);
+}
 

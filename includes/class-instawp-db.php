@@ -1,5 +1,4 @@
 <?php
-
 /**
  * 
  * Define the database methods
@@ -136,6 +135,7 @@ class InstaWP_DB{
         $results = $this->wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE $key='".$val."'"); 
         return $results; 
     }
+    
     public function get_all_count($table_name = null){
         $results = $this->wpdb->get_var("SELECT COUNT(*) FROM $table_name"); 
         return $results; 
@@ -144,8 +144,7 @@ class InstaWP_DB{
     /*
     * Get traking events via event slug 
     */
-    public function trakingEventsBySlug($table_name = null,$event_slug = null,$event_type = null, $status = null){
-        
+    public function trakingEventsBySlug($table_name = null,$event_slug = null,$event_type = null, $status = null){      
         if(isset($event_slug)){ //with slug
             $results = $this->wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE `event_slug`='".$event_slug."' AND `event_type`='".$event_type."' AND `status`='".$status."'"); 
         }else{ //only with event_type
@@ -157,8 +156,18 @@ class InstaWP_DB{
     /*
     * Existing update event for source id
     */
-    function existing_update_events($table_name = null, $event_slug = null, $source_id = null){
+    public function existing_update_events($table_name = null, $event_slug = null, $source_id = null){
         $results = $this->wpdb->get_var("SELECT id FROM $table_name WHERE `event_slug`='".$event_slug."' AND `source_id`='".$source_id."'"); 
         return $results;
+    }
+
+    public function get_event_type_counts($table_name = null, $event_type = null){
+        $results = $this->wpdb->get_results("SELECT `event_type` ,COUNT(event_type) as type_count FROM $table_name GROUP BY `event_type` HAVING COUNT(event_type) >= 1 ORDER BY COUNT(event_type)"); 
+        return $results; 
+    }
+
+    public function checkCustomizerChanges($table_name = null){
+        $results = $this->wpdb->get_results("SELECT `id` FROM $table_name WHERE `event_slug`='customizer_changes'");  
+        return $results; 
     }
 }
