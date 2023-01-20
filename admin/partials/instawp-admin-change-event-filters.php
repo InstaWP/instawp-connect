@@ -194,7 +194,7 @@ class InstaWP_Change_Event_Filters {
     function installThemesUpdatedAction( $paged ){
         $event_name = 'install themes updated';
         $event_slug = 'install_themes_updated';
-        $details = $paged;
+        $details = ['Name' => '','Stylesheet' => '','Paged' => $paged];
         $this->pluginThemeEvents($event_name,$event_slug,$details,'theme');
     }
 
@@ -208,7 +208,7 @@ class InstaWP_Change_Event_Filters {
     function installThemesUploadAction( $paged ){
         $event_name = 'install themes upload';
         $event_slug = 'install_themes_upload';
-        $details = $paged;
+        $details = ['Name' => '','Stylesheet' => '','Paged' => $paged];
         $this->pluginThemeEvents($event_name,$event_slug,$details,'theme');
     }
 
@@ -222,7 +222,7 @@ class InstaWP_Change_Event_Filters {
     function installThemesNewAction( $paged ){
         $event_name = 'install themes new';
         $event_slug = 'install_themes_new';
-        $details = $paged;
+        $details = ['Name' => '','Stylesheet' => '','Paged' => $paged];
         $this->pluginThemeEvents($event_name,$event_slug,$details,'theme');
     }
 
@@ -237,7 +237,7 @@ class InstaWP_Change_Event_Filters {
     function deletedThemeAction( $stylesheet, $deleted ){
         $event_name = 'Deleted Theme';
         $event_slug = 'deleted_theme';
-        $details = $stylesheet;
+        $details = ['Name' => '','Stylesheet' => $stylesheet,'Paged' => ''];
         $this->pluginThemeEvents($event_name,$event_slug,$details,'theme');
     }
 
@@ -254,7 +254,7 @@ class InstaWP_Change_Event_Filters {
     function switchThemeAction( $new_name, $new_theme, $old_theme ){
         $event_name = 'Switch Theme';
         $event_slug = 'switch_theme';
-        $details = '';
+        $details = ['Name' => $new_name,'Stylesheet' => '','Paged' => ''];
         $this->pluginThemeEvents($event_name,$event_slug,$details,'theme');
     }
 
@@ -285,7 +285,9 @@ class InstaWP_Change_Event_Filters {
         $event_name = 'Deactivate Plugin';
         $event_slug = 'deactivate_plugin';
         $details = $plugin;
-        $this->pluginThemeEvents($event_name,$event_slug,$details,'plugin');
+        if($details != 'instawp-connect/instawp-connect.php'){
+            $this->pluginThemeEvents($event_name,$event_slug,$details,'plugin');
+        }
     }
 
     /**
@@ -300,7 +302,9 @@ class InstaWP_Change_Event_Filters {
         $event_name = 'Activate Plugin';
         $event_slug = 'activate_plugin';
         $details = $plugin;
-        $this->pluginThemeEvents($event_name,$event_slug,$details,'plugin');
+        if($details != 'instawp-connect/instawp-connect.php'){
+            $this->pluginThemeEvents($event_name,$event_slug,$details,'plugin');
+        }
     }
 
     public function pluginThemeEvents($event_name,$event_slug,$details,$type){
@@ -308,6 +312,15 @@ class InstaWP_Change_Event_Filters {
         $tables = $InstaWP_db->tables;
         $uid = get_current_user_id();
         $date = date('Y-m-d H:i:s');
+        if($type == 'plugin'){
+            if( ! function_exists('get_plugin_data') ){
+                require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
+            }
+            $plugin_data = get_plugin_data( WP_PLUGIN_DIR.'/'.$details );
+            $title = $plugin_data['Name'];
+        }else{
+            $title = $details['Name'];
+        }
 
         #Data Array
         $data = [
@@ -315,7 +328,7 @@ class InstaWP_Change_Event_Filters {
             'event_slug' => $event_slug,
             'event_type' => $type,
             'source_id' => '',
-            'title' => '',
+            'title' => $title,
             'details' => $details,
             'user_id' => $uid,
             'date' => $date,
@@ -471,12 +484,14 @@ class InstaWP_Change_Event_Filters {
             $attachment_urls = array_unique($match[0]);        
             foreach($attachment_urls as $attachment_url){
                 $attachment_id = attachment_url_to_postid($attachment_url);
-                if(isset($attachment_id) && !empty($attachment_id)){ 
-                    #It's check media exist or not 
-                    $media[] = [
-                        'attachment_url' => $attachment_url,
-                        'attachment_id' => attachment_url_to_postid($attachment_url)
-                    ];
+                if (strpos($attachment_url, $_SERVER['HTTP_HOST']) !== false) {
+                    #if(isset($attachment_id) && !empty($attachment_id)){ 
+                        #It's check media exist or not 
+                        $media[] = [
+                            'attachment_url' => $attachment_url,
+                            'attachment_id' => attachment_url_to_postid($attachment_url)
+                        ];
+                    #}
                 } 
             }
         }
