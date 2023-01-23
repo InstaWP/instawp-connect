@@ -58,7 +58,9 @@ jQuery(document).ready(function ($) {
     //Single sync..
     $(document).on('click', '.two-way-sync-btn', function(){
         var sync_ids = $(this).attr('data-id');
+        var sync_id = $(this).attr('id');
         const sync_message = 'This is a single sync.';
+        $( "#"+sync_id ).attr('disabled','disabled');
         //Initiate Step 2
         $('#btn-sync-'+sync_ids).parent().find('.sync-loader').html('<img src="'+ajax_obj.plugin_images_url+'/loaders/loader.gif">');
         packThings(sync_message,'single_sync',sync_ids);
@@ -107,11 +109,12 @@ jQuery(document).ready(function ($) {
                 if(data.success === true){
                     const synced_status =  data.data.res_data.status;
                     const synced_message =  data.data.res_data.synced_message;
+                    
                     $('#btn-sync-'+sync_ids).parent().find('.sync-loader').html('');
                     $('#btn-sync-'+sync_ids).parent().find('.column-synced_message').html(synced_message);
                     $('#btn-sync-'+sync_ids).parent().parent().find('.column-synced_message').html(synced_message);
                     $('#btn-sync-'+sync_ids).parent().parent().find('.synced_status').html(synced_status);
-                    $('#btn-sync-'+sync_ids).remove();
+                    $('#btn-sync-'+sync_ids).parent().html('<div class="single-sync-btn"><p class="sync_completed">Synced</p></div>');
                 }else{
                     $('#btn-sync-'+sync_ids).parent().find('.sync-loader').html('');
 	                $('#btn-sync-'+sync_ids).parent().find('.sync-success').html(data.message);  
@@ -122,18 +125,25 @@ jQuery(document).ready(function ($) {
                     $(".sync_process .step-2")
                     .removeClass('process_inprogress')
                     .addClass('process_complete');
+                    
                     //Initiated Step3
                     $(".sync_process .step-3")
                         .removeClass('process_pending')
-                        .addClass('process_inprogress'); 
+                        .addClass('process_inprogress');
+                         
                     //Set TimeOut
                     setTimeout( function() { 
                         $(".sync_process .step-3")
                         .removeClass('process_inprogress')
                         .addClass('process_complete');
+                        $('.bulk-sync-btn').html('<a class="sync-complete" href="javascript:void(0);">Sync Complete</a>');
+                        setTimeout( function() {
+                            $('.bulk-sync-popup').hide();
+                        }, 1000);
                     }, 2000);
+                    
                 }else{
-                    $('.sync_error_success_msg').html('<p class="error">'+data.message+'</p>');
+                    $('.sync_error_success_msg').html('<p class="error">'+data.message+'</p>');  
                 }
             }
         });

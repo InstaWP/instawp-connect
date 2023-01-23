@@ -38,7 +38,7 @@ class InstaWP_Change_Event_Table extends WP_List_Table {
         $data = [];
         if(!empty($rel) && is_array($rel)){
             foreach($rel as $v){
-                $btn = ($v->status != 'completed') ? '<button type="button" id="btn-sync-'.$v->id.'" data-id="'.$v->id.'" class="two-way-sync-btn">Sync</button> <span class="sync-loader"></span><span class="sync-success"></span>' : '<p class="sync_completed">Synced</p>'; 
+                $btn = ($v->status != 'completed') ? '<button type="button" id="btn-sync-'.$v->id.'" data-id="'.$v->id.'" class="two-way-sync-btn">Sync changes</button> <span class="sync-loader"></span><span class="sync-success"></span>' : '<p class="sync_completed">Synced</p>'; 
                 $data[] = [
                     'ID' => $v->id,
                     'event_name' => $v->event_name,
@@ -175,7 +175,11 @@ class InstaWP_Change_Event_Table extends WP_List_Table {
             $html .= '</select>';
 			submit_button( __( 'Filter' ), '', 'filter_action', false, array( 'id' => 'post-query-submit' ) );
 		}
-		$html .= '</div><button type="button" class="instawp-green-btn bulk-sync-popup-btn">Sync All</button><button type="button" class="instawp-green-btn selected-sync-popup-btn">Selcted sync</button>';
+        
+        $pendingSync = $InstaWP_db->get_with_condition($tables['ch_table'],'status','pending');
+		if(!empty($pendingSync)){
+            $html .= '</div><button type="button" class="instawp-green-btn bulk-sync-popup-btn">Sync all changes</button><button type="button" class="instawp-green-btn selected-sync-popup-btn">Selcted sync</button>';
+        }
         echo $html;
 	}
 
@@ -243,6 +247,7 @@ class InstaWP_Change_Event_Table extends WP_List_Table {
         #others
         $destination_url = get_option('instawp_sync_parent_url', '') ;
         $others = (abs($total_events) - abs($post_new+$post_delete+$post_trash));
+        
         $html = '<div class="bulk-sync-popup" data-sync-type=""> 
                 <div class="instawp-popup-main">
                     <div class="instawppopwrap">
@@ -284,8 +289,8 @@ class InstaWP_Change_Event_Table extends WP_List_Table {
                             </div>
                         </div>
                         <div class="instawp_buttons">                            
-                            <a class="cancel-btn close" href="javascript:void(0);">Cancel</a>
-                            <a class="changes-btn sync-changes-btn" href="javascript:void(0);">Sync Changes</a>
+                            <div class="bulk-close-btn"><a class="cancel-btn close" href="javascript:void(0);">Cancel</a></div>
+                            <div class="bulk-sync-btn"><a class="changes-btn sync-changes-btn" href="javascript:void(0);">Sync Changes</a></div>
                         </div>
                         <div><input type="hidden" id="selected_events" name="selected_events" value=""></div>
                     </div>

@@ -324,6 +324,12 @@ body.show {
 #wpbody-content {
     position: relative;
 }
+.sync-complete {
+    background: #005E54;
+    border-color: #005E54!important;
+    color: #fff !important;
+}
+
 /*Media css*/
 @media(max-width: 640px){
     .instawp_category {
