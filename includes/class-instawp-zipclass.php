@@ -360,10 +360,13 @@ class InstaWP_ZipClass extends instawp_Compress_Default
         }
 
         global $instawp_plugin;
-        //$instawp_plugin->restore_data->write_log('start prepare extract','notice');
-        define(PCLZIP_TEMPORARY_DIR,dirname($path));        
         
-        $instawp_plugin->restore_data->write_log('extract restore start percentage - 367 :'.$res_per,'notice');
+        //$instawp_plugin->restore_data->write_log('start prepare extract','notice');
+
+        if(!defined(PCLZIP_TEMPORARY_DIR))
+            define(PCLZIP_TEMPORARY_DIR,dirname($path));        
+        
+        $instawp_plugin->restore_data->write_log('extract restore start percentage - 367','notice');
         $ret['result'] = INSTAWP_SUCCESS;
         foreach ( $files as $file ) {
             $instawp_plugin->restore_data->write_log('start extracting file 1 - 368:'.$file,'notice');

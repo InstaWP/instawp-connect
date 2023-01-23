@@ -440,7 +440,7 @@ class InstaWP_Curl
       $useragent =  isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '' ;
       for ( $i = 0; $i < INSTAWP_REMOTE_CONNECT_RETRY_TIMES; $i++ ) {
          $args = array(             
-            'timeout'     => 0,            
+            'timeout'     => 300,            
             'download' => true,
             'decompress'     => false,
             'stream'     => false,
@@ -468,8 +468,11 @@ class InstaWP_Curl
          // $this->response = curl_exec($ch);
          // curl_close($ch);
 
+         if($this->fp)
+         fclose($this->fp);
+
          if ( !$this->response )  {
-            fclose($fp);
+
             $InstaWP_Backup_Api->instawp_log->WriteLog( json_encode( $this->response ) , 'error');
             update_option('instawp_demo_parts_error', json_encode( $this->response ) );
             return array(
@@ -481,7 +484,7 @@ class InstaWP_Curl
             //$this->_output( $output_filename,$this->response );
             // $fp = fopen($output_filename, 'w');
             // fwrite($fp, $this->response);
-            fclose($fp);
+   
             return array(
 				  'result' => INSTAWP_SUCCESS,
             );
@@ -490,8 +493,8 @@ class InstaWP_Curl
          
       }
 
-      if($fp)
-         fclose($fp);
+      if($this->fp)
+         fclose($this->fp);
 
       return array(
 		  'result' => INSTAWP_FAILED,
