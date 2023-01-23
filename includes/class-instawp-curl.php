@@ -466,34 +466,39 @@ class InstaWP_Curl
          // curl_setopt($ch, CURLOPT_FILE, $fp);
 
          // $this->response = curl_exec($ch);
+         // curl_close($ch);
 
          if ( !$this->response )  {
-            
+            fclose($fp);
             $InstaWP_Backup_Api->instawp_log->WriteLog( json_encode( $this->response ) , 'error');
             update_option('instawp_demo_parts_error', json_encode( $this->response ) );
-             return array(
-				 'result' => INSTAWP_FAILED,
-				 'error'  => curl_error($ch),
-			 );
+            return array(
+   				 'result' => INSTAWP_FAILED,
+   				 'error'  => curl_error($ch),
+   			);
          } else {
-            update_option('instawp_demo_parts', $this->response);
+            // update_option('instawp_demo_parts', $this->response);
             //$this->_output( $output_filename,$this->response );
             // $fp = fopen($output_filename, 'w');
             // fwrite($fp, $this->response);
-            // fclose($fp);
+            fclose($fp);
             return array(
-				'result' => INSTAWP_SUCCESS,
+				  'result' => INSTAWP_SUCCESS,
             );
             //return array( 'result' => INSTAWP_SUCCESS );
          }
-         curl_close($ch);
+         
       }
+
+      if($fp)
+         fclose($fp);
+
       return array(
 		  'result' => INSTAWP_FAILED,
-		  'error'  => 'Multipart upload failed. File name:',
+		  'error'  => 'Download failed, retries exhausted. File name:',
       );
       // the following lines write the contents to a file in the same directory (provided permissions etc)
-      fclose($fp);
+      
    }
    public function _output( $output_filename,$content ) {
 
