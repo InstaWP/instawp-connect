@@ -7,7 +7,7 @@
  * @wordpress-plugin
  * Plugin Name:       InstaWP Connect
  * Description:       Create 1-click staging, migration and manage your prod sites.
- * Version:           0.0.9.1
+ * Version:           0.0.9.2
  * Author:            InstaWP Team
  * Author URI:        https://instawp.com/
  * License:           GPL-3.0+
@@ -21,7 +21,7 @@ if ( ! defined( 'WPINC' ) ) {
 	die;
 }
 
-define( 'INSTAWP_PLUGIN_VERSION', '0.0.9.1' );
+define( 'INSTAWP_PLUGIN_VERSION', '0.0.9.2' );
 //
 define( 'INSTAWP_RESTORE_INIT', 'init' );
 define( 'INSTAWP_RESTORE_READY', 'ready' );
@@ -50,7 +50,7 @@ define( 'INSTAWP_MAX_BACKUP_COUNT', 7 );
 define( 'INSTAWP_DEFAULT_BACKUP_COUNT', 3 );
 define( 'INSTAWP_DEFAULT_COMPRESS_TYPE', 'zip' );
 //Max zip file size.
-define( 'INSTAWP_DEFAULT_MAX_FILE_SIZE', 200 );
+define( 'INSTAWP_DEFAULT_MAX_FILE_SIZE', 100 );
 //Instruct PclZip to use all the time temporary files to create the zip archive or not.The default value is 1.
 define( 'INSTAWP_DEFAULT_USE_TEMP', 1 );
 //Instruct PclZip to use temporary files for files with size greater than.The default value is 16M.
