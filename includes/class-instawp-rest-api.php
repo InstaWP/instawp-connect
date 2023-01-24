@@ -307,6 +307,17 @@ class InstaWP_Backup_Api {
 	}
 
 	public function config( $request ) {
+
+		// Check if the configuration is already done, then no need to do it again.
+		if ( 'yes' == get_option( 'instawp_api_key_config_completed' ) ) {
+
+			return new WP_REST_Response( array(
+				'status'     => false,
+				'message'    => esc_html__( 'Already configured', 'instawp-connect' ),
+				'connect_id' => 0,
+			) );
+		}
+
 		$parameters = $request->get_params();
 		$results    = array(
 			'status'     => false,
@@ -330,7 +341,6 @@ class InstaWP_Backup_Api {
 			$response->set_status( 200 );
 
 			return $response;
-
 		}
 		if ( ! isset( $parameters['api_key'] ) || empty( $parameters['api_key'] ) ) {
 			$this->instawp_log->WriteLog( 'Api key is required', 'error' );
@@ -346,7 +356,7 @@ class InstaWP_Backup_Api {
 		$res = $this->_config_check_key( $parameters['api_key'] );
 
 		$this->instawp_log->CloseFile();
-		if ( $res['error'] == false ) {
+		if ( ! $res['error'] ) {
 			$connect_ids = get_option( 'instawp_connect_id_options', '' );
 
 			if ( ! empty( $connect_ids ) ) {
@@ -357,6 +367,8 @@ class InstaWP_Backup_Api {
 				$results['message']    = 'Connected';
 				$results['connect_id'] = $id;
 
+				// update config check token
+				update_option( 'instawp_api_key_config_completed', 'yes' );
 			}
 		} else {
 			$results['status']     = true;
