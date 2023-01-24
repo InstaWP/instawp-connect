@@ -488,7 +488,7 @@ class InstaWP_Rest_Apis{
             //if _elementor_css this key not existing then it's giving a error.
             if(array_key_exists('_elementor_version',$meta_data)){
                 if(!array_key_exists('_elementor_css',$meta_data)){
-                    $elementor_css = [
+                    /*$elementor_css = [
                         'time' => time(),
                         'fonts' => [],
                         'icons' => [],
@@ -496,6 +496,8 @@ class InstaWP_Rest_Apis{
                         'status' => 'empty',
                         'css' => ''
                     ];
+                    */
+                    $elementor_css = [];
                     add_post_meta($post_id,'_elementor_css',$elementor_css);
                 }
             }
