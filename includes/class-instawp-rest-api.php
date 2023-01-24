@@ -329,6 +329,7 @@ class InstaWP_Backup_Api {
 
 		//$this->instawp_log->CloseFile();
 		$connect_ids = get_option( 'instawp_connect_id_options', '' );
+
 		if ( ! empty( $connect_ids ) ) {
 			if ( isset( $connect_ids['data']['id'] ) && ! empty( $connect_ids['data']['id'] ) ) {
 				$id = $connect_ids['data']['id'];
@@ -345,6 +346,7 @@ class InstaWP_Backup_Api {
 
 			return $response;
 		}
+
 		if ( ! isset( $parameters['api_key'] ) || empty( $parameters['api_key'] ) ) {
 			$this->instawp_log->WriteLog( 'Api key is required', 'error' );
 			$results['message'] = 'api key is required';
@@ -353,19 +355,24 @@ class InstaWP_Backup_Api {
 
 			return $response;
 		}
+
 		if ( isset( $parameters['api_domain'] ) ) {
 			InstaWP_Setting::set_api_domain( $parameters['api_domain'] );
 		}
+
 		$res = $this->_config_check_key( $parameters['api_key'] );
 
 		$this->instawp_log->CloseFile();
+
 		if ( ! $res['error'] ) {
 			$connect_ids = get_option( 'instawp_connect_id_options', '' );
 
 			if ( ! empty( $connect_ids ) ) {
+
 				if ( isset( $connect_ids['data']['id'] ) && ! empty( $connect_ids['data']['id'] ) ) {
 					$id = $connect_ids['data']['id'];
 				}
+
 				$results['status']     = true;
 				$results['message']    = 'Connected';
 				$results['connect_id'] = $id;
@@ -1029,7 +1036,6 @@ class InstaWP_Backup_Api {
 			'headers' => array(
 				'Authorization' => 'Bearer ' . $api_key,
 				'Accept'        => 'application/json',
-
 			),
 		) );
 		$response_code = wp_remote_retrieve_response_code( $response );
@@ -1050,6 +1056,10 @@ class InstaWP_Backup_Api {
 				$connect_options['api_key']  = $api_key;
 				$connect_options['response'] = $body;
 				update_option( 'instawp_api_options', $connect_options );
+
+				// update config check token
+				update_option( 'instawp_api_key_config_completed', 'yes' );
+
 				$this->instawp_log->WriteLog( 'Save instawp_api_options: ' . json_encode( $connect_options ), 'success' );
 				$res = $this->_config_connect( $api_key );
 			} else {
