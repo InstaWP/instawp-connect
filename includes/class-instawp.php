@@ -4951,6 +4951,7 @@ class instaWP {
 	}
 
 	public function list_tasks() {
+
 		$this->ajax_check_security( 'manage_options' );
 		try {
 			if ( isset( $_POST['backup_id'] ) ) {
