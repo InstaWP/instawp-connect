@@ -59,7 +59,6 @@ class InstaWP_Backup_Api {
 			'methods'             => 'GET',
 			'callback'            => array( $this, 'upload_status' ),
 			'permission_callback' => '__return_true',
-
 		) );
 
 		//autologin code call endpoint
@@ -141,7 +140,10 @@ class InstaWP_Backup_Api {
 	/**
 	 * Handle repsonse for login code generate
 	 * */
-	public function instawp_handle_auto_login_code( $request ) {
+	public function instawp_handle_auto_login_code( WP_REST_Request $request ) {
+
+		$this->validate_api_request( $request );
+
 		$response_array = array();
 
 		// Hashed string
@@ -203,12 +205,14 @@ class InstaWP_Backup_Api {
 	/**
 	 * Auto login url generate
 	 * */
-	public function instawp_handle_auto_login( $request ) {
-		$response_array = array();
+	public function instawp_handle_auto_login( WP_REST_Request $request ) {
 
-		$param_api_key = $request->get_param( 'api_key' );
-		$param_code    = $request->get_param( 'c' );
-		$param_user    = $request->get_param( 's' );
+		$this->validate_api_request( $request );
+
+		$response_array = array();
+		$param_api_key  = $request->get_param( 'api_key' );
+		$param_code     = $request->get_param( 'c' );
+		$param_user     = $request->get_param( 's' );
 
 		$connect_options = get_option( 'instawp_api_options', '' );
 
@@ -386,16 +390,13 @@ class InstaWP_Backup_Api {
 			die();
 		}
 
-
 		//in some cases Laravel stores api key with ID attached in front of it. 
 		//so we need to remove it and then hash the key
-		if(count($api_key_exploded = explode("|", $api_options['api_key'])) > 1) {
-			$api_hash = hash("sha256", $api_key_exploded[1]);
+		if ( count( $api_key_exploded = explode( "|", $api_options['api_key'] ) ) > 1 ) {
+			$api_hash = hash( "sha256", $api_key_exploded[1] );
 		} else {
-			$api_hash = hash("sha256", $api_options['api_key']);
+			$api_hash = hash( "sha256", $api_options['api_key'] );
 		}
-
-		
 
 		if ( ! isset( $api_options['api_key'] ) || $bearer_token != $api_hash ) {
 			echo json_encode( array( 'error' => true, 'message' => esc_html__( 'Invalid bearer token.', 'instawp-connect' ) ) );
@@ -405,83 +406,83 @@ class InstaWP_Backup_Api {
 
 	public static function restore_bg( $backup_list, $restore_options, $parameters ) {
 		// error_log(var_export($backup_list, true));
-      // error_log(var_export($this_ref, true));
+		// error_log(var_export($this_ref, true));
 
-      global $instawp_plugin;
+		global $instawp_plugin;
 
-      $count_backup_list = count( $backup_list );
-      $backup_index      = 1;
+		$count_backup_list = count( $backup_list );
+		$backup_index      = 1;
 
-      $res_result        = [];
+		$res_result = [];
 
-      foreach ( $backup_list as $backup_list_key => $backup ) {
+		foreach ( $backup_list as $backup_list_key => $backup ) {
 
-         do {
-            $instawp_plugin->restore_api( $backup_list_key, $restore_options );
+			do {
+				$instawp_plugin->restore_api( $backup_list_key, $restore_options );
 
-            $progress_results = $instawp_plugin->get_restore_progress_api( $backup_list_key );
-            $progress_value   = $instawp_plugin->restore_data->get_next_restore_task_progress();
+				$progress_results = $instawp_plugin->get_restore_progress_api( $backup_list_key );
+				$progress_value   = $instawp_plugin->restore_data->get_next_restore_task_progress();
 
 
-            //consider the foreach loop as well, if there are multiple backup_lists
+				//consider the foreach loop as well, if there are multiple backup_lists
 
-            $progress_value = $progress_value * ( $backup_index / $count_backup_list );
+				$progress_value = $progress_value * ( $backup_index / $count_backup_list );
 
-            //total progress is half of what it is + 50 because the rest of the 50 is taken care by the server.
+				//total progress is half of what it is + 50 because the rest of the 50 is taken care by the server.
 
-            $progress_value = ( $progress_value / 2 ) + 50;
+				$progress_value = ( $progress_value / 2 ) + 50;
 
-            error_log( $progress_value );
+				error_log( $progress_value );
 
-            if ( $progress_value < 100 ) {
-               $message = 'Restore in progress';
-            } else {
-               $message = 'Restore completed';
-            }
+				if ( $progress_value < 100 ) {
+					$message = 'Restore in progress';
+				} else {
+					$message = 'Restore completed';
+				}
 
-            $progress_response = (array) json_decode( $progress_results );
-            $res_result        = array_merge( self::restore_status( $message, $progress_value, $parameters['wp']['options'] )
-            );
+				$progress_response = (array) json_decode( $progress_results );
+				$res_result        = array_merge( self::restore_status( $message, $progress_value, $parameters['wp']['options'] )
+				);
 
-            // if ( $progress_value > $restore_progress ) {
-            //    break;
-            // }
-         } while ( $progress_response['status'] != 'completed' || $progress_response['status'] == 'error' );
+				// if ( $progress_value > $restore_progress ) {
+				//    break;
+				// }
+			} while ( $progress_response['status'] != 'completed' || $progress_response['status'] == 'error' );
 
-         $backup_index ++;
-      }
+			$backup_index ++;
+		}
 
-      if ( $progress_response['status'] == 'completed' ) {
-         $res_result['message'] = "Restore completed";
-         // $this_ref->instawp_log->WriteLog( 'Restore Status: ' . json_encode( $ret ), 'success' );
-         if ( isset( $parameters['wp'] ) && isset( $parameters['wp']['users'] ) ) {
-            self::create_user( $parameters['wp']['users'] );
-         }
+		if ( $progress_response['status'] == 'completed' ) {
+			$res_result['message'] = "Restore completed";
+			// $this_ref->instawp_log->WriteLog( 'Restore Status: ' . json_encode( $ret ), 'success' );
+			if ( isset( $parameters['wp'] ) && isset( $parameters['wp']['users'] ) ) {
+				self::create_user( $parameters['wp']['users'] );
+			}
 
-         if ( isset( $parameters['wp'] ) && isset( $parameters['wp']['options'] ) ) {
-            if ( is_array( $parameters['wp']['options'] ) ) {
-               $create_options = $parameters['wp']['options'];
+			if ( isset( $parameters['wp'] ) && isset( $parameters['wp']['options'] ) ) {
+				if ( is_array( $parameters['wp']['options'] ) ) {
+					$create_options = $parameters['wp']['options'];
 
-               foreach ( $create_options as $option_key => $option_value ) {
-                  update_option( $option_key, $option_value );
-               }
-            }
-         }
+					foreach ( $create_options as $option_key => $option_value ) {
+						update_option( $option_key, $option_value );
+					}
+				}
+			}
 
-         self::write_htaccess_rule();
+			self::write_htaccess_rule();
 
-         InstaWP_AJAX::instawp_folder_remover_handle();
-         $response['status']  = true;
-         $response['message'] = 'Restore task completed.';
-      }
+			InstaWP_AJAX::instawp_folder_remover_handle();
+			$response['status']  = true;
+			$response['message'] = 'Restore task completed.';
+		}
 
-      if ( $progress_response['status'] == 'error' ) {
-         $res_result['message'] = "Error occured";
-      }
+		if ( $progress_response['status'] == 'error' ) {
+			$res_result['message'] = "Error occured";
+		}
 
-      // error_log(var_export($res_result, true));
+		// error_log(var_export($res_result, true));
 
-      $instawp_plugin->delete_last_restore_data_api();
+		$instawp_plugin->delete_last_restore_data_api();
 	}
 
 
@@ -512,7 +513,7 @@ class InstaWP_Backup_Api {
 			$backup_download_ret = $InstaWP_Curl->download( $backup_task_ret['task_id'], $parameters['urls'] );
 
 			if ( $backup_download_ret['result'] != INSTAWP_SUCCESS ) {
-				return new WP_REST_Response( array( 'task_id' => $backup_task_ret['task_id'], 'completed' => false, 'progress' => 0, 'message' => 'Download error', 'status' => 'error') );
+				return new WP_REST_Response( array( 'task_id' => $backup_task_ret['task_id'], 'completed' => false, 'progress' => 0, 'message' => 'Download error', 'status' => 'error' ) );
 			} else {
 				$this->restore_status( 'Backup file downloaded on target site', 51 );
 			}
@@ -529,8 +530,8 @@ class InstaWP_Backup_Api {
 		}
 
 		//background processing of restore using woocommerce's scheduler.
-		as_enqueue_async_action( 'instawp_restore_bg' , [$backup_list, $restore_options, $parameters ]);
-		
+		as_enqueue_async_action( 'instawp_restore_bg', [ $backup_list, $restore_options, $parameters ] );
+
 		//imidately run the schedule, don't want for the cron to run.
 		do_action( 'action_scheduler_run_queue', 'Async Request' );
 
@@ -610,15 +611,12 @@ class InstaWP_Backup_Api {
 		// // $instawp_plugin->delete_last_restore_data_api();
 
 
-
-
-
 		// $res_result        = self::restore_status( 'Restore Initiated', 55 , $parameters['wp']['options']);
 
 		// $res_result['completed'] = false;
 		// $res_result['status'] = false;
 
-		$res_result = array( 'completed' => false, 'progress' => 55, 'message' => 'Backup downloaded, restore initiated..', 'status' => 'wait') ;
+		$res_result = array( 'completed' => false, 'progress' => 55, 'message' => 'Backup downloaded, restore initiated..', 'status' => 'wait' );
 
 		return new WP_REST_Response( $res_result );
 	}
@@ -811,11 +809,11 @@ class InstaWP_Backup_Api {
 
 		$body = [];
 
-		if(count($wp_options) > 0)  {
+		if ( count( $wp_options ) > 0 ) {
 
-			if ( isset( $wp_options['instawp_sync_connect_id']) &&  isset( $wp_options['instawp_sync_parent_id'])) {
+			if ( isset( $wp_options['instawp_sync_connect_id'] ) && isset( $wp_options['instawp_sync_parent_id'] ) ) {
 
-				$parent_id         = $wp_options['instawp_sync_parent_id'];
+				$parent_id  = $wp_options['instawp_sync_parent_id'];
 				$api_doamin = InstaWP_Setting::get_api_domain();
 				$url        = $api_doamin . INSTAWP_API_URL . '/connects/' . $parent_id . '/restore_status';
 
@@ -823,15 +821,15 @@ class InstaWP_Backup_Api {
 				$domain = str_replace( "https://", "", get_site_url() );
 				$domain = str_replace( "http://", "", $domain );
 
-				$body      = array(
+				$body = array(
 					// "task_id"         => $task_id,
 					// "type"     => 'restore',
-					"progress"        => $progress,
-					"message"         => $message,
-					"connect_id"      => $parent_id,
-					"completed"       => ($progress == 100) ? true : false,
+					"progress"               => $progress,
+					"message"                => $message,
+					"connect_id"             => $parent_id,
+					"completed"              => ( $progress == 100 ) ? true : false,
 					"destination_connect_id" => $wp_options['instawp_sync_connect_id']
-					
+
 				);
 
 
@@ -861,10 +859,10 @@ class InstaWP_Backup_Api {
 
 				$instawp_log->CloseFile();
 			} else {
-				error_log("no connect id in wp options");
+				error_log( "no connect id in wp options" );
 			}
 		} else {
-			error_log("no wp options");
+			error_log( "no wp options" );
 		}
 		// error_log('instawp rest api \n '.print_r(get_option( 'instawp_backup_status_options'),true));
 		// update_option( 'instawp_finish_restore', $message );
