@@ -340,6 +340,9 @@ class InstaWP_Backup_Api {
 			$response              = new WP_REST_Response( $results );
 			$response->set_status( 200 );
 
+			// update config check token
+			update_option( 'instawp_api_key_config_completed', 'yes' );
+
 			return $response;
 		}
 		if ( ! isset( $parameters['api_key'] ) || empty( $parameters['api_key'] ) ) {
