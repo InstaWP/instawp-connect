@@ -71,6 +71,7 @@ class InstaWP_Ajax_Fn{
                             'user_id' => $v->user_id,
                         ];
                 }
+               
                 return $this->formatSuccessReponse("The data has packed successfully as JSON from WP DB", $encrypted_content);
                 #return json_encode($encrypted_content);
             }else{
