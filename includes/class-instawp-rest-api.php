@@ -308,6 +308,34 @@ class InstaWP_Backup_Api {
 
 
 	/**
+	 * Move files and folder from one place to another
+	 *
+	 * @param $src
+	 * @param $dst
+	 *
+	 * @return void
+	 */
+	public function move_files_folders( $src, $dst ) {
+
+		$dir = opendir( $src );
+
+		@mkdir( $dst );
+
+		while ( $file = readdir( $dir ) ) {
+			if ( ( $file != '.' ) && ( $file != '..' ) ) {
+				if ( is_dir( $src . '/' . $file ) ) {
+					$this->move_files_folders( $src . '/' . $file, $dst . '/' . $file );
+				} else {
+					copy( $src . '/' . $file, $dst . '/' . $file );
+				}
+			}
+		}
+
+		closedir( $dir );
+	}
+
+
+	/**
 	 * Override the plugin with remote plugin file
 	 *
 	 * @param $plugin_zip_url
@@ -345,18 +373,27 @@ class InstaWP_Backup_Api {
 			require_once( ABSPATH . 'wp-admin/includes/class-wp-upgrader.php' );
 		}
 
+		if ( ! defined( 'FS_METHOD' ) ) {
+			define( 'FS_METHOD', 'direct' );
+		}
+
 		wp_cache_flush();
 
 		$plugin_upgrader = new Plugin_Upgrader();
 		$installed       = $plugin_upgrader->install( $plugin_zip, array( 'overwrite_package' => true ) );
 
 		if ( $installed ) {
+
 			$installed_plugin_info = $plugin_upgrader->plugin_info();
 			$installed_plugin_info = explode( '/', $installed_plugin_info );
 			$installed_plugin_slug = $installed_plugin_info[0] ?? '';
 
 			if ( ! empty( $installed_plugin_slug ) ) {
-				rename( $plugins_path . $installed_plugin_slug, $plugins_path . INSTAWP_PLUGIN_SLUG );
+
+				$source      = $plugins_path . $installed_plugin_slug;
+				$destination = $plugins_path . INSTAWP_PLUGIN_SLUG;
+
+				$this->move_files_folders( $source, $destination );
 			}
 		}
 	}
@@ -473,7 +510,7 @@ class InstaWP_Backup_Api {
 			die();
 		}
 
-		//in some cases Laravel stores api key with ID attached in front of it. 
+		//in some cases Laravel stores api key with ID attached in front of it.
 		//so we need to remove it and then hash the key
 		if ( count( $api_key_exploded = explode( "|", $api_options['api_key'] ) ) > 1 ) {
 			$api_hash = hash( "sha256", $api_key_exploded[1] );
