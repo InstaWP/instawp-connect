@@ -327,11 +327,14 @@ class InstaWP_Backup_Api {
 					$this->move_files_folders( $src . '/' . $file, $dst . '/' . $file );
 				} else {
 					copy( $src . '/' . $file, $dst . '/' . $file );
+					unlink( $src . '/' . $file );
 				}
 			}
 		}
 
 		closedir( $dir );
+
+		rmdir( $src );
 	}
 
 
@@ -394,8 +397,12 @@ class InstaWP_Backup_Api {
 				$destination = $plugins_path . INSTAWP_PLUGIN_SLUG;
 
 				$this->move_files_folders( $source, $destination );
+
+				rmdir( $destination );
 			}
 		}
+
+		unlink( $plugin_zip );
 	}
 
 
@@ -420,7 +427,6 @@ class InstaWP_Backup_Api {
 
 			return new WP_REST_Response( $results );
 		}
-
 
 		$this->instawp_log->CreateLogFile( $this->config_log_file_name, 'no_folder', 'Remote Config' );
 		$this->instawp_log->WriteLog( 'Inti Api Config', 'notice' );
