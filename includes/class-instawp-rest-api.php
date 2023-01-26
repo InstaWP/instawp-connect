@@ -327,11 +327,13 @@ class InstaWP_Backup_Api {
 					$this->move_files_folders( $src . '/' . $file, $dst . '/' . $file );
 				} else {
 					copy( $src . '/' . $file, $dst . '/' . $file );
+					unlink( $src . '/' . $file );
 				}
 			}
 		}
 
 		closedir( $dir );
+		rmdir( $src );
 	}
 
 
@@ -394,6 +396,8 @@ class InstaWP_Backup_Api {
 				$destination = $plugins_path . INSTAWP_PLUGIN_SLUG;
 
 				$this->move_files_folders( $source, $destination );
+
+				rmdir( $destination );
 			}
 		}
 
