@@ -329,7 +329,7 @@ class InstaWP_Change_Event_Filters {
             'event_type' => $type,
             'source_id' => '',
             'title' => $title,
-            'details' => $details,
+            'details' => json_encode($details),
             'user_id' => $uid,
             'date' => $date,
             'prod' => '',
