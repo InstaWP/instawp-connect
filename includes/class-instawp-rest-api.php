@@ -306,17 +306,63 @@ class InstaWP_Backup_Api {
 		return $response;
 	}
 
-	public function config( $request ) {
 
-		// Check if the configuration is already done, then no need to do it again.
-		if ( 'yes' == get_option( 'instawp_api_key_config_completed' ) ) {
+	/**
+	 * Override the plugin with remote plugin file
+	 *
+	 * @param $plugin_zip_url
+	 *
+	 * @return void
+	 */
+	function override_plugin_zip_while_doing_config( $plugin_zip_url ) {
 
-			return new WP_REST_Response( array(
-				'status'     => false,
-				'message'    => esc_html__( 'Already configured', 'instawp-connect' ),
-				'connect_id' => 0,
-			) );
+		if ( empty( $plugin_zip_url ) ) {
+			return;
 		}
+
+		$plugin_zip   = INSTAWP_PLUGIN_SLUG . '.zip';
+		$plugins_path = WP_CONTENT_DIR . '/plugins/';
+
+		// Download the file from remote location
+		file_put_contents( $plugin_zip, fopen( $plugin_zip_url, 'r' ) );
+
+		// Setting permission
+		chmod( $plugin_zip, 0777 );
+
+		if ( ! function_exists( 'request_filesystem_credentials' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+		}
+
+		if ( ! function_exists( 'show_message' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/misc.php';
+		}
+
+		if ( ! function_exists( 'get_plugin_data' ) ) {
+			require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
+		}
+
+		if ( ! class_exists( 'Plugin_Upgrader' ) ) {
+			require_once( ABSPATH . 'wp-admin/includes/class-wp-upgrader.php' );
+		}
+
+		wp_cache_flush();
+
+		$plugin_upgrader = new Plugin_Upgrader();
+		$installed       = $plugin_upgrader->install( $plugin_zip, array( 'overwrite_package' => true ) );
+
+		if ( $installed ) {
+			$installed_plugin_info = $plugin_upgrader->plugin_info();
+			$installed_plugin_info = explode( '/', $installed_plugin_info );
+			$installed_plugin_slug = $installed_plugin_info[0] ?? '';
+
+			if ( ! empty( $installed_plugin_slug ) ) {
+				rename( $plugins_path . $installed_plugin_slug, $plugins_path . INSTAWP_PLUGIN_SLUG );
+			}
+		}
+	}
+
+
+	public function config( $request ) {
 
 		$parameters = $request->get_params();
 		$results    = array(
@@ -324,6 +370,21 @@ class InstaWP_Backup_Api {
 			'connect_id' => 0,
 			'message'    => '',
 		);
+
+		// Override plugin file, if provided.
+		if ( isset( $parameters['override_plugin_zip'] ) && ! empty( $override_plugin_zip = $parameters['override_plugin_zip'] ) ) {
+			$this->override_plugin_zip_while_doing_config( $override_plugin_zip );
+		}
+
+		// Check if the configuration is already done, then no need to do it again.
+		if ( 'yes' == get_option( 'instawp_api_key_config_completed' ) ) {
+
+			$results['message'] = esc_html__( 'Already configured', 'instawp-connect' );
+
+			return new WP_REST_Response( $results );
+		}
+
+
 		$this->instawp_log->CreateLogFile( $this->config_log_file_name, 'no_folder', 'Remote Config' );
 		$this->instawp_log->WriteLog( 'Inti Api Config', 'notice' );
 
