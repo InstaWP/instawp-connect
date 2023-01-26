@@ -333,6 +333,7 @@ class InstaWP_Backup_Api {
 		}
 
 		closedir( $dir );
+
 		rmdir( $src );
 	}
 
