@@ -354,7 +354,9 @@ class instaWP {
       require_once INSTAWP_PLUGIN_DIR . '/includes/class-intawp-ajax-fn.php';
       require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-rest-apis.php';
       //include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-setting.php';
-      
+
+	   require_once INSTAWP_PLUGIN_DIR . '/admin/class-instawp-go-live.php';
+
       include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-error-log.php';
       include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-backuplist.php';
       include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-restore-data.php';
@@ -505,7 +507,6 @@ class instaWP {
 		add_filter( 'instawp_pre_add_remote', array( $this, 'pre_add_remote' ), 10, 2 );
 
 		add_filter( 'instawp_add_tab_page', array( $this->admin, 'instawp_add_default_tab_page' ) );
-		//
 	}
 
 	public function pre_add_remote( $remote, $id ) {

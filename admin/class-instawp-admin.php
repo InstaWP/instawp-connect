@@ -303,6 +303,10 @@ class InstaWP_Admin {
          *
          */
 
+        if( ! apply_filters('instawp_add_plugin_admin_menu', true ) ) {
+            return;
+        }
+
         $dash_icon = esc_url(INSTAWP_PLUGIN_IMAGES_URL.'cloud.svg'); 
         $menu['page_title'] = 'InstaWP Connect';
         $menu['menu_title'] = 'InstaWP';
