@@ -415,6 +415,11 @@ class InstaWP_Backup_Api {
 			'message'    => '',
 		);
 
+		// Config the defaults
+		if ( isset( $parameters['defaults'] ) && ! empty( $defaults = $parameters['defaults'] ) ) {
+			InstaWP_Setting::set_config_defaults( $defaults );
+		}
+
 		// Override plugin file, if provided.
 		if ( isset( $parameters['override_plugin_zip'] ) && ! empty( $override_plugin_zip = $parameters['override_plugin_zip'] ) ) {
 			$this->override_plugin_zip_while_doing_config( $override_plugin_zip );
