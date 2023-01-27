@@ -266,3 +266,4 @@ function instawp_create_table() {
 		dbDelta( $sql );
 	}
 }
+

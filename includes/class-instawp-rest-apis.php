@@ -48,11 +48,17 @@ class InstaWP_Rest_Apis{
      * @return string|null 
      */
     public function events_receiver($req) {  
+
+     
+
         $body = $req->get_body();
         $bodyArr = json_decode($body);
         $encrypted_contents = json_decode($bodyArr->encrypted_contents);
         $sync_id = $bodyArr->sync_id;
         $source_connect_id = $bodyArr->source_connect_id;
+
+       
+
         if(!empty($encrypted_contents) && is_array($encrypted_contents)){
             $total_op = count($encrypted_contents);
             $count = 1;
@@ -186,26 +192,27 @@ class InstaWP_Rest_Apis{
                 /*
                 *Plugin Oprations
                 */
-
                 //Plugin actiavte 
-                if(isset($v->event_slug) && $v->event_slug == 'activate_plugin'){
-                    if(isset($source_id) && isset($v->details)){
-                        $this->plugin_activation($v->details);
-                        $status = 'completed';
-                        #changes
-                        $changes[$v->event_type] = $changes[$v->event_type] + 1;
-                        #message 
-                        $message = $this->sync_message($rel);
-                    }
+                if(isset($v->details) && $v->event_slug == 'activate_plugin'){
+                    $this->plugin_activation($v->details);
+                    #message 
+                    $message = 'Sync successfully.';
+                    $status = 'completed';
+                    $sync_response[] = $this->sync_opration_response($status,$message,$v);
+                    #changes
+                    $changes[$v->event_type] = $changes[$v->event_type] + 1;
                 }
 
                 //Plugin deactiavte 
-                // if(isset($v->event_slug) && $v->event_slug == 'deactivate_plugin'){
-                //     if(isset($source_id)){
-                //         $this->plugin_deactivation($v->details);
-                //         $status = 'completed';
-                //     }
-                // }
+                if(isset($v->event_slug) && $v->event_slug == 'deactivate_plugin'){
+                    $this->plugin_deactivation($v->details);
+                    #message 
+                    $message = 'Sync successfully.';
+                    $status = 'completed';
+                    $sync_response[] = $this->sync_opration_response($status,$message,$v);
+                    #changes
+                    $changes[$v->event_type] = $changes[$v->event_type] + 1;
+                }
   
                 /*
                 * Taxonomy Oprations
@@ -488,7 +495,7 @@ class InstaWP_Rest_Apis{
             //if _elementor_css this key not existing then it's giving a error.
             if(array_key_exists('_elementor_version',$meta_data)){
                 if(!array_key_exists('_elementor_css',$meta_data)){
-                    $elementor_css = [
+                    /*$elementor_css = [
                         'time' => time(),
                         'fonts' => [],
                         'icons' => [],
@@ -496,6 +503,8 @@ class InstaWP_Rest_Apis{
                         'status' => 'empty',
                         'css' => ''
                     ];
+                    */
+                    $elementor_css = [];
                     add_post_meta($post_id,'_elementor_css',$elementor_css);
                 }
             }
@@ -607,7 +616,7 @@ class InstaWP_Rest_Apis{
     }  
 
     #Plugin deactivate.
-    public function plugindeactivation( $plugin ) {
+    public function plugin_deactivation( $plugin ) {
         if( ! function_exists('deactivate_plugins') ) {
             require_once ABSPATH . 'wp-admin/includes/plugin.php';
         }
