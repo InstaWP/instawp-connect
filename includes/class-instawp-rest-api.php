@@ -308,6 +308,7 @@ class InstaWP_Backup_Api {
 
 	public function config( $request ) {
 
+
 		// Check if the configuration is already done, then no need to do it again.
 		if ( 'yes' == get_option( 'instawp_api_key_config_completed' ) ) {
 
@@ -326,6 +327,11 @@ class InstaWP_Backup_Api {
 		);
 		$this->instawp_log->CreateLogFile( $this->config_log_file_name, 'no_folder', 'Remote Config' );
 		$this->instawp_log->WriteLog( 'Inti Api Config', 'notice' );
+
+		// Config the defaults
+		if ( isset( $parameters['defaults'] ) && ! empty( $defaults = $parameters['defaults'] ) ) {
+			InstaWP_Setting::set_config_defaults( $defaults );
+		}
 
 		//$this->instawp_log->CloseFile();
 		$connect_ids = get_option( 'instawp_connect_id_options', '' );

@@ -87,12 +87,12 @@ class InstaWP_Go_Live {
                     </div>
 
                     <div class="instawp-manage-sites">
-                        <h3><?php echo esc_html__( 'Manage Site (Active after go live)', 'instawp-connect' ); ?></h3>
+                        <h3><?php echo esc_html__( 'Manage Site', 'instawp-connect' ); ?></h3>
                         <div class="trial-wrapper">
                             <div class="trail-padding">
                                 <label for="domain"><?php echo esc_html__( 'Connect Domain', 'instawp-connect' ); ?></label>
                                 <div class="input-position">
-                                    <input type="text" class="form-control" autocomplete="off" id="domain" placeholder="lorem ipsum">
+                                    <input type="text" class="form-control" autocomplete="off" id="domain" placeholder="<?php echo esc_attr__( 'Enter your domain name', 'instawp-connect' ); ?>">
                                     <div class="input-button">
                                         <button class="verify-btn"><?php echo esc_html__( 'Verify', 'instawp-connect' ); ?></button>
                                     </div>
