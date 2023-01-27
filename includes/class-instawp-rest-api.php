@@ -306,18 +306,107 @@ class InstaWP_Backup_Api {
 		return $response;
 	}
 
-	public function config( $request ) {
 
+	/**
+	 * Move files and folder from one place to another
+	 *
+	 * @param $src
+	 * @param $dst
+	 *
+	 * @return void
+	 */
+	public function move_files_folders( $src, $dst ) {
 
-		// Check if the configuration is already done, then no need to do it again.
-		if ( 'yes' == get_option( 'instawp_api_key_config_completed' ) ) {
+		$dir = opendir( $src );
 
-			return new WP_REST_Response( array(
-				'status'     => false,
-				'message'    => esc_html__( 'Already configured', 'instawp-connect' ),
-				'connect_id' => 0,
-			) );
+		@mkdir( $dst );
+
+		while ( $file = readdir( $dir ) ) {
+			if ( ( $file != '.' ) && ( $file != '..' ) ) {
+				if ( is_dir( $src . '/' . $file ) ) {
+					$this->move_files_folders( $src . '/' . $file, $dst . '/' . $file );
+				} else {
+					copy( $src . '/' . $file, $dst . '/' . $file );
+					unlink( $src . '/' . $file );
+				}
+			}
 		}
+
+		closedir( $dir );
+
+		rmdir( $src );
+	}
+
+
+	/**
+	 * Override the plugin with remote plugin file
+	 *
+	 * @param $plugin_zip_url
+	 *
+	 * @return void
+	 */
+	function override_plugin_zip_while_doing_config( $plugin_zip_url ) {
+
+		if ( empty( $plugin_zip_url ) ) {
+			return;
+		}
+
+		$plugin_zip   = INSTAWP_PLUGIN_SLUG . '.zip';
+		$plugins_path = WP_CONTENT_DIR . '/plugins/';
+
+		// Download the file from remote location
+		file_put_contents( $plugin_zip, fopen( $plugin_zip_url, 'r' ) );
+
+		// Setting permission
+		chmod( $plugin_zip, 0777 );
+
+		if ( ! function_exists( 'request_filesystem_credentials' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+		}
+
+		if ( ! function_exists( 'show_message' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/misc.php';
+		}
+
+		if ( ! function_exists( 'get_plugin_data' ) ) {
+			require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
+		}
+
+		if ( ! class_exists( 'Plugin_Upgrader' ) ) {
+			require_once( ABSPATH . 'wp-admin/includes/class-wp-upgrader.php' );
+		}
+
+		if ( ! defined( 'FS_METHOD' ) ) {
+			define( 'FS_METHOD', 'direct' );
+		}
+
+		wp_cache_flush();
+
+		$plugin_upgrader = new Plugin_Upgrader();
+		$installed       = $plugin_upgrader->install( $plugin_zip, array( 'overwrite_package' => true ) );
+
+		if ( $installed ) {
+
+			$installed_plugin_info = $plugin_upgrader->plugin_info();
+			$installed_plugin_info = explode( '/', $installed_plugin_info );
+			$installed_plugin_slug = $installed_plugin_info[0] ?? '';
+
+			if ( ! empty( $installed_plugin_slug ) ) {
+
+				$source      = $plugins_path . $installed_plugin_slug;
+				$destination = $plugins_path . INSTAWP_PLUGIN_SLUG;
+
+				$this->move_files_folders( $source, $destination );
+
+				rmdir( $destination );
+			}
+		}
+
+		unlink( $plugin_zip );
+	}
+
+
+	public function config( $request ) {
 
 		$parameters = $request->get_params();
 		$results    = array(
@@ -325,13 +414,27 @@ class InstaWP_Backup_Api {
 			'connect_id' => 0,
 			'message'    => '',
 		);
-		$this->instawp_log->CreateLogFile( $this->config_log_file_name, 'no_folder', 'Remote Config' );
-		$this->instawp_log->WriteLog( 'Inti Api Config', 'notice' );
 
 		// Config the defaults
 		if ( isset( $parameters['defaults'] ) && ! empty( $defaults = $parameters['defaults'] ) ) {
 			InstaWP_Setting::set_config_defaults( $defaults );
 		}
+
+		// Override plugin file, if provided.
+		if ( isset( $parameters['override_plugin_zip'] ) && ! empty( $override_plugin_zip = $parameters['override_plugin_zip'] ) ) {
+			$this->override_plugin_zip_while_doing_config( $override_plugin_zip );
+		}
+
+		// Check if the configuration is already done, then no need to do it again.
+		if ( 'yes' == get_option( 'instawp_api_key_config_completed' ) ) {
+
+			$results['message'] = esc_html__( 'Already configured', 'instawp-connect' );
+
+			return new WP_REST_Response( $results );
+		}
+
+		$this->instawp_log->CreateLogFile( $this->config_log_file_name, 'no_folder', 'Remote Config' );
+		$this->instawp_log->WriteLog( 'Inti Api Config', 'notice' );
 
 		//$this->instawp_log->CloseFile();
 		$connect_ids = get_option( 'instawp_connect_id_options', '' );
@@ -418,7 +521,7 @@ class InstaWP_Backup_Api {
 			die();
 		}
 
-		//in some cases Laravel stores api key with ID attached in front of it. 
+		//in some cases Laravel stores api key with ID attached in front of it.
 		//so we need to remove it and then hash the key
 		if ( count( $api_key_exploded = explode( "|", $api_options['api_key'] ) ) > 1 ) {
 			$api_hash = hash( "sha256", $api_key_exploded[1] );
