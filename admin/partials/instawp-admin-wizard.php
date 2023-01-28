@@ -10,9 +10,11 @@
  * @package    instaWP
  * @subpackage instaWP/admin/partials
  */
-$admin_email           = get_option( 'admin_email' );
-$connect_ids           = get_option( 'instawp_connect_id_options', array() );
-$instawp_finish_upload = get_option( 'instawp_finish_upload', array() );
+$admin_email              = get_option( 'admin_email' );
+$connect_ids              = get_option( 'instawp_connect_id_options', array() );
+$instawp_finish_upload    = get_option( 'instawp_finish_upload', array() );
+$instawp_restore_status   = get_option( 'instawp_rd_restore_status', array() );
+$instawp_restore_progress = $instawp_restore_status['data']['progress'] ?? false;
 
 /* Generate API Code Start */
 $status = '';
@@ -63,37 +65,34 @@ if ( isset( $_REQUEST['success'] ) && $_REQUEST['success'] == true ) {
 <div class="wrap instawp-connect-wizard">
     <div class="postbox instawp-wizard-container wizard-screen-1 <?php echo ( $screen_1_show ) ? 'instawp-show' : ''; ?>" id="instawp-wizard-screen-1">
 
-		
 
-        
-
-        <?php if(get_option("instawp_is_staging", 0) == 1) { ?> 
+		<?php if ( get_option( "instawp_is_staging", 0 ) == 1 ) { ?>
 
             <h3> This is a staging site</h3>
 
-        <?php } else { ?>
+		<?php } else { ?>
 
-            <?php do_action( 'instawp_admin_wizard_img' ); ?>
+			<?php do_action( 'instawp_admin_wizard_img' ); ?>
 
-        <h3><?php echo esc_html__( 'Creating a Staging Site', 'instawp-connect' ) ?> </h3>
+            <h3><?php echo esc_html__( 'Creating a Staging Site', 'instawp-connect' ) ?> </h3>
 
-        <div class="instawp-confirm-wrap" style="display: none;">
+            <div class="instawp-confirm-wrap" style="display: none;">
 
-            <input type="checkbox" name="email_confirm" id="instawp_email_confirm">
-            <label for="instawp_email_confirm">
-				<?php /* translators: %s: Email */ ?>
-				<?php echo sprintf( esc_html__( 'I agree to share email id ( %s ) with InstaWP', 'instawp-connect' ), esc_attr( $admin_email ) ); ?>
-            </label>
-        </div>
+                <input type="checkbox" name="email_confirm" id="instawp_email_confirm">
+                <label for="instawp_email_confirm">
+					<?php /* translators: %s: Email */ ?>
+					<?php echo sprintf( esc_html__( 'I agree to share email id ( %s ) with InstaWP', 'instawp-connect' ), esc_attr( $admin_email ) ); ?>
+                </label>
+            </div>
 
-		<?php
-		$btn_args = array(
-			'label' => __( 'Create a Staging Site', 'instawp-connect' ),
-		);
+			<?php
+			$btn_args = array(
+				'label' => __( 'Create a Staging Site', 'instawp-connect' ),
+			);
 
-		do_action( 'instawp_admin_wizard_btn', $btn_args );
+			do_action( 'instawp_admin_wizard_btn', $btn_args );
 
-        }
+		}
 
 		?>
 
@@ -118,63 +117,63 @@ if ( isset( $_REQUEST['success'] ) && $_REQUEST['success'] == true ) {
     <div class="postbox instawp-wizard-container wizard-screen-3 <?php echo ( $screen_3_show ) ? 'instawp-show' : ''; ?>" id="instawp-wizard-screen-3">
 
 
-         <?php if(get_option("instawp_is_staging", 0) == 1) { ?> 
+		<?php if ( get_option( "instawp_is_staging", 0 ) == 1 ) { ?>
 
             <h3> This is a staging site</h3>
 
-        <?php } else { ?>
+		<?php } else { ?>
 
-		<?php
-		do_action( 'instawp_before_setup_page' );
-		include_once INSTAWP_PLUGIN_DIR . '/admin/partials/instawp-admin-display.php';
-		do_action( 'instawp_display_page' );
-		?>
-		<?php do_action( 'instawp_admin_wizard_img' ); ?>
+			<?php
+			do_action( 'instawp_before_setup_page' );
+			include_once INSTAWP_PLUGIN_DIR . '/admin/partials/instawp-admin-display.php';
+			do_action( 'instawp_display_page' );
+			?>
+			<?php do_action( 'instawp_admin_wizard_img' ); ?>
 
-        <h3><?php echo esc_html__( 'Creating a Staging Site', 'instawp-connect' ) ?> </h3>
-        <div class="postbox" id="instawp_postbox_backup_percent" style="display: none;">
+            <h3><?php echo esc_html__( 'Creating a Staging Site', 'instawp-connect' ) ?> </h3>
+            <div class="postbox" id="instawp_postbox_backup_percent" style="display: none;">
 
-            <div class="action-progress-bar" id="instawp_action_progress_bar">
-                <div class="action-progress-bar-percent" id="instawp_action_progress_bar_percent" style="height:24px;width:0;"></div>
+                <div class="action-progress-bar" id="instawp_action_progress_bar">
+                    <div class="action-progress-bar-percent" id="instawp_action_progress_bar_percent" style="height:24px;width:0;"></div>
+                </div>
+                <div id="instawp_estimate_backup_info" style="float: left; display: none;">
+                    <div class="backup-basic-info"><span class="instawp-element-space-right"><?php esc_html_e( 'Database Size:', 'instawp-connect' ); ?></span><span id="instawp_backup_database_size">N/A</span></div>
+                    <div class="backup-basic-info"><span class="instawp-element-space-right"><?php esc_html_e( 'File Size:', 'instawp-connect' ); ?></span><span id="instawp_backup_file_size">N/A</span></div>
+                </div>
+                <div id="instawp_estimate_upload_info" style="float: left; display: none;">
+                    <div class="backup-basic-info"><span class="instawp-element-space-right"><?php esc_html_e( 'Total Size:', 'instawp-connect' ); ?></span><span>N/A</span></div>
+                    <div class="backup-basic-info"><span class="instawp-element-space-right"><?php esc_html_e( 'Uploaded:', 'instawp-connect' ); ?></span><span>N/A</span></div>
+                    <div class="backup-basic-info"><span class="instawp-element-space-right"><?php esc_html_e( 'Speed:', 'instawp-connect' ); ?></span><span>N/A</span></div>
+                </div>
+                <div style="float: left;">
+                    <div class="backup-basic-info"><span class="instawp-element-space-right"><?php esc_html_e( 'Network Connection:', 'instawp-connect' ); ?></span><span>N/A</span></div>
+                </div>
+                <div style="clear:both;"></div>
+                <div style="margin-left:10px; float: left; width:100%;"><p id="instawp_current_doing"></p></div>
+                <div style="clear: both;"></div>
+
+
             </div>
-            <div id="instawp_estimate_backup_info" style="float: left; display: none;">
-                <div class="backup-basic-info"><span class="instawp-element-space-right"><?php esc_html_e( 'Database Size:', 'instawp-connect' ); ?></span><span id="instawp_backup_database_size">N/A</span></div>
-                <div class="backup-basic-info"><span class="instawp-element-space-right"><?php esc_html_e( 'File Size:', 'instawp-connect' ); ?></span><span id="instawp_backup_file_size">N/A</span></div>
-            </div>
-            <div id="instawp_estimate_upload_info" style="float: left; display: none;">
-                <div class="backup-basic-info"><span class="instawp-element-space-right"><?php esc_html_e( 'Total Size:', 'instawp-connect' ); ?></span><span>N/A</span></div>
-                <div class="backup-basic-info"><span class="instawp-element-space-right"><?php esc_html_e( 'Uploaded:', 'instawp-connect' ); ?></span><span>N/A</span></div>
-                <div class="backup-basic-info"><span class="instawp-element-space-right"><?php esc_html_e( 'Speed:', 'instawp-connect' ); ?></span><span>N/A</span></div>
-            </div>
-            <div style="float: left;">
-                <div class="backup-basic-info"><span class="instawp-element-space-right"><?php esc_html_e( 'Network Connection:', 'instawp-connect' ); ?></span><span>N/A</span></div>
-            </div>
-            <div style="clear:both;"></div>
-            <div style="margin-left:10px; float: left; width:100%;"><p id="instawp_current_doing"></p></div>
-            <div style="clear: both;"></div>
+			<?php
 
-
-        </div>
-		<?php
-
-		$btn_args = array(
-			'button_1' => array(
-				'label' => __( 'Quick', 'instawp-connect' ),
-				'desc'  => __( 'Copies Without Media', 'instawp-connect' ),
-				'data'  => __( 'data', 'instawp-connect' ),
-			),
-			'button_2' => array(
-				'label' => __( 'Full', 'instawp-connect' ),
-				'desc'  => __( 'Copies Media Files', 'instawp-connect' ),
-				'data'  => __( 'data', 'instawp-connect' ),
-			),
-			'button_3' => array(
-				'label' => __( 'Cancel Backup', 'instawp-connect' ),
-			),
-		);
-		do_action( 'instawp_admin_wizard_two_btn', $btn_args );
-		do_action( 'instawp_admin_wizard_prev_btn', null );
-    }
+			$btn_args = array(
+				'button_1' => array(
+					'label' => __( 'Quick', 'instawp-connect' ),
+					'desc'  => __( 'Copies Without Media', 'instawp-connect' ),
+					'data'  => __( 'data', 'instawp-connect' ),
+				),
+				'button_2' => array(
+					'label' => __( 'Full', 'instawp-connect' ),
+					'desc'  => __( 'Copies Media Files', 'instawp-connect' ),
+					'data'  => __( 'data', 'instawp-connect' ),
+				),
+				'button_3' => array(
+					'label' => __( 'Cancel Backup', 'instawp-connect' ),
+				),
+			);
+			do_action( 'instawp_admin_wizard_two_btn', $btn_args );
+			do_action( 'instawp_admin_wizard_prev_btn', null );
+		}
 		?>
 
 		<?php
@@ -554,6 +553,9 @@ if ( isset( $_REQUEST['success'] ) && $_REQUEST['success'] == true ) {
 			}
 			do_action( 'instawp_admin_wizard_img' );
 			?>
+
+            <!-- Resume restoring if reload the page anyhow -->
+            <input type="hidden" class="instawp-restore-progress" value="<?php echo esc_attr( $instawp_restore_progress ); ?>">
 
             <div class="instawp-site-details-heading <?php //echo esc_attr( $site_class); ?>" style="display:none">
                 <span>
