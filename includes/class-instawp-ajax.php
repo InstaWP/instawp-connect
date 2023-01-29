@@ -208,6 +208,7 @@ class InstaWP_AJAX {
 			wp_die();
 		}
 
+		update_option( 'instawp_rd_restore_status', $curl_rd_restore_status );
 		update_option( 'instawp_staging_list', array_merge( $staging_sites, array( $connect_id => $curl_rd_restore_status ) ) );
 		update_option( 'instawp_response_get_restore_status', $curl_rd_restore_status );
 

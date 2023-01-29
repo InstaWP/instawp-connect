@@ -142,6 +142,7 @@ function instawp_check_runningtask() {
         'action': 'instawp_list_tasks',
         'backup_id': tmp_current_click_backupid
     };
+
     if (instawp_restoring === false) {
         instawp_post_request(ajax_data, function (data) {
             setTimeout(function () {
@@ -149,6 +150,7 @@ function instawp_check_runningtask() {
             }, 3000);
             try {
                 var jsonarray = jQuery.parseJSON(data);
+
                 if (jsonarray.success_notice_html != false) {
                     jQuery('#instawp_backup_notice').show();
                     jQuery('#instawp_backup_notice').append(jsonarray.success_notice_html);
@@ -163,8 +165,21 @@ function instawp_check_runningtask() {
                     jQuery('#instawp_backup_list').html('');
                     jQuery('#instawp_backup_list').append(jsonarray.backuplist_html);
                 }
+
+
+                if (jQuery('.instawp-restore-progress').val() < 100) {
+                    if (is_instawp_check_staging_running === false) {
+                        instawp_check_staging_interval = setInterval(instawp_check_staging, 3000);
+                        is_instawp_check_staging_running = true;
+                    }
+                    if (is_instawp_check_staging_compteted === true) {
+                        clearInterval(instawp_check_staging_interval);
+                    }
+                }
+
                 var b_has_data = false;
                 if (jsonarray.backup.data.length !== 0) {
+
                     b_has_data = true;
                     task_retry_times = 0;
                     if (jsonarray.backup.result === 'success') {
@@ -761,7 +776,7 @@ function instawp_check_staging() {
             // action_progress_bar_percent.css('width', jsonarray.progress + '%');
             // action_progress_bar.fadeIn();
 
-            if(jsonarray.message)
+            if (jsonarray.message)
                 jQuery('#instawp_restore_status_message').html(jsonarray.message);
 
             if (jsonarray.status === 1) {
