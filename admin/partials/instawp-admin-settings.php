@@ -81,17 +81,6 @@ foreach ( $tasks as $task_id => $task ) {
                     <a href="<?php echo $source_url;?>" class="">Generate API Key</a>   
                     <p class="instawp-err-msg"></p>
                 </td>
-                
-            </tr>
-            <tr valign="top">
-                <th scope="row">
-                    <label for="num_elements">
-                        Kill All Process
-                    </label> 
-                </th>
-                <td>
-                    <input type="checkbox" name="intawp_kill_all" id="intawp_kill_all" />                        
-                </td>                    
             </tr>
 
             <tr valign="top">
