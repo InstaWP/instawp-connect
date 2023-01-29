@@ -511,8 +511,6 @@ class InstaWP_Backup_Api {
 	 */
 	function validate_api_request( WP_REST_Request $request ) {
 
-		return;
-
 		$bearer_token = sanitize_text_field( $request->get_header( 'authorization' ) );
 		$bearer_token = str_replace( 'Bearer ', '', $bearer_token );
 		$api_options  = get_option( 'instawp_api_options', array() );
