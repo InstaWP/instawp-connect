@@ -595,7 +595,7 @@ public function get_db_type( $is_additional_db ) {
             if ( false === $this->dumpSettings['no-data'] ) { // don't break compatibility with old trigger
             $this->listValues($table);
         } elseif ( true === $this->dumpSettings['no-data']
-           || $this->matches($table, $this->dumpSettings['no-data']) ) {
+         || $this->matches($table, $this->dumpSettings['no-data']) ) {
             continue;
         } else {
             $this->listValues($table);
@@ -1008,7 +1008,7 @@ public function get_db_type( $is_additional_db ) {
                 foreach ( $resultSet as $key => $row ) {
 
                     if (!is_null($faker)) {
-                        
+
 
                         /* WP User Table Column Anonymization Start */
                         $user_login = array_key_exists('user_login', $row);
@@ -1152,7 +1152,7 @@ public function get_db_type( $is_additional_db ) {
                             
                             $data_query = "INSERT INTO `$tableName` (" . implode(", ", $colStmt) . ") VALUES (" . implode(",", $vals) . ")";                           
                         } else {
-                            
+
                             $lineSize += $this->compressManager->write(
                                 "INSERT INTO `$tableName` VALUES (" . implode(",", $vals) . ")"
                             );
@@ -1246,7 +1246,7 @@ public function get_db_type( $is_additional_db ) {
             if ( $onlyOnce || ! $this->dumpSettings['extended-insert'] ) {
 
                 if ( $this->dumpSettings['complete-insert'] ) {
-                    
+
                     $lineSize += $this->compressManager->write(
                         "INSERT INTO `$tableName` (" .
                             implode(", ", $colStmt) .
@@ -1303,51 +1303,60 @@ public function get_db_type( $is_additional_db ) {
      * @return null
      */
     function prepareListValues( $tableName ) {
-        if ( ! $this->dumpSettings['skip-comments'] ) {
-            $this->compressManager->write(
-                "--" . PHP_EOL .
-                "-- Dumping data for table `$tableName`" .  PHP_EOL .
-                "--" . PHP_EOL . PHP_EOL
-            );
+        global $wpdb;
+
+        $wp_change_event = $wpdb->prefix . "change_event"; 
+        $wp_sync_history = $wpdb->prefix . "sync_history";
+        $wp_changes_sync = $wpdb->prefix . "changes_sync";
+
+        if ( $tableName != $wp_change_event && $tableName != $wp_sync_history && $tableName != $wp_changes_sync ){
+
+            if ( ! $this->dumpSettings['skip-comments'] ) {
+                $this->compressManager->write(
+                    "--" . PHP_EOL .
+                    "-- Dumping data for table `$tableName`" .  PHP_EOL .
+                    "--" . PHP_EOL . PHP_EOL
+                );
+            }
+
+            if ( $this->dumpSettings['single-transaction'] ) {
+                $this->exec($this->typeAdapter->setup_transaction());
+                $this->exec($this->typeAdapter->start_transaction());
+            }
+
+            if ( $this->dumpSettings['lock-tables'] ) {
+                $this->typeAdapter->lock_table($tableName);
+
+                //if($this -> privileges['LOCK TABLES'] == 0)
+                //{
+                //global $instawp_plugin;
+                //    $instawp_plugin->instawp_log->WriteLog('The lack of LOCK TABLES privilege, the backup will skip lock_tables() to continue.','notice');
+                //}else{
+                //    $this->typeAdapter->lock_table($tableName);
+                //}
+            }
+
+            if ( $this->dumpSettings['add-locks'] ) {
+                $this->compressManager->write(
+                    $this->typeAdapter->start_add_lock_table($tableName)
+                );
+            }
+
+            if ( $this->dumpSettings['disable-keys'] ) {
+                $this->compressManager->write(
+                    $this->typeAdapter->start_add_disable_keys($tableName)
+                );
+            }
+
+            // Disable autocommit for faster reload
+            if ( $this->dumpSettings['no-autocommit'] ) {
+                $this->compressManager->write(
+                    $this->typeAdapter->start_disable_autocommit()
+                );
+            }
+
+            return;
         }
-
-        if ( $this->dumpSettings['single-transaction'] ) {
-            $this->exec($this->typeAdapter->setup_transaction());
-            $this->exec($this->typeAdapter->start_transaction());
-        }
-
-        if ( $this->dumpSettings['lock-tables'] ) {
-            $this->typeAdapter->lock_table($tableName);
-
-            //if($this -> privileges['LOCK TABLES'] == 0)
-            //{
-            //global $instawp_plugin;
-            //    $instawp_plugin->instawp_log->WriteLog('The lack of LOCK TABLES privilege, the backup will skip lock_tables() to continue.','notice');
-            //}else{
-            //    $this->typeAdapter->lock_table($tableName);
-            //}
-        }
-
-        if ( $this->dumpSettings['add-locks'] ) {
-            $this->compressManager->write(
-                $this->typeAdapter->start_add_lock_table($tableName)
-            );
-        }
-
-        if ( $this->dumpSettings['disable-keys'] ) {
-            $this->compressManager->write(
-                $this->typeAdapter->start_add_disable_keys($tableName)
-            );
-        }
-
-        // Disable autocommit for faster reload
-        if ( $this->dumpSettings['no-autocommit'] ) {
-            $this->compressManager->write(
-                $this->typeAdapter->start_disable_autocommit()
-            );
-        }
-
-        return;
     }
 
     /**
