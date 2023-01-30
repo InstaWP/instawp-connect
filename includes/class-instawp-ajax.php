@@ -117,10 +117,15 @@ class InstaWP_AJAX {
 			InstaWP_Setting::set_api_domain( $instawp_api_url_internal );
 		}
 
-		$message = '';
-		$resType = false;
+		$message           = '';
+		$resType           = false;
+		$connect_options   = get_option( 'instawp_api_options', '' );
+		$instawp_db_method = isset( $_POST['instawp_db_method'] ) ? sanitize_text_field( $_POST['instawp_db_method'] ) : '';
 
-		$connect_options = get_option( 'instawp_api_options', '' );
+		echo "<pre>"; print_r( $instawp_db_method ); echo "</pre>";
+
+		update_option( 'instawp_db_method', $instawp_db_method );
+
 		if (
 			isset( $connect_ids['data']['id'] ) &&
 			! empty( $connect_ids['data']['id'] ) &&
