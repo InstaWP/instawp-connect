@@ -20,6 +20,8 @@ if ( ! defined('INSTAWP_PLUGIN_DIR') ) {
    die;
 }
 
+require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-db.php';
+
 class InstaWP_Rest_Apis{
     public function __construct(){
         /*
@@ -40,7 +42,7 @@ class InstaWP_Rest_Apis{
 
     function check_permission(){
         return true;
-    }
+    } 
 
     /**
      * Reciver 
@@ -48,16 +50,11 @@ class InstaWP_Rest_Apis{
      * @return string|null 
      */
     public function events_receiver($req) {  
-
-     
-
         $body = $req->get_body();
         $bodyArr = json_decode($body);
         $encrypted_contents = json_decode($bodyArr->encrypted_contents);
         $sync_id = $bodyArr->sync_id;
         $source_connect_id = $bodyArr->source_connect_id;
-
-       
 
         if(!empty($encrypted_contents) && is_array($encrypted_contents)){
             $total_op = count($encrypted_contents);
@@ -68,7 +65,7 @@ class InstaWP_Rest_Apis{
             foreach($encrypted_contents as $v){
                 $source_id = (isset($v->source_id) && !empty($v->source_id)) ? intval($v->source_id) : null;
                 /*
-                *Post Oprations
+                *Post Oprations 
                 */
                 //create and update
                 if(isset($v->event_slug) && ($v->event_slug == 'post_change' ||$v->event_slug == 'post_new') ){
@@ -99,6 +96,20 @@ class InstaWP_Rest_Apis{
                             $att_id = $this->insert_attachment($attachment_id,$file);
                             if(isset($att_id) && !empty($att_id)){
                                 set_post_thumbnail($posts['ID'],$att_id);
+                            }
+                        }
+
+                        #if post type is product then set gallery
+                        if(get_post_type($posts['ID']) == 'product'){
+                            if(isset($v->details->product_gallery)){
+                                $product_gallery = $v->details->product_gallery;
+                                $gallery_ids = [];
+                                foreach($product_gallery as $gallery){
+                                    if(isset($gallery->id) && isset($gallery->url)){
+                                        $gallery_ids[] = $this->insert_attachment($gallery->id,$gallery->url);
+                                    }
+                                }
+                                $this->set_product_gallery($posts['ID'],$gallery_ids);
                             }
                         }
 
@@ -212,7 +223,7 @@ class InstaWP_Rest_Apis{
                     $sync_response[] = $this->sync_opration_response($status,$message,$v);
                     #changes
                     $changes[$v->event_type] = $changes[$v->event_type] + 1;
-                }
+                } 
   
                 /*
                 * Taxonomy Oprations
@@ -232,7 +243,7 @@ class InstaWP_Rest_Apis{
                             if($v->event_slug == 'edit_taxonomy'){
                                 $this->update_taxonomy($source_id,$wp_terms,$wp_term_taxonomy);
                             }
-                        }
+                        } 
 
                         #message 
                         $message = 'Sync successfully.';
@@ -279,14 +290,22 @@ class InstaWP_Rest_Apis{
                     #background color
                     if(isset($details->background_color) && !empty($details->background_color)){
                         set_theme_mod( 'background_color', $details->background_color );
-                    } 
+                    }   
 
                     #Site Title
-                    update_option( 'name', $details->site_title );
-
+                    update_option( 'name', $details->name );
+                    update_option( 'blogname', $details->blogname );
+                    
                     #Tagline
-                    update_option( 'description', $details->tagline );
-
+                    update_option( 'description', $details->description );
+                    update_option( 'blogdescription', $details->blogdescription );
+                    
+                    #for 'Astra' theme
+                    if( isset($details->astra_settings) && !empty($details->astra_settings) ){
+                        $astra_settings = $this->object_to_array($details->astra_settings);
+                        update_option( 'astra-settings', $astra_settings );
+                    }
+                    
                     #nav menu locations
                     if(!empty($details->nav_menu_locations)){
                         $menu_array = (array) $details->nav_menu_locations;
@@ -296,7 +315,7 @@ class InstaWP_Rest_Apis{
                     #Custom css post id
                     $custom_css_post = (array) $details->custom_css_post;
                     if(!empty($details->custom_css_post)){
-                        if (get_post_status($custom_css_post['ID']) ) {
+                        if (get_post_status($custom_css_post['ID']) ) { 
                             #The post exists,Then update
                             $postData = $this->postData($custom_css_post,'update');
                             wp_update_post($postData);
@@ -307,8 +326,51 @@ class InstaWP_Rest_Apis{
                             wp_insert_post($postData); 
                         }
                         set_theme_mod( 'custom_css_post_id', $custom_css_post['ID'] );
-                    }
+                    } 
 
+                    #message 
+                    $message = 'Sync successfully.';
+                    $status = 'completed';
+                    $sync_response[] = $this->sync_opration_response($status,$message,$v);
+                    #changes
+                    $changes[$v->event_type] = $changes[$v->event_type] + 1;
+                }
+
+                 /**
+                 * Woocommerce attributes
+                 */
+                
+                #create&upadte woocommerce attribute
+                if(isset($v->event_slug) && ($v->event_slug == 'woocommerce_attribute_added' || $v->event_slug == 'woocommerce_attribute_updated')){
+                    $details = isset($v->details) ? (array) $v->details : '';
+                    if(!empty($details)){
+                        $attribute = wc_get_attribute(208);
+                        if(!empty($attribute)){
+                            unset($details['id']); 
+                            wc_update_attribute($v->source_id,$attribute);
+
+                            #message 
+                            $message = 'Sync successfully.';
+                            $status = 'completed';
+                            $sync_response[] = $this->sync_opration_response($status,$message,$v);
+                            #changes
+                            $changes[$v->event_type] = $changes[$v->event_type] + 1;
+                        }else{
+                            $this->woocommerce_create_attribute($v->source_id,$details); 
+
+                            #message 
+                            $message = 'Sync successfully.';
+                            $status = 'completed';
+                            $sync_response[] = $this->sync_opration_response($status,$message,$v);
+                            #changes
+                            $changes[$v->event_type] = $changes[$v->event_type] + 1;
+
+                        } 
+                    }     
+                }
+                        
+                if(isset($v->event_slug) && $v->event_slug == 'woocommerce_attribute_deleted'){
+                    wc_delete_attribute($v->source_id);
                     #message 
                     $message = 'Sync successfully.';
                     $status = 'completed';
@@ -347,6 +409,65 @@ class InstaWP_Rest_Apis{
         );
     }
 
+    /**
+     * object to array conversation 
+     */
+    public function object_to_array($data) {
+        if ((! is_array($data)) and (! is_object($data))){
+            return;
+        }
+        $result = array();
+        $data = (array) $data;
+        foreach ($data as $key => $value) {
+            if (is_object($value))
+                $value = (array) $value;
+            if (is_array($value))
+                $result[$key] = $this->object_to_array($value);
+            else
+                $result[$key] = $value;
+        }
+        return $result;
+    }
+
+    /**
+     * Create woocommerce attribute
+     */
+    public function woocommerce_create_attribute($source_id,$data = null){
+        global $wpdb;
+        $format = array( '%s', '%s', '%s', '%s', '%d' );
+        $data['attribute_id'] = intval($source_id);
+        $results = $wpdb->insert(
+            $wpdb->prefix . 'woocommerce_attribute_taxonomies',
+            $data,
+            $format
+        );
+    
+        if ( is_wp_error( $results ) ) {
+            return new WP_Error( 'cannot_create_attribute', 'Can not create attribute!', array( 'status' => 400 ) );
+        }
+        $id = $wpdb->insert_id;
+        /**
+         * Attribute added.
+         *
+         * @param int   $id   Added attribute ID.
+         * @param array $data Attribute data.
+         */
+        do_action( 'woocommerce_attribute_added', $id, $data );
+        // Clear cache and flush rewrite rules.
+        wp_schedule_single_event( time(), 'woocommerce_flush_rewrite_rules' );
+        delete_transient( 'wc_attribute_taxonomies' );
+        WC_Cache_Helper::invalidate_cache_group( 'woocommerce-attributes' );  
+    }
+
+    /**
+     * Set product gallery 
+     */
+    public function set_product_gallery($product_id = null, $gallery_ids = null){
+        $product = new WC_product($product_id);
+        $product->set_gallery_image_ids( $gallery_ids );
+        $product = $product->save();
+    }
+
     public function customizer_site_icon($data = null){
         $attachment_id = $data->id;
         $url = $data->url;
@@ -379,7 +500,7 @@ class InstaWP_Rest_Apis{
         }
     }
 
-    public function customizer_background_image($data = null){
+    public function customizer_background_image($data = null){  
         $attachment_id = $data->id;
         $url = $data->url;
         if(isset($attachment_id) && !empty($attachment_id)){
@@ -392,7 +513,7 @@ class InstaWP_Rest_Apis{
                 set_theme_mod( 'background_image', $attachment_url ); 
             }
         }else{
-            set_theme_mod( 'background_image', $url );
+            set_theme_mod( 'background_image', $url ); 
         }
         
         if(isset($data->background_preset) && !empty($data->background_preset)){
@@ -418,7 +539,7 @@ class InstaWP_Rest_Apis{
         if(isset($data->background_position_y) && !empty($data->background_position_y)){
             set_theme_mod( 'background_position_y', $data->background_position_y );
         }
-    }
+    } 
 
     /**
      * This function is for upload media which are coming form content.
@@ -465,7 +586,7 @@ class InstaWP_Rest_Apis{
             'description' => $arr['description'],
             'parent' => $arr['parent']
         ];
-    }
+    }  
 
     public function insert_taxonomy($term_id = null, $wp_terms = null, $wp_term_taxonomy = null){
         global $wpdb;
@@ -516,7 +637,7 @@ class InstaWP_Rest_Apis{
         if($op == 'insert'){
             $data['import_id'] = $posts['ID'];
         }else{
-            $data['ID'] = $posts['ID'];
+            $data['ID'] = $posts['ID']; 
         }
         $args = array(
             'post_author' => $posts['post_author'],
@@ -604,7 +725,7 @@ class InstaWP_Rest_Apis{
         $InstaWP_db->insert($tables['sh_table'],$data);
     }
 
-    #Plugin activate.
+    #Plugin activate. 
     public function plugin_activation( $plugin ) {
         if( ! function_exists('activate_plugin') ) {
             require_once ABSPATH . 'wp-admin/includes/plugin.php';
@@ -651,16 +772,16 @@ class InstaWP_Rest_Apis{
                 'message' => $message
             ];
     }
-
+ 
     public function sync_update($sync_id = null, $data = null, $source_connect_id = null){
         global $InstaWP_Curl;
-        $api_doamin = InstaWP_Setting::get_api_domain();
+        $api_doamin = InstaWP_Setting::get_api_domain(); 
         $connect_id = intval($source_connect_id);
         $endpoint = '/api/v2/connects/'.$connect_id.'/syncs/'.$sync_id;
         $url = $api_doamin.$endpoint; #https://stage.instawp.io/api/v2/connects/241/syncs/450
         $api_key = $this->get_api_key(); 
 
-        try{
+        try{ 
             $curl = curl_init();
             curl_setopt_array($curl, array(
             CURLOPT_URL => $url,
