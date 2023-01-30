@@ -31,7 +31,7 @@ if ( ! empty($connect_options) ) {
 // $InstaWP_BackupUploader = new InstaWP_BackupUploader();
 // $res                    = $InstaWP_BackupUploader->_rescan_local_folder_set_backup_api();
 
- $tasks = InstaWP_taskmanager::get_tasks_backup_running();
+$tasks = InstaWP_taskmanager::get_tasks_backup_running();
 
 if ( isset(  $_POST['instawp_settings_nonce']  ) 
     && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['instawp_settings_nonce'] )  ), 'instawp_settings' ) 
@@ -39,22 +39,22 @@ if ( isset(  $_POST['instawp_settings_nonce']  )
     $tasks = InstaWP_taskmanager::get_tasks_backup_running();
 
 foreach ( $tasks as $task_id => $task ) {
-   
-       
-        if ( isset( $tasks[ $task_id ]['data']['backup']['sub_job']['backup_merge']['finished'] ) && $tasks[ $task_id ]['data']['backup']['sub_job']['backup_merge']['finished'] == '1' ) {
 
-            echo esc_html( $task_id ) . "upload cancel";
-            update_option('upload_cancel_'.$task_id,'1');
+
+    if ( isset( $tasks[ $task_id ]['data']['backup']['sub_job']['backup_merge']['finished'] ) && $tasks[ $task_id ]['data']['backup']['sub_job']['backup_merge']['finished'] == '1' ) {
+
+        echo esc_html( $task_id ) . "upload cancel";
+        update_option('upload_cancel_'.$task_id,'1');
             // InstaWP_taskmanager::update_backup_main_task_progress($task_id, 'upload', 100, 1);
             // InstaWP_taskmanager::update_backup_task_status($task_id, false, 'completed');
-        }
-        else {
-            echo esc_html($task_id) . " backup cancel";
-
-            $res = $instawp_plugin->backup_cancel_api();
-          
-        }
     }
+    else {
+        echo esc_html($task_id) . " backup cancel";
+
+        $res = $instawp_plugin->backup_cancel_api();
+
+    }
+}
 } 
 ?>
 <div class="wrap instawp-settings-page">
@@ -74,9 +74,9 @@ foreach ( $tasks as $task_id => $task ) {
                     <a href="https://app.instawp.io/user/api-tokens" target="_blank" class="">Generate API Key</a>   
                     */ ?>           
                     <?php
-                        $instawp_api_url = InstaWP_Setting::get_api_domain();
-                        $return_url = urlencode( admin_url('admin.php?page=instawp-connect') );
-                        $source_url = $instawp_api_url.'/authorize?source=InstaWP Connect&return_url='.$return_url;
+                    $instawp_api_url = InstaWP_Setting::get_api_domain();
+                    $return_url = urlencode( admin_url('admin.php?page=instawp-connect') );
+                    $source_url = $instawp_api_url.'/authorize?source=InstaWP Connect&return_url='.$return_url;
                     ?>          
                     <a href="<?php echo $source_url;?>" class="">Generate API Key</a>   
                     <p class="instawp-err-msg"></p>
@@ -121,23 +121,21 @@ foreach ( $tasks as $task_id => $task ) {
                     </th>
                     <td>
                         <input type="text" value="<?php echo esc_attr($interal_api_domain); ?>" required="" name="instawp_api_url_internal" id="instawp_api_url_internal" /> 
-
-                        <span> | </span>
-                        <?php 
-                        if( isset( $_GET['internal'] ) && $_GET['page']=='instawp-settings' && 1 === intval( $_GET['internal'] ) ){ 
-
-                            $nonce = wp_create_nonce( 'delete_wpnonce' );
-                            $actionurl = admin_url( "admin.php?page=instawp-settings" );
-                            $delete_url = add_query_arg( array( 'delete_wpnonce' => $nonce ), $actionurl );
-                            ?> 
-                            <a href="<?php echo $delete_url?>" class="button button-primary">
-                                <?php echo strtoupper('Reset Instawp'); ?>
-                            </a>
-                        <?php } ?>                        
                     </td>               
                 </tr>
             <?php } ?>
-            
+            <tr>
+                <th>
+                    <?php 
+                    $nonce = wp_create_nonce( 'delete_wpnonce' );
+                    $actionurl = admin_url( "admin.php?page=instawp-settings" );
+                    $delete_url = add_query_arg( array( 'delete_wpnonce' => $nonce ), $actionurl );
+                    ?> 
+                    <a href="<?php echo $delete_url; ?>" class="button button-primary">
+                        <?php echo strtoupper('Reset Instawp'); ?>
+                    </a>
+                </th>
+            </tr>
         </table>
         <?php wp_nonce_field( 'instawp_settings', 'instawp_settings_nonce' ); ?>
         <?php submit_button(); ?>
@@ -145,7 +143,7 @@ foreach ( $tasks as $task_id => $task ) {
 </div>
 <script type="text/javascript">
     jQuery(document).ready(function () {
-        
+
         jQuery(document).on('click','#instawp-check-key',function(){     
             var api_key = jQuery('#instawp_api').val();
             var api_heartbeat = jQuery('#instawp_api_heartbeat').val();
@@ -160,7 +158,7 @@ foreach ( $tasks as $task_id => $task ) {
                     
                 },
                 success: function (response) {
-                    
+
                     var obj = JSON.parse(response);
                     if(obj.error == true) {
                         var msg = '<span style="color:red">'+obj.message+'</span>';
@@ -176,7 +174,7 @@ foreach ( $tasks as $task_id => $task ) {
                 }
             });        
         });   
-    
+
         //save settings call to save heartbeat input value        
         jQuery(document).on('submit','#instawp_settings', function(e){
             e.preventDefault();
@@ -198,7 +196,7 @@ foreach ( $tasks as $task_id => $task ) {
         }); 
     }); 
 
-   
+
     /*//heartbeat call based on time code start
     var call_timing = "<?php // echo $instawp_heartbeat_option;?>";
     if( call_timing=='' ){

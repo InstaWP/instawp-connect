@@ -78,7 +78,7 @@ class InstaWP_AJAX {
 			//After Delete Option Set API Domain
 			InstaWP_Setting::set_api_domain();
 
-			$redirect_url = admin_url( "admin.php?page=instawp-settings&internal=1" );
+			$redirect_url = admin_url( "admin.php?page=instawp-settings" );
 			wp_redirect( $redirect_url );
 			exit();
 		}
