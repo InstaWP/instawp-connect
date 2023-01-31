@@ -101,8 +101,8 @@ class InstaWP_Change_Event_Filters {
         $data['name'] = get_bloginfo('name');
         $data['description'] = get_bloginfo('description');
         
-        $data['blogname'] = get_bloginfo('blogname');
-        $data['blogdescription'] = get_bloginfo('blogdescription');
+        // $data['blogname'] = get_bloginfo('blogname');
+        // $data['blogdescription'] = get_bloginfo('blogdescription');
         
         $data['site_icon'] = [
             'id' => get_option('site_icon'),
@@ -755,13 +755,11 @@ class InstaWP_Change_Event_Filters {
      */
 
     public function trashPostFilter($trash, $post){
-
         $event_name = 'Post Trash';
-
         $event_slug = 'post_trash';
-
-        $this->addPostData($event_name,$event_slug,$post,null);
-
+        if($post->post_type != 'customize_changeset'){
+            $this->addPostData($event_name,$event_slug,$post,null);
+        }
     }
 
 
