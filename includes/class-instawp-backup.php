@@ -122,7 +122,7 @@ class InstaWP_Backup_Task {
 
 		} elseif ( $backup_type == INSTAWP_BACKUP_TYPE_THEMES ) {
 
-			$exclude_themes = ( isset( $args['exclude_themes'] ) && is_array( $args['exclude_themes'] ) ) ? $args['exclude_themes'] : [];
+			$exclude_themes = ( isset( $args['themes_excluded'] ) && is_array( $args['themes_excluded'] ) ) ? $args['themes_excluded'] : [];
 
 			foreach ( $exclude_themes as $item_to_exclude ) {
 				$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( get_theme_root() . DIRECTORY_SEPARATOR . $item_to_exclude ), '/' ) . '#';
@@ -521,16 +521,11 @@ class InstaWP_Backup_Task {
 		$themes_included    = array();
 		$themes_excluded    = array();
 		$current_theme      = wp_get_theme();
-		$active_themes_only = isset( $options['active_themes_only'] ) && $options['active_themes_only'];
+		$active_themes_only = $options['active_themes_only'] ?? 'false';
 
 		foreach ( wp_get_themes() as $key => $item ) {
 
-			if ( ! $item instanceof WP_Theme ) {
-				$themes_excluded[] = $key;
-				continue;
-			}
-
-			if ( $active_themes_only && $current_theme->get( 'Name' ) != $item->get( 'Name' ) ) {
+			if ( ( 'true' == $active_themes_only || '1' == $active_themes_only ) && $current_theme->get( 'Name' ) != $item->get( 'Name' ) ) {
 				$themes_excluded[] = $key;
 				continue;
 			}
@@ -544,6 +539,10 @@ class InstaWP_Backup_Task {
 			'themes_excluded' => $themes_excluded,
 		);
 
+		if ( empty( $return_type ) ) {
+			return $themes;
+		}
+
 		return $themes[ $return_type ] ?? array();
 	}
 
@@ -556,7 +555,7 @@ class InstaWP_Backup_Task {
 		$plugins_included        = array();
 		$plugins_excluded        = array();
 		$list                    = get_plugins();
-		$active_plugins_only     = isset( $options['active_plugins_only'] ) && $options['active_plugins_only'];
+		$active_plugins_only     = $options['active_plugins_only'] ?? 'false';
 		$exclude_default_plugins = $this->get_exclude_default_plugins();
 
 		foreach ( $list as $key => $item ) {
@@ -565,7 +564,7 @@ class InstaWP_Backup_Task {
 				continue;
 			}
 
-			if ( $active_plugins_only && ! is_plugin_active( $key ) ) {
+			if ( ( 'true' == $active_plugins_only || '1' == $active_plugins_only ) && ! is_plugin_active( $key ) ) {
 				$plugins_excluded[] = $key;
 				continue;
 			}
@@ -583,6 +582,10 @@ class InstaWP_Backup_Task {
 			'plugins_included' => $plugins_included,
 			'plugins_excluded' => array_filter( $plugins_excluded ),
 		);
+
+		if ( empty( $return_type ) ) {
+			return $plugins;
+		}
 
 		return $plugins[ $return_type ] ?? array();
 	}
@@ -2181,7 +2184,6 @@ class InstaWP_Backup {
 
 		while ( $next_backup !== false ) {
 			global $instawp_plugin;
-
 			$instawp_plugin->set_time_limit( $this->task->get_id() );
 			$this->task->update_sub_task_progress( $next_backup['key'], 0, sprintf( __( 'Start backing up %s.', 'instawp-connect' ), $next_backup['key'] ) );
 			$instawp_plugin->instawp_log->WriteLog( 'Prepare to backup ' . $next_backup['key'] . ' files.', 'notice' );
