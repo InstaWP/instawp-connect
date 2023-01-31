@@ -689,8 +689,6 @@ class instaWP {
 		$response                = array();
 		$backup_type             = (int) $_REQUEST['backup_type'];
 		$anonymize_option        = (int) $_REQUEST['anonymize_option'];
-		$customize_active_themes = (int) $_REQUEST['customize_active_themes'];
-		$customize_active_themes = (int) $_REQUEST['customize_active_themes'];
 
 		if ( ! empty( $connect_ids ) && ! empty( $instawp_api_options ) ) {
 			$id      = $connect_ids['data']['id'];

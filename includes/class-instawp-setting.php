@@ -376,6 +376,7 @@ class InstaWP_Setting {
 		$default        = array();
 		$options        = get_option( 'instawp_task_list', $default );
 		$options[ $id ] = $task;
+
 		self::update_option( 'instawp_task_list', $options );
 	}
 
