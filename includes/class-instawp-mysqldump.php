@@ -1303,6 +1303,14 @@ public function get_db_type( $is_additional_db ) {
      * @return null
      */
     function prepareListValues( $tableName ) {
+        global $wpdb;
+
+        $wp_change_event = $wpdb->prefix . "change_event"; 
+        $wp_sync_history = $wpdb->prefix . "sync_history";
+        $wp_changes_sync = $wpdb->prefix . "changes_sync";
+
+        if ( $tableName != $wp_change_event && $tableName != $wp_sync_history && $tableName != $wp_changes_sync ){
+
         if ( ! $this->dumpSettings['skip-comments'] ) {
             $this->compressManager->write(
                 "--" . PHP_EOL .
@@ -1348,6 +1356,7 @@ public function get_db_type( $is_additional_db ) {
         }
 
         return;
+        }
     }
 
     /**
