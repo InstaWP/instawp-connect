@@ -310,10 +310,10 @@ if ( isset( $_REQUEST['success'] ) && $_REQUEST['success'] == true ) {
 
             /* Check Cloud Site Usage Call Start */
             function check_cloud_usage(backup_type) {
-                var anonymization_option = 0;
-                if (jQuery("input[name='instawp_anonymization']").is(":checked")) {
-                    anonymization_option = 1;
-                }
+
+                let anonymization_option = jQuery("input[name='instawp_anonymization']").is(":checked"),
+                    active_plugins_only = jQuery("input[name='instawp_customize_active_plugins']").is(":checked"),
+                    active_themes_only = jQuery("input[name='instawp_customize_active_themes']").is(":checked");
 
                 jQuery.ajax({
                     type: 'POST',
@@ -331,7 +331,12 @@ if ( isset( $_REQUEST['success'] ) && $_REQUEST['success'] == true ) {
 
                         if (response.status == 1) {
                             instawp_clear_notice('instawp_backup_notice');
-                            instawp_start_backup();
+                            instawp_start_backup(
+                                {
+                                    'active_plugins_only': active_plugins_only,
+                                    'active_themes_only': active_themes_only,
+                                }
+                            );
                         } else if (response.status == 0) {
                             if (response.link) {
                                 acc_link = response.link;
@@ -350,7 +355,7 @@ if ( isset( $_REQUEST['success'] ) && $_REQUEST['success'] == true ) {
 
             /* Check Cloud Site Usage Call End */
 
-            function instawp_start_backup() {
+            function instawp_start_backup(options = []) {
                 var bcheck = true;
                 var bdownloading = false;
                 if (m_downloading_id !== '') {
@@ -373,7 +378,6 @@ if ( isset( $_REQUEST['success'] ) && $_REQUEST['success'] == true ) {
                             var json = new Array();
                             if (value == 'local') {
                                 json['local'] = '1';
-
                             }
                         }
                         jQuery.extend(backup_data, json);
@@ -382,7 +386,8 @@ if ( isset( $_REQUEST['success'] ) && $_REQUEST['success'] == true ) {
                     console.log(backup_data);
                     var ajax_data = {
                         'action': 'instawp_prepare_backup',
-                        'backup': backup_data
+                        'backup': backup_data,
+                        'options': options,
                     };
                     instawp_control_backup_lock();
                     jQuery('#instawp_backup_cancel_btn').css({'pointer-events': 'none', 'opacity': '0.4'});

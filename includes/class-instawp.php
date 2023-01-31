@@ -72,409 +72,406 @@ class instaWP {
 
 		//Load dependent files
 		$this->load_dependencies();
-		
- 
-      //A flag to determine whether plugin had been initialized
-      $init = get_option('instawp_init', 'not init');
-      if ( $init == 'not init' ) {
-         //Initialization settings
-         InstaWP_Setting::init_option();
-         InstaWP_Setting::update_option('instawp_init', 'init');
-      }
-
-      $instawp_remote_init = get_option('instawp_remote_init', 'not init');
-      if ( $instawp_remote_init == 'not init' ) {
-         $this->init_remote_option();
-         InstaWP_Setting::update_option('instawp_remote_init', 'init');
-      }
-
-      //Define the locale for this plugin for internationalization.
-      $this->set_locale();
-      //Register hook
-      if ( is_admin() ) {
-         $this->define_admin_hook();
-         //Add ajax hook
-         $this->load_ajax_hook_for_admin();
-      }
-
-      //add_filter('pre_update_option',array( $this,'wpjam_pre_update_option_cache'),10,2);
-
-      add_filter('instawp_add_backup_list', array( $this, 'instawp_add_backup_list' ), 10, 3);
-      add_filter('instawp_add_remote_storage_list', array( $this, 'instawp_add_remote_storage_list' ), 10);
-      add_filter('instawp_schedule_add_remote_pic', array( $this, 'instawp_schedule_add_remote_pic' ), 10);
-      add_filter('instawp_get_remote_directory', array( $this, 'instawp_get_remote_directory' ), 10);
-      add_filter('instawp_get_log_list', array( $this, 'instawp_get_log_list' ), 10);
-      add_filter('instawp_get_last_backup_message', array( $this, 'instawp_get_last_backup_message' ), 10);
-      add_filter('instawp_schedule_local_remote', array( $this, 'instawp_schedule_local_remote' ), 10);
-      add_filter('instawp_remote_storage', array( $this, 'instawp_remote_storage' ), 10);
-      add_filter('instawp_add_remote_notice', array( $this, 'instawp_add_remote_notice' ), 10, 2);
-      add_filter('instawp_set_general_setting', array( $this, 'instawp_set_general_setting' ), 10, 3);
-
-      add_action('instawp_handle_backup_succeed', array( $this, 'instawp_handle_backup_succeed' ), 10);
-      add_action('instawp_handle_upload_succeed', array( $this, 'instawp_handle_backup_succeed' ), 10);
-
-      add_action('instawp_handle_upload_succeed', array( $this, 'instawp_mark_task' ), 20);
-      add_action('instawp_handle_backup_succeed', array( $this, 'instawp_mark_task' ), 20);
-
-      add_action('instawp_handle_backup_failed', array( $this, 'instawp_handle_backup_failed' ), 9, 2);
-
-      add_action('instawp_handle_upload_succeed', array( $this, 'instawp_deal_upload_succeed' ), 9);
-
-      add_action('instawp_handle_backup_failed', array( $this, 'instawp_mark_task' ), 20);
-      add_action('init', array( $this, 'init_pclzip_tmp_folder' ));
-      add_action('plugins_loaded', array( $this, 'load_remote_storage' ), 10);
-
-      add_action('instawp_before_setup_page', array( $this, 'clean_cache' ));
-      add_filter('instawp_check_type_database', array( $this, 'instawp_check_type_database' ), 10, 2);
-      
-      
-
-      add_filter('instawp_get_oldest_backup_ids', array( $this, 'get_oldest_backup_ids' ), 10, 2);
-      add_filter('instawp_check_backup_completeness', array( $this, 'check_backup_completeness' ), 10, 2);
-
-      add_filter('instawp_get_mainwp_sync_data', array( $this, 'get_mainwp_sync_data' ), 10);
-      //
-      add_filter('instawp_get_zip_object_class_ex', array( $this, 'get_zip_object_class' ));
-      //Initialisation schedule hook
-      $this->init_cron();
-      //Initialisation log object
-      $this->instawp_log          = new InstaWP_Log();
-      $this->instawp_download_log = new InstaWP_Log();
-      $this->instawp_restore_log = new InstaWP_Log();
-
-      /*Cron handlers*/
-      add_filter('cron_schedules', array($this, 'instawp_handle_cron_time_intervals'));
-      add_action( 'wp',  array($this, 'instawp_handle_cron_scheduler'));
-      add_action( 'instwp_handle_heartbeat_cron_action', array( $this, 'instawp_handle_heartbeat_cron_action_call' ) );
-      /*Cron handlers*/
-      
-      // Hook to run on login page
-      add_action( 'login_init', array( $this, 'instawp_auto_login_redirect' ) );
-   }
-
-   // Login hook logic
-   public function instawp_auto_login_redirect()
-   {
-      include_once ABSPATH . 'wp-admin/includes/plugin.php';
-
-      $current_setup_plugins = array_keys(get_plugins());
-      $instawp_plugin = null; 
-      $instawp_index_default = array_search('instawp-connect/instawp-connect.php', $current_setup_plugins);
-      $instawp_index_main = array_search('instawp-connect-main/instawp-connect.php', $current_setup_plugins);
-
-      if (false !== $instawp_index_default) {
-          $instawp_plugin = $current_setup_plugins[$instawp_index_default];
-      }
-
-      if (false !== $instawp_index_main) {
-          $instawp_plugin = $current_setup_plugins[$instawp_index_main];
-      }
-
-      // check for plugin using plugin name
-      if ( !is_null($instawp_plugin) && is_plugin_active( $instawp_plugin ) ) {
-         // Check for params
-         if (
-            isset($_GET['reauth']) && 
-            isset($_GET['c']) && 
-            isset($_GET['s']) && 
-            !empty( $_GET['reauth'] ) && 
-            !empty( $_GET['c'] ) &&
-            !empty( $_GET['s'] )
-         ) {
-            $param_code = $_GET['c'];
-            $param_user = base64_decode( $_GET['s'] ) ;
-            $current_code = get_transient( 'instawp_auto_login_code' );
-            $username = sanitize_user( $param_user );
-            if (
-               $param_code === $current_code &&
-               false !== $current_code &&
-               username_exists( $username )
-            ) {
-               //plugin is activated
-               require_once('wp-load.php');
-               $loginusername = $username;
-               $user = get_user_by( 'login', $loginusername );
-               $user_id = $user->ID;
-               wp_set_current_user( $user_id, $loginusername );
-               wp_set_auth_cookie( $user_id );
-               do_action( 'wp_login', $loginusername, $user );
-
-               // Remove transient
-               delete_transient( 'instawp_auto_login_code' );
-               wp_redirect( admin_url() );
-               exit();
-            }else{
-               delete_transient( 'instawp_auto_login_code' );
-               wp_redirect( wp_login_url('', false) );
-               exit();
-            }
-         }
-      }
-   }
-
-   // Set Cron time interval function
-   public function instawp_handle_cron_time_intervals( $schedules )
-   {  
-      $connect_options = get_option('instawp_api_options', '');
-      $connect_ids = get_option('instawp_connect_id_options', '');
-
-      if (
-         isset($connect_options['api_key']) && 
-         !empty($connect_options['api_key']) && 
-         !empty($connect_ids) && 
-         isset($connect_ids['data']['id']) && 
-         !empty($connect_ids['data']['id'])
-      ){
-
-         $cutstom_interval = intval( get_option('instawp_heartbeat_option', 2) );
-         //error_log( "default interval time ==> ".$cutstom_interval );
-         $schedules['instawp_heartbeat_interval'] = array(
-            'interval' => $cutstom_interval * 60,
-            'display' => 'Once '.$cutstom_interval.' minutes'
-         );      
-      }
-      return $schedules;
-      
-   }
-
-   /*Set Cron event*/
-   public function instawp_handle_cron_scheduler() {
-      if ( ! wp_next_scheduled( 'instwp_handle_heartbeat_cron_action' ) ) {         
-         wp_schedule_event( time(), 'instawp_heartbeat_interval', 'instwp_handle_heartbeat_cron_action');
-      }
-   }
-
-   /*Encrypt data*/
-   public static function instawp_heartbeat_data_encrypt( $arg ){
-      $connect_options = get_option('instawp_api_options', '');
-      $api_key = $connect_options['api_key'];
-
-      $cipher = "aes-128-gcm";
-      $ivlen = openssl_cipher_iv_length($cipher);
-      $iv = openssl_random_pseudo_bytes($ivlen);
-      $tag = 'GCM';
-      $data = openssl_encrypt( $arg, $cipher, $api_key, $options=0, $iv, $tag );
-
-      return $data;       
-   }
-
-   /**
-    * Cron Action to be performed
-    * */
-   public function instawp_handle_heartbeat_cron_action_call(){
-      date_default_timezone_set("Asia/Kolkata");
-      error_log("RAN AT : " . date('d-m-Y, H:i:s, h:i:s'));
-
-      $connect_options = get_option('instawp_api_options', '');
-      $connect_ids = get_option('instawp_connect_id_options', '');
-
-      if (
-         isset($connect_options['api_key']) && 
-         !empty($connect_options['api_key']) && 
-         !empty($connect_ids) && 
-         isset($connect_ids['data']['id']) && 
-         !empty($connect_ids['data']['id'])
-      ) {
-
-         $current_api_key = $connect_options['api_key'];
-         if ( ! class_exists( 'WP_Debug_Data' ) ) {
-            require_once ABSPATH . 'wp-admin/includes/class-wp-debug-data.php';
-         }
-         $sizes_data = WP_Debug_Data::get_sizes();
-
-         $wp_version = get_bloginfo('version');
-         $php_version = phpversion();
-         $total_size = $sizes_data['total_size']['size'];
-         $active_theme = wp_get_theme()->get('Name');
-
-         $count_posts = wp_count_posts();
-         $posts = $count_posts->publish;
-
-         $count_pages = wp_count_posts('page');
-         $pages = $count_pages->publish;
-
-         $count_users = count_users();
-         $users = $count_users['total_users'];
-
-
-         if ( ! empty($connect_ids) ) {
-            if ( isset($connect_ids['data']['id']) && ! empty($connect_ids['data']['id']) ) {
-               $id= $connect_ids['data']['id'];
-            }
-         }
-
-         // Curl constant
-         global $InstaWP_Curl;
-
-         $body = base64_encode(
-            json_encode (
-               array(
-                  "wp_version" => $wp_version,
-                  "php_version" => $php_version,
-                  "total_size" => $total_size,
-                  "theme" => $active_theme,
-                  "posts" => $posts,
-                  "pages" => $pages,
-                  "users" => $users,
-               )
-            )
-         );
-
-         $api_doamin = InstaWP_Setting::get_api_domain();
-         $url = $api_doamin . INSTAWP_API_URL . '/connects/'.$id.'/heartbeat';
-         $body_json     = json_encode($body);
-         $curl_response = $InstaWP_Curl->curl($url, $body_json);  
-         error_log( "Heartbeat API Curl URL ".$url);
-         error_log( "Print Heartbeat API Curl Response Start" );      
-         error_log( print_r($curl_response, true) );
-         error_log( "Print Heartbeat API Curl Response End" );          
-      }
-   }
-
-   public function init_cron() {
-      //$schedule=new InstaWP_Schedule();
-      add_action(INSTAWP_MAIN_SCHEDULE_EVENT, array( $this, 'main_schedule' ));
-      add_action(INSTAWP_RESUME_SCHEDULE_EVENT, array( $this, 'resume_schedule' ));
-      add_action(INSTAWP_CLEAN_BACKING_UP_DATA_EVENT, array( $this, 'clean_backing_up_data_event' ));
-      add_action(INSTAWP_CLEAN_BACKUP_RECORD_EVENT, array( $this, 'clean_backup_record_event' ));
-      //add_clean_event
-      add_action(INSTAWP_TASK_MONITOR_EVENT, array( $this, 'task_monitor' ));
-      // add_filter('cron_schedules',array( $schedule,'instawp_cron_schedules'),99);
-      // add_filter('instawp_schedule_time', array($schedule, 'output'));
-   }
-
-   private function load_dependencies() {
-      include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-log.php';
-      require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-i18n.php';
-      require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-curl.php';
-      require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-ajax.php';
-      require_once INSTAWP_PLUGIN_DIR . '/admin/class-instawp-admin.php';
-      require_once INSTAWP_PLUGIN_DIR . '/admin/class-instawp-admin-wizard.php';
-      require_once INSTAWP_PLUGIN_DIR . '/admin/partials/instawp-admin-change-event-filters.php';
-      require_once INSTAWP_PLUGIN_DIR . '/includes/class-intawp-ajax-fn.php';
-      require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-rest-apis.php';
-      //include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-setting.php';
-
-	   require_once INSTAWP_PLUGIN_DIR . '/admin/class-instawp-go-live.php';
-
-      include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-error-log.php';
-      include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-backuplist.php';
-      include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-restore-data.php';
-      include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-taskmanager.php';
-
-      include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-downloader.php';
-      include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-backup.php';
-
-      include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-restore.php';
-
-      include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-function-realize.php';
-      include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-upload.php';
-
-      include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-backup-uploader.php';
-      //include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-crypt.php';
-      //include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-migrate.php';
-
-      include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-db-method.php';
-
-      include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-public-interface.php';
-
-      include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-additional-db-method.php';
-      include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-restore-db-extra.php';
-
-      include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-tab-page-container.php';
-      include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-tools.php';
-
-      include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-interface-mainwp.php';
-      require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-rest-api.php';
-
-      $this->function_realize = new InstaWP_Function_Realize();
-      //$this->migrate          = new InstaWP_Migrate();
-      $this->backup_uploader  = new instawp_BackupUploader();
-      $this->interface_mainwp = new InstaWP_Interface_MainWP();
-
-   }
-
-   public function init_pclzip_tmp_folder() {
-      if ( ! defined('PCLZIP_TEMPORARY_DIR') ) {
-         $backupdir = InstaWP_Setting::get_backupdir();
-         define('PCLZIP_TEMPORARY_DIR', WP_CONTENT_DIR . DIRECTORY_SEPARATOR . $backupdir . DIRECTORY_SEPARATOR);
-      }
-   }
-
-   public function load_remote_storage() {
-
-   }
-
-		// $instawp_remote_init = get_option( 'instawp_remote_init', 'not init' );
-		// if ( $instawp_remote_init == 'not init' ) {
-		// 	$this->init_remote_option();
-		// 	InstaWP_Setting::update_option( 'instawp_remote_init', 'init' );
-		// }
-
-		// //Define the locale for this plugin for internationalization.
-		// $this->set_locale();
-		// //Register hook
-		// if ( is_admin() ) {
-		// 	$this->define_admin_hook();
-		// 	//Add ajax hook
-		// 	$this->load_ajax_hook_for_admin();
-		// }
-
-		// //add_filter('pre_update_option',array( $this,'wpjam_pre_update_option_cache'),10,2);
-
-		// add_filter( 'instawp_add_backup_list', array( $this, 'instawp_add_backup_list' ), 10, 3 );
-		// add_filter( 'instawp_add_remote_storage_list', array( $this, 'instawp_add_remote_storage_list' ), 10 );
-		// add_filter( 'instawp_schedule_add_remote_pic', array( $this, 'instawp_schedule_add_remote_pic' ), 10 );
-		// add_filter( 'instawp_get_remote_directory', array( $this, 'instawp_get_remote_directory' ), 10 );
-		// add_filter( 'instawp_get_log_list', array( $this, 'instawp_get_log_list' ), 10 );
-		// add_filter( 'instawp_get_last_backup_message', array( $this, 'instawp_get_last_backup_message' ), 10 );
-		// add_filter( 'instawp_schedule_local_remote', array( $this, 'instawp_schedule_local_remote' ), 10 );
-		// add_filter( 'instawp_remote_storage', array( $this, 'instawp_remote_storage' ), 10 );
-		// add_filter( 'instawp_add_remote_notice', array( $this, 'instawp_add_remote_notice' ), 10, 2 );
-		// add_filter( 'instawp_set_general_setting', array( $this, 'instawp_set_general_setting' ), 10, 3 );
-
-		// add_action( 'instawp_handle_backup_succeed', array( $this, 'instawp_handle_backup_succeed' ), 10 );
-		// add_action( 'instawp_handle_upload_succeed', array( $this, 'instawp_handle_backup_succeed' ), 10 );
-
-		// add_action( 'instawp_handle_upload_succeed', array( $this, 'instawp_mark_task' ), 20 );
-		// add_action( 'instawp_handle_backup_succeed', array( $this, 'instawp_mark_task' ), 20 );
-
-		// add_action( 'instawp_handle_backup_failed', array( $this, 'instawp_handle_backup_failed' ), 9, 2 );
-
-		// add_action( 'instawp_handle_upload_succeed', array( $this, 'instawp_deal_upload_succeed' ), 9 );
-
-		// add_action( 'instawp_handle_backup_failed', array( $this, 'instawp_mark_task' ), 20 );
-		// add_action( 'init', array( $this, 'init_pclzip_tmp_folder' ) );
-		// add_action( 'plugins_loaded', array( $this, 'load_remote_storage' ), 10 );
-
-		// add_action( 'instawp_before_setup_page', array( $this, 'clean_cache' ) );
-		// add_filter( 'instawp_check_type_database', array( $this, 'instawp_check_type_database' ), 10, 2 );
-
-
-		// add_filter( 'instawp_get_oldest_backup_ids', array( $this, 'get_oldest_backup_ids' ), 10, 2 );
-		// add_filter( 'instawp_check_backup_completeness', array( $this, 'check_backup_completeness' ), 10, 2 );
-
-		// add_filter( 'instawp_get_mainwp_sync_data', array( $this, 'get_mainwp_sync_data' ), 10 );
-		// //
-		// add_filter( 'instawp_get_zip_object_class_ex', array( $this, 'get_zip_object_class' ) );
-		// //Initialisation schedule hook
-		// $this->init_cron();
-		// //Initialisation log object
-		// $this->instawp_log          = new InstaWP_Log();
-		// $this->instawp_download_log = new InstaWP_Log();
-		// $this->instawp_restore_log  = new InstaWP_Log();
-
-		// /*Cron handlers*/
-		// add_filter( 'cron_schedules', array( $this, 'instawp_handle_cron_time_intervals' ) );
-		// add_action( 'wp', array( $this, 'instawp_handle_cron_scheduler' ) );
-		// add_action( 'instwp_handle_heartbeat_cron_action', array( $this, 'instawp_handle_heartbeat_cron_action_call' ) );
-		// /*Cron handlers*/
-
-		// // Hook to run on login page
-		// add_action( 'login_init', array( $this, 'instawp_auto_login_redirect' ) );
+
+
+		//A flag to determine whether plugin had been initialized
+		$init = get_option( 'instawp_init', 'not init' );
+		if ( $init == 'not init' ) {
+			//Initialization settings
+			InstaWP_Setting::init_option();
+			InstaWP_Setting::update_option( 'instawp_init', 'init' );
+		}
+
+		$instawp_remote_init = get_option( 'instawp_remote_init', 'not init' );
+		if ( $instawp_remote_init == 'not init' ) {
+			$this->init_remote_option();
+			InstaWP_Setting::update_option( 'instawp_remote_init', 'init' );
+		}
+
+		//Define the locale for this plugin for internationalization.
+		$this->set_locale();
+		//Register hook
+		if ( is_admin() ) {
+			$this->define_admin_hook();
+			//Add ajax hook
+			$this->load_ajax_hook_for_admin();
+		}
+
+		//add_filter('pre_update_option',array( $this,'wpjam_pre_update_option_cache'),10,2);
+
+		add_filter( 'instawp_add_backup_list', array( $this, 'instawp_add_backup_list' ), 10, 3 );
+		add_filter( 'instawp_add_remote_storage_list', array( $this, 'instawp_add_remote_storage_list' ), 10 );
+		add_filter( 'instawp_schedule_add_remote_pic', array( $this, 'instawp_schedule_add_remote_pic' ), 10 );
+		add_filter( 'instawp_get_remote_directory', array( $this, 'instawp_get_remote_directory' ), 10 );
+		add_filter( 'instawp_get_log_list', array( $this, 'instawp_get_log_list' ), 10 );
+		add_filter( 'instawp_get_last_backup_message', array( $this, 'instawp_get_last_backup_message' ), 10 );
+		add_filter( 'instawp_schedule_local_remote', array( $this, 'instawp_schedule_local_remote' ), 10 );
+		add_filter( 'instawp_remote_storage', array( $this, 'instawp_remote_storage' ), 10 );
+		add_filter( 'instawp_add_remote_notice', array( $this, 'instawp_add_remote_notice' ), 10, 2 );
+		add_filter( 'instawp_set_general_setting', array( $this, 'instawp_set_general_setting' ), 10, 3 );
+
+		add_action( 'instawp_handle_backup_succeed', array( $this, 'instawp_handle_backup_succeed' ), 10 );
+		add_action( 'instawp_handle_upload_succeed', array( $this, 'instawp_handle_backup_succeed' ), 10 );
+
+		add_action( 'instawp_handle_upload_succeed', array( $this, 'instawp_mark_task' ), 20 );
+		add_action( 'instawp_handle_backup_succeed', array( $this, 'instawp_mark_task' ), 20 );
+
+		add_action( 'instawp_handle_backup_failed', array( $this, 'instawp_handle_backup_failed' ), 9, 2 );
+
+		add_action( 'instawp_handle_upload_succeed', array( $this, 'instawp_deal_upload_succeed' ), 9 );
+
+		add_action( 'instawp_handle_backup_failed', array( $this, 'instawp_mark_task' ), 20 );
+		add_action( 'init', array( $this, 'init_pclzip_tmp_folder' ) );
+		add_action( 'plugins_loaded', array( $this, 'load_remote_storage' ), 10 );
+
+		add_action( 'instawp_before_setup_page', array( $this, 'clean_cache' ) );
+		add_filter( 'instawp_check_type_database', array( $this, 'instawp_check_type_database' ), 10, 2 );
+
+
+		add_filter( 'instawp_get_oldest_backup_ids', array( $this, 'get_oldest_backup_ids' ), 10, 2 );
+		add_filter( 'instawp_check_backup_completeness', array( $this, 'check_backup_completeness' ), 10, 2 );
+
+		add_filter( 'instawp_get_mainwp_sync_data', array( $this, 'get_mainwp_sync_data' ), 10 );
+		//
+		add_filter( 'instawp_get_zip_object_class_ex', array( $this, 'get_zip_object_class' ) );
+		//Initialisation schedule hook
+		$this->init_cron();
+		//Initialisation log object
+		$this->instawp_log          = new InstaWP_Log();
+		$this->instawp_download_log = new InstaWP_Log();
+		$this->instawp_restore_log  = new InstaWP_Log();
+
+		/*Cron handlers*/
+		add_filter( 'cron_schedules', array( $this, 'instawp_handle_cron_time_intervals' ) );
+		add_action( 'wp', array( $this, 'instawp_handle_cron_scheduler' ) );
+		add_action( 'instwp_handle_heartbeat_cron_action', array( $this, 'instawp_handle_heartbeat_cron_action_call' ) );
+		/*Cron handlers*/
+
+		// Hook to run on login page
+		add_action( 'login_init', array( $this, 'instawp_auto_login_redirect' ) );
+	}
+
+	// Login hook logic
+	public function instawp_auto_login_redirect() {
+		include_once ABSPATH . 'wp-admin/includes/plugin.php';
+
+		$current_setup_plugins = array_keys( get_plugins() );
+		$instawp_plugin        = null;
+		$instawp_index_default = array_search( 'instawp-connect/instawp-connect.php', $current_setup_plugins );
+		$instawp_index_main    = array_search( 'instawp-connect-main/instawp-connect.php', $current_setup_plugins );
+
+		if ( false !== $instawp_index_default ) {
+			$instawp_plugin = $current_setup_plugins[ $instawp_index_default ];
+		}
+
+		if ( false !== $instawp_index_main ) {
+			$instawp_plugin = $current_setup_plugins[ $instawp_index_main ];
+		}
+
+		// check for plugin using plugin name
+		if ( ! is_null( $instawp_plugin ) && is_plugin_active( $instawp_plugin ) ) {
+			// Check for params
+			if (
+				isset( $_GET['reauth'] ) &&
+				isset( $_GET['c'] ) &&
+				isset( $_GET['s'] ) &&
+				! empty( $_GET['reauth'] ) &&
+				! empty( $_GET['c'] ) &&
+				! empty( $_GET['s'] )
+			) {
+				$param_code   = $_GET['c'];
+				$param_user   = base64_decode( $_GET['s'] );
+				$current_code = get_transient( 'instawp_auto_login_code' );
+				$username     = sanitize_user( $param_user );
+				if (
+					$param_code === $current_code &&
+					false !== $current_code &&
+					username_exists( $username )
+				) {
+					//plugin is activated
+					require_once( 'wp-load.php' );
+					$loginusername = $username;
+					$user          = get_user_by( 'login', $loginusername );
+					$user_id       = $user->ID;
+					wp_set_current_user( $user_id, $loginusername );
+					wp_set_auth_cookie( $user_id );
+					do_action( 'wp_login', $loginusername, $user );
+
+					// Remove transient
+					delete_transient( 'instawp_auto_login_code' );
+					wp_redirect( admin_url() );
+					exit();
+				} else {
+					delete_transient( 'instawp_auto_login_code' );
+					wp_redirect( wp_login_url( '', false ) );
+					exit();
+				}
+			}
+		}
+	}
+
+	// Set Cron time interval function
+	public function instawp_handle_cron_time_intervals( $schedules ) {
+		$connect_options = get_option( 'instawp_api_options', '' );
+		$connect_ids     = get_option( 'instawp_connect_id_options', '' );
+
+		if (
+			isset( $connect_options['api_key'] ) &&
+			! empty( $connect_options['api_key'] ) &&
+			! empty( $connect_ids ) &&
+			isset( $connect_ids['data']['id'] ) &&
+			! empty( $connect_ids['data']['id'] )
+		) {
+
+			$cutstom_interval = intval( get_option( 'instawp_heartbeat_option', 2 ) );
+			//error_log( "default interval time ==> ".$cutstom_interval );
+			$schedules['instawp_heartbeat_interval'] = array(
+				'interval' => $cutstom_interval * 60,
+				'display'  => 'Once ' . $cutstom_interval . ' minutes'
+			);
+		}
+
+		return $schedules;
+
+	}
+
+	/*Set Cron event*/
+	public function instawp_handle_cron_scheduler() {
+		if ( ! wp_next_scheduled( 'instwp_handle_heartbeat_cron_action' ) ) {
+			wp_schedule_event( time(), 'instawp_heartbeat_interval', 'instwp_handle_heartbeat_cron_action' );
+		}
+	}
+
+	/*Encrypt data*/
+	public static function instawp_heartbeat_data_encrypt( $arg ) {
+		$connect_options = get_option( 'instawp_api_options', '' );
+		$api_key         = $connect_options['api_key'];
+
+		$cipher = "aes-128-gcm";
+		$ivlen  = openssl_cipher_iv_length( $cipher );
+		$iv     = openssl_random_pseudo_bytes( $ivlen );
+		$tag    = 'GCM';
+		$data   = openssl_encrypt( $arg, $cipher, $api_key, $options = 0, $iv, $tag );
+
+		return $data;
+	}
+
+	/**
+	 * Cron Action to be performed
+	 * */
+	public function instawp_handle_heartbeat_cron_action_call() {
+		date_default_timezone_set( "Asia/Kolkata" );
+		error_log( "RAN AT : " . date( 'd-m-Y, H:i:s, h:i:s' ) );
+
+		$connect_options = get_option( 'instawp_api_options', '' );
+		$connect_ids     = get_option( 'instawp_connect_id_options', '' );
+
+		if (
+			isset( $connect_options['api_key'] ) &&
+			! empty( $connect_options['api_key'] ) &&
+			! empty( $connect_ids ) &&
+			isset( $connect_ids['data']['id'] ) &&
+			! empty( $connect_ids['data']['id'] )
+		) {
+
+			$current_api_key = $connect_options['api_key'];
+			if ( ! class_exists( 'WP_Debug_Data' ) ) {
+				require_once ABSPATH . 'wp-admin/includes/class-wp-debug-data.php';
+			}
+			$sizes_data = WP_Debug_Data::get_sizes();
+
+			$wp_version   = get_bloginfo( 'version' );
+			$php_version  = phpversion();
+			$total_size   = $sizes_data['total_size']['size'];
+			$active_theme = wp_get_theme()->get( 'Name' );
+
+			$count_posts = wp_count_posts();
+			$posts       = $count_posts->publish;
+
+			$count_pages = wp_count_posts( 'page' );
+			$pages       = $count_pages->publish;
+
+			$count_users = count_users();
+			$users       = $count_users['total_users'];
+
+
+			if ( ! empty( $connect_ids ) ) {
+				if ( isset( $connect_ids['data']['id'] ) && ! empty( $connect_ids['data']['id'] ) ) {
+					$id = $connect_ids['data']['id'];
+				}
+			}
+
+			// Curl constant
+			global $InstaWP_Curl;
+
+			$body = base64_encode(
+				json_encode(
+					array(
+						"wp_version"  => $wp_version,
+						"php_version" => $php_version,
+						"total_size"  => $total_size,
+						"theme"       => $active_theme,
+						"posts"       => $posts,
+						"pages"       => $pages,
+						"users"       => $users,
+					)
+				)
+			);
+
+			$api_doamin    = InstaWP_Setting::get_api_domain();
+			$url           = $api_doamin . INSTAWP_API_URL . '/connects/' . $id . '/heartbeat';
+			$body_json     = json_encode( $body );
+			$curl_response = $InstaWP_Curl->curl( $url, $body_json );
+			error_log( "Heartbeat API Curl URL " . $url );
+			error_log( "Print Heartbeat API Curl Response Start" );
+			error_log( print_r( $curl_response, true ) );
+			error_log( "Print Heartbeat API Curl Response End" );
+		}
+	}
+
+	public function init_cron() {
+		//$schedule=new InstaWP_Schedule();
+		add_action( INSTAWP_MAIN_SCHEDULE_EVENT, array( $this, 'main_schedule' ) );
+		add_action( INSTAWP_RESUME_SCHEDULE_EVENT, array( $this, 'resume_schedule' ) );
+		add_action( INSTAWP_CLEAN_BACKING_UP_DATA_EVENT, array( $this, 'clean_backing_up_data_event' ) );
+		add_action( INSTAWP_CLEAN_BACKUP_RECORD_EVENT, array( $this, 'clean_backup_record_event' ) );
+		//add_clean_event
+		add_action( INSTAWP_TASK_MONITOR_EVENT, array( $this, 'task_monitor' ) );
+		// add_filter('cron_schedules',array( $schedule,'instawp_cron_schedules'),99);
+		// add_filter('instawp_schedule_time', array($schedule, 'output'));
+	}
+
+	private function load_dependencies() {
+		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-log.php';
+		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-i18n.php';
+		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-curl.php';
+		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-ajax.php';
+		require_once INSTAWP_PLUGIN_DIR . '/admin/class-instawp-admin.php';
+		require_once INSTAWP_PLUGIN_DIR . '/admin/class-instawp-admin-wizard.php';
+		require_once INSTAWP_PLUGIN_DIR . '/admin/partials/instawp-admin-change-event-filters.php';
+		require_once INSTAWP_PLUGIN_DIR . '/includes/class-intawp-ajax-fn.php';
+		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-rest-apis.php';
+		//include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-setting.php';
+
+		require_once INSTAWP_PLUGIN_DIR . '/admin/class-instawp-go-live.php';
+
+		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-error-log.php';
+		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-backuplist.php';
+		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-restore-data.php';
+		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-taskmanager.php';
+
+		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-downloader.php';
+		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-backup.php';
+
+		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-restore.php';
+
+		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-function-realize.php';
+		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-upload.php';
+
+		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-backup-uploader.php';
+		//include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-crypt.php';
+		//include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-migrate.php';
+
+		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-db-method.php';
+
+		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-public-interface.php';
+
+		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-additional-db-method.php';
+		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-restore-db-extra.php';
+
+		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-tab-page-container.php';
+		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-tools.php';
+
+		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-interface-mainwp.php';
+		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-rest-api.php';
+
+		$this->function_realize = new InstaWP_Function_Realize();
+		//$this->migrate          = new InstaWP_Migrate();
+		$this->backup_uploader  = new instawp_BackupUploader();
+		$this->interface_mainwp = new InstaWP_Interface_MainWP();
+
+	}
+
+	public function init_pclzip_tmp_folder() {
+		if ( ! defined( 'PCLZIP_TEMPORARY_DIR' ) ) {
+			$backupdir = InstaWP_Setting::get_backupdir();
+			define( 'PCLZIP_TEMPORARY_DIR', WP_CONTENT_DIR . DIRECTORY_SEPARATOR . $backupdir . DIRECTORY_SEPARATOR );
+		}
+	}
+
+	public function load_remote_storage() {
+
+	}
+
+	// $instawp_remote_init = get_option( 'instawp_remote_init', 'not init' );
+	// if ( $instawp_remote_init == 'not init' ) {
+	// 	$this->init_remote_option();
+	// 	InstaWP_Setting::update_option( 'instawp_remote_init', 'init' );
 	// }
 
-	
+	// //Define the locale for this plugin for internationalization.
+	// $this->set_locale();
+	// //Register hook
+	// if ( is_admin() ) {
+	// 	$this->define_admin_hook();
+	// 	//Add ajax hook
+	// 	$this->load_ajax_hook_for_admin();
+	// }
+
+	// //add_filter('pre_update_option',array( $this,'wpjam_pre_update_option_cache'),10,2);
+
+	// add_filter( 'instawp_add_backup_list', array( $this, 'instawp_add_backup_list' ), 10, 3 );
+	// add_filter( 'instawp_add_remote_storage_list', array( $this, 'instawp_add_remote_storage_list' ), 10 );
+	// add_filter( 'instawp_schedule_add_remote_pic', array( $this, 'instawp_schedule_add_remote_pic' ), 10 );
+	// add_filter( 'instawp_get_remote_directory', array( $this, 'instawp_get_remote_directory' ), 10 );
+	// add_filter( 'instawp_get_log_list', array( $this, 'instawp_get_log_list' ), 10 );
+	// add_filter( 'instawp_get_last_backup_message', array( $this, 'instawp_get_last_backup_message' ), 10 );
+	// add_filter( 'instawp_schedule_local_remote', array( $this, 'instawp_schedule_local_remote' ), 10 );
+	// add_filter( 'instawp_remote_storage', array( $this, 'instawp_remote_storage' ), 10 );
+	// add_filter( 'instawp_add_remote_notice', array( $this, 'instawp_add_remote_notice' ), 10, 2 );
+	// add_filter( 'instawp_set_general_setting', array( $this, 'instawp_set_general_setting' ), 10, 3 );
+
+	// add_action( 'instawp_handle_backup_succeed', array( $this, 'instawp_handle_backup_succeed' ), 10 );
+	// add_action( 'instawp_handle_upload_succeed', array( $this, 'instawp_handle_backup_succeed' ), 10 );
+
+	// add_action( 'instawp_handle_upload_succeed', array( $this, 'instawp_mark_task' ), 20 );
+	// add_action( 'instawp_handle_backup_succeed', array( $this, 'instawp_mark_task' ), 20 );
+
+	// add_action( 'instawp_handle_backup_failed', array( $this, 'instawp_handle_backup_failed' ), 9, 2 );
+
+	// add_action( 'instawp_handle_upload_succeed', array( $this, 'instawp_deal_upload_succeed' ), 9 );
+
+	// add_action( 'instawp_handle_backup_failed', array( $this, 'instawp_mark_task' ), 20 );
+	// add_action( 'init', array( $this, 'init_pclzip_tmp_folder' ) );
+	// add_action( 'plugins_loaded', array( $this, 'load_remote_storage' ), 10 );
+
+	// add_action( 'instawp_before_setup_page', array( $this, 'clean_cache' ) );
+	// add_filter( 'instawp_check_type_database', array( $this, 'instawp_check_type_database' ), 10, 2 );
+
+
+	// add_filter( 'instawp_get_oldest_backup_ids', array( $this, 'get_oldest_backup_ids' ), 10, 2 );
+	// add_filter( 'instawp_check_backup_completeness', array( $this, 'check_backup_completeness' ), 10, 2 );
+
+	// add_filter( 'instawp_get_mainwp_sync_data', array( $this, 'get_mainwp_sync_data' ), 10 );
+	// //
+	// add_filter( 'instawp_get_zip_object_class_ex', array( $this, 'get_zip_object_class' ) );
+	// //Initialisation schedule hook
+	// $this->init_cron();
+	// //Initialisation log object
+	// $this->instawp_log          = new InstaWP_Log();
+	// $this->instawp_download_log = new InstaWP_Log();
+	// $this->instawp_restore_log  = new InstaWP_Log();
+
+	// /*Cron handlers*/
+	// add_filter( 'cron_schedules', array( $this, 'instawp_handle_cron_time_intervals' ) );
+	// add_action( 'wp', array( $this, 'instawp_handle_cron_scheduler' ) );
+	// add_action( 'instwp_handle_heartbeat_cron_action', array( $this, 'instawp_handle_heartbeat_cron_action_call' ) );
+	// /*Cron handlers*/
+
+	// // Hook to run on login page
+	// add_action( 'login_init', array( $this, 'instawp_auto_login_redirect' ) );
+	// }
+
 
 	private function set_locale() {
 		$plugin_i18n = new InstaWP_i18n();
@@ -687,11 +684,11 @@ class instaWP {
 	}
 
 	public function instawp_check_usage_on_cloud() {
-		$connect_ids         = get_option( 'instawp_connect_id_options', '' );
-		$instawp_api_options = get_option( 'instawp_api_options' );
-		$response            = array();
-		$backup_type         = (int) $_REQUEST['backup_type'];
-		$anonymize_option    = (int) $_REQUEST['anonymize_option'];
+		$connect_ids             = get_option( 'instawp_connect_id_options', '' );
+		$instawp_api_options     = get_option( 'instawp_api_options' );
+		$response                = array();
+		$backup_type             = (int) $_REQUEST['backup_type'];
+		$anonymize_option        = (int) $_REQUEST['anonymize_option'];
 
 		if ( ! empty( $connect_ids ) && ! empty( $instawp_api_options ) ) {
 			$id      = $connect_ids['data']['id'];
@@ -720,15 +717,15 @@ class instaWP {
 					require_once ABSPATH . 'wp-admin/includes/class-wp-debug-data.php';
 				}
 
-				$sizes_data = WP_Debug_Data::get_sizes();
-				$bytes      = $sizes_data['total_size']['raw'];
-            $upload_dir = $sizes_data['uploads_size']['raw'];
-            $upload_dir_size = round( $upload_dir / 1048576, 2 ); //convert in mb. 
-				$site_size      = round( $bytes / 1048576, 2 );
+				$sizes_data      = WP_Debug_Data::get_sizes();
+				$bytes           = $sizes_data['total_size']['raw'];
+				$upload_dir      = $sizes_data['uploads_size']['raw'];
+				$upload_dir_size = round( $upload_dir / 1048576, 2 ); //convert in mb.
+				$site_size       = round( $bytes / 1048576, 2 );
 				// $site_size  = str_replace( ',', '', $bytes );
-            if($backup_type == 1) { //quick backup, exclude upload folder. 
-               $site_size = $site_size - $upload_dir_size;
-            }
+				if ( $backup_type == 1 ) { //quick backup, exclude upload folder.
+					$site_size = $site_size - $upload_dir_size;
+				}
 
 
 				error_log( 'Disk Size ==> ' . $disk_space );
@@ -831,6 +828,10 @@ class instaWP {
 					$this->end_shutdown_function = true;
 					echo json_encode( $ret );
 					die();
+				}
+
+				if ( isset( $_POST['options'] ) ) {
+					$backup_options = array_merge( $backup_options, wp_unslash( $_POST['options'] ) );
 				}
 
 				$ret = $this->pre_backup( $backup_options );
@@ -4560,7 +4561,7 @@ class instaWP {
 			$message = 'An exception has occurred. class: ' . get_class( $error ) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
 
 			$this->end_shutdown_function = true;
-			echo json_encode($message);
+			echo json_encode( $message );
 			die();
 		}
 
@@ -4594,7 +4595,7 @@ class instaWP {
 			$this->_disable_maintenance_mode();
 
 			$this->end_shutdown_function = true;
-			echo json_encode( array( 'result' => INSTAWP_FAILED, 'error'  => $message, ) );
+			echo json_encode( array( 'result' => INSTAWP_FAILED, 'error' => $message, ) );
 			die();
 		}
 
@@ -7611,7 +7612,7 @@ class instaWP {
 		return $url;
 	}
 
-   public static function restore_bg($backup_list, $restore_options, $wp_options) {
-      InstaWP_Backup_Api::restore_bg($backup_list, $restore_options, $wp_options);
-   }
+	public static function restore_bg( $backup_list, $restore_options, $wp_options ) {
+		InstaWP_Backup_Api::restore_bg( $backup_list, $restore_options, $wp_options );
+	}
 }

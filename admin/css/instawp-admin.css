@@ -623,7 +623,7 @@
     display: flex;
     justify-content: space-between;
 }
-.customize-checkbox-wrap{
+.customize-checkbox-wrap > div{
     display: flex;
     column-gap: 10px;
     margin-bottom: 10px;
