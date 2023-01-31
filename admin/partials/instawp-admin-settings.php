@@ -126,23 +126,21 @@ if ( isset( $_POST['instawp_settings_nonce'] )
                     </th>
                     <td>
                         <input type="text" value="<?php echo esc_attr( $interal_api_domain ); ?>" required="" name="instawp_api_url_internal" id="instawp_api_url_internal"/>
-
-                        <span> | </span>
-						<?php
-						if ( isset( $_GET['internal'] ) && $_GET['page'] == 'instawp-settings' && 1 === intval( $_GET['internal'] ) ) {
-
-							$nonce      = wp_create_nonce( 'delete_wpnonce' );
-							$actionurl  = admin_url( "admin.php?page=instawp-settings" );
-							$delete_url = add_query_arg( array( 'delete_wpnonce' => $nonce ), $actionurl );
-							?>
-                            <a href="<?php echo $delete_url ?>" class="button button-primary">
-								<?php echo strtoupper( 'Reset Instawp' ); ?>
-                            </a>
-						<?php } ?>
                     </td>
                 </tr>
 			<?php } ?>
-
+            <tr>
+                <th>
+                    <?php 
+                    $nonce = wp_create_nonce( 'delete_wpnonce' );
+                    $actionurl = admin_url( "admin.php?page=instawp-settings" );
+                    $delete_url = add_query_arg( array( 'delete_wpnonce' => $nonce ), $actionurl );
+                    ?> 
+                    <a href="<?php echo $delete_url; ?>" class="button button-primary">
+                        <?php echo strtoupper('Reset Instawp'); ?>
+                    </a>
+                </th>
+            </tr>
         </table>
 		<?php wp_nonce_field( 'instawp_settings', 'instawp_settings_nonce' ); ?>
 		<?php submit_button(); ?>
