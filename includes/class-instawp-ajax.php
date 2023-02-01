@@ -122,8 +122,6 @@ class InstaWP_AJAX {
 		$connect_options   = get_option( 'instawp_api_options', '' );
 		$instawp_db_method = isset( $_POST['instawp_db_method'] ) ? sanitize_text_field( $_POST['instawp_db_method'] ) : '';
 
-		echo "<pre>"; print_r( $instawp_db_method ); echo "</pre>";
-
 		update_option( 'instawp_db_method', $instawp_db_method );
 
 		if (
@@ -196,8 +194,6 @@ class InstaWP_AJAX {
 		$curl_rd_restore_status       = $curl_response_restore_status['curl_res'] ?? '';
 		$curl_rd_restore_status       = json_decode( $curl_rd_restore_status, true );
 		// var_dump($curl_rd_restore_status['data']);exit;
-
-		$response['jaed_response'] = array( 'connect_id' => $connect_id, 'task_id' => $task_id, 'site_id' => $site_id );
 
 		if ( isset( $curl_rd_restore_status['data'] ) && isset( $curl_rd_restore_status['data']['progress'] ) ) {
 			$response['progress'] = $curl_rd_restore_status['data']['progress'];
