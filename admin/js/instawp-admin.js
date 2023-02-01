@@ -169,15 +169,15 @@ function instawp_check_runningtask() {
                 let el_restore_progress = jQuery('.instawp-restore-progress'),
                     restore_progress = el_restore_progress.val();
 
-                if (restore_progress > 0 && restore_progress < 100) {
-                    if (is_instawp_check_staging_running === false) {
-                        instawp_check_staging_interval = setInterval(instawp_check_staging, 3000);
-                        is_instawp_check_staging_running = true;
-                    }
-                    if (is_instawp_check_staging_compteted === true) {
-                        clearInterval(instawp_check_staging_interval);
-                    }
-                }
+                // if (restore_progress > 0 && restore_progress < 100) {
+                //     if (is_instawp_check_staging_running === false) {
+                //         instawp_check_staging_interval = setInterval(instawp_check_staging, 3000);
+                //         is_instawp_check_staging_running = true;
+                //     }
+                //     if (is_instawp_check_staging_compteted === true) {
+                //         clearInterval(instawp_check_staging_interval);
+                //     }
+                // }
 
                 var b_has_data = false;
                 if (jsonarray.backup.data.length !== 0) {

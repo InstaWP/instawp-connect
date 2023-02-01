@@ -415,6 +415,10 @@ class InstaWP_Backup_Api {
 			'message'    => '',
 		);
 
+//		echo "<pre>"; print_r( $parameters ); echo "</pre>";
+//
+//		die();
+
 		// Config the defaults
 		if ( isset( $parameters['defaults'] ) && ! empty( $defaults = $parameters['defaults'] ) ) {
 			InstaWP_Setting::set_config_defaults( $defaults );
