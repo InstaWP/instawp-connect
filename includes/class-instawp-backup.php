@@ -392,8 +392,10 @@ class InstaWP_Backup_Task {
 				}
 				$backup_data['prefix'] = $this->get_prefix() . '_backup_db';
 
-				$backup_data['exclude_tables']      = $this->get_excluded_db_tables_list( 'exclude_tables' );
-				$backup_data['exclude_tables_data'] = $this->get_excluded_db_tables_list( 'exclude_tables_data' );
+				$db_tables_list = $this->get_excluded_db_tables_list( '' );
+
+				$backup_data['exclude_tables']      = $db_tables_list['exclude_tables'] ?? array();
+				$backup_data['exclude_tables_data'] = $db_tables_list['exclude_tables_data'] ?? array();
 
 			} elseif ( $backup == INSTAWP_BACKUP_TYPE_THEMES ) {
 
