@@ -391,6 +391,10 @@ class InstaWP_Backup_Task {
 					$backup_data['json_info']['is_mu'] = 1;
 				}
 				$backup_data['prefix'] = $this->get_prefix() . '_backup_db';
+
+				$backup_data['exclude_tables']      = $this->get_excluded_db_tables_list( 'exclude_tables' );
+				$backup_data['exclude_tables_data'] = $this->get_excluded_db_tables_list( 'exclude_tables_data' );
+
 			} elseif ( $backup == INSTAWP_BACKUP_TYPE_THEMES ) {
 
 				//$backup_data['root_path']=WP_CONTENT_DIR;
@@ -506,10 +510,33 @@ class InstaWP_Backup_Task {
 
 			if ( $backup_data !== false ) {
 				$backup_data = apply_filters( 'instawp_set_backup', $backup_data );
+				$backup_data = apply_filters( 'instawp_set_backup', $backup_data );
 
 				$this->task['options']['backup_options']['backup'][ $backup_data['key'] ] = $backup_data;
 			}
 		}
+	}
+
+	public function get_excluded_db_tables_list( $return_type = 'themes_included' ) {
+
+		global $wpdb;
+
+		$db_tables = array(
+			'exclude_tables'      => array(),
+			'exclude_tables_data' => array(
+				$wpdb->prefix . 'change_event',
+				$wpdb->prefix . 'sync_history',
+				$wpdb->prefix . 'changes_sync',
+			),
+		);
+
+		if ( empty( $return_type ) ) {
+			$return = $db_tables;
+		} else {
+			$return = $db_tables[ $return_type ] ?? array();
+		}
+
+		return apply_filters( 'instawp_get_excluded_db_tables_list', $return );
 	}
 
 	public function get_themes_list( $options = array(), $return_type = 'themes_included' ) {

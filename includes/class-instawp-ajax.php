@@ -122,8 +122,6 @@ class InstaWP_AJAX {
 		$connect_options   = get_option( 'instawp_api_options', '' );
 		$instawp_db_method = isset( $_POST['instawp_db_method'] ) ? sanitize_text_field( $_POST['instawp_db_method'] ) : '';
 
-		echo "<pre>"; print_r( $instawp_db_method ); echo "</pre>";
-
 		update_option( 'instawp_db_method', $instawp_db_method );
 
 		if (
