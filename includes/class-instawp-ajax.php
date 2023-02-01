@@ -195,8 +195,6 @@ class InstaWP_AJAX {
 		$curl_rd_restore_status       = json_decode( $curl_rd_restore_status, true );
 		// var_dump($curl_rd_restore_status['data']);exit;
 
-		$response['jaed_response'] = array( 'connect_id' => $connect_id, 'task_id' => $task_id, 'site_id' => $site_id );
-
 		if ( isset( $curl_rd_restore_status['data'] ) && isset( $curl_rd_restore_status['data']['progress'] ) ) {
 			$response['progress'] = $curl_rd_restore_status['data']['progress'];
 		}
