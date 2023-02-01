@@ -293,13 +293,12 @@ class InstaWP_Rest_Apis{
                     }   
 
                     #Site Title
-                    update_option( 'name', $details->name );
-                    update_option( 'blogname', $details->blogname );
-                    
+                    update_option( 'blogname', $details->name );
+
                     #Tagline
-                    update_option( 'description', $details->description );
-                    update_option( 'blogdescription', $details->blogdescription );
-                    
+                    //update_option( 'blogdescription', "site tagline does here" ); // some issue was giving..
+                    $this->blogDescription($details->description);  
+                   
                     #for 'Astra' theme
                     if( isset($details->astra_settings) && !empty($details->astra_settings) ){
                         $astra_settings = $this->object_to_array($details->astra_settings);
@@ -407,6 +406,11 @@ class InstaWP_Rest_Apis{
                 'sync_id' => $sync_id
             ) 
         );
+    }
+
+    public function blogDescription($v = null){
+        global $wpdb;
+        $wpdb->update($wpdb->prefix.'options',['option_value' => $v],array( 'option_name' => 'blogdescription' ));
     }
 
     /**
@@ -551,7 +555,7 @@ class InstaWP_Rest_Apis{
         $new = $old = [];              
         if(!empty($media)){
             foreach($media as $v){
-                $v = (array) $v;    
+                $v = (array) $v; 
                 if(isset($v['attachment_id']) && isset($v['attachment_url'])){
                     $attachment_id = $this->insert_attachment($v['attachment_id'],$v['attachment_url']);
                     $new[] = wp_get_attachment_url($attachment_id); 
