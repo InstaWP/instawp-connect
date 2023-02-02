@@ -415,14 +415,6 @@ class InstaWP_Backup_Api {
 			'message'    => '',
 		);
 
-
-		$aaa_check = get_option( 'aaa_check', [] );
-
-		$aaa_check[ current_time( 'mysql' ) ] = $parameters;
-
-		update_option( 'aaa_check', $aaa_check );
-
-
 		// Config the defaults
 		if ( isset( $parameters['defaults'] ) && ! empty( $defaults = $parameters['defaults'] ) ) {
 			InstaWP_Setting::set_config_defaults( $defaults );
@@ -627,7 +619,6 @@ class InstaWP_Backup_Api {
 
 	public function restore( WP_REST_Request $request ) {
 
-
 		global $InstaWP_Curl, $instawp_plugin;
 
 		$this->validate_api_request( $request );
@@ -646,6 +637,13 @@ class InstaWP_Backup_Api {
 		) );
 		$backup_task     = new InstaWP_Backup_Task();
 		$backup_task_ret = $backup_task->new_download_task();
+
+		$aaa_check = get_option( 'aaa_check', [] );
+
+		$aaa_check[ current_time( 'mysql' ) ] = $parameters;
+
+		update_option( 'aaa_check', $aaa_check );
+
 
 		if ( $backup_task_ret['result'] == 'success' ) {
 
