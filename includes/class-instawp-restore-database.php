@@ -43,8 +43,6 @@ class InstaWP_RestoreDB {
 
 	public function restore( $path, $sql_file, $options ) {
 
-		$this->generate_exclude_tables_rows_file();
-
 		add_filter( 'instawp_restore_db_skip_replace_tables', array( $this, 'skip_tables' ), 10, 2 );
 		add_filter( 'instawp_restore_db_skip_replace_rows', array( $this, 'skip_rows' ), 10, 3 );
 
@@ -82,6 +80,8 @@ class InstaWP_RestoreDB {
 				$this->db_method->check_max_allow_packet();
 				$this->db_method->init_sql_mode();
 
+				$this->generate_exclude_tables_rows_file();
+
 				$result = $this->execute_sql_file( $path . $sql_file, $options );
 
 				$this->enable_plugins();
@@ -101,7 +101,7 @@ class InstaWP_RestoreDB {
 		}
 	}
 
-	private function generate_exclude_tables_rows_file() {
+	public function generate_exclude_tables_rows_file() {
 
 		$file_name         = ABSPATH . 'instawp_exclude_tables_rows.json';
 		$exclude_rows_data = [];
