@@ -320,9 +320,10 @@ class InstaWP_RestoreDB {
 					$this->lock_table( $query );
 				} elseif ( preg_match( '#^\\s*INSERT INTO#', $query ) ) {
 
-					if ( strpos( $query, 'instawp_api_options' ) === false ) {
-						$this->insert( $query );
-					}
+//					if ( strpos( $query, 'instawp_api_options' ) === false ) {
+//					}
+
+					$this->insert( $query );
 
 				} elseif ( preg_match( '#^\\s*DROP TABLE #', $query ) ) {
 					if ( $this->old_prefix != $this->new_prefix || ( ! empty( $this->old_site_url ) && $this->old_site_url != $this->new_site_url ) ) {
