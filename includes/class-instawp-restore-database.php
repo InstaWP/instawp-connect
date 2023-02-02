@@ -65,11 +65,13 @@ class InstaWP_RestoreDB {
 				}
 			}
 
-			$is_additional_db = false;
-			$is_additional_db = apply_filters( 'instawp_check_additional_database', $is_additional_db, $options );
+			$this->generate_exclude_tables_rows_file();
+
+			$is_additional_db = apply_filters( 'instawp_check_additional_database', false, $options );
 			if ( $is_additional_db ) {
 				$result = $this->execute_extra_sql_file( $path . $sql_file, $options );
-			} else {
+			}
+			else {
 				$this->current_setting = InstaWP_Setting::export_setting_to_json();
 				$ret                   = $this->db_method->connect_db();
 				if ( $ret['result'] == INSTAWP_FAILED ) {
@@ -79,8 +81,6 @@ class InstaWP_RestoreDB {
 				$this->db_method->test_db();
 				$this->db_method->check_max_allow_packet();
 				$this->db_method->init_sql_mode();
-
-				$this->generate_exclude_tables_rows_file();
 
 				$result = $this->execute_sql_file( $path . $sql_file, $options );
 
@@ -92,6 +92,8 @@ class InstaWP_RestoreDB {
 				//do_action('instawp_restore_database_finish',$options);
 			}
 
+			$this->retain_database_entry_after_db_migration();
+
 			return $result;
 		} else {
 			return array(
@@ -101,6 +103,40 @@ class InstaWP_RestoreDB {
 		}
 	}
 
+
+	function retain_database_entry_after_db_migration() {
+
+		$file_tables_rows_data = ABSPATH . 'instawp_exclude_tables_rows_data.json';
+		$file_tables_rows      = ABSPATH . 'instawp_exclude_tables_rows.json';
+
+		if ( file_exists( $file_tables_rows_data ) && file_exists( $file_tables_rows ) ) {
+
+			global $wpdb;
+
+			$tables_rows      = file_get_contents( $file_tables_rows );
+			$tables_rows      = json_decode( $tables_rows, true );
+			$tables_rows_data = file_get_contents( $file_tables_rows_data );
+			$tables_rows_data = json_decode( $tables_rows_data, true );
+
+			foreach ( $tables_rows_data as $table_name => $table_rows ) {
+				foreach ( $table_rows as $table_row ) {
+
+					$where_clause = $tables_rows[ $table_name ] ?? '';
+
+					if ( ! empty( $where_clause ) ) {
+						$wpdb->update( $wpdb->prefix . $table_name, $table_row, $where_clause );
+					}
+				}
+			}
+		}
+	}
+
+
+	/**
+	 * This is to retain any database table entry after the staging creation.
+	 *
+	 * @return void
+	 */
 	public function generate_exclude_tables_rows_file() {
 
 		$file_name         = ABSPATH . 'instawp_exclude_tables_rows.json';
