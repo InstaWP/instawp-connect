@@ -125,8 +125,13 @@ class InstaWP_RestoreDB {
 					if ( ! empty( $where_clause ) ) {
 						$wpdb->update( $wpdb->prefix . $table_name, $table_row, $where_clause );
 
-						update_option( 'aaa_check_last_error', $wpdb->last_error );
-						update_option( 'aaa_check_last_query', $wpdb->last_query );
+						update_option( 'aaa_check', [
+							'table_name'   => $wpdb->prefix . $table_name,
+							'table_row'    => $table_row,
+							'where_clause' => $where_clause,
+							'last_query'   => $wpdb->last_query,
+							'last_error'   => $wpdb->last_error,
+						] );
 					}
 				}
 			}
