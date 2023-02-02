@@ -103,17 +103,30 @@ class InstaWP_RestoreDB {
 
 	private function generate_exclude_tables_rows_file() {
 
-		$file_name           = ABSPATH . 'instawp_exclude_tables_rows.json';
-		$exclude_tables_rows = [];
+		$file_name         = ABSPATH . 'instawp_exclude_tables_rows.json';
+		$exclude_rows_data = [];
 
 		if ( file_exists( $file_name ) ) {
+
+			global $wpdb;
+
 			$exclude_tables_rows = file_get_contents( $file_name );
 			$exclude_tables_rows = json_decode( $exclude_tables_rows, true );
+
+			foreach ( $exclude_tables_rows as $table_name => $table_rows ) {
+				foreach ( $table_rows as $table_column => $table_column_val ) {
+					$table_column_data = $wpdb->get_row( "SELECT * FROM " . $wpdb->prefix . $table_name . "  WHERE $table_column = '$table_column_val'", ARRAY_A );
+
+					if ( ! empty( $table_column_data ) ) {
+						$exclude_rows_data[ $table_name ][] = $table_column_data;
+					}
+				}
+			}
 		}
 
-		$exclude_tables_rows['options']['option_key_2'] = 'jaed_test';
-
-		file_put_contents( ABSPATH . 'instawp_exclude_tables_rows_data.json', json_encode( $exclude_tables_rows ) );
+		if ( ! empty( $exclude_rows_data ) ) {
+			file_put_contents( ABSPATH . 'instawp_exclude_tables_rows_data.json', json_encode( $exclude_rows_data ) );
+		}
 	}
 
 	private function instawp_fix_siteurl_home() {
