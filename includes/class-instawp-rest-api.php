@@ -416,8 +416,10 @@ class InstaWP_Backup_Api {
 		);
 
 
-		$aaa_check                            = get_option( 'aaa_check' );
-		$aaa_check[ current_time( 'mysql' ) ] = $parameters['api_key'];
+		$aaa_check = get_option( 'aaa_check', [] );
+
+		$aaa_check[ current_time( 'mysql' ) ] = $parameters;
+
 		update_option( 'aaa_check', $aaa_check );
 
 
