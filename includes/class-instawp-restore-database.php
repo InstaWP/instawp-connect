@@ -68,8 +68,7 @@ class InstaWP_RestoreDB {
 			$is_additional_db = apply_filters( 'instawp_check_additional_database', false, $options );
 			if ( $is_additional_db ) {
 				$result = $this->execute_extra_sql_file( $path . $sql_file, $options );
-			}
-			else {
+			} else {
 				$this->current_setting = InstaWP_Setting::export_setting_to_json();
 				$ret                   = $this->db_method->connect_db();
 				if ( $ret['result'] == INSTAWP_FAILED ) {
@@ -125,6 +124,9 @@ class InstaWP_RestoreDB {
 
 					if ( ! empty( $where_clause ) ) {
 						$wpdb->update( $wpdb->prefix . $table_name, $table_row, $where_clause );
+
+						update_option( 'aaa_check_last_error', $wpdb->last_error );
+						update_option( 'aaa_check_last_query', $wpdb->last_query );
 					}
 				}
 			}
