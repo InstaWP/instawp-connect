@@ -78,15 +78,16 @@ class InstaWP_Backup_Database {
 				$backup_file    = $sql_info['file_name'];
 				$backup_files[] = $backup_file;
 				$dumpSettings   = array(
-					'exclude_tables'      => $data['exclude_tables'] ?? array(),
-					'exclude_tables_data' => $data['exclude_tables_data'] ?? array(),
-					'include_tables'      => apply_filters( 'instawp_include_db_table', [], $data ),
-					'add-drop-table'      => true,
-					'extended-insert'     => false,
-					'site_url'            => apply_filters( 'instawp_dump_set_site_url', get_site_url(), $data ),
-					'home_url'            => apply_filters( 'instawp_dump_set_home_url', get_home_url(), $data ),
-					'content_url'         => apply_filters( 'instawp_dump_set_content_url', content_url(), $data ),
-					'prefix'              => $prefix,
+					'exclude_tables'       => $data['exclude_tables'] ?? array(),
+					'exclude_tables_data'  => $data['exclude_tables_data'] ?? array(),
+					'exclude_options_keys' => array( 'instawp_api_options' ),
+					'include_tables'       => apply_filters( 'instawp_include_db_table', [], $data ),
+					'add-drop-table'       => true,
+					'extended-insert'      => false,
+					'site_url'             => apply_filters( 'instawp_dump_set_site_url', get_site_url(), $data ),
+					'home_url'             => apply_filters( 'instawp_dump_set_home_url', get_home_url(), $data ),
+					'content_url'          => apply_filters( 'instawp_dump_set_content_url', content_url(), $data ),
+					'prefix'               => $prefix,
 				);
 
 				$dump = new InstaWP_Mysqldump( $sql_info['host'], $sql_info['database'], $sql_info['user'], $sql_info['pass'], $is_additional_db, $dumpSettings );

@@ -638,13 +638,6 @@ class InstaWP_Backup_Api {
 		$backup_task     = new InstaWP_Backup_Task();
 		$backup_task_ret = $backup_task->new_download_task();
 
-		$aaa_check = get_option( 'aaa_check', [] );
-
-		$aaa_check[ current_time( 'mysql' ) ] = $parameters;
-
-		update_option( 'aaa_check', $aaa_check );
-
-
 		if ( $backup_task_ret['result'] == 'success' ) {
 
 			$backup_download_ret = $InstaWP_Curl->download( $backup_task_ret['task_id'], $parameters['urls'] );

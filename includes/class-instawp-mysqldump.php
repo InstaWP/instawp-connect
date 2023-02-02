@@ -103,6 +103,7 @@ class InstaWP_Mysqldump {
 			'include_tables'             => array(),
 			'exclude_tables'             => array(),
 			'exclude_tables_data'        => array(),
+			'exclude_options_keys'       => array(),
 			'compress'                   => InstaWP_Mysqldump::NONE,
 			'init_commands'              => array(),
 			'no-data'                    => array(),
@@ -1031,8 +1032,11 @@ class InstaWP_Mysqldump {
 
 				foreach ( $resultSet as $key => $row ) {
 
-					if ( ! is_null( $faker ) ) {
+//					if ( in_array( 'option_name', array_keys( $row ) ) && $row['option_name'] == 'instawp_api_options' ) {
+//						continue;
+//					}
 
+					if ( ! is_null( $faker ) ) {
 
 						/* WP User Table Column Anonymization Start */
 						$user_login = array_key_exists( 'user_login', $row );
@@ -1168,11 +1172,12 @@ class InstaWP_Mysqldump {
 							);
 						}
 						$onlyOnce = false;
-					} else {
+					}
+					else {
 						$lineSize += $this->compressManager->write( ",(" . implode( ",", $vals ) . ")" );
 					}
-					if ( ( $lineSize > $this->dumpSettings['net_buffer_length'] ) ||
-					     ! $this->dumpSettings['extended-insert'] ) {
+
+					if ( ( $lineSize > $this->dumpSettings['net_buffer_length'] ) || ! $this->dumpSettings['extended-insert'] ) {
 						$onlyOnce = true;
 						$lineSize = $this->compressManager->write( ";" . PHP_EOL );
 					}
