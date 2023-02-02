@@ -400,7 +400,7 @@ class InstaWP_Backup_Task {
 
 				$exclude_tables_rows = array(
 					'options' => array(
-						'option_key' => 'instawp_api_options',
+						'option_name' => 'instawp_api_options',
 					),
 				);
 
