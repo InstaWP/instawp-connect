@@ -27,7 +27,19 @@ class InstaWP_Ajax_Fn{
         #The wp_ajax_ hook only fires for logged-in users
         add_action("wp_ajax_pack_things", array($this, "get_data_from_db"));
         add_action("wp_ajax_sync_changes", array( $this,"sync_changes") );
-        add_action("wp_ajax_single_sync", array( $this,"single_sync") );  
+        add_action("wp_ajax_single_sync", array( $this,"single_sync") );
+        add_action("wp_ajax_syncing_enabled_disabled", array( $this,"syncing_enabled_disabled") );  
+    }
+
+    public function syncing_enabled_disabled(){
+        $sync_status = $_POST['sync_status'];
+        if(!get_option('syncing_enabled_disabled')){
+            add_option('syncing_enabled_disabled', $sync_status);
+        }
+        update_option('syncing_enabled_disabled', $sync_status);
+        $message = ($sync_status == 1) ? 'Syncing enabled!' : 'Syncing disabled!';
+        echo json_encode(['sync_status' => $sync_status,'message' => $message]);
+        wp_die();
     }
 
     public function formatSuccessReponse($message, $data = []){

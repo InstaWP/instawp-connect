@@ -55,13 +55,17 @@ class InstaWP_Rest_Apis{
         $encrypted_contents = json_decode($bodyArr->encrypted_contents);
         $sync_id = $bodyArr->sync_id;
         $source_connect_id = $bodyArr->source_connect_id;
+        
+        #Destination event tracking disabled 
+        if(get_option('syncing_enabled_disabled')){
+            add_option('syncing_enabled_disabled', 0);
+        }
 
         if(!empty($encrypted_contents) && is_array($encrypted_contents)){
             $total_op = count($encrypted_contents);
             $count = 1;
             $progress_status = 'pending';
             $changes = $sync_response = [];
-
             foreach($encrypted_contents as $v){
                 $source_id = (isset($v->source_id) && !empty($v->source_id)) ? intval($v->source_id) : null;
                 /*
@@ -205,6 +209,14 @@ class InstaWP_Rest_Apis{
                 */
                 //Plugin actiavte 
                 if(isset($v->details) && $v->event_slug == 'activate_plugin'){
+                    $check_plugin_installed = $this->check_plugin_installed($v->details);
+                    if($check_plugin_installed != 1){
+                        $pluginData = get_plugin_data($v->details);
+                        if(!empty($pluginData['TextDomain'])){
+                            $this->plugin_install($pluginData['TextDomain']);
+                        } 
+                    }
+
                     $this->plugin_activation($v->details);
                     #message 
                     $message = 'Sync successfully.';
@@ -296,7 +308,6 @@ class InstaWP_Rest_Apis{
                     update_option( 'blogname', $details->name );
 
                     #Tagline
-                    //update_option( 'blogdescription', "site tagline does here" ); // some issue was giving..
                     $this->blogDescription($details->description);  
                    
                     #for 'Astra' theme
@@ -325,7 +336,12 @@ class InstaWP_Rest_Apis{
                             wp_insert_post($postData); 
                         }
                         set_theme_mod( 'custom_css_post_id', $custom_css_post['ID'] );
-                    } 
+                    }
+                    $current_theme = wp_get_theme();
+                    if($current_theme->Name == 'Astra'){
+                        $astra_theme_setting = isset($details->astra_theme_customizer_settings) ? (array) $details->astra_theme_customizer_settings : '';
+                       $this->setAstraCostmizerSetings($astra_theme_setting);
+                    }
 
                     #message 
                     $message = 'Sync successfully.';
@@ -408,6 +424,7 @@ class InstaWP_Rest_Apis{
         );
     }
 
+    
     public function blogDescription($v = null){
         global $wpdb;
         $wpdb->update($wpdb->prefix.'options',['option_value' => $v],array( 'option_name' => 'blogdescription' ));
@@ -825,6 +842,79 @@ class InstaWP_Rest_Apis{
         $file = fopen($filePath, "w+");//w+,w
         fwrite($file, $data);
         fclose($file);
+    }
+
+    /**
+     * Plugin install
+     */
+    public function plugin_install($plugin_slug){
+        include_once( ABSPATH . 'wp-admin/includes/plugin-install.php' ); //for plugins_api..
+        $api = plugins_api( 'plugin_information', array(
+            'slug' => $plugin_slug,
+            'fields' => array(
+                'short_description' => false,
+                'sections' => false,
+                'requires' => false,
+                'rating' => false,
+                'ratings' => false,
+                'downloaded' => false,
+                'last_updated' => false,
+                'added' => false,
+                'tags' => false,
+                'compatibility' => false,
+                'homepage' => false,
+                'donate_link' => false,
+            ),
+        ));
+        //includes necessary for Plugin_Upgrader and Plugin_Installer_Skin
+        include_once( ABSPATH . 'wp-admin/includes/file.php' );
+        include_once( ABSPATH . 'wp-admin/includes/misc.php' );
+        include_once( ABSPATH . 'wp-admin/includes/class-wp-upgrader.php' );
+        $upgrader = new Plugin_Upgrader( new Plugin_Installer_Skin( compact('title', 'url', 'nonce', 'plugin', 'api') ) );
+        $upgrader->install($api->download_link);
+    }
+
+    /**
+     * Check if plugin is installed by getting all plugins from the plugins dir
+     *
+     * @param $plugin_slug
+     *
+     * @return bool
+     */
+    public function check_plugin_installed( $plugin_slug ): bool {
+        $installed_plugins = get_plugins();
+        return array_key_exists( $plugin_slug, $installed_plugins ) || in_array( $plugin_slug, $installed_plugins, true );
+    }
+
+    /**
+     * Set Astra Costmizer Setings
+     */
+    function setAstraCostmizerSetings($arr = null){
+        #Checkout
+        update_option('woocommerce_checkout_company_field',$arr['woocommerce_checkout_company_field']);
+        update_option('woocommerce_checkout_address_2_field',$arr['woocommerce_checkout_address_2_field']);
+        update_option('woocommerce_checkout_phone_field',$arr['woocommerce_checkout_phone_field']);
+        update_option('woocommerce_checkout_highlight_required_fields',$arr['woocommerce_checkout_highlight_required_fields']);
+        update_option('wp_page_for_privacy_policy',$arr['wp_page_for_privacy_policy']);
+        update_option('woocommerce_terms_page_id',$arr['woocommerce_terms_page_id']);
+        update_option('woocommerce_checkout_privacy_policy_text',$arr['woocommerce_checkout_privacy_policy_text']);
+        update_option('woocommerce_checkout_terms_and_conditions_checkbox_text',$arr['woocommerce_checkout_terms_and_conditions_checkbox_text']);
+    
+        #product catalog
+        update_option('woocommerce_shop_page_display',$arr['woocommerce_shop_page_display']);
+        update_option('woocommerce_default_catalog_orderby',$arr['woocommerce_default_catalog_orderby']);
+        update_option('woocommerce_category_archive_display',$arr['woocommerce_category_archive_display']);
+    
+        #Product Images
+        update_option('woocommerce_single_image_width',$arr['woocommerce_single_image_width']);
+        update_option('woocommerce_thumbnail_image_width',$arr['woocommerce_thumbnail_image_width']);
+        update_option('woocommerce_thumbnail_cropping',$arr['woocommerce_thumbnail_cropping']);
+        update_option('woocommerce_thumbnail_cropping_custom_width',$arr['woocommerce_thumbnail_cropping_custom_width']);
+        update_option('woocommerce_thumbnail_cropping_custom_height',$arr['woocommerce_thumbnail_cropping_custom_height']);
+    
+        #Store Notice
+        update_option('woocommerce_demo_store',$arr['woocommerce_demo_store']);
+        update_option('woocommerce_demo_store_notice',$arr['woocommerce_demo_store_notice']);
     }
 }
 new InstaWP_Rest_Apis();

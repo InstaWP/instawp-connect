@@ -31,43 +31,54 @@ require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-db.php';
 class InstaWP_Change_Event_Filters {
 
     public function __construct() {
+        global $wpdb;
+        $InstaWP_db = new InstaWP_DB();
+        $syncing_status = get_option('syncing_enabled_disabled');
+        if(!empty($syncing_status) && $syncing_status == 1){ #if syncing enabled
+            #post actions
+            add_filter( 'pre_trash_post', array( $this, 'trashPostFilter' ), 10, 2 );
+            add_action( 'after_delete_post', array( $this,'deletePostFilter'), 10, 2 );
+            add_action( 'untrashed_post', array( $this,'untrashPostFilter'),10, 3  );
 
-        #post actions
-        add_filter( 'pre_trash_post', array( $this, 'trashPostFilter' ), 10, 2 );
-        add_action( 'after_delete_post', array( $this,'deletePostFilter'), 10, 2 );
-        add_action( 'untrashed_post', array( $this,'untrashPostFilter'),10, 3  );
+            #add_action( 'save_post', array( $this,'savePostFilter'), 10, 3 );
+            add_action( 'wp_after_insert_post', array( $this,'savePostFilter'), 10, 4 );
 
-        #add_action( 'save_post', array( $this,'savePostFilter'), 10, 3 );
-        add_action( 'wp_after_insert_post', array( $this,'savePostFilter'), 10, 4 );
+            #plugin actions
+            add_action( 'activated_plugin', array( $this,'activatePluginAction'),10, 2 );
+            add_action( 'deactivated_plugin', array( $this,'deactivatePluginAction'),10, 2 );
+            #add_action( 'upgrader_process_complete', array( $this,'upgradePluginAction'),10, 2);
+            
+            #theme actions
+            add_action( 'switch_theme', array( $this,'switchThemeAction'), 10, 3 );
+            add_action( 'deleted_theme', array( $this,'deletedThemeAction'), 10, 2 );
+            add_action( 'install_themes_new', array( $this,'installThemesNewAction') );
+            add_action( 'install_themes_upload', array( $this,'installThemesUploadAction') );
+            add_action( 'install_themes_updated', array( $this,'installThemesUpdatedAction') );
 
-        #plugin actions
-        add_action( 'activated_plugin', array( $this,'activatePluginAction'),10, 2 );
-        add_action( 'deactivated_plugin', array( $this,'deactivatePluginAction'),10, 2 );
-        #add_action( 'upgrader_process_complete', array( $this,'upgradePluginAction'),10, 2);
-        
-        #theme actions
-        add_action( 'switch_theme', array( $this,'switchThemeAction'), 10, 3 );
-        add_action( 'deleted_theme', array( $this,'deletedThemeAction'), 10, 2 );
-        add_action( 'install_themes_new', array( $this,'installThemesNewAction') );
-        add_action( 'install_themes_upload', array( $this,'installThemesUploadAction') );
-        add_action( 'install_themes_updated', array( $this,'installThemesUpdatedAction') );
-
-        #taxonomy actions 
-        $taxonomies = get_taxonomies();;
-
-        foreach($taxonomies as $taxonomy){
-            add_action( 'created_'.$taxonomy, array( $this,'createTaxonomyAction'), 10, 3 );
-            add_action( 'delete_'.$taxonomy, array( $this,'deleteTaxonomyAction'), 10, 4 );
-            add_action( 'edit_'.$taxonomy, array( $this,'editTaxonomyAction'), 10, 3 );
-        } 
-
-        #Customizer 
-        add_action( 'customize_save_after',array($this,'customizeSaveAfter'));
-
-        #Woocommerce  
-        add_action( 'woocommerce_attribute_added', array($this,'attribute_added_action_callback'), 10, 2 );
-        add_action( 'woocommerce_attribute_updated', array($this,'attribute_updated_action_callback'), 10, 2 );
-        add_action( 'woocommerce_attribute_deleted', array($this,'attribute_deleted_action_callback'), 10, 2 );
+            #taxonomy actions         
+            $tax_rel = $InstaWP_db->getDistinictCol($wpdb->prefix.'term_taxonomy','taxonomy');
+            $taxonomies = [];
+            if(!empty($tax_rel)){
+                foreach($tax_rel as $tax){
+                    $taxonomies[$tax->taxonomy] = $tax->taxonomy;
+                }
+                if(!empty($taxonomies) && is_array($taxonomies)){
+                    foreach($taxonomies as $taxonomy){
+                        add_action( 'created_'.$taxonomy, array( $this,'createTaxonomyAction'), 10, 3 );
+                        add_action( 'delete_'.$taxonomy, array( $this,'deleteTaxonomyAction'), 10, 4 );
+                        add_action( 'edit_'.$taxonomy, array( $this,'editTaxonomyAction'), 10, 3 );
+                    } 
+                }
+            }
+            
+            #Customizer 
+            add_action( 'customize_save_after',array($this,'customizeSaveAfter'));
+            
+            #Woocommerce  
+            add_action( 'woocommerce_attribute_added', array($this,'attribute_added_action_callback'), 10, 2 );
+            add_action( 'woocommerce_attribute_updated', array($this,'attribute_updated_action_callback'), 10, 2 );
+            add_action( 'woocommerce_attribute_deleted', array($this,'attribute_deleted_action_callback'), 10, 2 );
+        }
     }
 
     /**
@@ -111,7 +122,11 @@ class InstaWP_Change_Event_Filters {
 
         #for 'Astra' theme
         $data['astra_settings'] = get_option('astra-settings') ? get_option('astra-settings') : '';
-
+        $current_theme = wp_get_theme();
+        if($current_theme->Name == 'Astra'){
+            $data['astra_theme_customizer_settings'] = $this->getAstraCostmizerSetings();
+        }
+        
         $event_name = 'customizer changes'; 
         $event_slug = 'customizer_changes';
         $event_type = 'customizer';
@@ -162,17 +177,11 @@ class InstaWP_Change_Event_Filters {
     }
 
     /**
-
     * Attribute Updated (hook).
-
     *
-
     * @param int   $id   Updated attribute ID.
-
     * @param array $data Attribute data.
-
     */
-
     function attribute_updated_action_callback( $id, $data ) {
         $InstaWP_db = new InstaWP_DB();
         $tables = $InstaWP_db->tables;
@@ -308,17 +317,14 @@ class InstaWP_Change_Event_Filters {
      */
 
     public function createTaxonomyAction($term_id, $tt_id, $args){
+        
+        
 
         $term = (array) get_term( $term_id , $args['category'] );
-
         $event_name = 'Create taxonomy';
-
         $event_slug = 'create_taxonomy';
-
         $taxonomy = $args['taxonomy'];
-
         $this->addTaxonomyData($event_name,$event_slug,$term_id,$tt_id,$taxonomy,$term);
-
     }
 
 
@@ -1001,42 +1007,23 @@ class InstaWP_Change_Event_Filters {
 
 
     /**
-
      * Get taxonomies items
-
      */
-
     public function get_taxonomies_items($post_id = null){        
-
         $taxonomies = get_post_taxonomies($post_id);
-
         $items = [];
-
         if( !empty($taxonomies) && is_array($taxonomies) ){
-
             foreach($taxonomies as $taxonomy){
-
                 $taxonomy_items = get_the_terms($post_id, $taxonomy);
-
                 if( !empty($taxonomy_items) && is_array($taxonomy_items) ){
-
                     foreach($taxonomy_items as $item){
-
                         $items[$item->taxonomy][] = (array) $item;
-
                     }
-
                 }
-
             }
-
         }
-
         return $items;
-
     }
-
-
 
     /*
     * get post css from elementor files 'post-{post_id}.css'
@@ -1047,6 +1034,39 @@ class InstaWP_Change_Event_Filters {
         $filePath = $upload_dir['basedir'].'/elementor/css/'.$filename;
         $fileData = file_get_contents($filePath);
         return $fileData;
+    }  
+
+    /**
+     * Get Astra Costmizer Setings
+     */
+    function getAstraCostmizerSetings(){
+        $arr = [
+                #Checkout
+                'woocommerce_checkout_company_field' => get_option('woocommerce_checkout_company_field'),
+                'woocommerce_checkout_address_2_field' => get_option('woocommerce_checkout_address_2_field'),
+                'woocommerce_checkout_phone_field' => get_option('woocommerce_checkout_phone_field'),
+                'woocommerce_checkout_highlight_required_fields' => get_option('woocommerce_checkout_highlight_required_fields'),
+                'wp_page_for_privacy_policy' => get_option('wp_page_for_privacy_policy'),
+                'woocommerce_terms_page_id' => get_option('woocommerce_terms_page_id'),
+                'woocommerce_checkout_privacy_policy_text' => get_option('woocommerce_checkout_privacy_policy_text'),
+                'woocommerce_checkout_terms_and_conditions_checkbox_text' => get_option('woocommerce_checkout_terms_and_conditions_checkbox_text'),
+            
+                #product catalog
+                'woocommerce_shop_page_display' => get_option('woocommerce_shop_page_display'),
+                'woocommerce_default_catalog_orderby' => get_option('woocommerce_default_catalog_orderby'),
+                'woocommerce_category_archive_display' => get_option('woocommerce_category_archive_display'),
+            
+                #Product Images
+                'woocommerce_single_image_width' => get_option('woocommerce_single_image_width'),
+                'woocommerce_thumbnail_image_width' => get_option('woocommerce_thumbnail_image_width'),
+                'woocommerce_thumbnail_cropping' => get_option('woocommerce_thumbnail_cropping'),
+                'woocommerce_thumbnail_cropping_custom_width' => get_option('woocommerce_thumbnail_cropping_custom_width'),
+                'woocommerce_thumbnail_cropping_custom_height' => get_option('woocommerce_thumbnail_cropping_custom_height'),  
+                #Store Notice
+                'woocommerce_demo_store' => get_option('woocommerce_demo_store'),
+                'woocommerce_demo_store_notice' => get_option('woocommerce_demo_store_notice'),
+        ];
+        return $arr;
     }  
 }
 

@@ -170,4 +170,9 @@ class InstaWP_DB{
         $results = $this->wpdb->get_results("SELECT `id` FROM $table_name WHERE `event_slug`='customizer_changes'");  
         return $results; 
     }
+
+    public function getDistinictCol($table_name,$column){
+        $results = $this->wpdb->get_results("SELECT DISTINCT $column FROM $table_name");  
+        return $results; 
+    }
 }
