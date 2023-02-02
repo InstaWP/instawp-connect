@@ -415,9 +415,11 @@ class InstaWP_Backup_Api {
 			'message'    => '',
 		);
 
-//		echo "<pre>"; print_r( $parameters ); echo "</pre>";
-//
-//		die();
+
+		$aaa_check                            = get_option( 'aaa_check' );
+		$aaa_check[ current_time( 'mysql' ) ] = $parameters['api_key'];
+		update_option( 'aaa_check', $aaa_check );
+
 
 		// Config the defaults
 		if ( isset( $parameters['defaults'] ) && ! empty( $defaults = $parameters['defaults'] ) ) {
