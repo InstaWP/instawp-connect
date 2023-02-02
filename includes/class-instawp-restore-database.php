@@ -65,8 +65,6 @@ class InstaWP_RestoreDB {
 				}
 			}
 
-			$this->generate_exclude_tables_rows_file();
-
 			$is_additional_db = apply_filters( 'instawp_check_additional_database', false, $options );
 			if ( $is_additional_db ) {
 				$result = $this->execute_extra_sql_file( $path . $sql_file, $options );
@@ -82,6 +80,8 @@ class InstaWP_RestoreDB {
 				$this->db_method->check_max_allow_packet();
 				$this->db_method->init_sql_mode();
 
+				$this->generate_exclude_tables_rows_file();
+
 				$result = $this->execute_sql_file( $path . $sql_file, $options );
 
 				$this->enable_plugins();
@@ -90,9 +90,9 @@ class InstaWP_RestoreDB {
 
 				unset( $this->db_method );
 				//do_action('instawp_restore_database_finish',$options);
-			}
 
-			$this->retain_database_entry_after_db_migration();
+				$this->retain_database_entry_after_db_migration();
+			}
 
 			return $result;
 		} else {
