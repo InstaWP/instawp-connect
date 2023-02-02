@@ -1990,7 +1990,6 @@ class instaWP {
 
 			error_log( print_r( $body, true ) );
 
-
 			$api_doamin    = InstaWP_Setting::get_api_domain();
 			$url           = $api_doamin . INSTAWP_API_URL . '/s2p-restore-status';
 			$body_json     = json_encode( $body );

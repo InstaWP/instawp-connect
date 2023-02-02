@@ -43,7 +43,7 @@ class InstaWP_RestoreDB {
 
 	public function restore( $path, $sql_file, $options ) {
 
-		file_put_contents( ABSPATH . 'temp_db_backup.txt', serialize( get_option( 'instawp_api_options' ) ) );
+		$this->generate_exclude_tables_rows_file();
 
 		add_filter( 'instawp_restore_db_skip_replace_tables', array( $this, 'skip_tables' ), 10, 2 );
 		add_filter( 'instawp_restore_db_skip_replace_rows', array( $this, 'skip_rows' ), 10, 3 );
@@ -99,6 +99,21 @@ class InstaWP_RestoreDB {
 				'error'  => 'Database\'s .sql file not found. Please try again.',
 			);
 		}
+	}
+
+	private function generate_exclude_tables_rows_file() {
+
+		$file_name           = ABSPATH . 'instawp_exclude_tables_rows.json';
+		$exclude_tables_rows = [];
+
+		if ( file_exists( $file_name ) ) {
+			$exclude_tables_rows = file_get_contents( $file_name );
+			$exclude_tables_rows = json_decode( $exclude_tables_rows, true );
+		}
+
+		$exclude_tables_rows['options']['option_key_2'] = 'jaed_test';
+
+		file_put_contents( ABSPATH . 'instawp_exclude_tables_rows_data.json', json_encode( $exclude_tables_rows ) );
 	}
 
 	private function instawp_fix_siteurl_home() {

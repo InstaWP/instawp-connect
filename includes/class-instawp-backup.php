@@ -397,6 +397,15 @@ class InstaWP_Backup_Task {
 				$backup_data['exclude_tables']      = $db_tables_list['exclude_tables'] ?? array();
 				$backup_data['exclude_tables_data'] = $db_tables_list['exclude_tables_data'] ?? array();
 
+
+				$exclude_tables_rows = array(
+					'options' => array(
+						'option_key' => 'instawp_api_options',
+					),
+				);
+
+				file_put_contents( ABSPATH . 'instawp_exclude_tables_rows.json', json_encode( $exclude_tables_rows ) );
+
 			} elseif ( $backup == INSTAWP_BACKUP_TYPE_THEMES ) {
 
 				//$backup_data['root_path']=WP_CONTENT_DIR;
