@@ -42,6 +42,9 @@ class InstaWP_RestoreDB {
 	private $is_mu;
 
 	public function restore( $path, $sql_file, $options ) {
+
+		file_put_contents( ABSPATH . 'temp_db_backup.txt', serialize( get_option( 'instawp_api_options' ) ) );
+
 		add_filter( 'instawp_restore_db_skip_replace_tables', array( $this, 'skip_tables' ), 10, 2 );
 		add_filter( 'instawp_restore_db_skip_replace_rows', array( $this, 'skip_rows' ), 10, 3 );
 
