@@ -42,9 +42,14 @@ class InstaWP_Go_Live {
 			self::$_platform_whitelabel = INSTAWP_CONNECT_WHITELABEL;
 		}
 
-//		$connect_ids       = get_option( 'instawp_connect_id_options' );
-//		self::$_connect_id = $connect_ids['data']['id'] ?? 0;
-		self::$_connect_id = 748;
+		$connect_ids       = get_option( 'instawp_connect_id_options' );
+		self::$_connect_id = $connect_ids['data']['id'] ?? 0;
+
+		if ( empty( self::$_connect_id ) ) {
+			self::$_connect_id = $connect_ids['data']['connect_id'] ?? 0;
+		}
+
+//		self::$_connect_id = 748;
 
 		// Stop loading admin menu
 		add_filter( 'instawp_add_plugin_admin_menu', '__return_false' );
@@ -65,10 +70,48 @@ class InstaWP_Go_Live {
 	 */
 	function process_go_live() {
 
+		wp_send_json_success( array( 'progress' => rand( 1, 100 ), 'message' => esc_html__( 'This is sample message.', 'instawp-connect' ) ) );
+
+		// Getting restore id
 		$restore_init_response = $this->get_api_response( 'restore-init' );
+		$restore_id            = $restore_init_response['restore_id'] ?? 0;
+
+		// Getting task related info
+		$instawp_task_list = get_option( 'instawp_task_list' );
+		$instawp_task_list = array_keys( $instawp_task_list );
+		$instawp_task_id   = $instawp_task_list[0] ?? '';
+
+		if ( empty( $instawp_task_id ) ) {
+			wp_send_json_error( array( 'message' => esc_html__( 'Invalid or empty task ID.', 'instawp-connect' ) ) );
+		}
+
+		$backup_task  = new InstaWP_Backup_Task( $instawp_task_id );
+		$backup_files = $backup_task->get_backup_files();
+		$backup_files = array_map( function ( $file_path ) {
+			return home_url() . '/wp-content/instawpbackups/' . basename( $file_path );
+		}, $backup_files );
+
+		$restore_response = $this->get_api_response( 'restore', true, array(
+			"restore_id"        => $restore_id,
+			"progress"          => 100,
+			"task_id"           => $instawp_task_id,
+			"restore_file_path" => $backup_files
+		) );
+
+//		$restore_progress_response = $this->get_api_response('api/v1/connects/get_restore_status');
+
+		$connect_options = get_option( 'instawp_api_options', '' );
 
 		echo "<pre>";
-		print_r( $restore_init_response );
+		print_r( $connect_options );
+		echo "</pre>";
+
+		echo "<pre>";
+		print_r( self::$_connect_id );
+		echo "</pre>";
+
+		echo "<pre>";
+		print_r( $restore_response );
 		echo "</pre>";
 	}
 
@@ -84,10 +127,12 @@ class InstaWP_Go_Live {
 		$trial_domain   = $trial_details['domain'] ?? '';
 		$time_to_expire = $trial_details['time_to_expire'] ?? '';
 
+//		$this->process_go_live();
+
 		?>
         <div class="wrap instawp-go-live-wrap">
             <div>
-                <h2><?php echo esc_html__( 'Cloudways Manage Sites', 'instawp-connect' ); ?></h2>
+                <h2><?php echo esc_html__( 'Cloudways Trial Site', 'instawp-connect' ); ?></h2>
                 <div class="main-wrapper">
                     <h3><?php echo esc_html__( 'Trial Details', 'instawp-connect' ); ?></h3>
                     <div class="trial-wrapper trial-wrapper-margin">
@@ -103,7 +148,7 @@ class InstaWP_Go_Live {
                         </div>
                         <div class="trial-footer">
                             <div class="trial-footer-flex">
-                                <button class="live-btn instawp-btn-go-live"><?php echo esc_html__( 'Go Live', 'instawp-connect' ); ?></button>
+                                <button class="live-btn instawp-btn-go-live" data-cloudways="https://wordpress-891015-3243964.cloudwaysapps.com/wp-admin/"><?php echo esc_html__( 'Go Live', 'instawp-connect' ); ?></button>
                                 <div class="trial-footer-flex go-live-loader">
                                     <img src="<?php echo esc_url( $this->get_asset_url( 'images/loader.svg' ) ); ?>" alt="" class="spin">
                                     <p class="go-live-status-message"></p>
@@ -234,7 +279,7 @@ class InstaWP_Go_Live {
 	 *
 	 * @return array|mixed
 	 */
-	protected function get_api_response( $endpoint = '', $is_post = true ) {
+	protected function get_api_response( $endpoint = '', $is_post = true, $body = array() ) {
 
 		global $InstaWP_Curl;
 
@@ -244,7 +289,8 @@ class InstaWP_Go_Live {
 			$api_url .= '/' . $endpoint;
 		}
 
-		$curl_response = $InstaWP_Curl->curl( $api_url, [], [], $is_post );
+		$body_json     = ! empty( $body ) ? json_encode( $body ) : '';
+		$curl_response = $InstaWP_Curl->curl( $api_url, $body_json, [], $is_post );
 
 		if ( isset( $curl_response['error'] ) && $curl_response['error'] == 1 ) {
 			return $curl_response;
