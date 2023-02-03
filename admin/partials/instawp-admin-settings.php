@@ -136,7 +136,7 @@ if ( isset( $_POST['instawp_settings_nonce'] )
                     $actionurl = admin_url( "admin.php?page=instawp-settings" );
                     $delete_url = add_query_arg( array( 'delete_wpnonce' => $nonce ), $actionurl );
                     ?> 
-                    <a href="<?php echo $delete_url; ?>" class="button button-primary">
+                    <a href="<?php echo $delete_url; ?>" onclick="return confirm('Are you sure?')" class="button button-primary" >
                         <?php echo strtoupper('Reset Instawp'); ?>
                     </a>
                 </th>

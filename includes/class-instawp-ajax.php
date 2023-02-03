@@ -15,8 +15,24 @@ class InstaWP_AJAX {
 		add_action( 'wp_ajax_instawp_check_staging', array( $this, 'instawp_check_staging' ) );
 		add_action( 'wp_ajax_instawp_logger', array( $this, 'instawp_logger_handle' ) );
 		add_action( 'init', array( $this, 'deleter_folder_handle' ) );
+		add_action('admin_notices',array( $this, 'instawp_connect_reset_admin_notices'));
 	}
 
+	// Set transient admin notice function
+	public function instawp_connect_reset_admin_notices(){	
+		if( isset($_GET['page']) && $_GET['page'] === "instawp-settings"){	
+			$plugins_reset_notice = get_transient( 'instawp_connect_plugin_reset_notice' );
+			if ( false !== $plugins_reset_notice ) {
+				$html = '<div class="notice notice-warning is-dismissible">';
+				$html .= '<p>';
+				$html .= $plugins_reset_notice;
+				$html .= '</p>';
+				$html .= '</div>';
+				echo $html;
+				delete_transient( 'instawp_connect_plugin_reset_notice' );
+			}
+		}
+	}
 	/*Remove un-usable data after our staging creation process is done*/
 	public static function instawp_folder_remover_handle() {
 		$folder_name        = 'instawpbackups';
@@ -77,6 +93,10 @@ class InstaWP_AJAX {
 			self::instawp_folder_remover_handle();
 			//After Delete Option Set API Domain
 			InstaWP_Setting::set_api_domain();
+
+			$transient_message = "InstaWP Connect has now reset!";
+			
+			set_transient( 'instawp_connect_plugin_reset_notice', $transient_message, MINUTE_IN_SECONDS );
 
 			$redirect_url = admin_url( "admin.php?page=instawp-settings" );
 			wp_redirect( $redirect_url );
