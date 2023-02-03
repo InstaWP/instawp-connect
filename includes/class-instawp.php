@@ -1990,8 +1990,10 @@ class instaWP {
 
 			error_log( print_r( $body, true ) );
 
+			$connect_ids   = get_option( 'instawp_connect_id_options' );
+			$connect_id    = $connect_ids['data']['id'] ?? 0;
 			$api_doamin    = InstaWP_Setting::get_api_domain();
-			$url           = $api_doamin . INSTAWP_API_2_URL . '/connects/:connect/restore';
+			$url           = $api_doamin . INSTAWP_API_2_URL . '/connects/' . $connect_id . '/restore';
 			$body_json     = json_encode( $body );
 			$curl_response = $InstaWP_Curl->curl( $url, $body_json );
 

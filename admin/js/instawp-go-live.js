@@ -29,54 +29,58 @@
         }
 
         // Disable the button
-        // el_btn_go_live.addClass('disabled');
+        el_btn_go_live.addClass('disabled');
 
         // Enable the loader
-        // el_go_live_loader.addClass('visible');
+        el_go_live_loader.addClass('visible');
 
         // Displaying dummy message
-        // $.each(go_live_messages, function (index, message) {
-        //     setTimeout(function () {
-        //
-        //         let progress = Math.round(((index / go_live_messages.length) * 100));
-        //
-        //         el_go_live_message.html(message);
-        //         el_go_live_progress.html(progress + '%');
-        //     }, loop_init_time);
-        //     loop_init_time += 1500;
-        // });
+        $.each(go_live_messages, function (index, message) {
+            setTimeout(function () {
 
+                let progress = Math.round(((index / go_live_messages.length) * 100));
 
-        $.ajax({
-            type: 'POST',
-            url: go_live_obj.ajax_url,
-            context: this,
-            data: {
-                'action': 'instawp_process_go_live',
-            },
-            success: function (response) {
-
-                console.log(response.success)
-                if (response.success) {
-
-
-                    // Progress is now 100%
-                    // el_go_live_progress.html('100%');
-
-                    // Update the button
-                    // el_btn_go_live.html('Site is Live').removeClass('disabled').data('is_live', true);
-
-                    // Hide the loader
-                    // el_go_live_loader.removeClass('visible');
-
-                    // Display manage account link
-                    // el_manage_account_link.fadeIn();
-
-                    // Display manage sites section
-                    // el_manage_sites.fadeIn();
-                }
-            }
+                el_go_live_message.html(message);
+                el_go_live_progress.html(progress + '%');
+            }, loop_init_time);
+            loop_init_time += 500;
         });
+
+
+        setTimeout(function () {
+
+            $.ajax({
+                type: 'POST',
+                url: go_live_obj.ajax_url,
+                context: this,
+                data: {
+                    'action': 'instawp_process_go_live',
+                },
+                success: function (response) {
+
+                    console.log(response.success)
+                    if (response.success) {
+
+                        // Progress is now 100%
+                        el_go_live_progress.html('100%');
+
+                        // Update the button
+                        // el_btn_go_live.html('Site is Live').removeClass('disabled').data('is_live', true);
+                        el_btn_go_live.removeClass('disabled').data('is_live', true);
+
+                        // Hide the loader
+                        el_go_live_loader.removeClass('visible');
+
+                        // Display manage account link
+                        // el_manage_account_link.fadeIn();
+
+                        // Display manage sites section
+                        // el_manage_sites.fadeIn();
+                    }
+                }
+            });
+
+        }, loop_init_time);
     });
 
 })(jQuery, document, instawp_ajax_go_live_obj);

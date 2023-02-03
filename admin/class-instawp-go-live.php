@@ -70,7 +70,6 @@ class InstaWP_Go_Live {
 		echo "<pre>";
 		print_r( $restore_init_response );
 		echo "</pre>";
-
 	}
 
 
