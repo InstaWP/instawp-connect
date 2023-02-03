@@ -2,7 +2,7 @@
  * Cloudways integration script
  */
 
-(function ($, document) {
+(function ($, document, go_live_obj) {
     'use strict';
 
     $(document).on('click', '.instawp-go-live-wrap .instawp-btn-go-live', function () {
@@ -43,27 +43,44 @@
                 el_go_live_message.html(message);
                 el_go_live_progress.html(progress + '%');
             }, loop_init_time);
-            loop_init_time += 1500;
+            loop_init_time += 500;
         });
 
 
         setTimeout(function () {
 
-            // Progress is now 100%
-            el_go_live_progress.html('100%');
+            $.ajax({
+                type: 'POST',
+                url: go_live_obj.ajax_url,
+                context: this,
+                data: {
+                    'action': 'instawp_process_go_live',
+                },
+                success: function (response) {
 
-            // Update the button
-            el_btn_go_live.html('Site is Live').removeClass('disabled').data('is_live', true);
+                    console.log(response.success)
+                    if (response.success) {
 
-            // Hide the loader
-            el_go_live_loader.removeClass('visible');
+                        // Progress is now 100%
+                        el_go_live_progress.html('100%');
 
-            // Display manage account link
-            el_manage_account_link.fadeIn();
+                        // Update the button
+                        // el_btn_go_live.html('Site is Live').removeClass('disabled').data('is_live', true);
+                        el_btn_go_live.removeClass('disabled').data('is_live', true);
 
-            // Display manage sites section
-            el_manage_sites.fadeIn();
+                        // Hide the loader
+                        el_go_live_loader.removeClass('visible');
+
+                        // Display manage account link
+                        // el_manage_account_link.fadeIn();
+
+                        // Display manage sites section
+                        // el_manage_sites.fadeIn();
+                    }
+                }
+            });
+
         }, loop_init_time);
     });
 
-})(jQuery, document);
+})(jQuery, document, instawp_ajax_go_live_obj);

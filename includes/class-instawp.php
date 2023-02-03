@@ -684,11 +684,11 @@ class instaWP {
 	}
 
 	public function instawp_check_usage_on_cloud() {
-		$connect_ids             = get_option( 'instawp_connect_id_options', '' );
-		$instawp_api_options     = get_option( 'instawp_api_options' );
-		$response                = array();
-		$backup_type             = (int) $_REQUEST['backup_type'];
-		$anonymize_option        = (int) $_REQUEST['anonymize_option'];
+		$connect_ids         = get_option( 'instawp_connect_id_options', '' );
+		$instawp_api_options = get_option( 'instawp_api_options' );
+		$response            = array();
+		$backup_type         = (int) $_REQUEST['backup_type'];
+		$anonymize_option    = (int) $_REQUEST['anonymize_option'];
 
 		if ( ! empty( $connect_ids ) && ! empty( $instawp_api_options ) ) {
 			$id      = $connect_ids['data']['id'];
@@ -1990,8 +1990,10 @@ class instaWP {
 
 			error_log( print_r( $body, true ) );
 
+			$connect_ids   = get_option( 'instawp_connect_id_options' );
+			$connect_id    = $connect_ids['data']['id'] ?? 0;
 			$api_doamin    = InstaWP_Setting::get_api_domain();
-			$url           = $api_doamin . INSTAWP_API_URL . '/s2p-restore-status';
+			$url           = $api_doamin . INSTAWP_API_2_URL . '/connects/' . $connect_id . '/restore';
 			$body_json     = json_encode( $body );
 			$curl_response = $InstaWP_Curl->curl( $url, $body_json );
 

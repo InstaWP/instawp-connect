@@ -26,6 +26,9 @@ class InstaWP_Go_Live {
 
 	protected static $_platform_whitelabel = false;
 
+	protected static $_connect_id = false;
+
+
 	/**
 	 * InstaWP_Go_Live constructor
 	 */
@@ -39,6 +42,10 @@ class InstaWP_Go_Live {
 			self::$_platform_whitelabel = INSTAWP_CONNECT_WHITELABEL;
 		}
 
+//		$connect_ids       = get_option( 'instawp_connect_id_options' );
+//		self::$_connect_id = $connect_ids['data']['id'] ?? 0;
+		self::$_connect_id = 748;
+
 		// Stop loading admin menu
 		add_filter( 'instawp_add_plugin_admin_menu', '__return_false' );
 
@@ -47,6 +54,22 @@ class InstaWP_Go_Live {
 		add_action( 'admin_menu', array( $this, 'add_go_live_integration_menu' ) );
 		add_filter( 'admin_footer_text', array( $this, 'update_footer_credit_text' ) );
 		add_filter( 'admin_title', array( $this, 'update_admin_page_title' ) );
+		add_action( 'wp_ajax_instawp_process_go_live', array( $this, 'process_go_live' ) );
+	}
+
+
+	/**
+	 * Process go live action
+	 *
+	 * @return void
+	 */
+	function process_go_live() {
+
+		$restore_init_response = $this->get_api_response( 'restore-init' );
+
+		echo "<pre>";
+		print_r( $restore_init_response );
+		echo "</pre>";
 	}
 
 
@@ -56,6 +79,11 @@ class InstaWP_Go_Live {
 	 * @return void
 	 */
 	function render_go_live_integration() {
+
+		$trial_details  = $this->get_api_response( '', false );
+		$trial_domain   = $trial_details['domain'] ?? '';
+		$time_to_expire = $trial_details['time_to_expire'] ?? '';
+
 		?>
         <div class="wrap instawp-go-live-wrap">
             <div>
@@ -66,11 +94,11 @@ class InstaWP_Go_Live {
                         <div class="trail-padding">
                             <div class="trial-flex">
                                 <h4><?php echo esc_html__( 'Trial Domain', 'instawp-connect' ); ?></h4>
-                                <h6><?php echo esc_attr( 'abcd.hostingcompany.com' ); ?></h6>
+                                <h6><?php echo esc_url( $trial_domain ); ?></h6>
                             </div>
                             <div class="trial-flex trial-margin">
                                 <h4><?php echo esc_html__( 'Trial Period', 'instawp-connect' ); ?></h4>
-                                <h6><?php echo esc_html__( '4 days Remaining', 'instawp-connect' ); ?></h6>
+                                <h6><?php echo sprintf( esc_html__( '%s Remaining', 'instawp-connect' ), $time_to_expire ); ?></h6>
                             </div>
                         </div>
                         <div class="trial-footer">
@@ -158,6 +186,11 @@ class InstaWP_Go_Live {
 	function admin_scripts_styles() {
 		wp_enqueue_style( 'instawp-go-live', $this->get_asset_url( 'css/instawp-go-live.css' ) );
 		wp_enqueue_script( 'instawp-go-live', $this->get_asset_url( 'js/instawp-go-live.js' ), array( 'jquery' ) );
+		wp_localize_script( 'instawp-go-live', 'instawp_ajax_go_live_obj',
+			array(
+				'ajax_url' => admin_url( 'admin-ajax.php' ),
+			)
+		);
 	}
 
 
@@ -190,6 +223,41 @@ class InstaWP_Go_Live {
 	 */
 	protected function get_asset_url( $asset_name ) {
 		return INSTAWP_PLUGIN_DIR_URL . $asset_name;
+	}
+
+
+	/**
+	 * Send api request and return processed response
+	 *
+	 * @param $endpoint
+	 * @param $is_post
+	 *
+	 * @return array|mixed
+	 */
+	protected function get_api_response( $endpoint = '', $is_post = true ) {
+
+		global $InstaWP_Curl;
+
+		$api_url = InstaWP_Setting::get_api_domain() . INSTAWP_API_2_URL . '/connects/' . self::$_connect_id;
+
+		if ( ! empty( $endpoint ) ) {
+			$api_url .= '/' . $endpoint;
+		}
+
+		$curl_response = $InstaWP_Curl->curl( $api_url, [], [], $is_post );
+
+		if ( isset( $curl_response['error'] ) && $curl_response['error'] == 1 ) {
+			return $curl_response;
+		}
+
+		$curl_response = $curl_response['curl_res'] ?? array();
+		$curl_response = json_decode( $curl_response, true );
+
+		if ( isset( $curl_response['error'] ) && $curl_response['error'] == 0 ) {
+			return $curl_response;
+		}
+
+		return $curl_response['data'] ?? array();
 	}
 
 
