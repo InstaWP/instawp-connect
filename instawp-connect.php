@@ -166,12 +166,13 @@ function instawp_init_plugin_redirect() {
 				wp_redirect( admin_url() . $url );
 			}
 		} else {
-			$url = apply_filters( 'instawp_backup_activate_redirect_url', 'admin.php?page=instawp-connect' );
-			if ( is_multisite() ) {
-				wp_redirect( network_admin_url() . $url );
-			} else {
-				wp_redirect( admin_url() . $url );
-			}
+			// jaed stopped reloading plugin after activation for demo showing to cloudways
+//			$url = apply_filters( 'instawp_backup_activate_redirect_url', 'admin.php?page=instawp-connect' );
+//			if ( is_multisite() ) {
+//				wp_redirect( network_admin_url() . $url );
+//			} else {
+//				wp_redirect( admin_url() . $url );
+//			}
 		}
 	}
 }

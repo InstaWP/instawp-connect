@@ -125,7 +125,8 @@ class InstaWP_Go_Live {
 
 		$trial_details  = $this->get_api_response( '', false );
 		$trial_domain   = $trial_details['domain'] ?? '';
-		$time_to_expire = $trial_details['time_to_expire'] ?? '';
+//		$time_to_expire = $trial_details['time_to_expire'] ?? '';
+		$time_to_expire = '3 Days'
 
 //		$this->process_go_live();
 

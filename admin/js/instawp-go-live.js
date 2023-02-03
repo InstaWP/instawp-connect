@@ -46,16 +46,16 @@
 
                 if (progress === 100) {
 
-                    el_go_live_loader.find('img').fadeOut();
+                    el_go_live_progress.fadeOut(200);
+                    el_go_live_loader.find('img').fadeOut(200);
                     el_go_live_message.html('✅' + ' ' + message);
 
                     el_btn_go_live.html('Magic Login').removeClass('disabled').data('is_live', true);
                     el_btn_go_live.removeClass('disabled').data('is_live', true);
                 } else {
                     el_go_live_message.html(message);
+                    el_go_live_progress.html(progress + '%');
                 }
-
-                el_go_live_progress.html(progress + '%');
 
             }, loop_init_time);
             loop_init_time += 500;
@@ -70,9 +70,6 @@
 
             // Display manage account link
             el_manage_account_link.fadeIn();
-
-            // Display manage sites section
-            el_manage_sites.fadeIn();
 
         }, loop_init_time);
 
