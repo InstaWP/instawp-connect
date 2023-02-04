@@ -70,7 +70,7 @@ class InstaWP_Go_Live {
 	 */
 	function process_go_live() {
 
-		wp_send_json_success( array( 'progress' => rand( 1, 100 ), 'message' => esc_html__( 'This is sample message.', 'instawp-connect' ) ) );
+//		wp_send_json_success( array( 'progress' => rand( 95, 100 ), 'message' => esc_html__( 'This is sample message.', 'instawp-connect' ) ) );
 
 		// Getting restore id
 		$restore_init_response = $this->get_api_response( 'restore-init' );
@@ -100,11 +100,19 @@ class InstaWP_Go_Live {
 
 //		$restore_progress_response = $this->get_api_response('api/v1/connects/get_restore_status');
 
-		$connect_options = get_option( 'instawp_api_options', '' );
 
-		echo "<pre>";
-		print_r( $connect_options );
-		echo "</pre>";
+//		$api_options = get_option( 'instawp_api_options', array() );
+//
+//		if ( count( $api_key_exploded = explode( "|", $api_options['api_key'] ) ) > 1 ) {
+//			$api_hash = hash( "sha256", $api_key_exploded[1] );
+//		} else {
+//			$api_hash = hash( "sha256", $api_options['api_key'] );
+//		}
+//
+//		echo "<pre>";
+//		print_r( $api_hash );
+//		echo "</pre>";
+
 
 		echo "<pre>";
 		print_r( self::$_connect_id );
@@ -125,10 +133,9 @@ class InstaWP_Go_Live {
 
 		$trial_details  = $this->get_api_response( '', false );
 		$trial_domain   = $trial_details['domain'] ?? '';
-//		$time_to_expire = $trial_details['time_to_expire'] ?? '';
-		$time_to_expire = '3 Days'
+		$time_to_expire = $trial_details['time_to_expire'] ?? '';
 
-//		$this->process_go_live();
+		$this->process_go_live();
 
 		?>
         <div class="wrap instawp-go-live-wrap">
@@ -157,22 +164,6 @@ class InstaWP_Go_Live {
                                 </div>
                             </div>
                             <a class="manage-account-link" href=""><?php echo esc_html__( 'My Cloudways Account', 'instawp-connect' ); ?> <img src="<?php echo esc_url( $this->get_asset_url( 'images/link-icon.svg' ) ); ?>" alt=""></a>
-                        </div>
-                    </div>
-
-                    <div class="instawp-manage-sites">
-                        <h3><?php echo esc_html__( 'Manage Site', 'instawp-connect' ); ?></h3>
-                        <div class="trial-wrapper">
-                            <div class="trail-padding">
-                                <label for="domain"><?php echo esc_html__( 'Connect Domain', 'instawp-connect' ); ?></label>
-                                <div class="input-position">
-                                    <input type="text" class="form-control" autocomplete="off" id="domain" placeholder="<?php echo esc_attr__( 'Enter your domain name', 'instawp-connect' ); ?>">
-                                    <div class="input-button">
-                                        <button class="verify-btn"><?php echo esc_html__( 'Verify', 'instawp-connect' ); ?></button>
-                                    </div>
-                                </div>
-                                <p><?php echo esc_html__( 'Point A record to', 'instawp-connect' ); ?> <span>123.123.123.123</span> <img src="<?php echo esc_url( $this->get_asset_url( 'images/copy-icon.svg' ) ); ?>" alt=""></p>
-                            </div>
                         </div>
                     </div>
                 </div>
