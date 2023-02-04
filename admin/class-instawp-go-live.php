@@ -135,7 +135,7 @@ class InstaWP_Go_Live {
 		$trial_domain   = $trial_details['domain'] ?? '';
 		$time_to_expire = $trial_details['time_to_expire'] ?? '';
 
-		$this->process_go_live();
+//		$this->process_go_live();
 
 		?>
         <div class="wrap instawp-go-live-wrap">
