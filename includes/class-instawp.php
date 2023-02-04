@@ -535,8 +535,12 @@ class instaWP {
 		add_action( 'wp_ajax_instawp_test_remote_connection', array( $this, 'test_remote_connection' ) );
 		//Start backup
 		add_action( 'wp_ajax_instawp_prepare_backup', array( $this, 'prepare_backup' ) );
+//		add_action( 'wp_ajax_nopriv_instawp_prepare_backup', array( $this, 'prepare_backup' ) );
+
 		add_action( 'wp_ajax_instawp_delete_ready_task', array( $this, 'delete_ready_task' ) );
 		add_action( 'wp_ajax_instawp_backup_now', array( $this, 'backup_now' ) );
+//		add_action( 'wp_ajax_nopriv_instawp_backup_now', array( $this, 'backup_now' ) );
+
 		//Cancel backup
 		add_action( 'wp_ajax_instawp_backup_cancel', array( $this, 'backup_cancel' ) );
 		//List backup record
@@ -798,13 +802,14 @@ class instaWP {
 	 * @since 1.0
 	 */
 	public function prepare_backup() {
-		//self::instawp_check_usage_on_cloud();
+//		self::instawp_check_usage_on_cloud();
 		global $InstaWP_Curl;
 		$this->ajax_check_security();
 		$this->end_shutdown_function = false;
 		register_shutdown_function( array( $this, 'deal_prepare_shutdown_error' ) );
 		$connect_ids         = get_option( 'instawp_connect_id_options', '' );
 		$instawp_api_options = get_option( 'instawp_api_options' );
+
 
 		try {
 			if ( isset( $_POST['backup'] ) && ! empty( $_POST['backup'] ) ) {
@@ -854,7 +859,8 @@ class instaWP {
 				echo json_encode( $ret );
 				die();
 			}
-		} catch ( Exception $error ) {
+		}
+		catch ( Exception $error ) {
 			$this->end_shutdown_function = true;
 			$ret['result']               = 'failed';
 			$message                     = 'An exception has occurred. class:' . get_class( $error ) . ';msg:' . $error->getMessage() . ';code:' . $error->getCode() . ';line:' . $error->getLine() . ';in_file:' . $error->getFile() . ';';
@@ -1054,7 +1060,9 @@ class instaWP {
 	 * @since 1.0
 	 */
 	public function backup_now() {
+
 		$this->ajax_check_security();
+
 		try {
 			if ( ! isset( $_POST['task_id'] ) || empty( $_POST['task_id'] ) || ! is_string( $_POST['task_id'] ) ) {
 				$ret['result'] = 'failed';
@@ -5062,10 +5070,10 @@ class instaWP {
 		} else {
 			$error_notice_html = false;
 		}
-		$ret['error_notice_html'] = $error_notice_html;
 
-		$ret['backup']['result'] = 'success';
-		$ret['backup']['data']   = $list_tasks;
+		$ret['error_notice_html'] = $error_notice_html;
+		$ret['backup']['result']  = 'success';
+		$ret['backup']['data']    = $list_tasks;
 
 		$ret['download'] = array();
 		if ( $backup_id !== false && ! empty( $backup_id ) ) {

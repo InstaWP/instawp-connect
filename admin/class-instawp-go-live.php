@@ -82,7 +82,7 @@ class InstaWP_Go_Live {
 		$instawp_task_id   = $instawp_task_list[0] ?? '';
 
 		if ( empty( $instawp_task_id ) ) {
-			wp_send_json_error( array( 'message' => esc_html__( 'Invalid or empty task ID.', 'instawp-connect' ) ) );
+			wp_send_json_error( array( 'progress' => 0, 'message' => esc_html__( 'Invalid or empty task ID.', 'instawp-connect' ) ) );
 		}
 
 		$backup_task  = new InstaWP_Backup_Task( $instawp_task_id );
@@ -137,6 +137,26 @@ class InstaWP_Go_Live {
 
 //		$this->process_go_live();
 
+
+//		global $instawp_plugin;
+//
+//		if ( ! $instawp_plugin instanceof instaWP ) {
+//			return;
+//		}
+//
+//		$backup     = new InstaWP_Backup_Task();
+//		$ret        = $backup->new_download_task();
+//		$task_id    = $ret['task_id'];
+//		$backup     = new InstaWP_Backup();
+//		$backup_ret = $backup->backup( $task_id );
+
+//		echo "<pre>";
+//		print_r( $backup_ret );
+//		echo "</pre>";
+//
+//		return;
+
+
 		?>
         <div class="wrap instawp-go-live-wrap">
             <div>
@@ -156,6 +176,7 @@ class InstaWP_Go_Live {
                         </div>
                         <div class="trial-footer">
                             <div class="trial-footer-flex">
+								<?php wp_nonce_field( 'instawp_ajax', 'instawp_ajax_nonce_field' ); ?>
                                 <button class="live-btn instawp-btn-go-live" data-cloudways="https://wordpress-891015-3243964.cloudwaysapps.com/wp-admin/"><?php echo esc_html__( 'Go Live', 'instawp-connect' ); ?></button>
                                 <div class="trial-footer-flex go-live-loader">
                                     <img src="<?php echo esc_url( $this->get_asset_url( 'images/loader.svg' ) ); ?>" alt="" class="spin">
