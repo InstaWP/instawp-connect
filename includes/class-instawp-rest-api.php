@@ -422,7 +422,18 @@ class InstaWP_Backup_Api {
 
 		// Override plugin file, if provided.
 		if ( isset( $parameters['override_plugin_zip'] ) && ! empty( $override_plugin_zip = $parameters['override_plugin_zip'] ) ) {
+
 			$this->override_plugin_zip_while_doing_config( $override_plugin_zip );
+
+			if ( ! function_exists( 'is_plugin_active' ) ) {
+				require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
+			}
+
+			$plugin_slug = INSTAWP_PLUGIN_SLUG . '/' . INSTAWP_PLUGIN_SLUG . '.php';
+
+			if ( ! is_plugin_active( $plugin_slug ) ) {
+				activate_plugin( $plugin_slug );
+			}
 		}
 
 		// Check if the configuration is already done, then no need to do it again.

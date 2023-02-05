@@ -95,7 +95,7 @@ class InstaWP_Go_Live {
 			"restore_id"        => $restore_id,
 			"progress"          => 100,
 			"task_id"           => $instawp_task_id,
-			"restore_file_path" => $backup_files
+			"restore_file_path" => $backup_files,
 		) );
 
 //		$restore_progress_response = $this->get_api_response('api/v1/connects/get_restore_status');

@@ -33,6 +33,8 @@
 
         finished_doing_api_call_interval = setInterval(function () {
 
+            console.log(go_live_step_completed);
+
             if (go_live_step_completed === 0) {
                 $.ajax({
                     type: 'POST',
