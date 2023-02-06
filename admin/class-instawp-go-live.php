@@ -71,6 +71,7 @@ class InstaWP_Go_Live {
 		global $InstaWP_Curl;
 
 		$restore_id = isset( $_POST['restore_id'] ) ? sanitize_text_field( $_POST['restore_id'] ) : '';
+//		$restore_id = 961;
 
 		if ( empty( $restore_id ) ) {
 			wp_send_json_error( array( 'progress' => 30, 'message' => esc_html__( 'Invalid restore id.', 'instawp-connect' ) ) );
@@ -85,6 +86,10 @@ class InstaWP_Go_Live {
 
 		error_log( 'Response for api - `get_restore_status`' );
 		error_log( print_r( $curl_response ) );
+
+//		echo "<pre>";
+//		print_r( $curl_response );
+//		echo "</pre>";
 
 		if ( isset( $curl_response['error'] ) && $curl_response['error'] == 1 ) {
 			wp_send_json_error( $curl_response );
@@ -111,7 +116,7 @@ class InstaWP_Go_Live {
 		$restore_init_response = $this->get_api_response( 'restore-init' );
 
 		error_log( 'Response for api - `restore-init`' );
-		error_log( print_r( $restore_init_response ) );
+		error_log( json_decode( $restore_init_response ) );
 
 		if ( isset( $restore_init_response['status'] ) && $restore_init_response['status'] === false ) {
 			wp_send_json_error( array( 'progress' => 15, 'message' => esc_html__( 'Site creation in progress.', 'instawp-connect' ) ) );
@@ -150,6 +155,18 @@ class InstaWP_Go_Live {
 		$trial_details  = $this->get_api_response( '', false );
 		$trial_domain   = $trial_details['domain'] ?? '';
 		$time_to_expire = $trial_details['time_to_expire'] ?? '';
+
+
+//		echo "<pre>";
+//		print_r( get_option( 'api_check' ) );
+//		echo "</pre>";
+
+//		$restore_init_response = $this->get_api_response( 'restore-init' );
+//		echo "<pre>";
+//		print_r( $restore_init_response );
+//		echo "</pre>";
+
+//		$this->go_live_restore_status();
 
 		?>
         <div class="wrap instawp-go-live-wrap">
