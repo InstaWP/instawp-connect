@@ -137,7 +137,7 @@ if ( isset( $_POST['instawp_settings_nonce'] )
     <div>
         <div>
             <h4>
-                <?php echo strtoupper('Reset Plugin'); ?>
+                <?php esc_html_e('Reset Plugin', 'instawp-connect'); ?>
             </h4>
         </div>
         <div>
@@ -148,7 +148,7 @@ if ( isset( $_POST['instawp_settings_nonce'] )
             $delete_url = add_query_arg( array( 'delete_wpnonce' => $nonce ), $actionurl );
             ?> 
             <a href="<?php echo $delete_url; ?>" onclick="return confirm('Are you sure?')" class="button button-primary" >
-                <?php echo strtoupper('Reset'); ?>
+                <?php esc_html_e('Reset', "instawp-connect"); ?>
             </a>
         </div>
     </div>

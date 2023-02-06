@@ -94,7 +94,7 @@ class InstaWP_AJAX {
 			//After Delete Option Set API Domain
 			InstaWP_Setting::set_api_domain();
 
-			$transient_message = "InstaWP Connect has now reset!";
+			$transient_message = __("InstaWP Connect Settings has been reset successfully.", 'instawp-connect');
 			
 			set_transient( 'instawp_connect_plugin_reset_notice', $transient_message, MINUTE_IN_SECONDS );
 
