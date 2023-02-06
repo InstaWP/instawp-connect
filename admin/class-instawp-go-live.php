@@ -84,6 +84,9 @@ class InstaWP_Go_Live {
 		$body_json     = ! empty( $body ) ? json_encode( $body ) : '';
 		$curl_response = $InstaWP_Curl->curl( $api_url, $body_json );
 
+		error_log( 'Response for api - `get_restore_status`' );
+		error_log( print_r( $curl_response ) );
+
 		if ( isset( $curl_response['error'] ) && $curl_response['error'] == 1 ) {
 			wp_send_json_error( $curl_response );
 		}
@@ -128,6 +131,10 @@ class InstaWP_Go_Live {
 			"restore_file_path" => $backup_files,
 		) );
 
+
+		error_log( 'Response for api - `restore`' );
+		error_log( print_r( $restore_response ) );
+
 		$response = $restore_response['response'] ?? '';
 		$response = json_decode( $response, true );
 
@@ -154,6 +161,9 @@ class InstaWP_Go_Live {
 
 		$restore_init_response = $this->get_api_response( 'restore-init' );
 		$restore_id            = $restore_init_response['restore_id'] ?? '';
+
+		error_log( 'Response for api - `restore-init`' );
+		error_log( print_r( $restore_init_response ) );
 
 		wp_send_json_success( array( 'restore_id' => $restore_id, 'progress' => 20, 'message' => esc_html__( 'Initializing restoration.', 'instawp-connect' ) ) );
 	}

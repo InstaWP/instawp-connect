@@ -143,7 +143,7 @@
                             } else {
                                 el_go_live_message.html(response.data.message);
                                 el_go_live_progress.html(response.data.progress + '%');
-                                go_live_step_completed = 6;
+                                go_live_step_completed--;
                             }
                         }
                     }
