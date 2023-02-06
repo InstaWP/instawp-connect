@@ -82,7 +82,7 @@
                         }
                     }
                 });
-            } else if (go_live_step_completed === 6) {
+            } else if (go_live_step_completed >= 6) {
 
                 console.log('Going to hit `get_restore_status`');
 
@@ -127,6 +127,8 @@
                     }
                 });
             }
+
+            // console.log(go_live_step_completed);
 
             go_live_step_completed++;
         }, 3000);

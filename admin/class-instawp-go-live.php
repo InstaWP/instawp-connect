@@ -84,8 +84,8 @@ class InstaWP_Go_Live {
 		$body_json     = ! empty( $body ) ? json_encode( $body ) : '';
 		$curl_response = $InstaWP_Curl->curl( $api_url, $body_json );
 
-		error_log( 'Response for api - `get_restore_status`' );
-		error_log( print_r( $curl_response ) );
+//		error_log( 'Response for api - `get_restore_status`' );
+//		error_log( print_r( $curl_response ) );
 
 //		echo "<pre>";
 //		print_r( $curl_response );
