@@ -115,7 +115,7 @@
                     context: this,
                     data: {
                         'action': 'instawp_go_live_restore_status',
-                        'task_id': el_field_task_id.val(),
+                        'restore_id': el_field_restore_id.val(),
                     },
                     success: function (response) {
 

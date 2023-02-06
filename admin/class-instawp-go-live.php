@@ -70,7 +70,7 @@ class InstaWP_Go_Live {
 
 		global $InstaWP_Curl;
 
-		$task_id = isset( $_POST['task_id'] ) ? sanitize_text_field( $_POST['task_id'] ) : '';
+		$restore_id = isset( $_POST['restore_id'] ) ? sanitize_text_field( $_POST['restore_id'] ) : '';
 
 		if ( empty( $task_id ) ) {
 			wp_send_json_error( array( 'message' => esc_html__( 'Invalid or empty task id.', 'instawp-connect' ) ) );
@@ -78,8 +78,7 @@ class InstaWP_Go_Live {
 
 		$api_url       = InstaWP_Setting::get_api_domain() . INSTAWP_API_URL . '/connects/get_restore_status';
 		$body          = array(
-			'task_id'    => $task_id,
-			'connect_id' => self::$_connect_id,
+			'restore_id' => $restore_id,
 		);
 		$body_json     = ! empty( $body ) ? json_encode( $body ) : '';
 		$curl_response = $InstaWP_Curl->curl( $api_url, $body_json );
