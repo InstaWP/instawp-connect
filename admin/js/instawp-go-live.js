@@ -34,26 +34,6 @@
 
             if (go_live_step_completed === 0) {
 
-                console.log('Cleaning previous backup.');
-
-                $.ajax({
-                    type: 'POST',
-                    url: go_live_obj.ajax_url,
-                    context: this,
-                    data: {
-                        'action': 'instawp_go_live_clean',
-                    },
-                    success: function (response) {
-
-                        el_go_live_message.html(response.data.message);
-                        el_go_live_progress.html(response.data.progress + '%');
-
-                        console.log(response);
-                        console.log('Cleaning previous backup completed.');
-                    }
-                });
-            } else if (go_live_step_completed === 3) {
-
                 console.log('Going to hit restore-init');
 
                 $.ajax({
@@ -82,7 +62,7 @@
                         }
                     }
                 });
-            } else if (go_live_step_completed >= 6) {
+            } else if (go_live_step_completed >= 2) {
 
                 console.log('Going to hit `get_restore_status`');
 
@@ -111,8 +91,12 @@
                                 el_go_live_loader.find('img').fadeOut(100);
                                 el_go_live_message.html('✅' + ' ' + response.data.message);
 
+                                let wp_details = response.data.wp[0];
+
+                                console.log(wp_details);
+
                                 // Update the button
-                                el_btn_go_live.html('Magic Login').removeClass('disabled').data('is_live', true);
+                                el_btn_go_live.html('Magic Login').data('cloudways', wp_details.auto_login_hash).removeClass('disabled').data('is_live', true);
                                 el_btn_go_live.removeClass('disabled').data('is_live', true);
 
                                 // Display manage account link

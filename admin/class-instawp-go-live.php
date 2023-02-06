@@ -57,9 +57,8 @@ class InstaWP_Go_Live {
 		add_action( 'admin_menu', array( $this, 'add_go_live_integration_menu' ) );
 		add_filter( 'admin_footer_text', array( $this, 'update_footer_credit_text' ) );
 		add_filter( 'admin_title', array( $this, 'update_admin_page_title' ) );
-		add_action( 'wp_ajax_instawp_go_live_clean', array( $this, 'go_live_clean' ) );
-		add_action( 'wp_ajax_instawp_go_live_restore_init', array( $this, 'go_live_restore_init' ) );
 
+		add_action( 'wp_ajax_instawp_go_live_restore_init', array( $this, 'go_live_restore_init' ) );
 		add_action( 'wp_ajax_instawp_go_live_restore_status', array( $this, 'go_live_restore_status' ) );
 	}
 
@@ -131,21 +130,6 @@ class InstaWP_Go_Live {
 		$restore_init_response['message']  = esc_html__( 'Initializing restoration.', 'instawp-connect' );
 
 		wp_send_json_success( $restore_init_response );
-	}
-
-
-	/**
-	 * Clean previous backup before taking new backup for go live
-	 *
-	 * @return void
-	 */
-	function go_live_clean() {
-
-//		delete_option( 'instawp_task_list' );
-//		$backup = new InstaWP_Backup();
-//		$backup->clean_backup();
-
-		wp_send_json_success( array( 'progress' => 10, 'message' => esc_html__( 'Preparing to initiate restoration.', 'instawp-connect' ) ) );
 	}
 
 
