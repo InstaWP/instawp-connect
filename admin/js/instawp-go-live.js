@@ -13,8 +13,10 @@
             el_go_live_message = el_cloudways_wrap.find('.go-live-status-message'),
             el_go_live_progress = el_cloudways_wrap.find('.go-live-status-progress'),
             el_manage_account_link = el_cloudways_wrap.find('.manage-account-link'),
-            el_ajax_nonce_field = el_cloudways_wrap.find('#instawp_ajax_nonce_field'),
-            finished_doing_api_call_interval = null;
+            el_field_restore_id = el_cloudways_wrap.find('#instawp_go_live_restore_id'),
+            el_field_task_id = el_cloudways_wrap.find('#instawp_go_live_task_id'),
+            finished_doing_api_call_interval = null,
+            go_live_step_completed = 0;
 
         if (el_btn_go_live.data('is_live')) {
             window.open(el_btn_go_live.data('cloudways'), '_blank');
@@ -29,69 +31,72 @@
         el_go_live_progress.html('0%');
         el_go_live_loader.addClass('visible');
 
-        let task_id = null, go_live_step_completed = 0;
-
         finished_doing_api_call_interval = setInterval(function () {
 
-            console.log(go_live_step_completed);
-
             if (go_live_step_completed === 0) {
+
+                console.log('Cleaning previous backup.');
+
                 $.ajax({
                     type: 'POST',
                     url: go_live_obj.ajax_url,
                     context: this,
                     data: {
-                        'action': 'instawp_prepare_backup',
-                        'backup': '{"ismerge":"1","backup_files":"files+db","local":"1"}',
-                        'options': [],
-                        'nonce': el_ajax_nonce_field.val(),
+                        'action': 'instawp_go_live_clean',
                     },
                     success: function (response) {
-
-                        let response_arr = $.parseJSON(response);
-
-                        if (response_arr.result === 'success') {
-                            task_id = response_arr.task_id;
-                            go_live_step_completed = 1;
-                        }
+                        console.log(response);
+                        console.log('Cleaning previous backup completed.');
                     }
                 });
             } else if (go_live_step_completed === 1) {
+
+                console.log('Starting restore init');
+
                 $.ajax({
                     type: 'POST',
                     url: go_live_obj.ajax_url,
                     context: this,
                     data: {
-                        'action': 'instawp_backup_now',
-                        'task_id': task_id,
-                        'nonce': el_ajax_nonce_field.val(),
+                        'action': 'instawp_go_live_restore_init',
                     },
                     success: function (response) {
 
-                        let response_arr = $.parseJSON(response);
+                        console.log(response);
+                        console.log('Restore init completed.');
 
-                        if (response_arr.result === 'success') {
-                            task_id = response_arr.task_id;
-                            go_live_step_completed = 2;
+                        if (response.success) {
+                            el_field_restore_id.val(response.data.restore_id);
                         }
                     }
                 });
-            } else if (go_live_step_completed === 2) {
+            } else if (go_live_step_completed === 4) {
+
+                console.log('Going to hit restore api.');
+
                 $.ajax({
                     type: 'POST',
                     url: go_live_obj.ajax_url,
                     context: this,
                     data: {
                         'action': 'instawp_go_live_restore',
+                        'restore_id': el_field_restore_id.val(),
                     },
                     success: function (response) {
+                        console.log(response);
+
+                        el_field_task_id.val(response.data.task_id);
+
                         if (response.success) {
-                            console.log(response.data);
+                            console.log('Restore api call completed.');
+                        } else {
+                            go_live_step_completed = 2;
                         }
                     }
                 });
-                go_live_step_completed = 3;
-            } else if (go_live_step_completed === 3) {
+            } else if (go_live_step_completed === 7) {
+
+                console.log('Getting restore status.');
 
                 $.ajax({
                     type: 'POST',
@@ -99,12 +104,17 @@
                     context: this,
                     data: {
                         'action': 'instawp_go_live_restore_status',
+                        'task_id': el_field_task_id.val(),
                     },
                     success: function (response) {
+
+                        console.log(response);
 
                         if (response.success) {
 
                             if (response.data.progress === 100) {
+
+                                console.log('Restore status api completed.');
 
                                 // Clearing the loop
                                 clearInterval(finished_doing_api_call_interval);
@@ -122,11 +132,14 @@
                             } else {
                                 el_go_live_message.html(response.data.message);
                                 el_go_live_progress.html(response.data.progress + '%');
+                                go_live_step_completed = 6;
                             }
                         }
                     }
                 });
             }
+
+            go_live_step_completed++;
         }, 3000);
     });
 
