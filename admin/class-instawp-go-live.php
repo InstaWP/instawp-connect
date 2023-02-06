@@ -117,9 +117,10 @@ class InstaWP_Go_Live {
 			wp_send_json_error( array( 'progress' => 15, 'message' => esc_html__( 'Site creation in progress.', 'instawp-connect' ) ) );
 		}
 
-		$restore_id = $restore_init_response['restore_id'] ?? '';
+		$restore_init_response['progress'] = 20;
+		$restore_init_response['message']  = esc_html__( 'Initializing restoration.', 'instawp-connect' );
 
-		wp_send_json_success( array( 'restore_id' => $restore_id, 'progress' => 20, 'message' => esc_html__( 'Initializing restoration.', 'instawp-connect' ) ) );
+		wp_send_json_success( $restore_init_response );
 	}
 
 
