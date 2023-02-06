@@ -73,7 +73,7 @@ class InstaWP_Go_Live {
 		$restore_id = isset( $_POST['restore_id'] ) ? sanitize_text_field( $_POST['restore_id'] ) : '';
 
 		if ( empty( $restore_id ) ) {
-			wp_send_json_error( array( 'message' => esc_html__( 'Invalid restore id.', 'instawp-connect' ) ) );
+			wp_send_json_error( array( 'progress' => 30, 'message' => esc_html__( 'Invalid restore id.', 'instawp-connect' ) ) );
 		}
 
 		$api_url       = InstaWP_Setting::get_api_domain() . INSTAWP_API_URL . '/connects/get_restore_status';
@@ -169,8 +169,7 @@ class InstaWP_Go_Live {
                         </div>
                         <div class="trial-footer">
                             <div class="trial-footer-flex">
-                                <input type="hidden" name="instawp_go_live_restore_id" id="instawp_go_live_restore_id" value="">
-                                <input type="hidden" name="instawp_go_live_task_id" id="instawp_go_live_task_id" value="">
+                                <input type="text" name="instawp_go_live_restore_id" id="instawp_go_live_restore_id" value="">
 								<?php // wp_nonce_field( 'instawp_ajax', 'instawp_ajax_nonce_field' ); ?>
                                 <button class="live-btn instawp-btn-go-live" data-cloudways="https://wordpress-891015-3243964.cloudwaysapps.com/wp-admin/"><?php echo esc_html__( 'Go Live', 'instawp-connect' ); ?></button>
                                 <div class="trial-footer-flex go-live-loader">

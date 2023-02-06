@@ -14,7 +14,6 @@
             el_go_live_progress = el_cloudways_wrap.find('.go-live-status-progress'),
             el_manage_account_link = el_cloudways_wrap.find('.manage-account-link'),
             el_field_restore_id = el_cloudways_wrap.find('#instawp_go_live_restore_id'),
-            el_field_task_id = el_cloudways_wrap.find('#instawp_go_live_task_id'),
             finished_doing_api_call_interval = null,
             go_live_step_completed = 0;
 
@@ -78,6 +77,7 @@
                             go_live_step_completed = 2;
 
                             el_field_restore_id.val(response.data.restore_id);
+
                             console.log('restore-init completed.');
                         } else {
                             console.log('restore-init failed, will try again.');
@@ -122,11 +122,10 @@
                             } else {
                                 el_go_live_message.html(response.data.message);
                                 el_go_live_progress.html(response.data.progress + '%');
-                                go_live_step_completed = 2;
                             }
-                        } else {
-                            go_live_step_completed = 2;
                         }
+
+                        go_live_step_completed = 2;
                     }
                 });
             }
