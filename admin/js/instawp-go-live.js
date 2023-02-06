@@ -77,13 +77,28 @@
                     }
                 });
             } else if (go_live_step_completed === 2) {
+                $.ajax({
+                    type: 'POST',
+                    url: go_live_obj.ajax_url,
+                    context: this,
+                    data: {
+                        'action': 'instawp_go_live_restore',
+                    },
+                    success: function (response) {
+                        if (response.success) {
+                            console.log(response.data);
+                        }
+                    }
+                });
+                go_live_step_completed = 3;
+            } else if (go_live_step_completed === 3) {
 
                 $.ajax({
                     type: 'POST',
                     url: go_live_obj.ajax_url,
                     context: this,
                     data: {
-                        'action': 'instawp_process_go_live',
+                        'action': 'instawp_go_live_restore_status',
                     },
                     success: function (response) {
 

@@ -49,8 +49,6 @@ class InstaWP_Go_Live {
 			self::$_connect_id = $connect_ids['data']['connect_id'] ?? 0;
 		}
 
-//		self::$_connect_id = 748;
-
 		// Stop loading admin menu
 		add_filter( 'instawp_add_plugin_admin_menu', '__return_false' );
 
@@ -59,18 +57,25 @@ class InstaWP_Go_Live {
 		add_action( 'admin_menu', array( $this, 'add_go_live_integration_menu' ) );
 		add_filter( 'admin_footer_text', array( $this, 'update_footer_credit_text' ) );
 		add_filter( 'admin_title', array( $this, 'update_admin_page_title' ) );
-		add_action( 'wp_ajax_instawp_process_go_live', array( $this, 'process_go_live' ) );
+		add_action( 'wp_ajax_instawp_go_live_restore', array( $this, 'go_live_restore' ) );
+		add_action( 'wp_ajax_instawp_go_live_restore_status', array( $this, 'go_live_restore_status' ) );
+	}
+
+
+	function go_live_restore_status() {
+
+		wp_send_json_success( array( 'progress' => rand( 90, 100 ), 'message' => esc_html__( 'This is sample message.', 'instawp-connect' ) ) );
+
+		// $restore_progress_response = $this->get_api_response('api/v1/connects/get_restore_status');
 	}
 
 
 	/**
-	 * Process go live action
+	 * Process go live action - Restore
 	 *
 	 * @return void
 	 */
-	function process_go_live() {
-
-//		wp_send_json_success( array( 'progress' => rand( 95, 100 ), 'message' => esc_html__( 'This is sample message.', 'instawp-connect' ) ) );
+	function go_live_restore() {
 
 		// Getting restore id
 		$restore_init_response = $this->get_api_response( 'restore-init' );
@@ -98,29 +103,9 @@ class InstaWP_Go_Live {
 			"restore_file_path" => $backup_files,
 		) );
 
-//		$restore_progress_response = $this->get_api_response('api/v1/connects/get_restore_status');
+		update_option( 'go_live_restore_response', $restore_response );
 
-
-//		$api_options = get_option( 'instawp_api_options', array() );
-//
-//		if ( count( $api_key_exploded = explode( "|", $api_options['api_key'] ) ) > 1 ) {
-//			$api_hash = hash( "sha256", $api_key_exploded[1] );
-//		} else {
-//			$api_hash = hash( "sha256", $api_options['api_key'] );
-//		}
-//
-//		echo "<pre>";
-//		print_r( $api_hash );
-//		echo "</pre>";
-
-
-		echo "<pre>";
-		print_r( self::$_connect_id );
-		echo "</pre>";
-
-		echo "<pre>";
-		print_r( $restore_response );
-		echo "</pre>";
+		wp_send_json_success( ( $restore_response['response'] ?? [] ) );
 	}
 
 
