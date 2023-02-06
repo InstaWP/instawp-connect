@@ -34,6 +34,27 @@
 
             if (go_live_step_completed === 0) {
 
+                console.log('Cleaning previous backup.');
+
+                $.ajax({
+                    type: 'POST',
+                    url: go_live_obj.ajax_url,
+                    context: this,
+                    data: {
+                        'action': 'instawp_go_live_clean',
+                    },
+                    success: function (response) {
+
+                        el_go_live_message.html(response.data.message);
+                        el_go_live_progress.html(response.data.progress + '%');
+
+                        go_live_step_completed = 1;
+                        console.log(response);
+                        console.log('Cleaning previous backup completed.');
+                    }
+                });
+            } else if (go_live_step_completed === 1) {
+
                 console.log('Going to hit restore-init');
 
                 $.ajax({
@@ -57,12 +78,12 @@
                             console.log('restore-init completed.');
                         } else {
 
-                            go_live_step_completed = 1;
+                            go_live_step_completed = 2;
                             console.log('restore-init failed, will try again.');
                         }
                     }
                 });
-            } else if (go_live_step_completed >= 2) {
+            } else if (go_live_step_completed >= 3) {
 
                 console.log('Going to hit `get_restore_status`');
 
