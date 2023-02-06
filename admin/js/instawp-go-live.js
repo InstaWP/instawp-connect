@@ -46,6 +46,8 @@
                     },
                     success: function (response) {
 
+                        go_live_step_completed = 1;
+
                         el_go_live_message.html(response.data.message);
                         el_go_live_progress.html(response.data.progress + '%');
 
@@ -67,13 +69,19 @@
                     success: function (response) {
 
                         console.log(response);
-                        if (response.success) {
-                            el_go_live_message.html(response.data.message);
-                            el_go_live_progress.html(response.data.progress + '%');
-                            el_field_restore_id.val(response.data.restore_id);
-                        }
 
-                        console.log('Restore init completed.');
+                        el_go_live_message.html(response.data.message);
+                        el_go_live_progress.html(response.data.progress + '%');
+
+                        if (response.success) {
+
+                            go_live_step_completed = 2;
+
+                            el_field_restore_id.val(response.data.restore_id);
+                            console.log('restore-init completed.');
+                        } else {
+                            console.log('restore-init failed, will try again.');
+                        }
                     }
                 });
             } else if (go_live_step_completed === 2) {
@@ -114,14 +122,14 @@
                             } else {
                                 el_go_live_message.html(response.data.message);
                                 el_go_live_progress.html(response.data.progress + '%');
-                                go_live_step_completed--;
+                                go_live_step_completed = 2;
                             }
+                        } else {
+                            go_live_step_completed = 2;
                         }
                     }
                 });
             }
-
-            go_live_step_completed++;
         }, 3000);
     });
 

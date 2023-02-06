@@ -72,8 +72,8 @@ class InstaWP_Go_Live {
 
 		$restore_id = isset( $_POST['restore_id'] ) ? sanitize_text_field( $_POST['restore_id'] ) : '';
 
-		if ( empty( $task_id ) ) {
-			wp_send_json_error( array( 'message' => esc_html__( 'Invalid or empty task id.', 'instawp-connect' ) ) );
+		if ( empty( $restore_id ) ) {
+			wp_send_json_error( array( 'message' => esc_html__( 'Invalid restore id.', 'instawp-connect' ) ) );
 		}
 
 		$api_url       = InstaWP_Setting::get_api_domain() . INSTAWP_API_URL . '/connects/get_restore_status';
@@ -109,10 +109,15 @@ class InstaWP_Go_Live {
 	function go_live_restore_init() {
 
 		$restore_init_response = $this->get_api_response( 'restore-init' );
-		$restore_id            = $restore_init_response['restore_id'] ?? '';
 
 		error_log( 'Response for api - `restore-init`' );
 		error_log( print_r( $restore_init_response ) );
+
+		if ( isset( $restore_init_response['status'] ) && $restore_init_response['status'] === false ) {
+			wp_send_json_error( array( 'progress' => 15, 'message' => esc_html__( 'Site creation in progress.', 'instawp-connect' ) ) );
+		}
+
+		$restore_id = $restore_init_response['restore_id'] ?? '';
 
 		wp_send_json_success( array( 'restore_id' => $restore_id, 'progress' => 20, 'message' => esc_html__( 'Initializing restoration.', 'instawp-connect' ) ) );
 	}
