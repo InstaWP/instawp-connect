@@ -59,7 +59,7 @@ class InstaWP_Go_Live {
 		add_filter( 'admin_title', array( $this, 'update_admin_page_title' ) );
 		add_action( 'wp_ajax_instawp_go_live_clean', array( $this, 'go_live_clean' ) );
 		add_action( 'wp_ajax_instawp_go_live_restore_init', array( $this, 'go_live_restore_init' ) );
-		add_action( 'wp_ajax_instawp_go_live_restore', array( $this, 'go_live_restore' ) );
+
 		add_action( 'wp_ajax_instawp_go_live_restore_status', array( $this, 'go_live_restore_status' ) );
 	}
 
@@ -98,56 +98,6 @@ class InstaWP_Go_Live {
 		}
 
 		wp_send_json_error( ( $curl_response['data'] ?? array() ) );
-	}
-
-
-	/**
-	 * Process go live action - Restore
-	 *
-	 * @return void
-	 */
-	function go_live_restore() {
-
-		$restore_id = isset( $_POST['restore_id'] ) ? sanitize_text_field( $_POST['restore_id'] ) : '';
-
-		if ( empty( $restore_id ) ) {
-			wp_send_json_error( array( 'progress' => 20, 'message' => esc_html__( 'Invalid or empty restore id.', 'instawp-connect' ) ) );
-		}
-
-		$backup_task = new InstaWP_Backup_Task();
-
-		if ( empty( $backup_task->get_id() ) ) {
-			wp_send_json_error( array( 'progress' => 20, 'message' => esc_html__( 'Invalid or empty task id.', 'instawp-connect' ) ) );
-		}
-
-		$backup_files     = array_map( function ( $file_path ) {
-			return home_url() . '/wp-content/instawpbackups/' . basename( $file_path );
-		}, $backup_task->get_backup_files() );
-		$restore_response = $this->get_api_response( 'restore', true, array(
-			"restore_id"        => $restore_id,
-			"progress"          => 100,
-			"task_id"           => $backup_task->get_id(),
-			"restore_file_path" => $backup_files,
-		) );
-
-
-		error_log( 'Response for api - `restore`' );
-		error_log( print_r( $restore_response ) );
-
-		$response = $restore_response['response'] ?? '';
-		$response = json_decode( $response, true );
-
-		$response['task_id'] = $backup_task->get_id();
-
-		if ( isset( $response['error'] ) && $response['error'] === true ) {
-			$response['progress'] = 20;
-			wp_send_json_error( $response );
-		}
-
-		$response['progress'] = 30;
-		$response['message']  = esc_html__( 'Restore completed successfully.', 'instawp-connect' );
-
-		wp_send_json_success( $response );
 	}
 
 

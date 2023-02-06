@@ -55,7 +55,7 @@
                 });
             } else if (go_live_step_completed === 1) {
 
-                console.log('Starting restore init');
+                console.log('Going to hit restore-init');
 
                 $.ajax({
                     type: 'POST',
@@ -67,47 +67,18 @@
                     success: function (response) {
 
                         console.log(response);
-                        console.log('Restore init completed.');
-
                         if (response.success) {
-
                             el_go_live_message.html(response.data.message);
                             el_go_live_progress.html(response.data.progress + '%');
-
                             el_field_restore_id.val(response.data.restore_id);
                         }
+
+                        console.log('Restore init completed.');
                     }
                 });
-            } else if (go_live_step_completed === 4) {
+            } else if (go_live_step_completed === 2) {
 
-                console.log('Going to hit restore api.');
-
-                $.ajax({
-                    type: 'POST',
-                    url: go_live_obj.ajax_url,
-                    context: this,
-                    data: {
-                        'action': 'instawp_go_live_restore',
-                        'restore_id': el_field_restore_id.val(),
-                    },
-                    success: function (response) {
-                        console.log(response);
-
-                        el_field_task_id.val(response.data.task_id);
-
-                        if (response.success) {
-                            console.log('Restore api call completed.');
-
-                            el_go_live_message.html(response.data.message);
-                            el_go_live_progress.html(response.data.progress + '%');
-                        } else {
-                            go_live_step_completed = 2;
-                        }
-                    }
-                });
-            } else if (go_live_step_completed === 7) {
-
-                console.log('Getting restore status.');
+                console.log('Going to hit `get_restore_status`');
 
                 $.ajax({
                     type: 'POST',
