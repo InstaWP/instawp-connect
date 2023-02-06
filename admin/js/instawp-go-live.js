@@ -45,8 +45,6 @@
                     },
                     success: function (response) {
 
-                        go_live_step_completed = 1;
-
                         el_go_live_message.html(response.data.message);
                         el_go_live_progress.html(response.data.progress + '%');
 
@@ -54,7 +52,7 @@
                         console.log('Cleaning previous backup completed.');
                     }
                 });
-            } else if (go_live_step_completed === 1) {
+            } else if (go_live_step_completed === 3) {
 
                 console.log('Going to hit restore-init');
 
@@ -74,17 +72,17 @@
 
                         if (response.success) {
 
-                            go_live_step_completed = 2;
-
                             el_field_restore_id.val(response.data.restore_id);
 
                             console.log('restore-init completed.');
                         } else {
+
+                            go_live_step_completed = 1;
                             console.log('restore-init failed, will try again.');
                         }
                     }
                 });
-            } else if (go_live_step_completed === 2) {
+            } else if (go_live_step_completed === 6) {
 
                 console.log('Going to hit `get_restore_status`');
 
@@ -125,10 +123,12 @@
                             }
                         }
 
-                        go_live_step_completed = 2;
+                        go_live_step_completed = 5;
                     }
                 });
             }
+
+            go_live_step_completed++;
         }, 3000);
     });
 
