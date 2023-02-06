@@ -422,7 +422,18 @@ class InstaWP_Backup_Api {
 
 		// Override plugin file, if provided.
 		if ( isset( $parameters['override_plugin_zip'] ) && ! empty( $override_plugin_zip = $parameters['override_plugin_zip'] ) ) {
+
 			$this->override_plugin_zip_while_doing_config( $override_plugin_zip );
+
+			if ( ! function_exists( 'is_plugin_active' ) ) {
+				require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
+			}
+
+			$plugin_slug = INSTAWP_PLUGIN_SLUG . '/' . INSTAWP_PLUGIN_SLUG . '.php';
+
+			if ( ! is_plugin_active( $plugin_slug ) ) {
+				activate_plugin( $plugin_slug );
+			}
 		}
 
 		// Check if the configuration is already done, then no need to do it again.
@@ -941,25 +952,22 @@ class InstaWP_Backup_Api {
 
 		if ( count( $wp_options ) > 0 ) {
 
-			if ( isset( $wp_options['instawp_sync_connect_id'] ) && isset( $wp_options['instawp_sync_parent_id'] ) ) {
+			if( isset($wp_options['instawp_is_staging']) && isset($wp_options['instawp_restore_id']) ) {
 
-				$parent_id  = $wp_options['instawp_sync_parent_id'];
+				$connect_id = $wp_options['instawp_sync_connect_id'];
+
 				$api_doamin = InstaWP_Setting::get_api_domain();
-				$url        = $api_doamin . INSTAWP_API_URL . '/connects/' . $parent_id . '/restore_status';
+				$url        = $api_doamin . INSTAWP_API_URL . '/connects/' . $connect_id . '/restore_status';
 
 
 				$domain = str_replace( "https://", "", get_site_url() );
 				$domain = str_replace( "http://", "", $domain );
 
 				$body = array(
-					// "task_id"         => $task_id,
-					// "type"     => 'restore',
+					"restore_id"	=> $wp_options['instawp_restore_id'],
 					"progress"               => $progress,
 					"message"                => $message,
-					"connect_id"             => $parent_id,
 					"completed"              => ( $progress == 100 ) ? true : false,
-					"destination_connect_id" => $wp_options['instawp_sync_connect_id']
-
 				);
 
 
