@@ -109,13 +109,13 @@ class InstaWP_Go_Live {
 		$restore_id = isset( $_POST['restore_id'] ) ? sanitize_text_field( $_POST['restore_id'] ) : '';
 
 		if ( empty( $restore_id ) ) {
-			wp_send_json_error( array( 'message' => esc_html__( 'Invalid or empty restore id.', 'instawp-connect' ) ) );
+			wp_send_json_error( array( 'progress' => 20, 'message' => esc_html__( 'Invalid or empty restore id.', 'instawp-connect' ) ) );
 		}
 
 		$backup_task = new InstaWP_Backup_Task();
 
 		if ( empty( $backup_task->get_id() ) ) {
-			wp_send_json_error( array( 'message' => esc_html__( 'Invalid or empty task id.', 'instawp-connect' ) ) );
+			wp_send_json_error( array( 'progress' => 20, 'message' => esc_html__( 'Invalid or empty task id.', 'instawp-connect' ) ) );
 		}
 
 		$backup_files     = array_map( function ( $file_path ) {
@@ -134,16 +134,20 @@ class InstaWP_Go_Live {
 		$response['task_id'] = $backup_task->get_id();
 
 		if ( isset( $response['error'] ) && $response['error'] === true ) {
+			$response['progress'] = 20;
 			wp_send_json_error( $response );
 		}
+
+		$response['progress'] = 30;
+		$response['message']  = esc_html__( 'Restore completed successfully.', 'instawp-connect' );
 
 		wp_send_json_success( $response );
 	}
 
 
 	/**
-     * Restore Init
-     *
+	 * Restore Init
+	 *
 	 * @return void
 	 */
 	function go_live_restore_init() {
@@ -151,7 +155,7 @@ class InstaWP_Go_Live {
 		$restore_init_response = $this->get_api_response( 'restore-init' );
 		$restore_id            = $restore_init_response['restore_id'] ?? '';
 
-		wp_send_json_success( array( 'restore_id' => $restore_id ) );
+		wp_send_json_success( array( 'restore_id' => $restore_id, 'progress' => 20, 'message' => esc_html__( 'Initializing restoration.', 'instawp-connect' ) ) );
 	}
 
 
@@ -167,7 +171,7 @@ class InstaWP_Go_Live {
 		$backup = new InstaWP_Backup();
 		$backup->clean_backup();
 
-		wp_send_json_success();
+		wp_send_json_success( array( 'progress' => 10, 'message' => esc_html__( 'Preparing to initiate restoration.', 'instawp-connect' ) ) );
 	}
 
 

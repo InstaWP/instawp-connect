@@ -45,6 +45,10 @@
                         'action': 'instawp_go_live_clean',
                     },
                     success: function (response) {
+
+                        el_go_live_message.html(response.data.message);
+                        el_go_live_progress.html(response.data.progress + '%');
+
                         console.log(response);
                         console.log('Cleaning previous backup completed.');
                     }
@@ -66,6 +70,10 @@
                         console.log('Restore init completed.');
 
                         if (response.success) {
+
+                            el_go_live_message.html(response.data.message);
+                            el_go_live_progress.html(response.data.progress + '%');
+
                             el_field_restore_id.val(response.data.restore_id);
                         }
                     }
@@ -89,6 +97,9 @@
 
                         if (response.success) {
                             console.log('Restore api call completed.');
+
+                            el_go_live_message.html(response.data.message);
+                            el_go_live_progress.html(response.data.progress + '%');
                         } else {
                             go_live_step_completed = 2;
                         }
