@@ -144,6 +144,10 @@ class InstaWP_Go_Live {
 		$trial_domain   = $trial_details['domain'] ?? '';
 		$time_to_expire = $trial_details['time_to_expire'] ?? '';
 
+//		delete_option( 'instawp_task_list' );
+//		$backup = new InstaWP_Backup();
+//		$backup->clean_backup();
+
 //		echo "<pre>";
 //		print_r( $this->get_api_response( 'restore-init' ) );
 //		echo "</pre>";
