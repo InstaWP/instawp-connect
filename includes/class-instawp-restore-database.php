@@ -117,7 +117,6 @@ class InstaWP_RestoreDB {
 			$tables_rows_data = file_get_contents( $file_tables_rows_data );
 			$tables_rows_data = json_decode( $tables_rows_data, true );
 
-
 			foreach ( $tables_rows_data as $table_name => $table_rows ) {
 				foreach ( $table_rows as $table_row ) {
 
@@ -133,10 +132,10 @@ class InstaWP_RestoreDB {
 
 					if ( $primary_key_val_new && $primary_key_val != $primary_key_val_new ) {
 						$table_row[ $primary_key ] = $primary_key_val_new;
-					}
 
-					if ( ! empty( $where_clause ) ) {
 						$wpdb->update( $wpdb->prefix . $table_name, $table_row, $where_clause );
+					} else {
+						$wpdb->insert( $wpdb->prefix . $table_name, $table_row );
 					}
 				}
 			}
