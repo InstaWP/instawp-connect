@@ -28,12 +28,16 @@ class InstaWP_Rest_Apis{
 
     private $InstaWP_db;
 
+    private $tables;
+
     public function __construct(){
         global $wpdb;
 
         $this->wpdb = $wpdb;
 
         $this->InstaWP_db = new InstaWP_DB();
+
+        $this->tables = $this->InstaWP_db->tables;
 
         /*
         * Initiate Sync
@@ -462,6 +466,34 @@ class InstaWP_Rest_Apis{
                 }
 
                 /*
+                * widget
+                */
+                if(isset($v->event_type) && $v->event_type == 'widget'){
+                    $widget_block = (array) $v->details->widget_block;
+                    $appp = (array) $v->details;
+                    $dataIns = [
+                        'data' => json_encode($appp)
+                    ];
+                    $this->InstaWP_db->insert('wp_testing',$dataIns);
+
+                    $widget_block_arr = [];
+                    foreach($widget_block as $widget_key => $widget_val){
+                        if($widget_key == '_multiwidget'){
+                            $widget_block_arr[$widget_key] = $widget_val;
+                        }else{
+                            $widget_val_arr = (array) $widget_val;
+                            $widget_block_arr[$widget_key] = ['content' => $widget_val_arr['content']];
+                        } 
+                    }
+                    update_option('widget_block',$widget_block_arr);
+                    #message 
+                    $message = 'Sync successfully.';
+                    $status = 'completed';
+                    $sync_response[] = $this->sync_opration_response($status,$message,$v);
+                    #changes
+                    $changes[$v->event_type] = $changes[$v->event_type] + 1;
+                }
+                /*
                 * Update api for cloud
                 */
                 $progress = intval($count/$total_op * 100);
@@ -489,6 +521,27 @@ class InstaWP_Rest_Apis{
                 'sync_id' => $sync_id
             ) 
         );
+    }
+
+    /**
+     * This function is for upload media which are coming form widgets.
+     */
+    public function upload_widgets_media($media = null, $content = null){
+        $media = json_decode(reset($media));
+        $new = $old = [];  
+        $newContent = '';            
+        if(!empty($media)){
+            foreach($media as $v){
+                $v = (array) $v; 
+                if(isset($v['attachment_id']) && isset($v['attachment_url'])){
+                    $attachment_id = $this->insert_attachment($v['attachment_id'],$v['attachment_url']);
+                    $new[] = wp_get_attachment_url($attachment_id); 
+                    $old[] = $v['attachment_url'];
+                } 
+            }
+            $newContent = str_replace($old, $new, $content); #str_replace(old,new,str)
+        }
+        return $newContent;
     }
 
     public function user_id_exists($user_id){
@@ -792,8 +845,6 @@ class InstaWP_Rest_Apis{
 
     #Insert history  
     public function sync_history_save($body = null, $changes = null,$status = null){
-        $InstaWP_db = new InstaWP_DB();
-        $tables = $InstaWP_db->tables;
         $dir = 'dev-to-live';
         $date = date('Y-m-d H:i:s');
         $bodyArr = json_decode($body);
@@ -811,7 +862,7 @@ class InstaWP_Rest_Apis{
             'source_url' => isset($bodyArr->source_url) ? $bodyArr->source_url : '',
             'date' => $date,
         ];
-        $InstaWP_db->insert($tables['sh_table'],$data);
+        $this->InstaWP_db->insert($this->tables['sh_table'],$data);
     }
 
     #Plugin activate. 

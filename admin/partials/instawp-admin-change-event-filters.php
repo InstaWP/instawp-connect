@@ -19,11 +19,25 @@
 if ( ! defined('INSTAWP_PLUGIN_DIR') ) {
     die;
 }
+
 require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-db.php';
+
 class InstaWP_Change_Event_Filters {
+    private $wpdb;
+
+    private $InstaWP_db;
+
+    private $tables;
+
     public function __construct() {
         global $wpdb;
-        $InstaWP_db = new InstaWP_DB();
+
+        $this->wpdb = $wpdb;
+
+        $this->InstaWP_db = new InstaWP_DB();
+        
+        $this->tables = $this->InstaWP_db->tables;
+
         $syncing_status = get_option('syncing_enabled_disabled');
         if(!empty($syncing_status) && $syncing_status == 1){ #if syncing enabled
             #post actions
@@ -43,7 +57,7 @@ class InstaWP_Change_Event_Filters {
             add_action( 'install_themes_upload', array( $this,'installThemesUploadAction') );
             add_action( 'install_themes_updated', array( $this,'installThemesUpdatedAction') );
             #taxonomy actions         
-            $tax_rel = $InstaWP_db->getDistinictCol($wpdb->prefix.'term_taxonomy','taxonomy');
+            $tax_rel = $this->InstaWP_db->getDistinictCol($this->wpdb->prefix.'term_taxonomy','taxonomy');
             $taxonomies = [];
             if(!empty($tax_rel)){
                 foreach($tax_rel as $tax){
@@ -68,8 +82,7 @@ class InstaWP_Change_Event_Filters {
             add_action( 'delete_user', array($this,'delete_user_action'), 10, 3 );
             add_action( 'profile_update', array($this,'profile_update_action'), 10, 3 );
             #Widgets
-            //add_action( 'rest_after_save_widget', array($this,'after_save_widget_action'), 10, 3 );
-            add_action( 'rest_after_save_widget', array($this,'wp_kama_rest_after_save_widget_action'), 10, 4 );
+            add_action( 'rest_after_save_widget', array($this,'save_widget_action'), 10, 4 );
         }
     }
     /**
@@ -82,12 +95,41 @@ class InstaWP_Change_Event_Filters {
      *
      * @return void
      */
-    public function wp_kama_rest_after_save_widget_action( $id, $sidebar_id, $request, $creating ){
+    public function save_widget_action( $id, $sidebar_id, $request, $creating ){
         $event_name = 'widget block';
         $event_slug = 'widget_block';
         $title = 'widgets update';
-        $details = json_encode(get_option('widget_block'));
-        $this->eventDataAdded($event_name,$event_slug,'widget',$sidebar_id,$title,$details); 
+        $widget_block = get_option('widget_block');
+        $media = $this->get_media_from_content(serialize($widget_block));
+        $details = json_encode(['widget_block' => $widget_block, 'media' => $media]);
+        $rel = $this->InstaWP_db->get_with_condition($this->tables['ch_table'],'event_slug','widget_block');
+        if(empty($rel)){
+            $this->eventDataAdded($event_name,$event_slug,'widget',$sidebar_id,$title,$details);
+        }else{
+            $rel = reset($rel);
+            $this->updateEvents($event_name,$event_slug,'widget',$sidebar_id,$title,$details,'id',$rel->id);
+        }   
+    }
+    /**
+     * Update events
+     */
+    function updateEvents($event_name = null, $event_slug = null, $event_type = null, $source_id = null, $title = null, $details = null, $key = null, $val = null){
+        $uid = get_current_user_id();
+        $date = date('Y-m-d H:i:s');
+        $data = [
+            'event_name' => $event_name,
+            'event_slug' => $event_slug,
+            'event_type' => 'widget',
+            'source_id' => $source_id,
+            'title' => $title,
+            'details' => $details,
+            'user_id' => $uid,
+            'date' => $date,
+            'prod' => '',
+            'status' => 'pending',
+            'synced_message' => ''
+        ];
+        $this->InstaWP_db->_update($this->tables['ch_table'],$data,$key,$val);
     }
     /**
      * Function for `user_register` action-hook.
@@ -98,12 +140,10 @@ class InstaWP_Change_Event_Filters {
      * @return void
      */
     public function user_register_action( $user_id, $userdata ){
-        global $wpdb;
-        $InstaWP_db = new InstaWP_DB();
         $event_name = 'user register';
         $event_slug = 'user_register';
         $title = $userdata['first_name'].' '.$userdata['last_name'];
-        $userData = $InstaWP_db->get_with_condition($wpdb->prefix.'users','ID',$user_id);
+        $userData = $this->InstaWP_db->get_with_condition($this->wpdb->prefix.'users','ID',$user_id);
         if(!empty($userData)){
             $userData = (array) reset($userData);
             $details = json_encode(['user_data' => $userData,'user_meta' => get_user_meta($user_id),'role' => $userdata['role']]);
@@ -113,7 +153,7 @@ class InstaWP_Change_Event_Filters {
     /**
      * Function for `delete_user` action-hook.
      * 
-     * @param int      $id       ID of the user to delete.\
+     * @param int      $id       ID of the user to delete.
      * @param int|null $reassign ID of the user to reassign posts and links to.
      * @param WP_User  $user     WP_User object of the user to delete.
      *
@@ -136,12 +176,10 @@ class InstaWP_Change_Event_Filters {
      * @return void
      */
     public function profile_update_action( $user_id, $old_user_data, $userdata ){
-        global $wpdb;
-        $InstaWP_db = new InstaWP_DB();
         $event_name = 'profile update';
         $event_slug = 'profile_update';
         $title = $userdata['first_name'].' '.$userdata['last_name'];
-        $userData = $InstaWP_db->get_with_condition($wpdb->prefix.'users','ID',$user_id);
+        $userData = $this->InstaWP_db->get_with_condition($this->wpdb->prefix.'users','ID',$user_id);
         $details = json_encode(['user_data' => $userData,'user_meta' => get_user_meta($user_id),'role' => $userdata['role']]);
         $this->eventDataAdded($event_name,$event_slug,'users',$user_id,$title,$details); 
     }
@@ -149,9 +187,6 @@ class InstaWP_Change_Event_Filters {
      * Customizer settings
      */
     function customizeSaveAfter($manager){
-        global $wpdb;
-        $InstaWP_db = new InstaWP_DB();
-        $tables = $InstaWP_db->tables;
         $mods = get_theme_mods();
         $data['custom_logo'] = [
                                 'id' => $mods['custom_logo'],
@@ -193,7 +228,7 @@ class InstaWP_Change_Event_Filters {
         $source_id = '';
         $title = 'customizer changes';
         $details = json_encode($data);
-        $customizer = $InstaWP_db->checkCustomizerChanges($tables['ch_table']);
+        $customizer = $this->InstaWP_db->checkCustomizerChanges($this->tables['ch_table']);
         $date = date('Y-m-d H:i:s');
         if(!empty($customizer)){
             $customize = reset($customizer);
@@ -211,8 +246,8 @@ class InstaWP_Change_Event_Filters {
                 'status' => 'pending',
                 'synced_message' => ''
             ];
-            $wpdb->update(  
-                $tables['ch_table'], 
+            $this->wpdb->update(  
+                $this->tables['ch_table'], 
                 $data, 
                 array( 'id' => $customize->id )
             ); 
@@ -240,14 +275,12 @@ class InstaWP_Change_Event_Filters {
     * @param array $data Attribute data.
     */
     function attribute_updated_action_callback( $id, $data ) {
-        $InstaWP_db = new InstaWP_DB();
-        $tables = $InstaWP_db->tables;
         $event_name = 'woocommerce attribute';  
         $event_slug = 'woocommerce_attribute_updated';
         $details = $data;
         $source_id = $id;  
         if(!empty($source_id)){
-           $existing_update_events = $InstaWP_db->existing_update_events($tables['ch_table'],'woocommerce_attribute_updated',$source_id);
+           $existing_update_events = $this->InstaWP_db->existing_update_events($this->tables['ch_table'],'woocommerce_attribute_updated',$source_id);
            if(!empty($existing_update_events) && $existing_update_events > 0){
                 $this->pluginThemeEventsUpdate($event_name,$event_slug,$details,'woocommerce_attribute_updated',$source_id,$existing_update_events);
            }else{
@@ -436,8 +469,6 @@ class InstaWP_Change_Event_Filters {
         }
     }
     public function pluginThemeEvents($event_name,$event_slug,$details,$type,$source_id){
-        $InstaWP_db = new InstaWP_DB();
-        $tables = $InstaWP_db->tables;
         $uid = get_current_user_id();
         $date = date('Y-m-d H:i:s');
         if($type == 'plugin'){
@@ -469,11 +500,10 @@ class InstaWP_Change_Event_Filters {
             'status' => 'pending',
             'synced_message' => ''
         ];
-        $InstaWP_db->insert($tables['ch_table'],$data);
+        $this->InstaWP_db->insert($this->tables['ch_table'],$data);
     }
     public function pluginThemeEventsUpdate($event_name,$event_slug,$details,$type,$source_id,$existing_update_events){
-        $InstaWP_db = new InstaWP_DB();
-        $tables = $InstaWP_db->tables;
+
         $uid = get_current_user_id();
         $date = date('Y-m-d H:i:s');
         if($type == 'plugin'){
@@ -505,9 +535,8 @@ class InstaWP_Change_Event_Filters {
             'status' => 'pending',
             'synced_message' => ''
         ];
-        global $wpdb;
-        $wpdb->update( 
-            $tables['ch_table'], 
+        $this->wpdb->update( 
+            $this->tables['ch_table'], 
             $data, 
             array( 'id' => $existing_update_events )
         );
@@ -532,10 +561,7 @@ class InstaWP_Change_Event_Filters {
         if($update && ($post->post_status != 'revision') ){ #update
             $event_name = 'Post Change';
             $event_slug = 'post_change';
-            $InstaWP_db = new InstaWP_DB();
-            $tables = $InstaWP_db->tables;
-            $table_name = $tables['ch_table'];
-            $existing_update_events = $InstaWP_db->existing_update_events($table_name,'post_change',$post_ID);
+            $existing_update_events = $this->InstaWP_db->existing_update_events($this->tables['ch_table'],'post_change',$post_ID);
             # need to add update traking data once in db
             if($existing_update_events){
                 $this->eventDataUpdated($event_name,$event_slug,$post,$post_ID,$existing_update_events);
@@ -545,8 +571,6 @@ class InstaWP_Change_Event_Filters {
         }
     }
     public function eventDataUpdated($event_name = null, $event_slug = null, $post = null,      $post_id = null, $id = null){
-        $InstaWP_db = new InstaWP_DB();
-        $tables = $InstaWP_db->tables;
         $uid = get_current_user_id();
         $date = date('Y-m-d H:i:s');
         $post_id = isset($post_id) ? $post_id : $post->ID;
@@ -577,9 +601,8 @@ class InstaWP_Change_Event_Filters {
             'status' => 'pending',
             'synced_message' => ''
         ];
-        global $wpdb;
-        $wpdb->update( 
-            $tables['ch_table'], 
+        $this->wpdb->update( 
+            $this->tables['ch_table'], 
             $data, 
             array( 'id' => $id )
         );
@@ -706,8 +729,6 @@ class InstaWP_Change_Event_Filters {
      * add/insert event data
      */
     public function eventDataAdded($event_name = null, $event_slug = null, $event_type = null, $source_id = null, $title = null, $details = null){
-        $InstaWP_db = new InstaWP_DB();
-        $tables = $InstaWP_db->tables;
         $uid = get_current_user_id();
         $date = date('Y-m-d H:i:s');
         #Data Array
@@ -724,7 +745,7 @@ class InstaWP_Change_Event_Filters {
             'status' => 'pending',
             'synced_message' => ''
         ];
-        $InstaWP_db->insert($tables['ch_table'],$data);
+        $this->InstaWP_db->insert($this->tables['ch_table'],$data);
     }
     /**
      * Get taxonomies items
@@ -744,6 +765,7 @@ class InstaWP_Change_Event_Filters {
         }
         return $items;
     }
+    
     /*
     * get post css from elementor files 'post-{post_id}.css'
     */

@@ -31,6 +31,7 @@ class InstaWP_DB{
 
     public function __construct() {
         global $wpdb;
+
         $this->wpdb = $wpdb;
 
         #tables array
@@ -61,6 +62,11 @@ class InstaWP_DB{
     */
     public function update($table_name = null, $data = null , $id = null){
         $results = $this->wpdb->update($table_name,$data,array( 'id' => $id ));
+        return $results;
+    }
+
+    public function _update($table_name = null, $data = null , $key = null, $val = null){
+        $results = $this->wpdb->update($table_name,$data,array( $key => $val ));
         return $results;
     }
 

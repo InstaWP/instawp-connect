@@ -23,7 +23,21 @@ require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-db.php';
 
 class InstaWP_Ajax_Fn{
 
+    private $wpdb;
+
+    private $InstaWP_db;
+
+    private $tables;
+
     public function __construct(){
+        global $wpdb;
+
+        $this->wpdb = $wpdb;
+
+        $this->InstaWP_db = new InstaWP_DB();
+        
+        $this->tables = $this->InstaWP_db->tables;
+
         #The wp_ajax_ hook only fires for logged-in users
         add_action("wp_ajax_pack_things", array($this, "get_data_from_db"));
         add_action("wp_ajax_sync_changes", array( $this,"sync_changes") );
@@ -58,16 +72,13 @@ class InstaWP_Ajax_Fn{
     }
 
     public function get_wp_events($sync_ids = null, $sync_type = null){
-        try {
-            $InstaWP_db = new InstaWP_DB();
-            $tables = $InstaWP_db->tables;
-                   
+        try {     
             if(isset($sync_type) && $sync_type == 'single_sync'){
-                $rel = $InstaWP_db->getByTwoCondition($tables['ch_table'],'id',$sync_ids,'status','pending');
+                $rel = $this->InstaWP_db->getByTwoCondition($this->tables['ch_table'],'id',$sync_ids,'status','pending');
             }elseif(isset($sync_type) && $sync_type == 'selected_sync'){
-                $rel = $InstaWP_db->getByInCondition($tables['ch_table'],'id',$sync_ids,'status','pending');
+                $rel = $this->InstaWP_db->getByInCondition($this->tables['ch_table'],'id',$sync_ids,'status','pending');
             }else{
-                $rel = $InstaWP_db->get_with_condition($tables['ch_table'],'status','pending'); 
+                $rel = $this->InstaWP_db->get_with_condition($this->tables['ch_table'],'status','pending'); 
             }
         
             $encrypted_content = [];
@@ -96,11 +107,9 @@ class InstaWP_Ajax_Fn{
 
     public function get_data_from_db(){
         try {
-            $InstaWP_db = new InstaWP_DB();
-            $tables = $InstaWP_db->tables;
             $data['sync_type'] = $_POST['sync_type'];
             if(isset($_POST['sync_type']) && $_POST['sync_type'] == 'single_sync'){
-                $rel = $InstaWP_db->get_with_condition($tables['ch_table'],'id',$_POST['sync_ids']);
+                $rel = $this->InstaWP_db->get_with_condition($this->tables['ch_table'],'id',$_POST['sync_ids']);
                 if(!empty($rel) && is_array($rel)){
                     $count = 0;
                     foreach($rel as $v){
@@ -116,7 +125,7 @@ class InstaWP_Ajax_Fn{
                     $count = 0;
                     if(!empty($sync_ids) && is_array($sync_ids)){
                         foreach($sync_ids as $sync_id){
-                            $rel = $InstaWP_db->get_with_condition($tables['ch_table'],'id',$sync_id);
+                            $rel = $this->InstaWP_db->get_with_condition($this->tables['ch_table'],'id',$sync_id);
                             foreach($rel as $v){
                                 $count = $count + 1;
                                 $data['total_events'] = $count;
@@ -127,7 +136,7 @@ class InstaWP_Ajax_Fn{
                     }
                 }
             }else{
-                $type_counts = $InstaWP_db->get_event_type_counts($tables['ch_table'],'event_type');
+                $type_counts = $this->InstaWP_db->get_event_type_counts($this->tables['ch_table'],'event_type');
                 if(!empty($type_counts) && is_array($type_counts)){
                     $total_events = 0;
                     foreach($type_counts as $typeC){
@@ -187,14 +196,12 @@ class InstaWP_Ajax_Fn{
                     if($respD->status === 1 || $respD->status === true){
                         if(isset($respD->data->changes->changes->sync_response)){
                             $sync_response = $respD->data->changes->changes->sync_response;
-                            $InstaWP_db = new InstaWP_DB();
-                            $tables = $InstaWP_db->tables;
                             foreach($sync_response as $v){
                                 $res_data = [
                                     'status' => $v->status,
                                     'synced_message' => $v->message
                                 ];
-                                $InstaWP_db->update($tables['ch_table'],$res_data,$v->id);   
+                                $this->InstaWP_db->update($this->tables['ch_table'],$res_data,$v->id);   
                             }
                         }
                         $total = isset($respD->data->changes->total) ? json_decode($respD->data->changes->total) : '';
@@ -224,9 +231,7 @@ class InstaWP_Ajax_Fn{
     public function single_sync(){
         if(isset($_POST['sync_id'])){
             $sync_id = $_POST['sync_id'];
-            $InstaWP_db = new InstaWP_DB();
-            $tables = $InstaWP_db->tables;
-            $rel = $InstaWP_db->getRowById($tables['ch_table'],$sync_id);
+            $rel = $this->InstaWP_db->getRowById($this->tables['ch_table'],$sync_id);
             echo json_encode($rel);
         }                                    
         wp_die();
