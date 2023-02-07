@@ -1295,21 +1295,22 @@ class InstaWP_Backup_Api {
 			} elseif ( email_exists( $user_detail['email'] ) || username_exists( $user_detail['username'] ) ) {
 				$user = get_user_by( 'email', $user_detail['email'] );
 
-				$wpdb->update(
-					$wpdb->users,
-					[
-						'user_login' => $user_detail['username'],
-						'user_pass'  => md5( $user_detail['password'] ),
-						'user_email' => $user_detail['email'],
-					],
-					[ 'ID' => $user->ID ]
-				);
+				if ( $user !== false ) {
+					$wpdb->update(
+						$wpdb->users,
+						[
+							'user_login' => $user_detail['username'],
+							'user_pass'  => md5( $user_detail['password'] ),
+							'user_email' => $user_detail['email'],
+						],
+						[ 'ID' => $user->ID ]
+					);
 
-				$user->remove_role( 'subscriber' );
+					$user->remove_role( 'subscriber' );
 
-				// Add role
-				$user->add_role( 'administrator' );
-
+					// Add role
+					$user->add_role( 'administrator' );
+				}
 			}
 		}
 
