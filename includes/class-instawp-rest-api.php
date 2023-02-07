@@ -660,6 +660,7 @@ class InstaWP_Backup_Api {
 			}
 		}
 
+		// commented for checking restore check
 //		$instawp_plugin->delete_last_restore_data_api();
 
 		$backup_uploader = new InstaWP_BackupUploader();
