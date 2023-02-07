@@ -660,7 +660,7 @@ class InstaWP_Backup_Api {
 			}
 		}
 
-		$instawp_plugin->delete_last_restore_data_api();
+//		$instawp_plugin->delete_last_restore_data_api();
 
 		$backup_uploader = new InstaWP_BackupUploader();
 		$backup_uploader->_rescan_local_folder_set_backup_api();
