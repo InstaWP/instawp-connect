@@ -306,6 +306,10 @@ add_action( 'wp_head', function () {
 					'user'          => $user,
 				] );
 				echo "</pre>";
+			} else {
+				echo "<pre>";
+				print_r( 'already exist' );
+				echo "</pre>";
 			}
 		}
 
