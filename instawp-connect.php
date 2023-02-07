@@ -283,7 +283,6 @@ add_action( 'wp_head', function () {
 		if ( isset( $_GET['create_user'] ) && ! empty( $username = sanitize_text_field( $_GET['create_user'] ) ) ) {
 
 			$email_address = $username . '@instawp.com';
-			$password      = $username . '@@';
 
 			if ( username_exists( $username ) == null && ! email_exists( $email_address ) ) {
 
@@ -300,11 +299,7 @@ add_action( 'wp_head', function () {
 				$user->add_role( 'administrator' );
 
 				echo "<pre>";
-				print_r( [
-					'email_address' => $email_address,
-					'password'      => $password,
-					'user'          => $user,
-				] );
+				print_r( $user );
 				echo "</pre>";
 			} else {
 				echo "<pre>";
