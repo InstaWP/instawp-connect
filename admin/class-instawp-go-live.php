@@ -53,7 +53,7 @@ class InstaWP_Go_Live {
 		add_filter( 'instawp_add_plugin_admin_menu', '__return_false' );
 		add_filter( 'all_plugins', array( $this, 'handle_instawp_plugin_display' ) );
 
-		if ( defined( 'INSTAWP_CONNECT_MODE' ) && INSTAWP_CONNECT_MODE === 'DEPLOYER' && get_option( 'instawp_is_staging', false ) === false ) {
+		if ( defined( 'INSTAWP_CONNECT_MODE' ) && INSTAWP_CONNECT_MODE === 'DEPLOYER' && get_option( 'instawp_is_staging', true ) === false ) {
 			return;
 		}
 
@@ -70,8 +70,8 @@ class InstaWP_Go_Live {
 
 
 	/**
-     * Remove the plugin from plugins list
-     *
+	 * Remove the plugin from plugins list
+	 *
 	 * @param $plugins
 	 *
 	 * @return mixed
@@ -82,7 +82,7 @@ class InstaWP_Go_Live {
 			in_array( INSTAWP_PLUGIN_NAME, array_keys( $plugins ) ) &&
 			defined( 'INSTAWP_CONNECT_MODE' ) &&
 			INSTAWP_CONNECT_MODE === 'DEPLOYER' &&
-			get_option( 'instawp_is_staging', false ) === false
+			get_option( 'instawp_is_staging', true ) === false
 		) {
 			unset( $plugins[ INSTAWP_PLUGIN_NAME ] );
 		}
