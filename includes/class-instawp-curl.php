@@ -70,7 +70,7 @@ class InstaWP_Curl {
 		$this->response = $WP_Http_Curl->request( $url, $args );
 		update_option( 'main_curl_1', $this->response );
 
-		if ( ! $this->response ) {
+		if ( ! $this->response || $this->response instanceof WP_Error || is_wp_error( $this->response ) ) {
 
 			$res['message']  = '';
 			$res['error']    = 1;
