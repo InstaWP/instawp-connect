@@ -148,13 +148,13 @@ class InstaWP_Go_Live {
 		try {
 			$restore_init_response = $this->get_api_response( 'restore-init' );
 
-			error_log( 'Response for api - `restore-init`' );
-			error_log( json_decode( $restore_init_response ) );
-
 			if (
 				( isset( $restore_init_response['status'] ) && $restore_init_response['status'] === false ) ||
 				( isset( $restore_init_response['error'] ) && ( $restore_init_response['error'] === true || $restore_init_response['error'] === 1 ) )
 			) {
+				error_log( 'Response for api - `restore-init`' );
+				error_log( json_encode( $restore_init_response ) );
+
 				wp_send_json_error( array( 'progress' => 15, 'message' => esc_html__( 'Site creation in progress.', 'instawp-connect' ) ) );
 			}
 
