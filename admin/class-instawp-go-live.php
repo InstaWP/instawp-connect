@@ -118,19 +118,23 @@ class InstaWP_Go_Live {
 	 */
 	function go_live_restore_init() {
 
-		$restore_init_response = $this->get_api_response( 'restore-init' );
+		try {
+			$restore_init_response = $this->get_api_response( 'restore-init' );
 
-		error_log( 'Response for api - `restore-init`' );
-		error_log( json_decode( $restore_init_response ) );
+			error_log( 'Response for api - `restore-init`' );
+			error_log( json_decode( $restore_init_response ) );
 
-		if ( isset( $restore_init_response['status'] ) && $restore_init_response['status'] === false ) {
+			if ( isset( $restore_init_response['status'] ) && $restore_init_response['status'] === false ) {
+				wp_send_json_error( array( 'progress' => 15, 'message' => esc_html__( 'Site creation in progress.', 'instawp-connect' ) ) );
+			}
+
+			$restore_init_response['progress'] = 20;
+			$restore_init_response['message']  = esc_html__( 'Initializing restoration.', 'instawp-connect' );
+
+			wp_send_json_success( $restore_init_response );
+		} catch ( Exception $error ) {
 			wp_send_json_error( array( 'progress' => 15, 'message' => esc_html__( 'Site creation in progress.', 'instawp-connect' ) ) );
 		}
-
-		$restore_init_response['progress'] = 20;
-		$restore_init_response['message']  = esc_html__( 'Initializing restoration.', 'instawp-connect' );
-
-		wp_send_json_success( $restore_init_response );
 	}
 
 
