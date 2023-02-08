@@ -78,7 +78,7 @@
                             console.log('restore-init completed.');
                         } else {
 
-                            go_live_step_completed = 2;
+                            go_live_step_completed = 0;
                             console.log('restore-init failed, will try again.');
                         }
                     }
