@@ -81,6 +81,13 @@
                             go_live_step_completed = 0;
                             console.log('restore-init failed, will try again.');
                         }
+                    },
+                    error: function (request, status, error) {
+                        console.log({
+                            'request': request,
+                            'status': status,
+                            'error': error
+                        });
                     }
                 });
             } else if (go_live_step_completed >= 3) {
