@@ -324,6 +324,10 @@ class InstaWP_Go_Live {
 		$body_json     = ! empty( $body ) ? json_encode( $body ) : '';
 		$curl_response = $InstaWP_Curl->curl( $api_url, $body_json, [], $is_post );
 
+		if ( is_wp_error( $curl_response ) ) {
+			return array( 'status' => false );
+		}
+
 		if ( isset( $curl_response['error'] ) && $curl_response['error'] == 1 ) {
 			return $curl_response;
 		}
