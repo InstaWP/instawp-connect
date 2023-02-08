@@ -155,7 +155,7 @@ class InstaWP_Go_Live {
 				( isset( $restore_init_response['status'] ) && $restore_init_response['status'] === false ) ||
 				( isset( $restore_init_response['error'] ) && ( $restore_init_response['error'] === true || $restore_init_response['error'] === 1 ) )
 			) {
-				wp_send_json_error( array( 'progress' => 10, 'message' => esc_html__( 'Site creation in progress.', 'instawp-connect' ) ) );
+				wp_send_json_error( array( 'progress' => 15, 'message' => esc_html__( 'Site creation in progress.', 'instawp-connect' ) ) );
 			}
 
 			$restore_init_response['progress'] = 20;
@@ -163,7 +163,7 @@ class InstaWP_Go_Live {
 
 			wp_send_json_success( $restore_init_response );
 		} catch ( Exception $error ) {
-			wp_send_json_error( array( 'progress' => 10, 'message' => esc_html__( 'Site creation in progress.', 'instawp-connect' ) ) );
+			wp_send_json_error( array( 'progress' => 15, 'message' => esc_html__( 'Site creation in progress.', 'instawp-connect' ) ) );
 		}
 	}
 

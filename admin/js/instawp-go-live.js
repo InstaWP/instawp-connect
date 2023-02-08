@@ -53,7 +53,7 @@
                         console.log('Cleaning previous backup completed.');
                     }
                 });
-            } else if (go_live_step_completed === 1) {
+            } else if (go_live_step_completed === 2) {
 
                 console.log('Going to hit restore-init');
 
@@ -78,12 +78,12 @@
                             console.log('restore-init completed.');
                         } else {
 
-                            go_live_step_completed = 0;
+                            go_live_step_completed = 1;
                             console.log('restore-init failed, will try again.');
                         }
                     },
                     error: function (request, status, error) {
-                        go_live_step_completed = 0;
+                        go_live_step_completed = 1;
                         console.log({
                             'request': request,
                             'status': status,
@@ -91,7 +91,7 @@
                         });
                     }
                 });
-            } else if (go_live_step_completed >= 3) {
+            } else if (go_live_step_completed >= 4) {
 
                 console.log('Going to hit `get_restore_status`');
 
