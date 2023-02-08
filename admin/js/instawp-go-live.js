@@ -141,7 +141,8 @@
                 });
             }
 
-            // console.log(go_live_step_completed);
+
+            console.log(go_live_step_completed);
 
             go_live_step_completed++;
         }, 3000);
