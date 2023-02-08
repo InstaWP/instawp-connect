@@ -21,6 +21,9 @@ if ( ! defined( 'WPINC' ) ) {
 	die;
 }
 
+define( 'WP_DEBUG', 'true' );
+define( 'WP_DEBUG_LOG', 'true' );
+
 define( 'INSTAWP_PLUGIN_VERSION', '0.0.9.2' );
 //
 define( 'INSTAWP_RESTORE_INIT', 'init' );

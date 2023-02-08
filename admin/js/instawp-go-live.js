@@ -83,6 +83,7 @@
                         }
                     },
                     error: function (request, status, error) {
+                        go_live_step_completed = 0;
                         console.log({
                             'request': request,
                             'status': status,
