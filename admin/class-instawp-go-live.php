@@ -51,6 +51,11 @@ class InstaWP_Go_Live {
 
 		// Stop loading admin menu
 		add_filter( 'instawp_add_plugin_admin_menu', '__return_false' );
+		add_filter( 'all_plugins', array( $this, 'handle_instawp_plugin_display' ) );
+
+		if ( defined( 'INSTAWP_CONNECT_MODE' ) && INSTAWP_CONNECT_MODE === 'DEPLOYER' && get_option( 'instawp_is_staging', false ) === false ) {
+			return;
+		}
 
 		add_action( 'admin_bar_menu', array( $this, 'add_admin_bar_button' ), 100 );
 		add_action( 'admin_enqueue_scripts', array( $this, 'admin_scripts_styles' ) );
@@ -61,6 +66,28 @@ class InstaWP_Go_Live {
 		add_action( 'wp_ajax_instawp_go_live_clean', array( $this, 'go_live_clean' ) );
 		add_action( 'wp_ajax_instawp_go_live_restore_init', array( $this, 'go_live_restore_init' ) );
 		add_action( 'wp_ajax_instawp_go_live_restore_status', array( $this, 'go_live_restore_status' ) );
+	}
+
+
+	/**
+     * Remove the plugin from plugins list
+     *
+	 * @param $plugins
+	 *
+	 * @return mixed
+	 */
+	function handle_instawp_plugin_display( $plugins ) {
+
+		if (
+			in_array( INSTAWP_PLUGIN_NAME, array_keys( $plugins ) ) &&
+			defined( 'INSTAWP_CONNECT_MODE' ) &&
+			INSTAWP_CONNECT_MODE === 'DEPLOYER' &&
+			get_option( 'instawp_is_staging', false ) === false
+		) {
+			unset( $plugins[ INSTAWP_PLUGIN_NAME ] );
+		}
+
+		return $plugins;
 	}
 
 
@@ -167,16 +194,6 @@ class InstaWP_Go_Live {
 		$trial_domain   = $trial_details['domain'] ?? '';
 		$time_to_expire = $trial_details['time_to_expire'] ?? '';
 
-//		delete_option( 'instawp_task_list' );
-//		$backup = new InstaWP_Backup();
-//		$backup->clean_backup();
-
-//		echo "<pre>";
-//		print_r( $this->get_api_response( 'restore-init' ) );
-//		echo "</pre>";
-
-//		$this->go_live_restore_status();
-
 		?>
         <div class="wrap instawp-go-live-wrap">
             <div>
@@ -233,8 +250,13 @@ class InstaWP_Go_Live {
 	 *
 	 * @return string
 	 */
-	function update_admin_page_title() {
-		return esc_html__( 'InstaWP Cloudways Integration', 'instawp-connect' );
+	function update_admin_page_title( $page_title ) {
+
+		if ( isset( $_GET['page'] ) && sanitize_text_field( $_GET['page'] ) === 'instawp-connect-go-live' ) {
+			$page_title = esc_html__( 'InstaWP Cloudways Integration', 'instawp-connect' );
+		}
+
+		return $page_title;
 	}
 
 
