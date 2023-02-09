@@ -7659,5 +7659,10 @@ class instaWP {
 		if ( ! is_wp_error( $response ) && $response ) {
 			unlink( $file_name_ap );
 		}
+
+		// Flush Redis Cache
+		if ( class_exists( '\RedisCachePro\Plugin' ) ) {
+			\RedisCachePro\Plugin::boot()->flush();
+		}
 	}
 }
