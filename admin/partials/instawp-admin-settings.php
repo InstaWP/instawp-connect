@@ -129,22 +129,29 @@ if ( isset( $_POST['instawp_settings_nonce'] )
                     </td>
                 </tr>
 			<?php } ?>
-            <tr>
-                <th>
-                    <?php 
-                    $nonce = wp_create_nonce( 'delete_wpnonce' );
-                    $actionurl = admin_url( "admin.php?page=instawp-settings" );
-                    $delete_url = add_query_arg( array( 'delete_wpnonce' => $nonce ), $actionurl );
-                    ?> 
-                    <a href="<?php echo $delete_url; ?>" class="button button-primary">
-                        <?php echo strtoupper('Reset Instawp'); ?>
-                    </a>
-                </th>
-            </tr>
         </table>
 		<?php wp_nonce_field( 'instawp_settings', 'instawp_settings_nonce' ); ?>
 		<?php submit_button(); ?>
     </form>
+    <hr>
+    <div>
+        <div>
+            <h4>
+                <?php esc_html_e('Reset Plugin', 'instawp-connect'); ?>
+            </h4>
+        </div>
+        <div>
+
+            <?php 
+            $nonce = wp_create_nonce( 'delete_wpnonce' );
+            $actionurl = admin_url( "admin.php?page=instawp-settings" );
+            $delete_url = add_query_arg( array( 'delete_wpnonce' => $nonce ), $actionurl );
+            ?> 
+            <a href="<?php echo $delete_url; ?>" onclick="return confirm('Are you sure?')" class="button button-primary" >
+                <?php esc_html_e('Reset', "instawp-connect"); ?>
+            </a>
+        </div>
+    </div>
 </div>
 <script type="text/javascript">
     jQuery(document).ready(function () {
