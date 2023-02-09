@@ -96,6 +96,12 @@ define( 'INSTAWP_API_URL', '/api/v1' );
 define( 'INSTAWP_API_2_URL', '/api/v2' );
 @ini_set( 'memory_limit', '1024M' );
 
+
+/**
+ * @global instaWP $instawp_plugin
+ */
+global $instawp_plugin;
+
 /**
  * The core plugin class that is used to define internationalization,
  * admin-specific hooks, and public-facing site hooks.

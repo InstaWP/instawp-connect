@@ -859,8 +859,7 @@ class instaWP {
 				echo json_encode( $ret );
 				die();
 			}
-		}
-		catch ( Exception $error ) {
+		} catch ( Exception $error ) {
 			$this->end_shutdown_function = true;
 			$ret['result']               = 'failed';
 			$message                     = 'An exception has occurred. class:' . get_class( $error ) . ';msg:' . $error->getMessage() . ';code:' . $error->getCode() . ';line:' . $error->getLine() . ';in_file:' . $error->getFile() . ';';
@@ -7623,5 +7622,42 @@ class instaWP {
 
 	public static function restore_bg( $backup_list, $restore_options, $wp_options ) {
 		InstaWP_Backup_Api::restore_bg( $backup_list, $restore_options, $wp_options );
+	}
+
+
+	public static function disable_cache_elements_before_restore() {
+
+		if ( ! function_exists( 'get_plugins' ) ) {
+			include ABSPATH . 'wp-admin/includes/plugin.php';
+		}
+
+		$file_name_ap   = ABSPATH . 'instawp-active-plugins.json';
+		$active_plugins = (array) get_option( 'active_plugins', array() );
+
+		// Ignore instawp plugin
+		if ( ( $key = array_search( INSTAWP_PLUGIN_NAME, $active_plugins ) ) !== false ) {
+			unset( $active_plugins[ $key ] );
+		}
+
+		file_put_contents( $file_name_ap, json_encode( $active_plugins ) );
+
+		deactivate_plugins( $active_plugins );
+	}
+
+
+	public static function enable_cache_elements_before_restore() {
+
+		if ( ! function_exists( 'get_plugins' ) ) {
+			include ABSPATH . 'wp-admin/includes/plugin.php';
+		}
+
+		$file_name_ap   = ABSPATH . 'instawp-active-plugins.json';
+		$active_plugins = file_get_contents( $file_name_ap );
+		$active_plugins = json_decode( $active_plugins, true );
+		$response       = activate_plugins( $active_plugins );
+
+		if ( ! is_wp_error( $response ) && $response ) {
+			unlink( $file_name_ap );
+		}
 	}
 }
