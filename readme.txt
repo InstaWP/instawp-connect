@@ -1,10 +1,10 @@
-=== InstaWP Connect - 1-click WP Staging & Migration ===
+=== InstaWP Connect - 1-click WP Staging & Migration (beta) ===
 Contributors: instawp
 Tags: clone, migrate, staging, backup, restore
 Requires at least: 4.5
 Tested up to: 6.1.1
 Requires PHP: 5.3
-Stable tag: 0.0.9.2
+Stable tag: 0.0.9.3
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -59,3 +59,8 @@ InstaWP is an online WordPress development environment to get you started with a
 
 = 0.0.7 =
 - Major bug fixes and quick backup option. 
+
+= 0.0.9.3 =
+- Still in beta version, but more stable
+- 2 way Sync option enabled (from staging to prod)
+- Many bug fixes
