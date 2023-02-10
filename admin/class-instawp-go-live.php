@@ -198,6 +198,13 @@ class InstaWP_Go_Live {
 //		echo "<pre>";
 //		print_r( self::$_connect_id );
 //		echo "</pre>";
+//
+//		$restore_init_response = $this->get_api_response( 'restore-init' );
+//
+//
+//		echo "<pre>";
+//		print_r( $restore_init_response );
+//		echo "</pre>";
 
 		?>
         <div class="wrap instawp-go-live-wrap">
