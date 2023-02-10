@@ -175,7 +175,7 @@ class InstaWP_Admin {
             'http://app.instawp.io/',
         ];
 
-        if(!in_array($api_doamin,$sync_domains)){
+        //if(!in_array($api_doamin,$sync_domains)){
             #Change Event
             $submenu['parent_slug'] = $this->plugin_name;
             $submenu['page_title'] = 'Change Event';
@@ -205,7 +205,7 @@ class InstaWP_Admin {
             $submenu['function'] = array( $this, 'instawp_features_sync' );
             $submenu['index'] = 6;
             $submenus[ $submenu['menu_slug'] ] = $submenu;
-        }
+        //}
 
         #Settings
         $submenu['parent_slug'] = $this->plugin_name;

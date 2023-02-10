@@ -330,6 +330,63 @@ body.show {
     color: #fff !important;
 }
 
+/*Toggle Switch*/
+.syncing_enabled_disabled {
+    margin-left: 9px;
+    margin-top: 10px;
+}
+.syncing_enabled_disabled .switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+}
+.syncing_enabled_disabled .switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+.syncing_enabled_disabled .slider.round {
+    border-radius: 34px;
+}
+.syncing_enabled_disabled .switch .slider.round:before {
+    border-radius: 50%;
+}
+.syncing_enabled_disabled input:checked + .slider {
+    background-color: #005e54;
+}
+.syncing_enabled_disabled .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    -webkit-transition: .4s;
+    transition: .4s;
+}
+.syncing_enabled_disabled .slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    -webkit-transition: .4s;
+    transition: .4s;
+}
+input:checked + .slider:before {
+    -webkit-transform: translateX(26px);
+    -ms-transform: translateX(26px);
+    transform: translateX(26px);
+}
+.syncing_status_msg p.success {
+    margin: 0 0px 0 6px !important;
+    font-size: 14px;
+    color: #005e54;
+}
 /*Media css*/
 @media(max-width: 640px){
     .instawp_category {

@@ -1,4 +1,18 @@
 jQuery(document).ready(function ($) {
+
+    //Syncing enabled disabled
+    jQuery('.syncing_enabled_disabled input[type="checkbox"]').click(function(){
+        var sync_status = 0;
+        if(jQuery(this).prop("checked") == true){
+            console.log("Checkbox is checked.");
+            sync_status = 1;
+        }else{
+            console.log("Checkbox is unchecked.");
+            sync_status = 0;
+        }
+        syncing_enabled_disabled(sync_status);
+    });
+
     //selected sync btn...
 
     //bulk sync btn...
@@ -71,6 +85,18 @@ jQuery(document).ready(function ($) {
             method: "POST",
             credentials: 'same-origin',
             body
+        });
+    }
+
+    const syncing_enabled_disabled = async (sync_status) => {
+        let formData = new FormData();
+        formData.append('action', 'syncing_enabled_disabled');
+        formData.append('sync_status', sync_status);
+        baseCall(formData).then((response) => response.json()).then((data) => {
+            console.log(data);
+            jQuery('.syncing_status_msg').html('<p class="success">'+data.message+'</p>');
+        }).catch((error) => {
+            console.log("Error Occurred: ", error);
         });
     }
 
