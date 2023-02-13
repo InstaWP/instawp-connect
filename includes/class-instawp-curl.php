@@ -85,7 +85,7 @@ class InstaWP_Curl {
 			$InstaWP_Backup_Api->instawp_log->WriteLog( 'Response:' . $this->response, 'error' );
 		} else {
 			$respons_arr = (array) json_decode( $this->response['body'] );
-			if ( $respons_arr['status'] == 1 ) {
+			if ( isset($respons_arr['status'] ) && $respons_arr['status'] == 1 ) {
 
 				$res['error']    = 0;
 				$res['curl_res'] = $this->response['body'];
