@@ -1130,6 +1130,7 @@ class instaWP {
 			$this->update_last_backup_time( $task_msg );
 
 			$this->backup_api( $task_id, $restore_id );
+
 		} catch ( Exception $error ) {
 			$message = 'An exception has occurred. class: ' . get_class( $error ) . ';msg: ' . $error->getMessage() . ';code: ' . $error->getCode() . ';line: ' . $error->getLine() . ';in_file: ' . $error->getFile() . ';';
 			error_log( $message );
@@ -1809,8 +1810,7 @@ class instaWP {
 		$this->current_task = InstaWP_taskmanager::get_task( $task_id );
 		//start a watch task event
 		$this->add_monitor_event( $task_id );
-		//flush buffer
-		//$this->flush($task_id);
+
 		$this->instawp_log->OpenLogFile( InstaWP_taskmanager::get_task_options( $task_id, 'log_file_name' ) );
 		$this->instawp_log->WriteLog( 'Start backing up.', 'notice' );
 		$this->instawp_log->WriteLogHander();
@@ -1884,7 +1884,7 @@ class instaWP {
 			//flush buffer
 			//$this->flush($task_id);
 			$this->instawp_log->OpenLogFile( InstaWP_taskmanager::get_task_options( $task_id, 'log_file_name' ) );
-			$this->instawp_log->WriteLog( 'Start upload.', 'notice' );
+			$this->instawp_log->WriteLog( 'Start upload. `finish_backup_task()`', 'notice' );
 
 			//$this->set_time_limit($task_id);
 			$upload = new InstaWP_Upload();
@@ -1941,7 +1941,7 @@ class instaWP {
 			//flush buffer
 			//$this->flush($task_id);
 			$this->instawp_log->OpenLogFile( InstaWP_taskmanager::get_task_options( $task_id, 'log_file_name' ) );
-			$this->instawp_log->WriteLog( 'Start upload.', 'notice' );
+			$this->instawp_log->WriteLog( 'Start upload. `finish_backup_task_api()`', 'notice' );
 
 			//$this->set_time_limit($task_id);
 			// $upload = new InstaWP_Upload();
@@ -2068,7 +2068,7 @@ class instaWP {
 		//flush buffer
 		//$this->flush($task_id);
 		$this->instawp_log->OpenLogFile( InstaWP_taskmanager::get_task_options( $task_id, 'log_file_name' ) );
-		$this->instawp_log->WriteLog( 'Start upload.', 'notice' );
+		$this->instawp_log->WriteLog( 'Start upload. `upload()`', 'notice' );
 
 		$this->set_time_limit( $task_id );
 

@@ -14,6 +14,7 @@
             el_go_live_progress = el_cloudways_wrap.find('.go-live-status-progress'),
             el_manage_account_link = el_cloudways_wrap.find('.manage-account-link'),
             el_field_restore_id = el_cloudways_wrap.find('#instawp_go_live_restore_id'),
+            el_go_live_step = el_cloudways_wrap.find('#instawp_go_live_step'),
             finished_doing_api_call_interval = null,
             go_live_step_completed = 0;
 
@@ -32,7 +33,11 @@
 
         finished_doing_api_call_interval = setInterval(function () {
 
-            if (go_live_step_completed === 0) {
+            let go_live_step = parseInt(el_go_live_step.val());
+
+            console.log(go_live_step);
+
+            if (go_live_step === 1) {
 
                 console.log('Cleaning previous backup.');
 
@@ -45,15 +50,18 @@
                     },
                     success: function (response) {
 
+                        el_go_live_step.val(2);
                         el_go_live_message.html(response.data.message);
                         el_go_live_progress.html(response.data.progress + '%');
 
-                        go_live_step_completed = 1;
-                        console.log(response);
                         console.log('Cleaning previous backup completed.');
+                    },
+                    error: function () {
+                        el_go_live_step.val(1);
                     }
                 });
-            } else if (go_live_step_completed === 2) {
+
+            } else if (go_live_step === 2) {
 
                 console.log('Going to hit restore-init');
 
@@ -74,16 +82,16 @@
                         if (response.success) {
 
                             el_field_restore_id.val(response.data.restore_id);
+                            el_go_live_step.val(3);
 
                             console.log('restore-init completed.');
                         } else {
-
-                            go_live_step_completed = 1;
+                            el_go_live_step.val(2);
                             console.log('restore-init failed, will try again.');
                         }
                     },
                     error: function (request, status, error) {
-                        go_live_step_completed = 1;
+                        el_go_live_step.val(2);
                         console.log({
                             'request': request,
                             'status': status,
@@ -91,7 +99,8 @@
                         });
                     }
                 });
-            } else if (go_live_step_completed >= 4) {
+
+            } else if (go_live_step === 3) {
 
                 console.log('Going to hit `get_restore_status`');
 
@@ -131,18 +140,17 @@
                                 // Display manage account link
                                 el_manage_account_link.fadeIn();
                             } else {
+                                el_go_live_step.val(3);
                                 el_go_live_message.html(response.data.message);
                                 el_go_live_progress.html(response.data.progress + '%');
                             }
                         }
 
-                        go_live_step_completed = 5;
+                        el_go_live_step.val(3);
                     }
                 });
             }
-
-            go_live_step_completed++;
-        }, 2000);
+        }, 3000);
     });
 
 

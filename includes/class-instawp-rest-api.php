@@ -1069,7 +1069,8 @@ class InstaWP_Backup_Api {
 
 			// Unique connection id / restore_id
 			$restore_id = $request->get_param( 'restore_id' );
-			$backup_now = $instawp_plugin->backup_now_api( $pre_backup['task_id'], $restore_id );
+
+			$instawp_plugin->backup_now_api( $pre_backup['task_id'], $restore_id );
 
 			$data     = array(
 				'task_id' => $pre_backup['task_id'],

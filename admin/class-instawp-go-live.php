@@ -194,7 +194,6 @@ class InstaWP_Go_Live {
 		$trial_domain   = $trial_details['domain'] ?? '';
 		$time_to_expire = $trial_details['time_to_expire'] ?? '';
 
-
 //		echo "<pre>";
 //		print_r( self::$_connect_id );
 //		echo "</pre>";
@@ -225,7 +224,8 @@ class InstaWP_Go_Live {
                         </div>
                         <div class="trial-footer">
                             <div class="trial-footer-flex">
-                                <input type="hidden" name="instawp_go_live_restore_id" id="instawp_go_live_restore_id" value="">
+                                <input type="number" name="instawp_go_live_step" id="instawp_go_live_step" value="1">
+                                <input type="text" name="instawp_go_live_restore_id" id="instawp_go_live_restore_id" value="">
 								<?php // wp_nonce_field( 'instawp_ajax', 'instawp_ajax_nonce_field' ); ?>
                                 <button class="live-btn instawp-btn-go-live" data-cloudways="https://wordpress-891015-3243964.cloudwaysapps.com/wp-admin/"><?php echo esc_html__( 'Go Live', 'instawp-connect' ); ?></button>
                                 <div class="trial-footer-flex go-live-loader">
