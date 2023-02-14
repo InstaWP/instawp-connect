@@ -88,6 +88,7 @@ class InstaWP_Backup_Task {
 
 			if ( $handle = opendir( WP_CONTENT_DIR ) ) {
 				while ( false !== ( $entry = readdir( $handle ) ) ) {
+
 					if ( $entry != "." && $entry != ".." && $entry != "index.php" && $entry != "plugins" && $entry != "themes" && $entry != "upgrade" && $entry != "uploads" ) {
 						$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( WP_CONTENT_DIR ) . DIRECTORY_SEPARATOR . $entry, '/' ) . '#';
 					}
@@ -99,8 +100,8 @@ class InstaWP_Backup_Task {
 				$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( WP_CONTENT_DIR ) . DIRECTORY_SEPARATOR . INSTAWP_UPLOADS_ISO_DIR, '/' ) . '#';
 			}
 
-			$upload_dir      = wp_upload_dir();
-			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( $upload_dir['basedir'] ), '/' ) . '$#';
+//			$upload_dir      = wp_upload_dir();
+//			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( $upload_dir['basedir'] ), '/' ) . '$#';
 			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( get_theme_root() ), '/' ) . '#';
 			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( WP_PLUGIN_DIR ), '/' ) . '#';
 
@@ -480,6 +481,7 @@ class InstaWP_Backup_Task {
 				);
 				$backup_data['include_regex']          = array();
 				$backup_data['json_info']['file_type'] = 'wp-content';
+
 			} elseif ( $backup == INSTAWP_BACKUP_TYPE_CORE ) {
 				//$backup_data['root_path']=ABSPATH;
 				$backup_data['root_flag']                   = INSTAWP_BACKUP_ROOT_WP_ROOT;
