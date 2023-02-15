@@ -594,8 +594,9 @@ class InstaWP_Backup_Api {
 		}
 
 		if ( $progress_response['status'] == 'completed' ) {
+
 			$res_result['message'] = "Restore completed";
-			// $this_ref->instawp_log->WriteLog( 'Restore Status: ' . json_encode( $ret ), 'success' );
+
 			if ( isset( $parameters['wp'] ) && isset( $parameters['wp']['users'] ) ) {
 				self::create_user( $parameters['wp']['users'] );
 			}
@@ -615,6 +616,8 @@ class InstaWP_Backup_Api {
 			InstaWP_AJAX::instawp_folder_remover_handle();
 			$res_result['status']  = true;
 			$res_result['message'] = 'Restore task completed.';
+
+			error_log( var_export( $parameters, true ) );
 
 			// once the restore completed, enable caching elements
 			$instawp_plugin::enable_cache_elements_before_restore();

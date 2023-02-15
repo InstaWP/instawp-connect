@@ -53,7 +53,17 @@ class InstaWP_Go_Live {
 		add_filter( 'instawp_add_plugin_admin_menu', '__return_false' );
 		add_filter( 'all_plugins', array( $this, 'handle_instawp_plugin_display' ) );
 
-		if ( defined( 'INSTAWP_CONNECT_MODE' ) && INSTAWP_CONNECT_MODE === 'DEPLOYER' && get_option( 'instawp_is_staging', true ) === false ) {
+		if (
+			defined( 'INSTAWP_CONNECT_MODE' ) &&
+			INSTAWP_CONNECT_MODE === 'DEPLOYER' &&
+			(
+				get_option( 'instawp_is_staging', true ) === false ||
+				get_option( 'instawp_is_staging', true ) === 'false' ||
+				get_option( 'instawp_is_staging', true ) === '0' ||
+				get_option( 'instawp_is_staging', true ) === 0 ||
+				get_option( 'instawp_is_staging', true ) === ''
+			)
+		) {
 			return;
 		}
 
@@ -223,6 +233,7 @@ class InstaWP_Go_Live {
                         </div>
                         <div class="trial-footer">
                             <div class="trial-footer-flex">
+                                <input type="hidden" name="instawp_go_live_connect_id" id="instawp_go_live_connect_id" value="<?php echo esc_attr( self::$_connect_id ); ?>">
                                 <input type="hidden" name="instawp_go_live_step" id="instawp_go_live_step" value="1">
                                 <input type="hidden" name="instawp_go_live_restore_id" id="instawp_go_live_restore_id" value="">
 								<?php // wp_nonce_field( 'instawp_ajax', 'instawp_ajax_nonce_field' ); ?>
@@ -233,7 +244,6 @@ class InstaWP_Go_Live {
                                     <p class="go-live-status-progress"></p>
                                 </div>
                             </div>
-                            <a class="manage-account-link" href=""><?php echo esc_html__( 'My Cloudways Account', 'instawp-connect' ); ?> <img src="<?php echo esc_url( $this->get_asset_url( 'images/link-icon.svg' ) ); ?>" alt=""></a>
                         </div>
                     </div>
                 </div>

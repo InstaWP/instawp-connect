@@ -134,7 +134,7 @@
                                 console.log(wp_details);
 
                                 // Update the button
-                                el_btn_go_live.html('Login to Cloudways Site').data('cloudways', wp_details.wp_admin_url).removeClass('disabled').data('is_live', true);
+                                el_btn_go_live.html('Login to Cloudways Site').data('cloudways', wp_details.auto_login_hash).removeClass('disabled').data('is_live', true);
                                 el_btn_go_live.removeClass('disabled').data('is_live', true);
 
                                 // Display manage account link
