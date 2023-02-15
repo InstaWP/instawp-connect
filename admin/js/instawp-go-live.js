@@ -2,8 +2,17 @@
  * Cloudways integration script
  */
 
+
 (function ($, document, go_live_obj) {
     'use strict';
+
+    // let restore_id = $('#instawp_go_live_restore_id').val();
+    //
+    // if (typeof restore_id !== 'undefined' && restore_id > 0) {
+    //     window.onbeforeunload = function () {
+    //         return confirm('Sure?');
+    //     };
+    // }
 
     $(document).on('click', '.instawp-go-live-wrap .instawp-btn-go-live', function () {
 
@@ -15,8 +24,7 @@
             el_manage_account_link = el_cloudways_wrap.find('.manage-account-link'),
             el_field_restore_id = el_cloudways_wrap.find('#instawp_go_live_restore_id'),
             el_go_live_step = el_cloudways_wrap.find('#instawp_go_live_step'),
-            finished_doing_api_call_interval = null,
-            go_live_step_completed = 0;
+            finished_doing_api_call_interval = null;
 
         if (el_btn_go_live.data('is_live')) {
             window.open(el_btn_go_live.data('cloudways'), '_blank');

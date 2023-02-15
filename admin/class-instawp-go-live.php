@@ -204,16 +204,6 @@ class InstaWP_Go_Live {
 		$trial_domain   = $trial_details['domain'] ?? '';
 		$time_to_expire = $trial_details['time_to_expire'] ?? '';
 
-//		echo "<pre>";
-//		print_r( self::$_connect_id );
-//		echo "</pre>";
-//
-//		$restore_init_response = $this->get_api_response( 'restore-init' );
-//
-//		echo "<pre>";
-//		print_r( $restore_init_response );
-//		echo "</pre>";
-
 		?>
         <div class="wrap instawp-go-live-wrap">
             <div>
