@@ -15,12 +15,12 @@ class InstaWP_AJAX {
 		add_action( 'wp_ajax_instawp_check_staging', array( $this, 'instawp_check_staging' ) );
 		add_action( 'wp_ajax_instawp_logger', array( $this, 'instawp_logger_handle' ) );
 		add_action( 'init', array( $this, 'deleter_folder_handle' ) );
-		add_action('admin_notices',array( $this, 'instawp_connect_reset_admin_notices'));
+		add_action( 'admin_notices', array( $this, 'instawp_connect_reset_admin_notices' ) );
 	}
 
 	// Set transient admin notice function
-	public function instawp_connect_reset_admin_notices(){	
-		if( isset($_GET['page']) && $_GET['page'] === "instawp-settings"){	
+	public function instawp_connect_reset_admin_notices() {
+		if ( isset( $_GET['page'] ) && $_GET['page'] === "instawp-settings" ) {
 			$plugins_reset_notice = get_transient( 'instawp_connect_plugin_reset_notice' );
 			if ( false !== $plugins_reset_notice ) {
 				$html = '<div class="notice notice-warning is-dismissible">';
@@ -33,6 +33,7 @@ class InstaWP_AJAX {
 			}
 		}
 	}
+
 	/*Remove un-usable data after our staging creation process is done*/
 	public static function instawp_folder_remover_handle() {
 		$folder_name        = 'instawpbackups';
@@ -94,8 +95,8 @@ class InstaWP_AJAX {
 			//After Delete Option Set API Domain
 			InstaWP_Setting::set_api_domain();
 
-			$transient_message = __("InstaWP Connect Settings has been reset successfully.", 'instawp-connect');
-			
+			$transient_message = __( "InstaWP Connect Settings has been reset successfully.", 'instawp-connect' );
+
 			set_transient( 'instawp_connect_plugin_reset_notice', $transient_message, MINUTE_IN_SECONDS );
 
 			$redirect_url = admin_url( "admin.php?page=instawp-settings" );
@@ -214,6 +215,8 @@ class InstaWP_AJAX {
 		$curl_rd_restore_status       = $curl_response_restore_status['curl_res'] ?? '';
 		$curl_rd_restore_status       = json_decode( $curl_rd_restore_status, true );
 		// var_dump($curl_rd_restore_status['data']);exit;
+
+		$response['curl_rd_restore_status'] = $curl_rd_restore_status;
 
 		if ( isset( $curl_rd_restore_status['data'] ) && isset( $curl_rd_restore_status['data']['progress'] ) ) {
 			$response['progress'] = $curl_rd_restore_status['data']['progress'];

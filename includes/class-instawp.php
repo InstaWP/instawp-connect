@@ -7625,6 +7625,11 @@ class instaWP {
 	}
 
 
+	public static function download_bg( $task_id, $parameters ) {
+		InstaWP_Backup_Api::download_bg( $task_id, $parameters );
+	}
+
+
 	public static function disable_cache_elements_before_restore() {
 
 		if ( ! function_exists( 'get_plugins' ) ) {

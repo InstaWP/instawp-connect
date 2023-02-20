@@ -568,13 +568,10 @@ class InstaWP_Backup_Api {
 				$progress_results = $instawp_plugin->get_restore_progress_api( $backup_list_key );
 				$progress_value   = $instawp_plugin->restore_data->get_next_restore_task_progress();
 
-
 				//consider the foreach loop as well, if there are multiple backup_lists
-
 				$progress_value = $progress_value * ( $backup_index / $count_backup_list );
 
 				//total progress is half of what it is + 50 because the rest of the 50 is taken care by the server.
-
 				$progress_value = ( $progress_value / 2 ) + 50;
 
 				error_log( $progress_value );
@@ -634,11 +631,25 @@ class InstaWP_Backup_Api {
 	}
 
 
+	public static function download_bg( $task_id, $parameters ) {
+
+		global $InstaWP_Curl;
+
+		$download_file_urls  = isset( $parameters['urls'] ) ? $parameters['urls'] : '';
+		$backup_download_ret = $InstaWP_Curl->download( $task_id, $download_file_urls );
+
+		if ( $backup_download_ret['result'] != INSTAWP_SUCCESS ) {
+//			return new WP_REST_Response( array( 'task_id' => $task_id, 'completed' => false, 'progress' => 0, 'message' => 'Download error', 'status' => 'error' ) );
+			self::restore_status( 'Could not download the backup file.', 0 );
+		} else {
+			self::restore_status( 'Backup file downloaded on target site', 51 );
+		}
+	}
+
+
 	public function restore( WP_REST_Request $request ) {
 
 		try {
-
-			global $InstaWP_Curl, $instawp_plugin;
 
 			$this->validate_api_request( $request );
 
@@ -654,22 +665,22 @@ class InstaWP_Backup_Api {
 				'backup_content',
 				'backup_core',
 			) );
-			$backup_task     = new InstaWP_Backup_Task();
-			$backup_task_ret = $backup_task->new_download_task();
 
-			if ( $backup_task_ret['result'] == 'success' ) {
 
-				$backup_download_ret = $InstaWP_Curl->download( $backup_task_ret['task_id'], $parameters['urls'] );
+			$backup_task        = new InstaWP_Backup_Task();
+			$backup_task_ret    = $backup_task->new_download_task();
+			$backup_task_id     = isset( $backup_task_ret['task_id'] ) ? $backup_task_ret['task_id'] : '';
+			$backup_task_result = isset( $backup_task_ret['result'] ) ? $backup_task_ret['result'] : '';
 
-				if ( $backup_download_ret['result'] != INSTAWP_SUCCESS ) {
-					return new WP_REST_Response( array( 'task_id' => $backup_task_ret['task_id'], 'completed' => false, 'progress' => 0, 'message' => 'Download error', 'status' => 'error' ) );
-				} else {
-					$this->restore_status( 'Backup file downloaded on target site', 51 );
-				}
+			if ( ! empty( $backup_task_id ) && 'success' == $backup_task_result ) {
+
+				// Background processing of downloading the backup file using woocommerce's scheduler.
+				as_enqueue_async_action( 'instawp_download_bg', [ $backup_task_ret['task_id'], $parameters ] );
+
+				// Immediately run the schedule, don't want for the cron to run.
+				do_action( 'action_scheduler_run_queue', 'Async Request' );
 			}
 
-			// commented for checking restore check
-			// $instawp_plugin->delete_last_restore_data_api();
 
 			$backup_uploader = new InstaWP_BackupUploader();
 			$backup_uploader->_rescan_local_folder_set_backup_api();
@@ -679,12 +690,11 @@ class InstaWP_Backup_Api {
 				return new WP_REST_Response( array( 'completed' => false, 'progress' => 0, 'message' => 'empty backup list' ) );
 			}
 
-			//background processing of restore using woocommerce's scheduler.
+			// Background processing of restore using woocommerce's scheduler.
 			as_enqueue_async_action( 'instawp_restore_bg', [ $backup_list, $restore_options, $parameters ] );
 
-			//imidately run the schedule, don't want for the cron to run.
+			// Immediately run the schedule, don't want for the cron to run.
 			do_action( 'action_scheduler_run_queue', 'Async Request' );
-
 
 			$res_result = array( 'completed' => false, 'progress' => 55, 'message' => 'Backup downloaded, restore initiated..', 'status' => 'wait' );
 
