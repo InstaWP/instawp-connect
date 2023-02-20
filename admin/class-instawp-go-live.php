@@ -142,6 +142,10 @@ class InstaWP_Go_Live {
 			$response_progress = 30;
 		}
 
+		if ( $response_progress == 100 ) {
+			update_option( 'instawp_is_staging', false );
+		}
+
 		$response_data['progress'] = $response_progress;
 
 		wp_send_json_success( $response_data );
