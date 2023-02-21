@@ -71,6 +71,11 @@ class InstaWP_Staging_Site_Table extends WP_List_Table {
 				'total_pages' => ceil( sizeof( $data ) / $per_page )
 			)
 		);
+
+
+//		echo "<pre>";
+//		print_r( get_option( 'instawp_staging_list_items' ) );
+//		echo "</pre>";
 	}
 
 	function process_bulk_action() {

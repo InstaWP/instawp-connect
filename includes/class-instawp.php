@@ -7646,7 +7646,6 @@ class instaWP {
 
 		file_put_contents( $file_name_ap, json_encode( $active_plugins ) );
 
-
 		// For the Breeze plugin support
 		if ( in_array( 'breeze/breeze.php', $active_plugins ) ) {
 			if ( ! function_exists( 'WP_Filesystem' ) ) {
