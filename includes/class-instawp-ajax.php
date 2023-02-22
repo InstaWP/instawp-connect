@@ -239,7 +239,7 @@ class InstaWP_AJAX {
 				'site_url'        => str_replace( '/wp-admin', '', $wp_admin_url ),
 				'admin_email'     => $wp_admin_email,
 				'username'        => $wp_username,
-				'password'        => '$wp_password',
+				'password'        => $wp_password,
 				'auto_login_hash' => $auto_login_hash,
 			) );
 
