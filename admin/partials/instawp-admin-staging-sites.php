@@ -17,105 +17,69 @@ if ( ! class_exists( 'WP_List_Table' ) ) {
 
 class InstaWP_Staging_Site_Table extends WP_List_Table {
 
+	private int $items_per_page = 20;
+
+
 	function get_columns() {
 		return [
-			'cb'                      => '<input type="checkbox" />',
-			'stage_site_url'          => ucwords( 'Url' ),
-			'stage_site_user'         => ucwords( 'User Name' ),
-			'stage_site_pass'         => ucwords( 'Password' ),
-			'stage_site_login_button' => ucwords( 'Auto login' ),
+			'cb'         => '<input type="checkbox" />',
+			'site_url'   => esc_html__( 'Website URL', 'instawp-connect' ),
+			'username'   => esc_html__( 'User Name', 'instawp-connect' ),
+			'password'   => esc_html__( 'Password', 'instawp-connect' ),
+			'auto_login' => esc_html__( 'Auto login', 'instawp-connect' ),
 		];
 	}
 
 
 	function prepare_items() {
-		$options = get_user_meta( get_current_user_id(), 'instawp_stagelist_page_options', true );
 
-		$per_page = ! empty( $options['per_page'] ) ? $options['per_page'] : 20;
-		$page     = isset( $_REQUEST['paged'] ) ? (int) $_REQUEST['paged'] : 1;
-		$search   = ! empty( $_GET['s'] ) ? $_GET['s'] : null;
+		global $wpdb;
 
-		$orderby = ( isset( $_REQUEST['orderby'] ) && ! empty( $_REQUEST['orderby'] ) ) ? sanitize_text_field( $_REQUEST['orderby'] ) : '';
-		$order   = ( ! empty( $_REQUEST['order'] ) ) ? sanitize_text_field( $_REQUEST['order'] ) : 'ASC';
-
-		$columns               = $this->get_columns();
-		$hidden                = [];
-		$sortable              = $this->get_sortable_columns();
-		$this->_column_headers = [ $columns, $hidden, $sortable ];
 		$this->process_bulk_action();
-		// Get all Data for anchor section
-		$data        = array();
-		$connect_ids = get_option( 'instawp_connect_id_options', '' );
-		if ( isset( $connect_ids['data']['id'] ) && ! empty( $connect_ids['data']['id'] ) ) {
-			$connect_id    = $connect_ids['data']['id'];
-			$staging_sites = get_option( 'instawp_staging_list_items', array() );
 
-//			echo "<pre>";
-//			print_r( $staging_sites );
-//			echo "</pre>";
+		$staging_sites         = $wpdb->get_results( "SELECT * FROM " . INSTAWP_DB_TABLE_STAGING_SITES, ARRAY_A );
+		$this->_column_headers = array( $this->get_columns(), [], [] );
+		$this->items           = array_slice( $staging_sites, ( ( $this->get_pagenum() - 1 ) * $this->items_per_page ), $this->items_per_page );;
 
-			if ( sizeof( $staging_sites ) > 0 ) {
-				$data = $staging_sites[ $connect_id ];
-			}
-		}
 
-		// $staging_sites = get_option('instawp_staging_list_items', array());
-		//$data = $staging_sites[ '539' ];
-
-		$this->items = $data;
-
+		// Setting up pagination arguments
 		$this->set_pagination_args(
 			array(
-				'total_items' => sizeof( $data ),
-				'per_page'    => $per_page,
-				'total_pages' => ceil( sizeof( $data ) / $per_page )
+				'total_items' => count( $staging_sites ),
+				'per_page'    => $this->items_per_page,
 			)
 		);
 	}
 
+
 	function process_bulk_action() {
-		if ( (
-			     isset( $_GET['action'] ) &&
-			     'bulk-delete' == $_GET['action']
-		     ) || (
-			          isset( $_GET['action2'] ) &&
-			          'bulk-delete' == $_GET['action2']
-		          ) &&
-		          isset( $_GET['staging_sites_ids'] ) && ! empty( $_GET['staging_sites_ids'] )
+		if (
+			( isset( $_GET['action'] ) && 'bulk-delete' == $_GET['action'] ) ||
+			( isset( $_GET['action2'] ) && 'bulk-delete' == $_GET['action2'] ) &&
+			isset( $_GET['staging_sites_ids'] ) &&
+			! empty( $_GET['staging_sites_ids'] )
 		) {
-			$row_ids = array();
 
-			if ( ! empty( $_GET['staging_sites_ids'] ) ) {
-				$row_ids = esc_sql( $_GET['staging_sites_ids'] );
-			}
+			global $wpdb;
 
+			$sites_ids = isset( $_GET['staging_sites_ids'] ) ? wp_unslash( $_GET['staging_sites_ids'] ) : array();
 
-			if ( sizeof( $row_ids ) > 0 ) {
+			if ( sizeof( $sites_ids ) > 0 ) {
 
-				$staging_sites = get_option( 'instawp_staging_list_items', array() );
+				foreach ( $sites_ids as $id ) {
 
-				$connect_id  = '';
-				$connect_ids = get_option( 'instawp_connect_id_options', '' );
-				if ( isset( $connect_ids['data']['id'] ) && ! empty( $connect_ids['data']['id'] ) ) {
-					$connect_id = $connect_ids['data']['id'];
-				}
-				if ( ! empty( $connect_id ) && $staging_sites && sizeof( $staging_sites ) > 0 ) {
-					$staging_sites = $staging_sites[ $connect_id ];
+					do_action( 'INSTAWP/Staging_sites/before_delete_site', $id );
 
-					foreach ( $row_ids as $index => $array_row_id ) {
-						if ( array_key_exists( $array_row_id, $staging_sites ) ) {
-							unset( $staging_sites[ $array_row_id ] );
-						}
+					$wpdb->delete( INSTAWP_DB_TABLE_STAGING_SITES, array( 'id' => $id ) );
+
+					if ( ! empty( $wpdb->last_error ) ) {
+						error_log( sprintf( esc_html__( 'Error in deleting from stating sites table. Error: %s', 'instawp-connect' ), $wpdb->last_error ) );
 					}
-
-					// Reset with connect ID
-					$staging_sites_new[ $connect_id ] = $staging_sites;
-
-					update_option( 'instawp_staging_list_items', $staging_sites_new );
 				}
 			}
 		}
 	}
+
 
 	public function get_bulk_actions() {
 		$actions = array(
@@ -125,72 +89,67 @@ class InstaWP_Staging_Site_Table extends WP_List_Table {
 		return $actions;
 	}
 
+
 	function column_default( $item, $column_name ) {
+
+		$output_html = '';
+
 		switch ( $column_name ) {
-			case 'stage_site_url':
-				$site_name      = $item['stage_site_url']['site_name'];
-				$site_admin_url = $item['stage_site_url']['wp_admin_url'];
-				$site_admin_url = str_replace( '/wp-admin', '', $site_admin_url );
+			case 'site_url':
 
-				$col_html = '<a href="' . $site_admin_url . '">' . $site_name . '</p>';
+				$site_url    = isset( $item['site_url'] ) ? $item['site_url'] : '';
+				$output_html = sprintf( '<strong><a class="row-title" href="%s" target="_blank">%s</a></strong>', esc_url_raw( 'https://' . $site_url ), $site_url );
 
-				return $col_html;
-			case 'stage_site_user':
+				break;
+			case 'username':
 
-				$site_user = $item['stage_site_user'];
-				$col_html  = '<p>' . $site_user . '</p>';
+				$output_html = sprintf( '<p class="username">%s</p>', ( isset( $item['username'] ) ? $item['username'] : '' ) );
 
-				return $col_html;
+				break;
+			case 'password':
 
-			case 'stage_site_pass':
-				$site_pass = $item['stage_site_pass'];
-				$col_html  = '<p>' . $site_pass . '</p>';
+				$output_html = sprintf( '<p class="password">%s</p>', ( isset( $item['password'] ) ? $item['password'] : '' ) );
 
-				return $col_html;
+				break;
+			case 'auto_login':
 
-			case 'stage_site_login_button':
-				$site_login = $item['stage_site_login_button'];
-				$col_html   = '<a class="button primary-button" href="' . $site_login . '">Auto Login</a>';
+				$api_domain      = InstaWP_Setting::get_api_domain();
+				$auto_login_hash = isset( $item['auto_login_hash'] ) ? $item['auto_login_hash'] : '';
+				$auto_login_url  = $api_domain . '/wordpress-auto-login?' . http_build_query( array( 'site' => $auto_login_hash ) );
+				$output_html     = sprintf( '<a class="button primary-button" href="%s" target="_blank">%s</a>', esc_url_raw( $auto_login_url ), esc_html__( 'Auto Login', 'instawp-connect' ) );
 
-				return $col_html;
+				break;
 			default:
 				break;
 		}
+
+		return $output_html;
 	}
 
-	function get_sortable_columns() {
-		return array();
-	}
-
-	public function get_hidden_columns() {
-		return array( 'id' );
-	}
 
 	function column_cb( $item ) {
-		return sprintf(
-			'<input type="checkbox" name="staging_sites_ids[]" value="%s" />', $item['stage_site_task_id']
-		);
+		return sprintf( '<input type="checkbox" name="staging_sites_ids[]" value="%s" />', $item['id'] );
 	}
 }
 
-function display_instawp_staging_site_table() {
-	$instawp_staging_site_table = new InstaWP_Staging_Site_Table();
+function instawp_render_staging_site_table() {
+
+	$staging_table = new InstaWP_Staging_Site_Table();
+	$current_page  = isset( $_REQUEST['page'] ) ? sanitize_text_field( $_REQUEST['page'] ) : '';
+	$url           = admin_url( 'admin.php?page=instawp-connect' );
 	?>
     <div class="wrap instabtn">
         <h1 class="wp-heading-inline">Staging Sites</h1>
-		<?php
-		$url = admin_url( 'admin.php?page=instawp-connect' );
-		?>
-        <a href="<?php echo $url ?>" class="button" style="background-color: #005E54;color:#fff;margin-top:10px;border-radius:6px;">Create New</a>
+        <a href="<?php echo esc_url_raw( $url ); ?>" class="button" style="background-color: #005E54;color:#fff;margin-top:10px;border-radius:6px;"><?php esc_html_e( 'Create New', 'instawp-connect' ); ?></a>
         <form method="get" id="stage_sites">
-            <input type="hidden" name="page" value="<?php echo $_REQUEST['page'] ?>"/>
+            <input type="hidden" name="page" value="<?php echo esc_attr( $current_page ); ?>"/>
 			<?php
-			$instawp_staging_site_table->prepare_items();
-			$instawp_staging_site_table->display();
+			$staging_table->prepare_items();
+			$staging_table->display();
 			?>
         </form>
     </div>
 	<?php
 }
 
-display_instawp_staging_site_table();
+instawp_render_staging_site_table();
