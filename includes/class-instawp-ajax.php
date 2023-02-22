@@ -224,6 +224,7 @@ class InstaWP_AJAX {
 
 		if ( isset( $curl_rd_restore_status['data'] ) && isset( $curl_rd_restore_status['data']['progress'] ) && $curl_rd_restore_status['data']['progress'] == 100 ) {
 
+			$connect_id      = $curl_rd_restore_status['data']['wp'][0]['connect_id'];
 			$site_name       = $curl_rd_restore_status['data']['wp'][0]['site_name'];
 			$wp_admin_url    = $curl_rd_restore_status['data']['wp'][0]['wp_admin_url'];
 			$wp_admin_email  = $curl_rd_restore_status['data']['wp'][0]['wp_admin_email'];
@@ -233,7 +234,7 @@ class InstaWP_AJAX {
 
 			instawp_staging_insert_site( array(
 				'task_id'         => $task_id,
-				'connect_id'      => ' ',
+				'connect_id'      => $connect_id,
 				'site_name'       => $site_name,
 				'site_url'        => str_replace( '/wp-admin', '', $wp_admin_url ),
 				'admin_email'     => $wp_admin_email,
@@ -243,16 +244,17 @@ class InstaWP_AJAX {
 			) );
 
 			$response = array(
-				"progress" => 100,
-				"result"   => "success",
-				"status"   => 1,
-				"details"  => array(
+				"progress"        => 100,
+				"result"          => "success",
+				"status"          => 1,
+				"details"         => array(
 					"name"  => $site_name,
 					"url"   => "https://" . str_replace( '/wp-admin', '', $wp_admin_url ),
 					"user"  => $wp_username,
 					"code"  => $wp_password,
 					"login" => add_query_arg( array( 'site' => $auto_login_hash ), $api_domain . '/wordpress-auto-login' ),
-				)
+				),
+				"server_response" => $curl_rd_restore_status,
 			);
 		}
 
