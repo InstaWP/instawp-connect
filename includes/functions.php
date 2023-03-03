@@ -91,5 +91,18 @@ if ( ! function_exists( 'instawp_staging_insert_site' ) ) {
 }
 
 
+if ( ! function_exists( 'instawp' ) ) {
+	/**
+	 * @return instaWP
+	 */
+	function instawp() {
+		global $instawp;
 
+		if ( empty( $instawp ) ) {
+			$instawp = new instaWP();
+		}
+
+		return $instawp;
+	}
+}
 

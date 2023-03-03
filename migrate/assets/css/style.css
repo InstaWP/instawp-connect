@@ -1,0 +1,182 @@
+/* open sans font family */
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,600;1,800&display=swap');
+
+/* inter font family */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;800;900&display=swap');
+
+:root {
+    --instawp-color-primary: #005E54;
+    --instawp-color-gray: #9CA3AF;
+}
+
+body {
+    font-family: 'Inter', serif;
+    /*background-color: #fafafa;*/
+}
+
+.box-width {
+    max-width: 1024px;
+    margin: auto;
+}
+
+.box-shadow {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.btn-width {
+    width: 464px;
+}
+
+/* The switch - the box around the slider */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 36px;
+    height: 20px;
+    margin-top: 8px;
+}
+
+/* Hide default HTML checkbox */
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+/* The slider */
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #E5E7EB;
+    -webkit-transition: .4s;
+    transition: .4s;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 3px;
+    bottom: 2px;
+    background-color: white;
+    -webkit-transition: .4s;
+    transition: .4s;
+}
+
+input:checked + .slider {
+    background-color: #005E54;
+}
+
+input:checked + .slider:before {
+    -webkit-transform: translateX(13px);
+    -ms-transform: translateX(13px);
+    transform: translateX(13px);
+}
+
+/* Rounded sliders */
+.slider.round {
+    border-radius: 34px;
+}
+
+.slider.round:before {
+    border-radius: 50%;
+}
+
+
+.switch-toggle {
+    position: relative;
+    display: inline-block;
+    width: 36px;
+    height: 20px;
+}
+
+/* Hide default HTML checkbox */
+.switch-toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+/* The slider */
+.slider-toggle {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #E5E7EB;
+    -webkit-transition: .4s;
+    transition: .4s;
+}
+
+.slider-toggle:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 3px;
+    bottom: 2px;
+    background-color: white;
+    -webkit-transition: .4s;
+    transition: .4s;
+}
+
+input:checked + .slider-toggle {
+    background-color: #11BF85;
+}
+
+input:checked + .slider-toggle:before {
+    -webkit-transform: translateX(13px);
+    -ms-transform: translateX(13px);
+    transform: translateX(13px);
+}
+
+/* Rounded sliders */
+.slider-toggle.round-toggle {
+    border-radius: 34px;
+}
+
+.slider-toggle.round-toggle:before {
+    border-radius: 50%;
+}
+
+.sync-listining {
+    display: none;
+}
+
+.data-padding {
+    padding: 118px 0;
+}
+
+#adminmenu .toplevel_page_instawp div.wp-menu-image img {
+    margin-left: 10px;
+}
+
+.instawp-wrap .nav-item-content {
+    display: none;
+}
+
+.instawp-wrap .nav-item-content.active {
+    display: block;
+}
+
+.instawp-wrap .nav-items .nav-item > a {
+    cursor: pointer;
+}
+
+.instawp-wrap .nav-items .nav-item > a > svg > path {
+    fill: var(--instawp-color-gray);
+    transition: 0.3s;
+}
+
+.instawp-wrap .nav-items .nav-item.active > a > svg > path,
+.instawp-wrap .nav-items .nav-item > a:hover > svg > path {
+    fill: var(--instawp-color-primary);
+}
+

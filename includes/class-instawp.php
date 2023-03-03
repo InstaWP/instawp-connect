@@ -385,11 +385,16 @@ class instaWP {
 		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-interface-mainwp.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-rest-api.php';
 
+
+		if ( defined( 'INSTAWP_MIGRATION_APPROACH' ) && INSTAWP_MIGRATION_APPROACH === true ) {
+			require_once INSTAWP_PLUGIN_DIR . '/migrate/class-instawp-migrate.php';
+		}
+
+
 		$this->function_realize = new InstaWP_Function_Realize();
 		//$this->migrate          = new InstaWP_Migrate();
 		$this->backup_uploader  = new instawp_BackupUploader();
 		$this->interface_mainwp = new InstaWP_Interface_MainWP();
-
 	}
 
 	public function init_pclzip_tmp_folder() {
@@ -7678,5 +7683,10 @@ class instaWP {
 		if ( class_exists( '\RedisCachePro\Plugin' ) ) {
 			\RedisCachePro\Plugin::boot()->flush();
 		}
+	}
+
+
+	public static function get_asset_url( $asset_name ) {
+		return INSTAWP_PLUGIN_URL . '/' . $asset_name;
 	}
 }
