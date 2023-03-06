@@ -36,9 +36,15 @@ $instawp_nav_items = array(
 		} ?>
 
     </div>
-    <div class="flex items-center text-sm font-medium text-primary-700 ">
+
+    <div class="flex items-center text-sm font-medium">
+
+<!--                    <div class="flex items-center text-grayCust-1300">Please connect InstaWP account</div>-->
+<!--                    <button class="px-4  rounded-lg py-2 border border-primary-900 text-primary-900 text-sm font-medium ml-3">Connect</button>-->
+
+
         <span class="w-1 h-1 bg-primary-700 rounded-full mr-2"></span>
-        <span><?php echo esc_html__( 'Your account is connected', 'instawp-connect' ); ?></span>
+        <span class="text-primary-700"><?php echo esc_html__( 'Your account is connected', 'instawp-connect' ); ?></span>
     </div>
 </div>
 

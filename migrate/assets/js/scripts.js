@@ -24,18 +24,59 @@ tailwind.config = {
     }
 };
 
-(function ($, window, document) {
+(function ($, window, document, plugin_object) {
 
 
     $(document).on('ready', function () {
         // let all_nav_items = $('.instawp-wrap .nav-items .nav-item');
         // all_nav_items.first().addClass('active').find('a').toggleClass('text-primary-900 border-primary-900');
 
-        let this_nav_item_id = localStorage.getItem('instawp_admin_current');
+        let this_nav_item_id = localStorage.getItem('instawp_admin_current'),
+            all_nav_items = $('.instawp-wrap .nav-items .nav-item');
 
         if (this_nav_item_id !== null && typeof this_nav_item_id !== 'undefined') {
             $('.instawp-wrap #' + this_nav_item_id).find('a').trigger('click');
+        } else {
+            all_nav_items.first().find('a').trigger('click');
         }
+    });
+
+    $(document).on('submit', '.instawp-form', function (e) {
+
+        e.preventDefault();
+
+        let this_form = $(this),
+            this_form_data = this_form.serialize(),
+            this_form_response = this_form.find('.instawp-form-response');
+
+        this_form_response.html('');
+        this_form.addClass('loading');
+
+        $.ajax({
+            type: 'POST',
+            url: plugin_object.ajax_url,
+            context: this,
+            data: {
+                'action': 'instawp_update_settings',
+                'form_data': this_form_data,
+            },
+            success: function (response) {
+
+                setTimeout(function () {
+                    this_form.removeClass('loading');
+
+                    if (!response.success) {
+                        this_form_response.addClass('error').html(response.data.message);
+                        return false;
+                    }
+
+                    this_form_response.addClass('success').html(response.data.message);
+
+                }, 1000);
+            }
+        });
+
+        return false;
     });
 
     $(document).on('click', '.instawp-wrap .nav-items .nav-item > a', function () {
@@ -60,10 +101,9 @@ tailwind.config = {
     //         if ($(this).is(":checked")) {
     //             $(".sync-listining").show();
     //             $(".data-listening").hide();
-    //
     //         }
     //     });
     // });
 
-})(jQuery, window, document);
+})(jQuery, window, document, instawp_migrate);
 

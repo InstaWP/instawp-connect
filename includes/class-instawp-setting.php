@@ -5,6 +5,7 @@ if ( ! defined( 'INSTAWP_PLUGIN_DIR' ) ) {
 }
 
 class InstaWP_Setting {
+
 	public static function init_option() {
 		$ret = self::get_option( 'instawp_email_setting' );
 		if ( empty( $ret ) ) {
@@ -35,8 +36,216 @@ class InstaWP_Setting {
 		// if ( empty($ret) ) {
 		//     self::set_api_domain();
 		// }
-
 	}
+
+
+	public static function generate_section_field( $field = array() ) {
+
+		$field_id          = self::get_args_option( 'id', $field );
+		$field_title       = self::get_args_option( 'title', $field );
+		$field_type        = self::get_args_option( 'type', $field );
+		$field_desc        = self::get_args_option( 'desc', $field );
+		$field_placeholder = self::get_args_option( 'placeholder', $field );
+		$field_attributes  = self::get_args_option( 'attributes', $field, array() );
+		$field_attributes  = ! is_array( $field_attributes ) ? array() : $field_attributes;
+		$field_options     = self::get_args_option( 'options', $field, array() );
+		$field_options     = ! is_array( $field_options ) ? array() : $field_options;
+		$field_value       = self::get_option( $field_id, '' );
+		$attributes        = array();
+
+		foreach ( $field_attributes as $attribute_key => $attribute_val ) {
+			$attributes[] = $attribute_key . '="' . $attribute_val . '"';
+		}
+
+		echo '<div class="single-field w-1/2 mr-6 mb-6">';
+
+		echo '<label for="' . esc_attr( $field_id ) . '" class="block text-sm font-medium text-gray-700 mb-3 sm:mt-px sm:pt-2"> ' . esc_html( $field_title ) . '</label>';
+
+		echo '<div class="field-inputs">';
+
+		switch ( $field_type ) {
+			case 'text':
+				echo '<input ' . implode( ' ', $attributes ) . ' type="text" name="' . esc_attr( $field_id ) . '" id="' . esc_attr( $field_id ) . '" value="' . esc_attr( $field_value ) . '" autocomplete="off" placeholder="' . esc_attr( $field_placeholder ) . '" class="block w-full rounded-md border-grayCust-350 shadow-sm focus:border-primary-900 focus:ring-1 focus:ring-primary-900 sm:text-sm"/>';
+				break;
+
+			case 'number':
+				echo '<input ' . implode( ' ', $attributes ) . ' type="number" name="' . esc_attr( $field_id ) . '" id="' . esc_attr( $field_id ) . '" value="' . esc_attr( $field_value ) . '" autocomplete="off" placeholder="' . esc_attr( $field_placeholder ) . '" class="block w-full rounded-md border-grayCust-350 shadow-sm focus:border-primary-900 focus:ring-1 focus:ring-primary-900 sm:text-sm"/>';
+				break;
+
+			case 'email':
+				echo '<input ' . implode( ' ', $attributes ) . ' type="email" name="' . esc_attr( $field_id ) . '" id="' . esc_attr( $field_id ) . '" value="' . esc_attr( $field_value ) . '" autocomplete="off" placeholder="' . esc_attr( $field_placeholder ) . '" class="block w-full rounded-md border-grayCust-350 shadow-sm focus:border-primary-900 focus:ring-1 focus:ring-primary-900 sm:text-sm"/>';
+				break;
+
+			case 'url':
+				echo '<input ' . implode( ' ', $attributes ) . ' type="url" name="' . esc_attr( $field_id ) . '" id="' . esc_attr( $field_id ) . '" value="' . esc_attr( $field_value ) . '" autocomplete="off" placeholder="' . esc_attr( $field_placeholder ) . '" class="block w-full rounded-md border-grayCust-350 shadow-sm focus:border-primary-900 focus:ring-1 focus:ring-primary-900 sm:text-sm"/>';
+				break;
+
+			case 'select':
+
+				echo '<select ' . implode( ' ', $attributes ) . ' name="' . esc_attr( $field_id ) . '" id="' . esc_attr( $field_id ) . '">';
+
+				if ( ! empty( $field_placeholder ) ) {
+					echo '<option value="">' . esc_html( $field_placeholder ) . '</option>';
+				}
+
+				foreach ( $field_options as $key => $value ) {
+					echo '<option ' . selected( $field_value, $key ) . ' value="' . esc_attr( $key ) . '">' . esc_html( $value ) . '</option>';
+				}
+
+				echo '</select>';
+				break;
+
+			default:
+				break;
+		}
+
+		echo '</div>';
+
+		if ( ! empty( $field_desc ) ) {
+			echo '<p class="desc mt-3">' . wp_kses_post( $field_desc ) . '</p>';
+		}
+
+		echo '</div>';
+	}
+
+
+	public static function generate_section( $section = array() ) {
+
+		$section_classes = 'section mb-6';
+		$internal        = self::get_args_option( 'internal', $section, false );
+
+		if ( true === $internal || 1 == $internal ) {
+			$section_classes .= ' mt-6 pt-6 border-t border-gray-200';
+
+			if ( ! isset( $_REQUEST['internal'] ) || '1' != sanitize_text_field( $_REQUEST['internal'] ) ) {
+				return;
+			}
+		}
+
+		echo '<div class="' . esc_attr( $section_classes ) . '">';
+
+		echo '<div class="section-head mb-6">';
+		echo '<div class="text-grayCust-200 text-lg font-medium">' . esc_html( self::get_args_option( 'title', $section ) ) . '</div>';
+		echo '<div class="text-grayCust-50 text-sm font-normal">' . esc_html( self::get_args_option( 'desc', $section ) ) . '</div>';
+		echo '</div>';
+
+		echo '<div class="flex">';
+
+		foreach ( self::get_args_option( 'fields', $section, array() ) as $index => $field ) {
+
+			$field_type = self::get_args_option( 'type', $field );
+
+			if ( empty( $field_type ) ) {
+				continue;
+			}
+
+			self::generate_section_field( $field );
+
+			if ( $index % 2 === 1 ) {
+				printf( '</div><div class="flex">' );
+			}
+		}
+
+		echo '</div>';
+
+		echo '</div>';
+	}
+
+
+	public static function get_migrate_settings_fields() {
+
+		$all_fields = array();
+
+		foreach ( self::get_migrate_settings() as $migrate_setting ) {
+			foreach ( self::get_args_option( 'fields', $migrate_setting, array() ) as $field ) {
+				$all_fields[] = self::get_args_option( 'id', $field );
+			}
+		}
+
+		return array_filter( $all_fields );
+	}
+
+
+	public static function get_migrate_settings() {
+
+		// Section - Settings
+		$settings['settings'] = array(
+			'title'  => esc_html__( 'Settings', 'instawp-connect' ),
+			'desc'   => esc_html__( 'Update your settings before creating staging sites.', 'instawp-connect' ),
+			'fields' => array(
+				array(
+					'id'          => 'instawp_api_key',
+					'type'        => 'text',
+					'title'       => esc_html__( 'API Key', 'instawp-connect' ),
+					'placeholder' => esc_attr( 'gL8tbdZFfG8yQCXu0IycBa' ),
+					'attributes'  => array(
+						'readonly' => true,
+					),
+				),
+				array(
+					'id'          => 'instawp_api_heartbeat',
+					'type'        => 'number',
+					'title'       => esc_html__( 'Heartbeat Interval', 'instawp-connect' ),
+					'placeholder' => esc_attr( '2' ),
+				),
+				array(
+					'id'      => 'instawp_db_method',
+					'type'    => 'select',
+					'title'   => esc_html__( 'Database Method', 'instawp-connect' ),
+					'desc'    => esc_html__( 'WPDB option has a better compatibility, but slower. ', 'instawp-connect' ) .
+					             esc_html__( 'It is recommended to choose PDO if pdo_mysql extension is installed.', 'instawp-connect' ),
+					'options' => array(
+						'pdo'  => esc_html__( 'PDO', 'instawp-connect' ),
+						'wpdb' => esc_html__( 'WPDB', 'instawp-connect' ),
+					),
+				),
+			),
+		);
+
+		// Section - Developer Options
+		$settings['developer'] = array(
+			'title'    => esc_html__( 'Developer Options', 'instawp-connect' ),
+			'desc'     => esc_html__( 'This section is available only for the developers working in this plugin.', 'instawp-connect' ),
+			'internal' => true,
+			'fields'   => array(
+				array(
+					'id'          => 'instawp_api_url_internal',
+					'type'        => 'url',
+					'title'       => esc_html__( 'API Domain', 'instawp-connect' ),
+					'placeholder' => esc_url_raw( 'https://stage.instawp.io' ),
+				),
+			),
+		);
+
+		return apply_filters( 'INSTAWP_CONNECT/Filters/migrate_settings', $settings );
+	}
+
+	/**
+	 * Return Arguments Value
+	 *
+	 * @param string $key
+	 * @param string $default
+	 * @param array $args
+	 *
+	 * @return mixed|string
+	 */
+	public static function get_args_option( $key = '', $args = array(), $default = '' ) {
+
+		$default = is_array( $default ) && empty( $default ) ? array() : $default;
+		$value   = ! is_array( $default ) && ! is_bool( $default ) && empty( $default ) ? '' : $default;
+		$key     = empty( $key ) ? '' : $key;
+
+		if ( isset( $args[ $key ] ) && ! empty( $args[ $key ] ) ) {
+			$value = $args[ $key ];
+		}
+
+		if ( isset( $args[ $key ] ) && is_bool( $default ) ) {
+			$value = ! ( 0 == $args[ $key ] || '' == $args[ $key ] );
+		}
+
+		return $value;
+	}
+
 
 	public static function get_default_option( $option_name ) {
 		$options = array();
@@ -110,7 +319,7 @@ class InstaWP_Setting {
 		global $InstaWP_Curl;
 
 		if ( ! empty( $access_token ) && ( ! empty( $status ) && $status == true ) ) {
-			$api_doamin = InstaWP_Setting::get_api_domain();
+			$api_doamin = self::get_api_domain();
 
 			/* API KEY Store Code Stat */
 			$url      = $api_doamin . INSTAWP_API_URL . '/check-key';
@@ -172,7 +381,7 @@ class InstaWP_Setting {
 				$response = (array) json_decode( $curl_response['curl_res'], true );
 
 				if ( $response['status'] == true ) {
-					$connect_options                = InstaWP_Setting::get_option( 'instawp_connect_options', array() );
+					$connect_options                = self::get_option( 'instawp_connect_options', array() );
 					$connect_id                     = $response['data']['id'];
 					$connect_options[ $connect_id ] = $response;
 					update_option( 'instawp_connect_id_options', $response );
@@ -347,7 +556,7 @@ class InstaWP_Setting {
 
 	public static function update_connect_option( $option_name, $options, $connect_id, $task_id = '', $key = '' ) {
 
-		$connect_options = InstaWP_Setting::get_option( 'instawp_connect_options', array() );
+		$connect_options = self::get_option( 'instawp_connect_options', array() );
 		if ( isset( $connect_options[ $connect_id ] ) ) {
 
 			if ( isset( $connect_options[ $connect_id ][ $task_id ][ $key ] ) && ! empty( $key ) ) {
@@ -454,7 +663,7 @@ class InstaWP_Setting {
 
 	public static function get_remote_options( $remote_ids = array() ) {
 		if ( empty( $remote_ids ) ) {
-			$remote_ids = InstaWP_Setting::get_user_history( 'remote_selected' );
+			$remote_ids = self::get_user_history( 'remote_selected' );
 		}
 
 		if ( empty( $remote_ids ) ) {
@@ -462,7 +671,7 @@ class InstaWP_Setting {
 		}
 
 		$options        = array();
-		$upload_options = InstaWP_Setting::get_option( 'instawp_upload_setting' );
+		$upload_options = self::get_option( 'instawp_upload_setting' );
 		foreach ( $remote_ids as $id ) {
 			if ( array_key_exists( $id, $upload_options ) ) {
 				$options[ $id ] = $upload_options[ $id ];
@@ -477,7 +686,7 @@ class InstaWP_Setting {
 
 	public static function get_all_remote_options() {
 		$upload_options                    = self::get_option( 'instawp_upload_setting' );
-		$upload_options['remote_selected'] = InstaWP_Setting::get_user_history( 'remote_selected' );
+		$upload_options['remote_selected'] = self::get_user_history( 'remote_selected' );
 
 		return $upload_options;
 	}
