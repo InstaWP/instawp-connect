@@ -133,7 +133,6 @@ class InstaWP_Backup_Task {
 		return $exclude_regex;
 	}
 
-
 	public function get_exclude_default_plugins() {
 
 		$exclude_plugins = array(
@@ -676,7 +675,11 @@ class InstaWP_Backup_Task {
 		if ( isset( $backup_data['files'] ) && ! empty( $backup_data['files'] ) ) {
 			return $backup_data['files'];
 		} else {
-			return $this->get_file_list( $backup_data['files_root'], $backup_data['exclude_regex'], $backup_data['include_regex'], $this->task['options']['backup_options']['compress']['exclude_file_size'] );
+			$files_root    = isset( $backup_data['files_root'] ) ? $backup_data['files_root'] : array();
+			$exclude_regex = isset( $backup_data['exclude_regex'] ) ? $backup_data['exclude_regex'] : array();
+			$include_regex = isset( $backup_data['include_regex'] ) ? $backup_data['include_regex'] : array();
+
+			return $this->get_file_list( $files_root, $exclude_regex, $include_regex, $this->task['options']['backup_options']['compress']['exclude_file_size'] );
 		}
 	}
 
@@ -869,7 +872,7 @@ class InstaWP_Backup_Task {
 	public function getFileLoop( &$files, $path, $exclude_regex = array(), $include_regex = array(), $exclude_file_size = 0, $include_dir = true ) {
 
 		$count = 0;
-		if ( is_dir( $path ) ) {
+		if ( $path && is_dir( $path ) ) {
 			$handler = opendir( $path );
 			if ( $handler !== false ) {
 				while ( ( $filename = readdir( $handler ) ) !== false ) {
@@ -2248,6 +2251,11 @@ class InstaWP_Backup {
 	}
 
 	private function _backup( $data ) {
+
+//		$aaa_check             = get_option( 'aaa_check', [] );
+//		$aaa_check[ uniqid() ] = $data;
+//		update_option( 'aaa_check', $aaa_check );
+
 
 		global $instawp_plugin;
 		$result['result'] = INSTAWP_FAILED;

@@ -21,6 +21,16 @@ $instawp_nav_items = array(
 		'icon'  => '<svg width="16" class="mr-2" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"> <path fill-rule="evenodd" clip-rule="evenodd" d="M9.34035 1.8539C8.99923 0.448767 7.00087 0.448766 6.65975 1.8539C6.43939 2.76159 5.39945 3.19235 4.6018 2.70633C3.36701 1.95396 1.95396 3.36701 2.70633 4.6018C3.19235 5.39945 2.76159 6.43939 1.8539 6.65975C0.448766 7.00087 0.448767 8.99923 1.8539 9.34035C2.76159 9.56071 3.19235 10.6006 2.70633 11.3983C1.95396 12.6331 3.36701 14.0461 4.6018 13.2938C5.39945 12.8077 6.43939 13.2385 6.65975 14.1462C7.00087 15.5513 8.99923 15.5513 9.34035 14.1462C9.56071 13.2385 10.6006 12.8077 11.3983 13.2938C12.6331 14.0461 14.0461 12.6331 13.2938 11.3983C12.8077 10.6006 13.2385 9.56071 14.1462 9.34035C15.5513 8.99923 15.5513 7.00087 14.1462 6.65975C13.2385 6.43939 12.8077 5.39945 13.2938 4.6018C14.0461 3.36701 12.6331 1.95396 11.3983 2.70633C10.6006 3.19235 9.56071 2.76159 9.34035 1.8539ZM8.00005 10.7C9.49122 10.7 10.7 9.49122 10.7 8.00005C10.7 6.50888 9.49122 5.30005 8.00005 5.30005C6.50888 5.30005 5.30005 6.50888 5.30005 8.00005C5.30005 9.49122 6.50888 10.7 8.00005 10.7Z"/> </svg>',
 	),
 );
+$return_url        = urlencode( admin_url( 'admin.php?page=instawp' ) );
+$connect_api_url   = InstaWP_Setting::get_api_domain() . '/authorize?source=InstaWP Connect&return_url=' . $return_url;
+
+$current_page = isset( $_REQUEST['page'] ) ? sanitize_text_field( $_REQUEST['page'] ) : '';
+$access_token = isset( $_REQUEST['access_token'] ) ? sanitize_text_field( $_REQUEST['access_token'] ) : '';
+$success      = isset( $_REQUEST['success'] ) ? sanitize_text_field( $_REQUEST['success'] ) : '';
+
+if ( empty( InstaWP_Setting::get_api_key() ) && 'instawp' == $current_page && 'true' == $success && ! empty( $access_token ) ) {
+	InstaWP_Setting::instawp_generate_api_key( $access_token, $success );
+}
 
 ?>
 
@@ -39,12 +49,16 @@ $instawp_nav_items = array(
 
     <div class="flex items-center text-sm font-medium">
 
-<!--                    <div class="flex items-center text-grayCust-1300">Please connect InstaWP account</div>-->
-<!--                    <button class="px-4  rounded-lg py-2 border border-primary-900 text-primary-900 text-sm font-medium ml-3">Connect</button>-->
+		<?php if ( empty( InstaWP_Setting::get_api_key() ) ) : ?>
+            <div class="flex items-center text-grayCust-1300"><?php echo esc_html__( 'Please connect InstaWP account', 'instawp-connect' ); ?></div>
+            <button type="button" class="instawp-button-connect px-4 rounded-lg py-2 border border-primary-900 text-primary-900 text-sm font-medium ml-3">
+                <span><?php echo esc_html__( 'Connect', 'instawp-connect' ); ?></span>
+            </button>
+		<?php else: ?>
+            <span class="w-1 h-1 bg-primary-700 rounded-full mr-2"></span>
+            <span class="text-primary-700"><?php echo esc_html__( 'Your account is connected', 'instawp-connect' ); ?></span>
+		<?php endif; ?>
 
-
-        <span class="w-1 h-1 bg-primary-700 rounded-full mr-2"></span>
-        <span class="text-primary-700"><?php echo esc_html__( 'Your account is connected', 'instawp-connect' ); ?></span>
     </div>
 </div>
 

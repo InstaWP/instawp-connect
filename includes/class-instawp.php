@@ -914,15 +914,6 @@ class instaWP {
 
 				$ret = $this->pre_backup( $backup_options );
 				if ( $ret['result'] == 'success' ) {
-					//Check the website data to be backed up
-					/*
-               $ret['check']=$this->check_backup($ret['task_id'],$backup_options);
-               if(isset($ret['check']['result']) && $ret['check']['result'] == INSTAWP_FAILED)
-               {
-               $this->end_shutdown_function=true;
-               echo json_encode(array('result' => INSTAWP_FAILED,'error' => $ret['check']['error']));
-               die();
-            }*/
 
 					$html        = '';
 					$html        = apply_filters( 'instawp_add_backup_list', $html );
@@ -1808,7 +1799,7 @@ class instaWP {
 			$memory_limit = INSTAWP_MEMORY_LIMIT;
 		}
 		@ini_set( 'memory_limit', $memory_limit );
-		$this->end_shutdown_function = false;
+		$this->pre_back = false;
 		register_shutdown_function( array( $this, 'deal_shutdown_error' ), $task_id );
 		@ignore_user_abort( true );
 		InstaWP_taskmanager::update_backup_task_status( $task_id, true, 'running' );

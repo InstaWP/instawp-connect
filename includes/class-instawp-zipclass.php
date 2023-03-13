@@ -28,7 +28,8 @@ class InstaWP_ZipClass extends instawp_Compress_Default {
 		if ( ! function_exists( 'get_home_path' ) ) {
 			require_once( ABSPATH . 'wp-admin/includes/file.php' );
 		}
-		$files = $this->filesplit( $data['compress']['max_file_size'], $data['files'] );
+		$files = isset( $data['files'] ) ? $data['files'] : array();
+		$files = $this->filesplit( $data['compress']['max_file_size'], $files );
 
 		$temp_dir = $data['path'] . 'temp-' . $data['prefix'] . DIRECTORY_SEPARATOR;
 		if ( ! file_exists( $temp_dir ) ) {
@@ -98,7 +99,7 @@ class InstaWP_ZipClass extends instawp_Compress_Default {
 			}
 			$package['json']['file'] = basename( $path );
 			$package['path']         = $path;
-			$package['files']        = $files[0];
+			$package['files']        = isset( $files[0] ) ? $files[0] : array();
 			$packages[]              = $package;
 		}
 
@@ -121,7 +122,8 @@ class InstaWP_ZipClass extends instawp_Compress_Default {
 		}
 		$size = intval( $max_size ) * 1024 * 1024;
 
-		$files = $this->filesplit_plugin( $size, $data['files'], false );
+		$files = isset( $data['files'] ) ? $data['files'] : array();
+		$files = $this->filesplit_plugin( $size, $files, false );
 
 		$temp_dir = $data['path'] . 'temp-' . $data['prefix'] . DIRECTORY_SEPARATOR;
 		if ( ! file_exists( $temp_dir ) ) {
@@ -170,7 +172,7 @@ class InstaWP_ZipClass extends instawp_Compress_Default {
 			}
 			$package['json']['file'] = basename( $path );
 			$package['path']         = $path;
-			$package['files']        = $files[0];
+			$package['files']        = isset( $files[0] ) ? $files[0] : array();
 			$packages[]              = $package;
 		}
 
@@ -1225,10 +1227,14 @@ function instawp_function_per_add_callback( $p_event, &$p_header ) {
 
 	global $instawp_old_time;
 	if ( time() - $instawp_old_time > 30 ) {
-		$instawp_old_time = time();
+
 		global $instawp_plugin;
-		$instawp_plugin->check_cancel_backup( $instawp_plugin->current_task['id'] );
-		InstaWP_taskmanager::update_backup_task_status( $instawp_plugin->current_task['id'] );
+
+		$instawp_old_time = time();
+		$current_task_id  = isset( $instawp_plugin->current_task['id'] ) ? $instawp_plugin->current_task['id'] : '';
+
+		$instawp_plugin->check_cancel_backup( $current_task_id );
+		InstaWP_taskmanager::update_backup_task_status( $current_task_id );
 	}
 
 	return 1;

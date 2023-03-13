@@ -46,7 +46,7 @@ $staging_sites = $wpdb->get_results( "SELECT * FROM " . INSTAWP_DB_TABLE_STAGING
                                     <td class="whitespace-nowrap py-8 px-6 text-xs font-medium flex items-center text-grayCust-300">
 										<?php
 										printf( '<img src="%s" class="mr-2" alt=""><a target="_blank" href="%s">%s</a>',
-											instawp()::get_asset_url( 'migrate/assets/images/globe.svg' ),
+											instawp()::get_asset_url( 'migrate/assets/images/glob.svg' ),
 											esc_url_raw( 'https://' . $site_url ), $site_name
 										);
 										?>

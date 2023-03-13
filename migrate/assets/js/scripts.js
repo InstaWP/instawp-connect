@@ -26,6 +26,50 @@ tailwind.config = {
 
 (function ($, window, document, plugin_object) {
 
+    let instawp_migrate_api_call_interval = null,
+        instawp_migrate_api_call = () => {
+
+            let instawp_migrate_container = $('.instawp-wrap .nav-item-content.create'),
+                bar_backup = instawp_migrate_container.find('.instawp-bar-backup'),
+                bar_restore = instawp_migrate_container.find('.instawp-bar-restore'),
+                bar_migrate = instawp_migrate_container.find('.instawp-bar-migrate');
+
+            $.ajax({
+                type: 'POST',
+                url: plugin_object.ajax_url,
+                context: this,
+                data: {
+                    'action': 'instawp_connect_migrate',
+                },
+                success: function (response) {
+
+                    if (response.success) {
+
+                        console.log(response.data);
+
+                        bar_backup.css('--progress', response.data.backup.progress + '%');
+                        bar_restore.css('--progress', response.data.restore.progress + '%');
+                        bar_migrate.css('--progress', response.data.migrate.progress + '%');
+
+                        // if (response.data.progress === 100) {
+                        //     clearInterval(instawp_migrate_api_call_interval);
+                        //     create_container.removeClass('loading');
+                        // }
+                    }
+                }
+            });
+        };
+
+    $(document).on('click', '.instawp-wrap .instawp-button-create', function () {
+
+        let button_create = $(this),
+            create_container = $('.instawp-wrap .nav-item-content.create');
+
+        create_container.addClass('loading');
+
+        instawp_migrate_api_call_interval = setInterval(instawp_migrate_api_call, 3000);
+    });
+
 
     $(document).on('ready', function () {
         // let all_nav_items = $('.instawp-wrap .nav-items .nav-item');
@@ -39,7 +83,40 @@ tailwind.config = {
         } else {
             all_nav_items.first().find('a').trigger('click');
         }
+
+        let instawp_migrate_container = $('.instawp-wrap .nav-item-content.create');
+
+        if (instawp_migrate_container.hasClass('loading')) {
+            instawp_migrate_api_call_interval = setInterval(instawp_migrate_api_call, 3000);
+        }
     });
+
+
+    $(document).on('click', '.instawp-wrap .instawp-button-connect', function () {
+
+        let button_connect = $(this);
+
+        button_connect.addClass('loading');
+
+        $.ajax({
+            type: 'POST',
+            url: plugin_object.ajax_url,
+            context: this,
+            data: {
+                'action': 'instawp_connect_api_url',
+            },
+            success: function (response) {
+
+                if (response.success) {
+                    setTimeout(function () {
+                        window.open(response.data.connect_url, '_blank');
+                        button_connect.removeClass('loading');
+                    }, 1000);
+                }
+            }
+        });
+    });
+
 
     $(document).on('submit', '.instawp-form', function (e) {
 
@@ -65,19 +142,22 @@ tailwind.config = {
                 setTimeout(function () {
                     this_form.removeClass('loading');
 
-                    if (!response.success) {
+                    if (response.success) {
+                        this_form_response.addClass('success').html(response.data.message);
+                    } else {
                         this_form_response.addClass('error').html(response.data.message);
-                        return false;
                     }
-
-                    this_form_response.addClass('success').html(response.data.message);
-
                 }, 1000);
+
+                setTimeout(function () {
+                    this_form_response.removeClass('success error').html('');
+                }, 3000);
             }
         });
 
         return false;
     });
+
 
     $(document).on('click', '.instawp-wrap .nav-items .nav-item > a', function () {
         let this_nav_item_link = $(this),
@@ -95,6 +175,7 @@ tailwind.config = {
 
         localStorage.setItem('instawp_admin_current', this_nav_item_id);
     });
+
 
     // $(function () {
     //     $("#switch-id").change(function () {

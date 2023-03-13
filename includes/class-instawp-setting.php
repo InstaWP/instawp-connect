@@ -32,10 +32,8 @@ class InstaWP_Setting {
 			self::set_default_common_option();
 		}
 
-		// $ret = get_option('instawp_api_url','');
-		// if ( empty($ret) ) {
-		//     self::set_api_domain();
-		// }
+		// Setting up default
+		self::set_api_domain();
 	}
 
 
@@ -195,8 +193,8 @@ class InstaWP_Setting {
 					'desc'    => esc_html__( 'WPDB option has a better compatibility, but slower. ', 'instawp-connect' ) .
 					             esc_html__( 'It is recommended to choose PDO if pdo_mysql extension is installed.', 'instawp-connect' ),
 					'options' => array(
-						'pdo'  => esc_html__( 'PDO', 'instawp-connect' ),
 						'wpdb' => esc_html__( 'WPDB', 'instawp-connect' ),
+						'pdo'  => esc_html__( 'PDO', 'instawp-connect' ),
 					),
 				),
 			),
@@ -209,7 +207,7 @@ class InstaWP_Setting {
 			'internal' => true,
 			'fields'   => array(
 				array(
-					'id'          => 'instawp_api_url_internal',
+					'id'          => 'instawp_api_url',
 					'type'        => 'url',
 					'title'       => esc_html__( 'API Domain', 'instawp-connect' ),
 					'placeholder' => esc_url_raw( 'https://stage.instawp.io' ),
@@ -245,7 +243,6 @@ class InstaWP_Setting {
 
 		return $value;
 	}
-
 
 	public static function get_default_option( $option_name ) {
 		$options = array();
@@ -303,15 +300,19 @@ class InstaWP_Setting {
 		file_put_contents( $global_config_file, implode( "\n", $original_lines ) );
 	}
 
-	public static function set_api_domain( $instawp_api_url = 'https://app.instawp.io' ) {
+	public static function set_api_domain( $instawp_api_url = '' ) {
+
+		$instawp_api_url = empty( $instawp_api_url ) ? esc_url_raw( 'https://app.instawp.io' ) : $instawp_api_url;
+
 		update_option( 'instawp_api_url', $instawp_api_url );
 	}
 
 	public static function get_api_domain() {
-		// if( !empty( get_option('instawp_api_url_internal'))){
-		//     return get_option( 'instawp_api_url_internal' );
-		// }
 		return get_option( 'instawp_api_url' );
+	}
+
+	public static function get_api_key() {
+		return get_option( 'instawp_api_key' );
 	}
 
 	public static function instawp_generate_api_key( $access_token, $status ) {
@@ -342,6 +343,7 @@ class InstaWP_Setting {
 					$connect_options['response'] = $body;
 
 					update_option( 'instawp_api_options', $connect_options );
+					update_option( 'instawp_api_key', $api_key );
 				}
 			}
 			/* API KEY Store Code End */
