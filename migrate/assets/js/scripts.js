@@ -31,7 +31,7 @@ tailwind.config = {
 
             let instawp_migrate_container = $('.instawp-wrap .nav-item-content.create'),
                 bar_backup = instawp_migrate_container.find('.instawp-bar-backup'),
-                bar_restore = instawp_migrate_container.find('.instawp-bar-restore'),
+                bar_upload = instawp_migrate_container.find('.instawp-bar-upload'),
                 bar_migrate = instawp_migrate_container.find('.instawp-bar-migrate');
 
             $.ajax({
@@ -48,7 +48,7 @@ tailwind.config = {
                         console.log(response.data);
 
                         bar_backup.css('--progress', response.data.backup.progress + '%');
-                        bar_restore.css('--progress', response.data.restore.progress + '%');
+                        bar_upload.css('--progress', response.data.upload.progress + '%');
                         bar_migrate.css('--progress', response.data.migrate.progress + '%');
 
                         // if (response.data.progress === 100) {

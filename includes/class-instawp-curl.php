@@ -26,7 +26,59 @@ class InstaWP_Curl {
 
 	public function __construct() {
 		add_action( "http_api_curl", array( $this, "instawp_http_api_curl" ), 10, 3 );
+	}
 
+
+	public static function do_curl( $endpoint, $body = array(), $headers = array(), $is_post = true, $api_version = 'v2' ) {
+
+		$connect_options = InstaWP_Setting::get_option( 'instawp_api_options', array() );
+
+		if ( empty( $api_url = InstaWP_Setting::get_api_domain() ) ) {
+			return array( 'success' => false, 'message' => esc_html__( 'Invalid or Empty API Domain', 'instawp-connect' ) );
+		}
+
+		if ( empty( $api_key = InstaWP_Setting::get_args_option( 'api_key', $connect_options ) ) ) {
+			return array( 'success' => false, 'message' => esc_html__( 'Invalid or Empty API Key', 'instawp-connect' ) );
+		}
+
+		$api_url    = $api_url . '/api/' . $api_version . '/' . $endpoint;
+		$headers    = wp_parse_args( $headers,
+			array(
+				'Authorization: Bearer ' . $api_key,
+				'Accept: application/json',
+				'Content-Type: application/json',
+			)
+		);
+		$api_method = $is_post ? 'POST' : 'GET';
+		$curl       = curl_init();
+
+		curl_setopt_array( $curl,
+			array(
+				CURLOPT_URL            => $api_url,
+				CURLOPT_RETURNTRANSFER => true,
+				CURLOPT_ENCODING       => '',
+				CURLOPT_MAXREDIRS      => 10,
+				CURLOPT_TIMEOUT        => 0,
+				CURLOPT_FOLLOWLOCATION => true,
+				CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
+				CURLOPT_CUSTOMREQUEST  => $api_method,
+				CURLOPT_POSTFIELDS     => json_encode( $body ),
+				CURLOPT_HTTPHEADER     => $headers,
+			)
+		);
+		$api_response = curl_exec( $curl );
+		curl_close( $curl );
+
+		$api_response     = json_decode( $api_response, true );
+		$response_status  = InstaWP_Setting::get_args_option( 'status', $api_response );
+		$response_data    = InstaWP_Setting::get_args_option( 'data', $api_response, array() );
+		$response_message = InstaWP_Setting::get_args_option( 'message', $api_response );
+
+		if ( ! $response_status ) {
+			return array( 'success' => false, 'message' => $api_response->get_error_message() );
+		}
+
+		return array( 'success' => true, 'message' => $response_message, 'data' => $response_data );
 	}
 
 
@@ -64,7 +116,6 @@ class InstaWP_Curl {
 				'Content-Type'  => 'application/json',
 				'Accept'        => 'application/json'
 			)
-
 		);
 		$WP_Http_Curl   = new WP_Http_Curl();
 		$this->response = $WP_Http_Curl->request( $url, $args );
@@ -85,7 +136,7 @@ class InstaWP_Curl {
 			$InstaWP_Backup_Api->instawp_log->WriteLog( 'Response:' . $this->response, 'error' );
 		} else {
 			$respons_arr = (array) json_decode( $this->response['body'] );
-			if ( isset($respons_arr['status'] ) && $respons_arr['status'] == 1 ) {
+			if ( isset( $respons_arr['status'] ) && $respons_arr['status'] == 1 ) {
 
 				$res['error']    = 0;
 				$res['curl_res'] = $this->response['body'];

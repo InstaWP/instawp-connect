@@ -38,8 +38,8 @@ $is_loading_class    = ! empty( $incomplete_task_ids ) ? 'loading' : '';
                 <div class="instawp-bar instawp-bar-backup w-full" style="--progress: 0%;"></div>
             </div>
             <div class="w-1/2 mr-6 mb-6">
-                <span class="block text-sm font-medium text-gray-700 mb-3 sm:mt-px sm:pt-2">Restore</span>
-                <div class="instawp-bar instawp-bar-restore w-full" style="--progress: 0%;"></div>
+                <span class="block text-sm font-medium text-gray-700 mb-3 sm:mt-px sm:pt-2">Upload</span>
+                <div class="instawp-bar instawp-bar-upload w-full" style="--progress: 0%;"></div>
             </div>
         </div>
 

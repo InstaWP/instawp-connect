@@ -670,4 +670,16 @@ class InstaWP_taskmanager {
 
 		return $incomplete_task_ids;
 	}
+
+
+	public static function get_task_backup_data( $task_id ) {
+
+		$migrate_task = InstaWP_taskmanager::get_task( $task_id );
+
+		if ( ! $migrate_task ) {
+			return array();
+		}
+
+		return $migrate_task['options']['backup_options']['backup'] ?? array();
+	}
 }
