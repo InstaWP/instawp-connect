@@ -3,7 +3,14 @@
  * Migrate template - Create Site
  */
 
+//echo "<pre>";
+//print_r( InstaWP_taskmanager::get_tasks() );
+//echo "</pre>";
+
 InstaWP_taskmanager::delete_all_task();
+$task = new InstaWP_Backup();
+$task->clean_backup();
+
 
 $incomplete_task_ids = InstaWP_taskmanager::is_there_any_incomplete_task_ids();
 $is_loading_class    = ! empty( $incomplete_task_ids ) ? 'loading' : '';
@@ -44,7 +51,7 @@ $is_loading_class    = ! empty( $incomplete_task_ids ) ? 'loading' : '';
         </div>
 
         <div class="mb-6 flex items-center w-full">
-            <div class="w-1/2 mr-6 mb-6">
+            <div class="w-full mr-6 mb-6">
                 <span class="block text-sm font-medium text-gray-700 mb-3 sm:mt-px sm:pt-2">Migration</span>
                 <div class="instawp-bar instawp-bar-migrate w-full" style="--progress: 0%;"></div>
             </div>

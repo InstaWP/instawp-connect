@@ -146,7 +146,7 @@ class InstaWP_Backup_Task {
 	}
 
 	public function get_id() {
-		return $this->task['id'];
+		return isset( $this->task['id'] ) ? $this->task['id'] : '';
 	}
 
 	public function new_backup_task( $options, $type, $action = 'backup' ) {

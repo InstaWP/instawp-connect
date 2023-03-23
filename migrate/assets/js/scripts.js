@@ -34,10 +34,21 @@ tailwind.config = {
                 bar_upload = instawp_migrate_container.find('.instawp-bar-upload'),
                 bar_migrate = instawp_migrate_container.find('.instawp-bar-migrate');
 
+
+            if (instawp_migrate_container.hasClass('doing-ajax')) {
+                return;
+            }
+
             $.ajax({
                 type: 'POST',
                 url: plugin_object.ajax_url,
                 context: this,
+                beforeSend: function () {
+                    instawp_migrate_container.addClass('doing-ajax');
+                },
+                complete: function () {
+                    instawp_migrate_container.removeClass('doing-ajax');
+                },
                 data: {
                     'action': 'instawp_connect_migrate',
                 },
