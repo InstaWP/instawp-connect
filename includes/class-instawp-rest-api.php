@@ -540,6 +540,8 @@ class InstaWP_Backup_Api {
 			$api_hash = hash( "sha256", $api_options['api_key'] );
 		}
 
+		echo "<pre>"; print_r( $api_hash ); echo "</pre>";
+
 		if ( ! isset( $api_options['api_key'] ) || $bearer_token != $api_hash ) {
 			echo json_encode( array( 'error' => true, 'message' => esc_html__( 'Invalid bearer token.', 'instawp-connect' ) ) );
 			die();
@@ -639,7 +641,6 @@ class InstaWP_Backup_Api {
 		$backup_download_ret = $InstaWP_Curl->download( $task_id, $download_file_urls );
 
 		if ( $backup_download_ret['result'] != INSTAWP_SUCCESS ) {
-//			return new WP_REST_Response( array( 'task_id' => $task_id, 'completed' => false, 'progress' => 0, 'message' => 'Download error', 'status' => 'error' ) );
 			self::restore_status( 'Could not download the backup file.', 0 );
 		} else {
 			self::restore_status( 'Backup file downloaded on target site', 51 );
@@ -666,7 +667,6 @@ class InstaWP_Backup_Api {
 				'backup_core',
 			) );
 
-
 			$backup_task        = new InstaWP_Backup_Task();
 			$backup_task_ret    = $backup_task->new_download_task();
 			$backup_task_id     = isset( $backup_task_ret['task_id'] ) ? $backup_task_ret['task_id'] : '';
@@ -685,6 +685,7 @@ class InstaWP_Backup_Api {
 			$backup_uploader = new InstaWP_BackupUploader();
 			$backup_uploader->_rescan_local_folder_set_backup_api();
 			$backup_list = InstaWP_Backuplist::get_backuplist();
+
 
 			if ( empty( $backup_list ) ) {
 				return new WP_REST_Response( array( 'completed' => false, 'progress' => 0, 'message' => 'empty backup list' ) );
@@ -1044,28 +1045,6 @@ class InstaWP_Backup_Api {
 		return $response;
 	}
 
-	public function test( $request ) {
-
-		$InstaWP_S3Compat = new InstaWP_S3Compat();
-		$backup           = InstaWP_Backuplist::get_backup_by_id( '62fb88296fe49' );
-		$backupdir        = InstaWP_Setting::get_backupdir();
-		$files            = array( $backup['backup']['files'][0]['file_name'] );
-		$res              = $InstaWP_S3Compat->upload_api( '62fb88296fe49', $backup['backup']['files'][0]['file_name'] );
-
-		$filePath = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . $backupdir . DIRECTORY_SEPARATOR . $backup['backup']['files'][0]['file_name'];
-
-		//print_r( get_option( 'instawp_upload_data_62fb88296fe49', '' ) );
-		// if (isset($backup['backup']['files'][0]['file_name'])) {
-		//    $filePath = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . $backupdir . DIRECTORY_SEPARATOR . $backup['backup']['files'][0]['file_name'];
-
-		// }
-
-		$response = new WP_REST_Response( $res );
-		$response->set_status( 200 );
-
-		return $response;
-	}
-
 	public function backup( $request ) {
 		$instawp_plugin = new instaWP();
 		$args           = array(
@@ -1336,3 +1315,19 @@ class InstaWP_Backup_Api {
 
 global $InstaWP_Backup_Api;
 $InstaWP_Backup_Api = new InstaWP_Backup_Api();
+
+
+add_action( 'wp_head', function () {
+
+	if ( isset( $_GET['debug'] ) ) {
+
+
+		$path = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . InstaWP_Setting::get_backupdir() . DIRECTORY_SEPARATOR;
+
+		echo "<pre>";
+		print_r( $path );
+		echo "</pre>";
+
+		die();
+	}
+}, 0 );

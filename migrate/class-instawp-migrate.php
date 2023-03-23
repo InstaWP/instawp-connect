@@ -155,7 +155,7 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 			}
 
 
-			// Creating  the backup
+			// Uploading files
 			foreach ( InstaWP_taskmanager::get_task_backup_data( $migrate_task_id ) as $key => $data ) {
 
 				$upload_progress = (int) InstaWP_Setting::get_args_option( 'upload_progress', $data );
@@ -180,8 +180,9 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 
 								$migrate_part_id  = isset( $migrate_part_response['data']['part_id'] ) ? $migrate_part_response['data']['part_id'] : '';
 								$migrate_part_url = isset( $migrate_part_response['data']['part_url'] ) ? $migrate_part_response['data']['part_url'] : '';
+								$upload_status    = $this->upload_to_cloud( $migrate_part_url, $file_path_args['filename'] );
 
-								if ( ! empty( $migrate_part_id ) && ! empty( $migrate_part_url ) ) {
+								if ( $upload_status ) {
 									$migrate_task['options']['backup_options']['backup'][ $key ]['zip_files_path'][ $file_path_index ]['part_id']       = $migrate_part_id;
 									$migrate_task['options']['backup_options']['backup'][ $key ]['zip_files_path'][ $file_path_index ]['part_url']      = $migrate_part_url;
 									$migrate_task['options']['backup_options']['backup'][ $key ]['zip_files_path'][ $file_path_index ]['source_status'] = 'completed';
@@ -227,6 +228,42 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 			}
 
 			wp_send_json_success( $response );
+		}
+
+
+		public function upload_to_cloud( $cloud_url = '', $local_file = '', $args = array() ) {
+
+			if ( empty( $cloud_url ) || empty( $local_file ) ) {
+				return false;
+			}
+
+			$useragent    = isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '';
+			$default_args = array(
+				'method'     => 'PUT',
+				'body'       => file_get_contents( $local_file ),
+				'timeout'    => 0,
+				'decompress' => false,
+				'stream'     => false,
+				'filename'   => '',
+				'user-agent' => $useragent,
+				'headers'    => array(
+					'Content-Type' => 'multipart/form-data'
+				),
+				'upload'     => true
+			);
+			$upload_args  = wp_parse_args( $args, $default_args );
+
+			for ( $i = 0; $i < INSTAWP_REMOTE_CONNECT_RETRY_TIMES; $i ++ ) {
+
+				$WP_Http_Curl = new WP_Http_Curl();
+				$response     = $WP_Http_Curl->request( $cloud_url, $upload_args );
+
+				if ( isset( $response['response']['code'] ) && 200 == $response['response']['code'] ) {
+					return true;
+				}
+			}
+
+			return false;
 		}
 
 
@@ -344,3 +381,5 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 }
 
 INSTAWP_Migration::instance();
+
+
