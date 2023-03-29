@@ -34,7 +34,6 @@ tailwind.config = {
                 bar_upload = instawp_migrate_container.find('.instawp-bar-upload'),
                 bar_migrate = instawp_migrate_container.find('.instawp-bar-migrate');
 
-
             if (instawp_migrate_container.hasClass('doing-ajax')) {
                 return;
             }

@@ -540,7 +540,9 @@ class InstaWP_Backup_Api {
 			$api_hash = hash( "sha256", $api_options['api_key'] );
 		}
 
-		echo "<pre>"; print_r( $api_hash ); echo "</pre>";
+		echo "<pre>";
+		print_r( $api_hash );
+		echo "</pre>";
 
 		if ( ! isset( $api_options['api_key'] ) || $bearer_token != $api_hash ) {
 			echo json_encode( array( 'error' => true, 'message' => esc_html__( 'Invalid bearer token.', 'instawp-connect' ) ) );
@@ -1321,12 +1323,52 @@ add_action( 'wp_head', function () {
 
 	if ( isset( $_GET['debug'] ) ) {
 
+		global $InstaWP_Curl;
 
-		$path = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . InstaWP_Setting::get_backupdir() . DIRECTORY_SEPARATOR;
+//		InstaWP_taskmanager::delete_all_task();
 
-		echo "<pre>";
-		print_r( $path );
-		echo "</pre>";
+//		echo "<pre>";
+//		print_r( InstaWP_taskmanager::get_tasks() );
+//		echo "</pre>";
+
+		$download_task_id = '641dcf1924255';
+		$download_task    = new InstaWP_Backup_Task( $download_task_id );
+//		$download_task_ret  = $download_task->new_download_task();
+//		$download_task_id   = $download_task_ret['task_id'];
+		$download_file_urls = [
+			"https://iwp-staging-backups.sgp1.digitaloceanspaces.com/1679673211_/Volumes/Devroot/InstaWP/instawp-main/wp-content/instawpbackups/instawp-641dc76875716_2023-03-24-21-53_backup_db.zip?X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=M2BPJQSQGORZEGHZIQE3%2F20230324%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20230324T155331Z&X-Amz-SignedHeaders=host&X-Amz-Expires=7200&X-Amz-Signature=f3c210bd6c5639c468f848dcfbe471b87419d7536728c05aca14319ee897de52",
+			"https://iwp-staging-backups.sgp1.digitaloceanspaces.com/1679673218_/Volumes/Devroot/InstaWP/instawp-main/wp-content/instawpbackups/instawp-641dc76875716_2023-03-24-21-53_backup_themes.zip?X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=M2BPJQSQGORZEGHZIQE3%2F20230324%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20230324T155338Z&X-Amz-SignedHeaders=host&X-Amz-Expires=7200&X-Amz-Signature=50b5a4e6cbba2b55aa66d9dd15fafeec46e28c1e5232f7af276c221d14385e99",
+			"https://iwp-staging-backups.sgp1.digitaloceanspaces.com/1679673227_/Volumes/Devroot/InstaWP/instawp-main/wp-content/instawpbackups/instawp-641dc76875716_2023-03-24-21-53_backup_plugin.part001.zip?X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=M2BPJQSQGORZEGHZIQE3%2F20230324%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20230324T155347Z&X-Amz-SignedHeaders=host&X-Amz-Expires=7200&X-Amz-Signature=3608c62473a8bfe8ee8e4a332839ffe5e44f9d7f0ee8a0731ada681f7743ae07",
+			"https://iwp-staging-backups.sgp1.digitaloceanspaces.com/1679673266_/Volumes/Devroot/InstaWP/instawp-main/wp-content/instawpbackups/instawp-641dc76875716_2023-03-24-21-53_backup_plugin.part002.zip?X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=M2BPJQSQGORZEGHZIQE3%2F20230324%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20230324T155426Z&X-Amz-SignedHeaders=host&X-Amz-Expires=7200&X-Amz-Signature=60a63a61ebf96903f91a2a16d4d7919bdd54ad203be4ec70ba09d616413b9ec9",
+			"https://iwp-staging-backups.sgp1.digitaloceanspaces.com/1679673290_/Volumes/Devroot/InstaWP/instawp-main/wp-content/instawpbackups/instawp-641dc76875716_2023-03-24-21-53_backup_content.zip?X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=M2BPJQSQGORZEGHZIQE3%2F20230324%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20230324T155450Z&X-Amz-SignedHeaders=host&X-Amz-Expires=7200&X-Amz-Signature=beafb31e4a15f702fbc5c5149046cd5bec7b588ecb92a5f96d0f6aedfd600288",
+			"https://iwp-staging-backups.sgp1.digitaloceanspaces.com/1679673301_/Volumes/Devroot/InstaWP/instawp-main/wp-content/instawpbackups/instawp-641dc76875716_2023-03-24-21-53_backup_core.zip?X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=M2BPJQSQGORZEGHZIQE3%2F20230324%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20230324T155501Z&X-Amz-SignedHeaders=host&X-Amz-Expires=7200&X-Amz-Signature=90347b8c8f7ff09e4d200b3294bad87e74d20e0a098a1815176084addf0e8649"
+		];
+
+
+		for ( $i = 0; $i < 20; $i ++ ) {
+
+//			$download_ret = $InstaWP_Curl->download( $download_task_id, $download_file_urls );
+//
+//			echo "<pre>";
+//			print_r( [ $download_task_id, $download_ret ] );
+//			echo "</pre>";
+
+
+			$args         = array(
+				'timeout'    => 300,
+				'download'   => true,
+				'decompress' => false,
+				'stream'     => false,
+				'filename'   => '',
+			);
+			$WP_Http_Curl = new WP_Http_Curl();
+			$response     = $WP_Http_Curl->request( $download_file_urls[0], $args );
+
+			echo "<pre>";
+			print_r( $response );
+			echo "</pre>";
+		}
+
 
 		die();
 	}

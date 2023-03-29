@@ -74,11 +74,7 @@ class InstaWP_Curl {
 		$response_data    = InstaWP_Setting::get_args_option( 'data', $api_response, array() );
 		$response_message = InstaWP_Setting::get_args_option( 'message', $api_response );
 
-		if ( ! $response_status ) {
-			return array( 'success' => false, 'message' => $api_response->get_error_message() );
-		}
-
-		return array( 'success' => true, 'message' => $response_message, 'data' => $response_data );
+		return array( 'success' => $response_status, 'message' => $response_message, 'data' => $response_data );
 	}
 
 
@@ -556,7 +552,6 @@ class InstaWP_Curl {
 			'error'  => 'Download failed, retries exhausted. File name:',
 		);
 		// the following lines write the contents to a file in the same directory (provided permissions etc)
-
 	}
 
 	public function _output( $output_filename, $content ) {
