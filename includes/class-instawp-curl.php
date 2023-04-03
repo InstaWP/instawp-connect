@@ -41,16 +41,22 @@ class InstaWP_Curl {
 			return array( 'success' => false, 'message' => esc_html__( 'Invalid or Empty API Key', 'instawp-connect' ) );
 		}
 
-		$api_url    = $api_url . '/api/' . $api_version . '/' . $endpoint;
-		$headers    = wp_parse_args( $headers,
+		$api_url = $api_url . '/api/' . $api_version . '/' . $endpoint;
+		$headers = wp_parse_args( $headers,
 			array(
 				'Authorization: Bearer ' . $api_key,
 				'Accept: application/json',
 				'Content-Type: application/json',
 			)
 		);
-		$api_method = $is_post ? 'POST' : 'GET';
-		$curl       = curl_init();
+
+		if ( is_string( $is_post ) && $is_post == 'patch' ) {
+			$api_method = 'PATCH';
+		} else {
+			$api_method = $is_post ? 'POST' : 'GET';
+		}
+
+		$curl = curl_init();
 
 		curl_setopt_array( $curl,
 			array(

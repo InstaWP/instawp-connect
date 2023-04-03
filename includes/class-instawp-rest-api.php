@@ -540,10 +540,6 @@ class InstaWP_Backup_Api {
 			$api_hash = hash( "sha256", $api_options['api_key'] );
 		}
 
-		echo "<pre>";
-		print_r( $api_hash );
-		echo "</pre>";
-
 		if ( ! isset( $api_options['api_key'] ) || $bearer_token != $api_hash ) {
 			echo json_encode( array( 'error' => true, 'message' => esc_html__( 'Invalid bearer token.', 'instawp-connect' ) ) );
 			die();

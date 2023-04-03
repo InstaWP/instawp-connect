@@ -3,74 +3,11 @@
  * Migrate template - Create Site
  */
 
-//echo "<pre>";
-//print_r( InstaWP_taskmanager::get_tasks() );
-//echo "</pre>";
-
-InstaWP_taskmanager::delete_all_task();
-$task = new InstaWP_Backup();
-$task->clean_backup();
-
-
-//$migrate_task_id  = 'instawp-641dc76875716';
-//$migrate_task_obj = new InstaWP_Backup_Task( $migrate_task_id );
-//$migrate_task     = InstaWP_taskmanager::get_task( $migrate_task_id );
-//$migrate_id       = InstaWP_Setting::get_args_option( 'migrate_id', $migrate_task );
-//$cloud_urls       = InstaWP_taskmanager::get_cloud_uploaded_files( $migrate_task_id );
-//$cloud_urls       = array_map( function ( $url ) {
-//	return '"' . $url . '"';
-//}, $cloud_urls );
-//$cloud_urls       = implode( ',', $cloud_urls );
-//
-//echo "<pre>";
-//print_r( $cloud_urls );
-//echo "</pre>";
-
-//$local_file  = $migrate_task['options']['backup_options']['backup']['backup_db']['zip_files_path'][0];
-//$useragent   = isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '';
-
-//$upload_args = array(
-//	'method'     => 'PUT',
-//	'body'       => file_get_contents( $local_file ),
-//	'timeout'    => 0,
-//	'decompress' => false,
-//	'stream'     => false,
-//	'filename'   => '',
-//	'user-agent' => $useragent,
-//	'upload'     => true,
-//	'headers'    => array(
-//		'Content-Type' => 'multipart/form-data'
-//	),
-//);
-
-//$backup_task     = new InstaWP_Backup_Task();
-//$backup_task_ret = $backup_task->new_download_task();
-
-
-//
-//for ( $i = 0; $i < INSTAWP_REMOTE_CONNECT_RETRY_TIMES; $i ++ ) {
-//
-////	$WP_Http_Curl = new WP_Http_Curl();
-////	$response     = $WP_Http_Curl->request( $cloud_urls[0], $upload_args );
-//
-//	$basename     = basename( parse_url( $cloud_urls[0], PHP_URL_PATH ) );
-//	$args         = array(
-//		'timeout'    => 300,
-//		'download'   => true,
-//		'decompress' => false,
-//		'stream'     => false,
-//		'filename'   => '',
-//		'user-agent' => $useragent,
-//	);
-//	$WP_Http_Curl = new WP_Http_Curl();
-//	$response     = $WP_Http_Curl->request( $cloud_urls[0], $args );
-//
-//	echo "<pre>";
-//	print_r( $response );
-//	echo "</pre>";
-//}
-
-//return;
+if ( isset( $_GET['clear'] ) && $_GET['clear'] == 'all' ) {
+	InstaWP_taskmanager::delete_all_task();
+	$task = new InstaWP_Backup();
+	$task->clean_backup();
+}
 
 $incomplete_task_ids = InstaWP_taskmanager::is_there_any_incomplete_task_ids();
 $is_loading_class    = ! empty( $incomplete_task_ids ) ? 'loading' : '';
