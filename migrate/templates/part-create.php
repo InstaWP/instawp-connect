@@ -7,30 +7,6 @@ if ( isset( $_GET['clear'] ) && $_GET['clear'] == 'all' ) {
 	InstaWP_taskmanager::delete_all_task();
 	$task = new InstaWP_Backup();
 	$task->clean_backup();
-
-
-	global $wpdb;
-
-	$ret = update_option( 'instawp_finish_upload', array() );
-
-	echo "<pre>";
-	var_dump( $ret );
-	echo "</pre>";
-
-	echo "<pre>";
-	print_r( $wpdb->last_error );
-	echo "</pre>";
-
-	$instawp_finish_upload = get_option( 'instawp_finish_upload', array() );
-
-	echo "<pre>";
-	print_r( $instawp_finish_upload );
-	echo "</pre>";
-
-
-//	echo "<pre>";
-//	print_r( InstaWP_taskmanager::get_tasks() );
-//	echo "</pre>";
 }
 
 $incomplete_task_ids = InstaWP_taskmanager::is_there_any_incomplete_task_ids();
