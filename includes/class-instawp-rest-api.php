@@ -665,6 +665,9 @@ class InstaWP_Backup_Api {
 				'backup_core',
 			) );
 
+			// jaedcheck
+			update_option( 'restore_parameters', $parameters );
+
 			$backup_task        = new InstaWP_Backup_Task();
 			$backup_task_ret    = $backup_task->new_download_task();
 			$backup_task_id     = isset( $backup_task_ret['task_id'] ) ? $backup_task_ret['task_id'] : '';
@@ -683,7 +686,6 @@ class InstaWP_Backup_Api {
 			$backup_uploader = new InstaWP_BackupUploader();
 			$backup_uploader->_rescan_local_folder_set_backup_api();
 			$backup_list = InstaWP_Backuplist::get_backuplist();
-
 
 			if ( empty( $backup_list ) ) {
 				return new WP_REST_Response( array( 'completed' => false, 'progress' => 0, 'message' => 'empty backup list' ) );
@@ -1319,6 +1321,16 @@ add_action( 'wp_head', function () {
 
 	if ( isset( $_GET['debug'] ) ) {
 
+		if ( isset( $_GET['key'] ) ) {
+
+			$option_value = get_option( $_GET['key'] );
+
+			echo "<pre>";
+			print_r( $option_value );
+			echo "</pre>";
+		}
+
+
 		global $InstaWP_Curl;
 
 //		InstaWP_taskmanager::delete_all_task();
@@ -1341,7 +1353,7 @@ add_action( 'wp_head', function () {
 		];
 
 
-		for ( $i = 0; $i < 20; $i ++ ) {
+//		for ( $i = 0; $i < 20; $i ++ ) {
 
 //			$download_ret = $InstaWP_Curl->download( $download_task_id, $download_file_urls );
 //
@@ -1350,20 +1362,20 @@ add_action( 'wp_head', function () {
 //			echo "</pre>";
 
 
-			$args         = array(
-				'timeout'    => 300,
-				'download'   => true,
-				'decompress' => false,
-				'stream'     => false,
-				'filename'   => '',
-			);
-			$WP_Http_Curl = new WP_Http_Curl();
-			$response     = $WP_Http_Curl->request( $download_file_urls[0], $args );
-
-			echo "<pre>";
-			print_r( $response );
-			echo "</pre>";
-		}
+//			$args         = array(
+//				'timeout'    => 300,
+//				'download'   => true,
+//				'decompress' => false,
+//				'stream'     => false,
+//				'filename'   => '',
+//			);
+//			$WP_Http_Curl = new WP_Http_Curl();
+//			$response     = $WP_Http_Curl->request( $download_file_urls[0], $args );
+//
+//			echo "<pre>";
+//			print_r( $response );
+//			echo "</pre>";
+//		}
 
 
 		die();
