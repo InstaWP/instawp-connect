@@ -84,6 +84,8 @@ class InstaWP_restore_data {
 
 		$packages = $backup_item->get_backup_packages();
 
+		echo "<pre>"; print_r( $packages ); echo "</pre>";
+
 		foreach ( $packages as $index => $package ) {
 			$data['restore_tasks'][ $index ]['index']       = $index;
 			$data['restore_tasks'][ $index ]['files']       = $package['files'];

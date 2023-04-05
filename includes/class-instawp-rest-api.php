@@ -540,6 +540,10 @@ class InstaWP_Backup_Api {
 			$api_hash = hash( "sha256", $api_options['api_key'] );
 		}
 
+//		echo "<pre>";
+//		print_r( [ $api_options, $bearer_token, $api_hash ] );
+//		echo "</pre>";
+
 		if ( ! isset( $api_options['api_key'] ) || $bearer_token != $api_hash ) {
 			echo json_encode( array( 'error' => true, 'message' => esc_html__( 'Invalid bearer token.', 'instawp-connect' ) ) );
 			die();
@@ -584,9 +588,9 @@ class InstaWP_Backup_Api {
 				$progress_response = (array) json_decode( $progress_results );
 //				$res_result        = array_merge( self::restore_status( $message, $progress_value, $parameters['wp']['options'] ) );
 
-				echo "<pre>";
-				print_r( [ $progress_response, $progress_value ] );
-				echo "</pre>";
+//				echo "<pre>";
+//				print_r( [ $backup_list_key, $progress_value ] );
+//				echo "</pre>";
 
 			} while ( $progress_response['status'] != 'completed' || $progress_response['status'] == 'error' );
 
@@ -693,11 +697,11 @@ class InstaWP_Backup_Api {
 			$backup_uploader->_rescan_local_folder_set_backup_api( $parameters );
 			$backup_list = InstaWP_Backuplist::get_backuplist();
 
-			$backup_list = [];
-
 			if ( empty( $backup_list ) ) {
 				return new WP_REST_Response( array( 'completed' => false, 'progress' => 0, 'message' => 'empty backup list' ) );
 			}
+
+			die();
 
 			// Background processing of restore using woocommerce's scheduler.
 			as_enqueue_async_action( 'instawp_restore_bg', [ $backup_list, $restore_options, $parameters ] );

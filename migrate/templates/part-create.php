@@ -9,6 +9,18 @@ if ( isset( $_GET['clear'] ) && $_GET['clear'] == 'all' ) {
 	$task->clean_backup();
 }
 
+
+//$parts_status_args     = array(
+//	'type'     => 'restore',
+//	'progress' => 40,
+//	'message'  => 'test',
+//	'status'   => 'completed'
+//);
+//$parts_status_response = InstaWP_Curl::do_curl( 'migrates/' . 491 . '/parts/' . 189, $parts_status_args, array(), 'patch' );
+//if ( $parts_status_response['success'] ) {
+//	// success
+//}
+
 $incomplete_task_ids = InstaWP_taskmanager::is_there_any_incomplete_task_ids();
 $is_loading_class    = ! empty( $incomplete_task_ids ) ? 'loading' : '';
 ?>
