@@ -693,6 +693,8 @@ class InstaWP_Backup_Api {
 			$backup_uploader->_rescan_local_folder_set_backup_api( $parameters );
 			$backup_list = InstaWP_Backuplist::get_backuplist();
 
+			$backup_list = [];
+
 			if ( empty( $backup_list ) ) {
 				return new WP_REST_Response( array( 'completed' => false, 'progress' => 0, 'message' => 'empty backup list' ) );
 			}
