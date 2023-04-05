@@ -515,16 +515,19 @@ class instawp_BackupUploader {
 		return $ret;
 	}
 
-	function _rescan_local_folder_set_backup_api() {
-		global $InstaWP_Backup_Api;
-		$path = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . InstaWP_Setting::get_backupdir() . DIRECTORY_SEPARATOR;
+	function _rescan_local_folder_set_backup_api( $parameters = array() ) {
 
-		$this->instawp_check_remove_update_backup( $path );
+		global $InstaWP_Backup_Api;
+
+		$response      = array( 'result' => INSTAWP_SUCCESS, 'html' => '', );
+		$path          = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . InstaWP_Setting::get_backupdir() . DIRECTORY_SEPARATOR;
+		$download_urls = InstaWP_Setting::get_args_option( 'urls', $parameters, array() );
+
+		// $this->instawp_check_remove_update_backup( $path );
 
 		if ( ! is_dir( $path ) ) {
 			return array( 'result' => INSTAWP_FAILED, 'error' => esc_html__( 'Failed to get local storage directory.', 'instawp-connect' ) );
 		}
-
 
 		$backups = array();
 		$handler = opendir( $path );
@@ -535,10 +538,6 @@ class instawp_BackupUploader {
 				if ( $filename == "." || $filename == ".." || is_dir( $path . $filename ) || ! $this->check_file_is_a_instawp_backup( $filename, $backup_id ) ) {
 					continue;
 				}
-
-				echo "<pre>";
-				var_dump( $this->check_is_a_instawp_backup( $path . $filename ) );
-				echo "</pre>";
 
 				if ( $this->zip_check_sum( $path . $filename ) ) {
 
@@ -555,49 +554,47 @@ class instawp_BackupUploader {
 		}
 
 
-		echo "<pre>";
-		print_r( $backups );
-		echo "</pre>";
+		foreach ( $backups as $backup_id => $backup ) {
 
-		if ( ! empty( $backups ) ) {
-			foreach ( $backups as $backup_id => $backup ) {
-				$backup_data['result'] = 'success';
-				$backup_data['files']  = array();
-				if ( empty( $backup['files'] ) ) {
-					continue;
-				}
-				$time = false;
-				foreach ( $backup['files'] as $file ) {
-					if ( $time === false ) {
-						if ( preg_match( '/[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{2}-[0-9]{2}/', $file, $matches ) ) {
-							$backup_time = $matches[0];
-							$time_array  = explode( '-', $backup_time );
-							if ( sizeof( $time_array ) > 4 ) {
-								$time = $time_array[0] . '-' . $time_array[1] . '-' . $time_array[2] . ' ' . $time_array[3] . ':' . $time_array[4];
-							} else {
-								$time = $backup_time;
-							}
-							$time = strtotime( $time );
+			$time        = false;
+			$backup_data = array( 'result' => 'success', 'files' => array() );
+
+			foreach ( InstaWP_Setting::get_args_option( 'files', $backup, array() ) as $file ) {
+
+				if ( $time === false ) {
+					if ( preg_match( '/[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{2}-[0-9]{2}/', $file, $matches ) ) {
+						$backup_time = $matches[0];
+						$time_array  = explode( '-', $backup_time );
+						if ( sizeof( $time_array ) > 4 ) {
+							$time = $time_array[0] . '-' . $time_array[1] . '-' . $time_array[2] . ' ' . $time_array[3] . ':' . $time_array[4];
 						} else {
-							$time = time();
+							$time = $backup_time;
 						}
+						$time = strtotime( $time );
+					} else {
+						$time = time();
 					}
-
-					$add_file['file_name']  = $file;
-					$add_file['size']       = filesize( $path . $file );
-					$backup_data['files'][] = $add_file;
 				}
 
-				InstaWP_Backuplist::add_new_upload_backup( $backup_id, $backup_data, $time, '' );
-			}
-		}
-		$ret['result'] = INSTAWP_SUCCESS;
-		$html          = '';
-		$tour          = true;
-		//  $html = apply_filters('instawp_add_backup_list', $html, 'instawp_backup_list', $tour);
-		$ret['html'] = $html;
+				$part_id = '';
+				foreach ( $download_urls as $download_url ) {
+					if ( basename( strtok( $download_url['url'], '?' ) ) === $file ) {
+						$part_id = $download_url['part_id'];
+						break;
+					}
+				}
 
-		return $ret;
+				$backup_data['files'][] = array(
+					'part_id'   => $part_id,
+					'file_name' => $file,
+					'size'      => filesize( $path . $file ),
+				);
+			}
+
+			InstaWP_Backuplist::add_new_upload_backup( $backup_id, $backup_data, $time );
+		}
+
+		return $response;
 	}
 
 

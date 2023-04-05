@@ -90,7 +90,6 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 
 			$instawp_plugin->instawp_log->WriteLog( sprintf( esc_html__( 'Restore initiated, ID: %s', 'instawp-connect' ), $migrate_id ) );
 
-
 			// Backing up the files
 			foreach ( InstaWP_taskmanager::get_task_backup_data( $migrate_task_id ) as $key => $data ) {
 
@@ -289,6 +288,8 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 
 			// Generating progresses
 			foreach ( InstaWP_taskmanager::get_task_backup_data( $migrate_task_id ) as $key => $data ) {
+
+//				echo "<pre>"; print_r( $data['zip_files_path'] ); echo "</pre>";
 
 				$backup_progress  = (int) InstaWP_Setting::get_args_option( 'backup_progress', $data );
 				$upload_progress  = (int) InstaWP_Setting::get_args_option( 'upload_progress', $data );
