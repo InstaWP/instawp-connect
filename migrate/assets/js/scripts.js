@@ -73,10 +73,10 @@ tailwind.config = {
                                 site_detail_wrap.find('#instawp-site-url').attr('href', response.data.site_detail.url).html(response.data.site_detail.url);
                                 site_detail_wrap.find('#instawp-site-username').html(response.data.site_detail.wp_username);
                                 site_detail_wrap.find('#instawp-site-password').html(response.data.site_detail.wp_password);
-                                site_detail_wrap.find('#instawp-site-magic-url').html(response.data.site_detail.auto_login_url);
+                                site_detail_wrap.find('#instawp-site-magic-url').attr('href', response.data.site_detail.auto_login_url);
                             }
 
-                            create_container.removeClass('loading').addClass('completed');
+                            instawp_migrate_container.removeClass('loading').addClass('completed');
 
                             clearInterval(instawp_migrate_api_call_interval);
                         }

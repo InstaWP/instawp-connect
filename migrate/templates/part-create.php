@@ -9,17 +9,6 @@ if ( isset( $_GET['clear'] ) && $_GET['clear'] == 'all' ) {
 	$task->clean_backup();
 }
 
-//$parts_status_args     = array(
-//	'type'     => 'restore',
-//	'progress' => 40,
-//	'message'  => 'test',
-//	'status'   => 'completed'
-//);
-//$parts_status_response = InstaWP_Curl::do_curl( 'migrates/' . 491 . '/parts/' . 189, $parts_status_args, array(), 'patch' );
-//if ( $parts_status_response['success'] ) {
-//	// success
-//}
-
 $incomplete_task_ids = InstaWP_taskmanager::is_there_any_incomplete_task_ids();
 $is_loading_class    = ! empty( $incomplete_task_ids ) ? 'loading' : '';
 ?>
@@ -90,7 +79,7 @@ $is_loading_class    = ! empty( $incomplete_task_ids ) ? 'loading' : '';
             </div>
 
             <div class="w-1/4 flex justify-end">
-                <a id="instawp-site-magic-url" class="bg-primary-900 text-white hover:text-white py-3 px-5 cursor-pointer text-sm font-medium rounded-md" target="_blank"><?php echo esc_html__( 'Magic login', 'instawp-connect' ); ?></a>
+                <a id="instawp-site-magic-url" class="bg-primary-900 text-white hover:text-white focus:text-white focus:shadow-none focus:outline-none active:text-white active:shadow-none active:outline-none py-3 px-5 cursor-pointer text-sm font-medium rounded-md" target="_blank"><?php echo esc_html__( 'Magic login', 'instawp-connect' ); ?></a>
             </div>
         </div>
 

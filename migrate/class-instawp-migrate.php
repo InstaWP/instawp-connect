@@ -305,8 +305,11 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 				$response['migrate']['migrate_id'] = $migrate_id;
 
 				if ( $overall_migration_progress == 100 && ! empty( $migration_site_detail = instawp_get_migration_site_detail( $migrate_id ) ) ) {
+
 					$response['site_detail'] = $migration_site_detail;
 					$response['status']      = 'completed';
+
+					InstaWP_taskmanager::delete_task( $migrate_task_id );
 				}
 			}
 
