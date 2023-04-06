@@ -541,7 +541,7 @@ class InstaWP_Backup_Api {
 		}
 
 //		echo "<pre>";
-//		print_r( [ $api_options, $bearer_token, $api_hash ] );
+//		print_r( [ $api_hash ] );
 //		echo "</pre>";
 
 		if ( ! isset( $api_options['api_key'] ) || $bearer_token != $api_hash ) {
@@ -565,11 +565,10 @@ class InstaWP_Backup_Api {
 		foreach ( $backup_list as $backup_list_key => $backup ) {
 
 			do {
-				$instawp_plugin->restore_api( $backup_list_key, $restore_options );
+				$instawp_plugin->restore_api( $backup_list_key, $restore_options, $parameters );
 
 				$progress_results = $instawp_plugin->get_restore_progress_api( $backup_list_key );
 				$progress_value   = $instawp_plugin->restore_data->get_next_restore_task_progress();
-
 
 				//consider the foreach loop as well, if there are multiple backup_lists
 				$progress_value = $progress_value * ( $backup_index / $count_backup_list );
@@ -587,10 +586,6 @@ class InstaWP_Backup_Api {
 
 				$progress_response = (array) json_decode( $progress_results );
 //				$res_result        = array_merge( self::restore_status( $message, $progress_value, $parameters['wp']['options'] ) );
-
-//				echo "<pre>";
-//				print_r( [ $backup_list_key, $progress_value ] );
-//				echo "</pre>";
 
 			} while ( $progress_response['status'] != 'completed' || $progress_response['status'] == 'error' );
 
@@ -700,8 +695,6 @@ class InstaWP_Backup_Api {
 			if ( empty( $backup_list ) ) {
 				return new WP_REST_Response( array( 'completed' => false, 'progress' => 0, 'message' => 'empty backup list' ) );
 			}
-
-			die();
 
 			// Background processing of restore using woocommerce's scheduler.
 			as_enqueue_async_action( 'instawp_restore_bg', [ $backup_list, $restore_options, $parameters ] );
@@ -1242,6 +1235,12 @@ add_action( 'wp_head', function () {
 			print_r( $option_value );
 			echo "</pre>";
 		}
+
+//		update_option( 'aaa_check_time', current_time( 'mysql', true ) );
+
+		echo "<pre>";
+		print_r( get_option( 'aaa_check_time' ) );
+		echo "</pre>";
 
 
 		global $InstaWP_Curl;

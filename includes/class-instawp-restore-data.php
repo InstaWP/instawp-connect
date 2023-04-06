@@ -63,7 +63,7 @@ class InstaWP_restore_data {
 		}
 	}
 
-	public function init_restore_data( $backup_id, $restore_options = array() ) {
+	public function init_restore_data( $backup_id, $restore_options = array(), $parameters = array() ) {
 		//$data = require_once plugin_dir_path( dirname( __FILE__ ) ) .'includes/class-instawp-restore-template.php';
 		$this->restore_log = new InstaWP_Log();
 		$this->restore_log->CreateLogFile( $this->restore_log_file, 'has_folder', 'restore' );
@@ -79,12 +79,10 @@ class InstaWP_restore_data {
 		//$data['restore_options']['is_migrate']=1;
 		$backup              = InstaWP_Backuplist::get_backup_by_id( $backup_id );
 		$data['backup_data'] = $backup;
+		$data['migrate_id']  = $parameters['wp']['options']['instawp_migrate_id'] ?? '';
 
 		$backup_item = new InstaWP_Backup_Item( $backup );
-
-		$packages = $backup_item->get_backup_packages();
-
-		echo "<pre>"; print_r( $packages ); echo "</pre>";
+		$packages    = $backup_item->get_backup_packages();
 
 		foreach ( $packages as $index => $package ) {
 			$data['restore_tasks'][ $index ]['index']       = $index;
@@ -237,26 +235,36 @@ class InstaWP_restore_data {
 	}
 
 	public function get_next_restore_task() {
-		$next_task = false;
+
+
 		if ( $this->restore_cache === false ) {
 			$this->restore_cache = InstaWP_tools::file_get_array( $this->restore_data_file );
 		}
 
+		$next_task    = false;
+		$backup_files = $this->restore_cache['backup_data']['backup']['files'] ?? array();
 
 		foreach ( $this->restore_cache['restore_tasks'] as $index => $task ) {
-			if ( $task['status'] === INSTAWP_RESTORE_WAIT ) {
-				$next_task                                                       = $task;
-				$next_task['index']                                              = $index;
+
+			if ( $task['status'] === INSTAWP_RESTORE_COMPLETED ) {
+				continue;
+			}
+
+			if ( $task['status'] == INSTAWP_RESTORE_WAIT ) {
+
+				$next_task               = $task;
+				$next_task['index']      = $index;
+				$next_task['files_data'] = $backup_files[ $index ] ?? array();
+
 				$this->restore_cache['status']                                   = INSTAWP_RESTORE_RUNNING;
 				$this->restore_cache['restore_tasks'][ $index ]['status']        = INSTAWP_RESTORE_RUNNING;
 				$this->restore_cache['restore_tasks'][ $index ]['time']['start'] = time();
+
 				InstaWP_tools::file_put_array( $this->restore_cache, $this->restore_data_file );
 				break;
 			} elseif ( $task['status'] === INSTAWP_RESTORE_RUNNING ) {
 				$next_task = INSTAWP_RESTORE_RUNNING;
 				break;
-			} elseif ( $task['status'] === INSTAWP_RESTORE_COMPLETED ) {
-				continue;
 			}
 		}
 

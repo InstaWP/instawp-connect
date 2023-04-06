@@ -41,10 +41,12 @@ class InstaWP_Restore {
 				'error'  => 'A restore task is already running.',
 			);
 		} else {
+
 			$result = $this->execute_restore( $next_task );
 			$instawp_plugin->restore_data->update_sub_task( $next_task['index'], $result );
 
 			if ( $result['result'] != INSTAWP_SUCCESS ) {
+
 				$instawp_plugin->restore_data->update_error( $result['error'] );
 				$instawp_plugin->restore_data->write_log( $result['error'], 'error' );
 
@@ -52,24 +54,30 @@ class InstaWP_Restore {
 					'result' => INSTAWP_FAILED,
 					'error'  => $result['error'],
 				);
-			} else {
-				$instawp_plugin->restore_data->update_status( INSTAWP_RESTORE_WAIT );
-
-				// jaedcheck
-//				echo "<pre>";
-//				print_r( $instawp_plugin->restore_data );
-//				echo "</pre>";
-
-				return array( 'result' => INSTAWP_SUCCESS );
 			}
+
+			// Update progress for each part
+			if ( ! empty( $migrate_id = InstaWP_Setting::get_args_option( 'migrate_id', $instawp_plugin->restore_data->restore_cache ) ) ) {
+
+				$part_id     = $next_task['files_data']['part_id'] ?? '';
+				$status_args = array(
+					'type'     => 'restore',
+					'progress' => 100,
+					'message'  => 'Restore completed for this part',
+					'status'   => 'completed'
+				);
+				InstaWP_Curl::do_curl( "migrates/{$migrate_id}/parts/{$part_id}", $status_args, array(), 'patch' );
+			}
+
+			$instawp_plugin->restore_data->update_status( INSTAWP_RESTORE_WAIT );
+
+			return array( 'result' => INSTAWP_SUCCESS );
 		}
 	}
 
 	function execute_restore( $restore_task ) {
 
-//		echo "<pre>";
-//		print_r( $restore_task );
-//		echo "</pre>";
+//		echo "<pre>"; print_r( $restore_task ); echo "</pre>";
 
 		global $instawp_plugin;
 

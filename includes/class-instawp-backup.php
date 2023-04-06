@@ -1756,6 +1756,7 @@ class InstaWP_Backup_Item {
 			$file_added = array();
 			//file_name
 			foreach ( $this->config['backup']['files'] as $file ) {
+
 				if ( isset( $file_added[ $file['file_name'] ] ) ) {
 					continue;
 				}

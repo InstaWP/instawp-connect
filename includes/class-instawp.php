@@ -4499,7 +4499,7 @@ class instaWP {
 		die();
 	}
 
-	public function restore_api( $backup_id, $restore_options_json ) {
+	public function restore_api( $backup_id, $restore_options_json, $parameters = array() ) {
 		global $InstaWP_Curl, $instawp_plugin;
 
 
@@ -4521,8 +4521,6 @@ class instaWP {
 		}
 
 		$this->restore_data = new InstaWP_restore_data();
-
-		// die;
 
 		$restore_options = array();
 		if ( isset( $restore_options_json ) ) {
@@ -4558,7 +4556,7 @@ class instaWP {
 //					die();
 				}
 			} else {
-				$this->restore_data->init_restore_data( $backup_id, $restore_options );
+				$this->restore_data->init_restore_data( $backup_id, $restore_options, $parameters );
 				$this->restore_data->write_log( 'init restore data restore 4405 api function', 'notice' );
 			}
 		} catch ( Exception $error ) {

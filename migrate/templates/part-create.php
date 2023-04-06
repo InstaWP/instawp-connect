@@ -9,7 +9,6 @@ if ( isset( $_GET['clear'] ) && $_GET['clear'] == 'all' ) {
 	$task->clean_backup();
 }
 
-
 //$parts_status_args     = array(
 //	'type'     => 'restore',
 //	'progress' => 40,

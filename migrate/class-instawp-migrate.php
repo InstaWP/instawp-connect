@@ -172,7 +172,8 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 			$part_number_index = (int) InstaWP_Setting::get_args_option( 'part_number_index', $migrate_task, '0' );
 
 			foreach ( InstaWP_taskmanager::get_task_backup_data( $migrate_task_id ) as $key => $data ) {
-				foreach ( $data['zip_files'] as $index => $zip_file ) {
+
+				foreach ( InstaWP_Setting::get_args_option( 'zip_files', $data, array() ) as $index => $zip_file ) {
 
 					$part_number = (int) InstaWP_Setting::get_args_option( 'part_number', $zip_file );
 
@@ -289,15 +290,17 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 			// Generating progresses
 			foreach ( InstaWP_taskmanager::get_task_backup_data( $migrate_task_id ) as $key => $data ) {
 
-//				echo "<pre>"; print_r( $data['zip_files_path'] ); echo "</pre>";
+				$backup_progress = (int) InstaWP_Setting::get_args_option( 'backup_progress', $data );
+				$upload_progress = (int) InstaWP_Setting::get_args_option( 'upload_progress', $data );
 
-				$backup_progress  = (int) InstaWP_Setting::get_args_option( 'backup_progress', $data );
-				$upload_progress  = (int) InstaWP_Setting::get_args_option( 'upload_progress', $data );
-				$migrate_progress = (int) InstaWP_Setting::get_args_option( 'migrate_progress', $data );
+				$response['backup']['progress'] = (int) $response['backup']['progress'] + $backup_progress;
+				$response['upload']['progress'] = (int) $response['upload']['progress'] + $upload_progress;
+			}
 
-				$response['backup']['progress']  = (int) $response['backup']['progress'] + $backup_progress;
-				$response['upload']['progress']  = (int) $response['upload']['progress'] + $upload_progress;
-				$response['migrate']['progress'] = (int) $response['migrate']['progress'] + $migrate_progress;
+			if ( $response['backup']['progress'] >= 100 && $response['upload']['progress'] >= 100 ) {
+				$response['migrate']['progress'] = instawp_get_overall_migration_progress( $migrate_id );
+//				$response['migrate']['progress'] = 10;
+				$response['migrate']['migrate_id'] = $migrate_id;
 			}
 
 			wp_send_json_success( $response );
