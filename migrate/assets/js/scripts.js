@@ -32,7 +32,8 @@ tailwind.config = {
             let instawp_migrate_container = $('.instawp-wrap .nav-item-content.create'),
                 bar_backup = instawp_migrate_container.find('.instawp-bar-backup'),
                 bar_upload = instawp_migrate_container.find('.instawp-bar-upload'),
-                bar_migrate = instawp_migrate_container.find('.instawp-bar-migrate');
+                bar_migrate = instawp_migrate_container.find('.instawp-bar-migrate'),
+                site_detail_wrap = instawp_migrate_container.find('.site-detail-wrap');
 
             if (instawp_migrate_container.hasClass('doing-ajax')) {
                 return;
@@ -61,10 +62,24 @@ tailwind.config = {
                         bar_upload.css('--progress', response.data.upload.progress + '%');
                         bar_migrate.css('--progress', response.data.migrate.progress + '%');
 
-                        // if (response.data.progress === 100) {
-                        //     clearInterval(instawp_migrate_api_call_interval);
-                        //     create_container.removeClass('loading');
-                        // }
+                        if (response.data.status === 'completed') {
+
+                            if (
+                                typeof response.data.site_detail.url !== 'undefined' &&
+                                typeof response.data.site_detail.wp_username !== 'undefined' &&
+                                typeof response.data.site_detail.wp_password !== 'undefined' &&
+                                typeof response.data.site_detail.auto_login_url !== 'undefined'
+                            ) {
+                                site_detail_wrap.find('#instawp-site-url').attr('href', response.data.site_detail.url).html(response.data.site_detail.url);
+                                site_detail_wrap.find('#instawp-site-username').html(response.data.site_detail.wp_username);
+                                site_detail_wrap.find('#instawp-site-password').html(response.data.site_detail.wp_password);
+                                site_detail_wrap.find('#instawp-site-magic-url').html(response.data.site_detail.auto_login_url);
+                            }
+
+                            create_container.removeClass('loading').addClass('completed');
+
+                            clearInterval(instawp_migrate_api_call_interval);
+                        }
                     }
                 }
             });

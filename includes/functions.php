@@ -231,3 +231,30 @@ if ( ! function_exists( 'instawp_get_overall_migration_progress' ) ) {
 		return apply_filters( 'INSTAWP_CONNECT/Filters/get_overall_migration_progress', $overall_progress, $migrate_id );
 	}
 }
+
+
+if ( ! function_exists( 'instawp_get_migration_site_detail' ) ) {
+	/**
+	 * Return migration site detail
+	 *
+	 * @param $migrate_id
+	 *
+	 * @return array|mixed|null
+	 */
+	function instawp_get_migration_site_detail( $migrate_id = '' ) {
+
+		if ( empty( $migrate_id ) || 0 == $migrate_id ) {
+			return array();
+		}
+
+		$api_response  = InstaWP_Curl::do_curl( "migrates/{$migrate_id}", array(), array(), false );
+		$response_data = InstaWP_Setting::get_args_option( 'data', $api_response, array() );
+		$site_detail   = InstaWP_Setting::get_args_option( 'site_detail', $response_data, array() );
+
+		if ( ! empty( $auto_login_hash = InstaWP_Setting::get_args_option( 'auto_login_hash', $site_detail ) ) ) {
+			$site_detail['auto_login_url'] = sprintf( '%s/wordpress-auto-login?site=%s', InstaWP_Setting::get_api_domain(), $auto_login_hash );
+		}
+
+		return apply_filters( 'INSTAWP_CONNECT/Filters/get_migration_site_detail', $site_detail, $migrate_id );
+	}
+}

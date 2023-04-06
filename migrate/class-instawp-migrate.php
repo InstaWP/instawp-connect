@@ -45,6 +45,7 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 				'migrate' => array(
 					'progress' => 0,
 				),
+				'status'  => 'running',
 			);
 			$instawp_zip         = new InstaWP_ZipClass();
 			$instawp_plugin      = new instaWP();
@@ -298,9 +299,15 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 			}
 
 			if ( $response['backup']['progress'] >= 100 && $response['upload']['progress'] >= 100 ) {
-				$response['migrate']['progress'] = instawp_get_overall_migration_progress( $migrate_id );
-//				$response['migrate']['progress'] = 10;
+
+				$overall_migration_progress        = instawp_get_overall_migration_progress( $migrate_id );
+				$response['migrate']['progress']   = $overall_migration_progress;
 				$response['migrate']['migrate_id'] = $migrate_id;
+
+				if ( $overall_migration_progress == 100 && ! empty( $migration_site_detail = instawp_get_migration_site_detail( $migrate_id ) ) ) {
+					$response['site_detail'] = $migration_site_detail;
+					$response['status']      = 'completed';
+				}
 			}
 
 			wp_send_json_success( $response );
