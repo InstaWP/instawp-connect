@@ -416,6 +416,7 @@ class InstaWP_Setting {
 		$compress_option['use_temp_size']            = INSTAWP_DEFAULT_USE_TEMP_SIZE;
 		$compress_option['exclude_file_size']        = INSTAWP_DEFAULT_EXCLUDE_FILE_SIZE;
 		$compress_option['subpackage_plugin_upload'] = INSTAWP_DEFAULT_SUBPACKAGE_PLUGIN_UPLOAD;
+
 		self::update_option( 'instawp_compress_setting', $compress_option );
 
 		return $compress_option;
