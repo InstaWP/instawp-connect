@@ -28,7 +28,7 @@ $is_loading_class    = ! empty( $incomplete_task_ids ) ? 'loading' : '';
 
     </div>
 
-    <div class="screen screen-1 p-8">
+    <div class="screen screen-1 p-12">
 
         <div class="mb-6 flex items-center">
             <span class="loader mr-2"></span>
@@ -55,7 +55,7 @@ $is_loading_class    = ! empty( $incomplete_task_ids ) ? 'loading' : '';
 
     </div>
 
-    <div class="screen screen-2 p-8">
+    <div class="screen screen-2 p-12">
 
         <div class="migration-message">
             <p class="text-lg mb-8 text-primary-900"><?php echo esc_html__( 'Congratulations! Staging creation successful.', 'instawp-connect' ); ?></p>

@@ -110,6 +110,7 @@ class InstaWP_restore_data {
 		} );
 
 		InstaWP_tools::file_put_array( $data, $this->restore_data_file );
+
 		$this->restore_cache = $data;
 	}
 
@@ -236,7 +237,6 @@ class InstaWP_restore_data {
 
 	public function get_next_restore_task() {
 
-
 		if ( $this->restore_cache === false ) {
 			$this->restore_cache = InstaWP_tools::file_get_array( $this->restore_data_file );
 		}
@@ -252,8 +252,9 @@ class InstaWP_restore_data {
 
 			if ( $task['status'] == INSTAWP_RESTORE_WAIT ) {
 
-				$next_task               = $task;
-				$next_task['index']      = $index;
+				$next_task          = $task;
+				$next_task['index'] = $index;
+
 				$next_task['files_data'] = $backup_files[ $index ] ?? array();
 
 				$this->restore_cache['status']                                   = INSTAWP_RESTORE_RUNNING;

@@ -1754,23 +1754,32 @@ class InstaWP_Backup_Item {
 		if ( isset( $this->config['backup']['files'] ) ) {
 			$db_package = array();
 			$file_added = array();
-			//file_name
+
 			foreach ( $this->config['backup']['files'] as $file ) {
 
 				if ( isset( $file_added[ $file['file_name'] ] ) ) {
 					continue;
 				}
 
-				if ( preg_match( '/instawp-.*_.*_.*\.part[0-9]+\.zip$/', $file['file_name'], $matches ) ) {
-					$this->get_all_part_files( $file['file_name'], $this->config['backup']['files'], $packages[ $index ], $file_added );
+				if ( $this->check_file_is_a_db_package( $file['file_name'] ) ) {
+					$db_package['files'][] = $file['file_name'];
 				} else {
-					if ( $this->check_file_is_a_db_package( $file['file_name'] ) ) {
-						$db_package['files'][] = $file['file_name'];
-					} else {
-						$packages[ $index ]['files'][] = $file['file_name'];
-					}
-					$file_added[ $file['file_name'] ] = 1;
+					$packages[ $index ]['files'][] = $file['file_name'];
 				}
+
+				$file_added[ $file['file_name'] ] = 1;
+
+//				if ( preg_match( '/instawp-.*_.*_.*\.part[0-9]+\.zip$/', $file['file_name'], $matches ) ) {
+//					$this->get_all_part_files( $file['file_name'], $this->config['backup']['files'], $packages[ $index ], $file_added );
+//				} else {
+//					if ( $this->check_file_is_a_db_package( $file['file_name'] ) ) {
+//						$db_package['files'][] = $file['file_name'];
+//					} else {
+//						$packages[ $index ]['files'][] = $file['file_name'];
+//					}
+//					$file_added[ $file['file_name'] ] = 1;
+//				}
+
 				$index ++;
 			}
 
@@ -1808,6 +1817,7 @@ class InstaWP_Backup_Item {
 			}
 
 			$packages = array_merge( $packages, $child_packages );
+
 			if ( ! empty( $db_package ) ) {
 				$packages[ $index ] = $db_package;
 			}
@@ -1852,6 +1862,7 @@ class InstaWP_Backup_Item {
 				$index ++;
 			}
 		}
+
 
 		return $packages;
 	}

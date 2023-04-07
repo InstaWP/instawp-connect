@@ -155,33 +155,23 @@ class instawp_BackupUploader {
 	}
 
 	function check_file_is_a_instawp_backup( $file_name, &$backup_id ) {
-		global $InstaWP_Backup_Api;
+
 		if ( preg_match( '/instawp-.*_.*_.*\.zip$/', $file_name ) ) {
+
 			if ( preg_match( '/instawp-(.*?)_/', $file_name, $matches ) ) {
+
 				$id = $matches[0];
 				$id = substr( $id, 0, strlen( $id ) - 1 );
 
-
-				if ( InstaWP_Backuplist::get_backup_by_id( $id ) === false ) {
+				if ( InstaWP_Backuplist::get_backup_by_id( $id ) ) {
 					$backup_id = $id;
 
 					return true;
-					$InstaWP_Backup_Api->instawp_log->WriteLog( 'Valid File', 'success' );
-				} else {
-					$InstaWP_Backup_Api->instawp_log->WriteLog( 'File is not valid', 'error' );
-
-					return false;
 				}
-			} else {
-				$InstaWP_Backup_Api->instawp_log->WriteLog( 'File is not valid', 'error' );
-
-				return false;
 			}
-		} else {
-			$InstaWP_Backup_Api->instawp_log->WriteLog( 'File is not valid', 'error' );
-
-			return false;
 		}
+
+		return false;
 	}
 
 	function upload_files() {
@@ -523,7 +513,7 @@ class instawp_BackupUploader {
 		$path          = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . InstaWP_Setting::get_backupdir() . DIRECTORY_SEPARATOR;
 		$download_urls = InstaWP_Setting::get_args_option( 'urls', $parameters, array() );
 
-		// $this->instawp_check_remove_update_backup( $path );
+//		 $this->instawp_check_remove_update_backup( $path );
 
 		if ( ! is_dir( $path ) ) {
 			return array( 'result' => INSTAWP_FAILED, 'error' => esc_html__( 'Failed to get local storage directory.', 'instawp-connect' ) );
@@ -540,7 +530,6 @@ class instawp_BackupUploader {
 				}
 
 				if ( $this->zip_check_sum( $path . $filename ) ) {
-
 					if ( $this->check_is_a_instawp_backup( $path . $filename ) === true ) {
 						$backups[ $backup_id ]['files'][] = $filename;
 					}
@@ -552,7 +541,6 @@ class instawp_BackupUploader {
 				@closedir( $handler );
 			}
 		}
-
 
 		foreach ( $backups as $backup_id => $backup ) {
 

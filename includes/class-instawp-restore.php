@@ -66,6 +66,7 @@ class InstaWP_Restore {
 					'message'  => 'Restore completed for this part',
 					'status'   => 'completed'
 				);
+
 				InstaWP_Curl::do_curl( "migrates/{$migrate_id}/parts/{$part_id}", $status_args, array(), 'patch' );
 			}
 

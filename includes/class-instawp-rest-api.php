@@ -565,24 +565,20 @@ class InstaWP_Backup_Api {
 		foreach ( $backup_list as $backup_list_key => $backup ) {
 
 			do {
+
 				$instawp_plugin->restore_api( $backup_list_key, $restore_options, $parameters );
 
 				$progress_results = $instawp_plugin->get_restore_progress_api( $backup_list_key );
-				$progress_value   = $instawp_plugin->restore_data->get_next_restore_task_progress();
 
-				//consider the foreach loop as well, if there are multiple backup_lists
-				$progress_value = $progress_value * ( $backup_index / $count_backup_list );
-
-				//total progress is half of what it is + 50 because the rest of the 50 is taken care by the server.
-				$progress_value = ( $progress_value / 2 ) + 50;
-
-				error_log( $progress_value );
-
-				if ( $progress_value < 100 ) {
-					$message = 'Restore in progress';
-				} else {
-					$message = 'Restore completed';
-				}
+//				$progress_value   = $instawp_plugin->restore_data->get_next_restore_task_progress();
+//				$progress_value   = $progress_value * ( $backup_index / $count_backup_list );
+//				$progress_value   = ( $progress_value / 2 ) + 50;
+//
+//				if ( $progress_value < 100 ) {
+//					$message = 'Restore in progress';
+//				} else {
+//					$message = 'Restore completed';
+//				}
 
 				$progress_response = (array) json_decode( $progress_results );
 //				$res_result        = array_merge( self::restore_status( $message, $progress_value, $parameters['wp']['options'] ) );
@@ -637,6 +633,7 @@ class InstaWP_Backup_Api {
 		global $InstaWP_Curl;
 
 		$download_urls = InstaWP_Setting::get_args_option( 'urls', $parameters, array() );
+
 		$download_urls = array_map( function ( $download_url ) {
 			return $download_url['url'] ?? '';
 		}, $download_urls );
@@ -1243,51 +1240,228 @@ add_action( 'wp_head', function () {
 		echo "</pre>";
 
 
-		global $InstaWP_Curl;
+		$backup_data   = array(
+			'task_id'         => 'instawp-642fef3e0e3ce',
+			'status'          => 'init',
+			'error'           => null,
+			'error_task'      => null,
+			'restore_options' =>
+				array(
+					'skip_backup_old_site'     => 1,
+					'skip_backup_old_database' => 1,
+					'is_migrate'               => 1,
+					0                          => 'backup_db',
+					1                          => 'backup_themes',
+					2                          => 'backup_plugin',
+					3                          => 'backup_uploads',
+					4                          => 'backup_content',
+					5                          => 'backup_core',
+				),
+			'backup_data'     =>
+				array(
+					'type'          => 'Upload',
+					'create_time'   => 1680884580,
+					'manual_delete' => 0,
+					'save_local'    => 1,
+					'lock'          => 0,
+					'log'           => null,
+					'backup'        =>
+						array(
+							'result' => 'success',
+							'files'  =>
+								array(
+									0 =>
+										array(
+											'part_id'   => 265,
+											'file_name' => 'instawp-642fef3e0e3ce_2023-04-07-16-23_backup_plugin.part001.zip',
+											'size'      => 106198861,
+										),
+									1 =>
+										array(
+											'part_id'   => 266,
+											'file_name' => 'instawp-642fef3e0e3ce_2023-04-07-16-23_backup_plugin.part002.zip',
+											'size'      => 80820684,
+										),
+									2 =>
+										array(
+											'part_id'   => 263,
+											'file_name' => 'instawp-642fef3e0e3ce_2023-04-07-16-23_backup_db.zip',
+											'size'      => 2359707,
+										),
+									3 =>
+										array(
+											'part_id'   => 267,
+											'file_name' => 'instawp-642fef3e0e3ce_2023-04-07-16-23_backup_content.zip',
+											'size'      => 305194,
+										),
+									4 =>
+										array(
+											'part_id'   => 264,
+											'file_name' => 'instawp-642fef3e0e3ce_2023-04-07-16-23_backup_themes.zip',
+											'size'      => 22181269,
+										),
+									5 =>
+										array(
+											'part_id'   => 268,
+											'file_name' => 'instawp-642fef3e0e3ce_2023-04-07-16-23_backup_core.zip',
+											'size'      => 53168091,
+										),
+								),
+						),
+					'remote'        =>
+						array(),
+					'local'         =>
+						array(
+							'path' => 'instawpbackups',
+						),
+					'compress'      =>
+						array(
+							'compress_type' => 'zip',
+						),
+				),
+			'migrate_id'      => 506,
+			'restore_tasks'   =>
+				array(
+					0 =>
+						array(
+							'index'       => 0,
+							'files'       =>
+								array(
+									0 => 'instawp-642fef3e0e3ce_2023-04-07-16-23_backup_plugin.part001.zip',
+									1 => 'instawp-642fef3e0e3ce_2023-04-07-16-23_backup_plugin.part002.zip',
+								),
+							'unzip_files' =>
+								array(),
+							'status'      => 'wait',
+							'result'      =>
+								array(),
+							'option'      =>
+								array(
+									'skip_backup_old_site'     => 1,
+									'skip_backup_old_database' => 1,
+									'is_migrate'               => 1,
+									0                          => 'backup_db',
+									1                          => 'backup_themes',
+									2                          => 'backup_plugin',
+									3                          => 'backup_uploads',
+									4                          => 'backup_content',
+									5                          => 'backup_core',
+								),
+						),
+					1 =>
+						array(
+							'index'       => 1,
+							'files'       =>
+								array(
+									0 => 'instawp-642fef3e0e3ce_2023-04-07-16-23_backup_content.zip',
+								),
+							'unzip_files' =>
+								array(),
+							'status'      => 'wait',
+							'result'      =>
+								array(),
+							'option'      =>
+								array(
+									'skip_backup_old_site'     => 1,
+									'skip_backup_old_database' => 1,
+									'is_migrate'               => 1,
+									0                          => 'backup_db',
+									1                          => 'backup_themes',
+									2                          => 'backup_plugin',
+									3                          => 'backup_uploads',
+									4                          => 'backup_content',
+									5                          => 'backup_core',
+								),
+						),
+					2 =>
+						array(
+							'index'       => 2,
+							'files'       =>
+								array(
+									0 => 'instawp-642fef3e0e3ce_2023-04-07-16-23_backup_themes.zip',
+								),
+							'unzip_files' =>
+								array(),
+							'status'      => 'wait',
+							'result'      =>
+								array(),
+							'option'      =>
+								array(
+									'skip_backup_old_site'     => 1,
+									'skip_backup_old_database' => 1,
+									'is_migrate'               => 1,
+									0                          => 'backup_db',
+									1                          => 'backup_themes',
+									2                          => 'backup_plugin',
+									3                          => 'backup_uploads',
+									4                          => 'backup_content',
+									5                          => 'backup_core',
+								),
+						),
+					3 =>
+						array(
+							'index'       => 3,
+							'files'       =>
+								array(
+									0 => 'instawp-642fef3e0e3ce_2023-04-07-16-23_backup_core.zip',
+								),
+							'unzip_files' =>
+								array(),
+							'status'      => 'wait',
+							'result'      =>
+								array(),
+							'option'      =>
+								array(
+									'skip_backup_old_site'     => 1,
+									'skip_backup_old_database' => 1,
+									'is_migrate'               => 1,
+									0                          => 'backup_db',
+									1                          => 'backup_themes',
+									2                          => 'backup_plugin',
+									3                          => 'backup_uploads',
+									4                          => 'backup_content',
+									5                          => 'backup_core',
+								),
+						),
+					4 =>
+						array(
+							'index'       => 5,
+							'files'       =>
+								array(
+									0 => 'instawp-642fef3e0e3ce_2023-04-07-16-23_backup_db.zip',
+								),
+							'unzip_files' =>
+								array(),
+							'status'      => 'wait',
+							'result'      =>
+								array(),
+							'option'      =>
+								array(
+									'skip_backup_old_site'     => 1,
+									'skip_backup_old_database' => 1,
+									'is_migrate'               => 1,
+									0                          => 'backup_db',
+									1                          => 'backup_themes',
+									2                          => 'backup_plugin',
+									3                          => 'backup_uploads',
+									4                          => 'backup_content',
+									5                          => 'backup_core',
+								),
+						),
+				),
+		);
+		$backup_files  = $backup_data['backup_data']['backup']['files'] ?? array();
+		$restore_tasks = $backup_data['restore_tasks'] ?? array();
 
-//		InstaWP_taskmanager::delete_all_task();
-
-//		echo "<pre>";
-//		print_r( InstaWP_taskmanager::get_tasks() );
-//		echo "</pre>";
-
-		$download_task_id = '641dcf1924255';
-		$download_task    = new InstaWP_Backup_Task( $download_task_id );
-//		$download_task_ret  = $download_task->new_download_task();
-//		$download_task_id   = $download_task_ret['task_id'];
-		$download_file_urls = [
-			"https://iwp-staging-backups.sgp1.digitaloceanspaces.com/1679673211_/Volumes/Devroot/InstaWP/instawp-main/wp-content/instawpbackups/instawp-641dc76875716_2023-03-24-21-53_backup_db.zip?X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=M2BPJQSQGORZEGHZIQE3%2F20230324%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20230324T155331Z&X-Amz-SignedHeaders=host&X-Amz-Expires=7200&X-Amz-Signature=f3c210bd6c5639c468f848dcfbe471b87419d7536728c05aca14319ee897de52",
-			"https://iwp-staging-backups.sgp1.digitaloceanspaces.com/1679673218_/Volumes/Devroot/InstaWP/instawp-main/wp-content/instawpbackups/instawp-641dc76875716_2023-03-24-21-53_backup_themes.zip?X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=M2BPJQSQGORZEGHZIQE3%2F20230324%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20230324T155338Z&X-Amz-SignedHeaders=host&X-Amz-Expires=7200&X-Amz-Signature=50b5a4e6cbba2b55aa66d9dd15fafeec46e28c1e5232f7af276c221d14385e99",
-			"https://iwp-staging-backups.sgp1.digitaloceanspaces.com/1679673227_/Volumes/Devroot/InstaWP/instawp-main/wp-content/instawpbackups/instawp-641dc76875716_2023-03-24-21-53_backup_plugin.part001.zip?X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=M2BPJQSQGORZEGHZIQE3%2F20230324%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20230324T155347Z&X-Amz-SignedHeaders=host&X-Amz-Expires=7200&X-Amz-Signature=3608c62473a8bfe8ee8e4a332839ffe5e44f9d7f0ee8a0731ada681f7743ae07",
-			"https://iwp-staging-backups.sgp1.digitaloceanspaces.com/1679673266_/Volumes/Devroot/InstaWP/instawp-main/wp-content/instawpbackups/instawp-641dc76875716_2023-03-24-21-53_backup_plugin.part002.zip?X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=M2BPJQSQGORZEGHZIQE3%2F20230324%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20230324T155426Z&X-Amz-SignedHeaders=host&X-Amz-Expires=7200&X-Amz-Signature=60a63a61ebf96903f91a2a16d4d7919bdd54ad203be4ec70ba09d616413b9ec9",
-			"https://iwp-staging-backups.sgp1.digitaloceanspaces.com/1679673290_/Volumes/Devroot/InstaWP/instawp-main/wp-content/instawpbackups/instawp-641dc76875716_2023-03-24-21-53_backup_content.zip?X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=M2BPJQSQGORZEGHZIQE3%2F20230324%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20230324T155450Z&X-Amz-SignedHeaders=host&X-Amz-Expires=7200&X-Amz-Signature=beafb31e4a15f702fbc5c5149046cd5bec7b588ecb92a5f96d0f6aedfd600288",
-			"https://iwp-staging-backups.sgp1.digitaloceanspaces.com/1679673301_/Volumes/Devroot/InstaWP/instawp-main/wp-content/instawpbackups/instawp-641dc76875716_2023-03-24-21-53_backup_core.zip?X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=M2BPJQSQGORZEGHZIQE3%2F20230324%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20230324T155501Z&X-Amz-SignedHeaders=host&X-Amz-Expires=7200&X-Amz-Signature=90347b8c8f7ff09e4d200b3294bad87e74d20e0a098a1815176084addf0e8649"
-		];
+		echo "<pre>";
+		print_r( $restore_tasks );
+		echo "</pre>";
 
 
-//		for ( $i = 0; $i < 20; $i ++ ) {
+		foreach ( $restore_tasks as $task ) {
 
-//			$download_ret = $InstaWP_Curl->download( $download_task_id, $download_file_urls );
-//
-//			echo "<pre>";
-//			print_r( [ $download_task_id, $download_ret ] );
-//			echo "</pre>";
-
-
-//			$args         = array(
-//				'timeout'    => 300,
-//				'download'   => true,
-//				'decompress' => false,
-//				'stream'     => false,
-//				'filename'   => '',
-//			);
-//			$WP_Http_Curl = new WP_Http_Curl();
-//			$response     = $WP_Http_Curl->request( $download_file_urls[0], $args );
-//
-//			echo "<pre>";
-//			print_r( $response );
-//			echo "</pre>";
-//		}
+//			foreach ($task['files'])
+		}
 
 
 		die();
