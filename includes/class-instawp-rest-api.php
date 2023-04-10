@@ -659,8 +659,8 @@ class InstaWP_Backup_Api {
 
 			$this->validate_api_request( $request );
 
-			$parameters         = $request->get_params();
-			$restore_options    = json_encode( array(
+			$parameters      = $request->get_params();
+			$restore_options = json_encode( array(
 				'skip_backup_old_site'     => '1',
 				'skip_backup_old_database' => '1',
 				'is_migrate'               => '1',
@@ -671,17 +671,14 @@ class InstaWP_Backup_Api {
 				'backup_content',
 				'backup_core',
 			) );
+
 			$backup_task        = new InstaWP_Backup_Task();
 			$backup_task_ret    = $backup_task->new_download_task();
 			$backup_task_id     = isset( $backup_task_ret['task_id'] ) ? $backup_task_ret['task_id'] : '';
 			$backup_task_result = isset( $backup_task_ret['result'] ) ? $backup_task_ret['result'] : '';
 
 			if ( ! empty( $backup_task_id ) && 'success' == $backup_task_result ) {
-
-				// Background processing of downloading the backup file using woocommerce's scheduler.
 				as_enqueue_async_action( 'instawp_download_bg', [ $backup_task_id, $parameters ] );
-
-				// Immediately run the schedule, don't want for the cron to run.
 				do_action( 'action_scheduler_run_queue', 'Async Request' );
 			}
 

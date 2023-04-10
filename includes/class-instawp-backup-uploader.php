@@ -163,7 +163,9 @@ class instawp_BackupUploader {
 				$id = $matches[0];
 				$id = substr( $id, 0, strlen( $id ) - 1 );
 
-				if ( InstaWP_Backuplist::get_backup_by_id( $id ) ) {
+//				if ( InstaWP_Backuplist::get_backup_by_id( $id ) )
+
+				if ( ! empty( $id ) ) {
 					$backup_id = $id;
 
 					return true;
