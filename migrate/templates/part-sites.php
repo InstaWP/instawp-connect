@@ -13,20 +13,19 @@ $staging_sites = $wpdb->get_results( "SELECT * FROM " . INSTAWP_DB_TABLE_STAGING
     <div>
         <div class="mb-6">
             <div class="text-grayCust-200 text-lg font-medium"><?php echo esc_html__( 'Staging Sites', 'instawp-connect' ); ?></div>
-            <div class="text-grayCust-50 text-sm font-normal"><?php echo esc_html__( 'Lorem ipsum demo text the default payment method will be used for any biling purposes.', 'instawp-connect' ); ?></div>
         </div>
-        <div class="mt-8 flow-root">
+        <div class="mt-6 flow-root">
             <div class="-my-2 -mx-6 overflow-x-auto lg:-mx-8">
                 <div class="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
                     <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
                         <table class="min-w-full divide-y divide-gray-300">
                             <thead class="bg-gray-50">
                             <tr>
-                                <th scope="col" class="px-6 py-4  uppercase text-left text-xs font-medium text-grayCust-900"><?php echo esc_html__( 'Site Name', 'instawp-connect' ); ?></th>
-                                <th scope="col" class="px-6 py-4 text-left uppercase text-xs font-medium text-grayCust-900"><?php echo esc_html__( 'Username', 'instawp-connect' ); ?></th>
-                                <th scope="col" class="px-6 py-4 text-left uppercase text-xs font-medium text-grayCust-900"><?php echo esc_html__( 'Password', 'instawp-connect' ); ?></th>
-                                <th scope="col" class="px-6 py-4 text-center uppercase text-xs font-medium text-grayCust-900"><?php echo esc_html__( 'Created date', 'instawp-connect' ); ?></th>
-                                <th scope="col" class="px-6 py-4 text-center uppercase text-xs font-medium text-grayCust-900"><?php echo esc_html__( 'Actions', 'instawp-connect' ); ?></th>
+                                <th scope="col" class="px-4 py-4  uppercase text-left text-xs font-medium text-grayCust-900"><?php echo esc_html__( 'Site Name', 'instawp-connect' ); ?></th>
+                                <th scope="col" class="px-4 py-4 text-left uppercase text-xs font-medium text-grayCust-900"><?php echo esc_html__( 'Username', 'instawp-connect' ); ?></th>
+                                <th scope="col" class="px-4 py-4 text-left uppercase text-xs font-medium text-grayCust-900"><?php echo esc_html__( 'Password', 'instawp-connect' ); ?></th>
+                                <th scope="col" class="px-4 py-4 text-center uppercase text-xs font-medium text-grayCust-900"><?php echo esc_html__( 'Created date', 'instawp-connect' ); ?></th>
+                                <th scope="col" class="px-4 py-4 text-center uppercase text-xs font-medium text-grayCust-900"><?php echo esc_html__( 'Actions', 'instawp-connect' ); ?></th>
                             </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-200 bg-white ">
@@ -43,7 +42,7 @@ $staging_sites = $wpdb->get_results( "SELECT * FROM " . INSTAWP_DB_TABLE_STAGING
 								$auto_login_url = InstaWP_Setting::get_api_domain() . '/wordpress-auto-login?site=' . $auto_login_hash;
 								?>
                                 <tr>
-                                    <td class="whitespace-nowrap py-8 px-6 text-xs font-medium flex items-center text-grayCust-300">
+                                    <td class="whitespace-nowrap py-8 px-4 text-xs font-medium flex items-center text-grayCust-300">
 										<?php
 										printf( '<img src="%s" class="mr-2" alt=""><a target="_blank" href="%s">%s</a>',
 											instawp()::get_asset_url( 'migrate/assets/images/glob.svg' ),
