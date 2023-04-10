@@ -386,9 +386,9 @@ class instaWP {
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-rest-api.php';
 
 
-		if ( defined( 'INSTAWP_MIGRATION_APPROACH' ) && INSTAWP_MIGRATION_APPROACH === true ) {
-			require_once INSTAWP_PLUGIN_DIR . '/migrate/class-instawp-migrate.php';
-		}
+//		if ( defined( 'INSTAWP_MIGRATION_APPROACH' ) && INSTAWP_MIGRATION_APPROACH === true ) {
+		require_once INSTAWP_PLUGIN_DIR . '/migrate/class-instawp-migrate.php';
+//		}
 
 
 		$this->function_realize = new InstaWP_Function_Realize();

@@ -456,13 +456,13 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 		 * @return void
 		 */
 		function add_migrate_menu() {
-			add_menu_page(
+			add_submenu_page(
+				'tools.php',
 				esc_html__( 'InstaWP', 'instawp-connect' ),
 				esc_html__( 'InstaWP', 'instawp-connect' ),
 				'administrator', 'instawp',
 				array( $this, 'render_migrate_page' ),
-				esc_url( INSTAWP_PLUGIN_IMAGES_URL . 'cloud.svg' ),
-				2
+				1
 			);
 		}
 

@@ -303,6 +303,8 @@ class InstaWP_Admin {
          *
          */
 
+        return;
+
         if( ! apply_filters('instawp_add_plugin_admin_menu', true ) ) {
             return;
         }
