@@ -23,7 +23,7 @@ $is_loading_class    = ! empty( $incomplete_task_ids ) ? 'loading' : '';
 
                 <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-4 rounded-md relative mb-6" role="alert">
                     <strong class="font-bold mr-1"><?php echo esc_html__( 'Connection Error:', 'instawp-connect' ); ?></strong>
-                    <span class="block sm:inline"><?php echo esc_html__( 'You need to connect the plugin with your Instawp account first.', 'instawp-connect' ); ?></span>
+                    <span class="block sm:inline"><?php echo esc_html__( 'You need to connect the plugin with your InstaWP account first.', 'instawp-connect' ); ?></span>
                 </div>
 
 			<?php else: ?>

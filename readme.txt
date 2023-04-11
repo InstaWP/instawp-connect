@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 4.5
 Tested up to: 6.2
 Requires PHP: 5.4
-Stable tag: 0.0.9.6
+Stable tag: 0.0.9.7
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -65,7 +65,10 @@ InstaWP is an online WordPress development environment to get you started with a
 - 2 way Sync option enabled (from staging to prod)
 - Many bug fixes
 
-= 0.0.9.5 =
-- NEW - Parallel approaches for site migration.
-- NEW - Improved performance and updated user interface.
-- FIX - Many bug fixes.
+= 0.0.9.6 =
+- 11/04/2023 - NEW - Parallel approaches for site migration.
+- 11/04/2023 - Improved performance and updated user interface.
+- 11/04/2023 - FIX - Many bug fixes.
+
+= 0.0.9.7 =
+- 11/04/2023 - NEW - Added plugin reset functionality.

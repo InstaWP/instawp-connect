@@ -24,7 +24,7 @@
 
             <div class="instawp-form-buttons">
 				<?php wp_nonce_field( 'instawp_settings_nonce_action', 'instawp_settings_nonce' ) ?>
-                <button type="button" class="text-grayCust-500 py-3 mr-4 px-5 border border-grayCust-350 text-sm font-medium rounded-md"><?php echo esc_html__( 'Reset Plugin', 'instawp-connect' ); ?></button>
+                <button type="button" class="text-grayCust-500 py-3 mr-4 px-5 border border-grayCust-350 text-sm font-medium rounded-md instawp-reset-plugin"><?php echo esc_html__( 'Reset Plugin', 'instawp-connect' ); ?></button>
                 <button type="submit" class="bg-primary-900 text-white py-3 px-5  text-sm font-medium rounded-md"><?php echo esc_html__( 'Save Changes', 'instawp-connect' ); ?></button>
             </div>
         </div>

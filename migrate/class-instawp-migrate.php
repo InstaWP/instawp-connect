@@ -26,6 +26,29 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 			add_action( 'wp_ajax_instawp_update_settings', array( $this, 'update_settings' ) );
 			add_action( 'wp_ajax_instawp_connect_api_url', array( $this, 'connect_api_url' ) );
 			add_action( 'wp_ajax_instawp_connect_migrate', array( $this, 'connect_migrate' ) );
+			add_action( 'wp_ajax_instawp_reset_plugin', array( $this, 'reset_plugin' ) );
+		}
+
+
+		function reset_plugin() {
+
+			$reset_type = isset( $_POST['reset_type'] ) ? sanitize_text_field( $_POST['reset_type'] ) : '';
+			$reset_type = empty( $reset_type ) ? InstaWP_Setting::get_option( 'instawp_reset_type', 'soft' ) : $reset_type;
+
+			if ( ! in_array( $reset_type, array( 'soft', 'hard' ) ) ) {
+				wp_send_json_error( array( 'message' => esc_html__( 'Invalid reset type.' ) ) );
+			}
+
+			InstaWP_taskmanager::delete_all_task();
+			$task = new InstaWP_Backup();
+			$task->clean_backup();
+
+			if ( 'hard' == $reset_type ) {
+				delete_option( 'instawp_api_key' );
+				delete_option( 'instawp_api_options' );
+			}
+
+			wp_send_json_success( array( 'message' => esc_html__( 'Plugin reset successfully.' ) ) );
 		}
 
 
