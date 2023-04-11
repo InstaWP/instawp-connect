@@ -11,19 +11,32 @@ if ( isset( $_GET['clear'] ) && $_GET['clear'] == 'all' ) {
 
 $incomplete_task_ids = InstaWP_taskmanager::is_there_any_incomplete_task_ids();
 $is_loading_class    = ! empty( $incomplete_task_ids ) ? 'loading' : '';
+
 ?>
 
 <div class="<?php echo esc_attr( $is_loading_class ); ?> nav-item-content create bg-white box-shadow rounded-md active">
     <div class="screen screen-0 flex items-center justify-center text-center py-20">
 
         <div>
-            <div class="mb-6">
-                <img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/createsite.png' ) ) ?>" class="mx-auto" alt="">
-            </div>
 
-            <div class="text-lg text-lg font-bold text-grayCust-150"><?php echo esc_html__( 'Create a Staging Site', 'instawp-connect' ); ?></div>
+			<?php if ( empty( InstaWP_Setting::get_api_key() ) ) : ?>
 
-            <button class="instawp-button-create btn-width py-3 rounded-md shadow-md bg-primary-900 text-white mt-8 font-semibold text-sm"><?php echo esc_html__( 'Create a Site', 'instawp-connect' ); ?></button>
+                <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-4 rounded-md relative mb-6" role="alert">
+                    <strong class="font-bold mr-1"><?php echo esc_html__( 'Connection Error:', 'instawp-connect' ); ?></strong>
+                    <span class="block sm:inline"><?php echo esc_html__( 'You need to connect the plugin with your Instawp account first.', 'instawp-connect' ); ?></span>
+                </div>
+
+			<?php else: ?>
+
+                <div class="mb-6">
+                    <img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/createsite.png' ) ) ?>" class="mx-auto" alt="">
+                </div>
+
+                <div class="text-lg text-lg font-bold text-grayCust-150"><?php echo esc_html__( 'Create a Staging Site', 'instawp-connect' ); ?></div>
+
+                <button class="instawp-button-create btn-width py-3 rounded-md shadow-md bg-primary-900 text-white mt-8 font-semibold text-sm"><?php echo esc_html__( 'Create a Site', 'instawp-connect' ); ?></button>
+			<?php endif; ?>
+
         </div>
 
     </div>
