@@ -3,8 +3,6 @@
 if ( ! defined( 'INSTAWP_PLUGIN_DIR' ) ) {
 	die;
 }
-define( 'NECESSARY', '1' );
-define( 'OPTION', '0' );
 
 class InstaWP_Backup_Database {
 	private $task_id;
