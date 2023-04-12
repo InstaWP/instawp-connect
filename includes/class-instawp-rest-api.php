@@ -408,6 +408,9 @@ class InstaWP_Backup_Api {
 
 	public function config( $request ) {
 
+		delete_option( 'instawp_api_key_config_completed' );
+		delete_option( 'instawp_connect_id_options' );
+
 		$parameters = $request->get_params();
 		$results    = array(
 			'status'     => false,
@@ -436,6 +439,7 @@ class InstaWP_Backup_Api {
 			}
 		}
 
+
 		// Check if the configuration is already done, then no need to do it again.
 		if ( 'yes' == get_option( 'instawp_api_key_config_completed' ) ) {
 
@@ -444,36 +448,28 @@ class InstaWP_Backup_Api {
 			return new WP_REST_Response( $results );
 		}
 
-		$this->instawp_log->CreateLogFile( $this->config_log_file_name, 'no_folder', 'Remote Config' );
-		$this->instawp_log->WriteLog( 'Inti Api Config', 'notice' );
 
-		//$this->instawp_log->CloseFile();
-		$connect_ids = get_option( 'instawp_connect_id_options', '' );
-
-		if ( ! empty( $connect_ids ) ) {
-			if ( isset( $connect_ids['data']['id'] ) && ! empty( $connect_ids['data']['id'] ) ) {
-				$id = $connect_ids['data']['id'];
-			}
-			$this->instawp_log->WriteLog( 'Already Connected : ' . json_encode( $connect_ids ), 'notice' );
-			$results['status']     = true;
-			$results['message']    = 'Connected';
-			$results['connect_id'] = $id;
-			$response              = new WP_REST_Response( $results );
-			$response->set_status( 200 );
+		if ( ! empty( $connect_ids = InstaWP_Setting::get_option( 'instawp_connect_id_options', array() ) ) ) {
 
 			// update config check token
 			update_option( 'instawp_api_key_config_completed', 'yes' );
 
-			return $response;
+			return new WP_REST_Response(
+				array(
+					'status'     => true,
+					'message'    => esc_html__( 'Connected', 'instawp-connect' ),
+					'connect_id' => $connect_ids['data']['id'] ?? '',
+				)
+			);
 		}
 
-		if ( ! isset( $parameters['api_key'] ) || empty( $parameters['api_key'] ) ) {
-			$this->instawp_log->WriteLog( 'Api key is required', 'error' );
-			$results['message'] = 'api key is required';
-			$response           = new WP_REST_Response( $results );
-			$response->set_status( 200 );
-
-			return $response;
+		if ( empty( $parameters['api_key'] ) ) {
+			return new WP_REST_Response(
+				array(
+					'status'  => false,
+					'message' => esc_html__( 'Api key is required', 'instawp-connect' ),
+				)
+			);
 		}
 
 		if ( isset( $parameters['api_domain'] ) ) {
@@ -499,6 +495,7 @@ class InstaWP_Backup_Api {
 
 				// update config check token
 				update_option( 'instawp_api_key_config_completed', 'yes' );
+				update_option( 'instawp_api_key', $parameters['api_key'] );
 			}
 		} else {
 			$results['status']     = true;
@@ -1077,6 +1074,7 @@ class InstaWP_Backup_Api {
 				$connect_options['api_key']  = $api_key;
 				$connect_options['response'] = $body;
 				update_option( 'instawp_api_options', $connect_options );
+				update_option( 'instawp_api_key', $api_key );
 
 				// update config check token
 				update_option( 'instawp_api_key_config_completed', 'yes' );
@@ -1228,238 +1226,11 @@ add_action( 'wp_head', function () {
 			echo "<pre>";
 			print_r( $option_value );
 			echo "</pre>";
+
+			if ( isset( $_GET['action'] ) && $_GET['action'] == 'delete' ) {
+				delete_option( $_GET['key'] );
+			}
 		}
-
-//		update_option( 'aaa_check_time', current_time( 'mysql', true ) );
-
-		echo "<pre>";
-		print_r( get_option( 'aaa_check_time' ) );
-		echo "</pre>";
-
-
-		$backup_data   = array(
-			'task_id'         => 'instawp-642fef3e0e3ce',
-			'status'          => 'init',
-			'error'           => null,
-			'error_task'      => null,
-			'restore_options' =>
-				array(
-					'skip_backup_old_site'     => 1,
-					'skip_backup_old_database' => 1,
-					'is_migrate'               => 1,
-					0                          => 'backup_db',
-					1                          => 'backup_themes',
-					2                          => 'backup_plugin',
-					3                          => 'backup_uploads',
-					4                          => 'backup_content',
-					5                          => 'backup_core',
-				),
-			'backup_data'     =>
-				array(
-					'type'          => 'Upload',
-					'create_time'   => 1680884580,
-					'manual_delete' => 0,
-					'save_local'    => 1,
-					'lock'          => 0,
-					'log'           => null,
-					'backup'        =>
-						array(
-							'result' => 'success',
-							'files'  =>
-								array(
-									0 =>
-										array(
-											'part_id'   => 265,
-											'file_name' => 'instawp-642fef3e0e3ce_2023-04-07-16-23_backup_plugin.part001.zip',
-											'size'      => 106198861,
-										),
-									1 =>
-										array(
-											'part_id'   => 266,
-											'file_name' => 'instawp-642fef3e0e3ce_2023-04-07-16-23_backup_plugin.part002.zip',
-											'size'      => 80820684,
-										),
-									2 =>
-										array(
-											'part_id'   => 263,
-											'file_name' => 'instawp-642fef3e0e3ce_2023-04-07-16-23_backup_db.zip',
-											'size'      => 2359707,
-										),
-									3 =>
-										array(
-											'part_id'   => 267,
-											'file_name' => 'instawp-642fef3e0e3ce_2023-04-07-16-23_backup_content.zip',
-											'size'      => 305194,
-										),
-									4 =>
-										array(
-											'part_id'   => 264,
-											'file_name' => 'instawp-642fef3e0e3ce_2023-04-07-16-23_backup_themes.zip',
-											'size'      => 22181269,
-										),
-									5 =>
-										array(
-											'part_id'   => 268,
-											'file_name' => 'instawp-642fef3e0e3ce_2023-04-07-16-23_backup_core.zip',
-											'size'      => 53168091,
-										),
-								),
-						),
-					'remote'        =>
-						array(),
-					'local'         =>
-						array(
-							'path' => 'instawpbackups',
-						),
-					'compress'      =>
-						array(
-							'compress_type' => 'zip',
-						),
-				),
-			'migrate_id'      => 506,
-			'restore_tasks'   =>
-				array(
-					0 =>
-						array(
-							'index'       => 0,
-							'files'       =>
-								array(
-									0 => 'instawp-642fef3e0e3ce_2023-04-07-16-23_backup_plugin.part001.zip',
-									1 => 'instawp-642fef3e0e3ce_2023-04-07-16-23_backup_plugin.part002.zip',
-								),
-							'unzip_files' =>
-								array(),
-							'status'      => 'wait',
-							'result'      =>
-								array(),
-							'option'      =>
-								array(
-									'skip_backup_old_site'     => 1,
-									'skip_backup_old_database' => 1,
-									'is_migrate'               => 1,
-									0                          => 'backup_db',
-									1                          => 'backup_themes',
-									2                          => 'backup_plugin',
-									3                          => 'backup_uploads',
-									4                          => 'backup_content',
-									5                          => 'backup_core',
-								),
-						),
-					1 =>
-						array(
-							'index'       => 1,
-							'files'       =>
-								array(
-									0 => 'instawp-642fef3e0e3ce_2023-04-07-16-23_backup_content.zip',
-								),
-							'unzip_files' =>
-								array(),
-							'status'      => 'wait',
-							'result'      =>
-								array(),
-							'option'      =>
-								array(
-									'skip_backup_old_site'     => 1,
-									'skip_backup_old_database' => 1,
-									'is_migrate'               => 1,
-									0                          => 'backup_db',
-									1                          => 'backup_themes',
-									2                          => 'backup_plugin',
-									3                          => 'backup_uploads',
-									4                          => 'backup_content',
-									5                          => 'backup_core',
-								),
-						),
-					2 =>
-						array(
-							'index'       => 2,
-							'files'       =>
-								array(
-									0 => 'instawp-642fef3e0e3ce_2023-04-07-16-23_backup_themes.zip',
-								),
-							'unzip_files' =>
-								array(),
-							'status'      => 'wait',
-							'result'      =>
-								array(),
-							'option'      =>
-								array(
-									'skip_backup_old_site'     => 1,
-									'skip_backup_old_database' => 1,
-									'is_migrate'               => 1,
-									0                          => 'backup_db',
-									1                          => 'backup_themes',
-									2                          => 'backup_plugin',
-									3                          => 'backup_uploads',
-									4                          => 'backup_content',
-									5                          => 'backup_core',
-								),
-						),
-					3 =>
-						array(
-							'index'       => 3,
-							'files'       =>
-								array(
-									0 => 'instawp-642fef3e0e3ce_2023-04-07-16-23_backup_core.zip',
-								),
-							'unzip_files' =>
-								array(),
-							'status'      => 'wait',
-							'result'      =>
-								array(),
-							'option'      =>
-								array(
-									'skip_backup_old_site'     => 1,
-									'skip_backup_old_database' => 1,
-									'is_migrate'               => 1,
-									0                          => 'backup_db',
-									1                          => 'backup_themes',
-									2                          => 'backup_plugin',
-									3                          => 'backup_uploads',
-									4                          => 'backup_content',
-									5                          => 'backup_core',
-								),
-						),
-					4 =>
-						array(
-							'index'       => 5,
-							'files'       =>
-								array(
-									0 => 'instawp-642fef3e0e3ce_2023-04-07-16-23_backup_db.zip',
-								),
-							'unzip_files' =>
-								array(),
-							'status'      => 'wait',
-							'result'      =>
-								array(),
-							'option'      =>
-								array(
-									'skip_backup_old_site'     => 1,
-									'skip_backup_old_database' => 1,
-									'is_migrate'               => 1,
-									0                          => 'backup_db',
-									1                          => 'backup_themes',
-									2                          => 'backup_plugin',
-									3                          => 'backup_uploads',
-									4                          => 'backup_content',
-									5                          => 'backup_core',
-								),
-						),
-				),
-		);
-		$backup_files  = $backup_data['backup_data']['backup']['files'] ?? array();
-		$restore_tasks = $backup_data['restore_tasks'] ?? array();
-
-		echo "<pre>";
-		print_r( $restore_tasks );
-		echo "</pre>";
-
-
-		foreach ( $restore_tasks as $task ) {
-
-//			foreach ($task['files'])
-		}
-
 
 		die();
 	}

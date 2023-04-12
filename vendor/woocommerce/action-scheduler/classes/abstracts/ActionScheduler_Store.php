@@ -6,17 +6,17 @@
  */
 abstract class ActionScheduler_Store extends ActionScheduler_Store_Deprecated {
 	const STATUS_COMPLETE = 'complete';
-	const STATUS_PENDING  = 'pending';
-	const STATUS_RUNNING  = 'in-progress';
-	const STATUS_FAILED   = 'failed';
+	const STATUS_PENDING = 'pending';
+	const STATUS_RUNNING = 'in-progress';
+	const STATUS_FAILED = 'failed';
 	const STATUS_CANCELED = 'canceled';
-	const DEFAULT_CLASS   = 'ActionScheduler_wpPostStore';
+	const DEFAULT_CLASS = 'ActionScheduler_wpPostStore';
 
 	/** @var ActionScheduler_Store */
-	private static $store = NULL;
+	private static $store = null;
 
 	/** @var int */
-	protected static $max_args_length = 191;
+	protected static $max_args_length = 800000;
 
 	/**
 	 * @param ActionScheduler_Action $action
@@ -26,7 +26,7 @@ abstract class ActionScheduler_Store extends ActionScheduler_Store_Deprecated {
 	 *
 	 * @return int The action ID
 	 */
-	abstract public function save_action( ActionScheduler_Action $action, DateTime $scheduled_date = NULL );
+	abstract public function save_action( ActionScheduler_Action $action, DateTime $scheduled_date = null );
 
 	/**
 	 * @param string $action_id
@@ -41,7 +41,7 @@ abstract class ActionScheduler_Store extends ActionScheduler_Store_Deprecated {
 	 * Note: the query ordering changes based on the passed 'status' value.
 	 *
 	 * @param string $hook Action hook.
-	 * @param array  $params Parameters of the action to find.
+	 * @param array $params Parameters of the action to find.
 	 *
 	 * @return string|null ID of the next action matching the criteria or NULL if not found.
 	 */
@@ -76,41 +76,42 @@ abstract class ActionScheduler_Store extends ActionScheduler_Store_Deprecated {
 	/**
 	 * Query for action count or list of action IDs.
 	 *
-	 * @since 3.3.0 $query['status'] accepts array of statuses instead of a single status.
-	 *
-	 * @param array  $query {
+	 * @param array $query {
 	 *      Query filtering options.
 	 *
-	 *      @type string       $hook             The name of the actions. Optional.
-	 *      @type string|array $status           The status or statuses of the actions. Optional.
-	 *      @type array        $args             The args array of the actions. Optional.
-	 *      @type DateTime     $date             The scheduled date of the action. Used in UTC timezone. Optional.
-	 *      @type string       $date_compare     Operator for selecting by $date param. Accepted values are '!=', '>', '>=', '<', '<=', '='. Defaults to '<='.
-	 *      @type DateTime     $modified         The last modified date of the action. Used in UTC timezone. Optional.
-	 *      @type string       $modified_compare Operator for comparing $modified param. Accepted values are '!=', '>', '>=', '<', '<=', '='. Defaults to '<='.
-	 *      @type string       $group            The group the action belongs to. Optional.
-	 *      @type bool|int     $claimed          TRUE to find claimed actions, FALSE to find unclaimed actions, an int to find a specific claim ID. Optional.
-	 *      @type int          $per_page         Number of results to return. Defaults to 5.
-	 *      @type int          $offset           The query pagination offset. Defaults to 0.
-	 *      @type int          $orderby          Accepted values are 'hook', 'group', 'modified', 'date' or 'none'. Defaults to 'date'.
-	 *      @type string       $order            Accepted values are 'ASC' or 'DESC'. Defaults to 'ASC'.
+	 * @type string $hook The name of the actions. Optional.
+	 * @type string|array $status The status or statuses of the actions. Optional.
+	 * @type array $args The args array of the actions. Optional.
+	 * @type DateTime $date The scheduled date of the action. Used in UTC timezone. Optional.
+	 * @type string $date_compare Operator for selecting by $date param. Accepted values are '!=', '>', '>=', '<', '<=', '='. Defaults to '<='.
+	 * @type DateTime $modified The last modified date of the action. Used in UTC timezone. Optional.
+	 * @type string $modified_compare Operator for comparing $modified param. Accepted values are '!=', '>', '>=', '<', '<=', '='. Defaults to '<='.
+	 * @type string $group The group the action belongs to. Optional.
+	 * @type bool|int $claimed TRUE to find claimed actions, FALSE to find unclaimed actions, an int to find a specific claim ID. Optional.
+	 * @type int $per_page Number of results to return. Defaults to 5.
+	 * @type int $offset The query pagination offset. Defaults to 0.
+	 * @type int $orderby Accepted values are 'hook', 'group', 'modified', 'date' or 'none'. Defaults to 'date'.
+	 * @type string $order Accepted values are 'ASC' or 'DESC'. Defaults to 'ASC'.
 	 * }
+	 *
 	 * @param string $query_type Whether to select or count the results. Default, select.
 	 *
 	 * @return string|array|null The IDs of actions matching the query. Null on failure.
+	 * @since 3.3.0 $query['status'] accepts array of statuses instead of a single status.
+	 *
 	 */
 	abstract public function query_actions( $query = array(), $query_type = 'select' );
 
 	/**
 	 * Run query to get a single action ID.
 	 *
+	 * @param array $query Query parameters.
+	 *
+	 * @return int|null
 	 * @since 3.3.0
 	 *
 	 * @see ActionScheduler_Store::query_actions for $query arg usage but 'per_page' and 'offset' can't be used.
 	 *
-	 * @param array $query Query parameters.
-	 *
-	 * @return int|null
 	 */
 	public function query_action( $query ) {
 		$query['per_page'] = 1;
@@ -153,8 +154,9 @@ abstract class ActionScheduler_Store extends ActionScheduler_Store_Deprecated {
 		/**
 		 * Allows 3rd party code to add extra action counts (used in filters in the list table).
 		 *
-		 * @since 3.5.0
 		 * @param $extra_actions array Array with format action_count_identifier => action count.
+		 *
+		 * @since 3.5.0
 		 */
 		return apply_filters( 'action_scheduler_extra_action_counts', $extra_actions );
 	}
@@ -178,10 +180,10 @@ abstract class ActionScheduler_Store extends ActionScheduler_Store_Deprecated {
 
 
 	/**
-	 * @param int      $max_actions
+	 * @param int $max_actions
 	 * @param DateTime $before_date Claim only actions schedule before the given date. Defaults to now.
-	 * @param array    $hooks       Claim only actions with a hook or hooks.
-	 * @param string   $group       Claim only actions in the given group.
+	 * @param array $hooks Claim only actions with a hook or hooks.
+	 * @param string $group Claim only actions in the given group.
 	 *
 	 * @return ActionScheduler_ActionClaim
 	 */
@@ -226,24 +228,28 @@ abstract class ActionScheduler_Store extends ActionScheduler_Store_Deprecated {
 
 	/**
 	 * @param string $action_id
+	 *
 	 * @return mixed
 	 */
 	abstract public function get_claim_id( $action_id );
 
 	/**
 	 * @param string $claim_id
+	 *
 	 * @return array
 	 */
 	abstract public function find_actions_by_claim_id( $claim_id );
 
 	/**
 	 * @param string $comparison_operator
+	 *
 	 * @return string
 	 */
 	protected function validate_sql_comparator( $comparison_operator ) {
-		if ( in_array( $comparison_operator, array('!=', '>', '>=', '<', '<=', '=') ) ) {
+		if ( in_array( $comparison_operator, array( '!=', '>', '>=', '<', '<=', '=' ) ) ) {
 			return $comparison_operator;
 		}
+
 		return '=';
 	}
 
@@ -252,9 +258,10 @@ abstract class ActionScheduler_Store extends ActionScheduler_Store_Deprecated {
 	 *
 	 * @param ActionScheduler_Action $action
 	 * @param DateTime $scheduled_date (optional)
+	 *
 	 * @return string
 	 */
-	protected function get_scheduled_date_string( ActionScheduler_Action $action, DateTime $scheduled_date = NULL ) {
+	protected function get_scheduled_date_string( ActionScheduler_Action $action, DateTime $scheduled_date = null ) {
 		$next = null === $scheduled_date ? $action->get_schedule()->get_date() : $scheduled_date;
 		if ( ! $next ) {
 			return '0000-00-00 00:00:00';
@@ -269,23 +276,25 @@ abstract class ActionScheduler_Store extends ActionScheduler_Store_Deprecated {
 	 *
 	 * @param ActionScheduler_Action $action
 	 * @param DateTime $scheduled_date (optional)
+	 *
 	 * @return string
 	 */
-	protected function get_scheduled_date_string_local( ActionScheduler_Action $action, DateTime $scheduled_date = NULL ) {
+	protected function get_scheduled_date_string_local( ActionScheduler_Action $action, DateTime $scheduled_date = null ) {
 		$next = null === $scheduled_date ? $action->get_schedule()->get_date() : $scheduled_date;
 		if ( ! $next ) {
 			return '0000-00-00 00:00:00';
 		}
 
 		ActionScheduler_TimezoneHelper::set_local_timezone( $next );
+
 		return $next->format( 'Y-m-d H:i:s' );
 	}
 
 	/**
 	 * Validate that we could decode action arguments.
 	 *
-	 * @param mixed $args      The decoded arguments.
-	 * @param int   $action_id The action ID.
+	 * @param mixed $args The decoded arguments.
+	 * @param int $action_id The action ID.
 	 *
 	 * @throws ActionScheduler_InvalidActionException When the decoded arguments are invalid.
 	 */
@@ -304,8 +313,8 @@ abstract class ActionScheduler_Store extends ActionScheduler_Store_Deprecated {
 	/**
 	 * Validate a ActionScheduler_Schedule object.
 	 *
-	 * @param mixed $schedule  The unserialized ActionScheduler_Schedule object.
-	 * @param int   $action_id The action ID.
+	 * @param mixed $schedule The unserialized ActionScheduler_Schedule object.
+	 * @param int $action_id The action ID.
 	 *
 	 * @throws ActionScheduler_InvalidActionException When the schedule is invalid.
 	 */
@@ -321,7 +330,8 @@ abstract class ActionScheduler_Store extends ActionScheduler_Store_Deprecated {
 	 * Previously, AS wasn't concerned about args length, as we used the (unindex) post_content column. However,
 	 * with custom tables, we use an indexed VARCHAR column instead.
 	 *
-	 * @param  ActionScheduler_Action $action Action to be validated.
+	 * @param ActionScheduler_Action $action Action to be validated.
+	 *
 	 * @throws InvalidArgumentException When json encoded args is too long.
 	 */
 	protected function validate_action( ActionScheduler_Action $action ) {
@@ -333,11 +343,11 @@ abstract class ActionScheduler_Store extends ActionScheduler_Store_Deprecated {
 	/**
 	 * Cancel pending actions by hook.
 	 *
-	 * @since 3.0.0
-	 *
 	 * @param string $hook Hook name.
 	 *
 	 * @return void
+	 * @since 3.0.0
+	 *
 	 */
 	public function cancel_actions_by_hook( $hook ) {
 		$action_ids = true;
@@ -358,11 +368,11 @@ abstract class ActionScheduler_Store extends ActionScheduler_Store_Deprecated {
 	/**
 	 * Cancel pending actions by group.
 	 *
-	 * @since 3.0.0
-	 *
 	 * @param string $group Group slug.
 	 *
 	 * @return void
+	 * @since 3.0.0
+	 *
 	 */
 	public function cancel_actions_by_group( $group ) {
 		$action_ids = true;
@@ -383,11 +393,11 @@ abstract class ActionScheduler_Store extends ActionScheduler_Store_Deprecated {
 	/**
 	 * Cancel a set of action IDs.
 	 *
-	 * @since 3.0.0
-	 *
 	 * @param array $action_ids List of action IDs.
 	 *
 	 * @return void
+	 * @since 3.0.0
+	 *
 	 */
 	private function bulk_cancel_actions( $action_ids ) {
 		foreach ( $action_ids as $action_id ) {
@@ -415,6 +425,7 @@ abstract class ActionScheduler_Store extends ActionScheduler_Store_Deprecated {
 	 *
 	 * @param ActionScheduler_Action $action
 	 * @param DateTime $scheduled_date (optional)
+	 *
 	 * @return string
 	 */
 	public function has_pending_actions_due() {
@@ -430,21 +441,24 @@ abstract class ActionScheduler_Store extends ActionScheduler_Store_Deprecated {
 	/**
 	 * Callable initialization function optionally overridden in derived classes.
 	 */
-	public function init() {}
+	public function init() {
+	}
 
 	/**
 	 * Callable function to mark an action as migrated optionally overridden in derived classes.
 	 */
-	public function mark_migrated( $action_id ) {}
+	public function mark_migrated( $action_id ) {
+	}
 
 	/**
 	 * @return ActionScheduler_Store
 	 */
 	public static function instance() {
 		if ( empty( self::$store ) ) {
-			$class = apply_filters( 'action_scheduler_store_class', self::DEFAULT_CLASS );
+			$class       = apply_filters( 'action_scheduler_store_class', self::DEFAULT_CLASS );
 			self::$store = new $class();
 		}
+
 		return self::$store;
 	}
 }

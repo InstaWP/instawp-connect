@@ -266,7 +266,9 @@ class InstaWP_AJAX {
 
 	public function check_key() {
 		global $InstaWP_Curl;
-		$this->ajax_check_security();
+
+		// $this->ajax_check_security();
+
 		$res        = array(
 			'error'   => true,
 			'message' => '',
@@ -288,7 +290,6 @@ class InstaWP_AJAX {
 					'Authorization' => 'Bearer ' . $api_key,
 					'Accept'        => 'application/json',
 				),
-
 			)
 		);
 
@@ -306,6 +307,7 @@ class InstaWP_AJAX {
 
 				//InstaWP_Setting::update_connect_option('instawp_connect_options',$connect_options,'api_key_opt');
 				update_option( 'instawp_api_options', $connect_options );
+				update_option( 'instawp_api_key', $api_key );
 
 				/* Set Connect ID on Check API KEY Code Start */
 				$connect_url = $api_doamin . INSTAWP_API_URL . '/connects';

@@ -98,7 +98,7 @@ define( 'INSTAWP_FAILED', 'failed' );
 define( 'INSTAWP_UPLOAD_TO_CLOUD', true );
 define( 'INSTAWP_API_URL', '/api/v1' );
 define( 'INSTAWP_API_2_URL', '/api/v2' );
-@ini_set( 'memory_limit', '1024M' );
+@ini_set( 'memory_limit', '2048M' );
 
 
 /**

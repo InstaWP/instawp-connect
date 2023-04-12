@@ -353,7 +353,7 @@ class InstaWP_Setting {
 					$connect_options['response'] = $body;
 
 					update_option( 'instawp_api_options', $connect_options );
-					update_option( 'instawp_api_key', $api_key );
+					update_option( '`instawp_api_key`', $api_key );
 				}
 			}
 			/* API KEY Store Code End */
@@ -589,9 +589,7 @@ class InstaWP_Setting {
 	}
 
 	public static function get_tasks() {
-		$default = array();
-
-		return $options = get_option( 'instawp_task_list', $default );
+		return get_option( 'instawp_task_list', [] );
 	}
 
 	public static function update_task( $id, $task ) {
