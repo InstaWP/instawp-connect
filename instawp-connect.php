@@ -218,6 +218,18 @@ function run_instawp() {
 	instawp_staging_create_db_table();
 }
 
+
+///**
+// * @var InstaWP_Log $instawp_log
+// */
+//global $instawp_log;
+//
+//if ( ! class_exists( 'InstaWP_Log' ) ) {
+//	include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-log.php';
+//}
+//
+//$instawp_log = new InstaWP_Log( 'migration', 'New Migration Logic' );
+
 run_instawp();
 
 /*

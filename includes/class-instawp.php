@@ -5549,7 +5549,7 @@ class instaWP {
 			if ( $options['backup_cache'] == '1' ) {
 				$backup_id_list = InstaWP_Backuplist::get_has_remote_backuplist();
 				$this->delete_local_backup( $backup_id_list );
-				InstaWP_tools::clean_junk_cache();
+				InstaWP_Tools::clean_junk_cache();
 			}
 
 			if ( $options['junk_files'] == '1' ) {
@@ -5587,7 +5587,7 @@ class instaWP {
 
 			foreach ( $delete_folder as $folder ) {
 				if ( file_exists( $folder ) ) {
-					InstaWP_tools::deldir( $folder, '', true );
+					InstaWP_Tools::deldir( $folder, '', true );
 				}
 			}
 
@@ -5655,7 +5655,7 @@ class instaWP {
 			if ( $options['backup_cache'] == '1' ) {
 				$backup_id_list = InstaWP_Backuplist::get_has_remote_backuplist();
 				$this->delete_local_backup( $backup_id_list );
-				InstaWP_tools::clean_junk_cache();
+				InstaWP_Tools::clean_junk_cache();
 			}
 
 			if ( $options['junk_files'] == '1' ) {
@@ -5693,7 +5693,7 @@ class instaWP {
 
 			foreach ( $delete_folder as $folder ) {
 				if ( file_exists( $folder ) ) {
-					InstaWP_tools::deldir( $folder, '', true );
+					InstaWP_Tools::deldir( $folder, '', true );
 				}
 			}
 

@@ -8,19 +8,26 @@ class InstaWP_Log {
 	public $log_file;
 	public $log_file_handle;
 
-	public function __construct() {
-		$this->log_file_handle = false;
+	public function __construct( $file_name = false, $describe = '' ) {
+		$this->log_file_handle = $file_name;
+
+		if ( ! empty( $file_name ) ) {
+			$this->CreateLogFile( $file_name, '', $describe );
+		}
 	}
 
-	public function CreateLogFile( $file_name, $type, $describe ) {
+	public function CreateLogFile( $file_name, $type = 'has_folder', $describe = '' ) {
+
 		if ( $type == 'has_folder' ) {
 			$this->log_file = $file_name;
 		} else {
 			$this->log_file = $this->GetSaveLogFolder() . $file_name . '_log.txt';
 		}
+
 		if ( file_exists( $this->log_file ) ) {
 			@unlink( $this->log_file );
 		}
+
 		$this->log_file_handle = fopen( $this->log_file, 'a' );
 		$offset                = get_option( 'gmt_offset' );
 		$time                  = date( "Y-m-d H:i:s", time() + $offset * 60 * 60 );
@@ -46,6 +53,7 @@ class InstaWP_Log {
 	}
 
 	public function WriteLog( $log, $type = 'notice' ) {
+
 		if ( $this->log_file_handle ) {
 			$offset = get_option( 'gmt_offset' );
 			$time   = date( "Y-m-d H:i:s", time() + $offset * 60 * 60 );

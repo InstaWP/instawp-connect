@@ -109,14 +109,14 @@ class InstaWP_restore_data {
 			}
 		} );
 
-		InstaWP_tools::file_put_array( $data, $this->restore_data_file );
+		InstaWP_Tools::file_put_array( $data, $this->restore_data_file );
 
 		$this->restore_cache = $data;
 	}
 
 	public function get_restore_option() {
 		if ( $this->restore_cache === false ) {
-			$this->restore_cache = InstaWP_tools::file_get_array( $this->restore_data_file );
+			$this->restore_cache = InstaWP_Tools::file_get_array( $this->restore_data_file );
 		}
 
 		return $this->restore_cache['restore_options'];
@@ -124,7 +124,7 @@ class InstaWP_restore_data {
 
 	public function get_restore_status() {
 		if ( $this->restore_cache === false ) {
-			$this->restore_cache = InstaWP_tools::file_get_array( $this->restore_data_file );
+			$this->restore_cache = InstaWP_Tools::file_get_array( $this->restore_data_file );
 		}
 		if ( empty( $this->restore_cache ) ) {
 			return INSTAWP_RESTORE_ERROR;
@@ -135,7 +135,7 @@ class InstaWP_restore_data {
 
 	public function get_restore_error() {
 		if ( $this->restore_cache === false ) {
-			$this->restore_cache = InstaWP_tools::file_get_array( $this->restore_data_file );
+			$this->restore_cache = InstaWP_Tools::file_get_array( $this->restore_data_file );
 		}
 		if ( empty( $this->restore_cache ) ) {
 			return array(
@@ -213,7 +213,7 @@ class InstaWP_restore_data {
 
 	public function get_backup_data() {
 		if ( $this->restore_cache === false ) {
-			$this->restore_cache = InstaWP_tools::file_get_array( $this->restore_data_file );
+			$this->restore_cache = InstaWP_Tools::file_get_array( $this->restore_data_file );
 		}
 
 		return $this->restore_cache['backup_data'];
@@ -221,7 +221,7 @@ class InstaWP_restore_data {
 
 	public function get_restore_data() {
 		if ( $this->restore_cache === false ) {
-			$this->restore_cache = InstaWP_tools::file_get_array( $this->restore_data_file );
+			$this->restore_cache = InstaWP_Tools::file_get_array( $this->restore_data_file );
 		}
 
 		return $this->restore_cache['data'];
@@ -229,7 +229,7 @@ class InstaWP_restore_data {
 
 	public function get_restore_data_id() {
 		if ( $this->restore_cache === false ) {
-			$this->restore_cache = InstaWP_tools::file_get_array( $this->restore_data_file );
+			$this->restore_cache = InstaWP_Tools::file_get_array( $this->restore_data_file );
 		}
 
 		return $this->restore_cache['task_id'];
@@ -238,7 +238,7 @@ class InstaWP_restore_data {
 	public function get_next_restore_task() {
 
 		if ( $this->restore_cache === false ) {
-			$this->restore_cache = InstaWP_tools::file_get_array( $this->restore_data_file );
+			$this->restore_cache = InstaWP_Tools::file_get_array( $this->restore_data_file );
 		}
 
 		$next_task    = false;
@@ -261,7 +261,7 @@ class InstaWP_restore_data {
 				$this->restore_cache['restore_tasks'][ $index ]['status']        = INSTAWP_RESTORE_RUNNING;
 				$this->restore_cache['restore_tasks'][ $index ]['time']['start'] = time();
 
-				InstaWP_tools::file_put_array( $this->restore_cache, $this->restore_data_file );
+				InstaWP_Tools::file_put_array( $this->restore_cache, $this->restore_data_file );
 				break;
 			} elseif ( $task['status'] === INSTAWP_RESTORE_RUNNING ) {
 				$next_task = INSTAWP_RESTORE_RUNNING;
@@ -275,7 +275,7 @@ class InstaWP_restore_data {
 	public function get_next_restore_task_progress() {
 		$next_task = false;
 		if ( $this->restore_cache === false ) {
-			$this->restore_cache = InstaWP_tools::file_get_array( $this->restore_data_file );
+			$this->restore_cache = InstaWP_Tools::file_get_array( $this->restore_data_file );
 		}
 		$wait_running = 0;
 
@@ -297,7 +297,7 @@ class InstaWP_restore_data {
 
 	public function update_error( $error, $error_task = '', $table = array() ) {
 		if ( $this->restore_cache === false ) {
-			$this->restore_cache = InstaWP_tools::file_get_array( $this->restore_data_file );
+			$this->restore_cache = InstaWP_Tools::file_get_array( $this->restore_data_file );
 		}
 		$this->restore_cache['status'] = INSTAWP_RESTORE_ERROR;
 		$this->restore_cache['error']  = $error;
@@ -312,21 +312,21 @@ class InstaWP_restore_data {
 				$this->restore_cache['data'][ $error_task ]['table']['unfinished'] = empty( $table['unfinished'] ) ? 0 : $table['unfinished'];
 			}
 		}
-		InstaWP_tools::file_put_array( $this->restore_cache, $this->restore_data_file );
+		InstaWP_Tools::file_put_array( $this->restore_cache, $this->restore_data_file );
 	}
 
 	public function update_status( $status ) {
 		if ( $this->restore_cache === false ) {
-			$this->restore_cache = InstaWP_tools::file_get_array( $this->restore_data_file );
+			$this->restore_cache = InstaWP_Tools::file_get_array( $this->restore_data_file );
 		}
 
 		$this->restore_cache['status'] = $status;
-		InstaWP_tools::file_put_array( $this->restore_cache, $this->restore_data_file );
+		InstaWP_Tools::file_put_array( $this->restore_cache, $this->restore_data_file );
 	}
 
 	public function update_sub_task( $task_index, $result ) {
 		if ( $this->restore_cache === false ) {
-			$this->restore_cache = InstaWP_tools::file_get_array( $this->restore_data_file );
+			$this->restore_cache = InstaWP_Tools::file_get_array( $this->restore_data_file );
 		}
 
 		if ( $result['result'] == INSTAWP_SUCCESS ) {
@@ -344,7 +344,7 @@ class InstaWP_restore_data {
 		}
 
 		$this->restore_cache['data'][ $task_index ]['time']['end'] = time();
-		InstaWP_tools::file_put_array( $this->restore_cache, $this->restore_data_file );
+		InstaWP_Tools::file_put_array( $this->restore_cache, $this->restore_data_file );
 	}
 
 	public function get_need_unzip_file( $restore_task ) {
@@ -364,9 +364,9 @@ class InstaWP_restore_data {
 
 	public function update_need_unzip_file( $task_index, $files ) {
 		if ( $this->restore_cache === false ) {
-			$this->restore_cache = InstaWP_tools::file_get_array( $this->restore_data_file );
+			$this->restore_cache = InstaWP_Tools::file_get_array( $this->restore_data_file );
 		}
 		$this->restore_cache['restore_tasks'][ $task_index ]['unzip_files'] = array_merge( $this->restore_cache['restore_tasks'][ $task_index ]['unzip_files'], $files );
-		InstaWP_tools::file_put_array( $this->restore_cache, $this->restore_data_file );
+		InstaWP_Tools::file_put_array( $this->restore_cache, $this->restore_data_file );
 	}
 }
