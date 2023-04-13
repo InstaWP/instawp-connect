@@ -108,8 +108,6 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 				InstaWP_taskmanager::update_task( $migrate_task );
 			}
 
-			echo "<pre>"; print_r( $migrate_id ); echo "</pre>";
-
 			if ( empty( $migrate_id ) ) {
 				wp_send_json_success( $response );
 			}

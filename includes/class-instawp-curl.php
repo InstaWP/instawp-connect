@@ -81,9 +81,6 @@ class InstaWP_Curl {
 		error_log( 'API Response - ' . $api_response );
 
 		$api_response     = json_decode( $api_response, true );
-
-		echo "<pre>"; print_r( $api_response ); echo "</pre>";
-
 		$response_status  = InstaWP_Setting::get_args_option( 'status', $api_response );
 		$response_data    = InstaWP_Setting::get_args_option( 'data', $api_response, array() );
 		$response_message = InstaWP_Setting::get_args_option( 'message', $api_response );
