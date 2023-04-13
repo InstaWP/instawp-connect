@@ -25,12 +25,6 @@ class InstaWP_Backup_Api {
 			'permission_callback' => '__return_true',
 		) );
 
-		register_rest_route( $this->namespace . '/' . $this->version, 'test-backup', array(
-			'methods'             => 'POST',
-			'callback'            => array( $this, 'test_backup' ),
-			'permission_callback' => '__return_true',
-		) );
-
 		register_rest_route( $this->namespace . '/' . $this->version, 'restore', array(
 			'methods'             => 'POST',
 			'callback'            => array( $this, 'restore' ),
@@ -288,24 +282,6 @@ class InstaWP_Backup_Api {
 		return $response;
 	}
 
-	public function test_backup( $request ) {
-		$parameters = $request->get_params();
-		$backups    = InstaWP_Backuplist::get_backup_by_id( '6305fbad810e0' );
-		$backupdir  = InstaWP_Setting::get_backupdir();
-		$files      = array( $backup['backup']['files'][0]['file_name'] );
-
-		foreach ( $backups['backup']['files'] as $backup ) {
-			print_r( $backup );
-		}
-
-		$filePath = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . $backupdir . DIRECTORY_SEPARATOR . $backup['backup']['files'][0]['file_name'];
-
-		$response = new WP_REST_Response( $backups );
-		$response->set_status( 200 );
-
-		return $response;
-	}
-
 
 	/**
 	 * Move files and folder from one place to another
@@ -476,7 +452,7 @@ class InstaWP_Backup_Api {
 			InstaWP_Setting::set_api_domain( $parameters['api_domain'] );
 		}
 
-		$res = $this->_config_check_key( $parameters['api_key'] );
+		$res = self::config_check_key( $parameters['api_key'] );
 
 		$this->instawp_log->CloseFile();
 
@@ -1032,8 +1008,10 @@ class InstaWP_Backup_Api {
 
 	}
 
-	public function _config_check_key( $api_key ) {
+	public static function config_check_key( $api_key ) {
+
 		global $InstaWP_Curl;
+
 		$res        = array(
 			'error'   => true,
 			'message' => '',
@@ -1044,11 +1022,10 @@ class InstaWP_Backup_Api {
 			"url"     => $url,
 			"api_key" => $api_key,
 		);
-		$this->instawp_log->WriteLog( 'Init Check Key: ' . json_encode( $log ), 'notice' );
 
 
 		$api_key = sanitize_text_field( $api_key );
-		//102|SouBdaa121zb1U2DDlsWK8tXaoV8L31WsXnqMyOy';
+
 		$response      = wp_remote_get( $url, array(
 			'body'    => '',
 			'headers' => array(
@@ -1062,12 +1039,12 @@ class InstaWP_Backup_Api {
 			"response_code" => $response_code,
 			"response"      => $response,
 		);
-		$this->instawp_log->WriteLog( 'Check Key Response : ' . json_encode( $response ), 'notice' );
+
 
 		if ( ! is_wp_error( $response ) && $response_code == 200 ) {
 
 			$body = (array) json_decode( wp_remote_retrieve_body( $response ), true );
-			$this->instawp_log->WriteLog( 'Check Key Response Body: ' . json_encode( $body ), 'notice' );
+
 
 			$connect_options = array();
 			if ( $body['status'] == true ) {
@@ -1079,22 +1056,19 @@ class InstaWP_Backup_Api {
 				// update config check token
 				update_option( 'instawp_api_key_config_completed', 'yes' );
 
-				$this->instawp_log->WriteLog( 'Save instawp_api_options: ' . json_encode( $connect_options ), 'success' );
-				$res = $this->_config_connect( $api_key );
+				$res = self::config_connect( $api_key );
 			} else {
 				$res = array(
 					'error'   => true,
 					'message' => 'Key Not Valid',
-
 				);
-				$this->instawp_log->WriteLog( 'Something Wrong: ' . json_encode( $body ), 'error' );
 			}
 		}
 
 		return $res;
 	}
 
-	public function _config_connect( $api_key ) {
+	public static function config_connect( $api_key ) {
 		global $InstaWP_Curl;
 		$res         = array(
 			'error'   => true,
@@ -1136,26 +1110,19 @@ class InstaWP_Backup_Api {
 			'url'  => $url,
 			'body' => $body,
 		);
-		$this->instawp_log->WriteLog( '_config_connect_init ' . json_encode( $log ), 'notice' );
 
 		$curl_response = $InstaWP_Curl->curl( $url, $body );
 
-		$this->instawp_log->WriteLog( '_config_connect_response ' . json_encode( $curl_response ), 'notice' );
-
 		if ( $curl_response['error'] == false ) {
-			$response = (array) json_decode( $curl_response['curl_res'], true );
-			update_option( '_config_connect_response', $response );
 			$response = (array) json_decode( $curl_response['curl_res'], true );
 			if ( $response['status'] == true ) {
 
 				update_option( 'instawp_connect_id_options', $response );
-				$this->instawp_log->WriteLog( 'Save instawp_connect_id_options ' . json_encode( $response ), 'success' );
 				$res['message'] = $response['message'];
 				$res['error']   = false;
 			} else {
 				$res['message'] = 'Something Went Wrong. Please try again';
 				$res['error']   = true;
-				$this->instawp_log->WriteLog( 'Something Went Wrong. Please try again ' . json_encode( $curl_response ), 'error' );
 			}
 		}
 

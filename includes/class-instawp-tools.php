@@ -14,6 +14,7 @@ class InstaWP_Tools {
 		$instawp_log->WriteLog( $message, $type );
 	}
 
+
 	public static function clean_junk_cache() {
 		$home_url_prefix = get_home_url();
 		$parse           = parse_url( $home_url_prefix );

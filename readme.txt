@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 4.5
 Tested up to: 6.2
 Requires PHP: 5.4
-Stable tag: 0.0.9.7
+Stable tag: 0.0.9.8
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -51,6 +51,7 @@ InstaWP is an online WordPress development environment to get you started with a
 
 1. Create a new staging site.
 2. Details of a staging site.
+3. Update API key and Settings.
 
 == Changelog ==
 
@@ -72,3 +73,8 @@ InstaWP is an online WordPress development environment to get you started with a
 
 = 0.0.9.7 =
 - 11/04/2023 - NEW - Added plugin reset functionality.
+
+= 0.0.9.8 =
+- 13/04/2023 - UPDATE - Heartbeat interval default changed to 15 minutes.
+- 13/04/2023 - UPDATE - API key manual input allowed in the settings page.
+- 13/04/2023 - FIX - API key is not setting properly after returning from auth screen.

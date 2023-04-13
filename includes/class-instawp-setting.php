@@ -177,7 +177,7 @@ class InstaWP_Setting {
 					'title'       => esc_html__( 'API Key', 'instawp-connect' ),
 					'placeholder' => esc_attr( 'gL8tbdZFfG8yQCXu0IycBa' ),
 					'attributes'  => array(
-						'readonly' => true,
+//						'readonly' => true,
 					),
 				),
 				array(
