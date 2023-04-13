@@ -35,6 +35,8 @@ if (
 		InstaWP_Setting::instawp_generate_api_key( $access_token, $status );
 	}
 }
+
+
 /* Generate API Code End */
 $screen_1_show = '';
 $screen_2_show = '';

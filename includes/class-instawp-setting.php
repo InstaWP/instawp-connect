@@ -184,7 +184,7 @@ class InstaWP_Setting {
 					'id'          => 'instawp_api_heartbeat',
 					'type'        => 'number',
 					'title'       => esc_html__( 'Heartbeat Interval', 'instawp-connect' ),
-					'placeholder' => esc_attr( '2' ),
+					'placeholder' => esc_attr( '15' ),
 				),
 				array(
 					'id'      => 'instawp_db_method',
@@ -325,100 +325,73 @@ class InstaWP_Setting {
 		return get_option( 'instawp_api_key' );
 	}
 
-	public static function instawp_generate_api_key( $access_token, $status ) {
+	public static function instawp_generate_api_key( $api_key, $status ) {
 
 		global $InstaWP_Curl;
 
-		if ( ! empty( $access_token ) && ( ! empty( $status ) && $status == true ) ) {
-			$api_doamin = self::get_api_domain();
+		if ( empty( $api_key ) || 'true' != $status ) {
+			return false;
+		}
 
-			/* API KEY Store Code Stat */
-			$url      = $api_doamin . INSTAWP_API_URL . '/check-key';
-			$api_key  = $_REQUEST['access_token'];
-			$response = wp_remote_get( $url, array(
-				'body'    => '',
-				'headers' => array(
-					'Authorization' => 'Bearer ' . $api_key,
-					'Accept'        => 'application/json',
-				),
-			) );
+		$api_domain = self::get_api_domain();
+		$api_args   = array(
+			'body'    => '',
+			'headers' => array(
+				'Authorization' => 'Bearer ' . $api_key,
+				'Accept'        => 'application/json',
+			),
+		);
 
-			$response_code = wp_remote_retrieve_response_code( $response );
-			if ( ! is_wp_error( $response ) && $response_code == 200 ) {
-				$body = (array) json_decode( wp_remote_retrieve_body( $response ), true );
+		if ( is_wp_error( $response = wp_remote_get( $api_domain . INSTAWP_API_URL . '/check-key', $api_args ) ) ) {
+			return false;
+		}
 
-				$connect_options = array();
-				if ( $body['status'] == true ) {
-					$connect_options['api_key']  = $api_key;
-					$connect_options['response'] = $body;
+		$response_body = json_decode( wp_remote_retrieve_body( $response ), true );
 
-					update_option( 'instawp_api_options', $connect_options );
-					update_option( '`instawp_api_key`', $api_key );
-				}
+		if ( isset( $response_body['status'] ) && $response_body['status'] ) {
+			update_option( 'instawp_api_options', array( 'api_key' => $api_key, 'response' => $response_body ) );
+			update_option( 'instawp_api_key', $api_key );
+		}
+
+
+		$url         = $api_domain . INSTAWP_API_URL . '/connects';
+		$php_version = substr( phpversion(), 0, 3 );
+		$username    = '';
+
+		foreach ( get_users( array( 'role__in' => array( 'administrator' ), 'fields' => array( 'user_login' ) ) ) as $admin ) {
+			if ( empty( $username ) && isset( $admin->user_login ) ) {
+				$username = $admin->user_login;
 			}
-			/* API KEY Store Code End */
+		}
 
-			/* Connect ID Store Code Start */
-			$url         = $api_doamin . INSTAWP_API_URL . '/connects';
-			$php_version = substr( phpversion(), 0, 3 );
-			$username    = null;
-			$admin_users = get_users(
-				array(
-					'role__in' => array( 'administrator' ),
-					'fields'   => array( 'user_login' )
-				)
-			);
+		$body = json_encode(
+			array(
+				"url"         => get_site_url(),
+				"php_version" => $php_version,
+				"username"    => ! empty( $username ) ? base64_encode( $username ) : "",
+			)
+		);
 
-			if ( ! empty( $admin_users ) ) {
-				if ( is_null( $username ) ) {
-					foreach ( $admin_users as $admin ) {
-						$username = $admin->user_login;
-					}
-				}
+		$curl_response = $InstaWP_Curl->curl( $url, $body );
+
+		error_log( "curl_response on generate \n" . print_r( $curl_response, true ) );
+
+		if ( ! $curl_response['error'] ) {
+
+			$response = (array) json_decode( $curl_response['curl_res'], true );
+
+			if ( $response['status'] ) {
+				$connect_id                     = $response['data']['id'];
+				$connect_options                = self::get_option( 'instawp_connect_options', array() );
+				$connect_options[ $connect_id ] = $response;
+
+				update_option( 'instawp_connect_id_options', $response );
 			}
-
-			$body = json_encode(
-				array(
-					"url"         => get_site_url(),
-					"php_version" => $php_version,
-					"username"    => ! is_null( $username ) ? base64_encode( $username ) : "",
-				)
-			);
-
-			$curl_response = $InstaWP_Curl->curl( $url, $body );
-			update_option( 'instawp_connect_id_options_err', $curl_response );
-			error_log( "curl_response on generate \n" . print_r( $curl_response, true ) );
-
-			if ( $curl_response['error'] == false ) {
-				$response = (array) json_decode( $curl_response['curl_res'], true );
-
-				if ( $response['status'] == true ) {
-					$connect_options                = self::get_option( 'instawp_connect_options', array() );
-					$connect_id                     = $response['data']['id'];
-					$connect_options[ $connect_id ] = $response;
-					update_option( 'instawp_connect_id_options', $response );
-				}
-			}
-
-			/* RUN CRON ON CONNECT START */
-			$timestamp = wp_next_scheduled( 'instwp_handle_heartbeat_cron_action' );
-			wp_unschedule_event( $timestamp, 'instwp_handle_heartbeat_cron_action' );
-
-			if ( ! wp_next_scheduled( 'instwp_handle_heartbeat_cron_action' ) ) {
-				error_log( "RUN CRON ON GENERATE ACTION" );
-				wp_schedule_event( time(), 'instawp_heartbeat_interval', 'instwp_handle_heartbeat_cron_action' );
-			}
-			/* RUN CRON ON CONNECT END */
-
-			/* Connect ID Store Code End */
-
-			// $url = admin_url('admin.php?page=instawp-connect');
-			// wp_redirect( $url, 301 );
-			// exit();
 		}
 	}
 
-	public static function set_default_compress_option() {
+	public
+	static function set_default_compress_option() {
 		$compress_option['compress_type']            = INSTAWP_DEFAULT_COMPRESS_TYPE;
 		$compress_option['max_file_size']            = INSTAWP_DEFAULT_MAX_FILE_SIZE;
 		$compress_option['no_compress']              = INSTAWP_DEFAULT_NO_COMPRESS;
@@ -432,7 +405,8 @@ class InstaWP_Setting {
 		return $compress_option;
 	}
 
-	public static function set_default_local_option() {
+	public
+	static function set_default_local_option() {
 		$local_option['path']       = INSTAWP_DEFAULT_BACKUP_DIR;
 		$local_option['save_local'] = 1;
 		self::update_option( 'instawp_local_setting', $local_option );
@@ -440,14 +414,16 @@ class InstaWP_Setting {
 		return $local_option;
 	}
 
-	public static function set_default_upload_option() {
+	public
+	static function set_default_upload_option() {
 		$upload_option = array();
 		self::update_option( 'instawp_upload_setting', $upload_option );
 
 		return $upload_option;
 	}
 
-	public static function set_default_email_option() {
+	public
+	static function set_default_email_option() {
 		$email_option['send_to']      = array();
 		$email_option['always']       = true;
 		$email_option['email_enable'] = false;
@@ -456,7 +432,8 @@ class InstaWP_Setting {
 		return $email_option;
 	}
 
-	public static function set_default_common_option() {
+	public
+	static function set_default_common_option() {
 		$sapi_type = php_sapi_name();
 
 		if ( $sapi_type == 'cgi-fcgi' || $sapi_type == ' fpm-fcgi' ) {
@@ -480,7 +457,10 @@ class InstaWP_Setting {
 		return $common_option;
 	}
 
-	public static function get_option( $option_name, $default = array() ) {
+	public
+	static function get_option(
+		$option_name, $default = array()
+	) {
 		$ret = get_option( $option_name, $default );
 		if ( empty( $ret ) ) {
 			self::get_default_option( $option_name );
@@ -489,7 +469,10 @@ class InstaWP_Setting {
 		return $ret;
 	}
 
-	public static function get_last_backup_message( $option_name, $default = array() ) {
+	public
+	static function get_last_backup_message(
+		$option_name, $default = array()
+	) {
 		$message = self::get_option( $option_name, $default );
 		$ret     = array();
 		if ( ! empty( $message['id'] ) ) {
@@ -508,7 +491,8 @@ class InstaWP_Setting {
 		return $ret;
 	}
 
-	public static function get_backupdir() {
+	public
+	static function get_backupdir() {
 		$dir = self::get_option( 'instawp_local_setting' );
 
 		if ( ! isset( $dir['path'] ) ) {
@@ -532,7 +516,10 @@ class InstaWP_Setting {
 		return $dir['path'];
 	}
 
-	public static function set_backupdir( $dir ) {
+	public
+	static function set_backupdir(
+		$dir
+	) {
 		if ( ! isset( $dir['path'] ) ) {
 			$dir = self::set_default_local_option();
 		} else {
@@ -552,7 +539,8 @@ class InstaWP_Setting {
 		}
 	}
 
-	public static function get_save_local() {
+	public
+	static function get_save_local() {
 		$local = self::get_option( 'instawp_local_setting' );
 
 		if ( ! isset( $local['save_local'] ) ) {
@@ -562,12 +550,18 @@ class InstaWP_Setting {
 		return $local['save_local'];
 	}
 
-	public static function update_option( $option_name, $options ) {
+	public
+	static function update_option(
+		$option_name, $options
+	) {
 		update_option( $option_name, $options, 'no' );
 	}
 
 
-	public static function update_connect_option( $option_name, $options, $connect_id, $task_id = '', $key = '' ) {
+	public
+	static function update_connect_option(
+		$option_name, $options, $connect_id, $task_id = '', $key = ''
+	) {
 
 		$connect_options = self::get_option( 'instawp_connect_options', array() );
 		if ( isset( $connect_options[ $connect_id ] ) ) {
@@ -584,15 +578,22 @@ class InstaWP_Setting {
 		update_option( $option_name, $connect_options, 'no' );
 	}
 
-	public static function delete_option( $option_name ) {
+	public
+	static function delete_option(
+		$option_name
+	) {
 		delete_option( $option_name );
 	}
 
-	public static function get_tasks() {
+	public
+	static function get_tasks() {
 		return get_option( 'instawp_task_list', [] );
 	}
 
-	public static function update_task( $id, $task ) {
+	public
+	static function update_task(
+		$id, $task
+	) {
 		$default        = array();
 		$options        = get_option( 'instawp_task_list', $default );
 		$options[ $id ] = $task;
@@ -600,14 +601,18 @@ class InstaWP_Setting {
 		self::update_option( 'instawp_task_list', $options );
 	}
 
-	public static function delete_task( $id ) {
+	public
+	static function delete_task(
+		$id
+	) {
 		$default = array();
 		$options = get_option( 'instawp_task_list', $default );
 		unset( $options[ $id ] );
 		self::update_option( 'instawp_task_list', $options );
 	}
 
-	public static function check_compress_options() {
+	public
+	static function check_compress_options() {
 		$options = self::get_option( 'instawp_compress_setting' );
 
 		if ( ! isset( $options['compress_type'] ) || ! isset( $options['max_file_size'] ) ||
@@ -617,7 +622,8 @@ class InstaWP_Setting {
 		}
 	}
 
-	public static function check_local_options() {
+	public
+	static function check_local_options() {
 		$options = self::get_option( 'instawp_local_setting' );
 
 		if ( ! isset( $options['path'] ) || ! isset( $options['save_local'] ) ) {
@@ -663,7 +669,10 @@ class InstaWP_Setting {
 		return $backup_options;
 	}*/
 
-	public static function get_remote_option( $id ) {
+	public
+	static function get_remote_option(
+		$id
+	) {
 		$upload_options = self::get_option( 'instawp_upload_setting' );
 		if ( array_key_exists( $id, $upload_options ) ) {
 			return $upload_options[ $id ];
@@ -672,7 +681,10 @@ class InstaWP_Setting {
 		}
 	}
 
-	public static function get_remote_options( $remote_ids = array() ) {
+	public
+	static function get_remote_options(
+		$remote_ids = array()
+	) {
 		if ( empty( $remote_ids ) ) {
 			$remote_ids = self::get_user_history( 'remote_selected' );
 		}
@@ -695,14 +707,18 @@ class InstaWP_Setting {
 		}
 	}
 
-	public static function get_all_remote_options() {
+	public
+	static function get_all_remote_options() {
 		$upload_options                    = self::get_option( 'instawp_upload_setting' );
 		$upload_options['remote_selected'] = self::get_user_history( 'remote_selected' );
 
 		return $upload_options;
 	}
 
-	public static function add_remote_options( $remote ) {
+	public
+	static function add_remote_options(
+		$remote
+	) {
 		$upload_options = self::get_option( 'instawp_upload_setting' );
 		$id             = uniqid( 'instawp-remote-' );
 
@@ -714,7 +730,10 @@ class InstaWP_Setting {
 		return $id;
 	}
 
-	public static function delete_remote_option( $id ) {
+	public
+	static function delete_remote_option(
+		$id
+	) {
 		do_action( 'instawp_delete_remote_token', $id );
 
 		$upload_options = self::get_option( 'instawp_upload_setting' );
@@ -730,7 +749,10 @@ class InstaWP_Setting {
 		}
 	}
 
-	public static function update_remote_option( $remote_id, $remote ) {
+	public
+	static function update_remote_option(
+		$remote_id, $remote
+	) {
 		$upload_options = self::get_option( 'instawp_upload_setting' );
 
 		if ( array_key_exists( $remote_id, $upload_options ) ) {
@@ -744,7 +766,10 @@ class InstaWP_Setting {
 		}
 	}
 
-	public static function get_setting( $all, $options_name ) {
+	public
+	static function get_setting(
+		$all, $options_name
+	) {
 		$get_options = array();
 		if ( $all == true ) {
 			$get_options[] = 'instawp_email_setting';
@@ -766,7 +791,10 @@ class InstaWP_Setting {
 		return $ret;
 	}
 
-	public static function update_setting( $options ) {
+	public
+	static function update_setting(
+		$options
+	) {
 		foreach ( $options as $option_name => $option ) {
 			self::update_option( $option_name, $option );
 		}
@@ -775,7 +803,10 @@ class InstaWP_Setting {
 		return $ret;
 	}
 
-	public static function export_setting_to_json( $setting = true, $history = true, $review = true, $backup_list = true ) {
+	public
+	static function export_setting_to_json(
+		$setting = true, $history = true, $review = true, $backup_list = true
+	) {
 		global $instawp_plugin;
 		$json['plugin']               = $instawp_plugin->get_plugin_name();
 		$json['version']              = INSTAWP_PLUGIN_VERSION;
@@ -847,7 +878,10 @@ class InstaWP_Setting {
 		return $json;
 	}
 
-	public static function import_json_to_setting( $json ) {
+	public
+	static function import_json_to_setting(
+		$json
+	) {
 		wp_cache_delete( 'notoptions', 'options' );
 		wp_cache_delete( 'alloptions', 'options' );
 		foreach ( $json['data'] as $option_name => $option ) {
@@ -857,13 +891,17 @@ class InstaWP_Setting {
 		}
 	}
 
-	public static function set_max_backup_count( $count ) {
+	public
+	static function set_max_backup_count(
+		$count
+	) {
 		$options                     = self::get_option( 'instawp_common_setting' );
 		$options['max_backup_count'] = $count;
 		self::update_option( 'instawp_common_setting', $options );
 	}
 
-	public static function get_max_backup_count() {
+	public
+	static function get_max_backup_count() {
 		$options = self::get_option( 'instawp_common_setting' );
 		if ( isset( $options['max_backup_count'] ) ) {
 			return $options['max_backup_count'];
@@ -872,11 +910,13 @@ class InstaWP_Setting {
 		}
 	}
 
-	public static function get_mail_setting() {
+	public
+	static function get_mail_setting() {
 		return self::get_option( 'instawp_email_setting' );
 	}
 
-	public static function get_admin_bar_setting() {
+	public
+	static function get_admin_bar_setting() {
 		$options = self::get_option( 'instawp_common_setting' );
 		if ( isset( $options['show_admin_bar'] ) ) {
 			if ( $options['show_admin_bar'] ) {
@@ -889,13 +929,19 @@ class InstaWP_Setting {
 		}
 	}
 
-	public static function update_user_history( $action, $value ) {
+	public
+	static function update_user_history(
+		$action, $value
+	) {
 		$options            = self::get_option( 'instawp_user_history' );
 		$options[ $action ] = $value;
 		self::update_option( 'instawp_user_history', $options );
 	}
 
-	public static function get_user_history( $action ) {
+	public
+	static function get_user_history(
+		$action
+	) {
 		$options = self::get_option( 'instawp_user_history' );
 		if ( array_key_exists( $action, $options ) ) {
 			return $options[ $action ];
@@ -904,7 +950,8 @@ class InstaWP_Setting {
 		}
 	}
 
-	public static function get_retain_local_status() {
+	public
+	static function get_retain_local_status() {
 		$options = self::get_option( 'instawp_common_setting' );
 		if ( isset( $options['retain_local'] ) ) {
 			if ( $options['retain_local'] ) {
@@ -917,7 +964,8 @@ class InstaWP_Setting {
 		}
 	}
 
-	public static function get_sync_data() {
+	public
+	static function get_sync_data() {
 		$data['setting']['instawp_compress_setting'] = self::get_option( 'instawp_compress_setting' );
 		$data['setting']['instawp_local_setting']    = self::get_option( 'instawp_local_setting' );
 		$data['setting']['instawp_common_setting']   = self::get_option( 'instawp_common_setting' );
