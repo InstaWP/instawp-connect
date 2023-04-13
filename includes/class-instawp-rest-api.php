@@ -543,6 +543,10 @@ class InstaWP_Backup_Api {
 
 				$progress_results = $instawp_plugin->get_restore_progress_api( $backup_list_key );
 
+				echo "<pre>";
+				print_r( $progress_results );
+				echo "</pre>";
+
 //				$progress_value   = $instawp_plugin->restore_data->get_next_restore_task_progress();
 //				$progress_value   = $progress_value * ( $backup_index / $count_backup_list );
 //				$progress_value   = ( $progress_value / 2 ) + 50;
@@ -629,7 +633,7 @@ class InstaWP_Backup_Api {
 
 		try {
 
-			$this->validate_api_request( $request );
+//			$this->validate_api_request( $request );
 
 			$parameters      = $request->get_params();
 			$restore_options = json_encode( array(
@@ -655,19 +659,15 @@ class InstaWP_Backup_Api {
 
 				do_action( 'action_scheduler_run_queue', 'Async Request' );
 
-				global $InstaWP_Curl;
-
-				$download_urls = InstaWP_Setting::get_args_option( 'urls', $parameters, array() );
-				$download_urls = array_map( function ( $download_url ) {
-					return $download_url['url'] ?? '';
-				}, $download_urls );
-				$download_urls = array_unique( $download_urls );
-
-				$backup_download_ret = $InstaWP_Curl->download( $backup_task_id, $download_urls );
-
-//				echo "<pre>";
-//				print_r( $backup_download_ret );
-//				echo "</pre>";
+//				global $InstaWP_Curl;
+//
+//				$download_urls = InstaWP_Setting::get_args_option( 'urls', $parameters, array() );
+//				$download_urls = array_map( function ( $download_url ) {
+//					return $download_url['url'] ?? '';
+//				}, $download_urls );
+//				$download_urls = array_unique( $download_urls );
+//
+//				$InstaWP_Curl->download( $backup_task_id, $download_urls );
 			}
 
 			$backup_uploader = new InstaWP_BackupUploader();
@@ -683,6 +683,8 @@ class InstaWP_Backup_Api {
 
 			// Immediately run the schedule, don't want for the cron to run.
 			do_action( 'action_scheduler_run_queue', 'Async Request' );
+
+//			self::restore_bg( $backup_list, $restore_options, $parameters );
 
 			$res_result = array( 'completed' => false, 'progress' => 55, 'message' => 'Backup downloaded, restore initiated..', 'status' => 'wait' );
 
