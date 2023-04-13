@@ -606,7 +606,6 @@ class InstaWP_Backup_Api {
 		global $InstaWP_Curl;
 
 		$download_urls = InstaWP_Setting::get_args_option( 'urls', $parameters, array() );
-
 		$download_urls = array_map( function ( $download_url ) {
 			return $download_url['url'] ?? '';
 		}, $download_urls );
@@ -651,8 +650,24 @@ class InstaWP_Backup_Api {
 			$backup_task_result = isset( $backup_task_ret['result'] ) ? $backup_task_ret['result'] : '';
 
 			if ( ! empty( $backup_task_id ) && 'success' == $backup_task_result ) {
+
 				as_enqueue_async_action( 'instawp_download_bg', [ $backup_task_id, $parameters ] );
+
 				do_action( 'action_scheduler_run_queue', 'Async Request' );
+
+				global $InstaWP_Curl;
+
+				$download_urls = InstaWP_Setting::get_args_option( 'urls', $parameters, array() );
+				$download_urls = array_map( function ( $download_url ) {
+					return $download_url['url'] ?? '';
+				}, $download_urls );
+				$download_urls = array_unique( $download_urls );
+
+				$backup_download_ret = $InstaWP_Curl->download( $backup_task_id, $download_urls );
+
+//				echo "<pre>";
+//				print_r( $backup_download_ret );
+//				echo "</pre>";
 			}
 
 			$backup_uploader = new InstaWP_BackupUploader();
