@@ -169,6 +169,7 @@ tailwind.config = {
                 setTimeout(function () {
                     el_settings_form.removeClass('loading');
                     el_settings_form_response.addClass((response.success ? 'success' : 'error')).html(response.data.message);
+                    window.location.reload();
                 }, 2000);
             }
         });

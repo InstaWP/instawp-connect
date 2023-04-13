@@ -223,7 +223,7 @@ class instaWP {
 			! empty( $connect_ids['data']['id'] )
 		) {
 
-			$cutstom_interval = intval( get_option( 'instawp_heartbeat_option', 2 ) );
+			$cutstom_interval = intval( get_option( 'instawp_heartbeat_option', 15 ) );
 			//error_log( "default interval time ==> ".$cutstom_interval );
 			$schedules['instawp_heartbeat_interval'] = array(
 				'interval' => $cutstom_interval * 60,

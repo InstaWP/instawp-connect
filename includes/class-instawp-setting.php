@@ -354,6 +354,8 @@ class InstaWP_Setting {
 		}
 
 
+		// Connects api start
+
 		$url         = $api_domain . INSTAWP_API_URL . '/connects';
 		$php_version = substr( phpversion(), 0, 3 );
 		$username    = '';
@@ -376,18 +378,21 @@ class InstaWP_Setting {
 
 		error_log( "curl_response on generate \n" . print_r( $curl_response, true ) );
 
-		if ( ! $curl_response['error'] ) {
-
-			$response = (array) json_decode( $curl_response['curl_res'], true );
-
-			if ( $response['status'] ) {
-				$connect_id                     = $response['data']['id'];
-				$connect_options                = self::get_option( 'instawp_connect_options', array() );
-				$connect_options[ $connect_id ] = $response;
-
-				update_option( 'instawp_connect_id_options', $response );
-			}
+		if ( $curl_response['error'] ) {
+			return false;
 		}
+
+		$response = (array) json_decode( $curl_response['curl_res'], true );
+
+		if ( $response['status'] ) {
+			$connect_id                     = $response['data']['id'];
+			$connect_options                = self::get_option( 'instawp_connect_options', array() );
+			$connect_options[ $connect_id ] = $response;
+
+			update_option( 'instawp_connect_id_options', $response );
+		}
+
+		return true;
 	}
 
 	public

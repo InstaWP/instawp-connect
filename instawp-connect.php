@@ -295,5 +295,3 @@ function instawp_create_table() {
 	}
 }
 
-
-

@@ -25,7 +25,7 @@ $instawp_db_method = empty( $instawp_db_method ) ? 'pdo' : $instawp_db_method;
 if ( ! empty( get_option( 'instawp_heartbeat_option' ) ) ) {
 	$instawp_heartbeat_option = get_option( 'instawp_heartbeat_option' );
 } else {
-	$instawp_heartbeat_option = 2;
+	$instawp_heartbeat_option = 15;
 }
 if ( ! empty( $connect_options ) ) {
 	$api_key = $connect_options['api_key'];

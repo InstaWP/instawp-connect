@@ -108,6 +108,8 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 				InstaWP_taskmanager::update_task( $migrate_task );
 			}
 
+			echo "<pre>"; print_r( $migrate_id ); echo "</pre>";
+
 			if ( empty( $migrate_id ) ) {
 				wp_send_json_success( $response );
 			}
@@ -477,8 +479,7 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 		 * @return void
 		 */
 		function add_migrate_menu() {
-			add_submenu_page(
-				'tools.php',
+			add_management_page(
 				esc_html__( 'InstaWP', 'instawp-connect' ),
 				esc_html__( 'InstaWP', 'instawp-connect' ),
 				'administrator', 'instawp',
