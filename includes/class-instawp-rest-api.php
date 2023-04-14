@@ -615,9 +615,9 @@ class InstaWP_Backup_Api {
 		}, $download_urls );
 		$download_urls = array_unique( $download_urls );
 
-		echo "<pre>";
-		print_r( $parameters );
-		echo "</pre>";
+//		echo "<pre>";
+//		print_r( $parameters );
+//		echo "</pre>";
 
 		if ( empty( $download_urls ) ) {
 			self::restore_status( 'Empty or invalid download urls.', 0 );
@@ -662,16 +662,6 @@ class InstaWP_Backup_Api {
 				as_enqueue_async_action( 'instawp_download_bg', [ $backup_task_id, $parameters ] );
 
 				do_action( 'action_scheduler_run_queue', 'Async Request' );
-
-//				global $InstaWP_Curl;
-//
-//				$download_urls = InstaWP_Setting::get_args_option( 'urls', $parameters, array() );
-//				$download_urls = array_map( function ( $download_url ) {
-//					return $download_url['url'] ?? '';
-//				}, $download_urls );
-//				$download_urls = array_unique( $download_urls );
-//
-//				$InstaWP_Curl->download( $backup_task_id, $download_urls );
 			}
 
 			$backup_uploader = new InstaWP_BackupUploader();
@@ -687,8 +677,6 @@ class InstaWP_Backup_Api {
 
 			// Immediately run the schedule, don't want for the cron to run.
 			do_action( 'action_scheduler_run_queue', 'Async Request' );
-
-//			self::restore_bg( $backup_list, $restore_options, $parameters );
 
 			$res_result = array( 'completed' => false, 'progress' => 55, 'message' => 'Backup downloaded, restore initiated..', 'status' => 'wait' );
 

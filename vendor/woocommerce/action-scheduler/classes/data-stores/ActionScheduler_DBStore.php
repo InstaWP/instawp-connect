@@ -20,7 +20,7 @@ class ActionScheduler_DBStore extends ActionScheduler_Store {
 	private $claim_before_date = null;
 
 	/** @var int */
-	protected static $max_args_length = 10000;
+	protected static $max_args_length = 80000;
 
 	/** @var int */
 	protected static $max_index_length = 200;
