@@ -19,6 +19,7 @@ function as_enqueue_async_action( $hook, $args = array(), $group = '', $unique =
 	if ( ! ActionScheduler::is_initialized( __FUNCTION__ ) ) {
 		return 0;
 	}
+
 	return ActionScheduler::factory()->async_unique( $hook, $args, $group, $unique );
 }
 

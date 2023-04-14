@@ -615,6 +615,10 @@ class InstaWP_Backup_Api {
 		}, $download_urls );
 		$download_urls = array_unique( $download_urls );
 
+		echo "<pre>";
+		print_r( $parameters );
+		echo "</pre>";
+
 		if ( empty( $download_urls ) ) {
 			self::restore_status( 'Empty or invalid download urls.', 0 );
 		}
