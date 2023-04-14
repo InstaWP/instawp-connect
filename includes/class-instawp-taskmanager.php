@@ -375,8 +375,11 @@ class InstaWP_taskmanager {
 	}
 
 	public static function get_backup_sub_task_progress( $task_id, $job_name, $sub_job_name ) {
-		$task = self::get_task( $task_id );
-		if ( array_key_exists( $job_name, $task['data'] ) ) {
+
+		$task      = self::get_task( $task_id );
+		$task_data = InstaWP_Setting::get_args_option( 'data', $task, array() );
+
+		if ( array_key_exists( $job_name, $task_data ) ) {
 			if ( array_key_exists( $sub_job_name, $task['data'][ $job_name ]['sub_job'] ) ) {
 				return $task['data'][ $job_name ]['sub_job'][ $sub_job_name ];
 			}

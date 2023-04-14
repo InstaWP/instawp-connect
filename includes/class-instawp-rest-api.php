@@ -374,7 +374,9 @@ class InstaWP_Backup_Api {
 
 				$this->move_files_folders( $source, $destination );
 
-				rmdir( $destination );
+				if ( $destination ) {
+					rmdir( $destination );
+				}
 			}
 		}
 
