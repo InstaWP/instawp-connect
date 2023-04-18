@@ -39,7 +39,7 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 				wp_send_json_error( array( 'message' => esc_html__( 'Invalid reset type.' ) ) );
 			}
 
-			if ( ! instawp_reset_running_migration() ) {
+			if ( ! instawp_reset_running_migration( $reset_type ) ) {
 				wp_send_json_error( array( 'message' => esc_html__( 'Plugin reset unsuccessful.' ) ) );
 			}
 
@@ -440,7 +440,8 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 
 				$field_value = InstaWP_Setting::get_args_option( $field_id, $form_data );
 
-				if ( 'instawp_api_key' == $field_id && $field_value != InstaWP_Setting::get_option( 'instawp_api_key' ) ) {
+				if ( 'instawp_api_key' == $field_id && ! empty( $field_value ) && $field_value != InstaWP_Setting::get_option( 'instawp_api_key' ) ) {
+
 					$api_key_check_response = InstaWP_Backup_Api::config_check_key( $field_value );
 
 					if ( isset( $api_key_check_response['error'] ) && $api_key_check_response['error'] == 1 ) {
