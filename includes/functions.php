@@ -286,6 +286,10 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 			update_option( 'instawp_api_url', esc_url_raw( 'https://app.instawp.io' ) );
 		}
 
+
+		delete_option( 'instawp_compress_setting' );
+
+
 		$response = InstaWP_Curl::do_curl( "migrates/force-timeout", array( 'source_domain' => site_url() ) );
 
 		if ( isset( $response['success'] ) && ! $response['success'] ) {
