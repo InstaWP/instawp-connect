@@ -4,9 +4,7 @@
  */
 
 if ( isset( $_GET['clear'] ) && $_GET['clear'] == 'all' ) {
-	InstaWP_taskmanager::delete_all_task();
-	$task = new InstaWP_Backup();
-	$task->clean_backup();
+	instawp_reset_running_migration();
 }
 
 $incomplete_task_ids = InstaWP_taskmanager::is_there_any_incomplete_task_ids();

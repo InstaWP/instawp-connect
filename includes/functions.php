@@ -258,3 +258,39 @@ if ( ! function_exists( 'instawp_get_migration_site_detail' ) ) {
 		return apply_filters( 'INSTAWP_CONNECT/Filters/get_migration_site_detail', $site_detail, $migrate_id );
 	}
 }
+
+
+if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
+	/**
+	 * Reset running migration
+	 *
+	 * @param $reset_type
+	 *
+	 * @return bool
+	 */
+	function instawp_reset_running_migration( $reset_type = 'soft' ) {
+
+		$reset_type = empty( $reset_type ) ? InstaWP_Setting::get_option( 'instawp_reset_type', 'soft' ) : $reset_type;
+
+		if ( ! in_array( $reset_type, array( 'soft', 'hard' ) ) ) {
+			return false;
+		}
+
+		InstaWP_taskmanager::delete_all_task();
+		$task = new InstaWP_Backup();
+		$task->clean_backup();
+
+		if ( 'hard' == $reset_type ) {
+			delete_option( 'instawp_api_key' );
+			delete_option( 'instawp_api_options' );
+		}
+
+		$response = InstaWP_Curl::do_curl( "migrates/force-timeout", array( 'source_domain' => site_url() ) );
+
+		if ( isset( $response['success'] ) && ! $response['success'] ) {
+			error_log( json_encode( $response ) );
+		}
+
+		return true;
+	}
+}

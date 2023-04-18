@@ -666,7 +666,10 @@ class InstaWP_taskmanager {
 		$incomplete_task_ids = array();
 
 		foreach ( InstaWP_Setting::get_tasks() as $task ) {
-			if ( isset( $task['status']['str'] ) && $task['status']['str'] != 'completed' ) {
+			if (
+				isset( $task['is_migrate'] ) && $task['is_migrate'] &&
+				isset( $task['status']['str'] ) && $task['status']['str'] != 'completed'
+			) {
 				$incomplete_task_ids[] = $task['id'];
 			}
 		}

@@ -338,3 +338,4 @@ function as_get_datetime_object( $date_string = null, $timezone = 'UTC' ) {
 	}
 	return $date;
 }
+

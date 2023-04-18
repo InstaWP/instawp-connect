@@ -150,11 +150,12 @@ class InstaWP_Backup_Task {
 	}
 
 	public function new_backup_task( $options, $type, $action = 'backup' ) {
-		$id                   = uniqid( 'instawp-' );
-		$this->task           = false;
-		$this->task['id']     = $id;
-		$this->task['action'] = $action;
-		$this->task['type']   = $type;
+		$id                       = uniqid( 'instawp-' );
+		$this->task               = false;
+		$this->task['id']         = $id;
+		$this->task['action']     = $action;
+		$this->task['type']       = $type;
+		$this->task['is_migrate'] = $options['is_migrate'] ?? false;
 
 		$this->task['status']['start_time']   = time();
 		$this->task['status']['run_time']     = time();

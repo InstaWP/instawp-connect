@@ -639,7 +639,7 @@ class InstaWP_Backup_Api {
 
 		try {
 
-//			$this->validate_api_request( $request );
+			$this->validate_api_request( $request );
 
 			$parameters      = $request->get_params();
 			$restore_options = json_encode( array(
@@ -940,7 +940,6 @@ class InstaWP_Backup_Api {
 		$pre_backup_json = $instawp_plugin->prepare_backup_rest_api( json_encode( $args ) );
 		$pre_backup      = (array) json_decode( $pre_backup_json, true );
 
-		//print_r($data);
 		if ( $pre_backup['result'] == 'success' ) {
 
 			// Unique connection id / restore_id

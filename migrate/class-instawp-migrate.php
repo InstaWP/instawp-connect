@@ -39,13 +39,8 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 				wp_send_json_error( array( 'message' => esc_html__( 'Invalid reset type.' ) ) );
 			}
 
-			InstaWP_taskmanager::delete_all_task();
-			$task = new InstaWP_Backup();
-			$task->clean_backup();
-
-			if ( 'hard' == $reset_type ) {
-				delete_option( 'instawp_api_key' );
-				delete_option( 'instawp_api_options' );
+			if ( ! instawp_reset_running_migration() ) {
+				wp_send_json_error( array( 'message' => esc_html__( 'Plugin reset unsuccessful.' ) ) );
 			}
 
 			wp_send_json_success( array( 'message' => esc_html__( 'Plugin reset successfully.' ) ) );
@@ -78,6 +73,7 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 				'local'        => '1',
 				'type'         => 'Manual',
 				'action'       => 'backup',
+				'is_migrate'   => true,
 			);
 			$backup_options      = apply_filters( 'INSTAWP_CONNECT/Filters/migrate_backup_options', $backup_options );
 			$incomplete_task_ids = InstaWP_taskmanager::is_there_any_incomplete_task_ids();
