@@ -1101,7 +1101,7 @@ class instaWP {
 		die();
 	}
 
-	public function backup_now_api( $task_id_arg, $restore_id ) {
+	public function backup_now_api( $task_id_arg, $restore_id = '' ) {
 		//$this->ajax_check_security();
 		try {
 			if ( ! isset( $task_id_arg ) || empty( $task_id_arg ) || ! is_string( $task_id_arg ) ) {

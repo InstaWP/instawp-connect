@@ -176,8 +176,7 @@ class InstaWP_Setting {
 					'type'        => 'text',
 					'title'       => esc_html__( 'API Key', 'instawp-connect' ),
 					'placeholder' => esc_attr( 'gL8tbdZFfG8yQCXu0IycBa' ),
-					'attributes'  => array(
-//						'readonly' => true,
+					'attributes'  => array(//						'readonly' => true,
 					),
 				),
 				array(
@@ -395,8 +394,7 @@ class InstaWP_Setting {
 		return true;
 	}
 
-	public
-	static function set_default_compress_option() {
+	public static function set_default_compress_option() {
 		$compress_option['compress_type']            = INSTAWP_DEFAULT_COMPRESS_TYPE;
 		$compress_option['max_file_size']            = INSTAWP_DEFAULT_MAX_FILE_SIZE;
 		$compress_option['no_compress']              = INSTAWP_DEFAULT_NO_COMPRESS;
@@ -410,8 +408,7 @@ class InstaWP_Setting {
 		return $compress_option;
 	}
 
-	public
-	static function set_default_local_option() {
+	public static function set_default_local_option() {
 		$local_option['path']       = INSTAWP_DEFAULT_BACKUP_DIR;
 		$local_option['save_local'] = 1;
 		self::update_option( 'instawp_local_setting', $local_option );
@@ -419,16 +416,14 @@ class InstaWP_Setting {
 		return $local_option;
 	}
 
-	public
-	static function set_default_upload_option() {
+	public static function set_default_upload_option() {
 		$upload_option = array();
 		self::update_option( 'instawp_upload_setting', $upload_option );
 
 		return $upload_option;
 	}
 
-	public
-	static function set_default_email_option() {
+	public static function set_default_email_option() {
 		$email_option['send_to']      = array();
 		$email_option['always']       = true;
 		$email_option['email_enable'] = false;
@@ -437,8 +432,7 @@ class InstaWP_Setting {
 		return $email_option;
 	}
 
-	public
-	static function set_default_common_option() {
+	public static function set_default_common_option() {
 		$sapi_type = php_sapi_name();
 
 		if ( $sapi_type == 'cgi-fcgi' || $sapi_type == ' fpm-fcgi' ) {
@@ -462,8 +456,7 @@ class InstaWP_Setting {
 		return $common_option;
 	}
 
-	public
-	static function get_option(
+	public static function get_option(
 		$option_name, $default = array()
 	) {
 		$ret = get_option( $option_name, $default );
@@ -474,8 +467,7 @@ class InstaWP_Setting {
 		return $ret;
 	}
 
-	public
-	static function get_last_backup_message(
+	public static function get_last_backup_message(
 		$option_name, $default = array()
 	) {
 		$message = self::get_option( $option_name, $default );
@@ -496,8 +488,7 @@ class InstaWP_Setting {
 		return $ret;
 	}
 
-	public
-	static function get_backupdir() {
+	public static function get_backupdir() {
 		$dir = self::get_option( 'instawp_local_setting' );
 
 		if ( ! isset( $dir['path'] ) ) {
@@ -521,8 +512,7 @@ class InstaWP_Setting {
 		return $dir['path'];
 	}
 
-	public
-	static function set_backupdir(
+	public static function set_backupdir(
 		$dir
 	) {
 		if ( ! isset( $dir['path'] ) ) {
@@ -544,8 +534,7 @@ class InstaWP_Setting {
 		}
 	}
 
-	public
-	static function get_save_local() {
+	public static function get_save_local() {
 		$local = self::get_option( 'instawp_local_setting' );
 
 		if ( ! isset( $local['save_local'] ) ) {
@@ -555,16 +544,14 @@ class InstaWP_Setting {
 		return $local['save_local'];
 	}
 
-	public
-	static function update_option(
+	public static function update_option(
 		$option_name, $options
 	) {
 		update_option( $option_name, $options, 'no' );
 	}
 
 
-	public
-	static function update_connect_option(
+	public static function update_connect_option(
 		$option_name, $options, $connect_id, $task_id = '', $key = ''
 	) {
 
@@ -583,20 +570,17 @@ class InstaWP_Setting {
 		update_option( $option_name, $connect_options, 'no' );
 	}
 
-	public
-	static function delete_option(
+	public static function delete_option(
 		$option_name
 	) {
 		delete_option( $option_name );
 	}
 
-	public
-	static function get_tasks() {
+	public static function get_tasks() {
 		return get_option( 'instawp_task_list', [] );
 	}
 
-	public
-	static function update_task(
+	public static function update_task(
 		$id, $task
 	) {
 		$default        = array();
@@ -606,8 +590,7 @@ class InstaWP_Setting {
 		self::update_option( 'instawp_task_list', $options );
 	}
 
-	public
-	static function delete_task(
+	public static function delete_task(
 		$id
 	) {
 		$default = array();
@@ -616,8 +599,7 @@ class InstaWP_Setting {
 		self::update_option( 'instawp_task_list', $options );
 	}
 
-	public
-	static function check_compress_options() {
+	public static function check_compress_options() {
 		$options = self::get_option( 'instawp_compress_setting' );
 
 		if ( ! isset( $options['compress_type'] ) || ! isset( $options['max_file_size'] ) ||
@@ -627,8 +609,7 @@ class InstaWP_Setting {
 		}
 	}
 
-	public
-	static function check_local_options() {
+	public static function check_local_options() {
 		$options = self::get_option( 'instawp_local_setting' );
 
 		if ( ! isset( $options['path'] ) || ! isset( $options['save_local'] ) ) {
@@ -674,8 +655,7 @@ class InstaWP_Setting {
 		return $backup_options;
 	}*/
 
-	public
-	static function get_remote_option(
+	public static function get_remote_option(
 		$id
 	) {
 		$upload_options = self::get_option( 'instawp_upload_setting' );
@@ -686,8 +666,7 @@ class InstaWP_Setting {
 		}
 	}
 
-	public
-	static function get_remote_options(
+	public static function get_remote_options(
 		$remote_ids = array()
 	) {
 		if ( empty( $remote_ids ) ) {
@@ -712,16 +691,14 @@ class InstaWP_Setting {
 		}
 	}
 
-	public
-	static function get_all_remote_options() {
+	public static function get_all_remote_options() {
 		$upload_options                    = self::get_option( 'instawp_upload_setting' );
 		$upload_options['remote_selected'] = self::get_user_history( 'remote_selected' );
 
 		return $upload_options;
 	}
 
-	public
-	static function add_remote_options(
+	public static function add_remote_options(
 		$remote
 	) {
 		$upload_options = self::get_option( 'instawp_upload_setting' );
@@ -735,8 +712,7 @@ class InstaWP_Setting {
 		return $id;
 	}
 
-	public
-	static function delete_remote_option(
+	public static function delete_remote_option(
 		$id
 	) {
 		do_action( 'instawp_delete_remote_token', $id );
@@ -754,8 +730,7 @@ class InstaWP_Setting {
 		}
 	}
 
-	public
-	static function update_remote_option(
+	public static function update_remote_option(
 		$remote_id, $remote
 	) {
 		$upload_options = self::get_option( 'instawp_upload_setting' );
@@ -771,8 +746,7 @@ class InstaWP_Setting {
 		}
 	}
 
-	public
-	static function get_setting(
+	public static function get_setting(
 		$all, $options_name
 	) {
 		$get_options = array();
@@ -796,8 +770,7 @@ class InstaWP_Setting {
 		return $ret;
 	}
 
-	public
-	static function update_setting(
+	public static function update_setting(
 		$options
 	) {
 		foreach ( $options as $option_name => $option ) {
@@ -808,8 +781,7 @@ class InstaWP_Setting {
 		return $ret;
 	}
 
-	public
-	static function export_setting_to_json(
+	public static function export_setting_to_json(
 		$setting = true, $history = true, $review = true, $backup_list = true
 	) {
 		global $instawp_plugin;
@@ -883,8 +855,7 @@ class InstaWP_Setting {
 		return $json;
 	}
 
-	public
-	static function import_json_to_setting(
+	public static function import_json_to_setting(
 		$json
 	) {
 		wp_cache_delete( 'notoptions', 'options' );
@@ -896,8 +867,7 @@ class InstaWP_Setting {
 		}
 	}
 
-	public
-	static function set_max_backup_count(
+	public static function set_max_backup_count(
 		$count
 	) {
 		$options                     = self::get_option( 'instawp_common_setting' );
@@ -905,8 +875,7 @@ class InstaWP_Setting {
 		self::update_option( 'instawp_common_setting', $options );
 	}
 
-	public
-	static function get_max_backup_count() {
+	public static function get_max_backup_count() {
 		$options = self::get_option( 'instawp_common_setting' );
 		if ( isset( $options['max_backup_count'] ) ) {
 			return $options['max_backup_count'];
@@ -915,13 +884,11 @@ class InstaWP_Setting {
 		}
 	}
 
-	public
-	static function get_mail_setting() {
+	public static function get_mail_setting() {
 		return self::get_option( 'instawp_email_setting' );
 	}
 
-	public
-	static function get_admin_bar_setting() {
+	public static function get_admin_bar_setting() {
 		$options = self::get_option( 'instawp_common_setting' );
 		if ( isset( $options['show_admin_bar'] ) ) {
 			if ( $options['show_admin_bar'] ) {
@@ -934,8 +901,7 @@ class InstaWP_Setting {
 		}
 	}
 
-	public
-	static function update_user_history(
+	public static function update_user_history(
 		$action, $value
 	) {
 		$options            = self::get_option( 'instawp_user_history' );
@@ -943,8 +909,7 @@ class InstaWP_Setting {
 		self::update_option( 'instawp_user_history', $options );
 	}
 
-	public
-	static function get_user_history(
+	public static function get_user_history(
 		$action
 	) {
 		$options = self::get_option( 'instawp_user_history' );
@@ -955,8 +920,7 @@ class InstaWP_Setting {
 		}
 	}
 
-	public
-	static function get_retain_local_status() {
+	public static function get_retain_local_status() {
 		$options = self::get_option( 'instawp_common_setting' );
 		if ( isset( $options['retain_local'] ) ) {
 			if ( $options['retain_local'] ) {
@@ -969,8 +933,7 @@ class InstaWP_Setting {
 		}
 	}
 
-	public
-	static function get_sync_data() {
+	public static function get_sync_data() {
 		$data['setting']['instawp_compress_setting'] = self::get_option( 'instawp_compress_setting' );
 		$data['setting']['instawp_local_setting']    = self::get_option( 'instawp_local_setting' );
 		$data['setting']['instawp_common_setting']   = self::get_option( 'instawp_common_setting' );

@@ -299,3 +299,104 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 		return true;
 	}
 }
+
+
+if ( ! function_exists( 'instawp_backup_files' ) ) {
+	/**
+	 * @param InstaWP_Backup_Task $migrate_task_obj
+	 *
+	 * @return void
+	 */
+	function instawp_backup_files( InstaWP_Backup_Task $migrate_task_obj, $args = array() ) {
+
+		$migrate_task = InstaWP_taskmanager::get_task( $migrate_task_obj->get_id() );
+
+		foreach ( InstaWP_taskmanager::get_task_backup_data( $migrate_task_obj->get_id() ) as $key => $data ) {
+
+			$backup_status = InstaWP_Setting::get_args_option( 'backup_status', $data );
+
+			if ( 'completed' != $backup_status && 'backup_db' == $key ) {
+				$backup_database = new InstaWP_Backup_Database();
+				$backup_response = $backup_database->backup_database( $data, $migrate_task_obj->get_id() );
+
+				if ( INSTAWP_SUCCESS == InstaWP_Setting::get_args_option( 'result', $backup_response ) ) {
+					$migrate_task['options']['backup_options']['backup'][ $key ]['files'] = $backup_response['files'];
+				} else {
+					$migrate_task['options']['backup_options']['backup'][ $key ]['backup_status'] = 'in_progress';
+				}
+
+				$packages = instawp_get_packages( $migrate_task_obj, $migrate_task['options']['backup_options']['backup'][ $key ] );
+				$result   = instawp_build_zip_files( $migrate_task_obj, $packages, $migrate_task['options']['backup_options']['backup'][ $key ] );
+
+				if ( isset( $result['files'] ) && ! empty( $result['files'] ) ) {
+					$migrate_task['options']['backup_options']['backup'][ $key ]['zip_files']     = $result['files'];
+					$migrate_task['options']['backup_options']['backup'][ $key ]['backup_status'] = 'completed';
+				}
+
+				InstaWP_taskmanager::update_task( $migrate_task );
+			}
+
+			if ( 'completed' != $backup_status ) {
+
+				$migrate_task['options']['backup_options']['backup'][ $key ]['files'] = $migrate_task_obj->get_need_backup_files( $migrate_task['options']['backup_options']['backup'][ $key ] );
+
+				$packages = instawp_get_packages( $migrate_task_obj, $migrate_task['options']['backup_options']['backup'][ $key ] );
+				$result   = instawp_build_zip_files( $migrate_task_obj, $packages, $migrate_task['options']['backup_options']['backup'][ $key ] );
+
+				if ( isset( $result['files'] ) && ! empty( $result['files'] ) ) {
+					$migrate_task['options']['backup_options']['backup'][ $key ]['zip_files']     = $result['files'];
+					$migrate_task['options']['backup_options']['backup'][ $key ]['backup_status'] = 'completed';
+				}
+
+				InstaWP_taskmanager::update_task( $migrate_task );
+			}
+		}
+
+		if ( InstaWP_Setting::get_args_option( 'clean_non_zip', $args, false ) === true ) {
+			instawp_clean_non_zipped_files( $migrate_task_obj );
+		}
+	}
+}
+
+
+if ( ! function_exists( 'instawp_clean_non_zipped_files' ) ) {
+	/**
+	 * @param InstaWP_Backup_Task $migrate_task_obj
+	 *
+	 * @return void
+	 */
+	function instawp_clean_non_zipped_files( InstaWP_Backup_Task $migrate_task_obj ) {
+
+		$migrate_task = InstaWP_taskmanager::get_task( $migrate_task_obj->get_id() );
+
+		foreach ( InstaWP_taskmanager::get_task_backup_data( $migrate_task_obj->get_id() ) as $key => $data ) {
+
+			$backup_status    = InstaWP_Setting::get_args_option( 'backup_status', $data );
+			$backup_progress  = (int) InstaWP_Setting::get_args_option( 'backup_progress', $data );
+			$temp_folder_path = isset( $data['path'] ) && isset( $data['prefix'] ) ? $data['path'] . 'temp-' . $data['prefix'] : '';
+
+			if ( 'completed' == $backup_status ) {
+
+				$is_delete_files_or_folder = false;
+
+				if ( isset( $data['sql_file_name'] ) && is_file( $data['sql_file_name'] ) && file_exists( $data['sql_file_name'] ) ) {
+					@unlink( $data['sql_file_name'] );
+
+					$is_delete_files_or_folder = true;
+				}
+
+				if ( is_dir( $temp_folder_path ) ) {
+					@rmdir( $temp_folder_path );
+
+					$is_delete_files_or_folder = true;
+				}
+
+				if ( $is_delete_files_or_folder ) {
+					$migrate_task['options']['backup_options']['backup'][ $key ]['backup_progress'] = $backup_progress + round( 100 / 5 );
+				}
+
+				InstaWP_taskmanager::update_task( $migrate_task );
+			}
+		}
+	}
+}

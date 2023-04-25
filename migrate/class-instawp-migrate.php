@@ -412,7 +412,7 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 
 		function connect_api_url() {
 
-			$return_url      = urlencode( admin_url( 'admin.php?page=instawp' ) );
+			$return_url      = urlencode( admin_url( 'tools.php?page=instawp' ) );
 			$connect_api_url = InstaWP_Setting::get_api_domain() . '/authorize?source=InstaWP Connect&return_url=' . $return_url;
 
 			wp_send_json_success( array( 'connect_url' => $connect_api_url ) );

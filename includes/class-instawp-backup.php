@@ -23,10 +23,15 @@ define( 'INSTAWP_BACKUP_ROOT_WP_UPLOADS', 'uploads' );
 class InstaWP_Backup_Task {
 	protected $task;
 
+	public $task_id;
+
 	public $backup_type_collect;
 
 	public function __construct( $task_id = false, $task = false ) {
-		if ( $task_id !== false ) {
+		if ( $task_id ) {
+
+			$this->task_id = $task_id;
+
 			$this->task = InstaWP_taskmanager::get_task( $task_id );
 		}
 		if ( $task !== false ) {
@@ -146,7 +151,7 @@ class InstaWP_Backup_Task {
 	}
 
 	public function get_id() {
-		return isset( $this->task['id'] ) ? $this->task['id'] : '';
+		return isset( $this->task_id ) ? $this->task_id : '';
 	}
 
 	public function new_backup_task( $options, $type, $action = 'backup' ) {
