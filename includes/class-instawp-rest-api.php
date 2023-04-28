@@ -542,10 +542,6 @@ class InstaWP_Backup_Api {
 
 				$progress_results = $instawp_plugin->get_restore_progress_api( $backup_list_key );
 
-				echo "<pre>";
-				print_r( $progress_results );
-				echo "</pre>";
-
 //				$progress_value   = $instawp_plugin->restore_data->get_next_restore_task_progress();
 //				$progress_value   = $progress_value * ( $backup_index / $count_backup_list );
 //				$progress_value   = ( $progress_value / 2 ) + 50;
@@ -614,15 +610,11 @@ class InstaWP_Backup_Api {
 		}, $download_urls );
 		$download_urls = array_unique( $download_urls );
 
-//		echo "<pre>";
-//		print_r( $parameters );
-//		echo "</pre>";
-
 		if ( empty( $download_urls ) ) {
 			self::restore_status( 'Empty or invalid download urls.', 0 );
 		}
 
-		$backup_download_ret = $InstaWP_Curl->download( $task_id, $download_urls );
+		$backup_download_ret = $InstaWP_Curl->download( $task_id, $download_urls, $parameters );
 
 		if ( $backup_download_ret['result'] != INSTAWP_SUCCESS ) {
 			self::restore_status( 'Could not download the backup file.', 0 );
@@ -1234,8 +1226,6 @@ add_action( 'wp_head', function () {
 				delete_option( $_GET['key'] );
 			}
 		}
-
-//		InstaWP_taskmanager::delete_all_task();
 
 		die();
 	}

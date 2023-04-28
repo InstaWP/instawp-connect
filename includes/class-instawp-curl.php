@@ -77,8 +77,10 @@ class InstaWP_Curl {
 		$api_response = curl_exec( $curl );
 		curl_close( $curl );
 
-		error_log( 'API URL - ' . $api_url );
-		error_log( 'API Response - ' . $api_response );
+		if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
+			error_log( 'API URL - ' . $api_url );
+			error_log( 'API Response - ' . $api_response );
+		}
 
 		$api_response     = json_decode( $api_response, true );
 		$response_status  = InstaWP_Setting::get_args_option( 'status', $api_response );
@@ -442,42 +444,59 @@ class InstaWP_Curl {
 
 	}
 
-	public function download( $task_id, $urls ) {
-		global $instawp_plugin, $InstaWP_Backup_Api;
+	public function download( $task_id, $urls, $parameters = array() ) {
+
+		global $instawp_plugin;
+
 		$this->task_id = $task_id;
-		// $instawp_plugin->end_shutdown_function = false;
-		// register_shutdown_function(array($instawp_plugin, 'deal_shutdown_error'), $this->task_id);
+
 		InstaWP_taskmanager::update_backup_main_task_progress( $this->task_id, 'download', 0, 0 );
+
 		$download_job = InstaWP_taskmanager::get_backup_sub_task_progress( $task_id, 'download', INSTAWP_REMOTE_S3COMPAT );
+
 		if ( empty( $download_job ) ) {
+
 			$job_data = array();
+
 			foreach ( $urls as $url ) {
 				$basename                = basename( parse_url( $url, PHP_URL_PATH ) );
 				$file_data['size']       = 0;
 				$file_data['downloaded'] = 0;
 				$job_data[ $basename ]   = $file_data;
 			}
+
 			InstaWP_taskmanager::update_backup_sub_task_progress( $task_id, 'download', INSTAWP_REMOTE_S3COMPAT, INSTAWP_UPLOAD_UNDO, 'Start downloading', $job_data );
+
 			$download_job = InstaWP_taskmanager::get_backup_sub_task_progress( $task_id, 'download', INSTAWP_REMOTE_S3COMPAT );
 		}
 
+
+		echo "<pre>";
+		print_r( $parameters );
+		echo "</pre>";
+
+
 		foreach ( $urls as $url ) {
+
 			$basename = basename( parse_url( $url, PHP_URL_PATH ) );
+
 			if ( is_array( $download_job['job_data'] ) && array_key_exists( $basename, $download_job['job_data'] ) ) {
 				if ( $download_job['job_data'][ $basename ]['downloaded'] == 1 ) {
 					continue;
 				}
 			}
+
 			$instawp_plugin->set_time_limit( $task_id );
-			$result                                              = $this->download_loop( $url );
+
+			$result = $this->download_loop( $url );
+
 			$download_job['job_data'][ $basename ]['downloaded'] = 1;
-			$instawp_plugin->instawp_log->WriteLog( 'Finished Downloading ' . basename( $basename ), 'notice' );
-			$InstaWP_Backup_Api->instawp_log->WriteLog( 'Finished Downloading ' . basename( $basename ), 'notice' );
 
 			InstaWP_taskmanager::update_backup_sub_task_progress( $task_id, 'upload', INSTAWP_REMOTE_S3COMPAT, INSTAWP_UPLOAD_SUCCESS, 'Uploading ' . basename( $basename ) . ' completed.', $download_job['job_data'] );
-			update_option( 'instawp_job_data', $download_job );
 		}
+
 		if ( $result['result'] == INSTAWP_SUCCESS ) {
+
 			InstaWP_taskmanager::update_backup_main_task_progress( $this->task_id, 'download', 100, 1 );
 			InstaWP_taskmanager::update_backup_task_status( $this->task_id, false, 'completed' );
 		}
@@ -486,20 +505,16 @@ class InstaWP_Curl {
 	}
 
 	public function download_loop( $url ) {
-		global $instawp_plugin, $InstaWP_Backup_Api;
-		// $instawp_plugin->end_shutdown_function = false;
-		// register_shutdown_function(array($instawp_plugin, 'deal_shutdown_error'), $this->task_id);
-		$InstaWP_Backup_Api->instawp_log->WriteLog( 'File URL: ' . $url, 'notice' );
-		$basename = basename( parse_url( $url, PHP_URL_PATH ) );
 
-		// extracted basename
-
+		$basename        = basename( parse_url( $url, PHP_URL_PATH ) );
 		$output_filename = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . InstaWP_Setting::get_backupdir() . DIRECTORY_SEPARATOR . basename( $basename );
 		$this->fp        = fopen( $output_filename, 'w+' );
 		$useragent       = isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '';
+
 		for ( $i = 0; $i < INSTAWP_REMOTE_CONNECT_RETRY_TIMES; $i ++ ) {
+
 			$args           = array(
-				'timeout'    => 300,
+				'timeout'    => 1800,
 				'download'   => true,
 				'decompress' => false,
 				'stream'     => false,
@@ -509,49 +524,19 @@ class InstaWP_Curl {
 			$WP_Http_Curl   = new WP_Http_Curl();
 			$this->response = $WP_Http_Curl->request( $url, $args );
 
-			// $ch = curl_init();
-
-			// curl_setopt($ch, CURLOPT_URL, $url);
-			// curl_setopt($ch, CURLOPT_VERBOSE, 1);
-			// curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-			// curl_setopt($ch, CURLOPT_AUTOREFERER, false);
-
-			// curl_setopt($ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
-			// curl_setopt($ch, CURLOPT_PROGRESSFUNCTION, function ( $resource, $downloadSize, $downloaded, $uploadSize, $uploaded ) {
-			//    $this->download_progress_callback($resource, $downloadSize, $downloaded, $uploadSize, $uploaded);
-			// });
-			// curl_setopt($ch, CURLOPT_NOPROGRESS, false);
-			// curl_setopt($ch, CURLOPT_HEADER, 0);
-			// curl_setopt($ch, CURLOPT_FILE, $fp);
-
-			// $this->response = curl_exec($ch);
-			// curl_close($ch);
-
 			if ( $this->fp ) {
 				fclose( $this->fp );
 			}
 
-			if ( ! $this->response ) {
+			if ( $this->response ) {
 
-				$InstaWP_Backup_Api->instawp_log->WriteLog( json_encode( $this->response ), 'error' );
-				update_option( 'instawp_demo_parts_error', json_encode( $this->response ) );
 
-				return array(
-					'result' => INSTAWP_FAILED,
-					'error'  => curl_error( $ch ),
-				);
-			} else {
-				// update_option('instawp_demo_parts', $this->response);
-				//$this->_output( $output_filename,$this->response );
-				// $fp = fopen($output_filename, 'w');
-				// fwrite($fp, $this->response);
+//				echo "<pre>";
+//				print_r( $this->response );
+//				echo "</pre>";
 
-				return array(
-					'result' => INSTAWP_SUCCESS,
-				);
-				//return array( 'result' => INSTAWP_SUCCESS );
+				return array( 'result' => INSTAWP_SUCCESS, 'error' => '' );
 			}
-
 		}
 
 		if ( $this->fp ) {
@@ -560,10 +545,10 @@ class InstaWP_Curl {
 
 		return array(
 			'result' => INSTAWP_FAILED,
-			'error'  => 'Download failed, retries exhausted. File name:',
+			'error'  => 'Download failed, retries exhausted',
 		);
-		// the following lines write the contents to a file in the same directory (provided permissions etc)
 	}
+
 
 	public function _output( $output_filename, $content ) {
 

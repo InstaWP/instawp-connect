@@ -400,3 +400,30 @@ if ( ! function_exists( 'instawp_clean_non_zipped_files' ) ) {
 		}
 	}
 }
+
+
+if ( ! function_exists( 'instawp_update_migration_status' ) ) {
+	/**
+	 * @param $migrate_id
+	 * @param $part_id
+	 * @param $args
+	 *
+	 * @return array
+	 */
+	function instawp_update_migration_status( $migrate_id = '', $part_id = '', $args = array() ) {
+
+		if ( empty( $migrate_id ) || $migrate_id == 0 || empty( $part_id ) || $part_id == 0 ) {
+			return array( 'success' => false, 'message' => esc_html__( 'Invalid migrate or part ID', 'instawp-connect' ) );
+		}
+
+		$defaults    = array(
+			'type'     => 'restore',
+			'progress' => 100,
+			'message'  => esc_html__( 'Restore completed for this part', 'instawp-connect' ),
+			'status'   => 'completed'
+		);
+		$status_args = wp_parse_args( $args, $defaults );
+
+		return InstaWP_Curl::do_curl( "migrates/{$migrate_id}/parts/{$part_id}", $status_args, array(), 'patch' );
+	}
+}
