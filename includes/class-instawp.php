@@ -4611,6 +4611,7 @@ class instaWP {
 //		die();
 	}
 
+
 	public function write_litespeed_rule( $open = true ) {
 		$litespeed = false;
 
