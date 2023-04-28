@@ -444,7 +444,7 @@ class InstaWP_Curl {
 
 	}
 
-	public function download( $task_id, $urls, $parameters = array() ) {
+	public function download( $task_id, $parameters = array() ) {
 
 		global $instawp_plugin;
 
@@ -452,17 +452,23 @@ class InstaWP_Curl {
 
 		InstaWP_taskmanager::update_backup_main_task_progress( $this->task_id, 'download', 0, 0 );
 
-		$download_job = InstaWP_taskmanager::get_backup_sub_task_progress( $task_id, 'download', INSTAWP_REMOTE_S3COMPAT );
+		$download_job  = InstaWP_taskmanager::get_backup_sub_task_progress( $task_id, 'download', INSTAWP_REMOTE_S3COMPAT );
+		$download_urls = InstaWP_Setting::get_args_option( 'urls', $parameters, array() );
+		$migrate_id    = isset( $parameters['wp']['options']['instawp_migrate_id'] ) ? $parameters['wp']['options']['instawp_migrate_id'] : '';
 
 		if ( empty( $download_job ) ) {
 
 			$job_data = array();
 
-			foreach ( $urls as $url ) {
-				$basename                = basename( parse_url( $url, PHP_URL_PATH ) );
-				$file_data['size']       = 0;
-				$file_data['downloaded'] = 0;
-				$job_data[ $basename ]   = $file_data;
+			foreach ( $download_urls as $download_url ) {
+
+				$url      = InstaWP_Setting::get_args_option( 'url', $download_url );
+				$basename = basename( parse_url( $url, PHP_URL_PATH ) );
+
+				$job_data[ $basename ] = array(
+					'size'       => 0,
+					'downloaded' => 0
+				);
 			}
 
 			InstaWP_taskmanager::update_backup_sub_task_progress( $task_id, 'download', INSTAWP_REMOTE_S3COMPAT, INSTAWP_UPLOAD_UNDO, 'Start downloading', $job_data );
@@ -476,8 +482,10 @@ class InstaWP_Curl {
 		echo "</pre>";
 
 
-		foreach ( $urls as $url ) {
+		foreach ( $download_urls as $download_url ) {
 
+			$url      = InstaWP_Setting::get_args_option( 'url', $download_url );
+			$part_id  = InstaWP_Setting::get_args_option( 'part_id', $download_url );
 			$basename = basename( parse_url( $url, PHP_URL_PATH ) );
 
 			if ( is_array( $download_job['job_data'] ) && array_key_exists( $basename, $download_job['job_data'] ) ) {
@@ -490,13 +498,17 @@ class InstaWP_Curl {
 
 			$result = $this->download_loop( $url );
 
-			$download_job['job_data'][ $basename ]['downloaded'] = 1;
+			if ( $result['result'] == INSTAWP_SUCCESS ) {
 
-			InstaWP_taskmanager::update_backup_sub_task_progress( $task_id, 'upload', INSTAWP_REMOTE_S3COMPAT, INSTAWP_UPLOAD_SUCCESS, 'Uploading ' . basename( $basename ) . ' completed.', $download_job['job_data'] );
+				$download_job['job_data'][ $basename ]['downloaded'] = 1;
+
+				instawp_update_migration_status( $migrate_id, $part_id, array( 'progress' => 50 ) );
+
+				InstaWP_taskmanager::update_backup_sub_task_progress( $task_id, 'upload', INSTAWP_REMOTE_S3COMPAT, INSTAWP_UPLOAD_SUCCESS, 'Uploading ' . basename( $basename ) . ' completed.', $download_job['job_data'] );
+			}
 		}
 
 		if ( $result['result'] == INSTAWP_SUCCESS ) {
-
 			InstaWP_taskmanager::update_backup_main_task_progress( $this->task_id, 'download', 100, 1 );
 			InstaWP_taskmanager::update_backup_task_status( $this->task_id, false, 'completed' );
 		}
@@ -529,12 +541,6 @@ class InstaWP_Curl {
 			}
 
 			if ( $this->response ) {
-
-
-//				echo "<pre>";
-//				print_r( $this->response );
-//				echo "</pre>";
-
 				return array( 'result' => INSTAWP_SUCCESS, 'error' => '' );
 			}
 		}

@@ -604,17 +604,11 @@ class InstaWP_Backup_Api {
 
 		global $InstaWP_Curl;
 
-		$download_urls = InstaWP_Setting::get_args_option( 'urls', $parameters, array() );
-		$download_urls = array_map( function ( $download_url ) {
-			return $download_url['url'] ?? '';
-		}, $download_urls );
-		$download_urls = array_unique( $download_urls );
-
-		if ( empty( $download_urls ) ) {
+		if ( empty( $download_urls = InstaWP_Setting::get_args_option( 'urls', $parameters, array() ) ) || ! is_array( $download_urls ) ) {
 			self::restore_status( 'Empty or invalid download urls.', 0 );
 		}
 
-		$backup_download_ret = $InstaWP_Curl->download( $task_id, $download_urls, $parameters );
+		$backup_download_ret = $InstaWP_Curl->download( $task_id, $parameters );
 
 		if ( $backup_download_ret['result'] != INSTAWP_SUCCESS ) {
 			self::restore_status( 'Could not download the backup file.', 0 );
