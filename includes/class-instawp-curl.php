@@ -476,12 +476,6 @@ class InstaWP_Curl {
 			$download_job = InstaWP_taskmanager::get_backup_sub_task_progress( $task_id, 'download', INSTAWP_REMOTE_S3COMPAT );
 		}
 
-
-		echo "<pre>";
-		print_r( $parameters );
-		echo "</pre>";
-
-
 		foreach ( $download_urls as $download_url ) {
 
 			$url      = InstaWP_Setting::get_args_option( 'url', $download_url );
