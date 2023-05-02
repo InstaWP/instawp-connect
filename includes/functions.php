@@ -557,9 +557,17 @@ function instawp_get_response_progresses( $migrate_task_id, $migrate_id, $respon
 
 		foreach ( InstaWP_taskmanager::get_task_backup_data( $migrate_task_id ) as $data ) {
 			foreach ( InstaWP_Setting::get_args_option( 'zip_files_path', $data, array() ) as $zip_file ) {
+
+				$part_id  = InstaWP_Setting::get_args_option( 'part_id', $zip_file );
+				$part_url = InstaWP_Setting::get_args_option( 'part_url', $zip_file );
+
+				if ( empty( $part_id ) || $part_id == 0 ) {
+					continue;
+				}
+
 				$response['part_urls'][] = array(
-					'part_url' => site_url( 'wp-content/' . INSTAWP_DEFAULT_BACKUP_DIR . '/' . InstaWP_Setting::get_args_option( 'part_url', $zip_file ) ),
-					'part_id'  => InstaWP_Setting::get_args_option( 'part_id', $zip_file ),
+					'part_url' => site_url( 'wp-content/' . INSTAWP_DEFAULT_BACKUP_DIR . '/' . $part_url ),
+					'part_id'  => $part_id,
 				);
 			}
 		}
