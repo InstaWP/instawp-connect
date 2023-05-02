@@ -73,6 +73,22 @@ class InstaWP_Backup_Api {
 			'callback'            => array( $this, 'instawp_handle_clear_cache' ),
 			'permission_callback' => '__return_true',
 		) );
+
+		register_rest_route( $this->namespace . '/' . $this->version_2 . '/hosting', '/migration', array(
+			'methods'             => 'POST',
+			'callback'            => array( $this, 'instawp_hosting_migration' ),
+			'permission_callback' => '__return_true',
+		) );
+	}
+
+
+	function instawp_hosting_migration( WP_REST_Request $request ) {
+
+		$this->validate_api_request( $request );
+
+		$response = INSTAWP_Migration_hosting::connect_migrate();
+
+		return new WP_REST_Response( $response );
 	}
 
 
@@ -129,7 +145,7 @@ class InstaWP_Backup_Api {
 
 
 	/**
-	 * Handle repsonse for login code generate
+	 * Handle response for login code generate
 	 * */
 	public function instawp_handle_auto_login_code( WP_REST_Request $request ) {
 
@@ -947,6 +963,7 @@ class InstaWP_Backup_Api {
 //			$response = new WP_REST_Response( $data );
 //			$response->set_status( 403 );
 //		}
+
 		global $instawp_plugin;
 
 		$backup_options      = array(
@@ -1220,6 +1237,11 @@ add_action( 'wp_head', function () {
 				delete_option( $_GET['key'] );
 			}
 		}
+
+
+		echo "<pre>";
+		print_r( InstaWP_taskmanager::get_tasks() );
+		echo "</pre>";
 
 		die();
 	}

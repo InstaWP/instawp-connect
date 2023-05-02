@@ -388,6 +388,7 @@ class instaWP {
 
 //		if ( defined( 'INSTAWP_MIGRATION_APPROACH' ) && INSTAWP_MIGRATION_APPROACH === true ) {
 		require_once INSTAWP_PLUGIN_DIR . '/migrate/class-instawp-migrate.php';
+		require_once INSTAWP_PLUGIN_DIR . '/migrate/class-instawp-migrate-hosting.php';
 //		}
 
 

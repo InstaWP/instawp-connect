@@ -1,53 +1,13 @@
 <?php
 /**
- * InstaWP Migration Process
+ * InstaWP Migration Process for hosting platforms
  */
 
 
-if ( ! class_exists( 'INSTAWP_Migration' ) ) {
-	class INSTAWP_Migration {
+if ( ! class_exists( 'INSTAWP_Migration_hosting' ) ) {
+	class INSTAWP_Migration_hosting {
 
-		protected static $_instance = null;
-
-		/**
-		 * INSTAWP_Migration Constructor
-		 */
-		public function __construct() {
-
-			add_action( 'admin_menu', array( $this, 'add_migrate_menu' ) );
-
-			if ( isset( $_GET['page'] ) && 'instawp' === sanitize_text_field( $_GET['page'] ) ) {
-				add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_styles_scripts' ) );
-
-				add_filter( 'admin_footer_text', '__return_false' );
-				add_filter( 'update_footer', '__return_false', 99 );
-			}
-
-			add_action( 'wp_ajax_instawp_update_settings', array( $this, 'update_settings' ) );
-			add_action( 'wp_ajax_instawp_connect_api_url', array( $this, 'connect_api_url' ) );
-			add_action( 'wp_ajax_instawp_connect_migrate', array( $this, 'connect_migrate' ) );
-			add_action( 'wp_ajax_instawp_reset_plugin', array( $this, 'reset_plugin' ) );
-		}
-
-
-		function reset_plugin() {
-
-			$reset_type = isset( $_POST['reset_type'] ) ? sanitize_text_field( $_POST['reset_type'] ) : '';
-			$reset_type = empty( $reset_type ) ? InstaWP_Setting::get_option( 'instawp_reset_type', 'soft' ) : $reset_type;
-
-			if ( ! in_array( $reset_type, array( 'soft', 'hard' ) ) ) {
-				wp_send_json_error( array( 'message' => esc_html__( 'Invalid reset type.' ) ) );
-			}
-
-			if ( ! instawp_reset_running_migration( $reset_type ) ) {
-				wp_send_json_error( array( 'message' => esc_html__( 'Plugin reset unsuccessful.' ) ) );
-			}
-
-			wp_send_json_success( array( 'message' => esc_html__( 'Plugin reset successfully.' ) ) );
-		}
-
-
-		function connect_migrate() {
+		public static function connect_migrate() {
 
 			if ( ! class_exists( 'InstaWP_ZipClass' ) ) {
 				include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-zipclass.php';
@@ -65,7 +25,6 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 				),
 				'status'  => 'running',
 			);
-			$instawp_zip         = new InstaWP_ZipClass();
 			$instawp_plugin      = new instaWP();
 			$backup_options      = array(
 				'ismerge'      => '',
@@ -95,6 +54,7 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 					'source_domain'  => site_url(),
 					'php_version'    => '6.0',
 					'plugin_version' => '2.0',
+					'migration_mode' => 'hosting',
 				);
 				$migrate_response = InstaWP_Curl::do_curl( 'migrates', $migrate_args );
 				$migrate_id       = isset( $migrate_response['data']['migrate_id'] ) ? $migrate_response['data']['migrate_id'] : '';
@@ -105,7 +65,7 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 			}
 
 			if ( empty( $migrate_id ) ) {
-				wp_send_json_success( $response );
+				return $response;
 			}
 
 			// Backing up the files
@@ -305,149 +265,9 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 			}
 
 
-			// Generating progresses
-			foreach ( InstaWP_taskmanager::get_task_backup_data( $migrate_task_id ) as $key => $data ) {
-
-				$backup_progress = (int) InstaWP_Setting::get_args_option( 'backup_progress', $data );
-				$upload_progress = (int) InstaWP_Setting::get_args_option( 'upload_progress', $data );
-
-				$response['backup']['progress'] = (int) $response['backup']['progress'] + $backup_progress;
-				$response['upload']['progress'] = (int) $response['upload']['progress'] + $upload_progress;
-			}
-
-			if ( $response['backup']['progress'] >= 100 && $response['upload']['progress'] >= 100 ) {
-
-				$overall_migration_progress        = instawp_get_overall_migration_progress( $migrate_id );
-				$response['migrate']['progress']   = $overall_migration_progress;
-				$response['migrate']['migrate_id'] = $migrate_id;
-
-				if ( $overall_migration_progress == 100 && ! empty( $migration_site_detail = instawp_get_migration_site_detail( $migrate_id ) ) ) {
-
-					$response['site_detail'] = $migration_site_detail;
-					$response['status']      = 'completed';
-
-					instawp_staging_insert_site( array(
-						'task_id'         => $migrate_task_id,
-						'connect_id'      => InstaWP_Setting::get_args_option( 'id', $migration_site_detail ),
-						'site_name'       => str_replace( array( 'https://', 'http://' ), '', InstaWP_Setting::get_args_option( 'url', $migration_site_detail ) ),
-						'site_url'        => InstaWP_Setting::get_args_option( 'url', $migration_site_detail ),
-						'admin_email'     => InstaWP_Setting::get_args_option( 'wp_admin_email', $migration_site_detail ),
-						'username'        => InstaWP_Setting::get_args_option( 'wp_username', $migration_site_detail ),
-						'password'        => InstaWP_Setting::get_args_option( 'wp_password', $migration_site_detail ),
-						'auto_login_hash' => InstaWP_Setting::get_args_option( 'auto_login_hash', $migration_site_detail ),
-					) );
-
-					InstaWP_taskmanager::delete_task( $migrate_task_id );
-				}
-			}
-
-			wp_send_json_success( $response );
-		}
-
-
-		function connect_api_url() {
-
-			$return_url      = urlencode( admin_url( 'tools.php?page=instawp' ) );
-			$connect_api_url = InstaWP_Setting::get_api_domain() . '/authorize?source=InstaWP Connect&return_url=' . $return_url;
-
-			wp_send_json_success( array( 'connect_url' => $connect_api_url ) );
-		}
-
-
-		function update_settings() {
-
-			$_form_data = isset( $_REQUEST['form_data'] ) ? wp_kses_post( $_REQUEST['form_data'] ) : '';
-			$_form_data = str_replace( 'amp;', '', $_form_data );
-
-			parse_str( $_form_data, $form_data );
-
-			$settings_nonce = InstaWP_Setting::get_args_option( 'instawp_settings_nonce', $form_data );
-
-			if ( ! wp_verify_nonce( $settings_nonce, 'instawp_settings_nonce_action' ) ) {
-				wp_send_json_error( array( 'message' => esc_html__( 'Failed. Please try again reloading the page.' ) ) );
-			}
-
-			foreach ( InstaWP_Setting::get_migrate_settings_fields() as $field_id ) {
-
-				if ( ! isset( $form_data[ $field_id ] ) ) {
-					continue;
-				}
-
-				$field_value = InstaWP_Setting::get_args_option( $field_id, $form_data );
-
-				if ( 'instawp_api_key' == $field_id && ! empty( $field_value ) && $field_value != InstaWP_Setting::get_option( 'instawp_api_key' ) ) {
-
-					$api_key_check_response = InstaWP_Backup_Api::config_check_key( $field_value );
-
-					if ( isset( $api_key_check_response['error'] ) && $api_key_check_response['error'] == 1 ) {
-						wp_send_json_error( array( 'message' => InstaWP_Setting::get_args_option( 'message', $api_key_check_response, esc_html__( 'Error. Invalid API Key', 'instawp-connect' ) ) ) );
-					}
-
-					continue;
-				}
-
-				InstaWP_Setting::update_option( $field_id, $field_value );
-			}
-
-			wp_send_json_success( array( 'message' => esc_html__( 'Success. Settings updated.' ) ) );
-
-			die();
-		}
-
-
-		/**
-		 * @return void
-		 */
-		function enqueue_styles_scripts() {
-
-			wp_enqueue_style( 'instawp-migrate', instawp()::get_asset_url( 'migrate/assets/css/style.css' ), [], current_time( 'U' ) );
-
-			wp_enqueue_script( 'instawp-tailwind', instawp()::get_asset_url( 'migrate/assets/js/tailwind.js' ) );
-			wp_enqueue_script( 'instawp-migrate', instawp()::get_asset_url( 'migrate/assets/js/scripts.js' ), array( 'instawp-tailwind' ), current_time( 'U' ) );
-			wp_localize_script( 'instawp-migrate', 'instawp_migrate',
-				array(
-					'ajax_url' => admin_url( 'admin-ajax.php' ),
-				)
-			);
-		}
-
-
-		/**
-		 * @return void
-		 */
-		function render_migrate_page() {
-			include INSTAWP_PLUGIN_DIR . '/migrate/templates/main.php';
-		}
-
-
-		/**
-		 * @return void
-		 */
-		function add_migrate_menu() {
-			add_management_page(
-				esc_html__( 'InstaWP', 'instawp-connect' ),
-				esc_html__( 'InstaWP', 'instawp-connect' ),
-				'administrator', 'instawp',
-				array( $this, 'render_migrate_page' ),
-				1
-			);
-		}
-
-
-		/**
-		 * @return INSTAWP_Migration
-		 */
-		public static function instance() {
-
-			if ( is_null( self::$_instance ) ) {
-				self::$_instance = new self();
-			}
-
-			return self::$_instance;
+			return instawp_get_response_progresses( $migrate_task_id, $migrate_id, $response, array( 'generate_part_urls' => true ) );
 		}
 	}
 }
-
-INSTAWP_Migration::instance();
 
 

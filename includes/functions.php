@@ -427,3 +427,143 @@ if ( ! function_exists( 'instawp_update_migration_status' ) ) {
 		return InstaWP_Curl::do_curl( "migrates/{$migrate_id}/parts/{$part_id}", $status_args, array(), 'patch' );
 	}
 }
+
+
+if ( ! function_exists( 'instawp_upload_to_cloud' ) ) {
+	/**
+	 * Upload file to presigned url
+	 *
+	 * @param $cloud_url
+	 * @param $local_file
+	 * @param $args
+	 *
+	 * @return bool
+	 */
+	function instawp_upload_to_cloud( $cloud_url = '', $local_file = '', $args = array() ) {
+
+		if ( empty( $cloud_url ) || empty( $local_file ) ) {
+			return false;
+		}
+
+		$useragent    = isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '';
+		$default_args = array(
+			'method'     => 'PUT',
+			'body'       => file_get_contents( $local_file ),
+			'timeout'    => 0,
+			'decompress' => false,
+			'stream'     => false,
+			'filename'   => '',
+			'user-agent' => $useragent,
+			'headers'    => array(
+				'Content-Type' => 'multipart/form-data'
+			),
+			'upload'     => true
+		);
+		$upload_args  = wp_parse_args( $args, $default_args );
+
+		for ( $i = 0; $i < INSTAWP_REMOTE_CONNECT_RETRY_TIMES; $i ++ ) {
+
+			$WP_Http_Curl = new WP_Http_Curl();
+			$response     = $WP_Http_Curl->request( $cloud_url, $upload_args );
+
+			if ( isset( $response['response']['code'] ) && 200 == $response['response']['code'] ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+}
+
+
+if ( ! function_exists( 'instawp_get_upload_files' ) ) {
+	/**
+	 * Get files as array that will be uploaded
+	 *
+	 * @param $data
+	 *
+	 * @return array
+	 */
+	function instawp_get_upload_files( $data = array() ) {
+
+		$files_path     = InstaWP_Setting::get_args_option( 'path', $data );
+		$zip_files_path = array();
+
+		foreach ( InstaWP_Setting::get_args_option( 'zip_files', $data, array() ) as $zip_file ) {
+
+			$filename    = InstaWP_Setting::get_args_option( 'file_name', $zip_file );
+			$part_size   = InstaWP_Setting::get_args_option( 'size', $zip_file );
+			$part_number = $_COOKIE['part_number'] ?? 1;
+
+			if ( ! empty( $filename ) && ! empty( $part_size ) ) {
+				$zip_files_path[] = array(
+					'filename'      => $files_path . $filename,
+					'part_size'     => $part_size,
+					'content_type'  => 'file',
+					'source_status' => 'pending',
+					'part_number'   => ++ $part_number,
+				);
+
+				setcookie( 'part_number', $part_number );
+			}
+		}
+
+		return $zip_files_path;
+	}
+}
+
+
+function instawp_get_response_progresses( $migrate_task_id, $migrate_id, $response = array(), $args = array() ) {
+
+	foreach ( InstaWP_taskmanager::get_task_backup_data( $migrate_task_id ) as $data ) {
+
+		$backup_progress = (int) InstaWP_Setting::get_args_option( 'backup_progress', $data );
+		$upload_progress = (int) InstaWP_Setting::get_args_option( 'upload_progress', $data );
+
+		$response['backup']['progress'] = (int) $response['backup']['progress'] + $backup_progress;
+		$response['upload']['progress'] = (int) $response['upload']['progress'] + $upload_progress;
+	}
+
+	if ( $response['backup']['progress'] >= 100 && $response['upload']['progress'] >= 100 ) {
+
+		$overall_migration_progress        = instawp_get_overall_migration_progress( $migrate_id );
+		$response['migrate']['progress']   = $overall_migration_progress;
+		$response['migrate']['migrate_id'] = $migrate_id;
+
+		if ( $overall_migration_progress == 100 && ! empty( $migration_site_detail = instawp_get_migration_site_detail( $migrate_id ) ) ) {
+
+			$response['site_detail'] = $migration_site_detail;
+			$response['status']      = 'completed';
+
+			instawp_staging_insert_site( array(
+				'task_id'         => $migrate_task_id,
+				'connect_id'      => InstaWP_Setting::get_args_option( 'id', $migration_site_detail ),
+				'site_name'       => str_replace( array( 'https://', 'http://' ), '', InstaWP_Setting::get_args_option( 'url', $migration_site_detail ) ),
+				'site_url'        => InstaWP_Setting::get_args_option( 'url', $migration_site_detail ),
+				'admin_email'     => InstaWP_Setting::get_args_option( 'wp_admin_email', $migration_site_detail ),
+				'username'        => InstaWP_Setting::get_args_option( 'wp_username', $migration_site_detail ),
+				'password'        => InstaWP_Setting::get_args_option( 'wp_password', $migration_site_detail ),
+				'auto_login_hash' => InstaWP_Setting::get_args_option( 'auto_login_hash', $migration_site_detail ),
+			) );
+
+			if ( false !== InstaWP_Setting::get_args_option( 'delete_task', $args, true ) ) {
+				InstaWP_taskmanager::delete_task( $migrate_task_id );
+			}
+		}
+	}
+
+
+	if ( true === InstaWP_Setting::get_args_option( 'generate_part_urls', $args, false ) ) {
+
+		foreach ( InstaWP_taskmanager::get_task_backup_data( $migrate_task_id ) as $data ) {
+			foreach ( InstaWP_Setting::get_args_option( 'zip_files_path', $data, array() ) as $zip_file ) {
+				$response['part_urls'][] = array(
+					'part_url' => site_url( 'wp-content/' . INSTAWP_DEFAULT_BACKUP_DIR . '/' . InstaWP_Setting::get_args_option( 'part_url', $zip_file ) ),
+					'part_id'  => InstaWP_Setting::get_args_option( 'part_id', $zip_file ),
+				);
+			}
+		}
+	}
+
+	return $response;
+}

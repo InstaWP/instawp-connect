@@ -696,7 +696,7 @@ class InstaWP_taskmanager {
 			return array();
 		}
 
-		return $migrate_task['options']['backup_options']['backup'][ $key ]['zip_files_path'];
+		return $migrate_task['options']['backup_options']['backup'][ $key ]['zip_files_path'] ?? array();
 	}
 
 	public static function get_cloud_uploaded_files( $task_id ) {

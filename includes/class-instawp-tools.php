@@ -7,13 +7,13 @@ if ( ! defined( 'INSTAWP_PLUGIN_DIR' ) ) {
 class InstaWP_Tools {
 
 
+
 	public static function write_log( $message = '', $type = 'notice' ) {
 
 		global $instawp_log;
 
 		$instawp_log->WriteLog( $message, $type );
 	}
-
 
 	public static function clean_junk_cache() {
 		$home_url_prefix = get_home_url();
