@@ -27,12 +27,13 @@ if ( ! class_exists( 'INSTAWP_Migration_hosting' ) ) {
 			);
 			$instawp_plugin      = new instaWP();
 			$backup_options      = array(
-				'ismerge'      => '',
-				'backup_files' => 'files+db',
-				'local'        => '1',
-				'type'         => 'Manual',
-				'action'       => 'backup',
-				'is_migrate'   => true,
+				'ismerge'        => '',
+				'backup_files'   => 'files+db',
+				'local'          => '1',
+				'type'           => 'Manual',
+				'action'         => 'backup',
+				'is_migrate'     => true,
+				'migration_mode' => 'hosting',
 			);
 			$backup_options      = apply_filters( 'INSTAWP_CONNECT/Filters/migrate_backup_options', $backup_options );
 			$incomplete_task_ids = InstaWP_taskmanager::is_there_any_incomplete_task_ids();
@@ -65,6 +66,9 @@ if ( ! class_exists( 'INSTAWP_Migration_hosting' ) ) {
 			}
 
 			if ( empty( $migrate_id ) ) {
+
+//				InstaWP_taskmanager::delete_task( $migrate_task_id );
+
 				return $response;
 			}
 

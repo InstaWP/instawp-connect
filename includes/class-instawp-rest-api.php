@@ -673,6 +673,9 @@ class InstaWP_Backup_Api {
 				return new WP_REST_Response( array( 'completed' => false, 'progress' => 0, 'message' => 'empty backup list' ) );
 			}
 
+//			echo "<pre>"; print_r( $backup_list ); echo "</pre>";
+
+
 			// Background processing of restore using woocommerce's scheduler.
 			as_enqueue_async_action( 'instawp_restore_bg', [ $backup_list, $restore_options, $parameters ] );
 
