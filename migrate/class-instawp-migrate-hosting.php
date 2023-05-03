@@ -66,11 +66,13 @@ if ( ! class_exists( 'INSTAWP_Migration_hosting' ) ) {
 			}
 
 			if ( empty( $migrate_id ) ) {
-
-//				InstaWP_taskmanager::delete_task( $migrate_task_id );
-
 				return $response;
 			}
+
+
+			// copy current php settings
+			instawp_copy_php_settings();
+
 
 			// Backing up the files
 			foreach ( InstaWP_taskmanager::get_task_backup_data( $migrate_task_id ) as $key => $data ) {

@@ -587,3 +587,27 @@ if ( ! function_exists( 'instawp_get_response_progresses' ) ) {
 		return $response;
 	}
 }
+
+
+if ( ! function_exists( 'instawp_copy_php_settings' ) ) {
+	/**
+	 * Update php settings to pass on the destination website
+	 *
+	 * @return void
+	 */
+	function instawp_copy_php_settings() {
+
+		$php_settings = array(
+			'php_version'         => phpversion(),
+			'max_execution_time'  => ini_get( 'max_execution_time' ),
+			'max_input_time'      => ini_get( 'max_input_time' ),
+			'max_input_vars'      => ini_get( 'max_input_vars' ),
+			'memory_limit'        => ini_get( 'memory_limit' ),
+			'allow_url_fopen'     => ini_get( 'allow_url_fopen' ),
+			'post_max_size'       => ini_get( 'post_max_size' ),
+			'upload_max_filesize' => ini_get( 'upload_max_filesize' ),
+		);
+
+		update_option( 'instawp_php_settings', $php_settings );
+	}
+}

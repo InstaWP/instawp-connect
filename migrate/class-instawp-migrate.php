@@ -108,6 +108,10 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 				wp_send_json_success( $response );
 			}
 
+			// copy current php settings
+			instawp_copy_php_settings();
+
+
 			// Backing up the files
 			foreach ( InstaWP_taskmanager::get_task_backup_data( $migrate_task_id ) as $key => $data ) {
 
