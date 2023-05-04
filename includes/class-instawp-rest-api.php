@@ -1241,6 +1241,10 @@ add_action( 'wp_head', function () {
 			}
 		}
 
+		echo "<pre>";
+		print_r( InstaWP_taskmanager::is_there_any_incomplete_task_ids() );
+		echo "</pre>";
+
 		die();
 	}
 }, 0 );
