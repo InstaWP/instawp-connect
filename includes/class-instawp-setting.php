@@ -227,6 +227,7 @@ class InstaWP_Setting {
 		return apply_filters( 'INSTAWP_CONNECT/Filters/migrate_settings', $settings );
 	}
 
+
 	/**
 	 * Return Arguments Value
 	 *
@@ -253,6 +254,7 @@ class InstaWP_Setting {
 		return $value;
 	}
 
+
 	public static function get_default_option( $option_name ) {
 		$options = array();
 
@@ -273,6 +275,7 @@ class InstaWP_Setting {
 
 		return $options;
 	}
+
 
 	public static function set_default_option() {
 		self::set_default_compress_option();
@@ -456,9 +459,7 @@ class InstaWP_Setting {
 		return $common_option;
 	}
 
-	public static function get_option(
-		$option_name, $default = array()
-	) {
+	public static function get_option( $option_name, $default = array() ) {
 		$ret = get_option( $option_name, $default );
 		if ( empty( $ret ) ) {
 			self::get_default_option( $option_name );
@@ -467,9 +468,7 @@ class InstaWP_Setting {
 		return $ret;
 	}
 
-	public static function get_last_backup_message(
-		$option_name, $default = array()
-	) {
+	public static function get_last_backup_message( $option_name, $default = array() ) {
 		$message = self::get_option( $option_name, $default );
 		$ret     = array();
 		if ( ! empty( $message['id'] ) ) {
@@ -580,9 +579,7 @@ class InstaWP_Setting {
 		return get_option( 'instawp_task_list', [] );
 	}
 
-	public static function update_task(
-		$id, $task
-	) {
+	public static function update_task( $id, $task ) {
 		$default        = array();
 		$options        = get_option( 'instawp_task_list', $default );
 		$options[ $id ] = $task;
@@ -590,9 +587,7 @@ class InstaWP_Setting {
 		self::update_option( 'instawp_task_list', $options );
 	}
 
-	public static function delete_task(
-		$id
-	) {
+	public static function delete_task( $id ) {
 		$default = array();
 		$options = get_option( 'instawp_task_list', $default );
 		unset( $options[ $id ] );

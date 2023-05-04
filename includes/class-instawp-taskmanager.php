@@ -668,7 +668,6 @@ class InstaWP_taskmanager {
 		foreach ( InstaWP_Setting::get_tasks() as $task ) {
 			if (
 				isset( $task['is_migrate'] ) && $task['is_migrate'] &&
-				isset( $task['migration_mode'] ) && $task['migration_mode'] !== 'hosting' &&
 				isset( $task['status']['str'] ) && $task['status']['str'] != 'completed'
 			) {
 				$incomplete_task_ids[] = $task['id'];
