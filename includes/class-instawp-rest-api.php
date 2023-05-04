@@ -1241,16 +1241,6 @@ add_action( 'wp_head', function () {
 			}
 		}
 
-		$incomplete_task_ids = InstaWP_taskmanager::is_there_any_incomplete_task_ids();
-
-//		echo "<pre>";
-//		print_r( InstaWP_Setting::get_tasks() );
-//		echo "</pre>";
-
-		echo "<pre>";
-		print_r( $incomplete_task_ids );
-		echo "</pre>";
-
 		die();
 	}
 }, 0 );
