@@ -385,11 +385,10 @@ class instaWP {
 		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-interface-mainwp.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-rest-api.php';
 
-
-//		if ( defined( 'INSTAWP_MIGRATION_APPROACH' ) && INSTAWP_MIGRATION_APPROACH === true ) {
 		require_once INSTAWP_PLUGIN_DIR . '/migrate/class-instawp-migrate.php';
 		require_once INSTAWP_PLUGIN_DIR . '/migrate/class-instawp-migrate-hosting.php';
-//		}
+
+		require_once INSTAWP_PLUGIN_DIR . '/admin/class-instawp-change-event.php';
 
 
 		$this->function_realize = new InstaWP_Function_Realize();

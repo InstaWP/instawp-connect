@@ -306,6 +306,8 @@ class InstaWP_Admin {
 		 *
 		 */
 
+        // jaedtest
+
 		return;
 
 		if ( ! apply_filters( 'instawp_add_plugin_admin_menu', true ) ) {
