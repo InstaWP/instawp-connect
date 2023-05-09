@@ -611,3 +611,5 @@ if ( ! function_exists( 'instawp_copy_php_settings' ) ) {
 		update_option( 'instawp_php_settings', $php_settings );
 	}
 }
+
+

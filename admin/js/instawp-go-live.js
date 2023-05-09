@@ -82,20 +82,16 @@
                     },
                     success: function (response) {
 
-                        console.log(response);
+                        console.log(response.data);
 
                         el_go_live_message.html(response.data.message);
-                        el_go_live_progress.html(response.data.progress + '%');
+                        el_go_live_progress.html(response.data.backup.progress + '%');
 
-                        if (response.success) {
-
-                            el_field_restore_id.val(response.data.restore_id);
+                        if (response.success && response.data.backup.progress >= 100) {
+                            el_field_restore_id.val(response.data.migrate_id);
                             el_go_live_step.val(3);
-
-                            console.log('restore-init completed.');
                         } else {
                             el_go_live_step.val(2);
-                            console.log('restore-init failed, will try again.');
                         }
                     },
                     error: function (request, status, error) {
