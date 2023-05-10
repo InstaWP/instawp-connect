@@ -121,36 +121,7 @@ if ( ! class_exists( 'INSTAWP_Migration_hosting' ) ) {
 
 
 			// Cleaning the non-zipped files and folders
-			foreach ( InstaWP_taskmanager::get_task_backup_data( $migrate_task_id ) as $key => $data ) {
-
-				$backup_status    = InstaWP_Setting::get_args_option( 'backup_status', $data );
-				$backup_progress  = (int) InstaWP_Setting::get_args_option( 'backup_progress', $data );
-				$temp_folder_path = isset( $data['path'] ) && isset( $data['prefix'] ) ? $data['path'] . 'temp-' . $data['prefix'] : '';
-
-				if ( 'completed' == $backup_status ) {
-
-					$is_delete_files_or_folder = false;
-
-					if ( isset( $data['sql_file_name'] ) && is_file( $data['sql_file_name'] ) && file_exists( $data['sql_file_name'] ) ) {
-						@unlink( $data['sql_file_name'] );
-
-						$is_delete_files_or_folder = true;
-					}
-
-					if ( is_dir( $temp_folder_path ) ) {
-						@rmdir( $temp_folder_path );
-
-						$is_delete_files_or_folder = true;
-					}
-
-
-					if ( $is_delete_files_or_folder ) {
-						$migrate_task['options']['backup_options']['backup'][ $key ]['backup_progress'] = $backup_progress + round( 100 / 5 );
-					}
-
-					InstaWP_taskmanager::update_task( $migrate_task );
-				}
-			}
+			instawp_clean_non_zipped_files_folder( $migrate_task );
 
 
 			$part_number_index = (int) InstaWP_Setting::get_args_option( 'part_number_index', $migrate_task, '0' );
@@ -271,7 +242,7 @@ if ( ! class_exists( 'INSTAWP_Migration_hosting' ) ) {
 			}
 
 
-			return instawp_get_response_progresses( $migrate_task_id, $migrate_id, $response, array( 'generate_part_urls' => true ) );
+			return instawp_get_response_progresses( $migrate_task_id, $migrate_id, $response, array( 'generate_remote_parts_urls' => true ) );
 		}
 	}
 }

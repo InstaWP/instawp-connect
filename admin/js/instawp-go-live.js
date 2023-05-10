@@ -35,7 +35,7 @@
         el_btn_go_live.addClass('disabled');
 
         // Enable the loader
-        el_go_live_message.html('Connecting to Cloudways');
+        el_go_live_message.html('Connecting to the server.');
         el_go_live_progress.html('0%');
         el_go_live_loader.addClass('visible');
 
@@ -71,8 +71,6 @@
 
             } else if (go_live_step === 2) {
 
-                console.log('Going to hit restore-init');
-
                 $.ajax({
                     type: 'POST',
                     url: go_live_obj.ajax_url,
@@ -84,7 +82,7 @@
 
                         console.log(response.data);
 
-                        el_go_live_message.html(response.data.message);
+                        el_go_live_message.html(response.data.backup.message);
                         el_go_live_progress.html(response.data.backup.progress + '%');
 
                         if (response.success && response.data.backup.progress >= 100) {
@@ -114,7 +112,7 @@
                     context: this,
                     data: {
                         'action': 'instawp_go_live_restore_status',
-                        'restore_id': el_field_restore_id.val(),
+                        'migrate_id': el_field_restore_id.val(),
                     },
                     success: function (response) {
 
@@ -122,7 +120,7 @@
 
                         if (response.success) {
 
-                            if (response.data.progress === 100) {
+                            if (response.data.migrate.progress === 100) {
 
                                 console.log('Restore status api completed.');
 
@@ -131,22 +129,22 @@
 
                                 el_go_live_progress.fadeOut(100);
                                 el_go_live_loader.find('img').fadeOut(100);
-                                el_go_live_message.html('✅' + ' ' + response.data.message);
+                                el_go_live_message.html('✅' + ' ' + response.data.migrate.message);
 
-                                let wp_details = response.data.wp[0];
+                                let site_detail = response.data.site_detail;
 
-                                console.log(wp_details);
+                                console.log(site_detail);
 
                                 // Update the button
-                                el_btn_go_live.html('Login to Cloudways Site').data('cloudways', wp_details.auto_login_hash).removeClass('disabled').data('is_live', true);
+                                el_btn_go_live.html('Login to the website').data('cloudways', site_detail.auto_login_url).removeClass('disabled').data('is_live', true);
                                 el_btn_go_live.removeClass('disabled').data('is_live', true);
 
                                 // Display manage account link
                                 el_manage_account_link.fadeIn();
                             } else {
                                 el_go_live_step.val(3);
-                                el_go_live_message.html(response.data.message);
-                                el_go_live_progress.html(response.data.progress + '%');
+                                el_go_live_message.html(response.data.migrate.message);
+                                el_go_live_progress.html(response.data.migrate.progress + '%');
                             }
                         }
 
