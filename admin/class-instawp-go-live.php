@@ -36,8 +36,8 @@ class InstaWP_Go_Live {
 	 */
 	public function __construct() {
 
-		if ( defined( 'INSTAWP_CONNECT_WHITELABEL_TITLE' ) ) {
-			self::$_platform_title = INSTAWP_CONNECT_WHITELABEL_TITLE;
+		if ( defined( 'INSTAWP_CONNECT_PROVIDER_TITLE' ) ) {
+			self::$_platform_title = INSTAWP_CONNECT_PROVIDER_TITLE;
 		}
 
 		if ( defined( 'INSTAWP_CONNECT_WHITELABEL' ) && INSTAWP_CONNECT_WHITELABEL ) {
@@ -291,7 +291,7 @@ class InstaWP_Go_Live {
 		?>
         <div class="wrap instawp-go-live-wrap">
             <div>
-                <h2><?php echo esc_html__( 'Cloudways Trial Site', 'instawp-connect' ); ?></h2>
+                <h2><?php printf( esc_html__( '%sTrial Site', 'instawp-connect' ), self::$_platform_title . ' ' ); ?></h2>
                 <div class="main-wrapper">
                     <h3><?php echo esc_html__( 'Trial Details', 'instawp-connect' ); ?></h3>
                     <div class="trial-wrapper trial-wrapper-margin">
@@ -348,7 +348,7 @@ class InstaWP_Go_Live {
 	function update_admin_page_title( $page_title ) {
 
 		if ( isset( $_GET['page'] ) && sanitize_text_field( $_GET['page'] ) === 'instawp-connect-go-live' ) {
-			$page_title = esc_html__( 'InstaWP Cloudways Integration', 'instawp-connect' );
+			$page_title = sprintf( esc_html__( 'InstaWP %s Integration', 'instawp-connect' ), self::$_platform_title );
 		}
 
 		return $page_title;
