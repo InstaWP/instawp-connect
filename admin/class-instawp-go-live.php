@@ -311,7 +311,7 @@ class InstaWP_Go_Live {
                                 <input type="hidden" name="instawp_go_live_step" id="instawp_go_live_step" value="1">
                                 <input type="hidden" name="instawp_go_live_restore_id" id="instawp_go_live_restore_id" value="">
 								<?php // wp_nonce_field( 'instawp_ajax', 'instawp_ajax_nonce_field' ); ?>
-                                <button class="live-btn instawp-btn-go-live" data-cloudways="https://wordpress-891015-3243964.cloudwaysapps.com/wp-admin/"><?php echo esc_html__( 'Go Live', 'instawp-connect' ); ?></button>
+                                <button class="live-btn instawp-btn-go-live" data-cloudways=""><?php echo esc_html__( 'Go Live', 'instawp-connect' ); ?></button>
                                 <div class="trial-footer-flex go-live-loader">
                                     <img src="<?php echo esc_url( $this->get_asset_url( 'images/loader.svg' ) ); ?>" alt="" class="spin">
                                     <p class="go-live-status-message"></p>
