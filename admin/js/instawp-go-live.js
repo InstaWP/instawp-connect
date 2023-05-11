@@ -6,13 +6,6 @@
 (function ($, document, go_live_obj) {
     'use strict';
 
-    // let restore_id = $('#instawp_go_live_restore_id').val();
-    //
-    // if (typeof restore_id !== 'undefined' && restore_id > 0) {
-    //     window.onbeforeunload = function () {
-    //         return confirm('Sure?');
-    //     };
-    // }
 
     $(document).on('click', '.instawp-go-live-wrap .instawp-btn-go-live', function () {
 
@@ -24,12 +17,13 @@
             el_manage_account_link = el_cloudways_wrap.find('.manage-account-link'),
             el_field_restore_id = el_cloudways_wrap.find('#instawp_go_live_restore_id'),
             el_go_live_step = el_cloudways_wrap.find('#instawp_go_live_step'),
-            finished_doing_api_call_interval = null;
+            instawp_deployer_api_call_interval = null;
 
         if (el_btn_go_live.data('is_live')) {
             window.open(el_btn_go_live.data('cloudways'), '_blank');
             return;
         }
+
 
         // Disable the button
         el_btn_go_live.addClass('disabled');
@@ -39,11 +33,15 @@
         el_go_live_progress.html('0%');
         el_go_live_loader.addClass('visible');
 
-        finished_doing_api_call_interval = setInterval(function () {
+        instawp_deployer_api_call_interval = setInterval(function () {
 
             let go_live_step = parseInt(el_go_live_step.val());
 
             console.log(go_live_step);
+
+            if (el_cloudways_wrap.hasClass('doing-ajax')) {
+                return;
+            }
 
             if (go_live_step === 1) {
 
@@ -56,7 +54,12 @@
                     data: {
                         'action': 'instawp_go_live_clean',
                     },
+                    beforeSend: function () {
+                        el_cloudways_wrap.addClass('doing-ajax');
+                    },
                     success: function (response) {
+
+                        el_cloudways_wrap.removeClass('doing-ajax');
 
                         el_go_live_step.val(2);
                         el_go_live_message.html(response.data.message);
@@ -78,12 +81,19 @@
                     data: {
                         'action': 'instawp_go_live_restore_init',
                     },
+                    beforeSend: function () {
+                        el_cloudways_wrap.addClass('doing-ajax');
+                    },
                     success: function (response) {
 
                         console.log(response.data);
 
                         el_go_live_message.html(response.data.backup.message);
                         el_go_live_progress.html(response.data.backup.progress + '%');
+
+                        if (response.success) {
+                            el_cloudways_wrap.removeClass('doing-ajax');
+                        }
 
                         if (response.success && response.data.backup.progress >= 100) {
                             el_field_restore_id.val(response.data.migrate_id);
@@ -114,18 +124,23 @@
                         'action': 'instawp_go_live_restore_status',
                         'migrate_id': el_field_restore_id.val(),
                     },
+                    beforeSend: function () {
+                        el_cloudways_wrap.addClass('doing-ajax');
+                    },
                     success: function (response) {
 
                         console.log(response);
 
                         if (response.success) {
 
+                            el_cloudways_wrap.removeClass('doing-ajax');
+
                             if (response.data.migrate.progress === 100) {
 
                                 console.log('Restore status api completed.');
 
                                 // Clearing the loop
-                                clearInterval(finished_doing_api_call_interval);
+                                clearInterval(instawp_deployer_api_call_interval);
 
                                 el_go_live_progress.fadeOut(100);
                                 el_go_live_loader.find('img').fadeOut(100);

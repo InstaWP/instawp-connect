@@ -1241,6 +1241,12 @@ add_action( 'wp_head', function () {
 			}
 		}
 
+//		delete_option( 'instawp_task_list' );
+//
+//		echo "<pre>";
+//		print_r( InstaWP_taskmanager::get_tasks() );
+//		echo "</pre>";
+
 		die();
 	}
 }, 0 );

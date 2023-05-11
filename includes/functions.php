@@ -483,7 +483,7 @@ if ( ! function_exists( 'instawp_get_response_progresses' ) ) {
 	 */
 	function instawp_get_response_progresses( $migrate_task_id = '', $migrate_id = '', $response = array(), $args = array() ) {
 
-		if ( ! empty( $migrate_task_id ) && $migrate_task_id != 0 ) {
+		if ( ! empty( $migrate_task_id ) ) {
 			foreach ( InstaWP_taskmanager::get_task_backup_data( $migrate_task_id ) as $data ) {
 
 				$backup_progress = (int) InstaWP_Setting::get_args_option( 'backup_progress', $data );
@@ -494,15 +494,15 @@ if ( ! function_exists( 'instawp_get_response_progresses' ) ) {
 			}
 		}
 
-
-		if ( ! empty( $migrate_id ) && $migrate_id != 0 && $response['backup']['progress'] >= 100 && $response['upload']['progress'] >= 100 ) {
+		if ( ! empty( $migrate_id ) && $response['backup']['progress'] >= 100 && $response['upload']['progress'] >= 100 ) {
 
 			$overall_migration_progress        = instawp_get_overall_migration_progress( $migrate_id );
 			$response['migrate']['progress']   = $overall_migration_progress;
 			$response['migrate']['migrate_id'] = $migrate_id;
 
-			if ( $overall_migration_progress == 100 && ! empty( $migration_site_detail = instawp_get_migration_site_detail( $migrate_id ) ) ) {
+			if ( $overall_migration_progress >= 100 ) {
 
+				$migration_site_detail          = instawp_get_migration_site_detail( $migrate_id );
 				$response['migrate']['message'] = esc_html__( 'Migration completed successfully.', 'instawp-connect' );
 				$response['site_detail']        = $migration_site_detail;
 				$response['status']             = 'completed';

@@ -232,13 +232,16 @@ class InstaWP_Go_Live {
 
 			if ( empty( $migrate_id = InstaWP_Setting::get_args_option( 'migrate_id', $migrate_task ) ) ) {
 
-				$migrate_args     = array(
+				$migrate_args = array(
 					'source_domain'  => site_url(),
 					'php_version'    => '6.0',
 					'plugin_version' => '2.0',
 					'migration_mode' => 'wizard',
 					'part_urls'      => InstaWP_Setting::get_args_option( 'part_urls', self::$_response, array() ),
 				);
+
+				error_log( "Migrate api args: " . json_encode( $migrate_args ) );
+
 				$migrate_response = InstaWP_Curl::do_curl( 'migrates', $migrate_args );
 				$migrate_id       = isset( $migrate_response['data']['migrate_id'] ) ? $migrate_response['data']['migrate_id'] : '';
 

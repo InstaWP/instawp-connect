@@ -497,7 +497,7 @@ class InstaWP_Curl {
 
 				$download_job['job_data'][ $basename ]['downloaded'] = 1;
 
-				instawp_update_migration_status( $migrate_id, $part_id, array( 'progress' => 50 ) );
+				instawp_update_migration_status( $migrate_id, $part_id, array( 'progress' => 50, 'message' => esc_html__( 'Download completed for this part', 'instawp-connect' ) ) );
 
 				InstaWP_taskmanager::update_backup_sub_task_progress( $task_id, 'upload', INSTAWP_REMOTE_S3COMPAT, INSTAWP_UPLOAD_SUCCESS, 'Uploading ' . basename( $basename ) . ' completed.', $download_job['job_data'] );
 			}
