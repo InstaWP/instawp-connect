@@ -225,7 +225,7 @@ if ( ! function_exists( 'instawp_get_overall_migration_progress' ) ) {
 		}, $migrate_parts );
 
 		if ( count( $migrate_parts ) > 0 ) {
-			$overall_progress = array_sum( $migrate_parts ) / count( $migrate_parts );
+			$overall_progress = round( array_sum( $migrate_parts ) / count( $migrate_parts ) );
 		}
 
 		return apply_filters( 'INSTAWP_CONNECT/Filters/get_overall_migration_progress', $overall_progress, $migrate_id );
