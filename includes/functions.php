@@ -273,7 +273,7 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 
 		$reset_type = empty( $reset_type ) ? InstaWP_Setting::get_option( 'instawp_reset_type', 'soft' ) : $reset_type;
 
-		if ( ! in_array( $reset_type, array( 'soft', 'hard' ) ) ) {
+		if ( ! in_array( $reset_type, array( 'soft', 'hard', 'task_only' ) ) ) {
 			return false;
 		}
 
@@ -281,15 +281,17 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 		$task = new InstaWP_Backup();
 		$task->clean_backup();
 
+		if ( 'task_only' == $reset_type ) {
+			return true;
+		}
+
 		if ( 'hard' == $reset_type ) {
 			delete_option( 'instawp_api_key' );
 			delete_option( 'instawp_api_options' );
+			delete_option( 'instawp_compress_setting' );
+
 			update_option( 'instawp_api_url', esc_url_raw( 'https://app.instawp.io' ) );
 		}
-
-
-		delete_option( 'instawp_compress_setting' );
-
 
 		$response = InstaWP_Curl::do_curl( "migrates/force-timeout", array( 'source_domain' => site_url() ) );
 
