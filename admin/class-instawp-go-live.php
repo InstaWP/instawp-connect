@@ -139,6 +139,8 @@ class InstaWP_Go_Live {
 
 		if ( InstaWP_Setting::get_args_option( 'status', self::$_response ) == 'completed' ) {
 			update_option( 'instawp_is_staging', false );
+
+			instawp_reset_running_migration();
 		}
 
 		wp_send_json_success( self::$_response );
