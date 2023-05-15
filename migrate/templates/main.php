@@ -16,11 +16,11 @@ if ( 'true' == $status_status && InstaWP_Setting::get_option( 'instawp_api_key' 
 <div class="wrap instawp-wrap box-width pt-10">
 
     <div class="w-full">
-        <div>
+        <div class="bg-white shadow-md rounded-lg">
 
 			<?php include INSTAWP_PLUGIN_DIR . '/migrate/templates/navbar.php'; ?>
 
-            <div class="nav-content">
+            <div class="nav-content bg-grayCust-400 p-8 shadow-md rounded-bl-lg rounded-br-lg">
 				<?php include INSTAWP_PLUGIN_DIR . '/migrate/templates/part-create.php'; ?>
 				<?php include INSTAWP_PLUGIN_DIR . '/migrate/templates/part-sites.php'; ?>
 				<?php include INSTAWP_PLUGIN_DIR . '/migrate/templates/part-sync.php'; ?>

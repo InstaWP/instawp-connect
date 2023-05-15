@@ -225,8 +225,8 @@ tailwind.config = {
             nav_item_content_all = $('.instawp-wrap .nav-content .nav-item-content'),
             nav_item_content_target = nav_item_content_all.parent().find('.' + this_nav_item_id);
 
-        all_nav_items.removeClass('active').find('a').removeClass('text-primary-900 border-primary-900');
-        this_nav_item.addClass('active').find('a').addClass('text-primary-900 border-primary-900');
+        all_nav_items.removeClass('active').find('a').removeClass('text-primary-900 border-primary-900').addClass('border-transparent');
+        this_nav_item.addClass('active').find('a').removeClass('border-transparent').addClass('text-primary-900 border-primary-900');
 
         nav_item_content_all.removeClass('active');
         nav_item_content_target.addClass('active');

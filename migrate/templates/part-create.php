@@ -17,14 +17,39 @@ $is_loading_class    = ! empty( $incomplete_task_ids ) ? 'loading' : '';
 <div class="<?php echo esc_attr( $is_loading_class ); ?> nav-item-content create bg-white box-shadow rounded-md active">
     <div class="screen screen-0 flex items-center justify-center text-center py-20">
 
+	    <?php if ( empty( InstaWP_Setting::get_api_key() ) ) : ?>
+
+            <div class="mb-4">
+                <img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/createsite.svg' ) ); ?>" class="mx-auto" alt="">
+            </div>
+            <div class="text-sm font-medium text-grayCust-200 mb-1"><?php echo esc_html__( 'InstaWP account is not connected', 'instawp-connect' ); ?></div>
+            <div class="text-sm font-normal text-grayCust-50 mb-4"><?php echo esc_html__( 'Please authorize your account in order to connect this site and enable staging site creation.', 'instawp-connect' ); ?></div>
+            <a class="instawp-button-connect cursor-pointer	px-7 py-3 inline-flex items-center mx-auto rounded-md shadow-sm bg-primary-900 text-white hover:text-white active:text-white focus:text-white focus:shadow-none font-medium text-sm">
+                <img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/icon-plus.svg' ) ); ?>" class="mr-2" alt="">
+                <span><?php echo esc_html__( 'Connect', 'instawp-connect' ); ?></span>
+            </a>
+
+	    <?php else: ?>
+
+
+	    <?php endif; ?>
+
+
+
+
         <div>
 
 			<?php if ( empty( InstaWP_Setting::get_api_key() ) ) : ?>
 
-                <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-4 rounded-md relative mb-6" role="alert">
-                    <strong class="font-bold mr-1"><?php echo esc_html__( 'Connection Error:', 'instawp-connect' ); ?></strong>
-                    <span class="block sm:inline"><?php echo esc_html__( 'You need to connect the plugin with your InstaWP account first.', 'instawp-connect' ); ?></span>
+                <div class="mb-4">
+                    <img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/createsite.svg' ) ); ?>" class="mx-auto" alt="">
                 </div>
+                <div class="text-sm font-medium text-grayCust-200 mb-1"><?php echo esc_html__( 'InstaWP account is not connected', 'instawp-connect' ); ?></div>
+                <div class="text-sm font-normal text-grayCust-50 mb-4"><?php echo esc_html__( 'Please authorize your account in order to connect this site and enable staging site creation.', 'instawp-connect' ); ?></div>
+                <a class="instawp-button-connect cursor-pointer	px-7 py-3 inline-flex items-center mx-auto rounded-md shadow-sm bg-primary-900 text-white hover:text-white active:text-white focus:text-white focus:shadow-none font-medium text-sm">
+                    <img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/icon-plus.svg' ) ); ?>" class="mr-2" alt="">
+                    <span><?php echo esc_html__( 'Connect', 'instawp-connect' ); ?></span>
+                </a>
 
 			<?php else: ?>
 
@@ -35,6 +60,7 @@ $is_loading_class    = ! empty( $incomplete_task_ids ) ? 'loading' : '';
                 <div class="text-lg text-lg font-bold text-grayCust-150"><?php echo esc_html__( 'Create a Staging Site', 'instawp-connect' ); ?></div>
 
                 <button class="instawp-button-create btn-width py-3 rounded-md shadow-md bg-primary-900 text-white mt-8 font-semibold text-sm"><?php echo esc_html__( 'Create a Site', 'instawp-connect' ); ?></button>
+
 			<?php endif; ?>
 
         </div>
