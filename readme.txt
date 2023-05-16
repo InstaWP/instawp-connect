@@ -86,5 +86,6 @@ InstaWP is an online WordPress development environment to get you started with a
 - 28/04/2023 - UPDATE - Improve calculating migration progress status.
 
 = 0.0.9.11 =
-- 11/05/2023 - FIX - Fixed wizard mode migration.
-- 11/05/2023 - FIX - Fixed some errors of the migration process.
+- 11/05/2023 - FIX - Wizard Mode Migration is now updated.
+- 11/05/2023 - FIX - Migration Process errors fixed, migration is now more stable.
+- 15/05/2023 - FIX - Added Migration Status Timelapsed.
