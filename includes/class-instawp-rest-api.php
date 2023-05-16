@@ -1241,21 +1241,6 @@ add_action( 'wp_head', function () {
 			}
 		}
 
-
-		$migrate_id            = 745;
-		$migration_site_detail = instawp_get_migration_site_detail( $migrate_id );
-
-
-		echo "<pre>";
-		print_r( $migration_site_detail );
-		echo "</pre>";
-
-//		delete_option( 'instawp_task_list' );
-//
-//		echo "<pre>";
-//		print_r( InstaWP_taskmanager::get_tasks() );
-//		echo "</pre>";
-
 		die();
 	}
 }, 0 );
