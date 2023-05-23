@@ -647,16 +647,8 @@ if ( ! function_exists( 'instawp_clean_non_zipped_files_folder' ) ) {
 					$is_delete_files_or_folder = true;
 				}
 
-				echo "<pre>";
-				print_r( [ '$is_delete_files_or_folder' => $is_delete_files_or_folder ] );
-				echo "</pre>";
-
 				if ( $is_delete_files_or_folder ) {
 					$migrate_task['options']['backup_options']['backup'][ $key ]['backup_progress'] = $backup_progress + round( 100 / 5 );
-
-					echo "<pre>";
-					print_r( $migrate_task );
-					echo "</pre>";
 				}
 
 				InstaWP_taskmanager::update_task( $migrate_task );

@@ -10,7 +10,6 @@ if ( isset( $_GET['clear'] ) && $_GET['clear'] == 'all' ) {
 $incomplete_task_ids = InstaWP_taskmanager::is_there_any_incomplete_task_ids();
 $is_loading_class    = ! empty( $incomplete_task_ids ) ? 'loading' : '';
 
-//echo "<pre>"; print_r( $incomplete_task_ids ); echo "</pre>";
 
 ?>
 
