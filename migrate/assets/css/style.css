@@ -17,7 +17,7 @@ body {
 }
 
 .box-width {
-    max-width: 1024px;
+    max-width: 1049px;
     margin: auto;
 }
 
@@ -28,6 +28,11 @@ body {
 .btn-width {
     width: 464px;
 }
+
+.left-width {
+    Width: 320px;
+}
+
 
 /* The switch - the box around the slider */
 .switch {
@@ -155,6 +160,59 @@ input:checked + .slider-toggle:before {
 .data-padding {
     padding: 118px 0;
 }
+
+
+.left-width {
+    Width: 320px;
+}
+
+.panel {
+    display: none;
+}
+
+.down-img {
+    transform: rotate(180deg);
+}
+
+.active .down-img {
+    transform: rotate(0);
+}
+
+.custom-border {
+    border: 1px solid rgba(0, 94, 84, 0.1);
+}
+
+.card-active {
+    background: rgba(0, 94, 84, 0.04);
+}
+
+.card-main-shadow {
+    box-shadow: 0 5px 14px rgba(8, 15, 52, 0.04);
+}
+
+.text-border {
+    border: 1px solid rgba(209, 213, 219, 0.4);
+}
+
+.text-bg {
+    background: rgba(249, 250, 251, 0.4);
+}
+
+#myProgress {
+    width: 100%;
+    background-color: grey;
+}
+
+#myBar {
+    width: 1%;
+    height: 30px;
+    background-color: green;
+}
+
+.custom-bg {
+    background: rgba(239, 252, 245, 0.5);
+}
+
 
 #adminmenu .toplevel_page_instawp div.wp-menu-image img {
     margin-left: 10px;
@@ -289,86 +347,40 @@ input:checked + .slider-toggle:before {
 
 
 .instawp-wrap .nav-item-content.create .screen {
-    height: auto;
-    visibility: visible;
-    opacity: 1;
+    height: 0;
+    visibility: hidden;
+    opacity: 0;
     -webkit-transition: all .2s ease;
     -moz-transition: all .2s ease;
     transition: all .2s ease;
 }
 
-.instawp-wrap .nav-item-content.create.loading .screen-0 img {
-    display: none;
+.instawp-wrap .nav-item-content.create .screen.active {
+    height: auto;
+    visibility: visible;
+    opacity: 1;
 }
 
-.instawp-wrap .nav-item-content.create.loading .screen-0,
-.instawp-wrap .nav-item-content.create.loading .screen-2,
-.instawp-wrap .nav-item-content.create:not(.loading):not(.completed) .screen-1,
-.instawp-wrap .nav-item-content.create:not(.loading):not(.completed) .screen-2,
-.instawp-wrap .nav-item-content.create.completed .screen-0,
-.instawp-wrap .nav-item-content.create.completed .screen-1 {
-    /*display: none;*/
+
+
+.screen-nav:not(.active) .screen-nav-icon > img,
+.screen-nav.active .screen-nav-icon > span {
     height: 0;
-    padding-top: 0;
-    padding-bottom: 0;
+    width: 0;
     visibility: hidden;
     opacity: 0;
+    -webkit-transition: all .2s ease;
+    -moz-transition: all .2s ease;
+    transition: all .2s ease;
 }
 
-.instawp-wrap .nav-item-content.create.loading .screen-1 .loader {
-    height: 16px;
-    width: 16px;
-    border-radius: 50%;
-    border: 3px solid rgba(74, 138, 244, 0.2);
-    border-right-color: var(--instawp-color-primary);
-    animation: loading 1s linear infinite;
+.screen-nav.active .screen-nav-icon > img {
+    height: auto;
+    width: auto;
+    visibility: visible;
+    opacity: 1;
 }
 
-.instawp-wrap .nav-item-content.create.loading .screen-1 .loader-text {
-    color: var(--instawp-color-primary);
-}
-
-.instawp-wrap .nav-item-content.create.loading .instawp-bar {
-    position: relative;
-    overflow: hidden;
-    border: 1px solid var(--instawp-color-green);
-    height: 24px;
-    border-radius: 4px;
-}
-
-.instawp-wrap .nav-item-content.create.loading .instawp-bar:before {
-    position: absolute;
-    content: ' ';
-    width: var(--progress);
-    height: 100%;
-    background: var(--instawp-color-green);
-    transition: 0.3s;
-}
-
-.instawp-wrap .nav-item-content.create.completed .screen-2 .site-detail-wrap {
-    display: flex;
-    gap: 10px;
-    background: #EFFCF5;
-    padding: 30px;
-    align-items: center;
-    justify-content: space-between;
-    border-radius: 8px;
-    box-shadow: 0 0 30px 0 rgb(19 191 133 / 7%);
-    border: 1px solid rgb(19 191 133 / 17%);
-}
-
-
-/*.instawp-wrap .nav-item-content.create.loading .instawp-bar:after {*/
-/*    position: absolute;*/
-/*    counter-reset: progress var(--progress);*/
-/*    content: var(--progress);*/
-/*    width: 39px;*/
-/*    height: 38px;*/
-/*    color: white;*/
-/*    right: 0;*/
-/*    background: #000;*/
-/*    z-index: 999999999999;*/
-/*}*/
 
 @keyframes loading {
     0% {

@@ -119,9 +119,20 @@ tailwind.config = {
 
     $(document).on('click', '.instawp-wrap .instawp-button-connect', function () {
 
-        let button_connect = $(this);
+        let el_btn_connect = $(this),
+            el_screen = $('.instawp-wrap .nav-item-content.create .screen'),
+            screen_current = parseInt(el_btn_connect.data('screen')),
+            screen_next = screen_current + 1;
 
-        button_connect.addClass('loading');
+        el_screen.removeClass('active');
+
+        el_screen.parent().find('.screen-' + screen_next).addClass('active');
+        el_btn_connect.data('screen', screen_next);
+
+
+        console.log({screen_current, screen_next});
+
+        return;
 
         $.ajax({
             type: 'POST',
