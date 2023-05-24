@@ -52,7 +52,7 @@ define( 'INSTAWP_MAX_BACKUP_COUNT', 7 );
 define( 'INSTAWP_DEFAULT_BACKUP_COUNT', 3 );
 define( 'INSTAWP_DEFAULT_COMPRESS_TYPE', 'zip' );
 //Max zip file size.
-define( 'INSTAWP_DEFAULT_MAX_FILE_SIZE', 50 );
+define( 'INSTAWP_DEFAULT_MAX_FILE_SIZE', 20 );
 //Instruct PclZip to use all the time temporary files to create the zip archive or not.The default value is 1.
 define( 'INSTAWP_DEFAULT_USE_TEMP', 1 );
 //Instruct PclZip to use temporary files for files with size greater than.The default value is 16M.
