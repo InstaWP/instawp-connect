@@ -198,21 +198,14 @@ input:checked + .slider-toggle:before {
     background: rgba(249, 250, 251, 0.4);
 }
 
-#myProgress {
-    width: 100%;
-    background-color: grey;
-}
-
-#myBar {
-    width: 1%;
-    height: 30px;
-    background-color: green;
+.progress-bar {
+    width: 0;
+    transition: 0.3s;
 }
 
 .custom-bg {
     background: rgba(239, 252, 245, 0.5);
 }
-
 
 #adminmenu .toplevel_page_instawp div.wp-menu-image img {
     margin-left: 10px;
@@ -337,6 +330,26 @@ input:checked + .slider-toggle:before {
     width: 16px;
     top: 50%;
     left: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    border: 3px solid rgba(74, 138, 244, 0.2);
+    border-right-color: var(--instawp-color-green);
+    animation: loading 1s linear infinite;
+    margin: -8px -8px;
+}
+
+.instawp-wrap .nav-item-content.create.loading .instawp-migration-loader {
+    position: relative;
+    transition: 0.3s;
+}
+
+.instawp-wrap .nav-item-content.create.loading .instawp-migration-loader:after {
+    content: ' ';
+    position: absolute;
+    height: 18px;
+    width: 18px;
+    top: 50%;
+    left: -18px;
     transform: translate(-50%, -50%);
     border-radius: 50%;
     border: 3px solid rgba(74, 138, 244, 0.2);

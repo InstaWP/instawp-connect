@@ -7,6 +7,8 @@ if ( isset( $_GET['clear'] ) && $_GET['clear'] == 'all' ) {
 	instawp_reset_running_migration();
 }
 
+instawp_reset_running_migration();
+
 $staging_screens     = array(
 	esc_html__( 'Staging Type', 'instawp-connect' ),
 	esc_html__( 'Customize Options', 'instawp-connect' ),
@@ -20,7 +22,8 @@ if ( ! empty( $incomplete_task_ids ) ) {
 	$nav_item_classes[] = 'loading';
 }
 
-$customize_options = array(
+$current_create_screen = isset( $_GET['screen'] ) ? sanitize_text_field( $_GET['screen'] ) : 1;
+$customize_options     = array(
 	'general' => array(
 		'label'   => esc_html__( 'General', 'instawp-connect' ),
 		'options' => array(
@@ -89,9 +92,8 @@ $customize_options = array(
             <div class="bg-white w-full box-shadow rounded-md">
 
                 <div class="p-6">
-
-                    <div class="screen screen-1 active">
-                        <div class="flex justify-between items-center active">
+                    <div class="screen screen-1 <?= $current_create_screen == 1 ? 'active' : ''; ?>">
+                        <div class="flex justify-between items-center">
                             <div class="text-grayCust-200 text-lg font-bold">1. Select Staging</div>
                         </div>
                         <div class="panel mt-6 block">
@@ -134,8 +136,8 @@ $customize_options = array(
                         </div>
                     </div>
 
-                    <div class="screen screen-2">
-                        <div class="flex justify-between items-center accordion cursor-pointer active">
+                    <div class="screen screen-2 <?= $current_create_screen == 2 ? 'active' : ''; ?>">
+                        <div class="flex justify-between items-center">
                             <div class="text-grayCust-200 text-lg font-bold">2. Select Your Information</div>
                         </div>
                         <div class="panel mt-6 block" style="">
@@ -164,8 +166,8 @@ $customize_options = array(
                         </div>
                     </div>
 
-                    <div class="screen screen-3">
-                        <div class="flex justify-between items-center accordion cursor-pointer active">
+                    <div class="screen screen-3 <?= $current_create_screen == 3 ? 'active' : ''; ?>">
+                        <div class="flex justify-between items-center">
                             <div class="text-grayCust-200 text-lg font-bold">3. Confirmation</div>
                         </div>
                         <div class="panel mt-6 block">
@@ -180,43 +182,44 @@ $customize_options = array(
                         </div>
                     </div>
 
-                    <div class="screen screen-4">
-                        <div class="flex justify-between items-center accordion cursor-pointer active">
-                            <div class="text-grayCust-200 text-lg font-bold">Staging Creation Status</div>
+                    <div class="screen screen-4 <?= $current_create_screen == 4 ? 'active' : ''; ?>">
+                        <div class="flex justify-between items-center">
+                            <div class="text-grayCust-200 text-lg font-bold">4. Staging Creation Status</div>
+                            <span class="instawp-migration-loader text-primary-900 text-base font-normal" data-complete-text="Completed">In Progress...</span>
                         </div>
                         <div class="panel mt-6 block">
                             <div class="migration-running border border-grayCust-100 rounded-lg mb-6">
                                 <div class="p-5">
                                     <div class="flex items-center">
                                         <div class="w-24 text-grayCust-900 text-base font-normal">Backup</div>
-                                        <div class="text-border rounded-xl w-full text-bg py-4 flex items-center mb-4 px-4">
-                                            <div class="w-full bg-grayCust-450 rounded-md mr-6">
-                                                <div class="h-2 bg-primary-900 rounded-md" style="width: 70%;"></div>
+                                        <div class="instawp-progress-backup text-border rounded-xl w-full text-bg py-4 flex items-center mb-4 px-4">
+                                            <div class="w-full bg-gray-200 rounded-md mr-6">
+                                                <div class="progress-bar h-2 bg-primary-900 rounded-md"></div>
                                             </div>
-                                            <div class="text-grayCust-650 text-sm font-medium">70%</div>
+                                            <div class="progress-text text-grayCust-650 text-sm font-medium">0%</div>
                                         </div>
                                     </div>
                                     <div class="flex items-center">
                                         <div class="w-24 text-grayCust-900 text-base font-normal">Upload</div>
-                                        <div class="text-border rounded-xl w-full text-bg py-4 flex items-center mb-4 px-4">
-                                            <div class="w-full bg-grayCust-450 rounded-md mr-6">
-                                                <div class="h-2 bg-primary-900 rounded-md" style="width: 30%;"></div>
+                                        <div class="instawp-progress-upload text-border rounded-xl w-full text-bg py-4 flex items-center mb-4 px-4">
+                                            <div class="w-full bg-gray-200 rounded-md mr-6">
+                                                <div class="progress-bar h-2 bg-primary-900 rounded-md"></div>
                                             </div>
-                                            <div class="text-grayCust-650 text-sm font-medium">30%</div>
+                                            <div class="progress-text text-grayCust-650 text-sm font-medium">0%</div>
                                         </div>
                                     </div>
                                     <div class="flex items-center">
                                         <div class="w-24 text-grayCust-900 text-base font-normal">Staging</div>
-                                        <div class="text-border rounded-xl w-full text-bg py-4 flex items-center mb-4 px-4">
-                                            <div class="w-full bg-grayCust-450 rounded-md mr-6">
-                                                <div class="h-2 bg-primary-900 rounded-md" style="width: 90%;"></div>
+                                        <div class="instawp-progress-staging text-border rounded-xl w-full text-bg py-4 flex items-center mb-4 px-4">
+                                            <div class="w-full bg-gray-200 rounded-md mr-6">
+                                                <div class="progress-bar h-2 bg-primary-900 rounded-md"></div>
                                             </div>
-                                            <div class="text-grayCust-650 text-sm font-medium">90%</div>
+                                            <div class="progress-text text-grayCust-650 text-sm font-medium">0%</div>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="bg-grayCust-250 px-6 py-3 rounded-bl-lg rounded-br-lg flex justify-end">
-                                    <button class="btn-shadow border border-grayCust-350 mr-4 rounded-md py-2 px-8 bg-white text-redCust-50 text-sm font-medium">Abort</button>
+                                    <button class="instawp-migrate-abort btn-shadow border border-grayCust-350 rounded-md py-2 px-8 bg-white text-redCust-50 text-sm font-medium">Abort</button>
                                 </div>
                             </div>
                             <div class="migration-completed hidden border border-grayCust-100 rounded-lg">
@@ -226,24 +229,26 @@ $customize_options = array(
                                 <div class="p-6 custom-bg">
                                     <div class="flex items-center mb-6">
                                         <div class="text-grayCust-900 text-base font-normal w-24">URL</div>
-                                        <div class="flex items-center cursor-pointer text-primary-900 border-b font-medium text-base border-dashed border-primary-900 ">https://wpsite.instawp.xyz<img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/share-icon.svg' ) ); ?>" class="ml-2" alt=""></div>
+                                        <div class="flex items-center cursor-pointer text-primary-900 border-b font-medium text-base border-dashed border-primary-900 ">
+                                            <span id="instawp-site-url"></span>
+                                            <img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/share-icon.svg' ) ); ?>" class="ml-2" alt="">
+                                        </div>
                                     </div>
                                     <div class="flex items-center mb-6">
                                         <div class="text-grayCust-900 text-base font-normal w-24">Username</div>
-                                        <div class="text-grayCust-300 font-medium text-base  ">gucifi</div>
+                                        <div id="instawp-site-username" class="text-grayCust-300 font-medium text-base"></div>
                                     </div>
                                     <div class="flex justify-between items-center">
                                         <div class="flex items-center">
                                             <div class="text-grayCust-900 text-base font-normal w-24">Password</div>
-                                            <div class="text-grayCust-300 font-medium text-base">fL7cMdPY</div>
+                                            <div id="instawp-site-password" class="text-grayCust-300 font-medium text-base"></div>
                                         </div>
-                                        <button class="py-2 px-4 text-white bg-primary-700 rounded-md text-sm font-medium">Auto Login</button>
+                                        <a href="" target="_blank" id="instawp-site-magic-url" class="py-2 px-4 text-white active:text-white focus:text-white hover:text-white bg-primary-700 rounded-md text-sm font-medium focus:shadow-none">Auto Login</a>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-
                 </div>
 
                 <div class="bg-grayCust-250 px-6 py-3 rounded-bl-lg rounded-br-lg flex justify-end">

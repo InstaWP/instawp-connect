@@ -1242,11 +1242,48 @@ add_action( 'wp_head', function () {
 		}
 
 
-//		delete_option( 'instawp_task_list' );
-//
-//		echo "<pre>";
-//		print_r( InstaWP_taskmanager::get_tasks() );
-//		echo "</pre>";
+//		InstaWP_taskmanager::delete_all_task();
+
+		$instawp_plugin      = new instaWP();
+		$backup_options      = array(
+			'ismerge'      => '',
+			'backup_files' => 'files+db',
+			'local'        => '1',
+			'type'         => 'Manual',
+			'action'       => 'backup',
+			'is_migrate'   => true,
+		);
+		$backup_options      = apply_filters( 'INSTAWP_CONNECT/Filters/migrate_backup_options', $backup_options );
+		$incomplete_task_ids = InstaWP_taskmanager::is_there_any_incomplete_task_ids();
+
+		if ( empty( $incomplete_task_ids ) ) {
+			$pre_backup_response = $instawp_plugin->pre_backup( $backup_options );
+			$migrate_task_id     = InstaWP_Setting::get_args_option( 'task_id', $pre_backup_response );
+		} else {
+			$migrate_task_id = reset( $incomplete_task_ids );
+		}
+
+		$migrate_task_obj = new InstaWP_Backup_Task( $migrate_task_id );
+		$migrate_task     = InstaWP_taskmanager::get_task( $migrate_task_id );
+
+		foreach ( InstaWP_taskmanager::get_task_backup_data( $migrate_task_id ) as $key => $data ) {
+
+			if ( $key == 'backup_content' ) {
+
+				$migrate_task['options']['backup_options']['backup'][ $key ]['files'] = $migrate_task_obj->get_need_backup_files( $migrate_task['options']['backup_options']['backup'][ $key ] );
+
+				$packages = instawp_get_packages( $migrate_task_obj, $migrate_task['options']['backup_options']['backup'][ $key ] );
+				$result   = instawp_build_zip_files( $migrate_task_obj, $packages, $migrate_task['options']['backup_options']['backup'][ $key ] );
+
+				if ( isset( $result['files'] ) && ! empty( $result['files'] ) ) {
+					$migrate_task['options']['backup_options']['backup'][ $key ]['zip_files']       = $result['files'];
+					$migrate_task['options']['backup_options']['backup'][ $key ]['backup_status']   = 'completed';
+					$migrate_task['options']['backup_options']['backup'][ $key ]['backup_progress'] = 20;
+				}
+
+//				InstaWP_taskmanager::update_task( $migrate_task );
+			}
+		}
 
 		die();
 	}

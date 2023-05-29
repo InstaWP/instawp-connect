@@ -671,6 +671,7 @@ class InstaWP_Backup_Task {
 	}
 
 	public function get_need_backup_files( $backup_data ) {
+
 		if ( isset( $backup_data['uploads_subpackage'] ) ) {
 			return $backup_data['files'] = $this->get_need_uploads_backup_folder( $backup_data );
 		}

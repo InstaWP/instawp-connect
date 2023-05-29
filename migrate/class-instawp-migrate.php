@@ -27,6 +27,14 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 			add_action( 'wp_ajax_instawp_connect_api_url', array( $this, 'connect_api_url' ) );
 			add_action( 'wp_ajax_instawp_connect_migrate', array( $this, 'connect_migrate' ) );
 			add_action( 'wp_ajax_instawp_reset_plugin', array( $this, 'reset_plugin' ) );
+			add_action( 'wp_ajax_instawp_abort_migration', array( $this, 'abort_migration' ) );
+		}
+
+
+		function abort_migration() {
+			instawp_reset_running_migration();
+
+			wp_send_json_success( array( 'message' => esc_html__( 'Migration is aborted successfully.' ) ) );
 		}
 
 
@@ -131,8 +139,9 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 					$result   = instawp_build_zip_files( $migrate_task_obj, $packages, $migrate_task['options']['backup_options']['backup'][ $key ] );
 
 					if ( isset( $result['files'] ) && ! empty( $result['files'] ) ) {
-						$migrate_task['options']['backup_options']['backup'][ $key ]['zip_files']     = $result['files'];
-						$migrate_task['options']['backup_options']['backup'][ $key ]['backup_status'] = 'completed';
+						$migrate_task['options']['backup_options']['backup'][ $key ]['zip_files']       = $result['files'];
+						$migrate_task['options']['backup_options']['backup'][ $key ]['backup_status']   = 'completed';
+						$migrate_task['options']['backup_options']['backup'][ $key ]['backup_progress'] = 20;
 					}
 
 					InstaWP_taskmanager::update_task( $migrate_task );
@@ -147,8 +156,9 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 					$result   = instawp_build_zip_files( $migrate_task_obj, $packages, $migrate_task['options']['backup_options']['backup'][ $key ] );
 
 					if ( isset( $result['files'] ) && ! empty( $result['files'] ) ) {
-						$migrate_task['options']['backup_options']['backup'][ $key ]['zip_files']     = $result['files'];
-						$migrate_task['options']['backup_options']['backup'][ $key ]['backup_status'] = 'completed';
+						$migrate_task['options']['backup_options']['backup'][ $key ]['zip_files']       = $result['files'];
+						$migrate_task['options']['backup_options']['backup'][ $key ]['backup_status']   = 'completed';
+						$migrate_task['options']['backup_options']['backup'][ $key ]['backup_progress'] = 20;
 					}
 
 					InstaWP_taskmanager::update_task( $migrate_task );

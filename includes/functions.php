@@ -247,13 +247,14 @@ if ( ! function_exists( 'instawp_get_migration_site_detail' ) ) {
 			return array();
 		}
 
-		$api_response  = InstaWP_Curl::do_curl( "migrates/{$migrate_id}", array(), array(), false );
-		$response_data = InstaWP_Setting::get_args_option( 'data', $api_response, array() );
-		$site_detail   = InstaWP_Setting::get_args_option( 'site_detail', $response_data, array() );
+		$api_response    = InstaWP_Curl::do_curl( "migrates/{$migrate_id}", array(), array(), false );
+		$response_data   = InstaWP_Setting::get_args_option( 'data', $api_response, array() );
+		$site_detail     = InstaWP_Setting::get_args_option( 'site_detail', $response_data, array() );
+		$auto_login_hash = InstaWP_Setting::get_args_option( 'auto_login_hash', $site_detail );
 
 		if ( ! empty( $site_detail ) ) {
-//			$site_detail['auto_login_url'] = sprintf( '%s/wordpress-auto-login?site=%s', InstaWP_Setting::get_api_domain(), $auto_login_hash );
-			$site_detail['auto_login_url'] = InstaWP_Setting::get_args_option( 'url', $site_detail );
+			$site_detail['auto_login_url'] = sprintf( '%s/wordpress-auto-login?site=%s', InstaWP_Setting::get_api_domain(), $auto_login_hash );
+//			$site_detail['auto_login_url'] = InstaWP_Setting::get_args_option( 'url', $site_detail );
 		}
 
 		return apply_filters( 'INSTAWP_CONNECT/Filters/get_migration_site_detail', $site_detail, $migrate_id );
@@ -489,8 +490,8 @@ if ( ! function_exists( 'instawp_get_response_progresses' ) ) {
 		if ( ! empty( $migrate_task_id ) ) {
 			foreach ( InstaWP_taskmanager::get_task_backup_data( $migrate_task_id ) as $data ) {
 
-				$backup_progress = (int) InstaWP_Setting::get_args_option( 'backup_progress', $data );
-				$upload_progress = (int) InstaWP_Setting::get_args_option( 'upload_progress', $data );
+				$backup_progress = (int) InstaWP_Setting::get_args_option( 'backup_progress', $data, '0' );
+				$upload_progress = (int) InstaWP_Setting::get_args_option( 'upload_progress', $data, '0' );
 
 				$response['backup']['progress'] = (int) $response['backup']['progress'] + $backup_progress;
 				$response['upload']['progress'] = (int) $response['upload']['progress'] + $upload_progress;
