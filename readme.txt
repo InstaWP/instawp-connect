@@ -92,3 +92,9 @@ InstaWP is an online WordPress development environment to get you started with a
 
 = 0.0.9.12 =
 - 24/05/2023 - FIX - Wizard Mode Migration errors fixed.
+
+= 0.0.9.13 =
+- 30/05/2023 - NEW - New plugin user interface with more user experience.
+- 30/05/2023 - FIX - Fix many errors on the migration process.
+
+

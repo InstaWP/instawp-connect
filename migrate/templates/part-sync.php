@@ -17,10 +17,10 @@
                     </div>
                     <div class="text-sm font-medium text-grayCust-200 mb-1"><?php echo esc_html__( 'No Data found!', 'instawp-connect' ); ?></div>
                     <div class="text-sm font-normal text-grayCust-50"><?php echo esc_html__( 'Start Listening for Changes', 'instawp-connect' ); ?></div>
-                    <!-- <label class="switch">
+                    <label class="switch">
 					   <input type="checkbox" id="switch-id" >
 					   <span class="slider round"></span>
-					</label> -->
+					</label>
                 </div>
             </div>
 <!--        </div>-->
@@ -35,10 +35,10 @@
                             <div class="text-grayCust-200 text-lg font-medium"><?php echo esc_html__( 'Listening for Changes', 'instawp-connect' ); ?></div>
                             <div class="text-grayCust-50 text-sm font-normal"><?php echo esc_html__( 'Lorem ipsum demo text the default payment method will be used for any biling purposes.', 'instawp-connect' ); ?></div>
                         </div>
-                        <label class="switch-toggle">
-                            <input type="checkbox" checked>
-                            <span class="slider-toggle round-toggle"></span>
-                        </label>
+<!--                        <label class="switch-toggle">-->
+<!--                            <input type="checkbox" checked>-->
+<!--                            <span class="slider-toggle round-toggle"></span>-->
+<!--                        </label>-->
                     </div>
                     <div class="mt-8 flow-root">
                         <div class="-my-2 -mx-6 overflow-x-auto lg:-mx-8">

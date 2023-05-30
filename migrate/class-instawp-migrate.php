@@ -180,7 +180,7 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 			}
 
 			// Cleaning the non-zipped files and folders
-//			instawp_clean_non_zipped_files_folder( $migrate_task );
+			instawp_clean_non_zipped_files_folder( $migrate_task );
 
 			// Cleaning the non-zipped files and folders
 			foreach ( InstaWP_taskmanager::get_task_backup_data( $migrate_task_id ) as $key => $data ) {
@@ -206,7 +206,7 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 					}
 
 					if ( $is_delete_files_or_folder ) {
-						$migrate_task['options']['backup_options']['backup'][ $key ]['backup_progress'] = $backup_progress + round( 100 / 5 );
+						$migrate_task['options']['backup_options']['backup'][ $key ]['backup_progress'] = 20;
 
 						InstaWP_taskmanager::update_task( $migrate_task );
 					}
