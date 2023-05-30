@@ -1242,7 +1242,7 @@ add_action( 'wp_head', function () {
 		}
 
 
-//		InstaWP_taskmanager::delete_all_task();
+		InstaWP_taskmanager::delete_all_task();
 
 		$instawp_plugin      = new instaWP();
 		$backup_options      = array(
@@ -1252,6 +1252,9 @@ add_action( 'wp_head', function () {
 			'type'         => 'Manual',
 			'action'       => 'backup',
 			'is_migrate'   => true,
+			'settings'     => array(
+				'skip_media_folder' => true,
+			),
 		);
 		$backup_options      = apply_filters( 'INSTAWP_CONNECT/Filters/migrate_backup_options', $backup_options );
 		$incomplete_task_ids = InstaWP_taskmanager::is_there_any_incomplete_task_ids();
@@ -1280,6 +1283,10 @@ add_action( 'wp_head', function () {
 					$migrate_task['options']['backup_options']['backup'][ $key ]['backup_status']   = 'completed';
 					$migrate_task['options']['backup_options']['backup'][ $key ]['backup_progress'] = 20;
 				}
+
+				echo "<pre>";
+				print_r( $migrate_task['options']['backup_options']['backup'][ $key ] );
+				echo "</pre>";
 
 //				InstaWP_taskmanager::update_task( $migrate_task );
 			}
