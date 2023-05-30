@@ -30,7 +30,7 @@ $customize_options     = array(
 			'active_plugins_only' => esc_html__( 'Active Plugins Only', 'instawp-connect' ),
 			'active_themes_only'  => esc_html__( 'Active Plugins Only', 'instawp-connect' ),
 			'skip_post_revisions' => esc_html__( 'Skip Post Revisions', 'instawp-connect' ),
-			'skip_media_folders'  => esc_html__( 'Skip Media Folder', 'instawp-connect' ),
+			'skip_media_folder'   => esc_html__( 'Skip Media Folder', 'instawp-connect' ),
 		),
 	),
 );

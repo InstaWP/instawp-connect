@@ -61,7 +61,10 @@ class InstaWP_Backup_Task {
 
 	public function get_backup_exclude_regex( $exclude_regex, $args ) {
 
-		$backup_type = $args['type'] ?? '';
+		$backup_type         = $args['type'] ?? '';
+		$backup_options      = InstaWP_Setting::get_args_option( 'backup_options', $args, [] );
+		$backup_settings     = InstaWP_Setting::get_args_option( 'settings', $backup_options, [] );
+		$skip_media_folder   = InstaWP_Setting::get_args_option( 'skip_media_folder', $backup_settings, false );
 
 		if ( $backup_type == INSTAWP_BACKUP_TYPE_UPLOADS || $backup_type == INSTAWP_BACKUP_TYPE_UPLOADS_FILES ) {
 
@@ -104,10 +107,6 @@ class InstaWP_Backup_Task {
 			if ( defined( 'INSTAWP_UPLOADS_ISO_DIR' ) ) {
 				$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( WP_CONTENT_DIR ) . DIRECTORY_SEPARATOR . INSTAWP_UPLOADS_ISO_DIR, '/' ) . '#';
 			}
-
-			$backup_options    = InstaWP_Setting::get_args_option( 'backup_options', $args, [] );
-			$backup_settings   = InstaWP_Setting::get_args_option( 'settings', $backup_options, [] );
-			$skip_media_folder = InstaWP_Setting::get_args_option( 'skip_media_folder', $backup_settings, false );
 
 			if ( $skip_media_folder === true || $skip_media_folder == 1 ) {
 				$upload_dir      = wp_upload_dir();
@@ -614,7 +613,7 @@ class InstaWP_Backup_Task {
 		$plugins_included        = array();
 		$plugins_excluded        = array();
 		$list                    = get_plugins();
-		$active_plugins_only     = $options['active_plugins_only'] ?? 'false';
+		$active_plugins_only     = $options['settings']['active_plugins_only'] ?? false;
 		$exclude_default_plugins = $this->get_exclude_default_plugins();
 
 		foreach ( $list as $key => $item ) {

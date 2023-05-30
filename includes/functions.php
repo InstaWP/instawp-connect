@@ -270,7 +270,7 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 	 *
 	 * @return bool
 	 */
-	function instawp_reset_running_migration( $reset_type = 'soft' ) {
+	function instawp_reset_running_migration( $reset_type = 'soft', $force_timeout = true ) {
 
 		$reset_type = empty( $reset_type ) ? InstaWP_Setting::get_option( 'instawp_reset_type', 'soft' ) : $reset_type;
 
@@ -294,10 +294,12 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 			update_option( 'instawp_api_url', esc_url_raw( 'https://app.instawp.io' ) );
 		}
 
-		$response = InstaWP_Curl::do_curl( "migrates/force-timeout", array( 'source_domain' => site_url() ) );
+		if ( $force_timeout === true || $force_timeout == 1 ) {
+			$response = InstaWP_Curl::do_curl( "migrates/force-timeout", array( 'source_domain' => site_url() ) );
 
-		if ( isset( $response['success'] ) && ! $response['success'] ) {
-			error_log( json_encode( $response ) );
+			if ( isset( $response['success'] ) && ! $response['success'] ) {
+				error_log( json_encode( $response ) );
+			}
 		}
 
 		return true;
