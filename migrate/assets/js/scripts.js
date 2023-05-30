@@ -53,6 +53,7 @@ tailwind.config = {
                 },
                 data: {
                     'action': 'instawp_connect_migrate',
+                    'settings': instawp_migrate_container.serialize(),
                 },
                 success: function (response) {
 
@@ -178,7 +179,7 @@ tailwind.config = {
         let el_staging_type = $(this),
             el_staging_type_wrapper = el_staging_type.parent(),
             staging_type = el_staging_type.find('input[type="radio"]').val(),
-            el_skip_media_folders = $('label[for="skip_media_folders"]');
+            el_skip_media_folders = $('input#skip_media_folder');
 
         el_staging_type_wrapper.find('.instawp-staging-type').removeClass('card-active border-primary-900');
         el_staging_type_wrapper.find('input[type="radio"]').prop('checked', false);
@@ -188,13 +189,15 @@ tailwind.config = {
         // For Preview Screens
         $('.selected-staging-type').html(el_staging_type.find('.staging-type-label').text());
 
+
         if (staging_type === 'quick') {
-            el_skip_media_folders.trigger('click');
+            el_skip_media_folders.prop('checked', true).trigger('change');
         } else {
-            if (el_skip_media_folders.hasClass('card-active')) {
-                el_skip_media_folders.trigger('click');
+            if (el_skip_media_folders.parent().parent().hasClass('card-active')) {
+                el_skip_media_folders.prop('checked', false).trigger('change');
             }
         }
+
     });
 
 

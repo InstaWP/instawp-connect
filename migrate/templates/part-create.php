@@ -38,7 +38,7 @@ $customize_options     = array(
 
 ?>
 
-<div class="<?php echo esc_attr( implode( ' ', $nav_item_classes ) ); ?> create active">
+<form action="" method="post" class="<?php echo esc_attr( implode( ' ', $nav_item_classes ) ); ?> create active">
 
 	<?php if ( empty( InstaWP_Setting::get_api_key() ) ) : ?>
 
@@ -97,38 +97,38 @@ $customize_options     = array(
                             <div class="text-grayCust-200 text-lg font-bold">1. Select Staging</div>
                         </div>
                         <div class="panel mt-6 block">
-                            <div class="instawp-staging-type cursor-pointer flex justify-between items-center border mb-4 border-primary-600 flex p-4 rounded-xl">
-                                <label for="quick_staging" class="flex items-center">
+                            <div for="quick_staging" class="instawp-staging-type cursor-pointer flex justify-between items-center border mb-4 border-primary-600 flex p-4 rounded-xl">
+                                <div class="flex items-center">
                                     <div class="w-10 h-10 bg-white rounded-lg flex justify-center items-center border custom-border"><img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/icon-quick.svg' ) ); ?>" alt=""></div>
                                     <div class="ml-4">
                                         <div class="text-graCust-300 text-lg font-medium staging-type-label">Quick Staging</div>
-                                        <div class="text-grayCust-50 text-sm font-normal">Create a staging environment without include Media Folder</div>
+                                        <div class="text-grayCust-50 text-sm font-normal">Create a staging environment without include media folder.</div>
                                     </div>
-                                </label>
+                                </div>
                                 <div>
                                     <input id="quick_staging" name="instawp_migrate[type]" value="quick" type="radio" class="h-4 w-4 border-grayCust-350 text-primary-900 focus:border-0 foucs:ring-1 focus:ring-primary-900">
                                 </div>
                             </div>
-                            <div class="instawp-staging-type cursor-pointer flex justify-between items-center border mb-4 border-primary-600 flex p-4 rounded-xl">
-                                <label for="full_staging" class="flex items-center">
+                            <div for="full_staging" class="instawp-staging-type cursor-pointer flex justify-between items-center border mb-4 border-primary-600 flex p-4 rounded-xl">
+                                <div class="flex items-center">
                                     <div class="w-10 h-10 bg-white rounded-lg flex justify-center items-center border custom-border"><img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/icon-full.svg' ) ); ?>" alt=""></div>
                                     <div class="ml-4">
                                         <div class="text-graCust-300 text-lg font-medium staging-type-label">Full Staging</div>
                                         <div class="text-grayCust-50 text-sm font-normal">Create an exact copy as a staging environment. Time may vary based on site size.</div>
                                     </div>
-                                </label>
+                                </div>
                                 <div>
                                     <input id="full_staging" name="instawp_migrate[type]" value="full" type="radio" class="h-4 w-4 border-grayCust-350 text-primary-900 focus:border-0 foucs:ring-1 focus:ring-primary-900">
                                 </div>
                             </div>
-                            <div class="instawp-staging-type cursor-pointer flex justify-between items-center border mb-4 border-primary-600 flex p-4 rounded-xl">
-                                <label for="custom_staging" class="flex items-center">
+                            <div for="custom_staging" class="instawp-staging-type cursor-pointer flex justify-between items-center border mb-4 border-primary-600 flex p-4 rounded-xl">
+                                <div class="flex items-center">
                                     <div class="w-10 h-10 bg-white rounded-lg flex justify-center items-center border custom-border"><img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/icon-custom.svg' ) ); ?>" alt=""></div>
                                     <div class="ml-4">
                                         <div class="text-graCust-300 text-lg font-medium staging-type-label">Custom Staging</div>
                                         <div class="text-grayCust-50 text-sm font-normal">Choose the options that matches your requirements.</div>
                                     </div>
-                                </label>
+                                </div>
                                 <div>
                                     <input id="custom_staging" name="instawp_migrate[type]" value="custom" type="radio" class="h-4 w-4 border-grayCust-350 text-primary-900 focus:border-0 foucs:ring-1 focus:ring-primary-900">
                                 </div>
@@ -152,7 +152,7 @@ $customize_options     = array(
 
                                         <label for="<?php echo $id; ?>" class="relative flex items-start border border-grayCust-350 p-3 px-4 rounded-lg">
                                             <span class="flex h-7 items-center">
-                                                <input id="<?php echo $id; ?>" name="instawp_migrate[options]" value="<?php echo $id; ?>" type="checkbox" class="instawp-option-selector h-4 w-4 rounded border-gray-300 text-primary-900 focus:ring-primary-900">
+                                                <input id="<?php echo $id; ?>" name="instawp_migrate[options][]" value="<?php echo $id; ?>" type="checkbox" class="instawp-option-selector h-4 w-4 rounded border-gray-300 text-primary-900 focus:ring-primary-900">
                                             </span>
                                             <span class="ml-2 text-sm leading-6">
                                                 <span class="option-label font-medium text-sm text-grayCust-700"><?php echo $label; ?></span>
@@ -252,7 +252,7 @@ $customize_options     = array(
                 </div>
 
                 <div class="bg-grayCust-250 px-6 py-3 rounded-bl-lg rounded-br-lg flex justify-end">
-                    <input name="instawp-screen" type="hidden" id="instawp-screen" value="1">
+                    <input name="instawp_migrate[screen]" type="hidden" id="instawp-screen" value="1">
                     <button type="button" data-increment="-1" class="instawp-button-migrate back hidden btn-shadow border border-grayCust-350 mr-4 rounded-md py-2 px-8 bg-white text-grayCust-700 text-sm font-medium">Back</button>
                     <button type="button" data-increment="1" class="instawp-button-migrate continue btn-shadow rounded-md py-2 px-4 bg-primary-900 text-white hover:text-white text-sm font-medium">Next Step</button>
                 </div>
@@ -261,4 +261,4 @@ $customize_options     = array(
 
 	<?php endif; ?>
 
-</div>
+</form>
