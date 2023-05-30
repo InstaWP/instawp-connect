@@ -673,9 +673,6 @@ class InstaWP_Backup_Api {
 				return new WP_REST_Response( array( 'completed' => false, 'progress' => 0, 'message' => 'empty backup list' ) );
 			}
 
-//			echo "<pre>"; print_r( $backup_list ); echo "</pre>";
-
-
 			// Background processing of restore using woocommerce's scheduler.
 			as_enqueue_async_action( 'instawp_restore_bg', [ $backup_list, $restore_options, $parameters ] );
 
@@ -797,10 +794,6 @@ class InstaWP_Backup_Api {
 		// $this->restore_log = new InstaWP_Log();
 
 		$res_result = [];
-
-		echo "<pre>";
-		print_r( $backuplist );
-		echo "</pre>";
 
 		foreach ( $backuplist as $key => $backup ) {
 			//			do {
@@ -1238,59 +1231,6 @@ add_action( 'wp_head', function () {
 
 			if ( isset( $_GET['action'] ) && $_GET['action'] == 'delete' ) {
 				delete_option( $_GET['key'] );
-			}
-		}
-
-
-		instawp_reset_running_migration( 'soft', false );
-
-		$instawp_plugin      = new instaWP();
-		$backup_options      = array(
-			'ismerge'      => '',
-			'backup_files' => 'files+db',
-			'local'        => '1',
-			'type'         => 'Manual',
-			'action'       => 'backup',
-			'is_migrate'   => true,
-			'settings'     => array(
-				'skip_media_folder'   => true,
-				'active_plugins_only' => true,
-				'active_themes_only'  => true,
-			),
-		);
-		$backup_options      = apply_filters( 'INSTAWP_CONNECT/Filters/migrate_backup_options', $backup_options );
-		$incomplete_task_ids = InstaWP_taskmanager::is_there_any_incomplete_task_ids();
-
-		if ( empty( $incomplete_task_ids ) ) {
-			$pre_backup_response = $instawp_plugin->pre_backup( $backup_options );
-			$migrate_task_id     = InstaWP_Setting::get_args_option( 'task_id', $pre_backup_response );
-		} else {
-			$migrate_task_id = reset( $incomplete_task_ids );
-		}
-
-		$migrate_task_obj = new InstaWP_Backup_Task( $migrate_task_id );
-		$migrate_task     = InstaWP_taskmanager::get_task( $migrate_task_id );
-
-		foreach ( InstaWP_taskmanager::get_task_backup_data( $migrate_task_id ) as $key => $data ) {
-
-			if ( $key == 'backup_themes' ) {
-
-				$migrate_task['options']['backup_options']['backup'][ $key ]['files'] = $migrate_task_obj->get_need_backup_files( $migrate_task['options']['backup_options']['backup'][ $key ] );
-
-				$packages = instawp_get_packages( $migrate_task_obj, $migrate_task['options']['backup_options']['backup'][ $key ] );
-				$result   = instawp_build_zip_files( $migrate_task_obj, $packages, $migrate_task['options']['backup_options']['backup'][ $key ] );
-
-				if ( isset( $result['files'] ) && ! empty( $result['files'] ) ) {
-					$migrate_task['options']['backup_options']['backup'][ $key ]['zip_files']       = $result['files'];
-					$migrate_task['options']['backup_options']['backup'][ $key ]['backup_status']   = 'completed';
-					$migrate_task['options']['backup_options']['backup'][ $key ]['backup_progress'] = 20;
-				}
-
-				echo "<pre>";
-				print_r( $migrate_task['options']['backup_options']['backup'][ $key ] );
-				echo "</pre>";
-
-//				InstaWP_taskmanager::update_task( $migrate_task );
 			}
 		}
 
