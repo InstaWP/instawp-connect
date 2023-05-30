@@ -182,6 +182,7 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 			// Cleaning the non-zipped files and folders
 			instawp_clean_non_zipped_files_folder( $migrate_task );
 
+
 			// Cleaning the non-zipped files and folders
 			foreach ( InstaWP_taskmanager::get_task_backup_data( $migrate_task_id ) as $key => $data ) {
 

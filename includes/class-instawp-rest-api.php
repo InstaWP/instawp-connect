@@ -960,6 +960,9 @@ class InstaWP_Backup_Api {
 //			$response->set_status( 403 );
 //		}
 
+		// Clear previous migration zip
+		instawp_reset_running_migration();
+
 		global $instawp_plugin;
 
 		$backup_options      = array(
@@ -975,6 +978,7 @@ class InstaWP_Backup_Api {
 		$backup_options      = apply_filters( 'INSTAWP_CONNECT/Filters/migrate_backup_options', $backup_options );
 		$pre_backup_response = $instawp_plugin->pre_backup( $backup_options );
 		$migrate_task_id     = InstaWP_Setting::get_args_option( 'task_id', $pre_backup_response );
+		$migrate_task        = InstaWP_taskmanager::get_task( $migrate_task_id );
 
 		if ( $migrate_task_id ) {
 			instawp_backup_files( new InstaWP_Backup_Task( $migrate_task_id ), array( 'clean_non_zip' => true ) );
@@ -987,6 +991,9 @@ class InstaWP_Backup_Api {
 					);
 				}
 			}
+
+			// Cleaning the non-zipped files and folders
+			instawp_clean_non_zipped_files_folder( $migrate_task );
 
 			InstaWP_taskmanager::delete_all_task();
 		}
