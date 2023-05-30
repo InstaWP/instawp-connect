@@ -61,18 +61,18 @@ class instaWP {
 
 	public $staging;
 
+	public $is_connected = false;
+
 	public function __construct() {
-		$this->version = INSTAWP_PLUGIN_VERSION;
 
-		$this->plugin_name = INSTAWP_PLUGIN_SLUG;
-
+		$this->version               = INSTAWP_PLUGIN_VERSION;
+		$this->plugin_name           = INSTAWP_PLUGIN_SLUG;
 		$this->end_shutdown_function = false;
-
-		$this->restore_data = false;
+		$this->restore_data          = false;
+		$this->is_connected          = ! empty( get_option( 'instawp_api_key' ) );
 
 		//Load dependent files
 		$this->load_dependencies();
-
 
 		//A flag to determine whether plugin had been initialized
 		$init = get_option( 'instawp_init', 'not init' );

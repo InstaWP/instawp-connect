@@ -186,15 +186,11 @@ class InstaWP_Setting {
 					'placeholder' => esc_attr( '15' ),
 				),
 				array(
-					'id'      => 'instawp_db_method',
-					'type'    => 'select',
-					'title'   => esc_html__( 'Database Method', 'instawp-connect' ),
-					'desc'    => esc_html__( 'WPDB option has a better compatibility, but slower. ', 'instawp-connect' ) .
-					             esc_html__( 'It is recommended to choose PDO if pdo_mysql extension is installed.', 'instawp-connect' ),
-					'options' => array(
-						'wpdb' => esc_html__( 'WPDB', 'instawp-connect' ),
-						'pdo'  => esc_html__( 'PDO', 'instawp-connect' ),
-					),
+					'id'          => 'instawp_backup_part_size',
+					'type'        => 'number',
+					'title'       => esc_html__( 'Backup Parts Size', 'instawp-connect' ),
+					'desc'        => esc_html__( 'Unit is MB. Default - ' . INSTAWP_DEFAULT_MAX_FILE_SIZE . 'MB', 'instawp-connect' ),
+					'placeholder' => esc_attr( INSTAWP_DEFAULT_MAX_FILE_SIZE ),
 				),
 				array(
 					'id'      => 'instawp_reset_type',
@@ -204,6 +200,17 @@ class InstaWP_Setting {
 					'options' => array(
 						'soft' => esc_html__( 'Soft Reset', 'instawp-connect' ),
 						'hard' => esc_html__( 'Hard Reset', 'instawp-connect' ),
+					),
+				),
+				array(
+					'id'      => 'instawp_db_method',
+					'type'    => 'select',
+					'title'   => esc_html__( 'Database Method', 'instawp-connect' ),
+					'desc'    => esc_html__( 'WPDB option has a better compatibility, but slower. ', 'instawp-connect' ) .
+					             esc_html__( 'It is recommended to choose PDO if pdo_mysql extension is installed.', 'instawp-connect' ),
+					'options' => array(
+						'wpdb' => esc_html__( 'WPDB', 'instawp-connect' ),
+						'pdo'  => esc_html__( 'PDO', 'instawp-connect' ),
 					),
 				),
 			),
@@ -399,7 +406,7 @@ class InstaWP_Setting {
 
 	public static function set_default_compress_option() {
 		$compress_option['compress_type']            = INSTAWP_DEFAULT_COMPRESS_TYPE;
-		$compress_option['max_file_size']            = INSTAWP_DEFAULT_MAX_FILE_SIZE;
+		$compress_option['max_file_size']            = self::get_option( 'instawp_backup_part_size', INSTAWP_DEFAULT_MAX_FILE_SIZE );
 		$compress_option['no_compress']              = INSTAWP_DEFAULT_NO_COMPRESS;
 		$compress_option['use_temp_file']            = INSTAWP_DEFAULT_USE_TEMP;
 		$compress_option['use_temp_size']            = INSTAWP_DEFAULT_USE_TEMP_SIZE;
