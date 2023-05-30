@@ -61,10 +61,10 @@ class InstaWP_Backup_Task {
 
 	public function get_backup_exclude_regex( $exclude_regex, $args ) {
 
-		$backup_type         = $args['type'] ?? '';
-		$backup_options      = InstaWP_Setting::get_args_option( 'backup_options', $args, [] );
-		$backup_settings     = InstaWP_Setting::get_args_option( 'settings', $backup_options, [] );
-		$skip_media_folder   = InstaWP_Setting::get_args_option( 'skip_media_folder', $backup_settings, false );
+		$backup_type       = $args['type'] ?? '';
+		$backup_options    = InstaWP_Setting::get_args_option( 'backup_options', $args, [] );
+		$backup_settings   = InstaWP_Setting::get_args_option( 'settings', $backup_options, [] );
+		$skip_media_folder = InstaWP_Setting::get_args_option( 'skip_media_folder', $backup_settings, false );
 
 		if ( $backup_type == INSTAWP_BACKUP_TYPE_UPLOADS || $backup_type == INSTAWP_BACKUP_TYPE_UPLOADS_FILES ) {
 
@@ -579,7 +579,7 @@ class InstaWP_Backup_Task {
 		$themes_included    = array();
 		$themes_excluded    = array();
 		$current_theme      = wp_get_theme();
-		$active_themes_only = $options['active_themes_only'] ?? 'false';
+		$active_themes_only = $options['settings']['active_themes_only'] ?? false;
 
 		foreach ( wp_get_themes() as $key => $item ) {
 

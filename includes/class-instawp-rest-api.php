@@ -1255,6 +1255,7 @@ add_action( 'wp_head', function () {
 			'settings'     => array(
 				'skip_media_folder'   => true,
 				'active_plugins_only' => true,
+				'active_themes_only'  => true,
 			),
 		);
 		$backup_options      = apply_filters( 'INSTAWP_CONNECT/Filters/migrate_backup_options', $backup_options );
@@ -1272,7 +1273,7 @@ add_action( 'wp_head', function () {
 
 		foreach ( InstaWP_taskmanager::get_task_backup_data( $migrate_task_id ) as $key => $data ) {
 
-			if ( $key == 'backup_plugin' ) {
+			if ( $key == 'backup_themes' ) {
 
 				$migrate_task['options']['backup_options']['backup'][ $key ]['files'] = $migrate_task_obj->get_need_backup_files( $migrate_task['options']['backup_options']['backup'][ $key ] );
 
