@@ -960,9 +960,6 @@ class InstaWP_Backup_Api {
 //			$response->set_status( 403 );
 //		}
 
-		// Clear previous migration zip
-		instawp_reset_running_migration();
-
 		global $instawp_plugin;
 
 		$backup_options      = array(

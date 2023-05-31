@@ -7,8 +7,6 @@ if ( isset( $_GET['clear'] ) && $_GET['clear'] == 'all' ) {
 	instawp_reset_running_migration();
 }
 
-instawp_reset_running_migration();
-
 $staging_screens     = array(
 	esc_html__( 'Staging Type', 'instawp-connect' ),
 	esc_html__( 'Customize Options', 'instawp-connect' ),
