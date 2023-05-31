@@ -49,9 +49,12 @@ InstaWP is an online WordPress development environment to get you started with a
 
 == Screenshots ==
 
-1. Create a new staging site.
-2. Details of a staging site.
-3. Update API key and Settings.
+1. Staging Process - Select Staging Type.
+2. Staging Process - Select Options.
+3. Staging Process - Confirm Selection.
+4. Staging Process - Monitor Progress.
+5. All Staging Sites
+6. Update API Key and Settings.
 
 == Changelog ==
 
