@@ -25,6 +25,12 @@ class InstaWP_Backup_Api {
 			'permission_callback' => '__return_true',
 		) );
 
+		register_rest_route( $this->namespace . '/' . $this->version, 'download', array(
+			'methods'             => 'POST',
+			'callback'            => array( $this, 'download' ),
+			'permission_callback' => '__return_true',
+		) );
+
 		register_rest_route( $this->namespace . '/' . $this->version, 'restore', array(
 			'methods'             => 'POST',
 			'callback'            => array( $this, 'restore' ),
@@ -634,6 +640,29 @@ class InstaWP_Backup_Api {
 	}
 
 
+	public function download( WP_REST_Request $request ) {
+
+		$this->validate_api_request( $request );
+
+		$parameters         = $request->get_params();
+		$backup_task        = new InstaWP_Backup_Task();
+		$backup_task_ret    = $backup_task->new_download_task();
+		$backup_task_id     = isset( $backup_task_ret['task_id'] ) ? $backup_task_ret['task_id'] : '';
+		$backup_task_result = isset( $backup_task_ret['result'] ) ? $backup_task_ret['result'] : '';
+
+		if ( ! empty( $backup_task_id ) && 'success' == $backup_task_result ) {
+
+			as_enqueue_async_action( 'instawp_download_bg', [ $backup_task_id, $parameters ] );
+
+			do_action( 'action_scheduler_run_queue', 'Async Request' );
+		}
+
+		$res_result = array( 'completed' => false, 'progress' => 55, 'message' => esc_html__( 'Downloading has been started.', 'instawp-connect' ), 'status' => 'wait' );
+
+		return new WP_REST_Response( $res_result );
+	}
+
+
 	public function restore( WP_REST_Request $request ) {
 
 		try {
@@ -689,11 +718,6 @@ class InstaWP_Backup_Api {
 	}
 
 
-	/**
-	 * Write htaccess rule to update url for no media type
-	 *
-	 * @return bool
-	 */
 	public static function write_htaccess_rule() {
 
 		if ( is_multisite() ) {
@@ -913,6 +937,7 @@ class InstaWP_Backup_Api {
 		return $body;
 	}
 
+
 	public function upload_status( $request ) {
 		$parameters = $request->get_params();
 
@@ -923,6 +948,7 @@ class InstaWP_Backup_Api {
 
 		return $response;
 	}
+
 
 	public function backup( $request ) {
 
@@ -967,7 +993,6 @@ class InstaWP_Backup_Api {
 			'backup_files' => 'files+db',
 			'local'        => '1',
 			'type'         => 'Manual',
-			'insta_type'   => 'stage_to_production',
 			'action'       => 'backup',
 			'is_migrate'   => false,
 		);
@@ -997,6 +1022,7 @@ class InstaWP_Backup_Api {
 
 		return new WP_REST_Response( array( 'success' => ! empty( $migrate_task_id ), 'task_id' => $migrate_task_id, 'part_urls' => $part_urls ) );
 	}
+
 
 	public function task_status( $request ) {
 
@@ -1046,6 +1072,7 @@ class InstaWP_Backup_Api {
 		return $response;
 
 	}
+
 
 	public static function config_check_key( $api_key ) {
 
@@ -1107,6 +1134,7 @@ class InstaWP_Backup_Api {
 		return $res;
 	}
 
+
 	public static function config_connect( $api_key ) {
 		global $InstaWP_Curl;
 		$res         = array(
@@ -1167,6 +1195,7 @@ class InstaWP_Backup_Api {
 
 		return $res;
 	}
+
 
 	public static function create_user( $user_details ) {
 		global $wpdb;
