@@ -54,21 +54,27 @@ class InstaWP_Restore {
 					'result' => INSTAWP_FAILED,
 					'error'  => $result['error'],
 				);
-			}
+			} else {
+                                $part_id = $next_task['files_data']['part_id'] ?? '';
+                                $instawp_plugin->restore_data->write_log( 'result fail - '.$part_id, 'error' );
+                        }
 
-			// Update progress for each part
-			if ( ! empty( $migrate_id = InstaWP_Setting::get_args_option( 'migrate_id', $instawp_plugin->restore_data->restore_cache ) ) ) {
+                        // Update progress for each part
+                        if ( ! empty( $migrate_id = InstaWP_Setting::get_args_option( 'migrate_id', $instawp_plugin->restore_data->restore_cache ) ) ) {
 
-				$part_id     = $next_task['files_data']['part_id'] ?? '';
-				$status_args = array(
-					'type'     => 'restore',
-					'progress' => 100,
-					'message'  => 'Restore completed for this part',
-					'status'   => 'completed'
-				);
+                                $part_id     = $next_task['files_data']['part_id'] ?? '';
+                                $status_args = array(
+                                        'type'     => 'restore',
+                                        'progress' => 100,
+                                        'message'  => 'Restore completed for this part',
+                                        'status'   => 'completed'
+                                );
 
-				InstaWP_Curl::do_curl( "migrates/{$migrate_id}/parts/{$part_id}", $status_args, array(), 'patch' );
-			}
+                                InstaWP_Curl::do_curl( "migrates/{$migrate_id}/parts/{$part_id}", $status_args, array(), 'patch' );
+                        } else {
+                                $instawp_plugin->restore_data->write_log( 'Migrate ID not found - '.$part_id, 'error' );
+                        }
+
 
 			$instawp_plugin->restore_data->update_status( INSTAWP_RESTORE_WAIT );
 
