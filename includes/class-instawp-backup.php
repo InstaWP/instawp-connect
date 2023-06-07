@@ -162,7 +162,7 @@ class InstaWP_Backup_Task {
 
 	public function new_backup_task( $options, $type, $action = 'backup' ) {
 		$id                           = uniqid( 'instawp-' );
-		$this->task                   = false;
+		$this->task                   = array();
 		$this->task['id']             = $id;
 		$this->task['action']         = $action;
 		$this->task['type']           = $type;

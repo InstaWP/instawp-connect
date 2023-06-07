@@ -33,7 +33,10 @@ class InstaWP_Log {
 		$time                  = date( "Y-m-d H:i:s", time() + $offset * 60 * 60 );
 		$text                  = 'Log created: ' . $time . "\n";
 		$text                  .= 'Type: ' . $describe . "\n";
-		fwrite( $this->log_file_handle, $text );
+
+		if ( $this->log_file_handle ) {
+			fwrite( $this->log_file_handle, $text );
+		}
 
 		return $this->log_file;
 	}
