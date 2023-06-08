@@ -23,23 +23,39 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 			$cli_action_index = array_search( '-action', $args );
 			$cli_action       = $args[ ( $cli_action_index + 1 ) ] ?? '';
 
-			if ( $cli_action == 'backup' ) {
+			switch ( $cli_action ) {
 
-				$backup_options      = array(
-					'ismerge'      => '',
-					'backup_files' => 'files+db',
-					'local'        => '1',
-					'type'         => 'Manual',
-					'insta_type'   => 'stage_to_production',
-					'action'       => 'backup',
-					'is_migrate'   => false,
-				);
-				$backup_options      = apply_filters( 'INSTAWP_CONNECT/Filters/migrate_backup_options', $backup_options );
-				$pre_backup_response = $instawp_plugin->pre_backup( $backup_options );
-				$migrate_task_id     = InstaWP_Setting::get_args_option( 'task_id', $pre_backup_response );
-				$migrate_task_obj    = new InstaWP_Backup_Task( $migrate_task_id );
+				case 'clean':
 
-				instawp_backup_files( $migrate_task_obj, array( 'clean_non_zip' => true ) );
+					instawp_reset_running_migration( 'soft', false );
+					WP_CLI::success( esc_html__( 'Cleared previous backup files successfully.', 'instawp-connect' ) );
+					break;
+
+				case 'backup':
+
+					$backup_options      = array(
+						'ismerge'      => '',
+						'backup_files' => 'files+db',
+						'local'        => '1',
+						'type'         => 'Manual',
+						'insta_type'   => 'stage_to_production',
+						'action'       => 'backup',
+						'is_migrate'   => false,
+					);
+					$backup_options      = apply_filters( 'INSTAWP_CONNECT/Filters/migrate_backup_options', $backup_options );
+					$pre_backup_response = $instawp_plugin->pre_backup( $backup_options );
+					$migrate_task_id     = InstaWP_Setting::get_args_option( 'task_id', $pre_backup_response );
+					$migrate_task_obj    = new InstaWP_Backup_Task( $migrate_task_id );
+
+					instawp_backup_files( $migrate_task_obj, array( 'clean_non_zip' => true ) );
+
+					WP_CLI::success( esc_html__( 'Build backup files successfully.', 'instawp-connect' ) );
+
+					break;
+
+				default:
+					WP_CLI::error( esc_html__( 'Invalid command for `-action`', 'instawp-connect' ) );
+					break;
 			}
 		}
 

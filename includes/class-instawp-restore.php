@@ -67,7 +67,11 @@ class InstaWP_Restore {
 					'status'   => 'completed'
 				);
 
+				$instawp_plugin->restore_data->write_log( 'Part restoration completed.', 'error' );
+
 				InstaWP_Curl::do_curl( "migrates/{$migrate_id}/parts/{$part_id}", $status_args, array(), 'patch' );
+			} else {
+				$instawp_plugin->restore_data->write_log( 'Part restoration failed.', 'error' );
 			}
 
 			$instawp_plugin->restore_data->update_status( INSTAWP_RESTORE_WAIT );
