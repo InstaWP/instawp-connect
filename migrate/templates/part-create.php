@@ -77,7 +77,7 @@ $customize_options     = array(
                                     </div>
                                     <div class="flex justify-between items-center">
                                         <div>
-                                            <p class="screen-nav-label text-xs font-semibold uppercase <?php echo ( $index == 0 ) ? 'text-primary-900' : 'text-grayCust-50'; ?>"><?php echo $screen; ?></p>
+                                            <p class="screen-nav-label text-xs font-medium uppercase <?php echo ( $index == 0 ) ? 'text-primary-900' : 'text-grayCust-50'; ?>"><?php echo $screen; ?></p>
                                         </div>
                                     </div>
                                 </div>
