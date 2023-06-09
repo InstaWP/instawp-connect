@@ -59,6 +59,19 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 			}
 		}
 
+
+		public static function get_pending_task_id() {
+
+			$incomplete_task_ids = InstaWP_taskmanager::is_there_any_incomplete_task_ids();
+			$migrate_task_id     = false;
+
+			if ( ! empty( $incomplete_task_ids ) ) {
+				$migrate_task_id = reset( $incomplete_task_ids );
+			}
+
+			return $migrate_task_id;
+		}
+
 		/**
 		 * Add CLI Commands
 		 *
