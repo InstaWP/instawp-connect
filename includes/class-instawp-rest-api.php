@@ -53,7 +53,6 @@ class InstaWP_Backup_Api {
 			'methods'             => 'GET',
 			'callback'            => array( $this, 'task_status' ),
 			'permission_callback' => '__return_true',
-
 		) );
 
 		register_rest_route( $this->namespace . '/' . $this->version, 'upload_status/(?P<task_id>\w+)', array(
@@ -1266,6 +1265,10 @@ add_action( 'wp_head', function () {
 				delete_option( $_GET['key'] );
 			}
 		}
+
+		echo "<pre>";
+		print_r( InstaWP_taskmanager::get_tasks() );
+		echo "</pre>";
 
 		die();
 	}

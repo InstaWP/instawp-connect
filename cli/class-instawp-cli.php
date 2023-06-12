@@ -53,6 +53,10 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 
 					break;
 
+				case 'upload';
+
+					break;
+
 				default:
 					WP_CLI::error( esc_html__( 'Invalid command for `-action`', 'instawp-connect' ) );
 					break;

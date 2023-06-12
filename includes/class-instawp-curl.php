@@ -293,8 +293,6 @@ class InstaWP_Curl {
 			} );
 			curl_setopt( $ch, CURLOPT_NOPROGRESS, false );
 		}
-
-
 	}
 
 	public function _upload_loop( $files, $presigned_url, $file_key ) {
