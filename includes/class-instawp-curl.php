@@ -517,9 +517,7 @@ class InstaWP_Curl {
 		$this->fp        = fopen( $output_filename, 'w+' );
 		$useragent       = isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '';
 
-		// jaed INSTAWP_REMOTE_CONNECT_RETRY_TIMES replaced with 1 for checking
-
-		for ( $i = 0; $i < 1; $i ++ ) {
+		for ( $i = 0; $i < INSTAWP_REMOTE_CONNECT_RETRY_TIMES; $i ++ ) {
 
 			$args           = array(
 				'timeout'    => 1800,
