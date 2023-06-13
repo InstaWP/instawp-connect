@@ -33,7 +33,6 @@ $customize_options     = array(
 	),
 );
 
-
 ?>
 
 <form action="" method="post" class="<?php echo esc_attr( implode( ' ', $nav_item_classes ) ); ?> create active">
@@ -165,19 +164,30 @@ $customize_options     = array(
                     </div>
 
                     <div class="screen screen-3 <?= $current_create_screen == 3 ? 'active' : ''; ?>">
-                        <div class="flex justify-between items-center">
-                            <div class="text-grayCust-200 text-lg font-bold">3. Confirmation</div>
-                        </div>
-                        <div class="panel mt-6 block">
-                            <div class="flex items-center mb-6">
-                                <div class="text-grayCust-900 text-base font-normal mr-4 w-[140px]">Staging Type</div>
-                                <div class="text-grayCust-300 text-base font-medium items-center flex mr-6 selected-staging-type">Quick Staging</div>
+
+                        <div class="confirmation-preview">
+                            <div class="flex justify-between items-center">
+                                <div class="text-grayCust-200 text-lg font-bold">3. Confirmation</div>
+                            </div>
+                            <div class="panel mt-6 block">
+                                <div class="flex items-center mb-6">
+                                    <div class="text-grayCust-900 text-base font-normal mr-4 w-[140px]">Staging Type</div>
+                                    <div class="text-grayCust-300 text-base font-medium items-center flex mr-6 selected-staging-type">Quick Staging</div>
+                                </div>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="text-grayCust-900 text-base font-normal mr-4 w-[140px]">Options Selected</div>
+                                <div class="flex items-center selected-staging-options"></div>
                             </div>
                         </div>
-                        <div class="flex items-center">
-                            <div class="text-grayCust-900 text-base font-normal mr-4 w-[140px]">Options Selected</div>
-                            <div class="flex items-center selected-staging-options"></div>
+
+                        <div class="confirmation-warning hidden text-center p-24">
+                            <div class="mb-2 flex justify-center text-center"><img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/warning.svg' ) ); ?>" alt="Warning"></div>
+                            <div class="mb-2 text-graCust-300 text-lg font-medium staging-type-label">You have reached your limit</div>
+                            <div class="text-gray-500 text-sm font-normal leading-6">You have exceeded the maximum allowance of disk space for your plan.</div>
+                            <a href="#" target="_blank" class="btn-shadow rounded-md w-fit block text-center mt-4 mx-auto py-3 px-6 bg-primary-900 text-white hover:text-white text-sm font-medium" style="background: #11BF85;">Increase Limit</a>
                         </div>
+
                     </div>
 
                     <div class="screen screen-4 <?= $current_create_screen == 4 ? 'active' : ''; ?>">
@@ -249,7 +259,8 @@ $customize_options     = array(
                     </div>
                 </div>
 
-                <div class="bg-grayCust-250 px-6 py-3 rounded-bl-lg rounded-br-lg flex justify-end">
+                <div class="screen-buttons bg-grayCust-250 px-6 py-3 rounded-bl-lg rounded-br-lg flex justify-end">
+                    <p class="doing-request"><span class="loader"></span>Checking usages...</p>
                     <input name="instawp_migrate[screen]" type="hidden" id="instawp-screen" value="1">
                     <button type="button" data-increment="-1" class="instawp-button-migrate back hidden btn-shadow border border-grayCust-350 mr-4 rounded-md py-2 px-8 bg-white text-grayCust-700 text-sm font-medium">Back</button>
                     <button type="button" data-increment="1" class="instawp-button-migrate continue btn-shadow rounded-md py-2 px-4 bg-primary-900 text-white hover:text-white text-sm font-medium">Next Step</button>

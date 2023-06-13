@@ -359,6 +359,10 @@ input:checked + .slider-toggle:before {
 }
 
 
+.instawp-wrap .nav-item-content.create.warning .screen-buttons {
+    display: none;
+}
+
 .instawp-wrap .nav-item-content.create .screen {
     height: 0;
     visibility: hidden;
@@ -402,6 +406,38 @@ input:checked + .slider-toggle:before {
     opacity: 1;
 }
 
+
+.nav-item-content.create.active .screen-buttons {
+    position: relative;
+}
+
+.nav-item-content.create.active .screen-buttons p.doing-request {
+    position: absolute;
+    top: 50%;
+    left: 50px;
+    transform: translateY(-50%);
+    font-size: 14px;
+    display: none;
+}
+
+.nav-item-content.create.active .screen-buttons p.doing-request.loading {
+    display: inline-block;
+}
+
+.nav-item-content.create.active .screen-buttons p.doing-request:after {
+    content: ' ';
+    position: absolute;
+    height: 18px;
+    width: 18px;
+    top: 50%;
+    left: -16px;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    border: 3px solid rgba(74, 138, 244, 0.2);
+    border-right-color: var(--instawp-color-green);
+    animation: loading 1s linear infinite;
+    margin: -8px -8px;
+}
 
 @keyframes loading {
     0% {

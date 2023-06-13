@@ -28,6 +28,23 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 			add_action( 'wp_ajax_instawp_connect_migrate', array( $this, 'connect_migrate' ) );
 			add_action( 'wp_ajax_instawp_reset_plugin', array( $this, 'reset_plugin' ) );
 			add_action( 'wp_ajax_instawp_abort_migration', array( $this, 'abort_migration' ) );
+			add_action( 'wp_ajax_instawp_check_limit', array( $this, 'check_limit' ) );
+		}
+
+
+		function check_limit() {
+
+			$api_response = instawp()->instawp_check_usage_on_cloud();
+			$can_proceed  = InstaWP_Setting::get_args_option( 'can_proceed', $api_response, false );
+
+			if ( $can_proceed ) {
+				wp_send_json_success( $api_response );
+			}
+
+			$api_response['button_text'] = esc_html__( 'Increase Limit', 'instawp-connect' );
+			$api_response['button_url']  = InstaWP_Setting::get_pro_subscription_url( 'subscriptions?source=connect_limit_warning' );
+
+			wp_send_json_error( $api_response );
 		}
 
 
@@ -117,7 +134,7 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 					'plugin_version' => '2.0',
 				);
 				$migrate_response = InstaWP_Curl::do_curl( 'migrates', $migrate_args );
-				$migrate_id = isset( $migrate_response['data']['migrate_id'] ) ? $migrate_response['data']['migrate_id'] : '';
+				$migrate_id       = isset( $migrate_response['data']['migrate_id'] ) ? $migrate_response['data']['migrate_id'] : '';
 
 				$migrate_task['migrate_id'] = $migrate_id;
 
