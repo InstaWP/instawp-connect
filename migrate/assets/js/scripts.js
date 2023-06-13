@@ -119,6 +119,12 @@ tailwind.config = {
             el_btn_continue.removeClass('hidden');
         }
 
+        if (screen_current === 3) {
+            el_btn_continue.text('Create Staging');
+        } else {
+            el_btn_continue.text('Next Step');
+        }
+
         // Changing Screen Nav
         el_screen_nav_items.each(function (index) {
             let el_screen_nav_current = $(this),

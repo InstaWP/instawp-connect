@@ -283,7 +283,8 @@ class InstaWP_Curl {
 			} );
 			curl_setopt( $ch, CURLOPT_NOPROGRESS, false );
 		}
-		if ( isset( $parsed_args['download'] ) && $parsed_args['download'] == true ) {
+
+		if ( isset( $parsed_args['download'] ) && $parsed_args['download'] && ! empty( $this->fp ) ) {
 			curl_setopt( $ch, CURLOPT_VERBOSE, 1 );
 			curl_setopt( $ch, CURLOPT_AUTOREFERER, false );
 			curl_setopt( $ch, CURLOPT_FILE, $this->fp );
@@ -292,8 +293,6 @@ class InstaWP_Curl {
 			} );
 			curl_setopt( $ch, CURLOPT_NOPROGRESS, false );
 		}
-
-
 	}
 
 	public function _upload_loop( $files, $presigned_url, $file_key ) {

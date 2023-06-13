@@ -7,8 +7,6 @@ if ( isset( $_GET['clear'] ) && $_GET['clear'] == 'all' ) {
 	instawp_reset_running_migration();
 }
 
-instawp_reset_running_migration();
-
 $staging_screens     = array(
 	esc_html__( 'Staging Type', 'instawp-connect' ),
 	esc_html__( 'Customize Options', 'instawp-connect' ),
@@ -79,7 +77,7 @@ $customize_options     = array(
                                     </div>
                                     <div class="flex justify-between items-center">
                                         <div>
-                                            <p class="screen-nav-label text-xs font-semibold uppercase <?php echo ( $index == 0 ) ? 'text-primary-900' : 'text-grayCust-50'; ?>"><?php echo $screen; ?></p>
+                                            <p class="screen-nav-label text-xs font-medium uppercase <?php echo ( $index == 0 ) ? 'text-primary-900' : 'text-grayCust-50'; ?>"><?php echo $screen; ?></p>
                                         </div>
                                     </div>
                                 </div>

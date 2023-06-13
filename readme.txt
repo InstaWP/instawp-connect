@@ -1,10 +1,10 @@
 === InstaWP Connect - 1-click WP Staging & Migration (beta) ===
 Contributors: instawp
 Tags: clone, migrate, staging, backup, restore
-Requires at least: 4.5
-Tested up to: 6.2
+Requires at least: 5.4
+Tested up to: 6.2.2
 Requires PHP: 5.4
-Stable tag: 0.0.9.12
+Stable tag: 0.0.9.14
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -49,9 +49,12 @@ InstaWP is an online WordPress development environment to get you started with a
 
 == Screenshots ==
 
-1. Create a new staging site.
-2. Details of a staging site.
-3. Update API key and Settings.
+1. Staging Process - Select Staging Type.
+2. Staging Process - Select Options.
+3. Staging Process - Confirm Selection.
+4. Staging Process - Monitor Progress.
+5. All Staging Sites
+6. Update API Key and Settings.
 
 == Changelog ==
 
@@ -92,3 +95,13 @@ InstaWP is an online WordPress development environment to get you started with a
 
 = 0.0.9.12 =
 - 24/05/2023 - FIX - Wizard Mode Migration errors fixed.
+
+= 0.0.9.13 =
+- 30/05/2023 - NEW - New user interface of the plugin.
+- 30/05/2023 - FIX - Fix many errors in the migration process.
+- 30/05/2023 - FIX - Fix migration issues on staging to production flow.
+
+= 0.0.9.14 =
+- 31/05/2023 - FIX - Fix some migration issues on staging to production flow.
+
+

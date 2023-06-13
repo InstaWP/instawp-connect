@@ -54,6 +54,9 @@ class InstaWP_Restore {
 					'result' => INSTAWP_FAILED,
 					'error'  => $result['error'],
 				);
+			} else {
+				$part_id = $next_task['files_data']['part_id'] ?? '';
+				$instawp_plugin->restore_data->write_log( 'result fail - '.$part_id, 'error' );
 			}
 
 			// Update progress for each part
@@ -68,7 +71,10 @@ class InstaWP_Restore {
 				);
 
 				InstaWP_Curl::do_curl( "migrates/{$migrate_id}/parts/{$part_id}", $status_args, array(), 'patch' );
+			} else {
+				$instawp_plugin->restore_data->write_log( 'Migrate ID not found - '.$part_id, 'error' );
 			}
+
 
 			$instawp_plugin->restore_data->update_status( INSTAWP_RESTORE_WAIT );
 

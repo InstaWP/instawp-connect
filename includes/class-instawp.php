@@ -388,6 +388,8 @@ class instaWP {
 		require_once INSTAWP_PLUGIN_DIR . '/migrate/class-instawp-migrate.php';
 		require_once INSTAWP_PLUGIN_DIR . '/migrate/class-instawp-migrate-hosting.php';
 
+		require_once INSTAWP_PLUGIN_DIR . '/cli/class-instawp-cli.php';
+
 		require_once INSTAWP_PLUGIN_DIR . '/admin/class-instawp-change-event.php';
 
 
