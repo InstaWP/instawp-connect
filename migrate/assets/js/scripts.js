@@ -83,7 +83,7 @@ tailwind.config = {
                                 el_site_detail_wrap.removeClass('hidden');
                                 el_migration_loader.text(el_migration_loader.data('complete-text'));
 
-                                el_site_detail_wrap.find('#instawp-site-url').attr('href', response.data.site_detail.url).html(response.data.site_detail.url);
+                                el_site_detail_wrap.find('#instawp-site-url').attr('href', response.data.site_detail.url).find('span').html(response.data.site_detail.url);
                                 el_site_detail_wrap.find('#instawp-site-username').html(response.data.site_detail.wp_username);
                                 el_site_detail_wrap.find('#instawp-site-password').html(response.data.site_detail.wp_password);
                                 el_site_detail_wrap.find('#instawp-site-magic-url').attr('href', response.data.site_detail.auto_login_url);
