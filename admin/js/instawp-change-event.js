@@ -60,24 +60,27 @@ jQuery(document).ready(function ($) {
     $(document).on('click', '.sync-changes-btn', function(){
         const sync_message = $("#sync_message").val();
         const sync_type = $('.bulk-sync-popup').attr("data-sync-type");
+        const dest_connect_id = $("#destination-site").val();
+         $(".sync_error_success_msg").html('');
         var sync_ids = '';
         if(sync_type == 'selected_sync'){
             sync_ids = $('#selected_events').val();
         }
         //Initiate Step 2
         $(".sync_process .step-1").removeClass('process_pending').addClass('process_inprogress');
-        packThings(sync_message,sync_type,sync_ids);
+        packThings(sync_message,sync_type,sync_ids,dest_connect_id);
     });
 
     //Single sync..
     $(document).on('click', '.two-way-sync-btn', function(){
         var sync_ids = $(this).attr('data-id');
         var sync_id = $(this).attr('id');
+        const dest_connect_id = '';
         const sync_message = 'This is a single sync.';
         $( "#"+sync_id ).attr('disabled','disabled');
         //Initiate Step 2
         $('#btn-sync-'+sync_ids).parent().find('.sync-loader').html('<img src="'+ajax_obj.plugin_images_url+'/loaders/loader.gif">');
-        packThings(sync_message,'single_sync',sync_ids);
+        packThings(sync_message,'single_sync',sync_ids,dest_connect_id);
     });
 
     const baseCall = async (body) => {
@@ -100,7 +103,7 @@ jQuery(document).ready(function ($) {
         });
     }
 
-    const packThings = async (sync_message,sync_type,sync_ids) => {
+    const packThings = async (sync_message,sync_type,sync_ids,dest_connect_id) => {
         let formData = new FormData();
         formData.append('action', 'pack_things');
         formData.append('sync_type', sync_type);
@@ -113,7 +116,7 @@ jQuery(document).ready(function ($) {
                 $(".sync_process .step-1").removeClass('process_inprogress').addClass('process_complete');
                 //Initiate Step 2
                 $(".sync_process .step-2").removeClass('process_pending').addClass('process_inprogress');
-                bulkSync(sync_message,data.data,sync_type,sync_ids); 
+                bulkSync(sync_message,data.data,sync_type,sync_ids, dest_connect_id); 
             }else{
                 $('.sync_error_success_msg').html('<p class="error">'+data.message+'</p>');  
             }
@@ -122,11 +125,12 @@ jQuery(document).ready(function ($) {
         });
     }
     
-    const bulkSync = (sync_message, data, sync_type, sync_ids) => {
+    const bulkSync = (sync_message, data, sync_type, sync_ids, dest_connect_id) => {
         let formData = new FormData();
         formData.append('action', 'sync_changes'); //Ajax action
         formData.append('sync_message', sync_message);
         formData.append('sync_type', sync_type);
+        formData.append('dest_connect_id', dest_connect_id);
         formData.append('sync_ids', sync_ids);
         formData.append('data', data);
         baseCall(formData).then((response) => response.json()).then((data) => { 
@@ -162,9 +166,10 @@ jQuery(document).ready(function ($) {
                         $(".sync_process .step-3")
                         .removeClass('process_inprogress')
                         .addClass('process_complete');
-                        $('.bulk-sync-btn').html('<a class="sync-complete" href="javascript:void(0);">Sync Complete</a>');
+                        $('.bulk-sync-btn').html('<a class="sync-complete" href="javascript:void(0);">Sync Completed</a>');
                         setTimeout( function() {
                             $('.bulk-sync-popup').hide();
+                            location.reload();  
                         }, 1000);
                     }, 2000);
                     

@@ -517,7 +517,7 @@ if ( ! function_exists( 'instawp_get_response_progresses' ) ) {
 				instawp_staging_insert_site(
 					array(
 						'task_id'         => $migrate_task_id,
-						'connect_id'      => InstaWP_Setting::get_args_option( 'id', $migration_site_detail ),
+						'connect_id'      => InstaWP_Setting::get_args_option( 'connect_id', $migration_site_detail ),
 						'site_name'       => str_replace( array( 'https://', 'http://' ), '', InstaWP_Setting::get_args_option( 'url', $migration_site_detail ) ),
 						'site_url'        => InstaWP_Setting::get_args_option( 'url', $migration_site_detail ),
 						'admin_email'     => InstaWP_Setting::get_args_option( 'wp_admin_email', $migration_site_detail ),
@@ -654,5 +654,17 @@ if ( ! function_exists( 'instawp_clean_non_zipped_files_folder' ) ) {
 				InstaWP_taskmanager::update_task( $migrate_task );
 			}
 		}
+	}
+}
+
+if ( ! function_exists( 'get_connect_id' ) ) {
+	/**
+	 * get connect id for source site
+	 *
+	 * @return int
+	 */
+	function get_connect_id() {
+		$connect_options = get_option('instawp_connect_id_options');
+		return $connect_options['data']['id'];
 	}
 }

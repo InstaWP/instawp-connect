@@ -4,9 +4,25 @@
  */
 
 ?>
-
+<?php
+$changeEvent = new InstaWP_Change_event();
+$events = $changeEvent->listEvents();
+$syncing_status = get_option('syncing_enabled_disabled');
+$syncing_status_val = ($syncing_status == 1) ? 'checked' : '';
+$InstaWP_db = new InstaWP_DB();
+$tables = $InstaWP_db->tables;
+#Total events
+$total_events = $InstaWP_db->totalEvnets($tables['ch_table'],'pending');
+$post_new = $InstaWP_db->trakingEventsBySlug($tables['ch_table'],'post_new','post','pending');
+$post_delete = $InstaWP_db->trakingEventsBySlug($tables['ch_table'],'post_delete','post','pending');
+$post_trash = $InstaWP_db->trakingEventsBySlug($tables['ch_table'],'post_trash','post','pending');
+#others
+$destination_url = get_option('instawp_sync_parent_url', '') ;
+$others = (abs($total_events) - abs($post_new+$post_delete+$post_trash));
+?>
 <div class="nav-item-content sync bg-white box-shadow rounded-md p-6 data-padding">
-    <div class="data-listening">
+    <?php if(empty($events)) : ?>
+    <div class="data-listening">      
 <!--        <div class="bg-white  box-shadow rounded-md data-padding flex items-center justify-center">-->
             <div class="w-full">
                 <div class="text-center ">
@@ -17,28 +33,31 @@
                     </div>
                     <div class="text-sm font-medium text-grayCust-200 mb-1"><?php echo esc_html__( 'No Data found!', 'instawp-connect' ); ?></div>
                     <div class="text-sm font-normal text-grayCust-50"><?php echo esc_html__( 'Start Listening for Changes', 'instawp-connect' ); ?></div>
-                    <!-- <label class="switch">
-					   <input type="checkbox" id="switch-id" >
+                    <label class="switch syncing_enabled_disabled">
+					   <input type="checkbox" id="switch-id" <?php echo $syncing_status_val; ?>>
 					   <span class="slider round"></span>
-					</label> -->
+					</label>
                 </div>
             </div>
 <!--        </div>-->
     </div>
-
-    <div class="sync-listining">
+     <?php else : ?>
+     <div class="sync-listining1">
 <!--        <div class="bg-white  box-shadow rounded-md p-6 flex items-center justify-center">-->
             <div class="w-full">
-                <div>
-                    <div class="flex justify-between items-center mb-6">
-                        <div >
+                    <div class="events-head">
+                        <div class="events-head-left">
                             <div class="text-grayCust-200 text-lg font-medium"><?php echo esc_html__( 'Listening for Changes', 'instawp-connect' ); ?></div>
-                            <div class="text-grayCust-50 text-sm font-normal"><?php echo esc_html__( 'Lorem ipsum demo text the default payment method will be used for any biling purposes.', 'instawp-connect' ); ?></div>
+                            <!-- <div class="text-grayCust-50 text-sm font-normal"><?php echo esc_html__( 'Lorem ipsum demo text the default payment method will be used for any biling purposes.', 'instawp-connect' ); ?></div> -->
+                            <label class="switch-toggle syncing_enabled_disabled">
+                                <input type="checkbox" <?php echo $syncing_status_val; ?>>
+                                <span class="slider-toggle round-toggle"></span>
+                            </label>
                         </div>
-                        <label class="switch-toggle">
-                            <input type="checkbox" checked>
-                            <span class="slider-toggle round-toggle"></span>
-                        </label>
+                        <div class="events-head-right">
+                        <button type="button" class="instawp-green-btn bulk-sync-popup-btn">Sync all changes</button>
+                        <!-- <button type="button" class="instawp-green-btn selected-sync-popup-btn">Selcted sync</button> -->
+                        </div>
                     </div>
                     <div class="mt-8 flow-root">
                         <div class="-my-2 -mx-6 overflow-x-auto lg:-mx-8">
@@ -54,35 +73,18 @@
                                         </tr>
                                         </thead>
                                         <tbody class="divide-y divide-gray-200 bg-white ">
-                                        <tr>
-                                            <td class="whitespace-nowrap py-6 px-6 text-xs font-medium text-grayCust-300"><?php echo esc_html__( 'Lorem ipsum demo', 'instawp-connect' ); ?></td>
-                                            <td class="whitespace-nowrap px-6 py-6 font-medium text-xs text-grayCust-300"><?php echo esc_html__( 'Lorem ipsum demo text the default payment.', 'instawp-connect' ); ?></td>
-                                            <td class="whitespace-nowrap px-6 py-6 text-center font-medium text-xs text-grayCust-300"><div class="py-1 px-4 inline-block rounded-full text-primary-900 font-medium " style="background-color: #D1FAE5;"><?php echo esc_html__( 'Synced', 'instawp-connect' ); ?></div>
-                                            </td>
-                                            <td class="whitespace-nowrap cursor-pointer  text-center px-6 py-6 font-medium text-xs text-primary-900"><?php echo esc_html__( 'Sync', 'instawp-connect' ); ?></td>
-                                        </tr>
-                                        <tr>
-                                            <td class="whitespace-nowrap py-6 px-6 text-xs font-medium text-grayCust-300"><?php echo esc_html__( 'Lorem ipsum demo', 'instawp-connect' ); ?></td>
-                                            <td class="whitespace-nowrap px-6 py-6 font-medium text-xs text-grayCust-300"><?php echo esc_html__( 'Lorem ipsum demo text the default payment.', 'instawp-connect' ); ?></td>
-                                            <td class="whitespace-nowrap px-6 py-6 text-center font-medium text-xs text-grayCust-300"><div class="py-1 px-4 inline-block rounded-full font-medium " style="background-color: #FEE2E2;color: #991B1B;"><?php echo esc_html__( 'Failed', 'instawp-connect' ); ?></div>
-                                            </td>
-                                            <td class="whitespace-nowrap cursor-pointer  text-center px-6 py-6 font-medium text-xs text-primary-900"><?php echo esc_html__( 'Sync', 'instawp-connect' ); ?></td>
-                                        </tr>
-                                        <tr>
-                                            <td class="whitespace-nowrap py-6 px-6 text-xs font-medium text-grayCust-300"><?php echo esc_html__( 'Lorem ipsum demo', 'instawp-connect' ); ?></td>
-                                            <td class="whitespace-nowrap px-6 py-6 font-medium text-xs text-grayCust-300"><?php echo esc_html__( 'Lorem ipsum demo text the default payment.', 'instawp-connect' ); ?></td>
-                                            <td class="whitespace-nowrap px-6 py-6 text-center font-medium text-xs text-grayCust-300"><div class="py-1 px-4 inline-block rounded-full font-medium " style="background-color: #DBEAFE;color: #1E40AF;"><?php echo esc_html__( 'Pending', 'instawp-connect' ); ?></div>
-                                            </td>
-                                            <td class="whitespace-nowrap cursor-pointer  text-center px-6 py-6 font-medium text-xs text-primary-900"><?php echo esc_html__( 'Sync', 'instawp-connect' ); ?></td>
-                                        </tr>
-                                        <tr>
-                                            <td class="whitespace-nowrap py-6 px-6 text-xs font-medium text-grayCust-300"><?php echo esc_html__( 'Lorem ipsum demo', 'instawp-connect' ); ?></td>
-                                            <td class="whitespace-nowrap px-6 py-6 font-medium text-xs text-grayCust-300"><?php echo esc_html__( 'Lorem ipsum demo text the default payment.', 'instawp-connect' ); ?></td>
-                                            <td class="whitespace-nowrap px-6 py-6 text-center font-medium text-xs text-grayCust-300"><div class="py-1 px-4 inline-block rounded-full font-medium " style="background-color: #FEF3C7;color: #92400E;">Pending </div>
-                                            </td>
-                                            <td class="whitespace-nowrap cursor-pointer  text-center px-6 py-6 font-medium text-xs text-primary-900"><?php echo esc_html__( 'Sync', 'instawp-connect' ); ?></td>
-                                        </tr>
-
+                                        <?php foreach ( $events as $event ) : ?>
+                                            <?php $colors = $changeEvent->getStatusColor($event['status']); ?>
+                                            <tr>
+                                                <td class="whitespace-nowrap py-6 px-6 text-xs font-medium text-grayCust-300"><?php echo esc_html( $event['event_name'] ); ?></td>
+                                                <td class="whitespace-nowrap px-6 py-6 font-medium text-xs text-grayCust-300"><?php echo esc_html( $event['title'] ); ?></td>
+                                                <td class="whitespace-nowrap px-6 py-6 text-center font-medium text-xs text-grayCust-300"><div class="py-1 px-4 inline-block rounded-full text-primary-900 font-medium " style="background-color: <?php echo $colors['bg']; ?>;color:<?php echo $colors['color']; ?>"><?php echo esc_html( $event['status'] ); ?></div>
+                                                </td>
+                                                <td class="whitespace-nowrap cursor-pointer  text-center px-6 py-6 font-medium text-xs text-primary-900">
+                                                    <?php echo   ($event['status'] != 'completed') ? '<button type="button" id="btn-sync-'.$event['ID'].'" data-id="'.$event['ID'].'" class="two-way-sync-btn">Sync changes</button> <span class="sync-loader"></span><span class="sync-success"></span>' : '<p class="sync_completed">Synced</p>';  ?>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
                                         </tbody>
                                     </table>
                                 </div>
@@ -112,6 +114,59 @@
                     </div>
                 </div>
             </div>
-        </div>
+            <div class="bulk-sync-popup" data-sync-type=""> 
+                <div class="instawp-popup-main">
+                    <div class="instawppopwrap">
+                        <div class="topinstawppopwrap">
+                            <h3>Preparing changes for Sync</h3>
+                            <div class="destination_form">
+                                <label for="instawp-destination">Destination</label>
+                                <select id="destination-site">
+                                    <?php  foreach($staging_sites as $site): ?>
+                                        <?php $site_name = isset( $site['site_name'] ) ? $site['site_name'] : ''; ?>
+                                    <option value="<?php echo $site['connect_id'] ?>"><?php echo esc_html($site_name); ?></option>
+                                    <?php endforeach ?>
+                                </select>
+                            </div>
+                            <div class="instawp_category">
+                                <div class="instawpcatlftcol bulk-events-info">
+                                    <ul class="list">
+                                        <li><?php printf('%d post change events', $post_new) ?></li>
+                                        <li><?php printf('%d post delete events', $post_delete) ?></li>
+                                        <li><?php printf('%d post trash eventss', $post_trash) ?></li>
+                                        <li><?php printf('%d other events', $others) ?></li>
+                                    </ul>
+                                </div>
+                                <div class="instawpcatlftcol selected-events-info">
+                                    <ul class="list">
+                                        <li><span class="post-change">0</span> post change events</li>
+                                        <li><span class="post-delete">0</span> post delete events</li>
+                                        <li><span class="post-trash">0</span> post trash events</li>
+                                        <li><span class="others">0</span> other events</li>
+                                    </ul>
+                                </div>
+                                <div class="instawpcatrgtcol sync_process">
+                                    <ul>
+                                        <li class="step-1 process_pending">Packing things</li>
+                                        <li class="step-2 process_pending">Pusing to cloud</li>
+                                        <li class="step-3 process_pending">Merging to destination</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="sync_error_success_msg"></div>
+                            <div class="sync_message_main textarea_json destination_form">
+                                <label for="sync_message">Message:</label>
+                                <textarea id="sync_message" name="sync_message" rows="4"></textarea>
+                            </div>
+                        </div>
+                        <div class="instawp_buttons">                            
+                            <div class="bulk-close-btn"><a class="cancel-btn close" href="javascript:void(0);">Cancel</a></div>
+                            <div class="bulk-sync-btn"><a class="changes-btn sync-changes-btn" href="javascript:void(0);">Sync Changes</a></div>
+                        </div>
+                        <div><input type="hidden" id="selected_events" name="selected_events" value=""></div>
+                    </div>
+                </div>
+             </div>
 <!--    </div>-->
+    <?php endif ?>
 </div>

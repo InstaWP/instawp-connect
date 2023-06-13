@@ -98,7 +98,7 @@ class InstaWP_Ajax_Fn{
                 return $this->formatSuccessReponse("The data has packed successfully as JSON from WP DB", $encrypted_content);
                 #return json_encode($encrypted_content);
             }else{
-                return $this->formatErrorReponse("Not pending event!");
+                return $this->formatErrorReponse("No pending events found!");
             }
         } catch(Exception $e) {
             return $this->formatErrorReponse("Caught Exception: ",  $e->getMessage());
@@ -160,70 +160,74 @@ class InstaWP_Ajax_Fn{
     }
 
     public function sync_changes(){
-        $connect_id  = get_option('instawp_sync_connect_id');
-        $parent_id = get_option('instawp_sync_parent_id');
-        $message = isset($_POST['sync_message']) ? $_POST['sync_message']: '';
-        $data = stripslashes($_POST['data']);
-        $sync_ids = isset($_POST['sync_ids']) ? $_POST['sync_ids']: '';
-        $sync_type = isset($_POST['sync_type']) ? $_POST['sync_type']: '';  
-        $events = $this->get_wp_events($sync_ids,$sync_type);
-        $eventsArr = json_decode($events);
-        if(isset($eventsArr->success) && $eventsArr->success === true){
-            $packed_data = json_encode([
-                'encrypted_content' => json_encode($eventsArr->data),
-                'dest_connect_id' => $parent_id, #live
-                'changes' => $data,
-                'upload_wp_user' => get_current_user_id(),
-                'sync_message' => $message,
-                'source_connect_id' => $connect_id, #staging id
-                'source_url' => get_site_url() #staging url
-            ]);
-          
-            $resp = $this->sync_upload($packed_data,null);
-           
-            $resp_decode = json_decode($resp); 
-            
-            if(isset($resp_decode->status) && $resp_decode->status === true){
-                $sync_resp = '';
-                if(isset($resp_decode->data->sync_id) && !empty($resp_decode->data->sync_id)){
-                    $sync_resp = $this->get_Sync_Object($resp_decode->data->sync_id);
+        $connect_id  = get_connect_id();
+        if(isset($_POST['dest_connect_id']) && $_POST['dest_connect_id'] !=''){
+            $dest_connect_id = $_POST['dest_connect_id'];
+            $message = isset($_POST['sync_message']) ? $_POST['sync_message']: '';
+            $data = stripslashes($_POST['data']);
+            $sync_ids = isset($_POST['sync_ids']) ? $_POST['sync_ids']: '';
+            $sync_type = isset($_POST['sync_type']) ? $_POST['sync_type']: '';  
+            $events = $this->get_wp_events($sync_ids,$sync_type);
+            $eventsArr = json_decode($events);
+            if(isset($eventsArr->success) && $eventsArr->success === true){
+                $packed_data = json_encode([
+                    'encrypted_content' => json_encode($eventsArr->data),
+                    'dest_connect_id' => $dest_connect_id, #live
+                    'changes' => $data,
+                    'upload_wp_user' => get_current_user_id(),
+                    'sync_message' => $message,
+                    'source_connect_id' => $connect_id, #staging id
+                    'source_url' => get_site_url() #staging url
+                ]);
+                
+                $resp = $this->sync_upload($packed_data,null);
+                
+                $resp_decode = json_decode($resp); 
+                
+                if(isset($resp_decode->status) && $resp_decode->status === true){
+                    $sync_resp = '';
+                    if(isset($resp_decode->data->sync_id) && !empty($resp_decode->data->sync_id)){
+                        $sync_resp = $this->get_Sync_Object($resp_decode->data->sync_id);
 
-                    
-                    $respD = json_decode($sync_resp);// WE WILL USE IT.
-                    // echo "<pre here>";
-                    // print_r($respD);
-                    // die;
-                    if($respD->status === 1 || $respD->status === true){
-                        if(isset($respD->data->changes->changes->sync_response)){
-                            $sync_response = $respD->data->changes->changes->sync_response;
-                            foreach($sync_response as $v){
-                                $res_data = [
-                                    'status' => $v->status,
-                                    'synced_message' => $v->message
-                                ];
-                                $this->InstaWP_db->update($this->tables['ch_table'],$res_data,$v->id);   
+                        
+                        $respD = json_decode($sync_resp);// WE WILL USE IT.
+                        // echo "<pre here>";
+                        // print_r($respD);
+                        // die;
+                        if($respD->status === 1 || $respD->status === true){
+                            if(isset($respD->data->changes->changes->sync_response)){
+                                $sync_response = $respD->data->changes->changes->sync_response;
+                                foreach($sync_response as $v){
+                                    $res_data = [
+                                        'status' => $v->status,
+                                        'synced_message' => $v->message
+                                    ];
+                                    $this->InstaWP_db->update($this->tables['ch_table'],$res_data,$v->id);   
+                                }
                             }
+                            $total = isset($respD->data->changes->total) ? json_decode($respD->data->changes->total) : '';
+                            if($total->sync_type == 'single_sync'){
+                                $repD = [
+                                    'sync_type' => $total->sync_type,
+                                    'res_data' => $res_data
+                                ];
+                            }else{
+                                $repD = [
+                                    'sync_type' => $total->sync_type,
+                                    'res_data' => $res_data
+                                ];
+                            }
+                            echo $this->formatSuccessReponse($resp_decode->message,$repD);
                         }
-                        $total = isset($respD->data->changes->total) ? json_decode($respD->data->changes->total) : '';
-                        if($total->sync_type == 'single_sync'){
-                            $repD = [
-                                'sync_type' => $total->sync_type,
-                                'res_data' => $res_data
-                            ];
-                        }else{
-                            $repD = [
-                                'sync_type' => $total->sync_type,
-                                'res_data' => $res_data
-                            ];
-                        }
-                        echo $this->formatSuccessReponse($resp_decode->message,$repD);
-                    }
-                } 
+                    } 
+                }else{
+                    echo $this->formatErrorReponse($resp_decode->message);  
+                }
             }else{
-                echo $this->formatErrorReponse($resp_decode->message);  
+                echo $this->formatErrorReponse($eventsArr->message);  
             }
         }else{
-            echo $this->formatErrorReponse($eventsArr->message);  
+            echo $this->formatErrorReponse('Destination is required.');  
         }
         wp_die();
     }
@@ -244,7 +248,7 @@ class InstaWP_Ajax_Fn{
     */
     public function sync_upload($data = null, $endpoint = null){
         $api_doamin = InstaWP_Setting::get_api_domain();
-        $connect_id = get_option('instawp_sync_connect_id');
+        $connect_id =  get_connect_id();
         
         $endpoint = '/api/v2/connects/'.$connect_id.'/syncs';
         $url = $api_doamin.$endpoint; #https://stage.instawp.io/api/v2/connects/53/syncs
@@ -278,7 +282,7 @@ class InstaWP_Ajax_Fn{
     public function get_Sync_Object($sync_id = null){
         global $InstaWP_Curl;
         $api_doamin = InstaWP_Setting::get_api_domain();
-        $connect_id  = get_option('instawp_sync_connect_id');
+        $connect_id  = get_connect_id();
         $endpoint = '/api/v2/connects/'.$connect_id.'/syncs/'.$sync_id;
         $url = $api_doamin.$endpoint; #https://stage.instawp.io/api/v2/connects/53/syncs/104
         $api_key = $this->get_api_key(); 
