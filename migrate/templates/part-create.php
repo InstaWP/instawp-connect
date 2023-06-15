@@ -185,7 +185,10 @@ $customize_options     = array(
                             <div class="mb-2 flex justify-center text-center"><img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/warning.svg' ) ); ?>" alt="Warning"></div>
                             <div class="mb-2 text-graCust-300 text-lg font-medium staging-type-label">You have reached your limit</div>
                             <div class="text-gray-500 text-sm font-normal leading-6">You have exceeded the maximum allowance of disk space for your plan.</div>
-                            <a href="#" target="_blank" class="btn-shadow rounded-md w-fit block text-center mt-4 mx-auto py-3 px-6 bg-primary-900 text-white hover:text-white text-sm font-medium" style="background: #11BF85;">Increase Limit</a>
+                            <div class="flex text-center gap-4 items-center justify-center">
+                                <button type="button" class="instawp-migration-start-over text-gray-700 mt-4 py-3 px-6 border border-grayCust-350 text-sm font-medium rounded-md">Start Over</button>
+                                <a href="#" target="_blank" class="btn-shadow rounded-md w-fit text-center mt-4 py-3 px-6 bg-primary-900 text-white hover:text-white text-sm font-medium" style="background: #11BF85;">Increase Limit</a>
+                            </div>
                         </div>
 
                     </div>
@@ -263,7 +266,7 @@ $customize_options     = array(
 
                 <div class="screen-buttons bg-grayCust-250 px-6 py-3 rounded-bl-lg rounded-br-lg flex justify-end">
                     <p class="doing-request"><span class="loader"></span>Checking usages...</p>
-                    <input name="instawp_migrate[screen]" type="hidden" id="instawp-screen" value="1">
+                    <input name="instawp_migrate[screen]" type="hidden" id="instawp-screen" value="<?= $current_create_screen; ?>">
                     <button type="button" data-increment="-1" class="instawp-button-migrate back hidden btn-shadow border border-grayCust-350 mr-4 rounded-md py-2 px-8 bg-white text-grayCust-700 text-sm font-medium">Back</button>
                     <button type="button" data-increment="1" class="instawp-button-migrate continue btn-shadow rounded-md py-2 px-4 bg-primary-900 text-white hover:text-white text-sm font-medium">Next Step</button>
                 </div>

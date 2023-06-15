@@ -180,6 +180,27 @@ tailwind.config = {
     });
 
 
+    $(document).on('click', '.instawp-wrap .instawp-migration-start-over', function () {
+
+        let create_container = $('.instawp-wrap .nav-item-content.create'),
+            el_instawp_screen = create_container.find('#instawp-screen'),
+            el_confirmation_preview = create_container.find('.confirmation-preview'),
+            el_confirmation_warning = create_container.find('.confirmation-warning'),
+            el_screen_buttons = create_container.find('.screen-buttons'),
+            el_screen_doing_request = el_screen_buttons.find('p.doing-request');
+
+        create_container.trigger("reset");
+        create_container.removeClass('warning');
+        el_confirmation_preview.removeClass('hidden');
+        el_confirmation_warning.addClass('hidden');
+        el_screen_doing_request.removeClass('loading');
+
+        create_container.find('.card-active').removeClass('card-active border-primary-900');
+        create_container.find('.confirmation-preview .selected-staging-options').html('');
+
+        el_instawp_screen.val(1).trigger('change');
+    });
+
     $(document).on('click', '.instawp-wrap .instawp-staging-type', function () {
 
         let el_staging_type = $(this),
