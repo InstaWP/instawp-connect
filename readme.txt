@@ -107,5 +107,6 @@ InstaWP is an online WordPress development environment to get you started with a
 = 0.0.9.15 =
 - 15/06/2023 - FIX - Fix migration issues on wizard go live flow.
 - 15/06/2023 - FIX - Update user interface to display limit issues before starting migration.
+- 15/06/2023 - FIX - Added a "Start Over" button in the limit warning screen.
 
 
