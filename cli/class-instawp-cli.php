@@ -57,10 +57,60 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 
 					break;
 
+				case 'download';
+
+					$parameters         = array();
+					$backup_task        = new InstaWP_Backup_Task();
+					$backup_task_ret    = $backup_task->new_download_task();
+					$backup_task_id     = isset( $backup_task_ret['task_id'] ) ? $backup_task_ret['task_id'] : '';
+					$backup_task_result = isset( $backup_task_ret['result'] ) ? $backup_task_ret['result'] : '';
+
+					if ( ! empty( $backup_task_id ) && 'success' == $backup_task_result ) {
+
+						as_enqueue_async_action( 'instawp_download_bg', [ $backup_task_id, $parameters ] );
+
+						do_action( 'action_scheduler_run_queue', 'Async Request' );
+					}
+
+					break;
+
+
+				case 'restore':
+
+					$parameters      = array();
+					$restore_options = json_encode( array(
+						'skip_backup_old_site'     => '1',
+						'skip_backup_old_database' => '1',
+						'is_migrate'               => '1',
+						'backup_db',
+						'backup_themes',
+						'backup_plugin',
+						'backup_uploads',
+						'backup_content',
+						'backup_core',
+					) );
+					$backup_uploader = new InstaWP_BackupUploader();
+					$backup_uploader->_rescan_local_folder_set_backup_api( $parameters );
+					$backup_list = InstaWP_Backuplist::get_backuplist();
+
+					if ( empty( $backup_list ) ) {
+						return new WP_REST_Response( array( 'completed' => false, 'progress' => 0, 'message' => 'empty backup list' ) );
+					}
+
+					// Background processing of restore using woocommerce's scheduler.
+					as_enqueue_async_action( 'instawp_restore_bg', [ $backup_list, $restore_options, $parameters ] );
+
+					// Immediately run the schedule, don't want for the cron to run.
+					do_action( 'action_scheduler_run_queue', 'Async Request' );
+
+					break;
+
 				default:
 					WP_CLI::error( esc_html__( 'Invalid command for `-action`', 'instawp-connect' ) );
 					break;
 			}
+
+			return true;
 		}
 
 
