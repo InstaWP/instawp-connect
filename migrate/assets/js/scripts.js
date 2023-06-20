@@ -523,7 +523,7 @@ tailwind.config = {
             el_migrate_step_response.find('.loading-controller > span').html('Authorising...');
 
             // callback_window = window.open(website_domain_confirm + '/wp-admin/authorize-application.php?app_name=InstaWP&app_id=33ff0627-fdd3-5266-a7b3-9eba4e2d07e3&success_url=https%3A%2F%2Fstage.instawp.io%2Fdesign20%2Fwp-connect-callback%3Fsid%3DMjEyOTY%3D', '_blank', "width=1440,height=720");
-            callback_window = window.open('https://ed-termite-lefu.a.instawpsites.com/wp-admin/authorize-application.php?app_name=InstaWP&app_id=33ff0627-fdd3-5266-a7b3-9eba4e2d07e3&success_url=https%3A%2F%2Fstage.instawp.io%2Fdesign20%2Fwp-connect-callback%3Fsid%3DMjEyOTY%3D', '_blank', "width=1440,height=720");
+            callback_window = window.open('https://sty-magpie-gibo.a.instawpsites.com/wp-admin/authorize-application.php?app_name=InstaWP&app_id=33ff0627-fdd3-5266-a7b3-9eba4e2d07e3&success_url=https%3A%2F%2Fstage.instawp.io%2Fdesign20%2Fwp-connect-callback%3Fsid%3DMjEzMjQ%3D', '_blank', "width=1440,height=720");
 
             window_open_checker = setInterval(function () {
                 if (callback_window.closed) {

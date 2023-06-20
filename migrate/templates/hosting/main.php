@@ -3,7 +3,9 @@
  * Migrate template - Main
  */
 
-instawp_reset_running_migration( 'soft', false );
+if ( isset( $_GET['clear'] ) && $_GET['clear'] == 'all' ) {
+	instawp_reset_running_migration();
+}
 
 $migrate_hosting = array(
 	'mode'             => 'migrate',
@@ -18,8 +20,7 @@ $migrate_hosting = array(
 		),
 	)
 );
-//$website_domain_confirm = 'https://ed-termite-lefu.a.instawpsites.com/wp-admin/authorize-application.php?app_name=InstaWP&app_id=33ff0627-fdd3-5266-a7b3-9eba4e2d07e3&success_url=https%3A%2F%2Fstage.instawp.io%2Fdesign20%2Fwp-connect-callback%3Fsid%3DMjEyOTY%3D';
-//$website_domain_confirm = 'https://ed-termite-lefu.a.instawpsites.com';
+//$website_domain_confirm = 'https://sty-magpie-gibo.a.instawpsites.com/wp-admin/authorize-application.php?app_name=InstaWP&app_id=33ff0627-fdd3-5266-a7b3-9eba4e2d07e3&success_url=https%3A%2F%2Fstage.instawp.io%2Fdesign20%2Fwp-connect-callback%3Fsid%3DMjEzMjQ%3D';
 $website_domain_confirm = '';
 
 
@@ -70,7 +71,7 @@ $website_domain_confirm = '';
                                     <div class="mb-4">
                                         <label for="website_domain" class="block text-sm font-medium text-grayCust-700 mb-2">Choose a domain name for your website</label>
                                         <div class="relative">
-                                            <input value="jaed1234.com" type="text" name="website_domain" placeholder="Enter Domain Name" id="website_domain" autocomplete="off" class="block w-full py-2.5 pr-3 pl-10 rounded-md border-grayCust-350 shadow-sm focus:border-primary-900 focus:ring-1 focus:ring-primary-900 sm:text-sm"/>
+                                            <input value="" type="text" name="website_domain" placeholder="Enter Domain Name" id="website_domain" autocomplete="off" class="block w-full py-2.5 pr-3 pl-10 rounded-md border-grayCust-350 shadow-sm focus:border-primary-900 focus:ring-1 focus:ring-primary-900 sm:text-sm"/>
                                             <div class="absolute top-2.5 left-2.5">
                                                 <img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/globe-icon.png' ) ); ?>" alt="">
                                             </div>
@@ -128,7 +129,7 @@ $website_domain_confirm = '';
                                     <div class="mb-2">
                                         <label for="email_address" class="block text-sm font-medium text-grayCust-700 mb-2">Email ID</label>
                                         <div class="relative">
-                                            <input value="jaedm97@gmail.com" type="text" name="email_address" placeholder="Enter Email ID" id="email_address" autocomplete="off" class="block w-full py-2.5 pr-3 pl-10 rounded-md border-grayCust-350 shadow-sm focus:border-primary-900 focus:ring-1 focus:ring-primary-900 sm:text-sm"/>
+                                            <input value="" type="text" name="email_address" placeholder="Enter Email ID" id="email_address" autocomplete="off" class="block w-full py-2.5 pr-3 pl-10 rounded-md border-grayCust-350 shadow-sm focus:border-primary-900 focus:ring-1 focus:ring-primary-900 sm:text-sm"/>
                                             <div class="absolute top-2.5 left-2.5">
                                                 <img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/email-iocn.svg' ) ); ?>" alt="">
                                             </div>
