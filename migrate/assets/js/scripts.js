@@ -455,9 +455,9 @@ tailwind.config = {
 
         if (current_step === 3) {
 
-            if (website_domain_confirm.length === 0) {
-                return;
-            }
+            // if (website_domain_confirm.length === 0) {
+            //     return;
+            // }
 
             let callback_window, window_open_checker, overall_migration_progress = 0,
                 step_3_wrap = el_migrate_hosting_wrapper.find('.migrate-step.step-' + current_step),
