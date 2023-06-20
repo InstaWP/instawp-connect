@@ -27,7 +27,7 @@ $website_domain_confirm = '';
 
 <div class="wrap instawp-migrate-wrap box-width rounded-2xl">
 
-    <input type="number" id="migrate-step-controller" value="1">
+    <input type="hidden" id="migrate-step-controller" value="1">
 
     <div class="w-full">
         <div class="text-center py-6">
