@@ -16,7 +16,7 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 
 			add_action( 'admin_menu', array( $this, 'add_migrate_menu' ) );
 
-			if ( isset( $_GET['page'] ) && 'instawp' === sanitize_text_field( $_GET['page'] ) ) {
+			if ( isset( $_GET['page'] ) && in_array( sanitize_text_field( $_GET['page'] ), [ 'instawp', 'instawp-migrate' ] ) ) {
 				add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_styles_scripts' ) );
 
 				add_filter( 'admin_footer_text', '__return_false' );
@@ -29,6 +29,28 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 			add_action( 'wp_ajax_instawp_reset_plugin', array( $this, 'reset_plugin' ) );
 			add_action( 'wp_ajax_instawp_abort_migration', array( $this, 'abort_migration' ) );
 			add_action( 'wp_ajax_instawp_check_limit', array( $this, 'check_limit' ) );
+			add_action( 'wp_ajax_instawp_check_domain_availability', array( $this, 'check_domain_availability' ) );
+		}
+
+
+		function check_domain_availability() {
+
+			$domain_name  = isset( $_POST['domain_name'] ) ? sanitize_text_field( $_POST['domain_name'] ) : '';
+			$alert_icon   = instawp()::get_asset_url( 'migrate/assets/images/alert-icon.svg' );
+			$success_icon = instawp()::get_asset_url( 'migrate/assets/images/check-icon.png' );
+
+			if ( empty( $domain_name ) ) {
+				wp_send_json_error( array( 'icon_url' => $alert_icon, 'message' => esc_html__( 'Empty domain name is not allowed.', 'instawp-connect' ) ) );
+			}
+
+			$search_response = instawp_domain_search( $domain_name );
+			$status          = InstaWP_Setting::get_args_option( 'status', $search_response );
+
+			if ( 'active' === $status ) {
+				wp_send_json_error( array( 'icon_url' => $alert_icon, 'message' => esc_html__( 'This domain name is not available.', 'instawp-connect' ) ) );
+			}
+
+			wp_send_json_success( array( 'icon_url' => $success_icon, 'message' => esc_html__( 'This domain is available.', 'instawp-connect' ) ) );
 		}
 
 
@@ -426,6 +448,13 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 			include INSTAWP_PLUGIN_DIR . '/migrate/templates/main.php';
 		}
 
+		/**
+		 * @return void
+		 */
+		function render_migrate_hosting_page() {
+			include INSTAWP_PLUGIN_DIR . '/migrate/templates/hosting/main.php';
+		}
+
 
 		/**
 		 * @return void
@@ -434,9 +463,13 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 			add_management_page(
 				esc_html__( 'InstaWP', 'instawp-connect' ),
 				esc_html__( 'InstaWP', 'instawp-connect' ),
-				'administrator', 'instawp',
-				array( $this, 'render_migrate_page' ),
-				1
+				'administrator', 'instawp', array( $this, 'render_migrate_page' ), 1
+			);
+
+			add_management_page(
+				esc_html__( 'InstaWP - Migrate', 'instawp-connect' ),
+				esc_html__( 'InstaWP - Migrate', 'instawp-connect' ),
+				'administrator', 'instawp-migrate', array( $this, 'render_migrate_hosting_page' ), 2
 			);
 		}
 

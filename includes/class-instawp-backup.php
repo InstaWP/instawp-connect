@@ -323,7 +323,7 @@ class InstaWP_Backup_Task {
 		return $ret;
 	}
 
-	public function new_download_task() {
+	public function new_download_task( $parameters = array() ) {
 
 		$id                   = uniqid();
 		$this->task           = false;
@@ -358,6 +358,7 @@ class InstaWP_Backup_Task {
 		$this->task['data']['download']['progress']        = 0;
 		$this->task['data']['download']['job_data']        = array();
 		$this->task['data']['download']['sub_job']         = array();
+		$this->task['data']['parameters']                  = $parameters;
 		InstaWP_Setting::update_task( $id, $this->task );
 		$ret['result']  = 'success';
 		$ret['task_id'] = $this->task['id'];
