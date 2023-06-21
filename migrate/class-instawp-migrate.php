@@ -14,9 +14,7 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 		 */
 		public function __construct() {
 
-			add_action( 'admin_menu', array( $this, 'add_migrate_menu' ) );
-
-			if ( isset( $_GET['page'] ) && in_array( sanitize_text_field( $_GET['page'] ), [ 'instawp', 'instawp-migrate' ] ) ) {
+			if ( isset( $_GET['page'] ) && in_array( sanitize_text_field( $_GET['page'] ), [ 'instawp', 'instawp-template-migrate' ] ) ) {
 				add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_styles_scripts' ) );
 
 				add_filter( 'admin_footer_text', '__return_false' );
@@ -30,6 +28,8 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 			add_action( 'wp_ajax_instawp_abort_migration', array( $this, 'abort_migration' ) );
 			add_action( 'wp_ajax_instawp_check_limit', array( $this, 'check_limit' ) );
 			add_action( 'wp_ajax_instawp_check_domain_availability', array( $this, 'check_domain_availability' ) );
+
+
 		}
 
 
@@ -424,9 +424,6 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 		}
 
 
-		/**
-		 * @return void
-		 */
 		function enqueue_styles_scripts() {
 
 			wp_enqueue_style( 'instawp-migrate', instawp()::get_asset_url( 'migrate/assets/css/style.css' ), [], current_time( 'U' ) );
@@ -437,39 +434,6 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 				array(
 					'ajax_url' => admin_url( 'admin-ajax.php' ),
 				)
-			);
-		}
-
-
-		/**
-		 * @return void
-		 */
-		function render_migrate_page() {
-			include INSTAWP_PLUGIN_DIR . '/migrate/templates/main.php';
-		}
-
-		/**
-		 * @return void
-		 */
-		function render_migrate_hosting_page() {
-			include INSTAWP_PLUGIN_DIR . '/migrate/templates/hosting/main.php';
-		}
-
-
-		/**
-		 * @return void
-		 */
-		function add_migrate_menu() {
-			add_management_page(
-				esc_html__( 'InstaWP', 'instawp-connect' ),
-				esc_html__( 'InstaWP', 'instawp-connect' ),
-				'administrator', 'instawp', array( $this, 'render_migrate_page' ), 1
-			);
-
-			add_management_page(
-				esc_html__( 'InstaWP - Migrate', 'instawp-connect' ),
-				esc_html__( 'InstaWP - Migrate', 'instawp-connect' ),
-				'administrator', 'instawp-migrate', array( $this, 'render_migrate_hosting_page' ), 2
 			);
 		}
 

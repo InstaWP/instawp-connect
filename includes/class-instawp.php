@@ -500,7 +500,6 @@ class instaWP {
 			add_action( 'admin_menu', array( $this->admin, 'add_plugin_admin_menu' ) );
 		}
 
-		add_action( 'admin_bar_menu', array( $this->admin, 'add_toolbar_items' ), 100 );
 		//show admin bar
 		add_action( 'admin_head', array( $this->admin, 'instawp_get_siteurl' ), 100 );
 
