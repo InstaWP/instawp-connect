@@ -325,7 +325,7 @@ class InstaWP_Backup_Task {
 
 	public function new_download_task( $parameters = array() ) {
 
-		$id                   = uniqid();
+		$id                   = uniqid( 'instawp-' );
 		$this->task           = false;
 		$this->task['id']     = $id;
 		$this->task['action'] = 'download';

@@ -20,8 +20,10 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 
 			global $instawp_plugin;
 
-			$cli_action_index = array_search( '-action', $args );
-			$cli_action       = $args[ ( $cli_action_index + 1 ) ] ?? '';
+			$cli_action_index      = array_search( '-action', $args );
+			$cli_action            = $args[ ( $cli_action_index + 1 ) ] ?? '';
+			$migrate_task_id_index = array_search( '-task', $args );
+			$migrate_task_id       = $args[ ( $migrate_task_id_index + 1 ) ] ?? '';
 
 			switch ( $cli_action ) {
 
@@ -59,18 +61,28 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 
 				case 'download';
 
-					$parameters         = array();
-					$backup_task        = new InstaWP_Backup_Task();
-					$backup_task_ret    = $backup_task->new_download_task();
-					$backup_task_id     = isset( $backup_task_ret['task_id'] ) ? $backup_task_ret['task_id'] : '';
-					$backup_task_result = isset( $backup_task_ret['result'] ) ? $backup_task_ret['result'] : '';
-
-					if ( ! empty( $backup_task_id ) && 'success' == $backup_task_result ) {
-
-						as_enqueue_async_action( 'instawp_download_bg', [ $backup_task_id, $parameters ] );
-
-						do_action( 'action_scheduler_run_queue', 'Async Request' );
+					if ( empty( $migrate_task = InstaWP_taskmanager::get_task( $migrate_task_id ) ) ) {
+						WP_CLI::error( esc_html__( 'Invalid task ID : ' . $migrate_task_id, 'instawp-connect' ) );
 					}
+
+					$parameters = InstaWP_Setting::get_args_option( 'parameters', $migrate_task );
+
+					echo "<pre>";
+					print_r( $migrate_task );
+					echo "</pre>";
+
+//					$parameters         = array();
+//					$backup_task        = new InstaWP_Backup_Task();
+//					$backup_task_ret    = $backup_task->new_download_task();
+//					$backup_task_id     = isset( $backup_task_ret['task_id'] ) ? $backup_task_ret['task_id'] : '';
+//					$backup_task_result = isset( $backup_task_ret['result'] ) ? $backup_task_ret['result'] : '';
+//
+//					if ( ! empty( $backup_task_id ) && 'success' == $backup_task_result ) {
+//
+//						as_enqueue_async_action( 'instawp_download_bg', [ $backup_task_id, $parameters ] );
+//
+//						do_action( 'action_scheduler_run_queue', 'Async Request' );
+//					}
 
 					break;
 

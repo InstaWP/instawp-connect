@@ -682,7 +682,7 @@ class InstaWP_Backup_Api {
 				'backup_core',
 			) );
 			$backup_task        = new InstaWP_Backup_Task();
-			$backup_task_ret    = $backup_task->new_download_task();
+			$backup_task_ret    = $backup_task->new_download_task( $parameters );
 			$backup_task_id     = isset( $backup_task_ret['task_id'] ) ? $backup_task_ret['task_id'] : '';
 			$backup_task_result = isset( $backup_task_ret['result'] ) ? $backup_task_ret['result'] : '';
 
@@ -1137,10 +1137,6 @@ add_action( 'wp_head', function () {
 				delete_option( $_GET['key'] );
 			}
 		}
-
-		echo "<pre>";
-		print_r( InstaWP_taskmanager::get_tasks() );
-		echo "</pre>";
 
 		die();
 	}
