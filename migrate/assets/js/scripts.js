@@ -455,9 +455,9 @@ tailwind.config = {
 
         if (current_step === 3) {
 
-            // if (website_domain_confirm.length === 0) {
-            //     return;
-            // }
+            if (website_domain_confirm.length === 0) {
+                return;
+            }
 
             let callback_window, window_open_checker, overall_migration_progress = 0,
                 step_3_wrap = el_migrate_hosting_wrapper.find('.migrate-step.step-' + current_step),
@@ -491,6 +491,8 @@ tailwind.config = {
                         },
                         data: {
                             'action': 'instawp_connect_migrate',
+                            'destination_domain': website_domain_confirm,
+                            'clean_previous_backup': true,
                         },
                         success: function (response) {
 
@@ -522,15 +524,33 @@ tailwind.config = {
 
             el_migrate_step_response.find('.loading-controller > span').html('Authorising...');
 
-            // callback_window = window.open(website_domain_confirm + '/wp-admin/authorize-application.php?app_name=InstaWP&app_id=33ff0627-fdd3-5266-a7b3-9eba4e2d07e3&success_url=https%3A%2F%2Fstage.instawp.io%2Fdesign20%2Fwp-connect-callback%3Fsid%3DMjEyOTY%3D', '_blank', "width=1440,height=720");
-            callback_window = window.open('https://sty-magpie-gibo.a.instawpsites.com/wp-admin/authorize-application.php?app_name=InstaWP&app_id=33ff0627-fdd3-5266-a7b3-9eba4e2d07e3&success_url=https%3A%2F%2Fstage.instawp.io%2Fdesign20%2Fwp-connect-callback%3Fsid%3DMjEzMjQ%3D', '_blank', "width=1440,height=720");
-
+            callback_window = window.open(website_domain_confirm + '/wp-admin/authorize-application.php?app_name=InstaWP&app_id=33ff0627-fdd3-5266-a7b3-9eba4e2d07e3&success_url=https%3A%2F%2Fstage.instawp.io%2Fdesign20%2Fwp-connect-callback%3Fsid%3DMjEyOTY%3D', '_blank', "width=1440,height=720");
             window_open_checker = setInterval(function () {
                 if (callback_window.closed) {
-                    clearInterval(window_open_checker);
 
-                    step_3_button.data('proceed', 'yes').html('Migrate Website');
-                    el_migrate_step_response.find('.loading-controller > span').html('Connected.');
+                    $.ajax({
+                        type: 'POST',
+                        url: plugin_object.ajax_url,
+                        context: this,
+                        data: {
+                            'action': 'instawp_check_domain_connect_status',
+                            'destination_domain': website_domain_confirm,
+                        },
+                        success: function (response) {
+
+                            console.log(response.data);
+
+                            if (response.success) {
+                                step_3_button.data('proceed', 'yes').html('Migrate Website');
+                                el_migrate_step_response.find('.loading-controller > span').html('Connected.');
+                            } else {
+                                el_migrate_step_response.find('.loading-controller > span').html('Not Connected.');
+                            }
+                        },
+                        complete: function () {
+                            clearInterval(window_open_checker);
+                        }
+                    });
                 }
             }, 1000);
         }

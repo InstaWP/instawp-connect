@@ -28,8 +28,27 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 			add_action( 'wp_ajax_instawp_abort_migration', array( $this, 'abort_migration' ) );
 			add_action( 'wp_ajax_instawp_check_limit', array( $this, 'check_limit' ) );
 			add_action( 'wp_ajax_instawp_check_domain_availability', array( $this, 'check_domain_availability' ) );
+			add_action( 'wp_ajax_instawp_check_domain_connect_status', array( $this, 'check_domain_connect_status' ) );
+		}
 
 
+		function check_domain_connect_status() {
+
+			$destination_domain = isset( $_POST['destination_domain'] ) ? sanitize_url( $_POST['destination_domain'] ) : '';
+
+			if ( empty( $destination_domain ) ) {
+				wp_send_json_error( array( 'message' => esc_html__( 'Empty destination domain is not allowed.', 'instawp-connect' ) ) );
+			}
+
+			$response      = InstaWP_Curl::do_curl( 'check-is-config', array( 'url' => $destination_domain ) );
+			$response_data = InstaWP_Setting::get_args_option( 'data', $response );
+			$is_config     = (bool) InstaWP_Setting::get_args_option( 'is_config', $response_data );
+
+			if ( ! $is_config ) {
+				wp_send_json_error( array( 'message' => esc_html__( 'Destination domain is not configured.', 'instawp-connect' ) ) );
+			}
+
+			wp_send_json_success( array( 'message' => esc_html__( 'Destination domain is configured.', 'instawp-connect' ) ) );
 		}
 
 
@@ -100,8 +119,12 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 				include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-zipclass.php';
 			}
 
-			$_settings = isset( $_POST['settings'] ) ? $_POST['settings'] : '';
+			$_settings             = isset( $_POST['settings'] ) ? $_POST['settings'] : '';
+			$destination_domain    = isset( $_POST['destination_domain'] ) ? $_POST['destination_domain'] : '';
+			$clean_previous_backup = isset( $_POST['clean_previous_backup'] ) && (bool) $_POST['clean_previous_backup'];
+
 			parse_str( $_settings, $settings );
+
 			$instawp_migrate  = InstaWP_Setting::get_args_option( 'instawp_migrate', $settings, [] );
 			$migrate_options  = InstaWP_Setting::get_args_option( 'options', $instawp_migrate, [] );
 			$migrate_settings = [];
@@ -110,7 +133,11 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 				$migrate_settings[ $migrate_option ] = true;
 			}
 
-			$response = array(
+//			if ( $clean_previous_backup ) {
+//				instawp_reset_running_migration();
+//			}
+
+			$response            = array(
 				'backup'  => array(
 					'progress' => 0,
 				),
@@ -122,7 +149,6 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 				),
 				'status'  => 'running',
 			);
-
 			$instawp_zip         = new InstaWP_ZipClass();
 			$instawp_plugin      = new instaWP();
 			$backup_options      = array(
@@ -150,11 +176,16 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 			// Getting the migrate_id
 			if ( empty( $migrate_id = InstaWP_Setting::get_args_option( 'migrate_id', $migrate_task ) ) ) {
 
-				$migrate_args     = array(
+				$migrate_args = array(
 					'source_domain'  => site_url(),
 					'php_version'    => '6.0',
 					'plugin_version' => '2.0',
 				);
+
+				if ( ! empty( $destination_domain ) ) {
+					$migrate_args['destination_domain'] = $destination_domain;
+				}
+
 				$migrate_response = InstaWP_Curl::do_curl( 'migrates', $migrate_args );
 				$migrate_id       = isset( $migrate_response['data']['migrate_id'] ) ? $migrate_response['data']['migrate_id'] : '';
 
