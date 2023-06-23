@@ -121,7 +121,6 @@ class InstaWP_Go_Live {
 	 */
 	function go_live_restore_init() {
 
-
 		global $instawp_plugin;
 
 		$backup_options      = array(

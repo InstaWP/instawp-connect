@@ -65,24 +65,15 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 						WP_CLI::error( esc_html__( 'Invalid task ID : ' . $migrate_task_id, 'instawp-connect' ) );
 					}
 
-					$parameters = InstaWP_Setting::get_args_option( 'parameters', $migrate_task );
+					$migrate_task_data = InstaWP_Setting::get_args_option( 'data', $migrate_task );
+					$parameters        = InstaWP_Setting::get_args_option( 'parameters', $migrate_task_data );
 
-					echo "<pre>";
-					print_r( $migrate_task );
-					echo "</pre>";
+					if ( ! empty( $parameters ) && is_array( $parameters ) ) {
 
-//					$parameters         = array();
-//					$backup_task        = new InstaWP_Backup_Task();
-//					$backup_task_ret    = $backup_task->new_download_task();
-//					$backup_task_id     = isset( $backup_task_ret['task_id'] ) ? $backup_task_ret['task_id'] : '';
-//					$backup_task_result = isset( $backup_task_ret['result'] ) ? $backup_task_ret['result'] : '';
-//
-//					if ( ! empty( $backup_task_id ) && 'success' == $backup_task_result ) {
-//
-//						as_enqueue_async_action( 'instawp_download_bg', [ $backup_task_id, $parameters ] );
-//
-//						do_action( 'action_scheduler_run_queue', 'Async Request' );
-//					}
+						as_enqueue_async_action( 'instawp_download_bg', [ $migrate_task_id, $parameters ] );
+
+						do_action( 'action_scheduler_run_queue', 'Async Request' );
+					}
 
 					break;
 
