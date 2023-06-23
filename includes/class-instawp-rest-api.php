@@ -686,9 +686,9 @@ class InstaWP_Backup_Api {
 			$backup_task_id     = isset( $backup_task_ret['task_id'] ) ? $backup_task_ret['task_id'] : '';
 			$backup_task_result = isset( $backup_task_ret['result'] ) ? $backup_task_ret['result'] : '';
 
-//			if ( $is_background === false ) {
-//				return new WP_REST_Response( array( 'task_id' => $backup_task_id ) );
-//			}
+			if ( $is_background === false ) {
+				return new WP_REST_Response( array( 'task_id' => $backup_task_id ) );
+			}
 
 			if ( ! empty( $backup_task_id ) && 'success' == $backup_task_result ) {
 

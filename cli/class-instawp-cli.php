@@ -63,6 +63,7 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 
 					if ( empty( $migrate_task = InstaWP_taskmanager::get_task( $migrate_task_id ) ) ) {
 						WP_CLI::error( esc_html__( 'Invalid task ID : ' . $migrate_task_id, 'instawp-connect' ) );
+						break;
 					}
 
 					$migrate_task_data = InstaWP_Setting::get_args_option( 'data', $migrate_task );
@@ -80,8 +81,14 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 
 				case 'restore':
 
-					$parameters      = array();
-					$restore_options = json_encode( array(
+					if ( empty( $migrate_task = InstaWP_taskmanager::get_task( $migrate_task_id ) ) ) {
+						WP_CLI::error( esc_html__( 'Invalid task ID : ' . $migrate_task_id, 'instawp-connect' ) );
+						break;
+					}
+
+					$migrate_task_data = InstaWP_Setting::get_args_option( 'data', $migrate_task );
+					$parameters        = InstaWP_Setting::get_args_option( 'parameters', $migrate_task_data );
+					$restore_options   = json_encode( array(
 						'skip_backup_old_site'     => '1',
 						'skip_backup_old_database' => '1',
 						'is_migrate'               => '1',
@@ -92,12 +99,13 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 						'backup_content',
 						'backup_core',
 					) );
-					$backup_uploader = new InstaWP_BackupUploader();
+					$backup_uploader   = new InstaWP_BackupUploader();
 					$backup_uploader->_rescan_local_folder_set_backup_api( $parameters );
 					$backup_list = InstaWP_Backuplist::get_backuplist();
 
 					if ( empty( $backup_list ) ) {
-						return new WP_REST_Response( array( 'completed' => false, 'progress' => 0, 'message' => 'empty backup list' ) );
+						WP_CLI::error( esc_html__( 'Empty backup list.', 'instawp-connect' ) );
+						break;
 					}
 
 					// Background processing of restore using woocommerce's scheduler.
