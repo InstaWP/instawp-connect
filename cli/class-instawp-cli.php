@@ -18,7 +18,7 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 
 		function handle_instawp_commands( $args ) {
 
-			global $instawp_plugin;
+			global $instawp_plugin, $InstaWP_Curl;
 
 			$cli_action_index      = array_search( '-action', $args );
 			$cli_action            = $args[ ( $cli_action_index + 1 ) ] ?? '';
@@ -69,15 +69,22 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 					$migrate_task_data = InstaWP_Setting::get_args_option( 'data', $migrate_task );
 					$parameters        = InstaWP_Setting::get_args_option( 'parameters', $migrate_task_data );
 
-					if ( ! empty( $parameters ) && is_array( $parameters ) ) {
-
-						as_enqueue_async_action( 'instawp_download_bg', [ $migrate_task_id, $parameters ] );
-
-						do_action( 'action_scheduler_run_queue', 'Async Request' );
+					if ( empty( $parameters ) && ! is_array( $parameters ) ) {
+						WP_CLI::error( esc_html__( 'No params for this task ID : ' . $migrate_task_id, 'instawp-connect' ) );
+						break;
 					}
 
-					break;
+					$download_response        = $InstaWP_Curl->download( $migrate_task_id, $parameters );
+					$download_response_result = InstaWP_Setting::get_args_option( 'result', $download_response );
 
+					if ( 'success' != $download_response_result ) {
+						WP_CLI::error( esc_html__( 'Could not download the backup files.', 'instawp-connect' ) );
+						break;
+					}
+
+					WP_CLI::success( esc_html__( 'Backup downloaded successfully.', 'instawp-connect' ) );
+
+					break;
 
 				case 'restore':
 
