@@ -114,6 +114,8 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 					// Immediately run the schedule, don't want for the cron to run.
 					do_action( 'action_scheduler_run_queue', 'Async Request' );
 
+					WP_CLI::success( esc_html__( 'Restore started.', 'instawp-connect' ) );
+
 					break;
 
 				default:
