@@ -175,7 +175,7 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 					// Upload
 					break;
 
-				case 'download';
+				case 'download-restore':
 
 					$this->cli_download( $migrate_task_id );
 
@@ -183,8 +183,16 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 
 					break;
 
+				case 'download';
+
+					$this->cli_download( $migrate_task_id );
+
+					break;
+
 				case 'restore':
-					WP_CLI::success( esc_html__( 'Restore done.', 'instawp-connect' ) );
+
+					$this->cli_restore( $migrate_task_id );
+
 					break;
 
 				default:
