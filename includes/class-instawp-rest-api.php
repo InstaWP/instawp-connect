@@ -519,6 +519,8 @@ class InstaWP_Backup_Api {
 		$bearer_token = str_replace( 'Bearer ', '', $bearer_token );
 		$api_options  = get_option( 'instawp_api_options', array() );
 
+		echo "<pre>"; print_r( $request->get_headers() ); echo "</pre>";
+
 		// check if the bearer token is empty
 		if ( empty( $bearer_token ) ) {
 			echo json_encode( array( 'error' => true, 'message' => esc_html__( 'Empty bearer token.', 'instawp-connect' ) ) );
@@ -533,9 +535,9 @@ class InstaWP_Backup_Api {
 			$api_hash = hash( "sha256", $api_options['api_key'] );
 		}
 
-//		echo "<pre>";
-//		print_r( [ $api_hash ] );
-//		echo "</pre>";
+		echo "<pre>";
+		print_r( [ $api_hash ] );
+		echo "</pre>";
 
 		if ( ! isset( $api_options['api_key'] ) || $bearer_token != $api_hash ) {
 			echo json_encode( array( 'error' => true, 'message' => esc_html__( 'Invalid bearer token.', 'instawp-connect' ) ) );
@@ -605,8 +607,6 @@ class InstaWP_Backup_Api {
 			$res_result['status']  = true;
 			$res_result['message'] = 'Restore task completed.';
 
-			error_log( var_export( $parameters, true ) );
-
 			// once the restore completed, enable caching elements
 			$instawp_plugin::enable_cache_elements_before_restore();
 		}
@@ -614,8 +614,6 @@ class InstaWP_Backup_Api {
 		if ( $progress_response['status'] == 'error' ) {
 			$res_result['message'] = "Error occurred";
 		}
-
-		error_log( var_export( $res_result, true ) );
 
 		$instawp_plugin->delete_last_restore_data_api();
 	}

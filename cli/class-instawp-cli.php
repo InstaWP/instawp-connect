@@ -18,7 +18,7 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 
 		function handle_instawp_commands( $args ) {
 
-			global $instawp_plugin, $InstaWP_Curl;
+			global $instawp_plugin, $InstaWP_Curl, $InstaWP_Backup_Api;
 
 			$cli_action_index      = array_search( '-action', $args );
 			$cli_action            = $args[ ( $cli_action_index + 1 ) ] ?? '';
@@ -115,11 +115,47 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 						break;
 					}
 
-					// Background processing of restore using woocommerce's scheduler.
-					as_enqueue_async_action( 'instawp_restore_bg', [ $backup_list, $restore_options, $parameters ] );
+					$backup_index      = 1;
+					$progress_response = [];
 
-					// Immediately run the schedule, don't want for the cron to run.
-					do_action( 'action_scheduler_run_queue', 'Async Request' );
+					// before doing restore deactivate caching plugin
+					$instawp_plugin::disable_cache_elements_before_restore();
+
+					foreach ( $backup_list as $backup_list_key => $backup ) {
+						do {
+							$instawp_plugin->restore_api( $backup_list_key, $restore_options, $parameters );
+
+							$progress_results  = $instawp_plugin->get_restore_progress_api( $backup_list_key );
+							$progress_response = (array) json_decode( $progress_results );
+						} while ( $progress_response['status'] != 'completed' || $progress_response['status'] == 'error' );
+						$backup_index ++;
+					}
+
+					if ( $progress_response['status'] == 'completed' ) {
+
+						if ( isset( $parameters['wp'] ) && isset( $parameters['wp']['users'] ) ) {
+							$InstaWP_Backup_Api::create_user( $parameters['wp']['users'] );
+						}
+
+						if ( isset( $parameters['wp'] ) && isset( $parameters['wp']['options'] ) ) {
+							if ( is_array( $parameters['wp']['options'] ) ) {
+								$create_options = $parameters['wp']['options'];
+
+								foreach ( $create_options as $option_key => $option_value ) {
+									update_option( $option_key, $option_value );
+								}
+							}
+						}
+
+						$InstaWP_Backup_Api::write_htaccess_rule();
+
+						InstaWP_AJAX::instawp_folder_remover_handle();
+
+						// once the restore completed, enable caching elements
+						$instawp_plugin::enable_cache_elements_before_restore();
+					}
+
+					$instawp_plugin->delete_last_restore_data_api();
 
 					WP_CLI::success( esc_html__( 'Restore started.', 'instawp-connect' ) );
 
