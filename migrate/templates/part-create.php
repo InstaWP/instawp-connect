@@ -235,7 +235,7 @@ $customize_options     = array(
                             </div>
                             <div class="migration-completed hidden border border-grayCust-100 rounded-lg">
                                 <div class="p-6 border-b border-grayCust-10 flex items-center justify-center text-lg font-medium text-grayCust-800">
-                                    <img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/check-icon.png' ) ); ?>" class="mr-2" alt="">Your new Wordpress website is ready!
+                                    <img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/check-icon.png' ) ); ?>" class="mr-2" alt="">Your new WordPress website is ready!
                                 </div>
                                 <div class="p-6 custom-bg">
                                     <div class="flex items-center mb-6">

@@ -84,9 +84,8 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 
 					WP_CLI::success( esc_html__( 'Backup downloaded successfully.', 'instawp-connect' ) );
 
-					break;
-
-				case 'restore':
+//					break; 
+//				case 'restore':
 
 					if ( empty( $migrate_task = InstaWP_taskmanager::get_task( $migrate_task_id ) ) ) {
 						WP_CLI::error( esc_html__( 'Invalid task ID : ' . $migrate_task_id, 'instawp-connect' ) );
@@ -156,9 +155,14 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 					}
 
 					$instawp_plugin->delete_last_restore_data_api();
+					InstaWP_taskmanager::delete_task( $migrate_task_id );
 
 					WP_CLI::success( esc_html__( 'Restore started.', 'instawp-connect' ) );
 
+					break;
+
+				case 'restore':
+					WP_CLI::success( esc_html__( 'Restore done.', 'instawp-connect' ) );
 					break;
 
 				default:
