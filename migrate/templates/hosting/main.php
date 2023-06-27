@@ -239,7 +239,7 @@ $migrate_hosting = array(
                                     <div class="py-4 px-4 border flex justify-left items-center border-primary-50" style="border-radius: 12px;">
                                         <div class="inline-flex items-center text-grayCust-300 font-normal text-base">
                                             <img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/check-icon.png' ) ); ?>" class="mr-2" alt="">
-                                            <span class="mx-1">Your domain <span class="text-purpleCust-700 website-domain-name"></span> is now live.</span>
+                                            <span class="mx-1">Your domain <a href="" target="_blank" class="text-purpleCust-700 website-domain-name shadow-none outline-none"></a> is now live.</span>
                                         </div>
                                     </div>
                                 </div>

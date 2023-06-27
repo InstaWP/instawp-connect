@@ -508,7 +508,7 @@ tailwind.config = {
 
                                     clearInterval(instawp_migrate_hosting_interval);
 
-                                    el_migrate_hosting_wrapper.find('.website-domain-name').html(website_domain);
+                                    el_migrate_hosting_wrapper.find('.website-domain-name').html(website_domain_confirm).attr('href', website_domain_confirm);
                                     el_migrate_hosting_wrapper.find('.migrate-visit-site').attr('href', response.data.site_detail.auto_login_url);
 
                                     el_current_step.val(current_step + 1).trigger('change');
