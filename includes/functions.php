@@ -517,7 +517,7 @@ if ( ! function_exists( 'instawp_get_response_progresses' ) ) {
 				instawp_staging_insert_site(
 					array(
 						'task_id'         => $migrate_task_id,
-						'connect_id'      => InstaWP_Setting::get_args_option( 'id', $migration_site_detail ),
+						'connect_id'      => InstaWP_Setting::get_args_option( 'connect_id', $migration_site_detail ),
 						'site_name'       => str_replace( array( 'https://', 'http://' ), '', InstaWP_Setting::get_args_option( 'url', $migration_site_detail ) ),
 						'site_url'        => InstaWP_Setting::get_args_option( 'url', $migration_site_detail ),
 						'admin_email'     => InstaWP_Setting::get_args_option( 'wp_admin_email', $migration_site_detail ),
@@ -654,51 +654,5 @@ if ( ! function_exists( 'instawp_clean_non_zipped_files_folder' ) ) {
 				InstaWP_taskmanager::update_task( $migrate_task );
 			}
 		}
-	}
-}
-
-
-if ( ! function_exists( 'instawp_domain_search' ) ) {
-	/**
-	 * Domain search using Rapid API
-	 *
-	 * @param $domain_name
-	 *
-	 * @return array|mixed
-	 */
-	function instawp_domain_search( $domain_name = '' ) {
-
-		if ( empty( $domain_name ) ) {
-			return [];
-		}
-
-		$curl = curl_init();
-
-		curl_setopt_array( $curl, [
-			CURLOPT_URL            => "https://domainr.p.rapidapi.com/v2/status?domain={$domain_name}",
-			CURLOPT_RETURNTRANSFER => true,
-			CURLOPT_ENCODING       => "",
-			CURLOPT_MAXREDIRS      => 10,
-			CURLOPT_TIMEOUT        => 30,
-			CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
-			CURLOPT_CUSTOMREQUEST  => "GET",
-			CURLOPT_HTTPHEADER     => [
-				"X-RapidAPI-Host: domainr.p.rapidapi.com",
-				"X-RapidAPI-Key: f78d769ac8msh4df66b894ce80ddp1669a7jsn0fd293b9f64d"
-			],
-		] );
-
-		$response = curl_exec( $curl );
-		$err      = curl_error( $curl );
-
-		curl_close( $curl );
-
-		if ( $err ) {
-			return [];
-		}
-
-		$response = json_decode( $response, true );
-
-		return $response['status'][0] ?? array();
 	}
 }

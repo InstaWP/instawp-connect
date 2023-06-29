@@ -37,7 +37,8 @@ class InstaWP_DB{
         #tables array
         $this->tables = [
             'ch_table' => $this->wpdb->prefix . 'change_event',
-            'sh_table' => $this->wpdb->prefix . 'sync_history'
+            'sh_table' => $this->wpdb->prefix . 'sync_history',
+            'se_table' => $this->wpdb->prefix . 'instawp_event_site_sync'
         ];
     }
     
@@ -104,6 +105,21 @@ class InstaWP_DB{
         $results = $this->wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE `status`='".$status."'"); 
         return $results;
     }
+    /**
+     * Select 
+    */
+    public function getAllEvents($orderBy = 'id asc'){
+        $results = $this->wpdb->get_results("SELECT * FROM {$this->tables['ch_table']} order by {$orderBy}"); 
+        return $results;
+    }
+    
+    /*
+    * Get site event status row
+    */
+    public function getSiteEventStatus($connect_id, $event_id){
+        $results = $this->wpdb->get_row("SELECT * FROM {$this->tables['se_table']}  WHERE connect_id = {$connect_id} AND event_id= {$event_id}"); 
+        return $results;
+    }
 
     /*
     * To get unique or distinct values of a column in MySQL Table
@@ -131,7 +147,10 @@ class InstaWP_DB{
         $rel = $this->wpdb->get_results("SELECT * FROM $table_name WHERE $key1='".$val1."' AND $key2='".$val2."'");
         return $rel;
     }
-
+    public function getByOneCondition($table_name = null, $key1 = null, $val1 = null){
+        $rel = $this->wpdb->get_results("SELECT * FROM $table_name WHERE $key1='".$val1."'");
+        return $rel;
+    }
     public function get_double_condition($table_name = null, $val1 = null, $val2 = null){
         $rel = $this->wpdb->get_results("SELECT * FROM $table_name WHERE `event_type`='".$val1."' AND `status`='".$val2."'");
         return $rel;

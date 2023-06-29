@@ -240,6 +240,7 @@ function instawp_create_table() {
 	$sql = array();
 
 	$event_change_table = $wpdb->prefix . "change_event";
+	$event_site_table = $wpdb->prefix . "event_site";
 	$sync_history_table = $wpdb->prefix . "sync_history";
 	$changes_sync_table = $wpdb->prefix . "changes_sync";
 
@@ -259,6 +260,17 @@ function instawp_create_table() {
         synced_message varchar(128),
         PRIMARY KEY  (id)
         ) ";
+	}
+
+	if ( $wpdb->get_var( "show tables like '" . $event_site_table . "'" ) !== $event_site_table ) {
+		$sql[] = "CREATE TABLE " . $event_site_table . "     (
+            id int(20) NOT NULL AUTO_INCREMENT,
+            event_id int(20) NOT NULL,
+            connect_id int(20) NOT NULL,
+			status ENUM ('pending','in_progress','completed','error') DEFAULT 'pending',
+            date datetime NOT NULL,
+            PRIMARY KEY  (id)
+            )";
 	}
 
 	if ( $wpdb->get_var( "show tables like '" . $changes_sync_table . "'" ) !== $changes_sync_table ) {
@@ -288,7 +300,7 @@ function instawp_create_table() {
             PRIMARY KEY  (id)
             ) ";
 	}
-
+	
 	if ( ! empty( $sql ) ) {
 		require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
 		dbDelta( $sql );

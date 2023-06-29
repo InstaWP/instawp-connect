@@ -94,18 +94,36 @@ class InstaWP_Rest_Apis{
                         $postmeta = isset($v->details->postmeta) ? (array) $v->details->postmeta : '';
                         $featured_image = isset($v->details->featured_image) ? (array) $v->details->featured_image : '';
                         $media = isset($v->details->media) ? (array) $v->details->media : '';
-                        if (get_post_status($posts['ID']) ) {
+
+                        $post_by_reference_id = get_posts( array(
+                            'post_type'=> $posts['post_type'],
+                            'meta_key'   => 'instawp_event_sync_reference_id',
+                            'meta_value' => isset($postmeta['instawp_event_sync_reference_id'][0]) ? $postmeta['instawp_event_sync_reference_id'][0] : '',
+                        ) );
+
+                        if(!empty($post_by_reference_id)){
                             #The post exists,Then update
+                            $posts['ID'] = $post_by_reference_id[0]->ID;
                             $postData = $this->postData($posts,'update');
                             wp_update_post($postData);
                             #post meta
                             $this->add_update_postmeta($postmeta,$posts['ID']);
-                        } else {
-                            $postData = $this->postData($posts,'insert');
-                            #The post does not exist,Then insert
-                            wp_insert_post($postData); 
-                            #post meta
-                            $this->add_update_postmeta($postmeta,$posts['ID']); 
+                        }else{
+                            $post_check_data = instawp_get_post_by_name($posts['post_name'], $posts['post_type']); 
+                            if(!empty($post_check_data)){
+                                #The post exists,Then update
+                                $posts['ID'] = $post_check_data->ID;
+                                $postData = $this->postData($posts,'update');
+                                wp_update_post($postData);
+                                #post meta
+                                $this->add_update_postmeta($postmeta,$posts['ID']);
+                            }else{
+                                $postData = $this->postData($posts,'insert');
+                                #The post does not exist,Then insert
+                                $posts['ID'] = wp_insert_post($postData); 
+                                #post meta
+                                $this->add_update_postmeta($postmeta,$posts['ID']); 
+                            }
                         }
 
                         #feature image import 
@@ -172,13 +190,29 @@ class InstaWP_Rest_Apis{
                 //Post trash
                 if(isset($v->event_slug) && $v->event_slug == 'post_trash'){
                     if(isset($source_id)){
-                        if(get_post_status($source_id)){
-                            $rel = wp_trash_post($source_id);  //Post data on success, false or null on failure.
+                        $posts = (array) $v->details->posts;
+                        $postmeta = (array) $v->details->postmeta;
+                        $post_by_reference_id = get_posts( array(
+                            'post_type'=> $posts['post_type'],
+                            'meta_key'   => 'instawp_event_sync_reference_id',
+                            'meta_value' => isset($postmeta['instawp_event_sync_reference_id'][0]) ? $postmeta['instawp_event_sync_reference_id'][0] : '',
+                        ) );
+
+                        if(!empty($post_by_reference_id)){
+                            $post_id = $post_by_reference_id[0]->ID;
+                            $rel = wp_trash_post($post_id);  //Post data on success, false or null on failure.
                             $status = $this->sync_post_status($rel);
                             $message = $this->sync_message($rel);
                         }else{
-                            $status = 'pending';
-                            $message = $this->notExistMsg();  
+                            $post_check_data = instawp_get_post_by_name(str_replace('__trashed','', $posts['post_name']), $posts['post_type']); 
+                            if(!empty($post_check_data)){
+                                $rel = wp_trash_post($post_check_data->ID);  //Post data on success, false or null on failure.
+                                $status = $this->sync_post_status($rel);
+                                $message = $this->sync_message($rel);
+                            }else{
+                                $status = 'pending';
+                                $message = $this->notExistMsg();  
+                            }
                         }
                         $sync_response[] = $this->sync_opration_response($status,$message,$v);
                         #changes
@@ -189,34 +223,81 @@ class InstaWP_Rest_Apis{
                 //Post permanently delete 
                 if(isset($v->event_slug) && $v->event_slug == 'post_delete'){
                     if(isset($source_id)){
-                        if(get_post_status($source_id)){
-                            $rel = wp_delete_post($source_id,true);  // Set to False if you want to send them to Trash.
+                        $posts = (array) $v->details->posts;
+                        $postmeta = (array) $v->details->postmeta;
+                        $post_by_reference_id = get_posts([
+                            'post_status' => 'trash',
+                            'post_type'   => $posts['post_type'],
+                            'nopaging'    => TRUE,
+                            'meta_query' => array(
+                                array(
+                                    'key'     => 'instawp_event_sync_reference_id',
+                                    'value'   =>  isset($postmeta['instawp_event_sync_reference_id'][0]) ? $postmeta['instawp_event_sync_reference_id'][0] : '',
+                                    'compare' => '=',
+                                ),
+                            ),
+                        ]);
+
+                        if(!empty($post_by_reference_id)){
+                            $post_id = $post_by_reference_id[0]->ID;
+                            $rel = wp_delete_post($post_id);  //Post data on success, false or null on failure.
                             $status = $this->sync_post_status($rel);
                             $message = $this->sync_message($rel);
                         }else{
-                            $status = 'pending';
-                            $message = $this->notExistMsg(); 
+                            $post_check_data = instawp_get_post_by_name($posts['post_name'], $posts['post_type']); 
+                            if(!empty($post_check_data)){
+                                $rel = wp_delete_post($post_check_data->ID);  //Post data on success, false or null on failure.
+                                $status = $this->sync_post_status($rel);
+                                $message = $this->sync_message($rel);
+                            }else{
+                                $status = 'pending';
+                                $message = $this->notExistMsg();  
+                            }
                         }
                         $sync_response[] = $this->sync_opration_response($status,$message,$v);
                         #changes
-                        $changes[$v->event_type] = $changes[$v->event_type] + 1;
+                        $changes[$v->event_type] = $changes[$v->event_type] + 1; 
                     }
                 }
 
                 //Post restored 
                 if(isset($v->event_slug) && $v->event_slug == 'untrashed_post'){
                     if(isset($source_id)){
-                        if(get_post_status($source_id)){
-                            $rel = wp_untrash_post($source_id,true);  //Post data on success, false or null on failure.
+                        $posts = (array) $v->details->posts;
+                        $postmeta = (array) $v->details->postmeta;
+                        $post_by_reference_id = get_posts([
+                                'post_status' => 'trash',
+                                'post_type'   => $posts['post_type'],
+                                'nopaging'    => TRUE,
+                                'meta_query' => array(
+                                    array(
+                                        'key'     => 'instawp_event_sync_reference_id',
+                                        'value'   =>  isset($postmeta['instawp_event_sync_reference_id'][0]) ? $postmeta['instawp_event_sync_reference_id'][0] : '',
+                                        'compare' => '=',
+                                    ),
+                                ),
+                            ]);
+ 
+
+                        if(!empty($post_by_reference_id)){
+                            $post_id = $post_by_reference_id[0]->ID;
+                            $rel = wp_untrash_post($post_id);
                             $status = $this->sync_post_status($rel);
                             $message = $this->sync_message($rel);
                         }else{
-                            $status = 'pending';
-                            $message = $this->notExistMsg(); 
+                            $post_check_data = instawp_get_post_by_name($posts['post_name'].'__trashed', $posts['post_type']); 
+                            if(!empty($post_check_data)){
+                                $rel = wp_untrash_post($post_check_data->ID);
+                                $status = $this->sync_post_status($rel);
+                                $message = $this->sync_message($rel);
+                            }else{
+                                $status = 'pending';
+                                $message = $this->notExistMsg();  
+                            }
                         }
                         $sync_response[] = $this->sync_opration_response($status,$message,$v);
                         #changes
-                        $changes[$v->event_type] = $changes[$v->event_type] + 1;
+                        $changes[$v->event_type] = $changes[$v->event_type] + 1; 
                     }
                 }
                
@@ -429,16 +510,24 @@ class InstaWP_Rest_Apis{
                 if(isset($v->event_type) && $v->event_type == 'users'){
                     $user_data = isset($v->details->user_data) ? (array) $v->details->user_data : '';
                     $user_meta = isset($v->details->user_meta) ? (array) $v->details->user_meta : '';
-                    $user = get_userdata($v->source_id);
+                    //$user = get_userdata($v->source_id);
                     $user_table = $this->wpdb->prefix.'users';
 
-                    //Create user
+                    $get_user_by_reference_id = get_users(array(
+                        'meta_key' => 'instawp_event_user_sync_reference_id',
+                        'meta_value' => isset($user_meta['instawp_event_sync_reference_id'][0]) ? $user_meta['instawp_event_sync_reference_id'][0] : '',
+                    ));
+
+                    $user =  !empty($get_user_by_reference_id) ? $get_user_by_reference_id[0] : get_user_by('email', $user_data['email']);
+                      
+                    //Create user if not exits
                     if( isset($v->event_slug) && ($v->event_slug == 'user_register') ){
-                        if(!$this->user_id_exists($v->source_id)){
-                                $this->InstaWP_db->insert($user_table, $user_data);
-                                $this->add_update_usermeta($user_meta,$v->source_id);
-                                $user->add_role($v->details->role);
-                        }    
+                        if(!$user){
+                            unset($user_data['ID']);
+                            array_merge($user_data, ['role'=>$v->details->role ]);
+                            $user = wp_insert_user($user_data);    
+                            $this->add_update_usermeta($user_meta,$v->source_id);
+                        }
                     }
 
                     //Update user
@@ -743,6 +832,7 @@ class InstaWP_Rest_Apis{
     }
 
     public function add_update_postmeta($meta_data = null, $post_id = null){
+        
         if(!empty($meta_data) && is_array($meta_data)){
             foreach($meta_data as $k => $v){
                 if(isset($v[0])){
@@ -755,6 +845,7 @@ class InstaWP_Rest_Apis{
                     }
                 }
             }
+
             //if _elementor_css this key not existing then it's giving a error.
             if(array_key_exists('_elementor_version',$meta_data)){
                 if(!array_key_exists('_elementor_css',$meta_data)){
@@ -771,17 +862,21 @@ class InstaWP_Rest_Apis{
                     add_post_meta($post_id,'_elementor_css',$elementor_css);
                 }
             }
+
+            //delete the edit lock post
+            delete_post_meta($post_id,'_edit_lock');
         }
     }
 
     public function postData($posts = null, $op = null){
         $data = [];
         if($op == 'insert'){
-            $data['import_id'] = $posts['ID'];
+          //  $data['import_id'] = $posts['ID'];
         }else{
             $data['ID'] = $posts['ID']; 
         }
         $args = array(
+            
             'post_author' => $posts['post_author'],
             'post_date' => $posts['post_date'],
             'post_date_gmt' => $posts['post_date_gmt'],

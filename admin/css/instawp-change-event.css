@@ -1,7 +1,7 @@
-.two-way-sync-btn {background: #005e54;color: white;border: none;padding: 5px 10px;border-radius: 4px;cursor: pointer;}
+.two-way-sync-btn {background: #005e54 !important;color: white;border: none;padding: 5px 10px;border-radius: 4px;cursor: pointer;}
 .column-sync span.sync-loader img {width: 100%;max-width: 20px;margin: 0 0 0 6px;}
 span.sync-success {color: #005e54;margin: 2px 0 0 0px;display: block;}
-.instawp-green-btn{background: #005e54;color: white;border: none; min-height:30px; padding: 5px 10px;border-radius: 4px;cursor: pointer;}
+.instawp-green-btn{background: #005e54 !important;color: white;border: none; min-height:30px; padding: 5px 10px;border-radius: 4px;cursor: pointer;}
 
 .bulk-sync-popup {display: none;}
 .change-event-main .top-title {display: flex;align-items: center;}
@@ -205,8 +205,8 @@ body.show {
     background: #005E54;
     position: absolute;
     content: "";
-    top: 5px;
-    left: 8px;
+    top: 3px;
+    left: 6px;
     z-index: 1;
     border-radius: 50%;
 }
@@ -241,6 +241,10 @@ body.show {
     background: #005E54;
     border-color: #005E54;
     color: #fff;
+    position: relative;
+}
+.disable-a{
+    pointer-events:none;
 }
 .instawp-events-catagory {
     display: flex;
@@ -301,7 +305,10 @@ body.show {
     color: #005e54;
 }
 .sync_error_success_msg p.error {
-	color: #ff0000;
+    color: #9d6464;
+    margin-top: 20px;
+    background: #fae3e3;
+    padding: 10px;
 }
 .tablenav.bottom .bulk-sync-popup-btn{
     display:none;
@@ -398,4 +405,93 @@ input:checked + .slider:before {
     .instawppopwrap {
         padding: 48px 14px 48px;
     }
+}
+select#destination-site, select#staging-site-sync {
+    border-radius: 6px;
+    border: 1px solid #D1D5DB;
+    width: 100%;
+    margin-top: 5px;
+    color: #6b7280;
+    font-size: 16px;
+    line-height: 24px;
+    padding: 13px;
+    max-width: 100%;
+}
+.events-head {
+    display: flex;
+    justify-content: space-between;
+    flex-direction: row;
+}
+.events-head .events-head-left{
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-content: center;
+    align-items: baseline;
+}
+.events-head .events-head-right {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.events-head .events-head-right .button-ct {
+    gap: 10px;
+}
+
+.events-head .events-head-right .button-ct .instawp-green-btn{
+    padding: 10px 10px !important;
+}
+
+.events-head .events-head-right .select-ct select{
+    margin: 0 !important;
+    padding: 7px !important;
+}
+
+.btn-single-sync{
+    position: relative;
+}
+.btn-single-sync.loading > span , .changes-btn.loading > span,  td.event-sync-cell.loading > span{
+    visibility: hidden;
+    opacity: 0;
+}
+
+.btn-single-sync.loading:after, .changes-btn.loading:after , td.event-sync-cell.loading:after{
+    content: ' ';
+    position: absolute;
+    height: 16px;
+    width: 16px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    border: 3px solid rgba(74, 138, 244, 0.2);
+    border-right-color: var(--instawp-color-green);
+    animation: loading 1s linear infinite;
+    margin: -8px -8px;
+}
+
+.synced_status.completed{
+    background-color: #D1FAE5;
+}
+
+.synced_status.pending{
+    background-color: #ffd7ce;
+    color: #895959;
+}
+
+td.event-sync-cell.loading{
+    padding: 20px;
+    text-align: center;
+    position: relative;
+}
+
+div#event-sync-pagination {
+    margin-top: 10px;
+}
+
+li#wp-admin-bar-instawp-sync-toolbar a.ab-item:before {
+    content: "\f113";
+    top: 3px;
 }
