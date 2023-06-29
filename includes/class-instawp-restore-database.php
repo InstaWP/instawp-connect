@@ -266,7 +266,7 @@ class InstaWP_RestoreDB {
 
 		if ( isset( $option['default_collations'] ) ) {
 			$this->default_collates = $option['default_collations'];
-		} else {
+		} else if ( defined( 'DB_COLLATE' ) ) {
 			$this->default_collates[] = DB_COLLATE;
 		}
 

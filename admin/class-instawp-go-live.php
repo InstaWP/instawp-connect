@@ -22,9 +22,9 @@ class InstaWP_Go_Live {
 
 	protected static $_instance = null;
 
-	protected static $_platform_title = '';
+	public static $_platform_title = '';
 
-	protected static $_platform_whitelabel = false;
+	public static $_platform_whitelabel = false;
 
 	protected static $_connect_id = false;
 
@@ -67,15 +67,7 @@ class InstaWP_Go_Live {
 			'migrate_id' => '',
 		);
 
-
-		// Stop loading admin menu
-		add_filter( 'instawp_add_plugin_admin_menu', '__return_false' );
-		add_filter( 'all_plugins', array( $this, 'handle_instawp_plugin_display' ) );
-
-		if (
-			defined( 'INSTAWP_CONNECT_MODE' ) &&
-			INSTAWP_CONNECT_MODE === 'DEPLOYER' &&
-			(
+		if ( defined( 'INSTAWP_CONNECT_MODE' ) && INSTAWP_CONNECT_MODE === 'DEPLOYER' && (
 				get_option( 'instawp_is_staging', true ) === false ||
 				get_option( 'instawp_is_staging', true ) === 'false' ||
 				get_option( 'instawp_is_staging', true ) === '0' ||
@@ -86,37 +78,12 @@ class InstaWP_Go_Live {
 			return;
 		}
 
-		add_action( 'admin_bar_menu', array( $this, 'add_admin_bar_button' ), 100 );
 		add_action( 'admin_enqueue_scripts', array( $this, 'admin_scripts_styles' ) );
-		add_action( 'admin_menu', array( $this, 'add_go_live_integration_menu' ) );
 		add_filter( 'admin_footer_text', array( $this, 'update_footer_credit_text' ) );
-		add_filter( 'admin_title', array( $this, 'update_admin_page_title' ) );
 
 		add_action( 'wp_ajax_instawp_go_live_clean', array( $this, 'go_live_clean' ) );
 		add_action( 'wp_ajax_instawp_go_live_restore_init', array( $this, 'go_live_restore_init' ) );
 		add_action( 'wp_ajax_instawp_go_live_restore_status', array( $this, 'go_live_restore_status' ) );
-	}
-
-
-	/**
-	 * Remove the plugin from plugins list
-	 *
-	 * @param $plugins
-	 *
-	 * @return mixed
-	 */
-	function handle_instawp_plugin_display( $plugins ) {
-
-		if (
-			in_array( INSTAWP_PLUGIN_NAME, array_keys( $plugins ) ) &&
-			defined( 'INSTAWP_CONNECT_MODE' ) &&
-			INSTAWP_CONNECT_MODE === 'DEPLOYER' &&
-			get_option( 'instawp_is_staging', true ) === false
-		) {
-			unset( $plugins[ INSTAWP_PLUGIN_NAME ] );
-		}
-
-		return $plugins;
 	}
 
 
@@ -153,7 +120,6 @@ class InstaWP_Go_Live {
 	 * @return void
 	 */
 	function go_live_restore_init() {
-
 
 		global $instawp_plugin;
 
@@ -331,33 +297,6 @@ class InstaWP_Go_Live {
 
 
 	/**
-	 * Add menu for go live integration
-	 *
-	 * @return void
-	 */
-	function add_go_live_integration_menu() {
-
-		add_menu_page( esc_html__( 'InstaWP Cloudways Integration', 'instawp-connect' ), esc_html__( 'InstaWP Cloudways Integration', 'instawp-connect' ), 'administrator', 'instawp-connect-go-live', array( $this, 'render_go_live_integration' ) );
-		remove_menu_page( 'instawp-connect-go-live' );
-	}
-
-
-	/**
-	 * Update admin page title
-	 *
-	 * @return string
-	 */
-	function update_admin_page_title( $page_title ) {
-
-		if ( isset( $_GET['page'] ) && sanitize_text_field( $_GET['page'] ) === 'instawp-connect-go-live' ) {
-			$page_title = sprintf( esc_html__( 'InstaWP %s Integration', 'instawp-connect' ), self::$_platform_title );
-		}
-
-		return $page_title;
-	}
-
-
-	/**
 	 * Update footer credit text
 	 *
 	 * @param $credit_text
@@ -393,26 +332,6 @@ class InstaWP_Go_Live {
 
 
 	/**
-	 * Add top menu bar button
-	 *
-	 * @param WP_Admin_Bar $admin_bar
-	 *
-	 * @return void
-	 */
-	function add_admin_bar_button( WP_Admin_Bar $admin_bar ) {
-
-		$admin_bar->add_menu(
-			array(
-				'id'     => 'instawp-go-live',
-				'title'  => esc_html__( 'Go Live', 'instawp-connect' ),
-				'href'   => admin_url( 'admin.php?page=instawp-connect-go-live' ),
-				'parent' => 'top-secondary',
-			)
-		);
-	}
-
-
-	/**
 	 * Return asset URL, it could be images, css files, js files etc.
 	 *
 	 * @param $asset_name
@@ -427,8 +346,10 @@ class InstaWP_Go_Live {
 	/**
 	 * Send api request and return processed response
 	 *
-	 * @param $endpoint
-	 * @param $is_post
+	 * @param string $endpoint
+	 * @param bool $is_post
+	 * @param array $body
+	 * @param int $version
 	 *
 	 * @return array|mixed
 	 */

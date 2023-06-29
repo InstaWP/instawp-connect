@@ -500,7 +500,6 @@ class instaWP {
 			add_action( 'admin_menu', array( $this->admin, 'add_plugin_admin_menu' ) );
 		}
 
-		add_action( 'admin_bar_menu', array( $this->admin, 'add_toolbar_items' ), 100 );
 		//show admin bar
 		add_action( 'admin_head', array( $this->admin, 'instawp_get_siteurl' ), 100 );
 
@@ -642,7 +641,6 @@ class instaWP {
 
 		//download backup by mainwp
 		add_action( 'wp_ajax_instawp_download_backup_mainwp', array( $this, 'download_backup_mainwp' ) );
-		add_action( 'wp_ajax_instawp_check_cloud_usage', array( $this, 'instawp_check_usage_on_cloud' ) );
 
 		//process cancel button action
 		add_action( 'wp_ajax_instawp_cancel_backup_process', array( $this, 'instawp_cancel_backup_process_handle' ) );
@@ -695,110 +693,41 @@ class instaWP {
 	}
 
 	public function instawp_check_usage_on_cloud() {
+
+		global $InstaWP_Curl;
+
 		$connect_ids         = get_option( 'instawp_connect_id_options', '' );
-		$instawp_api_options = get_option( 'instawp_api_options' );
-		$response            = array();
-		$backup_type         = (int) $_REQUEST['backup_type'];
-		$anonymize_option    = (int) $_REQUEST['anonymize_option'];
+		$connect_id          = $connect_ids['data']['connect_id'] ?? 0;
+		$api_response        = $InstaWP_Curl::do_curl( 'connects/' . $connect_id . '/usage', [], [], false, 'v1' );
+		$api_response_status = InstaWP_Setting::get_args_option( 'success', $api_response, false );
+		$api_response_data   = InstaWP_Setting::get_args_option( 'data', $api_response, [] );
 
-		if ( ! empty( $connect_ids ) && ! empty( $instawp_api_options ) ) {
-			$id      = $connect_ids['data']['id'];
-			$api_key = $instawp_api_options['api_key'];
-
-			$api_doamin = InstaWP_Setting::get_api_domain();
-			$url        = $api_doamin . INSTAWP_API_URL . '/connects/' . $id . '/usage';
-
-			$remote_response = wp_remote_get( $url, array(
-				'body'    => '',
-				'headers' => array(
-					'Authorization' => 'Bearer ' . $api_key,
-					'Accept'        => 'application/json',
-				),
-			) );
-			$response_code   = wp_remote_retrieve_response_code( $remote_response );
-			$response_body   = json_decode( wp_remote_retrieve_body( $remote_response ), true );
-
-			error_log( 'response_body \n' . print_r( $response_body, true ) );
-
-			if ( $response_code === 200 && $response_body['status'] == 1 ) {
-				$remaining_site = $response_body['data']['remaining_site'];
-				$disk_space     = $response_body['data']['disk_space'];
-
-				if ( ! class_exists( 'WP_Debug_Data' ) ) {
-					require_once ABSPATH . 'wp-admin/includes/class-wp-debug-data.php';
-				}
-
-				$sizes_data      = WP_Debug_Data::get_sizes();
-				$bytes           = $sizes_data['total_size']['raw'];
-				$upload_dir      = $sizes_data['uploads_size']['raw'];
-				$upload_dir_size = round( $upload_dir / 1048576, 2 ); //convert in mb.
-				$site_size       = round( $bytes / 1048576, 2 );
-				// $site_size  = str_replace( ',', '', $bytes );
-				if ( $backup_type == 1 ) { //quick backup, exclude upload folder.
-					$site_size = $site_size - $upload_dir_size;
-				}
-
-
-				error_log( 'Disk Size ==> ' . $disk_space );
-				error_log( 'Site Size ==> ' . $site_size );
-				// Check if remaining site it > 0 and dis
-				if ( intval( $remaining_site ) > 0 && $site_size < $disk_space ) {
-					update_option( 'instawp_site_backup_type', $backup_type );
-					update_option( 'instawp_production_anonymize_option', $anonymize_option );
-					$response = array(
-						'status'  => 1,
-						'message' => "User can create stage site."
-					);
-					error_log( 'Step 1' );
-				} else {
-					if ( intval( $remaining_site ) <= 0 ) {
-						$response = array(
-							'status'  => 0,
-							'message' => "You have used your sites quota in your InstaWP account",
-							'link'    => $api_doamin . "/subscriptions"
-						);
-						error_log( 'Step 2' );
-					} elseif ( intval( $remaining_site ) > 0 && $site_size > $disk_space ) {
-						$response = array(
-							'status'  => 0,
-							'message' => "Your site disk usage ($site_size mb) is greater than available disk quota ($disk_space mb) in your account",
-							'link'    => $api_doamin . "/subscriptions"
-						);
-						error_log( 'Step 3' );
-					} else {
-						$response = array(
-							'status'  => 0,
-							'message' => "InstaWP is not able to create staging site at the moment.",
-							'link'    => $api_doamin . "/subscriptions"
-						);
-						error_log( 'Step 4' );
-					}
-				}
-			} else if ( $response_code === 200 && $response_body['status'] == 0 ) {
-				$response = array(
-					'status'  => 0,
-					'message' => $response_body['data']['message'],
-					'link'    => $api_doamin . "/subscriptions"
-				);
-				error_log( 'Step 5' );
-			} else {
-				$response = array(
-					'status'  => 0,
-					'message' => "Cannot retrieve usage details, please check again after a while.",
-					'link'    => $api_doamin . "/subscriptions"
-				);
-				error_log( 'Step 6' );
-			}
-		} else {
-			$response = array(
-				'status'  => 0,
-				'message' => "Plugin configuration inncorrect.",
-			);
-			error_log( 'Step 7' );
+		if ( ! $api_response_status ) {
+			return array( 'can_proceed' => false, 'message' => esc_html__( 'Could not fetch API data.', 'instawp-connect' ) );
 		}
 
-		wp_send_json( $response );
-		wp_die();
+		$remaining_site = (int) InstaWP_Setting::get_args_option( 'remaining_site', $api_response_data, '0' );
+
+		if ( $remaining_site < 1 ) {
+			return array( 'can_proceed' => false, 'message' => esc_html__( 'You can not create more staging website.', 'instawp-connect' ) );
+		}
+
+		if ( ! class_exists( 'WP_Debug_Data' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/class-wp-debug-data.php';
+		}
+
+		$available_disk_space = (int) InstaWP_Setting::get_args_option( 'disk_space', $api_response_data, '0' );
+		$sizes_data           = WP_Debug_Data::get_sizes();
+		$bytes                = $sizes_data['total_size']['raw'];
+		$upload_dir           = $sizes_data['uploads_size']['raw'];
+		$upload_dir_size      = round( $upload_dir / 1048576, 2 );
+		$total_site_size      = round( $bytes / 1048576, 2 );
+
+		if ( $total_site_size > $available_disk_space ) {
+			return array( 'can_proceed' => false, 'message' => esc_html__( 'You have exceeded the maximum allowance of disk space for your plan.', 'instawp-connect' ) );
+		}
+
+		return array( 'can_proceed' => true, 'message' => esc_html__( 'User can continue creating staging website.', 'instawp-connect' ) );
 	}
 
 	/**
@@ -809,7 +738,6 @@ class instaWP {
 	 * @since 1.0
 	 */
 	public function prepare_backup() {
-//		self::instawp_check_usage_on_cloud();
 		global $InstaWP_Curl;
 		$this->ajax_check_security();
 		$this->end_shutdown_function = false;

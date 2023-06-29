@@ -326,6 +326,10 @@ class InstaWP_Setting {
 		update_option( 'instawp_api_url', $instawp_api_url );
 	}
 
+	public static function get_pro_subscription_url( $pro_subscription_slug = 'subscriptions' ) {
+		return self::get_api_domain() . '/' . $pro_subscription_slug;
+	}
+
 	public static function get_api_domain() {
 		return get_option( 'instawp_api_url' );
 	}

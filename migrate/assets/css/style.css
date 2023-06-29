@@ -359,6 +359,10 @@ input:checked + .slider-toggle:before {
 }
 
 
+.instawp-wrap .nav-item-content.create.warning .screen-buttons {
+    display: none;
+}
+
 .instawp-wrap .nav-item-content.create .screen {
     height: 0;
     visibility: hidden;
@@ -400,6 +404,124 @@ input:checked + .slider-toggle:before {
     width: auto;
     visibility: visible;
     opacity: 1;
+}
+
+
+.nav-item-content.create.active .screen-buttons {
+    position: relative;
+}
+
+.nav-item-content.create.active .screen-buttons p.doing-request {
+    position: absolute;
+    top: 50%;
+    left: 50px;
+    transform: translateY(-50%);
+    font-size: 14px;
+    display: none;
+}
+
+.nav-item-content.create.active .screen-buttons p.doing-request.loading {
+    display: inline-block;
+}
+
+.nav-item-content.create.active .screen-buttons p.doing-request:after {
+    content: ' ';
+    position: absolute;
+    height: 18px;
+    width: 18px;
+    top: 50%;
+    left: -16px;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    border: 3px solid rgba(74, 138, 244, 0.2);
+    border-right-color: var(--instawp-color-green);
+    animation: loading 1s linear infinite;
+    margin: -8px -8px;
+}
+
+/**
+ * Migrate Hosting
+ */
+
+.instawp-migrate-wrap.box-width {
+    max-width: 685px;
+    background-color: #fff;
+    margin: 61px auto;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+
+.instawp-migrate-wrap .box-shadow {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.instawp-migrate-wrap .accordion-item {
+    background: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    box-shadow: 4px 4px 16px rgba(0, 0, 0, 0.06);
+    border-radius: 12px;;
+}
+
+.instawp-migrate-wrap .accordion-item-header {
+    padding: 20px 24px;
+    cursor: pointer;
+}
+
+
+.instawp-migrate-wrap .accordion-padding {
+    padding: 8px 32px 32px;
+}
+
+.instawp-migrate-wrap .active .arrow-icon {
+    transform: rotate(180deg);
+}
+
+.instawp-migrate-wrap .accordion-height {
+    max-height: 0;
+    overflow: hidden;
+}
+
+.instawp-migrate-wrap input[type=text] {
+    padding-right: 0.75rem !important;
+    padding-left: 2.5rem !important;
+    padding-top: 0.625rem;
+    padding-bottom: 0.625rem;
+    line-height: 1;
+    --tw-border-opacity: 1;
+    border: 1px solid rgb(209 213 219 / var(--tw-border-opacity));
+    transition: 0.2s;
+}
+
+.instawp-migrate-wrap input[type=text]:focus,
+.instawp-migrate-wrap input[type=text]:active {
+    box-shadow: none;
+    border: 1px solid #6B2FAD;
+    outline: none;
+}
+
+.instawp-migrate-wrap button:focus,
+.instawp-migrate-wrap button:active {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+.instawp-migrate-wrap .loading {
+    position: relative;
+    transition: 0.3s;
+}
+
+.instawp-migrate-wrap .loading:after {
+    content: ' ';
+    position: absolute;
+    height: 16px;
+    width: 16px;
+    top: 50%;
+    left: 12px;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    border: 3px solid rgba(74, 138, 244, 0.2);
+    border-right-color: var(--instawp-color-green);
+    animation: loading 1s linear infinite;
+    margin: -8px -8px;
 }
 
 

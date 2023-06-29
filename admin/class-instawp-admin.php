@@ -25,43 +25,32 @@ if ( ! defined( 'INSTAWP_PLUGIN_DIR' ) ) {
 }
 
 class InstaWP_Admin {
-	/**
-	 * The ID of this plugin.
-	 *
-	 *
-	 * @access   private
-	 * @var      string $plugin_name The ID of this plugin.
-	 */
 
 	private $plugin_name;
-
-	/**
-	 * The version of this plugin.
-	 *
-	 *
-	 * @access   private
-	 * @var      string $version The current version of this plugin.
-	 */
 
 	private $version;
 
 	private $screen_ids;
 
-	private $toolbar_menus;
-
 	private $submenus;
 
-	/**
-	 * Initialize the class and set its properties.
-	 *
-	 *
-	 * @param string $plugin_name The name of this plugin.
-	 * @param string $version The version of this plugin.
-	 */
+	protected static $_is_deployer_mode = false;
+	protected static $_is_template_migration_mode = false;
+
 
 	public function __construct( $plugin_name, $version ) {
+
+
+		if ( defined( 'INSTAWP_CONNECT_MODE' ) && 'TEMPLATE_MIGRATE' == INSTAWP_CONNECT_MODE ) {
+			self::$_is_template_migration_mode = true;
+		}
+
+		if ( defined( 'INSTAWP_CONNECT_MODE' ) && 'DEPLOYER' == INSTAWP_CONNECT_MODE ) {
+			self::$_is_deployer_mode = true;
+		}
+
+
 		add_filter( 'instawp_get_screen_ids', array( $this, 'get_screen_ids' ), 10 );
-		//add_filter('instawp_get_toolbar_menus',array( $this, 'get_toolbar_menus' ),10);
 		add_filter( 'instawp_get_admin_menus', array( $this, 'get_admin_menus' ), 10 );
 
 		add_action( 'instawp_before_setup_page', array( $this, 'migrate_notice' ) );
@@ -84,7 +73,114 @@ class InstaWP_Admin {
 
 		$this->version = $version;
 
+
+		add_action( 'admin_menu', array( $this, 'add_migrate_plugin_menu_items' ) );
+		add_filter( 'admin_title', array( $this, 'update_admin_page_title' ) );
+		add_action( 'admin_bar_menu', array( $this, 'add_admin_bar_button' ), 100 );
+
+		if ( defined( 'INSTAWP_CONNECT_MODE' ) && in_array( INSTAWP_CONNECT_MODE, [ 'DEPLOYER', 'TEMPLATE_MIGRATE' ] ) ) {
+			add_filter( 'instawp_add_plugin_admin_menu', '__return_false' );
+			add_filter( 'all_plugins', array( $this, 'handle_instawp_plugin_display' ) );
+		}
 	}
+
+
+	function add_admin_bar_button( WP_Admin_Bar $admin_bar ) {
+
+		if ( self::$_is_template_migration_mode ) {
+			$admin_bar->add_menu(
+				array(
+					'id'     => 'instawp-template-migrate',
+					'title'  => esc_html__( 'Migrate', 'instawp-connect' ),
+					'href'   => admin_url( 'admin.php?page=instawp-template-migrate' ),
+					'parent' => 'top-secondary',
+				)
+			);
+		}
+
+		if ( self::$_is_deployer_mode ) {
+			$admin_bar->add_menu(
+				array(
+					'id'     => 'instawp-go-live',
+					'title'  => esc_html__( 'Go Live', 'instawp-connect' ),
+					'href'   => admin_url( 'admin.php?page=instawp-connect-go-live' ),
+					'parent' => 'top-secondary',
+				)
+			);
+		}
+	}
+
+
+	function handle_instawp_plugin_display( $plugins ) {
+
+		if ( in_array( INSTAWP_PLUGIN_NAME, array_keys( $plugins ) ) ) {
+			unset( $plugins[ INSTAWP_PLUGIN_NAME ] );
+		}
+
+		return $plugins;
+	}
+
+
+	function update_admin_page_title( $page_title ) {
+
+		if ( isset( $_GET['page'] ) && sanitize_text_field( $_GET['page'] ) === 'instawp-connect-go-live' ) {
+			$page_title = sprintf( esc_html__( 'InstaWP %s Integration', 'instawp-connect' ), InstaWP_Go_Live::$_platform_title );
+		}
+
+		if ( isset( $_GET['page'] ) && sanitize_text_field( $_GET['page'] ) === 'instawp-template-migrate' ) {
+			$page_title = esc_html__( 'Template Migration', 'instawp-connect' );
+		}
+
+		return $page_title;
+	}
+
+
+	function add_migrate_plugin_menu_items() {
+
+		// Hosting migrate mode
+		if ( self::$_is_template_migration_mode ) {
+			add_menu_page(
+				esc_html__( 'InstaWP - Migrate', 'instawp-connect' ),
+				esc_html__( 'InstaWP - Migrate', 'instawp-connect' ),
+				'administrator', 'instawp-template-migrate', array( $this, 'render_migrate_hosting_page' ), 2
+			);
+			remove_menu_page( 'instawp-template-migrate' );
+
+			return;
+		}
+
+		// Go Live mode
+		if ( self::$_is_deployer_mode ) {
+
+			$instawp_go_live = new InstaWP_Go_Live();
+
+			add_menu_page(
+				esc_html__( 'InstaWP Cloudways Integration', 'instawp-connect' ),
+				esc_html__( 'InstaWP Cloudways Integration', 'instawp-connect' ),
+				'administrator', 'instawp-connect-go-live', array( $instawp_go_live, 'render_go_live_integration' )
+			);
+			remove_menu_page( 'instawp-connect-go-live' );
+
+			return;
+		}
+
+		add_management_page(
+			esc_html__( 'InstaWP', 'instawp-connect' ),
+			esc_html__( 'InstaWP', 'instawp-connect' ),
+			'administrator', 'instawp', array( $this, 'render_migrate_page' ), 1
+		);
+	}
+
+
+	function render_migrate_page() {
+		include INSTAWP_PLUGIN_DIR . '/migrate/templates/main.php';
+	}
+
+
+	function render_migrate_hosting_page() {
+		include INSTAWP_PLUGIN_DIR . '/migrate/templates/hosting/main.php';
+	}
+
 
 	public function add_log_tab_page( $setting_array ) {
 		$setting_array['backup_log_page'] = array(
@@ -99,6 +195,7 @@ class InstaWP_Admin {
 	}
 
 	public function get_screen_ids( $screen_ids ) {
+
 		$screen_ids[] = 'toplevel_page_' . $this->plugin_name;
 		$screen_ids[] = 'instawp-connect_page_instawp-connect';
 		$screen_ids[] = 'instawp-connect_page_instawp-settings';
@@ -112,25 +209,9 @@ class InstaWP_Admin {
 		$screen_ids[] = 'instawp-connect_page_instawp-key';
 		$screen_ids[] = 'instawp-connect_page_instawp-mainwp';
 		$screen_ids[] = 'instawp-connect_page_instawp_premium';
+		$screen_ids[] = 'toplevel_page_instawp-template-migrate';
 
 		return $screen_ids;
-	}
-
-	public function get_toolbar_menus( $toolbar_menus ) {
-		$menu['id']                                               = 'instawp_admin_menu';
-		$menu['title']                                            = 'InstaWP Connect';
-		$toolbar_menus[ $menu['id'] ]                             = $menu;
-		$admin_url                                                = admin_url();
-		$menu['id']                                               = 'instawp_admin_menu_backup';
-		$menu['parent']                                           = 'instawp_admin_menu';
-		$menu['title']                                            = __( 'Connect', 'instawp-connect' );
-		$menu['tab']                                              = 'admin.php?page=instawp-connect&tab-backup';
-		$menu['href']                                             = $admin_url . 'admin.php?page=instawp-connect';
-		$menu['capability']                                       = 'administrator';
-		$menu['index']                                            = 1;
-		$toolbar_menus[ $menu['parent'] ]['child'][ $menu['id'] ] = $menu;
-
-		return $toolbar_menus;
 	}
 
 	public function get_admin_menus( $submenus ) {
@@ -178,16 +259,16 @@ class InstaWP_Admin {
 			'http://app.instawp.io/',
 		];
 
-		//if(!in_array($api_doamin,$sync_domains)){
+
 		#Change Event
-		$submenu['parent_slug']            = $this->plugin_name;
-		$submenu['page_title']             = 'Change Event';
-		$submenu['menu_title']             = __( 'Change Event', 'instawp-connect' );
-		$submenu['capability']             = 'administrator';
-		$submenu['menu_slug']              = 'instawp-change-event';
-		$submenu['function']               = array( $this, 'instawp_change_event' );
-		$submenu['index']                  = 4;
-		$submenus[ $submenu['menu_slug'] ] = $submenu;
+//		$submenu['parent_slug']            = $this->plugin_name;
+//		$submenu['page_title']             = 'Change Event';
+//		$submenu['menu_title']             = __( 'Change Event', 'instawp-connect' );
+//		$submenu['capability']             = 'administrator';
+//		$submenu['menu_slug']              = 'instawp-change-event';
+//		$submenu['function']               = array( $this, 'instawp_change_event' );
+//		$submenu['index']                  = 4;
+//		$submenus[ $submenu['menu_slug'] ] = $submenu;
 
 		#History sync
 		$submenu['parent_slug']            = $this->plugin_name;
@@ -223,24 +304,19 @@ class InstaWP_Admin {
 		return $submenus;
 	}
 
-	/**
-	 * Register the stylesheets for the admin area.
-	 *
-	 *
-	 */
+
 	public function enqueue_styles() {
+
 		$this->screen_ids = apply_filters( 'instawp_get_screen_ids', $this->screen_ids );
+
 		if ( in_array( get_current_screen()->id, $this->screen_ids ) ) {
-			wp_enqueue_style( $this->plugin_name, INSTAWP_PLUGIN_DIR_URL . 'css/instawp-admin.css', array(), $this->version, 'all' );
 			do_action( 'instawp_do_enqueue_styles' );
 		}
+
+		wp_enqueue_style( $this->plugin_name, INSTAWP_PLUGIN_DIR_URL . 'css/instawp-admin.css', array(), $this->version );
 	}
 
-	/**
-	 * Register the JavaScript for the admin area.
-	 *
-	 *
-	 */
+
 	public function enqueue_scripts() {
 		//change events scripts [start]
 		wp_enqueue_style( 'change-event-css', INSTAWP_PLUGIN_DIR_URL . 'css/instawp-change-event.css' );
@@ -292,9 +368,6 @@ class InstaWP_Admin {
 		}
 	}
 
-	/**
-	 * Register the administration menu for this plugin into the WordPress Dashboard menu.
-	 */
 
 	public function add_plugin_admin_menu() {
 		/*
@@ -306,7 +379,7 @@ class InstaWP_Admin {
 		 *
 		 */
 
-        // jaedtest
+		// jaedtest
 
 		return;
 
@@ -350,82 +423,6 @@ class InstaWP_Admin {
 		}
 	}
 
-	function add_toolbar_items( $wp_admin_bar ) {
-		if ( is_multisite() ) {
-			if ( ! is_network_admin() ) {
-				return;
-			}
-		}
-
-		/*global $instawp_plugin;
-
-		if ( is_admin() ) {
-
-			$show_admin_bar = $instawp_plugin->get_admin_bar_setting();
-
-			if ( $show_admin_bar === true ) {
-
-				$this->toolbar_menus = apply_filters('instawp_get_toolbar_menus', $this->toolbar_menus);
-
-				foreach ( $this->toolbar_menus as $menu ) {
-
-					$wp_admin_bar->add_menu(array(
-
-						'id'    => $menu['id'],
-
-						'title' => $menu['title'],
-
-					));
-
-					if ( isset($menu['child']) ) {
-
-						usort($menu['child'], function ( $a, $b ) {
-
-							if ($a['index'] == $b['index'])
-
-								return 0;
-
-
-
-							if ($a['index'] > $b['index'])
-
-								return 1;
-
-							else
-
-								return -1;
-
-						});
-
-						foreach ( $menu['child'] as $child_menu ) {
-
-							if ( isset($child_menu['capability']) && current_user_can($child_menu['capability']) ) {
-
-								$wp_admin_bar->add_menu(array(
-
-									'id'     => $child_menu['id'],
-
-									'parent' => $menu['id'],
-
-									'title'  => $child_menu['title'],
-
-									'href'   => $child_menu['href'],
-
-								));
-
-							}
-
-						}
-
-					}
-
-				}
-
-			}
-
-		}*/
-
-	}
 
 	public function add_action_links( $links ) {
 
@@ -436,6 +433,7 @@ class InstaWP_Admin {
 		return array_merge( $action_links, $links );
 	}
 
+
 	public static function instawp_get_siteurl() {
 		$instawp_siteurl             = array();
 		$instawp_siteurl['home_url'] = home_url();
@@ -445,17 +443,13 @@ class InstaWP_Admin {
 		return $instawp_siteurl;
 	}
 
-	/**
-	 * Render the settings page for this plugin.
-	 *
-	 *
-	 */
 
 	public function display_plugin_setup_page() {
 		do_action( 'instawp_before_setup_page' );
 		add_action( 'instawp_display_page', array( $this, 'display' ) );
 		do_action( 'instawp_display_page' );
 	}
+
 
 	public function display_wizard_page() {
 		include_once( 'partials/instawp-admin-wizard.php' );
@@ -535,254 +529,6 @@ class InstaWP_Admin {
 
 		return $request_page;
 	}
-
-	/*public static function show_add_my_review() {
-
-		$review = InstaWP_Setting::get_option('instawp_need_review');
-
-		$review_msg = InstaWP_Setting::get_option('instawp_review_msg');
-
-		if ( empty($review) ) {
-
-			InstaWP_Setting::update_option('instawp_need_review', 'not');
-
-		} else {
-
-			if ( $review == 'not' ) {
-
-			}
-
-			elseif ( $review == 'show' ) {
-
-				if ( ! empty($review_msg) ) {
-
-					echo '<div class="notice notice-info is-dismissible" id="instawp_notice_rate">
-
-					<p>' . $review_msg . '</p>
-
-					<div style="padding-bottom: 10px;">
-
-					<span><input type="button" class="button-primary" option="review" name="rate-now" value="'.esc_attr__('Rate Us', 'instawp-connect').'" /></span>
-
-					<span><input type="button" class="button-secondary" option="review" name="ask-later" value="'.esc_attr__('Maybe Later', 'instawp-connect').'" /></span>
-
-					<span><input type="button" class="button-secondary" option="review" name="never-ask" value="'.esc_attr__('Never', 'instawp-connect').'" /></span>
-
-					<span><input type="button" class="button-secondary" option="review" name="already-done" value="'.esc_attr__('Already Done', 'instawp-connect').'" /></span>
-
-					</div>
-
-					</div>';
-
-				}
-
-			} elseif ( $review == 'do_not_ask' ) {
-
-			} else {
-
-				if ( time() > $review ) {
-
-					if ( ! empty($review_msg) ) {
-
-						echo '<div class="notice notice-info is-dismissible" id="instawp_notice_rate">
-
-						<p>' . $review_msg . '</p>
-
-						<div style="padding-bottom: 10px;">
-
-						<span><input type="button" class="button-primary" option="review" name="rate-now" value="'.esc_attr__('Rate Us', 'instawp-connect').'" /></span>
-
-						<span><input type="button" class="button-secondary" option="review" name="ask-later" value="'.esc_attr__('Maybe Later', 'instawp-connect').'" /></span>
-
-						<span><input type="button" class="button-secondary" option="review" name="never-ask" value="'.esc_attr__('Never', 'instawp-connect').'" /></span>
-
-						<span><input type="button" class="button-secondary" option="review" name="already-done" value="'.esc_attr__('Already Done', 'instawp-connect').'" /></span>
-
-						</div>
-
-						</div>';
-
-					}
-
-				}
-
-			}
-
-		}
-
-	}*/
-
-
-	// public function check_amazons3() {
-
-	//     $remoteslist = InstaWP_Setting::get_all_remote_options();
-
-	//     $need_amazons3_notice = false;
-
-	//     if ( isset($remoteslist) && ! empty($remoteslist) ) {
-
-	//         foreach ( $remoteslist as $remote_id => $value ) {
-
-	//             if ( $remote_id === 'remote_selected' ) {
-
-	//                 continue;
-
-	//             }
-
-	//             if ( $value['type'] == 'amazons3' && isset($value['s3Path']) ) {
-
-	//                 $need_amazons3_notice = true;
-
-	//             }
-
-	//             if ( $value['type'] == 's3compat' && isset($value['s3directory']) ) {
-
-	//                 $need_amazons3_notice = true;
-
-	//             }
-
-	//         }
-
-	//     }
-
-	//     if ( $need_amazons3_notice ) {
-
-	//         $amazons3_notice = InstaWP_Setting::get_option('instawp_amazons3_notice', 'not init');
-
-	//         if ( $amazons3_notice === 'not init' ) {
-
-	//             $notice_message = __('As Amazon S3 and DigitalOcean Space have upgraded their connection methods, please delete the previous connections and re-add your Amazon S3/DigitalOcean Space accounts to make sure the connections work.', 'instawp-connect');
-
-	//             echo '<div class="notice notice-warning" id="instawp_amazons3_notice">
-
-	//                     <p>' . $notice_message . '</p>
-
-	//                     <div style="padding-bottom: 10px;">
-
-	//                     <span><input type="button" class="button-secondary" value="I Understand" onclick="instawp_click_amazons3_notice();" /></span>
-
-	//                     </div>
-
-	//                     </div>';
-
-	//         }
-
-	//     }
-
-	// }
-
-
-	/*public function check_dropbox() {
-
-		if ( is_multisite() ) {
-
-			if ( ! is_network_admin() ) {
-
-				return ;
-
-			}
-
-		}
-
-
-
-		if ( ! function_exists('get_plugins'))
-
-			require_once(ABSPATH . 'wp-admin/includes/plugin.php');
-
-		$pro_instawp_slug = 'instawp-backup-pro/instawp-backup-pro.php';
-
-		if ( is_multisite() ) {
-
-			$active_plugins = array();
-
-			//network active
-
-			$mu_active_plugins = get_site_option( 'active_sitewide_plugins', array() );
-
-			if ( ! empty($mu_active_plugins) ) {
-
-				foreach ( $mu_active_plugins as $plugin_name => $data ) {
-
-					$active_plugins[] = $plugin_name;
-
-				}
-
-			}
-
-			$plugins = get_mu_plugins();
-
-			if ( count($plugins) == 0 || ! isset($plugins[ $pro_instawp_slug ]) ) {
-
-				$plugins = get_plugins();
-
-			}
-
-		}
-
-		else {
-
-			$active_plugins = get_option('active_plugins');
-
-			$plugins = get_plugins();
-
-		}
-
-
-
-		if ( ! empty($plugins) ) {
-
-			if ( isset($plugins[ $pro_instawp_slug ]) ) {
-
-				if ( in_array($pro_instawp_slug, $active_plugins) ) {
-
-					return;
-
-				}
-
-			}
-
-
-
-			$remoteslist = InstaWP_Setting::get_all_remote_options();
-
-			$need_dropbox_notice = false;
-
-			if ( isset($remoteslist) && ! empty($remoteslist) ) {
-
-				foreach ( $remoteslist as $remote_id => $value ) {
-
-					if ( $remote_id === 'remote_selected' ) {
-
-						continue;
-
-					}
-
-					if ( $value['type'] == 'dropbox' && ! isset($value['refresh_token']) ) {
-
-						$need_dropbox_notice = true;
-
-					}
-
-				}
-
-			}
-
-			if ( $need_dropbox_notice ) {
-
-				$notice_message = __('Because Dropbox has upgraded their API on September 30, 2021, the new API is no longer compatible with the previous app\'s settings. Please re-add your Dropbox storage to ensure that it works properly.', 'instawp-connect');
-
-				echo '<div class="notice notice-warning">
-
-									<p>' . $notice_message . '</p>
-
-							   </div>';
-
-			}
-
-		}
-
-	}*/
 
 
 	public function check_extensions() {
@@ -892,93 +638,6 @@ class InstaWP_Admin {
 		}
 
 	}
-
-
-	/*public function check_instawp_pro_version() {
-
-		if ( is_multisite() ) {
-
-			if ( ! is_network_admin() ) {
-
-				return ;
-
-			}
-
-		}
-
-
-
-		if ( ! function_exists('get_plugins'))
-
-			require_once(ABSPATH . 'wp-admin/includes/plugin.php');
-
-		$pro_instawp_slug = 'instawp-backup-pro/instawp-backup-pro.php';
-
-		if ( is_multisite() ) {
-
-			$active_plugins = array();
-
-			//network active
-
-			$mu_active_plugins = get_site_option( 'active_sitewide_plugins', array() );
-
-			if ( ! empty($mu_active_plugins) ) {
-
-				foreach ( $mu_active_plugins as $plugin_name => $data ) {
-
-					$active_plugins[] = $plugin_name;
-
-				}
-
-			}
-
-			$plugins = get_mu_plugins();
-
-			if ( count($plugins) == 0 || ! isset($plugins[ $pro_instawp_slug ]) ) {
-
-				$plugins = get_plugins();
-
-			}
-
-		}
-
-		else {
-
-			$active_plugins = get_option('active_plugins');
-
-			$plugins = get_plugins();
-
-		}
-
-
-
-		if ( ! empty($plugins) ) {
-
-			if ( isset($plugins[ $pro_instawp_slug ]) ) {
-
-				if ( in_array($pro_instawp_slug, $active_plugins) ) {
-
-					if ( version_compare('2.0.23',$plugins[ $pro_instawp_slug ]['Version'],'>') ) {
-
-						?>
-
-						<div class="notice notice-warning" style="padding: 11px 15px;">
-
-							<?php echo sprintf(__('We detected that you are using a lower version of %s Pro, please update it to 2.0.23 or higher to ensure backing up to Google Drive works properly.', 'instawp-connect'), apply_filters('instawp_white_label_display', 'instaWP Backup Plugin')); ?>
-
-						</div>
-
-						<?php
-
-					}
-
-				}
-
-			}
-
-		}
-
-	}*/
 
 
 	public function init_js_var() {
@@ -1927,150 +1586,4 @@ class InstaWP_Admin {
         </script>
 		<?php
 	}
-
-
-	/* public function instawp_add_page_premium(){
-
-		 ?>
-
-		 <div id="premium-page" class="wrap-tab-content instawp_tab_premium" name="tab-premium" style="display: none;">
-
-			 <table class="wp-list-table widefat plugins" style="border-collapse: collapse;">
-
-				 <thead>
-
-				 <tr class="backup-list-head" style="border-bottom: 0;">
-
-					 <th><?php esc_html__('Features', 'instawp-connect'); ?></th>
-
-					 <th style="text-align:center;"><?php esc_html__('Blogger', 'instawp-connect'); ?></th>
-
-					 <th style="text-align:center;"><?php esc_html__('Freelancer', 'instawp-connect'); ?></th>
-
-					 <th style="text-align:center;"><?php esc_html__('Small Business', 'instawp-connect'); ?></th>
-
-					 <th style="text-align:center;"><?php esc_html__('Ultimate', 'instawp-connect'); ?></th>
-
-				 </tr>
-
-				 </thead>
-
-				 <tbody class="instawp-backuplist">
-
-				 <tr style="">
-
-					 <td>
-
-						 <p><strong><?php _e('Domains', 'instawp-connect'); ?></strong></p>
-
-						 <p><strong><?php _e('Backup & Migration Pro', 'instawp-connect'); ?></strong></p>
-
-						 <p><strong><?php _e('Image Optimization Pro (Unlimited/domain)', 'instawp-connect'); ?></strong></p>
-
-						 <p><strong><?php _e('Mulitsite Support', 'instawp-connect'); ?></strong></p>
-
-						 <p><strong><?php _e('Staging Pro', 'instawp-connect'); ?></strong></p>
-
-						 <p><strong><?php _e('White Label', 'instawp-connect'); ?></strong></p>
-
-						 <p><strong><?php _e('Roles & Capabilities', 'instawp-connect'); ?></strong></p>
-
-					 </td>
-
-					 <td style="text-align:center;">
-
-						 <p><span style="color: #81d742;"><?php _e('2 domains', 'instawp-connect'); ?></span></p>
-
-						 <p><span style="height: 12px;width: 12px;background-color: #81d742;border-radius: 50%;display: inline-block;"></span></p>
-
-						 <p><span style="height: 12px;width: 12px;background-color: #81d742;border-radius: 50%;display: inline-block;"></span></p>
-
-						 <p><span style="height: 12px;width: 12px;background-color: #81d742;border-radius: 50%;display: inline-block;"></span></p>
-
-						 <p><span style="height: 12px;width: 12px;background-color: #f1f1f1;border-radius: 50%;display: inline-block;"></span></p>
-
-						 <p><span style="height: 12px;width: 12px;background-color: #f1f1f1;border-radius: 50%;display: inline-block;"></span></p>
-
-						 <p><span style="height: 12px;width: 12px;background-color: #f1f1f1;border-radius: 50%;display: inline-block;"></span></p>
-
-					 </td>
-
-					 <td style="text-align:center;">
-
-						 <p><span style="color: #81d742;"><?php _e('Up to 10 domains', 'instawp-connect'); ?></span></p>
-
-						 <p><span style="height: 12px;width: 12px;background-color: #81d742;border-radius: 50%;display: inline-block;"></span></p>
-
-						 <p><span style="height: 12px;width: 12px;background-color: #81d742;border-radius: 50%;display: inline-block;"></span></p>
-
-						 <p><span style="height: 12px;width: 12px;background-color: #81d742;border-radius: 50%;display: inline-block;"></span></p>
-
-						 <p><span style="height: 12px;width: 12px;background-color: #81d742;border-radius: 50%;display: inline-block;"></span></p>
-
-						 <p><span style="height: 12px;width: 12px;background-color: #81d742;border-radius: 50%;display: inline-block;"></span></p>
-
-						 <p><span style="height: 12px;width: 12px;background-color: #81d742;border-radius: 50%;display: inline-block;"></span></p>
-
-					 </td>
-
-					 <td style="text-align:center;">
-
-						 <p><span style="color: #81d742;"><?php _e('Up to 50 domains', 'instawp-connect'); ?></span></p>
-
-						 <p><span style="height: 12px;width: 12px;background-color: #81d742;border-radius: 50%;display: inline-block;"></span></p>
-
-						 <p><span style="height: 12px;width: 12px;background-color: #81d742;border-radius: 50%;display: inline-block;"></span></p>
-
-						 <p><span style="height: 12px;width: 12px;background-color: #81d742;border-radius: 50%;display: inline-block;"></span></p>
-
-						 <p><span style="height: 12px;width: 12px;background-color: #81d742;border-radius: 50%;display: inline-block;"></span></p>
-
-						 <p><span style="height: 12px;width: 12px;background-color: #81d742;border-radius: 50%;display: inline-block;"></span></p>
-
-						 <p><span style="height: 12px;width: 12px;background-color: #81d742;border-radius: 50%;display: inline-block;"></span></p>
-
-					 </td>
-
-					 <td style="text-align:center;">
-
-						 <p><span style="color: #81d742;"><?php _e('Unlimited', 'instawp-connect'); ?></span></p>
-
-						 <p><span style="height: 12px;width: 12px;background-color: #81d742;border-radius: 50%;display: inline-block;"></span></p>
-
-						 <p><span style="height: 12px;width: 12px;background-color: #81d742;border-radius: 50%;display: inline-block;"></span></p>
-
-						 <p><span style="height: 12px;width: 12px;background-color: #81d742;border-radius: 50%;display: inline-block;"></span></p>
-
-						 <p><span style="height: 12px;width: 12px;background-color: #81d742;border-radius: 50%;display: inline-block;"></span></p>
-
-						 <p><span style="height: 12px;width: 12px;background-color: #81d742;border-radius: 50%;display: inline-block;"></span></p>
-
-						 <p><span style="height: 12px;width: 12px;background-color: #81d742;border-radius: 50%;display: inline-block;"></span></p>
-
-					 </td>
-
-				 </tr>
-
-				 </tbody>
-
-				 <tfoot>
-
-				 <tr>
-
-					 <th><?php _e('*No credit card needed. Trial starts with the Free Trial plan with 2 sites. You can choose a plan at the end of the trial.', 'instawp-connect'); ?></th>
-
-					 <th colspan="4" style="text-align:center;"><p style="margin-top: 6px;"><a href="https://instawp.com//pricing" class="page-title-action"><?php _e('START 14-DAY FREE TRIAL', 'instawp-connect'); ?></a></p></th>
-
-				 </tr>
-
-				 </tfoot>
-
-			 </table>
-
-		 </div>
-
-		 <?php
-
-	 }*/
-
 }
