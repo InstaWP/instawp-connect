@@ -33,7 +33,7 @@ class InstaWP_Change_Event_Table extends WP_List_Table {
         $data = [];
         if(!empty($rel) && is_array($rel)){
             foreach($rel as $v){
-                $btn = ($v->status != 'completed') ? '<button type="button" id="btn-sync-'.$v->id.'" data-id="'.$v->id.'" class="two-way-sync-btn">Sync changes</button> <span class="sync-loader"></span><span class="sync-success"></span>' : '<p class="sync_completed">Synced</p>'; 
+                $btn = ($v->status != 'completed') ? '<button type="button" id="btn-sync-'.$v->id.'" data-id="'.$v->id.'" class="two-way-sync-btn btn-single-sync">Sync changes</button> <span class="sync-loader"></span><span class="sync-success"></span>' : '<p class="sync_completed">Synced</p>'; 
                 $data[] = [
                     'ID' => $v->id,
                     'event_name' => $v->event_name,

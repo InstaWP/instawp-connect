@@ -19,6 +19,7 @@ class InstaWP_Change_event {
 	public function __construct() {
 
 		add_action( 'admin_menu', array( $this, 'add_change_event_menu' ) );
+		add_action( 'admin_bar_menu', array( $this, 'add_sync_status_toolbar_link' ), 999);
 	}
 
 
@@ -36,6 +37,7 @@ class InstaWP_Change_event {
 			2
 		);
 	}
+
 	function listEvents(){
         $InstaWP_db = new InstaWP_DB();
         $tables = $InstaWP_db->tables;
@@ -43,17 +45,13 @@ class InstaWP_Change_event {
             $rel = $InstaWP_db->get_with_condition($tables['ch_table'],'event_type',$_POST['event_type']);
         }elseif(isset($_GET['change_event_status']) && $_GET['change_event_status'] != 'all'){
             $rel = $InstaWP_db->get_with_condition($tables['ch_table'],'status',$_GET['change_event_status']);
-        }
-        // elseif( (isset($_POST['event_type']) && !empty($_POST['event_type'])) && (isset($_GET['change_event_status']) && $_GET['change_event_status'] != 'all')){
-        //     $rel = $InstaWP_db->get($tables['ch_table'],$_POST['event_type'],$_GET['change_event_status']); 
-        // }
-        else{
-            $rel = $InstaWP_db->get($tables['ch_table']);
+        }else{
+            $rel = $InstaWP_db->getAllEvents();
         }
         $data = [];
         if(!empty($rel) && is_array($rel)){
             foreach($rel as $v){
-                $btn = ($v->status != 'completed') ? '<button type="button" id="btn-sync-'.$v->id.'" data-id="'.$v->id.'" class="two-way-sync-btn">Sync changes</button> <span class="sync-loader"></span><span class="sync-success"></span>' : '<p class="sync_completed">Synced</p>'; 
+                $btn = ($v->status != 'completed') ? '<button type="button" id="btn-sync-'.$v->id.'" data-id="'.$v->id.'" class="two-way-sync-btn btn-single-sync">Sync changes</button> <span class="sync-loader"></span><span class="sync-success"></span>' : '<p class="sync_completed">Synced</p>'; 
                 $data[] = [
                     'ID' => $v->id,
                     'event_name' => $v->event_name,
@@ -72,6 +70,8 @@ class InstaWP_Change_event {
         return $data;
     }
 
+
+
 	public function getStatusColor($status){
 		switch ($status) {
 			case 'failed':
@@ -88,6 +88,25 @@ class InstaWP_Change_event {
 				break;
 		}
 		return $colors;
+	}
+
+	/**
+	 * Register toolvar for sync status
+	 * @param $wp_admin_bar
+	 * @return null
+	 */
+	public function add_sync_status_toolbar_link($wp_admin_bar){
+		if(get_option('syncing_enabled_disabled') != 1) return;
+		$args = array(
+			'id' => 'instawp-sync-toolbar',
+			'title' => __('Recording', 'instawp-connect'),
+			'href' => admin_url( 'tools.php?page=instawp' ), 
+			'meta' => array(
+				'class' => 'instawp-sync-status-toolbar', 
+				'title' => __('Recording', 'instawp-connect')
+				)
+		);
+		$wp_admin_bar->add_node($args);
 	}
 
 	/**

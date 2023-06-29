@@ -668,3 +668,47 @@ if ( ! function_exists( 'get_connect_id' ) ) {
 		return $connect_options['data']['id'];
 	}
 }
+
+if ( ! function_exists( 'instawp_uuid' ) ) {
+		/**
+		 * get random string
+		 *
+		 * @return string
+		 */
+	function instawp_uuid($length=6){
+		return bin2hex(random_bytes($length));
+	}
+}
+
+if ( ! function_exists( 'instawp_get_post_type_singular_name' ) ) {
+	/**
+	 * get post type singular name
+	 * @param $post_type
+	 * @return string
+	 */
+	function instawp_get_post_type_singular_name($post_type){
+		$post_type_object = get_post_type_object( $post_type );
+		if(!empty($post_type_object)){
+			return $post_type_object->labels->singular_name;
+		}
+		return '';
+	}
+}
+
+
+if ( ! function_exists( 'instawp_get_post_by_name' ) ) {
+	/**
+	 * get post type singular name
+	 * @param $post_name
+	 * @param $post_type
+	 * @return string
+	 */
+	function instawp_get_post_by_name($post_name, $post_type) {
+		global $wpdb;
+		$post = $wpdb->get_var( $wpdb->prepare( "SELECT ID FROM $wpdb->posts WHERE post_name = %s AND post_type= %s ", $post_name, $post_type ));
+		if ( $post )
+			return get_post($post);
+
+		return null;
+	}
+}
