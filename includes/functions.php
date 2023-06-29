@@ -656,3 +656,104 @@ if ( ! function_exists( 'instawp_clean_non_zipped_files_folder' ) ) {
 		}
 	}
 }
+
+if ( ! function_exists( 'instawp_domain_search' ) ) {
+	/**
+	 * Domain search using Rapid API
+	 *
+	 * @param $domain_name
+	 *
+	 * @return array|mixed
+	 */
+	function instawp_domain_search( $domain_name = '' ) {
+
+		if ( empty( $domain_name ) ) {
+			return [];
+		}
+
+		$curl = curl_init();
+
+		curl_setopt_array( $curl, [
+			CURLOPT_URL            => "https://domainr.p.rapidapi.com/v2/status?domain={$domain_name}",
+			CURLOPT_RETURNTRANSFER => true,
+			CURLOPT_ENCODING       => "",
+			CURLOPT_MAXREDIRS      => 10,
+			CURLOPT_TIMEOUT        => 30,
+			CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
+			CURLOPT_CUSTOMREQUEST  => "GET",
+			CURLOPT_HTTPHEADER     => [
+				"X-RapidAPI-Host: domainr.p.rapidapi.com",
+				"X-RapidAPI-Key: f78d769ac8msh4df66b894ce80ddp1669a7jsn0fd293b9f64d"
+			],
+		] );
+
+		$response = curl_exec( $curl );
+		$err      = curl_error( $curl );
+
+		curl_close( $curl );
+
+		if ( $err ) {
+			return [];
+		}
+
+		$response = json_decode( $response, true );
+
+		return $response['status'][0] ?? array();
+	}
+}
+ 
+if ( ! function_exists( 'get_connect_id' ) ) {
+	/**
+	 * get connect id for source site
+	 *
+	 * @return int
+	 */
+	function get_connect_id() {
+		$connect_options = get_option('instawp_connect_id_options');
+		return $connect_options['data']['id'];
+	}
+}
+
+if ( ! function_exists( 'instawp_uuid' ) ) {
+	/**
+	 * get random string
+	 *
+	 * @return string
+	 */
+	function instawp_uuid($length=6){
+		return bin2hex(random_bytes($length));
+	}
+}
+
+if ( ! function_exists( 'instawp_get_post_type_singular_name' ) ) {
+	/**
+	 * get post type singular name
+	 * @param $post_type
+	 * @return string
+	 */
+	function instawp_get_post_type_singular_name($post_type){
+		$post_type_object = get_post_type_object( $post_type );
+		if(!empty($post_type_object)){
+			return $post_type_object->labels->singular_name;
+		}
+		return '';
+	}
+}
+
+
+if ( ! function_exists( 'instawp_get_post_by_name' ) ) {
+	/**
+	 * get post type singular name
+	 * @param $post_name
+	 * @param $post_type
+	 * @return string
+	 */
+	function instawp_get_post_by_name($post_name, $post_type) {
+		global $wpdb;
+		$post = $wpdb->get_var( $wpdb->prepare( "SELECT ID FROM $wpdb->posts WHERE post_name = %s AND post_type= %s ", $post_name, $post_type ));
+		if ( $post )
+			return get_post($post);
+
+		return null;
+	}
+}
