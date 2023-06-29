@@ -42,10 +42,12 @@ $others = (abs($total_events) - abs($post_new+$post_delete+$post_trash));
                     </div>
                     <div class="text-sm font-medium text-grayCust-200 mb-1"><?php echo esc_html__( 'No Data found!', 'instawp-connect' ); ?></div>
                     <div class="text-sm font-normal text-grayCust-50"><?php echo esc_html__( 'Start Listening for Changes', 'instawp-connect' ); ?></div>
-                    <label class="switch syncing_enabled_disabled">
-					   <input type="checkbox" id="switch-id" <?php echo $syncing_status_val; ?>>
-					   <span class="slider round"></span>
-					</label>
+                    <div class="syncing_enabled_disabled">
+                        <label class="switch">
+                        <input type="checkbox" id="switch-id" <?php echo $syncing_status_val; ?>>
+                        <span class="slider round"></span>
+                        </label>
+                    </div>
                 </div>
             </div>
 <!--        </div>-->
