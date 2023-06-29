@@ -240,10 +240,10 @@ function instawp_create_table() {
 	$sql = array();
 
 	$event_change_table = $wpdb->prefix . "change_event";
-	$event_site_table = $wpdb->prefix . "event_site";
 	$sync_history_table = $wpdb->prefix . "sync_history";
 	$changes_sync_table = $wpdb->prefix . "changes_sync";
-
+	$event_site_table = $wpdb->prefix . "instawp_event_site_sync";
+	
 	if ( $wpdb->get_var( "show tables like '" . $event_change_table . "'" ) !== $event_change_table ) {
 		$sql[] = "CREATE TABLE " . $event_change_table . "     (
         id int(20) NOT NULL AUTO_INCREMENT,
