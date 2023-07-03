@@ -84,6 +84,12 @@ class InstaWP_Backup_Api {
 			'callback'            => array( $this, 'instawp_hosting_migration' ),
 			'permission_callback' => '__return_true',
 		) );
+
+		register_rest_route( $this->namespace . '/' . $this->version_2, '/inventory', array(
+			'methods'             => 'GET',
+			'callback'            => array( $this, 'get_inventory' ),
+			'permission_callback' => '__return_true',
+		) );
 	}
 
 
@@ -1109,7 +1115,72 @@ class InstaWP_Backup_Api {
 				}
 			}
 		}
+	}
 
+	/**
+	 * Handle response for site inventory.
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function get_inventory( WP_REST_Request $request ) {
+		$this->validate_api_request( $request );
+
+		if ( ! function_exists( 'get_plugins' ) || ! function_exists( 'get_mu_plugins' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		}
+		$wp_plugins = get_plugins();
+		$active_plugins = (array) get_option( 'active_plugins', [] );
+
+		$plugins = [];
+		foreach( $wp_plugins as $name => $plugin ) {
+			$slug = explode( '/', $name );
+			$plugins[] = [
+				'slug' => $slug[0],
+				'version' => $plugin['Version'],
+				'activated' => in_array( $name, $active_plugins, true ),
+			];
+		}
+
+		$wp_mu_plugins = get_mu_plugins();
+		$mu_plugins = [];
+		foreach( $wp_mu_plugins as $name => $plugin ) {
+			$slug = explode( '/', $name );
+			$mu_plugins[] = [
+				'slug' => $slug[0],
+				'version' => $plugin['Version']
+			];
+		}
+
+		if ( ! function_exists( 'wp_get_themes' ) || ! function_exists( 'wp_get_theme' ) ) {
+			require_once ABSPATH . 'wp-includes/theme.php';
+		}
+		$wp_themes = wp_get_themes();
+		$current_theme = wp_get_theme();
+
+		$themes = [];
+		foreach( $wp_themes as $theme ) {
+			$themes[] = [
+				'slug' => $theme->get_stylesheet(),
+				'version' => $theme->get( 'Version' ),
+				'activated' => $theme->get_stylesheet() === $current_theme->get_stylesheet()
+			];
+		}
+
+		$results = [
+			'theme' => $themes,
+			'plugin' => $plugins,
+			'mu_plugin' => $mu_plugins,
+			'core' => [
+				[ 'version' => get_bloginfo( 'version' ) ],
+			],
+		];
+
+		$response = new WP_REST_Response( $results );
+		$response->set_status( 200 );
+
+		return rest_ensure_response( $response );
 	}
 }
 
