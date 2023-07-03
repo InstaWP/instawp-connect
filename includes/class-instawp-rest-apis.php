@@ -59,6 +59,21 @@ class InstaWP_Rest_Apis{
         return true;
     } 
 
+    public function get_post_by_reference_Id($post_type, $reference_id, $post_name) {
+        $post = get_posts( array(
+            'post_type'=> $post_type,
+            'meta_key'   => 'instawp_event_sync_reference_id',
+            'meta_value' => $reference_id
+        ) );
+        if(!empty($post)){
+            $post_id = $post[0]->ID;
+        }else {
+            $post  = instawp_get_post_by_name($post_name, $post_type); 
+            $post_id = $post ? $post->ID : '';
+        }
+        return $post_id;
+    }
+
     /**
      * Reciver 
      * @param array $data Options for the function.
@@ -89,102 +104,91 @@ class InstaWP_Rest_Apis{
                 */
                 //create and update
                 if(isset($v->event_slug) && ($v->event_slug == 'post_change' ||$v->event_slug == 'post_new') ){
-                    if(isset($source_id)){
-                        $posts = isset($v->details->posts) ? (array) $v->details->posts : '';
-                        $postmeta = isset($v->details->postmeta) ? (array) $v->details->postmeta : '';
-                        $featured_image = isset($v->details->featured_image) ? (array) $v->details->featured_image : '';
-                        $media = isset($v->details->media) ? (array) $v->details->media : '';
+                    $posts = isset($v->details->posts) ? (array) $v->details->posts : '';
+                    $postmeta = isset($v->details->postmeta) ? (array) $v->details->postmeta : '';
+                    $featured_image = isset($v->details->featured_image) ? (array) $v->details->featured_image : '';
+                    $media = isset($v->details->media) ? (array) $v->details->media : '';
+                    $reference_id = isset($postmeta['instawp_event_sync_reference_id'][0]) ? $postmeta['instawp_event_sync_reference_id'][0] : '';
+                    
 
-                        $post_by_reference_id = get_posts( array(
-                            'post_type'=> $posts['post_type'],
-                            'meta_key'   => 'instawp_event_sync_reference_id',
-                            'meta_value' => isset($postmeta['instawp_event_sync_reference_id'][0]) ? $postmeta['instawp_event_sync_reference_id'][0] : '',
-                        ) );
+                    if($posts['post_type'] == 'attachment'){
+                        //create or update the attachments
+                        $posts['ID'] = $this->handle_attachments($posts, $postmeta, $posts['guid']);
+                        #update meta
+                        $this->add_update_postmeta($postmeta,$posts['ID']);
 
-                        if(!empty($post_by_reference_id)){
+                    }else{
+                        $posts['ID'] = $this->get_post_by_reference_Id($posts['post_type'], $reference_id, $posts['post_name']);
+                        if($posts['ID']){
                             #The post exists,Then update
-                            $posts['ID'] = $post_by_reference_id[0]->ID;
                             $postData = $this->postData($posts,'update');
                             wp_update_post($postData);
                             #post meta
                             $this->add_update_postmeta($postmeta,$posts['ID']);
                         }else{
-                            $post_check_data = instawp_get_post_by_name($posts['post_name'], $posts['post_type']); 
-                            if(!empty($post_check_data)){
-                                #The post exists,Then update
-                                $posts['ID'] = $post_check_data->ID;
-                                $postData = $this->postData($posts,'update');
-                                wp_update_post($postData);
-                                #post meta
-                                $this->add_update_postmeta($postmeta,$posts['ID']);
-                            }else{
-                                $postData = $this->postData($posts,'insert');
-                                #The post does not exist,Then insert
-                                $posts['ID'] = wp_insert_post($postData); 
-                                #post meta
-                                $this->add_update_postmeta($postmeta,$posts['ID']); 
-                            }
+                            $postData = $this->postData($posts,'insert');
+                            #The post does not exist,Then insert
+                            $posts['ID'] = wp_insert_post($postData); 
+                            #post meta
+                            $this->add_update_postmeta($postmeta,$posts['ID']); 
                         }
-
-                        #feature image import 
-                        $attachment_id = $featured_image['featured_image_id'];
-                        $file = $featured_image['featured_image_url'];
-                        wp_delete_attachment($attachment_id,true);
-                        if(!empty($attachment_id) && !empty($file)){
-                            $att_id = $this->insert_attachment($attachment_id,$file);
-                            if(isset($att_id) && !empty($att_id)){
-                                set_post_thumbnail($posts['ID'],$att_id);
-                            }
-                        }
-
-                        #if post type is product then set gallery
-                        if(get_post_type($posts['ID']) == 'product'){
-                            if(isset($v->details->product_gallery)){
-                                $product_gallery = $v->details->product_gallery;
-                                $gallery_ids = [];
-                                foreach($product_gallery as $gallery){
-                                    if(isset($gallery->id) && isset($gallery->url)){
-                                        $gallery_ids[] = $this->insert_attachment($gallery->id,$gallery->url);
-                                    }
-                                }
-                                $this->set_product_gallery($posts['ID'],$gallery_ids);
-                            }
-                        }
-
-                        #terms in post
-                        $taxonomies = (array) $v->details->taxonomies;
-                        if(!empty($taxonomies) && is_array($taxonomies)){
-                            foreach($taxonomies as $taxonomy => $terms){
-                                $terms = (array) $terms;
-                                # if term not exist then create first
-                                 if(!empty($terms) && is_array($terms)){
-                                     foreach($terms as $term){
-                                         $term = (array) $term;
-                                         if(!term_exists($term['term_id'],$taxonomy)){
-                                            $wp_terms = $this->wp_terms_data($term['term_id'],$term);
-                                            $wp_term_taxonomy = $this->wp_term_taxonomy_data($term['term_id'],$term);
-                                            $this->insert_taxonomy($term['term_id'],$wp_terms,$wp_term_taxonomy);
-                                            wp_set_post_terms( $posts['ID'], [$term['term_id']], $taxonomy );
-                                        }
-                                     }
-                                }
-                                
-                                #set terms in post
-                                $term_ids = array_column($terms, 'term_id');
-                                wp_set_post_terms( $posts['ID'], $term_ids, $taxonomy );
-                            }
-                        }
-
-                        # media upload from content 
-                        $this->upload_content_media($media,$posts['ID']);
-
-                        #message 
-                        $message = 'Sync successfully.';
-                        $status = 'completed';
-                        $sync_response[] = $this->sync_opration_response($status,$message,$v);
-                        #changes
-                        $changes[$v->event_type] = $changes[$v->event_type] + 1;
                     }
+
+                    #feature image import 
+                    if(isset($featured_image['media']) && !empty($featured_image['media'])){
+                        $att_id = $this->handle_attachments((array) $featured_image['media'],(array) $featured_image['media_meta'], $featured_image['featured_image_url']);
+                        if(isset($att_id) && !empty($att_id)){
+                            set_post_thumbnail($posts['ID'],$att_id);
+                        }
+                    }
+
+                    #if post type is product then set gallery
+                    if(get_post_type($posts['ID']) == 'product'){
+                        if(isset($v->details->product_gallery)){
+                            $product_gallery = $v->details->product_gallery;
+                            $gallery_ids = [];
+                            foreach($product_gallery as $gallery){
+                                if(isset($gallery->id) && isset($gallery->url)){
+                                    $gallery_ids[] = $this->insert_attachment($gallery->id,$gallery->url);
+                                }
+                            }
+                            $this->set_product_gallery($posts['ID'],$gallery_ids);
+                        }
+                    }
+
+                    #terms in post
+                    $taxonomies = (array) $v->details->taxonomies;
+                    if(!empty($taxonomies) && is_array($taxonomies)){
+                        foreach($taxonomies as $taxonomy => $terms){
+                            $terms = (array) $terms;
+                            # if term not exist then create first
+                                if(!empty($terms) && is_array($terms)){
+                                    foreach($terms as $term){
+                                        $term = (array) $term;
+                                        if(!term_exists($term['term_id'],$taxonomy)){
+                                        $wp_terms = $this->wp_terms_data($term['term_id'],$term);
+                                        $wp_term_taxonomy = $this->wp_term_taxonomy_data($term['term_id'],$term);
+                                        $this->insert_taxonomy($term['term_id'],$wp_terms,$wp_term_taxonomy);
+                                        wp_set_post_terms( $posts['ID'], [$term['term_id']], $taxonomy );
+                                    }
+                                    }
+                            }
+                            
+                            #set terms in post
+                            $term_ids = array_column($terms, 'term_id');
+                            wp_set_post_terms( $posts['ID'], $term_ids, $taxonomy );
+                        }
+                    }
+
+                    # media upload from content 
+                    $this->upload_content_media($media,$posts['ID']);
+
+                    #message 
+                    $message = 'Sync successfully.';
+                    $status = 'completed';
+                    $sync_response[] = $this->sync_opration_response($status,$message,$v);
+                    #changes
+                    $changes[$v->event_type] = $changes[$v->event_type] + 1;
                 }
 
                 //Post trash
@@ -786,7 +790,7 @@ class InstaWP_Rest_Apis{
             foreach($media as $v){
                 $v = (array) $v; 
                 if(isset($v['attachment_id']) && isset($v['attachment_url'])){
-                    $attachment_id = $this->insert_attachment($v['attachment_id'],$v['attachment_url']);
+                    $attachment_id = $this->handle_attachments((array) $v['attachment_media'], (array) $v['attachment_media_meta'], $v['attachment_url']);
                     $new[] = wp_get_attachment_url($attachment_id); 
                     $old[] = $v['attachment_url'];
                 } 
@@ -905,6 +909,47 @@ class InstaWP_Rest_Apis{
         return $Arr_merge;
     }
 
+     # import attechments form source to destination.
+    public function handle_attachments($attachment_post, $attachment_post_meta, $file){
+        $reference_id = '';
+        if(isset($attachment_post_meta['instawp_event_sync_reference_id'][0])){
+            $reference_id = $attachment_post_meta['instawp_event_sync_reference_id'][0];
+        }
+
+        $attachment_id = $this->get_post_by_reference_Id($attachment_post['post_type'], $reference_id, $attachment_post['post_name']);
+        if(!$attachment_id){
+            $filename = basename($file);
+            $arrContextOptions=array(
+                "ssl"=>array(
+                    "verify_peer"=>false,
+                    "verify_peer_name"=>false,
+                ),
+            );
+            $parent_post_id = 0;
+            $upload_file = wp_upload_bits($filename, null, file_get_contents($file,false, stream_context_create($arrContextOptions)));
+            if (!$upload_file['error']) {
+                $wp_filetype = wp_check_filetype($filename, null );
+                $attachment = array(
+                    'post_mime_type' => $wp_filetype['type'],
+                    'post_parent' => $parent_post_id,
+                    'post_title' => preg_replace('/\.[^.]+$/', '', $filename),
+                    'post_content' => '',
+                    'post_status' => 'inherit'
+                );
+                require_once(ABSPATH . "wp-admin" . '/includes/image.php');
+                require_once(ABSPATH . "wp-admin" . '/includes/file.php');
+                require_once(ABSPATH . "wp-admin" . '/includes/media.php');
+                $attachment_id = wp_insert_attachment( $attachment, $upload_file['file'], $parent_post_id );
+                if (!is_wp_error($attachment_id)) {
+                    $attachment_data = wp_generate_attachment_metadata( $attachment_id, $upload_file['file'] );
+                    wp_update_attachment_metadata( $attachment_id,  $attachment_data );
+                    $this->add_update_postmeta(['instawp_event_sync_reference_id' =>[$reference_id]], $attachment_id);
+                }
+            }
+            return $attachment_id;  
+        }
+        return $attachment_id;
+    }
     # import attechments form source to destination.
     public function insert_attachment($attachment_id = null, $file = null){
         $filename = basename($file);

@@ -92,6 +92,9 @@ define( 'INSTAWP_REMOTE_CONNECT_RETRY_INTERVAL', '3' );
 define( 'INSTAWP_PACK_SIZE', 1 << 20 );
 
 define( 'INSTAWP_DB_TABLE_STAGING_SITES', $wpdb->prefix . 'instawp_staging_sites' );
+define( 'INSTAWP_DB_TABLE_EVENTS', $wpdb->prefix . 'instawp_events' );
+define( 'INSTAWP_DB_TABLE_SYNC_HISTORY', $wpdb->prefix . 'instawp_sync_history' );
+define( 'INSTAWP_DB_TABLE_EVENT_SITES', $wpdb->prefix . 'instawp_event_sites' );
 
 define( 'INSTAWP_SUCCESS', 'success' );
 define( 'INSTAWP_FAILED', 'failed' );
@@ -215,7 +218,7 @@ function run_instawp() {
 	add_action( 'instawp_download_bg', array( $instawp_plugin, 'download_bg' ), 10, 2 );
 	$GLOBALS['instawp_plugin'] = $instawp_plugin;
 
-	instawp_staging_create_db_table();
+	instawp_create_db_tables();
 }
 
 
@@ -231,79 +234,4 @@ function run_instawp() {
 //$instawp_log = new InstaWP_Log( 'migration', 'New Migration Logic' );
 
 run_instawp();
-
-/*
-* Database Tables for 'InstaWP Connect'
-*/
-function instawp_create_table() {
-	global $wpdb;
-	$sql = array();
-
-	$event_change_table = $wpdb->prefix . "change_event";
-	$sync_history_table = $wpdb->prefix . "sync_history";
-	$changes_sync_table = $wpdb->prefix . "changes_sync";
-	$event_site_table = $wpdb->prefix . "instawp_event_site_sync";
-	
-	if ( $wpdb->get_var( "show tables like '" . $event_change_table . "'" ) !== $event_change_table ) {
-		$sql[] = "CREATE TABLE " . $event_change_table . "     (
-        id int(20) NOT NULL AUTO_INCREMENT,
-        event_name varchar(128) NOT NULL,
-        event_slug varchar(128) NOT NULL,
-        event_type varchar(128) NOT NULL,
-        source_id int(20) NOT NULL,
-        title text NOT NULL,
-        details longtext NOT NULL,
-        user_id int(20) NOT NULL,
-        date datetime NOT NULL,
-        prod varchar(128) NOT NULL,
-        status ENUM ('pending','in_progress','completed','error') DEFAULT 'pending',
-        synced_message varchar(128),
-        PRIMARY KEY  (id)
-        ) ";
-	}
-
-	if ( $wpdb->get_var( "show tables like '" . $event_site_table . "'" ) !== $event_site_table ) {
-		$sql[] = "CREATE TABLE " . $event_site_table . "     (
-            id int(20) NOT NULL AUTO_INCREMENT,
-            event_id int(20) NOT NULL,
-            connect_id int(20) NOT NULL,
-			status ENUM ('pending','in_progress','completed','error') DEFAULT 'pending',
-            date datetime NOT NULL,
-            PRIMARY KEY  (id)
-            )";
-	}
-
-	if ( $wpdb->get_var( "show tables like '" . $changes_sync_table . "'" ) !== $changes_sync_table ) {
-		$sql[] = "CREATE TABLE " . $changes_sync_table . "     (
-            id int(20) NOT NULL AUTO_INCREMENT,
-            sync_id int(20) NOT NULL,
-            sync_message varchar(255) NOT NULL,
-            date datetime NOT NULL,
-            PRIMARY KEY  (id)
-            )";
-	}
-
-	if ( $wpdb->get_var( "show tables like '" . $sync_history_table . "'" ) !== $sync_history_table ) {
-		$sql[] = "CREATE TABLE " . $sync_history_table . "     (
-            id int(20) NOT NULL AUTO_INCREMENT,
-            encrypted_contents longtext NOT NULL,
-            changes longtext NOT NULL,
-            sync_response longtext NOT NULL,
-            direction varchar(128) NOT NULL,
-            status varchar(128) NOT NULL,
-            user_id int(20) NOT NULL,
-            changes_sync_id int(20) NOT NULL,
-            sync_message varchar(128) NOT NULL,
-            source_connect_id int(20) NOT NULL,
-            source_url varchar(128),
-            date datetime NOT NULL,
-            PRIMARY KEY  (id)
-            ) ";
-	}
-	
-	if ( ! empty( $sql ) ) {
-		require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
-		dbDelta( $sql );
-	}
-}
 
