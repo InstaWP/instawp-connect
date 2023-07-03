@@ -1207,6 +1207,9 @@ add_action( 'wp_head', function () {
 			}
 		}
 
+		instawp_update_backup_progress( 'instawp-64a2cdb83abad' );
+
+
 		die();
 	}
 }, 0 );
