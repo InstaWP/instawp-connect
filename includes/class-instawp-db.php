@@ -36,9 +36,9 @@ class InstaWP_DB{
 
         #tables array
         $this->tables = [
-            'ch_table' => $this->wpdb->prefix . 'change_event',
-            'sh_table' => $this->wpdb->prefix . 'sync_history',
-            'se_table' => $this->wpdb->prefix . 'instawp_event_site_sync'
+            'ch_table' => INSTAWP_DB_TABLE_EVENTS,
+            'sh_table' => INSTAWP_DB_TABLE_SYNC_HISTORY,
+            'se_table' => INSTAWP_DB_TABLE_EVENT_SITES
         ];
     }
     
