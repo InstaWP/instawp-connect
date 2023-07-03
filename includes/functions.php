@@ -805,12 +805,3 @@ if ( ! function_exists( 'instawp_get_post_by_name' ) ) {
 		return null;
 	}
 }
-
-
-function pr($data){
-	echo "<pre>";
-
-	print_r($data);
-
-	exit();
-}
