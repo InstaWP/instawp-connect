@@ -689,6 +689,13 @@ class InstaWP_taskmanager {
 		return $migrate_task['options']['backup_options']['backup'] ?? array();
 	}
 
+	public static function get_migrate_id( $task_id, $default = '' ) {
+
+		$migrate_task = InstaWP_taskmanager::get_task( $task_id );
+
+		return InstaWP_Setting::get_args_option( 'migrate_id', $migrate_task, $default );
+	}
+
 	public static function get_task_backup_upload_data( $task_id, $key ) {
 
 		$migrate_task = InstaWP_taskmanager::get_task( $task_id );
