@@ -665,7 +665,7 @@ class InstaWP_Backup_Api {
 			$this->validate_api_request( $request );
 
 			$parameters         = $request->get_params();
-			$is_background      = (bool) InstaWP_Setting::get_args_option( 'instawp_is_background', true );
+			$is_background      = $parameters['wp']['options']['instawp_is_background'] ?? true;
 			$restore_options    = json_encode( array(
 				'skip_backup_old_site'     => '1',
 				'skip_backup_old_database' => '1',
