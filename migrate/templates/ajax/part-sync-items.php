@@ -4,7 +4,6 @@
             $event_row = $InstaWP_db->getSiteEventStatus($connect_id, $event->id);    
             $status = $event_row && $event_row->status == 'completed' ? $event_row->status : 'pending';
         ?>
-        <?php //$colors = $changeEvent->getStatusColor($event['status']); ?>
         <tr>
             <td class="whitespace-nowrap py-6 px-6 text-xs font-medium text-grayCust-300"><?php echo esc_html( $event->event_name ); ?></td>
             <td class="whitespace-nowrap px-6 py-6 font-medium text-xs text-grayCust-300"><?php echo esc_html( $event->title ); ?></td>
