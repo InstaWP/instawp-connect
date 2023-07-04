@@ -16,7 +16,7 @@ abstract class ActionScheduler_Store extends ActionScheduler_Store_Deprecated {
 	private static $store = null;
 
 	/** @var int */
-	protected static $max_args_length = 800000;
+	protected static $max_args_length = 8000000;
 
 	/**
 	 * @param ActionScheduler_Action $action

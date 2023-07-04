@@ -136,7 +136,7 @@ $others = (abs($total_events) - abs($post_new+$post_delete+$post_trash));
                         <div class="topinstawppopwrap">
                             <h3><?php echo esc_html__( 'Preparing changes for Sync', 'instawp-connect' ); ?></h3>
                             <div class="destination_form">
-                                <label for="instawp-destination"><?php echo esc_html__( 'Destination', 'instawp-connect' ); ?></label>
+                                <label for="destination-site"><?php echo esc_html__( 'Destination', 'instawp-connect' ); ?></label>
                                 <select id="destination-site">
                                     <?php  foreach($staging_sites as $site): ?>
                                         <?php $site_name = isset( $site['site_name'] ) ? $site['site_name'] : ''; ?>

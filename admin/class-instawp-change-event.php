@@ -18,7 +18,7 @@ class InstaWP_Change_event {
 
 	public function __construct() {
 
-		add_action( 'admin_menu', array( $this, 'add_change_event_menu' ) );
+//		add_action( 'admin_menu', array( $this, 'add_change_event_menu' ) );
 		add_action( 'admin_bar_menu', array( $this, 'add_sync_status_toolbar_link' ), 999);
 	}
 

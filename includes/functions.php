@@ -652,7 +652,7 @@ if ( ! function_exists( 'instawp_update_backup_progress' ) ) {
 	function instawp_update_backup_progress( $migrate_task_id = '', $migrate_id = '' ) {
 
 		$backup_progress = 0;
-		$response        = array();
+		$response        = array( 'success' => false );
 
 		foreach ( InstaWP_taskmanager::get_task_backup_data( $migrate_task_id ) as $key => $data ) {
 			$backup_progress += (int) InstaWP_Setting::get_args_option( 'backup_progress', $data, '0' );
