@@ -534,12 +534,13 @@ class InstaWP_Backup_Api {
 	 * Valid api request and if invalid api key then stop executing.
 	 *
 	 * @param WP_REST_Request $request
+	 * @param bool            $check_management
 	 *
 	 * @return WP_Error|bool
 	 */
-	private function validate_api_request( WP_REST_Request $request ) {
+	private function validate_api_request( WP_REST_Request $request, $check_management = false ) {
 
-		if ( ! defined( 'INSTAWP_ALLOW_MANAGE' ) || ( defined( 'INSTAWP_ALLOW_MANAGE' ) && true !== INSTAWP_ALLOW_MANAGE ) ) {
+		if ( $check_management && ( ! defined( 'INSTAWP_ALLOW_MANAGE' ) || ( defined( 'INSTAWP_ALLOW_MANAGE' ) && true !== INSTAWP_ALLOW_MANAGE ) ) ) {
 			return new WP_Error( 400, esc_html__( 'INSTAWP_ALLOW_MANAGE should be defined and set to true in wp-config.php file.', 'instawp-connect' ) );
 		}
 
@@ -1174,7 +1175,7 @@ class InstaWP_Backup_Api {
 	 */
 	public function get_inventory( WP_REST_Request $request ) {
 
-		$response = $this->validate_api_request( $request );
+		$response = $this->validate_api_request( $request, true );
 		if ( is_wp_error( $response ) ) {
 			return $this->throw_error( $response );
 		}
@@ -1245,7 +1246,7 @@ class InstaWP_Backup_Api {
 	 */
 	public function perform_install( WP_REST_Request $request ) {
 
-		$response = $this->validate_api_request( $request );
+		$response = $this->validate_api_request( $request, true );
 		if ( is_wp_error( $response ) ) {
 			return $this->throw_error( $response );
 		} 
