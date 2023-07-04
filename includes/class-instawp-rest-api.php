@@ -1273,7 +1273,7 @@ class InstaWP_Backup_Api {
 
 			if ( 'wp.org' === $param_source ) {
 				if ( ! function_exists( 'plugins_api' ) ) {
-					include_once ABSPATH . 'wp-admin/includes/plugin-install.php';
+					require_once ABSPATH . 'wp-admin/includes/plugin-install.php';
 				}
 	
 				$api = plugins_api( 'plugin_information', [
