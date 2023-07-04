@@ -90,12 +90,21 @@ class InstaWP_Backup_Api {
 			'callback'            => array( $this, 'get_inventory' ),
 			'permission_callback' => '__return_true',
 		) );
+
+		register_rest_route( $this->namespace . '/' . $this->version_2, '/install', array(
+			'methods'             => 'POST',
+			'callback'            => array( $this, 'perform_install' ),
+			'permission_callback' => '__return_true',
+		) );
 	}
 
 
 	function instawp_hosting_migration( WP_REST_Request $request ) {
 
-		$this->validate_api_request( $request );
+		$response = $this->validate_api_request( $request );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
 
 		$response = INSTAWP_Migration_hosting::connect_migrate();
 
@@ -112,7 +121,10 @@ class InstaWP_Backup_Api {
 	 */
 	function instawp_handle_clear_cache( WP_REST_Request $request ) {
 
-		$this->validate_api_request( $request );
+		$response = $this->validate_api_request( $request );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
 
 		if ( ! function_exists( 'is_plugin_active' ) ) {
 			include_once ABSPATH . 'wp-admin/includes/plugin.php';
@@ -151,7 +163,10 @@ class InstaWP_Backup_Api {
 			wp_cache_clean_cache( $file_prefix, true );
 		}
 
-		return new WP_REST_Response( array( 'error' => false, 'message' => esc_html( 'Cache clear success' ) ) );
+		return new WP_REST_Response( array(
+			'error'   => false,
+			'message' => esc_html( 'Cache clear success' ),
+		) );
 	}
 
 
@@ -160,7 +175,10 @@ class InstaWP_Backup_Api {
 	 * */
 	public function instawp_handle_auto_login_code( WP_REST_Request $request ) {
 
-		$this->validate_api_request( $request );
+		$response = $this->validate_api_request( $request );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
 
 		$response_array = array();
 
@@ -194,7 +212,7 @@ class InstaWP_Backup_Api {
 			$message        = "success";
 			$response_array = array(
 				'code'    => $uuid_code_256,
-				'message' => $message
+				'message' => $message,
 			);
 			set_transient( 'instawp_auto_login_code', $uuid_code_256, 8 * HOUR_IN_SECONDS );
 		} else {
@@ -215,9 +233,8 @@ class InstaWP_Backup_Api {
 		}
 
 		$response = new WP_REST_Response( $response_array );
-		$response->set_status( 200 );
 
-		return $response;
+		return rest_ensure_response( $response );
 	}
 
 	/**
@@ -225,7 +242,10 @@ class InstaWP_Backup_Api {
 	 * */
 	public function instawp_handle_auto_login( WP_REST_Request $request ) {
 
-		$this->validate_api_request( $request );
+		$response = $this->validate_api_request( $request );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
 
 		$response_array = array();
 		$param_api_key  = $request->get_param( 'api_key' );
@@ -264,7 +284,7 @@ class InstaWP_Backup_Api {
 			$auto_login_url = add_query_arg(
 				array(
 					'c' => $param_code,
-					's' => base64_encode( $site_user )
+					's' => base64_encode( $site_user ),
 				),
 				wp_login_url( '', true )
 			);
@@ -301,9 +321,8 @@ class InstaWP_Backup_Api {
 		}
 
 		$response = new WP_REST_Response( $response_array );
-		$response->set_status( 200 );
 
-		return $response;
+		return rest_ensure_response( $response );
 	}
 
 
@@ -506,9 +525,8 @@ class InstaWP_Backup_Api {
 		}
 
 		$response = new WP_REST_Response( $results );
-		$response->set_status( 200 );
 
-		return $response;
+		return rest_ensure_response( $response );
 	}
 
 
@@ -516,10 +534,15 @@ class InstaWP_Backup_Api {
 	 * Valid api request and if invalid api key then stop executing.
 	 *
 	 * @param WP_REST_Request $request
+	 * @param bool            $check_management
 	 *
-	 * @return void
+	 * @return WP_Error|bool
 	 */
-	function validate_api_request( WP_REST_Request $request ) {
+	private function validate_api_request( WP_REST_Request $request, $check_management = false ) {
+
+		if ( $check_management && ( ! defined( 'INSTAWP_ALLOW_MANAGE' ) || ( defined( 'INSTAWP_ALLOW_MANAGE' ) && true !== INSTAWP_ALLOW_MANAGE ) ) ) {
+			return new WP_Error( 400, esc_html__( 'INSTAWP_ALLOW_MANAGE should be defined and set to true in wp-config.php file.', 'instawp-connect' ) );
+		}
 
 		$bearer_token = sanitize_text_field( $request->get_header( 'authorization' ) );
 		$bearer_token = str_replace( 'Bearer ', '', $bearer_token );
@@ -527,26 +550,29 @@ class InstaWP_Backup_Api {
 
 		// check if the bearer token is empty
 		if ( empty( $bearer_token ) ) {
-			echo json_encode( array( 'error' => true, 'message' => esc_html__( 'Empty bearer token.', 'instawp-connect' ) ) );
-			die();
+			return new WP_Error( 401, esc_html__( 'Empty bearer token.', 'instawp-connect' ) );
 		}
 
 		//in some cases Laravel stores api key with ID attached in front of it.
 		//so we need to remove it and then hash the key
-		if ( count( $api_key_exploded = explode( "|", $api_options['api_key'] ) ) > 1 ) {
-			$api_hash = hash( "sha256", $api_key_exploded[1] );
+		$api_key          = isset( $api_options['api_key'] ) ? trim( $api_options['api_key'] ) : '';
+		$api_key_exploded = explode( '|', $api_key );
+
+		if ( count( $api_key_exploded ) > 1 ) {
+			$api_hash = hash( 'sha256', $api_key_exploded[1] );
 		} else {
-			$api_hash = hash( "sha256", $api_options['api_key'] );
+			$api_hash = hash( 'sha256', $api_key );
 		}
 
 //		echo "<pre>";
 //		print_r( [ $api_hash ] );
 //		echo "</pre>";
 
-		if ( ! isset( $api_options['api_key'] ) || $bearer_token != $api_hash ) {
-			echo json_encode( array( 'error' => true, 'message' => esc_html__( 'Invalid bearer token.', 'instawp-connect' ) ) );
-			die();
+		if ( empty( $api_key ) || $bearer_token != $api_hash ) {
+			return new WP_Error( 403, esc_html__( 'Invalid bearer token.', 'instawp-connect' ) );
 		}
+
+		return true;
 	}
 
 	public static function restore_bg( $backup_list, $restore_options, $parameters ) {
@@ -643,7 +669,10 @@ class InstaWP_Backup_Api {
 
 	public function download( WP_REST_Request $request ) {
 
-		$this->validate_api_request( $request );
+		$response = $this->validate_api_request( $request );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
 
 		$parameters         = $request->get_params();
 		$backup_task        = new InstaWP_Backup_Task();
@@ -658,7 +687,12 @@ class InstaWP_Backup_Api {
 			do_action( 'action_scheduler_run_queue', 'Async Request' );
 		}
 
-		$res_result = array( 'completed' => false, 'progress' => 55, 'message' => esc_html__( 'Downloading has been started.', 'instawp-connect' ), 'status' => 'wait' );
+		$res_result = array(
+			'completed' => false,
+			'progress'  => 55,
+			'message'   => esc_html__( 'Downloading has been started.', 'instawp-connect' ),
+			'status'    => 'wait',
+		);
 
 		return new WP_REST_Response( $res_result );
 	}
@@ -667,8 +701,10 @@ class InstaWP_Backup_Api {
 	public function restore( WP_REST_Request $request ) {
 
 		try {
-
-			$this->validate_api_request( $request );
+			$response = $this->validate_api_request( $request );
+			if ( is_wp_error( $response ) ) {
+				return $this->throw_error( $response );
+			}
 
 			$parameters         = $request->get_params();
 			$is_background      = $parameters['wp']['options']['instawp_is_background'] ?? true;
@@ -704,7 +740,11 @@ class InstaWP_Backup_Api {
 			$backup_list = InstaWP_Backuplist::get_backuplist();
 
 			if ( empty( $backup_list ) ) {
-				return new WP_REST_Response( array( 'completed' => false, 'progress' => 0, 'message' => 'empty backup list' ) );
+				return new WP_REST_Response( array(
+					'completed' => false,
+					'progress'  => 0,
+					'message'   => 'empty backup list',
+				) );
 			}
 
 			// Background processing of restore using woocommerce's scheduler.
@@ -713,12 +753,20 @@ class InstaWP_Backup_Api {
 			// Immediately run the schedule, don't want for the cron to run.
 			do_action( 'action_scheduler_run_queue', 'Async Request' );
 
-			$res_result = array( 'completed' => false, 'progress' => 55, 'message' => 'Backup downloaded, restore initiated..', 'status' => 'wait' );
+			$res_result = array(
+				'completed' => false,
+				'progress'  => 55,
+				'message'   => 'Backup downloaded, restore initiated..',
+				'status'    => 'wait',
+			);
 
 			return new WP_REST_Response( $res_result );
 
 		} catch ( Exception $e ) {
-			return new WP_REST_Response( array( 'error_code' => $e->getCode(), 'message' => $e->getMessage() ) );
+			return new WP_REST_Response( array(
+				'error_code' => $e->getCode(),
+				'message'    => $e->getMessage(),
+			) );
 		}
 	}
 
@@ -817,9 +865,8 @@ class InstaWP_Backup_Api {
 		$task_id  = $parameters['task_id'];
 		$res      = get_option( 'instawp_upload_data_' . $task_id, '' );
 		$response = new WP_REST_Response( $res );
-		$response->set_status( 200 );
 
-		return $response;
+		return rest_ensure_response( $response );
 	}
 
 
@@ -893,7 +940,11 @@ class InstaWP_Backup_Api {
 			InstaWP_taskmanager::delete_all_task();
 		}
 
-		return new WP_REST_Response( array( 'success' => ! empty( $migrate_task_id ), 'task_id' => $migrate_task_id, 'part_urls' => $part_urls ) );
+		return new WP_REST_Response( array(
+			'success'   => ! empty( $migrate_task_id ),
+			'task_id'   => $migrate_task_id,
+			'part_urls' => $part_urls,
+		) );
 	}
 
 
@@ -924,7 +975,7 @@ class InstaWP_Backup_Api {
 			$response        = new WP_REST_Response( $data );
 			$response->set_status( 404 );
 
-			return $response;
+			return rest_ensure_response( $response );
 		}
 
 		$backup_percent = '0';
@@ -940,10 +991,8 @@ class InstaWP_Backup_Api {
 		$data['status']   = $list_tasks[ $task_id ]['status']['str'];
 
 		$response = new WP_REST_Response( $data );
-		$response->set_status( 200 );
 
-		return $response;
-
+		return rest_ensure_response( $response );
 	}
 
 
@@ -1021,7 +1070,7 @@ class InstaWP_Backup_Api {
 		$admin_users = get_users(
 			array(
 				'role__in' => array( 'administrator' ),
-				'fields'   => array( 'user_login' )
+				'fields'   => array( 'user_login' ),
 			)
 		);
 
@@ -1126,7 +1175,10 @@ class InstaWP_Backup_Api {
 	 */
 	public function get_inventory( WP_REST_Request $request ) {
 
-		$this->validate_api_request( $request );
+		$response = $this->validate_api_request( $request, true );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
 
 		if ( ! function_exists( 'get_plugins' ) || ! function_exists( 'get_mu_plugins' ) ) {
 			require_once ABSPATH . 'wp-admin/includes/plugin.php';
@@ -1152,7 +1204,7 @@ class InstaWP_Backup_Api {
 			$slug         = explode( '/', $name );
 			$mu_plugins[] = [
 				'slug'    => $slug[0],
-				'version' => $plugin['Version']
+				'version' => $plugin['Version'],
 			];
 		}
 
@@ -1168,7 +1220,7 @@ class InstaWP_Backup_Api {
 			$themes[] = [
 				'slug'      => $theme->get_stylesheet(),
 				'version'   => $theme->get( 'Version' ),
-				'activated' => $theme->get_stylesheet() === $current_theme->get_stylesheet()
+				'activated' => $theme->get_stylesheet() === $current_theme->get_stylesheet(),
 			];
 		}
 
@@ -1183,6 +1235,174 @@ class InstaWP_Backup_Api {
 		$response = new WP_REST_Response( $results );
 
 		return rest_ensure_response( $response );
+	}
+
+	/**
+	 * Handle response for plugin and theme installation and activation.
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function perform_install( WP_REST_Request $request ) {
+
+		$response = $this->validate_api_request( $request, true );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		} 
+
+		$param_target   = $request->get_param( 'target' ) ?? '';
+		$param_source   = $request->get_param( 'source' ) ?? 'wp.org';
+		$param_type     = $request->get_param( 'type' ) ?? 'plugin';
+		$param_activate = $request->get_param( 'activate' ) ?? false;
+		$target_url     = $param_target;
+
+		if ( ! class_exists( 'WP_Upgrader' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+		}
+
+		if ( ! class_exists( 'Plugin_Upgrader' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/class-plugin-upgrader.php';
+		}
+
+		if ( ! class_exists( 'Theme_Upgrader' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/class-theme-upgrader.php';
+		}
+
+		if ( ! class_exists( 'WP_Ajax_Upgrader_Skin' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/class-wp-ajax-upgrader-skin.php';
+		}
+
+		if ( 'plugin' === $param_type ) {
+			$upgrader = new Plugin_Upgrader( new WP_Ajax_Upgrader_Skin() );
+
+			if ( 'wp.org' === $param_source ) {
+				if ( ! function_exists( 'plugins_api' ) ) {
+					require_once ABSPATH . 'wp-admin/includes/plugin-install.php';
+				}
+	
+				$api = plugins_api( 'plugin_information', [
+					'slug'   => $param_target,
+					'fields' => [
+						'short_description' => false,
+						'screenshots'       => false,
+						'sections'          => false,
+						'contributors'      => false,
+						'versions'          => false,
+						'banners'           => false,
+						'requires'          => false,
+						'rating'            => false,
+						'ratings'           => false,
+						'downloaded'        => false,
+						'last_updated'      => false,
+						'added'             => false,
+						'tags'              => false,
+						'compatibility'     => false,
+						'homepage'          => false,
+						'donate_link'       => false,
+						'downloadlink'      => true,
+					],
+				] );
+				if ( ! is_wp_error( $api ) && ! empty( $api->download_link ) ) {
+					$target_url = $api->download_link;
+				}
+			}
+		} elseif ( 'theme' === $param_type ) {
+			$upgrader = new Theme_Upgrader( new WP_Ajax_Upgrader_Skin() );
+
+			if ( 'wp.org' === $param_source ) {
+				if ( ! function_exists( 'themes_api' ) ) {
+					require_once ABSPATH . 'wp-admin/includes/theme.php';
+				}
+
+				$api = themes_api( 'theme_information', [
+					'slug'   => $param_target,
+					'fields' => [
+						'screenshot_count' => 0,
+						'contributors'     => false,
+						'sections'         => false,
+						'tags'             => false,
+						'downloadlink'     => true,
+					],
+				] );
+				if ( ! is_wp_error( $api ) && ! empty( $api->download_link ) ) {
+					$target_url = $api->download_link;
+				}
+			}
+		}
+
+		if ( $this->is_valid_download_link( $target_url ) ) {
+			$results = [ 'success' => true ];
+			$result  = $upgrader->install( $target_url, [
+				'overwrite_package' => true,
+			] );
+
+			if ( ! $result || is_wp_error( $result ) ) {
+				$results = [
+					'success' => false,
+					'message' => is_wp_error( $result ) ? $result->get_error_message() : esc_html__( 'Installation failed!', 'instawp-connect' ),
+				];
+			} else {
+				if ( filter_var( $param_activate, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE ) ) {
+					if ( 'plugin' === $param_type ) {
+						if ( ! function_exists( 'activate_plugin' ) ) {
+							require_once ABSPATH . 'wp-admin/includes/plugin.php';
+						}
+						
+						activate_plugin( $upgrader->plugin_info(), '', false, true );
+					} elseif ( 'theme' === $param_type ) {
+						if ( ! function_exists( 'switch_theme' ) ) {
+							require_once ABSPATH . 'wp-includes/theme.php';
+						}
+
+						switch_theme( $upgrader->theme_info()->get_stylesheet() );
+					}
+				}
+			}
+		} else {
+			$results = [
+				'success' => false,
+				'message' => esc_html__( 'Provided URL is not valid!', 'instawp-connect' ),
+			];
+		}
+		$response = new WP_REST_Response( $results );
+
+		return rest_ensure_response( $response );
+	}
+
+	/**
+	 * Returns error data with WP_REST_Response.
+	 *
+	 * @param WP_Error $error
+	 *
+	 * @return WP_REST_Response
+	 */
+	private function throw_error( $error ) {
+		$response = new WP_REST_Response( [
+			'success' => false,
+			'message' => $error->get_error_message(),
+		] );
+		$response->set_status( $error->get_error_code() );
+
+		return rest_ensure_response( $response );
+	}
+
+	/**
+	 * Verify the plugin or theme download url.
+	 *
+	 * @param string $url
+	 *
+	 * @return bool
+	 */
+	private function is_valid_download_link( $url ) {
+		$valid = false;
+		if ( $url && filter_var( $url, FILTER_VALIDATE_URL ) ) {
+			$response = wp_remote_get( $url, [
+				'timeout' => 60,
+			] );
+			$valid = 200 === wp_remote_retrieve_response_code( $response );
+		}
+		return $valid;
 	}
 }
 
