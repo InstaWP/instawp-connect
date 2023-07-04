@@ -73,27 +73,17 @@ class InstaWP_Ajax_Fn{
     }
     public function get_site_events(){
         global $wpdb;
-		$connect_id = $_POST['connect_id'];
-        $InstaWP_db = new InstaWP_DB();
-        $tables = $InstaWP_db->tables;
-
+        $InstaWP_db     = new InstaWP_DB();
+        $tables         = $InstaWP_db->tables;
+        $items_per_page = INSTAWP_EVENTS_PER_PAGE;
+        $connect_id     = isset($_POST['connect_id']) ? sanitize_text_field($_POST['connect_id']) : 0;
         $query          = "SELECT * FROM {$tables['ch_table']}"; 
         $total_query    = "SELECT COUNT(1) FROM (${query}) AS combined_table";
         $total          = $wpdb->get_var( $total_query );
-        $items_per_page = 20;
-
-        // if(isset($_POST['filter_action']) && !empty($_POST['event_type'])){
-        //     $events = $InstaWP_db->get_with_condition($tables['ch_table'],'event_type',$_POST['event_type']);
-        // }elseif(isset($_GET['change_event_status']) && $_GET['change_event_status'] != 'all'){
-        //     $events = $InstaWP_db->get_with_condition($tables['ch_table'],'status',$_GET['change_event_status']);
-        // }
-        // else{
-        //     $events = $InstaWP_db->getAllEvents();
-        // }
-        $page             = isset( $_POST['epage'] ) ? abs( (int) $_POST['epage'] ) : 1;
-        $offset           = ( $page * $items_per_page ) - $items_per_page;
-        $events           = $wpdb->get_results( $query . " ORDER BY id DESC LIMIT ${offset}, ${items_per_page}");
-        $totalPage        = ceil($total / $items_per_page);
+        $page           = isset( $_POST['epage'] ) ? abs( (int) $_POST['epage'] ) : 1;
+        $offset         = ( $page * $items_per_page ) - $items_per_page;
+        $events         = $wpdb->get_results( $query . " ORDER BY id DESC LIMIT ${offset}, ${items_per_page}");
+        $totalPage      = ceil($total / $items_per_page);
 
 		ob_start();
 		include INSTAWP_PLUGIN_DIR . '/migrate/templates/ajax/part-sync-items.php';

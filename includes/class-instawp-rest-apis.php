@@ -110,7 +110,7 @@ class InstaWP_Rest_Apis{
                     $media = isset($v->details->media) ? (array) $v->details->media : '';
                     $reference_id = isset($postmeta['instawp_event_sync_reference_id'][0]) ? $postmeta['instawp_event_sync_reference_id'][0] : '';
                     
-
+                    
                     if($posts['post_type'] == 'attachment'){
                         //create or update the attachments
                         $posts['ID'] = $this->handle_attachments($posts, $postmeta, $posts['guid']);
@@ -945,8 +945,9 @@ class InstaWP_Rest_Apis{
                     wp_update_attachment_metadata( $attachment_id,  $attachment_data );
                     $this->add_update_postmeta(['instawp_event_sync_reference_id' =>[$reference_id]], $attachment_id);
                 }
+                return $attachment_id; 
             }
-            return $attachment_id;  
+            return;
         }
         return $attachment_id;
     }
