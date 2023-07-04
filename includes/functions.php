@@ -30,7 +30,7 @@ if ( ! function_exists( 'instawp_create_db_tables' ) ) {
 
 		maybe_create_table( INSTAWP_DB_TABLE_STAGING_SITES, $sql_create_staging_site_table );
 
-	
+
 		$sql_create_events_table = "CREATE TABLE " . INSTAWP_DB_TABLE_EVENTS . " (
 			id int(20) NOT NULL AUTO_INCREMENT,
 			event_name varchar(128) NOT NULL,
@@ -46,7 +46,7 @@ if ( ! function_exists( 'instawp_create_db_tables' ) ) {
 			synced_message varchar(128),
 			PRIMARY KEY  (id)
         ) ";
-	 
+
 		maybe_create_table( INSTAWP_DB_TABLE_EVENTS, $sql_create_events_table );
 
 		$sql_create_sync_history_table = "CREATE TABLE " . INSTAWP_DB_TABLE_EVENT_SITES . " (
@@ -57,7 +57,7 @@ if ( ! function_exists( 'instawp_create_db_tables' ) ) {
             date datetime NOT NULL,
             PRIMARY KEY  (id)
         )";
-			
+
 		maybe_create_table( INSTAWP_DB_TABLE_EVENT_SITES, $sql_create_sync_history_table );
 
 		$sql_create_event_sites_table = "CREATE TABLE " . INSTAWP_DB_TABLE_SYNC_HISTORY . " (
@@ -652,6 +652,7 @@ if ( ! function_exists( 'instawp_update_backup_progress' ) ) {
 	function instawp_update_backup_progress( $migrate_task_id = '', $migrate_id = '' ) {
 
 		$backup_progress = 0;
+		$response        = array();
 
 		foreach ( InstaWP_taskmanager::get_task_backup_data( $migrate_task_id ) as $key => $data ) {
 			$backup_progress += (int) InstaWP_Setting::get_args_option( 'backup_progress', $data, '0' );
@@ -664,7 +665,9 @@ if ( ! function_exists( 'instawp_update_backup_progress' ) ) {
 			return false;
 		}
 
-		$response = InstaWP_Curl::do_curl( "migrates/{$migrate_id}/backup-progress", array( 'backup_progress' => $backup_progress ) );
+		if ( $backup_progress < 100 ) {
+			$response = InstaWP_Curl::do_curl( "migrates/{$migrate_id}/backup-progress", array( 'backup_progress' => $backup_progress ) );
+		}
 
 		return (bool) $response['success'] ?? false;
 	}
