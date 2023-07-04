@@ -706,8 +706,23 @@ class InstaWP_Change_Event_Filters {
 
         #manage custom post metas
         $this->_prepare_metas_for_each_post($post_id);
-
-        $details = json_encode(['content' => $post_content,'posts' => $post,'postmeta' => get_post_meta($post_id),'featured_image' => ['featured_image_id'=>$featured_image_id,'featured_image_url' => $featured_image_url],'taxonomies' => $taxonomies,'media' => $media,'elementor_css' => $elementor_css,'product_gallery' => $product_gallery]);
+        $this->_prepare_metas_for_each_post($featured_image_id);
+        
+        $details = json_encode([
+            'content' => $post_content,
+            'posts' => $post,
+            'postmeta' => get_post_meta($post_id),
+            'featured_image' => [
+                'featured_image_id'=>$featured_image_id,
+                'featured_image_url' => $featured_image_url,
+                'media'=> get_post($featured_image_id),
+                'media_meta'=> get_post_meta($featured_image_id),
+            ],
+            'taxonomies' => $taxonomies,
+            'media' => $media,
+            'elementor_css' => $elementor_css,
+            'product_gallery' => $product_gallery
+        ]);
         $this->eventDataAdded($event_name,$event_slug,$event_type,$source_id,$title,$details);
     }
     /*
@@ -779,13 +794,15 @@ class InstaWP_Change_Event_Filters {
         if(isset($match[0])){
             $attachment_urls = array_unique($match[0]);        
             foreach($attachment_urls as $attachment_url){
-                $attachment_id = attachment_url_to_postid($attachment_url);
                 if (strpos($attachment_url, $_SERVER['HTTP_HOST']) !== false) {
+                    $attachment_id = attachment_url_to_postid($attachment_url);
                     #if(isset($attachment_id) && !empty($attachment_id)){ 
                         #It's check media exist or not 
                         $media[] = [
                             'attachment_url' => $attachment_url,
-                            'attachment_id' => attachment_url_to_postid($attachment_url)
+                            'attachment_id' => $attachment_id,
+                            'attachment_media'=> get_post($attachment_id),
+                            'attachment_media_meta'=> get_post_meta($attachment_id),
                         ];
                     #}
                 } 

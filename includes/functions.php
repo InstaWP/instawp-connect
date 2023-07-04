@@ -4,31 +4,79 @@
  */
 
 
-if ( ! function_exists( 'instawp_staging_create_db_table' ) ) {
+if ( ! function_exists( 'instawp_create_db_tables' ) ) {
 	/**
 	 * @return void
 	 */
-	function instawp_staging_create_db_table() {
+	function instawp_create_db_tables() {
 
 		if ( ! function_exists( 'maybe_create_table' ) ) {
 			require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 		}
 
-		$sql_create_table = "CREATE TABLE " . INSTAWP_DB_TABLE_STAGING_SITES . " (
-        id int(50) NOT NULL AUTO_INCREMENT,
-        task_id varchar(255) NOT NULL,
-        connect_id varchar(255) NOT NULL,
-        site_name varchar(255) NOT NULL,
-        site_url varchar(255) NOT NULL,
-	    admin_email varchar(255) NOT NULL,
-	    username varchar(255) NOT NULL,
-	    password varchar(255) NOT NULL,
-	    auto_login_hash varchar(255) NOT NULL,
-        datetime  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY (id)
-    );";
+		$sql_create_staging_site_table = "CREATE TABLE " . INSTAWP_DB_TABLE_STAGING_SITES . " (
+			id int(50) NOT NULL AUTO_INCREMENT,
+			task_id varchar(255) NOT NULL,
+			connect_id varchar(255) NOT NULL,
+			site_name varchar(255) NOT NULL,
+			site_url varchar(255) NOT NULL,
+			admin_email varchar(255) NOT NULL,
+			username varchar(255) NOT NULL,
+			password varchar(255) NOT NULL,
+			auto_login_hash varchar(255) NOT NULL,
+			datetime  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (id)
+    	);";
 
-		maybe_create_table( INSTAWP_DB_TABLE_STAGING_SITES, $sql_create_table );
+		maybe_create_table( INSTAWP_DB_TABLE_STAGING_SITES, $sql_create_staging_site_table );
+
+
+		$sql_create_events_table = "CREATE TABLE " . INSTAWP_DB_TABLE_EVENTS . " (
+			id int(20) NOT NULL AUTO_INCREMENT,
+			event_name varchar(128) NOT NULL,
+			event_slug varchar(128) NOT NULL,
+			event_type varchar(128) NOT NULL,
+			source_id int(20) NOT NULL,
+			title text NOT NULL,
+			details longtext NOT NULL,
+			user_id int(20) NOT NULL,
+			date datetime NOT NULL,
+			prod varchar(128) NOT NULL,
+			status ENUM ('pending','in_progress','completed','error') DEFAULT 'pending',
+			synced_message varchar(128),
+			PRIMARY KEY  (id)
+        ) ";
+
+		maybe_create_table( INSTAWP_DB_TABLE_EVENTS, $sql_create_events_table );
+
+		$sql_create_sync_history_table = "CREATE TABLE " . INSTAWP_DB_TABLE_EVENT_SITES . " (
+            id int(20) NOT NULL AUTO_INCREMENT,
+            event_id int(20) NOT NULL,
+            connect_id int(20) NOT NULL,
+			status ENUM ('pending','in_progress','completed','error') DEFAULT 'pending',
+            date datetime NOT NULL,
+            PRIMARY KEY  (id)
+        )";
+
+		maybe_create_table( INSTAWP_DB_TABLE_EVENT_SITES, $sql_create_sync_history_table );
+
+		$sql_create_event_sites_table = "CREATE TABLE " . INSTAWP_DB_TABLE_SYNC_HISTORY . " (
+            id int(20) NOT NULL AUTO_INCREMENT,
+            encrypted_contents longtext NOT NULL,
+            changes longtext NOT NULL,
+            sync_response longtext NOT NULL,
+            direction varchar(128) NOT NULL,
+            status varchar(128) NOT NULL,
+            user_id int(20) NOT NULL,
+            changes_sync_id int(20) NOT NULL,
+            sync_message varchar(128) NOT NULL,
+            source_connect_id int(20) NOT NULL,
+            source_url varchar(128),
+            date datetime NOT NULL,
+            PRIMARY KEY  (id)
+            ) ";
+
+		maybe_create_table( INSTAWP_DB_TABLE_SYNC_HISTORY, $sql_create_event_sites_table );
 	}
 }
 
@@ -501,6 +549,9 @@ if ( ! function_exists( 'instawp_get_response_progresses' ) ) {
 			}
 		}
 
+		// update backup api
+		instawp_update_backup_progress( $migrate_task_id );
+
 		if ( ! empty( $migrate_id ) && $response['backup']['progress'] >= 100 && $response['upload']['progress'] >= 100 ) {
 
 			$overall_migration_progress        = instawp_get_overall_migration_progress( $migrate_id );
@@ -585,6 +636,40 @@ if ( ! function_exists( 'instawp_get_response_progresses' ) ) {
 		}
 
 		return $response;
+	}
+}
+
+
+if ( ! function_exists( 'instawp_update_backup_progress' ) ) {
+	/**
+	 * update backup progress for migrate id
+	 *
+	 * @param $migrate_task_id
+	 * @param $migrate_id
+	 *
+	 * @return bool
+	 */
+	function instawp_update_backup_progress( $migrate_task_id = '', $migrate_id = '' ) {
+
+		$backup_progress = 0;
+		$response        = array();
+
+		foreach ( InstaWP_taskmanager::get_task_backup_data( $migrate_task_id ) as $key => $data ) {
+			$backup_progress += (int) InstaWP_Setting::get_args_option( 'backup_progress', $data, '0' );
+		}
+
+		$backup_progress = min( $backup_progress, 100 );
+		$migrate_id      = empty( $migrate_id ) ? InstaWP_taskmanager::get_migrate_id( $migrate_task_id ) : $migrate_id;
+
+		if ( empty( $migrate_id ) ) {
+			return false;
+		}
+
+		if ( $backup_progress < 100 ) {
+			$response = InstaWP_Curl::do_curl( "migrates/{$migrate_id}/backup-progress", array( 'backup_progress' => $backup_progress ) );
+		}
+
+		return (bool) $response['success'] ?? false;
 	}
 }
 
@@ -701,7 +786,7 @@ if ( ! function_exists( 'instawp_domain_search' ) ) {
 		return $response['status'][0] ?? array();
 	}
 }
- 
+
 if ( ! function_exists( 'get_connect_id' ) ) {
 	/**
 	 * get connect id for source site
@@ -709,7 +794,8 @@ if ( ! function_exists( 'get_connect_id' ) ) {
 	 * @return int
 	 */
 	function get_connect_id() {
-		$connect_options = get_option('instawp_connect_id_options');
+		$connect_options = get_option( 'instawp_connect_id_options' );
+
 		return $connect_options['data']['id'];
 	}
 }
@@ -720,22 +806,25 @@ if ( ! function_exists( 'instawp_uuid' ) ) {
 	 *
 	 * @return string
 	 */
-	function instawp_uuid($length=6){
-		return bin2hex(random_bytes($length));
+	function instawp_uuid( $length = 6 ) {
+		return bin2hex( random_bytes( $length ) );
 	}
 }
 
 if ( ! function_exists( 'instawp_get_post_type_singular_name' ) ) {
 	/**
 	 * get post type singular name
+	 *
 	 * @param $post_type
+	 *
 	 * @return string
 	 */
-	function instawp_get_post_type_singular_name($post_type){
+	function instawp_get_post_type_singular_name( $post_type ) {
 		$post_type_object = get_post_type_object( $post_type );
-		if(!empty($post_type_object)){
+		if ( ! empty( $post_type_object ) ) {
 			return $post_type_object->labels->singular_name;
 		}
+
 		return '';
 	}
 }
@@ -744,15 +833,18 @@ if ( ! function_exists( 'instawp_get_post_type_singular_name' ) ) {
 if ( ! function_exists( 'instawp_get_post_by_name' ) ) {
 	/**
 	 * get post type singular name
+	 *
 	 * @param $post_name
 	 * @param $post_type
+	 *
 	 * @return string
 	 */
-	function instawp_get_post_by_name($post_name, $post_type) {
+	function instawp_get_post_by_name( $post_name, $post_type ) {
 		global $wpdb;
-		$post = $wpdb->get_var( $wpdb->prepare( "SELECT ID FROM $wpdb->posts WHERE post_name = %s AND post_type= %s ", $post_name, $post_type ));
-		if ( $post )
-			return get_post($post);
+		$post = $wpdb->get_var( $wpdb->prepare( "SELECT ID FROM $wpdb->posts WHERE post_name = %s AND post_type= %s ", $post_name, $post_type ) );
+		if ( $post ) {
+			return get_post( $post );
+		}
 
 		return null;
 	}

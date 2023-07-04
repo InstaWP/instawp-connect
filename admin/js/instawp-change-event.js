@@ -116,17 +116,17 @@ jQuery(document).ready(function ($) {
     }
 
     const get_site_events = async (page=1) => {
+        let site_id =  $("#staging-site-sync").val();
+        if(site_id == undefined || site_id == '') return;
         let formData = new FormData();
         formData.append('action', 'get_site_events');
         formData.append('epage', page);
-        formData.append('connect_id', $("#staging-site-sync").val());
+        formData.append('connect_id', site_id);
         $("#part-sync-results").html('<tr><td colspan="4" class="event-sync-cell loading"></td></tr>');
         baseCall(formData).then((response) => response.json()).then((data) => {
-            console.log(data);
            $("#part-sync-results").html(data.data.results);
            $("#event-sync-pagination").html(data.data.pagination);
         }).catch((error) => {
-            console.log(error);
             console.log("Error Occurred: ", error);
         });
     }

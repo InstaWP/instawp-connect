@@ -119,9 +119,8 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 				include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-zipclass.php';
 			}
 
-			$_settings             = isset( $_POST['settings'] ) ? $_POST['settings'] : '';
-			$destination_domain    = isset( $_POST['destination_domain'] ) ? $_POST['destination_domain'] : '';
-			$clean_previous_backup = isset( $_POST['clean_previous_backup'] ) && (bool) $_POST['clean_previous_backup'];
+			$_settings          = isset( $_POST['settings'] ) ? $_POST['settings'] : '';
+			$destination_domain = isset( $_POST['destination_domain'] ) ? $_POST['destination_domain'] : '';
 
 			parse_str( $_settings, $settings );
 
@@ -132,10 +131,6 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 			foreach ( $migrate_options as $migrate_option ) {
 				$migrate_settings[ $migrate_option ] = true;
 			}
-
-//			if ( $clean_previous_backup ) {
-//				instawp_reset_running_migration();
-//			}
 
 			$response            = array(
 				'backup'  => array(
