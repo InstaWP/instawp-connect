@@ -128,7 +128,6 @@ function instawp_plugin_activate() {
 		$wp_rewrite->set_permalink_structure( '/%postname%/' );
 		$wp_rewrite->flush_rules();
 	}
-	instawp_create_table();
 	add_option( 'instawp_do_activation_redirect', true );
 }
 
