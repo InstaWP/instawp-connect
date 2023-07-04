@@ -535,9 +535,13 @@ class InstaWP_Backup_Api {
 	 *
 	 * @param WP_REST_Request $request
 	 *
-	 * @return void
+	 * @return WP_Error|bool
 	 */
 	private function validate_api_request( WP_REST_Request $request ) {
+
+		if ( ! defined( 'INSTAWP_ALLOW_MANAGE' ) || ( defined( 'INSTAWP_ALLOW_MANAGE' ) && true !== INSTAWP_ALLOW_MANAGE ) ) {
+			return new WP_Error( 400, esc_html__( 'INSTAWP_ALLOW_MANAGE should be defined and set to true in wp-config.php file.', 'instawp-connect' ) );
+		}
 
 		$bearer_token = sanitize_text_field( $request->get_header( 'authorization' ) );
 		$bearer_token = str_replace( 'Bearer ', '', $bearer_token );
