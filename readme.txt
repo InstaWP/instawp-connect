@@ -110,6 +110,6 @@ InstaWP is an online WordPress development environment to get you started with a
 - 15/06/2023 - FIX - Added a "Start Over" button in the limit warning screen.
 
 = 0.0.9.16 =
-- 04/07/2023 - FIX - Fix some migration issues. Website migration is now much more stable and faster.
+- 04/07/2023 - FIX - Fix minor migration issues. Website migration is now much more stable and faster.
 
 
