@@ -697,7 +697,7 @@ class instaWP {
 		global $InstaWP_Curl;
 
 		$connect_ids         = get_option( 'instawp_connect_id_options', '' );
-		$connect_id          = $connect_ids['data']['connect_id'] ?? 0;
+		$connect_id          = $connect_ids['data']['id'] ?? 0;
 		$api_response        = $InstaWP_Curl::do_curl( 'connects/' . $connect_id . '/usage', [], [], false, 'v1' );
 		$api_response_status = InstaWP_Setting::get_args_option( 'success', $api_response, false );
 		$api_response_data   = InstaWP_Setting::get_args_option( 'data', $api_response, [] );
