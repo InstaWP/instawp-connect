@@ -199,7 +199,7 @@ $customize_options     = array(
                             <span class="instawp-migration-loader text-primary-900 text-base font-normal" data-complete-text="Completed">In Progress...</span>
                         </div>
                         <div class="panel mt-6 block">
-                            <div class="migration-running border border-grayCust-100 rounded-lg mb-6">
+                            <div class="migration-running hidden border border-grayCust-100 rounded-lg mb-6">
                                 <div class="p-5">
                                     <div class="flex items-center">
                                         <div class="w-24 text-grayCust-900 text-base font-normal">Backup</div>
@@ -233,7 +233,7 @@ $customize_options     = array(
                                     <button class="instawp-migrate-abort btn-shadow border border-grayCust-350 rounded-md py-2 px-8 bg-white text-redCust-50 text-sm font-medium">Abort</button>
                                 </div>
                             </div>
-                            <div class="migration-completed hidden border border-grayCust-100 rounded-lg">
+                            <div class="migration-completed  border border-grayCust-100 rounded-lg">
                                 <div class="p-6 border-b border-grayCust-10 flex items-center justify-center text-lg font-medium text-grayCust-800">
                                     <img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/check-icon.png' ) ); ?>" class="mr-2" alt="">Your new WordPress website is ready!
                                 </div>

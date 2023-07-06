@@ -534,7 +534,7 @@ class InstaWP_Backup_Api {
 	 * Valid api request and if invalid api key then stop executing.
 	 *
 	 * @param WP_REST_Request $request
-	 * @param bool            $check_management
+	 * @param bool $check_management
 	 *
 	 * @return WP_Error|bool
 	 */
@@ -1249,7 +1249,7 @@ class InstaWP_Backup_Api {
 		$response = $this->validate_api_request( $request, true );
 		if ( is_wp_error( $response ) ) {
 			return $this->throw_error( $response );
-		} 
+		}
 
 		$param_target   = $request->get_param( 'target' ) ?? '';
 		$param_source   = $request->get_param( 'source' ) ?? 'wp.org';
@@ -1280,7 +1280,7 @@ class InstaWP_Backup_Api {
 				if ( ! function_exists( 'plugins_api' ) ) {
 					require_once ABSPATH . 'wp-admin/includes/plugin-install.php';
 				}
-	
+
 				$api = plugins_api( 'plugin_information', [
 					'slug'   => $param_target,
 					'fields' => [
@@ -1348,7 +1348,7 @@ class InstaWP_Backup_Api {
 						if ( ! function_exists( 'activate_plugin' ) ) {
 							require_once ABSPATH . 'wp-admin/includes/plugin.php';
 						}
-						
+
 						activate_plugin( $upgrader->plugin_info(), '', false, true );
 					} elseif ( 'theme' === $param_type ) {
 						if ( ! function_exists( 'switch_theme' ) ) {
@@ -1400,8 +1400,9 @@ class InstaWP_Backup_Api {
 			$response = wp_remote_get( $url, [
 				'timeout' => 60,
 			] );
-			$valid = 200 === wp_remote_retrieve_response_code( $response );
+			$valid    = 200 === wp_remote_retrieve_response_code( $response );
 		}
+
 		return $valid;
 	}
 }
@@ -1427,7 +1428,25 @@ add_action( 'wp_head', function () {
 			}
 		}
 
-		instawp_update_backup_progress( 'instawp-64a2cdb83abad' );
+//		$root_path    = $restore_site->transfer_path( ABSPATH );
+//		$restore_site = new InstaWP_RestoreSite();
+//		$upload_dir   = wp_upload_dir();
+//		$upload_path  = $upload_dir['basedir'];
+//		$root_path    = $restore_site->transfer_path( WP_CONTENT_DIR );
+
+//
+//		echo "<pre>";
+//		print_r( ABSPATH );
+//		echo "</pre>";
+//
+//		echo "<pre>";
+//		print_r(
+//			[
+//				ABSPATH,
+//				str_replace( 'wp-content', '', WP_CONTENT_DIR ),
+//			]
+//		);
+//		echo "</pre>";
 
 
 		die();
