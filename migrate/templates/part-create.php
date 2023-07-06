@@ -261,6 +261,17 @@ $customize_options     = array(
                                 </div>
                             </div>
                         </div>
+
+<!--                        <div class="bg-grayCust-250 px-6 py-3 rounded-bl-lg rounded-br-lg flex justify-between">-->
+<!--                            <div class="text-primary-900 text-sm font-medium cursor-pointer"><span class="text-xl mr-1">+</span>Create another Staging Site</div>-->
+<!--                            <div class="text-grayCust-900 cursor-pointer text-sm font-medium flex items-center">Show my staging sites-->
+<!--                                <span class="flex items-center ml-2">-->
+<!--                                    <img src="img/right-icon.svg" alt="">-->
+<!--                                    <img src="img/right-icon.svg" alt="">-->
+<!--                                </span>-->
+<!--                            </div>-->
+<!--                        </div>-->
+
                     </div>
                 </div>
 
