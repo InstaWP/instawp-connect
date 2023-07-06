@@ -199,7 +199,7 @@ $customize_options     = array(
                             <span class="instawp-migration-loader text-primary-900 text-base font-normal" data-complete-text="Completed">In Progress...</span>
                         </div>
                         <div class="panel mt-6 block">
-                            <div class="migration-running border border-grayCust-100 rounded-lg mb-6">
+                            <div class="migration-running  border border-grayCust-100 rounded-lg mb-6">
                                 <div class="p-5">
                                     <div class="flex items-center">
                                         <div class="w-24 text-grayCust-900 text-base font-normal">Backup</div>
