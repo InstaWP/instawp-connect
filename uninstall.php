@@ -98,9 +98,10 @@ if ( wp_get_schedule(INSTAWP_MAIN_SCHEDULE_EVENT) ) {
     wp_unschedule_event($timestamp,INSTAWP_MAIN_SCHEDULE_EVENT);
 }
 
-/*heartbeat*/
-if ( wp_get_schedule('instwp_handle_heartbeat_cron_action') ) {
-    wp_clear_scheduled_hook('instwp_handle_heartbeat_cron_action');
-    $timestamp = wp_next_scheduled('instwp_handle_heartbeat_cron_action');
-    wp_unschedule_event($timestamp,'instwp_handle_heartbeat_cron_action');
+// Clear scheduled tasks.
+if ( class_exists( 'ActionScheduler_QueueRunner' ) ) {
+	ActionScheduler_QueueRunner::instance()->unhook_dispatch_async_request();
+}
+if ( class_exists( 'ActionScheduler_DBStore' ) ) {
+	ActionScheduler_DBStore::instance()->cancel_actions_by_group( 'instawp-connect' );
 }

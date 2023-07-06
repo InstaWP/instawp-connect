@@ -134,12 +134,7 @@ function instawp_plugin_activate() {
 
 /*Deactivate Hook Handle*/
 function instawp_plugin_deactivate() {
-	/*heartbeat*/
-	if ( wp_get_schedule( 'instwp_handle_heartbeat_cron_action' ) ) {
-		wp_clear_scheduled_hook( 'instwp_handle_heartbeat_cron_action' );
-		$timestamp = wp_next_scheduled( 'instwp_handle_heartbeat_cron_action' );
-		wp_unschedule_event( $timestamp, 'instwp_handle_heartbeat_cron_action' );
-	}
+	as_unschedule_all_actions( 'instwp_handle_heartbeat', [], 'instawp-connect' );
 }
 
 function instawp_init_plugin_redirect() {
