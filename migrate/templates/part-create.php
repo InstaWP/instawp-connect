@@ -199,7 +199,7 @@ $customize_options     = array(
                             <span class="instawp-migration-loader text-primary-900 text-base font-normal" data-complete-text="Completed">In Progress...</span>
                         </div>
                         <div class="panel mt-6 block">
-                            <div class="migration-running  border border-grayCust-100 rounded-lg mb-6">
+                            <div class="migration-running border border-grayCust-100 rounded-lg mb-6">
                                 <div class="p-5">
                                     <div class="flex items-center">
                                         <div class="w-24 text-grayCust-900 text-base font-normal">Backup</div>
@@ -261,25 +261,25 @@ $customize_options     = array(
                                 </div>
                             </div>
                         </div>
-
-<!--                        <div class="bg-grayCust-250 px-6 py-3 rounded-bl-lg rounded-br-lg flex justify-between">-->
-<!--                            <div class="text-primary-900 text-sm font-medium cursor-pointer"><span class="text-xl mr-1">+</span>Create another Staging Site</div>-->
-<!--                            <div class="text-grayCust-900 cursor-pointer text-sm font-medium flex items-center">Show my staging sites-->
-<!--                                <span class="flex items-center ml-2">-->
-<!--                                    <img src="img/right-icon.svg" alt="">-->
-<!--                                    <img src="img/right-icon.svg" alt="">-->
-<!--                                </span>-->
-<!--                            </div>-->
-<!--                        </div>-->
-
                     </div>
                 </div>
+
+<!--                <div class="screen-buttons-last bg-grayCust-250 px-6 py-3 rounded-bl-lg rounded-br-lg flex justify-between">-->
+<!--                    <div class="text-primary-900 text-sm font-medium cursor-pointer"><span class="text-xl mr-1">+</span>Create another Staging Site</div>-->
+<!--                    <div class="text-grayCust-900 text-sm font-medium cursor-pointer flex items-center">-->
+<!--                        <span>Show my staging sites</span>-->
+<!--                        <div class="flex items-center ml-2">-->
+<!--                            <img src="--><?php //echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/right-icon.svg' ) ); ?><!--" alt="">-->
+<!--                            <img src="--><?php //echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/right-icon.svg' ) ); ?><!--" alt="">-->
+<!--                        </div>-->
+<!--                    </div>-->
+<!--                </div>-->
 
                 <div class="screen-buttons bg-grayCust-250 px-6 py-3 rounded-bl-lg rounded-br-lg flex justify-end">
                     <p class="doing-request"><span class="loader"></span>Checking usages...</p>
                     <input name="instawp_migrate[screen]" type="hidden" id="instawp-screen" value="<?= $current_create_screen; ?>">
                     <button type="button" data-increment="-1" class="instawp-button-migrate back hidden btn-shadow border border-grayCust-350 mr-4 rounded-md py-2 px-8 bg-white text-grayCust-700 text-sm font-medium">Back</button>
-                    <button type="button" data-increment="1" class="instawp-button-migrate continue btn-shadow rounded-md py-2 px-4 bg-primary-900 text-white hover:text-white text-sm font-medium">Next Step</button>
+                    <button type="button" data-increment="1" class="instawp-button-migrate hidden continue btn-shadow rounded-md py-2 px-4 bg-primary-900 text-white hover:text-white text-sm font-medium">Next Step</button>
                 </div>
             </div>
         </div>
