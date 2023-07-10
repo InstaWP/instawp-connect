@@ -133,7 +133,7 @@ class instaWP {
 
 		add_filter( 'instawp_get_mainwp_sync_data', array( $this, 'get_mainwp_sync_data' ), 10 );
 		add_filter( 'instawp_get_zip_object_class_ex', array( $this, 'get_zip_object_class' ) );
-		
+
 		//Initialization schedule hook
 		$this->init_cron();
 
@@ -245,7 +245,7 @@ class instaWP {
 	 * */
 	public function handle_heartbeat() {
 		date_default_timezone_set( "Asia/Kolkata" );
-		
+
 		if ( defined( 'WP_DEBUG_LOG' ) && true === WP_DEBUG_LOG ) {
 			error_log( "HEARTBEAT RAN AT : " . date( 'd-m-Y, H:i:s, h:i:s' ) );
 		}
@@ -7535,6 +7535,10 @@ class instaWP {
 
 	public static function download_bg( $task_id, $parameters ) {
 		InstaWP_Backup_Api::download_bg( $task_id, $parameters );
+	}
+
+	public static function backup_bg( $task_id, $parameters ) {
+		InstaWP_Backup_Api::backup_bg( $task_id, $parameters );
 	}
 
 

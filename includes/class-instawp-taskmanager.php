@@ -729,4 +729,18 @@ class InstaWP_taskmanager {
 
 		return $uploaded_files;
 	}
+
+	public static function store_migrate_id_to_migrate_task( $task_id, $migrate_id = '' ) {
+		$migrate_task = InstaWP_taskmanager::get_task( $task_id );
+
+		if ( ! empty( $migrate_id ) ) {
+			$migrate_task['migrate_id'] = $migrate_id;
+
+			InstaWP_taskmanager::update_task( $migrate_task );
+
+			return true;
+		}
+
+		return false;
+	}
 }

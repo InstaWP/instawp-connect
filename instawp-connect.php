@@ -208,9 +208,13 @@ require_once( plugin_dir_path( __FILE__ ) . '/vendor/woocommerce/action-schedule
 
 
 function run_instawp() {
+
 	$instawp_plugin = new instaWP();
+
 	add_action( 'instawp_restore_bg', array( $instawp_plugin, 'restore_bg' ), 10, 3 );
 	add_action( 'instawp_download_bg', array( $instawp_plugin, 'download_bg' ), 10, 2 );
+	add_action( 'instawp_backup_bg', array( $instawp_plugin, 'backup_bg' ), 10, 2 );
+
 	$GLOBALS['instawp_plugin'] = $instawp_plugin;
 
 	instawp_create_db_tables();
