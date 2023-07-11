@@ -43,7 +43,7 @@ class Scheduler {
 		if ( $count === 0 ) {
 			$this->mark_complete();
 		} else {
-			$this->schedule_migration( time() + 2 );
+			$this->schedule_migration( time() + $this->get_schedule_interval() );
 		}
 	}
 

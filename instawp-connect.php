@@ -7,7 +7,7 @@
  * @wordpress-plugin
  * Plugin Name:       InstaWP Connect
  * Description:       Create 1-click staging, migration and manage your prod sites.
- * Version:           0.0.9.15
+ * Version:           0.0.9.17
  * Author:            InstaWP Team
  * Author URI:        https://instawp.com/
  * License:           GPL-3.0+
@@ -24,7 +24,7 @@ if ( ! defined( 'WPINC' ) ) {
 global $wpdb;
 
 
-define( 'INSTAWP_PLUGIN_VERSION', '0.0.9.15' );
+define( 'INSTAWP_PLUGIN_VERSION', '0.0.9.17' );
 define( 'INSTAWP_RESTORE_INIT', 'init' );
 define( 'INSTAWP_RESTORE_READY', 'ready' );
 define( 'INSTAWP_RESTORE_COMPLETED', 'completed' );
@@ -134,12 +134,7 @@ function instawp_plugin_activate() {
 
 /*Deactivate Hook Handle*/
 function instawp_plugin_deactivate() {
-	/*heartbeat*/
-	if ( wp_get_schedule( 'instwp_handle_heartbeat_cron_action' ) ) {
-		wp_clear_scheduled_hook( 'instwp_handle_heartbeat_cron_action' );
-		$timestamp = wp_next_scheduled( 'instwp_handle_heartbeat_cron_action' );
-		wp_unschedule_event( $timestamp, 'instwp_handle_heartbeat_cron_action' );
-	}
+	as_unschedule_all_actions( 'instwp_handle_heartbeat', [], 'instawp-connect' );
 }
 
 function instawp_init_plugin_redirect() {
@@ -213,9 +208,13 @@ require_once( plugin_dir_path( __FILE__ ) . '/vendor/woocommerce/action-schedule
 
 
 function run_instawp() {
+
 	$instawp_plugin = new instaWP();
+
 	add_action( 'instawp_restore_bg', array( $instawp_plugin, 'restore_bg' ), 10, 3 );
 	add_action( 'instawp_download_bg', array( $instawp_plugin, 'download_bg' ), 10, 2 );
+	add_action( 'instawp_backup_bg', array( $instawp_plugin, 'backup_bg' ), 10, 2 );
+
 	$GLOBALS['instawp_plugin'] = $instawp_plugin;
 
 	instawp_create_db_tables();

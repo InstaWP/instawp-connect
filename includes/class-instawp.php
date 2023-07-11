@@ -132,20 +132,20 @@ class instaWP {
 		add_filter( 'instawp_check_backup_completeness', array( $this, 'check_backup_completeness' ), 10, 2 );
 
 		add_filter( 'instawp_get_mainwp_sync_data', array( $this, 'get_mainwp_sync_data' ), 10 );
-		//
 		add_filter( 'instawp_get_zip_object_class_ex', array( $this, 'get_zip_object_class' ) );
-		//Initialisation schedule hook
+
+		//Initialization schedule hook
 		$this->init_cron();
-		//Initialisation log object
+
+		//Initialization log object
 		$this->instawp_log          = new InstaWP_Log();
 		$this->instawp_download_log = new InstaWP_Log();
 		$this->instawp_restore_log  = new InstaWP_Log();
 
-		/*Cron handlers*/
-		add_filter( 'cron_schedules', array( $this, 'instawp_handle_cron_time_intervals' ) );
-		add_action( 'wp', array( $this, 'instawp_handle_cron_scheduler' ) );
-		add_action( 'instwp_handle_heartbeat_cron_action', array( $this, 'instawp_handle_heartbeat_cron_action_call' ) );
-		/*Cron handlers*/
+		// Heartbeat Action events handler.
+		add_action( 'init', array( $this, 'register_heartbeat_action' ), 11 );
+		add_action( 'update_option_instawp_api_heartbeat', array( $this, 'check_and_clear_heartbeat_action' ), 10, 2 );
+		add_action( 'instwp_handle_heartbeat', array( $this, 'handle_heartbeat' ) );
 
 		// Hook to run on login page
 		add_action( 'login_init', array( $this, 'instawp_auto_login_redirect' ) );
@@ -210,35 +210,19 @@ class instaWP {
 		}
 	}
 
-	// Set Cron time interval function
-	public function instawp_handle_cron_time_intervals( $schedules ) {
-		$connect_options = get_option( 'instawp_api_options', '' );
-		$connect_ids     = get_option( 'instawp_connect_id_options', '' );
+	// Set Action Scheduler event.
+	public function register_heartbeat_action() {
+		$interval = intval( get_option( 'instawp_api_heartbeat', 15 ) ) ?? 15;
 
-		if (
-			isset( $connect_options['api_key'] ) &&
-			! empty( $connect_options['api_key'] ) &&
-			! empty( $connect_ids ) &&
-			isset( $connect_ids['data']['id'] ) &&
-			! empty( $connect_ids['data']['id'] )
-		) {
-
-			$cutstom_interval = intval( get_option( 'instawp_heartbeat_option', 15 ) );
-			//error_log( "default interval time ==> ".$cutstom_interval );
-			$schedules['instawp_heartbeat_interval'] = array(
-				'interval' => $cutstom_interval * 60,
-				'display'  => 'Once ' . $cutstom_interval . ' minutes'
-			);
+		if ( ! as_has_scheduled_action( 'instwp_handle_heartbeat', [], 'instawp-connect' ) ) {
+			as_schedule_recurring_action( time(), ( $interval * 60 ), 'instwp_handle_heartbeat', [], 'instawp-connect', false, 5 );
 		}
-
-		return $schedules;
-
 	}
 
-	/*Set Cron event*/
-	public function instawp_handle_cron_scheduler() {
-		if ( ! wp_next_scheduled( 'instwp_handle_heartbeat_cron_action' ) ) {
-			wp_schedule_event( time(), 'instawp_heartbeat_interval', 'instwp_handle_heartbeat_cron_action' );
+	// Clean event if interval changes.
+	public function check_and_clear_heartbeat_action( $old_value, $value ) {
+		if ( intval( $old_value ) !== intval( $value ) ) {
+			as_unschedule_all_actions( 'instwp_handle_heartbeat', [], 'instawp-connect' );
 		}
 	}
 
@@ -257,71 +241,70 @@ class instaWP {
 	}
 
 	/**
-	 * Cron Action to be performed
+	 * Heartbeat Action to be performed
 	 * */
-	public function instawp_handle_heartbeat_cron_action_call() {
+	public function handle_heartbeat() {
 		date_default_timezone_set( "Asia/Kolkata" );
-		error_log( "RAN AT : " . date( 'd-m-Y, H:i:s, h:i:s' ) );
+
+		if ( defined( 'WP_DEBUG_LOG' ) && true === WP_DEBUG_LOG ) {
+			error_log( "HEARTBEAT RAN AT : " . date( 'd-m-Y, H:i:s, h:i:s' ) );
+		}
 
 		$connect_options = get_option( 'instawp_api_options', '' );
 		$connect_ids     = get_option( 'instawp_connect_id_options', '' );
 
-		if (
-			isset( $connect_options['api_key'] ) &&
-			! empty( $connect_options['api_key'] ) &&
-			! empty( $connect_ids ) &&
-			isset( $connect_ids['data']['id'] ) &&
-			! empty( $connect_ids['data']['id'] )
-		) {
-
-			$current_api_key = $connect_options['api_key'];
-			if ( ! class_exists( 'WP_Debug_Data' ) ) {
-				require_once ABSPATH . 'wp-admin/includes/class-wp-debug-data.php';
+		if ( ! empty( $connect_ids ) ) {
+			if ( isset( $connect_ids['data']['id'] ) && ! empty( $connect_ids['data']['id'] ) ) {
+				$id = $connect_ids['data']['id'];
 			}
-			$sizes_data = WP_Debug_Data::get_sizes();
+		}
 
-			$wp_version   = get_bloginfo( 'version' );
-			$php_version  = phpversion();
-			$total_size   = $sizes_data['total_size']['size'];
-			$active_theme = wp_get_theme()->get( 'Name' );
+		if ( ! isset( $connect_options['api_key'] ) || empty( $connect_options['api_key'] ) || ! isset( $id ) ) {
+			return;
+		}
 
-			$count_posts = wp_count_posts();
-			$posts       = $count_posts->publish;
+		if ( ! class_exists( 'WP_Debug_Data' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/class-wp-debug-data.php';
+		}
+		$sizes_data = WP_Debug_Data::get_sizes();
 
-			$count_pages = wp_count_posts( 'page' );
-			$pages       = $count_pages->publish;
+		$wp_version   = get_bloginfo( 'version' );
+		$php_version  = phpversion();
+		$total_size   = $sizes_data['total_size']['size'];
+		$active_theme = wp_get_theme()->get( 'Name' );
 
-			$count_users = count_users();
-			$users       = $count_users['total_users'];
+		$count_posts = wp_count_posts();
+		$posts       = $count_posts->publish;
 
+		$count_pages = wp_count_posts( 'page' );
+		$pages       = $count_pages->publish;
 
-			if ( ! empty( $connect_ids ) ) {
-				if ( isset( $connect_ids['data']['id'] ) && ! empty( $connect_ids['data']['id'] ) ) {
-					$id = $connect_ids['data']['id'];
-				}
-			}
+		$count_users = count_users();
+		$users       = $count_users['total_users'];
 
-			// Curl constant
-			global $InstaWP_Curl;
+		// Curl constant
+		global $InstaWP_Curl;
 
-			$body = base64_encode(
-				json_encode(
-					array(
-						"wp_version"  => $wp_version,
-						"php_version" => $php_version,
-						"total_size"  => $total_size,
-						"theme"       => $active_theme,
-						"posts"       => $posts,
-						"pages"       => $pages,
-						"users"       => $users,
-					)
+		$body = base64_encode(
+			json_encode(
+				array(
+					"wp_version"  => $wp_version,
+					"php_version" => $php_version,
+					"total_size"  => $total_size,
+					"theme"       => $active_theme,
+					"posts"       => $posts,
+					"pages"       => $pages,
+					"users"       => $users,
 				)
-			);
+			)
+		);
 
-			$api_doamin    = InstaWP_Setting::get_api_domain();
-			$url           = $api_doamin . INSTAWP_API_URL . '/connects/' . $id . '/heartbeat';
-			$body_json     = json_encode( $body );
-			$curl_response = $InstaWP_Curl->curl( $url, $body_json );
+		$api_doamin    = InstaWP_Setting::get_api_domain();
+		$url           = $api_doamin . INSTAWP_API_URL . '/connects/' . $id . '/heartbeat';
+		$body_json     = json_encode( $body );
+		$curl_response = $InstaWP_Curl->curl( $url, $body_json );
+
+		if ( defined( 'WP_DEBUG_LOG' ) && true === WP_DEBUG_LOG ) {
 			error_log( "Heartbeat API Curl URL " . $url );
 			error_log( "Print Heartbeat API Curl Response Start" );
 			error_log( print_r( $curl_response, true ) );
@@ -697,7 +680,7 @@ class instaWP {
 		global $InstaWP_Curl;
 
 		$connect_ids         = get_option( 'instawp_connect_id_options', '' );
-		$connect_id          = $connect_ids['data']['connect_id'] ?? 0;
+		$connect_id          = $connect_ids['data']['id'] ?? 0;
 		$api_response        = $InstaWP_Curl::do_curl( 'connects/' . $connect_id . '/usage', [], [], false, 'v1' );
 		$api_response_status = InstaWP_Setting::get_args_option( 'success', $api_response, false );
 		$api_response_data   = InstaWP_Setting::get_args_option( 'data', $api_response, [] );
@@ -7552,6 +7535,10 @@ class instaWP {
 
 	public static function download_bg( $task_id, $parameters ) {
 		InstaWP_Backup_Api::download_bg( $task_id, $parameters );
+	}
+
+	public static function backup_bg( $task_id, $parameters ) {
+		InstaWP_Backup_Api::backup_bg( $task_id, $parameters );
 	}
 
 

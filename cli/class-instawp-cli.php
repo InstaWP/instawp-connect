@@ -132,9 +132,33 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 		}
 
 
-		function handle_instawp_commands( $args ) {
+		public function cli_backup( $migrate_task_id ) {
 
-			global $instawp_plugin;
+			$migrate_id       = InstaWP_taskmanager::get_migrate_id( $migrate_task_id );
+			$migrate_task     = InstaWP_taskmanager::get_task( $migrate_task_id );
+			$migrate_task_obj = new InstaWP_Backup_Task( $migrate_task_id, $migrate_task );
+
+			// Create backup zip
+			instawp_backup_files( $migrate_task_obj, array( 'clean_non_zip' => true ) );
+
+			// Update backup progress
+			instawp_update_backup_progress( $migrate_task_id, $migrate_id );
+
+			// Update total parts number
+			instawp_update_total_parts_number( $migrate_task_id, $migrate_id );
+		}
+
+
+		public function cli_upload( $migrate_task_id ) {
+
+			$migrate_id = InstaWP_taskmanager::get_migrate_id( $migrate_task_id );
+
+			// Upload backup parts to S3 cloud
+			instawp_upload_backup_parts_to_cloud( $migrate_task_id, $migrate_id );
+		}
+
+
+		function handle_instawp_commands( $args ) {
 
 			$cli_action_index      = array_search( '-action', $args );
 			$cli_action            = $args[ ( $cli_action_index + 1 ) ] ?? '';
@@ -146,33 +170,16 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 				case 'clean':
 
 					instawp_reset_running_migration( 'soft', false );
+
 					WP_CLI::success( esc_html__( 'Cleared previous backup files successfully.', 'instawp-connect' ) );
 					break;
 
-				case 'backup':
+				case 'backup-upload':
 
-					$backup_options      = array(
-						'ismerge'      => '',
-						'backup_files' => 'files+db',
-						'local'        => '1',
-						'type'         => 'Manual',
-						'insta_type'   => 'stage_to_production',
-						'action'       => 'backup',
-						'is_migrate'   => false,
-					);
-					$backup_options      = apply_filters( 'INSTAWP_CONNECT/Filters/migrate_backup_options', $backup_options );
-					$pre_backup_response = $instawp_plugin->pre_backup( $backup_options );
-					$migrate_task_id     = InstaWP_Setting::get_args_option( 'task_id', $pre_backup_response );
-					$migrate_task_obj    = new InstaWP_Backup_Task( $migrate_task_id );
+					$this->cli_backup( $migrate_task_id );
 
-					instawp_backup_files( $migrate_task_obj, array( 'clean_non_zip' => true ) );
+					$this->cli_upload( $migrate_task_id );
 
-					WP_CLI::success( esc_html__( 'Build backup files successfully.', 'instawp-connect' ) );
-
-					break;
-
-				case 'upload';
-					// Upload
 					break;
 
 				case 'download-restore':

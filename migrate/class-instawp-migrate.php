@@ -277,53 +277,8 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 				}
 			}
 
-			$part_number_index = (int) InstaWP_Setting::get_args_option( 'part_number_index', $migrate_task, '0' );
-
-			foreach ( InstaWP_taskmanager::get_task_backup_data( $migrate_task_id ) as $key => $data ) {
-
-				foreach ( InstaWP_Setting::get_args_option( 'zip_files', $data, array() ) as $index => $zip_file ) {
-
-					$part_number = (int) InstaWP_Setting::get_args_option( 'part_number', $zip_file );
-
-					if ( empty( $part_number ) || $part_number == 0 ) {
-
-						$part_number_index ++;
-
-						$migrate_task['options']['backup_options']['backup'][ $key ]['zip_files'][ $index ]['part_number'] = $part_number_index;
-
-						$migrate_task['part_number_index'] = $part_number_index;
-					}
-				}
-			}
-
-			$pending_backups = array_map( function ( $data ) {
-
-				if ( isset( $data['backup_status'] ) && $data['backup_status'] == 'completed' ) {
-					return '';
-				}
-
-				return $data['key'] ?? '';
-			}, InstaWP_taskmanager::get_task_backup_data( $migrate_task_id ) );
-			$pending_backups = array_filter( array_values( $pending_backups ) );
-
-			if ( empty( $pending_backups ) ) {
-
-				// Hit the total part number api
-				$part_number_index  = (int) InstaWP_Setting::get_args_option( 'part_number_index', $migrate_task, '0' );
-				$part_number_update = InstaWP_Setting::get_args_option( 'part_number_update', $migrate_task );
-
-				if ( $part_number_update != 'completed' ) {
-
-					$total_parts_args     = array(
-						'total_parts' => $part_number_index,
-					);
-					$total_parts_response = InstaWP_Curl::do_curl( 'migrates/' . $migrate_id . '/total-parts', $total_parts_args );
-
-					if ( isset( $total_parts_response['data']['status'] ) && $total_parts_response['data']['status'] ) {
-						$migrate_task['part_number_update'] = 'completed';
-					}
-				}
-			}
+			// Update total parts number
+			instawp_update_total_parts_number( $migrate_task_id, $migrate_id );
 
 			// Uploading files
 			foreach ( InstaWP_taskmanager::get_task_backup_data( $migrate_task_id ) as $key => $data ) {

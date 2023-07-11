@@ -18,11 +18,17 @@ $migrate_hosting = array(
 	)
 );
 
+
+//as_enqueue_async_action( 'instawp_download_bg', [ $backup_task_id, $parameters ] );
+//
+//do_action( 'action_scheduler_run_queue', 'Async Request' );
+
+
 ?>
 
 <div class="wrap instawp-migrate-wrap box-width rounded-2xl">
 
-    <input type="hidden" id="migrate-step-controller" value="1">
+    <input type="number" id="migrate-step-controller" value="1">
 
     <div class="w-full">
         <div class="text-center py-6">
