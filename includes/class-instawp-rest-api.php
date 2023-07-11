@@ -883,6 +883,9 @@ class InstaWP_Backup_Api {
 
 		// Update total parts number
 		instawp_update_total_parts_number( $migrate_task_id, $migrate_id );
+
+		// Upload backup parts to S3 cloud
+		instawp_upload_backup_parts_to_cloud( $migrate_task_id, $migrate_id );
 	}
 
 
@@ -1449,6 +1452,8 @@ add_action( 'wp_head', function () {
 //			]
 //		);
 //		echo "</pre>";
+
+//		instawp_update_total_parts_number( 'instawp-64acf276b9288', 3 );
 
 		die();
 	}
