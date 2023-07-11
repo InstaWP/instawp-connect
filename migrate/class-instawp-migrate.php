@@ -277,25 +277,6 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 				}
 			}
 
-			$part_number_index = (int) InstaWP_Setting::get_args_option( 'part_number_index', $migrate_task, '0' );
-
-			foreach ( InstaWP_taskmanager::get_task_backup_data( $migrate_task_id ) as $key => $data ) {
-
-				foreach ( InstaWP_Setting::get_args_option( 'zip_files', $data, array() ) as $index => $zip_file ) {
-
-					$part_number = (int) InstaWP_Setting::get_args_option( 'part_number', $zip_file );
-
-					if ( empty( $part_number ) || $part_number == 0 ) {
-
-						$part_number_index ++;
-
-						$migrate_task['options']['backup_options']['backup'][ $key ]['zip_files'][ $index ]['part_number'] = $part_number_index;
-
-						$migrate_task['part_number_index'] = $part_number_index;
-					}
-				}
-			}
-
 			// Update total parts number
 			instawp_update_total_parts_number( $migrate_task_id, $migrate_id );
 
