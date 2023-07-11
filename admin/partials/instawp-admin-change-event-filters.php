@@ -553,7 +553,7 @@ class InstaWP_Change_Event_Filters {
      */
     public function savePostFilter( $post_ID, $post, $update, $post_before){
 
-        
+
         // Check autosave.
         if ( wp_is_post_autosave( $post_ID ) ) {
             return $post_ID;
@@ -578,23 +578,17 @@ class InstaWP_Change_Event_Filters {
         //check post revisions are found 
         $revisions = wp_get_post_revisions( $post_ID );
 
-        if( count( $revisions ) <= 1 ){ //insert
+        if( count( $revisions ) <= 1 ){
             
             $event_name = sprintf( __( '%s created', 'instawp-connect' ), $post_type_singular_name );
             $this->addPostData($event_name, 'post_new', $post,$post_ID);  
 
         }else{
-            if($update && ($post->post_type != 'revision') ){ #update
-                $event_name = sprintf( __( '%s modified', 'instawp-connect' ), $post_type_singular_name );
+            if($update && ($post->post_type != 'revision') ){
                 $event_slug = 'post_change';
-                //$existing_update_events = $this->InstaWP_db->existing_update_events($this->tables['ch_table'],'post_change',$post_ID);
+                $event_name = sprintf( __( '%s modified', 'instawp-connect' ), $post_type_singular_name );
                 # need to add update traking data once in db
                 $this->addPostData($event_name,$event_slug,$post,$post_ID);
-                // if($existing_update_events){
-                //     $this->eventDataUpdated($event_name,$event_slug,$post,$post_ID,$existing_update_events);
-                // }else{
-                //     $this->addPostData($event_name,$event_slug,$post,$post_ID);
-                // }
             }
         }
     }
@@ -685,7 +679,13 @@ class InstaWP_Change_Event_Filters {
      * Post data add 
      */
     public function addPostData($event_name = null, $event_slug = null, $post = null, $post_id = null){
+        
+        //check if the sync is enabled to record
+        $syncing_enabled_disabled = get_option('syncing_enabled_disabled', 0);
+        if($syncing_enabled_disabled == 0)return;
+
         $post_id = isset($post_id) ? $post_id : $post->ID;
+        $post_parent_id = $post->post_parent;
         // $postData = get_post($post_id);
         $post_content = isset($post->post_content) ? $post->post_content : '';
         $featured_image_id = get_post_thumbnail_id($post_id); 
@@ -708,21 +708,33 @@ class InstaWP_Change_Event_Filters {
         $this->_prepare_metas_for_each_post($post_id);
         $this->_prepare_metas_for_each_post($featured_image_id);
         
-        $details = json_encode([
+        $data = [
             'content' => $post_content,
             'posts' => $post,
             'postmeta' => get_post_meta($post_id),
             'featured_image' => [
                 'featured_image_id'=>$featured_image_id,
                 'featured_image_url' => $featured_image_url,
-                'media'=> get_post($featured_image_id),
-                'media_meta'=> get_post_meta($featured_image_id),
+                'media'=> $featured_image_id > 0 ?  get_post($featured_image_id) : [],
+                'media_meta'=> $featured_image_id > 0 ? get_post_meta($featured_image_id) : [],
             ],
             'taxonomies' => $taxonomies,
             'media' => $media,
             'elementor_css' => $elementor_css,
             'product_gallery' => $product_gallery
-        ]);
+        ];
+        
+        #assign parent post
+        if($post_parent_id >0){
+            $data = array_merge($data, [
+                'parent' => [
+                    'post'=> get_post($post_parent_id),
+                    'post_meta'=> get_post_meta($post_parent_id),
+                ]
+            ]);
+        }
+
+        $details = json_encode($data);
         $this->eventDataAdded($event_name,$event_slug,$event_type,$source_id,$title,$details);
     }
     /*
@@ -732,17 +744,6 @@ class InstaWP_Change_Event_Filters {
         if(get_post_meta($post_id, 'instawp_event_sync_reference_id', true) == ''){
             add_post_meta($post_id, 'instawp_event_sync_reference_id', instawp_uuid());
         }
-
-
-        // add_post_meta($post_id, 'instawp_parent_post_234', 1);
-
-        // $parent_post = (array) get_post_parent( $post_id ); 
-        // if($parent_post && $parent_post > 0) {
-        //     $insert_args = array_merge($parent_post,[ 
-        //         'metas' => get_post_meta($parent_post['ID'])
-        //     ]);
-        //     add_post_meta($post_id, 'instawp_parent_post', $insert_args);
-        // }
     }
 
     public function _instawp_save_post( $post_id, $post ){

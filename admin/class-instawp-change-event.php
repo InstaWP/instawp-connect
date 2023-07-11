@@ -17,7 +17,7 @@ class InstaWP_Change_event {
 	protected static $_instance = null;
 
 	public function __construct() {
-
+		add_action('init', array( $this, 'get_source_site_detail' ) );
 		add_action( 'admin_menu', array( $this, 'add_change_event_menu' ) );
 		add_action( 'admin_bar_menu', array( $this, 'add_sync_status_toolbar_link' ), 999);
 	}
@@ -70,7 +70,15 @@ class InstaWP_Change_event {
         return $data;
     }
 
-
+	public function get_source_site_detail(){
+		$connect_id = get_option('instawp_sync_connect_id','');
+		if($connect_id && intval($connect_id) > 0 && '' == get_option('instawp_sync_parent_connect_data')){
+			$api_response        = InstaWP_Curl::do_curl( 'connects/' . $connect_id, [], [], false);
+			$api_response_data   = InstaWP_Setting::get_args_option( 'data', $api_response, [] );
+			$api_response_data['connect_id'] = $connect_id;
+			add_option('instawp_sync_parent_connect_data',$api_response_data);
+		}
+	}
 
 	public function getStatusColor($status){
 		switch ($status) {

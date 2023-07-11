@@ -66,10 +66,31 @@ class InstaWP_Rest_Apis{
             'meta_value' => $reference_id
         ) );
         if(!empty($post)){
-            $post_id = $post[0]->ID;
+            $post = $post[0];
         }else {
             $post  = instawp_get_post_by_name($post_name, $post_type); 
-            $post_id = $post ? $post->ID : '';
+        }
+        return $post;
+    }
+
+    public function create_or_update_post($post, $post_meta) {
+        $reference_id = isset($post_meta['instawp_event_sync_reference_id'][0]) ? $post_meta['instawp_event_sync_reference_id'][0] : '';
+        $destination_post = $this->get_post_by_reference_Id($post['post_type'], $reference_id, $post['post_name']);
+        unset($post['ID']);
+        if(!empty($destination_post)){
+            #The post exists,Then update
+            $post_id = $post['ID'] = $destination_post->ID;
+            //$post['post_parent'] = $destination_post->post_parent;
+            $postData = $this->postData($post);
+            wp_update_post($postData);
+            #post meta
+            $this->add_update_postmeta($post_meta, $destination_post->ID);
+        }else{
+            $postData = $this->postData($post);
+            #The post does not exist,Then insert
+            $post_id = wp_insert_post($postData); 
+            #post meta
+            $this->add_update_postmeta( $post_meta, $post_id ); 
         }
         return $post_id;
     }
@@ -85,11 +106,15 @@ class InstaWP_Rest_Apis{
         $encrypted_contents = json_decode($bodyArr->encrypted_contents);
         $sync_id = $bodyArr->sync_id;
         $source_connect_id = $bodyArr->source_connect_id;
+        $is_enabled = false;
         
-        #Destination event tracking disabled 
+        
         if(get_option('syncing_enabled_disabled')){
-            add_option('syncing_enabled_disabled', 0);
+            $is_enabled = true;
         }
+
+        #forcely disable the syncing at the destination
+        update_option('syncing_enabled_disabled', 0);
 
         if(!empty($encrypted_contents) && is_array($encrypted_contents)){
             $total_op = count($encrypted_contents);
@@ -97,6 +122,7 @@ class InstaWP_Rest_Apis{
             $progress_status = 'pending';
             $changes = $sync_response = [];
             foreach($encrypted_contents as $v){
+                
                 $source_id = (isset($v->source_id) && !empty($v->source_id)) ? intval($v->source_id) : null;
 
                 /*
@@ -108,32 +134,28 @@ class InstaWP_Rest_Apis{
                     $postmeta = isset($v->details->postmeta) ? (array) $v->details->postmeta : '';
                     $featured_image = isset($v->details->featured_image) ? (array) $v->details->featured_image : '';
                     $media = isset($v->details->media) ? (array) $v->details->media : '';
-                    $reference_id = isset($postmeta['instawp_event_sync_reference_id'][0]) ? $postmeta['instawp_event_sync_reference_id'][0] : '';
-                    
-                    
+                     
+                    $parent_post = isset($v->details->parent->post) ? (array) $v->details->parent->post : [];
+                   
+                    #check for the post parent
+                    if(!empty($parent_post)){
+                        $parent_post_meta = isset($v->details->parent->post_meta) ? (array) $v->details->parent->post_meta : [];
+                        $reference_id = isset($parent_post_meta['instawp_event_sync_reference_id'][0]) ? $parent_post_meta['instawp_event_sync_reference_id'][0] : '';
+                        $destination_post = $this->get_post_by_reference_Id($parent_post['post_type'], $reference_id, $parent_post['post_name']);
+                        if(!empty($destination_post)){
+                            $posts['post_parent'] = $destination_post->ID;
+                        }
+                    }
+                 
                     if($posts['post_type'] == 'attachment'){
                         //create or update the attachments
                         $posts['ID'] = $this->handle_attachments($posts, $postmeta, $posts['guid']);
                         #update meta
                         $this->add_update_postmeta($postmeta,$posts['ID']);
-
                     }else{
-                        $posts['ID'] = $this->get_post_by_reference_Id($posts['post_type'], $reference_id, $posts['post_name']);
-                        if($posts['ID']){
-                            #The post exists,Then update
-                            $postData = $this->postData($posts,'update');
-                            wp_update_post($postData);
-                            #post meta
-                            $this->add_update_postmeta($postmeta,$posts['ID']);
-                        }else{
-                            $postData = $this->postData($posts,'insert');
-                            #The post does not exist,Then insert
-                            $posts['ID'] = wp_insert_post($postData); 
-                            #post meta
-                            $this->add_update_postmeta($postmeta,$posts['ID']); 
-                        }
+                        $posts['ID'] = $this->create_or_update_post($posts, $postmeta);
                     }
-
+                    
                     #feature image import 
                     if(isset($featured_image['media']) && !empty($featured_image['media'])){
                         $att_id = $this->handle_attachments((array) $featured_image['media'],(array) $featured_image['media_meta'], $featured_image['featured_image_url']);
@@ -157,28 +179,61 @@ class InstaWP_Rest_Apis{
                     }
 
                     #terms in post
+
                     $taxonomies = (array) $v->details->taxonomies;
+                    $this->reset_post_terms( $posts['ID']); //rest the terms for all taxo
                     if(!empty($taxonomies) && is_array($taxonomies)){
                         foreach($taxonomies as $taxonomy => $terms){
                             $terms = (array) $terms;
+                            $term_ids = [];
                             # if term not exist then create first
-                                if(!empty($terms) && is_array($terms)){
-                                    foreach($terms as $term){
-                                        $term = (array) $term;
-                                        if(!term_exists($term['term_id'],$taxonomy)){
-                                        $wp_terms = $this->wp_terms_data($term['term_id'],$term);
-                                        $wp_term_taxonomy = $this->wp_term_taxonomy_data($term['term_id'],$term);
-                                        $this->insert_taxonomy($term['term_id'],$wp_terms,$wp_term_taxonomy);
-                                        wp_set_post_terms( $posts['ID'], [$term['term_id']], $taxonomy );
+                            if(!empty($terms) && is_array($terms)){
+                                foreach($terms as $term){
+                                    $term = (array) $term;
+                                    if(!term_exists($term['slug'],$taxonomy)){
+                                        $inserted_term = wp_insert_term(
+                                            $term['name'],   // the term 
+                                            $taxonomy, // the taxonomy
+                                            array(
+                                                'description' => $term['description'],
+                                                'slug'        => $term['slug'],
+                                                'parent'      => 0
+                                            )
+                                        );
+                                        $term_ids[] = $inserted_term['term_id'];
+                                    }else{
+                                        $get_term_by =(array) get_term_by('slug',$term['slug'] , $taxonomy);
+                                        $term_ids[] = $get_term_by['term_id'];
                                     }
-                                    }
+                                }
                             }
-                            
                             #set terms in post
-                            $term_ids = array_column($terms, 'term_id');
                             wp_set_post_terms( $posts['ID'], $term_ids, $taxonomy );
                         }
                     }
+
+                    // $taxonomies = (array) $v->details->taxonomies;
+                    // if(!empty($taxonomies) && is_array($taxonomies)){
+                    //     foreach($taxonomies as $taxonomy => $terms){
+                    //         $terms = (array) $terms;
+                    //         # if term not exist then create first
+                    //             if(!empty($terms) && is_array($terms)){
+                    //                 foreach($terms as $term){
+                    //                     $term = (array) $term;
+                    //                     if(!term_exists($term['term_id'],$taxonomy)){
+                    //                         $wp_terms = $this->wp_terms_data($term['term_id'],$term);
+                    //                         $wp_term_taxonomy = $this->wp_term_taxonomy_data($term['term_id'],$term);
+                    //                         $this->insert_taxonomy($term['term_id'],$wp_terms,$wp_term_taxonomy);
+                    //                         wp_set_post_terms( $posts['ID'], [$term['term_id']], $taxonomy );
+                    //                     }
+                    //                 }
+                    //         }
+                            
+                    //         #set terms in post
+                    //         $term_ids = array_column($terms, 'term_id');
+                    //         wp_set_post_terms( $posts['ID'], $term_ids, $taxonomy );
+                    //     }
+                    // }
 
                     # media upload from content 
                     $this->upload_content_media($media,$posts['ID']);
@@ -605,7 +660,12 @@ class InstaWP_Rest_Apis{
         
         #Sync history save
         $this->sync_history_save($body,$changes,'Complete');
-     
+
+        #enable is back if syncing already enabled at the destination
+        if($is_enabled){
+            update_option('syncing_enabled_disabled', 1);
+        }
+
         return new WP_REST_Response( 
             array(
                 'encrypted_contents' => $encrypted_contents,
@@ -835,6 +895,15 @@ class InstaWP_Rest_Apis{
         $this->wpdb->update($this->wpdb->prefix.'term_taxonomy',$wp_term_taxonomy,array( 'term_id' => $term_id ));
     }
 
+    public function reset_post_terms($post_id){
+        $this->wpdb->query( 
+            $this->wpdb->prepare( 
+                "DELETE FROM {$this->wpdb->prefix}term_relationships WHERE object_id = %d",
+                $post_id,
+            )
+        );
+    }
+
     public function add_update_postmeta($meta_data = null, $post_id = null){
         
         if(!empty($meta_data) && is_array($meta_data)){
@@ -873,14 +942,7 @@ class InstaWP_Rest_Apis{
     }
 
     public function postData($posts = null, $op = null){
-        $data = [];
-        if($op == 'insert'){
-          //  $data['import_id'] = $posts['ID'];
-        }else{
-            $data['ID'] = $posts['ID']; 
-        }
         $args = array(
-            
             'post_author' => $posts['post_author'],
             'post_date' => $posts['post_date'],
             'post_date_gmt' => $posts['post_date_gmt'],
@@ -898,15 +960,18 @@ class InstaWP_Rest_Apis{
             'post_modified_gmt' => $posts['post_modified_gmt'],
             'post_content_filtered' => $posts['post_content_filtered'],
             'post_parent' => $posts['post_parent'],
-            'guid' => $posts['guid'],
+            //'guid' => $posts['guid'],
             'menu_order' => $posts['menu_order'],
             'post_type' => $posts['post_type'],
             'post_mime_type' => $posts['post_mime_type'],
             'comment_count' => $posts['comment_count'],
             'filter' => $posts['filter'],
         );
-        $Arr_merge = array_merge($data,$args);
-        return $Arr_merge;
+        #ID to update existing post
+        if(isset($posts['ID']) && $posts['ID'] > 0){
+            $args = array_merge(['ID'=> $posts['ID'] ],$args);
+        }
+        return $args;
     }
 
      # import attechments form source to destination.
