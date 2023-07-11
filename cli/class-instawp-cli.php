@@ -143,9 +143,25 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 
 			switch ( $cli_action ) {
 
+				case 'activate':
+
+					$options = array(
+						'return'       => true,                // Return 'STDOUT'; use 'all' for full object.
+						'parse'        => 'json',              // Parse captured STDOUT to JSON array.
+						'launch'       => false,               // Reuse the current process.
+						'exit_error'   => false,                // Halt script execution on error.
+						'command_args' => [ '--skip-themes' ], // Additional arguments to be passed to the $command.
+					);
+					WP_CLI::runcommand( 'plugin activate classic-editor', $options );
+
+					WP_CLI::success( esc_html__( 'runcommand executed', 'instawp-connect' ) );
+
+					break;
+
 				case 'clean':
 
 					instawp_reset_running_migration( 'soft', false );
+
 					WP_CLI::success( esc_html__( 'Cleared previous backup files successfully.', 'instawp-connect' ) );
 					break;
 
