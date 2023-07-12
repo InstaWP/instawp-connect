@@ -15,7 +15,6 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 			add_action( 'cli_init', array( $this, 'add_wp_cli_commands' ) );
 		}
 
-
 		public function cli_restore( $migrate_task_id ) {
 
 			global $instawp_plugin, $InstaWP_Backup_Api;
@@ -97,7 +96,6 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 			return true;
 		}
 
-
 		public function cli_download( $migrate_task_id ) {
 
 			global $InstaWP_Curl;
@@ -131,7 +129,6 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 			return true;
 		}
 
-
 		public function cli_backup( $migrate_task_id ) {
 
 			$migrate_id       = InstaWP_taskmanager::get_migrate_id( $migrate_task_id );
@@ -148,7 +145,6 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 			instawp_update_total_parts_number( $migrate_task_id, $migrate_id );
 		}
 
-
 		public function cli_upload( $migrate_task_id ) {
 
 			$migrate_id = InstaWP_taskmanager::get_migrate_id( $migrate_task_id );
@@ -156,7 +152,6 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 			// Upload backup parts to S3 cloud
 			instawp_upload_backup_parts_to_cloud( $migrate_task_id, $migrate_id );
 		}
-
 
 		function handle_instawp_commands( $args ) {
 
@@ -210,19 +205,6 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 			return true;
 		}
 
-
-		public static function get_pending_task_id() {
-
-			$incomplete_task_ids = InstaWP_taskmanager::is_there_any_incomplete_task_ids();
-			$migrate_task_id     = false;
-
-			if ( ! empty( $incomplete_task_ids ) ) {
-				$migrate_task_id = reset( $incomplete_task_ids );
-			}
-
-			return $migrate_task_id;
-		}
-
 		/**
 		 * Add CLI Commands
 		 *
@@ -233,7 +215,6 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 
 			WP_CLI::add_command( 'instawp', array( $this, 'handle_instawp_commands' ) );
 		}
-
 
 		/**
 		 * @return INSTAWP_CLI_Commands
