@@ -134,7 +134,7 @@ function instawp_plugin_activate() {
 
 /*Deactivate Hook Handle*/
 function instawp_plugin_deactivate() {
-	as_unschedule_all_actions( 'instwp_handle_heartbeat', [], 'instawp-connect' );
+	as_unschedule_all_actions( 'instawp_handle_heartbeat', [], 'instawp-connect' );
 }
 
 function instawp_init_plugin_redirect() {
