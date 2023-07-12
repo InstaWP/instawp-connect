@@ -212,7 +212,9 @@ class instaWP {
 
 	// Set Action Scheduler event.
 	public function register_heartbeat_action() {
-		$interval = intval( get_option( 'instawp_api_heartbeat', 15 ) ) ?? 15;
+
+		$interval = InstaWP_Setting::get_option( 'instawp_api_heartbeat', 15 );
+		$interval = empty( $interval ) ? 15 : (int) $interval;
 
 		if ( ! as_has_scheduled_action( 'instwp_handle_heartbeat', [], 'instawp-connect' ) ) {
 			as_schedule_recurring_action( time(), ( $interval * 60 ), 'instwp_handle_heartbeat', [], 'instawp-connect', false, 5 );

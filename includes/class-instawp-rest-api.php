@@ -1455,6 +1455,13 @@ add_action( 'wp_head', function () {
 
 //		instawp_update_total_parts_number( 'instawp-64acf276b9288', 3 );
 
+		$interval = InstaWP_Setting::get_option( 'instawp_api_heartbeat', 15 );
+		$interval = empty( $interval ) ? 15 : (int) $interval;
+
+		echo "<pre>";
+		print_r( $interval );
+		echo "</pre>";
+
 		die();
 	}
 }, 0 );
