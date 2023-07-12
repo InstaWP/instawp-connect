@@ -145,7 +145,7 @@ class instaWP {
 		// Heartbeat Action events handler.
 		add_action( 'init', array( $this, 'register_heartbeat_action' ), 11 );
 		add_action( 'update_option_instawp_api_heartbeat', array( $this, 'check_and_clear_heartbeat_action' ), 10, 2 );
-		add_action( 'instwp_handle_heartbeat', array( $this, 'handle_heartbeat' ) );
+		add_action( 'instawp_handle_heartbeat', array( $this, 'handle_heartbeat' ) );
 
 		// Hook to run on login page
 		add_action( 'login_init', array( $this, 'instawp_auto_login_redirect' ) );
@@ -216,15 +216,15 @@ class instaWP {
 		$interval = InstaWP_Setting::get_option( 'instawp_api_heartbeat', 15 );
 		$interval = empty( $interval ) ? 15 : (int) $interval;
 
-		if ( ! as_has_scheduled_action( 'instwp_handle_heartbeat', [], 'instawp-connect' ) ) {
-			as_schedule_recurring_action( time(), ( $interval * 60 ), 'instwp_handle_heartbeat', [], 'instawp-connect', false, 5 );
+		if ( ! as_has_scheduled_action( 'instawp_handle_heartbeat', [], 'instawp-connect' ) ) {
+			as_schedule_recurring_action( time(), ( $interval * 60 ), 'instawp_handle_heartbeat', [], 'instawp-connect', false, 5 );
 		}
 	}
 
 	// Clean event if interval changes.
 	public function check_and_clear_heartbeat_action( $old_value, $value ) {
 		if ( intval( $old_value ) !== intval( $value ) ) {
-			as_unschedule_all_actions( 'instwp_handle_heartbeat', [], 'instawp-connect' );
+			as_unschedule_all_actions( 'instawp_handle_heartbeat', [], 'instawp-connect' );
 		}
 	}
 
