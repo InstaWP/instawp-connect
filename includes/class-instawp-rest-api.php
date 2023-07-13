@@ -1209,7 +1209,7 @@ class InstaWP_Backup_Api {
 			];
 		}
 
-		$results  = [
+		$results = [
 			'theme'     => $themes,
 			'plugin'    => $plugins,
 			'mu_plugin' => $mu_plugins,
@@ -1392,7 +1392,7 @@ class InstaWP_Backup_Api {
 		$params = ( array ) $request->get_param( 'wp-config' ) ?? [];
 		$params = array_filter( $params );
 		if ( ! empty( $params ) ) {
-			$constants = array_merge( $constants, array_map( function( $value ) {
+			$constants = array_merge( $constants, array_map( function ( $value ) {
 				return str_replace( '-', '_', strtoupper( sanitize_title( $value ) ) );
 			}, $params ) );
 		}
@@ -1407,7 +1407,7 @@ class InstaWP_Backup_Api {
 			$config  = new InstaWP_WP_Config( $file );
 			$results = [ 'wp-config' => [] ];
 
-			foreach( $constants as $constant ) {
+			foreach ( $constants as $constant ) {
 				if ( $config->exists( 'constant', $constant ) ) {
 					$value = str_replace( "'", '', $config->get_value( 'constant', $constant ) );
 					if ( filter_var( $value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE ) !== null ) {
@@ -1421,7 +1421,7 @@ class InstaWP_Backup_Api {
 			}
 
 		} catch ( Exception $e ) {
-			$results = [ 
+			$results = [
 				'success' => false,
 				'message' => $e->getMessage(),
 			];
@@ -1451,12 +1451,12 @@ class InstaWP_Backup_Api {
 		];
 		$content = file_get_contents( $file );
 		if ( false === strpos( $content, "/* That's all, stop editing!" ) ) {
-            preg_match( '@\$table_prefix = (.*);@', $content, $matches );
-            $args['anchor']    = $matches[0] ?? '';
-            $args['placement'] = 'after';
-        }
-		$params  = ( array ) $request->get_param( 'wp-config' ) ?? [];
-		
+			preg_match( '@\$table_prefix = (.*);@', $content, $matches );
+			$args['anchor']    = $matches[0] ?? '';
+			$args['placement'] = 'after';
+		}
+		$params = ( array ) $request->get_param( 'wp-config' ) ?? [];
+
 		try {
 			if ( ! class_exists( 'InstaWP_WP_Config' ) ) {
 				require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-wp-config.php';
@@ -1465,7 +1465,7 @@ class InstaWP_Backup_Api {
 			$config  = new InstaWP_WP_Config( $file );
 			$results = [ 'success' => true ];
 
-			foreach( $params as $key => $value ) {
+			foreach ( $params as $key => $value ) {
 				$key = sanitize_title( $key );
 				if ( empty( $key ) ) {
 					continue;
@@ -1490,7 +1490,7 @@ class InstaWP_Backup_Api {
 				$config->update( 'constant', $key, $value, $args );
 			}
 		} catch ( Exception $e ) {
-			$results = [ 
+			$results = [
 				'success' => false,
 				'message' => $e->getMessage(),
 			];
@@ -1507,10 +1507,10 @@ class InstaWP_Backup_Api {
 	private function get_config_file() {
 		$file = ABSPATH . 'wp-config.php';
 		if ( ! file_exists( $file ) ) {
-            if ( @file_exists( dirname( ABSPATH ) . '/wp-config.php' ) ) {
-                $file = dirname( ABSPATH ) . '/wp-config.php';
-            }
-        }
+			if ( @file_exists( dirname( ABSPATH ) . '/wp-config.php' ) ) {
+				$file = dirname( ABSPATH ) . '/wp-config.php';
+			}
+		}
 
 		return $file;
 	}
