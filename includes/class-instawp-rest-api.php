@@ -1,5 +1,9 @@
 <?php
 
+if ( ! defined( 'INSTAWP_PLUGIN_DIR' ) ) {
+	die;
+}
+
 class InstaWP_Backup_Api {
 
 	private $namespace;
@@ -108,6 +112,17 @@ class InstaWP_Backup_Api {
 				'callback'            => array( $this, 'set_configuration' ),
 				'permission_callback' => '__return_true',
 			),
+			array(
+				'methods'             => 'DELETE',
+				'callback'            => array( $this, 'delete_configuration' ),
+				'permission_callback' => '__return_true',
+			),
+		) );
+
+		register_rest_route( $this->namespace . '/' . $this->version_2, '/logs',  array(
+			'methods'             => 'GET',
+			'callback'            => array( $this, 'get_logs' ),
+			'permission_callback' => '__return_true',
 		) );
 	}
 
@@ -920,7 +935,10 @@ class InstaWP_Backup_Api {
 		InstaWP_taskmanager::store_migrate_id_to_migrate_task( $migrate_task_id, $migrate_id );
 
 		if ( $is_background === false ) {
-			return $this->throw_response( array( 'task_id' => $migrate_task_id, 'message' => esc_html__( 'Backup will run through CLI.', 'instawp-connect' ) ) );
+			return $this->throw_response( array(
+				'task_id' => $migrate_task_id,
+				'message' => esc_html__( 'Backup will run through CLI.', 'instawp-connect' ),
+			) );
 		}
 
 		// Doing in background processing
@@ -1354,7 +1372,6 @@ class InstaWP_Backup_Api {
 		return $this->send_response( $results );
 	}
 
-
 	/**
 	 * Handle response to retrieve the defined constant values.
 	 *
@@ -1369,7 +1386,7 @@ class InstaWP_Backup_Api {
 			return $this->throw_error( $response );
 		}
 
-		$constants = [
+		$allowed_constants = [
 			'WP_ENVIRONMENT_TYPE',
 			'WP_DEVELOPMENT_MODE',
 			'WP_DISABLE_FATAL_ERROR_HANDLER',
@@ -1384,18 +1401,25 @@ class InstaWP_Backup_Api {
 			'AUTOMATIC_UPDATER_DISABLED',
 			'WP_AUTO_UPDATE_CORE',
 			'CORE_UPGRADE_SKIP_NEW_BUNDLE',
+			'WP_CACHE',
 			'WP_DEBUG',
 			'WP_DEBUG_LOG',
 			'WP_DEBUG_DISPLAY',
+			'WP_CONTENT_DIR',
+			'WP_CONTENT_URL',
+			'WP_PLUGIN_DIR',
+			'WP_PLUGIN_URL',
+			'UPLOADS',
+			'AUTOSAVE_INTERVAL',
+			'CONCATENATE_SCRIPTS',
 		];
 
 		$params = ( array ) $request->get_param( 'wp-config' ) ?? [];
 		$params = array_filter( $params );
 		if ( ! empty( $params ) ) {
-			$constants = array_merge( $constants, array_map( function ( $value ) {
-				return str_replace( '-', '_', strtoupper( sanitize_title( $value ) ) );
-			}, $params ) );
+			$allowed_constants = array_merge( $allowed_constants, $params );
 		}
+		$constants = array_diff( $allowed_constants, $this->get_blacklisted_constants() );
 
 		$file = $this->get_config_file();
 
@@ -1405,21 +1429,29 @@ class InstaWP_Backup_Api {
 			}
 
 			$config  = new InstaWP_WP_Config( $file );
-			$results = [ 'wp-config' => [] ];
+			$results = [
+				'wp-config'           => [],
+				'wp-config-undefined' => [],
+			];
 
 			foreach ( $constants as $constant ) {
+				if ( preg_match( '/[a-z]/', $constant ) ) {
+					continue;
+				}
+
 				if ( $config->exists( 'constant', $constant ) ) {
-					$value = str_replace( "'", '', $config->get_value( 'constant', $constant ) );
+					$value = trim( $config->get_value( 'constant', $constant ), "'" );
 					if ( filter_var( $value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE ) !== null ) {
 						$value = filter_var( $value, FILTER_VALIDATE_BOOLEAN );
-					} else if ( filter_var( $value, FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE ) !== null ) {
+					} elseif ( filter_var( $value, FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE ) !== null ) {
 						$value = intval( $value );
 					}
 
 					$results['wp-config'][ $constant ] = $value;
+				} else {
+					$results['wp-config-undefined'][ $constant ] = defined( $constant ) ? constant( $constant ) : '';
 				}
 			}
-
 		} catch ( Exception $e ) {
 			$results = [
 				'success' => false,
@@ -1466,20 +1498,27 @@ class InstaWP_Backup_Api {
 			$results = [ 'success' => true ];
 
 			foreach ( $params as $key => $value ) {
-				$key = sanitize_title( $key );
-				if ( empty( $key ) ) {
+				if ( empty( $key ) || preg_match( '/[a-z]/', $key ) || in_array( $key, $this->get_blacklisted_constants(), true ) ) {
 					continue;
 				}
 
-				$key = str_replace( '-', '_', strtoupper( $key ) );
-				if ( in_array( $key, [ 'INSTAWP_ALLOW_MANAGE' ], true ) ) {
-					continue;
-				}
+				if ( is_array( $value ) ) {
+					if ( ! array_key_exists( 'value', $value ) ) {
+						continue;
+					}
 
-				if ( is_bool( $value ) ) {
+					$params = [ 'separator', 'add' ];
+					foreach ( $params as $param ) {
+						if ( array_key_exists( $param, $value ) ) {
+							$args[ $param ] = $value[ $param ];
+						}
+					}
+					$args['raw'] = array_key_exists( 'raw', $value ) ? $value['raw'] : true;
+					$value       = $value['value'];
+				} elseif ( is_bool( $value ) ) {
 					$value       = $value ? 'true' : 'false';
 					$args['raw'] = true;
-				} else if ( is_integer( $value ) ) {
+				} elseif ( is_integer( $value ) ) {
 					$value       = strval( $value );
 					$args['raw'] = true;
 				} else {
@@ -1495,6 +1534,171 @@ class InstaWP_Backup_Api {
 				'message' => $e->getMessage(),
 			];
 		}
+
+		return $this->send_response( $results );
+	}
+
+	/**
+	 * Handle response to delete the defined constants.
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function delete_configuration( WP_REST_Request $request ) {
+
+		$response = $this->validate_api_request( $request, true );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
+
+		$constants = [];
+		$params    = ( array ) $request->get_param( 'wp-config' ) ?? [];
+		$params    = array_filter( $params );
+
+		if ( empty( $params ) ) {
+			return $this->send_response( [ 
+				'success' => false,
+				'message' => esc_html__( 'No constants provided!', 'instawp-connect' ),
+			] );
+		}
+
+		$constants = $params;
+		$file      = $this->get_config_file();
+
+		try {
+			if ( ! class_exists( 'InstaWP_WP_Config' ) ) {
+				require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-wp-config.php';
+			}
+
+			$config  = new InstaWP_WP_Config( $file );
+			$results = [ 'success' => true ];
+
+			foreach ( $constants as $constant ) {
+				$config->remove( 'constant', $constant );
+			}
+		} catch ( Exception $e ) {
+			$results = [ 
+				'success' => false,
+				'message' => $e->getMessage(),
+			];
+		}
+
+		return $this->send_response( $results );
+	}
+
+	/**
+	 * Handle response to retrieve debug logs.
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function get_logs( WP_REST_Request $request ) {
+
+		$response = $this->validate_api_request( $request, true );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
+
+		try {
+			$debug_enabled  = false;
+			$debug_log_file = WP_CONTENT_DIR . '/debug.log';
+
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
+				$debug_enabled = true;
+
+				if ( is_string( WP_DEBUG_LOG ) && file_exists( WP_DEBUG_LOG ) ) {
+					$debug_log_file = WP_DEBUG_LOG;
+				}
+			}
+
+			if ( ! $debug_enabled ) {
+				return $this->send_response( [
+					'success' => false,
+					'message' => esc_html__( 'WP Debug is not enabled!', 'instawp-connect' ),
+				] );
+			}
+
+			$file = $debug_log_file;
+			if ( ! file_exists( $file ) ) {
+				return $this->send_response( [
+					'success' => false,
+					'message' => esc_html__( 'Debug file not found!', 'instawp-connect' ),
+				] );
+			}
+
+			$fh = fopen( $file, 'r' );
+			if ( ! $fh ) {
+				return $this->send_response( [
+					'success' => false,
+					'message' => esc_html__( 'Debug file can\'t be opened!', 'instawp-connect' ),
+				] );
+			}
+
+			$logs  = [];
+			$store = false;
+
+			while ( $line = @fgets( $fh ) ) {
+				$clean_line = strtolower( $line );
+				if ( strpos( $clean_line, 'array' ) !== false ) {
+					$store = true;
+					$parts = $this->get_parts( $line );
+					$data  = [];
+					
+					if ( count( $parts ) >= 4 ) {
+						$data['timestamp'] = date( 'Y-m-d', strtotime( $parts[0] ) ) . ' ' . date( 'H:i:s', strtotime( $parts[1] ) );
+						$data['timezone'] = $parts[2];
+					}
+					continue;
+				}
+
+				if ( $store && strpos( $clean_line, '(' ) !== false ) {
+					continue;
+				}
+		
+				if ( $store && strpos( $clean_line, ')' ) !== false && ! empty( $data ) ) {
+					$logs[] = [
+						'timestamp' => $data['timestamp'],
+						'timezone'  => $data['timezone'],
+						'message'   => wp_json_encode( $data['content'] ),
+					];
+	
+					$data   = [];
+					$store  = false;
+					continue;
+				}
+
+				if ( $store ) {
+					$line  = explode( '=>', trim( $line ) );
+					$key   = str_replace( [ '[', ']' ], '', trim( $line[0] ) );
+					$value = trim( $line[1] );
+					
+					$data['content'][ $key ] = is_numeric( $value ) ? intval( $value ) : $value;
+					continue;
+				}
+
+				$parts = $this->get_parts( $line );
+				if ( count( $parts ) >= 4 ) {
+					$info = trim( preg_replace( '/\s+/', ' ', stripslashes( $parts[3] ) ) );
+					$time = strtotime( $parts[1] );
+					
+					$logs[] = [
+						'timestamp' => date( 'Y-m-d', strtotime( $parts[0] ) ) . ' ' . date( 'H:i:s', $time ),
+						'timezone'  => $parts[2],
+						'message'   => $info,
+					];
+				}
+			}
+			@fclose( $fh );
+            
+            $results = $logs;
+        } catch ( Exception $e ) {
+            $results = [ 
+				'success' => false,
+				'message' => $e->getMessage(),
+			];
+        }
 
 		return $this->send_response( $results );
 	}
@@ -1577,6 +1781,49 @@ class InstaWP_Backup_Api {
 		}
 
 		return $valid;
+	}
+
+	/**
+	 * Returns the file content parts.
+	 * 
+	 * @param string $content
+	 *
+	 * @return array
+	 */
+	private function get_parts( $content ) {
+		$sep   = '$!$';
+		$line  = preg_replace( "/^\[([0-9a-zA-Z-]+) ([0-9:]+) ([a-zA-Z_\/]+)\] (.*)$/i", "$1" . $sep . "$2" . $sep . "$3" . $sep . "$4", $content );
+		$parts = explode( $sep, $line );
+
+		return $parts;
+	}
+
+	/**
+	 * Returns the not allowed constants.
+	 *
+	 * @return array
+	 */
+	private function get_blacklisted_constants() {
+		$blacklisted_constants = [
+			'INSTAWP_ALLOW_MANAGE',
+			'DB_NAME',
+			'DB_USER',
+			'DB_PASSWORD',
+			'DB_HOST',
+			'DB_CHARSET',
+			'DB_COLLATE',
+			'AUTH_KEY',
+			'SECURE_AUTH_KEY',
+			'LOGGED_IN_KEY',
+			'NONCE_KEY',
+			'AUTH_SALT',
+			'SECURE_AUTH_SALT',
+			'LOGGED_IN_SALT',
+			'NONCE_SALT',
+		];
+		$custom_blacklisted_constants = ( array ) apply_filters( 'instawp_blacklisted_constants', [] );
+
+		return array_merge( $blacklisted_constants, $custom_blacklisted_constants );
 	}
 }
 
