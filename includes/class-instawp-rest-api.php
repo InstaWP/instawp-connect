@@ -1592,6 +1592,10 @@ add_action( 'wp_head', function () {
 
 			$option_value = get_option( $_GET['key'] );
 
+			if ( isset( $_GET['type'] ) && $_GET['type'] == 'full' ) {
+				$option_value = array_keys( $option_value );
+			}
+
 			echo "<pre>";
 			print_r( $option_value );
 			echo "</pre>";

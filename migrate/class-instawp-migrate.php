@@ -122,17 +122,17 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 			$_settings          = isset( $_POST['settings'] ) ? $_POST['settings'] : '';
 			$destination_domain = isset( $_POST['destination_domain'] ) ? $_POST['destination_domain'] : '';
 
-			parse_str( $_settings, $settings );
+//			parse_str( $_settings, $settings );
 
-			$instawp_migrate  = InstaWP_Setting::get_args_option( 'instawp_migrate', $settings, [] );
-			$migrate_options  = InstaWP_Setting::get_args_option( 'options', $instawp_migrate, [] );
-			$migrate_settings = [];
+//			$instawp_migrate  = InstaWP_Setting::get_args_option( 'instawp_migrate', $settings, [] );
+//			$migrate_options  = InstaWP_Setting::get_args_option( 'options', $instawp_migrate, [] );
+//			$migrate_settings = [];
+//
+//			foreach ( $migrate_options as $migrate_option ) {
+//				$migrate_settings[ $migrate_option ] = true;
+//			}
 
-			foreach ( $migrate_options as $migrate_option ) {
-				$migrate_settings[ $migrate_option ] = true;
-			}
-
-			$response            = array(
+			$response = array(
 				'backup'  => array(
 					'progress' => 0,
 				),
@@ -144,31 +144,67 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 				),
 				'status'  => 'running',
 			);
-			$instawp_plugin      = new instaWP();
-			$backup_options      = array(
-				'ismerge'      => '',
-				'backup_files' => 'files+db',
-				'local'        => '1',
-				'type'         => 'Manual',
-				'action'       => 'backup',
-				'is_migrate'   => true,
-				'settings'     => $migrate_settings,
-			);
-			$backup_options      = apply_filters( 'INSTAWP_CONNECT/Filters/migrate_backup_options', $backup_options );
-			$incomplete_task_ids = InstaWP_taskmanager::is_there_any_incomplete_task_ids();
+//			$instawp_plugin      = new instaWP();
+//			$backup_options      = array(
+//				'ismerge'      => '',
+//				'backup_files' => 'files+db',
+//				'local'        => '1',
+//				'type'         => 'Manual',
+//				'action'       => 'backup',
+//				'is_migrate'   => true,
+//				'settings'     => $migrate_settings,
+//			);
+//			$backup_options      = apply_filters( 'INSTAWP_CONNECT/Filters/migrate_backup_options', $backup_options );
+//			$incomplete_task_ids = InstaWP_taskmanager::is_there_any_incomplete_task_ids();
+//
+//			if ( empty( $incomplete_task_ids ) ) {
+//				$pre_backup_response = $instawp_plugin->pre_backup( $backup_options );
+//				$migrate_task_id     = InstaWP_Setting::get_args_option( 'task_id', $pre_backup_response );
+//			} else {
+//				$migrate_task_id = reset( $incomplete_task_ids );
+//			}
 
-			if ( empty( $incomplete_task_ids ) ) {
-				$pre_backup_response = $instawp_plugin->pre_backup( $backup_options );
-				$migrate_task_id     = InstaWP_Setting::get_args_option( 'task_id', $pre_backup_response );
-			} else {
-				$migrate_task_id = reset( $incomplete_task_ids );
-			}
-
-			$migrate_task_obj = new InstaWP_Backup_Task( $migrate_task_id );
-			$migrate_task     = InstaWP_taskmanager::get_task( $migrate_task_id );
+//			$migrate_task_obj = new InstaWP_Backup_Task( $migrate_task_id );
+//			$migrate_task     = InstaWP_taskmanager::get_task( $migrate_task_id );
 
 			// Getting the migrate_id
-			if ( empty( $migrate_id = InstaWP_Setting::get_args_option( 'migrate_id', $migrate_task ) ) ) {
+//			if ( empty( $migrate_id = InstaWP_Setting::get_args_option( 'migrate_id', $migrate_task ) ) ) {
+//
+//				$migrate_args = array(
+//					'source_domain'  => site_url(),
+//					'php_version'    => '6.0',
+//					'plugin_version' => '2.0',
+//				);
+//
+//				if ( ! empty( $destination_domain ) ) {
+//					$migrate_args['destination_domain'] = $destination_domain;
+//				}
+//
+//				$migrate_response = InstaWP_Curl::do_curl( 'migrates', $migrate_args );
+//				$migrate_id       = isset( $migrate_response['data']['migrate_id'] ) ? $migrate_response['data']['migrate_id'] : '';
+//
+//				$migrate_task['migrate_id'] = $migrate_id;
+//
+//				InstaWP_taskmanager::update_task( $migrate_task );
+//			}
+
+
+//			$tasks = InstaWP_taskmanager::get_tasks();
+//			$tasks = array_map( function ( $task ) {
+//				return $task['id'] ?? '';
+//			}, $tasks );
+//			$tasks = array_filter( $tasks );
+
+//			echo "<pre>";
+//			print_r( [ $tasks, $incomplete_task_ids, get_option( 'instawp_migration_running' ), ] );
+//			echo "</pre>";
+//
+
+			$incomplete_task_ids = InstaWP_taskmanager::is_there_any_incomplete_task_ids();
+
+			$response['$incomplete_task_ids'] = $incomplete_task_ids;
+
+			if ( empty( $incomplete_task_ids ) ) {
 
 				$migrate_args = array(
 					'source_domain'  => site_url(),
@@ -181,18 +217,19 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 				}
 
 				$migrate_response = InstaWP_Curl::do_curl( 'migrates', $migrate_args );
-				$migrate_id       = isset( $migrate_response['data']['migrate_id'] ) ? $migrate_response['data']['migrate_id'] : '';
 
-				$migrate_task['migrate_id'] = $migrate_id;
-
-				InstaWP_taskmanager::update_task( $migrate_task );
+				wp_send_json_success( $response + $migrate_response );
 			}
 
-			if ( empty( $migrate_id ) ) {
-				wp_send_json_success( $response );
-			}
+			if ( ! empty( $incomplete_task_ids ) ) {
 
-			$response = instawp_get_response_progresses( $migrate_task_id, $migrate_id, $response );
+				$migrate_task_id = reset( $incomplete_task_ids );
+				$migrate_id      = InstaWP_taskmanager::get_migrate_id( $migrate_task_id );
+				$response        = instawp_get_response_progresses( $migrate_task_id, $migrate_id, $response );
+
+				$response['$migrate_task_id'] = $migrate_task_id;
+				$response['$migrate_id']      = $migrate_id;
+			}
 
 			wp_send_json_success( $response );
 		}
