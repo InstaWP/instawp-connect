@@ -119,19 +119,6 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 				include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-zipclass.php';
 			}
 
-			$_settings          = isset( $_POST['settings'] ) ? $_POST['settings'] : '';
-			$destination_domain = isset( $_POST['destination_domain'] ) ? $_POST['destination_domain'] : '';
-
-//			parse_str( $_settings, $settings );
-
-//			$instawp_migrate  = InstaWP_Setting::get_args_option( 'instawp_migrate', $settings, [] );
-//			$migrate_options  = InstaWP_Setting::get_args_option( 'options', $instawp_migrate, [] );
-//			$migrate_settings = [];
-//
-//			foreach ( $migrate_options as $migrate_option ) {
-//				$migrate_settings[ $migrate_option ] = true;
-//			}
-
 			$response            = array(
 				'backup'  => array(
 					'progress' => 0,
@@ -144,14 +131,27 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 				),
 				'status'  => 'running',
 			);
+			$_settings           = isset( $_POST['settings'] ) ? $_POST['settings'] : '';
+			$destination_domain  = isset( $_POST['destination_domain'] ) ? $_POST['destination_domain'] : '';
 			$incomplete_task_ids = InstaWP_taskmanager::is_there_any_incomplete_task_ids();
+
+			parse_str( $_settings, $settings );
 
 			if ( empty( $incomplete_task_ids ) ) {
 
+				$instawp_migrate  = InstaWP_Setting::get_args_option( 'instawp_migrate', $settings, [] );
+				$migrate_options  = InstaWP_Setting::get_args_option( 'options', $instawp_migrate, [] );
+				$migrate_settings = [];
+
+				foreach ( $migrate_options as $migrate_option ) {
+					$migrate_settings[ $migrate_option ] = true;
+				}
+
 				$migrate_args = array(
-					'source_domain'  => site_url(),
-					'php_version'    => '6.0',
-					'plugin_version' => '2.0',
+					'source_domain'    => site_url(),
+					'php_version'      => '6.0',
+					'plugin_version'   => '2.0',
+					'migrate_settings' => $migrate_settings
 				);
 
 				if ( ! empty( $destination_domain ) ) {
