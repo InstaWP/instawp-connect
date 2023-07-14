@@ -1870,27 +1870,6 @@ add_action( 'wp_head', function () {
 			echo "</pre>";
 		}
 
-
-//		$root_path    = $restore_site->transfer_path( ABSPATH );
-//		$restore_site = new InstaWP_RestoreSite();
-//		$upload_dir   = wp_upload_dir();
-//		$upload_path  = $upload_dir['basedir'];
-//		$root_path    = $restore_site->transfer_path( WP_CONTENT_DIR );
-
-//
-//		echo "<pre>";
-//		print_r( ABSPATH );
-//		echo "</pre>";
-//
-//		echo "<pre>";
-//		print_r(
-//			[
-//				ABSPATH,
-//				str_replace( 'wp-content', '', WP_CONTENT_DIR ),
-//			]
-//		);
-//		echo "</pre>";
-
 		die();
 	}
 }, 0 );

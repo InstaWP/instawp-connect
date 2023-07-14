@@ -63,8 +63,8 @@ class InstaWP_Backup_Task {
 
 		$backup_type       = $args['type'] ?? '';
 		$backup_options    = InstaWP_Setting::get_args_option( 'backup_options', $args, [] );
-		$backup_settings   = InstaWP_Setting::get_args_option( 'settings', $backup_options, [] );
-		$skip_media_folder = InstaWP_Setting::get_args_option( 'skip_media_folder', $backup_settings, false );
+		$migrate_settings  = InstaWP_Setting::get_args_option( 'migrate_settings', $backup_options, [] );
+		$skip_media_folder = InstaWP_Setting::get_args_option( 'skip_media_folder', $migrate_settings, false );
 
 		if ( $backup_type == INSTAWP_BACKUP_TYPE_UPLOADS || $backup_type == INSTAWP_BACKUP_TYPE_UPLOADS_FILES ) {
 
@@ -161,13 +161,14 @@ class InstaWP_Backup_Task {
 	}
 
 	public function new_backup_task( $options, $type, $action = 'backup' ) {
-		$id                           = uniqid( 'instawp-' );
-		$this->task                   = array();
-		$this->task['id']             = $id;
-		$this->task['action']         = $action;
-		$this->task['type']           = $type;
-		$this->task['is_migrate']     = $options['is_migrate'] ?? false;
-		$this->task['migration_mode'] = isset( $options['migration_mode'] ) && ! empty( $options['migration_mode'] ) ? $options['migration_mode'] : '';
+		$id                             = uniqid( 'instawp-' );
+		$this->task                     = array();
+		$this->task['id']               = $id;
+		$this->task['action']           = $action;
+		$this->task['type']             = $type;
+		$this->task['is_migrate']       = $options['is_migrate'] ?? false;
+		$this->task['migration_mode']   = isset( $options['migration_mode'] ) && ! empty( $options['migration_mode'] ) ? $options['migration_mode'] : '';
+		$this->task['migrate_settings'] = $options['migrate_settings'] ?? array();
 
 		$this->task['status']['start_time']   = time();
 		$this->task['status']['run_time']     = time();
@@ -580,7 +581,7 @@ class InstaWP_Backup_Task {
 		$themes_included    = array();
 		$themes_excluded    = array();
 		$current_theme      = wp_get_theme();
-		$active_themes_only = $options['settings']['active_themes_only'] ?? false;
+		$active_themes_only = $options['migrate_settings']['active_themes_only'] ?? false;
 
 		foreach ( wp_get_themes() as $key => $item ) {
 
@@ -614,7 +615,7 @@ class InstaWP_Backup_Task {
 		$plugins_included        = array();
 		$plugins_excluded        = array();
 		$list                    = get_plugins();
-		$active_plugins_only     = $options['settings']['active_plugins_only'] ?? false;
+		$active_plugins_only     = $options['migrate_settings']['active_plugins_only'] ?? false;
 		$exclude_default_plugins = $this->get_exclude_default_plugins();
 
 		foreach ( $list as $key => $item ) {
