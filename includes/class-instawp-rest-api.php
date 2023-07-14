@@ -119,7 +119,7 @@ class InstaWP_Backup_Api {
 			),
 		) );
 
-		register_rest_route( $this->namespace . '/' . $this->version_2, '/logs',  array(
+		register_rest_route( $this->namespace . '/' . $this->version_2, '/logs', array(
 			'methods'             => 'GET',
 			'callback'            => array( $this, 'get_logs' ),
 			'permission_callback' => '__return_true',
@@ -927,10 +927,11 @@ class InstaWP_Backup_Api {
 			return $this->throw_error( $response );
 		}
 
-		$parameters      = $request->get_params();
-		$is_background   = $parameters['instawp_is_background'] ?? true;
-		$migrate_id      = InstaWP_Setting::get_args_option( 'migrate_id', $parameters );
-		$migrate_task_id = instawp_get_migrate_backup_task_id();
+		$parameters       = $request->get_params();
+		$is_background    = $parameters['instawp_is_background'] ?? true;
+		$migrate_id       = InstaWP_Setting::get_args_option( 'migrate_id', $parameters );
+		$migrate_settings = InstaWP_Setting::get_args_option( 'migrate_settings', $parameters );
+		$migrate_task_id  = instawp_get_migrate_backup_task_id( array( 'migrate_settings' => $migrate_settings ) );
 
 		InstaWP_taskmanager::store_migrate_id_to_migrate_task( $migrate_task_id, $migrate_id );
 
@@ -1557,7 +1558,7 @@ class InstaWP_Backup_Api {
 		$params    = array_filter( $params );
 
 		if ( empty( $params ) ) {
-			return $this->send_response( [ 
+			return $this->send_response( [
 				'success' => false,
 				'message' => esc_html__( 'No constants provided!', 'instawp-connect' ),
 			] );
@@ -1578,7 +1579,7 @@ class InstaWP_Backup_Api {
 				$config->remove( 'constant', $constant );
 			}
 		} catch ( Exception $e ) {
-			$results = [ 
+			$results = [
 				'success' => false,
 				'message' => $e->getMessage(),
 			];
@@ -1645,10 +1646,10 @@ class InstaWP_Backup_Api {
 					$store = true;
 					$parts = $this->get_parts( $line );
 					$data  = [];
-					
+
 					if ( count( $parts ) >= 4 ) {
 						$data['timestamp'] = date( 'Y-m-d', strtotime( $parts[0] ) ) . ' ' . date( 'H:i:s', strtotime( $parts[1] ) );
-						$data['timezone'] = $parts[2];
+						$data['timezone']  = $parts[2];
 					}
 					continue;
 				}
@@ -1656,16 +1657,16 @@ class InstaWP_Backup_Api {
 				if ( $store && strpos( $clean_line, '(' ) !== false ) {
 					continue;
 				}
-		
+
 				if ( $store && strpos( $clean_line, ')' ) !== false && ! empty( $data ) ) {
 					$logs[] = [
 						'timestamp' => $data['timestamp'],
 						'timezone'  => $data['timezone'],
 						'message'   => wp_json_encode( $data['content'] ),
 					];
-	
-					$data   = [];
-					$store  = false;
+
+					$data  = [];
+					$store = false;
 					continue;
 				}
 
@@ -1673,7 +1674,7 @@ class InstaWP_Backup_Api {
 					$line  = explode( '=>', trim( $line ) );
 					$key   = str_replace( [ '[', ']' ], '', trim( $line[0] ) );
 					$value = trim( $line[1] );
-					
+
 					$data['content'][ $key ] = is_numeric( $value ) ? intval( $value ) : $value;
 					continue;
 				}
@@ -1682,7 +1683,7 @@ class InstaWP_Backup_Api {
 				if ( count( $parts ) >= 4 ) {
 					$info = trim( preg_replace( '/\s+/', ' ', stripslashes( $parts[3] ) ) );
 					$time = strtotime( $parts[1] );
-					
+
 					$logs[] = [
 						'timestamp' => date( 'Y-m-d', strtotime( $parts[0] ) ) . ' ' . date( 'H:i:s', $time ),
 						'timezone'  => $parts[2],
@@ -1691,14 +1692,14 @@ class InstaWP_Backup_Api {
 				}
 			}
 			@fclose( $fh );
-            
-            $results = $logs;
-        } catch ( Exception $e ) {
-            $results = [ 
+
+			$results = $logs;
+		} catch ( Exception $e ) {
+			$results = [
 				'success' => false,
 				'message' => $e->getMessage(),
 			];
-        }
+		}
 
 		return $this->send_response( $results );
 	}
@@ -1785,7 +1786,7 @@ class InstaWP_Backup_Api {
 
 	/**
 	 * Returns the file content parts.
-	 * 
+	 *
 	 * @param string $content
 	 *
 	 * @return array
@@ -1804,7 +1805,7 @@ class InstaWP_Backup_Api {
 	 * @return array
 	 */
 	private function get_blacklisted_constants() {
-		$blacklisted_constants = [
+		$blacklisted_constants        = [
 			'INSTAWP_ALLOW_MANAGE',
 			'DB_NAME',
 			'DB_USER',

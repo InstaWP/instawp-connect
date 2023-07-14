@@ -803,12 +803,13 @@ if ( ! function_exists( 'instawp_get_migrate_backup_task_id' ) ) {
 		global $instawp_plugin;
 
 		$backup_options_def  = array(
-			'ismerge'      => '',
-			'backup_files' => 'files+db',
-			'local'        => '1',
-			'type'         => 'Manual',
-			'action'       => 'backup',
-			'is_migrate'   => true,
+			'ismerge'          => '',
+			'backup_files'     => 'files+db',
+			'local'            => '1',
+			'type'             => 'Manual',
+			'action'           => 'backup',
+			'is_migrate'       => true,
+			'migrate_settings' => array(),
 		);
 		$backup_options      = apply_filters( 'INSTAWP_CONNECT/Filters/migrate_backup_options', wp_parse_args( $backup_options, $backup_options_def ) );
 		$incomplete_task_ids = InstaWP_taskmanager::is_there_any_incomplete_task_ids();
