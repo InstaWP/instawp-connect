@@ -158,7 +158,7 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 			$response          = instawp_get_response_progresses( $migrate_task_id, $migrate_id, [], array( 'generate_local_parts_urls' => true ) );
 			$part_urls         = InstaWP_Setting::get_args_option( 'part_urls', $response, array() );
 			$update_parts_args = array(
-				'migrate_id' => "$migrate_id",
+				'migrate_id' => $migrate_id,
 				'part_urls'  => $part_urls,
 			);
 
