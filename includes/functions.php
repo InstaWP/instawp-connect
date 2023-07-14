@@ -545,8 +545,8 @@ if ( ! function_exists( 'instawp_get_response_progresses' ) ) {
 				$backup_progress = (int) InstaWP_Setting::get_args_option( 'backup_progress', $data, '0' );
 				$upload_progress = (int) InstaWP_Setting::get_args_option( 'upload_progress', $data, '0' );
 
-				$response['backup']['progress'] = (int) $response['backup']['progress'] + $backup_progress;
-				$response['upload']['progress'] = (int) $response['upload']['progress'] + $upload_progress;
+				$response['backup']['progress'] = isset( $response['backup']['progress'] ) ? (int) $response['backup']['progress'] + $backup_progress : 0;
+				$response['upload']['progress'] = isset( $response['upload']['progress'] ) ? (int) $response['upload']['progress'] + $upload_progress : 0;
 			}
 		}
 

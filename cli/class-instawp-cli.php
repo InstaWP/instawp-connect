@@ -147,10 +147,22 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 
 		public function cli_upload( $migrate_task_id ) {
 
-			$migrate_id = InstaWP_taskmanager::get_migrate_id( $migrate_task_id );
-
+			/**
+			 * We are not uploading to cloud here.
+			 */
 			// Upload backup parts to S3 cloud
-			instawp_upload_backup_parts_to_cloud( $migrate_task_id, $migrate_id );
+			// instawp_upload_backup_parts_to_cloud( $migrate_task_id, $migrate_id );
+
+
+			$migrate_id        = InstaWP_taskmanager::get_migrate_id( $migrate_task_id );
+			$response          = instawp_get_response_progresses( $migrate_task_id, $migrate_id, [], array( 'generate_local_parts_urls' => true ) );
+			$part_urls         = InstaWP_Setting::get_args_option( 'part_urls', $response, array() );
+			$update_parts_args = array(
+				'migrate_id' => "$migrate_id",
+				'part_urls'  => $part_urls,
+			);
+
+			InstaWP_Curl::do_curl( 's2p-migrate-parts-update', $update_parts_args );
 		}
 
 		function handle_instawp_commands( $args ) {
@@ -167,6 +179,12 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 					instawp_reset_running_migration( 'soft', false );
 
 					WP_CLI::success( esc_html__( 'Cleared previous backup files successfully.', 'instawp-connect' ) );
+					break;
+
+				case 'upload':
+
+					$this->cli_upload( $migrate_task_id );
+
 					break;
 
 				case 'backup-upload':
