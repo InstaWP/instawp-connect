@@ -1,5 +1,9 @@
 <?php
 
+if ( ! defined( 'INSTAWP_PLUGIN_DIR' ) ) {
+	die;
+}
+
 /**
  * Transforms a wp-config.php file.
  */
