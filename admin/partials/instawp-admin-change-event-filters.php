@@ -814,7 +814,9 @@ class InstaWP_Change_Event_Filters
                 $url = wp_get_attachment_url(intval($attachment_id));
                 $gallery[] = [
                     'id' => $attachment_id,
-                    'url' => $url
+                    'url' => $url,
+                    'media' => get_post($attachment_id),
+                    'media_meta' => get_post_meta($attachment_id),
                 ];
             }
         }
