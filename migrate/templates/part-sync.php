@@ -34,7 +34,6 @@ if(!empty($parent_connect_data)){
         'type'=>$parent_connect_data['type'],
     ]);
 }
- 
 #others
 $destination_url = get_option('instawp_sync_parent_url', '') ;
 $others = (abs($total_events) - abs($post_new+$post_delete+$post_trash));
