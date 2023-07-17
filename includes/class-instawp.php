@@ -7598,4 +7598,32 @@ class instaWP {
 	public static function get_asset_url( $asset_name ) {
 		return INSTAWP_PLUGIN_URL . '/' . $asset_name;
 	}
+
+	/**
+	 * Returns the not allowed constants.
+	 *
+	 * @return array
+	 */
+	public function get_blacklisted_constants() {
+		$blacklisted_constants        = [
+			'INSTAWP_ALLOW_MANAGE',
+			'DB_NAME',
+			'DB_USER',
+			'DB_PASSWORD',
+			'DB_HOST',
+			'DB_CHARSET',
+			'DB_COLLATE',
+			'AUTH_KEY',
+			'SECURE_AUTH_KEY',
+			'LOGGED_IN_KEY',
+			'NONCE_KEY',
+			'AUTH_SALT',
+			'SECURE_AUTH_SALT',
+			'LOGGED_IN_SALT',
+			'NONCE_SALT',
+		];
+		$custom_blacklisted_constants = ( array ) apply_filters( 'instawp_blacklisted_constants', [] );
+
+		return array_merge( $blacklisted_constants, $custom_blacklisted_constants );
+	}
 }

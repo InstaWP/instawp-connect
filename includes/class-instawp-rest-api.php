@@ -1420,9 +1420,9 @@ class InstaWP_Backup_Api {
 		if ( ! empty( $params ) ) {
 			$allowed_constants = array_merge( $allowed_constants, $params );
 		}
-		$constants = array_diff( $allowed_constants, $this->get_blacklisted_constants() );
+		$constants = array_diff( $allowed_constants, instawp()->get_blacklisted_constants() );
 
-		$file = $this->get_config_file();
+		$file = InstaWP_Tools::get_config_file();
 
 		try {
 			if ( ! class_exists( 'InstaWP_WP_Config' ) ) {
@@ -1477,7 +1477,7 @@ class InstaWP_Backup_Api {
 			return $this->throw_error( $response );
 		}
 
-		$file    = $this->get_config_file();
+		$file    = InstaWP_Tools::get_config_file();
 		$args    = [
 			'normalize' => true,
 			'add'       => true,
@@ -1499,7 +1499,7 @@ class InstaWP_Backup_Api {
 			$results = [ 'success' => true ];
 
 			foreach ( $params as $key => $value ) {
-				if ( empty( $key ) || preg_match( '/[a-z]/', $key ) || in_array( $key, $this->get_blacklisted_constants(), true ) ) {
+				if ( empty( $key ) || preg_match( '/[a-z]/', $key ) || in_array( $key, instawp()->get_blacklisted_constants(), true ) ) {
 					continue;
 				}
 
@@ -1565,7 +1565,7 @@ class InstaWP_Backup_Api {
 		}
 
 		$constants = $params;
-		$file      = $this->get_config_file();
+		$file      = InstaWP_Tools::get_config_file();
 
 		try {
 			if ( ! class_exists( 'InstaWP_WP_Config' ) ) {
@@ -1639,56 +1639,22 @@ class InstaWP_Backup_Api {
 
 			$logs  = [];
 			$store = false;
-
+			$index = 0;
 			while ( $line = @fgets( $fh ) ) {
-				$clean_line = strtolower( $line );
-				if ( strpos( $clean_line, 'array' ) !== false ) {
-					$store = true;
-					$parts = $this->get_parts( $line );
-					$data  = [];
-
-					if ( count( $parts ) >= 4 ) {
-						$data['timestamp'] = date( 'Y-m-d', strtotime( $parts[0] ) ) . ' ' . date( 'H:i:s', strtotime( $parts[1] ) );
-						$data['timezone']  = $parts[2];
-					}
-					continue;
-				}
-
-				if ( $store && strpos( $clean_line, '(' ) !== false ) {
-					continue;
-				}
-
-				if ( $store && strpos( $clean_line, ')' ) !== false && ! empty( $data ) ) {
-					$logs[] = [
-						'timestamp' => $data['timestamp'],
-						'timezone'  => $data['timezone'],
-						'message'   => wp_json_encode( $data['content'] ),
-					];
-
-					$data  = [];
-					$store = false;
-					continue;
-				}
-
-				if ( $store ) {
-					$line  = explode( '=>', trim( $line ) );
-					$key   = str_replace( [ '[', ']' ], '', trim( $line[0] ) );
-					$value = trim( $line[1] );
-
-					$data['content'][ $key ] = is_numeric( $value ) ? intval( $value ) : $value;
-					continue;
-				}
-
-				$parts = $this->get_parts( $line );
+				$parts = InstaWP_Tools::get_parts( $line );
 				if ( count( $parts ) >= 4 ) {
 					$info = trim( preg_replace( '/\s+/', ' ', stripslashes( $parts[3] ) ) );
 					$time = strtotime( $parts[1] );
 
-					$logs[] = [
+					$logs[ $index ] = [
 						'timestamp' => date( 'Y-m-d', strtotime( $parts[0] ) ) . ' ' . date( 'H:i:s', $time ),
 						'timezone'  => $parts[2],
 						'message'   => $info,
 					];
+					$index++;
+				} else {
+					$last_index = $index - 1;
+					$logs[ $last_index ]['message'] .= trim( preg_replace( '/\s+/', ' ', $line ) );
 				}
 			}
 			@fclose( $fh );
@@ -1702,22 +1668,6 @@ class InstaWP_Backup_Api {
 		}
 
 		return $this->send_response( $results );
-	}
-
-	/**
-	 * Returns the wp-config.php file.
-	 *
-	 * @return string
-	 */
-	private function get_config_file() {
-		$file = ABSPATH . 'wp-config.php';
-		if ( ! file_exists( $file ) ) {
-			if ( @file_exists( dirname( ABSPATH ) . '/wp-config.php' ) ) {
-				$file = dirname( ABSPATH ) . '/wp-config.php';
-			}
-		}
-
-		return $file;
 	}
 
 	/**
@@ -1782,49 +1732,6 @@ class InstaWP_Backup_Api {
 		}
 
 		return $valid;
-	}
-
-	/**
-	 * Returns the file content parts.
-	 *
-	 * @param string $content
-	 *
-	 * @return array
-	 */
-	private function get_parts( $content ) {
-		$sep   = '$!$';
-		$line  = preg_replace( "/^\[([0-9a-zA-Z-]+) ([0-9:]+) ([a-zA-Z_\/]+)\] (.*)$/i", "$1" . $sep . "$2" . $sep . "$3" . $sep . "$4", $content );
-		$parts = explode( $sep, $line );
-
-		return $parts;
-	}
-
-	/**
-	 * Returns the not allowed constants.
-	 *
-	 * @return array
-	 */
-	private function get_blacklisted_constants() {
-		$blacklisted_constants        = [
-			'INSTAWP_ALLOW_MANAGE',
-			'DB_NAME',
-			'DB_USER',
-			'DB_PASSWORD',
-			'DB_HOST',
-			'DB_CHARSET',
-			'DB_COLLATE',
-			'AUTH_KEY',
-			'SECURE_AUTH_KEY',
-			'LOGGED_IN_KEY',
-			'NONCE_KEY',
-			'AUTH_SALT',
-			'SECURE_AUTH_SALT',
-			'LOGGED_IN_SALT',
-			'NONCE_SALT',
-		];
-		$custom_blacklisted_constants = ( array ) apply_filters( 'instawp_blacklisted_constants', [] );
-
-		return array_merge( $blacklisted_constants, $custom_blacklisted_constants );
 	}
 }
 
