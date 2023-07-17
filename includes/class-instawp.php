@@ -145,7 +145,7 @@ class instaWP {
 		// Heartbeat Action events handler.
 		add_action( 'init', array( $this, 'register_heartbeat_action' ), 11 );
 		add_action( 'update_option_instawp_api_heartbeat', array( $this, 'check_and_clear_heartbeat_action' ), 10, 2 );
-		add_action( 'instwp_handle_heartbeat', array( $this, 'handle_heartbeat' ) );
+		add_action( 'instawp_handle_heartbeat', array( $this, 'handle_heartbeat' ) );
 
 		// Hook to run on login page
 		add_action( 'login_init', array( $this, 'instawp_auto_login_redirect' ) );
@@ -212,17 +212,19 @@ class instaWP {
 
 	// Set Action Scheduler event.
 	public function register_heartbeat_action() {
-		$interval = intval( get_option( 'instawp_api_heartbeat', 15 ) ) ?? 15;
 
-		if ( ! as_has_scheduled_action( 'instwp_handle_heartbeat', [], 'instawp-connect' ) ) {
-			as_schedule_recurring_action( time(), ( $interval * 60 ), 'instwp_handle_heartbeat', [], 'instawp-connect', false, 5 );
+		$interval = InstaWP_Setting::get_option( 'instawp_api_heartbeat', 15 );
+		$interval = empty( $interval ) ? 15 : (int) $interval;
+
+		if ( ! as_has_scheduled_action( 'instawp_handle_heartbeat', [], 'instawp-connect' ) ) {
+			as_schedule_recurring_action( time(), ( $interval * 60 ), 'instawp_handle_heartbeat', [], 'instawp-connect', false, 5 );
 		}
 	}
 
 	// Clean event if interval changes.
 	public function check_and_clear_heartbeat_action( $old_value, $value ) {
 		if ( intval( $old_value ) !== intval( $value ) ) {
-			as_unschedule_all_actions( 'instwp_handle_heartbeat', [], 'instawp-connect' );
+			as_unschedule_all_actions( 'instawp_handle_heartbeat', [], 'instawp-connect' );
 		}
 	}
 
@@ -7595,5 +7597,33 @@ class instaWP {
 
 	public static function get_asset_url( $asset_name ) {
 		return INSTAWP_PLUGIN_URL . '/' . $asset_name;
+	}
+
+	/**
+	 * Returns the not allowed constants.
+	 *
+	 * @return array
+	 */
+	public function get_blacklisted_constants() {
+		$blacklisted_constants        = [
+			'INSTAWP_ALLOW_MANAGE',
+			'DB_NAME',
+			'DB_USER',
+			'DB_PASSWORD',
+			'DB_HOST',
+			'DB_CHARSET',
+			'DB_COLLATE',
+			'AUTH_KEY',
+			'SECURE_AUTH_KEY',
+			'LOGGED_IN_KEY',
+			'NONCE_KEY',
+			'AUTH_SALT',
+			'SECURE_AUTH_SALT',
+			'LOGGED_IN_SALT',
+			'NONCE_SALT',
+		];
+		$custom_blacklisted_constants = ( array ) apply_filters( 'instawp_blacklisted_constants', [] );
+
+		return array_merge( $blacklisted_constants, $custom_blacklisted_constants );
 	}
 }
