@@ -160,7 +160,9 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 
 				$migrate_response = InstaWP_Curl::do_curl( 'migrates', $migrate_args );
 
-				wp_send_json_success( $response + $migrate_response );
+				$response['migrate_api_response'] = $migrate_response;
+
+				wp_send_json_success( $response );
 			} else {
 				$migrate_task_id = reset( $incomplete_task_ids );
 				$migrate_id      = InstaWP_taskmanager::get_migrate_id( $migrate_task_id );
