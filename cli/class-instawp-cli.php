@@ -153,7 +153,7 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 			 * We are not uploading to cloud here.
 			 */
 			// Upload backup parts to S3 cloud
-//			instawp_upload_backup_parts_to_cloud( $migrate_task_id, $migrate_id );
+			instawp_upload_backup_parts_to_cloud( $migrate_task_id, $migrate_id );
 
 			$response          = instawp_get_response_progresses( $migrate_task_id, $migrate_id, [], array( 'generate_local_parts_urls' => true ) );
 			$part_urls         = InstaWP_Setting::get_args_option( 'part_urls', $response, array() );
