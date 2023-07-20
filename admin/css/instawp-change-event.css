@@ -91,7 +91,7 @@ body.show {
     padding: 13px;
 }
 .destination_form textarea{
-    height: 120px;
+    height: 65px;
 }
 .destination_form input::-webkit-input-placeholder {
     color: #6b7280;

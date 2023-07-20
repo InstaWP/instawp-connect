@@ -34,7 +34,6 @@ if(!empty($parent_connect_data)){
         'type'=>$parent_connect_data['type'],
     ]);
 }
- 
 #others
 $destination_url = get_option('instawp_sync_parent_url', '') ;
 $others = (abs($total_events) - abs($post_new+$post_delete+$post_trash));
@@ -84,7 +83,7 @@ $others = (abs($total_events) - abs($post_new+$post_delete+$post_trash));
                         </div>
                         <!-- <button type="button" class="instawp-green-btn selected-sync-popup-btn">Selcted sync</button> -->
                         <div class="select-ct">
-                                <select id="staging-site-sync">
+                                <select id="staging-site-sync" data-page="instawp">
                                     <?php  foreach($staging_sites as $site): ?>
                                         <?php $site_name = isset( $site['site_name'] ) ? $site['site_name'] : ''; ?>
                                     <option value="<?php echo $site['connect_id'] ?>"><?php echo esc_html($site_name); ?></option>
@@ -102,6 +101,7 @@ $others = (abs($total_events) - abs($post_new+$post_delete+$post_trash));
                                         <tr>
                                             <th scope="col" class="px-6 py-4  uppercase text-left text-xs font-medium text-grayCust-900"><?php echo esc_html__( 'event', 'instawp-connect' ); ?></th>
                                             <th scope="col" class="px-6 py-4 text-left uppercase text-xs font-medium text-grayCust-900"><?php echo esc_html__( 'event details', 'instawp-connect' ); ?></th>
+                                            <th scope="col" class="px-6 py-4 text-left uppercase text-xs font-medium text-grayCust-900"><?php echo esc_html__( 'Date', 'instawp-connect' ); ?></th>
                                             <th scope="col" class="px-6 py-4 text-center uppercase text-xs font-medium text-grayCust-900"><?php echo esc_html__( 'Status', 'instawp-connect' ); ?></th>
                                             <!-- <th scope="col" class="px-6 py-4 text-center uppercase text-xs font-medium text-grayCust-900"><?php echo esc_html__( 'Actions', 'instawp-connect' ); ?></th> -->
                                         </tr>
@@ -157,10 +157,10 @@ $others = (abs($total_events) - abs($post_new+$post_delete+$post_trash));
                             <div class="instawp_category">
                                 <div class="instawpcatlftcol bulk-events-info">
                                     <ul class="list">
-                                        <li><?php printf('%d post change events', $post_new) ?></li>
-                                        <li><?php printf('%d post delete events', $post_delete) ?></li>
-                                        <li><?php printf('%d post trash eventss', $post_trash) ?></li>
-                                        <li><?php printf('%d other events', $others) ?></li>
+                                        <li id="post_change_event_count"><?php printf('%d post change events', $post_new) ?></li>
+                                        <li id="post_delete_event_count"><?php printf('%d post delete events', $post_delete) ?></li>
+                                        <li id="post_trash_event_count"><?php printf('%d post trash eventss', $post_trash) ?></li>
+                                        <li id="post_other_event_count"><?php printf('%d other events', $others) ?></li>
                                     </ul>
                                 </div>
                                 <div class="instawpcatlftcol selected-events-info">

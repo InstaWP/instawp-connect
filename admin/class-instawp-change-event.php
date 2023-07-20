@@ -73,7 +73,7 @@ class InstaWP_Change_event {
 	public function get_source_site_detail(){
 		$connect_id = InstaWP_Setting::get_option('instawp_sync_connect_id');
 		$parent_connect_data = InstaWP_Setting::get_option('instawp_sync_parent_connect_data');
-		if($connect_id && intval($connect_id) > 0 && '' == $parent_connect_data){
+		if($connect_id && intval($connect_id) > 0 && empty($parent_connect_data)){
 			$api_response        = InstaWP_Curl::do_curl( 'connects/' . $connect_id, [], [], false);
 			$api_response_data   = InstaWP_Setting::get_args_option( 'data', $api_response, [] );
 			$api_response_data['connect_id'] = $connect_id;

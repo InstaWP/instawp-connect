@@ -100,7 +100,9 @@ class InstaWP_Rest_Apis{
      * @param array $data Options for the function.
      * @return string|null 
      */
-    public function events_receiver($req) {  
+    public function events_receiver($req) {
+        // error_reporting(E_ALL);
+        // ini_set('display_errors', 1);
         $body = $req->get_body();
         $bodyArr = json_decode($body);
         $encrypted_contents = json_decode($bodyArr->encrypted_contents);
@@ -166,12 +168,13 @@ class InstaWP_Rest_Apis{
 
                     #if post type is product then set gallery
                     if(get_post_type($posts['ID']) == 'product'){
-                        if(isset($v->details->product_gallery)){
+                        if(isset($v->details->product_gallery) && !empty($v->details->product_gallery)){
                             $product_gallery = $v->details->product_gallery;
                             $gallery_ids = [];
+                            //pr($product_gallery);
                             foreach($product_gallery as $gallery){
-                                if(isset($gallery->id) && isset($gallery->url)){
-                                    $gallery_ids[] = $this->insert_attachment($gallery->id,$gallery->url);
+                                if(isset($gallery->media) && !empty($gallery->media) && isset($gallery->url) && $gallery->url !=''){
+                                    $gallery_ids[] = $this->handle_attachments((array) $gallery->media,(array) $gallery->media_meta, $gallery->url);
                                 }
                             }
                             $this->set_product_gallery($posts['ID'],$gallery_ids);
@@ -179,7 +182,6 @@ class InstaWP_Rest_Apis{
                     }
 
                     #terms in post
-
                     $taxonomies = (array) $v->details->taxonomies;
                     $this->reset_post_terms( $posts['ID']); //rest the terms for all taxo
                     if(!empty($taxonomies) && is_array($taxonomies)){
@@ -211,29 +213,6 @@ class InstaWP_Rest_Apis{
                             wp_set_post_terms( $posts['ID'], $term_ids, $taxonomy );
                         }
                     }
-
-                    // $taxonomies = (array) $v->details->taxonomies;
-                    // if(!empty($taxonomies) && is_array($taxonomies)){
-                    //     foreach($taxonomies as $taxonomy => $terms){
-                    //         $terms = (array) $terms;
-                    //         # if term not exist then create first
-                    //             if(!empty($terms) && is_array($terms)){
-                    //                 foreach($terms as $term){
-                    //                     $term = (array) $term;
-                    //                     if(!term_exists($term['term_id'],$taxonomy)){
-                    //                         $wp_terms = $this->wp_terms_data($term['term_id'],$term);
-                    //                         $wp_term_taxonomy = $this->wp_term_taxonomy_data($term['term_id'],$term);
-                    //                         $this->insert_taxonomy($term['term_id'],$wp_terms,$wp_term_taxonomy);
-                    //                         wp_set_post_terms( $posts['ID'], [$term['term_id']], $taxonomy );
-                    //                     }
-                    //                 }
-                    //         }
-                            
-                    //         #set terms in post
-                    //         $term_ids = array_column($terms, 'term_id');
-                    //         wp_set_post_terms( $posts['ID'], $term_ids, $taxonomy );
-                    //     }
-                    // }
 
                     # media upload from content 
                     $this->upload_content_media($media,$posts['ID']);
@@ -762,7 +741,7 @@ class InstaWP_Rest_Apis{
     public function set_product_gallery($product_id = null, $gallery_ids = null){
         $product = new WC_product($product_id);
         $product->set_gallery_image_ids( $gallery_ids );
-        $product = $product->save();
+        $product->save();
     }
 
     public function customizer_site_icon($data = null){
@@ -980,7 +959,6 @@ class InstaWP_Rest_Apis{
         if(isset($attachment_post_meta['instawp_event_sync_reference_id'][0])){
             $reference_id = $attachment_post_meta['instawp_event_sync_reference_id'][0];
         }
-
         $attachment_id = $this->get_post_by_reference_Id($attachment_post['post_type'], $reference_id, $attachment_post['post_name']);
         if(!$attachment_id){
             $filename = basename($file);
