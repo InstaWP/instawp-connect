@@ -415,7 +415,10 @@ class InstaWP_Backup_Task {
 
 				$exclude_tables_rows = array(
 					'options' => array(
-						'option_name' => 'instawp_api_options',
+						'option_name' => array(
+							'instawp_api_options',
+							'instawp_connect_id_options',
+						),
 					),
 				);
 
@@ -557,9 +560,10 @@ class InstaWP_Backup_Task {
 		$db_tables = array(
 			'exclude_tables'      => array(),
 			'exclude_tables_data' => array(
-				$wpdb->prefix . 'change_event',
-				$wpdb->prefix . 'sync_history',
-				$wpdb->prefix . 'changes_sync',
+				INSTAWP_DB_TABLE_STAGING_SITES,
+				INSTAWP_DB_TABLE_EVENTS,
+				INSTAWP_DB_TABLE_SYNC_HISTORY,
+				INSTAWP_DB_TABLE_EVENT_SITES,
 			),
 		);
 

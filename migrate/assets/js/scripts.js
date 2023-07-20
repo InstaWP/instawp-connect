@@ -27,7 +27,9 @@ tailwind.config = {
                 el_bar_staging = instawp_migrate_container.find('.instawp-progress-staging'),
                 el_migration_loader = instawp_migrate_container.find('.instawp-migration-loader'),
                 el_migration_progress_wrap = instawp_migrate_container.find('.migration-running'),
-                el_site_detail_wrap = instawp_migrate_container.find('.migration-completed');
+                el_site_detail_wrap = instawp_migrate_container.find('.migration-completed'),
+                el_screen_buttons = instawp_migrate_container.find('.screen-buttons'),
+                el_screen_buttons_last = instawp_migrate_container.find('.screen-buttons-last');
 
             if (instawp_migrate_container.hasClass('doing-ajax')) {
                 return;
@@ -61,7 +63,6 @@ tailwind.config = {
                         el_bar_staging.find('.progress-bar').css('width', response.data.migrate.progress + '%');
                         el_bar_staging.find('.progress-text').text(response.data.migrate.progress + '%');
 
-
                         if (response.data.status === 'completed') {
                             if (typeof response.data.site_detail.url !== 'undefined' && typeof response.data.site_detail.wp_username !== 'undefined' && typeof response.data.site_detail.wp_password !== 'undefined' && typeof response.data.site_detail.auto_login_url !== 'undefined') {
 
@@ -73,6 +74,10 @@ tailwind.config = {
                                 el_site_detail_wrap.find('#instawp-site-username').html(response.data.site_detail.wp_username);
                                 el_site_detail_wrap.find('#instawp-site-password').html(response.data.site_detail.wp_password);
                                 el_site_detail_wrap.find('#instawp-site-magic-url').attr('href', response.data.site_detail.auto_login_url);
+
+                                // screen-buttons-last
+                                el_screen_buttons.addClass('hidden');
+                                el_screen_buttons_last.removeClass('hidden');
                             }
 
                             instawp_migrate_container.removeClass('loading').addClass('completed');
@@ -83,6 +88,7 @@ tailwind.config = {
                 }
             });
         };
+
 
     $(document).on('change', '#instawp-screen', function () {
 
@@ -154,9 +160,35 @@ tailwind.config = {
     });
 
 
-    $(document).on('click', '.instawp-wrap .instawp-migration-start-over', function () {
+    $(document).on('click', '.instawp-wrap .instawp-show-staging-sites, .instawp-wrap .instawp-create-another-site', function (e) {
 
-        let create_container = $('.instawp-wrap .nav-item-content.create'), el_instawp_screen = create_container.find('#instawp-screen'), el_confirmation_preview = create_container.find('.confirmation-preview'), el_confirmation_warning = create_container.find('.confirmation-warning'), el_screen_buttons = create_container.find('.screen-buttons'), el_screen_doing_request = el_screen_buttons.find('p.doing-request');
+        let create_container = $('.instawp-wrap .nav-item-content.create'),
+            sites_container_nav = $('.instawp-wrap #sites > a'),
+            el_screen_buttons = create_container.find('.screen-buttons'),
+            el_screen_buttons_last = create_container.find('.screen-buttons-last'),
+            el_migration_start_over = create_container.find('.instawp-migration-start-over');
+
+        el_screen_buttons_last.addClass('hidden');
+        el_screen_buttons.removeClass('hidden');
+
+        el_migration_start_over.trigger('click');
+
+        if ($(this).hasClass('instawp-create-another-site')) {
+            return;
+        }
+
+        sites_container_nav.trigger('click');
+    });
+
+
+    $(document).on('click', '.instawp-wrap .instawp-migration-start-over', function (e) {
+
+        let create_container = $('.instawp-wrap .nav-item-content.create'),
+            el_instawp_screen = create_container.find('#instawp-screen'),
+            el_confirmation_preview = create_container.find('.confirmation-preview'),
+            el_confirmation_warning = create_container.find('.confirmation-warning'),
+            el_screen_buttons = create_container.find('.screen-buttons'),
+            el_screen_doing_request = el_screen_buttons.find('p.doing-request');
 
         create_container.trigger("reset");
         create_container.removeClass('warning');

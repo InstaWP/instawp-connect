@@ -164,11 +164,14 @@ class InstaWP_RestoreDB {
 			$exclude_tables_rows = json_decode( $exclude_tables_rows, true );
 
 			foreach ( $exclude_tables_rows as $table_name => $table_rows ) {
-				foreach ( $table_rows as $table_column => $table_column_val ) {
-					$table_column_data = $wpdb->get_row( "SELECT * FROM " . $wpdb->prefix . $table_name . "  WHERE $table_column = '$table_column_val'", ARRAY_A );
+				foreach ( $table_rows as $table_column => $table_column_arr ) {
+					foreach ( $table_column_arr as $table_column_val ) {
 
-					if ( ! empty( $table_column_data ) ) {
-						$exclude_rows_data[ $table_name ][] = $table_column_data;
+						$table_column_data = $wpdb->get_row( "SELECT * FROM " . $wpdb->prefix . $table_name . "  WHERE $table_column = '$table_column_val'", ARRAY_A );
+
+						if ( ! empty( $table_column_data ) ) {
+							$exclude_rows_data[ $table_name ][] = $table_column_data;
+						}
 					}
 				}
 			}

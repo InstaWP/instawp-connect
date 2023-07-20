@@ -33,6 +33,10 @@ $customize_options     = array(
 	),
 );
 
+//echo "<pre>";
+//print_r( get_option( 'instawp_connect_id_options' ) );
+//echo "</pre>";
+
 ?>
 
 <form action="" method="post" class="<?php echo esc_attr( implode( ' ', $nav_item_classes ) ); ?> create active">
@@ -264,16 +268,16 @@ $customize_options     = array(
                     </div>
                 </div>
 
-<!--                <div class="screen-buttons-last bg-grayCust-250 px-6 py-3 rounded-bl-lg rounded-br-lg flex justify-between">-->
-<!--                    <div class="text-primary-900 text-sm font-medium cursor-pointer"><span class="text-xl mr-1">+</span>Create another Staging Site</div>-->
-<!--                    <div class="text-grayCust-900 text-sm font-medium cursor-pointer flex items-center">-->
-<!--                        <span>Show my staging sites</span>-->
-<!--                        <div class="flex items-center ml-2">-->
-<!--                            <img src="--><?php //echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/right-icon.svg' ) ); ?><!--" alt="">-->
-<!--                            <img src="--><?php //echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/right-icon.svg' ) ); ?><!--" alt="">-->
-<!--                        </div>-->
-<!--                    </div>-->
-<!--                </div>-->
+                <div class="screen-buttons-last hidden bg-grayCust-250 px-6 py-3 rounded-bl-lg rounded-br-lg flex justify-between">
+                    <div class="text-primary-900 text-sm font-medium cursor-pointer instawp-create-another-site"><span class="text-xl mr-1">+</span>Create another Staging Site</div>
+                    <div class="text-grayCust-900 text-sm font-medium cursor-pointer flex items-center instawp-show-staging-sites">
+                        <span>Show my staging sites</span>
+                        <div class="flex items-center ml-2">
+                            <img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/right-icon.svg' ) ); ?>" alt="">
+                            <img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/right-icon.svg' ) ); ?>" alt="">
+                        </div>
+                    </div>
+                </div>
 
                 <div class="screen-buttons bg-grayCust-250 px-6 py-3 rounded-bl-lg rounded-br-lg flex justify-end">
                     <p class="doing-request"><span class="loader"></span>Checking usages...</p>

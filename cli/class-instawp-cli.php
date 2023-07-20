@@ -181,6 +181,12 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 					WP_CLI::success( esc_html__( 'Cleared previous backup files successfully.', 'instawp-connect' ) );
 					break;
 
+				case 'backup':
+
+					$this->cli_backup( $migrate_task_id );
+
+					break;
+
 				case 'upload':
 
 					$this->cli_upload( $migrate_task_id );
