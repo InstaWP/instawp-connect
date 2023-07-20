@@ -44,6 +44,7 @@ class InstaWP_Ajax_Fn{
 		add_action("wp_ajax_single_sync", array( $this,"single_sync") );
 		add_action("wp_ajax_syncing_enabled_disabled", array( $this,"syncing_enabled_disabled") );
 		add_action( 'wp_ajax_get_site_events', array( $this, 'get_site_events' ) );
+        add_action( 'wp_ajax_get_events_summary', array( $this, 'get_events_summary' ) );
 	}
 
 	public function syncing_enabled_disabled(){
@@ -93,6 +94,25 @@ class InstaWP_Ajax_Fn{
 		echo $this->formatSuccessReponse("Event fetched.", [
 			'results'=>$data,
 			'pagination'=>$this->get_events_sync_list_pagination($total, $items_per_page, $page)
+		]);
+		wp_die();
+	}
+
+    public function get_events_summary(){
+        $data=[];
+        $InstaWP_db = new InstaWP_DB();
+        $tables = $InstaWP_db->tables;
+        $total_events = $InstaWP_db->totalEvnets($tables['ch_table'],'pending');
+        $post_new = $InstaWP_db->trakingEventsBySlug($tables['ch_table'],'post_new','post','pending');
+        $post_delete = $InstaWP_db->trakingEventsBySlug($tables['ch_table'],'post_delete','post','pending');
+        $post_trash = $InstaWP_db->trakingEventsBySlug($tables['ch_table'],'post_trash','post','pending');
+        $others = (abs($total_events) - abs($post_new+$post_delete+$post_trash));
+        $data['post_new'] = sprintf(__('%d post change events', 'instawp-connect'), $post_new);
+        $data['post_delete'] = sprintf(__('%d post delete events', 'instawp-connect'), $post_delete);
+        $data['post_trash'] = sprintf(__('%d post trash events', 'instawp-connect'), $post_trash);
+        $data['others'] = sprintf(__('%d other events', 'instawp-connect'), $others);
+		echo $this->formatSuccessReponse("Summery fetched", [
+			'results'=>$data
 		]);
 		wp_die();
 	}
@@ -149,6 +169,7 @@ class InstaWP_Ajax_Fn{
 			return $this->formatErrorReponse("Caught Exception: ",  $e->getMessage());
 		}
 	}
+    
 
 	public function get_data_from_db(){
 		try {
