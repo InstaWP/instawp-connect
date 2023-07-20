@@ -63,7 +63,8 @@ class InstaWP_Rest_Apis{
         $post = get_posts( array(
             'post_type'=> $post_type,
             'meta_key'   => 'instawp_event_sync_reference_id',
-            'meta_value' => $reference_id
+            'meta_value' => $reference_id,
+            'post_status' => 'any'
         ) );
         if(!empty($post)){
             $post = $post[0];
@@ -109,7 +110,7 @@ class InstaWP_Rest_Apis{
         $sync_id = $bodyArr->sync_id;
         $source_connect_id = $bodyArr->source_connect_id;
         $is_enabled = false;
-        
+
         
         if(get_option('syncing_enabled_disabled')){
             $is_enabled = true;
