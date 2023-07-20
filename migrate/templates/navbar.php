@@ -24,9 +24,9 @@ $instawp_nav_items = array(
 
 $is_internal = isset( $_GET['internal'] ) ? sanitize_text_field( $_GET['internal'] ) : '';
 
-if ( $is_internal != '1' ) {
-	unset( $instawp_nav_items['sync'] );
-}
+//if ( $is_internal != '1' ) {
+//	unset( $instawp_nav_items['sync'] );
+//}
 
 $return_url      = urlencode( admin_url( 'tools.php?page=instawp' ) );
 $connect_api_url = InstaWP_Setting::get_api_domain() . '/authorize?source=InstaWP Connect&return_url=' . $return_url;
