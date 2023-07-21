@@ -341,6 +341,7 @@ class instaWP {
 		require_once INSTAWP_PLUGIN_DIR . '/admin/class-instawp-go-live.php';
 
 		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-error-log.php';
+		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-file-management.php';
 		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-backuplist.php';
 		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-restore-data.php';
 		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-taskmanager.php';
@@ -7607,6 +7608,10 @@ class instaWP {
 	public function get_blacklisted_constants() {
 		$blacklisted_constants        = [
 			'INSTAWP_ALLOW_MANAGE',
+			'INSTAWP_FILE_MANAGER_USERNAME',
+			'INSTAWP_FILE_MANAGER_PASSWORD',
+			'INSTAWP_FILE_MANAGER_SELF_URL',
+			'INSTAWP_FILE_MANAGER_SESSION_ID',
 			'DB_NAME',
 			'DB_USER',
 			'DB_PASSWORD',

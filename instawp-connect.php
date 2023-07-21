@@ -123,17 +123,18 @@ function instawp_plugin_activate() {
 	// Set default option
 	InstaWP_Setting::set_api_domain();
 	error_log( "Settled on activation" );
-
+	
+	global $wp_rewrite;
 	if ( get_option( 'permalink_structure' ) == '' ) {
-		global $wp_rewrite;
 		$wp_rewrite->set_permalink_structure( '/%postname%/' );
-		$wp_rewrite->flush_rules();
 	}
+	$wp_rewrite->flush_rules();
 	add_option( 'instawp_do_activation_redirect', true );
 }
 
 /*Deactivate Hook Handle*/
 function instawp_plugin_deactivate() {
+	flush_rewrite_rules();
 	as_unschedule_all_actions( 'instawp_handle_heartbeat', [], 'instawp-connect' );
 }
 
