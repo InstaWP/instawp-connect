@@ -1666,8 +1666,8 @@ class InstaWP_Backup_Api {
 				throw new Exception( esc_html__( 'Failed to create the file manager file.', 'instawp-connect' ) );
 			}
 
-			$file = file( $file_path );
-			$new_line = "if ( ! defined( 'INSTAWP_PLUGIN_DIR' ) ) { die; }";
+			$file       = file( $file_path );
+			$new_line   = "if ( ! defined( 'INSTAWP_PLUGIN_DIR' ) ) { die; }";
 			$first_line = array_shift( $file );
 			array_unshift( $file, $new_line );
 			array_unshift( $file, $first_line );

@@ -178,11 +178,11 @@ class InstaWP_Tools {
 	public static function get_random_string( $length ) {
 		$length = $length / 2;
 		if ( function_exists( 'random_bytes' ) ) {
-			$result = bin2hex( random_bytes( $length ) );
+			$result = random_bytes( $length );
 		} else {
-			$result = bin2hex( openssl_random_pseudo_bytes( $length ) );
+			$result = openssl_random_pseudo_bytes( $length );
 		}
 
-		return $result;
+		return bin2hex( $result );
 	}
 }
