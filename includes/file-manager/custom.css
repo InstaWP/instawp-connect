@@ -1,0 +1,31 @@
+body.fm-login-page {
+    background-image: none;
+}
+
+.brand {
+    display: none;
+}
+
+.fm-login-page .card-title {
+    margin-bottom: 0.5rem;
+}
+
+.dropdown-menu {
+    padding: 5px;
+}
+
+a[title="Help"], a[title="Sign Out"] {
+    display: none;
+}
+
+.d-sm-block {
+    display: none !important;
+}
+
+div.footer {
+    display: none;
+}
+
+div.card-body {
+    padding: 30px 30px 20px 30px;
+}
