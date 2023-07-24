@@ -990,13 +990,14 @@ if ( ! function_exists( 'instawp_is_website_on_local' ) ) {
 }
 
 
-if ( ! function_exists( 'get_connect_id' ) ) {
+if ( ! function_exists( 'instawp_get_connect_id' ) ) {
 	/**
 	 * get connect id for source site
 	 *
 	 * @return int
 	 */
-	function get_connect_id() {
+	function instawp_get_connect_id(): int
+    {
 		$connect_options = get_option( 'instawp_connect_id_options' );
 
 		return $connect_options['data']['id'];
@@ -1010,7 +1011,8 @@ if ( ! function_exists( 'instawp_uuid' ) ) {
 	 *
 	 * @return string
 	 */
-	function instawp_uuid( $length = 6 ) {
+	function instawp_uuid( $length = 6 ): string
+    {
 		return bin2hex( random_bytes( $length ) );
 	}
 }
@@ -1024,7 +1026,8 @@ if ( ! function_exists( 'instawp_get_post_type_singular_name' ) ) {
 	 *
 	 * @return string
 	 */
-	function instawp_get_post_type_singular_name( $post_type ) {
+	function instawp_get_post_type_singular_name( $post_type ): string
+    {
 		$post_type_object = get_post_type_object( $post_type );
 		if ( ! empty( $post_type_object ) ) {
 			return $post_type_object->labels->singular_name;
