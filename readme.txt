@@ -124,7 +124,4 @@ InstaWP is an online WordPress development environment to get you started with a
 - 20/07/2023 - FIX - Minor changes on the migration user interface.
 
 = 0.0.9.19 =
-- 24/07/2023 - FIX - Fix API vulnerability issue.
-
-
-
+- 24/07/2023 - FIX - Fix Sync API vulnerability issue, disclosure by WordFence.
