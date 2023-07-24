@@ -21,8 +21,9 @@ if ( ! defined('INSTAWP_PLUGIN_DIR') ) {
 }
 
 require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-db.php';
+require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-rest-api.php';
 
-class InstaWP_Rest_Apis{
+class InstaWP_Rest_Apis extends InstaWP_Backup_Api{
     
     private $wpdb;
 
@@ -101,9 +102,13 @@ class InstaWP_Rest_Apis{
      * @param array $data Options for the function.
      * @return string|null 
      */
-    public function events_receiver($req) {
-        // error_reporting(E_ALL);
-        // ini_set('display_errors', 1);
+    public function events_receiver(WP_REST_Request $req) {
+ 
+        $response = $this->validate_api_request( $req );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
+
         $body = $req->get_body();
         $bodyArr = json_decode($body);
         $encrypted_contents = json_decode($bodyArr->encrypted_contents);
