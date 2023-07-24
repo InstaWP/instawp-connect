@@ -2,15 +2,12 @@
 /.git
 /.github
 /node_modules
-/public/block_editor/package.json
-/public/block_editor/package-lock.json
-/public/block_editor/node_modules
-/public/block_editor/src
-/build/gutena-kit.zip
 
 .distignore
 .gitignore
 gulpfile.js
+composer.json
+composer.lock
 package.json
 package-lock.json
 phpcs.xml

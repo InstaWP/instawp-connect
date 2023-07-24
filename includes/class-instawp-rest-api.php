@@ -113,6 +113,12 @@ class InstaWP_Backup_Api {
 			),
 		) );
 
+		register_rest_route( $this->namespace . '/' . $this->version_2, '/file-manager', array(
+			'methods'             => 'POST',
+			'callback'            => array( $this, 'file_manager' ),
+			'permission_callback' => '__return_true',
+		) );
+
 		register_rest_route( $this->namespace . '/' . $this->version_2, '/logs', array(
 			'methods'             => 'GET',
 			'callback'            => array( $this, 'get_logs' ),
@@ -1572,6 +1578,119 @@ class InstaWP_Backup_Api {
 			foreach ( $constants as $constant ) {
 				$config->remove( 'constant', $constant );
 			}
+		} catch ( Exception $e ) {
+			$results = [
+				'success' => false,
+				'message' => $e->getMessage(),
+			];
+		}
+
+		return $this->send_response( $results );
+	}
+
+	/**
+	 * Handle file manager system.
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function file_manager( WP_REST_Request $request ) {
+
+		$response = $this->validate_api_request( $request, true );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
+
+		$file_name = InstaWP_Setting::get_option( 'instawp_file_manager_name', '' );
+
+		if ( ! empty( $file_name ) ) {
+			as_unschedule_all_actions( 'instawp_clean_file_manager', [ $file_name ], 'instawp-connect' );
+
+			$file_path = InstaWP_File_Management::get_file_path( $file_name );
+			if ( file_exists( $file_path ) ) {
+				@unlink( $file_path );
+			}
+		}
+		
+		$url       = 'https://raw.githubusercontent.com/InstaWP/tinyfilemanager/master/tinyfilemanager.php';
+		$username  = InstaWP_Tools::get_random_string( 15 );
+		$password  = InstaWP_Tools::get_random_string( 20 );
+		$file_name = InstaWP_Tools::get_random_string( 20 );
+		$token     = md5( $username . '|' . $password. '|' . $file_name );
+
+		$search  = [ 
+			'Tiny File Manager', 
+			'CCP Programmers', 
+			'tinyfilemanager.github.io', 
+			'FM_SELF_URL', 
+			'FM_SESSION_ID', 
+			"'translation.json'",
+			'</style>', 
+		];
+		$replace = [ 
+			'InstaWP File Manager', 
+			'InstaWP', 
+			'instawp.com', 
+			'INSTAWP_FILE_MANAGER_SELF_URL', 
+			'INSTAWP_FILE_MANAGER_SESSION_ID', 
+			"__DIR__ . '/translation.json'",
+			'<?php if ( file_exists( __DIR__ . "/custom.css" ) ) { echo file_get_contents( __DIR__ . "/custom.css" ); } ?></style>', 
+		];
+
+		$file = file_get_contents( $url );
+		$file = str_replace( $search, $replace, $file );
+		$file = preg_replace( '!/\*.*?\*/!s', '', $file );
+
+		$file_path        = InstaWP_File_Management::get_file_path( $file_name );
+		$file_manager_url = InstaWP_File_Management::get_file_manager_url( $file_name );
+		
+		$results = [
+			'login_url' => add_query_arg( [
+				'action' => 'instawp-file-manager-auto-login',
+				'token'  => hash( 'sha256', $token ),
+			], admin_url( 'admin-post.php' ) ),
+		];
+
+		$config_file = InstaWP_Tools::get_config_file();
+
+		try {
+			$result = file_put_contents( $file_path, $file, LOCK_EX );
+			if ( false === $result ) {
+				throw new Exception( esc_html__( 'Failed to create the file manager file.', 'instawp-connect' ) );
+			}
+
+			$file       = file( $file_path );
+			$new_line   = "if ( ! defined( 'INSTAWP_PLUGIN_DIR' ) ) { die; }";
+			$first_line = array_shift( $file );
+			array_unshift( $file, $new_line );
+			array_unshift( $file, $first_line );
+
+			$fp = fopen( $file_path, 'w' );
+			fwrite( $fp, implode( '', $file ) );
+			fclose( $fp );
+
+			if ( ! class_exists( 'InstaWP_WP_Config' ) ) {
+				require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-wp-config.php';
+			}
+
+			$args = [
+				'normalize' => true,
+				'add'       => true,
+				'raw'       => false,
+			];
+
+			$config = new InstaWP_WP_Config( $config_file );
+			$config->update( 'constant', 'INSTAWP_FILE_MANAGER_USERNAME', $username, $args );
+			$config->update( 'constant', 'INSTAWP_FILE_MANAGER_PASSWORD', $password, $args );
+			$config->update( 'constant', 'INSTAWP_FILE_MANAGER_SELF_URL', $file_manager_url, $args );
+			$config->update( 'constant', 'INSTAWP_FILE_MANAGER_SESSION_ID', 'instawp_file_manager', $args );
+
+			set_transient( 'instawp_file_manager_login_token', $token, ( 15 * MINUTE_IN_SECONDS ) );
+			InstaWP_Setting::update_option( 'instawp_file_manager_name', $file_name );
+			
+			flush_rewrite_rules();
+			as_schedule_single_action( time() + DAY_IN_SECONDS, 'instawp_clean_file_manager', [ $file_name ], 'instawp-connect', false, 5 );
 		} catch ( Exception $e ) {
 			$results = [
 				'success' => false,

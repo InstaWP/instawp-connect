@@ -6,8 +6,6 @@ if ( ! defined( 'INSTAWP_PLUGIN_DIR' ) ) {
 
 class InstaWP_Tools {
 
-
-
 	public static function write_log( $message = '', $type = 'notice' ) {
 
 		global $instawp_log;
@@ -168,5 +166,23 @@ class InstaWP_Tools {
 		$parts = explode( $sep, $line );
 
 		return $parts;
+	}
+
+	/**
+	 * Returns the random string based on length.
+	 *
+	 * @param int $length
+	 *
+	 * @return string
+	 */
+	public static function get_random_string( $length ) {
+		$length = $length / 2;
+		if ( function_exists( 'random_bytes' ) ) {
+			$result = random_bytes( $length );
+		} else {
+			$result = openssl_random_pseudo_bytes( $length );
+		}
+
+		return bin2hex( $result );
 	}
 }
