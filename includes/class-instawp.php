@@ -688,7 +688,13 @@ class instaWP {
 		$api_response_data   = InstaWP_Setting::get_args_option( 'data', $api_response, [] );
 
 		if ( ! $api_response_status ) {
-			return array( 'can_proceed' => false, 'message' => esc_html__( 'Could not fetch API data.', 'instawp-connect' ) );
+			return array(
+				'can_proceed'  => false,
+				'message'      => esc_html__( 'Could not fetch API data.', 'instawp-connect' ),
+				'api_options'  => InstaWP_Setting::get_option( 'instawp_api_options', array() ),
+				'connect_id'   => $connect_id,
+				'api_response' => $api_response,
+			);
 		}
 
 		$remaining_site = (int) InstaWP_Setting::get_args_option( 'remaining_site', $api_response_data, '0' );

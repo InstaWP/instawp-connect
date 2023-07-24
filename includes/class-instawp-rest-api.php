@@ -41,29 +41,23 @@ class InstaWP_Backup_Api {
 			'permission_callback' => '__return_true',
 		) );
 
-		register_rest_route( $this->namespace . '/' . $this->version, 'test', array(
-			'methods'             => 'POST',
-			'callback'            => array( $this, 'test' ),
-			'permission_callback' => '__return_true',
-		) );
-
 		register_rest_route( $this->namespace . '/' . $this->version, 'config', array(
 			'methods'             => 'POST',
 			'callback'            => array( $this, 'config' ),
 			'permission_callback' => '__return_true',
 		) );
 
-		register_rest_route( $this->namespace . '/' . $this->version, 'task_status/(?P<task_id>\w+)', array(
-			'methods'             => 'GET',
-			'callback'            => array( $this, 'task_status' ),
-			'permission_callback' => '__return_true',
-		) );
+//		register_rest_route( $this->namespace . '/' . $this->version, 'task_status/(?P<task_id>\w+)', array(
+//			'methods'             => 'GET',
+//			'callback'            => array( $this, 'task_status' ),
+//			'permission_callback' => '__return_true',
+//		) );
 
-		register_rest_route( $this->namespace . '/' . $this->version, 'upload_status/(?P<task_id>\w+)', array(
-			'methods'             => 'GET',
-			'callback'            => array( $this, 'upload_status' ),
-			'permission_callback' => '__return_true',
-		) );
+//		register_rest_route( $this->namespace . '/' . $this->version, 'upload_status/(?P<task_id>\w+)', array(
+//			'methods'             => 'GET',
+//			'callback'            => array( $this, 'upload_status' ),
+//			'permission_callback' => '__return_true',
+//		) );
 
 		register_rest_route( $this->namespace . '/' . $this->version_2, '/auto-login-code', array(
 			'methods'             => 'POST',
