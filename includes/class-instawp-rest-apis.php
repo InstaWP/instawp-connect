@@ -21,7 +21,11 @@ if ( ! defined( 'INSTAWP_PLUGIN_DIR' ) ) {
 }
 
 require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-db.php';
-require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-rest-api.php';
+
+if ( ! class_exists( 'InstaWP_Backup_Api' ) ) {
+	require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-rest-api.php';
+}
+
 
 class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 
@@ -103,12 +107,13 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 		return $post_id;
 	}
 
+
 	/**
-	 * Reciver
+	 * Handle events receiver api
 	 *
-	 * @param array $data Options for the function.
+	 * @param WP_REST_Request $req
 	 *
-	 * @return string|null
+	 * @return WP_Error|WP_HTTP_Response|WP_REST_Response
 	 */
 	public function events_receiver( WP_REST_Request $req ) {
 
@@ -142,7 +147,7 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 				$source_id = ( isset( $v->source_id ) && ! empty( $v->source_id ) ) ? intval( $v->source_id ) : null;
 
 				/*
-				*Post Oprations
+				*Post Operations
 				*/
 				//create and update
 				if ( isset( $v->event_slug ) && ( $v->event_slug == 'post_change' || $v->event_slug == 'post_new' ) ) {
