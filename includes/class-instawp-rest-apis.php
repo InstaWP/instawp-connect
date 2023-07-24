@@ -21,8 +21,9 @@ if ( ! defined('INSTAWP_PLUGIN_DIR') ) {
 }
 
 require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-db.php';
+require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-rest-api.php';
 
-class InstaWP_Rest_Apis{
+class InstaWP_Rest_Apis extends InstaWP_Backup_Api{
     
     private $wpdb;
 
@@ -63,7 +64,8 @@ class InstaWP_Rest_Apis{
         $post = get_posts( array(
             'post_type'=> $post_type,
             'meta_key'   => 'instawp_event_sync_reference_id',
-            'meta_value' => $reference_id
+            'meta_value' => $reference_id,
+            'post_status' => 'any'
         ) );
         if(!empty($post)){
             $post = $post[0];
@@ -100,16 +102,20 @@ class InstaWP_Rest_Apis{
      * @param array $data Options for the function.
      * @return string|null 
      */
-    public function events_receiver($req) {
-        // error_reporting(E_ALL);
-        // ini_set('display_errors', 1);
+    public function events_receiver(WP_REST_Request $req) {
+ 
+        $response = $this->validate_api_request( $req );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
+
         $body = $req->get_body();
         $bodyArr = json_decode($body);
         $encrypted_contents = json_decode($bodyArr->encrypted_contents);
         $sync_id = $bodyArr->sync_id;
         $source_connect_id = $bodyArr->source_connect_id;
         $is_enabled = false;
-        
+
         
         if(get_option('syncing_enabled_disabled')){
             $is_enabled = true;

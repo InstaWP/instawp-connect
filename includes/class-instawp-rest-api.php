@@ -566,7 +566,7 @@ class InstaWP_Backup_Api {
 	 *
 	 * @return WP_Error|bool
 	 */
-	private function validate_api_request( WP_REST_Request $request, $check_management = false ) {
+	public function validate_api_request( WP_REST_Request $request, $check_management = false ) {
 
 		if ( $check_management && ( ! defined( 'INSTAWP_ALLOW_MANAGE' ) || ( defined( 'INSTAWP_ALLOW_MANAGE' ) && true !== INSTAWP_ALLOW_MANAGE ) ) ) {
 			return new WP_Error( 400, esc_html__( 'INSTAWP_ALLOW_MANAGE should be defined and set to true in wp-config.php file.', 'instawp-connect' ) );
@@ -1803,7 +1803,7 @@ class InstaWP_Backup_Api {
 	 *
 	 * @return WP_REST_Response|WP_Error|WP_HTTP_Response
 	 */
-	private function throw_error( $error ) {
+	public function throw_error( $error ) {
 		$response = new WP_REST_Response( [
 			'success' => false,
 			'message' => $error->get_error_message(),

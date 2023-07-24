@@ -83,7 +83,7 @@ class InstaWP_Ajax_Fn{
 		$total          = $wpdb->get_var( $total_query );
 		$page           = isset( $_POST['epage'] ) ? abs( (int) $_POST['epage'] ) : 1;
 		$offset         = ( $page * $items_per_page ) - $items_per_page;
-		$events         = $wpdb->get_results( $query . " ORDER BY id DESC LIMIT ${offset}, ${items_per_page}");
+		$events         = $wpdb->get_results( $query . " GROUP BY `source_id`,`date` ORDER BY id DESC LIMIT ${offset}, ${items_per_page}");
 		$totalPage      = ceil($total / $items_per_page);
 
 		ob_start();
@@ -246,7 +246,7 @@ class InstaWP_Ajax_Fn{
 					'source_url' => get_site_url() #staging url
 				]);
 
-				//    echo $packed_data;
+                //    echo $packed_data;
 				//    exit();
 				$resp = $this->sync_upload($packed_data,null);
 				$resp_decode = json_decode($resp);
