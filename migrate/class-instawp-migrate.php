@@ -76,7 +76,7 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 		function check_limit() {
 
 			$api_response = instawp()->instawp_check_usage_on_cloud();
-			$can_proceed  = InstaWP_Setting::get_args_option( 'can_proceed', $api_response, false );
+			$can_proceed  = (bool) InstaWP_Setting::get_args_option( 'can_proceed', $api_response, false );
 
 			if ( $can_proceed ) {
 				wp_send_json_success( $api_response );

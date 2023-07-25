@@ -31,8 +31,6 @@ class InstaWP_Curl {
 
 	public static function do_curl( $endpoint, $body = array(), $headers = array(), $is_post = true, $api_version = 'v2' ) {
 
-		global $instawp_plugin;
-
 		$connect_options = InstaWP_Setting::get_option( 'instawp_api_options', array() );
 
 		if ( empty( $api_url = InstaWP_Setting::get_api_domain() ) ) {

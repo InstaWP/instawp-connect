@@ -691,39 +691,38 @@ class instaWP {
 		if ( ! $api_response_status ) {
 			return array(
 				'can_proceed'  => false,
-				'message'      => esc_html__( 'Could not fetch API data.', 'instawp-connect' ),
-				'api_options'  => InstaWP_Setting::get_option( 'instawp_api_options', array() ),
 				'connect_id'   => $connect_id,
 				'api_response' => $api_response,
 			);
-		}
-
-		$remaining_site = (int) InstaWP_Setting::get_args_option( 'remaining_site', $api_response_data, '0' );
-
-		if ( $remaining_site < 1 ) {
-			return array( 'can_proceed' => false, 'message' => esc_html__( 'You can not create more staging website.', 'instawp-connect' ) );
 		}
 
 		if ( ! class_exists( 'WP_Debug_Data' ) ) {
 			require_once ABSPATH . 'wp-admin/includes/class-wp-debug-data.php';
 		}
 
-		$available_disk_space = (int) InstaWP_Setting::get_args_option( 'disk_space', $api_response_data, '0' );
-		$sizes_data           = WP_Debug_Data::get_sizes();
-		$bytes                = $sizes_data['total_size']['raw'];
-		$upload_dir           = $sizes_data['uploads_size']['raw'];
-		$upload_dir_size      = round( $upload_dir / 1048576, 2 );
-		$total_site_size      = round( $bytes / 1048576, 2 );
+		$remaining_site = (int) InstaWP_Setting::get_args_option( 'remaining_site', $api_response_data, '0' );
+		$can_proceed    = $remaining_site > 0;
+		$issue_for      = 'remaining_site';
 
-		if ( $total_site_size > $available_disk_space ) {
-			return array( 'can_proceed' => false, 'message' => esc_html__( 'You have exceeded the maximum allowance of disk space for your plan.', 'instawp-connect' ) );
+		$available_disk_space = (int) InstaWP_Setting::get_args_option( 'remaining_disk_space', $api_response_data, '0' );
+		$sizes_data           = WP_Debug_Data::get_sizes();
+		$upload_dir           = $sizes_data['uploads_size']['raw'] ?? 0;
+		$upload_dir_size      = $upload_dir === 0 ? 0 : round( $upload_dir / 1048576, 2 );
+		$bytes                = $sizes_data['total_size']['raw'] ?? 0;
+		$total_site_size      = $bytes === 0 ? 0 : round( $bytes / 1048576, 2 );
+
+		$api_response_data['require_disk_space'] = $total_site_size;
+
+		if ( $can_proceed ) {
+			$can_proceed = $total_site_size < $available_disk_space;
+			$issue_for   = 'remaining_disk_space';
 		}
 
-		return array( 'can_proceed' => true, 'message' => esc_html__( 'User can continue creating staging website.', 'instawp-connect' ) );
+		return array_merge( array( 'can_proceed' => $can_proceed, 'issue_for' => ( $can_proceed ? '' : $issue_for) ), $api_response_data );
 	}
 
 	/**
-	 * Prepare backup include what you want to backup,where you want to store.
+	 * Prepare backup include what you want to back up, where you want to store.
 	 *
 	 *When prepare backup finished,you can use backup_now start a backup task.
 	 *
