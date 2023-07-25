@@ -123,7 +123,7 @@ function instawp_plugin_activate() {
 	// Set default option
 	InstaWP_Setting::set_api_domain();
 	error_log( "Settled on activation" );
-	
+
 	global $wp_rewrite;
 	if ( get_option( 'permalink_structure' ) == '' ) {
 		$wp_rewrite->set_permalink_structure( '/%postname%/' );
@@ -234,4 +234,5 @@ function run_instawp() {
 //$instawp_log = new InstaWP_Log( 'migration', 'New Migration Logic' );
 
 run_instawp();
+
 
