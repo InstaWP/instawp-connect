@@ -299,7 +299,10 @@ tailwind.config = {
         // let all_nav_items = $('.instawp-wrap .nav-items .nav-item');
         // all_nav_items.first().addClass('active').find('a').toggleClass('text-primary-900 border-primary-900');
 
-        let this_nav_item_id = localStorage.getItem('instawp_admin_current'), all_nav_items = $('.instawp-wrap .nav-items .nav-item');
+        let instawp_migrate_container = $('.instawp-wrap .nav-item-content.create'),
+            this_nav_item_id = localStorage.getItem('instawp_admin_current'),
+            el_instawp_screen = instawp_migrate_container.find('#instawp-screen'),
+            all_nav_items = $('.instawp-wrap .nav-items .nav-item');
 
         if (this_nav_item_id !== null && typeof this_nav_item_id !== 'undefined') {
             $('.instawp-wrap #' + this_nav_item_id).find('a').trigger('click');
@@ -307,9 +310,10 @@ tailwind.config = {
             all_nav_items.first().find('a').trigger('click');
         }
 
-        let instawp_migrate_container = $('.instawp-wrap .nav-item-content.create');
-
         if (instawp_migrate_container.hasClass('loading')) {
+
+            el_instawp_screen.val(4).trigger('change');
+
             instawp_migrate_api_call_interval = setInterval(instawp_migrate_api_call, 3000);
         }
     });

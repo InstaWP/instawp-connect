@@ -194,24 +194,24 @@ $customize_options     = array(
                                 <div class="flex items-center mb-6">
                                     <div class="text-grayCust-900 text-base text-left font-normal w-48">Remaining Sites</div>
                                     <div class="flex items-center text-primary-900 text-base">
-                                        <span class="remaining-site">3</span>
+                                        <span class="remaining-site"></span>
                                         <span>/</span>
-                                        <span class="user-allow-site">3</span>
+                                        <span class="user-allow-site"></span>
                                     </div>
                                 </div>
                                 <div class="flex items-center mb-6">
                                     <div class="text-grayCust-900 text-base text-left font-normal w-48">Available Disk Space</div>
                                     <div class="flex items-center text-primary-900 text-base">
-                                        <span class="remaining-disk-space">139</span>
+                                        <span class="remaining-disk-space"></span>
                                         <span>/</span>
-                                        <span class="user-allow-disk-space">500</span>
+                                        <span class="user-allow-disk-space"></span>
                                         <span class="ml-1">MB</span>
                                     </div>
                                 </div>
                                 <div class="flex items-center">
                                     <div class="text-grayCust-900 text-base text-left font-normal w-48">Require Disk Space</div>
                                     <div class="flex items-center text-primary-900 text-base">
-                                        <span class="require-disk-space">780</span>
+                                        <span class="require-disk-space"></span>
                                         <span class="ml-1">MB</span>
                                     </div>
                                 </div>
