@@ -92,7 +92,13 @@ tailwind.config = {
 
     $(document).on('change', '#instawp-screen', function () {
 
-        let create_container = $('.instawp-wrap .nav-item-content.create'), el_btn_back = create_container.find('.instawp-button-migrate.back'), el_btn_continue = create_container.find('.instawp-button-migrate.continue'), el_instawp_screen = create_container.find('#instawp-screen'), screen_current = parseInt(el_instawp_screen.val()), el_screen_nav_items = create_container.find('.screen-nav-items > li'), el_screen = create_container.find('.screen');
+        let create_container = $('.instawp-wrap .nav-item-content.create'),
+            el_btn_back = create_container.find('.instawp-button-migrate.back'),
+            el_btn_continue = create_container.find('.instawp-button-migrate.continue'),
+            el_instawp_screen = create_container.find('#instawp-screen'),
+            screen_current = parseInt(el_instawp_screen.val()),
+            el_screen_nav_items = create_container.find('.screen-nav-items > li'),
+            el_screen = create_container.find('.screen');
 
         // Adjusting Back/Continue Buttons
         if (screen_current <= 1) {
@@ -229,20 +235,35 @@ tailwind.config = {
 
     $(document).on('click', '.instawp-wrap .instawp-button-migrate', function () {
 
-        let el_btn_migrate = $(this), screen_increment = el_btn_migrate.data('increment'), create_container = $('.instawp-wrap .nav-item-content.create'), el_screen_buttons = create_container.find('.screen-buttons'), el_screen_doing_request = el_screen_buttons.find('p.doing-request'), el_confirmation_preview = create_container.find('.confirmation-preview'), el_confirmation_warning = create_container.find('.confirmation-warning'), el_instawp_screen = create_container.find('#instawp-screen'), screen_current = parseInt(el_instawp_screen.val()), screen_next = screen_current + parseInt(screen_increment), instawp_migrate_type = $('input[name="instawp_migrate[type]"]:checked').val();
+        let el_btn_migrate = $(this),
+            screen_increment = el_btn_migrate.data('increment'),
+            create_container = $('.instawp-wrap .nav-item-content.create'),
+            el_screen_buttons = create_container.find('.screen-buttons'),
+            el_screen_doing_request = el_screen_buttons.find('p.doing-request'),
+            el_confirmation_preview = create_container.find('.confirmation-preview'),
+            el_confirmation_warning = create_container.find('.confirmation-warning'),
+            el_instawp_screen = create_container.find('#instawp-screen'),
+            screen_current = parseInt(el_instawp_screen.val()),
+            screen_next = screen_current + parseInt(screen_increment),
+            instawp_migrate_type = $('input[name="instawp_migrate[type]"]:checked').val();
 
         // Empty check on first screen
         if (el_btn_migrate.hasClass('continue') && screen_current === 1 && (typeof instawp_migrate_type === 'undefined' || instawp_migrate_type.length <= 0)) {
             return;
         }
 
-        if (screen_current === 3) {
-            // Check limit
+        if (el_btn_migrate.hasClass('back') || screen_current !== 3) {
+            el_instawp_screen.val(screen_next).trigger('change');
+        } else {
 
+            // Check limit
             el_screen_doing_request.addClass('loading');
 
             $.ajax({
-                type: 'POST', url: plugin_object.ajax_url, context: this, data: {
+                type: 'POST',
+                url: plugin_object.ajax_url,
+                context: this,
+                data: {
                     'action': 'instawp_check_limit'
                 }, success: function (response) {
                     if (response.success) {
@@ -253,11 +274,23 @@ tailwind.config = {
                         el_confirmation_preview.addClass('hidden');
                         el_confirmation_warning.removeClass('hidden');
                         el_confirmation_warning.find('a').attr('href', response.data.button_url).html(response.data.button_text);
+
+                        el_confirmation_warning.find('.remaining-site').html(response.data.remaining_site);
+                        el_confirmation_warning.find('.user-allow-site').html(response.data.userAllowSite);
+                        el_confirmation_warning.find('.remaining-disk-space').html(response.data.remaining_disk_space);
+                        el_confirmation_warning.find('.user-allow-disk-space').html(response.data.userAllowDiskSpace);
+                        el_confirmation_warning.find('.require-disk-space').html(response.data.require_disk_space);
+
+                        if (response.data.issue_for === 'remaining_site') {
+                            el_confirmation_warning.find('.remaining-site').parent().removeClass('text-primary-900').addClass('text-red-500');
+                        }
+
+                        if (response.data.issue_for === 'remaining_disk_space') {
+                            el_confirmation_warning.find('.remaining-disk-space').parent().removeClass('text-primary-900').addClass('text-red-500');
+                        }
                     }
                 }
             });
-        } else {
-            el_instawp_screen.val(screen_next).trigger('change');
         }
     });
 

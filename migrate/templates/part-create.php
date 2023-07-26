@@ -169,7 +169,7 @@ $customize_options     = array(
 
                     <div class="screen screen-3 <?= $current_create_screen == 3 ? 'active' : ''; ?>">
 
-                        <div class="confirmation-preview">
+                        <div class="confirmation-preview ">
                             <div class="flex justify-between items-center">
                                 <div class="text-grayCust-200 text-lg font-bold">3. Confirmation</div>
                             </div>
@@ -185,13 +185,41 @@ $customize_options     = array(
                             </div>
                         </div>
 
-                        <div class="confirmation-warning hidden text-center p-24">
+                        <div class="confirmation-warning hidden text-center px-24 py-8">
                             <div class="mb-2 flex justify-center text-center"><img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/warning.svg' ) ); ?>" alt="Warning"></div>
                             <div class="mb-2 text-graCust-300 text-lg font-medium staging-type-label">You have reached your limit</div>
-                            <div class="text-gray-500 text-sm font-normal leading-6">You have exceeded the maximum allowance of disk space for your plan.</div>
+                            <div class="mb-2 text-gray-500 text-sm font-normal leading-6">You have exceeded the maximum allowance of your plan.</div>
+
+                            <div class="p-6 custom-bg rounded-lg border my-6">
+                                <div class="flex items-center mb-6">
+                                    <div class="text-grayCust-900 text-base text-left font-normal w-48">Remaining Sites</div>
+                                    <div class="flex items-center text-primary-900 text-base">
+                                        <span class="remaining-site">3</span>
+                                        <span>/</span>
+                                        <span class="user-allow-site">3</span>
+                                    </div>
+                                </div>
+                                <div class="flex items-center mb-6">
+                                    <div class="text-grayCust-900 text-base text-left font-normal w-48">Available Disk Space</div>
+                                    <div class="flex items-center text-primary-900 text-base">
+                                        <span class="remaining-disk-space">139</span>
+                                        <span>/</span>
+                                        <span class="user-allow-disk-space">500</span>
+                                        <span class="ml-1">MB</span>
+                                    </div>
+                                </div>
+                                <div class="flex items-center">
+                                    <div class="text-grayCust-900 text-base text-left font-normal w-48">Require Disk Space</div>
+                                    <div class="flex items-center text-primary-900 text-base">
+                                        <span class="require-disk-space">780</span>
+                                        <span class="ml-1">MB</span>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="flex text-center gap-4 items-center justify-center">
-                                <button type="button" class="instawp-migration-start-over text-gray-700 mt-4 py-3 px-6 border border-grayCust-350 text-sm font-medium rounded-md">Start Over</button>
-                                <a href="#" target="_blank" class="btn-shadow rounded-md w-fit text-center mt-4 py-3 px-6 bg-primary-900 text-white hover:text-white text-sm font-medium" style="background: #11BF85;">Increase Limit</a>
+                                <button type="button" class="instawp-migration-start-over text-gray-700 py-3 px-6 border border-grayCust-350 text-sm font-medium rounded-md">Start Over</button>
+                                <a href="#" target="_blank" class="btn-shadow rounded-md w-fit text-center py-3 px-6 bg-primary-900 text-white hover:text-white text-sm font-medium" style="background: #11BF85;">Increase Limit</a>
                             </div>
                         </div>
 
