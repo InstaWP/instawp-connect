@@ -147,7 +147,7 @@ class InstaWP_Change_Event_Filters
     {
         if (!empty($userdata)) {
             $event_slug = 'user_register';
-            $event_name = sprintf(__('New user registered', 'instawp-connect'));
+            $event_name = __('New user registered', 'instawp-connect');
             $title = $userdata['first_name'] . ' ' . $userdata['last_name'];
             $userData = $this->InstaWP_db->get_with_condition($this->wpdb->prefix . 'users', 'ID', $user_id);
             if (!empty($userData)) {
@@ -169,7 +169,7 @@ class InstaWP_Change_Event_Filters
     public function delete_user_action($id, $reassign, $user)
     {
         $event_slug = 'delete_user';
-        $event_name = sprintf(__('User deleted', 'instawp-connect'));
+        $event_name = __('User deleted', 'instawp-connect');
         $title = isset($user->data->display_name) ? $user->data->display_name : '';
         $details = json_encode(['user_data' => get_userdata($id), 'user_meta' => get_user_meta($id)]);
         $this->eventDataAdded($event_name, $event_slug, 'users', $id, $title, $details);
@@ -188,7 +188,7 @@ class InstaWP_Change_Event_Filters
         if (!empty($userdata)) {
             $event_slug = 'profile_update';
             $title = $userdata['first_name'] . ' ' . $userdata['last_name'];
-            $event_name = sprintf(__('User updated', 'instawp-connect'));
+            $event_name = __('User updated', 'instawp-connect');
             $userData = $this->InstaWP_db->get_with_condition($this->wpdb->prefix . 'users', 'ID', $user_id);
             $details = json_encode(['user_data' => $userData, 'user_meta' => get_user_meta($user_id), 'role' => $userdata['role']]);
             $this->eventDataAdded($event_name, $event_slug, 'users', $user_id, $title, $details);
@@ -278,7 +278,7 @@ class InstaWP_Change_Event_Filters
     function attribute_added_action_callback($source_id, $details)
     {
         $event_slug = 'woocommerce_attribute_added';
-        $event_name = sprintf(__('Woocommerce attribute', 'instawp-connect'));
+        $event_name = __('Woocommerce attribute', 'instawp-connect');
         $this->pluginThemeEvents($event_name, $event_slug, $details, 'woocommerce_attribute', $source_id);
     }
     /**
@@ -290,7 +290,7 @@ class InstaWP_Change_Event_Filters
     function attribute_updated_action_callback($source_id, $details)
     {
         $event_slug = 'woocommerce_attribute_updated';
-        $event_name = sprintf(__('Woocommerce attribute', 'instawp-connect'));
+        $event_name = __('Woocommerce attribute', 'instawp-connect');
         if (!empty($source_id)) {
             $existing_update_events = $this->InstaWP_db->existing_update_events($this->tables['ch_table'], 'woocommerce_attribute_updated', $source_id);
             if (!empty($existing_update_events) && $existing_update_events > 0) {
@@ -311,7 +311,7 @@ class InstaWP_Change_Event_Filters
     function attribute_deleted_action_callback($source_id, $details)
     {
         $event_slug = 'woocommerce_attribute_deleted';
-        $event_name = sprintf(__('Woocommerce attribute', 'instawp-connect'));
+        $event_name = __('Woocommerce attribute', 'instawp-connect');
         $this->pluginThemeEvents($event_name, $event_slug, $details, 'woocommerce_attribute_deleted', $source_id);
     }
     /**
@@ -379,7 +379,7 @@ class InstaWP_Change_Event_Filters
     {
         $event_slug = 'install_themes_updated';
         $details = ['Name' => '', 'Stylesheet' => '', 'Paged' => $paged];
-        $event_name = sprintf(__('Install themes updated', 'instawp-connect'));
+        $event_name = __('Install themes updated', 'instawp-connect');
         $this->pluginThemeEvents($event_name, $event_slug, $details, 'theme', '');
     }
     /**
@@ -393,7 +393,7 @@ class InstaWP_Change_Event_Filters
     {
         $event_slug = 'install_themes_upload';
         $details = ['Name' => '', 'Stylesheet' => '', 'Paged' => $paged];
-        $event_name = sprintf(__('Install themes upload', 'instawp-connect'));
+        $event_name = __('Install themes upload', 'instawp-connect');
         $this->pluginThemeEvents($event_name, $event_slug, $details, 'theme', '');
     }
     /**
@@ -407,7 +407,7 @@ class InstaWP_Change_Event_Filters
     {
         $event_slug = 'install_themes_new';
         $details = ['Name' => '', 'Stylesheet' => '', 'Paged' => $paged];
-        $event_name = sprintf(__('Install themes new', 'instawp-connect'));
+        $event_name = __('Install themes new', 'instawp-connect');
         $this->pluginThemeEvents($event_name, $event_slug, $details, 'theme', '');
     }
     /**
@@ -468,7 +468,7 @@ class InstaWP_Change_Event_Filters
     {
         $details = $plugin;
         $event_slug = 'deactivate_plugin';
-        $event_name = sprintf(__('Plugin deactivated', 'instawp-connect'));
+        $event_name = __('Plugin deactivated', 'instawp-connect');
         if ($details != 'instawp-connect/instawp-connect.php') {
             $this->pluginThemeEvents($event_name, $event_slug, $details, 'plugin', '');
         }
@@ -485,7 +485,7 @@ class InstaWP_Change_Event_Filters
     {
         $details = $plugin;
         $event_slug = 'activate_plugin';
-        $event_name = sprintf(__('Plugin activated', 'instawp-connect'));
+        $event_name = __('Plugin activated', 'instawp-connect');
         if ($details != 'instawp-connect/instawp-connect.php') {
             $this->pluginThemeEvents($event_name, $event_slug, $details, 'plugin', '');
         }
@@ -892,8 +892,12 @@ class InstaWP_Change_Event_Filters
             foreach ($taxonomies as $taxonomy) {
                 $taxonomy_items = get_the_terms($post_id, $taxonomy);
                 if (!empty($taxonomy_items) && is_array($taxonomy_items)) {
-                    foreach ($taxonomy_items as $item) {
-                        $items[$item->taxonomy][] = (array) $item;
+                    foreach ($taxonomy_items as $k=> $item) {
+                        $items[$item->taxonomy][$k] = (array) $item;
+                        if( $item->parent > 0 ) {
+                            $parent = get_term($item->parent, $taxonomy);
+                            $items[$item->taxonomy][$k]['cat_parent'] = (array) $parent;
+                        }
                     }
                 }
             }

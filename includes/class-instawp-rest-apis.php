@@ -844,9 +844,13 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 		}
 	}
 
-	/**
-	 * This function is for upload media which are coming form content.
-	 */
+
+    /**
+     * upload_content_media
+     * @param $media
+     * @param $post_id
+     * @return void
+     */
 	public function upload_content_media( $media = null, $post_id = null ) {
 		$media   = json_decode( reset( $media ) );
 		$post    = get_post( $post_id );
@@ -870,11 +874,23 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 		}
 	}
 
-	public function notExistMsg() {
+    /**
+     * notExistMsg
+     * @return string
+     */
+	public function notExistMsg(): string
+    {
 		return "ID is not exists.";
 	}
 
-	public function wp_terms_data( $term_id = null, $arr = [] ) {
+    /**
+     * wp_terms_data
+     * @param $term_id
+     * @param $arr
+     * @return array
+     */
+	public function wp_terms_data( $term_id = null, $arr = [] ): array
+    {
 		return [
 			'term_id' => $term_id,
 			'name'    => $arr['name'],
@@ -882,7 +898,14 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 		];
 	}
 
-	public function wp_term_taxonomy_data( $term_id = null, $arr = [] ) {
+    /**
+     * wp_term_taxonomy_data
+     * @param $term_id
+     * @param $arr
+     * @return array
+     */
+	public function wp_term_taxonomy_data( $term_id = null, $arr = [] ): array
+    {
 		return [
 			'term_taxonomy_id' => $term_id,
 			'term_id'          => $term_id,
@@ -911,6 +934,12 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 		);
 	}
 
+    /**
+     * add_update_postmeta
+     * @param $meta_data
+     * @param $post_id
+     * @return void
+     */
 	public function add_update_postmeta( $meta_data = null, $post_id = null ) {
 
 		if ( ! empty( $meta_data ) && is_array( $meta_data ) ) {
@@ -982,6 +1011,12 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 		return $args;
 	}
 
+    /** handle_attachments
+     * @param $attachment_post
+     * @param $attachment_post_meta
+     * @param $file
+     * @return string|void
+     */
 	# import attechments form source to destination.
 	public function handle_attachments( $attachment_post, $attachment_post_meta, $file ) {
 		$reference_id = '';
@@ -1125,6 +1160,12 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 		return $status;
 	}
 
+    /** sync operation response
+     * @param $status
+     * @param $message
+     * @param $v
+     * @return array
+     */
 	public function sync_opration_response( $status = null, $message = null, $v = null ) {
 		return [
 			'id'      => $v->id,
@@ -1133,6 +1174,12 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 		];
 	}
 
+    /** sync update
+     * @param $sync_id
+     * @param $data
+     * @param $source_connect_id
+     * @return bool|string
+     */
 	public function sync_update( $sync_id = null, $data = null, $source_connect_id = null ) {
 		global $InstaWP_Curl;
 		$api_doamin = InstaWP_Setting::get_api_domain();
@@ -1167,9 +1214,12 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 		}
 	}
 
+    /**
+     * get api key
+     * @return string
+     */
 	function get_api_key() {
 		$instawp_api_options = get_option( 'instawp_api_options' );
-
 		return $instawp_api_options['api_key'];
 	}
 
