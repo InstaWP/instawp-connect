@@ -236,3 +236,21 @@ function run_instawp() {
 run_instawp();
 
 
+add_action( 'wp_head', function () {
+	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
+
+
+		echo "<pre>";
+		var_dump( instawp_is_website_on_local() );
+		echo "</pre>";
+
+		echo "<pre>";
+		print_r( InstaWP_taskmanager::get_tasks() );
+		echo "</pre>";
+
+
+
+		die();
+	}
+}, 0 );
+

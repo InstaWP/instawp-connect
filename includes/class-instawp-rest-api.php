@@ -595,7 +595,7 @@ class InstaWP_Backup_Api {
 		}
 
 //		echo "<pre>";
-//		print_r( [ $api_hash ] );
+//		print_r( [ $api_key_hash ] );
 //		echo "</pre>";
 
 		$bearer_token_hash = trim( $bearer_token );
