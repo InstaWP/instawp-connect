@@ -1,6 +1,8 @@
 # ignore node dependency directories
 node_modules/
-
+build/
+includes/file-manager/instawp*.php
+includes/database-manager/instawp*.php
 
 # ignore log files and databases
 *.log

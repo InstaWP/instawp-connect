@@ -119,6 +119,12 @@ class InstaWP_Backup_Api {
 			'permission_callback' => '__return_true',
 		) );
 
+		register_rest_route( $this->namespace . '/' . $this->version_2, '/database-manager', array(
+			'methods'             => 'POST',
+			'callback'            => array( $this, 'database_manager' ),
+			'permission_callback' => '__return_true',
+		) );
+
 		register_rest_route( $this->namespace . '/' . $this->version_2, '/logs', array(
 			'methods'             => 'GET',
 			'callback'            => array( $this, 'get_logs' ),
@@ -1613,7 +1619,7 @@ class InstaWP_Backup_Api {
 			}
 		}
 		
-		$url       = 'https://raw.githubusercontent.com/InstaWP/tinyfilemanager/master/tinyfilemanager.php';
+		$url       = 'https://instawp.com/filemanager';
 		$username  = InstaWP_Tools::get_random_string( 15 );
 		$password  = InstaWP_Tools::get_random_string( 20 );
 		$file_name = InstaWP_Tools::get_random_string( 20 );
@@ -1691,6 +1697,91 @@ class InstaWP_Backup_Api {
 			
 			flush_rewrite_rules();
 			as_schedule_single_action( time() + DAY_IN_SECONDS, 'instawp_clean_file_manager', [ $file_name ], 'instawp-connect', false, 5 );
+		} catch ( Exception $e ) {
+			$results = [
+				'success' => false,
+				'message' => $e->getMessage(),
+			];
+		}
+
+		return $this->send_response( $results );
+	}
+
+	/**
+	 * Handle database manager system.
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function database_manager( WP_REST_Request $request ) {
+
+		$response = $this->validate_api_request( $request, true );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
+
+		$file_name = InstaWP_Setting::get_option( 'instawp_database_manager_name', '' );
+
+		if ( ! empty( $file_name ) ) {
+			as_unschedule_all_actions( 'instawp_clean_database_manager', [ $file_name ], 'instawp-connect' );
+
+			$file_path = InstaWP_Database_Management::get_file_path( $file_name );
+
+			if ( file_exists( $file_path ) ) {
+				@unlink( $file_path );
+			}
+		}
+		
+		$url       = 'https://instawp.com/dbeditor';
+		$file_name = InstaWP_Tools::get_random_string( 20 );
+		$token     = md5( $file_name );
+
+		$search  = [ 
+			'/\bjs_escape\b/', 
+			'/\bget_temp_dir\b/', 
+		];
+		$replace = [ 
+			'instawp_js_escape',
+			'instawp_get_temp_dir',
+		];
+
+		$file = file_get_contents( $url );
+		$file = preg_replace( $search, $replace, $file );
+
+		$file_path            = InstaWP_Database_Management::get_file_path( $file_name );
+		$database_manager_url = InstaWP_Database_Management::get_database_manager_url( $file_name );
+		
+		$results = [
+			'login_url' => add_query_arg( [
+				'action' => 'instawp-database-manager-auto-login',
+				'token'  => hash( 'sha256', $token ),
+			], admin_url( 'admin-post.php' ) ),
+		];
+
+		$config_file = InstaWP_Tools::get_config_file();
+
+		try {
+			$result = file_put_contents( $file_path, $file, LOCK_EX );
+			if ( false === $result ) {
+				throw new Exception( esc_html__( 'Failed to create the database manager file.', 'instawp-connect' )  );
+			}
+
+			$file = file( $file_path );
+			$new_line = "if ( ! defined( 'INSTAWP_PLUGIN_DIR' ) ) { die; }";
+			$first_line = array_shift( $file );
+			array_unshift( $file, $new_line );
+			array_unshift( $file, $first_line );
+
+			$fp = fopen( $file_path, 'w' );
+			fwrite( $fp, implode( '', $file ) );
+			fclose( $fp );
+
+			set_transient( 'instawp_database_manager_login_token', $token, ( 15 * MINUTE_IN_SECONDS ) );
+			InstaWP_Setting::update_option( 'instawp_database_manager_name', $file_name );
+			
+			flush_rewrite_rules();
+			as_schedule_single_action( time() + DAY_IN_SECONDS, 'instawp_clean_database_manager', [ $file_name ], 'instawp-connect', false, 5 );
 		} catch ( Exception $e ) {
 			$results = [
 				'success' => false,
