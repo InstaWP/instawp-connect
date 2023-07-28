@@ -183,7 +183,7 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 					as_enqueue_async_action( 'instawp_backup_bg', [ $migrate_task_id, $parameters ] );
 //					as_enqueue_async_action( 'instawp_upload_bg', [ $migrate_task_id, $parameters ] );
 
-					do_action( 'action_scheduler_run_queue', 'Async Request' );
+//					do_action( 'action_scheduler_run_queue', 'Async Request' );
 				}
 
 				$response['migrate_api_response']   = $migrate_response;
@@ -191,6 +191,9 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 
 				wp_send_json_success( $response );
 			} else {
+
+				do_action( 'action_scheduler_run_queue', 'Async Request' );
+
 				$migrate_task_id = reset( $incomplete_task_ids );
 				$migrate_id      = InstaWP_taskmanager::get_migrate_id( $migrate_task_id );
 

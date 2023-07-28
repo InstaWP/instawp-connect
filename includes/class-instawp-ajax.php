@@ -16,6 +16,8 @@ class InstaWP_AJAX {
 		add_action( 'wp_ajax_instawp_logger', array( $this, 'instawp_logger_handle' ) );
 		add_action( 'init', array( $this, 'deleter_folder_handle' ) );
 		add_action( 'admin_notices', array( $this, 'instawp_connect_reset_admin_notices' ) );
+
+
 	}
 
 	// Set transient admin notice function
