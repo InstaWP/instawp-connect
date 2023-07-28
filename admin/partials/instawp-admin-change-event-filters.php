@@ -87,6 +87,7 @@ class InstaWP_Change_Event_Filters
             //add_action( 'rest_after_save_widget', array($this,'save_widget_action'), 10, 4 );
         }
     }
+
     /**
      * Function for `rest_after_save_widget` action-hook.
      * 
@@ -564,7 +565,7 @@ class InstaWP_Change_Event_Filters
             $data,
             array('id' => $existing_update_events)
         );
-    }
+    }  
     /**
      * Function for `wp_after_insert_post` action-hook.
      * 
@@ -578,7 +579,6 @@ class InstaWP_Change_Event_Filters
     public function savePostFilter($post_ID, $post, $update, $post_before)
     {
 
-
         // Check autosave.
         if (wp_is_post_autosave($post_ID)) {
             return $post_ID;
@@ -588,7 +588,7 @@ class InstaWP_Change_Event_Filters
         if (wp_is_post_revision($post_ID)) {
             return $post_ID;
         }
-
+        
         // Check post status auto draft.
         if (in_array($post->post_status, ['auto-draft', 'trash'])) {
             return $post_ID;
@@ -598,6 +598,10 @@ class InstaWP_Change_Event_Filters
             return $post_ID;
         }
 
+        if($post->post_type == 'acf-field-group' && $post->post_content == ''){
+            $this->_prepare_metas_for_each_post($post_ID);
+            return $post_ID;
+        }
 
         $post_type_singular_name = instawp_get_post_type_singular_name($post->post_type);
         //check post revisions are found 
@@ -617,6 +621,7 @@ class InstaWP_Change_Event_Filters
             }
         }
     }
+
     public function eventDataUpdated($event_name = null, $event_slug = null, $post = null, $post_id = null, $id = null)
     {
         $uid = get_current_user_id();
@@ -757,6 +762,7 @@ class InstaWP_Change_Event_Filters
 
         #assign parent post
         if ($post_parent_id > 0) {
+            $this->_prepare_metas_for_each_post($post_parent_id);
             $data = array_merge($data, [
                 'parent' => [
                     'post' => get_post($post_parent_id),

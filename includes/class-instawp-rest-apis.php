@@ -165,18 +165,23 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 						$destination_post = $this->get_post_by_reference_Id( $parent_post['post_type'], $reference_id, $parent_post['post_name'] );
 						if ( ! empty( $destination_post ) ) {
 							$posts['post_parent'] = $destination_post->ID;
-						}
+						}else{
+                            #check for the parent group in acf
+                            if( in_array( $posts['post_type'], ['acf-field']) ) {
+                                $posts['post_parent'] = $this->create_or_update_post( $parent_post, $parent_post_meta );
+                            }
+                        }
 					}
 
 					if ( $posts['post_type'] == 'attachment' ) {
-						//create or update the attachments
+						#create or update the attachments
 						$posts['ID'] = $this->handle_attachments( $posts, $postmeta, $posts['guid'] );
 						#update meta
 						$this->add_update_postmeta( $postmeta, $posts['ID'] );
 					} else {
 						$posts['ID'] = $this->create_or_update_post( $posts, $postmeta );
 					}
-
+                   
 					#feature image import
 					if ( isset( $featured_image['media'] ) && ! empty( $featured_image['media'] ) ) {
 						$att_id = $this->handle_attachments( (array) $featured_image['media'], (array) $featured_image['media_meta'], $featured_image['featured_image_url'] );
