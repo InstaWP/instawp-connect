@@ -235,18 +235,3 @@ function run_instawp() {
 //$instawp_log = new InstaWP_Log( 'migration', 'New Migration Logic' );
 
 run_instawp();
-
-
-add_action( 'wp_head', function () {
-	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
-
-//		instawp_reset_running_migration();
-
-		echo "<pre>";
-		print_r( InstaWP_taskmanager::get_tasks() );
-		echo "</pre>";
-
-		die();
-	}
-}, 0 );
-
