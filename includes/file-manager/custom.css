@@ -14,7 +14,7 @@ body.fm-login-page {
     padding: 5px;
 }
 
-a[title="Help"], a[title="Sign Out"] {
+a[title="Help"] {
     display: none;
 }
 
