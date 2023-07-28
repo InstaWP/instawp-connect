@@ -116,7 +116,7 @@ if ( ! class_exists( 'InstaWP_File_Management' ) ) {
 			
 			<?php
 			$fields = ob_get_clean();
-			echo instawp()->auto_login_page( $fields, $file_manager_url, __( 'InstaWP File Manager', 'instawp-connect' ) );
+			instawp()->auto_login_page( $fields, $file_manager_url, __( 'InstaWP File Manager', 'instawp-connect' ) );
 		}
 
 		public function query_vars( $query_vars ) {

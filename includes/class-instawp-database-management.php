@@ -79,7 +79,7 @@ if ( ! class_exists( 'InstaWP_Database_Management' ) ) {
 			
 			<?php
 			$fields = ob_get_clean();
-			echo instawp()->auto_login_page( $fields, $database_manager_url, __( 'InstaWP Database Manager', 'instawp-connect' ) );
+			instawp()->auto_login_page( $fields, $database_manager_url, __( 'InstaWP Database Manager', 'instawp-connect' ) );
 		}
 
 		public function query_vars( $query_vars ) {

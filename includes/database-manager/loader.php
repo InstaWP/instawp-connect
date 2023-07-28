@@ -58,6 +58,7 @@ if ( ! function_exists( 'adminer_object' ) ) {
                     }
                 </style>
                 <?php
+                wp_site_icon();
                 return true;
             }
         }
