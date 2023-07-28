@@ -921,6 +921,13 @@ class InstaWP_Backup_Api {
 	}
 
 
+	public static function upload_bg( $migrate_task_id, $parameters = array() ) {
+
+		// Upload backup parts to S3 cloud
+		instawp_upload_backup_parts_to_cloud( $migrate_task_id, InstaWP_Setting::get_args_option( 'migrate_id', $parameters ) );
+	}
+
+
 	public function backup( WP_REST_Request $request ) {
 
 		if ( is_wp_error( $response = $this->validate_api_request( $request ) ) ) {
@@ -944,6 +951,7 @@ class InstaWP_Backup_Api {
 
 		// Doing in background processing
 		as_enqueue_async_action( 'instawp_backup_bg', [ $migrate_task_id, $parameters ] );
+//		as_enqueue_async_action( 'instawp_upload_bg', [ $migrate_task_id, $parameters ] );
 
 		do_action( 'action_scheduler_run_queue', 'Async Request' );
 
@@ -1612,30 +1620,30 @@ class InstaWP_Backup_Api {
 				@unlink( $file_path );
 			}
 		}
-		
+
 		$url       = 'https://raw.githubusercontent.com/InstaWP/tinyfilemanager/master/tinyfilemanager.php';
 		$username  = InstaWP_Tools::get_random_string( 15 );
 		$password  = InstaWP_Tools::get_random_string( 20 );
 		$file_name = InstaWP_Tools::get_random_string( 20 );
-		$token     = md5( $username . '|' . $password. '|' . $file_name );
+		$token     = md5( $username . '|' . $password . '|' . $file_name );
 
-		$search  = [ 
-			'Tiny File Manager', 
-			'CCP Programmers', 
-			'tinyfilemanager.github.io', 
-			'FM_SELF_URL', 
-			'FM_SESSION_ID', 
+		$search  = [
+			'Tiny File Manager',
+			'CCP Programmers',
+			'tinyfilemanager.github.io',
+			'FM_SELF_URL',
+			'FM_SESSION_ID',
 			"'translation.json'",
-			'</style>', 
+			'</style>',
 		];
-		$replace = [ 
-			'InstaWP File Manager', 
-			'InstaWP', 
-			'instawp.com', 
-			'INSTAWP_FILE_MANAGER_SELF_URL', 
-			'INSTAWP_FILE_MANAGER_SESSION_ID', 
+		$replace = [
+			'InstaWP File Manager',
+			'InstaWP',
+			'instawp.com',
+			'INSTAWP_FILE_MANAGER_SELF_URL',
+			'INSTAWP_FILE_MANAGER_SESSION_ID',
 			"__DIR__ . '/translation.json'",
-			'<?php if ( file_exists( __DIR__ . "/custom.css" ) ) { echo file_get_contents( __DIR__ . "/custom.css" ); } ?></style>', 
+			'<?php if ( file_exists( __DIR__ . "/custom.css" ) ) { echo file_get_contents( __DIR__ . "/custom.css" ); } ?></style>',
 		];
 
 		$file = file_get_contents( $url );
@@ -1644,7 +1652,7 @@ class InstaWP_Backup_Api {
 
 		$file_path        = InstaWP_File_Management::get_file_path( $file_name );
 		$file_manager_url = InstaWP_File_Management::get_file_manager_url( $file_name );
-		
+
 		$results = [
 			'login_url' => add_query_arg( [
 				'action' => 'instawp-file-manager-auto-login',
@@ -1688,7 +1696,7 @@ class InstaWP_Backup_Api {
 
 			set_transient( 'instawp_file_manager_login_token', $token, ( 15 * MINUTE_IN_SECONDS ) );
 			InstaWP_Setting::update_option( 'instawp_file_manager_name', $file_name );
-			
+
 			flush_rewrite_rules();
 			as_schedule_single_action( time() + DAY_IN_SECONDS, 'instawp_clean_file_manager', [ $file_name ], 'instawp-connect', false, 5 );
 		} catch ( Exception $e ) {
@@ -1764,9 +1772,9 @@ class InstaWP_Backup_Api {
 						'timezone'  => $parts[2],
 						'message'   => $info,
 					];
-					$index++;
+					$index ++;
 				} else {
-					$last_index = $index - 1;
+					$last_index                     = $index - 1;
 					$logs[ $last_index ]['message'] .= trim( preg_replace( '/\s+/', ' ', $line ) );
 				}
 			}

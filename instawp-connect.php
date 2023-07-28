@@ -215,6 +215,7 @@ function run_instawp() {
 	add_action( 'instawp_restore_bg', array( $instawp_plugin, 'restore_bg' ), 10, 3 );
 	add_action( 'instawp_download_bg', array( $instawp_plugin, 'download_bg' ), 10, 2 );
 	add_action( 'instawp_backup_bg', array( $instawp_plugin, 'backup_bg' ), 10, 2 );
+	add_action( 'instawp_upload_bg', array( $instawp_plugin, 'upload_bg' ), 10, 2 );
 
 	$GLOBALS['instawp_plugin'] = $instawp_plugin;
 
@@ -239,16 +240,11 @@ run_instawp();
 add_action( 'wp_head', function () {
 	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
 
-
-		echo "<pre>";
-		var_dump( instawp_is_website_on_local() );
-		echo "</pre>";
+//		instawp_reset_running_migration();
 
 		echo "<pre>";
 		print_r( InstaWP_taskmanager::get_tasks() );
 		echo "</pre>";
-
-
 
 		die();
 	}

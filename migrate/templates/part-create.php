@@ -3,10 +3,6 @@
  * Migrate template - Create Site
  */
 
-if ( isset( $_GET['clear'] ) && $_GET['clear'] == 'all' ) {
-	instawp_reset_running_migration();
-}
-
 $staging_screens     = array(
 	esc_html__( 'Staging Type', 'instawp-connect' ),
 	esc_html__( 'Customize Options', 'instawp-connect' ),
@@ -32,10 +28,6 @@ $customize_options     = array(
 		),
 	),
 );
-
-//echo "<pre>";
-//print_r( get_option( 'instawp_connect_id_options' ) );
-//echo "</pre>";
 
 ?>
 
@@ -261,8 +253,12 @@ $customize_options     = array(
                                         </div>
                                     </div>
                                 </div>
-                                <div class="bg-grayCust-250 px-6 py-3 rounded-bl-lg rounded-br-lg flex justify-end">
-                                    <button class="instawp-migrate-abort btn-shadow border border-grayCust-350 rounded-md py-2 px-8 bg-white text-redCust-50 text-sm font-medium">Abort</button>
+                                <div class="bg-grayCust-250 px-6 py-3 rounded-bl-lg rounded-br-lg flex justify-between content-center items-center">
+                                    <a class="instawp-track-migration text-primary-900 hover:text-primary-900 text-base text-left flex items-center" href="" target="_blank">
+                                        <span class="mr-2">Track Migration</span>
+                                        <img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/share-icon.svg' ) ); ?>" class="inline ml-1" alt="">
+                                    </a>
+                                    <button type="button" class="instawp-migrate-abort btn-shadow border border-grayCust-350 rounded-md py-2 px-8 bg-white text-redCust-50 text-sm font-medium">Abort</button>
                                 </div>
                             </div>
                             <div class="migration-completed hidden border border-grayCust-100 rounded-lg">

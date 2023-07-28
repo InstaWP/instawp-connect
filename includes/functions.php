@@ -984,6 +984,7 @@ if ( ! function_exists( 'instawp_is_website_on_local' ) ) {
 			'127.0.0.1',
 			'::1'
 		);
+		$local_addresses = apply_filters( 'INSTAWP_CONNECT/Filters/local_addresses', $local_addresses );
 
 		return ( $http_host == 'localhost' || in_array( $remote_address, $local_addresses ) );
 	}
