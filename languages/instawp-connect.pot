@@ -1,0 +1,1598 @@
+InstaWP
+msgid ""
+msgstr ""
+"Project-Id-Version: InstaWP Connect\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2023-07-27 01:29+0000\n"
+"X-Poedit-Basepath: ..\n"
+"X-Poedit-KeywordsList: __;_e;_ex:1,2c;_n:1,2;_n_noop:1,2;_nx:1,2,4c;_nx_noop:1,2,3c;_x:1,2c;esc_attr__;esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c\n"
+"X-Poedit-SearchPath-0: .\n"
+"X-Poedit-SearchPathExcluded-0: *.js\n"
+"X-Poedit-SourceCharset: UTF-8\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: admin/class-instawp-admin.php:94
+msgid "Migrate"
+msgstr ""
+
+#: admin/class-instawp-admin.php:105, admin/class-instawp-go-live.php:282
+msgid "Go Live"
+msgstr ""
+
+#: admin/class-instawp-admin.php:127
+msgid "InstaWP %s Integration"
+msgstr ""
+
+#: admin/class-instawp-admin.php:131
+msgid "Template Migration"
+msgstr ""
+
+#: admin/class-instawp-admin.php:143, admin/class-instawp-admin.php:144
+msgid "InstaWP - Migrate"
+msgstr ""
+
+#: admin/class-instawp-admin.php:158, admin/class-instawp-admin.php:159
+msgid "InstaWP Cloudways Integration"
+msgstr ""
+
+#: admin/class-instawp-admin.php:168, admin/class-instawp-admin.php:169
+msgid "InstaWP"
+msgstr ""
+
+#: admin/class-instawp-admin.php:223, admin/class-instawp-admin.php:735
+msgid "Backup & Restore"
+msgstr ""
+
+#: admin/class-instawp-admin.php:233, admin/partials/instawp-admin-staging-sites.php:143
+msgid "Create New"
+msgstr ""
+
+#: admin/class-instawp-admin.php:247
+msgid "Staging Sites"
+msgstr ""
+
+#: admin/class-instawp-admin.php:276
+msgid "Sync History"
+msgstr ""
+
+#: admin/class-instawp-admin.php:286
+msgid "Sync Features"
+msgstr ""
+
+#: admin/class-instawp-admin.php:297, admin/class-instawp-admin.php:768, includes/class-instawp-setting.php:171
+msgid "Settings"
+msgstr ""
+
+#: admin/class-instawp-admin.php:353
+msgid "Warning:"
+msgstr ""
+
+#: admin/class-instawp-admin.php:354
+msgid "Error:"
+msgstr ""
+
+#: admin/class-instawp-admin.php:355
+msgid "Warning: An alias for remote storage is required."
+msgstr ""
+
+#: admin/class-instawp-admin.php:356
+msgid "Warning: The alias already exists in storage list."
+msgstr ""
+
+#: admin/class-instawp-admin.php:357
+msgid "Calculating the size of files, folder and database timed out. If you continue to receive this error, please go to the plugin settings, uncheck 'Calculate the size of files, folder and database before backing up', save changes, then try again."
+msgstr ""
+
+#: admin/class-instawp-admin.php:358
+msgid "Step One: In the backup list, click the 'Restore' button on the backup you want to restore. This will bring up the restore tab"
+msgstr ""
+
+#: admin/class-instawp-admin.php:359
+msgid "Step Two: Choose an option to complete restore, if any"
+msgstr ""
+
+#: admin/class-instawp-admin.php:360
+msgid "Step Three: Click 'Restore' button"
+msgstr ""
+
+#: admin/class-instawp-admin.php:361
+msgid "1. Visit Key tab page of instaWP backup plugin of destination site."
+msgstr ""
+
+#: admin/class-instawp-admin.php:362
+msgid "2. Generate a key by clicking Generate button and copy it."
+msgstr ""
+
+#: admin/class-instawp-admin.php:363
+msgid "3. Go back to this page and paste the key in key box below. Lastly, click Save button."
+msgstr ""
+
+#: admin/class-instawp-admin.php:430
+msgid "Create Site"
+msgstr ""
+
+#: admin/class-instawp-admin.php:484
+msgid "Migration is complete and htaccess file is replaced. In order to successfully complete the migration, you'd better reinstall 301 redirect plugin, firewall and security plugin, and caching plugin if they exist."
+msgstr ""
+
+#: admin/class-instawp-admin.php:496, admin/partials/class-instawp-files-list.php:1620
+msgid "Restore completed successfully."
+msgstr ""
+
+#. translators: %s: extension
+#: admin/class-instawp-admin.php:614
+msgid "The %s extensions are not detected. Please install the extensions first."
+msgstr ""
+
+#: admin/class-instawp-admin.php:608
+msgid "The %s extension is not detected. Please install the extension first."
+msgstr ""
+
+#: admin/class-instawp-admin.php:627
+msgid "Class PclZip is not detected. Please update or reinstall your WordPress."
+msgstr ""
+
+#: admin/class-instawp-admin.php:636
+msgid "In order to execute the scheduled backups properly, please set the DISABLE_WP_CRON constant to false. If you are using an external cron system, simply click 'X' to dismiss this message."
+msgstr ""
+
+#: admin/class-instawp-admin.php:746
+msgid "Schedule"
+msgstr ""
+
+#: admin/class-instawp-admin.php:757
+msgid "Remote Storage"
+msgstr ""
+
+#: admin/class-instawp-admin.php:779
+msgid "Debug"
+msgstr ""
+
+#: admin/class-instawp-admin.php:790
+msgid "Backup Logs"
+msgstr ""
+
+#: admin/class-instawp-admin.php:803, admin/partials/class-instawp-files-list.php:473, includes/class-instawp.php:7093
+msgid "Log"
+msgstr ""
+
+#: admin/class-instawp-admin.php:824
+msgid "MainWP"
+msgstr ""
+
+#: admin/class-instawp-admin.php:843
+msgid "Premium"
+msgstr ""
+
+#: admin/class-instawp-admin.php:921, admin/class-instawp-admin.php:1081, admin/partials/instawp-remote-storage-page-display.php:45, admin/partials/instawp-remote-storage-page-display.php:340
+msgid "Save Changes"
+msgstr ""
+
+#: admin/class-instawp-admin.php:1162
+msgid "Logs"
+msgstr ""
+
+#: admin/class-instawp-admin.php:1218
+msgid "There are two ways available to send us the debug information. The first one is recommended."
+msgstr ""
+
+#: admin/class-instawp-admin.php:1222
+msgid "Method 1."
+msgstr ""
+
+#: admin/class-instawp-admin.php:1222
+msgid "If you have configured SMTP on your site, enter your email address and click the button below to send us the relevant information (website info and errors logs) when you are encountering errors. This will help us figure out what happened. Once the issue is resolved, we will inform you by your email address."
+msgstr ""
+
+#: admin/class-instawp-admin.php:1228
+msgid "instaWP support email:"
+msgstr ""
+
+#: admin/class-instawp-admin.php:1230
+msgid "Your email:"
+msgstr ""
+
+#: admin/class-instawp-admin.php:1240
+msgid "I am using:"
+msgstr ""
+
+#: admin/class-instawp-admin.php:1248
+msgid "share hosting"
+msgstr ""
+
+#: admin/class-instawp-admin.php:1250
+msgid "VPS hosting"
+msgstr ""
+
+#: admin/class-instawp-admin.php:1264
+msgid "My web hosting provider is:"
+msgstr ""
+
+#: admin/class-instawp-admin.php:1276
+msgid "Please describe your problem here."
+msgstr ""
+
+#: admin/class-instawp-admin.php:1280
+msgid "Send Debug Information to Us"
+msgstr ""
+
+#: admin/class-instawp-admin.php:1286
+msgid "Method 2."
+msgstr ""
+
+#: admin/class-instawp-admin.php:1286
+msgid "If you didn’t configure SMTP on your site, click the button below to download the relevant information (website info and error logs) to your PC when you are encountering some errors. Sending the files to us will help us diagnose what happened."
+msgstr ""
+
+#: admin/class-instawp-admin.php:1290, admin/partials/class-instawp-files-list.php:76, admin/partials/class-instawp-files-list.php:495, admin/partials/instawp-admin-wizard.php:210, includes/class-instawp.php:3272, includes/class-instawp.php:7103
+msgid "Download"
+msgstr ""
+
+#: admin/class-instawp-admin.php:1295
+msgid "Website Info Key"
+msgstr ""
+
+#: admin/class-instawp-admin.php:1296
+msgid "Website Info Value"
+msgstr ""
+
+#: admin/class-instawp-admin.php:1376
+msgid "Send succeeded."
+msgstr ""
+
+#: admin/class-instawp-admin.php:1409
+msgid "Date"
+msgstr ""
+
+#: admin/class-instawp-admin.php:1410
+msgid "Log Type"
+msgstr ""
+
+#: admin/class-instawp-admin.php:1411
+msgid "Log File Name"
+msgstr ""
+
+#: admin/class-instawp-admin.php:1412
+msgid "Action"
+msgstr ""
+
+#: admin/class-instawp-admin.php:1425
+msgid " < Pre page "
+msgstr ""
+
+#: admin/class-instawp-admin.php:1438
+msgid " Next page > "
+msgstr ""
+
+#: admin/class-instawp-admin.php:1542
+msgid "If you are a MainWP user, you can set up and control instaWP Backup Free and Pro for every child site directly from your MainWP dashboard, using our instaWP Backup for MainWP extension."
+msgstr ""
+
+#: admin/class-instawp-admin.php:1546
+msgid "Download instaWP Backup for MainWP"
+msgstr ""
+
+#: admin/class-instawp-admin.php:1554
+msgid "2. Set backup schedules for all child sites"
+msgstr ""
+
+#: admin/class-instawp-admin.php:1559
+msgid "3. Set instaWP Backup Free and Pro settings for all child sites"
+msgstr ""
+
+#: admin/class-instawp-admin.php:1565
+msgid "4. Install, claim and update instaWP Backup Pro for child sites in bulk"
+msgstr ""
+
+#: admin/class-instawp-admin.php:1570
+msgid "5. Set up remote storage for child sites in bulk (for instaWP Backup Pro only)"
+msgstr ""
+
+#: admin/class-instawp-change-event.php:33, admin/class-instawp-change-event.php:34
+msgid "Change Event"
+msgstr ""
+
+#: admin/class-instawp-change-event.php:111, admin/class-instawp-change-event.php:115
+msgid "Recording"
+msgstr ""
+
+#: admin/class-instawp-go-live.php:57
+msgid "Backup creation is in process."
+msgstr ""
+
+#: admin/class-instawp-go-live.php:64
+msgid "Migration is in process."
+msgstr ""
+
+#: admin/class-instawp-go-live.php:96
+msgid "Invalid migrate id."
+msgstr ""
+
+#: admin/class-instawp-go-live.php:217
+msgid "Error creating migrate id."
+msgstr ""
+
+#: admin/class-instawp-go-live.php:227
+msgid "Backup created successfully."
+msgstr ""
+
+#: admin/class-instawp-go-live.php:244
+msgid "Preparing to initiate the migration."
+msgstr ""
+
+#: admin/class-instawp-go-live.php:262
+msgid "%sTrial Site"
+msgstr ""
+
+#: admin/class-instawp-go-live.php:264
+msgid "Trial Details"
+msgstr ""
+
+#: admin/class-instawp-go-live.php:268
+msgid "Trial Domain"
+msgstr ""
+
+#: admin/class-instawp-go-live.php:272
+msgid "Trial Period"
+msgstr ""
+
+#: admin/class-instawp-go-live.php:273
+msgid "%s Remaining"
+msgstr ""
+
+#: admin/partials/class-instawp-files-list.php:31
+msgid "Select All"
+msgstr ""
+
+#: admin/partials/class-instawp-files-list.php:65
+msgid "File"
+msgstr ""
+
+#: admin/partials/class-instawp-files-list.php:105, admin/partials/class-instawp-files-list.php:97, admin/partials/class-instawp-files-list.php:86, admin/partials/class-instawp-files-list.php:82, admin/partials/class-instawp-files-list.php:76, includes/class-instawp.php:3281, includes/class-instawp.php:3272, includes/class-instawp.php:3267
+msgid "File Size: "
+msgstr ""
+
+#: admin/partials/class-instawp-files-list.php:105, admin/partials/class-instawp-files-list.php:97, admin/partials/class-instawp-files-list.php:82, includes/class-instawp.php:3281, includes/class-instawp.php:3267
+msgid "Prepare to Download"
+msgstr ""
+
+#: admin/partials/class-instawp-files-list.php:86
+msgid "Retriving (remote storage to web server)"
+msgstr ""
+
+#: admin/partials/class-instawp-files-list.php:86
+msgid "Downloaded Size: "
+msgstr ""
+
+#: admin/partials/class-instawp-files-list.php:79
+msgid "File not found"
+msgstr ""
+
+#. translators: %s: search term
+#: admin/partials/class-instawp-files-list.php:199
+msgid "%s item"
+msgid_plural "%s items"
+msgstr[0] ""
+msgstr[1] ""
+
+#: admin/partials/class-instawp-files-list.php:230
+msgid "First page"
+msgstr ""
+
+#: admin/partials/class-instawp-files-list.php:241
+msgid "Previous page"
+msgstr ""
+
+#: admin/partials/class-instawp-files-list.php:252, admin/partials/class-instawp-files-list.php:248
+msgid "Current Page"
+msgstr ""
+
+#. translators: %s: search term
+#: admin/partials/class-instawp-files-list.php:259
+msgctxt "paging"
+msgid "%1$s of %2$s"
+msgstr ""
+
+#: admin/partials/class-instawp-files-list.php:267
+msgid "Next page"
+msgstr ""
+
+#: admin/partials/class-instawp-files-list.php:277
+msgid "Last page"
+msgstr ""
+
+#: admin/partials/class-instawp-files-list.php:357, admin/partials/class-instawp-files-list.php:2191, admin/partials/instawp-schedule-page-display.php:121
+msgid "Database + Files (WordPress Files)"
+msgstr ""
+
+#: admin/partials/class-instawp-files-list.php:361, admin/partials/class-instawp-files-list.php:2195
+msgid "Save Backups to Local"
+msgstr ""
+
+#: admin/partials/class-instawp-files-list.php:466
+msgid "Backups"
+msgstr ""
+
+#: admin/partials/class-instawp-files-list.php:484, admin/partials/class-instawp-files-list.php:1204, admin/partials/instawp-admin-wizard.php:211, includes/class-instawp.php:7111
+msgid "Restore"
+msgstr ""
+
+#: admin/partials/class-instawp-files-list.php:774, includes/class-instawp.php:7102
+msgid "Prepare to download the backup"
+msgstr ""
+
+#: admin/partials/class-instawp-files-list.php:1034
+msgid "This backup is locked, are you sure to remove it? This backup will be deleted permanently from your hosting (localhost) and remote storages."
+msgstr ""
+
+#: admin/partials/class-instawp-files-list.php:1038
+msgid "Are you sure to remove this backup? This backup will be deleted permanently."
+msgstr ""
+
+#: admin/partials/class-instawp-files-list.php:1043
+msgid "This request will delete the backup being downloaded, are you sure you want to continue?"
+msgstr ""
+
+#: admin/partials/class-instawp-files-list.php:1082
+msgid "Please select at least one item."
+msgstr ""
+
+#: admin/partials/class-instawp-files-list.php:1087, admin/partials/instawp-admin-wizard.php:364
+msgid "This request might delete the backup being downloaded, are you sure you want to continue?"
+msgstr ""
+
+#: admin/partials/class-instawp-files-list.php:1090
+msgid "Are you sure to remove the selected backups? These backups will be deleted permanently."
+msgstr ""
+
+#: admin/partials/class-instawp-files-list.php:1186
+msgid "Restore backup from:"
+msgstr ""
+
+#: admin/partials/class-instawp-files-list.php:1187
+msgid "Please do not close the page or switch to other pages when a restore task is running, as it could trigger some unexpected errors."
+msgstr ""
+
+#: admin/partials/class-instawp-files-list.php:1188
+msgid "Restore function will replace the current site's themes, plugins, uploads, database and/or other content directories with the existing equivalents in the selected backup."
+msgstr ""
+
+#. translators: %s: search term
+#: admin/partials/class-instawp-files-list.php:1194
+msgid "Restore and replace the original domain (URL) with %s (migration)"
+msgstr ""
+
+#: admin/partials/class-instawp-files-list.php:1197
+msgid "Restore and keep the original domain (URL) unchanged"
+msgstr ""
+
+#: admin/partials/class-instawp-files-list.php:1201
+msgid "Tips:"
+msgstr ""
+
+#: admin/partials/class-instawp-files-list.php:1201
+msgid "If you are migrating a website, the source domain will be replaced with the target domain automatically. For example, if you are migrating a.com to b.com, then a.com will be replaced with b.com during the restore."
+msgstr ""
+
+#: admin/partials/class-instawp-files-list.php:1205
+msgid "Terminate"
+msgstr ""
+
+#: admin/partials/class-instawp-files-list.php:1206
+msgid "Rollback"
+msgstr ""
+
+#: admin/partials/class-instawp-files-list.php:1208
+msgid "Retrieve the backup to localhost"
+msgstr ""
+
+#: admin/partials/class-instawp-files-list.php:1209
+msgid "The backup is stored on the remote storage, click on the button to download it to localhost."
+msgstr ""
+
+#: admin/partials/class-instawp-files-list.php:1307
+msgid "Are you sure to continue?"
+msgstr ""
+
+#: admin/partials/class-instawp-files-list.php:1627
+msgid "Restore failed."
+msgstr ""
+
+#: admin/partials/class-instawp-files-list.php:2166
+msgid "Back Up Manually"
+msgstr ""
+
+#: admin/partials/class-instawp-files-list.php:2168
+msgid "Compress images with our image optimization plugin, it's free"
+msgstr ""
+
+#: admin/partials/class-instawp-files-list.php:2171
+msgid "Local Storage Directory:"
+msgstr ""
+
+#: admin/partials/class-instawp-files-list.php:2173
+msgid "rename directory"
+msgstr ""
+
+#: admin/partials/class-instawp-files-list.php:2212
+msgid "Send Backup to Remote Storage:"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:150
+msgid "New user registered"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:172
+msgid "User deleted"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:191
+msgid "User updated"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:281, admin/partials/instawp-admin-change-event-filters.php:293, admin/partials/instawp-admin-change-event-filters.php:314
+msgid "Woocommerce attribute"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:332, admin/partials/instawp-admin-change-event-filters.php:614
+msgid "%s modified"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:351, admin/partials/instawp-admin-change-event-filters.php:672
+msgid "%s deleted"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:368, admin/partials/instawp-admin-change-event-filters.php:608
+msgid "%s created"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:382
+msgid "Install themes updated"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:396
+msgid "Install themes upload"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:410
+msgid "Install themes new"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:425
+msgid "Theme %s deleted"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:441
+msgid "Theme switched from %s to %s"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:471
+msgid "Plugin deactivated"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:488
+msgid "Plugin activated"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:688
+msgid "%s trashed"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:703
+msgid "%s Restored"
+msgstr ""
+
+#: admin/partials/instawp-admin-display.php:48
+msgid "instaWP Backup Plugin"
+msgstr ""
+
+#: admin/partials/instawp-admin-display.php:60
+msgid "Warning: There is no default remote storage available for the scheduled backups, please set up it first."
+msgstr ""
+
+#: admin/partials/instawp-admin-settings.php:104
+msgid "Select database method"
+msgstr ""
+
+#: admin/partials/instawp-admin-settings.php:105, includes/class-instawp-setting.php:213
+msgid "PDO"
+msgstr ""
+
+#: admin/partials/instawp-admin-settings.php:106, includes/class-instawp-setting.php:212
+msgid "WPDB"
+msgstr ""
+
+#: admin/partials/instawp-admin-settings.php:140
+msgid "Reset Plugin"
+msgstr ""
+
+#: admin/partials/instawp-admin-settings.php:151
+msgid "Reset"
+msgstr ""
+
+#: admin/partials/instawp-admin-staging-sites.php:26
+msgid "Website URL"
+msgstr ""
+
+#: admin/partials/instawp-admin-staging-sites.php:27
+msgid "User Name"
+msgstr ""
+
+#: admin/partials/instawp-admin-staging-sites.php:28
+msgid "Password"
+msgstr ""
+
+#: admin/partials/instawp-admin-staging-sites.php:29
+msgid "Auto login"
+msgstr ""
+
+#: admin/partials/instawp-admin-staging-sites.php:76
+msgid "Error in deleting from stating sites table. Error: %s"
+msgstr ""
+
+#: admin/partials/instawp-admin-staging-sites.php:119
+msgid "Auto Login"
+msgstr ""
+
+#: admin/partials/instawp-admin-wizard.php:79, admin/partials/instawp-admin-wizard.php:106, admin/partials/instawp-admin-wizard.php:135
+msgid "Creating a Staging Site"
+msgstr ""
+
+#. translators: %s: Email
+#: admin/partials/instawp-admin-wizard.php:86
+msgid "I agree to share email id ( %s ) with InstaWP"
+msgstr ""
+
+#: admin/partials/instawp-admin-wizard.php:92
+msgid "Create a Staging Site"
+msgstr ""
+
+#: admin/partials/instawp-admin-wizard.php:110
+msgid "Connect"
+msgstr ""
+
+#: admin/partials/instawp-admin-wizard.php:142
+msgid "Database Size:"
+msgstr ""
+
+#: admin/partials/instawp-admin-wizard.php:143
+msgid "File Size:"
+msgstr ""
+
+#: admin/partials/instawp-admin-wizard.php:146, admin/partials/instawp-settings-page-display.php:318
+msgid "Total Size:"
+msgstr ""
+
+#: admin/partials/instawp-admin-wizard.php:147
+msgid "Uploaded:"
+msgstr ""
+
+#: admin/partials/instawp-admin-wizard.php:148
+msgid "Speed:"
+msgstr ""
+
+#: admin/partials/instawp-admin-wizard.php:151
+msgid "Network Connection:"
+msgstr ""
+
+#: admin/partials/instawp-admin-wizard.php:163
+msgid "Quick"
+msgstr ""
+
+#: admin/partials/instawp-admin-wizard.php:164
+msgid "Copies Without Media"
+msgstr ""
+
+#: admin/partials/instawp-admin-wizard.php:165, admin/partials/instawp-admin-wizard.php:170
+msgid "data"
+msgstr ""
+
+#: admin/partials/instawp-admin-wizard.php:168
+msgid "Full"
+msgstr ""
+
+#: admin/partials/instawp-admin-wizard.php:169
+msgid "Copies Media Files"
+msgstr ""
+
+#: admin/partials/instawp-admin-wizard.php:173
+msgid "Cancel Backup"
+msgstr ""
+
+#: admin/partials/instawp-admin-wizard.php:208
+msgid "Backup"
+msgstr ""
+
+#: admin/partials/instawp-admin-wizard.php:209
+msgid "Storage"
+msgstr ""
+
+#: admin/partials/instawp-admin-wizard.php:212
+msgid "Delete"
+msgstr ""
+
+#: admin/partials/instawp-admin-wizard.php:225
+msgid "Delete the selected backups"
+msgstr ""
+
+#: admin/partials/instawp-admin-wizard.php:569
+msgid "Congrats!"
+msgstr ""
+
+#: admin/partials/instawp-admin-wizard.php:569
+msgid "Staging is Created!"
+msgstr ""
+
+#: admin/partials/instawp-admin-wizard.php:586
+msgid "WP Login Credentials."
+msgstr ""
+
+#: admin/partials/instawp-admin-wizard.php:588
+msgid "URL"
+msgstr ""
+
+#: admin/partials/instawp-admin-wizard.php:589
+msgid "Admin Username"
+msgstr ""
+
+#: admin/partials/instawp-admin-wizard.php:590
+msgid "Admin Password"
+msgstr ""
+
+#: admin/partials/instawp-admin-wizard.php:595
+msgid "Magic login"
+msgstr ""
+
+#: admin/partials/instawp-admin-wizard.php:605
+msgid "Create another Staging Site"
+msgstr ""
+
+#: admin/partials/instawp-admin-wizard.php:611
+msgid "Show my staging sites"
+msgstr ""
+
+#: admin/partials/instawp-remote-storage-page-display.php:5, admin/partials/instawp-remote-storage-page-display.php:313
+msgid "Storages"
+msgstr ""
+
+#: admin/partials/instawp-remote-storage-page-display.php:12, admin/partials/instawp-remote-storage-page-display.php:315
+msgid "Storage Edit"
+msgstr ""
+
+#: admin/partials/instawp-remote-storage-page-display.php:23, admin/partials/instawp-remote-storage-page-display.php:322
+msgid "Please choose one storage to save your backups (remote storage)"
+msgstr ""
+
+#: admin/partials/instawp-remote-storage-page-display.php:31, admin/partials/instawp-remote-storage-page-display.php:330
+msgid "Storage Provider"
+msgstr ""
+
+#: admin/partials/instawp-remote-storage-page-display.php:32, admin/partials/instawp-remote-storage-page-display.php:331
+msgid "Remote Storage Alias"
+msgstr ""
+
+#: admin/partials/instawp-remote-storage-page-display.php:33, admin/partials/instawp-remote-storage-page-display.php:332
+msgid "Actions"
+msgstr ""
+
+#: admin/partials/instawp-remote-storage-page-display.php:190
+msgid "Deleting a remote storage will make it unavailable until it is added again. Are you sure to continue?"
+msgstr ""
+
+#: admin/partials/instawp-remote-storage-page-display.php:232, includes/class-instawp.php:938, includes/class-instawp.php:6360
+msgid "There is no default remote storage configured. Please set it up first."
+msgstr ""
+
+#: admin/partials/instawp-schedule-page-display.php:6
+msgid "Schedule Settings"
+msgstr ""
+
+#: admin/partials/instawp-schedule-page-display.php:14
+msgid "Enable backup schedule"
+msgstr ""
+
+#: admin/partials/instawp-schedule-page-display.php:19
+msgid "Enable Incremental Backup"
+msgstr ""
+
+#: admin/partials/instawp-schedule-page-display.php:23, admin/partials/instawp-schedule-page-display.php:35, admin/partials/instawp-schedule-page-display.php:97, admin/partials/instawp-schedule-page-display.php:141
+msgid "Pro feature: learn more"
+msgstr ""
+
+#: admin/partials/instawp-schedule-page-display.php:31
+msgid "Advanced Schedule"
+msgstr ""
+
+#: admin/partials/instawp-schedule-page-display.php:84
+msgid "Highlighted icon illuminates that you have choosed a remote storage to store backups"
+msgstr ""
+
+#: admin/partials/instawp-schedule-page-display.php:94
+msgid "+ Add another schedule"
+msgstr ""
+
+#: admin/partials/instawp-schedule-page-display.php:113
+msgid "Scheduled job will start at <strong>UTC</strong> time:"
+msgstr ""
+
+#: admin/partials/instawp-schedule-page-display.php:114
+msgid "Being subjected to mechanisms of PHP, a scheduled backup task for your site will be triggered only when the site receives at least a visit at any page."
+msgstr ""
+
+#: admin/partials/instawp-schedule-page-display.php:126
+msgid "WordPress Files (Exclude Database)"
+msgstr ""
+
+#: admin/partials/instawp-schedule-page-display.php:131
+msgid "Only Database"
+msgstr ""
+
+#: admin/partials/instawp-schedule-page-display.php:137
+msgid "Custom"
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:99
+msgid "backups retained"
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:99
+msgid "Pro feature: Retain more backups"
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:104
+msgid "Calculate the size of files, folder and database before backing up"
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:110
+msgid "Show instaWP backup plugin on top admin bar"
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:116
+msgid "Merge all the backup files into single package when a backup completes. This will save great disk spaces, though takes longer time. We recommended you check the option especially on sites with insufficient server resources."
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:122
+msgid "Keep storing the backups in localhost after uploading to remote storage"
+msgstr ""
+
+#. translators: %s: $general_setting
+#: admin/partials/instawp-settings-page-display.php:130
+msgid "Delete the /%s folder and all backups in it when deleting instaWP Backup plugin."
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:135
+msgid "Backup Folder"
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:137
+msgid "Name your folder, this folder must be writable for creating backup files."
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:139
+msgid "Local storage directory:"
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:144
+msgid "Display domain(url) of current site in backup name. (e.g. domain_instawp-5ceb938b6dca9_2019-05-27-07-36_backup_all.zip)"
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:149
+msgid "Remove out-of-date backups"
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:153
+msgid "Web Server Directory:"
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:154
+msgid "Remote Storage Directory:"
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:166
+msgid "Remove"
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:167
+msgid "The action is irreversible! It will remove all backups are out-of-date (including local web server and remote storage) if they exist."
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:188
+msgid "Out of date backups have been removed."
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:226
+msgid "In order to use this function, please install a <strong><a target=\"_blank\" href=\"https://instawp.com//8-best-smtp-plugins-for-wordpress.html\" style=\"text-decoration: none;\">WordPress SMTP plugin</a></strong> of your preference and configure your SMTP server first. This is because WordPress uses the PHP Mail function to send its emails by default, which is not supported by many hosts and can cause issues if it is not set properly."
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:231
+msgid "Enable email report"
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:245
+msgid "Test Email"
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:250
+msgid "Always send an email notification when a backup is complete"
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:254
+msgid "Only send an email notification when a backup fails"
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:258
+msgid "Pro feature: Add another email address to get report"
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:314
+msgid "Web-server disk space in use by instaWP"
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:322
+msgid "Calculate Sizes"
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:327
+msgid "Logs Size:"
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:334
+msgid "Backup Cache Size:"
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:341
+msgid "Junk Size:"
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:347
+msgid "Empty"
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:402
+msgid "The selected item(s) will be permanently deleted. Are you sure you want to continue?"
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:455
+msgid "Export"
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:456
+msgid "Click 'Export' button to save instaWP settings on your local computer."
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:460
+msgid "Import"
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:461
+msgid "Importing the json file can help you set instaWP's configuration on another WordPress site quickly."
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:580
+msgid "Enable the option when backup failed."
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:580
+msgid "Special optimization for web hosting/shared hosting"
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:584
+msgid "Enable optimization mode for web hosting/shared hosting"
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:587
+msgid "Enabling this option can improve the backup success rate, but it will take more time for backup."
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:594
+msgid "Database access method."
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:599
+msgid "WPDB option has a better compatibility, but the speed of backup and restore is slower."
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:605
+msgid "It is recommended to choose PDO option if pdo_mysql extension is installed on your server, which lets you backup and restore your site faster."
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:613
+msgid "It will cause a lower CPU Usage and is recommended in a web hosting/ shared hosting environment."
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:613
+msgid "Only Archive without compressing"
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:617
+msgid "It will cause a higher CPU usage and is recommended in a VPS or dedicated hosting environment."
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:617
+msgid "Compress and Archive"
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:626
+msgid "Compress Files Every"
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:629
+msgid "Some web hosting providers limit large zip files (e.g. 200MB), and therefore splitting your backup into many parts is an ideal way to avoid hitting the limitation if you are running a big website.  Please try to adjust the value if you are encountering backup errors. If you use a value of 0 MB, any backup files won't be split."
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:631
+msgid "Exclude the files which are larger than"
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:634
+msgid "Using the option will ignore the file larger than the certain size in MB when backing up, '0' (zero) means unlimited."
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:636
+msgid "PHP script execution timeout for backup"
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:638, admin/partials/instawp-settings-page-display.php:643
+msgid "Seconds"
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:639
+msgid "The time-out is not your server PHP time-out. With the execution time exhausted, our plugin will shut the process of backup down. If the progress of backup encounters a time-out, that means you have a medium or large sized website, please try to scale the value bigger."
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:641
+msgid "PHP script execution timeout for restore"
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:644
+msgid "The time-out is not your server PHP time-out. With the execution time exhausted, our plugin will shut the process of restore down. If the progress of restore encounters a time-out, that means you have a medium or large sized website, please try to scale the value bigger."
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:646
+msgid "PHP Memory Limit for backup"
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:649
+msgid "Adjust this value to apply for a temporary PHP memory limit for instaWP backup plugin to run a backup. We set this value to 256M by default. Increase the value if you encounter a memory exhausted error. Note: some web hosting providers may not support this."
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:651
+msgid "PHP Memory Limit for restoration"
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:654
+msgid "Adjust this value to apply for a temporary PHP memory limit for instaWP backup plugin in restore process. We set this value to 256M by default. Increase the value if you encounter a memory exhausted error. Note: some web hosting providers may not support this."
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:656
+msgid "Chunk Size"
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:659
+msgid "e.g.  if you choose a chunk size of 2MB, a 8MB file will use 4 chunks. Decreasing this value will break the ISP's transmission limit, for example:512KB"
+msgstr ""
+
+#. translators: %s: $max_count_select
+#: admin/partials/instawp-settings-page-display.php:674
+msgid "<strong>Retrying </strong>%s<strong> times when encountering a time-out error</strong>"
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:698
+msgid "General Settings"
+msgstr ""
+
+#: admin/partials/instawp-settings-page-display.php:704
+msgid "Advanced Settings"
+msgstr ""
+
+#: cli/class-instawp-cli.php:46
+msgid "Empty backup list."
+msgstr ""
+
+#: cli/class-instawp-cli.php:94
+msgid "Restore started."
+msgstr ""
+
+#: cli/class-instawp-cli.php:122
+msgid "Could not download the backup files."
+msgstr ""
+
+#: cli/class-instawp-cli.php:127
+msgid "Backup downloaded successfully."
+msgstr ""
+
+#: cli/class-instawp-cli.php:181
+msgid "Cleared previous backup files successfully."
+msgstr ""
+
+#: cli/class-instawp-cli.php:225
+msgid "Invalid command for `-action`"
+msgstr ""
+
+#: includes/class-instawp-ajax.php:98
+msgid "InstaWP Connect Settings has been reset successfully."
+msgstr ""
+
+#: includes/class-instawp-backup-uploader.php:521
+msgid "Failed to get local storage directory."
+msgstr ""
+
+#: includes/class-instawp-backup-uploader.php:610
+msgid "Drop files here"
+msgstr ""
+
+#: includes/class-instawp-backup-uploader.php:611
+msgctxt "Uploader: Drop files here - or - Select Files"
+msgid "or"
+msgstr ""
+
+#: includes/class-instawp-backup-uploader.php:612
+msgid "Select Files"
+msgstr ""
+
+#: includes/class-instawp-backup.php:1259, includes/class-instawp-backup.php:1245, includes/class-instawp-function-realize.php:67
+msgid "The backup will be canceled after backing up the current chunk ends."
+msgstr ""
+
+#: includes/class-instawp-backup.php:1214, includes/class-instawp-backup.php:1197
+msgid "Progress: "
+msgstr ""
+
+#: includes/class-instawp-backup.php:1214, includes/class-instawp-backup.php:1197
+msgid "running time: "
+msgstr ""
+
+#: includes/class-instawp-backup.php:1157
+msgid "Ready to backup. Progress: 0%, running time: 0second."
+msgstr ""
+
+#: includes/class-instawp-backup.php:2269
+msgid "Start backing up %s."
+msgstr ""
+
+#: includes/class-instawp-backup.php:2277
+msgid "Backing up %s finished."
+msgstr ""
+
+#: includes/class-instawp-curl.php:37
+msgid "Invalid or Empty API Domain"
+msgstr ""
+
+#: includes/class-instawp-curl.php:41
+msgid "Invalid or Empty API Key"
+msgstr ""
+
+#: includes/class-instawp-curl.php:497
+msgid "Download completed for this part"
+msgstr ""
+
+#: includes/class-instawp-database-management.php:58
+msgid "Database Manager file not found!"
+msgstr ""
+
+#: includes/class-instawp-database-management.php:63, includes/class-instawp-file-management.php:84
+msgid "Auto Login token expired or missing!"
+msgstr ""
+
+#: includes/class-instawp-database-management.php:67
+msgid "InstaWP Database Manager: Token mismatch or not valid!"
+msgstr ""
+
+#: includes/class-instawp-database-management.php:82
+msgid "InstaWP Database Manager"
+msgstr ""
+
+#: includes/class-instawp-file-management.php:79
+msgid "File Manager file not found!"
+msgstr ""
+
+#: includes/class-instawp-file-management.php:88
+msgid "InstaWP File Manager: Token mismatch or not valid!"
+msgstr ""
+
+#: includes/class-instawp-file-management.php:119
+msgid "InstaWP File Manager"
+msgstr ""
+
+#: includes/class-instawp-function-realize.php:123, includes/class-instawp-function-realize.php:96, includes/class-instawp.php:1085, includes/class-instawp.php:1199
+msgid "Retrieving the backup information failed while showing log. Please try again later."
+msgstr ""
+
+#: includes/class-instawp-function-realize.php:129, includes/class-instawp-function-realize.php:112, includes/class-instawp-function-realize.php:101, includes/class-instawp.php:1092, includes/class-instawp.php:1151, includes/class-instawp.php:1208, includes/class-instawp.php:6784
+msgid "The log not found."
+msgstr ""
+
+#: includes/class-instawp-interface-mainwp.php:128, includes/class-instawp-public-interface.php:57, includes/class-instawp.php:986, includes/class-instawp.php:1031
+msgid "Error occurred while parsing the request data. Please try to run backup again."
+msgstr ""
+
+#: includes/class-instawp-interface-mainwp.php:172, includes/class-instawp-interface-mainwp.php:241, includes/class-instawp-interface-mainwp.php:294, includes/class-instawp-public-interface.php:193, includes/class-instawp-public-interface.php:222, includes/class-instawp-public-interface.php:251, includes/class-instawp.php:1101, includes/class-instawp.php:1160, includes/class-instawp.php:1217, includes/class-instawp.php:6793
+msgid "Unable to open the log file."
+msgstr ""
+
+#: includes/class-instawp-interface-mainwp.php:232, includes/class-instawp-public-interface.php:213, includes/class-instawp.php:1117, includes/class-instawp.php:1142, includes/class-instawp.php:1233, includes/class-instawp.php:6809
+msgid "Reading the log failed. Please try again."
+msgstr ""
+
+#: includes/class-instawp-public-interface.php:30
+msgid "Manual"
+msgstr ""
+
+#: includes/class-instawp-rest-api.php:501
+msgid "Already configured"
+msgstr ""
+
+#: includes/class-instawp-rest-api.php:515
+msgid "Connected"
+msgstr ""
+
+#: includes/class-instawp-rest-api.php:525
+msgid "Api key is required"
+msgstr ""
+
+#: includes/class-instawp-rest-api.php:578
+msgid "INSTAWP_ALLOW_MANAGE should be defined and set to true in wp-config.php file."
+msgstr ""
+
+#: includes/class-instawp-rest-api.php:587
+msgid "Empty bearer token."
+msgstr ""
+
+#: includes/class-instawp-rest-api.php:610
+msgid "Invalid bearer token."
+msgstr ""
+
+#: includes/class-instawp-rest-api.php:731
+msgid "Downloading has been started."
+msgstr ""
+
+#: includes/class-instawp-rest-api.php:947
+msgid "Backup will run through CLI."
+msgstr ""
+
+#: includes/class-instawp-rest-api.php:956
+msgid "Backup is running on background processing"
+msgstr ""
+
+#: includes/class-instawp-rest-api.php:1375
+msgid "Provided URL is not valid!"
+msgstr ""
+
+#: includes/class-instawp-rest-api.php:1353
+msgid "Installation failed!"
+msgstr ""
+
+#: includes/class-instawp-rest-api.php:1569
+msgid "No constants provided!"
+msgstr ""
+
+#: includes/class-instawp-rest-api.php:1666
+msgid "Failed to create the file manager file."
+msgstr ""
+
+#: includes/class-instawp-rest-api.php:1767
+msgid "Failed to create the database manager file."
+msgstr ""
+
+#: includes/class-instawp-rest-api.php:1824
+msgid "WP Debug is not enabled!"
+msgstr ""
+
+#: includes/class-instawp-rest-api.php:1832
+msgid "Debug file not found!"
+msgstr ""
+
+#: includes/class-instawp-rest-api.php:1840
+msgid "Debug file can't be opened!"
+msgstr ""
+
+#. translators: %s: directory path
+#: includes/class-instawp-restore-site.php:242
+msgid "Unable to create directory %s. Is its parent directory writable by the server?"
+msgstr ""
+
+#: includes/class-instawp-setting.php:172
+msgid "Update your settings before creating staging sites."
+msgstr ""
+
+#: includes/class-instawp-setting.php:177
+msgid "API Key"
+msgstr ""
+
+#: includes/class-instawp-setting.php:185
+msgid "Heartbeat Interval"
+msgstr ""
+
+#: includes/class-instawp-setting.php:191
+msgid "Backup Parts Size"
+msgstr ""
+
+#: includes/class-instawp-setting.php:198
+msgid "Plugin Reset Type"
+msgstr ""
+
+#: includes/class-instawp-setting.php:199
+msgid "Hard reset will remove everything including API key."
+msgstr ""
+
+#: includes/class-instawp-setting.php:201
+msgid "Soft Reset"
+msgstr ""
+
+#: includes/class-instawp-setting.php:202
+msgid "Hard Reset"
+msgstr ""
+
+#: includes/class-instawp-setting.php:208
+msgid "Database Method"
+msgstr ""
+
+#: includes/class-instawp-setting.php:209
+msgid "WPDB option has a better compatibility, but slower. "
+msgstr ""
+
+#: includes/class-instawp-setting.php:210
+msgid "It is recommended to choose PDO if pdo_mysql extension is installed."
+msgstr ""
+
+#: includes/class-instawp-setting.php:221
+msgid "Developer Options"
+msgstr ""
+
+#: includes/class-instawp-setting.php:222
+msgid "This section is available only for the developers working in this plugin."
+msgstr ""
+
+#: includes/class-instawp-setting.php:228
+msgid "API Domain"
+msgstr ""
+
+#: includes/class-instawp.php:906, includes/class-instawp.php:914
+msgid "A backup type is required."
+msgstr ""
+
+#: includes/class-instawp.php:920, includes/class-instawp.php:929
+msgid "Choose at least one storage location for backups."
+msgstr ""
+
+#: includes/class-instawp.php:995, includes/class-instawp.php:1040, includes/class-instawp.php:1381, includes/class-instawp.php:1592
+msgid "A task is already running. Please wait until the running task is complete, and try again."
+msgstr ""
+
+#: includes/class-instawp.php:2201, includes/class-instawp.php:2179, includes/class-instawp.php:2160, includes/class-instawp.php:2408, includes/class-instawp.php:2501
+msgid "Too many resumption attempts."
+msgstr ""
+
+#: includes/class-instawp.php:2414, includes/class-instawp.php:2507
+msgid "Task timed out."
+msgstr ""
+
+#: includes/class-instawp.php:3567
+msgid "Retrieving the backup(s) information failed while deleting the selected backup(s). Please try again later."
+msgstr ""
+
+#: includes/class-instawp.php:3576
+msgid "Unable to delete the locked backup. Please unlock it first and try again."
+msgstr ""
+
+#: includes/class-instawp.php:3679
+msgid "You have successfully added a remote storage."
+msgstr ""
+
+#: includes/class-instawp.php:3732
+msgid "Failed to delete the remote storage, can not retrieve the storage infomation. Please try again."
+msgstr ""
+
+#: includes/class-instawp.php:3761
+msgid "Failed to get the remote storage information. Please try again later."
+msgstr ""
+
+#: includes/class-instawp.php:4697, includes/class-instawp.php:4737
+msgid "restore failed error unknown"
+msgstr ""
+
+#: includes/class-instawp.php:4786, includes/class-instawp.php:4829
+msgid "The restore file not found. Please verify the file exists."
+msgstr ""
+
+#: includes/class-instawp.php:4970, includes/class-instawp.php:4948
+msgid "The last backup message not found."
+msgstr ""
+
+#: includes/class-instawp.php:4973
+msgid "Last Backup: "
+msgstr ""
+
+#: includes/class-instawp.php:5058
+msgid "%d backup tasks have been completed."
+msgstr ""
+
+#: includes/class-instawp.php:5148
+msgid "Getting backup directory failed. Please try again later."
+msgstr ""
+
+#: includes/class-instawp.php:5549, includes/class-instawp.php:5655
+msgid "Choose at least one type of junk files for deleting."
+msgstr ""
+
+#: includes/class-instawp.php:5616, includes/class-instawp.php:5722
+msgid "The selected junk files have been deleted."
+msgstr ""
+
+#: includes/class-instawp.php:5881
+msgid "Choose one storage from the list to be the default storage."
+msgstr ""
+
+#: includes/class-instawp.php:5909
+msgid "You have successfully changed your default remote storage."
+msgstr ""
+
+#: includes/class-instawp.php:6137, includes/class-instawp.php:6145
+msgid "The value of 'Compress file every' can't be empty."
+msgstr ""
+
+#: includes/class-instawp.php:6151, includes/class-instawp.php:6157
+msgid "The value of 'Exclude files which are larger than' can't be empty."
+msgstr ""
+
+#: includes/class-instawp.php:6163, includes/class-instawp.php:6169
+msgid "The value of 'PHP scripts execution timeout for backup' can't be empty."
+msgstr ""
+
+#: includes/class-instawp.php:6176, includes/class-instawp.php:6180
+msgid "The value of 'PHP scripts execution timeout for restore' can't be empty."
+msgstr ""
+
+#: includes/class-instawp.php:6186, includes/class-instawp.php:6190
+msgid "The value of 'PHP memory limit for backup' can't be empty."
+msgstr ""
+
+#: includes/class-instawp.php:6196, includes/class-instawp.php:6200
+msgid "The value of 'PHP memory limit for restoration' can't be empty."
+msgstr ""
+
+#: includes/class-instawp.php:6206, includes/class-instawp.php:6210
+msgid "The value of 'Chunk Size' can't be empty."
+msgstr ""
+
+#: includes/class-instawp.php:6216, includes/class-instawp.php:6220
+msgid "The value of 'Posts Quantity Processed Per Request' can't be empty."
+msgstr ""
+
+#: includes/class-instawp.php:6226, includes/class-instawp.php:6230
+msgid "The value of 'Media Files Quantity Processed Per Request' can't be empty."
+msgstr ""
+
+#: includes/class-instawp.php:6236, includes/class-instawp.php:6240
+msgid "The value of 'DB Copy Count' can't be empty."
+msgstr ""
+
+#: includes/class-instawp.php:6246, includes/class-instawp.php:6250
+msgid "The value of 'DB Replace Count' can't be empty."
+msgstr ""
+
+#: includes/class-instawp.php:6256, includes/class-instawp.php:6260
+msgid "The value of 'File Copy Count' can't be empty."
+msgstr ""
+
+#: includes/class-instawp.php:6266, includes/class-instawp.php:6270
+msgid "The value of 'Max File Size' can't be empty."
+msgstr ""
+
+#: includes/class-instawp.php:6276, includes/class-instawp.php:6280
+msgid "The value of 'Staging Memory Limit' can't be empty."
+msgstr ""
+
+#: includes/class-instawp.php:6286, includes/class-instawp.php:6290
+msgid "The value of 'PHP Scripts Execution Timeout' can't be empty."
+msgstr ""
+
+#: includes/class-instawp.php:6296, includes/class-instawp.php:6300
+msgid "The value of 'Delay Between Requests' can't be empty."
+msgstr ""
+
+#: includes/class-instawp.php:6307, includes/class-instawp.php:6313
+msgid "The local storage path is required."
+msgstr ""
+
+#: includes/class-instawp.php:6322
+msgid "An email address is required."
+msgstr ""
+
+#: includes/class-instawp.php:6337, includes/class-instawp.php:6332
+msgid "The pdo_mysql extension is not detected. Please install the extension first or choose wpdb option for Database connection method."
+msgstr ""
+
+#: includes/class-instawp.php:6461
+msgid "The selected file is not the setting file for instaWP. Please upload the right file."
+msgstr ""
+
+#: includes/class-instawp.php:6492
+msgid "Unable to send email. Please check the configuration of email server."
+msgstr ""
+
+#: includes/class-instawp.php:6484
+msgid "Invalid email address"
+msgstr ""
+
+#: includes/class-instawp.php:7005
+msgid "Uploaded Backup: "
+msgstr ""
+
+#: includes/class-instawp.php:7075
+msgid "Click the button to complete website restore or migration"
+msgstr ""
+
+#: includes/class-instawp.php:7092
+msgid "Type:"
+msgstr ""
+
+#: includes/class-instawp.php:7117
+msgid "Delete the backup"
+msgstr ""
+
+#: includes/class-instawp.php:7153
+msgid "Edit the remote storage"
+msgstr ""
+
+#: includes/class-instawp.php:7155
+msgid "Remove the remote storage"
+msgstr ""
+
+#: includes/class-instawp.php:7216
+msgid "Add a storage"
+msgstr ""
+
+#: includes/class-instawp.php:7239
+msgid "Save backups on localhost (web server)"
+msgstr ""
+
+#: includes/class-instawp.php:7243
+msgid "Send backups to remote storage (You can choose whether to keep the backup in localhost after it is uploaded to cloud storage in Settings.)"
+msgstr ""
+
+#: includes/class-instawp.php:7400
+msgid "Please enter a valid email address."
+msgstr ""
+
+#: includes/class-instawp.php:7395
+msgid "User's email address is required."
+msgstr ""
+
+#: includes/class-intawp-ajax-fn.php:110
+msgid "%d post change events"
+msgstr ""
+
+#: includes/class-intawp-ajax-fn.php:111
+msgid "%d post delete events"
+msgstr ""
+
+#: includes/class-intawp-ajax-fn.php:112
+msgid "%d post trash events"
+msgstr ""
+
+#: includes/class-intawp-ajax-fn.php:113
+msgid "%d other events"
+msgstr ""
+
+#: includes/functions.php:109
+msgid "Empty value for %s"
+msgstr ""
+
+#: includes/functions.php:132
+msgid "Error occurred while inserting new site. Error Message: %s"
+msgstr ""
+
+#: includes/functions.php:429
+msgid "Invalid migrate or part ID"
+msgstr ""
+
+#: includes/functions.php:435
+msgid "Restore completed for this part"
+msgstr ""
+
+#: includes/functions.php:565
+msgid "Migration completed successfully."
+msgstr ""
