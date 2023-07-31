@@ -153,10 +153,23 @@ input:checked + .slider-toggle:before {
     border-radius: 50%;
 }
 
+[class*=hint--]:after {
+    font-family: 'Inter' !important;
+}
+
+.instawp-single-field svg {
+    display: inline-block;
+    width: 15px;
+    height: 15px;
+    margin-left: 5px;
+    vertical-align: middle;
+    margin-top: -2px;
+}
+
 .toggle-control {
     cursor: pointer;
-    display: inline-block;
-    /* margin-top: 5px; */
+    display: block;
+    margin-top: 5px;
 }
 .toggle-control .toggle-switch {
     display: inline-block;
@@ -309,6 +322,7 @@ input:checked + .slider-toggle:before {
     box-shadow: none;
     min-width: 120px;
     transition: 0.3s;
+    display: block;
 }
 
 .instawp-form select,
@@ -316,6 +330,7 @@ input:checked + .slider-toggle:before {
 .instawp-form select:focus {
     background-position: right 12px top 55%;
     min-width: 180px;
+    display: block;
 }
 
 .instawp-form input[type=text]:active,

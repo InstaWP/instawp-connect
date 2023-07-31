@@ -656,42 +656,42 @@ tailwind.config = {
 
 
     // Management settings save start //
-    // let ajaxSaveManagementSettings = ( name, value ) => {
-    //     $.ajax( {
-    //         type: 'POST',
-    //         url: plugin_object.ajax_url,
-    //         context: this,
-    //         data: {
-    //             'action': 'instawp_save_management_settings',
-    //             'name': name,
-    //             'value': value
-    //         },
-    //         success: function( response ) {
+    let ajaxSaveManagementSettings = ( name, value ) => {
+        $.ajax( {
+            type: 'POST',
+            url: plugin_object.ajax_url,
+            context: this,
+            data: {
+                'action': 'instawp_save_management_settings',
+                'name': name,
+                'value': value
+            },
+            success: function( response ) {
 
-    //         },
-    //         complete: function() {
-    //             // clearInterval( window_open_checker );
-    //         }
-    //     } );
-    // }
+            },
+            complete: function() {
+                //$( document ).find( '.management .instawp-form.w-full' ).removeClass( 'loading' );
+            }
+        } );
+    }
 
-    // $( document ).on( 'change', '.save-ajax', function() {
-    //     let name = $( this ).attr( 'id' );
-    //     let value = $( this ).is( ":checked" ) ? 'on' : 'off';
+    $( document ).on( 'change', '.save-ajax', function() {
+        let name = $( this ).attr( 'id' );
+        let value = $( this ).is( ":checked" ) ? 'on' : 'off';
 
-    //     if ( name === 'instawp_rm_heartbeat' ) {
-    //         if ( value === 'on' ) {
-    //             $( document ).find( '.instawp-api-heartbeat-field' ).show();
-    //         } else if ( value === 'off' ) {
-    //             $( document ).find( '.instawp-api-heartbeat-field' ).hide();
-    //         } 
-    //     }
+        if ( name === 'instawp_rm_heartbeat' ) {
+            if ( value === 'on' ) {
+                $( document ).find( '.instawp-api-heartbeat-field' ).show();
+            } else if ( value === 'off' ) {
+                $( document ).find( '.instawp-api-heartbeat-field' ).hide();
+            } 
+        }
         
-    //     ajaxSaveManagementSettings( name, value );
-    // } );
-    setTimeout( function() {
-        $( document ).find( '#instawp_rm_heartbeat' ).trigger( 'change' );
-    }, 200 );
+        ajaxSaveManagementSettings( name, value );
+    } );
+    // setTimeout( function() {
+    //     $( document ).find( '#instawp_rm_heartbeat' ).trigger( 'change' );
+    // }, 200 );
 
     let debounce = null;
     $( document ).on( 'input', '#instawp_api_heartbeat', function( e ) {

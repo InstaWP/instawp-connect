@@ -45,11 +45,14 @@ class InstaWP_Setting {
 		$field_type          = self::get_args_option( 'type', $field );
 		$field_desc          = self::get_args_option( 'desc', $field );
 		$field_placeholder   = self::get_args_option( 'placeholder', $field );
+		$field_tooltip       = self::get_args_option( 'tooltip', $field );
 		$field_attributes    = self::get_args_option( 'attributes', $field, array() );
 		$field_attributes    = ! is_array( $field_attributes ) ? array() : $field_attributes;
 		$field_options       = self::get_args_option( 'options', $field, array() );
 		$field_options       = ! is_array( $field_options ) ? array() : $field_options;
 		$field_default_value = self::get_args_option( 'default', $field );
+		$field_label_class   = self::get_args_option( 'label_class', $field );
+		$field_parent_class  = self::get_args_option( 'parent_class', $field );
 		$field_value         = self::get_option( $field_id, $field_default_value );
 		$attributes          = array();
 
@@ -57,8 +60,22 @@ class InstaWP_Setting {
 			$attributes[] = $attribute_key . '="' . $attribute_val . '"';
 		}
 
-		echo '<div class="instawp-single-field ' . esc_attr( str_replace( '_', '-', $field_id ) ) . '-field">';
-		echo '<label for="' . esc_attr( $field_id ) . '" class="block text-sm font-medium text-gray-700 mb-3 sm:mt-px sm:pt-2"> ' . esc_html( $field_title ) . '</label>';
+		$label_attributes = '';
+		$label_class      = 'inline-block text-sm font-medium text-gray-700 mb-3 sm:mt-px sm:pt-2';
+		$label_content    = esc_html( $field_title );
+		if ( ! empty( $field_tooltip ) ) {
+			$label_class      .= ' hint--top-right hint--large';
+			$label_attributes .= ' aria-label="' . $field_tooltip . '"';
+			$label_content    .= '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12C22 17.5228 17.5228 22 12 22ZM12 20C16.4183 20 20 16.4183 20 12C20 7.58172 16.4183 4 12 4C7.58172 4 4 7.58172 4 12C4 16.4183 7.58172 20 12 20ZM11 7H13V9H11V7ZM11 11H13V17H11V11Z"></path></svg>';
+		}
+
+		$field_container_class = 'instawp-single-field ' . esc_attr( str_replace( '_', '-', $field_id ) ) . '-field';
+		if ( ! empty( $field_parent_class ) ) {
+			$field_container_class .= ' ' . $field_parent_class;
+		}
+
+		echo '<div class="' . esc_attr( $field_container_class ) . '">';
+		echo '<label for="' . esc_attr( $field_id ) . '" class="' . esc_attr( $label_class ) . '"' . $label_attributes . '>' . $label_content . '</label>';
 
 		switch ( $field_type ) {
 			case 'text':
@@ -228,32 +245,85 @@ class InstaWP_Setting {
 
 
 	public static function get_management_settings() {
-		$settings = [];
+		$settings  = [];
+		$heartbeat = InstaWP_Setting::get_option( 'instawp_rm_heartbeat', 'on' );
 
 		// Section - Management
-		$settings['management'] = [
+		$settings['management_two_column'] = [
 			'title'  => __( 'Management', 'instawp-connect' ),
 			'desc'   => __( 'Update your website\'s remote management settings.', 'instawp-connect' ),
 			'fields' => [
 				[
-					'id'          => 'instawp_rm_heartbeat',
-					'type'        => 'toggle',
-					'title'       => __( 'Heartbeat', 'instawp-connect' ),
-					'desc'        => __( 'WPDB option has a better compatibility, but slower. It is recommended to choose PDO if pdo_mysql extension is installed.', 'instawp-connect' ),
-					'class'       => 'save-ajax',
-					'default'     => 'on',
+					'id'           => 'instawp_rm_heartbeat',
+					'type'         => 'toggle',
+					'title'        => __( 'Heartbeat', 'instawp-connect' ),
+					'tooltip'      => __( 'WPDB option has a better compatibility, but slower. It is recommended to choose PDO if pdo_mysql extension is installed.', 'instawp-connect' ),
+					'class'        => 'save-ajax',
+					'default'      => 'on',
 				],
 				[
-					'id'          => 'instawp_api_heartbeat',
-					'type'        => 'number',
-					'title'       => __( 'Heartbeat Interval', 'instawp-connect' ),
-					'placeholder' => '15',
-					'class'       => '!w-80'
+					'id'           => 'instawp_api_heartbeat',
+					'type'         => 'number',
+					'title'        => __( 'Heartbeat Interval', 'instawp-connect' ),
+					'tooltip'      => __( 'WPDB option has a better compatibility, but slower. It is recommended to choose PDO if pdo_mysql extension is installed.', 'instawp-connect' ),
+					'placeholder'  => '15',
+					'class'        => '!w-80',
+					'parent_class' => ( $heartbeat !== 'on' ) ? 'hidden' : '',
 				],
+				// [
+				// 	'id'          => 'instawp_rm_file_manager',
+				// 	'type'        => 'toggle',
+				// 	'title'       => __( 'File Manager', 'instawp-connect' ),
+				// 	'tooltip'      => __( 'WPDB option has a better compatibility, but slower. It is recommended to choose PDO if pdo_mysql extension is installed.', 'instawp-connect' ),
+				// 	'class'       => 'save-ajax',
+				// 	'default'     => 'off',
+				// ],
+				// [
+				// 	'id'          => 'instawp_rm_database_manager',
+				// 	'type'        => 'toggle',
+				// 	'title'       => __( 'Database Manager', 'instawp-connect' ),
+				// 	'tooltip'      => __( 'WPDB option has a better compatibility, but slower. It is recommended to choose PDO if pdo_mysql extension is installed.', 'instawp-connect' ),
+				// 	'class'       => 'save-ajax',
+				// 	'default'     => 'off',
+				// ],
+				// [
+				// 	'id'          => 'instawp_rm_install_plugin_theme',
+				// 	'type'        => 'toggle',
+				// 	'title'       => __( 'Install Plugin / Themes', 'instawp-connect' ),
+				// 	//'tooltip'      => __( 'WPDB option has a better compatibility, but slower. It is recommended to choose PDO if pdo_mysql extension is installed.', 'instawp-connect' ),
+				// 	'class'       => 'save-ajax',
+				// 	'default'     => 'off',
+				// ],
+				// [
+				// 	'id'          => 'instawp_rm_config_management',
+				// 	'type'        => 'toggle',
+				// 	'title'       => __( 'Config Management', 'instawp-connect' ),
+				// 	'tooltip'      => __( 'WPDB option has a better compatibility, but slower. It is recommended to choose PDO if pdo_mysql extension is installed.', 'instawp-connect' ),
+				// 	'class'       => 'save-ajax',
+				// 	'default'     => 'off',
+				// ],
+				// [
+				// 	'id'          => 'instawp_rm_debug_log',
+				// 	'type'        => 'toggle',
+				// 	'title'       => __( 'Debug Log', 'instawp-connect' ),
+				// 	'tooltip'      => __( 'WPDB option has a better compatibility, but slower. It is recommended to choose PDO if pdo_mysql extension is installed.', 'instawp-connect' ),
+				// 	'class'       => 'save-ajax',
+				// 	'default'     => 'off',
+				// ],
+			],
+		];
+
+		$settings['management_three_column'] = [
+			'title'  => __( 'Remote Features', 'instawp-connect' ),
+			'desc'   => __( 'Update your website\'s remote management settings.', 'instawp-connect' ),
+			'class'  => 'mt-6 pt-6 border-t border-gray-200',
+			//'grid_class' => 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6',
+			'fields' => [
 				[
 					'id'          => 'instawp_rm_file_manager',
 					'type'        => 'toggle',
 					'title'       => __( 'File Manager', 'instawp-connect' ),
+					'tooltip'      => __( 'WPDB option has a better compatibility, but slower. It is recommended to choose PDO if pdo_mysql extension is installed.', 'instawp-connect' ),
 					'class'       => 'save-ajax',
 					'default'     => 'off',
 				],
@@ -261,6 +331,7 @@ class InstaWP_Setting {
 					'id'          => 'instawp_rm_database_manager',
 					'type'        => 'toggle',
 					'title'       => __( 'Database Manager', 'instawp-connect' ),
+					'tooltip'      => __( 'WPDB option has a better compatibility, but slower. It is recommended to choose PDO if pdo_mysql extension is installed.', 'instawp-connect' ),
 					'class'       => 'save-ajax',
 					'default'     => 'off',
 				],
@@ -268,6 +339,7 @@ class InstaWP_Setting {
 					'id'          => 'instawp_rm_install_plugin_theme',
 					'type'        => 'toggle',
 					'title'       => __( 'Install Plugin / Themes', 'instawp-connect' ),
+					'tooltip'      => __( 'WPDB option has a better compatibility, but slower. It is recommended to choose PDO if pdo_mysql extension is installed.', 'instawp-connect' ),
 					'class'       => 'save-ajax',
 					'default'     => 'off',
 				],
@@ -275,6 +347,7 @@ class InstaWP_Setting {
 					'id'          => 'instawp_rm_config_management',
 					'type'        => 'toggle',
 					'title'       => __( 'Config Management', 'instawp-connect' ),
+					'tooltip'      => __( 'WPDB option has a better compatibility, but slower. It is recommended to choose PDO if pdo_mysql extension is installed.', 'instawp-connect' ),
 					'class'       => 'save-ajax',
 					'default'     => 'off',
 				],
@@ -282,52 +355,12 @@ class InstaWP_Setting {
 					'id'          => 'instawp_rm_debug_log',
 					'type'        => 'toggle',
 					'title'       => __( 'Debug Log', 'instawp-connect' ),
+					'tooltip'      => __( 'WPDB option has a better compatibility, but slower. It is recommended to choose PDO if pdo_mysql extension is installed.', 'instawp-connect' ),
 					'class'       => 'save-ajax',
 					'default'     => 'off',
 				],
 			],
 		];
-
-		// $settings['management1'] = [
-		// 	'grid_class' => 'grid grid-cols-1 md:grid-cols-3 gap-6',
-		// 	'fields' => [
-		// 		[
-		// 			'id'          => 'instawp_rm_file_manager',
-		// 			'type'        => 'toggle',
-		// 			'title'       => __( 'File Manager', 'instawp-connect' ),
-		// 			'class'       => 'save-ajax',
-		// 			'default'     => 'off',
-		// 		],
-		// 		[
-		// 			'id'          => 'instawp_rm_database_manager',
-		// 			'type'        => 'toggle',
-		// 			'title'       => __( 'Database Manager', 'instawp-connect' ),
-		// 			'class'       => 'save-ajax',
-		// 			'default'     => 'off',
-		// 		],
-		// 		[
-		// 			'id'          => 'instawp_rm_install_plugin_theme',
-		// 			'type'        => 'toggle',
-		// 			'title'       => __( 'Install Plugin / Themes', 'instawp-connect' ),
-		// 			'class'       => 'save-ajax',
-		// 			'default'     => 'off',
-		// 		],
-		// 		[
-		// 			'id'          => 'instawp_rm_config_management',
-		// 			'type'        => 'toggle',
-		// 			'title'       => __( 'Config Management', 'instawp-connect' ),
-		// 			'class'       => 'save-ajax',
-		// 			'default'     => 'off',
-		// 		],
-		// 		[
-		// 			'id'          => 'instawp_rm_debug_log',
-		// 			'type'        => 'toggle',
-		// 			'title'       => __( 'Debug Log', 'instawp-connect' ),
-		// 			'class'       => 'save-ajax',
-		// 			'default'     => 'off',
-		// 		],
-		// 	],
-		// ];
 
 		return apply_filters( 'INSTAWP_CONNECT/Filters/management_settings', $settings );
 	}

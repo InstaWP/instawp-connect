@@ -5,7 +5,7 @@
 
 ?>
 
-<div class="nav-item-content settings bg-white box-shadow rounded-md p-6">
+<div class="nav-item-content settings bg-white rounded-md p-6">
 
     <form class="instawp-form w-full">
 

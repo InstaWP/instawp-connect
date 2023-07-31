@@ -46,7 +46,7 @@ if ( empty( InstaWP_Setting::get_api_key() ) && 'instawp' == $current_page && 't
 ?>
 
 <!--<div class="flex border-b justify-between mb-4 border-grayCust-100">-->
-<div class="flex border-b justify-between rounded-tl-lg rounded-tr-lg border-grayCust-100">
+<div class="flex border-b justify-between shadow-md rounded-tl-lg rounded-tr-lg border-grayCust-100">
     <div class="flex items-center nav-items">
 
 		<?php foreach ( $instawp_nav_items as $item_key => $item ) {
@@ -54,7 +54,7 @@ if ( empty( InstaWP_Setting::get_api_key() ) && 'instawp' == $current_page && 't
 			$icon  = isset( $item['icon'] ) ? $item['icon'] : '';
 			$label = isset( $item['label'] ) ? $item['label'] : '';
 
-			printf( '<div id="%s" class="nav-item"><a class="flex items-center px-3 py-5 border-b-2 border-transparent hover:text-primary-900 text-sm font-medium">%s<span>%s</span></a></div>', $item_key, $icon, $label );
+			printf( '<div id="%s" class="nav-item"><a class="flex items-center px-4 py-5 border-b-2 border-transparent hover:text-primary-900 text-sm font-medium">%s<span>%s</span></a></div>', $item_key, $icon, $label );
 		} ?>
 
     </div>
