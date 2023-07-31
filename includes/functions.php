@@ -1059,3 +1059,24 @@ if ( ! function_exists( 'instawp_get_post_by_name' ) ) {
 		return null;
 	}
 }
+
+
+if ( ! function_exists( 'instawp_reset_permalink' ) ) {
+	/**
+	 * Reset permalink structure
+	 *
+	 * @param $hard
+	 *
+	 * @return void
+	 */
+	function instawp_reset_permalink( $hard = true ) {
+
+		global $wp_rewrite;
+
+		if ( get_option( 'permalink_structure' ) == '' ) {
+			$wp_rewrite->set_permalink_structure( '/%postname%/' );
+		}
+
+		$wp_rewrite->flush_rules( $hard );
+	}
+}

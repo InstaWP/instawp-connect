@@ -67,17 +67,17 @@ class instaWP {
 
 	public function __construct() {
 
-		$connect_ids = InstaWP_Setting::get_option( 'instawp_connect_id_options', [] );
+		//Load dependent files
+		$this->load_dependencies();
+
+		$connect_id_options = InstaWP_Setting::get_option( 'instawp_connect_id_options', [] );
 
 		$this->version               = INSTAWP_PLUGIN_VERSION;
 		$this->plugin_name           = INSTAWP_PLUGIN_SLUG;
 		$this->end_shutdown_function = false;
 		$this->restore_data          = false;
 		$this->is_connected          = ! empty( get_option( 'instawp_api_key' ) );
-		$this->connect_id            = $connect_ids['data']['id'] ?? 0;
-
-		//Load dependent files
-		$this->load_dependencies();
+		$this->connect_id            = $connect_id_options['data']['id'] ?? 0;
 
 		//A flag to determine whether plugin had been initialized
 		$init = get_option( 'instawp_init', 'not init' );
@@ -341,7 +341,7 @@ class instaWP {
 		require_once INSTAWP_PLUGIN_DIR . '/admin/partials/instawp-admin-change-event-filters.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-intawp-ajax-fn.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-rest-apis.php';
-		//include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-setting.php';
+		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-setting.php';
 
 		require_once INSTAWP_PLUGIN_DIR . '/admin/class-instawp-go-live.php';
 
