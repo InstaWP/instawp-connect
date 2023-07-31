@@ -226,7 +226,7 @@ class InstaWP_Ajax_Fn{
 	}
 
 	public function sync_changes(){
-		$connect_id  = get_connect_id();
+		$connect_id  = instawp_get_connect_id();
 		if(isset($_POST['dest_connect_id']) && $_POST['dest_connect_id'] !=''){
 			$dest_connect_id = $_POST['dest_connect_id'];
 			$message = isset($_POST['sync_message']) ? $_POST['sync_message']: '';
@@ -315,7 +315,7 @@ class InstaWP_Ajax_Fn{
 	*/
 	public function sync_upload($data = null, $endpoint = null){
 		$api_doamin = InstaWP_Setting::get_api_domain();
-		$connect_id =  get_connect_id();
+		$connect_id =  instawp_get_connect_id();
 
 		$endpoint = '/api/v2/connects/'.$connect_id.'/syncs';
 		$url = $api_doamin.$endpoint; #https://stage.instawp.io/api/v2/connects/53/syncs
@@ -349,7 +349,7 @@ class InstaWP_Ajax_Fn{
 	public function get_Sync_Object($sync_id = null){
 		global $InstaWP_Curl;
 		$api_doamin = InstaWP_Setting::get_api_domain();
-		$connect_id  = get_connect_id();
+		$connect_id  = instawp_get_connect_id();
 		$endpoint = '/api/v2/connects/'.$connect_id.'/syncs/'.$sync_id;
 		$url = $api_doamin.$endpoint; #https://stage.instawp.io/api/v2/connects/53/syncs/104
 		$api_key = $this->get_api_key();
