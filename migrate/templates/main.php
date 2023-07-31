@@ -12,7 +12,7 @@ if ( 'true' == $status_status && InstaWP_Setting::get_option( 'instawp_api_key' 
 }
 
 if ( ! instawp()->is_connected ) {
-	$connect_classes[] = 'p-8';
+	$connect_classes[] = 'p-0';
 }
 
 ?>

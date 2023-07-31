@@ -54,7 +54,7 @@ if ( empty( InstaWP_Setting::get_api_key() ) && 'instawp' == $current_page && 't
 			$icon  = isset( $item['icon'] ) ? $item['icon'] : '';
 			$label = isset( $item['label'] ) ? $item['label'] : '';
 
-			printf( '<div id="%s" class="nav-item"><a class="flex items-center px-5 py-5 border-b-2 border-transparent hover:text-primary-900 text-sm font-medium">%s<span>%s</span></a></div>', $item_key, $icon, $label );
+			printf( '<div id="%s" class="nav-item"><a class="flex items-center px-3 py-5 border-b-2 border-transparent hover:text-primary-900 text-sm font-medium">%s<span>%s</span></a></div>', $item_key, $icon, $label );
 		} ?>
 
     </div>
