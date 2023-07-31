@@ -39,72 +39,64 @@ class InstaWP_Setting {
 
 	public static function generate_section_field( $field = array() ) {
 
-		$field_id          = self::get_args_option( 'id', $field );
-		$field_title       = self::get_args_option( 'title', $field );
-		$field_type        = self::get_args_option( 'type', $field );
-		$field_desc        = self::get_args_option( 'desc', $field );
-		$field_placeholder = self::get_args_option( 'placeholder', $field );
-		$field_attributes  = self::get_args_option( 'attributes', $field, array() );
-		$field_attributes  = ! is_array( $field_attributes ) ? array() : $field_attributes;
-		$field_options     = self::get_args_option( 'options', $field, array() );
-		$field_options     = ! is_array( $field_options ) ? array() : $field_options;
-		$field_value       = self::get_option( $field_id, '' );
-		$attributes        = array();
+		$field_id            = self::get_args_option( 'id', $field );
+		$field_class         = self::get_args_option( 'class', $field );
+		$field_title         = self::get_args_option( 'title', $field );
+		$field_type          = self::get_args_option( 'type', $field );
+		$field_desc          = self::get_args_option( 'desc', $field );
+		$field_placeholder   = self::get_args_option( 'placeholder', $field );
+		$field_attributes    = self::get_args_option( 'attributes', $field, array() );
+		$field_attributes    = ! is_array( $field_attributes ) ? array() : $field_attributes;
+		$field_options       = self::get_args_option( 'options', $field, array() );
+		$field_options       = ! is_array( $field_options ) ? array() : $field_options;
+		$field_default_value = self::get_args_option( 'default', $field );
+		$field_value         = self::get_option( $field_id, $field_default_value );
+		$attributes          = array();
 
 		foreach ( $field_attributes as $attribute_key => $attribute_val ) {
 			$attributes[] = $attribute_key . '="' . $attribute_val . '"';
 		}
 
-		echo '<div class="single-field w-1/2 mr-6 mb-6">';
-
+		echo '<div class="instawp-single-field ' . esc_attr( str_replace( '_', '-', $field_id ) ) . '-field">';
 		echo '<label for="' . esc_attr( $field_id ) . '" class="block text-sm font-medium text-gray-700 mb-3 sm:mt-px sm:pt-2"> ' . esc_html( $field_title ) . '</label>';
-
-		echo '<div class="field-inputs">';
 
 		switch ( $field_type ) {
 			case 'text':
-				echo '<input ' . implode( ' ', $attributes ) . ' type="text" name="' . esc_attr( $field_id ) . '" id="' . esc_attr( $field_id ) . '" value="' . esc_attr( $field_value ) . '" autocomplete="off" placeholder="' . esc_attr( $field_placeholder ) . '" class="block w-full rounded-md border-grayCust-350 shadow-sm focus:border-primary-900 focus:ring-1 focus:ring-primary-900 sm:text-sm"/>';
-				break;
-
 			case 'number':
-				echo '<input ' . implode( ' ', $attributes ) . ' type="number" name="' . esc_attr( $field_id ) . '" id="' . esc_attr( $field_id ) . '" value="' . esc_attr( $field_value ) . '" autocomplete="off" placeholder="' . esc_attr( $field_placeholder ) . '" class="block w-full rounded-md border-grayCust-350 shadow-sm focus:border-primary-900 focus:ring-1 focus:ring-primary-900 sm:text-sm"/>';
-				break;
-
 			case 'email':
-				echo '<input ' . implode( ' ', $attributes ) . ' type="email" name="' . esc_attr( $field_id ) . '" id="' . esc_attr( $field_id ) . '" value="' . esc_attr( $field_value ) . '" autocomplete="off" placeholder="' . esc_attr( $field_placeholder ) . '" class="block w-full rounded-md border-grayCust-350 shadow-sm focus:border-primary-900 focus:ring-1 focus:ring-primary-900 sm:text-sm"/>';
-				break;
-
 			case 'url':
-				echo '<input ' . implode( ' ', $attributes ) . ' type="url" name="' . esc_attr( $field_id ) . '" id="' . esc_attr( $field_id ) . '" value="' . esc_attr( $field_value ) . '" autocomplete="off" placeholder="' . esc_attr( $field_placeholder ) . '" class="block w-full rounded-md border-grayCust-350 shadow-sm focus:border-primary-900 focus:ring-1 focus:ring-primary-900 sm:text-sm"/>';
-				break;
+				$css_class = 'block rounded-md border-grayCust-350 shadow-sm focus:border-primary-900 focus:ring-1 focus:ring-primary-900 sm:text-sm';
+				$css_class = $field_class ? $css_class . ' ' . trim( $field_class ) : 'w-full ' . $css_class;
 
-			case 'select':
-
-				echo '<select ' . implode( ' ', $attributes ) . ' name="' . esc_attr( $field_id ) . '" id="' . esc_attr( $field_id ) . '">';
-
-				if ( ! empty( $field_placeholder ) ) {
-					echo '<option value="">' . esc_html( $field_placeholder ) . '</option>';
-				}
-
-				foreach ( $field_options as $key => $value ) {
-					echo '<option ' . selected( $field_value, $key ) . ' value="' . esc_attr( $key ) . '">' . esc_html( $value ) . '</option>';
-				}
-
-				echo '</select>';
+				echo '<input ' . implode( ' ', $attributes ) . ' type="' . esc_attr( $field_type ) . '" name="' . esc_attr( $field_id ) . '" id="' . esc_attr( $field_id ) . '" value="' . esc_attr( $field_value ) . '" autocomplete="off" placeholder="' . esc_attr( $field_placeholder ) . '" class="' . esc_attr( $css_class ) . '" />';
 				break;
 
 			case 'toggle':
+				$css_class = $field_class ? 'toggle-checkbox ' . trim( $field_class ) : 'toggle-checkbox';
 
-				// toggle code here
-				echo 'toggle';
+				echo '<label class="toggle-control">';
+				echo '<input type="checkbox" ' . checked( $field_value, 'on', false ) . ' name="' . esc_attr( $field_id ) . '" id="' . esc_attr( $field_id ) . '" class="' . esc_attr( $css_class ) . '" />';
+				echo '<div class="toggle-switch"></div>';
+				echo '<span class="toggle-label">' . sprintf( esc_html__( 'Enable / Disable', 'instawp-connect' ), $field_title ) . '</span>';
+				echo '</label>';
+				break;
 
+			case 'select':
+				$css_class = $field_class ? $field_class : '';
+				
+				echo '<select ' . implode( ' ', $attributes ) . ' name="' . esc_attr( $field_id ) . '" id="' . esc_attr( $field_id ) . '" class="' . esc_attr( $css_class ) . '">';
+				if ( ! empty( $field_placeholder ) ) {
+					echo '<option value="">' . esc_html( $field_placeholder ) . '</option>';
+				}
+				foreach ( $field_options as $key => $value ) {
+					echo '<option ' . selected( $field_value, $key, false ) . ' value="' . esc_attr( $key ) . '">' . esc_html( $value ) . '</option>';
+				}
+				echo '</select>';
 				break;
 
 			default:
 				break;
 		}
-
-		echo '</div>';
 
 		if ( ! empty( $field_desc ) ) {
 			echo '<p class="desc mt-3">' . wp_kses_post( $field_desc ) . '</p>';
@@ -116,8 +108,14 @@ class InstaWP_Setting {
 
 	public static function generate_section( $section = array() ) {
 
-		$section_classes = 'section mb-6';
+		$section_classes = 'section';
 		$internal        = self::get_args_option( 'internal', $section, false );
+		$css_class       = self::get_args_option( 'class', $section );
+		$grid_css_class  = self::get_args_option( 'grid_class', $section, 'grid grid-cols-1 md:grid-cols-2 gap-6' );
+
+		if ( $css_class ) {
+			$section_classes .= ' ' . $css_class;
+		}
 
 		if ( true === $internal || 1 == $internal ) {
 			$section_classes .= ' mt-6 pt-6 border-t border-gray-200';
@@ -134,25 +132,17 @@ class InstaWP_Setting {
 		echo '<div class="text-grayCust-50 text-sm font-normal">' . esc_html( self::get_args_option( 'desc', $section ) ) . '</div>';
 		echo '</div>';
 
-		echo '<div class="flex">';
+		echo '<div class="' . esc_attr( $grid_css_class ) . '">';
 
 		foreach ( self::get_args_option( 'fields', $section, array() ) as $index => $field ) {
-
 			$field_type = self::get_args_option( 'type', $field );
-
 			if ( empty( $field_type ) ) {
 				continue;
 			}
-
 			self::generate_section_field( $field );
-
-			if ( $index % 2 === 1 ) {
-				printf( '</div><div class="flex">' );
-			}
 		}
 
 		echo '</div>';
-
 		echo '</div>';
 	}
 
@@ -172,6 +162,7 @@ class InstaWP_Setting {
 
 
 	public static function get_migrate_settings() {
+		$settings = [];
 
 		// Section - Settings
 		$settings['settings'] = array(
@@ -185,12 +176,6 @@ class InstaWP_Setting {
 					'placeholder' => esc_attr( 'gL8tbdZFfG8yQCXu0IycBa' ),
 					'attributes'  => array(//						'readonly' => true,
 					),
-				),
-				array(
-					'id'          => 'instawp_api_heartbeat',
-					'type'        => 'number',
-					'title'       => esc_html__( 'Heartbeat Interval', 'instawp-connect' ),
-					'placeholder' => esc_attr( '15' ),
 				),
 				array(
 					'id'          => 'instawp_backup_part_size',
@@ -213,8 +198,7 @@ class InstaWP_Setting {
 					'id'      => 'instawp_db_method',
 					'type'    => 'select',
 					'title'   => esc_html__( 'Database Method', 'instawp-connect' ),
-					'desc'    => esc_html__( 'WPDB option has a better compatibility, but slower. ', 'instawp-connect' ) .
-					             esc_html__( 'It is recommended to choose PDO if pdo_mysql extension is installed.', 'instawp-connect' ),
+					'desc'    => esc_html__( 'WPDB option has a better compatibility, but slower. It is recommended to choose PDO if pdo_mysql extension is installed.', 'instawp-connect' ),
 					'options' => array(
 						'wpdb' => esc_html__( 'WPDB', 'instawp-connect' ),
 						'pdo'  => esc_html__( 'PDO', 'instawp-connect' ),
@@ -228,6 +212,7 @@ class InstaWP_Setting {
 			'title'    => esc_html__( 'Developer Options', 'instawp-connect' ),
 			'desc'     => esc_html__( 'This section is available only for the developers working in this plugin.', 'instawp-connect' ),
 			'internal' => true,
+			'class'    => 'mb-6',
 			'fields'   => array(
 				array(
 					'id'          => 'instawp_api_url',
@@ -239,6 +224,112 @@ class InstaWP_Setting {
 		);
 
 		return apply_filters( 'INSTAWP_CONNECT/Filters/migrate_settings', $settings );
+	}
+
+
+	public static function get_management_settings() {
+		$settings = [];
+
+		// Section - Management
+		$settings['management'] = [
+			'title'  => __( 'Management', 'instawp-connect' ),
+			'desc'   => __( 'Update your website\'s remote management settings.', 'instawp-connect' ),
+			'fields' => [
+				[
+					'id'          => 'instawp_rm_heartbeat',
+					'type'        => 'toggle',
+					'title'       => __( 'Heartbeat', 'instawp-connect' ),
+					'desc'        => __( 'WPDB option has a better compatibility, but slower. It is recommended to choose PDO if pdo_mysql extension is installed.', 'instawp-connect' ),
+					'class'       => 'save-ajax',
+					'default'     => 'on',
+				],
+				[
+					'id'          => 'instawp_api_heartbeat',
+					'type'        => 'number',
+					'title'       => __( 'Heartbeat Interval', 'instawp-connect' ),
+					'placeholder' => '15',
+					'class'       => '!w-80'
+				],
+				[
+					'id'          => 'instawp_rm_file_manager',
+					'type'        => 'toggle',
+					'title'       => __( 'File Manager', 'instawp-connect' ),
+					'class'       => 'save-ajax',
+					'default'     => 'off',
+				],
+				[
+					'id'          => 'instawp_rm_database_manager',
+					'type'        => 'toggle',
+					'title'       => __( 'Database Manager', 'instawp-connect' ),
+					'class'       => 'save-ajax',
+					'default'     => 'off',
+				],
+				[
+					'id'          => 'instawp_rm_install_plugin_theme',
+					'type'        => 'toggle',
+					'title'       => __( 'Install Plugin / Themes', 'instawp-connect' ),
+					'class'       => 'save-ajax',
+					'default'     => 'off',
+				],
+				[
+					'id'          => 'instawp_rm_config_management',
+					'type'        => 'toggle',
+					'title'       => __( 'Config Management', 'instawp-connect' ),
+					'class'       => 'save-ajax',
+					'default'     => 'off',
+				],
+				[
+					'id'          => 'instawp_rm_debug_log',
+					'type'        => 'toggle',
+					'title'       => __( 'Debug Log', 'instawp-connect' ),
+					'class'       => 'save-ajax',
+					'default'     => 'off',
+				],
+			],
+		];
+
+		// $settings['management1'] = [
+		// 	'grid_class' => 'grid grid-cols-1 md:grid-cols-3 gap-6',
+		// 	'fields' => [
+		// 		[
+		// 			'id'          => 'instawp_rm_file_manager',
+		// 			'type'        => 'toggle',
+		// 			'title'       => __( 'File Manager', 'instawp-connect' ),
+		// 			'class'       => 'save-ajax',
+		// 			'default'     => 'off',
+		// 		],
+		// 		[
+		// 			'id'          => 'instawp_rm_database_manager',
+		// 			'type'        => 'toggle',
+		// 			'title'       => __( 'Database Manager', 'instawp-connect' ),
+		// 			'class'       => 'save-ajax',
+		// 			'default'     => 'off',
+		// 		],
+		// 		[
+		// 			'id'          => 'instawp_rm_install_plugin_theme',
+		// 			'type'        => 'toggle',
+		// 			'title'       => __( 'Install Plugin / Themes', 'instawp-connect' ),
+		// 			'class'       => 'save-ajax',
+		// 			'default'     => 'off',
+		// 		],
+		// 		[
+		// 			'id'          => 'instawp_rm_config_management',
+		// 			'type'        => 'toggle',
+		// 			'title'       => __( 'Config Management', 'instawp-connect' ),
+		// 			'class'       => 'save-ajax',
+		// 			'default'     => 'off',
+		// 		],
+		// 		[
+		// 			'id'          => 'instawp_rm_debug_log',
+		// 			'type'        => 'toggle',
+		// 			'title'       => __( 'Debug Log', 'instawp-connect' ),
+		// 			'class'       => 'save-ajax',
+		// 			'default'     => 'off',
+		// 		],
+		// 	],
+		// ];
+
+		return apply_filters( 'INSTAWP_CONNECT/Filters/management_settings', $settings );
 	}
 
 

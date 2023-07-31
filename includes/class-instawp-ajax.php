@@ -17,7 +17,20 @@ class InstaWP_AJAX {
 		add_action( 'init', array( $this, 'deleter_folder_handle' ) );
 		add_action( 'admin_notices', array( $this, 'instawp_connect_reset_admin_notices' ) );
 
+		// Remote Management Settings save.
+		add_action( 'wp_ajax_instawp_save_management_settings', array( $this, 'save_management_settings' ) );
+	}
 
+	public function save_management_settings() {
+		$option_name  = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '';
+		$option_value = isset( $_POST['value'] ) ? sanitize_text_field( wp_unslash( $_POST['value'] ) ) : '';
+
+		if ( ! $option_name || ! $option_value ) {
+			wp_send_json_error();
+		}
+		
+		update_option( $option_name, $option_value );
+		wp_send_json_success();
 	}
 
 	// Set transient admin notice function

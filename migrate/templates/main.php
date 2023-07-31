@@ -27,6 +27,7 @@ if ( ! instawp()->is_connected ) {
             <div class="nav-content bg-grayCust-400 shadow-md rounded-bl-lg rounded-br-lg <?php echo esc_attr( implode( ' ', $connect_classes ) ); ?>">
 				<?php include INSTAWP_PLUGIN_DIR . '/migrate/templates/part-create.php'; ?>
 				<?php include INSTAWP_PLUGIN_DIR . '/migrate/templates/part-sites.php'; ?>
+				<?php include INSTAWP_PLUGIN_DIR . '/migrate/templates/part-management.php'; ?>
 				<?php include INSTAWP_PLUGIN_DIR . '/migrate/templates/part-sync.php'; ?>
 				<?php include INSTAWP_PLUGIN_DIR . '/migrate/templates/part-settings.php'; ?>
             </div>

@@ -18,7 +18,7 @@
 
         </div>
 
-        <div class="instawp-form-footer bg-grayCust-400 p-3 px-6 flex justify-between items-center">
+        <div class="instawp-form-footer bg-grayCust-400 p-3 flex justify-between items-center">
 
             <p class="instawp-form-response loading flex items-center text-sm font-medium"></p>
 

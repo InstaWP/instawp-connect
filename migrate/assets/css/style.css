@@ -153,6 +153,57 @@ input:checked + .slider-toggle:before {
     border-radius: 50%;
 }
 
+.toggle-control {
+    cursor: pointer;
+    display: inline-block;
+    /* margin-top: 5px; */
+}
+.toggle-control .toggle-switch {
+    display: inline-block;
+    background: #ccc;
+    border-radius: 16px;
+    width: 58px;
+    height: 32px;
+    position: relative;
+    vertical-align: middle;
+    transition: background 0.25s;
+}
+.toggle-control .toggle-switch:before, .toggle-control .toggle-switch:after {
+    content: "";
+}
+.toggle-control .toggle-switch:before {
+    display: block;
+    /* background: linear-gradient(to bottom, #fff 0%, #eee 100%); */
+    background: #fff;
+    border-radius: 50%;
+    /* box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25); */
+    width: 24px;
+    height: 24px;
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    transition: left 0.25s;
+}
+.toggle-control .toggle:hover .toggle-switch:before {
+    /* background: linear-gradient(to bottom, #fff 0%, #fff 100%); */
+    background: #fff;
+    /* box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5); */
+}
+.toggle-control .toggle-checkbox:checked + .toggle-switch {
+    background: #005e54;
+}
+.toggle-control .toggle-checkbox:checked + .toggle-switch:before {
+    left: 30px;
+}
+.toggle-control .toggle-checkbox {
+    position: absolute;
+    visibility: hidden;
+}
+.toggle-control .toggle-label {
+    margin-left: 15px;
+    vertical-align: middle;
+}
+
 .sync-listining {
     display: none;
 }
@@ -252,12 +303,19 @@ input:checked + .slider-toggle:before {
 .instawp-form select,
 .instawp-form select:active,
 .instawp-form select:focus {
-    padding: 8px;
+    padding: 8px 14px;
     border: 1px solid #dedede;
     outline: none;
     box-shadow: none;
     min-width: 120px;
     transition: 0.3s;
+}
+
+.instawp-form select,
+.instawp-form select:active,
+.instawp-form select:focus {
+    background-position: right 12px top 55%;
+    min-width: 180px;
 }
 
 .instawp-form input[type=text]:active,
@@ -277,14 +335,22 @@ input:checked + .slider-toggle:before {
 
 .instawp-form .instawp-form-fields {
     height: 450px;
-    overflow-y: scroll;
-}
-
-.instawp-form .instawp-form-fields {
-    height: 450px;
-    overflow-y: scroll;
+    overflow-y: auto;
     transition: 0.3s;
     opacity: 1;
+}
+
+.instawp-form .instawp-form-fields::-webkit-scrollbar {
+    width: 5px;
+}
+
+.instawp-form .instawp-form-fields::-webkit-scrollbar-track {
+    background: #f1f1f1; 
+}
+
+.instawp-form .instawp-form-fields::-webkit-scrollbar-thumb {
+    background: #b9b8b8; 
+    border-radius: 5px;
 }
 
 .instawp-form.loading .instawp-form-fields {
