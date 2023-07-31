@@ -63,6 +63,10 @@ tailwind.config = {
                         el_bar_staging.find('.progress-bar').css('width', response.data.migrate.progress + '%');
                         el_bar_staging.find('.progress-text').text(response.data.migrate.progress + '%');
 
+                        if (typeof response.data.track_migrate_progress !== 'undefined') {
+                            instawp_migrate_container.find('.instawp-track-migration').attr('href', response.data.track_migrate_progress);
+                        }
+
                         if (response.data.status === 'completed') {
                             if (typeof response.data.site_detail.url !== 'undefined' && typeof response.data.site_detail.wp_username !== 'undefined' && typeof response.data.site_detail.wp_password !== 'undefined' && typeof response.data.site_detail.auto_login_url !== 'undefined') {
 
@@ -299,7 +303,10 @@ tailwind.config = {
         // let all_nav_items = $('.instawp-wrap .nav-items .nav-item');
         // all_nav_items.first().addClass('active').find('a').toggleClass('text-primary-900 border-primary-900');
 
-        let this_nav_item_id = localStorage.getItem('instawp_admin_current'), all_nav_items = $('.instawp-wrap .nav-items .nav-item');
+        let instawp_migrate_container = $('.instawp-wrap .nav-item-content.create'),
+            this_nav_item_id = localStorage.getItem('instawp_admin_current'),
+            el_instawp_screen = instawp_migrate_container.find('#instawp-screen'),
+            all_nav_items = $('.instawp-wrap .nav-items .nav-item');
 
         if (this_nav_item_id !== null && typeof this_nav_item_id !== 'undefined') {
             $('.instawp-wrap #' + this_nav_item_id).find('a').trigger('click');
@@ -307,9 +314,10 @@ tailwind.config = {
             all_nav_items.first().find('a').trigger('click');
         }
 
-        let instawp_migrate_container = $('.instawp-wrap .nav-item-content.create');
-
         if (instawp_migrate_container.hasClass('loading')) {
+
+            el_instawp_screen.val(4).trigger('change');
+
             instawp_migrate_api_call_interval = setInterval(instawp_migrate_api_call, 3000);
         }
     });
@@ -333,15 +341,10 @@ tailwind.config = {
 
 
     $(document).on('click', '.instawp-wrap .instawp-migrate-abort', function () {
+
         if (confirm('Do you really want to abort the migration?')) {
-            $.ajax({
-                type: 'POST', url: plugin_object.ajax_url, context: this, data: {
-                    'action': 'instawp_abort_migration',
-                }, success: function () {
-                    clearInterval(instawp_migrate_api_call_interval);
-                    window.location.reload();
-                }
-            });
+            clearInterval(instawp_migrate_api_call_interval);
+            window.location.href = window.location.href + '&clear=all';
         }
     });
 
@@ -650,7 +653,6 @@ tailwind.config = {
         el_migrate_step_prev.find('.step-progress-icon').find('img').removeClass('hidden');
         el_migrate_step_prev.find('.step-progress-icon').find('span').addClass('hidden');
     });
-
 
 })(jQuery, window, document, instawp_migrate);
 

@@ -46,7 +46,6 @@ class InstaWP_Change_Event_Filters
             add_filter('pre_trash_post', array($this, 'trashPostFilter'), 10, 2);
             add_action('after_delete_post', array($this, 'deletePostFilter'), 10, 2);
             add_action('untrashed_post', array($this, 'untrashPostFilter'), 10, 3);
-            add_action('save_post', array($this, '_instawp_save_post'), 10, 4);
             add_action('wp_after_insert_post', array($this, 'savePostFilter'), 10, 4);
             #plugin actions
             // add_action( 'activated_plugin', array( $this,'activatePluginAction'),10, 2 );
@@ -782,19 +781,6 @@ class InstaWP_Change_Event_Filters
         if (get_post_meta($post_id, 'instawp_event_sync_reference_id', true) == '') {
             add_post_meta($post_id, 'instawp_event_sync_reference_id', instawp_uuid());
         }
-    }
-
-    public function _instawp_save_post($post_id, $post)
-    {
-        // if( 0 === $post->post_parent ) {
-        //     $args = array(
-        //         'post_parent'    => $post->ID,
-        //       //  'post_type'      => 'acf-field'
-        //     );
-
-        //     $get_children_array = get_children( $args,ARRAY_A );  //returns Array ( [$image_ID].
-        //     pr($get_children_array);
-        // }       
     }
 
     /*

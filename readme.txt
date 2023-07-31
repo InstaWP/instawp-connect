@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.4
 Tested up to: 6.2.2
 Requires PHP: 7.0
-Stable tag: 0.0.9.19
+Stable tag: 0.0.9.20
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -125,3 +125,9 @@ InstaWP is an online WordPress development environment to get you started with a
 
 = 0.0.9.19 =
 - 24/07/2023 - FIX - Fix Sync API vulnerability issue, disclosure by WordFence.
+
+= 0.0.9.20 =
+- 28/07/2023 - FIX - Fix limit checking warning screen issues.
+- 28/07/2023 - FIX - Allow migration from local WordPress installations.
+- 28/07/2023 - FIX - Fixed some UI issues regarding user experience.
+

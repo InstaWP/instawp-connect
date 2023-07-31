@@ -93,6 +93,13 @@ class InstaWP_Setting {
 				echo '</select>';
 				break;
 
+			case 'toggle':
+
+				// toggle code here
+				echo 'toggle';
+
+				break;
+
 			default:
 				break;
 		}

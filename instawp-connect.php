@@ -7,7 +7,7 @@
  * @wordpress-plugin
  * Plugin Name:       InstaWP Connect
  * Description:       Create 1-click staging, migration and manage your prod sites.
- * Version:           0.0.9.19
+ * Version:           0.0.9.20
  * Author:            InstaWP Team
  * Author URI:        https://instawp.com/
  * License:           GPL-3.0+
@@ -24,7 +24,7 @@ if ( ! defined( 'WPINC' ) ) {
 global $wpdb;
 
 
-define( 'INSTAWP_PLUGIN_VERSION', '0.0.9.19' );
+define( 'INSTAWP_PLUGIN_VERSION', '0.0.9.20' );
 define( 'INSTAWP_RESTORE_INIT', 'init' );
 define( 'INSTAWP_RESTORE_READY', 'ready' );
 define( 'INSTAWP_RESTORE_COMPLETED', 'completed' );
@@ -215,6 +215,7 @@ function run_instawp() {
 	add_action( 'instawp_restore_bg', array( $instawp_plugin, 'restore_bg' ), 10, 3 );
 	add_action( 'instawp_download_bg', array( $instawp_plugin, 'download_bg' ), 10, 2 );
 	add_action( 'instawp_backup_bg', array( $instawp_plugin, 'backup_bg' ), 10, 2 );
+	add_action( 'instawp_upload_bg', array( $instawp_plugin, 'upload_bg' ), 10, 2 );
 
 	$GLOBALS['instawp_plugin'] = $instawp_plugin;
 
@@ -234,5 +235,3 @@ function run_instawp() {
 //$instawp_log = new InstaWP_Log( 'migration', 'New Migration Logic' );
 
 run_instawp();
-
-

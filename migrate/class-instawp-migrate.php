@@ -25,10 +25,25 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 			add_action( 'wp_ajax_instawp_connect_api_url', array( $this, 'connect_api_url' ) );
 			add_action( 'wp_ajax_instawp_connect_migrate', array( $this, 'connect_migrate' ) );
 			add_action( 'wp_ajax_instawp_reset_plugin', array( $this, 'reset_plugin' ) );
-			add_action( 'wp_ajax_instawp_abort_migration', array( $this, 'abort_migration' ) );
 			add_action( 'wp_ajax_instawp_check_limit', array( $this, 'check_limit' ) );
 			add_action( 'wp_ajax_instawp_check_domain_availability', array( $this, 'check_domain_availability' ) );
 			add_action( 'wp_ajax_instawp_check_domain_connect_status', array( $this, 'check_domain_connect_status' ) );
+			add_action( 'admin_init', array( $this, 'handle_clear_all' ) );
+		}
+
+
+		function handle_clear_all() {
+
+			$admin_page   = isset( $_GET['page'] ) ? sanitize_text_field( $_GET['page'] ) : '';
+			$clear_action = isset( $_GET['clear'] ) ? sanitize_text_field( $_GET['clear'] ) : '';
+
+			if ( 'instawp' === $admin_page && 'all' === $clear_action ) {
+
+				instawp_reset_running_migration();
+
+				wp_redirect( admin_url( 'admin.php?page=instawp' ) );
+				exit();
+			}
 		}
 
 
@@ -89,13 +104,6 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 		}
 
 
-		function abort_migration() {
-			instawp_reset_running_migration();
-
-			wp_send_json_success( array( 'message' => esc_html__( 'Migration is aborted successfully.' ) ) );
-		}
-
-
 		function reset_plugin() {
 
 			$reset_type = isset( $_POST['reset_type'] ) ? sanitize_text_field( $_POST['reset_type'] ) : '';
@@ -139,34 +147,54 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 
 			if ( empty( $incomplete_task_ids ) ) {
 
-				$instawp_migrate  = InstaWP_Setting::get_args_option( 'instawp_migrate', $settings, [] );
-				$migrate_options  = InstaWP_Setting::get_args_option( 'options', $instawp_migrate, [] );
-				$migrate_settings = [];
+				$is_website_on_local = instawp_is_website_on_local();
+				$instawp_migrate     = InstaWP_Setting::get_args_option( 'instawp_migrate', $settings, [] );
+				$migrate_options     = InstaWP_Setting::get_args_option( 'options', $instawp_migrate, [] );
+				$migrate_settings    = [];
 
 				foreach ( $migrate_options as $migrate_option ) {
 					$migrate_settings[ $migrate_option ] = true;
 				}
 
 				$migrate_args = array(
-					'source_domain'    => site_url(),
-					'php_version'      => '6.0',
-					'plugin_version'   => '2.0',
-					'migrate_settings' => $migrate_settings
+					'source_domain'       => site_url(),
+					'php_version'         => PHP_VERSION,
+					'plugin_version'      => INSTAWP_PLUGIN_VERSION,
+					'is_website_on_local' => $is_website_on_local,
+					'migrate_settings'    => $migrate_settings
 				);
 
 				if ( ! empty( $destination_domain ) ) {
 					$migrate_args['destination_domain'] = $destination_domain;
 				}
 
-				$migrate_response = InstaWP_Curl::do_curl( 'migrates', $migrate_args );
+				$migrate_response      = InstaWP_Curl::do_curl( 'migrates', $migrate_args );
+				$migrate_response_data = InstaWP_Setting::get_args_option( 'data', $migrate_response, [] );
 
-				$response['migrate_api_response'] = $migrate_response;
+				if ( $is_website_on_local ) {
+
+					$migrate_id      = InstaWP_Setting::get_args_option( 'migrate_id', $migrate_response_data );
+					$migrate_task_id = instawp_get_migrate_backup_task_id( array( 'migrate_settings' => $migrate_settings ) );
+					$parameters      = array( 'migrate_id' => $migrate_id );
+
+					InstaWP_taskmanager::store_migrate_id_to_migrate_task( $migrate_task_id, $migrate_id );
+
+					// Doing in background processing
+					as_enqueue_async_action( 'instawp_backup_bg', [ $migrate_task_id, $parameters ] );
+//					as_enqueue_async_action( 'instawp_upload_bg', [ $migrate_task_id, $parameters ] );
+
+					do_action( 'action_scheduler_run_queue', 'Async Request' );
+				}
+
+				$response['migrate_api_response']   = $migrate_response;
+				$response['track_migrate_progress'] = InstaWP_Setting::get_args_option( 'track_migrate_progress', $migrate_response_data );;
 
 				wp_send_json_success( $response );
 			} else {
 				$migrate_task_id = reset( $incomplete_task_ids );
 				$migrate_id      = InstaWP_taskmanager::get_migrate_id( $migrate_task_id );
-				$response        = instawp_get_response_progresses( $migrate_task_id, $migrate_id, $response );
+
+				$response = instawp_get_response_progresses( $migrate_task_id, $migrate_id, $response );
 			}
 
 			wp_send_json_success( $response );
