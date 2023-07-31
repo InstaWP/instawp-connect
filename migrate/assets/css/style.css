@@ -349,8 +349,8 @@ input:checked + .slider-toggle:before {
 }
 
 .instawp-form .instawp-form-fields {
-    height: 450px;
-    overflow-y: auto;
+    /*height: 450px;*/
+    /*overflow-y: auto;*/
     transition: 0.3s;
     opacity: 1;
 }
