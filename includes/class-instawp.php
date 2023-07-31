@@ -63,16 +63,21 @@ class instaWP {
 
 	public $is_connected = false;
 
+	public $connect_id = null;
+
 	public function __construct() {
+
+		//Load dependent files
+		$this->load_dependencies();
+
+		$connect_id_options = InstaWP_Setting::get_option( 'instawp_connect_id_options', [] );
 
 		$this->version               = INSTAWP_PLUGIN_VERSION;
 		$this->plugin_name           = INSTAWP_PLUGIN_SLUG;
 		$this->end_shutdown_function = false;
 		$this->restore_data          = false;
 		$this->is_connected          = ! empty( get_option( 'instawp_api_key' ) );
-
-		//Load dependent files
-		$this->load_dependencies();
+		$this->connect_id            = $connect_id_options['data']['id'] ?? 0;
 
 		//A flag to determine whether plugin had been initialized
 		$init = get_option( 'instawp_init', 'not init' );
@@ -336,7 +341,7 @@ class instaWP {
 		require_once INSTAWP_PLUGIN_DIR . '/admin/partials/instawp-admin-change-event-filters.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-intawp-ajax-fn.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-rest-apis.php';
-		//include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-setting.php';
+		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-setting.php';
 
 		require_once INSTAWP_PLUGIN_DIR . '/admin/class-instawp-go-live.php';
 
@@ -719,7 +724,7 @@ class instaWP {
 			$issue_for   = 'remaining_disk_space';
 		}
 
-		return array_merge( array( 'can_proceed' => $can_proceed, 'issue_for' => ( $can_proceed ? '' : $issue_for) ), $api_response_data );
+		return array_merge( array( 'can_proceed' => $can_proceed, 'issue_for' => ( $can_proceed ? '' : $issue_for ) ), $api_response_data );
 	}
 
 	/**
@@ -2275,99 +2280,109 @@ class instaWP {
 	/**
 	 * Auto login page HTML code.
 	 */
-	public function auto_login_page( $fields, $url, $title ) { 
+	public function auto_login_page( $fields, $url, $title ) {
 		?>
-		<!DOCTYPE html>
-			<html lang="en">
-			<head>
-				<meta charset="UTF-8">
-				<meta name="viewport" content="width=device-width, initial-scale=1.0">
-				<meta name="author" content="InstaWP">
-				<meta name="robots" content="noindex, nofollow">
-				<meta name="googlebot" content="noindex">
-				<link href="https://cdn.jsdelivr.net/npm/reset-css@5.0.1/reset.min.css" rel="stylesheet">
-				<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-				<?php wp_site_icon(); ?>
-				<title><?php printf( __( 'Launch %s', 'instawp-connect' ), esc_html( $title ) ); ?></title>
-				<style>
-					body {
-						background-color: #f3f4f6;
-						width: calc(100vw + 0px);
-						overflow-x: hidden;
-						font-family: Inter, ui-sans-serif, system-ui, -apple-system,BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, Noto Sans, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", Segoe UI Symbol, "Noto Color Emoji";
-					}
-					.instawp-auto-login-container {
-						display: flex;
-						flex-direction: column;
-						align-items: center;
-						justify-content: center;
-						min-height: 100vh;
-					}
-					.instawp-logo svg {
-						width: 100%;
-					}
-					.instawp-details {
-						padding: 5rem;
-						border-radius: 0.5rem;
-						max-width: 42rem;
-						box-shadow: 0 0 #0000, 0 0 #0000, 0 4px 6px -1px rgb(0 0 0 / .1), 0 2px 4px -2px rgb(0 0 0 / .1);
-						background-color: rgb(255 255 255 / 1);
-						margin-top: 1.5rem;
-						display: flex;
-						flex-direction: column;
-						align-items: center;
-						justify-content: center;
-						gap: 2.75rem;
-					}
-					.instawp-details-title {
-						font-weight: 600;
-						text-align: center;
-						line-height: 1.75;
-					}
-					.instawp-details-info {
-						text-align: center;
-						font-size: 1.125rem;
-						line-height: 1.75rem;
-						font-size: 1rem;
-					}
-					.instawp-details-info svg {
-						height: 1.5rem;
-						width: 1.5rem;
-						display: inline;
-						vertical-align: middle;
-						animation: spin 1s linear infinite;
-					}
-					@keyframes spin {
-						100% {
-							transform: rotate(360deg);
-						}
-					}
-				</style>
-			</head>
-			<body>
-				<div class="instawp-auto-login-container">
-					<div class="instawp-logo">
-						<img class="instawp-logo-image" src="https://app.instawp.io/images/insta-logo-image.svg" alt="InstaWP Logo">
-					</div>
-					<div class="instawp-details">
-						<h3 class="instawp-details-title"><?php echo esc_url( $url ); ?></h3>
-						<p class="instawp-details-info">
-							<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 animate-spin inline" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> You are being redirected to the <?php echo esc_html( $title ); ?>.
-						</p>
-					</div>
-				</div>
-				<form id="instawp-auto-login" action="<?php echo esc_url( $url ); ?>" method="POST">
-					<?php echo $fields; ?>
-				</form>
-				<script type="text/javascript">
-					window.onload= function() {
-						setTimeout( function() {
-							document.getElementById( 'instawp-auto-login' ).submit();
-						}, 2000 );
-					}
-				</script>
-			</body>
-		</html>
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <meta name="author" content="InstaWP">
+            <meta name="robots" content="noindex, nofollow">
+            <meta name="googlebot" content="noindex">
+            <link href="https://cdn.jsdelivr.net/npm/reset-css@5.0.1/reset.min.css" rel="stylesheet">
+            <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+			<?php wp_site_icon(); ?>
+            <title><?php printf( __( 'Launch %s', 'instawp-connect' ), esc_html( $title ) ); ?></title>
+            <style>
+                body {
+                    background-color: #f3f4f6;
+                    width: calc(100vw + 0px);
+                    overflow-x: hidden;
+                    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, Noto Sans, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", Segoe UI Symbol, "Noto Color Emoji";
+                }
+
+                .instawp-auto-login-container {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    min-height: 100vh;
+                }
+
+                .instawp-logo svg {
+                    width: 100%;
+                }
+
+                .instawp-details {
+                    padding: 5rem;
+                    border-radius: 0.5rem;
+                    max-width: 42rem;
+                    box-shadow: 0 0 #0000, 0 0 #0000, 0 4px 6px -1px rgb(0 0 0 / .1), 0 2px 4px -2px rgb(0 0 0 / .1);
+                    background-color: rgb(255 255 255 / 1);
+                    margin-top: 1.5rem;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 2.75rem;
+                }
+
+                .instawp-details-title {
+                    font-weight: 600;
+                    text-align: center;
+                    line-height: 1.75;
+                }
+
+                .instawp-details-info {
+                    text-align: center;
+                    font-size: 1.125rem;
+                    line-height: 1.75rem;
+                    font-size: 1rem;
+                }
+
+                .instawp-details-info svg {
+                    height: 1.5rem;
+                    width: 1.5rem;
+                    display: inline;
+                    vertical-align: middle;
+                    animation: spin 1s linear infinite;
+                }
+
+                @keyframes spin {
+                    100% {
+                        transform: rotate(360deg);
+                    }
+                }
+            </style>
+        </head>
+        <body>
+        <div class="instawp-auto-login-container">
+            <div class="instawp-logo">
+                <img class="instawp-logo-image" src="https://app.instawp.io/images/insta-logo-image.svg" alt="InstaWP Logo">
+            </div>
+            <div class="instawp-details">
+                <h3 class="instawp-details-title"><?php echo esc_url( $url ); ?></h3>
+                <p class="instawp-details-info">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 animate-spin inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                    You are being redirected to the <?php echo esc_html( $title ); ?>.
+                </p>
+            </div>
+        </div>
+        <form id="instawp-auto-login" action="<?php echo esc_url( $url ); ?>" method="POST">
+			<?php echo $fields; ?>
+        </form>
+        <script type="text/javascript">
+            window.onload = function () {
+                setTimeout(function () {
+                    document.getElementById('instawp-auto-login').submit();
+                }, 2000);
+            }
+        </script>
+        </body>
+        </html>
 		<?php
 	}
 

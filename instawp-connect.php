@@ -118,17 +118,17 @@ global $instawp_plugin;
 
 
 require_once dirname( __FILE__ ) . '/vendor/autoload.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-instawp.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/functions.php';
+require_once plugin_dir_path( __FILE__ ) . '/vendor/woocommerce/action-scheduler/action-scheduler.php';
+
 
 function instawp_plugin_activate() {
-	// Set default option
-	InstaWP_Setting::set_api_domain();
-	error_log( "Settled on activation" );
 
-	global $wp_rewrite;
-	if ( get_option( 'permalink_structure' ) == '' ) {
-		$wp_rewrite->set_permalink_structure( '/%postname%/' );
-	}
-	$wp_rewrite->flush_rules();
+	InstaWP_Setting::set_api_domain();
+
+	instawp_reset_permalink();
+
 	add_option( 'instawp_do_activation_redirect', true );
 }
 
@@ -203,10 +203,6 @@ if ( isset( $instawp_plugin ) && is_a( $instawp_plugin, 'instaWP' ) ) {
 	return;
 }
 
-require plugin_dir_path( __FILE__ ) . 'includes/class-instawp.php';
-require plugin_dir_path( __FILE__ ) . 'includes/functions.php';
-require_once( plugin_dir_path( __FILE__ ) . '/vendor/woocommerce/action-scheduler/action-scheduler.php' );
-
 
 function run_instawp() {
 
@@ -238,17 +234,6 @@ run_instawp();
 
 add_action( 'wp_head', function () {
 	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
-
-//		instawp_reset_running_migration();
-
-
-		$response = ActionScheduler_QueueRunner::instance()->run();
-
-
-		echo "<pre>";
-		print_r( $response );
-		echo "</pre>";
-
 
 //		echo "<pre>";
 //		print_r( InstaWP_taskmanager::get_tasks() );

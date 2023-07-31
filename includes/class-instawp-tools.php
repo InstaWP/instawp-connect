@@ -176,9 +176,15 @@ class InstaWP_Tools {
 	 * @return string
 	 */
 	public static function get_random_string( $length = 6 ) {
-		$length = ceil( absint( $length ) / 2 );
-		$bytes  = function_exists( 'random_bytes' ) ? random_bytes( $length ) : openssl_random_pseudo_bytes( $length );
 
-		return bin2hex( $bytes );
+		try {
+			$length        = ceil( absint( $length ) / 2 );
+			$bytes         = function_exists( 'random_bytes' ) ? random_bytes( $length ) : openssl_random_pseudo_bytes( $length );
+			$random_string = bin2hex( $bytes );
+		} catch ( Exception $e ) {
+			$random_string = '';
+		}
+
+		return $random_string;
 	}
 }
