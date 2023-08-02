@@ -59,7 +59,7 @@ class instaWP {
 
 	public $interface_mainwp;
 
-	public $staging;
+	public $is_staging = false;
 
 	public $is_connected = false;
 
@@ -78,6 +78,7 @@ class instaWP {
 		$this->restore_data          = false;
 		$this->is_connected          = ! empty( get_option( 'instawp_api_key' ) );
 		$this->connect_id            = $connect_id_options['data']['id'] ?? 0;
+		$this->is_staging            = (bool) InstaWP_Setting::get_option( 'instawp_is_staging', false );
 
 		//A flag to determine whether plugin had been initialized
 		$init = get_option( 'instawp_init', 'not init' );

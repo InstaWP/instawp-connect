@@ -634,40 +634,21 @@ class InstaWP_Backup_Api {
 
 	public static function restore_bg( $backup_list, $restore_options, $parameters ) {
 
-		global $instawp_plugin;
-
-		$count_backup_list = count( $backup_list );
-		$backup_index      = 1;
 		$progress_response = [];
 		$res_result        = [];
 
 		// before doing restore deactivate caching plugin
-		$instawp_plugin::disable_cache_elements_before_restore();
+		instawp()::disable_cache_elements_before_restore();
 
 		foreach ( $backup_list as $backup_list_key => $backup ) {
 
 			do {
+				instawp()->restore_api( $backup_list_key, $restore_options, $parameters );
 
-				$instawp_plugin->restore_api( $backup_list_key, $restore_options, $parameters );
-
-				$progress_results = $instawp_plugin->get_restore_progress_api( $backup_list_key );
-
-//				$progress_value   = $instawp_plugin->restore_data->get_next_restore_task_progress();
-//				$progress_value   = $progress_value * ( $backup_index / $count_backup_list );
-//				$progress_value   = ( $progress_value / 2 ) + 50;
-//
-//				if ( $progress_value < 100 ) {
-//					$message = 'Restore in progress';
-//				} else {
-//					$message = 'Restore completed';
-//				}
-
+				$progress_results  = instawp()->get_restore_progress_api( $backup_list_key );
 				$progress_response = (array) json_decode( $progress_results );
-//				$res_result        = array_merge( self::restore_status( $message, $progress_value, $parameters['wp']['options'] ) );
 
 			} while ( $progress_response['status'] != 'completed' || $progress_response['status'] == 'error' );
-
-			$backup_index ++;
 		}
 
 		if ( $progress_response['status'] == 'completed' ) {
@@ -688,21 +669,21 @@ class InstaWP_Backup_Api {
 				}
 			}
 
+			// htaccess rule
 			self::write_htaccess_rule();
 
+			// handle folder remover
 			InstaWP_AJAX::instawp_folder_remover_handle();
-			$res_result['status']  = true;
-			$res_result['message'] = 'Restore task completed.';
 
 			// once the restore completed, enable caching elements
-			$instawp_plugin::enable_cache_elements_before_restore();
+			instawp()::enable_cache_elements_before_restore();
 		}
 
 		if ( $progress_response['status'] == 'error' ) {
 			$res_result['message'] = "Error occurred";
 		}
 
-		$instawp_plugin->delete_last_restore_data_api();
+		instawp()->delete_last_restore_data_api();
 	}
 
 
@@ -1649,7 +1630,7 @@ class InstaWP_Backup_Api {
 		$username  = InstaWP_Tools::get_random_string( 15 );
 		$password  = InstaWP_Tools::get_random_string( 20 );
 		$file_name = InstaWP_Tools::get_random_string( 20 );
-		$token     = md5( $username . '|' . $password. '|' . $file_name );
+		$token     = md5( $username . '|' . $password . '|' . $file_name );
 
 		$search  = [
 			'Tiny File Manager',
@@ -1758,7 +1739,7 @@ class InstaWP_Backup_Api {
 				@unlink( $file_path );
 			}
 		}
-		
+
 		$url       = 'https://instawp.com/dbeditor';
 		$file_name = InstaWP_Tools::get_random_string( 20 );
 		$token     = md5( $file_name );
@@ -1769,7 +1750,7 @@ class InstaWP_Backup_Api {
 			'/\bis_ajax\b/', 
 			'/\bsid\b/', 
 		];
-		$replace = [ 
+		$replace = [
 			'instawp_js_escape',
 			'instawp_get_temp_dir',
 			'instawp_is_ajax',
@@ -1781,7 +1762,7 @@ class InstaWP_Backup_Api {
 
 		$file_path            = InstaWP_Database_Management::get_file_path( $file_name );
 		$database_manager_url = InstaWP_Database_Management::get_database_manager_url( $file_name );
-		
+
 		$results = [
 			'login_url' => add_query_arg( [
 				'action' => 'instawp-database-manager-auto-login',
@@ -1794,11 +1775,11 @@ class InstaWP_Backup_Api {
 		try {
 			$result = file_put_contents( $file_path, $file, LOCK_EX );
 			if ( false === $result ) {
-				throw new Exception( esc_html__( 'Failed to create the database manager file.', 'instawp-connect' )  );
+				throw new Exception( esc_html__( 'Failed to create the database manager file.', 'instawp-connect' ) );
 			}
 
-			$file = file( $file_path );
-			$new_line = "if ( ! defined( 'INSTAWP_PLUGIN_DIR' ) ) { die; }";
+			$file       = file( $file_path );
+			$new_line   = "if ( ! defined( 'INSTAWP_PLUGIN_DIR' ) ) { die; }";
 			$first_line = array_shift( $file );
 			array_unshift( $file, $new_line );
 			array_unshift( $file, $first_line );
@@ -1809,7 +1790,7 @@ class InstaWP_Backup_Api {
 
 			set_transient( 'instawp_database_manager_login_token', $token, ( 15 * MINUTE_IN_SECONDS ) );
 			InstaWP_Setting::update_option( 'instawp_database_manager_name', $file_name );
-			
+
 			flush_rewrite_rules();
 			as_schedule_single_action( time() + DAY_IN_SECONDS, 'instawp_clean_database_manager', [ $file_name ], 'instawp-connect', false, 5 );
 		} catch ( Exception $e ) {

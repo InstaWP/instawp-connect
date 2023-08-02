@@ -186,4 +186,23 @@ class InstaWP_Tools {
 
 		return $random_string;
 	}
+
+
+	/**
+	 * Reset permalink structure
+	 *
+	 * @param $hard
+	 *
+	 * @return void
+	 */
+	public static function instawp_reset_permalink( $hard = true ) {
+
+		global $wp_rewrite;
+
+		if ( get_option( 'permalink_structure' ) == '' ) {
+			$wp_rewrite->set_permalink_structure( '/%postname%/' );
+		}
+
+		$wp_rewrite->flush_rules( $hard );
+	}
 }
