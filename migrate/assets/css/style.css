@@ -164,6 +164,7 @@ input:checked + .slider-toggle:before {
     margin-left: 5px;
     vertical-align: middle;
     margin-top: -2px;
+    fill: rgb(55 65 81 / 1);
 }
 
 .toggle-control {

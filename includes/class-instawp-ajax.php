@@ -22,6 +22,8 @@ class InstaWP_AJAX {
 	}
 
 	public function save_management_settings() {
+		check_ajax_referer( 'instawp-migrate', 'security' );
+
 		$option_name  = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '';
 		$option_value = isset( $_POST['value'] ) ? sanitize_text_field( wp_unslash( $_POST['value'] ) ) : '';
 

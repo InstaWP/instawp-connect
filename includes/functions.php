@@ -337,10 +337,35 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 
 		if ( 'hard' == $reset_type ) {
 			delete_option( 'instawp_api_key' );
+			delete_option( 'instawp_backup_part_size' );
+			delete_option( 'instawp_reset_type' );
+			delete_option( 'instawp_db_method' );
 			delete_option( 'instawp_api_options' );
-			delete_option( 'instawp_compress_setting' );
+
+			delete_option( 'instawp_rm_heartbeat' );
+			delete_option( 'instawp_api_heartbeat' );
+			delete_option( 'instawp_rm_file_manager' );
+			delete_option( 'instawp_rm_database_manager' );
+			delete_option( 'instawp_rm_install_plugin_theme' );
+			delete_option( 'instawp_rm_config_management' );
+			delete_option( 'instawp_rm_inventory' );
+			delete_option( 'instawp_rm_debug_log' );
 
 			update_option( 'instawp_api_url', esc_url_raw( 'https://app.instawp.io' ) );
+			
+			as_unschedule_all_actions( 'instawp_handle_heartbeat', [], 'instawp-connect' );
+		
+			$file_name = InstaWP_Setting::get_option( 'instawp_file_manager_name', '' );
+			if ( $file_name ) {
+				as_unschedule_all_actions( 'instawp_clean_file_manager', [ $file_name ], 'instawp-connect' );
+				do_action( 'instawp_clean_file_manager', $file_name );
+			}
+
+			$file_name = InstaWP_Setting::get_option( 'instawp_database_manager_name', '' );
+			if ( $file_name ) {
+				as_unschedule_all_actions( 'instawp_clean_database_manager', [ $file_name ], 'instawp-connect' );
+				do_action( 'instawp_clean_database_manager', $file_name );
+			}
 		}
 
 		if ( $force_timeout === true || $force_timeout == 1 ) {

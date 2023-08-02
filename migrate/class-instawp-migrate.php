@@ -261,7 +261,7 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 			wp_localize_script( 'instawp-migrate', 'instawp_migrate',
 				array(
 					'ajax_url' => admin_url( 'admin-ajax.php' ),
-					'nonce' => wp_create_nonce( 'instawp-migrate' )
+					'security' => wp_create_nonce( 'instawp-migrate' )
 				)
 			);
 		}

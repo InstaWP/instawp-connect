@@ -149,7 +149,8 @@ class instaWP {
 
 		// Heartbeat Action events handler.
 		add_action( 'init', array( $this, 'register_heartbeat_action' ), 11 );
-		add_action( 'update_option_instawp_api_heartbeat', array( $this, 'check_and_clear_heartbeat_action' ), 10, 2 );
+		add_action( 'update_option_instawp_api_heartbeat', array( $this, 'clear_heartbeat_action' ) );
+		add_action( 'update_option_instawp_rm_heartbeat', array( $this, 'clear_heartbeat_action' ) );
 		add_action( 'instawp_handle_heartbeat', array( $this, 'handle_heartbeat' ) );
 
 		// Hook to run on login page
@@ -218,19 +219,20 @@ class instaWP {
 	// Set Action Scheduler event.
 	public function register_heartbeat_action() {
 
-		$interval = InstaWP_Setting::get_option( 'instawp_api_heartbeat', 15 );
-		$interval = empty( $interval ) ? 15 : (int) $interval;
+		$heartbeat = InstaWP_Setting::get_option( 'instawp_rm_heartbeat', 'on' );
+		$heartbeat = empty( $heartbeat ) ? 'on' : $heartbeat;
 
-		if ( ! as_has_scheduled_action( 'instawp_handle_heartbeat', [], 'instawp-connect' ) ) {
+		$interval  = InstaWP_Setting::get_option( 'instawp_api_heartbeat', 15 );
+		$interval  = empty( $interval ) ? 15 : (int) $interval;
+
+		if ( $heartbeat === 'on' && ! as_has_scheduled_action( 'instawp_handle_heartbeat', [], 'instawp-connect' ) ) {
 			as_schedule_recurring_action( time(), ( $interval * 60 ), 'instawp_handle_heartbeat', [], 'instawp-connect', false, 5 );
 		}
 	}
 
 	// Clean event if interval changes.
-	public function check_and_clear_heartbeat_action( $old_value, $value ) {
-		if ( intval( $old_value ) !== intval( $value ) ) {
-			as_unschedule_all_actions( 'instawp_handle_heartbeat', [], 'instawp-connect' );
-		}
+	public function clear_heartbeat_action() {
+		as_unschedule_all_actions( 'instawp_handle_heartbeat', [], 'instawp-connect' );
 	}
 
 	/*Encrypt data*/
@@ -251,6 +253,13 @@ class instaWP {
 	 * Heartbeat Action to be performed
 	 * */
 	public function handle_heartbeat() {
+		$heartbeat = InstaWP_Setting::get_option( 'instawp_rm_heartbeat', 'on' );
+		$heartbeat = empty( $heartbeat ) ? 'on' : $heartbeat;
+
+		if ( $heartbeat !== 'on' ) {
+			return;
+		}
+
 		date_default_timezone_set( "Asia/Kolkata" );
 
 		if ( defined( 'WP_DEBUG_LOG' ) && true === WP_DEBUG_LOG ) {

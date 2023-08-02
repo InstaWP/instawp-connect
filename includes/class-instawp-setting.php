@@ -69,6 +69,10 @@ class InstaWP_Setting {
 			$label_content    .= '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12C22 17.5228 17.5228 22 12 22ZM12 20C16.4183 20 20 16.4183 20 12C20 7.58172 16.4183 4 12 4C7.58172 4 4 7.58172 4 12C4 16.4183 7.58172 20 12 20ZM11 7H13V9H11V7ZM11 11H13V17H11V11Z"></path></svg>';
 		}
 
+		if ( ! empty( $field_label_class ) ) {
+			$label_class .= ' ' . $field_label_class;
+		}
+
 		$field_container_class = 'instawp-single-field ' . esc_attr( str_replace( '_', '-', $field_id ) ) . '-field';
 		if ( ! empty( $field_parent_class ) ) {
 			$field_container_class .= ' ' . $field_parent_class;
@@ -94,7 +98,7 @@ class InstaWP_Setting {
 				echo '<label class="toggle-control">';
 				echo '<input type="checkbox" ' . checked( $field_value, 'on', false ) . ' name="' . esc_attr( $field_id ) . '" id="' . esc_attr( $field_id ) . '" class="' . esc_attr( $css_class ) . '" />';
 				echo '<div class="toggle-switch"></div>';
-				echo '<span class="toggle-label">' . sprintf( esc_html__( 'Enable / Disable', 'instawp-connect' ), $field_title ) . '</span>';
+				echo '<span class="toggle-label">' . esc_html__( 'Enable / Disable', 'instawp-connect' ) . '</span>';
 				echo '</label>';
 				break;
 
@@ -123,26 +127,29 @@ class InstaWP_Setting {
 	}
 
 
-	public static function generate_section( $section = array() ) {
+	public static function generate_section( $section = array(), $index ) {
 
-		$section_classes = 'section';
+		$section_classes = [ 'section' ];
 		$internal        = self::get_args_option( 'internal', $section, false );
 		$css_class       = self::get_args_option( 'class', $section );
+		$can_split       = self::get_args_option( 'split', $section, true );
 		$grid_css_class  = self::get_args_option( 'grid_class', $section, 'grid grid-cols-1 md:grid-cols-2 gap-6' );
 
-		if ( $css_class ) {
-			$section_classes .= ' ' . $css_class;
-		}
-
 		if ( true === $internal || 1 == $internal ) {
-			$section_classes .= ' mt-6 pt-6 border-t border-gray-200';
-
 			if ( ! isset( $_REQUEST['internal'] ) || '1' != sanitize_text_field( $_REQUEST['internal'] ) ) {
 				return;
 			}
 		}
 
-		echo '<div class="' . esc_attr( $section_classes ) . '">';
+		if ( $css_class ) {
+			$section_classes[] = $css_class;
+		}
+
+		if ( $index > 0 && $can_split ) {
+			$section_classes[] = 'mt-6 pt-6 border-t border-gray-200';
+		}
+
+		echo '<div class="' . esc_attr( join( ' ', $section_classes ) ) . '">';
 
 		echo '<div class="section-head mb-6">';
 		echo '<div class="text-grayCust-200 text-lg font-medium">' . esc_html( self::get_args_option( 'title', $section ) ) . '</div>';
@@ -229,7 +236,6 @@ class InstaWP_Setting {
 			'title'    => esc_html__( 'Developer Options', 'instawp-connect' ),
 			'desc'     => esc_html__( 'This section is available only for the developers working in this plugin.', 'instawp-connect' ),
 			'internal' => true,
-			'class'    => 'mb-6',
 			'fields'   => array(
 				array(
 					'id'          => 'instawp_api_url',
@@ -247,83 +253,48 @@ class InstaWP_Setting {
 	public static function get_management_settings() {
 		$settings  = [];
 		$heartbeat = InstaWP_Setting::get_option( 'instawp_rm_heartbeat', 'on' );
+		$heartbeat = empty( $heartbeat ) ? 'on' : $heartbeat;
 
-		// Section - Management
-		$settings['management_two_column'] = [
-			'title'  => __( 'Management', 'instawp-connect' ),
-			'desc'   => __( 'Update your website\'s remote management settings.', 'instawp-connect' ),
+		// Section - Heartbeat
+		$settings['heartbeat'] = [
+			'title'  => __( 'Heartbeat', 'instawp-connect' ),
+			'desc'   => __( 'Update your website\'s heartbeat settings.', 'instawp-connect' ),
 			'fields' => [
 				[
 					'id'           => 'instawp_rm_heartbeat',
 					'type'         => 'toggle',
 					'title'        => __( 'Heartbeat', 'instawp-connect' ),
-					'tooltip'      => __( 'WPDB option has a better compatibility, but slower. It is recommended to choose PDO if pdo_mysql extension is installed.', 'instawp-connect' ),
+					'tooltip'      => __( 'Enabling this option will allow remotely communicate with InstaWP API and sends data (e.g. wp_version, php_version, theme name, number of published posts, number of published pages, total number of users, total_size of the wordpress site etc.) on this website.', 'instawp-connect' ),
 					'class'        => 'save-ajax',
 					'default'      => 'on',
 				],
 				[
 					'id'           => 'instawp_api_heartbeat',
 					'type'         => 'number',
-					'title'        => __( 'Heartbeat Interval', 'instawp-connect' ),
-					'tooltip'      => __( 'WPDB option has a better compatibility, but slower. It is recommended to choose PDO if pdo_mysql extension is installed.', 'instawp-connect' ),
+					'title'        => __( 'Heartbeat Interval (Minutes)', 'instawp-connect' ),
+					'tooltip'      => __( 'It is the interval of heartbeat in minutes.', 'instawp-connect' ),
 					'placeholder'  => '15',
 					'class'        => '!w-80',
 					'parent_class' => ( $heartbeat !== 'on' ) ? 'hidden' : '',
+					'attributes'  => [
+						'min' => 1,
+						'max' => 360
+					],
 				],
-				// [
-				// 	'id'          => 'instawp_rm_file_manager',
-				// 	'type'        => 'toggle',
-				// 	'title'       => __( 'File Manager', 'instawp-connect' ),
-				// 	'tooltip'      => __( 'WPDB option has a better compatibility, but slower. It is recommended to choose PDO if pdo_mysql extension is installed.', 'instawp-connect' ),
-				// 	'class'       => 'save-ajax',
-				// 	'default'     => 'off',
-				// ],
-				// [
-				// 	'id'          => 'instawp_rm_database_manager',
-				// 	'type'        => 'toggle',
-				// 	'title'       => __( 'Database Manager', 'instawp-connect' ),
-				// 	'tooltip'      => __( 'WPDB option has a better compatibility, but slower. It is recommended to choose PDO if pdo_mysql extension is installed.', 'instawp-connect' ),
-				// 	'class'       => 'save-ajax',
-				// 	'default'     => 'off',
-				// ],
-				// [
-				// 	'id'          => 'instawp_rm_install_plugin_theme',
-				// 	'type'        => 'toggle',
-				// 	'title'       => __( 'Install Plugin / Themes', 'instawp-connect' ),
-				// 	//'tooltip'      => __( 'WPDB option has a better compatibility, but slower. It is recommended to choose PDO if pdo_mysql extension is installed.', 'instawp-connect' ),
-				// 	'class'       => 'save-ajax',
-				// 	'default'     => 'off',
-				// ],
-				// [
-				// 	'id'          => 'instawp_rm_config_management',
-				// 	'type'        => 'toggle',
-				// 	'title'       => __( 'Config Management', 'instawp-connect' ),
-				// 	'tooltip'      => __( 'WPDB option has a better compatibility, but slower. It is recommended to choose PDO if pdo_mysql extension is installed.', 'instawp-connect' ),
-				// 	'class'       => 'save-ajax',
-				// 	'default'     => 'off',
-				// ],
-				// [
-				// 	'id'          => 'instawp_rm_debug_log',
-				// 	'type'        => 'toggle',
-				// 	'title'       => __( 'Debug Log', 'instawp-connect' ),
-				// 	'tooltip'      => __( 'WPDB option has a better compatibility, but slower. It is recommended to choose PDO if pdo_mysql extension is installed.', 'instawp-connect' ),
-				// 	'class'       => 'save-ajax',
-				// 	'default'     => 'off',
-				// ],
 			],
 		];
 
-		$settings['management_three_column'] = [
-			'title'  => __( 'Remote Features', 'instawp-connect' ),
+		// Section - Management
+		$settings['management'] = [
+			'title'  => __( 'Remote Management', 'instawp-connect' ),
 			'desc'   => __( 'Update your website\'s remote management settings.', 'instawp-connect' ),
-			'class'  => 'mt-6 pt-6 border-t border-gray-200',
 			'grid_class' => 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6',
 			'fields' => [
 				[
 					'id'          => 'instawp_rm_file_manager',
 					'type'        => 'toggle',
 					'title'       => __( 'File Manager', 'instawp-connect' ),
-					'tooltip'      => __( 'WPDB option has a better compatibility, but slower. It is recommended to choose PDO if pdo_mysql extension is installed.', 'instawp-connect' ),
+					'tooltip'      => __( 'Enabling this option will allow creation of remote file manager on this website remotely using the REST API.', 'instawp-connect' ),
 					'class'       => 'save-ajax',
 					'default'     => 'off',
 				],
@@ -331,7 +302,7 @@ class InstaWP_Setting {
 					'id'          => 'instawp_rm_database_manager',
 					'type'        => 'toggle',
 					'title'       => __( 'Database Manager', 'instawp-connect' ),
-					'tooltip'      => __( 'WPDB option has a better compatibility, but slower. It is recommended to choose PDO if pdo_mysql extension is installed.', 'instawp-connect' ),
+					'tooltip'      => __( 'Enabling this option will allow creation of remote database manager on this website remotely using the REST API.', 'instawp-connect' ),
 					'class'       => 'save-ajax',
 					'default'     => 'off',
 				],
@@ -339,7 +310,7 @@ class InstaWP_Setting {
 					'id'          => 'instawp_rm_install_plugin_theme',
 					'type'        => 'toggle',
 					'title'       => __( 'Install Plugin / Themes', 'instawp-connect' ),
-					'tooltip'      => __( 'WPDB option has a better compatibility, but slower. It is recommended to choose PDO if pdo_mysql extension is installed.', 'instawp-connect' ),
+					'tooltip'      => __( 'Enabling this option will allow install plugins and themes on this website remotely using the REST API.', 'instawp-connect' ),
 					'class'       => 'save-ajax',
 					'default'     => 'off',
 				],
@@ -347,7 +318,15 @@ class InstaWP_Setting {
 					'id'          => 'instawp_rm_config_management',
 					'type'        => 'toggle',
 					'title'       => __( 'Config Management', 'instawp-connect' ),
-					'tooltip'      => __( 'WPDB option has a better compatibility, but slower. It is recommended to choose PDO if pdo_mysql extension is installed.', 'instawp-connect' ),
+					'tooltip'      => __( 'Enabling this option will allow reading, updating and deleting the WordPress constant values on this website remotely using the REST API.', 'instawp-connect' ),
+					'class'       => 'save-ajax',
+					'default'     => 'off',
+				],
+				[
+					'id'          => 'instawp_rm_inventory',
+					'type'        => 'toggle',
+					'title'       => __( 'Site Inventory', 'instawp-connect' ),
+					'tooltip'      => __( 'Enabling this option will allow reading the installed WordPress version, themes and plugins on this website remotely using the REST API.', 'instawp-connect' ),
 					'class'       => 'save-ajax',
 					'default'     => 'off',
 				],
@@ -355,7 +334,7 @@ class InstaWP_Setting {
 					'id'          => 'instawp_rm_debug_log',
 					'type'        => 'toggle',
 					'title'       => __( 'Debug Log', 'instawp-connect' ),
-					'tooltip'      => __( 'WPDB option has a better compatibility, but slower. It is recommended to choose PDO if pdo_mysql extension is installed.', 'instawp-connect' ),
+					'tooltip'      => __( 'Enabling this option will reading WordPress error logs on this website remotely using the REST API.', 'instawp-connect' ),
 					'class'       => 'save-ajax',
 					'default'     => 'off',
 				],
