@@ -29,6 +29,24 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 			add_action( 'wp_ajax_instawp_check_domain_availability', array( $this, 'check_domain_availability' ) );
 			add_action( 'wp_ajax_instawp_check_domain_connect_status', array( $this, 'check_domain_connect_status' ) );
 			add_action( 'admin_init', array( $this, 'handle_clear_all' ) );
+
+			add_action( 'INSTAWP/Actions/restore_completed', array( $this, 'restore_completed' ), 10, 2 );
+		}
+
+		function restore_completed( $restore_options = array(), $parameters = array() ) {
+
+			$instawp_is_staging = isset( $parameters['wp']['options']['instawp_is_staging'] ) && $parameters['wp']['options']['instawp_is_staging'];
+
+			// Reset permalink
+			instawp()->tools::instawp_reset_permalink();
+
+			// Write htaccess rules
+			instawp()->tools::write_htaccess_rule();
+
+			// No index staging sites
+			if ( $instawp_is_staging ) {
+				instawp()->tools::update_search_engine_visibility();
+			}
 		}
 
 

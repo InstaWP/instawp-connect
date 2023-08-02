@@ -38,6 +38,7 @@ class instaWP {
 	protected $version;
 
 	public $instawp_log;
+
 	public $instawp_download_log;
 
 	public $current_task;
@@ -53,6 +54,7 @@ class instaWP {
 	public $restore_data;
 
 	public $migrate;
+
 	public $backup_uploader;
 
 	public $admin;
@@ -64,6 +66,8 @@ class instaWP {
 	public $is_connected = false;
 
 	public $connect_id = null;
+
+	public $tools = null;
 
 	public function __construct() {
 
@@ -79,6 +83,8 @@ class instaWP {
 		$this->is_connected          = ! empty( get_option( 'instawp_api_key' ) );
 		$this->connect_id            = $connect_id_options['data']['id'] ?? 0;
 		$this->is_staging            = (bool) InstaWP_Setting::get_option( 'instawp_is_staging', false );
+
+		$this->tools = new InstaWP_Tools();
 
 		//A flag to determine whether plugin had been initialized
 		$init = get_option( 'instawp_init', 'not init' );

@@ -80,7 +80,7 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 					}
 				}
 
-				$InstaWP_Backup_Api::write_htaccess_rule();
+				instawp()->tools::write_htaccess_rule();
 
 				InstaWP_AJAX::instawp_folder_remover_handle();
 

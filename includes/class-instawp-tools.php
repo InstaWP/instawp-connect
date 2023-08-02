@@ -137,6 +137,7 @@ class InstaWP_Tools {
 		}
 	}
 
+
 	/**
 	 * Returns the wp-config.php file.
 	 *
@@ -153,6 +154,7 @@ class InstaWP_Tools {
 		return $file;
 	}
 
+
 	/**
 	 * Returns the file content parts.
 	 *
@@ -167,6 +169,7 @@ class InstaWP_Tools {
 
 		return $parts;
 	}
+
 
 	/**
 	 * Returns the random string based on length.
@@ -205,5 +208,54 @@ class InstaWP_Tools {
 		}
 
 		$wp_rewrite->flush_rules( $hard );
+	}
+
+
+	/**
+	 * Write htaccess rules
+	 *
+	 * @return false
+	 */
+	public static function write_htaccess_rule() {
+
+		if ( is_multisite() ) {
+			return false;
+		}
+
+		if ( ! function_exists( 'get_home_path' ) ) {
+			require_once( ABSPATH . 'wp-admin/includes/file.php' );
+		}
+
+		$parent_url  = get_option( 'instawp_sync_parent_url' );
+		$backup_type = get_option( 'instawp_site_backup_type' );
+
+		if ( 1 == $backup_type && ! empty( $parent_url ) ) {
+
+			$htaccess_file    = get_home_path() . '.htaccess';
+			$htaccess_content = array(
+				'## BEGIN InstaWP Connect',
+				'<IfModule mod_rewrite.c>',
+				'RewriteEngine On',
+				'RedirectMatch 301 ^/wp-content/uploads/(.*)$ ' . $parent_url . '/wp-content/uploads/$1',
+				'</IfModule>',
+				'## END InstaWP Connect',
+			);
+			$htaccess_content = implode( "\n", $htaccess_content );
+			$htaccess_content = $htaccess_content . "\n\n\n" . file_get_contents( $htaccess_file );
+
+			file_put_contents( $htaccess_file, $htaccess_content );
+		}
+
+		return false;
+	}
+
+
+	/**
+	 * Update Search engine visibility
+	 *
+	 * @return void
+	 */
+	public static function update_search_engine_visibility( $should_visible = false ) {
+		update_option( 'blog_public', (bool) $should_visible );
 	}
 }

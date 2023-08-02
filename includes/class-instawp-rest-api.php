@@ -650,8 +650,7 @@ class InstaWP_Backup_Api {
 				}
 			}
 
-			// htaccess rule
-			self::write_htaccess_rule();
+			do_action( 'INSTAWP/Actions/restore_completed', $restore_options, $parameters );
 
 			// handle folder remover
 			InstaWP_AJAX::instawp_folder_remover_handle();
@@ -787,40 +786,6 @@ class InstaWP_Backup_Api {
 				'message'    => $e->getMessage(),
 			) );
 		}
-	}
-
-
-	public static function write_htaccess_rule() {
-
-		if ( is_multisite() ) {
-			return false;
-		}
-
-		if ( ! function_exists( 'get_home_path' ) ) {
-			require_once( ABSPATH . 'wp-admin/includes/file.php' );
-		}
-
-		$parent_url  = get_option( 'instawp_sync_parent_url' );
-		$backup_type = get_option( 'instawp_site_backup_type' );
-
-		if ( 1 == $backup_type && ! empty( $parent_url ) ) {
-
-			$htaccess_file    = get_home_path() . '.htaccess';
-			$htaccess_content = array(
-				'## BEGIN InstaWP Connect',
-				'<IfModule mod_rewrite.c>',
-				'RewriteEngine On',
-				'RedirectMatch 301 ^/wp-content/uploads/(.*)$ ' . $parent_url . '/wp-content/uploads/$1',
-				'</IfModule>',
-				'## END InstaWP Connect',
-			);
-			$htaccess_content = implode( "\n", $htaccess_content );
-			$htaccess_content = $htaccess_content . "\n\n\n" . file_get_contents( $htaccess_file );
-
-			file_put_contents( $htaccess_file, $htaccess_content );
-		}
-
-		return false;
 	}
 
 
