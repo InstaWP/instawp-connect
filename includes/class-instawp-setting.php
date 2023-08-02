@@ -58,6 +58,7 @@ class InstaWP_Setting {
 
 		if ( instawp()->is_staging ) {
 			unset( $instawp_nav_items['create'] );
+			unset( $instawp_nav_items['sites'] );
 		}
 
 		return apply_filters( 'INSTAWP_CONNECT/Filters/plugin_nav_items', $instawp_nav_items );
