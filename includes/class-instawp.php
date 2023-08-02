@@ -7757,7 +7757,7 @@ class instaWP {
 			'LOGGED_IN_SALT',
 			'NONCE_SALT',
 		];
-		$custom_blacklisted_constants = ( array ) apply_filters( 'instawp_blacklisted_constants', [] );
+		$custom_blacklisted_constants = ( array ) apply_filters( 'INSTAWP_CONNECT/Filters/blacklisted_constants', [] );
 
 		return array_merge( $blacklisted_constants, $custom_blacklisted_constants );
 	}

@@ -156,9 +156,7 @@ class InstaWP_Setting {
 
 		echo '</div>';
 	}
-
-	public static function generate_section( $section = array(), $index ) {
-
+	
 	public static function generate_section( $section = array(), $index ) {
 
 		$section_classes = [ 'section' ];
