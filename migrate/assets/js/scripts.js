@@ -147,7 +147,7 @@ tailwind.config = {
             create_container.addClass('loading');
 
             instawp_migrate_api_call();
-            instawp_migrate_api_call_interval = setInterval(instawp_migrate_api_call, 500);
+            instawp_migrate_api_call_interval = setInterval(instawp_migrate_api_call, 1000);
         }
     });
 
