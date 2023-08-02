@@ -127,14 +127,16 @@ function instawp_plugin_activate() {
 
 	InstaWP_Setting::set_api_domain();
 
-	instawp_reset_permalink();
+	InstaWP_Tools::instawp_reset_permalink();
 
 	add_option( 'instawp_do_activation_redirect', true );
 }
 
 /*Deactivate Hook Handle*/
 function instawp_plugin_deactivate() {
-	flush_rewrite_rules();
+
+	InstaWP_Tools::instawp_reset_permalink();
+
 	as_unschedule_all_actions( 'instawp_handle_heartbeat', [], 'instawp-connect' );
 }
 
@@ -235,9 +237,7 @@ run_instawp();
 add_action( 'wp_head', function () {
 	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
 
-//		echo "<pre>";
-//		print_r( InstaWP_taskmanager::get_tasks() );
-//		echo "</pre>";
+//		update_option( 'instawp_is_staging', true );
 
 		die();
 	}

@@ -25,10 +25,9 @@ if ( ! instawp()->is_connected ) {
 			<?php include INSTAWP_PLUGIN_DIR . '/migrate/templates/navbar.php'; ?>
 
             <div class="nav-content bg-grayCust-400 shadow-md rounded-bl-lg rounded-br-lg <?php echo esc_attr( implode( ' ', $connect_classes ) ); ?>">
-				<?php include INSTAWP_PLUGIN_DIR . '/migrate/templates/part-create.php'; ?>
-				<?php include INSTAWP_PLUGIN_DIR . '/migrate/templates/part-sites.php'; ?>
-				<?php include INSTAWP_PLUGIN_DIR . '/migrate/templates/part-sync.php'; ?>
-				<?php include INSTAWP_PLUGIN_DIR . '/migrate/templates/part-settings.php'; ?>
+				<?php foreach ( InstaWP_Setting::get_plugin_nav_items() as $item_key => $item ) {
+					include INSTAWP_PLUGIN_DIR . '/migrate/templates/part-' . $item_key . '.php';
+				} ?>
             </div>
 
         </div>
