@@ -9,7 +9,7 @@ $staging_sites = $wpdb->get_results( "SELECT * FROM " . INSTAWP_DB_TABLE_STAGING
 
 ?>
 
-<div class="nav-item-content sites bg-white box-shadow rounded-md p-6">
+<div class="nav-item-content sites bg-white rounded-md p-6">
     <div>
         <div class="mb-6">
             <div class="text-grayCust-200 text-lg font-medium"><?php echo esc_html__( 'Staging Sites', 'instawp-connect' ); ?></div>

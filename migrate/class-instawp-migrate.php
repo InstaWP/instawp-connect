@@ -271,6 +271,7 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 
 		function enqueue_styles_scripts() {
 
+			wp_enqueue_style( 'instawp-hint', instawp()::get_asset_url( 'migrate/assets/css/hint.min.css' ), [ 'instawp-migrate' ], '2.7.0' );
 			wp_enqueue_style( 'instawp-migrate', instawp()::get_asset_url( 'migrate/assets/css/style.css' ), [], current_time( 'U' ) );
 
 			wp_enqueue_script( 'instawp-tailwind', instawp()::get_asset_url( 'migrate/assets/js/tailwind.js' ) );
@@ -278,6 +279,7 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 			wp_localize_script( 'instawp-migrate', 'instawp_migrate',
 				array(
 					'ajax_url' => admin_url( 'admin-ajax.php' ),
+					'security' => wp_create_nonce( 'instawp-migrate' )
 				)
 			);
 		}

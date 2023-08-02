@@ -35,7 +35,7 @@ $customize_options     = array(
 
 	<?php if ( empty( InstaWP_Setting::get_api_key() ) ) : ?>
 
-        <div class="bg-white text-center box-shadow rounded-md py-20 flex items-center justify-center">
+        <div class="bg-white text-center rounded-md py-20 flex items-center justify-center">
             <div>
                 <div class="mb-4">
                     <img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/createsite.svg' ) ); ?>" class="mx-auto" alt="">
@@ -82,7 +82,7 @@ $customize_options     = array(
                 </ul>
             </div>
 
-            <div class="bg-white w-full box-shadow rounded-md">
+            <div class="bg-white w-full rounded-md">
 
                 <div class="p-6">
                     <div class="screen screen-1 <?= $current_create_screen == 1 ? 'active' : ''; ?>">

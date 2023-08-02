@@ -16,7 +16,7 @@ if ( empty( InstaWP_Setting::get_api_key() ) && 'instawp' == $current_page && 't
 ?>
 
 <!--<div class="flex border-b justify-between mb-4 border-grayCust-100">-->
-<div class="flex border-b justify-between rounded-tl-lg rounded-tr-lg border-grayCust-100">
+<div class="flex border-b justify-between shadow-md rounded-tl-lg rounded-tr-lg border-grayCust-100">
     <div class="flex items-center nav-items">
 
 		<?php foreach ( InstaWP_Setting::get_plugin_nav_items() as $item_key => $item ) {
@@ -24,7 +24,7 @@ if ( empty( InstaWP_Setting::get_api_key() ) && 'instawp' == $current_page && 't
 			$icon  = isset( $item['icon'] ) ? $item['icon'] : '';
 			$label = isset( $item['label'] ) ? $item['label'] : '';
 
-			printf( '<div id="%s" class="mr-4 nav-item"><a class="flex items-center px-5 py-5 border-b-2 border-transparent hover:text-primary-900 text-sm font-medium">%s<span>%s</span></a></div>', $item_key, $icon, $label );
+			printf( '<div id="%s" class="nav-item"><a class="flex items-center px-4 py-5 border-b-2 border-transparent hover:text-primary-900 text-sm font-medium">%s<span>%s</span></a></div>', $item_key, $icon, $label );
 		} ?>
 
     </div>
@@ -38,7 +38,7 @@ if ( empty( InstaWP_Setting::get_api_key() ) && 'instawp' == $current_page && 't
             </button>
 		<?php else: ?>
             <span class="w-1 h-1 bg-primary-700 rounded-full mr-2"></span>
-            <span class="text-primary-700 mr-3"><?php echo esc_html__( 'Your account is connected', 'instawp-connect' ); ?></span>
+            <span class="text-primary-700 mr-4"><?php echo esc_html__( 'Your account is connected', 'instawp-connect' ); ?></span>
 		<?php endif; ?>
 
     </div>
