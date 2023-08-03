@@ -121,9 +121,14 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 		if ( is_wp_error( $response ) ) {
 			return $this->throw_error( $response );
 		}
-
+		
 		$body               = $req->get_body();
 		$bodyArr            = json_decode( $body );
+
+		if ( ! isset( $bodyArr->encrypted_contents ) ) {
+            return new WP_Error( 400, esc_html__( 'Invalid data', 'instawp-connect' ) );
+        }
+
 		$encrypted_contents = json_decode( $bodyArr->encrypted_contents );
 		$sync_id            = $bodyArr->sync_id;
 		$source_connect_id  = $bodyArr->source_connect_id;
@@ -570,41 +575,42 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 				 * Users actions
 				 */
 				if ( isset( $v->event_type ) && $v->event_type == 'users' ) {
-					$user_data = isset( $v->details->user_data ) ? (array) $v->details->user_data : '';
-					$user_meta = isset( $v->details->user_meta ) ? (array) $v->details->user_meta : '';
-					//$user = get_userdata($v->source_id);
-					$user_table = $this->wpdb->prefix . 'users';
-
+					$user_data = isset( $v->details->user_data ) ? (array) $v->details->user_data : [];
+					$user_meta = isset( $v->details->user_meta ) ? (array) $v->details->user_meta : [];
+					$source_db_prefix = isset( $v->details->db_prefix ) ? (array) $v->details->db_prefix : '';
+					$user_table = $this->wpdb->prefix . 'users'; 
 					$get_user_by_reference_id = get_users( array(
 						'meta_key'   => 'instawp_event_user_sync_reference_id',
-						'meta_value' => isset( $user_meta['instawp_event_sync_reference_id'][0] ) ? $user_meta['instawp_event_sync_reference_id'][0] : '',
+						'meta_value' => isset( $user_meta['instawp_event_user_sync_reference_id'][0] ) ? $user_meta['instawp_event_user_sync_reference_id'][0] : '',
 					) );
 
 					$user = ! empty( $get_user_by_reference_id ) ? $get_user_by_reference_id[0] : get_user_by( 'email', $user_data['email'] );
-
-					//Create user if not exits
-					if ( isset( $v->event_slug ) && ( $v->event_slug == 'user_register' ) ) {
+					#Create user if not exits
+					if ( isset( $v->event_slug ) && ( $v->event_slug == 'user_register' ) && ( ! empty( $user_data ) ) ) {
 						if ( ! $user ) {
-							unset( $user_data['ID'] );
-							array_merge( $user_data, [ 'role' => $v->details->role ] );
-							$user = wp_insert_user( $user_data );
-							$this->add_update_usermeta( $user_meta, $v->source_id );
+							$user_id  = wp_insert_user( $user_data );
+							if ( ! is_wp_error( $user_id ) ) {
+								$this->manage_usermeta( $user_meta, $user_id, $source_db_prefix );
+							}
 						}
 					}
 
-					//Update user
+					#Update user
 					if ( isset( $v->event_slug ) && ( $v->event_slug == 'profile_update' ) ) {
-						$this->InstaWP_db->update( $user_table, $user_data, array( 'ID' => $v->source_id ) );
-						$this->add_update_usermeta( $user_meta, $v->source_id );
-						$user->add_role( $v->details->role );
+						if (  $user ) {
+							$user_data['ID'] = $user->data->ID;
+							$user_id = wp_update_user( $user_data );
+							if ( ! is_wp_error( $user_id ) ) {
+								$this->manage_usermeta( $user_meta, $user->data->ID );
+								$user->add_role( $v->details->role );
+							}
+						}
 					}
 
-					//Delete user
+					#Delete user
 					if ( isset( $v->event_slug ) && ( $v->event_slug == 'delete_user' ) ) {
-						if ( isset( $user->data->user_email ) ) {
-							if ( $user->data->user_email == $user_data['data']->user_email ) {
-								wp_delete_user( $v->source_id );
-							}
+						if (  $user ) {
+							wp_delete_user( $user->data->ID );
 						}
 					}
 
@@ -1284,10 +1290,11 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 	}
 
 	//add and update user meta
-	public function add_update_usermeta( $user_meta = null, $user_id = null ) {
+	public function manage_usermeta( $user_meta = null, $user_id = null, $source_db_prefix = null ) {
 		if ( ! empty( $user_meta ) && is_array( $user_meta ) ) {
 			foreach ( $user_meta as $k => $v ) {
 				if ( isset( $v[0] ) ) {
+					$k = $source_db_prefix != '' ? str_replace( $source_db_prefix, $this->wpdb->prefix, $k ) : $k;
 					$checkSerialize = @unserialize( $v[0] );
 					$metaVal        = ( $checkSerialize !== false || $v[0] === 'b:0;' ) ? unserialize( $v[0] ) : $v[0];
 					if ( metadata_exists( 'user', $user_id, $k ) ) {
