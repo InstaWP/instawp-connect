@@ -67,10 +67,6 @@ class InstaWP_Setting {
 			unset( $instawp_nav_items['sites'] );
 		}
 
-		if ( $is_internal != '1' ) {
-			unset( $instawp_nav_items['management'] );
-		}
-
 		return apply_filters( 'INSTAWP_CONNECT/Filters/plugin_nav_items', $instawp_nav_items );
 	}
 
@@ -323,6 +319,7 @@ class InstaWP_Setting {
 			'title'      => __( 'Remote Management', 'instawp-connect' ),
 			'desc'       => __( 'Update your website\'s remote management settings.', 'instawp-connect' ),
 			'grid_class' => 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6',
+			'internal'   => true,
 			'fields'     => [
 				[
 					'id'      => 'instawp_rm_file_manager',
@@ -368,7 +365,7 @@ class InstaWP_Setting {
 					'id'      => 'instawp_rm_debug_log',
 					'type'    => 'toggle',
 					'title'   => __( 'Debug Log', 'instawp-connect' ),
-					'tooltip' => __( 'Enabling this option will reading WordPress error logs on this website remotely using the REST API.', 'instawp-connect' ),
+					'tooltip' => __( 'Enabling this option will allow reading WordPress error logs on this website remotely using the REST API.', 'instawp-connect' ),
 					'class'   => 'save-ajax',
 					'default' => 'off',
 				],

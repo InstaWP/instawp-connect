@@ -7743,7 +7743,6 @@ class instaWP {
 	 */
 	public function get_blacklisted_constants() {
 		$blacklisted_constants        = [
-			'INSTAWP_ALLOW_MANAGE',
 			'INSTAWP_FILE_MANAGER_USERNAME',
 			'INSTAWP_FILE_MANAGER_PASSWORD',
 			'INSTAWP_FILE_MANAGER_SELF_URL',
