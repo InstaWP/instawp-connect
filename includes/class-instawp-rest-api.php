@@ -581,20 +581,14 @@ class InstaWP_Backup_Api {
 	 * Valid api request and if invalid api key then stop executing.
 	 *
 	 * @param WP_REST_Request $request
-	 * @param bool $check_management
+	 * @param string $option
 	 *
 	 * @return WP_Error|bool
 	 */
-	public function validate_api_request( WP_REST_Request $request, $check_management = false, $key = null ) {
+	public function validate_api_request( WP_REST_Request $request, $option = '' ) {
 
-		if ( $check_management ) {
-			if ( ( ! defined( 'INSTAWP_ALLOW_MANAGE' ) || ( defined( 'INSTAWP_ALLOW_MANAGE' ) && true !== INSTAWP_ALLOW_MANAGE ) ) ) {
-				return new WP_Error( 400, esc_html__( 'INSTAWP_ALLOW_MANAGE should be defined and set to true in wp-config.php file.', 'instawp-connect' ) );
-			}
-
-			if ( $key && ! $this->is_enabled( $key ) ) {
-				return new WP_Error( 400, esc_html__( 'Settings is disabled! Please enable it from InstaWP Connect Remote Management settings page.', 'instawp-connect' ) );
-			}
+		if ( ! empty( $option ) && ! $this->is_enabled( $option ) ) {
+			return new WP_Error( 400, esc_html__( 'Settings is disabled! Please enable it from InstaWP Connect Remote Management settings page.', 'instawp-connect' ) );
 		}
 
 		// get authorization header value.
@@ -1158,7 +1152,7 @@ class InstaWP_Backup_Api {
 	 */
 	public function get_inventory( WP_REST_Request $request ) {
 
-		$response = $this->validate_api_request( $request, true, 'inventory' );
+		$response = $this->validate_api_request( $request, 'inventory' );
 		if ( is_wp_error( $response ) ) {
 			return $this->throw_error( $response );
 		}
@@ -1229,7 +1223,7 @@ class InstaWP_Backup_Api {
 	 */
 	public function perform_install( WP_REST_Request $request ) {
 
-		$response = $this->validate_api_request( $request, true, 'install_plugin_theme' );
+		$response = $this->validate_api_request( $request, 'install_plugin_theme' );
 		if ( is_wp_error( $response ) ) {
 			return $this->throw_error( $response );
 		}
@@ -1361,7 +1355,7 @@ class InstaWP_Backup_Api {
 	 */
 	public function get_configuration( WP_REST_Request $request ) {
 
-		$response = $this->validate_api_request( $request, true, 'config_management' );
+		$response = $this->validate_api_request( $request, 'config_management' );
 		if ( is_wp_error( $response ) ) {
 			return $this->throw_error( $response );
 		}
@@ -1451,7 +1445,7 @@ class InstaWP_Backup_Api {
 	 */
 	public function set_configuration( WP_REST_Request $request ) {
 
-		$response = $this->validate_api_request( $request, true, 'config_management' );
+		$response = $this->validate_api_request( $request, 'config_management' );
 		if ( is_wp_error( $response ) ) {
 			return $this->throw_error( $response );
 		}
@@ -1527,7 +1521,7 @@ class InstaWP_Backup_Api {
 	 */
 	public function delete_configuration( WP_REST_Request $request ) {
 
-		$response = $this->validate_api_request( $request, true, 'config_management' );
+		$response = $this->validate_api_request( $request, 'config_management' );
 		if ( is_wp_error( $response ) ) {
 			return $this->throw_error( $response );
 		}
@@ -1575,7 +1569,7 @@ class InstaWP_Backup_Api {
 	 * @return WP_REST_Response
 	 */
 	public function file_manager( WP_REST_Request $request ) {
-		$response = $this->validate_api_request( $request, true, 'file_manager' );
+		$response = $this->validate_api_request( $request, 'file_manager' );
 		if ( is_wp_error( $response ) ) {
 			return $this->throw_error( $response );
 		}
@@ -1688,7 +1682,7 @@ class InstaWP_Backup_Api {
 	 */
 	public function database_manager( WP_REST_Request $request ) {
 
-		$response = $this->validate_api_request( $request, true, 'database_manager' );
+		$response = $this->validate_api_request( $request, 'database_manager' );
 		if ( is_wp_error( $response ) ) {
 			return $this->throw_error( $response );
 		}
@@ -1777,7 +1771,7 @@ class InstaWP_Backup_Api {
 	 */
 	public function get_logs( WP_REST_Request $request ) {
 
-		$response = $this->validate_api_request( $request, true, 'debug_log' );
+		$response = $this->validate_api_request( $request, 'debug_log' );
 		if ( is_wp_error( $response ) ) {
 			return $this->throw_error( $response );
 		}
@@ -1859,7 +1853,7 @@ class InstaWP_Backup_Api {
 	 */
 	public function get_remote_management( WP_REST_Request $request ) {
 
-		$response = $this->validate_api_request( $request, true );
+		$response = $this->validate_api_request( $request );
 		if ( is_wp_error( $response ) ) {
 			return $this->throw_error( $response );
 		}
@@ -1886,7 +1880,7 @@ class InstaWP_Backup_Api {
 	 */
 	public function set_remote_management( WP_REST_Request $request ) {
 
-		$response = $this->validate_api_request( $request, true );
+		$response = $this->validate_api_request( $request );
 		if ( is_wp_error( $response ) ) {
 			return $this->throw_error( $response );
 		}
@@ -1990,9 +1984,11 @@ class InstaWP_Backup_Api {
 	/**
 	 * Prepare remote management settings list.
 	 * 
-	 * @return array
+	 * @param string $name
+	 * 
+	 * @return array|string
 	 */
-	private function get_management_options() {
+	private function get_management_options( $name = '' ) {
 		$options = [
 			'heartbeat'            => __( 'Heartbeat', 'instawp-connect' ),
 			'file_manager'         => __( 'File Manager', 'instawp-connect' ),
@@ -2002,6 +1998,9 @@ class InstaWP_Backup_Api {
 			'inventory'            => __( 'Site Inventory', 'instawp-connect' ),
 			'debug_log'            => __( 'Debug Log', 'instawp-connect' ),
 		];
+		if ( ! empty( $name ) ) {
+			return isset( $options[ $name ] ) ? $options[ $name ] : '';
+		}
 
 		return $options;
 	}
