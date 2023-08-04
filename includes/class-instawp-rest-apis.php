@@ -578,7 +578,8 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 					$user_data = isset( $v->details->user_data ) ? (array) $v->details->user_data : [];
 					$user_meta = isset( $v->details->user_meta ) ? (array) $v->details->user_meta : [];
 					$source_db_prefix = isset( $v->details->db_prefix ) ? (array) $v->details->db_prefix : '';
- 
+					$user_table = $this->wpdb->prefix . 'users';
+
 					$get_user_by_reference_id = get_users( array(
 						'meta_key'   => 'instawp_event_user_sync_reference_id',
 						'meta_value' => isset( $user_meta['instawp_event_user_sync_reference_id'][0] ) ? $user_meta['instawp_event_user_sync_reference_id'][0] : '',
@@ -599,9 +600,12 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 					if ( isset( $v->event_slug ) && ( $v->event_slug == 'profile_update' ) && ( ! empty( $user_data ) ) ) {
 						if (  $user ) {
 							$user_data['ID'] = $user->data->ID;
+							$user_pass = $user_data['user_pass'];
+							unset($user_data['user_pass']);
 							$user_id = wp_update_user( $user_data );
 							if ( ! is_wp_error( $user_id ) ) {
-								$this->manage_usermeta( $user_meta, $user->data->ID );
+								$this->wpdb->update( $user_table, [ 'user_pass'=> $user_pass ], array( 'ID' => $user_id ) );
+								$this->manage_usermeta( $user_meta, $user_id );
 								$user->add_role( $v->details->role );
 							}
 						}
