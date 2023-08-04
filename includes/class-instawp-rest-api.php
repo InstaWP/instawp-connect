@@ -77,6 +77,7 @@ class InstaWP_Backup_Api {
 			'permission_callback' => '__return_true',
 		) );
 
+		// Remote Management //
 		register_rest_route( $this->namespace . '/' . $this->version_2 . '/manage', '/clear-cache', array(
 			'methods'             => 'POST',
 			'callback'            => array( $this, 'clear_cache' ),
@@ -131,7 +132,7 @@ class InstaWP_Backup_Api {
 			'permission_callback' => '__return_true',
 		) );
 
-		register_rest_route( $this->namespace . '/' . $this->version_2 . '/manage', '/remote-management', array(
+		register_rest_route( $this->namespace . '/' . $this->version_2 . '/manage', '/settings', array(
 			array(
 				'methods'             => 'GET',
 				'callback'            => array( $this, 'get_remote_management' ),
