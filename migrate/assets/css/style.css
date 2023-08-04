@@ -11,7 +11,7 @@
     --instawp-color-red: #d93f21;
 }
 
-body.tools_page_instawp .instawp-wrap {
+body[class*="instawp"] #wpbody {
     font-family: 'Inter', serif;
     /*background-color: #fafafa;*/
 }
