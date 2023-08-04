@@ -588,7 +588,7 @@ class InstaWP_Backup_Api {
 	public function validate_api_request( WP_REST_Request $request, $option = '' ) {
 
 		if ( ! empty( $option ) && ! $this->is_enabled( $option ) ) {
-			return new WP_Error( 400, esc_html__( 'Settings is disabled! Please enable it from InstaWP Connect Remote Management settings page.', 'instawp-connect' ) );
+			return new WP_Error( 400, sprintf( esc_html__( 'Settings is disabled! Please enable %s from InstaWP Connect Remote Management settings page.', 'instawp-connect' ), $this->get_management_options( $option ) ) );
 		}
 
 		// get authorization header value.

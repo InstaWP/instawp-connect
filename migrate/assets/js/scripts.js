@@ -672,9 +672,11 @@ tailwind.config = {
             },
             success: function( response ) {
                 if ( response.success === true ) {
+                    let label_field = $( document ).find( '.' + name.replace( /_/g, '-' ) + '-field .toggle-label' );
                     setTimeout( function() {
+                        label_field.text( label_field.data( value ) );
                         $( document ).find( '.management .instawp-form' ).removeClass( 'loading' );
-                    }, 500 );
+                    }, 300 );
                 } else {
                     alert( 'Can\'t update settings. Please try again!' );
                     location.reload();
