@@ -27,8 +27,9 @@ $post_delete = $InstaWP_db->trakingEventsBySlug($tables['ch_table'],'post_delete
 $post_trash = $InstaWP_db->trakingEventsBySlug($tables['ch_table'],'post_trash','post','pending');
 
 $parent_connect_data = get_option('instawp_sync_parent_connect_data');
+$staging_sites = !empty($staging_sites) ? $staging_sites : [];
 if(!empty($parent_connect_data)){
-    array_push((!empty($staging_sites) ? $staging_sites : []),[
+    array_push($staging_sites,[
         'connect_id'=>$parent_connect_data['connect_id'],
         'site_name'=> preg_replace("(^https?://)", "", $parent_connect_data['domain']),
         'type'=>$parent_connect_data['type'],
