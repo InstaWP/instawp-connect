@@ -6,6 +6,7 @@
 
 .distignore
 .gitignore
+.DS_Store
 gulpfile.js
 composer.json
 composer.lock

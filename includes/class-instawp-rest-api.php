@@ -1228,121 +1228,137 @@ class InstaWP_Backup_Api {
 			return $this->throw_error( $response );
 		}
 
-		$param_target   = $request->get_param( 'target' ) ?? '';
-		$param_source   = $request->get_param( 'source' ) ?? 'wp.org';
-		$param_type     = $request->get_param( 'type' ) ?? 'plugin';
-		$param_activate = $request->get_param( 'activate' ) ?? false;
-		$target_url     = ( 'url' === $param_source ) ? $param_target : '';
-
-		if ( ! class_exists( 'WP_Upgrader' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
-		}
-
-		if ( ! class_exists( 'Plugin_Upgrader' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/class-plugin-upgrader.php';
-		}
-
-		if ( ! class_exists( 'Theme_Upgrader' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/class-theme-upgrader.php';
-		}
-
-		if ( ! class_exists( 'WP_Ajax_Upgrader_Skin' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/class-wp-ajax-upgrader-skin.php';
-		}
-
-		if ( 'plugin' === $param_type ) {
-			$upgrader = new Plugin_Upgrader( new WP_Ajax_Upgrader_Skin() );
-
-			if ( 'wp.org' === $param_source ) {
-				if ( ! function_exists( 'plugins_api' ) ) {
-					require_once ABSPATH . 'wp-admin/includes/plugin-install.php';
-				}
-
-				$api = plugins_api( 'plugin_information', [
-					'slug'   => $param_target,
-					'fields' => [
-						'short_description' => false,
-						'screenshots'       => false,
-						'sections'          => false,
-						'contributors'      => false,
-						'versions'          => false,
-						'banners'           => false,
-						'requires'          => false,
-						'rating'            => false,
-						'ratings'           => false,
-						'downloaded'        => false,
-						'last_updated'      => false,
-						'added'             => false,
-						'tags'              => false,
-						'compatibility'     => false,
-						'homepage'          => false,
-						'donate_link'       => false,
-						'downloadlink'      => true,
-					],
-				] );
-				if ( ! is_wp_error( $api ) && ! empty( $api->download_link ) ) {
-					$target_url = $api->download_link;
-				}
-			}
-		} elseif ( 'theme' === $param_type ) {
-			$upgrader = new Theme_Upgrader( new WP_Ajax_Upgrader_Skin() );
-
-			if ( 'wp.org' === $param_source ) {
-				if ( ! function_exists( 'themes_api' ) ) {
-					require_once ABSPATH . 'wp-admin/includes/theme.php';
-				}
-
-				$api = themes_api( 'theme_information', [
-					'slug'   => $param_target,
-					'fields' => [
-						'screenshot_count' => 0,
-						'contributors'     => false,
-						'sections'         => false,
-						'tags'             => false,
-						'downloadlink'     => true,
-					],
-				] );
-				if ( ! is_wp_error( $api ) && ! empty( $api->download_link ) ) {
-					$target_url = $api->download_link;
-				}
-			}
-		}
-
-		if ( $this->is_valid_download_link( $target_url ) ) {
-			$results = [ 'success' => true ];
-			$result  = $upgrader->install( $target_url, [
-				'overwrite_package' => true,
+		$params = $request->get_params() ?? [];
+		if ( count( $params ) >= 5 ) {
+			return $this->send_response( [
+				'success' => false,
+				'message' => esc_html__( 'Maximum 5 installations are allowed!', 'instawp-connect' ),
 			] );
+		}
 
-			if ( ! $result || is_wp_error( $result ) ) {
-				$results = [
-					'success' => false,
-					'message' => is_wp_error( $result ) ? $result->get_error_message() : esc_html__( 'Installation failed!', 'instawp-connect' ),
-				];
-			} else {
-				if ( filter_var( $param_activate, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE ) ) {
-					if ( 'plugin' === $param_type ) {
-						if ( ! function_exists( 'activate_plugin' ) ) {
-							require_once ABSPATH . 'wp-admin/includes/plugin.php';
-						}
+		$results = [];
+		foreach ( $params as $index => $param ) {
+			$slug          = isset( $param['slug'] ) ? $param['slug'] : '';
+			$source        = isset( $param['source'] ) ? $param['source'] : 'wp.org';
+			$type          = isset( $param['type'] ) ? $param['type'] : 'plugin';
+			$activate      = isset( $param['activate'] ) ? $param['activate'] : false;
+			$target_url    = ( 'url' === $source ) ? $slug : '';
+			$error_message = '';
+			
+			if ( ! class_exists( 'WP_Upgrader' ) ) {
+				require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+			}
 
-						activate_plugin( $upgrader->plugin_info(), '', false, true );
-					} elseif ( 'theme' === $param_type ) {
-						if ( ! function_exists( 'switch_theme' ) ) {
-							require_once ABSPATH . 'wp-includes/theme.php';
-						}
+			if ( ! class_exists( 'Plugin_Upgrader' ) ) {
+				require_once ABSPATH . 'wp-admin/includes/class-plugin-upgrader.php';
+			}
 
-						switch_theme( $upgrader->theme_info()->get_stylesheet() );
+			if ( ! class_exists( 'Theme_Upgrader' ) ) {
+				require_once ABSPATH . 'wp-admin/includes/class-theme-upgrader.php';
+			}
+
+			if ( ! class_exists( 'WP_Ajax_Upgrader_Skin' ) ) {
+				require_once ABSPATH . 'wp-admin/includes/class-wp-ajax-upgrader-skin.php';
+			}
+
+			$results[ $index ] = [
+				'slug'    => $slug,
+				'status'  => true,
+				'message' => esc_html__( 'Success!', 'instawp-connect' ),
+			];
+
+			if ( 'plugin' === $type ) {
+				$upgrader = new Plugin_Upgrader( new WP_Ajax_Upgrader_Skin() );
+
+				if ( 'wp.org' === $source ) {
+					if ( ! function_exists( 'plugins_api' ) ) {
+						require_once ABSPATH . 'wp-admin/includes/plugin-install.php';
+					}
+
+					$api = plugins_api( 'plugin_information', [
+						'slug'   => $slug,
+						'fields' => [
+							'short_description' => false,
+							'screenshots'       => false,
+							'sections'          => false,
+							'contributors'      => false,
+							'versions'          => false,
+							'banners'           => false,
+							'requires'          => false,
+							'rating'            => false,
+							'ratings'           => false,
+							'downloaded'        => false,
+							'last_updated'      => false,
+							'added'             => false,
+							'tags'              => false,
+							'compatibility'     => false,
+							'homepage'          => false,
+							'donate_link'       => false,
+							'downloadlink'      => true,
+						],
+					] );
+					if ( ! is_wp_error( $api ) && ! empty( $api->download_link ) ) {
+						$target_url = $api->download_link;
+					}
+				}
+			} elseif ( 'theme' === $type ) {
+				$upgrader = new Theme_Upgrader( new WP_Ajax_Upgrader_Skin() );
+
+				if ( 'wp.org' === $source ) {
+					if ( ! function_exists( 'themes_api' ) ) {
+						require_once ABSPATH . 'wp-admin/includes/theme.php';
+					}
+
+					$api = themes_api( 'theme_information', [
+						'slug'   => $slug,
+						'fields' => [
+							'screenshot_count' => 0,
+							'contributors'     => false,
+							'sections'         => false,
+							'tags'             => false,
+							'downloadlink'     => true,
+						],
+					] );
+					if ( ! is_wp_error( $api ) && ! empty( $api->download_link ) ) {
+						$target_url = $api->download_link;
 					}
 				}
 			}
-		} else {
-			$results = [
-				'success' => false,
-				'message' => esc_html__( 'Provided URL is not valid!', 'instawp-connect' ),
-			];
-		}
 
+			if ( $this->is_valid_download_link( $target_url ) ) {
+				$result  = $upgrader->install( $target_url, [
+					'overwrite_package' => true,
+				] );
+
+				if ( ! $result || is_wp_error( $result ) ) {
+					$error_message = is_wp_error( $result ) ? $result->get_error_message() : esc_html__( 'Installation failed!', 'instawp-connect' );
+				} else {
+					if ( filter_var( $activate, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE ) ) {
+						if ( 'plugin' === $type ) {
+							if ( ! function_exists( 'activate_plugin' ) ) {
+								require_once ABSPATH . 'wp-admin/includes/plugin.php';
+							}
+
+							activate_plugin( $upgrader->plugin_info(), '', false, true );
+						} elseif ( 'theme' === $type ) {
+							if ( ! function_exists( 'switch_theme' ) ) {
+								require_once ABSPATH . 'wp-includes/theme.php';
+							}
+
+							switch_theme( $upgrader->theme_info()->get_stylesheet() );
+						}
+					}
+				}
+			} else {
+				$error_message = esc_html__( 'Provided URL is not valid!', 'instawp-connect' );
+			}
+
+			if ( ! empty( $error_message ) ) {
+				$results[ $index ]['status']  = false;
+				$results[ $index ]['message'] = $error_message;
+			}
+		}
+		
 		return $this->send_response( $results );
 	}
 
@@ -1890,14 +1906,29 @@ class InstaWP_Backup_Api {
 		$results = [];
 
 		foreach( $params as $key => $value ) {
-			if ( array_key_exists( $key, $options ) && 'off' === $value ) {
-				update_option( 'instawp_rm_' . $key, $value );
-			}
+			$results[ $key ]['status'] = false;
 
-			$default = 'heartbeat' === $key ? 'on' : 'off';
-			$value   = InstaWP_Setting::get_option( 'instawp_rm_' . $key, $default );
-			$value   = empty( $value ) ? $default : $value;
-			$results[ $key ] = $value;
+			if ( array_key_exists( $key, $options ) ) {
+				$results[ $key ]['message'] = esc_html__( 'Success!', 'instawp-connect' );
+				
+				if ( 'off' === $value ) {
+					$update = update_option( 'instawp_rm_' . $key, $value );
+					$results[ $key ]['status'] = $update;
+					if ( ! $update ) {
+						$results[ $key ]['message'] = esc_html__( 'Setting is already disabled.', 'instawp-connect' );
+					}
+				} else {
+					$results[ $key ]['message'] = esc_html__( 'You can not enable this setting through API.', 'instawp-connect' );
+					$default = 'heartbeat' === $key ? 'on' : 'off';
+					$value = InstaWP_Setting::get_option( 'instawp_rm_' . $key, $default );
+					$value = empty( $value ) ? $default : $value;
+				}
+				
+				$results[ $key ]['value'] = $value;
+			} else {
+				$results[ $key ]['message'] = esc_html__( 'Setting does not exist.', 'instawp-connect' );
+				$results[ $key ]['value']   = '';
+			}
 		}
 
 		return $this->send_response( $results );
