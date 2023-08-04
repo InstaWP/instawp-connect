@@ -30,8 +30,7 @@ class InstaWP_Change_Event_Filters
 
     private $tables;
 
-    public function __construct()
-    {
+    public function __construct() {
         global $wpdb;
 
         $this->wpdb = $wpdb;
@@ -79,9 +78,9 @@ class InstaWP_Change_Event_Filters
             // add_action( 'woocommerce_attribute_updated', array($this,'attribute_updated_action_callback'), 10, 2 );
             // add_action( 'woocommerce_attribute_deleted', array($this,'attribute_deleted_action_callback'), 10, 2 );
             #users
-            // add_action( 'user_register', array($this,'user_register_action'), 10, 2 );
-            // add_action( 'delete_user', array($this,'delete_user_action'), 10, 3 );
-            // add_action( 'profile_update', array($this,'profile_update_action'), 10, 3 );
+            add_action( 'user_register', array($this,'user_register_action'), 10, 2 );
+            add_action( 'delete_user', array($this,'delete_user_action'), 10, 3 );
+            add_action( 'profile_update', array($this,'profile_update_action'), 10, 3 );
             #Widgets
             //add_action( 'rest_after_save_widget', array($this,'save_widget_action'), 10, 4 );
         }
@@ -97,8 +96,7 @@ class InstaWP_Change_Event_Filters
      *
      * @return void
      */
-    public function save_widget_action($id, $sidebar_id, $request, $creating)
-    {
+    public function save_widget_action($id, $sidebar_id, $request, $creating) {
         $event_name = 'widget block';
         $event_slug = 'widget_block';
         $title = 'widgets update';
@@ -116,8 +114,7 @@ class InstaWP_Change_Event_Filters
     /**
      * Update events
      */
-    function updateEvents($event_name = null, $event_slug = null, $event_type = null, $source_id = null, $title = null, $details = null, $key = null, $val = null)
-    {
+    function updateEvents($event_name = null, $event_slug = null, $event_type = null, $source_id = null, $title = null, $details = null, $key = null, $val = null) {
         $uid = get_current_user_id();
         $date = date('Y-m-d H:i:s');
         $data = [
@@ -143,18 +140,16 @@ class InstaWP_Change_Event_Filters
      *
      * @return void
      */
-    public function user_register_action($user_id, $userdata)
-    {
-        if (!empty($userdata)) {
+    public function user_register_action($user_id, $userdata) {
+        if ( ! empty( $userdata ) ) {
             $event_slug = 'user_register';
-            $event_name = __('New user registered', 'instawp-connect');
-            $title = $userdata['first_name'] . ' ' . $userdata['last_name'];
-            $userData = $this->InstaWP_db->get_with_condition($this->wpdb->prefix . 'users', 'ID', $user_id);
-            if (!empty($userData)) {
-                $userData = (array) reset($userData);
-                $details = json_encode(['user_data' => $userData, 'user_meta' => get_user_meta($user_id), 'role' => $userdata['role']]);
-                $this->eventDataAdded($event_name, $event_slug, 'users', $user_id, $title, $details);
-            }
+            $event_name = __( 'New user registered', 'instawp-connect' );
+            $user = get_user_by( 'id', $user_id );
+            $userdata['user_registered'] = $user->data->user_registered;
+            $userdata['user_activation_key'] = $user->data->user_activation_key;
+            $this->_prepare_user_metas( $user_id );
+            $details = json_encode(['user_data' => $userdata, 'user_meta' => get_user_meta($user_id), 'db_prefix'=> $this->wpdb->prefix]);
+            $this->eventDataAdded($event_name, $event_slug, 'users', $user_id, $userdata['user_login'], $details);
         }
     }
     /**
@@ -166,12 +161,11 @@ class InstaWP_Change_Event_Filters
      *
      * @return void
      */
-    public function delete_user_action($id, $reassign, $user)
-    {
+    public function delete_user_action( $id, $reassign, $user ) {
         $event_slug = 'delete_user';
         $event_name = __('User deleted', 'instawp-connect');
-        $title = isset($user->data->display_name) ? $user->data->display_name : '';
-        $details = json_encode(['user_data' => get_userdata($id), 'user_meta' => get_user_meta($id)]);
+        $title      = $user->data->user_login;
+        $details    = json_encode(['user_data' => get_userdata($id), 'user_meta' => get_user_meta($id)]);
         $this->eventDataAdded($event_name, $event_slug, 'users', $id, $title, $details);
     }
     /**
@@ -183,24 +177,22 @@ class InstaWP_Change_Event_Filters
      *
      * @return void
      */
-    public function profile_update_action($user_id, $old_user_data, $userdata)
-    {
+    public function profile_update_action($user_id, $old_user_data, $userdata) {
         if (!empty($userdata)) {
             $event_slug = 'profile_update';
-            $title = $userdata['first_name'] . ' ' . $userdata['last_name'];
             $event_name = __('User updated', 'instawp-connect');
+            $this->_prepare_user_metas( $user_id );
             $userData = $this->InstaWP_db->get_with_condition($this->wpdb->prefix . 'users', 'ID', $user_id);
-            $details = json_encode(['user_data' => $userData, 'user_meta' => get_user_meta($user_id), 'role' => $userdata['role']]);
-            $this->eventDataAdded($event_name, $event_slug, 'users', $user_id, $title, $details);
+            if( isset( $userData[0] ) ) {
+                $details = json_encode(['user_data' => $userData[0], 'user_meta' => get_user_meta($user_id), 'role' => $userdata['role'], 'db_prefix'=> $this->wpdb->prefix]);
+                $this->eventDataAdded($event_name, $event_slug, 'users', $user_id, $userdata['user_login'], $details);
+            }
         }
-
-        $this->_prepare_user_metas($user_id);
     }
     /**
      * Customizer settings
      */
-    function customizeSaveAfter($manager)
-    {
+    function customizeSaveAfter($manager) {
         $mods = get_theme_mods();
         $data['custom_logo'] = [
             'id' => $mods['custom_logo'],
@@ -275,8 +267,7 @@ class InstaWP_Change_Event_Filters
      * @param int   $source_id   Added attribute ID.
      * @param array $details Attribute data.
      */
-    function attribute_added_action_callback($source_id, $details)
-    {
+    function attribute_added_action_callback($source_id, $details) {
         $event_slug = 'woocommerce_attribute_added';
         $event_name = __('Woocommerce attribute', 'instawp-connect');
         $this->pluginThemeEvents($event_name, $event_slug, $details, 'woocommerce_attribute', $source_id);
@@ -287,8 +278,7 @@ class InstaWP_Change_Event_Filters
      * @param int   $source_id   Updated attribute ID.
      * @param array $details Attribute data.
      */
-    function attribute_updated_action_callback($source_id, $details)
-    {
+    function attribute_updated_action_callback($source_id, $details) {
         $event_slug = 'woocommerce_attribute_updated';
         $event_name = __('Woocommerce attribute', 'instawp-connect');
         if (!empty($source_id)) {
@@ -308,8 +298,7 @@ class InstaWP_Change_Event_Filters
      * @param int   $source_id   Deleted attribute ID.
      * @param array $details Attribute data.
      */
-    function attribute_deleted_action_callback($source_id, $details)
-    {
+    function attribute_deleted_action_callback($source_id, $details) {
         $event_slug = 'woocommerce_attribute_deleted';
         $event_name = __('Woocommerce attribute', 'instawp-connect');
         $this->pluginThemeEvents($event_name, $event_slug, $details, 'woocommerce_attribute_deleted', $source_id);
@@ -323,8 +312,7 @@ class InstaWP_Change_Event_Filters
      *
      * @return void
      */
-    function editTaxonomyAction($term_id, $tt_id, $args)
-    {
+    function editTaxonomyAction($term_id, $tt_id, $args) {
         $taxonomy = $args['taxonomy'];
         $event_slug = 'edit_taxonomy';
         $title = $args['name'];
@@ -342,8 +330,7 @@ class InstaWP_Change_Event_Filters
      *
      * @return void
      */
-    function deleteTaxonomyAction($term, $tt_id, $deleted_term, $object_ids)
-    {
+    function deleteTaxonomyAction($term, $tt_id, $deleted_term, $object_ids) {
         $event_slug = 'delete_taxonomy';
         $taxonomy = $deleted_term->taxonomy;
         $title = $deleted_term->name;
@@ -360,8 +347,7 @@ class InstaWP_Change_Event_Filters
      *
      * @return void
      */
-    public function createTaxonomyAction($term_id, $tt_id, $args)
-    {
+    public function createTaxonomyAction($term_id, $tt_id, $args) {
         $term = (array) get_term($term_id, $args['category']);
         $taxonomy = $args['taxonomy'];
         $event_slug = 'create_taxonomy';
@@ -375,8 +361,7 @@ class InstaWP_Change_Event_Filters
      *
      * @return void
      */
-    function installThemesUpdatedAction($paged)
-    {
+    function installThemesUpdatedAction($paged) {
         $event_slug = 'install_themes_updated';
         $details = ['Name' => '', 'Stylesheet' => '', 'Paged' => $paged];
         $event_name = __('Install themes updated', 'instawp-connect');
@@ -389,8 +374,7 @@ class InstaWP_Change_Event_Filters
      *
      * @return void
      */
-    function installThemesUploadAction($paged)
-    {
+    function installThemesUploadAction($paged) {
         $event_slug = 'install_themes_upload';
         $details = ['Name' => '', 'Stylesheet' => '', 'Paged' => $paged];
         $event_name = __('Install themes upload', 'instawp-connect');
@@ -403,8 +387,7 @@ class InstaWP_Change_Event_Filters
      *
      * @return void
      */
-    function installThemesNewAction($paged)
-    {
+    function installThemesNewAction($paged) {
         $event_slug = 'install_themes_new';
         $details = ['Name' => '', 'Stylesheet' => '', 'Paged' => $paged];
         $event_name = __('Install themes new', 'instawp-connect');
@@ -418,8 +401,7 @@ class InstaWP_Change_Event_Filters
      *
      * @return void
      */
-    function deletedThemeAction($stylesheet, $deleted)
-    {
+    function deletedThemeAction($stylesheet, $deleted) {
         $event_slug = 'deleted_theme';
         $details = ['Name' => '', 'Stylesheet' => $stylesheet, 'Paged' => ''];
         $event_name = sprintf(__('Theme %s deleted', 'instawp-connect'), ucfirst($stylesheet));
@@ -434,8 +416,7 @@ class InstaWP_Change_Event_Filters
      *
      * @return void
      */
-    function switchThemeAction($new_name, $new_theme, $old_theme)
-    {
+    function switchThemeAction($new_name, $new_theme, $old_theme) {
         $event_slug = 'switch_theme';
         $details = ['Name' => $new_name, 'Stylesheet' => '', 'Paged' => ''];
         $event_name = sprintf(__('Theme switched from %s to %s', 'instawp-connect'), $old_theme->get_stylesheet(), $new_theme->get_stylesheet());
@@ -449,8 +430,7 @@ class InstaWP_Change_Event_Filters
      *
      * @return void
      */
-    function upgradePluginAction($upgrader, $hook_extra)
-    {
+    function upgradePluginAction($upgrader, $hook_extra) {
         $event_name = $hook_extra['type'] . '_' . $hook_extra['action'];
         $event_slug = $hook_extra['type'] . '_' . $hook_extra['action'];
         $details = json_encode($hook_extra);
@@ -464,8 +444,7 @@ class InstaWP_Change_Event_Filters
      *
      * @return void
      */
-    public function deactivatePluginAction($plugin, $network_wide)
-    {
+    public function deactivatePluginAction($plugin, $network_wide) {
         $details = $plugin;
         $event_slug = 'deactivate_plugin';
         $event_name = __('Plugin deactivated', 'instawp-connect');
@@ -481,8 +460,7 @@ class InstaWP_Change_Event_Filters
      *
      * @return void
      */
-    public function activatePluginAction($plugin, $network_wide)
-    {
+    public function activatePluginAction($plugin, $network_wide) {
         $details = $plugin;
         $event_slug = 'activate_plugin';
         $event_name = __('Plugin activated', 'instawp-connect');
@@ -490,8 +468,16 @@ class InstaWP_Change_Event_Filters
             $this->pluginThemeEvents($event_name, $event_slug, $details, 'plugin', '');
         }
     }
-    public function pluginThemeEvents($event_name, $event_slug, $details, $type, $source_id)
-    {
+
+    /** function pluginThemeEvents
+     * @param $event_name
+     * @param $event_slug
+     * @param $details
+     * @param $type
+     * @param $source_id
+     * @return void
+     */
+    public function pluginThemeEvents($event_name, $event_slug, $details, $type, $source_id) {
         $uid = get_current_user_id();
         $date = date('Y-m-d H:i:s');
         if ($type == 'plugin') {
@@ -525,8 +511,17 @@ class InstaWP_Change_Event_Filters
         ];
         $this->InstaWP_db->insert($this->tables['ch_table'], $data);
     }
-    public function pluginThemeEventsUpdate($event_name, $event_slug, $details, $type, $source_id, $existing_update_events)
-    {
+
+    /** function pluginThemeEventsUpdate
+     * @param $event_name
+     * @param $event_slug
+     * @param $details
+     * @param $type
+     * @param $source_id
+     * @param $existing_update_events
+     * @return void
+     */
+    public function pluginThemeEventsUpdate($event_name, $event_slug, $details, $type, $source_id, $existing_update_events) {
 
         $uid = get_current_user_id();
         $date = date('Y-m-d H:i:s');
@@ -575,8 +570,7 @@ class InstaWP_Change_Event_Filters
      *
      * @return void
      */
-    public function savePostFilter($post_ID, $post, $update, $post_before)
-    {
+    public function savePostFilter($post_ID, $post, $update, $post_before) {
 
         // Check autosave.
         if (wp_is_post_autosave($post_ID)) {
@@ -597,7 +591,7 @@ class InstaWP_Change_Event_Filters
             return $post_ID;
         }
 
-        if($post->post_type == 'acf-field-group' && $post->post_content == ''){
+        if($post->post_type == 'acf-field-group' && $post->post_content == '') {
             $this->_prepare_metas_for_each_post($post_ID);
             return $post_ID;
         }
@@ -621,8 +615,17 @@ class InstaWP_Change_Event_Filters
         }
     }
 
-    public function eventDataUpdated($event_name = null, $event_slug = null, $post = null, $post_id = null, $id = null)
-    {
+    /**
+     * Function for `eventDataUpdated`
+     *
+     * @param $event_name
+     * @param $event_slug
+     * @param $post
+     * @param $post_id
+     * @param $id
+     * @return void
+     */
+    public function eventDataUpdated($event_name = null, $event_slug = null, $post = null, $post_id = null, $id = null) {
         $uid = get_current_user_id();
         $date = date('Y-m-d H:i:s');
         $post_id = isset($post_id) ? $post_id : $post->ID;
@@ -669,8 +672,7 @@ class InstaWP_Change_Event_Filters
      *
      * @return void
      */
-    function deletePostFilter($post_id, $post)
-    {
+    function deletePostFilter($post_id, $post) {
         if (isset($post->post_type) && $post->post_type != 'revision') {
             $event_slug = 'post_delete';
             $event_name = sprintf(__('%s deleted', 'instawp-connect'), instawp_get_post_type_singular_name($post->post_type));
@@ -685,8 +687,7 @@ class InstaWP_Change_Event_Filters
      *
      * @return bool|null
      */
-    public function trashPostFilter($trash, $post)
-    {
+    public function trashPostFilter($trash, $post) {
         if ($post->post_type != 'customize_changeset') {
             $event_slug = 'post_trash';
             $event_name = sprintf(__('%s trashed', 'instawp-connect'), instawp_get_post_type_singular_name($post->post_type));
@@ -701,18 +702,23 @@ class InstaWP_Change_Event_Filters
      *
      * @return void
      */
-    public function untrashPostFilter($post_id, $previous_status)
-    {
+    public function untrashPostFilter($post_id, $previous_status) {
         $post = get_post($post_id);
         $event_name = sprintf(__('%s Restored', 'instawp-connect'), instawp_get_post_type_singular_name($post->post_type));
         $event_slug = 'untrashed_post';
         $this->addPostData($event_name, $event_slug, $post, $post_id);
     }
+
     /**
-     * Post data add 
+     * Function for `addPostData`
+     *
+     * @param $event_name
+     * @param $event_slug
+     * @param $post
+     * @param $post_id
+     * @return void
      */
-    public function addPostData($event_name = null, $event_slug = null, $post = null, $post_id = null)
-    {
+    public function addPostData($event_name = null, $event_slug = null, $post = null, $post_id = null) {
 
         //check if the sync is enabled to record
         $syncing_enabled_disabled = get_option('syncing_enabled_disabled', 0);
@@ -776,28 +782,25 @@ class InstaWP_Change_Event_Filters
     /*
      * Update post metas
      */
-    public function _prepare_metas_for_each_post($post_id)
-    {
+    public function _prepare_metas_for_each_post($post_id) {
         if (get_post_meta($post_id, 'instawp_event_sync_reference_id', true) == '') {
-            add_post_meta($post_id, 'instawp_event_sync_reference_id', instawp_uuid());
+            add_post_meta($post_id, 'instawp_event_sync_reference_id', InstaWP_Tools::get_random_string());
         }
     }
 
     /*
      * Update user metas
      */
-    public function _prepare_user_metas($user_id)
-    {
+    public function _prepare_user_metas($user_id) {
         if (get_user_meta($user_id, 'instawp_event_user_sync_reference_id', true) == '') {
-            add_post_meta($user_id, 'instawp_event_user_sync_reference_id', instawp_uuid());
+            add_user_meta($user_id, 'instawp_event_user_sync_reference_id', InstaWP_Tools::get_random_string());
         }
     }
 
     /*
      * Get product gallery images
      */
-    public function get_product_gallery($product_id = null)
-    {
+    public function get_product_gallery($product_id = null) {
         $product = new WC_product($product_id);
         $attachment_ids = $product->get_gallery_image_ids();
         $gallery = [];
@@ -817,8 +820,7 @@ class InstaWP_Change_Event_Filters
     /**
      * Get media from content 
      */
-    public function get_media_from_content($content = null)
-    {
+    public function get_media_from_content($content = null) {
         #find media form content.
         preg_match_all('!(https?:)?//\S+\.(?:jpe?g|jpg|png|gif|mp4|pdf|doc|docx|xls|xlsx|csv|txt|rtf|html|zip|mp3|wma|mpg|flv|avi)!Ui', $content, $match);
         $media = [];
@@ -844,8 +846,7 @@ class InstaWP_Change_Event_Filters
     /**
      * Taxonomy
      */
-    public function addTaxonomyData($event_name = null, $event_slug = null, $term_id = null, $tt_id = null, $taxonomy = null, $args = null)
-    {
+    public function addTaxonomyData($event_name = null, $event_slug = null, $term_id = null, $tt_id = null, $taxonomy = null, $args = null) {
         $title = $args['name'];
         $details = json_encode($args);
         $this->eventDataAdded($event_name, $event_slug, $taxonomy, $term_id, $title, $details);
@@ -853,8 +854,7 @@ class InstaWP_Change_Event_Filters
     /**
      * add/insert event data
      */
-    public function eventDataAdded($event_name = null, $event_slug = null, $event_type = null, $source_id = null, $title = null, $details = null)
-    {
+    public function eventDataAdded($event_name = null, $event_slug = null, $event_type = null, $source_id = null, $title = null, $details = null) {
         $uid = get_current_user_id();
         $date = date('Y-m-d H:i:s');
         #Data Array
@@ -876,8 +876,7 @@ class InstaWP_Change_Event_Filters
     /**
      * Get taxonomies items
      */
-    public function get_taxonomies_items($post_id = null)
-    {
+    public function get_taxonomies_items($post_id = null) {
         $taxonomies = get_post_taxonomies($post_id);
         $items = [];
         if (!empty($taxonomies) && is_array($taxonomies)) {
@@ -900,8 +899,7 @@ class InstaWP_Change_Event_Filters
     /*
      * get post css from elementor files 'post-{post_id}.css'
      */
-    public function get_elementor_css($post_id = null)
-    {
+    public function get_elementor_css($post_id = null) {
         $upload_dir = wp_upload_dir();
         $filename = 'post-' . $post_id . '.css';
         $filePath = $upload_dir['basedir'] . '/elementor/css/' . $filename;
@@ -913,8 +911,7 @@ class InstaWP_Change_Event_Filters
     /**
      * Get Astra Costmizer Setings
      */
-    function getAstraCostmizerSetings()
-    {
+    function getAstraCostmizerSetings() {
         $arr = [
             #Checkout
             'woocommerce_checkout_company_field' => get_option('woocommerce_checkout_company_field'),
