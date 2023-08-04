@@ -137,6 +137,7 @@ class InstaWP_Tools {
 		}
 	}
 
+
 	/**
 	 * Returns the wp-config.php file.
 	 *
@@ -153,6 +154,7 @@ class InstaWP_Tools {
 		return $file;
 	}
 
+
 	/**
 	 * Returns the file content parts.
 	 *
@@ -168,6 +170,7 @@ class InstaWP_Tools {
 		return $parts;
 	}
 
+
 	/**
 	 * Returns the random string based on length.
 	 *
@@ -176,9 +179,82 @@ class InstaWP_Tools {
 	 * @return string
 	 */
 	public static function get_random_string( $length = 6 ) {
-		$length = ceil( absint( $length ) / 2 );
-		$bytes  = function_exists( 'random_bytes' ) ? random_bytes( $length ) : openssl_random_pseudo_bytes( $length );
+		try {
+			$length        = ceil( absint( $length ) / 2 );
+			$bytes         = function_exists( 'random_bytes' ) ? random_bytes( $length ) : openssl_random_pseudo_bytes( $length );
+			$random_string = bin2hex( $bytes );
+		} catch ( Exception $e ) {
+			$random_string = substr( hash( 'sha256', wp_generate_uuid4() ), 0, absint( $length ) );
+		}
 
-		return bin2hex( $bytes );
+		return $random_string;
+	}
+
+
+	/**
+	 * Reset permalink structure
+	 *
+	 * @param $hard
+	 *
+	 * @return void
+	 */
+	public static function instawp_reset_permalink( $hard = true ) {
+
+		global $wp_rewrite;
+
+		if ( get_option( 'permalink_structure' ) == '' ) {
+			$wp_rewrite->set_permalink_structure( '/%postname%/' );
+		}
+
+		$wp_rewrite->flush_rules( $hard );
+	}
+
+
+	/**
+	 * Write htaccess rules
+	 *
+	 * @return false
+	 */
+	public static function write_htaccess_rule() {
+
+		if ( is_multisite() ) {
+			return false;
+		}
+
+		if ( ! function_exists( 'get_home_path' ) ) {
+			require_once( ABSPATH . 'wp-admin/includes/file.php' );
+		}
+
+		$parent_url  = get_option( 'instawp_sync_parent_url' );
+		$backup_type = get_option( 'instawp_site_backup_type' );
+
+		if ( 1 == $backup_type && ! empty( $parent_url ) ) {
+
+			$htaccess_file    = get_home_path() . '.htaccess';
+			$htaccess_content = array(
+				'## BEGIN InstaWP Connect',
+				'<IfModule mod_rewrite.c>',
+				'RewriteEngine On',
+				'RedirectMatch 301 ^/wp-content/uploads/(.*)$ ' . $parent_url . '/wp-content/uploads/$1',
+				'</IfModule>',
+				'## END InstaWP Connect',
+			);
+			$htaccess_content = implode( "\n", $htaccess_content );
+			$htaccess_content = $htaccess_content . "\n\n\n" . file_get_contents( $htaccess_file );
+
+			file_put_contents( $htaccess_file, $htaccess_content );
+		}
+
+		return false;
+	}
+
+
+	/**
+	 * Update Search engine visibility
+	 *
+	 * @return void
+	 */
+	public static function update_search_engine_visibility( $should_visible = false ) {
+		update_option( 'blog_public', (bool) $should_visible );
 	}
 }

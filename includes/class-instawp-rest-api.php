@@ -130,6 +130,19 @@ class InstaWP_Backup_Api {
 			'callback'            => array( $this, 'get_logs' ),
 			'permission_callback' => '__return_true',
 		) );
+
+		register_rest_route( $this->namespace . '/' . $this->version_2, '/remote-management', array(
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( $this, 'get_remote_management' ),
+				'permission_callback' => '__return_true',
+			),
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( $this, 'set_remote_management' ),
+				'permission_callback' => '__return_true',
+			),
+		) );
 	}
 
 
@@ -568,14 +581,14 @@ class InstaWP_Backup_Api {
 	 * Valid api request and if invalid api key then stop executing.
 	 *
 	 * @param WP_REST_Request $request
-	 * @param bool $check_management
+	 * @param string $option
 	 *
 	 * @return WP_Error|bool
 	 */
-	public function validate_api_request( WP_REST_Request $request, $check_management = false ) {
+	public function validate_api_request( WP_REST_Request $request, $option = '' ) {
 
-		if ( $check_management && ( ! defined( 'INSTAWP_ALLOW_MANAGE' ) || ( defined( 'INSTAWP_ALLOW_MANAGE' ) && true !== INSTAWP_ALLOW_MANAGE ) ) ) {
-			return new WP_Error( 400, esc_html__( 'INSTAWP_ALLOW_MANAGE should be defined and set to true in wp-config.php file.', 'instawp-connect' ) );
+		if ( ! empty( $option ) && ! $this->is_enabled( $option ) ) {
+			return new WP_Error( 400, esc_html__( 'Settings is disabled! Please enable it from InstaWP Connect Remote Management settings page.', 'instawp-connect' ) );
 		}
 
 		// get authorization header value.
@@ -615,40 +628,21 @@ class InstaWP_Backup_Api {
 
 	public static function restore_bg( $backup_list, $restore_options, $parameters ) {
 
-		global $instawp_plugin;
-
-		$count_backup_list = count( $backup_list );
-		$backup_index      = 1;
 		$progress_response = [];
 		$res_result        = [];
 
 		// before doing restore deactivate caching plugin
-		$instawp_plugin::disable_cache_elements_before_restore();
+		instawp()::disable_cache_elements_before_restore();
 
 		foreach ( $backup_list as $backup_list_key => $backup ) {
 
 			do {
+				instawp()->restore_api( $backup_list_key, $restore_options, $parameters );
 
-				$instawp_plugin->restore_api( $backup_list_key, $restore_options, $parameters );
-
-				$progress_results = $instawp_plugin->get_restore_progress_api( $backup_list_key );
-
-//				$progress_value   = $instawp_plugin->restore_data->get_next_restore_task_progress();
-//				$progress_value   = $progress_value * ( $backup_index / $count_backup_list );
-//				$progress_value   = ( $progress_value / 2 ) + 50;
-//
-//				if ( $progress_value < 100 ) {
-//					$message = 'Restore in progress';
-//				} else {
-//					$message = 'Restore completed';
-//				}
-
+				$progress_results  = instawp()->get_restore_progress_api( $backup_list_key );
 				$progress_response = (array) json_decode( $progress_results );
-//				$res_result        = array_merge( self::restore_status( $message, $progress_value, $parameters['wp']['options'] ) );
 
 			} while ( $progress_response['status'] != 'completed' || $progress_response['status'] == 'error' );
-
-			$backup_index ++;
 		}
 
 		if ( $progress_response['status'] == 'completed' ) {
@@ -669,21 +663,20 @@ class InstaWP_Backup_Api {
 				}
 			}
 
-			self::write_htaccess_rule();
+			do_action( 'INSTAWP/Actions/restore_completed', $restore_options, $parameters );
 
+			// handle folder remover
 			InstaWP_AJAX::instawp_folder_remover_handle();
-			$res_result['status']  = true;
-			$res_result['message'] = 'Restore task completed.';
 
 			// once the restore completed, enable caching elements
-			$instawp_plugin::enable_cache_elements_before_restore();
+			instawp()::enable_cache_elements_before_restore();
 		}
 
 		if ( $progress_response['status'] == 'error' ) {
 			$res_result['message'] = "Error occurred";
 		}
 
-		$instawp_plugin->delete_last_restore_data_api();
+		instawp()->delete_last_restore_data_api();
 	}
 
 
@@ -806,40 +799,6 @@ class InstaWP_Backup_Api {
 				'message'    => $e->getMessage(),
 			) );
 		}
-	}
-
-
-	public static function write_htaccess_rule() {
-
-		if ( is_multisite() ) {
-			return false;
-		}
-
-		if ( ! function_exists( 'get_home_path' ) ) {
-			require_once( ABSPATH . 'wp-admin/includes/file.php' );
-		}
-
-		$parent_url  = get_option( 'instawp_sync_parent_url' );
-		$backup_type = get_option( 'instawp_site_backup_type' );
-
-		if ( 1 == $backup_type && ! empty( $parent_url ) ) {
-
-			$htaccess_file    = get_home_path() . '.htaccess';
-			$htaccess_content = array(
-				'## BEGIN InstaWP Connect',
-				'<IfModule mod_rewrite.c>',
-				'RewriteEngine On',
-				'RedirectMatch 301 ^/wp-content/uploads/(.*)$ ' . $parent_url . '/wp-content/uploads/$1',
-				'</IfModule>',
-				'## END InstaWP Connect',
-			);
-			$htaccess_content = implode( "\n", $htaccess_content );
-			$htaccess_content = $htaccess_content . "\n\n\n" . file_get_contents( $htaccess_file );
-
-			file_put_contents( $htaccess_file, $htaccess_content );
-		}
-
-		return false;
 	}
 
 
@@ -1193,7 +1152,7 @@ class InstaWP_Backup_Api {
 	 */
 	public function get_inventory( WP_REST_Request $request ) {
 
-		$response = $this->validate_api_request( $request, true );
+		$response = $this->validate_api_request( $request, 'inventory' );
 		if ( is_wp_error( $response ) ) {
 			return $this->throw_error( $response );
 		}
@@ -1264,126 +1223,142 @@ class InstaWP_Backup_Api {
 	 */
 	public function perform_install( WP_REST_Request $request ) {
 
-		$response = $this->validate_api_request( $request, true );
+		$response = $this->validate_api_request( $request, 'install_plugin_theme' );
 		if ( is_wp_error( $response ) ) {
 			return $this->throw_error( $response );
 		}
 
-		$param_target   = $request->get_param( 'target' ) ?? '';
-		$param_source   = $request->get_param( 'source' ) ?? 'wp.org';
-		$param_type     = $request->get_param( 'type' ) ?? 'plugin';
-		$param_activate = $request->get_param( 'activate' ) ?? false;
-		$target_url     = ( 'url' === $param_source ) ? $param_target : '';
-
-		if ( ! class_exists( 'WP_Upgrader' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
-		}
-
-		if ( ! class_exists( 'Plugin_Upgrader' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/class-plugin-upgrader.php';
-		}
-
-		if ( ! class_exists( 'Theme_Upgrader' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/class-theme-upgrader.php';
-		}
-
-		if ( ! class_exists( 'WP_Ajax_Upgrader_Skin' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/class-wp-ajax-upgrader-skin.php';
-		}
-
-		if ( 'plugin' === $param_type ) {
-			$upgrader = new Plugin_Upgrader( new WP_Ajax_Upgrader_Skin() );
-
-			if ( 'wp.org' === $param_source ) {
-				if ( ! function_exists( 'plugins_api' ) ) {
-					require_once ABSPATH . 'wp-admin/includes/plugin-install.php';
-				}
-
-				$api = plugins_api( 'plugin_information', [
-					'slug'   => $param_target,
-					'fields' => [
-						'short_description' => false,
-						'screenshots'       => false,
-						'sections'          => false,
-						'contributors'      => false,
-						'versions'          => false,
-						'banners'           => false,
-						'requires'          => false,
-						'rating'            => false,
-						'ratings'           => false,
-						'downloaded'        => false,
-						'last_updated'      => false,
-						'added'             => false,
-						'tags'              => false,
-						'compatibility'     => false,
-						'homepage'          => false,
-						'donate_link'       => false,
-						'downloadlink'      => true,
-					],
-				] );
-				if ( ! is_wp_error( $api ) && ! empty( $api->download_link ) ) {
-					$target_url = $api->download_link;
-				}
-			}
-		} elseif ( 'theme' === $param_type ) {
-			$upgrader = new Theme_Upgrader( new WP_Ajax_Upgrader_Skin() );
-
-			if ( 'wp.org' === $param_source ) {
-				if ( ! function_exists( 'themes_api' ) ) {
-					require_once ABSPATH . 'wp-admin/includes/theme.php';
-				}
-
-				$api = themes_api( 'theme_information', [
-					'slug'   => $param_target,
-					'fields' => [
-						'screenshot_count' => 0,
-						'contributors'     => false,
-						'sections'         => false,
-						'tags'             => false,
-						'downloadlink'     => true,
-					],
-				] );
-				if ( ! is_wp_error( $api ) && ! empty( $api->download_link ) ) {
-					$target_url = $api->download_link;
-				}
-			}
-		}
-
-		if ( $this->is_valid_download_link( $target_url ) ) {
-			$results = [ 'success' => true ];
-			$result  = $upgrader->install( $target_url, [
-				'overwrite_package' => true,
+		$params = $request->get_params() ?? [];
+		if ( count( $params ) >= 5 ) {
+			return $this->send_response( [
+				'success' => false,
+				'message' => esc_html__( 'Maximum 5 installations are allowed!', 'instawp-connect' ),
 			] );
+		}
 
-			if ( ! $result || is_wp_error( $result ) ) {
-				$results = [
-					'success' => false,
-					'message' => is_wp_error( $result ) ? $result->get_error_message() : esc_html__( 'Installation failed!', 'instawp-connect' ),
-				];
-			} else {
-				if ( filter_var( $param_activate, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE ) ) {
-					if ( 'plugin' === $param_type ) {
-						if ( ! function_exists( 'activate_plugin' ) ) {
-							require_once ABSPATH . 'wp-admin/includes/plugin.php';
-						}
+		$results = [];
+		foreach ( $params as $index => $param ) {
+			$slug          = isset( $param['slug'] ) ? $param['slug'] : '';
+			$source        = isset( $param['source'] ) ? $param['source'] : 'wp.org';
+			$type          = isset( $param['type'] ) ? $param['type'] : 'plugin';
+			$activate      = isset( $param['activate'] ) ? $param['activate'] : false;
+			$target_url    = ( 'url' === $source ) ? $slug : '';
+			$error_message = '';
+			
+			if ( ! class_exists( 'WP_Upgrader' ) ) {
+				require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+			}
 
-						activate_plugin( $upgrader->plugin_info(), '', false, true );
-					} elseif ( 'theme' === $param_type ) {
-						if ( ! function_exists( 'switch_theme' ) ) {
-							require_once ABSPATH . 'wp-includes/theme.php';
-						}
+			if ( ! class_exists( 'Plugin_Upgrader' ) ) {
+				require_once ABSPATH . 'wp-admin/includes/class-plugin-upgrader.php';
+			}
 
-						switch_theme( $upgrader->theme_info()->get_stylesheet() );
+			if ( ! class_exists( 'Theme_Upgrader' ) ) {
+				require_once ABSPATH . 'wp-admin/includes/class-theme-upgrader.php';
+			}
+
+			if ( ! class_exists( 'WP_Ajax_Upgrader_Skin' ) ) {
+				require_once ABSPATH . 'wp-admin/includes/class-wp-ajax-upgrader-skin.php';
+			}
+
+			$results[ $index ] = [
+				'slug'    => $slug,
+				'status'  => true,
+				'message' => esc_html__( 'Success!', 'instawp-connect' ),
+			];
+
+			if ( 'plugin' === $type ) {
+				$upgrader = new Plugin_Upgrader( new WP_Ajax_Upgrader_Skin() );
+
+				if ( 'wp.org' === $source ) {
+					if ( ! function_exists( 'plugins_api' ) ) {
+						require_once ABSPATH . 'wp-admin/includes/plugin-install.php';
+					}
+
+					$api = plugins_api( 'plugin_information', [
+						'slug'   => $slug,
+						'fields' => [
+							'short_description' => false,
+							'screenshots'       => false,
+							'sections'          => false,
+							'contributors'      => false,
+							'versions'          => false,
+							'banners'           => false,
+							'requires'          => false,
+							'rating'            => false,
+							'ratings'           => false,
+							'downloaded'        => false,
+							'last_updated'      => false,
+							'added'             => false,
+							'tags'              => false,
+							'compatibility'     => false,
+							'homepage'          => false,
+							'donate_link'       => false,
+							'downloadlink'      => true,
+						],
+					] );
+					if ( ! is_wp_error( $api ) && ! empty( $api->download_link ) ) {
+						$target_url = $api->download_link;
+					}
+				}
+			} elseif ( 'theme' === $type ) {
+				$upgrader = new Theme_Upgrader( new WP_Ajax_Upgrader_Skin() );
+
+				if ( 'wp.org' === $source ) {
+					if ( ! function_exists( 'themes_api' ) ) {
+						require_once ABSPATH . 'wp-admin/includes/theme.php';
+					}
+
+					$api = themes_api( 'theme_information', [
+						'slug'   => $slug,
+						'fields' => [
+							'screenshot_count' => 0,
+							'contributors'     => false,
+							'sections'         => false,
+							'tags'             => false,
+							'downloadlink'     => true,
+						],
+					] );
+					if ( ! is_wp_error( $api ) && ! empty( $api->download_link ) ) {
+						$target_url = $api->download_link;
 					}
 				}
 			}
-		} else {
-			$results = [
-				'success' => false,
-				'message' => esc_html__( 'Provided URL is not valid!', 'instawp-connect' ),
-			];
-		}
 
+			if ( $this->is_valid_download_link( $target_url ) ) {
+				$result  = $upgrader->install( $target_url, [
+					'overwrite_package' => true,
+				] );
+
+				if ( ! $result || is_wp_error( $result ) ) {
+					$error_message = is_wp_error( $result ) ? $result->get_error_message() : esc_html__( 'Installation failed!', 'instawp-connect' );
+				} else {
+					if ( filter_var( $activate, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE ) ) {
+						if ( 'plugin' === $type ) {
+							if ( ! function_exists( 'activate_plugin' ) ) {
+								require_once ABSPATH . 'wp-admin/includes/plugin.php';
+							}
+
+							activate_plugin( $upgrader->plugin_info(), '', false, true );
+						} elseif ( 'theme' === $type ) {
+							if ( ! function_exists( 'switch_theme' ) ) {
+								require_once ABSPATH . 'wp-includes/theme.php';
+							}
+
+							switch_theme( $upgrader->theme_info()->get_stylesheet() );
+						}
+					}
+				}
+			} else {
+				$error_message = esc_html__( 'Provided URL is not valid!', 'instawp-connect' );
+			}
+
+			if ( ! empty( $error_message ) ) {
+				$results[ $index ]['status']  = false;
+				$results[ $index ]['message'] = $error_message;
+			}
+		}
+		
 		return $this->send_response( $results );
 	}
 
@@ -1396,7 +1371,7 @@ class InstaWP_Backup_Api {
 	 */
 	public function get_configuration( WP_REST_Request $request ) {
 
-		$response = $this->validate_api_request( $request, true );
+		$response = $this->validate_api_request( $request, 'config_management' );
 		if ( is_wp_error( $response ) ) {
 			return $this->throw_error( $response );
 		}
@@ -1486,7 +1461,7 @@ class InstaWP_Backup_Api {
 	 */
 	public function set_configuration( WP_REST_Request $request ) {
 
-		$response = $this->validate_api_request( $request, true );
+		$response = $this->validate_api_request( $request, 'config_management' );
 		if ( is_wp_error( $response ) ) {
 			return $this->throw_error( $response );
 		}
@@ -1562,7 +1537,7 @@ class InstaWP_Backup_Api {
 	 */
 	public function delete_configuration( WP_REST_Request $request ) {
 
-		$response = $this->validate_api_request( $request, true );
+		$response = $this->validate_api_request( $request, 'config_management' );
 		if ( is_wp_error( $response ) ) {
 			return $this->throw_error( $response );
 		}
@@ -1610,7 +1585,7 @@ class InstaWP_Backup_Api {
 	 * @return WP_REST_Response
 	 */
 	public function file_manager( WP_REST_Request $request ) {
-		$response = $this->validate_api_request( $request, true );
+		$response = $this->validate_api_request( $request, 'file_manager' );
 		if ( is_wp_error( $response ) ) {
 			return $this->throw_error( $response );
 		}
@@ -1630,7 +1605,7 @@ class InstaWP_Backup_Api {
 		$username  = InstaWP_Tools::get_random_string( 15 );
 		$password  = InstaWP_Tools::get_random_string( 20 );
 		$file_name = InstaWP_Tools::get_random_string( 20 );
-		$token     = md5( $username . '|' . $password. '|' . $file_name );
+		$token     = md5( $username . '|' . $password . '|' . $file_name );
 
 		$search  = [
 			'Tiny File Manager',
@@ -1723,7 +1698,7 @@ class InstaWP_Backup_Api {
 	 */
 	public function database_manager( WP_REST_Request $request ) {
 
-		$response = $this->validate_api_request( $request, true );
+		$response = $this->validate_api_request( $request, 'database_manager' );
 		if ( is_wp_error( $response ) ) {
 			return $this->throw_error( $response );
 		}
@@ -1739,7 +1714,7 @@ class InstaWP_Backup_Api {
 				@unlink( $file_path );
 			}
 		}
-		
+
 		$url       = 'https://instawp.com/dbeditor';
 		$file_name = InstaWP_Tools::get_random_string( 20 );
 		$token     = md5( $file_name );
@@ -1747,10 +1722,14 @@ class InstaWP_Backup_Api {
 		$search  = [ 
 			'/\bjs_escape\b/', 
 			'/\bget_temp_dir\b/', 
+			'/\bis_ajax\b/', 
+			'/\bsid\b/', 
 		];
-		$replace = [ 
+		$replace = [
 			'instawp_js_escape',
 			'instawp_get_temp_dir',
+			'instawp_is_ajax',
+			'instawp_sid',
 		];
 
 		$file = file_get_contents( $url );
@@ -1758,7 +1737,7 @@ class InstaWP_Backup_Api {
 
 		$file_path            = InstaWP_Database_Management::get_file_path( $file_name );
 		$database_manager_url = InstaWP_Database_Management::get_database_manager_url( $file_name );
-		
+
 		$results = [
 			'login_url' => add_query_arg( [
 				'action' => 'instawp-database-manager-auto-login',
@@ -1771,11 +1750,11 @@ class InstaWP_Backup_Api {
 		try {
 			$result = file_put_contents( $file_path, $file, LOCK_EX );
 			if ( false === $result ) {
-				throw new Exception( esc_html__( 'Failed to create the database manager file.', 'instawp-connect' )  );
+				throw new Exception( esc_html__( 'Failed to create the database manager file.', 'instawp-connect' ) );
 			}
 
-			$file = file( $file_path );
-			$new_line = "if ( ! defined( 'INSTAWP_PLUGIN_DIR' ) ) { die; }";
+			$file       = file( $file_path );
+			$new_line   = "if ( ! defined( 'INSTAWP_PLUGIN_DIR' ) ) { die; }";
 			$first_line = array_shift( $file );
 			array_unshift( $file, $new_line );
 			array_unshift( $file, $first_line );
@@ -1786,7 +1765,7 @@ class InstaWP_Backup_Api {
 
 			set_transient( 'instawp_database_manager_login_token', $token, ( 15 * MINUTE_IN_SECONDS ) );
 			InstaWP_Setting::update_option( 'instawp_database_manager_name', $file_name );
-			
+
 			flush_rewrite_rules();
 			as_schedule_single_action( time() + DAY_IN_SECONDS, 'instawp_clean_database_manager', [ $file_name ], 'instawp-connect', false, 5 );
 		} catch ( Exception $e ) {
@@ -1808,7 +1787,7 @@ class InstaWP_Backup_Api {
 	 */
 	public function get_logs( WP_REST_Request $request ) {
 
-		$response = $this->validate_api_request( $request, true );
+		$response = $this->validate_api_request( $request, 'debug_log' );
 		if ( is_wp_error( $response ) ) {
 			return $this->throw_error( $response );
 		}
@@ -1880,6 +1859,80 @@ class InstaWP_Backup_Api {
 
 		return $this->send_response( $results );
 	}
+	
+	/**
+	 * Handle response to retrieve remote management settings.
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function get_remote_management( WP_REST_Request $request ) {
+
+		$response = $this->validate_api_request( $request );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
+
+		$results = [];
+		$options = $this->get_management_options();
+		foreach( array_keys( $options ) as $option ) {
+			$default = 'heartbeat' === $option ? 'on' : 'off';
+			$value   = InstaWP_Setting::get_option( 'instawp_rm_' . $option, $default );
+			$value   = empty( $value ) ? $default : $value;
+
+			$results[ $option ] = $value;
+		}
+
+		return $this->send_response( $results );
+	}
+
+	/**
+	 * Handle response to set remote management settings.
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function set_remote_management( WP_REST_Request $request ) {
+
+		$response = $this->validate_api_request( $request );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
+
+		$params  = $request->get_params() ?? [];
+		$options = $this->get_management_options();
+		$results = [];
+
+		foreach( $params as $key => $value ) {
+			$results[ $key ]['status'] = false;
+
+			if ( array_key_exists( $key, $options ) ) {
+				$results[ $key ]['message'] = esc_html__( 'Success!', 'instawp-connect' );
+				
+				if ( 'off' === $value ) {
+					$update = update_option( 'instawp_rm_' . $key, $value );
+					$results[ $key ]['status'] = $update;
+					if ( ! $update ) {
+						$results[ $key ]['message'] = esc_html__( 'Setting is already disabled.', 'instawp-connect' );
+					}
+				} else {
+					$results[ $key ]['message'] = esc_html__( 'You can not enable this setting through API.', 'instawp-connect' );
+					$default = 'heartbeat' === $key ? 'on' : 'off';
+					$value = InstaWP_Setting::get_option( 'instawp_rm_' . $key, $default );
+					$value = empty( $value ) ? $default : $value;
+				}
+				
+				$results[ $key ]['value'] = $value;
+			} else {
+				$results[ $key ]['message'] = esc_html__( 'Setting does not exist.', 'instawp-connect' );
+				$results[ $key ]['value']   = '';
+			}
+		}
+
+		return $this->send_response( $results );
+	}
 
 	/**
 	 * Returns WP_REST_Response.
@@ -1943,6 +1996,44 @@ class InstaWP_Backup_Api {
 		}
 
 		return $valid;
+	}
+
+	/**
+	 * Verify the remote management feature is enable or not.
+	 *
+	 * @param string $key
+	 *
+	 * @return bool
+	 */
+	private function is_enabled( $key ) {
+		$value = InstaWP_Setting::get_option( 'instawp_rm_' . $key, 'off' );
+		$value = empty( $value ) ? 'off' : $value;
+
+		return 'on' === $value;
+	}
+
+	/**
+	 * Prepare remote management settings list.
+	 * 
+	 * @param string $name
+	 * 
+	 * @return array|string
+	 */
+	private function get_management_options( $name = '' ) {
+		$options = [
+			'heartbeat'            => __( 'Heartbeat', 'instawp-connect' ),
+			'file_manager'         => __( 'File Manager', 'instawp-connect' ),
+			'database_manager'     => __( 'Database Manager', 'instawp-connect' ),
+			'install_plugin_theme' => __( 'Install Plugin / Themes', 'instawp-connect' ),
+			'config_management'    => __( 'Config Management', 'instawp-connect' ),
+			'inventory'            => __( 'Site Inventory', 'instawp-connect' ),
+			'debug_log'            => __( 'Debug Log', 'instawp-connect' ),
+		];
+		if ( ! empty( $name ) ) {
+			return isset( $options[ $name ] ) ? $options[ $name ] : '';
+		}
+
+		return $options;
 	}
 }
 

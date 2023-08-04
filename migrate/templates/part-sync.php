@@ -38,7 +38,7 @@ if(!empty($parent_connect_data)){
 $destination_url = get_option('instawp_sync_parent_url', '') ;
 $others = (abs($total_events) - abs($post_new+$post_delete+$post_trash));
 ?>
-<div class="nav-item-content sync bg-white box-shadow rounded-md p-6 data-padding">
+<div class="nav-item-content sync bg-white rounded-md p-6 data-padding">
     <?php if(empty($events)) : ?>
     <div class="data-listening">      
 <!--        <div class="bg-white  box-shadow rounded-md data-padding flex items-center justify-center">-->

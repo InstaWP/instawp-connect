@@ -7,7 +7,7 @@
  * @wordpress-plugin
  * Plugin Name:       InstaWP Connect
  * Description:       Create 1-click staging, migration and manage your prod sites.
- * Version:           0.0.9.20
+ * Version:           0.0.9.21
  * Author:            InstaWP Team
  * Author URI:        https://instawp.com/
  * License:           GPL-3.0+
@@ -24,7 +24,7 @@ if ( ! defined( 'WPINC' ) ) {
 global $wpdb;
 
 
-define( 'INSTAWP_PLUGIN_VERSION', '0.0.9.20' );
+define( 'INSTAWP_PLUGIN_VERSION', '0.0.9.21' );
 define( 'INSTAWP_RESTORE_INIT', 'init' );
 define( 'INSTAWP_RESTORE_READY', 'ready' );
 define( 'INSTAWP_RESTORE_COMPLETED', 'completed' );
@@ -118,23 +118,25 @@ global $instawp_plugin;
 
 
 require_once dirname( __FILE__ ) . '/vendor/autoload.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-instawp.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/functions.php';
+require_once plugin_dir_path( __FILE__ ) . '/vendor/woocommerce/action-scheduler/action-scheduler.php';
+
 
 function instawp_plugin_activate() {
-	// Set default option
-	InstaWP_Setting::set_api_domain();
-	error_log( "Settled on activation" );
 
-	global $wp_rewrite;
-	if ( get_option( 'permalink_structure' ) == '' ) {
-		$wp_rewrite->set_permalink_structure( '/%postname%/' );
-	}
-	$wp_rewrite->flush_rules();
+	InstaWP_Setting::set_api_domain();
+
+	InstaWP_Tools::instawp_reset_permalink();
+
 	add_option( 'instawp_do_activation_redirect', true );
 }
 
 /*Deactivate Hook Handle*/
 function instawp_plugin_deactivate() {
-	flush_rewrite_rules();
+
+	InstaWP_Tools::instawp_reset_permalink();
+
 	as_unschedule_all_actions( 'instawp_handle_heartbeat', [], 'instawp-connect' );
 }
 
@@ -203,10 +205,6 @@ if ( isset( $instawp_plugin ) && is_a( $instawp_plugin, 'instaWP' ) ) {
 	return;
 }
 
-require plugin_dir_path( __FILE__ ) . 'includes/class-instawp.php';
-require plugin_dir_path( __FILE__ ) . 'includes/functions.php';
-require_once( plugin_dir_path( __FILE__ ) . '/vendor/woocommerce/action-scheduler/action-scheduler.php' );
-
 
 function run_instawp() {
 
@@ -235,3 +233,4 @@ function run_instawp() {
 //$instawp_log = new InstaWP_Log( 'migration', 'New Migration Logic' );
 
 run_instawp();
+

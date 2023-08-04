@@ -147,7 +147,7 @@ tailwind.config = {
             create_container.addClass('loading');
 
             instawp_migrate_api_call();
-            instawp_migrate_api_call_interval = setInterval(instawp_migrate_api_call, 500);
+            instawp_migrate_api_call_interval = setInterval(instawp_migrate_api_call, 1000);
         }
     });
 
@@ -375,7 +375,7 @@ tailwind.config = {
     });
 
 
-    $(document).on('submit', '.instawp-form', function (e) {
+    $(document).on('submit', '.settings .instawp-form', function (e) {
 
         e.preventDefault();
 
@@ -653,6 +653,66 @@ tailwind.config = {
         el_migrate_step_prev.find('.step-progress-icon').find('img').removeClass('hidden');
         el_migrate_step_prev.find('.step-progress-icon').find('span').addClass('hidden');
     });
+
+
+    // Remote Management settings save start //
+    let ajaxSaveManagementSettings = ( name, value ) => {
+        $.ajax( {
+            type: 'POST',
+            url: plugin_object.ajax_url,
+            context: this,
+            data: {
+                'action': 'instawp_save_management_settings',
+                'name': name,
+                'value': value,
+                'security': instawp_migrate.security
+            },
+            beforeSend: function() {
+                $( document ).find( '.management .instawp-form' ).addClass( 'loading' );
+            },
+            success: function( response ) {
+                if ( response.success === true ) {
+                    setTimeout( function() {
+                        $( document ).find( '.management .instawp-form' ).removeClass( 'loading' );
+                    }, 500 );
+                } else {
+                    alert( 'Can\'t update settings. Please try again!' );
+                    location.reload();
+                }
+            },
+            error: function( jqXHR, textStatus, errorThrown ) {
+                alert( errorThrown + ': Can\'t update settings. Please try again!' );
+                location.reload();
+            }
+        } );
+    }
+
+    $( document ).on( 'change', '.save-ajax', function() {
+        let name = $( this ).attr( 'id' );
+        let value = $( this ).is( ':checked' ) ? 'on' : 'off';
+
+        if ( name === 'instawp_rm_heartbeat' ) {
+            if ( value === 'on' ) {
+                $( document ).find( '.instawp-api-heartbeat-field' ).show();
+            } else if ( value === 'off' ) {
+                $( document ).find( '.instawp-api-heartbeat-field' ).hide();
+            } 
+        }
+        
+        ajaxSaveManagementSettings( name, value );
+    } );
+
+    let debounce = null;
+    $( document ).on( 'input', '#instawp_api_heartbeat', function( e ) {
+        let name = $( this ).attr( 'id' );
+        let value = parseInt( Math.abs( $( this ).val() ) );
+
+        clearTimeout( debounce );
+        debounce = setTimeout( function() {
+            ajaxSaveManagementSettings( name, value );
+        }, 500 );
+    } );
+    // Remote Management settings save end //
 
 })(jQuery, window, document, instawp_migrate);
 
