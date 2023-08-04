@@ -298,6 +298,7 @@ class InstaWP_Setting {
 					'type'    => 'toggle',
 					'title'   => __( 'Heartbeat', 'instawp-connect' ),
 					'tooltip' => __( 'Enabling this option will allow remotely communicate with InstaWP API and sends data (e.g. wp_version, php_version, theme name, number of published posts, number of published pages, total number of users, total_size of the wordpress site etc.) on this website.', 'instawp-connect' ),
+					'desc'    => __( 'Disabling this will automatically disconnect this site from InstaWP dashboard after 1 hour.', 'instawp-connect' ),
 					'class'   => 'save-ajax',
 					'default' => 'on',
 				],
@@ -306,12 +307,13 @@ class InstaWP_Setting {
 					'type'         => 'number',
 					'title'        => __( 'Heartbeat Interval (Minutes)', 'instawp-connect' ),
 					'tooltip'      => __( 'It is the interval of heartbeat in minutes.', 'instawp-connect' ),
+					'desc'         => __( 'Minimum is 15 minutes and maximum is 60 minutes.', 'instawp-connect' ),
 					'placeholder'  => '15',
 					'class'        => '!w-80',
 					'parent_class' => ( $heartbeat !== 'on' ) ? 'hidden' : '',
 					'attributes'   => [
-						'min' => 1,
-						'max' => 360
+						'min' => 15,
+						'max' => 60
 					],
 				],
 			],

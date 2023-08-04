@@ -71,31 +71,31 @@ class InstaWP_Backup_Api {
 			'permission_callback' => '__return_true',
 		) );
 
-		register_rest_route( $this->namespace . '/' . $this->version . '/remote-control', '/clear-cache', array(
-			'methods'             => 'POST',
-			'callback'            => array( $this, 'instawp_handle_clear_cache' ),
-			'permission_callback' => '__return_true',
-		) );
-
 		register_rest_route( $this->namespace . '/' . $this->version_2 . '/hosting', '/migration', array(
 			'methods'             => 'POST',
 			'callback'            => array( $this, 'instawp_hosting_migration' ),
 			'permission_callback' => '__return_true',
 		) );
 
-		register_rest_route( $this->namespace . '/' . $this->version_2, '/inventory', array(
+		register_rest_route( $this->namespace . '/' . $this->version_2 . '/manage', '/clear-cache', array(
+			'methods'             => 'POST',
+			'callback'            => array( $this, 'clear_cache' ),
+			'permission_callback' => '__return_true',
+		) );
+
+		register_rest_route( $this->namespace . '/' . $this->version_2 . '/manage', '/inventory', array(
 			'methods'             => 'GET',
 			'callback'            => array( $this, 'get_inventory' ),
 			'permission_callback' => '__return_true',
 		) );
 
-		register_rest_route( $this->namespace . '/' . $this->version_2, '/install', array(
+		register_rest_route( $this->namespace . '/' . $this->version_2 . '/manage', '/install', array(
 			'methods'             => 'POST',
 			'callback'            => array( $this, 'perform_install' ),
 			'permission_callback' => '__return_true',
 		) );
 
-		register_rest_route( $this->namespace . '/' . $this->version_2, '/configuration', array(
+		register_rest_route( $this->namespace . '/' . $this->version_2 . '/manage', '/configuration', array(
 			array(
 				'methods'             => 'GET',
 				'callback'            => array( $this, 'get_configuration' ),
@@ -113,25 +113,25 @@ class InstaWP_Backup_Api {
 			),
 		) );
 
-		register_rest_route( $this->namespace . '/' . $this->version_2, '/file-manager', array(
+		register_rest_route( $this->namespace . '/' . $this->version_2 . '/manage', '/file-manager', array(
 			'methods'             => 'POST',
 			'callback'            => array( $this, 'file_manager' ),
 			'permission_callback' => '__return_true',
 		) );
 
-		register_rest_route( $this->namespace . '/' . $this->version_2, '/database-manager', array(
+		register_rest_route( $this->namespace . '/' . $this->version_2 . '/manage', '/database-manager', array(
 			'methods'             => 'POST',
 			'callback'            => array( $this, 'database_manager' ),
 			'permission_callback' => '__return_true',
 		) );
 
-		register_rest_route( $this->namespace . '/' . $this->version_2, '/logs', array(
+		register_rest_route( $this->namespace . '/' . $this->version_2 . '/manage', '/logs', array(
 			'methods'             => 'GET',
 			'callback'            => array( $this, 'get_logs' ),
 			'permission_callback' => '__return_true',
 		) );
 
-		register_rest_route( $this->namespace . '/' . $this->version_2, '/remote-management', array(
+		register_rest_route( $this->namespace . '/' . $this->version_2 . '/manage', '/remote-management', array(
 			array(
 				'methods'             => 'GET',
 				'callback'            => array( $this, 'get_remote_management' ),
@@ -166,7 +166,7 @@ class InstaWP_Backup_Api {
 	 *
 	 * @return WP_REST_Response
 	 */
-	function instawp_handle_clear_cache( WP_REST_Request $request ) {
+	function clear_cache( WP_REST_Request $request ) {
 
 		$response = $this->validate_api_request( $request );
 		if ( is_wp_error( $response ) ) {
