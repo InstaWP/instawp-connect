@@ -578,7 +578,7 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 					$user_data = isset( $v->details->user_data ) ? (array) $v->details->user_data : [];
 					$user_meta = isset( $v->details->user_meta ) ? (array) $v->details->user_meta : [];
 					$source_db_prefix = isset( $v->details->db_prefix ) ? (array) $v->details->db_prefix : '';
-					$user_table = $this->wpdb->prefix . 'users'; 
+ 
 					$get_user_by_reference_id = get_users( array(
 						'meta_key'   => 'instawp_event_user_sync_reference_id',
 						'meta_value' => isset( $user_meta['instawp_event_user_sync_reference_id'][0] ) ? $user_meta['instawp_event_user_sync_reference_id'][0] : '',
@@ -596,7 +596,7 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 					}
 
 					#Update user
-					if ( isset( $v->event_slug ) && ( $v->event_slug == 'profile_update' ) ) {
+					if ( isset( $v->event_slug ) && ( $v->event_slug == 'profile_update' ) && ( ! empty( $user_data ) ) ) {
 						if (  $user ) {
 							$user_data['ID'] = $user->data->ID;
 							$user_id = wp_update_user( $user_data );
@@ -777,9 +777,11 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 	 * Set product gallery
 	 */
 	public function set_product_gallery( $product_id = null, $gallery_ids = null ) {
-		$product = new WC_product( $product_id );
-		$product->set_gallery_image_ids( $gallery_ids );
-		$product->save();
+		if ( class_exists( 'woocommerce' ) ) {
+			$product = new WC_product( $product_id );
+			$product->set_gallery_image_ids( $gallery_ids );
+			$product->save();
+		}
 	}
 
 	public function customizer_site_icon( $data = null ) {
