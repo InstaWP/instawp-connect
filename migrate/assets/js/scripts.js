@@ -668,13 +668,15 @@ tailwind.config = {
                 'security': instawp_migrate.security
             },
             beforeSend: function() {
-                $( document ).find( '.management .instawp-form' ).addClass( 'loading' );
+                $( document ).find( '.manage .instawp-form' ).addClass( 'loading' );
             },
             success: function( response ) {
                 if ( response.success === true ) {
+                    let label_field = $( document ).find( '.' + name.replace( /_/g, '-' ) + '-field .toggle-label' );
                     setTimeout( function() {
-                        $( document ).find( '.management .instawp-form' ).removeClass( 'loading' );
-                    }, 500 );
+                        label_field.text( label_field.data( value ) );
+                        $( document ).find( '.manage .instawp-form' ).removeClass( 'loading' );
+                    }, 300 );
                 } else {
                     alert( 'Can\'t update settings. Please try again!' );
                     location.reload();
