@@ -246,8 +246,8 @@ class InstaWP_Ajax_Fn {
 					'source_url'        => get_site_url() #staging url
 				] );
 
-				   echo $packed_data;
-				   exit();
+				//    echo $packed_data;
+				//    exit();
 				$resp        = $this->sync_upload( $packed_data, null );
 				$resp_decode = json_decode( $resp );
 				if ( isset( $resp_decode->status ) && $resp_decode->status === true ) {
