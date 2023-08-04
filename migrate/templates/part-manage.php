@@ -5,7 +5,7 @@
 
 ?>
 
-<div class="nav-item-content management bg-white rounded-md p-6">
+<div class="nav-item-content manage bg-white rounded-md p-6">
     <form class="instawp-form w-full" onsubmit="return false;">
         <div class="instawp-form-fields">
 			<?php foreach ( array_values( InstaWP_Setting::get_management_settings() ) as $index => $section ) : ?>
