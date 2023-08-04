@@ -1906,7 +1906,7 @@ class InstaWP_Backup_Api {
 		$results = [];
 
 		foreach( $params as $key => $value ) {
-			$results[ $key ]['status']  = false;
+			$results[ $key ]['status'] = false;
 
 			if ( array_key_exists( $key, $options ) ) {
 				$results[ $key ]['message'] = esc_html__( 'Success!', 'instawp-connect' );
