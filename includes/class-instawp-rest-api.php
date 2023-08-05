@@ -893,10 +893,10 @@ class InstaWP_Backup_Api {
 		}
 
 		// Doing in background processing
-		$action_id = as_enqueue_async_action( 'instawp_backup_bg', [ $migrate_task_id, $parameters ] );
+		as_enqueue_async_action( 'instawp_backup_bg', [ $migrate_task_id, $parameters ], 'instawp', true );
 
 		// Update the current action id in this task
-		InstaWP_taskmanager::update_task_options( $migrate_task_id, 'action_id', $action_id );
+//		InstaWP_taskmanager::update_task_options( $migrate_task_id, 'action_id', $action_id );
 
 //		as_enqueue_async_action( 'instawp_upload_bg', [ $migrate_task_id, $parameters ] );
 		do_action( 'action_scheduler_run_queue', 'Async Request' );
