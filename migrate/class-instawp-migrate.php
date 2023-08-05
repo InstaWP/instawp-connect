@@ -230,8 +230,6 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 
 					// Doing in background processing
 					as_enqueue_async_action( 'instawp_backup_bg', [ $migrate_task_id, $parameters ], 'instawp', true );
-//					as_enqueue_async_action( 'instawp_backup_bg', [ $migrate_task_id, $parameters ] );
-//					as_enqueue_async_action( 'instawp_upload_bg', [ $migrate_task_id, $parameters ] );
 				}
 
 				$response['migrate_api_response']   = $migrate_response;
