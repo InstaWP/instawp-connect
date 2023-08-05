@@ -286,18 +286,21 @@ class InstaWP_taskmanager {
 		}
 	}
 
-	public static function update_task_options( $task_id, $option_name, $option ) {
-		$tasks = InstaWP_Setting::get_tasks();
-		if ( array_key_exists( $task_id, $tasks ) ) {
-			$task                            = $tasks[ $task_id ];
-			$task['options'][ $option_name ] = $option;
+	public static function update_task_options( $task_id, $option_name, $option_value ) {
 
-			InstaWP_Setting::update_task( $task_id, $task );
+		$task = InstaWP_taskmanager::get_task( $task_id );
 
-			return true;
-		} else {
+		if ( empty( $task ) || ! is_array( $task ) ) {
 			return false;
 		}
+
+		// Adding task options
+		$task['options'][ $option_name ] = $option_value;
+
+		// Saving task
+		InstaWP_Setting::update_task( $task_id, $task );
+
+		return true;
 	}
 
 	public static function update_backup_main_task_progress( $task_id, $job_name, $progress, $finished, $job_data = array() ) {

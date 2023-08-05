@@ -352,9 +352,9 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 			delete_option( 'instawp_rm_debug_log' );
 
 			update_option( 'instawp_api_url', esc_url_raw( 'https://app.instawp.io' ) );
-			
+
 			as_unschedule_all_actions( 'instawp_handle_heartbeat', [], 'instawp-connect' );
-		
+
 			$file_name = InstaWP_Setting::get_option( 'instawp_file_manager_name', '' );
 			if ( $file_name ) {
 				as_unschedule_all_actions( 'instawp_clean_file_manager', [ $file_name ], 'instawp-connect' );
@@ -415,6 +415,7 @@ if ( ! function_exists( 'instawp_backup_files' ) ) {
 				}
 
 				InstaWP_taskmanager::update_task( $migrate_task );
+				break;
 			}
 
 			if ( 'completed' != $backup_status ) {
@@ -430,6 +431,7 @@ if ( ! function_exists( 'instawp_backup_files' ) ) {
 				}
 
 				InstaWP_taskmanager::update_task( $migrate_task );
+				break;
 			}
 		}
 
@@ -942,6 +944,7 @@ if ( ! function_exists( 'instawp_upload_backup_parts_to_cloud' ) ) {
 			}
 
 			if ( 'completed' != InstaWP_Setting::get_args_option( 'upload_status', $data ) ) {
+
 				foreach ( InstaWP_taskmanager::get_task_backup_upload_data( $migrate_task_id, $key ) as $file_path_index => $file_path_args ) {
 
 					if ( 'completed' != InstaWP_Setting::get_args_option( 'source_status', $file_path_args ) ) {
@@ -968,10 +971,6 @@ if ( ! function_exists( 'instawp_upload_backup_parts_to_cloud' ) ) {
 								), array(), 'patch' );
 
 								InstaWP_taskmanager::update_task( $migrate_task );
-
-								if ( $do_parts_by_parts ) {
-									break;
-								}
 							}
 						}
 					}
@@ -993,6 +992,7 @@ if ( ! function_exists( 'instawp_upload_backup_parts_to_cloud' ) ) {
 				}
 
 				InstaWP_taskmanager::update_task( $migrate_task );
+				break;
 			}
 		}
 	}

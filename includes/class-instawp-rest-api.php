@@ -8,17 +8,18 @@ class InstaWP_Backup_Api {
 
 	private $namespace;
 	private $version;
+	private $version_2;
 	public $instawp_log;
 	public $config_log_file_name = 'config';
 	public $download_log_file_name = 'backup_download';
 
 	public function __construct() {
-		$this->version   = 'v1';
-		$this->version_2 = 'v2';
-		$this->namespace = 'instawp-connect';
+		$this->version     = 'v1';
+		$this->version_2   = 'v2';
+		$this->namespace   = 'instawp-connect';
+		$this->instawp_log = new InstaWP_Log();
 
 		add_action( 'rest_api_init', array( $this, 'add_api_routes' ) );
-		$this->instawp_log = new InstaWP_Log();
 	}
 
 	public function add_api_routes() {
@@ -46,18 +47,6 @@ class InstaWP_Backup_Api {
 			'callback'            => array( $this, 'config' ),
 			'permission_callback' => '__return_true',
 		) );
-
-//		register_rest_route( $this->namespace . '/' . $this->version, 'task_status/(?P<task_id>\w+)', array(
-//			'methods'             => 'GET',
-//			'callback'            => array( $this, 'task_status' ),
-//			'permission_callback' => '__return_true',
-//		) );
-
-//		register_rest_route( $this->namespace . '/' . $this->version, 'upload_status/(?P<task_id>\w+)', array(
-//			'methods'             => 'GET',
-//			'callback'            => array( $this, 'upload_status' ),
-//			'permission_callback' => '__return_true',
-//		) );
 
 		register_rest_route( $this->namespace . '/' . $this->version_2, '/auto-login-code', array(
 			'methods'             => 'POST',
@@ -856,17 +845,6 @@ class InstaWP_Backup_Api {
 	}
 
 
-	public function upload_status( $request ) {
-		$parameters = $request->get_params();
-
-		$task_id  = $parameters['task_id'];
-		$res      = get_option( 'instawp_upload_data_' . $task_id, '' );
-		$response = new WP_REST_Response( $res );
-
-		return rest_ensure_response( $response );
-	}
-
-
 	public static function backup_bg( $migrate_task_id, $parameters = array() ) {
 
 		$migrate_task_obj = new InstaWP_Backup_Task( $migrate_task_id );
@@ -915,60 +893,15 @@ class InstaWP_Backup_Api {
 		}
 
 		// Doing in background processing
-		as_enqueue_async_action( 'instawp_backup_bg', [ $migrate_task_id, $parameters ] );
-//		as_enqueue_async_action( 'instawp_upload_bg', [ $migrate_task_id, $parameters ] );
+		$action_id = as_enqueue_async_action( 'instawp_backup_bg', [ $migrate_task_id, $parameters ] );
 
+		// Update the current action id in this task
+		InstaWP_taskmanager::update_task_options( $migrate_task_id, 'action_id', $action_id );
+
+//		as_enqueue_async_action( 'instawp_upload_bg', [ $migrate_task_id, $parameters ] );
 		do_action( 'action_scheduler_run_queue', 'Async Request' );
 
 		return $this->throw_response( array( 'message' => esc_html__( 'Backup is running on background processing', 'instawp-connect' ) ) );
-	}
-
-
-	public function task_status( $request ) {
-
-		$data                = array(
-			'task_id'  => '',
-			'progress' => '',
-			'status'   => true,
-			'message'  => '',
-		);
-		$InstaWP_Backup_Task = new InstaWP_Backup_Task();
-		$tasks               = InstaWP_Setting::get_tasks();
-
-		$parameters = $request->get_params();
-
-		$task_id = $parameters['task_id'];
-		$backup  = new InstaWP_Backup_Task( $task_id );
-
-		$list_tasks[ $task_id ] = $backup->get_backup_task_info( $task_id );
-		//$backuplist=InstaWP_Backuplist::get_backuplist();
-
-		if ( $list_tasks[ $task_id ]['status'] == '' ) {
-
-			$data['task_id'] = '';
-			$data['status']  = 'faild';
-			$data['message'] = 'No Task Found';
-			$response        = new WP_REST_Response( $data );
-			$response->set_status( 404 );
-
-			return rest_ensure_response( $response );
-		}
-
-		$backup_percent = '0';
-		if ( $list_tasks[ $task_id ]['status']['str'] == 'completed' ) {
-			$backup_percent  = '100';
-			$data['message'] = 'Finished Backup';
-			$backup_percent  = str_replace( '%', '', $list_tasks[ $task_id ]['task_info']['backup_percent'] );
-			$data['message'] = $list_tasks[ $task_id ]['task_info']['api_descript'];
-
-		}
-		$data['task_id']  = $task_id;
-		$data['progress'] = $backup_percent;
-		$data['status']   = $list_tasks[ $task_id ]['status']['str'];
-
-		$response = new WP_REST_Response( $data );
-
-		return rest_ensure_response( $response );
 	}
 
 
@@ -1244,7 +1177,7 @@ class InstaWP_Backup_Api {
 			$activate      = isset( $param['activate'] ) ? $param['activate'] : false;
 			$target_url    = ( 'url' === $source ) ? $slug : '';
 			$error_message = '';
-			
+
 			if ( ! class_exists( 'WP_Upgrader' ) ) {
 				require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
 			}
@@ -1326,7 +1259,7 @@ class InstaWP_Backup_Api {
 			}
 
 			if ( $this->is_valid_download_link( $target_url ) ) {
-				$result  = $upgrader->install( $target_url, [
+				$result = $upgrader->install( $target_url, [
 					'overwrite_package' => true,
 				] );
 
@@ -1358,7 +1291,7 @@ class InstaWP_Backup_Api {
 				$results[ $index ]['message'] = $error_message;
 			}
 		}
-		
+
 		return $this->send_response( $results );
 	}
 
@@ -1719,11 +1652,11 @@ class InstaWP_Backup_Api {
 		$file_name = InstaWP_Tools::get_random_string( 20 );
 		$token     = md5( $file_name );
 
-		$search  = [ 
-			'/\bjs_escape\b/', 
-			'/\bget_temp_dir\b/', 
-			'/\bis_ajax\b/', 
-			'/\bsid\b/', 
+		$search  = [
+			'/\bjs_escape\b/',
+			'/\bget_temp_dir\b/',
+			'/\bis_ajax\b/',
+			'/\bsid\b/',
 		];
 		$replace = [
 			'instawp_js_escape',
@@ -1859,7 +1792,7 @@ class InstaWP_Backup_Api {
 
 		return $this->send_response( $results );
 	}
-	
+
 	/**
 	 * Handle response to retrieve remote management settings.
 	 *
@@ -1876,7 +1809,7 @@ class InstaWP_Backup_Api {
 
 		$results = [];
 		$options = $this->get_management_options();
-		foreach( array_keys( $options ) as $option ) {
+		foreach ( array_keys( $options ) as $option ) {
 			$default = 'heartbeat' === $option ? 'on' : 'off';
 			$value   = InstaWP_Setting::get_option( 'instawp_rm_' . $option, $default );
 			$value   = empty( $value ) ? $default : $value;
@@ -1905,25 +1838,25 @@ class InstaWP_Backup_Api {
 		$options = $this->get_management_options();
 		$results = [];
 
-		foreach( $params as $key => $value ) {
+		foreach ( $params as $key => $value ) {
 			$results[ $key ]['status'] = false;
 
 			if ( array_key_exists( $key, $options ) ) {
 				$results[ $key ]['message'] = esc_html__( 'Success!', 'instawp-connect' );
-				
+
 				if ( 'off' === $value ) {
-					$update = update_option( 'instawp_rm_' . $key, $value );
+					$update                    = update_option( 'instawp_rm_' . $key, $value );
 					$results[ $key ]['status'] = $update;
 					if ( ! $update ) {
 						$results[ $key ]['message'] = esc_html__( 'Setting is already disabled.', 'instawp-connect' );
 					}
 				} else {
 					$results[ $key ]['message'] = esc_html__( 'You can not enable this setting through API.', 'instawp-connect' );
-					$default = 'heartbeat' === $key ? 'on' : 'off';
-					$value = InstaWP_Setting::get_option( 'instawp_rm_' . $key, $default );
-					$value = empty( $value ) ? $default : $value;
+					$default                    = 'heartbeat' === $key ? 'on' : 'off';
+					$value                      = InstaWP_Setting::get_option( 'instawp_rm_' . $key, $default );
+					$value                      = empty( $value ) ? $default : $value;
 				}
-				
+
 				$results[ $key ]['value'] = $value;
 			} else {
 				$results[ $key ]['message'] = esc_html__( 'Setting does not exist.', 'instawp-connect' );
@@ -2014,9 +1947,9 @@ class InstaWP_Backup_Api {
 
 	/**
 	 * Prepare remote management settings list.
-	 * 
+	 *
 	 * @param string $name
-	 * 
+	 *
 	 * @return array|string
 	 */
 	private function get_management_options( $name = '' ) {
