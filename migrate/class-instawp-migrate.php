@@ -69,14 +69,14 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 			$instawp_is_staging = isset( $parameters['wp']['options']['instawp_is_staging'] ) && $parameters['wp']['options']['instawp_is_staging'];
 
 			// Reset permalink
-			instawp()->tools::instawp_reset_permalink();
+			InstaWP_Tools::instawp_reset_permalink();
 
 			// Write htaccess rules
-			instawp()->tools::write_htaccess_rule();
+			InstaWP_Tools::write_htaccess_rule();
 
 			// No index staging sites
 			if ( $instawp_is_staging ) {
-				instawp()->tools::update_search_engine_visibility();
+				InstaWP_Tools::update_search_engine_visibility();
 			}
 		}
 

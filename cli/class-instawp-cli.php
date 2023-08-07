@@ -136,13 +136,15 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 			$migrate_task_obj = new InstaWP_Backup_Task( $migrate_task_id, $migrate_task );
 
 			// Create backup zip
-			instawp_backup_files( $migrate_task_obj, array( 'clean_non_zip' => true ) );
+			instawp_backup_files( $migrate_task_obj, array( 'clean_non_zip' => true ), false );
 
 			// Update backup progress
 			instawp_update_backup_progress( $migrate_task_id, $migrate_id );
 
 			// Update total parts number
 			instawp_update_total_parts_number( $migrate_task_id, $migrate_id );
+
+			WP_CLI::success( esc_html__( 'Backup completed successfully.', 'instawp-connect' ) );
 		}
 
 		public function cli_upload( $migrate_task_id ) {
@@ -153,7 +155,7 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 			 * We are not uploading to cloud here.
 			 */
 			// Upload backup parts to S3 cloud
-			instawp_upload_backup_parts_to_cloud( $migrate_task_id, $migrate_id );
+			instawp_upload_backup_parts_to_cloud( $migrate_task_id, $migrate_id, false );
 
 //			$response          = instawp_get_response_progresses( $migrate_task_id, $migrate_id, [], array( 'generate_local_parts_urls' => true ) );
 //			$part_urls         = InstaWP_Setting::get_args_option( 'part_urls', $response, array() );

@@ -618,26 +618,28 @@ class InstaWP_Backup_Api {
 
 	public static function restore_bg( $backup_list, $restore_options, $parameters ) {
 
+		global $instawp_plugin;
+
+		$backup_index      = 1;
 		$progress_response = [];
-		$res_result        = [];
 
 		// before doing restore deactivate caching plugin
-		instawp()::disable_cache_elements_before_restore();
+		$instawp_plugin::disable_cache_elements_before_restore();
 
 		foreach ( $backup_list as $backup_list_key => $backup ) {
-
 			do {
-				instawp()->restore_api( $backup_list_key, $restore_options, $parameters );
 
-				$progress_results  = instawp()->get_restore_progress_api( $backup_list_key );
+				$instawp_plugin->restore_api( $backup_list_key, $restore_options, $parameters );
+
+				$progress_results = $instawp_plugin->get_restore_progress_api( $backup_list_key );
 				$progress_response = (array) json_decode( $progress_results );
 
 			} while ( $progress_response['status'] != 'completed' || $progress_response['status'] == 'error' );
+
+			$backup_index ++;
 		}
 
 		if ( $progress_response['status'] == 'completed' ) {
-
-			$res_result['message'] = "Restore completed";
 
 			if ( isset( $parameters['wp'] ) && isset( $parameters['wp']['users'] ) ) {
 				self::create_user( $parameters['wp']['users'] );
@@ -655,18 +657,16 @@ class InstaWP_Backup_Api {
 
 			do_action( 'INSTAWP/Actions/restore_completed', $restore_options, $parameters );
 
-			// handle folder remover
 			InstaWP_AJAX::instawp_folder_remover_handle();
 
 			// once the restore completed, enable caching elements
-			instawp()::enable_cache_elements_before_restore();
+			$instawp_plugin::enable_cache_elements_before_restore();
+
+			// reset permalink
+			InstaWP_Tools::instawp_reset_permalink();
 		}
 
-		if ( $progress_response['status'] == 'error' ) {
-			$res_result['message'] = "Error occurred";
-		}
-
-		instawp()->delete_last_restore_data_api();
+		$instawp_plugin->delete_last_restore_data_api();
 	}
 
 
