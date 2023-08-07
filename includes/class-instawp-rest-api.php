@@ -617,56 +617,6 @@ class InstaWP_Backup_Api {
 
 	public static function restore_bg( $backup_list, $restore_options, $parameters ) {
 
-//		$progress_response = [];
-//
-//		// before doing restore deactivate caching plugin
-//		instawp()::disable_cache_elements_before_restore();
-//
-//		instawp()->restore_data = new InstaWP_restore_data();
-//
-//		foreach ( $backup_list as $backup_list_key => $backup ) {
-//
-//			do {
-//				instawp()->restore_api( $backup_list_key, $restore_options, $parameters );
-//
-//				$progress_results  = instawp()->get_restore_progress_api( $backup_list_key );
-//				$progress_response = (array) json_decode( $progress_results );
-//
-//			} while ( $progress_response['status'] != 'completed' || $progress_response['status'] == 'error' );
-//		}
-//
-//		if ( $progress_response['status'] == 'completed' ) {
-//
-//			if ( isset( $parameters['wp'] ) && isset( $parameters['wp']['users'] ) ) {
-//				self::create_user( $parameters['wp']['users'] );
-//			}
-//
-//			if ( isset( $parameters['wp'] ) && isset( $parameters['wp']['options'] ) ) {
-//				if ( is_array( $parameters['wp']['options'] ) ) {
-//					$create_options = $parameters['wp']['options'];
-//
-//					foreach ( $create_options as $option_key => $option_value ) {
-//						update_option( $option_key, $option_value );
-//					}
-//				}
-//			}
-//
-//			do_action( 'INSTAWP/Actions/restore_completed', $restore_options, $parameters );
-//
-//			// handle folder remover
-//			InstaWP_AJAX::instawp_folder_remover_handle();
-//
-//			// once the restore completed, enable caching elements
-//			instawp()::enable_cache_elements_before_restore();
-//
-//			// reset permalink
-//			InstaWP_Tools::instawp_reset_permalink();
-//		}
-//
-//		instawp()->delete_last_restore_data_api();
-
-
-
 		global $instawp_plugin;
 
 		$backup_index      = 1;
