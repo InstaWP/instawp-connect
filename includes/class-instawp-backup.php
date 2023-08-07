@@ -589,7 +589,7 @@ class InstaWP_Backup_Task {
 
 		foreach ( wp_get_themes() as $key => $item ) {
 
-			if ( ( 'true' == $active_themes_only || '1' == $active_themes_only ) && $current_theme->get( 'Name' ) != $item->get( 'Name' ) ) {
+			if ( ( 'true' == $active_themes_only || '1' == $active_themes_only ) && $current_theme->get( 'Name' ) != $item->get( 'Name' ) && $current_theme->parent() != $item->get( 'Name' ) ) {
 				$themes_excluded[] = $key;
 				continue;
 			}
@@ -623,7 +623,9 @@ class InstaWP_Backup_Task {
 		$exclude_default_plugins = $this->get_exclude_default_plugins();
 
 		foreach ( $list as $key => $item ) {
-			if ( in_array( dirname( $key ), $exclude_default_plugins ) ) {
+			$dirname = dirname( $key );
+			
+			if ( in_array( $dirname, $exclude_default_plugins ) ) {
 				$plugins_excluded[] = $key;
 				continue;
 			}
@@ -633,8 +635,8 @@ class InstaWP_Backup_Task {
 				continue;
 			}
 
-			$plugins_included[ dirname( $key ) ]['slug'] = dirname( $key );
-			$plugins_included[ dirname( $key ) ]['size'] = $this->get_folder_size( WP_PLUGIN_DIR . DIRECTORY_SEPARATOR . dirname( $key ), 0 );
+			$plugins_included[ $dirname ]['slug'] = $dirname;
+			$plugins_included[ $dirname ]['size'] = $this->get_folder_size( WP_PLUGIN_DIR . DIRECTORY_SEPARATOR . $dirname, 0 );
 		}
 
 		$plugins_excluded = array_map( function ( $slug ) {
