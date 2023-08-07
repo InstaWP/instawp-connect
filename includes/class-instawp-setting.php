@@ -162,7 +162,7 @@ class InstaWP_Setting {
 		echo '</div>';
 	}
 
-	public static function generate_section( $section = array(), $index ) {
+	public static function generate_section( $section = array(), $index = 0 ) {
 
 		$section_classes = [ 'section' ];
 		$internal        = self::get_args_option( 'internal', $section, false );

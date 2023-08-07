@@ -136,13 +136,15 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 			$migrate_task_obj = new InstaWP_Backup_Task( $migrate_task_id, $migrate_task );
 
 			// Create backup zip
-			instawp_backup_files( $migrate_task_obj, array( 'clean_non_zip' => true ) );
+			instawp_backup_files( $migrate_task_obj, array( 'clean_non_zip' => true ), false );
 
 			// Update backup progress
 			instawp_update_backup_progress( $migrate_task_id, $migrate_id );
 
 			// Update total parts number
 			instawp_update_total_parts_number( $migrate_task_id, $migrate_id );
+
+			WP_CLI::success( esc_html__( 'Backup completed successfully.', 'instawp-connect' ) );
 		}
 
 		public function cli_upload( $migrate_task_id ) {

@@ -388,7 +388,7 @@ if ( ! function_exists( 'instawp_backup_files' ) ) {
 	 *
 	 * @return void
 	 */
-	function instawp_backup_files( InstaWP_Backup_Task $migrate_task_obj, $args = array() ) {
+	function instawp_backup_files( InstaWP_Backup_Task $migrate_task_obj, $args = array(), $split_part_processing = true ) {
 
 		$migrate_task = InstaWP_taskmanager::get_task( $migrate_task_obj->get_id() );
 
@@ -415,7 +415,10 @@ if ( ! function_exists( 'instawp_backup_files' ) ) {
 				}
 
 				InstaWP_taskmanager::update_task( $migrate_task );
-				break;
+
+				if ( $split_part_processing ) {
+					break;
+				}
 			}
 
 			if ( 'completed' != $backup_status ) {
@@ -431,7 +434,10 @@ if ( ! function_exists( 'instawp_backup_files' ) ) {
 				}
 
 				InstaWP_taskmanager::update_task( $migrate_task );
-				break;
+
+				if ( $split_part_processing ) {
+					break;
+				}
 			}
 		}
 
