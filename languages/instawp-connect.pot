@@ -5,7 +5,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2023-08-04 06:50+0000\n"
+"POT-Creation-Date: 2023-08-04 10:06+0000\n"
 "X-Poedit-Basepath: ..\n"
 "X-Poedit-KeywordsList: __;_e;_ex:1,2c;_n:1,2;_n_noop:1,2;_nx:1,2,4c;_nx_noop:1,2,3c;_x:1,2c;esc_attr__;esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c\n"
 "X-Poedit-SearchPath-0: .\n"
@@ -520,59 +520,59 @@ msgstr ""
 msgid "Send Backup to Remote Storage:"
 msgstr ""
 
-#: admin/partials/instawp-admin-change-event-filters.php:150
+#: admin/partials/instawp-admin-change-event-filters.php:146
 msgid "New user registered"
 msgstr ""
 
-#: admin/partials/instawp-admin-change-event-filters.php:172
+#: admin/partials/instawp-admin-change-event-filters.php:166
 msgid "User deleted"
 msgstr ""
 
-#: admin/partials/instawp-admin-change-event-filters.php:191
+#: admin/partials/instawp-admin-change-event-filters.php:183
 msgid "User updated"
 msgstr ""
 
-#: admin/partials/instawp-admin-change-event-filters.php:281, admin/partials/instawp-admin-change-event-filters.php:293, admin/partials/instawp-admin-change-event-filters.php:314
+#: admin/partials/instawp-admin-change-event-filters.php:272, admin/partials/instawp-admin-change-event-filters.php:283, admin/partials/instawp-admin-change-event-filters.php:303
 msgid "Woocommerce attribute"
 msgstr ""
 
-#: admin/partials/instawp-admin-change-event-filters.php:332, admin/partials/instawp-admin-change-event-filters.php:617
+#: admin/partials/instawp-admin-change-event-filters.php:320, admin/partials/instawp-admin-change-event-filters.php:610
 msgid "%s modified"
 msgstr ""
 
-#: admin/partials/instawp-admin-change-event-filters.php:351, admin/partials/instawp-admin-change-event-filters.php:676
+#: admin/partials/instawp-admin-change-event-filters.php:338, admin/partials/instawp-admin-change-event-filters.php:677
 msgid "%s deleted"
 msgstr ""
 
-#: admin/partials/instawp-admin-change-event-filters.php:368, admin/partials/instawp-admin-change-event-filters.php:611
+#: admin/partials/instawp-admin-change-event-filters.php:354, admin/partials/instawp-admin-change-event-filters.php:604
 msgid "%s created"
 msgstr ""
 
-#: admin/partials/instawp-admin-change-event-filters.php:382
+#: admin/partials/instawp-admin-change-event-filters.php:367
 msgid "Install themes updated"
 msgstr ""
 
-#: admin/partials/instawp-admin-change-event-filters.php:396
+#: admin/partials/instawp-admin-change-event-filters.php:380
 msgid "Install themes upload"
 msgstr ""
 
-#: admin/partials/instawp-admin-change-event-filters.php:410
+#: admin/partials/instawp-admin-change-event-filters.php:393
 msgid "Install themes new"
 msgstr ""
 
-#: admin/partials/instawp-admin-change-event-filters.php:425
+#: admin/partials/instawp-admin-change-event-filters.php:407
 msgid "Theme %s deleted"
 msgstr ""
 
-#: admin/partials/instawp-admin-change-event-filters.php:441
+#: admin/partials/instawp-admin-change-event-filters.php:422
 msgid "Theme switched from %s to %s"
 msgstr ""
 
-#: admin/partials/instawp-admin-change-event-filters.php:471
+#: admin/partials/instawp-admin-change-event-filters.php:450
 msgid "Plugin deactivated"
 msgstr ""
 
-#: admin/partials/instawp-admin-change-event-filters.php:488
+#: admin/partials/instawp-admin-change-event-filters.php:465
 msgid "Plugin activated"
 msgstr ""
 
@@ -580,7 +580,7 @@ msgstr ""
 msgid "%s trashed"
 msgstr ""
 
-#: admin/partials/instawp-admin-change-event-filters.php:707
+#: admin/partials/instawp-admin-change-event-filters.php:706
 msgid "%s Restored"
 msgstr ""
 
@@ -1312,28 +1312,32 @@ msgstr ""
 msgid "Heartbeat"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:2025, includes/class-instawp-setting.php:330
+#: includes/class-instawp-rest-api.php:2025, includes/class-instawp-setting.php:332
 msgid "File Manager"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:2026, includes/class-instawp-setting.php:338
+#: includes/class-instawp-rest-api.php:2026, includes/class-instawp-setting.php:340
 msgid "Database Manager"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:2027, includes/class-instawp-setting.php:346
+#: includes/class-instawp-rest-api.php:2027, includes/class-instawp-setting.php:348
 msgid "Install Plugin / Themes"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:2028, includes/class-instawp-setting.php:354
+#: includes/class-instawp-rest-api.php:2028, includes/class-instawp-setting.php:356
 msgid "Config Management"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:2029, includes/class-instawp-setting.php:362
+#: includes/class-instawp-rest-api.php:2029, includes/class-instawp-setting.php:364
 msgid "Site Inventory"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:2030, includes/class-instawp-setting.php:370
+#: includes/class-instawp-rest-api.php:2030, includes/class-instawp-setting.php:372
 msgid "Debug Log"
+msgstr ""
+
+#: includes/class-instawp-rest-apis.php:129
+msgid "Invalid data"
 msgstr ""
 
 #. translators: %s: directory path
@@ -1417,43 +1421,51 @@ msgstr ""
 msgid "Enabling this option will allow remotely communicate with InstaWP API and sends data (e.g. wp_version, php_version, theme name, number of published posts, number of published pages, total number of users, total_size of the wordpress site etc.) on this website."
 msgstr ""
 
-#: includes/class-instawp-setting.php:307
-msgid "Heartbeat Interval (Minutes)"
+#: includes/class-instawp-setting.php:301
+msgid "Disabling this will automatically disconnect this site from InstaWP dashboard after 1 hour."
 msgstr ""
 
 #: includes/class-instawp-setting.php:308
+msgid "Heartbeat Interval (Minutes)"
+msgstr ""
+
+#: includes/class-instawp-setting.php:309
 msgid "It is the interval of heartbeat in minutes."
 msgstr ""
 
-#: includes/class-instawp-setting.php:322
+#: includes/class-instawp-setting.php:310
+msgid "Minimum is 15 minutes and maximum is 60 minutes."
+msgstr ""
+
+#: includes/class-instawp-setting.php:324
 msgid "Remote Management"
 msgstr ""
 
-#: includes/class-instawp-setting.php:323
+#: includes/class-instawp-setting.php:325
 msgid "Update your website's remote management settings."
 msgstr ""
 
-#: includes/class-instawp-setting.php:331
+#: includes/class-instawp-setting.php:333
 msgid "Enabling this option will allow creation of remote file manager on this website remotely using the REST API."
 msgstr ""
 
-#: includes/class-instawp-setting.php:339
+#: includes/class-instawp-setting.php:341
 msgid "Enabling this option will allow creation of remote database manager on this website remotely using the REST API."
 msgstr ""
 
-#: includes/class-instawp-setting.php:347
+#: includes/class-instawp-setting.php:349
 msgid "Enabling this option will allow install plugins and themes on this website remotely using the REST API."
 msgstr ""
 
-#: includes/class-instawp-setting.php:355
+#: includes/class-instawp-setting.php:357
 msgid "Enabling this option will allow reading, updating and deleting the WordPress constant values on this website remotely using the REST API."
 msgstr ""
 
-#: includes/class-instawp-setting.php:363
+#: includes/class-instawp-setting.php:365
 msgid "Enabling this option will allow reading the installed WordPress version, themes and plugins on this website remotely using the REST API."
 msgstr ""
 
-#: includes/class-instawp-setting.php:371
+#: includes/class-instawp-setting.php:373
 msgid "Enabling this option will allow reading WordPress error logs on this website remotely using the REST API."
 msgstr ""
 

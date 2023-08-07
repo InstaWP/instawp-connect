@@ -676,6 +676,7 @@ tailwind.config = {
                     setTimeout( function() {
                         label_field.text( label_field.data( value ) );
                         $( document ).find( '.manage .instawp-form' ).removeClass( 'loading' );
+                        $( document ).trigger( 'instawpToggleSave', [ name, value ] );
                     }, 300 );
                 } else {
                     alert( 'Can\'t update settings. Please try again!' );
@@ -693,6 +694,10 @@ tailwind.config = {
         let name = $( this ).attr( 'id' );
         let value = $( this ).is( ':checked' ) ? 'on' : 'off';
 
+        ajaxSaveManagementSettings( name, value );
+    } );
+
+    $( document ).on( 'instawpToggleSave', function( e, name, value ) {
         if ( name === 'instawp_rm_heartbeat' ) {
             if ( value === 'on' ) {
                 $( document ).find( '.instawp-api-heartbeat-field' ).show();
@@ -700,18 +705,22 @@ tailwind.config = {
                 $( document ).find( '.instawp-api-heartbeat-field' ).hide();
             } 
         }
-        
-        ajaxSaveManagementSettings( name, value );
     } );
 
     let debounce = null;
     $( document ).on( 'input', '#instawp_api_heartbeat', function( e ) {
-        let name = $( this ).attr( 'id' );
+        let el = $( this );
+        let name = el.attr( 'id' );
         let value = parseInt( Math.abs( $( this ).val() ) );
 
         clearTimeout( debounce );
         debounce = setTimeout( function() {
-            ajaxSaveManagementSettings( name, value );
+            if ( value >= 15 && value <= 60 ) {
+                ajaxSaveManagementSettings( name, value );
+            } else {
+                el.val( 15 );
+                ajaxSaveManagementSettings( name, 15 );
+            }
         }, 500 );
     } );
     // Remote Management settings save end //
