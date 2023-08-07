@@ -31,7 +31,38 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 			add_action( 'admin_init', array( $this, 'handle_clear_all' ) );
 
 			add_action( 'INSTAWP/Actions/restore_completed', array( $this, 'restore_completed' ), 10, 2 );
+			add_action( 'action_scheduler_completed_action', array( $this, 'scheduler_completed_action' ), 10, 1 );
 		}
+
+
+		function scheduler_completed_action( $action_id ) {
+
+			$action = ActionScheduler::store()->fetch_action( $action_id );
+
+			if ( $action instanceof ActionScheduler_FinishedAction ) {
+
+				$action_args         = $action->get_args();
+				$migrate_task_id     = $action_args[0] ?? '';
+				$is_any_pending_work = false;
+
+				foreach ( InstaWP_taskmanager::get_task_backup_data( $migrate_task_id ) as $data ) {
+
+					$backup_status = InstaWP_Setting::get_args_option( 'backup_status', $data );
+					$upload_status = InstaWP_Setting::get_args_option( 'upload_status', $data );
+
+					if ( empty( $backup_status ) || 'completed' != $backup_status || empty( $upload_status ) || 'completed' != $upload_status ) {
+						$is_any_pending_work = true;
+						break;
+					}
+				}
+
+				if ( $is_any_pending_work ) {
+					sleep( 2 );
+					as_enqueue_async_action( 'instawp_backup_bg', $action_args, 'instawp', true );
+				}
+			}
+		}
+
 
 		function restore_completed( $restore_options = array(), $parameters = array() ) {
 
@@ -198,10 +229,7 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 					InstaWP_taskmanager::store_migrate_id_to_migrate_task( $migrate_task_id, $migrate_id );
 
 					// Doing in background processing
-					as_enqueue_async_action( 'instawp_backup_bg', [ $migrate_task_id, $parameters ] );
-//					as_enqueue_async_action( 'instawp_upload_bg', [ $migrate_task_id, $parameters ] );
-
-					do_action( 'action_scheduler_run_queue', 'Async Request' );
+					as_enqueue_async_action( 'instawp_backup_bg', [ $migrate_task_id, $parameters ], 'instawp', true );
 				}
 
 				$response['migrate_api_response']   = $migrate_response;
@@ -211,6 +239,8 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 			} else {
 				$migrate_task_id = reset( $incomplete_task_ids );
 				$migrate_id      = InstaWP_taskmanager::get_migrate_id( $migrate_task_id );
+
+				do_action( 'action_scheduler_run_queue', 'Async Request' );
 
 				$response = instawp_get_response_progresses( $migrate_task_id, $migrate_id, $response );
 			}
