@@ -588,8 +588,7 @@ class InstaWP_Backup_Task {
 		$active_themes_only = $options['migrate_settings']['active_themes_only'] ?? false;
 
 		foreach ( wp_get_themes() as $key => $item ) {
-
-			if ( ( 'true' == $active_themes_only || '1' == $active_themes_only ) && $current_theme->get( 'Name' ) != $item->get( 'Name' ) && $current_theme->parent() != $item->get( 'Name' ) ) {
+			if ( ( 'true' == $active_themes_only || '1' == $active_themes_only ) && ! in_array( $item->get_stylesheet(), [ $current_theme->get_stylesheet(), $current_theme->get_template() ] ) ) {
 				$themes_excluded[] = $key;
 				continue;
 			}
