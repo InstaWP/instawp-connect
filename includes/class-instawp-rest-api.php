@@ -1479,7 +1479,11 @@ class InstaWP_Backup_Api {
 		}
 
 		$results = array_map( function( $result ) {
-			$result['status'] = empty( trim( $result['message'] ) );
+			$message = trim( $result['message'] );
+			unset( $result['message'] );
+
+			$result['status']  = empty( $message );
+			$result['message'] = $message;
 			
 			return $result;
 		}, $results );
