@@ -5,7 +5,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2023-08-08 07:09+0000\n"
+"POT-Creation-Date: 2023-08-08 07:10+0000\n"
 "X-Poedit-Basepath: ..\n"
 "X-Poedit-KeywordsList: __;_e;_ex:1,2c;_n:1,2;_n_noop:1,2;_nx:1,2,4c;_nx_noop:1,2,3c;_x:1,2c;esc_attr__;esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c\n"
 "X-Poedit-SearchPath-0: .\n"
@@ -1224,155 +1224,119 @@ msgstr ""
 msgid "Manual"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:445
+#: includes/class-instawp-rest-api.php:504
 msgid "Already configured"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:459
+#: includes/class-instawp-rest-api.php:518
 msgid "Connected"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:469
+#: includes/class-instawp-rest-api.php:528
 msgid "Api key is required"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:522
+#: includes/class-instawp-rest-api.php:581
 msgid "Settings is disabled! Please enable %s from InstaWP Connect Remote Management settings page."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:531
+#: includes/class-instawp-rest-api.php:590
 msgid "Empty bearer token."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:554
+#: includes/class-instawp-rest-api.php:613
 msgid "Invalid bearer token."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:655
+#: includes/class-instawp-rest-api.php:714
 msgid "Downloading has been started."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:833
+#: includes/class-instawp-rest-api.php:892
 msgid "Backup will run through CLI."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:846
+#: includes/class-instawp-rest-api.php:905
 msgid "Backup is running on background processing"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1059, includes/class-instawp-rest-api.php:1093, includes/class-instawp-rest-api.php:1130, includes/class-instawp-rest-api.php:1148, includes/class-instawp-rest-api.php:1323, includes/class-instawp-rest-api.php:1357
-msgid "Function not exists."
-msgstr ""
-
-#: includes/class-instawp-rest-api.php:1076, includes/class-instawp-rest-api.php:1110, includes/class-instawp-rest-api.php:1185, includes/class-instawp-rest-api.php:1219, includes/class-instawp-rest-api.php:1238, includes/class-instawp-rest-api.php:1258, includes/class-instawp-rest-api.php:1289, includes/class-instawp-rest-api.php:1340, includes/class-instawp-rest-api.php:1391, includes/class-instawp-rest-api.php:1409
-msgid "Class or Method not exists."
-msgstr ""
-
-#: includes/class-instawp-rest-api.php:1167, includes/class-instawp-rest-api.php:1202, includes/class-instawp-rest-api.php:1306, includes/class-instawp-rest-api.php:1374
-msgid "Action not exists."
-msgstr ""
-
-#: includes/class-instawp-rest-api.php:1241
-msgid "Object Cache name or version is not defined!."
-msgstr ""
-
-#: includes/class-instawp-rest-api.php:1286
-msgid "CDN Domain is empty."
-msgstr ""
-
-#: includes/class-instawp-rest-api.php:1427
-msgid "Class or Method or Constant not exists."
-msgstr ""
-
-#: includes/class-instawp-rest-api.php:1444
-msgid "WP Engine Varnish Cache Class or Method not exists."
-msgstr ""
-
-#: includes/class-instawp-rest-api.php:1450
-msgid "WP Engine Memcache Class or Method not exists."
-msgstr ""
-
-#: includes/class-instawp-rest-api.php:1456
-msgid "WP Engine MaxCDN Cache Class or Method not exists."
-msgstr ""
-
-#: includes/class-instawp-rest-api.php:1580
+#: includes/class-instawp-rest-api.php:1169
 msgid "Maximum 5 installations are allowed!"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1612, includes/class-instawp-rest-api.php:2257
+#: includes/class-instawp-rest-api.php:1201, includes/class-instawp-rest-api.php:1846
 msgid "Success!"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1698
+#: includes/class-instawp-rest-api.php:1287
 msgid "Provided URL is not valid!"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1679
+#: includes/class-instawp-rest-api.php:1268
 msgid "Installation failed!"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1897
+#: includes/class-instawp-rest-api.php:1486
 msgid "No constants provided!"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1993
+#: includes/class-instawp-rest-api.php:1582
 msgid "Failed to create the file manager file."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:2098
+#: includes/class-instawp-rest-api.php:1687
 msgid "Failed to create the database manager file."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:2155
+#: includes/class-instawp-rest-api.php:1744
 msgid "WP Debug is not enabled!"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:2163
+#: includes/class-instawp-rest-api.php:1752
 msgid "Debug file not found!"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:2171
+#: includes/class-instawp-rest-api.php:1760
 msgid "Debug file can't be opened!"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:2274
+#: includes/class-instawp-rest-api.php:1863
 msgid "Setting does not exist."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:2266
+#: includes/class-instawp-rest-api.php:1855
 msgid "You can not enable this setting through API."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:2263
+#: includes/class-instawp-rest-api.php:1852
 msgid "Setting is already disabled."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:2369, includes/class-instawp-setting.php:292, includes/class-instawp-setting.php:298
+#: includes/class-instawp-rest-api.php:1958, includes/class-instawp-setting.php:292, includes/class-instawp-setting.php:298
 msgid "Heartbeat"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:2370, includes/class-instawp-setting.php:331
+#: includes/class-instawp-rest-api.php:1959, includes/class-instawp-setting.php:331
 msgid "File Manager"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:2371, includes/class-instawp-setting.php:339
+#: includes/class-instawp-rest-api.php:1960, includes/class-instawp-setting.php:339
 msgid "Database Manager"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:2372, includes/class-instawp-setting.php:347
+#: includes/class-instawp-rest-api.php:1961, includes/class-instawp-setting.php:347
 msgid "Install Plugin / Themes"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:2373, includes/class-instawp-setting.php:355
+#: includes/class-instawp-rest-api.php:1962, includes/class-instawp-setting.php:355
 msgid "Config Management"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:2374, includes/class-instawp-setting.php:363
+#: includes/class-instawp-rest-api.php:1963, includes/class-instawp-setting.php:363
 msgid "Site Inventory"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:2375, includes/class-instawp-setting.php:371
+#: includes/class-instawp-rest-api.php:1964, includes/class-instawp-setting.php:371
 msgid "Debug Log"
 msgstr ""
 
