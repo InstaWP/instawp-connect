@@ -1,5 +1,32 @@
 jQuery(document).ready(function ($) {
 
+    jQuery('.instawp_select2').select2({
+        width:"180px",
+    });
+
+    //select2 for default user settings
+    jQuery('.instawp_select2_ajax').select2({
+        width:"180px",
+        ajax: {
+            dataType: 'json',
+            delay: 100,
+            processResults: function (res) {
+                const $text     = res.data.opt_col.text;
+                const $id       = res.data.opt_col.id;
+                const results   = res.data.results.map((element) => {
+                    return {
+                        text: $text != undefined ? element[$text] : element.text,
+                        id: $text != undefined ? element[$id] : element.id,
+                    }
+                });
+                return {
+                    results:  results
+                };
+            },
+            cache: true
+        }
+    })
+
     //Syncing enabled disabled
     jQuery('.syncing_enabled_disabled input[type="checkbox"]').click(function(){
         var sync_status = 0;
@@ -13,6 +40,8 @@ jQuery(document).ready(function ($) {
         syncing_enabled_disabled(sync_status);
     });
 
+
+    
     //selected sync btn...
 
     //bulk sync btn...

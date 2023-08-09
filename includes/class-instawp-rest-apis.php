@@ -88,17 +88,23 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 		$reference_id     = isset( $post_meta['instawp_event_sync_reference_id'][0] ) ? $post_meta['instawp_event_sync_reference_id'][0] : '';
 		$destination_post = $this->get_post_by_reference_Id( $post['post_type'], $reference_id, $post['post_name'] );
 		unset( $post['ID'] );
+
 		if ( ! empty( $destination_post ) ) {
 			#The post exists,Then update
 			$post_id = $post['ID'] = $destination_post->ID;
 			//$post['post_parent'] = $destination_post->post_parent;
 			$postData = $this->postData( $post );
+			unset( $postData['post_author'] );
 			wp_update_post( $postData );
 			#post meta
 			$this->add_update_postmeta( $post_meta, $destination_post->ID );
 		} else {
 			$postData = $this->postData( $post );
 			#The post does not exist,Then insert
+			$default_post_user = InstaWP_Setting::get_option( 'instawp_default_user' );
+			if( !empty( $default_post_user ) ) {
+				$postData['post_author'] = $default_post_user;
+			}
 			$post_id = wp_insert_post( $postData );
 			#post meta
 			$this->add_update_postmeta( $post_meta, $post_id );
@@ -1060,6 +1066,10 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 					'post_content'   => '',
 					'post_status'    => 'inherit'
 				);
+				$default_post_user = InstaWP_Setting::get_option( 'instawp_default_user' );
+				if( !empty( $default_post_user ) ) {
+					$attachment['post_author'] = $default_post_user;
+				}
 				require_once( ABSPATH . "wp-admin" . '/includes/image.php' );
 				require_once( ABSPATH . "wp-admin" . '/includes/file.php' );
 				require_once( ABSPATH . "wp-admin" . '/includes/media.php' );

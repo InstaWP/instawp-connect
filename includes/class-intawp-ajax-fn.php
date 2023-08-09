@@ -45,6 +45,7 @@ class InstaWP_Ajax_Fn {
 		add_action( "wp_ajax_syncing_enabled_disabled", array( $this, "syncing_enabled_disabled" ) );
 		add_action( 'wp_ajax_get_site_events', array( $this, 'get_site_events' ) );
 		add_action( 'wp_ajax_get_events_summary', array( $this, 'get_events_summary' ) );
+		add_action( 'wp_ajax_instawp_get_users', array( $this, 'instawp_get_users' ) );
 	}
 
 	public function syncing_enabled_disabled() {
@@ -96,6 +97,19 @@ class InstaWP_Ajax_Fn {
 			'results'    => $data,
 			'pagination' => $this->get_events_sync_list_pagination( $total, $items_per_page, $page )
 		] );
+		wp_die();
+	}
+
+	public function instawp_get_users(){
+		$keyword = $_POST['search'];
+		$args = array(
+            'search'              => $keyword,
+			'paged'               => 1,
+            'search_columns'      => array('user_login','user_nicename','user_email'),
+			'fields'			  => array('id','user_login')
+        );
+		$users = get_users( $args );
+		echo $this->formatSuccessReponse( "Users loaded", ['results'=> $users, 'opt_col'=> ['text'=>'user_login','id'=>'ID']] );
 		wp_die();
 	}
 

@@ -78,6 +78,8 @@ class InstaWP_Setting {
 		$field_title         = self::get_args_option( 'title', $field );
 		$field_type          = self::get_args_option( 'type', $field );
 		$field_desc          = self::get_args_option( 'desc', $field );
+		$remote          	 = self::get_args_option( 'remote', $field );
+		$action          	 = self::get_args_option( 'action', $field );
 		$field_placeholder   = self::get_args_option( 'placeholder', $field );
 		$field_tooltip       = self::get_args_option( 'tooltip', $field );
 		$field_attributes    = self::get_args_option( 'attributes', $field, array() );
@@ -112,6 +114,10 @@ class InstaWP_Setting {
 			$field_container_class .= ' ' . $field_parent_class;
 		}
 
+		if( $field_type == 'select2' ) {
+			$field_container_class .= ' select2-field-wrapper';
+		}
+
 		echo '<div class="' . esc_attr( $field_container_class ) . '">';
 		echo '<label for="' . esc_attr( $field_id ) . '" class="' . esc_attr( $label_class ) . '"' . $label_attributes . '>' . $label_content . '</label>';
 
@@ -141,6 +147,19 @@ class InstaWP_Setting {
 				$css_class = $field_class ? $field_class : '';
 
 				echo '<select ' . implode( ' ', $attributes ) . ' name="' . esc_attr( $field_id ) . '" id="' . esc_attr( $field_id ) . '" class="' . esc_attr( $css_class ) . '">';
+				if ( ! empty( $field_placeholder ) ) {
+					echo '<option value="">' . esc_html( $field_placeholder ) . '</option>';
+				}
+				foreach ( $field_options as $key => $value ) {
+					echo '<option ' . selected( $field_value, $key, false ) . ' value="' . esc_attr( $key ) . '">' . esc_html( $value ) . '</option>';
+				}
+				echo '</select>';
+				break;
+			
+			case 'select2':
+				$css_class = $field_class ? $field_class : '';
+				$css_class .= $remote ? ' instawp_select2_ajax' : ' instawp_select2';
+				echo '<select ' . ( $remote  === true ? 'data-ajax--url="'. admin_url('admin-ajax.php?action='.$action ) .'"' : '') . implode( ' ', $attributes ) . ' name="' . esc_attr( $field_id ) . '" id="' . esc_attr( $field_id ) . '" class="' . esc_attr( $css_class ) . '">';
 				if ( ! empty( $field_placeholder ) ) {
 					echo '<option value="">' . esc_html( $field_placeholder ) . '</option>';
 				}
@@ -260,6 +279,15 @@ class InstaWP_Setting {
 						'pdo'  => esc_html__( 'PDO', 'instawp-connect' ),
 					),
 				),
+				array(
+					'id'      => 'instawp_default_user',
+					'type'    => 'select2',
+					'remote'  => true,
+					'action'  => 'instawp_get_users',
+					'title'   => esc_html__( 'Default user', 'instawp-connect' ),
+					'desc'    => esc_html__( 'This option will allow to set default user for events syncing.', 'instawp-connect' ),
+					'options' => self::get_default_selected_user()
+				)
 			),
 		);
 
@@ -1042,5 +1070,13 @@ class InstaWP_Setting {
 		$data                                             = apply_filters( 'instawp_get_instawp_info_addon_mainwp_ex', $data );
 
 		return $data;
+	}
+
+	public static function get_default_selected_user() {
+		$user = get_user_by( 'ID', InstaWP_Setting::get_option( 'instawp_default_user' ) );
+		if( !empty( $user ) ) {
+			return [ $user->data->ID => $user->data->user_login ];
+		}
+		return [];
 	}
 }
