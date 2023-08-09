@@ -47,8 +47,8 @@ class InstaWP_Change_Event_Filters
             add_action('untrashed_post', array($this, 'untrashPostFilter'), 10, 3);
             add_action('wp_after_insert_post', array($this, 'savePostFilter'), 10, 4);
             #plugin actions
-            //add_action( 'activated_plugin', array( $this,'activatePluginAction'),10, 2 );
-            //add_action( 'deactivated_plugin', array( $this,'deactivatePluginAction'),10, 2 );
+            add_action( 'activated_plugin', array( $this,'activatePluginAction'),10, 2 );
+            add_action( 'deactivated_plugin', array( $this,'deactivatePluginAction'),10, 2 );
             #add_action( 'upgrader_process_complete', array( $this,'upgradePluginAction'),10, 2);
             #theme actions
             // add_action( 'switch_theme', array( $this,'switchThemeAction'), 10, 3 );
