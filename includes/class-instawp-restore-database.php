@@ -146,8 +146,8 @@ class InstaWP_RestoreDB {
 				}
 			}
 
-//			unlink( $file_tables_rows_data );
-//			unlink( $file_tables_rows );
+			unlink( $file_tables_rows_data );
+			unlink( $file_tables_rows );
 		}
 	}
 
