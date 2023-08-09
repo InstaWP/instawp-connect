@@ -239,8 +239,18 @@ add_action( 'wp_head', function () {
 
 //		instawp_reset_running_migration();
 
+//		echo "<pre>";
+//		print_r( InstaWP_taskmanager::get_tasks() );
+//		echo "</pre>";
+
+
+		$restore_db = new InstaWP_RestoreDB();
+		$restore_db->retain_database_entry_after_db_migration();
+
+//		delete_option( 'instawp_connect_id_options' );
+//
 		echo "<pre>";
-		print_r( InstaWP_taskmanager::get_tasks() );
+		print_r( get_option( 'instawp_connect_id_options' ) );
 		echo "</pre>";
 
 		die();

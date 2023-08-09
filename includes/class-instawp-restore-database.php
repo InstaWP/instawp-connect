@@ -118,9 +118,15 @@ class InstaWP_RestoreDB {
 			$tables_rows_data = json_decode( $tables_rows_data, true );
 
 			foreach ( $tables_rows_data as $table_name => $table_rows ) {
-				foreach ( $table_rows as $table_row ) {
+				foreach ( $table_rows as $index => $table_row ) {
 
-					$where_clause        = array_intersect( $tables_rows[ $table_name ], $table_row );
+					$this_table_row = [];
+
+					foreach ( $tables_rows[ $table_name ] as $_key => $_val ) {
+						$this_table_row[ $_key ] = is_array( $_val ) ? $_val[ $index ] : $_val;
+					}
+
+					$where_clause        = array_intersect( $this_table_row, $table_row );
 					$table_row_keys      = array_keys( $table_row );
 					$primary_key         = reset( $table_row_keys );
 					$primary_key_val     = $table_row[ $primary_key ] ?? '';
@@ -130,7 +136,7 @@ class InstaWP_RestoreDB {
 					$where_clause_str    = implode( ' AND ', $where_clause_arr );
 					$primary_key_val_new = $wpdb->get_var( "SELECT $primary_key FROM " . $wpdb->prefix . $table_name . " WHERE $where_clause_str" );
 
-					if ( $primary_key_val_new && $primary_key_val != $primary_key_val_new ) {
+					if ( $primary_key_val_new && $primary_key_val == $primary_key_val_new ) {
 						$table_row[ $primary_key ] = $primary_key_val_new;
 
 						$wpdb->update( $wpdb->prefix . $table_name, $table_row, $where_clause );
@@ -140,8 +146,8 @@ class InstaWP_RestoreDB {
 				}
 			}
 
-			unlink( $file_tables_rows_data );
-			unlink( $file_tables_rows );
+//			unlink( $file_tables_rows_data );
+//			unlink( $file_tables_rows );
 		}
 	}
 

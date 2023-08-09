@@ -7,7 +7,7 @@ $staging_screens     = array(
 	esc_html__( 'Staging Type', 'instawp-connect' ),
 	esc_html__( 'Customize Options', 'instawp-connect' ),
 	esc_html__( 'Confirmation', 'instawp-connect' ),
-	esc_html__( 'Staging Creation Status', 'instawp-connect' ),
+	esc_html__( 'Creating Staging', 'instawp-connect' ),
 );
 $nav_item_classes    = array( 'nav-item-content' );
 $incomplete_task_ids = InstaWP_taskmanager::is_there_any_incomplete_task_ids();
@@ -219,7 +219,7 @@ $customize_options     = array(
 
                     <div class="screen screen-4 <?= $current_create_screen == 4 ? 'active' : ''; ?>">
                         <div class="flex justify-between items-center">
-                            <div class="text-grayCust-200 text-lg font-bold">4. Staging Creation Status</div>
+                            <div class="text-grayCust-200 text-lg font-bold">4. Creating Staging</div>
                             <span class="instawp-migration-loader text-primary-900 text-base font-normal" data-complete-text="Completed">In Progress...</span>
                         </div>
                         <div class="panel mt-6 block">
@@ -244,7 +244,7 @@ $customize_options     = array(
                                         </div>
                                     </div>
                                     <div class="flex items-center">
-                                        <div class="w-24 text-grayCust-900 text-base font-normal">Staging</div>
+                                        <div class="w-24 text-grayCust-900 text-base font-normal">Migration</div>
                                         <div class="instawp-progress-staging text-border rounded-xl w-full text-bg py-4 flex items-center mb-4 px-4">
                                             <div class="w-full bg-gray-200 rounded-md mr-6">
                                                 <div class="progress-bar h-2 bg-primary-900 rounded-md"></div>
