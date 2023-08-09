@@ -244,13 +244,14 @@ add_action( 'wp_head', function () {
 //		echo "</pre>";
 
 
-		$restore_db = new InstaWP_RestoreDB();
-		$restore_db->retain_database_entry_after_db_migration();
+//		$restore_db = new InstaWP_RestoreDB();
+//		$restore_db->retain_database_entry_after_db_migration();
+//		$restore_db->generate_exclude_tables_rows_file();
 
 //		delete_option( 'instawp_connect_id_options' );
 //
 		echo "<pre>";
-		print_r( get_option( 'instawp_connect_id_options' ) );
+		print_r( get_option( 'instawp_api_options' ) );
 		echo "</pre>";
 
 		die();

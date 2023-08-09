@@ -416,6 +416,7 @@ class InstaWP_Backup_Task {
 				$exclude_tables_rows = array(
 					'options' => array(
 						'option_name' => array(
+							'instawp_api_key',
 							'instawp_api_options',
 							'instawp_connect_id_options',
 						),
@@ -623,7 +624,7 @@ class InstaWP_Backup_Task {
 
 		foreach ( $list as $key => $item ) {
 			$dirname = dirname( $key );
-			
+
 			if ( in_array( $dirname, $exclude_default_plugins ) ) {
 				$plugins_excluded[] = $key;
 				continue;
