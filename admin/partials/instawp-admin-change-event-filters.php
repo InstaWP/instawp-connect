@@ -39,8 +39,8 @@ class InstaWP_Change_Event_Filters
 
         $this->tables = $this->InstaWP_db->tables;
 
-        $syncing_status = get_option('syncing_enabled_disabled');
-        if (!empty($syncing_status) && $syncing_status == 1) { #if syncing enabled
+        $syncing_status = get_option('syncing_enabled_disabled', 0);
+        if ($syncing_status == 1) { #if syncing enabled
             #post actions
             add_filter('pre_trash_post', array($this, 'trashPostFilter'), 10, 2);
             add_action('after_delete_post', array($this, 'deletePostFilter'), 10, 2);
@@ -477,6 +477,10 @@ class InstaWP_Change_Event_Filters
      * @return void
      */
     public function pluginThemeEvents($event_name, $event_slug, $details, $type, $source_id) {
+        $syncing_enabled_disabled = get_option('syncing_enabled_disabled', 0);
+        if ($syncing_enabled_disabled == 0)
+            return;
+            
         $uid = get_current_user_id();
         $date = date('Y-m-d H:i:s');
         if ($type == 'plugin') {
@@ -854,6 +858,10 @@ class InstaWP_Change_Event_Filters
      * add/insert event data
      */
     public function eventDataAdded($event_name = null, $event_slug = null, $event_type = null, $source_id = null, $title = null, $details = null) {
+        $syncing_enabled_disabled = get_option('syncing_enabled_disabled', 0);
+        if ($syncing_enabled_disabled == 0)
+            return;
+
         $uid = get_current_user_id();
         $date = date('Y-m-d H:i:s');
         #Data Array

@@ -521,10 +521,47 @@ input:checked + .slider-toggle:before {
     margin: -8px -8px;
 }
 
+.instawp-option-selector[type='checkbox'] {
+    color: rgb(0 94 84 / 1);
+    margin-top: -2px !important;
+}
+
+.instawp-option-selector[type='radio'] {
+    color: rgb(0 94 84 / 1);
+}
+
+.instawp-option-selector[type='checkbox']:checked::before {
+    content: '';
+    height: unset;
+    width: unset;
+    margin: 0;
+}
+
+.instawp-option-selector[type='radio']:checked::before {
+    background-color: #fff;
+}
+
+.nav-item-content.sites .pagination span {
+    cursor: pointer;
+}
+
+.nav-item-content.sites .pagination span.active {
+    color: rgb(0 94 84 / 1);
+    font-weight: 600;
+}
+
+.nav-item-content.sites .pagination span.disabled {
+    pointer-events: none;
+    opacity: .5;
+}
+
+.nav-item-content.sites .staging-site-list {
+    display: none;
+}
+
 /**
  * Migrate Hosting
  */
-
 .instawp-migrate-wrap.box-width {
     max-width: 685px;
     background-color: #fff;

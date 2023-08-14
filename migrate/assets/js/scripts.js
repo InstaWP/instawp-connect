@@ -170,7 +170,7 @@ tailwind.config = {
     });
 
 
-    $(document).on('click', '.instawp-wrap .instawp-show-staging-sites, .instawp-wrap .instawp-create-another-site', function (e) {
+    $(document).on('click', '.instawp-wrap .instawp-show-staging-site-list, .instawp-wrap .instawp-create-another-site', function (e) {
 
         let create_container = $('.instawp-wrap .nav-item-content.create'),
             sites_container_nav = $('.instawp-wrap #sites > a'),
@@ -724,6 +724,54 @@ tailwind.config = {
         }, 500 );
     } );
     // Remote Management settings save end //
+
+    $( document ).on( 'ready', function () {
+        $( document ).find( '.staging-site-list' ).slice( 0, parseInt( $( document ).find( '.sites' ).data( 'pagination' ) ) ).show();
+    } );
+
+    $( document ).on( 'click', '.sites .page-item', function ( e ) {
+        e.preventDefault();
+        let el = $( this );
+        let page = parseInt( el.parents( '.sites' ).data( 'pagination' ) );
+        let item = parseInt( $( this ).data( 'item' ) );
+        let position = parseInt( item * page );
+
+        $( document ).find( '.sites .page-item' ).removeClass( 'active' );
+        $( document ).find( '.sites .page-item[data-item=' + item + ']' ).addClass( 'active' );
+
+        $( document ).find( '.staging-site-list' ).hide();
+        $( document ).find( '.staging-site-list' ).slice( parseInt( position - page ), position ).show();
+
+        let prevEl = $( document ).find( '.sites .prev-item' );
+        if ( el.prev().length > 0 ) {
+            prevEl.removeClass( 'disabled' );
+        } else {
+            prevEl.addClass( 'disabled' );
+        }
+
+        let nextEl = $( document ).find( '.sites .next-item' );
+        if ( el.next().length > 0 ) {
+            nextEl.removeClass( 'disabled' );
+        } else {
+            nextEl.addClass( 'disabled' );
+        }
+    } );
+
+    $( document ).on( 'click', '.sites .prev-item', function ( e ) {
+        e.preventDefault();
+        let prev = $( document ).find( '.sites .page-item.active' ).prev();
+        if ( prev.length > 0 ) {
+            prev.trigger( 'click' );
+        }
+    } );
+
+    $( document ).on( 'click', '.sites .next-item', function ( e ) {
+        e.preventDefault();
+        let next = $( document ).find( '.sites .page-item.active' ).next();
+        if ( next.length > 0 ) {
+            next.trigger( 'click' );
+        }
+    } );
 
 })(jQuery, window, document, instawp_migrate);
 

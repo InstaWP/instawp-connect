@@ -59,6 +59,10 @@ class instaWP {
 
 	public $admin;
 
+	public $instawp_restore_log;
+
+	public $admin_wizard;
+
 	public $interface_mainwp;
 
 	public $is_staging = false;
