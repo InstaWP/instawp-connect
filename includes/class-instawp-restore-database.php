@@ -136,7 +136,7 @@ class InstaWP_RestoreDB {
 					$where_clause_str    = implode( ' AND ', $where_clause_arr );
 					$primary_key_val_new = $wpdb->get_var( "SELECT $primary_key FROM " . $wpdb->prefix . $table_name . " WHERE $where_clause_str" );
 
-					if ( $primary_key_val_new && $primary_key_val == $primary_key_val_new ) {
+					if ( $primary_key_val_new && $primary_key_val != $primary_key_val_new ) {
 						$table_row[ $primary_key ] = $primary_key_val_new;
 
 						$wpdb->update( $wpdb->prefix . $table_name, $table_row, $where_clause );
