@@ -1633,7 +1633,7 @@ class InstaWP_Backup_Api {
 							'contributors'      => false,
 							'versions'          => false,
 							'banners'           => false,
-							'requires'          => false,
+							'requires'          => true,
 							'rating'            => false,
 							'ratings'           => false,
 							'downloaded'        => false,
@@ -1646,7 +1646,14 @@ class InstaWP_Backup_Api {
 							'downloadlink'      => true,
 						],
 					] );
-					if ( ! is_wp_error( $api ) && ! empty( $api->download_link ) ) {
+
+					if ( is_wp_error( $api ) ) {
+						$error_message = $api->get_error_message();
+					} else if ( isset( $api->requires ) && ! is_wp_version_compatible( $api->requires ) ) {
+						$error_message = sprintf( esc_html__( 'Minimum required WordPress Version of this plugin is %s!', 'instawp-connect' ), $api->requires );
+					}
+					
+					if ( empty( $error_message ) && ! empty( $api->download_link ) ) {
 						$target_url = $api->download_link;
 					}
 				}
@@ -1668,38 +1675,42 @@ class InstaWP_Backup_Api {
 							'downloadlink'     => true,
 						],
 					] );
-					if ( ! is_wp_error( $api ) && ! empty( $api->download_link ) ) {
+					if ( is_wp_error( $api ) ) {
+						$error_message = $api->get_error_message();
+					} else if ( ! empty( $api->download_link ) ) {
 						$target_url = $api->download_link;
 					}
 				}
 			}
 
-			if ( $this->is_valid_download_link( $target_url ) ) {
-				$result = $upgrader->install( $target_url, [
-					'overwrite_package' => true,
-				] );
+			if ( empty( $error_message ) ) {
+				if ( $this->is_valid_download_link( $target_url ) ) {
+					$result = $upgrader->install( $target_url, [
+						'overwrite_package' => true,
+					] );
 
-				if ( ! $result || is_wp_error( $result ) ) {
-					$error_message = is_wp_error( $result ) ? $result->get_error_message() : esc_html__( 'Installation failed!', 'instawp-connect' );
-				} else {
-					if ( filter_var( $activate, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE ) ) {
-						if ( 'plugin' === $type ) {
-							if ( ! function_exists( 'activate_plugin' ) ) {
-								require_once ABSPATH . 'wp-admin/includes/plugin.php';
+					if ( ! $result || is_wp_error( $result ) ) {
+						$error_message = is_wp_error( $result ) ? $result->get_error_message() : sprintf( esc_html__( 'Installation failed! Please check minimum supported WordPress version of the %s', 'instawp-connect' ), $type );
+					} else {
+						if ( filter_var( $activate, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE ) ) {
+							if ( 'plugin' === $type ) {
+								if ( ! function_exists( 'activate_plugin' ) ) {
+									require_once ABSPATH . 'wp-admin/includes/plugin.php';
+								}
+
+								activate_plugin( $upgrader->plugin_info(), '', false, true );
+							} elseif ( 'theme' === $type ) {
+								if ( ! function_exists( 'switch_theme' ) ) {
+									require_once ABSPATH . 'wp-includes/theme.php';
+								}
+
+								switch_theme( $upgrader->theme_info()->get_stylesheet() );
 							}
-
-							activate_plugin( $upgrader->plugin_info(), '', false, true );
-						} elseif ( 'theme' === $type ) {
-							if ( ! function_exists( 'switch_theme' ) ) {
-								require_once ABSPATH . 'wp-includes/theme.php';
-							}
-
-							switch_theme( $upgrader->theme_info()->get_stylesheet() );
 						}
 					}
+				} else {
+					$error_message = esc_html__( 'Provided URL is not valid!', 'instawp-connect' );
 				}
-			} else {
-				$error_message = esc_html__( 'Provided URL is not valid!', 'instawp-connect' );
 			}
 
 			if ( ! empty( $error_message ) ) {

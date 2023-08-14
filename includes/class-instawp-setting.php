@@ -284,7 +284,7 @@ class InstaWP_Setting {
 					'type'    => 'select2',
 					'remote'  => true,
 					'action'  => 'instawp_get_users',
-					'title'   => esc_html__( 'Default user', 'instawp-connect' ),
+					'title'   => esc_html__( 'Default User', 'instawp-connect' ),
 					'desc'    => esc_html__( 'This option will allow to set default user for events syncing.', 'instawp-connect' ),
 					'options' => self::get_default_selected_user()
 				)
