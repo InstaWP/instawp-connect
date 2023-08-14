@@ -81,11 +81,11 @@ class InstaWP_Ajax_Fn {
 		$items_per_page = INSTAWP_EVENTS_PER_PAGE;
 		$connect_id     = isset( $_POST['connect_id'] ) ? sanitize_text_field( $_POST['connect_id'] ) : 0;
 		$query          = "SELECT * FROM {$tables['ch_table']}";
-		$total_query    = "SELECT COUNT(1) FROM (${query}) AS combined_table";
+		$total_query    = "SELECT COUNT(1) FROM ({$query}) AS combined_table";
 		$total          = $wpdb->get_var( $total_query );
 		$page           = isset( $_POST['epage'] ) ? abs( (int) $_POST['epage'] ) : 1;
 		$offset         = ( $page * $items_per_page ) - $items_per_page;
-		$events         = $wpdb->get_results( $query . " GROUP BY `source_id`,`date` ORDER BY id DESC LIMIT ${offset}, ${items_per_page}" );
+		$events         = $wpdb->get_results( $query . " GROUP BY `source_id`,`date` ORDER BY id DESC LIMIT {$offset}, {$items_per_page}" );
 		$totalPage      = ceil( $total / $items_per_page );
 
 		ob_start();
