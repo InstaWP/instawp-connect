@@ -239,9 +239,9 @@ add_action( 'wp_head', function () {
 
 //		instawp_reset_running_migration();
 
-		echo "<pre>";
-		print_r( InstaWP_taskmanager::get_tasks() );
-		echo "</pre>";
+//		echo "<pre>";
+//		print_r( InstaWP_taskmanager::get_tasks() );
+//		echo "</pre>";
 
 
 //		$restore_db = new InstaWP_RestoreDB();
