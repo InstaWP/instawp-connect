@@ -1,76 +1,84 @@
 {
     "packages": [
         {
-            "name": "fzaninotto/faker",
-            "version": "v1.9.2",
-            "version_normalized": "1.9.2.0",
+            "name": "instawp/connect-helpers",
+            "version": "dev-main",
+            "version_normalized": "dev-main",
             "source": {
                 "type": "git",
-                "url": "https://github.com/fzaninotto/Faker.git",
-                "reference": "848d8125239d7dbf8ab25cb7f054f1a630e68c2e"
+                "url": "git@github.com:InstaWP/connect-helpers.git",
+                "reference": "d3d70fba7a30167c773c861d0719758198d933ca"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/fzaninotto/Faker/zipball/848d8125239d7dbf8ab25cb7f054f1a630e68c2e",
-                "reference": "848d8125239d7dbf8ab25cb7f054f1a630e68c2e",
+                "url": "https://api.github.com/repos/InstaWP/connect-helpers/zipball/d3d70fba7a30167c773c861d0719758198d933ca",
+                "reference": "d3d70fba7a30167c773c861d0719758198d933ca",
                 "shasum": ""
             },
             "require": {
-                "php": "^5.3.3 || ^7.0"
+                "php": ">= 7.4.0"
             },
             "require-dev": {
-                "ext-intl": "*",
-                "phpunit/phpunit": "^4.8.35 || ^5.7",
-                "squizlabs/php_codesniffer": "^2.9.2"
+                "wp-cli/wp-config-transformer": "^1.3"
             },
-            "time": "2020-12-11T09:56:16+00:00",
+            "time": "2023-08-16T08:56:58+00:00",
+            "default-branch": true,
             "type": "library",
-            "extra": {
-                "branch-alias": {
-                    "dev-master": "1.9-dev"
-                }
-            },
             "installation-source": "dist",
             "autoload": {
                 "psr-4": {
-                    "Faker\\": "src/Faker/"
+                    "InstaWP\\Connect\\Helpers\\": "src/"
                 }
             },
-            "notification-url": "https://packagist.org/downloads/",
+            "archive": {
+                "exclude": [
+                    "/bin",
+                    "/tests/",
+                    ".gitattributes",
+                    ".gitignore",
+                    ".travis.yml",
+                    ".phpcs.xml.dist",
+                    "phpunit.xml.dist",
+                    "README.md"
+                ]
+            },
+            "scripts": {
+                "build": [
+                    "composer dump-autoload"
+                ],
+                "build-nd": [
+                    "composer dump-autoload --no-dev"
+                ]
+            },
             "license": [
-                "MIT"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
-                    "name": "François Zaninotto"
+                    "name": "Sayan Datta",
+                    "email": "iamsayan@protonmail.com"
                 }
             ],
-            "description": "Faker is a PHP library that generates fake data for you.",
-            "keywords": [
-                "data",
-                "faker",
-                "fixtures"
-            ],
+            "description": "CLI Package for InstaWP Remote Features",
             "support": {
-                "issues": "https://github.com/fzaninotto/Faker/issues",
-                "source": "https://github.com/fzaninotto/Faker/tree/v1.9.2"
+                "source": "https://github.com/InstaWP/connect-helpers/tree/main",
+                "issues": "https://github.com/InstaWP/connect-helpers/issues"
             },
-            "abandoned": true,
-            "install-path": "../fzaninotto/faker"
+            "install-path": "../instawp/connect-helpers"
         },
         {
             "name": "woocommerce/action-scheduler",
-            "version": "3.6.1",
-            "version_normalized": "3.6.1.0",
+            "version": "3.6.2",
+            "version_normalized": "3.6.2.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/woocommerce/action-scheduler.git",
-                "reference": "7fd383cad3d64b419ec81bcd05bab44355a6e6ef"
+                "reference": "4eb2fa9737a53e4d284dafcf3e0bf428b5f941bc"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/woocommerce/action-scheduler/zipball/7fd383cad3d64b419ec81bcd05bab44355a6e6ef",
-                "reference": "7fd383cad3d64b419ec81bcd05bab44355a6e6ef",
+                "url": "https://api.github.com/repos/woocommerce/action-scheduler/zipball/4eb2fa9737a53e4d284dafcf3e0bf428b5f941bc",
+                "reference": "4eb2fa9737a53e4d284dafcf3e0bf428b5f941bc",
                 "shasum": ""
             },
             "require-dev": {
@@ -79,7 +87,7 @@
                 "wp-cli/wp-cli": "~2.5.0",
                 "yoast/phpunit-polyfills": "^1.0"
             },
-            "time": "2023-06-14T19:23:12+00:00",
+            "time": "2023-08-09T19:43:41+00:00",
             "type": "wordpress-plugin",
             "extra": {
                 "scripts-description": {
@@ -97,7 +105,7 @@
             "homepage": "https://actionscheduler.org/",
             "support": {
                 "issues": "https://github.com/woocommerce/action-scheduler/issues",
-                "source": "https://github.com/woocommerce/action-scheduler/tree/3.6.1"
+                "source": "https://github.com/woocommerce/action-scheduler/tree/3.6.2"
             },
             "install-path": "../woocommerce/action-scheduler"
         }

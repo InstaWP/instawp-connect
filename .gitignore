@@ -10,3 +10,4 @@ includes/database-manager/instawp*.php
 *.sqlite
 .DS_Store
 .idea/
+auth.json

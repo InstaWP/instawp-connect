@@ -117,11 +117,9 @@ global $instawp_plugin;
 //when active plugin redirect plugin page.
 
 
-require_once dirname( __FILE__ ) . '/vendor/autoload.php';
+require_once plugin_dir_path( __FILE__ ) . 'vendor/autoload.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-instawp.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/functions.php';
-require_once plugin_dir_path( __FILE__ ) . '/vendor/woocommerce/action-scheduler/action-scheduler.php';
-
 
 function instawp_plugin_activate() {
 

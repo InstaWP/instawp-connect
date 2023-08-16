@@ -9,7 +9,7 @@ License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
 Create a staging WordPress site from production sites in seconds. (beta version).
-
+composer require instawp/cli-core:dev-main
 == Description ==
 InstaWP allows you to create WordPress websites for testing, development and staging with seconds. Using this companion plugin you can connect your existing WordPress sites anywhere on the internet to your InstaWP. After your site is connected, you can create 1-click staging websites from within the WP admin panel.
 
