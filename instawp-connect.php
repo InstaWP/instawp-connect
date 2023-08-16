@@ -251,7 +251,7 @@ add_action( 'wp_head', function () {
 //		delete_option( 'instawp_connect_id_options' );
 //
 //		echo "<pre>";
-//		print_r( get_option( 'instawp_api_options' ) );
+//		print_r( get_option( 'instawp_connect_id_options' ) );
 //		echo "</pre>";
 
 		die();
