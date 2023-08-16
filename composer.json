@@ -1,6 +1,39 @@
 {
+    "name": "instawp/connect",
+    "description": "Create 1-click staging, migration and manage your prod sites.",
+    "type": "wordpress-plugin",
+    "license": "GPL-2.0-or-later",
+    "authors": [
+        {
+            "name": "Sayan Datta",
+            "email": "iamsayan@protonmail.com"
+        }
+    ],
     "require": {
-        "fzaninotto/faker": "^1.9",
-        "woocommerce/action-scheduler": "^3.5"
-    }
+        "php": ">= 7.4.0",
+        "woocommerce/action-scheduler": "3.6.2",
+        "instawp/connect-helpers": "dev-main"
+    },
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "git@github.com:InstaWP/connect-helpers.git"
+        }
+    ],
+    "autoload": {
+        "files": [ 
+            "vendor/woocommerce/action-scheduler/action-scheduler.php"
+        ]
+    },
+    "scripts": {
+        "build": [
+			"composer dump-autoload"
+		],
+        "build-nd": [
+			"composer dump-autoload --no-dev"
+		]
+	},
+    "config": {
+		"optimize-autoloader": true
+	}
 }

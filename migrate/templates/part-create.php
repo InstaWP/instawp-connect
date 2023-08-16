@@ -144,10 +144,10 @@ $customize_options     = array(
                                         <!--relative flex items-start border border-primary-900 card-active p-3 px-4 rounded-lg-->
 
                                         <label for="<?php echo $id; ?>" class="relative flex items-start border border-grayCust-350 p-3 px-4 rounded-lg items-center">
-                                            <span class="bflock">
+                                            <span>
                                                 <input id="<?php echo $id; ?>" name="instawp_migrate[options][]" value="<?php echo $id; ?>" type="checkbox" class="instawp-option-selector rounded border-gray-300 text-primary-900 focus:ring-primary-900">
                                             </span>
-                                            <span class="ml-2 text-sm leafding-6">
+                                            <span class="ml-2 text-sm">
                                                 <span class="option-label font-medium text-sm text-grayCust-700"><?php echo $label; ?></span>
                                             </span>
                                         </label>

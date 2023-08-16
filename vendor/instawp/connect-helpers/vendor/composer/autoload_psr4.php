@@ -6,5 +6,5 @@ $vendorDir = dirname(__DIR__);
 $baseDir = dirname($vendorDir);
 
 return array(
-    'InstaWP\\Connect\\Helpers\\' => array($vendorDir . '/instawp/connect-helpers/src'),
+    'InstaWP\\Connect\\Helpers\\' => array($baseDir . '/src'),
 );
