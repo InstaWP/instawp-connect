@@ -206,7 +206,7 @@ class InstaWP_Tools {
 			$wp_rewrite->set_permalink_structure( '/%postname%/' );
 		}
 
-		$wp_rewrite->flush_rules( $hard );
+		flush_rewrite_rules( $hard );
 	}
 
 
