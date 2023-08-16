@@ -1224,21 +1224,15 @@ class InstaWP_Backup_Api {
 			fwrite( $fp, implode( '', $file ) );
 			fclose( $fp );
 
-			if ( ! class_exists( 'InstaWP_WP_Config' ) ) {
-				require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-wp-config.php';
-			}
-
-			$args = [
-				'normalize' => true,
-				'add'       => true,
-				'raw'       => false,
+			$constants = [
+				'INSTAWP_FILE_MANAGER_USERNAME'   => $username,
+				'INSTAWP_FILE_MANAGER_PASSWORD'   => $password,
+				'INSTAWP_FILE_MANAGER_SELF_URL'   => $file_manager_url,
+				'INSTAWP_FILE_MANAGER_SESSION_ID' => 'instawp_file_manager',
 			];
 
-			$config = new InstaWP_WP_Config( $config_file );
-			$config->update( 'constant', 'INSTAWP_FILE_MANAGER_USERNAME', $username, $args );
-			$config->update( 'constant', 'INSTAWP_FILE_MANAGER_PASSWORD', $password, $args );
-			$config->update( 'constant', 'INSTAWP_FILE_MANAGER_SELF_URL', $file_manager_url, $args );
-			$config->update( 'constant', 'INSTAWP_FILE_MANAGER_SESSION_ID', 'instawp_file_manager', $args );
+			$wp_config = new \InstaWP\Connect\Helpers\WPConfig( $constants );
+			$wp_config->update();
 
 			set_transient( 'instawp_file_manager_login_token', $token, ( 15 * MINUTE_IN_SECONDS ) );
 			InstaWP_Setting::update_option( 'instawp_file_manager_name', $file_name );

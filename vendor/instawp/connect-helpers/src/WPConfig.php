@@ -37,10 +37,6 @@ class WPConfig {
 	];
 
 	public array $blacklisted = [
-		'INSTAWP_FILE_MANAGER_USERNAME',
-		'INSTAWP_FILE_MANAGER_PASSWORD',
-		'INSTAWP_FILE_MANAGER_SELF_URL',
-		'INSTAWP_FILE_MANAGER_SESSION_ID',
 		'DB_NAME',
 		'DB_USER',
 		'DB_PASSWORD',
@@ -57,7 +53,7 @@ class WPConfig {
 		'NONCE_SALT',
 	];
 
-    public function __construct( array $constants ) {
+    public function __construct( array $constants = [] ) {
 		$file = ABSPATH . 'wp-config.php';
 		if ( ! file_exists( $file ) ) {
 			if ( @file_exists( dirname( ABSPATH ) . '/wp-config.php' ) ) {

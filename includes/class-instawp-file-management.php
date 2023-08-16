@@ -61,15 +61,9 @@ if ( ! class_exists( 'InstaWP_File_Management' ) ) {
 			$config_file = InstaWP_Tools::get_config_file();
 			$constants   = [ 'INSTAWP_FILE_MANAGER_USERNAME', 'INSTAWP_FILE_MANAGER_PASSWORD', 'INSTAWP_FILE_MANAGER_SELF_URL', 'INSTAWP_FILE_MANAGER_SESSION_ID' ];
 
-			if ( ! class_exists( 'InstaWP_WP_Config' ) ) {
-				require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-wp-config.php';
-			}
+			$wp_config = new \InstaWP\Connect\Helpers\WPConfig( $constants );
+			$wp_config->delete();
 	
-			$config = new InstaWP_WP_Config( $config_file );
-			foreach ( $constants as $constant ) {
-				$config->remove( 'constant', $constant );
-			}
-
 			flush_rewrite_rules();
 		}
 

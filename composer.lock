@@ -12,12 +12,12 @@
             "source": {
                 "type": "git",
                 "url": "git@github.com:InstaWP/connect-helpers.git",
-                "reference": "d3d70fba7a30167c773c861d0719758198d933ca"
+                "reference": "047775c0ecff50ba78d404d887e72d6947a4f49f"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/InstaWP/connect-helpers/zipball/d3d70fba7a30167c773c861d0719758198d933ca",
-                "reference": "d3d70fba7a30167c773c861d0719758198d933ca",
+                "url": "https://api.github.com/repos/InstaWP/connect-helpers/zipball/047775c0ecff50ba78d404d887e72d6947a4f49f",
+                "reference": "047775c0ecff50ba78d404d887e72d6947a4f49f",
                 "shasum": ""
             },
             "require": {
@@ -67,7 +67,7 @@
                 "source": "https://github.com/InstaWP/connect-helpers/tree/main",
                 "issues": "https://github.com/InstaWP/connect-helpers/issues"
             },
-            "time": "2023-08-16T08:56:58+00:00"
+            "time": "2023-08-16T09:47:38+00:00"
         },
         {
             "name": "woocommerce/action-scheduler",
