@@ -247,10 +247,6 @@ add_action( 'wp_head', function () {
 //		$restore_db->generate_exclude_tables_rows_file();
 
 //		delete_option( 'instawp_connect_id_options' );
-//
-//		echo "<pre>";
-//		print_r( get_option( 'instawp_connect_id_options' ) );
-//		echo "</pre>";
 
 		die();
 	}
