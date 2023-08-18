@@ -50,12 +50,14 @@ class InstaWP_Change_Event_Filters
             add_action( 'activated_plugin', array( $this,'activatePluginAction'),10, 2 );
             add_action( 'deactivated_plugin', array( $this,'deactivatePluginAction'),10, 2 );
             #add_action( 'upgrader_process_complete', array( $this,'upgradePluginAction'),10, 2);
+
             #theme actions
-            // add_action( 'switch_theme', array( $this,'switchThemeAction'), 10, 3 );
-            // add_action( 'deleted_theme', array( $this,'deletedThemeAction'), 10, 2 );
-            // add_action( 'install_themes_new', array( $this,'installThemesNewAction') );
-            // add_action( 'install_themes_upload', array( $this,'installThemesUploadAction') );
-            // add_action( 'install_themes_updated', array( $this,'installThemesUpdatedAction') );
+            add_action( 'switch_theme', array( $this,'switchThemeAction'), 10, 3 );
+            add_action( 'deleted_theme', array( $this,'deletedThemeAction'), 10, 2 );
+            add_action( 'install_themes_new', array( $this,'installThemesNewAction') );
+            add_action( 'install_themes_upload', array( $this,'installThemesUploadAction') );
+            add_action( 'install_themes_updated', array( $this,'installThemesUpdatedAction') );
+
             #taxonomy actions         
             // $tax_rel = $this->InstaWP_db->getDistinictCol($this->wpdb->prefix.'term_taxonomy','taxonomy');
             // $taxonomies = [];
@@ -363,7 +365,7 @@ class InstaWP_Change_Event_Filters
      */
     function installThemesUpdatedAction($paged) {
         $event_slug = 'install_themes_updated';
-        $details = ['Name' => '', 'Stylesheet' => '', 'Paged' => $paged];
+        $details = ['name' => '', 'stylesheet' => '', 'Paged' => $paged];
         $event_name = __('Install themes updated', 'instawp-connect');
         $this->pluginThemeEvents($event_name, $event_slug, $details, 'theme', '');
     }
@@ -376,7 +378,7 @@ class InstaWP_Change_Event_Filters
      */
     function installThemesUploadAction($paged) {
         $event_slug = 'install_themes_upload';
-        $details = ['Name' => '', 'Stylesheet' => '', 'Paged' => $paged];
+        $details = ['name' => '', 'stylesheet' => '', 'Paged' => $paged];
         $event_name = __('Install themes upload', 'instawp-connect');
         $this->pluginThemeEvents($event_name, $event_slug, $details, 'theme', '');
     }
@@ -389,7 +391,7 @@ class InstaWP_Change_Event_Filters
      */
     function installThemesNewAction($paged) {
         $event_slug = 'install_themes_new';
-        $details = ['Name' => '', 'Stylesheet' => '', 'Paged' => $paged];
+        $details = ['name' => '', 'stylesheet' => '', 'Paged' => $paged];
         $event_name = __('Install themes new', 'instawp-connect');
         $this->pluginThemeEvents($event_name, $event_slug, $details, 'theme', '');
     }
@@ -403,7 +405,7 @@ class InstaWP_Change_Event_Filters
      */
     function deletedThemeAction($stylesheet, $deleted) {
         $event_slug = 'deleted_theme';
-        $details = ['Name' => '', 'Stylesheet' => $stylesheet, 'Paged' => ''];
+        $details = ['name' => '', 'stylesheet' => $stylesheet, 'Paged' => ''];
         $event_name = sprintf(__('Theme %s deleted', 'instawp-connect'), ucfirst($stylesheet));
         $this->pluginThemeEvents($event_name, $event_slug, $details, 'theme', '');
     }
@@ -418,7 +420,7 @@ class InstaWP_Change_Event_Filters
      */
     function switchThemeAction($new_name, $new_theme, $old_theme) {
         $event_slug = 'switch_theme';
-        $details = ['Name' => $new_name, 'Stylesheet' => '', 'Paged' => ''];
+        $details = ['name' => $new_name, 'stylesheet' => $new_theme->get_stylesheet(), 'Paged' => ''];
         $event_name = sprintf(__('Theme switched from %s to %s', 'instawp-connect'), $old_theme->get_stylesheet(), $new_theme->get_stylesheet());
         $this->pluginThemeEvents($event_name, $event_slug, $details, 'theme', '');
     }
@@ -496,7 +498,7 @@ class InstaWP_Change_Event_Filters
         } elseif ($type == 'woocommerce_attribute_deleted') {
             $title = $details;
         } else {
-            $title = $details['Name'];
+            $title = $details['name'];
         }
         #Data Array
         $data = [

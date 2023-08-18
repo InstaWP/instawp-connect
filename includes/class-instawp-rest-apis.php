@@ -407,6 +407,51 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 					$changes[ $v->event_type ] = $changes[ $v->event_type ] + 1;
 				}
 
+
+				/**
+				 * Theme operations
+				 */
+				
+				if ( isset( $v->details ) && $v->event_slug == 'switch_theme' ) {
+					if( isset( $v->details->stylesheet ) ){
+						$stylesheet = $v->details->stylesheet;
+						if ( $stylesheet !='' ) {
+							$check_theme_installed = $this->check_theme_installed( $stylesheet );
+							if ( $check_theme_installed != 1 ) {
+								$this->theme_install( $stylesheet );
+							}
+							switch_theme( $stylesheet );
+							#message
+							$message         = 'Sync successfully.';
+							$status          = 'completed';
+							$sync_response[] = $this->sync_opration_response( $status, $message, $v );
+							#changes
+							$changes[ $v->event_type ] = $changes[ $v->event_type ] + 1;
+						}
+					}
+				}
+
+				if ( isset( $v->details ) && $v->event_slug == 'deleted_theme' ) {
+					if( isset( $v->details->stylesheet ) ){
+						$stylesheet = $v->details->stylesheet;
+						if ( $stylesheet !='' ) {
+							
+							$theme = wp_get_theme( $stylesheet );
+							if ( $theme->exists() ) {
+								require_once( ABSPATH . 'wp-includes/pluggable.php' );
+								delete_theme( $stylesheet );
+								
+								#message
+								$message         = 'Sync successfully.';
+								$status          = 'completed';
+								$sync_response[] = $this->sync_opration_response( $status, $message, $v );
+								#changes
+								$changes[ $v->event_type ] = $changes[ $v->event_type ] + 1;
+							}
+						}
+					}
+				}
+
 				/*
 				* Taxonomy Oprations
 				*/
@@ -1292,6 +1337,30 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 		$upgrader->install( $api->download_link );
 	}
 
+		/**
+	 * Theme install
+	 */
+	public function theme_install( $stylesheet ) {
+		require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php'; // For themes_api().
+		$api = themes_api(
+			'theme_information',
+			array(
+				'slug'   => $stylesheet,
+				'fields' => array(
+					'sections' => false,
+					'tags'     => false,
+				),
+			)
+		); // Save on a bit of bandwidth.
+		include_once( ABSPATH . 'wp-includes/pluggable.php' );
+		include_once( ABSPATH . 'wp-admin/includes/file.php' );
+		include_once( ABSPATH . 'wp-admin/includes/misc.php' );
+		if (! is_wp_error( $api ) ) {
+			$upgrader = new Theme_Upgrader();
+			$upgrader->install( $api->download_link );
+		}
+	}
+	
 	/**
 	 * Check if plugin is installed by getting all plugins from the plugins dir
 	 *
@@ -1303,6 +1372,19 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 		$installed_plugins = get_plugins();
 
 		return array_key_exists( $plugin_slug, $installed_plugins ) || in_array( $plugin_slug, $installed_plugins, true );
+	}
+
+
+	/**
+	 * Check if theme is installed by getting all themes from the theme dir
+	 *
+	 * @param $stylesheet
+	 *
+	 * @return bool
+	 */
+	public function check_theme_installed( $stylesheet ): bool {
+		$installed_themes = wp_get_themes();
+		return array_key_exists( $stylesheet , $installed_themes );
 	}
 
 	//add and update user meta
