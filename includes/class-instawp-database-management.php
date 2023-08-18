@@ -8,7 +8,8 @@ if ( ! class_exists( 'InstaWP_Database_Management' ) ) {
 	class InstaWP_Database_Management {
 		
 		protected static $_instance = null;
-		private static $query_var = 'instawp-database-manager';
+		private static $query_var;
+		private $database_manager;
 
 		/**
 		 * @return InstaWP_Database_Management
@@ -21,6 +22,9 @@ if ( ! class_exists( 'InstaWP_Database_Management' ) ) {
 		}
 
 		public function __construct() {
+			$this->database_manager = new \InstaWP\Connect\Helpers\DatabaseManager();
+			self::$query_var        = $this->database_manager::get_query_var();
+
 			add_action( 'init', [ $this, 'add_endpoint' ] );
 			add_action( 'template_redirect', [ $this, 'redirect' ] );
 			add_action( 'instawp_clean_database_manager', [ $this, 'clean' ] );
@@ -43,7 +47,7 @@ if ( ! class_exists( 'InstaWP_Database_Management' ) ) {
 		}
 
 		public function clean( $file_name ) {
-			$file_path = self::get_file_path( $file_name );
+			$file_path = $this->database_manager::get_file_path( $file_name );
 			if ( file_exists( $file_path ) ) {
 				@unlink( $file_path );
 			}
@@ -67,7 +71,7 @@ if ( ! class_exists( 'InstaWP_Database_Management' ) ) {
 				wp_die( esc_html__( 'InstaWP Database Manager: Token mismatch or not valid!', 'instawp-connect' ) );
 			}
 
-			$database_manager_url = self::get_database_manager_url( $file_name );
+			$database_manager_url = $this->database_manager::get_database_manager_url( $file_name );
 			ob_start() ?>
 
 			<input type="hidden" name="auth[driver]" required="required" value="server">
@@ -96,7 +100,7 @@ if ( ! class_exists( 'InstaWP_Database_Management' ) ) {
 
 		private function get_template( $template = false ) {
 			$template_name = get_query_var( self::$query_var );
-			$template_path = self::get_file_path( $template_name );
+			$template_path = $this->database_manager::get_file_path( $template_name );
 			$loader_path   = INSTAWP_PLUGIN_DIR . '/includes/database-manager/loader.php';
 
 			if ( file_exists( $template_path ) && file_exists( $loader_path ) ) {
@@ -104,14 +108,6 @@ if ( ! class_exists( 'InstaWP_Database_Management' ) ) {
 			}
 
 			return $template;
-		}
-
-		public static function get_file_path( $file_name ) {
-			return INSTAWP_PLUGIN_DIR . '/includes/database-manager/instawp' . $file_name . '.php';
-		}
-
-		public static function get_database_manager_url( $file_name ) {
-			return home_url( self::$query_var . '/' . $file_name );
 		}
 	}
 }
