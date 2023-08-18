@@ -412,15 +412,17 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 				 * Theme operations
 				 */
 				
-				if ( isset( $v->details ) && $v->event_slug == 'switch_theme' ) {
+				if ( isset( $v->details ) && ( $v->event_slug == 'switch_theme'  ||  $v->event_slug == 'theme_install' ) ) {
 					if( isset( $v->details->stylesheet ) ){
-						$stylesheet = $v->details->stylesheet;
+						$stylesheet = isset($v->details->stylesheet) ? $v->details->stylesheet : '';
 						if ( $stylesheet !='' ) {
-							$check_theme_installed = $this->check_theme_installed( $stylesheet );
-							if ( $check_theme_installed != 1 ) {
+							$$theme = wp_get_theme( $stylesheet );
+							if ( !$theme->exists() ) {
 								$this->theme_install( $stylesheet );
 							}
-							switch_theme( $stylesheet );
+							if( $v->event_slug == 'switch_theme' ){
+								switch_theme( $stylesheet );
+							}
 							#message
 							$message         = 'Sync successfully.';
 							$status          = 'completed';
@@ -430,6 +432,7 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 						}
 					}
 				}
+				
 
 				if ( isset( $v->details ) && $v->event_slug == 'deleted_theme' ) {
 					if( isset( $v->details->stylesheet ) ){
