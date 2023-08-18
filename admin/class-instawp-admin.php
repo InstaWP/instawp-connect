@@ -103,7 +103,8 @@ class InstaWP_Admin {
 				array(
 					'id'     => 'instawp-go-live',
 					'title'  => esc_html__( 'Go Live', 'instawp-connect' ),
-					'href'   => admin_url( 'admin.php?page=instawp-connect-go-live' ),
+//					'href'   => admin_url( 'admin.php?page=instawp-connect-go-live' ),
+					'href'   => '#',
 					'parent' => 'top-secondary',
 				)
 			);
@@ -333,7 +334,9 @@ class InstaWP_Admin {
 			)
 		);
 
-		
+
+		wp_enqueue_script( $this->plugin_name, INSTAWP_PLUGIN_DIR_URL . 'js/instawp-admin.js', array( 'jquery' ), $this->version, false );
+
 		//change events scripts [end]
 
 		$this->screen_ids = apply_filters( 'instawp_get_screen_ids', $this->screen_ids );
