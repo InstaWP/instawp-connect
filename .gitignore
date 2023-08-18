@@ -8,5 +8,7 @@ includes/database-manager/instawp*.php
 *.log
 *.sql
 *.sqlite
+*.lock
 .DS_Store
 .idea/
+auth.json

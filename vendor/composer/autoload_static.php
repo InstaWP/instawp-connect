@@ -6,22 +6,32 @@ namespace Composer\Autoload;
 
 class ComposerStaticInitbcadd97c5590ad88122a0acdcd5c29ff
 {
+    public static $files = array (
+        'ac949ce40a981819ba132473518a9a31' => __DIR__ . '/..' . '/wp-cli/wp-config-transformer/src/WPConfigTransformer.php',
+        '19f598e9424dd4284ce70db88f808477' => __DIR__ . '/..' . '/woocommerce/action-scheduler/action-scheduler.php',
+    );
+
     public static $prefixLengthsPsr4 = array (
-        'F' => 
+        'I' => 
         array (
-            'Faker\\' => 6,
+            'InstaWP\\Connect\\Helpers\\' => 24,
         ),
     );
 
     public static $prefixDirsPsr4 = array (
-        'Faker\\' => 
+        'InstaWP\\Connect\\Helpers\\' => 
         array (
-            0 => __DIR__ . '/..' . '/fzaninotto/faker/src/Faker',
+            0 => __DIR__ . '/..' . '/instawp/connect-helpers/src',
         ),
     );
 
     public static $classMap = array (
         'Composer\\InstalledVersions' => __DIR__ . '/..' . '/composer/InstalledVersions.php',
+        'InstaWP\\Connect\\Helpers\\Cache' => __DIR__ . '/..' . '/instawp/connect-helpers/src/Cache.php',
+        'InstaWP\\Connect\\Helpers\\DebugLog' => __DIR__ . '/..' . '/instawp/connect-helpers/src/DebugLog.php',
+        'InstaWP\\Connect\\Helpers\\Installer' => __DIR__ . '/..' . '/instawp/connect-helpers/src/Installer.php',
+        'InstaWP\\Connect\\Helpers\\Inventory' => __DIR__ . '/..' . '/instawp/connect-helpers/src/Inventory.php',
+        'InstaWP\\Connect\\Helpers\\WPConfig' => __DIR__ . '/..' . '/instawp/connect-helpers/src/WPConfig.php',
     );
 
     public static function getInitializer(ClassLoader $loader)

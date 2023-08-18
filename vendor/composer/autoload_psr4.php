@@ -6,5 +6,5 @@ $vendorDir = dirname(__DIR__);
 $baseDir = dirname($vendorDir);
 
 return array(
-    'Faker\\' => array($vendorDir . '/fzaninotto/faker/src/Faker'),
+    'InstaWP\\Connect\\Helpers\\' => array($vendorDir . '/instawp/connect-helpers/src'),
 );

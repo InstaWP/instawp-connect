@@ -16,6 +16,7 @@ var zipPath = [
     '!./**/.gitignore', 
     '!./**/*.md', 
     '!./**/composer.json',
+    '!./**/auth.json',
     '!./**/.gitignore', 
     '!./**/LICENSE', 
     '!./**/phpunit*', 
