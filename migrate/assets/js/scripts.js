@@ -656,8 +656,8 @@ tailwind.config = {
 
 
     // Remote Management settings save start //
-    let ajaxSaveManagementSettings = ( name, value ) => {
-        $.ajax( {
+    let ajaxSaveManagementSettings = (name, value) => {
+        $.ajax({
             type: 'POST',
             url: plugin_object.ajax_url,
             context: this,
@@ -667,111 +667,111 @@ tailwind.config = {
                 'value': value,
                 'security': instawp_migrate.security
             },
-            beforeSend: function() {
-                $( document ).find( '.manage .instawp-form' ).addClass( 'loading' );
+            beforeSend: function () {
+                $(document).find('.manage .instawp-form').addClass('loading');
             },
-            success: function( response ) {
-                if ( response.success === true ) {
-                    let label_field = $( document ).find( '.' + name.replace( /_/g, '-' ) + '-field .toggle-label' );
-                    setTimeout( function() {
-                        label_field.text( label_field.data( value ) );
-                        $( document ).find( '.manage .instawp-form' ).removeClass( 'loading' );
-                        $( document ).trigger( 'instawpToggleSave', [ name, value ] );
-                    }, 300 );
+            success: function (response) {
+                if (response.success === true) {
+                    let label_field = $(document).find('.' + name.replace(/_/g, '-') + '-field .toggle-label');
+                    setTimeout(function () {
+                        label_field.text(label_field.data(value));
+                        $(document).find('.manage .instawp-form').removeClass('loading');
+                        $(document).trigger('instawpToggleSave', [name, value]);
+                    }, 300);
                 } else {
-                    alert( 'Can\'t update settings. Please try again!' );
+                    alert('Can\'t update settings. Please try again!');
                     location.reload();
                 }
             },
-            error: function( jqXHR, textStatus, errorThrown ) {
-                alert( errorThrown + ': Can\'t update settings. Please try again!' );
+            error: function (jqXHR, textStatus, errorThrown) {
+                alert(errorThrown + ': Can\'t update settings. Please try again!');
                 location.reload();
             }
-        } );
+        });
     }
 
-    $( document ).on( 'change', '.save-ajax', function() {
-        let name = $( this ).attr( 'id' );
-        let value = $( this ).is( ':checked' ) ? 'on' : 'off';
+    $(document).on('change', '.save-ajax', function () {
+        let name = $(this).attr('id');
+        let value = $(this).is(':checked') ? 'on' : 'off';
 
-        ajaxSaveManagementSettings( name, value );
-    } );
+        ajaxSaveManagementSettings(name, value);
+    });
 
-    $( document ).on( 'instawpToggleSave', function( e, name, value ) {
-        if ( name === 'instawp_rm_heartbeat' ) {
-            if ( value === 'on' ) {
-                $( document ).find( '.instawp-api-heartbeat-field' ).show();
-            } else if ( value === 'off' ) {
-                $( document ).find( '.instawp-api-heartbeat-field' ).hide();
-            } 
+    $(document).on('instawpToggleSave', function (e, name, value) {
+        if (name === 'instawp_rm_heartbeat') {
+            if (value === 'on') {
+                $(document).find('.instawp-api-heartbeat-field').show();
+            } else if (value === 'off') {
+                $(document).find('.instawp-api-heartbeat-field').hide();
+            }
         }
-    } );
+    });
 
     let debounce = null;
-    $( document ).on( 'input', '#instawp_api_heartbeat', function( e ) {
-        let el = $( this );
-        let name = el.attr( 'id' );
-        let value = parseInt( Math.abs( $( this ).val() ) );
+    $(document).on('input', '#instawp_api_heartbeat', function (e) {
+        let el = $(this);
+        let name = el.attr('id');
+        let value = parseInt(Math.abs($(this).val()));
 
-        clearTimeout( debounce );
-        debounce = setTimeout( function() {
-            if ( value >= 15 && value <= 60 ) {
-                ajaxSaveManagementSettings( name, value );
+        clearTimeout(debounce);
+        debounce = setTimeout(function () {
+            if (value >= 15 && value <= 60) {
+                ajaxSaveManagementSettings(name, value);
             } else {
-                el.val( 15 );
-                ajaxSaveManagementSettings( name, 15 );
+                el.val(15);
+                ajaxSaveManagementSettings(name, 15);
             }
-        }, 500 );
-    } );
+        }, 500);
+    });
     // Remote Management settings save end //
 
-    $( document ).on( 'ready', function () {
-        $( document ).find( '.staging-site-list' ).slice( 0, parseInt( $( document ).find( '.sites' ).data( 'pagination' ) ) ).show();
-    } );
+    $(document).on('ready', function () {
+        $(document).find('.staging-site-list').slice(0, parseInt($(document).find('.sites').data('pagination'))).show();
+    });
 
-    $( document ).on( 'click', '.sites .page-item', function ( e ) {
+    $(document).on('click', '.sites .page-item', function (e) {
         e.preventDefault();
-        let el = $( this );
-        let page = parseInt( el.parents( '.sites' ).data( 'pagination' ) );
-        let item = parseInt( $( this ).data( 'item' ) );
-        let position = parseInt( item * page );
+        let el = $(this);
+        let page = parseInt(el.parents('.sites').data('pagination'));
+        let item = parseInt($(this).data('item'));
+        let position = parseInt(item * page);
 
-        $( document ).find( '.sites .page-item' ).removeClass( 'active' );
-        $( document ).find( '.sites .page-item[data-item=' + item + ']' ).addClass( 'active' );
+        $(document).find('.sites .page-item').removeClass('active');
+        $(document).find('.sites .page-item[data-item=' + item + ']').addClass('active');
 
-        $( document ).find( '.staging-site-list' ).hide();
-        $( document ).find( '.staging-site-list' ).slice( parseInt( position - page ), position ).show();
+        $(document).find('.staging-site-list').hide();
+        $(document).find('.staging-site-list').slice(parseInt(position - page), position).show();
 
-        let prevEl = $( document ).find( '.sites .prev-item' );
-        if ( el.prev().length > 0 ) {
-            prevEl.removeClass( 'disabled' );
+        let prevEl = $(document).find('.sites .prev-item');
+        if (el.prev().length > 0) {
+            prevEl.removeClass('disabled');
         } else {
-            prevEl.addClass( 'disabled' );
+            prevEl.addClass('disabled');
         }
 
-        let nextEl = $( document ).find( '.sites .next-item' );
-        if ( el.next().length > 0 ) {
-            nextEl.removeClass( 'disabled' );
+        let nextEl = $(document).find('.sites .next-item');
+        if (el.next().length > 0) {
+            nextEl.removeClass('disabled');
         } else {
-            nextEl.addClass( 'disabled' );
+            nextEl.addClass('disabled');
         }
-    } );
+    });
 
-    $( document ).on( 'click', '.sites .prev-item', function ( e ) {
+    $(document).on('click', '.sites .prev-item', function (e) {
         e.preventDefault();
-        let prev = $( document ).find( '.sites .page-item.active' ).prev();
-        if ( prev.length > 0 ) {
-            prev.trigger( 'click' );
+        let prev = $(document).find('.sites .page-item.active').prev();
+        if (prev.length > 0) {
+            prev.trigger('click');
         }
-    } );
+    });
 
-    $( document ).on( 'click', '.sites .next-item', function ( e ) {
+    $(document).on('click', '.sites .next-item', function (e) {
         e.preventDefault();
-        let next = $( document ).find( '.sites .page-item.active' ).next();
-        if ( next.length > 0 ) {
-            next.trigger( 'click' );
+        let next = $(document).find('.sites .page-item.active').next();
+        if (next.length > 0) {
+            next.trigger('click');
         }
-    } );
+    });
 
 })(jQuery, window, document, instawp_migrate);
 

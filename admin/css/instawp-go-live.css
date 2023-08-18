@@ -2,19 +2,7 @@
  * Cloudways Integration
  */
 
-#wpadminbar li#wp-admin-bar-instawp-go-live a,
-#wpadminbar li#wp-admin-bar-instawp-go-live a:hover,
-#wpadminbar li#wp-admin-bar-instawp-go-live a:active,
-#wpadminbar li#wp-admin-bar-instawp-go-live a:focus,
-#wpadminbar li#wp-admin-bar-instawp-go-live a:visited {
-    background: #10a372;
-    color: #f1f1f1;
-    outline: none;
-    border: none;
-    box-shadow: none;
-    padding-left: 20px;
-    padding-right: 20px;
-}
+
 
 .instawp-go-live-wrap {
     display: flex;

@@ -3,7 +3,6 @@
  * InstaWP Migration Process
  */
 
-
 if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 	class INSTAWP_Migration {
 
@@ -32,6 +31,22 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 
 			add_action( 'INSTAWP/Actions/restore_completed', array( $this, 'restore_completed' ), 10, 2 );
 			add_action( 'action_scheduler_completed_action', array( $this, 'scheduler_completed_action' ), 10, 1 );
+			add_action( 'action_scheduler_failed_action', array( $this, 'scheduler_completed_action' ), 10, 1 );
+
+			add_action( 'wp_ajax_instawp_go_live', array( $this, 'go_live_redirect_url' ) );
+		}
+
+		function go_live_redirect_url() {
+
+			$response      = InstaWP_Curl::do_curl( 'get-waas-redirect-url', array( 'source_domain' => 'https://busy-bird-cinu.a.instawpsites.com' ) );
+			$response_data = InstaWP_Setting::get_args_option( 'data', $response, [] );
+			$redirect_url  = InstaWP_Setting::get_args_option( 'url', $response_data );
+
+			if ( ! empty( $redirect_url ) ) {
+				wp_send_json_success( [ 'redirect_url' => $redirect_url ] );
+			}
+
+			wp_send_json_error();
 		}
 
 
@@ -58,7 +73,7 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 
 				if ( $is_any_pending_work ) {
 					sleep( 2 );
-					as_enqueue_async_action( 'instawp_backup_bg', $action_args, 'instawp', true );
+					as_enqueue_async_action( 'instawp_backup_bg', $action_args, 'instawp-connect', true );
 				}
 			}
 		}
@@ -229,7 +244,7 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 					InstaWP_taskmanager::store_migrate_id_to_migrate_task( $migrate_task_id, $migrate_id );
 
 					// Doing in background processing
-					as_enqueue_async_action( 'instawp_backup_bg', [ $migrate_task_id, $parameters ], 'instawp', true );
+					as_enqueue_async_action( 'instawp_backup_bg', [ $migrate_task_id, $parameters ], 'instawp-connect', true );
 				}
 
 				$response['migrate_api_response']   = $migrate_response;

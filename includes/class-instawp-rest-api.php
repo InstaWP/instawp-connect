@@ -835,7 +835,7 @@ class InstaWP_Backup_Api {
 		}
 
 		// Doing in background processing
-		as_enqueue_async_action( 'instawp_backup_bg', [ $migrate_task_id, $parameters ], 'instawp', true );
+		as_enqueue_async_action( 'instawp_backup_bg', [ $migrate_task_id, $parameters ], 'instawp-connect', true );
 
 		// Update the current action id in this task
 //		InstaWP_taskmanager::update_task_options( $migrate_task_id, 'action_id', $action_id );
