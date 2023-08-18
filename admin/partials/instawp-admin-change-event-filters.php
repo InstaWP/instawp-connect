@@ -49,7 +49,7 @@ class InstaWP_Change_Event_Filters
             #plugin actions
             add_action( 'activated_plugin', array( $this,'activatePluginAction'),10, 2 );
             add_action( 'deactivated_plugin', array( $this,'deactivatePluginAction'),10, 2 );
-            #add_action( 'upgrader_process_complete', array( $this,'upgradePluginAction'),10, 2);
+            add_action( 'upgrader_process_complete', array( $this,'upgradePluginAction'),10, 2);
 
             #theme actions
             add_action( 'switch_theme', array( $this,'switchThemeAction'), 10, 3 );
@@ -57,7 +57,7 @@ class InstaWP_Change_Event_Filters
             add_action( 'install_themes_new', array( $this,'installThemesNewAction') );
             add_action( 'install_themes_upload', array( $this,'installThemesUploadAction') );
             add_action( 'install_themes_updated', array( $this,'installThemesUpdatedAction') );
-
+            
             #taxonomy actions         
             // $tax_rel = $this->InstaWP_db->getDistinictCol($this->wpdb->prefix.'term_taxonomy','taxonomy');
             // $taxonomies = [];
@@ -418,11 +418,15 @@ class InstaWP_Change_Event_Filters
      *
      * @return void
      */
-    function switchThemeAction($new_name, $new_theme, $old_theme) {
+    public function switchThemeAction($new_name, $new_theme, $old_theme) {
         $event_slug = 'switch_theme';
         $details = ['name' => $new_name, 'stylesheet' => $new_theme->get_stylesheet(), 'Paged' => ''];
         $event_name = sprintf(__('Theme switched from %s to %s', 'instawp-connect'), $old_theme->get_stylesheet(), $new_theme->get_stylesheet());
         $this->pluginThemeEvents($event_name, $event_slug, $details, 'theme', '');
+    }
+
+    public function mytheme_setup_options ($new_name) {
+       //pr( $new_name );
     }
     /**ge
      * Function for `upgrader_process_complete` action-hook.
@@ -433,10 +437,18 @@ class InstaWP_Change_Event_Filters
      * @return void
      */
     function upgradePluginAction($upgrader, $hook_extra) {
+        $details = [];
         $event_name = $hook_extra['type'] . '_' . $hook_extra['action'];
-        $event_slug = $hook_extra['type'] . '_' . $hook_extra['action'];
-        $details = json_encode($hook_extra);
-        $this->pluginThemeEvents($event_name, $event_slug, $details, 'plugin', '');
+        $event_slug = $event_name;
+        if($upgrader instanceof Theme_Upgrader){
+            $theme_data         = $upgrader->new_theme_data;
+            $destination_name   = $upgrader->result['destination_name'];
+            $theme              = wp_get_theme( $destination_name );
+            if ( $theme->exists() ) {
+                $details        = ['name' => $theme_data['Name'], 'stylesheet' => $theme->get_stylesheet(), 'data'=> $theme_data];
+                $this->pluginThemeEvents($event_name, $event_slug, $details, 'theme', '');
+            }
+        }
     }
     /**
      * Function for `deactivated_plugin` action-hook.
