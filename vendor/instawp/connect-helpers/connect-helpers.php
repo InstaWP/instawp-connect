@@ -25,4 +25,15 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Class Autoloading.
  */
-include dirname( __FILE__ ) . '/vendor/autoload.php';
+$path = dirname( __FILE__ ) . '/vendor/autoload.php';
+if ( file_exists( $path ) ) {
+    include $path;
+} else {
+    add_action( 'admin_notices', function() {
+        ?>
+        <div class="notice notice-error">
+            <p><?php _e( 'Please run <code>composer install</code> to use InstaWP Connect Helpers Package as a plugin.', 'connect-helpers' ); ?></p>
+        </div>
+        <?php
+    } );
+}
