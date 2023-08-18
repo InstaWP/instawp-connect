@@ -38,7 +38,7 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 
 		function go_live_redirect_url() {
 
-			$response      = InstaWP_Curl::do_curl( 'get-waas-redirect-url', array( 'source_domain' => 'https://busy-bird-cinu.a.instawpsites.com' ) );
+			$response      = InstaWP_Curl::do_curl( 'get-waas-redirect-url', array( 'source_domain' => site_url() ) );
 			$response_data = InstaWP_Setting::get_args_option( 'data', $response, [] );
 			$redirect_url  = InstaWP_Setting::get_args_option( 'url', $response_data );
 
