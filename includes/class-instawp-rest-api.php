@@ -410,7 +410,7 @@ class InstaWP_Backup_Api {
 		delete_option( 'instawp_api_key_config_completed' );
 		delete_option( 'instawp_connect_id_options' );
 
-		$parameters = $request->get_params();
+		$parameters = $this->filter_params( $request );
 		$results    = array(
 			'status'     => false,
 			'connect_id' => 0,
@@ -636,7 +636,7 @@ class InstaWP_Backup_Api {
 			return $this->throw_error( $response );
 		}
 
-		$parameters         = $request->get_params();
+		$parameters         = $this->filter_params( $request );
 		$backup_task        = new InstaWP_Backup_Task();
 		$backup_task_ret    = $backup_task->new_download_task();
 		$backup_task_id     = isset( $backup_task_ret['task_id'] ) ? $backup_task_ret['task_id'] : '';
@@ -668,7 +668,7 @@ class InstaWP_Backup_Api {
 				return $this->throw_error( $response );
 			}
 
-			$parameters         = $request->get_params();
+			$parameters         = $this->filter_params( $request );
 			$is_background      = $parameters['wp']['options']['instawp_is_background'] ?? true;
 			$restore_options    = json_encode( array(
 				'skip_backup_old_site'     => '1',
@@ -819,7 +819,7 @@ class InstaWP_Backup_Api {
 			return $this->throw_error( $response );
 		}
 
-		$parameters       = $request->get_params();
+		$parameters       = $this->filter_params( $request );
 		$is_background    = $parameters['instawp_is_background'] ?? true;
 		$migrate_id       = InstaWP_Setting::get_args_option( 'migrate_id', $parameters );
 		$migrate_settings = InstaWP_Setting::get_args_option( 'migrate_settings', $parameters );
@@ -1072,7 +1072,7 @@ class InstaWP_Backup_Api {
 			return $this->throw_error( $response );
 		}
 
-		$params = $request->get_params() ?? [];
+		$params = $this->filter_params( $request );
 
 		$installer = new \InstaWP\Connect\Helpers\Installer( $params );
 		$response  = $installer->start();
@@ -1243,7 +1243,7 @@ class InstaWP_Backup_Api {
 			return $this->throw_error( $response );
 		}
 
-		$params  = $request->get_params() ?? [];
+		$params  = $this->filter_params( $request );
 		$options = $this->get_management_options();
 		$results = [];
 
@@ -1352,6 +1352,22 @@ class InstaWP_Backup_Api {
 		$value = empty( $value ) ? 'off' : $value;
 
 		return 'on' === $value;
+	}
+
+	/**
+	 * Filter params.
+	 *
+	 * @param object $request
+	 *
+	 * @return array
+	 */
+	private function filter_params( $request ) {
+		$params = $request->get_params() ?? [];
+		if ( array_key_exists( 'rest_route', $params ) ) {
+			unset( $params['rest_route'] );
+		}
+
+		return $params;
 	}
 
 	/**
