@@ -59,9 +59,9 @@ InstaWP is an online WordPress development environment to get you started with a
 == Changelog ==
 
 = 0.0.9.24 =
+- 21/08/2023 - NEW - Remote Management features added on the Beta programs.
 - 21/08/2023 - FIX - Stabilising the migrations process.
 - 21/08/2023 - FIX - Auto login issue with magic login button.
-- 21/08/2023 - NEW - Remote Management features added on the Beta programs.
 
 = 0.0.9.23 =
 - 07/08/2023 - FIX - Fix reset permalink after successful migration.
