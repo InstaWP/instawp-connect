@@ -1,6 +1,6 @@
 <?php
 /**
- * InstaWP Connect Helpers
+ * InstaWP Connect Helpers 
  *
  * @package      InstaWP\Connect\Helpers
  * @copyright    Copyright (C) 2023, InstaWP
