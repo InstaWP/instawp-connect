@@ -69,7 +69,7 @@ if ( ! function_exists( 'adminer_object' ) ) {
 
 $file_name = InstaWP_Setting::get_option( 'instawp_database_manager_name', '' );
 if ( ! empty( $file_name ) ) {
-    $file_path = InstaWP_Database_Management::get_file_path( $file_name );
+    $file_path = \InstaWP\Connect\Helpers\DatabaseManager::get_file_path( $file_name );
     if ( file_exists( $file_path ) ) {
         include $file_path;
     }

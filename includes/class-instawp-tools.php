@@ -137,40 +137,6 @@ class InstaWP_Tools {
 		}
 	}
 
-
-	/**
-	 * Returns the wp-config.php file.
-	 *
-	 * @return string
-	 */
-	public static function get_config_file() {
-		$file = ABSPATH . 'wp-config.php';
-		if ( ! file_exists( $file ) ) {
-			if ( @file_exists( dirname( ABSPATH ) . '/wp-config.php' ) ) {
-				$file = dirname( ABSPATH ) . '/wp-config.php';
-			}
-		}
-
-		return $file;
-	}
-
-
-	/**
-	 * Returns the file content parts.
-	 *
-	 * @param string $content
-	 *
-	 * @return array
-	 */
-	public static function get_parts( $content ) {
-		$sep   = '$!$';
-		$line  = preg_replace( "/^\[([0-9a-zA-Z-]+) ([0-9:]+) ([a-zA-Z_\/]+)\] (.*)$/i", "$1" . $sep . "$2" . $sep . "$3" . $sep . "$4", $content );
-		$parts = explode( $sep, $line );
-
-		return $parts;
-	}
-
-
 	/**
 	 * Returns the random string based on length.
 	 *
