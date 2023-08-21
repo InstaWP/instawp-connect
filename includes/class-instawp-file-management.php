@@ -55,15 +55,14 @@ if ( ! class_exists( 'InstaWP_File_Management' ) ) {
 		}
 
 		public function clean( $file_name ) {
-			$file_path = self::get_file_path( $file_name );
+			$file_path = $this->file_manager::get_file_path( $file_name );
 			if ( file_exists( $file_path ) ) {
 				@unlink( $file_path );
 			}
 
 			InstaWP_Setting::delete_option( 'instawp_file_manager_name' );
 
-			$config_file = InstaWP_Tools::get_config_file();
-			$constants   = [ 'INSTAWP_FILE_MANAGER_USERNAME', 'INSTAWP_FILE_MANAGER_PASSWORD', 'INSTAWP_FILE_MANAGER_SELF_URL', 'INSTAWP_FILE_MANAGER_SESSION_ID' ];
+			$constants = [ 'INSTAWP_FILE_MANAGER_USERNAME', 'INSTAWP_FILE_MANAGER_PASSWORD', 'INSTAWP_FILE_MANAGER_SELF_URL', 'INSTAWP_FILE_MANAGER_SESSION_ID' ];
 
 			$wp_config = new \InstaWP\Connect\Helpers\WPConfig( $constants );
 			$wp_config->delete();
