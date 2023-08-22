@@ -86,15 +86,31 @@ class DatabaseManager {
         return $results;
     }
 
-	public static function get_query_var() {
+	public function clean( $file_name = null ): void {
+		$file_name = $file_name ? $file_name : get_option( 'instawp_database_manager_name', '' );
+
+		if ( ! empty( $file_name ) ) {
+			$file_path = self::get_file_path( $file_name );
+			if ( file_exists( $file_path ) ) {
+				@unlink( $file_path );
+			}
+
+			delete_option( 'instawp_database_manager_name' );
+			flush_rewrite_rules();
+
+			do_action( 'instawp_connect_remove_database_manager_task', $file_name );
+		}
+	}
+
+	public static function get_query_var(): string {
 		return self::$query_var;
 	}
 
-	public static function get_file_path( $file_name ) {
+	public static function get_file_path( $file_name ): string {
 		return WP_PLUGIN_DIR . '/instawp-connect/includes/database-manager/instawp' . $file_name . '.php';
 	}
 
-	public static function get_database_manager_url( $file_name ) {
+	public static function get_database_manager_url( $file_name ): string {
 		return home_url( self::$query_var . '/' . $file_name );
 	}
 }

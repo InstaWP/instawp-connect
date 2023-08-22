@@ -28,7 +28,6 @@ defined( 'ABSPATH' ) || exit;
 $path = dirname( __FILE__ ) . '/vendor/autoload.php';
 if ( file_exists( $path ) ) {
     include $path;
-    include dirname( __FILE__ ) . '/vendor/woocommerce/action-scheduler/action-scheduler.php';
 } else {
     add_action( 'admin_notices', function() {
         ?>
