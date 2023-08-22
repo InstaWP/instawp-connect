@@ -410,7 +410,7 @@ class InstaWP_Backup_Api {
 		delete_option( 'instawp_api_key_config_completed' );
 		delete_option( 'instawp_connect_id_options' );
 
-		$parameters = $request->get_params();
+		$parameters = $this->filter_params( $request );
 		$results    = array(
 			'status'     => false,
 			'connect_id' => 0,
@@ -636,7 +636,7 @@ class InstaWP_Backup_Api {
 			return $this->throw_error( $response );
 		}
 
-		$parameters         = $request->get_params();
+		$parameters         = $this->filter_params( $request );
 		$backup_task        = new InstaWP_Backup_Task();
 		$backup_task_ret    = $backup_task->new_download_task();
 		$backup_task_id     = isset( $backup_task_ret['task_id'] ) ? $backup_task_ret['task_id'] : '';
@@ -668,7 +668,7 @@ class InstaWP_Backup_Api {
 				return $this->throw_error( $response );
 			}
 
-			$parameters         = $request->get_params();
+			$parameters         = $this->filter_params( $request );
 			$is_background      = $parameters['wp']['options']['instawp_is_background'] ?? true;
 			$restore_options    = json_encode( array(
 				'skip_backup_old_site'     => '1',
@@ -819,7 +819,7 @@ class InstaWP_Backup_Api {
 			return $this->throw_error( $response );
 		}
 
-		$parameters       = $request->get_params();
+		$parameters       = $this->filter_params( $request );
 		$is_background    = $parameters['instawp_is_background'] ?? true;
 		$migrate_id       = InstaWP_Setting::get_args_option( 'migrate_id', $parameters );
 		$migrate_settings = InstaWP_Setting::get_args_option( 'migrate_settings', $parameters );
@@ -1072,7 +1072,7 @@ class InstaWP_Backup_Api {
 			return $this->throw_error( $response );
 		}
 
-		$params = $request->get_params() ?? [];
+		$params = $this->filter_params( $request );
 
 		$installer = new \InstaWP\Connect\Helpers\Installer( $params );
 		$response  = $installer->start();
@@ -1156,97 +1156,10 @@ class InstaWP_Backup_Api {
 			return $this->throw_error( $response );
 		}
 
-		$file_name = InstaWP_Setting::get_option( 'instawp_file_manager_name', '' );
+		$file_manager = new \InstaWP\Connect\Helpers\FileManager();
+		$response     = $file_manager->get();
 
-		if ( ! empty( $file_name ) ) {
-			as_unschedule_all_actions( 'instawp_clean_file_manager', [ $file_name ], 'instawp-connect' );
-
-			$file_path = InstaWP_File_Management::get_file_path( $file_name );
-			if ( file_exists( $file_path ) ) {
-				@unlink( $file_path );
-			}
-		}
-
-		$url       = 'https://instawp.com/filemanager';
-		$username  = InstaWP_Tools::get_random_string( 15 );
-		$password  = InstaWP_Tools::get_random_string( 20 );
-		$file_name = InstaWP_Tools::get_random_string( 20 );
-		$token     = md5( $username . '|' . $password . '|' . $file_name );
-
-		$search  = [
-			'Tiny File Manager',
-			'CCP Programmers',
-			'tinyfilemanager.github.io',
-			'FM_SELF_URL',
-			'FM_SESSION_ID',
-			"'translation.json'",
-			'</style>',
-		];
-		$replace = [
-			'InstaWP File Manager',
-			'InstaWP',
-			'instawp.com',
-			'INSTAWP_FILE_MANAGER_SELF_URL',
-			'INSTAWP_FILE_MANAGER_SESSION_ID',
-			"__DIR__ . '/translation.json'",
-			'<?php if ( file_exists( __DIR__ . "/custom.css" ) ) { echo file_get_contents( __DIR__ . "/custom.css" ); } ?></style>',
-		];
-
-		$file = file_get_contents( $url );
-		$file = str_replace( $search, $replace, $file );
-		$file = preg_replace( '!/\*.*?\*/!s', '', $file );
-
-		$file_path        = InstaWP_File_Management::get_file_path( $file_name );
-		$file_manager_url = InstaWP_File_Management::get_file_manager_url( $file_name );
-
-		$results = [
-			'login_url' => add_query_arg( [
-				'action' => 'instawp-file-manager-auto-login',
-				'token'  => hash( 'sha256', $token ),
-			], admin_url( 'admin-post.php' ) ),
-		];
-
-		$config_file = InstaWP_Tools::get_config_file();
-
-		try {
-			$result = file_put_contents( $file_path, $file, LOCK_EX );
-			if ( false === $result ) {
-				throw new Exception( esc_html__( 'Failed to create the file manager file.', 'instawp-connect' ) );
-			}
-
-			$file       = file( $file_path );
-			$new_line   = "if ( ! defined( 'INSTAWP_PLUGIN_DIR' ) ) { die; }";
-			$first_line = array_shift( $file );
-			array_unshift( $file, $new_line );
-			array_unshift( $file, $first_line );
-
-			$fp = fopen( $file_path, 'w' );
-			fwrite( $fp, implode( '', $file ) );
-			fclose( $fp );
-
-			$constants = [
-				'INSTAWP_FILE_MANAGER_USERNAME'   => $username,
-				'INSTAWP_FILE_MANAGER_PASSWORD'   => $password,
-				'INSTAWP_FILE_MANAGER_SELF_URL'   => $file_manager_url,
-				'INSTAWP_FILE_MANAGER_SESSION_ID' => 'instawp_file_manager',
-			];
-
-			$wp_config = new \InstaWP\Connect\Helpers\WPConfig( $constants );
-			$wp_config->update();
-
-			set_transient( 'instawp_file_manager_login_token', $token, ( 15 * MINUTE_IN_SECONDS ) );
-			InstaWP_Setting::update_option( 'instawp_file_manager_name', $file_name );
-
-			flush_rewrite_rules();
-			as_schedule_single_action( time() + DAY_IN_SECONDS, 'instawp_clean_file_manager', [ $file_name ], 'instawp-connect', false, 5 );
-		} catch ( Exception $e ) {
-			$results = [
-				'success' => false,
-				'message' => $e->getMessage(),
-			];
-		}
-
-		return $this->send_response( $results );
+		return $this->send_response( $response );
 	}
 
 	/**
@@ -1263,79 +1176,10 @@ class InstaWP_Backup_Api {
 			return $this->throw_error( $response );
 		}
 
-		$file_name = InstaWP_Setting::get_option( 'instawp_database_manager_name', '' );
+		$database_manager = new \InstaWP\Connect\Helpers\DatabaseManager();
+		$response         = $database_manager->get();
 
-		if ( ! empty( $file_name ) ) {
-			as_unschedule_all_actions( 'instawp_clean_database_manager', [ $file_name ], 'instawp-connect' );
-
-			$file_path = InstaWP_Database_Management::get_file_path( $file_name );
-
-			if ( file_exists( $file_path ) ) {
-				@unlink( $file_path );
-			}
-		}
-
-		$url       = 'https://instawp.com/dbeditor';
-		$file_name = InstaWP_Tools::get_random_string( 20 );
-		$token     = md5( $file_name );
-
-		$search  = [
-			'/\bjs_escape\b/',
-			'/\bget_temp_dir\b/',
-			'/\bis_ajax\b/',
-			'/\bsid\b/',
-		];
-		$replace = [
-			'instawp_js_escape',
-			'instawp_get_temp_dir',
-			'instawp_is_ajax',
-			'instawp_sid',
-		];
-
-		$file = file_get_contents( $url );
-		$file = preg_replace( $search, $replace, $file );
-
-		$file_path            = InstaWP_Database_Management::get_file_path( $file_name );
-		$database_manager_url = InstaWP_Database_Management::get_database_manager_url( $file_name );
-
-		$results = [
-			'login_url' => add_query_arg( [
-				'action' => 'instawp-database-manager-auto-login',
-				'token'  => hash( 'sha256', $token ),
-			], admin_url( 'admin-post.php' ) ),
-		];
-
-		$config_file = InstaWP_Tools::get_config_file();
-
-		try {
-			$result = file_put_contents( $file_path, $file, LOCK_EX );
-			if ( false === $result ) {
-				throw new Exception( esc_html__( 'Failed to create the database manager file.', 'instawp-connect' ) );
-			}
-
-			$file       = file( $file_path );
-			$new_line   = "if ( ! defined( 'INSTAWP_PLUGIN_DIR' ) ) { die; }";
-			$first_line = array_shift( $file );
-			array_unshift( $file, $new_line );
-			array_unshift( $file, $first_line );
-
-			$fp = fopen( $file_path, 'w' );
-			fwrite( $fp, implode( '', $file ) );
-			fclose( $fp );
-
-			set_transient( 'instawp_database_manager_login_token', $token, ( 15 * MINUTE_IN_SECONDS ) );
-			InstaWP_Setting::update_option( 'instawp_database_manager_name', $file_name );
-
-			flush_rewrite_rules();
-			as_schedule_single_action( time() + DAY_IN_SECONDS, 'instawp_clean_database_manager', [ $file_name ], 'instawp-connect', false, 5 );
-		} catch ( Exception $e ) {
-			$results = [
-				'success' => false,
-				'message' => $e->getMessage(),
-			];
-		}
-
-		return $this->send_response( $results );
+		return $this->send_response( $response );
 	}
 
 	/**
@@ -1399,7 +1243,7 @@ class InstaWP_Backup_Api {
 			return $this->throw_error( $response );
 		}
 
-		$params  = $request->get_params() ?? [];
+		$params  = $this->filter_params( $request );
 		$options = $this->get_management_options();
 		$results = [];
 
@@ -1508,6 +1352,22 @@ class InstaWP_Backup_Api {
 		$value = empty( $value ) ? 'off' : $value;
 
 		return 'on' === $value;
+	}
+
+	/**
+	 * Filter params.
+	 *
+	 * @param object $request
+	 *
+	 * @return array
+	 */
+	private function filter_params( $request ) {
+		$params = $request->get_params() ?? [];
+		if ( array_key_exists( 'rest_route', $params ) ) {
+			unset( $params['rest_route'] );
+		}
+
+		return $params;
 	}
 
 	/**

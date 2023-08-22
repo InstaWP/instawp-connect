@@ -28,7 +28,10 @@ class ComposerStaticInitbcadd97c5590ad88122a0acdcd5c29ff
     public static $classMap = array (
         'Composer\\InstalledVersions' => __DIR__ . '/..' . '/composer/InstalledVersions.php',
         'InstaWP\\Connect\\Helpers\\Cache' => __DIR__ . '/..' . '/instawp/connect-helpers/src/Cache.php',
+        'InstaWP\\Connect\\Helpers\\DatabaseManager' => __DIR__ . '/..' . '/instawp/connect-helpers/src/DatabaseManager.php',
         'InstaWP\\Connect\\Helpers\\DebugLog' => __DIR__ . '/..' . '/instawp/connect-helpers/src/DebugLog.php',
+        'InstaWP\\Connect\\Helpers\\FileManager' => __DIR__ . '/..' . '/instawp/connect-helpers/src/FileManager.php',
+        'InstaWP\\Connect\\Helpers\\Helper' => __DIR__ . '/..' . '/instawp/connect-helpers/src/Helper.php',
         'InstaWP\\Connect\\Helpers\\Installer' => __DIR__ . '/..' . '/instawp/connect-helpers/src/Installer.php',
         'InstaWP\\Connect\\Helpers\\Inventory' => __DIR__ . '/..' . '/instawp/connect-helpers/src/Inventory.php',
         'InstaWP\\Connect\\Helpers\\WPConfig' => __DIR__ . '/..' . '/instawp/connect-helpers/src/WPConfig.php',

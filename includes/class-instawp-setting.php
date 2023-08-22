@@ -78,6 +78,7 @@ class InstaWP_Setting {
 		$field_title         = self::get_args_option( 'title', $field );
 		$field_type          = self::get_args_option( 'type', $field );
 		$field_desc          = self::get_args_option( 'desc', $field );
+		$internal            = self::get_args_option( 'internal', $field, false );
 		$remote          	 = self::get_args_option( 'remote', $field );
 		$action          	 = self::get_args_option( 'action', $field );
 		$field_placeholder   = self::get_args_option( 'placeholder', $field );
@@ -91,6 +92,12 @@ class InstaWP_Setting {
 		$field_parent_class  = self::get_args_option( 'parent_class', $field );
 		$field_value         = self::get_option( $field_id, $field_default_value );
 		$attributes          = array();
+
+		if ( true === $internal || 1 == $internal ) {
+			if ( ! isset( $_REQUEST['internal'] ) || '1' != sanitize_text_field( $_REQUEST['internal'] ) ) {
+				return;
+			}
+		}
 
 		foreach ( $field_attributes as $attribute_key => $attribute_val ) {
 			$attributes[] = $attribute_key . '="' . $attribute_val . '"';
@@ -206,7 +213,7 @@ class InstaWP_Setting {
 
 		echo '<div class="section-head mb-6">';
 		echo '<div class="text-grayCust-200 text-lg font-medium">' . esc_html( self::get_args_option( 'title', $section ) ) . '</div>';
-		echo '<div class="text-grayCust-50 text-sm font-normal">' . esc_html( self::get_args_option( 'desc', $section ) ) . '</div>';
+		echo '<div class="text-grayCust-50 text-sm font-normal">' . wp_kses_post( self::get_args_option( 'desc', $section ) ) . '</div>';
 		echo '</div>';
 
 		echo '<div class="' . esc_attr( $grid_css_class ) . '">';
@@ -348,10 +355,9 @@ class InstaWP_Setting {
 
 		// Section - Management
 		$settings['management'] = [
-			'title'      => __( 'Remote Management', 'instawp-connect' ),
-			'desc'       => __( 'Update your website\'s remote management settings.', 'instawp-connect' ),
+			'title'      => __( 'Remote Management (Beta)', 'instawp-connect' ),
+			'desc'       => sprintf( __( 'Update your website\'s remote management settings. To use this feature in the InstaWP dashboard, switch on the beta program from %s section.', 'instawp-connect' ), '<a href="https://app.instawp.io/user/profile" target="_blank">'. __( 'My Accounts', 'instawp-connect' ) . '</a>' ),
 			'grid_class' => 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6',
-			'internal'   => true,
 			'fields'     => [
 				[
 					'id'      => 'instawp_rm_file_manager',
@@ -384,6 +390,7 @@ class InstaWP_Setting {
 					'tooltip' => __( 'Enabling this option will allow reading, updating and deleting the WordPress constant values on this website remotely using the REST API.', 'instawp-connect' ),
 					'class'   => 'save-ajax',
 					'default' => 'off',
+					'internal'=> true,
 				],
 				[
 					'id'      => 'instawp_rm_inventory',
@@ -392,6 +399,7 @@ class InstaWP_Setting {
 					'tooltip' => __( 'Enabling this option will allow reading the installed WordPress version, themes and plugins on this website remotely using the REST API.', 'instawp-connect' ),
 					'class'   => 'save-ajax',
 					'default' => 'off',
+					'internal'=> true,
 				],
 				[
 					'id'      => 'instawp_rm_debug_log',
@@ -400,6 +408,7 @@ class InstaWP_Setting {
 					'tooltip' => __( 'Enabling this option will allow reading WordPress error logs on this website remotely using the REST API.', 'instawp-connect' ),
 					'class'   => 'save-ajax',
 					'default' => 'off',
+					'internal'=> true,
 				],
 			],
 		];
