@@ -407,6 +407,36 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 					$changes[ $v->event_type ] = $changes[ $v->event_type ] + 1;
 				}
 
+				//Plugin install
+				if ( isset( $v->details->slug ) && $v->details->slug !='' && $v->event_slug == 'plugin_install' ) {
+					$check_plugin_installed = $this->check_plugin_installed_by_textdomain( $v->details->slug );
+					if ( !$check_plugin_installed ) {
+						$this->plugin_install( $v->details->slug );
+					}
+		
+					#message
+					$message         = 'Sync successfully.';
+					$status          = 'completed';
+					$sync_response[] = $this->sync_opration_response( $status, $message, $v );
+					#changes
+					$changes[ $v->event_type ] = $changes[ $v->event_type ] + 1;
+				}
+
+				//Plugin update
+				if ( isset( $v->details->slug ) && $v->details->slug !='' && $v->event_slug == 'plugin_update' ) {
+					$check_plugin_installed = $this->check_plugin_installed_by_textdomain( $v->details->slug );
+					if ( $check_plugin_installed ) {
+						$this->plugin_install( $v->details->slug, true );
+					}
+		
+					#message
+					$message         = 'Sync successfully.';
+					$status          = 'completed';
+					$sync_response[] = $this->sync_opration_response( $status, $message, $v );
+					#changes
+					$changes[ $v->event_type ] = $changes[ $v->event_type ] + 1;
+				}
+
 
 				/**
 				 * Theme operations
@@ -416,12 +446,30 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 					if( isset( $v->details->stylesheet ) ){
 						$stylesheet = isset($v->details->stylesheet) ? $v->details->stylesheet : '';
 						if ( $stylesheet !='' ) {
-							$$theme = wp_get_theme( $stylesheet );
-							if ( !$theme->exists() ) {
+							$theme = wp_get_theme( $stylesheet );
+							if ( ! $theme->exists() ) {
 								$this->theme_install( $stylesheet );
 							}
 							if( $v->event_slug == 'switch_theme' ){
 								switch_theme( $stylesheet );
+							}
+							#message
+							$message         = 'Sync successfully.';
+							$status          = 'completed';
+							$sync_response[] = $this->sync_opration_response( $status, $message, $v );
+							#changes
+							$changes[ $v->event_type ] = $changes[ $v->event_type ] + 1;
+						}
+					}
+				}
+
+				if ( isset( $v->details ) &&  $v->event_slug == 'theme_update'  ) {
+					if( isset( $v->details->stylesheet ) ){
+						$stylesheet = isset($v->details->stylesheet) ? $v->details->stylesheet : '';
+						if ( $stylesheet !='' ) {
+							$theme = wp_get_theme( $stylesheet );
+							if ( $theme->exists() ) {
+								$this->theme_install( $stylesheet, true );
 							}
 							#message
 							$message         = 'Sync successfully.';
@@ -1313,7 +1361,7 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 	/**
 	 * Plugin install
 	 */
-	public function plugin_install( $plugin_slug ) {
+	public function plugin_install( $plugin_slug, $overwrite_package = false ) {
 		include_once( ABSPATH . 'wp-admin/includes/plugin-install.php' ); //for plugins_api..
 		$api = plugins_api( 'plugin_information', array(
 			'slug'   => $plugin_slug,
@@ -1337,13 +1385,13 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 		include_once( ABSPATH . 'wp-admin/includes/misc.php' );
 		include_once( ABSPATH . 'wp-admin/includes/class-wp-upgrader.php' );
 		$upgrader = new Plugin_Upgrader( new Plugin_Installer_Skin( compact( 'title', 'url', 'nonce', 'plugin', 'api' ) ) );
-		$upgrader->install( $api->download_link );
+		$upgrader->install( $api->download_link, array( 'overwrite_package' => $overwrite_package ) );
 	}
 
 		/**
 	 * Theme install
 	 */
-	public function theme_install( $stylesheet ) {
+	public function theme_install( $stylesheet, $overwrite_package = false ) {
 		require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php'; // For themes_api().
 		$api = themes_api(
 			'theme_information',
@@ -1360,7 +1408,7 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 		include_once( ABSPATH . 'wp-admin/includes/misc.php' );
 		if (! is_wp_error( $api ) ) {
 			$upgrader = new Theme_Upgrader();
-			$upgrader->install( $api->download_link );
+			$upgrader->install( $api->download_link, array( 'overwrite_package' => $overwrite_package )  );
 		}
 	}
 	
@@ -1373,11 +1421,22 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 	 */
 	public function check_plugin_installed( $plugin_slug ): bool {
 		$installed_plugins = get_plugins();
-
 		return array_key_exists( $plugin_slug, $installed_plugins ) || in_array( $plugin_slug, $installed_plugins, true );
 	}
 
-
+	/**
+	 * Check if plugin is installed by getting all plugins from the plugins dir
+	 *
+	 * @param $plugin_slug
+	 *
+	 * @return bool
+	 */
+	public function check_plugin_installed_by_textdomain( $textdomain ): bool {
+		$installed_plugins_data = get_plugins();
+		$installed_text_domains = array_column( array_values($installed_plugins_data), 'TextDomain' );
+		return  in_array( $textdomain, $installed_text_domains, true );
+	}
+	
 	/**
 	 * Check if theme is installed by getting all themes from the theme dir
 	 *
