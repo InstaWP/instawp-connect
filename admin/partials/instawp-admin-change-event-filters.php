@@ -438,15 +438,37 @@ class InstaWP_Change_Event_Filters
      */
     function upgradePluginAction($upgrader, $hook_extra) {
         $details = [];
-        $event_name = $hook_extra['type'] . '_' . $hook_extra['action'];
-        $event_slug = $event_name;
-        if($upgrader instanceof Theme_Upgrader){
-            $theme_data         = $upgrader->new_theme_data;
-            $destination_name   = $upgrader->result['destination_name'];
-            $theme              = wp_get_theme( $destination_name );
-            if ( $theme->exists() ) {
-                $details        = ['name' => $theme_data['Name'], 'stylesheet' => $theme->get_stylesheet(), 'data'=> $theme_data];
-                $this->pluginThemeEvents($event_name, $event_slug, $details, 'theme', '');
+        $event_slug = $hook_extra['type'] . '_' . $hook_extra['action'];
+        $event_name = sprintf(esc_html__('%s %s%s', 'instawp-connect'), ucfirst($hook_extra['type']), $hook_extra['action'], $hook_extra['action'] == 'update'? 'd' : 'ed');
+        //hooks for theme and record the event
+        if(  $upgrader instanceof Theme_Upgrader && isset( $hook_extra['type'] ) && $hook_extra['type'] == 'theme' ){ 
+            if(  in_array( $hook_extra['action'], array( 'install', 'update' ) ) ) {
+                $destination_name   = $upgrader->result['destination_name'];
+                $theme              = wp_get_theme( $destination_name );
+                if ( $theme->exists() ) {
+                    $details        = ['name' => $theme->display( 'Name' ), 'stylesheet' => $theme->get_stylesheet(), 'data'=> isset($upgrader->new_theme_data) ? $upgrader->new_theme_data : []];
+                    $this->pluginThemeEvents( $event_name, $event_slug, $details, 'theme-install', '' );
+                }
+            }
+        }
+
+        //hooks for plugins and record the plugin.
+        if( $upgrader instanceof Plugin_Upgrader && isset( $hook_extra['type'] ) && $hook_extra['type'] == 'plugin' ){
+            pr($upgrader);
+            if( $hook_extra['action'] == 'install' ) {
+                if( isset( $upgrader->new_plugin_data ) && !empty( $upgrader->new_plugin_data ) ) {
+                    $plugin_data        = $upgrader->new_plugin_data;
+                    $details            = ['name' => $plugin_data['Name'],'slug' => $plugin_data['TextDomain'], 'data'=> $plugin_data];
+                    $this->pluginThemeEvents( $event_name, $event_slug, $details, 'plugin-install', '' );
+                }
+            }
+
+            if( $hook_extra['action'] == 'update' ) {
+                if( isset( $upgrader->skin->plugin_info) && !empty($upgrader->skin->plugin_info ) ) {
+                    $plugin_data        = $upgrader->skin->plugin_info;
+                    $details            = ['name' => $plugin_data['Name'],'slug' => $plugin_data['TextDomain'], 'data'=> $plugin_data];
+                    $this->pluginThemeEvents( $event_name, $event_slug, $details, 'plugin-update', '' );
+                }
             }
         }
     }
