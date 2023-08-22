@@ -2,11 +2,11 @@
     "name": "instawp/connect-helpers",
     "description": "CLI Package for InstaWP Remote Features",
     "type": "library",
-    "license": "GPL-2.0-or-later",
+    "license": "MIT",
     "authors": [
         {
             "name": "Sayan Datta",
-            "email": "iamsayan@protonmail.com"
+            "email": "sayan@instawp.com"
         }
     ],
     "minimum-stability": "dev",
@@ -21,6 +21,9 @@
             "InstaWP\\Connect\\Helpers\\": "src/"
         }
     },
+    "branch-alias": {
+        "dev-main": "1.x-dev"
+    },
     "scripts": {
         "build": [
 			"composer dump-autoload"
@@ -30,9 +33,8 @@
 		]
 	},
     "config": {
+        "process-timeout": 7200,
+        "sort-packages": true,
 		"optimize-autoloader": true
-	},
-    "archive": {
-		"exclude": [ "/bin", "/tests/", ".gitattributes", ".gitignore", ".travis.yml", ".phpcs.xml.dist", "phpunit.xml.dist", "README.md" ]
 	}
 }

@@ -6,13 +6,13 @@
     "authors": [
         {
             "name": "Sayan Datta",
-            "email": "iamsayan@protonmail.com"
+            "email": "sayan@instawp.com"
         }
     ],
     "require": {
         "php": ">= 7.4.0",
         "woocommerce/action-scheduler": "3.6.2",
-        "instawp/connect-helpers": "dev-main"
+        "instawp/connect-helpers": "^1.0"
     },
     "repositories": [
         {
