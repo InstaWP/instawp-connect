@@ -5,39 +5,20 @@
 
 ?>
 <?php
-
-// $args = array(
-//         'post_parent' => 11,
-//         'post_type'   => 'revision',
-//         'post_status' => 'inherit',
-// 	);
-
-//     $revisions = get_children( $args );
-// echo '<pre>'; print_r($revisions);
 $changeEvent = new InstaWP_Change_event();
 $events = $changeEvent->listEvents();
 $syncing_status = get_option('syncing_enabled_disabled');
 $syncing_status_val = ($syncing_status == 1) ? 'checked' : '';
-$InstaWP_db = new InstaWP_DB();
-$tables = $InstaWP_db->tables;
-#Total events
-$total_events = $InstaWP_db->totalEvnets($tables['ch_table'],'pending');
-$post_new = $InstaWP_db->trakingEventsBySlug($tables['ch_table'],'post_new','post','pending');
-$post_delete = $InstaWP_db->trakingEventsBySlug($tables['ch_table'],'post_delete','post','pending');
-$post_trash = $InstaWP_db->trakingEventsBySlug($tables['ch_table'],'post_trash','post','pending');
 
 $parent_connect_data = get_option('instawp_sync_parent_connect_data');
 $staging_sites = !empty($staging_sites) ? $staging_sites : [];
-if(!empty($parent_connect_data)){
+if( !empty( $parent_connect_data ) && isset( $parent_connect_data['domain'] ) ){
     array_push($staging_sites,[
         'connect_id'=>$parent_connect_data['connect_id'],
         'site_name'=> preg_replace("(^https?://)", "", $parent_connect_data['domain']),
         'type'=>$parent_connect_data['type'],
     ]);
 }
-#others
-$destination_url = get_option('instawp_sync_parent_url', '') ;
-$others = (abs($total_events) - abs($post_new+$post_delete+$post_trash));
 ?>
 <div class="nav-item-content sync bg-white rounded-md p-6 data-padding">
     <?php if(empty($events)) : ?>
@@ -145,9 +126,9 @@ $others = (abs($total_events) - abs($post_new+$post_delete+$post_trash));
                 <div class="instawp-popup-main">
                     <div class="instawppopwrap">
                         <div class="topinstawppopwrap">
-                            <h3><?php echo esc_html__( 'Preparing changes for Sync', 'instawp-connect' ); ?></h3>
+                            <h3><?php echo esc_html__( 'Preparing Events for Sync', 'instawp-connect' ); ?></h3>
                             <div class="destination_form">
-                                <label for="destination-site"><?php echo esc_html__( 'Destination', 'instawp-connect' ); ?></label>
+                                <label for="destination-site"><?php echo esc_html__( 'Destination site', 'instawp-connect' ); ?></label>
                                 <select id="destination-site">
                                     <?php  foreach($staging_sites as $site): ?>
                                         <?php $site_name = isset( $site['site_name'] ) ? $site['site_name'] : ''; ?>
@@ -158,10 +139,10 @@ $others = (abs($total_events) - abs($post_new+$post_delete+$post_trash));
                             <div class="instawp_category">
                                 <div class="instawpcatlftcol bulk-events-info">
                                     <ul class="list">
-                                        <li id="post_change_event_count"><?php printf('%d post change events', $post_new) ?></li>
-                                        <li id="post_delete_event_count"><?php printf('%d post delete events', $post_delete) ?></li>
-                                        <li id="post_trash_event_count"><?php printf('%d post trash eventss', $post_trash) ?></li>
-                                        <li id="post_other_event_count"><?php printf('%d other events', $others) ?></li>
+                                        <li id="post_change_event_count"><?php printf('%d post change events', 0) ?></li>
+                                        <li id="post_delete_event_count"><?php printf('%d post delete events', 0) ?></li>
+                                        <li id="post_trash_event_count"><?php printf('%d post trash events', 0) ?></li>
+                                        <li id="post_other_event_count"><?php printf('%d other events', 0) ?></li>
                                     </ul>
                                 </div>
                                 <div class="instawpcatlftcol selected-events-info">

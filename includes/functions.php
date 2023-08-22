@@ -54,6 +54,7 @@ if ( ! function_exists( 'instawp_create_db_tables' ) ) {
             event_id int(20) NOT NULL,
             connect_id int(20) NOT NULL,
 			status ENUM ('pending','in_progress','completed','error') DEFAULT 'pending',
+			synced_message text NULL,
             date datetime NOT NULL,
             PRIMARY KEY  (id)
         )";

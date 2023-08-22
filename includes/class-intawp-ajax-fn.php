@@ -270,6 +270,11 @@ class InstaWP_Ajax_Fn {
 						$sync_resp = $this->get_Sync_Object( $resp_decode->data->sync_id );
 						$respD     = json_decode( $sync_resp );// WE WILL USE IT.
 						if ( $respD->status === 1 || $respD->status === true ) {
+							$site_sync_row = $this->wpdb->get_row("SELECT * FROM {$this->tables['se_table']}");
+							if( !isset( $site_sync_row->synced_message ) ){
+								$this->wpdb->query("ALTER TABLE {$this->tables['se_table']} ADD `synced_message` TEXT NULL DEFAULT NULL AFTER `status`");
+							}
+							
 							if ( isset( $respD->data->changes->changes->sync_response ) ) {
 								$sync_response = $respD->data->changes->changes->sync_response;
 								foreach ( $sync_response as $v ) {
@@ -279,10 +284,11 @@ class InstaWP_Ajax_Fn {
 									];
 									$this->InstaWP_db->update( $this->tables['ch_table'], $res_data, $v->id );
 									$this->InstaWP_db->insert( $this->tables['se_table'], [
-										'event_id'   => $v->id,
-										'connect_id' => $dest_connect_id,
-										'status'     => $v->status,
-										'date'       => date( "Y-m-d h:i:s" )
+										'event_id'   		=> $v->id,
+										'connect_id' 		=> $dest_connect_id,
+										'status'     		=> $v->status,
+										'synced_message' 	=> $v->message,
+										'date'       		=> date( "Y-m-d h:i:s" )
 									] );
 								}
 							}

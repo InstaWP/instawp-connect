@@ -49,6 +49,7 @@ class InstaWP_Change_Event_Filters
             #plugin actions
             add_action( 'activated_plugin', array( $this,'activatePluginAction'),10, 2 );
             add_action( 'deactivated_plugin', array( $this,'deactivatePluginAction'),10, 2 );
+            add_action( 'deleted_plugin', array( $this,'deletePluginAction'),10, 2 );
             add_action( 'upgrader_process_complete', array( $this,'upgradePluginAction'),10, 2);
 
             #theme actions
@@ -405,8 +406,8 @@ class InstaWP_Change_Event_Filters
      */
     function deletedThemeAction($stylesheet, $deleted) {
         $event_slug = 'deleted_theme';
-        $details = ['name' => '', 'stylesheet' => $stylesheet, 'Paged' => ''];
-        $event_name = sprintf(__('Theme %s deleted', 'instawp-connect'), ucfirst($stylesheet));
+        $details = ['name' => ucfirst($stylesheet), 'stylesheet' => $stylesheet, 'Paged' => ''];
+        $event_name = sprintf(__('Theme deleted', 'instawp-connect'));
         $this->pluginThemeEvents($event_name, $event_slug, $details, 'theme', '');
     }
     /**
@@ -454,7 +455,6 @@ class InstaWP_Change_Event_Filters
 
         //hooks for plugins and record the plugin.
         if( $upgrader instanceof Plugin_Upgrader && isset( $hook_extra['type'] ) && $hook_extra['type'] == 'plugin' ){
-            pr($upgrader);
             if( $hook_extra['action'] == 'install' ) {
                 if( isset( $upgrader->new_plugin_data ) && !empty( $upgrader->new_plugin_data ) ) {
                     $plugin_data        = $upgrader->new_plugin_data;
@@ -496,11 +496,25 @@ class InstaWP_Change_Event_Filters
      *
      * @return void
      */
-    public function activatePluginAction($plugin, $network_wide) {
+    public function activatePluginAction( $plugin, $network_wide ) {
         $event_slug = 'activate_plugin';
-        $event_name = __('Plugin activated', 'instawp-connect');
-        if ($plugin != 'instawp-connect/instawp-connect.php') {
-            $this->pluginThemeEvents($event_name, $event_slug, $plugin, 'plugin', '');
+        $event_name = __( 'Plugin activated', 'instawp-connect' );
+        if ( $plugin != 'instawp-connect/instawp-connect.php' ) {
+            $this->pluginThemeEvents( $event_name, $event_slug, $plugin, 'plugin', '' );
+        }
+    }
+    /**
+     * Function for `deleted_plugin` action-hook.
+     * 
+     * @param string $plugin Path to the plugin file relative to the plugins directory.
+     *
+     * @return void
+     */
+    public function deletePluginAction( $plugin, $deleted ) {
+        $event_slug = 'deleted_plugin';
+        $event_name = __( 'Plugin deleted', 'instawp-connect' );
+        if ( $plugin != 'instawp-connect/instawp-connect.php' ) {
+            $this->pluginThemeEvents( $event_name, $event_slug, $plugin, 'plugin', '' );
         }
     }
 
@@ -524,7 +538,13 @@ class InstaWP_Change_Event_Filters
                 require_once(ABSPATH . 'wp-admin/includes/plugin.php');
             }
             $plugin_data = get_plugin_data(WP_PLUGIN_DIR . '/' . $details);
-            $title = $plugin_data['Name'];
+            if( $plugin_data['Name'] !='' ){
+                $title = $plugin_data['Name'];
+            }else if( $plugin_data['TextDomain'] !='' ){
+                $title = $plugin_data['TextDomain'];
+            }else{
+                $title = $details;
+            }
         } elseif ($type == 'woocommerce_attribute') {
             $title = $details['attribute_label'];
         } elseif ($type == 'woocommerce_attribute_updated') {

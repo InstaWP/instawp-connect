@@ -17,9 +17,9 @@ class InstaWP_Change_event {
 	protected static $_instance = null;
 
 	public function __construct() {
-		add_action('init', array( $this, 'get_source_site_detail' ) );
+		add_action('init', array( $this, 'instawp_get_source_site_detail' ) );
+		add_action( 'admin_bar_menu', array( $this, 'instawp_add_sync_status_toolbar_link' ), 999);
 		//add_action( 'admin_menu', array( $this, 'add_change_event_menu' ) );
-		add_action( 'admin_bar_menu', array( $this, 'add_sync_status_toolbar_link' ), 999);
 	}
 
 
@@ -70,33 +70,21 @@ class InstaWP_Change_event {
         return $data;
     }
 
-	public function get_source_site_detail(){
+	public function instawp_get_source_site_detail(){
+
 		$connect_id = InstaWP_Setting::get_option('instawp_sync_connect_id');
 		$parent_connect_data = InstaWP_Setting::get_option('instawp_sync_parent_connect_data');
-		if($connect_id && intval($connect_id) > 0 && empty($parent_connect_data)){
-			$api_response        = InstaWP_Curl::do_curl( 'connects/' . $connect_id, [], [], false);
-			$api_response_data   = InstaWP_Setting::get_args_option( 'data', $api_response, [] );
-			$api_response_data['connect_id'] = $connect_id;
-			add_option('instawp_sync_parent_connect_data',$api_response_data);
-		}
-	}
 
-	public function getStatusColor($status){
-		switch ($status) {
-			case 'failed':
-				$colors = ['bg'=>'#FEE2E2','color'=>'#991B1B'];
-				break;
-			case 'pending':
-				$colors = ['bg'=>'#DBEAFE','color'=>'#1E40AF'];
-				break;
-			case 'completed':
-				$colors =  ['bg'=>'#D1FAE5','color'=>''];
-				break;
-			default:
-				$colors = ['bg'=>'#FEF3C7','color'=>'#92400E'];
-				break;
+		if( intval($connect_id) > 0 && empty( $parent_connect_data ) ){
+			$api_response = InstaWP_Curl::do_curl( 'connects/' . $connect_id, [], [], false);
+
+			if( $api_response['success'] == true) {
+				
+				$api_response_data['connect_id'] = $connect_id;
+				$api_response_data   = InstaWP_Setting::get_args_option( 'data', $api_response, [] );
+				add_option('instawp_sync_parent_connect_data',$api_response_data);
+			}
 		}
-		return $colors;
 	}
 
 	/**
@@ -104,7 +92,7 @@ class InstaWP_Change_event {
 	 * @param $wp_admin_bar
 	 * @return null
 	 */
-	public function add_sync_status_toolbar_link($wp_admin_bar){
+	public function instawp_add_sync_status_toolbar_link($wp_admin_bar){
 		if(get_option('syncing_enabled_disabled') != 1) return;
 		$args = array(
 			'id' => 'instawp-sync-toolbar',

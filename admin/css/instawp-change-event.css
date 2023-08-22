@@ -467,7 +467,7 @@ select#destination-site, select#staging-site-sync {
     transform: translate(-50%, -50%);
     border-radius: 50%;
     border: 3px solid rgba(74, 138, 244, 0.2);
-    border-right-color: var(--instawp-color-green);
+    border-right-color:#fff;
     animation: loading 1s linear infinite;
     margin: -8px -8px;
 }
