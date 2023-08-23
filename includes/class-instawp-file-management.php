@@ -9,6 +9,7 @@ if ( ! class_exists( 'InstaWP_File_Management' ) ) {
 		
 		protected static $_instance = null;
 		private static $query_var;
+		private static $action;
 		private $file_manager;
 
 		/**
@@ -24,13 +25,17 @@ if ( ! class_exists( 'InstaWP_File_Management' ) ) {
 		public function __construct() {
 			$this->file_manager = new \InstaWP\Connect\Helpers\FileManager();
 			self::$query_var    = $this->file_manager::get_query_var();
+			self::$action       = 'instawp_clean_file_manager';
 
 			add_action( 'init', [ $this, 'add_endpoint' ] );
 			add_action( 'wp', [ $this, 'filter_redirect' ] );
 			add_action( 'template_redirect', [ $this, 'redirect' ] );
-			add_action( 'instawp_clean_file_manager', [ $this, 'clean' ] );
+			add_action( self::$action, [ $this, 'clean' ] );
 			add_action( 'admin_post_instawp-file-manager-auto-login', [ $this, 'auto_login' ] );
 			add_action( 'admin_post_nopriv_instawp-file-manager-auto-login', [ $this, 'auto_login' ] );
+			add_action( 'update_option_instawp_rm_file_manager', array( $this, 'clean_file' ) );
+			add_action( 'instawp_connect_create_file_manager_task', array( $this, 'create_task' ) );
+			add_action( 'instawp_connect_remove_file_manager_task', array( $this, 'remove_task' ) );
 			add_filter( 'query_vars', [ $this, 'query_vars' ], 99 );
 			add_filter( 'template_include', [ $this, 'load_template' ], 999 );
 		}
@@ -55,19 +60,19 @@ if ( ! class_exists( 'InstaWP_File_Management' ) ) {
 		}
 
 		public function clean( $file_name ) {
-			$file_path = $this->file_manager::get_file_path( $file_name );
-			if ( file_exists( $file_path ) ) {
-				@unlink( $file_path );
-			}
+			$this->file_manager->clean( $file_name );
+		}
 
-			InstaWP_Setting::delete_option( 'instawp_file_manager_name' );
+		public function clean_file() {
+			$this->file_manager->clean();
+		}
 
-			$constants = [ 'INSTAWP_FILE_MANAGER_USERNAME', 'INSTAWP_FILE_MANAGER_PASSWORD', 'INSTAWP_FILE_MANAGER_SELF_URL', 'INSTAWP_FILE_MANAGER_SESSION_ID' ];
+		public function create_task( $file_name ) {
+			as_schedule_single_action( time() + DAY_IN_SECONDS, 'instawp_clean_file_manager', [ $file_name ], 'instawp-connect', false, 5 );
+		}
 
-			$wp_config = new \InstaWP\Connect\Helpers\WPConfig( $constants );
-			$wp_config->delete();
-	
-			flush_rewrite_rules();
+		public function remove_task( $file_name ) {
+			as_unschedule_all_actions( 'instawp_clean_file_manager', [ $file_name ], 'instawp-connect' );
 		}
 
 		public function auto_login() {

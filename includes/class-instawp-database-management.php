@@ -9,6 +9,7 @@ if ( ! class_exists( 'InstaWP_Database_Management' ) ) {
 		
 		protected static $_instance = null;
 		private static $query_var;
+		private static $action;
 		private $database_manager;
 
 		/**
@@ -24,12 +25,16 @@ if ( ! class_exists( 'InstaWP_Database_Management' ) ) {
 		public function __construct() {
 			$this->database_manager = new \InstaWP\Connect\Helpers\DatabaseManager();
 			self::$query_var        = $this->database_manager::get_query_var();
+			self::$action           = 'instawp_clean_database_manager';
 
 			add_action( 'init', [ $this, 'add_endpoint' ] );
 			add_action( 'template_redirect', [ $this, 'redirect' ] );
-			add_action( 'instawp_clean_database_manager', [ $this, 'clean' ] );
+			add_action( self::$action, [ $this, 'clean' ] );
 			add_action( 'admin_post_instawp-database-manager-auto-login', [ $this, 'auto_login' ] );
 			add_action( 'admin_post_nopriv_instawp-database-manager-auto-login', [ $this, 'auto_login' ] );
+			add_action( 'update_option_instawp_rm_database_manager', array( $this, 'clean_file' ) );
+			add_action( 'instawp_connect_create_database_manager_task', array( $this, 'create_task' ) );
+			add_action( 'instawp_connect_remove_database_manager_task', array( $this, 'remove_task' ) );
 			add_filter( 'query_vars', [ $this, 'query_vars' ], 99 );
 			add_filter( 'template_include', [ $this, 'load_template' ], 999 );
 		}
@@ -47,13 +52,19 @@ if ( ! class_exists( 'InstaWP_Database_Management' ) ) {
 		}
 
 		public function clean( $file_name ) {
-			$file_path = $this->database_manager::get_file_path( $file_name );
-			if ( file_exists( $file_path ) ) {
-				@unlink( $file_path );
-			}
+			$this->database_manager->clean( $file_name );
+		}
 
-			InstaWP_Setting::delete_option( 'instawp_database_manager_name' );
-			flush_rewrite_rules();
+		public function clean_file() {
+			$this->database_manager->clean();
+		}
+
+		public function create_task( $file_name ) {
+			as_schedule_single_action( time() + DAY_IN_SECONDS, self::$action, [ $file_name ], 'instawp-connect', false, 5 );
+		}
+
+		public function remove_task( $file_name ) {
+			as_unschedule_all_actions( self::$action, [ $file_name ], 'instawp-connect' );
 		}
 
 		public function auto_login() {
