@@ -85,8 +85,15 @@ tailwind.config = {
                             }
 
                             instawp_migrate_container.removeClass('loading').addClass('completed');
+                        }
 
-                            clearInterval(instawp_migrate_api_call_interval);
+                        if (response.data.migrate.progress >= 100) {
+                            for (let index = 0; index < 20; index++) {
+                                setTimeout(function () {
+                                    console.log(instawp_migrate_api_call_interval);
+                                    clearInterval(instawp_migrate_api_call_interval);
+                                }, 300);
+                            }
                         }
                     }
                 }
