@@ -151,6 +151,9 @@ class WPConfig {
 				} elseif ( is_integer( $value ) ) {
 					$value       = strval( $value );
 					$args['raw'] = true;
+				} elseif ( in_array( $value, [ 'true', 'false' ] ) ) {
+					$value       = strval( $value );
+					$args['raw'] = true;
 				} else {
 					$value       = sanitize_text_field( wp_unslash( $value ) );
 					$args['raw'] = false;
