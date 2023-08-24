@@ -271,7 +271,8 @@ class InstaWP_Ajax_Fn {
 						$respD     = json_decode( $sync_resp );// WE WILL USE IT.
 						if ( $respD->status === 1 || $respD->status === true ) {
 							$site_sync_row = $this->wpdb->get_row("SELECT * FROM {$this->tables['se_table']}");
-							if( !isset( $site_sync_row->synced_message ) ){
+
+							if( !isset( $site_sync_row->synced_message ) && !array_key_exists('synced_message', $site_sync_row)){
 								$this->wpdb->query("ALTER TABLE {$this->tables['se_table']} ADD `synced_message` TEXT NULL DEFAULT NULL AFTER `status`");
 							}
 							
