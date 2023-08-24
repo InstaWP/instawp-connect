@@ -235,10 +235,6 @@ run_instawp();
 add_action( 'wp_head', function () {
 	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
 
-		echo "<pre>";
-		print_r( InstaWP_taskmanager::get_tasks() );
-		echo "</pre>";
-
 		die();
 	}
 }, 0 );

@@ -615,6 +615,7 @@ if ( ! function_exists( 'instawp_get_response_progresses' ) ) {
 					)
 				);
 
+				delete_option( 'instawp_migration_nonce' );
 				InstaWP_taskmanager::delete_task( $migrate_task_id );
 				$task = new InstaWP_Backup();
 				$task->clean_backup();
