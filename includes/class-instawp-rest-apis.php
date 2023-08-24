@@ -123,10 +123,10 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 	 */
 	public function events_receiver( WP_REST_Request $req ) {
 
-		// $response = $this->validate_api_request( $req );
-		// if ( is_wp_error( $response ) ) {
-		// 	return $this->throw_error( $response );
-		// }
+		$response = $this->validate_api_request( $req );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
 		
 		$body               = $req->get_body();
 		$bodyArr            = json_decode( $body );
@@ -171,12 +171,15 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 
 					#check for the post parent
 					if ( ! empty( $parent_post ) ) {
+						
 						$parent_post_meta = isset( $v->details->parent->post_meta ) ? (array) $v->details->parent->post_meta : [];
 						$reference_id     = isset( $parent_post_meta['instawp_event_sync_reference_id'][0] ) ? $parent_post_meta['instawp_event_sync_reference_id'][0] : '';
 						$destination_post = $this->get_post_by_reference_Id( $parent_post['post_type'], $reference_id, $parent_post['post_name'] );
+						
 						if ( ! empty( $destination_post ) ) {
 							$posts['post_parent'] = $destination_post->ID;
 						}else{
+							
                             #check for the parent group in acf
                             if( in_array( $posts['post_type'], ['acf-field']) ) {
                                 $posts['post_parent'] = $this->create_or_update_post( $parent_post, $parent_post_meta );
@@ -312,18 +315,23 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 						] );
 
 						if ( ! empty( $post_by_reference_id ) ) {
+
 							$post_id = $post_by_reference_id[0]->ID;
 							$rel     = wp_delete_post( $post_id );  //Post data on success, false or null on failure.
 							$status  = $this->sync_post_status( $rel );
 							$message = $this->sync_message( $rel );
+							
 						} else {
 							$post_check_data = instawp_get_post_by_name( $posts['post_name'], $posts['post_type'] );
+
 							if ( ! empty( $post_check_data ) ) {
+
 								$rel     = wp_delete_post( $post_check_data->ID );  //Post data on success, false or null on failure.
 								$status  = $this->sync_post_status( $rel );
 								$message = $this->sync_message( $rel );
+
 							} else {
-								$status  = 'pending';
+								$status  = 'error';
 								$message = $this->notExistMsg();
 							}
 						}
@@ -424,18 +432,18 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 
 				//Plugin update
 				if ( isset( $v->details->slug ) && $v->details->slug !='' && $v->event_slug == 'plugin_update' ) {
-					// $check_plugin_installed = $this->check_plugin_installed_by_textdomain( $v->details->slug );
-					// if ( $check_plugin_installed ) {
-					// 	$this->plugin_install( $v->details->slug, true );
-					// }else{
-					// 	$this->plugin_install( $v->details->slug );
-					// }
+					$_is_plugin_installed = $this->check_plugin_installed_by_textdomain( $v->details->slug );
+					if ( $_is_plugin_installed ) {
+						$this->plugin_install( $v->details->slug, true );
+						$status 	= 'completed';
+						$message	= 'Sync successfully.';	
+					}else{
+						$status  	= 'error';
+						$message 	= $this->notExistMsg();
+					}
 					
-					$this->plugin_install( $v->details->slug, true );
-
 					#message
-					$message         = 'Sync successfully.';
-					$status          = 'completed';
+					
 					$sync_response[] = $this->sync_opration_response( $status, $message, $v );
 					#changes
 					$changes[ $v->event_type ] = $changes[ $v->event_type ] + 1;
@@ -449,7 +457,7 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 					
 					$result = delete_plugins( array( $plugin ) );
 					
-					$status = 'pending';
+					$status = 'error';
 					if ( is_wp_error( $result ) ) {
 						$message 	= $result->get_error_message();
 					} elseif ( false === $result ) {
@@ -512,11 +520,11 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 					$stylesheet = $v->details->stylesheet;
 					$theme = wp_get_theme( $stylesheet );
 					
-					//if ( $theme->exists() ) {
+					if ( $theme->exists() ) {
 						require_once( ABSPATH . 'wp-includes/pluggable.php' );
 						
 						$result = delete_theme( $stylesheet );
-						$status = 'pending';
+						$status = 'error';
 						if ( is_wp_error( $result ) ) {
 							$message = $result->get_error_message();
 						} elseif ( false === $result ) {
@@ -526,9 +534,13 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 							$status  = 'completed';
 						}
 
-						$sync_response[] = $this->sync_opration_response( $status, $message, $v );
-						$changes[ $v->event_type ] = $changes[ $v->event_type ] + 1;
-					//}
+					}else{
+						$status  = 'error';
+						$message = $this->notExistMsg();
+					}
+
+					$sync_response[] = $this->sync_opration_response( $status, $message, $v );
+					$changes[ $v->event_type ] = $changes[ $v->event_type ] + 1;
 				}
 
 				/*
@@ -1027,7 +1039,7 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
      */
 	public function notExistMsg(): string
     {
-		return "ID is not exists.";
+		return  __('Item not found.', 'instawp-connect');
 	}
 
     /**
@@ -1179,10 +1191,12 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 					"verify_peer_name" => false,
 				),
 			);
+
 			$parent_post_id    = 0;
 			$upload_file       = wp_upload_bits( $filename, null, file_get_contents( $file, false, stream_context_create( $arrContextOptions ) ) );
 			if ( ! $upload_file['error'] ) {
 				$wp_filetype = wp_check_filetype( $filename, null );
+
 				$attachment  = array(
 					'post_mime_type' => $wp_filetype['type'],
 					'post_parent'    => $parent_post_id,
@@ -1190,6 +1204,7 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 					'post_content'   => '',
 					'post_status'    => 'inherit'
 				);
+				
 				$default_post_user = InstaWP_Setting::get_option( 'instawp_default_user' );
 				if( !empty( $default_post_user ) ) {
 					$attachment['post_author'] = $default_post_user;
@@ -1198,6 +1213,7 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 				require_once( ABSPATH . "wp-admin" . '/includes/file.php' );
 				require_once( ABSPATH . "wp-admin" . '/includes/media.php' );
 				$attachment_id = wp_insert_attachment( $attachment, $upload_file['file'], $parent_post_id );
+				
 				if ( ! is_wp_error( $attachment_id ) ) {
 					$attachment_data = wp_generate_attachment_metadata( $attachment_id, $upload_file['file'] );
 					wp_update_attachment_metadata( $attachment_id, $attachment_data );

@@ -42,22 +42,27 @@ class InstaWP_Change_Event_Filters
         $syncing_status = get_option('syncing_enabled_disabled', 0);
         if ($syncing_status == 1) { #if syncing enabled
             #post actions
-            add_filter('pre_trash_post', array($this, 'trashPostFilter'), 10, 2);
-            add_action('after_delete_post', array($this, 'deletePostFilter'), 10, 2);
-            add_action('untrashed_post', array($this, 'untrashPostFilter'), 10, 3);
-            add_action('wp_after_insert_post', array($this, 'savePostFilter'), 10, 4);
+            add_filter('pre_trash_post',                array( $this, 'trashPostFilter' ), 10, 2);
+            add_action('delete_post',                   array( $this, 'deletePostFilter' ), 10, 2);
+            add_action('untrashed_post',                array( $this, 'untrashPostFilter' ), 10, 3);
+            add_action('wp_after_insert_post',          array( $this, 'savePostFilter' ), 10, 4);
+            
+            #media actions
+            add_action('add_attachment',                array($this, 'add_attachment' ), 10, 1);
+            //add_action('attachment_updated',          array($this, 'attachment_updated' ), 10, 3);
+
             #plugin actions
-            add_action( 'activated_plugin', array( $this,'activatePluginAction'),10, 2 );
-            add_action( 'deactivated_plugin', array( $this,'deactivatePluginAction'),10, 2 );
-            add_action( 'deleted_plugin', array( $this,'deletePluginAction'),10, 2 );
-            add_action( 'upgrader_process_complete', array( $this,'upgradePluginAction'),10, 2);
+            add_action( 'activated_plugin',             array( $this,'activatePluginAction' ),10, 2 );
+            add_action( 'deactivated_plugin',           array( $this,'deactivatePluginAction' ),10, 2 );
+            add_action( 'deleted_plugin',               array( $this,'deletePluginAction' ),10, 2 );
+            add_action( 'upgrader_process_complete',    array( $this,'upgradePluginAction' ),10, 2);
 
             #theme actions
-            add_action( 'switch_theme', array( $this,'switchThemeAction'), 10, 3 );
-            add_action( 'deleted_theme', array( $this,'deletedThemeAction'), 10, 2 );
-            add_action( 'install_themes_new', array( $this,'installThemesNewAction') );
-            add_action( 'install_themes_upload', array( $this,'installThemesUploadAction') );
-            add_action( 'install_themes_updated', array( $this,'installThemesUpdatedAction') );
+            add_action( 'switch_theme',                 array( $this,'switchThemeAction' ), 10, 3 );
+            add_action( 'deleted_theme',                array( $this,'deletedThemeAction' ), 10, 2 );
+            // add_action( 'install_themes_new',        array( $this,'installThemesNewAction') );
+            // add_action( 'install_themes_upload',     array( $this,'installThemesUploadAction') );
+            // add_action( 'install_themes_updated',    array( $this,'installThemesUpdatedAction') );
             
             #taxonomy actions         
             // $tax_rel = $this->InstaWP_db->getDistinictCol($this->wpdb->prefix.'term_taxonomy','taxonomy');
@@ -426,9 +431,6 @@ class InstaWP_Change_Event_Filters
         $this->pluginThemeEvents($event_name, $event_slug, $details, 'theme', '');
     }
 
-    public function mytheme_setup_options ($new_name) {
-       //pr( $new_name );
-    }
     /**ge
      * Function for `upgrader_process_complete` action-hook.
      * 
@@ -442,7 +444,7 @@ class InstaWP_Change_Event_Filters
         $event_slug = $hook_extra['type'] . '_' . $hook_extra['action'];
         $event_name = sprintf(esc_html__('%s %s%s', 'instawp-connect'), ucfirst($hook_extra['type']), $hook_extra['action'], $hook_extra['action'] == 'update'? 'd' : 'ed');
         //hooks for theme and record the event
-        if(  $upgrader instanceof Theme_Upgrader && isset( $hook_extra['type'] ) && $hook_extra['type'] == 'theme' ){ 
+        if(  $upgrader instanceof Theme_Upgrader && ( isset( $hook_extra['type'] ) && $hook_extra['type'] == 'theme' ) ){ 
             if(  in_array( $hook_extra['action'], array( 'install', 'update' ) ) ) {
                 $destination_name   = $upgrader->result['destination_name'];
                 $theme              = wp_get_theme( $destination_name );
@@ -454,7 +456,7 @@ class InstaWP_Change_Event_Filters
         }
 
         //hooks for plugins and record the plugin.
-        if( $upgrader instanceof Plugin_Upgrader && isset( $hook_extra['type'] ) && $hook_extra['type'] == 'plugin' ){
+        if( $upgrader instanceof Plugin_Upgrader && ( isset( $hook_extra['type'] ) && $hook_extra['type'] == 'plugin' ) ){
             if( $hook_extra['action'] == 'install' ) {
                 if( isset( $upgrader->new_plugin_data ) && !empty( $upgrader->new_plugin_data ) ) {
                     $plugin_data        = $upgrader->new_plugin_data;
@@ -650,6 +652,11 @@ class InstaWP_Change_Event_Filters
             return $post_ID;
         }
 
+        //skip the attachment. its using another hook
+        if ( in_array( $post->post_type, ['attachment'] ) ) {
+            return $post_ID;
+        }
+
         if($post->post_type == 'acf-field-group' && $post->post_content == '') {
             $this->_prepare_metas_for_each_post($post_ID);
             return $post_ID;
@@ -665,13 +672,37 @@ class InstaWP_Change_Event_Filters
             $this->addPostData($event_name, 'post_new', $post, $post_ID);
 
         } else {
-            if ($update && ($post->post_type != 'revision')) {
+            if ( $update && ( $post->post_type != 'revision' ) ) {
                 $event_slug = 'post_change';
-                $event_name = sprintf(__('%s modified', 'instawp-connect'), $post_type_singular_name);
+                $event_name = sprintf( __('%s modified', 'instawp-connect'), $post_type_singular_name );
                 # need to add update traking data once in db
                 $this->addPostData($event_name, $event_slug, $post, $post_ID);
             }
         }
+    }
+
+    /**
+     * Function for `add_attachment` action-hook
+     *
+     * @param $post_id
+     * @return void
+     */
+    public function add_attachment( $post_id ) {
+        $event_name = sprintf( esc_html__('Media created', 'instawp-connect') );
+        $this->addPostData( $event_name, 'post_new', get_post($post_id), $post_id );
+    }
+
+    /**
+     * Function for `attachment_updated` action-hook
+     *
+     * @param $post_id
+     * @param $post_after
+     * @param $post_before
+     * @return void
+     */
+    public function attachment_updated( $post_id, $post_after, $post_before ) {
+        $event_name = sprintf( esc_html__('Media updated', 'instawp-connect') );
+        $this->addPostData( $event_name, 'post_new', $post_after, $post_id );
     }
 
     /**
@@ -826,13 +857,19 @@ class InstaWP_Change_Event_Filters
 
         #assign parent post
         if ($post_parent_id > 0) {
-            $this->_prepare_metas_for_each_post($post_parent_id);
-            $data = array_merge($data, [
-                'parent' => [
-                    'post' => get_post($post_parent_id),
-                    'post_meta' => get_post_meta($post_parent_id),
-                ]
-            ]);
+            $post_parent = get_post( $post_parent_id );
+
+            if( $post_parent->post_status !='auto-draft' ){
+
+                $this->_prepare_metas_for_each_post( $post_parent_id );
+                $data = array_merge($data, [
+                    'parent' => [
+                        'post'      => $post_parent,
+                        'post_meta' => get_post_meta ($post_parent_id ),
+                    ]
+                ]);
+
+            }
         }
 
         $details = json_encode($data);

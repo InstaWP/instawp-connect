@@ -79,9 +79,8 @@ class InstaWP_Change_event {
 			$api_response = InstaWP_Curl::do_curl( 'connects/' . $connect_id, [], [], false);
 
 			if( $api_response['success'] == true) {
-				
-				$api_response_data['connect_id'] = $connect_id;
 				$api_response_data   = InstaWP_Setting::get_args_option( 'data', $api_response, [] );
+				$api_response_data['connect_id'] = $connect_id;
 				add_option('instawp_sync_parent_connect_data',$api_response_data);
 			}
 		}

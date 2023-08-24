@@ -166,16 +166,20 @@ jQuery(document).ready(function ($) {
     const get_site_events = async (page=1) => {
         let site_id =  $("#staging-site-sync").val();
         let current_page =  $("#staging-site-sync").data('page');
-        console.log('current_page',current_page);
+
         if(current_page == undefined) return;
         let formData = new FormData();
         formData.append('action', 'get_site_events');
         formData.append('epage', page);
         formData.append('connect_id', site_id);
+
         $("#part-sync-results").html('<tr><td colspan="4" class="event-sync-cell loading"></td></tr>');
+
         baseCall(formData).then((response) => response.json()).then((data) => {
+            
            $("#part-sync-results").html(data.data.results);
            $("#event-sync-pagination").html(data.data.pagination);
+
         }).catch((error) => {
             console.log("Error Occurred: ", error);
         });
