@@ -158,6 +158,7 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 			$can_proceed  = (bool) InstaWP_Setting::get_args_option( 'can_proceed', $api_response, false );
 
 			if ( $can_proceed ) {
+				update_option( 'instawp_migration_nonce', uniqid( 'instawp-' ) );
 				wp_send_json_success( $api_response );
 			}
 
@@ -191,7 +192,7 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 				include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-zipclass.php';
 			}
 
-			$response            = array(
+			$response = array(
 				'backup'  => array(
 					'progress' => 0,
 				),
@@ -203,6 +204,12 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 				),
 				'status'  => 'running',
 			);
+
+			if ( empty( InstaWP_Setting::get_option( 'instawp_migration_nonce', '' ) ) ) {
+				$response['status'] = 'aborted';
+				wp_send_json_success( $response );
+			}
+
 			$_settings           = isset( $_POST['settings'] ) ? $_POST['settings'] : '';
 			$destination_domain  = isset( $_POST['destination_domain'] ) ? $_POST['destination_domain'] : '';
 			$incomplete_task_ids = InstaWP_taskmanager::is_there_any_incomplete_task_ids();

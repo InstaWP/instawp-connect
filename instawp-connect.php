@@ -235,38 +235,6 @@ run_instawp();
 add_action( 'wp_head', function () {
 	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
 
-//		instawp_reset_running_migration();
-
-//	echo "<pre>";
-//	print_r( InstaWP_taskmanager::get_tasks() );
-//	echo "</pre>";
-
-		global $wpdb;
-
-		$results = $wpdb->get_results( "SELECT * FROM {$wpdb->options} WHERE option_name LIKE '%aaa_check_upload%'", ARRAY_A );
-		$results = array_map( function ( $result ) {
-
-
-			$new_result = unserialize( $result['option_value'] );
-
-			$new_result['option_name'] = $result['option_name'];
-
-			return $new_result;
-		}, $results );
-
-		echo "<pre>";
-		print_r( $results );
-		echo "</pre>";
-
-
-//		update_option( 'aaa_check_upload_' . time(), [
-//			'$i'          => 4,
-//			'$cloud_url'  => '',
-//			'$local_file' => '',
-//			'$response'   => '',
-//		] );
-
-
 		die();
 	}
 }, 0 );

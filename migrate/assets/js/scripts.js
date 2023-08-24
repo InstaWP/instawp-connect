@@ -67,6 +67,24 @@ tailwind.config = {
                             instawp_migrate_container.find('.instawp-track-migration').attr('href', response.data.track_migrate_progress);
                         }
 
+                        if (response.data.status === 'aborted') {
+                            // el_migration_progress_wrap.addClass('hidden');
+                            // el_site_detail_wrap.removeClass('hidden');
+                            // el_migration_loader.text(el_migration_loader.data('complete-text'));
+                            //
+                            // el_site_detail_wrap.find('#instawp-site-url').attr('href', response.data.site_detail.url).find('span').html(response.data.site_detail.url);
+                            // el_site_detail_wrap.find('#instawp-site-username').html(response.data.site_detail.wp_username);
+                            // el_site_detail_wrap.find('#instawp-site-password').html(response.data.site_detail.wp_password);
+                            // el_site_detail_wrap.find('#instawp-site-magic-url').attr('href', response.data.site_detail.auto_login_url);
+                            //
+                            // // screen-buttons-last
+                            // el_screen_buttons.addClass('hidden');
+                            // el_screen_buttons_last.removeClass('hidden');
+
+                            instawp_migrate_container.find('.instawp-migration-start-over').trigger('click');
+                            instawp_migrate_container.removeClass('loading');
+                        }
+
                         if (response.data.status === 'completed') {
                             if (typeof response.data.site_detail.url !== 'undefined' && typeof response.data.site_detail.wp_username !== 'undefined' && typeof response.data.site_detail.wp_password !== 'undefined' && typeof response.data.site_detail.auto_login_url !== 'undefined') {
 
