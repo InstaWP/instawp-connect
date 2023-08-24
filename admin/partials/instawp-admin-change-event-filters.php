@@ -924,13 +924,34 @@ class InstaWP_Change_Event_Filters
             $attachment_urls = array_unique($match[0]);
             foreach ($attachment_urls as $attachment_url) {
                 if (strpos($attachment_url, $_SERVER['HTTP_HOST']) !== false) {
-                    $attachment_id = attachment_url_to_postid($attachment_url);
+
+                    $full_attachment_url = preg_replace('~-[0-9]+x[0-9]+.~', '.', $attachment_url );
+                  
+                    $attachment_id  = attachment_url_to_postid( $full_attachment_url );
+
+                    if( $attachment_id === 0 ){
+                        $post_name = sanitize_title( pathinfo( $full_attachment_url, PATHINFO_FILENAME ) );
+                       
+                        $sql = $this->wpdb->prepare(
+                            "SELECT ID FROM {$this->wpdb->posts} WHERE post_type='attachment' AND post_name = '%s'",
+                            $post_name
+                        );
+
+                        $results = $this->wpdb->get_results( $sql );
+
+                        if ( $results ) {
+                            // Use the first available result, but prefer a case-sensitive match, if exists.
+                            $attachment_id = reset( $results )->ID;
+
+                        }
+                    }
+                    
                     #if(isset($attachment_id) && !empty($attachment_id)){ 
                     #It's check media exist or not 
                     $media[] = [
-                        'attachment_url' => $attachment_url,
-                        'attachment_id' => $attachment_id,
-                        'attachment_media' => get_post($attachment_id),
+                        'attachment_url'        => $attachment_url,
+                        'attachment_id'         => $attachment_id,
+                        'attachment_media'      => get_post($attachment_id),
                         'attachment_media_meta' => get_post_meta($attachment_id),
                     ];
                     #}
