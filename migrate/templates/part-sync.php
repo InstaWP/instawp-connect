@@ -3,20 +3,19 @@
  * Migrate template - Sync
  */
 
-?>
-<?php
 $changeEvent = new InstaWP_Change_event();
 $events = $changeEvent->listEvents();
-$syncing_status = get_option('syncing_enabled_disabled');
+$syncing_status = InstaWP_Setting::get_option('syncing_enabled_disabled');
 $syncing_status_val = ($syncing_status == 1) ? 'checked' : '';
 
-$parent_connect_data = get_option('instawp_sync_parent_connect_data');
-$staging_sites = !empty($staging_sites) ? $staging_sites : [];
-if( !empty( $parent_connect_data ) && isset( $parent_connect_data['domain'] ) ){
+$parent_connect_data = InstaWP_Setting::get_option('instawp_sync_parent_connect_data');
+
+if( !empty( $parent_connect_data ) ){
+    $staging_sites = !empty($staging_sites) ? $staging_sites : [];
     array_push($staging_sites,[
-        'connect_id'=>$parent_connect_data['connect_id'],
-        'site_name'=> preg_replace("(^https?://)", "", $parent_connect_data['domain']),
-        'type'=>$parent_connect_data['type'],
+        'connect_id'    => InstaWP_Setting::get_args_option( 'connect_id', $parent_connect_data, '' ),
+        'site_name'     => preg_replace("(^https?://)", "",  InstaWP_Setting::get_args_option( 'domain', $parent_connect_data, '' )),
+        'type'          => InstaWP_Setting::get_args_option( 'type', $parent_connect_data, '' ),
     ]);
 }
 ?>
@@ -156,7 +155,7 @@ if( !empty( $parent_connect_data ) && isset( $parent_connect_data['domain'] ) ){
                                 <div class="instawpcatrgtcol sync_process">
                                     <ul>
                                         <li class="step-1 process_pending"><?php echo esc_html__( 'Packing things', 'instawp-connect' ); ?></li>
-                                        <li class="step-2 process_pending"><?php echo esc_html__( 'Pusing to cloud', 'instawp-connect' ); ?></li>
+                                        <li class="step-2 process_pending"><?php echo esc_html__( 'Pusing', 'instawp-connect' ); ?></li>
                                         <li class="step-3 process_pending"><?php echo esc_html__( 'Merging to destination', 'instawp-connect' ); ?></li>
                                     </ul>
                                 </div>

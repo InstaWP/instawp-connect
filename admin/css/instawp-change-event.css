@@ -481,6 +481,13 @@ select#destination-site, select#staging-site-sync {
     color: #895959;
 }
 
+.synced_status.error {
+    margin: 0 !important;
+    border: none;
+    background: #ffd7ce;
+}
+
+
 td.event-sync-cell.loading{
     padding: 20px;
     text-align: center;
