@@ -12,7 +12,7 @@ $staging_screens     = array(
 $nav_item_classes    = array( 'nav-item-content' );
 $incomplete_task_ids = InstaWP_taskmanager::is_there_any_incomplete_task_ids();
 
-if ( ! empty( $incomplete_task_ids ) ) {
+if ( ! empty( $incomplete_task_ids ) && ! empty( InstaWP_Setting::get_option( 'instawp_migration_nonce', '' ) ) ) {
 	$nav_item_classes[] = 'loading';
 }
 
