@@ -164,8 +164,45 @@ class instaWP {
 		add_action( 'update_option_instawp_rm_heartbeat', array( $this, 'clear_heartbeat_action' ) );
 		add_action( 'instawp_handle_heartbeat', array( $this, 'handle_heartbeat' ) );
 
+		// Clean Tasks
+		add_action( 'instawp_clean_tasks', array( $this, 'clean_events' ) );
+
 		// Hook to run on login page
 		add_action( 'login_init', array( $this, 'instawp_auto_login_redirect' ) );
+	}
+
+	public function clean_events() {
+		if ( ! \ActionScheduler::is_initialized( __FUNCTION__ ) ) {
+			return;
+		}
+
+		$statuses_to_purge = [
+			\ActionScheduler_Store::STATUS_COMPLETE,
+			\ActionScheduler_Store::STATUS_CANCELED,
+			\ActionScheduler_Store::STATUS_FAILED,
+		];
+		$store = \ActionScheduler::store();
+
+		$deleted_actions = [];
+		$action_ids      = [];
+		foreach ( $statuses_to_purge as $status ) {
+			$actions_to_delete = $store->query_actions( [
+				'status'           => $status,
+				'modified'         => as_get_datetime_object( '24 hours ago' ),
+				'modified_compare' => '<=',
+				'per_page'         => 200,
+				'orderby'          => 'none',
+				'group'            => 'instawp-connect'
+			] );
+
+			$action_ids = array_merge( $action_ids, $actions_to_delete );
+		}
+
+		foreach( $action_ids as $action_id ) {
+			try {
+				$store->delete_action( $action_id );
+			} catch ( Exception $e ) {}
+		}
 	}
 
 	// Login hook logic
@@ -238,6 +275,10 @@ class instaWP {
 
 		if ( $heartbeat === 'on' && ! as_has_scheduled_action( 'instawp_handle_heartbeat', [], 'instawp-connect' ) ) {
 			as_schedule_recurring_action( time(), ( $interval * 60 ), 'instawp_handle_heartbeat', [], 'instawp-connect', false, 5 );
+		}
+
+		if ( ! as_has_scheduled_action( 'instawp_clean_tasks', [], 'instawp-connect' ) ) {
+			as_schedule_recurring_action( time(), DAY_IN_SECONDS, 'instawp_clean_tasks', [], 'instawp-connect', false, 5 );
 		}
 	}
 

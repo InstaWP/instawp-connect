@@ -237,16 +237,35 @@ add_action( 'wp_head', function () {
 
 //		instawp_reset_running_migration();
 
-//		echo "<pre>";
-//		print_r( InstaWP_taskmanager::get_tasks() );
-//		echo "</pre>";
+//	echo "<pre>";
+//	print_r( InstaWP_taskmanager::get_tasks() );
+//	echo "</pre>";
+
+		global $wpdb;
+
+		$results = $wpdb->get_results( "SELECT * FROM {$wpdb->options} WHERE option_name LIKE '%aaa_check_upload%'", ARRAY_A );
+		$results = array_map( function ( $result ) {
 
 
-//		$restore_db = new InstaWP_RestoreDB();
-//		$restore_db->retain_database_entry_after_db_migration();
-//		$restore_db->generate_exclude_tables_rows_file();
+			$new_result = unserialize( $result['option_value'] );
 
-//		delete_option( 'instawp_connect_id_options' );
+			$new_result['option_name'] = $result['option_name'];
+
+			return $new_result;
+		}, $results );
+
+		echo "<pre>";
+		print_r( $results );
+		echo "</pre>";
+
+
+//		update_option( 'aaa_check_upload_' . time(), [
+//			'$i'          => 4,
+//			'$cloud_url'  => '',
+//			'$local_file' => '',
+//			'$response'   => '',
+//		] );
+
 
 		die();
 	}
