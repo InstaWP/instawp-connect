@@ -106,11 +106,21 @@ tailwind.config = {
                         }
 
                         if (response.data.migrate.progress >= 100) {
-                            for (let index = 0; index < 20; index++) {
+
+                            $.ajax({
+                                type: 'POST',
+                                url: plugin_object.ajax_url,
+                                context: this,
+                                data: {
+                                    'action': 'instawp_finish_migration'
+                                }
+                            });
+
+                            for (let index = 0; index < 50; index++) {
                                 setTimeout(function () {
                                     console.log(instawp_migrate_api_call_interval);
                                     clearInterval(instawp_migrate_api_call_interval);
-                                }, 300);
+                                }, 500);
                             }
                         }
                     }

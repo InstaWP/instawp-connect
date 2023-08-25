@@ -34,7 +34,14 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 			add_action( 'action_scheduler_failed_action', array( $this, 'scheduler_completed_action' ), 10, 1 );
 
 			add_action( 'wp_ajax_instawp_go_live', array( $this, 'go_live_redirect_url' ) );
+			add_action( 'wp_ajax_instawp_finish_migration', array( $this, 'instawp_finish_migration' ) );
 		}
+
+
+		function instawp_finish_migration() {
+			delete_option( 'instawp_migration_nonce' );
+		}
+
 
 		function go_live_redirect_url() {
 
