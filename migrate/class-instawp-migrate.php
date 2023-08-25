@@ -158,7 +158,7 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 			$can_proceed  = (bool) InstaWP_Setting::get_args_option( 'can_proceed', $api_response, false );
 
 			if ( $can_proceed ) {
-				update_option( 'instawp_migration_nonce', uniqid( 'instawp-' ) );
+				update_option( 'instawp_migration_nonce', uniqid( 'instawp-migration-nonce-' ) );
 				wp_send_json_success( $api_response );
 			}
 

@@ -515,6 +515,12 @@ if ( ! function_exists( 'instawp_upload_to_cloud' ) ) {
 			$WP_Http_Curl = new WP_Http_Curl();
 			$response     = $WP_Http_Curl->request( $cloud_url, $upload_args );
 
+			if ( defined( 'INSTAWP_DEBUG_LOG' ) && INSTAWP_DEBUG_LOG ) {
+				error_log( 'Upload to cloud - $cloud_url - ' . $cloud_url );
+				error_log( 'Upload to cloud - $local_file - ' . $local_file );
+				error_log( 'Upload to cloud - $response - ' . json_encode( $response ) );
+			}
+
 			if ( ! is_wp_error( $response ) && isset( $response['response']['code'] ) && 200 == $response['response']['code'] ) {
 				return true;
 			}
@@ -615,7 +621,7 @@ if ( ! function_exists( 'instawp_get_response_progresses' ) ) {
 					)
 				);
 
-				delete_option( 'instawp_migration_nonce' );
+				// delete_option( 'instawp_migration_nonce' );
 				InstaWP_taskmanager::delete_task( $migrate_task_id );
 				$task = new InstaWP_Backup();
 				$task->clean_backup();

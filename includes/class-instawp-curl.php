@@ -75,7 +75,7 @@ class InstaWP_Curl {
 		$api_response = curl_exec( $curl );
 		curl_close( $curl );
 
-		if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
+		if ( defined( 'INSTAWP_DEBUG_LOG' ) && INSTAWP_DEBUG_LOG ) {
 			error_log( 'API URL - ' . $api_url );
 			error_log( 'API ARGS - ' . json_encode( $body ) );
 			error_log( 'API Response - ' . $api_response );
@@ -406,8 +406,6 @@ class InstaWP_Curl {
 							'result' => INSTAWP_FAILED,
 							'error'  => 'Multipart upload failed. File name: ' . $this->current_file_name,
 						);
-
-						update_option( 'instawp_backup_upload_err_options', $curl_reponse );
 					}
 				}
 			}
