@@ -151,7 +151,7 @@
                                 console.log(site_detail);
 
                                 // Update the button
-                                el_btn_go_live.html('Login to the website').data('cloudways', site_detail.auto_login_url).removeClass('disabled').data('is_live', true);
+                                el_btn_go_live.html('Visit Website').data('cloudways', site_detail.auto_login_url).removeClass('disabled').data('is_live', true);
                                 el_btn_go_live.removeClass('disabled').data('is_live', true);
 
                                 // Display manage account link

@@ -406,8 +406,6 @@ class InstaWP_Curl {
 							'result' => INSTAWP_FAILED,
 							'error'  => 'Multipart upload failed. File name: ' . $this->current_file_name,
 						);
-
-						update_option( 'instawp_backup_upload_err_options', $curl_reponse );
 					}
 				}
 			}
