@@ -394,6 +394,7 @@ class instaWP {
 
 	private function load_dependencies() {
 		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-log.php';
+		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-migrate-log.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-i18n.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-curl.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-ajax.php';
