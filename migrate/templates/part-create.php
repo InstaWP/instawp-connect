@@ -307,8 +307,8 @@ $customize_options     = array(
 
                 <div class="screen-buttons bg-grayCust-250 px-6 py-3 rounded-bl-lg rounded-br-lg flex justify-end">
                     <p class="doing-request"><span class="loader"></span>Checking usages...</p>
-                    <input name="instawp_migrate[screen]" type="text" id="instawp-screen" value="<?= $current_create_screen; ?>">
-                    <input name="instawp_migrate[nonce]" type="text" id="instawp-nonce" value="<?= $migration_nonce; ?>">
+                    <input name="instawp_migrate[screen]" type="hidden" id="instawp-screen" value="<?= $current_create_screen; ?>">
+                    <input name="instawp_migrate[nonce]" type="hidden" id="instawp-nonce" value="<?= $migration_nonce; ?>">
                     <button type="button" data-increment="-1" class="instawp-button-migrate back hidden btn-shadow border border-grayCust-350 mr-4 rounded-md py-2 px-8 bg-white text-grayCust-700 text-sm font-medium">Back</button>
                     <button type="button" data-increment="1" class="instawp-button-migrate continue btn-shadow rounded-md py-2 px-4 bg-primary-900 text-white hover:text-white text-sm font-medium">Next Step</button>
                 </div>
