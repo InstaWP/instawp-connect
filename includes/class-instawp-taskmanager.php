@@ -746,4 +746,28 @@ class InstaWP_taskmanager {
 
 		return false;
 	}
+
+	public static function store_nonce_to_migrate_task( $task_id, $nonce = '' ) {
+		$migrate_task = InstaWP_taskmanager::get_task( $task_id );
+
+		if ( ! empty( $nonce ) ) {
+			$migrate_task['nonce'] = $nonce;
+
+			InstaWP_taskmanager::update_task( $migrate_task );
+
+			return true;
+		}
+
+		return false;
+	}
+
+	public static function get_nonce( $task_id ) {
+
+		if ( empty( $task_id ) ) {
+			return '';
+		}
+		$migrate_task = InstaWP_taskmanager::get_task( $task_id );
+
+		return InstaWP_Setting::get_args_option( 'nonce', $migrate_task );
+	}
 }

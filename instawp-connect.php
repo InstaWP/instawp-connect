@@ -234,6 +234,20 @@ run_instawp();
 add_action( 'wp_head', function () {
 	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
 
+		echo "<pre>";
+		print_r( wp_nonce_tick( 'instawp_migration_nonce' ) );
+		echo "</pre>";
+
+		$nonce = wp_create_nonce( 'instawp_migration_nonce' );
+
+		echo "<pre>";
+		print_r( $nonce );
+		echo "</pre>";
+
+		echo "<pre>";
+		print_r( wp_verify_nonce( 'e4135cc2a6', 'instawp_migration_nonce' ) );
+		echo "</pre>";
+
 		die();
 	}
 }, 0 );

@@ -11,8 +11,10 @@ $staging_screens     = array(
 );
 $nav_item_classes    = array( 'nav-item-content' );
 $incomplete_task_ids = InstaWP_taskmanager::is_there_any_incomplete_task_ids();
+$incomplete_task_id  = reset( $incomplete_task_ids );
+$migration_nonce     = InstaWP_taskmanager::get_nonce( $incomplete_task_id );
 
-if ( ! empty( $incomplete_task_ids ) && ! empty( InstaWP_Setting::get_option( 'instawp_migration_nonce', '' ) ) ) {
+if ( ! empty( $incomplete_task_id ) && ! empty( InstaWP_Setting::get_option( 'instawp_migration_running', '' ) ) ) {
 	$nav_item_classes[] = 'loading';
 }
 
@@ -305,7 +307,8 @@ $customize_options     = array(
 
                 <div class="screen-buttons bg-grayCust-250 px-6 py-3 rounded-bl-lg rounded-br-lg flex justify-end">
                     <p class="doing-request"><span class="loader"></span>Checking usages...</p>
-                    <input name="instawp_migrate[screen]" type="hidden" id="instawp-screen" value="<?= $current_create_screen; ?>">
+                    <input name="instawp_migrate[screen]" type="text" id="instawp-screen" value="<?= $current_create_screen; ?>">
+                    <input name="instawp_migrate[nonce]" type="text" id="instawp-nonce" value="<?= $migration_nonce; ?>">
                     <button type="button" data-increment="-1" class="instawp-button-migrate back hidden btn-shadow border border-grayCust-350 mr-4 rounded-md py-2 px-8 bg-white text-grayCust-700 text-sm font-medium">Back</button>
                     <button type="button" data-increment="1" class="instawp-button-migrate continue btn-shadow rounded-md py-2 px-4 bg-primary-900 text-white hover:text-white text-sm font-medium">Next Step</button>
                 </div>

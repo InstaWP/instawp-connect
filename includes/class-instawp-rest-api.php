@@ -572,7 +572,7 @@ class InstaWP_Backup_Api {
 
 				$instawp_plugin->restore_api( $backup_list_key, $restore_options, $parameters );
 
-				$progress_results = $instawp_plugin->get_restore_progress_api( $backup_list_key );
+				$progress_results  = $instawp_plugin->get_restore_progress_api( $backup_list_key );
 				$progress_response = (array) json_decode( $progress_results );
 
 			} while ( $progress_response['status'] != 'completed' || $progress_response['status'] == 'error' );
@@ -823,9 +823,11 @@ class InstaWP_Backup_Api {
 		$is_background    = $parameters['instawp_is_background'] ?? true;
 		$migrate_id       = InstaWP_Setting::get_args_option( 'migrate_id', $parameters );
 		$migrate_settings = InstaWP_Setting::get_args_option( 'migrate_settings', $parameters );
+		$migration_nonce  = InstaWP_Setting::get_args_option( 'nonce', $migrate_settings );
 		$migrate_task_id  = instawp_get_migrate_backup_task_id( array( 'migrate_settings' => $migrate_settings ) );
 
 		InstaWP_taskmanager::store_migrate_id_to_migrate_task( $migrate_task_id, $migrate_id );
+		InstaWP_taskmanager::store_nonce_to_migrate_task( $migrate_task_id, $migration_nonce );
 
 		if ( $is_background === false ) {
 			return $this->throw_response( array(
@@ -1115,7 +1117,7 @@ class InstaWP_Backup_Api {
 			return $this->throw_error( $response );
 		}
 
-		$params = ( array ) $request->get_param( 'wp-config' ) ?? [];
+		$params    = ( array ) $request->get_param( 'wp-config' ) ?? [];
 		$wp_config = new \InstaWP\Connect\Helpers\WPConfig( $params );
 		$response  = $wp_config->update();
 

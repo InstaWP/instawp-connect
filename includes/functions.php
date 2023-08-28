@@ -332,7 +332,7 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 		$task = new InstaWP_Backup();
 		$task->clean_backup();
 
-		delete_option( 'instawp_migration_nonce' );
+		delete_option( 'instawp_migration_running' );
 
 		if ( 'task_only' == $reset_type ) {
 			return true;
