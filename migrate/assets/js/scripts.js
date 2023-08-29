@@ -680,6 +680,61 @@ tailwind.config = {
     });
 
 
+    // Disconnect start //
+    $(document).on('click', '.instawp-wrap .instawp-disconnect-plugin', function () {
+        if (!confirm('Do you really want to disconnect the plugin?')) {
+            return;
+        }
+        $.ajax({
+            type: 'POST', 
+            url: plugin_object.ajax_url, 
+            context: this, 
+            data: {
+                'action': 'instawp_disconnect_plugin',
+                'api': true,
+                'security': instawp_migrate.security
+            },
+            beforeSend: function () {
+                $(document).find('.settings .instawp-form').addClass('loading');
+            },
+            success: function (response) {
+                console.log(response)
+                if ( response.success == true ) {
+                    location.reload();
+                } else {
+                    $(document).find('.settings .instawp-form').removeClass('loading');
+                    if (confirm(response.data.message + ' Do you still want to disconnect the plugin?')) {
+                        $.ajax({
+                            type: 'POST', 
+                            url: plugin_object.ajax_url, 
+                            context: this, 
+                            data: {
+                                'action': 'instawp_disconnect_plugin',
+                                'api': false,
+                                'security': instawp_migrate.security
+                            },
+                            beforeSend: function () {
+                                $(document).find('.settings .instawp-form').addClass('loading');
+                            },
+                            success: function (response) {
+                                if ( response.success == true ) {
+                                    location.reload();
+                                } else {
+                                    $(document).find('.settings .instawp-form').removeClass('loading');
+                                }
+                            }
+                        });
+                    }
+                }
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                alert(errorThrown + ': Can\'t proceed. Please try again!');
+                location.reload();
+            }
+        });
+    });
+    // Disconnect end //
+
     // Remote Management settings save start //
     let ajaxSaveManagementSettings = (name, value) => {
         $.ajax({
@@ -701,7 +756,7 @@ tailwind.config = {
                     setTimeout(function () {
                         label_field.text(label_field.data(value));
                         $(document).find('.manage .instawp-form').removeClass('loading');
-                        $(document).trigger('instawpToggleSave', [name, value]);
+                        
                     }, 300);
                 } else {
                     alert('Can\'t update settings. Please try again!');
@@ -750,6 +805,7 @@ tailwind.config = {
     });
     // Remote Management settings save end //
 
+    // Site list pagination start //
     $(document).on('ready', function () {
         $(document).find('.staging-site-list').slice(0, parseInt($(document).find('.sites').data('pagination'))).show();
     });
@@ -797,6 +853,7 @@ tailwind.config = {
             next.trigger('click');
         }
     });
+    // Site list pagination end //
 
 })(jQuery, window, document, instawp_migrate);
 
