@@ -75,6 +75,32 @@ jQuery(document).ready(function ($) {
 	    // slug_arr.push(event_slug);
     });
 
+    // $("#select-all-event").click(function(){
+    //     $('.single-event-cb:checkbox').not(this).prop('checked', this.checked);
+    // });
+
+    display_event_action_dropdown =  () => {
+        if( $('.single-event-cb:checked').length == 0 ){
+            $(".instawp-event-type-c").addClass('hidden');
+        }else{
+            $(".instawp-event-type-c").removeClass('hidden');
+        }
+    }
+
+    $(document).on('click','#select-all-event', function(e) {   
+        $("body").find('.single-event-cb:checkbox').not(this).prop('checked', this.checked);
+        display_event_action_dropdown();
+    });
+    
+    $(document).on('click','.single-event-cb', function(e) {
+        if ($('.single-event-cb:checked').length == $('.single-event-cb').length) {
+            $("body").find('#select-all-event').prop('checked', true);
+        } else {
+            $("body").find('#select-all-event').prop('checked', false);
+        }
+        display_event_action_dropdown();
+    });
+
     $(document).on('click', 'div#event-sync-pagination a.page-numbers', function(event){
         event.preventDefault();
         const url = $(this).attr('href');
@@ -85,6 +111,34 @@ jQuery(document).ready(function ($) {
 
     $(document).on('change', '#staging-site-sync', function(){
         get_site_events();
+    });
+
+    $(document).on('change', '#event-action-type', function(){
+        const that = $(this);
+        const type = that.val();
+        const selectedEvents = [];
+        $('.single-event-cb:checked').each(function(){
+            selectedEvents.push($(this).val());
+        });
+        if(selectedEvents.length > 0){
+            if( type == 'delete' ){
+                if( confirm('Are you sure') ){
+                    let formData = new FormData();
+                    let site_id =  $("#staging-site-sync").val();
+                    formData.append('site_id', site_id);
+                    formData.append('action', 'instawp_delete_events');
+                    formData.append('ids',  selectedEvents);
+                    baseCall(formData).then((response) => response.json()).then((data) => {
+                        get_site_events();  
+                        display_event_action_dropdown();
+                        $("body").find('#select-all-event').prop('checked', false);
+                    }).catch((error) => {
+
+                    });
+                }  
+            }
+        }
+        that.val('');
     });
     
     $(document).on('click', '.instawp-refresh-events', function(){
@@ -173,7 +227,7 @@ jQuery(document).ready(function ($) {
         formData.append('epage', page);
         formData.append('connect_id', site_id);
 
-        $("#part-sync-results").html('<tr><td colspan="4" class="event-sync-cell loading"></td></tr>');
+        $("#part-sync-results").html('<tr><td colspan="5" class="event-sync-cell loading"></td></tr>');
 
         baseCall(formData).then((response) => response.json()).then((data) => {
             
@@ -217,6 +271,7 @@ jQuery(document).ready(function ($) {
                 $(".sync_process .step-2").removeClass('process_pending').addClass('process_inprogress');
                 bulkSync(sync_message,data.data,sync_type,sync_ids, dest_connect_id); 
             }else{
+                $(".sync-changes-btn").removeClass('disable-a loading');
                 $('.sync_error_success_msg').html('<p class="error">'+data.message+'</p>');  
             }
         }).catch((error) => {
