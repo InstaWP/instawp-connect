@@ -18,105 +18,98 @@ tailwind.config = {
 
 (function ($, window, document, plugin_object) {
 
-    let instawp_migrate_api_call_interval = null,
-        instawp_migrate_api_call = () => {
-
-            let instawp_migrate_container = $('.instawp-wrap .nav-item-content.create'),
-                el_bar_backup = instawp_migrate_container.find('.instawp-progress-backup'),
-                el_bar_upload = instawp_migrate_container.find('.instawp-progress-upload'),
-                el_bar_staging = instawp_migrate_container.find('.instawp-progress-staging'),
-                el_migration_loader = instawp_migrate_container.find('.instawp-migration-loader'),
-                el_migration_progress_wrap = instawp_migrate_container.find('.migration-running'),
-                el_site_detail_wrap = instawp_migrate_container.find('.migration-completed'),
-                el_screen_buttons = instawp_migrate_container.find('.screen-buttons'),
-                el_screen_buttons_last = instawp_migrate_container.find('.screen-buttons-last');
-
-            if (instawp_migrate_container.hasClass('doing-ajax')) {
-                return;
+    $.fn.extend({
+        hasClasses: function (selectors) {
+            let self = this;
+            for (let i in selectors) {
+                if ($(self).hasClass(selectors[i]))
+                    return true;
             }
+            return false;
+        }
+    });
 
-            $.ajax({
-                type: 'POST',
-                url: plugin_object.ajax_url,
-                context: this,
-                beforeSend: function () {
-                    instawp_migrate_container.addClass('doing-ajax');
-                },
-                complete: function () {
-                    instawp_migrate_container.removeClass('doing-ajax');
-                },
-                data: {
-                    'action': 'instawp_connect_migrate',
-                    'settings': instawp_migrate_container.serialize(),
-                }, success: function (response) {
+    let instawp_migrate_api_call = () => {
 
-                    if (response.success) {
+        let create_container = $('.instawp-wrap .nav-item-content.create'),
+            el_bar_backup = create_container.find('.instawp-progress-backup'),
+            el_bar_upload = create_container.find('.instawp-progress-upload'),
+            el_bar_staging = create_container.find('.instawp-progress-staging'),
+            el_migration_loader = create_container.find('.instawp-migration-loader'),
+            el_migration_progress_wrap = create_container.find('.migration-running'),
+            el_site_detail_wrap = create_container.find('.migration-completed'),
+            el_screen_buttons = create_container.find('.screen-buttons'),
+            el_screen_buttons_last = create_container.find('.screen-buttons-last'),
+            el_instawp_nonce = create_container.find('#instawp-nonce');
 
-                        console.log(response.data);
+        if (create_container.hasClasses('doing-ajax completed')) {
+            return;
+        }
 
-                        el_bar_backup.find('.progress-bar').css('width', response.data.backup.progress + '%');
-                        el_bar_backup.find('.progress-text').text(response.data.backup.progress + '%');
+        $.ajax({
+            type: 'POST',
+            url: plugin_object.ajax_url,
+            context: this,
+            beforeSend: function () {
+                create_container.addClass('doing-ajax');
+            },
+            complete: function () {
+                create_container.removeClass('doing-ajax');
+            },
+            data: {
+                'action': 'instawp_connect_migrate',
+                'settings': create_container.serialize(),
+            }, success: function (response) {
 
-                        el_bar_upload.find('.progress-bar').css('width', response.data.upload.progress + '%');
-                        el_bar_upload.find('.progress-text').text(response.data.upload.progress + '%');
+                if (response.success) {
 
-                        el_bar_staging.find('.progress-bar').css('width', response.data.migrate.progress + '%');
-                        el_bar_staging.find('.progress-text').text(response.data.migrate.progress + '%');
+                    console.log(response.data);
 
-                        if (typeof response.data.track_migrate_progress !== 'undefined') {
-                            instawp_migrate_container.find('.instawp-track-migration').attr('href', response.data.track_migrate_progress);
+                    el_bar_backup.find('.progress-bar').css('width', response.data.backup.progress + '%');
+                    el_bar_backup.find('.progress-text').text(response.data.backup.progress + '%');
+
+                    el_bar_upload.find('.progress-bar').css('width', response.data.upload.progress + '%');
+                    el_bar_upload.find('.progress-text').text(response.data.upload.progress + '%');
+
+                    el_bar_staging.find('.progress-bar').css('width', response.data.migrate.progress + '%');
+                    el_bar_staging.find('.progress-text').text(response.data.migrate.progress + '%');
+
+                    if (typeof response.data.track_migrate_progress !== 'undefined' && response.data.track_migrate_progress.length > 0) {
+                        create_container.find('.instawp-track-migration').attr('href', response.data.track_migrate_progress);
+                    }
+
+                    if (response.data.status === 'aborted' || response.data.status === 'nonce_expired') {
+                        el_instawp_nonce.val('');
+                        create_container.find('.instawp-migration-start-over').trigger('click');
+                        create_container.removeClass('loading').addClass('completed');
+                        clearInterval(create_container.attr('interval-id'));
+                    }
+
+                    if (response.data.status === 'completed') {
+                        if (typeof response.data.site_detail.url !== 'undefined' && typeof response.data.site_detail.wp_username !== 'undefined' && typeof response.data.site_detail.wp_password !== 'undefined' && typeof response.data.site_detail.auto_login_url !== 'undefined') {
+
+                            el_migration_progress_wrap.addClass('hidden');
+                            el_site_detail_wrap.removeClass('hidden');
+                            el_migration_loader.text(el_migration_loader.data('complete-text'));
+
+                            el_site_detail_wrap.find('#instawp-site-url').attr('href', response.data.site_detail.url).find('span').html(response.data.site_detail.url);
+                            el_site_detail_wrap.find('#instawp-site-username').html(response.data.site_detail.wp_username);
+                            el_site_detail_wrap.find('#instawp-site-password').html(response.data.site_detail.wp_password);
+                            el_site_detail_wrap.find('#instawp-site-magic-url').attr('href', response.data.site_detail.auto_login_url);
+
+                            // screen-buttons-last
+                            el_screen_buttons.addClass('hidden');
+                            el_screen_buttons_last.removeClass('hidden');
                         }
 
-                        if (response.data.status === 'aborted') {
-                            // el_migration_progress_wrap.addClass('hidden');
-                            // el_site_detail_wrap.removeClass('hidden');
-                            // el_migration_loader.text(el_migration_loader.data('complete-text'));
-                            //
-                            // el_site_detail_wrap.find('#instawp-site-url').attr('href', response.data.site_detail.url).find('span').html(response.data.site_detail.url);
-                            // el_site_detail_wrap.find('#instawp-site-username').html(response.data.site_detail.wp_username);
-                            // el_site_detail_wrap.find('#instawp-site-password').html(response.data.site_detail.wp_password);
-                            // el_site_detail_wrap.find('#instawp-site-magic-url').attr('href', response.data.site_detail.auto_login_url);
-                            //
-                            // // screen-buttons-last
-                            // el_screen_buttons.addClass('hidden');
-                            // el_screen_buttons_last.removeClass('hidden');
-
-                            instawp_migrate_container.find('.instawp-migration-start-over').trigger('click');
-                            instawp_migrate_container.removeClass('loading');
-                        }
-
-                        if (response.data.status === 'completed') {
-                            if (typeof response.data.site_detail.url !== 'undefined' && typeof response.data.site_detail.wp_username !== 'undefined' && typeof response.data.site_detail.wp_password !== 'undefined' && typeof response.data.site_detail.auto_login_url !== 'undefined') {
-
-                                el_migration_progress_wrap.addClass('hidden');
-                                el_site_detail_wrap.removeClass('hidden');
-                                el_migration_loader.text(el_migration_loader.data('complete-text'));
-
-                                el_site_detail_wrap.find('#instawp-site-url').attr('href', response.data.site_detail.url).find('span').html(response.data.site_detail.url);
-                                el_site_detail_wrap.find('#instawp-site-username').html(response.data.site_detail.wp_username);
-                                el_site_detail_wrap.find('#instawp-site-password').html(response.data.site_detail.wp_password);
-                                el_site_detail_wrap.find('#instawp-site-magic-url').attr('href', response.data.site_detail.auto_login_url);
-
-                                // screen-buttons-last
-                                el_screen_buttons.addClass('hidden');
-                                el_screen_buttons_last.removeClass('hidden');
-                            }
-
-                            instawp_migrate_container.removeClass('loading').addClass('completed');
-                        }
-
-                        if (response.data.migrate.progress >= 100) {
-                            for (let index = 0; index < 20; index++) {
-                                setTimeout(function () {
-                                    console.log(instawp_migrate_api_call_interval);
-                                    clearInterval(instawp_migrate_api_call_interval);
-                                }, 300);
-                            }
-                        }
+                        el_instawp_nonce.val('');
+                        create_container.removeClass('loading').addClass('completed');
+                        clearInterval(create_container.attr('interval-id'));
                     }
                 }
-            });
-        };
+            }
+        });
+    };
 
 
     $(document).on('change', '#instawp-screen', function () {
@@ -172,7 +165,7 @@ tailwind.config = {
             create_container.addClass('loading');
 
             instawp_migrate_api_call();
-            instawp_migrate_api_call_interval = setInterval(instawp_migrate_api_call, 1000);
+            create_container.attr('interval-id', setInterval(instawp_migrate_api_call, 2000));
         }
     });
 
@@ -234,6 +227,9 @@ tailwind.config = {
         create_container.find('.card-active').removeClass('card-active border-primary-900');
         create_container.find('.confirmation-preview .selected-staging-options').html('');
 
+        create_container.find('.screen-buttons-last').addClass('hidden');
+        create_container.find('.screen-buttons').removeClass('hidden').find('.instawp-button-migrate.continue').removeClass('hidden');
+
         el_instawp_screen.val(1).trigger('change');
     });
 
@@ -272,6 +268,7 @@ tailwind.config = {
             el_confirmation_preview = create_container.find('.confirmation-preview'),
             el_confirmation_warning = create_container.find('.confirmation-warning'),
             el_instawp_screen = create_container.find('#instawp-screen'),
+            el_instawp_nonce = create_container.find('#instawp-nonce'),
             screen_current = parseInt(el_instawp_screen.val()),
             screen_next = screen_current + parseInt(screen_increment),
             instawp_migrate_type = $('input[name="instawp_migrate[type]"]:checked').val();
@@ -297,6 +294,7 @@ tailwind.config = {
                 }, success: function (response) {
                     if (response.success) {
                         el_screen_doing_request.removeClass('loading');
+                        el_instawp_nonce.val(response.data.nonce);
                         el_instawp_screen.val(screen_next).trigger('change');
                     } else {
                         create_container.addClass('warning');
@@ -325,12 +323,9 @@ tailwind.config = {
 
 
     $(document).on('ready', function () {
-        // let all_nav_items = $('.instawp-wrap .nav-items .nav-item');
-        // all_nav_items.first().addClass('active').find('a').toggleClass('text-primary-900 border-primary-900');
-
-        let instawp_migrate_container = $('.instawp-wrap .nav-item-content.create'),
+        let create_container = $('.instawp-wrap .nav-item-content.create'),
             this_nav_item_id = localStorage.getItem('instawp_admin_current'),
-            el_instawp_screen = instawp_migrate_container.find('#instawp-screen'),
+            el_instawp_screen = create_container.find('#instawp-screen'),
             all_nav_items = $('.instawp-wrap .nav-items .nav-item');
 
         if (this_nav_item_id !== null && typeof this_nav_item_id !== 'undefined') {
@@ -339,11 +334,10 @@ tailwind.config = {
             all_nav_items.first().find('a').trigger('click');
         }
 
-        if (instawp_migrate_container.hasClass('loading')) {
+        if (create_container.hasClass('loading')) {
 
             el_instawp_screen.val(4).trigger('change');
-
-            instawp_migrate_api_call_interval = setInterval(instawp_migrate_api_call, 3000);
+            create_container.attr('interval-id', setInterval(instawp_migrate_api_call, 2000));
         }
     });
 
@@ -367,8 +361,10 @@ tailwind.config = {
 
     $(document).on('click', '.instawp-wrap .instawp-migrate-abort', function () {
 
+        let create_container = $('.instawp-wrap .nav-item-content.create');
+
         if (confirm('Do you really want to abort the migration?')) {
-            clearInterval(instawp_migrate_api_call_interval);
+            clearInterval(create_container.attr('interval-id'));
             window.location.href = window.location.href + '&clear=all';
         }
     });
@@ -380,11 +376,15 @@ tailwind.config = {
             return;
         }
 
-        let el_reset_button = $(this), el_settings_form = $('.instawp-form'), el_settings_reset_type = el_settings_form.find('#instawp_reset_type'), el_settings_form_response = el_settings_form.find('.instawp-form-response');
+        let el_reset_button = $(this),
+            create_container = $('.instawp-wrap .nav-item-content.create'),
+            el_settings_form = $('.instawp-form'),
+            el_settings_reset_type = el_settings_form.find('#instawp_reset_type'),
+            el_settings_form_response = el_settings_form.find('.instawp-form-response');
 
         el_settings_form.addClass('loading');
         el_settings_form_response.html('');
-        clearInterval(instawp_migrate_api_call_interval);
+        clearInterval(create_container.attr('interval-id'));
 
         $.ajax({
             type: 'POST', url: plugin_object.ajax_url, context: this, data: {
@@ -680,6 +680,61 @@ tailwind.config = {
     });
 
 
+    // Disconnect start //
+    $(document).on('click', '.instawp-wrap .instawp-disconnect-plugin', function () {
+        if (!confirm('Do you really want to disconnect the plugin?')) {
+            return;
+        }
+        $.ajax({
+            type: 'POST', 
+            url: plugin_object.ajax_url, 
+            context: this, 
+            data: {
+                'action': 'instawp_disconnect_plugin',
+                'api': true,
+                'security': instawp_migrate.security
+            },
+            beforeSend: function () {
+                $(document).find('.settings .instawp-form').addClass('loading');
+            },
+            success: function (response) {
+                console.log(response)
+                if ( response.success == true ) {
+                    location.reload();
+                } else {
+                    $(document).find('.settings .instawp-form').removeClass('loading');
+                    if (confirm(response.data.message + ' Do you still want to disconnect the plugin?')) {
+                        $.ajax({
+                            type: 'POST', 
+                            url: plugin_object.ajax_url, 
+                            context: this, 
+                            data: {
+                                'action': 'instawp_disconnect_plugin',
+                                'api': false,
+                                'security': instawp_migrate.security
+                            },
+                            beforeSend: function () {
+                                $(document).find('.settings .instawp-form').addClass('loading');
+                            },
+                            success: function (response) {
+                                if ( response.success == true ) {
+                                    location.reload();
+                                } else {
+                                    $(document).find('.settings .instawp-form').removeClass('loading');
+                                }
+                            }
+                        });
+                    }
+                }
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                alert(errorThrown + ': Can\'t proceed. Please try again!');
+                location.reload();
+            }
+        });
+    });
+    // Disconnect end //
+
     // Remote Management settings save start //
     let ajaxSaveManagementSettings = (name, value) => {
         $.ajax({
@@ -701,7 +756,7 @@ tailwind.config = {
                     setTimeout(function () {
                         label_field.text(label_field.data(value));
                         $(document).find('.manage .instawp-form').removeClass('loading');
-                        $(document).trigger('instawpToggleSave', [name, value]);
+                        
                     }, 300);
                 } else {
                     alert('Can\'t update settings. Please try again!');
@@ -750,6 +805,7 @@ tailwind.config = {
     });
     // Remote Management settings save end //
 
+    // Site list pagination start //
     $(document).on('ready', function () {
         $(document).find('.staging-site-list').slice(0, parseInt($(document).find('.sites').data('pagination'))).show();
     });
@@ -797,6 +853,7 @@ tailwind.config = {
             next.trigger('click');
         }
     });
+    // Site list pagination end //
 
 })(jQuery, window, document, instawp_migrate);
 

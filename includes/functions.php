@@ -332,7 +332,7 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 		$task = new InstaWP_Backup();
 		$task->clean_backup();
 
-		delete_option( 'instawp_migration_nonce' );
+		delete_option( 'instawp_migration_running' );
 
 		if ( 'task_only' == $reset_type ) {
 			return true;
@@ -343,6 +343,7 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 			delete_option( 'instawp_backup_part_size' );
 			delete_option( 'instawp_reset_type' );
 			delete_option( 'instawp_db_method' );
+			delete_option( 'instawp_default_user' );
 			delete_option( 'instawp_api_options' );
 
 			delete_option( 'instawp_rm_heartbeat' );
