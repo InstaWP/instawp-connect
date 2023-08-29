@@ -24,45 +24,51 @@ class InstaWP_Backup_Api {
 
 	public function add_api_routes() {
 
-		register_rest_route( $this->namespace . '/' . $this->version, 'backup', array(
+		register_rest_route( $this->namespace . '/' . $this->version, '/backup', array(
 			'methods'             => 'POST',
 			'callback'            => array( $this, 'backup' ),
 			'permission_callback' => '__return_true',
 		) );
 
-		register_rest_route( $this->namespace . '/' . $this->version, 'download', array(
+		register_rest_route( $this->namespace . '/' . $this->version, '/download', array(
 			'methods'             => 'POST',
 			'callback'            => array( $this, 'download' ),
 			'permission_callback' => '__return_true',
 		) );
 
-		register_rest_route( $this->namespace . '/' . $this->version, 'restore', array(
+		register_rest_route( $this->namespace . '/' . $this->version, '/restore', array(
 			'methods'             => 'POST',
 			'callback'            => array( $this, 'restore' ),
 			'permission_callback' => '__return_true',
 		) );
 
-		register_rest_route( $this->namespace . '/' . $this->version, 'config', array(
+		register_rest_route( $this->namespace . '/' . $this->version, '/config', array(
 			'methods'             => 'POST',
 			'callback'            => array( $this, 'config' ),
 			'permission_callback' => '__return_true',
 		) );
 
+		register_rest_route( $this->namespace . '/' . $this->version_2, '/disconnect', array(
+			'methods'             => 'POST',
+			'callback'            => array( $this, 'disconnect' ),
+			'permission_callback' => '__return_true',
+		) );
+
 		register_rest_route( $this->namespace . '/' . $this->version_2, '/auto-login-code', array(
 			'methods'             => 'POST',
-			'callback'            => array( $this, 'instawp_handle_auto_login_code' ),
+			'callback'            => array( $this, 'auto_login_code' ),
 			'permission_callback' => '__return_true',
 		) );
 
 		register_rest_route( $this->namespace . '/' . $this->version_2, '/auto-login', array(
 			'methods'             => 'POST',
-			'callback'            => array( $this, 'instawp_handle_auto_login' ),
+			'callback'            => array( $this, 'auto_login' ),
 			'permission_callback' => '__return_true',
 		) );
 
 		register_rest_route( $this->namespace . '/' . $this->version_2 . '/hosting', '/migration', array(
 			'methods'             => 'POST',
-			'callback'            => array( $this, 'instawp_hosting_migration' ),
+			'callback'            => array( $this, 'hosting_migration' ),
 			'permission_callback' => '__return_true',
 		) );
 
@@ -135,8 +141,29 @@ class InstaWP_Backup_Api {
 		) );
 	}
 
+	/**
+	 * Handle response for disconnect api
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return WP_REST_Response
+	 */
+	function disconnect( WP_REST_Request $request ) {
 
-	function instawp_hosting_migration( WP_REST_Request $request ) {
+		$response = $this->validate_api_request( $request );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
+
+		instawp_reset_running_migration( 'hard', false );
+
+		return $this->send_response( [
+			'success' => true,
+			'message' => __( 'Plugin reset Successful.', 'instawp-connect' )
+		] );
+	}
+
+	function hosting_migration( WP_REST_Request $request ) {
 
 		$response = $this->validate_api_request( $request );
 		if ( is_wp_error( $response ) ) {
@@ -151,7 +178,7 @@ class InstaWP_Backup_Api {
 	/**
 	 * Handle response for login code generate
 	 * */
-	public function instawp_handle_auto_login_code( WP_REST_Request $request ) {
+	public function auto_login_code( WP_REST_Request $request ) {
 
 		$response = $this->validate_api_request( $request );
 		if ( is_wp_error( $response ) ) {
@@ -218,7 +245,7 @@ class InstaWP_Backup_Api {
 	/**
 	 * Auto login url generate
 	 * */
-	public function instawp_handle_auto_login( WP_REST_Request $request ) {
+	public function auto_login( WP_REST_Request $request ) {
 
 		$response = $this->validate_api_request( $request );
 		if ( is_wp_error( $response ) ) {

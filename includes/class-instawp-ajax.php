@@ -19,6 +19,7 @@ class InstaWP_AJAX {
 
 		// Remote Management Settings save.
 		add_action( 'wp_ajax_instawp_save_management_settings', array( $this, 'save_management_settings' ) );
+		add_action( 'wp_ajax_instawp_disconnect_plugin', array( $this, 'disconnect_api' ) );
 	}
 
 	public function save_management_settings() {
@@ -33,6 +34,27 @@ class InstaWP_AJAX {
 		
 		update_option( $option_name, $option_value );
 		wp_send_json_success();
+	}
+
+	public function disconnect_api() {
+		check_ajax_referer( 'instawp-migrate', 'security' );
+
+		$check_api    = isset( $_POST['api'] ) ? filter_var( $_POST['api'], FILTER_VALIDATE_BOOLEAN) : false;
+		$connect_ids  = get_option( 'instawp_connect_id_options', '' );
+		$connect_id   = $connect_ids['data']['id'] ?? 0;
+		$api_response = InstaWP_Curl::do_curl( 'connect/' . $connect_id . '/disconnect' );
+
+		if ( $check_api && ( empty( $api_response['success'] ) || ! $api_response['success'] ) ) {
+			wp_send_json_error( [
+				'message' => $api_response['message'],
+			] );
+		}
+		
+		instawp_reset_running_migration( 'hard', false );
+
+		wp_send_json_success( [
+			'message' => esc_html__( 'Plugin reset successfully.' ) . $api_response['message']
+		] );
 	}
 
 	// Set transient admin notice function

@@ -343,6 +343,7 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 			delete_option( 'instawp_backup_part_size' );
 			delete_option( 'instawp_reset_type' );
 			delete_option( 'instawp_db_method' );
+			delete_option( 'instawp_default_user' );
 			delete_option( 'instawp_api_options' );
 
 			delete_option( 'instawp_rm_heartbeat' );
