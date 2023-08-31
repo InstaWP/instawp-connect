@@ -7,14 +7,6 @@
  * @subpackage instawp/includes
  */
 
-/**
- *
- * @since      1.0
- * @package    instawp
- * @subpackage instawp/includes
- * @author     instawp team
- */
-
 if ( ! defined( 'INSTAWP_PLUGIN_DIR' ) ) {
 	die;
 }
@@ -39,13 +31,14 @@ class InstaWP_Ajax_Fn {
 		$this->tables = $this->InstaWP_db->tables;
 
 		#The wp_ajax_ hook only fires for logged-in users
-		add_action( "wp_ajax_pack_things", array( $this, "get_data_from_db" ) );
-		add_action( "wp_ajax_sync_changes", array( $this, "sync_changes" ) );
-		add_action( "wp_ajax_single_sync", array( $this, "single_sync" ) );
+		add_action( "wp_ajax_pack_things", 				array( $this, "get_data_from_db" ) );
+		add_action( "wp_ajax_sync_changes", 			array( $this, "sync_changes" ) );
+		add_action( "wp_ajax_single_sync", 				array( $this, "single_sync" ) );
 		add_action( "wp_ajax_syncing_enabled_disabled", array( $this, "syncing_enabled_disabled" ) );
-		add_action( 'wp_ajax_get_site_events', array( $this, 'get_site_events' ) );
-		add_action( 'wp_ajax_get_events_summary', array( $this, 'get_events_summary' ) );
-		add_action( 'wp_ajax_instawp_get_users', array( $this, 'instawp_get_users' ) );
+		add_action( 'wp_ajax_get_site_events', 			array( $this, 'get_site_events' ) );
+		add_action( 'wp_ajax_get_events_summary', 		array( $this, 'get_events_summary' ) );
+		add_action( 'wp_ajax_instawp_get_users', 		array( $this, 'instawp_get_users' ) );
+		add_action( 'wp_ajax_instawp_delete_events', 	array( $this, 'instawp_delete_events' ) );
 	}
 
 	public function syncing_enabled_disabled() {
@@ -112,6 +105,23 @@ class InstaWP_Ajax_Fn {
 		echo $this->formatSuccessReponse( "Users loaded", ['results'=> $users, 'opt_col'=> ['text'=>'user_login','id'=>'ID']] );
 		wp_die();
 	}
+
+	public function instawp_delete_events(){
+		if( isset( $_POST['ids'] ) && !empty( $_POST['ids'] )){
+			global $wpdb;
+			$ids = $_POST['ids'];
+			$InstaWP_db     = new InstaWP_DB();
+			$tables         = $InstaWP_db->tables;			
+			$wpdb->query( "DELETE FROM {$tables['ch_table']} WHERE id IN($ids)" );
+			if( isset($_POST['connect_id']) && intval( $_POST['connect_id'] ) > 0 ){
+				$wpdb->query( "DELETE FROM {$tables['se_table']} WHERE event_id IN($ids)" );
+			}
+			echo $this->formatSuccessReponse( "Data deleted", [] );
+			wp_die();
+		}
+	}
+
+	
 
 	public function get_events_summary() {
 		$data                = [];

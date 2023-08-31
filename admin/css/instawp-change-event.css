@@ -417,18 +417,20 @@ select#destination-site, select#staging-site-sync {
     padding: 13px;
     max-width: 100%;
 }
+
+select#event-action-type {
+    border-radius: 6px;
+    border: 1px solid #D1D5DB;
+    color: #6b7280;
+    padding: 5px 21px 4px 10px;
+}
+
 .events-head {
     display: flex;
     justify-content: space-between;
     flex-direction: row;
 }
-.events-head .events-head-left{
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-content: center;
-    align-items: baseline;
-}
+
 .events-head .events-head-right {
     display: flex;
     flex-direction: row-reverse;

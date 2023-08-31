@@ -47,7 +47,16 @@ if( !empty( $parent_connect_data ) ){
 <!--        <div class="bg-white  box-shadow rounded-md p-6 flex items-center justify-center">-->
             <div class="w-full">
                     <div class="events-head">
-                        <div class="events-head-left">
+                        <div class="events-head-left flex items-baseline">
+                            <div class="instawp-event-type-c mr-3 hidden">
+                                <select id="event-action-type" name="event-action-type">
+                                    <option value=""><?php echo esc_html__( 'Select', 'instawp-connect' ); ?></option>
+                                    <option value="delete"><?php echo esc_html__( 'Delete', 'instawp-connect' ); ?></option>
+                                </select>
+                                <!-- <button type="button" class="instawp-green-btn">
+                                    <?php echo esc_html__( 'Submit', 'instawp-connect' ); ?>
+                                </button> -->
+                            </div>
                             <div class="text-grayCust-200 text-lg font-medium"><?php echo esc_html__( 'Listening for Changes', 'instawp-connect' ); ?></div>
                             <!-- <div class="text-grayCust-50 text-sm font-normal"><?php echo esc_html__( 'Lorem ipsum demo text the default payment method will be used for any biling purposes.', 'instawp-connect' ); ?></div> -->
                             <label class="switch-toggle syncing_enabled_disabled">
@@ -64,33 +73,36 @@ if( !empty( $parent_connect_data ) ){
                         </div>
                         <!-- <button type="button" class="instawp-green-btn selected-sync-popup-btn">Selcted sync</button> -->
                         <div class="select-ct">
-                                <select id="staging-site-sync" data-page="instawp">
-                                    <?php  foreach($staging_sites as $site): ?>
-                                        <?php $site_name = isset( $site['site_name'] ) ? $site['site_name'] : ''; ?>
-                                    <option value="<?php echo $site['connect_id'] ?>"><?php echo esc_html($site_name); ?></option>
-                                    <?php endforeach ?>
-                                </select>
-                            </div>
+                            <select id="staging-site-sync" data-page="instawp">
+                                <?php  foreach($staging_sites as $site): ?>
+                                    <?php $site_name = isset( $site['site_name'] ) ? $site['site_name'] : ''; ?>
+                                <option value="<?php echo $site['connect_id'] ?>"><?php echo esc_html($site_name); ?></option>
+                                <?php endforeach ?>
+                            </select>
+                        </div>
                     </div>
                     </div>
                     <div class="mt-8 flow-root">
                         <div class="-my-2 -mx-6 overflow-x-auto lg:-mx-8">
                             <div class="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
                                 <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
-                                    <table class="min-w-full divide-y divide-gray-300">
-                                        <thead class="bg-gray-50">
-                                        <tr>
-                                            <th scope="col" class="px-6 py-4  uppercase text-left text-xs font-medium text-grayCust-900"><?php echo esc_html__( 'event', 'instawp-connect' ); ?></th>
-                                            <th scope="col" class="px-6 py-4 text-left uppercase text-xs font-medium text-grayCust-900"><?php echo esc_html__( 'event details', 'instawp-connect' ); ?></th>
-                                            <th scope="col" class="px-6 py-4 text-left uppercase text-xs font-medium text-grayCust-900"><?php echo esc_html__( 'Date', 'instawp-connect' ); ?></th>
-                                            <th scope="col" class="px-6 py-4 text-center uppercase text-xs font-medium text-grayCust-900"><?php echo esc_html__( 'Status', 'instawp-connect' ); ?></th>
-                                            <!-- <th scope="col" class="px-6 py-4 text-center uppercase text-xs font-medium text-grayCust-900"><?php echo esc_html__( 'Actions', 'instawp-connect' ); ?></th> -->
-                                        </tr>
-                                        </thead>
-                                        <tbody class="divide-y divide-gray-200 bg-white" id="part-sync-results">
-                                                <tr><td colspan="4" class="event-sync-cell loading"></td></tr>
-                                        </tbody>
-                                    </table>
+                                    <form id="event-form" method="POST">
+                                        <table class="min-w-full divide-y divide-gray-300">
+                                            <thead class="bg-gray-50">
+                                            <tr>
+                                                <th scope="col" class="px-6 py-4  uppercase text-left text-xs font-medium text-grayCust-900"><input type="checkbox" name="select_all_event" id="select-all-event"></th>
+                                                <th scope="col" class="px-6 py-4  uppercase text-left text-xs font-medium text-grayCust-900"><?php echo esc_html__( 'event', 'instawp-connect' ); ?></th>
+                                                <th scope="col" class="px-6 py-4 text-left uppercase text-xs font-medium text-grayCust-900"><?php echo esc_html__( 'event details', 'instawp-connect' ); ?></th>
+                                                <th scope="col" class="px-6 py-4 text-left uppercase text-xs font-medium text-grayCust-900"><?php echo esc_html__( 'Date', 'instawp-connect' ); ?></th>
+                                                <th scope="col" class="px-6 py-4 text-center uppercase text-xs font-medium text-grayCust-900"><?php echo esc_html__( 'Status', 'instawp-connect' ); ?></th>
+                                                <!-- <th scope="col" class="px-6 py-4 text-center uppercase text-xs font-medium text-grayCust-900"><?php echo esc_html__( 'Actions', 'instawp-connect' ); ?></th> -->
+                                            </tr>
+                                            </thead>
+                                            <tbody class="divide-y divide-gray-200 bg-white" id="part-sync-results">
+                                                    <tr><td colspan="4" class="event-sync-cell loading"></td></tr>
+                                            </tbody>
+                                        </table>
+                                    </form>
                                 </div>
                             </div>
                             <!-- pagination -->
