@@ -7,7 +7,7 @@
  * @wordpress-plugin
  * Plugin Name:       InstaWP Connect
  * Description:       Create 1-click staging, migration and manage your prod sites.
- * Version:           0.0.9.26
+ * Version:           0.0.9.27
  * Author:            InstaWP Team
  * Author URI:        https://instawp.com/
  * License:           GPL-3.0+
@@ -23,7 +23,7 @@ if ( ! defined( 'WPINC' ) ) {
 
 global $wpdb;
 
-define( 'INSTAWP_PLUGIN_VERSION', '0.0.9.26' );
+define( 'INSTAWP_PLUGIN_VERSION', '0.0.9.27' );
 define( 'INSTAWP_RESTORE_INIT', 'init' );
 define( 'INSTAWP_RESTORE_READY', 'ready' );
 define( 'INSTAWP_RESTORE_COMPLETED', 'completed' );
@@ -235,29 +235,6 @@ run_instawp();
 
 add_action( 'wp_head', function () {
 	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
-
-
-//		echo "<pre>";
-//		print_r( InstaWP_Setting::get_option( 'instawp_migration_settings' ) );
-//		echo "</pre>";
-
-//		$migration_settings = InstaWP_Setting::get_option( 'instawp_migration_settings', [] );
-//		$skip_media_folder  = InstaWP_Setting::get_args_option( 'skip_media_folder', $migration_settings, false );
-
-
-//		instawp()->tools::write_htaccess_rule();
-
-
-//		$response = InstaWP_Tools::write_htaccess_rule();
-//
-//		echo "<pre>";
-//		var_dump( $response );
-//		echo "</pre>";
-
-//		echo "<pre>";
-//		print_r( InstaWP_taskmanager::get_tasks() );
-//		echo "</pre>";
-
 
 		die();
 	}
