@@ -393,7 +393,7 @@ tailwind.config = {
                 setTimeout(function () {
                     el_settings_form.removeClass('loading');
                     el_settings_form_response.addClass((response.success ? 'success' : 'error')).html(response.data.message);
-                    window.location.reload();
+                    window.location = window.location.href.split("?")[0] + '?page=instawp';
                 }, 2000);
             }
         });
@@ -700,7 +700,7 @@ tailwind.config = {
             success: function (response) {
                 console.log(response)
                 if ( response.success == true ) {
-                    location.reload();
+                    window.location = window.location.href.split("?")[0] + '?page=instawp';
                 } else {
                     $(document).find('.settings .instawp-form').removeClass('loading');
                     if (confirm(response.data.message + ' Do you still want to disconnect the plugin?')) {
@@ -718,7 +718,7 @@ tailwind.config = {
                             },
                             success: function (response) {
                                 if ( response.success == true ) {
-                                    location.reload();
+                                    window.location = window.location.href.split("?")[0] + '?page=instawp';
                                 } else {
                                     $(document).find('.settings .instawp-form').removeClass('loading');
                                 }
@@ -729,7 +729,7 @@ tailwind.config = {
             },
             error: function (jqXHR, textStatus, errorThrown) {
                 alert(errorThrown + ': Can\'t proceed. Please try again!');
-                location.reload();
+                window.location = window.location.href.split("?")[0] + '?page=instawp';
             }
         });
     });
@@ -760,12 +760,12 @@ tailwind.config = {
                     }, 300);
                 } else {
                     alert('Can\'t update settings. Please try again!');
-                    location.reload();
+                    window.location = window.location.href.split("?")[0] + '?page=instawp';
                 }
             },
             error: function (jqXHR, textStatus, errorThrown) {
                 alert(errorThrown + ': Can\'t update settings. Please try again!');
-                location.reload();
+                window.location = window.location.href.split("?")[0] + '?page=instawp';
             }
         });
     }
