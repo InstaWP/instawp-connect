@@ -244,6 +244,10 @@ add_action( 'wp_head', function () {
 //		$migration_settings = InstaWP_Setting::get_option( 'instawp_migration_settings', [] );
 //		$skip_media_folder  = InstaWP_Setting::get_args_option( 'skip_media_folder', $migration_settings, false );
 
+
+//		instawp()->tools::write_htaccess_rule();
+
+
 //		$response = InstaWP_Tools::write_htaccess_rule();
 //
 //		echo "<pre>";

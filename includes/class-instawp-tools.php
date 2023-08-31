@@ -191,13 +191,12 @@ class InstaWP_Tools {
 			require_once( ABSPATH . 'wp-admin/includes/file.php' );
 		}
 
-		$parent_connect_data = InstaWP_Setting::get_option( 'instawp_sync_parent_connect_data' );
-		$parent_domain       = InstaWP_Setting::get_args_option( 'domain', $parent_connect_data );
-		$migration_settings  = InstaWP_Setting::get_option( 'instawp_migration_settings', [] );
-		$skip_media_folder   = InstaWP_Setting::get_args_option( 'skip_media_folder', $migration_settings, false );
+		$migration_settings = InstaWP_Setting::get_option( 'instawp_migration_settings', [] );
+		$parent_domain      = InstaWP_Setting::get_args_option( 'parent_domain', $migration_settings );
+		$skip_media_folder  = InstaWP_Setting::get_args_option( 'skip_media_folder', $migration_settings, false );
 
 //		echo "<pre>";
-//		print_r( [ $parent_domain, $skip_media_folder, $migration_settings, ( $skip_media_folder && ! empty( $parent_domain ) ) ] );
+//		print_r( [ $migration_settings, $parent_domain, $skip_media_folder, ( $skip_media_folder && ! empty( $parent_domain ) ) ] );
 //		echo "</pre>";
 
 		if ( $skip_media_folder && ! empty( $parent_domain ) ) {

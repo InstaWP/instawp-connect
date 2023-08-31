@@ -823,7 +823,6 @@ class InstaWP_Backup_Api {
 
 		$migrate_task_obj = new InstaWP_Backup_Task( $migrate_task_id );
 		$migrate_id       = InstaWP_Setting::get_args_option( 'migrate_id', $parameters );
-		$migrate_settings = InstaWP_Setting::get_args_option( 'migrate_settings', $parameters );
 
 		// Create backup zip
 		instawp_backup_files( $migrate_task_obj, array( 'clean_non_zip' => true ) );
