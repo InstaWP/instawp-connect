@@ -629,6 +629,9 @@ class InstaWP_Backup_Api {
 
 			InstaWP_AJAX::instawp_folder_remover_handle();
 
+			// 6.3 Support for it's css cache issue
+			delete_option( '_transient_wp_core_block_css_files' );
+
 			// once the restore completed, enable caching elements
 			$instawp_plugin::enable_cache_elements_before_restore();
 
