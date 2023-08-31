@@ -191,17 +191,23 @@ class InstaWP_Tools {
 			require_once( ABSPATH . 'wp-admin/includes/file.php' );
 		}
 
-		$parent_url  = get_option( 'instawp_sync_parent_url' );
-		$backup_type = get_option( 'instawp_site_backup_type' );
+		$parent_connect_data = InstaWP_Setting::get_option( 'instawp_sync_parent_connect_data' );
+		$parent_domain       = InstaWP_Setting::get_args_option( 'domain', $parent_connect_data );
+		$migration_settings  = InstaWP_Setting::get_option( 'instawp_migration_settings', [] );
+		$skip_media_folder   = InstaWP_Setting::get_args_option( 'skip_media_folder', $migration_settings, false );
 
-		if ( 1 == $backup_type && ! empty( $parent_url ) ) {
+//		echo "<pre>";
+//		print_r( [ $parent_domain, $skip_media_folder, $migration_settings, ( $skip_media_folder && ! empty( $parent_domain ) ) ] );
+//		echo "</pre>";
+
+		if ( $skip_media_folder && ! empty( $parent_domain ) ) {
 
 			$htaccess_file    = get_home_path() . '.htaccess';
 			$htaccess_content = array(
 				'## BEGIN InstaWP Connect',
 				'<IfModule mod_rewrite.c>',
 				'RewriteEngine On',
-				'RedirectMatch 301 ^/wp-content/uploads/(.*)$ ' . $parent_url . '/wp-content/uploads/$1',
+				'RedirectMatch 301 ^/wp-content/uploads/(.*)$ ' . $parent_domain . '/wp-content/uploads/$1',
 				'</IfModule>',
 				'## END InstaWP Connect',
 			);

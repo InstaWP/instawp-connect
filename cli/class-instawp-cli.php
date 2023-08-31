@@ -66,6 +66,8 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 
 			if ( $progress_response['status'] == 'completed' ) {
 
+				update_option( 'instawp_migration_settings', InstaWP_Setting::get_args_option( 'migrate_settings', $parameters, [] ) );
+
 				if ( isset( $parameters['wp'] ) && isset( $parameters['wp']['users'] ) ) {
 					$InstaWP_Backup_Api::create_user( $parameters['wp']['users'] );
 				}

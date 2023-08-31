@@ -256,7 +256,7 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 
 					$migrate_id      = InstaWP_Setting::get_args_option( 'migrate_id', $migrate_response_data );
 					$migrate_task_id = instawp_get_migrate_backup_task_id( array( 'migrate_settings' => $migrate_settings ) );
-					$parameters      = array( 'migrate_id' => $migrate_id );
+					$parameters      = array( 'migrate_id' => $migrate_id, 'migrate_settings', $migrate_settings );
 
 					InstaWP_taskmanager::store_migrate_id_to_migrate_task( $migrate_task_id, $migrate_id );
 					InstaWP_taskmanager::store_nonce_to_migrate_task( $migrate_task_id, $migration_nonce );

@@ -609,6 +609,8 @@ class InstaWP_Backup_Api {
 
 		if ( $progress_response['status'] == 'completed' ) {
 
+			update_option( 'instawp_migration_settings', InstaWP_Setting::get_args_option( 'migrate_settings', $parameters, [] ) );
+
 			if ( isset( $parameters['wp'] ) && isset( $parameters['wp']['users'] ) ) {
 				self::create_user( $parameters['wp']['users'] );
 			}
@@ -694,6 +696,9 @@ class InstaWP_Backup_Api {
 			if ( is_wp_error( $response ) ) {
 				return $this->throw_error( $response );
 			}
+
+			// Clear previous tasks
+			InstaWP_taskmanager::delete_all_task();
 
 			$parameters         = $this->filter_params( $request );
 			$is_background      = $parameters['wp']['options']['instawp_is_background'] ?? true;
@@ -818,6 +823,7 @@ class InstaWP_Backup_Api {
 
 		$migrate_task_obj = new InstaWP_Backup_Task( $migrate_task_id );
 		$migrate_id       = InstaWP_Setting::get_args_option( 'migrate_id', $parameters );
+		$migrate_settings = InstaWP_Setting::get_args_option( 'migrate_settings', $parameters );
 
 		// Create backup zip
 		instawp_backup_files( $migrate_task_obj, array( 'clean_non_zip' => true ) );

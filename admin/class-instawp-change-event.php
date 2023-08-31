@@ -17,8 +17,8 @@ class InstaWP_Change_event {
 	protected static $_instance = null;
 
 	public function __construct() {
-		add_action('init', array( $this, 'instawp_get_source_site_detail' ) );
-		add_action( 'admin_bar_menu', array( $this, 'instawp_add_sync_status_toolbar_link' ), 999);
+		add_action( 'init', array( $this, 'instawp_get_source_site_detail' ) );
+		add_action( 'admin_bar_menu', array( $this, 'instawp_add_sync_status_toolbar_link' ), 999 );
 		//add_action( 'admin_menu', array( $this, 'add_change_event_menu' ) );
 	}
 
@@ -38,71 +38,76 @@ class InstaWP_Change_event {
 		);
 	}
 
-	function listEvents(){
-        $InstaWP_db = new InstaWP_DB();
-        $tables = $InstaWP_db->tables;
-        if(isset($_POST['filter_action']) && !empty($_POST['event_type'])){
-            $rel = $InstaWP_db->get_with_condition($tables['ch_table'],'event_type',$_POST['event_type']);
-        }elseif(isset($_GET['change_event_status']) && $_GET['change_event_status'] != 'all'){
-            $rel = $InstaWP_db->get_with_condition($tables['ch_table'],'status',$_GET['change_event_status']);
-        }else{
-            $rel = $InstaWP_db->getAllEvents();
-        }
-        $data = [];
-        if(!empty($rel) && is_array($rel)){
-            foreach($rel as $v){
-                $btn = ($v->status != 'completed') ? '<button type="button" id="btn-sync-'.$v->id.'" data-id="'.$v->id.'" class="two-way-sync-btn btn-single-sync">Sync changes</button> <span class="sync-loader"></span><span class="sync-success"></span>' : '<p class="sync_completed">Synced</p>'; 
-                $data[] = [
-                    'ID' => $v->id,
-                    'event_name' => $v->event_name,
-                    'event_slug' => $v->event_slug,
-                    'event_type' => $v->event_type,
-                    'source_id' => $v->source_id,
-                    'title' => $v->title,
-                    'status' => $v->status,
-                    'user_id' => $v->user_id,
-                    'synced_message' => $v->synced_message,
-                    'date' => '<span class="synced_status">'.$v->status.'</span><br/><span>'.$v->date.'</span>',
-                    'sync' => $btn,
-                ];
-            }
-        }  
-        return $data;
-    }
+	function listEvents() {
+		$InstaWP_db = new InstaWP_DB();
+		$tables     = $InstaWP_db->tables;
+		if ( isset( $_POST['filter_action'] ) && ! empty( $_POST['event_type'] ) ) {
+			$rel = $InstaWP_db->get_with_condition( $tables['ch_table'], 'event_type', $_POST['event_type'] );
+		} elseif ( isset( $_GET['change_event_status'] ) && $_GET['change_event_status'] != 'all' ) {
+			$rel = $InstaWP_db->get_with_condition( $tables['ch_table'], 'status', $_GET['change_event_status'] );
+		} else {
+			$rel = $InstaWP_db->getAllEvents();
+		}
+		$data = [];
+		if ( ! empty( $rel ) && is_array( $rel ) ) {
+			foreach ( $rel as $v ) {
+				$btn    = ( $v->status != 'completed' ) ? '<button type="button" id="btn-sync-' . $v->id . '" data-id="' . $v->id . '" class="two-way-sync-btn btn-single-sync">Sync changes</button> <span class="sync-loader"></span><span class="sync-success"></span>' : '<p class="sync_completed">Synced</p>';
+				$data[] = [
+					'ID'             => $v->id,
+					'event_name'     => $v->event_name,
+					'event_slug'     => $v->event_slug,
+					'event_type'     => $v->event_type,
+					'source_id'      => $v->source_id,
+					'title'          => $v->title,
+					'status'         => $v->status,
+					'user_id'        => $v->user_id,
+					'synced_message' => $v->synced_message,
+					'date'           => '<span class="synced_status">' . $v->status . '</span><br/><span>' . $v->date . '</span>',
+					'sync'           => $btn,
+				];
+			}
+		}
 
-	public function instawp_get_source_site_detail(){
+		return $data;
+	}
 
-		$connect_id = InstaWP_Setting::get_option('instawp_sync_connect_id');
-		$parent_connect_data = InstaWP_Setting::get_option('instawp_sync_parent_connect_data');
+	public function instawp_get_source_site_detail() {
 
-		if( intval($connect_id) > 0 && empty( $parent_connect_data ) ){
-			$api_response = InstaWP_Curl::do_curl( 'connects/' . $connect_id, [], [], false);
+		$connect_id          = InstaWP_Setting::get_option( 'instawp_sync_connect_id' );
+		$parent_connect_data = InstaWP_Setting::get_option( 'instawp_sync_parent_connect_data' );
 
-			if( $api_response['success'] == true) {
-				$api_response_data   = InstaWP_Setting::get_args_option( 'data', $api_response, [] );
+		if ( intval( $connect_id ) > 0 && empty( $parent_connect_data ) ) {
+			$api_response = InstaWP_Curl::do_curl( 'connects/' . $connect_id, [], [], false );
+
+			if ( $api_response['success'] == true ) {
+				$api_response_data               = InstaWP_Setting::get_args_option( 'data', $api_response, [] );
 				$api_response_data['connect_id'] = $connect_id;
-				add_option('instawp_sync_parent_connect_data',$api_response_data);
+				add_option( 'instawp_sync_parent_connect_data', $api_response_data );
 			}
 		}
 	}
 
 	/**
 	 * Register toolvar for sync status
+	 *
 	 * @param $wp_admin_bar
+	 *
 	 * @return null
 	 */
-	public function instawp_add_sync_status_toolbar_link($wp_admin_bar){
-		if(get_option('syncing_enabled_disabled') != 1) return;
+	public function instawp_add_sync_status_toolbar_link( $wp_admin_bar ) {
+		if ( get_option( 'syncing_enabled_disabled' ) != 1 ) {
+			return;
+		}
 		$args = array(
-			'id' => 'instawp-sync-toolbar',
-			'title' => __('Recording', 'instawp-connect'),
-			'href' => admin_url( 'tools.php?page=instawp' ), 
-			'meta' => array(
-				'class' => 'instawp-sync-status-toolbar', 
-				'title' => __('Recording', 'instawp-connect')
-				)
+			'id'    => 'instawp-sync-toolbar',
+			'title' => __( 'Recording', 'instawp-connect' ),
+			'href'  => admin_url( 'tools.php?page=instawp' ),
+			'meta'  => array(
+				'class' => 'instawp-sync-status-toolbar',
+				'title' => __( 'Recording', 'instawp-connect' )
+			)
 		);
-		$wp_admin_bar->add_node($args);
+		$wp_admin_bar->add_node( $args );
 	}
 
 	/**
