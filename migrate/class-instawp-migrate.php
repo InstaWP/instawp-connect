@@ -34,12 +34,6 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 			add_action( 'action_scheduler_failed_action', array( $this, 'scheduler_completed_action' ), 10, 1 );
 
 			add_action( 'wp_ajax_instawp_go_live', array( $this, 'go_live_redirect_url' ) );
-			add_action( 'wp_ajax_instawp_finish_migration', array( $this, 'instawp_finish_migration' ) );
-		}
-
-
-		function instawp_finish_migration() {
-			delete_option( 'instawp_migration_running' );
 		}
 
 
@@ -271,6 +265,8 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 
 					// Doing in background processing
 					as_enqueue_async_action( 'instawp_backup_bg', [ $migrate_task_id, $parameters ], 'instawp-connect', true );
+
+					InstaWP_Migrate_Log::write( $migrate_id, "migration started - migrate_id:{$migrate_id} response: " . json_encode( $migrate_response ) );
 				}
 
 				$response['migrate_api_response']   = $migrate_response;
