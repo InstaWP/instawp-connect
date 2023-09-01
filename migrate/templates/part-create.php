@@ -84,9 +84,8 @@ $customize_options     = array(
                 </ul>
             </div>
 
-            <div class="bg-white w-full rounded-md">
-
-                <div class="p-6">
+            <div class="w-full">
+                <div class="p-6 bg-white rounded-md">
                     <div class="screen screen-1 <?= $current_create_screen == 1 ? 'active' : ''; ?>">
                         <div class="flex justify-between items-center">
                             <div class="text-grayCust-200 text-lg font-bold">1. Select Staging</div>
@@ -116,7 +115,7 @@ $customize_options     = array(
                                     <input id="full_staging" name="instawp_migrate[type]" value="full" type="radio" class="instawp-option-selector h-4 w-4 border-grayCust-350 text-primary-900 focus:border-0 foucs:ring-1 focus:ring-primary-900">
                                 </div>
                             </div>
-                            <div for="custom_staging" class="instawp-staging-type cursor-pointer flex justify-between items-center border mb-4 border-primary-600 flex p-4 rounded-xl">
+                            <div for="custom_staging" class="instawp-staging-type cursor-pointer flex justify-between items-center border border-primary-600 flex p-4 rounded-xl">
                                 <div class="flex items-center">
                                     <div class="w-10 h-10 bg-white rounded-lg flex justify-center items-center border custom-border"><img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/icon-custom.svg' ) ); ?>" alt=""></div>
                                     <div class="ml-4">
@@ -247,7 +246,7 @@ $customize_options     = array(
                                     </div>
                                     <div class="flex items-center">
                                         <div class="w-24 text-grayCust-900 text-base font-normal">Migration</div>
-                                        <div class="instawp-progress-staging text-border rounded-xl w-full text-bg py-4 flex items-center mb-4 px-4">
+                                        <div class="instawp-progress-staging text-border rounded-xl w-full text-bg py-4 flex items-center px-4">
                                             <div class="w-full bg-gray-200 rounded-md mr-6">
                                                 <div class="progress-bar h-2 bg-primary-900 rounded-md"></div>
                                             </div>
@@ -255,8 +254,8 @@ $customize_options     = array(
                                         </div>
                                     </div>
                                 </div>
-                                <div class="bg-grayCust-250 px-6 py-3 rounded-bl-lg rounded-br-lg flex justify-between content-center items-center">
-                                    <a class="instawp-track-migration text-primary-900 hover:text-primary-900 text-base text-left flex items-center" href="" target="_blank">
+                                <div class="instawp-track-migration-area bg-grayCust-250 px-5 py-4 rounded-bl-lg rounded-br-lg flex justify-end content-center items-center">
+                                    <a class="instawp-track-migration hidden text-primary-900 hover:text-primary-900 text-sm text-left flex items-center" href="" target="_blank">
                                         <span class="mr-2">Track Migration</span>
                                         <img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/share-icon.svg' ) ); ?>" class="inline ml-1" alt="">
                                     </a>
@@ -294,8 +293,8 @@ $customize_options     = array(
                     </div>
                 </div>
 
-                <div class="screen-buttons-last hidden bg-grayCust-250 px-6 py-3 rounded-bl-lg rounded-br-lg flex justify-between">
-                    <div class="text-primary-900 text-sm font-medium cursor-pointer instawp-create-another-site"><span class="text-xl mr-1">+</span>Create another Staging Site</div>
+                <div class="screen-buttons-last hidden bg-grayCust-250 px-5 py-4 rounded-bl-lg rounded-br-lg flex justify-between">
+                    <div class="text-primary-900 text-sm font-medium cursor-pointer flex items-center instawp-create-another-site"><span class="text-xl mr-1 self-center">+</span>Create another Staging Site</div>
                     <div class="text-grayCust-900 text-sm font-medium cursor-pointer flex items-center instawp-show-staging-sites">
                         <span>Show my staging sites</span>
                         <div class="flex items-center ml-2">
@@ -305,7 +304,7 @@ $customize_options     = array(
                     </div>
                 </div>
 
-                <div class="screen-buttons bg-grayCust-250 px-6 py-3 rounded-bl-lg rounded-br-lg flex justify-end">
+                <div class="screen-buttons bg-grayCust-250 px-5 py-4 rounded-bl-lg rounded-br-lg flex justify-end">
                     <p class="doing-request"><span class="loader"></span>Checking usages...</p>
                     <input name="instawp_migrate[screen]" type="hidden" id="instawp-screen" value="<?= $current_create_screen; ?>">
                     <input name="instawp_migrate[nonce]" type="hidden" id="instawp-nonce" value="<?= $migration_nonce; ?>">

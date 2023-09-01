@@ -14,21 +14,21 @@ if ( ! function_exists( 'instawp_create_db_tables' ) ) {
 			require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 		}
 
-		$sql_create_staging_site_table = "CREATE TABLE " . INSTAWP_DB_TABLE_STAGING_SITES . " (
-			id int(50) NOT NULL AUTO_INCREMENT,
-			task_id varchar(255) NOT NULL,
-			connect_id varchar(255) NOT NULL,
-			site_name varchar(255) NOT NULL,
-			site_url varchar(255) NOT NULL,
-			admin_email varchar(255) NOT NULL,
-			username varchar(255) NOT NULL,
-			password varchar(255) NOT NULL,
-			auto_login_hash varchar(255) NOT NULL,
-			datetime  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-			PRIMARY KEY (id)
-    	);";
+		// $sql_create_staging_site_table = "CREATE TABLE " . INSTAWP_DB_TABLE_STAGING_SITES . " (
+		// 	id int(50) NOT NULL AUTO_INCREMENT,
+		// 	task_id varchar(255) NOT NULL,
+		// 	connect_id varchar(255) NOT NULL,
+		// 	site_name varchar(255) NOT NULL,
+		// 	site_url varchar(255) NOT NULL,
+		// 	admin_email varchar(255) NOT NULL,
+		// 	username varchar(255) NOT NULL,
+		// 	password varchar(255) NOT NULL,
+		// 	auto_login_hash varchar(255) NOT NULL,
+		// 	datetime  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		// 	PRIMARY KEY (id)
+    	// );";
 
-		maybe_create_table( INSTAWP_DB_TABLE_STAGING_SITES, $sql_create_staging_site_table );
+		// maybe_create_table( INSTAWP_DB_TABLE_STAGING_SITES, $sql_create_staging_site_table );
 
 
 		$sql_create_events_table = "CREATE TABLE " . INSTAWP_DB_TABLE_EVENTS . " (
