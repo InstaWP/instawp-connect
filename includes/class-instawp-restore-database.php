@@ -969,7 +969,7 @@ class InstaWP_RestoreDB {
 				}
 				$columns[] = $column;
 			}
-			$page = 5000;
+			$page = 1000;
 
 			$update_query = '';
 
