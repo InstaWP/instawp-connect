@@ -700,6 +700,15 @@ class InstaWP_Backup_Api {
 				return $this->throw_error( $response );
 			}
 
+			if ( ! function_exists( 'deactivate_plugins' ) ) {
+				require_once ABSPATH . 'wp-admin/includes/plugin.php';
+			}
+
+			if ( is_plugin_active( $plugin = 'redis-cache/redis-cache.php' ) ) {
+				deactivate_plugins( $plugin );
+			}
+
+
 			// Clear previous tasks
 			InstaWP_taskmanager::delete_all_task();
 

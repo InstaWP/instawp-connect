@@ -236,8 +236,17 @@ run_instawp();
 add_action( 'wp_head', function () {
 	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
 
+		if ( ! function_exists( 'deactivate_plugins' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		}
+
+		if ( is_plugin_active( $plugin = 'redis-cache/redis-cache.php' ) ) {
+			deactivate_plugins( $plugin );
+		}
+
 		die();
 	}
 }, 0 );
+
 
 
