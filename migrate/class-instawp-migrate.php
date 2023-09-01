@@ -282,6 +282,10 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 				$response = instawp_get_response_progresses( $migrate_task_id, $migrate_id, $response );
 			}
 
+			if ( $response['status'] === 'completed' ) {
+				delete_transient( 'instawp_staging_sites' );
+			}
+
 			wp_send_json_success( $response );
 		}
 

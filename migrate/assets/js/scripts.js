@@ -42,6 +42,12 @@ tailwind.config = {
             el_screen_buttons_last = create_container.find('.screen-buttons-last'),
             el_instawp_nonce = create_container.find('#instawp-nonce');
 
+        let track_url = localStorage.getItem('instawp-track-url');
+        if (track_url) {
+            create_container.find('.instawp-track-migration').attr('href', track_url).removeClass('hidden');
+            create_container.find('.instawp-track-migration-area').removeClass('justify-end').addClass('justify-between');
+        }
+
         if (create_container.hasClasses('doing-ajax completed')) {
             return;
         }
@@ -75,7 +81,7 @@ tailwind.config = {
                     el_bar_staging.find('.progress-text').text(response.data.migrate.progress + '%');
 
                     if (typeof response.data.track_migrate_progress !== 'undefined' && response.data.track_migrate_progress.length > 0) {
-                        create_container.find('.instawp-track-migration').attr('href', response.data.track_migrate_progress);
+                        localStorage.setItem('instawp-track-url', response.data.track_migrate_progress);
                     }
 
                     if (response.data.status === 'aborted' || response.data.status === 'nonce_expired') {
@@ -105,6 +111,7 @@ tailwind.config = {
                         el_instawp_nonce.val('');
                         create_container.removeClass('loading').addClass('completed');
                         clearInterval(create_container.attr('interval-id'));
+                        localStorage.removeItem('instawp-track-url');
                     }
                 }
             }
@@ -364,8 +371,9 @@ tailwind.config = {
         let create_container = $('.instawp-wrap .nav-item-content.create');
 
         if (confirm('Do you really want to abort the migration?')) {
+            localStorage.removeItem('instawp-track-url');
             clearInterval(create_container.attr('interval-id'));
-            window.location.href = window.location.href + '&clear=all';
+            window.location = window.location.href.split("?")[0] + '?page=instawp&clear=all';
         }
     });
 
@@ -680,6 +688,30 @@ tailwind.config = {
     });
 
 
+    // Staging Sites List start //
+    $(document).on('click', '.instawp-wrap .instawp-clear-staging-sites', function () {
+        $.ajax({
+            type: 'POST', 
+            url: plugin_object.ajax_url, 
+            context: this, 
+            data: {
+                'action': 'instawp_clear_staging_sites',
+                'security': instawp_migrate.security
+            },
+            beforeSend: function () {
+                $(document).find('.settings .instawp-form').addClass('loading');
+            },
+            success: function (response) {
+                window.location = window.location.href.split("?")[0] + '?page=instawp';
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                alert(errorThrown + ': Can\'t proceed. Please try again!');
+                window.location = window.location.href.split("?")[0] + '?page=instawp';
+            }
+        });
+    });
+    // Staging Sites List end //
+
     // Disconnect start //
     $(document).on('click', '.instawp-wrap .instawp-disconnect-plugin', function () {
         if (!confirm('Do you really want to disconnect the plugin?')) {
@@ -698,7 +730,6 @@ tailwind.config = {
                 $(document).find('.settings .instawp-form').addClass('loading');
             },
             success: function (response) {
-                console.log(response)
                 if ( response.success == true ) {
                     window.location = window.location.href.split("?")[0] + '?page=instawp';
                 } else {
