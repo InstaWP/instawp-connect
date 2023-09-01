@@ -371,8 +371,9 @@ tailwind.config = {
         let create_container = $('.instawp-wrap .nav-item-content.create');
 
         if (confirm('Do you really want to abort the migration?')) {
+            localStorage.removeItem('instawp-track-url');
             clearInterval(create_container.attr('interval-id'));
-            window.location.href = window.location.href + '&clear=all';
+            window.location = window.location.href.split("?")[0] + '?page=instawp&clear=all';
         }
     });
 
