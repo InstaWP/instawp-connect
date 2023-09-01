@@ -60,7 +60,7 @@ InstaWP is an online WordPress development environment to get you started with a
 
 = 0.0.9.28 =
 - 02/09/2023 - FIX - Fixed database restore timeout issue.
-- 02/09/2023 - FIX - Fixed Radis Object Cache plugin confllict.
+- 02/09/2023 - FIX - Fixed Radis Object Cache plugin conflict.
 
 = 0.0.9.27 =
 - 31/08/2023 - NEW - Added disconnect button in plugin screen.
