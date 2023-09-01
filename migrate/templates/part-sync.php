@@ -90,12 +90,12 @@ if( !empty( $parent_connect_data ) ){
                                         <table class="min-w-full divide-y divide-gray-300">
                                             <thead class="bg-gray-50">
                                             <tr>
-                                                <th scope="col" class="px-6 py-4  uppercase text-left text-xs font-medium text-grayCust-900"><input type="checkbox" name="select_all_event" id="select-all-event"></th>
-                                                <th scope="col" class="px-6 py-4  uppercase text-left text-xs font-medium text-grayCust-900"><?php echo esc_html__( 'event', 'instawp-connect' ); ?></th>
-                                                <th scope="col" class="px-6 py-4 text-left uppercase text-xs font-medium text-grayCust-900"><?php echo esc_html__( 'event details', 'instawp-connect' ); ?></th>
-                                                <th scope="col" class="px-6 py-4 text-left uppercase text-xs font-medium text-grayCust-900"><?php echo esc_html__( 'Date', 'instawp-connect' ); ?></th>
-                                                <th scope="col" class="px-6 py-4 text-center uppercase text-xs font-medium text-grayCust-900"><?php echo esc_html__( 'Status', 'instawp-connect' ); ?></th>
-                                                <!-- <th scope="col" class="px-6 py-4 text-center uppercase text-xs font-medium text-grayCust-900"><?php echo esc_html__( 'Actions', 'instawp-connect' ); ?></th> -->
+                                                <th scope="col" class="px-6 py-4  uppercase text-left text-sm font-medium text-grayCust-900"><input type="checkbox" name="select_all_event" id="select-all-event"></th>
+                                                <th scope="col" class="px-6 py-4  uppercase text-left text-sm font-medium text-grayCust-900"><?php echo esc_html__( 'event', 'instawp-connect' ); ?></th>
+                                                <th scope="col" class="px-6 py-4 text-left uppercase text-sm font-medium text-grayCust-900"><?php echo esc_html__( 'event details', 'instawp-connect' ); ?></th>
+                                                <th scope="col" class="px-6 py-4 text-left uppercase text-sm font-medium text-grayCust-900"><?php echo esc_html__( 'Date', 'instawp-connect' ); ?></th>
+                                                <th scope="col" class="px-6 py-4 text-center uppercase text-sm font-medium text-grayCust-900"><?php echo esc_html__( 'Status', 'instawp-connect' ); ?></th>
+                                                <!-- <th scope="col" class="px-6 py-4 text-center uppercase text-sm font-medium text-grayCust-900"><?php echo esc_html__( 'Actions', 'instawp-connect' ); ?></th> -->
                                             </tr>
                                             </thead>
                                             <tbody class="divide-y divide-gray-200 bg-white" id="part-sync-results">

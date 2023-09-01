@@ -17,9 +17,10 @@ class InstaWP_AJAX {
 		add_action( 'init', array( $this, 'deleter_folder_handle' ) );
 		add_action( 'admin_notices', array( $this, 'instawp_connect_reset_admin_notices' ) );
 
-		// Remote Management Settings save.
+		// New AJAX Actions.
 		add_action( 'wp_ajax_instawp_save_management_settings', array( $this, 'save_management_settings' ) );
 		add_action( 'wp_ajax_instawp_disconnect_plugin', array( $this, 'disconnect_api' ) );
+		add_action( 'wp_ajax_instawp_clear_staging_sites', array( $this, 'clear_staging_sites' ) );
 	}
 
 	public function save_management_settings() {
@@ -55,6 +56,14 @@ class InstaWP_AJAX {
 		wp_send_json_success( [
 			'message' => esc_html__( 'Plugin reset successfully.' ) . $api_response['message']
 		] );
+	}
+
+	public function clear_staging_sites() {
+		check_ajax_referer( 'instawp-migrate', 'security' );
+
+		delete_transient( 'instawp_staging_sites' );
+
+		wp_send_json_success();
 	}
 
 	// Set transient admin notice function
@@ -271,16 +280,16 @@ class InstaWP_AJAX {
 			$wp_password     = $curl_rd_restore_status['data']['wp'][0]['wp_password'];
 			$auto_login_hash = $curl_rd_restore_status['data']['wp'][0]['auto_login_hash'];
 
-			instawp_staging_insert_site( array(
-				'task_id'         => $task_id,
-				'connect_id'      => $connect_id,
-				'site_name'       => $site_name,
-				'site_url'        => str_replace( '/wp-admin', '', $wp_admin_url ),
-				'admin_email'     => $wp_admin_email,
-				'username'        => $wp_username,
-				'password'        => $wp_password,
-				'auto_login_hash' => $auto_login_hash,
-			) );
+			// instawp_staging_insert_site( array(
+			// 	'task_id'         => $task_id,
+			// 	'connect_id'      => $connect_id,
+			// 	'site_name'       => $site_name,
+			// 	'site_url'        => str_replace( '/wp-admin', '', $wp_admin_url ),
+			// 	'admin_email'     => $wp_admin_email,
+			// 	'username'        => $wp_username,
+			// 	'password'        => $wp_password,
+			// 	'auto_login_hash' => $auto_login_hash,
+			// ) );
 
 			$response = array(
 				"progress"        => 100,

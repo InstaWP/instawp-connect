@@ -3,9 +3,18 @@
  * Migrate template - Create Site
  */
 
-global $wpdb;
+$staging_sites = get_transient( 'instawp_staging_sites' ) ?? [];
+if ( ! $staging_sites || ! is_array( $staging_sites ) ) {
+    $connect_ids  = get_option( 'instawp_connect_id_options', '' );
+    $connect_id   = $connect_ids['data']['id'] ?? 0;
+    $api_response = InstaWP_Curl::do_curl( 'connects/' . $connect_id . '/staging-sites', [], [], false );
 
-$staging_sites       = $wpdb->get_results( "SELECT * FROM " . INSTAWP_DB_TABLE_STAGING_SITES, ARRAY_A );
+    if ( $api_response['success'] && ! empty( $api_response['data'] ) ) {
+        set_transient( 'instawp_staging_sites', $api_response['data'], ( 3 * HOUR_IN_SECONDS ) );
+        $staging_sites = $api_response['data'];
+    }
+}
+
 $staging_sites_count = count( $staging_sites );
 $pagination          = 10;
 ?>
@@ -14,7 +23,7 @@ $pagination          = 10;
     <?php if ( empty( $staging_sites ) || $staging_sites_count < 1 ) { ?>
         <div class="mt-2">
             <div class="w-full">
-                <div class="text-center ">
+                <div class="text-center">
                     <div class="mb-4">
                         <svg width="38" class="mx-auto" height="30" viewBox="0 0 38 30" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M13 17H25H13ZM19 11V23V11ZM1 25V5C1 3.93913 1.42143 2.92172 2.17157 2.17157C2.92172 1.42143 3.93913 1 5 1H17L21 5H33C34.0609 5 35.0783 5.42143 35.8284 6.17157C36.5786 6.92172 37 7.93913 37 9V25C37 26.0609 36.5786 27.0783 35.8284 27.8284C35.0783 28.5786 34.0609 29 33 29H5C3.93913 29 2.92172 28.5786 2.17157 27.8284C1.42143 27.0783 1 26.0609 1 25Z" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -26,8 +35,11 @@ $pagination          = 10;
         </div>
     <?php } else { ?>
         <div>
-            <div class="mb-6">
+            <div class="mb-6 flex justify-between items-center">
                 <div class="text-grayCust-200 text-lg font-medium"><?php echo esc_html__( 'Staging Sites', 'instawp-connect' ); ?></div>
+                <button type="button" class="instawp-green-btn instawp-clear-staging-sites">
+                    <svg width="14" height="16" viewBox="0 0 14 16" fill="none" xmlns="http://www.w3.org/2000/svg"> <path fill-rule="evenodd" clip-rule="evenodd" style="fill: #fff ;" d="M1.59995 0.800049C2.09701 0.800049 2.49995 1.20299 2.49995 1.70005V3.59118C3.64303 2.42445 5.23642 1.70005 6.99995 1.70005C9.74442 1.70005 12.0768 3.45444 12.9412 5.90013C13.1069 6.36877 12.8612 6.88296 12.3926 7.0486C11.924 7.21425 11.4098 6.96862 11.2441 6.49997C10.6259 4.75097 8.95787 3.50005 6.99995 3.50005C5.52851 3.50005 4.22078 4.20657 3.39937 5.30005H6.09995C6.59701 5.30005 6.99995 5.70299 6.99995 6.20005C6.99995 6.6971 6.59701 7.10005 6.09995 7.10005H1.59995C1.10289 7.10005 0.699951 6.6971 0.699951 6.20005V1.70005C0.699951 1.20299 1.10289 0.800049 1.59995 0.800049ZM1.6073 8.95149C2.07594 8.78585 2.59014 9.03148 2.75578 9.50013C3.37396 11.2491 5.04203 12.5 6.99995 12.5C8.47139 12.5 9.77912 11.7935 10.6005 10.7L7.89995 10.7C7.40289 10.7 6.99995 10.2971 6.99995 9.80005C6.99995 9.30299 7.40289 8.90005 7.89995 8.90005H12.3999C12.6386 8.90005 12.8676 8.99487 13.0363 9.16365C13.2051 9.33243 13.3 9.56135 13.3 9.80005V14.3C13.3 14.7971 12.897 15.2 12.4 15.2C11.9029 15.2 11.5 14.7971 11.5 14.3V12.4089C10.3569 13.5757 8.76348 14.3 6.99995 14.3C4.25549 14.3 1.92309 12.5457 1.05867 10.1C0.893024 9.63132 1.13866 9.11714 1.6073 8.95149Z"/> </svg>
+                </button>
             </div>
             <div class="mt-6 flow-root">
                 <div class="-my-2 -mx-6 overflow-x-auto lg:-mx-8">
@@ -36,28 +48,29 @@ $pagination          = 10;
                             <table class="min-w-full divide-y divide-gray-300">
                                 <thead class="bg-gray-50">
                                 <tr>
-                                    <th scope="col" class="px-4 py-4  uppercase text-left text-xs font-medium text-grayCust-900"><?php echo esc_html__( 'Site Name', 'instawp-connect' ); ?></th>
-                                    <th scope="col" class="px-4 py-4 text-left uppercase text-xs font-medium text-grayCust-900"><?php echo esc_html__( 'Username', 'instawp-connect' ); ?></th>
-                                    <th scope="col" class="px-4 py-4 text-left uppercase text-xs font-medium text-grayCust-900"><?php echo esc_html__( 'Password', 'instawp-connect' ); ?></th>
-                                    <th scope="col" class="px-4 py-4 text-left uppercase text-xs font-medium text-grayCust-900"><?php echo esc_html__( 'Created date', 'instawp-connect' ); ?></th>
-                                    <th scope="col" class="px-4 py-4 text-center uppercase text-xs font-medium text-grayCust-900"><?php echo esc_html__( 'Actions', 'instawp-connect' ); ?></th>
+                                    <th scope="col" class="px-4 py-4  uppercase text-left text-sm font-medium text-grayCust-900"><?php echo esc_html__( 'Site Name', 'instawp-connect' ); ?></th>
+                                    <th scope="col" class="px-4 py-4 text-left uppercase text-sm font-medium text-grayCust-900"><?php echo esc_html__( 'Username', 'instawp-connect' ); ?></th>
+                                    <th scope="col" class="px-4 py-4 text-left uppercase text-sm font-medium text-grayCust-900"><?php echo esc_html__( 'Password', 'instawp-connect' ); ?></th>
+                                    <th scope="col" class="px-4 py-4 text-left uppercase text-sm font-medium text-grayCust-900"><?php echo esc_html__( 'Created date', 'instawp-connect' ); ?></th>
+                                    <th scope="col" class="px-4 py-4 text-center uppercase text-sm font-medium text-grayCust-900"><?php echo esc_html__( 'Actions', 'instawp-connect' ); ?></th>
                                 </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-200 bg-white">
-                                    <?php foreach ( array_reverse( $staging_sites ) as $index => $site ) :
+                                    <?php foreach ( $staging_sites as $index => $site ) :
 
-                                        $site_name       = isset( $site['site_name'] ) ? $site['site_name'] : '';
-                                        $site_url        = isset( $site['site_url'] ) ? $site['site_url'] : '';
+                                        $site_name       = isset( $site['domain'] ) ? $site['domain'] : '';
+                                        $site_url        = isset( $site['url'] ) ? $site['url'] : '';
                                         $username        = isset( $site['username'] ) ? $site['username'] : '';
                                         $password        = isset( $site['password'] ) ? $site['password'] : '';
-                                        $datetime        = isset( $site['datetime'] ) ? $site['datetime'] : '';
+                                        $auto_login_url  = isset( $site['magic_domain'] ) ? $site['magic_domain'] : '';
+                                        $datetime        = isset( $site['timestamp'] ) ? $site['timestamp'] : '';
                                         $datetime        = date( 'M j, Y', strtotime( $datetime ) );
-                                        $auto_login_hash = isset( $site['auto_login_hash'] ) ? $site['auto_login_hash'] : '';
-                                        $auto_login_url  = InstaWP_Setting::get_api_domain() . '/wordpress-auto-login?site=' . $auto_login_hash;
+                                        //$auto_login_hash = isset( $site['auto_login_hash'] ) ? $site['auto_login_hash'] : '';
+                                        //$auto_login_url  = InstaWP_Setting::get_api_domain() . '/wordpress-auto-login?site=' . $auto_login_hash;
 
                                         ?>
                                         <tr class="staging-site-list">
-                                            <td class="whitespace-nowrap py-8 px-4 text-xs font-medium flex items-center text-grayCust-300">
+                                            <td class="whitespace-nowrap py-8 px-4 text-sm font-medium flex items-center text-grayCust-300">
                                                 <?php
                                                 printf( '<img src="%s" class="mr-2" alt=""><a target="_blank" href="%s">%s</a>',
                                                     instawp()::get_asset_url( 'migrate/assets/images/glob.svg' ),
@@ -65,17 +78,17 @@ $pagination          = 10;
                                                 );
                                                 ?>
                                             </td>
-                                            <td class="whitespace-nowrap px-4 py-6 font-medium text-xs text-grayCust-300">
+                                            <td class="whitespace-nowrap px-4 py-6 font-medium text-sm text-grayCust-300">
                                                 <span><?php echo esc_html( $username ); ?></span>
                                             </td>
-                                            <td class="whitespace-nowrap px-4 py-8 font-medium text-xs text-grayCust-300 flex items-center">
+                                            <td class="whitespace-nowrap px-4 py-8 font-medium text-sm text-grayCust-300 flex items-center">
                                                 <span><?php echo esc_html( $password ); ?></span>
                                                 <!-- <img src="img/off-eye.svg" class="ml-2 cursor-pointer" alt="">-->
                                             </td>
-                                            <td class="whitespace-nowrap text-left px-4 py-6 font-medium text-xs text-grayCust-300">
+                                            <td class="whitespace-nowrap text-left px-4 py-6 font-medium text-sm text-grayCust-300">
                                                 <span><?php echo esc_html( $datetime ); ?></span>
                                             </td>
-                                            <td class="whitespace-nowrap px-4 py-6 font-medium text-xs text-grayCust-300">
+                                            <td class="whitespace-nowrap px-4 py-6 font-medium text-sm text-grayCust-300">
                                                 <div class="flex items-center justify-center">
                                                     <a href="<?php echo esc_url( $auto_login_url ); ?>" target="_blank" type="button" class="relative flex items-center px-2.5 w-11 h-9 lg:px-3 rounded-md border border-grayCust-350 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:z-10 focus:outline-none focus:ring-0 focus:border-grayCust-350">
                                                         <svg width="15" height="14" class="w-3 xl2:w-4" viewBox="0 0 15 14" fill="none" xmlns="http://www.w3.org/2000/svg">
