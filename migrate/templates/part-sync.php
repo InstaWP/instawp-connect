@@ -163,7 +163,7 @@ if( !empty( $parent_connect_data ) ){
                                 <div class="instawpcatrgtcol sync_process">
                                     <ul>
                                         <li class="step-1 process_pending"><?php echo esc_html__( 'Packing things', 'instawp-connect' ); ?></li>
-                                        <li class="step-2 process_pending"><?php echo esc_html__( 'Pusing', 'instawp-connect' ); ?></li>
+                                        <li class="step-2 process_pending"><?php echo esc_html__( 'Pushing', 'instawp-connect' ); ?></li>
                                         <li class="step-3 process_pending"><?php echo esc_html__( 'Merging to destination', 'instawp-connect' ); ?></li>
                                     </ul>
                                 </div>
