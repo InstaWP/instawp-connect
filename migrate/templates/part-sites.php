@@ -72,7 +72,7 @@ $pagination          = 10;
                                         <tr class="staging-site-list">
                                             <td class="whitespace-nowrap py-8 px-4 text-sm font-medium flex items-center text-grayCust-300">
                                                 <?php
-                                                printf( '<img src="%s" class="mr-2" alt=""><a target="_blank" href="%s">%s</a>',
+                                                printf( '<img src="%s" class="mr-2" alt=""><a target="_blank" class="focus:outline-none focus:ring-0 hover:text-primary-900 border-b border-transparent border-1 border-dashed hover:border-primary-700" href="%s">%s</a>',
                                                     instawp()::get_asset_url( 'migrate/assets/images/glob.svg' ),
                                                     esc_url_raw( $site_url ), $site_name
                                                 );
