@@ -9,12 +9,12 @@ $syncing_status = InstaWP_Setting::get_option('syncing_enabled_disabled');
 $syncing_status_val = ($syncing_status == 1) ? 'checked' : '';
 
 $parent_connect_data = InstaWP_Setting::get_option('instawp_sync_parent_connect_data');
-
 if( !empty( $parent_connect_data ) ){
-    $staging_sites = !empty($staging_sites) ? $staging_sites : [];
+    $staging_sites      = instawp_get_staging_sites_list();
+    $staging_sites      = !empty($staging_sites) ? $staging_sites : [];
     array_push($staging_sites,[
         'connect_id'    => InstaWP_Setting::get_args_option( 'connect_id', $parent_connect_data, '' ),
-        'site_name'     => preg_replace("(^https?://)", "",  InstaWP_Setting::get_args_option( 'domain', $parent_connect_data, '' )),
+        'domain'     => preg_replace("(^https?://)", "",  InstaWP_Setting::get_args_option( 'domain', $parent_connect_data, '' )),
         'type'          => InstaWP_Setting::get_args_option( 'type', $parent_connect_data, '' ),
     ]);
 }
@@ -76,8 +76,9 @@ if( !empty( $parent_connect_data ) ){
                         <div class="select-ct">
                             <select id="staging-site-sync" data-page="instawp">
                                 <?php  foreach($staging_sites as $site): ?>
-                                    <?php $site_name = isset( $site['site_name'] ) ? $site['site_name'] : ''; ?>
-                                <option value="<?php echo $site['connect_id'] ?>"><?php echo esc_html($site_name); ?></option>
+                                    <?php if( isset( $site['domain'] ) && isset( $site['connect_id'] ) ): ?>
+                                        <option value="<?php echo $site['connect_id'] ?>"><?php echo esc_html( $site['domain'] ); ?></option>
+                                    <?php endif ?>
                                 <?php endforeach ?>
                             </select>
                         </div>
