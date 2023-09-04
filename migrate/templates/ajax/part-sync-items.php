@@ -6,7 +6,7 @@
             $datetime = date( 'M j, Y H:i A', strtotime( $event->date ) );
         ?>
         <tr>
-            <td class="whitespace-nowrap py-6 px-6 text-sm font-medium text-grayCust-300">
+            <td class="whitespace-nowrap py-6 px-6 text-sm font-medium text-grayCust-300 w-0.5">
                 <input type="checkbox" name="event[]"  value="<?php echo $event->id; ?>" class="single-event-cb" />
             </td>
             <td class="whitespace-nowrap py-6 px-6 text-sm font-medium text-grayCust-300"><?php echo esc_html( $event->event_name ); ?></td>
