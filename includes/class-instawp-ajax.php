@@ -41,9 +41,7 @@ class InstaWP_AJAX {
 		check_ajax_referer( 'instawp-migrate', 'security' );
 
 		$check_api    = isset( $_POST['api'] ) ? filter_var( $_POST['api'], FILTER_VALIDATE_BOOLEAN) : false;
-		$connect_ids  = get_option( 'instawp_connect_id_options', '' );
-		$connect_id   = $connect_ids['data']['id'] ?? 0;
-		$api_response = InstaWP_Curl::do_curl( 'connect/' . $connect_id . '/disconnect' );
+		$api_response = InstaWP_Curl::do_curl( 'connect/' . instawp_get_connect_id() . '/disconnect' );
 
 		if ( $check_api && ( empty( $api_response['success'] ) || ! $api_response['success'] ) ) {
 			wp_send_json_error( [

@@ -3,18 +3,7 @@
  * Migrate template - Create Site
  */
 
-$staging_sites = get_transient( 'instawp_staging_sites' ) ?? [];
-if ( ! $staging_sites || ! is_array( $staging_sites ) ) {
-    $connect_ids  = get_option( 'instawp_connect_id_options', '' );
-    $connect_id   = $connect_ids['data']['id'] ?? 0;
-    $api_response = InstaWP_Curl::do_curl( 'connects/' . $connect_id . '/staging-sites', [], [], false );
-
-    if ( $api_response['success'] && ! empty( $api_response['data'] ) ) {
-        set_transient( 'instawp_staging_sites', $api_response['data'], ( 3 * HOUR_IN_SECONDS ) );
-        $staging_sites = $api_response['data'];
-    }
-}
-
+$staging_sites       = instawp_get_staging_sites_list();
 $staging_sites_count = count( $staging_sites );
 $pagination          = 10;
 ?>
