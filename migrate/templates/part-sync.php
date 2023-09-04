@@ -14,7 +14,7 @@ if( !empty( $parent_connect_data ) ){
     $staging_sites      = !empty($staging_sites) ? $staging_sites : [];
     array_push($staging_sites,[
         'connect_id'    => InstaWP_Setting::get_args_option( 'connect_id', $parent_connect_data, '' ),
-        'site_name'     => preg_replace("(^https?://)", "",  InstaWP_Setting::get_args_option( 'domain', $parent_connect_data, '' )),
+        'domain'     => preg_replace("(^https?://)", "",  InstaWP_Setting::get_args_option( 'domain', $parent_connect_data, '' )),
         'type'          => InstaWP_Setting::get_args_option( 'type', $parent_connect_data, '' ),
     ]);
 }
