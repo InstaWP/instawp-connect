@@ -265,6 +265,10 @@ class InstaWP_Setting {
 					'title'       => esc_html__( 'Backup Parts Size', 'instawp-connect' ),
 					'desc'        => esc_html__( 'Unit is MB. Default - ' . INSTAWP_DEFAULT_MAX_FILE_SIZE . 'MB', 'instawp-connect' ),
 					'placeholder' => esc_attr( INSTAWP_DEFAULT_MAX_FILE_SIZE ),
+					'attributes'  => array(
+						'min' => '10',
+						'max' => '100',
+					),
 				),
 				array(
 					'id'      => 'instawp_reset_type',
