@@ -57,7 +57,7 @@ jQuery(document).ready(function ($) {
         $(".sync_process .step-1").removeClass('process_inprogress').removeClass('process_complete');
         $(".sync_process .step-2").removeClass('process_inprogress').removeClass('process_complete');
         $(".sync_process .step-3").removeClass('process_inprogress').removeClass('process_complete');
-        $(".bulk-sync-btn").html('<a class="changes-btn sync-changes-btn" href="javascript:void(0);"><span>Sync Changes</span></a>');
+        $(".bulk-sync-btn").html('<a class="changes-btn sync-changes-btn" href="javascript:void(0);"><span>Sync</span></a>');
     });
 
     $(document).on('click', '.bulk-sync-popup .close', function(){
@@ -81,9 +81,9 @@ jQuery(document).ready(function ($) {
 
     display_event_action_dropdown =  () => {
         if( $('.single-event-cb:checked').length == 0 ){
-            $(".instawp-event-type-c").addClass('hidden');
+            $("#instawp-delete-events").addClass('hidden');
         }else{
-            $(".instawp-event-type-c").removeClass('hidden');
+            $("#instawp-delete-events").removeClass('hidden');
         }
     }
 
@@ -113,32 +113,27 @@ jQuery(document).ready(function ($) {
         get_site_events();
     });
 
-    $(document).on('change', '#event-action-type', function(){
-        const that = $(this);
-        const type = that.val();
+    $(document).on('click', '#instawp-delete-events', function(){
         const selectedEvents = [];
         $('.single-event-cb:checked').each(function(){
             selectedEvents.push($(this).val());
         });
         if(selectedEvents.length > 0){
-            if( type == 'delete' ){
-                if( confirm('Are you sure') ){
-                    let formData = new FormData();
-                    let site_id =  $("#staging-site-sync").val();
-                    formData.append('site_id', site_id);
-                    formData.append('action', 'instawp_delete_events');
-                    formData.append('ids',  selectedEvents);
-                    baseCall(formData).then((response) => response.json()).then((data) => {
-                        get_site_events();  
-                        display_event_action_dropdown();
-                        $("body").find('#select-all-event').prop('checked', false);
-                    }).catch((error) => {
+            if( confirm('Are you sure?') ){
+                let formData = new FormData();
+                let site_id =  $("#staging-site-sync").val();
+                formData.append('site_id', site_id);
+                formData.append('action', 'instawp_delete_events');
+                formData.append('ids',  selectedEvents);
+                baseCall(formData).then((response) => response.json()).then((data) => {
+                    get_site_events();  
+                    display_event_action_dropdown();
+                    $("body").find('#select-all-event').prop('checked', false);
+                }).catch((error) => {
 
-                    });
-                }  
-            }
+                });
+            }  
         }
-        that.val('');
     });
     
     $(document).on('click', '.instawp-refresh-events', function(){
