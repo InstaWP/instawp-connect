@@ -274,12 +274,12 @@ class InstaWP_taskmanager {
 			if ( is_array( $option_names ) ) {
 				$options = array();
 				foreach ( $option_names as $name ) {
-					$options[ $name ] = $task['options'][ $name ];
+					$options[ $name ] = ( ! empty( $task['options'][ $name ] ) ) ? $task['options'][ $name ] : '';
 				}
 
 				return $options;
 			} else {
-				return $task['options'][ $option_names ];
+				return ( ! empty( $task['options'][ $option_names ] ) ) ? $task['options'][ $option_names ] : '';
 			}
 		} else {
 			return false;
