@@ -1050,7 +1050,7 @@ if ( ! function_exists( 'instawp_get_connect_id' ) ) {
 	function instawp_get_connect_id(): int {
 		$connect_options = get_option( 'instawp_connect_id_options' );
 
-		return $connect_options['data']['id'];
+		return $connect_options['data']['id'] ?? 0;
 	}
 }
 
