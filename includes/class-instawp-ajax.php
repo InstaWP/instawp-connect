@@ -21,6 +21,7 @@ class InstaWP_AJAX {
 		add_action( 'wp_ajax_instawp_save_management_settings', array( $this, 'save_management_settings' ) );
 		add_action( 'wp_ajax_instawp_disconnect_plugin', array( $this, 'disconnect_api' ) );
 		add_action( 'wp_ajax_instawp_clear_staging_sites', array( $this, 'clear_staging_sites' ) );
+		add_action( 'wp_ajax_instawp_destination_disconnect', array( $this, 'destination_disconnect' ) );
 	}
 
 	public function save_management_settings() {
@@ -62,6 +63,14 @@ class InstaWP_AJAX {
 		delete_transient( 'instawp_staging_sites' );
 
 		wp_send_json_success();
+	}
+
+	public function destination_disconnect() {
+		check_ajax_referer( 'instawp-migrate', 'security' );
+		
+		$response = instawp_destination_disconnect( sanitize_text_field( $_POST['migrate_task_id'] ) );
+
+		wp_send_json_success( $response );
 	}
 
 	// Set transient admin notice function

@@ -269,8 +269,17 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 					InstaWP_Migrate_Log::write( $migrate_id, "migration started - migrate_id:{$migrate_id} response: " . json_encode( $migrate_response ) );
 				}
 
+				$response['migrate_task_id']        = $migrate_task_id;
 				$response['migrate_api_response']   = $migrate_response;
-				$response['track_migrate_progress'] = InstaWP_Setting::get_args_option( 'track_migrate_progress', $migrate_response_data );;
+				$response['track_migrate_progress'] = InstaWP_Setting::get_args_option( 'track_migrate_progress', $migrate_response_data );
+
+				if ( ! empty( $migrate_response['data']['site_details']['data']['destinationSite'] ) ) {
+					InstaWP_taskmanager::update_task_options( $migrate_task_id, 'destination_details', $migrate_response['data']['site_details']['data']['destinationSite'] );
+				}
+
+				if ( ! empty( $response['track_migrate_progress'] ) ) {
+					InstaWP_taskmanager::update_task_options( $migrate_task_id, 'track_migrate_progress', $response['track_migrate_progress'] );
+				}
 
 				wp_send_json_success( $response );
 			} else {
@@ -281,6 +290,10 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 
 				$response = instawp_get_response_progresses( $migrate_task_id, $migrate_id, $response );
 			}
+
+			$response['migrate_task_id']        = $migrate_task_id;
+			$response['destination_details']    = InstaWP_taskmanager::get_task_options( $migrate_task_id, 'destination_details' ) ?? '';
+			$response['track_migrate_progress'] = InstaWP_taskmanager::get_task_options( $migrate_task_id, 'track_migrate_progress' ) ?? '';
 
 			if ( $response['status'] === 'completed' ) {
 				delete_transient( 'instawp_staging_sites' );

@@ -77,6 +77,8 @@ delete_option('instawp_download_task_v2');
 delete_option('instawp_export_list');
 delete_option('instawp_backup_report');
 
+delete_transient( 'instawp_staging_sites' );
+
 $options = get_option('instawp_staging_options',array());
 $staging_keep_setting = isset($options['staging_keep_setting']) ? $options['staging_keep_setting'] : true;
 if ( $staging_keep_setting ) {
