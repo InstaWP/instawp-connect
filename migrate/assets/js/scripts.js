@@ -719,7 +719,7 @@ tailwind.config = {
 
     // Disconnect start //
     $(document).on('click', '.instawp-wrap .instawp-disconnect-plugin', function () {
-        if (!confirm('Do you really want to disconnect the plugin?')) {
+        if (!confirm('Do you really want to disconnect the plugin? It will hide the staging sites form the plugin.')) {
             return;
         }
         $.ajax({
