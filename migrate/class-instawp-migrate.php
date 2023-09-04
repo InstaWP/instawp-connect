@@ -292,8 +292,8 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 			}
 
 			$response['migrate_task_id']        = $migrate_task_id;
-			$response['destination_details']    = InstaWP_taskmanager::get_task_options( $migrate_task_id, 'destination_details' ) ?? '';
-			$response['track_migrate_progress'] = InstaWP_taskmanager::get_task_options( $migrate_task_id, 'track_migrate_progress' ) ?? '';
+			$response['destination_details']    = InstaWP_taskmanager::get_task_options( $migrate_task_id, 'destination_details' );
+			$response['track_migrate_progress'] = InstaWP_taskmanager::get_task_options( $migrate_task_id, 'track_migrate_progress' );
 
 			if ( $response['status'] === 'completed' ) {
 				delete_transient( 'instawp_staging_sites' );
