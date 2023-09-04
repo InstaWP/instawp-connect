@@ -294,7 +294,7 @@ $customize_options     = array(
                 </div>
 
                 <div class="screen-buttons-last hidden bg-grayCust-250 px-5 py-4 rounded-bl-lg rounded-br-lg flex justify-between">
-                    <div class="text-primary-900 text-sm font-medium cursor-pointer flex items-center instawp-create-another-site"><span class="text-xl mr-1 self-center">+</span>Create another Staging Site</div>
+                    <div class="text-primary-900 text-sm font-medium cursor-pointer flex items-center instawp-create-another-site"><span class="text-xl mr-1 -mt-1 self-center">+</span>Create another Staging Site</div>
                     <div class="text-grayCust-900 text-sm font-medium cursor-pointer flex items-center instawp-show-staging-sites">
                         <span>Show my staging sites</span>
                         <div class="flex items-center ml-2">

@@ -1,10 +1,11 @@
+InstaWP
 msgid ""
 msgstr ""
 "Project-Id-Version: InstaWP Connect\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2023-08-29 10:06+0000\n"
+"POT-Creation-Date: 2023-09-04 12:58+0000\n"
 "X-Poedit-Basepath: ..\n"
 "X-Poedit-KeywordsList: __;_e;_ex:1,2c;_n:1,2;_n_noop:1,2;_nx:1,2,4c;_nx_noop:1,2,3c;_x:1,2c;esc_attr__;esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c\n"
 "X-Poedit-SearchPath-0: .\n"
@@ -293,7 +294,7 @@ msgstr ""
 msgid "Change Event"
 msgstr ""
 
-#: admin/class-instawp-change-event.php:98, admin/class-instawp-change-event.php:102
+#: admin/class-instawp-change-event.php:103, admin/class-instawp-change-event.php:107
 msgid "Recording"
 msgstr ""
 
@@ -611,11 +612,11 @@ msgstr ""
 msgid "Select database method"
 msgstr ""
 
-#: admin/partials/instawp-admin-settings.php:105, includes/class-instawp-setting.php:286
+#: admin/partials/instawp-admin-settings.php:105, includes/class-instawp-setting.php:290
 msgid "PDO"
 msgstr ""
 
-#: admin/partials/instawp-admin-settings.php:106, includes/class-instawp-setting.php:285
+#: admin/partials/instawp-admin-settings.php:106, includes/class-instawp-setting.php:289
 msgid "WPDB"
 msgstr ""
 
@@ -1106,31 +1107,31 @@ msgstr ""
 msgid "Empty backup list."
 msgstr ""
 
-#: cli/class-instawp-cli.php:94
+#: cli/class-instawp-cli.php:99
 msgid "Restore started."
 msgstr ""
 
-#: cli/class-instawp-cli.php:122
+#: cli/class-instawp-cli.php:127
 msgid "Could not download the backup files."
 msgstr ""
 
-#: cli/class-instawp-cli.php:127
+#: cli/class-instawp-cli.php:132
 msgid "Backup downloaded successfully."
 msgstr ""
 
-#: cli/class-instawp-cli.php:147
+#: cli/class-instawp-cli.php:152
 msgid "Backup completed successfully."
 msgstr ""
 
-#: cli/class-instawp-cli.php:183
+#: cli/class-instawp-cli.php:188
 msgid "Cleared previous backup files successfully."
 msgstr ""
 
-#: cli/class-instawp-cli.php:227
+#: cli/class-instawp-cli.php:232
 msgid "Invalid command for `-action`"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:137
+#: includes/class-instawp-ajax.php:153
 msgid "InstaWP Connect Settings has been reset successfully."
 msgstr ""
 
@@ -1267,59 +1268,59 @@ msgstr ""
 msgid "Invalid bearer token."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:682
+#: includes/class-instawp-rest-api.php:687
 msgid "Downloading has been started."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:862
+#: includes/class-instawp-rest-api.php:879
 msgid "Backup will run through CLI."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:875
+#: includes/class-instawp-rest-api.php:892
 msgid "Backup is running on background processing"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1300
+#: includes/class-instawp-rest-api.php:1317
 msgid "Setting does not exist."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1283
+#: includes/class-instawp-rest-api.php:1300
 msgid "Success!"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1292
+#: includes/class-instawp-rest-api.php:1309
 msgid "You can not enable this setting through API."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1289
+#: includes/class-instawp-rest-api.php:1306
 msgid "Setting is already disabled."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1411, includes/class-instawp-setting.php:327, includes/class-instawp-setting.php:333
+#: includes/class-instawp-rest-api.php:1428, includes/class-instawp-setting.php:331, includes/class-instawp-setting.php:337
 msgid "Heartbeat"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1412, includes/class-instawp-setting.php:365
+#: includes/class-instawp-rest-api.php:1429, includes/class-instawp-setting.php:369
 msgid "File Manager"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1413, includes/class-instawp-setting.php:373
+#: includes/class-instawp-rest-api.php:1430, includes/class-instawp-setting.php:377
 msgid "Database Manager"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1414, includes/class-instawp-setting.php:381
+#: includes/class-instawp-rest-api.php:1431, includes/class-instawp-setting.php:385
 msgid "Install Plugin / Themes"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1415, includes/class-instawp-setting.php:389
+#: includes/class-instawp-rest-api.php:1432, includes/class-instawp-setting.php:393
 msgid "Config Management"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1416, includes/class-instawp-setting.php:398
+#: includes/class-instawp-rest-api.php:1433, includes/class-instawp-setting.php:402
 msgid "Site Inventory"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1417, includes/class-instawp-setting.php:407
+#: includes/class-instawp-rest-api.php:1434, includes/class-instawp-setting.php:411
 msgid "Debug Log"
 msgstr ""
 
@@ -1368,107 +1369,107 @@ msgstr ""
 msgid "Backup Parts Size"
 msgstr ""
 
-#: includes/class-instawp-setting.php:272
+#: includes/class-instawp-setting.php:276
 msgid "Plugin Reset Type"
 msgstr ""
 
-#: includes/class-instawp-setting.php:273
+#: includes/class-instawp-setting.php:277
 msgid "Hard reset will remove everything including API key."
 msgstr ""
 
-#: includes/class-instawp-setting.php:275
+#: includes/class-instawp-setting.php:279
 msgid "Soft Reset"
 msgstr ""
 
-#: includes/class-instawp-setting.php:276
+#: includes/class-instawp-setting.php:280
 msgid "Hard Reset"
 msgstr ""
 
-#: includes/class-instawp-setting.php:282
+#: includes/class-instawp-setting.php:286
 msgid "Database Method"
 msgstr ""
 
-#: includes/class-instawp-setting.php:283
+#: includes/class-instawp-setting.php:287
 msgid "WPDB option has a better compatibility, but slower. It is recommended to choose PDO if pdo_mysql extension is installed."
 msgstr ""
 
-#: includes/class-instawp-setting.php:294
+#: includes/class-instawp-setting.php:298
 msgid "Default User"
 msgstr ""
 
-#: includes/class-instawp-setting.php:295
+#: includes/class-instawp-setting.php:299
 msgid "This option will allow to set default user for events syncing."
 msgstr ""
 
-#: includes/class-instawp-setting.php:303
+#: includes/class-instawp-setting.php:307
 msgid "Developer Options"
 msgstr ""
 
-#: includes/class-instawp-setting.php:304
+#: includes/class-instawp-setting.php:308
 msgid "This section is available only for the developers working in this plugin."
 msgstr ""
 
-#: includes/class-instawp-setting.php:310
+#: includes/class-instawp-setting.php:314
 msgid "API Domain"
 msgstr ""
 
-#: includes/class-instawp-setting.php:328
+#: includes/class-instawp-setting.php:332
 msgid "Update your website's heartbeat settings."
 msgstr ""
 
-#: includes/class-instawp-setting.php:334
+#: includes/class-instawp-setting.php:338
 msgid "Enabling this option will allow remotely communicate with InstaWP API and sends data (e.g. wp_version, php_version, theme name, number of published posts, number of published pages, total number of users, total_size of the wordpress site etc.) on this website."
 msgstr ""
 
-#: includes/class-instawp-setting.php:335
+#: includes/class-instawp-setting.php:339
 msgid "Disabling this will automatically disconnect this site from InstaWP dashboard after 1 hour."
 msgstr ""
 
-#: includes/class-instawp-setting.php:342
+#: includes/class-instawp-setting.php:346
 msgid "Heartbeat Interval (Minutes)"
 msgstr ""
 
-#: includes/class-instawp-setting.php:343
+#: includes/class-instawp-setting.php:347
 msgid "It is the interval of heartbeat in minutes."
 msgstr ""
 
-#: includes/class-instawp-setting.php:344
+#: includes/class-instawp-setting.php:348
 msgid "Minimum is 15 minutes and maximum is 60 minutes."
 msgstr ""
 
-#: includes/class-instawp-setting.php:358
+#: includes/class-instawp-setting.php:362
 msgid "Remote Management (Beta)"
 msgstr ""
 
-#: includes/class-instawp-setting.php:359
+#: includes/class-instawp-setting.php:363
 msgid "Update your website's remote management settings. To use this feature in the InstaWP dashboard, switch on the beta program from %s section."
 msgstr ""
 
-#: includes/class-instawp-setting.php:359
+#: includes/class-instawp-setting.php:363
 msgid "My Accounts"
 msgstr ""
 
-#: includes/class-instawp-setting.php:366
+#: includes/class-instawp-setting.php:370
 msgid "Enabling this option will allow creation of remote file manager on this website remotely using the REST API."
 msgstr ""
 
-#: includes/class-instawp-setting.php:374
+#: includes/class-instawp-setting.php:378
 msgid "Enabling this option will allow creation of remote database manager on this website remotely using the REST API."
 msgstr ""
 
-#: includes/class-instawp-setting.php:382
+#: includes/class-instawp-setting.php:386
 msgid "Enabling this option will allow install plugins and themes on this website remotely using the REST API."
 msgstr ""
 
-#: includes/class-instawp-setting.php:390
+#: includes/class-instawp-setting.php:394
 msgid "Enabling this option will allow reading, updating and deleting the WordPress constant values on this website remotely using the REST API."
 msgstr ""
 
-#: includes/class-instawp-setting.php:399
+#: includes/class-instawp-setting.php:403
 msgid "Enabling this option will allow reading the installed WordPress version, themes and plugins on this website remotely using the REST API."
 msgstr ""
 
-#: includes/class-instawp-setting.php:408
+#: includes/class-instawp-setting.php:412
 msgid "Enabling this option will allow reading WordPress error logs on this website remotely using the REST API."
 msgstr ""
 
@@ -1688,19 +1689,19 @@ msgstr ""
 msgid "User's email address is required."
 msgstr ""
 
-#: includes/class-intawp-ajax-fn.php:125
+#: includes/class-intawp-ajax-fn.php:135
 msgid "%d post change events"
 msgstr ""
 
-#: includes/class-intawp-ajax-fn.php:126
+#: includes/class-intawp-ajax-fn.php:136
 msgid "%d post delete events"
 msgstr ""
 
-#: includes/class-intawp-ajax-fn.php:127
+#: includes/class-intawp-ajax-fn.php:137
 msgid "%d post trash events"
 msgstr ""
 
-#: includes/class-intawp-ajax-fn.php:128
+#: includes/class-intawp-ajax-fn.php:138
 msgid "%d other events"
 msgstr ""
 
@@ -1712,14 +1713,14 @@ msgstr ""
 msgid "Error occurred while inserting new site. Error Message: %s"
 msgstr ""
 
-#: includes/functions.php:466
+#: includes/functions.php:467
 msgid "Invalid migrate or part ID"
 msgstr ""
 
-#: includes/functions.php:472
+#: includes/functions.php:473
 msgid "Restore completed for this part"
 msgstr ""
 
-#: includes/functions.php:608
+#: includes/functions.php:609
 msgid "Migration completed successfully."
 msgstr ""

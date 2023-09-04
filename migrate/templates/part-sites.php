@@ -4,7 +4,7 @@
  */
 
 $staging_sites       = instawp_get_staging_sites_list();
-$staging_sites_count = count( $staging_sites );
+$staging_sites_count = is_array( $staging_sites ) ? count( $staging_sites ) : 0;
 $pagination          = 10;
 ?>
 
