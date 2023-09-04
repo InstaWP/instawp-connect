@@ -846,7 +846,7 @@ class InstaWP_Backup_Api {
 		instawp_update_total_parts_number( $migrate_task_id, $migrate_id );
 
 		// Upload backup parts to S3 cloud
-		instawp_upload_backup_parts_to_cloud( $migrate_task_id, $migrate_id );
+//		instawp_upload_backup_parts_to_cloud( $migrate_task_id, $migrate_id );
 	}
 
 
@@ -882,11 +882,8 @@ class InstaWP_Backup_Api {
 
 		// Doing in background processing
 		as_enqueue_async_action( 'instawp_backup_bg', [ $migrate_task_id, $parameters ], 'instawp-connect', true );
+		as_enqueue_async_action( 'instawp_upload_bg', [ $migrate_task_id, $parameters ], 'instawp-connect', true );
 
-		// Update the current action id in this task
-//		InstaWP_taskmanager::update_task_options( $migrate_task_id, 'action_id', $action_id );
-
-//		as_enqueue_async_action( 'instawp_upload_bg', [ $migrate_task_id, $parameters ] );
 		do_action( 'action_scheduler_run_queue', 'Async Request' );
 
 		return $this->throw_response( array( 'message' => esc_html__( 'Backup is running on background processing', 'instawp-connect' ) ) );

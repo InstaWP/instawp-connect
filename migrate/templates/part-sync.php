@@ -18,6 +18,7 @@ if( !empty( $parent_connect_data ) ){
         'type'          => InstaWP_Setting::get_args_option( 'type', $parent_connect_data, '' ),
     ]);
 }
+
 ?>
 <div class="nav-item-content sync bg-white rounded-md p-6 data-padding">
     <?php if(empty($events)) : ?>

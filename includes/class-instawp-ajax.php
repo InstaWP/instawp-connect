@@ -9,7 +9,7 @@ class InstaWP_AJAX {
 
 	public function __construct() {
 		$this->instawp_log = new InstaWP_Log();
-		add_action( 'wp_ajax_instawp_check_key', array( $this, 'check_key' ) );
+
 		add_action( 'wp_ajax_instawp_settings_call', array( $this, 'instawp_settings_call' ) );
 		add_action( 'wp_ajax_instawp_connect', array( $this, 'connect' ) );
 		add_action( 'wp_ajax_instawp_check_staging', array( $this, 'instawp_check_staging' ) );
@@ -21,7 +21,24 @@ class InstaWP_AJAX {
 		add_action( 'wp_ajax_instawp_save_management_settings', array( $this, 'save_management_settings' ) );
 		add_action( 'wp_ajax_instawp_disconnect_plugin', array( $this, 'disconnect_api' ) );
 		add_action( 'wp_ajax_instawp_clear_staging_sites', array( $this, 'clear_staging_sites' ) );
+
+		// New from Jaed
+		add_action( 'wp_ajax_instawp_go_live', array( $this, 'go_live_redirect_url' ) );
 	}
+
+	function go_live_redirect_url() {
+
+		$response      = InstaWP_Curl::do_curl( 'get-waas-redirect-url', array( 'source_domain' => site_url() ) );
+		$response_data = InstaWP_Setting::get_args_option( 'data', $response, [] );
+		$redirect_url  = InstaWP_Setting::get_args_option( 'url', $response_data );
+
+		if ( ! empty( $redirect_url ) ) {
+			wp_send_json_success( [ 'redirect_url' => $redirect_url ] );
+		}
+
+		wp_send_json_error();
+	}
+
 
 	public function save_management_settings() {
 		check_ajax_referer( 'instawp-migrate', 'security' );
@@ -306,114 +323,6 @@ class InstaWP_AJAX {
 
 		echo json_encode( $response );
 
-		wp_die();
-	}
-
-
-	public function check_key() {
-		global $InstaWP_Curl;
-
-		// $this->ajax_check_security();
-
-		$res        = array(
-			'error'   => true,
-			'message' => '',
-		);
-		$api_doamin = InstaWP_Setting::get_api_domain();
-		$url        = $api_doamin . INSTAWP_API_URL . '/check-key';
-
-		if ( isset( $_REQUEST['api_key'] ) && empty( $_REQUEST['api_key'] ) ) {
-			$res['message'] = 'API Key is required';
-			echo json_encode( $res );
-			wp_die();
-		}
-		$api_key = sanitize_text_field( wp_unslash( $_REQUEST['api_key'] ) );
-
-		$response = wp_remote_get( $url,
-			array(
-				'body'    => '',
-				'headers' => array(
-					'Authorization' => 'Bearer ' . $api_key,
-					'Accept'        => 'application/json',
-				),
-			)
-		);
-
-		$response_code = wp_remote_retrieve_response_code( $response );
-
-		if ( ! is_wp_error( $response ) && $response_code == 200 ) {
-			$body = (array) json_decode( wp_remote_retrieve_body( $response ), true );
-
-			$connect_options = array();
-			if ( $body['status'] == true ) {
-
-				$connect_options['api_key'] = $api_key;
-				//$connect_options['api_heartbeat']  = $api_heartbeat;
-				$connect_options['response'] = $body;
-
-				//InstaWP_Setting::update_connect_option('instawp_connect_options',$connect_options,'api_key_opt');
-				update_option( 'instawp_api_options', $connect_options );
-				update_option( 'instawp_api_key', $api_key );
-
-				/* Set Connect ID on Check API KEY Code Start */
-				$connect_url = $api_doamin . INSTAWP_API_URL . '/connects';
-				$php_version = substr( phpversion(), 0, 3 );
-				$username    = null;
-				$admin_users = get_users(
-					array(
-						'role__in' => array( 'administrator' ),
-						'fields'   => array( 'user_login' )
-					)
-				);
-
-				if ( ! empty( $admin_users ) ) {
-					if ( is_null( $username ) ) {
-						foreach ( $admin_users as $admin ) {
-							$username = $admin->user_login;
-						}
-					}
-				}
-
-				$connect_body = json_encode(
-					array(
-						"url"         => get_site_url(),
-						"php_version" => $php_version,
-						"username"    => ! is_null( $username ) ? base64_encode( $username ) : "",
-					)
-				);
-
-				$curl_response = $InstaWP_Curl->curl( $connect_url, $connect_body );
-				update_option( 'instawp_connect_id_options_err', $curl_response );
-
-				if ( $curl_response['error'] == false ) {
-					$response = (array) json_decode( $curl_response['curl_res'], true );
-
-					if ( $response['status'] == true ) {
-						$connect_options                = InstaWP_Setting::get_option( 'instawp_connect_options', array() );
-						$connect_id                     = $response['data']['id'];
-						$connect_options[ $connect_id ] = $response;
-						update_option( 'instawp_connect_id_options', $response );
-					}
-				}
-				/* Set Connect ID on Check API KEY Code End */
-				error_log( "BoDY MEssage: " . $body['message'] );
-				$res = array(
-					'error'   => false,
-					'message' => $body['message'],
-				);
-			} else {
-				$res = array(
-					'error'   => true,
-					'message' => 'Key Not Valid',
-				);
-			}
-		} else {
-			$res = array(
-				'error'   => true,
-				'message' => 'Key Not Valid',
-			);
-		}
-		echo json_encode( $res );
 		wp_die();
 	}
 
