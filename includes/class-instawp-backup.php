@@ -547,7 +547,6 @@ class InstaWP_Backup_Task {
 
 			if ( $backup_data !== false ) {
 				$backup_data = apply_filters( 'instawp_set_backup', $backup_data );
-				$backup_data = apply_filters( 'instawp_set_backup', $backup_data );
 
 				$this->task['options']['backup_options']['backup'][ $backup_data['key'] ] = $backup_data;
 			}
