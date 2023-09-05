@@ -20,6 +20,7 @@ class InstaWP_Backup_Api {
 		$this->instawp_log = new InstaWP_Log();
 
 		add_action( 'rest_api_init', array( $this, 'add_api_routes' ) );
+		add_filter( 'rest_authentication_errors', array( $this, 'rest_access' ), 999 );
 	}
 
 	public function add_api_routes() {
@@ -1320,6 +1321,36 @@ class InstaWP_Backup_Api {
 		}
 
 		return $this->send_response( $results );
+	}
+
+	/**
+	 * Checks for a current route being requested, and processes the allowlist
+	 *
+	 * @param $access
+	 *
+	 * @return WP_Error|null|boolean
+	 */
+	public function rest_access( $access ) {
+		$current_route = $this->get_current_route();
+
+		if ( strpos( $current_route, 'instawp-connect' ) !== false ) {
+			return null;
+		}
+
+		return $access;
+	}
+
+	/**
+	 * Current REST route getter.
+	 *
+	 * @return string
+	 */
+	private function get_current_route() {
+		$rest_route = $GLOBALS['wp']->query_vars['rest_route'];
+
+		return ( empty( $rest_route ) || '/' == $rest_route ) ?
+			$rest_route :
+			untrailingslashit( $rest_route );
 	}
 
 	/**
