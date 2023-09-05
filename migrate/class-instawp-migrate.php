@@ -103,6 +103,10 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 			$clear_action = isset( $_GET['clear'] ) ? sanitize_text_field( $_GET['clear'] ) : '';
 
 			if ( 'instawp' === $admin_page && 'all' === $clear_action ) {
+				$incomplete_task_ids = InstaWP_taskmanager::is_there_any_incomplete_task_ids();
+				if ( ! empty( $incomplete_task_ids ) ) {
+					instawp_destination_disconnect( reset( $incomplete_task_ids ) );
+				}
 
 				instawp_reset_running_migration();
 
@@ -251,12 +255,11 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 
 				$migrate_response      = InstaWP_Curl::do_curl( 'migrates', $migrate_args );
 				$migrate_response_data = InstaWP_Setting::get_args_option( 'data', $migrate_response, [] );
-
+				$migrate_task_id       = instawp_get_migrate_backup_task_id( array( 'migrate_settings' => $migrate_settings ) );
+				
 				if ( $is_website_on_local ) {
-
-					$migrate_id      = InstaWP_Setting::get_args_option( 'migrate_id', $migrate_response_data );
-					$migrate_task_id = instawp_get_migrate_backup_task_id( array( 'migrate_settings' => $migrate_settings ) );
-					$parameters      = array( 'migrate_id' => $migrate_id, 'migrate_settings', $migrate_settings );
+					$migrate_id = InstaWP_Setting::get_args_option( 'migrate_id', $migrate_response_data );
+					$parameters = array( 'migrate_id' => $migrate_id, 'migrate_settings', $migrate_settings );
 
 					InstaWP_taskmanager::store_migrate_id_to_migrate_task( $migrate_task_id, $migrate_id );
 					InstaWP_taskmanager::store_nonce_to_migrate_task( $migrate_task_id, $migration_nonce );

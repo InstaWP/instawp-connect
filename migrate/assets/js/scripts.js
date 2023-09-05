@@ -74,8 +74,6 @@ tailwind.config = {
                     el_bar_staging.find('.progress-bar').css('width', response.data.migrate.progress + '%');
                     el_bar_staging.find('.progress-text').text(response.data.migrate.progress + '%');
 
-                    create_container.find('.instawp-migrate-abort').attr('data-migrate-task-id', response.data.migrate_task_id);
-
                     if (typeof response.data.track_migrate_progress !== 'undefined' && response.data.track_migrate_progress.length > 0) {
                         create_container.find('.instawp-track-migration').attr('href', response.data.track_migrate_progress).removeClass('hidden');
                         create_container.find('.instawp-track-migration-area').removeClass('justify-end').addClass('justify-between');
@@ -368,17 +366,7 @@ tailwind.config = {
         
         if (confirm('Do you really want to abort the migration?')) {
             clearInterval(create_container.attr('interval-id'));
-            $.ajax({
-                type: 'POST', url: plugin_object.ajax_url, context: this, data: {
-                    'action': 'instawp_destination_disconnect',
-                    'migrate_task_id': migrate_task_id,
-                    'security': instawp_migrate.security
-                }, success: function (response) {
-                    console.log(response)
-                }
-            }).always(function() {
-                window.location = window.location.href.split("?")[0] + '?page=instawp&clear=all';
-            });
+            window.location = window.location.href.split("?")[0] + '?page=instawp&clear=all';
         }
     });
 
