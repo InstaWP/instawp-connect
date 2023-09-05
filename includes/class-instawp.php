@@ -372,7 +372,7 @@ class instaWP {
 		$body_json     = json_encode( $body );
 		$curl_response = $InstaWP_Curl->curl( $url, $body_json );
 
-		if ( defined( 'WP_DEBUG_LOG' ) && true === WP_DEBUG_LOG ) {
+		if ( defined( 'INSTAWP_DEBUG_LOG' ) && INSTAWP_DEBUG_LOG ) {
 			error_log( "Heartbeat API Curl URL " . $url );
 			error_log( "Print Heartbeat API Curl Response Start" );
 			error_log( print_r( $curl_response, true ) );
