@@ -330,7 +330,10 @@ class InstaWP_Admin {
 			array(
 				'ajax_url'          => admin_url( 'admin-ajax.php' ),
 				'nonce'             => wp_create_nonce( 'instaWp_change_event' ),
-				'plugin_images_url' => INSTAWP_PLUGIN_IMAGES_URL
+				'plugin_images_url' => INSTAWP_PLUGIN_IMAGES_URL,
+				'trans'				=> [
+					'create_staging_site_txt' => __( 'Please create staging sites first.', 'instawp-connect' )
+				]
 			)
 		);
 
