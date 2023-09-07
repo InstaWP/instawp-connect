@@ -181,7 +181,7 @@ if ( ! class_exists( 'INSTAWP_Migration_hosting' ) ) {
 
 				if ( empty( InstaWP_Setting::get_args_option( 'zip_files_path', $data, array() ) ) ) {
 
-					$migrate_task['options']['backup_options']['backup'][ $key ]['zip_files_path'] = instawp_get_upload_files( $data );
+					$migrate_task['options']['backup_options']['backup'][ $key ]['zip_files_path'] = instawp_get_upload_files( $migrate_task_id, $data );
 
 					InstaWP_taskmanager::update_task( $migrate_task );
 					break;

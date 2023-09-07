@@ -236,45 +236,6 @@ run_instawp();
 add_action( 'wp_head', function () {
 	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
 
-		if ( isset( $_GET['clear'] ) && 'all' == sanitize_text_field( $_GET['clear'] ) ) {
-			InstaWP_taskmanager::delete_all_task();
-			$task = new InstaWP_Backup();
-			$task->clean_backup();
-		}
-
-
-		$action_id = 218;
-		$action    = ActionScheduler::store()->fetch_action( $action_id );
-
-		$action_args     = $action->get_args();
-		$migrate_task_id = $action_args[0] ?? '';
-		$pending_backup  = false;
-		$pending_upload  = false;
-
-		foreach ( InstaWP_taskmanager::get_task_backup_data( $migrate_task_id ) as $data ) {
-
-			$backup_status = InstaWP_Setting::get_args_option( 'backup_status', $data );
-
-			if ( empty( $backup_status ) || 'completed' != $backup_status ) {
-				$pending_backup = true;
-				break;
-			}
-		}
-
-		foreach ( InstaWP_taskmanager::get_task_backup_data( $migrate_task_id ) as $data ) {
-
-			$upload_status = InstaWP_Setting::get_args_option( 'upload_status', $data );
-
-			if ( empty( $upload_status ) || 'completed' != $upload_status ) {
-				$pending_upload = true;
-				break;
-			}
-		}
-
-		echo "<pre>";
-		var_dump( [ $pending_backup, $pending_upload ] );
-		echo "</pre>";
-
 		die();
 	}
 }, 0 );
