@@ -280,9 +280,11 @@ class InstaWP_Ajax_Fn {
 						$sync_resp = $this->get_Sync_Object( $resp_decode->data->sync_id );
 						$respD     = json_decode( $sync_resp );// WE WILL USE IT.
 						if ( $respD->status === 1 || $respD->status === true ) {
-							$site_sync_row = $this->wpdb->get_row("SELECT * FROM {$this->tables['se_table']}");
+							
+							$site_sync_row = $this->wpdb->get_row("SELECT * FROM {$this->tables['se_table']}", ARRAY_A);
+							$site_sync_row = $site_sync_row ?? [];
 
-							if( !empty( $site_sync_row ) && ( !array_key_exists('synced_message', $site_sync_row ) ) ){
+							if( ( !array_key_exists('synced_message', $site_sync_row ) ) ){
 								$this->wpdb->query("ALTER TABLE {$this->tables['se_table']} ADD `synced_message` TEXT NULL DEFAULT NULL AFTER `status`");
 							}
 							

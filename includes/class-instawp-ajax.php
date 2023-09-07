@@ -24,6 +24,8 @@ class InstaWP_AJAX {
 
 		// New from Jaed
 		add_action( 'wp_ajax_instawp_go_live', array( $this, 'go_live_redirect_url' ) );
+
+		add_action( 'wp_ajax_instawp_destination_disconnect', array( $this, 'destination_disconnect' ) );
 	}
 
 	function go_live_redirect_url() {
@@ -79,6 +81,14 @@ class InstaWP_AJAX {
 		delete_transient( 'instawp_staging_sites' );
 
 		wp_send_json_success();
+	}
+
+	public function destination_disconnect() {
+		check_ajax_referer( 'instawp-migrate', 'security' );
+		
+		$response = instawp_destination_disconnect( sanitize_text_field( $_POST['migrate_task_id'] ) );
+
+		wp_send_json_success( $response );
 	}
 
 	// Set transient admin notice function

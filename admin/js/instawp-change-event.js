@@ -46,18 +46,23 @@ jQuery(document).ready(function ($) {
 
     //bulk sync btn...
     $(document).on('click', '.bulk-sync-popup-btn', function(){
+        const site = $("#staging-site-sync").val();
+        if( !site || site == undefined || site == '' ){
+            alert( ajax_obj.trans.create_staging_site_txt );
+            return;
+        }
         get_events_summary();
         $('.bulk-sync-popup').show();
         $('.bulk-sync-popup').attr("data-sync-type", "bulk_sync");
         $('.bulk-events-info').show();
-        $("#destination-site").val($("#staging-site-sync").val());
         $('.selected-events-info').hide();
         $('.sync_error_success_msg').html('');
         $('#sync_message').val('');
+        $("#destination-site").val($("#staging-site-sync").val());
         $(".sync_process .step-1").removeClass('process_inprogress').removeClass('process_complete');
         $(".sync_process .step-2").removeClass('process_inprogress').removeClass('process_complete');
         $(".sync_process .step-3").removeClass('process_inprogress').removeClass('process_complete');
-        $(".bulk-sync-btn").html('<a class="changes-btn sync-changes-btn" href="javascript:void(0);"><span>Sync Changes</span></a>');
+        $(".bulk-sync-btn").html('<a class="changes-btn sync-changes-btn" href="javascript:void(0);"><span>Sync</span></a>');
     });
 
     $(document).on('click', '.bulk-sync-popup .close', function(){
@@ -81,9 +86,9 @@ jQuery(document).ready(function ($) {
 
     display_event_action_dropdown =  () => {
         if( $('.single-event-cb:checked').length == 0 ){
-            $(".instawp-event-type-c").addClass('hidden');
+            $("#instawp-delete-events").addClass('hidden');
         }else{
-            $(".instawp-event-type-c").removeClass('hidden');
+            $("#instawp-delete-events").removeClass('hidden');
         }
     }
 
@@ -113,32 +118,27 @@ jQuery(document).ready(function ($) {
         get_site_events();
     });
 
-    $(document).on('change', '#event-action-type', function(){
-        const that = $(this);
-        const type = that.val();
+    $(document).on('click', '#instawp-delete-events', function(){
         const selectedEvents = [];
         $('.single-event-cb:checked').each(function(){
             selectedEvents.push($(this).val());
         });
         if(selectedEvents.length > 0){
-            if( type == 'delete' ){
-                if( confirm('Are you sure') ){
-                    let formData = new FormData();
-                    let site_id =  $("#staging-site-sync").val();
-                    formData.append('site_id', site_id);
-                    formData.append('action', 'instawp_delete_events');
-                    formData.append('ids',  selectedEvents);
-                    baseCall(formData).then((response) => response.json()).then((data) => {
-                        get_site_events();  
-                        display_event_action_dropdown();
-                        $("body").find('#select-all-event').prop('checked', false);
-                    }).catch((error) => {
+            if( confirm('Are you sure?') ){
+                let formData = new FormData();
+                let site_id =  $("#staging-site-sync").val();
+                formData.append('site_id', site_id);
+                formData.append('action', 'instawp_delete_events');
+                formData.append('ids',  selectedEvents);
+                baseCall(formData).then((response) => response.json()).then((data) => {
+                    get_site_events();  
+                    display_event_action_dropdown();
+                    $("body").find('#select-all-event').prop('checked', false);
+                }).catch((error) => {
 
-                    });
-                }  
-            }
+                });
+            }  
         }
-        that.val('');
     });
     
     $(document).on('click', '.instawp-refresh-events', function(){
