@@ -71,26 +71,26 @@ class InstaWP_Backup_Task {
 			// $backup_data['files_root'] = $this->transfer_path( $upload_dir['basedir'] );
 
 			$upload_dir      = wp_upload_dir();
-			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( $upload_dir['basedir'] ) . DIRECTORY_SEPARATOR . 'backwpup', '/' ) . '#'; // BackWPup backup directory
-			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( $upload_dir['basedir'] ) . DIRECTORY_SEPARATOR . 'ShortpixelBackups', '/' ) . '#'; //ShortpixelBackups
+			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( $upload_dir['basedir'] ) . DIRECTORY_SEPARATOR . 'backwpup', DIRECTORY_SEPARATOR ) . '#'; // BackWPup backup directory
+			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( $upload_dir['basedir'] ) . DIRECTORY_SEPARATOR . 'ShortpixelBackups', DIRECTORY_SEPARATOR ) . '#'; //ShortpixelBackups
 
-			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( $upload_dir['basedir'] ) . DIRECTORY_SEPARATOR . 'backwpup', '/' ) . '#'; // BackWPup backup directory
+			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( $upload_dir['basedir'] ) . DIRECTORY_SEPARATOR . 'backwpup', DIRECTORY_SEPARATOR ) . '#'; // BackWPup backup directory
 
-			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( $upload_dir['basedir'] ) . DIRECTORY_SEPARATOR . 'backup', '/' ) . '#';
+			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( $upload_dir['basedir'] ) . DIRECTORY_SEPARATOR . 'backup', DIRECTORY_SEPARATOR ) . '#';
 
-			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( $upload_dir['basedir'] ) . DIRECTORY_SEPARATOR . 'backup-guard', '/' ) . '#'; // WordPress Backup and Migrate Plugin backup directory
+			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( $upload_dir['basedir'] ) . DIRECTORY_SEPARATOR . 'backup-guard', DIRECTORY_SEPARATOR ) . '#'; // WordPress Backup and Migrate Plugin backup directory
 
-			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( $upload_dir['basedir'] ) . DIRECTORY_SEPARATOR . 'backup_guard_backups', '/' ) . '#'; // WordPress Backup and Migrate Plugin backup directory
+			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( $upload_dir['basedir'] ) . DIRECTORY_SEPARATOR . 'backup_guard_backups', DIRECTORY_SEPARATOR ) . '#'; // WordPress Backup and Migrate Plugin backup directory
 
-			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( $upload_dir['basedir'] ) . DIRECTORY_SEPARATOR . 'ithemes-security', '/' ) . '#'; //ithemes-security directory
+			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( $upload_dir['basedir'] ) . DIRECTORY_SEPARATOR . 'ithemes-security', DIRECTORY_SEPARATOR ) . '#'; //ithemes-security directory
 
-			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( $upload_dir['basedir'] ) . DIRECTORY_SEPARATOR . 'sg_symlinks', '/' ) . '#'; //sg_symlinks directory
+			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( $upload_dir['basedir'] ) . DIRECTORY_SEPARATOR . 'sg_symlinks', DIRECTORY_SEPARATOR ) . '#'; //sg_symlinks directory
 
-			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( $upload_dir['basedir'] ) . DIRECTORY_SEPARATOR . 'tCapsule', '/' ) . '#'; //tCapsule directory
+			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( $upload_dir['basedir'] ) . DIRECTORY_SEPARATOR . 'tCapsule', DIRECTORY_SEPARATOR ) . '#'; //tCapsule directory
 
-			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( $upload_dir['basedir'] ) . DIRECTORY_SEPARATOR . 'wp-time-capsule-monitor', '/' ) . '#'; //tCapsule directory
+			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( $upload_dir['basedir'] ) . DIRECTORY_SEPARATOR . 'wp-time-capsule-monitor', DIRECTORY_SEPARATOR ) . '#'; //tCapsule directory
 
-			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( $upload_dir['basedir'] ) . DIRECTORY_SEPARATOR . 'wp_all_backup', '/' ) . '#'; //wp_all_backup directory
+			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( $upload_dir['basedir'] ) . DIRECTORY_SEPARATOR . 'wp_all_backup', DIRECTORY_SEPARATOR ) . '#'; //wp_all_backup directory
 
 		} elseif ( $backup_type == INSTAWP_BACKUP_TYPE_CONTENT ) {
 
@@ -98,23 +98,32 @@ class InstaWP_Backup_Task {
 				while ( false !== ( $entry = readdir( $handle ) ) ) {
 
 					if ( $entry != "." && $entry != ".." && $entry != "index.php" && $entry != "plugins" && $entry != "themes" && $entry != "upgrade" && $entry != "uploads" ) {
-						$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( WP_CONTENT_DIR ) . DIRECTORY_SEPARATOR . $entry, '/' ) . '#';
+						$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( WP_CONTENT_DIR ) . DIRECTORY_SEPARATOR . $entry, DIRECTORY_SEPARATOR ) . '#';
 					}
 				}
 				closedir( $handle );
 			}
 
 			if ( defined( 'INSTAWP_UPLOADS_ISO_DIR' ) ) {
-				$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( WP_CONTENT_DIR ) . DIRECTORY_SEPARATOR . INSTAWP_UPLOADS_ISO_DIR, '/' ) . '#';
+				$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( WP_CONTENT_DIR ) . DIRECTORY_SEPARATOR . INSTAWP_UPLOADS_ISO_DIR, DIRECTORY_SEPARATOR ) . '#';
 			}
+
+			// Silently exclude Backup Plugins.
+			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( WP_CONTENT_DIR ) . DIRECTORY_SEPARATOR . 'updraft', DIRECTORY_SEPARATOR ) . '#';
+			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( WP_CONTENT_DIR ) . DIRECTORY_SEPARATOR . 'ai1wm-backups', DIRECTORY_SEPARATOR ) . '#';
+			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( WP_CONTENT_DIR ) . DIRECTORY_SEPARATOR . 'backup-migration', DIRECTORY_SEPARATOR ) . '#';
+			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( WP_CONTENT_DIR ) . DIRECTORY_SEPARATOR . 'backups-dup-lite', DIRECTORY_SEPARATOR ) . '#';
+			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( WP_CONTENT_DIR ) . DIRECTORY_SEPARATOR . 'backups-dup-pro', DIRECTORY_SEPARATOR ) . '#';
+			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( WP_CONTENT_DIR ) . DIRECTORY_SEPARATOR . 'webtoffee_migrations', DIRECTORY_SEPARATOR ) . '#';
+			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( WP_CONTENT_DIR ) . DIRECTORY_SEPARATOR . 'wpvivid_uploads', DIRECTORY_SEPARATOR ) . '#';
 
 			if ( $skip_media_folder === true || $skip_media_folder == 1 ) {
 				$upload_dir      = wp_upload_dir();
-				$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( $upload_dir['basedir'] ), '/' ) . '$#';
+				$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( $upload_dir['basedir'] ), DIRECTORY_SEPARATOR ) . '$#';
 			}
 
-			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( get_theme_root() ), '/' ) . '#';
-			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( WP_PLUGIN_DIR ), '/' ) . '#';
+			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( get_theme_root() ), DIRECTORY_SEPARATOR ) . '#';
+			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( WP_PLUGIN_DIR ), DIRECTORY_SEPARATOR ) . '#';
 
 		} elseif ( $backup_type == INSTAWP_BACKUP_TYPE_CORE ) {
 			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( ABSPATH . DIRECTORY_SEPARATOR ) ) . 'instawp-.*\.php#';
@@ -129,7 +138,7 @@ class InstaWP_Backup_Task {
 			}
 
 			foreach ( array_unique( $exclude_plugins ) as $item_to_exclude ) {
-				$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( WP_PLUGIN_DIR . DIRECTORY_SEPARATOR . $item_to_exclude ), '/' ) . '#';
+				$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( WP_PLUGIN_DIR . DIRECTORY_SEPARATOR . $item_to_exclude ), DIRECTORY_SEPARATOR ) . '#';
 			}
 
 		} elseif ( $backup_type == INSTAWP_BACKUP_TYPE_THEMES ) {
@@ -137,7 +146,7 @@ class InstaWP_Backup_Task {
 			$exclude_themes = ( isset( $args['themes_excluded'] ) && is_array( $args['themes_excluded'] ) ) ? $args['themes_excluded'] : [];
 
 			foreach ( $exclude_themes as $item_to_exclude ) {
-				$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( get_theme_root() . DIRECTORY_SEPARATOR . $item_to_exclude ), '/' ) . '#';
+				$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( get_theme_root() . DIRECTORY_SEPARATOR . $item_to_exclude ), DIRECTORY_SEPARATOR ) . '#';
 			}
 		}
 
