@@ -225,10 +225,10 @@ $customize_options     = array(
                         </div>
                         <div class="panel mt-6 block">
                             <div class="migration-running border border-grayCust-100 rounded-lg">
-                                <div class="p-5">
+                                <div class="p-5 flex flex-col gap-4">
                                     <div class="flex items-center">
                                         <div class="w-24 text-grayCust-900 text-base font-normal">Backup</div>
-                                        <div class="instawp-progress-backup text-border rounded-xl w-full text-bg py-4 flex items-center mb-4 px-4">
+                                        <div class="instawp-progress-backup text-border rounded-xl w-full text-bg py-4 flex items-center px-4">
                                             <div class="w-full bg-gray-200 rounded-md mr-6">
                                                 <div class="progress-bar h-2 bg-primary-900 rounded-md"></div>
                                             </div>
@@ -237,7 +237,7 @@ $customize_options     = array(
                                     </div>
                                     <div class="flex items-center">
                                         <div class="w-24 text-grayCust-900 text-base font-normal">Upload</div>
-                                        <div class="instawp-progress-upload text-border rounded-xl w-full text-bg py-4 flex items-center mb-4 px-4">
+                                        <div class="instawp-progress-upload text-border rounded-xl w-full text-bg py-4 flex items-center px-4">
                                             <div class="w-full bg-gray-200 rounded-md mr-6">
                                                 <div class="progress-bar h-2 bg-primary-900 rounded-md"></div>
                                             </div>
