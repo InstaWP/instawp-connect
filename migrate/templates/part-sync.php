@@ -17,6 +17,7 @@ if( !empty( $parent_connect_data ) ){
         'type'          => InstaWP_Setting::get_args_option( 'type', $parent_connect_data, '' ),
     ]);
 }
+
 ?>
 <div class="nav-item-content sync bg-white rounded-md p-6 data-padding">
     <?php if( empty( $events ) ) : ?>
@@ -63,7 +64,7 @@ if( !empty( $parent_connect_data ) ){
                                     <svg class="w-4 h-4" viewBox="0 0 14 16" fill="none" xmlns="http://www.w3.org/2000/svg" > <path fill-rule="evenodd" clip-rule="evenodd" style="fill: #005e54;" d="M1.59995 0.800049C2.09701 0.800049 2.49995 1.20299 2.49995 1.70005V3.59118C3.64303 2.42445 5.23642 1.70005 6.99995 1.70005C9.74442 1.70005 12.0768 3.45444 12.9412 5.90013C13.1069 6.36877 12.8612 6.88296 12.3926 7.0486C11.924 7.21425 11.4098 6.96862 11.2441 6.49997C10.6259 4.75097 8.95787 3.50005 6.99995 3.50005C5.52851 3.50005 4.22078 4.20657 3.39937 5.30005H6.09995C6.59701 5.30005 6.99995 5.70299 6.99995 6.20005C6.99995 6.6971 6.59701 7.10005 6.09995 7.10005H1.59995C1.10289 7.10005 0.699951 6.6971 0.699951 6.20005V1.70005C0.699951 1.20299 1.10289 0.800049 1.59995 0.800049ZM1.6073 8.95149C2.07594 8.78585 2.59014 9.03148 2.75578 9.50013C3.37396 11.2491 5.04203 12.5 6.99995 12.5C8.47139 12.5 9.77912 11.7935 10.6005 10.7L7.89995 10.7C7.40289 10.7 6.99995 10.2971 6.99995 9.80005C6.99995 9.30299 7.40289 8.90005 7.89995 8.90005H12.3999C12.6386 8.90005 12.8676 8.99487 13.0363 9.16365C13.2051 9.33243 13.3 9.56135 13.3 9.80005V14.3C13.3 14.7971 12.897 15.2 12.4 15.2C11.9029 15.2 11.5 14.7971 11.5 14.3V12.4089C10.3569 13.5757 8.76348 14.3 6.99995 14.3C4.25549 14.3 1.92309 12.5457 1.05867 10.1C0.893024 9.63132 1.13866 9.11714 1.6073 8.95149Z"/> </svg>
                                 </button>
                             </div>
-                            <div class="select-ct">
+                            <div class="select-ct <?php echo empty( $staging_sites ) ? 'hidden' : '' ?>">
                                 <select id="staging-site-sync" data-page="instawp">
                                     <?php  foreach($staging_sites as $site): ?>
                                         <?php if( isset( $site['domain'] ) && isset( $site['connect_id'] ) ): ?>
@@ -163,7 +164,7 @@ if( !empty( $parent_connect_data ) ){
                                 <div class="instawpcatrgtcol sync_process">
                                     <ul>
                                         <li class="step-1 process_pending"><?php echo esc_html__( 'Packing things', 'instawp-connect' ); ?></li>
-                                        <li class="step-2 process_pending"><?php echo esc_html__( 'Pusing', 'instawp-connect' ); ?></li>
+                                        <li class="step-2 process_pending"><?php echo esc_html__( 'Pushing', 'instawp-connect' ); ?></li>
                                         <li class="step-3 process_pending"><?php echo esc_html__( 'Merging to destination', 'instawp-connect' ); ?></li>
                                     </ul>
                                 </div>

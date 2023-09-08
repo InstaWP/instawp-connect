@@ -46,14 +46,19 @@ jQuery(document).ready(function ($) {
 
     //bulk sync btn...
     $(document).on('click', '.bulk-sync-popup-btn', function(){
+        const site = $("#staging-site-sync").val();
+        if( !site || site == undefined || site == '' ){
+            alert( ajax_obj.trans.create_staging_site_txt );
+            return;
+        }
         get_events_summary();
         $('.bulk-sync-popup').show();
         $('.bulk-sync-popup').attr("data-sync-type", "bulk_sync");
         $('.bulk-events-info').show();
-        $("#destination-site").val($("#staging-site-sync").val());
         $('.selected-events-info').hide();
         $('.sync_error_success_msg').html('');
         $('#sync_message').val('');
+        $("#destination-site").val($("#staging-site-sync").val());
         $(".sync_process .step-1").removeClass('process_inprogress').removeClass('process_complete');
         $(".sync_process .step-2").removeClass('process_inprogress').removeClass('process_complete');
         $(".sync_process .step-3").removeClass('process_inprogress').removeClass('process_complete');

@@ -501,8 +501,17 @@ div#event-sync-pagination {
 }
 
 li#wp-admin-bar-instawp-sync-toolbar a.ab-item:before {
-    content: "\f113";
+    content: "\f1131";
     top: 3px;
+    width: 15px;
+    height: 15px;
+    background-color: red;
+    border-radius: 100px;
+    margin-top: 6px;
+    padding: 0px !important;
+    animation-name: blink;
+    animation-duration: 1.5s;
+    animation-iteration-count: infinite;
 }
 
 .select2-field-wrapper {
@@ -528,4 +537,7 @@ span.select2-selection.select2-selection--single {
 #select-all-event:checked, .single-event-cb:checked{
     border-color: #6b7280 !important;
     background: #fff !important;
+}
+@keyframes blink {
+    50% {opacity: 0;}
 }

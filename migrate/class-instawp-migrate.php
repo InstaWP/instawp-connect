@@ -30,24 +30,9 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 			add_action( 'admin_init', array( $this, 'handle_clear_all' ) );
 
 			add_action( 'INSTAWP/Actions/restore_completed', array( $this, 'restore_completed' ), 10, 2 );
+
 			add_action( 'action_scheduler_completed_action', array( $this, 'scheduler_completed_action' ), 10, 1 );
 			add_action( 'action_scheduler_failed_action', array( $this, 'scheduler_completed_action' ), 10, 1 );
-
-			add_action( 'wp_ajax_instawp_go_live', array( $this, 'go_live_redirect_url' ) );
-		}
-
-
-		function go_live_redirect_url() {
-
-			$response      = InstaWP_Curl::do_curl( 'get-waas-redirect-url', array( 'source_domain' => site_url() ) );
-			$response_data = InstaWP_Setting::get_args_option( 'data', $response, [] );
-			$redirect_url  = InstaWP_Setting::get_args_option( 'url', $response_data );
-
-			if ( ! empty( $redirect_url ) ) {
-				wp_send_json_success( [ 'redirect_url' => $redirect_url ] );
-			}
-
-			wp_send_json_error();
 		}
 
 
@@ -57,24 +42,39 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 
 			if ( $action instanceof ActionScheduler_FinishedAction ) {
 
-				$action_args         = $action->get_args();
-				$migrate_task_id     = $action_args[0] ?? '';
-				$is_any_pending_work = false;
+				$action_args     = $action->get_args();
+				$migrate_task_id = $action_args[0] ?? '';
+				$pending_backup  = false;
+				$pending_upload  = false;
 
 				foreach ( InstaWP_taskmanager::get_task_backup_data( $migrate_task_id ) as $data ) {
 
 					$backup_status = InstaWP_Setting::get_args_option( 'backup_status', $data );
-					$upload_status = InstaWP_Setting::get_args_option( 'upload_status', $data );
 
-					if ( empty( $backup_status ) || 'completed' != $backup_status || empty( $upload_status ) || 'completed' != $upload_status ) {
-						$is_any_pending_work = true;
+					if ( empty( $backup_status ) || 'completed' != $backup_status ) {
+						$pending_backup = true;
 						break;
 					}
 				}
 
-				if ( $is_any_pending_work ) {
-					sleep( 2 );
+				foreach ( InstaWP_taskmanager::get_task_backup_data( $migrate_task_id ) as $data ) {
+
+					$upload_status = InstaWP_Setting::get_args_option( 'upload_status', $data );
+
+					if ( empty( $upload_status ) || 'completed' != $upload_status ) {
+						$pending_upload = true;
+						break;
+					}
+				}
+
+				if ( $pending_backup ) {
 					as_enqueue_async_action( 'instawp_backup_bg', $action_args, 'instawp-connect', true );
+					do_action( 'action_scheduler_run_queue', 'Async Request' );
+				}
+
+				if ( $pending_upload ) {
+					as_enqueue_async_action( 'instawp_upload_bg', $action_args, 'instawp-connect', true );
+					do_action( 'action_scheduler_run_queue', 'Async Request' );
 				}
 			}
 		}
