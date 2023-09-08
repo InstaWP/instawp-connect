@@ -108,6 +108,15 @@ class InstaWP_Backup_Task {
 				$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( WP_CONTENT_DIR ) . DIRECTORY_SEPARATOR . INSTAWP_UPLOADS_ISO_DIR, '/' ) . '#';
 			}
 
+			// Silently exclude Backup Plugins.
+			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( WP_CONTENT_DIR ) . DIRECTORY_SEPARATOR . 'updraft/' ) . '#';
+			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( WP_CONTENT_DIR ) . DIRECTORY_SEPARATOR . 'ai1wm-backups/' ) . '#';
+			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( WP_CONTENT_DIR ) . DIRECTORY_SEPARATOR . 'backup-migration/' ) . '#';
+			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( WP_CONTENT_DIR ) . DIRECTORY_SEPARATOR . 'backups-dup-lite/' ) . '#';
+			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( WP_CONTENT_DIR ) . DIRECTORY_SEPARATOR . 'backups-dup-pro/' ) . '#';
+			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( WP_CONTENT_DIR ) . DIRECTORY_SEPARATOR . 'webtoffee_migrations/' ) . '#';
+			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( WP_CONTENT_DIR ) . DIRECTORY_SEPARATOR . 'wpvivid_uploads/' ) . '#';
+
 			if ( $skip_media_folder === true || $skip_media_folder == 1 ) {
 				$upload_dir      = wp_upload_dir();
 				$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( $upload_dir['basedir'] ), '/' ) . '$#';
