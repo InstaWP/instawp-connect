@@ -17,12 +17,12 @@ class InstaWP_AJAX {
 		add_action( 'init', array( $this, 'deleter_folder_handle' ) );
 		add_action( 'admin_notices', array( $this, 'instawp_connect_reset_admin_notices' ) );
 
-		// New AJAX Actions from Sayan
+		// Management
 		add_action( 'wp_ajax_instawp_save_management_settings', array( $this, 'save_management_settings' ) );
 		add_action( 'wp_ajax_instawp_disconnect_plugin', array( $this, 'disconnect_api' ) );
 		add_action( 'wp_ajax_instawp_clear_staging_sites', array( $this, 'clear_staging_sites' ) );
 
-		// New from Jaed
+		// Go Live redirect
 		add_action( 'wp_ajax_instawp_go_live', array( $this, 'go_live_redirect_url' ) );
 	}
 
@@ -49,7 +49,7 @@ class InstaWP_AJAX {
 		if ( ! $option_name || ! $option_value ) {
 			wp_send_json_error();
 		}
-		
+
 		update_option( $option_name, $option_value );
 		wp_send_json_success();
 	}
@@ -57,7 +57,7 @@ class InstaWP_AJAX {
 	public function disconnect_api() {
 		check_ajax_referer( 'instawp-migrate', 'security' );
 
-		$check_api    = isset( $_POST['api'] ) ? filter_var( $_POST['api'], FILTER_VALIDATE_BOOLEAN) : false;
+		$check_api    = isset( $_POST['api'] ) ? filter_var( $_POST['api'], FILTER_VALIDATE_BOOLEAN ) : false;
 		$api_response = InstaWP_Curl::do_curl( 'connect/' . instawp_get_connect_id() . '/disconnect' );
 
 		if ( $check_api && ( empty( $api_response['success'] ) || ! $api_response['success'] ) ) {
@@ -65,7 +65,7 @@ class InstaWP_AJAX {
 				'message' => $api_response['message'],
 			] );
 		}
-		
+
 		instawp_reset_running_migration( 'hard', false );
 
 		wp_send_json_success( [

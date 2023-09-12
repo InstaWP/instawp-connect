@@ -103,8 +103,7 @@ class InstaWP_Admin {
 				array(
 					'id'     => 'instawp-go-live',
 					'title'  => esc_html__( 'Go Live', 'instawp-connect' ),
-					'href'   => admin_url( 'admin.php?page=instawp-connect-go-live' ),
-//					'href'   => '#',
+					'href'   => '#',
 					'parent' => 'top-secondary',
 				)
 			);
@@ -331,7 +330,7 @@ class InstaWP_Admin {
 				'ajax_url'          => admin_url( 'admin-ajax.php' ),
 				'nonce'             => wp_create_nonce( 'instaWp_change_event' ),
 				'plugin_images_url' => INSTAWP_PLUGIN_IMAGES_URL,
-				'trans'				=> [
+				'trans'             => [
 					'create_staging_site_txt' => __( 'Please create staging sites first.', 'instawp-connect' )
 				]
 			)

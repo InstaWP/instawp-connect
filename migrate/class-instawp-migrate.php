@@ -256,7 +256,7 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 				$migrate_response      = InstaWP_Curl::do_curl( 'migrates', $migrate_args );
 				$migrate_response_data = InstaWP_Setting::get_args_option( 'data', $migrate_response, [] );
 				$migrate_task_id       = instawp_get_migrate_backup_task_id( array( 'migrate_settings' => $migrate_settings ) );
-				
+
 				if ( $is_website_on_local ) {
 					$migrate_id = InstaWP_Setting::get_args_option( 'migrate_id', $migrate_response_data );
 					$parameters = array( 'migrate_id' => $migrate_id, 'migrate_settings', $migrate_settings );
@@ -281,6 +281,7 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 				}
 
 				if ( ! empty( $response['track_migrate_progress'] ) ) {
+					InstaWP_taskmanager::set_data( $migrate_task_id, 'migrate_response', $migrate_response );
 					InstaWP_taskmanager::update_task_options( $migrate_task_id, 'track_migrate_progress', $response['track_migrate_progress'] );
 				}
 
