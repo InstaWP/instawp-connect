@@ -101,6 +101,7 @@ define( 'INSTAWP_UPLOAD_TO_CLOUD', true );
 define( 'INSTAWP_API_URL', '/api/v1' );
 define( 'INSTAWP_API_2_URL', '/api/v2' );
 define( 'INSTAWP_EVENTS_PER_PAGE', 20 );
+define( 'INSTAWP_DEFAULT_MAX_FILE_SIZE_ALLOWED', 50 ); //in MB
 @ini_set( 'memory_limit', '2048M' );
 
 
@@ -235,10 +236,7 @@ run_instawp();
 
 add_action( 'wp_head', function () {
 	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
-
 		die();
 	}
 }, 0 );
-
-
 

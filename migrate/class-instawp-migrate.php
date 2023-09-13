@@ -234,12 +234,14 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 			if ( empty( $incomplete_task_ids ) ) {
 
 				$is_website_on_local = instawp_is_website_on_local();
+				$excluded_paths      = InstaWP_Setting::get_args_option( 'excluded_paths', $instawp_migrate, [] );
 				$migrate_options     = InstaWP_Setting::get_args_option( 'options', $instawp_migrate, [] );
 				$migrate_settings    = [ 'nonce' => $migration_nonce, 'parent_domain' => site_url() ];
 
 				foreach ( $migrate_options as $migrate_option ) {
 					$migrate_settings[ $migrate_option ] = true;
 				}
+				$migrate_settings['excluded_paths'] = array_unique( $excluded_paths );
 
 				$migrate_args = array(
 					'source_domain'       => site_url(),

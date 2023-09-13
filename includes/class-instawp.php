@@ -164,104 +164,14 @@ class instaWP {
 		add_action( 'update_option_instawp_rm_heartbeat', array( $this, 'clear_heartbeat_action' ) );
 		add_action( 'instawp_handle_heartbeat', array( $this, 'handle_heartbeat' ) );
 
+		// Prepare large file list
+		add_action( 'instawp_prepare_large_files_list', array( $this, 'prepare_large_files_list' ) );
+
 		// Clean Tasks
 		add_action( 'instawp_clean_tasks', array( $this, 'clean_events' ) );
 
 		// Hook to run on login page
 		add_action( 'login_init', array( $this, 'instawp_auto_login_redirect' ) );
-	}
-
-	public function clean_events() {
-		if ( ! \ActionScheduler::is_initialized( __FUNCTION__ ) ) {
-			return;
-		}
-
-		$statuses_to_purge = [
-			\ActionScheduler_Store::STATUS_COMPLETE,
-			\ActionScheduler_Store::STATUS_CANCELED,
-			\ActionScheduler_Store::STATUS_FAILED,
-		];
-		$store = \ActionScheduler::store();
-
-		$deleted_actions = [];
-		$action_ids      = [];
-		foreach ( $statuses_to_purge as $status ) {
-			$actions_to_delete = $store->query_actions( [
-				'status'           => $status,
-				'modified'         => as_get_datetime_object( '24 hours ago' ),
-				'modified_compare' => '<=',
-				'per_page'         => 200,
-				'orderby'          => 'none',
-				'group'            => 'instawp-connect'
-			] );
-
-			$action_ids = array_merge( $action_ids, $actions_to_delete );
-		}
-
-		foreach( $action_ids as $action_id ) {
-			try {
-				$store->delete_action( $action_id );
-			} catch ( Exception $e ) {}
-		}
-	}
-
-	// Login hook logic
-	public function instawp_auto_login_redirect() {
-		include_once ABSPATH . 'wp-admin/includes/plugin.php';
-
-		$current_setup_plugins = array_keys( get_plugins() );
-		$instawp_plugin        = null;
-		$instawp_index_default = array_search( 'instawp-connect/instawp-connect.php', $current_setup_plugins );
-		$instawp_index_main    = array_search( 'instawp-connect-main/instawp-connect.php', $current_setup_plugins );
-
-		if ( false !== $instawp_index_default ) {
-			$instawp_plugin = $current_setup_plugins[ $instawp_index_default ];
-		}
-
-		if ( false !== $instawp_index_main ) {
-			$instawp_plugin = $current_setup_plugins[ $instawp_index_main ];
-		}
-
-		// check for plugin using plugin name
-		if ( ! is_null( $instawp_plugin ) && is_plugin_active( $instawp_plugin ) ) {
-			// Check for params
-			if (
-				isset( $_GET['reauth'] ) &&
-				isset( $_GET['c'] ) &&
-				isset( $_GET['s'] ) &&
-				! empty( $_GET['reauth'] ) &&
-				! empty( $_GET['c'] ) &&
-				! empty( $_GET['s'] )
-			) {
-				$param_code   = $_GET['c'];
-				$param_user   = base64_decode( $_GET['s'] );
-				$current_code = get_transient( 'instawp_auto_login_code' );
-				$username     = sanitize_user( $param_user );
-				if (
-					$param_code === $current_code &&
-					false !== $current_code &&
-					username_exists( $username )
-				) {
-					//plugin is activated
-					require_once( 'wp-load.php' );
-					$loginusername = $username;
-					$user          = get_user_by( 'login', $loginusername );
-					$user_id       = $user->ID;
-					wp_set_current_user( $user_id, $loginusername );
-					wp_set_auth_cookie( $user_id );
-					do_action( 'wp_login', $loginusername, $user );
-
-					// Remove transient
-					delete_transient( 'instawp_auto_login_code' );
-					wp_redirect( admin_url() );
-					exit();
-				} else {
-					delete_transient( 'instawp_auto_login_code' );
-					wp_redirect( wp_login_url( '', false ) );
-					exit();
-				}
-			}
-		}
 	}
 
 	// Set Action Scheduler event.
@@ -277,30 +187,15 @@ class instaWP {
 			as_schedule_recurring_action( time(), ( $interval * 60 ), 'instawp_handle_heartbeat', [], 'instawp-connect', false, 5 );
 		}
 
+		if ( ! as_has_scheduled_action( 'instawp_prepare_large_files_list', [], 'instawp-connect' ) ) {
+			as_schedule_recurring_action( time(), HOUR_IN_SECONDS, 'instawp_prepare_large_files_list', [], 'instawp-connect', false, 5 );
+		}
+
 		if ( ! as_has_scheduled_action( 'instawp_clean_tasks', [], 'instawp-connect' ) ) {
 			as_schedule_recurring_action( time(), DAY_IN_SECONDS, 'instawp_clean_tasks', [], 'instawp-connect', false, 5 );
 		}
 	}
-
-	// Clean event if interval changes.
-	public function clear_heartbeat_action() {
-		as_unschedule_all_actions( 'instawp_handle_heartbeat', [], 'instawp-connect' );
-	}
-
-	/*Encrypt data*/
-	public static function instawp_heartbeat_data_encrypt( $arg ) {
-		$connect_options = get_option( 'instawp_api_options', '' );
-		$api_key         = $connect_options['api_key'];
-
-		$cipher = "aes-128-gcm";
-		$ivlen  = openssl_cipher_iv_length( $cipher );
-		$iv     = openssl_random_pseudo_bytes( $ivlen );
-		$tag    = 'GCM';
-		$data   = openssl_encrypt( $arg, $cipher, $api_key, $options = 0, $iv, $tag );
-
-		return $data;
-	}
-
+	
 	/**
 	 * Heartbeat Action to be performed
 	 * */
@@ -314,7 +209,7 @@ class instaWP {
 
 		date_default_timezone_set( "Asia/Kolkata" );
 
-		if ( defined( 'WP_DEBUG_LOG' ) && true === WP_DEBUG_LOG ) {
+		if ( defined( 'INSTAWP_DEBUG_LOG' ) && true === INSTAWP_DEBUG_LOG ) {
 			error_log( "HEARTBEAT RAN AT : " . date( 'd-m-Y, H:i:s, h:i:s' ) );
 		}
 
@@ -378,6 +273,140 @@ class instaWP {
 			error_log( print_r( $curl_response, true ) );
 			error_log( "Print Heartbeat API Curl Response End" );
 		}
+	}
+
+	public function prepare_large_files_list() {
+		$maxbytes = InstaWP_Setting::get_option( 'instawp_max_file_size_allowed', INSTAWP_DEFAULT_MAX_FILE_SIZE_ALLOWED ) * 1024 * 1024;
+		$path     = realpath( ABSPATH );
+		$data     = [];
+
+		if ( $path !== false && $path != '' && file_exists( $path ) ) {
+			foreach( new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $path, FilesystemIterator::SKIP_DOTS ) ) as $object ) {
+				if ( $object->getSize() > $maxbytes && strpos( $object->getPath(), 'instawpbackups' ) === false ) {
+					$data[] = [
+						'size'          => $object->getSize(),
+						'path'          => wp_normalize_path( $object->getPath() ),
+						'pathname'      => wp_normalize_path( $object->getPathname() ),
+						'realpath'      => wp_normalize_path( $object->getRealPath() ),
+						'relative_path' => str_replace( wp_normalize_path( ABSPATH ), '', wp_normalize_path( $object->getRealPath() ) ),
+					];
+				}
+			}
+		}
+
+		update_option( 'instawp_large_files_list', $data );
+	}
+
+	public function clean_events() {
+		if ( ! \ActionScheduler::is_initialized( __FUNCTION__ ) ) {
+			return;
+		}
+
+		$statuses_to_purge = [
+			\ActionScheduler_Store::STATUS_COMPLETE,
+			\ActionScheduler_Store::STATUS_CANCELED,
+			\ActionScheduler_Store::STATUS_FAILED,
+		];
+		$store = \ActionScheduler::store();
+
+		$deleted_actions = [];
+		$action_ids      = [];
+		foreach ( $statuses_to_purge as $status ) {
+			$actions_to_delete = $store->query_actions( [
+				'status'           => $status,
+				'modified'         => as_get_datetime_object( '24 hours ago' ),
+				'modified_compare' => '<=',
+				'per_page'         => 200,
+				'orderby'          => 'none',
+				'group'            => 'instawp-connect'
+			] );
+
+			$action_ids = array_merge( $action_ids, $actions_to_delete );
+		}
+
+		foreach( $action_ids as $action_id ) {
+			try {
+				$store->delete_action( $action_id );
+			} catch ( Exception $e ) {}
+		}
+	}
+
+	// Clean event if interval changes.
+	public function clear_heartbeat_action() {
+		as_unschedule_all_actions( 'instawp_handle_heartbeat', [], 'instawp-connect' );
+	}
+
+	// Login hook logic
+	public function instawp_auto_login_redirect() {
+		include_once ABSPATH . 'wp-admin/includes/plugin.php';
+
+		$current_setup_plugins = array_keys( get_plugins() );
+		$instawp_plugin        = null;
+		$instawp_index_default = array_search( 'instawp-connect/instawp-connect.php', $current_setup_plugins );
+		$instawp_index_main    = array_search( 'instawp-connect-main/instawp-connect.php', $current_setup_plugins );
+
+		if ( false !== $instawp_index_default ) {
+			$instawp_plugin = $current_setup_plugins[ $instawp_index_default ];
+		}
+
+		if ( false !== $instawp_index_main ) {
+			$instawp_plugin = $current_setup_plugins[ $instawp_index_main ];
+		}
+
+		// check for plugin using plugin name
+		if ( ! is_null( $instawp_plugin ) && is_plugin_active( $instawp_plugin ) ) {
+			// Check for params
+			if (
+				isset( $_GET['reauth'] ) &&
+				isset( $_GET['c'] ) &&
+				isset( $_GET['s'] ) &&
+				! empty( $_GET['reauth'] ) &&
+				! empty( $_GET['c'] ) &&
+				! empty( $_GET['s'] )
+			) {
+				$param_code   = $_GET['c'];
+				$param_user   = base64_decode( $_GET['s'] );
+				$current_code = get_transient( 'instawp_auto_login_code' );
+				$username     = sanitize_user( $param_user );
+				if (
+					$param_code === $current_code &&
+					false !== $current_code &&
+					username_exists( $username )
+				) {
+					//plugin is activated
+					require_once( 'wp-load.php' );
+					$loginusername = $username;
+					$user          = get_user_by( 'login', $loginusername );
+					$user_id       = $user->ID;
+					wp_set_current_user( $user_id, $loginusername );
+					wp_set_auth_cookie( $user_id );
+					do_action( 'wp_login', $loginusername, $user );
+
+					// Remove transient
+					delete_transient( 'instawp_auto_login_code' );
+					wp_redirect( admin_url() );
+					exit();
+				} else {
+					delete_transient( 'instawp_auto_login_code' );
+					wp_redirect( wp_login_url( '', false ) );
+					exit();
+				}
+			}
+		}
+	}
+
+	/*Encrypt data*/
+	public static function instawp_heartbeat_data_encrypt( $arg ) {
+		$connect_options = get_option( 'instawp_api_options', '' );
+		$api_key         = $connect_options['api_key'];
+
+		$cipher = "aes-128-gcm";
+		$ivlen  = openssl_cipher_iv_length( $cipher );
+		$iv     = openssl_random_pseudo_bytes( $ivlen );
+		$tag    = 'GCM';
+		$data   = openssl_encrypt( $arg, $cipher, $api_key, $options = 0, $iv, $tag );
+
+		return $data;
 	}
 
 	public function init_cron() {
@@ -5373,7 +5402,7 @@ class instaWP {
 	public function _junk_files_info_ex() {
 		try {
 			$log_dir             = $this->instawp_log->GetSaveLogFolder();
-			$log_dir_byte        = $this->GetDirectorySize( $log_dir );
+			$log_dir_byte        = $this->get_directory_size( $log_dir );
 			$ret['log_dir_size'] = $this->formatBytes( $log_dir_byte );
 
 			$ret['backup_cache_size'] = 0;
@@ -5450,12 +5479,12 @@ class instaWP {
 
 			foreach ( $delete_folder as $folder ) {
 				if ( file_exists( $folder ) ) {
-					$ret['junk_size'] += $this->GetDirectorySize( $folder );
+					$ret['junk_size'] += $this->get_directory_size( $folder );
 				}
 			}
 			$ret['junk_size'] = $this->formatBytes( $ret['junk_size'] );
 
-			$backup_dir_byte = $this->GetDirectorySize( $dir );
+			$backup_dir_byte = $this->get_directory_size( $dir );
 
 			$ret['backup_size'] = $this->get_instawp_backup_size();
 			$ret['backup_size'] = $this->formatBytes( $ret['backup_size'] );
@@ -5480,7 +5509,7 @@ class instaWP {
 	public function _junk_files_info() {
 		try {
 			$ret['log_path']     = $log_dir = $this->instawp_log->GetSaveLogFolder();
-			$log_dir_byte        = $this->GetDirectorySize( $ret['log_path'] );
+			$log_dir_byte        = $this->get_directory_size( $ret['log_path'] );
 			$ret['log_dir_size'] = $this->formatBytes( $log_dir_byte );
 
 			$dir                   = InstaWP_Setting::get_backupdir();
@@ -5488,7 +5517,7 @@ class instaWP {
 			$dir                   = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . $dir;
 			$ret['junk_path']      = $dir;
 
-			$backup_dir_byte        = $this->GetDirectorySize( $dir );
+			$backup_dir_byte        = $this->get_directory_size( $dir );
 			$ret['backup_dir_size'] = $this->formatBytes( $backup_dir_byte );
 
 			$ret['sum_size'] = $this->formatBytes( $backup_dir_byte + $log_dir_byte );
@@ -5506,14 +5535,14 @@ class instaWP {
       $dir = InstaWP_Setting::get_backupdir();
 
       $ret['log_path'] = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . $dir .DIRECTORY_SEPARATOR . 'instawp_log';
-      $log_dir_byte = $this->GetDirectorySize($ret['log_path']);
+      $log_dir_byte = $this->get_directory_size($ret['log_path']);
       $ret['log_dir_size'] = $this->formatBytes($log_dir_byte);
 
       $ret['old_files_path'] = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . $dir . DIRECTORY_SEPARATOR . INSTAWP_DEFAULT_ROLLBACK_DIR;
       $dir = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . $dir;
       $ret['junk_path'] = $dir;
 
-      $backup_dir_byte = $this->GetDirectorySize($dir);
+      $backup_dir_byte = $this->get_directory_size($dir);
       $ret['backup_dir_size'] = $this->formatBytes($backup_dir_byte);
 
       $ret['sum_size'] = $this->formatBytes($backup_dir_byte + $log_dir_byte);
@@ -5595,16 +5624,77 @@ class instaWP {
 		die();
 	}
 
-	private function GetDirectorySize( $path ) {
-		$bytes_total = 0;
-		$path        = realpath( $path );
-		if ( $path !== false && $path != '' && file_exists( $path ) ) {
-			foreach ( new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $path, FilesystemIterator::SKIP_DOTS ) ) as $object ) {
-				$bytes_total += $object->getSize();
-			}
+	public function get_directory_contents( $dir ) {
+		$files_data      = scandir( $dir );
+		$path_to_replace = wp_normalize_path( ABSPATH );
+		$files = $folders = [];
+	
+		foreach( $files_data as $key => $value ) {
+			$path            = realpath( $dir . DIRECTORY_SEPARATOR . $value );
+			$normalized_path = wp_normalize_path( $path );
+	
+			try {
+				if ( ! is_dir( $path ) ) {
+					$size           = filesize( $path );
+					$files[] = [
+						'name'          => $value,
+						'relative_path' => str_replace( $path_to_replace, '', $normalized_path ),
+						'full_path'     => $normalized_path,
+						'size'          => $size,
+						'type'          => 'file'
+					];
+				} else if ( $value != "." && $value != ".." ) {
+					$size                 = $this->get_directory_size( $path );
+					$folders[] = [
+						'name'          => $value,
+						'relative_path' => str_replace( $path_to_replace, '', $normalized_path ),
+						'full_path'     => $normalized_path,
+						'size'          => $size,
+						'type'          => 'folder'
+					];
+				}
+			} catch( Exception $e ) {}
 		}
 
-		return $bytes_total;
+		// usort( $folders, function ( $item1, $item2 ) {
+		// 	return $item2['size'] <=> $item1['size'];
+		// } );
+
+		// usort( $files, function ( $item1, $item2 ) {
+		// 	return $item2['size'] <=> $item1['size'];
+		// } );
+
+		return array_merge( $folders, $files );
+	}
+	
+	public function get_directory_size( $path ) {
+		$bytestotal = 0;
+		$path       = realpath( $path );
+		try {
+			if ( $path !== false && $path != '' && file_exists( $path ) ) {
+				foreach( new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $path, FilesystemIterator::SKIP_DOTS ) ) as $object ) {
+					$bytestotal += $object->getSize();
+				}
+			}
+		} catch( Exception $e ) {}
+	
+		return $bytestotal;
+	}
+	
+	public function get_file_size_with_unit( $size, $unit = "" ) {
+		if ( ( ! $unit && $size >= 1<<30 ) || $unit == "GB" ) {
+		  	return number_format( $size / ( 1<<30 ), 2 )." GB";
+		}
+
+		if ( ( ! $unit && $size >= 1<<20 ) || $unit == "MB" ) {
+		  	return number_format( $size / ( 1<<20 ), 2 ) . " MB";
+		}
+
+		if ( ( ! $unit && $size >= 1<<10 ) || $unit == "KB" ) {
+		  	return number_format( $size / ( 1<<10 ), 2 ) . " KB";
+		}
+
+		return number_format( $size ) . " B";
 	}
 
 	public function clean_local_storage() {
