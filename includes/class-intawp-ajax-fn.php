@@ -76,7 +76,7 @@ class InstaWP_Ajax_Fn {
 		if( isset($_POST['connect_id']) && intval( $_POST['connect_id'] ) > 0 ){
 			$where .= " AND connect_id=".sanitize_text_field( $_POST['connect_id'] );
 		}
-		$query 			= "SELECT COUNT(1) FROM `wp_instawp_events`WHERE `id` NOT IN (SELECT event_id AS id FROM `wp_instawp_event_sites` WHERE $where)";
+		$query 			= "SELECT COUNT(1) FROM ".INSTAWP_DB_TABLE_EVENTS." WHERE `id` NOT IN (SELECT event_id AS id FROM ".INSTAWP_DB_TABLE_EVENT_SITES." WHERE $where)";
 		$total_events   = $wpdb->get_var( $query );
 		if( $total_events > 0 ){
 
@@ -105,7 +105,7 @@ class InstaWP_Ajax_Fn {
 			$where .= " AND connect_id=".sanitize_text_field( $_POST['dest_connect_id'] );
 		}
 		$items_per_page = INSTAWP_EVENTS_SYNC_PER_PAGE;
-		$query          = "SELECT * FROM `wp_instawp_events` WHERE `id` NOT IN (SELECT event_id AS id FROM `wp_instawp_event_sites` WHERE $where)";
+		$query          = "SELECT * FROM ".INSTAWP_DB_TABLE_EVENTS." WHERE `id` NOT IN (SELECT event_id AS id FROM ".INSTAWP_DB_TABLE_EVENT_SITES." WHERE $where)";
 		$total_query    = "SELECT COUNT(1) FROM ({$query}) AS combined_table";
 		$total          = $wpdb->get_var( $total_query );
 		$page           = isset( $_POST['page'] ) ? abs( (int) $_POST['page'] ) : 1;
@@ -115,9 +115,9 @@ class InstaWP_Ajax_Fn {
 		return [
 			'count'    		=> 	$total, 
 			'page'			=> 	$page,
-			'per_page'		=>	INSTAWP_EVENTS_SYNC_PER_PAGE,
 			'total_page'	=>	$total_page,
-			'events'		=>	$events
+			'events'		=>	$events,
+			'per_page'		=>	INSTAWP_EVENTS_SYNC_PER_PAGE,
 		];
 	}
 
@@ -336,13 +336,13 @@ class InstaWP_Ajax_Fn {
 							'paging_data'	=> [
 								'count'    			=> 	$paging_data->count, 
 								'page'				=> 	$paging_data->page,
-								'per_page'			=>	INSTAWP_EVENTS_SYNC_PER_PAGE,
 								'total_page'		=>	$paging_data->total_page,
 								'next_page'			=>	$paging_data->page + 1,
 								'total_completed'	=>  $total_completed,
 								'percent_completed'	=>  $percentage,
 								'event'				=>  $event_counts,
 								'sync_id'			=>	$resp_decode->data->sync_id,
+								'per_page'			=>	INSTAWP_EVENTS_SYNC_PER_PAGE,
 								'progress_text'		=>  $percentage.'%'.sprintf(" Completed ( %u out of %s events)", $total_completed, $paging_data->count)
 							]
 						];
