@@ -773,7 +773,7 @@ tailwind.config = {
                         'active_plugins': el_active_plugins_only.prop("checked"),
                         'active_themes': el_active_themes_only.prop("checked"),
                         'skip_media_folder': el_skip_media_folder.prop("checked"),
-                        'is_checked': el_is_checked,
+                        //'is_checked': el_is_checked,
                         'security': instawp_migrate.security
                     },
                     beforeSend: function () {
