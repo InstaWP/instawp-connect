@@ -5,7 +5,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2023-09-05 13:47+0000\n"
+"POT-Creation-Date: 2023-09-13 11:34+0000\n"
 "X-Poedit-Basepath: ..\n"
 "X-Poedit-KeywordsList: __;_e;_ex:1,2c;_n:1,2;_n_noop:1,2;_nx:1,2,4c;_nx_noop:1,2,3c;_x:1,2c;esc_attr__;esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c\n"
 "X-Poedit-SearchPath-0: .\n"
@@ -17,276 +17,276 @@ msgstr ""
 msgid "Migrate"
 msgstr ""
 
-#: admin/class-instawp-admin.php:105, admin/class-instawp-go-live.php:282
+#: admin/class-instawp-admin.php:105
 msgid "Go Live"
 msgstr ""
 
-#: admin/class-instawp-admin.php:128
+#: admin/class-instawp-admin.php:127
 msgid "InstaWP %s Integration"
 msgstr ""
 
-#: admin/class-instawp-admin.php:132
+#: admin/class-instawp-admin.php:131
 msgid "Template Migration"
 msgstr ""
 
-#: admin/class-instawp-admin.php:144, admin/class-instawp-admin.php:145
+#: admin/class-instawp-admin.php:143, admin/class-instawp-admin.php:144
 msgid "InstaWP - Migrate"
 msgstr ""
 
-#: admin/class-instawp-admin.php:159, admin/class-instawp-admin.php:160
-msgid "InstaWP Cloudways Integration"
-msgstr ""
-
-#: admin/class-instawp-admin.php:169, admin/class-instawp-admin.php:170
+#: admin/class-instawp-admin.php:158, admin/class-instawp-admin.php:159
 msgid "InstaWP"
 msgstr ""
 
-#: admin/class-instawp-admin.php:224, admin/class-instawp-admin.php:741
+#: admin/class-instawp-admin.php:213, admin/class-instawp-admin.php:733
 msgid "Backup & Restore"
 msgstr ""
 
-#: admin/class-instawp-admin.php:234, admin/partials/instawp-admin-staging-sites.php:143
+#: admin/class-instawp-admin.php:223, admin/partials/instawp-admin-staging-sites.php:143
 msgid "Create New"
 msgstr ""
 
-#: admin/class-instawp-admin.php:248, includes/class-instawp-setting.php:48
+#: admin/class-instawp-admin.php:237, includes/class-instawp-setting.php:48
 msgid "Staging Sites"
 msgstr ""
 
-#: admin/class-instawp-admin.php:277
+#: admin/class-instawp-admin.php:266
 msgid "Sync History"
 msgstr ""
 
-#: admin/class-instawp-admin.php:287
+#: admin/class-instawp-admin.php:276
 msgid "Sync Features"
 msgstr ""
 
-#: admin/class-instawp-admin.php:298, admin/class-instawp-admin.php:774, includes/class-instawp-setting.php:61, includes/class-instawp-setting.php:251
+#: admin/class-instawp-admin.php:287, admin/class-instawp-admin.php:766, includes/class-instawp-setting.php:61, includes/class-instawp-setting.php:251
 msgid "Settings"
 msgstr ""
 
-#: admin/class-instawp-admin.php:359
+#: admin/class-instawp-admin.php:324
+msgid "Please create staging sites first."
+msgstr ""
+
+#: admin/class-instawp-admin.php:351
 msgid "Warning:"
 msgstr ""
 
-#: admin/class-instawp-admin.php:360
+#: admin/class-instawp-admin.php:352
 msgid "Error:"
 msgstr ""
 
-#: admin/class-instawp-admin.php:361
+#: admin/class-instawp-admin.php:353
 msgid "Warning: An alias for remote storage is required."
 msgstr ""
 
-#: admin/class-instawp-admin.php:362
+#: admin/class-instawp-admin.php:354
 msgid "Warning: The alias already exists in storage list."
 msgstr ""
 
-#: admin/class-instawp-admin.php:363
+#: admin/class-instawp-admin.php:355
 msgid "Calculating the size of files, folder and database timed out. If you continue to receive this error, please go to the plugin settings, uncheck 'Calculate the size of files, folder and database before backing up', save changes, then try again."
 msgstr ""
 
-#: admin/class-instawp-admin.php:364
+#: admin/class-instawp-admin.php:356
 msgid "Step One: In the backup list, click the 'Restore' button on the backup you want to restore. This will bring up the restore tab"
 msgstr ""
 
-#: admin/class-instawp-admin.php:365
+#: admin/class-instawp-admin.php:357
 msgid "Step Two: Choose an option to complete restore, if any"
 msgstr ""
 
-#: admin/class-instawp-admin.php:366
+#: admin/class-instawp-admin.php:358
 msgid "Step Three: Click 'Restore' button"
 msgstr ""
 
-#: admin/class-instawp-admin.php:367
+#: admin/class-instawp-admin.php:359
 msgid "1. Visit Key tab page of instaWP backup plugin of destination site."
 msgstr ""
 
-#: admin/class-instawp-admin.php:368
+#: admin/class-instawp-admin.php:360
 msgid "2. Generate a key by clicking Generate button and copy it."
 msgstr ""
 
-#: admin/class-instawp-admin.php:369
+#: admin/class-instawp-admin.php:361
 msgid "3. Go back to this page and paste the key in key box below. Lastly, click Save button."
 msgstr ""
 
-#: admin/class-instawp-admin.php:436
+#: admin/class-instawp-admin.php:428
 msgid "Create Site"
 msgstr ""
 
-#: admin/class-instawp-admin.php:490
+#: admin/class-instawp-admin.php:482
 msgid "Migration is complete and htaccess file is replaced. In order to successfully complete the migration, you'd better reinstall 301 redirect plugin, firewall and security plugin, and caching plugin if they exist."
 msgstr ""
 
-#: admin/class-instawp-admin.php:502, admin/partials/class-instawp-files-list.php:1620
+#: admin/class-instawp-admin.php:494, admin/partials/class-instawp-files-list.php:1620
 msgid "Restore completed successfully."
 msgstr ""
 
 #. translators: %s: extension
-#: admin/class-instawp-admin.php:620
+#: admin/class-instawp-admin.php:612
 msgid "The %s extensions are not detected. Please install the extensions first."
 msgstr ""
 
-#: admin/class-instawp-admin.php:614
+#: admin/class-instawp-admin.php:606
 msgid "The %s extension is not detected. Please install the extension first."
 msgstr ""
 
-#: admin/class-instawp-admin.php:633
+#: admin/class-instawp-admin.php:625
 msgid "Class PclZip is not detected. Please update or reinstall your WordPress."
 msgstr ""
 
-#: admin/class-instawp-admin.php:642
+#: admin/class-instawp-admin.php:634
 msgid "In order to execute the scheduled backups properly, please set the DISABLE_WP_CRON constant to false. If you are using an external cron system, simply click 'X' to dismiss this message."
 msgstr ""
 
-#: admin/class-instawp-admin.php:752
+#: admin/class-instawp-admin.php:744
 msgid "Schedule"
 msgstr ""
 
-#: admin/class-instawp-admin.php:763
+#: admin/class-instawp-admin.php:755
 msgid "Remote Storage"
 msgstr ""
 
-#: admin/class-instawp-admin.php:785
+#: admin/class-instawp-admin.php:777
 msgid "Debug"
 msgstr ""
 
-#: admin/class-instawp-admin.php:796
+#: admin/class-instawp-admin.php:788
 msgid "Backup Logs"
 msgstr ""
 
-#: admin/class-instawp-admin.php:809, admin/partials/class-instawp-files-list.php:473, includes/class-instawp.php:7171
+#: admin/class-instawp-admin.php:801, admin/partials/class-instawp-files-list.php:473, includes/class-instawp.php:7259
 msgid "Log"
 msgstr ""
 
-#: admin/class-instawp-admin.php:830
+#: admin/class-instawp-admin.php:822
 msgid "MainWP"
 msgstr ""
 
-#: admin/class-instawp-admin.php:849
+#: admin/class-instawp-admin.php:841
 msgid "Premium"
 msgstr ""
 
-#: admin/class-instawp-admin.php:927, admin/class-instawp-admin.php:1087, admin/partials/instawp-remote-storage-page-display.php:45, admin/partials/instawp-remote-storage-page-display.php:340
+#: admin/class-instawp-admin.php:919, admin/class-instawp-admin.php:1079, admin/partials/instawp-remote-storage-page-display.php:45, admin/partials/instawp-remote-storage-page-display.php:340
 msgid "Save Changes"
 msgstr ""
 
-#: admin/class-instawp-admin.php:1168
+#: admin/class-instawp-admin.php:1160
 msgid "Logs"
 msgstr ""
 
-#: admin/class-instawp-admin.php:1224
+#: admin/class-instawp-admin.php:1216
 msgid "There are two ways available to send us the debug information. The first one is recommended."
 msgstr ""
 
-#: admin/class-instawp-admin.php:1228
+#: admin/class-instawp-admin.php:1220
 msgid "Method 1."
 msgstr ""
 
-#: admin/class-instawp-admin.php:1228
+#: admin/class-instawp-admin.php:1220
 msgid "If you have configured SMTP on your site, enter your email address and click the button below to send us the relevant information (website info and errors logs) when you are encountering errors. This will help us figure out what happened. Once the issue is resolved, we will inform you by your email address."
 msgstr ""
 
-#: admin/class-instawp-admin.php:1234
+#: admin/class-instawp-admin.php:1226
 msgid "instaWP support email:"
 msgstr ""
 
-#: admin/class-instawp-admin.php:1236
+#: admin/class-instawp-admin.php:1228
 msgid "Your email:"
 msgstr ""
 
-#: admin/class-instawp-admin.php:1246
+#: admin/class-instawp-admin.php:1238
 msgid "I am using:"
 msgstr ""
 
-#: admin/class-instawp-admin.php:1254
+#: admin/class-instawp-admin.php:1246
 msgid "share hosting"
 msgstr ""
 
-#: admin/class-instawp-admin.php:1256
+#: admin/class-instawp-admin.php:1248
 msgid "VPS hosting"
 msgstr ""
 
-#: admin/class-instawp-admin.php:1270
+#: admin/class-instawp-admin.php:1262
 msgid "My web hosting provider is:"
 msgstr ""
 
-#: admin/class-instawp-admin.php:1282
+#: admin/class-instawp-admin.php:1274
 msgid "Please describe your problem here."
 msgstr ""
 
-#: admin/class-instawp-admin.php:1286
+#: admin/class-instawp-admin.php:1278
 msgid "Send Debug Information to Us"
 msgstr ""
 
-#: admin/class-instawp-admin.php:1292
+#: admin/class-instawp-admin.php:1284
 msgid "Method 2."
 msgstr ""
 
-#: admin/class-instawp-admin.php:1292
+#: admin/class-instawp-admin.php:1284
 msgid "If you didn’t configure SMTP on your site, click the button below to download the relevant information (website info and error logs) to your PC when you are encountering some errors. Sending the files to us will help us diagnose what happened."
 msgstr ""
 
-#: admin/class-instawp-admin.php:1296, admin/partials/class-instawp-files-list.php:76, admin/partials/class-instawp-files-list.php:495, admin/partials/instawp-admin-wizard.php:210, includes/class-instawp.php:3350, includes/class-instawp.php:7181
+#: admin/class-instawp-admin.php:1288, admin/partials/class-instawp-files-list.php:76, admin/partials/class-instawp-files-list.php:495, admin/partials/instawp-admin-wizard.php:210, includes/class-instawp.php:3377, includes/class-instawp.php:7269
 msgid "Download"
 msgstr ""
 
-#: admin/class-instawp-admin.php:1301
+#: admin/class-instawp-admin.php:1293
 msgid "Website Info Key"
 msgstr ""
 
-#: admin/class-instawp-admin.php:1302
+#: admin/class-instawp-admin.php:1294
 msgid "Website Info Value"
 msgstr ""
 
-#: admin/class-instawp-admin.php:1382
+#: admin/class-instawp-admin.php:1374
 msgid "Send succeeded."
 msgstr ""
 
-#: admin/class-instawp-admin.php:1415
+#: admin/class-instawp-admin.php:1407
 msgid "Date"
 msgstr ""
 
-#: admin/class-instawp-admin.php:1416
+#: admin/class-instawp-admin.php:1408
 msgid "Log Type"
 msgstr ""
 
-#: admin/class-instawp-admin.php:1417
+#: admin/class-instawp-admin.php:1409
 msgid "Log File Name"
 msgstr ""
 
-#: admin/class-instawp-admin.php:1418
+#: admin/class-instawp-admin.php:1410
 msgid "Action"
 msgstr ""
 
-#: admin/class-instawp-admin.php:1431
+#: admin/class-instawp-admin.php:1423
 msgid " < Pre page "
 msgstr ""
 
-#: admin/class-instawp-admin.php:1444
+#: admin/class-instawp-admin.php:1436
 msgid " Next page > "
 msgstr ""
 
-#: admin/class-instawp-admin.php:1548
+#: admin/class-instawp-admin.php:1540
 msgid "If you are a MainWP user, you can set up and control instaWP Backup Free and Pro for every child site directly from your MainWP dashboard, using our instaWP Backup for MainWP extension."
 msgstr ""
 
-#: admin/class-instawp-admin.php:1552
+#: admin/class-instawp-admin.php:1544
 msgid "Download instaWP Backup for MainWP"
 msgstr ""
 
-#: admin/class-instawp-admin.php:1560
+#: admin/class-instawp-admin.php:1552
 msgid "2. Set backup schedules for all child sites"
 msgstr ""
 
-#: admin/class-instawp-admin.php:1565
+#: admin/class-instawp-admin.php:1557
 msgid "3. Set instaWP Backup Free and Pro settings for all child sites"
 msgstr ""
 
-#: admin/class-instawp-admin.php:1571
+#: admin/class-instawp-admin.php:1563
 msgid "4. Install, claim and update instaWP Backup Pro for child sites in bulk"
 msgstr ""
 
-#: admin/class-instawp-admin.php:1576
+#: admin/class-instawp-admin.php:1568
 msgid "5. Set up remote storage for child sites in bulk (for instaWP Backup Pro only)"
 msgstr ""
 
@@ -298,50 +298,6 @@ msgstr ""
 msgid "Recording"
 msgstr ""
 
-#: admin/class-instawp-go-live.php:57
-msgid "Backup creation is in process."
-msgstr ""
-
-#: admin/class-instawp-go-live.php:64
-msgid "Migration is in process."
-msgstr ""
-
-#: admin/class-instawp-go-live.php:96
-msgid "Invalid migrate id."
-msgstr ""
-
-#: admin/class-instawp-go-live.php:217
-msgid "Error creating migrate id."
-msgstr ""
-
-#: admin/class-instawp-go-live.php:227
-msgid "Backup created successfully."
-msgstr ""
-
-#: admin/class-instawp-go-live.php:244
-msgid "Preparing to initiate the migration."
-msgstr ""
-
-#: admin/class-instawp-go-live.php:262
-msgid "%sTrial Site"
-msgstr ""
-
-#: admin/class-instawp-go-live.php:264
-msgid "Trial Details"
-msgstr ""
-
-#: admin/class-instawp-go-live.php:268
-msgid "Trial Domain"
-msgstr ""
-
-#: admin/class-instawp-go-live.php:272
-msgid "Trial Period"
-msgstr ""
-
-#: admin/class-instawp-go-live.php:273
-msgid "%s Remaining"
-msgstr ""
-
 #: admin/partials/class-instawp-files-list.php:31
 msgid "Select All"
 msgstr ""
@@ -350,11 +306,11 @@ msgstr ""
 msgid "File"
 msgstr ""
 
-#: admin/partials/class-instawp-files-list.php:105, admin/partials/class-instawp-files-list.php:97, admin/partials/class-instawp-files-list.php:86, admin/partials/class-instawp-files-list.php:82, admin/partials/class-instawp-files-list.php:76, includes/class-instawp.php:3359, includes/class-instawp.php:3350, includes/class-instawp.php:3345
+#: admin/partials/class-instawp-files-list.php:105, admin/partials/class-instawp-files-list.php:97, admin/partials/class-instawp-files-list.php:86, admin/partials/class-instawp-files-list.php:82, admin/partials/class-instawp-files-list.php:76, includes/class-instawp.php:3386, includes/class-instawp.php:3377, includes/class-instawp.php:3372
 msgid "File Size: "
 msgstr ""
 
-#: admin/partials/class-instawp-files-list.php:105, admin/partials/class-instawp-files-list.php:97, admin/partials/class-instawp-files-list.php:82, includes/class-instawp.php:3359, includes/class-instawp.php:3345
+#: admin/partials/class-instawp-files-list.php:105, admin/partials/class-instawp-files-list.php:97, admin/partials/class-instawp-files-list.php:82, includes/class-instawp.php:3386, includes/class-instawp.php:3372
 msgid "Prepare to Download"
 msgstr ""
 
@@ -415,11 +371,11 @@ msgstr ""
 msgid "Backups"
 msgstr ""
 
-#: admin/partials/class-instawp-files-list.php:484, admin/partials/class-instawp-files-list.php:1204, admin/partials/instawp-admin-wizard.php:211, includes/class-instawp.php:7189
+#: admin/partials/class-instawp-files-list.php:484, admin/partials/class-instawp-files-list.php:1204, admin/partials/instawp-admin-wizard.php:211, includes/class-instawp.php:7277
 msgid "Restore"
 msgstr ""
 
-#: admin/partials/class-instawp-files-list.php:774, includes/class-instawp.php:7180
+#: admin/partials/class-instawp-files-list.php:774, includes/class-instawp.php:7268
 msgid "Prepare to download the backup"
 msgstr ""
 
@@ -612,11 +568,11 @@ msgstr ""
 msgid "Select database method"
 msgstr ""
 
-#: admin/partials/instawp-admin-settings.php:105, includes/class-instawp-setting.php:290
+#: admin/partials/instawp-admin-settings.php:105, includes/class-instawp-setting.php:301
 msgid "PDO"
 msgstr ""
 
-#: admin/partials/instawp-admin-settings.php:106, includes/class-instawp-setting.php:289
+#: admin/partials/instawp-admin-settings.php:106, includes/class-instawp-setting.php:300
 msgid "WPDB"
 msgstr ""
 
@@ -797,7 +753,7 @@ msgstr ""
 msgid "Deleting a remote storage will make it unavailable until it is added again. Are you sure to continue?"
 msgstr ""
 
-#: admin/partials/instawp-remote-storage-page-display.php:232, includes/class-instawp.php:1005, includes/class-instawp.php:6438
+#: admin/partials/instawp-remote-storage-page-display.php:232, includes/class-instawp.php:1032, includes/class-instawp.php:6526
 msgid "There is no default remote storage configured. Please set it up first."
 msgstr ""
 
@@ -1131,7 +1087,7 @@ msgstr ""
 msgid "Invalid command for `-action`"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:144
+#: includes/class-instawp-ajax.php:249
 msgid "InstaWP Connect Settings has been reset successfully."
 msgstr ""
 
@@ -1152,27 +1108,27 @@ msgstr ""
 msgid "Select Files"
 msgstr ""
 
-#: includes/class-instawp-backup.php:1260, includes/class-instawp-backup.php:1246, includes/class-instawp-function-realize.php:67
+#: includes/class-instawp-backup.php:1278, includes/class-instawp-backup.php:1264, includes/class-instawp-function-realize.php:67
 msgid "The backup will be canceled after backing up the current chunk ends."
 msgstr ""
 
-#: includes/class-instawp-backup.php:1215, includes/class-instawp-backup.php:1198
+#: includes/class-instawp-backup.php:1233, includes/class-instawp-backup.php:1216
 msgid "Progress: "
 msgstr ""
 
-#: includes/class-instawp-backup.php:1215, includes/class-instawp-backup.php:1198
+#: includes/class-instawp-backup.php:1233, includes/class-instawp-backup.php:1216
 msgid "running time: "
 msgstr ""
 
-#: includes/class-instawp-backup.php:1158
+#: includes/class-instawp-backup.php:1176
 msgid "Ready to backup. Progress: 0%, running time: 0second."
 msgstr ""
 
-#: includes/class-instawp-backup.php:2270
+#: includes/class-instawp-backup.php:2288
 msgid "Start backing up %s."
 msgstr ""
 
-#: includes/class-instawp-backup.php:2278
+#: includes/class-instawp-backup.php:2296
 msgid "Backing up %s finished."
 msgstr ""
 
@@ -1216,23 +1172,23 @@ msgstr ""
 msgid "InstaWP File Manager"
 msgstr ""
 
-#: includes/class-instawp-function-realize.php:123, includes/class-instawp-function-realize.php:96, includes/class-instawp.php:1152, includes/class-instawp.php:1266
+#: includes/class-instawp-function-realize.php:123, includes/class-instawp-function-realize.php:96, includes/class-instawp.php:1179, includes/class-instawp.php:1293
 msgid "Retrieving the backup information failed while showing log. Please try again later."
 msgstr ""
 
-#: includes/class-instawp-function-realize.php:129, includes/class-instawp-function-realize.php:112, includes/class-instawp-function-realize.php:101, includes/class-instawp.php:1159, includes/class-instawp.php:1218, includes/class-instawp.php:1275, includes/class-instawp.php:6862
+#: includes/class-instawp-function-realize.php:129, includes/class-instawp-function-realize.php:112, includes/class-instawp-function-realize.php:101, includes/class-instawp.php:1186, includes/class-instawp.php:1245, includes/class-instawp.php:1302, includes/class-instawp.php:6950
 msgid "The log not found."
 msgstr ""
 
-#: includes/class-instawp-interface-mainwp.php:128, includes/class-instawp-public-interface.php:57, includes/class-instawp.php:1053, includes/class-instawp.php:1098
+#: includes/class-instawp-interface-mainwp.php:128, includes/class-instawp-public-interface.php:57, includes/class-instawp.php:1080, includes/class-instawp.php:1125
 msgid "Error occurred while parsing the request data. Please try to run backup again."
 msgstr ""
 
-#: includes/class-instawp-interface-mainwp.php:172, includes/class-instawp-interface-mainwp.php:241, includes/class-instawp-interface-mainwp.php:294, includes/class-instawp-public-interface.php:193, includes/class-instawp-public-interface.php:222, includes/class-instawp-public-interface.php:251, includes/class-instawp.php:1168, includes/class-instawp.php:1227, includes/class-instawp.php:1284, includes/class-instawp.php:6871
+#: includes/class-instawp-interface-mainwp.php:172, includes/class-instawp-interface-mainwp.php:241, includes/class-instawp-interface-mainwp.php:294, includes/class-instawp-public-interface.php:193, includes/class-instawp-public-interface.php:222, includes/class-instawp-public-interface.php:251, includes/class-instawp.php:1195, includes/class-instawp.php:1254, includes/class-instawp.php:1311, includes/class-instawp.php:6959
 msgid "Unable to open the log file."
 msgstr ""
 
-#: includes/class-instawp-interface-mainwp.php:232, includes/class-instawp-public-interface.php:213, includes/class-instawp.php:1184, includes/class-instawp.php:1209, includes/class-instawp.php:1300, includes/class-instawp.php:6887
+#: includes/class-instawp-interface-mainwp.php:232, includes/class-instawp-public-interface.php:213, includes/class-instawp.php:1211, includes/class-instawp.php:1236, includes/class-instawp.php:1327, includes/class-instawp.php:6975
 msgid "Reading the log failed. Please try again."
 msgstr ""
 
@@ -1276,51 +1232,51 @@ msgstr ""
 msgid "Backup will run through CLI."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:893
+#: includes/class-instawp-rest-api.php:890
 msgid "Backup is running on background processing"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1318
+#: includes/class-instawp-rest-api.php:1315
 msgid "Setting does not exist."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1301
+#: includes/class-instawp-rest-api.php:1298
 msgid "Success!"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1310
+#: includes/class-instawp-rest-api.php:1307
 msgid "You can not enable this setting through API."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1307
+#: includes/class-instawp-rest-api.php:1304
 msgid "Setting is already disabled."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1459, includes/class-instawp-setting.php:331, includes/class-instawp-setting.php:337
+#: includes/class-instawp-rest-api.php:1456, includes/class-instawp-setting.php:342, includes/class-instawp-setting.php:348
 msgid "Heartbeat"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1460, includes/class-instawp-setting.php:369
+#: includes/class-instawp-rest-api.php:1457, includes/class-instawp-setting.php:380
 msgid "File Manager"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1461, includes/class-instawp-setting.php:377
+#: includes/class-instawp-rest-api.php:1458, includes/class-instawp-setting.php:388
 msgid "Database Manager"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1462, includes/class-instawp-setting.php:385
+#: includes/class-instawp-rest-api.php:1459, includes/class-instawp-setting.php:396
 msgid "Install Plugin / Themes"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1463, includes/class-instawp-setting.php:393
+#: includes/class-instawp-rest-api.php:1460, includes/class-instawp-setting.php:404
 msgid "Config Management"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1464, includes/class-instawp-setting.php:402
+#: includes/class-instawp-rest-api.php:1461, includes/class-instawp-setting.php:413
 msgid "Site Inventory"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1465, includes/class-instawp-setting.php:411
+#: includes/class-instawp-rest-api.php:1462, includes/class-instawp-setting.php:422
 msgid "Debug Log"
 msgstr ""
 
@@ -1370,322 +1326,326 @@ msgid "Backup Parts Size"
 msgstr ""
 
 #: includes/class-instawp-setting.php:276
-msgid "Plugin Reset Type"
-msgstr ""
-
-#: includes/class-instawp-setting.php:277
-msgid "Hard reset will remove everything including API key."
-msgstr ""
-
-#: includes/class-instawp-setting.php:279
-msgid "Soft Reset"
-msgstr ""
-
-#: includes/class-instawp-setting.php:280
-msgid "Hard Reset"
-msgstr ""
-
-#: includes/class-instawp-setting.php:286
-msgid "Database Method"
+msgid "Maximum Allowed File Size"
 msgstr ""
 
 #: includes/class-instawp-setting.php:287
-msgid "WPDB option has a better compatibility, but slower. It is recommended to choose PDO if pdo_mysql extension is installed."
+msgid "Plugin Reset Type"
+msgstr ""
+
+#: includes/class-instawp-setting.php:288
+msgid "Hard reset will remove everything including API key."
+msgstr ""
+
+#: includes/class-instawp-setting.php:290
+msgid "Soft Reset"
+msgstr ""
+
+#: includes/class-instawp-setting.php:291
+msgid "Hard Reset"
+msgstr ""
+
+#: includes/class-instawp-setting.php:297
+msgid "Database Method"
 msgstr ""
 
 #: includes/class-instawp-setting.php:298
+msgid "WPDB option has a better compatibility, but slower. It is recommended to choose PDO if pdo_mysql extension is installed."
+msgstr ""
+
+#: includes/class-instawp-setting.php:309
 msgid "Default User"
 msgstr ""
 
-#: includes/class-instawp-setting.php:299
+#: includes/class-instawp-setting.php:310
 msgid "This option will allow to set default user for events syncing."
 msgstr ""
 
-#: includes/class-instawp-setting.php:307
+#: includes/class-instawp-setting.php:318
 msgid "Developer Options"
 msgstr ""
 
-#: includes/class-instawp-setting.php:308
+#: includes/class-instawp-setting.php:319
 msgid "This section is available only for the developers working in this plugin."
 msgstr ""
 
-#: includes/class-instawp-setting.php:314
+#: includes/class-instawp-setting.php:325
 msgid "API Domain"
 msgstr ""
 
-#: includes/class-instawp-setting.php:332
+#: includes/class-instawp-setting.php:343
 msgid "Update your website's heartbeat settings."
 msgstr ""
 
-#: includes/class-instawp-setting.php:338
+#: includes/class-instawp-setting.php:349
 msgid "Enabling this option will allow remotely communicate with InstaWP API and sends data (e.g. wp_version, php_version, theme name, number of published posts, number of published pages, total number of users, total_size of the wordpress site etc.) on this website."
 msgstr ""
 
-#: includes/class-instawp-setting.php:339
+#: includes/class-instawp-setting.php:350
 msgid "Disabling this will automatically disconnect this site from InstaWP dashboard after 1 hour."
 msgstr ""
 
-#: includes/class-instawp-setting.php:346
+#: includes/class-instawp-setting.php:357
 msgid "Heartbeat Interval (Minutes)"
 msgstr ""
 
-#: includes/class-instawp-setting.php:347
+#: includes/class-instawp-setting.php:358
 msgid "It is the interval of heartbeat in minutes."
 msgstr ""
 
-#: includes/class-instawp-setting.php:348
+#: includes/class-instawp-setting.php:359
 msgid "Minimum is 15 minutes and maximum is 60 minutes."
 msgstr ""
 
-#: includes/class-instawp-setting.php:362
+#: includes/class-instawp-setting.php:373
 msgid "Remote Management (Beta)"
 msgstr ""
 
-#: includes/class-instawp-setting.php:363
+#: includes/class-instawp-setting.php:374
 msgid "Update your website's remote management settings. To use this feature in the InstaWP dashboard, switch on the beta program from %s section."
 msgstr ""
 
-#: includes/class-instawp-setting.php:363
+#: includes/class-instawp-setting.php:374
 msgid "My Accounts"
 msgstr ""
 
-#: includes/class-instawp-setting.php:370
+#: includes/class-instawp-setting.php:381
 msgid "Enabling this option will allow creation of remote file manager on this website remotely using the REST API."
 msgstr ""
 
-#: includes/class-instawp-setting.php:378
+#: includes/class-instawp-setting.php:389
 msgid "Enabling this option will allow creation of remote database manager on this website remotely using the REST API."
 msgstr ""
 
-#: includes/class-instawp-setting.php:386
+#: includes/class-instawp-setting.php:397
 msgid "Enabling this option will allow install plugins and themes on this website remotely using the REST API."
 msgstr ""
 
-#: includes/class-instawp-setting.php:394
+#: includes/class-instawp-setting.php:405
 msgid "Enabling this option will allow reading, updating and deleting the WordPress constant values on this website remotely using the REST API."
 msgstr ""
 
-#: includes/class-instawp-setting.php:403
+#: includes/class-instawp-setting.php:414
 msgid "Enabling this option will allow reading the installed WordPress version, themes and plugins on this website remotely using the REST API."
 msgstr ""
 
-#: includes/class-instawp-setting.php:412
+#: includes/class-instawp-setting.php:423
 msgid "Enabling this option will allow reading WordPress error logs on this website remotely using the REST API."
 msgstr ""
 
-#: includes/class-instawp.php:973, includes/class-instawp.php:981
+#: includes/class-instawp.php:1000, includes/class-instawp.php:1008
 msgid "A backup type is required."
 msgstr ""
 
-#: includes/class-instawp.php:987, includes/class-instawp.php:996
+#: includes/class-instawp.php:1014, includes/class-instawp.php:1023
 msgid "Choose at least one storage location for backups."
 msgstr ""
 
-#: includes/class-instawp.php:1062, includes/class-instawp.php:1107, includes/class-instawp.php:1448, includes/class-instawp.php:1659
+#: includes/class-instawp.php:1089, includes/class-instawp.php:1134, includes/class-instawp.php:1475, includes/class-instawp.php:1686
 msgid "A task is already running. Please wait until the running task is complete, and try again."
 msgstr ""
 
-#: includes/class-instawp.php:2268, includes/class-instawp.php:2246, includes/class-instawp.php:2227, includes/class-instawp.php:2486, includes/class-instawp.php:2579
+#: includes/class-instawp.php:2295, includes/class-instawp.php:2273, includes/class-instawp.php:2254, includes/class-instawp.php:2513, includes/class-instawp.php:2606
 msgid "Too many resumption attempts."
 msgstr ""
 
-#: includes/class-instawp.php:2358
+#: includes/class-instawp.php:2385
 msgid "Launch %s"
 msgstr ""
 
-#: includes/class-instawp.php:2492, includes/class-instawp.php:2585
+#: includes/class-instawp.php:2519, includes/class-instawp.php:2612
 msgid "Task timed out."
 msgstr ""
 
-#: includes/class-instawp.php:3645
+#: includes/class-instawp.php:3672
 msgid "Retrieving the backup(s) information failed while deleting the selected backup(s). Please try again later."
 msgstr ""
 
-#: includes/class-instawp.php:3654
+#: includes/class-instawp.php:3681
 msgid "Unable to delete the locked backup. Please unlock it first and try again."
 msgstr ""
 
-#: includes/class-instawp.php:3757
+#: includes/class-instawp.php:3784
 msgid "You have successfully added a remote storage."
 msgstr ""
 
-#: includes/class-instawp.php:3810
+#: includes/class-instawp.php:3837
 msgid "Failed to delete the remote storage, can not retrieve the storage infomation. Please try again."
 msgstr ""
 
-#: includes/class-instawp.php:3839
+#: includes/class-instawp.php:3866
 msgid "Failed to get the remote storage information. Please try again later."
 msgstr ""
 
-#: includes/class-instawp.php:4775, includes/class-instawp.php:4815
+#: includes/class-instawp.php:4802, includes/class-instawp.php:4842
 msgid "restore failed error unknown"
 msgstr ""
 
-#: includes/class-instawp.php:4864, includes/class-instawp.php:4907
+#: includes/class-instawp.php:4891, includes/class-instawp.php:4934
 msgid "The restore file not found. Please verify the file exists."
 msgstr ""
 
-#: includes/class-instawp.php:5048, includes/class-instawp.php:5026
+#: includes/class-instawp.php:5075, includes/class-instawp.php:5053
 msgid "The last backup message not found."
 msgstr ""
 
-#: includes/class-instawp.php:5051
+#: includes/class-instawp.php:5078
 msgid "Last Backup: "
 msgstr ""
 
-#: includes/class-instawp.php:5136
+#: includes/class-instawp.php:5163
 msgid "%d backup tasks have been completed."
 msgstr ""
 
-#: includes/class-instawp.php:5226
+#: includes/class-instawp.php:5253
 msgid "Getting backup directory failed. Please try again later."
 msgstr ""
 
-#: includes/class-instawp.php:5627, includes/class-instawp.php:5733
+#: includes/class-instawp.php:5715, includes/class-instawp.php:5821
 msgid "Choose at least one type of junk files for deleting."
 msgstr ""
 
-#: includes/class-instawp.php:5694, includes/class-instawp.php:5800
+#: includes/class-instawp.php:5782, includes/class-instawp.php:5888
 msgid "The selected junk files have been deleted."
 msgstr ""
 
-#: includes/class-instawp.php:5959
+#: includes/class-instawp.php:6047
 msgid "Choose one storage from the list to be the default storage."
 msgstr ""
 
-#: includes/class-instawp.php:5987
+#: includes/class-instawp.php:6075
 msgid "You have successfully changed your default remote storage."
 msgstr ""
 
-#: includes/class-instawp.php:6215, includes/class-instawp.php:6223
+#: includes/class-instawp.php:6303, includes/class-instawp.php:6311
 msgid "The value of 'Compress file every' can't be empty."
 msgstr ""
 
-#: includes/class-instawp.php:6229, includes/class-instawp.php:6235
+#: includes/class-instawp.php:6317, includes/class-instawp.php:6323
 msgid "The value of 'Exclude files which are larger than' can't be empty."
 msgstr ""
 
-#: includes/class-instawp.php:6241, includes/class-instawp.php:6247
+#: includes/class-instawp.php:6329, includes/class-instawp.php:6335
 msgid "The value of 'PHP scripts execution timeout for backup' can't be empty."
 msgstr ""
 
-#: includes/class-instawp.php:6254, includes/class-instawp.php:6258
+#: includes/class-instawp.php:6342, includes/class-instawp.php:6346
 msgid "The value of 'PHP scripts execution timeout for restore' can't be empty."
 msgstr ""
 
-#: includes/class-instawp.php:6264, includes/class-instawp.php:6268
+#: includes/class-instawp.php:6352, includes/class-instawp.php:6356
 msgid "The value of 'PHP memory limit for backup' can't be empty."
 msgstr ""
 
-#: includes/class-instawp.php:6274, includes/class-instawp.php:6278
+#: includes/class-instawp.php:6362, includes/class-instawp.php:6366
 msgid "The value of 'PHP memory limit for restoration' can't be empty."
 msgstr ""
 
-#: includes/class-instawp.php:6284, includes/class-instawp.php:6288
+#: includes/class-instawp.php:6372, includes/class-instawp.php:6376
 msgid "The value of 'Chunk Size' can't be empty."
 msgstr ""
 
-#: includes/class-instawp.php:6294, includes/class-instawp.php:6298
+#: includes/class-instawp.php:6382, includes/class-instawp.php:6386
 msgid "The value of 'Posts Quantity Processed Per Request' can't be empty."
 msgstr ""
 
-#: includes/class-instawp.php:6304, includes/class-instawp.php:6308
+#: includes/class-instawp.php:6392, includes/class-instawp.php:6396
 msgid "The value of 'Media Files Quantity Processed Per Request' can't be empty."
 msgstr ""
 
-#: includes/class-instawp.php:6314, includes/class-instawp.php:6318
+#: includes/class-instawp.php:6402, includes/class-instawp.php:6406
 msgid "The value of 'DB Copy Count' can't be empty."
 msgstr ""
 
-#: includes/class-instawp.php:6324, includes/class-instawp.php:6328
+#: includes/class-instawp.php:6412, includes/class-instawp.php:6416
 msgid "The value of 'DB Replace Count' can't be empty."
 msgstr ""
 
-#: includes/class-instawp.php:6334, includes/class-instawp.php:6338
+#: includes/class-instawp.php:6422, includes/class-instawp.php:6426
 msgid "The value of 'File Copy Count' can't be empty."
 msgstr ""
 
-#: includes/class-instawp.php:6344, includes/class-instawp.php:6348
+#: includes/class-instawp.php:6432, includes/class-instawp.php:6436
 msgid "The value of 'Max File Size' can't be empty."
 msgstr ""
 
-#: includes/class-instawp.php:6354, includes/class-instawp.php:6358
+#: includes/class-instawp.php:6442, includes/class-instawp.php:6446
 msgid "The value of 'Staging Memory Limit' can't be empty."
 msgstr ""
 
-#: includes/class-instawp.php:6364, includes/class-instawp.php:6368
+#: includes/class-instawp.php:6452, includes/class-instawp.php:6456
 msgid "The value of 'PHP Scripts Execution Timeout' can't be empty."
 msgstr ""
 
-#: includes/class-instawp.php:6374, includes/class-instawp.php:6378
+#: includes/class-instawp.php:6462, includes/class-instawp.php:6466
 msgid "The value of 'Delay Between Requests' can't be empty."
 msgstr ""
 
-#: includes/class-instawp.php:6385, includes/class-instawp.php:6391
+#: includes/class-instawp.php:6473, includes/class-instawp.php:6479
 msgid "The local storage path is required."
 msgstr ""
 
-#: includes/class-instawp.php:6400
+#: includes/class-instawp.php:6488
 msgid "An email address is required."
 msgstr ""
 
-#: includes/class-instawp.php:6415, includes/class-instawp.php:6410
+#: includes/class-instawp.php:6503, includes/class-instawp.php:6498
 msgid "The pdo_mysql extension is not detected. Please install the extension first or choose wpdb option for Database connection method."
 msgstr ""
 
-#: includes/class-instawp.php:6539
+#: includes/class-instawp.php:6627
 msgid "The selected file is not the setting file for instaWP. Please upload the right file."
 msgstr ""
 
-#: includes/class-instawp.php:6570
+#: includes/class-instawp.php:6658
 msgid "Unable to send email. Please check the configuration of email server."
 msgstr ""
 
-#: includes/class-instawp.php:6562
+#: includes/class-instawp.php:6650
 msgid "Invalid email address"
 msgstr ""
 
-#: includes/class-instawp.php:7083
+#: includes/class-instawp.php:7171
 msgid "Uploaded Backup: "
 msgstr ""
 
-#: includes/class-instawp.php:7153
+#: includes/class-instawp.php:7241
 msgid "Click the button to complete website restore or migration"
 msgstr ""
 
-#: includes/class-instawp.php:7170
+#: includes/class-instawp.php:7258
 msgid "Type:"
 msgstr ""
 
-#: includes/class-instawp.php:7195
+#: includes/class-instawp.php:7283
 msgid "Delete the backup"
 msgstr ""
 
-#: includes/class-instawp.php:7231
+#: includes/class-instawp.php:7319
 msgid "Edit the remote storage"
 msgstr ""
 
-#: includes/class-instawp.php:7233
+#: includes/class-instawp.php:7321
 msgid "Remove the remote storage"
 msgstr ""
 
-#: includes/class-instawp.php:7294
+#: includes/class-instawp.php:7382
 msgid "Add a storage"
 msgstr ""
 
-#: includes/class-instawp.php:7317
+#: includes/class-instawp.php:7405
 msgid "Save backups on localhost (web server)"
 msgstr ""
 
-#: includes/class-instawp.php:7321
+#: includes/class-instawp.php:7409
 msgid "Send backups to remote storage (You can choose whether to keep the backup in localhost after it is uploaded to cloud storage in Settings.)"
 msgstr ""
 
-#: includes/class-instawp.php:7478
+#: includes/class-instawp.php:7566
 msgid "Please enter a valid email address."
 msgstr ""
 
-#: includes/class-instawp.php:7473
+#: includes/class-instawp.php:7561
 msgid "User's email address is required."
 msgstr ""
 
@@ -1713,14 +1673,14 @@ msgstr ""
 msgid "Error occurred while inserting new site. Error Message: %s"
 msgstr ""
 
-#: includes/functions.php:467
+#: includes/functions.php:468
 msgid "Invalid migrate or part ID"
 msgstr ""
 
-#: includes/functions.php:473
+#: includes/functions.php:474
 msgid "Restore completed for this part"
 msgstr ""
 
-#: includes/functions.php:609
+#: includes/functions.php:613
 msgid "Migration completed successfully."
 msgstr ""

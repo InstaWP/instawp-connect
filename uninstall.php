@@ -76,7 +76,7 @@ delete_option('instawp_api_token');
 delete_option('instawp_download_task_v2');
 delete_option('instawp_export_list');
 delete_option('instawp_backup_report');
-
+delete_option('instawp_large_files_list');
 delete_transient( 'instawp_staging_sites' );
 
 $options = get_option('instawp_staging_options',array());

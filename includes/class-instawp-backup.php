@@ -65,6 +65,7 @@ class InstaWP_Backup_Task {
 		$backup_options    = InstaWP_Setting::get_args_option( 'backup_options', $args, [] );
 		$migrate_settings  = InstaWP_Setting::get_args_option( 'migrate_settings', $backup_options, [] );
 		$skip_media_folder = InstaWP_Setting::get_args_option( 'skip_media_folder', $migrate_settings, false );
+		$excluded_paths    = InstaWP_Setting::get_args_option( 'excluded_paths', $migrate_settings, [] );
 
 		if ( $backup_type == INSTAWP_BACKUP_TYPE_UPLOADS || $backup_type == INSTAWP_BACKUP_TYPE_UPLOADS_FILES ) {
 
@@ -94,28 +95,28 @@ class InstaWP_Backup_Task {
 
 		} elseif ( $backup_type == INSTAWP_BACKUP_TYPE_CONTENT ) {
 
-			if ( $handle = opendir( WP_CONTENT_DIR ) ) {
-				while ( false !== ( $entry = readdir( $handle ) ) ) {
+			// if ( $handle = opendir( WP_CONTENT_DIR ) ) {
+			// 	while ( false !== ( $entry = readdir( $handle ) ) ) {
 
-					if ( $entry != "." && $entry != ".." && $entry != "index.php" && $entry != "plugins" && $entry != "themes" && $entry != "upgrade" && $entry != "uploads" ) {
-						$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( WP_CONTENT_DIR ) . DIRECTORY_SEPARATOR . $entry, DIRECTORY_SEPARATOR ) . '#';
-					}
-				}
-				closedir( $handle );
-			}
+			// 		if ( $entry != "." && $entry != ".." && $entry != "index.php" && $entry != "plugins" && $entry != "themes" && $entry != "upgrade" && $entry != "uploads" ) {
+			// 			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( WP_CONTENT_DIR ) . DIRECTORY_SEPARATOR . $entry, DIRECTORY_SEPARATOR ) . '#';
+			// 		}
+			// 	}
+			// 	closedir( $handle );
+			// }
 
 			if ( defined( 'INSTAWP_UPLOADS_ISO_DIR' ) ) {
 				$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( WP_CONTENT_DIR ) . DIRECTORY_SEPARATOR . INSTAWP_UPLOADS_ISO_DIR, DIRECTORY_SEPARATOR ) . '#';
 			}
 
 			// Silently exclude Backup Plugins.
-			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( WP_CONTENT_DIR ) . DIRECTORY_SEPARATOR . 'updraft', DIRECTORY_SEPARATOR ) . '#';
-			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( WP_CONTENT_DIR ) . DIRECTORY_SEPARATOR . 'ai1wm-backups', DIRECTORY_SEPARATOR ) . '#';
-			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( WP_CONTENT_DIR ) . DIRECTORY_SEPARATOR . 'backup-migration', DIRECTORY_SEPARATOR ) . '#';
-			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( WP_CONTENT_DIR ) . DIRECTORY_SEPARATOR . 'backups-dup-lite', DIRECTORY_SEPARATOR ) . '#';
-			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( WP_CONTENT_DIR ) . DIRECTORY_SEPARATOR . 'backups-dup-pro', DIRECTORY_SEPARATOR ) . '#';
-			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( WP_CONTENT_DIR ) . DIRECTORY_SEPARATOR . 'webtoffee_migrations', DIRECTORY_SEPARATOR ) . '#';
-			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( WP_CONTENT_DIR ) . DIRECTORY_SEPARATOR . 'wpvivid_uploads', DIRECTORY_SEPARATOR ) . '#';
+			// $exclude_regex[] = '#^' . preg_quote( $this->transfer_path( WP_CONTENT_DIR ) . DIRECTORY_SEPARATOR . 'updraft', DIRECTORY_SEPARATOR ) . '#';
+			// $exclude_regex[] = '#^' . preg_quote( $this->transfer_path( WP_CONTENT_DIR ) . DIRECTORY_SEPARATOR . 'ai1wm-backups', DIRECTORY_SEPARATOR ) . '#';
+			// $exclude_regex[] = '#^' . preg_quote( $this->transfer_path( WP_CONTENT_DIR ) . DIRECTORY_SEPARATOR . 'backup-migration', DIRECTORY_SEPARATOR ) . '#';
+			// $exclude_regex[] = '#^' . preg_quote( $this->transfer_path( WP_CONTENT_DIR ) . DIRECTORY_SEPARATOR . 'backups-dup-lite', DIRECTORY_SEPARATOR ) . '#';
+			// $exclude_regex[] = '#^' . preg_quote( $this->transfer_path( WP_CONTENT_DIR ) . DIRECTORY_SEPARATOR . 'backups-dup-pro', DIRECTORY_SEPARATOR ) . '#';
+			// $exclude_regex[] = '#^' . preg_quote( $this->transfer_path( WP_CONTENT_DIR ) . DIRECTORY_SEPARATOR . 'webtoffee_migrations', DIRECTORY_SEPARATOR ) . '#';
+			// $exclude_regex[] = '#^' . preg_quote( $this->transfer_path( WP_CONTENT_DIR ) . DIRECTORY_SEPARATOR . 'wpvivid_uploads', DIRECTORY_SEPARATOR ) . '#';
 
 			if ( $skip_media_folder === true || $skip_media_folder == 1 ) {
 				$upload_dir      = wp_upload_dir();
@@ -126,9 +127,9 @@ class InstaWP_Backup_Task {
 			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( WP_PLUGIN_DIR ), DIRECTORY_SEPARATOR ) . '#';
 
 		} elseif ( $backup_type == INSTAWP_BACKUP_TYPE_CORE ) {
-			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( ABSPATH . DIRECTORY_SEPARATOR ) ) . 'instawp-.*\.php#';
-			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( ABSPATH . DIRECTORY_SEPARATOR ) ) . 'instawp-.*\.zip#';
-			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( ABSPATH . DIRECTORY_SEPARATOR ) ) . 'instawp-.*\.gz#';
+			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( untrailingslashit( ABSPATH ) . DIRECTORY_SEPARATOR ), DIRECTORY_SEPARATOR ) . 'instawp-.*\.php#';
+			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( untrailingslashit( ABSPATH ) . DIRECTORY_SEPARATOR ), DIRECTORY_SEPARATOR ) . 'instawp-.*\.zip#';
+			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( untrailingslashit( ABSPATH ) . DIRECTORY_SEPARATOR ), DIRECTORY_SEPARATOR ) . 'instawp-.*\.gz#';
 		} elseif ( $backup_type == INSTAWP_BACKUP_TYPE_PLUGIN ) {
 
 			$exclude_plugins = $this->get_exclude_default_plugins();
@@ -148,6 +149,14 @@ class InstaWP_Backup_Task {
 			foreach ( $exclude_themes as $item_to_exclude ) {
 				$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( get_theme_root() . DIRECTORY_SEPARATOR . $item_to_exclude ), DIRECTORY_SEPARATOR ) . '#';
 			}
+		}
+
+		if ( isset( $args['excluded_paths'] ) && is_array( $args['excluded_paths'] ) ) {
+			$excluded_paths = array_merge( $excluded_paths, $args['excluded_paths'] );
+		}
+
+		foreach ( $excluded_paths as $excluded_path ) {
+			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( untrailingslashit( ABSPATH ) . DIRECTORY_SEPARATOR . $excluded_path ), DIRECTORY_SEPARATOR ) . '#';
 		}
 
 		return $exclude_regex;

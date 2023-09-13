@@ -126,7 +126,7 @@ tailwind.config = {
         // Adjusting Back/Continue Buttons
         if (screen_current <= 1) {
             el_btn_back.addClass('hidden');
-        } else if (screen_current >= 4) {
+        } else if (screen_current >= 5) {
             el_btn_back.addClass('hidden');
             el_btn_continue.addClass('hidden');
         } else {
@@ -134,7 +134,7 @@ tailwind.config = {
             el_btn_continue.removeClass('hidden');
         }
 
-        if (screen_current === 3) {
+        if (screen_current === 4) {
             el_btn_continue.text('Create Staging');
         } else {
             el_btn_continue.text('Next Step');
@@ -162,7 +162,7 @@ tailwind.config = {
         el_screen.parent().find('.screen-' + screen_current).addClass('active');
 
         // Initiating Migration
-        if (screen_current === 4) {
+        if (screen_current === 5) {
             create_container.addClass('loading');
 
             instawp_migrate_api_call();
@@ -184,7 +184,7 @@ tailwind.config = {
             el_option_selector_wrap.removeClass('border-grayCust-350').addClass('card-active border-primary-900');
 
             // For Preview Screens
-            el_selected_staging_options.append('<div class="' + option_id + ' border-primary-900 border card-active py-2 px-4 text-grayCust-700 text-xs font-medium rounded-lg mr-3">' + option_label + '</div>');
+            el_selected_staging_options.append('<div class="' + option_id + ' border-primary-900 border card-active py-2 px-4 text-grayCust-700 text-xs font-medium rounded-lg">' + option_label + '</div>');
         }
     });
 
@@ -279,7 +279,7 @@ tailwind.config = {
             return;
         }
 
-        if (el_btn_migrate.hasClass('back') || screen_current !== 3) {
+        if (el_btn_migrate.hasClass('back') || screen_current !== 4) {
             el_instawp_screen.val(screen_next).trigger('change');
         } else {
 
@@ -322,7 +322,6 @@ tailwind.config = {
         }
     });
 
-
     $(document).on('ready', function () {
         let create_container = $('.instawp-wrap .nav-item-content.create'),
             this_nav_item_id = localStorage.getItem('instawp_admin_current'),
@@ -337,7 +336,7 @@ tailwind.config = {
 
         if (create_container.hasClass('loading')) {
 
-            el_instawp_screen.val(4).trigger('change');
+            el_instawp_screen.val(5).trigger('change');
             create_container.attr('interval-id', setInterval(instawp_migrate_api_call, 2000));
         }
     });
@@ -679,6 +678,132 @@ tailwind.config = {
         el_migrate_step_prev.find('.step-progress-icon').find('img').removeClass('hidden');
         el_migrate_step_prev.find('.step-progress-icon').find('span').addClass('hidden');
     });
+
+
+    // Get Dir List start //
+    $(document).on('change', '#skip_large_files', function() {
+        let el = $(this),
+            subEl = $(document).find('.instawp-checkbox.exclude-item.large-file');
+
+        subEl.not(":disabled").prop( "checked", el.is(":checked") );
+    });
+
+    $(document).on('change', '#active_plugins_only, input#active_themes_only, input#skip_media_folder', function () {
+        $(document).find('.exclude-container').removeClass('p-4 h-80').html('<div class="loading"></div>');
+        $(document).find('#instawp-files-select-all').prop( "checked", false ).prop( "disabled", true );
+        $(document).trigger("instawpLoadDirectory");
+    });
+
+    // $(document).on('change', '#instawp-files-select-all', function() {
+    //     let el = $(this),
+    //         subEl = $(document).find('.exclude-container .instawp-checkbox.exclude-item');
+
+    //     subEl.not(":disabled").prop( "checked", el.is(":checked") );
+    // });
+
+    $(document).on('change', '.instawp-checkbox.exclude-item', function() {
+        let el = $(this),
+            parentEl = el.closest('.item'),
+            subEl = parentEl.find('.sub-item .instawp-checkbox.exclude-item');
+
+        if ( $(document).find('.exclude-container .instawp-checkbox.exclude-item').not(':checked').length) {
+            $(document).find('#instawp-files-select-all').prop( "checked", false );
+        } else {
+            $(document).find('#instawp-files-select-all').prop( "checked", true );
+        }
+
+        subEl.not(":disabled").prop( "checked", el.is(":checked") );
+    });
+
+    $(document).on('ready', function () {
+        $(document).trigger("instawpLoadDirectory");
+    });
+
+    $(document).on('instawpLoadDirectory', function () {
+        let = el_active_plugins_only = $('input#active_plugins_only'),
+            el_active_themes_only = $('input#active_themes_only'),
+            el_skip_media_folder = $('input#skip_media_folder'),
+            el_loading = $(document).find('.exclude-container > .loading');
+    
+        if (el_loading.length > 0) {
+            $.ajax({
+                type: 'POST', 
+                url: plugin_object.ajax_url, 
+                context: this, 
+                data: {
+                    'action': 'instawp_get_dir_contents',
+                    //'path': '/wp-content',
+                    'active_plugins': el_active_plugins_only.prop("checked"),
+                    'active_themes': el_active_themes_only.prop("checked"),
+                    'skip_media_folder': el_skip_media_folder.prop("checked"),
+                    'security': instawp_migrate.security
+                },
+                success: function (response) {
+                    $(document).find('.exclude-container').html(response.data).addClass('p-4 h-80');
+                    $(document).find('#instawp-files-select-all').prop( "disabled", false );
+                },
+                error: function (jqXHR, textStatus, errorThrown) {
+                    alert(errorThrown + ': Can\'t proceed. Please try again!');
+                    window.location = window.location.href.split("?")[0] + '?page=instawp';
+                }
+            });
+        }
+    });
+
+    $(document).on('click', '.instawp-wrap .expand-folder', function () {
+        let el = $(this),
+            imgEl = $(this).find('svg'),
+            parentEl = el.closest('.item'),
+            //inputLabel = parentEl.find('label'),
+            folderPath = el.data('expand-folder'),
+            el_is_checked = parentEl.find('.instawp-checkbox.exclude-item').is(":checked"),
+            el_active_plugins_only = $('input#active_plugins_only'),
+            el_active_themes_only = $('input#active_themes_only'),
+            el_skip_media_folder = $('input#skip_media_folder');
+
+        if ( imgEl.hasClass('rotate-icon') ) {
+            if ( ! parentEl.find('.sub-item').length ) {
+                $.ajax({
+                    type: 'POST', 
+                    url: plugin_object.ajax_url, 
+                    context: this, 
+                    data: {
+                        'action': 'instawp_get_dir_contents',
+                        'path': '/'+folderPath,
+                        'active_plugins': el_active_plugins_only.prop("checked"),
+                        'active_themes': el_active_themes_only.prop("checked"),
+                        'skip_media_folder': el_skip_media_folder.prop("checked"),
+                        'is_checked': el_is_checked,
+                        'security': instawp_migrate.security
+                    },
+                    beforeSend: function () {
+                        parentEl.find('.cursor-pointer').append('<svg role="status" class="instawp-loader inline ml-3 w-4 h-4 text-primary-900 animate-spin" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg"><path data-v-fe125208="" d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="#E5E7EB"></path><path data-v-fe125208="" d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentColor"></path></svg>');
+                    },
+                    success: function (response) {
+                        // parentEl.find('.sub-item').removeClass('hidden').html(response.data);
+                        parentEl.append('<div class="pl-5 sub-item">' + response.data + '</div>');
+                        //inputLabel.after('<svg role="status" class="inline ml-3 w-4 h-4 text-primary-900 opacity-70" fill="none" xmlns="http://www.w3.org/2000/svg"> <path style="fill: #005e54;" fill-rule="evenodd" clip-rule="evenodd" d="M1.59995 0.800049C2.09701 0.800049 2.49995 1.20299 2.49995 1.70005V3.59118C3.64303 2.42445 5.23642 1.70005 6.99995 1.70005C9.74442 1.70005 12.0768 3.45444 12.9412 5.90013C13.1069 6.36877 12.8612 6.88296 12.3926 7.0486C11.924 7.21425 11.4098 6.96862 11.2441 6.49997C10.6259 4.75097 8.95787 3.50005 6.99995 3.50005C5.52851 3.50005 4.22078 4.20657 3.39937 5.30005H6.09995C6.59701 5.30005 6.99995 5.70299 6.99995 6.20005C6.99995 6.6971 6.59701 7.10005 6.09995 7.10005H1.59995C1.10289 7.10005 0.699951 6.6971 0.699951 6.20005V1.70005C0.699951 1.20299 1.10289 0.800049 1.59995 0.800049ZM1.6073 8.95149C2.07594 8.78585 2.59014 9.03148 2.75578 9.50013C3.37396 11.2491 5.04203 12.5 6.99995 12.5C8.47139 12.5 9.77912 11.7935 10.6005 10.7L7.89995 10.7C7.40289 10.7 6.99995 10.2971 6.99995 9.80005C6.99995 9.30299 7.40289 8.90005 7.89995 8.90005H12.3999C12.6386 8.90005 12.8676 8.99487 13.0363 9.16365C13.2051 9.33243 13.3 9.56135 13.3 9.80005V14.3C13.3 14.7971 12.897 15.2 12.4 15.2C11.9029 15.2 11.5 14.7971 11.5 14.3V12.4089C10.3569 13.5757 8.76348 14.3 6.99995 14.3C4.25549 14.3 1.92309 12.5457 1.05867 10.1C0.893024 9.63132 1.13866 9.11714 1.6073 8.95149Z"></path> </svg>')
+                        imgEl.removeClass('rotate-icon');
+                        parentEl.find('.instawp-loader').remove();
+                    },
+                    error: function (jqXHR, textStatus, errorThrown) {
+                        alert(errorThrown + ': Can\'t proceed. Please try again!');
+                        window.location = window.location.href.split("?")[0] + '?page=instawp';
+                    }
+                });
+            } else {
+                parentEl.find('.sub-item').removeClass('hidden');
+                imgEl.removeClass('rotate-icon');
+            }
+        } else {
+            //parentEl.find('.sub-item').addClass('hidden').html('');
+            parentEl.find('.sub-item').addClass('hidden');
+            //parentEl.find('.sub-item').remove();
+            imgEl.addClass('rotate-icon');
+        }
+        
+    });
+    // Get Dir List end //
 
 
     // Staging Sites List start //

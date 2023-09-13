@@ -454,12 +454,12 @@ select#event-action-type {
 .btn-single-sync{
     position: relative;
 }
-.btn-single-sync.loading > span , .changes-btn.loading > span,  td.event-sync-cell.loading > span{
+.btn-single-sync.loading > span , .changes-btn.loading > span, td.event-sync-cell.loading > span {
     visibility: hidden;
     opacity: 0;
 }
 
-.btn-single-sync.loading:after, .changes-btn.loading:after , td.event-sync-cell.loading:after{
+.btn-single-sync.loading:after, .changes-btn.loading:after, td.event-sync-cell.loading:after, .exclude-container > .loading:after {
     content: ' ';
     position: absolute;
     height: 16px;
@@ -490,7 +490,8 @@ select#event-action-type {
 }
 
 
-td.event-sync-cell.loading{
+td.event-sync-cell.loading,
+.exclude-container > .loading {
     padding: 20px;
     text-align: center;
     position: relative;
