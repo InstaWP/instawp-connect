@@ -263,11 +263,22 @@ class InstaWP_Setting {
 					'id'          => 'instawp_backup_part_size',
 					'type'        => 'number',
 					'title'       => esc_html__( 'Backup Parts Size', 'instawp-connect' ),
-					'desc'        => esc_html__( 'Unit is MB. Default - ' . INSTAWP_DEFAULT_MAX_FILE_SIZE . 'MB', 'instawp-connect' ),
+					'desc'        => esc_html__( 'Unit is MB. Default - ' . INSTAWP_DEFAULT_MAX_FILE_SIZE . ' MB', 'instawp-connect' ),
 					'placeholder' => esc_attr( INSTAWP_DEFAULT_MAX_FILE_SIZE ),
 					'attributes'  => array(
 						'min' => '10',
 						'max' => '100',
+					),
+				),
+				array(
+					'id'      => 'instawp_max_file_size_allowed',
+					'type'    => 'number',
+					'title'   => esc_html__( 'Maximum Allowed File Size', 'instawp-connect' ),
+					'desc'    => esc_html__( 'This option will set maximum allowed file size. Default - ' . INSTAWP_DEFAULT_MAX_FILE_SIZE_ALLOWED . ' MB', 'instawp-connect' ),
+					'placeholder' => esc_attr( INSTAWP_DEFAULT_MAX_FILE_SIZE_ALLOWED ),
+					'attributes'  => array(
+						'min' => '10',
+						'max' => '1024',
 					),
 				),
 				array(

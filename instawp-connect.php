@@ -7,7 +7,7 @@
  * @wordpress-plugin
  * Plugin Name:       InstaWP Connect
  * Description:       Create 1-click staging, migration and manage your prod sites.
- * Version:           0.0.9.29
+ * Version:           0.0.9.31
  * Author:            InstaWP Team
  * Author URI:        https://instawp.com/
  * License:           GPL-3.0+
@@ -23,7 +23,7 @@ if ( ! defined( 'WPINC' ) ) {
 
 global $wpdb;
 
-define( 'INSTAWP_PLUGIN_VERSION', '0.0.9.29' );
+define( 'INSTAWP_PLUGIN_VERSION', '0.0.9.31' );
 define( 'INSTAWP_RESTORE_INIT', 'init' );
 define( 'INSTAWP_RESTORE_READY', 'ready' );
 define( 'INSTAWP_RESTORE_COMPLETED', 'completed' );
@@ -100,8 +100,9 @@ define( 'INSTAWP_FAILED', 'failed' );
 define( 'INSTAWP_UPLOAD_TO_CLOUD', true );
 define( 'INSTAWP_API_URL', '/api/v1' );
 define( 'INSTAWP_API_2_URL', '/api/v2' );
-define( 'INSTAWP_EVENTS_PER_PAGE', 10 );
-define( 'INSTAWP_EVENTS_SYNC_PER_PAGE', 6 );
+define( 'INSTAWP_EVENTS_PER_PAGE', 20 );
+define( 'INSTAWP_DEFAULT_MAX_FILE_SIZE_ALLOWED', 50 );
+define( 'INSTAWP_EVENTS_SYNC_PER_PAGE', 10 );
 @ini_set( 'memory_limit', '2048M' );
 
 
@@ -236,10 +237,7 @@ run_instawp();
 
 add_action( 'wp_head', function () {
 	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
-
 		die();
 	}
 }, 0 );
-
-
 

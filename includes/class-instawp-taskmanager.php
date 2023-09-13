@@ -489,7 +489,13 @@ class InstaWP_taskmanager {
 	}
 
 	public static function update_task( $task ) {
-		InstaWP_Setting::update_task( $task['id'], $task );
+		if ( empty( $task_id = InstaWP_Setting::get_args_option( 'id', (array) $task ) ) ) {
+			return false;
+		}
+
+		InstaWP_Setting::update_task( $task_id, $task );
+
+		return true;
 	}
 
 	public static function delete_task( $id ) {
@@ -712,7 +718,6 @@ class InstaWP_taskmanager {
 
 	public static function get_cloud_uploaded_files( $task_id ) {
 
-
 		$migrate_task   = InstaWP_taskmanager::get_task( $task_id );
 		$uploaded_files = array();
 
@@ -731,6 +736,19 @@ class InstaWP_taskmanager {
 		}
 
 		return $uploaded_files;
+	}
+
+	public static function get_files_to_be_uploaded( $task_id ) {
+
+		$files_to_be_uploaded = [];
+
+		foreach ( InstaWP_taskmanager::get_task_backup_data( $task_id ) as $key => $data ) {
+			foreach ( InstaWP_Setting::get_args_option( 'zip_files_path', $data, array() ) as $zip_file ) {
+				$files_to_be_uploaded[] = $zip_file;
+			}
+		}
+
+		return $files_to_be_uploaded;
 	}
 
 	public static function store_migrate_id_to_migrate_task( $task_id, $migrate_id = '' ) {
@@ -769,5 +787,36 @@ class InstaWP_taskmanager {
 		$migrate_task = InstaWP_taskmanager::get_task( $task_id );
 
 		return InstaWP_Setting::get_args_option( 'nonce', $migrate_task );
+	}
+
+
+	public static function get_data( $task_id, $key = '', $default = '' ) {
+
+		if ( empty( $task_id ) ) {
+			return $default;
+		}
+
+		$migrate_task = InstaWP_taskmanager::get_task( $task_id );
+
+		if ( empty( $key ) ) {
+			return $migrate_task;
+		}
+
+		return InstaWP_Setting::get_args_option( $key, $migrate_task, $default );
+	}
+
+	public static function set_data( $task_id, $key = '', $value = '' ) {
+
+		if ( empty( $task_id ) || empty( $key ) ) {
+			return false;
+		}
+
+		$migrate_task = InstaWP_taskmanager::get_task( $task_id );
+
+		$migrate_task[ $key ] = $value;
+
+		self::update_task( $migrate_task );
+
+		return true;
 	}
 }

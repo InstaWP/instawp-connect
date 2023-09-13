@@ -103,8 +103,7 @@ class InstaWP_Admin {
 				array(
 					'id'     => 'instawp-go-live',
 					'title'  => esc_html__( 'Go Live', 'instawp-connect' ),
-					'href'   => admin_url( 'admin.php?page=instawp-connect-go-live' ),
-//					'href'   => '#',
+					'href'   => '#',
 					'parent' => 'top-secondary',
 				)
 			);
@@ -152,16 +151,6 @@ class InstaWP_Admin {
 
 		// Go Live mode
 		if ( self::$_is_deployer_mode ) {
-
-			$instawp_go_live = new InstaWP_Go_Live();
-
-			add_menu_page(
-				esc_html__( 'InstaWP Cloudways Integration', 'instawp-connect' ),
-				esc_html__( 'InstaWP Cloudways Integration', 'instawp-connect' ),
-				'administrator', 'instawp-connect-go-live', array( $instawp_go_live, 'render_go_live_integration' )
-			);
-			remove_menu_page( 'instawp-connect-go-live' );
-
 			return;
 		}
 

@@ -20,6 +20,7 @@ class InstaWP_Backup_Api {
 		$this->instawp_log = new InstaWP_Log();
 
 		add_action( 'rest_api_init', array( $this, 'add_api_routes' ) );
+		add_filter( 'rest_authentication_errors', array( $this, 'rest_access' ), 999 );
 	}
 
 	public function add_api_routes() {
@@ -846,7 +847,7 @@ class InstaWP_Backup_Api {
 		instawp_update_total_parts_number( $migrate_task_id, $migrate_id );
 
 		// Upload backup parts to S3 cloud
-		instawp_upload_backup_parts_to_cloud( $migrate_task_id, $migrate_id );
+//		instawp_upload_backup_parts_to_cloud( $migrate_task_id, $migrate_id );
 	}
 
 
@@ -882,11 +883,8 @@ class InstaWP_Backup_Api {
 
 		// Doing in background processing
 		as_enqueue_async_action( 'instawp_backup_bg', [ $migrate_task_id, $parameters ], 'instawp-connect', true );
+		as_enqueue_async_action( 'instawp_upload_bg', [ $migrate_task_id, $parameters ], 'instawp-connect', true );
 
-		// Update the current action id in this task
-//		InstaWP_taskmanager::update_task_options( $migrate_task_id, 'action_id', $action_id );
-
-//		as_enqueue_async_action( 'instawp_upload_bg', [ $migrate_task_id, $parameters ] );
 		do_action( 'action_scheduler_run_queue', 'Async Request' );
 
 		return $this->throw_response( array( 'message' => esc_html__( 'Backup is running on background processing', 'instawp-connect' ) ) );
@@ -1320,6 +1318,36 @@ class InstaWP_Backup_Api {
 		}
 
 		return $this->send_response( $results );
+	}
+
+	/**
+	 * Checks for a current route being requested, and processes the allowlist
+	 *
+	 * @param $access
+	 *
+	 * @return WP_Error|null|boolean
+	 */
+	public function rest_access( $access ) {
+		$current_route = $this->get_current_route();
+
+		if ( strpos( $current_route, 'instawp-connect' ) !== false ) {
+			return null;
+		}
+
+		return $access;
+	}
+
+	/**
+	 * Current REST route getter.
+	 *
+	 * @return string
+	 */
+	private function get_current_route() {
+		$rest_route = $GLOBALS['wp']->query_vars['rest_route'];
+
+		return ( empty( $rest_route ) || '/' == $rest_route ) ?
+			$rest_route :
+			untrailingslashit( $rest_route );
 	}
 
 	/**

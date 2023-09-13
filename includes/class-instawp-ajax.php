@@ -9,7 +9,7 @@ class InstaWP_AJAX {
 
 	public function __construct() {
 		$this->instawp_log = new InstaWP_Log();
-		add_action( 'wp_ajax_instawp_check_key', array( $this, 'check_key' ) );
+
 		add_action( 'wp_ajax_instawp_settings_call', array( $this, 'instawp_settings_call' ) );
 		add_action( 'wp_ajax_instawp_connect', array( $this, 'connect' ) );
 		add_action( 'wp_ajax_instawp_check_staging', array( $this, 'instawp_check_staging' ) );
@@ -17,11 +17,117 @@ class InstaWP_AJAX {
 		add_action( 'init', array( $this, 'deleter_folder_handle' ) );
 		add_action( 'admin_notices', array( $this, 'instawp_connect_reset_admin_notices' ) );
 
-		// New AJAX Actions.
+		// Management
 		add_action( 'wp_ajax_instawp_save_management_settings', array( $this, 'save_management_settings' ) );
 		add_action( 'wp_ajax_instawp_disconnect_plugin', array( $this, 'disconnect_api' ) );
 		add_action( 'wp_ajax_instawp_clear_staging_sites', array( $this, 'clear_staging_sites' ) );
-		add_action( 'wp_ajax_instawp_destination_disconnect', array( $this, 'destination_disconnect' ) );
+		add_action( 'wp_ajax_instawp_get_dir_contents', array( $this, 'get_dir_contents' ) );
+
+		// Go Live redirect
+		add_action( 'wp_ajax_instawp_go_live', array( $this, 'go_live_redirect_url' ) );
+	}
+
+	function go_live_redirect_url() {
+
+		$response      = InstaWP_Curl::do_curl( 'get-waas-redirect-url', array( 'source_domain' => site_url() ) );
+		$response_data = InstaWP_Setting::get_args_option( 'data', $response, [] );
+		$redirect_url  = InstaWP_Setting::get_args_option( 'url', $response_data );
+
+		if ( ! empty( $redirect_url ) ) {
+			wp_send_json_success( [ 'redirect_url' => $redirect_url ] );
+		}
+
+		wp_send_json_error();
+	}
+
+	public function get_dir_contents() {
+		check_ajax_referer( 'instawp-migrate', 'security' );
+
+		$path                = isset( $_POST['path'] ) ? sanitize_text_field( wp_unslash( $_POST['path'] ) ) : '/';
+		$active_plugins_only = isset( $_POST['active_plugins'] ) ? filter_var( $_POST['active_plugins'], FILTER_VALIDATE_BOOLEAN ) : false;
+		$active_themes_only  = isset( $_POST['active_themes'] ) ? filter_var( $_POST['active_themes'], FILTER_VALIDATE_BOOLEAN ) : false;
+		$skip_media_folder   = isset( $_POST['skip_media_folder'] ) ? filter_var( $_POST['skip_media_folder'], FILTER_VALIDATE_BOOLEAN ) : false;
+		$is_item_checked     = isset( $_POST['is_checked'] ) ? filter_var( $_POST['is_checked'], FILTER_VALIDATE_BOOLEAN ) : false;
+		$is_select_all       = isset( $_POST['select_all'] ) ? filter_var( $_POST['select_all'], FILTER_VALIDATE_BOOLEAN ) : false;
+
+		if ( ! $path ) {
+			wp_send_json_error();
+		}
+		$dir_data = instawp_get_dir_contents( $path );
+		if ( empty( $dir_data ) ) {
+			wp_send_json_success( 'Empty folder!' );
+		}
+
+		$list_data      = get_option( 'instawp_large_files_list', [] ) ?? [];
+		$paths          = wp_list_pluck( $list_data, 'realpath' );
+		$upload_dir     = wp_upload_dir();
+		$active_plugins = (array) get_option( 'active_plugins', array() );
+		$current_theme  = wp_get_theme();
+		$themes_dir     = wp_normalize_path( $current_theme->get_theme_root() );
+		$theme_path     = wp_normalize_path( $current_theme->get_stylesheet_directory() );
+		$template_path  = wp_normalize_path( $current_theme->get_template_directory() );
+
+		ob_start();
+		foreach ( $dir_data as $key => $data ) {
+			if ( $data['name'] == "." || $data['name'] == ".." ) {
+				continue;
+			}
+			$skip_media = ( $skip_media_folder && strpos( $data['full_path'], wp_normalize_path( $upload_dir['basedir'] ) ) !== false );
+
+			$theme_item_checked      = false;
+			$can_perform_theme_check = ( $active_themes_only && strpos( $data['full_path'], $themes_dir ) !== false );
+			if ( $can_perform_theme_check ) {
+				$theme_item_checked = true;
+
+				if ( in_array( $data['full_path'], [ $theme_path, $template_path, $themes_dir, $themes_dir . '/index.php' ] ) 
+					|| strpos( $data['full_path'], $theme_path ) !== false
+					|| strpos( $data['full_path'], $template_path ) !== false ) {
+
+					$theme_item_checked = false;
+				}
+			}
+
+			$plugin_item_checked      = false;
+			$can_perform_plugin_check = ( $active_plugins_only && strpos( $data['full_path'], wp_normalize_path( WP_PLUGIN_DIR ) ) !== false );
+			if ( $can_perform_plugin_check ) {
+				$plugin_item_checked = true;
+
+				if ( in_array( $data['full_path'], [ wp_normalize_path( WP_PLUGIN_DIR ), wp_normalize_path( WP_PLUGIN_DIR ) . '/index.php' ] ) 
+					|| in_array( basename( $data['relative_path'] ), array_map( 'dirname', $active_plugins ) ) ) {
+
+					$plugin_item_checked = false;
+				}
+			}
+
+			$is_checked  = ( in_array( $data['full_path'], $paths ) || $skip_media || $theme_item_checked || $plugin_item_checked );
+			$is_disabled = ( $is_checked || $can_perform_theme_check || $can_perform_plugin_check );
+			$element_id  = wp_generate_uuid4(); ?>
+
+			<div class="flex flex-col gap-5 item">
+				<div class="flex justify-between items-center">
+					<div class="flex items-center cursor-pointer" style="transform: translate(0em);">
+						<?php if ( $data['type'] === 'folder' ) : ?>
+							<div class="p-2 pl-0 expand-folder" data-expand-folder="<?php echo esc_attr( $data['relative_path'] ); ?>">
+								<svg width="8" height="5" viewBox="0 0 8 5" fill="none" xmlns="http://www.w3.org/2000/svg" class="rotate-icon">
+									<path d="M4.75504 4.09984L5.74004 3.11484L7.34504 1.50984C7.68004 1.16984 7.44004 0.589844 6.96004 0.589844L3.84504 0.589844L1.04004 0.589843C0.560037 0.589843 0.320036 1.16984 0.660037 1.50984L3.25004 4.09984C3.66004 4.51484 4.34004 4.51484 4.75504 4.09984Z" fill="#4F4F4F"/>
+								</svg>
+							</div>
+						<?php endif; ?>
+						<input name="instawp_migrate[excluded_paths][]" id="<?php echo esc_attr( $element_id ); ?>" value="<?php echo esc_attr( $data['relative_path'] ); ?>" type="checkbox" class="instawp-checkbox exclude-item !mt-0 !mr-3 rounded border-gray-300 text-primary-900 focus:ring-primary-900" <?php checked( $is_checked  || $is_item_checked || $is_select_all, true ); ?> <?php disabled( $is_disabled, true ); ?> data-size="<?php echo esc_html( $data['size'] ); ?>">
+						<label for="<?php echo esc_attr( $element_id ); ?>" class="text-sm font-medium text-grayCust-800 truncate"<?php echo ( $data['type'] === 'file' ) ? ' style="width: calc(400px - 1em);"' : ''; ?>><?php echo esc_html( $data['name'] ); ?></label>
+					</div>
+					<div class="flex items-center" style="width: 100px;">
+						<svg width="14" height="13" viewBox="0 0 14 13" fill="none" xmlns="http://www.w3.org/2000/svg">
+							<path d="M2.33333 6.49984H11.6667M2.33333 6.49984C1.59695 6.49984 1 5.90288 1 5.1665V2.49984C1 1.76346 1.59695 1.1665 2.33333 1.1665H11.6667C12.403 1.1665 13 1.76346 13 2.49984V5.1665C13 5.90288 12.403 6.49984 11.6667 6.49984M2.33333 6.49984C1.59695 6.49984 1 7.09679 1 7.83317V10.4998C1 11.2362 1.59695 11.8332 2.33333 11.8332H11.6667C12.403 11.8332 13 11.2362 13 10.4998V7.83317C13 7.09679 12.403 6.49984 11.6667 6.49984M10.3333 3.83317H10.34M10.3333 9.1665H10.34" stroke="#111827" stroke-width="1.33333" stroke-linecap="round" stroke-linejoin="round"/>
+						</svg>
+						<div class="text-sm font-medium text-grayCust-800 ml-2"><?php echo esc_html( instawp()->get_file_size_with_unit( $data['size'] ) ); ?></div>
+					</div>
+				</div>
+			</div>
+		<?php }
+
+		$content = ob_get_clean();
+		wp_send_json_success( '<div class="flex flex-col gap-5">' . $content . '</div>' );
 	}
 
 	public function save_management_settings() {
@@ -33,7 +139,7 @@ class InstaWP_AJAX {
 		if ( ! $option_name || ! $option_value ) {
 			wp_send_json_error();
 		}
-		
+
 		update_option( $option_name, $option_value );
 		wp_send_json_success();
 	}
@@ -41,7 +147,7 @@ class InstaWP_AJAX {
 	public function disconnect_api() {
 		check_ajax_referer( 'instawp-migrate', 'security' );
 
-		$check_api    = isset( $_POST['api'] ) ? filter_var( $_POST['api'], FILTER_VALIDATE_BOOLEAN) : false;
+		$check_api    = isset( $_POST['api'] ) ? filter_var( $_POST['api'], FILTER_VALIDATE_BOOLEAN ) : false;
 		$api_response = InstaWP_Curl::do_curl( 'connect/' . instawp_get_connect_id() . '/disconnect' );
 
 		if ( $check_api && ( empty( $api_response['success'] ) || ! $api_response['success'] ) ) {
@@ -49,7 +155,7 @@ class InstaWP_AJAX {
 				'message' => $api_response['message'],
 			] );
 		}
-		
+
 		instawp_reset_running_migration( 'hard', false );
 
 		wp_send_json_success( [
@@ -63,14 +169,6 @@ class InstaWP_AJAX {
 		delete_transient( 'instawp_staging_sites' );
 
 		wp_send_json_success();
-	}
-
-	public function destination_disconnect() {
-		check_ajax_referer( 'instawp-migrate', 'security' );
-		
-		$response = instawp_destination_disconnect( sanitize_text_field( $_POST['migrate_task_id'] ) );
-
-		wp_send_json_success( $response );
 	}
 
 	// Set transient admin notice function
@@ -315,114 +413,6 @@ class InstaWP_AJAX {
 
 		echo json_encode( $response );
 
-		wp_die();
-	}
-
-
-	public function check_key() {
-		global $InstaWP_Curl;
-
-		// $this->ajax_check_security();
-
-		$res        = array(
-			'error'   => true,
-			'message' => '',
-		);
-		$api_doamin = InstaWP_Setting::get_api_domain();
-		$url        = $api_doamin . INSTAWP_API_URL . '/check-key';
-
-		if ( isset( $_REQUEST['api_key'] ) && empty( $_REQUEST['api_key'] ) ) {
-			$res['message'] = 'API Key is required';
-			echo json_encode( $res );
-			wp_die();
-		}
-		$api_key = sanitize_text_field( wp_unslash( $_REQUEST['api_key'] ) );
-
-		$response = wp_remote_get( $url,
-			array(
-				'body'    => '',
-				'headers' => array(
-					'Authorization' => 'Bearer ' . $api_key,
-					'Accept'        => 'application/json',
-				),
-			)
-		);
-
-		$response_code = wp_remote_retrieve_response_code( $response );
-
-		if ( ! is_wp_error( $response ) && $response_code == 200 ) {
-			$body = (array) json_decode( wp_remote_retrieve_body( $response ), true );
-
-			$connect_options = array();
-			if ( $body['status'] == true ) {
-
-				$connect_options['api_key'] = $api_key;
-				//$connect_options['api_heartbeat']  = $api_heartbeat;
-				$connect_options['response'] = $body;
-
-				//InstaWP_Setting::update_connect_option('instawp_connect_options',$connect_options,'api_key_opt');
-				update_option( 'instawp_api_options', $connect_options );
-				update_option( 'instawp_api_key', $api_key );
-
-				/* Set Connect ID on Check API KEY Code Start */
-				$connect_url = $api_doamin . INSTAWP_API_URL . '/connects';
-				$php_version = substr( phpversion(), 0, 3 );
-				$username    = null;
-				$admin_users = get_users(
-					array(
-						'role__in' => array( 'administrator' ),
-						'fields'   => array( 'user_login' )
-					)
-				);
-
-				if ( ! empty( $admin_users ) ) {
-					if ( is_null( $username ) ) {
-						foreach ( $admin_users as $admin ) {
-							$username = $admin->user_login;
-						}
-					}
-				}
-
-				$connect_body = json_encode(
-					array(
-						"url"         => get_site_url(),
-						"php_version" => $php_version,
-						"username"    => ! is_null( $username ) ? base64_encode( $username ) : "",
-					)
-				);
-
-				$curl_response = $InstaWP_Curl->curl( $connect_url, $connect_body );
-				update_option( 'instawp_connect_id_options_err', $curl_response );
-
-				if ( $curl_response['error'] == false ) {
-					$response = (array) json_decode( $curl_response['curl_res'], true );
-
-					if ( $response['status'] == true ) {
-						$connect_options                = InstaWP_Setting::get_option( 'instawp_connect_options', array() );
-						$connect_id                     = $response['data']['id'];
-						$connect_options[ $connect_id ] = $response;
-						update_option( 'instawp_connect_id_options', $response );
-					}
-				}
-				/* Set Connect ID on Check API KEY Code End */
-				error_log( "BoDY MEssage: " . $body['message'] );
-				$res = array(
-					'error'   => false,
-					'message' => $body['message'],
-				);
-			} else {
-				$res = array(
-					'error'   => true,
-					'message' => 'Key Not Valid',
-				);
-			}
-		} else {
-			$res = array(
-				'error'   => true,
-				'message' => 'Key Not Valid',
-			);
-		}
-		echo json_encode( $res );
 		wp_die();
 	}
 
