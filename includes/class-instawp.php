@@ -163,9 +163,10 @@ class instaWP {
 		add_action( 'update_option_instawp_api_heartbeat', array( $this, 'clear_heartbeat_action' ) );
 		add_action( 'update_option_instawp_rm_heartbeat', array( $this, 'clear_heartbeat_action' ) );
 		add_action( 'instawp_handle_heartbeat', array( $this, 'handle_heartbeat' ) );
-
+		
 		// Prepare large file list
 		add_action( 'instawp_prepare_large_files_list', array( $this, 'prepare_large_files_list' ) );
+		add_action( 'update_option_instawp_max_file_size_allowed', array( $this, 'clear_staging_sites_list' ) );
 
 		// Clean Tasks
 		add_action( 'instawp_clean_tasks', array( $this, 'clean_events' ) );
@@ -276,7 +277,7 @@ class instaWP {
 	}
 
 	public function prepare_large_files_list() {
-		$maxbytes = InstaWP_Setting::get_option( 'instawp_max_file_size_allowed', INSTAWP_DEFAULT_MAX_FILE_SIZE_ALLOWED ) * 1024 * 1024;
+		$maxbytes = ( InstaWP_Setting::get_option( 'instawp_max_file_size_allowed', INSTAWP_DEFAULT_MAX_FILE_SIZE_ALLOWED ) * 1024 * 1024 );
 		$path     = realpath( ABSPATH );
 		$data     = [];
 
@@ -295,6 +296,11 @@ class instaWP {
 		}
 
 		update_option( 'instawp_large_files_list', $data );
+	}
+
+	public function clear_staging_sites_list() {
+		delete_option( 'instawp_large_files_list' );
+		as_unschedule_all_actions( 'instawp_prepare_large_files_list', [], 'instawp-connect' );
 	}
 
 	public function clean_events() {
@@ -5624,8 +5630,9 @@ class instaWP {
 		die();
 	}
 
-	public function get_directory_contents( $dir ) {
-		$files_data      = scandir( $dir );
+	public function get_directory_contents( $dir, $sort_by ) {
+		$name_sort_by    = ( $sort_by === 'ascending-name' ) ? SCANDIR_SORT_ASCENDING : SCANDIR_SORT_DESCENDING;
+		$files_data      = scandir( $dir, $name_sort_by );
 		$path_to_replace = wp_normalize_path( ABSPATH );
 		$files = $folders = [];
 	
@@ -5656,13 +5663,23 @@ class instaWP {
 			} catch( Exception $e ) {}
 		}
 
-		// usort( $folders, function ( $item1, $item2 ) {
-		// 	return $item2['size'] <=> $item1['size'];
-		// } );
+		if ( $sort_by === 'descending-size' ) {
+			usort( $folders, function ( $item1, $item2 ) {
+				return $item2['size'] <=> $item1['size'];
+			} );
 
-		// usort( $files, function ( $item1, $item2 ) {
-		// 	return $item2['size'] <=> $item1['size'];
-		// } );
+			usort( $files, function ( $item1, $item2 ) {
+				return $item2['size'] <=> $item1['size'];
+			} );
+		} else if ( $sort_by === 'ascending-size' ) {
+			usort( $folders, function ( $item1, $item2 ) {
+				return $item1['size'] <=> $item2['size'];
+			} );
+
+			usort( $files, function ( $item1, $item2 ) {
+				return $item1['size'] <=> $item2['size'];
+			} );
+		}
 
 		return array_merge( $folders, $files );
 	}

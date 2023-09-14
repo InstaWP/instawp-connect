@@ -1182,7 +1182,7 @@ if ( ! function_exists( 'instawp_get_dir_contents' ) ) {
 	/**
 	 * Get directory content.
 	 */
-	function instawp_get_dir_contents( $dir ) {
-		return instawp()->get_directory_contents( ABSPATH . $dir );
+	function instawp_get_dir_contents( $dir, $sort_by ) {
+		return instawp()->get_directory_contents( ABSPATH . $dir, $sort_by );
 	}
 }
