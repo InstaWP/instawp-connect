@@ -689,18 +689,25 @@ tailwind.config = {
     });
 
     $(document).on('change', '#active_plugins_only, input#active_themes_only, input#skip_media_folder', function () {
-        $(document).trigger("instawpTriggerRefresh");
+        $(document).find('.instawp-sort-by').attr('data-sort', 'none').addClass('pointer-events-none');
+        $(document).trigger("instawpTriggerRefresh", [false]);
     });
 
-    $(document).on('click', '.instawp-refresh-file-explorer, .instawp-sort-by', function () {
-        $(document).trigger("instawpTriggerRefresh");
+    $(document).on('click', '.instawp-refresh-file-explorer', function () {
+        $(document).find('.instawp-sort-by').attr('data-sort', 'none').addClass('pointer-events-none');
+        $(document).trigger("instawpTriggerRefresh", [false]);
     });
 
-    $(document).on('instawpTriggerRefresh', function () {
+    $(document).on('click', '.instawp-sort-by', function () {
+        $(document).find('.instawp-sort-by').addClass('pointer-events-none');
+        $(document).trigger("instawpTriggerRefresh", [true]);
+    });
+
+    $(document).on('instawpTriggerRefresh', function (e, sort) {
         $(document).find('.exclude-container').removeClass('p-4 h-80').html('<div class="loading"></div>');
         $(document).find('#instawp-files-select-all').prop( "checked", false ).prop( "disabled", true );
-        $(document).find('.instawp-refresh-file-explorer').prop( "disabled", true ).addClass('animate-spin');
-        $(document).trigger("instawpLoadDirectory");
+        $(document).find('.instawp-refresh-file-explorer').prop( "disabled", true );
+        $(document).trigger("instawpLoadDirectory", [sort]);
     });
 
     $(document).on('change', '#instawp-files-select-all', function() {
@@ -725,21 +732,28 @@ tailwind.config = {
     });
 
     $(document).on('ready', function () {
-        $(document).trigger("instawpLoadDirectory");
+        $(document).trigger("instawpLoadDirectory", [false]);
     });
 
-    $(document).on('instawpLoadDirectory', function () {
-        let = el_active_plugins_only = $('input#active_plugins_only'),
+    $(document).on('instawpLoadDirectory', function (e, sort) {
+        let el_active_plugins_only = $('input#active_plugins_only'),
             el_active_themes_only = $('input#active_themes_only'),
             el_skip_media_folder = $('input#skip_media_folder'),
-            el_sort_by = $(document).find('.instawp-sort-by').attr('sort'),
+            el_sort_by = $(document).find('.instawp-sort-by').attr('data-sort'),
             el_loading = $(document).find('.exclude-container > .loading');
     
+        if ( el_sort_by === 'none' && sort ) {
+            el_sort_by = 'descending';
+        } else if ( el_sort_by === 'descending' ) {
+            el_sort_by = 'ascending';
+        } else if ( el_sort_by === 'ascending' ) {
+            el_sort_by = 'descending';
+        }
+
         if (el_loading.length) {
             $.ajax({
                 type: 'POST', 
                 url: plugin_object.ajax_url, 
-                context: this, 
                 data: {
                     'action': 'instawp_get_dir_contents',
                     //'path': '/wp-content',
@@ -752,8 +766,8 @@ tailwind.config = {
                 success: function (response) {
                     $(document).find('.exclude-container').html(response.data).addClass('p-4 h-80');
                     $(document).find('#instawp-files-select-all').prop( "disabled", false );
-                    $(document).find('.instawp-sort-by').attr('data-sort', ( el_sort_by === 'ascending') ? 'descending' : 'ascending');
-                    $(document).find('.instawp-refresh-file-explorer').prop( "disabled", false ).removeClass('animate-spin');
+                    $(document).find('.instawp-refresh-file-explorer').prop( "disabled", false );
+                    $(document).find('.instawp-sort-by').removeClass('pointer-events-none').attr('data-sort', el_sort_by);
                 },
                 error: function (jqXHR, textStatus, errorThrown) {
                     console.log(errorThrown);
@@ -798,12 +812,11 @@ tailwind.config = {
         let el = $(this),
             imgEl = $(this).find('svg'),
             parentEl = el.closest('.item'),
-            //inputLabel = parentEl.find('label'),
             folderPath = el.data('expand-folder'),
             el_is_checked = parentEl.find('.instawp-checkbox.exclude-item').is(":checked"),
             el_active_plugins_only = $('input#active_plugins_only'),
             el_active_themes_only = $('input#active_themes_only'),
-            el_sort_by = $(document).find('.instawp-sort-by').attr('sort'),
+            el_sort_by = $(document).find('.instawp-sort-by').attr('data-sort'),
             el_skip_media_folder = $('input#skip_media_folder');
 
         if ( imgEl.hasClass('rotate-icon') ) {

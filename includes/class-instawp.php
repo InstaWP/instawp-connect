@@ -5664,25 +5664,19 @@ class instaWP {
 			} catch( Exception $e ) {}
 		}
 
-		if ( $sort_by === 'descending' ) {
-			usort( $folders, function ( $item1, $item2 ) {
-				return $item2['size'] <=> $item1['size'];
-			} );
+		$files_list = array_merge( $folders, $files );
 
-			usort( $files, function ( $item1, $item2 ) {
+		if ( $sort_by === 'descending' ) {
+			usort( $files_list, function ( $item1, $item2 ) {
 				return $item2['size'] <=> $item1['size'];
 			} );
 		} else if ( $sort_by === 'ascending' ) {
-			usort( $folders, function ( $item1, $item2 ) {
-				return $item1['size'] <=> $item2['size'];
-			} );
-
-			usort( $files, function ( $item1, $item2 ) {
+			usort( $files_list, function ( $item1, $item2 ) {
 				return $item1['size'] <=> $item2['size'];
 			} );
 		}
 
-		return array_merge( $folders, $files );
+		return $files_list;
 	}
 	
 	public function get_directory_size( $path ) {
