@@ -277,7 +277,9 @@ class instaWP {
 	}
 
 	public function prepare_large_files_list() {
-		$maxbytes = ( InstaWP_Setting::get_option( 'instawp_max_file_size_allowed', INSTAWP_DEFAULT_MAX_FILE_SIZE_ALLOWED ) * 1024 * 1024 );
+		$maxbytes = (int) InstaWP_Setting::get_option( 'instawp_max_file_size_allowed', INSTAWP_DEFAULT_MAX_FILE_SIZE_ALLOWED );
+		$maxbytes = $maxbytes ? $maxbytes : INSTAWP_DEFAULT_MAX_FILE_SIZE_ALLOWED;
+		$maxbytes = ( $maxbytes * 1024 * 1024 );
 		$path     = realpath( ABSPATH );
 		$data     = [];
 
@@ -5631,8 +5633,7 @@ class instaWP {
 	}
 
 	public function get_directory_contents( $dir, $sort_by ) {
-		$name_sort_by    = ( $sort_by === 'ascending-name' ) ? SCANDIR_SORT_ASCENDING : SCANDIR_SORT_DESCENDING;
-		$files_data      = scandir( $dir, $name_sort_by );
+		$files_data      = scandir( $dir );
 		$path_to_replace = wp_normalize_path( ABSPATH );
 		$files = $folders = [];
 	
@@ -5663,7 +5664,7 @@ class instaWP {
 			} catch( Exception $e ) {}
 		}
 
-		if ( $sort_by === 'descending-size' ) {
+		if ( $sort_by === 'descending' ) {
 			usort( $folders, function ( $item1, $item2 ) {
 				return $item2['size'] <=> $item1['size'];
 			} );
@@ -5671,7 +5672,7 @@ class instaWP {
 			usort( $files, function ( $item1, $item2 ) {
 				return $item2['size'] <=> $item1['size'];
 			} );
-		} else if ( $sort_by === 'ascending-size' ) {
+		} else if ( $sort_by === 'ascending' ) {
 			usort( $folders, function ( $item1, $item2 ) {
 				return $item1['size'] <=> $item2['size'];
 			} );

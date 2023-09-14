@@ -688,18 +688,17 @@ tailwind.config = {
         subEl.not(":disabled").prop( "checked", el.is(":checked") );
     });
 
-    $(document).on('change', '#active_plugins_only, input#active_themes_only, input#skip_media_folder, select#instawp-sort-by', function () {
+    $(document).on('change', '#active_plugins_only, input#active_themes_only, input#skip_media_folder', function () {
         $(document).trigger("instawpTriggerRefresh");
     });
 
-    $(document).on('click', '.instawp-refresh-file-explorer', function () {
+    $(document).on('click', '.instawp-refresh-file-explorer, .instawp-sort-by', function () {
         $(document).trigger("instawpTriggerRefresh");
     });
 
     $(document).on('instawpTriggerRefresh', function () {
         $(document).find('.exclude-container').removeClass('p-4 h-80').html('<div class="loading"></div>');
         $(document).find('#instawp-files-select-all').prop( "checked", false ).prop( "disabled", true );
-        $(document).find('#instawp-sort-by').prop( "disabled", true );
         $(document).find('.instawp-refresh-file-explorer').prop( "disabled", true ).addClass('animate-spin');
         $(document).trigger("instawpLoadDirectory");
     });
@@ -733,10 +732,10 @@ tailwind.config = {
         let = el_active_plugins_only = $('input#active_plugins_only'),
             el_active_themes_only = $('input#active_themes_only'),
             el_skip_media_folder = $('input#skip_media_folder'),
-            el_sort_by = $('select#instawp-sort-by').val(),
+            el_sort_by = $(document).find('.instawp-sort-by').attr('sort'),
             el_loading = $(document).find('.exclude-container > .loading');
     
-        if (el_loading.length > 0) {
+        if (el_loading.length) {
             $.ajax({
                 type: 'POST', 
                 url: plugin_object.ajax_url, 
@@ -753,12 +752,11 @@ tailwind.config = {
                 success: function (response) {
                     $(document).find('.exclude-container').html(response.data).addClass('p-4 h-80');
                     $(document).find('#instawp-files-select-all').prop( "disabled", false );
-                    $(document).find('#instawp-sort-by').prop( "disabled", false );
+                    $(document).find('.instawp-sort-by').attr('data-sort', ( el_sort_by === 'ascending') ? 'descending' : 'ascending');
                     $(document).find('.instawp-refresh-file-explorer').prop( "disabled", false ).removeClass('animate-spin');
                 },
                 error: function (jqXHR, textStatus, errorThrown) {
-                    alert(errorThrown + ': Can\'t proceed. Please try again!');
-                    window.location = window.location.href.split("?")[0] + '?page=instawp';
+                    console.log(errorThrown);
                 }
             });
         }
@@ -791,8 +789,7 @@ tailwind.config = {
                 }
             },
             error: function (jqXHR, textStatus, errorThrown) {
-                alert(errorThrown + ': Can\'t proceed. Please try again!');
-                window.location = window.location.href.split("?")[0] + '?page=instawp';
+                console.log(errorThrown);
             }
         });
     });
@@ -806,7 +803,7 @@ tailwind.config = {
             el_is_checked = parentEl.find('.instawp-checkbox.exclude-item').is(":checked"),
             el_active_plugins_only = $('input#active_plugins_only'),
             el_active_themes_only = $('input#active_themes_only'),
-            el_sort_by = $('select#instawp-sort-by').val(),
+            el_sort_by = $(document).find('.instawp-sort-by').attr('sort'),
             el_skip_media_folder = $('input#skip_media_folder');
 
         if ( imgEl.hasClass('rotate-icon') ) {
@@ -836,8 +833,7 @@ tailwind.config = {
                         parentEl.find('.instawp-loader').remove();
                     },
                     error: function (jqXHR, textStatus, errorThrown) {
-                        alert(errorThrown + ': Can\'t proceed. Please try again!');
-                        window.location = window.location.href.split("?")[0] + '?page=instawp';
+                        console.log(errorThrown);
                     }
                 });
             } else {
