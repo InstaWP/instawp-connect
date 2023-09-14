@@ -40,10 +40,6 @@ jQuery(document).ready(function ($) {
         syncing_enabled_disabled(sync_status);
     });
 
-
-    
-    //selected sync btn...
-
     //bulk sync btn...
     $(document).on('click', '.bulk-sync-popup-btn', function(){
         const site = $("#staging-site-sync").val();
@@ -58,6 +54,12 @@ jQuery(document).ready(function ($) {
         $('.selected-events-info').hide();
         $('.sync_error_success_msg').html('');
         $('#sync_message').val('');
+
+        //progress bar
+        $(".event-progress-text").html('')
+        $(".progress-wrapper").addClass('hidden');
+        $(".event-progress-bar>div").css('width', '0%');
+
         $("#destination-site").val($("#staging-site-sync").val());
         $(".sync_process .step-1").removeClass('process_inprogress').removeClass('process_complete');
         $(".sync_process .step-2").removeClass('process_inprogress').removeClass('process_complete');
@@ -162,25 +164,6 @@ jQuery(document).ready(function ($) {
         $('.selected-events-info').show();
     });
 
-    //Bulk&Selected sync process...
-    $(document).on('click', '.sync-changes-btn', function(){
-        const sync_message = $("#sync_message").val();
-        const sync_type = $('.bulk-sync-popup').attr("data-sync-type");
-        const dest_connect_id = $("#destination-site").val();
-         $(".sync_error_success_msg").html('');
-         if(dest_connect_id == null){
-            $(".sync_error_success_msg").html('<p class="error">No site found.</p>');
-            return;
-         }
-        var sync_ids = '';
-        if(sync_type == 'selected_sync'){
-            sync_ids = $('#selected_events').val();
-        }
-        //Initiate Step 2
-        $(this).addClass('disable-a loading');
-        $(".sync_process .step-1").removeClass('process_pending').addClass('process_inprogress');
-        packThings(sync_message,sync_type,sync_ids,dest_connect_id);
-    });
 
     //Single sync..
     $(document).on('click', '.btn-single-sync', function(){
@@ -250,26 +233,62 @@ jQuery(document).ready(function ($) {
         formData.append('sync_status', sync_status);
         baseCall(formData).then((response) => response.json()).then((data) => {
             console.log(data);
+            if( data.sync_status == 1 ){
+                $("#wp-toolbar").find('ul:first').append(ajax_obj.data.event_toolbar_html);
+            }else{
+                $(".instawp-sync-status-toolbar").remove();
+            }
             jQuery('.syncing_status_msg').html('<p class="success">'+data.message+'</p>');
         }).catch((error) => {
             console.log("Error Occurred: ", error);
         });
     }
 
-    const packThings = async (sync_message,sync_type,sync_ids,dest_connect_id) => {
+    
+    //Bulk&Selected sync process...
+    $(document).on('click', '.sync-changes-btn', function(){
+
+        const sync_message = $("#sync_message").val();
+        const sync_type = $('.bulk-sync-popup').attr("data-sync-type");
+        const dest_connect_id = $("#destination-site").val();
+         $(".sync_error_success_msg").html('');
+         
+        //Initiate Step 2
+        $(this).addClass('disable-a loading');
+        let formData = new FormData();
+        formData.append('action',       'instawp_calculate_events');
+        formData.append('connect_id',   dest_connect_id );
+        baseCall(formData).then((response) => response.json()).then((data) => {
+            
+            if( data.success ){
+                $(".progress-wrapper").removeClass('hidden');
+                $(".event-progress-text").html(data.data.progress_text)
+                packThings(sync_message,sync_type,dest_connect_id, page=1);
+            }else{
+                $(".sync-changes-btn").removeClass('disable-a loading');
+                $('.sync_error_success_msg').html('<p class="error">'+data.message+'</p>');  
+            }
+
+        }).catch((error) => {
+           
+        });
+    });
+    
+    const packThings = async (sync_message,sync_type,dest_connect_id, page) => {
         let formData = new FormData();
         formData.append('action', 'pack_things');
         formData.append('sync_type', sync_type);
-        formData.append('sync_ids', sync_ids);
         formData.append('sync_message', sync_message);
+        formData.append('page', page);
+        $(".sync_process .step-1").removeClass('process_pending').addClass('process_inprogress');
         baseCall(formData).then((response) => response.json()).then((data) => {
-            console.log(data);
+            console.log('data', data);
             if(data.success === true){
                 //Complete Step 1
                 $(".sync_process .step-1").removeClass('process_inprogress').addClass('process_complete');
                 //Initiate Step 2
                 $(".sync_process .step-2").removeClass('process_pending').addClass('process_inprogress');
-                bulkSync(sync_message,data.data,sync_type,sync_ids, dest_connect_id); 
+                bulkSync(sync_message,data.data,sync_type, dest_connect_id, page); 
             }else{
                 $(".sync-changes-btn").removeClass('disable-a loading');
                 $('.sync_error_success_msg').html('<p class="error">'+data.message+'</p>');  
@@ -281,66 +300,72 @@ jQuery(document).ready(function ($) {
         
     }
     
-    const bulkSync = (sync_message, data, sync_type, sync_ids, dest_connect_id) => {
+    const bulkSync = (sync_message, data, sync_type, dest_connect_id, page) => {
         let formData = new FormData();
-        formData.append('action', 'sync_changes'); //Ajax action
+        formData.append('action', 'sync_changes');
         formData.append('sync_message', sync_message);
         formData.append('sync_type', sync_type);
         formData.append('dest_connect_id', dest_connect_id);
-        formData.append('sync_ids', sync_ids);
+        formData.append('sync_ids', '');
         formData.append('data', data);
+        formData.append('page', page);
         baseCall(formData).then((response) => response.json()).then((data) => { 
-            if(sync_type == 'single_sync'){
-                // for single sync....
-                if(data.success === true){
-                    const synced_status =  data.data.res_data.status;
-                    const synced_message =  data.data.res_data.synced_message;
-                    
-                    $('#btn-sync-'+sync_ids).parent().find('.sync-loader').html('');
-                    $('#btn-sync-'+sync_ids).parent().find('.column-synced_message').html(synced_message);
-                    $('#btn-sync-'+sync_ids).parent().parent().find('.column-synced_message').html(synced_message);
-                    var element = $('#btn-sync-'+sync_ids).parent().parent().find('.synced_status');
-                    element.removeClass('pending').addClass('completed');
-                    element.html(synced_status);
-                    $('#btn-sync-'+sync_ids).parent().html('<div class="single-sync-btn"><p class="sync_completed">Synced</p></div>');
-                }else{
-                    $('#btn-sync-'+sync_ids).addClass('two-way-sync-btn').removeClass('loading').attr('disabled',false);
-                    $('#btn-sync-'+sync_ids).parent().find('.sync-loader').html('');
-	                $('#btn-sync-'+sync_ids).parent().find('.sync-success').html(data.message);  
+            if(data.success === true){
+                const paging = data.data.paging_data;
+
+                $(".sync_process .step-2").removeClass('process_inprogress').addClass('process_complete');
+                //Initiated Step3
+                
+                $(".event-progress-text").html(paging.progress_text)
+                $(".event-progress-bar>div").css('width', paging.percent_completed+'%');
+                $(".sync_process .step-3").removeClass('process_pending').addClass('process_inprogress');
+
+                var syncIds = $("#id_syncIds").val();
+                var array = syncIds.split(',');
+                var index = array.indexOf(paging.sync_id);
+                if(index === -1){
+                    array.push(paging.sync_id);
+                    $("#id_syncIds").val(array.join(','))
+                }
+
+                if( paging.page < paging.total_page ){
+                    packThings(sync_message,sync_type,dest_connect_id, paging.next_page);
+                }
+                
+                if( paging.percent_completed == 100 && paging.total_page == paging.page ){
+                    $('.bulk-sync-btn').html('<a class="sync-complete" href="javascript:void(0);">Processing...</a>');
+                    updateSyncStatus();
                 }
             }else{
-                if(data.success === true){
-                    //Upload Data, Completed Step 2
-                    $(".sync_process .step-2")
-                    .removeClass('process_inprogress')
-                    .addClass('process_complete');
-                    
-                    //Initiated Step3
-                    $(".sync_process .step-3")
-                        .removeClass('process_pending')
-                        .addClass('process_inprogress');
-                         
-                    //Set TimeOut
-                    setTimeout( function() { 
-                        $(".sync_process .step-3")
-                        .removeClass('process_inprogress')
-                        .addClass('process_complete');
-                        $(".sync-changes-btn").removeClass('disable-a loading');
-                        $('.bulk-sync-btn').html('<a class="sync-complete" href="javascript:void(0);">Sync Completed</a>');
-                        setTimeout( function() {
-                            $('.bulk-sync-popup').hide();
-                            get_site_events();
-                        }, 1000);
-                    }, 2000);
-                    
-                }else{
-                    $(".sync-changes-btn").removeClass('disable-a loading');
-                    $('.sync_error_success_msg').html('<p class="error">'+data.message+'</p>');  
-                }
+                $(".sync-changes-btn").removeClass('disable-a loading');
+                $('.sync_error_success_msg').html('<p class="error">'+data.message+'</p>');  
             }
         });
-    } 
+    }
+
+    const updateSyncStatus = () => {
+        let formData = new FormData();
+        formData.append('action',       'update_sync_status');
+        formData.append('sync_ids',     $("#id_syncIds").val() );
+        formData.append('connect_id',   $("#destination-site").val() );
+
+        baseCall(formData).then((response) => response.json()).then(( data ) => { 
+
+            $(".sync-changes-btn").removeClass('disable-a loading');
+            $(".sync_process .step-3").removeClass('process_inprogress').addClass('process_complete');
+            $('.bulk-sync-btn').html('<a class="sync-complete" href="javascript:void(0);">Sync Completed</a>');
+
+            setTimeout( function() {
+                $("#id_syncIds").val('');
+                $('.bulk-sync-popup').hide();
+                get_site_events();
+            }, 2000);
+            
+        });
+    }
 });
+
+
 
 function getEventsID(){
     var sync_selected_arr = [];

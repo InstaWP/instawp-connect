@@ -144,40 +144,54 @@ if( !empty( $parent_connect_data ) ){
                                     <?php endforeach ?>
                                 </select>
                             </div>
-                            <div class="instawp_category">
-                                <div class="instawpcatlftcol bulk-events-info">
-                                    <ul class="list">
-                                        <li id="post_change_event_count"><?php printf('%d post change events', 0) ?></li>
-                                        <li id="post_delete_event_count"><?php printf('%d post delete events', 0) ?></li>
-                                        <li id="post_trash_event_count"><?php printf('%d post trash events', 0) ?></li>
-                                        <li id="post_other_event_count"><?php printf('%d other events', 0) ?></li>
-                                    </ul>
+                            <div class="rounded-xl w-full text-bg py-4 px-4 border mt-5 bg-green-50">
+                                <div class="progress-wrapper hidden">
+                                    <div class="w-100 text-left font-medium event-progress-text">
+                                        30% Completed ( 50 out of 300 events )
+                                    </div>
+                                    <div class="w-full text-bg py-1 flex items-center mb-2 border-b-[1px] mb-6 pb-3">
+                                        <div class="w-full bg-gray-200 rounded-md event-progress-bar">
+                                            <div class="progress-bar h-2 bg-primary-900 rounded-md"></div>
+                                        </div>
+                                        <div class="progress-text text-grayCust-650 text-sm font-medium"></div>
+                                    </div>
                                 </div>
-                                <div class="instawpcatlftcol selected-events-info">
-                                    <ul class="list">
-                                        <li><span class="post-change">0</span><?php echo esc_html__( 'post change events', 'instawp-connect' ); ?></li>
-                                        <li><span class="post-delete">0</span><?php echo esc_html__( 'post delete events', 'instawp-connect' ); ?></li>
-                                        <li><span class="post-trash">0</span><?php echo esc_html__( 'post trash events', 'instawp-connect' ); ?></li>
-                                        <li><span class="others">0</span><?php echo esc_html__( 'other events', 'instawp-connect' ); ?></li>
-                                    </ul>
+                                <div class="instawp_category rounded-xl">
+                                    <div class="instawpcatlftcol bulk-events-info bg-[#fff]">
+                                        <ul class="list">
+                                            <li id="post_change_event_count"><?php printf('%d post change events', 0) ?></li>
+                                            <li id="post_delete_event_count"><?php printf('%d post delete events', 0) ?></li>
+                                            <li id="post_trash_event_count"><?php printf('%d post trash events', 0) ?></li>
+                                            <li id="post_other_event_count"><?php printf('%d other events', 0) ?></li>
+                                        </ul>
+                                    </div>
+                                    <div class="instawpcatlftcol selected-events-info">
+                                        <ul class="list">
+                                            <li><span class="post-change">0</span><?php echo esc_html__( 'post change events', 'instawp-connect' ); ?></li>
+                                            <li><span class="post-delete">0</span><?php echo esc_html__( 'post delete events', 'instawp-connect' ); ?></li>
+                                            <li><span class="post-trash">0</span><?php echo esc_html__( 'post trash events', 'instawp-connect' ); ?></li>
+                                            <li><span class="others">0</span><?php echo esc_html__( 'other events', 'instawp-connect' ); ?></li>
+                                        </ul>
+                                    </div>
+                                    <div class="instawpcatrgtcol sync_process bg-[#fff]">
+                                        <ul>
+                                            <li class="step-1 process_pending"><?php echo esc_html__( 'Packing things', 'instawp-connect' ); ?></li>
+                                            <li class="step-2 process_pending"><?php echo esc_html__( 'Pushing', 'instawp-connect' ); ?></li>
+                                            <li class="step-3 process_pending"><?php echo esc_html__( 'Merging to destination', 'instawp-connect' ); ?></li>
+                                        </ul>
+                                    </div>
                                 </div>
-                                <div class="instawpcatrgtcol sync_process">
-                                    <ul>
-                                        <li class="step-1 process_pending"><?php echo esc_html__( 'Packing things', 'instawp-connect' ); ?></li>
-                                        <li class="step-2 process_pending"><?php echo esc_html__( 'Pushing', 'instawp-connect' ); ?></li>
-                                        <li class="step-3 process_pending"><?php echo esc_html__( 'Merging to destination', 'instawp-connect' ); ?></li>
-                                    </ul>
-                                </div>
-                            </div>
+                            </div> 
                             <div class="sync_error_success_msg"></div>
-                            <div class="sync_message_main textarea_json destination_form">
+                            <div class="sync_message_main textarea_json destination_form mt-6">
                                 <label for="sync_message"><?php echo esc_html__( 'Message:', 'instawp-connect' ); ?></label>
+                                <input type="hidden" id="id_syncIds" value="" />
                                 <textarea id="sync_message" name="sync_message" rows="4"></textarea>
                             </div>
-                        </div>
-                        <div class="instawp_buttons">                            
-                            <div class="bulk-close-btn"><a class="cancel-btn close" href="javascript:void(0);"><?php echo esc_html__( 'Cancel', 'instawp-connect' ); ?></a></div>
-                            <div class="bulk-sync-btn"><a class="changes-btn sync-changes-btn" href="javascript:void(0);"><span><?php echo esc_html__( 'Sync', 'instawp-connect' ); ?></span></a></div>
+                            <div class="instawp_buttons mt-6">                            
+                                <div class="bulk-close-btn"><a class="cancel-btn close" href="javascript:void(0);"><?php echo esc_html__( 'Cancel', 'instawp-connect' ); ?></a></div>
+                                <div class="bulk-sync-btn"><a class="changes-btn sync-changes-btn" href="javascript:void(0);"><span><?php echo esc_html__( 'Sync', 'instawp-connect' ); ?></span></a></div>
+                            </div>
                         </div>
                         <div><input type="hidden" id="selected_events" name="selected_events" value=""></div>
                     </div>

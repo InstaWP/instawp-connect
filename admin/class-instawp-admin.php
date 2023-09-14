@@ -320,7 +320,10 @@ class InstaWP_Admin {
 				'ajax_url'          => admin_url( 'admin-ajax.php' ),
 				'nonce'             => wp_create_nonce( 'instaWp_change_event' ),
 				'plugin_images_url' => INSTAWP_PLUGIN_IMAGES_URL,
-				'trans'             => [
+				'data'				=>[
+					'event_toolbar_html'	=> '<li id="wp-admin-bar-instawp-sync-toolbar" class="instawp-sync-status-toolbar"><a class="ab-item" href="'.admin_url('?page=instawp').'" title="'.__( "Recording", "instawp-connect").'">'.__( "Recording", "instawp-connect").'</a></li>',
+				],
+				'trans'				=> [
 					'create_staging_site_txt' => __( 'Please create staging sites first.', 'instawp-connect' )
 				]
 			)

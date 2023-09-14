@@ -42,7 +42,7 @@ body.show {
 .instawppopwrap {
     background: #fff;
     border-radius: 10px;
-    padding: 48px 44px 48px;
+    padding: 25px 25px 25px;
 }
 .topinstawppopwrap {
     padding: 0 20px;
@@ -110,7 +110,6 @@ body.show {
     grid-template-columns: repeat(2,1fr);
     text-align: left;
     column-gap: 30px;
-    margin-top: 32px;
 }
 .instawp_category > div {
     border: 1px solid #F3F4F6;
@@ -188,8 +187,8 @@ body.show {
 .instawpcatrgtcol ul li.process_complete::before {
     content: "";
     position: absolute;
-    left: 9px;
-    top: 3px;
+    left: 8px;
+    top: 2px;
     width: 4px;
     height: 8px;
     border: solid white;
@@ -506,7 +505,7 @@ li#wp-admin-bar-instawp-sync-toolbar a.ab-item:before {
     top: 3px;
     width: 15px;
     height: 15px;
-    background-color: red;
+    background-color:#dc393b;
     border-radius: 100px;
     margin-top: 6px;
     padding: 0px !important;
@@ -542,3 +541,4 @@ span.select2-selection.select2-selection--single {
 @keyframes blink {
     50% {opacity: 0;}
 }
+
