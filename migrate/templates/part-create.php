@@ -28,14 +28,12 @@ $customize_options     = array(
 			'active_themes_only'  => esc_html__( 'Active Themes Only', 'instawp-connect' ),
 //			'skip_post_revisions' => esc_html__( 'Skip Post Revisions', 'instawp-connect' ),
 			'skip_media_folder'   => esc_html__( 'Skip Media Folder', 'instawp-connect' ),
+			'skip_large_files'    => esc_html__( 'Skip Large Files', 'instawp-connect' ),
 		),
 	),
 );
 
-$list_data = get_option( 'instawp_large_files_list', [] ) ?? [];
-if ( ! empty( $list_data ) ) {
-    $customize_options['general']['options']['skip_large_files'] = esc_html__( 'Skip Large Files', 'instawp-connect' );
-} ?>
+$list_data = get_option( 'instawp_large_files_list', [] ) ?? []; ?>
 
 <form action="" method="post" class="<?php echo esc_attr( implode( ' ', $nav_item_classes ) ); ?> create active">
 
@@ -158,26 +156,28 @@ if ( ! empty( $list_data ) ) {
                     <div class="screen screen-3 <?= $current_create_screen == 3 ? 'active' : ''; ?>">
                         <div class="flex justify-between items-center">
                             <div class="text-grayCust-200 text-lg font-bold"><?php esc_html_e( '3. Exclude', 'instawp-connect' ); ?></div>
+                            <button type="button" class="instawp-refresh-large-files">
+                                <svg class="w-4 h-4" viewBox="0 0 14 16" fill="none" xmlns="http://www.w3.org/2000/svg"> <path fill-rule="evenodd" clip-rule="evenodd" style="fill: #005e54;" d="M1.59995 0.800049C2.09701 0.800049 2.49995 1.20299 2.49995 1.70005V3.59118C3.64303 2.42445 5.23642 1.70005 6.99995 1.70005C9.74442 1.70005 12.0768 3.45444 12.9412 5.90013C13.1069 6.36877 12.8612 6.88296 12.3926 7.0486C11.924 7.21425 11.4098 6.96862 11.2441 6.49997C10.6259 4.75097 8.95787 3.50005 6.99995 3.50005C5.52851 3.50005 4.22078 4.20657 3.39937 5.30005H6.09995C6.59701 5.30005 6.99995 5.70299 6.99995 6.20005C6.99995 6.6971 6.59701 7.10005 6.09995 7.10005H1.59995C1.10289 7.10005 0.699951 6.6971 0.699951 6.20005V1.70005C0.699951 1.20299 1.10289 0.800049 1.59995 0.800049ZM1.6073 8.95149C2.07594 8.78585 2.59014 9.03148 2.75578 9.50013C3.37396 11.2491 5.04203 12.5 6.99995 12.5C8.47139 12.5 9.77912 11.7935 10.6005 10.7L7.89995 10.7C7.40289 10.7 6.99995 10.2971 6.99995 9.80005C6.99995 9.30299 7.40289 8.90005 7.89995 8.90005H12.3999C12.6386 8.90005 12.8676 8.99487 13.0363 9.16365C13.2051 9.33243 13.3 9.56135 13.3 9.80005V14.3C13.3 14.7971 12.897 15.2 12.4 15.2C11.9029 15.2 11.5 14.7971 11.5 14.3V12.4089C10.3569 13.5757 8.76348 14.3 6.99995 14.3C4.25549 14.3 1.92309 12.5457 1.05867 10.1C0.893024 9.63132 1.13866 9.11714 1.6073 8.95149Z"></path> </svg>
+                            </button>
                         </div>
-                        <?php if ( ! empty( $list_data ) ) { ?>
-                            <div class="bg-yellow-50 border border-2 border-r-0 border-y-0 border-l-orange-400 rounded-lg text-sm text-orange-700 p-4 mt-4 flex flex-col items-start gap-3">
-                                <div class="flex items-center gap-3">
-                                    <div class="text-sm font-medium"><?php esc_html_e( 'We have identified following large files in your installation:', 'instawp-connect' ); ?></div>
-                                    <button type="button" class="instawp-refresh-large-files">
-                                        <svg class="w-4 h-4" viewBox="0 0 14 16" fill="none" xmlns="http://www.w3.org/2000/svg"> <path fill-rule="evenodd" clip-rule="evenodd" style="fill: #005e54;" d="M1.59995 0.800049C2.09701 0.800049 2.49995 1.20299 2.49995 1.70005V3.59118C3.64303 2.42445 5.23642 1.70005 6.99995 1.70005C9.74442 1.70005 12.0768 3.45444 12.9412 5.90013C13.1069 6.36877 12.8612 6.88296 12.3926 7.0486C11.924 7.21425 11.4098 6.96862 11.2441 6.49997C10.6259 4.75097 8.95787 3.50005 6.99995 3.50005C5.52851 3.50005 4.22078 4.20657 3.39937 5.30005H6.09995C6.59701 5.30005 6.99995 5.70299 6.99995 6.20005C6.99995 6.6971 6.59701 7.10005 6.09995 7.10005H1.59995C1.10289 7.10005 0.699951 6.6971 0.699951 6.20005V1.70005C0.699951 1.20299 1.10289 0.800049 1.59995 0.800049ZM1.6073 8.95149C2.07594 8.78585 2.59014 9.03148 2.75578 9.50013C3.37396 11.2491 5.04203 12.5 6.99995 12.5C8.47139 12.5 9.77912 11.7935 10.6005 10.7L7.89995 10.7C7.40289 10.7 6.99995 10.2971 6.99995 9.80005C6.99995 9.30299 7.40289 8.90005 7.89995 8.90005H12.3999C12.6386 8.90005 12.8676 8.99487 13.0363 9.16365C13.2051 9.33243 13.3 9.56135 13.3 9.80005V14.3C13.3 14.7971 12.897 15.2 12.4 15.2C11.9029 15.2 11.5 14.7971 11.5 14.3V12.4089C10.3569 13.5757 8.76348 14.3 6.99995 14.3C4.25549 14.3 1.92309 12.5457 1.05867 10.1C0.893024 9.63132 1.13866 9.11714 1.6073 8.95149Z"></path> </svg>
-                                    </button>
+                        <div class="instawp-exclude-container">
+                            <?php if ( ! empty( $list_data ) ) { ?>
+                                <div class="bg-yellow-50 border border-2 border-r-0 border-y-0 border-l-orange-400 rounded-lg text-sm text-orange-700 p-4 mt-4 flex flex-col items-start gap-3">
+                                    <div class="flex items-center gap-3">
+                                        <div class="text-sm font-medium"><?php esc_html_e( 'We have identified following large files in your installation:', 'instawp-connect' ); ?></div>
+                                    </div>
+                                    <div class="flex flex-col items-start gap-3">
+                                        <?php foreach ( $list_data as $data ) {
+                                            $element_id = wp_generate_uuid4(); ?>
+                                            <div class="flex justify-between items-center text-xs">
+                                                <input type="checkbox" name="instawp_migrate[excluded_paths][]" id="<?php echo esc_attr( $element_id ); ?>" value="<?php echo esc_attr( $data['relative_path'] ); ?>" class="instawp-checkbox exclude-item large-file !mt-0 !mr-3 rounded border-gray-300 text-primary-900 focus:ring-primary-900">
+                                                <label for="<?php echo esc_attr( $element_id ); ?>"><?php echo esc_html( $data['relative_path'] ); ?> (<?php echo esc_html( instawp()->get_file_size_with_unit( $data['size'] ) ); ?>)</label>
+                                            </div>
+                                        <?php } ?>
+                                    </div>
                                 </div>
-                                <div class="flex flex-col items-start gap-3 instawp-large-file-container">
-                                    <?php foreach ( $list_data as $data ) {
-                                        $element_id = wp_generate_uuid4(); ?>
-                                        <div class="flex justify-between items-center text-xs">
-                                            <input type="checkbox" name="instawp_migrate[excluded_paths][]" id="<?php echo esc_attr( $element_id ); ?>" value="<?php echo esc_attr( $data['relative_path'] ); ?>" class="instawp-checkbox exclude-item large-file !mt-0 !mr-3 rounded border-gray-300 text-primary-900 focus:ring-primary-900">
-                                            <label for="<?php echo esc_attr( $element_id ); ?>"><?php echo esc_html( $data['relative_path'] ); ?> (<?php echo esc_html( instawp()->get_file_size_with_unit( $data['size'] ) ); ?>)</label>
-                                        </div>
-                                    <?php } ?>
-                                </div>
-                            </div>
-                        <?php } ?>
+                            <?php } ?>
+                        </div>
                         <div class="panel mt-6 block">
                             <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
                                 <div class="min-w-full divide-y divide-gray-300">
@@ -194,7 +194,7 @@ if ( ! empty( $list_data ) ) {
                                                 <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                     <path d="M7 16V4M7 4L3 8M7 4L11 8M17 8V20M17 20L21 16M17 20L13 16" stroke="#005E40" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                                                 </svg>
-                                                <?php esc_html_e( 'Sort By', 'instawp-connect' ); ?>
+                                                <?php esc_html_e( 'Size', 'instawp-connect' ); ?>
                                             </div>
                                             <button type="button" class="instawp-refresh-file-explorer" disabled="disabled">
                                                 <svg class="w-4 h-4" viewBox="0 0 14 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -205,7 +205,7 @@ if ( ! empty( $list_data ) ) {
                                             <div class="text-left upercase text-sm font-medium text-grayCust-900">Filter</div> -->
                                         </div>
                                     </div>
-                                    <div class="overflow-auto exclude-container">
+                                    <div class="overflow-auto exclude-files-container">
                                         <div class="loading"></div>
                                     </div>
                                 </div>

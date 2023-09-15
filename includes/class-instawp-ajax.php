@@ -137,18 +137,33 @@ class InstaWP_AJAX {
 	public function get_large_files() {
 		check_ajax_referer( 'instawp-migrate', 'security' );
 
-		$skip      = isset( $_POST['skip'] ) ? filter_var( $_POST['skip'], FILTER_VALIDATE_BOOLEAN ) : false;
+		$skip     = isset( $_POST['skip'] ) ? filter_var( $_POST['skip'], FILTER_VALIDATE_BOOLEAN ) : false;
+		$generate = isset( $_POST['generate'] ) ? filter_var( $_POST['generate'], FILTER_VALIDATE_BOOLEAN ) : false;
+
+		if ( $generate ) {
+			delete_option( 'instawp_large_files_list' );
+			as_enqueue_async_action( 'instawp_prepare_large_files_list_async', [], 'instawp-connect', true );
+		}
+
 		$list_data = get_option( 'instawp_large_files_list', [] ) ?? [];
 
 		ob_start();
-		if ( ! empty( $list_data ) ) { 
-			foreach ( $list_data as $data ) {
-				$element_id = wp_generate_uuid4(); ?>
-				<div class="flex justify-between items-center text-xs">
-					<input type="checkbox" name="instawp_migrate[excluded_paths][]" id="<?php echo esc_attr( $element_id ); ?>" value="<?php echo esc_attr( $data['relative_path'] ); ?>" class="instawp-checkbox exclude-item large-file !mt-0 !mr-3 rounded border-gray-300 text-primary-900 focus:ring-primary-900" <?php checked( $skip, true ); ?>>
-					<label for="<?php echo esc_attr( $element_id ); ?>"><?php echo esc_html( $data['relative_path'] ); ?> (<?php echo esc_html( instawp()->get_file_size_with_unit( $data['size'] ) ); ?>)</label>
+		if ( ! empty( $list_data ) ) { ?>
+			<div class="bg-yellow-50 border border-2 border-r-0 border-y-0 border-l-orange-400 rounded-lg text-sm text-orange-700 p-4 mt-4 flex flex-col items-start gap-3">
+				<div class="flex items-center gap-3">
+					<div class="text-sm font-medium"><?php esc_html_e( 'We have identified following large files in your installation:', 'instawp-connect' ); ?></div>
 				</div>
-			<?php }
+				<div class="flex flex-col items-start gap-3">
+					<?php foreach ( $list_data as $data ) {
+						$element_id = wp_generate_uuid4(); ?>
+						<div class="flex justify-between items-center text-xs">
+							<input type="checkbox" name="instawp_migrate[excluded_paths][]" id="<?php echo esc_attr( $element_id ); ?>" value="<?php echo esc_attr( $data['relative_path'] ); ?>" class="instawp-checkbox exclude-item large-file !mt-0 !mr-3 rounded border-gray-300 text-primary-900 focus:ring-primary-900" <?php checked( $skip, true ); ?>>
+							<label for="<?php echo esc_attr( $element_id ); ?>"><?php echo esc_html( $data['relative_path'] ); ?> (<?php echo esc_html( instawp()->get_file_size_with_unit( $data['size'] ) ); ?>)</label>
+						</div>
+					<?php } ?>
+				</div>
+			</div>
+			<?php
 		}
 
 		$content = ob_get_clean();
