@@ -166,6 +166,7 @@ class instaWP {
 		
 		// Prepare large file list
 		add_action( 'instawp_prepare_large_files_list', array( $this, 'prepare_large_files_list' ) );
+		add_action( 'instawp_prepare_large_files_list_async', array( $this, 'prepare_large_files_list' ) );
 		add_action( 'update_option_instawp_max_file_size_allowed', array( $this, 'clear_staging_sites_list' ) );
 
 		// Clean Tasks
@@ -302,7 +303,7 @@ class instaWP {
 
 	public function clear_staging_sites_list() {
 		delete_option( 'instawp_large_files_list' );
-		as_unschedule_all_actions( 'instawp_prepare_large_files_list', [], 'instawp-connect' );
+		as_enqueue_async_action( 'instawp_prepare_large_files_list_async', [], 'instawp-connect', true );
 	}
 
 	public function clean_events() {
@@ -5695,7 +5696,7 @@ class instaWP {
 	
 	public function get_file_size_with_unit( $size, $unit = "" ) {
 		if ( ( ! $unit && $size >= 1<<30 ) || $unit == "GB" ) {
-		  	return number_format( $size / ( 1<<30 ), 2 )." GB";
+		  	return number_format( $size / ( 1<<30 ), 2 ) . " GB";
 		}
 
 		if ( ( ! $unit && $size >= 1<<20 ) || $unit == "MB" ) {

@@ -704,7 +704,7 @@ tailwind.config = {
     });
 
     $(document).on('instawpTriggerRefresh', function (e, sort) {
-        $(document).find('.exclude-container').removeClass('p-4 h-80').html('<div class="loading"></div>');
+        $(document).find('.exclude-files-container').removeClass('p-4 h-80').html('<div class="loading"></div>');
         $(document).find('#instawp-files-select-all').prop( "checked", false ).prop( "disabled", true );
         $(document).find('.instawp-refresh-file-explorer').prop( "disabled", true );
         $(document).trigger("instawpLoadDirectory", [sort]);
@@ -712,7 +712,7 @@ tailwind.config = {
 
     $(document).on('change', '#instawp-files-select-all', function() {
         let el = $(this),
-            subEl = $(document).find('.exclude-container .instawp-checkbox.exclude-item');
+            subEl = $(document).find('.exclude-files-container .instawp-checkbox.exclude-item');
 
         subEl.not(":disabled").prop( "checked", el.is(":checked") );
     });
@@ -722,7 +722,7 @@ tailwind.config = {
             parentEl = el.closest('.item'),
             subEl = parentEl.find('.sub-item .instawp-checkbox.exclude-item');
 
-        if ( $(document).find('.exclude-container .instawp-checkbox.exclude-item').not(':checked').length) {
+        if ( $(document).find('.exclude-files-container .instawp-checkbox.exclude-item').not(':checked').length) {
             $(document).find('#instawp-files-select-all').prop( "checked", false );
         } else {
             $(document).find('#instawp-files-select-all').prop( "checked", true );
@@ -735,12 +735,17 @@ tailwind.config = {
         $(document).trigger("instawpLoadDirectory", [false]);
     });
 
+    $(document).on('click', '.instawp-refresh-large-files', function () {
+        $(document).trigger("instawpLoadLargeFiles", [true]);
+        $(document).trigger("instawpLoadDirectory", [false]);
+    });
+
     $(document).on('instawpLoadDirectory', function (e, sort) {
         let el_active_plugins_only = $('input#active_plugins_only'),
             el_active_themes_only = $('input#active_themes_only'),
             el_skip_media_folder = $('input#skip_media_folder'),
             el_sort_by = $(document).find('.instawp-sort-by').attr('data-sort'),
-            el_loading = $(document).find('.exclude-container > .loading');
+            el_loading = $(document).find('.exclude-files-container > .loading');
     
         if ( el_sort_by === 'none' && sort ) {
             el_sort_by = 'descending';
@@ -754,6 +759,7 @@ tailwind.config = {
             $.ajax({
                 type: 'POST', 
                 url: plugin_object.ajax_url, 
+                context: this, 
                 data: {
                     'action': 'instawp_get_dir_contents',
                     //'path': '/wp-content',
@@ -764,7 +770,7 @@ tailwind.config = {
                     'security': instawp_migrate.security
                 },
                 success: function (response) {
-                    $(document).find('.exclude-container').html(response.data).addClass('p-4 h-80');
+                    $(document).find('.exclude-files-container').html(response.data).addClass('p-4 h-80');
                     $(document).find('#instawp-files-select-all').prop( "disabled", false );
                     $(document).find('.instawp-refresh-file-explorer').prop( "disabled", false );
                     $(document).find('.instawp-sort-by').removeClass('pointer-events-none').attr('data-sort', el_sort_by);
@@ -776,11 +782,7 @@ tailwind.config = {
         }
     });
 
-    $(document).on('click', '.instawp-refresh-large-files', function () {
-        $(document).trigger("instawpLoadLargeFiles");
-    });
-
-    $(document).on('instawpLoadLargeFiles', function () {
+    $(document).on('instawpLoadLargeFiles', function (e, generate) {
         let el_skip_large_files = $('input#skip_large_files').is(":checked");
 
         $(document).find('.instawp-refresh-large-files').prop( "disabled", true ).addClass('animate-spin');
@@ -792,14 +794,15 @@ tailwind.config = {
             data: {
                 'action': 'instawp_get_large_files',
                 'skip': el_skip_large_files,
+                'generate': generate,
                 'security': instawp_migrate.security
             },
             success: function (response) {
                 if ( response.data ) {
-                    $(document).find('.instawp-large-file-container').html(response.data);
+                    $(document).find('.instawp-exclude-container').html(response.data);
                     $(document).find('.instawp-refresh-large-files').prop( "disabled", false ).removeClass('animate-spin');
                 } else {
-                    $(document).trigger("instawpLoadLargeFiles");
+                    $(document).trigger("instawpLoadLargeFiles", [false]);
                 }
             },
             error: function (jqXHR, textStatus, errorThrown) {
