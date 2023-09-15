@@ -72,7 +72,7 @@ class InstaWP_AJAX {
 
 		ob_start();
 		foreach ( $dir_data as $key => $data ) {
-			if ( $data['name'] == "." || $data['name'] == ".." ) {
+			if ( $data['name'] == "." || $data['name'] == ".." || strpos( $data['full_path'], 'instawp-connect' ) !== false ) {
 				continue;
 			}
 			$total_size = $total_size + $data['size'];
