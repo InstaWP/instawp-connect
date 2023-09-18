@@ -5650,16 +5650,18 @@ class instaWP {
 						'relative_path' => str_replace( $path_to_replace, '', $normalized_path ),
 						'full_path'     => $normalized_path,
 						'size'          => $size,
-						'type'          => 'file'
+						'count'         => 1,
+						'type'          => 'file',
 					];
 				} else if ( $value != "." && $value != ".." ) {
-					$size                 = $this->get_directory_size( $path );
+					$directory_info = $this->get_directory_info( $path );
 					$folders[] = [
 						'name'          => $value,
 						'relative_path' => str_replace( $path_to_replace, '', $normalized_path ),
 						'full_path'     => $normalized_path,
-						'size'          => $size,
-						'type'          => 'folder'
+						'size'          => $directory_info['size'],
+						'count'         => $directory_info['count'],
+						'type'          => 'folder',
 					];
 				}
 			} catch( Exception $e ) {}
@@ -5679,19 +5681,30 @@ class instaWP {
 
 		return $files_list;
 	}
-	
-	public function get_directory_size( $path ) {
-		$bytestotal = 0;
-		$path       = realpath( $path );
+
+	public function get_directory_info( $path ) {
+		$bytes_total = 0;
+		$files_total = 0;
+		$path        = realpath( $path );
 		try {
 			if ( $path !== false && $path != '' && file_exists( $path ) ) {
 				foreach( new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $path, FilesystemIterator::SKIP_DOTS ) ) as $object ) {
-					$bytestotal += $object->getSize();
+					$bytes_total += $object->getSize();
+					$files_total++;
 				}
 			}
 		} catch( Exception $e ) {}
 	
-		return $bytestotal;
+		return [
+			'size'  => $bytes_total,
+			'count' => $files_total
+		];
+	}
+	
+	public function get_directory_size( $path ) {
+		$info = $this->get_directory_info( $path );
+	
+		return $info['size'];
 	}
 	
 	public function get_file_size_with_unit( $size, $unit = "" ) {

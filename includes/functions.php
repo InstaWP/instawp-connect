@@ -1186,3 +1186,39 @@ if ( ! function_exists( 'instawp_get_dir_contents' ) ) {
 		return instawp()->get_directory_contents( ABSPATH . $dir, $sort_by );
 	}
 }
+
+
+if ( ! function_exists( 'instawp_get_database_details' ) ) {
+	/**
+	 * Get directory content.
+	 */
+	function instawp_get_database_details( $sort_by = false ) {
+		global $wpdb;
+		
+		$tables = [];
+		$rows   = $wpdb->get_results( 'SHOW TABLE STATUS', ARRAY_A );
+		if ( $wpdb->num_rows > 0 ) {
+			foreach ( $rows as $row ) {
+				$size = $row['Data_length'] + $row['Index_length'];
+
+				$tables[] = [
+					'name' => $row['Name'],
+					'size' => $size,
+					'rows' => $row['Rows'],
+				];
+			}
+
+			if ( $sort_by === 'descending' ) {
+				usort( $tables, function ( $item1, $item2 ) {
+					return $item2['size'] <=> $item1['size'];
+				} );
+			} else if ( $sort_by === 'ascending' ) {
+				usort( $tables, function ( $item1, $item2 ) {
+					return $item1['size'] <=> $item2['size'];
+				} );
+			}
+		}
+
+		return $tables;
+	}
+}
