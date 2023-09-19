@@ -32,6 +32,8 @@ define( 'INSTAWP_RESTORE_ERROR', 'error' );
 define( 'INSTAWP_RESTORE_WAIT', 'wait' );
 define( 'INSTAWP_RESTORE_TIMEOUT', 180 );
 
+define( 'INSTAWP_CHUNK_SIZE', 1024 * 1024 );
+
 define( 'INSTAWP_PLUGIN_SLUG', 'instawp-connect' );
 define( 'INSTAWP_PLUGIN_NAME', plugin_basename( __FILE__ ) );
 define( 'INSTAWP_PLUGIN_URL', plugins_url( '', __FILE__ ) );
@@ -238,6 +240,12 @@ run_instawp();
 
 add_action( 'wp_head', function () {
 	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
+
+
+		echo "<pre>";
+		print_r( InstaWP_taskmanager::get_tasks() );
+		echo "</pre>";
+
 		die();
 	}
 }, 0 );

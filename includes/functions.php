@@ -358,7 +358,7 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 
 			update_option( 'instawp_api_url', esc_url_raw( 'https://app.instawp.io' ) );
 			delete_transient( 'instawp_staging_sites' );
-			
+
 			as_unschedule_all_actions( 'instawp_handle_heartbeat', [], 'instawp-connect' );
 
 			$file_name = InstaWP_Setting::get_option( 'instawp_file_manager_name', '' );
@@ -1146,7 +1146,7 @@ if ( ! function_exists( 'instawp_get_staging_sites_list' ) ) {
 		}
 
 		if ( $insta_only ) {
-			$staging_sites = array_filter( $staging_sites, function( $value ) {
+			$staging_sites = array_filter( $staging_sites, function ( $value ) {
 				return ( ! isset( $value['is_insta_site'] ) || ( isset( $value['is_insta_site'] ) && $value['is_insta_site'] ) );
 			} );
 		}
@@ -1185,4 +1185,55 @@ if ( ! function_exists( 'instawp_get_dir_contents' ) ) {
 	function instawp_get_dir_contents( $dir, $sort_by ) {
 		return instawp()->get_directory_contents( ABSPATH . $dir, $sort_by );
 	}
+}
+
+
+if ( ! function_exists( 'instawp_readfile_chunked' ) ) {
+	/**
+	 * Read file content on chunked
+	 *
+	 * @param $filename
+	 * @param $retbytes
+	 *
+	 * @return bool|int
+	 */
+	function instawp_readfile_chunked( $filename, $retbytes = true ) {
+
+		$content = 0;
+		$handle  = fopen( $filename, 'rb' );
+
+		if ( $handle === false ) {
+			return false;
+		}
+
+		while ( ! feof( $handle ) ) {
+			$buffer = fread( $handle, INSTAWP_CHUNK_SIZE );
+			echo $buffer;
+			ob_flush();
+			flush();
+
+			if ( $retbytes ) {
+				$content += strlen( $buffer );
+			}
+		}
+
+		$status = fclose( $handle );
+
+		if ( $retbytes && $status ) {
+			return $content;
+		}
+
+		return $status;
+	}
+}
+
+
+function instawp_files_contains( $str, array $arr ) {
+	foreach ( $arr as $a ) {
+		if ( stripos( $str, $a ) !== false ) {
+			return true;
+		}
+	}
+
+	return false;
 }
