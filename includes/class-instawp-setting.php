@@ -354,6 +354,14 @@ class InstaWP_Setting {
 					'title'       => esc_html__( 'API Domain', 'instawp-connect' ),
 					'placeholder' => esc_url_raw( 'https://stage.instawp.io' ),
 				),
+				array(
+					'id'      => 'instawp_enable_wp_debug',
+					'type'    => 'toggle',
+					'title'   => __( 'WP Debug Log', 'instawp-connect' ),
+					'tooltip' => __( 'Enabling this option will enable WordPress debug log.', 'instawp-connect' ),
+					'class'   => 'save-ajax',
+					'default' => ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) ? 'on' : 'off',
+				),
 			),
 		);
 
@@ -452,7 +460,6 @@ class InstaWP_Setting {
 					'tooltip' => __( 'Enabling this option will allow reading WordPress error logs on this website remotely using the REST API.', 'instawp-connect' ),
 					'class'   => 'save-ajax',
 					'default' => 'off',
-					'internal'=> true,
 				],
 			],
 		];

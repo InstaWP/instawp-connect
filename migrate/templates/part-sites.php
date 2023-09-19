@@ -5,7 +5,7 @@
 
 $staging_sites       = instawp_get_staging_sites_list( true );
 $staging_sites_count = is_array( $staging_sites ) ? count( $staging_sites ) : 0;
-$pagination          = 10;
+$pagination          = INSTAWP_STAGING_SITES_PER_PAGE;
 ?>
 
 <div class="nav-item-content sites bg-white rounded-md p-6" data-pagination="<?php echo esc_attr( $pagination ); ?>">

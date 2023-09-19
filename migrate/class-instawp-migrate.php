@@ -233,18 +233,21 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 
 			if ( empty( $incomplete_task_ids ) ) {
 
+				$source_domain       = site_url();
 				$is_website_on_local = instawp_is_website_on_local();
 				$excluded_paths      = InstaWP_Setting::get_args_option( 'excluded_paths', $instawp_migrate, [] );
+				$excluded_tables     = InstaWP_Setting::get_args_option( 'excluded_tables', $instawp_migrate, [] );
 				$migrate_options     = InstaWP_Setting::get_args_option( 'options', $instawp_migrate, [] );
 				$migrate_settings    = [ 'nonce' => $migration_nonce, 'parent_domain' => site_url() ];
 
 				foreach ( $migrate_options as $migrate_option ) {
 					$migrate_settings[ $migrate_option ] = true;
 				}
-				$migrate_settings['excluded_paths'] = array_unique( $excluded_paths );
+				$migrate_settings['excluded_paths']  = array_unique( $excluded_paths );
+				$migrate_settings['excluded_tables'] = array_unique( $excluded_tables );
 
 				$migrate_args = array(
-					'source_domain'       => site_url(),
+					'source_domain'       => $source_domain,
 					'php_version'         => PHP_VERSION,
 					'plugin_version'      => INSTAWP_PLUGIN_VERSION,
 					'is_website_on_local' => $is_website_on_local,
@@ -272,6 +275,7 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 					as_enqueue_async_action( 'instawp_backup_bg', [ $migrate_task_id, $parameters ], 'instawp-connect', true );
 
 					InstaWP_Migrate_Log::write( $migrate_id, "migration started - migrate_id:{$migrate_id} response: " . json_encode( $migrate_response ) );
+					InstaWP_Migrate_Log::write( $migrate_id, "source_website:{$source_domain} is in local" );
 				}
 
 				$response['migrate_task_id']        = $migrate_task_id;

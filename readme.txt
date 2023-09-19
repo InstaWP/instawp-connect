@@ -59,7 +59,10 @@ InstaWP is an online WordPress development environment to get you started with a
 == Changelog ==
 
 = 0.0.9.31 =
+- 14/09/2023 - NEW - Exclude selected files from the migration process.
+- 14/09/2023 - FIX - Bath syncing change events for 2 way sync.
 - 12/09/2023 - FIX - Deployer mode updated with new WaaS flow.
+- 14/09/2023 - FIX - Stabilise migrations/staging process.
 
 = 0.0.9.30 =
 - 08/09/2023 - NEW - Split uploading backup files to cloud part based.

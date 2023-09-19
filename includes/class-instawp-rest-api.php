@@ -140,6 +140,119 @@ class InstaWP_Backup_Api {
 				'permission_callback' => '__return_true',
 			),
 		) );
+
+		register_rest_route( $this->namespace . '/v3/', 'serve', array(
+			'methods'             => 'POST',
+			'callback'            => array( $this, 'serve_files' ),
+			'permission_callback' => '__return_true',
+		) );
+	}
+
+	function serve_files( WP_REST_Request $request ) {
+
+		if ( is_wp_error( $response = $this->validate_api_request( $request ) ) ) {
+			return $this->throw_error( $response );
+		}
+
+		$folder       = './';
+		$dbPath       = './files_sent.db';
+		$skip_folders = [ "wp-content/cache/" ];
+		$skip_files   = [];
+		$db           = new PDO( 'sqlite:' . $dbPath );
+
+		$db->exec( "CREATE TABLE IF NOT EXISTS files_sent (id INTEGER PRIMARY KEY AUTOINCREMENT, filepath TEXT UNIQUE, sent INTEGER DEFAULT 0)" );
+
+		$batch = 1000;
+		$stmt  = $db->prepare( "SELECT count(*) as count FROM files_sent WHERE sent = 0" );
+		$stmt->execute();
+
+		$row              = $stmt->fetch( PDO::FETCH_ASSOC );
+		$unsentFilesCount = $row['count'];
+		$progressPer      = 0;
+
+		if ( file_exists( '.totalFiles' ) && ( $totalFiles = @file_get_contents( '.totalFiles' ) ) ) {
+
+			$stmt = $db->prepare( "SELECT count(*) as count FROM files_sent" );
+			$stmt->execute();
+
+			$row          = $stmt->fetch( PDO::FETCH_ASSOC );
+			$dbFilesCount = $row['count'];
+			$sentFiles    = $dbFilesCount - $unsentFilesCount;
+			$progressPer  = round( ( $sentFiles / $totalFiles ) * 100, 2 );
+		}
+
+		if ( $unsentFilesCount == 0 ) {
+
+			$directory  = new RecursiveDirectoryIterator( $folder, RecursiveDirectoryIterator::SKIP_DOTS );
+			$iterator   = new RecursiveIteratorIterator( $directory, RecursiveIteratorIterator::LEAVES_ONLY );
+			$totalFiles = iterator_count( $iterator );
+			$fileIndex  = 0;
+
+			file_put_contents( '.totalFiles', $totalFiles );
+
+			foreach ( $iterator as $file ) {
+
+				$filepath   = $file->getPathname();
+				$currentDir = $file->getPath();
+
+
+				$stmt = $db->prepare( "SELECT id, filepath FROM files_sent WHERE filepath = :filepath  LIMIT 1" );
+				$stmt->bindValue( ':filepath', $filepath, PDO::PARAM_STR );
+				$stmt->execute();
+				$row = $stmt->fetch( PDO::FETCH_ASSOC );
+
+				if ( ! $row ) {
+					if ( ! instawp_files_contains( $currentDir, $skip_folders ) ) {
+						$stmt = $db->prepare( "INSERT OR IGNORE INTO files_sent (filepath, sent) VALUES (:filepath, 0)" );
+						$stmt->execute( [ ':filepath' => $filepath ] );
+						$fileIndex ++;
+					}
+				} else {
+					continue;
+				}
+
+				if ( $fileIndex > $batch ) {
+					break;
+				}
+			}
+
+			if ( $fileIndex == 0 ) {
+				echo "No more files left to download!";
+				header( 'x-instawp-transfer-complete: true' );
+				$db = null;
+				exit;
+			}
+
+			$db->exec( "CREATE INDEX IF NOT EXISTS idx_sent ON files_sent(sent)" );
+			$db->exec( "CREATE INDEX IF NOT EXISTS idx_file_path ON files_sent(filepath)" );
+		}
+
+		// Fetch next unsent file
+		$stmt = $db->prepare( "SELECT id, filepath FROM files_sent WHERE sent = 0 LIMIT 1" );
+		$stmt->execute();
+		$row = $stmt->fetch( PDO::FETCH_ASSOC );
+
+		if ( $row ) {
+			$fileId   = $row['id'];
+			$filePath = $row['filepath'];
+			$mimetype = mime_content_type( $filePath );
+			header( 'Content-Type: ' . $mimetype );
+			$relativePath = ltrim( str_replace( $folder, "", $filePath ), DIRECTORY_SEPARATOR );
+
+			header( 'x-file-relative-path: ' . $relativePath );
+			header( 'x-iwp-progress: ' . $progressPer );
+
+			instawp_readfile_chunked( $filePath );
+
+			// Mark file as sent in database
+			$stmt = $db->prepare( "UPDATE files_sent SET sent = 1 WHERE id = :id" );
+			$stmt->execute( [ ':id' => $fileId ] );
+		} else {
+			// echo "No more files left to download!";
+			// header('x-instawp-transfer-complete: true');
+		}
+
+		$db = null;
 	}
 
 	/**

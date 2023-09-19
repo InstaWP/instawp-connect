@@ -522,15 +522,18 @@ input:checked + .slider-toggle:before {
     margin: -8px -8px;
 }
 
-.exclude-container::-webkit-scrollbar {
+.exclude-files-container::-webkit-scrollbar,
+.exclude-database-container::-webkit-scrollbar {
     width: 5px;
 }
 
-.exclude-container::-webkit-scrollbar-track {
+.exclude-files-container::-webkit-scrollbar-track,
+.exclude-database-container::-webkit-scrollbar-track {
     background: #f1f1f1; 
 }
 
-.exclude-container::-webkit-scrollbar-thumb {
+.exclude-files-container::-webkit-scrollbar-thumb,
+.exclude-database-container::-webkit-scrollbar-thumb {
     background: #b9b8b8; 
     border-radius: 5px;
 }

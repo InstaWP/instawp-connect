@@ -277,7 +277,7 @@ class InstaWP_Backup_Task {
 
 		if ( isset( $options['backup_files'] ) ) {
 			if ( $options['backup_files'] == 'files+db' ) {
-				$this->set_backup( INSTAWP_BACKUP_TYPE_DB );
+				$this->set_backup( INSTAWP_BACKUP_TYPE_DB, '', $options );
 				$this->set_backup( INSTAWP_BACKUP_TYPE_THEMES, '', $options );
 				$this->set_backup( INSTAWP_BACKUP_TYPE_PLUGIN, '', $options );
 				$general_setting = InstaWP_Setting::get_setting( true, "" );
@@ -428,7 +428,12 @@ class InstaWP_Backup_Task {
 
 				$db_tables_list = $this->get_excluded_db_tables_list( '' );
 
-				$backup_data['exclude_tables']      = $db_tables_list['exclude_tables'] ?? array();
+				$migrate_settings  = InstaWP_Setting::get_args_option( 'migrate_settings', $options, [] );
+				$excluded_tables   = InstaWP_Setting::get_args_option( 'excluded_tables', $migrate_settings, [] );
+
+				$backup_data['exclude_tables'] = $db_tables_list['exclude_tables'] ?? array();
+				$backup_data['exclude_tables'] = array_merge( $backup_data['exclude_tables'], $excluded_tables );
+				
 				$backup_data['exclude_tables_data'] = $db_tables_list['exclude_tables_data'] ?? array();
 
 				$exclude_tables_rows = array(
@@ -582,6 +587,10 @@ class InstaWP_Backup_Task {
 				INSTAWP_DB_TABLE_EVENTS,
 				INSTAWP_DB_TABLE_SYNC_HISTORY,
 				INSTAWP_DB_TABLE_EVENT_SITES,
+				$wpdb->prefix . 'actionscheduler_actions',
+				$wpdb->prefix . 'actionscheduler_claims',
+				$wpdb->prefix . 'actionscheduler_groups',
+				$wpdb->prefix . 'actionscheduler_logs',
 			),
 		);
 

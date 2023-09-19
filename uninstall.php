@@ -78,6 +78,7 @@ delete_option('instawp_export_list');
 delete_option('instawp_backup_report');
 delete_option('instawp_large_files_list');
 delete_transient( 'instawp_staging_sites' );
+delete_transient( 'instawp_generate_large_files' );
 
 $options = get_option('instawp_staging_options',array());
 $staging_keep_setting = isset($options['staging_keep_setting']) ? $options['staging_keep_setting'] : true;
