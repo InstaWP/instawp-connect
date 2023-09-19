@@ -172,8 +172,30 @@ class instaWP {
 		// Clean Tasks
 		add_action( 'instawp_clean_completed_actions', array( $this, 'clean_events' ) );
 
+		// Toggle WP Debug Option
+		add_action( 'update_option_instawp_enable_wp_debug', array( $this, 'toggle_wp_debug' ), 10, 2 );
+
 		// Hook to run on login page
 		add_action( 'login_init', array( $this, 'instawp_auto_login_redirect' ) );
+	}
+
+	public function toggle_wp_debug( $old_value, $value ) {
+		if ( $value === 'on' ) {
+			$params = [
+				'WP_DEBUG'         => true,
+				'WP_DEBUG_LOG'     => true,
+				'WP_DEBUG_DISPLAY' => false,
+			];
+		} else {
+			$params = [
+				'WP_DEBUG'         => false,
+				'WP_DEBUG_LOG'     => false,
+				'WP_DEBUG_DISPLAY' => false,
+			];
+		}
+
+		$wp_config = new \InstaWP\Connect\Helpers\WPConfig( $params );
+		$wp_config->update();
 	}
 
 	// Set Action Scheduler event.
