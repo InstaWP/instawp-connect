@@ -495,7 +495,7 @@ class InstaWP_Ajax_Fn {
 		$api_response = InstaWP_Curl::do_curl( 'connects/' . instawp_get_connect_id() . '/get-sync-quota', [], [], false );
 		if ( $api_response['success'] && ! empty( $api_response['data'] ) ) {
 			$data =  $api_response['data'];
-			if( isset( $data['sync_quota_limit'] ) && $data['sync_quota_used'] ){
+			if( isset( $data['sync_quota_limit'] ) && isset( $data['sync_quota_used'] ) ){
 				$remaining = $data['sync_quota_limit'] - $data['sync_quota_used'];
 				return $remaining;
 			}
