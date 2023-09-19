@@ -170,7 +170,7 @@ class instaWP {
 		add_action( 'update_option_instawp_max_file_size_allowed', array( $this, 'clear_staging_sites_list' ) );
 
 		// Clean Tasks
-		add_action( 'instawp_clean_tasks', array( $this, 'clean_events' ) );
+		add_action( 'instawp_clean_completed_actions', array( $this, 'clean_events' ) );
 
 		// Hook to run on login page
 		add_action( 'login_init', array( $this, 'instawp_auto_login_redirect' ) );
@@ -193,8 +193,8 @@ class instaWP {
 			as_schedule_recurring_action( time(), HOUR_IN_SECONDS, 'instawp_prepare_large_files_list', [], 'instawp-connect', false, 5 );
 		}
 
-		if ( ! as_has_scheduled_action( 'instawp_clean_tasks', [], 'instawp-connect' ) ) {
-			as_schedule_recurring_action( time(), DAY_IN_SECONDS, 'instawp_clean_tasks', [], 'instawp-connect', false, 5 );
+		if ( ! as_has_scheduled_action( 'instawp_clean_completed_actions', [], 'instawp-connect' ) ) {
+			as_schedule_recurring_action( time(), DAY_IN_SECONDS, 'instawp_clean_completed_actions', [], 'instawp-connect', false, 5 );
 		}
 	}
 	
@@ -298,6 +298,7 @@ class instaWP {
 			}
 		}
 
+		set_transient( 'instawp_generate_large_files', true, HOUR_IN_SECONDS );
 		update_option( 'instawp_large_files_list', $data );
 	}
 

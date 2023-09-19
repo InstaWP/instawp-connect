@@ -191,9 +191,11 @@ class InstaWP_AJAX {
 		if ( $generate ) {
 			delete_option( 'instawp_large_files_list' );
 			as_enqueue_async_action( 'instawp_prepare_large_files_list_async', [], 'instawp-connect', true );
+			delete_transient( 'instawp_generate_large_files' );
 		}
 
-		$list_data = get_option( 'instawp_large_files_list', [] ) ?? [];
+		$list      = get_option( 'instawp_large_files_list' );
+		$list_data = ( ! empty( $list ) && is_array( $list ) ) ? $list : [];
 
 		ob_start();
 		if ( ! empty( $list_data ) ) { ?>
@@ -215,7 +217,10 @@ class InstaWP_AJAX {
 		}
 
 		$content = ob_get_clean();
-		wp_send_json_success( $content );
+		wp_send_json_success( [
+			'content'  => $content,
+			'has_data' => boolval( get_transient( 'instawp_generate_large_files' ) ),
+		] );
 	}
 
 	public function save_management_settings() {
