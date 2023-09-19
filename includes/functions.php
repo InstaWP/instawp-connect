@@ -1239,6 +1239,8 @@ if ( ! function_exists( 'instawp_readfile_chunked' ) ) {
 		$handle  = fopen( $filename, 'rb' );
 
 		if ( $handle === false ) {
+			error_log( 'PULL: could not open file: ' . $filename );
+
 			return false;
 		}
 

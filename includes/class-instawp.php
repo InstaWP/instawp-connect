@@ -497,6 +497,7 @@ class instaWP {
 
 		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-interface-mainwp.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-rest-api.php';
+		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-hooks.php';
 
 		require_once INSTAWP_PLUGIN_DIR . '/migrate/class-instawp-migrate.php';
 		require_once INSTAWP_PLUGIN_DIR . '/migrate/class-instawp-migrate-hosting.php';
