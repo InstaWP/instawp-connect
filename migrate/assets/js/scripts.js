@@ -860,8 +860,12 @@ tailwind.config = {
                 'security': instawp_migrate.security
             },
             success: function (response) {
-                if ( response.data ) {
-                    $(document).find('.instawp-exclude-container').html(response.data).removeClass('hidden');
+                if ( response.data.content ) {
+                    $(document).find('.instawp-exclude-container').html(response.data.content).removeClass('hidden');
+                    $(document).find('.instawp-refresh-exclude-screen').prop( "disabled", false ).removeClass('animate-spin');
+                } 
+                
+                if ( response.data.has_data ) {
                     $(document).find('.instawp-refresh-exclude-screen').prop( "disabled", false ).removeClass('animate-spin');
                 } else {
                     $(document).trigger("instawpLoadLargeFiles", [false]);
