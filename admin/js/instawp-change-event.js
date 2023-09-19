@@ -40,6 +40,7 @@ jQuery(document).ready(function ($) {
         syncing_enabled_disabled(sync_status);
     });
 
+
     //bulk sync btn...
     $(document).on('click', '.bulk-sync-popup-btn', function(){
         const site = $("#staging-site-sync").val();
@@ -188,18 +189,16 @@ jQuery(document).ready(function ($) {
 
     const get_events_summary = async () => {
         let formData = new FormData();
-        formData.append('action', 'get_events_summary');
-        baseCall(formData).then((response) => response.json()).then((data) => {
-           $("#post_change_event_count").html(data.data.results.post_new);
-           $("#post_delete_event_count").html(data.data.results.post_delete);
-           $("#post_trash_event_count").html(data.data.results.post_trash);
-           $("#post_other_event_count").html(data.data.results.others);
-
+        formData.append('action',       'get_events_summary');
+        formData.append('connect_id',   $("#destination-site").val() );
+        baseCall(formData).then((response) => response.json()).then(( response ) => {            
+           $("#event-type-list").html(response.data);
         }).catch((error) => {
             console.log("Error Occurred: ", error);
         });
     }
 
+   
     const get_site_events = async (page=1) => {
         let site_id =  $("#staging-site-sync").val();
         let current_page =  $("#staging-site-sync").data('page');
@@ -274,6 +273,10 @@ jQuery(document).ready(function ($) {
         });
     });
     
+    $(document).on('change', '#destination-site', function(){
+        get_events_summary();
+    });
+
     const packThings = async (sync_message,sync_type,dest_connect_id, page) => {
         let formData = new FormData();
         formData.append('action', 'pack_things');
