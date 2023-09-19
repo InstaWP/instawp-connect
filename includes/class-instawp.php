@@ -166,13 +166,36 @@ class instaWP {
 		
 		// Prepare large file list
 		add_action( 'instawp_prepare_large_files_list', array( $this, 'prepare_large_files_list' ) );
+		add_action( 'instawp_prepare_large_files_list_async', array( $this, 'prepare_large_files_list' ) );
 		add_action( 'update_option_instawp_max_file_size_allowed', array( $this, 'clear_staging_sites_list' ) );
 
 		// Clean Tasks
-		add_action( 'instawp_clean_tasks', array( $this, 'clean_events' ) );
+		add_action( 'instawp_clean_completed_actions', array( $this, 'clean_events' ) );
+
+		// Toggle WP Debug Option
+		add_action( 'update_option_instawp_enable_wp_debug', array( $this, 'toggle_wp_debug' ), 10, 2 );
 
 		// Hook to run on login page
 		add_action( 'login_init', array( $this, 'instawp_auto_login_redirect' ) );
+	}
+
+	public function toggle_wp_debug( $old_value, $value ) {
+		if ( $value === 'on' ) {
+			$params = [
+				'WP_DEBUG'         => true,
+				'WP_DEBUG_LOG'     => true,
+				'WP_DEBUG_DISPLAY' => false,
+			];
+		} else {
+			$params = [
+				'WP_DEBUG'         => false,
+				'WP_DEBUG_LOG'     => false,
+				'WP_DEBUG_DISPLAY' => false,
+			];
+		}
+
+		$wp_config = new \InstaWP\Connect\Helpers\WPConfig( $params );
+		$wp_config->update();
 	}
 
 	// Set Action Scheduler event.
@@ -192,8 +215,8 @@ class instaWP {
 			as_schedule_recurring_action( time(), HOUR_IN_SECONDS, 'instawp_prepare_large_files_list', [], 'instawp-connect', false, 5 );
 		}
 
-		if ( ! as_has_scheduled_action( 'instawp_clean_tasks', [], 'instawp-connect' ) ) {
-			as_schedule_recurring_action( time(), DAY_IN_SECONDS, 'instawp_clean_tasks', [], 'instawp-connect', false, 5 );
+		if ( ! as_has_scheduled_action( 'instawp_clean_completed_actions', [], 'instawp-connect' ) ) {
+			as_schedule_recurring_action( time(), DAY_IN_SECONDS, 'instawp_clean_completed_actions', [], 'instawp-connect', false, 5 );
 		}
 	}
 	
@@ -297,12 +320,13 @@ class instaWP {
 			}
 		}
 
+		set_transient( 'instawp_generate_large_files', true, HOUR_IN_SECONDS );
 		update_option( 'instawp_large_files_list', $data );
 	}
 
 	public function clear_staging_sites_list() {
 		delete_option( 'instawp_large_files_list' );
-		as_unschedule_all_actions( 'instawp_prepare_large_files_list', [], 'instawp-connect' );
+		as_enqueue_async_action( 'instawp_prepare_large_files_list_async', [], 'instawp-connect', true );
 	}
 
 	public function clean_events() {
@@ -5649,16 +5673,18 @@ class instaWP {
 						'relative_path' => str_replace( $path_to_replace, '', $normalized_path ),
 						'full_path'     => $normalized_path,
 						'size'          => $size,
-						'type'          => 'file'
+						'count'         => 1,
+						'type'          => 'file',
 					];
 				} else if ( $value != "." && $value != ".." ) {
-					$size                 = $this->get_directory_size( $path );
+					$directory_info = $this->get_directory_info( $path );
 					$folders[] = [
 						'name'          => $value,
 						'relative_path' => str_replace( $path_to_replace, '', $normalized_path ),
 						'full_path'     => $normalized_path,
-						'size'          => $size,
-						'type'          => 'folder'
+						'size'          => $directory_info['size'],
+						'count'         => $directory_info['count'],
+						'type'          => 'folder',
 					];
 				}
 			} catch( Exception $e ) {}
@@ -5678,24 +5704,35 @@ class instaWP {
 
 		return $files_list;
 	}
-	
-	public function get_directory_size( $path ) {
-		$bytestotal = 0;
-		$path       = realpath( $path );
+
+	public function get_directory_info( $path ) {
+		$bytes_total = 0;
+		$files_total = 0;
+		$path        = realpath( $path );
 		try {
 			if ( $path !== false && $path != '' && file_exists( $path ) ) {
 				foreach( new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $path, FilesystemIterator::SKIP_DOTS ) ) as $object ) {
-					$bytestotal += $object->getSize();
+					$bytes_total += $object->getSize();
+					$files_total++;
 				}
 			}
 		} catch( Exception $e ) {}
 	
-		return $bytestotal;
+		return [
+			'size'  => $bytes_total,
+			'count' => $files_total
+		];
+	}
+	
+	public function get_directory_size( $path ) {
+		$info = $this->get_directory_info( $path );
+	
+		return $info['size'];
 	}
 	
 	public function get_file_size_with_unit( $size, $unit = "" ) {
 		if ( ( ! $unit && $size >= 1<<30 ) || $unit == "GB" ) {
-		  	return number_format( $size / ( 1<<30 ), 2 )." GB";
+		  	return number_format( $size / ( 1<<30 ), 2 ) . " GB";
 		}
 
 		if ( ( ! $unit && $size >= 1<<20 ) || $unit == "MB" ) {

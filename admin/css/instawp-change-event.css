@@ -458,7 +458,11 @@ select#event-action-type {
     opacity: 0;
 }
 
-.btn-single-sync.loading:after, .changes-btn.loading:after, td.event-sync-cell.loading:after, .exclude-container > .loading:after {
+.btn-single-sync.loading:after, 
+.changes-btn.loading:after, 
+td.event-sync-cell.loading:after, 
+.exclude-files-container > .loading:after,
+.exclude-database-container > .loading:after {
     content: ' ';
     position: absolute;
     height: 16px;
@@ -490,7 +494,8 @@ select#event-action-type {
 
 
 td.event-sync-cell.loading,
-.exclude-container > .loading {
+.exclude-files-container > .loading,
+.exclude-database-container > .loading {
     padding: 20px;
     text-align: center;
     position: relative;
