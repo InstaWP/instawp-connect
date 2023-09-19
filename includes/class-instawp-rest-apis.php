@@ -35,6 +35,8 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 
 	private $tables;
 
+	private $logs = [];
+
 	public function __construct() {
 
 		parent::__construct();
@@ -139,7 +141,7 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 		$sync_id            = $bodyArr->sync_id;
 		$source_connect_id  = $bodyArr->source_connect_id;
 		$is_enabled         = false;
-
+		$logs 				= [];
 
 		if ( get_option( 'syncing_enabled_disabled' ) ) {
 			$is_enabled = true;
@@ -174,6 +176,7 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 						
 						$parent_post_meta = isset( $v->details->parent->post_meta ) ? (array) $v->details->parent->post_meta : [];
 						$reference_id     = isset( $parent_post_meta['instawp_event_sync_reference_id'][0] ) ? $parent_post_meta['instawp_event_sync_reference_id'][0] : '';
+						
 						$destination_post = $this->get_post_by_reference_Id( $parent_post['post_type'], $reference_id, $parent_post['post_name'] );
 						
 						if ( ! empty( $destination_post ) ) {
@@ -285,9 +288,10 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 								$rel     = wp_trash_post( $post_check_data->ID );  //Post data on success, false or null on failure.
 								$status  = $this->sync_post_status( $rel );
 								$message = $this->sync_message( $rel );
-							} else {
-								$status  = 'pending';
-								$message = $this->notExistMsg();
+							} else {		
+								$status  = 'completed';
+								$message = 'Sync successfully.';
+								$this->logs[$v->id] = sprintf('%s not found at destination',	$posts['post_type'] );
 							}
 						}
 						$sync_response[] = $this->sync_opration_response( $status, $message, $v );
@@ -331,8 +335,9 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 								$message = $this->sync_message( $rel );
 
 							} else {
-								$status  = 'error';
-								$message = $this->notExistMsg();
+								$message    = 'Sync successfully.';
+								$status  	= 'completed';
+								$this->logs[$v->id] = sprintf('%s not found at destination',	$posts['post_type'] );
 							}
 						}
 						$sync_response[] = $this->sync_opration_response( $status, $message, $v );
@@ -372,8 +377,9 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 								$status  = $this->sync_post_status( $rel );
 								$message = $this->sync_message( $rel );
 							} else {
-								$status  = 'pending';
-								$message = $this->notExistMsg();
+								$message    = 'Sync successfully.';
+								$status  	= 'completed';
+								$this->logs[$v->id] = sprintf('%s not found at destination',	$posts['post_type'] );
 							}
 						}
 						$sync_response[] = $this->sync_opration_response( $status, $message, $v );
@@ -392,26 +398,27 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 						$pluginData = get_plugin_data( $v->details );
 						if ( ! empty( $pluginData['TextDomain'] ) ) {
 							$this->plugin_install( $pluginData['TextDomain'] );
+						}else{
+							$this->logs[$v->id] = sprintf('plugin %s not found at destination',	$v->details );
 						}
 					}
 
 					$this->plugin_activation( $v->details );
-					#message
+
+					
 					$message         = 'Sync successfully.';
 					$status          = 'completed';
 					$sync_response[] = $this->sync_opration_response( $status, $message, $v );
-					#changes
 					$changes[ $v->event_type ] = $changes[ $v->event_type ] + 1;
 				}
 
 				//Plugin deactiavte
 				if ( isset( $v->event_slug ) && $v->event_slug == 'deactivate_plugin' ) {
 					$this->plugin_deactivation( $v->details );
-					#message
+
 					$message         = 'Sync successfully.';
 					$status          = 'completed';
 					$sync_response[] = $this->sync_opration_response( $status, $message, $v );
-					#changes
 					$changes[ $v->event_type ] = $changes[ $v->event_type ] + 1;
 				}
 
@@ -420,13 +427,14 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 					$check_plugin_installed = $this->check_plugin_installed_by_textdomain( $v->details->slug );
 					if ( !$check_plugin_installed ) {
 						$this->plugin_install( $v->details->slug );
+					}else{
+						$this->logs[$v->id] = sprintf('Plugin %s already exists.', $v->details->slug );
 					}
 		
-					#message
+
 					$message         = 'Sync successfully.';
 					$status          = 'completed';
 					$sync_response[] = $this->sync_opration_response( $status, $message, $v );
-					#changes
 					$changes[ $v->event_type ] = $changes[ $v->event_type ] + 1;
 				}
 
@@ -435,17 +443,13 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 					$_is_plugin_installed = $this->check_plugin_installed_by_textdomain( $v->details->slug );
 					if ( $_is_plugin_installed ) {
 						$this->plugin_install( $v->details->slug, true );
-						$status 	= 'completed';
-						$message	= 'Sync successfully.';	
 					}else{
-						$status  	= 'error';
-						$message 	= $this->notExistMsg();
+						$this->logs[$v->id] = sprintf('Plugin %s not found for update operation.', $v->details->slug );
 					}
 					
-					#message
-					
+					$message         = 'Sync successfully.';
+					$status          = 'completed';
 					$sync_response[] = $this->sync_opration_response( $status, $message, $v );
-					#changes
 					$changes[ $v->event_type ] = $changes[ $v->event_type ] + 1;
 				}
 
@@ -457,16 +461,14 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 					
 					$result = delete_plugins( array( $plugin ) );
 					
-					$status = 'error';
 					if ( is_wp_error( $result ) ) {
-						$message 	= $result->get_error_message();
+						$this->logs[$v->id] = $result->get_error_message();
 					} elseif ( false === $result ) {
-						$message 	= __( 'Plugin could not be deleted.' );
-					}else{
-						$message 	= 'Sync successfully.';
-						$status     = 'completed';
+						$this->logs[$v->id] =  __( 'Plugin could not be deleted.' );
 					}
 
+					$message         = 'Sync successfully.';
+					$status          = 'completed';
 					$sync_response[] = $this->sync_opration_response( $status, $message, $v );
 					$changes[ $v->event_type ] = $changes[ $v->event_type ] + 1;
 				}
@@ -478,20 +480,21 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 				
 				if ( isset( $v->details ) && ( $v->event_slug == 'switch_theme'  ||  $v->event_slug == 'theme_install' ) ) {
 					if( isset( $v->details->stylesheet ) ){
-						$stylesheet = isset($v->details->stylesheet) ? $v->details->stylesheet : '';
-						if ( $stylesheet !='' ) {
+
+						if ( isset( $v->details->stylesheet ) && $v->details->stylesheet !='' ) {
+							$stylesheet = $v->details->stylesheet;
 							$theme = wp_get_theme( $stylesheet );
 							if ( ! $theme->exists() ) {
 								$this->theme_install( $stylesheet );
 							}
+
 							if( $v->event_slug == 'switch_theme' ){
 								switch_theme( $stylesheet );
 							}
-							#message
+
 							$message         = 'Sync successfully.';
 							$status          = 'completed';
 							$sync_response[] = $this->sync_opration_response( $status, $message, $v );
-							#changes
 							$changes[ $v->event_type ] = $changes[ $v->event_type ] + 1;
 						}
 					}
@@ -499,17 +502,19 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 
 				if ( isset( $v->details ) &&  $v->event_slug == 'theme_update'  ) {
 					if( isset( $v->details->stylesheet ) ){
-						$stylesheet = isset($v->details->stylesheet) ? $v->details->stylesheet : '';
-						if ( $stylesheet !='' ) {
+
+						if ( isset( $v->details->stylesheet ) && $v->details->stylesheet !='' ) {
+							$stylesheet = $v->details->stylesheet;
 							$theme = wp_get_theme( $stylesheet );
 							if ( $theme->exists() ) {
 								$this->theme_install( $stylesheet, true );
+							}else{
+								$this->logs[$v->id] = sprintf('Theme %s not found for update operation.', $stylesheet );
 							}
-							#message
+
 							$message         = 'Sync successfully.';
 							$status          = 'completed';
 							$sync_response[] = $this->sync_opration_response( $status, $message, $v );
-							#changes
 							$changes[ $v->event_type ] = $changes[ $v->event_type ] + 1;
 						}
 					}
@@ -524,21 +529,18 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 						require_once( ABSPATH . 'wp-includes/pluggable.php' );
 						
 						$result = delete_theme( $stylesheet );
-						$status = 'error';
 						if ( is_wp_error( $result ) ) {
-							$message = $result->get_error_message();
+							$this->logs[$v->id] = $result->get_error_message();
 						} elseif ( false === $result ) {
-							$message = __( 'Theme could not be deleted.' );
-						}else{
-							$message = 'Sync successfully.';
-							$status  = 'completed';
+							$this->logs[$v->id] =  sprintf( 'Theme %s could not be deleted.',  $stylesheet);
 						}
 
 					}else{
-						$status  = 'error';
-						$message = $this->notExistMsg();
+						$this->logs[$v->id] = sprintf('Theme %s not found for delete operation.', $stylesheet );
 					}
 
+					$message = 'Sync successfully.';
+					$status  = 'completed';
 					$sync_response[] = $this->sync_opration_response( $status, $message, $v );
 					$changes[ $v->event_type ] = $changes[ $v->event_type ] + 1;
 				}
@@ -732,7 +734,9 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 					if ( isset( $v->event_slug ) && ( $v->event_slug == 'user_register' ) && ( ! empty( $user_data ) ) ) {
 						if ( ! $user ) {
 							$user_id  = wp_insert_user( $user_data );
-							if ( ! is_wp_error( $user_id ) ) {
+							if ( is_wp_error( $user_id ) ) {
+								$this->logs[$v->id] = $user_id->get_error_message();
+							}else{
 								$this->manage_usermeta( $user_meta, $user_id, $source_db_prefix );
 							}
 						}
@@ -745,11 +749,15 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 							$user_pass = $user_data['user_pass'];
 							unset($user_data['user_pass']);
 							$user_id = wp_update_user( $user_data );
-							if ( ! is_wp_error( $user_id ) ) {
+							if (  is_wp_error( $user_id ) ) {
+								$this->logs[$v->id] = $user_id->get_error_message();
+							}else{
 								$this->wpdb->update( $user_table, [ 'user_pass'=> $user_pass ], array( 'ID' => $user_id ) );
 								$this->manage_usermeta( $user_meta, $user_id );
 								$user->add_role( $v->details->role );
 							}
+						}else{
+							$this->logs[$v->id] = sprintf('User not found for update operation.' );
 						}
 					}
 
@@ -757,14 +765,15 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 					if ( isset( $v->event_slug ) && ( $v->event_slug == 'delete_user' ) ) {
 						if (  $user ) {
 							wp_delete_user( $user->data->ID );
+						}else{
+							$this->logs[$v->id] = sprintf('User not found for delete operation.' );
 						}
 					}
 
-					#message
+
 					$message         = 'Sync successfully.';
 					$status          = 'completed';
 					$sync_response[] = $this->sync_opration_response( $status, $message, $v );
-					#changes
 					$changes[ $v->event_type ] = $changes[ $v->event_type ] + 1;
 				}
 
@@ -806,7 +815,7 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 					'progress' => $progress,
 					'status'   => $progress_status,
 					'message'  => $message,
-					'changes'  => [ 'changes' => $changes, 'sync_response' => $sync_response ],
+					'changes'  => [ 'changes' => $changes, 'sync_response' => $sync_response, 'logs'=> $this->logs],
 				];
 				$this->sync_update( $sync_id, $syncUpdate, $source_connect_id );
 				$count ++;
@@ -1362,9 +1371,11 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 		if ( ! function_exists( 'deactivate_plugins' ) ) {
 			require_once ABSPATH . 'wp-admin/includes/plugin.php';
 		}
+		
 		if ( is_plugin_active( $plugin ) ) {
 			deactivate_plugins( $plugin );
 		}
+
 	}
 
 	public function sync_message( $rel = null ) {
