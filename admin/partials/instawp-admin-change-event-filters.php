@@ -373,7 +373,7 @@ class InstaWP_Change_Event_Filters
         $event_slug = 'install_themes_updated';
         $details = ['name' => '', 'stylesheet' => '', 'Paged' => $paged];
         $event_name = __('Install themes updated', 'instawp-connect');
-        $this->pluginThemeEvents($event_name, $event_slug, $details, 'theme', '');
+        $this->pluginThemeEvents($event_name, $event_slug, $details, 'theme');
     }
     /**
      * Function for `install_themes_upload` action-hook.
@@ -386,7 +386,7 @@ class InstaWP_Change_Event_Filters
         $event_slug = 'install_themes_upload';
         $details = ['name' => '', 'stylesheet' => '', 'Paged' => $paged];
         $event_name = __('Install themes upload', 'instawp-connect');
-        $this->pluginThemeEvents($event_name, $event_slug, $details, 'theme', '');
+        $this->pluginThemeEvents($event_name, $event_slug, $details, 'theme');
     }
     /**
      * Function for `install_themes_new` action-hook.
@@ -399,7 +399,7 @@ class InstaWP_Change_Event_Filters
         $event_slug = 'install_themes_new';
         $details = ['name' => '', 'stylesheet' => '', 'Paged' => $paged];
         $event_name = __('Install themes new', 'instawp-connect');
-        $this->pluginThemeEvents($event_name, $event_slug, $details, 'theme', '');
+        $this->pluginThemeEvents($event_name, $event_slug, $details, 'theme');
     }
     /**
      * Function for `deleted_theme` action-hook.
@@ -413,7 +413,7 @@ class InstaWP_Change_Event_Filters
         $event_slug = 'deleted_theme';
         $details = ['name' => ucfirst($stylesheet), 'stylesheet' => $stylesheet, 'Paged' => ''];
         $event_name = sprintf(__('Theme deleted', 'instawp-connect'));
-        $this->pluginThemeEvents($event_name, $event_slug, $details, 'theme', '');
+        $this->pluginThemeEvents( $event_name, $event_slug, $details, 'theme' );
     }
     /**
      * Function for `switch_theme` action-hook.
@@ -428,7 +428,7 @@ class InstaWP_Change_Event_Filters
         $event_slug = 'switch_theme';
         $details = ['name' => $new_name, 'stylesheet' => $new_theme->get_stylesheet(), 'Paged' => ''];
         $event_name = sprintf(__('Theme switched from %s to %s', 'instawp-connect'), $old_theme->get_stylesheet(), $new_theme->get_stylesheet());
-        $this->pluginThemeEvents($event_name, $event_slug, $details, 'theme', '');
+        $this->pluginThemeEvents($event_name, $event_slug, $details, 'theme');
     }
 
     /**ge
@@ -450,7 +450,7 @@ class InstaWP_Change_Event_Filters
                 $theme              = wp_get_theme( $destination_name );
                 if ( $theme->exists() ) {
                     $details        = ['name' => $theme->display( 'Name' ), 'stylesheet' => $theme->get_stylesheet(), 'data'=> isset($upgrader->new_theme_data) ? $upgrader->new_theme_data : []];
-                    $this->pluginThemeEvents( $event_name, $event_slug, $details, 'theme-install', '' );
+                    $this->pluginThemeEvents( $event_name, $event_slug, $details, 'theme');
                 }
             }
         }
@@ -461,7 +461,7 @@ class InstaWP_Change_Event_Filters
                 if( isset( $upgrader->new_plugin_data ) && !empty( $upgrader->new_plugin_data ) ) {
                     $plugin_data        = $upgrader->new_plugin_data;
                     $details            = ['name' => $plugin_data['Name'],'slug' => $plugin_data['TextDomain'], 'data'=> $plugin_data];
-                    $this->pluginThemeEvents( $event_name, $event_slug, $details, 'plugin-install', '' );
+                    $this->pluginThemeEvents( $event_name, $event_slug, $details, 'plugin');
                 }
             }
 
@@ -469,7 +469,7 @@ class InstaWP_Change_Event_Filters
                 if( isset( $upgrader->skin->plugin_info) && !empty($upgrader->skin->plugin_info ) ) {
                     $plugin_data        = $upgrader->skin->plugin_info;
                     $details            = ['name' => $plugin_data['Name'],'slug' => $plugin_data['TextDomain'], 'data'=> $plugin_data];
-                    $this->pluginThemeEvents( $event_name, $event_slug, $details, 'plugin-update', '' );
+                    $this->pluginThemeEvents( $event_name, $event_slug, $details, 'plugin');
                 }
             }
         }
@@ -487,7 +487,7 @@ class InstaWP_Change_Event_Filters
         $event_slug = 'deactivate_plugin';
         $event_name = __('Plugin deactivated', 'instawp-connect');
         if ($details != 'instawp-connect/instawp-connect.php') {
-            $this->pluginThemeEvents($event_name, $event_slug, $details, 'plugin', '');
+            $this->pluginThemeEvents($event_name, $event_slug, $details, 'plugin');
         }
     }
     /**
@@ -502,7 +502,7 @@ class InstaWP_Change_Event_Filters
         $event_slug = 'activate_plugin';
         $event_name = __( 'Plugin activated', 'instawp-connect' );
         if ( $plugin != 'instawp-connect/instawp-connect.php' ) {
-            $this->pluginThemeEvents( $event_name, $event_slug, $plugin, 'plugin', '' );
+            $this->pluginThemeEvents( $event_name, $event_slug, $plugin, 'plugin');
         }
     }
     /**
@@ -516,7 +516,7 @@ class InstaWP_Change_Event_Filters
         $event_slug = 'deleted_plugin';
         $event_name = __( 'Plugin deleted', 'instawp-connect' );
         if ( $plugin != 'instawp-connect/instawp-connect.php' ) {
-            $this->pluginThemeEvents( $event_name, $event_slug, $plugin, 'plugin', '' );
+            $this->pluginThemeEvents( $event_name, $event_slug, $plugin, 'plugin');
         }
     }
 
@@ -528,7 +528,7 @@ class InstaWP_Change_Event_Filters
      * @param $source_id
      * @return void
      */
-    public function pluginThemeEvents($event_name, $event_slug, $details, $type, $source_id) {
+    public function pluginThemeEvents($event_name, $event_slug, $details, $type, $source_id = '') {
         $syncing_enabled_disabled = get_option('syncing_enabled_disabled', 0);
         if ($syncing_enabled_disabled == 0)
             return;
@@ -539,13 +539,18 @@ class InstaWP_Change_Event_Filters
             if (!function_exists('get_plugin_data')) {
                 require_once(ABSPATH . 'wp-admin/includes/plugin.php');
             }
-            $plugin_data = get_plugin_data(WP_PLUGIN_DIR . '/' . $details);
-            if( $plugin_data['Name'] !='' ){
-                $title = $plugin_data['Name'];
-            }else if( $plugin_data['TextDomain'] !='' ){
-                $title = $plugin_data['TextDomain'];
+
+            if( !empty( $details ) && is_array( $details ) ){
+                $title = $details['name'];
             }else{
-                $title = $details;
+                $plugin_data = get_plugin_data(WP_PLUGIN_DIR . '/' . $details);
+                if( $plugin_data['Name'] !='' ){
+                    $title = $plugin_data['Name'];
+                }else if( $plugin_data['TextDomain'] !='' ){
+                    $title = $plugin_data['TextDomain'];
+                }else{
+                    $title = $details;
+                }
             }
         } elseif ($type == 'woocommerce_attribute') {
             $title = $details['attribute_label'];

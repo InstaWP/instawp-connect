@@ -37,7 +37,7 @@ class InstaWP_Ajax_Fn {
 		add_action( "wp_ajax_syncing_enabled_disabled", array( $this, "syncing_enabled_disabled" ) );
 		add_action( 'wp_ajax_get_site_events', 			array( $this, 'get_site_events' ) );
 		add_action( 'wp_ajax_get_events_summary', 		array( $this, 'get_events_summary' ) );
-		add_action( 'wp_ajax_instawp_get_users', 		array( $this, 'instawp_get_users' ) );
+		add_action( 'wp_ajax_instawp_handle_select2', 		array( $this, 'instawp_handle_select2' ) );
 		add_action( 'wp_ajax_instawp_delete_events', 	array( $this, 'instawp_delete_events' ) );
 		add_action( 'wp_ajax_instawp_calculate_events', array( $this, 'instawp_calculate_events' ) );
 		add_action( 'wp_ajax_get_site_events_ajax', 	array( $this, 'get_site_events_ajax' ) );
@@ -127,7 +127,7 @@ class InstaWP_Ajax_Fn {
 		$tables         = $InstaWP_db->tables;
 		$items_per_page = INSTAWP_EVENTS_PER_PAGE;
 		$connect_id     = isset( $_POST['connect_id'] ) ? sanitize_text_field( $_POST['connect_id'] ) : 0;
-		$query          = "SELECT * FROM {$tables['ch_table']}";
+		$query          = "SELECT * FROM ".INSTAWP_DB_TABLE_EVENTS;
 		$total_query    = "SELECT COUNT(1) FROM ({$query}) AS combined_table";
 		$total          = $wpdb->get_var( $total_query );
 		$page           = isset( $_POST['epage'] ) ? abs( (int) $_POST['epage'] ) : 1;
@@ -147,28 +147,39 @@ class InstaWP_Ajax_Fn {
 		wp_die();
 	}
 
-	public function instawp_get_users(){
-		$keyword = $_POST['search'];
-		$args = array(
-            'search'              => $keyword,
-			'paged'               => 1,
-            'search_columns'      => array('user_login','user_nicename','user_email'),
-			'fields'			  => array('id','user_login')
-        );
-		$users = get_users( $args );
-		echo $this->formatSuccessReponse( "Users loaded", ['results'=> $users, 'opt_col'=> ['text'=>'user_login','id'=>'ID']] );
+	public function instawp_handle_select2(){
+		if( isset($_GET['event'])){
+			if( $_GET['event'] == 'instawp_get_users' ){
+				$keyword = $_GET['term'];
+				$args = array(
+					'search'              => $keyword,
+					'paged'               => 1,
+					'search_columns'      => array('user_login','user_nicename','user_email'),
+					'fields'			  => array('id','user_login')
+				);
+				$users = get_users( $args );
+				echo $this->formatSuccessReponse( "Users loaded", ['results'=> $users, 'opt_col'=> ['text'=>'user_login','id'=>'ID']] );
+			}else if( $_GET['event'] == 'instawp_sync_tab_roles' ){ 
+				
+				$results = [];
+				$all_roles = wp_roles()->roles;
+				foreach ($all_roles as $slug => $role) {
+					$results[] = ['id'=> $slug, 'name'=> $role['name'] ];
+				}
+				echo $this->formatSuccessReponse( "Users loaded", ['results'=> $results, 'opt_col'=> ['text'=>'name','id'=>'id']] );
+			}
+		}
 		wp_die();
 	}
+	
 
 	public function instawp_delete_events(){
 		if( isset( $_POST['ids'] ) && !empty( $_POST['ids'] )){
 			global $wpdb;
-			$ids = $_POST['ids'];
-			$InstaWP_db     = new InstaWP_DB();
-			$tables         = $InstaWP_db->tables;			
-			$wpdb->query( "DELETE FROM {$tables['ch_table']} WHERE id IN($ids)" );
-			if( isset($_POST['connect_id']) && intval( $_POST['connect_id'] ) > 0 ){
-				$wpdb->query( "DELETE FROM {$tables['se_table']} WHERE event_id IN($ids)" );
+			$ids = sanitize_text_field ($_POST['ids'] );		
+			$wpdb->query( "DELETE FROM ".INSTAWP_DB_TABLE_EVENTS." WHERE id IN($ids)" );
+			if( isset( $_POST['connect_id'] ) && intval( $_POST['connect_id'] ) > 0 ){
+				$wpdb->query( "DELETE FROM ".INSTAWP_DB_TABLE_EVENT_SITES." WHERE event_id IN($ids)" );
 			}
 			echo $this->formatSuccessReponse( "Data deleted", [] );
 			wp_die();
@@ -176,21 +187,33 @@ class InstaWP_Ajax_Fn {
 	}
 
 	public function get_events_summary() {
-		$data                = [];
-		$InstaWP_db          = new InstaWP_DB();
-		$tables              = $InstaWP_db->tables;
-		$total_events        = $InstaWP_db->totalEvnets( $tables['ch_table'], 'pending' );
-		$post_new            = $InstaWP_db->trakingEventsBySlug( $tables['ch_table'], 'post_new', 'post', 'pending' );
-		$post_delete         = $InstaWP_db->trakingEventsBySlug( $tables['ch_table'], 'post_delete', 'post', 'pending' );
-		$post_trash          = $InstaWP_db->trakingEventsBySlug( $tables['ch_table'], 'post_trash', 'post', 'pending' );
-		$others              = ( abs( $total_events ) - abs( $post_new + $post_delete + $post_trash ) );
-		$data['post_new']    = sprintf( __( '%d post change events', 'instawp-connect' ), $post_new );
-		$data['post_delete'] = sprintf( __( '%d post delete events', 'instawp-connect' ), $post_delete );
-		$data['post_trash']  = sprintf( __( '%d post trash events', 'instawp-connect' ), $post_trash );
-		$data['others']      = sprintf( __( '%d other events', 'instawp-connect' ), $others );
-		echo $this->formatSuccessReponse( "Summery fetched", [
-			'results' => $data
-		] );
+	
+		$where ="1=1";
+		if( isset($_POST['connect_id']) && intval( $_POST['connect_id'] ) > 0 ){
+			$where .= " AND connect_id=".sanitize_text_field( $_POST['connect_id'] );
+		}
+
+		$query		= "SELECT event_type, COUNT(*) as event_count FROM ".INSTAWP_DB_TABLE_EVENTS." WHERE `id` NOT IN (SELECT event_id AS id FROM ".INSTAWP_DB_TABLE_EVENT_SITES." WHERE $where) GROUP BY event_type HAVING event_count > 0";
+		$results    = $this->wpdb->get_results( $query );
+		
+		$html = '';
+		if( !empty( $results ) ){
+			foreach ($results as $row) {
+				$html .= '<li class="event-type-count">';
+				$html .= sprintf( __( '%u %s change events', 'instawp-connect' ), $row->event_count, ucfirst( $row->event_type ) );
+				$html .= '</li>';
+			}
+		}else{
+			$results = ['Post','Page','Theme', 'Plugin'];
+			foreach ($results as $row) {
+				$html .= '<li class="event-type-count">';
+				$html .= sprintf( __( '%u %s change event', 'instawp-connect' ), 0, $row );
+				$html .= '</li>';
+			}
+		}
+
+
+		echo $this->formatSuccessReponse( "Summery fetched", $html );
 		wp_die();
 	}
 
@@ -209,7 +232,7 @@ class InstaWP_Ajax_Fn {
 		) );
 	}
 
-	public function get_wp_events( $sync_ids = null, $sync_type = null, $dest_connect_id = null ) {
+	public function get_wp_events() {
 		try {
 
 			$encrypted_content = [];
@@ -298,14 +321,12 @@ class InstaWP_Ajax_Fn {
 
 	public function sync_changes() {
 		if ( isset( $_POST['dest_connect_id'] ) && $_POST['dest_connect_id'] != '' ) {
-			$dest_connect_id = $_POST['dest_connect_id'];
+			$dest_connect_id = sanitize_text_field( $_POST['dest_connect_id'] );
 
 			$message         = isset( $_POST['sync_message'] ) ? $_POST['sync_message'] : '';
 			$data            = stripslashes( $_POST['data'] );
-			$sync_ids        = isset( $_POST['sync_ids'] ) ? $_POST['sync_ids'] : '';
-			$sync_type       = isset( $_POST['sync_type'] ) ? $_POST['sync_type'] : '';
 
-			$events          = $this->get_wp_events( $sync_ids, $sync_type, $dest_connect_id );
+			$events          = $this->get_wp_events();
 
 			$eventsArr       = json_decode( $events );
 			if ( isset( $eventsArr->success ) && $eventsArr->success === true ) {
@@ -373,20 +394,20 @@ class InstaWP_Ajax_Fn {
 
 						$sync_resp = $this->get_Sync_Object( $sync_id );
 						$response  = json_decode( $sync_resp );
-
+ 
 						if ( $response->status === 1 || $response->status === true ) {
 							
-							$site_sync_row = $this->wpdb->get_row("SELECT * FROM {$this->tables['se_table']}", ARRAY_A);
+							$site_sync_row = $this->wpdb->get_row("SELECT * FROM ".INSTAWP_DB_TABLE_EVENT_SITES."", ARRAY_A);
 							$site_sync_row = $site_sync_row ?? [];
 
 							if( ( !array_key_exists('synced_message', $site_sync_row ) ) ){
-								$this->wpdb->query("ALTER TABLE {$this->tables['se_table']} ADD `synced_message` TEXT NULL DEFAULT NULL AFTER `status`");
+								$this->wpdb->query("ALTER TABLE ".INSTAWP_DB_TABLE_EVENT_SITES." ADD `synced_message` TEXT NULL DEFAULT NULL AFTER `status`");
 							}
 							
 							if ( isset( $response->data->changes->changes->sync_response ) ) {
 								$sync_response = $response->data->changes->changes->sync_response;
 								foreach ( $sync_response as $v ) {
-									$this->InstaWP_db->insert( $this->tables['se_table'], [
+									$this->InstaWP_db->insert( INSTAWP_DB_TABLE_EVENT_SITES, [
 										'event_id'   		=> $v->id,
 										'connect_id' 		=> $connect_id,
 										'status'     		=> $v->status,
@@ -486,12 +507,11 @@ class InstaWP_Ajax_Fn {
 
 	public function get_api_key() {
 		$instawp_api_options = get_option( 'instawp_api_options' );
-
 		return $instawp_api_options['api_key'];
 	}
 
 
-	function instawp_get_connect_quota_remaining_limit() {
+	public function instawp_get_connect_quota_remaining_limit() {
 		$api_response = InstaWP_Curl::do_curl( 'connects/' . instawp_get_connect_id() . '/get-sync-quota', [], [], false );
 		if ( $api_response['success'] && ! empty( $api_response['data'] ) ) {
 			$data =  $api_response['data'];

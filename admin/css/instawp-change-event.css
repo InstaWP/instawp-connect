@@ -522,15 +522,15 @@ li#wp-admin-bar-instawp-sync-toolbar a.ab-item:before {
 .select2-field-wrapper {
     display: grid;
 }
-.select2-selection {
+.select2-selection--single {
     line-height: 47px !important;
     font-size: 14px;
 }
-span.select2-selection.select2-selection--single {
+span.select2-selection.select2-selection {
     border: 1px solid #dedede !important;
 }
-.select2-container .select2-selection--single {
-    height: 50px !important;
+.select2-container .select2-selection {
+    min-height: 50px !important;
 }
 .select2-selection__arrow {
     top: 12px !important;

@@ -158,7 +158,7 @@ if( !empty( $parent_connect_data ) ){
                                 </div>
                                 <div class="instawp_category rounded-xl">
                                     <div class="instawpcatlftcol bulk-events-info bg-[#fff]">
-                                        <ul class="list">
+                                        <ul class="list" id="event-type-list">
                                             <li id="post_change_event_count"><?php printf('%d post change events', 0) ?></li>
                                             <li id="post_delete_event_count"><?php printf('%d post delete events', 0) ?></li>
                                             <li id="post_trash_event_count"><?php printf('%d post trash events', 0) ?></li>

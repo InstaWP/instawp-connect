@@ -37,7 +37,7 @@ class InstaWP_Setting {
 	}
 
 	public static function get_plugin_nav_items() {
-
+		
 		$is_internal       = isset( $_GET['internal'] ) ? sanitize_text_field( $_GET['internal'] ) : '';
 		$instawp_nav_items = array(
 			'create'     => array(
@@ -67,6 +67,13 @@ class InstaWP_Setting {
 			unset( $instawp_nav_items['create'] );
 			unset( $instawp_nav_items['sites'] );
 		}
+ 
+		$user = get_userdata( get_current_user_id() );
+		$allowed_roles 	= ! current_user_can('administrator') ?  InstaWP_Setting::get_option( 'instawp_sync_tab_roles' ) : ['administrator'];
+		if( empty( array_intersect( $allowed_roles, $user->roles ) ) ){
+			unset( $instawp_nav_items['sync'] );
+		}
+		
 
 		return apply_filters( 'INSTAWP_CONNECT/Filters/plugin_nav_items', $instawp_nav_items );
 	}
@@ -80,6 +87,8 @@ class InstaWP_Setting {
 		$field_desc          = self::get_args_option( 'desc', $field );
 		$internal            = self::get_args_option( 'internal', $field, false );
 		$remote          	 = self::get_args_option( 'remote', $field );
+		$event          	 = self::get_args_option( 'event', $field );
+		$multiple          	 = self::get_args_option( 'multiple', $field );
 		$action          	 = self::get_args_option( 'action', $field );
 		$field_placeholder   = self::get_args_option( 'placeholder', $field );
 		$field_tooltip       = self::get_args_option( 'tooltip', $field );
@@ -166,12 +175,20 @@ class InstaWP_Setting {
 			case 'select2':
 				$css_class = $field_class ? $field_class : '';
 				$css_class .= $remote ? ' instawp_select2_ajax' : ' instawp_select2';
-				echo '<select ' . ( $remote  === true ? 'data-ajax--url="'. admin_url('admin-ajax.php?action='.$action ) .'"' : '') . implode( ' ', $attributes ) . ' name="' . esc_attr( $field_id ) . '" id="' . esc_attr( $field_id ) . '" class="' . esc_attr( $css_class ) . '">';
+				if( $multiple == true ){
+					array_push( $attributes, 'multiple' );
+				}
+				echo '<select ' . ( $remote  === true ? 'data-ajax--url="'. admin_url('admin-ajax.php?action='.$action.'&event='.$event ) .'"' : '') . implode( ' ', $attributes ) . ' name="' . esc_attr( $field_id ) . ( $multiple == true ? '[]' : '' ) . '" id="' . esc_attr( $field_id ) . '" class="' . esc_attr( $css_class ) . '">';
 				if ( ! empty( $field_placeholder ) ) {
 					echo '<option value="">' . esc_html( $field_placeholder ) . '</option>';
 				}
 				foreach ( $field_options as $key => $value ) {
-					echo '<option ' . selected( $field_value, $key, false ) . ' value="' . esc_attr( $key ) . '">' . esc_html( $value ) . '</option>';
+					if( is_array( $field_value ) ){ 
+						$selected = in_array( $key, $field_value ) ? 'selected' : '';
+					}else{
+						$selected = selected( $field_value, $key, false ); 
+					}
+					echo '<option ' . $selected . ' value="' . esc_attr( $key ) . '">' . esc_html( $value ) . '</option>';
 				}
 				echo '</select>';
 				break;
@@ -305,10 +322,22 @@ class InstaWP_Setting {
 					'id'      => 'instawp_default_user',
 					'type'    => 'select2',
 					'remote'  => true,
-					'action'  => 'instawp_get_users',
+					'action'  => 'instawp_handle_select2',
+					'event'   => 'instawp_get_users',
 					'title'   => esc_html__( 'Default User', 'instawp-connect' ),
 					'desc'    => esc_html__( 'This option will allow to set default user for events syncing.', 'instawp-connect' ),
-					'options' => self::get_default_selected_user()
+					'options' => self::get_select2_default_selected_option( 'instawp_default_user' )
+				),
+				array(
+					'id'      => 'instawp_sync_tab_roles',
+					'type'    => 'select2',
+					'remote'  => true,
+					'multiple'=> true,
+					'action'  => 'instawp_handle_select2',
+					'event'   => 'instawp_sync_tab_roles',
+					'title'   => esc_html__( 'Sync Tab Access', 'instawp-connect' ),
+					'desc'    => esc_html__( 'This option will allow to set roles for sync tab. Only assigned role\'s users can access the syncing features.', 'instawp-connect' ),
+					'options' => self::get_select2_default_selected_option( 'instawp_sync_tab_roles' )
 				)
 			),
 		);
@@ -1103,10 +1132,20 @@ class InstaWP_Setting {
 		return $data;
 	}
 
-	public static function get_default_selected_user() {
-		$user = get_user_by( 'ID', InstaWP_Setting::get_option( 'instawp_default_user' ) );
-		if( !empty( $user ) ) {
-			return [ $user->data->ID => $user->data->user_login ];
+	public static function get_select2_default_selected_option( $option ) {
+		if( $option ==  'instawp_default_user'){
+			$user = get_user_by( 'ID', InstaWP_Setting::get_option( $option ) );
+			if( !empty( $user ) ) {
+				return [ $user->data->ID => $user->data->user_login ];
+			}
+		}else if( $option ==  'instawp_sync_tab_roles'){
+			$role_options = [];
+			$all_roles = wp_roles()->roles;
+			$selected_roles =  InstaWP_Setting::get_option( $option );
+			foreach( $selected_roles as $role ){
+				$role_options[ $role ] = isset( $all_roles[$role] ) ? $all_roles[$role]['name'] : $role;
+			} 
+			return $role_options;
 		}
 		return [];
 	}
