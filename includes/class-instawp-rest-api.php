@@ -146,7 +146,37 @@ class InstaWP_Backup_Api {
 			'callback'            => array( $this, 'handle_serve' ),
 			'permission_callback' => '__return_true',
 		) );
+
+		register_rest_route( $this->namespace . '/v3/', 'pull', array(
+			'methods'             => 'POST',
+			'callback'            => array( $this, 'handle_pull' ),
+			'permission_callback' => '__return_true',
+		) );
 	}
+
+	function handle_pull( WP_REST_Request $request ) {
+
+		if ( is_wp_error( $response = $this->validate_api_request( $request ) ) ) {
+			return $this->throw_error( $response );
+		}
+
+		$migrate_key        = sanitize_text_field( $request->get_param( 'migrate_key' ) );
+		$serve_files_url    = site_url( 'wp-content/' . INSTAWP_DEFAULT_BACKUP_DIR . '/' . $migrate_key . '.php' );
+		$serve_files_sample = fopen( INSTAWP_PLUGIN_DIR . '/serve-files-sample.php', 'rb' );
+		$serve_files_path   = WP_CONTENT_DIR . '/' . INSTAWP_DEFAULT_BACKUP_DIR . '/' . $migrate_key . '.php';
+		$serve_files_new    = fopen( $serve_files_path, 'wb' );
+
+		while ( ( $line = fgets( $serve_files_sample ) ) !== false ) {
+			fputs( $serve_files_new, $line );
+		}
+
+		fclose( $serve_files_new );
+		fclose( $serve_files_sample );
+
+
+		return $this->send_response( array( 'serve_url' => $serve_files_url ) );
+	}
+
 
 	function serve_database() {
 
@@ -338,7 +368,7 @@ class InstaWP_Backup_Api {
 			$stmt->execute( [ ':id' => $fileId ] );
 		} else {
 			// echo "No more files left to download!";
-			 header('x-instawp-transfer-complete: true');
+			header( 'x-instawp-transfer-complete: true' );
 		}
 
 		$db = null;
