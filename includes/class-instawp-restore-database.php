@@ -105,8 +105,9 @@ class InstaWP_RestoreDB {
 
 	function retain_database_entry_after_db_migration() {
 
-		$file_tables_rows_data = ABSPATH . 'instawp_exclude_tables_rows_data.json';
-		$file_tables_rows      = ABSPATH . 'instawp_exclude_tables_rows.json';
+		$path                  = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . INSTAWP_DEFAULT_BACKUP_DIR . DIRECTORY_SEPARATOR;
+		$file_tables_rows_data = $path . 'instawp_exclude_tables_rows_data.json';
+		$file_tables_rows      = $path . 'instawp_exclude_tables_rows.json';
 
 		if ( file_exists( $file_tables_rows_data ) && file_exists( $file_tables_rows ) ) {
 
@@ -159,7 +160,8 @@ class InstaWP_RestoreDB {
 	 */
 	public function generate_exclude_tables_rows_file() {
 
-		$file_name         = ABSPATH . 'instawp_exclude_tables_rows.json';
+		$path              = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . INSTAWP_DEFAULT_BACKUP_DIR . DIRECTORY_SEPARATOR;
+		$file_name         = $path . 'instawp_exclude_tables_rows.json';
 		$exclude_rows_data = [];
 
 		if ( file_exists( $file_name ) ) {
@@ -184,7 +186,7 @@ class InstaWP_RestoreDB {
 		}
 
 		if ( ! empty( $exclude_rows_data ) ) {
-			file_put_contents( ABSPATH . 'instawp_exclude_tables_rows_data.json', json_encode( $exclude_rows_data ) );
+			file_put_contents( $path . 'instawp_exclude_tables_rows_data.json', json_encode( $exclude_rows_data ) );
 		}
 	}
 
