@@ -1277,3 +1277,7 @@ if ( ! function_exists( 'instawp_files_contains' ) ) {
 		return false;
 	}
 }
+
+function pr( $data ){
+	echo '<pre>'; print_r($data); exit();
+}

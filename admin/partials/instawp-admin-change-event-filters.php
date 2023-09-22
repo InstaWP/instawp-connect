@@ -460,7 +460,8 @@ class InstaWP_Change_Event_Filters
             if( $hook_extra['action'] == 'install' ) {
                 if( isset( $upgrader->new_plugin_data ) && !empty( $upgrader->new_plugin_data ) ) {
                     $plugin_data        = $upgrader->new_plugin_data;
-                    $details            = ['name' => $plugin_data['Name'],'slug' => $plugin_data['TextDomain'], 'data'=> $plugin_data];
+                    $slug               = $plugin_data['TextDomain'] == '' ? ((isset($_POST['slug']) && $_POST['slug'] !='') ? $_POST['slug'] : $plugin_data['TextDomain']) : $plugin_data['TextDomain'];
+                    $details            = ['name' => $plugin_data['Name'],'slug' => $slug, 'data'=> $plugin_data];
                     $this->pluginThemeEvents( $event_name, $event_slug, $details, 'plugin');
                 }
             }
@@ -468,7 +469,8 @@ class InstaWP_Change_Event_Filters
             if( $hook_extra['action'] == 'update' ) {
                 if( isset( $upgrader->skin->plugin_info) && !empty($upgrader->skin->plugin_info ) ) {
                     $plugin_data        = $upgrader->skin->plugin_info;
-                    $details            = ['name' => $plugin_data['Name'],'slug' => $plugin_data['TextDomain'], 'data'=> $plugin_data];
+                    $slug               = $plugin_data['TextDomain'] == '' ? ((isset($_POST['slug']) && $_POST['slug'] !='') ? $_POST['slug'] : $plugin_data['TextDomain']) : $plugin_data['TextDomain'];
+                    $details            = ['name' => $plugin_data['Name'],'slug' => $slug, 'data'=> $plugin_data];
                     $this->pluginThemeEvents( $event_name, $event_slug, $details, 'plugin');
                 }
             }

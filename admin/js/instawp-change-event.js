@@ -314,7 +314,7 @@ jQuery(document).ready(function ($) {
         formData.append('page', page);
         baseCall(formData).then((response) => response.json()).then((data) => { 
             if(data.success === true){
-                const paging = data.data.paging_data;
+                const paging = data.data;
 
                 $(".sync_process .step-2").removeClass('process_inprogress').addClass('process_complete');
                 //Initiated Step3
@@ -323,21 +323,32 @@ jQuery(document).ready(function ($) {
                 $(".event-progress-bar>div").css('width', paging.percent_completed+'%');
                 $(".sync_process .step-3").removeClass('process_pending').addClass('process_inprogress');
 
-                var syncIds = $("#id_syncIds").val();
-                var array = syncIds.split(',');
-                var index = array.indexOf(paging.sync_id);
-                if(index === -1){
-                    array.push(paging.sync_id);
-                    $("#id_syncIds").val(array.join(','))
-                }
+                // var syncIds = $("#id_syncIds").val();
+                // var array = syncIds.split(',');
+                // var index = array.indexOf(paging.sync_id);
+                // if(index === -1){
+                //     array.push(paging.sync_id);
+                //     $("#id_syncIds").val(array.join(','))
+                // }
 
-                if( paging.page < paging.total_page ){
-                    packThings(sync_message,sync_type,dest_connect_id, paging.next_page);
+                if( paging.current_batch < paging.total_batch ){
+                    packThings(sync_message,sync_type,dest_connect_id, paging.next_batch);
                 }
                 
-                if( paging.percent_completed == 100 && paging.total_page == paging.page ){
-                    $('.bulk-sync-btn').html('<a class="sync-complete" href="javascript:void(0);">Processing...</a>');
-                    updateSyncStatus();
+                if( paging.percent_completed == 100 && paging.total_batch == paging.current_batch ){
+
+                    $(".sync-changes-btn").removeClass('disable-a loading');
+                    $(".sync_process .step-3").removeClass('process_inprogress').addClass('process_complete');
+                    $('.bulk-sync-btn').html('<a class="sync-complete" href="javascript:void(0);">Sync Completed</a>');
+        
+                    setTimeout( function() {
+                      //  $("#id_syncIds").val('');
+                        $('.bulk-sync-popup').hide();
+                        get_site_events();
+                    }, 2000);
+
+                    // $('.bulk-sync-btn').html('<a class="sync-complete" href="javascript:void(0);">Processing...</a>');
+                    // updateSyncStatus();
                 }
             }else{
                 $(".sync-changes-btn").removeClass('disable-a loading');
