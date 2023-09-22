@@ -161,20 +161,36 @@ class InstaWP_Backup_Api {
 		}
 
 		$migrate_key        = sanitize_text_field( $request->get_param( 'migrate_key' ) );
+		$api_signature      = hash( 'sha512', $migrate_key . current_time( 'U' ) );
 		$serve_files_url    = site_url( 'wp-content/' . INSTAWP_DEFAULT_BACKUP_DIR . '/' . $migrate_key . '.php' );
 		$serve_files_sample = fopen( INSTAWP_PLUGIN_DIR . '/serve-files-sample.php', 'rb' );
 		$serve_files_path   = WP_CONTENT_DIR . '/' . INSTAWP_DEFAULT_BACKUP_DIR . '/' . $migrate_key . '.php';
 		$serve_files_new    = fopen( $serve_files_path, 'wb' );
+		$line_number        = 1;
 
 		while ( ( $line = fgets( $serve_files_sample ) ) !== false ) {
+
+			// Add api signature
+			if ( $line_number === 4 ) {
+				fputs( $serve_files_new, '$api_signature = "' . $api_signature . '";' . "\n" );
+				fputs( $serve_files_new, '$db_host = "' . DB_HOST . '";' . "\n" );
+				fputs( $serve_files_new, '$db_username = "' . DB_USER . '";' . "\n" );
+				fputs( $serve_files_new, '$db_password = "' . DB_PASSWORD . '";' . "\n" );
+				fputs( $serve_files_new, '$db_name = "' . DB_NAME . '";' . "\n" );
+			}
+
 			fputs( $serve_files_new, $line );
+
+			$line_number ++;
 		}
 
 		fclose( $serve_files_new );
 		fclose( $serve_files_sample );
 
-
-		return $this->send_response( array( 'serve_url' => $serve_files_url ) );
+		return $this->send_response( array(
+			'serve_url'     => $serve_files_url,
+			'api_signature' => $api_signature,
+		) );
 	}
 
 
