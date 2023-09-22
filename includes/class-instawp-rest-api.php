@@ -143,16 +143,105 @@ class InstaWP_Backup_Api {
 
 		register_rest_route( $this->namespace . '/v3/', 'serve', array(
 			'methods'             => 'POST',
-			'callback'            => array( $this, 'serve_files' ),
+			'callback'            => array( $this, 'handle_serve' ),
 			'permission_callback' => '__return_true',
 		) );
 	}
 
-	function serve_files( WP_REST_Request $request ) {
+	function serve_database() {
 
-		if ( is_wp_error( $response = $this->validate_api_request( $request ) ) ) {
-			return $this->throw_error( $response );
+		// Database connection setup for SQLite (for tracking)
+		$trackingDb = new SQLite3( 'tracking_database.db' );
+
+		// Create the tracking table in SQLite if it doesn't exist
+		$createTableQuery = "CREATE TABLE IF NOT EXISTS tracking (table_name TEXT PRIMARY KEY,offset INTEGER DEFAULT 0,completed INTEGER DEFAULT 0);";
+		$trackingDb->exec( $createTableQuery );
+
+		// Database connection setup for MySQL (for data)
+		$mysqli = new mysqli( DB_HOST, DB_USER, DB_PASSWORD, DB_NAME );
+
+		if ( $mysqli->connect_error ) {
+			die( "MySQL Connection failed: " . $mysqli->connect_error );
 		}
+
+		// Check if the SQLite tracking table is empty
+		$emptyCheck = $trackingDb->querySingle( "SELECT COUNT(*) FROM tracking" );
+
+		if ( $emptyCheck == 0 ) {
+			// Fetch all table names from the MySQL database
+			$tableNamesResult = $mysqli->query( "SHOW TABLES" );
+			$insertStmt       = $trackingDb->prepare( "INSERT INTO tracking (table_name) VALUES (:tableName)" );
+
+			while ( $table = $tableNamesResult->fetch_row() ) {
+				$insertStmt->bindValue( ':tableName', $table[0], SQLITE3_TEXT );
+				$insertStmt->execute();
+			}
+		}
+
+		// Check which table to process from the SQLite tracking database
+		$stmt   = $trackingDb->prepare( "SELECT table_name, offset FROM tracking WHERE completed = 0 ORDER BY table_name LIMIT 1" );
+		$result = $stmt->execute();
+
+		$row = $result->fetchArray( SQLITE3_ASSOC );
+		if ( ! $row ) {
+			die( json_encode( [ 'status' => true, 'message' => 'All tables have been processed' ] ) );
+		}
+
+		$tableName = $row['table_name'];
+		$offset    = $row['offset'];
+
+		// Check if it's the first batch of rows for this table
+		if ( $offset == 0 ) {
+			$createTableQuery = "SHOW CREATE TABLE `$tableName`";
+			$createResult     = $mysqli->query( $createTableQuery );
+			if ( $createResult ) {
+				$createRow = $createResult->fetch_assoc();
+				echo $createRow['Create Table'] . ";\n\n"; // This outputs the CREATE TABLE statement
+			}
+		}
+
+		// Fetch a batch of rows from the MySQL database
+		$limit  = 100;  // For example
+		$query  = "SELECT * FROM `$tableName` LIMIT $limit OFFSET $offset"; // Assume 'id' for ordering
+		$result = $mysqli->query( $query );
+
+		// Check for errors
+		if ( $mysqli->errno ) {
+			die( "MySQL Query Error: " . $mysqli->error );
+		}
+
+		// Convert data to SQL statements
+		$sqlStatements = [];
+		while ( $dataRow = $result->fetch_assoc() ) {
+			$columns         = array_map( [ $mysqli, 'real_escape_string' ], array_keys( $dataRow ) );
+			$values          = array_map( [ $mysqli, 'real_escape_string' ], array_values( $dataRow ) );
+			$sql             = "INSERT INTO `$tableName` (`" . implode( "`, `", $columns ) . "`) VALUES ('" . implode( "', '", $values ) . "');";
+			$sqlStatements[] = $sql;
+			// $lastRowId = $dataRow['id'];  // Assuming 'id' is a primary key or unique column
+		}
+
+		// Send this chunk of SQL statements
+		echo implode( "\n", $sqlStatements );
+
+		// Update progress in the SQLite tracking database
+		$offset += count( $sqlStatements );
+		$stmt   = $trackingDb->prepare( "UPDATE tracking SET offset = :offset WHERE table_name = :tableName" );
+		$stmt->bindValue( ':offset', $offset, SQLITE3_INTEGER );
+		$stmt->bindValue( ':tableName', $tableName, SQLITE3_TEXT );
+		$stmt->execute();
+
+		// Mark table as completed in the SQLite tracking database if all rows were fetched
+		if ( count( $sqlStatements ) < $limit ) {
+			$stmt = $trackingDb->prepare( "UPDATE tracking SET completed = 1 WHERE table_name = :tableName" );
+			$stmt->bindValue( ':tableName', $tableName, SQLITE3_TEXT );
+			$stmt->execute();
+		}
+
+		$mysqli->close();
+		$trackingDb->close();
+	}
+
+	function serve_files() {
 
 		$folder       = './';
 		$dbPath       = './files_sent.db';
@@ -249,11 +338,33 @@ class InstaWP_Backup_Api {
 			$stmt->execute( [ ':id' => $fileId ] );
 		} else {
 			// echo "No more files left to download!";
-			// header('x-instawp-transfer-complete: true');
+			 header('x-instawp-transfer-complete: true');
 		}
 
 		$db = null;
 	}
+
+	function handle_serve( WP_REST_Request $request ) {
+
+//		if ( is_wp_error( $response = $this->validate_api_request( $request ) ) ) {
+//			return $this->throw_error( $response );
+//		}
+
+		$this->serve_files();
+
+//		if ( empty( $serve_type = $request->get_param( 'type' ) ) ) {
+//			return $this->throw_error( new WP_Error( 'invalid_type', 'Empty or invalid serve type' ) );
+//		}
+//
+//		if ( 'files' === $serve_type ) {
+//			$this->serve_files();
+//		}
+//
+//		if ( 'db' === $serve_type ) {
+//			$this->serve_database();
+//		}
+	}
+
 
 	/**
 	 * Handle response for disconnect api
