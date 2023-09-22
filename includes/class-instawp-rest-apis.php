@@ -156,7 +156,7 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 			$progress_status = 'pending';
 			$changes         = $sync_response = [];
 			foreach ( $encrypted_contents as $v ) {
-
+		 
 				$source_id = ( isset( $v->source_id ) && ! empty( $v->source_id ) ) ? intval( $v->source_id ) : null;
 
 				/*
@@ -263,7 +263,7 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 					$status          = 'completed';
 					$sync_response[] = $this->sync_opration_response( $status, $message, $v );
 					#changes
-					$changes[ $v->event_type ] = $changes[ $v->event_type ] + 1;
+					
 				}
 
 				//Post trash
@@ -296,7 +296,7 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 						}
 						$sync_response[] = $this->sync_opration_response( $status, $message, $v );
 						#changes
-						$changes[ $v->event_type ] = $changes[ $v->event_type ] + 1;
+						
 					}
 				}
 
@@ -342,7 +342,7 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 						}
 						$sync_response[] = $this->sync_opration_response( $status, $message, $v );
 						#changes
-						$changes[ $v->event_type ] = $changes[ $v->event_type ] + 1;
+						
 					}
 				}
 
@@ -384,7 +384,7 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 						}
 						$sync_response[] = $this->sync_opration_response( $status, $message, $v );
 						#changes
-						$changes[ $v->event_type ] = $changes[ $v->event_type ] + 1;
+						
 					}
 				}
 
@@ -409,7 +409,7 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 					$message         = 'Sync successfully.';
 					$status          = 'completed';
 					$sync_response[] = $this->sync_opration_response( $status, $message, $v );
-					$changes[ $v->event_type ] = $changes[ $v->event_type ] + 1;
+					
 				}
 
 				//Plugin deactiavte
@@ -419,7 +419,7 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 					$message         = 'Sync successfully.';
 					$status          = 'completed';
 					$sync_response[] = $this->sync_opration_response( $status, $message, $v );
-					$changes[ $v->event_type ] = $changes[ $v->event_type ] + 1;
+					
 				}
 
 				//Plugin install
@@ -435,7 +435,7 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 					$message         = 'Sync successfully.';
 					$status          = 'completed';
 					$sync_response[] = $this->sync_opration_response( $status, $message, $v );
-					$changes[ $v->event_type ] = $changes[ $v->event_type ] + 1;
+					
 				}
 
 				//Plugin update
@@ -450,7 +450,7 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 					$message         = 'Sync successfully.';
 					$status          = 'completed';
 					$sync_response[] = $this->sync_opration_response( $status, $message, $v );
-					$changes[ $v->event_type ] = $changes[ $v->event_type ] + 1;
+					
 				}
 
 				//Plugin delete
@@ -470,7 +470,7 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 					$message         = 'Sync successfully.';
 					$status          = 'completed';
 					$sync_response[] = $this->sync_opration_response( $status, $message, $v );
-					$changes[ $v->event_type ] = $changes[ $v->event_type ] + 1;
+					
 				}
 
 
@@ -495,7 +495,7 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 							$message         = 'Sync successfully.';
 							$status          = 'completed';
 							$sync_response[] = $this->sync_opration_response( $status, $message, $v );
-							$changes[ $v->event_type ] = $changes[ $v->event_type ] + 1;
+							
 						}
 					}
 				}
@@ -515,7 +515,7 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 							$message         = 'Sync successfully.';
 							$status          = 'completed';
 							$sync_response[] = $this->sync_opration_response( $status, $message, $v );
-							$changes[ $v->event_type ] = $changes[ $v->event_type ] + 1;
+							
 						}
 					}
 				}
@@ -542,7 +542,7 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 					$message = 'Sync successfully.';
 					$status  = 'completed';
 					$sync_response[] = $this->sync_opration_response( $status, $message, $v );
-					$changes[ $v->event_type ] = $changes[ $v->event_type ] + 1;
+					
 				}
 
 				/*
@@ -572,7 +572,7 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 						$status          = 'completed';
 						$sync_response[] = $this->sync_opration_response( $status, $message, $v );
 						#changes
-						$changes[ $v->event_type ] = $changes[ $v->event_type ] + 1;
+						
 
 					}
 				}
@@ -591,7 +591,7 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 					}
 					$sync_response[] = $this->sync_opration_response( $status, $message, $v );
 					#changes
-					$changes[ $v->event_type ] = $changes[ $v->event_type ] + 1;
+					
 				}
 
 				/**
@@ -669,7 +669,7 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 					$status          = 'completed';
 					$sync_response[] = $this->sync_opration_response( $status, $message, $v );
 					#changes
-					$changes[ $v->event_type ] = $changes[ $v->event_type ] + 1;
+					
 				}
 
 				/**
@@ -690,7 +690,7 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 							$status          = 'completed';
 							$sync_response[] = $this->sync_opration_response( $status, $message, $v );
 							#changes
-							$changes[ $v->event_type ] = $changes[ $v->event_type ] + 1;
+							
 						} else {
 							$this->woocommerce_create_attribute( $v->source_id, $details );
 
@@ -699,7 +699,7 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 							$status          = 'completed';
 							$sync_response[] = $this->sync_opration_response( $status, $message, $v );
 							#changes
-							$changes[ $v->event_type ] = $changes[ $v->event_type ] + 1;
+							
 
 						}
 					}
@@ -712,7 +712,7 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 					$status          = 'completed';
 					$sync_response[] = $this->sync_opration_response( $status, $message, $v );
 					#changes
-					$changes[ $v->event_type ] = $changes[ $v->event_type ] + 1;
+					
 				}
 
 				/**
@@ -774,7 +774,7 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 					$message         = 'Sync successfully.';
 					$status          = 'completed';
 					$sync_response[] = $this->sync_opration_response( $status, $message, $v );
-					$changes[ $v->event_type ] = $changes[ $v->event_type ] + 1;
+					
 				}
 
 				/*
@@ -803,13 +803,14 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 					$status          = 'completed';
 					$sync_response[] = $this->sync_opration_response( $status, $message, $v );
 					#changes
-					$changes[ $v->event_type ] = $changes[ $v->event_type ] + 1;
+					
 				}
 				/*
 				* Update api for cloud
 				*/
 				$progress        = intval( $count / $total_op * 100 );
 				$progress_status = ( $progress > 100 ) ? 'in_progress' : 'completed';
+				$message 		 = isset( $bodyArr->sync_message ) ? $bodyArr->sync_message : '';
 				#Sync update
 				$syncUpdate = [
 					'progress' => $progress,
@@ -1420,7 +1421,6 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
      * @return bool|string
      */
 	public function sync_update( $sync_id = null, $data = null, $source_connect_id = null ) {
-		global $InstaWP_Curl;
 		$api_doamin = InstaWP_Setting::get_api_domain();
 		$connect_id = intval( $source_connect_id );
 		$endpoint   = '/api/v2/connects/' . $connect_id . '/syncs/' . $sync_id;
