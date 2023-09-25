@@ -283,9 +283,9 @@ jQuery(document).ready(function ($) {
         formData.append('sync_type', sync_type);
         formData.append('sync_message', sync_message);
         formData.append('page', page);
+       // $('.sync_error_success_msg').html('');  
         $(".sync_process .step-1").removeClass('process_pending').addClass('process_inprogress');
         baseCall(formData).then((response) => response.json()).then((data) => {
-            console.log('data', data);
             if(data.success === true){
                 //Complete Step 1
                 $(".sync_process .step-1").removeClass('process_inprogress').addClass('process_complete');
@@ -323,16 +323,17 @@ jQuery(document).ready(function ($) {
                 $(".event-progress-bar>div").css('width', paging.percent_completed+'%');
                 $(".sync_process .step-3").removeClass('process_pending').addClass('process_inprogress');
 
-                // var syncIds = $("#id_syncIds").val();
-                // var array = syncIds.split(',');
-                // var index = array.indexOf(paging.sync_id);
-                // if(index === -1){
-                //     array.push(paging.sync_id);
-                //     $("#id_syncIds").val(array.join(','))
-                // }
-
                 if( paging.current_batch < paging.total_batch ){
-                    packThings(sync_message,sync_type,dest_connect_id, paging.next_batch);
+                    if( 0 === ( paging.total_completed % 50 ) ){
+                        $('.sync_error_success_msg').html('<p class="warning">Cooling down..</p>');  
+                        setTimeout( function() {
+                            packThings(sync_message,sync_type,dest_connect_id, paging.next_batch);
+                        }, 10000);
+                    }else{
+                        packThings(sync_message,sync_type,dest_connect_id, paging.next_batch);
+                    }
+                }else{
+                    $('.sync_error_success_msg').html(' ');  
                 }
                 
                 if( paging.percent_completed == 100 && paging.total_batch == paging.current_batch ){
@@ -342,13 +343,9 @@ jQuery(document).ready(function ($) {
                     $('.bulk-sync-btn').html('<a class="sync-complete" href="javascript:void(0);">Sync Completed</a>');
         
                     setTimeout( function() {
-                      //  $("#id_syncIds").val('');
                         $('.bulk-sync-popup').hide();
                         get_site_events();
                     }, 2000);
-
-                    // $('.bulk-sync-btn').html('<a class="sync-complete" href="javascript:void(0);">Processing...</a>');
-                    // updateSyncStatus();
                 }
             }else{
                 $(".sync-changes-btn").removeClass('disable-a loading');

@@ -273,7 +273,7 @@ class InstaWP_Ajax_Fn {
 						'progress_text'	=> '0%'. sprintf(__(' Completed ( 0 out of %d events )', 'instawp-connect'), $total_events)
 					] );
 				}else{
-					echo $this->formatErrorReponse( sprintf( __('You have reached maximum sync quota limit. Your current quota limit %u out of %u.', 'instawp-connect'), $sync_quota_response['remaining'], $sync_quota_response['sync_quota_limit'] ) );
+					echo $this->formatErrorReponse( sprintf( __('You have reached your sync limit. Current usage %u out of %u.', 'instawp-connect'), $sync_quota_response['remaining'], $sync_quota_response['sync_quota_limit'] ) );
 				}
 			}
 		}else{
