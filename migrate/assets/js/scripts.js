@@ -216,21 +216,31 @@ tailwind.config = {
             el_instawp_screen = create_container.find('#instawp-screen'),
             el_confirmation_preview = create_container.find('.confirmation-preview'),
             el_confirmation_warning = create_container.find('.confirmation-warning'),
+            el_migration_loader = create_container.find('.instawp-migration-loader'),
+            el_migration_progress_wrap = create_container.find('.migration-running'),
+            el_site_detail_wrap = create_container.find('.migration-completed'),
             el_screen_buttons = create_container.find('.screen-buttons'),
             el_screen_doing_request = el_screen_buttons.find('p.doing-request');
 
         create_container.trigger("reset");
         create_container.removeClass('warning');
+        create_container.removeClass('completed');
+        create_container.find('.instawp-progress-bar').removeAttr('style');
+        create_container.find('.instawp-track-migration').addClass('hidden').attr('href', '');
         el_confirmation_preview.removeClass('hidden');
         el_confirmation_warning.addClass('hidden');
         el_screen_doing_request.removeClass('loading');
+
+        el_site_detail_wrap.addClass('hidden');
+        el_migration_progress_wrap.removeClass('hidden');
+        el_migration_loader.text(el_migration_loader.data('in-progress-text'));
 
         create_container.find('.card-active').removeClass('card-active border-primary-900');
         create_container.find('.confirmation-preview .selected-staging-options').html('');
 
         create_container.find('.screen-buttons-last').addClass('hidden');
         create_container.find('.screen-buttons').removeClass('hidden').find('.instawp-button-migrate.continue').removeClass('hidden');
-
+        create_container.removeAttr('interval-id');
         el_instawp_screen.val(1).trigger('change');
     });
 

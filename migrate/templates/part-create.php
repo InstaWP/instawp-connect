@@ -320,7 +320,7 @@ $list_data = get_option( 'instawp_large_files_list', [] ) ?? []; ?>
                     <div class="screen screen-5 <?= $current_create_screen == 5 ? 'active' : ''; ?>">
                         <div class="flex justify-between items-center">
                             <div class="text-grayCust-200 text-lg font-bold"><?php esc_html_e( '4. Creating Staging', 'instawp-connect' ); ?></div>
-                            <span class="instawp-migration-loader text-primary-900 text-base font-normal" data-complete-text="Completed"><?php esc_html_e( 'In Progress...', 'instawp-connect' ); ?></span>
+                            <span class="instawp-migration-loader text-primary-900 text-base font-normal" data-in-progress-text="<?php esc_attr_e( 'In Progress...', 'instawp-connect' ); ?>" data-complete-text="<?php esc_attr_e( 'Completed', 'instawp-connect' ); ?>"><?php esc_html_e( 'In Progress...', 'instawp-connect' ); ?></span>
                         </div>
                         <div class="panel mt-6 block">
                             <div class="migration-running border border-grayCust-100 rounded-lg">
