@@ -171,6 +171,7 @@ class instaWP {
 
 		// Clean Tasks
 		add_action( 'instawp_clean_completed_actions', array( $this, 'clean_events' ) );
+		add_action( 'instawp_clean_migrate_files', array( $this, 'clean_migrate_files' ) );
 
 		// Toggle WP Debug Option
 		add_action( 'update_option_instawp_enable_wp_debug', array( $this, 'toggle_wp_debug' ), 10, 2 );
@@ -218,6 +219,21 @@ class instaWP {
 		if ( ! as_has_scheduled_action( 'instawp_clean_completed_actions', [], 'instawp-connect' ) ) {
 			as_schedule_recurring_action( time(), DAY_IN_SECONDS, 'instawp_clean_completed_actions', [], 'instawp-connect', false, 5 );
 		}
+
+		if ( ! as_has_scheduled_action( 'instawp_clean_migrate_files', [], 'instawp-connect' ) ) {
+			as_schedule_recurring_action( time(), HOUR_IN_SECONDS, 'instawp_clean_migrate_files', [], 'instawp-connect', false, 5 );
+		}
+	}
+
+	public function clean_migrate_files() {
+		$incomplete_task_ids = InstaWP_taskmanager::is_there_any_incomplete_task_ids();
+		$incomplete_task_id  = reset( $incomplete_task_ids );
+		if ( ! empty( $incomplete_task_id ) && ! empty( InstaWP_Setting::get_option( 'instawp_migration_running', '' ) ) ) {
+			return;
+		}
+
+		$path = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . INSTAWP_DEFAULT_BACKUP_DIR . DIRECTORY_SEPARATOR;
+		unlink( $path . 'instawp_exclude_tables_rows.json' );
 	}
 	
 	/**
