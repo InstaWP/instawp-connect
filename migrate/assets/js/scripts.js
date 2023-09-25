@@ -65,13 +65,13 @@ tailwind.config = {
 
                     console.log(response.data);
 
-                    el_bar_backup.find('.progress-bar').css('width', response.data.backup.progress + '%');
+                    el_bar_backup.find('.instawp-progress-bar').css('width', response.data.backup.progress + '%');
                     el_bar_backup.find('.progress-text').text(response.data.backup.progress + '%');
 
-                    el_bar_upload.find('.progress-bar').css('width', response.data.upload.progress + '%');
+                    el_bar_upload.find('.instawp-progress-bar').css('width', response.data.upload.progress + '%');
                     el_bar_upload.find('.progress-text').text(response.data.upload.progress + '%');
 
-                    el_bar_staging.find('.progress-bar').css('width', response.data.migrate.progress + '%');
+                    el_bar_staging.find('.instawp-progress-bar').css('width', response.data.migrate.progress + '%');
                     el_bar_staging.find('.progress-text').text(response.data.migrate.progress + '%');
 
                     if (typeof response.data.track_migrate_progress !== 'undefined' && response.data.track_migrate_progress.length > 0) {
@@ -339,9 +339,8 @@ tailwind.config = {
         }
 
         if (create_container.hasClass('loading')) {
-
             el_instawp_screen.val(5).trigger('change');
-            create_container.attr('interval-id', setInterval(instawp_migrate_api_call, 2000));
+            //create_container.attr('interval-id', setInterval(instawp_migrate_api_call, 2000));
         }
     });
 
