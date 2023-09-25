@@ -233,8 +233,8 @@ class instaWP {
 		}
 
 		$path = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . INSTAWP_DEFAULT_BACKUP_DIR . DIRECTORY_SEPARATOR;
-		unlink( $path . 'instawp_exclude_tables_rows_data.json' );
-		unlink( $path . 'instawp_exclude_tables_rows.json' );
+		@unlink( $path . 'instawp_exclude_tables_rows_data.json' );
+		@unlink( $path . 'instawp_exclude_tables_rows.json' );
 	}
 	
 	/**
