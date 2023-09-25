@@ -309,6 +309,12 @@ body.show {
     background: #fae3e3;
     padding: 10px;
 }
+.sync_error_success_msg p.warning {
+    color: #000000;
+    margin-top: 20px;
+    background: #ece796;
+    padding: 10px;
+}
 .tablenav.bottom .bulk-sync-popup-btn{
     display:none;
 }
