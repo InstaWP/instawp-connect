@@ -3,8 +3,9 @@ set_time_limit( 0 );
 
 
 if ( ! isset( $api_signature ) || ! isset( $_POST['api_signature'] ) || $api_signature !== $_POST['api_signature'] ) {
-	header( 'x-iwp-status-failed:true' );
-	die( json_encode( array( 'status' => false, 'message' => 'Mismatched API Signature' ) ) );
+	header( 'x-iwp-status: false' );
+	header( 'x-iwp-message: Mismatched api signature.' );
+	die();
 }
 
 defined( 'CHUNK_SIZE' ) | define( 'CHUNK_SIZE', 1024 * 1024 );
@@ -14,16 +15,10 @@ defined( 'WP_ROOT' ) | define( 'WP_ROOT', '../../' );
 
 $migrate_key = basename( __FILE__, '.php' );
 
-
 if ( isset( $_POST['serve_type'] ) && 'files' === $_POST['serve_type'] ) {
-
-	if ( ! function_exists( 'site_url' ) ) {
-		require_once WP_ROOT . 'wp-includes/link-template.php';
-	}
 
 	if ( ! function_exists( 'readfile_chunked' ) ) {
 		function readfile_chunked( $filename, $retbytes = true ) {
-			$buffer = '';
 			$cnt    = 0;
 			$handle = fopen( $filename, 'rb' );
 
@@ -125,8 +120,11 @@ if ( isset( $_POST['serve_type'] ) && 'files' === $_POST['serve_type'] ) {
 		}
 
 		if ( $fileIndex == 0 ) {
-			echo "No more files left to download!";
-			header( 'x-instawp-transfer-complete: true' );
+
+			header( 'x-iwp-status: true' );
+			header( 'x-iwp-transfer-complete: true' );
+			header( 'x-iwp-message: No more files left to download.' );
+
 			$db = null;
 			exit;
 		}
@@ -158,18 +156,21 @@ if ( isset( $_POST['serve_type'] ) && 'files' === $_POST['serve_type'] ) {
 		$stmt = $db->prepare( "UPDATE files_sent SET sent = 1 WHERE id = :id" );
 		$stmt->execute( [ ':id' => $fileId ] );
 	} else {
-		// echo "No more files left to download!";
-		header( 'x-instawp-transfer-complete: true' );
+		header( 'x-iwp-status: true' );
+		header( 'x-iwp-transfer-complete: true' );
+		header( 'x-iwp-message: No more files left to download.' );
 	}
 
-	$db = null; // Close the database connection
+	$db = null;
 }
 
 
 if ( isset( $_POST['serve_type'] ) && 'db' === $_POST['serve_type'] ) {
 
 	if ( ! isset( $db_host ) || ! isset( $db_username ) || ! isset( $db_password ) || ! isset( $db_name ) ) {
-		die( json_encode( array( 'status' => false, 'message' => 'Database information missing.' ) ) );
+		header( 'x-iwp-status: false' );
+		header( 'x-iwp-message: Database information missing.' );
+		die();
 	}
 
 	$trackingDb_path  = 'db-sent-' . $migrate_key . '.db';
@@ -181,7 +182,9 @@ if ( isset( $_POST['serve_type'] ) && 'db' === $_POST['serve_type'] ) {
 	$mysqli = new mysqli( $db_host, $db_username, $db_password, $db_name );
 
 	if ( $mysqli->connect_error ) {
-		die( json_encode( array( 'status' => false, 'message' => 'Database connection failed: ' . $mysqli->connect_error ) ) );
+		header( 'x-iwp-status: false' );
+		header( 'x-iwp-message: Database connection failed - ' . $mysqli->connect_error );
+		die();
 	}
 
 	// Check if the SQLite tracking table is empty
@@ -201,7 +204,9 @@ if ( isset( $_POST['serve_type'] ) && 'db' === $_POST['serve_type'] ) {
 	$result = $stmt->execute();
 
 	if ( ! $row = $result->fetchArray( SQLITE3_ASSOC ) ) {
-		die( json_encode( [ 'status' => true, 'message' => 'All tables have been processed' ] ) );
+		header( 'x-iwp-status: true' );
+		header( 'x-iwp-message: No more tables to process.' );
+		die();
 	}
 
 	$tableName = $row['table_name'];
@@ -221,7 +226,9 @@ if ( isset( $_POST['serve_type'] ) && 'db' === $_POST['serve_type'] ) {
 	$result = $mysqli->query( $query );
 
 	if ( $mysqli->errno ) {
-		die( json_encode( array( 'status' => false, 'message' => 'Database query error: ' . $mysqli->error ) ) );
+		header( 'x-iwp-status: false' );
+		header( 'x-iwp-message: Database query error - ' . $mysqli->connect_error );
+		die();
 	}
 
 	$sqlStatements = [];
