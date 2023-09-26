@@ -173,6 +173,8 @@ if ( isset( $_POST['serve_type'] ) && 'db' === $_POST['serve_type'] ) {
 		die();
 	}
 
+	global $mysqli;
+
 	$trackingDb_path  = 'db-sent-' . $migrate_key . '.db';
 	$trackingDb       = new SQLite3( $trackingDb_path );
 	$createTableQuery = "CREATE TABLE IF NOT EXISTS tracking (table_name TEXT PRIMARY KEY,offset INTEGER DEFAULT 0,completed INTEGER DEFAULT 0);";
@@ -188,16 +190,20 @@ if ( isset( $_POST['serve_type'] ) && 'db' === $_POST['serve_type'] ) {
 	}
 
 	// Check if the SQLite tracking table is empty
-	$emptyCheck = $trackingDb->querySingle( "SELECT COUNT(*) FROM tracking" );
+	$total_tracking_tables = $trackingDb->querySingle( "SELECT COUNT(*) FROM tracking" );
 
-	if ( $emptyCheck == 0 ) {
-		$tableNamesResult = $mysqli->query( "SHOW TABLES" );
-		$insertStmt       = $trackingDb->prepare( "INSERT INTO tracking (table_name) VALUES (:tableName)" );
+	if ( $total_tracking_tables == 0 ) {
+		$tableNamesResult    = $mysqli->query( "SHOW TABLES" );
+		$insertStmt          = $trackingDb->prepare( "INSERT INTO tracking (table_name) VALUES (:tableName)" );
+		$total_source_tables = 0;
 
 		while ( $table = $tableNamesResult->fetch_row() ) {
 			$insertStmt->bindValue( ':tableName', $table[0], SQLITE3_TEXT );
 			$insertStmt->execute();
+			$total_source_tables ++;
 		}
+
+		$total_tracking_tables = $total_source_tables;
 	}
 
 	$stmt   = $trackingDb->prepare( "SELECT table_name, offset FROM tracking WHERE completed = 0 ORDER BY table_name LIMIT 1" );
@@ -205,6 +211,7 @@ if ( isset( $_POST['serve_type'] ) && 'db' === $_POST['serve_type'] ) {
 
 	if ( ! $row = $result->fetchArray( SQLITE3_ASSOC ) ) {
 		header( 'x-iwp-status: true' );
+		header( 'x-iwp-transfer-complete: true' );
 		header( 'x-iwp-message: No more tables to process.' );
 		die();
 	}
@@ -234,13 +241,30 @@ if ( isset( $_POST['serve_type'] ) && 'db' === $_POST['serve_type'] ) {
 	$sqlStatements = [];
 
 	while ( $dataRow = $result->fetch_assoc() ) {
-		$columns         = array_map( [ $mysqli, 'real_escape_string' ], array_keys( $dataRow ) );
-		$values          = array_map( [ $mysqli, 'real_escape_string' ], array_values( $dataRow ) );
+
+		$columns         = array_map( function ( $value ) {
+
+			global $mysqli;
+
+			if ( empty( $value ) ) {
+				return is_array( $value ) ? [] : '';
+			}
+
+			return $mysqli->real_escape_string( $value );
+		}, array_keys( $dataRow ) );
+		$values          = array_map( function ( $value ) {
+
+			global $mysqli;
+
+			if ( empty( $value ) ) {
+				return is_array( $value ) ? [] : '';
+			}
+
+			return $mysqli->real_escape_string( $value );
+		}, array_values( $dataRow ) );
 		$sql             = "INSERT INTO `$tableName` (`" . implode( "`, `", $columns ) . "`) VALUES ('" . implode( "', '", $values ) . "');";
 		$sqlStatements[] = $sql;
 	}
-
-	echo implode( "\n", $sqlStatements );
 
 	// Update progress in the SQLite tracking database
 	$offset += count( $sqlStatements );
@@ -255,6 +279,13 @@ if ( isset( $_POST['serve_type'] ) && 'db' === $_POST['serve_type'] ) {
 		$stmt->bindValue( ':tableName', $tableName, SQLITE3_TEXT );
 		$stmt->execute();
 	}
+
+	$completed_tracking_tables = $trackingDb->querySingle( "SELECT COUNT(*) FROM tracking WHERE completed=1" );
+	$tracking_progress         = $completed_tracking_tables === 0 || $total_tracking_tables === 0 ? 0 : round( ( $completed_tracking_tables * 100 ) / $total_tracking_tables );
+
+	header( "x-iwp-progress: $tracking_progress" );
+
+	echo implode( "\n", $sqlStatements );
 
 	$mysqli->close();
 	$trackingDb->close();
