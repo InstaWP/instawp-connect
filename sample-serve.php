@@ -3,6 +3,7 @@ set_time_limit( 0 );
 
 
 if ( ! isset( $api_signature ) || ! isset( $_POST['api_signature'] ) || $api_signature !== $_POST['api_signature'] ) {
+	header( 'x-iwp-status-failed:true' );
 	die( json_encode( array( 'status' => false, 'message' => 'Mismatched API Signature' ) ) );
 }
 
