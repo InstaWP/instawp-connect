@@ -305,7 +305,8 @@ tailwind.config = {
                 url: plugin_object.ajax_url,
                 context: this,
                 data: {
-                    'action': 'instawp_check_limit'
+                    'action': 'instawp_check_limit',
+                    'settings': create_container.serialize(),
                 }, success: function (response) {
                     if (response.success) {
                         el_screen_doing_request.removeClass('loading');

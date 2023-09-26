@@ -159,7 +159,10 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 
 		function check_limit() {
 
-			$api_response = instawp()->instawp_check_usage_on_cloud();
+			$_settings = isset( $_POST['settings'] ) ? $_POST['settings'] : [];
+			parse_str( $_settings, $settings );
+
+			$api_response = instawp()->instawp_check_usage_on_cloud( $settings );
 			$can_proceed  = (bool) InstaWP_Setting::get_args_option( 'can_proceed', $api_response, false );
 
 			if ( $can_proceed ) {

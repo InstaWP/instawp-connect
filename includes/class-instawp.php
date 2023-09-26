@@ -823,7 +823,7 @@ class instaWP {
 		}
 	}
 
-	public function instawp_check_usage_on_cloud() {
+	public function instawp_check_usage_on_cloud( $settings = [] ) {
 
 		global $InstaWP_Curl;
 
@@ -832,6 +832,9 @@ class instaWP {
 		$api_response        = $InstaWP_Curl::do_curl( 'connects/' . $connect_id . '/usage', [], [], false, 'v1' );
 		$api_response_status = InstaWP_Setting::get_args_option( 'success', $api_response, false );
 		$api_response_data   = InstaWP_Setting::get_args_option( 'data', $api_response, [] );
+		$instawp_migrate     = InstaWP_Setting::get_args_option( 'instawp_migrate', $settings, [] );
+		$migrate_options     = InstaWP_Setting::get_args_option( 'options', $instawp_migrate, [] );
+		$excluded_paths      = array_unique( InstaWP_Setting::get_args_option( 'excluded_paths', $instawp_migrate, [] ) );
 
 		if ( ! $api_response_status ) {
 			return array(
@@ -851,11 +854,43 @@ class instaWP {
 
 		$available_disk_space = (int) InstaWP_Setting::get_args_option( 'remaining_disk_space', $api_response_data, '0' );
 		$sizes_data           = WP_Debug_Data::get_sizes();
-		$upload_dir           = $sizes_data['uploads_size']['raw'] ?? 0;
-		$upload_dir_size      = $upload_dir === 0 ? 0 : round( $upload_dir / 1048576, 2 );
 		$bytes                = $sizes_data['total_size']['raw'] ?? 0;
-		$total_site_size      = $bytes === 0 ? 0 : round( $bytes / 1048576, 2 );
+		
+		$excluded_size = 0;
+		if ( in_array( 'skip_media_folder', $migrate_options ) ) {
+			$upload_dir_size = $sizes_data['uploads_size']['raw'] ?? 0;
+			$excluded_size += $upload_dir_size;
+		}
 
+		if ( in_array( 'active_plugins_only', $migrate_options ) ) {
+			$plugin_bytes = $sizes_data['plugins_size']['raw'] ?? 0; 
+			$set_active = [];
+			$set_active['migrate_settings']['active_plugins_only'] = true;
+			$active_plugins = InstaWP_Backup_Task::get_plugins_list( $set_active, 'plugins_included' );
+			
+			$active_plugins_dir_size = array_sum( wp_list_pluck( $active_plugins, 'size' ) );
+			$inactive_plugins_dir_size = ( $plugin_bytes - $active_plugins_dir_size );
+			$excluded_size += $inactive_plugins_dir_size;
+		}
+
+		if ( in_array( 'active_themes_only', $migrate_options ) ) {
+			$themes_bytes = $sizes_data['themes_size']['raw'] ?? 0; 
+			$set_active = [];
+			$set_active['migrate_settings']['active_themes_only'] = true;
+			$active_themes = InstaWP_Backup_Task::get_themes_list( $set_active, 'themes_included' );
+			
+			$active_themes_dir_size = array_sum( wp_list_pluck( $active_themes, 'size' ) );
+			$inactive_themes_dir_size = ( $themes_bytes - $active_themes_dir_size );
+			$excluded_size += $inactive_themes_dir_size;
+		}
+
+		if ( ! empty( $excluded_paths ) ) {
+			foreach( $excluded_paths as $excluded_path ) {
+				$excluded_size += instawp()->get_directory_size( $excluded_path );
+			}
+		}
+
+		$total_site_size = $bytes === 0 ? 0 : round( ( $bytes - $excluded_size ) / 1048576, 2 );
 		$api_response_data['require_disk_space'] = $total_site_size;
 
 		if ( $can_proceed ) {
