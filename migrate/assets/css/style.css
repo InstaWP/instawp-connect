@@ -226,13 +226,8 @@ input:checked + .slider-toggle:before {
     padding: 118px 0;
 }
 
-
 .left-width {
     Width: 320px;
-}
-
-.panel {
-    display: none;
 }
 
 .down-img {
