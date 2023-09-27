@@ -497,7 +497,12 @@ if ( ! function_exists( 'instawp_upload_to_cloud' ) ) {
 			return false;
 		}
 
-		$useragent    = isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '';
+		$useragent = isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '';
+		$file      = file_get_contents( $local_file );
+		if ( false === $file ) {
+			return false;
+		}
+
 		$default_args = array(
 			'method'     => 'PUT',
 			'body'       => file_get_contents( $local_file ),
