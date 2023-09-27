@@ -91,7 +91,7 @@ $list_data = get_option( 'instawp_large_files_list', [] ) ?? []; ?>
                             <div class="text-grayCust-200 text-lg font-bold"><?php esc_html_e( '1. Select Staging', 'instawp-connect' ); ?></div>
                         </div>
                         <div class="panel mt-6 block">
-                            <div for="quick_staging" class="instawp-staging-type cursor-pointer flex justify-between items-center border mb-4 border-primary-600 flex p-4 rounded-xl">
+                            <div for="quick_staging" class="instawp-staging-type cursor-pointer flex justify-between items-center border mb-4 flex p-4 rounded-xl">
                                 <div class="flex items-center">
                                     <div class="w-10 h-10 bg-white rounded-lg flex justify-center items-center border custom-border"><img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/icon-quick.svg' ) ); ?>" alt=""></div>
                                     <div class="ml-4">
@@ -103,7 +103,7 @@ $list_data = get_option( 'instawp_large_files_list', [] ) ?? []; ?>
                                     <input id="quick_staging" name="instawp_migrate[type]" value="quick" type="radio" class="instawp-option-selector h-4 w-4 border-grayCust-350 text-primary-900 focus:border-0 foucs:ring-1 focus:ring-primary-900">
                                 </div>
                             </div>
-                            <div for="full_staging" class="instawp-staging-type cursor-pointer flex justify-between items-center border mb-4 border-primary-600 flex p-4 rounded-xl">
+                            <div for="full_staging" class="instawp-staging-type cursor-pointer flex justify-between items-center border mb-4 flex p-4 rounded-xl">
                                 <div class="flex items-center">
                                     <div class="w-10 h-10 bg-white rounded-lg flex justify-center items-center border custom-border"><img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/icon-full.svg' ) ); ?>" alt=""></div>
                                     <div class="ml-4">
@@ -115,7 +115,7 @@ $list_data = get_option( 'instawp_large_files_list', [] ) ?? []; ?>
                                     <input id="full_staging" name="instawp_migrate[type]" value="full" type="radio" class="instawp-option-selector h-4 w-4 border-grayCust-350 text-primary-900 focus:border-0 foucs:ring-1 focus:ring-primary-900">
                                 </div>
                             </div>
-                            <div for="custom_staging" class="instawp-staging-type cursor-pointer flex justify-between items-center border border-primary-600 flex p-4 rounded-xl">
+                            <div for="custom_staging" class="instawp-staging-type cursor-pointer flex justify-between items-center border flex p-4 rounded-xl">
                                 <div class="flex items-center">
                                     <div class="w-10 h-10 bg-white rounded-lg flex justify-center items-center border custom-border"><img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/icon-custom.svg' ) ); ?>" alt=""></div>
                                     <div class="ml-4">
