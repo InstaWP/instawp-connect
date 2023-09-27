@@ -1,19 +1,20 @@
 {
-  "name": "instawp-connect",
-  "version": "1.0.0",
-  "description": "1-click wordpress staging creator plugin",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "instawp",
-  "license": "ISC",
-  "devDependencies": {
-    "del": "^6.0.0",
-    "gulp": "^4.0.2",
-    "gulp-wp-pot": "^2.5.0",
-    "gulp-zip": "^5.1.0"
-  },
-  "dependencies": {
-    "gulp-cli": "^2.3.0"
-  }
+    "name": "instawp-connect",
+    "version": "1.0.0",
+    "description": "1-click wordpress staging creator plugin",
+    "author": "instawp",
+    "license": "ISC",
+    "dependencies": {
+        "gulp-cli": "^2.3.0"
+    },
+    "devDependencies": {
+        "del": "^6.0.0",
+        "gulp": "^4.0.2",
+        "gulp-wp-pot": "^2.5.0",
+        "gulp-zip": "^5.1.0",
+        "tailwindcss": "^3.3.3"
+    },
+    "scripts": {
+        "tailwind-start": "npx tailwindcss -i ./assets/css/tailwind-input.css -o ./assets/css/tailwind.min.css --minify --watch"
+    }
 }
