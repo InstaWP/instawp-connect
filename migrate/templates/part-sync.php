@@ -151,7 +151,7 @@ if( !empty( $parent_connect_data ) ){
                                     </div>
                                     <div class="w-full text-bg py-1 flex items-center mb-2 border-b-[1px] mb-6 pb-3">
                                         <div class="w-full bg-gray-200 rounded-md event-progress-bar">
-                                            <div class="progress-bar h-2 bg-primary-900 rounded-md"></div>
+                                            <div class="instawp-progress-bar h-2 bg-primary-900 rounded-md"></div>
                                         </div>
                                         <div class="progress-text text-grayCust-650 text-sm font-medium"></div>
                                     </div>

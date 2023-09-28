@@ -446,7 +446,8 @@ class InstaWP_Backup_Task {
 					),
 				);
 
-				file_put_contents( ABSPATH . 'instawp_exclude_tables_rows.json', json_encode( $exclude_tables_rows ) );
+				$path = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . INSTAWP_DEFAULT_BACKUP_DIR . DIRECTORY_SEPARATOR;
+				file_put_contents( $path . 'instawp_exclude_tables_rows.json', json_encode( $exclude_tables_rows ) );
 
 			} elseif ( $backup == INSTAWP_BACKUP_TYPE_THEMES ) {
 

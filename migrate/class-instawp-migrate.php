@@ -110,7 +110,7 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 
 				instawp_reset_running_migration();
 
-				wp_redirect( admin_url( 'admin.php?page=instawp' ) );
+				wp_redirect( admin_url( 'tools.php?page=instawp' ) );
 				exit();
 			}
 		}

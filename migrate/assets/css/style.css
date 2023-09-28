@@ -258,7 +258,7 @@ input:checked + .slider-toggle:before {
     background: rgba(249, 250, 251, 0.4);
 }
 
-.progress-bar {
+.instawp-progress-bar {
     width: 0;
     transition: 0.3s;
 }
