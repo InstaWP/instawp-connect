@@ -83,6 +83,10 @@
                         instawp_migrate_api_call();
                     }
 
+                    if (typeof response.data.wf_whitelisted !== 'undefined' && response.data.wf_whitelisted) {
+                        $(document).find('.wordfence-whitelist').addClass('hidden');
+                    }
+
                     if (response.data.status === 'aborted' || response.data.status === 'nonce_expired') {
                         el_instawp_nonce.val('');
                         create_container.find('.instawp-migration-start-over').trigger('click');

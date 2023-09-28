@@ -358,6 +358,7 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 
 			update_option( 'instawp_api_url', esc_url_raw( 'https://app.instawp.io' ) );
 			delete_transient( 'instawp_staging_sites' );
+			delete_transient( 'instawp_migration_completed' );
 
 			as_unschedule_all_actions( 'instawp_handle_heartbeat', [], 'instawp-connect' );
 
@@ -493,7 +494,7 @@ if ( ! function_exists( 'instawp_upload_to_cloud' ) ) {
 	 */
 	function instawp_upload_to_cloud( $cloud_url = '', $local_file = '', $args = array() ) {
 
-		if ( empty( $cloud_url ) || empty( $local_file ) ) {
+		if ( empty( $cloud_url ) || empty( $local_file ) || ! file_exists( $local_file ) || ! is_file( $local_file ) ) {
 			return false;
 		}
 
@@ -505,7 +506,7 @@ if ( ! function_exists( 'instawp_upload_to_cloud' ) ) {
 
 		$default_args = array(
 			'method'     => 'PUT',
-			'body'       => file_get_contents( $local_file ),
+			'body'       => $file,
 			'timeout'    => 0,
 			'decompress' => false,
 			'stream'     => false,
@@ -1228,6 +1229,34 @@ if ( ! function_exists( 'instawp_get_dir_contents' ) ) {
 	}
 }
 
+
+if ( ! function_exists( 'instawp_is_wordfence_whitelisted' ) ) {
+	function instawp_is_wordfence_whitelisted() {
+		$whitelisted = false;
+		if ( is_plugin_active( 'wordfence/wordfence.php' ) ) {
+			if ( class_exists( '\wfConfig' ) && method_exists( '\wfConfig', 'get' ) ) {
+				$whites = wfConfig::get( 'whitelisted', [] );
+				$arr = explode( ',', $whites );
+				if ( in_array( '167.71.233.239', $arr ) && in_array( '159.65.64.73', $arr ) ) {
+					$whitelisted = true;
+				}
+			};
+		} 
+
+		return $whitelisted;
+	}
+}
+
+if ( ! function_exists( 'instawp_set_wordfence_whitelist_ip' ) ) {
+	function instawp_set_wordfence_whitelist_ip() {
+		if ( is_plugin_active( 'wordfence/wordfence.php' ) && ! instawp_is_wordfence_whitelisted() ) {
+			if ( class_exists( '\wordfence' ) && method_exists( '\wordfence', 'whitelistIP' ) ) {
+				\wordfence::whitelistIP( '167.71.233.239' );
+				\wordfence::whitelistIP( '159.65.64.73' );
+			};
+		} 
+	}
+}
 
 if ( ! function_exists( 'instawp_readfile_chunked' ) ) {
 	/**

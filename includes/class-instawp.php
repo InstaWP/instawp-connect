@@ -1621,7 +1621,7 @@ class instaWP {
 	 */
 	public function clean_backup_record_event( $backup_id ) {
 		$tasks  = InstaWP_Setting::get_option( 'clean_task' );
-		$backup = $tasks[ $backup_id ];
+		$backup = $tasks[ $backup_id ] ?? [];
 		unset( $tasks[ $backup_id ] );
 		InstaWP_Setting::update_option( 'clean_task', $tasks );
 
