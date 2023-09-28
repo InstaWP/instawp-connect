@@ -90,7 +90,7 @@ $list_data = get_option( 'instawp_large_files_list', [] ) ?? []; ?>
                         <div class="flex justify-between items-center">
                             <div class="text-grayCust-200 text-lg font-bold"><?php esc_html_e( '1. Select Staging', 'instawp-connect' ); ?></div>
                         </div>
-                        <?php if ( ! instawp_is_wordfence_whitelisted() ) { ?>
+                        <?php if ( instawp_can_whitelist_wordfence() ) { ?>
                             <div class="wordfence-whitelist bg-yellow-50 border border-2 border-r-0 border-y-0 border-l-orange-400 rounded-lg text-sm text-orange-700 mt-4 p-4 flex flex-col items-start gap-3">
                                 <div class="flex items-center gap-3">
                                     <div class="texdt-xs fonht-medium"><?php esc_html_e( 'We have detected Wordfence in your website, which might block API calls from our server. Whitelisting our IP address solves this problem. Shall we add a whitelist entry?', 'instawp-connect' ); ?></div>
