@@ -132,6 +132,8 @@ function instawp_plugin_activate() {
 	InstaWP_Tools::instawp_reset_permalink();
 
 	add_option( 'instawp_do_activation_redirect', true );
+
+	as_enqueue_async_action( 'instawp_prepare_large_files_list_async', [], 'instawp-connect', true );
 }
 
 /*Deactivate Hook Handle*/

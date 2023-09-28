@@ -90,6 +90,19 @@ $list_data = get_option( 'instawp_large_files_list', [] ) ?? []; ?>
                         <div class="flex justify-between items-center">
                             <div class="text-grayCust-200 text-lg font-bold"><?php esc_html_e( '1. Select Staging', 'instawp-connect' ); ?></div>
                         </div>
+                        <?php if ( ! instawp_is_wordfence_whitelisted() ) { ?>
+                            <div class="wordfence-whitelist bg-yellow-50 border border-2 border-r-0 border-y-0 border-l-orange-400 rounded-lg text-sm text-orange-700 mt-4 p-4 flex flex-col items-start gap-3">
+                                <div class="flex items-center gap-3">
+                                    <div class="texdt-xs fonht-medium"><?php esc_html_e( 'We have detected Wordfence in your website, which might block API calls from our server. Whitelisting our IP address solves this problem. Shall we add a whitelist entry?', 'instawp-connect' ); ?></div>
+                                </div>
+                                <div class="flex flex-col items-start gap-3">
+                                    <div class="flex justify-between items-center text-xss">
+                                        <input type="checkbox" name="instawp_migrate[whitelist_wordfence]" id="whitelist-wordfence" value="yes" class="instawp-checkbox !mt-0 !mr-3 rounded border-gray-300 text-primary-900 focus:ring-primary-900">
+                                        <label for="whitelist-wordfence" class="mr-2"><?php esc_html_e( 'Yes, Whitelist IP', 'instawp-connect' ); ?></label>(<a class="cursor-pointer focus:outline-none focus:ring-0 hover:text-primary-900 border-b border-transparent border-1 border-dashed hover:border-primary-700" href="https://silicondales.com/tutorials/wordpress/whitelist-ip-wordfence/" target="_blank">Documentation</a>)
+                                    </div>
+                                </div>
+                            </div>
+                        <?php } ?>
                         <div class="panel mt-6 block">
                             <div for="quick_staging" class="instawp-staging-type cursor-pointer flex justify-between items-center border mb-4 flex p-4 rounded-xl">
                                 <div class="flex items-center">
@@ -358,7 +371,7 @@ $list_data = get_option( 'instawp_large_files_list', [] ) ?? []; ?>
                                         <span class="mr-2"><?php esc_html_e( 'Track Migration', 'instawp-connect' ); ?></span>
                                         <img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/share-icon.svg' ) ); ?>" class="inline ml-1" alt="">
                                     </a>
-                                    <button type="button" class="instawp-migrate-abort btn-shadow border border-grayCust-350 rounded-md py-2 px-8 bg-white text-redCust-50 text-sm font-medium text-red-400"><?php esc_html_e( 'Abort', 'instawp-connect' ); ?></button>
+                                    <button type="button" class="instawp-migrate-abort btn-shadow border border-grayCust-350 rounded-md py-2 px-8 bg-white text-sm font-medium text-red-400"><?php esc_html_e( 'Abort', 'instawp-connect' ); ?></button>
                                 </div>
                             </div>
                             <div class="migration-completed hidden border border-grayCust-100 rounded-lg">
