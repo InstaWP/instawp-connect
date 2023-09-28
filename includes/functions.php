@@ -1235,7 +1235,7 @@ if ( ! function_exists( 'instawp_is_wordfence_whitelisted' ) ) {
 		$whitelisted = false;
 		if ( is_plugin_active( 'wordfence/wordfence.php' ) ) {
 			if ( class_exists( '\wfConfig' ) && method_exists( '\wfConfig', 'get' ) ) {
-				$whites = wfConfig::get( 'whitelisted', [] );
+				$whites = \wfConfig::get( 'whitelisted', [] );
 				$arr = explode( ',', $whites );
 				if ( in_array( '167.71.233.239', $arr ) && in_array( '159.65.64.73', $arr ) ) {
 					$whitelisted = true;
