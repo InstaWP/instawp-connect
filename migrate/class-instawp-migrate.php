@@ -227,14 +227,15 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 			$whitelist_wf    = InstaWP_Setting::get_args_option( 'whitelist_wordfence', $instawp_migrate, 'no' );
 			$is_completed    = get_transient( 'instawp_migration_completed' );
 
-			if ( 'yes' === $whitelist_wf ) {
-				$response['wf_whitelisted'] = instawp_set_wordfence_whitelist_ip();
+			if ( 'yes' === $whitelist_wf && instawp_can_whitelist_wordfence() ) {
+				instawp_set_wordfence_whitelist_ip();
+				$response['wf_whitelisted'] = true;
 			}
 
-			if ( ! wp_verify_nonce( $migration_nonce, 'instawp_migration_nonce' ) ) {
-				$response['status'] = 'nonce_expired';
-				wp_send_json_success( $response );
-			}
+			// if ( ! wp_verify_nonce( $migration_nonce, 'instawp_migration_nonce' ) ) {
+			// 	$response['status'] = 'nonce_expired';
+			// 	wp_send_json_success( $response );
+			// }
 
 			if ( empty( InstaWP_Setting::get_option( 'instawp_migration_running' ) ) || $is_completed ) {
 				$response['status'] = 'aborted';

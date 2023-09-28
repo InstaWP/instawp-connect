@@ -1233,15 +1233,13 @@ if ( ! function_exists( 'instawp_get_dir_contents' ) ) {
 if ( ! function_exists( 'instawp_is_wordfence_whitelisted' ) ) {
 	function instawp_is_wordfence_whitelisted() {
 		$whitelisted = false;
-		if ( is_plugin_active( 'wordfence/wordfence.php' ) ) {
-			if ( class_exists( '\wfConfig' ) && method_exists( '\wfConfig', 'get' ) ) {
-				$whites = \wfConfig::get( 'whitelisted', [] );
-				$arr = explode( ',', $whites );
-				if ( in_array( '167.71.233.239', $arr ) && in_array( '159.65.64.73', $arr ) ) {
-					$whitelisted = true;
-				}
-			};
-		} 
+		if ( class_exists( '\wfConfig' ) && method_exists( '\wfConfig', 'get' ) ) {
+			$whites = \wfConfig::get( 'whitelisted', [] );
+			$arr = explode( ',', $whites );
+			if ( in_array( '167.71.233.239', $arr ) && in_array( '159.65.64.73', $arr ) ) {
+				$whitelisted = true;
+			}
+		}
 
 		return $whitelisted;
 	}
@@ -1249,12 +1247,19 @@ if ( ! function_exists( 'instawp_is_wordfence_whitelisted' ) ) {
 
 if ( ! function_exists( 'instawp_set_wordfence_whitelist_ip' ) ) {
 	function instawp_set_wordfence_whitelist_ip() {
-		if ( is_plugin_active( 'wordfence/wordfence.php' ) && ! instawp_is_wordfence_whitelisted() ) {
-			if ( class_exists( '\wordfence' ) && method_exists( '\wordfence', 'whitelistIP' ) ) {
-				\wordfence::whitelistIP( '167.71.233.239' );
-				\wordfence::whitelistIP( '159.65.64.73' );
-			};
-		} 
+		if ( class_exists( '\wordfence' ) && method_exists( '\wordfence', 'whitelistIP' ) ) {
+			\wordfence::whitelistIP( '167.71.233.239' );
+			\wordfence::whitelistIP( '159.65.64.73' );
+		}
+	}
+}
+
+if ( ! function_exists( 'instawp_can_whitelist_wordfence' ) ) {
+	function instawp_can_whitelist_wordfence() {
+		if ( ! function_exists( 'is_plugin_active' ) ) {
+			include_once ABSPATH . 'wp-admin/includes/plugin.php';
+		}
+		return ( is_plugin_active( 'wordfence/wordfence.php' ) && ! instawp_is_wordfence_whitelisted() );
 	}
 }
 
