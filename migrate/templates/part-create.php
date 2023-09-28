@@ -320,7 +320,7 @@ $list_data = get_option( 'instawp_large_files_list', [] ) ?? []; ?>
                     <div class="screen screen-5 <?= $current_create_screen == 5 ? 'active' : ''; ?>">
                         <div class="flex justify-between items-center">
                             <div class="text-grayCust-200 text-lg font-bold"><?php esc_html_e( '4. Creating Staging', 'instawp-connect' ); ?></div>
-                            <span class="instawp-migration-loader text-primary-900 text-base font-normal" data-complete-text="Completed"><?php esc_html_e( 'In Progress...', 'instawp-connect' ); ?></span>
+                            <span class="instawp-migration-loader text-primary-900 text-base font-normal" data-in-progress-text="<?php esc_attr_e( 'In Progress...', 'instawp-connect' ); ?>" data-complete-text="<?php esc_attr_e( 'Completed', 'instawp-connect' ); ?>"><?php esc_html_e( 'In Progress...', 'instawp-connect' ); ?></span>
                         </div>
                         <div class="panel mt-6 block">
                             <div class="migration-running border border-grayCust-100 rounded-lg">
@@ -329,7 +329,7 @@ $list_data = get_option( 'instawp_large_files_list', [] ) ?? []; ?>
                                         <div class="w-24 text-grayCust-900 text-base font-normal"><?php esc_html_e( 'Backup', 'instawp-connect' ); ?></div>
                                         <div class="instawp-progress-backup text-border rounded-xl w-full text-bg py-4 flex items-center px-4">
                                             <div class="w-full bg-gray-200 rounded-md mr-6">
-                                                <div class="progress-bar h-2 bg-primary-900 rounded-md"></div>
+                                                <div class="instawp-progress-bar h-2 bg-primary-900 rounded-md"></div>
                                             </div>
                                             <div class="progress-text text-grayCust-650 text-sm font-medium"><?php esc_html_e( '0%', 'instawp-connect' ); ?></div>
                                         </div>
@@ -338,7 +338,7 @@ $list_data = get_option( 'instawp_large_files_list', [] ) ?? []; ?>
                                         <div class="w-24 text-grayCust-900 text-base font-normal"><?php esc_html_e( 'Upload', 'instawp-connect' ); ?></div>
                                         <div class="instawp-progress-upload text-border rounded-xl w-full text-bg py-4 flex items-center px-4">
                                             <div class="w-full bg-gray-200 rounded-md mr-6">
-                                                <div class="progress-bar h-2 bg-primary-900 rounded-md"></div>
+                                                <div class="instawp-progress-bar h-2 bg-primary-900 rounded-md"></div>
                                             </div>
                                             <div class="progress-text text-grayCust-650 text-sm font-medium"><?php esc_html_e( '0%', 'instawp-connect' ); ?></div>
                                         </div>
@@ -347,7 +347,7 @@ $list_data = get_option( 'instawp_large_files_list', [] ) ?? []; ?>
                                         <div class="w-24 text-grayCust-900 text-base font-normal"><?php esc_html_e( 'Migration', 'instawp-connect' ); ?></div>
                                         <div class="instawp-progress-staging text-border rounded-xl w-full text-bg py-4 flex items-center px-4">
                                             <div class="w-full bg-gray-200 rounded-md mr-6">
-                                                <div class="progress-bar h-2 bg-primary-900 rounded-md"></div>
+                                                <div class="instawp-progress-bar h-2 bg-primary-900 rounded-md"></div>
                                             </div>
                                             <div class="progress-text text-grayCust-650 text-sm font-medium"><?php esc_html_e( '0%', 'instawp-connect' ); ?></div>
                                         </div>

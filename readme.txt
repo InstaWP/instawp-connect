@@ -1,42 +1,78 @@
-=== InstaWP Connect - 1-click WP Staging & Migration (beta) ===
+=== InstaWP Connect - 1-click WP Staging & Migration ===
 Contributors: instawp
 Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.4
 Tested up to: 6.3.1
 Requires PHP: 7.4
-Stable tag: 0.0.9.31
+Stable tag: 0.0.9.32
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
-Create a staging WordPress site from production sites in seconds. (beta version).
+Create a staging WordPress site from production (live site). Ideal for testing updates, version change or re-write. Sync back only the changes.
 
 == Description ==
-InstaWP allows you to create WordPress websites for testing, development and staging with seconds. Using this companion plugin you can connect your existing WordPress sites anywhere on the internet to your InstaWP. After your site is connected, you can create 1-click staging websites from within the WP admin panel.
+InstaWP Connect is a WordPress staging and migration plugin developed by the InstaWP team. It works as a companion tool for InstaWP - a famous tool for creating WordPress websites to test plugin or theme, product demo creation, client project delivery, and everything that can improve your WordPress workflows.
 
-## Features
+The aim of this plugin is to speed up your WordPress staging process and complete it in seconds without you putting in any effort.
 
-- All staging websites are created on InstaWP, so zero mess in your hosting account.
-- Auto login to your Connected sites from InstaWP (https://app.instawp.io/connects)
-- Heartbeat from your Connected sites keeps you updates on site health. 
-- Basic site information shown inside InstaWP (coming soon..).
-- 2 way push from staging to prod and vice versa. (Iterative sync coming soon..).
+Once you activate InstaWP Connect, you can click Create Site and connect your site to your InstaWP account. Once it’s connected, you can select to:
+- Create quick staging [media folder will not be copied over].
+- Create custom staging [skip plugins, themes, media, or any specific files or folders]
+- Create full staging [everything from your live site will be added to the staging site]
 
-## What is InstaWP?
+One-click, and the staging creation process will begin!
 
-InstaWP is an online WordPress development environment to get you started with a new WP site within seconds. You can get a free account here - [https://app.instawp.io/onboard](https://app.instawp.io/onboard). Key features include:
+Once the process is complete (it takes a few minutes depending on the site’s size), you will be able to find the staging of your live site in the InstaWP dashboard. Now, it’s possible to test, develop, edit, clone, migrate, or log in to your staging site in seconds.
 
-- Instant site creation. 
-- Code Editor, DB Editor and Logs viewer.
-- Magic login to WP admin panel. 
-- Migrate to any hosting provider. 
+## PLUGIN FEATURES
+Using this companion plugin, you can connect your existing WordPress sites anywhere on the internet to your InstaWP. After your site is connected, you can create 1-click staging websites from within the WP admin panel.
+
+- Create full, custom, or quick staging websites in your InstaWP dashboard
+- Auto-login to your Connected sites from InstaWP (https://app.instawp.io/connects)
+- 2-way sync (push from staging to production and production to staging)
+- Check the status of actions performed during 2-way sync
+- Connect and disconnect your WordPress live site
+- Keep all info about your site’s health.
+- Do everything related to Remote Management securely (File Manager, Database Manager, Plugin / Themes Installer) - Beta
+- Utilize dozens of InstaWP features by connecting your site to it.
+
+## BENEFITS OF USING INSTAWP CONNECT
+- Staging in seconds
+- Zero mess in your hosting account
+- Comes with a FREE Staging Environment
+- Simplified migration and WordPress website backup
+- Connect multiple staging sites to your live site.
+
+## WHAT IS INSTAWP?
+InstaWP is an online WordPress development environment to get you started with a new WP site within seconds. It allows you to create WordPress websites for testing, development, and staging in seconds.
+
+You can get a free account here – https://app.instawp.io/onboard.
+
+### Key features include:
+- Instant site creation
+- Code Editor, DB Editor, and Logs viewer.
+- Magic login to the WP admin panel.
+- Migrate to any hosting provider that hosts your server (e.g., RunCloud, CloudWays, ServerAvatar, Pressable, SpinupWP, and WP Bolt)
 - Access SFTP/SSH (pro).
-- Map custom domain (pro).
-- Save as template, snapshot of site. 
-- Shared templates for public sandbox. 
-- Invite team members (pro). 
-- Git integration and Github actions support. 
-- Preset configurations. 
-- 3rd party services integrations.
+- Drag-and-drop plugin installation
+- Bulk theme/plugin installation from WP Repo using slugs
+- Map a custom domain (pro) and host your site with InstaWP.
+- Save your site as a template (snapshot of the site that can be reused).
+- Shared templates for a public sandbox.
+- Invite team members (pro).
+- Git integration and GitHub actions support.
+- Preset configurations.
+- 3rd party services integrations (e.g., Mailchimp, active Campaign, Atarim, etc.)
+- Core Faker
+
+### Useful Resources
+
+- Visit Website: http://instawp.com/
+- Read the InstaWP Documentation: https://docs.instawp.com/
+- Know more about our API: https://docs.instawp.com/en/category/api-docs-12yssdo/
+- Find Useful information through our blog: https://instawp.com/blog/
+
+Need support or want to partner with us? Go to our website http://instawp.com/ and use the live chat feature. You can also email us at support@instawp.com. We will be happy to assist.
 
 
 == Installation ==
@@ -57,6 +93,11 @@ InstaWP is an online WordPress development environment to get you started with a
 6. Update API Key and Settings.
 
 == Changelog ==
+
+= 0.0.9.32 =
+- 25/09/2023 - NEW - Introduced batch-based sync system.
+- 25/09/2023 - FIX - Fixed repeat staging site creation issues.
+- 25/09/2023 - FIX - Stabilise migrations/staging process.
 
 = 0.0.9.31 =
 - 14/09/2023 - NEW - Exclude selected files from the migration process.

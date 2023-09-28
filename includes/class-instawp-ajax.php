@@ -58,7 +58,7 @@ class InstaWP_AJAX {
 		}
 		$dir_data = instawp_get_dir_contents( $path, $sort_by );
 		if ( empty( $dir_data ) ) {
-			wp_send_json_success( __( 'Empty folder!', 'instawp-connect' ) );
+			wp_send_json_success( [ 'content' => __( 'Empty folder!', 'instawp-connect' ) ] );
 		}
 
 		$list_data      = get_option( 'instawp_large_files_list', [] ) ?? [];
