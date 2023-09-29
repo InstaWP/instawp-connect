@@ -175,8 +175,8 @@ $list_data = get_option( 'instawp_large_files_list', [] ) ?? []; ?>
                             </button>
                         </div>
                         <div class="panel mt-6 flex flex-col gap-6">
-                            <div class="instawp-exclude-container">
-                                <?php if ( ! empty( $list_data ) && is_array( $list_data ) ) { ?>
+                            <?php if ( ! empty( $list_data ) && is_array( $list_data ) ) { ?>
+                                <div class="instawp-exclude-container">
                                     <div class="bg-yellow-50 border border-2 border-r-0 border-y-0 border-l-orange-400 rounded-lg text-sm text-orange-700 p-4 flex flex-col items-start gap-3">
                                         <div class="flex items-center gap-3">
                                             <div class="text-sm font-medium"><?php esc_html_e( 'We have identified following large files in your installation:', 'instawp-connect' ); ?></div>
@@ -191,8 +191,10 @@ $list_data = get_option( 'instawp_large_files_list', [] ) ?? []; ?>
                                             <?php } ?>
                                         </div>
                                     </div>
-                                <?php } ?>
-                            </div>
+                                </div>
+                            <?php } else { ?>
+                                <div class="instawp-exclude-container hidden"></div>
+                            <?php } ?>
                             <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
                                 <div class="min-w-full divide-y divide-gray-300">
                                     <div class="bg-gray-50 flex flex-row items-center justify-between p-4">
