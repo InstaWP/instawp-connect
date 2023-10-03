@@ -8,7 +8,7 @@ if ( ! isset( $api_signature ) || ! isset( $_POST['api_signature'] ) || $api_sig
 	die();
 }
 
-defined( 'CHUNK_SIZE' ) | define( 'CHUNK_SIZE', 1024 * 1024 );
+defined( 'CHUNK_SIZE' ) | define( 'CHUNK_SIZE', 2048 * 1024 );
 defined( 'CHUNK_DB_SIZE' ) | define( 'CHUNK_DB_SIZE', 100 );
 defined( 'BATCH_SIZE' ) | define( 'BATCH_SIZE', 100 );
 defined( 'WP_ROOT' ) | define( 'WP_ROOT', '../../' );
@@ -61,7 +61,7 @@ if ( isset( $_POST['serve_type'] ) && 'files' === $_POST['serve_type'] ) {
 
 	$tracking_db_path = 'files-sent-' . $migrate_key . '.db';
 	$total_files_path = '.total-files-' . $migrate_key;
-	$skip_folders     = [ "wp-content/cache/" ];
+	$skip_folders     = [ 'wp-content/cache/', 'editor/', 'upgrade/' ];
 	$skip_files       = [];
 	$db               = new PDO( 'sqlite:' . $tracking_db_path );
 

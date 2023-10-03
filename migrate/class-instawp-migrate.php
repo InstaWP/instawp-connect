@@ -103,10 +103,8 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 			$clear_action = isset( $_GET['clear'] ) ? sanitize_text_field( $_GET['clear'] ) : '';
 
 			if ( 'instawp' === $admin_page && 'all' === $clear_action ) {
-				$incomplete_task_ids = InstaWP_taskmanager::is_there_any_incomplete_task_ids();
-				if ( ! empty( $incomplete_task_ids ) ) {
-					instawp_destination_disconnect( reset( $incomplete_task_ids ) );
-				}
+
+				delete_option( 'instawp_migration_details' );
 
 				instawp_reset_running_migration();
 
