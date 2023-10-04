@@ -1087,19 +1087,19 @@ msgstr ""
 msgid "Invalid command for `-action`"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:61
+#: includes/class-instawp-ajax.php:157
 msgid "Empty folder!"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:161
+#: includes/class-instawp-ajax.php:257
 msgid "%s rows"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:204
+#: includes/class-instawp-ajax.php:300
 msgid "We have identified following large files in your installation:"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:344
+#: includes/class-instawp-ajax.php:440
 msgid "InstaWP Connect Settings has been reset successfully."
 msgstr ""
 

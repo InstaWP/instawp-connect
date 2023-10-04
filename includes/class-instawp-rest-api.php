@@ -16,6 +16,7 @@ class InstaWP_Backup_Api {
 	public function __construct() {
 		$this->version     = 'v1';
 		$this->version_2   = 'v2';
+		$this->version_3   = 'v3';
 		$this->namespace   = 'instawp-connect';
 		$this->instawp_log = new InstaWP_Log();
 
@@ -141,16 +142,23 @@ class InstaWP_Backup_Api {
 			),
 		) );
 
-		register_rest_route( $this->namespace . '/v3/', 'pull', array(
+		register_rest_route( $this->namespace . '/' . $this->version_3, '/pull', array(
 			'methods'             => 'POST',
 			'callback'            => array( $this, 'handle_pull_api' ),
+			'permission_callback' => '__return_true',
+		) );
+
+		register_rest_route( $this->namespace . '/' . $this->version_3, '/push', array(
+			'methods'             => 'POST',
+			'callback'            => array( $this, 'handle_push_api' ),
 			'permission_callback' => '__return_true',
 		) );
 	}
 
 	function handle_pull_api( WP_REST_Request $request ) {
 
-		if ( is_wp_error( $response = $this->validate_api_request( $request ) ) ) {
+		$response = $this->validate_api_request( $request );
+		if ( is_wp_error( $response ) ) {
 			return $this->throw_error( $response );
 		}
 
@@ -181,11 +189,45 @@ class InstaWP_Backup_Api {
 		fclose( $sample_serve_file );
 
 		return $this->send_response( array(
-			'serve_url'     => site_url( 'wp-content/' . INSTAWP_DEFAULT_BACKUP_DIR . '/' . $migrate_key . '.php' ),
+			'serve_url'     => content_url( INSTAWP_DEFAULT_BACKUP_DIR . '/' . $migrate_key . '.php' ),
 			'api_signature' => $api_signature,
 		) );
 	}
 
+	function handle_push_api( WP_REST_Request $request ) {
+
+		$response = $this->validate_api_request( $request );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
+
+		$migrate_key      = sanitize_text_field( $request->get_param( 'migrate_key' ) );
+		$api_signature    = hash( 'sha512', $migrate_key . current_time( 'U' ) );
+		$sample_dest_file = fopen( INSTAWP_PLUGIN_DIR . '/sample-dest.php', 'rb' );
+		$dest_file_path   = WP_CONTENT_DIR . '/' . INSTAWP_DEFAULT_BACKUP_DIR . '/' . $migrate_key . '.php';
+		$dest_file        = fopen( $dest_file_path, 'wb' );
+		$line_number      = 1;
+
+		while ( ( $line = fgets( $sample_dest_file ) ) !== false ) {
+
+			// Add api signature
+			if ( $line_number === 4 ) {
+				fputs( $dest_file, '$api_signature = "' . $api_signature . '";' . "\n" );
+			}
+
+			fputs( $dest_file, $line );
+
+			$line_number ++;
+		}
+
+		fclose( $dest_file );
+		fclose( $sample_dest_file );
+
+		return $this->send_response( array(
+			'dest_url'      => content_url( INSTAWP_DEFAULT_BACKUP_DIR . '/' . $migrate_key . '.php' ),
+			'api_signature' => $api_signature,
+		) );
+	}
 
 	/**
 	 * Handle response for disconnect api
