@@ -141,228 +141,49 @@ class InstaWP_Backup_Api {
 			),
 		) );
 
-		register_rest_route( $this->namespace . '/v3/', 'serve', array(
+		register_rest_route( $this->namespace . '/v3/', 'pull', array(
 			'methods'             => 'POST',
-			'callback'            => array( $this, 'handle_serve' ),
+			'callback'            => array( $this, 'handle_pull_api' ),
 			'permission_callback' => '__return_true',
 		) );
 	}
 
-	function serve_database() {
+	function handle_pull_api( WP_REST_Request $request ) {
 
-		// Database connection setup for SQLite (for tracking)
-		$trackingDb = new SQLite3( 'tracking_database.db' );
-
-		// Create the tracking table in SQLite if it doesn't exist
-		$createTableQuery = "CREATE TABLE IF NOT EXISTS tracking (table_name TEXT PRIMARY KEY,offset INTEGER DEFAULT 0,completed INTEGER DEFAULT 0);";
-		$trackingDb->exec( $createTableQuery );
-
-		// Database connection setup for MySQL (for data)
-		$mysqli = new mysqli( DB_HOST, DB_USER, DB_PASSWORD, DB_NAME );
-
-		if ( $mysqli->connect_error ) {
-			die( "MySQL Connection failed: " . $mysqli->connect_error );
+		if ( is_wp_error( $response = $this->validate_api_request( $request ) ) ) {
+			return $this->throw_error( $response );
 		}
 
-		// Check if the SQLite tracking table is empty
-		$emptyCheck = $trackingDb->querySingle( "SELECT COUNT(*) FROM tracking" );
+		$migrate_key       = sanitize_text_field( $request->get_param( 'migrate_key' ) );
+		$api_signature     = hash( 'sha512', $migrate_key . current_time( 'U' ) );
+		$sample_serve_file = fopen( INSTAWP_PLUGIN_DIR . '/sample-serve.php', 'rb' );
+		$serve_file_path   = WP_CONTENT_DIR . '/' . INSTAWP_DEFAULT_BACKUP_DIR . '/' . $migrate_key . '.php';
+		$serve_file        = fopen( $serve_file_path, 'wb' );
+		$line_number       = 1;
 
-		if ( $emptyCheck == 0 ) {
-			// Fetch all table names from the MySQL database
-			$tableNamesResult = $mysqli->query( "SHOW TABLES" );
-			$insertStmt       = $trackingDb->prepare( "INSERT INTO tracking (table_name) VALUES (:tableName)" );
+		while ( ( $line = fgets( $sample_serve_file ) ) !== false ) {
 
-			while ( $table = $tableNamesResult->fetch_row() ) {
-				$insertStmt->bindValue( ':tableName', $table[0], SQLITE3_TEXT );
-				$insertStmt->execute();
-			}
-		}
-
-		// Check which table to process from the SQLite tracking database
-		$stmt   = $trackingDb->prepare( "SELECT table_name, offset FROM tracking WHERE completed = 0 ORDER BY table_name LIMIT 1" );
-		$result = $stmt->execute();
-
-		$row = $result->fetchArray( SQLITE3_ASSOC );
-		if ( ! $row ) {
-			die( json_encode( [ 'status' => true, 'message' => 'All tables have been processed' ] ) );
-		}
-
-		$tableName = $row['table_name'];
-		$offset    = $row['offset'];
-
-		// Check if it's the first batch of rows for this table
-		if ( $offset == 0 ) {
-			$createTableQuery = "SHOW CREATE TABLE `$tableName`";
-			$createResult     = $mysqli->query( $createTableQuery );
-			if ( $createResult ) {
-				$createRow = $createResult->fetch_assoc();
-				echo $createRow['Create Table'] . ";\n\n"; // This outputs the CREATE TABLE statement
-			}
-		}
-
-		// Fetch a batch of rows from the MySQL database
-		$limit  = 100;  // For example
-		$query  = "SELECT * FROM `$tableName` LIMIT $limit OFFSET $offset"; // Assume 'id' for ordering
-		$result = $mysqli->query( $query );
-
-		// Check for errors
-		if ( $mysqli->errno ) {
-			die( "MySQL Query Error: " . $mysqli->error );
-		}
-
-		// Convert data to SQL statements
-		$sqlStatements = [];
-		while ( $dataRow = $result->fetch_assoc() ) {
-			$columns         = array_map( [ $mysqli, 'real_escape_string' ], array_keys( $dataRow ) );
-			$values          = array_map( [ $mysqli, 'real_escape_string' ], array_values( $dataRow ) );
-			$sql             = "INSERT INTO `$tableName` (`" . implode( "`, `", $columns ) . "`) VALUES ('" . implode( "', '", $values ) . "');";
-			$sqlStatements[] = $sql;
-			// $lastRowId = $dataRow['id'];  // Assuming 'id' is a primary key or unique column
-		}
-
-		// Send this chunk of SQL statements
-		echo implode( "\n", $sqlStatements );
-
-		// Update progress in the SQLite tracking database
-		$offset += count( $sqlStatements );
-		$stmt   = $trackingDb->prepare( "UPDATE tracking SET offset = :offset WHERE table_name = :tableName" );
-		$stmt->bindValue( ':offset', $offset, SQLITE3_INTEGER );
-		$stmt->bindValue( ':tableName', $tableName, SQLITE3_TEXT );
-		$stmt->execute();
-
-		// Mark table as completed in the SQLite tracking database if all rows were fetched
-		if ( count( $sqlStatements ) < $limit ) {
-			$stmt = $trackingDb->prepare( "UPDATE tracking SET completed = 1 WHERE table_name = :tableName" );
-			$stmt->bindValue( ':tableName', $tableName, SQLITE3_TEXT );
-			$stmt->execute();
-		}
-
-		$mysqli->close();
-		$trackingDb->close();
-	}
-
-	function serve_files() {
-
-		$folder       = './';
-		$dbPath       = './files_sent.db';
-		$skip_folders = [ "wp-content/cache/" ];
-		$skip_files   = [];
-		$db           = new PDO( 'sqlite:' . $dbPath );
-
-		$db->exec( "CREATE TABLE IF NOT EXISTS files_sent (id INTEGER PRIMARY KEY AUTOINCREMENT, filepath TEXT UNIQUE, sent INTEGER DEFAULT 0)" );
-
-		$batch = 1000;
-		$stmt  = $db->prepare( "SELECT count(*) as count FROM files_sent WHERE sent = 0" );
-		$stmt->execute();
-
-		$row              = $stmt->fetch( PDO::FETCH_ASSOC );
-		$unsentFilesCount = $row['count'];
-		$progressPer      = 0;
-
-		if ( file_exists( '.totalFiles' ) && ( $totalFiles = @file_get_contents( '.totalFiles' ) ) ) {
-
-			$stmt = $db->prepare( "SELECT count(*) as count FROM files_sent" );
-			$stmt->execute();
-
-			$row          = $stmt->fetch( PDO::FETCH_ASSOC );
-			$dbFilesCount = $row['count'];
-			$sentFiles    = $dbFilesCount - $unsentFilesCount;
-			$progressPer  = round( ( $sentFiles / $totalFiles ) * 100, 2 );
-		}
-
-		if ( $unsentFilesCount == 0 ) {
-
-			$directory  = new RecursiveDirectoryIterator( $folder, RecursiveDirectoryIterator::SKIP_DOTS );
-			$iterator   = new RecursiveIteratorIterator( $directory, RecursiveIteratorIterator::LEAVES_ONLY );
-			$totalFiles = iterator_count( $iterator );
-			$fileIndex  = 0;
-
-			file_put_contents( '.totalFiles', $totalFiles );
-
-			foreach ( $iterator as $file ) {
-
-				$filepath   = $file->getPathname();
-				$currentDir = $file->getPath();
-
-
-				$stmt = $db->prepare( "SELECT id, filepath FROM files_sent WHERE filepath = :filepath  LIMIT 1" );
-				$stmt->bindValue( ':filepath', $filepath, PDO::PARAM_STR );
-				$stmt->execute();
-				$row = $stmt->fetch( PDO::FETCH_ASSOC );
-
-				if ( ! $row ) {
-					if ( ! instawp_files_contains( $currentDir, $skip_folders ) ) {
-						$stmt = $db->prepare( "INSERT OR IGNORE INTO files_sent (filepath, sent) VALUES (:filepath, 0)" );
-						$stmt->execute( [ ':filepath' => $filepath ] );
-						$fileIndex ++;
-					}
-				} else {
-					continue;
-				}
-
-				if ( $fileIndex > $batch ) {
-					break;
-				}
+			// Add api signature
+			if ( $line_number === 4 ) {
+				fputs( $serve_file, '$api_signature = "' . $api_signature . '";' . "\n" );
+				fputs( $serve_file, '$db_host = "' . DB_HOST . '";' . "\n" );
+				fputs( $serve_file, '$db_username = "' . DB_USER . '";' . "\n" );
+				fputs( $serve_file, '$db_password = "' . DB_PASSWORD . '";' . "\n" );
+				fputs( $serve_file, '$db_name = "' . DB_NAME . '";' . "\n" );
 			}
 
-			if ( $fileIndex == 0 ) {
-				echo "No more files left to download!";
-				header( 'x-instawp-transfer-complete: true' );
-				$db = null;
-				exit;
-			}
+			fputs( $serve_file, $line );
 
-			$db->exec( "CREATE INDEX IF NOT EXISTS idx_sent ON files_sent(sent)" );
-			$db->exec( "CREATE INDEX IF NOT EXISTS idx_file_path ON files_sent(filepath)" );
+			$line_number ++;
 		}
 
-		// Fetch next unsent file
-		$stmt = $db->prepare( "SELECT id, filepath FROM files_sent WHERE sent = 0 LIMIT 1" );
-		$stmt->execute();
-		$row = $stmt->fetch( PDO::FETCH_ASSOC );
+		fclose( $serve_file );
+		fclose( $sample_serve_file );
 
-		if ( $row ) {
-			$fileId   = $row['id'];
-			$filePath = $row['filepath'];
-			$mimetype = mime_content_type( $filePath );
-			header( 'Content-Type: ' . $mimetype );
-			$relativePath = ltrim( str_replace( $folder, "", $filePath ), DIRECTORY_SEPARATOR );
-
-			header( 'x-file-relative-path: ' . $relativePath );
-			header( 'x-iwp-progress: ' . $progressPer );
-
-			instawp_readfile_chunked( $filePath );
-
-			// Mark file as sent in database
-			$stmt = $db->prepare( "UPDATE files_sent SET sent = 1 WHERE id = :id" );
-			$stmt->execute( [ ':id' => $fileId ] );
-		} else {
-			// echo "No more files left to download!";
-			 header('x-instawp-transfer-complete: true');
-		}
-
-		$db = null;
-	}
-
-	function handle_serve( WP_REST_Request $request ) {
-
-//		if ( is_wp_error( $response = $this->validate_api_request( $request ) ) ) {
-//			return $this->throw_error( $response );
-//		}
-
-		$this->serve_files();
-
-//		if ( empty( $serve_type = $request->get_param( 'type' ) ) ) {
-//			return $this->throw_error( new WP_Error( 'invalid_type', 'Empty or invalid serve type' ) );
-//		}
-//
-//		if ( 'files' === $serve_type ) {
-//			$this->serve_files();
-//		}
-//
-//		if ( 'db' === $serve_type ) {
-//			$this->serve_database();
-//		}
+		return $this->send_response( array(
+			'serve_url'     => site_url( 'wp-content/' . INSTAWP_DEFAULT_BACKUP_DIR . '/' . $migrate_key . '.php' ),
+			'api_signature' => $api_signature,
+		) );
 	}
 
 

@@ -90,8 +90,21 @@ $list_data = get_option( 'instawp_large_files_list', [] ) ?? []; ?>
                         <div class="flex justify-between items-center">
                             <div class="text-grayCust-200 text-lg font-bold"><?php esc_html_e( '1. Select Staging', 'instawp-connect' ); ?></div>
                         </div>
+                        <?php if ( instawp_can_whitelist_wordfence() ) { ?>
+                            <div class="wordfence-whitelist bg-yellow-50 border border-2 border-r-0 border-y-0 border-l-orange-400 rounded-lg text-sm text-orange-700 mt-4 p-4 flex flex-col items-start gap-3">
+                                <div class="flex items-center gap-3">
+                                    <div class="texdt-xs fonht-medium"><?php esc_html_e( 'We have detected Wordfence in your website, which might block API calls from our server. Whitelisting our IP address solves this problem. Shall we add a whitelist entry?', 'instawp-connect' ); ?></div>
+                                </div>
+                                <div class="flex flex-col items-start gap-3">
+                                    <div class="flex justify-between items-center text-xss">
+                                        <input type="checkbox" name="instawp_migrate[whitelist_wordfence]" id="whitelist-wordfence" value="yes" class="instawp-checkbox !mt-0 !mr-3 rounded border-gray-300 text-primary-900 focus:ring-primary-900">
+                                        <label for="whitelist-wordfence" class="mr-2"><?php esc_html_e( 'Yes, Whitelist IP', 'instawp-connect' ); ?></label>(<a class="cursor-pointer focus:outline-none focus:ring-0 hover:text-primary-900 border-b border-transparent border-1 border-dashed hover:border-primary-700" href="https://silicondales.com/tutorials/wordpress/whitelist-ip-wordfence/" target="_blank">Documentation</a>)
+                                    </div>
+                                </div>
+                            </div>
+                        <?php } ?>
                         <div class="panel mt-6 block">
-                            <div for="quick_staging" class="instawp-staging-type cursor-pointer flex justify-between items-center border mb-4 border-primary-600 flex p-4 rounded-xl">
+                            <div for="quick_staging" class="instawp-staging-type cursor-pointer flex justify-between items-center border mb-4 flex p-4 rounded-xl">
                                 <div class="flex items-center">
                                     <div class="w-10 h-10 bg-white rounded-lg flex justify-center items-center border custom-border"><img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/icon-quick.svg' ) ); ?>" alt=""></div>
                                     <div class="ml-4">
@@ -103,7 +116,7 @@ $list_data = get_option( 'instawp_large_files_list', [] ) ?? []; ?>
                                     <input id="quick_staging" name="instawp_migrate[type]" value="quick" type="radio" class="instawp-option-selector h-4 w-4 border-grayCust-350 text-primary-900 focus:border-0 foucs:ring-1 focus:ring-primary-900">
                                 </div>
                             </div>
-                            <div for="full_staging" class="instawp-staging-type cursor-pointer flex justify-between items-center border mb-4 border-primary-600 flex p-4 rounded-xl">
+                            <div for="full_staging" class="instawp-staging-type cursor-pointer flex justify-between items-center border mb-4 flex p-4 rounded-xl">
                                 <div class="flex items-center">
                                     <div class="w-10 h-10 bg-white rounded-lg flex justify-center items-center border custom-border"><img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/icon-full.svg' ) ); ?>" alt=""></div>
                                     <div class="ml-4">
@@ -115,7 +128,7 @@ $list_data = get_option( 'instawp_large_files_list', [] ) ?? []; ?>
                                     <input id="full_staging" name="instawp_migrate[type]" value="full" type="radio" class="instawp-option-selector h-4 w-4 border-grayCust-350 text-primary-900 focus:border-0 foucs:ring-1 focus:ring-primary-900">
                                 </div>
                             </div>
-                            <div for="custom_staging" class="instawp-staging-type cursor-pointer flex justify-between items-center border border-primary-600 flex p-4 rounded-xl">
+                            <div for="custom_staging" class="instawp-staging-type cursor-pointer flex justify-between items-center border flex p-4 rounded-xl">
                                 <div class="flex items-center">
                                     <div class="w-10 h-10 bg-white rounded-lg flex justify-center items-center border custom-border"><img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/icon-custom.svg' ) ); ?>" alt=""></div>
                                     <div class="ml-4">
@@ -162,8 +175,8 @@ $list_data = get_option( 'instawp_large_files_list', [] ) ?? []; ?>
                             </button>
                         </div>
                         <div class="panel mt-6 flex flex-col gap-6">
-                            <div class="instawp-exclude-container hidden">
-                                <?php if ( ! empty( $list_data ) && is_array( $list_data ) ) { ?>
+                            <?php if ( ! empty( $list_data ) && is_array( $list_data ) ) { ?>
+                                <div class="instawp-exclude-container">
                                     <div class="bg-yellow-50 border border-2 border-r-0 border-y-0 border-l-orange-400 rounded-lg text-sm text-orange-700 p-4 flex flex-col items-start gap-3">
                                         <div class="flex items-center gap-3">
                                             <div class="text-sm font-medium"><?php esc_html_e( 'We have identified following large files in your installation:', 'instawp-connect' ); ?></div>
@@ -178,8 +191,10 @@ $list_data = get_option( 'instawp_large_files_list', [] ) ?? []; ?>
                                             <?php } ?>
                                         </div>
                                     </div>
-                                <?php } ?>
-                            </div>
+                                </div>
+                            <?php } else { ?>
+                                <div class="instawp-exclude-container hidden"></div>
+                            <?php } ?>
                             <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
                                 <div class="min-w-full divide-y divide-gray-300">
                                     <div class="bg-gray-50 flex flex-row items-center justify-between p-4">
@@ -320,7 +335,7 @@ $list_data = get_option( 'instawp_large_files_list', [] ) ?? []; ?>
                     <div class="screen screen-5 <?= $current_create_screen == 5 ? 'active' : ''; ?>">
                         <div class="flex justify-between items-center">
                             <div class="text-grayCust-200 text-lg font-bold"><?php esc_html_e( '4. Creating Staging', 'instawp-connect' ); ?></div>
-                            <span class="instawp-migration-loader text-primary-900 text-base font-normal" data-complete-text="Completed"><?php esc_html_e( 'In Progress...', 'instawp-connect' ); ?></span>
+                            <span class="instawp-migration-loader text-primary-900 text-base font-normal" data-in-progress-text="<?php esc_attr_e( 'In Progress...', 'instawp-connect' ); ?>" data-complete-text="<?php esc_attr_e( 'Completed', 'instawp-connect' ); ?>"><?php esc_html_e( 'In Progress...', 'instawp-connect' ); ?></span>
                         </div>
                         <div class="panel mt-6 block">
                             <div class="migration-running border border-grayCust-100 rounded-lg">
@@ -358,7 +373,7 @@ $list_data = get_option( 'instawp_large_files_list', [] ) ?? []; ?>
                                         <span class="mr-2"><?php esc_html_e( 'Track Migration', 'instawp-connect' ); ?></span>
                                         <img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/share-icon.svg' ) ); ?>" class="inline ml-1" alt="">
                                     </a>
-                                    <button type="button" class="instawp-migrate-abort btn-shadow border border-grayCust-350 rounded-md py-2 px-8 bg-white text-redCust-50 text-sm font-medium text-red-400"><?php esc_html_e( 'Abort', 'instawp-connect' ); ?></button>
+                                    <button type="button" class="instawp-migrate-abort btn-shadow border border-grayCust-350 rounded-md py-2 px-8 bg-white text-sm font-medium text-red-400"><?php esc_html_e( 'Abort', 'instawp-connect' ); ?></button>
                                 </div>
                             </div>
                             <div class="migration-completed hidden border border-grayCust-100 rounded-lg">
