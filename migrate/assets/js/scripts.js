@@ -60,10 +60,9 @@
             data: {
                 'action': 'instawp_connect_migrate',
                 'settings': create_container.serialize(),
-            }, success: function (response) {
-
+            }, 
+            success: function (response) {
                 if (response.success) {
-
                     console.log(response.data);
 
                     el_bar_backup.find('.instawp-progress-bar').css('width', response.data.backup.progress + '%');
@@ -80,11 +79,19 @@
                         create_container.find('.instawp-track-migration-area').removeClass('justify-end').addClass('justify-between');
                     }
 
+                    if ( [ 'running' ].includes( response.data.status ) ) {
+                        instawp_migrate_api_call();
+                    }
+
+                    if (typeof response.data.wf_whitelisted !== 'undefined' && response.data.wf_whitelisted) {
+                        $(document).find('.wordfence-whitelist').addClass('hidden');
+                    }
+
                     if (response.data.status === 'aborted' || response.data.status === 'nonce_expired') {
                         el_instawp_nonce.val('');
                         create_container.find('.instawp-migration-start-over').trigger('click');
                         create_container.removeClass('loading').addClass('completed');
-                        clearInterval(create_container.attr('interval-id'));
+                        //clearInterval(create_container.attr('interval-id'));
                     }
 
                     if (response.data.status === 'completed') {
@@ -106,10 +113,15 @@
 
                         el_instawp_nonce.val('');
                         create_container.removeClass('loading').addClass('completed');
-                        clearInterval(create_container.attr('interval-id'));
+                        //clearInterval(create_container.attr('interval-id'));
                     }
+                } else {
+                    instawp_migrate_api_call();
                 }
             }
+        })
+        .fail(function (jqXHR, textStatus, errorThrown) {
+            instawp_migrate_api_call();
         });
     };
 
@@ -167,7 +179,7 @@
             create_container.addClass('loading');
 
             instawp_migrate_api_call();
-            create_container.attr('interval-id', setInterval(instawp_migrate_api_call, 2000));
+            //create_container.attr('interval-id', setInterval(instawp_migrate_api_call, 2000));
         }
     });
 
@@ -306,7 +318,8 @@
                 url: plugin_object.ajax_url,
                 context: this,
                 data: {
-                    'action': 'instawp_check_limit'
+                    'action': 'instawp_check_limit',
+                    'settings': create_container.serialize(),
                 }, success: function (response) {
                     if (response.success) {
                         el_screen_doing_request.removeClass('loading');

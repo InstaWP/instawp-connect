@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.4
 Tested up to: 6.3.1
 Requires PHP: 7.4
-Stable tag: 0.0.9.32
+Stable tag: 0.0.9.33
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -93,6 +93,13 @@ Need support or want to partner with us? Go to our website http://instawp.com/ a
 6. Update API Key and Settings.
 
 == Changelog ==
+
+= 0.0.9.33 =
+- 29/09/2023 - NEW - Added option to whitelist InstaWP IP during staging creation.
+- 29/09/2023 - FIX - Fixed repeat staging site creation issues.
+- 29/09/2023 - FIX - Implemented excluded file and folders size check.
+- 29/09/2023 - FIX - Stabilise migrations/staging process.
+- 29/09/2023 - FIX - Replaced Tailwind CDN with NPM Package.
 
 = 0.0.9.32 =
 - 25/09/2023 - NEW - Introduced batch-based sync system.

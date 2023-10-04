@@ -132,7 +132,7 @@ class InstaWP_Backup_Task {
 			$exclude_regex[] = '#^' . preg_quote( $this->transfer_path( untrailingslashit( ABSPATH ) . DIRECTORY_SEPARATOR ), DIRECTORY_SEPARATOR ) . 'instawp-.*\.gz#';
 		} elseif ( $backup_type == INSTAWP_BACKUP_TYPE_PLUGIN ) {
 
-			$exclude_plugins = $this->get_exclude_default_plugins();
+			$exclude_plugins = self::get_exclude_default_plugins();
 
 			if ( isset( $args['plugins_excluded'] ) && is_array( $args['plugins_excluded'] ) ) {
 				$exclude_plugins = array_merge( $exclude_plugins, $args['plugins_excluded'] );
@@ -162,7 +162,7 @@ class InstaWP_Backup_Task {
 		return $exclude_regex;
 	}
 
-	public function get_exclude_default_plugins() {
+	public static function get_exclude_default_plugins() {
 
 		$exclude_plugins = array(
 			'instawp-connect',
@@ -457,12 +457,12 @@ class InstaWP_Backup_Task {
 				$backup_data['files_root']                                                = $this->transfer_path( get_theme_root() );
 				$backup_data['include_regex']                                             = array();
 				$backup_data['json_info']['file_type']                                    = 'themes';
-				$backup_data['json_info']['themes']                                       = $this->get_themes_list( $options );
+				$backup_data['json_info']['themes']                                       = self::get_themes_list( $options );
 				$this->task['options']['backup_options']['backup'][ $backup_data['key'] ] = $backup_data;
 				$backup_data['exclude_regex']                                             = apply_filters( 'instawp_get_backup_exclude_regex', [],
 					array(
 						'type'            => INSTAWP_BACKUP_TYPE_THEMES,
-						'themes_excluded' => $this->get_themes_list( $options, 'themes_excluded' ),
+						'themes_excluded' => self::get_themes_list( $options, 'themes_excluded' ),
 						'backup_options'  => $options,
 					)
 				);
@@ -475,12 +475,12 @@ class InstaWP_Backup_Task {
 				$backup_data['files_root']             = $this->transfer_path( WP_PLUGIN_DIR );
 				$backup_data['json_info']['file_type'] = 'plugin';
 
-				$backup_data['json_info']['plugin'] = $this->get_plugins_list( $options );
+				$backup_data['json_info']['plugin'] = self::get_plugins_list( $options );
 				$backup_data['include_regex']       = array();
 				$backup_data['exclude_regex']       = apply_filters( 'instawp_get_backup_exclude_regex', [],
 					array(
 						'type'             => INSTAWP_BACKUP_TYPE_PLUGIN,
-						'plugins_excluded' => $this->get_plugins_list( $options, 'plugins_excluded' ),
+						'plugins_excluded' => self::get_plugins_list( $options, 'plugins_excluded' ),
 						'backup_options'   => $options,
 					)
 				);
@@ -604,7 +604,7 @@ class InstaWP_Backup_Task {
 		return apply_filters( 'instawp_get_excluded_db_tables_list', $return );
 	}
 
-	public function get_themes_list( $options = array(), $return_type = 'themes_included' ) {
+	public static function get_themes_list( $options = array(), $return_type = 'themes_included' ) {
 
 		if ( ! function_exists( 'wp_get_themes' ) ) {
 			require_once ABSPATH . 'wp-includes/theme.php';
@@ -622,7 +622,7 @@ class InstaWP_Backup_Task {
 			}
 
 			$themes_included[ $key ]['slug'] = $key;
-			$themes_included[ $key ]['size'] = $this->get_folder_size( get_theme_root() . DIRECTORY_SEPARATOR . $key, 0 );
+			$themes_included[ $key ]['size'] = self::get_folder_size( get_theme_root() . DIRECTORY_SEPARATOR . $key, 0 );
 		}
 
 		$themes = array(
@@ -637,7 +637,7 @@ class InstaWP_Backup_Task {
 		return $themes[ $return_type ] ?? array();
 	}
 
-	public function get_plugins_list( $options = array(), $return_type = 'plugins_included' ) {
+	public static function get_plugins_list( $options = array(), $return_type = 'plugins_included' ) {
 
 		if ( ! function_exists( 'get_plugins' ) ) {
 			require_once ABSPATH . 'wp-admin/includes/plugin.php';
@@ -647,7 +647,7 @@ class InstaWP_Backup_Task {
 		$plugins_excluded        = array();
 		$list                    = get_plugins();
 		$active_plugins_only     = $options['migrate_settings']['active_plugins_only'] ?? false;
-		$exclude_default_plugins = $this->get_exclude_default_plugins();
+		$exclude_default_plugins = self::get_exclude_default_plugins();
 
 		foreach ( $list as $key => $item ) {
 			$dirname = dirname( $key );
@@ -663,7 +663,7 @@ class InstaWP_Backup_Task {
 			}
 
 			$plugins_included[ $dirname ]['slug'] = $dirname;
-			$plugins_included[ $dirname ]['size'] = $this->get_folder_size( WP_PLUGIN_DIR . DIRECTORY_SEPARATOR . $dirname, 0 );
+			$plugins_included[ $dirname ]['size'] = self::get_folder_size( WP_PLUGIN_DIR . DIRECTORY_SEPARATOR . $dirname, 0 );
 		}
 
 		$plugins_excluded = array_map( function ( $slug ) {
@@ -683,7 +683,7 @@ class InstaWP_Backup_Task {
 		return $plugins[ $return_type ] ?? array();
 	}
 
-	public function get_folder_size( $root, $size ) {
+	public static function get_folder_size( $root, $size ) {
 		$count = 0;
 		if ( is_dir( $root ) ) {
 			$handler = opendir( $root );
@@ -693,7 +693,7 @@ class InstaWP_Backup_Task {
 						$count ++;
 
 						if ( is_dir( $root . DIRECTORY_SEPARATOR . $filename ) ) {
-							$size = $this->get_folder_size( $root . DIRECTORY_SEPARATOR . $filename, $size );
+							$size = self::get_folder_size( $root . DIRECTORY_SEPARATOR . $filename, $size );
 						} else {
 							$size += filesize( $root . DIRECTORY_SEPARATOR . $filename );
 						}
