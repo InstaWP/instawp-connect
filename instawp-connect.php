@@ -241,25 +241,9 @@ run_instawp();
 add_action( 'wp_head', function () {
 	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
 
-
 		echo "<pre>";
 		print_r( get_option( 'instawp_migration_details' ) );
 		echo "</pre>";
-
-		$running          = true;
-		$progress         = 0.00;
-		$progress_sent_at = time();
-		$counter          = 0;
-
-		while ( $progress < 10 ) {
-
-			$progress += 0.01;
-
-
-			echo "<pre>";
-			print_r( $progress );
-			echo "</pre>";
-		}
 
 
 		die();

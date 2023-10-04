@@ -61,9 +61,10 @@ if ( isset( $_POST['serve_type'] ) && 'files' === $_POST['serve_type'] ) {
 
 	$tracking_db_path = 'files-sent-' . $migrate_key . '.db';
 	$total_files_path = '.total-files-' . $migrate_key;
-	$skip_folders     = [ 'wp-content/cache/', 'editor/', 'upgrade/' ];
-	$skip_files       = [];
-	$db               = new PDO( 'sqlite:' . $tracking_db_path );
+//	$skip_folders     = [ 'wp-content/cache/', 'editor/', 'upgrade/' ];
+	$skip_folders = [ 'wp-content/cache/' ];
+	$skip_files   = [];
+	$db           = new PDO( 'sqlite:' . $tracking_db_path );
 
 	// Create table if not exists
 	$db->exec( "CREATE TABLE IF NOT EXISTS files_sent (id INTEGER PRIMARY KEY AUTOINCREMENT, filepath TEXT UNIQUE, sent INTEGER DEFAULT 0)" );
@@ -87,12 +88,23 @@ if ( isset( $_POST['serve_type'] ) && 'files' === $_POST['serve_type'] ) {
 
 	if ( $unsentFilesCount == 0 ) {
 
-		$directory  = new RecursiveDirectoryIterator( WP_ROOT, RecursiveDirectoryIterator::SKIP_DOTS );
-		$iterator   = new RecursiveIteratorIterator( $directory, RecursiveIteratorIterator::LEAVES_ONLY );
-		$totalFiles = iterator_count( $iterator );
-		$fileIndex  = 0;
+		$directory        = new RecursiveDirectoryIterator( WP_ROOT, RecursiveDirectoryIterator::SKIP_DOTS );
+		$iterator         = new RecursiveIteratorIterator( $directory, RecursiveIteratorIterator::LEAVES_ONLY );
+		$totalFiles       = iterator_count( $iterator );
+		$fileIndex        = 0;
+		$skip_files_count = 0;
 
-		file_put_contents( $total_files_path, $totalFiles );
+		foreach ( $skip_folders as $folder_name ) {
+			if ( $handle = opendir( WP_ROOT_FULL . $folder_name ) ) {
+				while ( ( $file = readdir( $handle ) ) !== false ) {
+					if ( ! in_array( $file, array( '.', '..' ) ) && ! is_dir( WP_ROOT_FULL . $folder_name . $file ) ) {
+						$skip_files_count ++;
+					}
+				}
+			}
+		}
+
+		file_put_contents( $total_files_path, ( $totalFiles - $skip_files_count ) );
 
 		foreach ( $iterator as $file ) {
 

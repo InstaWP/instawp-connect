@@ -36,28 +36,54 @@ class InstaWP_Setting {
 		self::set_api_domain();
 	}
 
+
+	public static function get_stages() {
+
+		$stages = array(
+			'initiated'                => esc_html__( 'Migration started', 'instawp-connect' ),
+			'start-insta-site'         => esc_html__( 'Site creation started in InstaWP', 'instawp-connect' ),
+			'pull-ready'               => esc_html__( 'Ready to pull files and database', 'instawp-connect' ),
+			'finished-insta-site'      => esc_html__( 'Site created at InstaWP', 'instawp-connect' ),
+			'pull-initiated'           => esc_html__( 'Pull started for files and database', 'instawp-connect' ),
+			'pull-files-in-progress'   => esc_html__( 'Files pulling is running', 'instawp-connect' ),
+			'pull-files-finished'      => esc_html__( 'Files pulling is completed', 'instawp-connect' ),
+			'pull-db-in-progress'      => esc_html__( 'Database pulling is running', 'instawp-connect' ),
+			'pull-db-finished'         => esc_html__( 'Database pulling is completed', 'instawp-connect' ),
+//			'pull-db-restore-started'  => esc_html__( 'Database restoration started', 'instawp-connect' ),
+//			'pull-db-restore-finished' => esc_html__( 'Database restoration is completed', 'instawp-connect' ),
+			'pull-finished'            => esc_html__( 'Pull completed for files and database', 'instawp-connect' ),
+			'migration-finished'       => esc_html__( 'Migration is completed', 'instawp-connect' ),
+//			'timeout'                  => esc_html__( 'Migration is timed out', 'instawp-connect' ),
+//			'aborted'                  => esc_html__( 'Migration is aborted', 'instawp-connect' ),
+//			'failed'                   => esc_html__( 'Migration is failed', 'instawp-connect' ),
+		);
+
+		return apply_filters( 'INSTAWP_CONNECT/Filters/get_stages', $stages );
+	}
+
+
 	public static function get_plugin_nav_items() {
-		
+
 		$is_internal       = isset( $_GET['internal'] ) ? sanitize_text_field( $_GET['internal'] ) : '';
 		$instawp_nav_items = array(
-			'create'     => array(
+			'create'   => array(
 				'label' => __( 'Create Staging', 'instawp-connect' ),
 				'icon'  => '<svg width="20" class="mr-2" height="20" viewBox="0 0 17 17" fill="none" xmlns="http://www.w3.org/2000/svg"> <path fill-rule="evenodd" clip-rule="evenodd" d="M9.36804 0.883699C9.04694 0.111684 7.95329 0.111684 7.63219 0.883699L5.8014 5.28547L1.04932 5.66644C0.215863 5.73326 -0.122092 6.77337 0.512913 7.31732L4.13349 10.4187L3.02735 15.056C2.83334 15.8693 3.71812 16.5121 4.43167 16.0763L8.50011 13.5913L12.5686 16.0763C13.2821 16.5121 14.1669 15.8693 13.9729 15.056L12.8667 10.4187L16.4873 7.31732C17.1223 6.77337 16.7844 5.73326 15.9509 5.66644L11.1988 5.28547L9.36804 0.883699Z" fill="#9CA3AF"/> </svg>',
 			),
-			'sites'      => array(
+			'sites'    => array(
 				'label' => __( 'Staging Sites', 'instawp-connect' ),
 				'icon'  => '<svg width="20" class="mr-2" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"> <path d="M10.0713 3.78565L9.98153 3.74076C8.3802 2.9401 6.54529 2.73868 4.80841 3.1729L2.5 3.75V12.5L4.80841 11.9229C6.54529 11.4887 8.3802 11.6901 9.98153 12.4908L10.0713 12.5356C11.6406 13.3203 13.4353 13.5299 15.1432 13.1281L17.7384 12.5174C17.5809 11.075 17.5 9.60942 17.5 8.125C17.5 6.65285 17.5795 5.19928 17.7345 3.76835L15.1432 4.37807C13.4353 4.77993 11.6406 4.5703 10.0713 3.78565Z" fill="#9CA3AF"/><path d="M2.5 2.5V3.75M2.5 17.5V12.5M2.5 12.5L4.80841 11.9229C6.54529 11.4887 8.3802 11.6901 9.98153 12.4908L10.0713 12.5356C11.6406 13.3203 13.4353 13.5299 15.1432 13.1281L17.7384 12.5174C17.5809 11.075 17.5 9.60942 17.5 8.125C17.5 6.65285 17.5795 5.19928 17.7345 3.76835L15.1432 4.37807C13.4353 4.77993 11.6406 4.5703 10.0713 3.78565L9.98153 3.74076C8.3802 2.9401 6.54529 2.73868 4.80841 3.1729L2.5 3.75M2.5 12.5V3.75" stroke="#9CA3AF" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg>',
 			),
-			'manage' => array(
+			'manage'   => array(
 				'label' => __( 'Manage', 'instawp-connect' ),
 				'icon'  => '<svg class="mr-2" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 4C5 3.44772 4.55228 3 4 3C3.44772 3 3 3.44772 3 4V11.2676C2.4022 11.6134 2 12.2597 2 13C2 13.7403 2.4022 14.3866 3 14.7324V16C3 16.5523 3.44772 17 4 17C4.55228 17 5 16.5523 5 16V14.7324C5.5978 14.3866 6 13.7403 6 13C6 12.2597 5.5978 11.6134 5 11.2676V4Z" fill="#005E54"/><path d="M11 4C11 3.44772 10.5523 3 10 3C9.44772 3 9 3.44772 9 4V5.26756C8.4022 5.61337 8 6.25972 8 7C8 7.74028 8.4022 8.38663 9 8.73244V16C9 16.5523 9.44772 17 10 17C10.5523 17 11 16.5523 11 16V8.73244C11.5978 8.38663 12 7.74028 12 7C12 6.25972 11.5978 5.61337 11 5.26756V4Z" fill="#005E54"/><path d="M16 3C16.5523 3 17 3.44772 17 4V11.2676C17.5978 11.6134 18 12.2597 18 13C18 13.7403 17.5978 14.3866 17 14.7324V16C17 16.5523 16.5523 17 16 17C15.4477 17 15 16.5523 15 16V14.7324C14.4022 14.3866 14 13.7403 14 13C14 12.2597 14.4022 11.6134 15 11.2676V4C15 3.44772 15.4477 3 16 3Z" fill="#005E54"/>
 				</svg>',
 			),
-			'sync'       => array(
+			'sync'     => array(
 				'label' => __( 'Sync (Beta)', 'instawp-connect' ),
 				'icon'  => '<svg width="14" class="mr-2" height="16" viewBox="0 0 14 16" fill="none" xmlns="http://www.w3.org/2000/svg"> <path fill-rule="evenodd" clip-rule="evenodd" d="M1.59995 0.800049C2.09701 0.800049 2.49995 1.20299 2.49995 1.70005V3.59118C3.64303 2.42445 5.23642 1.70005 6.99995 1.70005C9.74442 1.70005 12.0768 3.45444 12.9412 5.90013C13.1069 6.36877 12.8612 6.88296 12.3926 7.0486C11.924 7.21425 11.4098 6.96862 11.2441 6.49997C10.6259 4.75097 8.95787 3.50005 6.99995 3.50005C5.52851 3.50005 4.22078 4.20657 3.39937 5.30005H6.09995C6.59701 5.30005 6.99995 5.70299 6.99995 6.20005C6.99995 6.6971 6.59701 7.10005 6.09995 7.10005H1.59995C1.10289 7.10005 0.699951 6.6971 0.699951 6.20005V1.70005C0.699951 1.20299 1.10289 0.800049 1.59995 0.800049ZM1.6073 8.95149C2.07594 8.78585 2.59014 9.03148 2.75578 9.50013C3.37396 11.2491 5.04203 12.5 6.99995 12.5C8.47139 12.5 9.77912 11.7935 10.6005 10.7L7.89995 10.7C7.40289 10.7 6.99995 10.2971 6.99995 9.80005C6.99995 9.30299 7.40289 8.90005 7.89995 8.90005H12.3999C12.6386 8.90005 12.8676 8.99487 13.0363 9.16365C13.2051 9.33243 13.3 9.56135 13.3 9.80005V14.3C13.3 14.7971 12.897 15.2 12.4 15.2C11.9029 15.2 11.5 14.7971 11.5 14.3V12.4089C10.3569 13.5757 8.76348 14.3 6.99995 14.3C4.25549 14.3 1.92309 12.5457 1.05867 10.1C0.893024 9.63132 1.13866 9.11714 1.6073 8.95149Z"/> </svg>',
 			),
-			'settings'   => array(
+			'settings' => array(
 				'label' => __( 'Settings', 'instawp-connect' ),
 				'icon'  => '<svg width="20" class="mr-2" height="20" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"> <path fill-rule="evenodd" clip-rule="evenodd" d="M9.34035 1.8539C8.99923 0.448767 7.00087 0.448766 6.65975 1.8539C6.43939 2.76159 5.39945 3.19235 4.6018 2.70633C3.36701 1.95396 1.95396 3.36701 2.70633 4.6018C3.19235 5.39945 2.76159 6.43939 1.8539 6.65975C0.448766 7.00087 0.448767 8.99923 1.8539 9.34035C2.76159 9.56071 3.19235 10.6006 2.70633 11.3983C1.95396 12.6331 3.36701 14.0461 4.6018 13.2938C5.39945 12.8077 6.43939 13.2385 6.65975 14.1462C7.00087 15.5513 8.99923 15.5513 9.34035 14.1462C9.56071 13.2385 10.6006 12.8077 11.3983 13.2938C12.6331 14.0461 14.0461 12.6331 13.2938 11.3983C12.8077 10.6006 13.2385 9.56071 14.1462 9.34035C15.5513 8.99923 15.5513 7.00087 14.1462 6.65975C13.2385 6.43939 12.8077 5.39945 13.2938 4.6018C14.0461 3.36701 12.6331 1.95396 11.3983 2.70633C10.6006 3.19235 9.56071 2.76159 9.34035 1.8539ZM8.00005 10.7C9.49122 10.7 10.7 9.49122 10.7 8.00005C10.7 6.50888 9.49122 5.30005 8.00005 5.30005C6.50888 5.30005 5.30005 6.50888 5.30005 8.00005C5.30005 9.49122 6.50888 10.7 8.00005 10.7Z"/> </svg>',
 			),
@@ -67,13 +93,13 @@ class InstaWP_Setting {
 			unset( $instawp_nav_items['create'] );
 			//unset( $instawp_nav_items['sites'] );
 		}
- 
-		$user = get_userdata( get_current_user_id() );
-		$allowed_roles 	= ! current_user_can('administrator') ?  InstaWP_Setting::get_option( 'instawp_sync_tab_roles' ) : ['administrator'];
-		if( empty( array_intersect( $allowed_roles, $user->roles ) ) ){
+
+		$user          = get_userdata( get_current_user_id() );
+		$allowed_roles = ! current_user_can( 'administrator' ) ? InstaWP_Setting::get_option( 'instawp_sync_tab_roles' ) : [ 'administrator' ];
+		if ( empty( array_intersect( $allowed_roles, $user->roles ) ) ) {
 			unset( $instawp_nav_items['sync'] );
 		}
-		
+
 
 		return apply_filters( 'INSTAWP_CONNECT/Filters/plugin_nav_items', $instawp_nav_items );
 	}
@@ -86,10 +112,10 @@ class InstaWP_Setting {
 		$field_type          = self::get_args_option( 'type', $field );
 		$field_desc          = self::get_args_option( 'desc', $field );
 		$internal            = self::get_args_option( 'internal', $field, false );
-		$remote          	 = self::get_args_option( 'remote', $field );
-		$event          	 = self::get_args_option( 'event', $field );
-		$multiple          	 = self::get_args_option( 'multiple', $field );
-		$action          	 = self::get_args_option( 'action', $field );
+		$remote              = self::get_args_option( 'remote', $field );
+		$event               = self::get_args_option( 'event', $field );
+		$multiple            = self::get_args_option( 'multiple', $field );
+		$action              = self::get_args_option( 'action', $field );
 		$field_placeholder   = self::get_args_option( 'placeholder', $field );
 		$field_tooltip       = self::get_args_option( 'tooltip', $field );
 		$field_attributes    = self::get_args_option( 'attributes', $field, array() );
@@ -130,7 +156,7 @@ class InstaWP_Setting {
 			$field_container_class .= ' ' . $field_parent_class;
 		}
 
-		if( $field_type == 'select2' ) {
+		if ( $field_type == 'select2' ) {
 			$field_container_class .= ' select2-field-wrapper';
 		}
 
@@ -171,22 +197,22 @@ class InstaWP_Setting {
 				}
 				echo '</select>';
 				break;
-			
+
 			case 'select2':
 				$css_class = $field_class ? $field_class : '';
 				$css_class .= $remote ? ' instawp_select2_ajax' : ' instawp_select2';
-				if( $multiple == true ){
+				if ( $multiple == true ) {
 					array_push( $attributes, 'multiple' );
 				}
-				echo '<select ' . ( $remote  === true ? 'data-ajax--url="'. admin_url('admin-ajax.php?action='.$action.'&event='.$event ) .'"' : '') . implode( ' ', $attributes ) . ' name="' . esc_attr( $field_id ) . ( $multiple == true ? '[]' : '' ) . '" id="' . esc_attr( $field_id ) . '" class="' . esc_attr( $css_class ) . '">';
+				echo '<select ' . ( $remote === true ? 'data-ajax--url="' . admin_url( 'admin-ajax.php?action=' . $action . '&event=' . $event ) . '"' : '' ) . implode( ' ', $attributes ) . ' name="' . esc_attr( $field_id ) . ( $multiple == true ? '[]' : '' ) . '" id="' . esc_attr( $field_id ) . '" class="' . esc_attr( $css_class ) . '">';
 				if ( ! empty( $field_placeholder ) ) {
 					echo '<option value="">' . esc_html( $field_placeholder ) . '</option>';
 				}
 				foreach ( $field_options as $key => $value ) {
-					if( is_array( $field_value ) ){ 
+					if ( is_array( $field_value ) ) {
 						$selected = in_array( $key, $field_value ) ? 'selected' : '';
-					}else{
-						$selected = selected( $field_value, $key, false ); 
+					} else {
+						$selected = selected( $field_value, $key, false );
 					}
 					echo '<option ' . $selected . ' value="' . esc_attr( $key ) . '">' . esc_html( $value ) . '</option>';
 				}
@@ -288,10 +314,10 @@ class InstaWP_Setting {
 					),
 				),
 				array(
-					'id'      => 'instawp_max_file_size_allowed',
-					'type'    => 'number',
-					'title'   => esc_html__( 'Maximum Allowed File Size', 'instawp-connect' ),
-					'desc'    => esc_html__( 'This option will set maximum allowed file size. Default - ' . INSTAWP_DEFAULT_MAX_FILE_SIZE_ALLOWED . ' MB', 'instawp-connect' ),
+					'id'          => 'instawp_max_file_size_allowed',
+					'type'        => 'number',
+					'title'       => esc_html__( 'Maximum Allowed File Size', 'instawp-connect' ),
+					'desc'        => esc_html__( 'This option will set maximum allowed file size. Default - ' . INSTAWP_DEFAULT_MAX_FILE_SIZE_ALLOWED . ' MB', 'instawp-connect' ),
 					'placeholder' => esc_attr( INSTAWP_DEFAULT_MAX_FILE_SIZE_ALLOWED ),
 					'attributes'  => array(
 						'min' => '10',
@@ -329,15 +355,15 @@ class InstaWP_Setting {
 					'options' => self::get_select2_default_selected_option( 'instawp_default_user' )
 				),
 				array(
-					'id'      => 'instawp_sync_tab_roles',
-					'type'    => 'select2',
-					'remote'  => true,
-					'multiple'=> true,
-					'action'  => 'instawp_handle_select2',
-					'event'   => 'instawp_sync_tab_roles',
-					'title'   => esc_html__( 'Sync Tab Access', 'instawp-connect' ),
-					'desc'    => esc_html__( 'This option will allow to set roles for sync tab. Only assigned role\'s users can access the syncing features.', 'instawp-connect' ),
-					'options' => self::get_select2_default_selected_option( 'instawp_sync_tab_roles' )
+					'id'       => 'instawp_sync_tab_roles',
+					'type'     => 'select2',
+					'remote'   => true,
+					'multiple' => true,
+					'action'   => 'instawp_handle_select2',
+					'event'    => 'instawp_sync_tab_roles',
+					'title'    => esc_html__( 'Sync Tab Access', 'instawp-connect' ),
+					'desc'     => esc_html__( 'This option will allow to set roles for sync tab. Only assigned role\'s users can access the syncing features.', 'instawp-connect' ),
+					'options'  => self::get_select2_default_selected_option( 'instawp_sync_tab_roles' )
 				)
 			),
 		);
@@ -408,7 +434,7 @@ class InstaWP_Setting {
 		// Section - Management
 		$settings['management'] = [
 			'title'      => __( 'Remote Management (Beta)', 'instawp-connect' ),
-			'desc'       => sprintf( __( 'Update your website\'s remote management settings. To use this feature in the InstaWP dashboard, switch on the beta program from %s section.', 'instawp-connect' ), '<a href="https://app.instawp.io/user/profile" target="_blank">'. __( 'My Accounts', 'instawp-connect' ) . '</a>' ),
+			'desc'       => sprintf( __( 'Update your website\'s remote management settings. To use this feature in the InstaWP dashboard, switch on the beta program from %s section.', 'instawp-connect' ), '<a href="https://app.instawp.io/user/profile" target="_blank">' . __( 'My Accounts', 'instawp-connect' ) . '</a>' ),
 			'grid_class' => 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6',
 			'fields'     => [
 				[
@@ -436,22 +462,22 @@ class InstaWP_Setting {
 					'default' => 'off',
 				],
 				[
-					'id'      => 'instawp_rm_config_management',
-					'type'    => 'toggle',
-					'title'   => __( 'Config Management', 'instawp-connect' ),
-					'tooltip' => __( 'Enabling this option will allow reading, updating and deleting the WordPress constant values on this website remotely using the REST API.', 'instawp-connect' ),
-					'class'   => 'save-ajax',
-					'default' => 'off',
-					'internal'=> true,
+					'id'       => 'instawp_rm_config_management',
+					'type'     => 'toggle',
+					'title'    => __( 'Config Management', 'instawp-connect' ),
+					'tooltip'  => __( 'Enabling this option will allow reading, updating and deleting the WordPress constant values on this website remotely using the REST API.', 'instawp-connect' ),
+					'class'    => 'save-ajax',
+					'default'  => 'off',
+					'internal' => true,
 				],
 				[
-					'id'      => 'instawp_rm_inventory',
-					'type'    => 'toggle',
-					'title'   => __( 'Site Inventory', 'instawp-connect' ),
-					'tooltip' => __( 'Enabling this option will allow reading the installed WordPress version, themes and plugins on this website remotely using the REST API.', 'instawp-connect' ),
-					'class'   => 'save-ajax',
-					'default' => 'off',
-					'internal'=> true,
+					'id'       => 'instawp_rm_inventory',
+					'type'     => 'toggle',
+					'title'    => __( 'Site Inventory', 'instawp-connect' ),
+					'tooltip'  => __( 'Enabling this option will allow reading the installed WordPress version, themes and plugins on this website remotely using the REST API.', 'instawp-connect' ),
+					'class'    => 'save-ajax',
+					'default'  => 'off',
+					'internal' => true,
 				],
 				[
 					'id'      => 'instawp_rm_debug_log',
@@ -1133,20 +1159,22 @@ class InstaWP_Setting {
 	}
 
 	public static function get_select2_default_selected_option( $option ) {
-		if( $option ==  'instawp_default_user'){
+		if ( $option == 'instawp_default_user' ) {
 			$user = get_user_by( 'ID', InstaWP_Setting::get_option( $option ) );
-			if( !empty( $user ) ) {
+			if ( ! empty( $user ) ) {
 				return [ $user->data->ID => $user->data->user_login ];
 			}
-		}else if( $option ==  'instawp_sync_tab_roles'){
-			$role_options = [];
-			$all_roles = wp_roles()->roles;
-			$selected_roles =  InstaWP_Setting::get_option( $option );
-			foreach( $selected_roles as $role ){
-				$role_options[ $role ] = isset( $all_roles[$role] ) ? $all_roles[$role]['name'] : $role;
-			} 
+		} else if ( $option == 'instawp_sync_tab_roles' ) {
+			$role_options   = [];
+			$all_roles      = wp_roles()->roles;
+			$selected_roles = InstaWP_Setting::get_option( $option );
+			foreach ( $selected_roles as $role ) {
+				$role_options[ $role ] = isset( $all_roles[ $role ] ) ? $all_roles[ $role ]['name'] : $role;
+			}
+
 			return $role_options;
 		}
+
 		return [];
 	}
 }

@@ -21,7 +21,8 @@
                 el_migration_progress_wrap = create_container.find('.migration-running'),
                 el_site_detail_wrap = create_container.find('.migration-completed'),
                 el_screen_buttons = create_container.find('.screen-buttons'),
-                el_screen_buttons_last = create_container.find('.screen-buttons-last');
+                el_screen_buttons_last = create_container.find('.screen-buttons-last'),
+                el_stage_wrapper = create_container.find('.instawp-progress-stage');
 
             if (create_container.hasClasses('doing-ajax completed')) {
                 return;
@@ -46,7 +47,8 @@
 
                         let progress_files = response.data.progress_files,
                             progress_db = response.data.progress_db,
-                            progress_restore = response.data.progress_restore;
+                            progress_restore = response.data.progress_restore,
+                            progress_stages = response.data.stage;
 
                         el_bar_files.find('.instawp-progress-bar').css('width', progress_files + '%');
                         el_bar_files.find('.progress-text').text(progress_files + '%');
@@ -56,6 +58,12 @@
 
                         el_bar_restore.find('.instawp-progress-bar').css('width', progress_restore + '%');
                         el_bar_restore.find('.progress-text').text(progress_restore + '%');
+
+                        $.each(progress_stages, function (stage_key, stage_value) {
+                            if (stage_value === true) {
+                                el_stage_wrapper.find('.stage-' + stage_key).find('.stage-status').addClass('active');
+                            }
+                        });
 
                         // Completed
                         if (progress_files === 100 && progress_db === 100) {

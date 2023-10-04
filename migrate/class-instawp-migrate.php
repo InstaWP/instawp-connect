@@ -27,7 +27,6 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 			add_action( 'wp_ajax_instawp_check_limit', array( $this, 'check_limit' ) );
 			add_action( 'wp_ajax_instawp_check_domain_availability', array( $this, 'check_domain_availability' ) );
 			add_action( 'wp_ajax_instawp_check_domain_connect_status', array( $this, 'check_domain_connect_status' ) );
-			add_action( 'admin_init', array( $this, 'handle_clear_all' ) );
 
 			add_action( 'INSTAWP/Actions/restore_completed', array( $this, 'restore_completed' ), 10, 2 );
 
@@ -93,23 +92,6 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 			// No index staging sites
 			if ( $instawp_is_staging ) {
 				InstaWP_Tools::update_search_engine_visibility();
-			}
-		}
-
-
-		function handle_clear_all() {
-
-			$admin_page   = isset( $_GET['page'] ) ? sanitize_text_field( $_GET['page'] ) : '';
-			$clear_action = isset( $_GET['clear'] ) ? sanitize_text_field( $_GET['clear'] ) : '';
-
-			if ( 'instawp' === $admin_page && 'all' === $clear_action ) {
-
-				delete_option( 'instawp_migration_details' );
-
-				instawp_reset_running_migration();
-
-				wp_redirect( admin_url( 'tools.php?page=instawp' ) );
-				exit();
 			}
 		}
 
