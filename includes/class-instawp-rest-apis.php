@@ -140,6 +140,7 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 		$encrypted_contents = json_decode( $bodyArr->encrypted_contents );
 		$sync_id            = $bodyArr->sync_id;
 		$source_connect_id  = $bodyArr->source_connect_id;
+		$source_url  		= $bodyArr->source_url;
 		$is_enabled         = false;
 		$logs 				= [];
 
@@ -156,7 +157,13 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 			$progress_status = 'pending';
 			$changes         = $sync_response = [];
 			foreach ( $encrypted_contents as $v ) {
-		 
+
+				//check if the event synced earlier to destination
+				$isResult = $this->wpdb->get_var( $this->wpdb->prepare( "SELECT ID FROM ".INSTAWP_DB_TABLE_EVENT_SYNC_LOGS." WHERE event_hash = %s ", $v->event_hash ) );
+				if ( $isResult ) {
+					continue;
+				}
+				
 				$source_id = ( isset( $v->source_id ) && ! empty( $v->source_id ) ) ? intval( $v->source_id ) : null;
 
 				/*
@@ -268,124 +275,113 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 
 				//Post trash
 				if ( isset( $v->event_slug ) && $v->event_slug == 'post_trash' ) {
-					if ( isset( $source_id ) ) {
-						$posts                = (array) $v->details->posts;
-						$postmeta             = (array) $v->details->postmeta;
-						$post_by_reference_id = get_posts( array(
-							'post_type'  => $posts['post_type'],
-							'meta_key'   => 'instawp_event_sync_reference_id',
-							'meta_value' => isset( $postmeta['instawp_event_sync_reference_id'][0] ) ? $postmeta['instawp_event_sync_reference_id'][0] : '',
-						) );
+					$posts                = (array) $v->details->posts;
+					$postmeta             = (array) $v->details->postmeta;
+					$post_by_reference_id = get_posts( array(
+						'post_type'  => $posts['post_type'],
+						'meta_key'   => 'instawp_event_sync_reference_id',
+						'meta_value' => isset( $postmeta['instawp_event_sync_reference_id'][0] ) ? $postmeta['instawp_event_sync_reference_id'][0] : '',
+					) );
 
-						if ( ! empty( $post_by_reference_id ) ) {
-							$post_id = $post_by_reference_id[0]->ID;
-							$rel     = wp_trash_post( $post_id );  //Post data on success, false or null on failure.
+					if ( ! empty( $post_by_reference_id ) ) {
+						$post_id = $post_by_reference_id[0]->ID;
+						$rel     = wp_trash_post( $post_id );  //Post data on success, false or null on failure.
+						$status  = $this->sync_post_status( $rel );
+						$message = $this->sync_message( $rel );
+					} else {
+						$post_check_data = instawp_get_post_by_name( str_replace( '__trashed', '', $posts['post_name'] ), $posts['post_type'] );
+						if ( ! empty( $post_check_data ) ) {
+							$rel     = wp_trash_post( $post_check_data->ID );  //Post data on success, false or null on failure.
 							$status  = $this->sync_post_status( $rel );
 							$message = $this->sync_message( $rel );
-						} else {
-							$post_check_data = instawp_get_post_by_name( str_replace( '__trashed', '', $posts['post_name'] ), $posts['post_type'] );
-							if ( ! empty( $post_check_data ) ) {
-								$rel     = wp_trash_post( $post_check_data->ID );  //Post data on success, false or null on failure.
-								$status  = $this->sync_post_status( $rel );
-								$message = $this->sync_message( $rel );
-							} else {		
-								$status  = 'completed';
-								$message = 'Sync successfully.';
-								$this->logs[$v->id] = sprintf('%s not found at destination',	$posts['post_type'] );
-							}
+						} else {		
+							$status  = 'completed';
+							$message = 'Sync successfully.';
+							$this->logs[$v->id] = sprintf('%s not found at destination',	$posts['post_type'] );
 						}
-						$sync_response[] = $this->sync_opration_response( $status, $message, $v );
-						#changes
-						
 					}
+					$sync_response[] = $this->sync_opration_response( $status, $message, $v );
 				}
 
 				//Post permanently delete
 				if ( isset( $v->event_slug ) && $v->event_slug == 'post_delete' ) {
-					if ( isset( $source_id ) ) {
-						$posts                = (array) $v->details->posts;
-						$postmeta             = (array) $v->details->postmeta;
-						$post_by_reference_id = get_posts( [
-							'post_status' => 'trash',
-							'post_type'   => $posts['post_type'],
-							'nopaging'    => true,
-							'meta_query'  => array(
-								array(
-									'key'     => 'instawp_event_sync_reference_id',
-									'value'   => isset( $postmeta['instawp_event_sync_reference_id'][0] ) ? $postmeta['instawp_event_sync_reference_id'][0] : '',
-									'compare' => '=',
-								),
+					$posts                = (array) $v->details->posts;
+					$postmeta             = (array) $v->details->postmeta;
+					$post_by_reference_id = get_posts( [
+						'post_status' => 'trash',
+						'post_type'   => $posts['post_type'],
+						'nopaging'    => true,
+						'meta_query'  => array(
+							array(
+								'key'     => 'instawp_event_sync_reference_id',
+								'value'   => isset( $postmeta['instawp_event_sync_reference_id'][0] ) ? $postmeta['instawp_event_sync_reference_id'][0] : '',
+								'compare' => '=',
 							),
-						] );
+						),
+					] );
 
-						if ( ! empty( $post_by_reference_id ) ) {
+					if ( ! empty( $post_by_reference_id ) ) {
 
-							$post_id = $post_by_reference_id[0]->ID;
-							$rel     = wp_delete_post( $post_id );  //Post data on success, false or null on failure.
+						$post_id = $post_by_reference_id[0]->ID;
+						$rel     = wp_delete_post( $post_id );  //Post data on success, false or null on failure.
+						$status  = $this->sync_post_status( $rel );
+						$message = $this->sync_message( $rel );
+						
+					} else {
+						$post_check_data = instawp_get_post_by_name( $posts['post_name'], $posts['post_type'] );
+
+						if ( ! empty( $post_check_data ) ) {
+
+							$rel     = wp_delete_post( $post_check_data->ID );  //Post data on success, false or null on failure.
 							$status  = $this->sync_post_status( $rel );
 							$message = $this->sync_message( $rel );
-							
+
 						} else {
-							$post_check_data = instawp_get_post_by_name( $posts['post_name'], $posts['post_type'] );
-
-							if ( ! empty( $post_check_data ) ) {
-
-								$rel     = wp_delete_post( $post_check_data->ID );  //Post data on success, false or null on failure.
-								$status  = $this->sync_post_status( $rel );
-								$message = $this->sync_message( $rel );
-
-							} else {
-								$message    = 'Sync successfully.';
-								$status  	= 'completed';
-								$this->logs[$v->id] = sprintf('%s not found at destination',	$posts['post_type'] );
-							}
+							$message    = 'Sync successfully.';
+							$status  	= 'completed';
+							$this->logs[$v->id] = sprintf('%s not found at destination',	$posts['post_type'] );
 						}
-						$sync_response[] = $this->sync_opration_response( $status, $message, $v );
-						#changes
-						
 					}
+					$sync_response[] = $this->sync_opration_response( $status, $message, $v );
 				}
 
 				//Post restored
 				if ( isset( $v->event_slug ) && $v->event_slug == 'untrashed_post' ) {
-					if ( isset( $source_id ) ) {
-						$posts                = (array) $v->details->posts;
-						$postmeta             = (array) $v->details->postmeta;
-						$post_by_reference_id = get_posts( [
-							'post_status' => 'trash',
-							'post_type'   => $posts['post_type'],
-							'nopaging'    => true,
-							'meta_query'  => array(
-								array(
-									'key'     => 'instawp_event_sync_reference_id',
-									'value'   => isset( $postmeta['instawp_event_sync_reference_id'][0] ) ? $postmeta['instawp_event_sync_reference_id'][0] : '',
-									'compare' => '=',
-								),
+					
+					$posts                = (array) $v->details->posts;
+					$postmeta             = (array) $v->details->postmeta;
+					$post_by_reference_id = get_posts( [
+						'post_status' => 'trash',
+						'post_type'   => $posts['post_type'],
+						'nopaging'    => true,
+						'meta_query'  => array(
+							array(
+								'key'     => 'instawp_event_sync_reference_id',
+								'value'   => isset( $postmeta['instawp_event_sync_reference_id'][0] ) ? $postmeta['instawp_event_sync_reference_id'][0] : '',
+								'compare' => '=',
 							),
-						] );
+						),
+					] );
 
 
-						if ( ! empty( $post_by_reference_id ) ) {
-							$post_id = $post_by_reference_id[0]->ID;
-							$rel     = wp_untrash_post( $post_id );
+					if ( ! empty( $post_by_reference_id ) ) {
+						$post_id = $post_by_reference_id[0]->ID;
+						$rel     = wp_untrash_post( $post_id );
+						$status  = $this->sync_post_status( $rel );
+						$message = $this->sync_message( $rel );
+					} else {
+						$post_check_data = instawp_get_post_by_name( $posts['post_name'] . '__trashed', $posts['post_type'] );
+						if ( ! empty( $post_check_data ) ) {
+							$rel     = wp_untrash_post( $post_check_data->ID );
 							$status  = $this->sync_post_status( $rel );
 							$message = $this->sync_message( $rel );
 						} else {
-							$post_check_data = instawp_get_post_by_name( $posts['post_name'] . '__trashed', $posts['post_type'] );
-							if ( ! empty( $post_check_data ) ) {
-								$rel     = wp_untrash_post( $post_check_data->ID );
-								$status  = $this->sync_post_status( $rel );
-								$message = $this->sync_message( $rel );
-							} else {
-								$message    = 'Sync successfully.';
-								$status  	= 'completed';
-								$this->logs[$v->id] = sprintf('%s not found at destination',	$posts['post_type'] );
-							}
+							$message    = 'Sync successfully.';
+							$status  	= 'completed';
+							$this->logs[$v->id] = sprintf('%s not found at destination',	$posts['post_type'] );
 						}
-						$sync_response[] = $this->sync_opration_response( $status, $message, $v );
-						#changes
-						
 					}
+					$sync_response[] = $this->sync_opration_response( $status, $message, $v );
 				}
 
 				/*
@@ -730,6 +726,7 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 					) );
 
 					$user = ! empty( $get_user_by_reference_id ) ? $get_user_by_reference_id[0] : get_user_by( 'email', $user_data['email'] );
+					
 					#Create user if not exits
 					if ( isset( $v->event_slug ) && ( $v->event_slug == 'user_register' ) && ( ! empty( $user_data ) ) ) {
 						if ( ! $user ) {
@@ -805,6 +802,10 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 					#changes
 					
 				}
+
+				//record logs
+				$this->event_sync_logs( $v, $source_url);
+
 				/*
 				* Update api for cloud
 				*/
@@ -840,7 +841,17 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 			)
 		);
 	}
-
+	public function event_sync_logs( $data, $source_url ) {
+		$data    = [
+			'event_id' 			=> $data->id,
+			'event_hash'        => $data->event_hash,
+			'source_url'     	=> $source_url,
+			'data'         		=> json_encode($data->details),
+			'logs'            	=> isset($this->logs[$data->id]) ? $this->logs[$data->id] : '',
+			'date'              => date( 'Y-m-d H:i:s' ),
+		];
+		$this->InstaWP_db->insert( INSTAWP_DB_TABLE_EVENT_SYNC_LOGS, $data );
+	}
 	/**
 	 * This function is for upload media which are coming form widgets.
 	 */

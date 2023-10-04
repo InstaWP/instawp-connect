@@ -224,7 +224,13 @@ jQuery(document).ready(function ($) {
     /**
      * call the function for load events
      */
-    get_site_events();
+    $(document).on('click', '#sync', function(){
+        get_site_events();
+    });
+
+    if( $('#sync').hasClass('active') ){
+        get_site_events();
+    }
 
     const syncing_enabled_disabled = async (sync_status) => {
         let formData = new FormData();
@@ -260,6 +266,7 @@ jQuery(document).ready(function ($) {
         baseCall(formData).then((response) => response.json()).then((data) => {
             
             if( data.success ){
+                jQuery("#destination-site").attr("disabled", true)
                 $(".progress-wrapper").removeClass('hidden');
                 $(".event-progress-text").html(data.data.progress_text)
                 packThings(sync_message,sync_type,dest_connect_id, page=1);
@@ -293,12 +300,14 @@ jQuery(document).ready(function ($) {
                 $(".sync_process .step-2").removeClass('process_pending').addClass('process_inprogress');
                 bulkSync(sync_message,data.data,sync_type, dest_connect_id, page); 
             }else{
+                $("#destination-site").attr("disabled", false);
                 $(".sync-changes-btn").removeClass('disable-a loading');
                 $('.sync_error_success_msg').html('<p class="error">'+data.message+'</p>');  
             }
         }).catch((error) => {
             console.log("Error Occurred: ", error);   
             $(".sync-changes-btn").removeClass('disable-a loading');
+            $("#destination-site").attr("disabled", false);
         });
         
     }
@@ -348,6 +357,7 @@ jQuery(document).ready(function ($) {
                     }, 2000);
                 }
             }else{
+                $("#destination-site").attr("disabled", false);
                 $(".sync-changes-btn").removeClass('disable-a loading');
                 $('.sync_error_success_msg').html('<p class="error">'+data.message+'</p>');  
             }

@@ -33,6 +33,7 @@ if ( ! function_exists( 'instawp_create_db_tables' ) ) {
 
 		$sql_create_events_table = "CREATE TABLE " . INSTAWP_DB_TABLE_EVENTS . " (
 			id int(20) NOT NULL AUTO_INCREMENT,
+			event_hash varchar(50) NOT NULL,
 			event_name varchar(128) NOT NULL,
 			event_slug varchar(128) NOT NULL,
 			event_type varchar(128) NOT NULL,
@@ -78,6 +79,32 @@ if ( ! function_exists( 'instawp_create_db_tables' ) ) {
             ) ";
 
 		maybe_create_table( INSTAWP_DB_TABLE_SYNC_HISTORY, $sql_create_event_sites_table );
+
+		$sql_create_event_sync_log_table = "CREATE TABLE " . INSTAWP_DB_TABLE_EVENT_SYNC_LOGS . " (
+			id int(20) NOT NULL AUTO_INCREMENT,
+			event_id int(20) NOT NULL,
+			event_hash varchar(50) NOT NULL,
+			source_url varchar(128) NOT NULL,
+			data longtext NOT NULL,
+			logs text NOT NULL,
+			date datetime NOT NULL,
+			PRIMARY KEY (id)
+        ) ";
+
+		maybe_create_table( INSTAWP_DB_TABLE_EVENT_SYNC_LOGS, $sql_create_event_sync_log_table );
+	}
+}
+
+if ( ! function_exists( 'instawp_alter_db_tables' ) ) {
+	function instawp_alter_db_tables() {
+		global $wpdb;
+
+		$row = $wpdb->get_row("SELECT * FROM ".INSTAWP_DB_TABLE_EVENTS."", ARRAY_A);
+		$row = $row ?? [];
+
+		if( ( !array_key_exists('event_hash', $row ) ) ){
+			$wpdb->query("ALTER TABLE ".INSTAWP_DB_TABLE_EVENTS." ADD `event_hash` varchar(50) NOT NULL AFTER `id`");
+		}
 	}
 }
 

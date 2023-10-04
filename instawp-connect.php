@@ -96,6 +96,7 @@ define( 'INSTAWP_DB_TABLE_STAGING_SITES', $wpdb->prefix . 'instawp_staging_sites
 define( 'INSTAWP_DB_TABLE_EVENTS', $wpdb->prefix . 'instawp_events' );
 define( 'INSTAWP_DB_TABLE_SYNC_HISTORY', $wpdb->prefix . 'instawp_sync_history' );
 define( 'INSTAWP_DB_TABLE_EVENT_SITES', $wpdb->prefix . 'instawp_event_sites' );
+define( 'INSTAWP_DB_TABLE_EVENT_SYNC_LOGS', $wpdb->prefix . 'instawp_event_sync_logs' );
 
 define( 'INSTAWP_SUCCESS', 'success' );
 define( 'INSTAWP_FAILED', 'failed' );
@@ -222,6 +223,7 @@ function run_instawp() {
 	$GLOBALS['instawp_plugin'] = $instawp_plugin;
 
 	instawp_create_db_tables();
+	instawp_alter_db_tables();
 }
 
 add_filter( 'got_rewrite', '__return_true' );

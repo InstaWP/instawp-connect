@@ -301,8 +301,20 @@ class InstaWP_Ajax_Fn {
  
 			if ( ! empty( $events ) && is_array( $events ) ) {
 				foreach ( $events as $k => $v ) {
+					
+					$event_hash  = $v->event_hash;
+					if( $v->event_hash == '' ){
+						$event_hash = InstaWP_Tools::get_random_string();
+						$this->wpdb->update(
+							INSTAWP_DB_TABLE_EVENT_SYNC_LOGS,
+							['event_hash' 	=> $event_hash],
+							array('id' 		=> $v->id)
+						);	
+					}
+
 					$encrypted_content[] = [
 						'id'         => $v->id,
+						'event_hash' => $event_hash,
 						'details'    => json_decode( $v->details ),
 						'event_name' => $v->event_name,
 						'event_slug' => $v->event_slug,
