@@ -157,13 +157,17 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 
 		function check_limit() {
 
-			$api_response = instawp()->instawp_check_usage_on_cloud();
+			$_settings = isset( $_POST['settings'] ) ? $_POST['settings'] : [];
+			parse_str( $_settings, $settings );
+
+			$api_response = instawp()->instawp_check_usage_on_cloud( $settings );
 			$can_proceed  = (bool) InstaWP_Setting::get_args_option( 'can_proceed', $api_response, false );
 
 			if ( $can_proceed ) {
 				$api_response['nonce'] = wp_create_nonce( 'instawp_migration_nonce' );
 
 				update_option( 'instawp_migration_running', time() );
+				delete_transient( 'instawp_migration_completed' );
 
 				wp_send_json_success( $api_response );
 			}
@@ -218,13 +222,20 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 
 			$instawp_migrate = InstaWP_Setting::get_args_option( 'instawp_migrate', $settings, [] );
 			$migration_nonce = InstaWP_Setting::get_args_option( 'nonce', $instawp_migrate );
+			$whitelist_wf    = InstaWP_Setting::get_args_option( 'whitelist_wordfence', $instawp_migrate, 'no' );
+			$is_completed    = get_transient( 'instawp_migration_completed' );
 
-			if ( ! wp_verify_nonce( $migration_nonce, 'instawp_migration_nonce' ) ) {
-				$response['status'] = 'nonce_expired';
-				wp_send_json_success( $response );
+			if ( 'yes' === $whitelist_wf && instawp_can_whitelist_wordfence() ) {
+				instawp_set_wordfence_whitelist_ip();
+				$response['wf_whitelisted'] = true;
 			}
 
-			if ( empty( InstaWP_Setting::get_option( 'instawp_migration_running' ) ) ) {
+			// if ( ! wp_verify_nonce( $migration_nonce, 'instawp_migration_nonce' ) ) {
+			// 	$response['status'] = 'nonce_expired';
+			// 	wp_send_json_success( $response );
+			// }
+
+			if ( empty( InstaWP_Setting::get_option( 'instawp_migration_running' ) ) || $is_completed ) {
 				$response['status'] = 'aborted';
 				wp_send_json_success( $response );
 			}
@@ -304,6 +315,7 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 			$response['track_migrate_progress'] = InstaWP_taskmanager::get_task_options( $migrate_task_id, 'track_migrate_progress' );
 
 			if ( $response['status'] === 'completed' ) {
+				set_transient( 'instawp_migration_completed', true, HOUR_IN_SECONDS );
 				delete_transient( 'instawp_staging_sites' );
 			}
 
