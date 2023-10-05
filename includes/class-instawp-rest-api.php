@@ -616,6 +616,11 @@ class InstaWP_Backup_Api {
 			}
 		}
 
+		// if any user is passed, then create it
+		if ( isset( $parameters['wp'] ) && isset( $parameters['wp']['users'] ) ) {
+			InstaWP_Tools::create_user( $parameters['wp']['users'] );
+		}
+
 		return rest_ensure_response( new WP_REST_Response( $results ) );
 	}
 
@@ -697,7 +702,7 @@ class InstaWP_Backup_Api {
 			update_option( 'instawp_migration_settings', InstaWP_Setting::get_args_option( 'migrate_settings', $parameters, [] ) );
 
 			if ( isset( $parameters['wp'] ) && isset( $parameters['wp']['users'] ) ) {
-				self::create_user( $parameters['wp']['users'] );
+				InstaWP_Tools::create_user( $parameters['wp']['users'] );
 			}
 
 			if ( isset( $parameters['wp'] ) && isset( $parameters['wp']['options'] ) ) {
@@ -1097,53 +1102,6 @@ class InstaWP_Backup_Api {
 		return $res;
 	}
 
-
-	public static function create_user( $user_details ) {
-		global $wpdb;
-
-		// $username = $user_details['username'];
-		// $password = $user_details['password'];
-		// $email    = $user_details['email'];
-		foreach ( $user_details as $user_detail ) {
-			//print_r($user_details);
-			if ( ! isset( $user_detail['username'] ) || ! isset( $user_detail['email'] ) || ! isset( $user_detail['password'] ) ) {
-				continue;
-			}
-			if ( username_exists( $user_detail['username'] ) == null && email_exists( $user_detail['email'] ) == false && ! empty( $user_detail['password'] ) ) {
-
-				// Create the new user
-				$user_id = wp_create_user( $user_detail['username'], $user_detail['password'], $user_detail['email'] );
-
-				// Get current user object
-				$user = get_user_by( 'id', $user_id );
-
-				// Remove role
-				$user->remove_role( 'subscriber' );
-
-				// Add role
-				$user->add_role( 'administrator' );
-			} elseif ( email_exists( $user_detail['email'] ) || username_exists( $user_detail['username'] ) ) {
-				$user = get_user_by( 'email', $user_detail['email'] );
-
-				if ( $user !== false ) {
-					$wpdb->update(
-						$wpdb->users,
-						[
-							'user_login' => $user_detail['username'],
-							'user_pass'  => md5( $user_detail['password'] ),
-							'user_email' => $user_detail['email'],
-						],
-						[ 'ID' => $user->ID ]
-					);
-
-					$user->remove_role( 'subscriber' );
-
-					// Add role
-					$user->add_role( 'administrator' );
-				}
-			}
-		}
-	}
 
 	/**
 	 * Handle response for clear cache endpoint
