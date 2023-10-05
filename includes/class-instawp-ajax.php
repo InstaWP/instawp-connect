@@ -60,6 +60,11 @@ class InstaWP_AJAX {
 		$response_data['progress_files']   = $response_data['progress_files'] ?? 0;
 		$response_data['progress_db']      = $response_data['progress_db'] ?? 0;
 		$response_data['progress_restore'] = $response_data['progress_restore'] ?? 0;
+		$migration_finished                = isset( $response_data['stage']['migration-finished'] ) && (bool) $response_data['stage']['migration-finished'];
+
+		if ( $migration_finished ) {
+			delete_option( 'instawp_migration_details' );
+		}
 
 		if ( ! empty( $auto_login_hash ) ) {
 			$response_data['dest_wp']['auto_login_url'] = sprintf( '%s/wordpress-auto-login?site=%s', InstaWP_Setting::get_api_domain(), $auto_login_hash );

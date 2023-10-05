@@ -48,7 +48,8 @@
                         let progress_files = response.data.progress_files,
                             progress_db = response.data.progress_db,
                             progress_restore = response.data.progress_restore,
-                            progress_stages = response.data.stage;
+                            progress_stages = response.data.stage,
+                            stage_migration_finished = false;
 
                         el_bar_files.find('.instawp-progress-bar').css('width', progress_files + '%');
                         el_bar_files.find('.progress-text').text(progress_files + '%');
@@ -61,14 +62,18 @@
 
                         $.each(progress_stages, function (stage_key, stage_value) {
                             if (stage_value === true) {
+
+                                if (stage_key === 'migration-finished') {
+                                    stage_migration_finished = true;
+                                }
+
                                 el_stage_wrapper.find('.stage-' + stage_key).find('.stage-status').addClass('active');
                             }
                         });
 
                         // Completed
-                        if (progress_files === 100 && progress_db === 100) {
+                        if ((progress_files === 100 && progress_db === 100) || stage_migration_finished === true) {
 
-                            create_container.find('.instawp-migration-start-over').trigger('click');
                             create_container.removeClass('loading').addClass('completed');
                             clearInterval(create_container.attr('interval-id'));
 

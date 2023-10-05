@@ -80,7 +80,6 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		$progressPer  = round( ( $sentFiles / $totalFiles ) * 100, 2 );
 	}
 
-
 	if ( $unsentFilesCount == 0 ) {
 
 		$filter_directory = function ( SplFileInfo $file, $key, RecursiveDirectoryIterator $iterator ) use ( $skip_folders ) {
@@ -96,7 +95,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		foreach ( $iterator as $file ) {
 
 			$filepath   = $file->getPathname();
-			$currentDir = $file->getSubPath();
+			$currentDir = str_replace( WP_ROOT . '/', '', $file->getPath() );
 			$stmt       = $db->prepare( "SELECT id, filepath FROM files_sent WHERE filepath = :filepath  LIMIT 1" );
 
 			$stmt->bindValue( ':filepath', $filepath, PDO::PARAM_STR );
