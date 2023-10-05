@@ -22,7 +22,7 @@ defined( 'WP_ROOT' ) | define( 'WP_ROOT', $root_path );
 
 $migrate_key = basename( __FILE__, '.php' );
 
-if ( isset( $_POST['serve_type'] ) && 'files' === $_POST['serve_type'] ) {
+if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
 	if ( ! function_exists( 'readfile_chunked' ) ) {
 		function readfile_chunked( $filename, $retbytes = true ) {
@@ -54,21 +54,9 @@ if ( isset( $_POST['serve_type'] ) && 'files' === $_POST['serve_type'] ) {
 		}
 	}
 
-	if ( ! function_exists( 'instawp_contains' ) ) {
-		function instawp_contains( $str, array $arr ) {
-			foreach ( $arr as $a ) {
-				if ( stripos( $str, $a ) !== false ) {
-					return true;
-				}
-			}
-
-			return false;
-		}
-	}
-
 	$tracking_db_path = 'files-sent-' . $migrate_key . '.db';
 	$total_files_path = '.total-files-' . $migrate_key;
-	$skip_folders     = [ 'wp-content/cache', 'editor', 'wp-content/upgrade' ];
+	$skip_folders     = [ 'wp-content/cache', 'editor', 'wp-content/upgrade', 'wp-content/instawpbackups' ];
 	$skip_files       = [];
 	$db               = new PDO( 'sqlite:' . $tracking_db_path );
 
@@ -92,6 +80,7 @@ if ( isset( $_POST['serve_type'] ) && 'files' === $_POST['serve_type'] ) {
 		$progressPer  = round( ( $sentFiles / $totalFiles ) * 100, 2 );
 	}
 
+
 	if ( $unsentFilesCount == 0 ) {
 
 		$filter_directory = function ( SplFileInfo $file, $key, RecursiveDirectoryIterator $iterator ) use ( $skip_folders ) {
@@ -107,7 +96,7 @@ if ( isset( $_POST['serve_type'] ) && 'files' === $_POST['serve_type'] ) {
 		foreach ( $iterator as $file ) {
 
 			$filepath   = $file->getPathname();
-			$currentDir = $file->getPath();
+			$currentDir = $file->getSubPath();
 			$stmt       = $db->prepare( "SELECT id, filepath FROM files_sent WHERE filepath = :filepath  LIMIT 1" );
 
 			$stmt->bindValue( ':filepath', $filepath, PDO::PARAM_STR );
@@ -115,7 +104,7 @@ if ( isset( $_POST['serve_type'] ) && 'files' === $_POST['serve_type'] ) {
 			$row = $stmt->fetch( PDO::FETCH_ASSOC );
 
 			if ( ! $row ) {
-				if ( ! instawp_contains( $currentDir, $skip_folders ) ) {
+				if ( ! in_array( $currentDir, $skip_folders ) ) {
 					$stmt = $db->prepare( "INSERT OR IGNORE INTO files_sent (filepath, sent) VALUES (:filepath, 0)" );
 					$stmt->execute( [ ':filepath' => $filepath ] );
 					$fileIndex ++;
@@ -175,7 +164,7 @@ if ( isset( $_POST['serve_type'] ) && 'files' === $_POST['serve_type'] ) {
 }
 
 
-if ( isset( $_POST['serve_type'] ) && 'db' === $_POST['serve_type'] ) {
+if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 
 	if ( ! isset( $db_host ) || ! isset( $db_username ) || ! isset( $db_password ) || ! isset( $db_name ) ) {
 		header( 'x-iwp-status: false' );

@@ -73,6 +73,8 @@ class InstaWP_AJAX {
 
 	function instawp_migrate_init() {
 
+//		wp_send_json_error( [ 'message' => esc_html__( 'Could not create migrate id' ) ] );
+
 		global $wp_version;
 
 		$settings_str = isset( $_POST['settings'] ) ? $_POST['settings'] : '';
@@ -104,6 +106,8 @@ class InstaWP_AJAX {
 
 		if ( $migrate_response_status === false ) {
 			error_log( json_encode( $migrate_response ) );
+
+			$migrate_response_message = empty( $migrate_response_message ) ? esc_html__( 'Could not create migrate id.' ) : $migrate_response_message;
 
 			wp_send_json_error( [ 'message' => $migrate_response_message ] );
 		}

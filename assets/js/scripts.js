@@ -118,7 +118,9 @@
                 data: {
                     'action': 'instawp_migrate_init',
                     'settings': create_container.serialize(),
-                }, success: function (response) {
+                },
+                success: function (response) {
+                    console.log(response);
                     if (response.success) {
 
                         // populate the tracking url
@@ -128,6 +130,8 @@
                         }
 
                         create_container.attr('interval-id', setInterval(instawp_migrate_progress, 3000));
+                    } else {
+                        // create_container.find('#instawp-screen').val(4).trigger('change');
                     }
                 }
             });
