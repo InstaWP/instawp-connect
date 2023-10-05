@@ -553,73 +553,70 @@ class InstaWP_Backup_Api {
 			}
 		}
 
-
 		// Check if the configuration is already done, then no need to do it again.
 		if ( 'yes' == get_option( 'instawp_api_key_config_completed' ) ) {
 
 			$results['message'] = esc_html__( 'Already configured', 'instawp-connect' );
 
-			return new WP_REST_Response( $results );
+			return rest_ensure_response( new WP_REST_Response( $results ) );
 		}
-
 
 		if ( ! empty( $connect_ids = InstaWP_Setting::get_option( 'instawp_connect_id_options', array() ) ) ) {
 
 			// update config check token
 			update_option( 'instawp_api_key_config_completed', 'yes' );
 
-			return new WP_REST_Response(
-				array(
-					'status'     => true,
-					'message'    => esc_html__( 'Connected', 'instawp-connect' ),
-					'connect_id' => $connect_ids['data']['id'] ?? '',
-				)
-			);
+			$results['status']     = true;
+			$results['message']    = esc_html__( 'Connected', 'instawp-connect' );
+			$results['connect_id'] = $connect_ids['data']['id'] ?? '';
+
+			return rest_ensure_response( new WP_REST_Response( $results ) );
 		}
 
+		// if api_key is not passed on param
 		if ( empty( $parameters['api_key'] ) ) {
-			return new WP_REST_Response(
-				array(
-					'status'  => false,
-					'message' => esc_html__( 'Api key is required', 'instawp-connect' ),
-				)
-			);
+			$results['message'] = esc_html__( 'Api key is required', 'instawp-connect' );
+
+			return rest_ensure_response( new WP_REST_Response( $results ) );
 		}
 
+		// if api_key is passed on param
 		if ( isset( $parameters['api_domain'] ) ) {
 			InstaWP_Setting::set_api_domain( $parameters['api_domain'] );
 		}
 
-		$res = self::config_check_key( $parameters['api_key'] );
+		// config api_key now
+		$config_response = self::config_check_key( $parameters['api_key'] );
 
-		$this->instawp_log->CloseFile();
+		// config error happened
+		if ( $config_response['error'] ) {
+			$results['message'] = InstaWP_Setting::get_args_option( 'message', $config_response );
 
-		if ( ! $res['error'] ) {
-			$connect_ids = get_option( 'instawp_connect_id_options', '' );
-
-			if ( ! empty( $connect_ids ) ) {
-
-				if ( isset( $connect_ids['data']['id'] ) && ! empty( $connect_ids['data']['id'] ) ) {
-					$id = $connect_ids['data']['id'];
-				}
-
-				$results['status']     = true;
-				$results['message']    = 'Connected';
-				$results['connect_id'] = $id;
-
-				// update config check token
-				update_option( 'instawp_api_key_config_completed', 'yes' );
-				update_option( 'instawp_api_key', $parameters['api_key'] );
-			}
-		} else {
-			$results['status']     = true;
-			$results['message']    = $res['message'];
-			$results['connect_id'] = 0;
+			return rest_ensure_response( new WP_REST_Response( $results ) );
 		}
 
-		$response = new WP_REST_Response( $results );
+		// Now, get connect id from setting
+		$connect_ids = InstaWP_Setting::get_option( 'instawp_connect_id_options', [] );
 
-		return rest_ensure_response( $response );
+		if ( isset( $connect_ids['data']['id'] ) && ! empty( $connect_ids['data']['id'] ) ) {
+
+			$results['status']     = true;
+			$results['message']    = 'Connected';
+			$results['connect_id'] = $connect_ids['data']['id'];
+
+			// update config check token
+			update_option( 'instawp_api_key_config_completed', 'yes' );
+			update_option( 'instawp_api_key', $parameters['api_key'] );
+		}
+
+		// if any wp_option is passed, then store it
+		if ( isset( $parameters['wp'] ) && isset( $parameters['wp']['options'] ) && is_array( $parameters['wp']['options'] ) ) {
+			foreach ( $parameters['wp']['options'] as $option_key => $option_value ) {
+				update_option( $option_key, $option_value );
+			}
+		}
+
+		return rest_ensure_response( new WP_REST_Response( $results ) );
 	}
 
 
