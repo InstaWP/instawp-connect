@@ -145,9 +145,9 @@ if( !empty( $parent_connect_data ) ){
                                 </select>
                             </div>
                             <div class="rounded-xl w-full text-bg py-4 px-4 border mt-5 bg-green-50">
-                                <div class="progress-wrapper hidden">
+                                <div class="progress-wrapper">
                                     <div class="w-100 text-left font-medium event-progress-text">
-                                        30% Completed ( 50 out of 300 events )
+                                        0% Completed ( 0 out of 0 events )
                                     </div>
                                     <div class="w-full text-bg py-1 flex items-center mb-2 border-b-[1px] mb-6 pb-3">
                                         <div class="w-full bg-gray-200 rounded-md event-progress-bar">
@@ -157,13 +157,8 @@ if( !empty( $parent_connect_data ) ){
                                     </div>
                                 </div>
                                 <div class="instawp_category rounded-xl">
-                                    <div class="instawpcatlftcol bulk-events-info bg-[#fff]">
-                                        <ul class="list" id="event-type-list">
-                                            <li id="post_change_event_count"><?php printf('%d post change events', 0) ?></li>
-                                            <li id="post_delete_event_count"><?php printf('%d post delete events', 0) ?></li>
-                                            <li id="post_trash_event_count"><?php printf('%d post trash events', 0) ?></li>
-                                            <li id="post_other_event_count"><?php printf('%d other events', 0) ?></li>
-                                        </ul>
+                                    <div id="event-type-list" class="instawpcatlftcol bulk-events-info bg-[#fff] relative instawp-box-loading">
+                                    
                                     </div>
                                     <div class="instawpcatlftcol selected-events-info">
                                         <ul class="list">
@@ -190,7 +185,7 @@ if( !empty( $parent_connect_data ) ){
                             </div>
                             <div class="instawp_buttons mt-6">                            
                                 <div class="bulk-close-btn"><a class="cancel-btn close" href="javascript:void(0);"><?php echo esc_html__( 'Cancel', 'instawp-connect' ); ?></a></div>
-                                <div class="bulk-sync-btn"><a class="changes-btn sync-changes-btn" href="javascript:void(0);"><span><?php echo esc_html__( 'Sync', 'instawp-connect' ); ?></span></a></div>
+                                <div class="bulk-sync-btn"><a class="changes-btn sync-changes-btn disabled" href="javascript:void(0);"><span><?php echo esc_html__( 'Sync', 'instawp-connect' ); ?></span></a></div>
                             </div>
                         </div>
                         <div><input type="hidden" id="selected_events" name="selected_events" value=""></div>

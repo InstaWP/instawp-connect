@@ -105,7 +105,7 @@ define( 'INSTAWP_API_URL', '/api/v1' );
 define( 'INSTAWP_API_2_URL', '/api/v2' );
 define( 'INSTAWP_EVENTS_PER_PAGE', 20 );
 define( 'INSTAWP_DEFAULT_MAX_FILE_SIZE_ALLOWED', 50 );
-define( 'INSTAWP_EVENTS_SYNC_PER_PAGE', 10 );
+define( 'INSTAWP_EVENTS_SYNC_PER_PAGE', 5 );
 define( 'INSTAWP_STAGING_SITES_PER_PAGE', 10 );
 @ini_set( 'memory_limit', '2048M' );
 

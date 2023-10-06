@@ -123,7 +123,6 @@ class InstaWP_Ajax_Fn {
 		}
 		wp_die();
 	}
-	
 
 	public function instawp_delete_events(){
 		if( isset( $_POST['ids'] ) && !empty( $_POST['ids'] )){
@@ -145,16 +144,21 @@ class InstaWP_Ajax_Fn {
 			$where .= " AND connect_id=".sanitize_text_field( $_POST['connect_id'] );
 		}
 
-		$query		= "SELECT event_type, COUNT(*) as event_count FROM ".INSTAWP_DB_TABLE_EVENTS." WHERE `id` NOT IN (SELECT event_id AS id FROM ".INSTAWP_DB_TABLE_EVENT_SITES." WHERE $where) GROUP BY event_type HAVING event_count > 0";
+		$query		= "SELECT event_name, COUNT(*) as event_count FROM ".INSTAWP_DB_TABLE_EVENTS." WHERE `id` NOT IN (SELECT event_id AS id FROM ".INSTAWP_DB_TABLE_EVENT_SITES." WHERE $where) GROUP BY event_name HAVING event_count > 0";
 		$results    = $this->wpdb->get_results( $query );
 		
-		$html = '';
+		$html = '<ul class="list">';
 		if( !empty( $results ) ){
-			foreach ($results as $row) {
-				$html .= '<li class="event-type-count">';
-				$html .= sprintf( __( '%u %s change events', 'instawp-connect' ), $row->event_count, ucfirst( str_replace("_"," ", $row->event_type) ) );
+			foreach ($results as $i=> $row) {
+				$html .= '<li class="event-type-count '.($i > 2 ? 'hidden' : '').'">';
+				$html .= sprintf( __( '%u %s', 'instawp-connect' ), $row->event_count, ucfirst( str_replace("_"," ", $row->event_name) ) );
 				$html .= '</li>';
 			}
+			
+			$html .='<li class="event-type-count-show-more" style="display:none">';
+			$html .='<a href="javascript:void(0)" class="load-more-event-type">'.esc_html(__('Show more', 'instawp-connect')).'</a>';
+			$html .='</li>';
+			
 		}else{
 			$results = ['Post','Page','Theme', 'Plugin'];
 			foreach ($results as $row) {
@@ -163,9 +167,16 @@ class InstaWP_Ajax_Fn {
 				$html .= '</li>';
 			}
 		}
+		$html .= '</ul>';
 
 		delete_option('instawp_event_batch_data');
-		echo $this->formatSuccessReponse( "Summery fetched", $html );
+
+		$total_events = $this->instawp_get_total_pending_events_count();
+
+		echo $this->formatSuccessReponse( "Summery fetched", [
+			'html'=>$html, 
+			'progress_text'	=> '0%'. sprintf(__(' Completed ( 0 out of %d events )', 'instawp-connect'), $total_events)
+			] );
 		wp_die();
 	}
 
@@ -184,7 +195,6 @@ class InstaWP_Ajax_Fn {
 		) );
 	}
 
-	
 
 	public function get_data_from_db() {
 		try {
@@ -240,7 +250,7 @@ class InstaWP_Ajax_Fn {
 		wp_die();
 	}
 
-	public function instawp_calculate_events() {
+	public function instawp_get_total_pending_events_count(){
 		global $wpdb;
 		$where = "1=1";
 		if( isset($_POST['connect_id']) && intval( $_POST['connect_id'] ) > 0 ){
@@ -248,6 +258,12 @@ class InstaWP_Ajax_Fn {
 		}
 		$query 			= "SELECT COUNT(1) FROM ".INSTAWP_DB_TABLE_EVENTS." WHERE `id` NOT IN (SELECT event_id AS id FROM ".INSTAWP_DB_TABLE_EVENT_SITES." WHERE $where)";
 		$total_events   = $wpdb->get_var( $query );
+		return $total_events;
+	}
+
+	public function instawp_calculate_events() {
+		
+		$total_events = $this->instawp_get_total_pending_events_count();
 		if( $total_events > 0 ){
 
 			delete_option('instawp_event_batch_data');

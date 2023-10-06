@@ -65,7 +65,7 @@ class InstaWP_Setting {
 
 		if ( instawp()->is_staging ) {
 			unset( $instawp_nav_items['create'] );
-			//unset( $instawp_nav_items['sites'] );
+			unset( $instawp_nav_items['manage'] );
 		}
  
 		$user = get_userdata( get_current_user_id() );
