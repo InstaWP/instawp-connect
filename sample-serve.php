@@ -9,10 +9,20 @@ if ( ! isset( $api_signature ) || ! isset( $_POST['api_signature'] ) || $api_sig
 }
 
 $level     = 0;
-$root_path = dirname( __DIR__ );
+$dir = __DIR__ ; //'/Users/vikas/code/playground/instasync/source_files/wp-content/plugins/instawp-connect'; //__FILE__ in prod
+$root_path = dirname( $dir );
+
 while ( ! file_exists( $root_path . '/wp-config.php' ) ) {
+	
 	$level ++;
-	$root_path = dirname( __DIR__, $level );
+	$root_path = dirname( $dir , $level );
+
+	// If we have reached the root directory and still couldn't find wp-config.php
+	if ($level > 10) {
+		header( 'x-iwp-status: false' );
+		echo "Count not find wp-config.php in the parent directories.";
+		exit(2);
+	}
 }
 
 defined( 'CHUNK_SIZE' ) | define( 'CHUNK_SIZE', 2 * 1024 * 1024 );
@@ -87,45 +97,60 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		$filter_directory = function ( SplFileInfo $file, $key, RecursiveDirectoryIterator $iterator ) use ( $skip_folders ) {
 			return ! in_array( $iterator->getSubPath(), $skip_folders );
 		};
-		$directory        = new RecursiveDirectoryIterator( WP_ROOT, RecursiveDirectoryIterator::SKIP_DOTS );
-		$iterator         = new RecursiveIteratorIterator( new RecursiveCallbackFilterIterator( $directory, $filter_directory ), RecursiveIteratorIterator::LEAVES_ONLY );
+		$directory = new RecursiveDirectoryIterator(WP_ROOT, RecursiveDirectoryIterator::SKIP_DOTS);
+		$iterator = new RecursiveIteratorIterator(new RecursiveCallbackFilterIterator($directory, $filter_directory), RecursiveIteratorIterator::LEAVES_ONLY);
+
+		// Get the current file index from the database or file
+		$currentFileIndex = 0; // Set the default value to 0
+
+		if (file_exists('current_file_index.txt')) {
+			$currentFileIndex = (int) file_get_contents('current_file_index.txt');
+		}
+
+		// Create a limited iterator to skip the files that are already indexed
+		$limitedIterator = new LimitIterator($iterator, $currentFileIndex, BATCH_SIZE);
+		
 		$totalFiles       = iterator_count( $iterator );
+
 		$fileIndex        = 0;
 
 		file_put_contents( $total_files_path, $totalFiles );
 
-		foreach ( $iterator as $file ) {
+		foreach ( $limitedIterator as $file ) {
 
 			$filepath   = $file->getPathname();
 			$filesize = $file->getSize();;
 			$currentDir = str_replace( WP_ROOT . '/', '', $file->getPath() );
+			//Find if the file is already indexed
 			$stmt       = $db->prepare( "SELECT id, filepath FROM files_sent WHERE filepath = :filepath  LIMIT 1" );
 
 			$stmt->bindValue( ':filepath', $filepath, PDO::PARAM_STR );
 			$stmt->execute();
 			$row = $stmt->fetch( PDO::FETCH_ASSOC );
 
+			//If file is not indexed, index it
 			if ( ! $row ) {
-				if ( ! in_array( $currentDir, $skip_folders ) ) {
+				// if ( ! in_array( $currentDir, $skip_folders ) ) {
 					$stmt = $db->prepare("INSERT OR IGNORE INTO files_sent (filepath, sent, size) VALUES (:filepath, 0, :filesize)");
 					$stmt->bindValue(':filesize', $filesize, PDO::PARAM_INT);
 					$stmt->bindValue(':filepath', $filepath, PDO::PARAM_STR);
 					$stmt->execute();
 					$fileIndex ++;
-				}
+				// } else {
+				// 	continue;
+				// }
 			} else {
 				continue;
 			}
 
-			if ( $fileIndex > BATCH_SIZE ) {
-				//exit if there are still more files to index
-				//idea is to index all files in the first run
-				header( 'x-iwp-status: true' );
-				header( 'x-indexing-progress: true' );
-				$db = null;
-				exit;
+			if ( $fileIndex >= BATCH_SIZE ) {
+				// If we have indexed enough files, break the loop				
+				break;
 			}
+
 		}
+		
+		file_put_contents('current_file_index.txt', $currentFileIndex + BATCH_SIZE);
 
 		if ( $fileIndex == 0 ) {
 
@@ -137,6 +162,8 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			exit;
 		}
 
+		// file_put_contents('iterator.txt', serialize( $iterator) );
+
 		$db->exec( "CREATE INDEX IF NOT EXISTS idx_sent ON files_sent(sent)" );
 		$db->exec( "CREATE INDEX IF NOT EXISTS idx_file_path ON files_sent(filepath)" );
 		$db->exec("CREATE INDEX IF NOT EXISTS idx_file_size ON files_sent(size)");
@@ -144,7 +171,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
 	//TODO: this query runs every time even if there are no files to zip, may be we can 
 	//cache the result in first time and don't run the query
-	
+
 	$stmt = $db->prepare("SELECT id,filepath,size FROM files_sent WHERE sent = 0 and size < " . MAX_ZIP_SIZE ." ORDER by size LIMIT " . BATCH_ZIP_SIZE);
     
 	$stmt->execute();
@@ -168,13 +195,18 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		}
 
 		foreach ($unsentFiles as $file) {
-			$relativePath = ltrim(str_replace($folder, "", $file), DIRECTORY_SEPARATOR);
+			$relativePath = ltrim(str_replace(WP_ROOT, "", $file), DIRECTORY_SEPARATOR);
 			$zip->addFile($file, $relativePath);
 		}
 
 		$zip->close();
 
 		readfile_chunked($tmpZip);
+
+		foreach ($unsentFiles as $id => $file) {
+			$stmt = $db->prepare("UPDATE files_sent SET sent = 1 WHERE id = $id");
+			$stmt->execute();
+		}   
 
 		unlink($tmpZip);
         
