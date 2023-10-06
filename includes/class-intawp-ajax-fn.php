@@ -175,7 +175,7 @@ class InstaWP_Ajax_Fn {
 
 		echo $this->formatSuccessReponse( "Summery fetched", [
 			'html'=>$html, 
-			'progress_text'	=> '0%'. sprintf(__(' Completed ( 0 out of %d events )', 'instawp-connect'), $total_events)
+			'progress_text'	=> sprintf(__('Sync not initiated ( 0 out of %d events )', 'instawp-connect'), $total_events)
 			] );
 		wp_die();
 	}
