@@ -18,6 +18,8 @@ while ( ! file_exists( $root_path . '/wp-config.php' ) ) {
 defined( 'CHUNK_SIZE' ) | define( 'CHUNK_SIZE', 2 * 1024 * 1024 );
 defined( 'CHUNK_DB_SIZE' ) | define( 'CHUNK_DB_SIZE', 100 );
 defined( 'BATCH_SIZE' ) | define( 'BATCH_SIZE', 100 );
+defined( 'BATCH_ZIP_SIZE' ) | define( 'BATCH_ZIP_SIZE', 50 );
+defined( 'MAX_ZIP_SIZE' ) | define( 'MAX_ZIP_SIZE', 1000000 );
 defined( 'WP_ROOT' ) | define( 'WP_ROOT', $root_path );
 
 $migrate_key = basename( __FILE__, '.php' );
@@ -61,7 +63,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 	$db               = new PDO( 'sqlite:' . $tracking_db_path );
 
 	// Create table if not exists
-	$db->exec( "CREATE TABLE IF NOT EXISTS files_sent (id INTEGER PRIMARY KEY AUTOINCREMENT, filepath TEXT UNIQUE, sent INTEGER DEFAULT 0)" );
+	$db->exec( "CREATE TABLE IF NOT EXISTS files_sent (id INTEGER PRIMARY KEY AUTOINCREMENT, filepath TEXT UNIQUE, sent INTEGER DEFAULT 0, size INTEGER)" );
 
 	$stmt = $db->prepare( "SELECT count(*) as count FROM files_sent WHERE sent = 0" );
 	$stmt->execute();
@@ -95,6 +97,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		foreach ( $iterator as $file ) {
 
 			$filepath   = $file->getPathname();
+			$filesize = $file->getSize();;
 			$currentDir = str_replace( WP_ROOT . '/', '', $file->getPath() );
 			$stmt       = $db->prepare( "SELECT id, filepath FROM files_sent WHERE filepath = :filepath  LIMIT 1" );
 
@@ -104,8 +107,10 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
 			if ( ! $row ) {
 				if ( ! in_array( $currentDir, $skip_folders ) ) {
-					$stmt = $db->prepare( "INSERT OR IGNORE INTO files_sent (filepath, sent) VALUES (:filepath, 0)" );
-					$stmt->execute( [ ':filepath' => $filepath ] );
+					$stmt = $db->prepare("INSERT OR IGNORE INTO files_sent (filepath, sent, size) VALUES (:filepath, 0, :filesize)");
+					$stmt->bindValue(':filesize', $filesize, PDO::PARAM_INT);
+					$stmt->bindValue(':filepath', $filepath, PDO::PARAM_STR);
+					$stmt->execute();
 					$fileIndex ++;
 				}
 			} else {
@@ -113,7 +118,12 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			}
 
 			if ( $fileIndex > BATCH_SIZE ) {
-				break;
+				//exit if there are still more files to index
+				//idea is to index all files in the first run
+				header( 'x-iwp-status: true' );
+				header( 'x-indexing-progress: true' );
+				$db = null;
+				exit;
 			}
 		}
 
@@ -129,34 +139,75 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
 		$db->exec( "CREATE INDEX IF NOT EXISTS idx_sent ON files_sent(sent)" );
 		$db->exec( "CREATE INDEX IF NOT EXISTS idx_file_path ON files_sent(filepath)" );
+		$db->exec("CREATE INDEX IF NOT EXISTS idx_file_size ON files_sent(size)");
 	}
 
-
-	// Fetch next unsent file
-	$stmt = $db->prepare( "SELECT id, filepath FROM files_sent WHERE sent = 0 LIMIT 1" );
+	//TODO: this query runs every time even if there are no files to zip, may be we can 
+	//cache the result in first time and don't run the query
+	
+	$stmt = $db->prepare("SELECT id,filepath,size FROM files_sent WHERE sent = 0 and size < " . MAX_ZIP_SIZE ." ORDER by size LIMIT " . BATCH_ZIP_SIZE);
+    
 	$stmt->execute();
+	$unsentFiles = [];
 
-	$row = $stmt->fetch( PDO::FETCH_ASSOC );
+    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        $unsentFiles[$row['id']] = $row['filepath'];
+    }
 
-	if ( $row ) {
-		$fileId       = $row['id'];
-		$filePath     = $row['filepath'];
-		$mimetype     = mime_content_type( $filePath );
-		$relativePath = ltrim( str_replace( WP_ROOT, "", $filePath ), DIRECTORY_SEPARATOR );
+    if(count($unsentFiles) > 0) {
+		//if there are files to zip
 
-		header( 'Content-Type: ' . $mimetype );
-		header( 'x-file-relative-path: ' . $relativePath );
-		header( 'x-iwp-progress: ' . $progressPer );
+		header('Content-Type: zip');
+		header('x-iwp-progress: ' . $progressPer);
+    	header('x-file-type: zip');
 
-		readfile_chunked( $filePath );
+		$tmpZip = tempnam(sys_get_temp_dir(), 'batchzip');
+		$zip = new ZipArchive();
+		if ($zip->open($tmpZip, ZipArchive::CREATE) !== true) {
+			die("Cannot open zip archive");
+		}
 
-		// Mark file as sent in database
-		$stmt = $db->prepare( "UPDATE files_sent SET sent = 1 WHERE id = :id" );
-		$stmt->execute( [ ':id' => $fileId ] );
-	} else {
-		header( 'x-iwp-status: true' );
-		header( 'x-iwp-transfer-complete: true' );
-		header( 'x-iwp-message: No more files left to download.' );
+		foreach ($unsentFiles as $file) {
+			$relativePath = ltrim(str_replace($folder, "", $file), DIRECTORY_SEPARATOR);
+			$zip->addFile($file, $relativePath);
+		}
+
+		$zip->close();
+
+		readfile_chunked($tmpZip);
+
+		unlink($tmpZip);
+        
+    } else {
+
+
+		// Fetch next unsent file
+		$stmt = $db->prepare( "SELECT id, filepath FROM files_sent WHERE sent = 0 LIMIT 1" );
+		$stmt->execute();
+
+		$row = $stmt->fetch( PDO::FETCH_ASSOC );
+
+		if ( $row ) {
+			$fileId       = $row['id'];
+			$filePath     = $row['filepath'];
+			$mimetype     = mime_content_type( $filePath );
+			$relativePath = ltrim( str_replace( WP_ROOT, "", $filePath ), DIRECTORY_SEPARATOR );
+
+			header( 'Content-Type: ' . $mimetype );
+			header( 'x-file-relative-path: ' . $relativePath );
+			header( 'x-iwp-progress: ' . $progressPer );
+			header( 'x-file-type: single' );
+
+			readfile_chunked( $filePath );
+
+			// Mark file as sent in database
+			$stmt = $db->prepare( "UPDATE files_sent SET sent = 1 WHERE id = :id" );
+			$stmt->execute( [ ':id' => $fileId ] );
+		} else {
+			header( 'x-iwp-status: true' );
+			header( 'x-iwp-transfer-complete: true' );
+			header( 'x-iwp-message: No more files left to download.' );
+		}
 	}
 
 	$db = null;
