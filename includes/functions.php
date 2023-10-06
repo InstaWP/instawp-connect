@@ -354,12 +354,12 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 
 		$reset_type = empty( $reset_type ) ? InstaWP_Setting::get_option( 'instawp_reset_type', 'soft' ) : $reset_type;
 
+		// Delete migration details
+		delete_option( 'instawp_migration_details' );
+
 		if ( ! in_array( $reset_type, array( 'soft', 'hard' ) ) ) {
 			return false;
 		}
-
-		// Delete migration details
-		delete_option( 'instawp_migration_details' );
 
 		if ( 'hard' == $reset_type ) {
 			delete_option( 'instawp_api_key' );

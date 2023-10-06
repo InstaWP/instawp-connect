@@ -17,7 +17,7 @@ while ( ! file_exists( $root_path . '/wp-config.php' ) ) {
 
 defined( 'CHUNK_SIZE' ) | define( 'CHUNK_SIZE', 2 * 1024 * 1024 );
 defined( 'CHUNK_DB_SIZE' ) | define( 'CHUNK_DB_SIZE', 100 );
-defined( 'BATCH_SIZE' ) | define( 'BATCH_SIZE', 100 );
+defined( 'BATCH_SIZE' ) | define( 'BATCH_SIZE', 1000 );
 defined( 'WP_ROOT' ) | define( 'WP_ROOT', $root_path );
 
 $migrate_key = basename( __FILE__, '.php' );
