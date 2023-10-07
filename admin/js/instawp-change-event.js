@@ -379,6 +379,7 @@ jQuery(document).ready(function ($) {
                         $(".progress-wrapper").addClass('hidden');
                         $(".event-progress-bar>div").css('width', '0%');
                         $("#destination-site").attr("disabled", false);
+                        $("#staging-site-sync").val($("#destination-site").val());
                         get_site_events();
                     }, 2000);
                 }
