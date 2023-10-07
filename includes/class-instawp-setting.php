@@ -317,7 +317,16 @@ class InstaWP_Setting {
 						'wpdb' => esc_html__( 'WPDB', 'instawp-connect' ),
 						'pdo'  => esc_html__( 'PDO', 'instawp-connect' ),
 					),
-				),
+				)
+			),
+		);
+
+		// Section - Sync settings
+		$settings['sync_settings'] = array(
+			'title'    => esc_html__( 'Sync Settings', 'instawp-connect' ),
+			'desc'     => esc_html__( 'This section only applicable for the sync event settings.', 'instawp-connect' ),
+			'internal' => false,
+			'fields'   => array(
 				array(
 					'id'      => 'instawp_default_user',
 					'type'    => 'select2',

@@ -135,6 +135,19 @@ function instawp_plugin_activate() {
 	add_option( 'instawp_do_activation_redirect', true );
 
 	as_enqueue_async_action( 'instawp_prepare_large_files_list_async', [], 'instawp-connect', true );
+
+	//set default user for sync settings if user empty
+	$default_user = InstaWP_Setting::get_option( 'instawp_default_user' );
+	if( empty( $default_user ) ){
+		add_option( 'instawp_default_user', get_current_user_id() );
+	}
+
+	$instawp_sync_tab_roles = InstaWP_Setting::get_option( 'instawp_sync_tab_roles' );
+	if( empty( $instawp_sync_tab_roles ) ){
+		$user = wp_get_current_user();
+		$roles = ( array ) $user->roles;
+		add_option( 'instawp_sync_tab_roles', $roles );
+	}
 }
 
 /*Deactivate Hook Handle*/

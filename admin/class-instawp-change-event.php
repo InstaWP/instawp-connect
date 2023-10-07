@@ -18,6 +18,7 @@ class InstaWP_Change_event {
 
 	public function __construct() {
 		add_action( 'init', array( $this, 'instawp_get_source_site_detail' ) );
+		//add_action( 'init', array( $this, 'instawp_set_default_sync_settings' ) );
 		add_action( 'admin_bar_menu', array( $this, 'instawp_add_sync_status_toolbar_link' ), 999 );
 		//add_action( 'admin_menu', array( $this, 'add_change_event_menu' ) );
 	}
@@ -84,6 +85,25 @@ class InstaWP_Change_event {
 				$api_response_data['connect_id'] = $connect_id;
 				add_option( 'instawp_sync_parent_connect_data', $api_response_data );
 			}
+		}
+	}
+
+	/**
+	 * default sync settings
+	 * @return null
+	 */
+	public function instawp_set_default_sync_settings(){
+		//set default user for sync settings if user empty
+		$default_user = InstaWP_Setting::get_option( 'instawp_default_user' );
+		if( empty( $default_user ) ){
+			add_option( 'instawp_default_user', get_current_user_id() );
+		}
+
+		$instawp_sync_tab_roles = InstaWP_Setting::get_option( 'instawp_sync_tab_roles' );
+		if( empty( $instawp_sync_tab_roles ) ){
+			$user = wp_get_current_user();
+			$roles = ( array ) $user->roles;
+			add_option( 'instawp_sync_tab_roles', $roles );
 		}
 	}
 

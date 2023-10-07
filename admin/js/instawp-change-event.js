@@ -48,7 +48,7 @@ jQuery(document).ready(function ($) {
             alert( ajax_obj.trans.create_staging_site_txt );
             return;
         }
-        get_events_summary();
+        
         $('.bulk-sync-popup').show();
         $('.bulk-sync-popup').attr("data-sync-type", "bulk_sync");
         $('.bulk-events-info').show();
@@ -66,6 +66,8 @@ jQuery(document).ready(function ($) {
         $(".sync_process .step-2").removeClass('process_inprogress').removeClass('process_complete');
         $(".sync_process .step-3").removeClass('process_inprogress').removeClass('process_complete');
         $(".bulk-sync-btn").html('<a class="changes-btn sync-changes-btn disabled" href="javascript:void(0);"><span>Sync</span></a>');
+
+        get_events_summary();
     });
 
     $(document).on('click', '.bulk-sync-popup .close', function(){
@@ -191,7 +193,9 @@ jQuery(document).ready(function ($) {
         let formData = new FormData();
         formData.append('action',       'get_events_summary');
         formData.append('connect_id',   $("#destination-site").val() );
+        $(".sync-changes-btn").addClass('disabled');
         $("#event-type-list").addClass('instawp-box-loading').html('');
+        $('.sync_error_success_msg').html(' ');
         baseCall(formData).then((response) => response.json()).then(( response ) => {            
             $("#event-type-list").removeClass('instawp-box-loading').html(response.data.html);
             if ($('body').find('.event-type-count').length > 3) {
@@ -200,7 +204,13 @@ jQuery(document).ready(function ($) {
             }              
             $(".progress-wrapper").removeClass('hidden');
             $(".event-progress-text").html(response.data.progress_text);
-            $(".sync-changes-btn").removeClass('disabled');
+
+            if(response.data.count == 0){
+                $(".sync-changes-btn").addClass('disabled');
+                $('.sync_error_success_msg').html('<p class="error">'+response.data.message+'</p>');  
+            }else{
+                $(".sync-changes-btn").removeClass('disabled');
+            }
         }).catch((error) => {
             console.log("Error Occurred: ", error);
         });
@@ -338,6 +348,7 @@ jQuery(document).ready(function ($) {
             if(data.success === true){
                 const paging = data.data;
 
+                $('.sync_error_success_msg').html(' ');
                 $(".sync_process .step-2").removeClass('process_inprogress').addClass('process_complete');
                 //Initiated Step3
                 
@@ -354,8 +365,6 @@ jQuery(document).ready(function ($) {
                     }else{
                         packThings(sync_message,sync_type,dest_connect_id, paging.next_batch);
                     }
-                }else{
-                    $('.sync_error_success_msg').html(' ');  
                 }
                 
                 if( paging.percent_completed == 100 && paging.total_batch == paging.current_batch ){
@@ -378,27 +387,6 @@ jQuery(document).ready(function ($) {
                 $(".sync-changes-btn").removeClass('disable-a loading');
                 $('.sync_error_success_msg').html('<p class="error">'+data.message+'</p>');  
             }
-        });
-    }
-
-    const updateSyncStatus = () => {
-        let formData = new FormData();
-        formData.append('action',       'update_sync_status');
-        formData.append('sync_ids',     $("#id_syncIds").val() );
-        formData.append('connect_id',   $("#destination-site").val() );
-
-        baseCall(formData).then((response) => response.json()).then(( data ) => { 
-
-            $(".sync-changes-btn").removeClass('disable-a loading');
-            $(".sync_process .step-3").removeClass('process_inprogress').addClass('process_complete');
-            $('.bulk-sync-btn').html('<a class="sync-complete" href="javascript:void(0);">Sync Completed</a>');
-
-            setTimeout( function() {
-                $("#id_syncIds").val('');
-                $('.bulk-sync-popup').hide();
-                get_site_events();
-            }, 2000);
-            
         });
     }
 });
