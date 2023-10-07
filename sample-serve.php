@@ -9,7 +9,7 @@ if ( ! isset( $api_signature ) || ! isset( $_POST['api_signature'] ) || $api_sig
 }
 
 $level     = 0;
-$dir = __DIR__ ; //'/Users/vikas/code/playground/instasync/source_files/wp-content/plugins/instawp-connect'; //__FILE__ in prod
+$dir = __DIR__; //'/Users/vikas/code/playground/instasync/source_files/wp-content/plugins/instawp-connect'; // __DIR__; //'in prod
 $root_path = dirname( $dir );
 
 while ( ! file_exists( $root_path . '/wp-config.php' ) ) {
@@ -29,7 +29,7 @@ defined( 'CHUNK_SIZE' ) | define( 'CHUNK_SIZE', 2 * 1024 * 1024 );
 defined( 'CHUNK_DB_SIZE' ) | define( 'CHUNK_DB_SIZE', 100 );
 defined( 'BATCH_SIZE' ) | define( 'BATCH_SIZE', 100 );
 defined( 'BATCH_ZIP_SIZE' ) | define( 'BATCH_ZIP_SIZE', 50 );
-defined( 'MAX_ZIP_SIZE' ) | define( 'MAX_ZIP_SIZE', 1000000 );
+defined( 'MAX_ZIP_SIZE' ) | define( 'MAX_ZIP_SIZE', 1000000 ); //1MB
 defined( 'WP_ROOT' ) | define( 'WP_ROOT', $root_path );
 
 $migrate_key = basename( __FILE__, '.php' );
@@ -95,7 +95,14 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 	if ( $unsentFilesCount == 0 ) {
 
 		$filter_directory = function ( SplFileInfo $file, $key, RecursiveDirectoryIterator $iterator ) use ( $skip_folders ) {
-			return ! in_array( $iterator->getSubPath(), $skip_folders );
+			// error_log('');
+			//print in error log if the file is skipped 
+			if ( in_array( $iterator->getSubPath(), $skip_folders ) ) {
+				// error_log( 'Skipping file: ' . $file->getPathname() );
+				return false;
+			}
+			return true;
+			// return ! in_array( $iterator->getSubPath(), $skip_folders );
 		};
 		$directory = new RecursiveDirectoryIterator(WP_ROOT, RecursiveDirectoryIterator::SKIP_DOTS);
 		$iterator = new RecursiveIteratorIterator(new RecursiveCallbackFilterIterator($directory, $filter_directory), RecursiveIteratorIterator::LEAVES_ONLY);
@@ -143,7 +150,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 				continue;
 			}
 
-			if ( $fileIndex >= BATCH_SIZE ) {
+			if ( $fileIndex > BATCH_SIZE ) {
 				// If we have indexed enough files, break the loop				
 				break;
 			}
@@ -153,16 +160,14 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		file_put_contents('current_file_index.txt', $currentFileIndex + BATCH_SIZE);
 
 		if ( $fileIndex == 0 ) {
-
+			
 			header( 'x-iwp-status: true' );
 			header( 'x-iwp-transfer-complete: true' );
 			header( 'x-iwp-message: No more files left to download.' );
-
+			unlink('current_file_index.txt');
 			$db = null;
 			exit;
 		}
-
-		// file_put_contents('iterator.txt', serialize( $iterator) );
 
 		$db->exec( "CREATE INDEX IF NOT EXISTS idx_sent ON files_sent(sent)" );
 		$db->exec( "CREATE INDEX IF NOT EXISTS idx_file_path ON files_sent(filepath)" );
@@ -190,13 +195,17 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
 		$tmpZip = tempnam(sys_get_temp_dir(), 'batchzip');
 		$zip = new ZipArchive();
-		if ($zip->open($tmpZip, ZipArchive::CREATE) !== true) {
+		if ($zip->open($tmpZip, ZipArchive::OVERWRITE) !== true) {
 			die("Cannot open zip archive");
 		}
 
 		foreach ($unsentFiles as $file) {
 			$relativePath = ltrim(str_replace(WP_ROOT, "", $file), DIRECTORY_SEPARATOR);
-			$zip->addFile($file, $relativePath);
+			if (file_exists($file) && is_file($file)) {
+				$zip->addFile($file, $relativePath);
+			} else {
+				error_log('File not found: ' . $file);
+			}
 		}
 
 		$zip->close();
@@ -230,12 +239,14 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			header( 'x-iwp-progress: ' . $progressPer );
 			header( 'x-file-type: single' );
 
-			readfile_chunked( $filePath );
+			if (file_exists($filePath) && is_file($filePath)) 
+				readfile_chunked( $filePath );
 
 			// Mark file as sent in database
 			$stmt = $db->prepare( "UPDATE files_sent SET sent = 1 WHERE id = :id" );
 			$stmt->execute( [ ':id' => $fileId ] );
 		} else {
+			unlink('current_file_index.txt');
 			header( 'x-iwp-status: true' );
 			header( 'x-iwp-transfer-complete: true' );
 			header( 'x-iwp-message: No more files left to download.' );
