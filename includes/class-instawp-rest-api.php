@@ -162,18 +162,27 @@ class InstaWP_Backup_Api {
 			return $this->throw_error( $response );
 		}
 
+		// Clean InstaWP backup directory
+		instawp()->tools::clean_instawpbackups_dir();
+
 		$migrate_key       = sanitize_text_field( $request->get_param( 'migrate_key' ) );
+		$migrate_settings  = $request->get_param( 'migrate_settings' );
+		$migrate_settings  = is_array( $migrate_settings ) ? $migrate_settings : [];
 		$api_signature     = hash( 'sha512', $migrate_key . current_time( 'U' ) );
 		$sample_serve_file = fopen( INSTAWP_PLUGIN_DIR . '/sample-serve.php', 'rb' );
 		$serve_file_path   = WP_CONTENT_DIR . '/' . INSTAWP_DEFAULT_BACKUP_DIR . '/' . $migrate_key . '.php';
 		$serve_file        = fopen( $serve_file_path, 'wb' );
 		$line_number       = 1;
 
+		// Process migration settings like active plugins/themes only etc
+		$migrate_settings = instawp()->tools::process_migration_settings( $migrate_settings );
+
 		while ( ( $line = fgets( $sample_serve_file ) ) !== false ) {
 
 			// Add api signature
 			if ( $line_number === 4 ) {
 				fputs( $serve_file, '$api_signature = "' . $api_signature . '";' . "\n" );
+				fputs( $serve_file, '$migrate_settings = \'' . serialize( $migrate_settings ) . '\';' . "\n" );
 				fputs( $serve_file, '$db_host = "' . DB_HOST . '";' . "\n" );
 				fputs( $serve_file, '$db_username = "' . DB_USER . '";' . "\n" );
 				fputs( $serve_file, '$db_password = "' . DB_PASSWORD . '";' . "\n" );
