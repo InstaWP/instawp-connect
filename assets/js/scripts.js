@@ -20,6 +20,7 @@
                 el_migration_loader = create_container.find('.instawp-migration-loader'),
                 el_migration_progress_wrap = create_container.find('.migration-running'),
                 el_site_detail_wrap = create_container.find('.migration-completed'),
+                el_migration_error_wrap = create_container.find('.migration-error'),
                 el_screen_buttons = create_container.find('.screen-buttons'),
                 el_screen_buttons_last = create_container.find('.screen-buttons-last'),
                 el_stage_wrapper = create_container.find('.instawp-progress-stage');
@@ -98,6 +99,14 @@
                                 el_screen_buttons_last.removeClass('hidden');
                             }
                         }
+                    } else {
+                        create_container.removeClass('loading').addClass('completed');
+                        clearInterval(create_container.attr('interval-id'));
+
+                        el_migration_loader.removeClass('text-primary-900').addClass('text-red-700').text(el_migration_loader.data('error-text'));
+                        el_migration_progress_wrap.addClass('hidden');
+                        el_migration_error_wrap.removeClass('hidden');
+                        el_screen_buttons_last.removeClass('hidden');
                     }
                 }
             });

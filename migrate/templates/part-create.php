@@ -89,7 +89,7 @@ if ( ! empty( $migrate_id ) ) {
                         <div class="flex justify-between items-center">
                             <div class="text-grayCust-200 text-lg font-bold"><?php esc_html_e( '1. Select Staging', 'instawp-connect' ); ?></div>
                         </div>
-                        <?php if ( instawp_can_whitelist_wordfence() ) { ?>
+						<?php if ( instawp_can_whitelist_wordfence() ) { ?>
                             <div class="wordfence-whitelist bg-yellow-50 border border-2 border-r-0 border-y-0 border-l-orange-400 rounded-lg text-sm text-orange-700 mt-4 p-4 flex flex-col items-start gap-3">
                                 <div class="flex items-center gap-3">
                                     <div class="texdt-xs fonht-medium"><?php esc_html_e( 'We have detected Wordfence in your website, which might block API calls from our server. Whitelisting our IP address solves this problem. Shall we add a whitelist entry?', 'instawp-connect' ); ?></div>
@@ -101,7 +101,7 @@ if ( ! empty( $migrate_id ) ) {
                                     </div>
                                 </div>
                             </div>
-                        <?php } ?>
+						<?php } ?>
                         <div class="panel mt-6 block">
                             <div for="quick_staging" class="instawp-staging-type cursor-pointer flex justify-between items-center border mb-4 flex p-4 rounded-xl">
                                 <div class="flex items-center">
@@ -177,7 +177,7 @@ if ( ! empty( $migrate_id ) ) {
                             </button>
                         </div>
                         <div class="panel mt-6 flex flex-col gap-6">
-                            <?php if ( ! empty( $list_data ) && is_array( $list_data ) ) { ?>
+							<?php if ( ! empty( $list_data ) && is_array( $list_data ) ) { ?>
                                 <div class="instawp-exclude-container">
                                     <div class="bg-yellow-50 border border-2 border-r-0 border-y-0 border-l-orange-400 rounded-lg text-sm text-orange-700 p-4 flex flex-col items-start gap-3">
                                         <div class="flex items-center gap-3">
@@ -194,9 +194,9 @@ if ( ! empty( $migrate_id ) ) {
                                         </div>
                                     </div>
                                 </div>
-                            <?php } else { ?>
+							<?php } else { ?>
                                 <div class="instawp-exclude-container hidden"></div>
-                            <?php } ?>
+							<?php } ?>
                             <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
                                 <div class="min-w-full divide-y divide-gray-300">
                                     <div class="bg-gray-50 flex flex-row items-center justify-between p-4">
@@ -339,7 +339,7 @@ if ( ! empty( $migrate_id ) ) {
                             <div class="text-grayCust-200 text-lg font-bold"><?php esc_html_e( '4. Creating Staging', 'instawp-connect' ); ?></div>
                             <span class="instawp-migration-loader text-primary-900 text-base font-normal"
                                   data-in-progress-text="<?php esc_attr_e( 'In Progress...', 'instawp-connect' ); ?>"
-                                  data-error-text="<?php esc_attr_e( 'In Progress...', 'instawp-connect' ); ?>"
+                                  data-error-text="<?php esc_attr_e( 'Migration Failed', 'instawp-connect' ); ?>"
                                   data-complete-text="<?php esc_attr_e( 'Completed', 'instawp-connect' ); ?>"><?php esc_html_e( 'In Progress...', 'instawp-connect' ); ?></span>
                         </div>
                         <div class="panel mt-6 block">
@@ -411,6 +411,16 @@ if ( ! empty( $migrate_id ) ) {
                                             <div id="instawp-site-password" class="text-grayCust-300 font-medium text-base"></div>
                                         </div>
                                         <a href="" target="_blank" id="instawp-site-magic-url" class="py-2 px-4 text-white active:text-white focus:text-white hover:text-white bg-primary-700 rounded-md text-sm font-medium focus:shadow-none"><?php esc_html_e( 'Auto Login', 'instawp-connect' ); ?></a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="migration-error hidden">
+                                <div class="relative bg-white rounded-lg border border-red-200 text-red-800 rounded-lg bg-red-50 py-4">
+                                    <div class="p-6 text-center">
+                                        <svg class="mx-auto mb-4 text-red-700 w-10 h-10" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 11V6m0 8h.01M19 10a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+                                        </svg>
+                                        <span class="error-message text-lg font-normal text-red-700">Something went wrong.</span>
                                     </div>
                                 </div>
                             </div>
