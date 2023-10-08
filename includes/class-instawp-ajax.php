@@ -80,7 +80,7 @@ class InstaWP_AJAX {
 
 //		wp_send_json_error( [ 'message' => esc_html__( 'Could not create migrate id' ) ] );
 
-		global $wp_version;
+		global $wp_version, $wpdb;
 
 		$settings_str = isset( $_POST['settings'] ) ? $_POST['settings'] : '';
 
@@ -94,6 +94,14 @@ class InstaWP_AJAX {
 		if ( isset( $migrate_settings['screen'] ) ) {
 			unset( $migrate_settings['screen'] );
 		}
+
+		// Remove instawp connect options
+		$migrate_settings['excluded_tables_rows'] = array(
+			"{$wpdb->prefix}options" => array(
+				'option_name:instawp_connect_id_options',
+				'option_name:instawp_sync_parent_connect_data',
+			),
+		);
 
 		$migrate_args = array(
 			'source_domain'       => $source_domain,
