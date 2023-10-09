@@ -29,7 +29,7 @@ while ( ! file_exists( $root_path . '/wp-config.php' ) ) {
 
 defined( 'CHUNK_SIZE' ) | define( 'CHUNK_SIZE', 2 * 1024 * 1024 );
 defined( 'BATCH_ZIP_SIZE' ) | define( 'BATCH_ZIP_SIZE', 50 );
-defined( 'MAX_ZIP_SIZE' ) | define( 'MAX_ZIP_SIZE', 1000000 ); //1MB
+defined( 'MAX_ZIP_SIZE' ) | define( 'MAX_ZIP_SIZE', 1024 * 1024 ); //1mb
 defined( 'CHUNK_DB_SIZE' ) | define( 'CHUNK_DB_SIZE', 100 );
 defined( 'BATCH_SIZE' ) | define( 'BATCH_SIZE', 100 );
 defined( 'WP_ROOT' ) | define( 'WP_ROOT', $root_path );
@@ -197,16 +197,22 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
 		foreach ( $unsentFiles as $file ) {
 			$relativePath = ltrim( str_replace( WP_ROOT, "", $file ), DIRECTORY_SEPARATOR );
-			if ( file_exists( $file ) && is_file( $file ) ) {
+			if ( is_readable( $file ) && is_file( $file ) ) {
 				$zip->addFile( $file, $relativePath );
 			} else {
 				error_log( 'File not found: ' . $file );
 			}
 		}
 
-		$zip->close();
+		try {
+			$zip->close();
 
-		readfile_chunked( $tmpZip );
+			readfile_chunked( $tmpZip );
+		} catch ( Exception $exception ) {
+			header( 'x-iwp-status: false' );
+			header( 'x-iwp-message: Error in reading file. Message - ' . $exception->getMessage() );
+		}
+
 
 		foreach ( $unsentFiles as $id => $file ) {
 			$stmt = $db->prepare( "UPDATE files_sent SET sent = 1 WHERE id = $id" );
