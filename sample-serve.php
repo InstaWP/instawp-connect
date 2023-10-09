@@ -8,9 +8,10 @@ if ( ! isset( $api_signature ) || ! isset( $_POST['api_signature'] ) || $api_sig
 	die();
 }
 
-$level     = 0;
-$dir = __DIR__; //'/Users/vikas/code/playground/instasync/source_files/wp-content/plugins/instawp-connect'; // __DIR__; //'in prod
-$root_path = dirname( $dir );
+$migrate_settings = isset( $migrate_settings ) ? unserialize( $migrate_settings ) : [];
+$migrate_key      = basename( __FILE__, '.php' );
+$level            = 0;
+$root_path        = dirname( __DIR__ );
 
 while ( ! file_exists( $root_path . '/wp-config.php' ) ) {
 	
@@ -26,13 +27,11 @@ while ( ! file_exists( $root_path . '/wp-config.php' ) ) {
 }
 
 defined( 'CHUNK_SIZE' ) | define( 'CHUNK_SIZE', 2 * 1024 * 1024 );
-defined( 'CHUNK_DB_SIZE' ) | define( 'CHUNK_DB_SIZE', 100 );
-defined( 'BATCH_SIZE' ) | define( 'BATCH_SIZE', 100 );
 defined( 'BATCH_ZIP_SIZE' ) | define( 'BATCH_ZIP_SIZE', 50 );
 defined( 'MAX_ZIP_SIZE' ) | define( 'MAX_ZIP_SIZE', 1000000 ); //1MB
+defined( 'CHUNK_DB_SIZE' ) | define( 'CHUNK_DB_SIZE', 100 );
+defined( 'BATCH_SIZE' ) | define( 'BATCH_SIZE', 100 );
 defined( 'WP_ROOT' ) | define( 'WP_ROOT', $root_path );
-
-$migrate_key = basename( __FILE__, '.php' );
 
 if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
@@ -68,9 +67,12 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
 	$tracking_db_path = 'files-sent-' . $migrate_key . '.db';
 	$total_files_path = '.total-files-' . $migrate_key;
-	$skip_folders     = [ 'wp-content/cache', 'editor', 'wp-content/upgrade', 'wp-content/instawpbackups' ];
+	$excluded_paths   = $migrate_settings['excluded_paths'] ?? [];
+	$skip_folders     = array_merge( [ 'wp-content/cache', 'editor', 'wp-content/upgrade', 'wp-content/instawpbackups' ], $excluded_paths );
+	$skip_folders     = array_unique( $skip_folders );
 	$skip_files       = [];
 	$db               = new PDO( 'sqlite:' . $tracking_db_path );
+
 
 	// Create table if not exists
 	$db->exec( "CREATE TABLE IF NOT EXISTS files_sent (id INTEGER PRIMARY KEY AUTOINCREMENT, filepath TEXT UNIQUE, sent INTEGER DEFAULT 0, size INTEGER)" );
@@ -95,14 +97,14 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 	if ( $unsentFilesCount == 0 ) {
 
 		$filter_directory = function ( SplFileInfo $file, $key, RecursiveDirectoryIterator $iterator ) use ( $skip_folders ) {
-			// error_log('');
-			//print in error log if the file is skipped 
-			if ( in_array( $iterator->getSubPath(), $skip_folders ) ) {
-				// error_log( 'Skipping file: ' . $file->getPathname() );
+
+			$relative_path = ! empty( $iterator->getSubPath() ) ? $iterator->getSubPath() . '/' . $file->getBasename() : $file->getBasename();
+
+			if ( in_array( $relative_path, $skip_folders ) ) {
 				return false;
 			}
-			return true;
-			// return ! in_array( $iterator->getSubPath(), $skip_folders );
+
+			return ! in_array( $iterator->getSubPath(), $skip_folders );
 		};
 		$directory = new RecursiveDirectoryIterator(WP_ROOT, RecursiveDirectoryIterator::SKIP_DOTS);
 		$iterator = new RecursiveIteratorIterator(new RecursiveCallbackFilterIterator($directory, $filter_directory), RecursiveIteratorIterator::LEAVES_ONLY);
@@ -239,8 +241,10 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			header( 'x-iwp-progress: ' . $progressPer );
 			header( 'x-file-type: single' );
 
-			if (file_exists($filePath) && is_file($filePath)) 
+			if (file_exists($filePath) && is_file($filePath)) {
 				readfile_chunked( $filePath );
+			}
+				
 
 			// Mark file as sent in database
 			$stmt = $db->prepare( "UPDATE files_sent SET sent = 1 WHERE id = :id" );
@@ -251,7 +255,6 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			header( 'x-iwp-transfer-complete: true' );
 			header( 'x-iwp-message: No more files left to download.' );
 		}
-	}
 
 	$db = null;
 }
@@ -267,9 +270,11 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 
 	global $mysqli;
 
-	$trackingDb_path  = 'db-sent-' . $migrate_key . '.db';
-	$trackingDb       = new SQLite3( $trackingDb_path );
-	$createTableQuery = "CREATE TABLE IF NOT EXISTS tracking (table_name TEXT PRIMARY KEY,offset INTEGER DEFAULT 0,completed INTEGER DEFAULT 0);";
+	$excluded_tables      = $migrate_settings['excluded_tables'] ?? [];
+	$excluded_tables_rows = $migrate_settings['excluded_tables_rows'] ?? [];
+	$trackingDb_path      = 'db-sent-' . $migrate_key . '.db';
+	$trackingDb           = new SQLite3( $trackingDb_path );
+	$createTableQuery     = "CREATE TABLE IF NOT EXISTS tracking (table_name TEXT PRIMARY KEY,offset INTEGER DEFAULT 0,completed INTEGER DEFAULT 0);";
 
 	$trackingDb->exec( $createTableQuery );
 
@@ -285,13 +290,18 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 	$total_tracking_tables = $trackingDb->querySingle( "SELECT COUNT(*) FROM tracking" );
 
 	if ( $total_tracking_tables == 0 ) {
-		$tableNamesResult    = $mysqli->query( "SHOW TABLES" );
-		$insertStmt          = $trackingDb->prepare( "INSERT INTO tracking (table_name) VALUES (:tableName)" );
-		$total_source_tables = 0;
 
-		while ( $table = $tableNamesResult->fetch_row() ) {
-			$insertStmt->bindValue( ':tableName', $table[0], SQLITE3_TEXT );
-			$insertStmt->execute();
+		$excluded_tables_sql      = array_map( function ( $table_name ) use ( $db_name ) {
+			return "tables_in_{$db_name} NOT LIKE '{$table_name}'";
+		}, $excluded_tables );
+		$table_names_result_where = empty( $excluded_tables_sql ) ? '' : 'WHERE ' . implode( ' AND ', $excluded_tables_sql );
+		$table_names_result       = $mysqli->query( "SHOW TABLES {$table_names_result_where}" );
+		$insert_sql_statement     = $trackingDb->prepare( "INSERT INTO tracking (table_name) VALUES (:tableName)" );
+		$total_source_tables      = 0;
+
+		while ( $table = $table_names_result->fetch_row() ) {
+			$insert_sql_statement->bindValue( ':tableName', $table[0], SQLITE3_TEXT );
+			$insert_sql_statement->execute();
 			$total_source_tables ++;
 		}
 
@@ -321,7 +331,27 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 		}
 	}
 
-	$query  = "SELECT * FROM `$tableName` LIMIT " . CHUNK_DB_SIZE . " OFFSET $offset"; // Assume 'id' for ordering
+	$where_clause = '1';
+
+	if ( isset( $excluded_tables_rows[ $tableName ] ) && is_array( $excluded_tables_rows[ $tableName ] ) && ! empty( $excluded_tables_rows[ $tableName ] ) ) {
+
+		$where_clause_arr = [];
+
+		foreach ( $excluded_tables_rows[ $tableName ] as $excluded_info ) {
+
+			$excluded_info_arr = explode( ':', $excluded_info );
+			$column_name       = $excluded_info_arr[0] ?? '';
+			$column_value      = $excluded_info_arr[1] ?? '';
+
+			if ( ! empty( $column_name ) && ! empty( $column_value ) ) {
+				$where_clause_arr[] = "{$column_name} != '{$column_value}'";
+			}
+		}
+
+		$where_clause = implode( ' AND ', $where_clause_arr );
+	}
+
+	$query  = "SELECT * FROM `$tableName` WHERE {$where_clause} LIMIT " . CHUNK_DB_SIZE . " OFFSET $offset";
 	$result = $mysqli->query( $query );
 
 	if ( $mysqli->errno ) {

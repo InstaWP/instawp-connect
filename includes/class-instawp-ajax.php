@@ -50,7 +50,7 @@ class InstaWP_AJAX {
 
 		$response = InstaWP_Curl::do_curl( "migrates-v3/{$migrate_id}", [ 'migrate_key' => $migrate_key ] );
 
-		if ( isset( $response['success'] ) && (bool) $response['success'] === false ) {
+		if ( isset( $response['success'] ) && $response['success'] !== true ) {
 			error_log( json_encode( $response ) );
 			wp_send_json_error( [ 'message' => $response['message'] ?? '' ] );
 		}
@@ -61,9 +61,15 @@ class InstaWP_AJAX {
 		$response_data['progress_db']      = $response_data['progress_db'] ?? 0;
 		$response_data['progress_restore'] = $response_data['progress_restore'] ?? 0;
 		$migration_finished                = isset( $response_data['stage']['migration-finished'] ) && (bool) $response_data['stage']['migration-finished'];
+		$migration_failed                  = isset( $response_data['stage']['failed'] ) && (bool) $response_data['stage']['failed'];
+
+		if ( $migration_failed ) {
+			instawp_reset_running_migration();
+			wp_send_json_error( [ 'message' => esc_html__( 'Migration failed.' ) ] );
+		}
 
 		if ( $migration_finished ) {
-			delete_option( 'instawp_migration_details' );
+			instawp_reset_running_migration();
 		}
 
 		if ( ! empty( $auto_login_hash ) ) {
@@ -80,7 +86,7 @@ class InstaWP_AJAX {
 
 //		wp_send_json_error( [ 'message' => esc_html__( 'Could not create migrate id' ) ] );
 
-		global $wp_version;
+		global $wp_version, $wpdb;
 
 		$settings_str = isset( $_POST['settings'] ) ? $_POST['settings'] : '';
 
@@ -94,6 +100,14 @@ class InstaWP_AJAX {
 		if ( isset( $migrate_settings['screen'] ) ) {
 			unset( $migrate_settings['screen'] );
 		}
+
+		// Remove instawp connect options
+		$migrate_settings['excluded_tables_rows'] = array(
+			"{$wpdb->prefix}options" => array(
+				'option_name:instawp_connect_id_options',
+				'option_name:instawp_sync_parent_connect_data',
+			),
+		);
 
 		$migrate_args = array(
 			'source_domain'       => $source_domain,

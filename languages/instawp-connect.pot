@@ -1,4 +1,4 @@
-InstaWP
+
 msgid ""
 msgstr ""
 "Project-Id-Version: InstaWP Connect\n"
