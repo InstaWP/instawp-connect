@@ -257,6 +257,20 @@ run_instawp();
 
 add_action( 'wp_head', function () {
 	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
+
+
+//		update_option( 'instawp_migration_details', [
+//			'migrate_id' => 32,
+//			'migrate_key' => '4uya7oqapkesbrukdbgmwnuwd5yv58mpu9dwxunk',
+//		] );
+
+		echo "<pre>";
+		print_r( get_option( 'instawp_migration_details' ) );
+		echo "</pre>";
+
+
+
+
 		die();
 	}
 }, 0 );

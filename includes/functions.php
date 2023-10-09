@@ -339,30 +339,53 @@ if ( ! function_exists( 'instawp_get_migration_site_detail' ) ) {
 }
 
 
+if ( ! function_exists( 'instawp_update_migration_stages' ) ) {
+	/**
+	 * Update migration stages
+	 *
+	 * @param $stages
+	 *
+	 * @return bool
+	 */
+	function instawp_update_migration_stages( $stages = [] ) {
+
+		if (
+			empty( $stages ) ||
+			empty( $migrate_id = InstaWP_Setting::get_option( 'migrate_id' ) ) ||
+			empty( $migrate_key = InstaWP_Setting::get_option( 'migrate_key' ) )
+		) {
+			return false;
+		}
+
+		$stage_args     = array(
+			'migrate_key' => $migrate_key,
+			'stage'       => json_encode( $stages ),
+		);
+		$stage_response = InstaWP_Curl::do_curl( 'migrates-v3/' . $migrate_id . '/update-status', $stage_args );
+
+		return (bool) InstaWP_Setting::get_args_option( 'status', $stage_response, true );
+	}
+}
+
+
 if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 	/**
 	 * Reset running migration
 	 *
-	 * @param $reset_type
+	 * @param string $reset_type
+	 * @param bool $force_timeout
 	 *
 	 * @return bool
 	 */
 	function instawp_reset_running_migration( $reset_type = 'soft', $force_timeout = true ) {
 
+		// Delete migration details
+		delete_option( 'instawp_migration_details' );
+
 		$reset_type = empty( $reset_type ) ? InstaWP_Setting::get_option( 'instawp_reset_type', 'soft' ) : $reset_type;
 
-		if ( ! in_array( $reset_type, array( 'soft', 'hard', 'task_only' ) ) ) {
+		if ( ! in_array( $reset_type, array( 'soft', 'hard' ) ) ) {
 			return false;
-		}
-
-		InstaWP_taskmanager::delete_all_task();
-		$task = new InstaWP_Backup();
-		$task->clean_backup();
-
-		delete_option( 'instawp_migration_running' );
-
-		if ( 'task_only' == $reset_type ) {
-			return true;
 		}
 
 		if ( 'hard' == $reset_type ) {
@@ -1344,6 +1367,8 @@ if ( ! function_exists( 'instawp_files_contains' ) ) {
 	}
 }
 
-function pr( $data ){
-	echo '<pre>'; print_r($data); exit();
+function pr( $data ) {
+	echo '<pre>';
+	print_r( $data );
+	exit();
 }

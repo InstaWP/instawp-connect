@@ -3,38 +3,37 @@
  * Migrate template - Create Site
  */
 
-$staging_screens     = array(
+$staging_screens       = array(
 	esc_html__( 'Staging Type', 'instawp-connect' ),
 	esc_html__( 'Customize Options', 'instawp-connect' ),
 	esc_html__( 'Exclude Files & Tables', 'instawp-connect' ),
 	esc_html__( 'Confirmation', 'instawp-connect' ),
 	esc_html__( 'Creating Staging', 'instawp-connect' ),
 );
-$nav_item_classes    = array( 'nav-item-content' );
-$incomplete_task_ids = InstaWP_taskmanager::is_there_any_incomplete_task_ids();
-$incomplete_task_id  = reset( $incomplete_task_ids );
-$migration_nonce     = InstaWP_taskmanager::get_nonce( $incomplete_task_id );
-
-if ( ! empty( $incomplete_task_id ) && ! empty( InstaWP_Setting::get_option( 'instawp_migration_running', '' ) ) ) {
-	$nav_item_classes[] = 'loading';
-}
-
-$current_create_screen = isset( $_GET['screen'] ) ? sanitize_text_field( $_GET['screen'] ) : 1;
 $customize_options     = array(
 	'general' => array(
 		'label'   => esc_html__( 'General', 'instawp-connect' ),
 		'options' => array(
 			'active_plugins_only' => esc_html__( 'Active Plugins Only', 'instawp-connect' ),
 			'active_themes_only'  => esc_html__( 'Active Themes Only', 'instawp-connect' ),
-//			'skip_post_revisions' => esc_html__( 'Skip Post Revisions', 'instawp-connect' ),
 			'skip_media_folder'   => esc_html__( 'Skip Media Folder', 'instawp-connect' ),
 			'skip_large_files'    => esc_html__( 'Skip Large Files', 'instawp-connect' ),
 		),
 	),
 );
+$nav_item_classes      = array( 'nav-item-content' );
+$current_create_screen = isset( $_GET['screen'] ) ? sanitize_text_field( $_GET['screen'] ) : 1;
+$tables                = instawp_get_database_details();
+$list_data             = get_option( 'instawp_large_files_list', [] ) ?? [];
+$migration_details     = InstaWP_Setting::get_option( 'instawp_migration_details', [] );
+$migrate_id            = InstaWP_Setting::get_args_option( 'migrate_id', $migration_details );
+$tracking_url          = InstaWP_Setting::get_args_option( 'tracking_url', $migration_details );
 
-$tables    = instawp_get_database_details();
-$list_data = get_option( 'instawp_large_files_list', [] ) ?? []; ?>
+if ( ! empty( $migrate_id ) ) {
+	$nav_item_classes[] = 'loading';
+}
+
+?>
 
 <form action="" method="post" class="<?php echo esc_attr( implode( ' ', $nav_item_classes ) ); ?> create active">
 
@@ -90,7 +89,7 @@ $list_data = get_option( 'instawp_large_files_list', [] ) ?? []; ?>
                         <div class="flex justify-between items-center">
                             <div class="text-grayCust-200 text-lg font-bold"><?php esc_html_e( '1. Select Staging', 'instawp-connect' ); ?></div>
                         </div>
-                        <?php if ( instawp_can_whitelist_wordfence() ) { ?>
+						<?php if ( instawp_can_whitelist_wordfence() ) { ?>
                             <div class="wordfence-whitelist bg-yellow-50 border border-2 border-r-0 border-y-0 border-l-orange-400 rounded-lg text-sm text-orange-700 mt-4 p-4 flex flex-col items-start gap-3">
                                 <div class="flex items-center gap-3">
                                     <div class="texdt-xs fonht-medium"><?php esc_html_e( 'We have detected Wordfence in your website, which might block API calls from our server. Whitelisting our IP address solves this problem. Shall we add a whitelist entry?', 'instawp-connect' ); ?></div>
@@ -102,7 +101,7 @@ $list_data = get_option( 'instawp_large_files_list', [] ) ?? []; ?>
                                     </div>
                                 </div>
                             </div>
-                        <?php } ?>
+						<?php } ?>
                         <div class="panel mt-6 block">
                             <div for="quick_staging" class="instawp-staging-type cursor-pointer flex justify-between items-center border mb-4 flex p-4 rounded-xl">
                                 <div class="flex items-center">
@@ -113,7 +112,7 @@ $list_data = get_option( 'instawp_large_files_list', [] ) ?? []; ?>
                                     </div>
                                 </div>
                                 <div>
-                                    <input id="quick_staging" name="instawp_migrate[type]" value="quick" type="radio" class="instawp-option-selector h-4 w-4 border-grayCust-350 text-primary-900 focus:border-0 foucs:ring-1 focus:ring-primary-900">
+                                    <input id="quick_staging" name="migrate_settings[type]" value="quick" type="radio" class="instawp-option-selector h-4 w-4 border-grayCust-350 text-primary-900 focus:border-0 foucs:ring-1 focus:ring-primary-900">
                                 </div>
                             </div>
                             <div for="full_staging" class="instawp-staging-type cursor-pointer flex justify-between items-center border mb-4 flex p-4 rounded-xl">
@@ -125,7 +124,7 @@ $list_data = get_option( 'instawp_large_files_list', [] ) ?? []; ?>
                                     </div>
                                 </div>
                                 <div>
-                                    <input id="full_staging" name="instawp_migrate[type]" value="full" type="radio" class="instawp-option-selector h-4 w-4 border-grayCust-350 text-primary-900 focus:border-0 foucs:ring-1 focus:ring-primary-900">
+                                    <input id="full_staging" name="migrate_settings[type]" value="full" type="radio" class="instawp-option-selector h-4 w-4 border-grayCust-350 text-primary-900 focus:border-0 foucs:ring-1 focus:ring-primary-900">
                                 </div>
                             </div>
                             <div for="custom_staging" class="instawp-staging-type cursor-pointer flex justify-between items-center border flex p-4 rounded-xl">
@@ -137,7 +136,7 @@ $list_data = get_option( 'instawp_large_files_list', [] ) ?? []; ?>
                                     </div>
                                 </div>
                                 <div>
-                                    <input id="custom_staging" name="instawp_migrate[type]" value="custom" type="radio" class="instawp-option-selector h-4 w-4 border-grayCust-350 text-primary-900 focus:border-0 foucs:ring-1 focus:ring-primary-900">
+                                    <input id="custom_staging" name="migrate_settings[type]" value="custom" type="radio" class="instawp-option-selector h-4 w-4 border-grayCust-350 text-primary-900 focus:border-0 foucs:ring-1 focus:ring-primary-900">
                                 </div>
                             </div>
                         </div>
@@ -155,7 +154,7 @@ $list_data = get_option( 'instawp_large_files_list', [] ) ?? []; ?>
                                         <!--relative flex items-start border border-primary-900 card-active p-3 px-4 rounded-lg-->
                                         <label for="<?php echo esc_attr( $id ); ?>" class="relative flex items-start border border-grayCust-350 p-3 px-4 rounded-lg items-center">
                                             <span>
-                                                <input id="<?php echo esc_attr( $id ); ?>" name="instawp_migrate[options][]" value="<?php echo esc_attr( $id ); ?>" type="checkbox" class="instawp-option-selector rounded border-gray-300 text-primary-900 focus:ring-primary-900">
+                                                <input id="<?php echo esc_attr( $id ); ?>" name="migrate_settings[options][]" value="<?php echo esc_attr( $id ); ?>" type="checkbox" class="instawp-option-selector rounded border-gray-300 text-primary-900 focus:ring-primary-900">
                                             </span>
                                             <span class="ml-2 text-sm">
                                                 <span class="option-label font-medium text-sm text-grayCust-700"><?php echo esc_html( $label ); ?></span>
@@ -171,30 +170,33 @@ $list_data = get_option( 'instawp_large_files_list', [] ) ?? []; ?>
                         <div class="flex justify-between items-center">
                             <div class="text-grayCust-200 text-lg font-bold"><?php esc_html_e( '3. Exclude', 'instawp-connect' ); ?></div>
                             <button type="button" class="instawp-refresh-exclude-screen">
-                                <svg class="w-4 h-4" viewBox="0 0 14 16" fill="none" xmlns="http://www.w3.org/2000/svg"> <path fill-rule="evenodd" clip-rule="evenodd" style="fill: #005e54;" d="M1.59995 0.800049C2.09701 0.800049 2.49995 1.20299 2.49995 1.70005V3.59118C3.64303 2.42445 5.23642 1.70005 6.99995 1.70005C9.74442 1.70005 12.0768 3.45444 12.9412 5.90013C13.1069 6.36877 12.8612 6.88296 12.3926 7.0486C11.924 7.21425 11.4098 6.96862 11.2441 6.49997C10.6259 4.75097 8.95787 3.50005 6.99995 3.50005C5.52851 3.50005 4.22078 4.20657 3.39937 5.30005H6.09995C6.59701 5.30005 6.99995 5.70299 6.99995 6.20005C6.99995 6.6971 6.59701 7.10005 6.09995 7.10005H1.59995C1.10289 7.10005 0.699951 6.6971 0.699951 6.20005V1.70005C0.699951 1.20299 1.10289 0.800049 1.59995 0.800049ZM1.6073 8.95149C2.07594 8.78585 2.59014 9.03148 2.75578 9.50013C3.37396 11.2491 5.04203 12.5 6.99995 12.5C8.47139 12.5 9.77912 11.7935 10.6005 10.7L7.89995 10.7C7.40289 10.7 6.99995 10.2971 6.99995 9.80005C6.99995 9.30299 7.40289 8.90005 7.89995 8.90005H12.3999C12.6386 8.90005 12.8676 8.99487 13.0363 9.16365C13.2051 9.33243 13.3 9.56135 13.3 9.80005V14.3C13.3 14.7971 12.897 15.2 12.4 15.2C11.9029 15.2 11.5 14.7971 11.5 14.3V12.4089C10.3569 13.5757 8.76348 14.3 6.99995 14.3C4.25549 14.3 1.92309 12.5457 1.05867 10.1C0.893024 9.63132 1.13866 9.11714 1.6073 8.95149Z"></path> </svg>
+                                <svg class="w-4 h-4" viewBox="0 0 14 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path fill-rule="evenodd" clip-rule="evenodd" style="fill: #005e54;"
+                                          d="M1.59995 0.800049C2.09701 0.800049 2.49995 1.20299 2.49995 1.70005V3.59118C3.64303 2.42445 5.23642 1.70005 6.99995 1.70005C9.74442 1.70005 12.0768 3.45444 12.9412 5.90013C13.1069 6.36877 12.8612 6.88296 12.3926 7.0486C11.924 7.21425 11.4098 6.96862 11.2441 6.49997C10.6259 4.75097 8.95787 3.50005 6.99995 3.50005C5.52851 3.50005 4.22078 4.20657 3.39937 5.30005H6.09995C6.59701 5.30005 6.99995 5.70299 6.99995 6.20005C6.99995 6.6971 6.59701 7.10005 6.09995 7.10005H1.59995C1.10289 7.10005 0.699951 6.6971 0.699951 6.20005V1.70005C0.699951 1.20299 1.10289 0.800049 1.59995 0.800049ZM1.6073 8.95149C2.07594 8.78585 2.59014 9.03148 2.75578 9.50013C3.37396 11.2491 5.04203 12.5 6.99995 12.5C8.47139 12.5 9.77912 11.7935 10.6005 10.7L7.89995 10.7C7.40289 10.7 6.99995 10.2971 6.99995 9.80005C6.99995 9.30299 7.40289 8.90005 7.89995 8.90005H12.3999C12.6386 8.90005 12.8676 8.99487 13.0363 9.16365C13.2051 9.33243 13.3 9.56135 13.3 9.80005V14.3C13.3 14.7971 12.897 15.2 12.4 15.2C11.9029 15.2 11.5 14.7971 11.5 14.3V12.4089C10.3569 13.5757 8.76348 14.3 6.99995 14.3C4.25549 14.3 1.92309 12.5457 1.05867 10.1C0.893024 9.63132 1.13866 9.11714 1.6073 8.95149Z"></path>
+                                </svg>
                             </button>
                         </div>
                         <div class="panel mt-6 flex flex-col gap-6">
-                            <?php if ( ! empty( $list_data ) && is_array( $list_data ) ) { ?>
+							<?php if ( ! empty( $list_data ) && is_array( $list_data ) ) { ?>
                                 <div class="instawp-exclude-container">
                                     <div class="bg-yellow-50 border border-2 border-r-0 border-y-0 border-l-orange-400 rounded-lg text-sm text-orange-700 p-4 flex flex-col items-start gap-3">
                                         <div class="flex items-center gap-3">
                                             <div class="text-sm font-medium"><?php esc_html_e( 'We have identified following large files in your installation:', 'instawp-connect' ); ?></div>
                                         </div>
                                         <div class="flex flex-col items-start gap-3">
-                                            <?php foreach ( $list_data as $data ) {
-                                                $element_id = wp_generate_uuid4(); ?>
+											<?php foreach ( $list_data as $data ) {
+												$element_id = wp_generate_uuid4(); ?>
                                                 <div class="flex justify-between items-center text-xs">
-                                                    <input type="checkbox" name="instawp_migrate[excluded_paths][]" id="<?php echo esc_attr( $element_id ); ?>" value="<?php echo esc_attr( $data['relative_path'] ); ?>" class="instawp-checkbox exclude-file-item large-file !mt-0 !mr-3 rounded border-gray-300 text-primary-900 focus:ring-primary-900">
+                                                    <input type="checkbox" name="migrate_settings[excluded_paths][]" id="<?php echo esc_attr( $element_id ); ?>" value="<?php echo esc_attr( $data['relative_path'] ); ?>" class="instawp-checkbox exclude-file-item large-file !mt-0 !mr-3 rounded border-gray-300 text-primary-900 focus:ring-primary-900">
                                                     <label for="<?php echo esc_attr( $element_id ); ?>"><?php echo esc_html( $data['relative_path'] ); ?> (<?php echo esc_html( instawp()->get_file_size_with_unit( $data['size'] ) ); ?>)</label>
                                                 </div>
-                                            <?php } ?>
+											<?php } ?>
                                         </div>
                                     </div>
                                 </div>
-                            <?php } else { ?>
+							<?php } else { ?>
                                 <div class="instawp-exclude-container hidden"></div>
-                            <?php } ?>
+							<?php } ?>
                             <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
                                 <div class="min-w-full divide-y divide-gray-300">
                                     <div class="bg-gray-50 flex flex-row items-center justify-between p-4">
@@ -211,7 +213,7 @@ $list_data = get_option( 'instawp_large_files_list', [] ) ?? []; ?>
                                                 <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                     <path d="M7 16V4M7 4L3 8M7 4L11 8M17 8V20M17 20L21 16M17 20L13 16" stroke="#005E40" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                                                 </svg>
-                                                <?php esc_html_e( 'Size', 'instawp-connect' ); ?>
+												<?php esc_html_e( 'Size', 'instawp-connect' ); ?>
                                             </div>
                                         </div>
                                     </div>
@@ -228,9 +230,9 @@ $list_data = get_option( 'instawp_large_files_list', [] ) ?? []; ?>
                                             <span><?php esc_html_e( 'Tables', 'instawp-connect' ); ?></span>
                                             <span class="instawp-database-details">
                                                 <?php if ( ! empty( $tables ) ) {
-                                                    $table_count = count( $tables );
-                                                    $table_size  = array_sum( wp_list_pluck( $tables, 'size' ) );
-                                                    echo '(' . $table_count . ') - ' . instawp()->get_file_size_with_unit( $table_size );
+	                                                $table_count = count( $tables );
+	                                                $table_size  = array_sum( wp_list_pluck( $tables, 'size' ) );
+	                                                echo '(' . $table_count . ') - ' . instawp()->get_file_size_with_unit( $table_size );
                                                 } ?>
                                             </span>
                                         </div>
@@ -243,19 +245,19 @@ $list_data = get_option( 'instawp_large_files_list', [] ) ?? []; ?>
                                                 <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                     <path d="M7 16V4M7 4L3 8M7 4L11 8M17 8V20M17 20L21 16M17 20L13 16" stroke="#005E40" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                                                 </svg>
-                                                <?php esc_html_e( 'Size', 'instawp-connect' ); ?>
+												<?php esc_html_e( 'Size', 'instawp-connect' ); ?>
                                             </div>
                                         </div>
                                     </div>
                                     <div class="overflow-auto exclude-database-container p-4 h-80">
-                                        <?php if ( ! empty( $tables ) ) { ?>
+										<?php if ( ! empty( $tables ) ) { ?>
                                             <div class="flex flex-col gap-5">
-                                                <?php foreach( $tables as $table ) { 
-                                                    $element_id  = wp_generate_uuid4(); ?>
+												<?php foreach ( $tables as $table ) {
+													$element_id = wp_generate_uuid4(); ?>
                                                     <div class="flex flex-col gap-5 item">
                                                         <div class="flex justify-between items-center">
                                                             <div class="flex items-center cursor-pointer" style="transform: translate(0em);">
-                                                                <input name="instawp_migrate[excluded_tables][]" id="<?php echo esc_attr( $element_id ); ?>" value="<?php echo esc_attr( $table['name'] ); ?>" type="checkbox" class="instawp-checkbox exclude-database-item !mt-0 !mr-3 rounded border-gray-300 text-primary-900 focus:ring-primary-900" data-size="<?php echo esc_html( $table['size'] ); ?>">
+                                                                <input name="migrate_settings[excluded_tables][]" id="<?php echo esc_attr( $element_id ); ?>" value="<?php echo esc_attr( $table['name'] ); ?>" type="checkbox" class="instawp-checkbox exclude-database-item !mt-0 !mr-3 rounded border-gray-300 text-primary-900 focus:ring-primary-900" data-size="<?php echo esc_html( $table['size'] ); ?>">
                                                                 <label for="<?php echo esc_attr( $element_id ); ?>" class="text-sm font-medium text-grayCust-800 truncate" style="width: calc(400px - 1em);"><?php echo esc_html( $table['name'] ); ?> (<?php printf( __( '%s rows', 'instawp-connect' ), $table['rows'] ); ?>)</label>
                                                             </div>
                                                             <div class="flex items-center" style="width: 105px;">
@@ -266,9 +268,9 @@ $list_data = get_option( 'instawp_large_files_list', [] ) ?? []; ?>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                <?php } ?>
+												<?php } ?>
                                             </div>
-                                        <?php } ?>
+										<?php } ?>
                                     </div>
                                 </div>
                             </div>
@@ -335,14 +337,17 @@ $list_data = get_option( 'instawp_large_files_list', [] ) ?? []; ?>
                     <div class="screen screen-5 <?= $current_create_screen == 5 ? 'active' : ''; ?>">
                         <div class="flex justify-between items-center">
                             <div class="text-grayCust-200 text-lg font-bold"><?php esc_html_e( '4. Creating Staging', 'instawp-connect' ); ?></div>
-                            <span class="instawp-migration-loader text-primary-900 text-base font-normal" data-in-progress-text="<?php esc_attr_e( 'In Progress...', 'instawp-connect' ); ?>" data-complete-text="<?php esc_attr_e( 'Completed', 'instawp-connect' ); ?>"><?php esc_html_e( 'In Progress...', 'instawp-connect' ); ?></span>
+                            <span class="instawp-migration-loader text-primary-900 text-base font-normal"
+                                  data-in-progress-text="<?php esc_attr_e( 'In Progress...', 'instawp-connect' ); ?>"
+                                  data-error-text="<?php esc_attr_e( 'Migration Failed', 'instawp-connect' ); ?>"
+                                  data-complete-text="<?php esc_attr_e( 'Completed', 'instawp-connect' ); ?>"><?php esc_html_e( 'In Progress...', 'instawp-connect' ); ?></span>
                         </div>
                         <div class="panel mt-6 block">
                             <div class="migration-running border border-grayCust-100 rounded-lg">
                                 <div class="p-5 flex flex-col gap-4">
                                     <div class="flex items-center">
-                                        <div class="w-24 text-grayCust-900 text-base font-normal"><?php esc_html_e( 'Backup', 'instawp-connect' ); ?></div>
-                                        <div class="instawp-progress-backup text-border rounded-xl w-full text-bg py-4 flex items-center px-4">
+                                        <div class="w-60 text-grayCust-900 text-base font-normal"><?php esc_html_e( 'Processing Files', 'instawp-connect' ); ?></div>
+                                        <div class="instawp-progress-files text-border rounded-xl w-full text-bg py-4 flex items-center px-4">
                                             <div class="w-full bg-gray-200 rounded-md mr-6">
                                                 <div class="instawp-progress-bar h-2 bg-primary-900 rounded-md"></div>
                                             </div>
@@ -350,8 +355,8 @@ $list_data = get_option( 'instawp_large_files_list', [] ) ?? []; ?>
                                         </div>
                                     </div>
                                     <div class="flex items-center">
-                                        <div class="w-24 text-grayCust-900 text-base font-normal"><?php esc_html_e( 'Upload', 'instawp-connect' ); ?></div>
-                                        <div class="instawp-progress-upload text-border rounded-xl w-full text-bg py-4 flex items-center px-4">
+                                        <div class="w-60 text-grayCust-900 text-base font-normal"><?php esc_html_e( 'Processing Database', 'instawp-connect' ); ?></div>
+                                        <div class="instawp-progress-db text-border rounded-xl w-full text-bg py-4 flex items-center px-4">
                                             <div class="w-full bg-gray-200 rounded-md mr-6">
                                                 <div class="instawp-progress-bar h-2 bg-primary-900 rounded-md"></div>
                                             </div>
@@ -359,17 +364,23 @@ $list_data = get_option( 'instawp_large_files_list', [] ) ?? []; ?>
                                         </div>
                                     </div>
                                     <div class="flex items-center">
-                                        <div class="w-24 text-grayCust-900 text-base font-normal"><?php esc_html_e( 'Migration', 'instawp-connect' ); ?></div>
-                                        <div class="instawp-progress-staging text-border rounded-xl w-full text-bg py-4 flex items-center px-4">
-                                            <div class="w-full bg-gray-200 rounded-md mr-6">
-                                                <div class="instawp-progress-bar h-2 bg-primary-900 rounded-md"></div>
-                                            </div>
-                                            <div class="progress-text text-grayCust-650 text-sm font-medium"><?php esc_html_e( '0%', 'instawp-connect' ); ?></div>
+                                        <div class="instawp-progress-stage text-border rounded-xl w-full text-bg py-4 flex items-center px-4">
+                                            <ul class="text-sm grid grid-cols-1 sm:grid-cols-2 gap-3">
+												<?php foreach ( InstaWP_Setting::get_stages() as $stage_key => $label ) : ?>
+                                                    <li class="stage-<?= $stage_key ?> flex space-x-3 item [&_.active]:text-green-600">
+                                                        <svg class="stage-status icon flex-shrink-0 h-6 w-6 text-gray-600" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                            <path d="M15.1965 7.85999C15.1965 3.71785 11.8387 0.359985 7.69653 0.359985C3.5544 0.359985 0.196533 3.71785 0.196533 7.85999C0.196533 12.0021 3.5544 15.36 7.69653 15.36C11.8387 15.36 15.1965 12.0021 15.1965 7.85999Z" fill="currentColor" fill-opacity="0.1"></path>
+                                                            <path d="M10.9295 4.88618C11.1083 4.67577 11.4238 4.65019 11.6343 4.82904C11.8446 5.00788 11.8702 5.32343 11.6914 5.53383L7.44139 10.5338C7.25974 10.7475 6.93787 10.77 6.72825 10.5837L4.47825 8.5837C4.27186 8.40024 4.25327 8.0842 4.43673 7.87781C4.62019 7.67142 4.93622 7.65283 5.14261 7.83629L7.01053 9.49669L10.9295 4.88618Z" fill="currentColor"></path>
+                                                        </svg>
+                                                        <span class="stage-status label text-gray-600"><?= $label; ?></span>
+                                                    </li>
+												<?php endforeach; ?>
+                                            </ul>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="instawp-track-migration-area bg-grayCust-250 px-5 py-4 rounded-bl-lg rounded-br-lg flex justify-end content-center items-center">
-                                    <a class="instawp-track-migration hidden text-primary-900 hover:text-primary-900 text-sm text-left flex items-center" href="" target="_blank">
+                                <div class="instawp-track-migration-area bg-grayCust-250 px-5 py-4 rounded-bl-lg rounded-br-lg flex content-center items-center <?= empty( $tracking_url ) ? 'justify-end' : 'justify-between' ?>">
+                                    <a class="instawp-track-migration text-primary-900 hover:text-primary-900 focus:ring-0 text-sm text-left flex items-center <?= empty( $tracking_url ) ? 'hidden' : '' ?>" href="<?php echo esc_url( $tracking_url ); ?>" target="_blank">
                                         <span class="mr-2"><?php esc_html_e( 'Track Migration', 'instawp-connect' ); ?></span>
                                         <img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/share-icon.svg' ) ); ?>" class="inline ml-1" alt="">
                                     </a>
@@ -403,6 +414,16 @@ $list_data = get_option( 'instawp_large_files_list', [] ) ?? []; ?>
                                     </div>
                                 </div>
                             </div>
+                            <div class="migration-error hidden">
+                                <div class="relative bg-white rounded-lg border border-red-200 text-red-800 rounded-lg bg-red-50 py-4">
+                                    <div class="p-6 text-center">
+                                        <svg class="mx-auto mb-4 text-red-700 w-10 h-10" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 11V6m0 8h.01M19 10a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+                                        </svg>
+                                        <span class="error-message text-lg font-normal text-red-700">Something went wrong.</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -422,8 +443,7 @@ $list_data = get_option( 'instawp_large_files_list', [] ) ?? []; ?>
 
                 <div class="screen-buttons bg-grayCust-250 px-5 py-4 rounded-bl-lg rounded-br-lg flex justify-end">
                     <p class="doing-request"><span class="loader"></span><?php esc_html_e( 'Checking usages...', 'instawp-connect' ); ?></p>
-                    <input name="instawp_migrate[screen]" type="hidden" id="instawp-screen" value="<?= $current_create_screen; ?>">
-                    <input name="instawp_migrate[nonce]" type="hidden" id="instawp-nonce" value="<?= $migration_nonce; ?>">
+                    <input name="migrate_settings[screen]" type="hidden" id="instawp-screen" value="<?= $current_create_screen; ?>">
                     <button type="button" data-increment="-1" class="instawp-button-migrate back hidden btn-shadow border border-grayCust-350 mr-4 rounded-md py-2 px-8 bg-white text-grayCust-700 text-sm font-medium"><?php esc_html_e( 'Back', 'instawp-connect' ); ?></button>
                     <button type="button" data-increment="1" class="instawp-button-migrate continue btn-shadow rounded-md py-2 px-4 bg-primary-900 text-white hover:text-white text-sm font-medium"><?php esc_html_e( 'Next Step', 'instawp-connect' ); ?></button>
                 </div>

@@ -13,6 +13,122 @@ class InstaWP_Tools {
 		$instawp_log->WriteLog( $message, $type );
 	}
 
+	public static function create_user( $user_details ) {
+
+		global $wpdb;
+
+		foreach ( $user_details as $user_detail ) {
+
+			if ( ! isset( $user_detail['username'] ) || ! isset( $user_detail['email'] ) || ! isset( $user_detail['password'] ) ) {
+				continue;
+			}
+
+			if ( username_exists( $user_detail['username'] ) == null && email_exists( $user_detail['email'] ) == false && ! empty( $user_detail['password'] ) ) {
+
+				// Create the new user
+				$user_id = wp_create_user( $user_detail['username'], $user_detail['password'], $user_detail['email'] );
+
+				// Get current user object
+				$user = get_user_by( 'id', $user_id );
+
+				// Remove role
+				$user->remove_role( 'subscriber' );
+
+				// Add role
+				$user->add_role( 'administrator' );
+			} elseif ( email_exists( $user_detail['email'] ) || username_exists( $user_detail['username'] ) ) {
+				$user = get_user_by( 'email', $user_detail['email'] );
+
+				if ( $user !== false ) {
+					$wpdb->update(
+						$wpdb->users,
+						[
+							'user_login' => $user_detail['username'],
+							'user_pass'  => md5( $user_detail['password'] ),
+							'user_email' => $user_detail['email'],
+						],
+						[ 'ID' => $user->ID ]
+					);
+
+					$user->remove_role( 'subscriber' );
+
+					// Add role
+					$user->add_role( 'administrator' );
+				}
+			}
+		}
+	}
+
+	public static function clean_instawpbackups_dir( $instawpbackups_dir = '' ) {
+
+		if ( empty( $instawpbackups_dir ) ) {
+			$instawpbackups_dir = WP_CONTENT_DIR . '/' . INSTAWP_DEFAULT_BACKUP_DIR;
+		}
+
+		if ( ! is_dir( $instawpbackups_dir ) || ! $instawpbackups_dir_handle = opendir( $instawpbackups_dir ) ) {
+			return false;
+		}
+
+
+		while ( false !== ( $file = readdir( $instawpbackups_dir_handle ) ) ) {
+			if ( $file !== '.' && $file !== '..' ) {
+				$file_path = $instawpbackups_dir . DIRECTORY_SEPARATOR . $file;
+				if ( is_dir( $file_path ) ) {
+					self::clean_instawpbackups_dir( $file_path );
+				} else {
+					unlink( $file_path );
+				}
+			}
+		}
+
+		closedir( $instawpbackups_dir_handle );
+
+//		rmdir( $instawpbackups_dir );
+
+		return true;
+	}
+
+	public static function process_migration_settings( $migrate_settings = [] ) {
+
+		$options      = $migrate_settings['options'] ?? [];
+		$relative_dir = str_replace( ABSPATH, '', WP_CONTENT_DIR );
+
+		if ( ! function_exists( 'get_plugins' ) ) {
+			require_once ABSPATH . 'wp-includes/plugin.php';
+		}
+
+		if ( in_array( 'active_plugins_only', $options ) ) {
+			foreach ( get_plugins() as $plugin_slug => $plugin_info ) {
+				if ( ! is_plugin_active( $plugin_slug ) ) {
+					$migrate_settings['excluded_paths'][] = $relative_dir . '/plugins/' . strstr( $plugin_slug, '/', true );
+				}
+			}
+		}
+
+		if ( in_array( 'active_themes_only', $options ) ) {
+			$active_theme_stylesheet = wp_get_theme()->get_stylesheet();
+			foreach ( wp_get_themes() as $theme_slug => $theme_info ) {
+				if ( $theme_info->get_stylesheet() !== $active_theme_stylesheet ) {
+					$migrate_settings['excluded_paths'][] = $relative_dir . '/themes/' . $theme_slug;
+				}
+			}
+		}
+
+
+		if ( in_array( 'skip_media_folder', $options ) ) {
+
+			$upload_dir      = wp_upload_dir();
+			$upload_base_dir = $upload_dir['basedir'] ?? '';
+
+			if ( ! empty( $upload_base_dir ) ) {
+				$migrate_settings['excluded_paths'][] = str_replace( ABSPATH, '', $upload_base_dir );
+			}
+		}
+
+		return apply_filters( 'INSTAWP_CONNECT/Filters/process_migration_settings', $migrate_settings );
+	}
+
+
 	public static function clean_junk_cache() {
 		$home_url_prefix = get_home_url();
 		$parse           = parse_url( $home_url_prefix );

@@ -16,6 +16,7 @@ class InstaWP_Backup_Api {
 	public function __construct() {
 		$this->version     = 'v1';
 		$this->version_2   = 'v2';
+		$this->version_3   = 'v3';
 		$this->namespace   = 'instawp-connect';
 		$this->instawp_log = new InstaWP_Log();
 
@@ -141,31 +142,47 @@ class InstaWP_Backup_Api {
 			),
 		) );
 
-		register_rest_route( $this->namespace . '/v3/', 'pull', array(
+		register_rest_route( $this->namespace . '/' . $this->version_3, '/pull', array(
 			'methods'             => 'POST',
 			'callback'            => array( $this, 'handle_pull_api' ),
+			'permission_callback' => '__return_true',
+		) );
+
+		register_rest_route( $this->namespace . '/' . $this->version_3, '/push', array(
+			'methods'             => 'POST',
+			'callback'            => array( $this, 'handle_push_api' ),
 			'permission_callback' => '__return_true',
 		) );
 	}
 
 	function handle_pull_api( WP_REST_Request $request ) {
 
-		if ( is_wp_error( $response = $this->validate_api_request( $request ) ) ) {
+		$response = $this->validate_api_request( $request );
+		if ( is_wp_error( $response ) ) {
 			return $this->throw_error( $response );
 		}
 
+		// Clean InstaWP backup directory
+		instawp()->tools::clean_instawpbackups_dir();
+
 		$migrate_key       = sanitize_text_field( $request->get_param( 'migrate_key' ) );
+		$migrate_settings  = $request->get_param( 'migrate_settings' );
+		$migrate_settings  = is_array( $migrate_settings ) ? $migrate_settings : [];
 		$api_signature     = hash( 'sha512', $migrate_key . current_time( 'U' ) );
 		$sample_serve_file = fopen( INSTAWP_PLUGIN_DIR . '/sample-serve.php', 'rb' );
 		$serve_file_path   = WP_CONTENT_DIR . '/' . INSTAWP_DEFAULT_BACKUP_DIR . '/' . $migrate_key . '.php';
 		$serve_file        = fopen( $serve_file_path, 'wb' );
 		$line_number       = 1;
 
+		// Process migration settings like active plugins/themes only etc
+		$migrate_settings = instawp()->tools::process_migration_settings( $migrate_settings );
+
 		while ( ( $line = fgets( $sample_serve_file ) ) !== false ) {
 
 			// Add api signature
 			if ( $line_number === 4 ) {
 				fputs( $serve_file, '$api_signature = "' . $api_signature . '";' . "\n" );
+				fputs( $serve_file, '$migrate_settings = \'' . serialize( $migrate_settings ) . '\';' . "\n" );
 				fputs( $serve_file, '$db_host = "' . DB_HOST . '";' . "\n" );
 				fputs( $serve_file, '$db_username = "' . DB_USER . '";' . "\n" );
 				fputs( $serve_file, '$db_password = "' . DB_PASSWORD . '";' . "\n" );
@@ -181,11 +198,45 @@ class InstaWP_Backup_Api {
 		fclose( $sample_serve_file );
 
 		return $this->send_response( array(
-			'serve_url'     => site_url( 'wp-content/' . INSTAWP_DEFAULT_BACKUP_DIR . '/' . $migrate_key . '.php' ),
+			'serve_url'     => content_url( INSTAWP_DEFAULT_BACKUP_DIR . '/' . $migrate_key . '.php' ),
 			'api_signature' => $api_signature,
 		) );
 	}
 
+	function handle_push_api( WP_REST_Request $request ) {
+
+		$response = $this->validate_api_request( $request );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
+
+		$migrate_key      = sanitize_text_field( $request->get_param( 'migrate_key' ) );
+		$api_signature    = hash( 'sha512', $migrate_key . current_time( 'U' ) );
+		$sample_dest_file = fopen( INSTAWP_PLUGIN_DIR . '/sample-dest.php', 'rb' );
+		$dest_file_path   = WP_CONTENT_DIR . '/' . INSTAWP_DEFAULT_BACKUP_DIR . '/' . $migrate_key . '.php';
+		$dest_file        = fopen( $dest_file_path, 'wb' );
+		$line_number      = 1;
+
+		while ( ( $line = fgets( $sample_dest_file ) ) !== false ) {
+
+			// Add api signature
+			if ( $line_number === 4 ) {
+				fputs( $dest_file, '$api_signature = "' . $api_signature . '";' . "\n" );
+			}
+
+			fputs( $dest_file, $line );
+
+			$line_number ++;
+		}
+
+		fclose( $dest_file );
+		fclose( $sample_dest_file );
+
+		return $this->send_response( array(
+			'dest_url'      => content_url( INSTAWP_DEFAULT_BACKUP_DIR . '/' . $migrate_key . '.php' ),
+			'api_signature' => $api_signature,
+		) );
+	}
 
 	/**
 	 * Handle response for disconnect api
@@ -511,73 +562,75 @@ class InstaWP_Backup_Api {
 			}
 		}
 
-
 		// Check if the configuration is already done, then no need to do it again.
 		if ( 'yes' == get_option( 'instawp_api_key_config_completed' ) ) {
 
 			$results['message'] = esc_html__( 'Already configured', 'instawp-connect' );
 
-			return new WP_REST_Response( $results );
+			return rest_ensure_response( new WP_REST_Response( $results ) );
 		}
-
 
 		if ( ! empty( $connect_ids = InstaWP_Setting::get_option( 'instawp_connect_id_options', array() ) ) ) {
 
 			// update config check token
 			update_option( 'instawp_api_key_config_completed', 'yes' );
 
-			return new WP_REST_Response(
-				array(
-					'status'     => true,
-					'message'    => esc_html__( 'Connected', 'instawp-connect' ),
-					'connect_id' => $connect_ids['data']['id'] ?? '',
-				)
-			);
+			$results['status']     = true;
+			$results['message']    = esc_html__( 'Connected', 'instawp-connect' );
+			$results['connect_id'] = $connect_ids['data']['id'] ?? '';
+
+			return rest_ensure_response( new WP_REST_Response( $results ) );
 		}
 
+		// if api_key is not passed on param
 		if ( empty( $parameters['api_key'] ) ) {
-			return new WP_REST_Response(
-				array(
-					'status'  => false,
-					'message' => esc_html__( 'Api key is required', 'instawp-connect' ),
-				)
-			);
+			$results['message'] = esc_html__( 'Api key is required', 'instawp-connect' );
+
+			return rest_ensure_response( new WP_REST_Response( $results ) );
 		}
 
+		// if api_key is passed on param
 		if ( isset( $parameters['api_domain'] ) ) {
 			InstaWP_Setting::set_api_domain( $parameters['api_domain'] );
 		}
 
-		$res = self::config_check_key( $parameters['api_key'] );
+		// config api_key now
+		$config_response = self::config_check_key( $parameters['api_key'] );
 
-		$this->instawp_log->CloseFile();
+		// config error happened
+		if ( $config_response['error'] ) {
+			$results['message'] = InstaWP_Setting::get_args_option( 'message', $config_response );
 
-		if ( ! $res['error'] ) {
-			$connect_ids = get_option( 'instawp_connect_id_options', '' );
-
-			if ( ! empty( $connect_ids ) ) {
-
-				if ( isset( $connect_ids['data']['id'] ) && ! empty( $connect_ids['data']['id'] ) ) {
-					$id = $connect_ids['data']['id'];
-				}
-
-				$results['status']     = true;
-				$results['message']    = 'Connected';
-				$results['connect_id'] = $id;
-
-				// update config check token
-				update_option( 'instawp_api_key_config_completed', 'yes' );
-				update_option( 'instawp_api_key', $parameters['api_key'] );
-			}
-		} else {
-			$results['status']     = true;
-			$results['message']    = $res['message'];
-			$results['connect_id'] = 0;
+			return rest_ensure_response( new WP_REST_Response( $results ) );
 		}
 
-		$response = new WP_REST_Response( $results );
+		// Now, get connect id from setting
+		$connect_ids = InstaWP_Setting::get_option( 'instawp_connect_id_options', [] );
 
-		return rest_ensure_response( $response );
+		if ( isset( $connect_ids['data']['id'] ) && ! empty( $connect_ids['data']['id'] ) ) {
+
+			$results['status']     = true;
+			$results['message']    = 'Connected';
+			$results['connect_id'] = $connect_ids['data']['id'];
+
+			// update config check token
+			update_option( 'instawp_api_key_config_completed', 'yes' );
+			update_option( 'instawp_api_key', $parameters['api_key'] );
+		}
+
+		// if any wp_option is passed, then store it
+		if ( isset( $parameters['wp'] ) && isset( $parameters['wp']['options'] ) && is_array( $parameters['wp']['options'] ) ) {
+			foreach ( $parameters['wp']['options'] as $option_key => $option_value ) {
+				update_option( $option_key, $option_value );
+			}
+		}
+
+		// if any user is passed, then create it
+		if ( isset( $parameters['wp'] ) && isset( $parameters['wp']['users'] ) ) {
+			InstaWP_Tools::create_user( $parameters['wp']['users'] );
+		}
+
+		return rest_ensure_response( new WP_REST_Response( $results ) );
 	}
 
 
@@ -658,7 +711,7 @@ class InstaWP_Backup_Api {
 			update_option( 'instawp_migration_settings', InstaWP_Setting::get_args_option( 'migrate_settings', $parameters, [] ) );
 
 			if ( isset( $parameters['wp'] ) && isset( $parameters['wp']['users'] ) ) {
-				self::create_user( $parameters['wp']['users'] );
+				InstaWP_Tools::create_user( $parameters['wp']['users'] );
 			}
 
 			if ( isset( $parameters['wp'] ) && isset( $parameters['wp']['options'] ) ) {
@@ -1058,53 +1111,6 @@ class InstaWP_Backup_Api {
 		return $res;
 	}
 
-
-	public static function create_user( $user_details ) {
-		global $wpdb;
-
-		// $username = $user_details['username'];
-		// $password = $user_details['password'];
-		// $email    = $user_details['email'];
-		foreach ( $user_details as $user_detail ) {
-			//print_r($user_details);
-			if ( ! isset( $user_detail['username'] ) || ! isset( $user_detail['email'] ) || ! isset( $user_detail['password'] ) ) {
-				continue;
-			}
-			if ( username_exists( $user_detail['username'] ) == null && email_exists( $user_detail['email'] ) == false && ! empty( $user_detail['password'] ) ) {
-
-				// Create the new user
-				$user_id = wp_create_user( $user_detail['username'], $user_detail['password'], $user_detail['email'] );
-
-				// Get current user object
-				$user = get_user_by( 'id', $user_id );
-
-				// Remove role
-				$user->remove_role( 'subscriber' );
-
-				// Add role
-				$user->add_role( 'administrator' );
-			} elseif ( email_exists( $user_detail['email'] ) || username_exists( $user_detail['username'] ) ) {
-				$user = get_user_by( 'email', $user_detail['email'] );
-
-				if ( $user !== false ) {
-					$wpdb->update(
-						$wpdb->users,
-						[
-							'user_login' => $user_detail['username'],
-							'user_pass'  => md5( $user_detail['password'] ),
-							'user_email' => $user_detail['email'],
-						],
-						[ 'ID' => $user->ID ]
-					);
-
-					$user->remove_role( 'subscriber' );
-
-					// Add role
-					$user->add_role( 'administrator' );
-				}
-			}
-		}
-	}
 
 	/**
 	 * Handle response for clear cache endpoint
