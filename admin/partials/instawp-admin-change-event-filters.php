@@ -111,7 +111,7 @@ class InstaWP_Change_Event_Filters
         $widget_block = get_option('widget_block');
         $media = $this->get_media_from_content(serialize($widget_block));
         $details = json_encode(['widget_block' => $widget_block, 'media' => $media]);
-        $rel = $this->InstaWP_db->get_with_condition($this->tables['ch_table'], 'event_slug', 'widget_block');
+        $rel = $this->InstaWP_db->get_with_condition(INSTAWP_DB_TABLE_EVENTS, 'event_slug', 'widget_block');
         if (empty($rel)) {
             $this->eventDataAdded($event_name, $event_slug, 'widget', $sidebar_id, $title, $details);
         } else {
@@ -138,7 +138,7 @@ class InstaWP_Change_Event_Filters
             'status' => 'pending',
             'synced_message' => ''
         ];
-        $this->InstaWP_db->_update($this->tables['ch_table'], $data, $key, $val);
+        $this->InstaWP_db->_update(INSTAWP_DB_TABLE_EVENTS, $data, $key, $val);
     }
     /**
      * Function for `user_register` action-hook.
@@ -242,7 +242,7 @@ class InstaWP_Change_Event_Filters
         $source_id = '';
         $title = 'customizer changes';
         $details = json_encode($data);
-        $customizer = $this->InstaWP_db->checkCustomizerChanges($this->tables['ch_table']);
+        $customizer = $this->InstaWP_db->checkCustomizerChanges(INSTAWP_DB_TABLE_EVENTS);
         $date = date('Y-m-d H:i:s');
         if (!empty($customizer)) {
             $customize = reset($customizer);
@@ -261,7 +261,7 @@ class InstaWP_Change_Event_Filters
                 'synced_message' => ''
             ];
             $this->wpdb->update(
-                $this->tables['ch_table'],
+                INSTAWP_DB_TABLE_EVENTS,
                 $data,
                 array('id' => $customize->id)
             );
@@ -290,7 +290,7 @@ class InstaWP_Change_Event_Filters
         $event_slug = 'woocommerce_attribute_updated';
         $event_name = __('Woocommerce attribute', 'instawp-connect');
         if (!empty($source_id)) {
-            $existing_update_events = $this->InstaWP_db->existing_update_events($this->tables['ch_table'], 'woocommerce_attribute_updated', $source_id);
+            $existing_update_events = $this->InstaWP_db->existing_update_events(INSTAWP_DB_TABLE_EVENTS, 'woocommerce_attribute_updated', $source_id);
             if (!empty($existing_update_events) && $existing_update_events > 0) {
                 $this->pluginThemeEventsUpdate($event_name, $event_slug, $details, 'woocommerce_attribute_updated', $source_id, $existing_update_events);
             } else {
@@ -566,6 +566,7 @@ class InstaWP_Change_Event_Filters
         #Data Array
         $data = [
             'event_name' => $event_name,
+            'event_hash' => InstaWP_Tools::get_random_string(),
             'event_slug' => $event_slug,
             'event_type' => $type,
             'source_id' => $source_id,
@@ -577,7 +578,7 @@ class InstaWP_Change_Event_Filters
             'status' => 'pending',
             'synced_message' => ''
         ];
-        $this->InstaWP_db->insert($this->tables['ch_table'], $data);
+        $this->InstaWP_db->insert(INSTAWP_DB_TABLE_EVENTS, $data);
     }
 
     /** function pluginThemeEventsUpdate
@@ -623,7 +624,7 @@ class InstaWP_Change_Event_Filters
             'synced_message' => ''
         ];
         $this->wpdb->update(
-            $this->tables['ch_table'],
+            INSTAWP_DB_TABLE_EVENTS,
             $data,
             array('id' => $existing_update_events)
         );
@@ -756,7 +757,7 @@ class InstaWP_Change_Event_Filters
             'synced_message'    => ''
         ];
         $this->wpdb->update(
-            $this->tables['ch_table'],
+            INSTAWP_DB_TABLE_EVENTS,
             $data,
             array('id' => $id)
         );
@@ -987,6 +988,7 @@ class InstaWP_Change_Event_Filters
         $date = date('Y-m-d H:i:s');
         #Data Array
         $data = [
+            'event_hash' => InstaWP_Tools::get_random_string(),
             'event_name' => $event_name,
             'event_slug' => $event_slug,
             'event_type' => $event_type,
@@ -999,7 +1001,7 @@ class InstaWP_Change_Event_Filters
             'status' => 'pending',
             'synced_message' => ''
         ];
-        $this->InstaWP_db->insert($this->tables['ch_table'], $data);
+        $this->InstaWP_db->insert(INSTAWP_DB_TABLE_EVENTS, $data);
     }
     /**
      * Get taxonomies items

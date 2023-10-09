@@ -228,6 +228,21 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 
 					break;
 
+				case 'config-set';
+
+					$api_key = $args[ ( $cli_action_index + 2 ) ] ?? '';
+					$option = new \InstaWP\Connect\Helpers\Option();
+					$option->update( [ 'instawp_api_key' => sanitize_text_field( $api_key ) ] );
+
+					break;
+
+				case 'config-remove';
+
+					$option = new \InstaWP\Connect\Helpers\Option();
+					$option->delete( [ 'instawp_api_key' ] );
+
+					break;
+
 				default:
 					WP_CLI::error( esc_html__( 'Invalid command for `-action`', 'instawp-connect' ) );
 					break;

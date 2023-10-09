@@ -464,6 +464,8 @@ select#event-action-type {
     opacity: 0;
 }
 
+.instawp-box-loading:after,
+.event-progress-text.loading:after,
 .btn-single-sync.loading:after, 
 .changes-btn.loading:after, 
 td.event-sync-cell.loading:after, 
@@ -553,3 +555,16 @@ span.select2-selection.select2-selection {
     50% {opacity: 0;}
 }
 
+.event-progress-text.loading::after{
+    left: 10px !important;
+}
+
+.event-type-count-show-more{
+    list-style:none;
+}
+
+a.changes-btn.sync-changes-btn.disabled {
+    pointer-events: none;
+    background: #3eafa3;
+    border-color: #3eafa3;
+}

@@ -96,6 +96,7 @@ define( 'INSTAWP_DB_TABLE_STAGING_SITES', $wpdb->prefix . 'instawp_staging_sites
 define( 'INSTAWP_DB_TABLE_EVENTS', $wpdb->prefix . 'instawp_events' );
 define( 'INSTAWP_DB_TABLE_SYNC_HISTORY', $wpdb->prefix . 'instawp_sync_history' );
 define( 'INSTAWP_DB_TABLE_EVENT_SITES', $wpdb->prefix . 'instawp_event_sites' );
+define( 'INSTAWP_DB_TABLE_EVENT_SYNC_LOGS', $wpdb->prefix . 'instawp_event_sync_logs' );
 
 define( 'INSTAWP_SUCCESS', 'success' );
 define( 'INSTAWP_FAILED', 'failed' );
@@ -104,7 +105,7 @@ define( 'INSTAWP_API_URL', '/api/v1' );
 define( 'INSTAWP_API_2_URL', '/api/v2' );
 define( 'INSTAWP_EVENTS_PER_PAGE', 20 );
 define( 'INSTAWP_DEFAULT_MAX_FILE_SIZE_ALLOWED', 50 );
-define( 'INSTAWP_EVENTS_SYNC_PER_PAGE', 10 );
+define( 'INSTAWP_EVENTS_SYNC_PER_PAGE', 5 );
 define( 'INSTAWP_STAGING_SITES_PER_PAGE', 10 );
 @ini_set( 'memory_limit', '2048M' );
 
@@ -134,6 +135,19 @@ function instawp_plugin_activate() {
 	add_option( 'instawp_do_activation_redirect', true );
 
 	as_enqueue_async_action( 'instawp_prepare_large_files_list_async', [], 'instawp-connect', true );
+
+	//set default user for sync settings if user empty
+	$default_user = InstaWP_Setting::get_option( 'instawp_default_user' );
+	if( empty( $default_user ) ){
+		add_option( 'instawp_default_user', get_current_user_id() );
+	}
+
+	$instawp_sync_tab_roles = InstaWP_Setting::get_option( 'instawp_sync_tab_roles' );
+	if( empty( $instawp_sync_tab_roles ) ){
+		$user = wp_get_current_user();
+		$roles = ( array ) $user->roles;
+		add_option( 'instawp_sync_tab_roles', $roles );
+	}
 }
 
 /*Deactivate Hook Handle*/
@@ -222,6 +236,7 @@ function run_instawp() {
 	$GLOBALS['instawp_plugin'] = $instawp_plugin;
 
 	instawp_create_db_tables();
+	instawp_alter_db_tables();
 }
 
 add_filter( 'got_rewrite', '__return_true' );
