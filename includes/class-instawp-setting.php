@@ -65,7 +65,7 @@ class InstaWP_Setting {
 
 		if ( instawp()->is_staging ) {
 			unset( $instawp_nav_items['create'] );
-			//unset( $instawp_nav_items['sites'] );
+			unset( $instawp_nav_items['manage'] );
 		}
  
 		$user = get_userdata( get_current_user_id() );
@@ -317,7 +317,16 @@ class InstaWP_Setting {
 						'wpdb' => esc_html__( 'WPDB', 'instawp-connect' ),
 						'pdo'  => esc_html__( 'PDO', 'instawp-connect' ),
 					),
-				),
+				)
+			),
+		);
+
+		// Section - Sync settings
+		$settings['sync_settings'] = array(
+			'title'    => esc_html__( 'Sync Settings', 'instawp-connect' ),
+			'desc'     => esc_html__( 'This section only applicable for the sync event settings.', 'instawp-connect' ),
+			'internal' => false,
+			'fields'   => array(
 				array(
 					'id'      => 'instawp_default_user',
 					'type'    => 'select2',
