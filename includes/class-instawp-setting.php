@@ -301,18 +301,7 @@ class InstaWP_Setting {
 					'placeholder' => esc_attr( 'gL8tbdZFfG8yQCXu0IycBa' ),
 					'attributes'  => array(//						'readonly' => true,
 					),
-				),
-				array(
-					'id'          => 'instawp_backup_part_size',
-					'type'        => 'number',
-					'title'       => esc_html__( 'Backup Parts Size', 'instawp-connect' ),
-					'desc'        => esc_html__( 'Unit is MB. Default - ' . INSTAWP_DEFAULT_MAX_FILE_SIZE . ' MB', 'instawp-connect' ),
-					'placeholder' => esc_attr( INSTAWP_DEFAULT_MAX_FILE_SIZE ),
-					'attributes'  => array(
-						'min' => '10',
-						'max' => '100',
-					),
-				),
+				), 
 				array(
 					'id'          => 'instawp_max_file_size_allowed',
 					'type'        => 'number',
@@ -332,16 +321,6 @@ class InstaWP_Setting {
 					'options' => array(
 						'soft' => esc_html__( 'Soft Reset', 'instawp-connect' ),
 						'hard' => esc_html__( 'Hard Reset', 'instawp-connect' ),
-					),
-				),
-				array(
-					'id'      => 'instawp_db_method',
-					'type'    => 'select',
-					'title'   => esc_html__( 'Database Method', 'instawp-connect' ),
-					'desc'    => esc_html__( 'WPDB option has a better compatibility, but slower. It is recommended to choose PDO if pdo_mysql extension is installed.', 'instawp-connect' ),
-					'options' => array(
-						'wpdb' => esc_html__( 'WPDB', 'instawp-connect' ),
-						'pdo'  => esc_html__( 'PDO', 'instawp-connect' ),
 					),
 				)
 			),

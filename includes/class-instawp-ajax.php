@@ -104,8 +104,10 @@ class InstaWP_AJAX {
 		// Remove instawp connect options
 		$migrate_settings['excluded_tables_rows'] = array(
 			"{$wpdb->prefix}options" => array(
+				'option_name:instawp_api_options',
 				'option_name:instawp_connect_id_options',
 				'option_name:instawp_sync_parent_connect_data',
+				'option_name:instawp_migration_details',
 			),
 		);
 
