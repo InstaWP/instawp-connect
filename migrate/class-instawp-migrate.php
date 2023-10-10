@@ -27,7 +27,6 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 			add_action( 'wp_ajax_instawp_check_limit', array( $this, 'check_limit' ) );
 			add_action( 'wp_ajax_instawp_check_domain_availability', array( $this, 'check_domain_availability' ) );
 			add_action( 'wp_ajax_instawp_check_domain_connect_status', array( $this, 'check_domain_connect_status' ) );
-			add_action( 'admin_init', array( $this, 'handle_clear_all' ) );
 
 			add_action( 'INSTAWP/Actions/restore_completed', array( $this, 'restore_completed' ), 10, 2 );
 
@@ -97,25 +96,6 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 		}
 
 
-		function handle_clear_all() {
-
-			$admin_page   = isset( $_GET['page'] ) ? sanitize_text_field( $_GET['page'] ) : '';
-			$clear_action = isset( $_GET['clear'] ) ? sanitize_text_field( $_GET['clear'] ) : '';
-
-			if ( 'instawp' === $admin_page && 'all' === $clear_action ) {
-				$incomplete_task_ids = InstaWP_taskmanager::is_there_any_incomplete_task_ids();
-				if ( ! empty( $incomplete_task_ids ) ) {
-					instawp_destination_disconnect( reset( $incomplete_task_ids ) );
-				}
-
-				instawp_reset_running_migration();
-
-				wp_redirect( admin_url( 'tools.php?page=instawp' ) );
-				exit();
-			}
-		}
-
-
 		function check_domain_connect_status() {
 
 			$destination_domain = isset( $_POST['destination_domain'] ) ? sanitize_url( $_POST['destination_domain'] ) : '';
@@ -160,7 +140,11 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 		function check_limit() {
 
 			$_settings = isset( $_POST['settings'] ) ? $_POST['settings'] : [];
-			parse_str( $_settings, $settings );
+			$settings  = [];
+
+			if ( ! empty( $_settings ) ) {
+				parse_str( $_settings, $settings );
+			}
 
 			$api_response = instawp()->instawp_check_usage_on_cloud( $settings );
 			$can_proceed  = (bool) InstaWP_Setting::get_args_option( 'can_proceed', $api_response, false );
@@ -385,7 +369,8 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 			wp_enqueue_style( 'instawp-connect', instawp()::get_asset_url( 'assets/css/style.min.css' ), [], current_time( 'U' ) );
 
 //			wp_enqueue_script( 'instawp-tailwind', instawp()::get_asset_url( 'migrate/assets/js/tailwind.js' ) );
-			wp_enqueue_script( 'instawp-migrate', instawp()::get_asset_url( 'migrate/assets/js/scripts.js' ), array(), current_time( 'U' ) );
+//			wp_enqueue_script( 'instawp-migrate', instawp()::get_asset_url( 'migrate/assets/js/scripts.js' ), array(), current_time( 'U' ) );
+			wp_enqueue_script( 'instawp-migrate', instawp()::get_asset_url( 'assets/js/scripts.js' ), array(), current_time( 'U' ) );
 			wp_localize_script( 'instawp-migrate', 'instawp_migrate',
 				array(
 					'ajax_url' => admin_url( 'admin-ajax.php' ),

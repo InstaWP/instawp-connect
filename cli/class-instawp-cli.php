@@ -231,15 +231,14 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 				case 'config-set';
 
 					$api_key = $args[ ( $cli_action_index + 2 ) ] ?? '';
-					$option = new \InstaWP\Connect\Helpers\Option();
-					$option->update( [ 'instawp_api_key' => sanitize_text_field( $api_key ) ] );
+					InstaWP_Setting::instawp_generate_api_key( $api_key, 'true' );
 
 					break;
 
 				case 'config-remove';
 
 					$option = new \InstaWP\Connect\Helpers\Option();
-					$option->delete( [ 'instawp_api_key' ] );
+					$option->delete( [ 'instawp_api_key', 'instawp_api_options', 'instawp_connect_id_options' ] );
 
 					break;
 
