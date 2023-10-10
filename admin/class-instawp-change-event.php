@@ -17,10 +17,8 @@ class InstaWP_Change_event {
 	protected static $_instance = null;
 
 	public function __construct() {
-		add_action( 'init', array( $this, 'instawp_get_source_site_detail' ) );
-		//add_action( 'init', array( $this, 'instawp_set_default_sync_settings' ) );
+		add_action( 'init', array( $this, 'get_source_site_detail' ) );
 		add_action( 'admin_bar_menu', array( $this, 'instawp_add_sync_status_toolbar_link' ), 999 );
-		//add_action( 'admin_menu', array( $this, 'add_change_event_menu' ) );
 	}
 
 
@@ -72,36 +70,24 @@ class InstaWP_Change_event {
 		return $data;
 	}
 
-	public function instawp_get_source_site_detail() {
-
-		$connect_id          = InstaWP_Setting::get_option( 'instawp_sync_connect_id' );
-		$parent_connect_data = InstaWP_Setting::get_option( 'instawp_sync_parent_connect_data' );
-
-		if ( intval( $connect_id ) > 0 && empty( $parent_connect_data ) ) {
-			$api_response = InstaWP_Curl::do_curl( 'connects/' . $connect_id, [], [], false );
-
-			if ( $api_response['success'] == true ) {
-				$api_response_data               = InstaWP_Setting::get_args_option( 'data', $api_response, [] );
-				$api_response_data['connect_id'] = $connect_id;
-				add_option( 'instawp_sync_parent_connect_data', $api_response_data );
-			}
-		}
+	public function get_source_site_detail() {
+		instawp_get_source_site_detail();
 	}
 
 	/**
 	 * default sync settings
 	 * @return null
 	 */
-	public function instawp_set_default_sync_settings(){
+	public function instawp_set_default_sync_settings() {
 		//set default user for sync settings if user empty
 		$default_user = InstaWP_Setting::get_option( 'instawp_default_user' );
-		if( empty( $default_user ) ){
+		if ( empty( $default_user ) ) {
 			add_option( 'instawp_default_user', get_current_user_id() );
 		}
 
 		$instawp_sync_tab_roles = InstaWP_Setting::get_option( 'instawp_sync_tab_roles' );
-		if( empty( $instawp_sync_tab_roles ) ){
-			$user = wp_get_current_user();
+		if ( empty( $instawp_sync_tab_roles ) ) {
+			$user  = wp_get_current_user();
 			$roles = ( array ) $user->roles;
 			add_option( 'instawp_sync_tab_roles', $roles );
 		}

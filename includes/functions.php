@@ -1371,3 +1371,22 @@ if ( ! function_exists( 'instawp_files_contains' ) ) {
 		return false;
 	}
 }
+
+
+if ( ! function_exists( 'instawp_get_source_site_detail' ) ) {
+	function instawp_get_source_site_detail() {
+		$connect_id          = InstaWP_Setting::get_option( 'instawp_sync_connect_id' );
+		$parent_connect_data = InstaWP_Setting::get_option( 'instawp_sync_parent_connect_data' );
+
+		if ( intval( $connect_id ) > 0 && empty( $parent_connect_data ) ) {
+
+			$api_response = InstaWP_Curl::do_curl( 'connects/' . $connect_id, [], [], false );
+
+			if ( $api_response['success'] ) {
+				$api_response_data               = InstaWP_Setting::get_args_option( 'data', $api_response, [] );
+				$api_response_data['connect_id'] = $connect_id;
+				add_option( 'instawp_sync_parent_connect_data', $api_response_data );
+			}
+		}
+	}
+}
