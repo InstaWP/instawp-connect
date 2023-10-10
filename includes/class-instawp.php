@@ -98,11 +98,6 @@ class instaWP {
 			InstaWP_Setting::update_option( 'instawp_init', 'init' );
 		}
 
-		$instawp_remote_init = get_option( 'instawp_remote_init', 'not init' );
-		if ( $instawp_remote_init == 'not init' ) {
-			$this->init_remote_option();
-			InstaWP_Setting::update_option( 'instawp_remote_init', 'init' );
-		}
 
 		//Define the locale for this plugin for internationalization.
 		$this->set_locale();
@@ -501,76 +496,6 @@ class instaWP {
 	public function load_remote_storage() {
 
 	}
-
-	// $instawp_remote_init = get_option( 'instawp_remote_init', 'not init' );
-	// if ( $instawp_remote_init == 'not init' ) {
-	// 	$this->init_remote_option();
-	// 	InstaWP_Setting::update_option( 'instawp_remote_init', 'init' );
-	// }
-
-	// //Define the locale for this plugin for internationalization.
-	// $this->set_locale();
-	// //Register hook
-	// if ( is_admin() ) {
-	// 	$this->define_admin_hook();
-	// 	//Add ajax hook
-	// 	$this->load_ajax_hook_for_admin();
-	// }
-
-	// //add_filter('pre_update_option',array( $this,'wpjam_pre_update_option_cache'),10,2);
-
-	// add_filter( 'instawp_add_backup_list', array( $this, 'instawp_add_backup_list' ), 10, 3 );
-	// add_filter( 'instawp_add_remote_storage_list', array( $this, 'instawp_add_remote_storage_list' ), 10 );
-	// add_filter( 'instawp_schedule_add_remote_pic', array( $this, 'instawp_schedule_add_remote_pic' ), 10 );
-	// add_filter( 'instawp_get_remote_directory', array( $this, 'instawp_get_remote_directory' ), 10 );
-	// add_filter( 'instawp_get_log_list', array( $this, 'instawp_get_log_list' ), 10 );
-	// add_filter( 'instawp_get_last_backup_message', array( $this, 'instawp_get_last_backup_message' ), 10 );
-	// add_filter( 'instawp_schedule_local_remote', array( $this, 'instawp_schedule_local_remote' ), 10 );
-	// add_filter( 'instawp_remote_storage', array( $this, 'instawp_remote_storage' ), 10 );
-	// add_filter( 'instawp_add_remote_notice', array( $this, 'instawp_add_remote_notice' ), 10, 2 );
-	// add_filter( 'instawp_set_general_setting', array( $this, 'instawp_set_general_setting' ), 10, 3 );
-
-	// add_action( 'instawp_handle_backup_succeed', array( $this, 'instawp_handle_backup_succeed' ), 10 );
-	// add_action( 'instawp_handle_upload_succeed', array( $this, 'instawp_handle_backup_succeed' ), 10 );
-
-	// add_action( 'instawp_handle_upload_succeed', array( $this, 'instawp_mark_task' ), 20 );
-	// add_action( 'instawp_handle_backup_succeed', array( $this, 'instawp_mark_task' ), 20 );
-
-	// add_action( 'instawp_handle_backup_failed', array( $this, 'instawp_handle_backup_failed' ), 9, 2 );
-
-	// add_action( 'instawp_handle_upload_succeed', array( $this, 'instawp_deal_upload_succeed' ), 9 );
-
-	// add_action( 'instawp_handle_backup_failed', array( $this, 'instawp_mark_task' ), 20 );
-	// add_action( 'init', array( $this, 'init_pclzip_tmp_folder' ) );
-	// add_action( 'plugins_loaded', array( $this, 'load_remote_storage' ), 10 );
-
-	// add_action( 'instawp_before_setup_page', array( $this, 'clean_cache' ) );
-	// add_filter( 'instawp_check_type_database', array( $this, 'instawp_check_type_database' ), 10, 2 );
-
-
-	// add_filter( 'instawp_get_oldest_backup_ids', array( $this, 'get_oldest_backup_ids' ), 10, 2 );
-	// add_filter( 'instawp_check_backup_completeness', array( $this, 'check_backup_completeness' ), 10, 2 );
-
-	// add_filter( 'instawp_get_mainwp_sync_data', array( $this, 'get_mainwp_sync_data' ), 10 );
-	// //
-	// add_filter( 'instawp_get_zip_object_class_ex', array( $this, 'get_zip_object_class' ) );
-	// //Initialisation schedule hook
-	// $this->init_cron();
-	// //Initialisation log object
-	// $this->instawp_log          = new InstaWP_Log();
-	// $this->instawp_download_log = new InstaWP_Log();
-	// $this->instawp_restore_log  = new InstaWP_Log();
-
-	// /*Cron handlers*/
-	// add_filter( 'cron_schedules', array( $this, 'instawp_handle_cron_time_intervals' ) );
-	// add_action( 'wp', array( $this, 'instawp_handle_cron_scheduler' ) );
-	// add_action( 'instwp_handle_heartbeat_cron_action', array( $this, 'instawp_handle_heartbeat_cron_action_call' ) );
-	// /*Cron handlers*/
-
-	// // Hook to run on login page
-	// add_action( 'login_init', array( $this, 'instawp_auto_login_redirect' ) );
-	// }
-
 
 	private function set_locale() {
 
@@ -7498,90 +7423,6 @@ class instaWP {
 		}
 
 		return $out_of_date_remote;
-	}
-
-	public function init_remote_option() {
-		$remoteslist = InstaWP_Setting::get_all_remote_options();
-		foreach ( $remoteslist as $key => $value ) {
-			if ( ! array_key_exists( 'options', $value ) ) {
-				continue;
-			}
-			$remote = array();
-			if ( $value['type'] === 'ftp' ) {
-				$remote['host']      = $value['options']['host'];
-				$remote['username']  = $value['options']['username'];
-				$remote['password']  = $value['options']['password'];
-				$remote['path']      = $value['options']['path'];
-				$remote['name']      = $value['options']['name'];
-				$remote['passive']   = $value['options']['passive'];
-				$value['type']       = strtolower( $value['type'] );
-				$remote['type']      = $value['type'];
-				$remoteslist[ $key ] = $remote;
-			} elseif ( $value['type'] === 'sftp' ) {
-				$remote['host']      = $value['options']['host'];
-				$remote['username']  = $value['options']['username'];
-				$remote['password']  = $value['options']['password'];
-				$remote['path']      = $value['options']['path'];
-				$remote['name']      = $value['options']['name'];
-				$remote['port']      = $value['options']['port'];
-				$value['type']       = strtolower( $value['type'] );
-				$remote['type']      = $value['type'];
-				$remoteslist[ $key ] = $remote;
-			} elseif ( $value['type'] === 'amazonS3' ) {
-				$remote['classMode'] = '0';
-				$remote['sse']       = '0';
-				$remote['name']      = $value['options']['name'];
-				$remote['access']    = $value['options']['access'];
-				$remote['secret']    = $value['options']['secret'];
-				$remote['s3Path']    = $value['options']['s3Path'];
-				$value['type']       = strtolower( $value['type'] );
-				$remote['type']      = $value['type'];
-				$remoteslist[ $key ] = $remote;
-			}
-		}
-		InstaWP_Setting::update_option( 'instawp_upload_setting', $remoteslist );
-
-		$backuplist = InstaWP_Backuplist::get_backuplist();
-		foreach ( $backuplist as $key => $value ) {
-			if ( is_array( $value['remote'] ) ) {
-				foreach ( $value['remote'] as $remote_key => $storage_type ) {
-					if ( ! array_key_exists( 'options', $storage_type ) ) {
-						continue;
-					}
-					$remote = array();
-					if ( $storage_type['type'] === 'ftp' ) {
-						$remote['host']       = $storage_type['options']['host'];
-						$remote['username']   = $storage_type['options']['username'];
-						$remote['password']   = $storage_type['options']['password'];
-						$remote['path']       = $storage_type['options']['path'];
-						$remote['name']       = $storage_type['options']['name'];
-						$remote['passive']    = $storage_type['options']['passive'];
-						$storage_type['type'] = strtolower( $storage_type['type'] );
-						$remote['type']       = $storage_type['type'];
-					} elseif ( $storage_type['type'] === 'sftp' ) {
-						$remote['host']       = $storage_type['options']['host'];
-						$remote['username']   = $storage_type['options']['username'];
-						$remote['password']   = $storage_type['options']['password'];
-						$remote['path']       = $storage_type['options']['path'];
-						$remote['name']       = $storage_type['options']['name'];
-						$remote['port']       = $storage_type['options']['port'];
-						$storage_type['type'] = strtolower( $storage_type['type'] );
-						$remote['type']       = $storage_type['type'];
-					} elseif ( $storage_type['type'] === 'amazonS3' ) {
-						$remote['classMode']  = '0';
-						$remote['sse']        = '0';
-						$remote['name']       = $storage_type['options']['name'];
-						$remote['access']     = $storage_type['options']['access'];
-						$remote['secret']     = $storage_type['options']['secret'];
-						$remote['s3Path']     = $storage_type['options']['s3Path'];
-						$storage_type['type'] = strtolower( $storage_type['type'] );
-						$remote['type']       = $storage_type['type'];
-					}
-					$backuplist[ $key ]['remote'][ $remote_key ] = $remote;
-				}
-			}
-		}
-		InstaWP_Setting::update_option( 'instawp_backup_list', $backuplist );
 	}
 
 	public function need_review() {

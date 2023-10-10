@@ -3,6 +3,11 @@
 defined( 'ABSPATH' ) || die;
 
 class InstaWP_Curl {
+
+	public $api_key;
+	public $response;
+
+
 	public static function do_curl( $endpoint, $body = array(), $headers = array(), $is_post = true, $api_version = 'v2' ) {
 
 		$connect_options = InstaWP_Setting::get_option( 'instawp_api_options', array() );
@@ -61,6 +66,83 @@ class InstaWP_Curl {
 		$response_message = InstaWP_Setting::get_args_option( 'message', $api_response );
 
 		return array( 'success' => $response_status, 'message' => $response_message, 'data' => $response_data );
+	}
+
+
+	public function curl( $url, $body, $header = array(), $is_post = true ) {
+
+		$this->set_api_key();
+
+		$res     = array();
+		$headers = array(
+			'Authorization: Bearer ' . $this->api_key,
+			'Accept: application/json',
+			'Content-Type: application/json',
+		);
+
+		if ( ! empty( $header ) ) {
+			array_push( $headers, $header );
+		}
+
+		$useragent  = isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '';
+		$api_method = $is_post ? 'POST' : 'GET';
+
+		$args           = array(
+			'method'     => $api_method,
+			'body'       => $body,
+			'timeout'    => 0,
+			'decompress' => false,
+			'stream'     => false,
+			'filename'   => '',
+			'user-agent' => $useragent,
+			'headers'    => array(
+				'Authorization' => 'Bearer ' . $this->api_key,
+				'Content-Type'  => 'application/json',
+				'Accept'        => 'application/json'
+			)
+		);
+		$WP_Http_Curl   = new WP_Http_Curl();
+		$this->response = $WP_Http_Curl->request( $url, $args );
+		update_option( 'main_curl_1', $this->response );
+
+		if ( $this->response instanceof WP_Error || is_wp_error( $this->response ) ) {
+			return array(
+				'error'    => true,
+				'curl_res' => $this->response,
+				'message'  => $this->response->get_error_message(),
+			);
+		} else if ( ! $this->response ) {
+			$res['message']  = '';
+			$res['error']    = 1;
+			$res['curl_res'] = $this->response;
+		} else {
+			$respons_arr = (array) json_decode( $this->response['body'] );
+			if ( isset( $respons_arr['status'] ) && $respons_arr['status'] == 1 ) {
+				$res['error']    = 0;
+				$res['curl_res'] = $this->response['body'];
+				$res['message']  = $respons_arr['message'];
+			} else {
+				$res['message']  = $respons_arr['message'];
+				$res['error']    = 1;
+				$res['curl_res'] = $this->response;
+			}
+		}
+
+		return $res;
+	}
+
+	public function set_api_key() {
+		$res             = array();
+		$connect_options = get_option( 'instawp_api_options', '' );
+
+		if ( isset( $connect_options['api_key'] ) && ! empty( $connect_options['api_key'] ) ) {
+			$this->api_key = $connect_options['api_key'];
+		} else {
+			$res['error']   = true;
+			$res['message'] = 'API Key Is Required';
+			echo json_encode( $res );
+			wp_die();
+		}
 	}
 }
 

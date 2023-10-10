@@ -43,6 +43,7 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 
 			if ( isset( $args[0] ) && $args[0] === 'staging-set' && ! empty( $args[1] ) ) {
 				update_option( 'instawp_sync_connect_id', intval( $args[1] ) );
+				update_option( 'instawp_is_staging', true );
 				instawp_get_source_site_detail();
 
 				return true;
