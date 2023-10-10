@@ -95,15 +95,16 @@ if ( ! function_exists( 'instawp_create_db_tables' ) ) {
 	}
 }
 
+
 if ( ! function_exists( 'instawp_alter_db_tables' ) ) {
 	function instawp_alter_db_tables() {
 		global $wpdb;
 
-		$row = $wpdb->get_row("SELECT * FROM ".INSTAWP_DB_TABLE_EVENTS."", ARRAY_A);
+		$row = $wpdb->get_row( "SELECT * FROM " . INSTAWP_DB_TABLE_EVENTS, ARRAY_A );
 		$row = $row ?? [];
 
-		if( ( !array_key_exists('event_hash', $row ) ) ){
-			$wpdb->query("ALTER TABLE ".INSTAWP_DB_TABLE_EVENTS." ADD `event_hash` varchar(50) NOT NULL AFTER `id`");
+		if ( ( ! array_key_exists( 'event_hash', $row ) ) ) {
+			$wpdb->query( "ALTER TABLE " . INSTAWP_DB_TABLE_EVENTS . " ADD `event_hash` varchar(50) NOT NULL AFTER `id`" );
 		}
 	}
 }
@@ -1285,7 +1286,7 @@ if ( ! function_exists( 'instawp_is_wordfence_whitelisted' ) ) {
 		$whitelisted = false;
 		if ( class_exists( '\wfConfig' ) && method_exists( '\wfConfig', 'get' ) ) {
 			$whites = \wfConfig::get( 'whitelisted', [] );
-			$arr = explode( ',', $whites );
+			$arr    = explode( ',', $whites );
 			if ( in_array( '167.71.233.239', $arr ) && in_array( '159.65.64.73', $arr ) ) {
 				$whitelisted = true;
 			}
@@ -1294,6 +1295,7 @@ if ( ! function_exists( 'instawp_is_wordfence_whitelisted' ) ) {
 		return $whitelisted;
 	}
 }
+
 
 if ( ! function_exists( 'instawp_set_wordfence_whitelist_ip' ) ) {
 	function instawp_set_wordfence_whitelist_ip() {
@@ -1304,14 +1306,17 @@ if ( ! function_exists( 'instawp_set_wordfence_whitelist_ip' ) ) {
 	}
 }
 
+
 if ( ! function_exists( 'instawp_can_whitelist_wordfence' ) ) {
 	function instawp_can_whitelist_wordfence() {
 		if ( ! function_exists( 'is_plugin_active' ) ) {
 			include_once ABSPATH . 'wp-admin/includes/plugin.php';
 		}
+
 		return ( is_plugin_active( 'wordfence/wordfence.php' ) && ! instawp_is_wordfence_whitelisted() );
 	}
 }
+
 
 if ( ! function_exists( 'instawp_readfile_chunked' ) ) {
 	/**
@@ -1365,10 +1370,4 @@ if ( ! function_exists( 'instawp_files_contains' ) ) {
 
 		return false;
 	}
-}
-
-function pr( $data ) {
-	echo '<pre>';
-	print_r( $data );
-	exit();
 }

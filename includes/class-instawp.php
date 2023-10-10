@@ -153,11 +153,6 @@ class instaWP {
 		//Initialization schedule hook
 		$this->init_cron();
 
-		//Initialization log object
-		$this->instawp_log          = new InstaWP_Log();
-		$this->instawp_download_log = new InstaWP_Log();
-		$this->instawp_restore_log  = new InstaWP_Log();
-
 		// Heartbeat Action events handler.
 		add_action( 'init', array( $this, 'register_heartbeat_action' ), 11 );
 		add_action( 'update_option_instawp_api_heartbeat', array( $this, 'clear_heartbeat_action' ) );
@@ -471,9 +466,7 @@ class instaWP {
 	}
 
 	private function load_dependencies() {
-		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-log.php';
 		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-migrate-log.php';
-		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-i18n.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-curl.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-ajax.php';
 		require_once INSTAWP_PLUGIN_DIR . '/admin/class-instawp-admin.php';
@@ -483,51 +476,19 @@ class instaWP {
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-rest-apis.php';
 		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-setting.php';
 
-		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-error-log.php';
 		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-file-management.php';
 		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-database-management.php';
-		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-backuplist.php';
-		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-restore-data.php';
-		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-taskmanager.php';
 
-		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-downloader.php';
-		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-backup.php';
-
-		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-restore.php';
-
-		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-function-realize.php';
-		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-upload.php';
-
-		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-backup-uploader.php';
-		//include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-crypt.php';
-		//include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-migrate.php';
-
-		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-db-method.php';
-
-		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-public-interface.php';
-
-		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-additional-db-method.php';
-		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-restore-db-extra.php';
-
-		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-tab-page-container.php';
 		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-tools.php';
 
-		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-interface-mainwp.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-rest-api.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-hooks.php';
 
 		require_once INSTAWP_PLUGIN_DIR . '/migrate/class-instawp-migrate.php';
-		require_once INSTAWP_PLUGIN_DIR . '/migrate/class-instawp-migrate-hosting.php';
 
 		require_once INSTAWP_PLUGIN_DIR . '/cli/class-instawp-cli.php';
 
 		require_once INSTAWP_PLUGIN_DIR . '/admin/class-instawp-change-event.php';
-
-
-		$this->function_realize = new InstaWP_Function_Realize();
-		//$this->migrate          = new InstaWP_Migrate();
-		$this->backup_uploader  = new instawp_BackupUploader();
-		$this->interface_mainwp = new InstaWP_Interface_MainWP();
 	}
 
 	public function init_pclzip_tmp_folder() {
@@ -612,8 +573,12 @@ class instaWP {
 
 
 	private function set_locale() {
-		$plugin_i18n = new InstaWP_i18n();
-		add_action( 'plugins_loaded', array( $plugin_i18n, 'load_plugin_textdomain' ) );
+
+		load_plugin_textdomain(
+			'instawp-connect',
+			false,
+			dirname( dirname( plugin_basename( __FILE__ ) ) ) . '/languages/'
+		);
 	}
 
 	private function define_admin_hook() {
@@ -7901,23 +7866,6 @@ class instaWP {
 		}
 
 		return $url;
-	}
-
-	public static function restore_bg( $backup_list, $restore_options, $wp_options ) {
-		InstaWP_Backup_Api::restore_bg( $backup_list, $restore_options, $wp_options );
-	}
-
-
-	public static function download_bg( $task_id, $parameters ) {
-		InstaWP_Backup_Api::download_bg( $task_id, $parameters );
-	}
-
-	public static function backup_bg( $task_id, $parameters ) {
-		InstaWP_Backup_Api::backup_bg( $task_id, $parameters );
-	}
-
-    public static function upload_bg( $task_id, $parameters ) {
-		InstaWP_Backup_Api::upload_bg( $task_id, $parameters );
 	}
 
 

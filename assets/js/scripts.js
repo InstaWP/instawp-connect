@@ -380,6 +380,8 @@
             el_instawp_screen = create_container.find('#instawp-screen'),
             all_nav_items = $('.instawp-wrap .nav-items .nav-item');
 
+        $(document).find('.staging-site-list').slice(0, parseInt($(document).find('.sites').data('pagination'))).show();
+
         if (this_nav_item_id !== null && typeof this_nav_item_id !== 'undefined') {
             $('.instawp-wrap #' + this_nav_item_id).find('a').trigger('click');
         } else {
@@ -1126,11 +1128,6 @@
         }, 500);
     });
     // Remote Management settings save end //
-
-    // Site list pagination start //
-    $(document).on('ready', function () {
-        $(document).find('.staging-site-list').slice(0, parseInt($(document).find('.sites').data('pagination'))).show();
-    });
 
     $(document).on('click', '.sites .page-item', function (e) {
         e.preventDefault();

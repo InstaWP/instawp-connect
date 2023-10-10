@@ -1,48 +1,25 @@
 <?php
 
-if ( ! defined( 'INSTAWP_PLUGIN_DIR' ) ) {
-	die;
-}
+defined( 'ABSPATH' ) || die;
 
 class InstaWP_Backup_Api {
 
 	private $namespace;
 	private $version;
 	private $version_2;
-	public $instawp_log;
-	public $config_log_file_name = 'config';
-	public $download_log_file_name = 'backup_download';
+	private $version_3;
 
 	public function __construct() {
-		$this->version     = 'v1';
-		$this->version_2   = 'v2';
-		$this->version_3   = 'v3';
-		$this->namespace   = 'instawp-connect';
-		$this->instawp_log = new InstaWP_Log();
+		$this->version   = 'v1';
+		$this->version_2 = 'v2';
+		$this->version_3 = 'v3';
+		$this->namespace = 'instawp-connect';
 
 		add_action( 'rest_api_init', array( $this, 'add_api_routes' ) );
 		add_filter( 'rest_authentication_errors', array( $this, 'rest_access' ), 999 );
 	}
 
 	public function add_api_routes() {
-
-		register_rest_route( $this->namespace . '/' . $this->version, '/backup', array(
-			'methods'             => 'POST',
-			'callback'            => array( $this, 'backup' ),
-			'permission_callback' => '__return_true',
-		) );
-
-		register_rest_route( $this->namespace . '/' . $this->version, '/download', array(
-			'methods'             => 'POST',
-			'callback'            => array( $this, 'download' ),
-			'permission_callback' => '__return_true',
-		) );
-
-		register_rest_route( $this->namespace . '/' . $this->version, '/restore', array(
-			'methods'             => 'POST',
-			'callback'            => array( $this, 'restore' ),
-			'permission_callback' => '__return_true',
-		) );
 
 		register_rest_route( $this->namespace . '/' . $this->version, '/config', array(
 			'methods'             => 'POST',
@@ -65,12 +42,6 @@ class InstaWP_Backup_Api {
 		register_rest_route( $this->namespace . '/' . $this->version_2, '/auto-login', array(
 			'methods'             => 'POST',
 			'callback'            => array( $this, 'auto_login' ),
-			'permission_callback' => '__return_true',
-		) );
-
-		register_rest_route( $this->namespace . '/' . $this->version_2 . '/hosting', '/migration', array(
-			'methods'             => 'POST',
-			'callback'            => array( $this, 'hosting_migration' ),
 			'permission_callback' => '__return_true',
 		) );
 
@@ -260,17 +231,6 @@ class InstaWP_Backup_Api {
 		] );
 	}
 
-	function hosting_migration( WP_REST_Request $request ) {
-
-		$response = $this->validate_api_request( $request );
-		if ( is_wp_error( $response ) ) {
-			return $this->throw_error( $response );
-		}
-
-		$response = INSTAWP_Migration_hosting::connect_migrate();
-
-		return new WP_REST_Response( $response );
-	}
 
 	/**
 	 * Handle response for login code generate
@@ -531,8 +491,8 @@ class InstaWP_Backup_Api {
 
 	public function config( $request ) {
 
-		delete_option( 'instawp_api_key_config_completed' );
-		delete_option( 'instawp_connect_id_options' );
+		// delete_option( 'instawp_api_key_config_completed' );
+		// delete_option( 'instawp_connect_id_options' );
 
 		$parameters = $this->filter_params( $request );
 		$results    = array(
@@ -681,311 +641,6 @@ class InstaWP_Backup_Api {
 		}
 
 		return true;
-	}
-
-	public static function restore_bg( $backup_list, $restore_options, $parameters ) {
-
-		global $instawp_plugin;
-
-		$backup_index      = 1;
-		$progress_response = [];
-
-		// before doing restore deactivate caching plugin
-		$instawp_plugin::disable_cache_elements_before_restore();
-
-		foreach ( $backup_list as $backup_list_key => $backup ) {
-			do {
-
-				$instawp_plugin->restore_api( $backup_list_key, $restore_options, $parameters );
-
-				$progress_results  = $instawp_plugin->get_restore_progress_api( $backup_list_key );
-				$progress_response = (array) json_decode( $progress_results );
-
-			} while ( $progress_response['status'] != 'completed' || $progress_response['status'] == 'error' );
-
-			$backup_index ++;
-		}
-
-		if ( $progress_response['status'] == 'completed' ) {
-
-			update_option( 'instawp_migration_settings', InstaWP_Setting::get_args_option( 'migrate_settings', $parameters, [] ) );
-
-			if ( isset( $parameters['wp'] ) && isset( $parameters['wp']['users'] ) ) {
-				InstaWP_Tools::create_user( $parameters['wp']['users'] );
-			}
-
-			if ( isset( $parameters['wp'] ) && isset( $parameters['wp']['options'] ) ) {
-				if ( is_array( $parameters['wp']['options'] ) ) {
-					$create_options = $parameters['wp']['options'];
-
-					foreach ( $create_options as $option_key => $option_value ) {
-						update_option( $option_key, $option_value );
-					}
-				}
-			}
-
-			do_action( 'INSTAWP/Actions/restore_completed', $restore_options, $parameters );
-
-			InstaWP_AJAX::instawp_folder_remover_handle();
-
-			// 6.3 Support for it's css cache issue
-			delete_option( '_transient_wp_core_block_css_files' );
-
-			// once the restore completed, enable caching elements
-			$instawp_plugin::enable_cache_elements_before_restore();
-
-			// reset permalink
-			InstaWP_Tools::instawp_reset_permalink();
-		}
-
-		$instawp_plugin->delete_last_restore_data_api();
-	}
-
-
-	public static function download_bg( $task_id, $parameters = array() ) {
-
-		global $InstaWP_Curl;
-
-		if ( empty( $download_urls = InstaWP_Setting::get_args_option( 'urls', $parameters, array() ) ) || ! is_array( $download_urls ) ) {
-			self::restore_status( 'Empty or invalid download urls.', 0 );
-		}
-
-		$backup_download_ret = $InstaWP_Curl->download( $task_id, $parameters );
-
-		if ( $backup_download_ret['result'] != INSTAWP_SUCCESS ) {
-			self::restore_status( 'Could not download the backup file.', 0 );
-		} else {
-			self::restore_status( 'Backup file downloaded on target site', 51 );
-		}
-	}
-
-
-	public function download( WP_REST_Request $request ) {
-
-		$response = $this->validate_api_request( $request );
-		if ( is_wp_error( $response ) ) {
-			return $this->throw_error( $response );
-		}
-
-		$parameters         = $this->filter_params( $request );
-		$backup_task        = new InstaWP_Backup_Task();
-		$backup_task_ret    = $backup_task->new_download_task();
-		$backup_task_id     = isset( $backup_task_ret['task_id'] ) ? $backup_task_ret['task_id'] : '';
-		$backup_task_result = isset( $backup_task_ret['result'] ) ? $backup_task_ret['result'] : '';
-
-		if ( ! empty( $backup_task_id ) && 'success' == $backup_task_result ) {
-
-			as_enqueue_async_action( 'instawp_download_bg', [ $backup_task_id, $parameters ] );
-
-			do_action( 'action_scheduler_run_queue', 'Async Request' );
-		}
-
-		$res_result = array(
-			'completed' => false,
-			'progress'  => 55,
-			'message'   => esc_html__( 'Downloading has been started.', 'instawp-connect' ),
-			'status'    => 'wait',
-		);
-
-		return new WP_REST_Response( $res_result );
-	}
-
-
-	public function restore( WP_REST_Request $request ) {
-
-		try {
-			$response = $this->validate_api_request( $request );
-			if ( is_wp_error( $response ) ) {
-				return $this->throw_error( $response );
-			}
-
-			if ( ! function_exists( 'deactivate_plugins' ) ) {
-				require_once ABSPATH . 'wp-admin/includes/plugin.php';
-			}
-
-			if ( is_plugin_active( $plugin = 'redis-cache/redis-cache.php' ) ) {
-				deactivate_plugins( $plugin );
-			}
-
-
-			// Clear previous tasks
-			InstaWP_taskmanager::delete_all_task();
-
-			$parameters         = $this->filter_params( $request );
-			$is_background      = $parameters['wp']['options']['instawp_is_background'] ?? true;
-			$restore_options    = json_encode( array(
-				'skip_backup_old_site'     => '1',
-				'skip_backup_old_database' => '1',
-				'is_migrate'               => '1',
-				'backup_db',
-				'backup_themes',
-				'backup_plugin',
-				'backup_uploads',
-				'backup_content',
-				'backup_core',
-			) );
-			$backup_task        = new InstaWP_Backup_Task();
-			$backup_task_ret    = $backup_task->new_download_task( $parameters );
-			$backup_task_id     = isset( $backup_task_ret['task_id'] ) ? $backup_task_ret['task_id'] : '';
-			$backup_task_result = isset( $backup_task_ret['result'] ) ? $backup_task_ret['result'] : '';
-
-			if ( $is_background === false ) {
-				return new WP_REST_Response( array( 'task_id' => $backup_task_id ) );
-			}
-
-			if ( ! empty( $backup_task_id ) && 'success' == $backup_task_result ) {
-
-				as_enqueue_async_action( 'instawp_download_bg', [ $backup_task_id, $parameters ] );
-
-				do_action( 'action_scheduler_run_queue', 'Async Request' );
-			}
-
-			$backup_uploader = new InstaWP_BackupUploader();
-			$backup_uploader->_rescan_local_folder_set_backup_api( $parameters );
-			$backup_list = InstaWP_Backuplist::get_backuplist();
-
-			if ( empty( $backup_list ) ) {
-				return new WP_REST_Response( array(
-					'completed' => false,
-					'progress'  => 0,
-					'message'   => 'empty backup list',
-				) );
-			}
-
-			// Background processing of restore using woocommerce's scheduler.
-			as_enqueue_async_action( 'instawp_restore_bg', [ $backup_list, $restore_options, $parameters ] );
-
-			// Immediately run the schedule, don't want for the cron to run.
-			do_action( 'action_scheduler_run_queue', 'Async Request' );
-
-			$res_result = array(
-				'completed' => false,
-				'progress'  => 55,
-				'message'   => 'Backup downloaded, restore initiated..',
-				'status'    => 'wait',
-			);
-
-			return new WP_REST_Response( $res_result );
-
-		} catch ( Exception $e ) {
-			return new WP_REST_Response( array(
-				'error_code' => $e->getCode(),
-				'message'    => $e->getMessage(),
-			) );
-		}
-	}
-
-
-	public static function restore_status( $message, $progress = 100, $wp_options = [] ) {
-
-		global $InstaWP_Curl;
-
-		$instawp_log = new InstaWP_Log();
-		$body        = [];
-
-		if ( count( $wp_options ) > 0 ) {
-
-			if ( isset( $wp_options['instawp_is_staging'] ) && isset( $wp_options['instawp_restore_id'] ) ) {
-
-				$connect_id = $wp_options['instawp_sync_connect_id'];
-				$url        = InstaWP_Setting::get_api_domain() . INSTAWP_API_URL . '/connects/' . $connect_id . '/restore_status';
-				$domain     = str_replace( "https://", "", get_site_url() );
-				$domain     = str_replace( "http://", "", $domain );
-				$body_json  = json_encode(
-					array(
-						"restore_id" => $wp_options['instawp_restore_id'],
-						"progress"   => $progress,
-						"message"    => $message,
-						"completed"  => $progress == 100,
-					)
-				);
-
-				$instawp_log->CreateLogFile( 'update_restore_status_call', 'no_folder', 'Update restore status call' );
-				$instawp_log->WriteLog( 'Restore Status percentage is : ' . $progress, 'notice' );
-				$instawp_log->WriteLog( 'Update Restore Status call has made the body is : ' . $body_json, 'notice' );
-				$instawp_log->WriteLog( 'Update Restore Status call has made the url is : ' . $url, 'notice' );
-
-				$curl_response = $InstaWP_Curl->curl( $url, $body_json );
-
-
-				if ( ! $curl_response['error'] ) {
-
-					$instawp_log->WriteLog( 'After Update Restore Status call made the response : ' . $curl_response['curl_res'] );
-
-					$response              = (array) json_decode( $curl_response['curl_res'], true );
-					$response['task_info'] = $body;
-
-					update_option( 'instawp_backup_status_options', $response );
-				}
-
-				$instawp_log->CloseFile();
-			} else {
-				error_log( "no connect id in wp options" );
-			}
-		} else {
-			error_log( "no wp options" );
-		}
-
-		return $body;
-	}
-
-
-	public static function backup_bg( $migrate_task_id, $parameters = array() ) {
-
-		$migrate_task_obj = new InstaWP_Backup_Task( $migrate_task_id );
-		$migrate_id       = InstaWP_Setting::get_args_option( 'migrate_id', $parameters );
-
-		// Create backup zip
-		instawp_backup_files( $migrate_task_obj, array( 'clean_non_zip' => true ) );
-
-		// Update back progress
-		instawp_update_backup_progress( $migrate_task_id, $migrate_id );
-
-		// Update total parts number
-		instawp_update_total_parts_number( $migrate_task_id, $migrate_id );
-
-		// Upload backup parts to S3 cloud
-//		instawp_upload_backup_parts_to_cloud( $migrate_task_id, $migrate_id );
-	}
-
-
-	public static function upload_bg( $migrate_task_id, $parameters = array() ) {
-
-		// Upload backup parts to S3 cloud
-		instawp_upload_backup_parts_to_cloud( $migrate_task_id, InstaWP_Setting::get_args_option( 'migrate_id', $parameters ) );
-	}
-
-
-	public function backup( WP_REST_Request $request ) {
-
-		if ( is_wp_error( $response = $this->validate_api_request( $request ) ) ) {
-			return $this->throw_error( $response );
-		}
-
-		$parameters       = $this->filter_params( $request );
-		$is_background    = $parameters['instawp_is_background'] ?? true;
-		$migrate_id       = InstaWP_Setting::get_args_option( 'migrate_id', $parameters );
-		$migrate_settings = InstaWP_Setting::get_args_option( 'migrate_settings', $parameters );
-		$migration_nonce  = InstaWP_Setting::get_args_option( 'nonce', $migrate_settings );
-		$migrate_task_id  = instawp_get_migrate_backup_task_id( array( 'migrate_settings' => $migrate_settings ) );
-
-		InstaWP_taskmanager::store_migrate_id_to_migrate_task( $migrate_task_id, $migrate_id );
-		InstaWP_taskmanager::store_nonce_to_migrate_task( $migrate_task_id, $migration_nonce );
-
-		if ( $is_background === false ) {
-			return $this->throw_response( array(
-				'task_id' => $migrate_task_id,
-				'message' => esc_html__( 'Backup will run through CLI.', 'instawp-connect' ),
-			) );
-		}
-
-		// Doing in background processing
-		as_enqueue_async_action( 'instawp_backup_bg', [ $migrate_task_id, $parameters ], 'instawp-connect', true );
-		as_enqueue_async_action( 'instawp_upload_bg', [ $migrate_task_id, $parameters ], 'instawp-connect', true );
-
-		do_action( 'action_scheduler_run_queue', 'Async Request' );
-
-		return $this->throw_response( array( 'message' => esc_html__( 'Backup is running on background processing', 'instawp-connect' ) ) );
 	}
 
 
@@ -1396,9 +1051,7 @@ class InstaWP_Backup_Api {
 	private function get_current_route() {
 		$rest_route = $GLOBALS['wp']->query_vars['rest_route'];
 
-		return ( empty( $rest_route ) || '/' == $rest_route ) ?
-			$rest_route :
-			untrailingslashit( $rest_route );
+		return ( empty( $rest_route ) || is_null( $rest_route ) || '/' == $rest_route ) ? $rest_route : untrailingslashit( $rest_route );
 	}
 
 	/**
@@ -1429,40 +1082,6 @@ class InstaWP_Backup_Api {
 		$response->set_status( $error->get_error_code() );
 
 		return rest_ensure_response( $response );
-	}
-
-	/**
-	 * Return REST response
-	 *
-	 * @param $response
-	 *
-	 * @return WP_Error|WP_HTTP_Response|WP_REST_Response
-	 */
-	private function throw_response( $response = array() ) {
-
-		$response['success'] = true;
-		$rest_response       = new WP_REST_Response( $response );
-
-		return rest_ensure_response( $rest_response );
-	}
-
-	/**
-	 * Verify the plugin or theme download url.
-	 *
-	 * @param string $url
-	 *
-	 * @return bool
-	 */
-	private function is_valid_download_link( $url ) {
-		$valid = false;
-		if ( $url && filter_var( $url, FILTER_VALIDATE_URL ) ) {
-			$response = wp_remote_get( $url, [
-				'timeout' => 60,
-			] );
-			$valid    = 200 === wp_remote_retrieve_response_code( $response );
-		}
-
-		return $valid;
 	}
 
 	/**

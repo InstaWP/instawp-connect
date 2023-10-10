@@ -29,70 +29,6 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 			add_action( 'wp_ajax_instawp_check_domain_connect_status', array( $this, 'check_domain_connect_status' ) );
 
 			add_action( 'INSTAWP/Actions/restore_completed', array( $this, 'restore_completed' ), 10, 2 );
-
-			add_action( 'action_scheduler_completed_action', array( $this, 'scheduler_completed_action' ), 10, 1 );
-			add_action( 'action_scheduler_failed_action', array( $this, 'scheduler_completed_action' ), 10, 1 );
-		}
-
-
-		function scheduler_completed_action( $action_id ) {
-
-			$action = ActionScheduler::store()->fetch_action( $action_id );
-
-			if ( $action instanceof ActionScheduler_FinishedAction ) {
-
-				$action_args     = $action->get_args();
-				$migrate_task_id = $action_args[0] ?? '';
-				$pending_backup  = false;
-				$pending_upload  = false;
-
-				foreach ( InstaWP_taskmanager::get_task_backup_data( $migrate_task_id ) as $data ) {
-
-					$backup_status = InstaWP_Setting::get_args_option( 'backup_status', $data );
-
-					if ( empty( $backup_status ) || 'completed' != $backup_status ) {
-						$pending_backup = true;
-						break;
-					}
-				}
-
-				foreach ( InstaWP_taskmanager::get_task_backup_data( $migrate_task_id ) as $data ) {
-
-					$upload_status = InstaWP_Setting::get_args_option( 'upload_status', $data );
-
-					if ( empty( $upload_status ) || 'completed' != $upload_status ) {
-						$pending_upload = true;
-						break;
-					}
-				}
-
-				if ( $pending_backup ) {
-					as_enqueue_async_action( 'instawp_backup_bg', $action_args, 'instawp-connect', true );
-					do_action( 'action_scheduler_run_queue', 'Async Request' );
-				}
-
-				if ( $pending_upload ) {
-					as_enqueue_async_action( 'instawp_upload_bg', $action_args, 'instawp-connect', true );
-					do_action( 'action_scheduler_run_queue', 'Async Request' );
-				}
-			}
-		}
-
-
-		function restore_completed( $restore_options = array(), $parameters = array() ) {
-
-			$instawp_is_staging = isset( $parameters['wp']['options']['instawp_is_staging'] ) && $parameters['wp']['options']['instawp_is_staging'];
-
-			// Reset permalink
-			InstaWP_Tools::instawp_reset_permalink();
-
-			// Write htaccess rules
-			InstaWP_Tools::write_htaccess_rule();
-
-			// No index staging sites
-			if ( $instawp_is_staging ) {
-				InstaWP_Tools::update_search_engine_visibility();
-			}
 		}
 
 
@@ -265,9 +201,6 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 					InstaWP_taskmanager::store_nonce_to_migrate_task( $migrate_task_id, $migration_nonce );
 
 					InstaWP_Setting::update_option( 'instawp_migration_running', time() );
-
-					// Doing in background processing
-					as_enqueue_async_action( 'instawp_backup_bg', [ $migrate_task_id, $parameters ], 'instawp-connect', true );
 
 					InstaWP_Migrate_Log::write( $migrate_id, "migration started - migrate_id:{$migrate_id} response: " . json_encode( $migrate_response ) );
 					InstaWP_Migrate_Log::write( $migrate_id, "source_website:{$source_domain} is in local" );
