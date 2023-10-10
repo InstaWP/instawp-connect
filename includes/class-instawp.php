@@ -886,7 +886,7 @@ class instaWP {
 
 		if ( ! empty( $excluded_paths ) ) {
 			foreach( $excluded_paths as $excluded_path ) {
-				$excluded_size += instawp()->get_directory_size( $excluded_path );
+				$excluded_size += instawp()->get_directory_size( ABSPATH . $excluded_path );
 			}
 		}
 
