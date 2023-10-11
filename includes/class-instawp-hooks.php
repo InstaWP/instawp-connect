@@ -15,28 +15,6 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			add_action( 'wp_footer', array( $this, 'ob_end' ) );
 
 			add_action( 'admin_init', array( $this, 'handle_clear_all' ) );
-			add_action( 'admin_init', array( $this, 'store_api_options' ) );
-		}
-
-
-		function store_api_options() {
-			if (
-				( isset( $_REQUEST['access_token'] ) && $_REQUEST['access_token'] != '' ) &&
-				( isset( $_REQUEST['success'] ) && $_REQUEST['success'] == true )
-			) {
-				$access_token = $_REQUEST['access_token'];
-				$status       = $_REQUEST['success'];
-
-				$api_key             = '';
-				$instawp_api_options = get_option( 'instawp_api_options' );
-				if ( ! empty( $instawp_api_options ) ) {
-					$api_key = $instawp_api_options['api_key'];
-				}
-
-				if ( $api_key != $access_token ) {
-					InstaWP_Setting::instawp_generate_api_key( $access_token, $status );
-				}
-			}
 		}
 
 		function handle_clear_all() {

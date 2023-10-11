@@ -50,9 +50,7 @@ class InstaWP_Admin {
 
 
 		$this->plugin_name = $plugin_name;
-
-		$this->version = $version;
-
+		$this->version     = $version;
 
 		add_action( 'admin_menu', array( $this, 'add_migrate_plugin_menu_items' ) );
 		add_action( 'admin_bar_menu', array( $this, 'add_admin_bar_button' ), 100 );
