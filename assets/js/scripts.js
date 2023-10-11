@@ -73,7 +73,7 @@
                         });
 
                         // Completed
-                        if ((progress_files === 100 && progress_db === 100) || stage_migration_finished === true) {
+                        if (stage_migration_finished === true) {
 
                             create_container.removeClass('loading').addClass('completed');
                             clearInterval(create_container.attr('interval-id'));

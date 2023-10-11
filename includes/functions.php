@@ -1191,10 +1191,10 @@ if ( ! function_exists( 'instawp_get_staging_sites_list' ) ) {
 	 *
 	 * @return array
 	 */
-	function instawp_get_staging_sites_list( $insta_only = false ) {
+	function instawp_get_staging_sites_list( $insta_only = false, $force_update = false ) {
 		$staging_sites = get_transient( 'instawp_staging_sites' );
 
-		if ( ! $staging_sites || ! is_array( $staging_sites ) ) {
+		if ( $force_update || ! $staging_sites || ! is_array( $staging_sites ) ) {
 			$api_response  = InstaWP_Curl::do_curl( 'connects/' . instawp_get_connect_id() . '/staging-sites', [], [], false );
 			$staging_sites = [];
 
