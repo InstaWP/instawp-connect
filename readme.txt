@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.4
 Tested up to: 6.3.1
 Requires PHP: 7.4
-Stable tag: 0.0.9.33
+Stable tag: 0.0.9.40
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
