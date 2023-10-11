@@ -179,14 +179,14 @@ class InstaWP_Change_Event_Table extends WP_List_Table {
         $completedCount = $InstaWP_db->get_with_count($tables['ch_table'],'status','completed');
         $errorCount = $InstaWP_db->get_with_count($tables['ch_table'],'status','error');
         $siteUrl = get_site_url();
-        $syncing_status = get_option('instwawp_is_event_syncing');
+        $syncing_status = get_option('instawp_is_event_syncing');
         $syncing_status_val = ($syncing_status == 1) ? 'checked' : '';
         echo $this->bulkSyncPopup();
         echo '<div class="wrap change-event-main">
                 <div class="message-change-events"></div>
                 <div class="top-title">
                     <h1>Change event</h1>
-                    <div class="instwawp_is_event_syncing">
+                    <div class="instawp_is_event_syncing">
                         <label class="switch">
                             <input type="checkbox" '.$syncing_status_val.'>
                             <span class="slider round"></span>

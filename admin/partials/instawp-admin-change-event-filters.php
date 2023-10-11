@@ -39,7 +39,7 @@ class InstaWP_Change_Event_Filters
 
         $this->tables = $this->InstaWP_db->tables;
 
-        $syncing_status = get_option('instwawp_is_event_syncing', 0);
+        $syncing_status = get_option('instawp_is_event_syncing', 0);
         if ($syncing_status == 1) { #if syncing enabled
             #post actions
             add_filter('pre_trash_post',                array( $this, 'trashPostFilter' ), 10, 2);
@@ -532,8 +532,8 @@ class InstaWP_Change_Event_Filters
      * @return void
      */
     public function pluginThemeEvents($event_name, $event_slug, $details, $type, $source_id = '') {
-        $instwawp_is_event_syncing = get_option('instwawp_is_event_syncing', 0);
-        if ($instwawp_is_event_syncing == 0)
+        $instawp_is_event_syncing = get_option('instawp_is_event_syncing', 0);
+        if ($instawp_is_event_syncing == 0)
             return;
             
         $uid = get_current_user_id();
@@ -834,8 +834,8 @@ class InstaWP_Change_Event_Filters
     public function addPostData($event_name = null, $event_slug = null, $post = null, $post_id = null) {
 
         //check if the sync is enabled to record
-        $instwawp_is_event_syncing = get_option('instwawp_is_event_syncing', 0);
-        if ($instwawp_is_event_syncing == 0)
+        $instawp_is_event_syncing = get_option('instawp_is_event_syncing', 0);
+        if ($instawp_is_event_syncing == 0)
             return;
 
         $post_id = isset($post_id) ? $post_id : $post->ID;
@@ -995,8 +995,8 @@ class InstaWP_Change_Event_Filters
      * add/insert event data
      */
     public function eventDataAdded($event_name = null, $event_slug = null, $event_type = null, $source_id = null, $title = null, $details = null) {
-        $instwawp_is_event_syncing = get_option('instwawp_is_event_syncing', 0);
-        if ($instwawp_is_event_syncing == 0)
+        $instawp_is_event_syncing = get_option('instawp_is_event_syncing', 0);
+        if ($instawp_is_event_syncing == 0)
             return;
 
         $uid = get_current_user_id();

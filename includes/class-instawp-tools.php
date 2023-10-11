@@ -59,6 +59,23 @@ class InstaWP_Tools {
 		}
 	}
 
+	public static function create_instawpbackups_dir( $instawpbackups_dir = '' ) {
+
+		if ( empty( $instawpbackups_dir ) ) {
+			$instawpbackups_dir = WP_CONTENT_DIR . '/' . INSTAWP_DEFAULT_BACKUP_DIR;
+		}
+
+		if ( ! is_dir( $instawpbackups_dir ) ) {
+			if ( mkdir( $instawpbackups_dir, 0777, true ) ) {
+				return true;
+			} else {
+				return false;
+			}
+		}
+
+		return false;
+	}
+
 	public static function clean_instawpbackups_dir( $instawpbackups_dir = '' ) {
 
 		if ( empty( $instawpbackups_dir ) ) {

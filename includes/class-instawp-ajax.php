@@ -115,6 +115,8 @@ class InstaWP_AJAX {
 				'option_name:instawp_migration_details',
 				'option_name:instawp_api_key_config_completed',
 				'option_name:instawp_is_event_syncing',
+				'option_name:_transient_instawp_staging_sites',
+				'option_name:_transient_timeout_instawp_staging_sites',
 			),
 		);
 
