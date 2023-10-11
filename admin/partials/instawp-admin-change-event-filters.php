@@ -176,6 +176,7 @@ class InstaWP_Change_Event_Filters
         $details    = json_encode(['user_data' => get_userdata($id), 'user_meta' => get_user_meta($id)]);
         $this->eventDataAdded($event_name, $event_slug, 'users', $id, $title, $details);
     }
+    
     /**
      * Function for `profile_update` action-hook.
      * 
