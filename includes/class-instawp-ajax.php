@@ -55,16 +55,17 @@ class InstaWP_AJAX {
 		$response_data['progress_files']   = $response_data['progress_files'] ?? 0;
 		$response_data['progress_db']      = $response_data['progress_db'] ?? 0;
 		$response_data['progress_restore'] = $response_data['progress_restore'] ?? 0;
-		$migration_finished                = isset( $response_data['stage']['migration-finished'] ) && (bool) $response_data['stage']['migration-finished'];
-		$migration_failed                  = isset( $response_data['stage']['failed'] ) && (bool) $response_data['stage']['failed'];
 
-		if ( $migration_failed ) {
+		if ( isset( $response_data['stage']['failed'] ) && $response_data['stage']['failed'] === true ) {
 			instawp_reset_running_migration();
 			wp_send_json_error( [ 'message' => esc_html__( 'Migration failed.' ) ] );
 		}
 
-		if ( $migration_finished ) {
+		if ( isset( $response_data['stage']['migration-finished'] ) && $response_data['stage']['migration-finished'] === true ) {
 			instawp_reset_running_migration();
+
+			// update staging websites list
+			instawp_get_staging_sites_list( true, true );
 		}
 
 		if ( ! empty( $auto_login_hash ) ) {
@@ -96,6 +97,15 @@ class InstaWP_AJAX {
 			unset( $migrate_settings['screen'] );
 		}
 
+		// Exclude two-way-sync tables
+		$migrate_settings['excluded_tables'] = array(
+			INSTAWP_DB_TABLE_STAGING_SITES,
+			INSTAWP_DB_TABLE_EVENTS,
+			INSTAWP_DB_TABLE_SYNC_HISTORY,
+			INSTAWP_DB_TABLE_EVENT_SITES,
+			INSTAWP_DB_TABLE_EVENT_SYNC_LOGS,
+		);
+
 		// Remove instawp connect options
 		$migrate_settings['excluded_tables_rows'] = array(
 			"{$wpdb->prefix}options" => array(
@@ -104,6 +114,7 @@ class InstaWP_AJAX {
 				'option_name:instawp_sync_parent_connect_data',
 				'option_name:instawp_migration_details',
 				'option_name:instawp_api_key_config_completed',
+				'option_name:instawp_is_event_syncing',
 			),
 		);
 

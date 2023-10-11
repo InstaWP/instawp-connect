@@ -138,13 +138,13 @@ function instawp_plugin_activate() {
 
 	//set default user for sync settings if user empty
 	$default_user = InstaWP_Setting::get_option( 'instawp_default_user' );
-	if( empty( $default_user ) ){
+	if ( empty( $default_user ) ) {
 		add_option( 'instawp_default_user', get_current_user_id() );
 	}
 
 	$instawp_sync_tab_roles = InstaWP_Setting::get_option( 'instawp_sync_tab_roles' );
-	if( empty( $instawp_sync_tab_roles ) ){
-		$user = wp_get_current_user();
+	if ( empty( $instawp_sync_tab_roles ) ) {
+		$user  = wp_get_current_user();
 		$roles = ( array ) $user->roles;
 		add_option( 'instawp_sync_tab_roles', $roles );
 	}
@@ -264,6 +264,9 @@ add_action( 'wp_head', function () {
 		echo "</pre>";
 
 
+//		echo "<pre>";
+//		print_r( instawp_get_staging_sites_list( true, true ) );
+//		echo "</pre>";
 
 
 		die();
