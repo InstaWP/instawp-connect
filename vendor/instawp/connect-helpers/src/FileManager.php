@@ -83,7 +83,16 @@ class FileManager {
 			$wp_config->update();
 
 			set_transient( 'instawp_file_manager_login_token', $token, ( 15 * MINUTE_IN_SECONDS ) );
-			update_option( 'instawp_file_manager_name', $file_name );
+			$file_db = [
+				'file_name' => $file_name
+			];
+
+			$file_db_manager = InstaWP_Setting::get_option( 'instawp_file_db_manager', [] );
+			$db_name         = InstaWP_Setting::get_args_option( $file_db_manager, 'db_name' );
+			if ( $db_name ) {
+				$file_db['db_name'] = $db_name;
+			}
+			update_option( 'instawp_file_db_manager', $file_db );
 
 			flush_rewrite_rules();
 			do_action( 'instawp_connect_create_file_manager_task', $file_name );
@@ -98,7 +107,8 @@ class FileManager {
     }
 
 	public function clean( $file_name = null ): void {
-		$file_name = $file_name ? $file_name : get_option( 'instawp_file_manager_name', '' );
+		$file_db_manager = InstaWP_Setting::get_option( 'instawp_file_db_manager', [] );
+        $file_name       = $file_name ? $file_name : InstaWP_Setting::get_args_option( $file_db_manager, 'file_name' );
 
 		if ( ! empty( $file_name ) ) {
 			$file_path = self::get_file_path( $file_name );
@@ -109,8 +119,16 @@ class FileManager {
 			$constants = [ 'INSTAWP_FILE_MANAGER_USERNAME', 'INSTAWP_FILE_MANAGER_PASSWORD', 'INSTAWP_FILE_MANAGER_SELF_URL', 'INSTAWP_FILE_MANAGER_SESSION_ID' ];
 			$wp_config = new WPConfig( $constants );
 			$wp_config->delete();
+
+			if ( isset( $file_db_manager['file_name'] ) ) {
+				unset( $file_db_manager['file_name'] );
+			}
 			
-			delete_option( 'instawp_file_manager_name' );
+			if ( count( $file_db_manager ) < 1 ) {
+				delete_option( 'instawp_file_db_manager' );
+			} else {
+				update_option( 'instawp_file_db_manager', $file_db_manager );
+			}
 			flush_rewrite_rules();
 
 			do_action( 'instawp_connect_remove_file_manager_task', $file_name );
