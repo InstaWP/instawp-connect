@@ -5,7 +5,7 @@
 
 $changeEvent        = new InstaWP_Change_event();
 $events             = $changeEvent->listEvents();
-$syncing_status     = InstaWP_Setting::get_option('syncing_enabled_disabled');
+$syncing_status     = InstaWP_Setting::get_option('instwawp_is_event_syncing');
 $syncing_status_val = ($syncing_status == 1) ? 'checked' : '';
 
 $staging_sites      = instawp_get_staging_sites_list();
@@ -32,7 +32,7 @@ if( !empty( $parent_connect_data ) ){
                     </div>
                     <div class="text-sm font-medium text-grayCust-200 mb-1"><?php echo esc_html__( 'No Data found!', 'instawp-connect' ); ?></div>
                     <div class="text-sm font-normal text-grayCust-50"><?php echo esc_html__( 'Start Listening for Changes', 'instawp-connect' ); ?></div>
-                    <div class="syncing_enabled_disabled">
+                    <div class="instwawp_is_event_syncing">
                         <label class="switch">
                         <input type="checkbox" id="switch-id" <?php echo $syncing_status_val; ?>>
                         <span class="slider round"></span>
@@ -49,7 +49,7 @@ if( !empty( $parent_connect_data ) ){
                     <div class="events-head">
                         <div class="events-head-left flex items-baseline">
                             <div class="text-grayCust-200 text-lg font-medium"><?php echo esc_html__( 'Listening for Changes', 'instawp-connect' ); ?></div>
-                            <label class="switch-toggle syncing_enabled_disabled">
+                            <label class="switch-toggle instwawp_is_event_syncing">
                                 <input type="checkbox" <?php echo $syncing_status_val; ?>>
                                 <span class="slider-toggle round-toggle"></span>
                             </label>
