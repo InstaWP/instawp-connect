@@ -508,6 +508,7 @@ class InstaWP_Setting {
 
 		if ( isset( $response_body['status'] ) && $response_body['status'] ) {
 			update_option( 'instawp_api_options', array( 'api_key' => $api_key, 'response' => $response_body ) );
+			update_option( 'instawp_api_key', $api_key );
 		}
 
 		$url         = $api_domain . INSTAWP_API_URL . '/connects';
@@ -543,6 +544,7 @@ class InstaWP_Setting {
 			$connect_options                = self::get_option( 'instawp_connect_options', array() );
 			$connect_options[ $connect_id ] = $response;
 
+			update_option( 'instawp_connect_id_options', $response );
 			update_option( 'instawp_connect_id_options', $response );
 		}
 
