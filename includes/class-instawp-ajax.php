@@ -103,6 +103,7 @@ class InstaWP_AJAX {
 				'option_name:instawp_connect_id_options',
 				'option_name:instawp_sync_parent_connect_data',
 				'option_name:instawp_migration_details',
+				'option_name:instawp_api_key_config_completed',
 			),
 		);
 
@@ -599,28 +600,6 @@ class InstaWP_AJAX {
 		print_r( $response );
 		if ( ! is_wp_error( $response ) && $response_code == 200 ) {
 			$body = (array) json_decode( wp_remote_retrieve_body( $response ), true );
-
-			print_r( $body );
-			// $connect_options = array();
-			// if ($body['status'] == true) {
-			//    $connect_options['api_key']   = $connect_options['api_key'];
-			//    $connect_options['connected'] = true;
-			//    $connect_options['response']  = $body;
-			//    update_option('instawp_connect_id_options', $connect_options);
-			//    $res = array(
-			//       'error'   => false,
-			//       'message' => 'Connected',
-
-			//    );
-			// }
-			// else {
-			//    $res = array(
-			//       'error'   => true,
-			//       'message' => 'Api Key Not Valid'
-
-			//    );
-			// }
-
 		}
 		echo json_encode( $res );
 		wp_die();

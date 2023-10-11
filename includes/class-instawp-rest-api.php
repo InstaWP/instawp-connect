@@ -534,7 +534,7 @@ class InstaWP_Backup_Api {
 			$results['message']    = esc_html__( 'Connected', 'instawp-connect' );
 			$results['connect_id'] = $connect_ids['data']['id'] ?? '';
 
-			return rest_ensure_response( new WP_REST_Response( $results ) );
+//			return rest_ensure_response( new WP_REST_Response( $results ) );
 		}
 
 		// if api_key is not passed on param
