@@ -133,6 +133,9 @@ class InstaWP_Backup_Api {
 			return $this->throw_error( $response );
 		}
 
+		// Create InstaWP backup directory
+		instawp()->tools::create_instawpbackups_dir();
+
 		// Clean InstaWP backup directory
 		instawp()->tools::clean_instawpbackups_dir();
 
