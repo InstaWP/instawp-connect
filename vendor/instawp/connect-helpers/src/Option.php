@@ -25,7 +25,6 @@ class Option {
         return $results;
     }
 
-
 	public function delete( $args = [] ): array {
         $results = [ 'success' => true ];
         
