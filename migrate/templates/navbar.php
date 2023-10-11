@@ -3,16 +3,6 @@
  * Migrate template - Main
  */
 
-$return_url      = urlencode( admin_url( 'tools.php?page=instawp' ) );
-$connect_api_url = InstaWP_Setting::get_api_domain() . '/authorize?source=InstaWP Connect&return_url=' . $return_url;
-$current_page    = isset( $_REQUEST['page'] ) ? sanitize_text_field( $_REQUEST['page'] ) : '';
-$access_token    = isset( $_REQUEST['access_token'] ) ? sanitize_text_field( $_REQUEST['access_token'] ) : '';
-$success         = isset( $_REQUEST['success'] ) ? sanitize_text_field( $_REQUEST['success'] ) : '';
-
-if ( empty( InstaWP_Setting::get_api_key() ) && 'instawp' == $current_page && 'true' == $success && ! empty( $access_token ) ) {
-    InstaWP_Setting::instawp_generate_api_key( $access_token, $success );
-}
-
 ?>
 
 <!--<div class="flex border-b justify-between mb-4 border-grayCust-100">-->
