@@ -36,7 +36,7 @@ class InstaWP_Ajax_Fn {
 		add_action( "wp_ajax_pack_things", 				array( $this, "get_data_from_db" ) );
 		add_action( "wp_ajax_sync_changes", 			array( $this, "sync_changes" ) );
 		add_action( "wp_ajax_single_sync", 				array( $this, "single_sync" ) );
-		add_action( "wp_ajax_syncing_enabled_disabled", array( $this, "syncing_enabled_disabled" ) );
+		add_action( "wp_ajax_syncing_enabled_disabled", array( $this, "instwawp_is_event_syncing" ) );
 		add_action( 'wp_ajax_get_site_events', 			array( $this, 'get_site_events' ) );
 		add_action( 'wp_ajax_get_events_summary', 		array( $this, 'get_events_summary' ) );
 		add_action( 'wp_ajax_instawp_handle_select2', 	array( $this, 'instawp_handle_select2' ) );
@@ -45,12 +45,12 @@ class InstaWP_Ajax_Fn {
 		add_action( 'wp_ajax_get_site_events_ajax', 	array( $this, 'get_site_events_ajax' ) );
 	}
 
-	public function syncing_enabled_disabled() {
+	public function instwawp_is_event_syncing() {
 		$sync_status = $_POST['sync_status'];
-		if ( ! get_option( 'syncing_enabled_disabled' ) ) {
-			add_option( 'syncing_enabled_disabled', $sync_status );
+		if ( ! get_option( 'instwawp_is_event_syncing' ) ) {
+			add_option( 'instwawp_is_event_syncing', $sync_status );
 		}
-		update_option( 'syncing_enabled_disabled', $sync_status );
+		update_option( 'instwawp_is_event_syncing', $sync_status );
 		$message = ( $sync_status == 1 ) ? 'Syncing enabled!' : 'Syncing disabled!';
 		echo json_encode( [ 'sync_status' => $sync_status, 'message' => $message ] );
 		wp_die();
