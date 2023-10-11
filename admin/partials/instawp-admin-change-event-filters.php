@@ -39,7 +39,7 @@ class InstaWP_Change_Event_Filters
 
         $this->tables = $this->InstaWP_db->tables;
 
-        $syncing_status = get_option('syncing_enabled_disabled', 0);
+        $syncing_status = get_option('instwawp_is_event_syncing', 0);
         if ($syncing_status == 1) { #if syncing enabled
             #post actions
             add_filter('pre_trash_post',                array( $this, 'trashPostFilter' ), 10, 2);
@@ -176,7 +176,7 @@ class InstaWP_Change_Event_Filters
         $details    = json_encode(['user_data' => get_userdata($id), 'user_meta' => get_user_meta($id)]);
         $this->eventDataAdded($event_name, $event_slug, 'users', $id, $title, $details);
     }
-    
+
     /**
      * Function for `profile_update` action-hook.
      * 
@@ -532,8 +532,8 @@ class InstaWP_Change_Event_Filters
      * @return void
      */
     public function pluginThemeEvents($event_name, $event_slug, $details, $type, $source_id = '') {
-        $syncing_enabled_disabled = get_option('syncing_enabled_disabled', 0);
-        if ($syncing_enabled_disabled == 0)
+        $instwawp_is_event_syncing = get_option('instwawp_is_event_syncing', 0);
+        if ($instwawp_is_event_syncing == 0)
             return;
             
         $uid = get_current_user_id();
@@ -834,8 +834,8 @@ class InstaWP_Change_Event_Filters
     public function addPostData($event_name = null, $event_slug = null, $post = null, $post_id = null) {
 
         //check if the sync is enabled to record
-        $syncing_enabled_disabled = get_option('syncing_enabled_disabled', 0);
-        if ($syncing_enabled_disabled == 0)
+        $instwawp_is_event_syncing = get_option('instwawp_is_event_syncing', 0);
+        if ($instwawp_is_event_syncing == 0)
             return;
 
         $post_id = isset($post_id) ? $post_id : $post->ID;
@@ -995,8 +995,8 @@ class InstaWP_Change_Event_Filters
      * add/insert event data
      */
     public function eventDataAdded($event_name = null, $event_slug = null, $event_type = null, $source_id = null, $title = null, $details = null) {
-        $syncing_enabled_disabled = get_option('syncing_enabled_disabled', 0);
-        if ($syncing_enabled_disabled == 0)
+        $instwawp_is_event_syncing = get_option('instwawp_is_event_syncing', 0);
+        if ($instwawp_is_event_syncing == 0)
             return;
 
         $uid = get_current_user_id();
