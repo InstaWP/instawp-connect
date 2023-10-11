@@ -101,7 +101,7 @@ class InstaWP_Change_event {
 	 * @return null
 	 */
 	public function instawp_add_sync_status_toolbar_link( $wp_admin_bar ) {
-		if ( get_option( 'instwawp_is_event_syncing' ) != 1 ) {
+		if ( get_option( 'instawp_is_event_syncing' ) != 1 ) {
 			return;
 		}
 		$args = array(

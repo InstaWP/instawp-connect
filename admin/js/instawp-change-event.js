@@ -28,7 +28,7 @@ jQuery(document).ready(function ($) {
     })
 
     //Syncing enabled disabled
-    jQuery('.instwawp_is_event_syncing input[type="checkbox"]').click(function(){
+    jQuery('.instawp_is_event_syncing input[type="checkbox"]').click(function(){
         var sync_status = 0;
         if(jQuery(this).prop("checked") == true){
             console.log("Checkbox is checked.");
@@ -37,7 +37,7 @@ jQuery(document).ready(function ($) {
             console.log("Checkbox is unchecked.");
             sync_status = 0;
         }
-        instwawp_is_event_syncing(sync_status);
+        instawp_is_event_syncing(sync_status);
     });
 
 
@@ -255,9 +255,9 @@ jQuery(document).ready(function ($) {
         $(this).text() === 'Show more' ? $(this).text('Show less') : $(this).text('Show more');
     });
 
-    const instwawp_is_event_syncing = async (sync_status) => {
+    const instawp_is_event_syncing = async (sync_status) => {
         let formData = new FormData();
-        formData.append('action', 'instwawp_is_event_syncing');
+        formData.append('action', 'instawp_is_event_syncing');
         formData.append('sync_status', sync_status);
         baseCall(formData).then((response) => response.json()).then((data) => {
             console.log(data);

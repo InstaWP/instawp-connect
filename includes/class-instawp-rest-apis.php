@@ -144,12 +144,12 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 		$is_enabled         = false;
 		$logs 				= [];
 
-		if ( get_option( 'instwawp_is_event_syncing' ) ) {
+		if ( get_option( 'instawp_is_event_syncing' ) ) {
 			$is_enabled = true;
 		}
 
 		#forcely disable the syncing at the destination
-		update_option( 'instwawp_is_event_syncing', 0 );
+		update_option( 'instawp_is_event_syncing', 0 );
 
 		if ( ! empty( $encrypted_contents ) && is_array( $encrypted_contents ) ) {
 			$total_op        = count( $encrypted_contents );
@@ -829,7 +829,7 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 
 		#enable is back if syncing already enabled at the destination
 		if ( $is_enabled ) {
-			update_option( 'instwawp_is_event_syncing', 1 );
+			update_option( 'instawp_is_event_syncing', 1 );
 		}
 
 		return new WP_REST_Response(
