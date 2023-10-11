@@ -16,25 +16,6 @@ $instawp_finish_upload    = get_option( 'instawp_finish_upload', array() );
 $instawp_restore_status   = get_option( 'instawp_rd_restore_status', array() );
 $instawp_restore_progress = $instawp_restore_status['data']['progress'] ?? false;
 
-/* Generate API Code Start */
-$status = '';
-if (
-	( isset( $_REQUEST['access_token'] ) && $_REQUEST['access_token'] != '' ) &&
-	( isset( $_REQUEST['success'] ) && $_REQUEST['success'] == true )
-) {
-	$access_token = $_REQUEST['access_token'];
-	$status       = $_REQUEST['success'];
-
-	$api_key             = '';
-	$instawp_api_options = get_option( 'instawp_api_options' );
-	if ( ! empty( $instawp_api_options ) ) {
-		$api_key = $instawp_api_options['api_key'];
-	}
-
-	if ( $api_key != $access_token ) {
-		InstaWP_Setting::instawp_generate_api_key( $access_token, $status );
-	}
-}
 
 
 /* Generate API Code End */

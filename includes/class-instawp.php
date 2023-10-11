@@ -36,11 +36,11 @@ class instaWP {
 
 		$connect_id_options = InstaWP_Setting::get_option( 'instawp_connect_id_options', [] );
 
-		$this->version               = INSTAWP_PLUGIN_VERSION;
-		$this->plugin_name           = INSTAWP_PLUGIN_SLUG;
-		$this->is_connected          = ! empty( get_option( 'instawp_api_key' ) );
-		$this->connect_id            = $connect_id_options['data']['id'] ?? 0;
-		$this->is_staging            = (bool) InstaWP_Setting::get_option( 'instawp_is_staging', false );
+		$this->version      = INSTAWP_PLUGIN_VERSION;
+		$this->plugin_name  = INSTAWP_PLUGIN_SLUG;
+		$this->is_connected = ! empty( get_option( 'instawp_api_key' ) );
+		$this->connect_id   = $connect_id_options['data']['id'] ?? 0;
+		$this->is_staging   = (bool) InstaWP_Setting::get_option( 'instawp_is_staging', false );
 
 		$this->tools = new InstaWP_Tools();
 
@@ -330,11 +330,7 @@ class instaWP {
 
 	private function define_admin_hook() {
 
-		$this->admin        = new InstaWP_Admin( $this->get_plugin_name(), $this->get_version() );
-		$this->admin_wizard = new InstaWP_Admin_Wizard( $this->get_plugin_name(), $this->get_version() );
-
-		//show admin bar
-		add_action( 'admin_head', array( $this->admin, 'instawp_get_siteurl' ), 100 );
+		$this->admin = new InstaWP_Admin( $this->get_plugin_name(), $this->get_version() );
 
 		// Add Settings link to the plugin
 		$plugin_basename = plugin_basename( plugin_dir_path( __DIR__ ) . 'instawp-connect.php' );
@@ -542,13 +538,205 @@ class instaWP {
 		return INSTAWP_PLUGIN_URL . '/' . $asset_name;
 	}
 
+	public static function get_exclude_default_plugins() {
+
+		$exclude_plugins = array(
+			'instawp-connect',
+			'wp-cerber',
+			'instawp-backup-pro',
+			'.',
+		);
+
+		return apply_filters( 'INSTAWP_CONNECT/Filters/get_exclude_default_plugins', $exclude_plugins );
+	}
+
+	public static function get_folder_size( $root, $size ) {
+		$count = 0;
+		if ( is_dir( $root ) ) {
+			$handler = opendir( $root );
+			if ( $handler !== false ) {
+				while ( ( $filename = readdir( $handler ) ) !== false ) {
+					if ( $filename != "." && $filename != ".." ) {
+						$count ++;
+
+						if ( is_dir( $root . DIRECTORY_SEPARATOR . $filename ) ) {
+							$size = self::get_folder_size( $root . DIRECTORY_SEPARATOR . $filename, $size );
+						} else {
+							$size += filesize( $root . DIRECTORY_SEPARATOR . $filename );
+						}
+					}
+				}
+				if ( $handler ) {
+					@closedir( $handler );
+				}
+			}
+		}
+
+		return $size;
+	}
+
+	public static function get_plugins_list( $options = array(), $return_type = 'plugins_included' ) {
+
+		if ( ! function_exists( 'get_plugins' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		}
+
+		$plugins_included        = array();
+		$plugins_excluded        = array();
+		$list                    = get_plugins();
+		$active_plugins_only     = $options['migrate_settings']['active_plugins_only'] ?? false;
+		$exclude_default_plugins = self::get_exclude_default_plugins();
+
+		foreach ( $list as $key => $item ) {
+			$dirname = dirname( $key );
+
+			if ( in_array( $dirname, $exclude_default_plugins ) ) {
+				$plugins_excluded[] = $key;
+				continue;
+			}
+
+			if ( ( 'true' == $active_plugins_only || '1' == $active_plugins_only ) && ! is_plugin_active( $key ) ) {
+				$plugins_excluded[] = $key;
+				continue;
+			}
+
+			$plugins_included[ $dirname ]['slug'] = $dirname;
+			$plugins_included[ $dirname ]['size'] = self::get_folder_size( WP_PLUGIN_DIR . DIRECTORY_SEPARATOR . $dirname, 0 );
+		}
+
+		$plugins_excluded = array_map( function ( $slug ) {
+			$slug_parts = explode( '/', $slug );
+
+			return $slug_parts[0] ?? '';
+		}, $plugins_excluded );
+		$plugins          = array(
+			'plugins_included' => $plugins_included,
+			'plugins_excluded' => array_filter( $plugins_excluded ),
+		);
+
+		if ( empty( $return_type ) ) {
+			return $plugins;
+		}
+
+		return $plugins[ $return_type ] ?? array();
+	}
+
+	public static function get_themes_list( $options = array(), $return_type = 'themes_included' ) {
+
+		if ( ! function_exists( 'wp_get_themes' ) ) {
+			require_once ABSPATH . 'wp-includes/theme.php';
+		}
+
+		$themes_included    = array();
+		$themes_excluded    = array();
+		$current_theme      = wp_get_theme();
+		$active_themes_only = $options['migrate_settings']['active_themes_only'] ?? false;
+
+		foreach ( wp_get_themes() as $key => $item ) {
+			if ( ( 'true' == $active_themes_only || '1' == $active_themes_only ) && ! in_array( $item->get_stylesheet(), [ $current_theme->get_stylesheet(), $current_theme->get_template() ] ) ) {
+				$themes_excluded[] = $key;
+				continue;
+			}
+
+			$themes_included[ $key ]['slug'] = $key;
+			$themes_included[ $key ]['size'] = self::get_folder_size( get_theme_root() . DIRECTORY_SEPARATOR . $key, 0 );
+		}
+
+		$themes = array(
+			'themes_included' => $themes_included,
+			'themes_excluded' => $themes_excluded,
+		);
+
+		if ( empty( $return_type ) ) {
+			return $themes;
+		}
+
+		return $themes[ $return_type ] ?? array();
+	}
+
+	public function instawp_check_usage_on_cloud( $settings = [] ) {
+
+		global $InstaWP_Curl;
+
+		$connect_ids         = get_option( 'instawp_connect_id_options', '' );
+		$connect_id          = $connect_ids['data']['id'] ?? 0;
+		$api_response        = $InstaWP_Curl::do_curl( 'connects/' . $connect_id . '/usage', [], [], false, 'v1' );
+		$api_response_status = InstaWP_Setting::get_args_option( 'success', $api_response, false );
+		$api_response_data   = InstaWP_Setting::get_args_option( 'data', $api_response, [] );
+		$instawp_migrate     = InstaWP_Setting::get_args_option( 'instawp_migrate', $settings, [] );
+		$migrate_options     = InstaWP_Setting::get_args_option( 'options', $instawp_migrate, [] );
+		$excluded_paths      = array_unique( InstaWP_Setting::get_args_option( 'excluded_paths', $instawp_migrate, [] ) );
+
+		if ( ! $api_response_status ) {
+			return array(
+				'can_proceed'  => false,
+				'connect_id'   => $connect_id,
+				'api_response' => $api_response,
+			);
+		}
+
+		if ( ! class_exists( 'WP_Debug_Data' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/class-wp-debug-data.php';
+		}
+
+		$remaining_site = (int) InstaWP_Setting::get_args_option( 'remaining_site', $api_response_data, '0' );
+		$can_proceed    = $remaining_site > 0;
+		$issue_for      = 'remaining_site';
+
+		$available_disk_space = (int) InstaWP_Setting::get_args_option( 'remaining_disk_space', $api_response_data, '0' );
+		$sizes_data           = WP_Debug_Data::get_sizes();
+		$bytes                = $sizes_data['total_size']['raw'] ?? 0;
+
+		$excluded_size = 0;
+		if ( in_array( 'skip_media_folder', $migrate_options ) ) {
+			$upload_dir_size = $sizes_data['uploads_size']['raw'] ?? 0;
+			$excluded_size   += $upload_dir_size;
+		}
+
+		if ( in_array( 'active_plugins_only', $migrate_options ) ) {
+			$plugin_bytes                                          = $sizes_data['plugins_size']['raw'] ?? 0;
+			$set_active                                            = [];
+			$set_active['migrate_settings']['active_plugins_only'] = true;
+			$active_plugins                                        = self::get_plugins_list( $set_active, 'plugins_included' );
+
+			$active_plugins_dir_size   = array_sum( wp_list_pluck( $active_plugins, 'size' ) );
+			$inactive_plugins_dir_size = ( $plugin_bytes - $active_plugins_dir_size );
+			$excluded_size             += $inactive_plugins_dir_size;
+		}
+
+		if ( in_array( 'active_themes_only', $migrate_options ) ) {
+			$themes_bytes                                         = $sizes_data['themes_size']['raw'] ?? 0;
+			$set_active                                           = [];
+			$set_active['migrate_settings']['active_themes_only'] = true;
+			$active_themes                                        = self::get_themes_list( $set_active, 'themes_included' );
+
+			$active_themes_dir_size   = array_sum( wp_list_pluck( $active_themes, 'size' ) );
+			$inactive_themes_dir_size = ( $themes_bytes - $active_themes_dir_size );
+			$excluded_size            += $inactive_themes_dir_size;
+		}
+
+		if ( ! empty( $excluded_paths ) ) {
+			foreach ( $excluded_paths as $excluded_path ) {
+				$excluded_size += instawp()->get_directory_size( $excluded_path );
+			}
+		}
+
+		$total_site_size                         = $bytes === 0 ? 0 : round( ( $bytes - $excluded_size ) / 1048576, 2 );
+		$api_response_data['require_disk_space'] = $total_site_size;
+
+		if ( $can_proceed ) {
+			$can_proceed = $total_site_size < $available_disk_space;
+			$issue_for   = 'remaining_disk_space';
+		}
+
+		return array_merge( array( 'can_proceed' => $can_proceed, 'issue_for' => ( $can_proceed ? '' : $issue_for ) ), $api_response_data );
+	}
 
 	private function load_dependencies() {
 		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-migrate-log.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-curl.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-ajax.php';
 		require_once INSTAWP_PLUGIN_DIR . '/admin/class-instawp-admin.php';
-		require_once INSTAWP_PLUGIN_DIR . '/admin/class-instawp-admin-wizard.php';
 		require_once INSTAWP_PLUGIN_DIR . '/admin/partials/instawp-admin-change-event-filters.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-intawp-ajax-fn.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-rest-apis.php';
