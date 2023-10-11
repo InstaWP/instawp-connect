@@ -85,11 +85,11 @@ class FileManager {
 
 			set_transient( 'instawp_file_manager_login_token', $token, ( 15 * MINUTE_IN_SECONDS ) );
 			$file_db = [
-				'file_name' => $file_name
+				'file_name' => $file_name,
 			];
 
-			$file_db_manager = InstaWP_Setting::get_option( 'instawp_file_db_manager', [] );
-			$db_name         = InstaWP_Setting::get_args_option( $file_db_manager, 'db_name' );
+			$file_db_manager = Helper::get_option( 'instawp_file_db_manager', [] );
+			$db_name         = Helper::get_args_option( $file_db_manager, 'db_name' );
 			if ( $db_name ) {
 				$file_db['db_name'] = $db_name;
 			}
@@ -108,8 +108,8 @@ class FileManager {
     }
 
 	public function clean( $file_name = null ): void {
-		$file_db_manager = InstaWP_Setting::get_option( 'instawp_file_db_manager', [] );
-        $file_name       = $file_name ? $file_name : InstaWP_Setting::get_args_option( $file_db_manager, 'file_name' );
+		$file_db_manager = Helper::get_option( 'instawp_file_db_manager', [] );
+        $file_name       = $file_name ? $file_name : Helper::get_args_option( $file_db_manager, 'file_name' );
 
 		if ( ! empty( $file_name ) ) {
 			$file_path = self::get_file_path( $file_name );

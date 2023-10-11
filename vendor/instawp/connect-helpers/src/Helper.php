@@ -16,4 +16,26 @@ class Helper {
 
 		return $random_string;
 	}
+
+	public static function get_option( $option_name, $default = [] ) {
+		$option = get_option( $option_name, $default );
+
+		return $option;
+	}
+
+	public static function get_args_option( $key = '', $args = [], $default = '' ) {
+		$default = is_array( $default ) && empty( $default ) ? [] : $default;
+		$value   = ! is_array( $default ) && ! is_bool( $default ) && empty( $default ) ? '' : $default;
+		$key     = empty( $key ) ? '' : $key;
+
+		if ( isset( $args[ $key ] ) && ! empty( $args[ $key ] ) ) {
+			$value = $args[ $key ];
+		}
+
+		if ( isset( $args[ $key ] ) && is_bool( $default ) ) {
+			$value = ! ( 0 == $args[ $key ] || '' == $args[ $key ] );
+		}
+
+		return $value;
+	}
 }
