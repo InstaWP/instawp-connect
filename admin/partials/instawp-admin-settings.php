@@ -18,10 +18,6 @@ $instawp_api_url = get_option( 'instawp_api_url', '' );
 $general_setting = InstaWP_Setting::get_setting( true, "" );
 $api_key         = '';
 
-
-$instawp_db_method = get_option( 'instawp_db_method', 'pdo' );
-$instawp_db_method = empty( $instawp_db_method ) ? 'pdo' : $instawp_db_method;
-
 if ( ! empty( get_option( 'instawp_heartbeat_option' ) ) ) {
 	$instawp_heartbeat_option = get_option( 'instawp_heartbeat_option' );
 } else {
@@ -30,33 +26,7 @@ if ( ! empty( get_option( 'instawp_heartbeat_option' ) ) ) {
 if ( ! empty( $connect_options ) ) {
 	$api_key = $connect_options['api_key'];
 }
-// $InstaWP_BackupUploader = new InstaWP_BackupUploader();
-// $res                    = $InstaWP_BackupUploader->_rescan_local_folder_set_backup_api();
 
-$tasks = InstaWP_taskmanager::get_tasks_backup_running();
-
-if ( isset( $_POST['instawp_settings_nonce'] )
-     && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['instawp_settings_nonce'] ) ), 'instawp_settings' )
-) {
-	$tasks = InstaWP_taskmanager::get_tasks_backup_running();
-
-	foreach ( $tasks as $task_id => $task ) {
-
-
-		if ( isset( $tasks[ $task_id ]['data']['backup']['sub_job']['backup_merge']['finished'] ) && $tasks[ $task_id ]['data']['backup']['sub_job']['backup_merge']['finished'] == '1' ) {
-
-			echo esc_html( $task_id ) . "upload cancel";
-			update_option( 'upload_cancel_' . $task_id, '1' );
-			// InstaWP_taskmanager::update_backup_main_task_progress($task_id, 'upload', 100, 1);
-			// InstaWP_taskmanager::update_backup_task_status($task_id, false, 'completed');
-		} else {
-			echo esc_html( $task_id ) . " backup cancel";
-
-			$res = $instawp_plugin->backup_cancel_api();
-
-		}
-	}
-}
 ?>
 <div class="wrap instawp-settings-page">
     <h1>Settings</h1>
@@ -92,21 +62,6 @@ if ( isset( $_POST['instawp_settings_nonce'] )
                 </th>
                 <td>
                     <input type="number" min="2" max="120" value="<?php echo esc_html( $instawp_heartbeat_option ); ?>" name="instawp_api_heartbeat" id="instawp_api_heartbeat"/>
-                </td>
-            </tr>
-
-            <tr valign="top">
-                <th scope="row">
-                    <label for="instawp_db_method">Database Method</label>
-                </th>
-                <td>
-                    <select name="instawp_db_method" id="instawp_db_method">
-                        <option value=""><?php esc_html_e( 'Select database method', 'instawp-connect' ); ?></option>
-                        <option <?php selected( $instawp_db_method, 'pdo' ); ?> value="pdo"><?php esc_html_e( 'PDO', 'instawp-connect' ); ?></option>
-                        <option <?php selected( $instawp_db_method, 'wpdb' ); ?> value="wpdb"><?php esc_html_e( 'WPDB', 'instawp-connect' ); ?></option>
-                    </select>
-                    <p class="description">WPDB option has a better compatibility, but the speed of backup and restore is slower.</p>
-                    <p class="description">It is recommended to choose PDO option if pdo_mysql extension is installed on your server, which lets you backup and restore your site faster.</p>
                 </td>
             </tr>
 

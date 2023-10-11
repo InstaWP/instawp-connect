@@ -6,53 +6,23 @@ if ( ! defined( 'INSTAWP_PLUGIN_DIR' ) ) {
 
 class InstaWP_Setting {
 
-	public static function init_option() {
-		$ret = self::get_option( 'instawp_email_setting' );
-		if ( empty( $ret ) ) {
-			self::set_default_email_option();
-		}
-
-		$ret = self::get_option( 'instawp_compress_setting' );
-		if ( empty( $ret ) ) {
-			self::set_default_compress_option();
-		}
-
-		$ret = self::get_option( 'instawp_local_setting' );
-		if ( empty( $ret ) ) {
-			self::set_default_local_option();
-		}
-
-		$ret = self::get_option( 'instawp_upload_setting' );
-		if ( empty( $ret ) ) {
-			self::set_default_upload_option();
-		}
-
-		$ret = self::get_option( 'instawp_common_setting' );
-		if ( empty( $ret ) ) {
-			self::set_default_common_option();
-		}
-
-		// Setting up default
-		self::set_api_domain();
-	}
-
 
 	public static function get_stages() {
 
 		$stages = array(
-			'initiated'                => esc_html__( 'Migration started', 'instawp-connect' ),
-			'start-insta-site'         => esc_html__( 'Site creation started in InstaWP', 'instawp-connect' ),
-			'pull-ready'               => esc_html__( 'Ready to pull files and database', 'instawp-connect' ),
-			'finished-insta-site'      => esc_html__( 'Site created at InstaWP', 'instawp-connect' ),
-			'pull-initiated'           => esc_html__( 'Pull started for files and database', 'instawp-connect' ),
-			'pull-files-in-progress'   => esc_html__( 'Files pulling is running', 'instawp-connect' ),
-			'pull-files-finished'      => esc_html__( 'Files pulling is completed', 'instawp-connect' ),
-			'pull-db-in-progress'      => esc_html__( 'Database pulling is running', 'instawp-connect' ),
-			'pull-db-finished'         => esc_html__( 'Database pulling is completed', 'instawp-connect' ),
+			'initiated'              => esc_html__( 'Migration started', 'instawp-connect' ),
+			'start-insta-site'       => esc_html__( 'Site creation started in InstaWP', 'instawp-connect' ),
+			'pull-ready'             => esc_html__( 'Ready to pull files and database', 'instawp-connect' ),
+			'finished-insta-site'    => esc_html__( 'Site created at InstaWP', 'instawp-connect' ),
+			'pull-initiated'         => esc_html__( 'Pull started for files and database', 'instawp-connect' ),
+			'pull-files-in-progress' => esc_html__( 'Files pulling is running', 'instawp-connect' ),
+			'pull-files-finished'    => esc_html__( 'Files pulling is completed', 'instawp-connect' ),
+			'pull-db-in-progress'    => esc_html__( 'Database pulling is running', 'instawp-connect' ),
+			'pull-db-finished'       => esc_html__( 'Database pulling is completed', 'instawp-connect' ),
 //			'pull-db-restore-started'  => esc_html__( 'Database restoration started', 'instawp-connect' ),
 //			'pull-db-restore-finished' => esc_html__( 'Database restoration is completed', 'instawp-connect' ),
-			'pull-finished'            => esc_html__( 'Pull completed for files and database', 'instawp-connect' ),
-			'migration-finished'       => esc_html__( 'Migration is completed', 'instawp-connect' ),
+			'pull-finished'          => esc_html__( 'Pull completed for files and database', 'instawp-connect' ),
+			'migration-finished'     => esc_html__( 'Migration is completed', 'instawp-connect' ),
 //			'timeout'                  => esc_html__( 'Migration is timed out', 'instawp-connect' ),
 //			'aborted'                  => esc_html__( 'Migration is aborted', 'instawp-connect' ),
 //			'failed'                   => esc_html__( 'Migration is failed', 'instawp-connect' ),
@@ -301,7 +271,7 @@ class InstaWP_Setting {
 					'placeholder' => esc_attr( 'gL8tbdZFfG8yQCXu0IycBa' ),
 					'attributes'  => array(//						'readonly' => true,
 					),
-				), 
+				),
 				array(
 					'id'          => 'instawp_max_file_size_allowed',
 					'type'        => 'number',
@@ -576,7 +546,7 @@ class InstaWP_Setting {
 	}
 
 	public static function get_api_domain() {
-		return get_option( 'instawp_api_url' );
+		return self::get_option( 'instawp_api_url', 'https://app.instawp.io' );
 	}
 
 	public static function get_api_key() {
@@ -920,20 +890,6 @@ class InstaWP_Setting {
 		if ( array_key_exists( $id, $upload_options ) ) {
 			unset( $upload_options[ $id ] );
 
-			self::update_option( 'instawp_upload_setting', $upload_options );
-
-			return true;
-		} else {
-			return false;
-		}
-	}
-
-	public static function update_remote_option( $remote_id, $remote ) {
-		$upload_options = self::get_option( 'instawp_upload_setting' );
-
-		if ( array_key_exists( $remote_id, $upload_options ) ) {
-			$remote                       = apply_filters( 'instawp_pre_add_remote', $remote, $remote_id );
-			$upload_options[ $remote_id ] = $remote;
 			self::update_option( 'instawp_upload_setting', $upload_options );
 
 			return true;
