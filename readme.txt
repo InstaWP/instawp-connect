@@ -95,8 +95,7 @@ Need support or want to partner with us? Go to our website http://instawp.com/ a
 == Changelog ==
 
 = 0.0.9.40 =
-- 11/10/2023 - NEW - Added new method for staging site creation.
-- 11/10/2023 - FIX - Stabilise migrations/staging process.
+- 11/10/2023 - NEW - Re-write of entire staging process from ground up, Goal: Stable staging process.
 - 11/10/2023 - FIX - Removed un-used files.
 
 = 0.0.9.33 =
