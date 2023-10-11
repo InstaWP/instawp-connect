@@ -1,8 +1,6 @@
 <?php
 
-if ( ! defined( 'INSTAWP_PLUGIN_DIR' ) ) {
-	die;
-}
+defined( 'ABSPATH' ) || exit;
 
 class InstaWP_AJAX {
 	public $instawp_log;

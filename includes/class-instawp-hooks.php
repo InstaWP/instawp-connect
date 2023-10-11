@@ -3,7 +3,7 @@
  * Class for all hooks
  */
 
-defined( 'INSTAWP_PLUGIN_DIR' ) || exit;
+defined( 'ABSPATH' ) || exit;
 
 
 if ( ! class_exists( 'InstaWP_Hooks' ) ) {

@@ -6,6 +6,7 @@ namespace InstaWP\Connect\Helpers;
 use Exception;
 use InstaWP\Connect\Helpers\Helper;
 use InstaWP\Connect\Helpers\WPConfig;
+use InstaWP_Setting;
 
 class FileManager {
 
