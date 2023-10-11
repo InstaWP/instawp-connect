@@ -5,7 +5,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2023-10-11 12:32+0000\n"
+"POT-Creation-Date: 2023-10-11 14:33+0000\n"
 "X-Poedit-Basepath: ..\n"
 "X-Poedit-KeywordsList: __;_e;_ex:1,2c;_n:1,2;_n_noop:1,2;_nx:1,2,4c;_nx_noop:1,2,3c;_x:1,2c;esc_attr__;esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c\n"
 "X-Poedit-SearchPath-0: .\n"
@@ -866,19 +866,19 @@ msgstr ""
 msgid "Invalid command for `-action`"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:189
+#: includes/class-instawp-ajax.php:191
 msgid "Empty folder!"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:289
+#: includes/class-instawp-ajax.php:291
 msgid "%s rows"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:332
+#: includes/class-instawp-ajax.php:334
 msgid "We have identified following large files in your installation:"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:426
+#: includes/class-instawp-ajax.php:428
 msgid "InstaWP Connect Settings has been reset successfully."
 msgstr ""
 
@@ -918,75 +918,75 @@ msgstr ""
 msgid "InstaWP File Manager"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:230
+#: includes/class-instawp-rest-api.php:233
 msgid "Plugin reset Successful."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:523
+#: includes/class-instawp-rest-api.php:526
 msgid "Already configured"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:535
+#: includes/class-instawp-rest-api.php:538
 msgid "Connected"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:543
+#: includes/class-instawp-rest-api.php:546
 msgid "Api key is required"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:603
+#: includes/class-instawp-rest-api.php:606
 msgid "Settings is disabled! Please enable %s Option from InstaWP Connect Remote Management settings page."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:612
+#: includes/class-instawp-rest-api.php:615
 msgid "Empty bearer token."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:633
+#: includes/class-instawp-rest-api.php:636
 msgid "Invalid bearer token."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1013
+#: includes/class-instawp-rest-api.php:1016
 msgid "Setting does not exist."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:996
+#: includes/class-instawp-rest-api.php:999
 msgid "Success!"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1005
+#: includes/class-instawp-rest-api.php:1008
 msgid "You can not enable this setting through API."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1002
+#: includes/class-instawp-rest-api.php:1005
 msgid "Setting is already disabled."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1118, includes/class-instawp-setting.php:366, includes/class-instawp-setting.php:372
+#: includes/class-instawp-rest-api.php:1121, includes/class-instawp-setting.php:366, includes/class-instawp-setting.php:372
 msgid "Heartbeat"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1119, includes/class-instawp-setting.php:404
+#: includes/class-instawp-rest-api.php:1122, includes/class-instawp-setting.php:404
 msgid "File Manager"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1120, includes/class-instawp-setting.php:412
+#: includes/class-instawp-rest-api.php:1123, includes/class-instawp-setting.php:412
 msgid "Database Manager"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1121, includes/class-instawp-setting.php:420
+#: includes/class-instawp-rest-api.php:1124, includes/class-instawp-setting.php:420
 msgid "Install Plugin / Themes"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1122, includes/class-instawp-setting.php:428
+#: includes/class-instawp-rest-api.php:1125, includes/class-instawp-setting.php:428
 msgid "Config Management"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1123, includes/class-instawp-setting.php:437
+#: includes/class-instawp-rest-api.php:1126, includes/class-instawp-setting.php:437
 msgid "Site Inventory"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1124, includes/class-instawp-setting.php:446
+#: includes/class-instawp-rest-api.php:1127, includes/class-instawp-setting.php:446
 msgid "Debug Log"
 msgstr ""
 
@@ -1198,27 +1198,27 @@ msgstr ""
 msgid "Enabling this option will allow reading WordPress error logs on this website remotely using the REST API."
 msgstr ""
 
-#: includes/class-intawp-ajax-fn.php:166
+#: includes/class-intawp-ajax-fn.php:165
 msgid "%u %s change event"
 msgstr ""
 
-#: includes/class-intawp-ajax-fn.php:154
+#: includes/class-intawp-ajax-fn.php:153
 msgid "%u %s"
 msgstr ""
 
-#: includes/class-intawp-ajax-fn.php:159
+#: includes/class-intawp-ajax-fn.php:158
 msgid "Show more"
 msgstr ""
 
-#: includes/class-intawp-ajax-fn.php:179
+#: includes/class-intawp-ajax-fn.php:178
 msgid "Sync not initiated ( 0 out of %d events )"
 msgstr ""
 
-#: includes/class-intawp-ajax-fn.php:180
+#: includes/class-intawp-ajax-fn.php:179
 msgid "Events loaded"
 msgstr ""
 
-#: includes/class-intawp-ajax-fn.php:180, includes/class-intawp-ajax-fn.php:298
+#: includes/class-intawp-ajax-fn.php:179, includes/class-intawp-ajax-fn.php:298
 msgid "No pending events found!"
 msgstr ""
 
