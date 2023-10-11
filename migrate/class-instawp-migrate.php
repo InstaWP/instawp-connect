@@ -142,30 +142,30 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 			}
 
 			foreach ( InstaWP_Setting::get_migrate_settings_fields() as $field_id ) {
-
 				if ( ! isset( $form_data[ $field_id ] ) ) {
 					continue;
 				}
-
 				$field_value = InstaWP_Setting::get_args_option( $field_id, $form_data );
 
-				if ( 'instawp_api_key' == $field_id && ! empty( $field_value ) && $field_value != InstaWP_Setting::get_option( 'instawp_api_key' ) ) {
+				if ( 'instawp_api_options' === $field_id ) {
+					$api_key     = InstaWP_Setting::get_args_option( 'api_key', $field_value );
+					$api_options = InstaWP_Setting::get_option( 'instawp_api_options', [] );
+					$old_api_key = InstaWP_Setting::get_args_option( 'api_key', $api_options );
 
-					$api_key_check_response = InstaWP_Backup_Api::config_check_key( $field_value );
-
-					if ( isset( $api_key_check_response['error'] ) && $api_key_check_response['error'] == 1 ) {
-						wp_send_json_error( array( 'message' => InstaWP_Setting::get_args_option( 'message', $api_key_check_response, esc_html__( 'Error. Invalid API Key', 'instawp-connect' ) ) ) );
+					if ( ! empty( $api_key ) && $api_key != $old_api_key ) {
+						$api_key_check_response = InstaWP_Backup_Api::config_check_key( $api_key );
+	
+						if ( isset( $api_key_check_response['error'] ) && $api_key_check_response['error'] == 1 ) {
+							wp_send_json_error( array( 'message' => InstaWP_Setting::get_args_option( 'message', $api_key_check_response, esc_html__( 'Error. Invalid API Key', 'instawp-connect' ) ) ) );
+						}
+						continue;
 					}
-
-					continue;
+					$field_value = array_merge( $api_options, $field_value );
 				}
-
 				InstaWP_Setting::update_option( $field_id, $field_value );
 			}
 
 			wp_send_json_success( array( 'message' => esc_html__( 'Success. Settings updated.' ) ) );
-
-			die();
 		}
 
 

@@ -73,6 +73,7 @@ class InstaWP_Setting {
 	public static function generate_section_field( $field = array() ) {
 
 		$field_id            = self::get_args_option( 'id', $field );
+		$field_name          = self::get_args_option( 'name', $field );
 		$field_class         = self::get_args_option( 'class', $field );
 		$field_title         = self::get_args_option( 'title', $field );
 		$field_type          = self::get_args_option( 'type', $field );
@@ -93,6 +94,9 @@ class InstaWP_Setting {
 		$field_parent_class  = self::get_args_option( 'parent_class', $field );
 		$field_value         = self::get_option( $field_id, $field_default_value );
 		$attributes          = array();
+
+		$field_value = ( $field_name ) ? self::get_args_option( $field_name, $field_value ) : $field_value;
+		$field_name  = ( $field_name ) ? $field_id . '[' . $field_name . ']' : $field_id;
 
 		if ( true === $internal || 1 == $internal ) {
 			if ( ! isset( $_REQUEST['internal'] ) || '1' != sanitize_text_field( $_REQUEST['internal'] ) ) {
@@ -117,17 +121,18 @@ class InstaWP_Setting {
 			$label_class .= ' ' . $field_label_class;
 		}
 
-		$field_container_class = 'instawp-single-field ' . esc_attr( str_replace( '_', '-', $field_id ) ) . '-field';
+		$field_name_class      = str_replace( [ '[', ']' ], [ '_', '' ], $field_name );
+		$field_container_class = 'instawp-single-field ' . esc_attr( str_replace( '_', '-', $field_name_class ) ) . '-field';
 		if ( ! empty( $field_parent_class ) ) {
 			$field_container_class .= ' ' . $field_parent_class;
 		}
 
-		if ( $field_type == 'select2' ) {
+		if ( $field_type === 'select2' ) {
 			$field_container_class .= ' select2-field-wrapper';
 		}
 
 		echo '<div class="' . esc_attr( $field_container_class ) . '">';
-		echo '<label for="' . esc_attr( $field_id ) . '" class="' . esc_attr( $label_class ) . '"' . $label_attributes . '>' . $label_content . '</label>';
+		echo '<label for="' . esc_attr( $field_name_class ) . '" class="' . esc_attr( $label_class ) . '"' . $label_attributes . '>' . $label_content . '</label>';
 
 		switch ( $field_type ) {
 			case 'text':
@@ -137,7 +142,7 @@ class InstaWP_Setting {
 				$css_class = 'block rounded-md border-grayCust-350 shadow-sm focus:border-primary-900 focus:ring-1 focus:ring-primary-900 sm:text-sm';
 				$css_class = $field_class ? $css_class . ' ' . trim( $field_class ) : 'w-full ' . $css_class;
 
-				echo '<input ' . implode( ' ', $attributes ) . ' type="' . esc_attr( $field_type ) . '" name="' . esc_attr( $field_id ) . '" id="' . esc_attr( $field_id ) . '" value="' . esc_attr( $field_value ) . '" autocomplete="off" placeholder="' . esc_attr( $field_placeholder ) . '" class="' . esc_attr( $css_class ) . '" />';
+				echo '<input ' . implode( ' ', $attributes ) . ' type="' . esc_attr( $field_type ) . '" name="' . esc_attr( $field_name ) . '" id="' . esc_attr( $field_name_class ) . '" value="' . esc_attr( $field_value ) . '" autocomplete="off" placeholder="' . esc_attr( $field_placeholder ) . '" class="' . esc_attr( $css_class ) . '" />';
 				break;
 
 			case 'toggle':
@@ -145,7 +150,7 @@ class InstaWP_Setting {
 				$state_label = $field_value === 'on' ? __( 'Enabled', 'instawp-connect' ) : __( 'Disabled', 'instawp-connect' );
 
 				echo '<label class="toggle-control">';
-				echo '<input type="checkbox" ' . checked( $field_value, 'on', false ) . ' name="' . esc_attr( $field_id ) . '" id="' . esc_attr( $field_id ) . '" class="' . esc_attr( $css_class ) . '" />';
+				echo '<input type="checkbox" ' . checked( $field_value, 'on', false ) . ' name="' . esc_attr( $field_name ) . '" id="' . esc_attr( $field_name_class ) . '" class="' . esc_attr( $css_class ) . '" />';
 				echo '<div class="toggle-switch"></div>';
 				echo '<span class="toggle-label" data-on="' . esc_attr__( 'Enabled', 'instawp-connect' ) . '" data-off="' . esc_attr__( 'Disabled', 'instawp-connect' ) . '">' . esc_html( $state_label ) . '</span>';
 				echo '</label>';
@@ -154,7 +159,7 @@ class InstaWP_Setting {
 			case 'select':
 				$css_class = $field_class ? $field_class : '';
 
-				echo '<select ' . implode( ' ', $attributes ) . ' name="' . esc_attr( $field_id ) . '" id="' . esc_attr( $field_id ) . '" class="' . esc_attr( $css_class ) . '">';
+				echo '<select ' . implode( ' ', $attributes ) . ' name="' . esc_attr( $field_name ) . '" id="' . esc_attr( $field_name_class ) . '" class="' . esc_attr( $css_class ) . '">';
 				if ( ! empty( $field_placeholder ) ) {
 					echo '<option value="">' . esc_html( $field_placeholder ) . '</option>';
 				}
@@ -170,7 +175,7 @@ class InstaWP_Setting {
 				if ( $multiple == true ) {
 					array_push( $attributes, 'multiple' );
 				}
-				echo '<select ' . ( $remote === true ? 'data-ajax--url="' . admin_url( 'admin-ajax.php?action=' . $action . '&event=' . $event ) . '"' : '' ) . implode( ' ', $attributes ) . ' name="' . esc_attr( $field_id ) . ( $multiple == true ? '[]' : '' ) . '" id="' . esc_attr( $field_id ) . '" class="' . esc_attr( $css_class ) . '">';
+				echo '<select ' . ( $remote === true ? 'data-ajax--url="' . admin_url( 'admin-ajax.php?action=' . $action . '&event=' . $event ) . '"' : '' ) . implode( ' ', $attributes ) . ' name="' . esc_attr( $field_name ) . ( $multiple == true ? '[]' : '' ) . '" id="' . esc_attr( $field_name_class ) . '" class="' . esc_attr( $css_class ) . '">';
 				if ( ! empty( $field_placeholder ) ) {
 					echo '<option value="">' . esc_html( $field_placeholder ) . '</option>';
 				}
@@ -261,7 +266,8 @@ class InstaWP_Setting {
 			'desc'   => esc_html__( 'Update your settings before creating staging sites.', 'instawp-connect' ),
 			'fields' => array(
 				array(
-					'id'          => 'instawp_api_key',
+					'id'          => 'instawp_api_options',
+					'name'        => 'api_key',
 					'type'        => 'text',
 					'title'       => esc_html__( 'API Key', 'instawp-connect' ),
 					'placeholder' => esc_attr( 'gL8tbdZFfG8yQCXu0IycBa' ),
