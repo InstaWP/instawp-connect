@@ -95,15 +95,16 @@ if ( ! function_exists( 'instawp_create_db_tables' ) ) {
 	}
 }
 
+
 if ( ! function_exists( 'instawp_alter_db_tables' ) ) {
 	function instawp_alter_db_tables() {
 		global $wpdb;
 
-		$row = $wpdb->get_row("SELECT * FROM ".INSTAWP_DB_TABLE_EVENTS."", ARRAY_A);
+		$row = $wpdb->get_row( "SELECT * FROM " . INSTAWP_DB_TABLE_EVENTS, ARRAY_A );
 		$row = $row ?? [];
 
-		if( ( !array_key_exists('event_hash', $row ) ) ){
-			$wpdb->query("ALTER TABLE ".INSTAWP_DB_TABLE_EVENTS." ADD `event_hash` varchar(50) NOT NULL AFTER `id`");
+		if ( ( ! array_key_exists( 'event_hash', $row ) ) ) {
+			$wpdb->query( "ALTER TABLE " . INSTAWP_DB_TABLE_EVENTS . " ADD `event_hash` varchar(50) NOT NULL AFTER `id`" );
 		}
 	}
 }
@@ -339,30 +340,53 @@ if ( ! function_exists( 'instawp_get_migration_site_detail' ) ) {
 }
 
 
+if ( ! function_exists( 'instawp_update_migration_stages' ) ) {
+	/**
+	 * Update migration stages
+	 *
+	 * @param $stages
+	 *
+	 * @return bool
+	 */
+	function instawp_update_migration_stages( $stages = [] ) {
+
+		if (
+			empty( $stages ) ||
+			empty( $migrate_id = InstaWP_Setting::get_option( 'migrate_id' ) ) ||
+			empty( $migrate_key = InstaWP_Setting::get_option( 'migrate_key' ) )
+		) {
+			return false;
+		}
+
+		$stage_args     = array(
+			'migrate_key' => $migrate_key,
+			'stage'       => json_encode( $stages ),
+		);
+		$stage_response = InstaWP_Curl::do_curl( 'migrates-v3/' . $migrate_id . '/update-status', $stage_args );
+
+		return (bool) InstaWP_Setting::get_args_option( 'status', $stage_response, true );
+	}
+}
+
+
 if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 	/**
 	 * Reset running migration
 	 *
-	 * @param $reset_type
+	 * @param string $reset_type
+	 * @param bool $force_timeout
 	 *
 	 * @return bool
 	 */
 	function instawp_reset_running_migration( $reset_type = 'soft', $force_timeout = true ) {
 
+		// Delete migration details
+		delete_option( 'instawp_migration_details' );
+
 		$reset_type = empty( $reset_type ) ? InstaWP_Setting::get_option( 'instawp_reset_type', 'soft' ) : $reset_type;
 
-		if ( ! in_array( $reset_type, array( 'soft', 'hard', 'task_only' ) ) ) {
+		if ( ! in_array( $reset_type, array( 'soft', 'hard' ) ) ) {
 			return false;
-		}
-
-		InstaWP_taskmanager::delete_all_task();
-		$task = new InstaWP_Backup();
-		$task->clean_backup();
-
-		delete_option( 'instawp_migration_running' );
-
-		if ( 'task_only' == $reset_type ) {
-			return true;
 		}
 
 		if ( 'hard' == $reset_type ) {
@@ -389,13 +413,15 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 
 			as_unschedule_all_actions( 'instawp_handle_heartbeat', [], 'instawp-connect' );
 
-			$file_name = InstaWP_Setting::get_option( 'instawp_file_manager_name', '' );
+			$file_db_manager = InstaWP_Setting::get_option( 'instawp_file_db_manager', [] );
+			$file_name       = InstaWP_Setting::get_args_option( $file_db_manager, 'file_name' );
 			if ( $file_name ) {
 				as_unschedule_all_actions( 'instawp_clean_file_manager', [ $file_name ], 'instawp-connect' );
 				do_action( 'instawp_clean_file_manager', $file_name );
 			}
 
-			$file_name = InstaWP_Setting::get_option( 'instawp_database_manager_name', '' );
+			$file_db_manager = InstaWP_Setting::get_option( 'instawp_file_db_manager', [] );
+			$file_name       = InstaWP_Setting::get_args_option( $file_db_manager, 'db_name' );
 			if ( $file_name ) {
 				as_unschedule_all_actions( 'instawp_clean_database_manager', [ $file_name ], 'instawp-connect' );
 				do_action( 'instawp_clean_database_manager', $file_name );
@@ -1262,7 +1288,7 @@ if ( ! function_exists( 'instawp_is_wordfence_whitelisted' ) ) {
 		$whitelisted = false;
 		if ( class_exists( '\wfConfig' ) && method_exists( '\wfConfig', 'get' ) ) {
 			$whites = \wfConfig::get( 'whitelisted', [] );
-			$arr = explode( ',', $whites );
+			$arr    = explode( ',', $whites );
 			if ( in_array( '167.71.233.239', $arr ) && in_array( '159.65.64.73', $arr ) ) {
 				$whitelisted = true;
 			}
@@ -1271,6 +1297,7 @@ if ( ! function_exists( 'instawp_is_wordfence_whitelisted' ) ) {
 		return $whitelisted;
 	}
 }
+
 
 if ( ! function_exists( 'instawp_set_wordfence_whitelist_ip' ) ) {
 	function instawp_set_wordfence_whitelist_ip() {
@@ -1281,14 +1308,17 @@ if ( ! function_exists( 'instawp_set_wordfence_whitelist_ip' ) ) {
 	}
 }
 
+
 if ( ! function_exists( 'instawp_can_whitelist_wordfence' ) ) {
 	function instawp_can_whitelist_wordfence() {
 		if ( ! function_exists( 'is_plugin_active' ) ) {
 			include_once ABSPATH . 'wp-admin/includes/plugin.php';
 		}
+
 		return ( is_plugin_active( 'wordfence/wordfence.php' ) && ! instawp_is_wordfence_whitelisted() );
 	}
 }
+
 
 if ( ! function_exists( 'instawp_readfile_chunked' ) ) {
 	/**
@@ -1344,6 +1374,21 @@ if ( ! function_exists( 'instawp_files_contains' ) ) {
 	}
 }
 
-function pr( $data ){
-	echo '<pre>'; print_r($data); exit();
+
+if ( ! function_exists( 'instawp_get_source_site_detail' ) ) {
+	function instawp_get_source_site_detail() {
+		$connect_id          = InstaWP_Setting::get_option( 'instawp_sync_connect_id' );
+		$parent_connect_data = InstaWP_Setting::get_option( 'instawp_sync_parent_connect_data' );
+
+		if ( intval( $connect_id ) > 0 && empty( $parent_connect_data ) ) {
+
+			$api_response = InstaWP_Curl::do_curl( 'connects/' . $connect_id, [], [], false );
+
+			if ( $api_response['success'] ) {
+				$api_response_data               = InstaWP_Setting::get_args_option( 'data', $api_response, [] );
+				$api_response_data['connect_id'] = $connect_id;
+				add_option( 'instawp_sync_parent_connect_data', $api_response_data );
+			}
+		}
+	}
 }

@@ -19,11 +19,6 @@ $migrate_hosting = array(
 );
 
 
-//as_enqueue_async_action( 'instawp_download_bg', [ $backup_task_id, $parameters ] );
-//
-//do_action( 'action_scheduler_run_queue', 'Async Request' );
-
-
 ?>
 
 <div class="wrap instawp-migrate-wrap box-width rounded-2xl">

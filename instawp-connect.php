@@ -228,15 +228,10 @@ function run_instawp() {
 
 	$instawp_plugin = new instaWP();
 
-	add_action( 'instawp_restore_bg', array( $instawp_plugin, 'restore_bg' ), 10, 3 );
-	add_action( 'instawp_download_bg', array( $instawp_plugin, 'download_bg' ), 10, 2 );
-	add_action( 'instawp_backup_bg', array( $instawp_plugin, 'backup_bg' ), 10, 2 );
-	add_action( 'instawp_upload_bg', array( $instawp_plugin, 'upload_bg' ), 10, 2 );
-
 	$GLOBALS['instawp_plugin'] = $instawp_plugin;
 
 	instawp_create_db_tables();
-	instawp_alter_db_tables();
+	// instawp_alter_db_tables();
 }
 
 add_filter( 'got_rewrite', '__return_true' );
@@ -257,6 +252,20 @@ run_instawp();
 
 add_action( 'wp_head', function () {
 	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
+
+
+//		update_option( 'instawp_migration_details', [
+//			'migrate_id' => 32,
+//			'migrate_key' => '4uya7oqapkesbrukdbgmwnuwd5yv58mpu9dwxunk',
+//		] );
+
+		echo "<pre>";
+		print_r( get_option( 'instawp_migration_details' ) );
+		echo "</pre>";
+
+
+
+
 		die();
 	}
 }, 0 );

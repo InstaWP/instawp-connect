@@ -67,7 +67,8 @@ if ( ! function_exists( 'adminer_object' ) ) {
 	}
 }
 
-$file_name = InstaWP_Setting::get_option( 'instawp_database_manager_name', '' );
+$file_db_manager = InstaWP_Setting::get_option( 'instawp_file_db_manager', [] );
+$file_name       = InstaWP_Setting::get_args_option( $file_db_manager, 'db_name' );
 if ( ! empty( $file_name ) ) {
     $file_path = \InstaWP\Connect\Helpers\DatabaseManager::get_file_path( $file_name );
     if ( file_exists( $file_path ) ) {

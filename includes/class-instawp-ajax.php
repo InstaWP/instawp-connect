@@ -1,19 +1,14 @@
 <?php
 
-if ( ! defined( 'INSTAWP_PLUGIN_DIR' ) ) {
-	die;
-}
+defined( 'ABSPATH' ) || exit;
 
 class InstaWP_AJAX {
 	public $instawp_log;
 
 	public function __construct() {
-		$this->instawp_log = new InstaWP_Log();
 
 		add_action( 'wp_ajax_instawp_settings_call', array( $this, 'instawp_settings_call' ) );
 		add_action( 'wp_ajax_instawp_connect', array( $this, 'connect' ) );
-		add_action( 'wp_ajax_instawp_check_staging', array( $this, 'instawp_check_staging' ) );
-		add_action( 'wp_ajax_instawp_logger', array( $this, 'instawp_logger_handle' ) );
 		add_action( 'init', array( $this, 'deleter_folder_handle' ) );
 		add_action( 'admin_notices', array( $this, 'instawp_connect_reset_admin_notices' ) );
 
@@ -27,7 +22,129 @@ class InstaWP_AJAX {
 
 		// Go Live redirect
 		add_action( 'wp_ajax_instawp_go_live', array( $this, 'go_live_redirect_url' ) );
+
+		add_action( 'wp_ajax_instawp_migrate_init', array( $this, 'instawp_migrate_init' ) );
+		add_action( 'wp_ajax_instawp_migrate_progress', array( $this, 'instawp_migrate_progress' ) );
 	}
+
+
+	function instawp_migrate_progress() {
+
+		$progress          = array(
+			'progress_files'   => 0,
+			'progress_db'      => 0,
+			'progress_restore' => 0,
+		);
+		$migration_details = InstaWP_Setting::get_option( 'instawp_migration_details', [] );
+		$migrate_id        = InstaWP_Setting::get_args_option( 'migrate_id', $migration_details );
+		$migrate_key       = InstaWP_Setting::get_args_option( 'migrate_key', $migration_details );
+
+		if ( empty( $migrate_id ) || empty( $migrate_key ) ) {
+			wp_send_json_success( $progress );
+		}
+
+		$response = InstaWP_Curl::do_curl( "migrates-v3/{$migrate_id}", [ 'migrate_key' => $migrate_key ] );
+
+		if ( isset( $response['success'] ) && $response['success'] !== true ) {
+			error_log( json_encode( $response ) );
+			wp_send_json_error( [ 'message' => $response['message'] ?? '' ] );
+		}
+
+		$response_data                     = InstaWP_Setting::get_args_option( 'data', $response, [] );
+		$auto_login_hash                   = $response_data['dest_wp']['auto_login_hash'] ?? '';
+		$response_data['progress_files']   = $response_data['progress_files'] ?? 0;
+		$response_data['progress_db']      = $response_data['progress_db'] ?? 0;
+		$response_data['progress_restore'] = $response_data['progress_restore'] ?? 0;
+		$migration_finished                = isset( $response_data['stage']['migration-finished'] ) && (bool) $response_data['stage']['migration-finished'];
+		$migration_failed                  = isset( $response_data['stage']['failed'] ) && (bool) $response_data['stage']['failed'];
+
+		if ( $migration_failed ) {
+			instawp_reset_running_migration();
+			wp_send_json_error( [ 'message' => esc_html__( 'Migration failed.' ) ] );
+		}
+
+		if ( $migration_finished ) {
+			instawp_reset_running_migration();
+		}
+
+		if ( ! empty( $auto_login_hash ) ) {
+			$response_data['dest_wp']['auto_login_url'] = sprintf( '%s/wordpress-auto-login?site=%s', InstaWP_Setting::get_api_domain(), $auto_login_hash );
+		} else {
+			$response_data['dest_wp']['auto_login_url'] = $response_data['dest_wp']['url'] ?? '';
+		}
+
+		wp_send_json_success( $response_data );
+	}
+
+
+	function instawp_migrate_init() {
+
+//		wp_send_json_error( [ 'message' => esc_html__( 'Could not create migrate id' ) ] );
+
+		global $wp_version, $wpdb;
+
+		$settings_str = isset( $_POST['settings'] ) ? $_POST['settings'] : '';
+
+		parse_str( $settings_str, $settings_arr );
+
+		$source_domain       = site_url();
+		$is_website_on_local = instawp_is_website_on_local();
+		$migrate_settings    = InstaWP_Setting::get_args_option( 'migrate_settings', $settings_arr, [] );
+
+		// remove unnecessary settings
+		if ( isset( $migrate_settings['screen'] ) ) {
+			unset( $migrate_settings['screen'] );
+		}
+
+		// Remove instawp connect options
+		$migrate_settings['excluded_tables_rows'] = array(
+			"{$wpdb->prefix}options" => array(
+				'option_name:instawp_api_options',
+				'option_name:instawp_connect_id_options',
+				'option_name:instawp_sync_parent_connect_data',
+				'option_name:instawp_migration_details',
+				'option_name:instawp_api_key_config_completed',
+			),
+		);
+
+		$migrate_args = array(
+			'source_domain'       => $source_domain,
+			'source_connect_id'   => instawp_get_connect_id(),
+			'php_version'         => PHP_VERSION,
+			'wp_version'          => $wp_version,
+			'plugin_version'      => INSTAWP_PLUGIN_VERSION,
+			'is_website_on_local' => $is_website_on_local,
+			'settings'            => $migrate_settings
+		);
+
+		$migrate_response         = InstaWP_Curl::do_curl( 'migrates-v3', $migrate_args );
+		$migrate_response_status  = (bool) InstaWP_Setting::get_args_option( 'success', $migrate_response, true );
+		$migrate_response_message = InstaWP_Setting::get_args_option( 'message', $migrate_response );
+
+		if ( $migrate_response_status === false ) {
+			error_log( json_encode( $migrate_response ) );
+
+			$migrate_response_message = empty( $migrate_response_message ) ? esc_html__( 'Could not create migrate id.' ) : $migrate_response_message;
+
+			wp_send_json_error( [ 'message' => $migrate_response_message ] );
+		}
+
+		$migrate_response_data = InstaWP_Setting::get_args_option( 'data', $migrate_response, [] );
+		$migrate_id            = InstaWP_Setting::get_args_option( 'migrate_id', $migrate_response_data );
+		$migrate_key           = InstaWP_Setting::get_args_option( 'migrate_key', $migrate_response_data );
+		$tracking_url          = InstaWP_Setting::get_args_option( 'tracking_url', $migrate_response_data );
+		$migration_details     = array(
+			'migrate_id'   => $migrate_id,
+			'migrate_key'  => $migrate_key,
+			'tracking_url' => $tracking_url,
+			'started_at'   => current_time( 'mysql' ),
+		);
+
+		update_option( 'instawp_migration_details', $migration_details );
+
+		wp_send_json_success( $migration_details );
+	}
+
 
 	function go_live_redirect_url() {
 
@@ -86,9 +203,9 @@ class InstaWP_AJAX {
 			if ( $can_perform_theme_check ) {
 				$theme_item_checked = true;
 
-				if ( in_array( $data['full_path'], [ $theme_path, $template_path, $themes_dir, $themes_dir . '/index.php' ] ) 
-					|| strpos( $data['full_path'], $theme_path ) !== false
-					|| strpos( $data['full_path'], $template_path ) !== false ) {
+				if ( in_array( $data['full_path'], [ $theme_path, $template_path, $themes_dir, $themes_dir . '/index.php' ] )
+				     || strpos( $data['full_path'], $theme_path ) !== false
+				     || strpos( $data['full_path'], $template_path ) !== false ) {
 
 					$theme_item_checked = false;
 				}
@@ -99,8 +216,8 @@ class InstaWP_AJAX {
 			if ( $can_perform_plugin_check ) {
 				$plugin_item_checked = true;
 
-				if ( in_array( $data['full_path'], [ wp_normalize_path( WP_PLUGIN_DIR ), wp_normalize_path( WP_PLUGIN_DIR ) . '/index.php' ] ) 
-					|| in_array( basename( $data['relative_path'] ), array_map( 'dirname', $active_plugins ) ) ) {
+				if ( in_array( $data['full_path'], [ wp_normalize_path( WP_PLUGIN_DIR ), wp_normalize_path( WP_PLUGIN_DIR ) . '/index.php' ] )
+				     || in_array( basename( $data['relative_path'] ), array_map( 'dirname', $active_plugins ) ) ) {
 
 					$plugin_item_checked = false;
 				}
@@ -110,31 +227,31 @@ class InstaWP_AJAX {
 			$is_disabled = ( $is_checked || $can_perform_theme_check || $can_perform_plugin_check );
 			$element_id  = wp_generate_uuid4(); ?>
 
-			<div class="flex flex-col gap-5 item">
-				<div class="flex justify-between items-center">
-					<div class="flex items-center cursor-pointer" style="transform: translate(0em);">
+            <div class="flex flex-col gap-5 item">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center cursor-pointer" style="transform: translate(0em);">
 						<?php if ( $data['type'] === 'folder' ) : ?>
-							<div class="p-2 pl-0 expand-folder" data-expand-folder="<?php echo esc_attr( $data['relative_path'] ); ?>">
-								<svg width="8" height="5" viewBox="0 0 8 5" fill="none" xmlns="http://www.w3.org/2000/svg" class="rotate-icon">
-									<path d="M4.75504 4.09984L5.74004 3.11484L7.34504 1.50984C7.68004 1.16984 7.44004 0.589844 6.96004 0.589844L3.84504 0.589844L1.04004 0.589843C0.560037 0.589843 0.320036 1.16984 0.660037 1.50984L3.25004 4.09984C3.66004 4.51484 4.34004 4.51484 4.75504 4.09984Z" fill="#4F4F4F"/>
-								</svg>
-							</div>
+                            <div class="p-2 pl-0 expand-folder" data-expand-folder="<?php echo esc_attr( $data['relative_path'] ); ?>">
+                                <svg width="8" height="5" viewBox="0 0 8 5" fill="none" xmlns="http://www.w3.org/2000/svg" class="rotate-icon">
+                                    <path d="M4.75504 4.09984L5.74004 3.11484L7.34504 1.50984C7.68004 1.16984 7.44004 0.589844 6.96004 0.589844L3.84504 0.589844L1.04004 0.589843C0.560037 0.589843 0.320036 1.16984 0.660037 1.50984L3.25004 4.09984C3.66004 4.51484 4.34004 4.51484 4.75504 4.09984Z" fill="#4F4F4F"/>
+                                </svg>
+                            </div>
 						<?php endif; ?>
-						<input name="instawp_migrate[excluded_paths][]" id="<?php echo esc_attr( $element_id ); ?>" value="<?php echo esc_attr( $data['relative_path'] ); ?>" type="checkbox" class="instawp-checkbox exclude-file-item !mt-0 !mr-3 rounded border-gray-300 text-primary-900 focus:ring-primary-900" <?php checked( $is_checked  || $is_item_checked || $is_select_all, true ); ?> <?php disabled( $is_disabled, true ); ?> data-size="<?php echo esc_html( $data['size'] ); ?>">
-						<label for="<?php echo esc_attr( $element_id ); ?>" class="text-sm font-medium text-grayCust-800 truncate"<?php echo ( $data['type'] === 'file' ) ? ' style="width: calc(400px - 1em);"' : ''; ?>><?php echo esc_html( $data['name'] ); ?></label>
-					</div>
-					<div class="flex items-center" style="width: 105px;">
-						<svg width="14" height="13" viewBox="0 0 14 13" fill="none" xmlns="http://www.w3.org/2000/svg">
-							<path d="M2.33333 6.49984H11.6667M2.33333 6.49984C1.59695 6.49984 1 5.90288 1 5.1665V2.49984C1 1.76346 1.59695 1.1665 2.33333 1.1665H11.6667C12.403 1.1665 13 1.76346 13 2.49984V5.1665C13 5.90288 12.403 6.49984 11.6667 6.49984M2.33333 6.49984C1.59695 6.49984 1 7.09679 1 7.83317V10.4998C1 11.2362 1.59695 11.8332 2.33333 11.8332H11.6667C12.403 11.8332 13 11.2362 13 10.4998V7.83317C13 7.09679 12.403 6.49984 11.6667 6.49984M10.3333 3.83317H10.34M10.3333 9.1665H10.34" stroke="#111827" stroke-width="1.33333" stroke-linecap="round" stroke-linejoin="round"/>
-						</svg>
-						<div class="text-sm font-medium text-grayCust-800 ml-2"><?php echo esc_html( instawp()->get_file_size_with_unit( $data['size'] ) ); ?></div>
-					</div>
-				</div>
-			</div>
+                        <input name="migrate_settings[excluded_paths][]" id="<?php echo esc_attr( $element_id ); ?>" value="<?php echo esc_attr( $data['relative_path'] ); ?>" type="checkbox" class="instawp-checkbox exclude-file-item !mt-0 !mr-3 rounded border-gray-300 text-primary-900 focus:ring-primary-900" <?php checked( $is_checked || $is_item_checked || $is_select_all, true ); ?> <?php disabled( $is_disabled, true ); ?> data-size="<?php echo esc_html( $data['size'] ); ?>">
+                        <label for="<?php echo esc_attr( $element_id ); ?>" class="text-sm font-medium text-grayCust-800 truncate"<?php echo ( $data['type'] === 'file' ) ? ' style="width: calc(400px - 1em);"' : ''; ?>><?php echo esc_html( $data['name'] ); ?></label>
+                    </div>
+                    <div class="flex items-center" style="width: 105px;">
+                        <svg width="14" height="13" viewBox="0 0 14 13" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M2.33333 6.49984H11.6667M2.33333 6.49984C1.59695 6.49984 1 5.90288 1 5.1665V2.49984C1 1.76346 1.59695 1.1665 2.33333 1.1665H11.6667C12.403 1.1665 13 1.76346 13 2.49984V5.1665C13 5.90288 12.403 6.49984 11.6667 6.49984M2.33333 6.49984C1.59695 6.49984 1 7.09679 1 7.83317V10.4998C1 11.2362 1.59695 11.8332 2.33333 11.8332H11.6667C12.403 11.8332 13 11.2362 13 10.4998V7.83317C13 7.09679 12.403 6.49984 11.6667 6.49984M10.3333 3.83317H10.34M10.3333 9.1665H10.34" stroke="#111827" stroke-width="1.33333" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <div class="text-sm font-medium text-grayCust-800 ml-2"><?php echo esc_html( instawp()->get_file_size_with_unit( $data['size'] ) ); ?></div>
+                    </div>
+                </div>
+            </div>
 		<?php }
 
 		$content = ob_get_clean();
-		$data     = [
+		$data    = [
 			'content' => '<div class="flex flex-col gap-5">' . $content . '</div>',
 			'size'    => instawp()->get_file_size_with_unit( $total_size ),
 			'count'   => $total_files,
@@ -145,35 +262,35 @@ class InstaWP_AJAX {
 	public function get_database_tables() {
 		check_ajax_referer( 'instawp-migrate', 'security' );
 
-		$sort_by     = isset( $_POST['sort_by'] ) ? sanitize_text_field( wp_unslash( $_POST['sort_by'] ) ) : false;
-		$tables      = instawp_get_database_details( $sort_by );
-		$table_size  = array_sum( wp_list_pluck( $tables, 'size' ) );
+		$sort_by    = isset( $_POST['sort_by'] ) ? sanitize_text_field( wp_unslash( $_POST['sort_by'] ) ) : false;
+		$tables     = instawp_get_database_details( $sort_by );
+		$table_size = array_sum( wp_list_pluck( $tables, 'size' ) );
 
 		ob_start();
 		if ( ! empty( $tables ) ) { ?>
-			<div class="flex flex-col gap-5">
-				<?php foreach( $tables as $table ) { 
-					$element_id  = wp_generate_uuid4(); ?>
-					<div class="flex flex-col gap-5 item">
-						<div class="flex justify-between items-center">
-							<div class="flex items-center cursor-pointer" style="transform: translate(0em);">
-								<input name="instawp_migrate[excluded_tables][]" id="<?php echo esc_attr( $element_id ); ?>" value="<?php echo esc_attr( $table['name'] ); ?>" type="checkbox" class="instawp-checkbox exclude-database-item !mt-0 !mr-3 rounded border-gray-300 text-primary-900 focus:ring-primary-900" data-size="<?php echo esc_html( $table['size'] ); ?>">
-								<label for="<?php echo esc_attr( $element_id ); ?>" class="text-sm font-medium text-grayCust-800 truncate" style="width: calc(400px - 1em);"><?php echo esc_html( $table['name'] ); ?> (<?php printf( __( '%s rows', 'instawp-connect' ), $table['rows'] ); ?>)</label>
-							</div>
-							<div class="flex items-center" style="width: 105px;">
-								<svg width="14" height="13" viewBox="0 0 14 13" fill="none" xmlns="http://www.w3.org/2000/svg">
-									<path d="M2.33333 6.49984H11.6667M2.33333 6.49984C1.59695 6.49984 1 5.90288 1 5.1665V2.49984C1 1.76346 1.59695 1.1665 2.33333 1.1665H11.6667C12.403 1.1665 13 1.76346 13 2.49984V5.1665C13 5.90288 12.403 6.49984 11.6667 6.49984M2.33333 6.49984C1.59695 6.49984 1 7.09679 1 7.83317V10.4998C1 11.2362 1.59695 11.8332 2.33333 11.8332H11.6667C12.403 11.8332 13 11.2362 13 10.4998V7.83317C13 7.09679 12.403 6.49984 11.6667 6.49984M10.3333 3.83317H10.34M10.3333 9.1665H10.34" stroke="#111827" stroke-width="1.33333" stroke-linecap="round" stroke-linejoin="round"/>
-								</svg>
-								<div class="text-sm font-medium text-grayCust-800 ml-2"><?php echo esc_html( instawp()->get_file_size_with_unit( $table['size'] ) ); ?></div>
-							</div>
-						</div>
-					</div>
+            <div class="flex flex-col gap-5">
+				<?php foreach ( $tables as $table ) {
+					$element_id = wp_generate_uuid4(); ?>
+                    <div class="flex flex-col gap-5 item">
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center cursor-pointer" style="transform: translate(0em);">
+                                <input name="instawp_migrate[excluded_tables][]" id="<?php echo esc_attr( $element_id ); ?>" value="<?php echo esc_attr( $table['name'] ); ?>" type="checkbox" class="instawp-checkbox exclude-database-item !mt-0 !mr-3 rounded border-gray-300 text-primary-900 focus:ring-primary-900" data-size="<?php echo esc_html( $table['size'] ); ?>">
+                                <label for="<?php echo esc_attr( $element_id ); ?>" class="text-sm font-medium text-grayCust-800 truncate" style="width: calc(400px - 1em);"><?php echo esc_html( $table['name'] ); ?> (<?php printf( __( '%s rows', 'instawp-connect' ), $table['rows'] ); ?>)</label>
+                            </div>
+                            <div class="flex items-center" style="width: 105px;">
+                                <svg width="14" height="13" viewBox="0 0 14 13" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M2.33333 6.49984H11.6667M2.33333 6.49984C1.59695 6.49984 1 5.90288 1 5.1665V2.49984C1 1.76346 1.59695 1.1665 2.33333 1.1665H11.6667C12.403 1.1665 13 1.76346 13 2.49984V5.1665C13 5.90288 12.403 6.49984 11.6667 6.49984M2.33333 6.49984C1.59695 6.49984 1 7.09679 1 7.83317V10.4998C1 11.2362 1.59695 11.8332 2.33333 11.8332H11.6667C12.403 11.8332 13 11.2362 13 10.4998V7.83317C13 7.09679 12.403 6.49984 11.6667 6.49984M10.3333 3.83317H10.34M10.3333 9.1665H10.34" stroke="#111827" stroke-width="1.33333" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                <div class="text-sm font-medium text-grayCust-800 ml-2"><?php echo esc_html( instawp()->get_file_size_with_unit( $table['size'] ) ); ?></div>
+                            </div>
+                        </div>
+                    </div>
 				<?php } ?>
-			</div>
+            </div>
 		<?php }
 
 		$content = ob_get_clean();
-		$data     = [
+		$data    = [
 			'content' => $content,
 			'size'    => instawp()->get_file_size_with_unit( $table_size ),
 			'count'   => count( $tables ),
@@ -199,20 +316,20 @@ class InstaWP_AJAX {
 
 		ob_start();
 		if ( ! empty( $list_data ) ) { ?>
-			<div class="bg-yellow-50 border border-2 border-r-0 border-y-0 border-l-orange-400 rounded-lg text-sm text-orange-700 p-4 flex flex-col items-start gap-3">
-				<div class="flex items-center gap-3">
-					<div class="text-sm font-medium"><?php esc_html_e( 'We have identified following large files in your installation:', 'instawp-connect' ); ?></div>
-				</div>
-				<div class="flex flex-col items-start gap-3">
+            <div class="bg-yellow-50 border border-2 border-r-0 border-y-0 border-l-orange-400 rounded-lg text-sm text-orange-700 p-4 flex flex-col items-start gap-3">
+                <div class="flex items-center gap-3">
+                    <div class="text-sm font-medium"><?php esc_html_e( 'We have identified following large files in your installation:', 'instawp-connect' ); ?></div>
+                </div>
+                <div class="flex flex-col items-start gap-3">
 					<?php foreach ( $list_data as $data ) {
 						$element_id = wp_generate_uuid4(); ?>
-						<div class="flex justify-between items-center text-xs">
-							<input type="checkbox" name="instawp_migrate[excluded_paths][]" id="<?php echo esc_attr( $element_id ); ?>" value="<?php echo esc_attr( $data['relative_path'] ); ?>" class="instawp-checkbox exclude-file-item large-file !mt-0 !mr-3 rounded border-gray-300 text-primary-900 focus:ring-primary-900" <?php checked( $skip, true ); ?>>
-							<label for="<?php echo esc_attr( $element_id ); ?>"><?php echo esc_html( $data['relative_path'] ); ?> (<?php echo esc_html( instawp()->get_file_size_with_unit( $data['size'] ) ); ?>)</label>
-						</div>
+                        <div class="flex justify-between items-center text-xs">
+                            <input type="checkbox" name="instawp_migrate[migrate_settings][]" id="<?php echo esc_attr( $element_id ); ?>" value="<?php echo esc_attr( $data['relative_path'] ); ?>" class="instawp-checkbox exclude-file-item large-file !mt-0 !mr-3 rounded border-gray-300 text-primary-900 focus:ring-primary-900" <?php checked( $skip, true ); ?>>
+                            <label for="<?php echo esc_attr( $element_id ); ?>"><?php echo esc_html( $data['relative_path'] ); ?> (<?php echo esc_html( instawp()->get_file_size_with_unit( $data['size'] ) ); ?>)</label>
+                        </div>
 					<?php } ?>
-				</div>
-			</div>
+                </div>
+            </div>
 			<?php
 		}
 
@@ -280,52 +397,6 @@ class InstaWP_AJAX {
 		}
 	}
 
-	/*Remove un-usable data after our staging creation process is done*/
-	public static function instawp_folder_remover_handle() {
-		$folder_name        = 'instawpbackups';
-		$dirPath            = WP_CONTENT_DIR . '/' . $folder_name;
-		$dirPathLogFolder   = $dirPath . '/instawp_log';
-		$dirPathErrorFolder = $dirPathLogFolder . '/error';
-
-		if ( substr( $dirPath, strlen( $dirPath ) - 1, 1 ) != '/' ) {
-			$dirPath .= '/';
-		}
-		if ( file_exists( $dirPath ) && is_dir( $dirPath ) ) {
-			$instawpbackups_zip_files = glob( $dirPath . "*.zip", GLOB_MARK | GLOB_BRACE );
-			foreach ( $instawpbackups_zip_files as $file ) {
-				if ( is_file( $file ) ) {
-					unlink( $file );
-				}
-			}
-		}
-
-		//log folder
-		if ( substr( $dirPathLogFolder, strlen( $dirPathLogFolder ) - 1, 1 ) != '/' ) {
-			$dirPathLogFolder .= '/';
-		}
-		if ( file_exists( $dirPathLogFolder ) && is_dir( $dirPathLogFolder ) ) {
-			$instawp_log_txt_files = glob( $dirPathLogFolder . "*.txt", GLOB_MARK | GLOB_BRACE );
-			foreach ( $instawp_log_txt_files as $lfile ) {
-				if ( is_file( $lfile ) ) {
-					unlink( $lfile );
-				}
-			}
-		}
-
-		//error folder
-		if ( substr( $dirPathErrorFolder, strlen( $dirPathErrorFolder ) - 1, 1 ) != '/' ) {
-			$dirPathErrorFolder .= '/';
-		}
-		if ( file_exists( $dirPathErrorFolder ) && is_dir( $dirPathErrorFolder ) ) {
-			$errorfiles = glob( $dirPathErrorFolder . '{,.}[!.,!..]*', GLOB_MARK | GLOB_BRACE );
-			foreach ( $errorfiles as $efile ) {
-				if ( is_file( $efile ) ) {
-					unlink( $efile );
-				}
-			}
-		}
-	}
-
 	// Remove From settings internal
 	public static function deleter_folder_handle() {
 		if ( isset( $_REQUEST['delete_wpnonce'] ) && wp_verify_nonce( $_REQUEST['delete_wpnonce'], 'delete_wpnonce' ) ) {
@@ -349,30 +420,6 @@ class InstaWP_AJAX {
 			wp_redirect( $redirect_url );
 			exit();
 		}
-	}
-
-	/*Handle Js call to remove option*/
-	public function instawp_logger_handle() {
-		$res_array = array();
-		if (
-			! empty( $_POST['n'] ) &&
-			wp_verify_nonce( $_POST['n'], 'instawp_nlogger_update_option_by-nlogger' ) &&
-			! empty( $_POST['l'] )
-		) {
-			$l = $_POST['l'];
-			update_option( 'instawp_finish_upload', array() );
-			update_option( 'instawp_staging_list', array() );
-			//self::instawp_folder_remover_handle();
-
-			$res_array['message'] = 'success';
-			$res_array['status']  = 1;
-		} else {
-			$res_array['message'] = 'failed';
-			$res_array['status']  = 0;
-		}
-
-		wp_send_json( $res_array );
-		wp_die();
 	}
 
 	public function instawp_settings_call() {
@@ -427,85 +474,6 @@ class InstaWP_AJAX {
 		$res_array['message'] = $message;
 		$res_array['resType'] = $resType;
 		echo json_encode( $res_array );
-		wp_die();
-	}
-
-	public function instawp_check_staging() {
-
-		//$this->ajax_check_security();
-
-		global $InstaWP_Curl;
-
-		$api_domain        = InstaWP_Setting::get_api_domain();
-		$response          = array( 'progress' => 5, 'message' => 'New site creation in progress', );
-		$connect_ids       = get_option( 'instawp_connect_id_options', '' );
-		$bkp_init_opt      = get_option( 'instawp_backup_init_options', '' );
-		$backup_status_opt = get_option( 'instawp_backup_status_options', '' );
-		$connect_id        = $connect_ids['data']['id'] ?? '';
-		$task_id           = $bkp_init_opt['task_info']['task_id'] ?? '';
-		$site_id           = $backup_status_opt['data']['site_id'] ?? '';
-
-		if ( empty( $connect_id ) || empty( $task_id ) || empty( $site_id ) ) {
-			echo json_encode( $response );
-			wp_die();
-		}
-
-		$url_restore_status           = $api_domain . INSTAWP_API_URL . '/connects/get_restore_status';
-		$curl_response_restore_status = $InstaWP_Curl->curl( $url_restore_status, json_encode( array( 'connect_id' => $connect_id, 'task_id' => $task_id, 'site_id' => $site_id, ) ) );
-		$curl_rd_restore_status       = $curl_response_restore_status['curl_res'] ?? '';
-		$curl_rd_restore_status       = json_decode( $curl_rd_restore_status, true );
-
-		if ( isset( $curl_rd_restore_status['data'] ) && isset( $curl_rd_restore_status['data']['progress'] ) ) {
-			$response['progress'] = $curl_rd_restore_status['data']['progress'];
-		}
-
-		if ( isset( $curl_rd_restore_status['data'] ) && isset( $curl_rd_restore_status['data']['message'] ) ) {
-			$response['message'] = $curl_rd_restore_status['data']['message'];
-		}
-
-		if ( ! isset( $curl_rd_restore_status['status'] ) || $curl_rd_restore_status['status'] == 0 ) {
-			echo json_encode( $response );
-			wp_die();
-		}
-
-		if ( isset( $curl_rd_restore_status['data'] ) && isset( $curl_rd_restore_status['data']['progress'] ) && $curl_rd_restore_status['data']['progress'] == 100 ) {
-
-			$connect_id      = $curl_rd_restore_status['data']['wp'][0]['connect_id'];
-			$site_name       = $curl_rd_restore_status['data']['wp'][0]['site_name'];
-			$wp_admin_url    = $curl_rd_restore_status['data']['wp'][0]['wp_admin_url'];
-			$wp_admin_email  = $curl_rd_restore_status['data']['wp'][0]['wp_admin_email'];
-			$wp_username     = $curl_rd_restore_status['data']['wp'][0]['wp_username'];
-			$wp_password     = $curl_rd_restore_status['data']['wp'][0]['wp_password'];
-			$auto_login_hash = $curl_rd_restore_status['data']['wp'][0]['auto_login_hash'];
-
-			// instawp_staging_insert_site( array(
-			// 	'task_id'         => $task_id,
-			// 	'connect_id'      => $connect_id,
-			// 	'site_name'       => $site_name,
-			// 	'site_url'        => str_replace( '/wp-admin', '', $wp_admin_url ),
-			// 	'admin_email'     => $wp_admin_email,
-			// 	'username'        => $wp_username,
-			// 	'password'        => $wp_password,
-			// 	'auto_login_hash' => $auto_login_hash,
-			// ) );
-
-			$response = array(
-				"progress"        => 100,
-				"result"          => "success",
-				"status"          => 1,
-				"details"         => array(
-					"name"  => $site_name,
-					"url"   => "https://" . str_replace( '/wp-admin', '', $wp_admin_url ),
-					"user"  => $wp_username,
-					"code"  => $wp_password,
-					"login" => add_query_arg( array( 'site' => $auto_login_hash ), $api_domain . '/wordpress-auto-login' ),
-				),
-				"server_response" => $curl_rd_restore_status,
-			);
-		}
-
-		echo json_encode( $response );
-
 		wp_die();
 	}
 
@@ -632,28 +600,6 @@ class InstaWP_AJAX {
 		print_r( $response );
 		if ( ! is_wp_error( $response ) && $response_code == 200 ) {
 			$body = (array) json_decode( wp_remote_retrieve_body( $response ), true );
-
-			print_r( $body );
-			// $connect_options = array();
-			// if ($body['status'] == true) {
-			//    $connect_options['api_key']   = $connect_options['api_key'];
-			//    $connect_options['connected'] = true;
-			//    $connect_options['response']  = $body;
-			//    update_option('instawp_connect_id_options', $connect_options);
-			//    $res = array(
-			//       'error'   => false,
-			//       'message' => 'Connected',
-
-			//    );
-			// }
-			// else {
-			//    $res = array(
-			//       'error'   => true,
-			//       'message' => 'Api Key Not Valid'
-
-			//    );
-			// }
-
 		}
 		echo json_encode( $res );
 		wp_die();

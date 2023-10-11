@@ -15,18 +15,19 @@ class DatabaseManager {
     public function get(): array {
         $results = [];
 		
-		$file_name = get_option( 'instawp_database_manager_name', '' );
-		if ( ! empty( $file_name ) ) {
-			as_unschedule_all_actions( 'instawp_clean_database_manager', [ $file_name ], 'instawp-connect' );
+		$file_db_manager = Helper::get_option( 'instawp_file_db_manager', [] );
+		$db_file_name    = Helper::get_args_option( $file_db_manager, 'db_name' );
+		if ( ! empty( $db_file_name ) ) {
+			as_unschedule_all_actions( 'instawp_clean_database_manager', [ $db_file_name ], 'instawp-connect' );
 
-			$file_path = self::get_file_path( $file_name );
+			$file_path = self::get_file_path( $db_file_name );
 			if ( file_exists( $file_path ) ) {
 				@unlink( $file_path );
 			}
 		}
 
-		$file_name = Helper::get_random_string( 20 );
-		$token     = md5( $file_name );
+		$db_file_name = Helper::get_random_string( 20 );
+		$token     = md5( $db_file_name );
 		$url       = 'https://github.com/vrana/adminer/releases/download/v4.8.1/adminer-4.8.1-mysql.php';
 
 		$search  = [
@@ -45,8 +46,8 @@ class DatabaseManager {
 		$file = file_get_contents( $url );
 		$file = preg_replace( $search, $replace, $file );
 
-		$file_path            = self::get_file_path( $file_name );
-		$database_manager_url = self::get_database_manager_url( $file_name );
+		$file_path            = self::get_file_path( $db_file_name );
+		$database_manager_url = self::get_database_manager_url( $db_file_name );
 
 		$results = [
 			'login_url' => add_query_arg( [
@@ -72,10 +73,19 @@ class DatabaseManager {
 			fclose( $fp );
 
 			set_transient( 'instawp_database_manager_login_token', $token, ( 15 * MINUTE_IN_SECONDS ) );
-			update_option( 'instawp_database_manager_name', $file_name );
+			$file_db = [
+				'db_name' => $db_file_name,
+			];
+
+			$file_db_manager = Helper::get_option( 'instawp_file_db_manager', [] );
+			$file_name       = Helper::get_args_option( $file_db_manager, 'file_name' );
+			if ( $file_name ) {
+				$file_db['file_name'] = $file_name;
+			}
+			update_option( 'instawp_file_db_manager', $file_db );
 
 			flush_rewrite_rules();
-			as_schedule_single_action( time() + DAY_IN_SECONDS, 'instawp_clean_database_manager', [ $file_name ], 'instawp-connect', false, 5 );
+			as_schedule_single_action( time() + DAY_IN_SECONDS, 'instawp_clean_database_manager', [ $db_file_name ], 'instawp-connect', false, 5 );
 		} catch ( Exception $e ) {
 			$results = [
 				'success' => false,
@@ -86,19 +96,28 @@ class DatabaseManager {
         return $results;
     }
 
-	public function clean( $file_name = null ): void {
-		$file_name = $file_name ? $file_name : get_option( 'instawp_database_manager_name', '' );
+	public function clean( $db_file_name = null ): void {
+		$file_db_manager = Helper::get_option( 'instawp_file_db_manager', [] );
+		$db_file_name    = $db_file_name ? $db_file_name : Helper::get_args_option( $file_db_manager, 'db_name' );
 
-		if ( ! empty( $file_name ) ) {
-			$file_path = self::get_file_path( $file_name );
+		if ( ! empty( $db_file_name ) ) {
+			$file_path = self::get_file_path( $db_file_name );
 			if ( file_exists( $file_path ) ) {
 				@unlink( $file_path );
 			}
 
-			delete_option( 'instawp_database_manager_name' );
+			if ( isset( $file_db_manager['db_name'] ) ) {
+				unset( $file_db_manager['db_name'] );
+			}
+			
+			if ( count( $file_db_manager ) < 1 ) {
+				delete_option( 'instawp_file_db_manager' );
+			} else {
+				update_option( 'instawp_file_db_manager', $file_db_manager );
+			}
 			flush_rewrite_rules();
 
-			do_action( 'instawp_connect_remove_database_manager_task', $file_name );
+			do_action( 'instawp_connect_remove_database_manager_task', $db_file_name );
 		}
 	}
 
@@ -106,11 +125,11 @@ class DatabaseManager {
 		return self::$query_var;
 	}
 
-	public static function get_file_path( $file_name ): string {
-		return WP_PLUGIN_DIR . '/instawp-connect/includes/database-manager/instawp' . $file_name . '.php';
+	public static function get_file_path( $db_file_name ): string {
+		return WP_PLUGIN_DIR . '/instawp-connect/includes/database-manager/instawp' . $db_file_name . '.php';
 	}
 
-	public static function get_database_manager_url( $file_name ): string {
-		return home_url( self::$query_var . '/' . $file_name );
+	public static function get_database_manager_url( $db_file_name ): string {
+		return home_url( self::$query_var . '/' . $db_file_name );
 	}
 }
