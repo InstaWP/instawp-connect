@@ -671,22 +671,36 @@ class InstaWP_Change_Event_Filters
         }
 
         $post_type_singular_name = instawp_get_post_type_singular_name($post->post_type);
-        //check post revisions are found 
-        $revisions = wp_get_post_revisions($post_ID);
+        $created  = new DateTime( $post->post_date_gmt );
+        $modified = new DateTime( $post->post_modified_gmt );
+        $diff     = $created->diff( $modified );
+        $difference = ((($diff->y * 365.25 + $diff->m * 30 + $diff->d) * 24 + $diff->h) * 60 + $diff->i)*60 + $diff->s;
 
-        if (count($revisions) <= 1) {
-
+        if( $difference <= 1 ){
             $event_name = sprintf(esc_html__('%s created', 'instawp-connect'), $post_type_singular_name);
-            $this->addPostData($event_name, 'post_new', $post, $post_ID);
-
-        } else {
-            if ( $update && ( $post->post_type != 'revision' ) ) {
-                $event_slug = 'post_change';
-                $event_name = sprintf( __('%s modified', 'instawp-connect'), $post_type_singular_name );
-                # need to add update traking data once in db
-                $this->addPostData($event_name, $event_slug, $post, $post_ID);
-            }
+            $this->addPostData($event_name, 'post_new', $post, $post_ID); 
+        }else{
+            $event_slug = 'post_change';
+            $event_name = sprintf( __('%s modified', 'instawp-connect'), $post_type_singular_name );
+            $this->addPostData($event_name, $event_slug, $post, $post_ID);
         }
+
+        //check post revisions are found 
+        // $revisions = wp_get_post_revisions($post_ID);
+
+        // if (count($revisions) <= 1) {
+
+        //     $event_name = sprintf(esc_html__('%s created', 'instawp-connect'), $post_type_singular_name);
+        //     $this->addPostData($event_name, 'post_new', $post, $post_ID);
+
+        // } else {
+        //     if ( $update && ( $post->post_type != 'revision' ) ) {
+        //         $event_slug = 'post_change';
+        //         $event_name = sprintf( __('%s modified', 'instawp-connect'), $post_type_singular_name );
+        //         # need to add update traking data once in db
+        //         $this->addPostData($event_name, $event_slug, $post, $post_ID);
+        //     }
+        // }
     }
 
     /**
