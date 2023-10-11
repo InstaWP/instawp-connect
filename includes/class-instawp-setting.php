@@ -95,7 +95,7 @@ class InstaWP_Setting {
 		$field_value         = self::get_option( $field_id, $field_default_value );
 		$attributes          = array();
 
-		$field_value = ( $field_name ) ? self::get_args_option( $field_name, $field_value ) : $field_value;
+		$field_value = ( $field_name ) ? self::get_args_option( $field_name, $field_value, $field_default_value ) : $field_value;
 		$field_name  = ( $field_name ) ? $field_id . '[' . $field_name . ']' : $field_id;
 
 		if ( true === $internal || 1 == $internal ) {
@@ -335,10 +335,12 @@ class InstaWP_Setting {
 			'internal' => true,
 			'fields'   => array(
 				array(
-					'id'          => 'instawp_api_url',
+					'id'          => 'instawp_api_options',
+					'name'        => 'api_url',
 					'type'        => 'url',
 					'title'       => esc_html__( 'API Domain', 'instawp-connect' ),
 					'placeholder' => esc_url_raw( 'https://app.instawp.io' ),
+					'default'     => 'https://stage.instawp.io',
 				),
 				array(
 					'id'      => 'instawp_enable_wp_debug',
@@ -470,10 +472,12 @@ class InstaWP_Setting {
 	}
 
 	public static function set_api_domain( $instawp_api_url = '' ) {
-
 		$instawp_api_url = empty( $instawp_api_url ) ? esc_url_raw( 'https://app.instawp.io' ) : $instawp_api_url;
 
-		update_option( 'instawp_api_url', $instawp_api_url );
+		$api_options            = self::get_option( 'instawp_api_options', [] );
+		$api_options['api_url'] = $instawp_api_url;
+
+		update_option( 'instawp_api_options', $api_options );
 	}
 
 	public static function get_pro_subscription_url( $pro_subscription_slug = 'subscriptions' ) {
@@ -481,13 +485,36 @@ class InstaWP_Setting {
 	}
 
 	public static function get_api_domain() {
-		return self::get_option( 'instawp_api_url', 'https://app.instawp.io' );
+		$api_options = self::get_option( 'instawp_api_options', [] );
+		
+		return self::get_args_option( 'api_url', $api_options, 'https://app.instawp.io' );
 	}
 
 	public static function get_api_key() {
-		return get_option( 'instawp_api_key' );
+		$api_options = self::get_option( 'instawp_api_options', [] );
+		
+		return self::get_args_option( 'api_key', $api_options );
 	}
 
+	public static function set_api_key( $api_key ) {
+		$api_options            = self::get_option( 'instawp_api_options', [] );
+		$api_options['api_key'] = trim( $api_key );
+
+		update_option( 'instawp_api_options', $api_options );
+	}
+
+	public static function get_connect_id() {
+		$api_options = self::get_option( 'instawp_api_options', [] );
+		
+		return self::get_args_option( 'connect_id', $api_options );
+	}
+
+	public static function set_connect_id( $connect_id ) {
+		$api_options               = self::get_option( 'instawp_api_options', [] );
+		$api_options['connect_id'] = intval( $connect_id );
+
+		update_option( 'instawp_api_options', $api_options );
+	}
 
 	public static function instawp_generate_api_key( $api_key, $status ) {
 
@@ -511,10 +538,14 @@ class InstaWP_Setting {
 		}
 
 		$response_body = json_decode( wp_remote_retrieve_body( $response ), true );
-
+		
 		if ( isset( $response_body['status'] ) && $response_body['status'] ) {
-			update_option( 'instawp_api_options', array( 'api_key' => $api_key, 'response' => $response_body ) );
-			update_option( 'instawp_api_key', $api_key );
+			$api_options = self::get_option( 'instawp_api_options', [] );
+
+			update_option( 'instawp_api_options', array_merge( $api_options, [
+				'api_key'  => $api_key,
+				'response' => $response_body
+			] ) );
 		}
 
 		$url         = $api_domain . INSTAWP_API_URL . '/connects';
@@ -546,12 +577,7 @@ class InstaWP_Setting {
 		$response = (array) json_decode( $curl_response['curl_res'], true );
 
 		if ( $response['status'] ) {
-			$connect_id                     = $response['data']['id'];
-			$connect_options                = self::get_option( 'instawp_connect_options', array() );
-			$connect_options[ $connect_id ] = $response;
-
-			update_option( 'instawp_connect_id_options', $response );
-			update_option( 'instawp_connect_id_options', $response );
+			self::set_connect_id( $response['data']['id'] );
 		}
 
 		return true;
@@ -563,23 +589,6 @@ class InstaWP_Setting {
 
 	public static function update_option( $option_name, $options ) {
 		update_option( $option_name, $options, 'no' );
-	}
-
-	public static function update_connect_option( $option_name, $options, $connect_id, $task_id = '', $key = '' ) {
-
-		$connect_options = self::get_option( 'instawp_connect_options', array() );
-		if ( isset( $connect_options[ $connect_id ] ) ) {
-
-			if ( isset( $connect_options[ $connect_id ][ $task_id ][ $key ] ) && ! empty( $key ) ) {
-
-				$connect_options[ $connect_id ][ $task_id ][ $key ] = $options[ $task_id ][ $key ];
-			} else {
-				$connect_options[ $connect_id ][ $task_id ][ $key ] = $options;
-			}
-		} else {
-			$connect_options[ $connect_id ] = $options;
-		}
-		update_option( $option_name, $connect_options, 'no' );
 	}
 
 	public static function delete_option( $option_name ) {

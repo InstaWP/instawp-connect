@@ -471,7 +471,7 @@ class InstaWP_Ajax_Fn {
 
 		$endpoint = '/api/v2/connects/' . $connect_id . '/syncs';
 		$url      = $api_doamin . $endpoint; #https://stage.instawp.io/api/v2/connects/53/syncs
-		$api_key  = $this->get_api_key();
+		$api_key  = InstaWP_setting::get_api_key();
 		try {
 			$curl = curl_init();
 			curl_setopt_array( $curl, array(
@@ -505,7 +505,7 @@ class InstaWP_Ajax_Fn {
 		$connect_id = instawp_get_connect_id();
 		$endpoint   = '/api/v2/connects/' . $connect_id . '/syncs/' . $sync_id;
 		$url        = $api_doamin . $endpoint; #https://stage.instawp.io/api/v2/connects/53/syncs/104
-		$api_key    = $this->get_api_key();
+		$api_key    = InstaWP_setting::get_api_key();
 
 		try {
 			$curl = curl_init();
@@ -531,12 +531,6 @@ class InstaWP_Ajax_Fn {
 			return $e->getMessage();
 		}
 	}
-
-	public function get_api_key() {
-		$instawp_api_options = get_option( 'instawp_api_options' );
-		return $instawp_api_options['api_key'];
-	}
-
 
 	public function instawp_get_connect_quota_remaining_limit() {
 		$api_response = InstaWP_Curl::do_curl( 'connects/' . instawp_get_connect_id() . '/get-sync-quota', [], [], false );

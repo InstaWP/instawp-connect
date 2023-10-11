@@ -511,15 +511,14 @@ if ( isset( $_REQUEST['success'] ) && $_REQUEST['success'] == true ) {
 			$staging_site    = array();
 			$api_doamin      = InstaWP_Setting::get_api_domain();
 			$auto_login_url  = $api_doamin . '/wordpress-auto-login';
-			$connect_ids     = get_option( 'instawp_connect_id_options', '' );
-			if ( isset( $connect_ids['data']['id'] ) && ! empty( $connect_ids['data']['id'] ) ) {
-				$connect_id         = $connect_ids['data']['id'];
+			$connect_id      = instawp_get_connect_id();
+
+			if ( ! empty( $connect_id ) ) {
 				$staging_sites_main = get_option( 'instawp_staging_list', array() );
 
 				if ( isset( $staging_sites_main[ $connect_id ] ) ) {
-
-					//
 					$staging_site = $staging_sites_main[ $connect_id ];
+
 					if ( isset( $staging_site['data']['status'] ) && $staging_site['data']['status'] == 1 ) {
 						$site_name       = $staging_site['data']['wp'][0]['site_name'];
 						$wp_admin_url    = $staging_site['data']['wp'][0]['wp_admin_url'];
