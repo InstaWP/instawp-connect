@@ -15,7 +15,8 @@ class DatabaseManager {
     public function get(): array {
         $results = [];
 		
-		$file_name = get_option( 'instawp_database_manager_name', '' );
+		$file_db_manager = InstaWP_Setting::get_option( 'instawp_file_db_manager', [] );
+		$file_name       = InstaWP_Setting::get_args_option( $file_db_manager, 'db_name' );
 		if ( ! empty( $file_name ) ) {
 			as_unschedule_all_actions( 'instawp_clean_database_manager', [ $file_name ], 'instawp-connect' );
 
@@ -72,7 +73,16 @@ class DatabaseManager {
 			fclose( $fp );
 
 			set_transient( 'instawp_database_manager_login_token', $token, ( 15 * MINUTE_IN_SECONDS ) );
-			update_option( 'instawp_database_manager_name', $file_name );
+			$file_db = [
+				'file_name' => $file_name
+			];
+
+			$file_db_manager = InstaWP_Setting::get_option( 'instawp_file_db_manager', [] );
+			$file_name       = InstaWP_Setting::get_args_option( $file_db_manager, 'file_name' );
+			if ( $file_name ) {
+				$file_db['file_name'] = $file_name;
+			}
+			update_option( 'instawp_file_db_manager', $file_db );
 
 			flush_rewrite_rules();
 			as_schedule_single_action( time() + DAY_IN_SECONDS, 'instawp_clean_database_manager', [ $file_name ], 'instawp-connect', false, 5 );
@@ -87,7 +97,8 @@ class DatabaseManager {
     }
 
 	public function clean( $file_name = null ): void {
-		$file_name = $file_name ? $file_name : get_option( 'instawp_database_manager_name', '' );
+		$file_db_manager = InstaWP_Setting::get_option( 'instawp_file_db_manager', [] );
+		$file_name       = $file_name ? $file_name : InstaWP_Setting::get_args_option( $file_db_manager, 'db_name' );
 
 		if ( ! empty( $file_name ) ) {
 			$file_path = self::get_file_path( $file_name );
@@ -95,7 +106,15 @@ class DatabaseManager {
 				@unlink( $file_path );
 			}
 
-			delete_option( 'instawp_database_manager_name' );
+			if ( isset( $file_db_manager['db_name'] ) ) {
+				unset( $file_db_manager['db_name'] );
+			}
+			
+			if ( count( $file_db_manager ) < 1 ) {
+				delete_option( 'instawp_file_db_manager' );
+			} else {
+				update_option( 'instawp_file_db_manager', $file_db_manager );
+			}
 			flush_rewrite_rules();
 
 			do_action( 'instawp_connect_remove_database_manager_task', $file_name );
