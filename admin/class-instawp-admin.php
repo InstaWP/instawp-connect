@@ -62,6 +62,15 @@ class InstaWP_Admin {
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 	}
 
+	public function add_action_links( $links ) {
+
+		$action_links = array(
+			sprintf( '<a href="%s">%s</a>', esc_url( admin_url( 'tools.php?page=instawp' ) ), esc_html__( 'Create Staging', 'instawp-connect' ) ),
+		);
+
+		return array_merge( $action_links, $links );
+	}
+
 
 	function add_admin_bar_button( WP_Admin_Bar $admin_bar ) {
 

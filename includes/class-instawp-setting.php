@@ -482,6 +482,7 @@ class InstaWP_Setting {
 		return get_option( 'instawp_api_key' );
 	}
 
+
 	public static function instawp_generate_api_key( $api_key, $status ) {
 
 		global $InstaWP_Curl;
@@ -507,11 +508,7 @@ class InstaWP_Setting {
 
 		if ( isset( $response_body['status'] ) && $response_body['status'] ) {
 			update_option( 'instawp_api_options', array( 'api_key' => $api_key, 'response' => $response_body ) );
-			update_option( 'instawp_api_key', $api_key );
 		}
-
-
-		// Connects api start
 
 		$url         = $api_domain . INSTAWP_API_URL . '/connects';
 		$php_version = substr( phpversion(), 0, 3 );
