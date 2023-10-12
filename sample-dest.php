@@ -2,9 +2,15 @@
 set_time_limit( 0 );
 
 
-if ( ! isset( $api_signature ) || ! isset( $_GET['api_signature'] ) || $api_signature !== $_GET['api_signature'] ) {
+$has_zip_archive = class_exists( 'ZipArchive' );
+if ( ! isset( $api_signature ) || ! isset( $_SERVER['HTTP_X_IWP_API_SIGNATURE'] ) || $api_signature !== $_SERVER['HTTP_X_IWP_API_SIGNATURE'] ) {
 	header( 'x-iwp-status: false' );
 	header( 'x-iwp-message: Mismatched api signature.' );
+	die();
+}
+
+if ( isset( $_POST['check_zip'] ) ) {
+	header( 'x-iwp-zip: ' . $has_zip_archive );
 	die();
 }
 
@@ -16,6 +22,10 @@ if ( ! isset( $_SERVER['HTTP_X_FILE_RELATIVE_PATH'] ) ) {
 
 if ( ! function_exists( 'zipStatusString' ) ) {
 	function zipStatusString( $status ) {
+		if ( ! class_exists( 'ZipArchive' ) ) {
+			return 'ZipArchive Extension is not enabled!';
+		}
+
 		switch ( $status ) {
 			case ZipArchive::ER_OK:
 				return 'No error';
@@ -65,71 +75,102 @@ if ( ! function_exists( 'zipStatusString' ) ) {
 				return 'Can\'t remove file';
 			case ZipArchive::ER_DELETED:
 				return 'Entry has been deleted';
-
 			default:
 				return 'Unknown status: ' . $status;
 		}
 	}
 }
 
-$migrate_key      = basename( __FILE__, '.php' );
-$level            = 0;
-$root_path_dir    = __DIR__;
-$root_path        = dirname( $root_path_dir );
+$migrate_key   = basename( __FILE__, '.php' );
+$level         = 0;
+$root_path_dir = __DIR__;
+$root_path     = dirname( $root_path_dir );
 
-while ( ! file_exists( $root_path . '/wp-config.php' ) ) {
+while ( ! file_exists( $root_path . DIRECTORY_SEPARATOR . 'wp-config.php' ) ) {
 	$level ++;
 	$root_path = dirname( $root_path_dir, $level );
 
 	// If we have reached the root directory and still couldn't find wp-config.php
 	if ( $level > 10 ) {
 		header( 'x-iwp-status: false' );
-		echo "Count not find wp-config.php in the parent directories.";
+		header( 'x-iwp-message: Could not find wp-config.php in the parent directories.' );
+		echo "Could not find wp-config.php in the parent directories.";
 		exit( 2 );
 	}
 }
-$save_directory_path = $root_path;
 
 $excluded_paths     = [ '.htaccess' ];
 $file_relative_path = trim( $_SERVER['HTTP_X_FILE_RELATIVE_PATH'] );
 $file_type          = isset( $_SERVER['HTTP_X_FILE_TYPE'] ) ? trim( $_SERVER['HTTP_X_FILE_TYPE'] ) : 'single';
 
 if ( ! in_array( $file_relative_path, $excluded_paths ) ) {
-	$file_save_path = $save_directory_path . DIRECTORY_SEPARATOR . $file_relative_path;
+	$file_save_path = $root_path . DIRECTORY_SEPARATOR . $file_relative_path;
+	$directory_name = dirname( $file_save_path );
 
-	$dir = dirname( $file_save_path );
-	if ( ! file_exists( $dir ) ) {
-	    mkdir( $dir, 0777, true );
+	if ( ! file_exists( $directory_name ) ) {
+		mkdir( $directory_name, 0777, true );
 	}
 
 	$file_input_stream = fopen( 'php://input', 'rb' );
+	if ( ! $file_input_stream ) {
+		header( 'x-iwp-status: false' );
+		header( 'x-iwp-message: Can\'t open input file stream. ' . $file_relative_path );
+		die();
+	}
+
 	if ( $file_relative_path === 'db.sql' ) {
 	    $file_stream = fopen( $file_save_path, 'a+b' );
 	} else {
 	    $file_stream = fopen( $file_save_path, 'wb' );
 	}
+	
+	if ( ! $file_stream ) {
+		header( 'x-iwp-status: false' );
+		header( 'x-iwp-message: Can\'t open file stream. ' . $file_save_path );
+		die();
+	}
+	
 	stream_copy_to_stream( $file_input_stream, $file_stream );
 
 	fclose( $file_input_stream );
 	fclose( $file_stream );
 
-	$lines = file( $file_save_path );
-	$less = array_slice( $lines, 4 );
-	$less = array_slice( $less, 0, -2 );
-	file_put_contents( $file_save_path, $less );
+	$file = fopen( $file_save_path, 'r+' );
+    for ( $i = 0; $i < 4; $i++ ) {
+        fgets( $file );
+    }
+
+    $content = [];
+    while ( ! feof( $file ) ) {
+        $content[] = fgets( $file );
+    }
+    $content = array_slice( $content, 0, -2 );
+
+    rewind( $file );
+    fwrite( $file, implode( '', $content ) );
+    ftruncate( $file, ftell( $file ) );
+    fclose( $file );
 
 	if ( $file_type === 'zip' ) {
 		$zip = new ZipArchive();
 		$res = $zip->open( $file_save_path );
+
 		if ( $res === TRUE || $zip->status == 0 ) {
-			$zip->extractTo( $file_relative_path );
+			$zip->extractTo( $directory_name );
 			$zip->close();
 
 			unlink( $file_save_path );
 		} else {
-			echo "Couldn't extract $file_save_path .zip.\n";
+			echo "Couldn't extract $file_save_path.zip.\n";
 			echo "ZipArchive Error (status): " . $zip->status . " - " . zipStatusString( $zip->status ) . "\n";
 			echo "ZipArchive System Error (statusSys): " . $zip->statusSys . "\n";
+
+			header( 'x-iwp-status: false' );
+			header( "x-iwp-message: Couldn\'t extract $file_save_path .zip.\n" );
+			die();
 		}
 	}
+
+	header( 'x-iwp-status: true' );
+	header( 'x-iwp-message: Success! ' . $file_relative_path );
 }
