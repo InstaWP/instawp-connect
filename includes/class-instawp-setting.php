@@ -537,14 +537,14 @@ class InstaWP_Setting {
 			return false;
 		}
 
-		$response = (array) json_decode( $curl_response['curl_res'], true );
+		$response   = (array) json_decode( $curl_response['curl_res'], true );
+		$connect_id = $response['data']['id'] ?? '';
 
-		if ( $response['status'] ) {
-			$connect_id                     = $response['data']['id'];
+		if ( $response['status'] && ! empty( $connect_id ) ) {
+
 			$connect_options                = self::get_option( 'instawp_connect_options', array() );
 			$connect_options[ $connect_id ] = $response;
 
-			update_option( 'instawp_connect_id_options', $response );
 			update_option( 'instawp_connect_id_options', $response );
 		}
 
