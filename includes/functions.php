@@ -1392,3 +1392,21 @@ if ( ! function_exists( 'instawp_get_source_site_detail' ) ) {
 		}
 	}
 }
+
+
+if ( ! function_exists( 'get_connect_detail_by_connect_id' ) ) {
+	/**
+	 * Connect detail
+	 *
+	 * @param $connect_id
+	 *
+	 * @return array
+	 */
+	function get_connect_detail_by_connect_id( $connect_id ) {
+		$api_response  = InstaWP_Curl::do_curl( 'connects/' . $connect_id, [], [], false );
+		if ( $api_response['success'] && ! empty( $api_response['data'] ) ) {
+			return $api_response['data'];
+		}
+		return [];
+	}
+}

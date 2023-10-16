@@ -74,16 +74,26 @@ class InstaWP_Ajax_Fn {
 
 	public function get_site_events() {
 		global $wpdb;
+		$where 			= '1';
 		$InstaWP_db     = new InstaWP_DB();
 		$tables         = $InstaWP_db->tables;
 		$items_per_page = INSTAWP_EVENTS_PER_PAGE;
 		$connect_id     = isset( $_POST['connect_id'] ) ? sanitize_text_field( $_POST['connect_id'] ) : 0;
+
+		$staging_site = get_connect_detail_by_connect_id( $connect_id );
+		
+		if( !empty( $staging_site ) && isset( $staging_site['created_at'] ) ){
+			$staging_site_created = date('Y-m-d h:i:s', strtotime($staging_site['created_at']));
+			$where .= " AND date >= '".$staging_site_created."'";
+		}
+
 		$query          = "SELECT * FROM " . INSTAWP_DB_TABLE_EVENTS;
 		$total_query    = "SELECT COUNT(1) FROM ({$query}) AS combined_table";
 		$total          = $wpdb->get_var( $total_query );
 		$page           = isset( $_POST['epage'] ) ? abs( (int) $_POST['epage'] ) : 1;
 		$offset         = ( $page * $items_per_page ) - $items_per_page;
-		$events         = $wpdb->get_results( $query . " GROUP BY `source_id`,`date` ORDER BY id DESC LIMIT {$offset}, {$items_per_page}" );
+
+		$events         = $wpdb->get_results( $query . " WHERE $where GROUP BY `source_id`,`date` ORDER BY id DESC LIMIT {$offset}, {$items_per_page}" );
 		$totalPage      = ceil( $total / $items_per_page );
 
 		ob_start();
@@ -255,7 +265,14 @@ class InstaWP_Ajax_Fn {
 		global $wpdb;
 		$where = "1=1";
 		if ( isset( $_POST['connect_id'] ) && intval( $_POST['connect_id'] ) > 0 ) {
-			$where .= " AND connect_id=" . sanitize_text_field( $_POST['connect_id'] );
+			$connect_id = sanitize_text_field( $_POST['connect_id'] );
+			$where .= " AND connect_id=" . sanitize_text_field( $connect_id );
+
+			$staging_site = get_connect_detail_by_connect_id( $connect_id );
+			if( !empty( $staging_site ) && isset( $staging_site['created_at'] ) ){
+				$staging_site_created = date('Y-m-d h:i:s', strtotime($staging_site['created_at']));
+				$where .= " AND date >= '".$staging_site_created."'";
+			}
 		}
 		$query        = "SELECT COUNT(1) FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE `id` NOT IN (SELECT event_id AS id FROM " . INSTAWP_DB_TABLE_EVENT_SITES . " WHERE $where)";
 		$total_events = $wpdb->get_var( $query );
@@ -357,9 +374,6 @@ class InstaWP_Ajax_Fn {
 	}
 
 	public function sync_changes() {
-		// ini_set ('display_errors', 1);  
-		// ini_set ('display_startup_errors', 1);  
-		// error_reporting (E_ALL);  
 		if ( isset( $_POST['dest_connect_id'] ) && $_POST['dest_connect_id'] != '' ) {
 			$dest_connect_id = sanitize_text_field( $_POST['dest_connect_id'] );
 
