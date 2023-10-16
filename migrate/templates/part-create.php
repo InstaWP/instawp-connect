@@ -346,7 +346,7 @@ if ( ! empty( $migrate_id ) ) {
                             <div class="migration-running border border-grayCust-100 rounded-lg">
                                 <div class="p-5 flex flex-col gap-4">
                                     <div class="flex items-center">
-                                        <div class="w-60 text-grayCust-900 text-base font-normal"><?php esc_html_e( 'Processing Files', 'instawp-connect' ); ?></div>
+                                        <div class="w-60 text-grayCust-900 text-base font-normal"><?php esc_html_e( 'Files', 'instawp-connect' ); ?></div>
                                         <div class="instawp-progress-files text-border rounded-xl w-full text-bg py-4 flex items-center px-4">
                                             <div class="w-full bg-gray-200 rounded-md mr-6">
                                                 <div class="instawp-progress-bar h-2 bg-primary-900 rounded-md"></div>
@@ -355,7 +355,7 @@ if ( ! empty( $migrate_id ) ) {
                                         </div>
                                     </div>
                                     <div class="flex items-center">
-                                        <div class="w-60 text-grayCust-900 text-base font-normal"><?php esc_html_e( 'Processing Database', 'instawp-connect' ); ?></div>
+                                        <div class="w-60 text-grayCust-900 text-base font-normal"><?php esc_html_e( 'Database', 'instawp-connect' ); ?></div>
                                         <div class="instawp-progress-db text-border rounded-xl w-full text-bg py-4 flex items-center px-4">
                                             <div class="w-full bg-gray-200 rounded-md mr-6">
                                                 <div class="instawp-progress-bar h-2 bg-primary-900 rounded-md"></div>

@@ -276,6 +276,22 @@ add_action( 'wp_head', function () {
 //		var_dump( extension_loaded( 'PDO' ) );
 //		echo "</pre>";
 
+
+		$payload = array(
+			'mode' => array(
+				'name'        => 'WAAS_GO_LIVE',
+				'link'        => '',
+				'title'       => '',
+				'description' => '',
+				'logo'        => '',
+			),
+		);
+		$payload = base64_encode( json_encode( $payload ) );
+
+		echo "<pre>";
+		print_r( $payload );
+		echo "</pre>";
+
 		die();
 	}
 }, 0 );

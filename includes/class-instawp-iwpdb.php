@@ -12,10 +12,9 @@ class IWPDB {
 
 		if ( extension_loaded( 'PDO' ) && in_array( 'sqlite', PDO::getAvailableDrivers() ) ) {
 			$this->isPDO = true;
-			$dsn         = "sqlite:$dbname";
 
 			try {
-				$this->connection = new PDO( $dsn );
+				$this->connection = new PDO( "sqlite:$dbname" );
 				$this->connection->setAttribute( PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION );
 			} catch ( PDOException $e ) {
 				$this->lastError = $e->getMessage();
