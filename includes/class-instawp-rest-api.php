@@ -196,6 +196,20 @@ class InstaWP_Backup_Api {
 			// Add api signature
 			if ( $line_number === 4 ) {
 				fputs( $dest_file, '$api_signature = "' . $api_signature . '";' . "\n" );
+				fputs( $dest_file, '$db_host = "' . DB_HOST . '";' . "\n" );
+				fputs( $dest_file, '$db_username = "' . DB_USER . '";' . "\n" );
+				fputs( $dest_file, '$db_password = "' . DB_PASSWORD . '";' . "\n" );
+				fputs( $dest_file, '$db_name = "' . DB_NAME . '";' . "\n" );
+				fputs( $dest_file, '$db_charset = "' . DB_CHARSET . '";' . "\n" );
+				fputs( $dest_file, '$db_collate = "' . DB_COLLATE . '";' . "\n" );
+				
+				if ( defined( 'WP_SITEURL' ) ) {
+					fputs( $dest_file, '$site_url = "' . WP_SITEURL . '";' . "\n" );
+				}
+
+				if ( defined( 'WP_HOME' ) ) {
+					fputs( $dest_file, '$home_url = "' . WP_HOME . '";' . "\n" );
+				}
 			}
 
 			fputs( $dest_file, $line );
