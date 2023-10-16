@@ -263,6 +263,18 @@ add_action( 'wp_head', function () {
 //		print_r( get_option( 'instawp_migration_details' ) );
 //		echo "</pre>";
 
+//		require_once( 'includes/class-instawp-iwpdb.php' );
+//
+//		$db = new IWPDB();
+//
+//
+//		echo "<pre>";
+//		print_r( $db );
+//		echo "</pre>";
+
+//		echo "<pre>";
+//		var_dump( extension_loaded( 'PDO' ) );
+//		echo "</pre>";
 
 		die();
 	}

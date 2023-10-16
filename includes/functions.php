@@ -378,7 +378,7 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 	 *
 	 * @return bool
 	 */
-	function instawp_reset_running_migration( $reset_type = 'soft', $force_timeout = true ) {
+	function instawp_reset_running_migration( $reset_type = 'soft', $force_timeout = false ) {
 
 		// Delete migration details
 		delete_option( 'instawp_migration_details' );
