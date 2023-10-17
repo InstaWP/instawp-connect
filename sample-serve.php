@@ -34,7 +34,18 @@ defined( 'CHUNK_DB_SIZE' ) | define( 'CHUNK_DB_SIZE', 100 );
 defined( 'BATCH_SIZE' ) | define( 'BATCH_SIZE', 100 );
 defined( 'WP_ROOT' ) | define( 'WP_ROOT', $root_path );
 
-require_once( WP_ROOT . '/wp-content/plugins/instawp-connect/includes/class-instawp-iwpdb.php' );
+$iwpdb_main_path = WP_ROOT . '/wp-content/plugins/instawp-connect/includes/class-instawp-iwpdb.php';
+$iwpdb_git_path  = WP_ROOT . '/wp-content/plugins/instawp-connect-main/includes/class-instawp-iwpdb.php';
+
+if ( file_exists( $iwpdb_main_path ) ) {
+	require_once( $iwpdb_main_path );
+} else if ( file_exists( $iwpdb_git_path ) ) {
+	require_once( $iwpdb_git_path );
+} else {
+	header( 'x-iwp-status: false' );
+	echo "Count not find class-instawp-iwpdb in the plugin directory.";
+	exit( 2 );
+}
 
 if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
