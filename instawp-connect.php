@@ -276,20 +276,17 @@ add_action( 'wp_head', function () {
 //		var_dump( extension_loaded( 'PDO' ) );
 //		echo "</pre>";
 
+		$allowed_role = 'administrator';
 
-		$payload = array(
-			'mode' => array(
-				'name'        => 'WAAS_GO_LIVE',
-				'link'        => '',
-				'title'       => '',
-				'description' => '',
-				'logo'        => '',
-			),
-		);
-		$payload = base64_encode( json_encode( $payload ) );
+		foreach ( InstaWP_Setting::get_option( 'instawp_sync_tab_roles', [] ) as $role ) {
+			if ( current_user_can( $role ) ) {
+				$allowed_role = $role;
+				break;
+			}
+		}
 
 		echo "<pre>";
-		print_r( $payload );
+		print_r( $allowed_role );
 		echo "</pre>";
 
 		die();
