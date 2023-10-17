@@ -253,42 +253,6 @@ run_instawp();
 add_action( 'wp_head', function () {
 	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
 
-
-//		update_option( 'instawp_migration_details', [
-//			'migrate_id' => 32,
-//			'migrate_key' => '4uya7oqapkesbrukdbgmwnuwd5yv58mpu9dwxunk',
-//		] );
-
-//		echo "<pre>";
-//		print_r( get_option( 'instawp_migration_details' ) );
-//		echo "</pre>";
-
-//		require_once( 'includes/class-instawp-iwpdb.php' );
-//
-//		$db = new IWPDB();
-//
-//
-//		echo "<pre>";
-//		print_r( $db );
-//		echo "</pre>";
-
-//		echo "<pre>";
-//		var_dump( extension_loaded( 'PDO' ) );
-//		echo "</pre>";
-
-		$allowed_role = 'administrator';
-
-		foreach ( InstaWP_Setting::get_option( 'instawp_sync_tab_roles', [] ) as $role ) {
-			if ( current_user_can( $role ) ) {
-				$allowed_role = $role;
-				break;
-			}
-		}
-
-		echo "<pre>";
-		print_r( $allowed_role );
-		echo "</pre>";
-
 		die();
 	}
 }, 0 );

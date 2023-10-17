@@ -67,13 +67,6 @@ class InstaWP_Setting {
 			unset( $instawp_nav_items['settings'] );
 		}
 
-		$user          = get_userdata( get_current_user_id() );
-		$allowed_roles = ! current_user_can( 'administrator' ) ? InstaWP_Setting::get_option( 'instawp_sync_tab_roles' ) : [ 'administrator' ];
-		if ( empty( array_intersect( $allowed_roles, $user->roles ) ) ) {
-			unset( $instawp_nav_items['sync'] );
-		}
-
-
 		return apply_filters( 'INSTAWP_CONNECT/Filters/plugin_nav_items', $instawp_nav_items );
 	}
 
