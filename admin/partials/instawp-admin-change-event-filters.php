@@ -666,8 +666,14 @@ class InstaWP_Change_Event_Filters
             return $post_ID;
         }
 
+        //acf feild group check
         if($post->post_type == 'acf-field-group' && $post->post_content == '') {
             $this->_prepare_metas_for_each_post($post_ID);
+            return $post_ID;
+        }
+
+        //acf check for acf post type
+        if( in_array( $post->post_type, ['acf-post-type','acf-taxonomy'] ) && $post->post_title =='Auto Draft' ) {
             return $post_ID;
         }
 
@@ -676,16 +682,25 @@ class InstaWP_Change_Event_Filters
         $modified = new DateTime( $post->post_modified_gmt );
         $diff     = $created->diff( $modified );
         $difference = ((($diff->y * 365.25 + $diff->m * 30 + $diff->d) * 24 + $diff->h) * 60 + $diff->i)*60 + $diff->s;
+        
+        $event   = $this->wpdb->get_results("SELECT * FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE source_id = ".$post_ID." ORDER BY date desc limit 1" );
+		if( !empty( $event ) && isset( $event[0] ) ){
+            $event_date  = new DateTime( $event[0]->date );
+            $diff     = $modified->diff( $event_date );
+            if( $diff->s >= 1 && $diff->s <=5 ){
+                $this->wpdb->query( "DELETE FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE id=".$event[0]->id );
+            }
+        }
 
         if( $difference <= 1 ){
+            $event_slug = 'post_new';
             $event_name = sprintf(esc_html__('%s created', 'instawp-connect'), $post_type_singular_name);
-            $this->addPostData($event_name, 'post_new', $post, $post_ID); 
         }else{
             $event_slug = 'post_change';
             $event_name = sprintf( __('%s modified', 'instawp-connect'), $post_type_singular_name );
-            $this->addPostData($event_name, $event_slug, $post, $post_ID);
         }
 
+        $this->addPostData($event_name, $event_slug, $post, $post_ID);
         //check post revisions are found 
         // $revisions = wp_get_post_revisions($post_ID);
 
