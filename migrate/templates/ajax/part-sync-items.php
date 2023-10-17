@@ -41,4 +41,10 @@
             </td> -->
         </tr>
     <?php endforeach; ?>
+    <?php else:?> 
+        <tr>
+            <td colspan="5" class="text-center p-4">
+                <?php echo esc_html('No events found!', 'instawp-connect') ?>
+            </td>
+        </tr> 
 <?php endif?>

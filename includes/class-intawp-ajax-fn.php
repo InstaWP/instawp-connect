@@ -149,11 +149,19 @@ class InstaWP_Ajax_Fn {
 	public function get_events_summary() {
 
 		$where = "1=1";
+		$where2 = "1=1";
 		if ( isset( $_POST['connect_id'] ) && intval( $_POST['connect_id'] ) > 0 ) {
-			$where .= " AND connect_id=" . sanitize_text_field( $_POST['connect_id'] );
+			$connect_id = sanitize_text_field( $_POST['connect_id'] );
+			$where .= " AND connect_id=" . $connect_id;
+
+			$staging_site = get_connect_detail_by_connect_id( $connect_id );
+				if( !empty( $staging_site ) && isset( $staging_site['created_at'] ) ){
+					$staging_site_created = date('Y-m-d h:i:s', strtotime($staging_site['created_at']));
+					$where2 .= " AND date >= '".$staging_site_created."'";
+			}
 		}
 
-		$query   = "SELECT event_name, COUNT(*) as event_count FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE `id` NOT IN (SELECT event_id AS id FROM " . INSTAWP_DB_TABLE_EVENT_SITES . " WHERE $where) GROUP BY event_name HAVING event_count > 0";
+		$query   = "SELECT event_name, COUNT(*) as event_count FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE $where2 AND `id` NOT IN (SELECT event_id AS id FROM " . INSTAWP_DB_TABLE_EVENT_SITES . " WHERE $where) GROUP BY event_name HAVING event_count > 0";
 		$results = $this->wpdb->get_results( $query );
 
 		$html = '<ul class="list">';
@@ -263,18 +271,21 @@ class InstaWP_Ajax_Fn {
 
 	public function instawp_get_total_pending_events_count() {
 		global $wpdb;
+
 		$where = "1=1";
 		if ( isset( $_POST['connect_id'] ) && intval( $_POST['connect_id'] ) > 0 ) {
 			$connect_id = sanitize_text_field( $_POST['connect_id'] );
 			$where .= " AND connect_id=" . sanitize_text_field( $connect_id );
+		}
 
-			$staging_site = get_connect_detail_by_connect_id( $connect_id );
+		$where2 = "1=1";
+		$staging_site = get_connect_detail_by_connect_id( $connect_id );
 			if( !empty( $staging_site ) && isset( $staging_site['created_at'] ) ){
 				$staging_site_created = date('Y-m-d h:i:s', strtotime($staging_site['created_at']));
-				$where .= " AND date >= '".$staging_site_created."'";
-			}
+				$where2 .= " AND date >= '".$staging_site_created."'";
 		}
-		$query        = "SELECT COUNT(1) FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE `id` NOT IN (SELECT event_id AS id FROM " . INSTAWP_DB_TABLE_EVENT_SITES . " WHERE $where)";
+
+		$query        = "SELECT COUNT(1) FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE $where2 AND `id` NOT IN (SELECT event_id AS id FROM " . INSTAWP_DB_TABLE_EVENT_SITES . " WHERE $where)";
 		$total_events = $wpdb->get_var( $query );
 
 		return $total_events;
