@@ -26,6 +26,8 @@ class instaWP {
 
 	public $is_connected = false;
 
+	public $is_on_local = false;
+
 	public $connect_id = null;
 
 	public $tools = null;
@@ -39,6 +41,7 @@ class instaWP {
 		$this->version      = INSTAWP_PLUGIN_VERSION;
 		$this->plugin_name  = INSTAWP_PLUGIN_SLUG;
 		$this->is_connected = ! empty( get_option( 'instawp_api_key' ) );
+		$this->is_on_local  = instawp_is_website_on_local();
 		$this->connect_id   = $connect_id_options['data']['id'] ?? 0;
 		$this->is_staging   = (bool) InstaWP_Setting::get_option( 'instawp_is_staging', false );
 
