@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
 .two-way-sync-btn {background: #005e54 !important;color: white;border: none;padding: 5px 10px;border-radius: 4px;cursor: pointer;}
 .column-sync span.sync-loader img {width: 100%;max-width: 20px;margin: 0 0 0 6px;}
 span.sync-success {color: #005e54;margin: 2px 0 0 0px;display: block;}
@@ -8,7 +9,6 @@ span.sync-success {color: #005e54;margin: 2px 0 0 0px;display: block;}
 .change-event-main .bulk-sync {margin-left: 10px;}
 
 /****************2 sync popup [start]**********************/
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
 input:focus,
 textarea:focus{
     outline: none;
@@ -567,4 +567,10 @@ a.changes-btn.sync-changes-btn.disabled {
     pointer-events: none;
     background: #3eafa3;
     border-color: #3eafa3;
+}
+.instawp-event-title-td{
+    white-space: nowrap; 
+    text-overflow:ellipsis; 
+    overflow: hidden; 
+    max-width:1px;
 }

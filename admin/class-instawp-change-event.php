@@ -23,7 +23,7 @@ class InstaWP_Change_event {
 
 
 	function render_change_event_page() {
-		include_once( 'partials/instawp-admin-change-event.php' );
+		//include_once( 'partials/instawp-admin-change-event.php' );
 	}
 
 
