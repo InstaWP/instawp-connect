@@ -21,22 +21,6 @@ class InstaWP_Change_event {
 		add_action( 'admin_bar_menu', array( $this, 'instawp_add_sync_status_toolbar_link' ), 999 );
 	}
 
-
-	function render_change_event_page() {
-		//include_once( 'partials/instawp-admin-change-event.php' );
-	}
-
-
-	function add_change_event_menu() {
-		add_management_page(
-			esc_html__( 'Change Event', 'instawp-connect' ),
-			esc_html__( 'Change Event', 'instawp-connect' ),
-			'administrator', 'instawp-change-event',
-			array( $this, 'render_change_event_page' ),
-			2
-		);
-	}
-
 	function listEvents() {
 		$InstaWP_db = new InstaWP_DB();
 		$tables     = $InstaWP_db->tables;

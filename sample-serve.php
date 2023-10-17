@@ -69,7 +69,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 	}
 
 	if ( ! function_exists( 'send_by_zip' ) ) {
-		function send_by_zip( $db, $unsentFiles = array(), $progress_percentage = '' ) {
+		function send_by_zip( IWPDB $db, $unsentFiles = array(), $progress_percentage = '' ) {
 			header( 'Content-Type: zip' );
 			header( 'x-file-type: zip' );
 			header( 'x-iwp-progress: ' . $progress_percentage );
@@ -100,8 +100,8 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 				header( 'x-iwp-message: Error in reading file. Message - ' . $exception->getMessage() );
 			}
 
-			foreach ( $unsentFiles as $id => $file ) {
-				$db->rawQuery( "UPDATE files_sent SET sent = 1 WHERE id = $id" );
+			foreach ( $unsentFiles as $file ) {
+				$db->rawQuery( "UPDATE files_sent SET sent = 1 WHERE id=:id", array( ':id' => $file['id'] ) );
 			}
 
 			unlink( $tmpZip );

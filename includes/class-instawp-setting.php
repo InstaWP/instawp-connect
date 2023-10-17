@@ -60,14 +60,27 @@ class InstaWP_Setting {
 			unset( $instawp_nav_items['manage'] );
 		}
 
-		$user          = get_userdata( get_current_user_id() );
-		$allowed_roles = ! current_user_can( 'administrator' ) ? InstaWP_Setting::get_option( 'instawp_sync_tab_roles' ) : [ 'administrator' ];
-		if ( empty( array_intersect( $allowed_roles, $user->roles ) ) ) {
-			unset( $instawp_nav_items['sync'] );
+		if ( self::get_allowed_role() !== 'administrator' ) {
+			unset( $instawp_nav_items['create'] );
+			unset( $instawp_nav_items['sites'] );
+			unset( $instawp_nav_items['manage'] );
+			unset( $instawp_nav_items['settings'] );
 		}
 
-
 		return apply_filters( 'INSTAWP_CONNECT/Filters/plugin_nav_items', $instawp_nav_items );
+	}
+
+	public static function get_allowed_role() {
+		$allowed_role = 'administrator';
+
+		foreach ( InstaWP_Setting::get_option( 'instawp_sync_tab_roles', [] ) as $role ) {
+			if ( current_user_can( $role ) ) {
+				$allowed_role = $role;
+				break;
+			}
+		}
+
+		return $allowed_role;
 	}
 
 	public static function generate_section_field( $field = array() ) {

@@ -130,7 +130,7 @@ class InstaWP_Admin {
 		add_management_page(
 			esc_html__( 'InstaWP', 'instawp-connect' ),
 			esc_html__( 'InstaWP', 'instawp-connect' ),
-			'administrator', 'instawp', array( $this, 'render_migrate_page' ), 1
+			InstaWP_Setting::get_allowed_role(), 'instawp', array( $this, 'render_migrate_page' ), 1
 		);
 	}
 

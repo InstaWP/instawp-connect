@@ -3,6 +3,8 @@
  * InstaWP CLI Commands
  */
 
+use InstaWP\Connect\Helpers\WPConfig;
+
 if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 	class INSTAWP_CLI_Commands {
 
@@ -23,6 +25,18 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 						InstaWP_Setting::instawp_generate_api_key( $args[2], 'true' );
 					} else if ( $args[1] === 'api-domain' ) {
 						InstaWP_Setting::set_api_domain( $args[2] );
+					}
+				}
+
+				if ( isset( $args[2] ) ) {
+					$payload_decoded = base64_decode( $args[2] );
+					$payload         = json_decode( $payload_decoded, true );
+
+					if ( isset( $payload['mode'] ) ) {
+						if ( isset( $payload['mode']['name'] ) ) {
+							$wp_config = new WPConfig( [ 'INSTAWP_CONNECT_MODE' => $payload['mode']['name'] ] );
+							$wp_config->update();
+						}
 					}
 				}
 

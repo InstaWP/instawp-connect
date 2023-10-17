@@ -15,12 +15,6 @@ if ( ! instawp()->is_connected ) {
 	$connect_classes[] = 'p-0';
 }
 
-//if ( extension_loaded( 'pdo' ) ) {
-//	echo "PDO is available.<br>";
-//} else {
-//	echo "PDO is not available.<br>";
-//}
-
 ?>
 
 <div class="wrap instawp-wrap box-width pt-10">
