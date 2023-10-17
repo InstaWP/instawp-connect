@@ -89,6 +89,9 @@
                                 el_site_detail_wrap.removeClass('hidden');
                                 el_migration_loader.text(el_migration_loader.data('complete-text'));
 
+                                // Remove active class
+                                el_stage_wrapper.find('.stage-status').removeClass('active');
+
                                 el_site_detail_wrap.find('#instawp-site-url').attr('href', response.data.dest_wp.url).find('span').html(response.data.dest_wp.url);
                                 el_site_detail_wrap.find('#instawp-site-username').html(response.data.dest_wp.username);
                                 el_site_detail_wrap.find('#instawp-site-password').html(response.data.dest_wp.password);
