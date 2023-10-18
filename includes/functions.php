@@ -875,6 +875,8 @@ if ( ! function_exists( 'instawp_domain_search' ) ) {
 			CURLOPT_MAXREDIRS      => 10,
 			CURLOPT_TIMEOUT        => 30,
 			CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
+			CURLOPT_SSL_VERIFYHOST => false,
+			CURLOPT_SSL_VERIFYPEER => false,
 			CURLOPT_CUSTOMREQUEST  => "GET",
 			CURLOPT_HTTPHEADER     => [
 				"X-RapidAPI-Host: domainr.p.rapidapi.com",
@@ -1403,10 +1405,11 @@ if ( ! function_exists( 'get_connect_detail_by_connect_id' ) ) {
 	 * @return array
 	 */
 	function get_connect_detail_by_connect_id( $connect_id ) {
-		$api_response  = InstaWP_Curl::do_curl( 'connects/' . $connect_id, [], [], false );
+		$api_response = InstaWP_Curl::do_curl( 'connects/' . $connect_id, [], [], false );
 		if ( $api_response['success'] && ! empty( $api_response['data'] ) ) {
 			return $api_response['data'];
 		}
+
 		return [];
 	}
 }
