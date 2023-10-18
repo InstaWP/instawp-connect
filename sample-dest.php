@@ -267,8 +267,8 @@ if ( $file_relative_path === 'wp-config.php' ) {
 		die();
 	}
 
-	$config_file = $root_path . DIRECTORY_SEPARATOR . 'wp-config.php';
-	$wp_config   = file_get_contents( $wp_config_path );
+	$wp_config_path = $root_path . DIRECTORY_SEPARATOR . 'wp-config.php';
+	$wp_config      = file_get_contents( $wp_config_path );
 
 	$wp_config = preg_replace(
 		"/'DB_NAME',\s*'[^']*'/",
