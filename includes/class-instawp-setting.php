@@ -495,6 +495,18 @@ class InstaWP_Setting {
 		return get_option( 'instawp_api_key' );
 	}
 
+	public static function get_unsupported_plugins() {
+
+		$unsupported_plugins = array(
+			array(
+				'slug' => 'breeze/breeze.php',
+				'name' => 'Breeze',
+			),
+		);
+
+		return apply_filters( 'INSTAWP_CONNECT/Filters/get_unsupported_plugins', $unsupported_plugins );
+	}
+
 
 	public static function instawp_generate_api_key( $api_key, $status ) {
 

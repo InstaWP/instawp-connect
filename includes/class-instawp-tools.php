@@ -206,6 +206,21 @@ class InstaWP_Tools {
 		return apply_filters( 'INSTAWP_CONNECT/Filters/process_migration_settings', $migrate_settings );
 	}
 
+	public static function get_unsupported_active_plugins() {
+
+		$active_plugins             = InstaWP_Setting::get_option( 'active_plugins', [] );
+		$unsupported_plugins        = InstaWP_Setting::get_unsupported_plugins();
+		$unsupported_active_plugins = [];
+
+		foreach ( $unsupported_plugins as $plugin_data ) {
+			if ( isset( $plugin_data['slug'] ) && in_array( $plugin_data['slug'], $active_plugins ) ) {
+				$unsupported_active_plugins[] = $plugin_data;
+			}
+		}
+
+		return $unsupported_active_plugins;
+	}
+
 
 	public static function clean_junk_cache() {
 		$home_url_prefix = get_home_url();

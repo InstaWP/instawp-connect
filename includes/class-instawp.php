@@ -28,6 +28,8 @@ class instaWP {
 
 	public $is_on_local = false;
 
+	public $has_unsupported_plugins = false;
+
 	public $connect_id = null;
 
 	public $tools = null;
@@ -45,7 +47,8 @@ class instaWP {
 		$this->connect_id   = $connect_id_options['data']['id'] ?? 0;
 		$this->is_staging   = (bool) InstaWP_Setting::get_option( 'instawp_is_staging', false );
 
-		$this->tools = new InstaWP_Tools();
+		$this->tools                   = new InstaWP_Tools();
+		$this->has_unsupported_plugins = ! empty( $this->tools::get_unsupported_active_plugins() );
 
 		if ( is_admin() ) {
 			$this->set_locale();
@@ -113,12 +116,6 @@ class instaWP {
 	}
 
 	public function clean_migrate_files() {
-		$incomplete_task_ids = InstaWP_taskmanager::is_there_any_incomplete_task_ids();
-		$incomplete_task_id  = reset( $incomplete_task_ids );
-		if ( ! empty( $incomplete_task_id ) && ! empty( InstaWP_Setting::get_option( 'instawp_migration_running', '' ) ) ) {
-			return;
-		}
-
 		$path = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . INSTAWP_DEFAULT_BACKUP_DIR . DIRECTORY_SEPARATOR;
 		@unlink( $path . 'instawp_exclude_tables_rows_data.json' );
 		@unlink( $path . 'instawp_exclude_tables_rows.json' );
