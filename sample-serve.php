@@ -272,6 +272,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 	$trackingDb->exec( $createTableQuery );
 
 	$mysqli = new mysqli( $db_host, $db_username, $db_password, $db_name );
+	mysqli_set_charset( $mysqli, "utf8" );
 
 	if ( $mysqli->connect_error ) {
 		header( 'x-iwp-status: false' );
