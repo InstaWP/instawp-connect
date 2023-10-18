@@ -173,7 +173,13 @@ class InstaWP_Backup_Api {
 		$migrate_key      = sanitize_text_field( $request->get_param( 'migrate_key' ) );
 		$api_signature    = hash( 'sha512', $migrate_key . current_time( 'U' ) );
 		$sample_dest_file = fopen( INSTAWP_PLUGIN_DIR . '/sample-dest.php', 'rb' );
-		$dest_file_path   = WP_CONTENT_DIR . '/' . INSTAWP_DEFAULT_BACKUP_DIR . '/' . $migrate_key . '.php';
+		$dir_path         = WP_CONTENT_DIR . '/' . INSTAWP_DEFAULT_BACKUP_DIR . '/';
+		
+		if ( ! file_exists( $dir_path ) ) {
+			mkdir( $dir_path, 0777, true );
+		}
+
+		$dest_file_path   = $dir_path . $migrate_key . '.php';
 		$dest_file        = fopen( $dest_file_path, 'wb' );
 		$line_number      = 1;
 
