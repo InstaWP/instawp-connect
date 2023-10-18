@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.4
 Tested up to: 6.3.2
 Requires PHP: 7.4
-Stable tag: 0.0.9.42
+Stable tag: 0.0.9.43
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -93,6 +93,11 @@ Need support or want to partner with us? Go to our website http://instawp.com/ a
 6. Update API Key and Settings.
 
 == Changelog ==
+
+= 0.0.9.43 =
+- 18/10/2023 - FIX - Add supported plugins check.
+- 18/10/2023 - FIX - Fix character check issue.
+- 18/10/2023 - FIX - Stabilise migrations/staging process.
 
 = 0.0.9.42 =
 - 17/10/2023 - NEW - Add support for non-zip and non-pdo servers.
