@@ -12,7 +12,7 @@ $migrate_settings = isset( $migrate_settings ) ? unserialize( $migrate_settings 
 $migrate_key      = basename( __FILE__, '.php' );
 $level            = 0;
 $root_path_dir    = __DIR__;
-$root_path        = dirname( $root_path_dir );
+$root_path        = __DIR__;
 
 while ( ! file_exists( $root_path . '/wp-config.php' ) ) {
 
@@ -34,8 +34,10 @@ defined( 'CHUNK_DB_SIZE' ) | define( 'CHUNK_DB_SIZE', 100 );
 defined( 'BATCH_SIZE' ) | define( 'BATCH_SIZE', 100 );
 defined( 'WP_ROOT' ) | define( 'WP_ROOT', $root_path );
 
-$iwpdb_main_path = WP_ROOT . '/wp-content/plugins/instawp-connect/includes/class-instawp-iwpdb.php';
-$iwpdb_git_path  = WP_ROOT . '/wp-content/plugins/instawp-connect-main/includes/class-instawp-iwpdb.php';
+$iwpdb_main_path     = WP_ROOT . '/wp-content/plugins/instawp-connect/includes/class-instawp-iwpdb.php';
+$iwpdb_git_path      = WP_ROOT . '/wp-content/plugins/instawp-connect-main/includes/class-instawp-iwpdb.php';
+$instawpbackups_path = WP_ROOT . DIRECTORY_SEPARATOR . 'wp-content' . DIRECTORY_SEPARATOR . 'instawpbackups' . DIRECTORY_SEPARATOR;
+
 
 if ( file_exists( $iwpdb_main_path ) ) {
 	require_once( $iwpdb_main_path );
@@ -119,13 +121,14 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		}
 	}
 
-	$tracking_db_path = 'files-sent-' . $migrate_key . '.db';
-	$total_files_path = '.total-files-' . $migrate_key;
-	$excluded_paths   = $migrate_settings['excluded_paths'] ?? [];
-	$skip_folders     = array_merge( [ 'wp-content/cache', 'editor', 'wp-content/upgrade', 'wp-content/instawpbackups' ], $excluded_paths );
-	$skip_folders     = array_unique( $skip_folders );
-	$skip_files       = [];
-	$db               = null;
+	$tracking_db_path        = $instawpbackups_path . 'files-sent-' . $migrate_key . '.db';
+	$total_files_path        = $instawpbackups_path . '.total-files-' . $migrate_key;
+	$current_file_index_path = $instawpbackups_path . 'current_file_index.txt';
+	$excluded_paths          = $migrate_settings['excluded_paths'] ?? [];
+	$skip_folders            = array_merge( [ 'wp-content/cache', 'editor', 'wp-content/upgrade', 'wp-content/instawpbackups' ], $excluded_paths );
+	$skip_folders            = array_unique( $skip_folders );
+	$skip_files              = [];
+	$db                      = null;
 
 	try {
 		$db  = new IWPDB( $tracking_db_path );
@@ -164,8 +167,8 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		// Get the current file index from the database or file
 		$currentFileIndex = 0; // Set the default value to 0
 
-		if ( file_exists( 'current_file_index.txt' ) ) {
-			$currentFileIndex = (int) file_get_contents( 'current_file_index.txt' );
+		if ( file_exists( $current_file_index_path ) ) {
+			$currentFileIndex = (int) file_get_contents( $current_file_index_path );
 		}
 
 		// Create a limited iterator to skip the files that are already indexed
@@ -196,13 +199,13 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			}
 		}
 
-		file_put_contents( 'current_file_index.txt', $currentFileIndex + BATCH_SIZE );
+		file_put_contents( $current_file_index_path, $currentFileIndex + BATCH_SIZE );
 
 		if ( $fileIndex == 0 ) {
 			header( 'x-iwp-status: true' );
 			header( 'x-iwp-transfer-complete: true' );
 			header( 'x-iwp-message: No more files left to download.' );
-			unlink( 'current_file_index.txt' );
+			unlink( $current_file_index_path );
 			$db = null;
 			exit;
 		}
@@ -240,7 +243,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
 			$db->rawQuery( "UPDATE files_sent SET sent = 1 WHERE id = '$fileId'" );
 		} else {
-			unlink( 'current_file_index.txt' );
+			unlink( $current_file_index_path );
 			header( 'x-iwp-status: true' );
 			header( 'x-iwp-transfer-complete: true' );
 			header( 'x-iwp-message: No more files left to download.' );
@@ -262,7 +265,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 
 	$excluded_tables      = $migrate_settings['excluded_tables'] ?? [];
 	$excluded_tables_rows = $migrate_settings['excluded_tables_rows'] ?? [];
-	$trackingDb_path      = 'db-sent-' . $migrate_key . '.db';
+	$trackingDb_path      = $instawpbackups_path . 'db-sent-' . $migrate_key . '.db';
 	$trackingDb           = new SQLite3( $trackingDb_path );
 	$createTableQuery     = "CREATE TABLE IF NOT EXISTS tracking (table_name TEXT PRIMARY KEY,offset INTEGER DEFAULT 0,completed INTEGER DEFAULT 0);";
 
@@ -402,3 +405,4 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 	$mysqli->close();
 	$trackingDb->close();
 }
+

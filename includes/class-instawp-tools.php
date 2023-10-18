@@ -105,6 +105,65 @@ class InstaWP_Tools {
 		return true;
 	}
 
+	public static function generate_serve_file( $migrate_key, $api_signature, $migrate_settings = [], $serve_file_dir = '' ) {
+
+		$migrate_settings  = is_array( $migrate_settings ) ? $migrate_settings : [];
+		$sample_serve_file = fopen( INSTAWP_PLUGIN_DIR . '/sample-serve.php', 'rb' );
+		$serve_file_dir    = empty( $serve_file_dir ) ? WP_CONTENT_DIR . DIRECTORY_SEPARATOR . INSTAWP_DEFAULT_BACKUP_DIR : $serve_file_dir;
+		$serve_file_path   = $serve_file_dir . DIRECTORY_SEPARATOR . $migrate_key . '.php';
+		$serve_file        = fopen( $serve_file_path, 'wb' );
+		$line_number       = 1;
+
+		// Process migration settings like active plugins/themes only etc
+		$migrate_settings = instawp()->tools::process_migration_settings( $migrate_settings );
+
+		while ( ( $line = fgets( $sample_serve_file ) ) !== false ) {
+
+			// Add api signature
+			if ( $line_number === 4 ) {
+				fputs( $serve_file, '$api_signature = "' . $api_signature . '";' . "\n" );
+				fputs( $serve_file, '$migrate_settings = \'' . serialize( $migrate_settings ) . '\';' . "\n" );
+				fputs( $serve_file, '$db_host = "' . DB_HOST . '";' . "\n" );
+				fputs( $serve_file, '$db_username = "' . DB_USER . '";' . "\n" );
+				fputs( $serve_file, '$db_password = "' . DB_PASSWORD . '";' . "\n" );
+				fputs( $serve_file, '$db_name = "' . DB_NAME . '";' . "\n" );
+			}
+
+			fputs( $serve_file, $line );
+
+			$line_number ++;
+		}
+
+		fclose( $serve_file );
+		fclose( $sample_serve_file );
+
+		if ( $serve_file_dir === ABSPATH ) {
+			return site_url( $migrate_key . '.php' );
+		}
+
+		return content_url( INSTAWP_DEFAULT_BACKUP_DIR . '/' . $migrate_key . '.php' );
+	}
+
+	public static function is_serve_file_accessible( $serve_file_url ) {
+
+		$curl = curl_init();
+		curl_setopt_array( $curl, array(
+			CURLOPT_URL            => $serve_file_url,
+			CURLOPT_RETURNTRANSFER => true,
+			CURLOPT_ENCODING       => '',
+			CURLOPT_MAXREDIRS      => 10,
+			CURLOPT_TIMEOUT        => 5,
+			CURLOPT_FOLLOWLOCATION => true,
+			CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
+			CURLOPT_CUSTOMREQUEST  => 'POST'
+		) );
+		curl_exec( $curl );
+		$status_code = curl_getinfo( $curl, CURLINFO_HTTP_CODE );
+		curl_close( $curl );
+
+		return $status_code !== 403;
+	}
+
 	public static function process_migration_settings( $migrate_settings = [] ) {
 
 		$options      = $migrate_settings['options'] ?? [];

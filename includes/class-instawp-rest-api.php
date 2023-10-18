@@ -139,40 +139,26 @@ class InstaWP_Backup_Api {
 		// Clean InstaWP backup directory
 		instawp()->tools::clean_instawpbackups_dir();
 
-		$migrate_key       = sanitize_text_field( $request->get_param( 'migrate_key' ) );
-		$migrate_settings  = $request->get_param( 'migrate_settings' );
-		$migrate_settings  = is_array( $migrate_settings ) ? $migrate_settings : [];
-		$api_signature     = hash( 'sha512', $migrate_key . current_time( 'U' ) );
-		$sample_serve_file = fopen( INSTAWP_PLUGIN_DIR . '/sample-serve.php', 'rb' );
-		$serve_file_path   = WP_CONTENT_DIR . '/' . INSTAWP_DEFAULT_BACKUP_DIR . '/' . $migrate_key . '.php';
-		$serve_file        = fopen( $serve_file_path, 'wb' );
-		$line_number       = 1;
+		$migrate_key      = sanitize_text_field( $request->get_param( 'migrate_key' ) );
+		$api_signature    = hash( 'sha512', $migrate_key . current_time( 'U' ) );
+		$migrate_settings = $request->get_param( 'migrate_settings' );
 
-		// Process migration settings like active plugins/themes only etc
-		$migrate_settings = instawp()->tools::process_migration_settings( $migrate_settings );
+		// Generate serve file in instawpbackups directory
+		$serve_file_url = instawp()->tools::generate_serve_file( $migrate_key, $api_signature, $migrate_settings );
 
-		while ( ( $line = fgets( $sample_serve_file ) ) !== false ) {
+		// Check accessibility of serve file
+		if ( ! instawp()->tools::is_serve_file_accessible( $serve_file_url ) ) {
+			// Generate serve file in website root directory
+			$serve_file_url = instawp()->tools::generate_serve_file( $migrate_key, $api_signature, $migrate_settings, ABSPATH );
 
-			// Add api signature
-			if ( $line_number === 4 ) {
-				fputs( $serve_file, '$api_signature = "' . $api_signature . '";' . "\n" );
-				fputs( $serve_file, '$migrate_settings = \'' . serialize( $migrate_settings ) . '\';' . "\n" );
-				fputs( $serve_file, '$db_host = "' . DB_HOST . '";' . "\n" );
-				fputs( $serve_file, '$db_username = "' . DB_USER . '";' . "\n" );
-				fputs( $serve_file, '$db_password = "' . DB_PASSWORD . '";' . "\n" );
-				fputs( $serve_file, '$db_name = "' . DB_NAME . '";' . "\n" );
+			// Check accessibility of serve file and if false return error
+			if ( ! instawp()->tools::is_serve_file_accessible( $serve_file_url ) ) {
+				return $this->throw_error( new WP_Error( 403, esc_html__( 'Could not create serve file.', 'instawp-connect' ) ) );
 			}
-
-			fputs( $serve_file, $line );
-
-			$line_number ++;
 		}
 
-		fclose( $serve_file );
-		fclose( $sample_serve_file );
-
 		return $this->send_response( array(
-			'serve_url'     => content_url( INSTAWP_DEFAULT_BACKUP_DIR . '/' . $migrate_key . '.php' ),
+			'serve_url'     => $serve_file_url,
 			'api_signature' => $api_signature,
 		) );
 	}
@@ -202,7 +188,7 @@ class InstaWP_Backup_Api {
 				fputs( $dest_file, '$db_name = "' . DB_NAME . '";' . "\n" );
 				fputs( $dest_file, '$db_charset = "' . DB_CHARSET . '";' . "\n" );
 				fputs( $dest_file, '$db_collate = "' . DB_COLLATE . '";' . "\n" );
-				
+
 				if ( defined( 'WP_SITEURL' ) ) {
 					fputs( $dest_file, '$site_url = "' . WP_SITEURL . '";' . "\n" );
 				}
