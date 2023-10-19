@@ -69,7 +69,7 @@ if ( ! class_exists( 'InstaWP_Database_Management' ) ) {
 
 		public function auto_login() {
 			$file_db_manager = InstaWP_Setting::get_option( 'instawp_file_db_manager', [] );
-			$file_name       = InstaWP_Setting::get_args_option( $file_db_manager, 'db_name' );
+			$file_name       = InstaWP_Setting::get_args_option( 'db_name', $file_db_manager );
 			if ( ! $file_name ) {
 				wp_die( esc_html__( 'Database Manager file not found!', 'instawp-connect' ) );
 			}
@@ -95,7 +95,7 @@ if ( ! class_exists( 'InstaWP_Database_Management' ) ) {
 			
 			<?php
 			$fields = ob_get_clean();
-			instawp()->auto_login_page( $fields, $database_manager_url, __( 'InstaWP Database Manager', 'instawp-connect' ) );
+			instawp()->tools::auto_login_page( $fields, $database_manager_url, __( 'InstaWP Database Manager', 'instawp-connect' ) );
 		}
 
 		public function query_vars( $query_vars ) {
