@@ -113,6 +113,12 @@ class InstaWP_Backup_Api {
 			),
 		) );
 
+		register_rest_route( $this->namespace . '/' . $this->version_3, '/site-usage', array(
+			'methods'             => 'GET',
+			'callback'            => array( $this, 'site_usage' ),
+			'permission_callback' => '__return_true',
+		) );
+
 		register_rest_route( $this->namespace . '/' . $this->version_3, '/pull', array(
 			'methods'             => 'POST',
 			'callback'            => array( $this, 'handle_pull_api' ),
@@ -126,7 +132,14 @@ class InstaWP_Backup_Api {
 		) );
 	}
 
-	function handle_pull_api( WP_REST_Request $request ) {
+	/**
+	 * Handle response for pull api
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function handle_pull_api( WP_REST_Request $request ) {
 
 		$response = $this->validate_api_request( $request );
 		if ( is_wp_error( $response ) ) {
@@ -163,7 +176,14 @@ class InstaWP_Backup_Api {
 		) );
 	}
 
-	function handle_push_api( WP_REST_Request $request ) {
+	/**
+	 * Handle response for push api
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function handle_push_api( WP_REST_Request $request ) {
 
 		$response = $this->validate_api_request( $request );
 		if ( is_wp_error( $response ) ) {
@@ -200,13 +220,32 @@ class InstaWP_Backup_Api {
 	}
 
 	/**
+	 * Handle website total size info
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function site_usage( WP_REST_Request $request ) {
+
+		$response = $this->validate_api_request( $request );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
+
+		$info = instawp()->get_directory_info( ABSPATH );
+
+		return $this->send_response( $info );
+	}
+
+	/**
 	 * Handle response for disconnect api
 	 *
 	 * @param WP_REST_Request $request
 	 *
 	 * @return WP_REST_Response
 	 */
-	function disconnect( WP_REST_Request $request ) {
+	public function disconnect( WP_REST_Request $request ) {
 
 		$response = $this->validate_api_request( $request );
 		if ( is_wp_error( $response ) ) {
@@ -220,7 +259,6 @@ class InstaWP_Backup_Api {
 			'message' => __( 'Plugin reset Successful.', 'instawp-connect' )
 		] );
 	}
-
 
 	/**
 	 * Handle response for login code generate
