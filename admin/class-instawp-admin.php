@@ -44,7 +44,7 @@ class InstaWP_Admin {
 			self::$_is_template_migration_mode = true;
 		}
 
-		if ( defined( 'INSTAWP_CONNECT_MODE' ) && 'DEPLOYER' == INSTAWP_CONNECT_MODE ) {
+		if ( defined( 'INSTAWP_CONNECT_MODE' ) && 'WAAS_GO_LIVE' == INSTAWP_CONNECT_MODE ) {
 			self::$_is_deployer_mode = true;
 		}
 
@@ -55,7 +55,7 @@ class InstaWP_Admin {
 		add_action( 'admin_menu', array( $this, 'add_migrate_plugin_menu_items' ) );
 		add_action( 'admin_bar_menu', array( $this, 'add_admin_bar_button' ), 100 );
 
-		if ( defined( 'INSTAWP_CONNECT_MODE' ) && in_array( INSTAWP_CONNECT_MODE, [ 'DEPLOYER', 'TEMPLATE_MIGRATE' ] ) ) {
+		if ( defined( 'INSTAWP_CONNECT_MODE' ) && in_array( INSTAWP_CONNECT_MODE, [ 'WAAS_GO_LIVE', 'TEMPLATE_MIGRATE' ] ) ) {
 			add_filter( 'all_plugins', array( $this, 'handle_instawp_plugin_display' ) );
 		}
 
@@ -140,20 +140,13 @@ class InstaWP_Admin {
 	}
 
 
-	public function enqueue_styles() {
-
-	}
-
-
 	public function enqueue_scripts() {
 		//change events scripts [start]
 		wp_enqueue_style( 'instawp-select2', INSTAWP_PLUGIN_DIR_URL . 'css/select2.min.css' );
 		wp_enqueue_script( 'instawp-select2', INSTAWP_PLUGIN_DIR_URL . 'js/select2.min.js', array( 'jquery' ) );
 		wp_enqueue_style( 'change-event-css', INSTAWP_PLUGIN_DIR_URL . 'css/instawp-change-event.css' );
 		wp_enqueue_script( 'ajax_script', INSTAWP_PLUGIN_DIR_URL . 'js/instawp-change-event.js', array( 'jquery' ), $this->version, false );
-		wp_localize_script(
-			'ajax_script',
-			'ajax_obj',
+		wp_localize_script( 'ajax_script', 'ajax_obj',
 			array(
 				'ajax_url'          => admin_url( 'admin-ajax.php' ),
 				'nonce'             => wp_create_nonce( 'instaWp_change_event' ),
@@ -168,10 +161,22 @@ class InstaWP_Admin {
 		);
 
 
+		wp_enqueue_style( 'instawp-tailwind', instawp()::get_asset_url( 'assets/css/tailwind.min.css' ), [], current_time( 'U' ) );
+
+		wp_enqueue_style( 'instawp-hint', instawp()::get_asset_url( 'migrate/assets/css/hint.min.css' ), [ 'instawp-migrate' ], '2.7.0' );
+		wp_enqueue_style( 'instawp-migrate', instawp()::get_asset_url( 'migrate/assets/css/style.css' ), [], current_time( 'U' ) );
+		wp_enqueue_style( 'instawp-connect', instawp()::get_asset_url( 'assets/css/style.min.css' ), [], current_time( 'U' ) );
+
+		wp_enqueue_script( 'instawp-migrate', instawp()::get_asset_url( 'assets/js/scripts.js' ), array(), current_time( 'U' ) );
+		wp_localize_script( 'instawp-migrate', 'instawp_migrate',
+			array(
+				'ajax_url' => admin_url( 'admin-ajax.php' ),
+				'security' => wp_create_nonce( 'instawp-migrate' )
+			)
+		);
+
+
 		wp_enqueue_script( $this->plugin_name, INSTAWP_PLUGIN_DIR_URL . 'js/instawp-admin.js', array( 'jquery' ), $this->version, false );
-
-		//change events scripts [end]
-
 		$this->screen_ids = apply_filters( 'instawp_get_screen_ids', $this->screen_ids );
 
 		if ( in_array( get_current_screen()->id, $this->screen_ids ) ) {
