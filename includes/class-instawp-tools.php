@@ -230,7 +230,7 @@ class InstaWP_Tools {
 		if ( in_array( 'active_themes_only', $options ) ) {
 			$active_theme_stylesheet = wp_get_theme()->get_stylesheet();
 			foreach ( wp_get_themes() as $theme_slug => $theme_info ) {
-				if ( $theme_info->get_stylesheet() !== $active_theme_stylesheet ) {
+				if ( ! in_array( $active_theme_stylesheet, [ $theme_info->get_stylesheet(), $theme_info->get_template() ], true ) ) {
 					$migrate_settings['excluded_paths'][] = $relative_dir . '/themes/' . $theme_slug;
 				}
 			}
