@@ -374,15 +374,19 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 
 			global $mysqli;
 
-			if ( is_array( $value ) && empty( $value ) ) {
-				return [];
-			} else if ( is_string( $value ) && empty( $value ) ) {
-				return '';
+			if ( is_numeric( $value ) ) {
+				return $value;
+			} else if ( is_null( $value ) ) {
+				return "NULL";
+			} else if ( is_array( $value ) && empty( $value ) ) {
+				$value = [];
+			} else if ( is_string( $value ) ) {
+				$value = $mysqli->real_escape_string( $value );
 			}
 
-			return $mysqli->real_escape_string( $value );
+			return "'" . $value . "'";
 		}, array_values( $dataRow ) );
-		$sql             = "INSERT INTO `$tableName` (`" . implode( "`, `", $columns ) . "`) VALUES ('" . implode( "', '", $values ) . "');";
+		$sql             = "INSERT IGNORE INTO `$tableName` (`" . implode( "`, `", $columns ) . "`) VALUES (" . implode( ", ", $values ) . ");";
 		$sqlStatements[] = $sql;
 	}
 
