@@ -6,7 +6,6 @@ namespace InstaWP\Connect\Helpers;
 use Exception;
 use InstaWP\Connect\Helpers\Helper;
 use InstaWP\Connect\Helpers\WPConfig;
-use InstaWP_Setting;
 
 class FileManager {
 
@@ -89,7 +88,7 @@ class FileManager {
 			];
 
 			$file_db_manager = Helper::get_option( 'instawp_file_db_manager', [] );
-			$db_name         = Helper::get_args_option( $file_db_manager, 'db_name' );
+			$db_name         = Helper::get_args_option( 'db_name', $file_db_manager );
 			if ( $db_name ) {
 				$file_db['db_name'] = $db_name;
 			}
@@ -109,7 +108,7 @@ class FileManager {
 
 	public function clean( $file_name = null ): void {
 		$file_db_manager = Helper::get_option( 'instawp_file_db_manager', [] );
-        $file_name       = $file_name ? $file_name : Helper::get_args_option( $file_db_manager, 'file_name' );
+        $file_name       = $file_name ? $file_name : Helper::get_args_option( 'file_name', $file_db_manager );
 
 		if ( ! empty( $file_name ) ) {
 			$file_path = self::get_file_path( $file_name );
