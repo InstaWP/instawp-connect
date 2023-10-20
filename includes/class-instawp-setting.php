@@ -499,8 +499,14 @@ class InstaWP_Setting {
 
 		$unsupported_plugins = array(
 			array(
-				'slug' => 'breeze/breeze.php',
-				'name' => 'Breeze',
+				'slug'       => 'breeze/breeze.php',
+				'name'       => esc_html( 'Breeze' ),
+				'author_url' => '',
+			),
+			array(
+				'slug'       => 'ithemes-security-pro/ithemes-security-pro.php',
+				'name'       => esc_html( 'Solid Security Pro' ),
+				'author_url' => esc_url( 'https://solidwp.com/' ),
 			),
 		);
 

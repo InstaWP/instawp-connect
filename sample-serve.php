@@ -362,8 +362,10 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 
 			global $mysqli;
 
-			if ( empty( $value ) ) {
-				return is_array( $value ) ? [] : '';
+			if ( is_array( $value ) && empty( $value ) ) {
+				return [];
+			} else if ( is_string( $value ) && empty( $value ) ) {
+				return '';
 			}
 
 			return $mysqli->real_escape_string( $value );
@@ -372,8 +374,10 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 
 			global $mysqli;
 
-			if ( empty( $value ) ) {
-				return is_array( $value ) ? [] : '';
+			if ( is_array( $value ) && empty( $value ) ) {
+				return [];
+			} else if ( is_string( $value ) && empty( $value ) ) {
+				return '';
 			}
 
 			return $mysqli->real_escape_string( $value );

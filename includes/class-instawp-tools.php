@@ -141,7 +141,7 @@ class InstaWP_Tools {
 			return site_url( $migrate_key . '.php' );
 		}
 
-		return content_url( INSTAWP_DEFAULT_BACKUP_DIR . '/' . $migrate_key . '.php' );
+		return site_url( 'wp-content' . DIRECTORY_SEPARATOR . INSTAWP_DEFAULT_BACKUP_DIR . '/' . $migrate_key . '.php' );
 	}
 
 	public static function is_serve_file_accessible( $serve_file_url ) {

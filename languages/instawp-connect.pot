@@ -5,7 +5,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2023-10-19 07:32+0000\n"
+"POT-Creation-Date: 2023-10-19 09:27+0000\n"
 "X-Poedit-Basepath: ..\n"
 "X-Poedit-KeywordsList: __;_e;_ex:1,2c;_n:1,2;_n_noop:1,2;_nx:1,2,4c;_nx_noop:1,2,3c;_x:1,2c;esc_attr__;esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c\n"
 "X-Poedit-SearchPath-0: .\n"
@@ -41,47 +41,47 @@ msgstr ""
 msgid "Please create staging sites first."
 msgstr ""
 
-#: admin/class-instawp-admin.php:197
+#: admin/class-instawp-admin.php:199
 msgid "Warning:"
 msgstr ""
 
-#: admin/class-instawp-admin.php:198
+#: admin/class-instawp-admin.php:200
 msgid "Error:"
 msgstr ""
 
-#: admin/class-instawp-admin.php:199
+#: admin/class-instawp-admin.php:201
 msgid "Warning: An alias for remote storage is required."
 msgstr ""
 
-#: admin/class-instawp-admin.php:200
+#: admin/class-instawp-admin.php:202
 msgid "Warning: The alias already exists in storage list."
 msgstr ""
 
-#: admin/class-instawp-admin.php:201
+#: admin/class-instawp-admin.php:203
 msgid "Calculating the size of files, folder and database timed out. If you continue to receive this error, please go to the plugin settings, uncheck 'Calculate the size of files, folder and database before backing up', save changes, then try again."
 msgstr ""
 
-#: admin/class-instawp-admin.php:202
+#: admin/class-instawp-admin.php:204
 msgid "Step One: In the backup list, click the 'Restore' button on the backup you want to restore. This will bring up the restore tab"
 msgstr ""
 
-#: admin/class-instawp-admin.php:203
+#: admin/class-instawp-admin.php:205
 msgid "Step Two: Choose an option to complete restore, if any"
 msgstr ""
 
-#: admin/class-instawp-admin.php:204
+#: admin/class-instawp-admin.php:206
 msgid "Step Three: Click 'Restore' button"
 msgstr ""
 
-#: admin/class-instawp-admin.php:205
+#: admin/class-instawp-admin.php:207
 msgid "1. Visit Key tab page of instaWP backup plugin of destination site."
 msgstr ""
 
-#: admin/class-instawp-admin.php:206
+#: admin/class-instawp-admin.php:208
 msgid "2. Generate a key by clicking Generate button and copy it."
 msgstr ""
 
-#: admin/class-instawp-admin.php:207
+#: admin/class-instawp-admin.php:209
 msgid "3. Go back to this page and paste the key in key box below. Lastly, click Save button."
 msgstr ""
 
