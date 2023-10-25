@@ -229,24 +229,13 @@ function run_instawp() {
 	$instawp_plugin = new instaWP();
 
 	$GLOBALS['instawp_plugin'] = $instawp_plugin;
+	$GLOBALS['instawp']        = $instawp_plugin;
 
 	instawp_create_db_tables();
 	// instawp_alter_db_tables();
 }
 
 add_filter( 'got_rewrite', '__return_true' );
-
-
-///**
-// * @var InstaWP_Log $instawp_log
-// */
-//global $instawp_log;
-//
-//if ( ! class_exists( 'InstaWP_Log' ) ) {
-//	include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-log.php';
-//}
-//
-//$instawp_log = new InstaWP_Log( 'migration', 'New Migration Logic' );
 
 run_instawp();
 
