@@ -208,7 +208,7 @@ class InstaWP_Tools {
 		$status_code = curl_getinfo( $curl, CURLINFO_HTTP_CODE );
 		curl_close( $curl );
 
-		return $status_code !== 403;
+		return $status_code === 200;
 	}
 
 	public static function process_migration_settings( $migrate_settings = [] ) {
