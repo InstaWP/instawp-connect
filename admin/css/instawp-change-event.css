@@ -582,5 +582,6 @@ a.changes-btn.sync-changes-btn.disabled {
 }
 
 #event-sync-pagination span.page-numbers.current {
-    background: #D1FAE5;
+    background: #11BF85;
+    color: #fff;
 }
