@@ -186,7 +186,6 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
 		file_put_contents( $total_files_path, $totalFiles );
 
-
 		foreach ( $limitedIterator as $file ) {
 
 			$filepath   = $file->getPathname();
