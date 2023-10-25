@@ -574,3 +574,7 @@ a.changes-btn.sync-changes-btn.disabled {
     overflow: hidden; 
     max-width:1px;
 }
+div#event-sync-pagination .page-numbers {
+    padding: 6px;
+    font-size: 14px;
+}

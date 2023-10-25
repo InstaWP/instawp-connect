@@ -307,12 +307,14 @@ jQuery(document).ready(function ($) {
         get_events_summary();
     });
 
-    const packThings = async (sync_message,sync_type,dest_connect_id, page) => {
+    const packThings = async (sync_message,sync_type,dest_connect_id, batch_num) => {
         let formData = new FormData();
-        formData.append('action', 'pack_things');
+        
         formData.append('sync_type', sync_type);
         formData.append('sync_message', sync_message);
-        formData.append('page', page);
+        formData.append('connect_id',   dest_connect_id );
+        formData.append('page', batch_num);
+        formData.append('action', 'instawp_pack_events');
        // $('.sync_error_success_msg').html('');  
         $(".sync_process .step-1").removeClass('process_pending').addClass('process_inprogress');
         baseCall(formData).then((response) => response.json()).then((data) => {
@@ -321,7 +323,7 @@ jQuery(document).ready(function ($) {
                 $(".sync_process .step-1").removeClass('process_inprogress').addClass('process_complete');
                 //Initiate Step 2
                 $(".sync_process .step-2").removeClass('process_pending').addClass('process_inprogress');
-                bulkSync(sync_message,data.data,sync_type, dest_connect_id, page); 
+                bulkSync(sync_message,data.data,sync_type, dest_connect_id, batch_num); 
             }else{
                 $("#destination-site").attr("disabled", false);
                 $(".sync-changes-btn").removeClass('disable-a loading');
