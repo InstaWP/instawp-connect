@@ -439,7 +439,6 @@ class instaWP {
 		return number_format( $size ) . " B";
 	}
 
-
 	public function get_dir_files( &$files, &$folder, $path, $except_regex, $exclude_files = array(), $exclude_folder = array(), $exclude_file_size = 0, $flag = true ) {
 		$handler = opendir( $path );
 		if ( $handler === false ) {
@@ -482,6 +481,23 @@ class instaWP {
 
 	}
 
+	public function get_current_mode( $data_to_get = '' ) {
+		$mode_data = [];
+
+		if ( ! empty( INSTAWP_CONNECT_MODE ) ) {
+			$mode_data['type'] = INSTAWP_CONNECT_MODE;
+			$mode_data['name'] = INSTAWP_CONNECT_MODE_NAME ?? '';
+			$mode_data['link'] = INSTAWP_CONNECT_MODE_LINK ?? '';
+			$mode_data['desc'] = INSTAWP_CONNECT_MODE_DESC ?? '';
+			$mode_data['logo'] = INSTAWP_CONNECT_MODE_LOGO ?? '';
+		}
+
+		if ( ! empty( $data_to_get ) ) {
+			return InstaWP_Setting::get_args_option( $data_to_get, $mode_data );
+		}
+
+		return $mode_data;
+	}
 
 	public static function disable_cache_elements_before_restore() {
 

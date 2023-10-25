@@ -95,6 +95,14 @@ class InstaWP_Admin {
 				)
 			);
 		}
+
+		$admin_bar->add_menu(
+			array(
+				'id'    => 'instawp',
+				'title' => ' ',
+				'href'  => '#',
+			)
+		);
 	}
 
 
@@ -115,7 +123,7 @@ class InstaWP_Admin {
 			add_menu_page(
 				esc_html__( 'InstaWP - Migrate', 'instawp-connect' ),
 				esc_html__( 'InstaWP - Migrate', 'instawp-connect' ),
-				'administrator', 'instawp-template-migrate', array( $this, 'render_migrate_hosting_page' ), 2
+				'administrator', 'instawp-template-migrate', array( $this, 'render_template_migrate_page' ), 2
 			);
 			remove_menu_page( 'instawp-template-migrate' );
 
@@ -134,6 +142,10 @@ class InstaWP_Admin {
 		);
 	}
 
+
+	function render_template_migrate_page() {
+		include INSTAWP_PLUGIN_DIR . '/migrate/templates/main-migrate.php';
+	}
 
 	function render_migrate_page() {
 		include INSTAWP_PLUGIN_DIR . '/migrate/templates/main.php';
