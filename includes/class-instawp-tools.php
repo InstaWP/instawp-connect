@@ -107,41 +107,42 @@ class InstaWP_Tools {
 
 	public static function generate_serve_file( $migrate_key, $api_signature, $migrate_settings = [], $serve_file_dir = '' ) {
 
-		$migrate_settings  = is_array( $migrate_settings ) ? $migrate_settings : [];
-		$sample_serve_file = fopen( INSTAWP_PLUGIN_DIR . '/sample-serve.php', 'rb' );
-		$serve_file_dir    = empty( $serve_file_dir ) ? WP_CONTENT_DIR . DIRECTORY_SEPARATOR . INSTAWP_DEFAULT_BACKUP_DIR : $serve_file_dir;
-		$serve_file_path   = $serve_file_dir . DIRECTORY_SEPARATOR . $migrate_key . '.php';
-		$serve_file        = fopen( $serve_file_path, 'wb' );
-		$line_number       = 1;
+		if ( ! $tracking_db = self::get_tracking_database( $migrate_key ) ) {
+			return false;
+		}
 
 		// Process migration settings like active plugins/themes only etc
+		$migrate_settings = is_array( $migrate_settings ) ? $migrate_settings : [];
 		$migrate_settings = instawp()->tools::process_migration_settings( $migrate_settings );
 
-		while ( ( $line = fgets( $sample_serve_file ) ) !== false ) {
+		$tracking_db->update_option( 'api_signature', $api_signature );
+		$tracking_db->update_option( 'migrate_settings', $migrate_settings );
+		$tracking_db->update_option( 'db_host', DB_HOST );
+		$tracking_db->update_option( 'db_username', DB_USER );
+		$tracking_db->update_option( 'db_password', DB_PASSWORD );
+		$tracking_db->update_option( 'db_name', DB_NAME );
 
-			// Add api signature
-			if ( $line_number === 4 ) {
-				fputs( $serve_file, '$api_signature = "' . $api_signature . '";' . "\n" );
-				fputs( $serve_file, '$migrate_settings = \'' . serialize( $migrate_settings ) . '\';' . "\n" );
-				fputs( $serve_file, '$db_host = "' . DB_HOST . '";' . "\n" );
-				fputs( $serve_file, '$db_username = "' . DB_USER . '";' . "\n" );
-				fputs( $serve_file, '$db_password = "' . DB_PASSWORD . '";' . "\n" );
-				fputs( $serve_file, '$db_name = "' . DB_NAME . '";' . "\n" );
-			}
+		return INSTAWP_PLUGIN_URL . 'serve.php';
+	}
 
-			fputs( $serve_file, $line );
+	public static function get_tracking_database( $migrate_key ) {
 
-			$line_number ++;
+		if ( ! class_exists( 'IWPDB' ) ) {
+			require_once INSTAWP_PLUGIN_DIR . 'includes/class-instawp-iwpdb.php';
 		}
 
-		fclose( $serve_file );
-		fclose( $sample_serve_file );
+		$serve_data_file_dir = empty( $serve_file_dir ) ? WP_CONTENT_DIR . DIRECTORY_SEPARATOR . INSTAWP_DEFAULT_BACKUP_DIR : $serve_file_dir;
+		$tracking_db_path    = $serve_data_file_dir . DIRECTORY_SEPARATOR . 'files-sent-' . $migrate_key . '.db';
 
-		if ( $serve_file_dir === ABSPATH ) {
-			return site_url( $migrate_key . '.php' );
+		try {
+			$tracking_db = new IWPDB( $tracking_db_path );
+		} catch ( Exception $e ) {
+			error_log( "Database creation error: {$e->getMessage()}" );
+
+			return false;
 		}
 
-		return site_url( 'wp-content' . DIRECTORY_SEPARATOR . INSTAWP_DEFAULT_BACKUP_DIR . '/' . $migrate_key . '.php' );
+		return $tracking_db;
 	}
 
 	public static function generate_destination_file( $migrate_key, $api_signature, $dest_file_dir = '' ) {
@@ -150,7 +151,7 @@ class InstaWP_Tools {
 		$dest_file_dir    = empty( $dest_file_dir ) ? WP_CONTENT_DIR . DIRECTORY_SEPARATOR . INSTAWP_DEFAULT_BACKUP_DIR : $dest_file_dir;
 		$dest_file_path   = $dest_file_dir . DIRECTORY_SEPARATOR . $migrate_key . '.php';
 		$dest_file        = fopen( $dest_file_path, 'wb' );
-		$line_number       = 1;
+		$line_number      = 1;
 
 		while ( ( $line = fgets( $sample_dest_file ) ) !== false ) {
 

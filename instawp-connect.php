@@ -32,12 +32,14 @@ define( 'INSTAWP_RESTORE_ERROR', 'error' );
 define( 'INSTAWP_RESTORE_WAIT', 'wait' );
 define( 'INSTAWP_RESTORE_TIMEOUT', 180 );
 
+defined( 'INSTAWP_PLUGIN_URL' ) || define( 'INSTAWP_PLUGIN_URL', WP_PLUGIN_URL . '/' . plugin_basename( dirname( __FILE__ ) ) . '/' );
+defined( 'INSTAWP_PLUGIN_DIR' ) || define( 'INSTAWP_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
+
+
 define( 'INSTAWP_CHUNK_SIZE', 1024 * 1024 );
 
 define( 'INSTAWP_PLUGIN_SLUG', 'instawp-connect' );
 define( 'INSTAWP_PLUGIN_NAME', plugin_basename( __FILE__ ) );
-define( 'INSTAWP_PLUGIN_URL', plugins_url( '', __FILE__ ) );
-define( 'INSTAWP_PLUGIN_DIR', dirname( __FILE__ ) );
 define( 'INSTAWP_PLUGIN_DIR_URL', plugin_dir_url( __FILE__ ) . 'admin/' );
 define( 'INSTAWP_PLUGIN_IMAGES_URL', INSTAWP_PLUGIN_URL . '/admin/partials/images/' );
 //We set a long enough default execution time (10 min) to ensure that the backup process can be completed.
@@ -241,6 +243,21 @@ run_instawp();
 
 add_action( 'wp_head', function () {
 	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
+
+//		$migrate_key = 'wtoxts4q1b4osiahupkcjhugzpeoqq6tkucn3q3u';
+//		$tracking_db = instawp()->tools::get_tracking_database( $migrate_key );
+
+//		echo "<pre>";
+//		print_r( $tracking_db );
+//		echo "</pre>";
+//
+//		echo "<pre>";
+//		print_r( $tracking_db->get_option( 'api_signature' ) );
+//		echo "</pre>";
+//
+//		echo "<pre>";
+//		print_r( $tracking_db->get_option( 'migrate_settings' ) );
+//		echo "</pre>";
 
 		die();
 	}

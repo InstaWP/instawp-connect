@@ -160,12 +160,12 @@ class InstaWP_Backup_Api {
 		$serve_file_url = instawp()->tools::generate_serve_file( $migrate_key, $api_signature, $migrate_settings );
 
 		// Check accessibility of serve file
-		if ( ! instawp()->tools::is_migrate_file_accessible( $serve_file_url ) ) {
+		if ( empty( $serve_file_url ) || ! instawp()->tools::is_migrate_file_accessible( $serve_file_url ) ) {
 			// Generate serve file in website root directory
 			$serve_file_url = instawp()->tools::generate_serve_file( $migrate_key, $api_signature, $migrate_settings, ABSPATH );
 
 			// Check accessibility of serve file and if false return error
-			if ( ! instawp()->tools::is_migrate_file_accessible( $serve_file_url ) ) {
+			if ( empty( $serve_file_url ) || ! instawp()->tools::is_migrate_file_accessible( $serve_file_url ) ) {
 				return $this->throw_error( new WP_Error( 403, esc_html__( 'Could not create serve file.', 'instawp-connect' ) ) );
 			}
 		}
@@ -652,10 +652,6 @@ class InstaWP_Backup_Api {
 		} else {
 			$api_key_hash = hash( 'sha256', $api_key );
 		}
-
-//		echo "<pre>";
-//		print_r( [ $api_key_hash ] );
-//		echo "</pre>";
 
 		$bearer_token_hash = trim( $bearer_token );
 

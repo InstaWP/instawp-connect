@@ -1,15 +1,13 @@
 <?php
 set_time_limit( 0 );
 
-
-if ( ! isset( $api_signature ) || ! isset( $_POST['api_signature'] ) || $api_signature !== $_POST['api_signature'] ) {
+if ( ! isset( $_POST['migrate_key'] ) || empty( $migrate_key = $_POST['migrate_key'] ) ) {
 	header( 'x-iwp-status: false' );
-	header( 'x-iwp-message: Mismatched api signature.' );
+	header( 'x-iwp-message: Invalid migrate key.' );
 	die();
 }
 
 $migrate_settings = isset( $migrate_settings ) ? unserialize( $migrate_settings ) : [];
-$migrate_key      = basename( __FILE__, '.php' );
 $level            = 0;
 $root_path_dir    = __DIR__;
 $root_path        = __DIR__;
@@ -37,7 +35,7 @@ defined( 'WP_ROOT' ) | define( 'WP_ROOT', $root_path );
 $iwpdb_main_path     = WP_ROOT . '/wp-content/plugins/instawp-connect/includes/class-instawp-iwpdb.php';
 $iwpdb_git_path      = WP_ROOT . '/wp-content/plugins/instawp-connect-main/includes/class-instawp-iwpdb.php';
 $instawpbackups_path = WP_ROOT . DIRECTORY_SEPARATOR . 'wp-content' . DIRECTORY_SEPARATOR . 'instawpbackups' . DIRECTORY_SEPARATOR;
-
+$tracking_db_path    = $instawpbackups_path . 'files-sent-' . $migrate_key . '.db';
 
 if ( file_exists( $iwpdb_main_path ) ) {
 	require_once( $iwpdb_main_path );
@@ -48,6 +46,23 @@ if ( file_exists( $iwpdb_main_path ) ) {
 	echo "Count not find class-instawp-iwpdb in the plugin directory.";
 	exit( 2 );
 }
+
+try {
+	$tracking_db = new IWPDB( $tracking_db_path );
+} catch ( Exception $e ) {
+	error_log( "Database creation error: {$e->getMessage()}" );
+
+	header( 'x-iwp-status: false' );
+	header( 'x-iwp-message: Can not access database.' );
+	die();
+}
+
+if ( ! isset( $_POST['api_signature'] ) || $tracking_db->get_option( 'api_signature' ) !== $_POST['api_signature'] ) {
+	header( 'x-iwp-status: false' );
+	header( 'x-iwp-message: Mismatched api signature.' );
+	die();
+}
+
 
 if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
@@ -82,7 +97,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 	}
 
 	if ( ! function_exists( 'send_by_zip' ) ) {
-		function send_by_zip( IWPDB $db, $unsentFiles = array(), $progress_percentage = '' ) {
+		function send_by_zip( IWPDB $tracking_db, $unsentFiles = array(), $progress_percentage = '' ) {
 			header( 'Content-Type: zip' );
 			header( 'x-file-type: zip' );
 			header( 'x-iwp-progress: ' . $progress_percentage );
@@ -114,36 +129,29 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			}
 
 			foreach ( $unsentFiles as $file ) {
-				$db->rawQuery( "UPDATE files_sent SET sent = 1 WHERE id=:id", array( ':id' => $file['id'] ) );
+				$tracking_db->rawQuery( "UPDATE files_sent SET sent = 1 WHERE id=:id", array( ':id' => $file['id'] ) );
 			}
 
 			unlink( $tmpZip );
 		}
 	}
 
-	$tracking_db_path        = $instawpbackups_path . 'files-sent-' . $migrate_key . '.db';
 	$total_files_path        = $instawpbackups_path . '.total-files-' . $migrate_key;
 	$current_file_index_path = $instawpbackups_path . 'current_file_index.txt';
 	$excluded_paths          = $migrate_settings['excluded_paths'] ?? [];
 	$skip_folders            = array_merge( [ 'wp-content/cache', 'editor', 'wp-content/upgrade', 'wp-content/instawpbackups' ], $excluded_paths );
 	$skip_folders            = array_unique( $skip_folders );
 	$skip_files              = [];
-	$db                      = null;
 
-	try {
-		$db  = new IWPDB( $tracking_db_path );
-		$ret = $db->rawQuery( "CREATE TABLE IF NOT EXISTS files_sent (id INTEGER PRIMARY KEY AUTOINCREMENT, filepath TEXT UNIQUE, sent INTEGER DEFAULT 0, size INTEGER)" );
-	} catch ( Exception $e ) {
-		die( $e->getMessage() );
-	}
+	$tracking_db->rawQuery( "CREATE TABLE IF NOT EXISTS files_sent (id INTEGER PRIMARY KEY AUTOINCREMENT, filepath TEXT UNIQUE, sent INTEGER DEFAULT 0, size INTEGER)" );
 
-	$unsent_query_response = $db->fetchRow( $db->rawQuery( "SELECT count(*) as count FROM files_sent WHERE sent = 0" ) );
+	$unsent_query_response = $tracking_db->fetchRow( $tracking_db->rawQuery( "SELECT count(*) as count FROM files_sent WHERE sent = 0" ) );
 	$unsent_files_count    = $unsent_query_response['count'] ?? 0;
 	$progress_percentage   = 0;
 
 	if ( file_exists( $total_files_path ) && ( $totalFiles = @file_get_contents( $total_files_path ) ) ) {
 
-		$total_count_response = $db->fetchRow( $db->rawQuery( "SELECT count(*) as count FROM files_sent" ) );
+		$total_count_response = $tracking_db->fetchRow( $tracking_db->rawQuery( "SELECT count(*) as count FROM files_sent" ) );
 		$total_files_count    = $total_count_response['count'] ?? 0;
 		$total_files_sent     = $total_files_count - $unsent_files_count;
 		$progress_percentage  = round( ( $total_files_sent / $totalFiles ) * 100, 2 );
@@ -184,10 +192,10 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			$filepath   = $file->getPathname();
 			$filesize   = $file->getSize();
 			$currentDir = str_replace( WP_ROOT . '/', '', $file->getPath() );
-			$row        = $db->fetchRow( $db->rawQuery( "SELECT id, filepath FROM files_sent WHERE filepath = :filepath  LIMIT 1" ) );
+			$row        = $tracking_db->fetchRow( $tracking_db->rawQuery( "SELECT id, filepath FROM files_sent WHERE filepath = :filepath  LIMIT 1" ) );
 
 			if ( ! $row ) {
-				$db->rawQuery( "INSERT OR IGNORE INTO files_sent (filepath, sent, size) VALUES ('$filepath', 0, '$filesize')" );
+				$tracking_db->rawQuery( "INSERT OR IGNORE INTO files_sent (filepath, sent, size) VALUES ('$filepath', 0, '$filesize')" );
 				$fileIndex ++;
 			} else {
 				continue;
@@ -210,21 +218,21 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			exit;
 		}
 
-		$db->rawQuery( "CREATE INDEX IF NOT EXISTS idx_sent ON files_sent(sent)" );
-		$db->rawQuery( "CREATE INDEX IF NOT EXISTS idx_file_path ON files_sent(filepath)" );
-		$db->rawQuery( "CREATE INDEX IF NOT EXISTS idx_file_size ON files_sent(size)" );
+		$tracking_db->rawQuery( "CREATE INDEX IF NOT EXISTS idx_sent ON files_sent(sent)" );
+		$tracking_db->rawQuery( "CREATE INDEX IF NOT EXISTS idx_file_path ON files_sent(filepath)" );
+		$tracking_db->rawQuery( "CREATE INDEX IF NOT EXISTS idx_file_size ON files_sent(size)" );
 	}
 
 	//TODO: this query runs every time even if there are no files to zip, may be we can
 	//cache the result in first time and don't run the query
 
-	$unsentFiles = $db->fetchRows( $db->rawQuery( "SELECT id,filepath,size FROM files_sent WHERE sent = 0 and size < " . MAX_ZIP_SIZE . " ORDER by size LIMIT " . BATCH_ZIP_SIZE ) );
+	$unsentFiles = $tracking_db->fetchRows( $tracking_db->rawQuery( "SELECT id,filepath,size FROM files_sent WHERE sent = 0 and size < " . MAX_ZIP_SIZE . " ORDER by size LIMIT " . BATCH_ZIP_SIZE ) );
 
 	if ( count( $unsentFiles ) > 0 && class_exists( 'ZipArchive' ) ) {
-		send_by_zip( $db, $unsentFiles, $progress_percentage );
+		send_by_zip( $tracking_db, $unsentFiles, $progress_percentage );
 	} else {
 
-		$row = $db->fetchRow( $db->rawQuery( "SELECT id, filepath FROM files_sent WHERE sent = 0 LIMIT 1" ) );
+		$row = $tracking_db->fetchRow( $tracking_db->rawQuery( "SELECT id, filepath FROM files_sent WHERE sent = 0 LIMIT 1" ) );
 
 		if ( $row ) {
 			$fileId       = $row['id'];
@@ -241,7 +249,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 				readfile_chunked( $filePath );
 			}
 
-			$db->rawQuery( "UPDATE files_sent SET sent = 1 WHERE id = '$fileId'" );
+			$tracking_db->rawQuery( "UPDATE files_sent SET sent = 1 WHERE id = '$fileId'" );
 		} else {
 			unlink( $current_file_index_path );
 			header( 'x-iwp-status: true' );
@@ -255,7 +263,12 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
 if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 
-	if ( ! isset( $db_host ) || ! isset( $db_username ) || ! isset( $db_password ) || ! isset( $db_name ) ) {
+	$db_host     = $tracking_db->get_option( 'db_host' );
+	$db_username = $tracking_db->get_option( 'db_username' );
+	$db_password = $tracking_db->get_option( 'db_password' );
+	$db_name     = $tracking_db->get_option( 'db_name' );
+
+	if ( empty( $db_host ) || empty( $db_username ) || empty( $db_password ) || empty( $db_name ) ) {
 		header( 'x-iwp-status: false' );
 		header( 'x-iwp-message: Database information missing.' );
 		die();
