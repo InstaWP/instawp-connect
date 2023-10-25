@@ -929,6 +929,8 @@ class InstaWP_Backup_Api {
 			return $this->throw_error( $response );
 		}
 
+		InstaWP_Tools::instawp_reset_permalink();
+
 		$file_manager = new \InstaWP\Connect\Helpers\FileManager();
 		$response     = $file_manager->get();
 
@@ -948,6 +950,8 @@ class InstaWP_Backup_Api {
 		if ( is_wp_error( $response ) ) {
 			return $this->throw_error( $response );
 		}
+
+		InstaWP_Tools::instawp_reset_permalink();
 
 		$database_manager = new \InstaWP\Connect\Helpers\DatabaseManager();
 		$response         = $database_manager->get();

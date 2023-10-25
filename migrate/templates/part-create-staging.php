@@ -204,12 +204,12 @@ $tracking_url          = InstaWP_Setting::get_args_option( 'tracking_url', $migr
                                 <div class="text-left text-sm font-medium text-grayCust-900">
                                     <span><?php esc_html_e( 'Tables', 'instawp-connect' ); ?></span>
                                     <span class="instawp-database-details">
-                                                <?php if ( ! empty( $tables ) ) {
-	                                                $table_count = count( $tables );
-	                                                $table_size  = array_sum( wp_list_pluck( $tables, 'size' ) );
-	                                                echo '(' . $table_count . ') - ' . instawp()->get_file_size_with_unit( $table_size );
-                                                } ?>
-                                            </span>
+                                        <?php if ( ! empty( $tables ) ) {
+                                            $table_count = count( $tables );
+                                            $table_size  = array_sum( wp_list_pluck( $tables, 'size' ) );
+                                            echo '(' . $table_count . ') - ' . instawp()->get_file_size_with_unit( $table_size );
+                                        } ?>
+                                    </span>
                                 </div>
                                 <div class="flex flex-row items-center justify-between gap-5">
                                     <div class="text-left text-sm font-medium text-grayCust-900">
@@ -224,9 +224,10 @@ $tracking_url          = InstaWP_Setting::get_args_option( 'tracking_url', $migr
                                     </div>
                                 </div>
                             </div>
-                            <div class="overflow-auto exclude-database-container p-4 h-80">
+                            <div class="overflow-auto exclude-database-container p-4">
 								<?php if ( ! empty( $tables ) ) { ?>
-                                    <div class="flex flex-col gap-5">
+                                    <div class="expand-database-list text-center cursor-pointer"><?php esc_html_e( 'Expand', 'instawp-connect' ); ?></div>
+                                    <div class="flex flex-col gap-5 hidden">
 										<?php foreach ( $tables as $table ) {
 											$element_id = wp_generate_uuid4(); ?>
                                             <div class="flex flex-col gap-5 item">
@@ -266,6 +267,14 @@ $tracking_url          = InstaWP_Setting::get_args_option( 'tracking_url', $migr
                     <div class="flex items-center">
                         <div class="text-grayCust-900 text-base font-normal mr-4 w-[140px]"><?php esc_html_e( 'Options Selected', 'instawp-connect' ); ?></div>
                         <div class="grid grid-cols-3 gap-3 selected-staging-options"></div>
+                    </div>
+                    <div class="flex items-center mt-5">
+                        <div class="text-grayCust-900 text-base font-normal mr-4 w-[140px]"><?php esc_html_e( 'Files Selected', 'instawp-connect' ); ?></div>
+                        <div class="grid grid-cols-1 gap-3 selected-files"></div>
+                    </div>
+                    <div class="flex items-center mt-5">
+                        <div class="text-grayCust-900 text-base font-normal mr-4 w-[140px]"><?php esc_html_e( 'Tables Selected', 'instawp-connect' ); ?></div>
+                        <div class="grid grid-cols-2 gap-3 selected-db-tables"></div>
                     </div>
                 </div>
 

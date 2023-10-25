@@ -536,7 +536,7 @@
         let el = $(this),
             subEl = $(document).find('.instawp-checkbox.exclude-file-item.large-file');
 
-        subEl.not(":disabled").prop("checked", el.is(":checked"));
+        subEl.not(":disabled").prop("checked", el.is(":checked")).trigger('change');
     });
 
     $(document).on('change', '#instawp-files-select-all', function () {
@@ -553,18 +553,38 @@
         subEl.not(":disabled").prop("checked", el.is(":checked"));
     });
 
-    $(document).on('change', '.instawp-checkbox.exclude-file-item', function () {
+    $(document).on('change', '.instawp-checkbox.exclude-file-item:not(.large-file)', function () {
         let el = $(this),
             parentEl = el.closest('.item'),
-            subEl = parentEl.find('.sub-item .instawp-checkbox.exclude-file-item');
+            subEl = parentEl.find('.sub-item .instawp-checkbox.exclude-file-item:not(.large-file)');
 
-        if ($(document).find('.exclude-files-container .instawp-checkbox.exclude-file-item').not(':checked').length) {
+        if ($(document).find('.exclude-files-container .instawp-checkbox.exclude-file-item:not(.large-file)').not(':checked').length) {
             $(document).find('#instawp-files-select-all').prop("checked", false);
         } else {
             $(document).find('#instawp-files-select-all').prop("checked", true);
         }
 
         subEl.not(":disabled").prop("checked", el.is(":checked"));
+    });
+
+    $(document).on('change', '.instawp-checkbox.exclude-file-item', function () {
+        let el = $(this);
+
+        if(el.is(":checked")) {
+            $(document).find('.selected-files').append('<div class="data-' + el.attr( 'id' ) + ' border-primary-900 border card-active py-2 px-4 text-grayCust-700 text-xs font-medium rounded-lg">' + el.val() + '</div>');
+        } else {
+            $(document).find('.data-'+ el.attr( 'id' )).remove();
+        }
+    });
+
+    $(document).on('change', '.instawp-checkbox.exclude-database-item', function () {
+        let el = $(this);
+
+        if(el.is(":checked")) {
+            $(document).find('.selected-db-tables').append('<div class="data-' + el.attr( 'id' ) + ' border-primary-900 border card-active py-2 px-4 text-grayCust-700 text-xs font-medium rounded-lg">' + el.val() + '</div>');
+        } else {
+            $(document).find('.data-'+ el.attr( 'id' )).remove();
+        }
     });
 
     $(document).on('change', '.instawp-checkbox.exclude-database-item', function () {
@@ -600,6 +620,18 @@
         $(document).find('.exclude-files-container').removeClass('p-4 h-80').html('<div class="loading"></div>');
         $(document).find('#instawp-files-select-all').prop("checked", false).prop("disabled", true);
         $(document).trigger("instawpLoadDirectory", [true]);
+    });
+
+    $(document).on('click', '.expand-files-list', function () {
+        $(this).addClass('hidden');
+        $(document).find('.exclude-files-container').addClass('p-4 h-80').removeClass('hidden');
+        $(document).find('.exclude-files-container > .flex').removeClass('hidden');
+    });
+
+    $(document).on('click', '.expand-database-list', function () {
+        $(this).addClass('hidden');
+        $(document).find('.exclude-database-container').addClass('p-4 h-80').removeClass('hidden');
+        $(document).find('.exclude-database-container > .flex').removeClass('hidden');
     });
 
     $(document).on('click', '.instawp-database-sort-by', function () {
@@ -641,7 +673,7 @@
                     'security': instawp_migrate.security
                 },
                 success: function (response) {
-                    $(document).find('.exclude-files-container').html(response.data.content).addClass('p-4 h-80');
+                    $(document).find('.exclude-files-container').html(response.data.content).addClass('p-4');
                     $(document).find('.instawp-files-details').text('(' + response.data.count + ') - ' + response.data.size);
                     $(document).find('#instawp-files-select-all').prop("disabled", false);
                     $(document).find('.instawp-files-sort-by').removeClass('pointer-events-none').attr('data-sort', el_sort_by);
@@ -678,7 +710,7 @@
                     'security': instawp_migrate.security
                 },
                 success: function (response) {
-                    $(document).find('.exclude-database-container').html(response.data.content).addClass('p-4 h-80');
+                    $(document).find('.exclude-database-container').html(response.data.content).addClass('p-4');
                     $(document).find('.instawp-database-details').text('(' + response.data.count + ') - ' + response.data.size);
                     $(document).find('#instawp-database-select-all').prop("disabled", false);
                     $(document).find('.instawp-database-sort-by').removeClass('pointer-events-none').attr('data-sort', el_sort_by);

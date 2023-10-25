@@ -38,4 +38,24 @@ class Helper {
 
 		return $value;
 	}
+
+	public static function get_directory_info( $path ) {
+		$bytes_total = 0;
+		$files_total = 0;
+		$path        = realpath( $path );
+		try {
+			if ( $path !== false && $path != '' && file_exists( $path ) ) {
+				foreach ( new \RecursiveIteratorIterator( new \RecursiveDirectoryIterator( $path, \FilesystemIterator::SKIP_DOTS ) ) as $object ) {
+					$bytes_total += $object->getSize();
+					$files_total ++;
+				}
+			}
+		} catch ( Exception $e ) {
+		}
+
+		return [
+			'size'  => $bytes_total,
+			'count' => $files_total
+		];
+	}
 }
