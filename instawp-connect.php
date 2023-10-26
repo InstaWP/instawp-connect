@@ -7,7 +7,7 @@
  * @wordpress-plugin
  * Plugin Name:       InstaWP Connect
  * Description:       Create 1-click staging, migration and manage your prod sites.
- * Version:           0.0.9.43
+ * Version:           0.0.9.44
  * Author:            InstaWP Team
  * Author URI:        https://instawp.com/
  * License:           GPL-3.0+
@@ -23,7 +23,7 @@ if ( ! defined( 'WPINC' ) ) {
 
 global $wpdb;
 
-define( 'INSTAWP_PLUGIN_VERSION', '0.0.9.42' );
+define( 'INSTAWP_PLUGIN_VERSION', '0.0.9.44' );
 define( 'INSTAWP_RESTORE_INIT', 'init' );
 define( 'INSTAWP_RESTORE_READY', 'ready' );
 define( 'INSTAWP_RESTORE_COMPLETED', 'completed' );
@@ -106,7 +106,7 @@ define( 'INSTAWP_UPLOAD_TO_CLOUD', true );
 define( 'INSTAWP_API_URL', '/api/v1' );
 define( 'INSTAWP_API_2_URL', '/api/v2' );
 define( 'INSTAWP_EVENTS_PER_PAGE', 20 );
-define( 'INSTAWP_DEFAULT_MAX_FILE_SIZE_ALLOWED', 10 );
+define( 'INSTAWP_DEFAULT_MAX_FILE_SIZE_ALLOWED', 50 );
 define( 'INSTAWP_EVENTS_SYNC_PER_PAGE', 5 );
 define( 'INSTAWP_STAGING_SITES_PER_PAGE', 10 );
 @ini_set( 'memory_limit', '2048M' );
@@ -243,43 +243,4 @@ add_filter( 'got_rewrite', '__return_true' );
 
 run_instawp();
 
-add_action( 'wp_head', function () {
-	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
-
-		$migrate_key = 's1bohszteys4935dmqjhdlv3qdad5elyprhvttuj';
-		$tracking_db = instawp()->tools::get_tracking_database( $migrate_key );
-
-//		$ret = $tracking_db->rawQuery( 'DROP TABLE IF EXISTS files_sent' );
-
-		echo "<pre>";
-		print_r( unserialize( $tracking_db->get_option( 'migrate_settings' ) ) );
-		echo "</pre>";
-
-
-//		$tracking_db->disconnect();
-//
-//		echo "<pre>";
-//		print_r( getcwd() );
-//		echo "</pre>";
-//
-//		echo "<pre>";
-//		print_r( scandir( '/nas/content/live/instawptesting' ) );
-//		echo "</pre>";
-
-//		echo "<pre>";
-//		print_r( $tracking_db );
-//		echo "</pre>";
-//
-//		echo "<pre>";
-//		print_r( $tracking_db->get_option( 'api_signature' ) );
-//		echo "</pre>";
-//
-//		echo "<pre>";
-//		print_r( $tracking_db->get_option( 'migrate_settings' ) );
-//		echo "</pre>";
-
-
-		die();
-	}
-}, 0 );
 

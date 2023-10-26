@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.4
 Tested up to: 6.3.2
 Requires PHP: 7.4
-Stable tag: 0.0.9.43
+Stable tag: 0.0.9.44
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -93,6 +93,20 @@ Need support or want to partner with us? Go to our website http://instawp.com/ a
 6. Update API Key and Settings.
 
 == Changelog ==
+
+= 0.0.9.44 =
+- 26/10/2023 - FIX - Skip Large files option not working.
+- 26/10/2023 - FIX - Collapsible Files & Table skip screen.
+- 26/10/2023 - FIX - Confirmation of files & database size.
+- 26/10/2023 - FIX - Removed Reset option.
+- 26/10/2023 - NEW - Migration (v3) functionality added (beta).
+- 26/10/2023 - FIX - Include Parent theme if 'active_themes_only' is selected.
+- 26/10/2023 - NEW - Site usage API for Remote Management.
+- 26/10/2023 - FIX - File and Database manager not working for Remote Management.
+- 26/10/2023 - FIX - Several 2 Way Sync fixes.
+- 26/10/2023 - FIX - 2 Way Sync - Pagination UI.
+- 26/10/2023 - FIX - 2 Way Sync - Event type count fixes for each batch.
+- 26/10/2023 - FIX - 2 Way Sync - Fixed event pagination issue.
 
 = 0.0.9.43 =
 - 18/10/2023 - FIX - Add supported plugins check.
