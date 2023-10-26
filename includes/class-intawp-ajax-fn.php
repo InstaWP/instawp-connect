@@ -73,26 +73,28 @@ class InstaWP_Ajax_Fn {
 
 	public function get_site_events() {
 		global $wpdb;
-		$where 			= '1';
+		$where 			= '1=1';
 		$InstaWP_db     = new InstaWP_DB();
 		$tables         = $InstaWP_db->tables;
 		$items_per_page = INSTAWP_EVENTS_PER_PAGE;
 		$connect_id     = isset( $_POST['connect_id'] ) ? sanitize_text_field( $_POST['connect_id'] ) : 0;
 
 		$staging_site = get_connect_detail_by_connect_id( $connect_id );
-		
+	 
 		if( !empty( $staging_site ) && isset( $staging_site['created_at'] ) ){
 			$staging_site_created = date('Y-m-d h:i:s', strtotime($staging_site['created_at']));
 			$where .= " AND date >= '".$staging_site_created."'";
 		}
 
-		$query          = "SELECT * FROM " . INSTAWP_DB_TABLE_EVENTS;
-		$total_query    = "SELECT COUNT(1) FROM ({$query}) AS combined_table";
+		$query          = "SELECT * FROM " . INSTAWP_DB_TABLE_EVENTS. "  WHERE $where";
+		$total_query    = "SELECT COUNT(1) FROM ({$query}) AS combined_table ";
 		$total          = $wpdb->get_var( $total_query );
+ 
 		$page           = isset( $_POST['epage'] ) ? abs( (int) $_POST['epage'] ) : 1;
 		$offset         = ( $page * $items_per_page ) - $items_per_page;
 
-		$events         = $wpdb->get_results( $query . " WHERE $where ORDER BY id DESC LIMIT {$offset}, {$items_per_page}" );
+		$events         = $wpdb->get_results( $query . " ORDER BY id DESC LIMIT {$offset}, {$items_per_page}" );
+		 
 		$totalPage      = ceil( $total / $items_per_page );
 
 		ob_start();
@@ -299,7 +301,7 @@ class InstaWP_Ajax_Fn {
 		}
 		$query  = "SELECT * FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE `id` NOT IN (SELECT event_id AS id FROM " . INSTAWP_DB_TABLE_EVENT_SITES . " WHERE $where) ORDER BY id ASC LIMIT " . INSTAWP_EVENTS_SYNC_PER_PAGE . "";
 		$events = $wpdb->get_results( $query );
-
+ 
 		return $events;
 	}
 
