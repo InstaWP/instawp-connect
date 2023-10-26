@@ -11,6 +11,18 @@
         }
     });
 
+    let formatBytes = (bytes, decimals = 2) => {
+        if (!+bytes) return '0 Bytes'
+    
+        const k = 1024
+        const dm = decimals < 0 ? 0 : decimals
+        const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
+    
+        const i = Math.floor(Math.log(bytes) / Math.log(k))
+    
+        return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`
+    }    
+
     let instawp_migrate_progress = () => {
 
             let create_container = $('.instawp-wrap .nav-item-content.create'),
@@ -542,14 +554,14 @@
         let el = $(this),
             subEl = $(document).find('.exclude-files-container .instawp-checkbox.exclude-file-item');
 
-        subEl.not(":disabled").prop("checked", el.is(":checked"));
+        subEl.not(":disabled").prop("checked", el.is(":checked")).trigger('change');
     });
 
     $(document).on('change', '#instawp-database-select-all', function () {
         let el = $(this),
             subEl = $(document).find('.exclude-database-container .instawp-checkbox.exclude-database-item');
 
-        subEl.not(":disabled").prop("checked", el.is(":checked"));
+        subEl.not(":disabled").prop("checked", el.is(":checked")).trigger('change');
     });
 
     $(document).on('change', '.instawp-checkbox.exclude-file-item:not(.large-file)', function () {
@@ -563,27 +575,25 @@
             $(document).find('#instawp-files-select-all').prop("checked", true);
         }
 
-        subEl.not(":disabled").prop("checked", el.is(":checked"));
+        subEl.not(":disabled").prop("checked", el.is(":checked")).trigger('change');
     });
 
     $(document).on('change', '.instawp-checkbox.exclude-file-item', function () {
-        let el = $(this);
-
-        if(el.is(":checked")) {
-            $(document).find('.selected-files').append('<div class="data-' + el.attr( 'id' ) + ' border-primary-900 border card-active py-2 px-4 text-grayCust-700 text-xs font-medium rounded-lg">' + el.val() + '</div>');
-        } else {
-            $(document).find('.data-'+ el.attr( 'id' )).remove();
-        }
+        let cEl = $(document).find('.instawp-checkbox.exclude-file-item:checked');
+        let sum = 0;
+        cEl.each(function(){
+            sum = sum + $(this).data('size')
+        });
+        $(document).find('.selected-files').html(`${cEl.length} files (${formatBytes(sum)}) skipped`);
     });
 
     $(document).on('change', '.instawp-checkbox.exclude-database-item', function () {
-        let el = $(this);
-
-        if(el.is(":checked")) {
-            $(document).find('.selected-db-tables').append('<div class="data-' + el.attr( 'id' ) + ' border-primary-900 border card-active py-2 px-4 text-grayCust-700 text-xs font-medium rounded-lg">' + el.val() + '</div>');
-        } else {
-            $(document).find('.data-'+ el.attr( 'id' )).remove();
-        }
+        let cEl = $(document).find('.instawp-checkbox.exclude-database-item:checked');
+        let sum = 0;
+        cEl.each(function(){
+            sum = sum + $(this).data('size')
+        });
+        $(document).find('.selected-db-tables').html(`${cEl.length} tables (${formatBytes(sum)}) skipped`);
     });
 
     $(document).on('change', '.instawp-checkbox.exclude-database-item', function () {
