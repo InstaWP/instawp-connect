@@ -246,6 +246,22 @@ add_action( 'wp_head', function () {
 
 //		$migrate_key = 'wtoxts4q1b4osiahupkcjhugzpeoqq6tkucn3q3u';
 //		$tracking_db = instawp()->tools::get_tracking_database( $migrate_key );
+//
+//		$ret = $tracking_db->rawQuery( 'DROP TABLE IF EXISTS files_sent' );
+//
+//		echo "<pre>";
+//		print_r( $ret );
+//		echo "</pre>";
+//
+//		$tracking_db->disconnect();
+//
+//		echo "<pre>";
+//		print_r( getcwd() );
+//		echo "</pre>";
+//
+//		echo "<pre>";
+//		print_r( scandir( '/nas/content/live/instawptesting' ) );
+//		echo "</pre>";
 
 //		echo "<pre>";
 //		print_r( $tracking_db );
@@ -258,6 +274,7 @@ add_action( 'wp_head', function () {
 //		echo "<pre>";
 //		print_r( $tracking_db->get_option( 'migrate_settings' ) );
 //		echo "</pre>";
+
 
 		die();
 	}

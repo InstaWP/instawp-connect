@@ -105,6 +105,8 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			$tmpZip = tempnam( sys_get_temp_dir(), 'batchzip' );
 			$zip    = new ZipArchive();
 
+			header( 'x-iwp-filename: ' . $tmpZip );
+
 			if ( $zip->open( $tmpZip, ZipArchive::OVERWRITE ) !== true ) {
 				die( "Cannot open zip archive" );
 			}
@@ -132,7 +134,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 				$tracking_db->rawQuery( "UPDATE files_sent SET sent = 1 WHERE id=:id", array( ':id' => $file['id'] ) );
 			}
 
-			unlink( $tmpZip );
+//			unlink( $tmpZip );
 		}
 	}
 
