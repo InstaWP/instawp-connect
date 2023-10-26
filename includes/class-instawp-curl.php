@@ -7,27 +7,24 @@ class InstaWP_Curl {
 	public $api_key;
 	public $response;
 
-
 	public static function do_curl( $endpoint, $body = array(), $headers = array(), $is_post = true, $api_version = 'v2' ) {
+		$api_url = InstaWP_Setting::get_api_domain();
+		$api_key = InstaWP_Setting::get_api_key();
 
-		$connect_options = InstaWP_Setting::get_option( 'instawp_api_options', array() );
-
-		if ( empty( $api_url = InstaWP_Setting::get_api_domain() ) ) {
+		if ( empty( $api_url ) ) {
 			return array( 'success' => false, 'message' => esc_html__( 'Invalid or Empty API Domain', 'instawp-connect' ) );
 		}
 
-		if ( empty( $api_key = InstaWP_Setting::get_args_option( 'api_key', $connect_options ) ) ) {
+		if ( empty( $api_key ) ) {
 			return array( 'success' => false, 'message' => esc_html__( 'Invalid or Empty API Key', 'instawp-connect' ) );
 		}
 
 		$api_url = $api_url . '/api/' . $api_version . '/' . $endpoint;
-		$headers = wp_parse_args( $headers,
-			array(
-				'Authorization: Bearer ' . $api_key,
-				'Accept: application/json',
-				'Content-Type: application/json',
-			)
-		);
+		$headers = wp_parse_args( $headers, [
+			'Authorization: Bearer ' . $api_key,
+			'Accept: application/json',
+			'Content-Type: application/json',
+		] );
 
 		if ( is_string( $is_post ) && $is_post == 'patch' ) {
 			$api_method = 'PATCH';
@@ -70,9 +67,7 @@ class InstaWP_Curl {
 		return array( 'success' => $response_status, 'message' => $response_message, 'data' => $response_data );
 	}
 
-
 	public function curl( $url, $body, $header = array(), $is_post = true ) {
-
 		$this->set_api_key();
 
 		$res     = array();
@@ -134,12 +129,12 @@ class InstaWP_Curl {
 	}
 
 	public function set_api_key() {
-		$res             = array();
-		$connect_options = get_option( 'instawp_api_options', '' );
+		$api_key = InstaWP_Setting::get_api_key();
 
-		if ( isset( $connect_options['api_key'] ) && ! empty( $connect_options['api_key'] ) ) {
-			$this->api_key = $connect_options['api_key'];
+		if ( ! empty( $api_key ) ) {
+			$this->api_key = $api_key;
 		} else {
+			$res = [];
 			$res['error']   = true;
 			$res['message'] = 'API Key Is Required';
 			echo json_encode( $res );

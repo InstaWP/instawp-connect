@@ -490,7 +490,7 @@ class InstaWP_Setting {
 		$api_options            = self::get_option( 'instawp_api_options', [] );
 		$api_options['api_url'] = $instawp_api_url;
 
-		update_option( 'instawp_api_options', $api_options );
+		return update_option( 'instawp_api_options', $api_options );
 	}
 
 	public static function get_pro_subscription_url( $pro_subscription_slug = 'subscriptions' ) {
@@ -513,7 +513,7 @@ class InstaWP_Setting {
 		$api_options            = self::get_option( 'instawp_api_options', [] );
 		$api_options['api_key'] = trim( $api_key );
 
-		update_option( 'instawp_api_options', $api_options );
+		return update_option( 'instawp_api_options', $api_options );
 	}
 
 	public static function get_connect_id() {
@@ -526,8 +526,9 @@ class InstaWP_Setting {
 		$api_options               = self::get_option( 'instawp_api_options', [] );
 		$api_options['connect_id'] = intval( $connect_id );
 
-		update_option( 'instawp_api_options', $api_options );
+		return update_option( 'instawp_api_options', $api_options );
 	}
+
 	public static function get_unsupported_plugins() {
 
 		$unsupported_plugins = array(
@@ -545,7 +546,6 @@ class InstaWP_Setting {
 
 		return apply_filters( 'INSTAWP_CONNECT/Filters/get_unsupported_plugins', $unsupported_plugins );
 	}
-
 
 	public static function instawp_generate_api_key( $api_key, $status ) {
 
@@ -609,9 +609,7 @@ class InstaWP_Setting {
 		$connect_id = $response['data']['id'] ?? '';
 
 		if ( $response['status'] && ! empty( $connect_id ) ) {
-
-		if ( $response['status'] ) {
-			self::set_connect_id( $response['data']['id'] );
+			self::set_connect_id( $connect_id );
 		}
 
 		return true;

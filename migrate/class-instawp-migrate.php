@@ -166,12 +166,6 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 			wp_send_json_success( array( 'message' => esc_html__( 'Success. Settings updated.' ) ) );
 		}
 
-
-		function enqueue_styles_scripts() {
-
-		}
-
-
 		/**
 		 * @return INSTAWP_Migration
 		 */

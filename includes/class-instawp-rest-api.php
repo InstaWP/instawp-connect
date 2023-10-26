@@ -769,8 +769,6 @@ class InstaWP_Backup_Api {
 		if ( $curl_response['error'] == false ) {
 			$response = (array) json_decode( $curl_response['curl_res'], true );
 			if ( $response['status'] == true ) {
-
-				update_option( 'instawp_connect_id_options', $response );
 				$res['message'] = $response['message'];
 				$res['error']   = false;
 			} else {

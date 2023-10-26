@@ -537,7 +537,7 @@ class InstaWP_AJAX {
 		/*Debugging*/
 
 		$curl_response = $InstaWP_Curl->curl( $url, $body );
-		update_option( 'instawp_connect_id_options_err', $curl_response );
+		error_log( json_encode( $curl_response ) );
 
 		if ( $curl_response['error'] == false ) {
 			$response = (array) json_decode( $curl_response['curl_res'], true );
@@ -557,7 +557,7 @@ class InstaWP_AJAX {
 				$res['message'] = $response['message'];
 				$res['error']   = false;
 			} else {
-				update_option( 'instawp_connect_id_options_err', $response );
+				error_log( json_encode( $response ) );
 				$res['message'] = 'Something Went Wrong. Please try again';
 				$res['error']   = true;
 			}
