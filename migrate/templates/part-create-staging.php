@@ -162,7 +162,7 @@ $tracking_url          = InstaWP_Setting::get_args_option( 'tracking_url', $migr
 									<?php foreach ( $list_data as $data ) {
 										$element_id = wp_generate_uuid4(); ?>
                                         <div class="flex justify-between items-center text-xs">
-                                            <input type="checkbox" name="migrate_settings[excluded_paths][]" id="<?php echo esc_attr( $element_id ); ?>" value="<?php echo esc_attr( $data['relative_path'] ); ?>" class="instawp-checkbox exclude-file-item large-file !mt-0 !mr-3 rounded border-gray-300 text-primary-900 focus:ring-primary-900">
+                                            <input type="checkbox" name="migrate_settings[excluded_paths][]" id="<?php echo esc_attr( $element_id ); ?>" value="<?php echo esc_attr( $data['relative_path'] ); ?>" class="instawp-checkbox exclude-file-item large-file !mt-0 !mr-3 rounded border-gray-300 text-primary-900 focus:ring-primary-900" data-size="<?php echo esc_html( $data['size'] ); ?>">
                                             <label for="<?php echo esc_attr( $element_id ); ?>"><?php echo esc_html( $data['relative_path'] ); ?> (<?php echo esc_html( instawp()->get_file_size_with_unit( $data['size'] ) ); ?>)</label>
                                         </div>
 									<?php } ?>
@@ -191,6 +191,12 @@ $tracking_url          = InstaWP_Setting::get_args_option( 'tracking_url', $migr
 										<?php esc_html_e( 'Size', 'instawp-connect' ); ?>
                                     </div>
                                 </div>
+                            </div>
+                            <div class="expand-files-list text-center cursor-pointer text-primary-900 p-4 hidden">
+                                <svg width="8" height="5" viewBox="0 0 8 5" fill="none" xmlns="http://www.w3.org/2000/svg" class="inline mr-1">
+                                    <path d="M4.75504 4.09984L5.74004 3.11484L7.34504 1.50984C7.68004 1.16984 7.44004 0.589844 6.96004 0.589844L3.84504 0.589844L1.04004 0.589843C0.560037 0.589843 0.320036 1.16984 0.660037 1.50984L3.25004 4.09984C3.66004 4.51484 4.34004 4.51484 4.75504 4.09984Z" fill="#4F4F4F"></path>
+                                </svg>
+                                <span><?php esc_html_e( 'Expand', 'instawp-connect' ); ?></span>
                             </div>
                             <div class="overflow-auto exclude-files-container">
                                 <div class="loading"></div>
@@ -224,10 +230,15 @@ $tracking_url          = InstaWP_Setting::get_args_option( 'tracking_url', $migr
                                     </div>
                                 </div>
                             </div>
-                            <div class="overflow-auto exclude-database-container p-4">
+                            <div class="expand-database-list text-center cursor-pointer text-primary-900 p-4">
+                                <svg width="8" height="5" viewBox="0 0 8 5" fill="none" xmlns="http://www.w3.org/2000/svg" class="inline mr-1">
+                                    <path d="M4.75504 4.09984L5.74004 3.11484L7.34504 1.50984C7.68004 1.16984 7.44004 0.589844 6.96004 0.589844L3.84504 0.589844L1.04004 0.589843C0.560037 0.589843 0.320036 1.16984 0.660037 1.50984L3.25004 4.09984C3.66004 4.51484 4.34004 4.51484 4.75504 4.09984Z" fill="#4F4F4F"></path>
+                                </svg>
+                                <span><?php esc_html_e( 'Expand', 'instawp-connect' ); ?></span>
+                            </div>
+                            <div class="overflow-auto exclude-database-container p-4 h-80 hidden">
 								<?php if ( ! empty( $tables ) ) { ?>
-                                    <div class="expand-database-list text-center cursor-pointer"><?php esc_html_e( 'Expand', 'instawp-connect' ); ?></div>
-                                    <div class="flex flex-col gap-5 hidden">
+                                    <div class="flex flex-col gap-5">
 										<?php foreach ( $tables as $table ) {
 											$element_id = wp_generate_uuid4(); ?>
                                             <div class="flex flex-col gap-5 item">
@@ -258,23 +269,23 @@ $tracking_url          = InstaWP_Setting::get_args_option( 'tracking_url', $migr
                     <div class="flex justify-between items-center">
                         <div class="text-grayCust-200 text-lg font-bold"><?php esc_html_e( '3. Confirmation', 'instawp-connect' ); ?></div>
                     </div>
-                    <div class="panel mt-6 block">
-                        <div class="flex items-center mb-6">
+                    <div class="panel mt-6 flex flex-col gap-6">
+                        <div class="flex items-center">
                             <div class="text-grayCust-900 text-base font-normal mr-4 w-[140px]"><?php esc_html_e( 'Staging Type', 'instawp-connect' ); ?></div>
                             <div class="text-grayCust-300 text-base font-medium items-center flex mr-6 selected-staging-type"><?php esc_html_e( 'Quick Staging', 'instawp-connect' ); ?></div>
                         </div>
-                    </div>
-                    <div class="flex items-center">
-                        <div class="text-grayCust-900 text-base font-normal mr-4 w-[140px]"><?php esc_html_e( 'Options Selected', 'instawp-connect' ); ?></div>
-                        <div class="grid grid-cols-3 gap-3 selected-staging-options"></div>
-                    </div>
-                    <div class="flex items-center mt-5">
-                        <div class="text-grayCust-900 text-base font-normal mr-4 w-[140px]"><?php esc_html_e( 'Files Selected', 'instawp-connect' ); ?></div>
-                        <div class="grid grid-cols-1 gap-3 selected-files"></div>
-                    </div>
-                    <div class="flex items-center mt-5">
-                        <div class="text-grayCust-900 text-base font-normal mr-4 w-[140px]"><?php esc_html_e( 'Tables Selected', 'instawp-connect' ); ?></div>
-                        <div class="grid grid-cols-2 gap-3 selected-db-tables"></div>
+                        <div class="flex items-center">
+                            <div class="text-grayCust-900 text-base font-normal mr-4 w-[140px]"><?php esc_html_e( 'Options Selected', 'instawp-connect' ); ?></div>
+                            <div class="grid grid-cols-3 gap-3 selected-staging-options"></div>
+                        </div>
+                        <div class="flex items-center files-select hidden">
+                            <div class="text-grayCust-900 text-base font-normal mr-4 w-[140px]"><?php esc_html_e( 'Files Selected', 'instawp-connect' ); ?></div>
+                            <div class="text-grayCust-300 text-base font-medium items-center flex mr-6 selected-files"></div>
+                        </div>
+                        <div class="flex items-center db-tables-select hidden">
+                            <div class="text-grayCust-900 text-base font-normal mr-4 w-[140px]"><?php esc_html_e( 'Tables Selected', 'instawp-connect' ); ?></div>
+                            <div class="text-grayCust-300 text-base font-medium items-center flex mr-6 selected-db-tables"></div>
+                        </div>
                     </div>
                 </div>
 
