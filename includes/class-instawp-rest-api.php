@@ -161,12 +161,11 @@ class InstaWP_Backup_Api {
 
 		// Check accessibility of serve file
 		if ( empty( $serve_file_url ) || ! instawp()->tools::is_migrate_file_accessible( $serve_file_url ) ) {
-			// Generate serve file in website root directory
-			$serve_file_url = instawp()->tools::generate_serve_file( $migrate_key, $api_signature, $migrate_settings, ABSPATH );
 
-			// Check accessibility of serve file and if false return error
+			$serve_file_url = instawp()->tools::generate_forwarded_file();
+
 			if ( empty( $serve_file_url ) || ! instawp()->tools::is_migrate_file_accessible( $serve_file_url ) ) {
-				return $this->throw_error( new WP_Error( 403, esc_html__( 'Could not create serve file.', 'instawp-connect' ) ) );
+				return $this->throw_error( new WP_Error( 403, esc_html__( 'Could not create the forwarded file.', 'instawp-connect' ) ) );
 			}
 		}
 

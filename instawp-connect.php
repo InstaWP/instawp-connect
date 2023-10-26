@@ -106,7 +106,7 @@ define( 'INSTAWP_UPLOAD_TO_CLOUD', true );
 define( 'INSTAWP_API_URL', '/api/v1' );
 define( 'INSTAWP_API_2_URL', '/api/v2' );
 define( 'INSTAWP_EVENTS_PER_PAGE', 20 );
-define( 'INSTAWP_DEFAULT_MAX_FILE_SIZE_ALLOWED', 50 );
+define( 'INSTAWP_DEFAULT_MAX_FILE_SIZE_ALLOWED', 10 );
 define( 'INSTAWP_EVENTS_SYNC_PER_PAGE', 5 );
 define( 'INSTAWP_STAGING_SITES_PER_PAGE', 10 );
 @ini_set( 'memory_limit', '2048M' );
@@ -130,7 +130,9 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/functions.php';
 
 function instawp_plugin_activate() {
 
-	InstaWP_Setting::set_api_domain();
+	if ( ! empty( get_option( 'instawp_api_url' ) ) ) {
+		InstaWP_Setting::set_api_domain();
+	}
 
 	InstaWP_Tools::instawp_reset_permalink();
 
@@ -244,15 +246,16 @@ run_instawp();
 add_action( 'wp_head', function () {
 	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
 
-//		$migrate_key = 'wtoxts4q1b4osiahupkcjhugzpeoqq6tkucn3q3u';
-//		$tracking_db = instawp()->tools::get_tracking_database( $migrate_key );
-//
+		$migrate_key = 's1bohszteys4935dmqjhdlv3qdad5elyprhvttuj';
+		$tracking_db = instawp()->tools::get_tracking_database( $migrate_key );
+
 //		$ret = $tracking_db->rawQuery( 'DROP TABLE IF EXISTS files_sent' );
-//
-//		echo "<pre>";
-//		print_r( $ret );
-//		echo "</pre>";
-//
+
+		echo "<pre>";
+		print_r( unserialize( $tracking_db->get_option( 'migrate_settings' ) ) );
+		echo "</pre>";
+
+
 //		$tracking_db->disconnect();
 //
 //		echo "<pre>";
