@@ -434,7 +434,6 @@
         let el_reset_button = $(this),
             create_container = $('.instawp-wrap .nav-item-content.create'),
             el_settings_form = $('.instawp-form'),
-            el_settings_reset_type = el_settings_form.find('#instawp_reset_type'),
             el_settings_form_response = el_settings_form.find('.instawp-form-response');
 
         el_settings_form.addClass('loading');
@@ -443,7 +442,7 @@
 
         $.ajax({
             type: 'POST', url: plugin_object.ajax_url, context: this, data: {
-                'action': 'instawp_reset_plugin', 'reset_type': el_settings_reset_type.val(),
+                'action': 'instawp_reset_plugin', 'reset_type': 'soft',
             }, success: function (response) {
                 setTimeout(function () {
                     el_settings_form.removeClass('loading');
