@@ -265,7 +265,7 @@ class InstaWP_AJAX {
 
 		$content = ob_get_clean();
 		$data    = [
-			'content' => '<div class="expand-files-list text-center cursor-pointer">' . esc_html( 'Expand', 'instawp-connect' ) . '</div><div class="flex flex-col gap-5 hidden">' . $content . '</div>',
+			'content' => '<div class="flex flex-col gap-5">' . $content . '</div>',
 			'size'    => instawp()->get_file_size_with_unit( $total_size ),
 			'count'   => $total_files,
 		];
@@ -281,8 +281,7 @@ class InstaWP_AJAX {
 
 		ob_start();
 		if ( ! empty( $tables ) ) { ?>
-			<div class="expand-database-list text-center cursor-pointer"><?php esc_html_e( 'Expand', 'instawp-connect' ); ?></div>
-            <div class="flex flex-col gap-5 hidden">
+            <div class="flex flex-col gap-5">
 				<?php foreach ( $tables as $table ) {
 					$element_id = wp_generate_uuid4(); ?>
                     <div class="flex flex-col gap-5 item">
@@ -338,7 +337,7 @@ class InstaWP_AJAX {
 					<?php foreach ( $list_data as $data ) {
 						$element_id = wp_generate_uuid4(); ?>
                         <div class="flex justify-between items-center text-xs">
-                            <input type="checkbox" name="instawp_migrate[migrate_settings][]" id="<?php echo esc_attr( $element_id ); ?>" value="<?php echo esc_attr( $data['relative_path'] ); ?>" class="instawp-checkbox exclude-file-item large-file !mt-0 !mr-3 rounded border-gray-300 text-primary-900 focus:ring-primary-900" <?php checked( $skip, true ); ?>>
+                            <input type="checkbox" name="instawp_migrate[migrate_settings][]" id="<?php echo esc_attr( $element_id ); ?>" value="<?php echo esc_attr( $data['relative_path'] ); ?>" class="instawp-checkbox exclude-file-item large-file !mt-0 !mr-3 rounded border-gray-300 text-primary-900 focus:ring-primary-900" data-size="<?php echo esc_html( $data['size'] ); ?>" <?php checked( $skip, true ); ?>>
                             <label for="<?php echo esc_attr( $element_id ); ?>"><?php echo esc_html( $data['relative_path'] ); ?> (<?php echo esc_html( instawp()->get_file_size_with_unit( $data['size'] ) ); ?>)</label>
                         </div>
 					<?php } ?>

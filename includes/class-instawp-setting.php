@@ -589,6 +589,12 @@ class InstaWP_Setting {
 
 		$curl_response = $InstaWP_Curl->curl( $url, $body );
 
+		echo "<pre>";
+		print_r( [
+			'api_call_2' => $curl_response
+		] );
+		echo "</pre>";
+
 		error_log( "curl_response on generate \n" . print_r( $curl_response, true ) );
 
 		if ( $curl_response['error'] ) {
