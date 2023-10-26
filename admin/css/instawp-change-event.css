@@ -509,10 +509,6 @@ td.event-sync-cell.loading,
     position: relative;
 }
 
-div#event-sync-pagination {
-    margin-top: 10px;
-}
-
 li#wp-admin-bar-instawp-sync-toolbar a.ab-item:before {
     content: "\f1131";
     top: 3px;
@@ -573,4 +569,19 @@ a.changes-btn.sync-changes-btn.disabled {
     text-overflow:ellipsis; 
     overflow: hidden; 
     max-width:1px;
+}
+
+#event-sync-pagination {
+    margin-top: 25px;
+}
+
+#event-sync-pagination .page-numbers {
+    padding: 10px;
+    background: #fefefe;
+    border: 1px solid #f5f1f1;
+}
+
+#event-sync-pagination span.page-numbers.current {
+    background: #11BF85;
+    color: #fff;
 }
