@@ -312,7 +312,7 @@ jQuery(document).ready(function ($) {
         
         formData.append('sync_type', sync_type);
         formData.append('sync_message', sync_message);
-        formData.append('connect_id',   dest_connect_id );
+        formData.append('dest_connect_id',   dest_connect_id );
         formData.append('page', batch_num);
         formData.append('action', 'instawp_pack_events');
        // $('.sync_error_success_msg').html('');  

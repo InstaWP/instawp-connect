@@ -11,6 +11,18 @@
         }
     });
 
+    let formatBytes = (bytes, decimals = 2) => {
+        if (!+bytes) return '0 Bytes'
+    
+        const k = 1024
+        const dm = decimals < 0 ? 0 : decimals
+        const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
+    
+        const i = Math.floor(Math.log(bytes) / Math.log(k))
+    
+        return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`
+    }    
+
     let instawp_migrate_progress = () => {
 
             let create_container = $('.instawp-wrap .nav-item-content.create'),
@@ -288,7 +300,11 @@
 
     $(document).on('click', '.instawp-wrap .instawp-staging-type', function () {
 
-        let el_staging_type = $(this), el_staging_type_wrapper = el_staging_type.parent(), staging_type = el_staging_type.find('input[type="radio"]').val(), el_skip_media_folders = $('input#skip_media_folder');
+        let el_staging_type = $(this),
+            el_staging_type_wrapper = el_staging_type.parent(),
+            staging_type = el_staging_type.find('input[type="radio"]').val(),
+            el_skip_media_folders = $('input#skip_media_folder'),
+            el_skip_large_files = $('input#skip_large_files');
 
         el_staging_type_wrapper.find('.instawp-staging-type').removeClass('card-active border-primary-900');
         el_staging_type_wrapper.find('input[type="radio"]').prop('checked', false);
@@ -298,17 +314,18 @@
         // For Preview Screens
         $('.selected-staging-type').html(el_staging_type.find('.staging-type-label').text());
 
-
         if (staging_type === 'quick') {
             el_skip_media_folders.prop('checked', true).trigger('change');
+            el_skip_large_files.prop('checked', true).trigger('change');
         } else {
             if (el_skip_media_folders.parent().parent().hasClass('card-active')) {
                 el_skip_media_folders.prop('checked', false).trigger('change');
             }
+            if (el_skip_large_files.parent().parent().hasClass('card-active')) {
+                el_skip_large_files.prop('checked', false).trigger('change');
+            }
         }
-
     });
-
 
     $(document).on('click', '.instawp-wrap .instawp-button-migrate', function () {
 
@@ -542,14 +559,14 @@
         let el = $(this),
             subEl = $(document).find('.exclude-files-container .instawp-checkbox.exclude-file-item');
 
-        subEl.not(":disabled").prop("checked", el.is(":checked"));
+        subEl.not(":disabled").prop("checked", el.is(":checked")).trigger('change');
     });
 
     $(document).on('change', '#instawp-database-select-all', function () {
         let el = $(this),
             subEl = $(document).find('.exclude-database-container .instawp-checkbox.exclude-database-item');
 
-        subEl.not(":disabled").prop("checked", el.is(":checked"));
+        subEl.not(":disabled").prop("checked", el.is(":checked")).trigger('change');
     });
 
     $(document).on('change', '.instawp-checkbox.exclude-file-item:not(.large-file)', function () {
@@ -563,26 +580,34 @@
             $(document).find('#instawp-files-select-all').prop("checked", true);
         }
 
-        subEl.not(":disabled").prop("checked", el.is(":checked"));
+        subEl.not(":disabled").prop("checked", el.is(":checked")).trigger('change');
     });
 
     $(document).on('change', '.instawp-checkbox.exclude-file-item', function () {
-        let el = $(this);
-
-        if(el.is(":checked")) {
-            $(document).find('.selected-files').append('<div class="data-' + el.attr( 'id' ) + ' border-primary-900 border card-active py-2 px-4 text-grayCust-700 text-xs font-medium rounded-lg">' + el.val() + '</div>');
+        let cEl = $(document).find('.instawp-checkbox.exclude-file-item:checked');
+        let sum = 0;
+        cEl.each(function(){
+            sum = sum + $(this).data('size')
+        });
+        if ( cEl.length > 0 ) {
+            $(document).find('.files-select').removeClass('hidden');
+            $(document).find('.selected-files').html(`${cEl.length} files (${formatBytes(sum)}) skipped`);
         } else {
-            $(document).find('.data-'+ el.attr( 'id' )).remove();
+            $(document).find('.files-select').addClass('hidden');
         }
     });
 
     $(document).on('change', '.instawp-checkbox.exclude-database-item', function () {
-        let el = $(this);
-
-        if(el.is(":checked")) {
-            $(document).find('.selected-db-tables').append('<div class="data-' + el.attr( 'id' ) + ' border-primary-900 border card-active py-2 px-4 text-grayCust-700 text-xs font-medium rounded-lg">' + el.val() + '</div>');
+        let cEl = $(document).find('.instawp-checkbox.exclude-database-item:checked');
+        let sum = 0;
+        cEl.each(function(){
+            sum = sum + $(this).data('size')
+        });
+        if ( cEl.length > 0 ) {
+            $(document).find('.db-tables-select').removeClass('hidden');
+            $(document).find('.selected-db-tables').html(`${cEl.length} tables (${formatBytes(sum)}) skipped`);
         } else {
-            $(document).find('.data-'+ el.attr( 'id' )).remove();
+            $(document).find('.db-tables-select').addClass('hidden');
         }
     });
 
@@ -623,14 +648,12 @@
 
     $(document).on('click', '.expand-files-list', function () {
         $(this).addClass('hidden');
-        $(document).find('.exclude-files-container').addClass('p-4 h-80').removeClass('hidden');
-        $(document).find('.exclude-files-container > .flex').removeClass('hidden');
+        $(document).find('.exclude-files-container').removeClass('hidden');
     });
 
     $(document).on('click', '.expand-database-list', function () {
         $(this).addClass('hidden');
-        $(document).find('.exclude-database-container').addClass('p-4 h-80').removeClass('hidden');
-        $(document).find('.exclude-database-container > .flex').removeClass('hidden');
+        $(document).find('.exclude-database-container').removeClass('hidden');
     });
 
     $(document).on('click', '.instawp-database-sort-by', function () {
@@ -672,7 +695,8 @@
                     'security': instawp_migrate.security
                 },
                 success: function (response) {
-                    $(document).find('.exclude-files-container').html(response.data.content).addClass('p-4');
+                    $(document).find('.exclude-files-container').html(response.data.content).addClass('p-4 h-80 hidden');
+                    $(document).find('.expand-files-list').removeClass('hidden');
                     $(document).find('.instawp-files-details').text('(' + response.data.count + ') - ' + response.data.size);
                     $(document).find('#instawp-files-select-all').prop("disabled", false);
                     $(document).find('.instawp-files-sort-by').removeClass('pointer-events-none').attr('data-sort', el_sort_by);
@@ -709,7 +733,7 @@
                     'security': instawp_migrate.security
                 },
                 success: function (response) {
-                    $(document).find('.exclude-database-container').html(response.data.content).addClass('p-4');
+                    $(document).find('.exclude-database-container').html(response.data.content).addClass('p-4 h-80');
                     $(document).find('.instawp-database-details').text('(' + response.data.count + ') - ' + response.data.size);
                     $(document).find('#instawp-database-select-all').prop("disabled", false);
                     $(document).find('.instawp-database-sort-by').removeClass('pointer-events-none').attr('data-sort', el_sort_by);

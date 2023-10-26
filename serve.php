@@ -7,10 +7,9 @@ if ( ! isset( $_POST['migrate_key'] ) || empty( $migrate_key = $_POST['migrate_k
 	die();
 }
 
-$migrate_settings = isset( $migrate_settings ) ? unserialize( $migrate_settings ) : [];
-$level            = 0;
-$root_path_dir    = __DIR__;
-$root_path        = __DIR__;
+$level         = 0;
+$root_path_dir = __DIR__;
+$root_path     = __DIR__;
 
 while ( ! file_exists( $root_path . '/wp-config.php' ) ) {
 
@@ -105,17 +104,38 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			$tmpZip = tempnam( sys_get_temp_dir(), 'batchzip' );
 			$zip    = new ZipArchive();
 
+			header( 'x-iwp-filename: ' . $tmpZip );
+
 			if ( $zip->open( $tmpZip, ZipArchive::OVERWRITE ) !== true ) {
 				die( "Cannot open zip archive" );
 			}
 
 			foreach ( $unsentFiles as $file ) {
-				$filePath     = $file['filepath'] ?? '';
-				$relativePath = ltrim( str_replace( WP_ROOT, "", $filePath ), DIRECTORY_SEPARATOR );
-				if ( is_readable( $filePath ) && is_file( $filePath ) ) {
-					$zip->addFile( $filePath, $relativePath );
-				} else {
-					error_log( 'File not found: ' . $filePath );
+				$filePath         = $file['filepath'] ?? '';
+				$relativePath     = ltrim( str_replace( WP_ROOT, "", $filePath ), DIRECTORY_SEPARATOR );
+				$file_fopen_check = fopen( $filePath, 'r' );
+
+				if ( ! $file_fopen_check ) {
+					error_log( 'Can not open file: ' . $filePath );
+					continue;
+				}
+
+				fclose( $file_fopen_check );
+
+				if ( ! is_readable( $filePath ) ) {
+					error_log( 'Can not read file: ' . $filePath );
+					continue;
+				}
+
+				if ( ! is_file( $filePath ) ) {
+					error_log( 'Invalid file: ' . $filePath );
+					continue;
+				}
+
+				$added_to_zip = $zip->addFile( $filePath, $relativePath );
+
+				if ( ! $added_to_zip ) {
+					error_log( 'Could not add to zip. File: : ' . $filePath );
 				}
 			}
 
@@ -132,12 +152,14 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 				$tracking_db->rawQuery( "UPDATE files_sent SET sent = 1 WHERE id=:id", array( ':id' => $file['id'] ) );
 			}
 
-			unlink( $tmpZip );
+//			unlink( $tmpZip );
 		}
 	}
 
 	$total_files_path        = $instawpbackups_path . '.total-files-' . $migrate_key;
 	$current_file_index_path = $instawpbackups_path . 'current_file_index.txt';
+	$migrate_settings        = $tracking_db->get_option( 'migrate_settings' );
+	$migrate_settings        = unserialize( $migrate_settings );
 	$excluded_paths          = $migrate_settings['excluded_paths'] ?? [];
 	$skip_folders            = array_merge( [ 'wp-content/cache', 'editor', 'wp-content/upgrade', 'wp-content/instawpbackups' ], $excluded_paths );
 	$skip_folders            = array_unique( $skip_folders );

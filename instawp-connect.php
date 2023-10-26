@@ -7,7 +7,7 @@
  * @wordpress-plugin
  * Plugin Name:       InstaWP Connect
  * Description:       Create 1-click staging, migration and manage your prod sites.
- * Version:           0.0.9.43
+ * Version:           0.0.9.44
  * Author:            InstaWP Team
  * Author URI:        https://instawp.com/
  * License:           GPL-3.0+
@@ -23,7 +23,7 @@ if ( ! defined( 'WPINC' ) ) {
 
 global $wpdb;
 
-define( 'INSTAWP_PLUGIN_VERSION', '0.0.9.42' );
+define( 'INSTAWP_PLUGIN_VERSION', '0.0.9.44' );
 define( 'INSTAWP_RESTORE_INIT', 'init' );
 define( 'INSTAWP_RESTORE_READY', 'ready' );
 define( 'INSTAWP_RESTORE_COMPLETED', 'completed' );
@@ -130,7 +130,9 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/functions.php';
 
 function instawp_plugin_activate() {
 
-	InstaWP_Setting::set_api_domain();
+	if ( ! empty( get_option( 'instawp_api_url' ) ) ) {
+		InstaWP_Setting::set_api_domain();
+	}
 
 	InstaWP_Tools::instawp_reset_permalink();
 
@@ -241,25 +243,4 @@ add_filter( 'got_rewrite', '__return_true' );
 
 run_instawp();
 
-add_action( 'wp_head', function () {
-	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
-
-//		$migrate_key = 'wtoxts4q1b4osiahupkcjhugzpeoqq6tkucn3q3u';
-//		$tracking_db = instawp()->tools::get_tracking_database( $migrate_key );
-
-//		echo "<pre>";
-//		print_r( $tracking_db );
-//		echo "</pre>";
-//
-//		echo "<pre>";
-//		print_r( $tracking_db->get_option( 'api_signature' ) );
-//		echo "</pre>";
-//
-//		echo "<pre>";
-//		print_r( $tracking_db->get_option( 'migrate_settings' ) );
-//		echo "</pre>";
-
-		die();
-	}
-}, 0 );
 

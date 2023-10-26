@@ -105,7 +105,7 @@ class InstaWP_Tools {
 		return true;
 	}
 
-	public static function generate_serve_file( $migrate_key, $api_signature, $migrate_settings = [], $serve_file_dir = '' ) {
+	public static function generate_serve_file( $migrate_key, $api_signature, $migrate_settings = [] ) {
 
 		if ( ! $tracking_db = self::get_tracking_database( $migrate_key ) ) {
 			return false;
@@ -125,7 +125,40 @@ class InstaWP_Tools {
 		return INSTAWP_PLUGIN_URL . 'serve.php';
 	}
 
-	public static function get_tracking_database( $migrate_key ) {
+	public static function generate_forwarded_file( $forwarded_path = ABSPATH, $file_name = 'fwd.php' ) {
+
+		$forwarded_content      = <<<'EOD'
+        <?php
+        $path_structure = array(
+            __DIR__,
+            'wp-content',
+            'plugins',
+            'instawp-connect',
+            'serve.php',
+        );
+        $file_path      = implode( DIRECTORY_SEPARATOR, $path_structure );
+        
+        if ( ! is_readable( $file_path ) ) {
+            header( 'x-iwp-status: false' );
+            header( 'x-iwp-message: File is not readable' );
+            exit( 2004 );
+        }
+        
+        include $file_path;
+        EOD;
+		$forwarded_file_path    = $forwarded_path . DIRECTORY_SEPARATOR . $file_name;
+		$forwarded_file_created = file_put_contents( $forwarded_file_path, $forwarded_content );
+
+		if ( $forwarded_file_created ) {
+			return site_url( $file_name );
+		}
+
+		error_log( 'Could not create the forwarded file' );
+
+		return false;
+	}
+
+	public static function get_tracking_database( $migrate_key, $serve_file_dir = '' ) {
 
 		if ( ! class_exists( 'IWPDB' ) ) {
 			require_once INSTAWP_PLUGIN_DIR . 'includes/class-instawp-iwpdb.php';
@@ -193,7 +226,7 @@ class InstaWP_Tools {
 
 		$curl = curl_init();
 		curl_setopt_array( $curl, array(
-			CURLOPT_URL            => $file_url,
+			CURLOPT_URL            => 'https://app.instawp.io/public/check/?url=' . $file_url,
 			CURLOPT_RETURNTRANSFER => true,
 			CURLOPT_ENCODING       => '',
 			CURLOPT_MAXREDIRS      => 10,
@@ -201,7 +234,6 @@ class InstaWP_Tools {
 			CURLOPT_FOLLOWLOCATION => true,
 			CURLOPT_SSL_VERIFYHOST => false,
 			CURLOPT_SSL_VERIFYPEER => false,
-			CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
 			CURLOPT_CUSTOMREQUEST  => 'POST'
 		) );
 		curl_exec( $curl );
