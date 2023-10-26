@@ -265,7 +265,7 @@ class InstaWP_AJAX {
 
 		$content = ob_get_clean();
 		$data    = [
-			'content' => '<div class="expand-files-list text-center cursor-pointer">' . esc_html( 'Expand', 'instawp-connect' ) . '</div><div class="flex flex-col gap-5 hidden">' . $content . '</div>',
+			'content' => '<div class="flex flex-col gap-5">' . $content . '</div>',
 			'size'    => instawp()->get_file_size_with_unit( $total_size ),
 			'count'   => $total_files,
 		];
@@ -281,8 +281,7 @@ class InstaWP_AJAX {
 
 		ob_start();
 		if ( ! empty( $tables ) ) { ?>
-			<div class="expand-database-list text-center cursor-pointer"><?php esc_html_e( 'Expand', 'instawp-connect' ); ?></div>
-            <div class="flex flex-col gap-5 hidden">
+            <div class="flex flex-col gap-5">
 				<?php foreach ( $tables as $table ) {
 					$element_id = wp_generate_uuid4(); ?>
                     <div class="flex flex-col gap-5 item">

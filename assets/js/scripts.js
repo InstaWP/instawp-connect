@@ -633,14 +633,12 @@
 
     $(document).on('click', '.expand-files-list', function () {
         $(this).addClass('hidden');
-        $(document).find('.exclude-files-container').addClass('p-4 h-80').removeClass('hidden');
-        $(document).find('.exclude-files-container > .flex').removeClass('hidden');
+        $(document).find('.exclude-files-container').removeClass('hidden');
     });
 
     $(document).on('click', '.expand-database-list', function () {
         $(this).addClass('hidden');
-        $(document).find('.exclude-database-container').addClass('p-4 h-80').removeClass('hidden');
-        $(document).find('.exclude-database-container > .flex').removeClass('hidden');
+        $(document).find('.exclude-database-container').removeClass('hidden');
     });
 
     $(document).on('click', '.instawp-database-sort-by', function () {
@@ -682,7 +680,8 @@
                     'security': instawp_migrate.security
                 },
                 success: function (response) {
-                    $(document).find('.exclude-files-container').html(response.data.content).addClass('p-4');
+                    $(document).find('.exclude-files-container').html(response.data.content).addClass('p-4 h-80 hidden');
+                    $(document).find('.expand-files-list').removeClass('hidden');
                     $(document).find('.instawp-files-details').text('(' + response.data.count + ') - ' + response.data.size);
                     $(document).find('#instawp-files-select-all').prop("disabled", false);
                     $(document).find('.instawp-files-sort-by').removeClass('pointer-events-none').attr('data-sort', el_sort_by);
@@ -719,7 +718,7 @@
                     'security': instawp_migrate.security
                 },
                 success: function (response) {
-                    $(document).find('.exclude-database-container').html(response.data.content).addClass('p-4');
+                    $(document).find('.exclude-database-container').html(response.data.content).addClass('p-4 h-80');
                     $(document).find('.instawp-database-details').text('(' + response.data.count + ') - ' + response.data.size);
                     $(document).find('#instawp-database-select-all').prop("disabled", false);
                     $(document).find('.instawp-database-sort-by').removeClass('pointer-events-none').attr('data-sort', el_sort_by);

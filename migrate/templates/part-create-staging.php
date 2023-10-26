@@ -192,6 +192,12 @@ $tracking_url          = InstaWP_Setting::get_args_option( 'tracking_url', $migr
                                     </div>
                                 </div>
                             </div>
+                            <div class="expand-files-list text-center cursor-pointer text-primary-900 p-4 hidden">
+                                <svg width="8" height="5" viewBox="0 0 8 5" fill="none" xmlns="http://www.w3.org/2000/svg" class="inline mr-1">
+                                    <path d="M4.75504 4.09984L5.74004 3.11484L7.34504 1.50984C7.68004 1.16984 7.44004 0.589844 6.96004 0.589844L3.84504 0.589844L1.04004 0.589843C0.560037 0.589843 0.320036 1.16984 0.660037 1.50984L3.25004 4.09984C3.66004 4.51484 4.34004 4.51484 4.75504 4.09984Z" fill="#4F4F4F"></path>
+                                </svg>
+                                <span><?php esc_html_e( 'Expand', 'instawp-connect' ); ?></span>
+                            </div>
                             <div class="overflow-auto exclude-files-container">
                                 <div class="loading"></div>
                             </div>
@@ -224,10 +230,15 @@ $tracking_url          = InstaWP_Setting::get_args_option( 'tracking_url', $migr
                                     </div>
                                 </div>
                             </div>
-                            <div class="overflow-auto exclude-database-container p-4">
+                            <div class="expand-database-list text-center cursor-pointer text-primary-900 p-4">
+                                <svg width="8" height="5" viewBox="0 0 8 5" fill="none" xmlns="http://www.w3.org/2000/svg" class="inline mr-1">
+                                    <path d="M4.75504 4.09984L5.74004 3.11484L7.34504 1.50984C7.68004 1.16984 7.44004 0.589844 6.96004 0.589844L3.84504 0.589844L1.04004 0.589843C0.560037 0.589843 0.320036 1.16984 0.660037 1.50984L3.25004 4.09984C3.66004 4.51484 4.34004 4.51484 4.75504 4.09984Z" fill="#4F4F4F"></path>
+                                </svg>
+                                <span><?php esc_html_e( 'Expand', 'instawp-connect' ); ?></span>
+                            </div>
+                            <div class="overflow-auto exclude-database-container p-4 h-80 hidden">
 								<?php if ( ! empty( $tables ) ) { ?>
-                                    <div class="expand-database-list text-center cursor-pointer"><?php esc_html_e( 'Expand', 'instawp-connect' ); ?></div>
-                                    <div class="flex flex-col gap-5 hidden">
+                                    <div class="flex flex-col gap-5">
 										<?php foreach ( $tables as $table ) {
 											$element_id = wp_generate_uuid4(); ?>
                                             <div class="flex flex-col gap-5 item">
