@@ -28,8 +28,8 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 					}
 				}
 
-				if ( isset( $args[2] ) ) {
-					$payload_decoded = base64_decode( $args[2] );
+				if ( isset( $args[3] ) ) {
+					$payload_decoded = base64_decode( $args[3] );
 					$payload         = json_decode( $payload_decoded, true );
 
 					if ( isset( $payload['mode'] ) ) {

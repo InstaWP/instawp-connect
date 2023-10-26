@@ -13,8 +13,10 @@ var zipPath = [
     './**', 
     './**', 
     '!./.git/**', 
-    '!./**/.gitignore', 
+    '!./**/.gitignore',
     '!./**/*.md', 
+    '!./**/*.scss',
+    '!./**/tailwind-input.css',
     '!./**/composer.json',
     '!./**/auth.json',
     '!./**/.gitignore', 
@@ -39,7 +41,7 @@ var zipPath = [
 
 // Clean CSS, JS and ZIP
 function clean_files() {
-    let cleanPath = [ './build/instawp-connect.zip' ];
+    let cleanPath = [ '../instawp-connect.zip' ];
     return del( cleanPath, { force : true } ); 
 }
 
@@ -59,7 +61,7 @@ function create_pot() {
 function create_zip() {
     return gulp.src( zipPath, { base : '../' } )
         .pipe( zip( 'instawp-connect.zip' ) )
-        .pipe( gulp.dest( './build/' ) )
+        .pipe( gulp.dest( '../' ) )
 }
 
 exports.default = series( clean_files, create_pot, create_zip );

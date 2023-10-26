@@ -105,6 +105,112 @@ class InstaWP_Tools {
 		return true;
 	}
 
+	public static function generate_serve_file( $migrate_key, $api_signature, $migrate_settings = [], $serve_file_dir = '' ) {
+
+		if ( ! $tracking_db = self::get_tracking_database( $migrate_key ) ) {
+			return false;
+		}
+
+		// Process migration settings like active plugins/themes only etc
+		$migrate_settings = is_array( $migrate_settings ) ? $migrate_settings : [];
+		$migrate_settings = instawp()->tools::process_migration_settings( $migrate_settings );
+
+		$tracking_db->update_option( 'api_signature', $api_signature );
+		$tracking_db->update_option( 'migrate_settings', $migrate_settings );
+		$tracking_db->update_option( 'db_host', DB_HOST );
+		$tracking_db->update_option( 'db_username', DB_USER );
+		$tracking_db->update_option( 'db_password', DB_PASSWORD );
+		$tracking_db->update_option( 'db_name', DB_NAME );
+
+		return INSTAWP_PLUGIN_URL . 'serve.php';
+	}
+
+	public static function get_tracking_database( $migrate_key ) {
+
+		if ( ! class_exists( 'IWPDB' ) ) {
+			require_once INSTAWP_PLUGIN_DIR . 'includes/class-instawp-iwpdb.php';
+		}
+
+		$serve_data_file_dir = empty( $serve_file_dir ) ? WP_CONTENT_DIR . DIRECTORY_SEPARATOR . INSTAWP_DEFAULT_BACKUP_DIR : $serve_file_dir;
+		$tracking_db_path    = $serve_data_file_dir . DIRECTORY_SEPARATOR . 'files-sent-' . $migrate_key . '.db';
+
+		try {
+			$tracking_db = new IWPDB( $tracking_db_path );
+		} catch ( Exception $e ) {
+			error_log( "Database creation error: {$e->getMessage()}" );
+
+			return false;
+		}
+
+		return $tracking_db;
+	}
+
+	public static function generate_destination_file( $migrate_key, $api_signature, $dest_file_dir = '' ) {
+
+		$sample_dest_file = fopen( INSTAWP_PLUGIN_DIR . '/sample-dest.php', 'rb' );
+		$dest_file_dir    = empty( $dest_file_dir ) ? WP_CONTENT_DIR . DIRECTORY_SEPARATOR . INSTAWP_DEFAULT_BACKUP_DIR : $dest_file_dir;
+		$dest_file_path   = $dest_file_dir . DIRECTORY_SEPARATOR . $migrate_key . '.php';
+		$dest_file        = fopen( $dest_file_path, 'wb' );
+		$line_number      = 1;
+
+		while ( ( $line = fgets( $sample_dest_file ) ) !== false ) {
+
+			// Add api signature
+			if ( $line_number === 4 ) {
+				fputs( $dest_file, '$api_signature = "' . $api_signature . '";' . "\n" );
+				fputs( $dest_file, '$db_host = "' . DB_HOST . '";' . "\n" );
+				fputs( $dest_file, '$db_username = "' . DB_USER . '";' . "\n" );
+				fputs( $dest_file, '$db_password = "' . DB_PASSWORD . '";' . "\n" );
+				fputs( $dest_file, '$db_name = "' . DB_NAME . '";' . "\n" );
+				fputs( $dest_file, '$db_charset = "' . DB_CHARSET . '";' . "\n" );
+				fputs( $dest_file, '$db_collate = "' . DB_COLLATE . '";' . "\n" );
+
+				if ( defined( 'WP_SITEURL' ) ) {
+					fputs( $dest_file, '$site_url = "' . WP_SITEURL . '";' . "\n" );
+				}
+
+				if ( defined( 'WP_HOME' ) ) {
+					fputs( $dest_file, '$home_url = "' . WP_HOME . '";' . "\n" );
+				}
+			}
+
+			fputs( $dest_file, $line );
+
+			$line_number ++;
+		}
+
+		fclose( $dest_file );
+		fclose( $sample_dest_file );
+
+		if ( $dest_file_dir === ABSPATH ) {
+			return site_url( $migrate_key . '.php' );
+		}
+
+		return content_url( INSTAWP_DEFAULT_BACKUP_DIR . '/' . $migrate_key . '.php' );
+	}
+
+	public static function is_migrate_file_accessible( $file_url ) {
+
+		$curl = curl_init();
+		curl_setopt_array( $curl, array(
+			CURLOPT_URL            => $file_url,
+			CURLOPT_RETURNTRANSFER => true,
+			CURLOPT_ENCODING       => '',
+			CURLOPT_MAXREDIRS      => 10,
+			CURLOPT_TIMEOUT        => 5,
+			CURLOPT_FOLLOWLOCATION => true,
+			CURLOPT_SSL_VERIFYHOST => false,
+			CURLOPT_SSL_VERIFYPEER => false,
+			CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
+			CURLOPT_CUSTOMREQUEST  => 'POST'
+		) );
+		curl_exec( $curl );
+		$status_code = curl_getinfo( $curl, CURLINFO_HTTP_CODE );
+		curl_close( $curl );
+
+		return $status_code === 200;
+	}
+
 	public static function process_migration_settings( $migrate_settings = [] ) {
 
 		$options      = $migrate_settings['options'] ?? [];
@@ -124,8 +230,9 @@ class InstaWP_Tools {
 
 		if ( in_array( 'active_themes_only', $options ) ) {
 			$active_theme_stylesheet = wp_get_theme()->get_stylesheet();
+			$active_theme_template   = wp_get_theme()->get_template();
 			foreach ( wp_get_themes() as $theme_slug => $theme_info ) {
-				if ( $theme_info->get_stylesheet() !== $active_theme_stylesheet ) {
+				if ( ! in_array( $theme_info->get_stylesheet(), [ $active_theme_stylesheet, $active_theme_template ], true ) ) {
 					$migrate_settings['excluded_paths'][] = $relative_dir . '/themes/' . $theme_slug;
 				}
 			}
@@ -143,6 +250,21 @@ class InstaWP_Tools {
 		}
 
 		return apply_filters( 'INSTAWP_CONNECT/Filters/process_migration_settings', $migrate_settings );
+	}
+
+	public static function get_unsupported_active_plugins() {
+
+		$active_plugins             = InstaWP_Setting::get_option( 'active_plugins', [] );
+		$unsupported_plugins        = InstaWP_Setting::get_unsupported_plugins();
+		$unsupported_active_plugins = [];
+
+		foreach ( $unsupported_plugins as $plugin_data ) {
+			if ( isset( $plugin_data['slug'] ) && in_array( $plugin_data['slug'], $active_plugins ) ) {
+				$unsupported_active_plugins[] = $plugin_data;
+			}
+		}
+
+		return $unsupported_active_plugins;
 	}
 
 
@@ -360,5 +482,114 @@ class InstaWP_Tools {
 	 */
 	public static function update_search_engine_visibility( $should_visible = false ) {
 		update_option( 'blog_public', (bool) $should_visible );
+	}
+
+	/**
+	 * Auto login page HTML code.
+	 */
+	public static function auto_login_page( $fields, $url, $title ) {
+		?>
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <meta name="author" content="InstaWP">
+            <meta name="robots" content="noindex, nofollow">
+            <meta name="googlebot" content="noindex">
+            <link href="https://cdn.jsdelivr.net/npm/reset-css@5.0.1/reset.min.css" rel="stylesheet">
+            <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+			<?php wp_site_icon(); ?>
+            <title><?php printf( __( 'Launch %s', 'instawp-connect' ), esc_html( $title ) ); ?></title>
+            <style>
+                body {
+                    background-color: #f3f4f6;
+                    width: calc(100vw + 0px);
+                    overflow-x: hidden;
+                    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, Noto Sans, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", Segoe UI Symbol, "Noto Color Emoji";
+                }
+
+                .instawp-auto-login-container {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    min-height: 100vh;
+                }
+
+                .instawp-logo svg {
+                    width: 100%;
+                }
+
+                .instawp-details {
+                    padding: 5rem;
+                    border-radius: 0.5rem;
+                    max-width: 42rem;
+                    box-shadow: 0 0 #0000, 0 0 #0000, 0 4px 6px -1px rgb(0 0 0 / .1), 0 2px 4px -2px rgb(0 0 0 / .1);
+                    background-color: rgb(255 255 255 / 1);
+                    margin-top: 1.5rem;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 2.75rem;
+                }
+
+                .instawp-details-title {
+                    font-weight: 600;
+                    text-align: center;
+                    line-height: 1.75;
+                }
+
+                .instawp-details-info {
+                    text-align: center;
+                    font-size: 1.125rem;
+                    line-height: 1.75rem;
+                    font-size: 1rem;
+                }
+
+                .instawp-details-info svg {
+                    height: 1.5rem;
+                    width: 1.5rem;
+                    display: inline;
+                    vertical-align: middle;
+                    animation: spin 1s linear infinite;
+                }
+
+                @keyframes spin {
+                    100% {
+                        transform: rotate(360deg);
+                    }
+                }
+            </style>
+        </head>
+        <body>
+        <div class="instawp-auto-login-container">
+            <div class="instawp-logo">
+                <img class="instawp-logo-image" src="https://app.instawp.io/images/insta-logo-image.svg" alt="InstaWP Logo">
+            </div>
+            <div class="instawp-details">
+                <h3 class="instawp-details-title"><?php echo esc_url( site_url() ); ?></h3>
+                <p class="instawp-details-info">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 animate-spin inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                    You are being redirected to the <?php echo esc_html( $title ); ?>.
+                </p>
+            </div>
+        </div>
+        <form id="instawp-auto-login" action="<?php echo esc_url( $url ); ?>" method="POST">
+			<?php echo $fields; ?>
+        </form>
+        <script type="text/javascript">
+            window.onload = function () {
+                setTimeout(function () {
+                    document.getElementById('instawp-auto-login').submit();
+                }, 2000);
+            }
+        </script>
+        </body>
+        </html>
+		<?php
 	}
 }

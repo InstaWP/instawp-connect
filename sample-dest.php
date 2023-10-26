@@ -101,8 +101,8 @@ while ( ! file_exists( $root_path . DIRECTORY_SEPARATOR . 'wp-config.php' ) ) {
 $excluded_paths     = [];
 $file_relative_path = trim( $_SERVER['HTTP_X_FILE_RELATIVE_PATH'] );
 $file_type          = isset( $_SERVER['HTTP_X_FILE_TYPE'] ) ? trim( $_SERVER['HTTP_X_FILE_TYPE'] ) : 'single';
-$req_order          = isset( $_SERVER['HTTP_X_IWP_REQUEST'] ) ? trim( $_SERVER['HTTP_X_IWP_REQUEST'] ) : false;
 $progress           = isset( $_SERVER['HTTP_X_IWP_PROGRESS'] ) ? trim( $_SERVER['HTTP_X_IWP_PROGRESS'] ) : 0;
+$req_order          = isset( $_GET['r'] ) ? intval( $_GET['r'] ) : 1;
 
 if ( in_array( $file_relative_path, $excluded_paths ) ) {
 	exit( 0 );
@@ -162,13 +162,13 @@ if ( $file_type === 'db' ) {
 
 	if ( extension_loaded( 'mysqli' ) ) {
 		$mysqli = new mysqli( $db_host, $db_username, $db_password, $db_name );
-
 		if ( $mysqli->connect_error ) {
 			die( 'Connection failed: ' . $mysqli->connect_error );
 		}
+
+		$mysqli->set_charset( 'utf8' );
 	} else {
 		$connection = mysql_connect( $db_host, $db_username, $db_password );
-
 		if ( ! $connection ) {
 			die( 'Connection failed: ' . mysql_error() );
 		}
@@ -176,29 +176,31 @@ if ( $file_type === 'db' ) {
 		if ( ! mysql_select_db( $db_name, $connection ) ) {
 			die( 'Could not select database: ' . mysql_error() );
 		}
+
+		mysql_set_charset( 'UTF8', $connection );
 	}
 
 	if ( $req_order < 1 ) {
-		$sql = "SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA LIKE '" . $db_name . "'";
-
 		if ( extension_loaded( 'mysqli' ) ) {
-			$result = $mysqli->query( $sql );
-			$tables = $result->fetch_all( MYSQLI_ASSOC );
-
-			foreach( $tables as $table ) {
-				$sql    = "TRUNCATE TABLE `" . $table['TABLE_NAME'] . "`";
-				$result = $mysqli->query( $sql );
+			$mysqli->query( 'SET foreign_key_checks = 0' );
+			
+			if ( $result = $mysqli->query( 'SHOW TABLES' ) ) {
+				while ( $row = $result->fetch_array( MYSQLI_NUM ) ) {
+					$mysqli->query( 'DROP TABLE IF EXISTS ' . $row[0] );
+				}
 			}
+
+			$mysqli->query( 'SET foreign_key_checks = 1' );
 		} else {
-			$result = mysql_query( $sql );
-			if ( ! $result ) {
-				die( 'Query failed: ' . mysql_error() );
+			mysql_query( 'SET foreign_key_checks = 0', $connection );
+
+			if ( $result = mysql_query( 'SHOW TABLES', $connection ) ) {
+				while ( $row = mysql_fetch_row( $result ) ) {
+					mysql_query( 'DROP TABLE IF EXISTS ' . $row[0], $connection );
+				}
 			}
 
-			while ( $row = mysql_fetch_assoc( $result ) ) {
-				$sql    = "TRUNCATE TABLE `" . $row['TABLE_NAME'] . "`";
-				$result = mysql_query( $sql );
-			}
+			mysql_query( 'SET foreign_key_checks = 1', $connection );
 		}
 	}
 	
@@ -267,8 +269,8 @@ if ( $file_relative_path === 'wp-config.php' ) {
 		die();
 	}
 
-	$config_file = $root_path . DIRECTORY_SEPARATOR . 'wp-config.php';
-	$wp_config   = file_get_contents( $wp_config_path );
+	$wp_config_path = $root_path . DIRECTORY_SEPARATOR . 'wp-config.php';
+	$wp_config      = file_get_contents( $wp_config_path );
 
 	$wp_config = preg_replace(
 		"/'DB_NAME',\s*'[^']*'/",

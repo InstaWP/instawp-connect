@@ -16,8 +16,8 @@ if ( ! empty( $migrate_id ) ) {
 <form action="" method="post" class="<?php echo esc_attr( implode( ' ', $nav_item_classes ) ); ?> create active">
 
 	<?php
-	if ( instawp()->is_on_local ) {
-		include INSTAWP_PLUGIN_DIR . '/migrate/templates/part-create-local.php';
+	if ( instawp()->is_on_local || instawp()->has_unsupported_plugins ) {
+		include INSTAWP_PLUGIN_DIR . '/migrate/templates/part-create-error.php';
 	} else if ( instawp()->is_connected ) {
 		include INSTAWP_PLUGIN_DIR . '/migrate/templates/part-create-staging.php';
 	} else {

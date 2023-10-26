@@ -291,16 +291,6 @@ class InstaWP_Setting {
 						'min' => '10',
 						'max' => '1024',
 					),
-				),
-				array(
-					'id'      => 'instawp_reset_type',
-					'type'    => 'select',
-					'title'   => esc_html__( 'Plugin Reset Type', 'instawp-connect' ),
-					'desc'    => esc_html__( 'Hard reset will remove everything including API key.', 'instawp-connect' ),
-					'options' => array(
-						'soft' => esc_html__( 'Soft Reset', 'instawp-connect' ),
-						'hard' => esc_html__( 'Hard Reset', 'instawp-connect' ),
-					),
 				)
 			),
 		);
@@ -493,6 +483,24 @@ class InstaWP_Setting {
 
 	public static function get_api_key() {
 		return get_option( 'instawp_api_key' );
+	}
+
+	public static function get_unsupported_plugins() {
+
+		$unsupported_plugins = array(
+			array(
+				'slug'       => 'breeze/breeze.php',
+				'name'       => esc_html( 'Breeze' ),
+				'author_url' => '',
+			),
+			array(
+				'slug'       => 'ithemes-security-pro/ithemes-security-pro.php',
+				'name'       => esc_html( 'Solid Security Pro' ),
+				'author_url' => esc_url( 'https://solidwp.com/' ),
+			),
+		);
+
+		return apply_filters( 'INSTAWP_CONNECT/Filters/get_unsupported_plugins', $unsupported_plugins );
 	}
 
 

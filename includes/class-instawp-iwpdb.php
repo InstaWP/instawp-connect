@@ -8,6 +8,8 @@ class IWPDB {
 
 	private $lastError;
 
+	private $table_option = 'serve_data_options';
+
 	public function __construct( $dbname = '' ) {
 
 		if ( extension_loaded( 'PDO' ) && in_array( 'sqlite', PDO::getAvailableDrivers() ) ) {
@@ -27,7 +29,57 @@ class IWPDB {
 				$this->lastError = $this->connection->lastErrorMsg();
 			}
 		}
+
+		$this->create_option_table();
 	}
+
+	public function get_option( $option_name = '', $default = '' ) {
+		$query_response = $this->rawQuery( "SELECT * FROM {$this->table_option} WHERE option_name=:option_name LIMIT 1", array( ':option_name' => $option_name ) );
+		$query_value    = $this->fetchRows( $query_response );
+		$query_value    = is_array( $query_value ) && isset( $query_value[0] ) ? $query_value[0] : [];
+
+		return isset( $query_value['option_value'] ) ? $query_value['option_value'] : $default;
+	}
+
+	public function update_option( $option_name, $option_value ) {
+
+		if ( empty( $this->get_option( $option_name ) ) ) {
+			return $this->add_option( $option_name, $option_value );
+		}
+
+		return $this->rawQuery( "UPDATE {$this->table_option} SET option_value = ':option_value' WHERE option_name=':option_name'",
+			array(
+				':option_name'  => $option_name,
+				':option_value' => $option_value,
+			)
+		);
+	}
+
+	public function add_option( $option_name, $option_value ) {
+
+		if ( is_array( $option_value ) ) {
+			$option_value = serialize( $option_value );
+		}
+
+		$ret = $this->rawQuery( "INSERT OR IGNORE INTO {$this->table_option} (option_name, option_value) VALUES (:option_name, :option_value)",
+			array(
+				':option_name'  => $option_name,
+				':option_value' => $option_value,
+			)
+		);
+
+		if ( ! $ret ) {
+			return false;
+		}
+
+		return $ret;
+	}
+
+
+	public function create_option_table() {
+		return $this->rawQuery( "CREATE TABLE IF NOT EXISTS {$this->table_option} (id INTEGER PRIMARY KEY AUTOINCREMENT, option_name TEXT UNIQUE, option_value TEXT)" );
+	}
+
 
 	public function __destruct() {
 		$this->disconnect();
