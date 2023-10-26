@@ -33,9 +33,9 @@ if( !empty( $parent_connect_data ) ){
                     <div class="text-sm font-medium text-grayCust-200 mb-1"><?php echo esc_html__( 'No Data found!', 'instawp-connect' ); ?></div>
                     <div class="text-sm font-normal text-grayCust-50"><?php echo esc_html__( 'Start Listening for Changes', 'instawp-connect' ); ?></div>
                     <div class="instawp_is_event_syncing">
-                        <label class="switch">
-                        <input type="checkbox" id="switch-id" <?php echo $syncing_status_val; ?>>
-                        <span class="slider round"></span>
+                        <label class="toggle-control">
+                            <input type="checkbox" <?php echo $syncing_status_val; ?> name="instwawp_is_event_syncing" id="instwawp_is_event_syncing" class="toggle-checkbox">
+                            <div class="toggle-switch"></div><span class="toggle-label" data-on="1" data-off="0"></span>
                         </label>
                     </div>
                 </div>
