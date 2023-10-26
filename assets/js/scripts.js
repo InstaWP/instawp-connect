@@ -300,7 +300,11 @@
 
     $(document).on('click', '.instawp-wrap .instawp-staging-type', function () {
 
-        let el_staging_type = $(this), el_staging_type_wrapper = el_staging_type.parent(), staging_type = el_staging_type.find('input[type="radio"]').val(), el_skip_media_folders = $('input#skip_media_folder');
+        let el_staging_type = $(this),
+            el_staging_type_wrapper = el_staging_type.parent(),
+            staging_type = el_staging_type.find('input[type="radio"]').val(),
+            el_skip_media_folders = $('input#skip_media_folder'),
+            el_skip_large_files = $('input#skip_large_files');
 
         el_staging_type_wrapper.find('.instawp-staging-type').removeClass('card-active border-primary-900');
         el_staging_type_wrapper.find('input[type="radio"]').prop('checked', false);
@@ -310,17 +314,18 @@
         // For Preview Screens
         $('.selected-staging-type').html(el_staging_type.find('.staging-type-label').text());
 
-
         if (staging_type === 'quick') {
             el_skip_media_folders.prop('checked', true).trigger('change');
+            el_skip_large_files.prop('checked', true).trigger('change');
         } else {
             if (el_skip_media_folders.parent().parent().hasClass('card-active')) {
                 el_skip_media_folders.prop('checked', false).trigger('change');
             }
+            if (el_skip_large_files.parent().parent().hasClass('card-active')) {
+                el_skip_large_files.prop('checked', false).trigger('change');
+            }
         }
-
     });
-
 
     $(document).on('click', '.instawp-wrap .instawp-button-migrate', function () {
 
@@ -584,7 +589,12 @@
         cEl.each(function(){
             sum = sum + $(this).data('size')
         });
-        $(document).find('.selected-files').html(`${cEl.length} files (${formatBytes(sum)}) skipped`);
+        if ( cEl.length > 0 ) {
+            $(document).find('.files-select').removeClass('hidden');
+            $(document).find('.selected-files').html(`${cEl.length} files (${formatBytes(sum)}) skipped`);
+        } else {
+            $(document).find('.files-select').addClass('hidden');
+        }
     });
 
     $(document).on('change', '.instawp-checkbox.exclude-database-item', function () {
@@ -593,7 +603,12 @@
         cEl.each(function(){
             sum = sum + $(this).data('size')
         });
-        $(document).find('.selected-db-tables').html(`${cEl.length} tables (${formatBytes(sum)}) skipped`);
+        if ( cEl.length > 0 ) {
+            $(document).find('.db-tables-select').removeClass('hidden');
+            $(document).find('.selected-db-tables').html(`${cEl.length} tables (${formatBytes(sum)}) skipped`);
+        } else {
+            $(document).find('.db-tables-select').addClass('hidden');
+        }
     });
 
     $(document).on('change', '.instawp-checkbox.exclude-database-item', function () {
