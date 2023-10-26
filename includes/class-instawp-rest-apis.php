@@ -1436,7 +1436,7 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 		$connect_id = intval( $source_connect_id );
 		$endpoint   = '/api/v2/connects/' . $connect_id . '/syncs/' . $sync_id;
 		$url        = $api_doamin . $endpoint; #https://stage.instawp.io/api/v2/connects/241/syncs/450
-		$api_key    = $this->get_api_key();
+		$api_key    = InstaWP_setting::get_api_key();
 
 		try {
 			$curl = curl_init();
@@ -1464,15 +1464,6 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 		} catch ( Exception $e ) {
 			return $e->getMessage();
 		}
-	}
-
-    /**
-     * get api key
-     * @return string
-     */
-	function get_api_key() {
-		$instawp_api_options = get_option( 'instawp_api_options' );
-		return $instawp_api_options['api_key'];
 	}
 
 	/*
