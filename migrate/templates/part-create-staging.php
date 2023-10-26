@@ -162,7 +162,7 @@ $tracking_url          = InstaWP_Setting::get_args_option( 'tracking_url', $migr
 									<?php foreach ( $list_data as $data ) {
 										$element_id = wp_generate_uuid4(); ?>
                                         <div class="flex justify-between items-center text-xs">
-                                            <input type="checkbox" name="migrate_settings[excluded_paths][]" id="<?php echo esc_attr( $element_id ); ?>" value="<?php echo esc_attr( $data['relative_path'] ); ?>" class="instawp-checkbox exclude-file-item large-file !mt-0 !mr-3 rounded border-gray-300 text-primary-900 focus:ring-primary-900">
+                                            <input type="checkbox" name="migrate_settings[excluded_paths][]" id="<?php echo esc_attr( $element_id ); ?>" value="<?php echo esc_attr( $data['relative_path'] ); ?>" class="instawp-checkbox exclude-file-item large-file !mt-0 !mr-3 rounded border-gray-300 text-primary-900 focus:ring-primary-900" data-size="<?php echo esc_html( $data['size'] ); ?>">
                                             <label for="<?php echo esc_attr( $element_id ); ?>"><?php echo esc_html( $data['relative_path'] ); ?> (<?php echo esc_html( instawp()->get_file_size_with_unit( $data['size'] ) ); ?>)</label>
                                         </div>
 									<?php } ?>
@@ -258,23 +258,23 @@ $tracking_url          = InstaWP_Setting::get_args_option( 'tracking_url', $migr
                     <div class="flex justify-between items-center">
                         <div class="text-grayCust-200 text-lg font-bold"><?php esc_html_e( '3. Confirmation', 'instawp-connect' ); ?></div>
                     </div>
-                    <div class="panel mt-6 block">
-                        <div class="flex items-center mb-6">
+                    <div class="panel mt-6 flex flex-col gap-6">
+                        <div class="flex items-center">
                             <div class="text-grayCust-900 text-base font-normal mr-4 w-[140px]"><?php esc_html_e( 'Staging Type', 'instawp-connect' ); ?></div>
                             <div class="text-grayCust-300 text-base font-medium items-center flex mr-6 selected-staging-type"><?php esc_html_e( 'Quick Staging', 'instawp-connect' ); ?></div>
                         </div>
-                    </div>
-                    <div class="flex items-center">
-                        <div class="text-grayCust-900 text-base font-normal mr-4 w-[140px]"><?php esc_html_e( 'Options Selected', 'instawp-connect' ); ?></div>
-                        <div class="grid grid-cols-3 gap-3 selected-staging-options"></div>
-                    </div>
-                    <div class="flex items-center mt-5">
-                        <div class="text-grayCust-900 text-base font-normal mr-4 w-[140px]"><?php esc_html_e( 'Files Selected', 'instawp-connect' ); ?></div>
-                        <div class="grid grid-cols-1 gap-3 selected-files"></div>
-                    </div>
-                    <div class="flex items-center mt-5">
-                        <div class="text-grayCust-900 text-base font-normal mr-4 w-[140px]"><?php esc_html_e( 'Tables Selected', 'instawp-connect' ); ?></div>
-                        <div class="grid grid-cols-2 gap-3 selected-db-tables"></div>
+                        <div class="flex items-center">
+                            <div class="text-grayCust-900 text-base font-normal mr-4 w-[140px]"><?php esc_html_e( 'Options Selected', 'instawp-connect' ); ?></div>
+                            <div class="grid grid-cols-3 gap-3 selected-staging-options"></div>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="text-grayCust-900 text-base font-normal mr-4 w-[140px]"><?php esc_html_e( 'Files Selected', 'instawp-connect' ); ?></div>
+                            <div class="text-grayCust-300 text-base font-medium items-center flex mr-6 selected-files"></div>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="text-grayCust-900 text-base font-normal mr-4 w-[140px]"><?php esc_html_e( 'Tables Selected', 'instawp-connect' ); ?></div>
+                            <div class="text-grayCust-300 text-base font-medium items-center flex mr-6 selected-db-tables"></div>
+                        </div>
                     </div>
                 </div>
 
