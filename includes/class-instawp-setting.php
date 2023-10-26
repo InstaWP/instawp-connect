@@ -60,14 +60,27 @@ class InstaWP_Setting {
 			unset( $instawp_nav_items['manage'] );
 		}
 
-		$user          = get_userdata( get_current_user_id() );
-		$allowed_roles = ! current_user_can( 'administrator' ) ? InstaWP_Setting::get_option( 'instawp_sync_tab_roles' ) : [ 'administrator' ];
-		if ( empty( array_intersect( $allowed_roles, $user->roles ) ) ) {
-			unset( $instawp_nav_items['sync'] );
+		if ( self::get_allowed_role() !== 'administrator' ) {
+			unset( $instawp_nav_items['create'] );
+			unset( $instawp_nav_items['sites'] );
+			unset( $instawp_nav_items['manage'] );
+			unset( $instawp_nav_items['settings'] );
 		}
 
-
 		return apply_filters( 'INSTAWP_CONNECT/Filters/plugin_nav_items', $instawp_nav_items );
+	}
+
+	public static function get_allowed_role() {
+		$allowed_role = 'administrator';
+
+		foreach ( InstaWP_Setting::get_option( 'instawp_sync_tab_roles', [] ) as $role ) {
+			if ( current_user_can( $role ) ) {
+				$allowed_role = $role;
+				break;
+			}
+		}
+
+		return $allowed_role;
 	}
 
 	public static function generate_section_field( $field = array() ) {
@@ -515,6 +528,24 @@ class InstaWP_Setting {
 
 		update_option( 'instawp_api_options', $api_options );
 	}
+	public static function get_unsupported_plugins() {
+
+		$unsupported_plugins = array(
+			array(
+				'slug'       => 'breeze/breeze.php',
+				'name'       => esc_html( 'Breeze' ),
+				'author_url' => '',
+			),
+			array(
+				'slug'       => 'ithemes-security-pro/ithemes-security-pro.php',
+				'name'       => esc_html( 'Solid Security Pro' ),
+				'author_url' => esc_url( 'https://solidwp.com/' ),
+			),
+		);
+
+		return apply_filters( 'INSTAWP_CONNECT/Filters/get_unsupported_plugins', $unsupported_plugins );
+	}
+
 
 	public static function instawp_generate_api_key( $api_key, $status ) {
 
@@ -574,7 +605,10 @@ class InstaWP_Setting {
 			return false;
 		}
 
-		$response = (array) json_decode( $curl_response['curl_res'], true );
+		$response   = (array) json_decode( $curl_response['curl_res'], true );
+		$connect_id = $response['data']['id'] ?? '';
+
+		if ( $response['status'] && ! empty( $connect_id ) ) {
 
 		if ( $response['status'] ) {
 			self::set_connect_id( $response['data']['id'] );

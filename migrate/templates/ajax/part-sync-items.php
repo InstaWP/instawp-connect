@@ -9,7 +9,7 @@
 
             if( $status == 'completed' ){
                 $label_class      .= ' hint--top hint--low';
-                $label_attributes .= ' aria-label="Synced on ' . date( 'M j, Y H:i A', strtotime( $event_row->date ) ) . '"';
+                $label_attributes .= ' aria-label="Synced:' . date( 'M j, Y H:i A', strtotime( $event_row->date ) ) . '"';
             }
         ?>
         <tr>
@@ -17,7 +17,7 @@
                 <input type="checkbox" name="event[]"  value="<?php echo $event->id; ?>" class="single-event-cb" />
             </td>
             <td class="whitespace-nowrap py-6 px-6 text-sm font-medium text-grayCust-300"><?php echo esc_html( $event->event_name ); ?></td>
-            <td class="whitespace-nowrap px-6 py-6 font-medium text-sm text-grayCust-300"><?php echo esc_html( $event->title ); ?></td>
+            <td class="whitespace-nowrap px-6 py-6 font-medium text-sm text-grayCust-300 instawp-event-title-td"><?php echo esc_html( $event->title ); ?></td>
             <td class="whitespace-nowrap px-6 py-6 font-medium text-sm text-grayCust-300"><?php echo esc_html( $datetime ); ?></td>
             <td class="whitespace-nowrap px-6 py-6 text-center font-medium text-sm text-grayCust-300">
             <div class="flex flex-col items-center">
@@ -41,4 +41,10 @@
             </td> -->
         </tr>
     <?php endforeach; ?>
+    <?php else:?> 
+        <tr>
+            <td colspan="5" class="text-center p-4">
+                <?php echo esc_html('No events found!', 'instawp-connect') ?>
+            </td>
+        </tr> 
 <?php endif?>

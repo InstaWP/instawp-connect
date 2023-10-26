@@ -666,8 +666,14 @@ class InstaWP_Change_Event_Filters
             return $post_ID;
         }
 
+        //acf feild group check
         if($post->post_type == 'acf-field-group' && $post->post_content == '') {
             $this->_prepare_metas_for_each_post($post_ID);
+            return $post_ID;
+        }
+
+        //acf check for acf post type
+        if( in_array( $post->post_type, ['acf-post-type','acf-taxonomy'] ) && $post->post_title =='Auto Draft' ) {
             return $post_ID;
         }
 
@@ -676,32 +682,25 @@ class InstaWP_Change_Event_Filters
         $modified = new DateTime( $post->post_modified_gmt );
         $diff     = $created->diff( $modified );
         $difference = ((($diff->y * 365.25 + $diff->m * 30 + $diff->d) * 24 + $diff->h) * 60 + $diff->i)*60 + $diff->s;
+        
+        $event   = $this->wpdb->get_row("SELECT * FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE source_id = ".$post_ID." ORDER BY date DESC LIMIT 1" );
+		if( !empty( $event ) ){
+            $event_date  = new DateTime( $event->date );
+            $diff     = $modified->diff( $event_date );
+            if( $diff->s >= 1 && $diff->s <=5 ){
+                $this->wpdb->query( "DELETE FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE id=".$event->id );
+            }
+        }
 
         if( $difference <= 1 ){
+            $event_slug = 'post_new';
             $event_name = sprintf(esc_html__('%s created', 'instawp-connect'), $post_type_singular_name);
-            $this->addPostData($event_name, 'post_new', $post, $post_ID); 
         }else{
             $event_slug = 'post_change';
             $event_name = sprintf( __('%s modified', 'instawp-connect'), $post_type_singular_name );
-            $this->addPostData($event_name, $event_slug, $post, $post_ID);
         }
 
-        //check post revisions are found 
-        // $revisions = wp_get_post_revisions($post_ID);
-
-        // if (count($revisions) <= 1) {
-
-        //     $event_name = sprintf(esc_html__('%s created', 'instawp-connect'), $post_type_singular_name);
-        //     $this->addPostData($event_name, 'post_new', $post, $post_ID);
-
-        // } else {
-        //     if ( $update && ( $post->post_type != 'revision' ) ) {
-        //         $event_slug = 'post_change';
-        //         $event_name = sprintf( __('%s modified', 'instawp-connect'), $post_type_singular_name );
-        //         # need to add update traking data once in db
-        //         $this->addPostData($event_name, $event_slug, $post, $post_ID);
-        //     }
-        // }
+        $this->instawp_handle_post_events($event_name, $event_slug, $post, $post_ID);
     }
 
     /**
@@ -712,7 +711,7 @@ class InstaWP_Change_Event_Filters
      */
     public function add_attachment( $post_id ) {
         $event_name = sprintf( esc_html__('Media created', 'instawp-connect') );
-        $this->addPostData( $event_name, 'post_new', get_post($post_id), $post_id );
+        $this->instawp_handle_post_events( $event_name, 'post_new', get_post($post_id), $post_id );
     }
 
     /**
@@ -725,7 +724,7 @@ class InstaWP_Change_Event_Filters
      */
     public function attachment_updated( $post_id, $post_after, $post_before ) {
         $event_name = sprintf( esc_html__('Media updated', 'instawp-connect') );
-        $this->addPostData( $event_name, 'post_new', $post_after, $post_id );
+        $this->instawp_handle_post_events( $event_name, 'post_new', $post_after, $post_id );
     }
 
     /**
@@ -789,7 +788,7 @@ class InstaWP_Change_Event_Filters
         if (isset($post->post_type) && $post->post_type != 'revision') {
             $event_slug = 'post_delete';
             $event_name = sprintf(__('%s deleted', 'instawp-connect'), instawp_get_post_type_singular_name($post->post_type));
-            $this->addPostData($event_name, $event_slug, $post, $post_id);
+            $this->instawp_handle_post_events($event_name, $event_slug, $post, $post_id);
         }
     }
     /**
@@ -804,7 +803,7 @@ class InstaWP_Change_Event_Filters
         if ($post->post_type != 'customize_changeset') {
             $event_slug = 'post_trash';
             $event_name = sprintf(__('%s trashed', 'instawp-connect'), instawp_get_post_type_singular_name($post->post_type));
-            $this->addPostData($event_name, $event_slug, $post, null);
+            $this->instawp_handle_post_events($event_name, $event_slug, $post, null);
         }
     }
     /**
@@ -819,11 +818,11 @@ class InstaWP_Change_Event_Filters
         $post = get_post($post_id);
         $event_name = sprintf(__('%s Restored', 'instawp-connect'), instawp_get_post_type_singular_name($post->post_type));
         $event_slug = 'untrashed_post';
-        $this->addPostData($event_name, $event_slug, $post, $post_id);
+        $this->instawp_handle_post_events($event_name, $event_slug, $post, $post_id);
     }
 
     /**
-     * Function for `addPostData`
+     * Function for `instawp_handle_post_events`
      *
      * @param $event_name
      * @param $event_slug
@@ -831,7 +830,7 @@ class InstaWP_Change_Event_Filters
      * @param $post_id
      * @return void
      */
-    public function addPostData($event_name = null, $event_slug = null, $post = null, $post_id = null) {
+    public function instawp_handle_post_events($event_name = null, $event_slug = null, $post = null, $post_id = null) {
 
         //check if the sync is enabled to record
         $instawp_is_event_syncing = get_option('instawp_is_event_syncing', 0);

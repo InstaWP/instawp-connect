@@ -7,7 +7,7 @@
  * @wordpress-plugin
  * Plugin Name:       InstaWP Connect
  * Description:       Create 1-click staging, migration and manage your prod sites.
- * Version:           0.0.9.41
+ * Version:           0.0.9.43
  * Author:            InstaWP Team
  * Author URI:        https://instawp.com/
  * License:           GPL-3.0+
@@ -23,7 +23,7 @@ if ( ! defined( 'WPINC' ) ) {
 
 global $wpdb;
 
-define( 'INSTAWP_PLUGIN_VERSION', '0.0.9.41' );
+define( 'INSTAWP_PLUGIN_VERSION', '0.0.9.42' );
 define( 'INSTAWP_RESTORE_INIT', 'init' );
 define( 'INSTAWP_RESTORE_READY', 'ready' );
 define( 'INSTAWP_RESTORE_COMPLETED', 'completed' );
@@ -32,12 +32,14 @@ define( 'INSTAWP_RESTORE_ERROR', 'error' );
 define( 'INSTAWP_RESTORE_WAIT', 'wait' );
 define( 'INSTAWP_RESTORE_TIMEOUT', 180 );
 
+defined( 'INSTAWP_PLUGIN_URL' ) || define( 'INSTAWP_PLUGIN_URL', WP_PLUGIN_URL . '/' . plugin_basename( dirname( __FILE__ ) ) . '/' );
+defined( 'INSTAWP_PLUGIN_DIR' ) || define( 'INSTAWP_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
+
+
 define( 'INSTAWP_CHUNK_SIZE', 1024 * 1024 );
 
 define( 'INSTAWP_PLUGIN_SLUG', 'instawp-connect' );
 define( 'INSTAWP_PLUGIN_NAME', plugin_basename( __FILE__ ) );
-define( 'INSTAWP_PLUGIN_URL', plugins_url( '', __FILE__ ) );
-define( 'INSTAWP_PLUGIN_DIR', dirname( __FILE__ ) );
 define( 'INSTAWP_PLUGIN_DIR_URL', plugin_dir_url( __FILE__ ) . 'admin/' );
 define( 'INSTAWP_PLUGIN_IMAGES_URL', INSTAWP_PLUGIN_URL . '/admin/partials/images/' );
 //We set a long enough default execution time (10 min) to ensure that the backup process can be completed.
@@ -229,6 +231,7 @@ function run_instawp() {
 	$instawp_plugin = new instaWP();
 
 	$GLOBALS['instawp_plugin'] = $instawp_plugin;
+	$GLOBALS['instawp']        = $instawp_plugin;
 
 	instawp_create_db_tables();
 	// instawp_alter_db_tables();
@@ -236,33 +239,25 @@ function run_instawp() {
 
 add_filter( 'got_rewrite', '__return_true' );
 
-
-///**
-// * @var InstaWP_Log $instawp_log
-// */
-//global $instawp_log;
-//
-//if ( ! class_exists( 'InstaWP_Log' ) ) {
-//	include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-log.php';
-//}
-//
-//$instawp_log = new InstaWP_Log( 'migration', 'New Migration Logic' );
-
 run_instawp();
 
 add_action( 'wp_head', function () {
 	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
 
-
-//		update_option( 'instawp_migration_details', [
-//			'migrate_id' => 32,
-//			'migrate_key' => '4uya7oqapkesbrukdbgmwnuwd5yv58mpu9dwxunk',
-//		] );
+//		$migrate_key = 'wtoxts4q1b4osiahupkcjhugzpeoqq6tkucn3q3u';
+//		$tracking_db = instawp()->tools::get_tracking_database( $migrate_key );
 
 //		echo "<pre>";
-//		print_r( get_option( 'instawp_migration_details' ) );
+//		print_r( $tracking_db );
 //		echo "</pre>";
-
+//
+//		echo "<pre>";
+//		print_r( $tracking_db->get_option( 'api_signature' ) );
+//		echo "</pre>";
+//
+//		echo "<pre>";
+//		print_r( $tracking_db->get_option( 'migrate_settings' ) );
+//		echo "</pre>";
 
 		die();
 	}

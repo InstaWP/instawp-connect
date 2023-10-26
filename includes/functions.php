@@ -378,7 +378,7 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 	 *
 	 * @return bool
 	 */
-	function instawp_reset_running_migration( $reset_type = 'soft', $force_timeout = true ) {
+	function instawp_reset_running_migration( $reset_type = 'soft', $force_timeout = false ) {
 
 		// Delete migration details
 		delete_option( 'instawp_migration_details' );
@@ -414,14 +414,14 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 			as_unschedule_all_actions( 'instawp_handle_heartbeat', [], 'instawp-connect' );
 
 			$file_db_manager = InstaWP_Setting::get_option( 'instawp_file_db_manager', [] );
-			$file_name       = InstaWP_Setting::get_args_option( $file_db_manager, 'file_name' );
+			$file_name       = InstaWP_Setting::get_args_option( 'file_name', $file_db_manager );
 			if ( $file_name ) {
 				as_unschedule_all_actions( 'instawp_clean_file_manager', [ $file_name ], 'instawp-connect' );
 				do_action( 'instawp_clean_file_manager', $file_name );
 			}
 
 			$file_db_manager = InstaWP_Setting::get_option( 'instawp_file_db_manager', [] );
-			$file_name       = InstaWP_Setting::get_args_option( $file_db_manager, 'db_name' );
+			$file_name       = InstaWP_Setting::get_args_option( 'db_name', $file_db_manager );
 			if ( $file_name ) {
 				as_unschedule_all_actions( 'instawp_clean_database_manager', [ $file_name ], 'instawp-connect' );
 				do_action( 'instawp_clean_database_manager', $file_name );
@@ -875,6 +875,8 @@ if ( ! function_exists( 'instawp_domain_search' ) ) {
 			CURLOPT_MAXREDIRS      => 10,
 			CURLOPT_TIMEOUT        => 30,
 			CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
+			CURLOPT_SSL_VERIFYHOST => false,
+			CURLOPT_SSL_VERIFYPEER => false,
 			CURLOPT_CUSTOMREQUEST  => "GET",
 			CURLOPT_HTTPHEADER     => [
 				"X-RapidAPI-Host: domainr.p.rapidapi.com",
@@ -1388,5 +1390,24 @@ if ( ! function_exists( 'instawp_get_source_site_detail' ) ) {
 				add_option( 'instawp_sync_parent_connect_data', $api_response_data );
 			}
 		}
+	}
+}
+
+
+if ( ! function_exists( 'get_connect_detail_by_connect_id' ) ) {
+	/**
+	 * Connect detail
+	 *
+	 * @param $connect_id
+	 *
+	 * @return array
+	 */
+	function get_connect_detail_by_connect_id( $connect_id ) {
+		$api_response = InstaWP_Curl::do_curl( 'connects/' . $connect_id, [], [], false );
+		if ( $api_response['success'] && ! empty( $api_response['data'] ) ) {
+			return $api_response['data'];
+		}
+
+		return [];
 	}
 }

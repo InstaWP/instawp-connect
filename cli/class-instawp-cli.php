@@ -3,6 +3,8 @@
  * InstaWP CLI Commands
  */
 
+use InstaWP\Connect\Helpers\WPConfig;
+
 if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 	class INSTAWP_CLI_Commands {
 
@@ -25,9 +27,22 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 						InstaWP_Setting::set_api_domain( $args[2] );
 					}
 				}
+
+				if ( isset( $args[3] ) ) {
+					$payload_decoded = base64_decode( $args[3] );
+					$payload         = json_decode( $payload_decoded, true );
+
+					if ( isset( $payload['mode'] ) ) {
+						if ( isset( $payload['mode']['name'] ) ) {
+							$wp_config = new WPConfig( [ 'INSTAWP_CONNECT_MODE' => $payload['mode']['name'] ] );
+							$wp_config->update();
+						}
+					}
+				}
+
 				return true;
-			} 
-			
+			}
+
 			if ( isset( $args[0] ) && $args[0] === 'config-remove' ) {
 				$option = new \InstaWP\Connect\Helpers\Option();
 				$option->delete( [ 'instawp_api_key', 'instawp_api_options', 'instawp_connect_id_options' ] );

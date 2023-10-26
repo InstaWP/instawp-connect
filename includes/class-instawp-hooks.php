@@ -24,7 +24,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 
 			if ( 'instawp' === $admin_page && 'all' === $clear_action ) {
 
-				instawp_reset_running_migration();
+				instawp_reset_running_migration( 'soft', true );
 
 				wp_redirect( admin_url( 'tools.php?page=instawp' ) );
 				exit();

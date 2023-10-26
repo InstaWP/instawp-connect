@@ -26,6 +26,10 @@ class instaWP {
 
 	public $is_connected = false;
 
+	public $is_on_local = false;
+
+	public $has_unsupported_plugins = false;
+
 	public $api_key = null;
 
 	public $connect_id = null;
@@ -40,10 +44,12 @@ class instaWP {
 		$this->plugin_name  = INSTAWP_PLUGIN_SLUG;
 		$this->api_key      = InstaWP_Setting::get_api_key();
 		$this->is_connected = ! empty( $this->api_key );
+		$this->is_on_local  = instawp_is_website_on_local();
 		$this->connect_id   = instawp_get_connect_id();
 		$this->is_staging   = (bool) InstaWP_Setting::get_option( 'instawp_is_staging', false );
 
-		$this->tools = new InstaWP_Tools();
+		$this->tools                   = new InstaWP_Tools();
+		$this->has_unsupported_plugins = ! empty( $this->tools::get_unsupported_active_plugins() );
 
 		if ( is_admin() ) {
 			$this->set_locale();
@@ -111,12 +117,6 @@ class instaWP {
 	}
 
 	public function clean_migrate_files() {
-		$incomplete_task_ids = InstaWP_taskmanager::is_there_any_incomplete_task_ids();
-		$incomplete_task_id  = reset( $incomplete_task_ids );
-		if ( ! empty( $incomplete_task_id ) && ! empty( InstaWP_Setting::get_option( 'instawp_migration_running', '' ) ) ) {
-			return;
-		}
-
 		$path = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . INSTAWP_DEFAULT_BACKUP_DIR . DIRECTORY_SEPARATOR;
 		@unlink( $path . 'instawp_exclude_tables_rows_data.json' );
 		@unlink( $path . 'instawp_exclude_tables_rows.json' );
@@ -328,10 +328,6 @@ class instaWP {
 		$plugin_basename = plugin_basename( plugin_dir_path( __DIR__ ) . 'instawp-connect.php' );
 		add_filter( 'plugin_action_links_' . $plugin_basename, array( $this->admin, 'add_action_links' ) );
 
-		// Add Settings link to the plugin
-		$plugin_basename = plugin_basename( plugin_dir_path( __DIR__ ) . 'instawp-connect.php' );
-		add_filter( 'plugin_action_links_' . $plugin_basename, array( $this->admin, 'add_action_links' ) );
-
 		add_filter( 'instawp_add_tab_page', array( $this->admin, 'instawp_add_default_tab_page' ) );
 	}
 
@@ -435,7 +431,6 @@ class instaWP {
 		return number_format( $size ) . " B";
 	}
 
-
 	public function get_dir_files( &$files, &$folder, $path, $except_regex, $exclude_files = array(), $exclude_folder = array(), $exclude_file_size = 0, $flag = true ) {
 		$handler = opendir( $path );
 		if ( $handler === false ) {
@@ -478,6 +473,23 @@ class instaWP {
 
 	}
 
+	public function get_current_mode( $data_to_get = '' ) {
+		$mode_data = [];
+
+		if ( ! empty( INSTAWP_CONNECT_MODE ) ) {
+			$mode_data['type'] = INSTAWP_CONNECT_MODE;
+			$mode_data['name'] = INSTAWP_CONNECT_MODE_NAME ?? '';
+			$mode_data['link'] = INSTAWP_CONNECT_MODE_LINK ?? '';
+			$mode_data['desc'] = INSTAWP_CONNECT_MODE_DESC ?? '';
+			$mode_data['logo'] = INSTAWP_CONNECT_MODE_LOGO ?? '';
+		}
+
+		if ( ! empty( $data_to_get ) ) {
+			return InstaWP_Setting::get_args_option( $data_to_get, $mode_data );
+		}
+
+		return $mode_data;
+	}
 
 	public static function disable_cache_elements_before_restore() {
 
@@ -712,7 +724,7 @@ class instaWP {
 
 		if ( ! empty( $excluded_paths ) ) {
 			foreach ( $excluded_paths as $excluded_path ) {
-				$excluded_size += instawp()->get_directory_size( $excluded_path );
+				$excluded_size += instawp()->get_directory_size( ABSPATH . $excluded_path );
 			}
 		}
 
