@@ -407,7 +407,6 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 			delete_option( 'instawp_rm_inventory' );
 			delete_option( 'instawp_rm_debug_log' );
 
-			update_option( 'instawp_api_url', esc_url_raw( 'https://app.instawp.io' ) );
 			delete_transient( 'instawp_staging_sites' );
 			delete_transient( 'instawp_migration_completed' );
 
