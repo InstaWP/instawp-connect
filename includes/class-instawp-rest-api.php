@@ -535,15 +535,15 @@ class InstaWP_Backup_Api {
 
 		if ( isset( $override_plugin_zip ) ) {
 			$this->override_plugin_zip_while_doing_config( $override_plugin_zip );
+		}
 
-			if ( ! function_exists( 'is_plugin_active' ) ) {
-				require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
-			}
+		if ( ! function_exists( 'is_plugin_active' ) ) {
+			require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
+		}
 
-			$plugin_slug = INSTAWP_PLUGIN_SLUG . '/' . INSTAWP_PLUGIN_SLUG . '.php';
-			if ( ! is_plugin_active( $plugin_slug ) ) {
-				activate_plugin( $plugin_slug );
-			}
+		$plugin_slug = INSTAWP_PLUGIN_SLUG . '/' . INSTAWP_PLUGIN_SLUG . '.php';
+		if ( ! is_plugin_active( $plugin_slug ) ) {
+			activate_plugin( $plugin_slug );
 		}
 
 		if ( ! empty( $connect_id ) && ( empty( $parameters['force'] ) ) ) {
