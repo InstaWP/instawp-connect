@@ -97,7 +97,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 	}
 
 	if ( ! function_exists( 'send_by_zip' ) ) {
-		function send_by_zip( IWPDB $tracking_db, $unsentFiles = array(), $progress_percentage = '', $archiveType = 'ziparchive') {
+		function send_by_zip( IWPDB $tracking_db, $unsentFiles = array(), $progress_percentage = '', $archiveType = 'ziparchive' ) {
 			header( 'Content-Type: zip' );
 			header( 'x-file-type: zip' );
 			header( 'x-iwp-progress: ' . $progress_percentage );
@@ -111,16 +111,13 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 					die( "Cannot open zip archive" );
 				}
 			} elseif ( $archiveType === 'phardata' ) {
+				$tmpZip  .= '.zip';
 				$archive = new PharData( $tmpZip );
 			} else {
 				die( "Invalid archive type" );
 			}
 
 			header( 'x-iwp-filename: ' . $tmpZip );
-
-			if ( $archive->open( $tmpZip, ZipArchive::OVERWRITE ) !== true ) {
-				die( "Cannot open zip archive" );
-			}
 
 			foreach ( $unsentFiles as $file ) {
 				$filePath         = $file['filepath'] ?? '';
@@ -205,7 +202,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
 			return ! in_array( $iterator->getSubPath(), $skip_folders );
 		};
-		$directory        = new RecursiveDirectoryIterator( WP_ROOT, RecursiveDirectoryIterator::SKIP_DOTS );
+		$directory        = new RecursiveDirectoryIterator( WP_ROOT, RecursiveDirectoryIterator::SKIP_DOTS | RecursiveDirectoryIterator::FOLLOW_SYMLINKS );
 		$iterator         = new RecursiveIteratorIterator( new RecursiveCallbackFilterIterator( $directory, $filter_directory ), RecursiveIteratorIterator::LEAVES_ONLY );
 
 		// Get the current file index from the database or file
@@ -261,19 +258,25 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 	//TODO: this query runs every time even if there are no files to zip, may be we can
 	//cache the result in first time and don't run the query
 
-	$unsentFiles = $tracking_db->fetchRows( $tracking_db->rawQuery( "SELECT id,filepath,size FROM files_sent WHERE sent = 0 and size < " . MAX_ZIP_SIZE . " ORDER by size LIMIT " . BATCH_ZIP_SIZE ) );
+	$is_archive_available = false;
+	$unsentFiles          = [];
 
-	if ( count( $unsentFiles ) > 0 ) {
+	if ( class_exists( 'ZipArchive' ) || class_exists( 'PharData' ) ) {
+		$is_archive_available = true;
+		$unsentFiles          = $tracking_db->fetchRows( $tracking_db->rawQuery( "SELECT id,filepath,size FROM files_sent WHERE sent = 0 and size < " . MAX_ZIP_SIZE . " ORDER by size LIMIT " . BATCH_ZIP_SIZE ) );
+	}
 
-		if (class_exists('ZipArchive')) {
+	if ( $is_archive_available && count( $unsentFiles ) > 0 ) {
+
+		if ( class_exists( 'ZipArchive' ) && 0 ) {
 			// ZipArchive is available
-			send_by_zip($tracking_db, $unsentFiles, $progress_percentage, 'ziparchive');
-		} elseif (class_exists('PharData')) {
+			send_by_zip( $tracking_db, $unsentFiles, $progress_percentage, 'ziparchive' );
+		} elseif ( class_exists( 'PharData' ) ) {
 			// PharData is available
-			send_by_zip($tracking_db, $unsentFiles, $progress_percentage, 'phardata');
+			send_by_zip( $tracking_db, $unsentFiles, $progress_percentage, 'phardata' );
 		} else {
 			// Neither ZipArchive nor PharData is available
-			die("No archive library available!");
+			die( "No archive library available!" );
 		}
 	} else {
 
