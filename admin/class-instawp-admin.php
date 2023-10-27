@@ -99,8 +99,8 @@ class InstaWP_Admin {
 		$admin_bar->add_menu(
 			array(
 				'id'    => 'instawp',
-				'title' => ' ',
-				'href'  => '#',
+				'title' => '',
+				'href'  => admin_url( 'tools.php?page=instawp' ),
 			)
 		);
 	}

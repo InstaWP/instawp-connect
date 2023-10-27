@@ -55,6 +55,30 @@
             }
         }
     }
+
+    li#wp-admin-bar-instawp {
+        a {
+            position: relative;
+            width: 24px;
+
+            &:hover,
+            &:focus,
+            &:visited {
+                background: transparent;
+                color: transparent;
+            }
+
+            &:after {
+                position: absolute;
+                content: url("../images/instawp-logo.svg");
+                top: 50%;
+                left: 50%;
+                width: 24px;
+                height: 24px;
+                transform: translate(-50%, -50%);
+            }
+        }
+    }
 }
 
 
