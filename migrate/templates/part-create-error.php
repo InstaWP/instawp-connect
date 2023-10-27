@@ -6,16 +6,18 @@
 $error_title   = esc_html__( 'We have removed support for local sites for now', 'instawp-connect' );
 $error_message = esc_html__( 'You may use a third party backup and restore plugin such as WP Vivid or Everest Backup.', 'instawp-connect' );
 
-if ( instawp()->has_unsupported_plugins ) {
+if ( ! instawp()->has_sqlite ) {
+	$error_title   = esc_html__( 'We did not find SQLite PHP extension or PDO SQLite PHP extension in this website', 'instawp-connect' );
+	$error_message = esc_html__( 'Please ask your hosting provider to enable this support, or wait for a release soon in which we remove this dependency', 'instawp-connect' );
+} else if ( instawp()->has_unsupported_plugins ) {
 	$unsupported_plugins     = array_map( function ( $plugin ) {
 		return $plugin['name'] ?? '';
 	}, instawp()->tools::get_unsupported_active_plugins() );
 	$unsupported_plugins_str = implode( ', ', $unsupported_plugins );
+
 	$error_title             = esc_html__( 'Unsupported plugins detected', 'instawp-connect' );
 	$error_message           = sprintf( __( 'We have detected <strong class="underline">%s</strong> plugin(s) which is incompatible with our service currently. Please deactivate it to start the process (later you can activate it back)', 'instawp-connect' ), $unsupported_plugins_str );
-}
-
-?>
+} ?>
 
 <div class="bg-white text-center rounded-md py-20 flex items-center justify-center">
     <div class="w-2/3">
