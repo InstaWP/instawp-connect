@@ -50,6 +50,7 @@ class instaWP {
 
 		$this->tools                   = new InstaWP_Tools();
 		$this->has_unsupported_plugins = ! empty( $this->tools::get_unsupported_active_plugins() );
+		$this->has_sqlite              = ( extension_loaded( 'sqlite3' ) || extension_loaded( 'pdo_sqlite' ) );
 
 		if ( is_admin() ) {
 			$this->set_locale();
