@@ -42,6 +42,7 @@ if ( file_exists( $iwpdb_main_path ) ) {
 	require_once( $iwpdb_git_path );
 } else {
 	header( 'x-iwp-status: false' );
+	header( 'x-iwp-root-path: ' . WP_ROOT );
 	echo "Count not find class-instawp-iwpdb in the plugin directory.";
 	exit( 2 );
 }
@@ -96,17 +97,28 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 	}
 
 	if ( ! function_exists( 'send_by_zip' ) ) {
-		function send_by_zip( IWPDB $tracking_db, $unsentFiles = array(), $progress_percentage = '' ) {
+		function send_by_zip( IWPDB $tracking_db, $unsentFiles = array(), $progress_percentage = '', $archiveType = 'ziparchive') {
 			header( 'Content-Type: zip' );
 			header( 'x-file-type: zip' );
 			header( 'x-iwp-progress: ' . $progress_percentage );
 
 			$tmpZip = tempnam( sys_get_temp_dir(), 'batchzip' );
-			$zip    = new ZipArchive();
+
+			if ( $archiveType === 'ziparchive' ) {
+				$archive = new ZipArchive();
+
+				if ( $archive->open( $tmpZip, ZipArchive::OVERWRITE ) !== true ) {
+					die( "Cannot open zip archive" );
+				}
+			} elseif ( $archiveType === 'phardata' ) {
+				$archive = new PharData( $tmpZip );
+			} else {
+				die( "Invalid archive type" );
+			}
 
 			header( 'x-iwp-filename: ' . $tmpZip );
 
-			if ( $zip->open( $tmpZip, ZipArchive::OVERWRITE ) !== true ) {
+			if ( $archive->open( $tmpZip, ZipArchive::OVERWRITE ) !== true ) {
 				die( "Cannot open zip archive" );
 			}
 
@@ -132,7 +144,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 					continue;
 				}
 
-				$added_to_zip = $zip->addFile( $filePath, $relativePath );
+				$added_to_zip = $archive->addFile( $filePath, $relativePath );
 
 				if ( ! $added_to_zip ) {
 					error_log( 'Could not add to zip. File: : ' . $filePath );
@@ -140,7 +152,9 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			}
 
 			try {
-				$zip->close();
+				if ( $archiveType === 'ziparchive' ) {
+					$archive->close();
+				}
 
 				readfile_chunked( $tmpZip );
 			} catch ( Exception $exception ) {
@@ -152,7 +166,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 				$tracking_db->rawQuery( "UPDATE files_sent SET sent = 1 WHERE id=:id", array( ':id' => $file['id'] ) );
 			}
 
-//			unlink( $tmpZip );
+			unlink( $tmpZip );
 		}
 	}
 
@@ -249,8 +263,18 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
 	$unsentFiles = $tracking_db->fetchRows( $tracking_db->rawQuery( "SELECT id,filepath,size FROM files_sent WHERE sent = 0 and size < " . MAX_ZIP_SIZE . " ORDER by size LIMIT " . BATCH_ZIP_SIZE ) );
 
-	if ( count( $unsentFiles ) > 0 && class_exists( 'ZipArchive' ) ) {
-		send_by_zip( $tracking_db, $unsentFiles, $progress_percentage );
+	if ( count( $unsentFiles ) > 0 ) {
+
+		if (class_exists('ZipArchive')) {
+			// ZipArchive is available
+			send_by_zip($tracking_db, $unsentFiles, $progress_percentage, 'ziparchive');
+		} elseif (class_exists('PharData')) {
+			// PharData is available
+			send_by_zip($tracking_db, $unsentFiles, $progress_percentage, 'phardata');
+		} else {
+			// Neither ZipArchive nor PharData is available
+			die("No archive library available!");
+		}
 	} else {
 
 		$row = $tracking_db->fetchRow( $tracking_db->rawQuery( "SELECT id, filepath FROM files_sent WHERE sent = 0 LIMIT 1" ) );
