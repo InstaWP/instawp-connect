@@ -30,6 +30,8 @@ class instaWP {
 
 	public $has_unsupported_plugins = false;
 
+	public $api_key = null;
+
 	public $connect_id = null;
 
 	public $tools = null;
@@ -38,13 +40,12 @@ class instaWP {
 
 		$this->load_dependencies();
 
-		$connect_id_options = InstaWP_Setting::get_option( 'instawp_connect_id_options', [] );
-
 		$this->version      = INSTAWP_PLUGIN_VERSION;
 		$this->plugin_name  = INSTAWP_PLUGIN_SLUG;
-		$this->is_connected = ! empty( get_option( 'instawp_api_key' ) );
+		$this->api_key      = InstaWP_Setting::get_api_key();
+		$this->is_connected = ! empty( $this->api_key );
 		$this->is_on_local  = instawp_is_website_on_local();
-		$this->connect_id   = $connect_id_options['data']['id'] ?? 0;
+		$this->connect_id   = instawp_get_connect_id();
 		$this->is_staging   = (bool) InstaWP_Setting::get_option( 'instawp_is_staging', false );
 
 		$this->tools                   = new InstaWP_Tools();
@@ -135,16 +136,7 @@ class instaWP {
 			error_log( "HEARTBEAT RAN AT : " . date( 'd-m-Y, H:i:s, h:i:s' ) );
 		}
 
-		$connect_options = get_option( 'instawp_api_options', '' );
-		$connect_ids     = get_option( 'instawp_connect_id_options', '' );
-
-		if ( ! empty( $connect_ids ) ) {
-			if ( isset( $connect_ids['data']['id'] ) && ! empty( $connect_ids['data']['id'] ) ) {
-				$id = $connect_ids['data']['id'];
-			}
-		}
-
-		if ( ! isset( $connect_options['api_key'] ) || empty( $connect_options['api_key'] ) || ! isset( $id ) ) {
+		if ( empty( $this->api_key ) || empty( $this->connect_id ) ) {
 			return;
 		}
 
@@ -184,8 +176,8 @@ class instaWP {
 			)
 		);
 
-		$api_doamin    = InstaWP_Setting::get_api_domain();
-		$url           = $api_doamin . INSTAWP_API_URL . '/connects/' . $id . '/heartbeat';
+		$api_domain    = InstaWP_Setting::get_api_domain();
+		$url           = $api_domain . INSTAWP_API_URL . '/connects/' . $this->connect_id . '/heartbeat';
 		$body_json     = json_encode( $body );
 		$curl_response = $InstaWP_Curl->curl( $url, $body_json );
 
@@ -674,8 +666,7 @@ class instaWP {
 
 		global $InstaWP_Curl;
 
-		$connect_ids         = get_option( 'instawp_connect_id_options', '' );
-		$connect_id          = $connect_ids['data']['id'] ?? 0;
+		$connect_id          = $this->connect_id ?? 0;
 		$api_response        = $InstaWP_Curl::do_curl( 'connects/' . $connect_id . '/usage', [], [], false, 'v1' );
 		$api_response_status = InstaWP_Setting::get_args_option( 'success', $api_response, false );
 		$api_response_data   = InstaWP_Setting::get_args_option( 'data', $api_response, [] );

@@ -86,6 +86,7 @@ class InstaWP_Setting {
 	public static function generate_section_field( $field = array() ) {
 
 		$field_id            = self::get_args_option( 'id', $field );
+		$field_name          = self::get_args_option( 'name', $field );
 		$field_class         = self::get_args_option( 'class', $field );
 		$field_title         = self::get_args_option( 'title', $field );
 		$field_type          = self::get_args_option( 'type', $field );
@@ -106,6 +107,9 @@ class InstaWP_Setting {
 		$field_parent_class  = self::get_args_option( 'parent_class', $field );
 		$field_value         = self::get_option( $field_id, $field_default_value );
 		$attributes          = array();
+
+		$field_value = ( $field_name ) ? self::get_args_option( $field_name, $field_value, $field_default_value ) : $field_value;
+		$field_name  = ( $field_name ) ? $field_id . '[' . $field_name . ']' : $field_id;
 
 		if ( true === $internal || 1 == $internal ) {
 			if ( ! isset( $_REQUEST['internal'] ) || '1' != sanitize_text_field( $_REQUEST['internal'] ) ) {
@@ -130,17 +134,18 @@ class InstaWP_Setting {
 			$label_class .= ' ' . $field_label_class;
 		}
 
-		$field_container_class = 'instawp-single-field ' . esc_attr( str_replace( '_', '-', $field_id ) ) . '-field';
+		$field_name_class      = str_replace( [ '[', ']' ], [ '_', '' ], $field_name );
+		$field_container_class = 'instawp-single-field ' . esc_attr( str_replace( '_', '-', $field_name_class ) ) . '-field';
 		if ( ! empty( $field_parent_class ) ) {
 			$field_container_class .= ' ' . $field_parent_class;
 		}
 
-		if ( $field_type == 'select2' ) {
+		if ( $field_type === 'select2' ) {
 			$field_container_class .= ' select2-field-wrapper';
 		}
 
 		echo '<div class="' . esc_attr( $field_container_class ) . '">';
-		echo '<label for="' . esc_attr( $field_id ) . '" class="' . esc_attr( $label_class ) . '"' . $label_attributes . '>' . $label_content . '</label>';
+		echo '<label for="' . esc_attr( $field_name_class ) . '" class="' . esc_attr( $label_class ) . '"' . $label_attributes . '>' . $label_content . '</label>';
 
 		switch ( $field_type ) {
 			case 'text':
@@ -150,7 +155,7 @@ class InstaWP_Setting {
 				$css_class = 'block rounded-md border-grayCust-350 shadow-sm focus:border-primary-900 focus:ring-1 focus:ring-primary-900 sm:text-sm';
 				$css_class = $field_class ? $css_class . ' ' . trim( $field_class ) : 'w-full ' . $css_class;
 
-				echo '<input ' . implode( ' ', $attributes ) . ' type="' . esc_attr( $field_type ) . '" name="' . esc_attr( $field_id ) . '" id="' . esc_attr( $field_id ) . '" value="' . esc_attr( $field_value ) . '" autocomplete="off" placeholder="' . esc_attr( $field_placeholder ) . '" class="' . esc_attr( $css_class ) . '" />';
+				echo '<input ' . implode( ' ', $attributes ) . ' type="' . esc_attr( $field_type ) . '" name="' . esc_attr( $field_name ) . '" id="' . esc_attr( $field_name_class ) . '" value="' . esc_attr( $field_value ) . '" autocomplete="off" placeholder="' . esc_attr( $field_placeholder ) . '" class="' . esc_attr( $css_class ) . '" />';
 				break;
 
 			case 'toggle':
@@ -158,7 +163,7 @@ class InstaWP_Setting {
 				$state_label = $field_value === 'on' ? __( 'Enabled', 'instawp-connect' ) : __( 'Disabled', 'instawp-connect' );
 
 				echo '<label class="toggle-control">';
-				echo '<input type="checkbox" ' . checked( $field_value, 'on', false ) . ' name="' . esc_attr( $field_id ) . '" id="' . esc_attr( $field_id ) . '" class="' . esc_attr( $css_class ) . '" />';
+				echo '<input type="checkbox" ' . checked( $field_value, 'on', false ) . ' name="' . esc_attr( $field_name ) . '" id="' . esc_attr( $field_name_class ) . '" class="' . esc_attr( $css_class ) . '" />';
 				echo '<div class="toggle-switch"></div>';
 				echo '<span class="toggle-label" data-on="' . esc_attr__( 'Enabled', 'instawp-connect' ) . '" data-off="' . esc_attr__( 'Disabled', 'instawp-connect' ) . '">' . esc_html( $state_label ) . '</span>';
 				echo '</label>';
@@ -167,7 +172,7 @@ class InstaWP_Setting {
 			case 'select':
 				$css_class = $field_class ? $field_class : '';
 
-				echo '<select ' . implode( ' ', $attributes ) . ' name="' . esc_attr( $field_id ) . '" id="' . esc_attr( $field_id ) . '" class="' . esc_attr( $css_class ) . '">';
+				echo '<select ' . implode( ' ', $attributes ) . ' name="' . esc_attr( $field_name ) . '" id="' . esc_attr( $field_name_class ) . '" class="' . esc_attr( $css_class ) . '">';
 				if ( ! empty( $field_placeholder ) ) {
 					echo '<option value="">' . esc_html( $field_placeholder ) . '</option>';
 				}
@@ -183,7 +188,7 @@ class InstaWP_Setting {
 				if ( $multiple == true ) {
 					array_push( $attributes, 'multiple' );
 				}
-				echo '<select ' . ( $remote === true ? 'data-ajax--url="' . admin_url( 'admin-ajax.php?action=' . $action . '&event=' . $event ) . '"' : '' ) . implode( ' ', $attributes ) . ' name="' . esc_attr( $field_id ) . ( $multiple == true ? '[]' : '' ) . '" id="' . esc_attr( $field_id ) . '" class="' . esc_attr( $css_class ) . '">';
+				echo '<select ' . ( $remote === true ? 'data-ajax--url="' . admin_url( 'admin-ajax.php?action=' . $action . '&event=' . $event ) . '"' : '' ) . implode( ' ', $attributes ) . ' name="' . esc_attr( $field_name ) . ( $multiple == true ? '[]' : '' ) . '" id="' . esc_attr( $field_name_class ) . '" class="' . esc_attr( $css_class ) . '">';
 				if ( ! empty( $field_placeholder ) ) {
 					echo '<option value="">' . esc_html( $field_placeholder ) . '</option>';
 				}
@@ -274,7 +279,8 @@ class InstaWP_Setting {
 			'desc'   => esc_html__( 'Update your settings before creating staging sites.', 'instawp-connect' ),
 			'fields' => array(
 				array(
-					'id'          => 'instawp_api_key',
+					'id'          => 'instawp_api_options',
+					'name'        => 'api_key',
 					'type'        => 'text',
 					'title'       => esc_html__( 'API Key', 'instawp-connect' ),
 					'placeholder' => esc_attr( 'gL8tbdZFfG8yQCXu0IycBa' ),
@@ -332,10 +338,12 @@ class InstaWP_Setting {
 			'internal' => true,
 			'fields'   => array(
 				array(
-					'id'          => 'instawp_api_url',
+					'id'          => 'instawp_api_options',
+					'name'        => 'api_url',
 					'type'        => 'url',
 					'title'       => esc_html__( 'API Domain', 'instawp-connect' ),
 					'placeholder' => esc_url_raw( 'https://app.instawp.io' ),
+					'default'     => 'https://stage.instawp.io',
 				),
 				array(
 					'id'      => 'instawp_enable_wp_debug',
@@ -467,10 +475,12 @@ class InstaWP_Setting {
 	}
 
 	public static function set_api_domain( $instawp_api_url = '' ) {
-
 		$instawp_api_url = empty( $instawp_api_url ) ? esc_url_raw( 'https://app.instawp.io' ) : $instawp_api_url;
 
-		update_option( 'instawp_api_url', $instawp_api_url );
+		$api_options            = self::get_option( 'instawp_api_options', [] );
+		$api_options['api_url'] = $instawp_api_url;
+
+		return update_option( 'instawp_api_options', $api_options );
 	}
 
 	public static function get_pro_subscription_url( $pro_subscription_slug = 'subscriptions' ) {
@@ -478,11 +488,35 @@ class InstaWP_Setting {
 	}
 
 	public static function get_api_domain() {
-		return self::get_option( 'instawp_api_url', 'https://app.instawp.io' );
+		$api_options = self::get_option( 'instawp_api_options', [] );
+		
+		return self::get_args_option( 'api_url', $api_options, 'https://app.instawp.io' );
 	}
 
 	public static function get_api_key() {
-		return get_option( 'instawp_api_key' );
+		$api_options = self::get_option( 'instawp_api_options', [] );
+		
+		return self::get_args_option( 'api_key', $api_options );
+	}
+
+	public static function set_api_key( $api_key ) {
+		$api_options            = self::get_option( 'instawp_api_options', [] );
+		$api_options['api_key'] = trim( $api_key );
+
+		return update_option( 'instawp_api_options', $api_options );
+	}
+
+	public static function get_connect_id() {
+		$api_options = self::get_option( 'instawp_api_options', [] );
+		
+		return self::get_args_option( 'connect_id', $api_options );
+	}
+
+	public static function set_connect_id( $connect_id ) {
+		$api_options               = self::get_option( 'instawp_api_options', [] );
+		$api_options['connect_id'] = intval( $connect_id );
+
+		return update_option( 'instawp_api_options', $api_options );
 	}
 
 	public static function get_unsupported_plugins() {
@@ -502,7 +536,6 @@ class InstaWP_Setting {
 
 		return apply_filters( 'INSTAWP_CONNECT/Filters/get_unsupported_plugins', $unsupported_plugins );
 	}
-
 
 	public static function instawp_generate_api_key( $api_key, $status ) {
 
@@ -526,10 +559,14 @@ class InstaWP_Setting {
 		}
 
 		$response_body = json_decode( wp_remote_retrieve_body( $response ), true );
-
+		
 		if ( isset( $response_body['status'] ) && $response_body['status'] ) {
-			update_option( 'instawp_api_options', array( 'api_key' => $api_key, 'response' => $response_body ) );
-			update_option( 'instawp_api_key', $api_key );
+			$api_options = self::get_option( 'instawp_api_options', [] );
+
+			update_option( 'instawp_api_options', array_merge( $api_options, [
+				'api_key'  => $api_key,
+				'response' => $response_body
+			] ) );
 		}
 
 		$url         = $api_domain . INSTAWP_API_URL . '/connects';
@@ -568,11 +605,7 @@ class InstaWP_Setting {
 		$connect_id = $response['data']['id'] ?? '';
 
 		if ( $response['status'] && ! empty( $connect_id ) ) {
-
-			$connect_options                = self::get_option( 'instawp_connect_options', array() );
-			$connect_options[ $connect_id ] = $response;
-
-			update_option( 'instawp_connect_id_options', $response );
+			self::set_connect_id( $connect_id );
 		}
 
 		return true;
@@ -584,23 +617,6 @@ class InstaWP_Setting {
 
 	public static function update_option( $option_name, $options ) {
 		update_option( $option_name, $options, 'no' );
-	}
-
-	public static function update_connect_option( $option_name, $options, $connect_id, $task_id = '', $key = '' ) {
-
-		$connect_options = self::get_option( 'instawp_connect_options', array() );
-		if ( isset( $connect_options[ $connect_id ] ) ) {
-
-			if ( isset( $connect_options[ $connect_id ][ $task_id ][ $key ] ) && ! empty( $key ) ) {
-
-				$connect_options[ $connect_id ][ $task_id ][ $key ] = $options[ $task_id ][ $key ];
-			} else {
-				$connect_options[ $connect_id ][ $task_id ][ $key ] = $options;
-			}
-		} else {
-			$connect_options[ $connect_id ] = $options;
-		}
-		update_option( $option_name, $connect_options, 'no' );
 	}
 
 	public static function delete_option( $option_name ) {
