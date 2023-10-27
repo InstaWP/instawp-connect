@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.4
 Tested up to: 6.3.2
 Requires PHP: 7.4
-Stable tag: 0.0.9.44
+Stable tag: 0.0.9.45
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -16,6 +16,7 @@ InstaWP Connect is a WordPress staging and migration plugin developed by the Ins
 The aim of this plugin is to speed up your WordPress staging process and complete it in seconds without you putting in any effort.
 
 Once you activate InstaWP Connect, you can click Create Site and connect your site to your InstaWP account. Once it’s connected, you can select to:
+
 - Create quick staging [media folder will not be copied over].
 - Create custom staging [skip plugins, themes, media, or any specific files or folders]
 - Create full staging [everything from your live site will be added to the staging site]
@@ -46,7 +47,7 @@ Using this companion plugin, you can connect your existing WordPress sites anywh
 ## WHAT IS INSTAWP?
 InstaWP is an online WordPress development environment to get you started with a new WP site within seconds. It allows you to create WordPress websites for testing, development, and staging in seconds.
 
-You can get a free account here – https://app.instawp.io/onboard.
+You can get a free account here – [https://app.instawp.io/onboard](https://app.instawp.io/onboard).
 
 ### Key features include:
 - Instant site creation
@@ -67,13 +68,12 @@ You can get a free account here – https://app.instawp.io/onboard.
 
 ### Useful Resources
 
-- Visit Website: http://instawp.com/
-- Read the InstaWP Documentation: https://docs.instawp.com/
-- Know more about our API: https://docs.instawp.com/en/category/api-docs-12yssdo/
-- Find Useful information through our blog: https://instawp.com/blog/
+- [Visit Website](http://instawp.com/)
+- [Read the InstaWP Documentation](https://docs.instawp.com/)
+- [Know more about our API](https://docs.instawp.com/en/category/api-docs-12yssdo/)
+- Read on How To Setup [WordPress Staging Site](https://instawp.com/set-up-wordpress-staging-site/)
 
-Need support or want to partner with us? Go to our website http://instawp.com/ and use the live chat feature. You can also email us at support@instawp.com. We will be happy to assist.
-
+Need support or want to partner with us? Go to our [website](http://instawp.com/) and use the live chat feature. You can also email us at support@instawp.com. We will be happy to assist.
 
 == Installation ==
 
@@ -94,6 +94,13 @@ Need support or want to partner with us? Go to our website http://instawp.com/ a
 
 == Changelog ==
 
+= 0.0.9.45 - 27 Oct 2023 =
+
+- FIX - Provide an alternative of Phardata library when ZipArchive is not present
+- FIX - Stop staging process if SQLite library is not present
+- FIX - Improvement in staging process for stability
+- FIX - Removed unused files, making plugin .zip less than 500kb.
+
 = 0.0.9.44 =
 - 26/10/2023 - FIX - Skip Large files option not working.
 - 26/10/2023 - FIX - Collapsible Files & Table skip screen.
@@ -113,8 +120,7 @@ Need support or want to partner with us? Go to our website http://instawp.com/ a
 - 18/10/2023 - FIX - Fix character check issue.
 - 18/10/2023 - FIX - Stabilise migrations/staging process.
 
-= 0.0.9.42 =
-- 17/10/2023 - NEW - Add support for non-zip and non-pdo servers.
+= 0.0.9.42 =- 17/10/2023 - NEW - Add support for non-zip and non-pdo servers.
 - 17/10/2023 - FIX - Stabilise migrations/staging process.
 - 17/10/2023 - FIX - Improve 2 way sync functionalities.
 
