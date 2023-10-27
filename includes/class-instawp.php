@@ -30,6 +30,10 @@ class instaWP {
 
 	public $has_unsupported_plugins = false;
 
+	public $has_sqlite = false;
+	
+	public $can_bundle  = false;
+
 	public $api_key = null;
 
 	public $connect_id = null;
@@ -51,6 +55,7 @@ class instaWP {
 		$this->tools                   = new InstaWP_Tools();
 		$this->has_unsupported_plugins = ! empty( $this->tools::get_unsupported_active_plugins() );
 		$this->has_sqlite              = ( extension_loaded( 'sqlite3' ) || extension_loaded( 'pdo_sqlite' ) );
+		$this->can_bundle              = ( class_exists( 'ZipArchive' ) || class_exists( 'PharData' ) );
 
 		if ( is_admin() ) {
 			$this->set_locale();
