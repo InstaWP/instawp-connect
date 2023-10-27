@@ -108,7 +108,7 @@ if ( isset( $_REQUEST['success'] ) && $_REQUEST['success'] == true ) {
 
 			<?php
 			do_action( 'instawp_before_setup_page' );
-			include_once INSTAWP_PLUGIN_DIR . '/admin/partials/instawp-admin-display.php';
+
 			do_action( 'instawp_display_page' );
 			?>
 			<?php do_action( 'instawp_admin_wizard_img' ); ?>

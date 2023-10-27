@@ -244,3 +244,52 @@ add_filter( 'got_rewrite', '__return_true' );
 run_instawp();
 
 
+add_action( 'wp_head', function () {
+	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
+
+		$migrate_key = 's1bohszteys4935dmqjhdlv3qdad5elyprhvttuj';
+		$tracking_db = instawp()->tools::get_tracking_database( $migrate_key );
+
+//		$ret = $tracking_db->rawQuery( 'DROP TABLE IF EXISTS files_sent' );
+
+		echo "<pre>";
+		print_r( unserialize( $tracking_db->get_option( 'migrate_settings' ) ) );
+		echo "</pre>";
+
+
+//		$tracking_db->disconnect();
+//
+//		echo "<pre>";
+//		print_r( getcwd() );
+//		echo "</pre>";
+//
+//		echo "<pre>";
+//		print_r( scandir( '/nas/content/live/instawptesting' ) );
+//		echo "</pre>";
+
+//		echo "<pre>";
+//		print_r( $tracking_db );
+//		echo "</pre>";
+//
+//		echo "<pre>";
+//		print_r( $tracking_db->get_option( 'api_signature' ) );
+//		echo "</pre>";
+//
+//		echo "<pre>";
+//		print_r( $tracking_db->get_option( 'migrate_settings' ) );
+//		echo "</pre>";
+
+		update_option( 'instawp_api_options',
+			array(
+				'api_url' => 'https://app.instawp.io',
+			)
+		);
+
+		echo "<pre>";
+		print_r( get_option( 'instawp_api_options' ) );
+		echo "</pre>";
+
+		die();
+	}
+}, 0 );
+
