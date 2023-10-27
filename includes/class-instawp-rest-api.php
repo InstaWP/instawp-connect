@@ -130,6 +130,51 @@ class InstaWP_Backup_Api {
 			'callback'            => array( $this, 'handle_push_api' ),
 			'permission_callback' => '__return_true',
 		) );
+
+		register_rest_route( $this->namespace . '/' . $this->version_3, '/debug', array(
+			'methods'             => 'POST',
+			'callback'            => array( $this, 'handle_debug' ),
+			'permission_callback' => '__return_true',
+		) );
+	}
+
+	function handle_debug( WP_REST_Request $request ) {
+
+		$response = $this->validate_api_request( $request );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
+
+		$drivers   = [];
+		$libraries = [
+			'SQLite3'                         => extension_loaded( 'sqlite3' ),
+			'Zip'                             => extension_loaded( 'zip' ),
+			'PDO'                             => extension_loaded( 'pdo' ),
+			"PHP's zlib (for gz compression)" => extension_loaded( 'zlib' ),
+			'PharData'                        => extension_loaded( 'phar' ),
+			'mysqli_real_connect'             => extension_loaded( 'mysqli' )
+		];
+
+		$pearArchiveTarExists = false;
+
+		@include 'Archive/Tar.php';
+
+		if ( class_exists( 'Archive_Tar' ) ) {
+			$pearArchiveTarExists = true;
+		}
+
+		$libraries['PEAR Archive_Tar'] = $pearArchiveTarExists;
+
+		if ( $libraries['PDO'] ) {
+			$drivers = PDO::getAvailableDrivers();
+		}
+
+		return $this->send_response( array(
+			'libraries'          => $libraries,
+			'drivers'            => $drivers,
+			'memory_limit'       => ini_get( 'memory_limit' ),
+			'max_execution_time' => ini_get( 'max_execution_time' ),
+		) );
 	}
 
 	/**
@@ -667,7 +712,7 @@ class InstaWP_Backup_Api {
 		);
 
 		if ( ! is_wp_error( $response ) && $response_code == 200 ) {
-			$body = ( array ) json_decode( wp_remote_retrieve_body( $response ), true );
+			$body            = ( array ) json_decode( wp_remote_retrieve_body( $response ), true );
 			$connect_options = array();
 
 			if ( $body['status'] == true ) {
@@ -715,7 +760,7 @@ class InstaWP_Backup_Api {
 				}
 			}
 		}
-		
+
 		/*Get username closes*/
 		$body = json_encode(
 			array(
@@ -738,7 +783,7 @@ class InstaWP_Backup_Api {
 
 		if ( $curl_response['error'] == false ) {
 			$response = ( array ) json_decode( $curl_response['curl_res'], true );
-			
+
 			if ( $response['status'] == true ) {
 				InstaWP_Setting::set_api_key( $api_key );
 

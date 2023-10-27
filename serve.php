@@ -268,7 +268,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
 	if ( $is_archive_available && count( $unsentFiles ) > 0 ) {
 
-		if ( class_exists( 'ZipArchive' ) && 0 ) {
+		if ( class_exists( 'ZipArchive' ) ) {
 			// ZipArchive is available
 			send_by_zip( $tracking_db, $unsentFiles, $progress_percentage, 'ziparchive' );
 		} elseif ( class_exists( 'PharData' ) ) {
