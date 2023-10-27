@@ -530,11 +530,7 @@ class InstaWP_Backup_Api {
 		);
 
 		if ( isset( $parameters['override_plugin_zip'] ) && ! empty( $parameters['override_plugin_zip'] ) ) {
-			$override_plugin_zip = $parameters['override_plugin_zip'];
-		}
-
-		if ( isset( $override_plugin_zip ) ) {
-			$this->override_plugin_zip_while_doing_config( $override_plugin_zip );
+			$this->override_plugin_zip_while_doing_config( $parameters['override_plugin_zip'] );
 		}
 
 		if ( ! function_exists( 'is_plugin_active' ) ) {
