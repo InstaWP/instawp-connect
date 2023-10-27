@@ -343,7 +343,7 @@ class InstaWP_Setting {
 					'type'        => 'url',
 					'title'       => esc_html__( 'API Domain', 'instawp-connect' ),
 					'placeholder' => esc_url_raw( 'https://app.instawp.io' ),
-					'default'     => 'https://stage.instawp.io',
+					//'default'     => 'https://app.instawp.io',
 				),
 				array(
 					'id'      => 'instawp_enable_wp_debug',
