@@ -343,7 +343,7 @@ class InstaWP_Setting {
 					'type'        => 'url',
 					'title'       => esc_html__( 'API Domain', 'instawp-connect' ),
 					'placeholder' => esc_url_raw( 'https://app.instawp.io' ),
-					'default'     => 'https://stage.instawp.io',
+					'default'     => 'https://app.instawp.io',
 				),
 				array(
 					'id'      => 'instawp_enable_wp_debug',
@@ -589,13 +589,13 @@ class InstaWP_Setting {
 
 		$curl_response = $InstaWP_Curl->curl( $url, $body );
 
-		echo "<pre>";
-		print_r( [
-			'api_call_2' => $curl_response
-		] );
-		echo "</pre>";
+		// echo "<pre>";
+		// print_r( [
+		// 	'api_call_2' => $curl_response
+		// ] );
+		// echo "</pre>";
 
-		error_log( "curl_response on generate \n" . print_r( $curl_response, true ) );
+		// error_log( "curl_response on generate \n" . print_r( $curl_response, true ) );
 
 		if ( $curl_response['error'] ) {
 			return false;

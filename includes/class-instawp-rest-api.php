@@ -522,15 +522,18 @@ class InstaWP_Backup_Api {
 		// delete_option( 'instawp_connect_id_options' );
 
 		$parameters = $this->filter_params( $request );
+		$connect_id = instawp_get_connect_id();
 		$results    = array(
 			'status'     => false,
 			'connect_id' => 0,
 			'message'    => '',
 		);
 
-		// Override plugin file, if provided.
-		if ( isset( $parameters['override_plugin_zip'] ) && ! empty( $override_plugin_zip = $parameters['override_plugin_zip'] ) ) {
+		if ( isset( $parameters['override_plugin_zip'] ) && ! empty( $parameters['override_plugin_zip'] ) ) {
+			$override_plugin_zip = $parameters['override_plugin_zip'];
+		}
 
+		if ( isset( $override_plugin_zip ) ) {
 			$this->override_plugin_zip_while_doing_config( $override_plugin_zip );
 
 			if ( ! function_exists( 'is_plugin_active' ) ) {
@@ -538,38 +541,24 @@ class InstaWP_Backup_Api {
 			}
 
 			$plugin_slug = INSTAWP_PLUGIN_SLUG . '/' . INSTAWP_PLUGIN_SLUG . '.php';
-
 			if ( ! is_plugin_active( $plugin_slug ) ) {
 				activate_plugin( $plugin_slug );
 			}
 		}
 
-		// Check if the configuration is already done, then no need to do it again.
-		if ( 'yes' == get_option( 'instawp_api_key_config_completed' ) ) {
-
-			$results['message'] = esc_html__( 'Already configured', 'instawp-connect' );
-
-			return rest_ensure_response( new WP_REST_Response( $results ) );
-		}
-
-		$connect_id = instawp_get_connect_id();
-		if ( ! empty( $connect_id ) ) {
-
-			// update config check token
-			update_option( 'instawp_api_key_config_completed', 'yes' );
-
+		if ( ! empty( $connect_id ) && ( empty( $parameters['force'] ) ) ) {
 			$results['status']     = true;
-			$results['message']    = esc_html__( 'Connected', 'instawp-connect' );
+			$results['message']    = esc_html__( 'Already Configured', 'instawp-connect' );
 			$results['connect_id'] = $connect_id;
 
-//			return rest_ensure_response( new WP_REST_Response( $results ) );
+			return $this->send_response( $results );
 		}
 
 		// if api_key is not passed on param
 		if ( empty( $parameters['api_key'] ) ) {
 			$results['message'] = esc_html__( 'Api key is required', 'instawp-connect' );
 
-			return rest_ensure_response( new WP_REST_Response( $results ) );
+			return $this->send_response( $results );
 		}
 
 		// if api_key is passed on param
@@ -584,20 +573,14 @@ class InstaWP_Backup_Api {
 		if ( $config_response['error'] ) {
 			$results['message'] = InstaWP_Setting::get_args_option( 'message', $config_response );
 
-			return rest_ensure_response( new WP_REST_Response( $results ) );
+			return $this->send_response( $results );
 		}
 
-		// Now, get connect id from setting
 		$connect_id = instawp_get_connect_id();
-
 		if ( ! empty( $connect_id ) ) {
 			$results['status']     = true;
 			$results['message']    = 'Connected';
 			$results['connect_id'] = $connect_id;
-
-			// update config check token
-			update_option( 'instawp_api_key_config_completed', 'yes' );
-			InstaWP_Setting::set_api_key( $parameters['api_key'] );
 		}
 
 		// if any wp_option is passed, then store it
@@ -612,9 +595,8 @@ class InstaWP_Backup_Api {
 			InstaWP_Tools::create_user( $parameters['wp']['users'] );
 		}
 
-		return rest_ensure_response( new WP_REST_Response( $results ) );
+		return $this->send_response( $results );
 	}
-
 
 	/**
 	 * Valid api request and if invalid api key then stop executing.
@@ -659,9 +641,7 @@ class InstaWP_Backup_Api {
 		return true;
 	}
 
-
 	public static function config_check_key( $api_key ) {
-
 		global $InstaWP_Curl;
 
 		$res        = array(
@@ -669,14 +649,12 @@ class InstaWP_Backup_Api {
 			'message' => '',
 		);
 		$api_doamin = InstaWP_Setting::get_api_domain();
+		$api_key    = sanitize_text_field( $api_key );
 		$url        = $api_doamin . INSTAWP_API_URL . '/check-key';
 		$log        = array(
 			"url"     => $url,
 			"api_key" => $api_key,
 		);
-
-
-		$api_key = sanitize_text_field( $api_key );
 
 		$response      = wp_remote_get( $url, array(
 			'body'    => '',
@@ -693,20 +671,15 @@ class InstaWP_Backup_Api {
 		);
 
 		if ( ! is_wp_error( $response ) && $response_code == 200 ) {
-			$body = (array) json_decode( wp_remote_retrieve_body( $response ), true );
+			$body = ( array ) json_decode( wp_remote_retrieve_body( $response ), true );
 			$connect_options = array();
 
 			if ( $body['status'] == true ) {
 				$api_options = InstaWP_Setting::get_option( 'instawp_api_options', [] );
 
 				update_option( 'instawp_api_options', array_merge( $api_options, [
-					'api_key'  => $api_key,
 					'response' => $response_body
 				] ) );
-
-
-				// update config check token
-				update_option( 'instawp_api_key_config_completed', 'yes' );
 
 				$res = self::config_connect( $api_key );
 			} else {
@@ -722,6 +695,7 @@ class InstaWP_Backup_Api {
 
 	public static function config_connect( $api_key ) {
 		global $InstaWP_Curl;
+
 		$res         = array(
 			'error'   => true,
 			'message' => '',
@@ -745,6 +719,7 @@ class InstaWP_Backup_Api {
 				}
 			}
 		}
+		
 		/*Get username closes*/
 		$body = json_encode(
 			array(
@@ -766,8 +741,15 @@ class InstaWP_Backup_Api {
 		$curl_response = $InstaWP_Curl->curl( $url, $body );
 
 		if ( $curl_response['error'] == false ) {
-			$response = (array) json_decode( $curl_response['curl_res'], true );
+			$response = ( array ) json_decode( $curl_response['curl_res'], true );
+			
 			if ( $response['status'] == true ) {
+				InstaWP_Setting::set_api_key( $api_key );
+
+				if ( isset( $response['data']['id'] ) && ! empty( $response['data']['id'] ) ) {
+					InstaWP_Setting::set_connect_id( $response['data']['id'] );
+				}
+
 				$res['message'] = $response['message'];
 				$res['error']   = false;
 			} else {
@@ -778,7 +760,6 @@ class InstaWP_Backup_Api {
 
 		return $res;
 	}
-
 
 	/**
 	 * Handle response for clear cache endpoint
