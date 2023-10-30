@@ -247,14 +247,14 @@ run_instawp();
 add_action( 'wp_head', function () {
 	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
 
-		$migrate_key = 's1bohszteys4935dmqjhdlv3qdad5elyprhvttuj';
-		$tracking_db = instawp()->tools::get_tracking_database( $migrate_key );
+//		$migrate_key = 's1bohszteys4935dmqjhdlv3qdad5elyprhvttuj';
+//		$tracking_db = instawp()->tools::get_tracking_database( $migrate_key );
 
 //		$ret = $tracking_db->rawQuery( 'DROP TABLE IF EXISTS files_sent' );
 
-		echo "<pre>";
-		print_r( unserialize( $tracking_db->get_option( 'migrate_settings' ) ) );
-		echo "</pre>";
+//		echo "<pre>";
+//		print_r( unserialize( $tracking_db->get_option( 'migrate_settings' ) ) );
+//		echo "</pre>";
 
 
 //		$tracking_db->disconnect();
@@ -279,11 +279,11 @@ add_action( 'wp_head', function () {
 //		print_r( $tracking_db->get_option( 'migrate_settings' ) );
 //		echo "</pre>";
 
-		update_option( 'instawp_api_options',
-			array(
-				'api_url' => 'https://app.instawp.io',
-			)
-		);
+//		update_option( 'instawp_api_options',
+//			array(
+//				'api_url' => 'https://stage.instawp.io',
+//			)
+//		);
 
 
 //		echo "<pre>";
@@ -291,20 +291,26 @@ add_action( 'wp_head', function () {
 //		echo "</pre>";
 
 
+//		$serialized = 'a:4:{s:10:"migrate_id";i:486;s:11:"migrate_key";s:40:"p8ncjakwwd7zwygabymsyepquokwuabpsgcjebyx";s:12:"tracking_url";s:73:"https://stage.instawp.io/migrates-v3/c948df32-bd9a-465a-a304-40a3dc6d5fa2";s:10:"started_at";s:19:"2023-10-30 12:10:03";}';
+//		update_option( 'instawp_migration_details', unserialize( $serialized ) );
+//
+//
+//		$migration_details = InstaWP_Setting::get_option( 'instawp_migration_details', [] );
+//		$migrate_id        = InstaWP_Setting::get_args_option( 'migrate_id', $migration_details );
+//		$migrate_key       = InstaWP_Setting::get_args_option( 'migrate_key', $migration_details );
+//
+//		$response = InstaWP_Curl::do_curl( "migrates-v3/{$migrate_id}/update-status",
+//			array(
+//				'migrate_key'    => $migrate_key,
+//				'stage'          => array( 'aborted' => true ),
+//				'failed_message' => esc_html__( 'Migration aborted forcefully', 'instawp-connect' ),
+//			)
+//		);
+//
+//		echo "<pre>";
+//		print_r( $response );
+//		echo "</pre>";
 
-
-
-		echo "<pre>";
-		print_r( [ $files_sizes_total, $tables_sizes_total ] );
-		echo "</pre>";
-
-		echo "<pre>";
-		print_r( instawp()->get_file_size_with_unit( $files_sizes_total ) );
-		echo "</pre>";
-
-		echo "<pre>";
-		print_r( instawp()->get_file_size_with_unit( $tables_sizes_total ) );
-		echo "</pre>";
 
 		die();
 	}

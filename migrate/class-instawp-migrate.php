@@ -24,51 +24,6 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 			add_action( 'wp_ajax_instawp_connect_api_url', array( $this, 'connect_api_url' ) );
 			add_action( 'wp_ajax_instawp_reset_plugin', array( $this, 'reset_plugin' ) );
 			add_action( 'wp_ajax_instawp_check_limit', array( $this, 'check_limit' ) );
-			add_action( 'wp_ajax_instawp_check_domain_availability', array( $this, 'check_domain_availability' ) );
-			add_action( 'wp_ajax_instawp_check_domain_connect_status', array( $this, 'check_domain_connect_status' ) );
-
-			add_action( 'INSTAWP/Actions/restore_completed', array( $this, 'restore_completed' ), 10, 2 );
-		}
-
-
-		function check_domain_connect_status() {
-
-			$destination_domain = isset( $_POST['destination_domain'] ) ? sanitize_url( $_POST['destination_domain'] ) : '';
-
-			if ( empty( $destination_domain ) ) {
-				wp_send_json_error( array( 'message' => esc_html__( 'Empty destination domain is not allowed.', 'instawp-connect' ) ) );
-			}
-
-			$response      = InstaWP_Curl::do_curl( 'check-is-config', array( 'url' => $destination_domain ) );
-			$response_data = InstaWP_Setting::get_args_option( 'data', $response );
-			$is_config     = (bool) InstaWP_Setting::get_args_option( 'is_config', $response_data );
-
-			if ( ! $is_config ) {
-				wp_send_json_error( array( 'message' => esc_html__( 'Destination domain is not configured.', 'instawp-connect' ) ) );
-			}
-
-			wp_send_json_success( array( 'message' => esc_html__( 'Destination domain is configured.', 'instawp-connect' ) ) );
-		}
-
-
-		function check_domain_availability() {
-
-			$domain_name  = isset( $_POST['domain_name'] ) ? sanitize_text_field( $_POST['domain_name'] ) : '';
-			$alert_icon   = instawp()::get_asset_url( 'migrate/assets/images/alert-icon.svg' );
-			$success_icon = instawp()::get_asset_url( 'migrate/assets/images/check-icon.png' );
-
-			if ( empty( $domain_name ) ) {
-				wp_send_json_error( array( 'icon_url' => $alert_icon, 'message' => esc_html__( 'Empty domain name is not allowed.', 'instawp-connect' ) ) );
-			}
-
-			$search_response = instawp_domain_search( $domain_name );
-			$status          = InstaWP_Setting::get_args_option( 'status', $search_response );
-
-			if ( 'active' === $status ) {
-				wp_send_json_error( array( 'icon_url' => $alert_icon, 'message' => esc_html__( 'This domain name is not available.', 'instawp-connect' ) ) );
-			}
-
-			wp_send_json_success( array( 'icon_url' => $success_icon, 'message' => esc_html__( 'This domain is available.', 'instawp-connect' ) ) );
 		}
 
 
