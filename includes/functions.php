@@ -440,73 +440,6 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 }
 
 
-if ( ! function_exists( 'instawp_backup_files' ) ) {
-	/**
-	 * @param InstaWP_Backup_Task $migrate_task_obj
-	 * @param array $args
-	 *
-	 * @return void
-	 */
-	function instawp_backup_files( InstaWP_Backup_Task $migrate_task_obj, $args = array(), $split_part_processing = true ) {
-
-		$migrate_task = InstaWP_taskmanager::get_task( $migrate_task_obj->get_id() );
-
-		foreach ( InstaWP_taskmanager::get_task_backup_data( $migrate_task_obj->get_id() ) as $key => $data ) {
-
-			$backup_status = InstaWP_Setting::get_args_option( 'backup_status', $data );
-
-			if ( 'completed' != $backup_status && 'backup_db' == $key ) {
-				$backup_database = new InstaWP_Backup_Database();
-				$backup_response = $backup_database->backup_database( $data, $migrate_task_obj->get_id() );
-
-				if ( INSTAWP_SUCCESS == InstaWP_Setting::get_args_option( 'result', $backup_response ) ) {
-					$migrate_task['options']['backup_options']['backup'][ $key ]['files'] = $backup_response['files'];
-				} else {
-					$migrate_task['options']['backup_options']['backup'][ $key ]['backup_status'] = 'in_progress';
-				}
-
-				$packages = instawp_get_packages( $migrate_task_obj, $migrate_task['options']['backup_options']['backup'][ $key ] );
-				$result   = instawp_build_zip_files( $migrate_task_obj, $packages, $migrate_task['options']['backup_options']['backup'][ $key ] );
-
-				if ( isset( $result['files'] ) && ! empty( $result['files'] ) ) {
-					$migrate_task['options']['backup_options']['backup'][ $key ]['zip_files']     = $result['files'];
-					$migrate_task['options']['backup_options']['backup'][ $key ]['backup_status'] = 'completed';
-				}
-
-				InstaWP_taskmanager::update_task( $migrate_task );
-
-				if ( $split_part_processing ) {
-					break;
-				}
-			}
-
-			if ( 'completed' != $backup_status ) {
-
-				$migrate_task['options']['backup_options']['backup'][ $key ]['files'] = $migrate_task_obj->get_need_backup_files( $migrate_task['options']['backup_options']['backup'][ $key ] );
-
-				$packages = instawp_get_packages( $migrate_task_obj, $migrate_task['options']['backup_options']['backup'][ $key ] );
-				$result   = instawp_build_zip_files( $migrate_task_obj, $packages, $migrate_task['options']['backup_options']['backup'][ $key ] );
-
-				if ( isset( $result['files'] ) && ! empty( $result['files'] ) ) {
-					$migrate_task['options']['backup_options']['backup'][ $key ]['zip_files']     = $result['files'];
-					$migrate_task['options']['backup_options']['backup'][ $key ]['backup_status'] = 'completed';
-				}
-
-				InstaWP_taskmanager::update_task( $migrate_task );
-
-				if ( $split_part_processing ) {
-					break;
-				}
-			}
-		}
-
-		if ( InstaWP_Setting::get_args_option( 'clean_non_zip', $args, false ) === true ) {
-			instawp_clean_non_zipped_files_folder( $migrate_task );
-		}
-	}
-}
-
-
 if ( ! function_exists( 'instawp_update_migration_status' ) ) {
 	/**
 	 * @param $migrate_id
@@ -588,46 +521,6 @@ if ( ! function_exists( 'instawp_upload_to_cloud' ) ) {
 		}
 
 		return false;
-	}
-}
-
-
-if ( ! function_exists( 'instawp_get_upload_files' ) ) {
-	/**
-	 * Get files as array that will be uploaded
-	 *
-	 * @param $data
-	 *
-	 * @return array
-	 */
-	function instawp_get_upload_files( $migrate_task_id = '', $data = array() ) {
-
-		$zip_files_path   = array();
-		$files_path       = InstaWP_Setting::get_args_option( 'path', $data );
-		$next_part_number = 1;
-
-		foreach ( InstaWP_taskmanager::get_task_backup_data( $migrate_task_id ) as $d ) {
-			if ( is_array( $zip_files_path = InstaWP_Setting::get_args_option( 'zip_files_path', $d, [] ) ) ) {
-				$next_part_number += count( $zip_files_path );
-			}
-		}
-
-		foreach ( InstaWP_Setting::get_args_option( 'zip_files', $data, array() ) as $index => $zip_file ) {
-
-			if ( empty( $filename = InstaWP_Setting::get_args_option( 'file_name', $zip_file ) ) || empty( $part_size = InstaWP_Setting::get_args_option( 'size', $zip_file ) ) ) {
-				continue;
-			}
-
-			$zip_files_path[] = array(
-				'filename'      => $files_path . $filename,
-				'part_size'     => $part_size,
-				'content_type'  => 'file',
-				'source_status' => 'pending',
-				'part_number'   => $next_part_number + $index,
-			);
-		}
-
-		return $zip_files_path;
 	}
 }
 
@@ -1210,28 +1103,6 @@ if ( ! function_exists( 'instawp_get_staging_sites_list' ) ) {
 		}
 
 		return is_array( $staging_sites ) ? $staging_sites : [];
-	}
-}
-
-
-if ( ! function_exists( 'instawp_destination_disconnect' ) ) {
-	/**
-	 * Disconnect domain.
-	 */
-	function instawp_destination_disconnect( $migrate_task_id ) {
-		if ( ! $migrate_task_id ) {
-			return;
-		}
-
-		$destination_details = InstaWP_taskmanager::get_task_options( $migrate_task_id, 'destination_details' );
-		if ( ! empty( $destination_details['id'] ) && ! empty( $destination_details['url'] ) ) {
-			$api_response = InstaWP_Curl::do_curl( 'destination-disconnect', [
-				'connect_id'         => $destination_details['id'],
-				'destination_domain' => $destination_details['url'],
-			] );
-		}
-
-		delete_transient( 'instawp_staging_sites' );
 	}
 }
 

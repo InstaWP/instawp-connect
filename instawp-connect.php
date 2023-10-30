@@ -285,8 +285,25 @@ add_action( 'wp_head', function () {
 			)
 		);
 
+
+//		echo "<pre>";
+//		print_r( gethostbyname( 'determined-dormouse-srood.instawp.xyz' ) );
+//		echo "</pre>";
+
+
+
+
+
 		echo "<pre>";
-		print_r( get_option( 'instawp_api_options' ) );
+		print_r( [ $files_sizes_total, $tables_sizes_total ] );
+		echo "</pre>";
+
+		echo "<pre>";
+		print_r( instawp()->get_file_size_with_unit( $files_sizes_total ) );
+		echo "</pre>";
+
+		echo "<pre>";
+		print_r( instawp()->get_file_size_with_unit( $tables_sizes_total ) );
 		echo "</pre>";
 
 		die();

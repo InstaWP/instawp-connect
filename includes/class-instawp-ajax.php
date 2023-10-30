@@ -120,11 +120,23 @@ class InstaWP_AJAX {
 			),
 		);
 
-		$migrate_args = array(
+		$files              = instawp_get_dir_contents( '/', false );
+		$files_sizes        = array_map( function ( $data ) {
+			return $data['size'] ?? 0;
+		}, $files );
+		$files_sizes_total  = array_sum( $files_sizes );
+		$tables             = instawp_get_database_details();
+		$tables_sizes       = array_map( function ( $data ) {
+			return $data['size'] ?? 0;
+		}, $tables );
+		$tables_sizes_total = array_sum( $tables_sizes );
+		$migrate_args       = array(
 			'source_domain'       => $source_domain,
 			'source_connect_id'   => instawp_get_connect_id(),
 			'php_version'         => PHP_VERSION,
 			'wp_version'          => $wp_version,
+			'file_size'           => $files_sizes_total,
+			'db_size'             => $tables_sizes_total,
 			'plugin_version'      => INSTAWP_PLUGIN_VERSION,
 			'is_website_on_local' => $is_website_on_local,
 			'settings'            => $migrate_settings
@@ -585,14 +597,14 @@ class InstaWP_AJAX {
 			echo json_encode( $res );
 			wp_die();
 		}
-		
-		$header  = array(
+
+		$header = array(
 			'Authorization' => 'Bearer ' . $api_key,
 			'Accept'        => 'application/json',
 			'Content-Type'  => 'application/json;charset=UTF-8',
 
 		);
-		$body    = json_encode( array( 'url' => get_site_url() ) );
+		$body   = json_encode( array( 'url' => get_site_url() ) );
 
 		//print_r( $body );
 
