@@ -563,9 +563,6 @@ class InstaWP_Backup_Api {
 
 	public function config( $request ) {
 
-		// delete_option( 'instawp_api_key_config_completed' );
-		// delete_option( 'instawp_connect_id_options' );
-
 		$parameters = $this->filter_params( $request );
 		$connect_id = instawp_get_connect_id();
 		$results    = array(
@@ -573,6 +570,7 @@ class InstaWP_Backup_Api {
 			'connect_id' => 0,
 			'message'    => '',
 		);
+
 
 		if ( isset( $parameters['override_plugin_zip'] ) && ! empty( $parameters['override_plugin_zip'] ) ) {
 			$this->override_plugin_zip_while_doing_config( $parameters['override_plugin_zip'] );
@@ -587,7 +585,7 @@ class InstaWP_Backup_Api {
 			activate_plugin( $plugin_slug );
 		}
 
-		if ( ! empty( $connect_id ) && ( empty( $parameters['force'] ) ) ) {
+		if ( ! empty( $connect_id ) && ( isset( $parameters['force'] ) && $parameters['force'] !== true ) ) {
 			$results['status']     = true;
 			$results['message']    = esc_html__( 'Already Configured', 'instawp-connect' );
 			$results['connect_id'] = $connect_id;
@@ -607,15 +605,7 @@ class InstaWP_Backup_Api {
 			InstaWP_Setting::set_api_domain( $parameters['api_domain'] );
 		}
 
-		// config api_key now
-		$config_response = self::config_check_key( $parameters['api_key'] );
-
-		// config error happened
-		if ( $config_response['error'] ) {
-			$results['message'] = InstaWP_Setting::get_args_option( 'message', $config_response );
-
-			return $this->send_response( $results );
-		}
+		InstaWP_Setting::instawp_generate_api_key( $parameters['api_key'], 'true' );
 
 		$connect_id = instawp_get_connect_id();
 		if ( ! empty( $connect_id ) ) {

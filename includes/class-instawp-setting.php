@@ -489,13 +489,13 @@ class InstaWP_Setting {
 
 	public static function get_api_domain() {
 		$api_options = self::get_option( 'instawp_api_options', [] );
-		
+
 		return self::get_args_option( 'api_url', $api_options, 'https://app.instawp.io' );
 	}
 
 	public static function get_api_key() {
 		$api_options = self::get_option( 'instawp_api_options', [] );
-		
+
 		return self::get_args_option( 'api_key', $api_options );
 	}
 
@@ -508,7 +508,7 @@ class InstaWP_Setting {
 
 	public static function get_connect_id() {
 		$api_options = self::get_option( 'instawp_api_options', [] );
-		
+
 		return self::get_args_option( 'connect_id', $api_options );
 	}
 
@@ -559,7 +559,7 @@ class InstaWP_Setting {
 		}
 
 		$response_body = json_decode( wp_remote_retrieve_body( $response ), true );
-		
+
 		if ( isset( $response_body['status'] ) && $response_body['status'] ) {
 			$api_options = self::get_option( 'instawp_api_options', [] );
 
