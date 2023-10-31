@@ -248,13 +248,7 @@ class InstaWP_Backup_Api {
 
 		// Check accessibility of serve file
 		if ( ! instawp()->tools::is_migrate_file_accessible( $dest_file_url ) ) {
-			// Generate serve file in website root directory
-			$dest_file_url = instawp()->tools::generate_destination_file( $migrate_key, $api_signature, ABSPATH );
-
-			// Check accessibility of serve file and if false return error
-			if ( ! instawp()->tools::is_migrate_file_accessible( $dest_file_url ) ) {
-				return $this->throw_error( new WP_Error( 403, esc_html__( 'Could not create destination file.', 'instawp-connect' ) ) );
-			}
+			return $this->throw_error( new WP_Error( 403, esc_html__( 'Could not create destination file.', 'instawp-connect' ) ) );
 		}
 
 		return $this->send_response( array(
@@ -571,18 +565,17 @@ class InstaWP_Backup_Api {
 			'message'    => '',
 		);
 
-
 		if ( isset( $parameters['override_plugin_zip'] ) && ! empty( $parameters['override_plugin_zip'] ) ) {
 			$this->override_plugin_zip_while_doing_config( $parameters['override_plugin_zip'] );
-		}
 
-		if ( ! function_exists( 'is_plugin_active' ) ) {
-			require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
-		}
-
-		$plugin_slug = INSTAWP_PLUGIN_SLUG . '/' . INSTAWP_PLUGIN_SLUG . '.php';
-		if ( ! is_plugin_active( $plugin_slug ) ) {
-			activate_plugin( $plugin_slug );
+			if ( ! function_exists( 'is_plugin_active' ) ) {
+				require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
+			}
+	
+			$plugin_slug = INSTAWP_PLUGIN_SLUG . '/' . INSTAWP_PLUGIN_SLUG . '.php';
+			if ( ! is_plugin_active( $plugin_slug ) ) {
+				activate_plugin( $plugin_slug );
+			}
 		}
 
 		if ( ! empty( $connect_id ) && ( isset( $parameters['force'] ) && $parameters['force'] !== true ) ) {
@@ -605,7 +598,13 @@ class InstaWP_Backup_Api {
 			InstaWP_Setting::set_api_domain( $parameters['api_domain'] );
 		}
 
-		InstaWP_Setting::instawp_generate_api_key( $parameters['api_key'], 'true' );
+		$config_response = self::config_check_key( $parameters['api_key'] );
+
+		if ( $config_response['error'] ) {
+			$results['message'] = InstaWP_Setting::get_args_option( 'message', $config_response );
+
+			return $this->send_response( $results );
+		}
 
 		$connect_id = instawp_get_connect_id();
 		if ( ! empty( $connect_id ) ) {
@@ -638,11 +637,6 @@ class InstaWP_Backup_Api {
 	 * @return WP_Error|bool
 	 */
 	public function validate_api_request( WP_REST_Request $request, $option = '' ) {
-
-		if ( ! empty( $option ) && ! $this->is_enabled( $option ) ) {
-			return new WP_Error( 400, sprintf( esc_html__( 'Settings is disabled! Please enable %s Option from InstaWP Connect Remote Management settings page.', 'instawp-connect' ), $this->get_management_options( $option ) ) );
-		}
-
 		// get authorization header value.
 		$bearer_token = sanitize_text_field( $request->get_header( 'authorization' ) );
 		$bearer_token = str_replace( 'Bearer ', '', $bearer_token );
@@ -669,6 +663,10 @@ class InstaWP_Backup_Api {
 			return new WP_Error( 403, esc_html__( 'Invalid bearer token.', 'instawp-connect' ) );
 		}
 
+		if ( ! empty( $option ) && ! $this->is_enabled( $option ) ) {
+			return new WP_Error( 400, sprintf( esc_html__( 'Settings is disabled! Please enable %s Option from InstaWP Connect Remote Management settings page.', 'instawp-connect' ), $this->get_management_options( $option ) ) );
+		}
+
 		return true;
 	}
 
@@ -679,37 +677,27 @@ class InstaWP_Backup_Api {
 			'error'   => true,
 			'message' => '',
 		);
-		$api_doamin = InstaWP_Setting::get_api_domain();
-		$api_key    = sanitize_text_field( $api_key );
-		$url        = $api_doamin . INSTAWP_API_URL . '/check-key';
-		$log        = array(
-			"url"     => $url,
-			"api_key" => $api_key,
-		);
+		$api_domain = InstaWP_Setting::get_api_domain();
+		$url        = $api_domain . INSTAWP_API_URL . '/check-key';
 
 		$response      = wp_remote_get( $url, array(
-			'body'    => '',
-			'headers' => array(
+			'sslverify' => false,
+			'headers'   => array(
 				'Authorization' => 'Bearer ' . $api_key,
 				'Accept'        => 'application/json',
 			),
 		) );
 		$response_code = wp_remote_retrieve_response_code( $response );
-
-		$log = array(
-			"response_code" => $response_code,
-			"response"      => $response,
-		);
-
+		
 		if ( ! is_wp_error( $response ) && $response_code == 200 ) {
-			$body            = ( array ) json_decode( wp_remote_retrieve_body( $response ), true );
-			$connect_options = array();
+			$body = ( array ) json_decode( wp_remote_retrieve_body( $response ), true );
 
 			if ( $body['status'] == true ) {
 				$api_options = InstaWP_Setting::get_option( 'instawp_api_options', [] );
 
 				update_option( 'instawp_api_options', array_merge( $api_options, [
-					'response' => $response_body
+					'api_key'  => $api_key,
+					'response' => $body,
 				] ) );
 
 				$res = self::config_connect( $api_key );
@@ -760,14 +748,8 @@ class InstaWP_Backup_Api {
 			)
 		);
 
-		$api_doamin = InstaWP_Setting::get_api_domain();
-		$url        = $api_doamin . INSTAWP_API_URL . '/connects';
-
-		// $body = json_encode( array( "url" => get_site_url() ) );
-		$log = array(
-			'url'  => $url,
-			'body' => $body,
-		);
+		$api_domain = InstaWP_Setting::get_api_domain();
+		$url        = $api_domain . INSTAWP_API_URL . '/connects';
 
 		$curl_response = $InstaWP_Curl->curl( $url, $body );
 

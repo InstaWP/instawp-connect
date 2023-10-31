@@ -63,7 +63,16 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 					'permission_callback' => [ $this, 'check_permission' ],
 				)
 			);
+
+			register_rest_route( 'instawp-connect/v1', '/mark-staging',
+				array(
+					'methods'             => 'POST',
+					'callback'            => [ $this, 'instawp_site_mark_staging' ],
+					'permission_callback' => [ $this, 'check_permission' ],
+				)
+			);
 		} );
+		
 	}
 
 	function check_permission() {
@@ -115,6 +124,38 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 		return $post_id;
 	}
 
+	/**
+	 * Handle events receiver api
+	 *
+	 * @param WP_REST_Request $req
+	 *
+	 * @return WP_Error|WP_HTTP_Response|WP_REST_Response
+	 */
+	function instawp_site_mark_staging( WP_REST_Request $req ) {
+		$response = $this->validate_api_request( $req );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
+		
+		$body               = $req->get_body();
+		$request            = json_decode( $body );
+
+		if ( ! isset( $request->parent_connect_id ) ) {
+            return new WP_Error( 400, esc_html__( 'Invalid connect ID', 'instawp-connect' ) );
+        }
+		
+		delete_option( 'instawp_sync_parent_connect_data' );
+		update_option( 'instawp_sync_connect_id', intval( $request->parent_connect_id ) );
+		update_option( 'instawp_is_staging', true );
+		instawp_get_source_site_detail();
+
+		return new WP_REST_Response(
+			array(
+				'status' => true,
+				'message'=>__('Site has been marked as staging','instawp-connect'),
+			)
+		);
+	}
 
 	/**
 	 * Handle events receiver api
