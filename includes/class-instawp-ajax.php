@@ -91,6 +91,11 @@ class InstaWP_AJAX {
 		$source_domain       = site_url();
 		$is_website_on_local = instawp_is_website_on_local();
 		$migrate_settings    = InstaWP_Setting::get_args_option( 'migrate_settings', $settings_arr, [] );
+		$instawp_migrate     = InstaWP_Setting::get_args_option( 'instawp_migrate', $settings_arr, [] );
+
+		if ( isset( $instawp_migrate['whitelist_wordfence'] ) && $instawp_migrate['whitelist_wordfence'] == 'yes' ) {
+			instawp_set_wordfence_whitelist_ip();
+		}
 
 		// remove unnecessary settings
 		if ( isset( $migrate_settings['screen'] ) ) {
@@ -139,7 +144,8 @@ class InstaWP_AJAX {
 			'db_size'             => $tables_sizes_total,
 			'plugin_version'      => INSTAWP_PLUGIN_VERSION,
 			'is_website_on_local' => $is_website_on_local,
-			'settings'            => $migrate_settings
+			'settings'            => $migrate_settings,
+			'active_plugins'      => InstaWP_Setting::get_option( 'active_plugins', [] ),
 		);
 
 		$migrate_response         = InstaWP_Curl::do_curl( 'migrates-v3', $migrate_args );
