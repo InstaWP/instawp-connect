@@ -571,7 +571,7 @@ class InstaWP_Backup_Api {
 			if ( ! function_exists( 'is_plugin_active' ) ) {
 				require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
 			}
-	
+
 			$plugin_slug = INSTAWP_PLUGIN_SLUG . '/' . INSTAWP_PLUGIN_SLUG . '.php';
 			if ( ! is_plugin_active( $plugin_slug ) ) {
 				activate_plugin( $plugin_slug );
@@ -680,15 +680,16 @@ class InstaWP_Backup_Api {
 		$api_domain = InstaWP_Setting::get_api_domain();
 		$url        = $api_domain . INSTAWP_API_URL . '/check-key';
 
-		$response      = wp_remote_get( $url, array(
+		$response = wp_remote_get( $url, array(
 			'sslverify' => false,
 			'headers'   => array(
 				'Authorization' => 'Bearer ' . $api_key,
 				'Accept'        => 'application/json',
 			),
 		) );
+
 		$response_code = wp_remote_retrieve_response_code( $response );
-		
+
 		if ( ! is_wp_error( $response ) && $response_code == 200 ) {
 			$body = ( array ) json_decode( wp_remote_retrieve_body( $response ), true );
 

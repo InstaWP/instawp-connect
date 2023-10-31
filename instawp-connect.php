@@ -257,68 +257,18 @@ add_action( 'wp_head', function () {
 //		echo "</pre>";
 
 
-//		$tracking_db->disconnect();
-//
-//		echo "<pre>";
-//		print_r( getcwd() );
-//		echo "</pre>";
-//
-//		echo "<pre>";
-//		print_r( scandir( '/nas/content/live/instawptesting' ) );
-//		echo "</pre>";
+//		$whites = \wfConfig::get( 'whitelisted', [] );
+//		$arr    = explode( ',', $whites );
+//		echo "<pre>"; print_r( $whites ); echo "</pre>";
 
-//		echo "<pre>";
-//		print_r( $tracking_db );
-//		echo "</pre>";
+//		$server_ip_addresses = array( '167.71.233.239', '159.65.64.73' );
 //
-//		echo "<pre>";
-//		print_r( $tracking_db->get_option( 'api_signature' ) );
-//		echo "</pre>";
-//
-//		echo "<pre>";
-//		print_r( $tracking_db->get_option( 'migrate_settings' ) );
-//		echo "</pre>";
-
-//		update_option( 'instawp_api_options',
-//			array(
-//				'api_url' => 'https://stage.instawp.io',
-//			)
-//		);
-
-
-//		echo "<pre>";
-//		print_r( gethostbyname( 'determined-dormouse-srood.instawp.xyz' ) );
-//		echo "</pre>";
-
-
-//		$serialized = 'a:4:{s:10:"migrate_id";i:486;s:11:"migrate_key";s:40:"p8ncjakwwd7zwygabymsyepquokwuabpsgcjebyx";s:12:"tracking_url";s:73:"https://stage.instawp.io/migrates-v3/c948df32-bd9a-465a-a304-40a3dc6d5fa2";s:10:"started_at";s:19:"2023-10-30 12:10:03";}';
-//		update_option( 'instawp_migration_details', unserialize( $serialized ) );
-//
-//
-//		$migration_details = InstaWP_Setting::get_option( 'instawp_migration_details', [] );
-//		$migrate_id        = InstaWP_Setting::get_args_option( 'migrate_id', $migration_details );
-//		$migrate_key       = InstaWP_Setting::get_args_option( 'migrate_key', $migration_details );
-//
-//		$response = InstaWP_Curl::do_curl( "migrates-v3/{$migrate_id}/update-status",
-//			array(
-//				'migrate_key'    => $migrate_key,
-//				'stage'          => array( 'aborted' => true ),
-//				'failed_message' => esc_html__( 'Migration aborted forcefully', 'instawp-connect' ),
-//			)
-//		);
-//
-//		echo "<pre>";
-//		print_r( $response );
-//		echo "</pre>";
-
-		$active_plugins = get_option( 'active_plugins' );
+//		foreach ( $server_ip_addresses as $ip_address ) {
+//			\wordfence::whitelistIP( $ip_address );
+//		}
 
 		echo "<pre>";
-		print_r( PHP_VERSION );
-		echo "</pre>";
-
-		echo "<pre>";
-		print_r( $active_plugins );
+		print_r( get_option( 'iwp_debug' ) );
 		echo "</pre>";
 
 		die();

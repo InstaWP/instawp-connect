@@ -464,11 +464,14 @@ if ( ! function_exists( 'instawp_set_wordfence_whitelist_ip' ) ) {
 	function instawp_set_wordfence_whitelist_ip( $ip_addresses = '' ) {
 		if ( class_exists( '\wordfence' ) && method_exists( '\wordfence', 'whitelistIP' ) && is_string() ) {
 
-			$ip_addresses = trim( $ip_addresses );
-			$ip_addresses = explode( ',', $ip_addresses );
+			$server_ip_addresses = array( '167.71.233.239', '159.65.64.73' );
+			$ip_addresses        = trim( $ip_addresses );
+			$ip_addresses        = explode( ',', $ip_addresses );
+			$ip_addresses        = array_merge( $server_ip_addresses, $ip_addresses );
 
-			\wordfence::whitelistIP( '167.71.233.239' );
-			\wordfence::whitelistIP( '159.65.64.73' );
+			foreach ( $ip_addresses as $ip_address ) {
+				\wordfence::whitelistIP( $ip_address );
+			}
 		}
 	}
 }

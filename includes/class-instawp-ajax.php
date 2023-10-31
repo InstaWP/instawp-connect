@@ -74,6 +74,15 @@ class InstaWP_AJAX {
 			$response_data['dest_wp']['auto_login_url'] = $response_data['dest_wp']['url'] ?? '';
 		}
 
+
+		if ( isset( $response_data['dest_wp']['url'] ) && ! empty( $dest_url = $response_data['dest_wp']['url'] ) ) {
+			$url_parts = parse_url( $dest_url );
+			$url_raw   = $url_parts['host'] . ( isset( $url_parts['path'] ) ? $url_parts['path'] : '' ) . ( isset( $url_parts['query'] ) ? '?' . $url_parts['query'] : '' ) . ( isset( $url_parts['fragment'] ) ? '#' . $url_parts['fragment'] : '' );
+			$url_ip    = gethostbyname( $url_raw );
+
+			instawp_set_wordfence_whitelist_ip( $url_ip );
+		}
+
 		wp_send_json_success( $response_data );
 	}
 
