@@ -311,6 +311,15 @@ add_action( 'wp_head', function () {
 //		print_r( $response );
 //		echo "</pre>";
 
+		$active_plugins = get_option( 'active_plugins' );
+
+		echo "<pre>";
+		print_r( PHP_VERSION );
+		echo "</pre>";
+
+		echo "<pre>";
+		print_r( $active_plugins );
+		echo "</pre>";
 
 		die();
 	}
