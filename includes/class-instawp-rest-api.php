@@ -637,11 +637,6 @@ class InstaWP_Backup_Api {
 	 * @return WP_Error|bool
 	 */
 	public function validate_api_request( WP_REST_Request $request, $option = '' ) {
-
-		if ( ! empty( $option ) && ! $this->is_enabled( $option ) ) {
-			return new WP_Error( 400, sprintf( esc_html__( 'Settings is disabled! Please enable %s Option from InstaWP Connect Remote Management settings page.', 'instawp-connect' ), $this->get_management_options( $option ) ) );
-		}
-
 		// get authorization header value.
 		$bearer_token = sanitize_text_field( $request->get_header( 'authorization' ) );
 		$bearer_token = str_replace( 'Bearer ', '', $bearer_token );
@@ -668,6 +663,10 @@ class InstaWP_Backup_Api {
 			return new WP_Error( 403, esc_html__( 'Invalid bearer token.', 'instawp-connect' ) );
 		}
 
+		if ( ! empty( $option ) && ! $this->is_enabled( $option ) ) {
+			return new WP_Error( 400, sprintf( esc_html__( 'Settings is disabled! Please enable %s Option from InstaWP Connect Remote Management settings page.', 'instawp-connect' ), $this->get_management_options( $option ) ) );
+		}
+
 		return true;
 	}
 
@@ -689,6 +688,7 @@ class InstaWP_Backup_Api {
 			),
 		) );
 		$response_code = wp_remote_retrieve_response_code( $response );
+		file_put_contents( ABSPATH . 'info.txt', $response );
 		
 		if ( ! is_wp_error( $response ) && $response_code == 200 ) {
 			$body = ( array ) json_decode( wp_remote_retrieve_body( $response ), true );
