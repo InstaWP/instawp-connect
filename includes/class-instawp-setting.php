@@ -478,7 +478,7 @@ class InstaWP_Setting {
 		$instawp_api_url = empty( $instawp_api_url ) ? esc_url_raw( 'https://app.instawp.io' ) : $instawp_api_url;
 
 		$api_options            = self::get_option( 'instawp_api_options', [] );
-		$api_options['api_url'] = $instawp_api_url;
+		$api_options['api_url'] = sanitize_url( $instawp_api_url );
 
 		return update_option( 'instawp_api_options', $api_options );
 	}
@@ -501,7 +501,7 @@ class InstaWP_Setting {
 
 	public static function set_api_key( $api_key ) {
 		$api_options            = self::get_option( 'instawp_api_options', [] );
-		$api_options['api_key'] = trim( $api_key );
+		$api_options['api_key'] = sanitize_text_field( wp_unslash( $api_key ) );
 
 		return update_option( 'instawp_api_options', $api_options );
 	}
