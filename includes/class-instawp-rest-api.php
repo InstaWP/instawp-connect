@@ -248,13 +248,7 @@ class InstaWP_Backup_Api {
 
 		// Check accessibility of serve file
 		if ( ! instawp()->tools::is_migrate_file_accessible( $dest_file_url ) ) {
-			// Generate serve file in website root directory
-			$dest_file_url = instawp()->tools::generate_destination_file( $migrate_key, $api_signature, ABSPATH );
-
-			// Check accessibility of serve file and if false return error
-			if ( ! instawp()->tools::is_migrate_file_accessible( $dest_file_url ) ) {
-				return $this->throw_error( new WP_Error( 403, esc_html__( 'Could not create destination file.', 'instawp-connect' ) ) );
-			}
+			return $this->throw_error( new WP_Error( 403, esc_html__( 'Could not create destination file.', 'instawp-connect' ) ) );
 		}
 
 		return $this->send_response( array(
@@ -605,7 +599,7 @@ class InstaWP_Backup_Api {
 			InstaWP_Setting::set_api_domain( $parameters['api_domain'] );
 		}
 
-		InstaWP_Setting::instawp_generate_api_key( $parameters['api_key'], 'true' );
+		self::config_check_key( $parameters['api_key'] );
 
 		$connect_id = instawp_get_connect_id();
 		if ( ! empty( $connect_id ) ) {
