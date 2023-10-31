@@ -599,7 +599,13 @@ class InstaWP_Backup_Api {
 			InstaWP_Setting::set_api_domain( $parameters['api_domain'] );
 		}
 
-		self::config_check_key( $parameters['api_key'] );
+		$config_response = self::config_check_key( $parameters['api_key'] );
+
+		if ( $config_response['error'] ) {
+			$results['message'] = InstaWP_Setting::get_args_option( 'message', $config_response );
+
+			return $this->send_response( $results );
+		}
 
 		$connect_id = instawp_get_connect_id();
 		if ( ! empty( $connect_id ) ) {
