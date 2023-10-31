@@ -688,7 +688,6 @@ class InstaWP_Backup_Api {
 			),
 		) );
 		$response_code = wp_remote_retrieve_response_code( $response );
-		file_put_contents( ABSPATH . 'info.txt', $response );
 		
 		if ( ! is_wp_error( $response ) && $response_code == 200 ) {
 			$body = ( array ) json_decode( wp_remote_retrieve_body( $response ), true );
