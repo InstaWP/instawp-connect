@@ -9,7 +9,7 @@ if ( ! isset( $_SERVER['HTTP_X_IWP_MIGRATE_KEY'] ) || empty( $migrate_key = $_SE
 
 $level         = 0;
 $root_path_dir = __DIR__;
-$root_path     = dirname( $root_path_dir );
+$root_path     = __DIR__;
 
 while ( ! file_exists( $root_path . DIRECTORY_SEPARATOR . 'wp-config.php' ) ) {
 	$level ++;
@@ -289,30 +289,29 @@ if ( $file_type === 'zip' ) {
 				header( "x-iwp-message: Couldn\'t extract $file_save_path .zip.\n" );
 				die();
 			}
-		} catch (Exception $e) {
+		} catch ( Exception $e ) {
 			echo "Error: " . $e->getMessage();
 
 			header( 'x-iwp-status: false' );
 			header( 'x-iwp-message: ' . $e->getMessage() . "\n" );
 			die();
 		}
-	}
-
-	if ( class_exists( 'PharData' ) ) {
+	} else if ( class_exists( 'PharData' ) ) {
 		try {
+			echo $file_save_path;
 			$phar = new PharData( $file_save_path );
 			$phar->extractTo( $directory_name );
-		} catch (Exception $e) {
+
+			if ( file_exists( $file_save_path ) ) {
+				unlink( $file_save_path );
+			}
+		} catch ( Exception $e ) {
 			echo "Error: " . $e->getMessage();
 
 			header( 'x-iwp-status: false' );
 			header( 'x-iwp-message: ' . $e->getMessage() . "\n" );
 			die();
 		}
-	}
-
-	if ( file_exists( $file_save_path ) ) {
-		unlink( $file_save_path );
 	}
 }
 
