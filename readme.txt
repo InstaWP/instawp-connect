@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.4
 Tested up to: 6.3.2
 Requires PHP: 7.4
-Stable tag: 0.0.9.45
+Stable tag: 0.0.9.46
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -93,6 +93,17 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 6. Update API Key and Settings.
 
 == Changelog ==
+
+= 0.0.9.46 - 1 Nov 2023 =
+
+- FIX - Phardata library is now working properly.
+- FIX - Improvement in Migrate v3 Push to make it stable.
+- FIX - Improvement in Migrate v3 Pull to make it stable.
+- FIX - Show Inventory toggle option and make it checked by default.
+- FIX - Config API Key issue.
+- FIX - Calculation of total sizes to check usages limit before migration start.
+- FIX - Fixed the issue of automatically changing of api domain and connect id.
+- FIX - WordFence whitelist IP address dynamically.
 
 = 0.0.9.45 - 27 Oct 2023 =
 
