@@ -173,13 +173,6 @@ stream_copy_to_stream( $file_input_stream, $file_stream );
 fclose( $file_input_stream );
 fclose( $file_stream );
 
-$file_content = file( $file_save_path );
-$file_content = array_slice( $file_content, 4, -1 );
-if ( strpos( $file_content[ count( $file_content ) - 1 ], '-------------' ) !== false ) {
-	$file_content = array_slice( $file_content, 0, -1 );
-}
-file_put_contents( $file_save_path, implode( '', $file_content ), LOCK_EX );
-
 if ( $file_type === 'db' ) {
 	if ( ! isset( $db_host ) || ! isset( $db_username ) || ! isset( $db_password ) || ! isset( $db_name ) ) {
 		header( 'x-iwp-status: false' );
@@ -298,9 +291,8 @@ if ( $file_type === 'zip' ) {
 		}
 	} else if ( class_exists( 'PharData' ) ) {
 		try {
-			echo $file_save_path;
 			$phar = new PharData( $file_save_path );
-			$phar->extractTo( $directory_name );
+			$phar->extractTo( $directory_name, null, true );
 
 			if ( file_exists( $file_save_path ) ) {
 				unlink( $file_save_path );
