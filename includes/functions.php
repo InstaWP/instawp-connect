@@ -438,7 +438,7 @@ if ( ! function_exists( 'instawp_get_dir_contents' ) ) {
 	/**
 	 * Get directory content.
 	 */
-	function instawp_get_dir_contents( $dir, $sort_by ) {
+	function instawp_get_dir_contents( $dir = '/', $sort_by = false ) {
 		return instawp()->get_directory_contents( ABSPATH . $dir, $sort_by );
 	}
 }
@@ -462,7 +462,7 @@ if ( ! function_exists( 'instawp_is_wordfence_whitelisted' ) ) {
 
 if ( ! function_exists( 'instawp_set_wordfence_whitelist_ip' ) ) {
 	function instawp_set_wordfence_whitelist_ip( $ip_addresses = '' ) {
-		if ( class_exists( '\wordfence' ) && method_exists( '\wordfence', 'whitelistIP' ) && is_string() ) {
+		if ( class_exists( '\wordfence' ) && method_exists( '\wordfence', 'whitelistIP' ) && is_string( $ip_addresses ) ) {
 
 			$server_ip_addresses = array( '167.71.233.239', '159.65.64.73' );
 			$ip_addresses        = trim( $ip_addresses );

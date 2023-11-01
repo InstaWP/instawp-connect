@@ -211,9 +211,9 @@ $tracking_url          = InstaWP_Setting::get_args_option( 'tracking_url', $migr
                                     <span><?php esc_html_e( 'Tables', 'instawp-connect' ); ?></span>
                                     <span class="instawp-database-details">
                                         <?php if ( ! empty( $tables ) ) {
-                                            $table_count = count( $tables );
-                                            $table_size  = array_sum( wp_list_pluck( $tables, 'size' ) );
-                                            echo '(' . $table_count . ') - ' . instawp()->get_file_size_with_unit( $table_size );
+	                                        $table_count = count( $tables );
+	                                        $table_size  = array_sum( wp_list_pluck( $tables, 'size' ) );
+	                                        echo '(' . $table_count . ') - ' . instawp()->get_file_size_with_unit( $table_size );
                                         } ?>
                                     </span>
                                 </div>

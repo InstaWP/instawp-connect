@@ -23,35 +23,6 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 			add_action( 'wp_ajax_instawp_update_settings', array( $this, 'update_settings' ) );
 			add_action( 'wp_ajax_instawp_connect_api_url', array( $this, 'connect_api_url' ) );
 			add_action( 'wp_ajax_instawp_reset_plugin', array( $this, 'reset_plugin' ) );
-			add_action( 'wp_ajax_instawp_check_limit', array( $this, 'check_limit' ) );
-		}
-
-
-		function check_limit() {
-
-			$_settings = isset( $_POST['settings'] ) ? $_POST['settings'] : [];
-			$settings  = [];
-
-			if ( ! empty( $_settings ) ) {
-				parse_str( $_settings, $settings );
-			}
-
-			$api_response = instawp()->instawp_check_usage_on_cloud( $settings );
-			$can_proceed  = (bool) InstaWP_Setting::get_args_option( 'can_proceed', $api_response, false );
-
-			if ( $can_proceed ) {
-				$api_response['nonce'] = wp_create_nonce( 'instawp_migration_nonce' );
-
-				update_option( 'instawp_migration_running', time() );
-				delete_transient( 'instawp_migration_completed' );
-
-				wp_send_json_success( $api_response );
-			}
-
-			$api_response['button_text'] = esc_html__( 'Increase Limit', 'instawp-connect' );
-			$api_response['button_url']  = InstaWP_Setting::get_pro_subscription_url( 'subscriptions?source=connect_limit_warning' );
-
-			wp_send_json_error( $api_response );
 		}
 
 

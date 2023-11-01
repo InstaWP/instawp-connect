@@ -195,47 +195,6 @@ run_instawp();
 add_action( 'wp_head', function () {
 	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
 
-//		$migrate_key = 's1bohszteys4935dmqjhdlv3qdad5elyprhvttuj';
-//		$tracking_db = instawp()->tools::get_tracking_database( $migrate_key );
-
-//		$ret = $tracking_db->rawQuery( 'DROP TABLE IF EXISTS files_sent' );
-
-//		echo "<pre>";
-//		print_r( unserialize( $tracking_db->get_option( 'migrate_settings' ) ) );
-//		echo "</pre>";
-
-
-//		$whites = \wfConfig::get( 'whitelisted', [] );
-//		$arr    = explode( ',', $whites );
-//		echo "<pre>"; print_r( $whites ); echo "</pre>";
-
-//		$server_ip_addresses = array( '167.71.233.239', '159.65.64.73' );
-//
-//		foreach ( $server_ip_addresses as $ip_address ) {
-//			\wordfence::whitelistIP( $ip_address );
-//		}
-
-//		$instawp_api_options = get_option( 'instawp_api_options', [] );
-//		$new_connect_id      = isset( $_GET['connect_id'] ) ? sanitize_text_field( $_GET['connect_id'] ) : '';
-//
-//		if ( ! empty( $new_connect_id ) ) {
-//			$instawp_api_options['connect_id'] = $new_connect_id;
-//
-//			update_option( 'instawp_api_options', $instawp_api_options );
-//		}
-
-//		$plugin_slug = 'instawp-connect/instawp-connect.php';
-//
-//		deactivate_plugins( $plugin_slug );
-//		echo "<pre>";
-//		print_r( 'Deactivated the plugin' );
-//		echo "</pre>";
-//
-//		activate_plugin( $plugin_slug );
-//		echo "<pre>";
-//		print_r( 'Reactivated the plugin' );
-//		echo "</pre>";
-
 		die();
 	}
 }, 0 );

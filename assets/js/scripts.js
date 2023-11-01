@@ -13,15 +13,15 @@
 
     let formatBytes = (bytes, decimals = 2) => {
         if (!+bytes) return '0 Bytes'
-    
+
         const k = 1024
         const dm = decimals < 0 ? 0 : decimals
         const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
-    
+
         const i = Math.floor(Math.log(bytes) / Math.log(k))
-    
+
         return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`
-    }    
+    }
 
     let instawp_migrate_progress = () => {
 
@@ -226,7 +226,11 @@
 
     $(document).on('change', '.instawp-wrap .instawp-option-selector', function () {
 
-        let el_option_selector = $(this), el_option_selector_wrap = el_option_selector.parent().parent(), el_selected_staging_options = $('.selected-staging-options'), option_id = el_option_selector.val(), option_label = el_option_selector_wrap.find('.option-label').text();
+        let el_option_selector = $(this),
+            el_option_selector_wrap = el_option_selector.parent().parent(),
+            el_selected_staging_options = $('.selected-staging-options'),
+            option_id = el_option_selector.val(),
+            option_label = el_option_selector_wrap.find('.option-label').text();
 
         if (el_option_selector_wrap.hasClass('card-active')) {
             el_option_selector_wrap.removeClass('card-active border-primary-900').addClass('border-grayCust-350');
@@ -362,9 +366,11 @@
                 url: plugin_object.ajax_url,
                 context: this,
                 data: {
-                    'action': 'instawp_check_limit'
+                    'action': 'instawp_check_usages_limit',
+                    'settings': create_container.serialize(),
                 },
                 success: function (response) {
+
                     if (response.success) {
                         el_screen_doing_request.removeClass('loading');
                         el_instawp_screen.val(screen_next).trigger('change');
@@ -586,10 +592,10 @@
     $(document).on('change', '.instawp-checkbox.exclude-file-item', function () {
         let cEl = $(document).find('.instawp-checkbox.exclude-file-item:checked');
         let sum = 0;
-        cEl.each(function(){
+        cEl.each(function () {
             sum = sum + $(this).data('size')
         });
-        if ( cEl.length > 0 ) {
+        if (cEl.length > 0) {
             $(document).find('.files-select').removeClass('hidden');
             $(document).find('.selected-files').html(`${cEl.length} files (${formatBytes(sum)}) skipped`);
         } else {
@@ -600,10 +606,10 @@
     $(document).on('change', '.instawp-checkbox.exclude-database-item', function () {
         let cEl = $(document).find('.instawp-checkbox.exclude-database-item:checked');
         let sum = 0;
-        cEl.each(function(){
+        cEl.each(function () {
             sum = sum + $(this).data('size')
         });
-        if ( cEl.length > 0 ) {
+        if (cEl.length > 0) {
             $(document).find('.db-tables-select').removeClass('hidden');
             $(document).find('.selected-db-tables').html(`${cEl.length} tables (${formatBytes(sum)}) skipped`);
         } else {

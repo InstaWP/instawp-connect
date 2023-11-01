@@ -196,9 +196,9 @@ class InstaWP_Tools {
 		if ( defined( 'WP_HOME' ) ) {
 			$data['home_url'] = WP_HOME;
 		}
-		
+
 		$jsonString     = json_encode( $data );
-		$dest_file_path = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . INSTAWP_DEFAULT_BACKUP_DIR. DIRECTORY_SEPARATOR . $migrate_key . '.json';
+		$dest_file_path = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . INSTAWP_DEFAULT_BACKUP_DIR . DIRECTORY_SEPARATOR . $migrate_key . '.json';
 
 		if ( file_put_contents( $dest_file_path, $jsonString, LOCK_EX ) ) {
 			$dest_url = INSTAWP_PLUGIN_URL . 'dest.php';
@@ -226,7 +226,7 @@ class InstaWP_Tools {
 				$file_name              = 'dest.php';
 				$forwarded_file_path    = ABSPATH . $file_name;
 				$forwarded_file_created = file_put_contents( $forwarded_file_path, $forwarded_content, LOCK_EX );
-		
+
 				if ( $forwarded_file_created ) {
 					return site_url( $file_name );
 				}
@@ -234,7 +234,7 @@ class InstaWP_Tools {
 
 			return $dest_url;
 		}
-		
+
 		return false;
 	}
 
@@ -313,6 +313,47 @@ class InstaWP_Tools {
 		}
 
 		return $unsupported_active_plugins;
+	}
+
+	public static function get_total_sizes( $type = '', $migrate_settings = [] ) {
+
+		if ( $type === 'files' ) {
+
+			$total_size_to_skip = 0;
+			$total_files        = instawp_get_dir_contents( '/' );
+			$total_files_sizes  = array_map( function ( $data ) {
+				return $data['size'] ?? 0;
+			}, $total_files );
+			$total_files_size   = array_sum( $total_files_sizes );
+
+			if ( empty( $migrate_settings ) ) {
+				return $total_files_size;
+			}
+
+			if ( isset( $migrate_settings['excluded_paths'] ) && is_array( $migrate_settings['excluded_paths'] ) ) {
+				foreach ( $migrate_settings['excluded_paths'] as $path ) {
+					$dir_contents      = instawp_get_dir_contents( $path );
+					$dir_contents_size = array_map( function ( $dir_info ) {
+						return $dir_info['size'] ?? 0;
+					}, $dir_contents );
+
+					$total_size_to_skip += array_sum( $dir_contents_size );
+				}
+			}
+
+			return $total_files_size - $total_size_to_skip;
+		}
+
+		if ( $type === 'files' ) {
+			$tables       = instawp_get_database_details();
+			$tables_sizes = array_map( function ( $data ) {
+				return $data['size'] ?? 0;
+			}, $tables );
+
+			return array_sum( $tables_sizes );
+		}
+
+		return 0;
 	}
 
 
