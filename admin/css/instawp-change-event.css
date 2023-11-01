@@ -142,7 +142,7 @@ body.show {
     height: 100%;
     background: #E5E7EB;
     top: 0;
-    left: 11px;
+    left: 10px;
     z-index: -9;
 }
 .instawp_category > div.instawpcatrgtcol > ul::before {
@@ -152,7 +152,7 @@ body.show {
     height: 33.33%;
     background: #E5E7EB;
     width: 2px;
-    left: 11px;
+    left: 10px;
     top: 10px;
 }
 .instawpcatrgtcol ul li {
