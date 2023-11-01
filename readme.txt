@@ -96,7 +96,7 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 
 = 0.0.9.46 - 1 Nov 2023 =
 
-- FIX - Phardata library is now working properly.
+- FIX - PharData library is now working properly.
 - FIX - Improvement in Migrate v3 Push to make it stable.
 - FIX - Improvement in Migrate v3 Pull to make it stable.
 - FIX - Show Inventory toggle option and make it checked by default.
