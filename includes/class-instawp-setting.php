@@ -440,8 +440,7 @@ class InstaWP_Setting {
 					'title'    => __( 'Site Inventory', 'instawp-connect' ),
 					'tooltip'  => __( 'Enabling this option will allow reading the installed WordPress version, themes and plugins on this website remotely using the REST API.', 'instawp-connect' ),
 					'class'    => 'save-ajax',
-					'default'  => 'off',
-					'internal' => true,
+					'default'  => 'on',
 				],
 				[
 					'id'      => 'instawp_rm_debug_log',

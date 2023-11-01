@@ -1104,8 +1104,9 @@ class InstaWP_Backup_Api {
 	 * @return bool
 	 */
 	private function is_enabled( $key ) {
-		$value = InstaWP_Setting::get_option( 'instawp_rm_' . $key, 'off' );
-		$value = empty( $value ) ? 'off' : $value;
+		$default = ( 'inventory' === $key ) ? 'on' : 'off';
+		$value   = InstaWP_Setting::get_option( 'instawp_rm_' . $key, $default );
+		$value   = empty( $value ) ? $default : $value;
 
 		return 'on' === $value;
 	}
