@@ -3,6 +3,7 @@
  * Migrate template - Main
  */
 
+$api_domain      = InstaWP_Setting::get_api_domain();
 $return_url      = urlencode( admin_url( 'tools.php?page=instawp' ) );
 $connect_api_url = InstaWP_Setting::get_api_domain() . '/authorize?source=InstaWP Connect&return_url=' . $return_url;
 $current_page    = isset( $_REQUEST['page'] ) ? sanitize_text_field( $_REQUEST['page'] ) : '';
@@ -32,8 +33,8 @@ if ( empty( InstaWP_Setting::get_api_key() ) && 'instawp' == $current_page && 't
                 <span><?php echo esc_html__( 'Connect', 'instawp-connect' ); ?></span>
             </button>
 		<?php else: ?>
-            <span class="w-1 h-1 bg-primary-700 rounded-full mr-2"></span>
-            <span class="text-primary-700 mr-4"><?php echo esc_html__( 'Your account is connected', 'instawp-connect' ); ?></span>
+            <span class="w-1 h-1 <?= str_contains( $api_domain, 'stage' ) ? 'bg-amber-600' : 'bg-primary-700'; ?> rounded-full mr-2"></span>
+            <span class="mr-4 <?= str_contains( $api_domain, 'stage' ) ? 'text-amber-600' : 'text-primary-700'; ?>"><?php echo esc_html__( 'Your account is connected', 'instawp-connect' ); ?></span>
 		<?php endif; ?>
     </div>
 </div>

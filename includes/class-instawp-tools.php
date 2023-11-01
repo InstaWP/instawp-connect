@@ -178,55 +178,71 @@ class InstaWP_Tools {
 		return $tracking_db;
 	}
 
-	public static function generate_destination_file( $migrate_key, $api_signature, $dest_file_dir = '' ) {
+	public static function generate_destination_file( $migrate_key, $api_signature ) {
+		$data = [
+			'api_signature' => $api_signature,
+			'db_host'       => DB_HOST,
+			'db_username'   => DB_USER,
+			'db_password'   => DB_PASSWORD,
+			'db_name'       => DB_NAME,
+			'db_charset'    => DB_CHARSET,
+			'db_collate'    => DB_COLLATE,
+		];
 
-		$sample_dest_file = fopen( INSTAWP_PLUGIN_DIR . '/sample-dest.php', 'rb' );
-		$dest_file_dir    = empty( $dest_file_dir ) ? WP_CONTENT_DIR . DIRECTORY_SEPARATOR . INSTAWP_DEFAULT_BACKUP_DIR : $dest_file_dir;
-		$dest_file_path   = $dest_file_dir . DIRECTORY_SEPARATOR . $migrate_key . '.php';
-		$dest_file        = fopen( $dest_file_path, 'wb' );
-		$line_number      = 1;
+		if ( defined( 'WP_SITEURL' ) ) {
+			$data['site_url'] = WP_SITEURL;
+		}
 
-		while ( ( $line = fgets( $sample_dest_file ) ) !== false ) {
+		if ( defined( 'WP_HOME' ) ) {
+			$data['home_url'] = WP_HOME;
+		}
+		
+		$jsonString     = json_encode( $data );
+		$dest_file_path = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . INSTAWP_DEFAULT_BACKUP_DIR. DIRECTORY_SEPARATOR . $migrate_key . '.json';
 
-			// Add api signature
-			if ( $line_number === 4 ) {
-				fputs( $dest_file, '$api_signature = "' . $api_signature . '";' . "\n" );
-				fputs( $dest_file, '$db_host = "' . DB_HOST . '";' . "\n" );
-				fputs( $dest_file, '$db_username = "' . DB_USER . '";' . "\n" );
-				fputs( $dest_file, '$db_password = "' . DB_PASSWORD . '";' . "\n" );
-				fputs( $dest_file, '$db_name = "' . DB_NAME . '";' . "\n" );
-				fputs( $dest_file, '$db_charset = "' . DB_CHARSET . '";' . "\n" );
-				fputs( $dest_file, '$db_collate = "' . DB_COLLATE . '";' . "\n" );
+		if ( file_put_contents( $dest_file_path, $jsonString, LOCK_EX ) ) {
+			$dest_url = INSTAWP_PLUGIN_URL . 'dest.php';
 
-				if ( defined( 'WP_SITEURL' ) ) {
-					fputs( $dest_file, '$site_url = "' . WP_SITEURL . '";' . "\n" );
+			if ( ! self::is_migrate_file_accessible( $dest_url ) ) {
+				$forwarded_content      = <<<'EOD'
+				<?php
+				$path_structure = array(
+					__DIR__,
+					'wp-content',
+					'plugins',
+					'instawp-connect',
+					'dest.php',
+				);
+				$file_path      = implode( DIRECTORY_SEPARATOR, $path_structure );
+				
+				if ( ! is_readable( $file_path ) ) {
+					header( 'x-iwp-status: false' );
+					header( 'x-iwp-message: File is not readable' );
+					exit( 2004 );
 				}
-
-				if ( defined( 'WP_HOME' ) ) {
-					fputs( $dest_file, '$home_url = "' . WP_HOME . '";' . "\n" );
+				
+				include $file_path;
+				EOD;
+				$file_name              = 'dest.php';
+				$forwarded_file_path    = ABSPATH . $file_name;
+				$forwarded_file_created = file_put_contents( $forwarded_file_path, $forwarded_content, LOCK_EX );
+		
+				if ( $forwarded_file_created ) {
+					return site_url( $file_name );
 				}
 			}
 
-			fputs( $dest_file, $line );
-
-			$line_number ++;
+			return $dest_url;
 		}
-
-		fclose( $dest_file );
-		fclose( $sample_dest_file );
-
-		if ( $dest_file_dir === ABSPATH ) {
-			return site_url( $migrate_key . '.php' );
-		}
-
-		return content_url( INSTAWP_DEFAULT_BACKUP_DIR . '/' . $migrate_key . '.php' );
+		
+		return false;
 	}
 
 	public static function is_migrate_file_accessible( $file_url ) {
 
 		$curl = curl_init();
 		curl_setopt_array( $curl, array(
-			CURLOPT_URL            => 'https://app.instawp.io/public/check/?url=' . $file_url,
+			CURLOPT_URL            => INSTAWP_API_DOMAIN_PROD . '/public/check/?url=' . $file_url,
 			CURLOPT_RETURNTRANSFER => true,
 			CURLOPT_ENCODING       => '',
 			CURLOPT_MAXREDIRS      => 10,

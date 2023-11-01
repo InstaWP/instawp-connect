@@ -342,8 +342,8 @@ class InstaWP_Setting {
 					'name'        => 'api_url',
 					'type'        => 'url',
 					'title'       => esc_html__( 'API Domain', 'instawp-connect' ),
-					'placeholder' => esc_url_raw( 'https://app.instawp.io' ),
-					'default'     => 'https://app.instawp.io',
+					'placeholder' => INSTAWP_API_DOMAIN_PROD,
+					'default'     => INSTAWP_API_DOMAIN_PROD,
 				),
 				array(
 					'id'      => 'instawp_enable_wp_debug',
@@ -440,8 +440,7 @@ class InstaWP_Setting {
 					'title'    => __( 'Site Inventory', 'instawp-connect' ),
 					'tooltip'  => __( 'Enabling this option will allow reading the installed WordPress version, themes and plugins on this website remotely using the REST API.', 'instawp-connect' ),
 					'class'    => 'save-ajax',
-					'default'  => 'off',
-					'internal' => true,
+					'default'  => 'on',
 				],
 				[
 					'id'      => 'instawp_rm_debug_log',
@@ -475,10 +474,10 @@ class InstaWP_Setting {
 	}
 
 	public static function set_api_domain( $instawp_api_url = '' ) {
-		$instawp_api_url = empty( $instawp_api_url ) ? esc_url_raw( 'https://app.instawp.io' ) : $instawp_api_url;
+		$instawp_api_url = empty( $instawp_api_url ) ? INSTAWP_API_DOMAIN_PROD : $instawp_api_url;
 
 		$api_options            = self::get_option( 'instawp_api_options', [] );
-		$api_options['api_url'] = $instawp_api_url;
+		$api_options['api_url'] = sanitize_url( $instawp_api_url );
 
 		return update_option( 'instawp_api_options', $api_options );
 	}
@@ -489,26 +488,26 @@ class InstaWP_Setting {
 
 	public static function get_api_domain() {
 		$api_options = self::get_option( 'instawp_api_options', [] );
-		
-		return self::get_args_option( 'api_url', $api_options, 'https://app.instawp.io' );
+
+		return self::get_args_option( 'api_url', $api_options, INSTAWP_API_DOMAIN_PROD );
 	}
 
 	public static function get_api_key() {
 		$api_options = self::get_option( 'instawp_api_options', [] );
-		
+
 		return self::get_args_option( 'api_key', $api_options );
 	}
 
 	public static function set_api_key( $api_key ) {
 		$api_options            = self::get_option( 'instawp_api_options', [] );
-		$api_options['api_key'] = trim( $api_key );
+		$api_options['api_key'] = sanitize_text_field( wp_unslash( $api_key ) );
 
 		return update_option( 'instawp_api_options', $api_options );
 	}
 
 	public static function get_connect_id() {
 		$api_options = self::get_option( 'instawp_api_options', [] );
-		
+
 		return self::get_args_option( 'connect_id', $api_options );
 	}
 
@@ -559,7 +558,7 @@ class InstaWP_Setting {
 		}
 
 		$response_body = json_decode( wp_remote_retrieve_body( $response ), true );
-		
+
 		if ( isset( $response_body['status'] ) && $response_body['status'] ) {
 			$api_options = self::get_option( 'instawp_api_options', [] );
 
