@@ -181,7 +181,7 @@ class InstaWP_Ajax_Fn {
 			$results = [ 'Post', 'Page', 'Theme', 'Plugin' ];
 			foreach ( $results as $row ) {
 				$html .= '<li class="event-type-count">';
-				$html .= sprintf( __( '%u %s change event', 'instawp-connect' ), 0, $row );
+				$html .= sprintf( __( '%u %s %s', 'instawp-connect' ), 0, $row, in_array($row, ['Page','Post']) ? 'modified' : 'installed' );
 				$html .= '</li>';
 			}
 		}
