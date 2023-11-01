@@ -242,7 +242,7 @@ class InstaWP_Tools {
 
 		$curl = curl_init();
 		curl_setopt_array( $curl, array(
-			CURLOPT_URL            => 'https://app.instawp.io/public/check/?url=' . $file_url,
+			CURLOPT_URL            => INSTAWP_API_DOMAIN_PROD . '/public/check/?url=' . $file_url,
 			CURLOPT_RETURNTRANSFER => true,
 			CURLOPT_ENCODING       => '',
 			CURLOPT_MAXREDIRS      => 10,
