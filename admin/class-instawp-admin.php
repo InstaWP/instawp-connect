@@ -32,7 +32,7 @@ class InstaWP_Admin {
 
 	private $screen_ids = [];
 
-	protected static $_is_deployer_mode = false;
+	protected static $_is_waas_mode = false;
 
 	protected static $_is_template_migration_mode = false;
 
@@ -45,7 +45,7 @@ class InstaWP_Admin {
 		}
 
 		if ( defined( 'INSTAWP_CONNECT_MODE' ) && 'WAAS_GO_LIVE' == INSTAWP_CONNECT_MODE ) {
-			self::$_is_deployer_mode = true;
+			self::$_is_waas_mode = true;
 		}
 
 		$this->plugin_name = $plugin_name;
@@ -86,12 +86,15 @@ class InstaWP_Admin {
 			return;
 		}
 
-		if ( self::$_is_deployer_mode ) {
+		if ( self::$_is_waas_mode ) {
 			$admin_bar->add_menu(
 				array(
 					'id'     => 'instawp-go-live',
 					'title'  => esc_html__( 'Go Live', 'instawp-connect' ),
-					'href'   => '#',
+					'href'   => defined( 'INSTAWP_CONNECT_WAAS_URL' ) && ! empty( INSTAWP_CONNECT_WAAS_URL ) ? INSTAWP_CONNECT_WAAS_URL : '#',
+					'meta'   => array(
+						'target' => '_blank',
+					),
 					'parent' => 'top-secondary',
 				)
 			);
@@ -134,7 +137,7 @@ class InstaWP_Admin {
 		}
 
 		// Go Live mode
-		if ( self::$_is_deployer_mode ) {
+		if ( self::$_is_waas_mode ) {
 			return;
 		}
 
