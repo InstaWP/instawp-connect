@@ -248,6 +248,8 @@ class InstaWP_Tools {
 			CURLOPT_MAXREDIRS      => 10,
 			CURLOPT_TIMEOUT        => 5,
 			CURLOPT_FOLLOWLOCATION => true,
+			CURLOPT_USERAGENT      => isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '',
+			CURLOPT_REFERER        => site_url(),
 			CURLOPT_SSL_VERIFYHOST => false,
 			CURLOPT_SSL_VERIFYPEER => false,
 			CURLOPT_CUSTOMREQUEST  => 'POST'

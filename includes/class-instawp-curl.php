@@ -44,6 +44,8 @@ class InstaWP_Curl {
 				CURLOPT_FOLLOWLOCATION => true,
 				CURLOPT_SSL_VERIFYHOST => false,
 				CURLOPT_SSL_VERIFYPEER => false,
+				CURLOPT_USERAGENT      => isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '',
+				CURLOPT_REFERER        => site_url(),
 				CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
 				CURLOPT_CUSTOMREQUEST  => $api_method,
 				CURLOPT_POSTFIELDS     => json_encode( $body ),
@@ -134,7 +136,7 @@ class InstaWP_Curl {
 		if ( ! empty( $api_key ) ) {
 			$this->api_key = $api_key;
 		} else {
-			$res = [];
+			$res            = [];
 			$res['error']   = true;
 			$res['message'] = 'API Key Is Required';
 			echo json_encode( $res );
