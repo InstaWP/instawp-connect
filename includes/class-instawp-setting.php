@@ -432,7 +432,6 @@ class InstaWP_Setting {
 					'tooltip'  => __( 'Enabling this option will allow reading, updating and deleting the WordPress constant values on this website remotely using the REST API.', 'instawp-connect' ),
 					'class'    => 'save-ajax',
 					'default'  => 'off',
-					'internal' => true,
 				],
 				[
 					'id'       => 'instawp_rm_inventory',
