@@ -53,9 +53,12 @@ class InstaWP_AJAX {
 
 		$response_data                     = InstaWP_Setting::get_args_option( 'data', $response, [] );
 		$auto_login_hash                   = $response_data['dest_wp']['auto_login_hash'] ?? '';
+		$response_data['migrate_id']       = $migrate_id;
 		$response_data['progress_files']   = $response_data['progress_files'] ?? 0;
 		$response_data['progress_db']      = $response_data['progress_db'] ?? 0;
 		$response_data['progress_restore'] = $response_data['progress_restore'] ?? 0;
+		$response_data['server_logs']      = $response_data['server_logs'] ?? '';
+		$response_data['failed_message']   = $response_data['failed_message'] ?? esc_html( 'Something went wrong' );
 
 		if ( isset( $response_data['stage']['failed'] ) && $response_data['stage']['failed'] === true ) {
 			instawp_reset_running_migration();

@@ -33,6 +33,8 @@
                 el_migration_progress_wrap = create_container.find('.migration-running'),
                 el_site_detail_wrap = create_container.find('.migration-completed'),
                 el_migration_error_wrap = create_container.find('.migration-error'),
+                el_migration_error_message = el_migration_error_wrap.find('.error-message'),
+                el_migration_download_log = el_migration_error_wrap.find('.instawp-download-log'),
                 el_screen_buttons = create_container.find('.screen-buttons'),
                 el_screen_buttons_last = create_container.find('.screen-buttons-last'),
                 el_stage_wrapper = create_container.find('.instawp-progress-stage');
@@ -62,6 +64,7 @@
                             progress_db = response.data.progress_db,
                             progress_restore = response.data.progress_restore,
                             progress_stages = response.data.stage,
+                            failed_message = response.data.failed_message,
                             stage_migration_finished = false;
 
                         el_bar_files.find('.instawp-progress-bar').css('width', progress_files + '%');
@@ -118,6 +121,10 @@
                         create_container.removeClass('loading').addClass('completed');
                         clearInterval(create_container.attr('interval-id'));
 
+                        el_migration_error_message.html(response.data.failed_message);
+                        el_migration_download_log.data('migrate-id', response.data.migrate_id);
+                        el_migration_download_log.data('server-logs', response.data.server_logs);
+
                         el_migration_loader.removeClass('text-primary-900').addClass('text-red-700').text(el_migration_loader.data('error-text'));
                         el_migration_progress_wrap.addClass('hidden');
                         el_migration_error_wrap.removeClass('hidden');
@@ -166,6 +173,26 @@
             });
         };
 
+
+    $(document).on('click', '.instawp-download-log', function () {
+
+        let server_logs = $(this).data('server-logs'),
+            migrate_id = $(this).data('migrate-id'),
+            filename = migrate_id + '-log.txt',
+            blob = new Blob([server_logs], {type: 'text/plain;charset=utf-8;'});
+
+        if (window.navigator.msSaveOrOpenBlob) {
+            window.navigator.msSaveBlob(blob, filename);
+        } else {
+            let downloadLink = $('<a></a>');
+            downloadLink.attr('href', window.URL.createObjectURL(blob));
+            downloadLink.attr('download', filename);
+            downloadLink.css('display', 'none');
+            $('body').append(downloadLink);
+            downloadLink[0].click();
+            downloadLink.remove();
+        }
+    });
 
     $(document).on('change', '#instawp-screen', function () {
 
