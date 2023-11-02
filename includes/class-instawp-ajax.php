@@ -83,7 +83,7 @@ class InstaWP_AJAX {
 			$url_raw   = $url_parts['host'] . ( isset( $url_parts['path'] ) ? $url_parts['path'] : '' ) . ( isset( $url_parts['query'] ) ? '?' . $url_parts['query'] : '' ) . ( isset( $url_parts['fragment'] ) ? '#' . $url_parts['fragment'] : '' );
 			$url_ip    = gethostbyname( $url_raw );
 
-			instawp_set_wordfence_whitelist_ip( $url_ip );
+			instawp_set_whitelist_ip( $url_ip );
 		}
 
 		wp_send_json_success( $response_data );
@@ -144,8 +144,8 @@ class InstaWP_AJAX {
 		$is_website_on_local = instawp_is_website_on_local();
 		$instawp_migrate     = InstaWP_Setting::get_args_option( 'instawp_migrate', $settings_arr, [] );
 
-		if ( isset( $instawp_migrate['whitelist_wordfence'] ) && $instawp_migrate['whitelist_wordfence'] == 'yes' ) {
-			instawp_set_wordfence_whitelist_ip();
+		if ( isset( $instawp_migrate['whitelist_ip'] ) && $instawp_migrate['whitelist_ip'] == 'yes' ) {
+			instawp_set_whitelist_ip();
 		}
 
 		$migrate_settings = $this->get_migrate_settings( $_POST );

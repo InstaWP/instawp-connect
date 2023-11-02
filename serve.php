@@ -98,6 +98,10 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
 	if ( ! function_exists( 'send_by_zip' ) ) {
 		function send_by_zip( IWPDB $tracking_db, $unsentFiles = array(), $progress_percentage = '', $archiveType = 'ziparchive' ) {
+			$migrate_settings  = $tracking_db->get_option( 'migrate_settings' );
+			$migrate_settings  = unserialize( $migrate_settings );
+			$skip_media_folder = $migrate_settings['skip_media_folder'] ?? [];
+
 			header( 'Content-Type: zip' );
 			header( 'x-file-type: zip' );
 			header( 'x-iwp-progress: ' . $progress_percentage );

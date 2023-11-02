@@ -444,6 +444,31 @@ if ( ! function_exists( 'instawp_get_dir_contents' ) ) {
 }
 
 
+if ( ! function_exists( 'instawp_set_whitelist_ip' ) ) {
+	function instawp_set_whitelist_ip( $ip_addresses = '' ) {
+		// WordFence
+		instawp_set_wordfence_whitelist_ip( $ip_addresses );
+
+		// SolidWP
+		instawp_set_solid_wp_whitelist_ip( $ip_addresses );
+	}
+}
+
+
+if ( ! function_exists( 'instawp_prepare_whitelist_ip' ) ) {
+	function instawp_prepare_whitelist_ip( $ip_addresses = '' ) {
+		$server_ip_addresses = [ '167.71.233.239', '159.65.64.73' ];
+		
+		if ( is_string( $ip_addresses ) ) {
+			$ip_addresses = trim( $ip_addresses );
+			$ip_addresses = array_map( 'trim', explode( ',', $ip_addresses ) );
+		}
+
+		return array_merge( $server_ip_addresses, $ip_addresses );
+	}
+}
+
+
 if ( ! function_exists( 'instawp_is_wordfence_whitelisted' ) ) {
 	function instawp_is_wordfence_whitelisted() {
 		$whitelisted = false;
@@ -460,18 +485,40 @@ if ( ! function_exists( 'instawp_is_wordfence_whitelisted' ) ) {
 }
 
 
+if ( ! function_exists( 'instawp_is_solid_wp_whitelisted' ) ) {
+	function instawp_is_solid_wp_whitelisted() {
+		$whitelisted = false;
+		if ( class_exists( '\ITSEC_Modules' ) && method_exists( '\ITSEC_Modules', 'get_settings' ) ) {
+			$whites = \ITSEC_Modules::get_setting( 'global', 'lockout_white_list', [] );
+			if ( in_array( '167.71.233.239', $whites ) && in_array( '159.65.64.73', $whites ) ) {
+				$whitelisted = true;
+			}
+		}
+
+		return $whitelisted;
+	}
+}
+
+
 if ( ! function_exists( 'instawp_set_wordfence_whitelist_ip' ) ) {
 	function instawp_set_wordfence_whitelist_ip( $ip_addresses = '' ) {
-		if ( class_exists( '\wordfence' ) && method_exists( '\wordfence', 'whitelistIP' ) && is_string( $ip_addresses ) ) {
-
-			$server_ip_addresses = array( '167.71.233.239', '159.65.64.73' );
-			$ip_addresses        = trim( $ip_addresses );
-			$ip_addresses        = explode( ',', $ip_addresses );
-			$ip_addresses        = array_merge( $server_ip_addresses, $ip_addresses );
-
-			foreach ( $ip_addresses as $ip_address ) {
+		if ( class_exists( '\wordfence' ) && method_exists( '\wordfence', 'whitelistIP' ) ) {
+			foreach ( instawp_prepare_whitelist_ip( $ip_addresses ) as $ip_address ) {
 				\wordfence::whitelistIP( $ip_address );
 			}
+		}
+	}
+}
+
+
+if ( ! function_exists( 'instawp_set_solid_wp_whitelist_ip' ) ) {
+	function instawp_set_solid_wp_whitelist_ip( $ip_addresses = '' ) {
+		if ( class_exists( '\ITSEC_Modules' ) && method_exists( '\ITSEC_Modules', 'get_settings' ) && method_exists( '\ITSEC_Modules', 'set_settings' ) ) {
+			$settings = \ITSEC_Modules::get_settings( 'global' );
+			
+			$settings['lockout_white_list'] = array_unique( array_merge( $settings['lockout_white_list'], instawp_prepare_whitelist_ip( $ip_addresses ) ) );
+			
+			\ITSEC_Modules::set_settings( 'global', $settings );
 		}
 	}
 }
@@ -483,7 +530,20 @@ if ( ! function_exists( 'instawp_can_whitelist_wordfence' ) ) {
 			include_once ABSPATH . 'wp-admin/includes/plugin.php';
 		}
 
-		return ( is_plugin_active( 'wordfence/wordfence.php' ) && ! instawp_is_wordfence_whitelisted() );
+		$providers = [
+			'wordfence/wordfence.php'                   => 'instawp_is_wordfence_whitelisted',
+			'better-wp-security/better-wp-security.php' => 'instawp_is_solid_wp_whitelisted',
+		];
+
+		$can_whitelist = false;
+		foreach ( $providers as $plugin => $function ) {
+			if ( is_plugin_active( $plugin ) && ! call_user_func( $function ) ) {
+				$can_whitelist = true;
+				break;
+			}
+		}
+		
+		return $can_whitelist;
 	}
 }
 

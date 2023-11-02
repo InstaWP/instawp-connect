@@ -71,7 +71,7 @@ $tracking_url          = InstaWP_Setting::get_args_option( 'tracking_url', $migr
                         </div>
                         <div class="flex flex-col items-start gap-3">
                             <div class="flex justify-between items-center text-xss">
-                                <input type="checkbox" name="instawp_migrate[whitelist_wordfence]" id="whitelist-wordfence" value="yes" class="instawp-checkbox !mt-0 !mr-3 rounded border-gray-300 text-primary-900 focus:ring-primary-900">
+                                <input type="checkbox" name="instawp_migrate[whitelist_ip]" id="whitelist-wordfence" value="yes" class="instawp-checkbox !mt-0 !mr-3 rounded border-gray-300 text-primary-900 focus:ring-primary-900">
                                 <label for="whitelist-wordfence" class="mr-2"><?php esc_html_e( 'Yes, Whitelist IP', 'instawp-connect' ); ?></label>(<a class="cursor-pointer focus:outline-none focus:ring-0 hover:text-primary-900 border-b border-transparent border-1 border-dashed hover:border-primary-700" href="https://silicondales.com/tutorials/wordpress/whitelist-ip-wordfence/" target="_blank">Documentation</a>)
                             </div>
                         </div>
