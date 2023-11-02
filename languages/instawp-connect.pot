@@ -14,6 +14,7 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #: admin/class-instawp-admin.php:67, includes/class-instawp-setting.php:36
+#: admin/class-instawp-admin.php:67, includes/class-instawp-setting.php:36
 msgid "Create Staging"
 msgstr ""
 
@@ -85,87 +86,7 @@ msgstr ""
 msgid "3. Go back to this page and paste the key in key box below. Lastly, click Save button."
 msgstr ""
 
-#: admin/partials/instawp-admin-change-event-filters.php:154
-msgid "New user registered"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:174
-msgid "User deleted"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:192
-msgid "User updated"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:281, admin/partials/instawp-admin-change-event-filters.php:292, admin/partials/instawp-admin-change-event-filters.php:312
-msgid "Woocommerce attribute"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:329, admin/partials/instawp-admin-change-event-filters.php:700
-msgid "%s modified"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:347, admin/partials/instawp-admin-change-event-filters.php:790
-msgid "%s deleted"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:363, admin/partials/instawp-admin-change-event-filters.php:697
-msgid "%s created"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:376
-msgid "Install themes updated"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:389
-msgid "Install themes upload"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:402
-msgid "Install themes new"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:416
-msgid "Theme deleted"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:431
-msgid "Theme switched from %s to %s"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:446
-msgid "%s %s%s"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:491
-msgid "Plugin deactivated"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:506
-msgid "Plugin activated"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:520
-msgid "Plugin deleted"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:713
-msgid "Media created"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:726
-msgid "Media updated"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:805
-msgid "%s trashed"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:819
-msgid "%s Restored"
-msgstr ""
-
-#: cli/class-instawp-cli.php:85
+#: cli/class-instawp-cli.php:78
 msgid "Cleared previous backup files successfully."
 msgstr ""
 

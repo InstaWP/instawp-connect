@@ -20,9 +20,6 @@ class InstaWP_AJAX {
 		add_action( 'wp_ajax_instawp_get_database_tables', array( $this, 'get_database_tables' ) );
 		add_action( 'wp_ajax_instawp_get_large_files', array( $this, 'get_large_files' ) );
 
-		// Go Live redirect
-		add_action( 'wp_ajax_instawp_go_live', array( $this, 'go_live_redirect_url' ) );
-
 		add_action( 'wp_ajax_instawp_check_usages_limit', array( $this, 'check_usages_limit' ) );
 		add_action( 'wp_ajax_instawp_migrate_init', array( $this, 'instawp_migrate_init' ) );
 		add_action( 'wp_ajax_instawp_migrate_progress', array( $this, 'instawp_migrate_progress' ) );
@@ -206,19 +203,6 @@ class InstaWP_AJAX {
 		$api_response['button_url']  = InstaWP_Setting::get_pro_subscription_url( 'subscriptions?source=connect_limit_warning' );
 
 		wp_send_json_error( $api_response );
-	}
-
-	function go_live_redirect_url() {
-
-		$response      = InstaWP_Curl::do_curl( 'get-waas-redirect-url', array( 'source_domain' => site_url() ) );
-		$response_data = InstaWP_Setting::get_args_option( 'data', $response, [] );
-		$redirect_url  = InstaWP_Setting::get_args_option( 'url', $response_data );
-
-		if ( ! empty( $redirect_url ) ) {
-			wp_send_json_success( [ 'redirect_url' => $redirect_url ] );
-		}
-
-		wp_send_json_error();
 	}
 
 	public function get_dir_contents() {
