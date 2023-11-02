@@ -524,26 +524,41 @@ if ( ! function_exists( 'instawp_set_solid_wp_whitelist_ip' ) ) {
 }
 
 
-if ( ! function_exists( 'instawp_can_whitelist_wordfence' ) ) {
-	function instawp_can_whitelist_wordfence() {
+if ( ! function_exists( 'instawp_whitelist_ip' ) ) {
+	function instawp_whitelist_ip() {
 		if ( ! function_exists( 'is_plugin_active' ) ) {
 			include_once ABSPATH . 'wp-admin/includes/plugin.php';
 		}
 
 		$providers = [
-			'wordfence/wordfence.php'                   => 'instawp_is_wordfence_whitelisted',
-			'better-wp-security/better-wp-security.php' => 'instawp_is_solid_wp_whitelisted',
+			'wordfence/wordfence.php'                   => [
+				'name'     => 'WordFence',
+				'function' => 'instawp_is_wordfence_whitelisted'
+			],
+			'better-wp-security/better-wp-security.php' => [
+				'name'     => 'Solid Security',
+				'function' => 'instawp_is_solid_wp_whitelisted',
+			],
 		];
 
-		$can_whitelist = false;
-		foreach ( $providers as $plugin => $function ) {
-			if ( is_plugin_active( $plugin ) && ! call_user_func( $function ) ) {
-				$can_whitelist = true;
-				break;
+		$output = [
+			'can_whitelist' => false,
+			'plugins'       => ''
+		];
+
+		$names = [];
+		foreach ( $providers as $plugin => $details ) {
+			if ( is_plugin_active( $plugin ) && ! call_user_func( $details['function'] ) ) {
+				$output['can_whitelist'] = true;
+				$names[] = $details['name'];
 			}
 		}
+
+		if ( ! empty( $names ) ) {
+			$output['plugins'] = join( ', ', $names );
+		}
 		
-		return $can_whitelist;
+		return $output;
 	}
 }
 
