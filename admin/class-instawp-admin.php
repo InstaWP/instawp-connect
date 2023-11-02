@@ -48,7 +48,6 @@ class InstaWP_Admin {
 			self::$_is_deployer_mode = true;
 		}
 
-
 		$this->plugin_name = $plugin_name;
 		$this->version     = $version;
 
@@ -83,6 +82,8 @@ class InstaWP_Admin {
 					'parent' => 'top-secondary',
 				)
 			);
+
+			return;
 		}
 
 		if ( self::$_is_deployer_mode ) {
@@ -94,6 +95,8 @@ class InstaWP_Admin {
 					'parent' => 'top-secondary',
 				)
 			);
+
+			return;
 		}
 
 		$admin_bar->add_menu(

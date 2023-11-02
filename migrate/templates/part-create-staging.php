@@ -416,7 +416,7 @@ $tracking_url          = InstaWP_Setting::get_args_option( 'tracking_url', $migr
                                     <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 11V6m0 8h.01M19 10a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
                                 </svg>
                                 <p class="error-message text-[16px] font-normal text-red-700"></p>
-                                <button data-migrate-id="558" data-server-logs="This is a sample error log" type="button" class="instawp-download-log mt-4 px-2 py-1 text-xs font-medium text-center inline-flex items-center text-orange-700 bg-orange-100 rounded-[3px] focus:outline-none focus:ring-0">Download Error Log</button>
+                                <button data-migrate-id="" data-server-logs="" type="button" class="instawp-download-log mt-4 px-2 py-1 text-xs font-medium text-center inline-flex items-center text-orange-700 bg-orange-100 rounded-[3px] focus:outline-none focus:ring-0">Download Error Log</button>
                             </div>
                         </div>
                     </div>

@@ -19,6 +19,13 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 
 		function handle_instawp_commands( $args ) {
 
+			if ( isset( $args[0] ) && $args[0] === 'reset-waas-mode' ) {
+				$wp_config = new WPConfig( [ 'INSTAWP_CONNECT_MODE' ] );
+				$wp_config->delete();
+
+				return true;
+			}
+
 			if ( isset( $args[0] ) && $args[0] === 'config-set' ) {
 				if ( isset( $args[1] ) ) {
 					if ( $args[1] === 'api-key' ) {
