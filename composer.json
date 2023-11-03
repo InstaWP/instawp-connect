@@ -11,7 +11,7 @@
     ],
     "require": {
         "php": ">= 7.4.0",
-        "woocommerce/action-scheduler": "3.6.2",
+        "woocommerce/action-scheduler": "^3.6.2",
         "instawp/connect-helpers": "dev-main"
     },
     "repositories": [
