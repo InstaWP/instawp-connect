@@ -43,7 +43,7 @@
     <?php endforeach; ?>
     <?php else:?> 
         <tr>
-            <td colspan="5" class="text-center p-4">
+            <td colspan="5" class="whitespace-nowrap py-6 px-6 text-sm font-medium text-grayCust-300 w-0.5 text-center">
                 <?php echo esc_html('No events found!', 'instawp-connect') ?>
             </td>
         </tr> 
