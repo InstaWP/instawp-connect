@@ -20,7 +20,7 @@ class ActionScheduler_DBStore extends ActionScheduler_Store {
 	private $claim_before_date = null;
 
 	/** @var int */
-	protected static $max_args_length = 8000000;
+	protected static $max_args_length = 8000;
 
 	/** @var int */
 	protected static $max_index_length = 191;
@@ -705,7 +705,7 @@ AND `group_id` = %d
 			array(
 				'per_page' => 1000,
 				'status'   => self::STATUS_PENDING,
-				'orderby'  => 'action_id',
+				'orderby'  => 'none',
 			)
 		);
 
