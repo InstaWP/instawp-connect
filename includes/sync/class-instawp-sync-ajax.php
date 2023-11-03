@@ -13,7 +13,7 @@ if ( ! defined( 'INSTAWP_PLUGIN_DIR' ) ) {
 
 require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-db.php';
 
-class InstaWP_Ajax_Fn {
+class InstaWP_Sync_Ajax {
 
 	private $wpdb;
 
@@ -533,4 +533,4 @@ class InstaWP_Ajax_Fn {
 	}
 }
 
-new InstaWP_Ajax_Fn();
+new InstaWP_Sync_Ajax();
