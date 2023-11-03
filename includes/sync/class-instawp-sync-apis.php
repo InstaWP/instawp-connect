@@ -72,7 +72,7 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 				)
 			);
 		} );
-		
+
 	}
 
 	function check_permission() {
@@ -113,7 +113,7 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 			$postData = $this->postData( $post );
 			#The post does not exist,Then insert
 			$default_post_user = InstaWP_Setting::get_option( 'instawp_default_user' );
-			if( !empty( $default_post_user ) ) {
+			if ( ! empty( $default_post_user ) ) {
 				$postData['post_author'] = $default_post_user;
 			}
 			$post_id = wp_insert_post( $postData );
@@ -136,14 +136,14 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 		if ( is_wp_error( $response ) ) {
 			return $this->throw_error( $response );
 		}
-		
-		$body               = $req->get_body();
-		$request            = json_decode( $body );
+
+		$body    = $req->get_body();
+		$request = json_decode( $body );
 
 		if ( ! isset( $request->parent_connect_id ) ) {
-            return new WP_Error( 400, esc_html__( 'Invalid connect ID', 'instawp-connect' ) );
-        }
-		
+			return new WP_Error( 400, esc_html__( 'Invalid connect ID', 'instawp-connect' ) );
+		}
+
 		delete_option( 'instawp_sync_parent_connect_data' );
 		update_option( 'instawp_sync_connect_id', intval( $request->parent_connect_id ) );
 		update_option( 'instawp_is_staging', true );
@@ -151,8 +151,8 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 
 		return new WP_REST_Response(
 			array(
-				'status' => true,
-				'message'=>__('Site has been marked as staging','instawp-connect'),
+				'status'  => true,
+				'message' => __( 'Site has been marked as staging', 'instawp-connect' ),
 			)
 		);
 	}
@@ -170,20 +170,20 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 		if ( is_wp_error( $response ) ) {
 			return $this->throw_error( $response );
 		}
-		
-		$body               = $req->get_body();
-		$bodyArr            = json_decode( $body );
+
+		$body    = $req->get_body();
+		$bodyArr = json_decode( $body );
 
 		if ( ! isset( $bodyArr->encrypted_contents ) ) {
-            return new WP_Error( 400, esc_html__( 'Invalid data', 'instawp-connect' ) );
-        }
+			return new WP_Error( 400, esc_html__( 'Invalid data', 'instawp-connect' ) );
+		}
 
 		$encrypted_contents = json_decode( $bodyArr->encrypted_contents );
 		$sync_id            = $bodyArr->sync_id;
 		$source_connect_id  = $bodyArr->source_connect_id;
-		$source_url  		= $bodyArr->source_url;
+		$source_url         = $bodyArr->source_url;
 		$is_enabled         = false;
-		$logs 				= [];
+		$logs               = [];
 
 		if ( get_option( 'instawp_is_event_syncing' ) ) {
 			$is_enabled = true;
@@ -193,414 +193,519 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 		update_option( 'instawp_is_event_syncing', 0 );
 
 		if ( ! empty( $encrypted_contents ) && is_array( $encrypted_contents ) ) {
-			$total_op        = count( $encrypted_contents );
+			$changes         = $sync_response = [];
 			$count           = 1;
 			$progress_status = 'pending';
-			$changes         = $sync_response = [];
+			$total_op        = count( $encrypted_contents );
+			$progress        = intval( $count / $total_op * 100 );
+			$sync_message    = isset( $bodyArr->sync_message ) ? $bodyArr->sync_message : '';
+			$progress_status = ( $progress > 100 ) ? 'in_progress' : 'completed';
+
 			foreach ( $encrypted_contents as $v ) {
 
 				//check if the event synced earlier to destination
-				$isResult = $this->wpdb->get_var( $this->wpdb->prepare( "SELECT ID FROM ".INSTAWP_DB_TABLE_EVENT_SYNC_LOGS." WHERE event_hash = %s ", $v->event_hash ) );
+				$isResult = $this->wpdb->get_var( $this->wpdb->prepare( "SELECT ID FROM " . INSTAWP_DB_TABLE_EVENT_SYNC_LOGS . " WHERE event_hash = %s ", $v->event_hash ) );
 				if ( $isResult ) {
-					continue;
-				}
-				
-				$source_id = ( isset( $v->source_id ) && ! empty( $v->source_id ) ) ? intval( $v->source_id ) : null;
 
-				/*
-				*Post Operations
-				*/
-				//create and update
-				if ( isset( $v->event_slug ) && ( $v->event_slug == 'post_change' || $v->event_slug == 'post_new' ) ) {
-					$posts          = isset( $v->details->posts ) ? (array) $v->details->posts : '';
-					$postmeta       = isset( $v->details->postmeta ) ? (array) $v->details->postmeta : '';
-					$featured_image = isset( $v->details->featured_image ) ? (array) $v->details->featured_image : '';
-					$media          = isset( $v->details->media ) ? (array) $v->details->media : '';
+					$message         = 'Sync successfully.';
+					$status          = 'completed';
+					$sync_response[] = $this->sync_opration_response( $status, $message, $v );
 
-					$parent_post = isset( $v->details->parent->post ) ? (array) $v->details->parent->post : [];
+				} else {
 
-					#check for the post parent
-					if ( ! empty( $parent_post ) ) {
-						
-						$parent_post_meta = isset( $v->details->parent->post_meta ) ? (array) $v->details->parent->post_meta : [];
-						$reference_id     = isset( $parent_post_meta['instawp_event_sync_reference_id'][0] ) ? $parent_post_meta['instawp_event_sync_reference_id'][0] : '';
-						
-						$destination_post = $this->get_post_by_reference_Id( $parent_post['post_type'], $reference_id, $parent_post['post_name'] );
-						
-						if ( ! empty( $destination_post ) ) {
-							$posts['post_parent'] = $destination_post->ID;
-						}else{
-							
-                            #check for the parent group in acf
-                            if( in_array( $posts['post_type'], ['acf-field']) ) {
-                                $posts['post_parent'] = $this->create_or_update_post( $parent_post, $parent_post_meta );
-                            }
-                        }
-					}
+					$source_id = ( isset( $v->source_id ) && ! empty( $v->source_id ) ) ? intval( $v->source_id ) : null;
 
-					if ( $posts['post_type'] == 'attachment' ) {
-						#create or update the attachments
-						$posts['ID'] = $this->handle_attachments( $posts, $postmeta, $posts['guid'] );
-						#update meta
-						$this->add_update_postmeta( $postmeta, $posts['ID'] );
-					} else {
-						$posts['ID'] = $this->create_or_update_post( $posts, $postmeta );
-					}
-                   
-					#feature image import
-					if ( isset( $featured_image['media'] ) && ! empty( $featured_image['media'] ) ) {
-						$att_id = $this->handle_attachments( (array) $featured_image['media'], (array) $featured_image['media_meta'], $featured_image['featured_image_url'] );
-						if ( isset( $att_id ) && ! empty( $att_id ) ) {
-							set_post_thumbnail( $posts['ID'], $att_id );
-						}
-					}
+					/*
+					*Post Operations
+					*/
+					//create and update
+					if ( isset( $v->event_slug ) && ( $v->event_slug == 'post_change' || $v->event_slug == 'post_new' ) ) {
+						$posts          = isset( $v->details->posts ) ? (array) $v->details->posts : '';
+						$postmeta       = isset( $v->details->postmeta ) ? (array) $v->details->postmeta : '';
+						$featured_image = isset( $v->details->featured_image ) ? (array) $v->details->featured_image : '';
+						$media          = isset( $v->details->media ) ? (array) $v->details->media : '';
 
-					#if post type is product then set gallery
-					if ( get_post_type( $posts['ID'] ) == 'product' ) {
-						if ( isset( $v->details->product_gallery ) && ! empty( $v->details->product_gallery ) ) {
-							$product_gallery = $v->details->product_gallery;
-							$gallery_ids     = [];
-							//pr($product_gallery);
-							foreach ( $product_gallery as $gallery ) {
-								if ( isset( $gallery->media ) && ! empty( $gallery->media ) && isset( $gallery->url ) && $gallery->url != '' ) {
-									$gallery_ids[] = $this->handle_attachments( (array) $gallery->media, (array) $gallery->media_meta, $gallery->url );
+						$parent_post = isset( $v->details->parent->post ) ? (array) $v->details->parent->post : [];
+
+						#check for the post parent
+						if ( ! empty( $parent_post ) ) {
+
+							$parent_post_meta = isset( $v->details->parent->post_meta ) ? (array) $v->details->parent->post_meta : [];
+							$reference_id     = isset( $parent_post_meta['instawp_event_sync_reference_id'][0] ) ? $parent_post_meta['instawp_event_sync_reference_id'][0] : '';
+
+							$destination_post = $this->get_post_by_reference_Id( $parent_post['post_type'], $reference_id, $parent_post['post_name'] );
+
+							if ( ! empty( $destination_post ) ) {
+								$posts['post_parent'] = $destination_post->ID;
+							} else {
+
+								#check for the parent group in acf
+								if ( in_array( $posts['post_type'], [ 'acf-field' ] ) ) {
+									$posts['post_parent'] = $this->create_or_update_post( $parent_post, $parent_post_meta );
 								}
 							}
-							$this->set_product_gallery( $posts['ID'], $gallery_ids );
 						}
-					}
 
-					#terms in post
-					$taxonomies = (array) $v->details->taxonomies;
-					$this->reset_post_terms( $posts['ID'] ); //rest the terms for all taxo
-					if ( ! empty( $taxonomies ) && is_array( $taxonomies ) ) {
-						foreach ( $taxonomies as $taxonomy => $terms ) {
-							$terms    = (array) $terms;
-							$term_ids = [];
-							# if term not exist then create first
-							if ( ! empty( $terms ) && is_array( $terms ) ) {
-								foreach ( $terms as $term ) {
-									$term = (array) $term;
-									if ( ! term_exists( $term['slug'], $taxonomy ) ) {
-										$inserted_term = wp_insert_term(
-											$term['name'],   // the term
-											$taxonomy, // the taxonomy
-											array(
-												'description' => $term['description'],
-												'slug'        => $term['slug'],
-												'parent'      => 0
-											)
-										);
-										$term_ids[]    = $inserted_term['term_id'];
-									} else {
-										$get_term_by = (array) get_term_by( 'slug', $term['slug'], $taxonomy );
-										$term_ids[]  = $get_term_by['term_id'];
+						if ( $posts['post_type'] == 'attachment' ) {
+							#create or update the attachments
+							$posts['ID'] = $this->handle_attachments( $posts, $postmeta, $posts['guid'] );
+							#update meta
+							$this->add_update_postmeta( $postmeta, $posts['ID'] );
+						} else {
+							$posts['ID'] = $this->create_or_update_post( $posts, $postmeta );
+						}
+
+						#feature image import
+						if ( isset( $featured_image['media'] ) && ! empty( $featured_image['media'] ) ) {
+							$att_id = $this->handle_attachments( (array) $featured_image['media'], (array) $featured_image['media_meta'], $featured_image['featured_image_url'] );
+							if ( isset( $att_id ) && ! empty( $att_id ) ) {
+								set_post_thumbnail( $posts['ID'], $att_id );
+							}
+						}
+
+						#if post type is product then set gallery
+						if ( get_post_type( $posts['ID'] ) == 'product' ) {
+							if ( isset( $v->details->product_gallery ) && ! empty( $v->details->product_gallery ) ) {
+								$product_gallery = $v->details->product_gallery;
+								$gallery_ids     = [];
+								//pr($product_gallery);
+								foreach ( $product_gallery as $gallery ) {
+									if ( isset( $gallery->media ) && ! empty( $gallery->media ) && isset( $gallery->url ) && $gallery->url != '' ) {
+										$gallery_ids[] = $this->handle_attachments( (array) $gallery->media, (array) $gallery->media_meta, $gallery->url );
 									}
 								}
+								$this->set_product_gallery( $posts['ID'], $gallery_ids );
 							}
-							#set terms in post
-							wp_set_post_terms( $posts['ID'], $term_ids, $taxonomy );
 						}
+
+						#terms in post
+						$taxonomies = (array) $v->details->taxonomies;
+						$this->reset_post_terms( $posts['ID'] ); //rest the terms for all taxo
+						if ( ! empty( $taxonomies ) && is_array( $taxonomies ) ) {
+							foreach ( $taxonomies as $taxonomy => $terms ) {
+								$terms    = (array) $terms;
+								$term_ids = [];
+								# if term not exist then create first
+								if ( ! empty( $terms ) && is_array( $terms ) ) {
+									foreach ( $terms as $term ) {
+										$term = (array) $term;
+										if ( ! term_exists( $term['slug'], $taxonomy ) ) {
+											$inserted_term = wp_insert_term(
+												$term['name'],   // the term
+												$taxonomy, // the taxonomy
+												array(
+													'description' => $term['description'],
+													'slug'        => $term['slug'],
+													'parent'      => 0
+												)
+											);
+											$term_ids[]    = $inserted_term['term_id'];
+										} else {
+											$get_term_by = (array) get_term_by( 'slug', $term['slug'], $taxonomy );
+											$term_ids[]  = $get_term_by['term_id'];
+										}
+									}
+								}
+								#set terms in post
+								wp_set_post_terms( $posts['ID'], $term_ids, $taxonomy );
+							}
+						}
+
+						# media upload from content
+						$this->upload_content_media( $media, $posts['ID'] );
+
+						#message
+						$message         = 'Sync successfully.';
+						$status          = 'completed';
+						$sync_response[] = $this->sync_opration_response( $status, $message, $v );
+						#changes
+
 					}
 
-					# media upload from content
-					$this->upload_content_media( $media, $posts['ID'] );
+					//Post trash
+					if ( isset( $v->event_slug ) && $v->event_slug == 'post_trash' ) {
+						$posts                = (array) $v->details->posts;
+						$postmeta             = (array) $v->details->postmeta;
+						$post_by_reference_id = get_posts( array(
+							'post_type'  => $posts['post_type'],
+							'meta_key'   => 'instawp_event_sync_reference_id',
+							'meta_value' => isset( $postmeta['instawp_event_sync_reference_id'][0] ) ? $postmeta['instawp_event_sync_reference_id'][0] : '',
+						) );
 
-					#message
-					$message         = 'Sync successfully.';
-					$status          = 'completed';
-					$sync_response[] = $this->sync_opration_response( $status, $message, $v );
-					#changes
-					
-				}
-
-				//Post trash
-				if ( isset( $v->event_slug ) && $v->event_slug == 'post_trash' ) {
-					$posts                = (array) $v->details->posts;
-					$postmeta             = (array) $v->details->postmeta;
-					$post_by_reference_id = get_posts( array(
-						'post_type'  => $posts['post_type'],
-						'meta_key'   => 'instawp_event_sync_reference_id',
-						'meta_value' => isset( $postmeta['instawp_event_sync_reference_id'][0] ) ? $postmeta['instawp_event_sync_reference_id'][0] : '',
-					) );
-
-					if ( ! empty( $post_by_reference_id ) ) {
-						$post_id = $post_by_reference_id[0]->ID;
-						$rel     = wp_trash_post( $post_id );  //Post data on success, false or null on failure.
-						$status  = $this->sync_post_status( $rel );
-						$message = $this->sync_message( $rel );
-					} else {
-						$post_check_data = instawp_get_post_by_name( str_replace( '__trashed', '', $posts['post_name'] ), $posts['post_type'] );
-						if ( ! empty( $post_check_data ) ) {
-							$rel     = wp_trash_post( $post_check_data->ID );  //Post data on success, false or null on failure.
+						if ( ! empty( $post_by_reference_id ) ) {
+							$post_id = $post_by_reference_id[0]->ID;
+							$rel     = wp_trash_post( $post_id );  //Post data on success, false or null on failure.
 							$status  = $this->sync_post_status( $rel );
 							$message = $this->sync_message( $rel );
-						} else {		
-							$status  = 'completed';
-							$message = 'Sync successfully.';
-							$this->logs[$v->id] = sprintf('%s not found at destination',	$posts['post_type'] );
+						} else {
+							$post_check_data = instawp_get_post_by_name( str_replace( '__trashed', '', $posts['post_name'] ), $posts['post_type'] );
+							if ( ! empty( $post_check_data ) ) {
+								$rel     = wp_trash_post( $post_check_data->ID );  //Post data on success, false or null on failure.
+								$status  = $this->sync_post_status( $rel );
+								$message = $this->sync_message( $rel );
+							} else {
+								$status               = 'completed';
+								$message              = 'Sync successfully.';
+								$this->logs[ $v->id ] = sprintf( '%s not found at destination', $posts['post_type'] );
+							}
 						}
+						$sync_response[] = $this->sync_opration_response( $status, $message, $v );
 					}
-					$sync_response[] = $this->sync_opration_response( $status, $message, $v );
-				}
 
-				//Post permanently delete
-				if ( isset( $v->event_slug ) && $v->event_slug == 'post_delete' ) {
-					$posts                = (array) $v->details->posts;
-					$postmeta             = (array) $v->details->postmeta;
-					$post_by_reference_id = get_posts( [
-						'post_status' => 'trash',
-						'post_type'   => $posts['post_type'],
-						'nopaging'    => true,
-						'meta_query'  => array(
-							array(
-								'key'     => 'instawp_event_sync_reference_id',
-								'value'   => isset( $postmeta['instawp_event_sync_reference_id'][0] ) ? $postmeta['instawp_event_sync_reference_id'][0] : '',
-								'compare' => '=',
+					//Post permanently delete
+					if ( isset( $v->event_slug ) && $v->event_slug == 'post_delete' ) {
+						$posts                = (array) $v->details->posts;
+						$postmeta             = (array) $v->details->postmeta;
+						$post_by_reference_id = get_posts( [
+							'post_status' => 'trash',
+							'post_type'   => $posts['post_type'],
+							'nopaging'    => true,
+							'meta_query'  => array(
+								array(
+									'key'     => 'instawp_event_sync_reference_id',
+									'value'   => isset( $postmeta['instawp_event_sync_reference_id'][0] ) ? $postmeta['instawp_event_sync_reference_id'][0] : '',
+									'compare' => '=',
+								),
 							),
-						),
-					] );
+						] );
 
-					if ( ! empty( $post_by_reference_id ) ) {
+						if ( ! empty( $post_by_reference_id ) ) {
 
-						$post_id = $post_by_reference_id[0]->ID;
-						$rel     = wp_delete_post( $post_id );  //Post data on success, false or null on failure.
-						$status  = $this->sync_post_status( $rel );
-						$message = $this->sync_message( $rel );
-						
-					} else {
-						$post_check_data = instawp_get_post_by_name( $posts['post_name'], $posts['post_type'] );
-
-						if ( ! empty( $post_check_data ) ) {
-
-							$rel     = wp_delete_post( $post_check_data->ID );  //Post data on success, false or null on failure.
+							$post_id = $post_by_reference_id[0]->ID;
+							$rel     = wp_delete_post( $post_id );  //Post data on success, false or null on failure.
 							$status  = $this->sync_post_status( $rel );
 							$message = $this->sync_message( $rel );
 
 						} else {
-							$message    = 'Sync successfully.';
-							$status  	= 'completed';
-							$this->logs[$v->id] = sprintf('%s not found at destination',	$posts['post_type'] );
+							$post_check_data = instawp_get_post_by_name( $posts['post_name'], $posts['post_type'] );
+
+							if ( ! empty( $post_check_data ) ) {
+
+								$rel     = wp_delete_post( $post_check_data->ID );  //Post data on success, false or null on failure.
+								$status  = $this->sync_post_status( $rel );
+								$message = $this->sync_message( $rel );
+
+							} else {
+								$message              = 'Sync successfully.';
+								$status               = 'completed';
+								$this->logs[ $v->id ] = sprintf( '%s not found at destination', $posts['post_type'] );
+							}
 						}
+						$sync_response[] = $this->sync_opration_response( $status, $message, $v );
 					}
-					$sync_response[] = $this->sync_opration_response( $status, $message, $v );
-				}
 
-				//Post restored
-				if ( isset( $v->event_slug ) && $v->event_slug == 'untrashed_post' ) {
-					
-					$posts                = (array) $v->details->posts;
-					$postmeta             = (array) $v->details->postmeta;
-					$post_by_reference_id = get_posts( [
-						'post_status' => 'trash',
-						'post_type'   => $posts['post_type'],
-						'nopaging'    => true,
-						'meta_query'  => array(
-							array(
-								'key'     => 'instawp_event_sync_reference_id',
-								'value'   => isset( $postmeta['instawp_event_sync_reference_id'][0] ) ? $postmeta['instawp_event_sync_reference_id'][0] : '',
-								'compare' => '=',
+					//Post restored
+					if ( isset( $v->event_slug ) && $v->event_slug == 'untrashed_post' ) {
+
+						$posts                = (array) $v->details->posts;
+						$postmeta             = (array) $v->details->postmeta;
+						$post_by_reference_id = get_posts( [
+							'post_status' => 'trash',
+							'post_type'   => $posts['post_type'],
+							'nopaging'    => true,
+							'meta_query'  => array(
+								array(
+									'key'     => 'instawp_event_sync_reference_id',
+									'value'   => isset( $postmeta['instawp_event_sync_reference_id'][0] ) ? $postmeta['instawp_event_sync_reference_id'][0] : '',
+									'compare' => '=',
+								),
 							),
-						),
-					] );
+						] );
 
 
-					if ( ! empty( $post_by_reference_id ) ) {
-						$post_id = $post_by_reference_id[0]->ID;
-						$rel     = wp_untrash_post( $post_id );
-						$status  = $this->sync_post_status( $rel );
-						$message = $this->sync_message( $rel );
-					} else {
-						$post_check_data = instawp_get_post_by_name( $posts['post_name'] . '__trashed', $posts['post_type'] );
-						if ( ! empty( $post_check_data ) ) {
-							$rel     = wp_untrash_post( $post_check_data->ID );
+						if ( ! empty( $post_by_reference_id ) ) {
+							$post_id = $post_by_reference_id[0]->ID;
+							$rel     = wp_untrash_post( $post_id );
 							$status  = $this->sync_post_status( $rel );
 							$message = $this->sync_message( $rel );
 						} else {
-							$message    = 'Sync successfully.';
-							$status  	= 'completed';
-							$this->logs[$v->id] = sprintf('%s not found at destination',	$posts['post_type'] );
-						}
-					}
-					$sync_response[] = $this->sync_opration_response( $status, $message, $v );
-				}
-
-				/*
-				*Plugin Oprations
-				*/
-				//Plugin actiavte
-				if ( isset( $v->details ) && $v->event_slug == 'activate_plugin' ) {
-					$check_plugin_installed = $this->check_plugin_installed( $v->details );
-					if ( $check_plugin_installed != 1 ) {
-						$pluginData = get_plugin_data( $v->details );
-						if ( ! empty( $pluginData['TextDomain'] ) ) {
-							$this->plugin_install( $pluginData['TextDomain'] );
-						}else{
-							$this->logs[$v->id] = sprintf('plugin %s not found at destination',	$v->details );
-						}
-					}
-
-					$this->plugin_activation( $v->details );
-
-					
-					$message         = 'Sync successfully.';
-					$status          = 'completed';
-					$sync_response[] = $this->sync_opration_response( $status, $message, $v );
-					
-				}
-
-				//Plugin deactiavte
-				if ( isset( $v->event_slug ) && $v->event_slug == 'deactivate_plugin' ) {
-					$this->plugin_deactivation( $v->details );
-
-					$message         = 'Sync successfully.';
-					$status          = 'completed';
-					$sync_response[] = $this->sync_opration_response( $status, $message, $v );
-					
-				}
-
-				//Plugin install
-				if ( isset( $v->details->slug ) && $v->details->slug !='' && $v->event_slug == 'plugin_install' ) {
-					$check_plugin_installed = $this->check_plugin_installed_by_textdomain( $v->details->slug );
-					if ( !$check_plugin_installed ) {
-						$this->plugin_install( $v->details->slug );
-					}else{
-						$this->logs[$v->id] = sprintf('Plugin %s already exists.', $v->details->slug );
-					}
-		
-
-					$message         = 'Sync successfully.';
-					$status          = 'completed';
-					$sync_response[] = $this->sync_opration_response( $status, $message, $v );
-					
-				}
-
-				//Plugin update
-				if ( isset( $v->details->slug ) && $v->details->slug !='' && $v->event_slug == 'plugin_update' ) {
-					$_is_plugin_installed = $this->check_plugin_installed_by_textdomain( $v->details->slug );
-					if ( $_is_plugin_installed ) {
-						$this->plugin_install( $v->details->slug, true );
-					}else{
-						$this->logs[$v->id] = sprintf('Plugin %s not found for update operation.', $v->details->slug );
-					}
-					
-					$message         = 'Sync successfully.';
-					$status          = 'completed';
-					$sync_response[] = $this->sync_opration_response( $status, $message, $v );
-					
-				}
-
-				//Plugin delete
-				if ( isset( $v->details ) && $v->event_slug == 'deleted_plugin' ) {
-					$plugin = plugin_basename( sanitize_text_field( wp_unslash( $v->details ) ) );
-	
-					$this->plugin_deactivation( $v->details );
-					
-					$result = delete_plugins( array( $plugin ) );
-					
-					if ( is_wp_error( $result ) ) {
-						$this->logs[$v->id] = $result->get_error_message();
-					} elseif ( false === $result ) {
-						$this->logs[$v->id] =  __( 'Plugin could not be deleted.' );
-					}
-
-					$message         = 'Sync successfully.';
-					$status          = 'completed';
-					$sync_response[] = $this->sync_opration_response( $status, $message, $v );
-					
-				}
-
-
-				/**
-				 * Theme operations
-				 */
-				
-				if ( isset( $v->details ) && ( $v->event_slug == 'switch_theme'  ||  $v->event_slug == 'theme_install' ) ) {
-					if( isset( $v->details->stylesheet ) ){
-
-						if ( isset( $v->details->stylesheet ) && $v->details->stylesheet !='' ) {
-							$stylesheet = $v->details->stylesheet;
-							$theme = wp_get_theme( $stylesheet );
-							if ( ! $theme->exists() ) {
-								$this->theme_install( $stylesheet );
+							$post_check_data = instawp_get_post_by_name( $posts['post_name'] . '__trashed', $posts['post_type'] );
+							if ( ! empty( $post_check_data ) ) {
+								$rel     = wp_untrash_post( $post_check_data->ID );
+								$status  = $this->sync_post_status( $rel );
+								$message = $this->sync_message( $rel );
+							} else {
+								$message              = 'Sync successfully.';
+								$status               = 'completed';
+								$this->logs[ $v->id ] = sprintf( '%s not found at destination', $posts['post_type'] );
 							}
-
-							if( $v->event_slug == 'switch_theme' ){
-								switch_theme( $stylesheet );
-							}
-
-							$message         = 'Sync successfully.';
-							$status          = 'completed';
-							$sync_response[] = $this->sync_opration_response( $status, $message, $v );
-							
 						}
+						$sync_response[] = $this->sync_opration_response( $status, $message, $v );
 					}
-				}
 
-				if ( isset( $v->details ) &&  $v->event_slug == 'theme_update'  ) {
-					if( isset( $v->details->stylesheet ) ){
-
-						if ( isset( $v->details->stylesheet ) && $v->details->stylesheet !='' ) {
-							$stylesheet = $v->details->stylesheet;
-							$theme = wp_get_theme( $stylesheet );
-							if ( $theme->exists() ) {
-								$this->theme_install( $stylesheet, true );
-							}else{
-								$this->logs[$v->id] = sprintf('Theme %s not found for update operation.', $stylesheet );
+					/*
+					*Plugin Oprations
+					*/
+					//Plugin actiavte
+					if ( isset( $v->details ) && $v->event_slug == 'activate_plugin' ) {
+						$check_plugin_installed = $this->check_plugin_installed( $v->details );
+						if ( $check_plugin_installed != 1 ) {
+							$pluginData = get_plugin_data( $v->details );
+							if ( ! empty( $pluginData['TextDomain'] ) ) {
+								$this->plugin_install( $pluginData['TextDomain'] );
+							} else {
+								$this->logs[ $v->id ] = sprintf( 'plugin %s not found at destination', $v->details );
 							}
-
-							$message         = 'Sync successfully.';
-							$status          = 'completed';
-							$sync_response[] = $this->sync_opration_response( $status, $message, $v );
-							
 						}
-					}
-				}
-				
 
-				if ( isset( $v->details->stylesheet ) && $v->event_slug == 'deleted_theme' ) {
-					$stylesheet = $v->details->stylesheet;
-					$theme = wp_get_theme( $stylesheet );
-					
-					if ( $theme->exists() ) {
-						require_once( ABSPATH . 'wp-includes/pluggable.php' );
-						
-						$result = delete_theme( $stylesheet );
+						$this->plugin_activation( $v->details );
+
+
+						$message         = 'Sync successfully.';
+						$status          = 'completed';
+						$sync_response[] = $this->sync_opration_response( $status, $message, $v );
+
+					}
+
+					//Plugin deactiavte
+					if ( isset( $v->event_slug ) && $v->event_slug == 'deactivate_plugin' ) {
+						$this->plugin_deactivation( $v->details );
+
+						$message         = 'Sync successfully.';
+						$status          = 'completed';
+						$sync_response[] = $this->sync_opration_response( $status, $message, $v );
+
+					}
+
+					//Plugin install
+					if ( isset( $v->details->slug ) && $v->details->slug != '' && $v->event_slug == 'plugin_install' ) {
+						$check_plugin_installed = $this->check_plugin_installed_by_textdomain( $v->details->slug );
+						if ( ! $check_plugin_installed ) {
+							$this->plugin_install( $v->details->slug );
+						} else {
+							$this->logs[ $v->id ] = sprintf( 'Plugin %s already exists.', $v->details->slug );
+						}
+
+
+						$message         = 'Sync successfully.';
+						$status          = 'completed';
+						$sync_response[] = $this->sync_opration_response( $status, $message, $v );
+
+					}
+
+					//Plugin update
+					if ( isset( $v->details->slug ) && $v->details->slug != '' && $v->event_slug == 'plugin_update' ) {
+						$_is_plugin_installed = $this->check_plugin_installed_by_textdomain( $v->details->slug );
+						if ( $_is_plugin_installed ) {
+							$this->plugin_install( $v->details->slug, true );
+						} else {
+							$this->logs[ $v->id ] = sprintf( 'Plugin %s not found for update operation.', $v->details->slug );
+						}
+
+						$message         = 'Sync successfully.';
+						$status          = 'completed';
+						$sync_response[] = $this->sync_opration_response( $status, $message, $v );
+
+					}
+
+					//Plugin delete
+					if ( isset( $v->details ) && $v->event_slug == 'deleted_plugin' ) {
+						$plugin = plugin_basename( sanitize_text_field( wp_unslash( $v->details ) ) );
+
+						$this->plugin_deactivation( $v->details );
+
+						$result = delete_plugins( array( $plugin ) );
+
 						if ( is_wp_error( $result ) ) {
-							$this->logs[$v->id] = $result->get_error_message();
+							$this->logs[ $v->id ] = $result->get_error_message();
 						} elseif ( false === $result ) {
-							$this->logs[$v->id] =  sprintf( 'Theme %s could not be deleted.',  $stylesheet);
+							$this->logs[ $v->id ] = __( 'Plugin could not be deleted.' );
 						}
 
-					}else{
-						$this->logs[$v->id] = sprintf('Theme %s not found for delete operation.', $stylesheet );
+						$message         = 'Sync successfully.';
+						$status          = 'completed';
+						$sync_response[] = $this->sync_opration_response( $status, $message, $v );
+
 					}
 
-					$message = 'Sync successfully.';
-					$status  = 'completed';
-					$sync_response[] = $this->sync_opration_response( $status, $message, $v );
-					
-				}
 
-				/*
-				* Taxonomy Oprations
-				*/
+					/**
+					 * Theme operations
+					 */
 
-				//create and update
-				if ( isset( $v->event_slug ) && ( $v->event_slug == 'create_taxonomy' || $v->event_slug == 'edit_taxonomy' ) ) {
-					if ( isset( $source_id ) ) {
-						$details          = (array) $v->details;
-						$wp_terms         = $this->wp_terms_data( $source_id, $details );
-						$wp_term_taxonomy = $this->wp_term_taxonomy_data( $source_id, $details );
-						if ( ! term_exists( $source_id, $v->event_type ) ) {
-							if ( $v->event_slug == 'create_taxonomy' ) {
-								$this->insert_taxonomy( $source_id, $wp_terms, $wp_term_taxonomy );
-								clean_term_cache( $source_id );
+					if ( isset( $v->details ) && ( $v->event_slug == 'switch_theme' || $v->event_slug == 'theme_install' ) ) {
+						if ( isset( $v->details->stylesheet ) ) {
+
+							if ( isset( $v->details->stylesheet ) && $v->details->stylesheet != '' ) {
+								$stylesheet = $v->details->stylesheet;
+								$theme      = wp_get_theme( $stylesheet );
+								if ( ! $theme->exists() ) {
+									$this->theme_install( $stylesheet );
+								}
+
+								if ( $v->event_slug == 'switch_theme' ) {
+									switch_theme( $stylesheet );
+								}
+
+								$message         = 'Sync successfully.';
+								$status          = 'completed';
+								$sync_response[] = $this->sync_opration_response( $status, $message, $v );
+
 							}
 						}
-						if ( term_exists( $source_id, $v->event_type ) ) {
-							if ( $v->event_slug == 'edit_taxonomy' ) {
-								$this->update_taxonomy( $source_id, $wp_terms, $wp_term_taxonomy );
+					}
+
+					if ( isset( $v->details ) && $v->event_slug == 'theme_update' ) {
+						if ( isset( $v->details->stylesheet ) ) {
+
+							if ( isset( $v->details->stylesheet ) && $v->details->stylesheet != '' ) {
+								$stylesheet = $v->details->stylesheet;
+								$theme      = wp_get_theme( $stylesheet );
+								if ( $theme->exists() ) {
+									$this->theme_install( $stylesheet, true );
+								} else {
+									$this->logs[ $v->id ] = sprintf( 'Theme %s not found for update operation.', $stylesheet );
+								}
+
+								$message         = 'Sync successfully.';
+								$status          = 'completed';
+								$sync_response[] = $this->sync_opration_response( $status, $message, $v );
+
+							}
+						}
+					}
+
+
+					if ( isset( $v->details->stylesheet ) && $v->event_slug == 'deleted_theme' ) {
+						$stylesheet = $v->details->stylesheet;
+						$theme      = wp_get_theme( $stylesheet );
+
+						if ( $theme->exists() ) {
+							require_once( ABSPATH . 'wp-includes/pluggable.php' );
+
+							$result = delete_theme( $stylesheet );
+							if ( is_wp_error( $result ) ) {
+								$this->logs[ $v->id ] = $result->get_error_message();
+							} elseif ( false === $result ) {
+								$this->logs[ $v->id ] = sprintf( 'Theme %s could not be deleted.', $stylesheet );
+							}
+
+						} else {
+							$this->logs[ $v->id ] = sprintf( 'Theme %s not found for delete operation.', $stylesheet );
+						}
+
+						$message         = 'Sync successfully.';
+						$status          = 'completed';
+						$sync_response[] = $this->sync_opration_response( $status, $message, $v );
+
+					}
+
+					/*
+					* Taxonomy Oprations
+					*/
+
+					//create and update
+					if ( isset( $v->event_slug ) && ( $v->event_slug == 'create_taxonomy' || $v->event_slug == 'edit_taxonomy' ) ) {
+						if ( isset( $source_id ) ) {
+							$details          = (array) $v->details;
+							$wp_terms         = $this->wp_terms_data( $source_id, $details );
+							$wp_term_taxonomy = $this->wp_term_taxonomy_data( $source_id, $details );
+							if ( ! term_exists( $source_id, $v->event_type ) ) {
+								if ( $v->event_slug == 'create_taxonomy' ) {
+									$this->insert_taxonomy( $source_id, $wp_terms, $wp_term_taxonomy );
+									clean_term_cache( $source_id );
+								}
+							}
+							if ( term_exists( $source_id, $v->event_type ) ) {
+								if ( $v->event_slug == 'edit_taxonomy' ) {
+									$this->update_taxonomy( $source_id, $wp_terms, $wp_term_taxonomy );
+								}
+							}
+
+							#message
+							$message         = 'Sync successfully.';
+							$status          = 'completed';
+							$sync_response[] = $this->sync_opration_response( $status, $message, $v );
+							#changes
+
+
+						}
+					}
+
+					//Delete
+					if ( isset( $v->event_slug ) && $v->event_slug == 'delete_taxonomy' ) {
+						if ( isset( $source_id ) ) {
+							if ( term_exists( $source_id, $v->event_type ) ) {
+								$rel     = wp_delete_term( $source_id, $v->event_type );
+								$status  = $this->sync_post_status( $rel );
+								$message = $this->sync_message( $rel );
+							}
+						} else {
+							$status  = 'pending';
+							$message = $this->notExistMsg();
+						}
+						$sync_response[] = $this->sync_opration_response( $status, $message, $v );
+						#changes
+
+					}
+
+					/**
+					 * Customizer settings update
+					 */
+
+					if ( isset( $v->event_slug ) && $v->event_slug == 'customizer_changes' ) {
+						$details = isset( $v->details ) ? $v->details : '';
+
+						#custom logo
+						$this->customizer_custom_logo( $details->custom_logo );
+
+						#background image
+						$this->customizer_background_image( $details->background_image );
+
+						#site icon
+						$this->customizer_site_icon( $details->site_icon );
+
+						#background color
+						if ( isset( $details->background_color ) && ! empty( $details->background_color ) ) {
+							set_theme_mod( 'background_color', $details->background_color );
+						}
+
+						#Site Title
+						update_option( 'blogname', $details->name );
+
+						#Tagline
+						$this->blogDescription( $details->description );
+
+						#Homepage Settings
+						if ( isset( $details->show_on_front ) && ! empty( $details->show_on_front ) ) {
+							update_option( 'show_on_front', $details->show_on_front );
+						}
+
+						#for 'Astra' theme
+						if ( isset( $details->astra_settings ) && ! empty( $details->astra_settings ) ) {
+							$astra_settings = $this->object_to_array( $details->astra_settings );
+							update_option( 'astra-settings', $astra_settings );
+						}
+
+						#nav menu locations
+						if ( ! empty( $details->nav_menu_locations ) ) {
+							$menu_array = (array) $details->nav_menu_locations;
+							set_theme_mod( 'nav_menu_locations', $menu_array );
+						}
+
+						#Custom css post id
+						$custom_css_post = (array) $details->custom_css_post;
+						if ( ! empty( $details->custom_css_post ) ) {
+							if ( get_post_status( $custom_css_post['ID'] ) ) {
+								#The post exists,Then update
+								$postData = $this->postData( $custom_css_post, 'update' );
+								wp_update_post( $postData );
+
+							} else {
+								$postData = $this->postData( $custom_css_post, 'insert' );
+								#The post does not exist,Then insert
+								wp_insert_post( $postData );
+							}
+							set_theme_mod( 'custom_css_post_id', $custom_css_post['ID'] );
+						}
+						$current_theme = wp_get_theme();
+						if ( $current_theme->Name == 'Astra' ) { #for 'Astra' theme
+							$astra_theme_setting = isset( $details->astra_theme_customizer_settings ) ? (array) $details->astra_theme_customizer_settings : '';
+							$this->setAstraCostmizerSetings( $astra_theme_setting );
+						} else if ( $current_theme->Name == 'Divi' ) {  #for 'Divi' theme
+							$divi_settings = isset( $details->divi_settings ) ? (array) $details->divi_settings : '';
+							if ( ! empty( $divi_settings ) && is_array( $divi_settings ) ) {
+								update_option( 'et_divi', $divi_settings );
 							}
 						}
 
@@ -609,256 +714,157 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 						$status          = 'completed';
 						$sync_response[] = $this->sync_opration_response( $status, $message, $v );
 						#changes
-						
 
 					}
-				}
 
-				//Delete
-				if ( isset( $v->event_slug ) && $v->event_slug == 'delete_taxonomy' ) {
-					if ( isset( $source_id ) ) {
-						if ( term_exists( $source_id, $v->event_type ) ) {
-							$rel     = wp_delete_term( $source_id, $v->event_type );
-							$status  = $this->sync_post_status( $rel );
-							$message = $this->sync_message( $rel );
-						}
-					} else {
-						$status  = 'pending';
-						$message = $this->notExistMsg();
-					}
-					$sync_response[] = $this->sync_opration_response( $status, $message, $v );
-					#changes
-					
-				}
+					/**
+					 * Woocommerce attributes
+					 */
 
-				/**
-				 * Customizer settings update
-				 */
+					#create&upadte woocommerce attribute
+					if ( isset( $v->event_slug ) && ( $v->event_slug == 'woocommerce_attribute_added' || $v->event_slug == 'woocommerce_attribute_updated' ) ) {
+						$details = isset( $v->details ) ? (array) $v->details : '';
+						if ( ! empty( $details ) ) {
+							$attribute = wc_get_attribute( 208 );
+							if ( ! empty( $attribute ) ) {
+								unset( $details['id'] );
+								wc_update_attribute( $v->source_id, $attribute );
 
-				if ( isset( $v->event_slug ) && $v->event_slug == 'customizer_changes' ) {
-					$details = isset( $v->details ) ? $v->details : '';
+								#message
+								$message         = 'Sync successfully.';
+								$status          = 'completed';
+								$sync_response[] = $this->sync_opration_response( $status, $message, $v );
+								#changes
 
-					#custom logo
-					$this->customizer_custom_logo( $details->custom_logo );
+							} else {
+								$this->woocommerce_create_attribute( $v->source_id, $details );
 
-					#background image
-					$this->customizer_background_image( $details->background_image );
+								#message
+								$message         = 'Sync successfully.';
+								$status          = 'completed';
+								$sync_response[] = $this->sync_opration_response( $status, $message, $v );
+								#changes
 
-					#site icon
-					$this->customizer_site_icon( $details->site_icon );
 
-					#background color
-					if ( isset( $details->background_color ) && ! empty( $details->background_color ) ) {
-						set_theme_mod( 'background_color', $details->background_color );
-					}
-
-					#Site Title
-					update_option( 'blogname', $details->name );
-
-					#Tagline
-					$this->blogDescription( $details->description );
-
-					#Homepage Settings
-					if ( isset( $details->show_on_front ) && ! empty( $details->show_on_front ) ) {
-						update_option( 'show_on_front', $details->show_on_front );
-					}
-
-					#for 'Astra' theme
-					if ( isset( $details->astra_settings ) && ! empty( $details->astra_settings ) ) {
-						$astra_settings = $this->object_to_array( $details->astra_settings );
-						update_option( 'astra-settings', $astra_settings );
-					}
-
-					#nav menu locations
-					if ( ! empty( $details->nav_menu_locations ) ) {
-						$menu_array = (array) $details->nav_menu_locations;
-						set_theme_mod( 'nav_menu_locations', $menu_array );
-					}
-
-					#Custom css post id
-					$custom_css_post = (array) $details->custom_css_post;
-					if ( ! empty( $details->custom_css_post ) ) {
-						if ( get_post_status( $custom_css_post['ID'] ) ) {
-							#The post exists,Then update
-							$postData = $this->postData( $custom_css_post, 'update' );
-							wp_update_post( $postData );
-
-						} else {
-							$postData = $this->postData( $custom_css_post, 'insert' );
-							#The post does not exist,Then insert
-							wp_insert_post( $postData );
-						}
-						set_theme_mod( 'custom_css_post_id', $custom_css_post['ID'] );
-					}
-					$current_theme = wp_get_theme();
-					if ( $current_theme->Name == 'Astra' ) { #for 'Astra' theme
-						$astra_theme_setting = isset( $details->astra_theme_customizer_settings ) ? (array) $details->astra_theme_customizer_settings : '';
-						$this->setAstraCostmizerSetings( $astra_theme_setting );
-					} else if ( $current_theme->Name == 'Divi' ) {  #for 'Divi' theme
-						$divi_settings = isset( $details->divi_settings ) ? (array) $details->divi_settings : '';
-						if ( ! empty( $divi_settings ) && is_array( $divi_settings ) ) {
-							update_option( 'et_divi', $divi_settings );
-						}
-					}
-
-					#message
-					$message         = 'Sync successfully.';
-					$status          = 'completed';
-					$sync_response[] = $this->sync_opration_response( $status, $message, $v );
-					#changes
-					
-				}
-
-				/**
-				 * Woocommerce attributes
-				 */
-
-				#create&upadte woocommerce attribute
-				if ( isset( $v->event_slug ) && ( $v->event_slug == 'woocommerce_attribute_added' || $v->event_slug == 'woocommerce_attribute_updated' ) ) {
-					$details = isset( $v->details ) ? (array) $v->details : '';
-					if ( ! empty( $details ) ) {
-						$attribute = wc_get_attribute( 208 );
-						if ( ! empty( $attribute ) ) {
-							unset( $details['id'] );
-							wc_update_attribute( $v->source_id, $attribute );
-
-							#message
-							$message         = 'Sync successfully.';
-							$status          = 'completed';
-							$sync_response[] = $this->sync_opration_response( $status, $message, $v );
-							#changes
-							
-						} else {
-							$this->woocommerce_create_attribute( $v->source_id, $details );
-
-							#message
-							$message         = 'Sync successfully.';
-							$status          = 'completed';
-							$sync_response[] = $this->sync_opration_response( $status, $message, $v );
-							#changes
-							
-
-						}
-					}
-				}
-
-				if ( isset( $v->event_slug ) && $v->event_slug == 'woocommerce_attribute_deleted' ) {
-					wc_delete_attribute( $v->source_id );
-					#message
-					$message         = 'Sync successfully.';
-					$status          = 'completed';
-					$sync_response[] = $this->sync_opration_response( $status, $message, $v );
-					#changes
-					
-				}
-
-				/**
-				 * Users actions
-				 */
-				if ( isset( $v->event_type ) && $v->event_type == 'users' ) {
-					$user_data = isset( $v->details->user_data ) ? (array) $v->details->user_data : [];
-					$user_meta = isset( $v->details->user_meta ) ? (array) $v->details->user_meta : [];
-					$source_db_prefix = isset( $v->details->db_prefix ) ? (array) $v->details->db_prefix : '';
-					$user_table = $this->wpdb->prefix . 'users';
-
-					$get_user_by_reference_id = get_users( array(
-						'meta_key'   => 'instawp_event_user_sync_reference_id',
-						'meta_value' => isset( $user_meta['instawp_event_user_sync_reference_id'][0] ) ? $user_meta['instawp_event_user_sync_reference_id'][0] : '',
-					) );
-
-					$user = ! empty( $get_user_by_reference_id ) ? $get_user_by_reference_id[0] : get_user_by( 'email', $user_data['email'] );
-					
-					#Create user if not exits
-					if ( isset( $v->event_slug ) && ( $v->event_slug == 'user_register' ) && ( ! empty( $user_data ) ) ) {
-						if ( ! $user ) {
-							$user_id  = wp_insert_user( $user_data );
-							if ( is_wp_error( $user_id ) ) {
-								$this->logs[$v->id] = $user_id->get_error_message();
-							}else{
-								$this->manage_usermeta( $user_meta, $user_id, $source_db_prefix );
 							}
 						}
 					}
 
-					#Update user
-					if ( isset( $v->event_slug ) && ( $v->event_slug == 'profile_update' ) && ( ! empty( $user_data ) ) ) {
-						if (  $user ) {
-							$user_data['ID'] = $user->data->ID;
-							$user_pass = $user_data['user_pass'];
-							unset($user_data['user_pass']);
-							$user_id = wp_update_user( $user_data );
-							if (  is_wp_error( $user_id ) ) {
-								$this->logs[$v->id] = $user_id->get_error_message();
-							}else{
-								$this->wpdb->update( $user_table, [ 'user_pass'=> $user_pass ], array( 'ID' => $user_id ) );
-								$this->manage_usermeta( $user_meta, $user_id );
-								$user->add_role( $v->details->role );
+					if ( isset( $v->event_slug ) && $v->event_slug == 'woocommerce_attribute_deleted' ) {
+						wc_delete_attribute( $v->source_id );
+						#message
+						$message         = 'Sync successfully.';
+						$status          = 'completed';
+						$sync_response[] = $this->sync_opration_response( $status, $message, $v );
+						#changes
+
+					}
+
+					/**
+					 * Users actions
+					 */
+					if ( isset( $v->event_type ) && $v->event_type == 'users' ) {
+						$user_data        = isset( $v->details->user_data ) ? (array) $v->details->user_data : [];
+						$user_meta        = isset( $v->details->user_meta ) ? (array) $v->details->user_meta : [];
+						$source_db_prefix = isset( $v->details->db_prefix ) ? (array) $v->details->db_prefix : '';
+						$user_table       = $this->wpdb->prefix . 'users';
+
+						$get_user_by_reference_id = get_users( array(
+							'meta_key'   => 'instawp_event_user_sync_reference_id',
+							'meta_value' => isset( $user_meta['instawp_event_user_sync_reference_id'][0] ) ? $user_meta['instawp_event_user_sync_reference_id'][0] : '',
+						) );
+
+						$user = ! empty( $get_user_by_reference_id ) ? $get_user_by_reference_id[0] : get_user_by( 'email', $user_data['email'] );
+
+						#Create user if not exits
+						if ( isset( $v->event_slug ) && ( $v->event_slug == 'user_register' ) && ( ! empty( $user_data ) ) ) {
+							if ( ! $user ) {
+								$user_id = wp_insert_user( $user_data );
+								if ( is_wp_error( $user_id ) ) {
+									$this->logs[ $v->id ] = $user_id->get_error_message();
+								} else {
+									$this->manage_usermeta( $user_meta, $user_id, $source_db_prefix );
+								}
 							}
-						}else{
-							$this->logs[$v->id] = sprintf('User not found for update operation.' );
 						}
+
+						#Update user
+						if ( isset( $v->event_slug ) && ( $v->event_slug == 'profile_update' ) && ( ! empty( $user_data ) ) ) {
+							if ( $user ) {
+								$user_data['ID'] = $user->data->ID;
+								$user_pass       = $user_data['user_pass'];
+								unset( $user_data['user_pass'] );
+								$user_id = wp_update_user( $user_data );
+								if ( is_wp_error( $user_id ) ) {
+									$this->logs[ $v->id ] = $user_id->get_error_message();
+								} else {
+									$this->wpdb->update( $user_table, [ 'user_pass' => $user_pass ], array( 'ID' => $user_id ) );
+									$this->manage_usermeta( $user_meta, $user_id );
+									$user->add_role( $v->details->role );
+								}
+							} else {
+								$this->logs[ $v->id ] = sprintf( 'User not found for update operation.' );
+							}
+						}
+
+						#Delete user
+						if ( isset( $v->event_slug ) && ( $v->event_slug == 'delete_user' ) ) {
+							if ( $user ) {
+								wp_delete_user( $user->data->ID );
+							} else {
+								$this->logs[ $v->id ] = sprintf( 'User not found for delete operation.' );
+							}
+						}
+
+
+						$message         = 'Sync successfully.';
+						$status          = 'completed';
+						$sync_response[] = $this->sync_opration_response( $status, $message, $v );
+
 					}
 
-					#Delete user
-					if ( isset( $v->event_slug ) && ( $v->event_slug == 'delete_user' ) ) {
-						if (  $user ) {
-							wp_delete_user( $user->data->ID );
-						}else{
-							$this->logs[$v->id] = sprintf('User not found for delete operation.' );
+					/*
+					* widget
+					*/
+					if ( isset( $v->event_type ) && $v->event_type == 'widget' ) {
+						$widget_block = (array) $v->details->widget_block;
+						$appp         = (array) $v->details;
+						$dataIns      = [
+							'data' => json_encode( $appp )
+						];
+						$this->InstaWP_db->insert( 'wp_testing', $dataIns );
+
+						$widget_block_arr = [];
+						foreach ( $widget_block as $widget_key => $widget_val ) {
+							if ( $widget_key == '_multiwidget' ) {
+								$widget_block_arr[ $widget_key ] = $widget_val;
+							} else {
+								$widget_val_arr                  = (array) $widget_val;
+								$widget_block_arr[ $widget_key ] = [ 'content' => $widget_val_arr['content'] ];
+							}
 						}
+						update_option( 'widget_block', $widget_block_arr );
+						#message
+						$message         = 'Sync successfully.';
+						$status          = 'completed';
+						$sync_response[] = $this->sync_opration_response( $status, $message, $v );
+						#changes
+
 					}
 
-
-					$message         = 'Sync successfully.';
-					$status          = 'completed';
-					$sync_response[] = $this->sync_opration_response( $status, $message, $v );
-					
+					//record logs
+					$this->event_sync_logs( $v, $source_url );
 				}
-
-				/*
-				* widget
-				*/
-				if ( isset( $v->event_type ) && $v->event_type == 'widget' ) {
-					$widget_block = (array) $v->details->widget_block;
-					$appp         = (array) $v->details;
-					$dataIns      = [
-						'data' => json_encode( $appp )
-					];
-					$this->InstaWP_db->insert( 'wp_testing', $dataIns );
-
-					$widget_block_arr = [];
-					foreach ( $widget_block as $widget_key => $widget_val ) {
-						if ( $widget_key == '_multiwidget' ) {
-							$widget_block_arr[ $widget_key ] = $widget_val;
-						} else {
-							$widget_val_arr                  = (array) $widget_val;
-							$widget_block_arr[ $widget_key ] = [ 'content' => $widget_val_arr['content'] ];
-						}
-					}
-					update_option( 'widget_block', $widget_block_arr );
-					#message
-					$message         = 'Sync successfully.';
-					$status          = 'completed';
-					$sync_response[] = $this->sync_opration_response( $status, $message, $v );
-					#changes
-					
-				}
-
-				//record logs
-				$this->event_sync_logs( $v, $source_url);
 
 				/*
 				* Update api for cloud
 				*/
-				$progress        = intval( $count / $total_op * 100 );
-				$progress_status = ( $progress > 100 ) ? 'in_progress' : 'completed';
-				$message 		 = isset( $bodyArr->sync_message ) ? $bodyArr->sync_message : '';
 				#Sync update
 				$syncUpdate = [
 					'progress' => $progress,
 					'status'   => $progress_status,
-					'message'  => $message,
-					'changes'  => [ 'changes' => $changes, 'sync_response' => $sync_response, 'logs'=> $this->logs],
+					'message'  => $sync_message,
+					'changes'  => [ 'changes' => $changes, 'sync_response' => $sync_response, 'logs' => $this->logs ],
 				];
 				$this->sync_update( $sync_id, $syncUpdate, $source_connect_id );
 				$count ++;
@@ -882,17 +888,19 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 			)
 		);
 	}
+
 	public function event_sync_logs( $data, $source_url ) {
-		$data    = [
-			'event_id' 			=> $data->id,
-			'event_hash'        => $data->event_hash,
-			'source_url'     	=> $source_url,
-			'data'         		=> json_encode($data->details),
-			'logs'            	=> isset($this->logs[$data->id]) ? $this->logs[$data->id] : '',
-			'date'              => date( 'Y-m-d H:i:s' ),
+		$data = [
+			'event_id'   => $data->id,
+			'event_hash' => $data->event_hash,
+			'source_url' => $source_url,
+			'data'       => json_encode( $data->details ),
+			'logs'       => isset( $this->logs[ $data->id ] ) ? $this->logs[ $data->id ] : '',
+			'date'       => date( 'Y-m-d H:i:s' ),
 		];
 		$this->InstaWP_db->insert( INSTAWP_DB_TABLE_EVENT_SYNC_LOGS, $data );
 	}
+
 	/**
 	 * This function is for upload media which are coming form widgets.
 	 */
@@ -1066,12 +1074,14 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 	}
 
 
-    /**
-     * upload_content_media
-     * @param $media
-     * @param $post_id
-     * @return void
-     */
+	/**
+	 * upload_content_media
+	 *
+	 * @param $media
+	 * @param $post_id
+	 *
+	 * @return void
+	 */
 	public function upload_content_media( $media = null, $post_id = null ) {
 		$media   = json_decode( reset( $media ) );
 		$post    = get_post( $post_id );
@@ -1082,10 +1092,10 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 				$v = (array) $v;
 
 				if ( isset( $v['attachment_id'] ) && isset( $v['attachment_url'] ) ) {
-					$attachment_media 	= (array) $v['attachment_media'];
-					$attachment_id		= $this->handle_attachments( $attachment_media, (array) $v['attachment_media_meta'], $attachment_media['guid'] );
-					$new[]         		= wp_get_attachment_url( $attachment_id );
-					$old[]         		= $v['attachment_url'];
+					$attachment_media = (array) $v['attachment_media'];
+					$attachment_id    = $this->handle_attachments( $attachment_media, (array) $v['attachment_media_meta'], $attachment_media['guid'] );
+					$new[]            = wp_get_attachment_url( $attachment_id );
+					$old[]            = $v['attachment_url'];
 				}
 			}
 
@@ -1101,8 +1111,9 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 	/**
 	 * Insert an attachment from a URL address.
 	 *
-	 * @param  string   $url            The URL address.
-	 * @param  int|null $parent_post_id The parent post ID (Optional).
+	 * @param string $url The URL address.
+	 * @param int|null $parent_post_id The parent post ID (Optional).
+	 *
 	 * @return int|false                The attachment ID on success. False on failure.
 	 */
 	function instawp_insert_attachment_from_url( $url, $parent_post_id = null ) {
@@ -1152,23 +1163,23 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 
 	}
 
-    /**
-     * notExistMsg
-     * @return string
-     */
-	public function notExistMsg(): string
-    {
-		return  __('Item not found.', 'instawp-connect');
+	/**
+	 * notExistMsg
+	 * @return string
+	 */
+	public function notExistMsg(): string {
+		return __( 'Item not found.', 'instawp-connect' );
 	}
 
-    /**
-     * wp_terms_data
-     * @param $term_id
-     * @param $arr
-     * @return array
-     */
-	public function wp_terms_data( $term_id = null, $arr = [] ): array
-    {
+	/**
+	 * wp_terms_data
+	 *
+	 * @param $term_id
+	 * @param $arr
+	 *
+	 * @return array
+	 */
+	public function wp_terms_data( $term_id = null, $arr = [] ): array {
 		return [
 			'term_id' => $term_id,
 			'name'    => $arr['name'],
@@ -1176,14 +1187,15 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 		];
 	}
 
-    /**
-     * wp_term_taxonomy_data
-     * @param $term_id
-     * @param $arr
-     * @return array
-     */
-	public function wp_term_taxonomy_data( $term_id = null, $arr = [] ): array
-    {
+	/**
+	 * wp_term_taxonomy_data
+	 *
+	 * @param $term_id
+	 * @param $arr
+	 *
+	 * @return array
+	 */
+	public function wp_term_taxonomy_data( $term_id = null, $arr = [] ): array {
 		return [
 			'term_taxonomy_id' => $term_id,
 			'term_id'          => $term_id,
@@ -1212,12 +1224,14 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 		);
 	}
 
-    /**
-     * add_update_postmeta
-     * @param $meta_data
-     * @param $post_id
-     * @return void
-     */
+	/**
+	 * add_update_postmeta
+	 *
+	 * @param $meta_data
+	 * @param $post_id
+	 *
+	 * @return void
+	 */
 	public function add_update_postmeta( $meta_data = null, $post_id = null ) {
 
 		if ( ! empty( $meta_data ) && is_array( $meta_data ) ) {
@@ -1289,12 +1303,14 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 		return $args;
 	}
 
-    /** handle_attachments
-     * @param $attachment_post
-     * @param $attachment_post_meta
-     * @param $file
-     * @return string|void
-     */
+	/** handle_attachments
+	 *
+	 * @param $attachment_post
+	 * @param $attachment_post_meta
+	 * @param $file
+	 *
+	 * @return string|void
+	 */
 	# import attechments form source to destination.
 	public function handle_attachments( $attachment_post, $attachment_post_meta, $file ) {
 		$reference_id = '';
@@ -1311,28 +1327,28 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 				),
 			);
 
-			$parent_post_id    = 0;
-			$upload_file       = wp_upload_bits( $filename, null, file_get_contents( $file, false, stream_context_create( $arrContextOptions ) ) );
+			$parent_post_id = 0;
+			$upload_file    = wp_upload_bits( $filename, null, file_get_contents( $file, false, stream_context_create( $arrContextOptions ) ) );
 			if ( ! $upload_file['error'] ) {
 				$wp_filetype = wp_check_filetype( $filename, null );
 
-				$attachment  = array(
+				$attachment = array(
 					'post_mime_type' => $wp_filetype['type'],
 					'post_parent'    => $parent_post_id,
 					'post_title'     => preg_replace( '/\.[^.]+$/', '', $filename ),
 					'post_content'   => '',
 					'post_status'    => 'inherit'
 				);
-				
+
 				$default_post_user = InstaWP_Setting::get_option( 'instawp_default_user' );
-				if( !empty( $default_post_user ) ) {
+				if ( ! empty( $default_post_user ) ) {
 					$attachment['post_author'] = $default_post_user;
 				}
 				require_once( ABSPATH . "wp-admin" . '/includes/image.php' );
 				require_once( ABSPATH . "wp-admin" . '/includes/file.php' );
 				require_once( ABSPATH . "wp-admin" . '/includes/media.php' );
 				$attachment_id = wp_insert_attachment( $attachment, $upload_file['file'], $parent_post_id );
-				
+
 				if ( ! is_wp_error( $attachment_id ) ) {
 					$attachment_data = wp_generate_attachment_metadata( $attachment_id, $upload_file['file'] );
 					wp_update_attachment_metadata( $attachment_id, $attachment_data );
@@ -1343,13 +1359,14 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 			}
 
 			return;
-		}else{
+		} else {
 
 			$attachment_id = $attachment_post->ID;
+
 			return $attachment_id;
 		}
 
-		
+
 	}
 
 	# import attechments form source to destination.
@@ -1424,7 +1441,7 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 		if ( ! function_exists( 'deactivate_plugins' ) ) {
 			require_once ABSPATH . 'wp-admin/includes/plugin.php';
 		}
-		
+
 		if ( is_plugin_active( $plugin ) ) {
 			deactivate_plugins( $plugin );
 		}
@@ -1452,12 +1469,14 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 		return $status;
 	}
 
-    /** sync operation response
-     * @param $status
-     * @param $message
-     * @param $v
-     * @return array
-     */
+	/** sync operation response
+	 *
+	 * @param $status
+	 * @param $message
+	 * @param $v
+	 *
+	 * @return array
+	 */
 	public function sync_opration_response( $status = null, $message = null, $v = null ) {
 		return [
 			'id'      => $v->id,
@@ -1466,12 +1485,14 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 		];
 	}
 
-    /** sync update
-     * @param $sync_id
-     * @param $data
-     * @param $source_connect_id
-     * @return bool|string
-     */
+	/** sync update
+	 *
+	 * @param $sync_id
+	 * @param $data
+	 * @param $source_connect_id
+	 *
+	 * @return bool|string
+	 */
 	public function sync_update( $sync_id = null, $data = null, $source_connect_id = null ) {
 		$api_doamin = InstaWP_Setting::get_api_domain();
 		$connect_id = intval( $source_connect_id );
@@ -1490,6 +1511,8 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 				CURLOPT_FOLLOWLOCATION => true,
 				CURLOPT_SSL_VERIFYHOST => false,
 				CURLOPT_SSL_VERIFYPEER => false,
+				CURLOPT_USERAGENT      => isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '',
+				CURLOPT_REFERER        => 'InstaWP Connect - 2-way-sync',
 				CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
 				CURLOPT_CUSTOMREQUEST  => 'PATCH',
 				CURLOPT_POSTFIELDS     => json_encode( $data ),
@@ -1549,7 +1572,7 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 		$upgrader->install( $api->download_link, array( 'overwrite_package' => $overwrite_package ) );
 	}
 
-		/**
+	/**
 	 * Theme install
 	 */
 	public function theme_install( $stylesheet, $overwrite_package = false ) {
@@ -1567,12 +1590,12 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 		include_once( ABSPATH . 'wp-includes/pluggable.php' );
 		include_once( ABSPATH . 'wp-admin/includes/file.php' );
 		include_once( ABSPATH . 'wp-admin/includes/misc.php' );
-		if (! is_wp_error( $api ) ) {
+		if ( ! is_wp_error( $api ) ) {
 			$upgrader = new Theme_Upgrader();
-			$upgrader->install( $api->download_link, array( 'overwrite_package' => $overwrite_package )  );
+			$upgrader->install( $api->download_link, array( 'overwrite_package' => $overwrite_package ) );
 		}
 	}
-	
+
 	/**
 	 * Check if plugin is installed by getting all plugins from the plugins dir
 	 *
@@ -1582,6 +1605,7 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 	 */
 	public function check_plugin_installed( $plugin_slug ): bool {
 		$installed_plugins = get_plugins();
+
 		return array_key_exists( $plugin_slug, $installed_plugins ) || in_array( $plugin_slug, $installed_plugins, true );
 	}
 
@@ -1594,10 +1618,11 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 	 */
 	public function check_plugin_installed_by_textdomain( $textdomain ): bool {
 		$installed_plugins_data = get_plugins();
-		$installed_text_domains = array_column( array_values($installed_plugins_data), 'TextDomain' );
-		return  in_array( $textdomain, $installed_text_domains, true );
+		$installed_text_domains = array_column( array_values( $installed_plugins_data ), 'TextDomain' );
+
+		return in_array( $textdomain, $installed_text_domains, true );
 	}
-	
+
 	/**
 	 * Check if theme is installed by getting all themes from the theme dir
 	 *
@@ -1607,7 +1632,8 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 	 */
 	public function check_theme_installed( $stylesheet ): bool {
 		$installed_themes = wp_get_themes();
-		return array_key_exists( $stylesheet , $installed_themes );
+
+		return array_key_exists( $stylesheet, $installed_themes );
 	}
 
 	//add and update user meta
@@ -1615,7 +1641,7 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 		if ( ! empty( $user_meta ) && is_array( $user_meta ) ) {
 			foreach ( $user_meta as $k => $v ) {
 				if ( isset( $v[0] ) ) {
-					$k = $source_db_prefix != '' ? str_replace( $source_db_prefix, $this->wpdb->prefix, $k ) : $k;
+					$k              = $source_db_prefix != '' ? str_replace( $source_db_prefix, $this->wpdb->prefix, $k ) : $k;
 					$checkSerialize = @unserialize( $v[0] );
 					$metaVal        = ( $checkSerialize !== false || $v[0] === 'b:0;' ) ? unserialize( $v[0] ) : $v[0];
 					if ( metadata_exists( 'user', $user_id, $k ) ) {

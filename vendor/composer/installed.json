@@ -7,19 +7,19 @@
             "source": {
                 "type": "git",
                 "url": "git@github.com:InstaWP/connect-helpers.git",
-                "reference": "c03f8a81c28de03bbcc1eb9483e675a53ac39a85"
+                "reference": "b3f06e0cd0af49030906a989c7a0f44ecb3bbb39"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/InstaWP/connect-helpers/zipball/c03f8a81c28de03bbcc1eb9483e675a53ac39a85",
-                "reference": "c03f8a81c28de03bbcc1eb9483e675a53ac39a85",
+                "url": "https://api.github.com/repos/InstaWP/connect-helpers/zipball/b3f06e0cd0af49030906a989c7a0f44ecb3bbb39",
+                "reference": "b3f06e0cd0af49030906a989c7a0f44ecb3bbb39",
                 "shasum": ""
             },
             "require": {
                 "php": ">= 7.4.0",
                 "wp-cli/wp-config-transformer": "^1.3"
             },
-            "time": "2023-10-25T09:55:21+00:00",
+            "time": "2023-11-03T07:50:32+00:00",
             "default-branch": true,
             "type": "library",
             "installation-source": "dist",
@@ -54,17 +54,17 @@
         },
         {
             "name": "woocommerce/action-scheduler",
-            "version": "3.6.2",
-            "version_normalized": "3.6.2.0",
+            "version": "3.6.4",
+            "version_normalized": "3.6.4.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/woocommerce/action-scheduler.git",
-                "reference": "4eb2fa9737a53e4d284dafcf3e0bf428b5f941bc"
+                "reference": "e7dafe215be5ef823392204535ee2e241f99a8cb"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/woocommerce/action-scheduler/zipball/4eb2fa9737a53e4d284dafcf3e0bf428b5f941bc",
-                "reference": "4eb2fa9737a53e4d284dafcf3e0bf428b5f941bc",
+                "url": "https://api.github.com/repos/woocommerce/action-scheduler/zipball/e7dafe215be5ef823392204535ee2e241f99a8cb",
+                "reference": "e7dafe215be5ef823392204535ee2e241f99a8cb",
                 "shasum": ""
             },
             "require-dev": {
@@ -73,7 +73,7 @@
                 "wp-cli/wp-cli": "~2.5.0",
                 "yoast/phpunit-polyfills": "^1.0"
             },
-            "time": "2023-08-09T19:43:41+00:00",
+            "time": "2023-10-11T18:24:47+00:00",
             "type": "wordpress-plugin",
             "extra": {
                 "scripts-description": {
@@ -91,7 +91,7 @@
             "homepage": "https://actionscheduler.org/",
             "support": {
                 "issues": "https://github.com/woocommerce/action-scheduler/issues",
-                "source": "https://github.com/woocommerce/action-scheduler/tree/3.6.2"
+                "source": "https://github.com/woocommerce/action-scheduler/tree/3.6.4"
             },
             "install-path": "../woocommerce/action-scheduler"
         },

@@ -26,7 +26,7 @@ $tables                = instawp_get_database_details();
 $list_data             = get_option( 'instawp_large_files_list', [] ) ?? [];
 $migration_details     = InstaWP_Setting::get_option( 'instawp_migration_details', [] );
 $tracking_url          = InstaWP_Setting::get_args_option( 'tracking_url', $migration_details );
-
+$whitelist_ip          = instawp_whitelist_ip();
 
 ?>
 
@@ -64,15 +64,15 @@ $tracking_url          = InstaWP_Setting::get_args_option( 'tracking_url', $migr
                 <div class="flex justify-between items-center">
                     <div class="text-grayCust-200 text-lg font-bold"><?php esc_html_e( '1. Select Staging', 'instawp-connect' ); ?></div>
                 </div>
-				<?php if ( instawp_can_whitelist_wordfence() ) { ?>
+				<?php if ( $whitelist_ip['can_whitelist'] ) { ?>
                     <div class="wordfence-whitelist bg-yellow-50 border border-2 border-r-0 border-y-0 border-l-orange-400 rounded-lg text-sm text-orange-700 mt-4 p-4 flex flex-col items-start gap-3">
                         <div class="flex items-center gap-3">
-                            <div class="texdt-xs fonht-medium"><?php esc_html_e( 'We have detected Wordfence in your website, which might block API calls from our server. Whitelisting our IP address solves this problem. Shall we add a whitelist entry?', 'instawp-connect' ); ?></div>
+                            <div class="texdt-xs fonht-medium"><?php printf( esc_html( 'We have detected %s in your website, which might block API calls from our server. Whitelisting our IP address solves this problem. Shall we add a whitelist entry?', 'instawp-connect' ), $whitelist_ip['plugins'] ); ?></div>
                         </div>
                         <div class="flex flex-col items-start gap-3">
                             <div class="flex justify-between items-center text-xss">
-                                <input type="checkbox" name="instawp_migrate[whitelist_wordfence]" id="whitelist-wordfence" value="yes" class="instawp-checkbox !mt-0 !mr-3 rounded border-gray-300 text-primary-900 focus:ring-primary-900">
-                                <label for="whitelist-wordfence" class="mr-2"><?php esc_html_e( 'Yes, Whitelist IP', 'instawp-connect' ); ?></label>(<a class="cursor-pointer focus:outline-none focus:ring-0 hover:text-primary-900 border-b border-transparent border-1 border-dashed hover:border-primary-700" href="https://silicondales.com/tutorials/wordpress/whitelist-ip-wordfence/" target="_blank">Documentation</a>)
+                                <input type="checkbox" name="instawp_migrate[whitelist_ip]" id="whitelist-ip" value="yes" class="instawp-checkbox !mt-0 !mr-3 rounded border-gray-300 text-primary-900 focus:ring-primary-900">
+                                <label for="whitelist-ip" class="mr-2"><?php esc_html_e( 'Yes, Whitelist IP', 'instawp-connect' ); ?></label>(<a class="cursor-pointer focus:outline-none focus:ring-0 hover:text-primary-900 border-b border-transparent border-1 border-dashed hover:border-primary-700" href="https://silicondales.com/tutorials/wordpress/whitelist-ip-wordfence/" target="_blank">Documentation</a>)
                             </div>
                         </div>
                     </div>
@@ -211,9 +211,9 @@ $tracking_url          = InstaWP_Setting::get_args_option( 'tracking_url', $migr
                                     <span><?php esc_html_e( 'Tables', 'instawp-connect' ); ?></span>
                                     <span class="instawp-database-details">
                                         <?php if ( ! empty( $tables ) ) {
-                                            $table_count = count( $tables );
-                                            $table_size  = array_sum( wp_list_pluck( $tables, 'size' ) );
-                                            echo '(' . $table_count . ') - ' . instawp()->get_file_size_with_unit( $table_size );
+	                                        $table_count = count( $tables );
+	                                        $table_size  = array_sum( wp_list_pluck( $tables, 'size' ) );
+	                                        echo '(' . $table_count . ') - ' . instawp()->get_file_size_with_unit( $table_size );
                                         } ?>
                                     </span>
                                 </div>
@@ -415,7 +415,8 @@ $tracking_url          = InstaWP_Setting::get_args_option( 'tracking_url', $migr
                                 <svg class="mx-auto mb-4 text-red-700 w-10 h-10" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
                                     <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 11V6m0 8h.01M19 10a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
                                 </svg>
-                                <span class="error-message text-lg font-normal text-red-700">Something went wrong.</span>
+                                <p class="error-message text-[16px] font-normal text-red-700"></p>
+                                <button data-migrate-id="" data-server-logs="" type="button" class="instawp-download-log mt-4 px-2 py-1 text-xs font-medium text-center inline-flex items-center text-orange-700 bg-orange-100 rounded-[3px] focus:outline-none focus:ring-0">Download Error Log</button>
                             </div>
                         </div>
                     </div>

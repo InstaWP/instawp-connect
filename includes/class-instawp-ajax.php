@@ -20,9 +20,7 @@ class InstaWP_AJAX {
 		add_action( 'wp_ajax_instawp_get_database_tables', array( $this, 'get_database_tables' ) );
 		add_action( 'wp_ajax_instawp_get_large_files', array( $this, 'get_large_files' ) );
 
-		// Go Live redirect
-		add_action( 'wp_ajax_instawp_go_live', array( $this, 'go_live_redirect_url' ) );
-
+		add_action( 'wp_ajax_instawp_check_usages_limit', array( $this, 'check_usages_limit' ) );
 		add_action( 'wp_ajax_instawp_migrate_init', array( $this, 'instawp_migrate_init' ) );
 		add_action( 'wp_ajax_instawp_migrate_progress', array( $this, 'instawp_migrate_progress' ) );
 	}
@@ -52,9 +50,12 @@ class InstaWP_AJAX {
 
 		$response_data                     = InstaWP_Setting::get_args_option( 'data', $response, [] );
 		$auto_login_hash                   = $response_data['dest_wp']['auto_login_hash'] ?? '';
+		$response_data['migrate_id']       = $migrate_id;
 		$response_data['progress_files']   = $response_data['progress_files'] ?? 0;
 		$response_data['progress_db']      = $response_data['progress_db'] ?? 0;
 		$response_data['progress_restore'] = $response_data['progress_restore'] ?? 0;
+		$response_data['server_logs']      = $response_data['server_logs'] ?? '';
+		$response_data['failed_message']   = $response_data['failed_message'] ?? esc_html( 'Something went wrong' );
 
 		if ( isset( $response_data['stage']['failed'] ) && $response_data['stage']['failed'] === true ) {
 			instawp_reset_running_migration();
@@ -74,23 +75,27 @@ class InstaWP_AJAX {
 			$response_data['dest_wp']['auto_login_url'] = $response_data['dest_wp']['url'] ?? '';
 		}
 
+		if ( isset( $response_data['dest_wp']['url'] ) && ! empty( $dest_url = $response_data['dest_wp']['url'] ) ) {
+			$url_parts = parse_url( $dest_url );
+			$url_raw   = $url_parts['host'] . ( isset( $url_parts['path'] ) ? $url_parts['path'] : '' ) . ( isset( $url_parts['query'] ) ? '?' . $url_parts['query'] : '' ) . ( isset( $url_parts['fragment'] ) ? '#' . $url_parts['fragment'] : '' );
+			$url_ip    = gethostbyname( $url_raw );
+
+			instawp_set_whitelist_ip( $url_ip );
+		}
+
 		wp_send_json_success( $response_data );
 	}
 
 
-	function instawp_migrate_init() {
+	function get_migrate_settings( $posted_data = [] ) {
 
-//		wp_send_json_error( [ 'message' => esc_html__( 'Could not create migrate id' ) ] );
+		global $wpdb;
 
-		global $wp_version, $wpdb;
-
-		$settings_str = isset( $_POST['settings'] ) ? $_POST['settings'] : '';
+		$settings_str = isset( $posted_data['settings'] ) ? $posted_data['settings'] : '';
 
 		parse_str( $settings_str, $settings_arr );
 
-		$source_domain       = site_url();
-		$is_website_on_local = instawp_is_website_on_local();
-		$migrate_settings    = InstaWP_Setting::get_args_option( 'migrate_settings', $settings_arr, [] );
+		$migrate_settings = InstaWP_Setting::get_args_option( 'migrate_settings', $settings_arr, [] );
 
 		// remove unnecessary settings
 		if ( isset( $migrate_settings['screen'] ) ) {
@@ -120,14 +125,38 @@ class InstaWP_AJAX {
 			),
 		);
 
-		$migrate_args = array(
+		return instawp()->tools::process_migration_settings( $migrate_settings );
+	}
+
+
+	function instawp_migrate_init() {
+
+		global $wp_version;
+
+		$settings_str = isset( $_POST['settings'] ) ? $_POST['settings'] : '';
+
+		parse_str( $settings_str, $settings_arr );
+
+		$source_domain       = site_url();
+		$is_website_on_local = instawp_is_website_on_local();
+		$instawp_migrate     = InstaWP_Setting::get_args_option( 'instawp_migrate', $settings_arr, [] );
+
+		if ( isset( $instawp_migrate['whitelist_ip'] ) && $instawp_migrate['whitelist_ip'] == 'yes' ) {
+			instawp_set_whitelist_ip();
+		}
+
+		$migrate_settings = $this->get_migrate_settings( $_POST );
+		$migrate_args     = array(
 			'source_domain'       => $source_domain,
 			'source_connect_id'   => instawp_get_connect_id(),
 			'php_version'         => PHP_VERSION,
 			'wp_version'          => $wp_version,
+			'file_size'           => instawp()->tools::get_total_sizes( 'files', $migrate_settings ),
+			'db_size'             => instawp()->tools::get_total_sizes( 'db' ),
 			'plugin_version'      => INSTAWP_PLUGIN_VERSION,
 			'is_website_on_local' => $is_website_on_local,
-			'settings'            => $migrate_settings
+			'settings'            => $migrate_settings,
+			'active_plugins'      => InstaWP_Setting::get_option( 'active_plugins', [] ),
 		);
 
 		$migrate_response         = InstaWP_Curl::do_curl( 'migrates-v3', $migrate_args );
@@ -159,17 +188,21 @@ class InstaWP_AJAX {
 	}
 
 
-	function go_live_redirect_url() {
+	function check_usages_limit() {
 
-		$response      = InstaWP_Curl::do_curl( 'get-waas-redirect-url', array( 'source_domain' => site_url() ) );
-		$response_data = InstaWP_Setting::get_args_option( 'data', $response, [] );
-		$redirect_url  = InstaWP_Setting::get_args_option( 'url', $response_data );
+		$migrate_settings     = $this->get_migrate_settings( $_POST );
+		$total_files_size     = instawp()->tools::get_total_sizes( 'files', $migrate_settings );
+		$check_usage_response = instawp()->instawp_check_usage_on_cloud( $total_files_size );
+		$can_proceed          = (bool) InstaWP_Setting::get_args_option( 'can_proceed', $check_usage_response, false );
 
-		if ( ! empty( $redirect_url ) ) {
-			wp_send_json_success( [ 'redirect_url' => $redirect_url ] );
+		if ( $can_proceed ) {
+			wp_send_json_success( $check_usage_response );
 		}
 
-		wp_send_json_error();
+		$api_response['button_text'] = esc_html__( 'Increase Limit', 'instawp-connect' );
+		$api_response['button_url']  = InstaWP_Setting::get_pro_subscription_url( 'subscriptions?source=connect_limit_warning' );
+
+		wp_send_json_error( $api_response );
 	}
 
 	public function get_dir_contents() {
@@ -585,14 +618,14 @@ class InstaWP_AJAX {
 			echo json_encode( $res );
 			wp_die();
 		}
-		
-		$header  = array(
+
+		$header = array(
 			'Authorization' => 'Bearer ' . $api_key,
 			'Accept'        => 'application/json',
 			'Content-Type'  => 'application/json;charset=UTF-8',
 
 		);
-		$body    = json_encode( array( 'url' => get_site_url() ) );
+		$body   = json_encode( array( 'url' => get_site_url() ) );
 
 		//print_r( $body );
 

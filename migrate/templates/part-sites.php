@@ -3,7 +3,7 @@
  * Migrate template - Create Site
  */
 
-$staging_sites       = instawp_get_staging_sites_list( true );
+$staging_sites       = instawp_get_staging_sites_list( false );
 $staging_sites_count = is_array( $staging_sites ) ? count( $staging_sites ) : 0;
 $pagination          = INSTAWP_STAGING_SITES_PER_PAGE;
 $parent_connect_data = InstaWP_Setting::get_option( 'instawp_sync_parent_connect_data', [] );
@@ -70,7 +70,7 @@ if ( ! empty( $parent_connect_data ) ) {
                                     $password        = isset( $site['password'] ) ? $site['password'] : '';
                                     $auto_login_url  = isset( $site['magic_domain'] ) ? $site['magic_domain'] : '';
                                     $datetime        = isset( $site['timestamp'] ) ? $site['timestamp'] : '';
-                                    $datetime        = date( 'M j, Y', strtotime( $datetime ) );
+                                    $datetime        = $datetime !='' ? date( 'M j, Y', strtotime( $datetime ) ) : '';
                                     //$auto_login_hash = isset( $site['auto_login_hash'] ) ? $site['auto_login_hash'] : '';
                                     //$auto_login_url  = InstaWP_Setting::get_api_domain() . '/wordpress-auto-login?site=' . $auto_login_hash;
 
@@ -96,11 +96,13 @@ if ( ! empty( $parent_connect_data ) ) {
                                         </td>
                                         <td class="whitespace-nowrap px-4 py-6 font-medium text-sm text-grayCust-300">
                                             <div class="flex items-center justify-center">
-                                                <a href="<?php echo esc_url( $auto_login_url ); ?>" target="_blank" type="button" class="relative flex items-center px-2.5 w-11 h-9 lg:px-3 rounded-md border border-grayCust-350 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:z-10 focus:outline-none focus:ring-0 focus:border-grayCust-350">
-                                                    <svg width="15" height="14" class="w-3 xl2:w-4" viewBox="0 0 15 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                        <path d="M6.52217 3.11111L5.54217 4.2L7.36217 6.22222H0.222168V7.77778H7.36217L5.54217 9.8L6.52217 10.8889L10.0222 7L6.52217 3.11111ZM12.8222 12.4444H7.22217V14H12.8222C13.5922 14 14.2222 13.3 14.2222 12.4444V1.55556C14.2222 0.7 13.5922 0 12.8222 0H7.22217V1.55556H12.8222V12.4444Z" fill="#1F2937"/>
-                                                    </svg>
-                                                </a>
+                                                <?php if( $auto_login_url ): ?>
+                                                    <a href="<?php echo esc_url( $auto_login_url ); ?>" target="_blank" type="button" class="relative flex items-center px-2.5 w-11 h-9 lg:px-3 rounded-md border border-grayCust-350 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:z-10 focus:outline-none focus:ring-0 focus:border-grayCust-350">
+                                                        <svg width="15" height="14" class="w-3 xl2:w-4" viewBox="0 0 15 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                            <path d="M6.52217 3.11111L5.54217 4.2L7.36217 6.22222H0.222168V7.77778H7.36217L5.54217 9.8L6.52217 10.8889L10.0222 7L6.52217 3.11111ZM12.8222 12.4444H7.22217V14H12.8222C13.5922 14 14.2222 13.3 14.2222 12.4444V1.55556C14.2222 0.7 13.5922 0 12.8222 0H7.22217V1.55556H12.8222V12.4444Z" fill="#1F2937"/>
+                                                        </svg>
+                                                    </a>
+                                                <?php endif; ?>
                                                 <button type="button" class="hidden -ml-px relative inline-flex items-center px-2 w-11 h-9 lg:px-3 border border-grayCust-350 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:z-10 focus:outline-none focus:ring-0 focus:border-grayCust-350">
                                                     <svg width="18" height="19" viewBox="0 0 18 19" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                         <path d="M3.6001 10.3999V13.0999C3.6001 14.5912 6.21923 15.7999 9.4501 15.7999C12.681 15.7999 15.3001 14.5912 15.3001 13.0999V10.3999C15.3001 11.8912 12.681 13.0999 9.4501 13.0999C6.21923 13.0999 3.6001 11.8912 3.6001 10.3999Z" fill="#1F2937"/>

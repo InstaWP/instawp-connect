@@ -187,7 +187,7 @@ class InstaWP_Sync_Events
      * @return void
      */
     public function profile_update_action($user_id, $old_user_data, $userdata) {
-        if (!empty($userdata)) {
+        if ( !empty( $userdata ) && isset( $_POST['submit'] ) ) {
             $event_slug = 'profile_update';
             $event_name = __('User updated', 'instawp-connect');
             $this->_prepare_user_metas( $user_id );

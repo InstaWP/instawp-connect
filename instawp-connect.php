@@ -7,7 +7,7 @@
  * @wordpress-plugin
  * Plugin Name:       InstaWP Connect
  * Description:       Create 1-click staging, migration and manage your prod sites.
- * Version:           0.0.9.45
+ * Version:           0.0.9.46
  * Author:            InstaWP Team
  * Author URI:        https://instawp.com/
  * License:           GPL-3.0+
@@ -23,8 +23,10 @@ if ( ! defined( 'WPINC' ) ) {
 
 global $wpdb;
 
-define( 'INSTAWP_PLUGIN_VERSION', '0.0.9.45' );
+define( 'INSTAWP_PLUGIN_VERSION', '0.0.9.46' );
 define( 'INSTAWP_RESTORE_INIT', 'init' );
+define( 'INSTAWP_API_DOMAIN_PROD', 'https://app.instawp.io' );
+
 define( 'INSTAWP_RESTORE_READY', 'ready' );
 define( 'INSTAWP_RESTORE_COMPLETED', 'completed' );
 define( 'INSTAWP_RESTORE_RUNNING', 'running' );
@@ -130,13 +132,7 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/functions.php';
 
 function instawp_plugin_activate() {
 
-	if ( ! empty( get_option( 'instawp_api_url' ) ) ) {
-		InstaWP_Setting::set_api_domain();
-	}
-
 	InstaWP_Tools::instawp_reset_permalink();
-
-	add_option( 'instawp_do_activation_redirect', true );
 
 	as_enqueue_async_action( 'instawp_prepare_large_files_list_async', [], 'instawp-connect', true );
 
@@ -162,57 +158,9 @@ function instawp_plugin_deactivate() {
 	as_unschedule_all_actions( 'instawp_handle_heartbeat', [], 'instawp-connect' );
 }
 
-function instawp_init_plugin_redirect() {
-
-	// Do not redirect for bulk plugin activation
-	if ( isset( $_GET['activate-multi'] ) && 'true' == sanitize_text_field( $_GET['activate-multi'] ) ) {
-
-		// Delete the check token
-		delete_option( 'instawp_do_activation_redirect' );
-
-		return;
-	}
-
-	if ( get_option( 'instawp_do_activation_redirect', false ) ) {
-		delete_option( 'instawp_do_activation_redirect' );
-
-		$active_plugins = get_option( 'active_plugins' );
-		if ( ! function_exists( 'get_plugins' ) ) {
-			require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
-		}
-		$plugins          = get_plugins();
-		$pro_instawp_slug = 'instawp-backup-pro/instawp-backup-pro.php';
-		$b_redirect_pro   = false;
-		if ( ! empty( $plugins ) ) {
-			if ( isset( $plugins[ $pro_instawp_slug ] ) ) {
-				if ( in_array( $pro_instawp_slug, $active_plugins ) ) {
-					$b_redirect_pro = true;
-				}
-			}
-		}
-
-		if ( $b_redirect_pro ) {
-			$url = apply_filters( 'instawp_backup_activate_redirect_url', 'admin.php?page=instawp-dashboard' );
-			if ( is_multisite() ) {
-				wp_redirect( network_admin_url() . $url );
-			} else {
-				wp_redirect( admin_url() . $url );
-			}
-		} else {
-			// jaed stopped reloading plugin after activation for demo showing to cloudways
-//			$url = apply_filters( 'instawp_backup_activate_redirect_url', 'admin.php?page=instawp-connect' );
-//			if ( is_multisite() ) {
-//				wp_redirect( network_admin_url() . $url );
-//			} else {
-//				wp_redirect( admin_url() . $url );
-//			}
-		}
-	}
-}
-
 register_activation_hook( __FILE__, 'instawp_plugin_activate' );
 register_deactivation_hook( __FILE__, 'instawp_plugin_deactivate' );
-add_action( 'admin_init', 'instawp_init_plugin_redirect' );
+
 
 /**
  * Begins execution of the plugin.
@@ -246,49 +194,6 @@ run_instawp();
 
 add_action( 'wp_head', function () {
 	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
-
-		$migrate_key = 's1bohszteys4935dmqjhdlv3qdad5elyprhvttuj';
-		$tracking_db = instawp()->tools::get_tracking_database( $migrate_key );
-
-//		$ret = $tracking_db->rawQuery( 'DROP TABLE IF EXISTS files_sent' );
-
-		echo "<pre>";
-		print_r( unserialize( $tracking_db->get_option( 'migrate_settings' ) ) );
-		echo "</pre>";
-
-
-//		$tracking_db->disconnect();
-//
-//		echo "<pre>";
-//		print_r( getcwd() );
-//		echo "</pre>";
-//
-//		echo "<pre>";
-//		print_r( scandir( '/nas/content/live/instawptesting' ) );
-//		echo "</pre>";
-
-//		echo "<pre>";
-//		print_r( $tracking_db );
-//		echo "</pre>";
-//
-//		echo "<pre>";
-//		print_r( $tracking_db->get_option( 'api_signature' ) );
-//		echo "</pre>";
-//
-//		echo "<pre>";
-//		print_r( $tracking_db->get_option( 'migrate_settings' ) );
-//		echo "</pre>";
-
-		update_option( 'instawp_api_options',
-			array(
-				'api_url' => 'https://app.instawp.io',
-			)
-		);
-
-		echo "<pre>";
-		print_r( get_option( 'instawp_api_options' ) );
-		echo "</pre>";
-
 		die();
 	}
 }, 0 );

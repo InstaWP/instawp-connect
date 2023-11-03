@@ -19,6 +19,23 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 
 		function handle_instawp_commands( $args ) {
 
+			if ( isset( $args[0] ) && $args[0] === 'set-waas-mode' ) {
+
+				if ( isset( $args[1] ) ) {
+					$wp_config = new WPConfig( [ 'INSTAWP_CONNECT_MODE' => 'WAAS_GO_LIVE', 'INSTAWP_CONNECT_WAAS_URL' => $args[1] ] );
+					$wp_config->update();
+				}
+
+				return true;
+			}
+
+			if ( isset( $args[0] ) && $args[0] === 'reset-waas-mode' ) {
+				$wp_config = new WPConfig( [ 'INSTAWP_CONNECT_MODE', 'INSTAWP_CONNECT_WAAS_URL' ] );
+				$wp_config->delete();
+
+				return true;
+			}
+
 			if ( isset( $args[0] ) && $args[0] === 'config-set' ) {
 				if ( isset( $args[1] ) ) {
 					if ( $args[1] === 'api-key' ) {
@@ -62,39 +79,6 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 				instawp_get_source_site_detail();
 
 				return true;
-			}
-
-			$cli_action_index      = array_search( '-action', $args );
-			$cli_action            = $args[ ( $cli_action_index + 1 ) ] ?? '';
-			$migrate_task_id_index = array_search( '-task', $args );
-			$migrate_task_id       = $args[ ( $migrate_task_id_index + 1 ) ] ?? '';
-
-			switch ( $cli_action ) {
-
-				case 'clean':
-
-					instawp_reset_running_migration( 'soft', false );
-
-					WP_CLI::success( esc_html__( 'Cleared previous backup files successfully.', 'instawp-connect' ) );
-					break;
-
-				case 'config-set';
-
-					$api_key = $args[ ( $cli_action_index + 2 ) ] ?? '';
-					InstaWP_Setting::instawp_generate_api_key( $api_key, 'true' );
-
-					break;
-
-				case 'config-remove';
-
-					$option = new \InstaWP\Connect\Helpers\Option();
-					$option->delete( [ 'instawp_api_key', 'instawp_api_options', 'instawp_connect_id_options' ] );
-
-					break;
-
-				default:
-					WP_CLI::error( esc_html__( 'Invalid command for `-action`', 'instawp-connect' ) );
-					break;
 			}
 
 			return true;

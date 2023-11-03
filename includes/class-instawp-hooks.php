@@ -22,6 +22,15 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			$admin_page   = isset( $_GET['page'] ) ? sanitize_text_field( $_GET['page'] ) : '';
 			$clear_action = isset( $_GET['clear'] ) ? sanitize_text_field( $_GET['clear'] ) : '';
 
+			if ( isset( $_GET['connect_id'] ) && ! empty( $_GET['connect_id'] ) ) {
+				$instawp_api_options = get_option( 'instawp_api_options', [] );
+
+				$instawp_api_options['connect_id'] = sanitize_text_field( $_GET['connect_id'] );
+
+				update_option( 'instawp_api_options', $instawp_api_options );
+			}
+
+
 			if ( 'instawp' === $admin_page && 'all' === $clear_action ) {
 
 				instawp_reset_running_migration( 'soft', true );

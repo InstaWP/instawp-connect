@@ -1,16 +1,60 @@
 <?php
 set_time_limit( 0 );
 
+if ( ! isset( $_SERVER['HTTP_X_IWP_MIGRATE_KEY'] ) || empty( $migrate_key = $_SERVER['HTTP_X_IWP_MIGRATE_KEY'] ) ) {
+	header( 'x-iwp-status: false' );
+	header( 'x-iwp-message: Empty migrate key.' );
+	die();
+}
 
-$has_zip_archive = class_exists( 'ZipArchive' );
+$level         = 0;
+$root_path_dir = __DIR__;
+$root_path     = __DIR__;
+
+while ( ! file_exists( $root_path . DIRECTORY_SEPARATOR . 'wp-config.php' ) ) {
+	$level ++;
+	$root_path = dirname( $root_path_dir, $level );
+
+	// If we have reached the root directory and still couldn't find wp-config.php
+	if ( $level > 10 ) {
+		header( 'x-iwp-status: false' );
+		header( 'x-iwp-message: Could not find wp-config.php in the parent directories.' );
+		echo "Could not find wp-config.php in the parent directories.";
+		exit( 2 );
+	}
+}
+
+$json_path = $root_path . DIRECTORY_SEPARATOR . 'wp-content' . DIRECTORY_SEPARATOR . 'instawpbackups' . DIRECTORY_SEPARATOR . $migrate_key . '.json';
+
+if ( file_exists( $json_path ) ) {
+    $jsonString = file_get_contents( $json_path );
+    $jsonData   = json_decode( $jsonString, true );
+
+    if ( $jsonData !== null ) {
+		extract( $jsonData );
+    } else {
+		header( 'x-iwp-status: false' );
+		header( 'x-iwp-message: Error: Unable to parse JSON data.' );
+		die();
+    }
+} else {
+	header( 'x-iwp-status: false' );
+	header( 'x-iwp-message: Error: JSON file not found.' );
+	die();
+}
+
 if ( ! isset( $api_signature ) || ! isset( $_SERVER['HTTP_X_IWP_API_SIGNATURE'] ) || $api_signature !== $_SERVER['HTTP_X_IWP_API_SIGNATURE'] ) {
 	header( 'x-iwp-status: false' );
 	header( 'x-iwp-message: Mismatched api signature.' );
 	die();
 }
 
-if ( isset( $_POST['check_zip'] ) ) {
+$has_zip_archive = class_exists( 'ZipArchive' );
+$has_phar_data   = class_exists( 'PharData' );
+
+if ( isset( $_POST['check'] ) ) {
 	header( 'x-iwp-zip: ' . $has_zip_archive );
+	header( 'x-iwp-phar: ' . $has_phar_data );
 	die();
 }
 
@@ -81,23 +125,6 @@ if ( ! function_exists( 'zipStatusString' ) ) {
 	}
 }
 
-$level         = 0;
-$root_path_dir = __DIR__;
-$root_path     = dirname( $root_path_dir );
-
-while ( ! file_exists( $root_path . DIRECTORY_SEPARATOR . 'wp-config.php' ) ) {
-	$level ++;
-	$root_path = dirname( $root_path_dir, $level );
-
-	// If we have reached the root directory and still couldn't find wp-config.php
-	if ( $level > 10 ) {
-		header( 'x-iwp-status: false' );
-		header( 'x-iwp-message: Could not find wp-config.php in the parent directories.' );
-		echo "Could not find wp-config.php in the parent directories.";
-		exit( 2 );
-	}
-}
-
 $excluded_paths     = [];
 $file_relative_path = trim( $_SERVER['HTTP_X_FILE_RELATIVE_PATH'] );
 $file_type          = isset( $_SERVER['HTTP_X_FILE_TYPE'] ) ? trim( $_SERVER['HTTP_X_FILE_TYPE'] ) : 'single';
@@ -145,13 +172,6 @@ stream_copy_to_stream( $file_input_stream, $file_stream );
 
 fclose( $file_input_stream );
 fclose( $file_stream );
-
-$file_content = file( $file_save_path );
-$file_content = array_slice( $file_content, 4, -1 );
-if ( strpos( $file_content[ count( $file_content ) - 1 ], '-------------' ) !== false ) {
-	$file_content = array_slice( $file_content, 0, -1 );
-}
-file_put_contents( $file_save_path, implode( '', $file_content ) );
 
 if ( $file_type === 'db' ) {
 	if ( ! isset( $db_host ) || ! isset( $db_username ) || ! isset( $db_password ) || ! isset( $db_name ) ) {
@@ -241,24 +261,49 @@ if ( $file_type === 'db' ) {
 }
 
 if ( $file_type === 'zip' ) {
-	$zip = new ZipArchive();
-	$res = $zip->open( $file_save_path );
+	if ( class_exists( 'ZipArchive' ) ) {
+		try {
+			$zip = new ZipArchive();
+			$res = $zip->open( $file_save_path );
 
-	if ( $res === TRUE || $zip->status == 0 ) {
-		$zip->extractTo( $directory_name );
-		$zip->close();
+			if ( $res === TRUE || $zip->status == 0 ) {
+				$zip->extractTo( $directory_name );
+				$zip->close();
+		
+				if ( file_exists( $file_save_path ) ) {
+					unlink( $file_save_path );
+				}
+			} else {
+				echo "Couldn't extract $file_save_path.zip.\n";
+				echo "ZipArchive Error (status): " . $zip->status . " - " . zipStatusString( $zip->status ) . "\n";
+				echo "ZipArchive System Error (statusSys): " . $zip->statusSys . "\n";
+		
+				header( 'x-iwp-status: false' );
+				header( "x-iwp-message: Couldn\'t extract $file_save_path .zip.\n" );
+				die();
+			}
+		} catch ( Exception $e ) {
+			echo "Error: " . $e->getMessage();
 
-		if ( file_exists( $file_save_path ) ) {
-			unlink( $file_save_path );
+			header( 'x-iwp-status: false' );
+			header( 'x-iwp-message: ' . $e->getMessage() . "\n" );
+			die();
 		}
-	} else {
-		echo "Couldn't extract $file_save_path.zip.\n";
-		echo "ZipArchive Error (status): " . $zip->status . " - " . zipStatusString( $zip->status ) . "\n";
-		echo "ZipArchive System Error (statusSys): " . $zip->statusSys . "\n";
+	} else if ( class_exists( 'PharData' ) ) {
+		try {
+			$phar = new PharData( $file_save_path );
+			$phar->extractTo( $directory_name, null, true );
 
-		header( 'x-iwp-status: false' );
-		header( "x-iwp-message: Couldn\'t extract $file_save_path .zip.\n" );
-		die();
+			if ( file_exists( $file_save_path ) ) {
+				unlink( $file_save_path );
+			}
+		} catch ( Exception $e ) {
+			echo "Error: " . $e->getMessage();
+
+			header( 'x-iwp-status: false' );
+			header( 'x-iwp-message: ' . $e->getMessage() . "\n" );
+			die();
+		}
 	}
 }
 
@@ -324,7 +369,7 @@ if ( $file_relative_path === 'wp-config.php' ) {
 		);
 	}
 
-	file_put_contents( $wp_config_path, $wp_config );
+	file_put_contents( $wp_config_path, $wp_config, LOCK_EX );
 }
 
 header( 'x-iwp-status: true' );
