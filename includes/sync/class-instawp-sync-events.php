@@ -22,7 +22,7 @@ if (!defined('INSTAWP_PLUGIN_DIR')) {
 
 require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-db.php';
 
-class InstaWP_Change_Event_Filters
+class InstaWP_Sync_Events
 {
     private $wpdb;
 
@@ -1083,4 +1083,4 @@ class InstaWP_Change_Event_Filters
         return $arr;
     }
 }
-new InstaWP_Change_Event_Filters();
+new InstaWP_Sync_Events();

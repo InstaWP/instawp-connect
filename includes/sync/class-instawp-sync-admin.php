@@ -12,7 +12,7 @@
 defined( 'INSTAWP_PLUGIN_DIR' ) || die;
 
 
-class InstaWP_Change_event {
+class InstaWP_Sync_Admin {
 
 	protected static $_instance = null;
 
@@ -23,14 +23,7 @@ class InstaWP_Change_event {
 
 	function listEvents() {
 		$InstaWP_db = new InstaWP_DB();
-		$tables     = $InstaWP_db->tables;
-		if ( isset( $_POST['filter_action'] ) && ! empty( $_POST['event_type'] ) ) {
-			$rel = $InstaWP_db->get_with_condition( $tables['ch_table'], 'event_type', $_POST['event_type'] );
-		} elseif ( isset( $_GET['change_event_status'] ) && $_GET['change_event_status'] != 'all' ) {
-			$rel = $InstaWP_db->get_with_condition( $tables['ch_table'], 'status', $_GET['change_event_status'] );
-		} else {
-			$rel = $InstaWP_db->getAllEvents();
-		}
+		$rel = $InstaWP_db->getAllEvents();
 		$data = [];
 		if ( ! empty( $rel ) && is_array( $rel ) ) {
 			foreach ( $rel as $v ) {
@@ -101,7 +94,7 @@ class InstaWP_Change_event {
 	}
 
 	/**
-	 * @return InstaWP_Change_event
+	 * @return InstaWP_Sync_Admin
 	 */
 	public static function instance() {
 		if ( is_null( self::$_instance ) ) {
@@ -112,4 +105,4 @@ class InstaWP_Change_event {
 	}
 }
 
-InstaWP_Change_event::instance();
+InstaWP_Sync_Admin::instance();

@@ -3,7 +3,7 @@
  * Migrate template - Sync
  */
 
-$changeEvent        = new InstaWP_Change_event();
+$changeEvent        = new InstaWP_Sync_Admin();
 $events             = $changeEvent->listEvents();
 $syncing_status     = InstaWP_Setting::get_option('instawp_is_event_syncing');
 $syncing_status_val = ($syncing_status == 1) ? 'checked' : '';
