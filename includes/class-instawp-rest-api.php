@@ -203,6 +203,23 @@ class InstaWP_Backup_Api {
 
 		// Generate serve file in instawpbackups directory
 		$serve_file_url = instawp()->tools::generate_serve_file( $migrate_key, $api_signature, $migrate_settings );
+		$tracking_db    = instawp()->tools::get_tracking_database( $migrate_key );
+
+		if ( ! $tracking_db ) {
+			return $this->throw_error( new WP_Error( 404, esc_html__( 'Tracking database could not found.', 'instawp-connect' ) ) );
+		}
+
+		if (
+			empty( $tracking_db->get_option( 'api_signature' ) ) ||
+			empty( $tracking_db->get_option( 'migrate_settings' ) ) ||
+			empty( $tracking_db->get_option( 'db_host' ) ) ||
+			empty( $tracking_db->get_option( 'db_username' ) ) ||
+			empty( $tracking_db->get_option( 'db_password' ) ) ||
+			empty( $tracking_db->get_option( 'db_name' ) )
+		) {
+			return $this->throw_error( new WP_Error( 404, esc_html__( 'API Signature and others data could not set properly', 'instawp-connect' ) ) );
+		}
+
 
 		// Check accessibility of serve file
 		if ( empty( $serve_file_url ) || ! instawp()->tools::is_migrate_file_accessible( $serve_file_url ) ) {

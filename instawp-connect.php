@@ -194,6 +194,36 @@ run_instawp();
 
 add_action( 'wp_head', function () {
 	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
+
+		$mysqli = new mysqli( DB_HOST, DB_USER, DB_PASSWORD, DB_NAME );
+
+		if ( $mysqli->connect_error ) {
+			die( 'Connect Error (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error );
+		}
+
+		$query  = "SHOW TABLES";
+		$result = $mysqli->query( $query );
+
+		if ( $mysqli->errno ) {
+			die();
+		}
+
+		echo "<pre>"; print_r( $result->fetch_array() ); echo "</pre>";
+
+
+		echo "<pre>";
+		print_r( $mysqli );
+		echo "</pre>";
+
+		echo "<pre>";
+		print_r( [
+			DB_NAME,
+			DB_USER,
+			DB_PASSWORD,
+			DB_HOST,
+		] );
+		echo "</pre>";
+
 		die();
 	}
 }, 0 );

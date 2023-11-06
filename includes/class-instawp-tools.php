@@ -122,6 +122,7 @@ class InstaWP_Tools {
 		$tracking_db->update_option( 'db_password', DB_PASSWORD );
 		$tracking_db->update_option( 'db_name', DB_NAME );
 
+
 		return INSTAWP_PLUGIN_URL . 'serve.php';
 	}
 
