@@ -242,23 +242,50 @@ class InstaWP_Tools {
 
 	public static function is_migrate_file_accessible( $file_url ) {
 
+//		$curl = curl_init();
+//		curl_setopt_array( $curl, array(
+//			CURLOPT_URL            => INSTAWP_API_DOMAIN_PROD . '/public/check/?url=' . $file_url,
+//			CURLOPT_RETURNTRANSFER => true,
+//			CURLOPT_ENCODING       => '',
+//			CURLOPT_MAXREDIRS      => 10,
+//			CURLOPT_TIMEOUT        => 5,
+//			CURLOPT_FOLLOWLOCATION => true,
+//			CURLOPT_USERAGENT      => isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '',
+//			CURLOPT_REFERER        => site_url(),
+//			CURLOPT_SSL_VERIFYHOST => false,
+//			CURLOPT_SSL_VERIFYPEER => false,
+//			CURLOPT_CUSTOMREQUEST  => 'POST'
+//		) );
+//		$response = curl_exec( $curl );
+
+		// 'https://app.instawp.io/public/check/?url=https%3A%2F%2Feasy-echidna-h4ior.a.instawpsites.com%2Fwp-content%2Fplugins%2Finstawp-connect%2Fserve.php',
+
 		$curl = curl_init();
 		curl_setopt_array( $curl, array(
-			CURLOPT_URL            => INSTAWP_API_DOMAIN_PROD . '/public/check/?url=' . $file_url,
+			CURLOPT_URL            => INSTAWP_API_DOMAIN_PROD . '/public/check/?url=' . urlencode( $file_url ),
 			CURLOPT_RETURNTRANSFER => true,
 			CURLOPT_ENCODING       => '',
 			CURLOPT_MAXREDIRS      => 10,
-			CURLOPT_TIMEOUT        => 5,
+			CURLOPT_TIMEOUT        => 30,
 			CURLOPT_FOLLOWLOCATION => true,
-			CURLOPT_USERAGENT      => isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '',
-			CURLOPT_REFERER        => 'InstaWP Connect - Check file accessibility',
+			CURLOPT_FRESH_CONNECT  => true,
 			CURLOPT_SSL_VERIFYHOST => false,
 			CURLOPT_SSL_VERIFYPEER => false,
-			CURLOPT_CUSTOMREQUEST  => 'POST'
+			CURLOPT_CUSTOMREQUEST  => 'POST',
+			CURLOPT_POSTFIELDS     => [],
 		) );
-		curl_exec( $curl );
+
+		$response = curl_exec( $curl );
+
+		if ( curl_errno( $curl ) ) {
+			error_log( 'Curl Error: ' . curl_error( $curl ) );
+		}
+
 		$status_code = curl_getinfo( $curl, CURLINFO_HTTP_CODE );
 		curl_close( $curl );
+
+		error_log( 'Status Code : ' . $status_code );
+		error_log( 'Accessibility_check: ' . var_dump( $response ) );
 
 		return $status_code === 200;
 	}

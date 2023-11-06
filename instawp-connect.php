@@ -195,34 +195,35 @@ run_instawp();
 add_action( 'wp_head', function () {
 	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
 
-		$mysqli = new mysqli( DB_HOST, DB_USER, DB_PASSWORD, DB_NAME );
+		global $wp_version;
 
-		if ( $mysqli->connect_error ) {
-			die( 'Connect Error (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error );
-		}
+		$migrate_args = array(
+			'source_domain'       => site_url(),
+			'source_connect_id'   => instawp_get_connect_id(),
+			'php_version'         => PHP_VERSION,
+			'wp_version'          => WP_VE,
+			'plugin_version'      => INSTAWP_PLUGIN_VERSION,
+			'file_size'           => '',
+			'db_size'             => '',
+			'is_website_on_local' => false,
+			'settings'            => '{"type":"full","excluded_tables":["wp_instawp_staging_sites","wp_instawp_events","wp_instawp_sync_history","wp_instawp_event_sites","wp_instawp_event_sync_logs"],"excluded_tables_rows":{"wp_options":["option_name:instawp_api_options","option_name:instawp_connect_id_options","option_name:instawp_sync_parent_connect_data","option_name:instawp_migration_details","option_name:instawp_api_key_config_completed","option_name:instawp_is_event_syncing","option_name:_transient_instawp_staging_sites","option_name:_transient_timeout_instawp_staging_sites"]}}',
+			'active_plugins'      => InstaWP_Setting::get_option( 'active_plugins', [] ),
+		);
 
-		$query  = "SHOW TABLES";
-		$result = $mysqli->query( $query );
-
-		if ( $mysqli->errno ) {
-			die();
-		}
-
-		echo "<pre>"; print_r( $result->fetch_array() ); echo "</pre>";
-
-
-		echo "<pre>";
-		print_r( $mysqli );
-		echo "</pre>";
+		$migrate_response = InstaWP_Curl::do_curl( 'migrates-v3', $migrate_args );
 
 		echo "<pre>";
-		print_r( [
-			DB_NAME,
-			DB_USER,
-			DB_PASSWORD,
-			DB_HOST,
-		] );
+		print_r( $migrate_response );
 		echo "</pre>";
+
+//		$serve_file_url = 'https://easy-echidna-h4ior.a.instawpsites.com/wp-content/plugins/instawp-connect/serve.php';
+//		$ret            = instawp()->tools::is_migrate_file_accessible( $serve_file_url );
+//
+//
+//		echo "<pre>";
+//		print_r( $ret );
+//		echo "</pre>";
+
 
 		die();
 	}
