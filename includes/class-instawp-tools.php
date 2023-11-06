@@ -121,6 +121,7 @@ class InstaWP_Tools {
 		$tracking_db->update_option( 'db_username', DB_USER );
 		$tracking_db->update_option( 'db_password', DB_PASSWORD );
 		$tracking_db->update_option( 'db_name', DB_NAME );
+		$tracking_db->update_option( 'site_url', site_url() );
 
 		return INSTAWP_PLUGIN_URL . 'serve.php';
 	}
@@ -279,18 +280,15 @@ class InstaWP_Tools {
 		}
 
 		if ( in_array( 'active_themes_only', $options ) ) {
-			$active_theme_stylesheet = wp_get_theme()->get_stylesheet();
-			$active_theme_template   = wp_get_theme()->get_template();
+			$active_theme = wp_get_theme();
 			foreach ( wp_get_themes() as $theme_slug => $theme_info ) {
-				if ( ! in_array( $theme_info->get_stylesheet(), [ $active_theme_stylesheet, $active_theme_template ], true ) ) {
+				if ( ! in_array( $theme_info->get_stylesheet(), [ $active_theme->get_stylesheet(), $active_theme->get_template() ], true ) ) {
 					$migrate_settings['excluded_paths'][] = $relative_dir . '/themes/' . $theme_slug;
 				}
 			}
 		}
 
-
 		if ( in_array( 'skip_media_folder', $options ) ) {
-
 			$upload_dir      = wp_upload_dir();
 			$upload_base_dir = $upload_dir['basedir'] ?? '';
 
