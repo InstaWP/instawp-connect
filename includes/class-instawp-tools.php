@@ -258,8 +258,6 @@ class InstaWP_Tools {
 //		) );
 //		$response = curl_exec( $curl );
 
-		// 'https://app.instawp.io/public/check/?url=https%3A%2F%2Feasy-echidna-h4ior.a.instawpsites.com%2Fwp-content%2Fplugins%2Finstawp-connect%2Fserve.php',
-
 		$curl = curl_init();
 		curl_setopt_array( $curl, array(
 			CURLOPT_URL            => INSTAWP_API_DOMAIN_PROD . '/public/check/?url=' . urlencode( $file_url ),
