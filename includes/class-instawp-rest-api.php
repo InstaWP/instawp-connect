@@ -220,16 +220,6 @@ class InstaWP_Backup_Api {
 			return $this->throw_error( new WP_Error( 404, esc_html__( 'API Signature and others data could not set properly', 'instawp-connect' ) ) );
 		}
 
-		error_log( "serve_file_url: " . $serve_file_url );
-		error_log( "api_signature: " . $tracking_db->get_option( 'api_signature' ) );
-		error_log( "migrate_settings: " . $tracking_db->get_option( 'migrate_settings' ) );
-		error_log( "db_host: " . $tracking_db->get_option( 'db_host' ) );
-		error_log( "db_username: " . $tracking_db->get_option( 'db_username' ) );
-		error_log( "db_password: " . $tracking_db->get_option( 'db_password' ) );
-		error_log( "db_name: " . $tracking_db->get_option( 'db_name' ) );
-		error_log( "accessibility check 1: " . var_dump( instawp()->tools::is_migrate_file_accessible( $serve_file_url ) ) );
-		error_log( "accessibility check 2: " . var_dump(empty( $serve_file_url ) || ! instawp()->tools::is_migrate_file_accessible( $serve_file_url )) );
-
 		// Check accessibility of serve file
 		if ( empty( $serve_file_url ) || ! instawp()->tools::is_migrate_file_accessible( $serve_file_url ) ) {
 
