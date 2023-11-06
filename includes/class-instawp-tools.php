@@ -282,9 +282,6 @@ class InstaWP_Tools {
 		$status_code = curl_getinfo( $curl, CURLINFO_HTTP_CODE );
 		curl_close( $curl );
 
-		error_log( 'Status Code : ' . $status_code );
-		error_log( 'Accessibility_check: ' . var_dump( $response ) );
-
 		return $status_code === 200;
 	}
 
