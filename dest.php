@@ -128,15 +128,10 @@ if ( ! function_exists( 'zipStatusString' ) ) {
 $excluded_paths     = [];
 $file_relative_path = trim( $_SERVER['HTTP_X_FILE_RELATIVE_PATH'] );
 $file_type          = isset( $_SERVER['HTTP_X_FILE_TYPE'] ) ? trim( $_SERVER['HTTP_X_FILE_TYPE'] ) : 'single';
-$progress           = isset( $_SERVER['HTTP_X_IWP_PROGRESS'] ) ? trim( $_SERVER['HTTP_X_IWP_PROGRESS'] ) : 0;
 $req_order          = isset( $_GET['r'] ) ? intval( $_GET['r'] ) : 1;
 
 if ( in_array( $file_relative_path, $excluded_paths ) ) {
 	exit( 0 );
-}
-
-if ( $file_relative_path === '.htaccess' ) {
-	$file_relative_path = 'htaccess';
 }
 
 $file_save_path = $root_path . DIRECTORY_SEPARATOR . $file_relative_path;
@@ -250,13 +245,6 @@ if ( $file_type === 'db' ) {
 
 	if ( file_exists( $file_save_path ) ) {
 		unlink( $file_save_path );
-	}
-
-	if ( $progress >= 100 ) {
-		$htaccess_file = $root_path . DIRECTORY_SEPARATOR . 'htaccess';
-		if ( file_exists( $htaccess_file ) ) {
-			rename( $htaccess_file, $root_path . DIRECTORY_SEPARATOR . '.htaccess' );
-		}
 	}
 }
 

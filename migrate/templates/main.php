@@ -9,6 +9,9 @@ $status_status   = isset( $_REQUEST['success'] ) ? sanitize_text_field( $_REQUES
 
 if ( 'true' == $status_status && InstaWP_Setting::get_option( 'instawp_api_key' ) != $access_token ) {
 	InstaWP_Setting::instawp_generate_api_key( $access_token, $status_status );
+
+    wp_redirect( admin_url( 'tools.php?page=instawp' ) );
+	exit();
 }
 
 instawp()->is_connected = ! empty( InstaWP_Setting::get_api_key() );
