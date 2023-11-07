@@ -74,6 +74,7 @@ class instaWP {
 		add_action( 'instawp_clean_completed_actions', array( $this, 'clean_events' ) );
 		add_action( 'instawp_clean_migrate_files', array( $this, 'clean_migrate_files' ) );
 
+		add_action( 'add_option_instawp_enable_wp_debug', array( $this, 'toggle_wp_debug' ), 10, 2 );
 		add_action( 'update_option_instawp_enable_wp_debug', array( $this, 'toggle_wp_debug' ), 10, 2 );
 		add_action( 'login_init', array( $this, 'instawp_auto_login_redirect' ) );
 	}
