@@ -1,5 +1,6 @@
 <?php
 set_time_limit( 0 );
+error_reporting( 0 );
 
 if ( ! isset( $_POST['migrate_key'] ) || empty( $migrate_key = $_POST['migrate_key'] ) ) {
 	header( 'x-iwp-status: false' );
@@ -124,9 +125,9 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			header( 'x-iwp-filename: ' . $tmpZip );
 
 			foreach ( $unsentFiles as $file ) {
-				$filePath         = $file['filepath'] ?? '';
-				$relativePath     = ltrim( str_replace( WP_ROOT, "", $filePath ), DIRECTORY_SEPARATOR );
-				$unlink_file      = false;
+				$filePath     = $file['filepath'] ?? '';
+				$relativePath = ltrim( str_replace( WP_ROOT, "", $filePath ), DIRECTORY_SEPARATOR );
+				$unlink_file  = false;
 
 				if ( $skip_media_folder && $relativePath === '.htaccess' ) {
 					$site_url = $migrate_settings['site_url'] ?? '';
@@ -147,7 +148,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 					$filePath    = $tmp_file;
 					$unlink_file = true;
 				}
-				
+
 				$file_fopen_check = fopen( $filePath, 'r' );
 				if ( ! $file_fopen_check ) {
 					error_log( 'Can not open file: ' . $filePath );
