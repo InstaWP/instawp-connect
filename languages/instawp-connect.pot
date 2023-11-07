@@ -1,10 +1,11 @@
+InstaWP
 msgid ""
 msgstr ""
 "Project-Id-Version: InstaWP Connect\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2023-11-06 07:50+0000\n"
+"POT-Creation-Date: 2023-11-07 12:47+0000\n"
 "X-Poedit-Basepath: ..\n"
 "X-Poedit-KeywordsList: __;_e;_ex:1,2c;_n:1,2;_n_noop:1,2;_nx:1,2,4c;_nx_noop:1,2,3c;_x:1,2c;esc_attr__;esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c\n"
 "X-Poedit-SearchPath-0: .\n"
@@ -84,6 +85,86 @@ msgstr ""
 msgid "3. Go back to this page and paste the key in key box below. Lastly, click Save button."
 msgstr ""
 
+#: admin/partials/instawp-admin-change-event-filters.php:154
+msgid "New user registered"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:174
+msgid "User deleted"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:192
+msgid "User updated"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:281, admin/partials/instawp-admin-change-event-filters.php:292, admin/partials/instawp-admin-change-event-filters.php:312
+msgid "Woocommerce attribute"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:329, admin/partials/instawp-admin-change-event-filters.php:700
+msgid "%s modified"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:347, admin/partials/instawp-admin-change-event-filters.php:790
+msgid "%s deleted"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:363, admin/partials/instawp-admin-change-event-filters.php:697
+msgid "%s created"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:376
+msgid "Install themes updated"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:389
+msgid "Install themes upload"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:402
+msgid "Install themes new"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:416
+msgid "Theme deleted"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:431
+msgid "Theme switched from %s to %s"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:446
+msgid "%s %s%s"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:491
+msgid "Plugin deactivated"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:506
+msgid "Plugin activated"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:520
+msgid "Plugin deleted"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:713
+msgid "Media created"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:726
+msgid "Media updated"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:805
+msgid "%s trashed"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:819
+msgid "%s Restored"
+msgstr ""
+
 #: includes/class-instawp-ajax.php:202
 msgid "Increase Limit"
 msgstr ""
@@ -140,79 +221,87 @@ msgstr ""
 msgid "InstaWP File Manager"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:213
+#: includes/class-instawp-rest-api.php:209
+msgid "Tracking database could not found."
+msgstr ""
+
+#: includes/class-instawp-rest-api.php:220
+msgid "API Signature and others data could not set properly"
+msgstr ""
+
+#: includes/class-instawp-rest-api.php:229
 msgid "Could not create the forwarded file."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:251
+#: includes/class-instawp-rest-api.php:267
 msgid "Could not create destination file."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:297
+#: includes/class-instawp-rest-api.php:313
 msgid "Plugin reset Successful."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:583
+#: includes/class-instawp-rest-api.php:599
 msgid "Already Configured"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:591
+#: includes/class-instawp-rest-api.php:607
 msgid "Api key is required"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:646
+#: includes/class-instawp-rest-api.php:662
 msgid "Empty bearer token."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:663
+#: includes/class-instawp-rest-api.php:679
 msgid "Invalid bearer token."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:667
+#: includes/class-instawp-rest-api.php:683
 msgid "Settings is disabled! Please enable %s Option from InstaWP Connect Remote Management settings page."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1033
+#: includes/class-instawp-rest-api.php:1049
 msgid "Setting does not exist."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1016
+#: includes/class-instawp-rest-api.php:1032
 msgid "Success!"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1025
+#: includes/class-instawp-rest-api.php:1041
 msgid "You can not enable this setting through API."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1022
+#: includes/class-instawp-rest-api.php:1038
 msgid "Setting is already disabled."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1139, includes/class-instawp-setting.php:369, includes/class-instawp-setting.php:375
+#: includes/class-instawp-rest-api.php:1155, includes/class-instawp-setting.php:369, includes/class-instawp-setting.php:375
 msgid "Heartbeat"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1140, includes/class-instawp-setting.php:407
+#: includes/class-instawp-rest-api.php:1156, includes/class-instawp-setting.php:407
 msgid "File Manager"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1141, includes/class-instawp-setting.php:415
+#: includes/class-instawp-rest-api.php:1157, includes/class-instawp-setting.php:415
 msgid "Database Manager"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1142, includes/class-instawp-setting.php:423
+#: includes/class-instawp-rest-api.php:1158, includes/class-instawp-setting.php:423
 msgid "Install Plugin / Themes"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1143, includes/class-instawp-setting.php:431
+#: includes/class-instawp-rest-api.php:1159, includes/class-instawp-setting.php:431
 msgid "Config Management"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1144, includes/class-instawp-setting.php:439
+#: includes/class-instawp-rest-api.php:1160, includes/class-instawp-setting.php:439
 msgid "Site Inventory"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1145, includes/class-instawp-setting.php:447
+#: includes/class-instawp-rest-api.php:1161, includes/class-instawp-setting.php:447
 msgid "Debug Log"
 msgstr ""
 
@@ -416,7 +505,7 @@ msgstr ""
 msgid "Enabling this option will allow reading WordPress error logs on this website remotely using the REST API."
 msgstr ""
 
-#: includes/class-instawp-tools.php:594
+#: includes/class-instawp-tools.php:599
 msgid "Launch %s"
 msgstr ""
 
@@ -454,84 +543,4 @@ msgstr ""
 
 #: includes/functions.php:226
 msgid "Migration aborted forcefully"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:154
-msgid "New user registered"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:174
-msgid "User deleted"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:192
-msgid "User updated"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:281, admin/partials/instawp-admin-change-event-filters.php:292, admin/partials/instawp-admin-change-event-filters.php:312
-msgid "Woocommerce attribute"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:329, admin/partials/instawp-admin-change-event-filters.php:700
-msgid "%s modified"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:347, admin/partials/instawp-admin-change-event-filters.php:790
-msgid "%s deleted"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:363, admin/partials/instawp-admin-change-event-filters.php:697
-msgid "%s created"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:376
-msgid "Install themes updated"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:389
-msgid "Install themes upload"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:402
-msgid "Install themes new"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:416
-msgid "Theme deleted"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:431
-msgid "Theme switched from %s to %s"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:446
-msgid "%s %s%s"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:491
-msgid "Plugin deactivated"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:506
-msgid "Plugin activated"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:520
-msgid "Plugin deleted"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:713
-msgid "Media created"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:726
-msgid "Media updated"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:805
-msgid "%s trashed"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:819
-msgid "%s Restored"
 msgstr ""

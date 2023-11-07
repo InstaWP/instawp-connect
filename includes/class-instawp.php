@@ -63,17 +63,21 @@ class instaWP {
 		}
 
 		add_action( 'init', array( $this, 'register_heartbeat_action' ), 11 );
+		add_action( 'add_option_instawp_api_heartbeat', array( $this, 'clear_heartbeat_action' ) );
 		add_action( 'update_option_instawp_api_heartbeat', array( $this, 'clear_heartbeat_action' ) );
+		add_action( 'add_option_instawp_rm_heartbeat', array( $this, 'clear_heartbeat_action' ) );
 		add_action( 'update_option_instawp_rm_heartbeat', array( $this, 'clear_heartbeat_action' ) );
 		add_action( 'instawp_handle_heartbeat', array( $this, 'handle_heartbeat' ) );
 
 		add_action( 'instawp_prepare_large_files_list', array( $this, 'prepare_large_files_list' ) );
 		add_action( 'instawp_prepare_large_files_list_async', array( $this, 'prepare_large_files_list' ) );
+		add_action( 'add_option_instawp_max_file_size_allowed', array( $this, 'clear_staging_sites_list' ) );
 		add_action( 'update_option_instawp_max_file_size_allowed', array( $this, 'clear_staging_sites_list' ) );
 
 		add_action( 'instawp_clean_completed_actions', array( $this, 'clean_events' ) );
 		add_action( 'instawp_clean_migrate_files', array( $this, 'clean_migrate_files' ) );
 
+		add_action( 'add_option_instawp_enable_wp_debug', array( $this, 'toggle_wp_debug' ), 10, 2 );
 		add_action( 'update_option_instawp_enable_wp_debug', array( $this, 'toggle_wp_debug' ), 10, 2 );
 		add_action( 'login_init', array( $this, 'instawp_auto_login_redirect' ) );
 	}

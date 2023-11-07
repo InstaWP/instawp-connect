@@ -99,10 +99,6 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
 	if ( ! function_exists( 'send_by_zip' ) ) {
 		function send_by_zip( IWPDB $tracking_db, $unsentFiles = array(), $progress_percentage = '', $archiveType = 'ziparchive' ) {
-			$migrate_settings  = $tracking_db->get_option( 'migrate_settings' );
-			$migrate_settings  = unserialize( $migrate_settings );
-			$skip_media_folder = $migrate_settings['skip_media_folder'] ?? false;
-
 			header( 'Content-Type: zip' );
 			header( 'x-file-type: zip' );
 			header( 'x-iwp-progress: ' . $progress_percentage );
@@ -127,27 +123,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			foreach ( $unsentFiles as $file ) {
 				$filePath     = $file['filepath'] ?? '';
 				$relativePath = ltrim( str_replace( WP_ROOT, "", $filePath ), DIRECTORY_SEPARATOR );
-				$unlink_file  = false;
-
-				if ( $skip_media_folder && $relativePath === '.htaccess' ) {
-					$site_url = $migrate_settings['site_url'] ?? '';
-					$content  = file_get_contents( $filePath );
-					$tmp_file = tempnam( sys_get_temp_dir(), 'htaccess' );
-
-					$htaccess_content = array(
-						'## BEGIN InstaWP Connect',
-						'<IfModule mod_rewrite.c>',
-						'RewriteEngine On',
-						'RedirectMatch 301 ^/wp-content/uploads/(.*)$ ' . $site_url . '/wp-content/uploads/$1',
-						'</IfModule>',
-						'## END InstaWP Connect',
-					);
-					$htaccess_content = implode( "\n", $htaccess_content );
-					file_put_contents( $tmp_file, $content . $htaccess_content );
-
-					$filePath    = $tmp_file;
-					$unlink_file = true;
-				}
+				$filePath     = process_htaccess( $tracking_db, $filePath, $relativePath );
 
 				$file_fopen_check = fopen( $filePath, 'r' );
 				if ( ! $file_fopen_check ) {
@@ -172,10 +148,6 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 				if ( ! $added_to_zip ) {
 					error_log( 'Could not add to zip. File: : ' . $filePath );
 				}
-
-				if ( $unlink_file ) {
-					unlink( $filePath );
-				}
 			}
 
 			try {
@@ -194,6 +166,35 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			}
 
 			unlink( $tmpZip );
+		}
+	}
+
+	if ( ! function_exists( 'process_htaccess' ) ) {
+		function process_htaccess( IWPDB $tracking_db, $filePath, $relativePath ) {
+			$migrate_settings  = $tracking_db->get_option( 'migrate_settings' );
+			$migrate_settings  = unserialize( $migrate_settings );
+			$options           = $migrate_settings['options'] ?? [];
+
+			if ( in_array( 'skip_media_folder', $options ) && $relativePath === '.htaccess' ) {
+				$site_url = $tracking_db->get_option( 'site_url' );
+				$content  = file_get_contents( $filePath );
+				$tmp_file = tempnam( sys_get_temp_dir(), 'htaccess' );
+
+				$htaccess_content = array(
+					'## BEGIN InstaWP Connect',
+					'<IfModule mod_rewrite.c>',
+					'RewriteEngine On',
+					'RedirectMatch 301 ^/wp-content/uploads/(.*)$ ' . $site_url . '/wp-content/uploads/$1',
+					'</IfModule>',
+					'## END InstaWP Connect',
+				);
+				$htaccess_content = implode( "\n", $htaccess_content );
+				file_put_contents( $tmp_file, $content . "\n" . $htaccess_content );
+
+				$filePath = $tmp_file;
+			}
+
+			return $filePath;
 		}
 	}
 
@@ -317,6 +318,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			$filePath     = $row['filepath'];
 			$mimetype     = mime_content_type( $filePath );
 			$relativePath = ltrim( str_replace( WP_ROOT, "", $filePath ), DIRECTORY_SEPARATOR );
+			$filePath     = process_htaccess( $tracking_db, $filePath, $relativePath );
 
 			header( 'Content-Type: ' . $mimetype );
 			header( 'x-file-relative-path: ' . $relativePath );
@@ -505,4 +507,3 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 	$mysqli->close();
 	$trackingDb->close();
 }
-
