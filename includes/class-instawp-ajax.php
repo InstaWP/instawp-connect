@@ -192,12 +192,19 @@ class InstaWP_AJAX {
 		$migrate_id            = InstaWP_Setting::get_args_option( 'migrate_id', $migrate_response_data );
 		$migrate_key           = InstaWP_Setting::get_args_option( 'migrate_key', $migrate_response_data );
 		$tracking_url          = InstaWP_Setting::get_args_option( 'tracking_url', $migrate_response_data );
+		$destination_site_url  = InstaWP_Setting::get_args_option( 'destination_site_url', $migrate_response_data );
 		$migration_details     = array(
 			'migrate_id'   => $migrate_id,
 			'migrate_key'  => $migrate_key,
 			'tracking_url' => $tracking_url,
+			'dest_url'     => $destination_site_url,
 			'started_at'   => current_time( 'mysql' ),
 		);
+		$tracking_db           = instawp()->tools::get_tracking_database( $migrate_key );
+
+		if ( $tracking_db ) {
+			$tracking_db->update_option( 'dest_url', $destination_site_url );
+		}
 
 		update_option( 'instawp_migration_details', $migration_details );
 
