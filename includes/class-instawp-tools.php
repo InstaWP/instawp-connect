@@ -363,6 +363,55 @@ class InstaWP_Tools {
 		return 0;
 	}
 
+	public static function get_pull_pre_check_response( $migrate_key, $migrate_settings = [] ) {
+
+		// Create InstaWP backup directory
+		self::create_instawpbackups_dir();
+
+		// Clean InstaWP backup directory
+		self::clean_instawpbackups_dir();
+
+		$api_signature = hash( 'sha512', $migrate_key . current_time( 'U' ) );
+
+		// Generate serve file in instawpbackups directory
+		$serve_file_url = self::generate_serve_file( $migrate_key, $api_signature, $migrate_settings );
+		$tracking_db    = self::get_tracking_database( $migrate_key );
+
+		if ( ! $tracking_db ) {
+			new WP_Error( 404, esc_html__( 'Tracking database could not found.', 'instawp-connect' ) );
+		}
+
+		if (
+			empty( $tracking_db->get_option( 'api_signature' ) ) ||
+			empty( $tracking_db->get_option( 'migrate_settings' ) ) ||
+			empty( $tracking_db->get_option( 'db_host' ) ) ||
+			empty( $tracking_db->get_option( 'db_username' ) ) ||
+			empty( $tracking_db->get_option( 'db_password' ) ) ||
+			empty( $tracking_db->get_option( 'db_name' ) )
+		) {
+			return new WP_Error( 404, esc_html__( 'API Signature and others data could not set properly', 'instawp-connect' ) );
+		}
+
+		// Check accessibility of serve file
+		if ( empty( $serve_file_url ) || ! self::is_migrate_file_accessible( $serve_file_url ) ) {
+
+			$serve_file_url = self::generate_forwarded_file();
+
+			if ( empty( $serve_file_url ) || ! self::is_migrate_file_accessible( $serve_file_url ) ) {
+				return new WP_Error( 403, esc_html__( 'Could not create the forwarded file.', 'instawp-connect' ) );
+			}
+		}
+
+		return array(
+			'serve_url'     => $serve_file_url,
+			'api_signature' => $api_signature,
+		);
+	}
+
+	public static function generate_random_migrate_key( $length = 40 ) {
+		return bin2hex(random_bytes($length / 2));
+	}
+
 
 	public static function clean_junk_cache() {
 		$home_url_prefix = get_home_url();

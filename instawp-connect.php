@@ -216,12 +216,9 @@ add_action( 'wp_head', function () {
 //		print_r( $migrate_response );
 //		echo "</pre>";
 
-		$serve_file_url = 'https://easy-echidna-h4ior.a.instawpsites.com/wp-content/plugins/instawp-connect/serve.php';
-		$ret            = instawp()->tools::is_migrate_file_accessible( $serve_file_url );
-
 
 		echo "<pre>";
-		print_r( $ret );
+		print_r( instawp()->tools::generate_random_migrate_key() );
 		echo "</pre>";
 
 
