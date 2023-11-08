@@ -135,7 +135,12 @@
         },
         instawp_migrate_init = () => {
 
-            let create_container = $('.instawp-wrap .nav-item-content.create');
+            let create_container = $('.instawp-wrap .nav-item-content.create'),
+                el_migration_error_wrap = create_container.find('.migration-error'),
+                el_migration_progress_wrap = create_container.find('.migration-running'),
+                el_migration_error_message = el_migration_error_wrap.find('.error-message'),
+                el_migration_download_log = el_migration_error_wrap.find('.instawp-download-log'),
+                el_migration_loader = create_container.find('.instawp-migration-loader');
 
             if (create_container.hasClass('loading')) {
                 return;
@@ -157,6 +162,7 @@
                 },
                 success: function (response) {
                     console.log(response);
+
                     if (response.success) {
 
                         // populate the tracking url
@@ -167,6 +173,12 @@
 
                         create_container.attr('interval-id', setInterval(instawp_migrate_progress, 3000));
                     } else {
+                        create_container.removeClass('loading');
+                        el_migration_progress_wrap.addClass('hidden');
+                        el_migration_loader.removeClass('text-primary-900').addClass('text-red-700').text(el_migration_loader.data('error-text'));
+                        el_migration_error_message.html(response.data.message);
+                        el_migration_download_log.addClass('hidden');
+                        el_migration_error_wrap.removeClass('hidden');
                         // create_container.find('#instawp-screen').val(4).trigger('change');
                     }
                 }

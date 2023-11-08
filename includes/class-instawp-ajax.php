@@ -145,8 +145,23 @@ class InstaWP_AJAX {
 			instawp_set_whitelist_ip();
 		}
 
-		$migrate_settings = $this->get_migrate_settings( $_POST );
-		$migrate_args     = array(
+		$migrate_settings   = $this->get_migrate_settings( $_POST );
+		$migrate_key        = instawp()->tools::generate_random_migrate_key();
+		$pre_check_response = instawp()->tools::get_pull_pre_check_response( $migrate_key, $migrate_settings );
+
+		if ( is_wp_error( $pre_check_response ) ) {
+			wp_send_json_error( [ 'message' => $pre_check_response->get_error_message() ] );
+		}
+
+		if ( empty( $serve_url = InstaWP_Setting::get_args_option( 'serve_url', $pre_check_response ) ) ) {
+			wp_send_json_error( [ 'message' => esc_html__( 'Error: Empty serve url found in pre-check response.', 'instawp-connect' ) ] );
+		}
+
+		if ( empty( $api_signature = InstaWP_Setting::get_args_option( 'api_signature', $pre_check_response ) ) ) {
+			wp_send_json_error( [ 'message' => esc_html__( 'Error: Empty api signature found in pre-check response.', 'instawp-connect' ) ] );
+		}
+
+		$migrate_args             = array(
 			'source_domain'       => $source_domain,
 			'source_connect_id'   => instawp_get_connect_id(),
 			'php_version'         => PHP_VERSION,
@@ -157,8 +172,10 @@ class InstaWP_AJAX {
 			'is_website_on_local' => $is_website_on_local,
 			'settings'            => $migrate_settings,
 			'active_plugins'      => InstaWP_Setting::get_option( 'active_plugins', [] ),
+			'migrate_key'         => $migrate_key,
+			'serve_url'           => $serve_url,
+			'api_signature'       => $api_signature,
 		);
-
 		$migrate_response         = InstaWP_Curl::do_curl( 'migrates-v3', $migrate_args );
 		$migrate_response_status  = (bool) InstaWP_Setting::get_args_option( 'success', $migrate_response, true );
 		$migrate_response_message = InstaWP_Setting::get_args_option( 'message', $migrate_response );
@@ -204,6 +221,7 @@ class InstaWP_AJAX {
 
 		wp_send_json_error( $api_response );
 	}
+
 
 	public function get_dir_contents() {
 		check_ajax_referer( 'instawp-migrate', 'security' );

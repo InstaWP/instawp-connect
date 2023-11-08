@@ -191,49 +191,15 @@ class InstaWP_Backup_Api {
 			return $this->throw_error( $response );
 		}
 
-		// Create InstaWP backup directory
-		instawp()->tools::create_instawpbackups_dir();
+		$migrate_key        = sanitize_text_field( $request->get_param( 'migrate_key' ) );
+		$migrate_settings   = $request->get_param( 'migrate_settings' );
+		$pre_check_response = instawp()->tools::get_pull_pre_check_response( $migrate_key, $migrate_settings );
 
-		// Clean InstaWP backup directory
-		instawp()->tools::clean_instawpbackups_dir();
-
-		$migrate_key      = sanitize_text_field( $request->get_param( 'migrate_key' ) );
-		$api_signature    = hash( 'sha512', $migrate_key . current_time( 'U' ) );
-		$migrate_settings = $request->get_param( 'migrate_settings' );
-
-		// Generate serve file in instawpbackups directory
-		$serve_file_url = instawp()->tools::generate_serve_file( $migrate_key, $api_signature, $migrate_settings );
-		$tracking_db    = instawp()->tools::get_tracking_database( $migrate_key );
-
-		if ( ! $tracking_db ) {
-			return $this->throw_error( new WP_Error( 404, esc_html__( 'Tracking database could not found.', 'instawp-connect' ) ) );
+		if ( is_wp_error( $pre_check_response ) ) {
+			return $this->throw_error( $pre_check_response );
 		}
 
-		if (
-			empty( $tracking_db->get_option( 'api_signature' ) ) ||
-			empty( $tracking_db->get_option( 'migrate_settings' ) ) ||
-			empty( $tracking_db->get_option( 'db_host' ) ) ||
-			empty( $tracking_db->get_option( 'db_username' ) ) ||
-			empty( $tracking_db->get_option( 'db_password' ) ) ||
-			empty( $tracking_db->get_option( 'db_name' ) )
-		) {
-			return $this->throw_error( new WP_Error( 404, esc_html__( 'API Signature and others data could not set properly', 'instawp-connect' ) ) );
-		}
-
-		// Check accessibility of serve file
-		if ( empty( $serve_file_url ) || ! instawp()->tools::is_migrate_file_accessible( $serve_file_url ) ) {
-
-			$serve_file_url = instawp()->tools::generate_forwarded_file();
-
-			if ( empty( $serve_file_url ) || ! instawp()->tools::is_migrate_file_accessible( $serve_file_url ) ) {
-				return $this->throw_error( new WP_Error( 403, esc_html__( 'Could not create the forwarded file.', 'instawp-connect' ) ) );
-			}
-		}
-
-		return $this->send_response( array(
-			'serve_url'     => $serve_file_url,
-			'api_signature' => $api_signature,
-		) );
+		return $this->send_response( $pre_check_response );
 	}
 
 	/**
