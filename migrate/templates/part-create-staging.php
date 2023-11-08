@@ -30,7 +30,31 @@ $whitelist_ip          = instawp_whitelist_ip();
 
 ?>
 
-<div class="flex p-8 flex items-start">
+<div class="bg-white text-center rounded-md py-20 flex items-center justify-center connected">
+    <div class="w-2/3">
+        <div class="mb-4">
+            <img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/connected.svg' ) ); ?>" class="mx-auto" alt="">
+        </div>
+        <div class="text-sm font-medium text-grayCust-200 mb-1">Your account is now connected</div>
+        <div class="text-center inline-block text-sm font-normal text-grayCust-50 mb-4">Start by creating a new staging site</div>
+        <div class="flex gap-5 items-center justify-center mt-3">
+            <button type="button" class="create-staging-btn flex items-center justify-center gap-3 btn-shadow rounded-md py-2 px-4 bg-primary-900 text-white hover:text-white text-sm font-medium">
+                <svg width="15" height="14" viewBox="0 0 15 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd" clip-rule="evenodd" d="M7.5 0C8.05228 0 8.5 0.447715 8.5 1V6H13.5C14.0523 6 14.5 6.44772 14.5 7C14.5 7.55228 14.0523 8 13.5 8H8.5V13C8.5 13.5523 8.05228 14 7.5 14C6.94772 14 6.5 13.5523 6.5 13V8H1.5C0.947715 8 0.5 7.55228 0.5 7C0.5 6.44771 0.947715 6 1.5 6L6.5 6V1C6.5 0.447715 6.94772 0 7.5 0Z" fill="white"/>
+                </svg>
+                <span>Create Staging Site</span>
+            </button>
+            <button type="button" class="browse-staging-btn flex items-center justify-center gap-3 btn-shadow border border-grayCust-350 rounded-md py-2 px-4 bg-white text-grayCust-700 text-sm font-medium">
+                <span>Browse Staging Sites</span>
+                <svg width="15" height="14" viewBox="0 0 15 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M8.33329 1.16663L14.1666 6.99996L8.33329 12.8333M1.66663 1.16663L7.49996 6.99996L1.66663 12.8333" stroke="#101828" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+</div>
+    
+<div class="flex p-8 items-start hidden create-staging">
     <div class="left-width">
         <ul role="list" class="screen-nav-items -mb-8">
 			<?php foreach ( $staging_screens as $index => $screen ) : ?>

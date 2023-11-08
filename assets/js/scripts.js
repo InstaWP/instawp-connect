@@ -306,6 +306,17 @@
     });
 
 
+    $(document).on('click', '.create-staging-btn', function (e) {
+        $(document).find('.connected').addClass('hidden');
+        $(document).find('.create-staging').removeClass('hidden');
+    });
+
+
+    $(document).on('click', '.browse-staging-btn', function (e) {
+        $(document).find('.nav-items > #sites > a').trigger('click');
+    });
+
+
     $(document).on('click', '.instawp-wrap .instawp-migration-start-over', function (e) {
 
         let create_container = $('.instawp-wrap .nav-item-content.create'),
