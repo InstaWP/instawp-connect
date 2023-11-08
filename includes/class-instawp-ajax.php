@@ -9,7 +9,7 @@ class InstaWP_AJAX {
 
 		add_action( 'wp_ajax_instawp_settings_call', array( $this, 'instawp_settings_call' ) );
 		add_action( 'wp_ajax_instawp_connect', array( $this, 'connect' ) );
-		add_action( 'init', array( $this, 'deleter_folder_handle' ) );
+		add_action( 'init', array( $this, 'delete_folder_handle' ) );
 		add_action( 'admin_notices', array( $this, 'instawp_connect_reset_admin_notices' ) );
 
 		// Management
@@ -19,14 +19,28 @@ class InstaWP_AJAX {
 		add_action( 'wp_ajax_instawp_get_dir_contents', array( $this, 'get_dir_contents' ) );
 		add_action( 'wp_ajax_instawp_get_database_tables', array( $this, 'get_database_tables' ) );
 		add_action( 'wp_ajax_instawp_get_large_files', array( $this, 'get_large_files' ) );
+		add_action( 'wp_ajax_instawp_create_file_db_manager', array( $this, 'create_file_db_manager' ) );
 
 		add_action( 'wp_ajax_instawp_check_usages_limit', array( $this, 'check_usages_limit' ) );
-		add_action( 'wp_ajax_instawp_migrate_init', array( $this, 'instawp_migrate_init' ) );
-		add_action( 'wp_ajax_instawp_migrate_progress', array( $this, 'instawp_migrate_progress' ) );
+		add_action( 'wp_ajax_instawp_migrate_init', array( $this, 'migrate_init' ) );
+		add_action( 'wp_ajax_instawp_migrate_progress', array( $this, 'migrate_progress' ) );
 	}
 
+	public function create_file_db_manager() {
+		$type = isset( $_POST['type'] ) ? $_POST['type'] : 'file';
 
-	function instawp_migrate_progress() {
+		InstaWP_Tools::instawp_reset_permalink();
+
+		if ( $type === 'file' ) {
+			$manager = new \InstaWP\Connect\Helpers\FileManager();
+		} else if ( $type === 'database' ) {
+			$manager = new \InstaWP\Connect\Helpers\DatabaseManager();
+		}
+
+		wp_send_json_success( $manager->get() );
+	}
+
+	public function migrate_progress() {
 
 		$progress          = array(
 			'progress_files'   => 0,
@@ -86,8 +100,7 @@ class InstaWP_AJAX {
 		wp_send_json_success( $response_data );
 	}
 
-
-	function get_migrate_settings( $posted_data = [] ) {
+    public function get_migrate_settings( $posted_data = [] ) {
 
 		global $wpdb;
 
@@ -128,8 +141,7 @@ class InstaWP_AJAX {
 		return instawp()->tools::process_migration_settings( $migrate_settings );
 	}
 
-
-	function instawp_migrate_init() {
+	public function migrate_init() {
 
 		global $wp_version;
 
@@ -204,8 +216,7 @@ class InstaWP_AJAX {
 		wp_send_json_success( $migration_details );
 	}
 
-
-	function check_usages_limit() {
+	public function check_usages_limit() {
 
 		$migrate_settings     = $this->get_migrate_settings( $_POST );
 		$total_files_size     = instawp()->tools::get_total_sizes( 'files', $migrate_settings );
@@ -221,7 +232,6 @@ class InstaWP_AJAX {
 
 		wp_send_json_error( $api_response );
 	}
-
 
 	public function get_dir_contents() {
 		check_ajax_referer( 'instawp-migrate', 'security' );
@@ -462,7 +472,7 @@ class InstaWP_AJAX {
 	}
 
 	// Remove From settings internal
-	public static function deleter_folder_handle() {
+	public static function delete_folder_handle() {
 		if ( isset( $_REQUEST['delete_wpnonce'] ) && wp_verify_nonce( $_REQUEST['delete_wpnonce'], 'delete_wpnonce' ) ) {
 
 			/* Delete Instawp related Options Start */
