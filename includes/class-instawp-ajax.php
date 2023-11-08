@@ -146,7 +146,7 @@ class InstaWP_AJAX {
 		}
 
 		$migrate_settings   = $this->get_migrate_settings( $_POST );
-		$migrate_key        = instawp()->tools::generate_random_migrate_key();
+		$migrate_key        = instawp()->tools::get_random_string( 40 );
 		$pre_check_response = instawp()->tools::get_pull_pre_check_response( $migrate_key, $migrate_settings );
 
 		if ( is_wp_error( $pre_check_response ) ) {

@@ -218,7 +218,7 @@ add_action( 'wp_head', function () {
 
 
 		echo "<pre>";
-		print_r( instawp()->tools::generate_random_migrate_key() );
+		print_r( instawp()->tools::get_random_string( 40 ) );
 		echo "</pre>";
 
 

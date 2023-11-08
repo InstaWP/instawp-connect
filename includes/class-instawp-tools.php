@@ -408,10 +408,6 @@ class InstaWP_Tools {
 		);
 	}
 
-	public static function generate_random_migrate_key( $length = 40 ) {
-		return bin2hex(random_bytes($length / 2));
-	}
-
 
 	public static function clean_junk_cache() {
 		$home_url_prefix = get_home_url();
