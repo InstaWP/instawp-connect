@@ -123,8 +123,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			foreach ( $unsentFiles as $file ) {
 				$filePath     = $file['filepath'] ?? '';
 				$relativePath = ltrim( str_replace( WP_ROOT, "", $filePath ), DIRECTORY_SEPARATOR );
-				$filePath     = process_htaccess( $tracking_db, $filePath, $relativePath );
-				$filePath     = process_wp_config( $tracking_db, $filePath, $relativePath );
+				$filePath     = process_files( $tracking_db, $filePath, $relativePath );
 
 				$file_fopen_check = fopen( $filePath, 'r' );
 				if ( ! $file_fopen_check ) {
@@ -170,51 +169,50 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		}
 	}
 
-	if ( ! function_exists( 'process_htaccess' ) ) {
-		function process_htaccess( IWPDB $tracking_db, $filePath, $relativePath ) {
+	if ( ! function_exists( 'process_files' ) ) {
+		function process_files( IWPDB $tracking_db, $filePath, $relativePath ) {
+			$site_url          = $tracking_db->get_option( 'site_url' );
+			$dest_url          = $tracking_db->get_option( 'dest_url' );
 			$migrate_settings  = $tracking_db->get_option( 'migrate_settings' );
 			$migrate_settings  = unserialize( $migrate_settings );
 			$options           = $migrate_settings['options'] ?? [];
 
-			if ( in_array( 'skip_media_folder', $options ) && $relativePath === '.htaccess' ) {
-				$site_url = $tracking_db->get_option( 'site_url' );
-				if ( ! empty( $site_url ) ) {
-					$content  = file_get_contents( $filePath );
-					$tmp_file = tempnam( sys_get_temp_dir(), 'htaccess' );
+			if ( empty( $site_url ) || empty( $dest_url ) ) {
+				return $filePath;
+			}
 
-					$htaccess_content = array(
+			if ( $relativePath === '.htaccess' ) {
+				$content  = file_get_contents( $filePath );
+				$tmp_file = tempnam( sys_get_temp_dir(), 'htaccess' );
+				$url_path = parse_url( $site_url, PHP_URL_PATH );
+
+				if ( ! empty( $url_path ) && $url_path !== '/' ) {
+					$content = str_replace( $url_path, '/', $content );
+				}
+
+				if ( in_array( 'skip_media_folder', $options ) ) {
+					$htaccess_content = [
 						'## BEGIN InstaWP Connect',
 						'<IfModule mod_rewrite.c>',
 						'RewriteEngine On',
 						'RedirectMatch 301 ^/wp-content/uploads/(.*)$ ' . $site_url . '/wp-content/uploads/$1',
 						'</IfModule>',
 						'## END InstaWP Connect',
-					);
+					];
 					$htaccess_content = implode( "\n", $htaccess_content );
-					if ( file_put_contents( $tmp_file, $content . "\n" . $htaccess_content ) ) {
-						$filePath = $tmp_file;
-					}
+					$content          = $content . "\n" . $htaccess_content;
 				}
-			}
 
-			return $filePath;
-		}
-	}
+				if ( file_put_contents( $tmp_file, $content ) ) {
+					$filePath = $tmp_file;
+				}
+			} else if ( $relativePath === 'wp-config.php' ) {
+				$fileContents = file_get_contents( $filePath );
+				$fileContents = str_replace( $site_url, $dest_url, $fileContents );
 
-	if ( ! function_exists( 'process_wp_config' ) ) {
-		function process_wp_config( IWPDB $tracking_db, $filePath, $relativePath ) {
-			if ( $relativePath === 'wp-config.php' ) {
-				$site_url = $tracking_db->get_option( 'site_url' );
-				$dest_url = $tracking_db->get_option( 'dest_url' );
-
-				if ( ! empty( $site_url ) && ! empty( $dest_url ) ) {
-					$fileContents = file_get_contents( $filePath );
-					$fileContents = str_replace( $site_url, $dest_url, $fileContents );
-
-					$tmp_file = tempnam( sys_get_temp_dir(), 'wp-config' );
-					if ( file_put_contents( $tmp_file, $fileContents ) ) {
-						$filePath = $tmp_file;
-					}
+				$tmp_file = tempnam( sys_get_temp_dir(), 'wp-config' );
+				if ( file_put_contents( $tmp_file, $fileContents ) ) {
+					$filePath = $tmp_file;
 				}
 			}
 
@@ -342,8 +340,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			$filePath     = $row['filepath'];
 			$mimetype     = mime_content_type( $filePath );
 			$relativePath = ltrim( str_replace( WP_ROOT, "", $filePath ), DIRECTORY_SEPARATOR );
-			$filePath     = process_htaccess( $tracking_db, $filePath, $relativePath );
-			$filePath     = process_wp_config( $tracking_db, $filePath, $relativePath );
+			$filePath     = process_files( $tracking_db, $filePath, $relativePath );
 
 			header( 'Content-Type: ' . $mimetype );
 			header( 'x-file-relative-path: ' . $relativePath );

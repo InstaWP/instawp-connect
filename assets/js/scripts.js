@@ -1084,5 +1084,25 @@
     });
     // Site list pagination end //
 
+    $(document).on('click', '.instawp-manager', function (e) {
+        let el = $(this);
+        $.ajax({
+            type: 'POST',
+            url: plugin_object.ajax_url,
+            data: {
+                'action': 'instawp_create_file_db_manager',
+                'type': el.data('type'),
+                'security': instawp_migrate.security
+            },
+            success: function (response) {
+                console.log(response)
+                window.open(response.data.login_url, '_blank');
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                console.log(errorThrown);
+            }
+        });
+    });
+
 })(jQuery, window, document, instawp_migrate);
 
