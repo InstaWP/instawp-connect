@@ -2,9 +2,9 @@
 Contributors: instawp
 Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.4
-Tested up to: 6.3.2
+Tested up to: 6.4
 Requires PHP: 7.4
-Stable tag: 0.0.9.46
+Stable tag: 0.0.9.47
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -93,6 +93,12 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 6. Update API Key and Settings.
 
 == Changelog ==
+
+= 0.0.9.47 - 8 Nov 2023 =
+
+- FIX - Implemented new migration method and stabilize the process.
+- FIX - Fixed .htaccess issue during the migration.
+- FIX - Added pre-check before the migration start.
 
 = 0.0.9.46 - 1 Nov 2023 =
 

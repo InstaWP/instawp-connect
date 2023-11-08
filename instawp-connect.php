@@ -7,7 +7,7 @@
  * @wordpress-plugin
  * Plugin Name:       InstaWP Connect
  * Description:       Create 1-click staging, migration and manage your prod sites.
- * Version:           0.0.9.46
+ * Version:           0.0.9.47
  * Author:            InstaWP Team
  * Author URI:        https://instawp.com/
  * License:           GPL-3.0+
@@ -23,7 +23,7 @@ if ( ! defined( 'WPINC' ) ) {
 
 global $wpdb;
 
-define( 'INSTAWP_PLUGIN_VERSION', '0.0.9.46' );
+define( 'INSTAWP_PLUGIN_VERSION', '0.0.9.47' );
 define( 'INSTAWP_RESTORE_INIT', 'init' );
 define( 'INSTAWP_API_DOMAIN_PROD', 'https://app.instawp.io' );
 
@@ -190,39 +190,4 @@ function run_instawp() {
 add_filter( 'got_rewrite', '__return_true' );
 
 run_instawp();
-
-
-add_action( 'wp_head', function () {
-	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
-
-//		global $wp_version;
-//
-//		$migrate_args = array(
-//			'source_domain'       => site_url(),
-//			'source_connect_id'   => instawp_get_connect_id(),
-//			'php_version'         => PHP_VERSION,
-//			'wp_version'          => WP_VE,
-//			'plugin_version'      => INSTAWP_PLUGIN_VERSION,
-//			'file_size'           => '',
-//			'db_size'             => '',
-//			'is_website_on_local' => false,
-//			'settings'            => '{"type":"full","excluded_tables":["wp_instawp_staging_sites","wp_instawp_events","wp_instawp_sync_history","wp_instawp_event_sites","wp_instawp_event_sync_logs"],"excluded_tables_rows":{"wp_options":["option_name:instawp_api_options","option_name:instawp_connect_id_options","option_name:instawp_sync_parent_connect_data","option_name:instawp_migration_details","option_name:instawp_api_key_config_completed","option_name:instawp_is_event_syncing","option_name:_transient_instawp_staging_sites","option_name:_transient_timeout_instawp_staging_sites"]}}',
-//			'active_plugins'      => InstaWP_Setting::get_option( 'active_plugins', [] ),
-//		);
-//
-//		$migrate_response = InstaWP_Curl::do_curl( 'migrates-v3', $migrate_args );
-//
-//		echo "<pre>";
-//		print_r( $migrate_response );
-//		echo "</pre>";
-
-
-		echo "<pre>";
-		print_r( instawp()->tools::get_random_string( 40 ) );
-		echo "</pre>";
-
-
-		die();
-	}
-}, 0 );
 
