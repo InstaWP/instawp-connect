@@ -387,6 +387,15 @@ if ( ! function_exists( 'instawp_get_staging_sites_list' ) ) {
 			}
 		}
 
+//		$staging_sites = array_map( function ( $site ) {
+//			if ( isset( $site['domain'] ) && empty( $site['domain'] ) && isset( $site['url'] ) && ! empty( $site['url'] ) ) {
+//				$parsed_url     = parse_url( $site['url'] );
+//				$site['domain'] = isset( $parsed_url['host'] ) ? $parsed_url['host'] : '';
+//			}
+//
+//			return $site;
+//		}, $staging_sites );
+
 		if ( $insta_only ) {
 			$staging_sites = array_filter( $staging_sites, function ( $value ) {
 				return ( ! isset( $value['is_insta_site'] ) || ( isset( $value['is_insta_site'] ) && $value['is_insta_site'] ) );
@@ -458,7 +467,7 @@ if ( ! function_exists( 'instawp_set_whitelist_ip' ) ) {
 if ( ! function_exists( 'instawp_prepare_whitelist_ip' ) ) {
 	function instawp_prepare_whitelist_ip( $ip_addresses = '' ) {
 		$server_ip_addresses = [ '167.71.233.239', '159.65.64.73' ];
-		
+
 		if ( is_string( $ip_addresses ) ) {
 			$ip_addresses = trim( $ip_addresses );
 			$ip_addresses = array_map( 'trim', explode( ',', $ip_addresses ) );
@@ -515,9 +524,9 @@ if ( ! function_exists( 'instawp_set_solid_wp_whitelist_ip' ) ) {
 	function instawp_set_solid_wp_whitelist_ip( $ip_addresses = '' ) {
 		if ( class_exists( '\ITSEC_Modules' ) && method_exists( '\ITSEC_Modules', 'get_settings' ) && method_exists( '\ITSEC_Modules', 'set_settings' ) ) {
 			$settings = \ITSEC_Modules::get_settings( 'global' );
-			
+
 			$settings['lockout_white_list'] = array_unique( array_merge( $settings['lockout_white_list'], instawp_prepare_whitelist_ip( $ip_addresses ) ) );
-			
+
 			\ITSEC_Modules::set_settings( 'global', $settings );
 		}
 	}
@@ -550,14 +559,14 @@ if ( ! function_exists( 'instawp_whitelist_ip' ) ) {
 		foreach ( $providers as $plugin => $details ) {
 			if ( is_plugin_active( $plugin ) && ! call_user_func( $details['function'] ) ) {
 				$output['can_whitelist'] = true;
-				$names[] = $details['name'];
+				$names[]                 = $details['name'];
 			}
 		}
 
 		if ( ! empty( $names ) ) {
 			$output['plugins'] = join( ', ', $names );
 		}
-		
+
 		return $output;
 	}
 }

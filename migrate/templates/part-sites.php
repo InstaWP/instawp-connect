@@ -64,9 +64,9 @@ if ( ! empty( $parent_connect_data ) ) {
                             <tbody class="divide-y divide-gray-200 bg-white">
                                 <?php foreach ( $staging_sites as $index => $site ) :
 
-                                    $site_name       = isset( $site['domain'] ) ? $site['domain'] : '';
-                                    $site_url        = isset( $site['url'] ) ? $site['url'] : '';
-                                    $username        = isset( $site['username'] ) ? $site['username'] : '';
+	                                $site_url        = isset( $site['url'] ) ? $site['url'] : '';
+	                                $site_name       = str_replace(['https://', 'http://'], '', $site_url);
+	                                $username        = isset( $site['username'] ) ? $site['username'] : '';
                                     $password        = isset( $site['password'] ) ? $site['password'] : '';
                                     $auto_login_url  = isset( $site['magic_domain'] ) ? $site['magic_domain'] : '';
                                     $datetime        = isset( $site['timestamp'] ) ? $site['timestamp'] : '';
