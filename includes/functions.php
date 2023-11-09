@@ -387,15 +387,6 @@ if ( ! function_exists( 'instawp_get_staging_sites_list' ) ) {
 			}
 		}
 
-//		$staging_sites = array_map( function ( $site ) {
-//			if ( isset( $site['domain'] ) && empty( $site['domain'] ) && isset( $site['url'] ) && ! empty( $site['url'] ) ) {
-//				$parsed_url     = parse_url( $site['url'] );
-//				$site['domain'] = isset( $parsed_url['host'] ) ? $parsed_url['host'] : '';
-//			}
-//
-//			return $site;
-//		}, $staging_sites );
-
 		if ( $insta_only ) {
 			$staging_sites = array_filter( $staging_sites, function ( $value ) {
 				return ( ! isset( $value['is_insta_site'] ) || ( isset( $value['is_insta_site'] ) && $value['is_insta_site'] ) );

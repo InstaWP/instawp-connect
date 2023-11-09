@@ -169,9 +169,10 @@ input:checked + .slider-toggle:before {
 
 .toggle-control {
     cursor: pointer;
-    display: block;
+    display: inline-block;
     margin-top: 5px;
 }
+
 .toggle-control .toggle-switch {
     display: inline-block;
     background: #ccc;
@@ -182,9 +183,11 @@ input:checked + .slider-toggle:before {
     vertical-align: middle;
     transition: background 0.25s;
 }
+
 .toggle-control .toggle-switch:before, .toggle-control .toggle-switch:after {
     content: "";
 }
+
 .toggle-control .toggle-switch:before {
     display: block;
     /* background: linear-gradient(to bottom, #fff 0%, #eee 100%); */
@@ -198,21 +201,26 @@ input:checked + .slider-toggle:before {
     left: 4px;
     transition: left 0.25s;
 }
+
 .toggle-control .toggle:hover .toggle-switch:before {
     /* background: linear-gradient(to bottom, #fff 0%, #fff 100%); */
     background: #fff;
     /* box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5); */
 }
+
 .toggle-control .toggle-checkbox:checked + .toggle-switch {
     background: #005e54;
 }
+
 .toggle-control .toggle-checkbox:checked + .toggle-switch:before {
     left: 30px;
 }
+
 .toggle-control .toggle-checkbox {
     position: absolute;
     visibility: hidden;
 }
+
 .toggle-control .toggle-label {
     margin-left: 15px;
     vertical-align: middle;
@@ -356,11 +364,11 @@ input:checked + .slider-toggle:before {
 }
 
 .instawp-form .instawp-form-fields::-webkit-scrollbar-track {
-    background: #f1f1f1; 
+    background: #f1f1f1;
 }
 
 .instawp-form .instawp-form-fields::-webkit-scrollbar-thumb {
-    background: #b9b8b8; 
+    background: #b9b8b8;
     border-radius: 5px;
 }
 
@@ -524,12 +532,12 @@ input:checked + .slider-toggle:before {
 
 .exclude-files-container::-webkit-scrollbar-track,
 .exclude-database-container::-webkit-scrollbar-track {
-    background: #f1f1f1; 
+    background: #f1f1f1;
 }
 
 .exclude-files-container::-webkit-scrollbar-thumb,
 .exclude-database-container::-webkit-scrollbar-thumb {
-    background: #b9b8b8; 
+    background: #b9b8b8;
     border-radius: 5px;
 }
 
@@ -537,8 +545,8 @@ input:checked + .slider-toggle:before {
     transform: rotate(-90deg);
 }
 
-.instawp-checkbox[type='checkbox'], 
-.instawp-checkbox[type='radio'], 
+.instawp-checkbox[type='checkbox'],
+.instawp-checkbox[type='radio'],
 .instawp-option-selector[type='checkbox'],
 .instawp-option-selector[type='radio'] {
     color: rgb(0 94 84 / 1);

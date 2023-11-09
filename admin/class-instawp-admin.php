@@ -102,11 +102,20 @@ class InstaWP_Admin {
 			return;
 		}
 
+		$meta_classes = [ 'instawp-sync-recording' ];
+
+		if ( '1' == InstaWP_Setting::get_option( 'instawp_is_event_syncing', '0' ) ) {
+			$meta_classes[] = 'recording-on';
+		}
+
 		$admin_bar->add_menu(
 			array(
 				'id'    => 'instawp',
 				'title' => '',
 				'href'  => admin_url( 'tools.php?page=instawp' ),
+				'meta'  => array(
+					'class' => implode( ' ', $meta_classes ),
+				),
 			)
 		);
 	}
@@ -169,9 +178,6 @@ class InstaWP_Admin {
 				'ajax_url'          => admin_url( 'admin-ajax.php' ),
 				'nonce'             => wp_create_nonce( 'instaWp_change_event' ),
 				'plugin_images_url' => INSTAWP_PLUGIN_IMAGES_URL,
-				'data'              => [
-					'event_toolbar_html' => '<li id="wp-admin-bar-instawp-sync-toolbar" class="instawp-sync-status-toolbar"><a class="ab-item" href="' . admin_url( 'tools.php?page=instawp' ) . '" title="' . __( "Recording", "instawp-connect" ) . '">' . __( "Recording", "instawp-connect" ) . '</a></li>',
-				],
 				'trans'             => [
 					'create_staging_site_txt' => __( 'Please create staging sites first.', 'instawp-connect' )
 				]

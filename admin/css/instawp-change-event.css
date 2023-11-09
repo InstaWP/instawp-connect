@@ -509,20 +509,6 @@ td.event-sync-cell.loading,
     position: relative;
 }
 
-li#wp-admin-bar-instawp-sync-toolbar a.ab-item:before {
-    content: "\f1131";
-    top: 3px;
-    width: 15px;
-    height: 15px;
-    background-color:#dc393b;
-    border-radius: 100px;
-    margin-top: 6px;
-    padding: 0px !important;
-    animation-name: blink;
-    animation-duration: 1.5s;
-    animation-iteration-count: infinite;
-}
-
 .select2-field-wrapper {
     display: grid;
 }
