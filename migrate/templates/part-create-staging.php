@@ -427,7 +427,7 @@ $whitelist_ip          = instawp_whitelist_ip();
                             <div class="flex justify-between items-center">
                                 <div class="flex items-center">
                                     <div class="text-grayCust-900 text-base font-normal w-24"><?php esc_html_e( 'Password', 'instawp-connect' ); ?></div>
-                                    <div id="instawp-site-password" class="text-grayCust-300 font-medium text-base"></div>
+                                    <div aria-label="<?php echo esc_attr__( 'This password is same as production, due to security reasons, we don\'t know or keep the plain-text password', 'instawp-connect' ); ?>" id="instawp-site-password" class="hint--top hint--medium text-grayCust-300 font-medium text-base"></div>
                                 </div>
                                 <a href="" target="_blank" id="instawp-site-magic-url" class="py-2 px-4 text-white active:text-white focus:text-white hover:text-white bg-primary-700 rounded-md text-sm font-medium focus:shadow-none"><?php esc_html_e( 'Auto Login', 'instawp-connect' ); ?></a>
                             </div>
