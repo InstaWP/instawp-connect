@@ -133,8 +133,7 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/functions.php';
 function instawp_plugin_activate() {
 
 	InstaWP_Tools::instawp_reset_permalink();
-
-	as_enqueue_async_action( 'instawp_prepare_large_files_list_async', [], 'instawp-connect', true );
+	do_action( 'instawp_prepare_large_files_list' );
 
 	//set default user for sync settings if user empty
 	$default_user = InstaWP_Setting::get_option( 'instawp_default_user' );
@@ -152,10 +151,8 @@ function instawp_plugin_activate() {
 
 /*Deactivate Hook Handle*/
 function instawp_plugin_deactivate() {
-
 	InstaWP_Tools::instawp_reset_permalink();
-
-	as_unschedule_all_actions( 'instawp_handle_heartbeat', [], 'instawp-connect' );
+	wp_clear_scheduled_hook( 'instawp_handle_heartbeat' );
 }
 
 register_activation_hook( __FILE__, 'instawp_plugin_activate' );

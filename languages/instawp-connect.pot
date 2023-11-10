@@ -5,7 +5,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2023-11-09 12:35+0000\n"
+"POT-Creation-Date: 2023-11-10 07:35+0000\n"
 "X-Poedit-Basepath: ..\n"
 "X-Poedit-KeywordsList: __;_e;_ex:1,2c;_n:1,2;_n_noop:1,2;_nx:1,2,4c;_nx_noop:1,2,3c;_x:1,2c;esc_attr__;esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c\n"
 "X-Poedit-SearchPath-0: .\n"
@@ -37,48 +37,128 @@ msgstr ""
 msgid "Please create staging sites first."
 msgstr ""
 
-#: admin/class-instawp-admin.php:223
+#: admin/class-instawp-admin.php:222
 msgid "Warning:"
 msgstr ""
 
-#: admin/class-instawp-admin.php:224
+#: admin/class-instawp-admin.php:223
 msgid "Error:"
 msgstr ""
 
-#: admin/class-instawp-admin.php:225
+#: admin/class-instawp-admin.php:224
 msgid "Warning: An alias for remote storage is required."
 msgstr ""
 
-#: admin/class-instawp-admin.php:226
+#: admin/class-instawp-admin.php:225
 msgid "Warning: The alias already exists in storage list."
 msgstr ""
 
-#: admin/class-instawp-admin.php:227
+#: admin/class-instawp-admin.php:226
 msgid "Calculating the size of files, folder and database timed out. If you continue to receive this error, please go to the plugin settings, uncheck 'Calculate the size of files, folder and database before backing up', save changes, then try again."
 msgstr ""
 
-#: admin/class-instawp-admin.php:228
+#: admin/class-instawp-admin.php:227
 msgid "Step One: In the backup list, click the 'Restore' button on the backup you want to restore. This will bring up the restore tab"
 msgstr ""
 
-#: admin/class-instawp-admin.php:229
+#: admin/class-instawp-admin.php:228
 msgid "Step Two: Choose an option to complete restore, if any"
 msgstr ""
 
-#: admin/class-instawp-admin.php:230
+#: admin/class-instawp-admin.php:229
 msgid "Step Three: Click 'Restore' button"
 msgstr ""
 
-#: admin/class-instawp-admin.php:231
+#: admin/class-instawp-admin.php:230
 msgid "1. Visit Key tab page of instaWP backup plugin of destination site."
 msgstr ""
 
-#: admin/class-instawp-admin.php:232
+#: admin/class-instawp-admin.php:231
 msgid "2. Generate a key by clicking Generate button and copy it."
 msgstr ""
 
-#: admin/class-instawp-admin.php:233
+#: admin/class-instawp-admin.php:232
 msgid "3. Go back to this page and paste the key in key box below. Lastly, click Save button."
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:154
+msgid "New user registered"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:174
+msgid "User deleted"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:192
+msgid "User updated"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:281, admin/partials/instawp-admin-change-event-filters.php:292, admin/partials/instawp-admin-change-event-filters.php:312
+msgid "Woocommerce attribute"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:329, admin/partials/instawp-admin-change-event-filters.php:700
+msgid "%s modified"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:347, admin/partials/instawp-admin-change-event-filters.php:790
+msgid "%s deleted"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:363, admin/partials/instawp-admin-change-event-filters.php:697
+msgid "%s created"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:376
+msgid "Install themes updated"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:389
+msgid "Install themes upload"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:402
+msgid "Install themes new"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:416
+msgid "Theme deleted"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:431
+msgid "Theme switched from %s to %s"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:446
+msgid "%s %s%s"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:491
+msgid "Plugin deactivated"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:506
+msgid "Plugin activated"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:520
+msgid "Plugin deleted"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:713
+msgid "Media created"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:726
+msgid "Media updated"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:805
+msgid "%s trashed"
+msgstr ""
+
+#: admin/partials/instawp-admin-change-event-filters.php:819
+msgid "%s Restored"
 msgstr ""
 
 #: includes/class-instawp-ajax.php:169
@@ -467,84 +547,4 @@ msgstr ""
 
 #: includes/functions.php:226
 msgid "Migration aborted forcefully"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:154
-msgid "New user registered"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:174
-msgid "User deleted"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:192
-msgid "User updated"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:281, admin/partials/instawp-admin-change-event-filters.php:292, admin/partials/instawp-admin-change-event-filters.php:312
-msgid "Woocommerce attribute"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:329, admin/partials/instawp-admin-change-event-filters.php:700
-msgid "%s modified"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:347, admin/partials/instawp-admin-change-event-filters.php:790
-msgid "%s deleted"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:363, admin/partials/instawp-admin-change-event-filters.php:697
-msgid "%s created"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:376
-msgid "Install themes updated"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:389
-msgid "Install themes upload"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:402
-msgid "Install themes new"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:416
-msgid "Theme deleted"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:431
-msgid "Theme switched from %s to %s"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:446
-msgid "%s %s%s"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:491
-msgid "Plugin deactivated"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:506
-msgid "Plugin activated"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:520
-msgid "Plugin deleted"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:713
-msgid "Media created"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:726
-msgid "Media updated"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:805
-msgid "%s trashed"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:819
-msgid "%s Restored"
 msgstr ""

@@ -200,19 +200,19 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 			delete_transient( 'instawp_staging_sites' );
 			delete_transient( 'instawp_migration_completed' );
 
-			as_unschedule_all_actions( 'instawp_handle_heartbeat', [], 'instawp-connect' );
+			wp_clear_scheduled_hook( 'instawp_handle_heartbeat' );
 
 			$file_db_manager = InstaWP_Setting::get_option( 'instawp_file_db_manager', [] );
 			$file_name       = InstaWP_Setting::get_args_option( 'file_name', $file_db_manager );
 			if ( $file_name ) {
-				as_unschedule_all_actions( 'instawp_clean_file_manager', [ $file_name ], 'instawp-connect' );
+				wp_clear_scheduled_hook( 'instawp_clean_file_manager', [ $file_name ] );
 				do_action( 'instawp_clean_file_manager', $file_name );
 			}
 
 			$file_db_manager = InstaWP_Setting::get_option( 'instawp_file_db_manager', [] );
 			$file_name       = InstaWP_Setting::get_args_option( 'db_name', $file_db_manager );
 			if ( $file_name ) {
-				as_unschedule_all_actions( 'instawp_clean_database_manager', [ $file_name ], 'instawp-connect' );
+				wp_clear_scheduled_hook( 'instawp_clean_database_manager', [ $file_name ]);
 				do_action( 'instawp_clean_database_manager', $file_name );
 			}
 		}

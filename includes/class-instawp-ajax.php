@@ -388,8 +388,8 @@ class InstaWP_AJAX {
 
 		if ( $generate ) {
 			delete_option( 'instawp_large_files_list' );
-			as_enqueue_async_action( 'instawp_prepare_large_files_list_async', [], 'instawp-connect', true );
 			delete_transient( 'instawp_generate_large_files' );
+			do_action( 'instawp_prepare_large_files_list' );
 		}
 
 		$list      = get_option( 'instawp_large_files_list' );

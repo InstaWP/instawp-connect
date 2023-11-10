@@ -60,11 +60,11 @@ if ( ! class_exists( 'InstaWP_Database_Management' ) ) {
 		}
 
 		public function create_task( $file_name ) {
-			as_schedule_single_action( time() + DAY_IN_SECONDS, self::$action, [ $file_name ], 'instawp-connect', false, 5 );
+			wp_schedule_single_event( time() + DAY_IN_SECONDS, self::$action, [ $file_name ] );
 		}
 
 		public function remove_task( $file_name ) {
-			as_unschedule_all_actions( self::$action, [ $file_name ], 'instawp-connect' );
+			wp_clear_scheduled_hook( self::$action, [ $file_name ] );
 		}
 
 		public function auto_login() {
