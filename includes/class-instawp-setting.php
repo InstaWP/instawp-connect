@@ -122,7 +122,7 @@ class InstaWP_Setting {
 		}
 
 		$label_attributes = '';
-		$label_class      = 'inline-block text-sm font-medium text-gray-700 mb-3 sm:mt-px sm:pt-2';
+		$label_class      = 'block text-sm font-medium text-gray-700 mb-3 sm:mt-px sm:pt-2';
 		$label_content    = esc_html( $field_title );
 		if ( ! empty( $field_tooltip ) ) {
 			$label_class      .= ' hint--top hint--large';
