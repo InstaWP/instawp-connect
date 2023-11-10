@@ -18,15 +18,18 @@ $customize_options     = array(
 			'active_themes_only'  => esc_html__( 'Active Themes Only', 'instawp-connect' ),
 			'skip_media_folder'   => esc_html__( 'Skip Media Folder', 'instawp-connect' ),
 			'skip_large_files'    => esc_html__( 'Skip Large Files', 'instawp-connect' ),
+			'skip_log_tables'     => esc_html__( 'Skip Log Tables', 'instawp-connect' ),
 		),
 	),
 );
 $current_create_screen = isset( $_GET['screen'] ) ? sanitize_text_field( $_GET['screen'] ) : 1;
 $tables                = instawp_get_database_details();
+$log_tables_to_exclude = instawp()->tools::get_log_tables_to_exclude();
 $list_data             = get_option( 'instawp_large_files_list', [] ) ?? [];
 $migration_details     = InstaWP_Setting::get_option( 'instawp_migration_details', [] );
 $tracking_url          = InstaWP_Setting::get_args_option( 'tracking_url', $migration_details );
 $whitelist_ip          = instawp_whitelist_ip();
+
 
 ?>
 
@@ -53,7 +56,7 @@ $whitelist_ip          = instawp_whitelist_ip();
         </div>
     </div>
 </div>
-    
+
 <div class="flex p-8 items-start hidden create-staging">
     <div class="left-width">
         <ul role="list" class="screen-nav-items -mb-8">
@@ -268,7 +271,7 @@ $whitelist_ip          = instawp_whitelist_ip();
                                             <div class="flex flex-col gap-5 item">
                                                 <div class="flex justify-between items-center">
                                                     <div class="flex items-center cursor-pointer" style="transform: translate(0em);">
-                                                        <input name="migrate_settings[excluded_tables][]" id="<?php echo esc_attr( $element_id ); ?>" value="<?php echo esc_attr( $table['name'] ); ?>" type="checkbox" class="instawp-checkbox exclude-database-item !mt-0 !mr-3 rounded border-gray-300 text-primary-900 focus:ring-primary-900" data-size="<?php echo esc_html( $table['size'] ); ?>">
+                                                        <input name="migrate_settings[excluded_tables][]" id="<?php echo esc_attr( $element_id ); ?>" value="<?php echo esc_attr( $table['name'] ); ?>" type="checkbox" class="instawp-checkbox exclude-database-item !mt-0 !mr-3 rounded border-gray-300 text-primary-900 focus:ring-primary-900 <?= in_array( $table['name'], $log_tables_to_exclude ) ? 'log-table' : ''; ?>" data-size="<?php echo esc_html( $table['size'] ); ?>">
                                                         <label for="<?php echo esc_attr( $element_id ); ?>" class="text-sm font-medium text-grayCust-800 truncate" style="width: calc(400px - 1em);"><?php echo esc_html( $table['name'] ); ?> (<?php printf( __( '%s rows', 'instawp-connect' ), $table['rows'] ); ?>)</label>
                                                     </div>
                                                     <div class="flex items-center" style="width: 105px;">

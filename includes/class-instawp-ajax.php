@@ -100,7 +100,7 @@ class InstaWP_AJAX {
 		wp_send_json_success( $response_data );
 	}
 
-    public function get_migrate_settings( $posted_data = [] ) {
+	public function get_migrate_settings( $posted_data = [] ) {
 
 		global $wpdb;
 
@@ -116,13 +116,14 @@ class InstaWP_AJAX {
 		}
 
 		// Exclude two-way-sync tables
-		$migrate_settings['excluded_tables'] = array(
-			INSTAWP_DB_TABLE_STAGING_SITES,
-			INSTAWP_DB_TABLE_EVENTS,
-			INSTAWP_DB_TABLE_SYNC_HISTORY,
-			INSTAWP_DB_TABLE_EVENT_SITES,
-			INSTAWP_DB_TABLE_EVENT_SYNC_LOGS,
-		);
+		$excluded_tables   = $migrate_settings['excluded_tables'] ?? [];
+		$excluded_tables[] = INSTAWP_DB_TABLE_STAGING_SITES;
+		$excluded_tables[] = INSTAWP_DB_TABLE_EVENTS;
+		$excluded_tables[] = INSTAWP_DB_TABLE_SYNC_HISTORY;
+		$excluded_tables[] = INSTAWP_DB_TABLE_EVENT_SITES;
+		$excluded_tables[] = INSTAWP_DB_TABLE_EVENT_SYNC_LOGS;
+
+		$migrate_settings['excluded_tables'] = $excluded_tables;
 
 		// Remove instawp connect options
 		$migrate_settings['excluded_tables_rows'] = array(

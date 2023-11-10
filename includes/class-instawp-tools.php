@@ -408,6 +408,24 @@ class InstaWP_Tools {
 		);
 	}
 
+	public static function get_log_tables_to_exclude( $with_prefix = true ) {
+
+		$log_tables = array(
+			'actionscheduler_logs',
+		);
+		$log_tables = apply_filters( 'INSTAWP_CONNECT/Filters/log_tables', $log_tables );
+
+		if ( $with_prefix ) {
+			return array_map( function ( $table_name ) {
+				global $wpdb;
+
+				return $wpdb->prefix . $table_name;
+			}, $log_tables );
+		}
+
+		return $log_tables;
+	}
+
 
 	public static function clean_junk_cache() {
 		$home_url_prefix = get_home_url();

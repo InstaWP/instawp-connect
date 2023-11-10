@@ -681,10 +681,11 @@
         subEl.not(":disabled").prop("checked", el.is(":checked"));
     });
 
-    $(document).on('change', '#active_plugins_only, input#active_themes_only, input#skip_media_folder', function () {
+    $(document).on('change', '#active_plugins_only, input#active_themes_only, input#skip_media_folder, input#skip_log_tables', function () {
         $(document).find('.exclude-files-container').removeClass('p-4 h-80').html('<div class="loading"></div>');
         $(document).find('#instawp-files-select-all').prop("checked", false).prop("disabled", true);
         $(document).find('.instawp-files-sort-by').attr('data-sort', 'none').addClass('pointer-events-none');
+        $(document).find('.instawp-checkbox.exclude-database-item.log-table').prop("checked", true);
     });
 
     $(document).on('click', '.instawp-refresh-exclude-screen', function () {

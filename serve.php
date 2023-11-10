@@ -171,11 +171,11 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
 	if ( ! function_exists( 'process_files' ) ) {
 		function process_files( IWPDB $tracking_db, $filePath, $relativePath ) {
-			$site_url          = $tracking_db->get_option( 'site_url' );
-			$dest_url          = $tracking_db->get_option( 'dest_url' );
-			$migrate_settings  = $tracking_db->get_option( 'migrate_settings' );
-			$migrate_settings  = unserialize( $migrate_settings );
-			$options           = $migrate_settings['options'] ?? [];
+			$site_url         = $tracking_db->get_option( 'site_url' );
+			$dest_url         = $tracking_db->get_option( 'dest_url' );
+			$migrate_settings = $tracking_db->get_option( 'migrate_settings' );
+			$migrate_settings = unserialize( $migrate_settings );
+			$options          = $migrate_settings['options'] ?? [];
 
 			if ( empty( $site_url ) || empty( $dest_url ) ) {
 				return $filePath;
@@ -365,10 +365,12 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
 if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 
-	$db_host     = $tracking_db->get_option( 'db_host' );
-	$db_username = $tracking_db->get_option( 'db_username' );
-	$db_password = $tracking_db->get_option( 'db_password' );
-	$db_name     = $tracking_db->get_option( 'db_name' );
+	$migrate_settings = $tracking_db->get_option( 'migrate_settings' );
+	$migrate_settings = unserialize( $migrate_settings );
+	$db_host          = $tracking_db->get_option( 'db_host' );
+	$db_username      = $tracking_db->get_option( 'db_username' );
+	$db_password      = $tracking_db->get_option( 'db_password' );
+	$db_name          = $tracking_db->get_option( 'db_name' );
 
 	if ( empty( $db_host ) || empty( $db_username ) || empty( $db_password ) || empty( $db_name ) ) {
 		header( 'x-iwp-status: false' );
@@ -427,8 +429,10 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 		die();
 	}
 
-	$tableName = $row['table_name'];
-	$offset    = $row['offset'];
+	$tableName     = $row['table_name'];
+	$offset        = $row['offset'];
+	$sqlStatements = [];
+
 
 	// Check if it's the first batch of rows for this table
 	if ( $offset == 0 ) {
@@ -440,69 +444,69 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 		}
 	}
 
-	$where_clause = '1';
+	if ( ! in_array( $tableName, $excluded_tables ) ) {
 
-	if ( isset( $excluded_tables_rows[ $tableName ] ) && is_array( $excluded_tables_rows[ $tableName ] ) && ! empty( $excluded_tables_rows[ $tableName ] ) ) {
+		$where_clause = '1';
 
-		$where_clause_arr = [];
+		if ( isset( $excluded_tables_rows[ $tableName ] ) && is_array( $excluded_tables_rows[ $tableName ] ) && ! empty( $excluded_tables_rows[ $tableName ] ) ) {
 
-		foreach ( $excluded_tables_rows[ $tableName ] as $excluded_info ) {
+			$where_clause_arr = [];
 
-			$excluded_info_arr = explode( ':', $excluded_info );
-			$column_name       = $excluded_info_arr[0] ?? '';
-			$column_value      = $excluded_info_arr[1] ?? '';
+			foreach ( $excluded_tables_rows[ $tableName ] as $excluded_info ) {
 
-			if ( ! empty( $column_name ) && ! empty( $column_value ) ) {
-				$where_clause_arr[] = "{$column_name} != '{$column_value}'";
+				$excluded_info_arr = explode( ':', $excluded_info );
+				$column_name       = $excluded_info_arr[0] ?? '';
+				$column_value      = $excluded_info_arr[1] ?? '';
+
+				if ( ! empty( $column_name ) && ! empty( $column_value ) ) {
+					$where_clause_arr[] = "{$column_name} != '{$column_value}'";
+				}
 			}
+
+			$where_clause = implode( ' AND ', $where_clause_arr );
 		}
 
-		$where_clause = implode( ' AND ', $where_clause_arr );
-	}
+		$query  = "SELECT * FROM `$tableName` WHERE {$where_clause} LIMIT " . CHUNK_DB_SIZE . " OFFSET $offset";
+		$result = $mysqli->query( $query );
 
-	$query  = "SELECT * FROM `$tableName` WHERE {$where_clause} LIMIT " . CHUNK_DB_SIZE . " OFFSET $offset";
-	$result = $mysqli->query( $query );
+		if ( $mysqli->errno ) {
+			header( 'x-iwp-status: false' );
+			header( 'x-iwp-message: Database query error - ' . $mysqli->connect_error );
+			die();
+		}
 
-	if ( $mysqli->errno ) {
-		header( 'x-iwp-status: false' );
-		header( 'x-iwp-message: Database query error - ' . $mysqli->connect_error );
-		die();
-	}
+		while ( $dataRow = $result->fetch_assoc() ) {
+			$columns         = array_map( function ( $value ) {
 
-	$sqlStatements = [];
+				global $mysqli;
 
-	while ( $dataRow = $result->fetch_assoc() ) {
+				if ( is_array( $value ) && empty( $value ) ) {
+					return [];
+				} else if ( is_string( $value ) && empty( $value ) ) {
+					return '';
+				}
 
-		$columns         = array_map( function ( $value ) {
+				return $mysqli->real_escape_string( $value );
+			}, array_keys( $dataRow ) );
+			$values          = array_map( function ( $value ) {
 
-			global $mysqli;
+				global $mysqli;
 
-			if ( is_array( $value ) && empty( $value ) ) {
-				return [];
-			} else if ( is_string( $value ) && empty( $value ) ) {
-				return '';
-			}
+				if ( is_numeric( $value ) ) {
+					return $value;
+				} else if ( is_null( $value ) ) {
+					return "NULL";
+				} else if ( is_array( $value ) && empty( $value ) ) {
+					$value = [];
+				} else if ( is_string( $value ) ) {
+					$value = $mysqli->real_escape_string( $value );
+				}
 
-			return $mysqli->real_escape_string( $value );
-		}, array_keys( $dataRow ) );
-		$values          = array_map( function ( $value ) {
-
-			global $mysqli;
-
-			if ( is_numeric( $value ) ) {
-				return $value;
-			} else if ( is_null( $value ) ) {
-				return "NULL";
-			} else if ( is_array( $value ) && empty( $value ) ) {
-				$value = [];
-			} else if ( is_string( $value ) ) {
-				$value = $mysqli->real_escape_string( $value );
-			}
-
-			return "'" . $value . "'";
-		}, array_values( $dataRow ) );
-		$sql             = "INSERT IGNORE INTO `$tableName` (`" . implode( "`, `", $columns ) . "`) VALUES (" . implode( ", ", $values ) . ");";
-		$sqlStatements[] = $sql;
+				return "'" . $value . "'";
+			}, array_values( $dataRow ) );
+			$sql             = "INSERT IGNORE INTO `$tableName` (`" . implode( "`, `", $columns ) . "`) VALUES (" . implode( ", ", $values ) . ");";
+			$sqlStatements[] = $sql;
+		}
 	}
 
 	// Update progress in the SQLite tracking database
