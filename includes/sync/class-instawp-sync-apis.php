@@ -27,7 +27,7 @@ if ( ! class_exists( 'InstaWP_Backup_Api' ) ) {
 }
 
 
-class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
+class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 
 	private $wpdb;
 
@@ -1686,4 +1686,4 @@ class InstaWP_Rest_Apis extends InstaWP_Backup_Api {
 	}
 }
 
-new InstaWP_Rest_Apis();
+new InstaWP_Sync_Apis();
