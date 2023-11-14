@@ -3,19 +3,19 @@
  * Migrate template - Sync
  */
 
-$changeEvent        = new InstaWP_Change_event();
-$events             = $changeEvent->listEvents();
-$syncing_status     = InstaWP_Setting::get_option('instawp_is_event_syncing');
-$syncing_status_val = ($syncing_status == 1) ? 'checked' : '';
+$changeEvent         = new InstaWP_Sync_Admin();
+$events              = $changeEvent->listEvents();
+$syncing_status      = InstaWP_Setting::get_option('instawp_is_event_syncing');
+$syncing_status_val  = ( $syncing_status == 1 ) ? 'checked' : '';
+$staging_sites       = instawp_get_staging_sites_list();
+$parent_connect_data = InstaWP_Setting::get_option( 'instawp_sync_parent_connect_data' );
 
-$staging_sites      = instawp_get_staging_sites_list();
-$parent_connect_data= InstaWP_Setting::get_option('instawp_sync_parent_connect_data');
-if( !empty( $parent_connect_data ) ){
-    array_push($staging_sites,[
-        'connect_id'    => InstaWP_Setting::get_args_option( 'connect_id', $parent_connect_data, '' ),
-        'domain'        => preg_replace("(^https?://)", "",  InstaWP_Setting::get_args_option( 'domain', $parent_connect_data, '' )),
-        'type'          => InstaWP_Setting::get_args_option( 'type', $parent_connect_data, '' ),
-    ]);
+if ( ! empty( $parent_connect_data ) ) {
+    array_push( $staging_sites,[
+        'connect_id' => InstaWP_Setting::get_args_option( 'connect_id', $parent_connect_data, '' ),
+        'url'        => preg_replace("(^https?://)", "",  InstaWP_Setting::get_args_option( 'domain', $parent_connect_data, '' )),
+        'type'       => InstaWP_Setting::get_args_option( 'type', $parent_connect_data, '' ),
+    ] );
 }
 
 ?>
@@ -67,8 +67,8 @@ if( !empty( $parent_connect_data ) ){
                             <div class="select-ct <?php echo empty( $staging_sites ) ? 'hidden' : '' ?>">
                                 <select id="staging-site-sync" data-page="instawp">
                                     <?php  foreach($staging_sites as $site): ?>
-                                        <?php if( isset( $site['domain'] ) && isset( $site['connect_id'] ) ): ?>
-                                            <option value="<?php echo esc_attr( $site['connect_id'] ) ?>"><?php echo esc_html( $site['domain'] ); ?></option>
+                                        <?php if( isset( $site['url'] ) && isset( $site['connect_id'] ) ): ?>
+                                            <option value="<?php echo esc_attr( $site['connect_id'] ) ?>"><?php echo esc_html( $site['url'] ); ?></option>
                                         <?php endif ?>
                                     <?php endforeach ?>
                                 </select>
@@ -138,8 +138,8 @@ if( !empty( $parent_connect_data ) ){
                                 <label for="destination-site"><?php echo esc_html__( 'Destination site', 'instawp-connect' ); ?></label>
                                 <select id="destination-site">
                                     <?php  foreach($staging_sites as $site): ?>
-                                        <?php if( isset( $site['domain'] ) && isset( $site['connect_id'] ) ): ?>
-                                            <option value="<?php echo esc_attr( $site['connect_id'] ) ?>"><?php echo esc_html( $site['domain'] ); ?></option>
+                                        <?php if( isset( $site['url'] ) && isset( $site['connect_id'] ) ): ?>
+                                            <option value="<?php echo esc_attr( $site['connect_id'] ) ?>"><?php echo esc_html( $site['url'] ); ?></option>
                                         <?php endif ?>
                                     <?php endforeach ?>
                                 </select>

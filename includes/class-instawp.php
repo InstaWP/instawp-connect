@@ -565,7 +565,7 @@ class instaWP {
 
 
 	public static function get_asset_url( $asset_name ) {
-		return INSTAWP_PLUGIN_URL . '/' . $asset_name;
+		return INSTAWP_PLUGIN_URL . $asset_name;
 	}
 
 	public static function get_exclude_default_plugins() {
@@ -722,9 +722,7 @@ class instaWP {
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-curl.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-ajax.php';
 		require_once INSTAWP_PLUGIN_DIR . '/admin/class-instawp-admin.php';
-		require_once INSTAWP_PLUGIN_DIR . '/admin/partials/instawp-admin-change-event-filters.php';
-		require_once INSTAWP_PLUGIN_DIR . '/includes/class-intawp-ajax-fn.php';
-		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-rest-apis.php';
+
 		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-setting.php';
 
 		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-file-management.php';
@@ -737,7 +735,12 @@ class instaWP {
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-cli.php';
 
 		require_once INSTAWP_PLUGIN_DIR . '/migrate/class-instawp-migrate.php';
+		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-cli.php';
 
-		require_once INSTAWP_PLUGIN_DIR . '/admin/class-instawp-change-event.php';
+		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-admin.php';
+		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-events.php';
+		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-wc.php';
+		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-ajax.php';
+		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-apis.php';
 	}
 }

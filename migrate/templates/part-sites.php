@@ -67,8 +67,8 @@ if ( ! empty( $parent_connect_data ) ) {
                             <tbody class="divide-y divide-gray-200 bg-white">
 							<?php foreach ( $staging_sites as $index => $site ) :
 
-								$site_url = isset( $site['url'] ) ? $site['url'] : '';
-								$site_name = str_replace( [ 'https://', 'http://' ], '', $site_url );
+								$site_name = isset( $site['url'] ) ? $site['url'] : '';
+								$site_name = str_replace( [ 'https://', 'http://' ], '', $site_name );
 								$username = isset( $site['username'] ) ? $site['username'] : '';
 								$password = isset( $site['password'] ) ? $site['password'] : '';
 								$auto_login_url = isset( $site['magic_domain'] ) ? $site['magic_domain'] : '';
@@ -80,7 +80,7 @@ if ( ! empty( $parent_connect_data ) ) {
 										<?php
 										printf( '<img src="%s" class="mr-2" alt=""><a target="_blank" class="focus:outline-none focus:ring-0 hover:text-primary-900 border-b border-transparent border-1 border-dashed hover:border-primary-700" href="%s">%s</a>',
 											instawp()::get_asset_url( 'migrate/assets/images/glob.svg' ),
-											esc_url_raw( $site_url ), $site_name
+											esc_url_raw( $site_name ), $site_name
 										);
 										?>
                                     </td>
