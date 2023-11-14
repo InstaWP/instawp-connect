@@ -402,15 +402,21 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 
 	if ( $total_tracking_tables == 0 ) {
 
-		$excluded_tables_sql      = array_map( function ( $table_name ) use ( $db_name ) {
-			return "tables_in_{$db_name} NOT LIKE '{$table_name}'";
-		}, $excluded_tables );
-		$table_names_result_where = empty( $excluded_tables_sql ) ? '' : 'WHERE ' . implode( ' AND ', $excluded_tables_sql );
-		$table_names_result       = $mysqli->query( "SHOW TABLES {$table_names_result_where}" );
-		$insert_sql_statement     = $trackingDb->prepare( "INSERT INTO tracking (table_name) VALUES (:tableName)" );
-		$total_source_tables      = 0;
+//		$excluded_tables_sql      = array_map( function ( $table_name ) use ( $db_name ) {
+//			return "tables_in_{$db_name} NOT LIKE '{$table_name}'";
+//		}, $excluded_tables );
+//		$table_names_result_where = empty( $excluded_tables_sql ) ? '' : 'WHERE ' . implode( ' AND ', $excluded_tables_sql );
+//		$table_names_result       = $mysqli->query( "SHOW TABLES {$table_names_result_where}" );
+		$table_names_result   = $mysqli->query( "SHOW TABLES" );
+		$insert_sql_statement = $trackingDb->prepare( "INSERT INTO tracking (table_name) VALUES (:tableName)" );
+		$total_source_tables  = 0;
 
 		while ( $table = $table_names_result->fetch_row() ) {
+
+			if ( in_array( $table, $excluded_tables ) ) {
+				continue;
+			}
+
 			$insert_sql_statement->bindValue( ':tableName', $table[0], SQLITE3_TEXT );
 			$insert_sql_statement->execute();
 			$total_source_tables ++;
