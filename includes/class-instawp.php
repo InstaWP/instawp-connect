@@ -565,7 +565,7 @@ class instaWP {
 
 
 	public static function get_asset_url( $asset_name ) {
-		return INSTAWP_PLUGIN_URL . '/' . $asset_name;
+		return INSTAWP_PLUGIN_URL . $asset_name;
 	}
 
 	public static function get_exclude_default_plugins() {
