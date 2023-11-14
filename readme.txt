@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.4
 Tested up to: 6.4
 Requires PHP: 7.4
-Stable tag: 0.0.9.47
+Stable tag: 0.0.9.48
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -93,6 +93,14 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 6. Update API Key and Settings.
 
 == Changelog ==
+
+= 0.0.9.48 - 11 Nov 2023 =
+
+- FIX - Skip database tables was not sending create table schema.
+- FIX - Skip known log tables during the migration.
+- FIX - Removed action scheduler.
+- FIX - Changed recording blink for 2 way sync.
+- FIX - Fixed displaying sites url on staging sites list.
 
 = 0.0.9.47 - 8 Nov 2023 =
 
