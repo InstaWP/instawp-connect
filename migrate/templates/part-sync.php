@@ -3,19 +3,19 @@
  * Migrate template - Sync
  */
 
-$changeEvent        = new InstaWP_Sync_Admin();
-$events             = $changeEvent->listEvents();
-$syncing_status     = InstaWP_Setting::get_option('instawp_is_event_syncing');
-$syncing_status_val = ($syncing_status == 1) ? 'checked' : '';
+$changeEvent         = new InstaWP_Sync_Admin();
+$events              = $changeEvent->listEvents();
+$syncing_status      = InstaWP_Setting::get_option('instawp_is_event_syncing');
+$syncing_status_val  = ( $syncing_status == 1 ) ? 'checked' : '';
+$staging_sites       = instawp_get_staging_sites_list();
+$parent_connect_data = InstaWP_Setting::get_option( 'instawp_sync_parent_connect_data' );
 
-$staging_sites      = instawp_get_staging_sites_list();
-$parent_connect_data= InstaWP_Setting::get_option('instawp_sync_parent_connect_data');
-if( !empty( $parent_connect_data ) ){
-    array_push($staging_sites,[
-        'connect_id'    => InstaWP_Setting::get_args_option( 'connect_id', $parent_connect_data, '' ),
+if ( ! empty( $parent_connect_data ) ) {
+    array_push( $staging_sites,[
+        'connect_id' => InstaWP_Setting::get_args_option( 'connect_id', $parent_connect_data, '' ),
         'url'        => preg_replace("(^https?://)", "",  InstaWP_Setting::get_args_option( 'domain', $parent_connect_data, '' )),
-        'type'          => InstaWP_Setting::get_args_option( 'type', $parent_connect_data, '' ),
-    ]);
+        'type'       => InstaWP_Setting::get_args_option( 'type', $parent_connect_data, '' ),
+    ] );
 }
 
 ?>
