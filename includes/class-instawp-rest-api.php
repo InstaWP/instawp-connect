@@ -272,7 +272,7 @@ class InstaWP_Backup_Api {
 			return $this->throw_error( $response );
 		}
 
-		instawp_reset_running_migration( 'hard', false );
+		instawp_reset_running_migration( 'hard' );
 
 		return $this->send_response( [
 			'success' => true,

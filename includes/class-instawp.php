@@ -165,26 +165,19 @@ class instaWP {
 		if ( ! class_exists( 'WP_Debug_Data' ) ) {
 			require_once ABSPATH . 'wp-admin/includes/class-wp-debug-data.php';
 		}
-		$sizes_data = WP_Debug_Data::get_sizes();
 
-		$wp_version   = get_bloginfo( 'version' );
-		$php_version  = phpversion();
-		$total_size   = $sizes_data['total_size']['size'];
-		$active_theme = wp_get_theme()->get( 'Name' );
-
-		$count_posts = wp_count_posts();
-		$posts       = $count_posts->publish;
-
-		$count_pages = wp_count_posts( 'page' );
-		$pages       = $count_pages->publish;
-
-		$count_users = count_users();
-		$users       = $count_users['total_users'];
-
-		// Curl constant
-		global $InstaWP_Curl;
-
-		$body = base64_encode(
+		$sizes_data         = WP_Debug_Data::get_sizes();
+		$wp_version         = get_bloginfo( 'version' );
+		$php_version        = phpversion();
+		$total_size         = $sizes_data['total_size']['size'];
+		$active_theme       = wp_get_theme()->get( 'Name' );
+		$count_posts        = wp_count_posts();
+		$posts              = $count_posts->publish;
+		$count_pages        = wp_count_posts( 'page' );
+		$pages              = $count_pages->publish;
+		$count_users        = count_users();
+		$users              = $count_users['total_users'];
+		$heartbeat_body     = base64_encode(
 			json_encode(
 				array(
 					"wp_version"  => $wp_version,
@@ -197,16 +190,11 @@ class instaWP {
 				)
 			)
 		);
-
-		$api_domain    = InstaWP_Setting::get_api_domain();
-		$url           = $api_domain . INSTAWP_API_URL . '/connects/' . $this->connect_id . '/heartbeat';
-		$body_json     = json_encode( $body );
-		$curl_response = $InstaWP_Curl->curl( $url, $body_json );
+		$heartbeat_response = InstaWP_Curl::do_curl( "connects/{$this->connect_id}/heartbeat", $heartbeat_body, [], true, 'v1' );
 
 		if ( defined( 'INSTAWP_DEBUG_LOG' ) && INSTAWP_DEBUG_LOG ) {
-			error_log( "Heartbeat API Curl URL " . $url );
 			error_log( "Print Heartbeat API Curl Response Start" );
-			error_log( print_r( $curl_response, true ) );
+			error_log( json_encode( $heartbeat_response, true ) );
 			error_log( "Print Heartbeat API Curl Response End" );
 		}
 	}
@@ -686,15 +674,15 @@ class instaWP {
 
 	public function instawp_check_usage_on_cloud( $total_size = 0 ) {
 
-		$connect_id          = $this->connect_id ?? 0;
-		$api_response        = InstaWP_Curl::do_curl( 'connects/' . $connect_id . '/usage', [], [], false, 'v1' );
+		// connects/<connect_id>/usage
+		$api_response        = InstaWP_Curl::do_curl( "connects/{$this->connect_id}/usage", [], [], false, 'v1' );
 		$api_response_status = InstaWP_Setting::get_args_option( 'success', $api_response, false );
 		$api_response_data   = InstaWP_Setting::get_args_option( 'data', $api_response, [] );
 
 		if ( ! $api_response_status ) {
 			return array(
 				'can_proceed'  => false,
-				'connect_id'   => $connect_id,
+				'connect_id'   => $this->connect_id,
 				'api_response' => $api_response,
 			);
 		}

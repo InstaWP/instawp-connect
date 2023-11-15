@@ -73,29 +73,29 @@ class InstaWP_Sync_Ajax {
 
 	public function get_site_events() {
 		global $wpdb;
-		$where 			= '1=1';
+		$where          = '1=1';
 		$InstaWP_db     = new InstaWP_DB();
 		$tables         = $InstaWP_db->tables;
 		$items_per_page = INSTAWP_EVENTS_PER_PAGE;
 		$connect_id     = isset( $_POST['connect_id'] ) ? sanitize_text_field( $_POST['connect_id'] ) : 0;
 
 		$staging_site = get_connect_detail_by_connect_id( $connect_id );
-	 
-		if( !empty( $staging_site ) && isset( $staging_site['created_at'] ) ){
-			$staging_site_created = date('Y-m-d h:i:s', strtotime($staging_site['created_at']));
-			$where .= " AND date >= '".$staging_site_created."'";
+
+		if ( ! empty( $staging_site ) && isset( $staging_site['created_at'] ) ) {
+			$staging_site_created = date( 'Y-m-d h:i:s', strtotime( $staging_site['created_at'] ) );
+			$where                .= " AND date >= '" . $staging_site_created . "'";
 		}
 
-		$query          = "SELECT * FROM " . INSTAWP_DB_TABLE_EVENTS. "  WHERE $where";
-		$total_query    = "SELECT COUNT(1) FROM ({$query}) AS combined_table ";
-		$total          = $wpdb->get_var( $total_query );
- 
-		$page           = isset( $_POST['epage'] ) ? abs( (int) $_POST['epage'] ) : 1;
-		$offset         = ( $page * $items_per_page ) - $items_per_page;
+		$query       = "SELECT * FROM " . INSTAWP_DB_TABLE_EVENTS . "  WHERE $where";
+		$total_query = "SELECT COUNT(1) FROM ({$query}) AS combined_table ";
+		$total       = $wpdb->get_var( $total_query );
 
-		$events         = $wpdb->get_results( $query . " ORDER BY id DESC LIMIT {$offset}, {$items_per_page}" );
-		 
-		$totalPage      = ceil( $total / $items_per_page );
+		$page   = isset( $_POST['epage'] ) ? abs( (int) $_POST['epage'] ) : 1;
+		$offset = ( $page * $items_per_page ) - $items_per_page;
+
+		$events = $wpdb->get_results( $query . " ORDER BY id DESC LIMIT {$offset}, {$items_per_page}" );
+
+		$totalPage = ceil( $total / $items_per_page );
 
 		ob_start();
 		include INSTAWP_PLUGIN_DIR . '/migrate/templates/ajax/part-sync-items.php';
@@ -149,16 +149,16 @@ class InstaWP_Sync_Ajax {
 
 	public function get_events_summary() {
 
-		$where = "1=1";
+		$where  = "1=1";
 		$where2 = "1=1";
 		if ( isset( $_POST['connect_id'] ) && intval( $_POST['connect_id'] ) > 0 ) {
 			$connect_id = sanitize_text_field( $_POST['connect_id'] );
-			$where .= " AND connect_id=" . $connect_id;
+			$where      .= " AND connect_id=" . $connect_id;
 
 			$staging_site = get_connect_detail_by_connect_id( $connect_id );
-				if( !empty( $staging_site ) && isset( $staging_site['created_at'] ) ){
-					$staging_site_created = date('Y-m-d h:i:s', strtotime($staging_site['created_at']));
-					$where2 .= " AND date >= '".$staging_site_created."'";
+			if ( ! empty( $staging_site ) && isset( $staging_site['created_at'] ) ) {
+				$staging_site_created = date( 'Y-m-d h:i:s', strtotime( $staging_site['created_at'] ) );
+				$where2               .= " AND date >= '" . $staging_site_created . "'";
 			}
 		}
 
@@ -181,7 +181,7 @@ class InstaWP_Sync_Ajax {
 			$results = [ 'Post', 'Page', 'Theme', 'Plugin' ];
 			foreach ( $results as $row ) {
 				$html .= '<li class="event-type-count">';
-				$html .= sprintf( __( '%u %s %s', 'instawp-connect' ), 0, $row, in_array($row, ['Page','Post']) ? 'modified' : 'installed' );
+				$html .= sprintf( __( '%u %s %s', 'instawp-connect' ), 0, $row, in_array( $row, [ 'Page', 'Post' ] ) ? 'modified' : 'installed' );
 				$html .= '</li>';
 			}
 		}
@@ -218,12 +218,12 @@ class InstaWP_Sync_Ajax {
 	public function instawp_pack_events() {
 		try {
 			$events = $this->instawp_pack_pending_sync_events();
-		  	if ( ! empty( $events ) ) {
+			if ( ! empty( $events ) ) {
 				$data = [];
 				foreach ( $events as $row ) {
-					$data[ $row->event_type ] = $data[ $row->event_type ]+1;
+					$data[ $row->event_type ] = $data[ $row->event_type ] + 1;
 				}
-				$data['total_events'] = count($events);
+				$data['total_events'] = count( $events );
 				echo $this->formatSuccessReponse( "The data has packed successfully as JSON from WP DB", json_encode( $data ) );
 			} else {
 				echo $this->formatErrorReponse( "The events are not available" );
@@ -240,14 +240,14 @@ class InstaWP_Sync_Ajax {
 		$where = "1=1";
 		if ( isset( $_POST['connect_id'] ) && intval( $_POST['connect_id'] ) > 0 ) {
 			$connect_id = sanitize_text_field( $_POST['connect_id'] );
-			$where .= " AND connect_id=" . sanitize_text_field( $connect_id );
+			$where      .= " AND connect_id=" . sanitize_text_field( $connect_id );
 		}
 
-		$where2 = "1=1";
+		$where2       = "1=1";
 		$staging_site = get_connect_detail_by_connect_id( $connect_id );
-			if( !empty( $staging_site ) && isset( $staging_site['created_at'] ) ){
-				$staging_site_created = date('Y-m-d h:i:s', strtotime($staging_site['created_at']));
-				$where2 .= " AND date >= '".$staging_site_created."'";
+		if ( ! empty( $staging_site ) && isset( $staging_site['created_at'] ) ) {
+			$staging_site_created = date( 'Y-m-d h:i:s', strtotime( $staging_site['created_at'] ) );
+			$where2               .= " AND date >= '" . $staging_site_created . "'";
 		}
 
 		$query        = "SELECT COUNT(1) FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE $where2 AND `id` NOT IN (SELECT event_id AS id FROM " . INSTAWP_DB_TABLE_EVENT_SITES . " WHERE $where)";
@@ -301,7 +301,7 @@ class InstaWP_Sync_Ajax {
 		}
 		$query  = "SELECT * FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE `id` NOT IN (SELECT event_id AS id FROM " . INSTAWP_DB_TABLE_EVENT_SITES . " WHERE $where) ORDER BY id ASC LIMIT " . INSTAWP_EVENTS_SYNC_PER_PAGE . "";
 		$events = $wpdb->get_results( $query );
- 
+
 		return $events;
 	}
 
@@ -369,8 +369,8 @@ class InstaWP_Sync_Ajax {
 					'source_url'        => get_site_url()
 				] );
 
-				$resp        = $this->sync_upload( $packed_data, null );
-				$resp_decode = json_decode( $resp );
+
+				$resp_decode = $this->sync_upload( $packed_data );
 
 				if ( isset( $resp_decode->status ) && $resp_decode->status === true ) {
 					if ( isset( $resp_decode->data->sync_id ) && ! empty( $resp_decode->data->sync_id ) ) {
@@ -451,85 +451,33 @@ class InstaWP_Sync_Ajax {
 		}
 	}
 
-	/*
-	*  Endpoint - /api/v2/connects/$connect_id/syncs
-	*  Example - https://s.instawp.io/api/v2/connects/1009/syncs
-	*  Sync upload Api
-	*/
-	public function sync_upload( $data = null, $endpoint = null ) {
-		$api_doamin = InstaWP_Setting::get_api_domain();
+	public function sync_upload( $data = null ) {
+
 		$connect_id = instawp_get_connect_id();
 
-		$endpoint = '/api/v2/connects/' . $connect_id . '/syncs';
-		$url      = $api_doamin . $endpoint; #https://stage.instawp.io/api/v2/connects/53/syncs
-		$api_key  = InstaWP_setting::get_api_key();
-		try {
-			$curl = curl_init();
-			curl_setopt_array( $curl, array(
-				CURLOPT_URL            => $url,
-				CURLOPT_RETURNTRANSFER => true,
-				CURLOPT_ENCODING       => '',
-				CURLOPT_MAXREDIRS      => 10,
-				CURLOPT_TIMEOUT        => 0,
-				CURLOPT_FOLLOWLOCATION => true,
-				CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
-				CURLOPT_CUSTOMREQUEST  => 'POST',
-				CURLOPT_POSTFIELDS     => $data,
-				CURLOPT_HTTPHEADER     => array(
-					'Authorization: Bearer ' . $api_key . '',
-					'Content-Type: application/json'
-				),
-			) );
-			$response = curl_exec( $curl );
-			$result   = json_decode( $response );
-
-			return $response;
-		} catch ( Exception $e ) {
-			return $e->getMessage();
-		}
+		// connects/<connect_id>/syncs
+		return InstaWP_Curl::do_curl( "connects/{$connect_id}/syncs", $data );
 	}
 
-	#Get specific sync
 	public function get_Sync_Object( $sync_id = null ) {
-		global $InstaWP_Curl;
-		$api_doamin = InstaWP_Setting::get_api_domain();
+
 		$connect_id = instawp_get_connect_id();
-		$endpoint   = '/api/v2/connects/' . $connect_id . '/syncs/' . $sync_id;
-		$url        = $api_doamin . $endpoint; #https://stage.instawp.io/api/v2/connects/53/syncs/104
-		$api_key    = InstaWP_setting::get_api_key();
 
-		try {
-			$curl = curl_init();
-			curl_setopt_array( $curl, array(
-				CURLOPT_URL            => $url,
-				CURLOPT_RETURNTRANSFER => true,
-				CURLOPT_ENCODING       => '',
-				CURLOPT_MAXREDIRS      => 10,
-				CURLOPT_TIMEOUT        => 0,
-				CURLOPT_FOLLOWLOCATION => true,
-				CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
-				CURLOPT_CUSTOMREQUEST  => 'GET',
-				CURLOPT_HTTPHEADER     => array(
-					'Accept: application/json',
-					'Authorization: Bearer ' . $api_key . ''
-				),
-			) );
-			$response = curl_exec( $curl );
-			curl_close( $curl );
-
-			return $response;
-		} catch ( Exception $e ) {
-			return $e->getMessage();
-		}
+		// connects/<connect_id>/syncs
+		return InstaWP_Curl::do_curl( "connects/{$connect_id}/syncs/{$sync_id}", [], [], false );
 	}
 
 	public function instawp_get_connect_quota_remaining_limit() {
-		$api_response = InstaWP_Curl::do_curl( 'connects/' . instawp_get_connect_id() . '/get-sync-quota', [], [], false );
+
+		// connects/<connect_id>/staging-sites
+		$connect_id   = instawp_get_connect_id();
+		$api_response = InstaWP_Curl::do_curl( "connects/{$connect_id}/get-sync-quota", [], [], false );
+
 		if ( $api_response['success'] && ! empty( $api_response['data'] ) ) {
-			$data = $api_response['data'];
-			return $data;
+			return $api_response['data'];
 		}
-		return;
+
+		return false;
 	}
 }
 

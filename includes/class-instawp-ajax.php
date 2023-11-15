@@ -439,8 +439,11 @@ class InstaWP_AJAX {
 	public function disconnect_api() {
 		check_ajax_referer( 'instawp-migrate', 'security' );
 
-		$check_api    = isset( $_POST['api'] ) ? filter_var( $_POST['api'], FILTER_VALIDATE_BOOLEAN ) : false;
-		$api_response = InstaWP_Curl::do_curl( 'connect/' . instawp_get_connect_id() . '/disconnect' );
+		$check_api  = isset( $_POST['api'] ) && filter_var( $_POST['api'], FILTER_VALIDATE_BOOLEAN );
+		$connect_id = instawp()->connect_id;
+
+		// connects/<connect_id>/disconnect
+		$api_response = InstaWP_Curl::do_curl( "connects/{$connect_id}/disconnect" );
 
 		if ( $check_api && ( empty( $api_response['success'] ) || ! $api_response['success'] ) ) {
 			wp_send_json_error( [
@@ -448,7 +451,7 @@ class InstaWP_AJAX {
 			] );
 		}
 
-		instawp_reset_running_migration( 'hard', false );
+		instawp_reset_running_migration( 'hard' );
 
 		wp_send_json_success( [
 			'message' => esc_html__( 'Plugin reset successfully.' ) . $api_response['message']
@@ -634,47 +637,6 @@ class InstaWP_AJAX {
 			$res['error']   = true;
 		}
 
-		echo json_encode( $res );
-		wp_die();
-	}
-
-	public function test_connect() {
-
-		$this->ajax_check_security();
-		$res        = array(
-			'error'   => true,
-			'message' => '',
-		);
-		$api_doamin = InstaWP_Setting::get_api_domain();
-		$url        = $api_doamin . INSTAWP_API_URL . '/connects/';
-
-		$api_key = InstaWP_Setting::get_api_key();
-		if ( empty( $api_key ) ) {
-			$res['message'] = 'API Key is required';
-			echo json_encode( $res );
-			wp_die();
-		}
-
-		$header = array(
-			'Authorization' => 'Bearer ' . $api_key,
-			'Accept'        => 'application/json',
-			'Content-Type'  => 'application/json;charset=UTF-8',
-
-		);
-		$body   = json_encode( array( 'url' => get_site_url() ) );
-
-		//print_r( $body );
-
-		$response      = wp_remote_post( $url, array(
-			'headers' => $header,
-			'body'    => json_encode( $body ),
-
-		) );
-		$response_code = wp_remote_retrieve_response_code( $response );
-		//print_r( $response );
-		if ( ! is_wp_error( $response ) && $response_code == 200 ) {
-			$body = (array) json_decode( wp_remote_retrieve_body( $response ), true );
-		}
 		echo json_encode( $res );
 		wp_die();
 	}
