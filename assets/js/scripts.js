@@ -285,25 +285,9 @@
     });
 
 
-    $(document).on('click', '.instawp-wrap .instawp-show-staging-sites, .instawp-wrap .instawp-create-another-site', function (e) {
-
-        let create_container = $('.instawp-wrap .nav-item-content.create'),
-            sites_container_nav = $('.instawp-wrap #sites > a'),
-            el_screen_buttons = create_container.find('.screen-buttons'),
-            el_screen_buttons_last = create_container.find('.screen-buttons-last'),
-            el_migration_start_over = create_container.find('.instawp-migration-start-over');
-
-        el_screen_buttons_last.addClass('hidden');
-        el_screen_buttons.removeClass('hidden');
-
-        el_migration_start_over.trigger('click');
-
-        if ($(this).hasClass('instawp-create-another-site')) {
-            return;
-        }
-
-        sites_container_nav.trigger('click');
-    });
+    // $(document).on('click', '.instawp-wrap .instawp-show-staging-sites, .instawp-wrap .instawp-create-another-site', function () {
+    //     window.location = window.location.href;
+    // });
 
 
     $(document).on('click', '.create-staging-btn', function (e) {

@@ -452,9 +452,10 @@ $whitelist_ip          = instawp_whitelist_ip();
         </div>
 
         <div class="screen-buttons-last hidden bg-grayCust-250 px-5 py-4 rounded-bl-lg rounded-br-lg flex justify-between">
-            <div class="text-primary-900 text-sm font-medium cursor-pointer flex items-center instawp-create-another-site">
-                <span class="text-xl mr-1 -mt-1 self-center">+</span><?php esc_html_e( 'Create another Staging Site', 'instawp-connect' ); ?>
-            </div>
+            <a href="<?php esc_url( admin_url( 'tools.php?page=instawp' ) ); ?>" class="text-primary-900 text-sm focus:outline-0 focus:shadow-none font-medium cursor-pointer flex items-center instawp-create-another-site">
+                <span class="text-xl mr-1 -mt-1 self-center">+</span>
+                <span><?php esc_html_e( 'Create another Staging Site', 'instawp-connect' ); ?></span>
+            </a>
             <div class="text-grayCust-900 text-sm font-medium cursor-pointer flex items-center instawp-show-staging-sites">
                 <span><?php esc_html_e( 'Show my staging sites', 'instawp-connect' ); ?></span>
                 <div class="flex items-center ml-2">
