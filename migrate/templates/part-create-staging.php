@@ -28,12 +28,12 @@ $log_tables_to_exclude = instawp()->tools::get_log_tables_to_exclude();
 $list_data             = get_option( 'instawp_large_files_list', [] ) ?? [];
 $migration_details     = InstaWP_Setting::get_option( 'instawp_migration_details', [] );
 $tracking_url          = InstaWP_Setting::get_args_option( 'tracking_url', $migration_details );
+$migrate_id            = InstaWP_Setting::get_args_option( 'migrate_id', $migration_details );
 $whitelist_ip          = instawp_whitelist_ip();
-
 
 ?>
 
-<div class="bg-white text-center rounded-md py-20 flex items-center justify-center connected">
+<div class="bg-white text-center rounded-md py-20 flex items-center justify-center connected <?= empty( $migrate_id ) ? '' : 'hidden'; ?>">
     <div class="w-2/3">
         <div class="mb-4">
             <img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/connected.svg' ) ); ?>" class="mx-auto" alt="">
@@ -57,7 +57,7 @@ $whitelist_ip          = instawp_whitelist_ip();
     </div>
 </div>
 
-<div class="flex p-8 items-start hidden create-staging">
+<div class="flex p-8 items-start create-staging <?= empty( $migrate_id ) ? 'hidden' : ''; ?>">
     <div class="left-width">
         <ul role="list" class="screen-nav-items -mb-8">
 			<?php foreach ( $staging_screens as $index => $screen ) : ?>
