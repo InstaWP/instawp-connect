@@ -130,6 +130,9 @@
                         el_migration_error_wrap.removeClass('hidden');
                         el_screen_buttons_last.removeClass('hidden');
                     }
+                },
+                error: function () {
+                    window.location = window.location.href.split("?")[0] + '?page=instawp';
                 }
             });
         },
