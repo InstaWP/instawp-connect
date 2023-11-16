@@ -262,7 +262,6 @@
         }
     });
 
-
     $(document).on('change', '.instawp-wrap .instawp-option-selector', function () {
 
         let el_option_selector = $(this),
@@ -284,22 +283,14 @@
         }
     });
 
-
-    // $(document).on('click', '.instawp-wrap .instawp-show-staging-sites, .instawp-wrap .instawp-create-another-site', function () {
-    //     window.location = window.location.href;
-    // });
-
-
     $(document).on('click', '.create-staging-btn', function (e) {
         $(document).find('.connected').addClass('hidden');
         $(document).find('.create-staging').removeClass('hidden');
     });
 
-
     $(document).on('click', '.browse-staging-btn', function (e) {
         $(document).find('.nav-items > #sites > a').trigger('click');
     });
-
 
     $(document).on('click', '.instawp-wrap .instawp-migration-start-over', function (e) {
 
@@ -334,7 +325,6 @@
         create_container.removeAttr('interval-id');
         el_instawp_screen.val(1).trigger('change');
     });
-
 
     $(document).on('click', '.instawp-wrap .instawp-staging-type', function () {
 
@@ -433,7 +423,6 @@
         }
     });
 
-
     $(document).on('ready', function () {
         let create_container = $('.instawp-wrap .nav-item-content.create'),
             this_nav_item_id = localStorage.getItem('instawp_admin_current'),
@@ -454,7 +443,6 @@
         }
     });
 
-
     $(document).on('click', '.instawp-wrap .instawp-button-connect', function () {
         $.ajax({
             type: 'POST', url: plugin_object.ajax_url, context: this, data: {
@@ -471,7 +459,6 @@
         });
     });
 
-
     $(document).on('click', '.instawp-wrap .instawp-migrate-abort', function () {
         let create_container = $('.instawp-wrap .nav-item-content.create');
 
@@ -480,7 +467,6 @@
             window.location = window.location.href.split("?")[0] + '?page=instawp&clear=all';
         }
     });
-
 
     $(document).on('click', '.instawp-wrap .instawp-reset-plugin', function () {
 
@@ -509,7 +495,6 @@
             }
         });
     });
-
 
     $(document).on('submit', '.settings .instawp-form', function (e) {
 
@@ -543,7 +528,6 @@
 
         return false;
     });
-
 
     $(document).on('click', '.instawp-wrap .nav-items .nav-item > a', function () {
         let this_nav_item_link = $(this), this_nav_item = this_nav_item_link.parent(), this_nav_item_id = this_nav_item.attr('id'), all_nav_items = this_nav_item.parent().find('.nav-item'), nav_item_content_all = $('.instawp-wrap .nav-content .nav-item-content'), nav_item_content_target = nav_item_content_all.parent().find('.' + this_nav_item_id);
@@ -585,7 +569,6 @@
         el_migrate_step_prev.find('.step-progress-icon').find('img').removeClass('hidden');
         el_migrate_step_prev.find('.step-progress-icon').find('span').addClass('hidden');
     });
-
 
     // Get Dir List start //
     $(document).on('change', '#skip_large_files', function () {
