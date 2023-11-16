@@ -5,7 +5,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2023-11-16 05:03+0000\n"
+"POT-Creation-Date: 2023-11-16 12:43+0000\n"
 "X-Poedit-Basepath: ..\n"
 "X-Poedit-KeywordsList: __;_e;_ex:1,2c;_n:1,2;_n_noop:1,2;_nx:1,2,4c;_nx_noop:1,2,3c;_x:1,2c;esc_attr__;esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c\n"
 "X-Poedit-SearchPath-0: .\n"
@@ -81,31 +81,31 @@ msgstr ""
 msgid "3. Go back to this page and paste the key in key box below. Lastly, click Save button."
 msgstr ""
 
-#: includes/class-instawp-ajax.php:170
+#: includes/class-instawp-ajax.php:180
 msgid "Error: Empty serve url found in pre-check response."
 msgstr ""
 
-#: includes/class-instawp-ajax.php:174
+#: includes/class-instawp-ajax.php:193
 msgid "Error: Empty api signature found in pre-check response."
 msgstr ""
 
-#: includes/class-instawp-ajax.php:238
+#: includes/class-instawp-ajax.php:272
 msgid "Increase Limit"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:260
+#: includes/class-instawp-ajax.php:294
 msgid "Empty folder!"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:360
+#: includes/class-instawp-ajax.php:394
 msgid "%s rows"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:403
+#: includes/class-instawp-ajax.php:437
 msgid "We have identified following large files in your installation:"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:500
+#: includes/class-instawp-ajax.php:534
 msgid "InstaWP Connect Settings has been reset successfully."
 msgstr ""
 
@@ -469,82 +469,82 @@ msgstr ""
 msgid "Item not found."
 msgstr ""
 
-#: includes/sync/class-instawp-sync-events.php:154
+#: includes/sync/class-instawp-sync-events.php:157
 msgid "New user registered"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-events.php:174
+#: includes/sync/class-instawp-sync-events.php:180
 msgid "User deleted"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-events.php:192
+#: includes/sync/class-instawp-sync-events.php:198
 msgid "User updated"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-events.php:281, includes/sync/class-instawp-sync-events.php:292, includes/sync/class-instawp-sync-events.php:312
+#: includes/sync/class-instawp-sync-events.php:291, includes/sync/class-instawp-sync-events.php:303, includes/sync/class-instawp-sync-events.php:324
 msgid "Woocommerce attribute"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-events.php:329, includes/sync/class-instawp-sync-events.php:700
+#: includes/sync/class-instawp-sync-events.php:339, includes/sync/class-instawp-sync-events.php:693
 msgid "%s modified"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-events.php:347, includes/sync/class-instawp-sync-events.php:790
+#: includes/sync/class-instawp-sync-events.php:356, includes/sync/class-instawp-sync-events.php:785
 msgid "%s deleted"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-events.php:363, includes/sync/class-instawp-sync-events.php:697
+#: includes/sync/class-instawp-sync-events.php:374, includes/sync/class-instawp-sync-events.php:696
 msgid "%s created"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-events.php:376
+#: includes/sync/class-instawp-sync-events.php:388
 msgid "Install themes updated"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-events.php:389
+#: includes/sync/class-instawp-sync-events.php:401
 msgid "Install themes upload"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-events.php:402
+#: includes/sync/class-instawp-sync-events.php:414
 msgid "Install themes new"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-events.php:416
+#: includes/sync/class-instawp-sync-events.php:428
 msgid "Theme deleted"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-events.php:431
+#: includes/sync/class-instawp-sync-events.php:443
 msgid "Theme switched from %s to %s"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-events.php:446
+#: includes/sync/class-instawp-sync-events.php:458
 msgid "%s %s%s"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-events.php:491
+#: includes/sync/class-instawp-sync-events.php:503
 msgid "Plugin deactivated"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-events.php:506
+#: includes/sync/class-instawp-sync-events.php:518
 msgid "Plugin activated"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-events.php:520
+#: includes/sync/class-instawp-sync-events.php:532
 msgid "Plugin deleted"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-events.php:713
+#: includes/sync/class-instawp-sync-events.php:709
 msgid "Media created"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-events.php:726
+#: includes/sync/class-instawp-sync-events.php:722
 msgid "Media updated"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-events.php:805
+#: includes/sync/class-instawp-sync-events.php:800
 msgid "%s trashed"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-events.php:819
+#: includes/sync/class-instawp-sync-events.php:815
 msgid "%s Restored"
 msgstr ""

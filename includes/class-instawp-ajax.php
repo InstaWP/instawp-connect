@@ -269,10 +269,10 @@ class InstaWP_AJAX {
 			wp_send_json_success( $check_usage_response );
 		}
 
-		$api_response['button_text'] = esc_html__( 'Increase Limit', 'instawp-connect' );
-		$api_response['button_url']  = InstaWP_Setting::get_pro_subscription_url( 'subscriptions?source=connect_limit_warning' );
+		$check_usage_response['button_text'] = esc_html__( 'Increase Limit', 'instawp-connect' );
+		$check_usage_response['button_url']  = InstaWP_Setting::get_pro_subscription_url( 'subscriptions?source=connect_limit_warning' );
 
-		wp_send_json_error( $api_response );
+		wp_send_json_error( $check_usage_response );
 	}
 
 	public function get_dir_contents() {

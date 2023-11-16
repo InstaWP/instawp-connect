@@ -333,10 +333,7 @@ $whitelist_ip          = instawp_whitelist_ip();
                         <div class="flex items-center mb-6">
                             <div class="text-grayCust-900 text-base text-left font-normal w-48"><?php esc_html_e( 'Available Disk Space', 'instawp-connect' ); ?></div>
                             <div class="flex items-center text-primary-900 text-base">
-                                <span class="remaining-disk-space"></span>
-                                <span>/</span>
-                                <span class="user-allow-disk-space"></span>
-                                <span class="ml-1"><?php esc_html_e( 'MB', 'instawp-connect' ); ?></span>
+                                <span><span class="remaining-disk-space"></span>mb available out of <span class="user-allow-disk-space"></span>mb</span>
                             </div>
                         </div>
                         <div class="flex items-center">
