@@ -729,6 +729,7 @@ class instaWP {
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-cli.php';
 
 		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-admin.php';
+		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-helpers.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-events.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-wc.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-ajax.php';
