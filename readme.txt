@@ -97,6 +97,7 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 = 0.0.9.50 - 16 Nov 2023 =
 
 - FIX - Fixed get_source_site_detail api.
+- FIX - Added connect logs to app.
 
 = 0.0.9.49 - 14 Nov 2023 =
 

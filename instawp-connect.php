@@ -193,10 +193,15 @@ add_action( 'wp_head', function () {
 
 //		delete_option( 'instawp_sync_parent_connect_data' );
 
-		$action = 'connect';
-		$log    = 'Sample log ';
 
-		instawp_send_connect_log( $action, $log );
+		$migration_details = 'a:5:{s:10:"migrate_id";i:705;s:11:"migrate_key";s:40:"8513fe5157f5fea86dd3c8d2238e7fe0cf277b17";s:12:"tracking_url";s:73:"https://stage.instawp.io/migrates-v3/df3528fe-e1aa-4b81-b23c-d31e94f14962";s:8:"dest_url";s:48:"https://ugliest-unicorn-yz1hw.a.instawpsites.com";s:10:"started_at";s:19:"2023-11-16 11:15:55";}';
+//		$migration_details = get_option( 'instawp_migration_details' );
+
+		update_option( 'instawp_migration_details', unserialize( $migration_details ) );
+
+		echo "<pre>";
+		print_r( get_option( 'instawp_migration_details' ) );
+		echo "</pre>";
 
 		die();
 	}
