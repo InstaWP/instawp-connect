@@ -679,6 +679,9 @@ class instaWP {
 		$api_response_status = InstaWP_Setting::get_args_option( 'success', $api_response, false );
 		$api_response_data   = InstaWP_Setting::get_args_option( 'data', $api_response, [] );
 
+		// send usage check log before starting the pull
+		instawp_send_connect_log( 'usage-check', json_encode( $api_response ) );
+
 		if ( ! $api_response_status ) {
 			return array(
 				'can_proceed'  => false,

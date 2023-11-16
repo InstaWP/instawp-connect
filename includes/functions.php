@@ -600,3 +600,36 @@ if ( ! function_exists( 'get_connect_detail_by_connect_id' ) ) {
 		return [];
 	}
 }
+
+
+if ( ! function_exists( 'instawp_send_connect_log' ) ) {
+	/**
+	 * Send connect log to app
+	 *
+	 * @param $action
+	 * @param $log_message
+	 *
+	 * @return bool
+	 */
+	function instawp_send_connect_log( $action = '', $log_message = '' ) {
+
+		if ( empty( $action ) || empty( $log_message ) ) {
+			return false;
+		}
+
+		$connect_id = instawp()->connect_id;
+		$log_args   = array(
+			'action' => $action,
+			'logs'   => $log_message,
+		);
+
+		// connects/<connect_id>/logs
+		$log_response = InstaWP_Curl::do_curl( "connects/{$connect_id}/logs", $log_args );
+
+		if ( isset( $log_response['success'] ) && $log_response['success'] ) {
+			return true;
+		}
+
+		return false;
+	}
+}

@@ -163,15 +163,41 @@ class InstaWP_AJAX {
 		$pre_check_response = instawp()->tools::get_pull_pre_check_response( $migrate_key, $migrate_settings );
 
 		if ( is_wp_error( $pre_check_response ) ) {
+
+			// send log to app before starting migrate pull
+			$log_array = array(
+				'migrate_settings' => $migrate_settings,
+				'message'          => $pre_check_response->get_error_message(),
+			);
+			instawp_send_connect_log( 'pull-precheck', json_encode( $log_array ) );
+
 			wp_send_json_error( [ 'message' => $pre_check_response->get_error_message() ] );
 		}
 
 		if ( empty( $serve_url = InstaWP_Setting::get_args_option( 'serve_url', $pre_check_response ) ) ) {
-			wp_send_json_error( [ 'message' => esc_html__( 'Error: Empty serve url found in pre-check response.', 'instawp-connect' ) ] );
+
+			// send log to app before starting migrate pull
+			$message   = esc_html__( 'Error: Empty serve url found in pre-check response.', 'instawp-connect' );
+			$log_array = array(
+				'migrate_settings' => $migrate_settings,
+				'message'          => $message,
+			);
+			instawp_send_connect_log( 'pull-precheck', json_encode( $log_array ) );
+
+			wp_send_json_error( [ 'message' => $message ] );
 		}
 
 		if ( empty( $api_signature = InstaWP_Setting::get_args_option( 'api_signature', $pre_check_response ) ) ) {
-			wp_send_json_error( [ 'message' => esc_html__( 'Error: Empty api signature found in pre-check response.', 'instawp-connect' ) ] );
+
+			// send log to app before starting migrate pull
+			$message   = esc_html__( 'Error: Empty api signature found in pre-check response.', 'instawp-connect' );
+			$log_array = array(
+				'migrate_settings' => $migrate_settings,
+				'message'          => $message,
+			);
+			instawp_send_connect_log( 'pull-precheck', json_encode( $log_array ) );
+
+			wp_send_json_error( [ 'message' => $message ] );
 		}
 
 		$migrate_args             = array(
@@ -194,6 +220,14 @@ class InstaWP_AJAX {
 		$migrate_response_message = InstaWP_Setting::get_args_option( 'message', $migrate_response );
 
 		if ( $migrate_response_status === false ) {
+
+			// send log to app when pull failed
+			$log_array = array(
+				'migrate_settings' => $migrate_settings,
+				'message'          => $migrate_response,
+			);
+			instawp_send_connect_log( 'pull-failed', json_encode( $log_array ) );
+
 			error_log( json_encode( $migrate_response ) );
 
 			$migrate_response_message = empty( $migrate_response_message ) ? esc_html__( 'Could not create migrate id.' ) : $migrate_response_message;

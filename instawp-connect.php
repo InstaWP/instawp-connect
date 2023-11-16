@@ -193,6 +193,11 @@ add_action( 'wp_head', function () {
 
 //		delete_option( 'instawp_sync_parent_connect_data' );
 
+		$action = 'connect';
+		$log    = 'Sample log ';
+
+		instawp_send_connect_log( $action, $log );
+
 		die();
 	}
 }, 0 );
