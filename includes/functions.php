@@ -212,7 +212,7 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 			$file_db_manager = InstaWP_Setting::get_option( 'instawp_file_db_manager', [] );
 			$file_name       = InstaWP_Setting::get_args_option( 'db_name', $file_db_manager );
 			if ( $file_name ) {
-				wp_clear_scheduled_hook( 'instawp_clean_database_manager', [ $file_name ]);
+				wp_clear_scheduled_hook( 'instawp_clean_database_manager', [ $file_name ] );
 				do_action( 'instawp_clean_database_manager', $file_name );
 			}
 		}
@@ -565,17 +565,16 @@ if ( ! function_exists( 'instawp_whitelist_ip' ) ) {
 
 if ( ! function_exists( 'instawp_get_source_site_detail' ) ) {
 	function instawp_get_source_site_detail() {
-		$connect_id          = InstaWP_Setting::get_option( 'instawp_sync_connect_id' );
-		$parent_connect_data = InstaWP_Setting::get_option( 'instawp_sync_parent_connect_data' );
 
-		if ( intval( $connect_id ) > 0 && empty( $parent_connect_data ) ) {
+		if ( empty( InstaWP_Setting::get_option( 'instawp_sync_parent_connect_data' ) ) ) {
 
-			$api_response = InstaWP_Curl::do_curl( 'connects/' . $connect_id, [], [], false );
+			$api_response = InstaWP_Curl::do_curl( 'connects/' . instawp_get_connect_id(), [], [], false );
 
 			if ( $api_response['success'] ) {
-				$api_response_data               = InstaWP_Setting::get_args_option( 'data', $api_response, [] );
-				$api_response_data['connect_id'] = $connect_id;
-				add_option( 'instawp_sync_parent_connect_data', $api_response_data );
+				$api_response_data = InstaWP_Setting::get_args_option( 'data', $api_response, [] );
+				$parent_data       = $api_response_data['parent'] ?? [];
+
+				update_option( 'instawp_sync_parent_connect_data', $parent_data );
 			}
 		}
 	}
