@@ -1,8 +1,15 @@
 <?php
-set_time_limit( 0 );
-error_reporting( 0 );
+//set_time_limit( 0 );
+//error_reporting( 0 );
 
-if ( ! isset( $_POST['migrate_key'] ) || empty( $migrate_key = $_POST['migrate_key'] ) ) {
+$migrate_key   = isset( $_POST['migrate_key'] ) ? $_POST['migrate_key'] : '';
+$api_signature = isset( $_POST['api_signature'] ) ? $_POST['api_signature'] : '';
+
+$migrate_key   = "4fa45b1ea7448176a29677960044f7ebe8d04542";
+$api_signature = "0ed54b0cda81d92096ee2f957c5fe9b441668e5fcaa445a081490fc02bb0d5bf00bf7d8c55213e3ffa48ef26aa6e712cba4534995c119e3861d98da69ecc9594";
+
+
+if ( empty( $migrate_key ) ) {
 	header( 'x-iwp-status: false' );
 	header( 'x-iwp-message: Invalid migrate key.' );
 	die();
@@ -31,11 +38,10 @@ defined( 'MAX_ZIP_SIZE' ) | define( 'MAX_ZIP_SIZE', 1024 * 1024 ); //1mb
 defined( 'CHUNK_DB_SIZE' ) | define( 'CHUNK_DB_SIZE', 100 );
 defined( 'BATCH_SIZE' ) | define( 'BATCH_SIZE', 100 );
 defined( 'WP_ROOT' ) | define( 'WP_ROOT', $root_path );
+defined( 'INSTAWP_BACKUP_DIR' ) | define( 'INSTAWP_BACKUP_DIR', WP_ROOT . DIRECTORY_SEPARATOR . 'wp-content' . DIRECTORY_SEPARATOR . 'instawpbackups' . DIRECTORY_SEPARATOR );
 
-$iwpdb_main_path     = WP_ROOT . '/wp-content/plugins/instawp-connect/includes/class-instawp-iwpdb.php';
-$iwpdb_git_path      = WP_ROOT . '/wp-content/plugins/instawp-connect-main/includes/class-instawp-iwpdb.php';
-$instawpbackups_path = WP_ROOT . DIRECTORY_SEPARATOR . 'wp-content' . DIRECTORY_SEPARATOR . 'instawpbackups' . DIRECTORY_SEPARATOR;
-$tracking_db_path    = $instawpbackups_path . 'files-sent-' . $migrate_key . '.db';
+$iwpdb_main_path = WP_ROOT . '/wp-content/plugins/instawp-connect/includes/class-instawp-iwpdb.php';
+$iwpdb_git_path  = WP_ROOT . '/wp-content/plugins/instawp-connect-main/includes/class-instawp-iwpdb.php';
 
 if ( file_exists( $iwpdb_main_path ) ) {
 	require_once( $iwpdb_main_path );
@@ -48,22 +54,21 @@ if ( file_exists( $iwpdb_main_path ) ) {
 	exit( 2 );
 }
 
-try {
-	$tracking_db = new IWPDB( $tracking_db_path );
-} catch ( Exception $e ) {
-	error_log( "Database creation error: {$e->getMessage()}" );
+global $tracking_db;
 
+try {
+	$tracking_db = new IWPDB( $migrate_key );
+} catch ( Exception $e ) {
 	header( 'x-iwp-status: false' );
-	header( 'x-iwp-message: Can not access database.' );
+	header( 'x-iwp-message: Database connection error. Actual error: ' . $e->getMessage() );
 	die();
 }
 
-if ( ! isset( $_POST['api_signature'] ) || $tracking_db->get_option( 'api_signature' ) !== $_POST['api_signature'] ) {
+if ( $tracking_db->get_option( 'api_signature' ) !== $api_signature ) {
 	header( 'x-iwp-status: false' );
 	header( 'x-iwp-message: Mismatched api signature.' );
 	die();
 }
-
 
 if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
@@ -162,7 +167,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			}
 
 			foreach ( $unsentFiles as $file ) {
-				$tracking_db->rawQuery( "UPDATE files_sent SET sent = 1 WHERE id=:id", array( ':id' => $file['id'] ) );
+				$tracking_db->update( 'iwp_files_sent', [ 'sent' => 1 ], [ 'id' => $file['id'] ] );
 			}
 
 			unlink( $tmpZip );
@@ -174,7 +179,6 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			$site_url         = $tracking_db->get_option( 'site_url' );
 			$dest_url         = $tracking_db->get_option( 'dest_url' );
 			$migrate_settings = $tracking_db->get_option( 'migrate_settings' );
-			$migrate_settings = unserialize( $migrate_settings );
 			$options          = $migrate_settings['options'] ?? [];
 
 			if ( empty( $site_url ) || empty( $dest_url ) ) {
@@ -220,27 +224,21 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		}
 	}
 
-	$total_files_path        = $instawpbackups_path . '.total-files-' . $migrate_key;
-	$current_file_index_path = $instawpbackups_path . 'current_file_index.txt';
+	$total_files_path        = INSTAWP_BACKUP_DIR . '.total-files-' . $migrate_key;
+	$current_file_index_path = INSTAWP_BACKUP_DIR . 'current_file_index.txt';
 	$migrate_settings        = $tracking_db->get_option( 'migrate_settings' );
-	$migrate_settings        = unserialize( $migrate_settings );
 	$excluded_paths          = $migrate_settings['excluded_paths'] ?? [];
 	$skip_folders            = array_merge( [ 'wp-content/cache', 'editor', 'wp-content/upgrade', 'wp-content/instawpbackups' ], $excluded_paths );
 	$skip_folders            = array_unique( $skip_folders );
 	$skip_files              = [];
 
-	$tracking_db->rawQuery( "CREATE TABLE IF NOT EXISTS files_sent (id INTEGER PRIMARY KEY AUTOINCREMENT, filepath TEXT UNIQUE, sent INTEGER DEFAULT 0, size INTEGER)" );
-
-	$unsent_query_response = $tracking_db->fetchRow( $tracking_db->rawQuery( "SELECT count(*) as count FROM files_sent WHERE sent = 0" ) );
-	$unsent_files_count    = $unsent_query_response['count'] ?? 0;
-	$progress_percentage   = 0;
+	$unsent_files_count  = $tracking_db->query_count( 'iwp_files_sent', [ 'sent' => '0' ] );
+	$progress_percentage = 0;
 
 	if ( file_exists( $total_files_path ) && ( $totalFiles = @file_get_contents( $total_files_path ) ) ) {
-
-		$total_count_response = $tracking_db->fetchRow( $tracking_db->rawQuery( "SELECT count(*) as count FROM files_sent" ) );
-		$total_files_count    = $total_count_response['count'] ?? 0;
-		$total_files_sent     = $total_files_count - $unsent_files_count;
-		$progress_percentage  = round( ( $total_files_sent / $totalFiles ) * 100, 2 );
+		$total_files_count   = $tracking_db->query_count( 'iwp_files_sent' );
+		$total_files_sent    = $total_files_count - $unsent_files_count;
+		$progress_percentage = round( ( $total_files_sent / $totalFiles ) * 100, 2 );
 	}
 
 	if ( $unsent_files_count == 0 ) {
@@ -277,10 +275,10 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			$filepath   = $file->getPathname();
 			$filesize   = $file->getSize();
 			$currentDir = str_replace( WP_ROOT . '/', '', $file->getPath() );
-			$row        = $tracking_db->fetchRow( $tracking_db->rawQuery( "SELECT id, filepath FROM files_sent WHERE filepath = :filepath  LIMIT 1" ) );
+			$row        = $tracking_db->get_row( 'iwp_files_sent', [ 'filepath' => $filepath ] );
 
 			if ( ! $row ) {
-				$tracking_db->rawQuery( "INSERT OR IGNORE INTO files_sent (filepath, sent, size) VALUES ('$filepath', 0, '$filesize')" );
+				$tracking_db->insert( 'iwp_files_sent', [ 'filepath' => "'$filepath'", 'sent' => 0, 'size' => "'$filesize'" ] );
 				$fileIndex ++;
 			} else {
 				continue;
@@ -303,9 +301,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			exit;
 		}
 
-		$tracking_db->rawQuery( "CREATE INDEX IF NOT EXISTS idx_sent ON files_sent(sent)" );
-		$tracking_db->rawQuery( "CREATE INDEX IF NOT EXISTS idx_file_path ON files_sent(filepath)" );
-		$tracking_db->rawQuery( "CREATE INDEX IF NOT EXISTS idx_file_size ON files_sent(size)" );
+		$tracking_db->create_file_indexes( 'iwp_files_sent', [ 'idx_sent' => 'sent', 'idx_file_path' => 'filepath', 'idx_file_size' => 'size' ] );
 	}
 
 	//TODO: this query runs every time even if there are no files to zip, may be we can
@@ -315,12 +311,13 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 	$unsentFiles          = [];
 
 	if ( class_exists( 'ZipArchive' ) || class_exists( 'PharData' ) ) {
-		$is_archive_available = true;
-		$unsentFiles          = $tracking_db->fetchRows( $tracking_db->rawQuery( "SELECT id,filepath,size FROM files_sent WHERE sent = 0 and size < " . MAX_ZIP_SIZE . " ORDER by size LIMIT " . BATCH_ZIP_SIZE ) );
+		$is_archive_available   = true;
+		$unsent_files_query_res = $tracking_db->query( "SELECT id,filepath,size FROM iwp_files_sent WHERE sent = 0 and size < " . MAX_ZIP_SIZE . " ORDER by size LIMIT " . BATCH_ZIP_SIZE );
+
+		$tracking_db->fetch_rows( $unsent_files_query_res, $unsentFiles );
 	}
 
 	if ( $is_archive_available && count( $unsentFiles ) > 0 ) {
-
 		if ( class_exists( 'ZipArchive' ) ) {
 			// ZipArchive is available
 			send_by_zip( $tracking_db, $unsentFiles, $progress_percentage, 'ziparchive' );
@@ -366,7 +363,6 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 
 	$migrate_settings = $tracking_db->get_option( 'migrate_settings' );
-	$migrate_settings = unserialize( $migrate_settings );
 	$db_host          = $tracking_db->get_option( 'db_host' );
 	$db_username      = $tracking_db->get_option( 'db_username' );
 	$db_password      = $tracking_db->get_option( 'db_password' );
@@ -378,87 +374,56 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 		die();
 	}
 
-	global $mysqli;
+	$excluded_tables       = $migrate_settings['excluded_tables'] ?? [];
+	$excluded_tables_rows  = $migrate_settings['excluded_tables_rows'] ?? [];
+	$total_tracking_tables = $tracking_db->query_count( 'iwp_db_sent' );
 
-	$excluded_tables      = $migrate_settings['excluded_tables'] ?? [];
-	$excluded_tables_rows = $migrate_settings['excluded_tables_rows'] ?? [];
-	$trackingDb_path      = $instawpbackups_path . 'db-sent-' . $migrate_key . '.db';
-	$trackingDb           = new SQLite3( $trackingDb_path );
-	$createTableQuery     = "CREATE TABLE IF NOT EXISTS tracking (table_name TEXT PRIMARY KEY,offset INTEGER DEFAULT 0,completed INTEGER DEFAULT 0);";
-
-	$trackingDb->exec( $createTableQuery );
-
-	$mysqli = new mysqli( $db_host, $db_username, $db_password, $db_name );
-	mysqli_set_charset( $mysqli, "utf8" );
-
-	if ( $mysqli->connect_error ) {
-		header( 'x-iwp-status: false' );
-		header( 'x-iwp-message: Database connection failed - ' . $mysqli->connect_error );
-		die();
+	// Skip our files sent table
+	if ( ! in_array( 'iwp_files_sent', $excluded_tables ) ) {
+		$excluded_tables[] = 'iwp_files_sent';
 	}
 
-	// Check if the SQLite tracking table is empty
-	$total_tracking_tables = $trackingDb->querySingle( "SELECT COUNT(*) FROM tracking" );
+	// Skip our db sent table
+	if ( ! in_array( 'iwp_db_sent', $excluded_tables ) ) {
+		$excluded_tables[] = 'iwp_db_sent';
+	}
 
 	if ( $total_tracking_tables == 0 ) {
-
-//		$excluded_tables_sql      = array_map( function ( $table_name ) use ( $db_name ) {
-//			return "tables_in_{$db_name} NOT LIKE '{$table_name}'";
-//		}, $excluded_tables );
-//		$table_names_result_where = empty( $excluded_tables_sql ) ? '' : 'WHERE ' . implode( ' AND ', $excluded_tables_sql );
-//		$table_names_result       = $mysqli->query( "SHOW TABLES {$table_names_result_where}" );
-		$table_names_result   = $mysqli->query( "SHOW TABLES" );
-		$insert_sql_statement = $trackingDb->prepare( "INSERT INTO tracking (table_name) VALUES (:tableName)" );
-		$total_source_tables  = 0;
-
-		while ( $table = $table_names_result->fetch_row() ) {
-
-			if ( in_array( $table, $excluded_tables ) ) {
-				continue;
+		foreach ( $tracking_db->get_all_tables() as $table_name ) {
+			if ( ! in_array( $table_name, $excluded_tables ) ) {
+				$tracking_db->insert( 'iwp_db_sent', [ 'table_name' => "'$table_name'" ] );
 			}
-
-			$insert_sql_statement->bindValue( ':tableName', $table[0], SQLITE3_TEXT );
-			$insert_sql_statement->execute();
-			$total_source_tables ++;
 		}
-
-		$total_tracking_tables = $total_source_tables;
 	}
 
-	$stmt   = $trackingDb->prepare( "SELECT table_name, offset FROM tracking WHERE completed = 0 ORDER BY table_name LIMIT 1" );
-	$result = $stmt->execute();
+	$result = $tracking_db->get_row( 'iwp_db_sent', [ 'completed' => '0' ] );
 
-	if ( ! $row = $result->fetchArray( SQLITE3_ASSOC ) ) {
+	if ( empty( $result ) ) {
 		header( 'x-iwp-status: true' );
 		header( 'x-iwp-transfer-complete: true' );
 		header( 'x-iwp-message: No more tables to process.' );
 		die();
 	}
 
-	$tableName     = $row['table_name'];
-	$offset        = $row['offset'];
-	$sqlStatements = [];
-
+	$curr_table_name = $result['table_name'] ?? '';
+	$offset          = $result['offset'] ?? '';
+	$sqlStatements   = [];
 
 	// Check if it's the first batch of rows for this table
-	if ( $offset == 0 ) {
-		$createTableQuery = "SHOW CREATE TABLE `$tableName`";
-		$createResult     = $mysqli->query( $createTableQuery );
-		if ( $createResult ) {
-			$createRow = $createResult->fetch_assoc();
-			echo $createRow['Create Table'] . ";\n\n"; // This outputs the CREATE TABLE statement
-		}
+	if ( $offset == 0 && $create_table_sql = $tracking_db->query( "SHOW CREATE TABLE `$curr_table_name`" ) ) {
+		$createRow = $create_table_sql->fetch_assoc();
+		echo $createRow['Create Table'] . ";\n\n";
 	}
 
-	if ( ! in_array( $tableName, $excluded_tables ) ) {
+	if ( ! in_array( $curr_table_name, $excluded_tables ) ) {
 
 		$where_clause = '1';
 
-		if ( isset( $excluded_tables_rows[ $tableName ] ) && is_array( $excluded_tables_rows[ $tableName ] ) && ! empty( $excluded_tables_rows[ $tableName ] ) ) {
+		if ( isset( $excluded_tables_rows[ $curr_table_name ] ) && is_array( $excluded_tables_rows[ $curr_table_name ] ) && ! empty( $excluded_tables_rows[ $curr_table_name ] ) ) {
 
 			$where_clause_arr = [];
 
-			foreach ( $excluded_tables_rows[ $tableName ] as $excluded_info ) {
+			foreach ( $excluded_tables_rows[ $curr_table_name ] as $excluded_info ) {
 
 				$excluded_info_arr = explode( ':', $excluded_info );
 				$column_name       = $excluded_info_arr[0] ?? '';
@@ -472,19 +437,18 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 			$where_clause = implode( ' AND ', $where_clause_arr );
 		}
 
-		$query  = "SELECT * FROM `$tableName` WHERE {$where_clause} LIMIT " . CHUNK_DB_SIZE . " OFFSET $offset";
-		$result = $mysqli->query( $query );
+		$result = $tracking_db->query( "SELECT * FROM `$curr_table_name` WHERE {$where_clause} LIMIT " . CHUNK_DB_SIZE . " OFFSET $offset" );
 
-		if ( $mysqli->errno ) {
+		if ( ! $result ) {
 			header( 'x-iwp-status: false' );
-			header( 'x-iwp-message: Database query error - ' . $mysqli->connect_error );
+			header( 'x-iwp-message: Database query error - ' . $tracking_db->last_error );
 			die();
 		}
 
 		while ( $dataRow = $result->fetch_assoc() ) {
 			$columns         = array_map( function ( $value ) {
 
-				global $mysqli;
+				global $tracking_db;
 
 				if ( is_array( $value ) && empty( $value ) ) {
 					return [];
@@ -492,11 +456,11 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 					return '';
 				}
 
-				return $mysqli->real_escape_string( $value );
+				return $tracking_db->conn->real_escape_string( $value );
 			}, array_keys( $dataRow ) );
 			$values          = array_map( function ( $value ) {
 
-				global $mysqli;
+				global $tracking_db;
 
 				if ( is_numeric( $value ) ) {
 					return $value;
@@ -505,37 +469,31 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 				} else if ( is_array( $value ) && empty( $value ) ) {
 					$value = [];
 				} else if ( is_string( $value ) ) {
-					$value = $mysqli->real_escape_string( $value );
+					$value = $tracking_db->conn->real_escape_string( $value );
 				}
 
 				return "'" . $value . "'";
 			}, array_values( $dataRow ) );
-			$sql             = "INSERT IGNORE INTO `$tableName` (`" . implode( "`, `", $columns ) . "`) VALUES (" . implode( ", ", $values ) . ");";
+			$sql             = "INSERT IGNORE INTO `$curr_table_name` (`" . implode( "`, `", $columns ) . "`) VALUES (" . implode( ", ", $values ) . ");";
 			$sqlStatements[] = $sql;
 		}
 	}
 
 	// Update progress in the SQLite tracking database
 	$offset += count( $sqlStatements );
-	$stmt   = $trackingDb->prepare( "UPDATE tracking SET offset = :offset WHERE table_name = :tableName" );
-	$stmt->bindValue( ':offset', $offset, SQLITE3_INTEGER );
-	$stmt->bindValue( ':tableName', $tableName, SQLITE3_TEXT );
-	$stmt->execute();
 
-	// Mark table as completed in the SQLite tracking database if all rows were fetched
+	// Update the offset
+	$tracking_db->update( 'iwp_db_sent', [ 'offset' => $offset ], [ 'table_name' => $curr_table_name ] );
+
+	// Mark table as completed if all rows were fetched
 	if ( count( $sqlStatements ) < CHUNK_DB_SIZE ) {
-		$stmt = $trackingDb->prepare( "UPDATE tracking SET completed = 1 WHERE table_name = :tableName" );
-		$stmt->bindValue( ':tableName', $tableName, SQLITE3_TEXT );
-		$stmt->execute();
+		$tracking_db->update( 'iwp_db_sent', [ 'completed' => '1' ], [ 'table_name' => $curr_table_name ] );
 	}
 
-	$completed_tracking_tables = $trackingDb->querySingle( "SELECT COUNT(*) FROM tracking WHERE completed=1" );
-	$tracking_progress         = $completed_tracking_tables === 0 || $total_tracking_tables === 0 ? 0 : round( ( $completed_tracking_tables * 100 ) / $total_tracking_tables );
+	$completed_tables  = $tracking_db->query_count( 'iwp_db_sent', [ 'completed' => '1' ] );
+	$tracking_progress = $completed_tables === 0 || $total_tracking_tables === 0 ? 0 : round( ( $completed_tables * 100 ) / $total_tracking_tables );
 
 	header( "x-iwp-progress: $tracking_progress" );
 
 	echo implode( "\n", $sqlStatements );
-
-	$mysqli->close();
-	$trackingDb->close();
 }

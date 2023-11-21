@@ -36,7 +36,8 @@ define( 'INSTAWP_RESTORE_TIMEOUT', 180 );
 
 defined( 'INSTAWP_PLUGIN_URL' ) || define( 'INSTAWP_PLUGIN_URL', WP_PLUGIN_URL . '/' . plugin_basename( dirname( __FILE__ ) ) . '/' );
 defined( 'INSTAWP_PLUGIN_DIR' ) || define( 'INSTAWP_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
-
+defined( 'INSTAWP_DEFAULT_BACKUP_DIR' ) || define( 'INSTAWP_DEFAULT_BACKUP_DIR', 'instawpbackups' );
+defined( 'INSTAWP_BACKUP_DIR' ) || define( 'INSTAWP_BACKUP_DIR', WP_CONTENT_DIR . DIRECTORY_SEPARATOR . INSTAWP_DEFAULT_BACKUP_DIR . DIRECTORY_SEPARATOR );
 
 define( 'INSTAWP_CHUNK_SIZE', 1024 * 1024 );
 
@@ -67,10 +68,9 @@ define( 'INSTAWP_DEFAULT_EXCLUDE_FILE_SIZE', 0 );
 //Add a file in an archive without compressing the file.The default value is 200.
 define( 'INSTAWP_DEFAULT_NO_COMPRESS', true );
 //Backup save folder under WP_CONTENT_DIR
-define( 'INSTAWP_DEFAULT_BACKUP_DIR', 'instawpbackups' );
+
 //Log save folder under WP_CONTENT_DIR
 define( 'INSTAWP_DEFAULT_LOG_DIR', 'instawpbackups' . DIRECTORY_SEPARATOR . 'instawp_log' );
-//Old files folder under INSTAWP_DEFAULT_BACKUP_DIR
 define( 'INSTAWP_DEFAULT_ROLLBACK_DIR', 'instawp-old-files' );
 //
 define( 'INSTAWP_DEFAULT_ADMIN_BAR', true );
@@ -191,17 +191,25 @@ run_instawp();
 add_action( 'wp_head', function () {
 	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
 
-//		delete_option( 'instawp_sync_parent_connect_data' );
+//		$migrate_key = InstaWP_Tools::get_random_string( 40 );
+//		$api_signature      = "0ed54b0cda81d92096ee2f957c5fe9b441668e5fcaa445a081490fc02bb0d5bf00bf7d8c55213e3ffa48ef26aa6e712cba4534995c119e3861d98da69ecc9594";
+//		$migrate_settings_str = '{"type":"full","excluded_tables":["wp_actionscheduler_logs","wp_instawp_staging_sites","wp_instawp_events","wp_instawp_sync_history","wp_instawp_event_sites","wp_instawp_event_sync_logs"],"excluded_tables_rows":{"wp_options":["option_name:instawp_api_options","option_name:instawp_connect_id_options","option_name:instawp_sync_parent_connect_data","option_name:instawp_migration_details","option_name:instawp_api_key_config_completed","option_name:instawp_is_event_syncing","option_name:_transient_instawp_staging_sites","option_name:_transient_timeout_instawp_staging_sites"]}}';
+//		$migrate_settings     = json_decode( $migrate_settings_str, true );
+//		$pre_check_response   = instawp()->tools::get_pull_pre_check_response( $migrate_key, $migrate_settings );
 
-
-		$migration_details = 'a:5:{s:10:"migrate_id";i:705;s:11:"migrate_key";s:40:"8513fe5157f5fea86dd3c8d2238e7fe0cf277b17";s:12:"tracking_url";s:73:"https://stage.instawp.io/migrates-v3/df3528fe-e1aa-4b81-b23c-d31e94f14962";s:8:"dest_url";s:48:"https://ugliest-unicorn-yz1hw.a.instawpsites.com";s:10:"started_at";s:19:"2023-11-16 11:15:55";}';
-//		$migration_details = get_option( 'instawp_migration_details' );
-
-		update_option( 'instawp_migration_details', unserialize( $migration_details ) );
+		$migrate_key = "4fa45b1ea7448176a29677960044f7ebe8d04542";
+		$tracking_db = InstaWP_Tools::get_tracking_database( $migrate_key );
 
 		echo "<pre>";
-		print_r( get_option( 'instawp_migration_details' ) );
+		print_r( $tracking_db->query_count( 'iwp_files_sent', [ 'sent' => '0' ] ) );
 		echo "</pre>";
+
+//		while ( $row = $result->fetch_array() ) {
+//			echo "<pre>";
+//			print_r( $row );
+//			echo "</pre>";
+//		}
+
 
 		die();
 	}
