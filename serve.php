@@ -1,13 +1,9 @@
 <?php
-//set_time_limit( 0 );
-//error_reporting( 0 );
+set_time_limit( 0 );
+error_reporting( 0 );
 
 $migrate_key   = isset( $_POST['migrate_key'] ) ? $_POST['migrate_key'] : '';
 $api_signature = isset( $_POST['api_signature'] ) ? $_POST['api_signature'] : '';
-
-$migrate_key   = "4fa45b1ea7448176a29677960044f7ebe8d04542";
-$api_signature = "0ed54b0cda81d92096ee2f957c5fe9b441668e5fcaa445a081490fc02bb0d5bf00bf7d8c55213e3ffa48ef26aa6e712cba4534995c119e3861d98da69ecc9594";
-
 
 if ( empty( $migrate_key ) ) {
 	header( 'x-iwp-status: false' );
