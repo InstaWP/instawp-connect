@@ -121,7 +121,14 @@
                         create_container.removeClass('loading').addClass('completed');
                         clearInterval(create_container.attr('interval-id'));
 
-                        el_migration_error_message.html(response.data.failed_message);
+                        if (response.data.failed_message) {
+                            el_migration_error_message.html(response.data.failed_message);
+                        } else {
+                            el_migration_error_message.html(response.data.message);
+                        }
+
+                        console.log(response);
+
                         el_migration_download_log.data('migrate-id', response.data.migrate_id);
                         el_migration_download_log.data('server-logs', response.data.server_logs);
 

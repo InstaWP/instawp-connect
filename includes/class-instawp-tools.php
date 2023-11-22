@@ -260,8 +260,6 @@ class InstaWP_Tools {
 
 		$response = curl_exec( $curl );
 
-        echo "<pre>"; print_r( $response ); echo "</pre>";
-
 		if ( curl_errno( $curl ) ) {
 			error_log( 'Curl Error: ' . curl_error( $curl ) );
 		}
@@ -610,10 +608,6 @@ class InstaWP_Tools {
 		$migration_settings = InstaWP_Setting::get_option( 'instawp_migration_settings', [] );
 		$parent_domain      = InstaWP_Setting::get_args_option( 'parent_domain', $migration_settings );
 		$skip_media_folder  = InstaWP_Setting::get_args_option( 'skip_media_folder', $migration_settings, false );
-
-//		echo "<pre>";
-//		print_r( [ $migration_settings, $parent_domain, $skip_media_folder, ( $skip_media_folder && ! empty( $parent_domain ) ) ] );
-//		echo "</pre>";
 
 		if ( $skip_media_folder && ! empty( $parent_domain ) ) {
 

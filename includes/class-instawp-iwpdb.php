@@ -16,8 +16,6 @@ class IWPDB {
 		$this->set_options_data();
 		$this->connect_database();
 		$this->create_require_tables();
-
-
 	}
 
 	public function insert( $table_name, $data = [] ) {
@@ -141,6 +139,26 @@ class IWPDB {
 		return isset( $this->options_data[ $option_name ] ) ? $this->options_data[ $option_name ] : $default;
 	}
 
+	public function update_option( $option_name = '', $value = '' ) {
+
+		if ( empty( $option_name || empty( $this->migrate_key ) ) ) {
+			return false;
+		}
+
+		$this->options_data[ $option_name ] = $value;
+
+		$options_data_str       = json_encode( $this->options_data );
+		$options_data_encrypted = openssl_encrypt( $options_data_str, 'AES-128-ECB', $this->migrate_key );
+		$options_data_filename  = INSTAWP_BACKUP_DIR . 'options-' . $this->migrate_key . '.txt';
+		$options_data_stored    = file_put_contents( $options_data_filename, $options_data_encrypted );
+
+		if ( ! $options_data_stored ) {
+			return false;
+		}
+
+		return true;
+	}
+
 	private function index_exists( $indexName, $tableName ) {
 		$query  = "SHOW INDEX FROM `$tableName` WHERE Key_name = '$indexName'";
 		$result = $this->query( $query );
@@ -158,7 +176,6 @@ class IWPDB {
 
 	public function get_all_tables() {
 		$show_tables_res = $this->query( 'SHOW TABLES' );
-
 
 		$this->fetch_rows( $show_tables_res, $tables );
 

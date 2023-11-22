@@ -192,23 +192,19 @@ add_action( 'wp_head', function () {
 	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
 
 //		$migrate_key = InstaWP_Tools::get_random_string( 40 );
-//		$api_signature      = "0ed54b0cda81d92096ee2f957c5fe9b441668e5fcaa445a081490fc02bb0d5bf00bf7d8c55213e3ffa48ef26aa6e712cba4534995c119e3861d98da69ecc9594";
+//		$api_signature      = "4fd7be36694620a8b58760a5651b00f4af627c738dbcc60f4f55118561597311aaacd23faf2a37b32aaddc7d476f2bd2d7b510288f11cccae7cf45cf7c914044";
+
+
 //		$migrate_settings_str = '{"type":"full","excluded_tables":["wp_actionscheduler_logs","wp_instawp_staging_sites","wp_instawp_events","wp_instawp_sync_history","wp_instawp_event_sites","wp_instawp_event_sync_logs"],"excluded_tables_rows":{"wp_options":["option_name:instawp_api_options","option_name:instawp_connect_id_options","option_name:instawp_sync_parent_connect_data","option_name:instawp_migration_details","option_name:instawp_api_key_config_completed","option_name:instawp_is_event_syncing","option_name:_transient_instawp_staging_sites","option_name:_transient_timeout_instawp_staging_sites"]}}';
 //		$migrate_settings     = json_decode( $migrate_settings_str, true );
 //		$pre_check_response   = instawp()->tools::get_pull_pre_check_response( $migrate_key, $migrate_settings );
 
-		$migrate_key = "4fa45b1ea7448176a29677960044f7ebe8d04542";
+		$migrate_key = "1b17c9e6730dc20557498ec47a5041d9a3178dd3";
 		$tracking_db = InstaWP_Tools::get_tracking_database( $migrate_key );
 
 		echo "<pre>";
-		print_r( $tracking_db->query_count( 'iwp_files_sent', [ 'sent' => '0' ] ) );
+		print_r( $tracking_db );
 		echo "</pre>";
-
-//		while ( $row = $result->fetch_array() ) {
-//			echo "<pre>";
-//			print_r( $row );
-//			echo "</pre>";
-//		}
 
 
 		die();

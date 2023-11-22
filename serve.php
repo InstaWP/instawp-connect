@@ -293,7 +293,6 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			header( 'x-iwp-transfer-complete: true' );
 			header( 'x-iwp-message: No more files left to download.' );
 			unlink( $current_file_index_path );
-			$db = null;
 			exit;
 		}
 
@@ -313,6 +312,11 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		$tracking_db->fetch_rows( $unsent_files_query_res, $unsentFiles );
 	}
 
+//	echo "<pre>";
+//	print_r( $unsentFiles );
+//	echo "</pre>";
+//	exit;
+
 	if ( $is_archive_available && count( $unsentFiles ) > 0 ) {
 		if ( class_exists( 'ZipArchive' ) ) {
 			// ZipArchive is available
@@ -326,7 +330,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		}
 	} else {
 
-		$row = $tracking_db->fetchRow( $tracking_db->rawQuery( "SELECT id, filepath FROM files_sent WHERE sent = 0 LIMIT 1" ) );
+		$row = $tracking_db->get_row( 'iwp_files_sent', [ 'sent' => '1' ] );
 
 		if ( $row ) {
 			$fileId       = $row['id'];
@@ -344,15 +348,13 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 				readfile_chunked( $filePath );
 			}
 
-			$tracking_db->rawQuery( "UPDATE files_sent SET sent = 1 WHERE id = '$fileId'" );
+			$tracking_db->update( 'iwp_files_sent', [ 'sent' => '1' ], [ 'id' => $fileId ] );
 		} else {
 			unlink( $current_file_index_path );
 			header( 'x-iwp-status: true' );
 			header( 'x-iwp-transfer-complete: true' );
 			header( 'x-iwp-message: No more files left to download.' );
 		}
-
-		$db = null;
 	}
 }
 
