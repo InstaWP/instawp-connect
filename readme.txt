@@ -2,7 +2,7 @@
 Contributors: instawp
 Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.4
-Tested up to: 6.4
+Tested up to: 6.4.1
 Requires PHP: 7.4
 Stable tag: 0.0.9.50
 License: GPLv3 or later
@@ -100,6 +100,7 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 - FIX - Fixed get_source_site_detail api.
 - FIX - Removed SqlLite support.
 - FIX - Fix Download log button in failed screen.
+- FIX - Stabilize the staging site creation process.
 
 = 0.0.9.49 - 14 Nov 2023 =
 
