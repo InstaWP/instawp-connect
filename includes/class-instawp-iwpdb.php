@@ -64,6 +64,9 @@ class IWPDB {
 	}
 
 	public function get_rows( $table_name, $where_array = [] ) {
+		/**
+		 * @todo implement latter
+		 */
 		$query_res = $this->query( "SELECT * FROM {$table_name} WHERE {$this->build_where_clauses($where_array)}" );
 	}
 

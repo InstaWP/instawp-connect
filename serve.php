@@ -330,7 +330,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		}
 	} else {
 
-		$row = $tracking_db->get_row( 'iwp_files_sent', [ 'sent' => '1' ] );
+		$row = $tracking_db->get_row( 'iwp_files_sent', [ 'sent' => '0' ] );
 
 		if ( $row ) {
 			$fileId       = $row['id'];
