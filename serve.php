@@ -312,11 +312,6 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		$tracking_db->fetch_rows( $unsent_files_query_res, $unsentFiles );
 	}
 
-//	echo "<pre>";
-//	print_r( $unsentFiles );
-//	echo "</pre>";
-//	exit;
-
 	if ( $is_archive_available && count( $unsentFiles ) > 0 ) {
 		if ( class_exists( 'ZipArchive' ) ) {
 			// ZipArchive is available

@@ -73,7 +73,10 @@ class InstaWP_AJAX {
 
 		if ( isset( $response_data['stage']['failed'] ) && $response_data['stage']['failed'] === true ) {
 			instawp_reset_running_migration();
-			wp_send_json_error( [ 'message' => esc_html__( 'Migration failed.' ) ] );
+
+			$response_data['message'] = esc_html__( 'Migration failed.', 'instawp-connect' );
+
+			wp_send_json_error( $response_data );
 		}
 
 		if ( isset( $response_data['stage']['migration-finished'] ) && $response_data['stage']['migration-finished'] === true ) {
