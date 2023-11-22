@@ -220,7 +220,7 @@ class InstaWP_Tools {
 					'wp-content',
 					'plugins',
 					'instawp-connect',
-					'dest.php',
+					'dest.php', 
 				);
 				$file_path      = implode( DIRECTORY_SEPARATOR, $path_structure );
 				

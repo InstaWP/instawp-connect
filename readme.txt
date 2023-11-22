@@ -94,10 +94,12 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 
 == Changelog ==
 
-= 0.0.9.50 - 16 Nov 2023 =
+= 0.0.9.50 - 22 Nov 2023 =
 
+- NEW - Added connect logs to app.
 - FIX - Fixed get_source_site_detail api.
-- FIX - Added connect logs to app.
+- FIX - Removed SqlLite support.
+- FIX - Fix Download log button in failed screen.
 
 = 0.0.9.49 - 14 Nov 2023 =
 

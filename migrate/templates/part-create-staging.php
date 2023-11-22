@@ -414,7 +414,7 @@ $whitelist_ip          = instawp_whitelist_ip();
                             <div class="flex items-center mb-6">
                                 <div class="text-grayCust-900 text-base font-normal w-24"><?php esc_html_e( 'URL', 'instawp-connect' ); ?></div>
                                 <div class="flex items-center cursor-pointer text-primary-900 border-b font-medium text-base border-dashed border-primary-900 ">
-                                    <a target="_blank" id="instawp-site-url">
+                                    <a target="_blank" id="instawp-site-url" class="focus:shadow-none focus:outline-0">
                                         <span></span>
                                         <img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/share-icon.svg' ) ); ?>" class="inline ml-1" alt="">
                                     </a>
