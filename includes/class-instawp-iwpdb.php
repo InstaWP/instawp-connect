@@ -54,6 +54,14 @@ class IWPDB {
 
 		$fetch_row_res = $this->query( "SELECT * FROM {$table_name} WHERE {$this->build_where_clauses($where_array)} LIMIT 1" );
 
+//		try {
+//
+//		} catch ( Exception $e ) {
+//			echo "<pre>";
+//			print_r( $e->getMessage() );
+//			echo "</pre>";
+//		}
+
 		$this->fetch_rows( $fetch_row_res, $result );
 
 		if ( isset( $result[0] ) ) {
@@ -109,8 +117,7 @@ class IWPDB {
 
 	public function create_require_tables() {
 		$this->query( "CREATE TABLE IF NOT EXISTS iwp_files_sent (id INT AUTO_INCREMENT PRIMARY KEY, filepath VARCHAR(255) UNIQUE, sent INT DEFAULT 0, size INT)" );
-
-		$this->query( "CREATE TABLE IF NOT EXISTS iwp_db_sent ( table_name VARCHAR(255) PRIMARY KEY, offset INT DEFAULT 0, completed INT DEFAULT 0 );" );
+		$this->query( "CREATE TABLE IF NOT EXISTS iwp_db_sent (table_name VARCHAR(255) PRIMARY KEY, `offset` INT DEFAULT 0, completed INT DEFAULT 0);" );
 	}
 
 	public function connect_database() {

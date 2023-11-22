@@ -199,13 +199,6 @@ add_action( 'wp_head', function () {
 //		$migrate_settings     = json_decode( $migrate_settings_str, true );
 //		$pre_check_response   = instawp()->tools::get_pull_pre_check_response( $migrate_key, $migrate_settings );
 
-		$migrate_key = "40e1911aa15d3adba92a7875d1663992766e8b24";
-		$tracking_db = InstaWP_Tools::get_tracking_database( $migrate_key );
-
-		echo "<pre>";
-		print_r( $tracking_db );
-		echo "</pre>";
-
 
 		die();
 	}
