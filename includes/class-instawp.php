@@ -206,7 +206,7 @@ class instaWP {
 		$path     = realpath( ABSPATH );
 		$data     = [];
 
-		if ( $path !== false && $path != '' && file_exists( $path ) && is_readable ( $path ) {
+		if ( $path !== false && $path != '' && file_exists( $path ) && is_readable( $path ) ) {
 			foreach ( new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $path, FilesystemIterator::SKIP_DOTS ) ) as $object ) {
 				if ( $object->getSize() > $maxbytes && strpos( $object->getPath(), 'instawpbackups' ) === false ) {
 					$data[] = [
