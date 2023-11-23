@@ -189,18 +189,22 @@ add_filter( 'got_rewrite', '__return_true' );
 run_instawp();
 
 
-
 add_action( 'wp_head', function () {
 	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
 
 //		$migrate_key = InstaWP_Tools::get_random_string( 40 );
 //		$api_signature      = "4fd7be36694620a8b58760a5651b00f4af627c738dbcc60f4f55118561597311aaacd23faf2a37b32aaddc7d476f2bd2d7b510288f11cccae7cf45cf7c914044";
-
-
 //		$migrate_settings_str = '{"type":"full","excluded_tables":["wp_actionscheduler_logs","wp_instawp_staging_sites","wp_instawp_events","wp_instawp_sync_history","wp_instawp_event_sites","wp_instawp_event_sync_logs"],"excluded_tables_rows":{"wp_options":["option_name:instawp_api_options","option_name:instawp_connect_id_options","option_name:instawp_sync_parent_connect_data","option_name:instawp_migration_details","option_name:instawp_api_key_config_completed","option_name:instawp_is_event_syncing","option_name:_transient_instawp_staging_sites","option_name:_transient_timeout_instawp_staging_sites"]}}';
 //		$migrate_settings     = json_decode( $migrate_settings_str, true );
 //		$pre_check_response   = instawp()->tools::get_pull_pre_check_response( $migrate_key, $migrate_settings );
 
+		echo "<pre>";
+		print_r( wp_get_current_user() );
+		echo "</pre>";
+
+		echo "<pre>";
+		print_r( get_option( 'instawp_sync_tab_roles' ) );
+		echo "</pre>";
 
 		die();
 	}

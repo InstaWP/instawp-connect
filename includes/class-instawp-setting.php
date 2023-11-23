@@ -60,7 +60,7 @@ class InstaWP_Setting {
 			unset( $instawp_nav_items['manage'] );
 		}
 
-		if ( self::get_allowed_role() !== 'administrator' ) {
+		if ( ! in_array( 'administrator', InstaWP_Setting::get_option( 'instawp_sync_tab_roles', [] ) ) ) {
 			unset( $instawp_nav_items['create'] );
 			unset( $instawp_nav_items['sites'] );
 			unset( $instawp_nav_items['manage'] );

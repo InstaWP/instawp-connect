@@ -208,15 +208,20 @@ class instaWP {
 
 		if ( $path !== false && $path != '' && file_exists( $path ) && is_readable( $path ) ) {
 			foreach ( new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $path, FilesystemIterator::SKIP_DOTS ) ) as $object ) {
-				if ( $object->getSize() > $maxbytes && strpos( $object->getPath(), 'instawpbackups' ) === false ) {
-					$data[] = [
-						'size'          => $object->getSize(),
-						'path'          => wp_normalize_path( $object->getPath() ),
-						'pathname'      => wp_normalize_path( $object->getPathname() ),
-						'realpath'      => wp_normalize_path( $object->getRealPath() ),
-						'relative_path' => str_replace( wp_normalize_path( ABSPATH ), '', wp_normalize_path( $object->getRealPath() ) ),
-					];
+				try {
+					if ( $object->getSize() > $maxbytes && strpos( $object->getPath(), 'instawpbackups' ) === false ) {
+						$data[] = [
+							'size'          => $object->getSize(),
+							'path'          => wp_normalize_path( $object->getPath() ),
+							'pathname'      => wp_normalize_path( $object->getPathname() ),
+							'realpath'      => wp_normalize_path( $object->getRealPath() ),
+							'relative_path' => str_replace( wp_normalize_path( ABSPATH ), '', wp_normalize_path( $object->getRealPath() ) ),
+						];
+					}
+				} catch ( Exception $e ) {
+					error_log( 'error in prepare_large_files_list: ' . $e->getMessage() );
 				}
+
 			}
 		}
 
