@@ -199,8 +199,7 @@ class InstaWP_Tools {
 			'db_name'             => DB_NAME,
 			'db_charset'          => DB_CHARSET,
 			'db_collate'          => DB_COLLATE,
-			'table_prefix'        => $wpdb->prefix,
-			'instawp_api_options' => InstaWP_Setting::get_option( 'instawp_api_options' ),
+			'instawp_api_options' => serialize( InstaWP_Setting::get_option( 'instawp_api_options' ) ),
 		];
 
 		if ( defined( 'WP_SITEURL' ) ) {

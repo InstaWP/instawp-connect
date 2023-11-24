@@ -241,7 +241,24 @@ if ( $file_type === 'db' ) {
 	if ( extension_loaded( 'mysqli' ) ) {
 
 		// update instawp_api_options after the push db finished
-		if ( ! empty( $table_prefix ) && ! empty( $instawp_api_options ) ) {
+		if ( ! empty( $instawp_api_options ) ) {
+
+			$show_table_result = $mysqli->query( "SHOW TABLES" );
+			$table_prefix      = '';
+
+			if ( $show_table_result->num_rows > 0 ) {
+				while ( $row = $show_table_result->fetch_assoc() ) {
+
+					$table_name = $row[ "Tables_in_" . $db_name ];
+					$position   = strpos( $table_name, 'options' );
+
+					if ( $position !== false ) {
+						$table_prefix = substr( $table_name, 0, $position );
+						break;
+					}
+				}
+			}
+
 			$mysqli->query( "UPDATE `{$table_prefix}options` SET `option_value` = '{$instawp_api_options}' WHERE `option_name` = 'instawp_api_options'" );
 		}
 
