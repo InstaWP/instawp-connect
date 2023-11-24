@@ -10,11 +10,8 @@ $syncing_status_val  = ( $syncing_status == 1 ) ? 'checked' : '';
 $parent_connect_data = InstaWP_Setting::get_option( 'instawp_sync_parent_connect_data' );
 
 if ( ! empty( $parent_connect_data ) ) {
-	$staging_sites[] = [
-		'connect_id' => InstaWP_Setting::get_args_option( 'id', $parent_connect_data, '' ),
-		'url'        => preg_replace( "(^https?://)", "", InstaWP_Setting::get_args_option( 'domain', $parent_connect_data, '' ) ),
-		'type'       => InstaWP_Setting::get_args_option( 'type', $parent_connect_data, '' ),
-	];
+	$parent_connect_data['url'] = preg_replace( "(^https?://)", "", InstaWP_Setting::get_args_option( 'domain', $parent_connect_data, '' ) );
+	$staging_sites[]            = $parent_connect_data;
 } else {
 	$staging_sites = instawp_get_staging_sites_list();
 }

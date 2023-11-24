@@ -432,6 +432,47 @@ class InstaWP_Tools {
 		return $log_tables;
 	}
 
+	public static function get_migrate_settings( $posted_data = [] ) {
+
+		global $wpdb;
+
+		$settings_str = isset( $posted_data['settings'] ) ? $posted_data['settings'] : '';
+
+		parse_str( $settings_str, $settings_arr );
+
+		$migrate_settings = InstaWP_Setting::get_args_option( 'migrate_settings', $settings_arr, [] );
+
+		// remove unnecessary settings
+		if ( isset( $migrate_settings['screen'] ) ) {
+			unset( $migrate_settings['screen'] );
+		}
+
+		// Exclude two-way-sync tables
+		$excluded_tables   = $migrate_settings['excluded_tables'] ?? [];
+		$excluded_tables[] = INSTAWP_DB_TABLE_STAGING_SITES;
+		$excluded_tables[] = INSTAWP_DB_TABLE_EVENTS;
+		$excluded_tables[] = INSTAWP_DB_TABLE_SYNC_HISTORY;
+		$excluded_tables[] = INSTAWP_DB_TABLE_EVENT_SITES;
+		$excluded_tables[] = INSTAWP_DB_TABLE_EVENT_SYNC_LOGS;
+
+		$migrate_settings['excluded_tables'] = $excluded_tables;
+
+		// Remove instawp connect options
+		$migrate_settings['excluded_tables_rows'] = array(
+			"{$wpdb->prefix}options" => array(
+				'option_name:instawp_api_options',
+				'option_name:instawp_connect_id_options',
+				'option_name:instawp_sync_parent_connect_data',
+				'option_name:instawp_migration_details',
+				'option_name:instawp_api_key_config_completed',
+				'option_name:instawp_is_event_syncing',
+				'option_name:_transient_instawp_staging_sites',
+				'option_name:_transient_timeout_instawp_staging_sites',
+			),
+		);
+
+		return self::process_migration_settings( $migrate_settings );
+	}
 
 	public static function clean_junk_cache() {
 		$home_url_prefix = get_home_url();

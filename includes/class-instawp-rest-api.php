@@ -131,6 +131,12 @@ class InstaWP_Backup_Api {
 			'permission_callback' => '__return_true',
 		) );
 
+		register_rest_route( $this->namespace . '/' . $this->version_3, '/get-push-config', array(
+			'methods'             => 'GET',
+			'callback'            => array( $this, 'handle_get_push_config_api' ),
+			'permission_callback' => '__return_true',
+		) );
+
 		register_rest_route( $this->namespace . '/' . $this->version_3, '/debug', array(
 			'methods'             => 'POST',
 			'callback'            => array( $this, 'handle_debug' ),
@@ -238,6 +244,39 @@ class InstaWP_Backup_Api {
 			'api_signature' => $api_signature,
 		) );
 	}
+
+
+	/**
+	 * Handle get-push-config api
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function handle_get_push_config_api( WP_REST_Request $request ) {
+
+		$response = $this->validate_api_request( $request );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
+
+		global $wp_version;
+
+		$migrate_settings = instawp()->tools::get_migrate_settings();
+
+		return $this->send_response(
+			array(
+				'php_version'    => PHP_VERSION,
+				'wp_version'     => $wp_version,
+				'plugin_version' => INSTAWP_PLUGIN_VERSION,
+				'file_size'      => instawp()->tools::get_total_sizes( 'files', $migrate_settings ),
+				'db_size'        => instawp()->tools::get_total_sizes( 'db' ),
+				'settings'       => $migrate_settings,
+				'active_plugins' => InstaWP_Setting::get_option( 'active_plugins', [] ),
+			)
+		);
+	}
+
 
 	/**
 	 * Handle website total size info

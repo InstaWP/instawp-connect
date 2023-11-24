@@ -198,12 +198,20 @@ add_action( 'wp_head', function () {
 //		$migrate_settings     = json_decode( $migrate_settings_str, true );
 //		$pre_check_response   = instawp()->tools::get_pull_pre_check_response( $migrate_key, $migrate_settings );
 
-		echo "<pre>";
-		print_r( wp_get_current_user() );
-		echo "</pre>";
+		$api_key          = InstaWP_Setting::get_api_key();
+		$api_key_exploded = explode( '|', $api_key );
+
+		if ( count( $api_key_exploded ) > 1 ) {
+			$api_key_hash = hash( 'sha256', $api_key_exploded[1] );
+		} else {
+			$api_key_hash = hash( 'sha256', $api_key );
+		}
+
+		echo "<pre>"; print_r( $api_key ); echo "</pre>";
+
 
 		echo "<pre>";
-		print_r( get_option( 'instawp_sync_tab_roles' ) );
+		print_r( instawp()->tools::get_migrate_settings() );
 		echo "</pre>";
 
 		die();

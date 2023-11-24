@@ -351,12 +351,12 @@ class InstaWP_Sync_Ajax {
 
 	public function sync_changes() {
 		if ( isset( $_POST['dest_connect_id'] ) && $_POST['dest_connect_id'] != '' ) {
-			$dest_connect_id = sanitize_text_field( $_POST['dest_connect_id'] );
 
-			$message   = isset( $_POST['sync_message'] ) ? $_POST['sync_message'] : '';
-			$data      = stripslashes( $_POST['data'] );
-			$events    = $this->get_wp_events();
-			$eventsArr = json_decode( $events );
+			$dest_connect_id = sanitize_text_field( $_POST['dest_connect_id'] );
+			$message         = isset( $_POST['sync_message'] ) ? $_POST['sync_message'] : '';
+			$data            = stripslashes( $_POST['data'] );
+			$events          = $this->get_wp_events();
+			$eventsArr       = json_decode( $events );
 
 			if ( isset( $eventsArr->success ) && $eventsArr->success === true ) {
 				$packed_data = json_encode( [
