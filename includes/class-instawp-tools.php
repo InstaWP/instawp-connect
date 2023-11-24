@@ -188,14 +188,19 @@ class InstaWP_Tools {
 	}
 
 	public static function generate_destination_file( $migrate_key, $api_signature ) {
+
+		global $wpdb;
+
 		$data = [
-			'api_signature' => $api_signature,
-			'db_host'       => DB_HOST,
-			'db_username'   => DB_USER,
-			'db_password'   => DB_PASSWORD,
-			'db_name'       => DB_NAME,
-			'db_charset'    => DB_CHARSET,
-			'db_collate'    => DB_COLLATE,
+			'api_signature'       => $api_signature,
+			'db_host'             => DB_HOST,
+			'db_username'         => DB_USER,
+			'db_password'         => DB_PASSWORD,
+			'db_name'             => DB_NAME,
+			'db_charset'          => DB_CHARSET,
+			'db_collate'          => DB_COLLATE,
+			'table_prefix'        => $wpdb->prefix,
+			'instawp_api_options' => InstaWP_Setting::get_option( 'instawp_api_options' ),
 		];
 
 		if ( defined( 'WP_SITEURL' ) ) {

@@ -28,16 +28,16 @@ while ( ! file_exists( $root_path . DIRECTORY_SEPARATOR . 'wp-config.php' ) ) {
 $json_path = $root_path . DIRECTORY_SEPARATOR . 'wp-content' . DIRECTORY_SEPARATOR . 'instawpbackups' . DIRECTORY_SEPARATOR . $migrate_key . '.json';
 
 if ( file_exists( $json_path ) ) {
-    $jsonString = file_get_contents( $json_path );
-    $jsonData   = json_decode( $jsonString, true );
+	$jsonString = file_get_contents( $json_path );
+	$jsonData   = json_decode( $jsonString, true );
 
-    if ( $jsonData !== null ) {
+	if ( $jsonData !== null ) {
 		extract( $jsonData );
-    } else {
+	} else {
 		header( 'x-iwp-status: false' );
 		header( 'x-iwp-message: Error: Unable to parse JSON data.' );
 		die();
-    }
+	}
 } else {
 	header( 'x-iwp-status: false' );
 	header( 'x-iwp-message: Error: JSON file not found.' );
@@ -60,7 +60,7 @@ if ( isset( $_POST['check'] ) ) {
 }
 
 if ( ! isset( $_SERVER['HTTP_X_FILE_RELATIVE_PATH'] ) ) {
-    header( 'x-iwp-status: false' );
+	header( 'x-iwp-status: false' );
 	header( 'x-iwp-message: Could not find the X-File-Relative-Path header in the request.' );
 	die();
 }
@@ -199,7 +199,7 @@ if ( $file_type === 'db' ) {
 	if ( $req_order < 1 ) {
 		if ( extension_loaded( 'mysqli' ) ) {
 			$mysqli->query( 'SET foreign_key_checks = 0' );
-			
+
 			if ( $result = $mysqli->query( 'SHOW TABLES' ) ) {
 				while ( $row = $result->fetch_array( MYSQLI_NUM ) ) {
 					$mysqli->query( 'DROP TABLE IF EXISTS ' . $row[0] );
@@ -219,7 +219,7 @@ if ( $file_type === 'db' ) {
 			mysql_query( 'SET foreign_key_checks = 1', $connection );
 		}
 	}
-	
+
 	$sql_commands = file_get_contents( $file_save_path );
 	$commands     = explode( ";\n\n", $sql_commands );
 
@@ -239,6 +239,12 @@ if ( $file_type === 'db' ) {
 	}
 
 	if ( extension_loaded( 'mysqli' ) ) {
+
+		// update instawp_api_options after the push db finished
+		if ( ! empty( $table_prefix ) && ! empty( $instawp_api_options ) ) {
+			$mysqli->query( "UPDATE `{$table_prefix}options` SET `option_value` = '{$instawp_api_options}' WHERE `option_name` = 'instawp_api_options'" );
+		}
+
 		$mysqli->close();
 	} else {
 		mysql_close( $connection );
@@ -255,10 +261,10 @@ if ( $file_type === 'zip' ) {
 			$zip = new ZipArchive();
 			$res = $zip->open( $file_save_path );
 
-			if ( $res === TRUE || $zip->status == 0 ) {
+			if ( $res === true || $zip->status == 0 ) {
 				$zip->extractTo( $directory_name );
 				$zip->close();
-		
+
 				if ( file_exists( $file_save_path ) ) {
 					unlink( $file_save_path );
 				}
@@ -266,7 +272,7 @@ if ( $file_type === 'zip' ) {
 				echo "Couldn't extract $file_save_path.zip.\n";
 				echo "ZipArchive Error (status): " . $zip->status . " - " . zipStatusString( $zip->status ) . "\n";
 				echo "ZipArchive System Error (statusSys): " . $zip->statusSys . "\n";
-		
+
 				header( 'x-iwp-status: false' );
 				header( "x-iwp-message: Couldn\'t extract $file_save_path .zip.\n" );
 				die();

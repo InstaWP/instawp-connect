@@ -242,16 +242,16 @@ class InstaWP_Backup_Api {
 
 		return $this->send_response(
 			array(
-				'php_version'    => PHP_VERSION,
-				'wp_version'     => $wp_version,
-				'plugin_version' => INSTAWP_PLUGIN_VERSION,
-				'file_size'      => instawp()->tools::get_total_sizes( 'files', $migrate_settings ),
-				'db_size'        => instawp()->tools::get_total_sizes( 'db' ),
-				'settings'       => $migrate_settings,
-				'active_plugins' => InstaWP_Setting::get_option( 'active_plugins', [] ),
-				'migrate_key'    => $migrate_key,
-				'dest_url'       => $dest_file_url,
-				'api_signature'  => $api_signature,
+				'php_version'      => PHP_VERSION,
+				'wp_version'       => $wp_version,
+				'plugin_version'   => INSTAWP_PLUGIN_VERSION,
+				'file_size'        => instawp()->tools::get_total_sizes( 'files', $migrate_settings ),
+				'db_size'          => instawp()->tools::get_total_sizes( 'db' ),
+				'active_plugins'   => InstaWP_Setting::get_option( 'active_plugins', [] ),
+				'migrate_settings' => $migrate_settings,
+				'migrate_key'      => $migrate_key,
+				'dest_url'         => $dest_file_url,
+				'api_signature'    => $api_signature,
 			)
 		);
 	}

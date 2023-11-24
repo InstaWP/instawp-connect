@@ -198,21 +198,46 @@ add_action( 'wp_head', function () {
 //		$migrate_settings     = json_decode( $migrate_settings_str, true );
 //		$pre_check_response   = instawp()->tools::get_pull_pre_check_response( $migrate_key, $migrate_settings );
 
-		$api_key          = InstaWP_Setting::get_api_key();
-		$api_key_exploded = explode( '|', $api_key );
 
-		if ( count( $api_key_exploded ) > 1 ) {
-			$api_key_hash = hash( 'sha256', $api_key_exploded[1] );
-		} else {
-			$api_key_hash = hash( 'sha256', $api_key );
-		}
+//		echo "<pre>";
+//		print_r( InstaWP_Setting::get_option( 'instawp_api_options' ) );
+//		echo "</pre>";
 
-		echo "<pre>"; print_r( $api_key ); echo "</pre>";
+//
+//		$json_path = '/home/1136091.cloudwaysapps.com/fhpzsvmjkw/public_html/wp-content/instawpbackups/8c53270481b4620d013911a84eebada0f4188d70.json';
+//		if ( file_exists( $json_path ) ) {
+//			$jsonString = file_get_contents( $json_path );
+//			$jsonData   = json_decode( $jsonString, true );
+//
+//			if ( $jsonData !== null ) {
+//				extract( $jsonData );
+//			} else {
+//				header( 'x-iwp-status: false' );
+//				header( 'x-iwp-message: Error: Unable to parse JSON data.' );
+//				die();
+//			}
+//		} else {
+//			header( 'x-iwp-status: false' );
+//			header( 'x-iwp-message: Error: JSON file not found.' );
+//			die();
+//		}
+//
+//		$mysqli = new mysqli( $db_host, $db_username, $db_password, $db_name );
+//
+////		$instawp_api_options = serialize( $instawp_api_options );
+//		$instawp_api_options = 'a:4:{s:7:"api_key";s:40:"pStZUVgJyVUmk1GFm9B92iq2pcLO6j9PpDRBQGib";s:7:"api_url";s:24:"https://stage.instawp.io";s:8:"response";a:3:{s:6:"status";i:1;s:7:"message";s:12:"Key verified";s:4:"data";a:3:{s:6:"status";b:1;s:4:"name";s:14:"Jaed Mosharraf";s:10:"permisions";a:1:{i:0;s:1:"*";}}}s:10:"connect_id";i:8005;}';
+//
+//		$ret = $mysqli->query( "UPDATE `{$table_prefix}options` SET `option_value` = '{$instawp_api_options}' WHERE `option_name` = 'instawp_api_options_2'" );
+//
+////		update_option( 'instawp_api_options_2', $instawp_api_options );
+//
+//		echo "<pre>";
+//		print_r( [
+//			$instawp_api_options,
+//			$ret,
+//		] );
+//		echo "</pre>";
 
-
-		echo "<pre>";
-		print_r( instawp()->tools::get_migrate_settings() );
-		echo "</pre>";
 
 		die();
 	}
