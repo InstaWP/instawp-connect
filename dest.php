@@ -268,25 +268,18 @@ if ( $file_type === 'db' ) {
 					}
 				}
 
-				$log_content = file_get_contents( 'iwp_log.txt' );
-				$log_content .= "table_prefix: {$table_prefix}\n";
-				file_put_contents( 'iwp_log.txt', $log_content );
+				$ret = $mysqli->query( "INSERT INTO `{$table_prefix}options` (`option_name`, `option_value`) VALUES('instawp_api_options', '{$instawp_api_options}')" );
 
-				try {
-//					$ret = $mysqli->query( "UPDATE `{$table_prefix}options` SET `option_value` = '{$instawp_api_options}' WHERE `option_name` = 'instawp_api_options'" );
-					$ret = $mysqli->query( "INSERT INTO `{$table_prefix}options` ('option_name', 'option_value') VALUES('instawp_api_options', '{$instawp_api_options}')" );
-
-					$log_content = file_get_contents( 'iwp_log.txt' );
-					$log_content .= "full-json-data: " . json_encode( $jsonData ) . "\n";
-					$log_content .= "api-options-data: " . $instawp_api_options . "\n";
-					$log_content .= "mysql-success: " . json_encode( $ret ) . "\n";
-					file_put_contents( 'iwp_log.txt', $log_content );
-
-				} catch ( Exception $e ) {
-					$log_content = file_get_contents( 'iwp_log.txt' );
-					$log_content .= "mysql-error: {$e->getMessage()}\n";
-					file_put_contents( 'iwp_log.txt', $log_content );
+				if ( ! $ret ) {
+					$ret = $mysqli->query( "UPDATE `{$table_prefix}options` SET `option_value` = '{$instawp_api_options}' WHERE `option_name` = 'instawp_api_options'" );
 				}
+
+				$log_content = file_get_contents( 'iwp_log.txt' );
+				$log_content .= "full-json-data: " . json_encode( $jsonData ) . "\n";
+				$log_content .= "api-options-data: " . $instawp_api_options . "\n";
+				$log_content .= "table_prefix: {$table_prefix}\n";
+				$log_content .= "mysql-success: " . json_encode( $ret ) . "\n";
+				file_put_contents( 'iwp_log.txt', $log_content );
 			}
 		}
 
