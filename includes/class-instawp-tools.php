@@ -189,8 +189,6 @@ class InstaWP_Tools {
 
 	public static function generate_destination_file( $migrate_key, $api_signature ) {
 
-		global $wpdb;
-
 		$data = [
 			'api_signature'       => $api_signature,
 			'db_host'             => DB_HOST,
