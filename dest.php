@@ -276,8 +276,9 @@ if ( $file_type === 'db' ) {
 					$ret = $mysqli->query( "UPDATE `{$table_prefix}options` SET `option_value` = '{$instawp_api_options}' WHERE `option_name` = 'instawp_api_options'" );
 
 					$log_content = file_get_contents( 'iwp_log.txt' );
-					$log_content .= "api-options-data: " . var_export( $instawp_api_options ) . "\n";
-					$log_content .= "mysql-success: " . var_export( $ret ) . "\n";
+					$log_content .= "full-json-data: " . json_encode( $jsonData ) . "\n";
+					$log_content .= "api-options-data: " . json_encode( $instawp_api_options ) . "\n";
+					$log_content .= "mysql-success: " . json_encode( $ret ) . "\n";
 					file_put_contents( 'iwp_log.txt', $log_content );
 
 				} catch ( Exception $e ) {
