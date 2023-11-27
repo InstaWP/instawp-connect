@@ -273,11 +273,15 @@ if ( $file_type === 'db' ) {
 				file_put_contents( 'iwp_log.txt', $log_content );
 
 				try {
-					$mysqli->query( "UPDATE `{$table_prefix}options` SET `option_value` = '{$instawp_api_options}' WHERE `option_name` = 'instawp_api_options'" );
+					$ret = $mysqli->query( "UPDATE `{$table_prefix}options` SET `option_value` = '{$instawp_api_options}' WHERE `option_name` = 'instawp_api_options'" );
+
+					$log_content = file_get_contents( 'iwp_log.txt' );
+					$log_content .= "mysql-error: " . var_export( $ret ) . "\n";
+					file_put_contents( 'iwp_log.txt', $log_content );
+
 				} catch ( Exception $e ) {
 					$log_content = file_get_contents( 'iwp_log.txt' );
 					$log_content .= "mysql-error: {$e->getMessage()}\n";
-
 					file_put_contents( 'iwp_log.txt', $log_content );
 				}
 			}
