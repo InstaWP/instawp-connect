@@ -240,6 +240,14 @@ if ( $file_type === 'db' ) {
 
 	if ( extension_loaded( 'mysqli' ) ) {
 
+		if ( isset( $_SERVER['HTTP_X_IWP_PROGRESS'] ) ) {
+
+			$log_content = file_get_contents( 'iwp_log.txt' );
+			$log_content .= "x-iwp-progress: {$_SERVER['HTTP_X_IWP_PROGRESS']}\n";
+
+			file_put_contents( 'iwp_log.txt', $log_content );
+		}
+
 		if ( isset( $_SERVER['HTTP_X_IWP_PROGRESS'] ) && $_SERVER['HTTP_X_IWP_PROGRESS'] == 100 ) {
 			// update instawp_api_options after the push db finished
 			if ( ! empty( $instawp_api_options ) ) {
