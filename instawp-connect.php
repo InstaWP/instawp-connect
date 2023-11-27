@@ -7,7 +7,7 @@
  * @wordpress-plugin
  * Plugin Name:       InstaWP Connect
  * Description:       Create 1-click staging, migration and manage your prod sites.
- * Version:           0.0.9.50
+ * Version:           0.0.9.51-dev
  * Author:            InstaWP Team
  * Author URI:        https://instawp.com/
  * License:           GPL-3.0+
@@ -203,47 +203,6 @@ add_action( 'wp_head', function () {
 //		print_r( InstaWP_Setting::get_option( 'instawp_api_options' ) );
 //		echo "</pre>";
 
-
-		$json_path = '/home/1136091.cloudwaysapps.com/fhpzsvmjkw/public_html/wp-content/instawpbackups/8c53270481b4620d013911a84eebada0f4188d70.json';
-		if ( file_exists( $json_path ) ) {
-			$jsonString = file_get_contents( $json_path );
-			$jsonData   = json_decode( $jsonString, true );
-
-			if ( $jsonData !== null ) {
-				extract( $jsonData );
-			} else {
-				header( 'x-iwp-status: false' );
-				header( 'x-iwp-message: Error: Unable to parse JSON data.' );
-				die();
-			}
-		} else {
-			header( 'x-iwp-status: false' );
-			header( 'x-iwp-message: Error: JSON file not found.' );
-			die();
-		}
-
-		$mysqli = new mysqli( $db_host, $db_username, $db_password, $db_name );
-
-//		$instawp_api_options = serialize( $instawp_api_options );
-//		$instawp_api_options = 'a:4:{s:7:"api_key";s:40:"pStZUVgJyVUmk1GFm9B92iq2pcLO6j9PpDRBQGib";s:7:"api_url";s:24:"https://stage.instawp.io";s:8:"response";a:3:{s:6:"status";i:1;s:7:"message";s:12:"Key verified";s:4:"data";a:3:{s:6:"status";b:1;s:4:"name";s:14:"Jaed Mosharraf";s:10:"permisions";a:1:{i:0;s:1:"*";}}}s:10:"connect_id";i:8005;}';
-
-//		$ret = $mysqli->query( "UPDATE `{$table_prefix}options` SET `option_value` = '{$instawp_api_options}' WHERE `option_name` = 'instawp_api_options_2'" );
-
-//		$show_table_result = $mysqli->query( "SHOW TABLES" );
-//		$table_prefix      = '';
-//
-//		if ( $show_table_result->num_rows > 0 ) {
-//			while ( $row = $show_table_result->fetch_assoc() ) {
-//
-//				$table_name = $row[ "Tables_in_" . $db_name ];
-//				$position   = strpos( $table_name, 'options' );
-//
-//				if ( $position !== false ) {
-//					$table_prefix = substr( $table_name, 0, $position );
-//					break;
-//				}
-//			}
-//		}
 
 		die();
 	}
