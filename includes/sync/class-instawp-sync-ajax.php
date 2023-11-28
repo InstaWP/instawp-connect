@@ -17,69 +17,55 @@ class InstaWP_Sync_Ajax {
 
 	private $wpdb;
 
-	private $InstaWP_db;
-
-	private $newdata;
-
-	private $tables;
+	private $iwpdb;
 
 	public function __construct() {
 		global $wpdb;
 
-		$this->wpdb = $wpdb;
-
-		$this->InstaWP_db = new InstaWP_DB();
-
-		$this->tables = $this->InstaWP_db->tables;
+		$this->wpdb  = $wpdb;
+		$this->iwpdb = new InstaWP_DB();
 
 		#The wp_ajax_ hook only fires for logged-in users
-		add_action( "wp_ajax_instawp_pack_events", array( $this, "instawp_pack_events" ) );
-		add_action( "wp_ajax_sync_changes", array( $this, "sync_changes" ) );
-		add_action( "wp_ajax_single_sync", array( $this, "single_sync" ) );
-		add_action( "wp_ajax_instawp_is_event_syncing", array( $this, "instawp_is_event_syncing" ) );
-		add_action( 'wp_ajax_get_site_events', array( $this, 'get_site_events' ) );
-		add_action( 'wp_ajax_get_events_summary', array( $this, 'get_events_summary' ) );
-		add_action( 'wp_ajax_instawp_handle_select2', array( $this, 'instawp_handle_select2' ) );
-		add_action( 'wp_ajax_instawp_delete_events', array( $this, 'instawp_delete_events' ) );
-		add_action( 'wp_ajax_instawp_calculate_events', array( $this, 'instawp_calculate_events' ) );
-		add_action( 'wp_ajax_get_site_events_ajax', array( $this, 'get_site_events_ajax' ) );
+		add_action( 'wp_ajax_instawp_pack_events', array( $this, 'pack_events' ) );
+		add_action( 'wp_ajax_instawp_sync_changes', array( $this, 'sync_changes' ) );
+		add_action( 'wp_ajax_instawp_single_sync', array( $this, 'single_sync' ) );
+		add_action( 'wp_ajax_instawp_is_event_syncing', array( $this, 'is_event_syncing' ) );
+		add_action( 'wp_ajax_instawp_get_site_events', array( $this, 'get_site_events' ) );
+		add_action( 'wp_ajax_instawp_get_events_summary', array( $this, 'get_events_summary' ) );
+		add_action( 'wp_ajax_instawp_handle_select2', array( $this, 'handle_select2' ) );
+		add_action( 'wp_ajax_instawp_delete_events', array( $this, 'delete_events' ) );
+		add_action( 'wp_ajax_instawp_calculate_events', array( $this, 'calculate_events' ) );
 	}
 
-	public function instawp_is_event_syncing() {
+	public function is_event_syncing() {
 		$sync_status = $_POST['sync_status'];
-		if ( ! get_option( 'instawp_is_event_syncing' ) ) {
-			add_option( 'instawp_is_event_syncing', $sync_status );
-		}
 		update_option( 'instawp_is_event_syncing', $sync_status );
+
 		$message = ( $sync_status == 1 ) ? 'Syncing enabled!' : 'Syncing disabled!';
-		echo json_encode( [ 'sync_status' => $sync_status, 'message' => $message ] );
-		wp_die();
+		wp_send_json( [ 'sync_status' => $sync_status, 'message' => $message ] );
 	}
 
-	public function formatSuccessReponse( $message, $data = [] ) {
-		return json_encode( [
-			"success" => true,
-			"message" => $message,
-			"data"    => $data
+	public function send_success( $message, $data = [] ) {
+		wp_send_json( [
+			'success' => true,
+			'message' => $message,
+			'data'    => $data
 		] );
 	}
 
-	public function formatErrorReponse( $message = "Something went wrong" ) {
-		return json_encode( [
-			"success" => false,
-			"message" => $message
+	public function send_error( $message = 'Something went wrong' ) {
+		wp_send_json( [
+			'success' => false,
+			'message' => $message
 		] );
 	}
 
 	public function get_site_events() {
-		global $wpdb;
 		$where          = '1=1';
-		$InstaWP_db     = new InstaWP_DB();
-		$tables         = $InstaWP_db->tables;
 		$items_per_page = INSTAWP_EVENTS_PER_PAGE;
 		$connect_id     = isset( $_POST['connect_id'] ) ? sanitize_text_field( $_POST['connect_id'] ) : 0;
-
-		$staging_site = get_connect_detail_by_connect_id( $connect_id );
+		$InstaWP_db     = $this->iwpdb;
+		$staging_site   = get_connect_detail_by_connect_id( $connect_id );
 
 		if ( ! empty( $staging_site ) && isset( $staging_site['created_at'] ) ) {
 			$staging_site_created = date( 'Y-m-d h:i:s', strtotime( $staging_site['created_at'] ) );
@@ -88,12 +74,12 @@ class InstaWP_Sync_Ajax {
 
 		$query       = "SELECT * FROM " . INSTAWP_DB_TABLE_EVENTS . "  WHERE $where";
 		$total_query = "SELECT COUNT(1) FROM ({$query}) AS combined_table ";
-		$total       = $wpdb->get_var( $total_query );
+		$total       = $this->wpdb->get_var( $total_query );
 
 		$page   = isset( $_POST['epage'] ) ? abs( (int) $_POST['epage'] ) : 1;
 		$offset = ( $page * $items_per_page ) - $items_per_page;
 
-		$events = $wpdb->get_results( $query . " ORDER BY id DESC LIMIT {$offset}, {$items_per_page}" );
+		$events = $this->wpdb->get_results( $query . " ORDER BY id DESC LIMIT {$offset}, {$items_per_page}" );
 
 		$totalPage = ceil( $total / $items_per_page );
 
@@ -102,14 +88,13 @@ class InstaWP_Sync_Ajax {
 		$data = ob_get_contents();
 		ob_end_clean();
 
-		echo $this->formatSuccessReponse( "Event fetched.", [
+		$this->send_success( 'Event fetched.', [
 			'results'    => $data,
 			'pagination' => $this->get_events_sync_list_pagination( $total, $items_per_page, $page )
 		] );
-		wp_die();
 	}
 
-	public function instawp_handle_select2() {
+	public function handle_select2() {
 		if ( isset( $_GET['event'] ) ) {
 			if ( $_GET['event'] == 'instawp_get_users' ) {
 				$keyword = $_GET['term'];
@@ -120,7 +105,7 @@ class InstaWP_Sync_Ajax {
 					'fields'         => array( 'id', 'user_login' )
 				);
 				$users   = get_users( $args );
-				echo $this->formatSuccessReponse( "Users loaded", [ 'results' => $users, 'opt_col' => [ 'text' => 'user_login', 'id' => 'ID' ] ] );
+				$this->send_success( "Users loaded", [ 'results' => $users, 'opt_col' => [ 'text' => 'user_login', 'id' => 'ID' ] ] );
 			} else if ( $_GET['event'] == 'instawp_sync_tab_roles' ) {
 
 				$results   = [];
@@ -128,13 +113,12 @@ class InstaWP_Sync_Ajax {
 				foreach ( $all_roles as $slug => $role ) {
 					$results[] = [ 'id' => $slug, 'name' => $role['name'] ];
 				}
-				echo $this->formatSuccessReponse( "Users loaded", [ 'results' => $results, 'opt_col' => [ 'text' => 'name', 'id' => 'id' ] ] );
+				$this->send_success( "Users loaded", [ 'results' => $results, 'opt_col' => [ 'text' => 'name', 'id' => 'id' ] ] );
 			}
 		}
-		wp_die();
 	}
 
-	public function instawp_delete_events() {
+	public function delete_events() {
 		if ( isset( $_POST['ids'] ) && ! empty( $_POST['ids'] ) ) {
 			global $wpdb;
 			$ids = sanitize_text_field( $_POST['ids'] );
@@ -142,8 +126,7 @@ class InstaWP_Sync_Ajax {
 			if ( isset( $_POST['connect_id'] ) && intval( $_POST['connect_id'] ) > 0 ) {
 				$wpdb->query( "DELETE FROM " . INSTAWP_DB_TABLE_EVENT_SITES . " WHERE event_id IN($ids)" );
 			}
-			echo $this->formatSuccessReponse( "Data deleted", [] );
-			wp_die();
+			$this->send_success( 'Data deleted' );
 		}
 	}
 
@@ -189,15 +172,14 @@ class InstaWP_Sync_Ajax {
 
 		delete_option( 'instawp_event_batch_data' );
 
-		$total_events = $this->instawp_get_total_pending_events_count();
+		$total_events = $this->get_total_pending_events_count();
 
-		echo $this->formatSuccessReponse( "Summery fetched", [
+		$this->send_success( 'Summery fetched', [
 			'html'          => $html,
 			'count'         => $total_events,
 			'progress_text' => sprintf( __( 'Sync not initiated ( 0 out of %d events )', 'instawp-connect' ), $total_events ),
 			'message'       => $total_events > 0 ? __( 'Events loaded', 'instawp-connect' ) : __( 'No pending events found!', 'instawp-connect' )
 		] );
-		wp_die();
 	}
 
 	public function get_events_sync_list_pagination( $total, $items_per_page, $page ) {
@@ -215,57 +197,51 @@ class InstaWP_Sync_Ajax {
 		) );
 	}
 
-	public function instawp_pack_events() {
+	public function pack_events() {
 		try {
-			$events = $this->instawp_pack_pending_sync_events();
+			$events = $this->pack_pending_sync_events();
 			if ( ! empty( $events ) ) {
 				$data = [];
 				foreach ( $events as $row ) {
 					$data[ $row->event_type ] = $data[ $row->event_type ] + 1;
 				}
 				$data['total_events'] = count( $events );
-				echo $this->formatSuccessReponse( "The data has packed successfully as JSON from WP DB", json_encode( $data ) );
+				$this->send_success( 'The data has packed successfully as JSON from WP DB', $data );
 			} else {
-				echo $this->formatErrorReponse( "The events are not available" );
+				$this->send_error( 'The events are not available' );
 			}
 		} catch ( Exception $e ) {
-			echo $this->formatErrorReponse( "Caught Exception: ", $e->getMessage() );
+			$this->send_error( 'Caught Exception: ' . $e->getMessage() );
 		}
-		wp_die();
 	}
 
-	public function instawp_get_total_pending_events_count() {
-		global $wpdb;
-
-		$where = "1=1";
+	public function get_total_pending_events_count() {
+		$where = $where2 = "1=1";
 		if ( isset( $_POST['connect_id'] ) && intval( $_POST['connect_id'] ) > 0 ) {
-			$connect_id = sanitize_text_field( $_POST['connect_id'] );
-			$where      .= " AND connect_id=" . sanitize_text_field( $connect_id );
+			$connect_id   = sanitize_text_field( $_POST['connect_id'] );
+			$staging_site = get_connect_detail_by_connect_id( $connect_id );
+			$where        .= " AND connect_id=" . sanitize_text_field( $connect_id );
 		}
 
-		$where2       = "1=1";
-		$staging_site = get_connect_detail_by_connect_id( $connect_id );
 		if ( ! empty( $staging_site ) && isset( $staging_site['created_at'] ) ) {
 			$staging_site_created = date( 'Y-m-d h:i:s', strtotime( $staging_site['created_at'] ) );
 			$where2               .= " AND date >= '" . $staging_site_created . "'";
 		}
 
-		$query        = "SELECT COUNT(1) FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE $where2 AND `id` NOT IN (SELECT event_id AS id FROM " . INSTAWP_DB_TABLE_EVENT_SITES . " WHERE $where)";
-		$total_events = $wpdb->get_var( $query );
+		$query = "SELECT COUNT(1) FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE $where2 AND `id` NOT IN (SELECT event_id AS id FROM " . INSTAWP_DB_TABLE_EVENT_SITES . " WHERE $where)";
 
-		return $total_events;
+		return $this->wpdb->get_var( $query );
 	}
 
-	public function instawp_calculate_events() {
+	public function calculate_events() {
+		$total_events = $this->get_total_pending_events_count();
 
-		$total_events = $this->instawp_get_total_pending_events_count();
 		if ( $total_events > 0 ) {
-
 			delete_option( 'instawp_event_batch_data' );
-			$sync_quota_response = $this->instawp_get_connect_quota_remaining_limit();
+
+			$sync_quota_response = $this->get_connect_quota_remaining_limit();
 			if ( ! empty( $sync_quota_response ) ) {
 				if ( $sync_quota_response['remaining'] >= $total_events ) {
-
 					$batch_data = [
 						'per_batch'         => INSTAWP_EVENTS_SYNC_PER_PAGE,
 						'total_batch'       => ceil( $total_events / INSTAWP_EVENTS_SYNC_PER_PAGE ),
@@ -274,54 +250,49 @@ class InstaWP_Sync_Ajax {
 						'percent_completed' => 0,
 						'total_completed'   => 0,
 					];
+					update_option( 'instawp_event_batch_data', $batch_data );
 
-					add_option( 'instawp_event_batch_data', $batch_data );
-
-					echo $this->formatSuccessReponse( "Event fetched.", [
+					$this->send_success( 'Event fetched.', [
 						'count'         => $total_events,
 						'page'          => 1,
 						'per_page'      => INSTAWP_EVENTS_SYNC_PER_PAGE,
 						'progress_text' => '0%' . sprintf( __( ' Completed ( 0 out of %d events )', 'instawp-connect' ), $total_events )
 					] );
 				} else {
-					echo $this->formatErrorReponse( sprintf( __( 'You have reached your sync limit. Current usage %u out of %u.', 'instawp-connect' ), $sync_quota_response['remaining'], $sync_quota_response['sync_quota_limit'] ) );
+					$this->send_error( sprintf( __( 'You have reached your sync limit. Current usage %u out of %u.', 'instawp-connect' ), $sync_quota_response['remaining'], $sync_quota_response['sync_quota_limit'] ) );
 				}
 			}
 		} else {
-			echo $this->formatErrorReponse( __( 'No pending events found!', 'instawp-connect' ) );
+			$this->send_error( __( 'No pending events found!', 'instawp-connect' ) );
 		}
-		wp_die();
 	}
 
-	public function instawp_pack_pending_sync_events() {
-		global $wpdb;
+	public function pack_pending_sync_events() {
 		$where = "1=1";
 		if ( isset( $_POST['dest_connect_id'] ) && intval( $_POST['dest_connect_id'] ) > 0 ) {
 			$where .= " AND connect_id=" . sanitize_text_field( $_POST['dest_connect_id'] );
 		}
-		$query  = "SELECT * FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE `id` NOT IN (SELECT event_id AS id FROM " . INSTAWP_DB_TABLE_EVENT_SITES . " WHERE $where) ORDER BY id ASC LIMIT " . INSTAWP_EVENTS_SYNC_PER_PAGE . "";
-		$events = $wpdb->get_results( $query );
+		$query = "SELECT * FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE `id` NOT IN (SELECT event_id AS id FROM " . INSTAWP_DB_TABLE_EVENT_SITES . " WHERE $where) ORDER BY id ASC LIMIT " . INSTAWP_EVENTS_SYNC_PER_PAGE;
 
-		return $events;
+		return $this->wpdb->get_results( $query );
 	}
 
-	public function get_wp_events() {
+	public function get_wp_events(): array {
 		try {
-
 			$encrypted_content = [];
-			$events            = $this->instawp_pack_pending_sync_events();
+			$events            = $this->pack_pending_sync_events();
+			$output            = [
+				'success' => false,
+				'message' => '',
+			];
 
 			if ( ! empty( $events ) && is_array( $events ) ) {
 				foreach ( $events as $k => $v ) {
-
 					$event_hash = $v->event_hash;
-					if ( $v->event_hash == '' ) {
+
+					if ( empty( $event_hash ) ) {
 						$event_hash = InstaWP_Tools::get_random_string();
-						$this->wpdb->update(
-							INSTAWP_DB_TABLE_EVENT_SYNC_LOGS,
-							[ 'event_hash' => $event_hash ],
-							array( 'id' => $v->id )
-						);
+						$this->wpdb->update( INSTAWP_DB_TABLE_EVENT_SYNC_LOGS, [ 'event_hash' => $event_hash ], [ 'id' => $v->id ] );
 					}
 
 					$encrypted_content[] = [
@@ -337,140 +308,124 @@ class InstaWP_Sync_Ajax {
 				}
 
 				if ( count( $encrypted_content ) > 0 ) {
-					return $this->formatSuccessReponse( "The data has packed successfully as JSON from WP DB", [
-						'contents' => $encrypted_content
-					] );
+					$output['success']          = true;
+					$output['message']          = 'The data has packed successfully as JSON from WP DB';
+					$output['data']['contents'] = $encrypted_content;
 				} else {
-					return $this->formatErrorReponse( "No pending events found!" );
+					$output['message'] = 'No pending events found!';
 				}
 			}
 		} catch ( Exception $e ) {
-			return $this->formatErrorReponse( "Caught Exception: ", $e->getMessage() );
+			$output['message'] = "Caught Exception: " . $e->getMessage();
 		}
+
+		return $output;
 	}
 
 	public function sync_changes() {
-		if ( isset( $_POST['dest_connect_id'] ) && $_POST['dest_connect_id'] != '' ) {
-
-			$dest_connect_id = sanitize_text_field( $_POST['dest_connect_id'] );
-			$message         = isset( $_POST['sync_message'] ) ? $_POST['sync_message'] : '';
-			$data            = stripslashes( $_POST['data'] );
-			$events          = $this->get_wp_events();
-			$eventsArr       = json_decode( $events );
-
-			if ( isset( $eventsArr->success ) && $eventsArr->success === true ) {
-				$packed_data = json_encode( [
-					'encrypted_content' => json_encode( $eventsArr->data->contents ),
-					'dest_connect_id'   => $dest_connect_id,
-					'changes'           => $data,
-					'upload_wp_user'    => get_current_user_id(),
-					'sync_message'      => $message,
-					'source_connect_id' => instawp()->connect_id,
-					'source_url'        => get_site_url()
-				] );
-
-
-				$resp_decode = $this->sync_upload( $packed_data );
-
-				if ( isset( $resp_decode->status ) && $resp_decode->status === true ) {
-					if ( isset( $resp_decode->data->sync_id ) && ! empty( $resp_decode->data->sync_id ) ) {
-						$sync_id = $resp_decode->data->sync_id;
-
-						//update the status in db and mark as completed
-						$this->instawp_update_sync_events_status( $dest_connect_id, $sync_id );
-
-						$batch_data = InstaWP_Setting::get_option( 'instawp_event_batch_data' );
-
-						$total_completed = $batch_data['total_completed'] + count( $eventsArr->data->contents );
-
-						$percentage = round( ( $batch_data['current_batch'] * 100 ) / intval( $batch_data['total_batch'] ) );
-
-						$next_batch = $batch_data['current_batch'] + 1;
-
-						$result = [
-							'count'             => $batch_data['total_events'],
-							'current_batch'     => $batch_data['current_batch'],
-							'next_batch'        => $next_batch,
-							'total_completed'   => $total_completed,
-							'percent_completed' => $percentage,
-							'per_batch'         => INSTAWP_EVENTS_SYNC_PER_PAGE,
-							'total_batch'       => intval( $batch_data['total_batch'] ),
-							'progress_text'     => $percentage . '%' . sprintf( " Completed ( %u out of %s events)", $total_completed, intval( $batch_data['total_events'] ) )
-						];
-
-						$batch_data['current_batch']   = $next_batch;
-						$batch_data['total_completed'] = $total_completed;
-
-						update_option( 'instawp_event_batch_data', $batch_data );
-
-						echo $this->formatSuccessReponse( $resp_decode->message, $result );
-					}
-				} else {
-					echo $this->formatErrorReponse( $resp_decode->message );
-				}
-			} else {
-				echo $this->formatErrorReponse( "No pending events found!" );
-			}
-		} else {
-			echo $this->formatErrorReponse( "Invalid destination." );
+		$dest_connect_id = ! empty( $_POST['dest_connect_id'] ) ? intval( $_POST['dest_connect_id'] ) : '';
+		if ( empty( $dest_connect_id ) ) {
+			$this->send_error( 'Invalid destination.' );
 		}
-		wp_die();
+
+		$message = isset( $_POST['sync_message'] ) ? sanitize_textarea_field( wp_unslash( $_POST['sync_message'] ) ) : '';
+		$data    = wp_unslash( $_POST['data'] );
+		$events  = $this->get_wp_events();
+
+		if ( isset( $events['success'] ) && $events['success'] === true ) {
+			$packed_data = [
+				'encrypted_content' => wp_json_encode( $events['data']['contents'] ),
+				'dest_connect_id'   => $dest_connect_id,
+				'changes'           => $data,
+				'upload_wp_user'    => get_current_user_id(),
+				'sync_message'      => $message,
+				'source_connect_id' => instawp()->connect_id,
+				'source_url'        => get_site_url()
+			];
+
+			$response = $this->sync_upload( $packed_data );
+			if ( ! isset( $response['success'] ) || $response['success'] !== true ) {
+				$this->send_error( $response['message'] );
+			}
+
+			$sync_id = ! empty( $response['data']['sync_id'] ) ? $response['data']['sync_id'] : '';
+			if ( empty( $sync_id ) ) {
+				$this->send_error( 'Sync ID missing!' );
+			}
+
+			$this->update_sync_events_status( $dest_connect_id, $sync_id );
+
+			$batch_data      = InstaWP_Setting::get_option( 'instawp_event_batch_data' );
+			$total_completed = $batch_data['total_completed'] + count( $events['data']['contents'] );
+			$percentage      = round( ( $batch_data['current_batch'] * 100 ) / intval( $batch_data['total_batch'] ) );
+			$next_batch      = $batch_data['current_batch'] + 1;
+
+			$result = [
+				'count'             => $batch_data['total_events'],
+				'current_batch'     => $batch_data['current_batch'],
+				'next_batch'        => $next_batch,
+				'total_completed'   => $total_completed,
+				'percent_completed' => $percentage,
+				'per_batch'         => INSTAWP_EVENTS_SYNC_PER_PAGE,
+				'total_batch'       => intval( $batch_data['total_batch'] ),
+				'progress_text'     => $percentage . '%' . sprintf( " Completed ( %u out of %s events)", $total_completed, intval( $batch_data['total_events'] ) )
+			];
+
+			$batch_data['current_batch']   = $next_batch;
+			$batch_data['total_completed'] = $total_completed;
+
+			update_option( 'instawp_event_batch_data', $batch_data );
+
+			$this->send_success( $response['message'], $result );
+		} else {
+			$this->send_error( 'No pending events found!' );
+		}
 	}
 
-	public function instawp_update_sync_events_status( $connect_id, $sync_id ) {
+	public function update_sync_events_status( $connect_id, $sync_id ): array {
 		try {
-			$sync_resp = $this->get_Sync_Object( $sync_id );
-			$response  = json_decode( $sync_resp );
+			$response = $this->get_sync_object( $sync_id );
 
-			if ( $response->status === 1 || $response->status === true ) {
-
-				$site_sync_row = $this->wpdb->get_row( "SELECT * FROM " . INSTAWP_DB_TABLE_EVENT_SITES . "", ARRAY_A );
-				$site_sync_row = $site_sync_row ?? [];
-
-				if ( ( ! array_key_exists( 'synced_message', $site_sync_row ) ) ) {
-					$this->wpdb->query( "ALTER TABLE " . INSTAWP_DB_TABLE_EVENT_SITES . " ADD `synced_message` TEXT NULL DEFAULT NULL AFTER `status`" );
-				}
-
-				if ( isset( $response->data->changes->changes->sync_response ) ) {
-					$sync_response = $response->data->changes->changes->sync_response;
-					foreach ( $sync_response as $v ) {
-						$this->InstaWP_db->insert( INSTAWP_DB_TABLE_EVENT_SITES, [
-							'event_id'       => $v->id,
-							'connect_id'     => $connect_id,
-							'status'         => $v->status,
-							'synced_message' => $v->message,
-							'date'           => date( "Y-m-d h:i:s" )
-						] );
-					}
+			if ( $response['success'] === true ) {
+				$sync_response = $response['data']['changes']['changes']['sync_response'] ?? [];
+				foreach ( $sync_response as $data ) {
+					$this->iwpdb->insert( INSTAWP_DB_TABLE_EVENT_SITES, [
+						'event_id'       => $data['id'],
+						'connect_id'     => $connect_id,
+						'status'         => $data['status'],
+						'synced_message' => $data['message'],
+						'date'           => date( 'Y-m-d h:i:s' )
+					] );
 				}
 			}
 
 			return $response;
 		} catch ( Exception $e ) {
-			return $this->formatErrorReponse( "Caught Exception: ", $e->getMessage() );
+			return [
+				'success' => false,
+				'message' => 'Caught Exception: ' . $e->getMessage(),
+			];
 		}
 	}
 
-	public function sync_upload( $data = null ) {
-
+	public function sync_upload( $data = null ): array {
 		$connect_id = instawp_get_connect_id();
 
 		// connects/<connect_id>/syncs
 		return InstaWP_Curl::do_curl( "connects/{$connect_id}/syncs", $data );
 	}
 
-	public function get_Sync_Object( $sync_id = null ) {
-
+	public function get_sync_object( $sync_id = null ): array {
 		$connect_id = instawp_get_connect_id();
 
 		// connects/<connect_id>/syncs
 		return InstaWP_Curl::do_curl( "connects/{$connect_id}/syncs/{$sync_id}", [], [], false );
 	}
 
-	public function instawp_get_connect_quota_remaining_limit() {
+	public function get_connect_quota_remaining_limit() {
+		$connect_id   = instawp_get_connect_id();
 
 		// connects/<connect_id>/staging-sites
-		$connect_id   = instawp_get_connect_id();
 		$api_response = InstaWP_Curl::do_curl( "connects/{$connect_id}/get-sync-quota", [], [], false );
 
 		if ( $api_response['success'] && ! empty( $api_response['data'] ) ) {

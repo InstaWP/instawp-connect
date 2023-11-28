@@ -33,7 +33,6 @@ class InstaWP_Curl {
 		}
 
 		$curl = curl_init();
-
 		curl_setopt_array( $curl,
 			array(
 				CURLOPT_URL            => $api_url,
@@ -139,8 +138,7 @@ class InstaWP_Curl {
 			$res            = [];
 			$res['error']   = true;
 			$res['message'] = 'API Key Is Required';
-			echo json_encode( $res );
-			wp_die();
+			wp_send_json( $res );
 		}
 	}
 }

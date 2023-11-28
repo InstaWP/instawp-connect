@@ -25,76 +25,156 @@ require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-db.php';
 class InstaWP_Sync_Events
 {
     private $wpdb;
-
     private $InstaWP_db;
-
     private $tables;
 
     public function __construct() {
         global $wpdb;
 
-        $this->wpdb = $wpdb;
-
+        $this->wpdb       = $wpdb;
         $this->InstaWP_db = new InstaWP_DB();
+        $this->tables     = $this->InstaWP_db->tables;
 
-        $this->tables = $this->InstaWP_db->tables;
+		if ( ! InstaWP_Sync_Helpers::can_sync() ) {
+			return;
+		}
 
-        $syncing_status = get_option('instawp_is_event_syncing', 0);
-        if ($syncing_status == 1) { #if syncing enabled
-            #post actions
-            add_filter( 'pre_trash_post', [ $this, 'trash_post' ], 10, 2 );
-            add_action( 'delete_post', [ $this, 'deletePostFilter' ], 10, 2 );
-            add_action( 'untrashed_post', [ $this, 'untrashPostFilter' ], 10, 3 );
-            add_action( 'wp_after_insert_post', [ $this, 'save_post' ], 10, 4 );
-            
-            #media actions
-            add_action( 'add_attachment', [ $this, 'add_attachment' ], 10, 1 );
-            //add_action( 'attachment_updated', [ $this, 'attachment_updated' ], 10, 3 );
+		// Post Actions.
+        add_action( 'save_post', [ $this, 'save_post' ], 10, 3 );
+        add_action( 'delete_post', [ $this, 'delete_post' ], 10, 2 );
+        add_action( 'transition_post_status', [ $this, 'transition_post_status' ], 10, 3 );
 
-            #plugin actions
-            add_action( 'activated_plugin',             array( $this,'activatePluginAction' ),10, 2 );
-            add_action( 'deactivated_plugin',           array( $this,'deactivatePluginAction' ),10, 2 );
-            add_action( 'deleted_plugin',               array( $this,'deletePluginAction' ),10, 2 );
-            add_action( 'upgrader_process_complete',    array( $this,'upgradePluginAction' ),10, 2);
+        // Media Actions.
+        add_action( 'add_attachment', [ $this, 'add_attachment' ] );
+        //add_action( 'attachment_updated', [ $this, 'attachment_updated' ], 10, 3 );
 
-            #theme actions
-            add_action( 'switch_theme',                 array( $this,'switchThemeAction' ), 10, 3 );
-            add_action( 'deleted_theme',                array( $this,'deletedThemeAction' ), 10, 2 );
-            // add_action( 'install_themes_new',        array( $this,'installThemesNewAction') );
-            // add_action( 'install_themes_upload',     array( $this,'installThemesUploadAction') );
-            // add_action( 'install_themes_updated',    array( $this,'installThemesUpdatedAction') );
-            
-            #taxonomy actions         
-            // $tax_rel = $this->InstaWP_db->getDistinictCol($this->wpdb->prefix.'term_taxonomy','taxonomy');
-            // $taxonomies = [];
-            // if(!empty($tax_rel)){
-            //     foreach($tax_rel as $tax){
-            //         $taxonomies[$tax->taxonomy] = $tax->taxonomy;
-            //     }
-            //     if(!empty($taxonomies) && is_array($taxonomies)){
-            //         foreach($taxonomies as $taxonomy){
-            //             add_action( 'created_'.$taxonomy, array( $this,'createTaxonomyAction'), 10, 3 );
-            //             add_action( 'delete_'.$taxonomy, array( $this,'deleteTaxonomyAction'), 10, 4 );
-            //             add_action( 'edit_'.$taxonomy, array( $this,'editTaxonomyAction'), 10, 3 );
-            //         } 
-            //     }
-            // }
-            #Customizer 
-            //add_action( 'customize_save_after',array($this,'customizeSaveAfter'));
-            #Woocommerce  
-            // add_action( 'woocommerce_attribute_added', array($this,'attribute_added_action_callback'), 10, 2 );
-            // add_action( 'woocommerce_attribute_updated', array($this,'attribute_updated_action_callback'), 10, 2 );
-            // add_action( 'woocommerce_attribute_deleted', array($this,'attribute_deleted_action_callback'), 10, 2 );
-            #users
-            add_action( 'user_register', array($this,'user_register_action'), 10, 2 );
-            add_action( 'delete_user', array($this,'delete_user_action'), 10, 3 );
-            add_action( 'profile_update', array($this,'profile_update_action'), 10, 3 );
-            #Widgets
-            //add_action( 'rest_after_save_widget', array($this,'save_widget_action'), 10, 4 );
-        }
+        #plugin actions
+        add_action( 'activated_plugin',             array( $this,'activatePluginAction' ),10, 2 );
+        add_action( 'deactivated_plugin',           array( $this,'deactivatePluginAction' ),10, 2 );
+        add_action( 'deleted_plugin',               array( $this,'deletePluginAction' ),10, 2 );
+        add_action( 'upgrader_process_complete',    array( $this,'upgradePluginAction' ),10, 2);
+
+        #theme actions
+        add_action( 'switch_theme',                 array( $this,'switchThemeAction' ), 10, 3 );
+        add_action( 'deleted_theme',                array( $this,'deletedThemeAction' ), 10, 2 );
+        // add_action( 'install_themes_new',        array( $this,'installThemesNewAction') );
+        // add_action( 'install_themes_upload',     array( $this,'installThemesUploadAction') );
+        // add_action( 'install_themes_updated',    array( $this,'installThemesUpdatedAction') );
+
+        #taxonomy actions
+        // $tax_rel = $this->InstaWP_db->getDistinictCol($this->wpdb->prefix.'term_taxonomy','taxonomy');
+        // $taxonomies = [];
+        // if(!empty($tax_rel)){
+        //     foreach($tax_rel as $tax){
+        //         $taxonomies[$tax->taxonomy] = $tax->taxonomy;
+        //     }
+        //     if(!empty($taxonomies) && is_array($taxonomies)){
+        //         foreach($taxonomies as $taxonomy){
+        //             add_action( 'created_'.$taxonomy, array( $this,'createTaxonomyAction'), 10, 3 );
+        //             add_action( 'delete_'.$taxonomy, array( $this,'deleteTaxonomyAction'), 10, 4 );
+        //             add_action( 'edit_'.$taxonomy, array( $this,'editTaxonomyAction'), 10, 3 );
+        //         }
+        //     }
+        // }
+        #Customizer
+        //add_action( 'customize_save_after',array($this,'customizeSaveAfter'));
+        #Woocommerce
+        // add_action( 'woocommerce_attribute_added', array($this,'attribute_added_action_callback'), 10, 2 );
+        // add_action( 'woocommerce_attribute_updated', array($this,'attribute_updated_action_callback'), 10, 2 );
+        // add_action( 'woocommerce_attribute_deleted', array($this,'attribute_deleted_action_callback'), 10, 2 );
+        #users
+        add_action( 'user_register', array($this,'user_register_action'), 10, 2 );
+        add_action( 'delete_user', array($this,'delete_user_action'), 10, 3 );
+        add_action( 'profile_update', array($this,'profile_update_action'), 10, 3 );
+        #Widgets
+        //add_action( 'rest_after_save_widget', array($this,'save_widget_action'), 10, 4 );
     }
 
-    /**
+	/**
+	 * Fire a callback only when my-custom-post-type posts are transitioned to 'publish'.
+	 *
+	 * @param string  $new_status New post status.
+	 * @param string  $old_status Old post status.
+	 * @param WP_Post $post       Post object.
+	 */
+	public function transition_post_status( $new_status, $old_status, $post ) {
+		if ( $new_status === 'trash' && $new_status !== $old_status && $post->post_type !== 'customize_changeset' ) {
+			$event_name = sprintf( __( '%s trashed', 'instawp-connect' ), InstaWP_Sync_Helpers::get_post_type_name( $post->post_type ) );
+			$this->instawp_handle_post_events( $event_name, 'post_trash', $post );
+		}
+
+		if ( $new_status === 'draft' && $old_status === 'trash' ) {
+			$event_name = sprintf( __( '%s restored', 'instawp-connect' ), InstaWP_Sync_Helpers::get_post_type_name( $post->post_type ) );
+			$this->instawp_handle_post_events( $event_name, 'untrashed_post', $post );
+		}
+
+		if ( $old_status === 'auto-draft' && $new_status !== $old_status ) {
+			$event_name = sprintf( __( '%s created', 'instawp-connect' ), InstaWP_Sync_Helpers::get_post_type_name( $post->post_type ) );
+			$this->instawp_handle_post_events( $event_name, 'post_new', $post );
+		}
+	}
+
+	/**
+	 * Function for `wp_after_insert_post` action-hook.
+	 *
+	 * @param int          $post_id     Post ID.
+	 * @param WP_Post      $post        Post object.
+	 * @param bool         $update      Whether this is an existing post being updated.
+	 *
+	 * @return void
+	 */
+	public function save_post( $post_id, $post, $update ) {
+
+		// Check auto save or revision.
+		if ( wp_is_post_autosave( $post_id ) || wp_is_post_revision( $post_id ) ) {
+			return;
+		}
+
+		// Check post status auto draft.
+		if ( in_array( $post->post_status, [ 'auto-draft', 'trash' ] ) ) {
+			return;
+		}
+
+		// acf feild group check
+		if ( $post->post_type == 'acf-field-group' && $post->post_content == '' ) {
+			InstaWP_Sync_Helpers::set_post_reference_id( $post_id );
+			return;
+		}
+
+		// acf check for acf post type
+		if ( in_array( $post->post_type, [ 'acf-post-type','acf-taxonomy' ] ) && $post->post_title == 'Auto Draft' ) {
+			return;
+		}
+
+		$singular_name = InstaWP_Sync_Helpers::get_post_type_name( $post->post_type );
+		$statement     = $this->wpdb->prepare( "SELECT * FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE source_id=%d AND status=%s AND event_slug=%s", $post_id, 'pending', 'post_change' );
+		$events        = $this->wpdb->get_results( $statement );
+
+		foreach( $events as $event ) {
+			$this->wpdb->query( $this->wpdb->prepare( "DELETE FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE id=%d", $event->id ) );
+		}
+
+		if ( strtotime( $post->post_modified_gmt ) > strtotime( $post->post_date_gmt ) ) {
+			$this->instawp_handle_post_events( sprintf( __('%s modified', 'instawp-connect'), $singular_name ), 'post_change', $post );
+		}
+	}
+
+	/**
+	 * Function for `after_delete_post` action-hook.
+	 *
+	 * @param int     $post_id Post ID.
+	 * @param WP_Post $post   Post object.
+	 *
+	 * @return void
+	 */
+	public function delete_post( $post_id, $post ) {
+		if ( get_post_type( $post_id ) !== 'revision' ) {
+			$event_name = sprintf( __('%s deleted', 'instawp-connect' ), InstaWP_Sync_Helpers::get_post_type_name( $post->post_type ) );
+			$this->instawp_handle_post_events( $event_name, 'post_delete', $post );
+		}
+	}
+
+	/**
      * Function for `rest_after_save_widget` action-hook.
      * 
      * @param string          $id         ID of the widget being saved.
@@ -109,7 +189,7 @@ class InstaWP_Sync_Events
         $event_slug   = 'widget_block';
         $title        = 'widgets update';
         $widget_block = get_option('widget_block');
-        $media        = $this->get_media_from_content( maybe_serialize( $widget_block ) );
+        $media        = InstaWP_Sync_Helpers::get_media_from_content( maybe_serialize( $widget_block ) );
         $details      = [ 'widget_block' => $widget_block, 'media' => $media ];
         $rel          = $this->InstaWP_db->get_with_condition( INSTAWP_DB_TABLE_EVENTS, 'event_slug', 'widget_block' );
 
@@ -644,62 +724,6 @@ class InstaWP_Sync_Events
     }
 
     /**
-     * Function for `wp_after_insert_post` action-hook.
-     * 
-     * @param int          $post_id     Post ID.
-     * @param WP_Post      $post        Post object.
-     * @param bool         $update      Whether this is an existing post being updated.
-     * @param null|WP_Post $post_before Null for new posts, the WP_Post object prior to the update for updated posts.
-     *
-     * @return void
-     */
-    public function save_post( $post_ID, $post, $update, $post_before ) {
-
-        // Check auto save or revision.
-        if ( wp_is_post_autosave( $post_ID ) || wp_is_post_revision( $post_ID ) ) {
-            return $post_ID;
-        }
-        
-        // Check post status auto draft.
-        if ( in_array( $post->post_status, [ 'auto-draft', 'trash' ] ) ) {
-            return $post_ID;
-        }
-
-        if ( ( $post_before && $post_before->post_status == 'trash' ) || in_array( $post->post_type, [ 'attachment' ] ) ) {
-            return $post_ID;
-        }
-
-        // acf feild group check
-        if ( $post->post_type == 'acf-field-group' && $post->post_content == '' ) {
-	        InstaWP_Sync_Helpers::set_post_reference_id( $post_ID );
-            return $post_ID;
-        }
-
-        // acf check for acf post type
-        if ( in_array( $post->post_type, [ 'acf-post-type','acf-taxonomy' ] ) && $post->post_title =='Auto Draft' ) {
-            return $post_ID;
-        }
-
-        $singular_name = InstaWP_Sync_Helpers::get_post_type_name( $post->post_type );
-		$statement     = $this->wpdb->prepare( "SELECT * FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE source_id=%d AND status=%s AND event_slug=%s", $post_ID, 'pending', 'post_change' );
-	    $events        = $this->wpdb->get_results( $statement );
-
-		foreach( $events as $event ) {
-			$this->wpdb->query( $this->wpdb->prepare( "DELETE FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE id=%d", $event->id ) );
-		}
-
-	    if ( strtotime( $post->post_modified_gmt ) > strtotime( $post->post_date_gmt ) ) {
-		    $event_slug = 'post_change';
-		    $event_name = sprintf( __('%s modified', 'instawp-connect'), $singular_name );
-	    } else {
-		    $event_slug = 'post_new';
-		    $event_name = sprintf(esc_html__('%s created', 'instawp-connect'), $singular_name);
-	    }
-
-        $this->instawp_handle_post_events( $event_name, $event_slug, $post );
-    }
-
-    /**
      * Function for `add_attachment` action-hook
      *
      * @param $post_id
@@ -720,7 +744,7 @@ class InstaWP_Sync_Events
      */
     public function attachment_updated( $post_id, $post_after, $post_before ) {
         $event_name = esc_html__('Media updated', 'instawp-connect' );
-        $this->instawp_handle_post_events( $event_name, 'post_new', $post_after );
+        $this->instawp_handle_post_events( $event_name, 'post_change', $post_after );
     }
 
     /**
@@ -742,7 +766,7 @@ class InstaWP_Sync_Events
         $featured_image_id = get_post_thumbnail_id($post_id);
         $featured_image_url = get_the_post_thumbnail_url($post_id);
         $taxonomies = $this->get_taxonomies_items($post_id);
-        $media = $this->get_media_from_content($post_content);
+        $media = InstaWP_Sync_Helpers::get_media_from_content($post_content);
         $elementor_css = $this->get_elementor_css($post_id);
         #if post type products
         if (isset($postData->post_type) && $postData->post_type == 'product') {
@@ -772,49 +796,6 @@ class InstaWP_Sync_Events
             array('id' => $id)
         );
     }
-    /**
-     * Function for `after_delete_post` action-hook.
-     * 
-     * @param int     $post_id Post ID.
-     * @param WP_Post $post   Post object.
-     *
-     * @return void
-     */
-    public function deletePostFilter( $post_id, $post ) {
-        if ( get_post_type( $post_id ) !== 'revision' ) {
-            $event_name = sprintf( __('%s deleted', 'instawp-connect' ), InstaWP_Sync_Helpers::get_post_type_name( $post->post_type ) );
-            $this->instawp_handle_post_events( $event_name, 'post_delete', $post );
-        }
-    }
-
-    /**
-     * Function for `pre_trash_post` filter-hook.
-     * 
-     * @param bool|null $trash Whether to go forward with trashing.
-     * @param WP_Post   $post  Post object.
-     *
-     * @return bool|null
-     */
-    public function trash_post( $trash, $post ) {
-        if ( $post->post_type !== 'customize_changeset' ) {
-            $event_name = sprintf( __( '%s trashed', 'instawp-connect' ), InstaWP_Sync_Helpers::get_post_type_name( $post->post_type ) );
-            $this->instawp_handle_post_events( $event_name, 'post_trash', $post );
-        }
-    }
-
-    /**
-     * Function for `untrashed_post` action-hook.
-     * 
-     * @param int    $post_id         Post ID.
-     * @param string $previous_status The status of the post at the point where it was trashed.
-     *
-     * @return void
-     */
-    public function untrashPostFilter( $post_id, $previous_status ) {
-        $post = get_post( $post_id );
-        $event_name = sprintf( __('%s Restored', 'instawp-connect' ), InstaWP_Sync_Helpers::get_post_type_name( $post->post_type ) );
-        $this->instawp_handle_post_events( $event_name, 'untrashed_post', $post );
-    }
 
     /**
      * Function for `instawp_handle_post_events`
@@ -822,7 +803,6 @@ class InstaWP_Sync_Events
      * @param $event_name
      * @param $event_slug
      * @param $post
-     * @param $post_id
      * @return void
      */
     public function instawp_handle_post_events( $event_name = null, $event_slug = null, $post = null ) {
@@ -841,7 +821,7 @@ class InstaWP_Sync_Events
         $event_type         = get_post_type( $post );
         $title              = $post->post_title ?? '';
         $taxonomies         = $this->get_taxonomies_items( $post->ID );
-        $media              = $this->get_media_from_content( $post_content );
+        $media              = InstaWP_Sync_Helpers::get_media_from_content( $post_content );
         $elementor_css      = $this->get_elementor_css( $post->ID );
 
         #if post type products then get product gallery
@@ -858,8 +838,8 @@ class InstaWP_Sync_Events
             'featured_image'  => [
                 'featured_image_id'  => $featured_image_id,
                 'featured_image_url' => $featured_image_url,
-                'media'              => $featured_image_id > 0 ? get_post($featured_image_id) : [],
-                'media_meta'         => $featured_image_id > 0 ? get_post_meta($featured_image_id) : [],
+                'media'              => $featured_image_id > 0 ? get_post( $featured_image_id ) : [],
+                'media_meta'         => $featured_image_id > 0 ? get_post_meta( $featured_image_id ) : [],
             ],
             'taxonomies'      => $taxonomies,
             'media'           => $media,
@@ -923,53 +903,6 @@ class InstaWP_Sync_Events
             }
         }
         return $gallery;
-    }
-    /**
-     * Get media from content 
-     */
-    public function get_media_from_content($content = null) {
-        #find media form content.
-        preg_match_all('!(https?:)?//\S+\.(?:jpe?g|jpg|png|gif|mp4|pdf|doc|docx|xls|xlsx|csv|txt|rtf|html|zip|mp3|wma|mpg|flv|avi)!Ui', $content, $match);
-        $media = [];
-        if (isset($match[0])) {
-            $attachment_urls = array_unique($match[0]);
-            foreach ($attachment_urls as $attachment_url) {
-                if (strpos($attachment_url, $_SERVER['HTTP_HOST']) !== false) {
-
-                    $full_attachment_url = preg_replace('~-[0-9]+x[0-9]+.~', '.', $attachment_url );
-                  
-                    $attachment_id  = attachment_url_to_postid( $full_attachment_url );
-
-                    if( $attachment_id === 0 ){
-                        $post_name = sanitize_title( pathinfo( $full_attachment_url, PATHINFO_FILENAME ) );
-                       
-                        $sql = $this->wpdb->prepare(
-                            "SELECT ID FROM {$this->wpdb->posts} WHERE post_type='attachment' AND post_name = '%s'",
-                            $post_name
-                        );
-
-                        $results = $this->wpdb->get_results( $sql );
-
-                        if ( $results ) {
-                            // Use the first available result, but prefer a case-sensitive match, if exists.
-                            $attachment_id = reset( $results )->ID;
-
-                        }
-                    }
-                    
-                    #if(isset($attachment_id) && !empty($attachment_id)){ 
-                    #It's check media exist or not 
-                    $media[] = [
-                        'attachment_url'        => $attachment_url,
-                        'attachment_id'         => $attachment_id,
-                        'attachment_media'      => get_post($attachment_id),
-                        'attachment_media_meta' => get_post_meta($attachment_id),
-                    ];
-                    #}
-                }
-            }
-        }
-        return json_encode($media);
     }
 
     /**
