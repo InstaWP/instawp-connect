@@ -100,6 +100,7 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 - FIX - Fixed Site Dropdown CSS.
 - FIX - Fixed some PHP errors.
 - FIX - Optimized 2 Way Sync Codebase.
+- FIX - Heartbeat event logic.
 
 = 0.0.9.50 - 22 Nov 2023 =
 

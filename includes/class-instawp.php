@@ -62,17 +62,11 @@ class instaWP {
 			$this->define_admin_hook();
 		}
 
-		add_action( 'init', array( $this, 'register_heartbeat_action' ), 11 );
-
-		add_action( 'instawp_handle_heartbeat', array( $this, 'handle_heartbeat' ) );
-		add_filter( 'cron_schedules', array( $this, 'cron_interval' ) );
-
+		add_action( 'init', array( $this, 'register_actions' ), 11 );
 		add_action( 'instawp_prepare_large_files_list', array( $this, 'prepare_large_files_list' ) );
 		add_action( 'add_option_instawp_max_file_size_allowed', array( $this, 'clear_staging_sites_list' ) );
 		add_action( 'update_option_instawp_max_file_size_allowed', array( $this, 'clear_staging_sites_list' ) );
-
 		add_action( 'instawp_clean_migrate_files', array( $this, 'clean_migrate_files' ) );
-
 		add_action( 'add_option_instawp_enable_wp_debug', array( $this, 'toggle_wp_debug' ), 10, 2 );
 		add_action( 'update_option_instawp_enable_wp_debug', array( $this, 'toggle_wp_debug' ), 10, 2 );
 		add_action( 'login_init', array( $this, 'instawp_auto_login_redirect' ) );
@@ -97,16 +91,17 @@ class instaWP {
 		$wp_config->update();
 	}
 
-	public function register_heartbeat_action() {
+	public function register_actions() {
 
 		$heartbeat = InstaWP_Setting::get_option( 'instawp_rm_heartbeat', 'on' );
 		$heartbeat = empty( $heartbeat ) ? 'on' : $heartbeat;
-
-		$interval = InstaWP_Setting::get_option( 'instawp_api_heartbeat', 15 );
-		$interval = empty( $interval ) ? 15 : (int) $interval;
-
-		if ( ! empty( InstaWP_Setting::get_api_key() ) && $heartbeat === 'on' && ! wp_next_scheduled( 'instawp_handle_heartbeat' ) ) {
-			wp_schedule_event( time(), 'instawp_heartbeat_interval', 'instawp_handle_heartbeat' );
+		$interval  = InstaWP_Setting::get_option( 'instawp_api_heartbeat', 15 );
+		$interval  = empty( $interval ) ? 15 : (int) $interval;
+		
+		$heartbeat_last = get_option( 'instawp_last_heartbeat_sent' );
+		if ( $heartbeat === 'on' && ( ! $heartbeat_last || ( time() - $heartbeat_last ) > ( $interval * 60 ) ) ) {
+			update_option( 'instawp_last_heartbeat_sent', time() );
+			$this->handle_heartbeat();
 		}
 
 		if ( ! wp_next_scheduled( 'instawp_prepare_large_files_list' ) ) {
@@ -118,18 +113,6 @@ class instaWP {
 		}
 	}
 
-	public function cron_interval( $schedules ) {
-		$interval = InstaWP_Setting::get_option( 'instawp_api_heartbeat', 15 );
-		$interval = empty( $interval ) ? 15 : (int) $interval;
-
-		$schedules['instawp_heartbeat_interval'] = [
-			'interval' => $interval * 60,
-			'display'  => esc_html__( 'Custom Interval' )
-		];
-
-		return $schedules;
-	}
-
 	public function clean_migrate_files() {
 		$path = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . INSTAWP_DEFAULT_BACKUP_DIR . DIRECTORY_SEPARATOR;
 		@unlink( $path . 'instawp_exclude_tables_rows_data.json' );
@@ -137,13 +120,6 @@ class instaWP {
 	}
 
 	public function handle_heartbeat() {
-		$heartbeat = InstaWP_Setting::get_option( 'instawp_rm_heartbeat', 'on' );
-		$heartbeat = empty( $heartbeat ) ? 'on' : $heartbeat;
-
-		if ( $heartbeat !== 'on' ) {
-			return;
-		}
-
 		date_default_timezone_set( "Asia/Kolkata" );
 
 		if ( defined( 'INSTAWP_DEBUG_LOG' ) && true === INSTAWP_DEBUG_LOG ) {
@@ -195,7 +171,7 @@ class instaWP {
 		$maxbytes = (int) InstaWP_Setting::get_option( 'instawp_max_file_size_allowed', INSTAWP_DEFAULT_MAX_FILE_SIZE_ALLOWED );
 		$maxbytes = $maxbytes ? $maxbytes : INSTAWP_DEFAULT_MAX_FILE_SIZE_ALLOWED;
 		$maxbytes = ( $maxbytes * 1024 * 1024 );
-		$path     = realpath( ABSPATH );
+		$path     = ABSPATH;
 		$data     = [];
 
 		if ( $path !== false && $path != '' && file_exists( $path ) && is_readable( $path ) ) {
@@ -312,7 +288,7 @@ class instaWP {
 		$files           = $folders = [];
 
 		foreach ( $files_data as $key => $value ) {
-			$path            = realpath( $dir . DIRECTORY_SEPARATOR . $value );
+			$path            = $dir . DIRECTORY_SEPARATOR . $value;
 			$normalized_path = wp_normalize_path( $path );
 
 			try {
@@ -359,7 +335,6 @@ class instaWP {
 	public function get_directory_info( $path ) {
 		$bytes_total = 0;
 		$files_total = 0;
-		$path        = realpath( $path );
 		try {
 			if ( $path !== false && $path != '' && file_exists( $path ) ) {
 				foreach ( new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $path, FilesystemIterator::SKIP_DOTS ) ) as $object ) {
