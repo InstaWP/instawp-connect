@@ -61,15 +61,18 @@ class InstaWP_Sync_Ajax {
 	}
 
 	public function get_site_events() {
+		$connect_id     = ! empty( $_POST['connect_id'] ) ? intval( $_POST['connect_id'] ) : 0;
 		$where          = '1=1';
 		$items_per_page = INSTAWP_EVENTS_PER_PAGE;
-		$connect_id     = isset( $_POST['connect_id'] ) ? sanitize_text_field( $_POST['connect_id'] ) : 0;
 		$InstaWP_db     = $this->iwpdb;
-		$staging_site   = get_connect_detail_by_connect_id( $connect_id );
 
-		if ( ! empty( $staging_site ) && isset( $staging_site['created_at'] ) ) {
-			$staging_site_created = date( 'Y-m-d h:i:s', strtotime( $staging_site['created_at'] ) );
-			$where                .= " AND date >= '" . $staging_site_created . "'";
+		if ( $connect_id > 0 ) {
+			$staging_site = get_connect_detail_by_connect_id( $connect_id );
+
+			if ( ! empty( $staging_site ) && isset( $staging_site['created_at'] ) ) {
+				$staging_site_created = date( 'Y-m-d h:i:s', strtotime( $staging_site['created_at'] ) );
+				$where                .= " AND date >= '" . $staging_site_created . "'";
+			}
 		}
 
 		$query       = "SELECT * FROM " . INSTAWP_DB_TABLE_EVENTS . "  WHERE $where";

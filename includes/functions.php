@@ -602,7 +602,7 @@ if ( ! function_exists( 'get_connect_detail_by_connect_id' ) ) {
 					$response = array_filter( $response, function( $value ) use( $connect_id ) {
 						return $value['id'] === intval( $connect_id );
 					} );
-					$response = reset( $response );
+					$response = count( $response ) > 0 ? reset( $response ) : [];
 				}
 			}
 		}
