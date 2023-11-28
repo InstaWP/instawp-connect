@@ -94,7 +94,7 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 
 == Changelog ==
 
-= 0.0.9.51 - 22 Nov 2023 =
+= 0.0.9.51 - 28 Nov 2023 =
 
 - FIX - Fixed 2 Way Sync not working.
 - FIX - Fixed Site Dropdown CSS.
