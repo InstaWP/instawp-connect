@@ -41,7 +41,7 @@ class InstaWP_Sync_Helpers {
      * Update post metas
      */
 	public static function get_post_reference_id( $post_id ): string {
-		return get_post_meta( $post_id, 'instawp_event_sync_reference_id', true ) ?? 0;
+		return get_post_meta( $post_id, 'instawp_event_sync_reference_id', true ) ?? '0';
 	}
 
     /*
@@ -59,7 +59,7 @@ class InstaWP_Sync_Helpers {
      * Get user metas
      */
 	public static function get_user_reference_id( $user_id ): string {
-		return get_user_meta( $user_id, 'instawp_event_user_sync_reference_id', true ) ?? 0;
+		return get_user_meta( $user_id, 'instawp_event_user_sync_reference_id', true ) ?? '0';
 	}
 
     /*
@@ -72,4 +72,54 @@ class InstaWP_Sync_Helpers {
             update_user_meta( $user_id, 'instawp_event_user_sync_reference_id', InstaWP_Tools::get_random_string() );
 		}
     }
+
+	public static function can_sync(): bool {
+		$syncing_status = get_option( 'instawp_is_event_syncing', 0 );
+
+		return ( intval( $syncing_status ) === 1 );
+	}
+
+	/**
+	 * Get media from content
+	 */
+	public static function get_media_from_content( $content = null ): string {
+		global $wpdb;
+		
+		#find media form content.
+		preg_match_all( '!(https?:)?//\S+\.(?:jpe?g|jpg|png|gif|mp4|pdf|doc|docx|xls|xlsx|csv|txt|rtf|html|zip|mp3|wma|mpg|flv|avi)!Ui', $content, $match );
+		
+		$media = [];
+		if ( isset( $match[0] ) ) {
+			$attachment_urls = array_unique( $match[0] );
+
+			foreach ( $attachment_urls as $attachment_url ) {
+				if ( strpos( $attachment_url, $_SERVER['HTTP_HOST'] ) !== false ) {
+					$full_attachment_url = preg_replace('~-[0-9]+x[0-9]+.~', '.', $attachment_url );
+					$attachment_id       = attachment_url_to_postid( $full_attachment_url );
+
+					if ( $attachment_id === 0 ) {
+						$post_name = sanitize_title( pathinfo( $full_attachment_url, PATHINFO_FILENAME ) );
+
+						$sql     = $wpdb->prepare( "SELECT ID FROM {$wpdb->posts} WHERE post_type='attachment' AND post_name = '%s'", $post_name );
+						$results = $wpdb->get_results( $sql );
+
+						if ( $results ) {
+							// Use the first available result, but prefer a case-sensitive match, if exists.
+							$attachment_id = reset( $results )->ID;
+						}
+					}
+
+					#It's check media exist or not
+					$media[] = [
+						'attachment_url'        => $attachment_url,
+						'attachment_id'         => $attachment_id,
+						'attachment_media'      => get_post( $attachment_id ),
+						'attachment_media_meta' => get_post_meta( $attachment_id ),
+					];
+				}
+			}
+		}
+
+		return wp_json_encode( $media );
+	}
 }

@@ -866,7 +866,7 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 					'message'  => $sync_message,
 					'changes'  => [ 'changes' => $changes, 'sync_response' => $sync_response, 'logs' => $this->logs ],
 				];
-				$this->sync_update( $sync_id, $syncUpdate, $source_connect_id );
+				$this->sync_update( $sync_id, $syncUpdate );
 				$count ++;
 			}
 		}
@@ -1493,10 +1493,11 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 	 *
 	 * @return array
 	 */
-	public function sync_update( $sync_id = null, $data = null, $source_connect_id = null ) {
+	public function sync_update( $sync_id, $data ) {
+		$connect_id = instawp_get_connect_id();
 
 		// connects/<connect_id>/syncs/<sync_id>
-		return InstaWP_Curl::do_curl( "connects/{$source_connect_id}/syncs/{$sync_id}", $data, [], 'patch' );
+		return InstaWP_Curl::do_curl( "connects/{$connect_id}/syncs/{$sync_id}", $data, [], 'patch' );
 	}
 
 	/*

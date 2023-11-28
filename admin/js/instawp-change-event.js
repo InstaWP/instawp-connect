@@ -176,7 +176,7 @@ jQuery(document).ready(function ($) {
         $(this).removeClass('two-way-sync-btn').addClass('loading')
         //Initiate Step 2
         //$('#btn-sync-'+sync_ids).parent().find('.sync-loader').html('<img src="'+ajax_obj.plugin_images_url+'/loaders/loader.gif" style="width:20px">');
-        packThings(sync_message, 'single_sync', sync_ids, dest_connect_id);
+        packThings(sync_message, 'instawp_single_sync', sync_ids, dest_connect_id);
     });
 
     const baseCall = async (body) => {
@@ -189,7 +189,7 @@ jQuery(document).ready(function ($) {
 
     const get_events_summary = async () => {
         let formData = new FormData();
-        formData.append('action', 'get_events_summary');
+        formData.append('action', 'instawp_get_events_summary');
         formData.append('connect_id', $("#destination-site").val());
         $(".sync-changes-btn").addClass('disabled');
         $("#event-type-list").addClass('instawp-box-loading').html('');
@@ -221,7 +221,7 @@ jQuery(document).ready(function ($) {
 
         if (current_page == undefined) return;
         let formData = new FormData();
-        formData.append('action', 'get_site_events');
+        formData.append('action', 'instawp_get_site_events');
         formData.append('epage', page);
         formData.append('connect_id', site_id);
 
@@ -337,12 +337,12 @@ jQuery(document).ready(function ($) {
 
     const bulkSync = (sync_message, data, sync_type, dest_connect_id, page) => {
         let formData = new FormData();
-        formData.append('action', 'sync_changes');
+        formData.append('action', 'instawp_sync_changes');
         formData.append('sync_message', sync_message);
         formData.append('sync_type', sync_type);
         formData.append('dest_connect_id', dest_connect_id);
         formData.append('sync_ids', '');
-        formData.append('data', data);
+        formData.append('data', JSON.stringify(data));
         formData.append('page', page);
         baseCall(formData).then((response) => response.json()).then((data) => {
             if (data.success === true) {

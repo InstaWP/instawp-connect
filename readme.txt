@@ -2,7 +2,7 @@
 Contributors: instawp
 Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.4
-Tested up to: 6.4.1
+Tested up to: 6.4
 Requires PHP: 7.4
 Stable tag: 0.0.9.50
 License: GPLv3 or later
@@ -93,6 +93,13 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 6. Update API Key and Settings.
 
 == Changelog ==
+
+= 0.0.9.51 =
+
+- FIX - Fixed 2 Way Sync not working.
+- FIX - Fixed Site Dropdown CSS.
+- FIX - Fixed some PHP errors.
+- FIX - Optimized 2 Way Sync Codebase.
 
 = 0.0.9.50 - 22 Nov 2023 =
 
