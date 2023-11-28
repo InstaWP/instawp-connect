@@ -3,16 +3,7 @@
  * Migrate template - Main
  */
 
-$api_domain      = InstaWP_Setting::get_api_domain();
-$return_url      = urlencode( admin_url( 'tools.php?page=instawp' ) );
-$connect_api_url = InstaWP_Setting::get_api_domain() . '/authorize?source=InstaWP Connect&return_url=' . $return_url;
-$current_page    = isset( $_REQUEST['page'] ) ? sanitize_text_field( $_REQUEST['page'] ) : '';
-$access_token    = isset( $_REQUEST['access_token'] ) ? sanitize_text_field( $_REQUEST['access_token'] ) : '';
-$success         = isset( $_REQUEST['success'] ) ? sanitize_text_field( $_REQUEST['success'] ) : '';
-
-if ( empty( InstaWP_Setting::get_api_key() ) && 'instawp' == $current_page && 'true' == $success && ! empty( $access_token ) ) {
-	InstaWP_Setting::instawp_generate_api_key( $access_token, $success );
-} ?>
+$api_domain = InstaWP_Setting::get_api_domain(); ?>
 
 <div class="flex border-b justify-between shadow-md rounded-tl-lg rounded-tr-lg border-grayCust-100">
     <div class="flex items-center nav-items">
@@ -30,8 +21,8 @@ if ( empty( InstaWP_Setting::get_api_key() ) && 'instawp' == $current_page && 't
                 <span><?php echo esc_html__( 'Connect', 'instawp-connect' ); ?></span>
             </button>
 		<?php else: ?>
-            <span class="w-1 h-1 <?= strpos($api_domain, 'stage') !== false ? 'bg-amber-600' : 'bg-primary-700'; ?> rounded-full mr-2"></span>
-            <span class="mr-4 <?= strpos($api_domain, 'stage') !== false ? 'text-amber-600' : 'text-primary-700'; ?>"><?php echo esc_html__( 'Your account is connected', 'instawp-connect' ); ?></span>
+            <span class="w-1 h-1 <?= strpos( $api_domain, 'stage' ) !== false ? 'bg-amber-600' : 'bg-primary-700'; ?> rounded-full mr-2"></span>
+            <span class="mr-4 <?= strpos( $api_domain, 'stage' ) !== false ? 'text-amber-600' : 'text-primary-700'; ?>"><?php echo esc_html__( 'Your account is connected', 'instawp-connect' ); ?></span>
 		<?php endif; ?>
     </div>
 </div>

@@ -60,7 +60,10 @@ class InstaWP_Setting {
 			unset( $instawp_nav_items['manage'] );
 		}
 
-		if ( self::get_allowed_role() !== 'administrator' ) {
+		$instawp_sync_tab_roles = InstaWP_Setting::get_option( 'instawp_sync_tab_roles', [ 'administrator' ] );
+		$instawp_sync_tab_roles = empty( $instawp_sync_tab_roles ) ? [ 'administrator' ] : $instawp_sync_tab_roles;
+
+		if ( ! in_array( 'administrator', $instawp_sync_tab_roles ) ) {
 			unset( $instawp_nav_items['create'] );
 			unset( $instawp_nav_items['sites'] );
 			unset( $instawp_nav_items['manage'] );
@@ -122,7 +125,7 @@ class InstaWP_Setting {
 		}
 
 		$label_attributes = '';
-		$label_class      = 'inline-block text-sm font-medium text-gray-700 mb-3 sm:mt-px sm:pt-2';
+		$label_class      = 'block text-sm font-medium text-gray-700 mb-3 sm:mt-px sm:pt-2';
 		$label_content    = esc_html( $field_title );
 		if ( ! empty( $field_tooltip ) ) {
 			$label_class      .= ' hint--top hint--large';
@@ -426,20 +429,20 @@ class InstaWP_Setting {
 					'default' => 'off',
 				],
 				[
-					'id'       => 'instawp_rm_config_management',
-					'type'     => 'toggle',
-					'title'    => __( 'Config Management', 'instawp-connect' ),
-					'tooltip'  => __( 'Enabling this option will allow reading, updating and deleting the WordPress constant values on this website remotely using the REST API.', 'instawp-connect' ),
-					'class'    => 'save-ajax',
-					'default'  => 'off',
+					'id'      => 'instawp_rm_config_management',
+					'type'    => 'toggle',
+					'title'   => __( 'Config Management', 'instawp-connect' ),
+					'tooltip' => __( 'Enabling this option will allow reading, updating and deleting the WordPress constant values on this website remotely using the REST API.', 'instawp-connect' ),
+					'class'   => 'save-ajax',
+					'default' => 'off',
 				],
 				[
-					'id'       => 'instawp_rm_inventory',
-					'type'     => 'toggle',
-					'title'    => __( 'Site Inventory', 'instawp-connect' ),
-					'tooltip'  => __( 'Enabling this option will allow reading the installed WordPress version, themes and plugins on this website remotely using the REST API.', 'instawp-connect' ),
-					'class'    => 'save-ajax',
-					'default'  => 'on',
+					'id'      => 'instawp_rm_inventory',
+					'type'    => 'toggle',
+					'title'   => __( 'Site Inventory', 'instawp-connect' ),
+					'tooltip' => __( 'Enabling this option will allow reading the installed WordPress version, themes and plugins on this website remotely using the REST API.', 'instawp-connect' ),
+					'class'   => 'save-ajax',
+					'default' => 'on',
 				],
 				[
 					'id'      => 'instawp_rm_debug_log',
@@ -523,7 +526,12 @@ class InstaWP_Setting {
 			array(
 				'slug'       => 'breeze/breeze.php',
 				'name'       => esc_html( 'Breeze' ),
-				'author_url' => '',
+				'author_url' => esc_url( 'https://www.cloudways.com/' ),
+			),
+			array(
+				'slug'       => 'malcare-security/malcare.php',
+				'name'       => esc_html( 'MalCare WordPress Security Plugin' ),
+				'author_url' => esc_url( 'https://www.malcare.com/' ),
 			),
 			array(
 				'slug'       => 'ithemes-security-pro/ithemes-security-pro.php',

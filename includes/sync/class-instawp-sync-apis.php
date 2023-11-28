@@ -866,7 +866,7 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 					'message'  => $sync_message,
 					'changes'  => [ 'changes' => $changes, 'sync_response' => $sync_response, 'logs' => $this->logs ],
 				];
-				$this->sync_update( $sync_id, $syncUpdate, $source_connect_id );
+				$this->sync_update( $sync_id, $syncUpdate );
 				$count ++;
 			}
 		}
@@ -1491,43 +1491,13 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 	 * @param $data
 	 * @param $source_connect_id
 	 *
-	 * @return bool|string
+	 * @return array
 	 */
-	public function sync_update( $sync_id = null, $data = null, $source_connect_id = null ) {
-		$api_doamin = InstaWP_Setting::get_api_domain();
-		$connect_id = intval( $source_connect_id );
-		$endpoint   = '/api/v2/connects/' . $connect_id . '/syncs/' . $sync_id;
-		$url        = $api_doamin . $endpoint; #https://stage.instawp.io/api/v2/connects/241/syncs/450
-		$api_key    = InstaWP_setting::get_api_key();
+	public function sync_update( $sync_id, $data ) {
+		$connect_id = instawp_get_connect_id();
 
-		try {
-			$curl = curl_init();
-			curl_setopt_array( $curl, array(
-				CURLOPT_URL            => $url,
-				CURLOPT_RETURNTRANSFER => true,
-				CURLOPT_ENCODING       => '',
-				CURLOPT_MAXREDIRS      => 10,
-				CURLOPT_TIMEOUT        => 0,
-				CURLOPT_FOLLOWLOCATION => true,
-				CURLOPT_SSL_VERIFYHOST => false,
-				CURLOPT_SSL_VERIFYPEER => false,
-				CURLOPT_USERAGENT      => isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '',
-				CURLOPT_REFERER        => 'InstaWP Connect - 2-way-sync',
-				CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
-				CURLOPT_CUSTOMREQUEST  => 'PATCH',
-				CURLOPT_POSTFIELDS     => json_encode( $data ),
-				CURLOPT_HTTPHEADER     => array(
-					'Authorization: Bearer ' . $api_key . '',
-					'Content-Type: application/json'
-				),
-			) );
-
-			$response = curl_exec( $curl );
-
-			return $response;
-		} catch ( Exception $e ) {
-			return $e->getMessage();
-		}
+		// connects/<connect_id>/syncs/<sync_id>
+		return InstaWP_Curl::do_curl( "connects/{$connect_id}/syncs/{$sync_id}", $data, [], 'patch' );
 	}
 
 	/*

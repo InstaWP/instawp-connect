@@ -102,11 +102,20 @@ class InstaWP_Admin {
 			return;
 		}
 
+		$meta_classes = [ 'instawp-sync-recording' ];
+
+		if ( '1' == InstaWP_Setting::get_option( 'instawp_is_event_syncing', '0' ) ) {
+			$meta_classes[] = 'recording-on';
+		}
+
 		$admin_bar->add_menu(
 			array(
 				'id'    => 'instawp',
 				'title' => '',
 				'href'  => admin_url( 'tools.php?page=instawp' ),
+				'meta'  => array(
+					'class' => implode( ' ', $meta_classes ),
+				),
 			)
 		);
 	}
@@ -159,7 +168,7 @@ class InstaWP_Admin {
 
 
 	public function enqueue_scripts() {
-		//change events scripts [start]
+		wp_enqueue_style( 'instawp-hint', instawp()::get_asset_url( 'assets/css/hint.min.css' ) );
 		wp_enqueue_style( 'instawp-select2', INSTAWP_PLUGIN_DIR_URL . 'css/select2.min.css' );
 		wp_enqueue_script( 'instawp-select2', INSTAWP_PLUGIN_DIR_URL . 'js/select2.min.js', array( 'jquery' ) );
 		wp_enqueue_style( 'change-event-css', INSTAWP_PLUGIN_DIR_URL . 'css/instawp-change-event.css' );
@@ -169,9 +178,6 @@ class InstaWP_Admin {
 				'ajax_url'          => admin_url( 'admin-ajax.php' ),
 				'nonce'             => wp_create_nonce( 'instaWp_change_event' ),
 				'plugin_images_url' => INSTAWP_PLUGIN_IMAGES_URL,
-				'data'              => [
-					'event_toolbar_html' => '<li id="wp-admin-bar-instawp-sync-toolbar" class="instawp-sync-status-toolbar"><a class="ab-item" href="' . admin_url( 'tools.php?page=instawp' ) . '" title="' . __( "Recording", "instawp-connect" ) . '">' . __( "Recording", "instawp-connect" ) . '</a></li>',
-				],
 				'trans'             => [
 					'create_staging_site_txt' => __( 'Please create staging sites first.', 'instawp-connect' )
 				]
@@ -183,10 +189,9 @@ class InstaWP_Admin {
 			wp_enqueue_style( 'instawp-tailwind', instawp()::get_asset_url( 'assets/css/tailwind.min.css' ), [], current_time( 'U' ) );
 		}
 
-		wp_enqueue_style( 'instawp-hint', instawp()::get_asset_url( 'migrate/assets/css/hint.min.css' ), [ 'instawp-migrate' ], '2.7.0' );
+
 		wp_enqueue_style( 'instawp-migrate', instawp()::get_asset_url( 'migrate/assets/css/style.css' ), [], current_time( 'U' ) );
 		wp_enqueue_style( 'instawp-connect', instawp()::get_asset_url( 'assets/css/style.min.css' ), [], current_time( 'U' ) );
-
 		wp_enqueue_script( 'instawp-migrate', instawp()::get_asset_url( 'assets/js/scripts.js' ), array(), current_time( 'U' ) );
 		wp_localize_script( 'instawp-migrate', 'instawp_migrate',
 			array(

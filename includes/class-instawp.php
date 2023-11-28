@@ -62,18 +62,12 @@ class instaWP {
 			$this->define_admin_hook();
 		}
 
-		add_action( 'init', array( $this, 'register_heartbeat_action' ), 11 );
-		add_action( 'update_option_instawp_api_heartbeat', array( $this, 'clear_heartbeat_action' ) );
-		add_action( 'update_option_instawp_rm_heartbeat', array( $this, 'clear_heartbeat_action' ) );
-		add_action( 'instawp_handle_heartbeat', array( $this, 'handle_heartbeat' ) );
-
+		add_action( 'init', array( $this, 'register_actions' ), 11 );
 		add_action( 'instawp_prepare_large_files_list', array( $this, 'prepare_large_files_list' ) );
-		add_action( 'instawp_prepare_large_files_list_async', array( $this, 'prepare_large_files_list' ) );
+		add_action( 'add_option_instawp_max_file_size_allowed', array( $this, 'clear_staging_sites_list' ) );
 		add_action( 'update_option_instawp_max_file_size_allowed', array( $this, 'clear_staging_sites_list' ) );
-
-		add_action( 'instawp_clean_completed_actions', array( $this, 'clean_events' ) );
 		add_action( 'instawp_clean_migrate_files', array( $this, 'clean_migrate_files' ) );
-
+		add_action( 'add_option_instawp_enable_wp_debug', array( $this, 'toggle_wp_debug' ), 10, 2 );
 		add_action( 'update_option_instawp_enable_wp_debug', array( $this, 'toggle_wp_debug' ), 10, 2 );
 		add_action( 'login_init', array( $this, 'instawp_auto_login_redirect' ) );
 	}
@@ -97,28 +91,25 @@ class instaWP {
 		$wp_config->update();
 	}
 
-	public function register_heartbeat_action() {
+	public function register_actions() {
 
 		$heartbeat = InstaWP_Setting::get_option( 'instawp_rm_heartbeat', 'on' );
 		$heartbeat = empty( $heartbeat ) ? 'on' : $heartbeat;
-
-		$interval = InstaWP_Setting::get_option( 'instawp_api_heartbeat', 15 );
-		$interval = empty( $interval ) ? 15 : (int) $interval;
-
-		if ( ! empty( InstaWP_Setting::get_api_key() ) && $heartbeat === 'on' && ! as_has_scheduled_action( 'instawp_handle_heartbeat', [], 'instawp-connect' ) ) {
-			as_schedule_recurring_action( time(), ( $interval * 60 ), 'instawp_handle_heartbeat', [], 'instawp-connect', false, 5 );
+		$interval  = InstaWP_Setting::get_option( 'instawp_api_heartbeat', 15 );
+		$interval  = empty( $interval ) ? 15 : (int) $interval;
+		
+		$heartbeat_last = get_option( 'instawp_last_heartbeat_sent' );
+		if ( $heartbeat === 'on' && ( ! $heartbeat_last || ( time() - $heartbeat_last ) > ( $interval * 60 ) ) ) {
+			update_option( 'instawp_last_heartbeat_sent', time() );
+			$this->handle_heartbeat();
 		}
 
-		if ( ! as_has_scheduled_action( 'instawp_prepare_large_files_list', [], 'instawp-connect' ) ) {
-			as_schedule_recurring_action( time(), HOUR_IN_SECONDS, 'instawp_prepare_large_files_list', [], 'instawp-connect', false, 5 );
+		if ( ! wp_next_scheduled( 'instawp_prepare_large_files_list' ) ) {
+			wp_schedule_event( time(), 'hourly', 'instawp_prepare_large_files_list' );
 		}
 
-		if ( ! as_has_scheduled_action( 'instawp_clean_completed_actions', [], 'instawp-connect' ) ) {
-			as_schedule_recurring_action( time(), DAY_IN_SECONDS, 'instawp_clean_completed_actions', [], 'instawp-connect', false, 5 );
-		}
-
-		if ( ! as_has_scheduled_action( 'instawp_clean_migrate_files', [], 'instawp-connect' ) ) {
-			as_schedule_recurring_action( time(), HOUR_IN_SECONDS, 'instawp_clean_migrate_files', [], 'instawp-connect', false, 5 );
+		if ( ! wp_next_scheduled( 'instawp_clean_migrate_files' ) ) {
+			wp_schedule_event( time(), 'hourly', 'instawp_clean_migrate_files' );
 		}
 	}
 
@@ -129,13 +120,6 @@ class instaWP {
 	}
 
 	public function handle_heartbeat() {
-		$heartbeat = InstaWP_Setting::get_option( 'instawp_rm_heartbeat', 'on' );
-		$heartbeat = empty( $heartbeat ) ? 'on' : $heartbeat;
-
-		if ( $heartbeat !== 'on' ) {
-			return;
-		}
-
 		date_default_timezone_set( "Asia/Kolkata" );
 
 		if ( defined( 'INSTAWP_DEBUG_LOG' ) && true === INSTAWP_DEBUG_LOG ) {
@@ -149,26 +133,19 @@ class instaWP {
 		if ( ! class_exists( 'WP_Debug_Data' ) ) {
 			require_once ABSPATH . 'wp-admin/includes/class-wp-debug-data.php';
 		}
-		$sizes_data = WP_Debug_Data::get_sizes();
 
-		$wp_version   = get_bloginfo( 'version' );
-		$php_version  = phpversion();
-		$total_size   = $sizes_data['total_size']['size'];
-		$active_theme = wp_get_theme()->get( 'Name' );
-
-		$count_posts = wp_count_posts();
-		$posts       = $count_posts->publish;
-
-		$count_pages = wp_count_posts( 'page' );
-		$pages       = $count_pages->publish;
-
-		$count_users = count_users();
-		$users       = $count_users['total_users'];
-
-		// Curl constant
-		global $InstaWP_Curl;
-
-		$body = base64_encode(
+		$sizes_data         = WP_Debug_Data::get_sizes();
+		$wp_version         = get_bloginfo( 'version' );
+		$php_version        = phpversion();
+		$total_size         = $sizes_data['total_size']['size'];
+		$active_theme       = wp_get_theme()->get( 'Name' );
+		$count_posts        = wp_count_posts();
+		$posts              = $count_posts->publish;
+		$count_pages        = wp_count_posts( 'page' );
+		$pages              = $count_pages->publish;
+		$count_users        = count_users();
+		$users              = $count_users['total_users'];
+		$heartbeat_body     = base64_encode(
 			json_encode(
 				array(
 					"wp_version"  => $wp_version,
@@ -181,16 +158,11 @@ class instaWP {
 				)
 			)
 		);
-
-		$api_domain    = InstaWP_Setting::get_api_domain();
-		$url           = $api_domain . INSTAWP_API_URL . '/connects/' . $this->connect_id . '/heartbeat';
-		$body_json     = json_encode( $body );
-		$curl_response = $InstaWP_Curl->curl( $url, $body_json );
+		$heartbeat_response = InstaWP_Curl::do_curl( "connects/{$this->connect_id}/heartbeat", $heartbeat_body, [], true, 'v1' );
 
 		if ( defined( 'INSTAWP_DEBUG_LOG' ) && INSTAWP_DEBUG_LOG ) {
-			error_log( "Heartbeat API Curl URL " . $url );
 			error_log( "Print Heartbeat API Curl Response Start" );
-			error_log( print_r( $curl_response, true ) );
+			error_log( json_encode( $heartbeat_response, true ) );
 			error_log( "Print Heartbeat API Curl Response End" );
 		}
 	}
@@ -199,20 +171,24 @@ class instaWP {
 		$maxbytes = (int) InstaWP_Setting::get_option( 'instawp_max_file_size_allowed', INSTAWP_DEFAULT_MAX_FILE_SIZE_ALLOWED );
 		$maxbytes = $maxbytes ? $maxbytes : INSTAWP_DEFAULT_MAX_FILE_SIZE_ALLOWED;
 		$maxbytes = ( $maxbytes * 1024 * 1024 );
-		$path     = realpath( ABSPATH );
+		$path     = ABSPATH;
 		$data     = [];
 
-		if ( $path !== false && $path != '' && file_exists( $path ) ) {
-			foreach ( new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $path, FilesystemIterator::SKIP_DOTS ) ) as $object ) {
-				if ( $object->getSize() > $maxbytes && strpos( $object->getPath(), 'instawpbackups' ) === false ) {
-					$data[] = [
-						'size'          => $object->getSize(),
-						'path'          => wp_normalize_path( $object->getPath() ),
-						'pathname'      => wp_normalize_path( $object->getPathname() ),
-						'realpath'      => wp_normalize_path( $object->getRealPath() ),
-						'relative_path' => str_replace( wp_normalize_path( ABSPATH ), '', wp_normalize_path( $object->getRealPath() ) ),
-					];
+		if ( $path !== false && $path != '' && file_exists( $path ) && is_readable( $path ) ) {
+			try {
+				foreach ( new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $path, FilesystemIterator::SKIP_DOTS ) ) as $object ) {
+					if ( $object->getSize() > $maxbytes && strpos( $object->getPath(), 'instawpbackups' ) === false ) {
+						$data[] = [
+							'size'          => $object->getSize(),
+							'path'          => wp_normalize_path( $object->getPath() ),
+							'pathname'      => wp_normalize_path( $object->getPathname() ),
+							'realpath'      => wp_normalize_path( $object->getRealPath() ),
+							'relative_path' => str_replace( wp_normalize_path( ABSPATH ), '', wp_normalize_path( $object->getRealPath() ) ),
+						];
+					}
 				}
+			} catch ( Exception $e ) {
+				error_log( 'error in prepare_large_files_list: ' . $e->getMessage() );
 			}
 		}
 
@@ -222,46 +198,7 @@ class instaWP {
 
 	public function clear_staging_sites_list() {
 		delete_option( 'instawp_large_files_list' );
-		as_enqueue_async_action( 'instawp_prepare_large_files_list_async', [], 'instawp-connect', true );
-	}
-
-	public function clean_events() {
-		if ( ! \ActionScheduler::is_initialized( __FUNCTION__ ) ) {
-			return;
-		}
-
-		$statuses_to_purge = [
-			\ActionScheduler_Store::STATUS_COMPLETE,
-			\ActionScheduler_Store::STATUS_CANCELED,
-			\ActionScheduler_Store::STATUS_FAILED,
-		];
-		$store             = \ActionScheduler::store();
-
-		$deleted_actions = [];
-		$action_ids      = [];
-		foreach ( $statuses_to_purge as $status ) {
-			$actions_to_delete = $store->query_actions( [
-				'status'           => $status,
-				'modified'         => as_get_datetime_object( '24 hours ago' ),
-				'modified_compare' => '<=',
-				'per_page'         => 200,
-				'orderby'          => 'none',
-				'group'            => 'instawp-connect'
-			] );
-
-			$action_ids = array_merge( $action_ids, $actions_to_delete );
-		}
-
-		foreach ( $action_ids as $action_id ) {
-			try {
-				$store->delete_action( $action_id );
-			} catch ( Exception $e ) {
-			}
-		}
-	}
-
-	public function clear_heartbeat_action() {
-		as_unschedule_all_actions( 'instawp_handle_heartbeat', [], 'instawp-connect' );
+		do_action( 'instawp_prepare_large_files_list' );
 	}
 
 	public function instawp_auto_login_redirect() {
@@ -351,7 +288,7 @@ class instaWP {
 		$files           = $folders = [];
 
 		foreach ( $files_data as $key => $value ) {
-			$path            = realpath( $dir . DIRECTORY_SEPARATOR . $value );
+			$path            = $dir . DIRECTORY_SEPARATOR . $value;
 			$normalized_path = wp_normalize_path( $path );
 
 			try {
@@ -398,7 +335,6 @@ class instaWP {
 	public function get_directory_info( $path ) {
 		$bytes_total = 0;
 		$files_total = 0;
-		$path        = realpath( $path );
 		try {
 			if ( $path !== false && $path != '' && file_exists( $path ) ) {
 				foreach ( new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $path, FilesystemIterator::SKIP_DOTS ) ) as $object ) {
@@ -549,7 +485,7 @@ class instaWP {
 
 
 	public static function get_asset_url( $asset_name ) {
-		return INSTAWP_PLUGIN_URL . '/' . $asset_name;
+		return INSTAWP_PLUGIN_URL . $asset_name;
 	}
 
 	public static function get_exclude_default_plugins() {
@@ -670,15 +606,18 @@ class instaWP {
 
 	public function instawp_check_usage_on_cloud( $total_size = 0 ) {
 
-		$connect_id          = $this->connect_id ?? 0;
-		$api_response        = InstaWP_Curl::do_curl( 'connects/' . $connect_id . '/usage', [], [], false, 'v1' );
+		// connects/<connect_id>/usage
+		$api_response        = InstaWP_Curl::do_curl( "connects/{$this->connect_id}/usage", [], [], false, 'v1' );
 		$api_response_status = InstaWP_Setting::get_args_option( 'success', $api_response, false );
 		$api_response_data   = InstaWP_Setting::get_args_option( 'data', $api_response, [] );
+
+		// send usage check log before starting the pull
+		instawp_send_connect_log( 'usage-check', json_encode( $api_response ) );
 
 		if ( ! $api_response_status ) {
 			return array(
 				'can_proceed'  => false,
-				'connect_id'   => $connect_id,
+				'connect_id'   => $this->connect_id,
 				'api_response' => $api_response,
 			);
 		}
@@ -716,18 +655,16 @@ class instaWP {
 
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-rest-api.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-hooks.php';
+		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-cli.php';
 
 		require_once INSTAWP_PLUGIN_DIR . '/migrate/class-instawp-migrate.php';
-
-		require_once INSTAWP_PLUGIN_DIR . '/cli/class-instawp-cli.php';
+		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-cli.php';
 
 		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-admin.php';
+		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-helpers.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-events.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-wc.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-ajax.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-apis.php';
-
-		
-
 	}
 }

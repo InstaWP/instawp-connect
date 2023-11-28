@@ -7,7 +7,7 @@
  * @wordpress-plugin
  * Plugin Name:       InstaWP Connect
  * Description:       Create 1-click staging, migration and manage your prod sites.
- * Version:           0.0.9.46
+ * Version:           0.0.9.51-dev
  * Author:            InstaWP Team
  * Author URI:        https://instawp.com/
  * License:           GPL-3.0+
@@ -23,7 +23,7 @@ if ( ! defined( 'WPINC' ) ) {
 
 global $wpdb;
 
-define( 'INSTAWP_PLUGIN_VERSION', '0.0.9.46' );
+define( 'INSTAWP_PLUGIN_VERSION', '0.0.9.50' );
 define( 'INSTAWP_RESTORE_INIT', 'init' );
 define( 'INSTAWP_API_DOMAIN_PROD', 'https://app.instawp.io' );
 
@@ -36,7 +36,8 @@ define( 'INSTAWP_RESTORE_TIMEOUT', 180 );
 
 defined( 'INSTAWP_PLUGIN_URL' ) || define( 'INSTAWP_PLUGIN_URL', WP_PLUGIN_URL . '/' . plugin_basename( dirname( __FILE__ ) ) . '/' );
 defined( 'INSTAWP_PLUGIN_DIR' ) || define( 'INSTAWP_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
-
+defined( 'INSTAWP_DEFAULT_BACKUP_DIR' ) || define( 'INSTAWP_DEFAULT_BACKUP_DIR', 'instawpbackups' );
+defined( 'INSTAWP_BACKUP_DIR' ) || define( 'INSTAWP_BACKUP_DIR', WP_CONTENT_DIR . DIRECTORY_SEPARATOR . INSTAWP_DEFAULT_BACKUP_DIR . DIRECTORY_SEPARATOR );
 
 define( 'INSTAWP_CHUNK_SIZE', 1024 * 1024 );
 
@@ -67,10 +68,9 @@ define( 'INSTAWP_DEFAULT_EXCLUDE_FILE_SIZE', 0 );
 //Add a file in an archive without compressing the file.The default value is 200.
 define( 'INSTAWP_DEFAULT_NO_COMPRESS', true );
 //Backup save folder under WP_CONTENT_DIR
-define( 'INSTAWP_DEFAULT_BACKUP_DIR', 'instawpbackups' );
+
 //Log save folder under WP_CONTENT_DIR
 define( 'INSTAWP_DEFAULT_LOG_DIR', 'instawpbackups' . DIRECTORY_SEPARATOR . 'instawp_log' );
-//Old files folder under INSTAWP_DEFAULT_BACKUP_DIR
 define( 'INSTAWP_DEFAULT_ROLLBACK_DIR', 'instawp-old-files' );
 //
 define( 'INSTAWP_DEFAULT_ADMIN_BAR', true );
@@ -133,8 +133,7 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/functions.php';
 function instawp_plugin_activate() {
 
 	InstaWP_Tools::instawp_reset_permalink();
-
-	as_enqueue_async_action( 'instawp_prepare_large_files_list_async', [], 'instawp-connect', true );
+	do_action( 'instawp_prepare_large_files_list' );
 
 	//set default user for sync settings if user empty
 	$default_user = InstaWP_Setting::get_option( 'instawp_default_user' );
@@ -152,10 +151,8 @@ function instawp_plugin_activate() {
 
 /*Deactivate Hook Handle*/
 function instawp_plugin_deactivate() {
-
 	InstaWP_Tools::instawp_reset_permalink();
-
-	as_unschedule_all_actions( 'instawp_handle_heartbeat', [], 'instawp-connect' );
+	wp_clear_scheduled_hook( 'instawp_handle_heartbeat' );
 }
 
 register_activation_hook( __FILE__, 'instawp_plugin_activate' );
@@ -194,7 +191,22 @@ run_instawp();
 
 add_action( 'wp_head', function () {
 	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
+
+//		$migrate_key = InstaWP_Tools::get_random_string( 40 );
+//		$api_signature      = "4fd7be36694620a8b58760a5651b00f4af627c738dbcc60f4f55118561597311aaacd23faf2a37b32aaddc7d476f2bd2d7b510288f11cccae7cf45cf7c914044";
+//		$migrate_settings_str = '{"type":"full","excluded_tables":["wp_actionscheduler_logs","wp_instawp_staging_sites","wp_instawp_events","wp_instawp_sync_history","wp_instawp_event_sites","wp_instawp_event_sync_logs"],"excluded_tables_rows":{"wp_options":["option_name:instawp_api_options","option_name:instawp_connect_id_options","option_name:instawp_sync_parent_connect_data","option_name:instawp_migration_details","option_name:instawp_api_key_config_completed","option_name:instawp_is_event_syncing","option_name:_transient_instawp_staging_sites","option_name:_transient_timeout_instawp_staging_sites"]}}';
+//		$migrate_settings     = json_decode( $migrate_settings_str, true );
+//		$pre_check_response   = instawp()->tools::get_pull_pre_check_response( $migrate_key, $migrate_settings );
+
+
+//		echo "<pre>";
+//		print_r( InstaWP_Setting::get_option( 'instawp_api_options' ) );
+//		echo "</pre>";
+
+
+
+
+
 		die();
 	}
 }, 0 );
-

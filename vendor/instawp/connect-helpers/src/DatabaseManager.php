@@ -15,16 +15,7 @@ class DatabaseManager {
     public function get(): array {
         $results = [];
 		
-		$file_db_manager = Helper::get_option( 'instawp_file_db_manager', [] );
-		$db_file_name    = Helper::get_args_option( 'db_name', $file_db_manager );
-		if ( ! empty( $db_file_name ) ) {
-			as_unschedule_all_actions( 'instawp_clean_database_manager', [ $db_file_name ], 'instawp-connect' );
-
-			$file_path = self::get_file_path( $db_file_name );
-			if ( file_exists( $file_path ) ) {
-				@unlink( $file_path );
-			}
-		}
+		$this->clean();
 
 		$db_file_name = Helper::get_random_string( 20 );
 		$token     = md5( $db_file_name );
@@ -85,7 +76,7 @@ class DatabaseManager {
 			update_option( 'instawp_file_db_manager', $file_db );
 
 			flush_rewrite_rules();
-			as_schedule_single_action( time() + DAY_IN_SECONDS, 'instawp_clean_database_manager', [ $db_file_name ], 'instawp-connect', false, 5 );
+			do_action( 'instawp_connect_create_database_manager_task', $file_name );
 		} catch ( Exception $e ) {
 			$results = [
 				'success' => false,

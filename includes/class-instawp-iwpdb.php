@@ -2,162 +2,223 @@
 
 class IWPDB {
 
-	private $connection;
+	/**
+	 * @var mysqli
+	 */
+	public $conn = null;
+	public $last_error = '';
+	private $migrate_key = '';
+	private $options_data = [];
 
-	private $isPDO;
+	public function __construct( $key ) {
+		$this->migrate_key = $key;
 
-	private $lastError;
-
-	private $table_option = 'serve_data_options';
-
-	public function __construct( $dbname = '' ) {
-
-		if ( extension_loaded( 'PDO' ) && in_array( 'sqlite', PDO::getAvailableDrivers() ) ) {
-			$this->isPDO = true;
-
-			try {
-				$this->connection = new PDO( "sqlite:$dbname" );
-				$this->connection->setAttribute( PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION );
-			} catch ( PDOException $e ) {
-				$this->lastError = $e->getMessage();
-			}
-		} else {
-			$this->isPDO      = false;
-			$this->connection = new SQLite3( $dbname );
-
-			if ( ! $this->connection ) {
-				$this->lastError = $this->connection->lastErrorMsg();
-			}
-		}
-
-		$this->create_option_table();
+		$this->set_options_data();
+		$this->connect_database();
+		$this->create_require_tables();
 	}
 
-	public function get_option( $option_name = '', $default = '' ) {
-		$query_response = $this->rawQuery( "SELECT * FROM {$this->table_option} WHERE option_name=:option_name LIMIT 1", array( ':option_name' => $option_name ) );
-		$query_value    = $this->fetchRows( $query_response );
-		$query_value    = is_array( $query_value ) && isset( $query_value[0] ) ? $query_value[0] : [];
+	public function insert( $table_name, $data = [] ) {
 
-		return isset( $query_value['option_value'] ) ? $query_value['option_value'] : $default;
-	}
+		$column_names  = implode( ',', array_keys( $data ) );
+		$column_values = implode( ',', array_values( $data ) );
 
-	public function update_option( $option_name, $option_value ) {
+		$insert_res = $this->query( "INSERT INTO {$table_name} ({$column_names}) VALUES ({$column_values})" );
 
-		if ( empty( $this->get_option( $option_name ) ) ) {
-			return $this->add_option( $option_name, $option_value );
+		if ( $insert_res ) {
+			return true;
 		}
 
-		return $this->rawQuery( "UPDATE {$this->table_option} SET option_value = ':option_value' WHERE option_name=':option_name'",
-			array(
-				':option_name'  => $option_name,
-				':option_value' => $option_value,
-			)
-		);
+		return false;
 	}
 
-	public function add_option( $option_name, $option_value ) {
+	public function update( $table_name, $data = [], $where_array = [] ) {
 
-		if ( is_array( $option_value ) ) {
-			$option_value = serialize( $option_value );
+		$set_arr = [];
+
+		foreach ( $data as $key => $val ) {
+			$set_arr[] = "`$key` = '$val'";
 		}
 
-		$ret = $this->rawQuery( "INSERT OR IGNORE INTO {$this->table_option} (option_name, option_value) VALUES (:option_name, :option_value)",
-			array(
-				':option_name'  => $option_name,
-				':option_value' => $option_value,
-			)
-		);
+		$set_str   = implode( ',', $set_arr );
+		$query_res = $this->query( "UPDATE {$table_name} SET {$set_str} WHERE {$this->build_where_clauses($where_array)}" );
 
-		if ( ! $ret ) {
+		if ( $query_res ) {
+			return true;
+		}
+
+		return false;
+	}
+
+	public function get_row( $table_name, $where_array = [] ) {
+
+		$fetch_row_res = $this->query( "SELECT * FROM {$table_name} WHERE {$this->build_where_clauses($where_array)} LIMIT 1" );
+
+//		try {
+//
+//		} catch ( Exception $e ) {
+//			echo "<pre>";
+//			print_r( $e->getMessage() );
+//			echo "</pre>";
+//		}
+
+		$this->fetch_rows( $fetch_row_res, $result );
+
+		if ( isset( $result[0] ) ) {
+			return $result[0];
+		}
+
+		return [];
+	}
+
+	public function get_rows( $table_name, $where_array = [] ) {
+		/**
+		 * @todo implement latter
+		 */
+		$query_res = $this->query( "SELECT * FROM {$table_name} WHERE {$this->build_where_clauses($where_array)}" );
+	}
+
+	public function fetch_rows( mysqli_result $mysqli_result, &$rows ) {
+		while ( $row = $mysqli_result->fetch_assoc() ) {
+			$rows[] = $row;
+		}
+	}
+
+	public function query_count( $table_name, $where_array = [] ) {
+		$query_count_res = $this->query( "SELECT count(*) as count FROM {$table_name} WHERE {$this->build_where_clauses($where_array)}" );
+
+		if ( ! $query_count_res ) {
+			return 0;
+		}
+
+		$query_count_array = $query_count_res->fetch_array();
+
+		return isset( $query_count_array['count'] ) ? $query_count_array['count'] : 0;
+	}
+
+	public function query( $str_query = '' ) {
+
+		if ( empty( $str_query ) ) {
 			return false;
 		}
 
-		return $ret;
+		try {
+			$query_result = $this->conn->query( $str_query );
+		} catch ( Exception $e ) {
+			$this->last_error = $e->getMessage();
+		}
+
+		if ( $query_result instanceof mysqli_result ) {
+			return $query_result;
+		}
+
+		return false;
 	}
 
-
-	public function create_option_table() {
-		return $this->rawQuery( "CREATE TABLE IF NOT EXISTS {$this->table_option} (id INTEGER PRIMARY KEY AUTOINCREMENT, option_name TEXT UNIQUE, option_value TEXT)" );
+	public function create_require_tables() {
+		$this->query( "CREATE TABLE IF NOT EXISTS iwp_files_sent (id INT AUTO_INCREMENT PRIMARY KEY, filepath VARCHAR(255) UNIQUE, sent INT DEFAULT 0, size INT)" );
+		$this->query( "CREATE TABLE IF NOT EXISTS iwp_db_sent (table_name VARCHAR(255) PRIMARY KEY, `offset` INT DEFAULT 0, completed INT DEFAULT 0);" );
 	}
 
+	public function connect_database() {
+		$db_host     = $this->get_option( 'db_host' );
+		$db_username = $this->get_option( 'db_username' );
+		$db_password = $this->get_option( 'db_password' );
+		$db_name     = $this->get_option( 'db_name' );
+		$mysqli      = new mysqli( $db_host, $db_username, $db_password, $db_name );
+
+		mysqli_set_charset( $mysqli, "utf8" );
+
+		if ( $mysqli instanceof mysqli ) {
+			$this->conn = $mysqli;
+		}
+	}
+
+	public function set_options_data() {
+
+		$options_data_filename  = INSTAWP_BACKUP_DIR . 'options-' . $this->migrate_key . '.txt';
+		$options_data_encrypted = file_get_contents( $options_data_filename );
+
+		if ( $options_data_encrypted ) {
+			$options_data_decrypted = openssl_decrypt( $options_data_encrypted, 'AES-128-ECB', $this->migrate_key );
+			$this->options_data     = json_decode( $options_data_decrypted, true );
+		}
+	}
+
+	public function get_option( $option_name = '', $default = '' ) {
+		return isset( $this->options_data[ $option_name ] ) ? $this->options_data[ $option_name ] : $default;
+	}
+
+	public function update_option( $option_name = '', $value = '' ) {
+
+		if ( empty( $option_name || empty( $this->migrate_key ) ) ) {
+			return false;
+		}
+
+		$this->options_data[ $option_name ] = $value;
+
+		$options_data_str       = json_encode( $this->options_data );
+		$options_data_encrypted = openssl_encrypt( $options_data_str, 'AES-128-ECB', $this->migrate_key );
+		$options_data_filename  = INSTAWP_BACKUP_DIR . 'options-' . $this->migrate_key . '.txt';
+		$options_data_stored    = file_put_contents( $options_data_filename, $options_data_encrypted );
+
+		if ( ! $options_data_stored ) {
+			return false;
+		}
+
+		return true;
+	}
+
+	private function index_exists( $indexName, $tableName ) {
+		$query  = "SHOW INDEX FROM `$tableName` WHERE Key_name = '$indexName'";
+		$result = $this->query( $query );
+
+		return $result && $result->num_rows > 0;
+	}
+
+	public function create_file_indexes( $table_name, $indexes = [] ) {
+		foreach ( $indexes as $indexName => $columnName ) {
+			if ( ! $this->index_exists( $indexName, $table_name ) ) {
+				$this->query( "CREATE INDEX `$indexName` ON `$table_name`(`$columnName`)" );
+			}
+		}
+	}
+
+	public function get_all_tables() {
+		$show_tables_res = $this->query( 'SHOW TABLES' );
+
+		$this->fetch_rows( $show_tables_res, $tables );
+
+		$tables = array_map( function ( $table_name ) {
+			if ( is_array( $table_name ) ) {
+				$table_name_arr = array_values( $table_name );
+
+				return $table_name_arr[0] ?? '';
+			}
+
+			return '';
+		}, $tables );
+
+		return array_filter( $tables );
+	}
+
+	private function build_where_clauses( $where_arr = [] ) {
+		$where_str     = '1';
+		$where_strings = [];
+
+		foreach ( $where_arr as $key => $value ) {
+			$where_strings[] = "`{$key}` = '$value'";
+		}
+
+		if ( ! empty( $where_strings ) ) {
+			$where_str = implode( ' AND ', $where_strings );
+		}
+
+		return $where_str;
+	}
 
 	public function __destruct() {
-		$this->disconnect();
-	}
-
-	public function disconnect() {
-		if ( $this->isPDO ) {
-			$this->connection = null;
-		} else {
-			$this->connection->close();
-		}
-	}
-
-	public function rawQuery( $query, $params = array() ) {
-		if ( $this->isPDO ) {
-			try {
-				$stmt = $this->connection->prepare( $query );
-				$stmt->execute( $params );
-
-				return $stmt;
-			} catch ( PDOException $e ) {
-				return $e->getMessage();
-			}
-		} else {
-
-			$stmt = $this->connection->prepare( $query );
-
-			if ( $stmt ) {
-				$result = $stmt->execute();
-				if ( ! $result ) {
-					return $this->connection->lastErrorMsg();
-				}
-
-				return $result;
-			} else {
-				return $this->connection->lastErrorMsg();
-			}
-
-//
-//			if ( ! $result = $this->connection->query( $query ) ) {
-//				return $this->connection->lastErrorMsg();
-//			}
-
-//			return $result;
-		}
-	}
-
-	public function fetchRows( $result ) {
-		if ( $this->isPDO ) {
-			return $result->fetchAll( PDO::FETCH_ASSOC );
-		} else {
-			$rows = array();
-			while ( $row = $result->fetchArray( SQLITE3_ASSOC ) ) {
-				$rows[] = $row;
-			}
-
-			return $rows;
-		}
-	}
-
-	public function getLastError() {
-		return $this->lastError;
-	}
-
-	public function getLastErrorCode() {
-		if ( $this->isPDO ) {
-			return ( $this->connection ) ? $this->connection->errorCode() : null;
-		} else {
-			return $this->connection->lastErrorCode();
-		}
-	}
-
-	public function fetchRow( $result ) {
-		if ( $this->isPDO ) {
-			return $result->fetch( PDO::FETCH_ASSOC );
-		} else {
-			return $result->fetchArray( SQLITE3_ASSOC );
-		}
+		$this->conn->close();
 	}
 }
 

@@ -5,7 +5,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2023-11-02 13:12+0000\n"
+"POT-Creation-Date: 2023-11-28 09:00+0000\n"
 "X-Poedit-Basepath: ..\n"
 "X-Poedit-KeywordsList: __;_e;_ex:1,2c;_n:1,2;_n_noop:1,2;_nx:1,2,4c;_nx_noop:1,2,3c;_x:1,2c;esc_attr__;esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c\n"
 "X-Poedit-SearchPath-0: .\n"
@@ -25,163 +25,91 @@ msgstr ""
 msgid "Go Live"
 msgstr ""
 
-#: admin/class-instawp-admin.php:130, admin/class-instawp-admin.php:131
+#: admin/class-instawp-admin.php:139, admin/class-instawp-admin.php:140
 msgid "InstaWP - Migrate"
 msgstr ""
 
-#: admin/class-instawp-admin.php:145, admin/class-instawp-admin.php:146
+#: admin/class-instawp-admin.php:154, admin/class-instawp-admin.php:155
 msgid "InstaWP"
 msgstr ""
 
-#: admin/class-instawp-admin.php:173, admin/class-instawp-admin.php:173, admin/class-instawp-change-event.php:93, admin/class-instawp-change-event.php:97
-msgid "Recording"
-msgstr ""
-
-#: admin/class-instawp-admin.php:176
+#: admin/class-instawp-admin.php:182
 msgid "Please create staging sites first."
 msgstr ""
 
-#: admin/class-instawp-admin.php:217
+#: admin/class-instawp-admin.php:222
 msgid "Warning:"
 msgstr ""
 
-#: admin/class-instawp-admin.php:218
+#: admin/class-instawp-admin.php:223
 msgid "Error:"
 msgstr ""
 
-#: admin/class-instawp-admin.php:219
+#: admin/class-instawp-admin.php:224
 msgid "Warning: An alias for remote storage is required."
 msgstr ""
 
-#: admin/class-instawp-admin.php:220
+#: admin/class-instawp-admin.php:225
 msgid "Warning: The alias already exists in storage list."
 msgstr ""
 
-#: admin/class-instawp-admin.php:221
+#: admin/class-instawp-admin.php:226
 msgid "Calculating the size of files, folder and database timed out. If you continue to receive this error, please go to the plugin settings, uncheck 'Calculate the size of files, folder and database before backing up', save changes, then try again."
 msgstr ""
 
-#: admin/class-instawp-admin.php:222
+#: admin/class-instawp-admin.php:227
 msgid "Step One: In the backup list, click the 'Restore' button on the backup you want to restore. This will bring up the restore tab"
 msgstr ""
 
-#: admin/class-instawp-admin.php:223
+#: admin/class-instawp-admin.php:228
 msgid "Step Two: Choose an option to complete restore, if any"
 msgstr ""
 
-#: admin/class-instawp-admin.php:224
+#: admin/class-instawp-admin.php:229
 msgid "Step Three: Click 'Restore' button"
 msgstr ""
 
-#: admin/class-instawp-admin.php:225
+#: admin/class-instawp-admin.php:230
 msgid "1. Visit Key tab page of instaWP backup plugin of destination site."
 msgstr ""
 
-#: admin/class-instawp-admin.php:226
+#: admin/class-instawp-admin.php:231
 msgid "2. Generate a key by clicking Generate button and copy it."
 msgstr ""
 
-#: admin/class-instawp-admin.php:227
+#: admin/class-instawp-admin.php:232
 msgid "3. Go back to this page and paste the key in key box below. Lastly, click Save button."
 msgstr ""
 
-#: admin/partials/instawp-admin-change-event-filters.php:154
-msgid "New user registered"
+#: includes/class-instawp-ajax.php:77
+msgid "Migration failed."
 msgstr ""
 
-#: admin/partials/instawp-admin-change-event-filters.php:174
-msgid "User deleted"
+#: includes/class-instawp-ajax.php:142
+msgid "Error: Empty serve url found in pre-check response."
 msgstr ""
 
-#: admin/partials/instawp-admin-change-event-filters.php:192
-msgid "User updated"
+#: includes/class-instawp-ajax.php:155
+msgid "Error: Empty api signature found in pre-check response."
 msgstr ""
 
-#: admin/partials/instawp-admin-change-event-filters.php:281, admin/partials/instawp-admin-change-event-filters.php:292, admin/partials/instawp-admin-change-event-filters.php:312
-msgid "Woocommerce attribute"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:329, admin/partials/instawp-admin-change-event-filters.php:700
-msgid "%s modified"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:347, admin/partials/instawp-admin-change-event-filters.php:790
-msgid "%s deleted"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:363, admin/partials/instawp-admin-change-event-filters.php:697
-msgid "%s created"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:376
-msgid "Install themes updated"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:389
-msgid "Install themes upload"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:402
-msgid "Install themes new"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:416
-msgid "Theme deleted"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:431
-msgid "Theme switched from %s to %s"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:446
-msgid "%s %s%s"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:491
-msgid "Plugin deactivated"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:506
-msgid "Plugin activated"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:520
-msgid "Plugin deleted"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:713
-msgid "Media created"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:726
-msgid "Media updated"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:805
-msgid "%s trashed"
-msgstr ""
-
-#: admin/partials/instawp-admin-change-event-filters.php:819
-msgid "%s Restored"
-msgstr ""
-
-#: includes/class-instawp-ajax.php:202
+#: includes/class-instawp-ajax.php:234
 msgid "Increase Limit"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:224
+#: includes/class-instawp-ajax.php:256
 msgid "Empty folder!"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:324
+#: includes/class-instawp-ajax.php:356
 msgid "%s rows"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:367
+#: includes/class-instawp-ajax.php:399
 msgid "We have identified following large files in your installation:"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:461
+#: includes/class-instawp-ajax.php:496
 msgid "InstaWP Connect Settings has been reset successfully."
 msgstr ""
 
@@ -221,96 +149,76 @@ msgstr ""
 msgid "InstaWP File Manager"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:213
-msgid "Could not create the forwarded file."
-msgstr ""
-
-#: includes/class-instawp-rest-api.php:251
+#: includes/class-instawp-rest-api.php:240
 msgid "Could not create destination file."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:297
+#: includes/class-instawp-rest-api.php:329
 msgid "Plugin reset Successful."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:583
+#: includes/class-instawp-rest-api.php:615
 msgid "Already Configured"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:591
+#: includes/class-instawp-rest-api.php:623
 msgid "Api key is required"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:646
+#: includes/class-instawp-rest-api.php:679
 msgid "Empty bearer token."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:663
+#: includes/class-instawp-rest-api.php:696
 msgid "Invalid bearer token."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:667
+#: includes/class-instawp-rest-api.php:700
 msgid "Settings is disabled! Please enable %s Option from InstaWP Connect Remote Management settings page."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1033
+#: includes/class-instawp-rest-api.php:1066
 msgid "Setting does not exist."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1016
+#: includes/class-instawp-rest-api.php:1049
 msgid "Success!"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1025
+#: includes/class-instawp-rest-api.php:1058
 msgid "You can not enable this setting through API."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1022
+#: includes/class-instawp-rest-api.php:1055
 msgid "Setting is already disabled."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1139, includes/class-instawp-setting.php:369, includes/class-instawp-setting.php:375
+#: includes/class-instawp-rest-api.php:1172, includes/class-instawp-setting.php:372, includes/class-instawp-setting.php:378
 msgid "Heartbeat"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1140, includes/class-instawp-setting.php:407
+#: includes/class-instawp-rest-api.php:1173, includes/class-instawp-setting.php:410
 msgid "File Manager"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1141, includes/class-instawp-setting.php:415
+#: includes/class-instawp-rest-api.php:1174, includes/class-instawp-setting.php:418
 msgid "Database Manager"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1142, includes/class-instawp-setting.php:423
+#: includes/class-instawp-rest-api.php:1175, includes/class-instawp-setting.php:426
 msgid "Install Plugin / Themes"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1143, includes/class-instawp-setting.php:431
+#: includes/class-instawp-rest-api.php:1176, includes/class-instawp-setting.php:434
 msgid "Config Management"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1144, includes/class-instawp-setting.php:439
+#: includes/class-instawp-rest-api.php:1177, includes/class-instawp-setting.php:442
 msgid "Site Inventory"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1145, includes/class-instawp-setting.php:447
+#: includes/class-instawp-rest-api.php:1178, includes/class-instawp-setting.php:450
 msgid "Debug Log"
-msgstr ""
-
-#: includes/class-instawp-rest-apis.php:144
-msgid "Invalid connect ID"
-msgstr ""
-
-#: includes/class-instawp-rest-apis.php:155
-msgid "Site has been marked as staging"
-msgstr ""
-
-#: includes/class-instawp-rest-apis.php:178
-msgid "Invalid data"
-msgstr ""
-
-#: includes/class-instawp-rest-apis.php:1167
-msgid "Item not found."
 msgstr ""
 
 #: includes/class-instawp-setting.php:10
@@ -369,170 +277,278 @@ msgstr ""
 msgid "Sync (Beta)"
 msgstr ""
 
-#: includes/class-instawp-setting.php:53, includes/class-instawp-setting.php:278
+#: includes/class-instawp-setting.php:53, includes/class-instawp-setting.php:281
 msgid "Settings"
 msgstr ""
 
-#: includes/class-instawp-setting.php:163, includes/class-instawp-setting.php:168
+#: includes/class-instawp-setting.php:166, includes/class-instawp-setting.php:171
 msgid "Enabled"
 msgstr ""
 
-#: includes/class-instawp-setting.php:163, includes/class-instawp-setting.php:168
+#: includes/class-instawp-setting.php:166, includes/class-instawp-setting.php:171
 msgid "Disabled"
 msgstr ""
 
-#: includes/class-instawp-setting.php:279
+#: includes/class-instawp-setting.php:282
 msgid "Update your settings before creating staging sites."
 msgstr ""
 
-#: includes/class-instawp-setting.php:285
+#: includes/class-instawp-setting.php:288
 msgid "API Key"
 msgstr ""
 
-#: includes/class-instawp-setting.php:293
+#: includes/class-instawp-setting.php:296
 msgid "Maximum Allowed File Size"
 msgstr ""
 
-#: includes/class-instawp-setting.php:306
+#: includes/class-instawp-setting.php:309
 msgid "Sync Settings"
 msgstr ""
 
-#: includes/class-instawp-setting.php:307
+#: includes/class-instawp-setting.php:310
 msgid "This section only applicable for the sync event settings."
 msgstr ""
 
-#: includes/class-instawp-setting.php:316
+#: includes/class-instawp-setting.php:319
 msgid "Default User"
 msgstr ""
 
-#: includes/class-instawp-setting.php:317
+#: includes/class-instawp-setting.php:320
 msgid "This option will allow to set default user for events syncing."
 msgstr ""
 
-#: includes/class-instawp-setting.php:327
+#: includes/class-instawp-setting.php:330
 msgid "Sync Tab Access"
 msgstr ""
 
-#: includes/class-instawp-setting.php:328
+#: includes/class-instawp-setting.php:331
 msgid "This option will allow to set roles for sync tab. Only assigned role's users can access the syncing features."
 msgstr ""
 
-#: includes/class-instawp-setting.php:336
+#: includes/class-instawp-setting.php:339
 msgid "Developer Options"
 msgstr ""
 
-#: includes/class-instawp-setting.php:337
+#: includes/class-instawp-setting.php:340
 msgid "This section is available only for the developers working in this plugin."
 msgstr ""
 
-#: includes/class-instawp-setting.php:344
+#: includes/class-instawp-setting.php:347
 msgid "API Domain"
 msgstr ""
 
-#: includes/class-instawp-setting.php:351
+#: includes/class-instawp-setting.php:354
 msgid "WP Debug Log"
 msgstr ""
 
-#: includes/class-instawp-setting.php:352
+#: includes/class-instawp-setting.php:355
 msgid "Enabling this option will enable WordPress debug log."
 msgstr ""
 
-#: includes/class-instawp-setting.php:370
+#: includes/class-instawp-setting.php:373
 msgid "Update your website's heartbeat settings."
 msgstr ""
 
-#: includes/class-instawp-setting.php:376
+#: includes/class-instawp-setting.php:379
 msgid "Enabling this option will allow remotely communicate with InstaWP API and sends data (e.g. wp_version, php_version, theme name, number of published posts, number of published pages, total number of users, total_size of the wordpress site etc.) on this website."
 msgstr ""
 
-#: includes/class-instawp-setting.php:377
+#: includes/class-instawp-setting.php:380
 msgid "Disabling this will automatically disconnect this site from InstaWP dashboard after 1 hour."
 msgstr ""
 
-#: includes/class-instawp-setting.php:384
+#: includes/class-instawp-setting.php:387
 msgid "Heartbeat Interval (Minutes)"
 msgstr ""
 
-#: includes/class-instawp-setting.php:385
+#: includes/class-instawp-setting.php:388
 msgid "It is the interval of heartbeat in minutes."
 msgstr ""
 
-#: includes/class-instawp-setting.php:386
+#: includes/class-instawp-setting.php:389
 msgid "Minimum is 15 minutes and maximum is 60 minutes."
 msgstr ""
 
-#: includes/class-instawp-setting.php:400
+#: includes/class-instawp-setting.php:403
 msgid "Remote Management (Beta)"
 msgstr ""
 
-#: includes/class-instawp-setting.php:401
+#: includes/class-instawp-setting.php:404
 msgid "Update your website's remote management settings. To use this feature in the InstaWP dashboard, switch on the beta program from %s section."
 msgstr ""
 
-#: includes/class-instawp-setting.php:401
+#: includes/class-instawp-setting.php:404
 msgid "My Accounts"
 msgstr ""
 
-#: includes/class-instawp-setting.php:408
+#: includes/class-instawp-setting.php:411
 msgid "Enabling this option will allow creation of remote file manager on this website remotely using the REST API."
 msgstr ""
 
-#: includes/class-instawp-setting.php:416
+#: includes/class-instawp-setting.php:419
 msgid "Enabling this option will allow creation of remote database manager on this website remotely using the REST API."
 msgstr ""
 
-#: includes/class-instawp-setting.php:424
+#: includes/class-instawp-setting.php:427
 msgid "Enabling this option will allow install plugins and themes on this website remotely using the REST API."
 msgstr ""
 
-#: includes/class-instawp-setting.php:432
+#: includes/class-instawp-setting.php:435
 msgid "Enabling this option will allow reading, updating and deleting the WordPress constant values on this website remotely using the REST API."
 msgstr ""
 
-#: includes/class-instawp-setting.php:440
+#: includes/class-instawp-setting.php:443
 msgid "Enabling this option will allow reading the installed WordPress version, themes and plugins on this website remotely using the REST API."
 msgstr ""
 
-#: includes/class-instawp-setting.php:448
+#: includes/class-instawp-setting.php:451
 msgid "Enabling this option will allow reading WordPress error logs on this website remotely using the REST API."
 msgstr ""
 
-#: includes/class-instawp-tools.php:592
+#: includes/class-instawp-tools.php:390
+msgid "Tracking database could not found."
+msgstr ""
+
+#: includes/class-instawp-tools.php:400
+msgid "API Signature and others data could not set properly"
+msgstr ""
+
+#: includes/class-instawp-tools.php:409
+msgid "Could not create the forwarded file."
+msgstr ""
+
+#: includes/class-instawp-tools.php:707
 msgid "Launch %s"
-msgstr ""
-
-#: includes/class-intawp-ajax-fn.php:184
-msgid "%u %s %s"
-msgstr ""
-
-#: includes/class-intawp-ajax-fn.php:172
-msgid "%u %s"
-msgstr ""
-
-#: includes/class-intawp-ajax-fn.php:177
-msgid "Show more"
-msgstr ""
-
-#: includes/class-intawp-ajax-fn.php:197
-msgid "Sync not initiated ( 0 out of %d events )"
-msgstr ""
-
-#: includes/class-intawp-ajax-fn.php:198
-msgid "Events loaded"
-msgstr ""
-
-#: includes/class-intawp-ajax-fn.php:198, includes/class-intawp-ajax-fn.php:291
-msgid "No pending events found!"
-msgstr ""
-
-#: includes/class-intawp-ajax-fn.php:287
-msgid "You have reached your sync limit. Current usage %u out of %u."
-msgstr ""
-
-#: includes/class-intawp-ajax-fn.php:284
-msgid " Completed ( 0 out of %d events )"
 msgstr ""
 
 #: includes/functions.php:226
 msgid "Migration aborted forcefully"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-ajax.php:167
+msgid "%u %s %s"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-ajax.php:155
+msgid "%u %s"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-ajax.php:160
+msgid "Show more"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-ajax.php:180
+msgid "Sync not initiated ( 0 out of %d events )"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-ajax.php:181
+msgid "Events loaded"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-ajax.php:181, includes/sync/class-instawp-sync-ajax.php:266
+msgid "No pending events found!"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-ajax.php:262
+msgid "You have reached your sync limit. Current usage %u out of %u."
+msgstr ""
+
+#: includes/sync/class-instawp-sync-ajax.php:259
+msgid " Completed ( 0 out of %d events )"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-apis.php:144
+msgid "Invalid connect ID"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-apis.php:155
+msgid "Site has been marked as staging"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-apis.php:178
+msgid "Invalid data"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-apis.php:1171
+msgid "Item not found."
+msgstr ""
+
+#: includes/sync/class-instawp-sync-events.php:102
+msgid "%s trashed"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-events.php:107
+msgid "%s restored"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-events.php:112, includes/sync/class-instawp-sync-events.php:454
+msgid "%s created"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-events.php:158, includes/sync/class-instawp-sync-events.php:419
+msgid "%s modified"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-events.php:172, includes/sync/class-instawp-sync-events.php:436
+msgid "%s deleted"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-events.php:237
+msgid "New user registered"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-events.php:260
+msgid "User deleted"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-events.php:278
+msgid "User updated"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-events.php:371, includes/sync/class-instawp-sync-events.php:383, includes/sync/class-instawp-sync-events.php:404
+msgid "Woocommerce attribute"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-events.php:468
+msgid "Install themes updated"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-events.php:481
+msgid "Install themes upload"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-events.php:494
+msgid "Install themes new"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-events.php:508
+msgid "Theme deleted"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-events.php:523
+msgid "Theme switched from %s to %s"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-events.php:538
+msgid "%s %s%s"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-events.php:583
+msgid "Plugin deactivated"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-events.php:598
+msgid "Plugin activated"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-events.php:612
+msgid "Plugin deleted"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-events.php:733
+msgid "Media created"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-events.php:746
+msgid "Media updated"
 msgstr ""

@@ -131,6 +131,12 @@ class InstaWP_Backup_Api {
 			'permission_callback' => '__return_true',
 		) );
 
+//		register_rest_route( $this->namespace . '/' . $this->version_3, '/get-push-config', array(
+//			'methods'             => 'GET',
+//			'callback'            => array( $this, 'handle_get_push_config_api' ),
+//			'permission_callback' => '__return_true',
+//		) );
+
 		register_rest_route( $this->namespace . '/' . $this->version_3, '/debug', array(
 			'methods'             => 'POST',
 			'callback'            => array( $this, 'handle_debug' ),
@@ -191,33 +197,15 @@ class InstaWP_Backup_Api {
 			return $this->throw_error( $response );
 		}
 
-		// Create InstaWP backup directory
-		instawp()->tools::create_instawpbackups_dir();
+		$migrate_key        = sanitize_text_field( $request->get_param( 'migrate_key' ) );
+		$migrate_settings   = $request->get_param( 'migrate_settings' );
+		$pre_check_response = instawp()->tools::get_pull_pre_check_response( $migrate_key, $migrate_settings );
 
-		// Clean InstaWP backup directory
-		instawp()->tools::clean_instawpbackups_dir();
-
-		$migrate_key      = sanitize_text_field( $request->get_param( 'migrate_key' ) );
-		$api_signature    = hash( 'sha512', $migrate_key . current_time( 'U' ) );
-		$migrate_settings = $request->get_param( 'migrate_settings' );
-
-		// Generate serve file in instawpbackups directory
-		$serve_file_url = instawp()->tools::generate_serve_file( $migrate_key, $api_signature, $migrate_settings );
-
-		// Check accessibility of serve file
-		if ( empty( $serve_file_url ) || ! instawp()->tools::is_migrate_file_accessible( $serve_file_url ) ) {
-
-			$serve_file_url = instawp()->tools::generate_forwarded_file();
-
-			if ( empty( $serve_file_url ) || ! instawp()->tools::is_migrate_file_accessible( $serve_file_url ) ) {
-				return $this->throw_error( new WP_Error( 403, esc_html__( 'Could not create the forwarded file.', 'instawp-connect' ) ) );
-			}
+		if ( is_wp_error( $pre_check_response ) ) {
+			return $this->throw_error( $pre_check_response );
 		}
 
-		return $this->send_response( array(
-			'serve_url'     => $serve_file_url,
-			'api_signature' => $api_signature,
-		) );
+		return $this->send_response( $pre_check_response );
 	}
 
 	/**
@@ -234,28 +222,72 @@ class InstaWP_Backup_Api {
 			return $this->throw_error( $response );
 		}
 
+		global $wp_version;
+
 		// Create InstaWP backup directory
 		instawp()->tools::create_instawpbackups_dir();
 
 		// Clean InstaWP backup directory
 		instawp()->tools::clean_instawpbackups_dir();
 
-		$migrate_key   = sanitize_text_field( $request->get_param( 'migrate_key' ) );
-		$api_signature = hash( 'sha512', $migrate_key . current_time( 'U' ) );
-
-		// Generate serve file in instawpbackups directory
-		$dest_file_url = instawp()->tools::generate_destination_file( $migrate_key, $api_signature );
+		$migrate_key      = instawp()->tools::get_random_string( 40 );
+		$migrate_settings = instawp()->tools::get_migrate_settings();
+		$api_signature    = hash( 'sha512', $migrate_key . current_time( 'U' ) );
+		$dest_file_url    = instawp()->tools::generate_destination_file( $migrate_key, $api_signature );
 
 		// Check accessibility of serve file
 		if ( ! instawp()->tools::is_migrate_file_accessible( $dest_file_url ) ) {
 			return $this->throw_error( new WP_Error( 403, esc_html__( 'Could not create destination file.', 'instawp-connect' ) ) );
 		}
 
-		return $this->send_response( array(
-			'dest_url'      => $dest_file_url,
-			'api_signature' => $api_signature,
-		) );
+		return $this->send_response(
+			array(
+				'php_version'      => PHP_VERSION,
+				'wp_version'       => $wp_version,
+				'plugin_version'   => INSTAWP_PLUGIN_VERSION,
+				'file_size'        => instawp()->tools::get_total_sizes( 'files', $migrate_settings ),
+				'db_size'          => instawp()->tools::get_total_sizes( 'db' ),
+				'active_plugins'   => InstaWP_Setting::get_option( 'active_plugins', [] ),
+				'migrate_settings' => $migrate_settings,
+				'migrate_key'      => $migrate_key,
+				'dest_url'         => $dest_file_url,
+				'api_signature'    => $api_signature,
+			)
+		);
 	}
+
+
+	/**
+	 * Handle get-push-config api
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return WP_REST_Response
+	 */
+//	public function handle_get_push_config_api( WP_REST_Request $request ) {
+//
+//		$response = $this->validate_api_request( $request );
+//		if ( is_wp_error( $response ) ) {
+//			return $this->throw_error( $response );
+//		}
+//
+//		global $wp_version;
+//
+//		$migrate_settings = instawp()->tools::get_migrate_settings();
+//
+//		return $this->send_response(
+//			array(
+//				'php_version'    => PHP_VERSION,
+//				'wp_version'     => $wp_version,
+//				'plugin_version' => INSTAWP_PLUGIN_VERSION,
+//				'file_size'      => instawp()->tools::get_total_sizes( 'files', $migrate_settings ),
+//				'db_size'        => instawp()->tools::get_total_sizes( 'db' ),
+//				'settings'       => $migrate_settings,
+//				'active_plugins' => InstaWP_Setting::get_option( 'active_plugins', [] ),
+//			)
+//		);
+//	}
+
 
 	/**
 	 * Handle website total size info
@@ -290,7 +322,7 @@ class InstaWP_Backup_Api {
 			return $this->throw_error( $response );
 		}
 
-		instawp_reset_running_migration( 'hard', false );
+		instawp_reset_running_migration( 'hard' );
 
 		return $this->send_response( [
 			'success' => true,
@@ -637,6 +669,7 @@ class InstaWP_Backup_Api {
 	 * @return WP_Error|bool
 	 */
 	public function validate_api_request( WP_REST_Request $request, $option = '' ) {
+
 		// get authorization header value.
 		$bearer_token = sanitize_text_field( $request->get_header( 'authorization' ) );
 		$bearer_token = str_replace( 'Bearer ', '', $bearer_token );

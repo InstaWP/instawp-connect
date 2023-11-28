@@ -200,19 +200,19 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 			delete_transient( 'instawp_staging_sites' );
 			delete_transient( 'instawp_migration_completed' );
 
-			as_unschedule_all_actions( 'instawp_handle_heartbeat', [], 'instawp-connect' );
+			wp_clear_scheduled_hook( 'instawp_handle_heartbeat' );
 
 			$file_db_manager = InstaWP_Setting::get_option( 'instawp_file_db_manager', [] );
 			$file_name       = InstaWP_Setting::get_args_option( 'file_name', $file_db_manager );
 			if ( $file_name ) {
-				as_unschedule_all_actions( 'instawp_clean_file_manager', [ $file_name ], 'instawp-connect' );
+				wp_clear_scheduled_hook( 'instawp_clean_file_manager', [ $file_name ] );
 				do_action( 'instawp_clean_file_manager', $file_name );
 			}
 
 			$file_db_manager = InstaWP_Setting::get_option( 'instawp_file_db_manager', [] );
 			$file_name       = InstaWP_Setting::get_args_option( 'db_name', $file_db_manager );
 			if ( $file_name ) {
-				as_unschedule_all_actions( 'instawp_clean_database_manager', [ $file_name ], 'instawp-connect' );
+				wp_clear_scheduled_hook( 'instawp_clean_database_manager', [ $file_name ] );
 				do_action( 'instawp_clean_database_manager', $file_name );
 			}
 		}
@@ -458,7 +458,7 @@ if ( ! function_exists( 'instawp_set_whitelist_ip' ) ) {
 if ( ! function_exists( 'instawp_prepare_whitelist_ip' ) ) {
 	function instawp_prepare_whitelist_ip( $ip_addresses = '' ) {
 		$server_ip_addresses = [ '167.71.233.239', '159.65.64.73' ];
-		
+
 		if ( is_string( $ip_addresses ) ) {
 			$ip_addresses = trim( $ip_addresses );
 			$ip_addresses = array_map( 'trim', explode( ',', $ip_addresses ) );
@@ -515,9 +515,9 @@ if ( ! function_exists( 'instawp_set_solid_wp_whitelist_ip' ) ) {
 	function instawp_set_solid_wp_whitelist_ip( $ip_addresses = '' ) {
 		if ( class_exists( '\ITSEC_Modules' ) && method_exists( '\ITSEC_Modules', 'get_settings' ) && method_exists( '\ITSEC_Modules', 'set_settings' ) ) {
 			$settings = \ITSEC_Modules::get_settings( 'global' );
-			
+
 			$settings['lockout_white_list'] = array_unique( array_merge( $settings['lockout_white_list'], instawp_prepare_whitelist_ip( $ip_addresses ) ) );
-			
+
 			\ITSEC_Modules::set_settings( 'global', $settings );
 		}
 	}
@@ -550,14 +550,14 @@ if ( ! function_exists( 'instawp_whitelist_ip' ) ) {
 		foreach ( $providers as $plugin => $details ) {
 			if ( is_plugin_active( $plugin ) && ! call_user_func( $details['function'] ) ) {
 				$output['can_whitelist'] = true;
-				$names[] = $details['name'];
+				$names[]                 = $details['name'];
 			}
 		}
 
 		if ( ! empty( $names ) ) {
 			$output['plugins'] = join( ', ', $names );
 		}
-		
+
 		return $output;
 	}
 }
@@ -565,17 +565,16 @@ if ( ! function_exists( 'instawp_whitelist_ip' ) ) {
 
 if ( ! function_exists( 'instawp_get_source_site_detail' ) ) {
 	function instawp_get_source_site_detail() {
-		$connect_id          = InstaWP_Setting::get_option( 'instawp_sync_connect_id' );
-		$parent_connect_data = InstaWP_Setting::get_option( 'instawp_sync_parent_connect_data' );
 
-		if ( intval( $connect_id ) > 0 && empty( $parent_connect_data ) ) {
+		if ( empty( InstaWP_Setting::get_option( 'instawp_sync_parent_connect_data' ) ) ) {
 
-			$api_response = InstaWP_Curl::do_curl( 'connects/' . $connect_id, [], [], false );
+			$api_response = InstaWP_Curl::do_curl( 'connects/' . instawp_get_connect_id(), [], [], false );
 
 			if ( $api_response['success'] ) {
-				$api_response_data               = InstaWP_Setting::get_args_option( 'data', $api_response, [] );
-				$api_response_data['connect_id'] = $connect_id;
-				add_option( 'instawp_sync_parent_connect_data', $api_response_data );
+				$api_response_data = InstaWP_Setting::get_args_option( 'data', $api_response, [] );
+				$parent_data       = $api_response_data['parent'] ?? [];
+
+				update_option( 'instawp_sync_parent_connect_data', $parent_data );
 			}
 		}
 	}
@@ -591,11 +590,46 @@ if ( ! function_exists( 'get_connect_detail_by_connect_id' ) ) {
 	 * @return array
 	 */
 	function get_connect_detail_by_connect_id( $connect_id ) {
+		// connects/<connect_id>
 		$api_response = InstaWP_Curl::do_curl( 'connects/' . $connect_id, [], [], false );
+
 		if ( $api_response['success'] && ! empty( $api_response['data'] ) ) {
 			return $api_response['data'];
 		}
 
 		return [];
+	}
+}
+
+
+if ( ! function_exists( 'instawp_send_connect_log' ) ) {
+	/**
+	 * Send connect log to app
+	 *
+	 * @param $action
+	 * @param $log_message
+	 *
+	 * @return bool
+	 */
+	function instawp_send_connect_log( $action = '', $log_message = '' ) {
+
+		if ( empty( $action ) || empty( $log_message ) ) {
+			return false;
+		}
+
+		$connect_id = instawp()->connect_id;
+		$log_args   = array(
+			'action' => $action,
+			'logs'   => $log_message,
+		);
+
+		// connects/<connect_id>/logs
+		$log_response = InstaWP_Curl::do_curl( "connects/{$connect_id}/logs", $log_args );
+
+		if ( isset( $log_response['success'] ) && $log_response['success'] ) {
+			return true;
+		}
+
+		return false;
 	}
 }

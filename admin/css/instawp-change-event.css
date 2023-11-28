@@ -415,11 +415,8 @@ select#destination-site, select#staging-site-sync {
     border-radius: 6px;
     border: 1px solid #D1D5DB;
     width: 100%;
-    margin-top: 5px;
     color: #6b7280;
-    font-size: 16px;
-    line-height: 24px;
-    padding: 13px;
+    padding: 4px 24px 4px 12px;
     max-width: 100%;
 }
 
@@ -451,10 +448,10 @@ select#event-action-type {
     padding: 10px 10px !important;
 }
 
-.events-head .events-head-right .select-ct select{
-    margin: 0 !important;
-    padding: 5px !important;
-}
+/*.events-head .events-head-right .select-ct select{*/
+/*    margin: 0 !important;*/
+/*    padding: 5px !important;*/
+/*}*/
 
 .btn-single-sync{
     position: relative;
@@ -507,20 +504,6 @@ td.event-sync-cell.loading,
     padding: 20px;
     text-align: center;
     position: relative;
-}
-
-li#wp-admin-bar-instawp-sync-toolbar a.ab-item:before {
-    content: "\f1131";
-    top: 3px;
-    width: 15px;
-    height: 15px;
-    background-color:#dc393b;
-    border-radius: 100px;
-    margin-top: 6px;
-    padding: 0px !important;
-    animation-name: blink;
-    animation-duration: 1.5s;
-    animation-iteration-count: infinite;
 }
 
 .select2-field-wrapper {

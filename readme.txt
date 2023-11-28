@@ -2,9 +2,9 @@
 Contributors: instawp
 Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.4
-Tested up to: 6.3.2
+Tested up to: 6.4
 Requires PHP: 7.4
-Stable tag: 0.0.9.46
+Stable tag: 0.0.9.50
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -93,6 +93,42 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 6. Update API Key and Settings.
 
 == Changelog ==
+
+= 0.0.9.51 =
+
+- FIX - Fixed 2 Way Sync not working.
+- FIX - Fixed Site Dropdown CSS.
+- FIX - Fixed some PHP errors.
+- FIX - Optimized 2 Way Sync Codebase.
+- FIX - Heartbeat event logic.
+
+= 0.0.9.50 - 22 Nov 2023 =
+
+- NEW - Added connect logs to app.
+- FIX - Fixed get_source_site_detail api.
+- FIX - Removed SqlLite support.
+- FIX - Fix Download log button in failed screen.
+- FIX - Stabilize the staging site creation process.
+
+= 0.0.9.49 - 14 Nov 2023 =
+
+- FIX - Fixed migration issues and stabilize the process.
+- FIX - Table export logic.
+- FIX - Removed URL extra slash.
+
+= 0.0.9.48 - 11 Nov 2023 =
+
+- FIX - Skip database tables was not sending create table schema.
+- FIX - Skip known log tables during the migration.
+- FIX - Removed action scheduler.
+- FIX - Changed recording blink for 2 way sync.
+- FIX - Fixed displaying sites url on staging sites list.
+
+= 0.0.9.47 - 8 Nov 2023 =
+
+- FIX - Implemented new migration method and stabilize the process.
+- FIX - Fixed .htaccess issue during the migration.
+- FIX - Added pre-check before the migration start.
 
 = 0.0.9.46 - 1 Nov 2023 =
 

@@ -18,19 +18,46 @@ $customize_options     = array(
 			'active_themes_only'  => esc_html__( 'Active Themes Only', 'instawp-connect' ),
 			'skip_media_folder'   => esc_html__( 'Skip Media Folder', 'instawp-connect' ),
 			'skip_large_files'    => esc_html__( 'Skip Large Files', 'instawp-connect' ),
+			'skip_log_tables'     => esc_html__( 'Skip Log Tables', 'instawp-connect' ),
 		),
 	),
 );
 $current_create_screen = isset( $_GET['screen'] ) ? sanitize_text_field( $_GET['screen'] ) : 1;
 $tables                = instawp_get_database_details();
+$log_tables_to_exclude = instawp()->tools::get_log_tables_to_exclude();
 $list_data             = get_option( 'instawp_large_files_list', [] ) ?? [];
 $migration_details     = InstaWP_Setting::get_option( 'instawp_migration_details', [] );
 $tracking_url          = InstaWP_Setting::get_args_option( 'tracking_url', $migration_details );
+$migrate_id            = InstaWP_Setting::get_args_option( 'migrate_id', $migration_details );
 $whitelist_ip          = instawp_whitelist_ip();
 
 ?>
 
-<div class="flex p-8 flex items-start">
+<div class="bg-white text-center rounded-md py-20 flex items-center justify-center connected <?= empty( $migrate_id ) ? '' : 'hidden'; ?>">
+    <div class="w-2/3">
+        <div class="mb-4">
+            <img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/connected.svg' ) ); ?>" class="mx-auto" alt="">
+        </div>
+        <div class="text-sm font-medium text-grayCust-200 mb-1"><?php esc_html_e( 'Your account is now connected', 'instawp-connect' ); ?></div>
+        <div class="text-center inline-block text-sm font-normal text-grayCust-50 mb-4"><?php esc_html_e( 'Start by creating a new staging site', 'instawp-connect' ); ?></div>
+        <div class="flex gap-5 items-center justify-center mt-3">
+            <button type="button" class="create-staging-btn flex items-center justify-center gap-3 btn-shadow rounded-md py-2 px-4 bg-primary-900 text-white hover:text-white text-sm font-medium">
+                <svg width="15" height="14" viewBox="0 0 15 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd" clip-rule="evenodd" d="M7.5 0C8.05228 0 8.5 0.447715 8.5 1V6H13.5C14.0523 6 14.5 6.44772 14.5 7C14.5 7.55228 14.0523 8 13.5 8H8.5V13C8.5 13.5523 8.05228 14 7.5 14C6.94772 14 6.5 13.5523 6.5 13V8H1.5C0.947715 8 0.5 7.55228 0.5 7C0.5 6.44771 0.947715 6 1.5 6L6.5 6V1C6.5 0.447715 6.94772 0 7.5 0Z" fill="white"/>
+                </svg>
+                <span><?php esc_html_e( 'Create Staging Site', 'instawp-connect' ); ?></span>
+            </button>
+            <button type="button" class="browse-staging-btn flex items-center justify-center gap-3 btn-shadow border border-grayCust-350 rounded-md py-2 px-4 bg-white text-grayCust-700 text-sm font-medium">
+                <span><?php esc_html_e( 'Browse Staging Sites', 'instawp-connect' ); ?></span>
+                <svg width="15" height="14" viewBox="0 0 15 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M8.33329 1.16663L14.1666 6.99996L8.33329 12.8333M1.66663 1.16663L7.49996 6.99996L1.66663 12.8333" stroke="#101828" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="flex p-8 items-start create-staging <?= empty( $migrate_id ) ? 'hidden' : ''; ?>">
     <div class="left-width">
         <ul role="list" class="screen-nav-items -mb-8">
 			<?php foreach ( $staging_screens as $index => $screen ) : ?>
@@ -244,7 +271,7 @@ $whitelist_ip          = instawp_whitelist_ip();
                                             <div class="flex flex-col gap-5 item">
                                                 <div class="flex justify-between items-center">
                                                     <div class="flex items-center cursor-pointer" style="transform: translate(0em);">
-                                                        <input name="migrate_settings[excluded_tables][]" id="<?php echo esc_attr( $element_id ); ?>" value="<?php echo esc_attr( $table['name'] ); ?>" type="checkbox" class="instawp-checkbox exclude-database-item !mt-0 !mr-3 rounded border-gray-300 text-primary-900 focus:ring-primary-900" data-size="<?php echo esc_html( $table['size'] ); ?>">
+                                                        <input name="migrate_settings[excluded_tables][]" id="<?php echo esc_attr( $element_id ); ?>" value="<?php echo esc_attr( $table['name'] ); ?>" type="checkbox" class="instawp-checkbox exclude-database-item !mt-0 !mr-3 rounded border-gray-300 text-primary-900 focus:ring-primary-900 <?= in_array( $table['name'], $log_tables_to_exclude ) ? 'log-table' : ''; ?>" data-size="<?php echo esc_html( $table['size'] ); ?>">
                                                         <label for="<?php echo esc_attr( $element_id ); ?>" class="text-sm font-medium text-grayCust-800 truncate" style="width: calc(400px - 1em);"><?php echo esc_html( $table['name'] ); ?> (<?php printf( __( '%s rows', 'instawp-connect' ), $table['rows'] ); ?>)</label>
                                                     </div>
                                                     <div class="flex items-center" style="width: 105px;">
@@ -306,10 +333,7 @@ $whitelist_ip          = instawp_whitelist_ip();
                         <div class="flex items-center mb-6">
                             <div class="text-grayCust-900 text-base text-left font-normal w-48"><?php esc_html_e( 'Available Disk Space', 'instawp-connect' ); ?></div>
                             <div class="flex items-center text-primary-900 text-base">
-                                <span class="remaining-disk-space"></span>
-                                <span>/</span>
-                                <span class="user-allow-disk-space"></span>
-                                <span class="ml-1"><?php esc_html_e( 'MB', 'instawp-connect' ); ?></span>
+                                <span><span class="remaining-disk-space"></span>mb available out of <span class="user-allow-disk-space"></span>mb</span>
                             </div>
                         </div>
                         <div class="flex items-center">
@@ -390,7 +414,7 @@ $whitelist_ip          = instawp_whitelist_ip();
                             <div class="flex items-center mb-6">
                                 <div class="text-grayCust-900 text-base font-normal w-24"><?php esc_html_e( 'URL', 'instawp-connect' ); ?></div>
                                 <div class="flex items-center cursor-pointer text-primary-900 border-b font-medium text-base border-dashed border-primary-900 ">
-                                    <a target="_blank" id="instawp-site-url">
+                                    <a target="_blank" id="instawp-site-url" class="focus:shadow-none focus:outline-0">
                                         <span></span>
                                         <img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/share-icon.svg' ) ); ?>" class="inline ml-1" alt="">
                                     </a>
@@ -403,7 +427,7 @@ $whitelist_ip          = instawp_whitelist_ip();
                             <div class="flex justify-between items-center">
                                 <div class="flex items-center">
                                     <div class="text-grayCust-900 text-base font-normal w-24"><?php esc_html_e( 'Password', 'instawp-connect' ); ?></div>
-                                    <div id="instawp-site-password" class="text-grayCust-300 font-medium text-base"></div>
+                                    <div aria-label="<?php echo esc_attr__( 'This password is same as production, due to security reasons, we don\'t know or keep the plain-text password', 'instawp-connect' ); ?>" id="instawp-site-password" class="hint--top hint--medium text-grayCust-300 font-medium text-base"></div>
                                 </div>
                                 <a href="" target="_blank" id="instawp-site-magic-url" class="py-2 px-4 text-white active:text-white focus:text-white hover:text-white bg-primary-700 rounded-md text-sm font-medium focus:shadow-none"><?php esc_html_e( 'Auto Login', 'instawp-connect' ); ?></a>
                             </div>
@@ -425,9 +449,10 @@ $whitelist_ip          = instawp_whitelist_ip();
         </div>
 
         <div class="screen-buttons-last hidden bg-grayCust-250 px-5 py-4 rounded-bl-lg rounded-br-lg flex justify-between">
-            <div class="text-primary-900 text-sm font-medium cursor-pointer flex items-center instawp-create-another-site">
-                <span class="text-xl mr-1 -mt-1 self-center">+</span><?php esc_html_e( 'Create another Staging Site', 'instawp-connect' ); ?>
-            </div>
+            <a href="<?php esc_url( admin_url( 'tools.php?page=instawp' ) ); ?>" class="text-primary-900 text-sm focus:outline-0 focus:shadow-none font-medium cursor-pointer flex items-center instawp-create-another-site">
+                <span class="text-xl mr-1 -mt-1 self-center">+</span>
+                <span><?php esc_html_e( 'Create another Staging Site', 'instawp-connect' ); ?></span>
+            </a>
             <div class="text-grayCust-900 text-sm font-medium cursor-pointer flex items-center instawp-show-staging-sites">
                 <span><?php esc_html_e( 'Show my staging sites', 'instawp-connect' ); ?></span>
                 <div class="flex items-center ml-2">

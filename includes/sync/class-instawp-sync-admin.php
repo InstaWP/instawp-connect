@@ -18,7 +18,6 @@ class InstaWP_Sync_Admin {
 
 	public function __construct() {
 		add_action( 'init', array( $this, 'get_source_site_detail' ) );
-		add_action( 'admin_bar_menu', array( $this, 'instawp_add_sync_status_toolbar_link' ), 999 );
 	}
 
 	function listEvents() {
@@ -71,30 +70,7 @@ class InstaWP_Sync_Admin {
 	}
 
 	/**
-	 * Register toolvar for sync status
-	 *
-	 * @param $wp_admin_bar
-	 *
-	 * @return null
-	 */
-	public function instawp_add_sync_status_toolbar_link( $wp_admin_bar ) {
-		if ( get_option( 'instawp_is_event_syncing' ) != 1 ) {
-			return;
-		}
-		$args = array(
-			'id'    => 'instawp-sync-toolbar',
-			'title' => __( 'Recording', 'instawp-connect' ),
-			'href'  => admin_url( 'tools.php?page=instawp' ),
-			'meta'  => array(
-				'class' => 'instawp-sync-status-toolbar',
-				'title' => __( 'Recording', 'instawp-connect' )
-			)
-		);
-		$wp_admin_bar->add_node( $args );
-	}
-
-	/**
-	 * @return InstaWP_Sync_Admin
+	 * @return InstaWP_Change_event
 	 */
 	public static function instance() {
 		if ( is_null( self::$_instance ) ) {

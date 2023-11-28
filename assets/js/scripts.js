@@ -121,7 +121,14 @@
                         create_container.removeClass('loading').addClass('completed');
                         clearInterval(create_container.attr('interval-id'));
 
-                        el_migration_error_message.html(response.data.failed_message);
+                        if (response.data.failed_message) {
+                            el_migration_error_message.html(response.data.failed_message);
+                        } else {
+                            el_migration_error_message.html(response.data.message);
+                        }
+
+                        console.log(response);
+
                         el_migration_download_log.data('migrate-id', response.data.migrate_id);
                         el_migration_download_log.data('server-logs', response.data.server_logs);
 
@@ -130,12 +137,20 @@
                         el_migration_error_wrap.removeClass('hidden');
                         el_screen_buttons_last.removeClass('hidden');
                     }
+                },
+                error: function () {
+                    window.location = window.location.href.split("?")[0] + '?page=instawp';
                 }
             });
         },
         instawp_migrate_init = () => {
 
-            let create_container = $('.instawp-wrap .nav-item-content.create');
+            let create_container = $('.instawp-wrap .nav-item-content.create'),
+                el_migration_error_wrap = create_container.find('.migration-error'),
+                el_migration_progress_wrap = create_container.find('.migration-running'),
+                el_migration_error_message = el_migration_error_wrap.find('.error-message'),
+                el_migration_download_log = el_migration_error_wrap.find('.instawp-download-log'),
+                el_migration_loader = create_container.find('.instawp-migration-loader');
 
             if (create_container.hasClass('loading')) {
                 return;
@@ -157,6 +172,7 @@
                 },
                 success: function (response) {
                     console.log(response);
+
                     if (response.success) {
 
                         // populate the tracking url
@@ -167,6 +183,12 @@
 
                         create_container.attr('interval-id', setInterval(instawp_migrate_progress, 3000));
                     } else {
+                        create_container.removeClass('loading');
+                        el_migration_progress_wrap.addClass('hidden');
+                        el_migration_loader.removeClass('text-primary-900').addClass('text-red-700').text(el_migration_loader.data('error-text'));
+                        el_migration_error_message.html(response.data.message);
+                        el_migration_download_log.addClass('hidden');
+                        el_migration_error_wrap.removeClass('hidden');
                         // create_container.find('#instawp-screen').val(4).trigger('change');
                     }
                 }
@@ -250,7 +272,6 @@
         }
     });
 
-
     $(document).on('change', '.instawp-wrap .instawp-option-selector', function () {
 
         let el_option_selector = $(this),
@@ -272,27 +293,14 @@
         }
     });
 
-
-    $(document).on('click', '.instawp-wrap .instawp-show-staging-sites, .instawp-wrap .instawp-create-another-site', function (e) {
-
-        let create_container = $('.instawp-wrap .nav-item-content.create'),
-            sites_container_nav = $('.instawp-wrap #sites > a'),
-            el_screen_buttons = create_container.find('.screen-buttons'),
-            el_screen_buttons_last = create_container.find('.screen-buttons-last'),
-            el_migration_start_over = create_container.find('.instawp-migration-start-over');
-
-        el_screen_buttons_last.addClass('hidden');
-        el_screen_buttons.removeClass('hidden');
-
-        el_migration_start_over.trigger('click');
-
-        if ($(this).hasClass('instawp-create-another-site')) {
-            return;
-        }
-
-        sites_container_nav.trigger('click');
+    $(document).on('click', '.create-staging-btn', function (e) {
+        $(document).find('.connected').addClass('hidden');
+        $(document).find('.create-staging').removeClass('hidden');
     });
 
+    $(document).on('click', '.browse-staging-btn', function (e) {
+        $(document).find('.nav-items > #sites > a').trigger('click');
+    });
 
     $(document).on('click', '.instawp-wrap .instawp-migration-start-over', function (e) {
 
@@ -327,7 +335,6 @@
         create_container.removeAttr('interval-id');
         el_instawp_screen.val(1).trigger('change');
     });
-
 
     $(document).on('click', '.instawp-wrap .instawp-staging-type', function () {
 
@@ -426,7 +433,6 @@
         }
     });
 
-
     $(document).on('ready', function () {
         let create_container = $('.instawp-wrap .nav-item-content.create'),
             this_nav_item_id = localStorage.getItem('instawp_admin_current'),
@@ -447,7 +453,6 @@
         }
     });
 
-
     $(document).on('click', '.instawp-wrap .instawp-button-connect', function () {
         $.ajax({
             type: 'POST', url: plugin_object.ajax_url, context: this, data: {
@@ -464,7 +469,6 @@
         });
     });
 
-
     $(document).on('click', '.instawp-wrap .instawp-migrate-abort', function () {
         let create_container = $('.instawp-wrap .nav-item-content.create');
 
@@ -473,7 +477,6 @@
             window.location = window.location.href.split("?")[0] + '?page=instawp&clear=all';
         }
     });
-
 
     $(document).on('click', '.instawp-wrap .instawp-reset-plugin', function () {
 
@@ -502,7 +505,6 @@
             }
         });
     });
-
 
     $(document).on('submit', '.settings .instawp-form', function (e) {
 
@@ -536,7 +538,6 @@
 
         return false;
     });
-
 
     $(document).on('click', '.instawp-wrap .nav-items .nav-item > a', function () {
         let this_nav_item_link = $(this), this_nav_item = this_nav_item_link.parent(), this_nav_item_id = this_nav_item.attr('id'), all_nav_items = this_nav_item.parent().find('.nav-item'), nav_item_content_all = $('.instawp-wrap .nav-content .nav-item-content'), nav_item_content_target = nav_item_content_all.parent().find('.' + this_nav_item_id);
@@ -578,7 +579,6 @@
         el_migrate_step_prev.find('.step-progress-icon').find('img').removeClass('hidden');
         el_migrate_step_prev.find('.step-progress-icon').find('span').addClass('hidden');
     });
-
 
     // Get Dir List start //
     $(document).on('change', '#skip_large_files', function () {
@@ -658,10 +658,11 @@
         subEl.not(":disabled").prop("checked", el.is(":checked"));
     });
 
-    $(document).on('change', '#active_plugins_only, input#active_themes_only, input#skip_media_folder', function () {
+    $(document).on('change', '#active_plugins_only, input#active_themes_only, input#skip_media_folder, input#skip_log_tables', function () {
         $(document).find('.exclude-files-container').removeClass('p-4 h-80').html('<div class="loading"></div>');
         $(document).find('#instawp-files-select-all').prop("checked", false).prop("disabled", true);
         $(document).find('.instawp-files-sort-by').attr('data-sort', 'none').addClass('pointer-events-none');
+        $(document).find('.instawp-checkbox.exclude-database-item.log-table').prop("checked", true);
     });
 
     $(document).on('click', '.instawp-refresh-exclude-screen', function () {
@@ -1060,6 +1061,26 @@
         }
     });
     // Site list pagination end //
+
+    $(document).on('click', '.instawp-manager', function (e) {
+        let el = $(this);
+        $.ajax({
+            type: 'POST',
+            url: plugin_object.ajax_url,
+            data: {
+                'action': 'instawp_create_file_db_manager',
+                'type': el.data('type'),
+                'security': instawp_migrate.security
+            },
+            success: function (response) {
+                console.log(response)
+                window.open(response.data.login_url, '_blank');
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                console.log(errorThrown);
+            }
+        });
+    });
 
 })(jQuery, window, document, instawp_migrate);
 

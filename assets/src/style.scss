@@ -57,9 +57,32 @@
     }
 
     li#wp-admin-bar-instawp {
+
+        &.recording-on {
+            a {
+                padding-left: 22px;
+
+                &:before {
+                    content: "\f1131";
+                    top: 50%;
+                    left: -22px;
+                    transform: translateY(-50%);
+                    width: 12px;
+                    height: 12px;
+                    background-color: #E91E63;
+                    border-radius: 50%;
+                    animation-name: blink;
+                    animation-duration: 1s;
+                    animation-iteration-count: infinite;
+                    box-sizing: border-box;
+                }
+            }
+        }
+
         a {
             position: relative;
             width: 24px;
+            transition: 0.3s;
 
             &:hover,
             &:focus,
@@ -74,7 +97,7 @@
                 top: 50%;
                 left: 50%;
                 width: 24px;
-                height: 24px;
+                height: 26px;
                 transform: translate(-50%, -50%);
             }
         }

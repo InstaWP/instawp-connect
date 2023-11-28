@@ -33,7 +33,6 @@ class InstaWP_Curl {
 		}
 
 		$curl = curl_init();
-
 		curl_setopt_array( $curl,
 			array(
 				CURLOPT_URL            => $api_url,
@@ -45,7 +44,7 @@ class InstaWP_Curl {
 				CURLOPT_SSL_VERIFYHOST => false,
 				CURLOPT_SSL_VERIFYPEER => false,
 				CURLOPT_USERAGENT      => isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '',
-				CURLOPT_REFERER        => 'InstaWP Connect - General Curl Request',
+				CURLOPT_REFERER        => site_url(),
 				CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
 				CURLOPT_CUSTOMREQUEST  => $api_method,
 				CURLOPT_POSTFIELDS     => json_encode( $body ),
@@ -139,8 +138,7 @@ class InstaWP_Curl {
 			$res            = [];
 			$res['error']   = true;
 			$res['message'] = 'API Key Is Required';
-			echo json_encode( $res );
-			wp_die();
+			wp_send_json( $res );
 		}
 	}
 }
