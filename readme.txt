@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.4
 Tested up to: 6.4
 Requires PHP: 7.4
-Stable tag: 0.0.9.50
+Stable tag: 0.0.9.51
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -94,13 +94,16 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 
 == Changelog ==
 
-= 0.0.9.51 =
+= 0.0.9.51 - 22 Nov 2023 =
 
 - FIX - Fixed 2 Way Sync not working.
 - FIX - Fixed Site Dropdown CSS.
 - FIX - Fixed some PHP errors.
 - FIX - Optimized 2 Way Sync Codebase.
 - FIX - Heartbeat event logic.
+- FIX - Fixed auto login issue.
+- FIX - Fixed migration issue in destination script.
+- FIX - Stabilize the staging site creation process.
 
 = 0.0.9.50 - 22 Nov 2023 =
 
