@@ -418,7 +418,6 @@ class InstaWP_Backup_Api {
 		$current_api_key = ! empty( $connect_options ) ? $connect_options['api_key'] : '';
 
 		$current_login_code = get_transient( 'instawp_auto_login_code' );
-
 		$current_api_key_hash = "";
 
 		// check for pipe

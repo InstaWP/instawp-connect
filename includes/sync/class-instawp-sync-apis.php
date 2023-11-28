@@ -72,7 +72,6 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 				)
 			);
 		} );
-
 	}
 
 	function check_permission() {

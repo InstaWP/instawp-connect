@@ -242,10 +242,9 @@ if ( $file_type === 'db' ) {
 
 		if ( isset( $_SERVER['HTTP_X_IWP_PROGRESS'] ) ) {
 
-			$log_content = file_get_contents( 'iwp_log.txt' );
-			$log_content .= "x-iwp-progress: {$_SERVER['HTTP_X_IWP_PROGRESS']}\n";
-
-			file_put_contents( 'iwp_log.txt', $log_content );
+//			$log_content = file_get_contents( 'iwp_log.txt' );
+//			$log_content .= "x-iwp-progress: {$_SERVER['HTTP_X_IWP_PROGRESS']}\n";
+//			file_put_contents( 'iwp_log.txt', $log_content );
 		}
 
 		if ( isset( $_SERVER['HTTP_X_IWP_PROGRESS'] ) && $_SERVER['HTTP_X_IWP_PROGRESS'] == 100 ) {
@@ -274,12 +273,12 @@ if ( $file_type === 'db' ) {
 					$ret = $mysqli->query( "UPDATE `{$table_prefix}options` SET `option_value` = '{$instawp_api_options}' WHERE `option_name` = 'instawp_api_options'" );
 				}
 
-				$log_content = file_get_contents( 'iwp_log.txt' );
-				$log_content .= "full-json-data: " . json_encode( $jsonData ) . "\n";
-				$log_content .= "api-options-data: " . $instawp_api_options . "\n";
-				$log_content .= "table_prefix: {$table_prefix}\n";
-				$log_content .= "mysql-success: " . json_encode( $ret ) . "\n";
-				file_put_contents( 'iwp_log.txt', $log_content );
+//				$log_content = file_get_contents( 'iwp_log.txt' );
+//				$log_content .= "full-json-data: " . json_encode( $jsonData ) . "\n";
+//				$log_content .= "api-options-data: " . $instawp_api_options . "\n";
+//				$log_content .= "table_prefix: {$table_prefix}\n";
+//				$log_content .= "mysql-success: " . json_encode( $ret ) . "\n";
+//				file_put_contents( 'iwp_log.txt', $log_content );
 			}
 		}
 

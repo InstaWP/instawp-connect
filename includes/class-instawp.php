@@ -252,8 +252,8 @@ class instaWP {
 				! empty( $_GET['c'] ) &&
 				! empty( $_GET['s'] )
 			) {
-				$param_code   = $_GET['c'];
-				$param_user   = base64_decode( $_GET['s'] );
+				$param_code = $_GET['c'];
+				$param_user = base64_decode( $_GET['s'] );
 				$current_code = get_transient( 'instawp_auto_login_code' );
 				$username     = sanitize_user( $param_user );
 				if (
