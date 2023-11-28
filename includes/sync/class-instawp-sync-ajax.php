@@ -131,15 +131,14 @@ class InstaWP_Sync_Ajax {
 	}
 
 	public function get_events_summary() {
+		$where = $where2 = "1=1";
+		$connect_id = ! empty( $_POST['connect_id'] ) ? intval( $_POST['connect_id'] ) : 0;
 
-		$where  = "1=1";
-		$where2 = "1=1";
-		if ( isset( $_POST['connect_id'] ) && intval( $_POST['connect_id'] ) > 0 ) {
-			$connect_id = sanitize_text_field( $_POST['connect_id'] );
-			$where      .= " AND connect_id=" . $connect_id;
-
+		if ( $connect_id > 0 ) {
+			$where        .= " AND connect_id=" . $connect_id;
 			$staging_site = get_connect_detail_by_connect_id( $connect_id );
-			if ( ! empty( $staging_site ) && isset( $staging_site['created_at'] ) ) {
+
+			if ( ! empty( $staging_site ) && isset( $staging_site['created_at'] ) && ! instawp()->is_staging ) {
 				$staging_site_created = date( 'Y-m-d h:i:s', strtotime( $staging_site['created_at'] ) );
 				$where2               .= " AND date >= '" . $staging_site_created . "'";
 			}
