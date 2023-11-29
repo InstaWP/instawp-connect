@@ -435,13 +435,18 @@
 
     $(document).on('ready', function () {
         let create_container = $('.instawp-wrap .nav-item-content.create'),
+            el_instawp_current_tab = $('.instawp-wrap .instawp-current-tab'),
+            el_instawp_current_tab_data = el_instawp_current_tab.attr('current-tab'),
             this_nav_item_id = localStorage.getItem('instawp_admin_current'),
             el_instawp_screen = create_container.find('#instawp-screen'),
             all_nav_items = $('.instawp-wrap .nav-items .nav-item');
 
         $(document).find('.staging-site-list').slice(0, parseInt($(document).find('.sites').data('pagination'))).show();
 
-        if (this_nav_item_id !== null && typeof this_nav_item_id !== 'undefined') {
+
+        if (el_instawp_current_tab && el_instawp_current_tab_data !== 'undefined' && el_instawp_current_tab_data !== '') {
+            $('.instawp-wrap #' + el_instawp_current_tab_data).find('a').trigger('click');
+        } else if (this_nav_item_id !== null && typeof this_nav_item_id !== 'undefined') {
             $('.instawp-wrap #' + this_nav_item_id).find('a').trigger('click');
         } else {
             all_nav_items.first().find('a').trigger('click');
