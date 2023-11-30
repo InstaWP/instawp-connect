@@ -99,6 +99,7 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 - FIX - Fixed 2 migrate v3 issues.
 - FIX - Fixed auto login issue.
 - FIX - Stabilize the staging site creation process.
+- FIX - Remove SQLite PHP extension or PDO SQLite PHP check.
 
 = 0.0.9.51 - 28 Nov 2023 =
 
