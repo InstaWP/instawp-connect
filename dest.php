@@ -151,9 +151,10 @@ if ( ! $file_input_stream ) {
 
 if ( $file_relative_path === 'db.sql' ) {
 	if ( file_exists( $file_save_path ) ) {
-		unlink( $file_save_path );
+		 unlink( $file_save_path );
 	}
-	$file_stream = fopen( $file_save_path, 'a+b' );
+//	$file_save_path = $root_path . DIRECTORY_SEPARATOR . time() . '.sql'; // added for debugging
+	$file_stream    = fopen( $file_save_path, 'a+b' );
 } else {
 	$file_stream = fopen( $file_save_path, 'wb' );
 }
@@ -288,7 +289,7 @@ if ( $file_type === 'db' ) {
 	}
 
 	if ( file_exists( $file_save_path ) ) {
-		unlink( $file_save_path );
+		 unlink( $file_save_path );
 	}
 }
 
