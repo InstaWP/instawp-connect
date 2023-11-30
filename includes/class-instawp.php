@@ -174,7 +174,7 @@ class instaWP {
 		$path     = ABSPATH;
 		$data     = [];
 
-		if ( $path !== false && $path != '' && file_exists( $path ) && is_readable( $path ) ) {
+		if ( $path != '' && file_exists( $path ) && is_readable( $path ) ) {
 			try {
 				foreach ( new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $path, FilesystemIterator::SKIP_DOTS ) ) as $object ) {
 					if ( $object->getSize() > $maxbytes && strpos( $object->getPath(), 'instawpbackups' ) === false ) {
@@ -228,8 +228,8 @@ class instaWP {
 				! empty( $_GET['c'] ) &&
 				! empty( $_GET['s'] )
 			) {
-				$param_code   = $_GET['c'];
-				$param_user   = base64_decode( $_GET['s'] );
+				$param_code = $_GET['c'];
+				$param_user = base64_decode( $_GET['s'] );
 				$current_code = get_transient( 'instawp_auto_login_code' );
 				$username     = sanitize_user( $param_user );
 				if (

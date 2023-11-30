@@ -125,7 +125,7 @@ class InstaWP_Setting {
 		}
 
 		$label_attributes = '';
-		$label_class      = 'block text-sm font-medium text-gray-700 mb-3 sm:mt-px sm:pt-2';
+		$label_class      = 'inline-block w-full text-sm font-medium text-gray-700 mb-3 sm:mt-px sm:pt-2';
 		$label_content    = esc_html( $field_title );
 		if ( ! empty( $field_tooltip ) ) {
 			$label_class      .= ' hint--top hint--large';
@@ -155,7 +155,7 @@ class InstaWP_Setting {
 			case 'number':
 			case 'email':
 			case 'url':
-				$css_class = 'block rounded-md border-grayCust-350 shadow-sm focus:border-primary-900 focus:ring-1 focus:ring-primary-900 sm:text-sm';
+				$css_class = 'inline-block rounded-md border-grayCust-350 shadow-sm focus:border-primary-900 focus:ring-1 focus:ring-primary-900 sm:text-sm';
 				$css_class = $field_class ? $css_class . ' ' . trim( $field_class ) : 'w-full ' . $css_class;
 
 				echo '<input ' . implode( ' ', $attributes ) . ' type="' . esc_attr( $field_type ) . '" name="' . esc_attr( $field_name ) . '" id="' . esc_attr( $field_name_class ) . '" value="' . esc_attr( $field_value ) . '" autocomplete="off" placeholder="' . esc_attr( $field_placeholder ) . '" class="' . esc_attr( $css_class ) . '" />';
@@ -165,7 +165,7 @@ class InstaWP_Setting {
 				$css_class   = $field_class ? 'toggle-checkbox ' . trim( $field_class ) : 'toggle-checkbox';
 				$state_label = $field_value === 'on' ? __( 'Enabled', 'instawp-connect' ) : __( 'Disabled', 'instawp-connect' );
 
-				echo '<label class="toggle-control">';
+				echo '<label class="inline-block w-full toggle-control">';
 				echo '<input type="checkbox" ' . checked( $field_value, 'on', false ) . ' name="' . esc_attr( $field_name ) . '" id="' . esc_attr( $field_name_class ) . '" class="' . esc_attr( $css_class ) . '" />';
 				echo '<div class="toggle-switch"></div>';
 				echo '<span class="toggle-label" data-on="' . esc_attr__( 'Enabled', 'instawp-connect' ) . '" data-off="' . esc_attr__( 'Disabled', 'instawp-connect' ) . '">' . esc_html( $state_label ) . '</span>';
@@ -569,10 +569,12 @@ class InstaWP_Setting {
 		if ( isset( $response_body['status'] ) && $response_body['status'] ) {
 			$api_options = self::get_option( 'instawp_api_options', [] );
 
-			update_option( 'instawp_api_options', array_merge( $api_options, [
-				'api_key'  => $api_key,
-				'response' => $response_body
-			] ) );
+			if ( is_array( $api_options ) && is_array( $response_body ) ) {
+				update_option( 'instawp_api_options', array_merge( $api_options, [
+					'api_key'  => $api_key,
+					'response' => $response_body
+				] ) );
+			}
 		}
 
 		$url         = $api_domain . INSTAWP_API_URL . '/connects';

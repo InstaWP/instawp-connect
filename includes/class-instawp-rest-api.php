@@ -417,8 +417,7 @@ class InstaWP_Backup_Api {
 		// Non hashed
 		$current_api_key = ! empty( $connect_options ) ? $connect_options['api_key'] : '';
 
-		$current_login_code = get_transient( 'instawp_auto_login_code' );
-
+		$current_login_code   = get_transient( 'instawp_auto_login_code' );
 		$current_api_key_hash = "";
 
 		// check for pipe
@@ -697,7 +696,13 @@ class InstaWP_Backup_Api {
 		}
 
 		if ( ! empty( $option ) && ! $this->is_enabled( $option ) ) {
-			return new WP_Error( 400, sprintf( esc_html__( 'Settings is disabled! Please enable %s Option from InstaWP Connect Remote Management settings page.', 'instawp-connect' ), $this->get_management_options( $option ) ) );
+
+			$message = sprintf( 'Setting is disabled! Please enable %s Option from InstaWP Connect <a href="%s" target="_blank">Remote Management settings</a> page.',
+				$this->get_management_options( $option ),
+				admin_url( 'admin.php?page=instawp&tab=manage' )
+			);
+
+			return new WP_Error( 400, $message );
 		}
 
 		return true;

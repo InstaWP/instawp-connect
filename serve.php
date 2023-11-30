@@ -250,7 +250,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			return ! in_array( $iterator->getSubPath(), $skip_folders );
 		};
 		$directory        = new RecursiveDirectoryIterator( WP_ROOT, RecursiveDirectoryIterator::SKIP_DOTS | RecursiveDirectoryIterator::FOLLOW_SYMLINKS );
-		$iterator         = new RecursiveIteratorIterator( new RecursiveCallbackFilterIterator( $directory, $filter_directory ), RecursiveIteratorIterator::LEAVES_ONLY );
+		$iterator         = new RecursiveIteratorIterator( new RecursiveCallbackFilterIterator( $directory, $filter_directory ), RecursiveIteratorIterator::LEAVES_ONLY, RecursiveIteratorIterator::CATCH_GET_CHILD );
 
 		// Get the current file index from the database or file
 		$currentFileIndex = 0; // Set the default value to 0
@@ -260,9 +260,17 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		}
 
 		// Create a limited iterator to skip the files that are already indexed
-		$limitedIterator = new LimitIterator( $iterator, $currentFileIndex, BATCH_SIZE );
-		$totalFiles      = iterator_count( $iterator );
-		$fileIndex       = 0;
+		$limitedIterator = [];
+		try {
+			$limitedIterator = new LimitIterator( $iterator, $currentFileIndex, BATCH_SIZE );
+		} catch ( Exception $e ) {
+			header( 'x-iwp-status: false' );
+			header( 'x-iwp-message: limitIterator error. Actual error: ' . $e->getMessage() );
+			die();
+		}
+
+		$totalFiles = iterator_count( $iterator );
+		$fileIndex  = 0;
 
 		file_put_contents( $total_files_path, $totalFiles );
 

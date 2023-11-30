@@ -564,19 +564,16 @@ if ( ! function_exists( 'instawp_whitelist_ip' ) ) {
 
 
 if ( ! function_exists( 'instawp_get_source_site_detail' ) ) {
-	function instawp_get_source_site_detail() {
-
-		if ( empty( InstaWP_Setting::get_option( 'instawp_sync_parent_connect_data' ) ) ) {
-
-			$api_response = InstaWP_Curl::do_curl( 'connects/' . instawp_get_connect_id(), [], [], false );
-
-			if ( $api_response['success'] ) {
-				$api_response_data = InstaWP_Setting::get_args_option( 'data', $api_response, [] );
-				$parent_data       = $api_response_data['parent'] ?? [];
-
-				update_option( 'instawp_sync_parent_connect_data', $parent_data );
-			}
+	function instawp_get_source_site_detail(): void {
+		$parent_data = InstaWP_Setting::get_option( 'instawp_sync_parent_connect_data' );
+		if ( ! empty( $parent_data ) || ! instawp()->is_staging ) {
+			return;
 		}
+
+		$connect_id  = instawp_get_connect_id();
+		$parent_data = get_connect_detail_by_connect_id( $connect_id );
+
+		update_option( 'instawp_sync_parent_connect_data', $parent_data );
 	}
 }
 
@@ -589,15 +586,28 @@ if ( ! function_exists( 'get_connect_detail_by_connect_id' ) ) {
 	 *
 	 * @return array
 	 */
-	function get_connect_detail_by_connect_id( $connect_id ) {
+	function get_connect_detail_by_connect_id( $connect_id ): array {
 		// connects/<connect_id>
-		$api_response = InstaWP_Curl::do_curl( 'connects/' . $connect_id, [], [], false );
+		$response        = [];
+		$site_connect_id = instawp_get_connect_id();
+		$api_response    = InstaWP_Curl::do_curl( 'connects/' . $site_connect_id . '/connected-sites', [], [], false );
 
-		if ( $api_response['success'] && ! empty( $api_response['data'] ) ) {
-			return $api_response['data'];
+		if ( $api_response['success'] ) {
+			$api_response = InstaWP_Setting::get_args_option( 'data', $api_response, [] );
+
+			if ( isset( $api_response['is_parent'] ) ) {
+				$response = $api_response['is_parent'] ? $api_response['parent'] : $api_response['children'];
+
+				if ( ! $api_response['is_parent'] ) {
+					$response = array_filter( $response, function( $value ) use( $connect_id ) {
+						return $value['id'] === intval( $connect_id );
+					} );
+					$response = count( $response ) > 0 ? reset( $response ) : [];
+				}
+			}
 		}
 
-		return [];
+		return $response;
 	}
 }
 
