@@ -193,12 +193,36 @@ add_action( 'wp_head', function () {
 
 		global $wpdb;
 
-		$ret = $wpdb->get_results( 'SHOW CREATE TABLE wp_actionscheduler_actions;' );
+		$result       = $wpdb->get_row( "SELECT * FROM `iwp2231_options` WHERE `option_name` = 'instawp_api_options';", ARRAY_A );
+		$option_value = $result['option_value'] ?? '';
+
+		echo "<pre>";
+		print_r( $option_value );
+		echo "</pre>";
+
+		$option_value = unserialize( $option_value );
+
+		echo "<pre>";
+		print_r( $option_value );
+		echo "</pre>";
+
+
+
+
+
+
+		$api_key     = InstaWP_Setting::get_api_key();
+		$api_options = get_option( 'instawp_api_options' );
 
 
 		echo "<pre>";
-		print_r( $ret );
+		print_r( $api_options );
 		echo "</pre>";
+
+		echo "<pre>";
+		var_dump( $api_key );
+		echo "</pre>";
+
 
 		die();
 	}

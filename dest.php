@@ -151,10 +151,10 @@ if ( ! $file_input_stream ) {
 
 if ( $file_relative_path === 'db.sql' ) {
 	if ( file_exists( $file_save_path ) ) {
-		 unlink( $file_save_path );
+		unlink( $file_save_path );
 	}
 //	$file_save_path = $root_path . DIRECTORY_SEPARATOR . time() . '.sql'; // added for debugging
-	$file_stream    = fopen( $file_save_path, 'a+b' );
+	$file_stream = fopen( $file_save_path, 'a+b' );
 } else {
 	$file_stream = fopen( $file_save_path, 'wb' );
 }
@@ -268,10 +268,11 @@ if ( $file_type === 'db' ) {
 					}
 				}
 
-				$ret = $mysqli->query( "INSERT INTO `{$table_prefix}options` (`option_name`, `option_value`) VALUES('instawp_api_options', '{$instawp_api_options}')" );
+				$instawp_api_options = stripslashes( $instawp_api_options );
+				$insert_response     = $mysqli->query( "INSERT INTO `{$table_prefix}options` (`option_name`, `option_value`) VALUES('instawp_api_options', '{$instawp_api_options}')" );
 
-				if ( ! $ret ) {
-					$ret = $mysqli->query( "UPDATE `{$table_prefix}options` SET `option_value` = '{$instawp_api_options}' WHERE `option_name` = 'instawp_api_options'" );
+				if ( ! $insert_response ) {
+					$insert_response = $mysqli->query( "UPDATE `{$table_prefix}options` SET `option_value` = '{$instawp_api_options}' WHERE `option_name` = 'instawp_api_options'" );
 				}
 
 //				$log_content = file_get_contents( 'iwp_log.txt' );
@@ -289,7 +290,7 @@ if ( $file_type === 'db' ) {
 	}
 
 	if ( file_exists( $file_save_path ) ) {
-		 unlink( $file_save_path );
+		unlink( $file_save_path );
 	}
 }
 
