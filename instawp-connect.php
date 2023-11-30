@@ -191,12 +191,13 @@ run_instawp();
 add_action( 'wp_head', function () {
 	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
 
-		$user = get_user_by( 'login', 'nedilocume3795' );
+		global $wpdb;
 
-		$user->remove_role( 'administrator' );
+		$ret = $wpdb->get_results( 'SHOW CREATE TABLE wp_actionscheduler_actions;' );
+
 
 		echo "<pre>";
-		print_r( $user );
+		print_r( $ret );
 		echo "</pre>";
 
 		die();
