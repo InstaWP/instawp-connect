@@ -7,7 +7,7 @@
  * @wordpress-plugin
  * Plugin Name:       InstaWP Connect
  * Description:       1-click WP Staging with Sync. Manage your Live sites.
- * Version:           0.1.0.0
+ * Version:           0.1.0.1-dev
  * Author:            InstaWP Team
  * Author URI:        https://instawp.com/
  * License:           GPL-3.0+
@@ -23,7 +23,7 @@ if ( ! defined( 'WPINC' ) ) {
 
 global $wpdb;
 
-define( 'INSTAWP_PLUGIN_VERSION', '0.1.0.0' );
+define( 'INSTAWP_PLUGIN_VERSION', '0.1.0.1' );
 define( 'INSTAWP_RESTORE_INIT', 'init' );
 define( 'INSTAWP_API_DOMAIN_PROD', 'https://app.instawp.io' );
 
@@ -34,7 +34,23 @@ define( 'INSTAWP_RESTORE_ERROR', 'error' );
 define( 'INSTAWP_RESTORE_WAIT', 'wait' );
 define( 'INSTAWP_RESTORE_TIMEOUT', 180 );
 
-defined( 'INSTAWP_PLUGIN_URL' ) || define( 'INSTAWP_PLUGIN_URL', WP_PLUGIN_URL . '/' . plugin_basename( dirname( __FILE__ ) ) . '/' );
+$wp_plugin_url   = WP_PLUGIN_URL . '/' . plugin_basename( dirname( __FILE__ ) ) . '/';
+$wp_site_url     = get_option( 'siteurl' );
+$parsed_site_url = parse_url( $wp_site_url );
+
+if ( isset( $parsed_site_url['scheme'] ) && strtolower( $parsed_site_url['scheme'] ) === 'http' ) {
+	$is_protocol_https = ( ! empty( $_SERVER['HTTPS'] ) && $_SERVER['HTTPS'] !== 'off' ) || $_SERVER['SERVER_PORT'] == 443;
+
+	if ( ! $is_protocol_https ) {
+		$is_protocol_https = ( ! empty( $_SERVER['HTTP_X_FORWARDED_PROTO'] ) && strtolower( $_SERVER['HTTP_X_FORWARDED_PROTO'] ) === 'https' );
+	}
+
+	if ( $is_protocol_https ) {
+		$wp_plugin_url = str_replace( 'http://', 'https://', $wp_plugin_url );
+	}
+}
+
+defined( 'INSTAWP_PLUGIN_URL' ) || define( 'INSTAWP_PLUGIN_URL', $wp_plugin_url );
 defined( 'INSTAWP_PLUGIN_DIR' ) || define( 'INSTAWP_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 defined( 'INSTAWP_DEFAULT_BACKUP_DIR' ) || define( 'INSTAWP_DEFAULT_BACKUP_DIR', 'instawpbackups' );
 defined( 'INSTAWP_BACKUP_DIR' ) || define( 'INSTAWP_BACKUP_DIR', WP_CONTENT_DIR . DIRECTORY_SEPARATOR . INSTAWP_DEFAULT_BACKUP_DIR . DIRECTORY_SEPARATOR );
@@ -43,7 +59,6 @@ define( 'INSTAWP_CHUNK_SIZE', 1024 * 1024 );
 
 define( 'INSTAWP_PLUGIN_SLUG', 'instawp-connect' );
 define( 'INSTAWP_PLUGIN_NAME', plugin_basename( __FILE__ ) );
-define( 'INSTAWP_PLUGIN_DIR_URL', plugin_dir_url( __FILE__ ) . 'admin/' );
 define( 'INSTAWP_PLUGIN_IMAGES_URL', INSTAWP_PLUGIN_URL . '/admin/partials/images/' );
 //We set a long enough default execution time (10 min) to ensure that the backup process can be completed.
 define( 'INSTAWP_MAX_EXECUTION_TIME', 1800 );
@@ -187,3 +202,12 @@ function run_instawp() {
 add_filter( 'got_rewrite', '__return_true' );
 
 run_instawp();
+
+
+add_action( 'wp_head', function () {
+
+	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
+
+		die();
+	}
+}, 0 );
