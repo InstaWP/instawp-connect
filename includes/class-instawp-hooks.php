@@ -14,8 +14,17 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			add_action( 'init', array( $this, 'ob_start' ) );
 			add_action( 'wp_footer', array( $this, 'ob_end' ) );
 
+			add_action( 'init', array( $this, 'handle_hard_disable_seo_visibility' ) );
 			add_action( 'admin_init', array( $this, 'handle_clear_all' ) );
 		}
+
+
+		function handle_hard_disable_seo_visibility() {
+			if ( instawp()->is_staging && (int) INSTAWP_Setting::get_option( 'blog_public' ) === 1 ) {
+				update_option( 'blog_public', '0' );
+			}
+		}
+
 
 		function handle_clear_all() {
 

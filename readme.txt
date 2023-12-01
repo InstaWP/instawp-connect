@@ -94,13 +94,14 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 
 == Changelog ==
 
+= 0.1.0.1 =
+
+- NEW - Added hard disable search engine visibility for staging sites.
+- FIX - Fixed CSS Loading in plugin due to http instead of https.
+
 = 0.1.0.0 - 1 Dec 2023 =
 
 - FIX - Incorrect versioning, updated to 0.1.0.0 instead of 0.0.1.0
-
-= 0.1.0.1 =
-
-- FIX - Fixed CSS Loading in plugin due to http instead of https.
 
 = 0.1.0.0 - 1 Dec 2023 =
 
