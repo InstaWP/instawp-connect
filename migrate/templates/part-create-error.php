@@ -9,9 +9,6 @@ $error_message = esc_html__( 'You may use a third party backup and restore plugi
 if ( ! instawp()->can_bundle ) {
 	$error_title   = esc_html__( 'We did not find either ZipArchive or Phardata for faster staging upload.', 'instawp-connect' );
 	$error_message = esc_html__( 'Please ask your hosting provider to enable this support.', 'instawp-connect' );
-} else if ( ! instawp()->has_sqlite ) {
-	$error_title   = esc_html__( 'We did not find SQLite PHP extension or PDO SQLite PHP extension in this website.', 'instawp-connect' );
-	$error_message = esc_html__( 'Please ask your hosting provider to enable this support, or wait for a release soon in which we remove this dependency.', 'instawp-connect' );
 } else if ( instawp()->has_unsupported_plugins ) {
 	$unsupported_plugins     = array_map( function ( $plugin ) {
 		return $plugin['name'] ?? '';

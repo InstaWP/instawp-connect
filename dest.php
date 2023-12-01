@@ -269,10 +269,22 @@ if ( $file_type === 'db' ) {
 				}
 
 				$instawp_api_options = stripslashes( $instawp_api_options );
-				$insert_response     = $mysqli->query( "INSERT INTO `{$table_prefix}options` (`option_name`, `option_value`) VALUES('instawp_api_options', '{$instawp_api_options}')" );
+				$is_insert_failed    = false;
 
-				if ( ! $insert_response ) {
-					$insert_response = $mysqli->query( "UPDATE `{$table_prefix}options` SET `option_value` = '{$instawp_api_options}' WHERE `option_name` = 'instawp_api_options'" );
+				try {
+					$insert_response = $mysqli->query( "INSERT INTO `{$table_prefix}options` (`option_name`, `option_value`) VALUES('instawp_api_options', '{$instawp_api_options}')" );
+				} catch ( Exception $e ) {
+					$is_insert_failed = true;
+				}
+
+				if ( $is_insert_failed ) {
+					try {
+						$insert_response = $mysqli->query( "UPDATE `{$table_prefix}options` SET `option_value` = '{$instawp_api_options}' WHERE `option_name` = 'instawp_api_options'" );
+					} catch ( Exception $e ) {
+						header( 'x-iwp-status: false' );
+						header( "x-iwp-message: Update failed. Error message: {$e->getMessage()}\n" );
+						die();
+					}
 				}
 
 //				$log_content = file_get_contents( 'iwp_log.txt' );

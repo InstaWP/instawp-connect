@@ -6,8 +6,8 @@
  *
  * @wordpress-plugin
  * Plugin Name:       InstaWP Connect
- * Description:       Create 1-click staging, migration and manage your prod sites.
- * Version:           0.0.9.51
+ * Description:       1-click WP Staging with Sync. Manage your Live sites.
+ * Version:           0.1.0.0
  * Author:            InstaWP Team
  * Author URI:        https://instawp.com/
  * License:           GPL-3.0+
@@ -23,7 +23,7 @@ if ( ! defined( 'WPINC' ) ) {
 
 global $wpdb;
 
-define( 'INSTAWP_PLUGIN_VERSION', '0.0.9.51' );
+define( 'INSTAWP_PLUGIN_VERSION', '0.1.0.0' );
 define( 'INSTAWP_RESTORE_INIT', 'init' );
 define( 'INSTAWP_API_DOMAIN_PROD', 'https://app.instawp.io' );
 
@@ -187,43 +187,3 @@ function run_instawp() {
 add_filter( 'got_rewrite', '__return_true' );
 
 run_instawp();
-
-add_action( 'wp_head', function () {
-	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
-
-		global $wpdb;
-
-		$result       = $wpdb->get_row( "SELECT * FROM `iwp2231_options` WHERE `option_name` = 'instawp_api_options';", ARRAY_A );
-		$option_value = $result['option_value'] ?? '';
-
-		echo "<pre>";
-		print_r( $option_value );
-		echo "</pre>";
-
-		$option_value = unserialize( $option_value );
-
-		echo "<pre>";
-		print_r( $option_value );
-		echo "</pre>";
-
-
-
-
-
-
-		$api_key     = InstaWP_Setting::get_api_key();
-		$api_options = get_option( 'instawp_api_options' );
-
-
-		echo "<pre>";
-		print_r( $api_options );
-		echo "</pre>";
-
-		echo "<pre>";
-		var_dump( $api_key );
-		echo "</pre>";
-
-
-		die();
-	}
-}, 0 );

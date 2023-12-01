@@ -5,7 +5,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2023-11-28 13:21+0000\n"
+"POT-Creation-Date: 2023-11-30 13:47+0000\n"
 "X-Poedit-Basepath: ..\n"
 "X-Poedit-KeywordsList: __;_e;_ex:1,2c;_n:1,2;_n_noop:1,2;_nx:1,2,4c;_nx_noop:1,2,3c;_x:1,2c;esc_attr__;esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c\n"
 "X-Poedit-SearchPath-0: .\n"
@@ -173,51 +173,47 @@ msgstr ""
 msgid "Invalid bearer token."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:699
-msgid "Settings is disabled! Please enable %s Option from InstaWP Connect Remote Management settings page."
-msgstr ""
-
-#: includes/class-instawp-rest-api.php:1065
+#: includes/class-instawp-rest-api.php:1071
 msgid "Setting does not exist."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1048
+#: includes/class-instawp-rest-api.php:1054
 msgid "Success!"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1057
+#: includes/class-instawp-rest-api.php:1063
 msgid "You can not enable this setting through API."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1054
+#: includes/class-instawp-rest-api.php:1060
 msgid "Setting is already disabled."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1171, includes/class-instawp-setting.php:372, includes/class-instawp-setting.php:378
+#: includes/class-instawp-rest-api.php:1177, includes/class-instawp-setting.php:372, includes/class-instawp-setting.php:378
 msgid "Heartbeat"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1172, includes/class-instawp-setting.php:410
+#: includes/class-instawp-rest-api.php:1178, includes/class-instawp-setting.php:410
 msgid "File Manager"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1173, includes/class-instawp-setting.php:418
+#: includes/class-instawp-rest-api.php:1179, includes/class-instawp-setting.php:418
 msgid "Database Manager"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1174, includes/class-instawp-setting.php:426
+#: includes/class-instawp-rest-api.php:1180, includes/class-instawp-setting.php:426
 msgid "Install Plugin / Themes"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1175, includes/class-instawp-setting.php:434
+#: includes/class-instawp-rest-api.php:1181, includes/class-instawp-setting.php:434
 msgid "Config Management"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1176, includes/class-instawp-setting.php:442
+#: includes/class-instawp-rest-api.php:1182, includes/class-instawp-setting.php:442
 msgid "Site Inventory"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1177, includes/class-instawp-setting.php:450
+#: includes/class-instawp-rest-api.php:1183, includes/class-instawp-setting.php:450
 msgid "Debug Log"
 msgstr ""
 
