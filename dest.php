@@ -271,17 +271,19 @@ if ( $file_type === 'db' ) {
 				}
 
 //				$instawp_api_options = stripslashes( $instawp_api_options );
-				$is_insert_failed    = false;
+				$is_insert_failed = false;
 
 				try {
 					$insert_response = $mysqli->query( "INSERT INTO `{$table_prefix}options` (`option_name`, `option_value`) VALUES('instawp_api_options', '{$instawp_api_options}')" );
 
+					if ( ! $insert_response ) {
+						$is_insert_failed = true;
+					}
 					// log start
 					$log_content = file_get_contents( 'iwp_log.txt' );
-					$log_content .= "insert response: " . var_dump( $insert_response ). "\n";
+					$log_content .= "insert response: " . var_dump( $insert_response ) . "\n";
 					file_put_contents( 'iwp_log.txt', $log_content );
 					// log end
-
 				} catch ( Exception $e ) {
 					$is_insert_failed = true;
 				}
@@ -292,7 +294,7 @@ if ( $file_type === 'db' ) {
 
 						// log start
 						$log_content = file_get_contents( 'iwp_log.txt' );
-						$log_content .= "update response: " . var_dump( $insert_response ). "\n";
+						$log_content .= "update response: " . var_dump( $insert_response ) . "\n";
 						file_put_contents( 'iwp_log.txt', $log_content );
 						// log end
 
