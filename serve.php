@@ -282,8 +282,14 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			$row        = $tracking_db->get_row( 'iwp_files_sent', [ 'filepath' => $filepath ] );
 
 			if ( ! $row ) {
-				$tracking_db->insert( 'iwp_files_sent', [ 'filepath' => "'$filepath'", 'sent' => 0, 'size' => "'$filesize'" ] );
-				$fileIndex ++;
+				try {
+					$tracking_db->insert( 'iwp_files_sent', [ 'filepath' => "'$filepath'", 'sent' => 0, 'size' => "'$filesize'" ] );
+					$fileIndex ++;
+				} catch (Exception $e ) {
+					header( 'x-iwp-status: false' );
+					header( 'x-iwp-message: Insert to iwp_files_sent failed. Actual error: ' . $e->getMessage() );
+					die();
+				}
 			} else {
 				continue;
 			}
