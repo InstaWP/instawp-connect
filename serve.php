@@ -39,9 +39,9 @@ defined( 'INSTAWP_BACKUP_DIR' ) | define( 'INSTAWP_BACKUP_DIR', WP_ROOT . DIRECT
 $iwpdb_main_path = WP_ROOT . '/wp-content/plugins/instawp-connect/includes/class-instawp-iwpdb.php';
 $iwpdb_git_path  = WP_ROOT . '/wp-content/plugins/instawp-connect-main/includes/class-instawp-iwpdb.php';
 
-if ( file_exists( $iwpdb_main_path ) ) {
+if ( file_exists( $iwpdb_main_path ) && is_readable( $iwpdb_main_path ) ) {
 	require_once( $iwpdb_main_path );
-} else if ( file_exists( $iwpdb_git_path ) ) {
+} else if ( file_exists( $iwpdb_git_path ) && is_readable( $iwpdb_main_path ) ) {
 	require_once( $iwpdb_git_path );
 } else {
 	header( 'x-iwp-status: false' );
@@ -57,6 +57,12 @@ try {
 } catch ( Exception $e ) {
 	header( 'x-iwp-status: false' );
 	header( 'x-iwp-message: Database connection error. Actual error: ' . $e->getMessage() );
+	die();
+}
+
+if ( ! $tracking_db ) {
+	header( 'x-iwp-status: false' );
+	header( 'x-iwp-message: Could not find tracking database.' );
 	die();
 }
 
@@ -285,7 +291,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 				try {
 					$tracking_db->insert( 'iwp_files_sent', [ 'filepath' => "'$filepath'", 'sent' => 0, 'size' => "'$filesize'" ] );
 					$fileIndex ++;
-				} catch (Exception $e ) {
+				} catch ( Exception $e ) {
 					header( 'x-iwp-status: false' );
 					header( 'x-iwp-message: Insert to iwp_files_sent failed. Actual error: ' . $e->getMessage() );
 					die();
