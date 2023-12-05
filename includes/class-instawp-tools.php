@@ -405,8 +405,12 @@ class InstaWP_Tools {
 
 			$serve_file_url = self::generate_forwarded_file();
 
-			if ( empty( $serve_file_url ) || ! self::is_migrate_file_accessible( $serve_file_url ) ) {
+			if ( empty( $serve_file_url ) ) {
 				return new WP_Error( 403, esc_html__( 'Could not create the forwarded file.', 'instawp-connect' ) );
+			}
+
+			if ( ! self::is_migrate_file_accessible( $serve_file_url ) ) {
+				return new WP_Error( 403, esc_html__( 'InstaWP could not access the forwarded file due to security issue.', 'instawp-connect' ) );
 			}
 		}
 
