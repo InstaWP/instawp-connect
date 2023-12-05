@@ -247,7 +247,7 @@ class Cache {
 			$message = '';
 
 			if ( class_exists( '\BunnyCdn' ) && method_exists( '\BunnyCdn', 'getOptions' ) ) {
-				$options = BunnyCdn::getOptions();
+				$options = \BunnyCdn::getOptions();
 				$domain  = 'instawpcom.b-cdn.net';
 
 				if ( ! empty( $domain ) ) {
