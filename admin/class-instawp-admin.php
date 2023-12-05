@@ -169,19 +169,18 @@ class InstaWP_Admin {
 	public function enqueue_scripts() {
 		wp_enqueue_style( 'instawp-hint', instawp()::get_asset_url( 'assets/css/hint.min.css' ) );
 		wp_enqueue_style( 'instawp-select2', instawp()::get_asset_url( 'admin/css/select2.min.css' ) );
+		wp_enqueue_style( 'instawp-change-event', instawp()::get_asset_url( 'admin/css/instawp-change-event.css' ) );
+
 		wp_enqueue_script( 'instawp-select2', instawp()::get_asset_url( 'admin/js/select2.min.js' ) );
-		wp_enqueue_style( 'change-event-css', instawp()::get_asset_url( 'admin/css/instawp-change-event.css' ) );
-		wp_enqueue_script( 'ajax_script', instawp()::get_asset_url( 'admin/js/instawp-change-event.js' ), array( 'jquery' ), $this->version );
-		wp_localize_script( 'ajax_script', 'ajax_obj',
-			array(
-				'ajax_url'          => admin_url( 'admin-ajax.php' ),
-				'nonce'             => wp_create_nonce( 'instaWp_change_event' ),
-				'plugin_images_url' => INSTAWP_PLUGIN_IMAGES_URL,
-				'trans'             => [
-					'create_staging_site_txt' => __( 'Please create staging sites first.', 'instawp-connect' )
-				]
-			)
-		);
+		wp_enqueue_script( 'instawp-change-event', instawp()::get_asset_url( 'admin/js/instawp-change-event.js' ), array( 'jquery' ), $this->version );
+		wp_localize_script( 'instawp-change-event', 'instawp_tws', [
+			'ajax_url'          => admin_url( 'admin-ajax.php' ),
+			'nonce'             => wp_create_nonce( 'instawp-tws' ),
+			'plugin_images_url' => INSTAWP_PLUGIN_IMAGES_URL,
+			'trans'             => [
+				'create_staging_site_txt' => __( 'Please create staging sites first.', 'instawp-connect' )
+			]
+		] );
 
 
 		if ( isset( $_GET['page'] ) && in_array( sanitize_text_field( $_GET['page'] ), [ 'instawp', 'instawp-template-migrate' ] ) ) {
