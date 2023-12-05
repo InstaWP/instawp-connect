@@ -2,6 +2,8 @@
 set_time_limit( 0 );
 error_reporting( 0 );
 
+file_put_contents( 'iwp_log.txt', "Migration log started \n" );
+
 if ( ! isset( $_SERVER['HTTP_X_IWP_MIGRATE_KEY'] ) || empty( $migrate_key = $_SERVER['HTTP_X_IWP_MIGRATE_KEY'] ) ) {
 	header( 'x-iwp-status: false' );
 	header( 'x-iwp-message: Empty migrate key.' );
@@ -268,7 +270,7 @@ if ( $file_type === 'db' ) {
 					}
 				}
 
-				$instawp_api_options = stripslashes( $instawp_api_options );
+//				$instawp_api_options = stripslashes( $instawp_api_options );
 				$is_insert_failed    = false;
 
 				try {
