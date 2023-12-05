@@ -169,10 +169,10 @@ class InstaWP_Admin {
 
 	public function enqueue_scripts() {
 		wp_enqueue_style( 'instawp-hint', instawp()::get_asset_url( 'assets/css/hint.min.css' ) );
-		wp_enqueue_style( 'instawp-select2', INSTAWP_PLUGIN_DIR_URL . 'css/select2.min.css' );
-		wp_enqueue_script( 'instawp-select2', INSTAWP_PLUGIN_DIR_URL . 'js/select2.min.js', array( 'jquery' ) );
-		wp_enqueue_style( 'change-event-css', INSTAWP_PLUGIN_DIR_URL . 'css/instawp-change-event.css' );
-		wp_enqueue_script( 'ajax_script', INSTAWP_PLUGIN_DIR_URL . 'js/instawp-change-event.js', array( 'jquery' ), $this->version, false );
+		wp_enqueue_style( 'instawp-select2', instawp()::get_asset_url( 'admin/css/select2.min.css' ) );
+		wp_enqueue_script( 'instawp-select2', instawp()::get_asset_url( 'admin/js/select2.min.js' ) );
+		wp_enqueue_style( 'change-event-css', instawp()::get_asset_url( 'admin/css/instawp-change-event.css' ) );
+		wp_enqueue_script( 'ajax_script', instawp()::get_asset_url( 'admin/js/instawp-change-event.js' ), array( 'jquery' ), $this->version, [] );
 		wp_localize_script( 'ajax_script', 'ajax_obj',
 			array(
 				'ajax_url'          => admin_url( 'admin-ajax.php' ),
@@ -201,12 +201,12 @@ class InstaWP_Admin {
 		);
 
 
-		wp_enqueue_script( $this->plugin_name, INSTAWP_PLUGIN_DIR_URL . 'js/instawp-admin.js', array( 'jquery' ), $this->version, false );
+		wp_enqueue_script( $this->plugin_name, instawp()::get_asset_url( 'admin/js/instawp-admin.js' ), array( 'jquery' ), $this->version, false );
 		$this->screen_ids = apply_filters( 'instawp_get_screen_ids', $this->screen_ids );
 
 		if ( in_array( get_current_screen()->id, $this->screen_ids ) ) {
 
-			wp_enqueue_script( $this->plugin_name, INSTAWP_PLUGIN_DIR_URL . 'js/instawp-admin.js', array( 'jquery' ), $this->version, false );
+			wp_enqueue_script( $this->plugin_name, instawp()::get_asset_url( 'admin/js/instawp-admin.js' ), array( 'jquery' ), $this->version, false );
 
 			$instawp_api_url = InstaWP_Setting::get_api_domain();
 			wp_localize_script( $this->plugin_name, 'instawp_ajax_object', array(

@@ -2,9 +2,9 @@
 Contributors: instawp
 Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.4
-Tested up to: 6.4
-Requires PHP: 7.4
-Stable tag: 0.1.0.0
+Tested up to: 6.4.1
+Requires PHP: 8.0
+Stable tag: 0.1.0.1
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -94,11 +94,16 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 
 == Changelog ==
 
+= 0.1.0.1 =
+
+- NEW - Added hard disable search engine visibility for staging sites.
+- FIX - Fixed CSS Loading in plugin due to http instead of https.
+
 = 0.1.0.0 - 1 Dec 2023 =
 
 - FIX - Incorrect versioning, updated to 0.1.0.0 instead of 0.0.1.0
 
-= 0.0.1.0 - 1 Dec 2023 =
+= 0.1.0.0 - 1 Dec 2023 =
 
 - FIX - Fixed 2 migrate v3 issues.
 - FIX - Fixed auto login issue.
