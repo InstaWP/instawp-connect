@@ -43,7 +43,7 @@ jQuery(document).ready(function ($) {
     $(document).on('click', '.bulk-sync-popup-btn', function () {
         const site = $("#staging-site-sync").val();
         if (!site || site == undefined || site == '') {
-            alert(ajax_obj.trans.create_staging_site_txt);
+            alert(instawp_tws.trans.create_staging_site_txt);
             return;
         }
 
@@ -175,12 +175,13 @@ jQuery(document).ready(function ($) {
         $(this).attr('disabled', 'disabled');
         $(this).removeClass('two-way-sync-btn').addClass('loading')
         //Initiate Step 2
-        //$('#btn-sync-'+sync_ids).parent().find('.sync-loader').html('<img src="'+ajax_obj.plugin_images_url+'/loaders/loader.gif" style="width:20px">');
+        //$('#btn-sync-'+sync_ids).parent().find('.sync-loader').html('<img src="'+instawp_tws.plugin_images_url+'/loaders/loader.gif" style="width:20px">');
         packThings(sync_message, 'instawp_single_sync', sync_ids, dest_connect_id);
     });
 
     const baseCall = async (body) => {
-        return await fetch(ajax_obj.ajax_url, {
+        body.append('nonce', instawp_tws.nonce);
+        return await fetch(instawp_tws.ajax_url, {
             method: "POST",
             credentials: 'same-origin',
             body

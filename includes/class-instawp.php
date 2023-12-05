@@ -653,10 +653,9 @@ class instaWP {
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-rest-api.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-hooks.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-cli.php';
-
 		require_once INSTAWP_PLUGIN_DIR . '/migrate/class-instawp-migrate.php';
-		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-cli.php';
 
+		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-db.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-admin.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-helpers.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-events.php';

@@ -166,13 +166,12 @@ class InstaWP_Admin {
 		include INSTAWP_PLUGIN_DIR . '/migrate/templates/main.php';
 	}
 
-
 	public function enqueue_scripts() {
 		wp_enqueue_style( 'instawp-hint', instawp()::get_asset_url( 'assets/css/hint.min.css' ) );
 		wp_enqueue_style( 'instawp-select2', instawp()::get_asset_url( 'admin/css/select2.min.css' ) );
 		wp_enqueue_script( 'instawp-select2', instawp()::get_asset_url( 'admin/js/select2.min.js' ) );
 		wp_enqueue_style( 'change-event-css', instawp()::get_asset_url( 'admin/css/instawp-change-event.css' ) );
-		wp_enqueue_script( 'ajax_script', instawp()::get_asset_url( 'admin/js/instawp-change-event.js' ), array( 'jquery' ), $this->version, [] );
+		wp_enqueue_script( 'ajax_script', instawp()::get_asset_url( 'admin/js/instawp-change-event.js' ), array( 'jquery' ), $this->version );
 		wp_localize_script( 'ajax_script', 'ajax_obj',
 			array(
 				'ajax_url'          => admin_url( 'admin-ajax.php' ),
@@ -189,17 +188,13 @@ class InstaWP_Admin {
 			wp_enqueue_style( 'instawp-tailwind', instawp()::get_asset_url( 'assets/css/tailwind.min.css' ), [], current_time( 'U' ) );
 		}
 
-
 		wp_enqueue_style( 'instawp-migrate', instawp()::get_asset_url( 'migrate/assets/css/style.css' ), [], current_time( 'U' ) );
 		wp_enqueue_style( 'instawp-connect', instawp()::get_asset_url( 'assets/css/style.min.css' ), [], current_time( 'U' ) );
 		wp_enqueue_script( 'instawp-migrate', instawp()::get_asset_url( 'assets/js/scripts.js' ), array(), current_time( 'U' ) );
-		wp_localize_script( 'instawp-migrate', 'instawp_migrate',
-			array(
-				'ajax_url' => admin_url( 'admin-ajax.php' ),
-				'security' => wp_create_nonce( 'instawp-migrate' )
-			)
-		);
-
+		wp_localize_script( 'instawp-migrate', 'instawp_migrate', [
+			'ajax_url' => admin_url( 'admin-ajax.php' ),
+			'security' => wp_create_nonce( 'instawp-migrate' )
+		] );
 
 		wp_enqueue_script( $this->plugin_name, instawp()::get_asset_url( 'admin/js/instawp-admin.js' ), array( 'jquery' ), $this->version, false );
 		$this->screen_ids = apply_filters( 'instawp_get_screen_ids', $this->screen_ids );
@@ -230,8 +225,8 @@ class InstaWP_Admin {
 				'get_key_step1'       => __( '1. Visit Key tab page of instaWP backup plugin of destination site.', 'instawp-connect' ),
 				'get_key_step2'       => __( '2. Generate a key by clicking Generate button and copy it.', 'instawp-connect' ),
 				'get_key_step3'       => __( '3. Go back to this page and paste the key in key box below. Lastly, click Save button.', 'instawp-connect' ),
-
 			) );
+
 			wp_enqueue_script( 'plupload-all' );
 			do_action( 'instawp_do_enqueue_scripts' );
 		}
