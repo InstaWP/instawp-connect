@@ -109,7 +109,10 @@ class InstaWP_Sync_Ajax {
 			if ( ! empty( $events ) ) {
 				$data = [];
 				foreach ( $events as $row ) {
-					$data[ $row->event_type ] = $data[ $row->event_type ] + 1;
+					if ( ! empty( $row->event_type ) ) {
+						$count                    = $data[ $row->event_type ] ?? 0;
+						$data[ $row->event_type ] = $count + 1;
+					}
 				}
 				$data['total_events'] = count( $events );
 				$this->send_success( 'The data has packed successfully as JSON from WP DB', $data );

@@ -51,10 +51,44 @@ class InstaWP_Sync_DB {
 	}
 
 	/**
+	 * Delete
+	 */
+	public static function prefix(): string {
+		return self::wpdb()->prefix;
+	}
+
+	/**
 	 * Update
 	 */
 	public static function update( $table_name = null, $data = null, $id = null, $key = 'id' ) {
 		return self::wpdb()->update( $table_name, $data, [ $key => $id ] );
+	}
+
+	/**
+	 * update/insert event data
+	 */
+	public static function insert_update_event( $event_name = null, $event_slug = null, $event_type = null, $source_id = null, $title = null, $details = null, $event_id = null ) {
+		$data = [
+			'event_name'     => $event_name,
+			'event_slug'     => $event_slug,
+			'event_type'     => $event_type,
+			'source_id'      => $source_id,
+			'title'          => $title,
+			'details'        => wp_json_encode( $details ),
+			'user_id'        => get_current_user_id(),
+			'date'           => date( 'Y-m-d H:i:s' ),
+			'prod'           => '',
+			'synced_message' => ''
+		];
+
+		if ( is_numeric( $event_id ) ) {
+			self::update( INSTAWP_DB_TABLE_EVENTS, $data, $event_id );
+		} else {
+			$data['event_hash'] = InstaWP_Tools::get_random_string();
+			$data['status']     = 'pending';
+
+			self::insert( INSTAWP_DB_TABLE_EVENTS, $data );
+		}
 	}
 
 	/**

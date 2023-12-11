@@ -449,6 +449,28 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 						$sync_response[] = $this->sync_opration_response( $status, $message, $v );
 					}
 
+					// add or update option
+					if ( in_array( $v->event_slug, [ 'add_option', 'update_option' ], true ) ) {
+						foreach ( ( array ) $v->details as $name => $value ) {
+							update_option( $name, $value );
+						}
+
+						$message         = 'Sync successfully.';
+						$status          = 'completed';
+						$sync_response[] = $this->sync_opration_response( $status, $message, $v );
+					}
+
+					// delete option
+					if ( $v->event_slug === 'delete_option' ) {
+						foreach ( ( array ) $v->details as $name ) {
+							delete_option( $name );
+						}
+
+						$message         = 'Sync successfully.';
+						$status          = 'completed';
+						$sync_response[] = $this->sync_opration_response( $status, $message, $v );
+					}
+
 					/**
 					 * Customizer settings update
 					 */
@@ -1164,9 +1186,9 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 	public function insert_attachment( $attachment_id = null, $file = null ) {
 		$filename          = basename( $file );
 		$arrContextOptions = array(
-			"ssl" => array(
-				"verify_peer"      => false,
-				"verify_peer_name" => false,
+			'ssl' => array(
+				'verify_peer'      => false,
+				'verify_peer_name' => false,
 			),
 		);
 		$parent_post_id    = 0;
@@ -1251,7 +1273,7 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 	 *
 	 * @return array
 	 */
-	public function sync_opration_response( $status = null, $message = null, $v = null ) {
+	public function sync_opration_response( $status, $message, $v ) {
 		return [
 			'id'      => $v->id,
 			'status'  => $status,

@@ -638,29 +638,33 @@ class instaWP {
 	}
 
 	private function load_dependencies() {
+		require_once INSTAWP_PLUGIN_DIR . '/admin/class-instawp-admin.php';
+
+		require_once INSTAWP_PLUGIN_DIR . '/migrate/class-instawp-migrate.php';
+
 		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-migrate-log.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-curl.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-ajax.php';
-		require_once INSTAWP_PLUGIN_DIR . '/admin/class-instawp-admin.php';
-
 		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-setting.php';
-
 		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-file-management.php';
 		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-database-management.php';
-
 		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-tools.php';
-
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-rest-api.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-hooks.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-cli.php';
-		require_once INSTAWP_PLUGIN_DIR . '/migrate/class-instawp-migrate.php';
 
 		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-db.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-admin.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-helpers.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-events.php';
-		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-wc.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-ajax.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-apis.php';
+
+		$files = [ 'option', 'plugin-theme', 'post', 'term', 'user', 'wc' ];
+		if ( InstaWP_Sync_Helpers::can_sync() ) {
+			foreach ( $files as $file ) {
+				require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-' . $file . '.php';
+			}
+		}
 	}
 }

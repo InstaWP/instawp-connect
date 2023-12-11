@@ -5,7 +5,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2023-12-01 12:38+0000\n"
+"POT-Creation-Date: 2023-12-08 06:04+0000\n"
 "X-Poedit-Basepath: ..\n"
 "X-Poedit-KeywordsList: __;_e;_ex:1,2c;_n:1,2;_n_noop:1,2;_nx:1,2,4c;_nx_noop:1,2,3c;_x:1,2c;esc_attr__;esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c\n"
 "X-Poedit-SearchPath-0: .\n"
@@ -37,47 +37,47 @@ msgstr ""
 msgid "Please create staging sites first."
 msgstr ""
 
-#: admin/class-instawp-admin.php:214
+#: admin/class-instawp-admin.php:216
 msgid "Warning:"
 msgstr ""
 
-#: admin/class-instawp-admin.php:215
+#: admin/class-instawp-admin.php:217
 msgid "Error:"
 msgstr ""
 
-#: admin/class-instawp-admin.php:216
+#: admin/class-instawp-admin.php:218
 msgid "Warning: An alias for remote storage is required."
 msgstr ""
 
-#: admin/class-instawp-admin.php:217
+#: admin/class-instawp-admin.php:219
 msgid "Warning: The alias already exists in storage list."
 msgstr ""
 
-#: admin/class-instawp-admin.php:218
+#: admin/class-instawp-admin.php:220
 msgid "Calculating the size of files, folder and database timed out. If you continue to receive this error, please go to the plugin settings, uncheck 'Calculate the size of files, folder and database before backing up', save changes, then try again."
 msgstr ""
 
-#: admin/class-instawp-admin.php:219
+#: admin/class-instawp-admin.php:221
 msgid "Step One: In the backup list, click the 'Restore' button on the backup you want to restore. This will bring up the restore tab"
 msgstr ""
 
-#: admin/class-instawp-admin.php:220
+#: admin/class-instawp-admin.php:222
 msgid "Step Two: Choose an option to complete restore, if any"
 msgstr ""
 
-#: admin/class-instawp-admin.php:221
+#: admin/class-instawp-admin.php:223
 msgid "Step Three: Click 'Restore' button"
 msgstr ""
 
-#: admin/class-instawp-admin.php:222
+#: admin/class-instawp-admin.php:224
 msgid "1. Visit Key tab page of instaWP backup plugin of destination site."
 msgstr ""
 
-#: admin/class-instawp-admin.php:223
+#: admin/class-instawp-admin.php:225
 msgid "2. Generate a key by clicking Generate button and copy it."
 msgstr ""
 
-#: admin/class-instawp-admin.php:224
+#: admin/class-instawp-admin.php:226
 msgid "3. Go back to this page and paste the key in key box below. Lastly, click Save button."
 msgstr ""
 
@@ -421,35 +421,35 @@ msgstr ""
 msgid "Migration aborted forcefully"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-ajax.php:221
+#: includes/sync/class-instawp-sync-ajax.php:225
 msgid "%u %s %s"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-ajax.php:209
+#: includes/sync/class-instawp-sync-ajax.php:213
 msgid "%u %s"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-ajax.php:214
+#: includes/sync/class-instawp-sync-ajax.php:218
 msgid "Show more"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-ajax.php:234
+#: includes/sync/class-instawp-sync-ajax.php:238
 msgid "Sync not initiated ( 0 out of %d events )"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-ajax.php:235
+#: includes/sync/class-instawp-sync-ajax.php:239
 msgid "Events loaded"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-ajax.php:235, includes/sync/class-instawp-sync-ajax.php:285
+#: includes/sync/class-instawp-sync-ajax.php:239, includes/sync/class-instawp-sync-ajax.php:289
 msgid "No pending events found!"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-ajax.php:281
+#: includes/sync/class-instawp-sync-ajax.php:285
 msgid "You have reached your sync limit. Current usage %u out of %u."
 msgstr ""
 
-#: includes/sync/class-instawp-sync-ajax.php:278
+#: includes/sync/class-instawp-sync-ajax.php:282
 msgid " Completed ( 0 out of %d events )"
 msgstr ""
 
@@ -465,74 +465,86 @@ msgstr ""
 msgid "Invalid data"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-apis.php:1041
+#: includes/sync/class-instawp-sync-apis.php:1002
 msgid "Item not found."
 msgstr ""
 
-#: includes/sync/class-instawp-sync-events.php:111, includes/sync/class-instawp-sync-events.php:349
-msgid "%s modified"
+#: includes/sync/class-instawp-sync-events.php:141, includes/sync/class-instawp-sync-events.php:152, includes/sync/class-instawp-sync-events.php:166
+msgid "Woocommerce attribute"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-events.php:135, includes/sync/class-instawp-sync-events.php:365
-msgid "%s deleted"
+#: includes/sync/class-instawp-sync-option.php:16
+msgid "Option added"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-events.php:149
-msgid "%s trashed"
+#: includes/sync/class-instawp-sync-option.php:22
+msgid "Option updated"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-events.php:154
-msgid "%s restored"
+#: includes/sync/class-instawp-sync-option.php:28
+msgid "Option deleted"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-events.php:159, includes/sync/class-instawp-sync-events.php:333
-msgid "%s created"
-msgstr ""
-
-#: includes/sync/class-instawp-sync-events.php:171
-msgid "Media created"
-msgstr ""
-
-#: includes/sync/class-instawp-sync-events.php:184
-msgid "Media updated"
-msgstr ""
-
-#: includes/sync/class-instawp-sync-events.php:206
+#: includes/sync/class-instawp-sync-plugin-theme.php:35
 msgid "%s %s%s"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-events.php:254
+#: includes/sync/class-instawp-sync-plugin-theme.php:83
 msgid "Plugin deactivated"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-events.php:267
+#: includes/sync/class-instawp-sync-plugin-theme.php:96
 msgid "Plugin activated"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-events.php:280
+#: includes/sync/class-instawp-sync-plugin-theme.php:109
 msgid "Plugin deleted"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-events.php:299
+#: includes/sync/class-instawp-sync-plugin-theme.php:128
 msgid "Theme switched from %s to %s"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-events.php:318
+#: includes/sync/class-instawp-sync-plugin-theme.php:147
 msgid "Theme deleted"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-events.php:383
+#: includes/sync/class-instawp-sync-post.php:56, includes/sync/class-instawp-sync-term.php:41
+msgid "%s modified"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-post.php:70, includes/sync/class-instawp-sync-term.php:57
+msgid "%s deleted"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-post.php:84
+msgid "%s trashed"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-post.php:89
+msgid "%s restored"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-post.php:94, includes/sync/class-instawp-sync-term.php:25
+msgid "%s created"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-post.php:106
+msgid "Media created"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-post.php:119
+msgid "Media updated"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-user.php:27
 msgid "New user registered"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-events.php:405
+#: includes/sync/class-instawp-sync-user.php:49
 msgid "User deleted"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-events.php:423
+#: includes/sync/class-instawp-sync-user.php:67
 msgid "User updated"
-msgstr ""
-
-#: includes/sync/class-instawp-sync-events.php:539, includes/sync/class-instawp-sync-events.php:550, includes/sync/class-instawp-sync-events.php:564
-msgid "Woocommerce attribute"
 msgstr ""
