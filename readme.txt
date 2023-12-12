@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.4
 Tested up to: 6.4.1
 Requires PHP: 8.0
-Stable tag: 0.1.0.1
+Stable tag: 0.1.0.2
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -93,6 +93,11 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 6. Update API Key and Settings.
 
 == Changelog ==
+
+= 0.1.0.2 =
+
+- NEW - Added file permission issue during precheck.
+- FIX - Stabilize the staging site creation process.
 
 = 0.1.0.1 =
 

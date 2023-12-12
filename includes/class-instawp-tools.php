@@ -414,6 +414,18 @@ class InstaWP_Tools {
 			}
 		}
 
+		$iwpdb_main_path = INSTAWP_PLUGIN_URL . 'includes/class-instawp-iwpdb.php';
+
+		if ( ! file_exists( $iwpdb_main_path ) || ! is_readable( $iwpdb_main_path ) ) {
+			return new WP_Error( 403,
+				sprintf( '%s <a class="underline" href="%s">%s</a>',
+					esc_html__( 'InstaWP could not access or read required files from your WordPress directory due to file permission issue.', 'instawp-connect' ),
+					INSTAWP_DOCS_URL_PLUGIN,
+					esc_html__( 'Learn more.', 'instawp-connect' )
+				)
+			);
+		}
+
 		return array(
 			'serve_url'     => $serve_file_url,
 			'api_signature' => $api_signature,

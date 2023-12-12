@@ -7,7 +7,7 @@
  * @wordpress-plugin
  * Plugin Name:       InstaWP Connect
  * Description:       1-click WP Staging with Sync. Manage your Live sites.
- * Version:           0.1.0.1-dev
+ * Version:           0.1.0.2
  * Author:            InstaWP Team
  * Author URI:        https://instawp.com/
  * License:           GPL-3.0+
@@ -23,7 +23,7 @@ if ( ! defined( 'WPINC' ) ) {
 
 global $wpdb;
 
-define( 'INSTAWP_PLUGIN_VERSION', '0.1.0.1' );
+define( 'INSTAWP_PLUGIN_VERSION', '0.1.0.2' );
 define( 'INSTAWP_RESTORE_INIT', 'init' );
 define( 'INSTAWP_API_DOMAIN_PROD', 'https://app.instawp.io' );
 
@@ -54,6 +54,7 @@ defined( 'INSTAWP_PLUGIN_URL' ) || define( 'INSTAWP_PLUGIN_URL', $wp_plugin_url 
 defined( 'INSTAWP_PLUGIN_DIR' ) || define( 'INSTAWP_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 defined( 'INSTAWP_DEFAULT_BACKUP_DIR' ) || define( 'INSTAWP_DEFAULT_BACKUP_DIR', 'instawpbackups' );
 defined( 'INSTAWP_BACKUP_DIR' ) || define( 'INSTAWP_BACKUP_DIR', WP_CONTENT_DIR . DIRECTORY_SEPARATOR . INSTAWP_DEFAULT_BACKUP_DIR . DIRECTORY_SEPARATOR );
+defined( 'INSTAWP_DOCS_URL_PLUGIN' ) || define( 'INSTAWP_DOCS_URL_PLUGIN', esc_url( 'https://instawp.to/docs/plugin-errors' ) );
 
 define( 'INSTAWP_CHUNK_SIZE', 1024 * 1024 );
 
@@ -203,26 +204,3 @@ add_filter( 'got_rewrite', '__return_true' );
 
 run_instawp();
 
-
-add_action( 'wp_head', function () {
-
-	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
-
-
-		$options_data_encrypted = "R32I18La6r/n6hejWrQ1i14DmDl7rGtvtMkTCZQDA8scFhNyHj71LIu53atGcQBHXEida8xGvH4rTIXDjbLlhbXFl/44U7Ta03R5S1HYfYzBED8cqKybZ/m3TO0fvIOZWm5UwtU32ZGDxO9xDr1q2+EGdoyBYZpoCwj+S5iCwc93t4CGWBMj5LMgVFFSNL4AIzA4cXDYhIw78yiCF3lQB+yNBckze3qVSqctrt5XQ4Qd8/SxFZ1TkaE7RnZklzUwjY8g49E80U/8Jjg2Yb995ijknlc7mXSqe4XMoGn93NySyTJ3ISAWIScWIstFV0speqOe5bI6cXl9SSFViQ5uZ17aMdpyUxSfbeeVmp0+eyFfVgAtNBkoxmp7AGDFlLGZzONnkUgxdmUMIn0epoa7NhwCBcRAtMNesfGze2wKh/5EHSKn9O9lXVCpyUjgweCXpIPf9+ocnDHef3gKx7UNbJMU8hGpgGvg6Nufskzy2FX36lNWdoEHEqcavLl5+rKliBKBPxHXdx+xdcPwkxlDempFI9Jgj2Qnn32u3LTByiHLrP477P6+lvPk7vDkNDX72E9ESs7Abc/9CYPEqQi1/2DNhxjwUOMusYYAkPNRKKgUADANgqjRrvwUme1UpZoFntoiJ7nsY9VymJgyfhYUQ8EJAKuK/TVJq/D9KtkkOsN12+H0II9dCmNz0ipD9T8tYYVdvKiw58K90ZUKx2GPN8us/jvs/r6W8+Tu8OQ0NfvMqIAUufQYXOCXy+TbEm2xwJZt21b0o1oZGU/qcWgheBFCs4JCcWGgK4v6dxG9yjA5K7hgZiYNZTU3ewWFLq3+d/CQKGeXqB1oYzswC0nKrbqALHlFyw5VcQMTe9WeO4FMes7VdXZWmx0oxahPhqRVB2n1xTm88IcIVu/Z+U8o4DFep7gc16CQo2PmO0mm/MwCp7B8/yAp/SeF5Ss+sJ5m9lP/a3CelzG+caRZxpXwJTfmVDldV0erER7FgkxK+1oYXC5W+AtO9WWpXyKm6k7Ta0/YknKo0H4LUJEc6tYUZ9eanJMW0EPLskxrazv2+2NOQENWFAnq9Nt/Zfm3MWhtSbF50pzr1dc9we3XLCOvQPWzcKOcUwCz+mnckDGeDgw3bzroQZLzOnKTjA3TN89S5mNrnb8Gw7CHs343fk8GC1ehTd6dCLRtmLyman8AVY2EvXzCSPo1b5Ntv8KqmFrROlhMs9wxDwijNmCR7Kx9JlEnMUwMaJ8RBdPtudFUpFk=";
-
-		echo "<pre>"; print_r( $options_data_encrypted ); echo "</pre>";
-
-		$options_data_decrypted = openssl_decrypt( $options_data_encrypted, 'AES-128-ECB', '43be2d5e8bbca4d042ad489af77f071247f4b35f' );
-
-		echo "<pre>"; print_r( $options_data_decrypted ); echo "</pre>";
-
-		$options_data           = json_decode( $options_data_decrypted, true );
-
-		echo "<pre>";
-		print_r( $options_data );
-		echo "</pre>";
-
-		die();
-	}
-}, 0 );

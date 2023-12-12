@@ -23,7 +23,7 @@ while ( ! file_exists( $root_path . '/wp-config.php' ) ) {
 	// If we have reached the root directory and still couldn't find wp-config.php
 	if ( $level > 10 ) {
 		header( 'x-iwp-status: false' );
-		echo "Count not find wp-config.php in the parent directories.";
+		echo "Could not find wp-config.php in the parent directories.";
 		exit( 2 );
 	}
 }
@@ -46,7 +46,7 @@ if ( file_exists( $iwpdb_main_path ) && is_readable( $iwpdb_main_path ) ) {
 } else {
 	header( 'x-iwp-status: false' );
 	header( 'x-iwp-root-path: ' . WP_ROOT );
-	echo "Count not find class-instawp-iwpdb in the plugin directory.";
+	echo "Could not find class-instawp-iwpdb in the plugin directory.";
 	exit( 2 );
 }
 
