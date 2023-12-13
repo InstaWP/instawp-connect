@@ -20,9 +20,8 @@ class InstaWP_Sync_Admin {
 		add_action( 'init', array( $this, 'get_source_site_detail' ) );
 	}
 
-	function listEvents() {
-		$InstaWP_db = new InstaWP_DB();
-		$rel = $InstaWP_db->getAllEvents();
+	public function list_events() {
+		$rel = InstaWP_Sync_DB::getAllEvents();
 		$data = [];
 		if ( ! empty( $rel ) && is_array( $rel ) ) {
 			foreach ( $rel as $v ) {

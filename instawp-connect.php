@@ -61,29 +61,6 @@ define( 'INSTAWP_CHUNK_SIZE', 1024 * 1024 );
 define( 'INSTAWP_PLUGIN_SLUG', 'instawp-connect' );
 define( 'INSTAWP_PLUGIN_NAME', plugin_basename( __FILE__ ) );
 define( 'INSTAWP_PLUGIN_IMAGES_URL', INSTAWP_PLUGIN_URL . '/admin/partials/images/' );
-//We set a long enough default execution time (10 min) to ensure that the backup process can be completed.
-define( 'INSTAWP_MAX_EXECUTION_TIME', 1800 );
-define( 'INSTAWP_RESTORE_MAX_EXECUTION_TIME', 1800 );
-define( 'INSTAWP_MEMORY_LIMIT', '256M' );
-define( 'INSTAWP_RESTORE_MEMORY_LIMIT', '256M' );
-define( 'INSTAWP_MIGRATE_SIZE', '2048' );
-//If the server uses fastcgi then default execution time should be set to 2 min for more efficient.
-define( 'INSTAWP_MAX_EXECUTION_TIME_FCGI', 180 );
-//Default number of reserved backups
-define( 'INSTAWP_MAX_BACKUP_COUNT', 7 );
-define( 'INSTAWP_DEFAULT_BACKUP_COUNT', 3 );
-define( 'INSTAWP_DEFAULT_COMPRESS_TYPE', 'zip' );
-//Max zip file size.
-define( 'INSTAWP_DEFAULT_MAX_FILE_SIZE', 20 );
-//Instruct PclZip to use all the time temporary files to create the zip archive or not.The default value is 1.
-define( 'INSTAWP_DEFAULT_USE_TEMP', 1 );
-//Instruct PclZip to use temporary files for files with size greater than.The default value is 16M.
-define( 'INSTAWP_DEFAULT_USE_TEMP_SIZE', 16 );
-//Exclude the files which is larger than.The default value is 0 means unlimited.
-define( 'INSTAWP_DEFAULT_EXCLUDE_FILE_SIZE', 0 );
-//Add a file in an archive without compressing the file.The default value is 200.
-define( 'INSTAWP_DEFAULT_NO_COMPRESS', true );
-//Backup save folder under WP_CONTENT_DIR
 
 //Log save folder under WP_CONTENT_DIR
 define( 'INSTAWP_DEFAULT_LOG_DIR', 'instawpbackups' . DIRECTORY_SEPARATOR . 'instawp_log' );
@@ -168,7 +145,7 @@ function instawp_plugin_activate() {
 /*Deactivate Hook Handle*/
 function instawp_plugin_deactivate() {
 	InstaWP_Tools::instawp_reset_permalink();
-	wp_clear_scheduled_hook( 'instawp_handle_heartbeat' );
+	delete_option( 'instawp_last_heartbeat_sent' );
 }
 
 register_activation_hook( __FILE__, 'instawp_plugin_activate' );
@@ -203,4 +180,3 @@ function run_instawp() {
 add_filter( 'got_rewrite', '__return_true' );
 
 run_instawp();
-

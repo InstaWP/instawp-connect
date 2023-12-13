@@ -4,10 +4,10 @@ defined( 'ABSPATH' ) || die;
 
 class InstaWP_Backup_Api {
 
-	private $namespace;
-	private $version;
-	private $version_2;
-	private $version_3;
+	protected $namespace;
+	protected $version;
+	protected $version_2;
+	protected $version_3;
 
 	public function __construct() {
 		$this->version   = 'v1';
@@ -1111,7 +1111,7 @@ class InstaWP_Backup_Api {
 	 *
 	 * @return WP_REST_Response|WP_Error|WP_HTTP_Response
 	 */
-	private function send_response( $results ) {
+	protected function send_response( $results ) {
 		$response = new WP_REST_Response( $results );
 
 		return rest_ensure_response( $response );
