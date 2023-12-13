@@ -123,7 +123,7 @@ class InstaWP_Sync_Helpers {
 		return wp_json_encode( $media );
 	}
 
-	public static function sync_response( $data, $log_data = [], $args = [] ) {
+	public static function sync_response( $data, $log_data = [], $args = [] ): array {
 		$data = [
 			'data' => wp_parse_args( $args, [
 				'id'      => $data->id,
@@ -135,7 +135,7 @@ class InstaWP_Sync_Helpers {
 		if ( ! empty( $log_data ) ) {
 			$data['log_data'] = $log_data;
 		}
-error_log(print_r($data,1));
+
 		return $data;
 	}
 }

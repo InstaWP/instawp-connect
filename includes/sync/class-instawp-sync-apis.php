@@ -104,7 +104,7 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 		$source_connect_id  = $bodyArr->source_connect_id;
 		$source_url         = $bodyArr->source_url;
 		$is_enabled         = false;
-		$logs               = [];
+		$changes            = [];
 
 		if ( get_option( 'instawp_is_event_syncing' ) ) {
 			$is_enabled = true;
@@ -114,7 +114,6 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 		update_option( 'instawp_is_event_syncing', 0 );
 
 		if ( ! empty( $encrypted_contents ) && is_array( $encrypted_contents ) ) {
-			$changes         = [];
 			$sync_response   = [];
 			$count           = 1;
 			$progress_status = 'pending';
@@ -345,7 +344,7 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 			'event_hash' => $data->event_hash,
 			'source_url' => $source_url,
 			'data'       => json_encode( $data->details ),
-			'logs'       => isset( $this->logs[ $data->id ] ) ? $this->logs[ $data->id ] : '',
+			'logs'       => $this->logs[ $data->id ] ?? '',
 			'date'       => date( 'Y-m-d H:i:s' ),
 		];
 		InstaWP_Sync_DB::insert( INSTAWP_DB_TABLE_EVENT_SYNC_LOGS, $data );
@@ -618,37 +617,6 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 
 		// connects/<connect_id>/syncs/<sync_id>
 		return InstaWP_Curl::do_curl( "connects/{$connect_id}/syncs/{$sync_id}", $data, [], 'patch' );
-	}
-
-	/*
-	* Create elementor css file 'post-{post_id}.css'
-	*/
-	public function create_elementor_css_file( $data = null, $post_id = null ) {
-		$upload_dir = wp_upload_dir();
-		$filename   = 'post-' . $post_id . '.css';
-		$filePath   = $upload_dir['basedir'] . '/elementor/css/' . $filename;
-		$file       = fopen( $filePath, "w+" );//w+,w
-		fwrite( $file, $data );
-		fclose( $file );
-	}
-
-
-	//add and update user meta
-	public function manage_usermeta( $user_meta = null, $user_id = null, $source_db_prefix = null ) {
-		if ( ! empty( $user_meta ) && is_array( $user_meta ) ) {
-			foreach ( $user_meta as $k => $v ) {
-				if ( isset( $v[0] ) ) {
-					$k              = $source_db_prefix != '' ? str_replace( $source_db_prefix, $this->wpdb->prefix, $k ) : $k;
-					$checkSerialize = @unserialize( $v[0] );
-					$metaVal        = ( $checkSerialize !== false || $v[0] === 'b:0;' ) ? unserialize( $v[0] ) : $v[0];
-					if ( metadata_exists( 'user', $user_id, $k ) ) {
-						update_user_meta( $user_id, $k, $metaVal );
-					} else {
-						add_user_meta( $user_id, $k, $metaVal );
-					}
-				}
-			}
-		}
 	}
 
 	/**

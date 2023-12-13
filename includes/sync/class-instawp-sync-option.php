@@ -33,6 +33,10 @@ class InstaWP_Sync_Option {
 	}
 
 	public function parse_event( $response, $v ) {
+		if ( $v->event_type !== 'option' ) {
+			return $response;
+		}
+
 		// add or update option
 		if ( in_array( $v->event_slug, [ 'add_option', 'update_option' ], true ) ) {
 			foreach ( ( array ) $v->details as $name => $value ) {

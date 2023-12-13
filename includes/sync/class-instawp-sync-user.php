@@ -85,6 +85,10 @@ class InstaWP_Sync_User {
 	}
 
 	public function parse_event( $response, $v ) {
+		if ( $v->event_type !== 'users' ) {
+			return $response;
+		}
+
 		$user_data        = isset( $v->details->user_data ) ? ( array ) $v->details->user_data : [];
 		$user_meta        = isset( $v->details->user_meta ) ? ( array ) $v->details->user_meta : [];
 		$source_db_prefix = isset( $v->details->db_prefix ) ? ( array ) $v->details->db_prefix : '';

@@ -152,6 +152,10 @@ class InstaWP_Sync_Plugin_Theme {
 	}
 
 	public function parse_event( $response, $v ) {
+		if ( strpos( $v->event_type, 'plugin' ) === false && strpos( $v->event_type, 'theme' ) === false ) {
+			return $response;
+		}
+
 		$logs = [];
 
 		// plugin activate
@@ -321,7 +325,6 @@ class InstaWP_Sync_Plugin_Theme {
 			deactivate_plugins( $plugin );
 		}
 	}
-
 
 	/**
 	 * Plugin install
