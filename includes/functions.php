@@ -196,11 +196,10 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 			delete_option( 'instawp_rm_config_management' );
 			delete_option( 'instawp_rm_inventory' );
 			delete_option( 'instawp_rm_debug_log' );
+			delete_option( 'instawp_last_heartbeat_sent' );
 
 			delete_transient( 'instawp_staging_sites' );
 			delete_transient( 'instawp_migration_completed' );
-
-			wp_clear_scheduled_hook( 'instawp_handle_heartbeat' );
 
 			$file_db_manager = InstaWP_Setting::get_option( 'instawp_file_db_manager', [] );
 			$file_name       = InstaWP_Setting::get_args_option( 'file_name', $file_db_manager );
@@ -343,27 +342,6 @@ if ( ! function_exists( 'instawp_get_post_type_singular_name' ) ) {
 		}
 
 		return '';
-	}
-}
-
-
-if ( ! function_exists( 'instawp_get_post_by_name' ) ) {
-	/**
-	 * get post type singular name
-	 *
-	 * @param $post_name
-	 * @param $post_type
-	 *
-	 * @return string
-	 */
-	function instawp_get_post_by_name( $post_name, $post_type ) {
-		global $wpdb;
-		$post = $wpdb->get_var( $wpdb->prepare( "SELECT ID FROM $wpdb->posts WHERE post_name = %s AND post_type= %s ", $post_name, $post_type ) );
-		if ( $post ) {
-			return get_post( $post );
-		}
-
-		return null;
 	}
 }
 
