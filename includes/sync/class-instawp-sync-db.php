@@ -28,7 +28,7 @@ class InstaWP_Sync_DB {
 		$this->wpdb = $wpdb;
 	}
 
-	private static function wpdb() {
+	public static function wpdb() {
 		$class = new self();
 
 		return $class->wpdb;

@@ -9,6 +9,9 @@ class InstaWP_Sync_Option {
 	    add_action( 'added_option', [ $this,'added_option' ], 10, 2 );
 	    add_action( 'updated_option', [ $this,'updated_option' ], 10, 3 );
 	    add_action( 'deleted_option', [ $this,'deleted_option' ] );
+
+	    // process event
+	    add_filter( 'INSTAWP_CONNECT/Filters/process_two_way_sync', [ $this, 'parse_event' ], 10, 2 );
     }
 
 	public function added_option( $option, $value ) {
@@ -27,6 +30,24 @@ class InstaWP_Sync_Option {
 		if ( ! $this->is_protected_option( $option ) ) {
 			InstaWP_Sync_DB::insert_update_event( __( 'Option deleted', 'instawp-connect' ), 'delete_option', 'option', '', ucfirst( str_replace( [ '-', '_' ], ' ', $option ) ), $option );
 		}
+	}
+
+	public function parse_event( $response, $v ) {
+		// add or update option
+		if ( in_array( $v->event_slug, [ 'add_option', 'update_option' ], true ) ) {
+			foreach ( ( array ) $v->details as $name => $value ) {
+				update_option( $name, $value );
+			}
+		}
+
+		// delete option
+		if ( $v->event_slug === 'delete_option' ) {
+			foreach ( ( array ) $v->details as $name ) {
+				delete_option( $name );
+			}
+		}
+
+		return InstaWP_Sync_Helpers::sync_response( $v );
 	}
 
 	private function is_protected_option( $option ): bool {
