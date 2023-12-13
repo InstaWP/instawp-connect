@@ -5,14 +5,16 @@ defined( 'ABSPATH' ) || exit;
 class InstaWP_Sync_Post {
 
     public function __construct() {
-	    // Post Actions.
-	    add_action( 'save_post', [ $this, 'save_post' ], 10, 3 );
-	    add_action( 'delete_post', [ $this, 'delete_post' ], 10, 2 );
-	    add_action( 'transition_post_status', [ $this, 'transition_post_status' ], 10, 3 );
+	    if ( InstaWP_Sync_Helpers::can_sync() ) {
+		    // Post Actions.
+		    add_action( 'save_post', [ $this, 'save_post' ], 10, 3 );
+		    add_action( 'delete_post', [ $this, 'delete_post' ], 10, 2 );
+		    add_action( 'transition_post_status', [ $this, 'transition_post_status' ], 10, 3 );
 
-	    // Media Actions.
-	    add_action( 'add_attachment', [ $this, 'add_attachment' ] );
-	    add_action( 'attachment_updated', [ $this, 'attachment_updated' ], 10, 3 );
+		    // Media Actions.
+		    add_action( 'add_attachment', [ $this, 'add_attachment' ] );
+		    add_action( 'attachment_updated', [ $this, 'attachment_updated' ], 10, 3 );
+	    }
 
 	    // process event
 	    add_filter( 'INSTAWP_CONNECT/Filters/process_two_way_sync', [ $this, 'parse_event' ], 10, 2 );
@@ -382,9 +384,11 @@ class InstaWP_Sync_Post {
 	}
 
 	public function reset_post_terms( $post_id ) {
-		$this->wpdb->query(
-			$this->wpdb->prepare(
-				"DELETE FROM {$this->wpdb->prefix}term_relationships WHERE object_id = %d",
+		global $wpdb;
+
+		$wpdb->query(
+			$wpdb->prepare(
+				"DELETE FROM {$wpdb->prefix}term_relationships WHERE object_id = %d",
 				$post_id,
 			)
 		);

@@ -5,10 +5,12 @@ defined( 'ABSPATH' ) || exit;
 class InstaWP_Sync_Term {
 
     public function __construct() {
-	    // Term actions
-	    add_action( 'created_term', [ $this, 'create_taxonomy' ], 10, 3 );
-	    add_action( 'edited_term', [ $this, 'edit_taxonomy' ], 10, 3 );
-	    add_action( 'delete_term', [ $this, 'delete_taxonomy' ], 10, 4 );
+	    if ( InstaWP_Sync_Helpers::can_sync() ) {
+		    // Term actions
+		    add_action( 'created_term', [ $this, 'create_taxonomy' ], 10, 3 );
+		    add_action( 'edited_term', [ $this, 'edit_taxonomy' ], 10, 3 );
+		    add_action( 'delete_term', [ $this, 'delete_taxonomy' ], 10, 4 );
+	    }
 
 	    // process event
 	    add_filter( 'INSTAWP_CONNECT/Filters/process_two_way_sync', [ $this, 'parse_event' ], 10, 2 );

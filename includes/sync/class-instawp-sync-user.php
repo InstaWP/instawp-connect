@@ -5,10 +5,12 @@ defined( 'ABSPATH' ) || exit;
 class InstaWP_Sync_User {
 
     public function __construct() {
-	    // User actions
-	    add_action( 'user_register', [$this,'user_register' ], 10, 2 );
-	    add_action( 'delete_user', [ $this,'delete_user' ], 10, 3 );
-	    add_action( 'profile_update', [ $this,'profile_update' ], 10, 3 );
+	    if ( InstaWP_Sync_Helpers::can_sync() ) {
+		    // User actions
+		    add_action( 'user_register', [ $this, 'user_register' ], 10, 2 );
+		    add_action( 'delete_user', [ $this, 'delete_user' ], 10, 3 );
+		    add_action( 'profile_update', [ $this, 'profile_update' ], 10, 3 );
+	    }
 
 		// process event
 	    add_filter( 'INSTAWP_CONNECT/Filters/process_two_way_sync', [ $this, 'parse_event' ], 10, 2 );

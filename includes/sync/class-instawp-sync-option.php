@@ -5,10 +5,12 @@ defined( 'ABSPATH' ) || exit;
 class InstaWP_Sync_Option {
 
     public function __construct() {
-	    // Update option
-	    add_action( 'added_option', [ $this,'added_option' ], 10, 2 );
-	    add_action( 'updated_option', [ $this,'updated_option' ], 10, 3 );
-	    add_action( 'deleted_option', [ $this,'deleted_option' ] );
+	    if ( InstaWP_Sync_Helpers::can_sync() ) {
+		    // Update option
+		    add_action( 'added_option', [ $this, 'added_option' ], 10, 2 );
+		    add_action( 'updated_option', [ $this, 'updated_option' ], 10, 3 );
+		    add_action( 'deleted_option', [ $this, 'deleted_option' ] );
+	    }
 
 	    // process event
 	    add_filter( 'INSTAWP_CONNECT/Filters/process_two_way_sync', [ $this, 'parse_event' ], 10, 2 );
@@ -55,7 +57,7 @@ class InstaWP_Sync_Option {
 	}
 
 	private function is_protected_option( $option ): bool {
-		$excluded_options = [ 'cron', 'instawp_api_options' ];
+		$excluded_options = [ 'cron', 'instawp_api_options', 'siteurl', 'home', 'permalink_structure' ];
 
 		if ( in_array( $option, $excluded_options ) || strpos( $option, '_transient' ) !== false || strpos( $option, 'instawp' ) !== false ) {
 			return true;

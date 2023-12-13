@@ -661,10 +661,8 @@ class instaWP {
 		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-apis.php';
 
 		$files = [ 'option', 'plugin-theme', 'post', 'term', 'user', 'wc' ];
-		if ( InstaWP_Sync_Helpers::can_sync() ) {
-			foreach ( $files as $file ) {
-				require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-' . $file . '.php';
-			}
+		foreach ( $files as $file ) {
+			require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-' . $file . '.php';
 		}
 	}
 }

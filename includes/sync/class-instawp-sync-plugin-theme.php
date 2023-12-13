@@ -5,13 +5,15 @@ defined( 'ABSPATH' ) || exit;
 class InstaWP_Sync_Plugin_Theme {
 
     public function __construct() {
-	    // Plugin and Theme actions
-	    add_action( 'upgrader_process_complete', [ $this,'install_update_action' ], 10, 2 );
-	    add_action( 'activated_plugin', [ $this,'activate_plugin' ], 10, 2 );
-	    add_action( 'deactivated_plugin', [ $this,'deactivate_plugin' ] ,10, 2 );
-	    add_action( 'deleted_plugin', [ $this,'delete_plugin' ] ,10, 2 );
-	    add_action( 'switch_theme', [ $this,'switch_theme' ], 10, 3 );
-	    add_action( 'deleted_theme', [ $this,'delete_theme' ], 10, 2 );
+	    if ( InstaWP_Sync_Helpers::can_sync() ) {
+		    // Plugin and Theme actions
+		    add_action( 'upgrader_process_complete', [ $this, 'install_update_action' ], 10, 2 );
+		    add_action( 'activated_plugin', [ $this, 'activate_plugin' ], 10, 2 );
+		    add_action( 'deactivated_plugin', [ $this, 'deactivate_plugin' ], 10, 2 );
+		    add_action( 'deleted_plugin', [ $this, 'delete_plugin' ], 10, 2 );
+		    add_action( 'switch_theme', [ $this, 'switch_theme' ], 10, 3 );
+		    add_action( 'deleted_theme', [ $this, 'delete_theme' ], 10, 2 );
+	    }
 
 	    // process event
 	    add_filter( 'INSTAWP_CONNECT/Filters/process_two_way_sync', [ $this, 'parse_event' ], 10, 2 );

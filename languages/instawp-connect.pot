@@ -5,7 +5,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2023-12-13 11:15+0000\n"
+"POT-Creation-Date: 2023-12-13 12:07+0000\n"
 "X-Poedit-Basepath: ..\n"
 "X-Poedit-KeywordsList: __;_e;_ex:1,2c;_n:1,2;_n_noop:1,2;_nx:1,2,4c;_nx_noop:1,2,3c;_x:1,2c;esc_attr__;esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c\n"
 "X-Poedit-SearchPath-0: .\n"
@@ -481,78 +481,78 @@ msgstr ""
 msgid "Woocommerce attribute"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-option.php:19
+#: includes/sync/class-instawp-sync-option.php:21
 msgid "Option added"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-option.php:25
+#: includes/sync/class-instawp-sync-option.php:27
 msgid "Option updated"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-option.php:31
+#: includes/sync/class-instawp-sync-option.php:33
 msgid "Option deleted"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-plugin-theme.php:38
+#: includes/sync/class-instawp-sync-plugin-theme.php:40
 msgid "%s %s%s"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-plugin-theme.php:86
+#: includes/sync/class-instawp-sync-plugin-theme.php:88
 msgid "Plugin deactivated"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-plugin-theme.php:99
+#: includes/sync/class-instawp-sync-plugin-theme.php:101
 msgid "Plugin activated"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-plugin-theme.php:112
+#: includes/sync/class-instawp-sync-plugin-theme.php:114
 msgid "Plugin deleted"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-plugin-theme.php:131
+#: includes/sync/class-instawp-sync-plugin-theme.php:133
 msgid "Theme switched from %s to %s"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-plugin-theme.php:150
+#: includes/sync/class-instawp-sync-plugin-theme.php:152
 msgid "Theme deleted"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-post.php:59, includes/sync/class-instawp-sync-term.php:44
+#: includes/sync/class-instawp-sync-post.php:61, includes/sync/class-instawp-sync-term.php:46
 msgid "%s modified"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-post.php:73, includes/sync/class-instawp-sync-term.php:60
+#: includes/sync/class-instawp-sync-post.php:75, includes/sync/class-instawp-sync-term.php:62
 msgid "%s deleted"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-post.php:87
+#: includes/sync/class-instawp-sync-post.php:89
 msgid "%s trashed"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-post.php:92
+#: includes/sync/class-instawp-sync-post.php:94
 msgid "%s restored"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-post.php:97, includes/sync/class-instawp-sync-term.php:28
+#: includes/sync/class-instawp-sync-post.php:99, includes/sync/class-instawp-sync-term.php:30
 msgid "%s created"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-post.php:109
+#: includes/sync/class-instawp-sync-post.php:111
 msgid "Media created"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-post.php:122
+#: includes/sync/class-instawp-sync-post.php:124
 msgid "Media updated"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-user.php:30
+#: includes/sync/class-instawp-sync-user.php:32
 msgid "New user registered"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-user.php:52
+#: includes/sync/class-instawp-sync-user.php:54
 msgid "User deleted"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-user.php:70
+#: includes/sync/class-instawp-sync-user.php:72
 msgid "User updated"
 msgstr ""
