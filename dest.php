@@ -2,6 +2,8 @@
 set_time_limit( 0 );
 error_reporting( 0 );
 
+//file_put_contents( 'iwp_log.txt', "Migration log started \n" );
+
 if ( ! isset( $_SERVER['HTTP_X_IWP_MIGRATE_KEY'] ) || empty( $migrate_key = $_SERVER['HTTP_X_IWP_MIGRATE_KEY'] ) ) {
 	header( 'x-iwp-status: false' );
 	header( 'x-iwp-message: Empty migrate key.' );
@@ -243,9 +245,9 @@ if ( $file_type === 'db' ) {
 
 		if ( isset( $_SERVER['HTTP_X_IWP_PROGRESS'] ) ) {
 
-//			$log_content = file_get_contents( 'iwp_log.txt' );
-//			$log_content .= "x-iwp-progress: {$_SERVER['HTTP_X_IWP_PROGRESS']}\n";
-//			file_put_contents( 'iwp_log.txt', $log_content );
+			$log_content = file_get_contents( 'iwp_log.txt' );
+			$log_content .= "x-iwp-progress: {$_SERVER['HTTP_X_IWP_PROGRESS']}\n";
+			file_put_contents( 'iwp_log.txt', $log_content );
 		}
 
 		if ( isset( $_SERVER['HTTP_X_IWP_PROGRESS'] ) && $_SERVER['HTTP_X_IWP_PROGRESS'] == 100 ) {
@@ -268,11 +270,20 @@ if ( $file_type === 'db' ) {
 					}
 				}
 
-				$instawp_api_options = stripslashes( $instawp_api_options );
-				$is_insert_failed    = false;
+//				$instawp_api_options = stripslashes( $instawp_api_options );
+				$is_insert_failed = false;
 
 				try {
 					$insert_response = $mysqli->query( "INSERT INTO `{$table_prefix}options` (`option_name`, `option_value`) VALUES('instawp_api_options', '{$instawp_api_options}')" );
+
+					if ( ! $insert_response ) {
+						$is_insert_failed = true;
+					}
+					// log start
+//					$log_content = file_get_contents( 'iwp_log.txt' );
+//					$log_content .= "insert response: " . var_dump( $insert_response ) . "\n";
+//					file_put_contents( 'iwp_log.txt', $log_content );
+					// log end
 				} catch ( Exception $e ) {
 					$is_insert_failed = true;
 				}
@@ -280,6 +291,13 @@ if ( $file_type === 'db' ) {
 				if ( $is_insert_failed ) {
 					try {
 						$insert_response = $mysqli->query( "UPDATE `{$table_prefix}options` SET `option_value` = '{$instawp_api_options}' WHERE `option_name` = 'instawp_api_options'" );
+
+						// log start
+//						$log_content = file_get_contents( 'iwp_log.txt' );
+//						$log_content .= "update response: " . var_dump( $insert_response ) . "\n";
+//						file_put_contents( 'iwp_log.txt', $log_content );
+						// log end
+
 					} catch ( Exception $e ) {
 						header( 'x-iwp-status: false' );
 						header( "x-iwp-message: Update failed. Error message: {$e->getMessage()}\n" );
@@ -287,12 +305,14 @@ if ( $file_type === 'db' ) {
 					}
 				}
 
+				// log start
 //				$log_content = file_get_contents( 'iwp_log.txt' );
 //				$log_content .= "full-json-data: " . json_encode( $jsonData ) . "\n";
 //				$log_content .= "api-options-data: " . $instawp_api_options . "\n";
 //				$log_content .= "table_prefix: {$table_prefix}\n";
-//				$log_content .= "mysql-success: " . json_encode( $ret ) . "\n";
+//				$log_content .= "mysql-success: " . json_encode( $insert_response ) . "\n";
 //				file_put_contents( 'iwp_log.txt', $log_content );
+				// log end
 			}
 		}
 

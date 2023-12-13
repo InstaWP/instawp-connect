@@ -405,9 +405,25 @@ class InstaWP_Tools {
 
 			$serve_file_url = self::generate_forwarded_file();
 
-			if ( empty( $serve_file_url ) || ! self::is_migrate_file_accessible( $serve_file_url ) ) {
+			if ( empty( $serve_file_url ) ) {
 				return new WP_Error( 403, esc_html__( 'Could not create the forwarded file.', 'instawp-connect' ) );
 			}
+
+			if ( ! self::is_migrate_file_accessible( $serve_file_url ) ) {
+				return new WP_Error( 403, esc_html__( 'InstaWP could not access the forwarded file due to security issue.', 'instawp-connect' ) );
+			}
+		}
+
+		$iwpdb_main_path = INSTAWP_PLUGIN_URL . 'includes/class-instawp-iwpdb.php';
+
+		if ( ! file_exists( $iwpdb_main_path ) || ! is_readable( $iwpdb_main_path ) ) {
+			return new WP_Error( 403,
+				sprintf( '%s <a class="underline" href="%s">%s</a>',
+					esc_html__( 'InstaWP could not access or read required files from your WordPress directory due to file permission issue.', 'instawp-connect' ),
+					INSTAWP_DOCS_URL_PLUGIN,
+					esc_html__( 'Learn more.', 'instawp-connect' )
+				)
+			);
 		}
 
 		return array(

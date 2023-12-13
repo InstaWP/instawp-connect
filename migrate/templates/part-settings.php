@@ -15,6 +15,7 @@
                 <div class="mt-5 flex gap-3">
                     <button type="button" class="bg-primary-900 text-white py-2 px-4 text-sm font-medium rounded-md instawp-manager" data-type="file"><?php echo esc_html__( 'File Manager', 'instawp-connect' ); ?></button>
                     <button type="button" class="bg-primary-900 text-white py-2 px-4 text-sm font-medium rounded-md instawp-manager" data-type="database"><?php echo esc_html__( 'Database Manager', 'instawp-connect' ); ?></button>
+                    <button type="button" class="bg-primary-900 text-white py-2 px-4 text-sm font-medium rounded-md instawp-manager" data-type="debug_log"><?php echo esc_html__( 'Debug Log', 'instawp-connect' ); ?></button>
                 </div>
 			<?php } ?>
         </div>

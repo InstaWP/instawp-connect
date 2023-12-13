@@ -413,7 +413,11 @@ msgstr ""
 msgid "Could not create the forwarded file."
 msgstr ""
 
-#: includes/class-instawp-tools.php:707
+#: includes/class-instawp-tools.php:413
+msgid "InstaWP could not access the forwarded file due to security issue."
+msgstr ""
+
+#: includes/class-instawp-tools.php:711
 msgid "Launch %s"
 msgstr ""
 

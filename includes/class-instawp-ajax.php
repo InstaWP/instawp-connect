@@ -35,6 +35,8 @@ class InstaWP_AJAX {
 			$manager = new \InstaWP\Connect\Helpers\FileManager();
 		} else if ( $type === 'database' ) {
 			$manager = new \InstaWP\Connect\Helpers\DatabaseManager();
+		} else if ( $type === 'debug_log' ) {
+			wp_send_json_success( [ 'login_url' => site_url( 'wp-content/debug.log' ) ] );
 		}
 
 		wp_send_json_success( $manager->get() );

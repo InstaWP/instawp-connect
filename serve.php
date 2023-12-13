@@ -23,7 +23,7 @@ while ( ! file_exists( $root_path . '/wp-config.php' ) ) {
 	// If we have reached the root directory and still couldn't find wp-config.php
 	if ( $level > 10 ) {
 		header( 'x-iwp-status: false' );
-		echo "Count not find wp-config.php in the parent directories.";
+		echo "Could not find wp-config.php in the parent directories.";
 		exit( 2 );
 	}
 }
@@ -39,14 +39,14 @@ defined( 'INSTAWP_BACKUP_DIR' ) | define( 'INSTAWP_BACKUP_DIR', WP_ROOT . DIRECT
 $iwpdb_main_path = WP_ROOT . '/wp-content/plugins/instawp-connect/includes/class-instawp-iwpdb.php';
 $iwpdb_git_path  = WP_ROOT . '/wp-content/plugins/instawp-connect-main/includes/class-instawp-iwpdb.php';
 
-if ( file_exists( $iwpdb_main_path ) ) {
+if ( file_exists( $iwpdb_main_path ) && is_readable( $iwpdb_main_path ) ) {
 	require_once( $iwpdb_main_path );
-} else if ( file_exists( $iwpdb_git_path ) ) {
+} else if ( file_exists( $iwpdb_git_path ) && is_readable( $iwpdb_main_path ) ) {
 	require_once( $iwpdb_git_path );
 } else {
 	header( 'x-iwp-status: false' );
 	header( 'x-iwp-root-path: ' . WP_ROOT );
-	echo "Count not find class-instawp-iwpdb in the plugin directory.";
+	echo "Could not find class-instawp-iwpdb in the plugin directory.";
 	exit( 2 );
 }
 
@@ -57,6 +57,12 @@ try {
 } catch ( Exception $e ) {
 	header( 'x-iwp-status: false' );
 	header( 'x-iwp-message: Database connection error. Actual error: ' . $e->getMessage() );
+	die();
+}
+
+if ( ! $tracking_db ) {
+	header( 'x-iwp-status: false' );
+	header( 'x-iwp-message: Could not find tracking database.' );
 	die();
 }
 
@@ -282,8 +288,14 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			$row        = $tracking_db->get_row( 'iwp_files_sent', [ 'filepath' => $filepath ] );
 
 			if ( ! $row ) {
-				$tracking_db->insert( 'iwp_files_sent', [ 'filepath' => "'$filepath'", 'sent' => 0, 'size' => "'$filesize'" ] );
-				$fileIndex ++;
+				try {
+					$tracking_db->insert( 'iwp_files_sent', [ 'filepath' => "'$filepath'", 'sent' => 0, 'size' => "'$filesize'" ] );
+					$fileIndex ++;
+				} catch ( Exception $e ) {
+					header( 'x-iwp-status: false' );
+					header( 'x-iwp-message: Insert to iwp_files_sent failed. Actual error: ' . $e->getMessage() );
+					die();
+				}
 			} else {
 				continue;
 			}
