@@ -414,7 +414,7 @@ class InstaWP_Tools {
 			}
 		}
 
-		$iwpdb_main_path = INSTAWP_PLUGIN_URL . 'includes/class-instawp-iwpdb.php';
+		$iwpdb_main_path = INSTAWP_PLUGIN_DIR . 'includes/class-instawp-iwpdb.php';
 
 		if ( ! file_exists( $iwpdb_main_path ) || ! is_readable( $iwpdb_main_path ) ) {
 			return new WP_Error( 403,
