@@ -5,30 +5,40 @@ defined( 'ABSPATH' ) || exit;
 class InstaWP_Sync_Option {
 
     public function __construct() {
-	    if ( ! InstaWP_Setting::get_option( 'instawp_is_event_syncing' ) ) {
-		    // Update option
-		    add_action( 'added_option', [ $this, 'added_option' ], 10, 2 );
-		    add_action( 'updated_option', [ $this, 'updated_option' ], 10, 3 );
-		    add_action( 'deleted_option', [ $this, 'deleted_option' ] );
-	    }
+	    // Update option
+	    add_action( 'added_option', [ $this, 'added_option' ], 10, 2 );
+	    add_action( 'updated_option', [ $this, 'updated_option' ], 10, 3 );
+	    add_action( 'deleted_option', [ $this, 'deleted_option' ] );
 
 	    // process event
 	    add_filter( 'INSTAWP_CONNECT/Filters/process_two_way_sync', [ $this, 'parse_event' ], 10, 2 );
     }
 
 	public function added_option( $option, $value ) {
+		if ( ! InstaWP_Sync_Helpers::can_sync() ) {
+			return;
+		}
+
 		if ( ! $this->is_protected_option( $option ) ) {
 			InstaWP_Sync_DB::insert_update_event( __( 'Option added', 'instawp-connect' ), 'add_option', 'option', '', ucfirst( str_replace( [ '-', '_' ], ' ', $option ) ), [ $option => $value ] );
 		}
 	}
 
 	public function updated_option( $option, $old_value, $value ) {
+		if ( ! InstaWP_Sync_Helpers::can_sync() ) {
+			return;
+		}
+
 		if ( ! $this->is_protected_option( $option ) ) {
 			InstaWP_Sync_DB::insert_update_event( __( 'Option updated', 'instawp-connect' ), 'update_option', 'option', '', ucfirst( str_replace( [ '-', '_' ], ' ', $option ) ), [ $option => $value ] );
 		}
 	}
 
 	public function deleted_option( $option ) {
+		if ( ! InstaWP_Sync_Helpers::can_sync() ) {
+			return;
+		}
+
 		if ( ! $this->is_protected_option( $option ) ) {
 			InstaWP_Sync_DB::insert_update_event( __( 'Option deleted', 'instawp-connect' ), 'delete_option', 'option', '', ucfirst( str_replace( [ '-', '_' ], ' ', $option ) ), $option );
 		}
