@@ -5,12 +5,10 @@ defined( 'ABSPATH' ) || exit;
 class InstaWP_Sync_User {
 
     public function __construct() {
-	    if ( ! InstaWP_Setting::get_option( 'instawp_is_event_syncing' ) ) {
-		    // User actions
-		    add_action( 'user_register', [ $this, 'user_register' ], 10, 2 );
-		    add_action( 'delete_user', [ $this, 'delete_user' ], 10, 3 );
-		    add_action( 'profile_update', [ $this, 'profile_update' ], 10, 3 );
-	    }
+	    // User actions
+	    add_action( 'user_register', [ $this, 'user_register' ], 10, 2 );
+	    add_action( 'delete_user', [ $this, 'delete_user' ], 10, 3 );
+	    add_action( 'profile_update', [ $this, 'profile_update' ], 10, 3 );
 
 		// process event
 	    add_filter( 'INSTAWP_CONNECT/Filters/process_two_way_sync', [ $this, 'parse_event' ], 10, 2 );
@@ -25,6 +23,10 @@ class InstaWP_Sync_User {
 	 * @return void
 	 */
 	public function user_register( $user_id, $userdata ) {
+		if ( ! InstaWP_Sync_Helpers::can_sync() ) {
+			return;
+		}
+
 		if ( empty( $userdata ) ) {
 			return;
 		}
@@ -51,6 +53,10 @@ class InstaWP_Sync_User {
 	 * @return void
 	 */
 	public function delete_user( $id, $reassign, $user ) {
+		if ( ! InstaWP_Sync_Helpers::can_sync() ) {
+			return;
+		}
+
 		$event_name = __('User deleted', 'instawp-connect');
 		$title      = $user->data->user_login;
 		$details    = [ 'user_data' => get_userdata( $id ), 'user_meta' => get_user_meta( $id ) ];
@@ -68,6 +74,10 @@ class InstaWP_Sync_User {
 	 * @return void
 	 */
 	public function profile_update( $user_id, $old_user_data, $userdata ) {
+		if ( ! InstaWP_Sync_Helpers::can_sync() ) {
+			return;
+		}
+
 		if ( ! empty( $userdata ) && isset( $_POST['submit'] ) ) {
 			$event_name = __( 'User updated', 'instawp-connect' );
 			InstaWP_Sync_Helpers::set_user_reference_id( $user_id );
