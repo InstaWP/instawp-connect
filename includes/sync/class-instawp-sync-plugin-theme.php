@@ -5,13 +5,18 @@ defined( 'ABSPATH' ) || exit;
 class InstaWP_Sync_Plugin_Theme {
 
     public function __construct() {
-	    // Plugin and Theme actions
-	    add_action( 'upgrader_process_complete', [ $this,'install_update_action' ], 10, 2 );
-	    add_action( 'activated_plugin', [ $this,'activate_plugin' ], 10, 2 );
-	    add_action( 'deactivated_plugin', [ $this,'deactivate_plugin' ] ,10, 2 );
-	    add_action( 'deleted_plugin', [ $this,'delete_plugin' ] ,10, 2 );
-	    add_action( 'switch_theme', [ $this,'switch_theme' ], 10, 3 );
-	    add_action( 'deleted_theme', [ $this,'delete_theme' ], 10, 2 );
+	    if ( InstaWP_Sync_Helpers::can_sync() ) {
+		    // Plugin and Theme actions
+		    add_action( 'upgrader_process_complete', [ $this, 'install_update_action' ], 10, 2 );
+		    add_action( 'activated_plugin', [ $this, 'activate_plugin' ], 10, 2 );
+		    add_action( 'deactivated_plugin', [ $this, 'deactivate_plugin' ], 10, 2 );
+		    add_action( 'deleted_plugin', [ $this, 'delete_plugin' ], 10, 2 );
+		    add_action( 'switch_theme', [ $this, 'switch_theme' ], 10, 3 );
+		    add_action( 'deleted_theme', [ $this, 'delete_theme' ], 10, 2 );
+	    }
+
+	    // process event
+	    add_filter( 'INSTAWP_CONNECT/Filters/process_two_way_sync', [ $this, 'parse_event' ], 10, 2 );
     }
 
 	/**
@@ -148,6 +153,104 @@ class InstaWP_Sync_Plugin_Theme {
 		}
 	}
 
+	public function parse_event( $response, $v ) {
+		if ( strpos( $v->event_type, 'plugin' ) === false && strpos( $v->event_type, 'theme' ) === false ) {
+			return $response;
+		}
+
+		$logs = [];
+
+		// plugin activate
+		if ( $v->event_slug === 'activate_plugin' ) {
+			$is_plugin_installed = $this->is_plugin_installed( $v->details );
+
+			// install plugin if not exists
+			if ( ! $is_plugin_installed ) {
+				$pluginData = get_plugin_data( $v->details );
+				if ( ! empty( $pluginData['TextDomain'] ) ) {
+					$this->plugin_install( $pluginData['TextDomain'] );
+				} else {
+					$logs[ $v->id ] = sprintf( 'plugin %s not found at destination', $v->details );
+				}
+			}
+
+			$this->plugin_activation( $v->details );
+		}
+
+		// plugin deactivate
+		if ( $v->event_slug === 'deactivate_plugin' ) {
+			$this->plugin_deactivation( $v->details );
+		}
+
+		// plugin install and update
+		if ( in_array( $v->event_slug, [ 'plugin_install', 'plugin_update' ], true ) && ! empty( $v->details->slug ) ) {
+			$check_plugin_installed = $this->check_plugin_installed_by_textdomain( $v->details->slug );
+			if ( ! $check_plugin_installed ) {
+				$this->plugin_install( $v->details->slug, ( $v->event_slug === 'plugin_update' ) );
+			} else {
+				$logs[ $v->id ] = ( $v->event_slug === 'plugin_update' ) ? sprintf( 'Plugin %s not found for update operation.', $v->details->slug ) : sprintf( 'Plugin %s already exists.', $v->details->slug );
+			}
+		}
+
+		// plugin delete
+		if ( $v->event_slug === 'deleted_plugin' ) {
+			$this->plugin_deactivation( $v->details );
+
+			$plugin = plugin_basename( sanitize_text_field( wp_unslash( $v->details ) ) );
+			$result = delete_plugins( [ $plugin ] );
+
+			if ( is_wp_error( $result ) ) {
+				$logs[ $v->id ] = $result->get_error_message();
+			} elseif ( false === $result ) {
+				$logs[ $v->id ] = __( 'Plugin could not be deleted.' );
+			}
+		}
+
+		// theme install, update and change
+		if ( in_array( $v->event_slug, [ 'switch_theme', 'theme_install', 'theme_update' ], true ) && ! empty( $v->details->stylesheet ) ) {
+			$stylesheet = $v->details->stylesheet;
+			$theme      = wp_get_theme( $stylesheet );
+
+			if ( $v->event_slug === 'theme_update' ) {
+				if ( $theme->exists() ) {
+					$this->theme_install( $stylesheet, true );
+				} else {
+					$logs[ $v->id ] = sprintf( 'Theme %s not found for update operation.', $stylesheet );
+				}
+			} else {
+				if ( ! $theme->exists() ) {
+					$this->theme_install( $stylesheet );
+				}
+			}
+
+			if ( $v->event_slug === 'switch_theme' ) {
+				switch_theme( $stylesheet );
+			}
+		}
+
+		// delete theme
+		if ( isset( $v->details->stylesheet ) && $v->event_slug === 'deleted_theme' ) {
+			$stylesheet = $v->details->stylesheet;
+			$theme      = wp_get_theme( $stylesheet );
+
+			if ( $theme->exists() ) {
+				require_once( ABSPATH . 'wp-includes/pluggable.php' );
+
+				$result = delete_theme( $stylesheet );
+				if ( is_wp_error( $result ) ) {
+					$logs[ $v->id ] = $result->get_error_message();
+				} elseif ( false === $result ) {
+					$logs[ $v->id ] = sprintf( 'Theme %s could not be deleted.', $stylesheet );
+				}
+
+			} else {
+				$logs[ $v->id ] = sprintf( 'Theme %s not found for delete operation.', $stylesheet );
+			}
+		}
+
+		return InstaWP_Sync_Helpers::sync_response( $v, $logs );
+	}
+
 	/**
 	 * Function parse_plugin_theme_event
 	 * @param $event_name
@@ -201,6 +304,125 @@ class InstaWP_Sync_Plugin_Theme {
 				$title = $details['name'];
 		}
 		InstaWP_Sync_DB::insert_update_event( $event_name, $event_slug, $type, $source_id, $title, $details, $event_id );
+	}
+
+	#Plugin activate.
+	public function plugin_activation( $plugin ) {
+		if ( ! function_exists( 'activate_plugin' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		}
+
+		if ( ! is_plugin_active( $plugin ) ) {
+			activate_plugin( $plugin );
+		}
+	}
+
+	#Plugin deactivate.
+	public function plugin_deactivation( $plugin ) {
+		if ( ! function_exists( 'deactivate_plugins' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		}
+
+		if ( is_plugin_active( $plugin ) ) {
+			deactivate_plugins( $plugin );
+		}
+	}
+
+	/**
+	 * Plugin install
+	 */
+	public function plugin_install( $plugin_slug, $overwrite_package = false ) {
+		include_once( ABSPATH . 'wp-admin/includes/plugin-install.php' ); //for plugins_api..
+
+		$api = plugins_api( 'plugin_information', array(
+			'slug'   => $plugin_slug,
+			'fields' => array(
+				'short_description' => false,
+				'sections'          => false,
+				'requires'          => false,
+				'rating'            => false,
+				'ratings'           => false,
+				'downloaded'        => false,
+				'last_updated'      => false,
+				'added'             => false,
+				'tags'              => false,
+				'compatibility'     => false,
+				'homepage'          => false,
+				'donate_link'       => false,
+			),
+		) );
+
+		//includes necessary for Plugin_Upgrader and Plugin_Installer_Skin
+		include_once( ABSPATH . 'wp-admin/includes/file.php' );
+		include_once( ABSPATH . 'wp-admin/includes/misc.php' );
+		include_once( ABSPATH . 'wp-admin/includes/class-wp-upgrader.php' );
+
+		$upgrader = new \Plugin_Upgrader( new \Plugin_Installer_Skin() );
+		$upgrader->install( $api->download_link, array( 'overwrite_package' => $overwrite_package ) );
+	}
+
+	/**
+	 * Theme install
+	 */
+	public function theme_install( $stylesheet, $overwrite_package = false ) {
+		require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php'; // For themes_api().
+
+		$api = themes_api( 'theme_information', [
+			'slug'   => $stylesheet,
+			'fields' => [
+				'sections' => false,
+				'tags'     => false,
+			],
+		] );
+
+		include_once( ABSPATH . 'wp-includes/pluggable.php' );
+		include_once( ABSPATH . 'wp-admin/includes/file.php' );
+		include_once( ABSPATH . 'wp-admin/includes/misc.php' );
+
+		if ( ! is_wp_error( $api ) ) {
+			$upgrader = new Theme_Upgrader();
+			$upgrader->install( $api->download_link, [ 'overwrite_package' => $overwrite_package ] );
+		}
+	}
+
+	/**
+	 * Check if plugin is installed by getting all plugins from the plugins dir
+	 *
+	 * @param $plugin_slug
+	 *
+	 * @return bool
+	 */
+	public function is_plugin_installed( $plugin_slug ): bool {
+		$installed_plugins = get_plugins();
+
+		return array_key_exists( $plugin_slug, $installed_plugins ) || in_array( $plugin_slug, $installed_plugins, true );
+	}
+
+	/**
+	 * Check if plugin is installed by getting all plugins from the plugins dir
+	 *
+	 * @param $plugin_slug
+	 *
+	 * @return bool
+	 */
+	public function check_plugin_installed_by_textdomain( $textdomain ): bool {
+		$installed_plugins_data = get_plugins();
+		$installed_text_domains = array_column( array_values( $installed_plugins_data ), 'TextDomain' );
+
+		return in_array( $textdomain, $installed_text_domains, true );
+	}
+
+	/**
+	 * Check if theme is installed by getting all themes from the theme dir
+	 *
+	 * @param $stylesheet
+	 *
+	 * @return bool
+	 */
+	public function check_theme_installed( $stylesheet ): bool {
+		$installed_themes = wp_get_themes();
+
+		return array_key_exists( $stylesheet, $installed_themes );
 	}
 }
 

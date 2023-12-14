@@ -5,7 +5,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2023-12-08 06:04+0000\n"
+"POT-Creation-Date: 2023-12-13 12:07+0000\n"
 "X-Poedit-Basepath: ..\n"
 "X-Poedit-KeywordsList: __;_e;_ex:1,2c;_n:1,2;_n_noop:1,2;_nx:1,2,4c;_nx_noop:1,2,3c;_x:1,2c;esc_attr__;esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c\n"
 "X-Poedit-SearchPath-0: .\n"
@@ -81,35 +81,35 @@ msgstr ""
 msgid "3. Go back to this page and paste the key in key box below. Lastly, click Save button."
 msgstr ""
 
-#: includes/class-instawp-ajax.php:77
+#: includes/class-instawp-ajax.php:79
 msgid "Migration failed."
 msgstr ""
 
-#: includes/class-instawp-ajax.php:142
+#: includes/class-instawp-ajax.php:144
 msgid "Error: Empty serve url found in pre-check response."
 msgstr ""
 
-#: includes/class-instawp-ajax.php:155
+#: includes/class-instawp-ajax.php:157
 msgid "Error: Empty api signature found in pre-check response."
 msgstr ""
 
-#: includes/class-instawp-ajax.php:234
+#: includes/class-instawp-ajax.php:236
 msgid "Increase Limit"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:256
+#: includes/class-instawp-ajax.php:258
 msgid "Empty folder!"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:356
+#: includes/class-instawp-ajax.php:358
 msgid "%s rows"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:399
+#: includes/class-instawp-ajax.php:401
 msgid "We have identified following large files in your installation:"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:496
+#: includes/class-instawp-ajax.php:498
 msgid "InstaWP Connect Settings has been reset successfully."
 msgstr ""
 
@@ -417,7 +417,15 @@ msgstr ""
 msgid "InstaWP could not access the forwarded file due to security issue."
 msgstr ""
 
-#: includes/class-instawp-tools.php:711
+#: includes/class-instawp-tools.php:422
+msgid "InstaWP could not access or read required files from your WordPress directory due to file permission issue."
+msgstr ""
+
+#: includes/class-instawp-tools.php:424
+msgid "Learn more."
+msgstr ""
+
+#: includes/class-instawp-tools.php:723
 msgid "Launch %s"
 msgstr ""
 
@@ -425,35 +433,35 @@ msgstr ""
 msgid "Migration aborted forcefully"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-ajax.php:225
+#: includes/sync/class-instawp-sync-ajax.php:224
 msgid "%u %s %s"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-ajax.php:213
+#: includes/sync/class-instawp-sync-ajax.php:212
 msgid "%u %s"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-ajax.php:218
+#: includes/sync/class-instawp-sync-ajax.php:217
 msgid "Show more"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-ajax.php:238
+#: includes/sync/class-instawp-sync-ajax.php:237
 msgid "Sync not initiated ( 0 out of %d events )"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-ajax.php:239
+#: includes/sync/class-instawp-sync-ajax.php:238
 msgid "Events loaded"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-ajax.php:239, includes/sync/class-instawp-sync-ajax.php:289
+#: includes/sync/class-instawp-sync-ajax.php:238, includes/sync/class-instawp-sync-ajax.php:288
 msgid "No pending events found!"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-ajax.php:285
+#: includes/sync/class-instawp-sync-ajax.php:284
 msgid "You have reached your sync limit. Current usage %u out of %u."
 msgstr ""
 
-#: includes/sync/class-instawp-sync-ajax.php:282
+#: includes/sync/class-instawp-sync-ajax.php:281
 msgid " Completed ( 0 out of %d events )"
 msgstr ""
 
@@ -469,86 +477,82 @@ msgstr ""
 msgid "Invalid data"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-apis.php:1002
-msgid "Item not found."
-msgstr ""
-
 #: includes/sync/class-instawp-sync-events.php:141, includes/sync/class-instawp-sync-events.php:152, includes/sync/class-instawp-sync-events.php:166
 msgid "Woocommerce attribute"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-option.php:16
+#: includes/sync/class-instawp-sync-option.php:21
 msgid "Option added"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-option.php:22
+#: includes/sync/class-instawp-sync-option.php:27
 msgid "Option updated"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-option.php:28
+#: includes/sync/class-instawp-sync-option.php:33
 msgid "Option deleted"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-plugin-theme.php:35
+#: includes/sync/class-instawp-sync-plugin-theme.php:40
 msgid "%s %s%s"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-plugin-theme.php:83
+#: includes/sync/class-instawp-sync-plugin-theme.php:88
 msgid "Plugin deactivated"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-plugin-theme.php:96
+#: includes/sync/class-instawp-sync-plugin-theme.php:101
 msgid "Plugin activated"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-plugin-theme.php:109
+#: includes/sync/class-instawp-sync-plugin-theme.php:114
 msgid "Plugin deleted"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-plugin-theme.php:128
+#: includes/sync/class-instawp-sync-plugin-theme.php:133
 msgid "Theme switched from %s to %s"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-plugin-theme.php:147
+#: includes/sync/class-instawp-sync-plugin-theme.php:152
 msgid "Theme deleted"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-post.php:56, includes/sync/class-instawp-sync-term.php:41
+#: includes/sync/class-instawp-sync-post.php:61, includes/sync/class-instawp-sync-term.php:46
 msgid "%s modified"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-post.php:70, includes/sync/class-instawp-sync-term.php:57
+#: includes/sync/class-instawp-sync-post.php:75, includes/sync/class-instawp-sync-term.php:62
 msgid "%s deleted"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-post.php:84
+#: includes/sync/class-instawp-sync-post.php:89
 msgid "%s trashed"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-post.php:89
+#: includes/sync/class-instawp-sync-post.php:94
 msgid "%s restored"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-post.php:94, includes/sync/class-instawp-sync-term.php:25
+#: includes/sync/class-instawp-sync-post.php:99, includes/sync/class-instawp-sync-term.php:30
 msgid "%s created"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-post.php:106
+#: includes/sync/class-instawp-sync-post.php:111
 msgid "Media created"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-post.php:119
+#: includes/sync/class-instawp-sync-post.php:124
 msgid "Media updated"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-user.php:27
+#: includes/sync/class-instawp-sync-user.php:32
 msgid "New user registered"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-user.php:49
+#: includes/sync/class-instawp-sync-user.php:54
 msgid "User deleted"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-user.php:67
+#: includes/sync/class-instawp-sync-user.php:72
 msgid "User updated"
 msgstr ""
