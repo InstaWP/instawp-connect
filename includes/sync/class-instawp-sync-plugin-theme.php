@@ -5,15 +5,13 @@ defined( 'ABSPATH' ) || exit;
 class InstaWP_Sync_Plugin_Theme {
 
     public function __construct() {
-	    if ( ! InstaWP_Setting::get_option( 'instawp_is_event_syncing' ) ) {
-		    // Plugin and Theme actions
-		    add_action( 'upgrader_process_complete', [ $this, 'install_update_action' ], 10, 2 );
-		    add_action( 'activated_plugin', [ $this, 'activate_plugin' ], 10, 2 );
-		    add_action( 'deactivated_plugin', [ $this, 'deactivate_plugin' ], 10, 2 );
-		    add_action( 'deleted_plugin', [ $this, 'delete_plugin' ], 10, 2 );
-		    add_action( 'switch_theme', [ $this, 'switch_theme' ], 10, 3 );
-		    add_action( 'deleted_theme', [ $this, 'delete_theme' ], 10, 2 );
-	    }
+	    // Plugin and Theme actions
+	    add_action( 'upgrader_process_complete', [ $this, 'install_update_action' ], 10, 2 );
+	    add_action( 'activated_plugin', [ $this, 'activate_plugin' ], 10, 2 );
+	    add_action( 'deactivated_plugin', [ $this, 'deactivate_plugin' ], 10, 2 );
+	    add_action( 'deleted_plugin', [ $this, 'delete_plugin' ], 10, 2 );
+	    add_action( 'switch_theme', [ $this, 'switch_theme' ], 10, 3 );
+	    add_action( 'deleted_theme', [ $this, 'delete_theme' ], 10, 2 );
 
 	    // process event
 	    add_filter( 'INSTAWP_CONNECT/Filters/process_two_way_sync', [ $this, 'parse_event' ], 10, 2 );
@@ -28,6 +26,10 @@ class InstaWP_Sync_Plugin_Theme {
 	 * @return void
 	 */
 	public function install_update_action( $upgrader, $hook_extra ) {
+		if ( ! InstaWP_Sync_Helpers::can_sync() ) {
+			return;
+		}
+
 		if ( empty( $hook_extra['type'] ) || empty( $hook_extra['action'] ) ) {
 			return;
 		}
@@ -84,6 +86,10 @@ class InstaWP_Sync_Plugin_Theme {
 	 * @return void
 	 */
 	public function deactivate_plugin( $plugin, $network_wide ) {
+		if ( ! InstaWP_Sync_Helpers::can_sync() ) {
+			return;
+		}
+
 		if ( $plugin !== 'instawp-connect/instawp-connect.php' ) {
 			$this->parse_plugin_theme_event( __('Plugin deactivated', 'instawp-connect' ), 'deactivate_plugin', $plugin, 'plugin' );
 		}
@@ -97,6 +103,10 @@ class InstaWP_Sync_Plugin_Theme {
 	 * @return void
 	 */
 	public function activate_plugin( $plugin, $network_wide ) {
+		if ( ! InstaWP_Sync_Helpers::can_sync() ) {
+			return;
+		}
+
 		if ( $plugin !== 'instawp-connect/instawp-connect.php' ) {
 			$this->parse_plugin_theme_event( __('Plugin activated', 'instawp-connect' ), 'activate_plugin', $plugin, 'plugin' );
 		}
@@ -110,6 +120,10 @@ class InstaWP_Sync_Plugin_Theme {
 	 * @return void
 	 */
 	public function delete_plugin( $plugin, $deleted ) {
+		if ( ! InstaWP_Sync_Helpers::can_sync() ) {
+			return;
+		}
+
 		if ( $deleted && $plugin !== 'instawp-connect/instawp-connect.php' ) {
 			$this->parse_plugin_theme_event( __( 'Plugin deleted', 'instawp-connect' ), 'deleted_plugin', $plugin, 'plugin' );
 		}
@@ -125,6 +139,10 @@ class InstaWP_Sync_Plugin_Theme {
 	 * @return void
 	 */
 	public function switch_theme( $new_name, $new_theme, $old_theme ) {
+		if ( ! InstaWP_Sync_Helpers::can_sync() ) {
+			return;
+		}
+
 		$details    = [
 			'name'       => $new_name,
 			'stylesheet' => $new_theme->get_stylesheet(),
@@ -143,6 +161,10 @@ class InstaWP_Sync_Plugin_Theme {
 	 * @return void
 	 */
 	public function delete_theme( $stylesheet, $deleted ) {
+		if ( ! InstaWP_Sync_Helpers::can_sync() ) {
+			return;
+		}
+
 		$details = [
 			'name'       => ucfirst( $stylesheet ),
 			'stylesheet' => $stylesheet,

@@ -5,12 +5,10 @@ defined( 'ABSPATH' ) || exit;
 class InstaWP_Sync_Term {
 
     public function __construct() {
-	    if ( ! InstaWP_Setting::get_option( 'instawp_is_event_syncing' ) ) {
-		    // Term actions
-		    add_action( 'created_term', [ $this, 'create_taxonomy' ], 10, 3 );
-		    add_action( 'edited_term', [ $this, 'edit_taxonomy' ], 10, 3 );
-		    add_action( 'delete_term', [ $this, 'delete_taxonomy' ], 10, 4 );
-	    }
+	    // Term actions
+	    add_action( 'created_term', [ $this, 'create_taxonomy' ], 10, 3 );
+	    add_action( 'edited_term', [ $this, 'edit_taxonomy' ], 10, 3 );
+	    add_action( 'delete_term', [ $this, 'delete_taxonomy' ], 10, 4 );
 
 	    // process event
 	    add_filter( 'INSTAWP_CONNECT/Filters/process_two_way_sync', [ $this, 'parse_event' ], 10, 2 );
@@ -26,6 +24,10 @@ class InstaWP_Sync_Term {
 	 * @return void
 	 */
 	public function create_taxonomy( $term_id, $tt_id, $taxonomy ) {
+		if ( ! InstaWP_Sync_Helpers::can_sync() ) {
+			return;
+		}
+
 		$term_details = ( array ) get_term( $term_id, $taxonomy );
 		$event_name   = sprintf( __('%s created', 'instawp-connect'), ucfirst( $taxonomy ) );
 
@@ -42,6 +44,10 @@ class InstaWP_Sync_Term {
 	 * @return void
 	 */
 	public function edit_taxonomy( $term_id, $tt_id, $taxonomy ) {
+		if ( ! InstaWP_Sync_Helpers::can_sync() ) {
+			return;
+		}
+
 		$term_details = ( array ) get_term( $term_id, $taxonomy );
 		$event_name   = sprintf( __('%s modified', 'instawp-connect'), ucfirst( $taxonomy ) );
 
@@ -59,8 +65,11 @@ class InstaWP_Sync_Term {
 	 * @return void
 	 */
 	public function delete_taxonomy( $term, $tt_id, $taxonomy, $deleted_term ) {
-		$event_name = sprintf( __('%s deleted', 'instawp-connect' ), ucfirst( $taxonomy ) );
+		if ( ! InstaWP_Sync_Helpers::can_sync() ) {
+			return;
+		}
 
+		$event_name = sprintf( __('%s deleted', 'instawp-connect' ), ucfirst( $taxonomy ) );
 		InstaWP_Sync_DB::insert_update_event( $event_name, 'delete_taxonomy', $taxonomy, $term, $deleted_term->name, $deleted_term );
 	}
 

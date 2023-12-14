@@ -110,8 +110,7 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 			$is_enabled = true;
 		}
 
-		#forcely disable the syncing at the destination
-		update_option( 'instawp_is_event_syncing', 0 );
+		delete_option( 'instawp_is_event_syncing' );
 
 		if ( ! empty( $encrypted_contents ) && is_array( $encrypted_contents ) ) {
 			$sync_response   = [];
