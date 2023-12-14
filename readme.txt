@@ -3,8 +3,8 @@ Contributors: instawp
 Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.4
 Tested up to: 6.4.2
-Requires PHP: 8.0
-Stable tag: 0.1.0.3
+Requires PHP: 7.4
+Stable tag: 0.1.0.4
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
