@@ -2,7 +2,7 @@
 Contributors: instawp
 Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.4
-Tested up to: 6.4.1
+Tested up to: 6.4.2
 Requires PHP: 8.0
 Stable tag: 0.1.0.3
 License: GPLv3 or later
@@ -97,7 +97,9 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 = 0.1.0.3 =
 
 - NEW - Added a way to see debug log from inside our plugin.
-
+- NEW - Taxonomy and WP Option support for 2 way sync.
+- FIX - Fixed issue with 2 way sync specially for Posts (CPT), Plugin and Theme changes.
+- FIX - Stabilize the staging site creation process.
 
 = 0.1.0.2 =
 
