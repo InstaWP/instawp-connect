@@ -5,7 +5,7 @@ defined( 'ABSPATH' ) || exit;
 class InstaWP_Sync_Term {
 
     public function __construct() {
-	    if ( InstaWP_Sync_Helpers::can_sync() ) {
+	    if ( ! InstaWP_Setting::get_option( 'instawp_is_event_syncing' ) ) {
 		    // Term actions
 		    add_action( 'created_term', [ $this, 'create_taxonomy' ], 10, 3 );
 		    add_action( 'edited_term', [ $this, 'edit_taxonomy' ], 10, 3 );
