@@ -5,7 +5,7 @@ defined( 'ABSPATH' ) || exit;
 class InstaWP_Sync_Option {
 
     public function __construct() {
-	    if ( InstaWP_Sync_Helpers::can_sync() ) {
+	    if ( ! InstaWP_Setting::get_option( 'instawp_is_event_syncing' ) ) {
 		    // Update option
 		    add_action( 'added_option', [ $this, 'added_option' ], 10, 2 );
 		    add_action( 'updated_option', [ $this, 'updated_option' ], 10, 3 );

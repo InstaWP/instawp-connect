@@ -5,7 +5,7 @@ defined( 'ABSPATH' ) || exit;
 class InstaWP_Sync_User {
 
     public function __construct() {
-	    if ( InstaWP_Sync_Helpers::can_sync() ) {
+	    if ( ! InstaWP_Setting::get_option( 'instawp_is_event_syncing' ) ) {
 		    // User actions
 		    add_action( 'user_register', [ $this, 'user_register' ], 10, 2 );
 		    add_action( 'delete_user', [ $this, 'delete_user' ], 10, 3 );

@@ -5,7 +5,7 @@ defined( 'ABSPATH' ) || exit;
 class InstaWP_Sync_Post {
 
     public function __construct() {
-	    if ( InstaWP_Sync_Helpers::can_sync() ) {
+	    if ( ! InstaWP_Setting::get_option( 'instawp_is_event_syncing' ) ) {
 		    // Post Actions.
 		    add_action( 'save_post', [ $this, 'save_post' ], 10, 3 );
 		    add_action( 'delete_post', [ $this, 'delete_post' ], 10, 2 );

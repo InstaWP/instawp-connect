@@ -5,7 +5,7 @@ defined( 'ABSPATH' ) || exit;
 class InstaWP_Sync_Plugin_Theme {
 
     public function __construct() {
-	    if ( InstaWP_Sync_Helpers::can_sync() ) {
+	    if ( ! InstaWP_Setting::get_option( 'instawp_is_event_syncing' ) ) {
 		    // Plugin and Theme actions
 		    add_action( 'upgrader_process_complete', [ $this, 'install_update_action' ], 10, 2 );
 		    add_action( 'activated_plugin', [ $this, 'activate_plugin' ], 10, 2 );
