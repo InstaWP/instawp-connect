@@ -7,7 +7,7 @@
  * @wordpress-plugin
  * Plugin Name:       InstaWP Connect
  * Description:       1-click WP Staging with Sync. Manage your Live sites.
- * Version:           0.1.0.3
+ * Version:           0.1.0.4
  * Author:            InstaWP Team
  * Author URI:        https://instawp.com/
  * License:           GPL-3.0+
@@ -23,7 +23,7 @@ if ( ! defined( 'WPINC' ) ) {
 
 global $wpdb;
 
-define( 'INSTAWP_PLUGIN_VERSION', '0.1.0.3' );
+define( 'INSTAWP_PLUGIN_VERSION', '0.1.0.4' );
 define( 'INSTAWP_RESTORE_INIT', 'init' );
 define( 'INSTAWP_API_DOMAIN_PROD', 'https://app.instawp.io' );
 
@@ -181,16 +181,16 @@ add_filter( 'got_rewrite', '__return_true' );
 
 run_instawp();
 
-add_action( 'admin_init', function() {
-	if( !get_option('instawp_option_deleted') ) {
+add_action( 'admin_init', function () {
+	if ( ! get_option( 'instawp_option_deleted' ) ) {
 		global $wpdb;
 
-		$statement     = $wpdb->prepare( "SELECT * FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE event_type=%s", 'option' );
-		$events        = $wpdb->get_results( $statement );
+		$statement = $wpdb->prepare( "SELECT * FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE event_type=%s", 'option' );
+		$events    = $wpdb->get_results( $statement );
 
-		foreach( $events as $event ) {
+		foreach ( $events as $event ) {
 			$wpdb->query( $wpdb->prepare( "DELETE FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE id=%d", $event->id ) );
 		}
-		update_option('instawp_option_deleted', 1);
+		update_option( 'instawp_option_deleted', 1 );
 	}
-});
+} );
