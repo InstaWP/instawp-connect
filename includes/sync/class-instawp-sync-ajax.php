@@ -189,8 +189,10 @@ class InstaWP_Sync_Ajax {
 	public function get_events_summary() {
 		check_ajax_referer( 'instawp-tws', 'nonce' );
 
-		$where = $where2 = "1=1";
+		$where  = "1=1";
+		$where2 = [];
 		$connect_id = ! empty( $_POST['connect_id'] ) ? intval( $_POST['connect_id'] ) : 0;
+		$entry_ids  = ! empty( $_POST['ids'] ) ? array_map( 'intval', explode( ',', $_POST['ids'] ) ) : [];
 
 		if ( $connect_id > 0 ) {
 			$where        .= " AND connect_id=" . $connect_id;
@@ -198,9 +200,16 @@ class InstaWP_Sync_Ajax {
 
 			if ( ! empty( $staging_site ) && isset( $staging_site['created_at'] ) && ! instawp()->is_staging ) {
 				$staging_site_created = date( 'Y-m-d h:i:s', strtotime( $staging_site['created_at'] ) );
-				$where2               .= " AND date >= '" . $staging_site_created . "'";
+				$where2[]             = "`date` >= '" . $staging_site_created . "'";
 			}
 		}
+
+		if ( ! empty( $entry_ids ) ) {
+			$entry_ids = join( ', ', $entry_ids );
+			$where2[]  = " `id` IN($entry_ids)";
+		}
+
+		$where2 = empty( $where2 ) ? "1=1" : join( ' AND ', $where2 );
 
 		$query   = "SELECT event_name, COUNT(*) as event_count FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE $where2 AND `id` NOT IN (SELECT event_id AS id FROM " . INSTAWP_DB_TABLE_EVENT_SITES . " WHERE $where) GROUP BY event_name HAVING event_count > 0";
 		$results = $this->wpdb->get_results( $query );
@@ -346,17 +355,27 @@ class InstaWP_Sync_Ajax {
 	}
 
 	private function get_total_pending_events_count() {
-		$where = $where2 = "1=1";
-		if ( isset( $_POST['connect_id'] ) && intval( $_POST['connect_id'] ) > 0 ) {
-			$connect_id   = sanitize_text_field( $_POST['connect_id'] );
+		$where  = "1=1";
+		$where2 = [];
+		$connect_id = ! empty( $_POST['connect_id'] ) ? intval( $_POST['connect_id'] ) : 0;
+		$entry_ids  = ! empty( $_POST['ids'] ) ? array_map( 'intval', explode( ',', $_POST['ids'] ) ) : [];
+
+		if ( $connect_id > 0 ) {
+			$where        .= " AND connect_id=" . $connect_id;
 			$staging_site = get_connect_detail_by_connect_id( $connect_id );
-			$where        .= " AND connect_id=" . sanitize_text_field( $connect_id );
+
+			if ( ! empty( $staging_site ) && isset( $staging_site['created_at'] ) && ! instawp()->is_staging ) {
+				$staging_site_created = date( 'Y-m-d h:i:s', strtotime( $staging_site['created_at'] ) );
+				$where2[]             = "`date` >= '" . $staging_site_created . "'";
+			}
 		}
 
-		if ( ! empty( $staging_site ) && isset( $staging_site['created_at'] ) ) {
-			$staging_site_created = date( 'Y-m-d h:i:s', strtotime( $staging_site['created_at'] ) );
-			$where2               .= " AND date >= '" . $staging_site_created . "'";
+		if ( ! empty( $entry_ids ) ) {
+			$entry_ids = join( ', ', $entry_ids );
+			$where2[]  = " `id` IN($entry_ids)";
 		}
+
+		$where2 = empty( $where2 ) ? "1=1" : join( ' AND ', $where2 );
 
 		$query = "SELECT COUNT(1) FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE $where2 AND `id` NOT IN (SELECT event_id AS id FROM " . INSTAWP_DB_TABLE_EVENT_SITES . " WHERE $where)";
 
@@ -391,11 +410,20 @@ class InstaWP_Sync_Ajax {
 	}
 
 	private function pack_pending_sync_events() {
-		$where = "1=1";
-		if ( isset( $_POST['dest_connect_id'] ) && intval( $_POST['dest_connect_id'] ) > 0 ) {
-			$where .= " AND connect_id=" . sanitize_text_field( $_POST['dest_connect_id'] );
+		$where = $where2 = "1=1";
+		$connect_id = ! empty( $_POST['dest_connect_id'] ) ? intval( $_POST['dest_connect_id'] ) : 0;
+		$entry_ids  = ! empty( $_POST['ids'] ) ? array_map( 'intval', explode( ',', $_POST['ids'] ) ) : [];
+
+		if ( $connect_id > 0 ) {
+			$where .= " AND connect_id=" . $connect_id;
 		}
-		$query = "SELECT * FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE `id` NOT IN (SELECT event_id AS id FROM " . INSTAWP_DB_TABLE_EVENT_SITES . " WHERE $where) ORDER BY id ASC LIMIT " . INSTAWP_EVENTS_SYNC_PER_PAGE;
+
+		if ( ! empty( $entry_ids ) ) {
+			$entry_ids = join( ',', $entry_ids );
+			$where2    .= " AND `id` IN($entry_ids)";
+		}
+
+		$query = "SELECT * FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE $where2 AND `id` NOT IN (SELECT event_id AS id FROM " . INSTAWP_DB_TABLE_EVENT_SITES . " WHERE $where) ORDER BY id ASC LIMIT " . INSTAWP_EVENTS_SYNC_PER_PAGE;
 
 		return $this->wpdb->get_results( $query );
 	}

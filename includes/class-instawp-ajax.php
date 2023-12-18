@@ -7,10 +7,9 @@ class InstaWP_AJAX {
 
 	public function __construct() {
 
-		add_action( 'wp_ajax_instawp_settings_call', array( $this, 'instawp_settings_call' ) );
 		add_action( 'wp_ajax_instawp_connect', array( $this, 'connect' ) );
 		add_action( 'init', array( $this, 'delete_folder_handle' ) );
-		add_action( 'admin_notices', array( $this, 'instawp_connect_reset_admin_notices' ) );
+		add_action( 'admin_notices', array( $this, 'reset_admin_notices' ) );
 
 		// Management
 		add_action( 'wp_ajax_instawp_save_management_settings', array( $this, 'save_management_settings' ) );
@@ -465,7 +464,7 @@ class InstaWP_AJAX {
 	}
 
 	// Set transient admin notice function
-	public function instawp_connect_reset_admin_notices() {
+	public function reset_admin_notices() {
 		if ( isset( $_GET['page'] ) && $_GET['page'] === "instawp-settings" ) {
 			$plugins_reset_notice = get_transient( 'instawp_connect_plugin_reset_notice' );
 			if ( false !== $plugins_reset_notice ) {
@@ -503,57 +502,6 @@ class InstaWP_AJAX {
 			wp_redirect( $redirect_url );
 			exit();
 		}
-	}
-
-	public function instawp_settings_call() {
-		if ( isset( $_POST['instawp_api_url_internal'] ) ) {
-			$instawp_api_url_internal = $_POST['instawp_api_url_internal'];
-			InstaWP_Setting::set_api_domain( $instawp_api_url_internal );
-		}
-
-		$message           = '';
-		$resType           = false;
-		$api_key           = InstaWP_Setting::get_api_key();
-		$connect_id        = instawp_get_connect_id();
-		$instawp_db_method = isset( $_POST['instawp_db_method'] ) ? sanitize_text_field( $_POST['instawp_db_method'] ) : '';
-
-		update_option( 'instawp_db_method', $instawp_db_method );
-
-		if (
-			! empty( $api_key ) &&
-			isset( $_POST['api_heartbeat'] ) &&
-			! empty( $_POST['api_heartbeat'] ) &&
-			! empty( $connect_id )
-		) {
-			$api_heartbeat = intval( trim( $_REQUEST['api_heartbeat'] ) );
-
-			$resType = true;
-			$message = 'Settings saved successfully';
-			update_option( 'instawp_heartbeat_option', $api_heartbeat );
-
-			$heartbeat_option_val = (int) get_option( "instawp_heartbeat_option" );
-
-			if ( (int) $heartbeat_option_val !== intval( $api_heartbeat ) ) {
-				$timestamp = wp_next_scheduled( 'instwp_handle_heartbeat_cron_action' );
-				wp_unschedule_event( $timestamp, 'instwp_handle_heartbeat_cron_action' );
-			} else {
-				$timestamp = wp_next_scheduled( 'instwp_handle_heartbeat_cron_action' );
-				wp_unschedule_event( $timestamp, 'instwp_handle_heartbeat_cron_action' );
-
-				if ( ! wp_next_scheduled( 'instwp_handle_heartbeat_cron_action' ) ) {
-					wp_schedule_event( time(), 'instawp_heartbeat_interval', 'instwp_handle_heartbeat_cron_action' );
-				}
-			}
-		} else {
-			$resType = false;
-			$message = 'something wrong';
-		}
-
-		$res_array            = array();
-		$res_array['message'] = $message;
-		$res_array['resType'] = $resType;
-		echo json_encode( $res_array );
-		wp_die();
 	}
 
 	public function connect() {

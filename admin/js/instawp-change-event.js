@@ -88,10 +88,12 @@ jQuery(document).ready(function ($) {
     // });
 
     display_event_action_dropdown = () => {
-        if ($('.single-event-cb:checked').length == 0) {
-            $("#instawp-delete-events").addClass('hidden');
-        } else {
+        if ($('.single-event-cb:checked').length) {
             $("#instawp-delete-events").removeClass('hidden');
+            $(".bulk-sync-popup-btn > span").text('Sync Selected');
+        } else {
+            $("#instawp-delete-events").addClass('hidden');
+            $(".bulk-sync-popup-btn > span").text('Sync All');
         }
     }
 
@@ -189,9 +191,14 @@ jQuery(document).ready(function ($) {
     }
 
     const get_events_summary = async () => {
+        const selectedEvents = [];
+        $('.single-event-cb:checked').each(function () {
+            selectedEvents.push($(this).val());
+        });
         let formData = new FormData();
         formData.append('action', 'instawp_get_events_summary');
         formData.append('connect_id', $("#destination-site").val());
+        formData.append('ids', selectedEvents);
         $(".sync-changes-btn").addClass('disabled');
         $("#event-type-list").addClass('instawp-box-loading').html('');
         $('.sync_error_success_msg').html(' ');
@@ -229,10 +236,14 @@ jQuery(document).ready(function ($) {
         $("#part-sync-results").html('<tr><td colspan="5" class="event-sync-cell loading"></td></tr>');
 
         baseCall(formData).then((response) => response.json()).then((data) => {
-
             $("#part-sync-results").html(data.data.results);
-            $("#event-sync-pagination").html(data.data.pagination);
-
+            if (data.data.pagination) {
+                $("#event-sync-pagination").html(data.data.pagination);
+                $("#event-sync-pagination-area").removeClass('hidden');
+            } else {
+                $("#event-sync-pagination").html('');
+                $("#event-sync-pagination-area").addClass('hidden');
+            }
         }).catch((error) => {
             console.log("Error Occurred: ", error);
         });
@@ -274,7 +285,10 @@ jQuery(document).ready(function ($) {
 
     //Bulk&Selected sync process...
     $(document).on('click', '.sync-changes-btn', function () {
-
+        const selectedEvents = [];
+        $('.single-event-cb:checked').each(function () {
+            selectedEvents.push($(this).val());
+        });
         const sync_message = $("#sync_message").val();
         const sync_type = $('.bulk-sync-popup').attr("data-sync-type");
         const dest_connect_id = $("#destination-site").val();
@@ -285,13 +299,13 @@ jQuery(document).ready(function ($) {
         let formData = new FormData();
         formData.append('action', 'instawp_calculate_events');
         formData.append('connect_id', dest_connect_id);
+        formData.append('ids', selectedEvents);
         baseCall(formData).then((response) => response.json()).then((data) => {
-
             if (data.success) {
                 jQuery("#destination-site").attr("disabled", true)
                 $(".progress-wrapper").removeClass('hidden');
                 $(".event-progress-text").html(data.data.progress_text)
-                packThings(sync_message, sync_type, dest_connect_id, page = 1);
+                packThings(sync_message, sync_type, dest_connect_id, page = 1, selectedEvents);
             } else {
                 $(".sync-changes-btn").removeClass('disable-a loading');
                 $('.sync_error_success_msg').html('<p class="error">' + data.message + '</p>');
@@ -306,14 +320,15 @@ jQuery(document).ready(function ($) {
         get_events_summary();
     });
 
-    const packThings = async (sync_message, sync_type, dest_connect_id, batch_num) => {
+    const packThings = async (sync_message, sync_type, dest_connect_id, batch_num, ids = []) => {
         let formData = new FormData();
-
+        formData.append('action', 'instawp_pack_events');
         formData.append('sync_type', sync_type);
         formData.append('sync_message', sync_message);
         formData.append('dest_connect_id', dest_connect_id);
         formData.append('page', batch_num);
-        formData.append('action', 'instawp_pack_events');
+        formData.append('ids', ids);
+
         // $('.sync_error_success_msg').html('');
         $(".sync_process .step-1").removeClass('process_pending').addClass('process_inprogress');
         baseCall(formData).then((response) => response.json()).then((data) => {
@@ -322,7 +337,7 @@ jQuery(document).ready(function ($) {
                 $(".sync_process .step-1").removeClass('process_inprogress').addClass('process_complete');
                 //Initiate Step 2
                 $(".sync_process .step-2").removeClass('process_pending').addClass('process_inprogress');
-                bulkSync(sync_message, data.data, sync_type, dest_connect_id, batch_num);
+                bulkSync(sync_message, data.data, sync_type, dest_connect_id, batch_num, ids);
             } else {
                 $("#destination-site").attr("disabled", false);
                 $(".sync-changes-btn").removeClass('disable-a loading');
@@ -336,7 +351,7 @@ jQuery(document).ready(function ($) {
 
     }
 
-    const bulkSync = (sync_message, data, sync_type, dest_connect_id, page) => {
+    const bulkSync = (sync_message, data, sync_type, dest_connect_id, page, ids) => {
         let formData = new FormData();
         formData.append('action', 'instawp_sync_changes');
         formData.append('sync_message', sync_message);
@@ -345,6 +360,7 @@ jQuery(document).ready(function ($) {
         formData.append('sync_ids', '');
         formData.append('data', JSON.stringify(data));
         formData.append('page', page);
+        formData.append('ids', ids);
         baseCall(formData).then((response) => response.json()).then((data) => {
             if (data.success === true) {
                 const paging = data.data;
@@ -361,15 +377,14 @@ jQuery(document).ready(function ($) {
                     if (0 === (paging.total_completed % 50)) {
                         $('.sync_error_success_msg').html('<p class="warning">Cooling down..</p>');
                         setTimeout(function () {
-                            packThings(sync_message, sync_type, dest_connect_id, paging.next_batch);
+                            packThings(sync_message, sync_type, dest_connect_id, paging.next_batch, ids);
                         }, 10000);
                     } else {
-                        packThings(sync_message, sync_type, dest_connect_id, paging.next_batch);
+                        packThings(sync_message, sync_type, dest_connect_id, paging.next_batch, ids);
                     }
                 }
 
                 if (paging.percent_completed == 100 && paging.total_batch == paging.current_batch) {
-
                     $(".sync-changes-btn").removeClass('disable-a loading');
                     $(".sync_process .step-3").removeClass('process_inprogress').addClass('process_complete');
                     $('.bulk-sync-btn').html('<a class="sync-complete" href="javascript:void(0);">Sync Completed</a>');
@@ -381,6 +396,7 @@ jQuery(document).ready(function ($) {
                         $(".event-progress-bar>div").css('width', '0%');
                         $("#destination-site").attr("disabled", false);
                         $("#staging-site-sync").val($("#destination-site").val());
+                        $(".bulk-sync-popup-btn > span").text('Sync All');
                         get_site_events();
                     }, 2000);
                 }
