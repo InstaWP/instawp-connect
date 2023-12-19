@@ -143,15 +143,16 @@ class instaWP {
 		$count_users        = count_users();
 		$users              = $count_users['total_users'];
 		$heartbeat_body     = base64_encode(
-			json_encode(
+			wp_json_encode(
 				array(
-					"wp_version"  => $wp_version,
-					"php_version" => $php_version,
-					"total_size"  => $total_size,
-					"theme"       => $active_theme,
-					"posts"       => $posts,
-					"pages"       => $pages,
-					"users"       => $users,
+					"wp_version"     => $wp_version,
+					"php_version"    => $php_version,
+					"plugin_version" => INSTAWP_PLUGIN_VERSION,
+					"total_size"     => $total_size,
+					"theme"          => $active_theme,
+					"posts"          => $posts,
+					"pages"          => $pages,
+					"users"          => $users,
 				)
 			)
 		);
@@ -159,7 +160,7 @@ class instaWP {
 
 		if ( defined( 'INSTAWP_DEBUG_LOG' ) && INSTAWP_DEBUG_LOG ) {
 			error_log( "Print Heartbeat API Curl Response Start" );
-			error_log( json_encode( $heartbeat_response, true ) );
+			error_log( wp_json_encode( $heartbeat_response, true ) );
 			error_log( "Print Heartbeat API Curl Response End" );
 		}
 	}

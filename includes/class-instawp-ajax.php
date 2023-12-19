@@ -6,8 +6,6 @@ class InstaWP_AJAX {
 	public $instawp_log;
 
 	public function __construct() {
-
-		add_action( 'wp_ajax_instawp_connect', array( $this, 'connect' ) );
 		add_action( 'init', array( $this, 'delete_folder_handle' ) );
 		add_action( 'admin_notices', array( $this, 'reset_admin_notices' ) );
 
@@ -502,89 +500,6 @@ class InstaWP_AJAX {
 			wp_redirect( $redirect_url );
 			exit();
 		}
-	}
-
-	public function connect() {
-
-		global $InstaWP_Curl;
-		$this->ajax_check_security();
-		$res        = array(
-			'error'   => true,
-			'message' => '',
-		);
-		$api_doamin = InstaWP_Setting::get_api_domain();
-		$url        = $api_doamin . INSTAWP_API_URL . '/connects';
-
-		// $connect_options = get_option('instawp_api_options', '');
-		// if (!isset($connect_options['api_key']) && empty($connect_options['api_key'])) {
-		//    $res['message'] = 'API Key is required';
-		//    echo json_encode($res);
-		//    wp_die();
-		// }
-		// $api_key = $connect_options['api_key'];
-		$php_version = substr( phpversion(), 0, 3 );
-
-		/*Get username*/
-		$username    = null;
-		$admin_users = get_users(
-			array(
-				'role__in' => array( 'administrator' ),
-				'fields'   => array( 'user_login' )
-			)
-		);
-
-		if ( ! empty( $admin_users ) ) {
-			if ( is_null( $username ) ) {
-				foreach ( $admin_users as $admin ) {
-					$username = $admin->user_login;
-				}
-			}
-		}
-		/*Get username closes*/
-		$body = json_encode(
-			array(
-				"url"         => get_site_url(),
-				"php_version" => $php_version,
-				"username"    => ! is_null( $username ) ? base64_encode( $username ) : "",
-			)
-		);
-
-		/*Debugging*/
-		error_log( strtoupper( "on connect call sent data ---> " ) . print_r( json_decode( $body, true ), true ) );
-		/*Debugging*/
-
-		$curl_response = $InstaWP_Curl->curl( $url, $body );
-		error_log( json_encode( $curl_response ) );
-
-		if ( $curl_response['error'] == false ) {
-			$response = (array) json_decode( $curl_response['curl_res'], true );
-
-			if ( $response['status'] == true ) {
-				InstaWP_Setting::set_connect_id( $response['data']['id'] );
-
-				/* RUN CRON ON CONNECT START */
-				$timestamp = wp_next_scheduled( 'instwp_handle_heartbeat_cron_action' );
-				wp_unschedule_event( $timestamp, 'instwp_handle_heartbeat_cron_action' );
-
-				if ( ! wp_next_scheduled( 'instwp_handle_heartbeat_cron_action' ) ) {
-					wp_schedule_event( time(), 'instawp_heartbeat_interval', 'instwp_handle_heartbeat_cron_action' );
-				}
-				/* RUN CRON ON CONNECT END */
-
-				$res['message'] = $response['message'];
-				$res['error']   = false;
-			} else {
-				error_log( json_encode( $response ) );
-				$res['message'] = 'Something Went Wrong. Please try again';
-				$res['error']   = true;
-			}
-		} else {
-			$res['message'] = 'Something Went Wrong. Please try again';
-			$res['error']   = true;
-		}
-
-		echo json_encode( $res );
-		wp_die();
 	}
 
 	public function ajax_check_security( $role = 'administrator' ) {
