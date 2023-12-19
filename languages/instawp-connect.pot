@@ -1,4 +1,3 @@
-InstaWP
 msgid ""
 msgstr ""
 "Project-Id-Version: InstaWP Connect\n"
@@ -81,35 +80,35 @@ msgstr ""
 msgid "3. Go back to this page and paste the key in key box below. Lastly, click Save button."
 msgstr ""
 
-#: includes/class-instawp-ajax.php:79
+#: includes/class-instawp-ajax.php:78
 msgid "Migration failed."
 msgstr ""
 
-#: includes/class-instawp-ajax.php:144
+#: includes/class-instawp-ajax.php:143
 msgid "Error: Empty serve url found in pre-check response."
 msgstr ""
 
-#: includes/class-instawp-ajax.php:157
+#: includes/class-instawp-ajax.php:156
 msgid "Error: Empty api signature found in pre-check response."
 msgstr ""
 
-#: includes/class-instawp-ajax.php:236
+#: includes/class-instawp-ajax.php:235
 msgid "Increase Limit"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:258
+#: includes/class-instawp-ajax.php:257
 msgid "Empty folder!"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:358
+#: includes/class-instawp-ajax.php:357
 msgid "%s rows"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:401
+#: includes/class-instawp-ajax.php:400
 msgid "We have identified following large files in your installation:"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:498
+#: includes/class-instawp-ajax.php:497
 msgid "InstaWP Connect Settings has been reset successfully."
 msgstr ""
 
@@ -433,35 +432,35 @@ msgstr ""
 msgid "Migration aborted forcefully"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-ajax.php:224
+#: includes/sync/class-instawp-sync-ajax.php:233
 msgid "%u %s %s"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-ajax.php:212
+#: includes/sync/class-instawp-sync-ajax.php:221
 msgid "%u %s"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-ajax.php:217
+#: includes/sync/class-instawp-sync-ajax.php:226
 msgid "Show more"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-ajax.php:237
+#: includes/sync/class-instawp-sync-ajax.php:246
 msgid "Sync not initiated ( 0 out of %d events )"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-ajax.php:238
+#: includes/sync/class-instawp-sync-ajax.php:247
 msgid "Events loaded"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-ajax.php:238, includes/sync/class-instawp-sync-ajax.php:288
+#: includes/sync/class-instawp-sync-ajax.php:247, includes/sync/class-instawp-sync-ajax.php:297
 msgid "No pending events found!"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-ajax.php:284
+#: includes/sync/class-instawp-sync-ajax.php:293
 msgid "You have reached your sync limit. Current usage %u out of %u."
 msgstr ""
 
-#: includes/sync/class-instawp-sync-ajax.php:281
+#: includes/sync/class-instawp-sync-ajax.php:290
 msgid " Completed ( 0 out of %d events )"
 msgstr ""
 
