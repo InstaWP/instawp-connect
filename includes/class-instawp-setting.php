@@ -384,7 +384,7 @@ class InstaWP_Setting {
 					'id'      => 'instawp_sync_option',
 					'type'    => 'toggle',
 					'title'   => __( 'WP Options', 'instawp-connect' ),
-					'tooltip' => __( 'Enabling this option will allow creation of remote file manager on this website remotely using the REST API.', 'instawp-connect' ),
+					'tooltip' => __( 'Enabling this option will allow plugin to log WordPress options.', 'instawp-connect' ),
 					'class'   => 'save-ajax',
 					'default' => 'off',
 				]
