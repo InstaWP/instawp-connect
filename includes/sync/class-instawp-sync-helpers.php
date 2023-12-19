@@ -73,10 +73,10 @@ class InstaWP_Sync_Helpers {
 		}
     }
 
-	public static function can_sync(): bool {
+	public static function can_sync( string $key ): bool {
 		$syncing_status = get_option( 'instawp_is_event_syncing', 0 );
 
-		return ( intval( $syncing_status ) === 1 );
+		return ( intval( $syncing_status ) === 1 ) && self::is_enabled( $key );
 	}
 
 	/**
@@ -137,5 +137,20 @@ class InstaWP_Sync_Helpers {
 		}
 
 		return $data;
+	}
+
+	/**
+	 * Verify the sync feature is enabled or not.
+	 *
+	 * @param string $key
+	 *
+	 * @return bool
+	 */
+	public static function is_enabled( string $key ): bool {
+		$default = ( 'option' === $key ) ? 'off' : 'on';
+		$value   = InstaWP_Setting::get_option( 'instawp_sync_' . $key, $default );
+		$value   = empty( $value ) ? $default : $value;
+
+		return 'on' === $value;
 	}
 }

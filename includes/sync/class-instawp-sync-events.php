@@ -19,10 +19,6 @@ class InstaWP_Sync_Events
 
         $this->wpdb = $wpdb;
 
-		if ( ! InstaWP_Sync_Helpers::can_sync() ) {
-			return;
-		}
-
         #Customizer
         //add_action( 'customize_save_after',array($this,'customizeSaveAfter'));
         #Woocommerce

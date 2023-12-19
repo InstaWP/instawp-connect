@@ -94,6 +94,12 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 
 == Changelog ==
 
+= 0.1.0.5 =
+
+- NEW - Added option to enable or disable 2 way sync events.
+- NEW - Added option to individually select events for sync.
+- FIX - File Permission issue if the file name has any unwanted characters.
+
 = 0.1.0.4 - 14 Dec 2023 =
 
 - FIX - Revert support for PHP 7.4.

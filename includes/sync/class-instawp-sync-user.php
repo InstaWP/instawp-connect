@@ -23,7 +23,7 @@ class InstaWP_Sync_User {
 	 * @return void
 	 */
 	public function user_register( $user_id, $userdata ) {
-		if ( ! InstaWP_Sync_Helpers::can_sync() ) {
+		if ( ! InstaWP_Sync_Helpers::can_sync( 'user' ) ) {
 			return;
 		}
 
@@ -53,7 +53,7 @@ class InstaWP_Sync_User {
 	 * @return void
 	 */
 	public function delete_user( $id, $reassign, $user ) {
-		if ( ! InstaWP_Sync_Helpers::can_sync() ) {
+		if ( ! InstaWP_Sync_Helpers::can_sync( 'user' ) ) {
 			return;
 		}
 
@@ -74,7 +74,7 @@ class InstaWP_Sync_User {
 	 * @return void
 	 */
 	public function profile_update( $user_id, $old_user_data, $userdata ) {
-		if ( ! InstaWP_Sync_Helpers::can_sync() ) {
+		if ( ! InstaWP_Sync_Helpers::can_sync( 'user' ) ) {
 			return;
 		}
 
