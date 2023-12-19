@@ -24,7 +24,7 @@ class InstaWP_Sync_Term {
 	 * @return void
 	 */
 	public function create_taxonomy( $term_id, $tt_id, $taxonomy ) {
-		if ( ! InstaWP_Sync_Helpers::can_sync() ) {
+		if ( ! InstaWP_Sync_Helpers::can_sync( 'term' ) ) {
 			return;
 		}
 
@@ -44,7 +44,7 @@ class InstaWP_Sync_Term {
 	 * @return void
 	 */
 	public function edit_taxonomy( $term_id, $tt_id, $taxonomy ) {
-		if ( ! InstaWP_Sync_Helpers::can_sync() ) {
+		if ( ! InstaWP_Sync_Helpers::can_sync( 'term' ) ) {
 			return;
 		}
 
@@ -65,7 +65,7 @@ class InstaWP_Sync_Term {
 	 * @return void
 	 */
 	public function delete_taxonomy( $term, $tt_id, $taxonomy, $deleted_term ) {
-		if ( ! InstaWP_Sync_Helpers::can_sync() ) {
+		if ( ! InstaWP_Sync_Helpers::can_sync( 'term' ) ) {
 			return;
 		}
 

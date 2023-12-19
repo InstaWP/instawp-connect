@@ -307,7 +307,7 @@ class InstaWP_Setting {
 		// Section - Sync settings
 		$settings['sync_settings'] = array(
 			'title'    => esc_html__( 'Sync Settings', 'instawp-connect' ),
-			'desc'     => esc_html__( 'This section only applicable for the sync event settings.', 'instawp-connect' ),
+			'desc'     => esc_html__( 'This section only applicable for the sync settings.', 'instawp-connect' ),
 			'internal' => false,
 			'fields'   => array(
 				array(
@@ -333,6 +333,64 @@ class InstaWP_Setting {
 				)
 			),
 		);
+
+		$settings['sync_events_settings'] = array(
+			'title'    => esc_html__( 'Sync Events Settings', 'instawp-connect' ),
+			'desc'     => esc_html__( 'This section only applicable for the sync event settings.', 'instawp-connect' ),
+			'internal' => false,
+			'grid_class' => 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6',
+			'fields'   => array(
+				[
+					'id'      => 'instawp_sync_post',
+					'type'    => 'toggle',
+					'title'   => __( 'Posts', 'instawp-connect' ),
+					'tooltip' => __( 'Enabling this option will allow plugin to log events related to all posts, pages and custom post types.', 'instawp-connect' ),
+					'class'   => 'save-ajax',
+					'default' => 'on',
+				],
+				[
+					'id'      => 'instawp_sync_term',
+					'type'    => 'toggle',
+					'title'   => __( 'Taxonomies', 'instawp-connect' ),
+					'tooltip' => __( 'Enabling this option will allow plugin to log events related to all categories tags and custom taxonomies.', 'instawp-connect' ),
+					'class'   => 'save-ajax',
+					'default' => 'on',
+				],
+				[
+					'id'      => 'instawp_sync_user',
+					'type'    => 'toggle',
+					'title'   => __( 'Users', 'instawp-connect' ),
+					'tooltip' => __( 'Enabling this option will allow plugin to log events related to all users.', 'instawp-connect' ),
+					'class'   => 'save-ajax',
+					'default' => 'on',
+				],
+				[
+					'id'      => 'instawp_sync_plugin',
+					'type'    => 'toggle',
+					'title'   => __( 'Plugins', 'instawp-connect' ),
+					'tooltip' => __( 'Enabling this option will allow plugin to log events related to plugins.', 'instawp-connect' ),
+					'class'   => 'save-ajax',
+					'default' => 'on',
+				],
+				[
+					'id'      => 'instawp_sync_theme',
+					'type'    => 'toggle',
+					'title'   => __( 'Themes', 'instawp-connect' ),
+					'tooltip' => __( 'Enabling this option will allow plugin to log events related to all themes.', 'instawp-connect' ),
+					'class'   => 'save-ajax',
+					'default' => 'on',
+				],
+				[
+					'id'      => 'instawp_sync_option',
+					'type'    => 'toggle',
+					'title'   => __( 'WP Options', 'instawp-connect' ),
+					'tooltip' => __( 'Enabling this option will allow creation of remote file manager on this website remotely using the REST API.', 'instawp-connect' ),
+					'class'   => 'save-ajax',
+					'default' => 'off',
+				]
+			),
+		);
+
 
 		// Section - Developer Options
 		$settings['developer'] = array(

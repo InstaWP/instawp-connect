@@ -28,7 +28,7 @@ class InstaWP_Sync_Post {
 	 * @return void
 	 */
 	public function save_post( $post_id, $post, $update ) {
-		if ( ! InstaWP_Sync_Helpers::can_sync() ) {
+		if ( ! InstaWP_Sync_Helpers::can_sync( 'post' ) ) {
 			return;
 		}
 
@@ -72,7 +72,7 @@ class InstaWP_Sync_Post {
 	 * @return void
 	 */
 	public function delete_post( $post_id, $post ) {
-		if ( ! InstaWP_Sync_Helpers::can_sync() ) {
+		if ( ! InstaWP_Sync_Helpers::can_sync( 'post' ) ) {
 			return;
 		}
 
@@ -90,7 +90,7 @@ class InstaWP_Sync_Post {
 	 * @param WP_Post $post       Post object.
 	 */
 	public function transition_post_status( $new_status, $old_status, $post ) {
-		if ( ! InstaWP_Sync_Helpers::can_sync() ) {
+		if ( ! InstaWP_Sync_Helpers::can_sync( 'post' ) ) {
 			return;
 		}
 

@@ -26,10 +26,6 @@ class InstaWP_Sync_Plugin_Theme {
 	 * @return void
 	 */
 	public function install_update_action( $upgrader, $hook_extra ) {
-		if ( ! InstaWP_Sync_Helpers::can_sync() ) {
-			return;
-		}
-
 		if ( empty( $hook_extra['type'] ) || empty( $hook_extra['action'] ) ) {
 			return;
 		}
@@ -42,7 +38,7 @@ class InstaWP_Sync_Plugin_Theme {
 		$event_name = sprintf( esc_html__('%s %s%s', 'instawp-connect'), ucfirst( $hook_extra['type'] ), $hook_extra['action'], $hook_extra['action'] == 'update'? 'd' : 'ed' );
 
 		// hooks for theme and record the event
-		if ( $upgrader instanceof Theme_Upgrader && $hook_extra['type'] === 'theme' ) {
+		if ( InstaWP_Sync_Helpers::can_sync( 'theme' ) && $upgrader instanceof Theme_Upgrader && $hook_extra['type'] === 'theme' ) {
 			$destination_name = $upgrader->result['destination_name'];
 			$theme            = wp_get_theme( $destination_name );
 
@@ -57,7 +53,7 @@ class InstaWP_Sync_Plugin_Theme {
 		}
 
 		// hooks for plugins and record the plugin.
-		if ( $upgrader instanceof Plugin_Upgrader && $hook_extra['type'] === 'plugin' ) {
+		if ( InstaWP_Sync_Helpers::can_sync( 'plugin' ) && $upgrader instanceof Plugin_Upgrader && $hook_extra['type'] === 'plugin' ) {
 			if ( $hook_extra['action'] === 'install' && ! empty( $upgrader->new_plugin_data ) ) {
 				$plugin_data = $upgrader->new_plugin_data;
 			} else if ( $hook_extra['action'] === 'update' && ! empty( $upgrader->skin->plugin_info ) ) {
@@ -86,7 +82,7 @@ class InstaWP_Sync_Plugin_Theme {
 	 * @return void
 	 */
 	public function deactivate_plugin( $plugin, $network_wide ) {
-		if ( ! InstaWP_Sync_Helpers::can_sync() ) {
+		if ( ! InstaWP_Sync_Helpers::can_sync( 'plugin' ) ) {
 			return;
 		}
 
@@ -103,7 +99,7 @@ class InstaWP_Sync_Plugin_Theme {
 	 * @return void
 	 */
 	public function activate_plugin( $plugin, $network_wide ) {
-		if ( ! InstaWP_Sync_Helpers::can_sync() ) {
+		if ( ! InstaWP_Sync_Helpers::can_sync( 'plugin' ) ) {
 			return;
 		}
 
@@ -120,7 +116,7 @@ class InstaWP_Sync_Plugin_Theme {
 	 * @return void
 	 */
 	public function delete_plugin( $plugin, $deleted ) {
-		if ( ! InstaWP_Sync_Helpers::can_sync() ) {
+		if ( ! InstaWP_Sync_Helpers::can_sync( 'plugin' ) ) {
 			return;
 		}
 
@@ -139,7 +135,7 @@ class InstaWP_Sync_Plugin_Theme {
 	 * @return void
 	 */
 	public function switch_theme( $new_name, $new_theme, $old_theme ) {
-		if ( ! InstaWP_Sync_Helpers::can_sync() ) {
+		if ( ! InstaWP_Sync_Helpers::can_sync( 'theme' ) ) {
 			return;
 		}
 
@@ -161,7 +157,7 @@ class InstaWP_Sync_Plugin_Theme {
 	 * @return void
 	 */
 	public function delete_theme( $stylesheet, $deleted ) {
-		if ( ! InstaWP_Sync_Helpers::can_sync() ) {
+		if ( ! InstaWP_Sync_Helpers::can_sync( 'theme' ) ) {
 			return;
 		}
 

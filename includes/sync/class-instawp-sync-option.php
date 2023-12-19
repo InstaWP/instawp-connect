@@ -15,7 +15,7 @@ class InstaWP_Sync_Option {
     }
 
 	public function added_option( $option, $value ) {
-		if ( ! InstaWP_Sync_Helpers::can_sync() ) {
+		if ( ! InstaWP_Sync_Helpers::can_sync( 'option' ) ) {
 			return;
 		}
 
@@ -25,7 +25,7 @@ class InstaWP_Sync_Option {
 	}
 
 	public function updated_option( $option, $old_value, $value ) {
-		if ( ! InstaWP_Sync_Helpers::can_sync() ) {
+		if ( ! InstaWP_Sync_Helpers::can_sync( 'option' ) ) {
 			return;
 		}
 
@@ -35,7 +35,7 @@ class InstaWP_Sync_Option {
 	}
 
 	public function deleted_option( $option ) {
-		if ( ! InstaWP_Sync_Helpers::can_sync() ) {
+		if ( ! InstaWP_Sync_Helpers::can_sync( 'option' ) ) {
 			return;
 		}
 

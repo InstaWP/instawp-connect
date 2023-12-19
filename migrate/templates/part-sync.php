@@ -118,9 +118,7 @@ if ( ! empty( $parent_connect_data ) ) {
                         </div>
                         <!-- pagination -->
                         <nav id="event-sync-pagination-area" class="flex items-center justify-between border-t border-gray-200 mx-9 my-5 hidden">
-                            <div id="event-sync-pagination">
-
-                            </div>
+                            <div id="event-sync-pagination"></div>
                             <!-- <div class="-mt-px flex w-0 flex-1">
                                     <a href="#" class="inline-flex items-center border-t-2 border-transparent pt-3 pr-1 text-sm font-medium text-grayCust-300 hover:border-gray-300 hover:text-gray-700">
                                        
