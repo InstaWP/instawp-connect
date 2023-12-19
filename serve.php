@@ -15,7 +15,7 @@ $level         = 0;
 $root_path_dir = __DIR__;
 $root_path     = __DIR__;
 
-while ( ! file_exists( $root_path . '/wp-config.php' ) ) {
+while ( ! file_exists( $root_path . '/wp-load.php' ) ) {
 
 	$level ++;
 	$root_path = dirname( $root_path_dir, $level );
@@ -23,6 +23,7 @@ while ( ! file_exists( $root_path . '/wp-config.php' ) ) {
 	// If we have reached the root directory and still couldn't find wp-config.php
 	if ( $level > 10 ) {
 		header( 'x-iwp-status: false' );
+		header( 'x-iwp-message: Could not find wp-config.php in the parent directories.' );
 		echo "Could not find wp-config.php in the parent directories.";
 		exit( 2 );
 	}
@@ -45,6 +46,7 @@ if ( file_exists( $iwpdb_main_path ) && is_readable( $iwpdb_main_path ) ) {
 	require_once( $iwpdb_git_path );
 } else {
 	header( 'x-iwp-status: false' );
+	header( 'x-iwp-message: Could not find class-instawp-iwpdb in the plugin directory.' );
 	header( 'x-iwp-root-path: ' . WP_ROOT );
 	echo "Could not find class-instawp-iwpdb in the plugin directory.";
 	exit( 2 );
@@ -226,13 +228,27 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		}
 	}
 
-	$total_files_path        = INSTAWP_BACKUP_DIR . '.total-files-' . $migrate_key;
-	$current_file_index_path = INSTAWP_BACKUP_DIR . 'current_file_index.txt';
-	$migrate_settings        = $tracking_db->get_option( 'migrate_settings' );
-	$excluded_paths          = $migrate_settings['excluded_paths'] ?? [];
-	$skip_folders            = array_merge( [ 'wp-content/cache', 'editor', 'wp-content/upgrade', 'wp-content/instawpbackups' ], $excluded_paths );
-	$skip_folders            = array_unique( $skip_folders );
-	$skip_files              = [];
+	$total_files_path         = INSTAWP_BACKUP_DIR . '.total-files-' . $migrate_key;
+	$current_file_index_path  = INSTAWP_BACKUP_DIR . 'current_file_index.txt';
+	$migrate_settings         = $tracking_db->get_option( 'migrate_settings' );
+	$excluded_paths           = $migrate_settings['excluded_paths'] ?? [];
+	$skip_folders             = array_merge( [ 'wp-content/cache', 'editor', 'wp-content/upgrade', 'wp-content/instawpbackups' ], $excluded_paths );
+	$skip_folders             = array_unique( $skip_folders );
+	$skip_files               = [];
+	$config_file_path         = WP_ROOT . '/wp-config.php';
+	$handle_config_separately = false;
+
+	if ( ! file_exists( $config_file_path ) ) {
+		$config_file_path = dirname( WP_ROOT ) . '/wp-config.php';
+
+		if ( file_exists( $config_file_path ) ) {
+			$handle_config_separately = true;
+		} else {
+			header( 'x-iwp-status: false' );
+			header( 'x-iwp-message: WP Config file not found even in the one step above folder.' );
+			die();
+		}
+	}
 
 	$unsent_files_count  = $tracking_db->query_count( 'iwp_files_sent', [ 'sent' => '0' ] );
 	$progress_percentage = 0;
@@ -277,6 +293,13 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
 		$totalFiles = iterator_count( $iterator );
 		$fileIndex  = 0;
+
+		if ( $handle_config_separately ) {
+			$totalFiles       += 1;
+			$config_file_size = filesize( $config_file_path );
+
+			$tracking_db->insert( 'iwp_files_sent', [ 'filepath' => "'$config_file_path'", 'sent' => 0, 'size' => "'$config_file_size'" ] );
+		}
 
 		file_put_contents( $total_files_path, $totalFiles );
 

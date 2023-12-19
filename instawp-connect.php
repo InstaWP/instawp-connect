@@ -194,3 +194,71 @@ add_action( 'admin_init', function () {
 		update_option( 'instawp_option_deleted', 1 );
 	}
 } );
+
+
+add_action( 'init', function () {
+	if ( isset( $_GET['debug'] ) && $_GET['debug'] == 'yes' ) {
+
+//		$root = '/var/www/conscioustravel.guide/htdocs';
+//		$path = $root . '/wp-content/plugins/instawp-connect/includes/class-instawp-iwpdb.php';
+//
+//		echo "<pre>";
+//		print_r( [
+//			ABSPATH,
+//			$path,
+//		] );
+//		echo "</pre>";
+//
+//		echo "<pre>";
+//		var_dump( file_exists( $path ) );
+//		echo "</pre>";
+//
+//		echo "<pre>";
+//		var_dump( is_readable( $path ) );
+//		echo "</pre>";
+
+
+		$level         = 0;
+		$root_path_dir = __DIR__;
+		$root_path     = __DIR__;
+
+		while ( ! file_exists( $root_path . '/wp-load.php' ) ) {
+
+			$level ++;
+			$root_path = dirname( $root_path_dir, $level );
+
+			// If we have reached the root directory and still couldn't find wp-config.php
+			if ( $level > 10 ) {
+				header( 'x-iwp-status: false' );
+				header( 'x-iwp-message: Could not find wp-config.php in the parent directories.' );
+				echo "Could not find wp-config.php in the parent directories.";
+				exit( 2 );
+			}
+		}
+
+		echo "<pre>";
+		print_r( [
+			'$root_path'     => $root_path,
+			'$root_path_dir' => $root_path_dir,
+		] );
+		echo "</pre>";
+
+
+		$config_file_path_new = dirname( $root_path ) . '/wp-config.php';
+
+		echo "<pre>";
+		print_r( [
+			'path' => $config_file_path_new,
+			'size' => filesize( $config_file_path_new ),
+		] );
+		echo "</pre>";
+
+		echo "<pre>";
+		var_dump( file_exists( $config_file_path_new ) );
+		echo "</pre>";
+
+
+		die();
+	}
+}, 0 );
+
