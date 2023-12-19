@@ -228,6 +228,14 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		}
 	}
 
+	if ( ! function_exists( 'is_valid_file' ) ) {
+		function is_valid_file( $filepath ): bool {
+			$filename = basename( $filepath );
+
+			return is_file( $filepath ) && is_readable( $filepath ) && ( preg_match( '/^[a-zA-Z0-9_.\s-]+$/', $filename ) === 1 );
+		}
+	}
+
 	$total_files_path         = INSTAWP_BACKUP_DIR . '.total-files-' . $migrate_key;
 	$current_file_index_path  = INSTAWP_BACKUP_DIR . 'current_file_index.txt';
 	$migrate_settings         = $tracking_db->get_option( 'migrate_settings' );
@@ -304,8 +312,11 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		file_put_contents( $total_files_path, $totalFiles );
 
 		foreach ( $limitedIterator as $file ) {
+			$filepath = $file->getPathname();
+			if ( ! is_valid_file( $filepath ) ) {
+				continue;
+			}
 
-			$filepath   = $file->getPathname();
 			$filesize   = $file->getSize();
 			$currentDir = str_replace( WP_ROOT . '/', '', $file->getPath() );
 			$row        = $tracking_db->get_row( 'iwp_files_sent', [ 'filepath' => $filepath ] );
