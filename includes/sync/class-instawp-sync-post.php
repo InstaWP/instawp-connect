@@ -117,7 +117,7 @@ class InstaWP_Sync_Post {
 	 * @return void
 	 */
 	public function add_attachment( $post_id ) {
-		if ( ! InstaWP_Sync_Helpers::can_sync() ) {
+		if ( ! InstaWP_Sync_Helpers::can_sync( 'post' ) ) {
 			return;
 		}
 
@@ -134,7 +134,7 @@ class InstaWP_Sync_Post {
 	 * @return void
 	 */
 	public function attachment_updated( $post_id, $post_after, $post_before ) {
-		if ( ! InstaWP_Sync_Helpers::can_sync() ) {
+		if ( ! InstaWP_Sync_Helpers::can_sync( 'post' ) ) {
 			return;
 		}
 
