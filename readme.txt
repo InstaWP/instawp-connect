@@ -98,6 +98,7 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 
 - NEW - Added option to enable or disable 2 way sync events.
 - NEW - Added option to individually select events for sync.
+- NEW - Send heartbeat immediately after connect a website.
 - FIX - File Permission issue if the file name has any unwanted characters.
 - FIX - Fixed migration issue with wp-config file on parent directory.
 
