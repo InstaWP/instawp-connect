@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.4
 Tested up to: 6.4.2
 Requires PHP: 7.4
-Stable tag: 0.1.0.4
+Stable tag: 0.1.0.5
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -94,11 +94,13 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 
 == Changelog ==
 
-= 0.1.0.5 =
+= 0.1.0.5 - 20 Dec 2023 =
 
 - NEW - Added option to enable or disable 2 way sync events.
 - NEW - Added option to individually select events for sync.
+- NEW - Send heartbeat immediately after connect a website.
 - FIX - File Permission issue if the file name has any unwanted characters.
+- FIX - Fixed migration issue with wp-config file on parent directory.
 
 = 0.1.0.4 - 14 Dec 2023 =
 

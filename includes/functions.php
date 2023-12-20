@@ -577,7 +577,7 @@ if ( ! function_exists( 'get_connect_detail_by_connect_id' ) ) {
 				$response = $api_response['is_parent'] ? $api_response['parent'] : $api_response['children'];
 
 				if ( ! $api_response['is_parent'] ) {
-					$response = array_filter( $response, function( $value ) use( $connect_id ) {
+					$response = array_filter( $response, function ( $value ) use ( $connect_id ) {
 						return $value['id'] === intval( $connect_id );
 					} );
 					$response = count( $response ) > 0 ? reset( $response ) : [];
@@ -619,5 +619,65 @@ if ( ! function_exists( 'instawp_send_connect_log' ) ) {
 		}
 
 		return false;
+	}
+}
+
+
+if ( ! function_exists( 'instawp_send_heartbeat' ) ) {
+	/**
+	 * Send heartbeat to InstaWP
+	 *
+	 * @return bool
+	 */
+	function instawp_send_heartbeat( $connect_id = '' ) {
+
+		date_default_timezone_set( "Asia/Kolkata" );
+
+		if ( defined( 'INSTAWP_DEBUG_LOG' ) && true === INSTAWP_DEBUG_LOG ) {
+			error_log( "HEARTBEAT RAN AT : " . date( 'd-m-Y, H:i:s, h:i:s' ) );
+		}
+
+		if ( empty( $connect_id ) ) {
+			$connect_id = instawp()->connect_id;
+		}
+
+		if ( ! class_exists( 'WP_Debug_Data' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/class-wp-debug-data.php';
+		}
+
+		$sizes_data         = WP_Debug_Data::get_sizes();
+		$wp_version         = get_bloginfo( 'version' );
+		$php_version        = phpversion();
+		$total_size         = $sizes_data['total_size']['size'];
+		$active_theme       = wp_get_theme()->get( 'Name' );
+		$count_posts        = wp_count_posts();
+		$posts              = $count_posts->publish;
+		$count_pages        = wp_count_posts( 'page' );
+		$pages              = $count_pages->publish;
+		$count_users        = count_users();
+		$users              = $count_users['total_users'];
+		$heartbeat_body     = base64_encode(
+			wp_json_encode(
+				array(
+					"wp_version"     => $wp_version,
+					"php_version"    => $php_version,
+					"plugin_version" => INSTAWP_PLUGIN_VERSION,
+					"total_size"     => $total_size,
+					"theme"          => $active_theme,
+					"posts"          => $posts,
+					"pages"          => $pages,
+					"users"          => $users,
+				)
+			)
+		);
+		$heartbeat_response = InstaWP_Curl::do_curl( "connects/{$connect_id}/heartbeat", $heartbeat_body, [], true, 'v1' );
+
+		if ( defined( 'INSTAWP_DEBUG_LOG' ) && INSTAWP_DEBUG_LOG ) {
+			error_log( "Print Heartbeat API Curl Response Start" );
+			error_log( wp_json_encode( $heartbeat_response, true ) );
+			error_log( "Print Heartbeat API Curl Response End" );
+		}
+
+		return true;
 	}
 }

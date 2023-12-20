@@ -94,7 +94,7 @@ class instaWP {
 		$heartbeat = empty( $heartbeat ) ? 'on' : $heartbeat;
 		$interval  = InstaWP_Setting::get_option( 'instawp_api_heartbeat', 15 );
 		$interval  = empty( $interval ) ? 15 : (int) $interval;
-		
+
 		$heartbeat_last = get_option( 'instawp_last_heartbeat_sent' );
 		if ( $heartbeat === 'on' && ( ! $heartbeat_last || ( time() - $heartbeat_last ) > ( $interval * 60 ) ) ) {
 			update_option( 'instawp_last_heartbeat_sent', time() );
@@ -117,52 +117,13 @@ class instaWP {
 	}
 
 	public function handle_heartbeat() {
-		date_default_timezone_set( "Asia/Kolkata" );
-
-		if ( defined( 'INSTAWP_DEBUG_LOG' ) && true === INSTAWP_DEBUG_LOG ) {
-			error_log( "HEARTBEAT RAN AT : " . date( 'd-m-Y, H:i:s, h:i:s' ) );
-		}
 
 		if ( empty( $this->api_key ) || empty( $this->connect_id ) ) {
 			return;
 		}
 
-		if ( ! class_exists( 'WP_Debug_Data' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/class-wp-debug-data.php';
-		}
-
-		$sizes_data         = WP_Debug_Data::get_sizes();
-		$wp_version         = get_bloginfo( 'version' );
-		$php_version        = phpversion();
-		$total_size         = $sizes_data['total_size']['size'];
-		$active_theme       = wp_get_theme()->get( 'Name' );
-		$count_posts        = wp_count_posts();
-		$posts              = $count_posts->publish;
-		$count_pages        = wp_count_posts( 'page' );
-		$pages              = $count_pages->publish;
-		$count_users        = count_users();
-		$users              = $count_users['total_users'];
-		$heartbeat_body     = base64_encode(
-			wp_json_encode(
-				array(
-					"wp_version"     => $wp_version,
-					"php_version"    => $php_version,
-					"plugin_version" => INSTAWP_PLUGIN_VERSION,
-					"total_size"     => $total_size,
-					"theme"          => $active_theme,
-					"posts"          => $posts,
-					"pages"          => $pages,
-					"users"          => $users,
-				)
-			)
-		);
-		$heartbeat_response = InstaWP_Curl::do_curl( "connects/{$this->connect_id}/heartbeat", $heartbeat_body, [], true, 'v1' );
-
-		if ( defined( 'INSTAWP_DEBUG_LOG' ) && INSTAWP_DEBUG_LOG ) {
-			error_log( "Print Heartbeat API Curl Response Start" );
-			error_log( wp_json_encode( $heartbeat_response, true ) );
-			error_log( "Print Heartbeat API Curl Response End" );
-		}
+		// Send heartbeat to InstaWP
+		instawp_send_heartbeat( $this->connect_id );
 	}
 
 	public function prepare_large_files_list() {
@@ -226,8 +187,8 @@ class instaWP {
 				! empty( $_GET['c'] ) &&
 				! empty( $_GET['s'] )
 			) {
-				$param_code = $_GET['c'];
-				$param_user = base64_decode( $_GET['s'] );
+				$param_code   = $_GET['c'];
+				$param_user   = base64_decode( $_GET['s'] );
 				$current_code = get_transient( 'instawp_auto_login_code' );
 				$username     = sanitize_user( $param_user );
 				if (
