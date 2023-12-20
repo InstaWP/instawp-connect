@@ -335,11 +335,11 @@ class InstaWP_Setting {
 		);
 
 		$settings['sync_events_settings'] = array(
-			'title'    => esc_html__( 'Sync Events Settings', 'instawp-connect' ),
-			'desc'     => esc_html__( 'This section only applicable for the sync event settings.', 'instawp-connect' ),
-			'internal' => false,
+			'title'      => esc_html__( 'Sync Events Settings', 'instawp-connect' ),
+			'desc'       => esc_html__( 'This section only applicable for the sync event settings.', 'instawp-connect' ),
+			'internal'   => false,
 			'grid_class' => 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6',
-			'fields'   => array(
+			'fields'     => array(
 				[
 					'id'      => 'instawp_sync_post',
 					'type'    => 'toggle',
@@ -667,6 +667,9 @@ class InstaWP_Setting {
 		if ( $response['status'] && ! empty( $connect_id ) ) {
 			self::set_connect_id( $connect_id );
 		}
+
+		// Send heartbeat to InstaWP
+		instawp_send_heartbeat( $connect_id );
 
 		return true;
 	}
