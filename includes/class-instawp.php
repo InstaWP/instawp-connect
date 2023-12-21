@@ -60,6 +60,12 @@ class instaWP {
 		}
 
 		add_action( 'init', array( $this, 'register_actions' ), 11 );
+		add_action( 'add_option_instawp_api_heartbeat', array( $this, 'clear_heartbeat_action' ) );
+		add_action( 'update_option_instawp_api_heartbeat', array( $this, 'clear_heartbeat_action' ) );
+		add_action( 'add_option_instawp_rm_heartbeat', array( $this, 'clear_heartbeat_action' ) );
+		add_action( 'update_option_instawp_rm_heartbeat', array( $this, 'clear_heartbeat_action' ) );
+		add_action( 'instawp_handle_heartbeat', array( $this, 'handle_heartbeat' ) );
+		add_filter( 'cron_schedules', array( $this, 'cron_interval' ) );
 		add_action( 'instawp_prepare_large_files_list', array( $this, 'prepare_large_files_list' ) );
 		add_action( 'add_option_instawp_max_file_size_allowed', array( $this, 'clear_staging_sites_list' ) );
 		add_action( 'update_option_instawp_max_file_size_allowed', array( $this, 'clear_staging_sites_list' ) );
@@ -92,13 +98,9 @@ class instaWP {
 
 		$heartbeat = InstaWP_Setting::get_option( 'instawp_rm_heartbeat', 'on' );
 		$heartbeat = empty( $heartbeat ) ? 'on' : $heartbeat;
-		$interval  = InstaWP_Setting::get_option( 'instawp_api_heartbeat', 15 );
-		$interval  = empty( $interval ) ? 15 : (int) $interval;
 
-		$heartbeat_last = get_option( 'instawp_last_heartbeat_sent' );
-		if ( $heartbeat === 'on' && ( ! $heartbeat_last || ( time() - $heartbeat_last ) > ( $interval * 60 ) ) ) {
-			update_option( 'instawp_last_heartbeat_sent', time() );
-			$this->handle_heartbeat();
+		if ( ! empty( InstaWP_Setting::get_api_key() ) && $heartbeat === 'on' && ! wp_next_scheduled( 'instawp_handle_heartbeat' ) ) {
+			wp_schedule_event( time(), 'instawp_heartbeat_interval', 'instawp_handle_heartbeat' );
 		}
 
 		if ( ! wp_next_scheduled( 'instawp_prepare_large_files_list' ) ) {
@@ -110,6 +112,18 @@ class instaWP {
 		}
 	}
 
+	public function cron_interval( $schedules ) {
+		$interval = InstaWP_Setting::get_option( 'instawp_api_heartbeat', 15 );
+		$interval = empty( $interval ) ? 15 : (int) $interval;
+
+		$schedules['instawp_heartbeat_interval'] = [
+			'interval' => $interval * 60,
+			'display'  => esc_html__( 'Custom Interval' )
+		];
+
+		return $schedules;
+	}
+
 	public function clean_migrate_files() {
 		$path = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . INSTAWP_DEFAULT_BACKUP_DIR . DIRECTORY_SEPARATOR;
 		@unlink( $path . 'instawp_exclude_tables_rows_data.json' );
@@ -117,13 +131,17 @@ class instaWP {
 	}
 
 	public function handle_heartbeat() {
-
 		if ( empty( $this->api_key ) || empty( $this->connect_id ) ) {
 			return;
 		}
 
-		// Send heartbeat to InstaWP
-		instawp_send_heartbeat( $this->connect_id );
+		$interval       = InstaWP_Setting::get_option( 'instawp_api_heartbeat', 15 );
+		$interval       = empty( $interval ) ? 15 : (int) $interval;
+		$heartbeat_last = get_option( 'instawp_last_heartbeat_sent' );
+
+		if ( ! $heartbeat_last || ( time() - $heartbeat_last ) > ( $interval * 60 ) ) {
+			instawp_send_heartbeat( $this->connect_id );
+		}
 	}
 
 	public function prepare_large_files_list() {
