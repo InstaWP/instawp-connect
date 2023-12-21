@@ -10,7 +10,7 @@ class InstaWP_Sync_Term {
 	    add_action( 'edited_term', [ $this, 'edit_taxonomy' ], 10, 3 );
 	    add_action( 'delete_term', [ $this, 'delete_taxonomy' ], 10, 4 );
 
-	    // process event
+	    // Process event
 	    add_filter( 'INSTAWP_CONNECT/Filters/process_two_way_sync', [ $this, 'parse_event' ], 10, 2 );
     }
 
@@ -110,7 +110,7 @@ class InstaWP_Sync_Term {
 				$message = 'Sync successfully.';
 			}
 
-			return InstaWP_Sync_Helpers::sync_response( $v, compact( 'status', 'message' ) );
+			return InstaWP_Sync_Helpers::sync_response( $v, [], compact( 'status', 'message' ) );
 		}
 
 		return $response;

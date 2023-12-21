@@ -211,7 +211,7 @@ class InstaWP_Sync_Ajax {
 
 		$where2 = empty( $where2 ) ? "1=1" : join( ' AND ', $where2 );
 
-		$query   = "SELECT event_name, COUNT(*) as event_count FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE $where2 AND `id` NOT IN (SELECT event_id AS id FROM " . INSTAWP_DB_TABLE_EVENT_SITES . " WHERE $where) GROUP BY event_name HAVING event_count > 0";
+		$query   = "SELECT event_name, COUNT(*) as event_count FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE $where2 AND `event_hash` NOT IN (SELECT event_hash AS id FROM " . INSTAWP_DB_TABLE_EVENT_SITES . " WHERE $where) GROUP BY event_name HAVING event_count > 0";
 		$results = $this->wpdb->get_results( $query );
 
 		$html = '<ul class="list">';
@@ -316,12 +316,12 @@ class InstaWP_Sync_Ajax {
 	private function update_sync_events_status( $connect_id, $sync_id ): array {
 		try {
 			$response = $this->get_sync_object( $sync_id );
-
 			if ( $response['success'] === true ) {
 				$sync_response = $response['data']['changes']['changes']['sync_response'] ?? [];
 				foreach ( $sync_response as $data ) {
 					InstaWP_Sync_DB::insert( INSTAWP_DB_TABLE_EVENT_SITES, [
 						'event_id'       => $data['id'],
+						'event_hash'     => $data['hash'],
 						'connect_id'     => $connect_id,
 						'status'         => $data['status'],
 						'synced_message' => $data['message'],
@@ -377,7 +377,7 @@ class InstaWP_Sync_Ajax {
 
 		$where2 = empty( $where2 ) ? "1=1" : join( ' AND ', $where2 );
 
-		$query = "SELECT COUNT(1) FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE $where2 AND `id` NOT IN (SELECT event_id AS id FROM " . INSTAWP_DB_TABLE_EVENT_SITES . " WHERE $where)";
+		$query = "SELECT COUNT(1) FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE $where2 AND `event_hash` NOT IN (SELECT event_hash AS id FROM " . INSTAWP_DB_TABLE_EVENT_SITES . " WHERE $where)";
 
 		return $this->wpdb->get_var( $query );
 	}
@@ -423,7 +423,7 @@ class InstaWP_Sync_Ajax {
 			$where2    .= " AND `id` IN($entry_ids)";
 		}
 
-		$query = "SELECT * FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE $where2 AND `id` NOT IN (SELECT event_id AS id FROM " . INSTAWP_DB_TABLE_EVENT_SITES . " WHERE $where) ORDER BY id ASC LIMIT " . INSTAWP_EVENTS_SYNC_PER_PAGE;
+		$query = "SELECT * FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE $where2 AND `event_hash` NOT IN (SELECT event_hash AS id FROM " . INSTAWP_DB_TABLE_EVENT_SITES . " WHERE $where) ORDER BY id ASC LIMIT " . INSTAWP_EVENTS_SYNC_PER_PAGE;
 
 		return $this->wpdb->get_results( $query );
 	}

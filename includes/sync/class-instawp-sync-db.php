@@ -71,12 +71,14 @@ class InstaWP_Sync_DB {
 		$data = [
 			'event_name'     => $event_name,
 			'event_slug'     => $event_slug,
+			'event_hash'     => InstaWP_Tools::get_random_string(),
 			'event_type'     => $event_type,
 			'source_id'      => $source_id,
 			'title'          => $title,
 			'details'        => wp_json_encode( $details ),
 			'user_id'        => get_current_user_id(),
 			'date'           => date( 'Y-m-d H:i:s' ),
+			'status'         => 'pending',
 			'prod'           => '',
 			'synced_message' => ''
 		];
@@ -84,9 +86,6 @@ class InstaWP_Sync_DB {
 		if ( is_numeric( $event_id ) ) {
 			self::update( INSTAWP_DB_TABLE_EVENTS, $data, $event_id );
 		} else {
-			$data['event_hash'] = InstaWP_Tools::get_random_string();
-			$data['status']     = 'pending';
-
 			self::insert( INSTAWP_DB_TABLE_EVENTS, $data );
 		}
 	}
@@ -136,7 +135,7 @@ class InstaWP_Sync_DB {
 	public static function getSiteEventStatus( $connect_id, $event_id ) {
 		$table_name = self::$tables['se_table'];
 
-		return self::wpdb()->get_row( "SELECT * FROM {$table_name}  WHERE `connect_id` = {$connect_id} AND `event_id`= {$event_id}" );
+		return self::wpdb()->get_row( "SELECT * FROM {$table_name}  WHERE `connect_id`={$connect_id} AND `event_hash`='{$event_id}'" );
 	}
 
 	/*
