@@ -21,7 +21,7 @@ class InstaWP_Sync_WC extends InstaWP_Sync_Post {
     }
 
 	public function add_post_data( $data, $type, $post ) {
-		if ( $type === 'product' && class_exists( 'WooCommerce' ) ) {
+		if ( $this->can_sync() && $type === 'product' ) {
 			$data['product_gallery'] = $this->get_product_gallery( $post->ID );
 		}
 
@@ -29,7 +29,7 @@ class InstaWP_Sync_WC extends InstaWP_Sync_Post {
 	}
 	
 	public function process_gallery( $post, $data ) {
-		if ( $post['post_type'] === 'product' && class_exists( 'WooCommerce' ) ) {
+		if ( $this->can_sync() && $post['post_type'] === 'product' ) {
 			if ( isset( $data->details->product_gallery ) && ! empty( $data->details->product_gallery ) ) {
 				$product_gallery = $data->details->product_gallery;
 				$gallery_ids     = [];
@@ -50,6 +50,10 @@ class InstaWP_Sync_WC extends InstaWP_Sync_Post {
 	 * @param array $data Attribute data.
 	 */
 	public function attribute_added( $id, $data ) {
+		if ( ! $this->can_sync() ) {
+			return;
+		}
+
 		$event_name = __( 'Woocommerce attribute added', 'instawp-connect' );
 		$this->add_event( $event_name, 'woocommerce_attribute_added', $data, $id );
 	}
@@ -61,6 +65,10 @@ class InstaWP_Sync_WC extends InstaWP_Sync_Post {
 	 * @param array $data Attribute data.
 	 */
 	public function attribute_updated( $id, $data ) {
+		if ( ! $this->can_sync() ) {
+			return;
+		}
+
 		$event_name = __('Woocommerce attribute updated', 'instawp-connect' );
 		$event_id   = InstaWP_Sync_DB::existing_update_events(INSTAWP_DB_TABLE_EVENTS, 'woocommerce_attribute_updated', $id );
 
@@ -74,6 +82,10 @@ class InstaWP_Sync_WC extends InstaWP_Sync_Post {
 	 * @param array $data Attribute data.
 	 */
 	public function attribute_deleted( $id, $data ) {
+		if ( ! $this->can_sync() ) {
+			return;
+		}
+
 		$event_name = __( 'Woocommerce attribute deleted', 'instawp-connect' );
 		$this->add_event( $event_name, 'woocommerce_attribute_deleted', $data, $id );
 	}
@@ -141,6 +153,10 @@ class InstaWP_Sync_WC extends InstaWP_Sync_Post {
 				$title = $details;
 		}
 		InstaWP_Sync_DB::insert_update_event( $event_name, $event_slug, 'woocommerce', $source_id, $title, $details, $event_id );
+	}
+
+	private function can_sync(): bool {
+		return InstaWP_Sync_Helpers::can_sync( 'wc' ) && class_exists( 'WooCommerce' );
 	}
 
 	/**
