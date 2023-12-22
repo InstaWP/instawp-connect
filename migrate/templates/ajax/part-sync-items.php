@@ -1,9 +1,10 @@
 <?php if  ( ! empty( $events ) ) : ?>
     <?php foreach ( $events as $event ) : ?>
-        <?php 
+        <?php
+            $hash = ! empty( $event->event_hash ) ? $event->event_hash : $event->id;
             $label_class = '';
             $label_attributes = '';
-            $event_row = InstaWP_Sync_DB::getSiteEventStatus( $connect_id, $event->id );
+            $event_row = InstaWP_Sync_DB::getSiteEventStatus( $connect_id, $hash );
             $status = $event_row && $event_row->status !='' ? $event_row->status : 'pending';
             $datetime = date( 'M j, Y H:i A', strtotime( $event->date ) );
 
