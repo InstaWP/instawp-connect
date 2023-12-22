@@ -38,9 +38,7 @@ class InstaWP_Sync_Term {
 			];
 		}
 
-		$source_id = rand( 1000000000, 9999999999 );
-		update_term_meta( $term_id, 'instawp_source_id', $source_id );
-
+		$source_id = InstaWP_Sync_Helpers::set_term_reference_id( $term_id );
 		InstaWP_Sync_DB::insert_update_event( $event_name, 'create_term', $taxonomy, $source_id, $term_details['name'], $term_details );
 	}
 
@@ -60,7 +58,6 @@ class InstaWP_Sync_Term {
 
 		$term_details = ( array ) get_term( $term_id, $taxonomy );
 		$event_name   = sprintf( __('%s modified', 'instawp-connect'), ucfirst( $taxonomy ) );
-		$source_id    = get_term_meta( $term_id, 'instawp_source_id', true );
 
 		if ( $term_details['parent'] ) {
 			$term_details['parent_details'] = [
@@ -69,11 +66,7 @@ class InstaWP_Sync_Term {
 			];
 		}
 
-		if ( ! $source_id ) {
-			$source_id = rand( 1000000000, 9999999999 );
-			update_term_meta( $term_id, 'instawp_source_id', $source_id );
-		}
-
+		$source_id = InstaWP_Sync_Helpers::set_term_reference_id( $term_id );
 		InstaWP_Sync_DB::insert_update_event( $event_name, 'edit_term', $taxonomy, $source_id, $term_details['name'], $term_details );
 	}
 
@@ -175,7 +168,7 @@ class InstaWP_Sync_Term {
 
 		$terms = get_terms( [
 			'hide_empty' => false,
-			'meta_key'   => 'instawp_source_id',
+			'meta_key'   => 'instawp_event_term_sync_reference_id',
 			'meta_value' => $source_id,
 			'fields'     => 'ids',
 			'taxonomy'   => $term['taxonomy'],
@@ -194,6 +187,10 @@ class InstaWP_Sync_Term {
 				] ) );
 
 				$term_id = is_wp_error( $inserted_term ) ? $inserted_term : $inserted_term['term_id'];
+			}
+
+			if ( $term_id && ! is_wp_error( $term_id ) ) {
+				update_term_meta( $term_id, 'instawp_event_term_sync_reference_id', $source_id );
 			}
 		} else {
 			$term_id = reset( $terms );
