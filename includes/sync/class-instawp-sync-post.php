@@ -64,8 +64,11 @@ class InstaWP_Sync_Post {
 			return;
 		}
 
+		$is_processed  = get_transient( 'instawp_sync_processed_' . $post->ID );
 		$singular_name = InstaWP_Sync_Helpers::get_post_type_name( $post->post_type );
-		if ( $update && strtotime( $post->post_modified_gmt ) > strtotime( $post->post_date_gmt ) ) {
+
+		if ( ! $is_processed && $update && strtotime( $post->post_modified_gmt ) > strtotime( $post->post_date_gmt ) ) {
+			set_transient( 'instawp_sync_processed_' . $post->ID, true, 5 );
 			$this->handle_post_events( sprintf( __('%s modified', 'instawp-connect'), $singular_name ), 'post_change', $post );
 		}
 	}
