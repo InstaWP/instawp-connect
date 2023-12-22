@@ -76,6 +76,10 @@ class IWPDB {
 		 * @todo implement latter
 		 */
 		$query_res = $this->query( "SELECT * FROM {$table_name} WHERE {$this->build_where_clauses($where_array)}" );
+
+		$this->fetch_rows( $query_res, $results );
+
+		return $results;
 	}
 
 	public function fetch_rows( mysqli_result $mysqli_result, &$rows ) {
@@ -117,7 +121,7 @@ class IWPDB {
 
 	public function create_require_tables() {
 		$this->query( "CREATE TABLE IF NOT EXISTS iwp_files_sent (id INT AUTO_INCREMENT PRIMARY KEY, filepath VARCHAR(255) UNIQUE, sent INT DEFAULT 0, size INT)" );
-		$this->query( "CREATE TABLE IF NOT EXISTS iwp_db_sent (table_name VARCHAR(255) PRIMARY KEY, `offset` INT DEFAULT 0, completed INT DEFAULT 0);" );
+		$this->query( "CREATE TABLE IF NOT EXISTS iwp_db_sent (table_name VARCHAR(255) PRIMARY KEY, `offset` INT DEFAULT 0, rows_total INT DEFAULT 0, completed INT DEFAULT 0);" );
 	}
 
 	public function connect_database() {
@@ -185,6 +189,8 @@ class IWPDB {
 	}
 
 	public function get_all_tables() {
+
+		$all_tables      = [];
 		$show_tables_res = $this->query( 'SHOW TABLES' );
 
 		$this->fetch_rows( $show_tables_res, $tables );
@@ -199,7 +205,21 @@ class IWPDB {
 			return '';
 		}, $tables );
 
-		return array_filter( $tables );
+		foreach ( $tables as $table_name ) {
+
+			// remove our tracking tables
+			if ( in_array( $table_name, [ 'iwp_db_sent', 'iwp_files_sent' ] ) ) {
+				continue;
+			}
+
+			$row_count_res = $this->query( "SELECT COUNT(*) AS row_count FROM `$table_name`" );
+			$row_count_row = $row_count_res->fetch_assoc();
+			$row_count     = $row_count_row['row_count'];
+
+			$all_tables[ $table_name ] = $row_count;
+		}
+
+		return $all_tables;
 	}
 
 	private function build_where_clauses( $where_arr = [] ) {

@@ -5,6 +5,9 @@ error_reporting( 0 );
 $migrate_key   = isset( $_POST['migrate_key'] ) ? $_POST['migrate_key'] : '';
 $api_signature = isset( $_POST['api_signature'] ) ? $_POST['api_signature'] : '';
 
+//$migrate_key   = 'fa402c18ea0dd0b5fd2f6e71be16da599cba1b8f';
+//$api_signature = 'd44c958ec6437f89f1b10655b8e25f9da839399cdc80db3cf709f184008c448abe65b39ad02c4c65c35ed2ed16c1cb8586216076061e4e41a1c3078e2042f860';
+
 if ( empty( $migrate_key ) ) {
 	header( 'x-iwp-status: false' );
 	header( 'x-iwp-message: Invalid migrate key.' );
@@ -33,7 +36,7 @@ defined( 'CHUNK_SIZE' ) | define( 'CHUNK_SIZE', 2 * 1024 * 1024 );
 defined( 'BATCH_ZIP_SIZE' ) | define( 'BATCH_ZIP_SIZE', 50 );
 defined( 'MAX_ZIP_SIZE' ) | define( 'MAX_ZIP_SIZE', 1024 * 1024 ); //1mb
 defined( 'CHUNK_DB_SIZE' ) | define( 'CHUNK_DB_SIZE', 100 );
-defined( 'BATCH_SIZE' ) | define( 'BATCH_SIZE', 100 );
+defined( 'BATCH_SIZE' ) | define( 'BATCH_SIZE', 500 );
 defined( 'WP_ROOT' ) | define( 'WP_ROOT', $root_path );
 defined( 'INSTAWP_BACKUP_DIR' ) | define( 'INSTAWP_BACKUP_DIR', WP_ROOT . DIRECTORY_SEPARATOR . 'wp-content' . DIRECTORY_SEPARATOR . 'instawpbackups' . DIRECTORY_SEPARATOR );
 
@@ -425,6 +428,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 	$excluded_tables_rows  = $migrate_settings['excluded_tables_rows'] ?? [];
 	$total_tracking_tables = $tracking_db->query_count( 'iwp_db_sent' );
 
+
 	// Skip our files sent table
 	if ( ! in_array( 'iwp_files_sent', $excluded_tables ) ) {
 		$excluded_tables[] = 'iwp_files_sent';
@@ -436,9 +440,9 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 	}
 
 	if ( $total_tracking_tables == 0 ) {
-		foreach ( $tracking_db->get_all_tables() as $table_name ) {
+		foreach ( $tracking_db->get_all_tables() as $table_name => $rows_count ) {
 			if ( ! in_array( $table_name, $excluded_tables ) ) {
-				$tracking_db->insert( 'iwp_db_sent', [ 'table_name' => "'$table_name'" ] );
+				$tracking_db->insert( 'iwp_db_sent', [ 'table_name' => "'$table_name'", 'rows_total' => $rows_count ] );
 			}
 		}
 	}
@@ -461,6 +465,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 		$createRow = $create_table_sql->fetch_assoc();
 		echo $createRow['Create Table'] . ";\n\n";
 	}
+
 
 	if ( ! in_array( $curr_table_name, $excluded_tables ) ) {
 
@@ -526,10 +531,20 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 		}
 	}
 
-	// Update progress in the SQLite tracking database
-	$offset += count( $sqlStatements );
+	$sql_statements_count = count( $sqlStatements );
+	$curr_table_info      = $tracking_db->get_row( 'iwp_db_sent', [ 'table_name' => $curr_table_name ] );
+	$offset               += $sql_statements_count;
 
-	// Update the offset
+	$all_tables     = $tracking_db->get_rows( 'iwp_db_sent' );
+	$rows_total_all = 0;
+	$finished_total = 0;
+
+	foreach ( $all_tables as $table_data ) {
+		$rows_total_all += $table_data['rows_total'] ?? 0;
+		$finished_total += $table_data['offset'] ?? 0;
+	}
+
+	// Update the offset and rows_finished
 	$tracking_db->update( 'iwp_db_sent', [ 'offset' => $offset ], [ 'table_name' => $curr_table_name ] );
 
 	// Mark table as completed if all rows were fetched
@@ -537,10 +552,12 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 		$tracking_db->update( 'iwp_db_sent', [ 'completed' => '1' ], [ 'table_name' => $curr_table_name ] );
 	}
 
-	$completed_tables  = $tracking_db->query_count( 'iwp_db_sent', [ 'completed' => '1' ] );
-	$tracking_progress = $completed_tables === 0 || $total_tracking_tables === 0 ? 0 : round( ( $completed_tables * 100 ) / $total_tracking_tables );
+	$completed_tables   = $tracking_db->query_count( 'iwp_db_sent', [ 'completed' => '1' ] );
+	$tracking_progress  = $completed_tables === 0 || $total_tracking_tables === 0 ? 0 : number_format( ( $completed_tables * 100 ) / $total_tracking_tables, 2, '.', '' );
+	$row_based_progress = number_format( $finished_total / $rows_total_all * 100, 2, '.', '' );
+	$avg_progress       = round( ( (float) $row_based_progress + (float) $tracking_progress ) / 2 );
 
-	header( "x-iwp-progress: $tracking_progress" );
+	header( "x-iwp-progress: $avg_progress" );
 
 	echo implode( "\n", $sqlStatements );
 }
