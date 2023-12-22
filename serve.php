@@ -5,9 +5,6 @@ error_reporting( 0 );
 $migrate_key   = isset( $_POST['migrate_key'] ) ? $_POST['migrate_key'] : '';
 $api_signature = isset( $_POST['api_signature'] ) ? $_POST['api_signature'] : '';
 
-//$migrate_key   = 'fa402c18ea0dd0b5fd2f6e71be16da599cba1b8f';
-//$api_signature = 'd44c958ec6437f89f1b10655b8e25f9da839399cdc80db3cf709f184008c448abe65b39ad02c4c65c35ed2ed16c1cb8586216076061e4e41a1c3078e2042f860';
-
 if ( empty( $migrate_key ) ) {
 	header( 'x-iwp-status: false' );
 	header( 'x-iwp-message: Invalid migrate key.' );
@@ -465,7 +462,6 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 		$createRow = $create_table_sql->fetch_assoc();
 		echo $createRow['Create Table'] . ";\n\n";
 	}
-
 
 	if ( ! in_array( $curr_table_name, $excluded_tables ) ) {
 

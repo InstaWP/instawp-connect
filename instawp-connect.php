@@ -7,7 +7,7 @@
  * @wordpress-plugin
  * Plugin Name:       InstaWP Connect
  * Description:       1-click WP Staging with Sync. Manage your Live sites.
- * Version:           0.1.0.5
+ * Version:           0.1.0.6
  * Author:            InstaWP Team
  * Author URI:        https://instawp.com/
  * License:           GPL-3.0+
@@ -23,7 +23,7 @@ if ( ! defined( 'WPINC' ) ) {
 
 global $wpdb;
 
-define( 'INSTAWP_PLUGIN_VERSION', '0.1.0.5' );
+define( 'INSTAWP_PLUGIN_VERSION', '0.1.0.6' );
 define( 'INSTAWP_RESTORE_INIT', 'init' );
 define( 'INSTAWP_API_DOMAIN_PROD', 'https://app.instawp.io' );
 
@@ -195,19 +195,3 @@ add_action( 'admin_init', function () {
 	}
 } );
 
-
-add_action( 'init', function () {
-	if ( isset( $_GET['debug'] ) && $_GET['debug'] == 'yes' ) {
-
-//
-
-		$migrate_key        = 'fa402c18ea0dd0b5fd2f6e71be16da599cba1b8f';
-		$pre_check_response = instawp()->tools::get_pull_pre_check_response( $migrate_key, [] );
-
-		echo "<pre>";
-		print_r( $pre_check_response );
-		echo "</pre>";
-
-		die();
-	}
-}, 0 );
