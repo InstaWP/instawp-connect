@@ -115,7 +115,6 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 		if ( ! empty( $encrypted_contents ) && is_array( $encrypted_contents ) ) {
 			$sync_response   = [];
 			$count           = 1;
-			$progress_status = 'pending';
 			$total_op        = count( $encrypted_contents );
 			$progress        = intval( $count / $total_op * 100 );
 			$sync_message    = $bodyArr->sync_message ?? '';

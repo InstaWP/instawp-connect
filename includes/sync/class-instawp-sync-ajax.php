@@ -62,7 +62,7 @@ class InstaWP_Sync_Ajax {
 		$page   = isset( $_POST['epage'] ) ? abs( (int) $_POST['epage'] ) : 1;
 		$offset = ( $page * $items_per_page ) - $items_per_page;
 
-		$events = $this->wpdb->get_results( $query . " ORDER BY id DESC LIMIT {$offset}, {$items_per_page}" );
+		$events = $this->wpdb->get_results( $query . " ORDER BY date DESC LIMIT {$offset}, {$items_per_page}" );
 
 		$totalPage = ceil( $total / $items_per_page );
 
@@ -423,7 +423,7 @@ class InstaWP_Sync_Ajax {
 			$where2    .= " AND `id` IN($entry_ids)";
 		}
 
-		$query = "SELECT * FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE $where2 AND `event_hash` NOT IN (SELECT event_hash AS id FROM " . INSTAWP_DB_TABLE_EVENT_SITES . " WHERE $where) ORDER BY id ASC LIMIT " . INSTAWP_EVENTS_SYNC_PER_PAGE;
+		$query = "SELECT * FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE $where2 AND `event_hash` NOT IN (SELECT event_hash AS id FROM " . INSTAWP_DB_TABLE_EVENT_SITES . " WHERE $where) ORDER BY date ASC LIMIT " . INSTAWP_EVENTS_SYNC_PER_PAGE;
 
 		return $this->wpdb->get_results( $query );
 	}

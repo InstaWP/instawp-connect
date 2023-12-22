@@ -12,7 +12,7 @@ class InstaWP_Sync_Post {
 	    $this->restricted_cpts = (array) apply_filters( 'INSTAWP_CONNECT/Filters/two_way_sync_restricted_post_types', $this->restricted_cpts );
 
 		// Post Actions.
-	    add_action( 'save_post', [ $this, 'save_post' ], 10, 3 );
+	    add_action( 'wp_after_insert_post', [ $this, 'handle_post' ], 10, 3 );
 	    add_action( 'delete_post', [ $this, 'delete_post' ], 10, 2 );
 	    add_action( 'transition_post_status', [ $this, 'transition_post_status' ], 10, 3 );
 
@@ -27,13 +27,14 @@ class InstaWP_Sync_Post {
 	/**
 	 * Function for `wp_insert_post` action-hook.
 	 *
-	 * @param int          $post_id     Post ID.
-	 * @param WP_Post      $post        Post object.
-	 * @param bool         $update      Whether this is an existing post being updated.
+	 * @param int   $post     Post ID.
+	 * @param bool  $update   Whether this is an existing post being updated.
 	 *
 	 * @return void
 	 */
-	public function save_post( $post_id, $post, $update ) {
+	public function handle_post( $post, $update, $post_before ) {
+		$post = get_post( $post );
+
 		if ( ! InstaWP_Sync_Helpers::can_sync( 'post' ) || in_array( $post->post_type, $this->restricted_cpts ) ) {
 			return;
 		}
@@ -43,7 +44,7 @@ class InstaWP_Sync_Post {
 		}
 
 		// Check auto save or revision.
-		if ( wp_is_post_autosave( $post_id ) || wp_is_post_revision( $post_id ) ) {
+		if ( wp_is_post_autosave( $post->ID ) || wp_is_post_revision( $post->ID ) ) {
 			return;
 		}
 
@@ -54,7 +55,7 @@ class InstaWP_Sync_Post {
 
 		// acf feild group check
 		if ( $post->post_type == 'acf-field-group' && $post->post_content == '' ) {
-			InstaWP_Sync_Helpers::set_post_reference_id( $post_id );
+			InstaWP_Sync_Helpers::set_post_reference_id( $post->ID );
 			return;
 		}
 

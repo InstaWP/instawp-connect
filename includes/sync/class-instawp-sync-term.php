@@ -6,9 +6,9 @@ class InstaWP_Sync_Term {
 
     public function __construct() {
 	    // Term actions
-	    add_action( 'created_term', [ $this, 'create_taxonomy' ], 10, 3 );
-	    add_action( 'edited_term', [ $this, 'edit_taxonomy' ], 10, 3 );
-	    add_action( 'delete_term', [ $this, 'delete_taxonomy' ], 10, 4 );
+	    add_action( 'created_term', [ $this, 'create_term' ], 10, 3 );
+	    add_action( 'edited_term', [ $this, 'edit_term' ], 10, 3 );
+	    add_action( 'pre_delete_term', [ $this, 'delete_term' ], 10, 2 );
 
 	    // Process event
 	    add_filter( 'INSTAWP_CONNECT/Filters/process_two_way_sync', [ $this, 'parse_event' ], 10, 2 );
@@ -23,7 +23,7 @@ class InstaWP_Sync_Term {
 	 *
 	 * @return void
 	 */
-	public function create_taxonomy( $term_id, $tt_id, $taxonomy ) {
+	public function create_term( $term_id, $tt_id, $taxonomy ) {
 		if ( ! InstaWP_Sync_Helpers::can_sync( 'term' ) ) {
 			return;
 		}
@@ -31,7 +31,17 @@ class InstaWP_Sync_Term {
 		$term_details = ( array ) get_term( $term_id, $taxonomy );
 		$event_name   = sprintf( __('%s created', 'instawp-connect'), ucfirst( $taxonomy ) );
 
-		InstaWP_Sync_DB::insert_update_event( $event_name, 'create_taxonomy', $taxonomy, $term_id, $term_details['name'], $term_details );
+		if ( $term_details['parent'] ) {
+			$term_details['parent_details'] = [
+				'data'      => ( array ) get_term( $term_details['parent'], $taxonomy ),
+				'source_id' => get_term_meta( $term_details['parent'], 'instawp_source_id', true ),
+			];
+		}
+
+		$source_id = rand( 1000000000, 9999999999 );
+		update_term_meta( $term_id, 'instawp_source_id', $source_id );
+
+		InstaWP_Sync_DB::insert_update_event( $event_name, 'create_term', $taxonomy, $source_id, $term_details['name'], $term_details );
 	}
 
 	/**
@@ -43,59 +53,100 @@ class InstaWP_Sync_Term {
 	 *
 	 * @return void
 	 */
-	public function edit_taxonomy( $term_id, $tt_id, $taxonomy ) {
+	public function edit_term( $term_id, $tt_id, $taxonomy ) {
 		if ( ! InstaWP_Sync_Helpers::can_sync( 'term' ) ) {
 			return;
 		}
 
 		$term_details = ( array ) get_term( $term_id, $taxonomy );
 		$event_name   = sprintf( __('%s modified', 'instawp-connect'), ucfirst( $taxonomy ) );
+		$source_id    = get_term_meta( $term_id, 'instawp_source_id', true );
 
-		InstaWP_Sync_DB::insert_update_event( $event_name, 'edit_taxonomy', $taxonomy, $term_id, $term_details['name'], $term_details );
+		if ( $term_details['parent'] ) {
+			$term_details['parent_details'] = [
+				'data'      => ( array ) get_term( $term_details['parent'], $taxonomy ),
+				'source_id' => get_term_meta( $term_details['parent'], 'instawp_source_id', true ),
+			];
+		}
+
+		if ( ! $source_id ) {
+			$source_id = rand( 1000000000, 9999999999 );
+			update_term_meta( $term_id, 'instawp_source_id', $source_id );
+		}
+
+		InstaWP_Sync_DB::insert_update_event( $event_name, 'edit_term', $taxonomy, $source_id, $term_details['name'], $term_details );
 	}
 
 	/**
 	 * Function for `delete_(taxonomy)` action-hook.
 	 *
-	 * @param int     $term         Term ID.
-	 * @param int     $tt_id        Term taxonomy ID.
-	 * @param WP_Term $deleted_term Copy of the already-deleted term.
-	 * @param array   $object_ids   List of term object IDs.
+	 * @param int     $term_id         Term ID.
+	 * @param int     $taxonomy        Term taxonomy ID.
 	 *
 	 * @return void
 	 */
-	public function delete_taxonomy( $term, $tt_id, $taxonomy, $deleted_term ) {
+	public function delete_term( $term_id, $taxonomy ) {
 		if ( ! InstaWP_Sync_Helpers::can_sync( 'term' ) ) {
 			return;
 		}
 
-		$event_name = sprintf( __('%s deleted', 'instawp-connect' ), ucfirst( $taxonomy ) );
-		InstaWP_Sync_DB::insert_update_event( $event_name, 'delete_taxonomy', $taxonomy, $term, $deleted_term->name, $deleted_term );
+		$term_details = ( array ) get_term( $term_id, $taxonomy );
+		$source_id    = get_term_meta( $term_id, 'instawp_source_id', true );
+		$event_name   = sprintf( __('%s deleted', 'instawp-connect' ), ucfirst( $taxonomy ) );
+
+		InstaWP_Sync_DB::insert_update_event( $event_name, 'delete_term', $taxonomy, $source_id, $term_details['name'], $term_details );
 	}
 
 	public function parse_event( $response, $v ) {
 		$source_id = $v->source_id;
+		$logs      = [];
 
 		// create and update term
-		if ( in_array( $v->event_slug, [ 'create_taxonomy', 'edit_taxonomy' ], true ) && ! empty( $source_id ) ) {
-			$details          = ( array ) $v->details;
-			$wp_terms         = $this->wp_terms_data( $source_id, $details );
-			$wp_term_taxonomy = $this->wp_term_taxonomy_data( $source_id, $details );
+		if ( in_array( $v->event_slug, [ 'create_term', 'edit_term' ], true ) && ! empty( $source_id ) ) {
+			$term = ( array ) $v->details;
 
-			if ( $v->event_slug === 'create_taxonomy' && ! term_exists( $source_id, $v->event_type ) ) {
-				$this->insert_taxonomy( $source_id, $wp_terms, $wp_term_taxonomy );
-				clean_term_cache( $source_id );
+			$parent_term_id = $term['parent'];
+			if ( $parent_term_id ) {
+				$parent_details = $term['parent_details'];
+				$parent_term_id = $this->get_term( $parent_details['source_id'], $parent_details['data'] );
 			}
 
-			if ( $v->event_slug === 'edit_taxonomy' && term_exists( $source_id, $v->event_type ) ) {
-				$this->update_taxonomy( $source_id, $wp_terms, $wp_term_taxonomy );
+			$term_id = $this->get_term( $source_id, $term, [
+				'parent' => $parent_term_id,
+			] );
+
+			if ( is_wp_error( $term_id ) ) {
+				$logs[ $v->id ] = $term_id->get_error_message();
+
+				return InstaWP_Sync_Helpers::sync_response( $v, $logs, [
+					'status'  => 'pending',
+					'message' => $term_id->get_error_message()
+				] );
 			}
 
-			return InstaWP_Sync_Helpers::sync_response( $v );
+			if ( $v->event_slug === 'edit_term' && $term_id && ! is_wp_error( $term_id ) ) {
+				$result = wp_update_term( $term_id, $term['taxonomy'], [
+					'description' => $term['description'],
+					'name'        => $term['name'],
+					'slug'        => $term['slug'],
+					'parent'      => $parent_term_id,
+				] );
+
+				if ( is_wp_error( $result ) ) {
+					$logs[ $v->id ] = $result->get_error_message();
+
+					return InstaWP_Sync_Helpers::sync_response( $v, $logs, [
+						'status'  => 'pending',
+						'message' => $result->get_error_message()
+					] );
+				}
+			}
+
+			return InstaWP_Sync_Helpers::sync_response( $v, $logs );
 		}
 
 		// delete term
-		if ( $v->event_slug === 'delete_taxonomy' && ! empty( $source_id ) ) {
+		if ( $v->event_slug === 'delete_term' && ! empty( $source_id ) ) {
 			$deleted = wp_delete_term( $source_id, $v->event_type );
 			$status  = 'pending';
 
@@ -116,48 +167,39 @@ class InstaWP_Sync_Term {
 		return $response;
 	}
 
-	/**
-	 * wp_terms_data
-	 *
-	 * @param $term_id
-	 * @param $arr
-	 *
-	 * @return array
-	 */
-	public function wp_terms_data( $term_id = null, $arr = [] ): array {
-		return [
-			'term_id' => $term_id,
-			'name'    => $arr['name'],
-			'slug'    => $arr['slug']
-		];
-	}
+	private function get_term( $source_id, $term, $args = [] ) {
+		$term_id = 0;
+		if ( ! taxonomy_exists( $term['taxonomy'] ) ) {
+			return $term_id;
+		}
 
-	/**
-	 * wp_term_taxonomy_data
-	 *
-	 * @param $term_id
-	 * @param $arr
-	 *
-	 * @return array
-	 */
-	public function wp_term_taxonomy_data( $term_id = null, $arr = [] ): array {
-		return [
-			'term_taxonomy_id' => $term_id,
-			'term_id'          => $term_id,
-			'taxonomy'         => $arr['taxonomy'],
-			'description'      => $arr['description'],
-			'parent'           => $arr['parent']
-		];
-	}
+		$terms = get_terms( [
+			'hide_empty' => false,
+			'meta_key'   => 'instawp_source_id',
+			'meta_value' => $source_id,
+			'fields'     => 'ids',
+			'taxonomy'   => $term['taxonomy'],
+		] );
 
-	public function insert_taxonomy( $term_id = null, $wp_terms = null, $wp_term_taxonomy = null ) {
-		InstaWP_Sync_DB::insert( InstaWP_Sync_DB::prefix() . 'terms', $wp_terms );
-		InstaWP_Sync_DB::insert( InstaWP_Sync_DB::prefix() . 'term_taxonomy', $wp_term_taxonomy );
-	}
+		if ( empty( $terms ) ) {
+			$get_term_by = ( array ) get_term_by( 'slug', $term['slug'], $term['taxonomy'] );
 
-	public function update_taxonomy( $term_id = null, $wp_terms = null, $wp_term_taxonomy = null ) {
-		InstaWP_Sync_DB::update( InstaWP_Sync_DB::prefix() . 'terms', $wp_terms, array( 'term_id' => $term_id ) );
-		InstaWP_Sync_DB::update( InstaWP_Sync_DB::prefix() . 'term_taxonomy', $wp_term_taxonomy, array( 'term_id' => $term_id ) );
+			if ( ! empty( $get_term_by['term_id'] ) ) {
+				$term_id = $get_term_by['term_id'];
+			} else {
+				$inserted_term = wp_insert_term( $term['name'], $term['taxonomy'], wp_parse_args( $args, [
+					'description' => $term['description'],
+					'slug'        => $term['slug'],
+					'parent'      => 0
+				] ) );
+
+				$term_id = is_wp_error( $inserted_term ) ? $inserted_term : $inserted_term['term_id'];
+			}
+		} else {
+			$term_id = reset( $terms );
+		}
+
+		return $term_id;
 	}
 }
 
