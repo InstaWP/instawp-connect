@@ -73,10 +73,11 @@ class InstaWP_Sync_Helpers {
 		}
     }
 
-	public static function can_sync( string $key ): bool {
+	public static function can_sync( string $module ): bool {
 		$syncing_status = get_option( 'instawp_is_event_syncing', 0 );
+		$can_sync       = ( intval( $syncing_status ) === 1 ) && self::is_enabled( $module );
 
-		return ( intval( $syncing_status ) === 1 ) && self::is_enabled( $key );
+		return (bool) apply_filters( 'INSTAWP_CONNECT/Filters/can_two_way_sync', $can_sync, $module );
 	}
 
 	/**
@@ -127,6 +128,7 @@ class InstaWP_Sync_Helpers {
 		$data = [
 			'data' => wp_parse_args( $args, [
 				'id'      => $data->id,
+				'hash'    => $data->event_hash,
 				'status'  => 'completed',
 				'message' => 'Sync successfully.'
 			] )

@@ -115,7 +115,6 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 		if ( ! empty( $encrypted_contents ) && is_array( $encrypted_contents ) ) {
 			$sync_response   = [];
 			$count           = 1;
-			$progress_status = 'pending';
 			$total_op        = count( $encrypted_contents );
 			$progress        = intval( $count / $total_op * 100 );
 			$sync_message    = $bodyArr->sync_message ?? '';
@@ -221,54 +220,6 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 						#changes
 
 					}
-
-					/**
-					 * Woocommerce attributes
-					 */
-
-					#create&upadte woocommerce attribute
-					if ( isset( $v->event_slug ) && ( $v->event_slug == 'woocommerce_attribute_added' || $v->event_slug == 'woocommerce_attribute_updated' ) ) {
-						$details = isset( $v->details ) ? (array) $v->details : '';
-						if ( ! empty( $details ) ) {
-							$attribute = wc_get_attribute( 208 );
-							if ( ! empty( $attribute ) ) {
-								unset( $details['id'] );
-								wc_update_attribute( $v->source_id, $attribute );
-
-								#message
-								$message         = 'Sync successfully.';
-								$status          = 'completed';
-								$sync_response[] = $this->sync_opration_response( $status, $message, $v );
-								#changes
-
-							} else {
-								$this->woocommerce_create_attribute( $v->source_id, $details );
-
-								#message
-								$message         = 'Sync successfully.';
-								$status          = 'completed';
-								$sync_response[] = $this->sync_opration_response( $status, $message, $v );
-								#changes
-
-
-							}
-						}
-					}
-
-					if ( isset( $v->event_slug ) && $v->event_slug == 'woocommerce_attribute_deleted' ) {
-						wc_delete_attribute( $v->source_id );
-						#message
-						$message         = 'Sync successfully.';
-						$status          = 'completed';
-						$sync_response[] = $this->sync_opration_response( $status, $message, $v );
-						#changes
-
-					}
-
-					/**
-					 * Users actions
-					 */
-
 
 					/*
 					* widget

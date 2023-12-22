@@ -13,7 +13,7 @@ class InstaWP_Sync_Plugin_Theme {
 	    add_action( 'switch_theme', [ $this, 'switch_theme' ], 10, 3 );
 	    add_action( 'deleted_theme', [ $this, 'delete_theme' ], 10, 2 );
 
-	    // process event
+	    // Process event
 	    add_filter( 'INSTAWP_CONNECT/Filters/process_two_way_sync', [ $this, 'parse_event' ], 10, 2 );
     }
 

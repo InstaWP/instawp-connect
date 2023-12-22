@@ -4,9 +4,15 @@ defined( 'ABSPATH' ) || exit;
 
 class InstaWP_Sync_Post {
 
+	public array $restricted_cpts = [
+		//'shop_order',
+	];
+
     public function __construct() {
-	    // Post Actions.
-	    add_action( 'save_post', [ $this, 'save_post' ], 10, 3 );
+	    $this->restricted_cpts = (array) apply_filters( 'INSTAWP_CONNECT/Filters/two_way_sync_restricted_post_types', $this->restricted_cpts );
+
+		// Post Actions.
+	    add_action( 'wp_after_insert_post', [ $this, 'handle_post' ], 10, 3 );
 	    add_action( 'delete_post', [ $this, 'delete_post' ], 10, 2 );
 	    add_action( 'transition_post_status', [ $this, 'transition_post_status' ], 10, 3 );
 
@@ -14,21 +20,22 @@ class InstaWP_Sync_Post {
 	    add_action( 'add_attachment', [ $this, 'add_attachment' ] );
 	    add_action( 'attachment_updated', [ $this, 'attachment_updated' ], 10, 3 );
 
-	    // process event
+	    // Process event
 	    add_filter( 'INSTAWP_CONNECT/Filters/process_two_way_sync', [ $this, 'parse_event' ], 10, 2 );
     }
 
 	/**
 	 * Function for `wp_insert_post` action-hook.
 	 *
-	 * @param int          $post_id     Post ID.
-	 * @param WP_Post      $post        Post object.
-	 * @param bool         $update      Whether this is an existing post being updated.
+	 * @param int   $post     Post ID.
+	 * @param bool  $update   Whether this is an existing post being updated.
 	 *
 	 * @return void
 	 */
-	public function save_post( $post_id, $post, $update ) {
-		if ( ! InstaWP_Sync_Helpers::can_sync( 'post' ) ) {
+	public function handle_post( $post, $update, $post_before ) {
+		$post = get_post( $post );
+
+		if ( ! InstaWP_Sync_Helpers::can_sync( 'post' ) || in_array( $post->post_type, $this->restricted_cpts ) ) {
 			return;
 		}
 
@@ -37,7 +44,7 @@ class InstaWP_Sync_Post {
 		}
 
 		// Check auto save or revision.
-		if ( wp_is_post_autosave( $post_id ) || wp_is_post_revision( $post_id ) ) {
+		if ( wp_is_post_autosave( $post->ID ) || wp_is_post_revision( $post->ID ) ) {
 			return;
 		}
 
@@ -48,7 +55,7 @@ class InstaWP_Sync_Post {
 
 		// acf feild group check
 		if ( $post->post_type == 'acf-field-group' && $post->post_content == '' ) {
-			InstaWP_Sync_Helpers::set_post_reference_id( $post_id );
+			InstaWP_Sync_Helpers::set_post_reference_id( $post->ID );
 			return;
 		}
 
@@ -72,7 +79,7 @@ class InstaWP_Sync_Post {
 	 * @return void
 	 */
 	public function delete_post( $post_id, $post ) {
-		if ( ! InstaWP_Sync_Helpers::can_sync( 'post' ) ) {
+		if ( ! InstaWP_Sync_Helpers::can_sync( 'post' ) || in_array( $post->post_type, $this->restricted_cpts ) ) {
 			return;
 		}
 
@@ -90,7 +97,7 @@ class InstaWP_Sync_Post {
 	 * @param WP_Post $post       Post object.
 	 */
 	public function transition_post_status( $new_status, $old_status, $post ) {
-		if ( ! InstaWP_Sync_Helpers::can_sync( 'post' ) ) {
+		if ( ! InstaWP_Sync_Helpers::can_sync( 'post' ) || in_array( $post->post_type, $this->restricted_cpts ) ) {
 			return;
 		}
 
@@ -180,18 +187,7 @@ class InstaWP_Sync_Post {
 				}
 			}
 
-			if ( $posts['post_type'] === 'product' ) {
-				if ( isset( $v->details->product_gallery ) && ! empty( $v->details->product_gallery ) ) {
-					$product_gallery = $v->details->product_gallery;
-					$gallery_ids     = [];
-					foreach ( $product_gallery as $gallery ) {
-						if ( ! empty( $gallery->media ) && ! empty( $gallery->url ) ) {
-							$gallery_ids[] = $this->handle_attachments( ( array ) $gallery->media, ( array ) $gallery->media_meta, $gallery->url );
-						}
-					}
-					$this->set_product_gallery( $posts['ID'], $gallery_ids );
-				}
-			}
+			do_action( 'INSTAWP_CONNECT/Actions/process_two_way_sync_post', $posts, $v );
 
 			$this->reset_post_terms( $posts['ID'] );
 
@@ -207,7 +203,9 @@ class InstaWP_Sync_Post {
 							'slug'        => $term['slug'],
 							'parent'      => 0
 						] );
-						$term_ids[]    = $inserted_term['term_id'];
+						if ( ! is_wp_error( $inserted_term ) ) {
+							$term_ids[] = $inserted_term['term_id'];
+						}
 					} else {
 						$get_term_by = ( array ) get_term_by( 'slug', $term['slug'], $taxonomy );
 						$term_ids[]  = $get_term_by['term_id'];
@@ -274,14 +272,11 @@ class InstaWP_Sync_Post {
 		$media              = InstaWP_Sync_Helpers::get_media_from_content( $post_content );
 		$elementor_css      = $this->get_elementor_css( $post->ID );
 
-		#if post type products then get product gallery
-		$product_gallery = ( $event_type === 'product' ) ? $this->get_product_gallery( $post->ID ) : '';
-
-		#manage custom post metas
+		// manage custom post metas
 		InstaWP_Sync_Helpers::set_post_reference_id( $post->ID );
 		InstaWP_Sync_Helpers::set_post_reference_id( $featured_image_id );
 
-		$data = [
+		$data = apply_filters( 'INSTAWP_CONNECT/Filters/two_way_sync_post_data', [
 			'content'         => $post_content,
 			'posts'           => $post,
 			'postmeta'        => get_post_meta( $post->ID ),
@@ -294,8 +289,7 @@ class InstaWP_Sync_Post {
 			'taxonomies'      => $taxonomies,
 			'media'           => $media,
 			'elementor_css'   => $elementor_css,
-			'product_gallery' => $product_gallery
-		];
+		], $event_type, $post );
 
 		#assign parent post
 		if ( $post_parent_id > 0 ) {
@@ -384,9 +378,12 @@ class InstaWP_Sync_Post {
 			}
 			$post_id = wp_insert_post( $this->parse_post_data( $post ) );
 		}
-		$this->process_post_meta( $post_meta, $post_id );
+		if ( $post_id && ! is_wp_error( $post_id ) ) {
+			$this->process_post_meta( $post_meta, $post_id );
+			return $post_id;
+		}
 
-		return $post_id;
+		return 0;
 	}
 
 	private function parse_post_data( $post, $post_id = null ) {
@@ -590,40 +587,6 @@ class InstaWP_Sync_Post {
 		}
 
 		return $css;
-	}
-
-	/*
-     * Get product gallery images
-     */
-	private function get_product_gallery( $product_id ): array {
-		$product        = new WC_product( $product_id );
-		$attachment_ids = $product->get_gallery_image_ids();
-		$gallery        = [];
-
-		if ( ! empty( $attachment_ids ) && is_array( $attachment_ids ) ) {
-			foreach ( $attachment_ids as $attachment_id ) {
-				$url       = wp_get_attachment_url( intval( $attachment_id ) );
-				$gallery[] = [
-					'id'         => $attachment_id,
-					'url'        => $url,
-					'media'      => get_post( $attachment_id ),
-					'media_meta' => get_post_meta( $attachment_id ),
-				];
-			}
-		}
-
-		return $gallery;
-	}
-
-	/**
-	 * Set product gallery
-	 */
-	public function set_product_gallery( $product_id = null, $gallery_ids = null ) {
-		if ( class_exists( 'woocommerce' ) ) {
-			$product = new WC_product( $product_id );
-			$product->set_gallery_image_ids( $gallery_ids );
-			$product->save();
-		}
 	}
 }
 

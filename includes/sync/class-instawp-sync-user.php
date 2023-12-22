@@ -10,7 +10,7 @@ class InstaWP_Sync_User {
 	    add_action( 'delete_user', [ $this, 'delete_user' ], 10, 3 );
 	    add_action( 'profile_update', [ $this, 'profile_update' ], 10, 3 );
 
-		// process event
+		// Process event
 	    add_filter( 'INSTAWP_CONNECT/Filters/process_two_way_sync', [ $this, 'parse_event' ], 10, 2 );
     }
 

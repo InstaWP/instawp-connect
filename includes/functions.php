@@ -37,7 +37,7 @@ if ( ! function_exists( 'instawp_create_db_tables' ) ) {
 			event_name varchar(128) NOT NULL,
 			event_slug varchar(128) NOT NULL,
 			event_type varchar(128) NOT NULL,
-			source_id int(20) NOT NULL,
+			source_id varchar(30) NOT NULL,
 			title text NOT NULL,
 			details longtext NOT NULL,
 			user_id int(20) NOT NULL,
@@ -53,6 +53,7 @@ if ( ! function_exists( 'instawp_create_db_tables' ) ) {
 		$sql_create_sync_history_table = "CREATE TABLE " . INSTAWP_DB_TABLE_EVENT_SITES . " (
             id int(20) NOT NULL AUTO_INCREMENT,
             event_id int(20) NOT NULL,
+            event_hash varchar(50) NOT NULL,
             connect_id int(20) NOT NULL,
 			status ENUM ('pending','in_progress','completed','error') DEFAULT 'pending',
 			synced_message text NULL,

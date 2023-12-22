@@ -128,9 +128,8 @@ class InstaWP_Setting {
 		$label_class      = 'inline-block w-full text-sm font-medium text-gray-700 mb-3 sm:mt-px sm:pt-2';
 		$label_content    = esc_html( $field_title );
 		if ( ! empty( $field_tooltip ) ) {
-			$label_class      .= ' hint--top hint--large';
-			$label_attributes .= ' aria-label="' . $field_tooltip . '"';
-			$label_content    .= '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12C22 17.5228 17.5228 22 12 22ZM12 20C16.4183 20 20 16.4183 20 12C20 7.58172 16.4183 4 12 4C7.58172 4 4 7.58172 4 12C4 16.4183 7.58172 20 12 20ZM11 7H13V9H11V7ZM11 11H13V17H11V11Z"></path></svg>';
+			$label_content .= '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12C22 17.5228 17.5228 22 12 22ZM12 20C16.4183 20 20 16.4183 20 12C20 7.58172 16.4183 4 12 4C7.58172 4 4 7.58172 4 12C4 16.4183 7.58172 20 12 20ZM11 7H13V9H11V7ZM11 11H13V17H11V11Z"></path></svg>';
+			$label_content = '<span class="hint--top hint--large" aria-label="' . $field_tooltip . '">' . $label_content . '</span>';
 		}
 
 		if ( ! empty( $field_label_class ) ) {
@@ -385,6 +384,14 @@ class InstaWP_Setting {
 					'type'    => 'toggle',
 					'title'   => __( 'WP Options', 'instawp-connect' ),
 					'tooltip' => __( 'Enabling this option will allow plugin to log WordPress options.', 'instawp-connect' ),
+					'class'   => 'save-ajax',
+					'default' => 'off',
+				],
+				[
+					'id'      => 'instawp_sync_wc',
+					'type'    => 'toggle',
+					'title'   => __( 'WooCommerce', 'instawp-connect' ),
+					'tooltip' => __( 'Enabling this option will allow plugin to log WooCommerce events.', 'instawp-connect' ),
 					'class'   => 'save-ajax',
 					'default' => 'off',
 				]
