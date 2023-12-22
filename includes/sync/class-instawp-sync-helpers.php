@@ -47,13 +47,37 @@ class InstaWP_Sync_Helpers {
     /*
      * Update post metas
      */
-    public static function set_post_reference_id( $post_id ): void {
+    public static function set_post_reference_id( $post_id ): string {
 		$reference_id = self::get_post_reference_id( $post_id );
 
         if ( empty( $reference_id ) ) {
-            update_post_meta( $post_id, 'instawp_event_sync_reference_id', InstaWP_Tools::get_random_string() );
+	        $reference_id = InstaWP_Tools::get_random_string();
+            update_post_meta( $post_id, 'instawp_event_sync_reference_id', $reference_id );
         }
+
+		return $reference_id;
     }
+
+	/*
+	 * Get user metas
+	 */
+	public static function get_term_reference_id( $term_id ): string {
+		return get_term_meta( $term_id, 'instawp_event_term_sync_reference_id', true ) ?? '0';
+	}
+
+	/*
+	 * Update user metas
+	 */
+	public static function set_term_reference_id( $term_id ): string {
+		$reference_id = self::get_term_reference_id( $term_id );
+
+		if ( empty( $reference_id ) ) {
+			$reference_id = InstaWP_Tools::get_random_string();
+			update_term_meta( $term_id, 'instawp_event_term_sync_reference_id', $reference_id );
+		}
+
+		return $reference_id;
+	}
 
 	/*
      * Get user metas
@@ -65,18 +89,22 @@ class InstaWP_Sync_Helpers {
     /*
      * Update user metas
      */
-    public static function set_user_reference_id( $user_id ): void {
+    public static function set_user_reference_id( $user_id ): string {
 	    $reference_id = self::get_user_reference_id( $user_id );
 
 	    if ( empty( $reference_id ) ) {
-            update_user_meta( $user_id, 'instawp_event_user_sync_reference_id', InstaWP_Tools::get_random_string() );
+		    $reference_id = InstaWP_Tools::get_random_string();
+            update_user_meta( $user_id, 'instawp_event_user_sync_reference_id', $reference_id );
 		}
+
+		return $reference_id;
     }
 
-	public static function can_sync( string $key ): bool {
+	public static function can_sync( string $module ): bool {
 		$syncing_status = get_option( 'instawp_is_event_syncing', 0 );
+		$can_sync       = ( intval( $syncing_status ) === 1 ) && self::is_enabled( $module );
 
-		return ( intval( $syncing_status ) === 1 ) && self::is_enabled( $key );
+		return (bool) apply_filters( 'INSTAWP_CONNECT/Filters/can_two_way_sync', $can_sync, $module );
 	}
 
 	/**
@@ -127,6 +155,7 @@ class InstaWP_Sync_Helpers {
 		$data = [
 			'data' => wp_parse_args( $args, [
 				'id'      => $data->id,
+				'hash'    => $data->event_hash,
 				'status'  => 'completed',
 				'message' => 'Sync successfully.'
 			] )

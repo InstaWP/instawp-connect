@@ -10,7 +10,7 @@ class InstaWP_Sync_Option {
 	    add_action( 'updated_option', [ $this, 'updated_option' ], 10, 3 );
 	    add_action( 'deleted_option', [ $this, 'deleted_option' ] );
 
-	    // process event
+	    // Process event
 	    add_filter( 'INSTAWP_CONNECT/Filters/process_two_way_sync', [ $this, 'parse_event' ], 10, 2 );
     }
 
@@ -69,7 +69,11 @@ class InstaWP_Sync_Option {
 	private function is_protected_option( $option ): bool {
 		$excluded_options = [ 'cron', 'instawp_api_options', 'siteurl', 'home', 'permalink_structure' ];
 
-		if ( in_array( $option, $excluded_options ) || strpos( $option, '_transient' ) !== false || strpos( $option, 'instawp' ) !== false ) {
+		if ( in_array( $option, $excluded_options )
+		     || strpos( $option, '_transient' ) !== false
+		     || strpos( $option, 'instawp' ) !== false
+		     || strpos( $option, 'action_scheduler' ) !== false
+		) {
 			return true;
 		}
 
