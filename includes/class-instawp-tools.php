@@ -287,6 +287,9 @@ class InstaWP_Tools {
 			require_once ABSPATH . 'wp-includes/plugin.php';
 		}
 
+		// Skip index.html file by default
+		$migrate_settings['excluded_paths'][] = 'index.html';
+
 		if ( in_array( 'active_plugins_only', $options ) ) {
 			foreach ( get_plugins() as $plugin_slug => $plugin_info ) {
 				if ( ! is_plugin_active( $plugin_slug ) ) {
@@ -394,7 +397,7 @@ class InstaWP_Tools {
 			empty( $tracking_db->get_option( 'api_signature' ) ) ||
 			empty( $tracking_db->get_option( 'db_host' ) ) ||
 			empty( $tracking_db->get_option( 'db_username' ) ) ||
-//			empty( $tracking_db->get_option( 'db_password' ) ) ||
+			//			empty( $tracking_db->get_option( 'db_password' ) ) ||
 			empty( $tracking_db->get_option( 'db_name' ) )
 		) {
 			return new WP_Error( 404, esc_html__( 'API Signature and others data could not set properly', 'instawp-connect' ) );
