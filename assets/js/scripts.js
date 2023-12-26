@@ -341,6 +341,9 @@
         let el_staging_type = $(this),
             el_staging_type_wrapper = el_staging_type.parent(),
             staging_type = el_staging_type.find('input[type="radio"]').val(),
+            el_active_plugins_only = $('input#active_plugins_only'),
+            el_active_themes_only = $('input#active_themes_only'),
+            el_skip_log_tables = $('input#skip_log_tables'),
             el_skip_media_folders = $('input#skip_media_folder'),
             el_skip_large_files = $('input#skip_large_files');
 
@@ -353,6 +356,9 @@
         $('.selected-staging-type').html(el_staging_type.find('.staging-type-label').text());
 
         if (staging_type === 'quick') {
+            el_active_plugins_only.prop('checked', true).trigger('change');
+            el_active_themes_only.prop('checked', true).trigger('change');
+            el_skip_log_tables.prop('checked', true).trigger('change');
             el_skip_media_folders.prop('checked', true).trigger('change');
             el_skip_large_files.prop('checked', true).trigger('change');
         } else {
