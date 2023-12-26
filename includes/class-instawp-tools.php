@@ -287,8 +287,11 @@ class InstaWP_Tools {
 			require_once ABSPATH . 'wp-includes/plugin.php';
 		}
 
-		// Skip index.html file by default
+		// Skip index.html file forcefully
 		$migrate_settings['excluded_paths'][] = 'index.html';
+
+        // Skip wp object cache forcefully
+		$migrate_settings['excluded_paths'][] = $relative_dir . '/mu-plugins/redis-cache-pro.php';
 
 		if ( in_array( 'active_plugins_only', $options ) ) {
 			foreach ( get_plugins() as $plugin_slug => $plugin_info ) {
