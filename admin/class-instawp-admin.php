@@ -39,7 +39,6 @@ class InstaWP_Admin {
 
 	public function __construct( $plugin_name, $version ) {
 
-
 		if ( defined( 'INSTAWP_CONNECT_MODE' ) && 'TEMPLATE_MIGRATE' == INSTAWP_CONNECT_MODE ) {
 			self::$_is_template_migration_mode = true;
 		}
@@ -101,23 +100,6 @@ class InstaWP_Admin {
 
 			return;
 		}
-
-		$meta_classes = [ 'instawp-sync-recording' ];
-
-		if ( '1' == InstaWP_Setting::get_option( 'instawp_is_event_syncing', '0' ) ) {
-			$meta_classes[] = 'recording-on';
-		}
-
-		$admin_bar->add_menu(
-			array(
-				'id'    => 'instawp',
-				'title' => '',
-				'href'  => admin_url( 'tools.php?page=instawp' ),
-				'meta'  => array(
-					'class' => implode( ' ', $meta_classes ),
-				),
-			)
-		);
 	}
 
 
