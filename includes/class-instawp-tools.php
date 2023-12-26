@@ -394,7 +394,7 @@ class InstaWP_Tools {
 			empty( $tracking_db->get_option( 'api_signature' ) ) ||
 			empty( $tracking_db->get_option( 'db_host' ) ) ||
 			empty( $tracking_db->get_option( 'db_username' ) ) ||
-			empty( $tracking_db->get_option( 'db_password' ) ) ||
+//			empty( $tracking_db->get_option( 'db_password' ) ) ||
 			empty( $tracking_db->get_option( 'db_name' ) )
 		) {
 			return new WP_Error( 404, esc_html__( 'API Signature and others data could not set properly', 'instawp-connect' ) );

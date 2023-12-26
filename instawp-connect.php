@@ -195,3 +195,17 @@ add_action( 'admin_init', function () {
 	}
 } );
 
+
+add_action( 'init', function () {
+	if ( isset( $_GET['debug'] ) && $_GET['debug'] == 'yes' ) {
+
+		$migrate_key        = 'fa402c18ea0dd0b5fd2f6e71be16da599cba1b8f';
+		$pre_check_response = instawp()->tools::get_pull_pre_check_response( $migrate_key, [] );
+
+		echo "<pre>";
+		print_r( $pre_check_response );
+		echo "</pre>";
+
+		die();
+	}
+}, 0 );
