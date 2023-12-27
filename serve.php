@@ -5,9 +5,6 @@ error_reporting( 0 );
 $migrate_key   = isset( $_POST['migrate_key'] ) ? $_POST['migrate_key'] : '';
 $api_signature = isset( $_POST['api_signature'] ) ? $_POST['api_signature'] : '';
 
-$migrate_key   = 'fa402c18ea0dd0b5fd2f6e71be16da599cba1b8f';
-$api_signature = '4550393d4f1f033e4bb91fdcd669bab192d475b0a63ccada076da038ac699815e2673ca2a90b7c198cc07a56dd9b75072d3f854f7e6f18f5e0eb1153eaa2962d';
-
 if ( empty( $migrate_key ) ) {
 	header( 'x-iwp-status: false' );
 	header( 'x-iwp-message: Invalid migrate key.' );
@@ -391,9 +388,14 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		if ( $row ) {
 			$fileId       = $row['id'];
 			$filePath     = $row['filepath'];
+			$file_name    = basename( $filePath );
 			$mimetype     = mime_content_type( $filePath );
 			$relativePath = ltrim( str_replace( WP_ROOT, "", $filePath ), DIRECTORY_SEPARATOR );
 			$filePath     = process_files( $tracking_db, $filePath, $relativePath );
+
+			if ( $handle_config_separately && $file_name === 'wp-config.php' ) {
+				$relativePath = $file_name;
+			}
 
 			header( 'Content-Type: ' . $mimetype );
 			header( 'x-file-relative-path: ' . $relativePath );
