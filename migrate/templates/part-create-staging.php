@@ -12,13 +12,19 @@ $staging_screens       = array(
 );
 $customize_options     = array(
 	'general' => array(
-		'label'   => esc_html__( 'General', 'instawp-connect' ),
+		'label'   => esc_html__( 'General Options', 'instawp-connect' ),
 		'options' => array(
 			'active_plugins_only' => esc_html__( 'Active Plugins Only', 'instawp-connect' ),
 			'active_themes_only'  => esc_html__( 'Active Themes Only', 'instawp-connect' ),
 			'skip_media_folder'   => esc_html__( 'Skip Media Folder', 'instawp-connect' ),
 			'skip_large_files'    => esc_html__( 'Skip Large Files', 'instawp-connect' ),
 			'skip_log_tables'     => esc_html__( 'Skip Log Tables', 'instawp-connect' ),
+		),
+	),
+    'sync' => array(
+		'label'   => esc_html__( 'Sync Options', 'instawp-connect' ),
+		'options' => array(
+			'enable_event_syncing' => esc_html__( 'Enable Sync Recording', 'instawp-connect' ),
 		),
 	),
 );
@@ -150,8 +156,8 @@ $whitelist_ip          = instawp_whitelist_ip();
                 </div>
                 <div class="panel mt-6 block">
 					<?php foreach ( $customize_options as $customize_option ) : ?>
-                        <div class="text-lg font-normal mb-2"><?php echo esc_html( InstaWP_Setting::get_args_option( 'label', $customize_option ) ); ?></div>
-                        <div class="grid grid-cols-3 gap-5">
+                        <div class="text-[16px] font-semibold mb-2"><?php echo esc_html( InstaWP_Setting::get_args_option( 'label', $customize_option ) ); ?></div>
+                        <div class="grid grid-cols-3 gap-5 mb-4">
 							<?php foreach ( InstaWP_Setting::get_args_option( 'options', $customize_option, array() ) as $id => $label ) : ?>
                                 <!--relative flex items-start border border-primary-900 card-active p-3 px-4 rounded-lg-->
                                 <label for="<?php echo esc_attr( $id ); ?>" class="relative flex items-start border border-grayCust-350 p-3 px-4 rounded-lg items-center">

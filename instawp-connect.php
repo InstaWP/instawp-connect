@@ -199,7 +199,13 @@ add_action( 'admin_init', function () {
 add_action( 'init', function () {
 	if ( isset( $_GET['debug'] ) && $_GET['debug'] == 'yes' ) {
 
-		update_option( 'instawp_sync_tab_roles', [ 'administrator' ] );
+		$tracking_db       = InstaWP_Tools::get_tracking_database( 'bc6ca4a125ef3480aecf72ff57340683123f0cef' );
+		$migrate_settings  = $tracking_db->get_option( 'migrate_settings' );
+		$migrate_options   = $migrate_settings['options'] ?? [];
+
+		echo "<pre>";
+		print_r( $migrate_options );
+		echo "</pre>";
 
 		die();
 	}

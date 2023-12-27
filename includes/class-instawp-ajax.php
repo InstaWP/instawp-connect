@@ -81,6 +81,14 @@ class InstaWP_AJAX {
 		if ( isset( $response_data['stage']['migration-finished'] ) && $response_data['stage']['migration-finished'] === true ) {
 			instawp_reset_running_migration();
 
+			$tracking_db      = InstaWP_Tools::get_tracking_database( $migrate_key );
+			$migrate_settings = $tracking_db->get_option( 'migrate_settings' );
+			$migrate_options  = $migrate_settings['options'] ?? [];
+
+			if ( is_array( $migrate_options ) && in_array( 'enable_event_syncing', $migrate_options ) ) {
+				update_option( 'instawp_is_event_syncing', 1 );
+			}
+
 			// update staging websites list
 			instawp_get_staging_sites_list( true, true );
 		}

@@ -39,7 +39,7 @@ if ( ! empty( $parent_connect_data ) ) {
                     <div class="text-sm font-normal text-grayCust-50"><?php echo esc_html__( 'Start Listening for Changes', 'instawp-connect' ); ?></div>
                     <div class="instawp_is_event_syncing">
                         <label class="toggle-control">
-                            <input type="checkbox" <?php echo $syncing_status_val; ?> name="instwawp_is_event_syncing" id="instwawp_is_event_syncing" class="toggle-checkbox">
+                            <input type="checkbox" <?php echo $syncing_status_val; ?> name="instawp_is_event_syncing" id="instawp_is_event_syncing" class="toggle-checkbox">
                             <div class="toggle-switch"></div>
                             <span class="toggle-label" data-on="1" data-off="0"></span>
                         </label>
