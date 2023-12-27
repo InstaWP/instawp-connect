@@ -382,7 +382,7 @@ class InstaWP_Setting {
 				[
 					'id'      => 'instawp_sync_option',
 					'type'    => 'toggle',
-					'title'   => __( 'WP Options', 'instawp-connect' ),
+					'title'   => __( 'WP Options (Beta)', 'instawp-connect' ),
 					'tooltip' => __( 'Enabling this option will allow plugin to log WordPress options.', 'instawp-connect' ),
 					'class'   => 'save-ajax',
 					'default' => 'off',
@@ -390,7 +390,7 @@ class InstaWP_Setting {
 				[
 					'id'      => 'instawp_sync_wc',
 					'type'    => 'toggle',
-					'title'   => __( 'WooCommerce', 'instawp-connect' ),
+					'title'   => __( 'WooCommerce (Beta)', 'instawp-connect' ),
 					'tooltip' => __( 'Enabling this option will allow plugin to log WooCommerce events.', 'instawp-connect' ),
 					'class'   => 'save-ajax',
 					'default' => 'off',
