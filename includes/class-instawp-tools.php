@@ -292,6 +292,7 @@ class InstaWP_Tools {
 
         // Skip wp object cache forcefully
 		$migrate_settings['excluded_paths'][] = $relative_dir . '/mu-plugins/redis-cache-pro.php';
+		$migrate_settings['excluded_paths'][] = $relative_dir . '/object-cache-iwp.php';
 
 		if ( in_array( 'active_plugins_only', $options ) ) {
 			foreach ( get_plugins() as $plugin_slug => $plugin_info ) {

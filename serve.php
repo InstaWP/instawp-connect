@@ -5,6 +5,9 @@ error_reporting( 0 );
 $migrate_key   = isset( $_POST['migrate_key'] ) ? $_POST['migrate_key'] : '';
 $api_signature = isset( $_POST['api_signature'] ) ? $_POST['api_signature'] : '';
 
+$migrate_key   = 'fa402c18ea0dd0b5fd2f6e71be16da599cba1b8f';
+$api_signature = '4550393d4f1f033e4bb91fdcd669bab192d475b0a63ccada076da038ac699815e2673ca2a90b7c198cc07a56dd9b75072d3f854f7e6f18f5e0eb1153eaa2962d';
+
 if ( empty( $migrate_key ) ) {
 	header( 'x-iwp-status: false' );
 	header( 'x-iwp-message: Invalid migrate key.' );
@@ -33,7 +36,7 @@ defined( 'CHUNK_SIZE' ) | define( 'CHUNK_SIZE', 2 * 1024 * 1024 );
 defined( 'BATCH_ZIP_SIZE' ) | define( 'BATCH_ZIP_SIZE', 50 );
 defined( 'MAX_ZIP_SIZE' ) | define( 'MAX_ZIP_SIZE', 1024 * 1024 ); //1mb
 defined( 'CHUNK_DB_SIZE' ) | define( 'CHUNK_DB_SIZE', 100 );
-defined( 'BATCH_SIZE' ) | define( 'BATCH_SIZE', 500 );
+defined( 'BATCH_SIZE' ) | define( 'BATCH_SIZE', 100 );
 defined( 'WP_ROOT' ) | define( 'WP_ROOT', $root_path );
 defined( 'INSTAWP_BACKUP_DIR' ) | define( 'INSTAWP_BACKUP_DIR', WP_ROOT . DIRECTORY_SEPARATOR . 'wp-content' . DIRECTORY_SEPARATOR . 'instawpbackups' . DIRECTORY_SEPARATOR );
 
@@ -370,7 +373,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		$tracking_db->fetch_rows( $unsent_files_query_res, $unsentFiles );
 	}
 
-	if ( 'yes' != 'yes' && $is_archive_available && count( $unsentFiles ) > 0 ) {
+	if ( $is_archive_available && count( $unsentFiles ) > 0 ) {
 		if ( class_exists( 'ZipArchive' ) ) {
 			// ZipArchive is available
 			send_by_zip( $tracking_db, $unsentFiles, $progress_percentage, 'ziparchive' );
