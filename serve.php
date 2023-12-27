@@ -107,7 +107,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 	}
 
 	if ( ! function_exists( 'send_by_zip' ) ) {
-		function send_by_zip( IWPDB $tracking_db, $unsentFiles = array(), $progress_percentage = '', $archiveType = 'ziparchive' ) {
+		function send_by_zip( IWPDB $tracking_db, $unsentFiles = array(), $progress_percentage = '', $archiveType = 'ziparchive', $handle_config_separately = false ) {
 			header( 'Content-Type: zip' );
 			header( 'x-file-type: zip' );
 			header( 'x-iwp-progress: ' . $progress_percentage );
@@ -134,6 +134,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 				$relativePath     = ltrim( str_replace( WP_ROOT, "", $filePath ), DIRECTORY_SEPARATOR );
 				$filePath         = process_files( $tracking_db, $filePath, $relativePath );
 				$file_fopen_check = fopen( $filePath, 'r' );
+				$file_name        = basename( $filePath );
 
 				if ( ! $file_fopen_check ) {
 					error_log( 'Can not open file: ' . $filePath );
@@ -150,6 +151,10 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 				if ( ! is_file( $filePath ) ) {
 					error_log( 'Invalid file: ' . $filePath );
 					continue;
+				}
+
+				if ( $handle_config_separately && $file_name === 'wp-config.php' ) {
+					$relativePath = $file_name;
 				}
 
 				$added_to_zip = $archive->addFile( $filePath, $relativePath );
@@ -373,10 +378,10 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 	if ( $is_archive_available && count( $unsentFiles ) > 0 ) {
 		if ( class_exists( 'ZipArchive' ) ) {
 			// ZipArchive is available
-			send_by_zip( $tracking_db, $unsentFiles, $progress_percentage, 'ziparchive' );
+			send_by_zip( $tracking_db, $unsentFiles, $progress_percentage, 'ziparchive', $handle_config_separately );
 		} elseif ( class_exists( 'PharData' ) ) {
 			// PharData is available
-			send_by_zip( $tracking_db, $unsentFiles, $progress_percentage, 'phardata' );
+			send_by_zip( $tracking_db, $unsentFiles, $progress_percentage, 'phardata', $handle_config_separately );
 		} else {
 			// Neither ZipArchive nor PharData is available
 			die( "No archive library available!" );
