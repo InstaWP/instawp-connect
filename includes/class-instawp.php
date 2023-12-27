@@ -129,13 +129,7 @@ class instaWP {
 			return;
 		}
 
-		$interval       = InstaWP_Setting::get_option( 'instawp_api_heartbeat', 15 );
-		$interval       = empty( $interval ) ? 15 : (int) $interval;
-		$heartbeat_last = get_option( 'instawp_last_heartbeat_sent' );
-
-		if ( ! $heartbeat_last || ( time() - $heartbeat_last ) > ( $interval * 60 ) ) {
-			instawp_send_heartbeat( $this->connect_id );
-		}
+		instawp_send_heartbeat( $this->connect_id );
 	}
 
 	public function prepare_large_files_list() {
