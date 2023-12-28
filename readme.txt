@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.4
 Tested up to: 6.4.2
 Requires PHP: 7.4
-Stable tag: 0.1.0.6
+Stable tag: 0.1.0.7
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -93,6 +93,15 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 6. Update API Key and Settings.
 
 == Changelog ==
+
+= 0.1.0.7 - 28 Dec 2023 =
+
+- NEW - Really Simple SSL Redirect plugin support in htaccess file.
+- FIX - Quick staging actions now skip everything possible to make the migration real quick.
+- FIX - Display InstaWP icon at admin bar in frontend as well.
+- FIX - Fixed heartbeat sending issue.
+- FIX - Fixed migration issues with wp-config file.
+
 
 = 0.1.0.6 - 22 Dec 2023 =
 
