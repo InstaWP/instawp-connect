@@ -7,9 +7,13 @@ class InstaWP_Curl {
 	public $api_key;
 	public $response;
 
-	public static function do_curl( $endpoint, $body = array(), $headers = array(), $is_post = true, $api_version = 'v2' ) {
+	public static function do_curl( $endpoint, $body = array(), $headers = array(), $is_post = true, $api_version = 'v2', $api_key = '' ) {
+
 		$api_url = InstaWP_Setting::get_api_domain();
-		$api_key = InstaWP_Setting::get_api_key();
+
+		if ( empty( $api_key ) ) {
+			$api_key = InstaWP_Setting::get_api_key();
+		}
 
 		if ( empty( $api_url ) ) {
 			return array( 'success' => false, 'message' => esc_html__( 'Invalid or Empty API Domain', 'instawp-connect' ) );
@@ -32,25 +36,24 @@ class InstaWP_Curl {
 			$api_method = $is_post ? 'POST' : 'GET';
 		}
 
-		$curl = curl_init();
-		curl_setopt_array( $curl,
-			array(
-				CURLOPT_URL            => $api_url,
-				CURLOPT_RETURNTRANSFER => true,
-				CURLOPT_ENCODING       => '',
-				CURLOPT_MAXREDIRS      => 10,
-				CURLOPT_TIMEOUT        => 60,
-				CURLOPT_FOLLOWLOCATION => true,
-				CURLOPT_SSL_VERIFYHOST => false,
-				CURLOPT_SSL_VERIFYPEER => false,
-				CURLOPT_USERAGENT      => isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '',
-				CURLOPT_REFERER        => site_url(),
-				CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
-				CURLOPT_CUSTOMREQUEST  => $api_method,
-				CURLOPT_POSTFIELDS     => json_encode( $body ),
-				CURLOPT_HTTPHEADER     => $headers,
-			)
+		$curl         = curl_init();
+		$curl_options = array(
+			CURLOPT_URL            => $api_url,
+			CURLOPT_RETURNTRANSFER => true,
+			CURLOPT_ENCODING       => '',
+			CURLOPT_MAXREDIRS      => 10,
+			CURLOPT_TIMEOUT        => 60,
+			CURLOPT_FOLLOWLOCATION => true,
+			CURLOPT_SSL_VERIFYHOST => false,
+			CURLOPT_SSL_VERIFYPEER => false,
+			CURLOPT_USERAGENT      => isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '',
+			CURLOPT_REFERER        => site_url(),
+			CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
+			CURLOPT_CUSTOMREQUEST  => $api_method,
+			CURLOPT_POSTFIELDS     => json_encode( $body ),
+			CURLOPT_HTTPHEADER     => $headers,
 		);
+		curl_setopt_array( $curl, $curl_options );
 		$api_response = curl_exec( $curl );
 		curl_close( $curl );
 
@@ -97,7 +100,7 @@ class InstaWP_Curl {
 				'Authorization' => 'Bearer ' . $this->api_key,
 				'Content-Type'  => 'application/json',
 				'Accept'        => 'application/json'
-			)
+			),
 		);
 		$WP_Http_Curl   = new WP_Http_Curl();
 		$this->response = $WP_Http_Curl->request( $url, $args );

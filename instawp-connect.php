@@ -199,6 +199,10 @@ add_action( 'admin_init', function () {
 add_action( 'init', function () {
 	if ( isset( $_GET['debug'] ) && $_GET['debug'] == 'yes' ) {
 
+//		$access_token = 'WGRwiCmKZGz7PulLLosbckgNHwAfwZSm88FbtimO';
+//
+//		InstaWP_Setting::instawp_generate_api_key( $access_token, true );
+
 		die();
 	}
 }, 0 );

@@ -709,7 +709,6 @@ class InstaWP_Backup_Api {
 	}
 
 	public static function config_check_key( $api_key ) {
-		global $InstaWP_Curl;
 
 		$res        = array(
 			'error'   => true,

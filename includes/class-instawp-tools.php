@@ -290,7 +290,7 @@ class InstaWP_Tools {
 		// Skip index.html file forcefully
 		$migrate_settings['excluded_paths'][] = 'index.html';
 
-        // Skip wp object cache forcefully
+		// Skip wp object cache forcefully
 		$migrate_settings['excluded_paths'][] = $relative_dir . '/mu-plugins/redis-cache-pro.php';
 		$migrate_settings['excluded_paths'][] = $relative_dir . '/object-cache-iwp.php';
 
@@ -621,6 +621,19 @@ class InstaWP_Tools {
 
 			return array();
 		}
+	}
+
+	public static function get_admin_username() {
+		$username = '';
+
+		foreach ( get_users( array( 'role__in' => array( 'administrator' ), 'fields' => array( 'user_login' ) ) ) as $admin ) {
+			if ( empty( $username ) && isset( $admin->user_login ) ) {
+				$username = $admin->user_login;
+				break;
+			}
+		}
+
+		return $username;
 	}
 
 	/**
