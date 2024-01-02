@@ -469,7 +469,7 @@ $whitelist_ip          = instawp_whitelist_ip();
 
         <div class="screen-buttons bg-grayCust-250 px-5 py-4 rounded-bl-lg rounded-br-lg flex justify-between">
 
-            <div class="instawp-site-name flex items-center mt-1 focus-visible:outline-none cursor-pointer hint--top hint--rounded" aria-label="Enter Site Name" style="max-width: 350px;">
+            <div class="instawp-site-name flex items-center mt-1 focus-visible:outline-none cursor-pointer hint--top hint--rounded" aria-label="Leave blank for Auto Generated name" style="max-width: 350px;">
                 <div class="focus-visible:outline-none">
                     <div class="focus-visible:outline-none">
                         <svg width="22" height="21" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -484,7 +484,7 @@ $whitelist_ip          = instawp_whitelist_ip();
                         <p class="truncate cursor-pointer text-sm hover:border-primary-900 border-b border-transparent focus-visible:outline-none" data-text="Enter Site Name">Enter Site Name</p>
                     </div>
                     <div class="focus-visible:outline-none site-name-input-wrap hidden">
-                        <input id="site-prefix" name="migrate_settings[site_name]" data-postfix=".a.instawpsites.com" class="w-44 border-b-[1px] border-primary-900 focus-visible:outline-none bg-transparent" placeholder="Enter Site Name" autocomplete="off">
+                        <input id="site-prefix" name="migrate_settings[site_name]" data-postfix="" class="w-44 border-b-[1px] border-primary-900 focus-visible:outline-none bg-transparent" placeholder="Enter Site Name" autocomplete="off">
                     </div>
                 </div>
             </div>
