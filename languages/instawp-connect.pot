@@ -5,7 +5,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2023-12-27 07:53+0000\n"
+"POT-Creation-Date: 2024-01-02 08:24+0000\n"
 "X-Poedit-Basepath: ..\n"
 "X-Poedit-KeywordsList: __;_e;_ex:1,2c;_n:1,2;_n_noop:1,2;_nx:1,2,4c;_nx_noop:1,2,3c;_x:1,2c;esc_attr__;esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c\n"
 "X-Poedit-SearchPath-0: .\n"
@@ -85,39 +85,39 @@ msgstr ""
 msgid "Migration failed."
 msgstr ""
 
-#: includes/class-instawp-ajax.php:141
+#: includes/class-instawp-ajax.php:149
 msgid "Error: Empty serve url found in pre-check response."
 msgstr ""
 
-#: includes/class-instawp-ajax.php:154
+#: includes/class-instawp-ajax.php:162
 msgid "Error: Empty api signature found in pre-check response."
 msgstr ""
 
-#: includes/class-instawp-ajax.php:233
+#: includes/class-instawp-ajax.php:241
 msgid "Increase Limit"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:255
+#: includes/class-instawp-ajax.php:263
 msgid "Empty folder!"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:355
+#: includes/class-instawp-ajax.php:363
 msgid "%s rows"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:398
+#: includes/class-instawp-ajax.php:406
 msgid "We have identified following large files in your installation:"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:495
+#: includes/class-instawp-ajax.php:503
 msgid "InstaWP Connect Settings has been reset successfully."
 msgstr ""
 
-#: includes/class-instawp-curl.php:15
+#: includes/class-instawp-curl.php:19
 msgid "Invalid or Empty API Domain"
 msgstr ""
 
-#: includes/class-instawp-curl.php:19
+#: includes/class-instawp-curl.php:23
 msgid "Invalid or Empty API Key"
 msgstr ""
 
@@ -173,47 +173,47 @@ msgstr ""
 msgid "Invalid bearer token."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1071
+#: includes/class-instawp-rest-api.php:1070
 msgid "Setting does not exist."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1054
+#: includes/class-instawp-rest-api.php:1053
 msgid "Success!"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1063
+#: includes/class-instawp-rest-api.php:1062
 msgid "You can not enable this setting through API."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1060
+#: includes/class-instawp-rest-api.php:1059
 msgid "Setting is already disabled."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1177, includes/class-instawp-setting.php:437, includes/class-instawp-setting.php:443
+#: includes/class-instawp-rest-api.php:1176, includes/class-instawp-setting.php:437, includes/class-instawp-setting.php:443
 msgid "Heartbeat"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1178, includes/class-instawp-setting.php:475
+#: includes/class-instawp-rest-api.php:1177, includes/class-instawp-setting.php:475
 msgid "File Manager"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1179, includes/class-instawp-setting.php:483
+#: includes/class-instawp-rest-api.php:1178, includes/class-instawp-setting.php:483
 msgid "Database Manager"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1180, includes/class-instawp-setting.php:491
+#: includes/class-instawp-rest-api.php:1179, includes/class-instawp-setting.php:491
 msgid "Install Plugin / Themes"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1181, includes/class-instawp-setting.php:499
+#: includes/class-instawp-rest-api.php:1180, includes/class-instawp-setting.php:499
 msgid "Config Management"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1182, includes/class-instawp-setting.php:507
+#: includes/class-instawp-rest-api.php:1181, includes/class-instawp-setting.php:507
 msgid "Site Inventory"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1183, includes/class-instawp-setting.php:515
+#: includes/class-instawp-rest-api.php:1182, includes/class-instawp-setting.php:515
 msgid "Debug Log"
 msgstr ""
 
@@ -489,7 +489,7 @@ msgstr ""
 msgid "Learn more."
 msgstr ""
 
-#: includes/class-instawp-tools.php:730
+#: includes/class-instawp-tools.php:743
 msgid "Launch %s"
 msgstr ""
 

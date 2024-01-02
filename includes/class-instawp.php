@@ -248,7 +248,12 @@ class instaWP {
 	}
 
 	public function get_directory_contents( $dir, $sort_by ) {
-		$files_data      = scandir( $dir );
+		$files_data = scandir( $dir );
+
+		if ( ! $files_data ) {
+			return [];
+		}
+
 		$path_to_replace = wp_normalize_path( ABSPATH );
 		$files           = $folders = [];
 

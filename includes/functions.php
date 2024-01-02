@@ -303,6 +303,10 @@ if ( ! function_exists( 'instawp_is_website_on_local' ) ) {
 	 */
 	function instawp_is_website_on_local() {
 
+		if ( defined( 'INSTAWP_LOCAL_DEV' ) && INSTAWP_LOCAL_DEV === true ) {
+			return false;
+		}
+
 		$http_host       = $_SERVER['HTTP_HOST'] ?? '';
 		$remote_address  = $_SERVER['REMOTE_ADDR'] ?? '';
 		$local_addresses = array(

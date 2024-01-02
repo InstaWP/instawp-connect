@@ -200,8 +200,17 @@ add_action( 'init', function () {
 	if ( isset( $_GET['debug'] ) && $_GET['debug'] == 'yes' ) {
 
 //		$access_token = 'WGRwiCmKZGz7PulLLosbckgNHwAfwZSm88FbtimO';
-//
 //		InstaWP_Setting::instawp_generate_api_key( $access_token, true );
+
+		$site_name = 'Jaed Test   Site @@ 2';
+		$site_name = strtolower( $site_name );
+		$site_name = preg_replace( '/[^a-z0-9-_]/', ' ', $site_name );
+		$site_name = preg_replace( '/\s+/', '-', $site_name );
+
+
+		echo "<pre>";
+		print_r( $site_name );
+		echo "</pre>";
 
 		die();
 	}

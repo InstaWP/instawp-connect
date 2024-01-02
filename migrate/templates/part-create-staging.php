@@ -21,7 +21,7 @@ $customize_options     = array(
 			'skip_log_tables'     => esc_html__( 'Skip Log Tables', 'instawp-connect' ),
 		),
 	),
-    'sync' => array(
+	'sync'    => array(
 		'label'   => esc_html__( 'Sync Options', 'instawp-connect' ),
 		'options' => array(
 			'enable_event_syncing' => esc_html__( 'Enable Sync Recording', 'instawp-connect' ),
@@ -300,7 +300,7 @@ $whitelist_ip          = instawp_whitelist_ip();
             <div class="screen screen-4 <?= $current_create_screen == 4 ? 'active' : ''; ?>">
                 <div class="confirmation-preview">
                     <div class="flex justify-between items-center">
-                        <div class="text-grayCust-200 text-lg font-bold"><?php esc_html_e( '3. Confirmation', 'instawp-connect' ); ?></div>
+                        <div class="text-grayCust-200 text-lg font-bold"><?php esc_html_e( '4. Confirmation', 'instawp-connect' ); ?></div>
                     </div>
                     <div class="panel mt-6 flex flex-col gap-6">
                         <div class="flex items-center">
@@ -356,7 +356,6 @@ $whitelist_ip          = instawp_whitelist_ip();
                         <a href="#" target="_blank" class="btn-shadow rounded-md w-fit text-center py-3 px-6 bg-primary-900 text-white hover:text-white text-sm font-medium" style="background: #11BF85;"><?php esc_html_e( 'Increase Limit', 'instawp-connect' ); ?></a>
                     </div>
                 </div>
-
             </div>
 
             <div class="screen screen-5 <?= $current_create_screen == 5 ? 'active' : ''; ?>">
@@ -468,11 +467,33 @@ $whitelist_ip          = instawp_whitelist_ip();
             </div>
         </div>
 
-        <div class="screen-buttons bg-grayCust-250 px-5 py-4 rounded-bl-lg rounded-br-lg flex justify-end">
+        <div class="screen-buttons bg-grayCust-250 px-5 py-4 rounded-bl-lg rounded-br-lg flex justify-between">
+
+            <div class="instawp-site-name flex items-center mt-1 focus-visible:outline-none cursor-pointer hint--top hint--rounded" aria-label="Enter Site Name" style="max-width: 350px;">
+                <div class="focus-visible:outline-none">
+                    <div class="focus-visible:outline-none">
+                        <svg width="22" height="21" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" clip-rule="evenodd"
+                                  d="M11 20.2719C13.6673 20.2719 16.2254 19.2123 18.1115 17.3263C19.9976 15.4401 21.0571 12.8821 21.0571 10.2147C21.0571 7.54742 19.9976 4.98934 18.1115 3.10327C16.2254 1.21718 13.6673 0.157593 11 0.157593C8.33269 0.157593 5.77463 1.21718 3.88853 3.10327C2.00246 4.98934 0.942871 7.54742 0.942871 10.2147C0.942871 12.8821 2.00246 15.4401 3.88853 17.3263C5.77463 19.2123 8.33269 20.2719 11 20.2719ZM3.87453 7.73439C4.34129 6.39769 5.17415 5.21897 6.27819 4.33256C6.6151 4.84673 7.1959 5.18616 7.85716 5.18616C8.35728 5.18616 8.83692 5.38484 9.19057 5.73847C9.5442 6.09212 9.74288 6.57175 9.74288 7.07188V7.70045C9.74288 8.36729 10.0078 9.00679 10.4793 9.47832C10.9508 9.94984 11.5903 10.2147 12.2572 10.2147C12.924 10.2147 13.5635 9.94984 14.035 9.47832C14.5066 9.00679 14.7714 8.36729 14.7714 7.70045C14.7712 7.13778 14.9598 6.5913 15.3069 6.14846C15.654 5.70563 16.1396 5.39202 16.686 5.25782C17.8858 6.63021 18.5456 8.39191 18.5428 10.2147C18.5428 10.6422 18.5076 11.0633 18.4385 11.4719H17.2857C16.6189 11.4719 15.9793 11.7368 15.5079 12.2083C15.0363 12.6798 14.7714 13.3193 14.7714 13.9862V16.7481C13.6253 17.4113 12.3242 17.7595 11 17.7576V15.2433C11 14.5765 10.7351 13.937 10.2636 13.4654C9.79208 12.9939 9.15255 12.729 8.48573 12.729C7.8189 12.729 7.17937 12.4641 6.70787 11.9926C6.23634 11.5211 5.97145 10.8816 5.97145 10.2147C5.97167 9.62011 5.76113 9.04463 5.37723 8.59054C4.99333 8.13644 4.46091 7.83311 3.87453 7.73439Z"
+                                  fill="#005E54"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="flex items-center ml-2 focus-visible:outline-none">
+                    <div class="flex items-center focus-visible:outline-none placeholder-text">
+                        <p class="truncate cursor-pointer text-sm hover:border-primary-900 border-b border-transparent focus-visible:outline-none" data-text="Enter Site Name">Enter Site Name</p>
+                    </div>
+                    <div class="focus-visible:outline-none site-name-input-wrap hidden">
+                        <input id="site-prefix" name="migrate_settings[site_name]" data-postfix=".a.instawpsites.com" class="w-44 border-b-[1px] border-primary-900 focus-visible:outline-none bg-transparent" placeholder="Enter Site Name" autocomplete="off">
+                    </div>
+                </div>
+            </div>
             <p class="doing-request"><span class="loader"></span><?php esc_html_e( 'Checking usages...', 'instawp-connect' ); ?></p>
             <input name="migrate_settings[screen]" type="hidden" id="instawp-screen" value="<?= $current_create_screen; ?>">
-            <button type="button" data-increment="-1" class="instawp-button-migrate back hidden btn-shadow border border-grayCust-350 mr-4 rounded-md py-2 px-8 bg-white text-grayCust-700 text-sm font-medium"><?php esc_html_e( 'Back', 'instawp-connect' ); ?></button>
-            <button type="button" data-increment="1" class="instawp-button-migrate continue btn-shadow rounded-md py-2 px-4 bg-primary-900 text-white hover:text-white text-sm font-medium"><?php esc_html_e( 'Next Step', 'instawp-connect' ); ?></button>
+            <div class="button-group">
+                <button type="button" data-increment="-1" class="instawp-button-migrate back hidden btn-shadow border border-grayCust-350 mr-4 rounded-md py-2 px-8 bg-white text-grayCust-700 text-sm font-medium"><?php esc_html_e( 'Back', 'instawp-connect' ); ?></button>
+                <button type="button" data-increment="1" class="instawp-button-migrate continue btn-shadow rounded-md py-2 px-4 bg-primary-900 text-white hover:text-white text-sm font-medium"><?php esc_html_e( 'Next Step', 'instawp-connect' ); ?></button>
+            </div>
         </div>
     </div>
 </div>
