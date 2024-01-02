@@ -291,8 +291,14 @@ class InstaWP_Tools {
 		$migrate_settings['excluded_paths'][] = 'index.html';
 
 		// Skip wp object cache forcefully
-		$migrate_settings['excluded_paths'][] = $relative_dir . '/mu-plugins/redis-cache-pro.php';
-		$migrate_settings['excluded_paths'][] = $relative_dir . '/object-cache-iwp.php';
+		if ( file_exists( $relative_dir . '/mu-plugins/redis-cache-pro.php' ) ) {
+			$migrate_settings['excluded_paths'][] = $relative_dir . '/mu-plugins/redis-cache-pro.php';
+		}
+
+        // Skip object-cache-iwp file if exists forcefully
+		if ( file_exists( $relative_dir . '/object-cache-iwp.php' ) ) {
+			$migrate_settings['excluded_paths'][] = $relative_dir . '/object-cache-iwp.php';
+		}
 
 		if ( in_array( 'active_plugins_only', $options ) ) {
 			foreach ( get_plugins() as $plugin_slug => $plugin_info ) {
