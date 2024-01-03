@@ -414,6 +414,15 @@
             if (el_skip_large_files.parent().parent().hasClass('card-active')) {
                 el_skip_large_files.prop('checked', false).trigger('change');
             }
+            if (el_active_plugins_only.parent().parent().hasClass('card-active')) {
+                el_active_plugins_only.prop('checked', false).trigger('change');
+            }
+            if (el_active_themes_only.parent().parent().hasClass('card-active')) {
+                el_active_themes_only.prop('checked', false).trigger('change');
+            }
+            if (el_skip_log_tables.parent().parent().hasClass('card-active')) {
+                el_skip_log_tables.prop('checked', false).trigger('change');
+            }
         }
     });
 
@@ -431,6 +440,10 @@
             screen_current = parseInt(el_instawp_screen.val()),
             screen_next = screen_current + parseInt(screen_increment),
             instawp_migrate_type = $('input[name="migrate_settings[type]"]:checked').val();
+
+        console.log({
+            screen_current: screen_current
+        });
 
         // Empty check on first screen
         if (el_btn_migrate.hasClass('continue') && screen_current === 1 && (typeof instawp_migrate_type === 'undefined' || instawp_migrate_type.length <= 0)) {
