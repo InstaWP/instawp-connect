@@ -131,7 +131,7 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 						continue;
 					}
 
-					$source_id    = ( ! empty( $v->source_id ) ) ? intval( $v->source_id ) : null;
+					$source_id    = ( ! empty( $v->source_id ) ) ? sanitize_text_field( $v->source_id ) : null;
 					$v->source_id = $source_id;
 
 					$response_data = apply_filters( 'INSTAWP_CONNECT/Filters/process_two_way_sync', [], $v );

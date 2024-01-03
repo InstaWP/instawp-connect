@@ -189,13 +189,13 @@ class InstaWP_Sync_Ajax {
 	public function get_events_summary() {
 		check_ajax_referer( 'instawp-tws', 'nonce' );
 
-		$where  = "1=1";
+		$where  = "`status`='completed'";
 		$where2 = [];
 		$connect_id = ! empty( $_POST['connect_id'] ) ? intval( $_POST['connect_id'] ) : 0;
 		$entry_ids  = ! empty( $_POST['ids'] ) ? array_map( 'intval', explode( ',', $_POST['ids'] ) ) : [];
 
 		if ( $connect_id > 0 ) {
-			$where        .= " AND connect_id=" . $connect_id;
+			$where        .= " AND `connect_id`=" . $connect_id;
 			$staging_site = get_connect_detail_by_connect_id( $connect_id );
 
 			if ( ! empty( $staging_site ) && isset( $staging_site['created_at'] ) && ! instawp()->is_staging ) {
@@ -355,7 +355,7 @@ class InstaWP_Sync_Ajax {
 	}
 
 	private function get_total_pending_events_count() {
-		$where  = "1=1";
+		$where  = "`status`='completed'";
 		$where2 = [];
 		$connect_id = ! empty( $_POST['connect_id'] ) ? intval( $_POST['connect_id'] ) : 0;
 		$entry_ids  = ! empty( $_POST['ids'] ) ? array_map( 'intval', explode( ',', $_POST['ids'] ) ) : [];
@@ -410,12 +410,13 @@ class InstaWP_Sync_Ajax {
 	}
 
 	private function pack_pending_sync_events() {
-		$where = $where2 = "1=1";
+		$where  = "`status`='completed'";
+		$where2 = "1=1";
 		$connect_id = ! empty( $_POST['dest_connect_id'] ) ? intval( $_POST['dest_connect_id'] ) : 0;
 		$entry_ids  = ! empty( $_POST['ids'] ) ? array_map( 'intval', explode( ',', $_POST['ids'] ) ) : [];
 
 		if ( $connect_id > 0 ) {
-			$where .= " AND connect_id=" . $connect_id;
+			$where .= " AND `connect_id`=" . $connect_id;
 		}
 
 		if ( ! empty( $entry_ids ) ) {
