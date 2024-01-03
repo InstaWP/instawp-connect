@@ -303,6 +303,10 @@ if ( ! function_exists( 'instawp_is_website_on_local' ) ) {
 	 */
 	function instawp_is_website_on_local() {
 
+		if ( defined( 'INSTAWP_LOCAL_DEV' ) && INSTAWP_LOCAL_DEV === true ) {
+			return false;
+		}
+
 		$http_host       = $_SERVER['HTTP_HOST'] ?? '';
 		$remote_address  = $_SERVER['REMOTE_ADDR'] ?? '';
 		$local_addresses = array(
@@ -631,8 +635,6 @@ if ( ! function_exists( 'instawp_send_heartbeat' ) ) {
 	 * @return bool
 	 */
 	function instawp_send_heartbeat( $connect_id = '' ) {
-
-		date_default_timezone_set( "Asia/Kolkata" );
 
 		if ( defined( 'INSTAWP_DEBUG_LOG' ) && true === INSTAWP_DEBUG_LOG ) {
 			error_log( "HEARTBEAT RAN AT : " . date( 'd-m-Y, H:i:s, h:i:s' ) );

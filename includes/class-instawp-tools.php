@@ -287,6 +287,19 @@ class InstaWP_Tools {
 			require_once ABSPATH . 'wp-includes/plugin.php';
 		}
 
+		// Skip index.html file forcefully
+		$migrate_settings['excluded_paths'][] = 'index.html';
+
+		// Skip wp object cache forcefully
+		if ( file_exists( $relative_dir . '/mu-plugins/redis-cache-pro.php' ) ) {
+			$migrate_settings['excluded_paths'][] = $relative_dir . '/mu-plugins/redis-cache-pro.php';
+		}
+
+        // Skip object-cache-iwp file if exists forcefully
+		if ( file_exists( $relative_dir . '/object-cache-iwp.php' ) ) {
+			$migrate_settings['excluded_paths'][] = $relative_dir . '/object-cache-iwp.php';
+		}
+
 		if ( in_array( 'active_plugins_only', $options ) ) {
 			foreach ( get_plugins() as $plugin_slug => $plugin_info ) {
 				if ( ! is_plugin_active( $plugin_slug ) ) {
@@ -394,7 +407,7 @@ class InstaWP_Tools {
 			empty( $tracking_db->get_option( 'api_signature' ) ) ||
 			empty( $tracking_db->get_option( 'db_host' ) ) ||
 			empty( $tracking_db->get_option( 'db_username' ) ) ||
-			empty( $tracking_db->get_option( 'db_password' ) ) ||
+			//			empty( $tracking_db->get_option( 'db_password' ) ) ||
 			empty( $tracking_db->get_option( 'db_name' ) )
 		) {
 			return new WP_Error( 404, esc_html__( 'API Signature and others data could not set properly', 'instawp-connect' ) );
@@ -614,6 +627,19 @@ class InstaWP_Tools {
 
 			return array();
 		}
+	}
+
+	public static function get_admin_username() {
+		$username = '';
+
+		foreach ( get_users( array( 'role__in' => array( 'administrator' ), 'fields' => array( 'user_login' ) ) ) as $admin ) {
+			if ( empty( $username ) && isset( $admin->user_login ) ) {
+				$username = $admin->user_login;
+				break;
+			}
+		}
+
+		return $username;
 	}
 
 	/**

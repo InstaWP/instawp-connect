@@ -81,6 +81,14 @@ class InstaWP_AJAX {
 		if ( isset( $response_data['stage']['migration-finished'] ) && $response_data['stage']['migration-finished'] === true ) {
 			instawp_reset_running_migration();
 
+			$tracking_db      = InstaWP_Tools::get_tracking_database( $migrate_key );
+			$migrate_settings = $tracking_db->get_option( 'migrate_settings' );
+			$migrate_options  = $migrate_settings['options'] ?? [];
+
+			if ( is_array( $migrate_options ) && in_array( 'enable_event_syncing', $migrate_options ) ) {
+				update_option( 'instawp_is_event_syncing', 1 );
+			}
+
 			// update staging websites list
 			instawp_get_staging_sites_list( true, true );
 		}
@@ -161,7 +169,7 @@ class InstaWP_AJAX {
 			wp_send_json_error( [ 'message' => $message ] );
 		}
 
-		$migrate_args             = array(
+		$migrate_args = array(
 			'source_domain'       => $source_domain,
 			'source_connect_id'   => instawp_get_connect_id(),
 			'php_version'         => PHP_VERSION,
@@ -176,6 +184,15 @@ class InstaWP_AJAX {
 			'serve_url'           => $serve_url,
 			'api_signature'       => $api_signature,
 		);
+
+		if ( ! empty( $site_name = InstaWP_Setting::get_args_option( 'site_name', $migrate_settings ) ) ) {
+			$site_name = strtolower( $site_name );
+			$site_name = preg_replace( '/[^a-z0-9-_]/', ' ', $site_name );
+			$site_name = preg_replace( '/\s+/', '-', $site_name );
+
+			$migrate_args['site_name'] = $site_name;
+		}
+
 		$migrate_response         = InstaWP_Curl::do_curl( 'migrates-v3', $migrate_args );
 		$migrate_response_status  = (bool) InstaWP_Setting::get_args_option( 'success', $migrate_response, true );
 		$migrate_response_message = InstaWP_Setting::get_args_option( 'message', $migrate_response );

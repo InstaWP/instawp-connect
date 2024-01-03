@@ -382,7 +382,7 @@ class InstaWP_Setting {
 				[
 					'id'      => 'instawp_sync_option',
 					'type'    => 'toggle',
-					'title'   => __( 'WP Options', 'instawp-connect' ),
+					'title'   => __( 'WP Options (Beta)', 'instawp-connect' ),
 					'tooltip' => __( 'Enabling this option will allow plugin to log WordPress options.', 'instawp-connect' ),
 					'class'   => 'save-ajax',
 					'default' => 'off',
@@ -390,7 +390,7 @@ class InstaWP_Setting {
 				[
 					'id'      => 'instawp_sync_wc',
 					'type'    => 'toggle',
-					'title'   => __( 'WooCommerce', 'instawp-connect' ),
+					'title'   => __( 'WooCommerce (Beta)', 'instawp-connect' ),
 					'tooltip' => __( 'Enabling this option will allow plugin to log WooCommerce events.', 'instawp-connect' ),
 					'class'   => 'save-ajax',
 					'default' => 'off',
@@ -610,73 +610,56 @@ class InstaWP_Setting {
 
 	public static function instawp_generate_api_key( $api_key, $status ) {
 
-		global $InstaWP_Curl;
-
 		if ( empty( $api_key ) || 'true' != $status ) {
+			error_log( 'instawp_generate_api_key empty api_key or status is not true' );
+
 			return false;
 		}
 
-		$api_domain = self::get_api_domain();
-		$api_args   = array(
-			'body'    => '',
-			'headers' => array(
-				'Authorization' => 'Bearer ' . $api_key,
-				'Accept'        => 'application/json',
-			),
-		);
+		$api_response = InstaWP_Curl::do_curl( 'check-key', [], [], false, 'v1', $api_key );
 
-		if ( is_wp_error( $response = wp_remote_get( $api_domain . INSTAWP_API_URL . '/check-key', $api_args ) ) ) {
-			return false;
-		}
+		if ( isset( $api_response['data']['status'] ) && $api_response['data']['status'] == 1 ) {
 
-		$response_body = json_decode( wp_remote_retrieve_body( $response ), true );
-
-		if ( isset( $response_body['status'] ) && $response_body['status'] ) {
 			$api_options = self::get_option( 'instawp_api_options', [] );
 
-			if ( is_array( $api_options ) && is_array( $response_body ) ) {
+			if ( is_array( $api_options ) && is_array( $api_response['data'] ) ) {
 				update_option( 'instawp_api_options', array_merge( $api_options, [
 					'api_key'  => $api_key,
-					'response' => $response_body
+					'response' => $api_response['data']
 				] ) );
 			}
-		}
+		} else {
+			error_log( 'instawp_generate_api_key error, response from check-key api: ' . json_encode( $api_response ) );
 
-		$url         = $api_domain . INSTAWP_API_URL . '/connects';
-		$php_version = substr( phpversion(), 0, 3 );
-		$username    = '';
-
-		foreach ( get_users( array( 'role__in' => array( 'administrator' ), 'fields' => array( 'user_login' ) ) ) as $admin ) {
-			if ( empty( $username ) && isset( $admin->user_login ) ) {
-				$username = $admin->user_login;
-			}
-		}
-
-		$body = json_encode(
-			array(
-				"url"         => get_site_url(),
-				"php_version" => $php_version,
-				"username"    => ! empty( $username ) ? base64_encode( $username ) : "",
-			)
-		);
-
-		$curl_response = $InstaWP_Curl->curl( $url, $body );
-
-		error_log( "curl_response on generate \n" . print_r( $curl_response, true ) );
-
-		if ( $curl_response['error'] ) {
 			return false;
 		}
 
-		$response   = (array) json_decode( $curl_response['curl_res'], true );
-		$connect_id = $response['data']['id'] ?? '';
+		$php_version      = substr( phpversion(), 0, 3 );
+		$connect_body     = array(
+			'url'         => get_site_url(),
+			'php_version' => $php_version,
+			'username'    => base64_encode( InstaWP_Tools::get_admin_username() ),
+		);
+		$connect_response = InstaWP_Curl::do_curl( 'connects', $connect_body, [], true, 'v1' );
 
-		if ( $response['status'] && ! empty( $connect_id ) ) {
-			self::set_connect_id( $connect_id );
+		if ( isset( $connect_response['data']['status'] ) && $connect_response['data']['status'] == 1 ) {
+			if ( isset( $connect_response['data']['id'] ) && ! empty( $connect_id = $connect_response['data']['id'] ) ) {
+
+				// set connect id
+				self::set_connect_id( $connect_id );
+
+				// Send heartbeat to InstaWP
+				instawp_send_heartbeat( $connect_id );
+			} else {
+				error_log( 'instawp_generate_api_key connect id not found in response.' );
+
+				return false;
+			}
+		} else {
+			error_log( 'instawp_generate_api_key error, response from connects api: ' . json_encode( $connect_response ) );
+
+			return false;
 		}
-
-		// Send heartbeat to InstaWP
-		instawp_send_heartbeat( $connect_id );
 
 		return true;
 	}

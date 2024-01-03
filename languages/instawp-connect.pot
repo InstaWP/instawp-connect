@@ -1,11 +1,11 @@
-
+InstaWP
 msgid ""
 msgstr ""
 "Project-Id-Version: InstaWP Connect\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2023-12-22 06:20+0000\n"
+"POT-Creation-Date: 2024-01-02 11:41+0000\n"
 "X-Poedit-Basepath: ..\n"
 "X-Poedit-KeywordsList: __;_e;_ex:1,2c;_n:1,2;_n_noop:1,2;_nx:1,2,4c;_nx_noop:1,2,3c;_x:1,2c;esc_attr__;esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c\n"
 "X-Poedit-SearchPath-0: .\n"
@@ -13,71 +13,71 @@ msgstr ""
 "X-Poedit-SourceCharset: UTF-8\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: admin/class-instawp-admin.php:67, includes/class-instawp-setting.php:36
+#: admin/class-instawp-admin.php:66, includes/class-instawp-setting.php:36
 msgid "Create Staging"
 msgstr ""
 
-#: admin/class-instawp-admin.php:80
+#: admin/class-instawp-admin.php:79
 msgid "Migrate"
 msgstr ""
 
-#: admin/class-instawp-admin.php:93
+#: admin/class-instawp-admin.php:92
 msgid "Go Live"
 msgstr ""
 
-#: admin/class-instawp-admin.php:139, admin/class-instawp-admin.php:140
+#: admin/class-instawp-admin.php:121, admin/class-instawp-admin.php:122
 msgid "InstaWP - Migrate"
 msgstr ""
 
-#: admin/class-instawp-admin.php:154, admin/class-instawp-admin.php:155
+#: admin/class-instawp-admin.php:136, admin/class-instawp-admin.php:137
 msgid "InstaWP"
 msgstr ""
 
-#: admin/class-instawp-admin.php:181
+#: admin/class-instawp-admin.php:163
 msgid "Please create staging sites first."
 msgstr ""
 
-#: admin/class-instawp-admin.php:216
+#: admin/class-instawp-admin.php:198
 msgid "Warning:"
 msgstr ""
 
-#: admin/class-instawp-admin.php:217
+#: admin/class-instawp-admin.php:199
 msgid "Error:"
 msgstr ""
 
-#: admin/class-instawp-admin.php:218
+#: admin/class-instawp-admin.php:200
 msgid "Warning: An alias for remote storage is required."
 msgstr ""
 
-#: admin/class-instawp-admin.php:219
+#: admin/class-instawp-admin.php:201
 msgid "Warning: The alias already exists in storage list."
 msgstr ""
 
-#: admin/class-instawp-admin.php:220
+#: admin/class-instawp-admin.php:202
 msgid "Calculating the size of files, folder and database timed out. If you continue to receive this error, please go to the plugin settings, uncheck 'Calculate the size of files, folder and database before backing up', save changes, then try again."
 msgstr ""
 
-#: admin/class-instawp-admin.php:221
+#: admin/class-instawp-admin.php:203
 msgid "Step One: In the backup list, click the 'Restore' button on the backup you want to restore. This will bring up the restore tab"
 msgstr ""
 
-#: admin/class-instawp-admin.php:222
+#: admin/class-instawp-admin.php:204
 msgid "Step Two: Choose an option to complete restore, if any"
 msgstr ""
 
-#: admin/class-instawp-admin.php:223
+#: admin/class-instawp-admin.php:205
 msgid "Step Three: Click 'Restore' button"
 msgstr ""
 
-#: admin/class-instawp-admin.php:224
+#: admin/class-instawp-admin.php:206
 msgid "1. Visit Key tab page of instaWP backup plugin of destination site."
 msgstr ""
 
-#: admin/class-instawp-admin.php:225
+#: admin/class-instawp-admin.php:207
 msgid "2. Generate a key by clicking Generate button and copy it."
 msgstr ""
 
-#: admin/class-instawp-admin.php:226
+#: admin/class-instawp-admin.php:208
 msgid "3. Go back to this page and paste the key in key box below. Lastly, click Save button."
 msgstr ""
 
@@ -85,39 +85,39 @@ msgstr ""
 msgid "Migration failed."
 msgstr ""
 
-#: includes/class-instawp-ajax.php:141
+#: includes/class-instawp-ajax.php:149
 msgid "Error: Empty serve url found in pre-check response."
 msgstr ""
 
-#: includes/class-instawp-ajax.php:154
+#: includes/class-instawp-ajax.php:162
 msgid "Error: Empty api signature found in pre-check response."
 msgstr ""
 
-#: includes/class-instawp-ajax.php:233
+#: includes/class-instawp-ajax.php:250
 msgid "Increase Limit"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:255
+#: includes/class-instawp-ajax.php:272
 msgid "Empty folder!"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:355
+#: includes/class-instawp-ajax.php:372
 msgid "%s rows"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:398
+#: includes/class-instawp-ajax.php:415
 msgid "We have identified following large files in your installation:"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:495
+#: includes/class-instawp-ajax.php:512
 msgid "InstaWP Connect Settings has been reset successfully."
 msgstr ""
 
-#: includes/class-instawp-curl.php:15
+#: includes/class-instawp-curl.php:19
 msgid "Invalid or Empty API Domain"
 msgstr ""
 
-#: includes/class-instawp-curl.php:19
+#: includes/class-instawp-curl.php:23
 msgid "Invalid or Empty API Key"
 msgstr ""
 
@@ -173,47 +173,47 @@ msgstr ""
 msgid "Invalid bearer token."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1071
+#: includes/class-instawp-rest-api.php:1070
 msgid "Setting does not exist."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1054
+#: includes/class-instawp-rest-api.php:1053
 msgid "Success!"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1063
+#: includes/class-instawp-rest-api.php:1062
 msgid "You can not enable this setting through API."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1060
+#: includes/class-instawp-rest-api.php:1059
 msgid "Setting is already disabled."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1177, includes/class-instawp-setting.php:437, includes/class-instawp-setting.php:443
+#: includes/class-instawp-rest-api.php:1176, includes/class-instawp-setting.php:437, includes/class-instawp-setting.php:443
 msgid "Heartbeat"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1178, includes/class-instawp-setting.php:475
+#: includes/class-instawp-rest-api.php:1177, includes/class-instawp-setting.php:475
 msgid "File Manager"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1179, includes/class-instawp-setting.php:483
+#: includes/class-instawp-rest-api.php:1178, includes/class-instawp-setting.php:483
 msgid "Database Manager"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1180, includes/class-instawp-setting.php:491
+#: includes/class-instawp-rest-api.php:1179, includes/class-instawp-setting.php:491
 msgid "Install Plugin / Themes"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1181, includes/class-instawp-setting.php:499
+#: includes/class-instawp-rest-api.php:1180, includes/class-instawp-setting.php:499
 msgid "Config Management"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1182, includes/class-instawp-setting.php:507
+#: includes/class-instawp-rest-api.php:1181, includes/class-instawp-setting.php:507
 msgid "Site Inventory"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1183, includes/class-instawp-setting.php:515
+#: includes/class-instawp-rest-api.php:1182, includes/class-instawp-setting.php:515
 msgid "Debug Log"
 msgstr ""
 
@@ -370,7 +370,7 @@ msgid "Enabling this option will allow plugin to log events related to all theme
 msgstr ""
 
 #: includes/class-instawp-setting.php:385
-msgid "WP Options"
+msgid "WP Options (Beta)"
 msgstr ""
 
 #: includes/class-instawp-setting.php:386
@@ -378,7 +378,7 @@ msgid "Enabling this option will allow plugin to log WordPress options."
 msgstr ""
 
 #: includes/class-instawp-setting.php:393
-msgid "WooCommerce"
+msgid "WooCommerce (Beta)"
 msgstr ""
 
 #: includes/class-instawp-setting.php:394
@@ -465,31 +465,31 @@ msgstr ""
 msgid "Enabling this option will allow reading WordPress error logs on this website remotely using the REST API."
 msgstr ""
 
-#: includes/class-instawp-tools.php:390
+#: includes/class-instawp-tools.php:397
 msgid "Tracking database could not found."
 msgstr ""
 
-#: includes/class-instawp-tools.php:400
+#: includes/class-instawp-tools.php:407
 msgid "API Signature and others data could not set properly"
 msgstr ""
 
-#: includes/class-instawp-tools.php:409
+#: includes/class-instawp-tools.php:416
 msgid "Could not create the forwarded file."
 msgstr ""
 
-#: includes/class-instawp-tools.php:413
+#: includes/class-instawp-tools.php:420
 msgid "InstaWP could not access the forwarded file due to security issue."
 msgstr ""
 
-#: includes/class-instawp-tools.php:422
+#: includes/class-instawp-tools.php:429
 msgid "InstaWP could not access or read required files from your WordPress directory due to file permission issue."
 msgstr ""
 
-#: includes/class-instawp-tools.php:424
+#: includes/class-instawp-tools.php:431
 msgid "Learn more."
 msgstr ""
 
-#: includes/class-instawp-tools.php:723
+#: includes/class-instawp-tools.php:743
 msgid "Launch %s"
 msgstr ""
 
