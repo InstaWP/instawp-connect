@@ -13,7 +13,7 @@ class InstaWP_Sync_WC extends InstaWP_Sync_Post {
 
 		// Attributes actions
 	    add_action( 'woocommerce_attribute_added', [ $this,'attribute_added' ], 10, 2 );
-	    add_action( 'woocommerce_attribute_updated', [ $this, 'attribute_updated' ], 10, 2 );
+	    add_action( 'woocommerce_attribute_updated', [ $this, 'attribute_updated' ], 10, 3 );
 	    add_action( 'woocommerce_attribute_deleted', [ $this, 'attribute_deleted' ], 10, 2 );
 
 	    // Process event
@@ -55,39 +55,43 @@ class InstaWP_Sync_WC extends InstaWP_Sync_Post {
 		}
 
 		$event_name = __( 'Woocommerce attribute added', 'instawp-connect' );
-		$this->add_event( $event_name, 'woocommerce_attribute_added', $data, $id );
+
+		$data['attribute_id'] = $id;
+		$this->add_event( $event_name, 'woocommerce_attribute_added', $data, $data['attribute_name'] );
 	}
 
 	/**
 	 * Attribute Updated (hook).
 	 *
-	 * @param int   $id   Updated attribute ID.
-	 * @param array $data Attribute data.
+	 * @param int    $id       Added attribute ID.
+	 * @param array  $data     Attribute data.
+	 * @param string $old_slug Attribute old name.
 	 */
-	public function attribute_updated( $id, $data ) {
+	public function attribute_updated( $id, $data, $old_slug ) {
 		if ( ! $this->can_sync() ) {
 			return;
 		}
 
 		$event_name = __('Woocommerce attribute updated', 'instawp-connect' );
-		$event_id   = InstaWP_Sync_DB::existing_update_events(INSTAWP_DB_TABLE_EVENTS, 'woocommerce_attribute_updated', $id );
+		$event_id   = InstaWP_Sync_DB::existing_update_events(INSTAWP_DB_TABLE_EVENTS, 'woocommerce_attribute_updated', $old_slug );
 
-		$this->add_event( $event_name, 'woocommerce_attribute_updated', $data, $id, $event_id );
+		$data['attribute_id'] = $id;
+		$this->add_event( $event_name, 'woocommerce_attribute_updated', $data, $old_slug, $event_id );
 	}
 
 	/**
 	 * Attribute Deleted (hook).
 	 *
-	 * @param int   $id   Deleted attribute ID.
-	 * @param array $data Attribute data.
+	 * @param int $id Attribute ID.
+	 * @param string $name Attribute name.
 	 */
-	public function attribute_deleted( $id, $data ) {
+	public function attribute_deleted( $id, $name ) {
 		if ( ! $this->can_sync() ) {
 			return;
 		}
 
 		$event_name = __( 'Woocommerce attribute deleted', 'instawp-connect' );
-		$this->add_event( $event_name, 'woocommerce_attribute_deleted', $data, $id );
+		$this->add_event( $event_name, 'woocommerce_attribute_deleted', [ 'attribute_id' => $id ], $name );
 	}
 
 	public function parse_event( $response, $v ) {
@@ -100,13 +104,19 @@ class InstaWP_Sync_WC extends InstaWP_Sync_Post {
 
 		// add or update attribute
 		if ( in_array( $v->event_slug, [ 'woocommerce_attribute_added', 'woocommerce_attribute_updated' ], true ) ) {
-			$attribute = wc_get_attribute( $v->source_id );
+			$attribute_id   = wc_attribute_taxonomy_id_by_name( $v->source_id );
+			$attribute_data = [
+				'name'          => $details['attribute_label'],
+				'slug'          => $details['attribute_name'],
+				'type'          => $details['attribute_type'],
+				'orderby'       => $details['attribute_orderby'],
+				'has_archives'  => isset( $details['attribute_public'] ) ? (int) $details['attribute_public'] : 0,
+			];
 
-			if ( ! empty( $attribute ) ) {
-				unset( $details['id'] );
-				$attribute = wc_update_attribute( $v->source_id, $details );
+			if ( $attribute_id ) {
+				$attribute = wc_update_attribute( $attribute_id, $attribute_data );
 			} else {
-				$attribute = $this->create_attribute( $v->source_id, $details );
+				$attribute = wc_create_attribute( $attribute_data );
 			}
 
 			if ( is_wp_error( $attribute ) ) {
@@ -120,12 +130,21 @@ class InstaWP_Sync_WC extends InstaWP_Sync_Post {
 		}
 
 		if ( $v->event_slug === 'woocommerce_attribute_deleted' ) {
-			$response = wc_delete_attribute( $v->source_id );
+			$attribute_id = wc_attribute_taxonomy_id_by_name( $v->source_id );
 
-			if ( ! $response ) {
+			if ( $attribute_id ) {
+				$response = wc_delete_attribute( $attribute_id );
+
+				if ( ! $response ) {
+					return InstaWP_Sync_Helpers::sync_response( $v, [], [
+						'status'  => 'pending',
+						'message' => 'Failed'
+					] );
+				}
+			} else {
 				return InstaWP_Sync_Helpers::sync_response( $v, [], [
 					'status'  => 'pending',
-					'message' => 'Failed'
+					'message' => 'Attribute not found'
 				] );
 			}
 		}
@@ -146,8 +165,10 @@ class InstaWP_Sync_WC extends InstaWP_Sync_Post {
 		switch ( $event_slug ) {
 			case 'woocommerce_attribute_added':
 			case 'woocommerce_attribute_updated':
-				$title   = $details['attribute_label'];
-				$details = ( array ) wc_get_attribute( $source_id );
+				$title = $details['attribute_label'];
+				break;
+			case 'woocommerce_attribute_deleted':
+				$title = ucfirst( str_replace( [ '-', '_' ], ' ', $source_id ) );
 				break;
 			default:
 				$title = $details;
