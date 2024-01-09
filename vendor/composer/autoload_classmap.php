@@ -7,16 +7,6 @@ $baseDir = dirname($vendorDir);
 
 return array(
     'Composer\\InstalledVersions' => $vendorDir . '/composer/InstalledVersions.php',
-    'Druidfi\\Mysqldump\\Compress\\CompressBzip2' => $vendorDir . '/druidfi/mysqldump-php/src/Compress/CompressBzip2.php',
-    'Druidfi\\Mysqldump\\Compress\\CompressGzip' => $vendorDir . '/druidfi/mysqldump-php/src/Compress/CompressGzip.php',
-    'Druidfi\\Mysqldump\\Compress\\CompressGzipstream' => $vendorDir . '/druidfi/mysqldump-php/src/Compress/CompressGzipstream.php',
-    'Druidfi\\Mysqldump\\Compress\\CompressInterface' => $vendorDir . '/druidfi/mysqldump-php/src/Compress/CompressInterface.php',
-    'Druidfi\\Mysqldump\\Compress\\CompressManagerFactory' => $vendorDir . '/druidfi/mysqldump-php/src/Compress/CompressManagerFactory.php',
-    'Druidfi\\Mysqldump\\Compress\\CompressNone' => $vendorDir . '/druidfi/mysqldump-php/src/Compress/CompressNone.php',
-    'Druidfi\\Mysqldump\\DumpSettings' => $vendorDir . '/druidfi/mysqldump-php/src/DumpSettings.php',
-    'Druidfi\\Mysqldump\\Mysqldump' => $vendorDir . '/druidfi/mysqldump-php/src/Mysqldump.php',
-    'Druidfi\\Mysqldump\\TypeAdapter\\TypeAdapterInterface' => $vendorDir . '/druidfi/mysqldump-php/src/TypeAdapter/TypeAdapterInterface.php',
-    'Druidfi\\Mysqldump\\TypeAdapter\\TypeAdapterMysql' => $vendorDir . '/druidfi/mysqldump-php/src/TypeAdapter/TypeAdapterMysql.php',
     'InstaWP\\Connect\\Helpers\\Cache' => $vendorDir . '/instawp/connect-helpers/src/Cache.php',
     'InstaWP\\Connect\\Helpers\\DatabaseManager' => $vendorDir . '/instawp/connect-helpers/src/DatabaseManager.php',
     'InstaWP\\Connect\\Helpers\\DebugLog' => $vendorDir . '/instawp/connect-helpers/src/DebugLog.php',

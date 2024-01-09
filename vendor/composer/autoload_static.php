@@ -24,10 +24,6 @@ class ComposerStaticInitbc4230231e9e48017a738b41afd9f581
         array (
             'InstaWP\\Connect\\Helpers\\' => 24,
         ),
-        'D' => 
-        array (
-            'Druidfi\\Mysqldump\\' => 18,
-        ),
     );
 
     public static $prefixDirsPsr4 = array (
@@ -43,24 +39,10 @@ class ComposerStaticInitbc4230231e9e48017a738b41afd9f581
         array (
             0 => __DIR__ . '/..' . '/instawp/connect-helpers/src',
         ),
-        'Druidfi\\Mysqldump\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/druidfi/mysqldump-php/src',
-        ),
     );
 
     public static $classMap = array (
         'Composer\\InstalledVersions' => __DIR__ . '/..' . '/composer/InstalledVersions.php',
-        'Druidfi\\Mysqldump\\Compress\\CompressBzip2' => __DIR__ . '/..' . '/druidfi/mysqldump-php/src/Compress/CompressBzip2.php',
-        'Druidfi\\Mysqldump\\Compress\\CompressGzip' => __DIR__ . '/..' . '/druidfi/mysqldump-php/src/Compress/CompressGzip.php',
-        'Druidfi\\Mysqldump\\Compress\\CompressGzipstream' => __DIR__ . '/..' . '/druidfi/mysqldump-php/src/Compress/CompressGzipstream.php',
-        'Druidfi\\Mysqldump\\Compress\\CompressInterface' => __DIR__ . '/..' . '/druidfi/mysqldump-php/src/Compress/CompressInterface.php',
-        'Druidfi\\Mysqldump\\Compress\\CompressManagerFactory' => __DIR__ . '/..' . '/druidfi/mysqldump-php/src/Compress/CompressManagerFactory.php',
-        'Druidfi\\Mysqldump\\Compress\\CompressNone' => __DIR__ . '/..' . '/druidfi/mysqldump-php/src/Compress/CompressNone.php',
-        'Druidfi\\Mysqldump\\DumpSettings' => __DIR__ . '/..' . '/druidfi/mysqldump-php/src/DumpSettings.php',
-        'Druidfi\\Mysqldump\\Mysqldump' => __DIR__ . '/..' . '/druidfi/mysqldump-php/src/Mysqldump.php',
-        'Druidfi\\Mysqldump\\TypeAdapter\\TypeAdapterInterface' => __DIR__ . '/..' . '/druidfi/mysqldump-php/src/TypeAdapter/TypeAdapterInterface.php',
-        'Druidfi\\Mysqldump\\TypeAdapter\\TypeAdapterMysql' => __DIR__ . '/..' . '/druidfi/mysqldump-php/src/TypeAdapter/TypeAdapterMysql.php',
         'InstaWP\\Connect\\Helpers\\Cache' => __DIR__ . '/..' . '/instawp/connect-helpers/src/Cache.php',
         'InstaWP\\Connect\\Helpers\\DatabaseManager' => __DIR__ . '/..' . '/instawp/connect-helpers/src/DatabaseManager.php',
         'InstaWP\\Connect\\Helpers\\DebugLog' => __DIR__ . '/..' . '/instawp/connect-helpers/src/DebugLog.php',

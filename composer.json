@@ -12,8 +12,7 @@
     "require": {
         "php": ">= 7.4.0",
         "instawp/connect-helpers": "dev-main",
-        "phpseclib/phpseclib": "~3.0",
-        "druidfi/mysqldump-php": "^1.0"
+        "phpseclib/phpseclib": "~3.0"
     },
     "repositories": [
         {

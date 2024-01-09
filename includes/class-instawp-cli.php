@@ -4,7 +4,6 @@
  */
 
 use InstaWP\Connect\Helpers\WPConfig;
-use phpseclib3\Net\SFTP;
 
 if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 	class INSTAWP_CLI_Commands {
