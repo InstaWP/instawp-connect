@@ -32,6 +32,8 @@ class InstaWP_Curl {
 
 		if ( is_string( $is_post ) && $is_post == 'patch' ) {
 			$api_method = 'PATCH';
+		} else if ( is_string( $is_post ) && $is_post == 'put' ) {
+			$api_method = 'PUT';
 		} else {
 			$api_method = $is_post ? 'POST' : 'GET';
 		}

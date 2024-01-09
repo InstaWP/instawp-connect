@@ -7,4 +7,5 @@ $baseDir = dirname($vendorDir);
 
 return array(
     'ac949ce40a981819ba132473518a9a31' => $vendorDir . '/wp-cli/wp-config-transformer/src/WPConfigTransformer.php',
+    'decc78cc4436b1292c6c0d151b19445c' => $vendorDir . '/phpseclib/phpseclib/phpseclib/bootstrap.php',
 );

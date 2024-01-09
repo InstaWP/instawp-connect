@@ -11,6 +11,7 @@ $parent_connect_data = InstaWP_Setting::get_option( 'instawp_sync_parent_connect
 if ( ! empty( $parent_connect_data ) ) {
 	$parent_domain = preg_replace( "(^https?://)", '', InstaWP_Setting::get_args_option( 'domain', $parent_connect_data, '' ) );
 }
+
 ?>
 
 <div class="nav-item-content sites bg-white rounded-md p-6" data-pagination="<?php echo esc_attr( $pagination ); ?>">

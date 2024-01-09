@@ -12,21 +12,16 @@ class Inventory {
 			require_once ABSPATH . 'wp-admin/includes/plugin.php';
 		}
 
-		$wp_plugins         = get_plugins();
-		$active_plugins     = ( array ) get_option( 'active_plugins', [] );
-		$plugin_update_data = get_site_transient( 'update_plugins' )->response ?? [];
+		$wp_plugins     = get_plugins();
+		$active_plugins = (array) get_option( 'active_plugins', [] );
 		$plugins        = [];
 
 		foreach ( $wp_plugins as $name => $plugin ) {
 			$slug      = explode( '/', $name );
 			$plugins[] = [
-				'slug'             => $slug[0],
-				'version'          => $plugin['Version'],
-				'activated'        => in_array( $name, $active_plugins, true ),
-				'update_available' => array_key_exists( $name, $plugin_update_data ),
-				'update_version'   => array_key_exists( $name, $plugin_update_data ) ? $plugin_update_data[ $name ]->new_version : '',
-				'icon_url'         => 'https://ps.w.org/' . $slug[0] . '/assets/icon-128x128.png',
-				'data'             => $plugin,
+				'slug'      => $slug[0],
+				'version'   => $plugin['Version'],
+				'activated' => in_array( $name, $active_plugins, true ),
 			];
 		}
 
@@ -38,7 +33,6 @@ class Inventory {
 			$mu_plugins[] = [
 				'slug'    => $slug[0],
 				'version' => $plugin['Version'],
-				'data'    => $plugin,
 			];
 		}
 
@@ -46,21 +40,16 @@ class Inventory {
 			require_once ABSPATH . 'wp-includes/theme.php';
 		}
 
-		$wp_themes         = wp_get_themes();
-		$current_theme     = wp_get_theme();
-		$theme_update_data = get_site_transient( 'update_themes' )->response ?? [];
-		$themes            = [];
+		$wp_themes     = wp_get_themes();
+		$current_theme = wp_get_theme();
+		$themes        = [];
 
 		foreach ( $wp_themes as $theme ) {
-			$stylesheet = $theme->get_stylesheet();
-
 			$themes[] = [
-				'slug'             => $stylesheet,
-				'version'          => $theme->get( 'Version' ),
-				'parent'           => $stylesheet !== $current_theme->get_template() ? $theme->get_template() : '',
-				'activated'        => $stylesheet === $current_theme->get_stylesheet(),
-				'update_available' => array_key_exists( $stylesheet, $theme_update_data ),
-				'update_version'   => array_key_exists( $stylesheet, $theme_update_data ) ? $theme_update_data[ $stylesheet ]['new_version'] : '',
+				'slug'      => $theme->get_stylesheet(),
+				'version'   => $theme->get( 'Version' ),
+				'parent'    => $theme->get_stylesheet() !== $current_theme->get_template() ? $theme->get_template() : '',
+				'activated' => $theme->get_stylesheet() === $current_theme->get_stylesheet(),
 			];
 		}
 

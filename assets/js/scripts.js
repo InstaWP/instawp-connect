@@ -195,6 +195,28 @@
             });
         };
 
+    $(document).on('click', '.instawp-copy-cmd', function () {
+
+        let inputField = document.createElement('input'),
+            el_copy_block = $(this),
+            el_copy_text = el_copy_block.find('.copy-text'),
+            text_to_copy = el_copy_block.data('text-to-copy'),
+            text_before_copy = el_copy_text.html(),
+            text_after_copy = el_copy_text.data('text-after-copy');
+
+        document.body.appendChild(inputField);
+        inputField.value = text_to_copy;
+        inputField.select();
+        document.execCommand('copy', false);
+        inputField.remove();
+
+        el_copy_text.html(text_after_copy);
+
+        setTimeout(function () {
+            el_copy_text.html(text_before_copy);
+        }, 2000);
+    });
+
     $(document).on('ready', function () {
 
         $(document).mousedown(function (event) {
@@ -211,7 +233,7 @@
 
             if (!$target.closest('.instawp-site-name .site-name-input-wrap input#site-prefix').length) {
 
-                if (el_site_name_input.val().length > 0) {
+                if (typeof el_site_name_input.val() !== 'undefined' && el_site_name_input.val().length > 0) {
                     let website_name = '';
 
                     website_name = el_site_name_input.val();

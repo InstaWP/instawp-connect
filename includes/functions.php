@@ -684,3 +684,70 @@ if ( ! function_exists( 'instawp_send_heartbeat' ) ) {
 		return true;
 	}
 }
+
+
+function addFileToPhar( $phar, $sourceDir, $file, $localName ) {
+	// Check if the file is a symbolic link
+	if ( is_link( $file ) ) {
+		// Resolve the path that the link points to
+		$realFilePath = readlink( $file );
+		// Add the resolved path file to the Phar archive
+		$phar->addFile( $realFilePath, $localName );
+	} else {
+		// Add the file to the Phar archive
+		$phar->addFile( $file, $localName );
+	}
+}
+
+function addDirToPhar( $phar, $sourceDir, $skipDirs, $dir = '' ) {
+	$fullDir = realpath( $sourceDir . '/' . $dir );
+
+	if ( in_array( $fullDir, $skipDirs ) ) {
+		return;
+	}
+
+	$handle = opendir( $fullDir );
+
+	while ( false !== ( $entry = readdir( $handle ) ) ) {
+		if ( $entry != '.' && $entry != '..' ) {
+			$fullPath  = $fullDir . '/' . $entry;
+			$localName = $dir . '/' . $entry;
+
+			if ( is_dir( $fullPath ) ) {
+				addDirToPhar( $phar, $sourceDir, $skipDirs, $localName );
+			} else {
+				addFileToPhar( $phar, $sourceDir, $fullPath, $localName );
+			}
+		}
+	}
+
+	closedir( $handle );
+}
+
+function instawp_zip_folder_with_phar( $source, $destination, array $skipDirs = [] ) {
+	$source = rtrim( $source, '/' );
+
+	if ( ! file_exists( $source ) ) {
+		throw new Exception( "Source directory does not exist: $source" );
+	}
+
+	// Prepare full paths for directories to skip
+	foreach ( $skipDirs as &$dir ) {
+		$dir = realpath( $source . '/' . $dir );
+	}
+
+	// Initialize PharData with .tar
+	$phar = new PharData( $destination . '.tar' );
+
+	// Manually add files to Phar, taking care of symbolic links and skipping directories
+	addDirToPhar( $phar, $source, $skipDirs );
+
+	// Compress the .tar into .tar.gz
+	$phar->compress( Phar::GZ );
+
+	// Clean up the .tar file
+	unlink( $destination . '.tar' );
+
+	// Rename .tar.gz to .zip
+	rename( $destination . '.tar.gz', $destination );
+}

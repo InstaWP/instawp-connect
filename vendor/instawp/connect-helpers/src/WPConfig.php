@@ -148,10 +148,7 @@ class WPConfig {
 				} elseif ( is_bool( $value ) ) {
 					$value       = $value ? 'true' : 'false';
 					$args['raw'] = true;
-				} elseif ( is_numeric( $value ) ) {
-					$value       = strval( $value );
-					$args['raw'] = true;
-				} elseif ( in_array( $value, [ 'true', 'false' ] ) ) {
+				} elseif ( is_integer( $value ) ) {
 					$value       = strval( $value );
 					$args['raw'] = true;
 				} else {

@@ -5,13 +5,15 @@
     "license": "GPL-2.0-or-later",
     "authors": [
         {
-            "name": "Sayan Datta",
-            "email": "sayan@instawp.com"
+            "name": "Vikas",
+            "email": "vikas@instawp.com"
         }
     ],
     "require": {
         "php": ">= 7.4.0",
-        "instawp/connect-helpers": "dev-main"
+        "instawp/connect-helpers": "dev-main",
+        "phpseclib/phpseclib": "~3.0",
+        "druidfi/mysqldump-php": "^1.0"
     },
     "repositories": [
         {
@@ -21,13 +23,13 @@
     ],
     "scripts": {
         "build": [
-			"composer dump-autoload"
-		],
+            "composer dump-autoload"
+        ],
         "build-nd": [
-			"composer dump-autoload --no-dev"
-		]
-	},
+            "composer dump-autoload --no-dev"
+        ]
+    },
     "config": {
-		"optimize-autoloader": true
-	}
+        "optimize-autoloader": true
+    }
 }

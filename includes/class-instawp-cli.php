@@ -4,6 +4,7 @@
  */
 
 use InstaWP\Connect\Helpers\WPConfig;
+use phpseclib3\Net\SFTP;
 
 if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 	class INSTAWP_CLI_Commands {
@@ -17,7 +18,63 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 			add_action( 'cli_init', array( $this, 'add_wp_cli_commands' ) );
 		}
 
+		function cli_local_push() {
+
+			// Files backup
+			if ( is_wp_error( $archive_path_file = InstaWP_Tools::cli_archive_wordpress_files() ) ) {
+				die( $archive_path_file->get_error_message() );
+			}
+			WP_CLI::success( 'Files backup created successfully.' );
+
+			// Database backup
+			$archive_path_db = InstaWP_Tools::cli_archive_wordpress_db();
+			WP_CLI::success( 'Database backup created successfully.' );
+
+
+//			$archive_path_file = '/Users/jaed/Desktop/wordpress_backup_2024-01-09_05-11-56.zip';
+//			$archive_path_db   = '/Users/jaed/Desktop/wordpress_db_backup_2024-01-09_05-12-02.sql';
+
+			// Create Site
+			if ( is_wp_error( $create_site_res = InstaWP_Tools::create_insta_site() ) ) {
+				die( $create_site_res->get_error_message() );
+			}
+
+			$site_id          = InstaWP_Setting::get_args_option( 'id', $create_site_res );
+			$site_wp_url      = InstaWP_Setting::get_args_option( 'wp_url', $create_site_res );
+			$site_wp_username = InstaWP_Setting::get_args_option( 'wp_username', $create_site_res );
+			$site_wp_password = InstaWP_Setting::get_args_option( 'wp_password', $create_site_res );
+			$site_s_hash      = InstaWP_Setting::get_args_option( 's_hash', $create_site_res );
+
+			WP_CLI::success( 'Site created successfully. URL: ' . $site_wp_url );
+
+			for ( $index = 10; $index > 0; -- $index ) {
+				WP_CLI::line( "Preparing to access the website in $index seconds. Please wait..." );
+				sleep( 1 );
+			}
+
+			// Upload files and db using SFTP
+			if ( is_wp_error( $file_upload_status = InstaWP_Tools::cli_upload_using_sftp( $site_id, $archive_path_file, $archive_path_db ) ) ) {
+				die( $file_upload_status->get_error_message() );
+			}
+
+			// Call restore API to initiate the restore
+			if ( is_wp_error( $file_upload_status = InstaWP_Tools::cli_restore_website( $site_id, $archive_path_file, $archive_path_db ) ) ) {
+				die( $file_upload_status->get_error_message() );
+			}
+
+			WP_CLI::success( 'Migration successful.' );
+		}
+
 		function handle_instawp_commands( $args ) {
+
+			if ( isset( $args[0] ) && $args[0] === 'local' ) {
+
+				if ( isset( $args[1] ) && $args[1] === 'push' ) {
+					$this->cli_local_push();
+				}
+
+				return true;
+			}
 
 			if ( isset( $args[0] ) && $args[0] === 'set-waas-mode' ) {
 

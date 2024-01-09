@@ -1,5 +1,7 @@
 <?php
 
+use phpseclib3\Net\SFTP;
+
 if ( ! defined( 'INSTAWP_PLUGIN_DIR' ) ) {
 	die;
 }
@@ -295,7 +297,7 @@ class InstaWP_Tools {
 			$migrate_settings['excluded_paths'][] = $relative_dir . '/mu-plugins/redis-cache-pro.php';
 		}
 
-        // Skip object-cache-iwp file if exists forcefully
+		// Skip object-cache-iwp file if exists forcefully
 		if ( file_exists( $relative_dir . '/object-cache-iwp.php' ) ) {
 			$migrate_settings['excluded_paths'][] = $relative_dir . '/object-cache-iwp.php';
 		}
@@ -837,5 +839,254 @@ class InstaWP_Tools {
         </body>
         </html>
 		<?php
+	}
+
+
+	public static function cli_archive_wordpress_db() {
+
+//		return '/Users/jaed/Desktop/wordpress_db_backup_2024-01-05_13-27-59.sql';
+
+		$archive_dir  = '/Users/jaed/Desktop/';
+		$archive_name = 'wordpress_db_backup_' . date( 'Y-m-d_H-i-s' );
+		$db_file_name = $archive_dir . $archive_name . '.sql';
+
+		WP_CLI::runcommand( 'db export ' . $db_file_name );
+
+		return $db_file_name;
+	}
+
+	public static function cli_archive_wordpress_files( $type = 'zip', $dirs_to_skip = [] ) {
+
+//		return '/Users/jaed/Desktop/wordpress_backup_2024-01-05_13-12-09.tgz';
+
+		// $archive_dir  = sys_get_temp_dir() . DIRECTORY_SEPARATOR;
+		$archive_dir         = '/Users/jaed/Desktop/';
+		$archive_name        = 'wordpress_backup_' . date( 'Y-m-d_H-i-s' );
+		$directories_to_skip = array_merge(
+			$dirs_to_skip,
+			array(
+				'wp-content/plugins/instawp-connect/',
+				'wp-content/instawpbackups/',
+			)
+		);
+
+		if ( $type == 'tgz' && class_exists( 'PharData' ) ) {
+			try {
+				$archive_path = $archive_dir . $archive_name . '.tgz';
+
+				instawp_zip_folder_with_phar( ABSPATH, $archive_path, $directories_to_skip );
+
+				return $archive_path;
+			} catch ( Exception $e ) {
+				return new WP_Error( 'backup_failed', $e->getMessage() );
+			}
+		}
+
+		if ( $type == 'zip' && class_exists( 'ZipArchive' ) ) {
+
+			$archive_path = $archive_dir . $archive_name . '.zip';
+			$zip          = new ZipArchive();
+
+			if ( $zip->open( $archive_path, ZipArchive::CREATE ) !== true ) {
+				return new WP_Error( 'zip_is_not_opening', esc_html__( 'Zip archive is not opening.', 'instawp-connect' ) );
+			}
+
+//			$iterator = new RecursiveDirectoryIterator( ABSPATH );
+//			$files    = new RecursiveIteratorIterator( $iterator, RecursiveIteratorIterator::LEAVES_ONLY );
+
+//            foreach ( $files as $file ) {
+//				if ( ! $file->isDir() ) {
+//					$filePath     = $file->getRealPath();
+//					$relativePath = str_replace( ABSPATH, '', $filePath );
+//
+//					$zip->addFile( $filePath, $relativePath );
+//				}
+//			}
+
+			$skip_folders     = [
+				'wp-content/instawpbackups',
+				'wp-content/upgrade',
+				'wp-content/plugins/instawp-connect',
+				'wp-content/plugins/instawp-helper',
+				'wp-content/plugins/iwp-migration',
+			];
+			$filter_directory = function ( SplFileInfo $file, $key, RecursiveDirectoryIterator $iterator ) use ( $skip_folders ) {
+
+				$relative_path = ! empty( $iterator->getSubPath() ) ? $iterator->getSubPath() . '/' . $file->getBasename() : $file->getBasename();
+
+				if ( in_array( $relative_path, $skip_folders ) ) {
+					return false;
+				}
+
+				return ! in_array( $iterator->getSubPath(), $skip_folders );
+			};
+			$directory        = new RecursiveDirectoryIterator( ABSPATH, RecursiveDirectoryIterator::SKIP_DOTS | RecursiveDirectoryIterator::FOLLOW_SYMLINKS );
+			$iterator         = new RecursiveIteratorIterator( new RecursiveCallbackFilterIterator( $directory, $filter_directory ), RecursiveIteratorIterator::LEAVES_ONLY, RecursiveIteratorIterator::CATCH_GET_CHILD );
+
+			try {
+				$limitedIterator = new LimitIterator( $iterator );
+			} catch ( Exception $e ) {
+				return new WP_Error( 'limited_worker_is_not_working', $e->getMessage() );
+			}
+
+			foreach ( $limitedIterator as $file ) {
+				if ( ! $file->isDir() ) {
+					$filePath     = $file->getRealPath();
+					$relativePath = str_replace( ABSPATH, '', $filePath );
+
+					$zip->addFile( $filePath, $relativePath );
+				}
+			}
+
+			$zip->close();
+
+			return $archive_path;
+		}
+
+		return new WP_Error( 'no_method_find', esc_html__( 'No compression method find.' ) );
+	}
+
+	public static function create_insta_site() {
+
+		// Creating new blank site
+		$sites_args        = array(
+//			'site_name'   => 'push-site-' . rand( 10, 99 ),
+			'wp_version'  => '6.3',
+			'php_version' => '7.4',
+			'is_reserved' => false
+		);
+		$sites_res         = InstaWP_Curl::do_curl( 'sites', $sites_args );
+		$sites_res_status  = (bool) InstaWP_Setting::get_args_option( 'success', $sites_res, true );
+		$sites_res_message = InstaWP_Setting::get_args_option( 'message', $sites_res, true );
+
+		if ( ! $sites_res_status ) {
+			return new WP_Error( 'could_not_create_site', $sites_res_message );
+		}
+
+		$sites_res_data = InstaWP_Setting::get_args_option( 'data', $sites_res, [] );
+		$sites_task_id  = InstaWP_Setting::get_args_option( 'task_id', $sites_res_data );
+
+		if ( ! empty( $sites_task_id ) ) {
+			while ( true ) {
+				$status_res = InstaWP_Curl::do_curl( "tasks/{$sites_task_id}/status", [], [], false );
+
+				if ( ! InstaWP_Setting::get_args_option( 'success', $status_res, true ) ) {
+					continue;
+				}
+
+				$status_res_data = InstaWP_Setting::get_args_option( 'data', $status_res, [] );
+				$restore_status  = InstaWP_Setting::get_args_option( 'status', $status_res_data, 0 );
+
+				if ( $restore_status == 'completed' ) {
+					break;
+				}
+
+				sleep( 5 );
+			}
+//			return new WP_Error( 'task_id_not_found', esc_html__( 'Task ID not found in site create response.', 'instawp-connect' ) );
+		}
+
+		return (array) $sites_res_data;
+	}
+
+	public static function cli_upload_using_sftp( $site_id, $file_path, $db_path ) {
+
+		// Enabling SFTP
+		$sftp_enable_res = InstaWP_Curl::do_curl( "sites/{$site_id}/update-sftp-status", array( 'status' => 1 ) );
+
+		if ( ! InstaWP_Setting::get_args_option( 'success', $sftp_enable_res, true ) ) {
+			return new WP_Error( 'sftp_enable_failed', InstaWP_Setting::get_args_option( 'message', $sftp_enable_res ) );
+		}
+
+		WP_CLI::success( 'SFTP enabled for the website.' );
+
+
+		// Getting SFTP details of $site_id
+		$sftp_details_res = InstaWP_Curl::do_curl( "sites/{$site_id}/sftp-details", [], [], false );
+
+		if ( ! InstaWP_Setting::get_args_option( 'success', $sftp_details_res, true ) ) {
+			return new WP_Error( 'sftp_enable_failed', InstaWP_Setting::get_args_option( 'message', $sftp_details_res ) );
+		}
+
+		WP_CLI::success( 'SFTP details fetched successfully.' );
+
+		$sftp_details_res_data = InstaWP_Setting::get_args_option( 'data', $sftp_details_res, [] );
+		$sftp_host             = InstaWP_Setting::get_args_option( 'host', $sftp_details_res_data );
+		$sftp_username         = InstaWP_Setting::get_args_option( 'username', $sftp_details_res_data );
+		$sftp_password         = InstaWP_Setting::get_args_option( 'password', $sftp_details_res_data );
+		$sftp_port             = InstaWP_Setting::get_args_option( 'port', $sftp_details_res_data );
+
+		// Connecting to SFTP
+		$sftp = new SFTP( $sftp_host, $sftp_port );
+
+		try {
+			if ( ! $sftp->login( $sftp_username, $sftp_password ) ) {
+				return new WP_Error( 'sftp_login_failed', esc_html__( 'SFTP login failed.', 'instawp-connect' ) );
+			}
+		} catch ( Exception $e ) {
+			return new WP_Error( 'sftp_login_failed', $e->getMessage() );
+		}
+
+		WP_CLI::success( 'SFTP login successful to the server.' );
+
+		$sftp_file_upload_status = $sftp->put( "web/$sftp_host/public_html/" . basename( $file_path ), $file_path, SFTP::SOURCE_LOCAL_FILE );
+
+		if ( ! $sftp_file_upload_status ) {
+			return new WP_Error( 'sftp_file_upload_failed', esc_html__( 'SFTP upload failed for files.', 'instawp-connect' ) );
+		}
+
+		WP_CLI::success( 'File uploaded successfully using SFTP.' );
+
+		$sftp_db_upload_status = $sftp->put( "web/$sftp_host/public_html/" . basename( $db_path ), $db_path, SFTP::SOURCE_LOCAL_FILE );
+
+		if ( ! $sftp_db_upload_status ) {
+			return new WP_Error( 'sftp_db_upload_failed', esc_html__( 'SFTP upload failed for database.', 'instawp-connect' ) );
+		}
+
+		WP_CLI::success( 'Database uploaded successfully using SFTP.' );
+
+		return true;
+	}
+
+	public static function cli_restore_website( $site_id, $file_path, $db_path ) {
+
+		$restore_args = array(
+			'file_bkp'      => basename( $file_path ),
+			'db_bkp'        => basename( $db_path ),
+			'source_domain' => str_replace( array( 'https://', 'http://' ), '', site_url() ),
+		);
+		$restore_res  = InstaWP_Curl::do_curl( "sites/{$site_id}/restore-raw", $restore_args, [], 'put' );
+
+		if ( ! InstaWP_Setting::get_args_option( 'success', $restore_res, true ) ) {
+			return new WP_Error( 'restore_raw_api_failed', InstaWP_Setting::get_args_option( 'message', $restore_res, true ) );
+		}
+
+		$restore_res_data = InstaWP_Setting::get_args_option( 'data', $restore_res, [] );
+		$restore_task_id  = InstaWP_Setting::get_args_option( 'task_id', $restore_res_data );
+
+		WP_CLI::success( 'Restore initiated. Task id: ' . $restore_task_id );
+
+		while ( true ) {
+
+			$status_res = InstaWP_Curl::do_curl( "tasks/{$restore_task_id}/status", [], [], false );
+
+			if ( ! InstaWP_Setting::get_args_option( 'success', $status_res, true ) ) {
+				continue;
+			}
+
+			$status_res_data     = InstaWP_Setting::get_args_option( 'data', $status_res, [] );
+			$percentage_complete = InstaWP_Setting::get_args_option( 'percentage_complete', $status_res_data, 0 );
+			$restore_status      = InstaWP_Setting::get_args_option( 'status', $status_res_data );
+
+			WP_CLI::line( "Migration Progress: {$percentage_complete}" );
+
+			if ( $restore_status === 'completed' ) {
+				break;
+			}
+
+			sleep( 5 );
+		}
+
+		return true;
 	}
 }

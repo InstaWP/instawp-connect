@@ -9,12 +9,15 @@ $migrate_id        = InstaWP_Setting::get_args_option( 'migrate_id', $migration_
 
 if ( ! empty( $migrate_id ) ) {
 	$nav_item_classes[] = 'loading';
-} ?>
+}
+?>
 
 <form action="" method="post" class="<?php echo esc_attr( implode( ' ', $nav_item_classes ) ); ?> create active">
 	<?php
-	if ( instawp()->is_on_local || instawp()->has_unsupported_plugins || ! instawp()->can_bundle ) {
+	if ( instawp()->has_unsupported_plugins || ! instawp()->can_bundle ) {
 		include INSTAWP_PLUGIN_DIR . '/migrate/templates/part-create-error.php';
+	} else if ( instawp()->is_connected && instawp()->is_on_local ) {
+		include INSTAWP_PLUGIN_DIR . '/migrate/templates/part-create-local.php';
 	} else if ( instawp()->is_connected ) {
 		include INSTAWP_PLUGIN_DIR . '/migrate/templates/part-create-staging.php';
 	} else {

@@ -15,9 +15,11 @@ if ( ! instawp()->can_bundle ) {
 	}, instawp()->tools::get_unsupported_active_plugins() );
 	$unsupported_plugins_str = implode( ', ', $unsupported_plugins );
 
-	$error_title             = esc_html__( 'Unsupported plugins detected.', 'instawp-connect' );
-	$error_message           = sprintf( __( 'We have detected <strong class="underline">%s</strong> plugin(s) which is incompatible with our service currently. Please deactivate it to start the process (later you can activate it back).', 'instawp-connect' ), $unsupported_plugins_str );
-} ?>
+	$error_title   = esc_html__( 'Unsupported plugins detected.', 'instawp-connect' );
+	$error_message = sprintf( __( 'We have detected <strong class="underline">%s</strong> plugin(s) which is incompatible with our service currently. Please deactivate it to start the process (later you can activate it back).', 'instawp-connect' ), $unsupported_plugins_str );
+}
+
+?>
 
 <div class="bg-white text-center rounded-md py-20 flex items-center justify-center">
     <div class="w-2/3">
