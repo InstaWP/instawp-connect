@@ -846,7 +846,8 @@ class InstaWP_Tools {
 
 //		return '/Users/jaed/Desktop/wordpress_db_backup_2024-01-05_13-27-59.sql';
 
-		$archive_dir  = '/Users/jaed/Desktop/';
+//		$archive_dir  = '/Users/jaed/Desktop/';
+		$archive_dir  = sys_get_temp_dir() . DIRECTORY_SEPARATOR;
 		$archive_name = 'wordpress_db_backup_' . date( 'Y-m-d_H-i-s' );
 		$db_file_name = $archive_dir . $archive_name . '.sql';
 
@@ -859,8 +860,8 @@ class InstaWP_Tools {
 
 //		return '/Users/jaed/Desktop/wordpress_backup_2024-01-05_13-12-09.tgz';
 
-		// $archive_dir  = sys_get_temp_dir() . DIRECTORY_SEPARATOR;
-		$archive_dir         = '/Users/jaed/Desktop/';
+//		$archive_dir         = '/Users/jaed/Desktop/';
+		$archive_dir         = sys_get_temp_dir() . DIRECTORY_SEPARATOR;
 		$archive_name        = 'wordpress_backup_' . date( 'Y-m-d_H-i-s' );
 		$directories_to_skip = array_merge(
 			$dirs_to_skip,

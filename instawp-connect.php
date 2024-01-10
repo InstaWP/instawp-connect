@@ -180,17 +180,3 @@ function run_instawp() {
 add_filter( 'got_rewrite', '__return_true' );
 
 run_instawp();
-
-add_action( 'admin_init', function () {
-	if ( ! get_option( 'instawp_option_deleted' ) ) {
-		global $wpdb;
-
-		$statement = $wpdb->prepare( "SELECT * FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE event_type=%s", 'option' );
-		$events    = $wpdb->get_results( $statement );
-
-		foreach ( $events as $event ) {
-			$wpdb->query( $wpdb->prepare( "DELETE FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE id=%d", $event->id ) );
-		}
-		update_option( 'instawp_option_deleted', 1 );
-	}
-} );
