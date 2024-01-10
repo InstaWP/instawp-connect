@@ -953,7 +953,7 @@ class InstaWP_Tools {
 //			'site_name'   => 'push-site-' . rand( 10, 99 ),
 			'wp_version'  => '6.3',
 			'php_version' => '7.4',
-			'is_reserved' => false
+			'is_reserved' => false,
 		);
 		$sites_res         = InstaWP_Curl::do_curl( 'sites', $sites_args );
 		$sites_res_status  = (bool) InstaWP_Setting::get_args_option( 'success', $sites_res, true );
@@ -965,6 +965,7 @@ class InstaWP_Tools {
 
 		$sites_res_data = InstaWP_Setting::get_args_option( 'data', $sites_res, [] );
 		$sites_task_id  = InstaWP_Setting::get_args_option( 'task_id', $sites_res_data );
+		$site_id        = InstaWP_Setting::get_args_option( 'id', $sites_res_data );
 
 		if ( ! empty( $sites_task_id ) ) {
 			while ( true ) {
@@ -983,7 +984,10 @@ class InstaWP_Tools {
 
 				sleep( 5 );
 			}
-//			return new WP_Error( 'task_id_not_found', esc_html__( 'Task ID not found in site create response.', 'instawp-connect' ) );
+		}
+
+		if ( empty( $site_id ) ) {
+			return new WP_Error( 'site_id_not_found', esc_html__( 'Site ID not found in site create response.', 'instawp-connect' ) );
 		}
 
 		return (array) $sites_res_data;

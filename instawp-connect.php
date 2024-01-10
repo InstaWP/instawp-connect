@@ -239,6 +239,14 @@ add_action( 'init', function () {
 //			echo "</pre>";
 //		}
 
+		$migrate_id  = 97;
+		$migrate_key = '1b337e5f8ed34d6325dfa7bc31fd301303a13143';
+
+		$response = instawp_update_migration_stages( [ 'migration-finished' => true ], $migrate_id, $migrate_key );
+
+		echo "<pre>";
+		print_r( $response );
+		echo "</pre>";
 
 		die();
 	}

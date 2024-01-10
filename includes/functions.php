@@ -131,27 +131,28 @@ if ( ! function_exists( 'instawp_update_migration_stages' ) ) {
 	/**
 	 * Update migration stages
 	 *
-	 * @param $stages
+	 * @param array $stages
+	 * @param string $migrate_id
+	 * @param string $migrate_key
 	 *
 	 * @return bool
 	 */
-	function instawp_update_migration_stages( $stages = [] ) {
+	function instawp_update_migration_stages( $stages = [], $migrate_id = '', $migrate_key = '' ) {
 
-		if (
-			empty( $stages ) ||
-			empty( $migrate_id = InstaWP_Setting::get_option( 'migrate_id' ) ) ||
-			empty( $migrate_key = InstaWP_Setting::get_option( 'migrate_key' ) )
-		) {
+		$migrate_id  = empty( $migrate_id ) ? InstaWP_Setting::get_option( 'migrate_id' ) : $migrate_id;
+		$migrate_key = empty( $migrate_key ) ? InstaWP_Setting::get_option( 'migrate_key' ) : $migrate_key;
+
+		if ( empty( $stages ) || ! is_array( $stages ) || empty( $migrate_id ) || empty( $migrate_key ) ) {
 			return false;
 		}
 
 		$stage_args     = array(
 			'migrate_key' => $migrate_key,
-			'stage'       => json_encode( $stages ),
+			'stage'       => $stages,
 		);
 		$stage_response = InstaWP_Curl::do_curl( 'migrates-v3/' . $migrate_id . '/update-status', $stage_args );
 
-		return (bool) InstaWP_Setting::get_args_option( 'status', $stage_response, true );
+		return (bool) InstaWP_Setting::get_args_option( 'success', $stage_response, true );
 	}
 }
 

@@ -19,6 +19,8 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 
 		function cli_local_push() {
 
+			global $wp_version;
+
 			// Files backup
 			if ( is_wp_error( $archive_path_file = InstaWP_Tools::cli_archive_wordpress_files() ) ) {
 				die( $archive_path_file->get_error_message() );
@@ -29,9 +31,6 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 			$archive_path_db = InstaWP_Tools::cli_archive_wordpress_db();
 			WP_CLI::success( 'Database backup created successfully.' );
 
-
-//			$archive_path_file = '/Users/jaed/Desktop/wordpress_backup_2024-01-09_05-11-56.zip';
-//			$archive_path_db   = '/Users/jaed/Desktop/wordpress_db_backup_2024-01-09_05-12-02.sql';
 
 			// Create Site
 			if ( is_wp_error( $create_site_res = InstaWP_Tools::create_insta_site() ) ) {
@@ -46,20 +45,56 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 
 			WP_CLI::success( 'Site created successfully. URL: ' . $site_wp_url );
 
-			for ( $index = 10; $index > 0; -- $index ) {
-				WP_CLI::line( "Preparing to access the website in $index seconds. Please wait..." );
-				sleep( 1 );
+			// Add migration entry
+			$migrate_key         = instawp()->tools::get_random_string( 40 );
+			$migrate_settings    = instawp()->tools::get_migrate_settings( $_POST );
+			$migrate_args        = array(
+				'site_id'           => $site_id,
+				'mode'              => 'local-push',
+				'source_connect_id' => instawp()->connect_id,
+				'settings'          => $migrate_settings,
+				'php_version'       => PHP_VERSION,
+				'wp_version'        => $wp_version,
+				'plugin_version'    => INSTAWP_PLUGIN_VERSION,
+				'migrate_key'       => $migrate_key
+			);
+			$migrate_res         = InstaWP_Curl::do_curl( 'migrates-v3/local-push', $migrate_args );
+			$migrate_res_status  = (bool) InstaWP_Setting::get_args_option( 'success', $migrate_res, true );
+			$migrate_res_message = InstaWP_Setting::get_args_option( 'message', $migrate_res );
+			$migrate_res_data    = InstaWP_Setting::get_args_option( 'data', $migrate_res, [] );
+
+			if ( ! $migrate_res_status ) {
+				die( $migrate_res_message );
 			}
+
+			$migrate_id   = InstaWP_Setting::get_args_option( 'migrate_id', $migrate_res_data );
+			$tracking_url = InstaWP_Setting::get_args_option( 'tracking_url', $migrate_res_data );
+
+			WP_CLI::success( "Migration initiated with migrate_id: {$migrate_id}. Tracking URL: {$tracking_url}" );
+
+			// Wait 10 seconds
+			sleep( 10 );
 
 			// Upload files and db using SFTP
 			if ( is_wp_error( $file_upload_status = InstaWP_Tools::cli_upload_using_sftp( $site_id, $archive_path_file, $archive_path_db ) ) ) {
+
+				// Mark the migration failed
+				instawp_update_migration_stages( [ 'failed' => true ], $migrate_id, $migrate_key );
+
 				die( $file_upload_status->get_error_message() );
 			}
 
 			// Call restore API to initiate the restore
 			if ( is_wp_error( $file_upload_status = InstaWP_Tools::cli_restore_website( $site_id, $archive_path_file, $archive_path_db ) ) ) {
+
+				// Mark the migration failed
+				instawp_update_migration_stages( [ 'failed' => true ], $migrate_id, $migrate_key );
+
 				die( $file_upload_status->get_error_message() );
 			}
+
+			// Mark the migration failed
+			instawp_update_migration_stages( [ 'migration-finished' => true ], $migrate_id, $migrate_key );
 
 			WP_CLI::success( 'Migration successful.' );
 		}
