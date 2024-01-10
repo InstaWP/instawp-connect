@@ -16,4 +16,46 @@ class Helper {
 
 		return $random_string;
 	}
+
+	public static function get_option( $option_name, $default = [] ) {
+		$option = get_option( $option_name, $default );
+
+		return $option;
+	}
+
+	public static function get_args_option( $key = '', $args = [], $default = '' ) {
+		$default = is_array( $default ) && empty( $default ) ? [] : $default;
+		$value   = ! is_array( $default ) && ! is_bool( $default ) && empty( $default ) ? '' : $default;
+		$key     = empty( $key ) ? '' : $key;
+
+		if ( isset( $args[ $key ] ) && ! empty( $args[ $key ] ) ) {
+			$value = $args[ $key ];
+		}
+
+		if ( isset( $args[ $key ] ) && is_bool( $default ) ) {
+			$value = ! ( 0 == $args[ $key ] || '' == $args[ $key ] );
+		}
+
+		return $value;
+	}
+
+	public static function get_directory_info( $path ) {
+		$bytes_total = 0;
+		$files_total = 0;
+		$path        = realpath( $path );
+		try {
+			if ( $path !== false && $path != '' && file_exists( $path ) ) {
+				foreach ( new \RecursiveIteratorIterator( new \RecursiveDirectoryIterator( $path, \FilesystemIterator::SKIP_DOTS ) ) as $object ) {
+					$bytes_total += $object->getSize();
+					$files_total ++;
+				}
+			}
+		} catch ( Exception $e ) {
+		}
+
+		return [
+			'size'  => $bytes_total,
+			'count' => $files_total
+		];
+	}
 }
