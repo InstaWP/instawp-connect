@@ -374,11 +374,11 @@ jQuery(document).ready(function ($) {
                 $(".sync_process .step-3").removeClass('process_pending').addClass('process_inprogress');
 
                 if (paging.current_batch < paging.total_batch) {
-                    if (0 === (paging.total_completed % 50)) {
+                    if (0 === (paging.total_completed % 30)) {
                         $('.sync_error_success_msg').html('<p class="warning">Cooling down..</p>');
                         setTimeout(function () {
                             packThings(sync_message, sync_type, dest_connect_id, paging.next_batch, ids);
-                        }, 10000);
+                        }, 40000);
                     } else {
                         packThings(sync_message, sync_type, dest_connect_id, paging.next_batch, ids);
                     }
