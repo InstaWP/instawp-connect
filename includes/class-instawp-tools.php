@@ -913,7 +913,7 @@ class InstaWP_Tools {
 			];
 			$filter_directory = function ( SplFileInfo $file, $key, RecursiveDirectoryIterator $iterator ) use ( $skip_folders ) {
 
-				$relative_path = ! empty( $iterator->getSubPath() ) ? $iterator->getSubPath() . '/' . $file->getBasename() : $file->getBasename();
+				$relative_path = ! empty( $iterator->getSubPath() ) ? $iterator->getSubPath() . DIRECTORY_SEPARATOR . $file->getBasename() : $file->getBasename();
 
 				if ( in_array( $relative_path, $skip_folders ) ) {
 					return false;
@@ -933,7 +933,7 @@ class InstaWP_Tools {
 			foreach ( $limitedIterator as $file ) {
 				if ( ! $file->isDir() ) {
 					$filePath     = $file->getRealPath();
-					$relativePath = str_replace( ABSPATH, '', $filePath );
+					$relativePath = str_replace( ABSPATH, '', str_replace( '\\', '/', $filePath ) );
 
 					$zip->addFile( $filePath, $relativePath );
 				}
