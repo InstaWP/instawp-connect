@@ -905,11 +905,11 @@ class InstaWP_Tools {
 //			}
 
 			$skip_folders     = [
-				'wp-content/instawpbackups',
-				'wp-content/upgrade',
-				'wp-content/plugins/instawp-connect',
-				'wp-content/plugins/instawp-helper',
-				'wp-content/plugins/iwp-migration',
+				'wp-content' . DIRECTORY_SEPARATOR . 'instawpbackups',
+				'wp-content' . DIRECTORY_SEPARATOR . 'upgrade',
+				'wp-content' . DIRECTORY_SEPARATOR . 'plugins' . DIRECTORY_SEPARATOR . 'instawp-connect',
+				'wp-content' . DIRECTORY_SEPARATOR . 'plugins' . DIRECTORY_SEPARATOR . 'instawp-helper',
+				'wp-content' . DIRECTORY_SEPARATOR . 'plugins' . DIRECTORY_SEPARATOR . 'iwp-migration',
 			];
 			$filter_directory = function ( SplFileInfo $file, $key, RecursiveDirectoryIterator $iterator ) use ( $skip_folders ) {
 
