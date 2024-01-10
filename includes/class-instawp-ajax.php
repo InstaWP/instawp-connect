@@ -24,6 +24,12 @@ class InstaWP_AJAX {
 	}
 
 	public function create_file_db_manager() {
+		check_ajax_referer( 'instawp-migrate', 'security' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error();
+		}
+		
 		$type = isset( $_POST['type'] ) ? $_POST['type'] : 'file';
 
 		InstaWP_Tools::instawp_reset_permalink();
@@ -437,10 +443,18 @@ class InstaWP_AJAX {
 	public function save_management_settings() {
 		check_ajax_referer( 'instawp-migrate', 'security' );
 
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error();
+		}
+
 		$option_name  = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '';
 		$option_value = isset( $_POST['value'] ) ? sanitize_text_field( wp_unslash( $_POST['value'] ) ) : '';
 
 		if ( ! $option_name || ! $option_value ) {
+			wp_send_json_error();
+		}
+
+		if ( strpos( $option_name, 'instawp' ) === false ) {
 			wp_send_json_error();
 		}
 

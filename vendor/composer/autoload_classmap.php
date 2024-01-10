@@ -14,6 +14,7 @@ return array(
     'InstaWP\\Connect\\Helpers\\Helper' => $vendorDir . '/instawp/connect-helpers/src/Helper.php',
     'InstaWP\\Connect\\Helpers\\Installer' => $vendorDir . '/instawp/connect-helpers/src/Installer.php',
     'InstaWP\\Connect\\Helpers\\Inventory' => $vendorDir . '/instawp/connect-helpers/src/Inventory.php',
+    'InstaWP\\Connect\\Helpers\\Option' => $vendorDir . '/instawp/connect-helpers/src/Option.php',
     'InstaWP\\Connect\\Helpers\\WPConfig' => $vendorDir . '/instawp/connect-helpers/src/WPConfig.php',
     'ParagonIE\\ConstantTime\\Base32' => $vendorDir . '/paragonie/constant_time_encoding/src/Base32.php',
     'ParagonIE\\ConstantTime\\Base32Hex' => $vendorDir . '/paragonie/constant_time_encoding/src/Base32Hex.php',

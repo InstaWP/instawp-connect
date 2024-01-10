@@ -15,15 +15,7 @@ class FileManager {
     public function get(): array {
         $results = [];
 		
-		$file_name = get_option( 'instawp_file_manager_name', '' );
-		if ( ! empty( $file_name ) ) {
-			as_unschedule_all_actions( 'instawp_clean_file_manager', [ $file_name ], 'instawp-connect' );
-
-			$file_path = self::get_file_path( $file_name );
-			if ( file_exists( $file_path ) ) {
-				@unlink( $file_path );
-			}
-		}
+		$this->clean();
 
 		$username  = Helper::get_random_string( 15 );
 		$password  = Helper::get_random_string( 20 );
@@ -91,10 +83,19 @@ class FileManager {
 			$wp_config->update();
 
 			set_transient( 'instawp_file_manager_login_token', $token, ( 15 * MINUTE_IN_SECONDS ) );
-			update_option( 'instawp_file_manager_name', $file_name );
+			$file_db = [
+				'file_name' => $file_name,
+			];
+
+			$file_db_manager = Helper::get_option( 'instawp_file_db_manager', [] );
+			$db_name         = Helper::get_args_option( 'db_name', $file_db_manager );
+			if ( $db_name ) {
+				$file_db['db_name'] = $db_name;
+			}
+			update_option( 'instawp_file_db_manager', $file_db );
 
 			flush_rewrite_rules();
-			as_schedule_single_action( time() + DAY_IN_SECONDS, 'instawp_clean_file_manager', [ $file_name ], 'instawp-connect', false, 5 );
+			do_action( 'instawp_connect_create_file_manager_task', $file_name );
 		} catch ( Exception $e ) {
 			$results = [
 				'success' => false,
@@ -105,15 +106,44 @@ class FileManager {
         return $results;
     }
 
-	public static function get_query_var() {
+	public function clean( $file_name = null ): void {
+		$file_db_manager = Helper::get_option( 'instawp_file_db_manager', [] );
+        $file_name       = $file_name ? $file_name : Helper::get_args_option( 'file_name', $file_db_manager );
+
+		if ( ! empty( $file_name ) ) {
+			$file_path = self::get_file_path( $file_name );
+			if ( file_exists( $file_path ) ) {
+				@unlink( $file_path );
+			}
+
+			$constants = [ 'INSTAWP_FILE_MANAGER_USERNAME', 'INSTAWP_FILE_MANAGER_PASSWORD', 'INSTAWP_FILE_MANAGER_SELF_URL', 'INSTAWP_FILE_MANAGER_SESSION_ID' ];
+			$wp_config = new WPConfig( $constants );
+			$wp_config->delete();
+
+			if ( isset( $file_db_manager['file_name'] ) ) {
+				unset( $file_db_manager['file_name'] );
+			}
+			
+			if ( count( $file_db_manager ) < 1 ) {
+				delete_option( 'instawp_file_db_manager' );
+			} else {
+				update_option( 'instawp_file_db_manager', $file_db_manager );
+			}
+			flush_rewrite_rules();
+
+			do_action( 'instawp_connect_remove_file_manager_task', $file_name );
+		}
+	}
+
+	public static function get_query_var(): string {
 		return self::$query_var;
 	}
 
-	public static function get_file_path( $file_name ) {
+	public static function get_file_path( $file_name ): string {
 		return WP_PLUGIN_DIR . '/instawp-connect/includes/file-manager/instawp' . $file_name . '.php';
 	}
 
-	public static function get_file_manager_url( $file_name ) {
+	public static function get_file_manager_url( $file_name ): string {
 		return home_url( self::$query_var . '/' . $file_name );
 	}
 }

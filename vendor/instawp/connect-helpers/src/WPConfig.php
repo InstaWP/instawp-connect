@@ -7,6 +7,7 @@ class WPConfig {
 
 	public string $file;
 	public array $data;
+	public bool $is_cli;
 
 	public array $constants = [
 		'WP_ENVIRONMENT_TYPE',
@@ -53,7 +54,7 @@ class WPConfig {
 		'NONCE_SALT',
 	];
 
-    public function __construct( array $constants = [] ) {
+    public function __construct( array $constants = [], $is_cli = false ) {
 		$file = ABSPATH . 'wp-config.php';
 		if ( ! file_exists( $file ) ) {
 			if ( @file_exists( dirname( ABSPATH ) . '/wp-config.php' ) ) {
@@ -61,8 +62,9 @@ class WPConfig {
 			}
 		}
 
-        $this->file = $file;
-		$this->data = $constants;
+        $this->file   = $file;
+		$this->data   = $constants;
+		$this->is_cli = $is_cli;
     }
 
     public function fetch(): array {
@@ -72,7 +74,10 @@ class WPConfig {
 		if ( ! empty( $this->data ) ) {
 			$this->constants = array_merge( $this->constants, $this->data );
 		}
-		$constants = array_diff( $this->constants, $this->blacklisted );
+
+		if ( ! $this->is_cli ) {
+			$constants = array_diff( $this->constants, $this->blacklisted );
+		}
 		
 		try {
 			$config  = new \WPConfigTransformer( $this->file );
@@ -82,7 +87,7 @@ class WPConfig {
 			];
 
 			foreach ( $constants as $constant ) {
-				if ( preg_match( '/[a-z]/', $constant ) ) {
+				if ( ! $this->is_cli && preg_match( '/[a-z]/', $constant ) ) {
 					continue;
 				}
 
@@ -128,7 +133,11 @@ class WPConfig {
 			$results = [ 'success' => true ];
 
 			foreach ( $this->data as $key => $value ) {
-				if ( empty( $key ) || preg_match( '/[a-z]/', $key ) || in_array( $key, $this->blacklisted, true ) ) {
+				if ( empty( $key ) ) {
+					continue;
+				}
+
+				if ( ! $this->is_cli && ( preg_match( '/[a-z]/', $key ) || in_array( $key, $this->blacklisted, true ) ) ) {
 					continue;
 				}
 
@@ -148,7 +157,10 @@ class WPConfig {
 				} elseif ( is_bool( $value ) ) {
 					$value       = $value ? 'true' : 'false';
 					$args['raw'] = true;
-				} elseif ( is_integer( $value ) ) {
+				} elseif ( is_numeric( $value ) ) {
+					$value       = strval( $value );
+					$args['raw'] = true;
+				} elseif ( in_array( $value, [ 'true', 'false' ] ) ) {
 					$value       = strval( $value );
 					$args['raw'] = true;
 				} else {

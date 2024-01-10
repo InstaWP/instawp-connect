@@ -806,7 +806,7 @@ class InstaWP_Tools {
 
                 @keyframes spin {
                     100% {
-                        transform: rotate(360deg);
+                        transform: rotate(-360deg);
                     }
                 }
             </style>
