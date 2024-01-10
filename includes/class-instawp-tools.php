@@ -1082,7 +1082,7 @@ class InstaWP_Tools {
 			$percentage_complete = InstaWP_Setting::get_args_option( 'percentage_complete', $status_res_data, 0 );
 			$restore_status      = InstaWP_Setting::get_args_option( 'status', $status_res_data );
 
-			WP_CLI::line( "Migration Progress: {$percentage_complete}" );
+			error_log( "local_push_migration_progress: {$percentage_complete}" );
 
 			if ( $restore_status === 'completed' ) {
 				break;
