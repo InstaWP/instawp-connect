@@ -94,11 +94,13 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 
 == Changelog ==
 
-= 0.1.0.9 =
+= 0.1.0.9 - 10 Jan 2024 =
 
+- NEW - Added support for local websites using WP CLI.
 - FIX - Updated Composer libraries.
 - FIX - File and Database Manager auto login screen loader direction.
 - FIX - Missing Nonce checking and access control.
+- FIX - Fixed 2 ways sync limit issue.
 
 = 0.1.0.8 - 4 Jan 2024 =
 

@@ -5,7 +5,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2024-01-09 11:55+0000\n"
+"POT-Creation-Date: 2024-01-10 13:10+0000\n"
 "X-Poedit-Basepath: ..\n"
 "X-Poedit-KeywordsList: __;_e;_ex:1,2c;_n:1,2;_n_noop:1,2;_nx:1,2,4c;_nx_noop:1,2,3c;_x:1,2c;esc_attr__;esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c\n"
 "X-Poedit-SearchPath-0: .\n"
@@ -81,35 +81,35 @@ msgstr ""
 msgid "3. Go back to this page and paste the key in key box below. Lastly, click Save button."
 msgstr ""
 
-#: includes/class-instawp-ajax.php:76
+#: includes/class-instawp-ajax.php:82
 msgid "Migration failed."
 msgstr ""
 
-#: includes/class-instawp-ajax.php:149
+#: includes/class-instawp-ajax.php:155
 msgid "Error: Empty serve url found in pre-check response."
 msgstr ""
 
-#: includes/class-instawp-ajax.php:162
+#: includes/class-instawp-ajax.php:168
 msgid "Error: Empty api signature found in pre-check response."
 msgstr ""
 
-#: includes/class-instawp-ajax.php:250
+#: includes/class-instawp-ajax.php:256
 msgid "Increase Limit"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:272
+#: includes/class-instawp-ajax.php:278
 msgid "Empty folder!"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:372
+#: includes/class-instawp-ajax.php:378
 msgid "%s rows"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:415
+#: includes/class-instawp-ajax.php:421
 msgid "We have identified following large files in your installation:"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:512
+#: includes/class-instawp-ajax.php:526
 msgid "InstaWP Connect Settings has been reset successfully."
 msgstr ""
 
@@ -493,23 +493,27 @@ msgstr ""
 msgid "Launch %s"
 msgstr ""
 
-#: includes/class-instawp-tools.php:891
+#: includes/class-instawp-tools.php:892
 msgid "Zip archive is not opening."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1024
+#: includes/class-instawp-tools.php:991
+msgid "Site ID not found in site create response."
+msgstr ""
+
+#: includes/class-instawp-tools.php:1029
 msgid "SFTP login failed."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1035
+#: includes/class-instawp-tools.php:1040
 msgid "SFTP upload failed for files."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1043
+#: includes/class-instawp-tools.php:1048
 msgid "SFTP upload failed for database."
 msgstr ""
 
-#: includes/functions.php:226
+#: includes/functions.php:227
 msgid "Migration aborted forcefully"
 msgstr ""
 
