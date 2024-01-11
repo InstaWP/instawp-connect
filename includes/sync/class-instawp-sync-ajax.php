@@ -243,7 +243,14 @@ class InstaWP_Sync_Ajax {
 		$this->send_success( 'Summery fetched', [
 			'html'          => $html,
 			'count'         => $total_events,
-			'progress_text' => sprintf( __( 'Sync not initiated ( 0 out of %d events )', 'instawp-connect' ), $total_events ),
+			'progress_text' => sprintf(
+				_n(
+					__( 'Waiting for Sync to Start (%d event)', 'instawp-connect' ),
+					__( 'Waiting for Sync to Start (%d events)', 'instawp-connect' ),
+					$total_events
+				),
+				$total_events
+			),
 			'message'       => $total_events > 0 ? __( 'Events loaded', 'instawp-connect' ) : __( 'No pending events found!', 'instawp-connect' )
 		] );
 	}

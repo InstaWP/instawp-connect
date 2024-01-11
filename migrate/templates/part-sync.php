@@ -160,7 +160,7 @@ if ( ! empty( $parent_connect_data ) ) {
                         <div class="rounded-xl w-full text-bg py-4 px-4 border mt-5 bg-green-50">
                             <div class="progress-wrapper">
                                 <div class="w-100 text-left font-medium event-progress-text">
-                                    Sync not initiated ( 0 out of 0 events )
+	                                <?php esc_html_e( 'Sync not initiated', 'instawp-connect' ); ?>
                                 </div>
                                 <div class="w-full text-bg py-1 flex items-center mb-2 border-b-[1px] mb-6 pb-3">
                                     <div class="w-full bg-gray-200 rounded-md event-progress-bar">
