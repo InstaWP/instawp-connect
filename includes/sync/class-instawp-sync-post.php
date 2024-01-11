@@ -12,7 +12,7 @@ class InstaWP_Sync_Post {
 	    $this->restricted_cpts = (array) apply_filters( 'INSTAWP_CONNECT/Filters/two_way_sync_restricted_post_types', $this->restricted_cpts );
 
 		// Post Actions.
-	    add_action( 'wp_after_insert_post', [ $this, 'handle_post' ], 10, 3 );
+	    add_action( 'wp_after_insert_post', [ $this, 'handle_post' ], 999, 3 );
 	    add_action( 'delete_post', [ $this, 'delete_post' ], 10, 2 );
 	    add_action( 'transition_post_status', [ $this, 'transition_post_status' ], 10, 3 );
 
@@ -64,11 +64,8 @@ class InstaWP_Sync_Post {
 			return;
 		}
 
-		$is_processed  = get_transient( 'instawp_sync_processed_' . $post->ID );
 		$singular_name = InstaWP_Sync_Helpers::get_post_type_name( $post->post_type );
-
-		if ( ! $is_processed && $update && strtotime( $post->post_modified_gmt ) > strtotime( $post->post_date_gmt ) ) {
-			set_transient( 'instawp_sync_processed_' . $post->ID, true, 5 );
+		if ( $update && strtotime( $post->post_modified_gmt ) > strtotime( $post->post_date_gmt ) ) {
 			$this->handle_post_events( sprintf( __('%s modified', 'instawp-connect'), $singular_name ), 'post_change', $post );
 		}
 	}
