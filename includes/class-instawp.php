@@ -76,17 +76,17 @@ class instaWP {
 
 	public function toggle_wp_debug( $old_value, $value ) {
 		if ( $value === 'on' ) {
-			$params = [
+			$params = array(
 				'WP_DEBUG'         => true,
 				'WP_DEBUG_LOG'     => true,
 				'WP_DEBUG_DISPLAY' => false,
-			];
+			);
 		} else {
-			$params = [
+			$params = array(
 				'WP_DEBUG'         => false,
 				'WP_DEBUG_LOG'     => false,
 				'WP_DEBUG_DISPLAY' => false,
-			];
+			);
 		}
 
 		$wp_config = new \InstaWP\Connect\Helpers\WPConfig( $params );
@@ -137,19 +137,19 @@ class instaWP {
 		$maxbytes = $maxbytes ? $maxbytes : INSTAWP_DEFAULT_MAX_FILE_SIZE_ALLOWED;
 		$maxbytes = ( $maxbytes * 1024 * 1024 );
 		$path     = ABSPATH;
-		$data     = [];
+		$data     = array();
 
 		if ( $path != '' && file_exists( $path ) && is_readable( $path ) ) {
 			try {
 				foreach ( new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $path, FilesystemIterator::SKIP_DOTS ) ) as $object ) {
 					if ( $object->getSize() > $maxbytes && strpos( $object->getPath(), 'instawpbackups' ) === false ) {
-						$data[] = [
+						$data[] = array(
 							'size'          => $object->getSize(),
 							'path'          => wp_normalize_path( $object->getPath() ),
 							'pathname'      => wp_normalize_path( $object->getPathname() ),
 							'realpath'      => wp_normalize_path( $object->getRealPath() ),
 							'relative_path' => str_replace( wp_normalize_path( ABSPATH ), '', wp_normalize_path( $object->getRealPath() ) ),
-						];
+						);
 					}
 				}
 			} catch ( Exception $e ) {
@@ -251,11 +251,11 @@ class instaWP {
 		$files_data = scandir( $dir );
 
 		if ( ! $files_data ) {
-			return [];
+			return array();
 		}
 
 		$path_to_replace = wp_normalize_path( ABSPATH );
-		$files           = $folders = [];
+		$files           = $folders = array();
 
 		foreach ( $files_data as $key => $value ) {
 			$path            = $dir . DIRECTORY_SEPARATOR . $value;
@@ -264,24 +264,24 @@ class instaWP {
 			try {
 				if ( ! is_dir( $path ) ) {
 					$size    = filesize( $path );
-					$files[] = [
+					$files[] = array(
 						'name'          => $value,
 						'relative_path' => str_replace( $path_to_replace, '', $normalized_path ),
 						'full_path'     => $normalized_path,
 						'size'          => $size,
 						'count'         => 1,
 						'type'          => 'file',
-					];
-				} else if ( $value != "." && $value != ".." ) {
+					);
+				} elseif ( $value != "." && $value != ".." ) {
 					$directory_info = $this->get_directory_info( $path );
-					$folders[]      = [
+					$folders[]      = array(
 						'name'          => $value,
 						'relative_path' => str_replace( $path_to_replace, '', $normalized_path ),
 						'full_path'     => $normalized_path,
 						'size'          => $directory_info['size'],
 						'count'         => $directory_info['count'],
 						'type'          => 'folder',
-					];
+					);
 				}
 			} catch ( Exception $e ) {
 			}
@@ -293,7 +293,7 @@ class instaWP {
 			usort( $files_list, function ( $item1, $item2 ) {
 				return $item2['size'] <=> $item1['size'];
 			} );
-		} else if ( $sort_by === 'ascending' ) {
+		} elseif ( $sort_by === 'ascending' ) {
 			usort( $files_list, function ( $item1, $item2 ) {
 				return $item1['size'] <=> $item2['size'];
 			} );
@@ -309,16 +309,16 @@ class instaWP {
 			if ( $path !== false && $path != '' && file_exists( $path ) ) {
 				foreach ( new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $path, FilesystemIterator::SKIP_DOTS ) ) as $object ) {
 					$bytes_total += $object->getSize();
-					$files_total ++;
+					++$files_total ;
 				}
 			}
 		} catch ( Exception $e ) {
 		}
 
-		return [
+		return array(
 			'size'  => $bytes_total,
-			'count' => $files_total
-		];
+			'count' => $files_total,
+		);
 	}
 
 	public function get_directory_size( $path ) {
@@ -365,8 +365,7 @@ class instaWP {
 						$folder[] = $path . DIRECTORY_SEPARATOR . $filename;
 					}
 					$this->get_dir_files( $files, $folder, $path . DIRECTORY_SEPARATOR . $filename, $except_regex, $exclude_folder );
-				} else {
-					if ( $except_regex === false || ! $this->regex_match( $except_regex['file'], $path . DIRECTORY_SEPARATOR . $filename, $flag ) ) {
+				} elseif ( $except_regex === false || ! $this->regex_match( $except_regex['file'], $path . DIRECTORY_SEPARATOR . $filename, $flag ) ) {
 						if ( in_array( $filename, $exclude_files ) ) {
 							continue;
 						}
@@ -375,18 +374,16 @@ class instaWP {
 						} elseif ( filesize( $path . DIRECTORY_SEPARATOR . $filename ) < $exclude_file_size * 1024 * 1024 ) {
 							$files[] = $path . DIRECTORY_SEPARATOR . $filename;
 						}
-					}
 				}
 			}
 		}
 		if ( $handler ) {
 			@closedir( $handler );
 		}
-
 	}
 
 	public function get_current_mode( $data_to_get = '' ) {
-		$mode_data = [];
+		$mode_data = array();
 
 		if ( ! empty( INSTAWP_CONNECT_MODE ) ) {
 			$mode_data['type'] = INSTAWP_CONNECT_MODE;
@@ -477,7 +474,7 @@ class instaWP {
 			if ( $handler !== false ) {
 				while ( ( $filename = readdir( $handler ) ) !== false ) {
 					if ( $filename != "." && $filename != ".." ) {
-						$count ++;
+						++$count ;
 
 						if ( is_dir( $root . DIRECTORY_SEPARATOR . $filename ) ) {
 							$size = self::get_folder_size( $root . DIRECTORY_SEPARATOR . $filename, $size );
@@ -553,7 +550,7 @@ class instaWP {
 		$active_themes_only = $options['migrate_settings']['active_themes_only'] ?? false;
 
 		foreach ( wp_get_themes() as $key => $item ) {
-			if ( ( 'true' == $active_themes_only || '1' == $active_themes_only ) && ! in_array( $item->get_stylesheet(), [ $current_theme->get_stylesheet(), $current_theme->get_template() ] ) ) {
+			if ( ( 'true' == $active_themes_only || '1' == $active_themes_only ) && ! in_array( $item->get_stylesheet(), array( $current_theme->get_stylesheet(), $current_theme->get_template() ) ) ) {
 				$themes_excluded[] = $key;
 				continue;
 			}
@@ -577,9 +574,9 @@ class instaWP {
 	public function instawp_check_usage_on_cloud( $total_size = 0 ) {
 
 		// connects/<connect_id>/usage
-		$api_response        = InstaWP_Curl::do_curl( "connects/{$this->connect_id}/usage", [], [], false, 'v1' );
+		$api_response        = InstaWP_Curl::do_curl( "connects/{$this->connect_id}/usage", array(), array(), false, 'v1' );
 		$api_response_status = InstaWP_Setting::get_args_option( 'success', $api_response, false );
-		$api_response_data   = InstaWP_Setting::get_args_option( 'data', $api_response, [] );
+		$api_response_data   = InstaWP_Setting::get_args_option( 'data', $api_response, array() );
 
 		// send usage check log before starting the pull
 		instawp_send_connect_log( 'usage-check', json_encode( $api_response ) );
@@ -607,7 +604,10 @@ class instaWP {
 			$issue_for   = 'remaining_disk_space';
 		}
 
-		return array_merge( array( 'can_proceed' => $can_proceed, 'issue_for' => ( $can_proceed ? '' : $issue_for ) ), $api_response_data );
+		return array_merge( array(
+			'can_proceed' => $can_proceed,
+			'issue_for'   => ( $can_proceed ? '' : $issue_for ),
+		), $api_response_data );
 	}
 
 	private function load_dependencies() {
@@ -633,7 +633,7 @@ class instaWP {
 		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-ajax.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-apis.php';
 
-		$files = [ 'option', 'plugin-theme', 'post', 'term', 'user', 'wc' ];
+		$files = array( 'option', 'plugin-theme', 'post', 'term', 'user', 'wc' );
 		foreach ( $files as $file ) {
 			require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-' . $file . '.php';
 		}

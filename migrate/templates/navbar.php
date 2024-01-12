@@ -28,7 +28,7 @@ if ( ! in_array( $current_tab, array_keys( $plugin_nav_items ) ) ) {
             <button type="button" class="instawp-button-connect px-4 rounded-lg py-2 border border-primary-900 text-primary-900 text-sm font-medium ml-3 mr-3">
                 <span><?php echo esc_html__( 'Connect', 'instawp-connect' ); ?></span>
             </button>
-		<?php else: ?>
+		<?php else : ?>
             <span class="w-1 h-1 <?= strpos( $api_domain, 'stage' ) !== false ? 'bg-amber-600' : 'bg-primary-700'; ?> rounded-full mr-2"></span>
             <span class="mr-4 <?= strpos( $api_domain, 'stage' ) !== false ? 'text-amber-600' : 'text-primary-700'; ?>"><?php echo esc_html__( 'Your account is connected', 'instawp-connect' ); ?></span>
 		<?php endif; ?>

@@ -20,7 +20,7 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 
 	private $tables;
 
-	private $logs = [];
+	private $logs = array();
 
 	public function __construct() {
 		parent::__construct();
@@ -30,21 +30,21 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 		$this->wpdb   = $wpdb;
 		$this->tables = InstaWP_Sync_DB::$tables;
 
-		add_action( 'rest_api_init', [ $this, 'add_api_routes' ] );
+		add_action( 'rest_api_init', array( $this, 'add_api_routes' ) );
 	}
 
 	public function add_api_routes() {
-		register_rest_route( $this->namespace . '/' . $this->version, '/mark-staging', [
+		register_rest_route( $this->namespace . '/' . $this->version, '/mark-staging', array(
 			'methods'             => 'POST',
-			'callback'            => [ $this, 'mark_staging' ],
+			'callback'            => array( $this, 'mark_staging' ),
 			'permission_callback' => '__return_true',
-		] );
+		) );
 
-		register_rest_route( $this->namespace . '/' . $this->version, '/sync', [
+		register_rest_route( $this->namespace . '/' . $this->version, '/sync', array(
 			'methods'             => 'POST',
-			'callback'            => [ $this, 'events_receiver' ],
+			'callback'            => array( $this, 'events_receiver' ),
 			'permission_callback' => '__return_true',
-		] );
+		) );
 	}
 
 	/**
@@ -72,10 +72,10 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 		update_option( 'instawp_is_staging', true );
 		instawp_get_source_site_detail();
 
-		return $this->send_response( [
+		return $this->send_response( array(
 			'status'  => true,
 			'message' => __( 'Site has been marked as staging', 'instawp-connect' ),
-		] );
+		) );
 	}
 
 	/**
@@ -104,7 +104,7 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 		$source_connect_id  = $bodyArr->source_connect_id;
 		$source_url         = $bodyArr->source_url;
 		$is_enabled         = false;
-		$changes            = [];
+		$changes            = array();
 
 		if ( get_option( 'instawp_is_event_syncing' ) ) {
 			$is_enabled = true;
@@ -113,7 +113,7 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 		delete_option( 'instawp_is_event_syncing' );
 
 		if ( ! empty( $encrypted_contents ) && is_array( $encrypted_contents ) ) {
-			$sync_response   = [];
+			$sync_response   = array();
 			$count           = 1;
 			$total_op        = count( $encrypted_contents );
 			$progress        = intval( $count / $total_op * 100 );
@@ -134,7 +134,7 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 					$source_id    = ( ! empty( $v->source_id ) ) ? sanitize_text_field( $v->source_id ) : null;
 					$v->source_id = $source_id;
 
-					$response_data = apply_filters( 'INSTAWP_CONNECT/Filters/process_two_way_sync', [], $v );
+					$response_data = apply_filters( 'INSTAWP_CONNECT/Filters/process_two_way_sync', array(), $v );
 					if ( ! empty( $response_data['data'] ) ) {
 						$sync_response[] = $response_data['data'];
 					}
@@ -206,7 +206,7 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 						if ( $current_theme->Name == 'Astra' ) { #for 'Astra' theme
 							$astra_theme_setting = isset( $details->astra_theme_customizer_settings ) ? (array) $details->astra_theme_customizer_settings : '';
 							$this->setAstraCostmizerSetings( $astra_theme_setting );
-						} else if ( $current_theme->Name == 'Divi' ) {  #for 'Divi' theme
+						} elseif ( $current_theme->Name == 'Divi' ) {  #for 'Divi' theme
 							$divi_settings = isset( $details->divi_settings ) ? (array) $details->divi_settings : '';
 							if ( ! empty( $divi_settings ) && is_array( $divi_settings ) ) {
 								update_option( 'et_divi', $divi_settings );
@@ -227,18 +227,18 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 					if ( isset( $v->event_type ) && $v->event_type == 'widget' ) {
 						$widget_block = (array) $v->details->widget_block;
 						$appp         = (array) $v->details;
-						$dataIns      = [
-							'data' => json_encode( $appp )
-						];
+						$dataIns      = array(
+							'data' => json_encode( $appp ),
+						);
 						InstaWP_Sync_DB::insert( 'wp_testing', $dataIns );
 
-						$widget_block_arr = [];
+						$widget_block_arr = array();
 						foreach ( $widget_block as $widget_key => $widget_val ) {
 							if ( $widget_key == '_multiwidget' ) {
 								$widget_block_arr[ $widget_key ] = $widget_val;
 							} else {
 								$widget_val_arr                  = (array) $widget_val;
-								$widget_block_arr[ $widget_key ] = [ 'content' => $widget_val_arr['content'] ];
+								$widget_block_arr[ $widget_key ] = array( 'content' => $widget_val_arr['content'] );
 							}
 						}
 						update_option( 'widget_block', $widget_block_arr );
@@ -258,14 +258,18 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 				* Update api for cloud
 				*/
 				#Sync update
-				$syncUpdate = [
+				$syncUpdate = array(
 					'progress' => $progress,
 					'status'   => $progress_status,
 					'message'  => $sync_message,
-					'changes'  => [ 'changes' => $changes, 'sync_response' => $sync_response, 'logs' => $this->logs ],
-				];
+					'changes'  => array(
+						'changes'       => $changes,
+						'sync_response' => $sync_response,
+						'logs'          => $this->logs,
+					),
+				);
 				$this->sync_update( $sync_id, $syncUpdate );
-				$count ++;
+				++$count ;
 			}
 		}
 
@@ -277,26 +281,26 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 			update_option( 'instawp_is_event_syncing', 1 );
 		}
 
-		return $this->send_response( [
+		return $this->send_response( array(
 			'sync_id'            => $sync_id,
 			'encrypted_contents' => $encrypted_contents,
 			'source_connect_id'  => $source_connect_id,
-			'changes'            => [
+			'changes'            => array(
 				'changes'       => $changes,
-				'sync_response' => $sync_response
-			],
-		] );
+				'sync_response' => $sync_response,
+			),
+		) );
 	}
 
 	public function event_sync_logs( $data, $source_url ) {
-		$data = [
+		$data = array(
 			'event_id'   => $data->id,
 			'event_hash' => $data->event_hash,
 			'source_url' => $source_url,
 			'data'       => json_encode( $data->details ),
 			'logs'       => $this->logs[ $data->id ] ?? '',
 			'date'       => date( 'Y-m-d H:i:s' ),
-		];
+		);
 		InstaWP_Sync_DB::insert( INSTAWP_DB_TABLE_EVENT_SYNC_LOGS, $data );
 	}
 
@@ -305,7 +309,7 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 	 */
 	public function upload_widgets_media( $media = null, $content = null ) {
 		$media      = json_decode( reset( $media ) );
-		$new        = $old = [];
+		$new        = $old = array();
 		$newContent = '';
 		if ( ! empty( $media ) ) {
 			foreach ( $media as $v ) {
@@ -330,7 +334,7 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 	}
 
 	public function blogDescription( $v = null ) {
-		$this->wpdb->update( $this->wpdb->prefix . 'options', [ 'option_value' => $v ], array( 'option_name' => 'blogdescription' ) );
+		$this->wpdb->update( $this->wpdb->prefix . 'options', array( 'option_value' => $v ), array( 'option_name' => 'blogdescription' ) );
 	}
 
 	/**
@@ -510,7 +514,6 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 		wp_update_attachment_metadata( $attach_id, $attach_data );
 
 		return $attach_id;
-
 	}
 
 	#Insert history
@@ -519,7 +522,7 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 		$date    = date( 'Y-m-d H:i:s' );
 		$bodyArr = json_decode( $body );
 		$message = $bodyArr->sync_message ?? '';
-		$data    = [
+		$data    = array(
 			'encrypted_contents' => $bodyArr->encrypted_contents,
 			'changes'            => json_encode( $changes ),
 			'sync_response'      => '',
@@ -531,7 +534,7 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 			'source_connect_id'  => '',
 			'source_url'         => isset( $bodyArr->source_url ) ? $bodyArr->source_url : '',
 			'date'               => $date,
-		];
+		);
 
 		InstaWP_Sync_DB::insert( $this->tables['sh_table'], $data );
 	}
@@ -547,11 +550,11 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 	 * @return array
 	 */
 	public function sync_opration_response( $status, $message, $v ) {
-		return [
+		return array(
 			'id'      => $v->id,
 			'status'  => $status,
-			'message' => $message
-		];
+			'message' => $message,
+		);
 	}
 
 	/** sync update
@@ -566,7 +569,7 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 		$connect_id = instawp_get_connect_id();
 
 		// connects/<connect_id>/syncs/<sync_id>
-		return InstaWP_Curl::do_curl( "connects/{$connect_id}/syncs/{$sync_id}", $data, [], 'patch' );
+		return InstaWP_Curl::do_curl( "connects/{$connect_id}/syncs/{$sync_id}", $data, array(), 'patch' );
 	}
 
 	/**

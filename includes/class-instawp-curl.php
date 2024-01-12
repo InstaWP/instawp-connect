@@ -16,23 +16,29 @@ class InstaWP_Curl {
 		}
 
 		if ( empty( $api_url ) ) {
-			return array( 'success' => false, 'message' => esc_html__( 'Invalid or Empty API Domain', 'instawp-connect' ) );
+			return array(
+				'success' => false,
+				'message' => esc_html__( 'Invalid or Empty API Domain', 'instawp-connect' ),
+			);
 		}
 
 		if ( empty( $api_key ) ) {
-			return array( 'success' => false, 'message' => esc_html__( 'Invalid or Empty API Key', 'instawp-connect' ) );
+			return array(
+				'success' => false,
+				'message' => esc_html__( 'Invalid or Empty API Key', 'instawp-connect' ),
+			);
 		}
 
 		$api_url = $api_url . '/api/' . $api_version . '/' . $endpoint;
-		$headers = wp_parse_args( $headers, [
+		$headers = wp_parse_args( $headers, array(
 			'Authorization: Bearer ' . $api_key,
 			'Accept: application/json',
 			'Content-Type: application/json',
-		] );
+		) );
 
 		if ( is_string( $is_post ) && $is_post == 'patch' ) {
 			$api_method = 'PATCH';
-		} else if ( is_string( $is_post ) && $is_post == 'put' ) {
+		} elseif ( is_string( $is_post ) && $is_post == 'put' ) {
 			$api_method = 'PUT';
 		} else {
 			$api_method = $is_post ? 'POST' : 'GET';
@@ -70,7 +76,11 @@ class InstaWP_Curl {
 		$response_data    = InstaWP_Setting::get_args_option( 'data', $api_response, array() );
 		$response_message = InstaWP_Setting::get_args_option( 'message', $api_response );
 
-		return array( 'success' => $response_status, 'message' => $response_message, 'data' => $response_data );
+		return array(
+			'success' => $response_status,
+			'message' => $response_message,
+			'data'    => $response_data,
+		);
 	}
 
 	public function curl( $url, $body, $header = array(), $is_post = true ) {
@@ -101,7 +111,7 @@ class InstaWP_Curl {
 			'headers'    => array(
 				'Authorization' => 'Bearer ' . $this->api_key,
 				'Content-Type'  => 'application/json',
-				'Accept'        => 'application/json'
+				'Accept'        => 'application/json',
 			),
 		);
 		$WP_Http_Curl   = new WP_Http_Curl();
@@ -114,7 +124,7 @@ class InstaWP_Curl {
 				'curl_res' => $this->response,
 				'message'  => $this->response->get_error_message(),
 			);
-		} else if ( ! $this->response ) {
+		} elseif ( ! $this->response ) {
 			$res['message']  = '';
 			$res['error']    = 1;
 			$res['curl_res'] = $this->response;
@@ -140,7 +150,7 @@ class InstaWP_Curl {
 		if ( ! empty( $api_key ) ) {
 			$this->api_key = $api_key;
 		} else {
-			$res            = [];
+			$res            = array();
 			$res['error']   = true;
 			$res['message'] = 'API Key Is Required';
 			wp_send_json( $res );

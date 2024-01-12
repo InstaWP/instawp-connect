@@ -29,9 +29,9 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 
 			global $current_user;
 
-			$sync_tab_roles = InstaWP_Setting::get_option( 'instawp_sync_tab_roles', [ 'administrator' ] );
-			$sync_tab_roles = ! is_array( $sync_tab_roles ) || empty( $sync_tab_roles ) ? [ 'administrator' ] : $sync_tab_roles;
-			$meta_classes   = [ 'instawp-sync-recording' ];
+			$sync_tab_roles = InstaWP_Setting::get_option( 'instawp_sync_tab_roles', array( 'administrator' ) );
+			$sync_tab_roles = ! is_array( $sync_tab_roles ) || empty( $sync_tab_roles ) ? array( 'administrator' ) : $sync_tab_roles;
+			$meta_classes   = array( 'instawp-sync-recording' );
 
 			if ( '1' == InstaWP_Setting::get_option( 'instawp_is_event_syncing', '0' ) ) {
 				$meta_classes[] = 'recording-on';
@@ -65,7 +65,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			$clear_action = isset( $_GET['clear'] ) ? sanitize_text_field( $_GET['clear'] ) : '';
 
 			if ( isset( $_GET['connect_id'] ) && ! empty( $_GET['connect_id'] ) ) {
-				$instawp_api_options = get_option( 'instawp_api_options', [] );
+				$instawp_api_options = get_option( 'instawp_api_options', array() );
 
 				$instawp_api_options['connect_id'] = sanitize_text_field( $_GET['connect_id'] );
 

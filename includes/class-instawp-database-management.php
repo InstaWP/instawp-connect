@@ -27,16 +27,16 @@ if ( ! class_exists( 'InstaWP_Database_Management' ) ) {
 			self::$query_var        = $this->database_manager::get_query_var();
 			self::$action           = 'instawp_clean_database_manager';
 
-			add_action( 'init', [ $this, 'add_endpoint' ] );
-			add_action( 'template_redirect', [ $this, 'redirect' ] );
-			add_action( self::$action, [ $this, 'clean' ] );
-			add_action( 'admin_post_instawp-database-manager-auto-login', [ $this, 'auto_login' ] );
-			add_action( 'admin_post_nopriv_instawp-database-manager-auto-login', [ $this, 'auto_login' ] );
+			add_action( 'init', array( $this, 'add_endpoint' ) );
+			add_action( 'template_redirect', array( $this, 'redirect' ) );
+			add_action( self::$action, array( $this, 'clean' ) );
+			add_action( 'admin_post_instawp-database-manager-auto-login', array( $this, 'auto_login' ) );
+			add_action( 'admin_post_nopriv_instawp-database-manager-auto-login', array( $this, 'auto_login' ) );
 			add_action( 'update_option_instawp_rm_database_manager', array( $this, 'clean_file' ) );
 			add_action( 'instawp_connect_create_database_manager_task', array( $this, 'create_task' ) );
 			add_action( 'instawp_connect_remove_database_manager_task', array( $this, 'remove_task' ) );
-			add_filter( 'query_vars', [ $this, 'query_vars' ], 99 );
-			add_filter( 'template_include', [ $this, 'load_template' ], 999 );
+			add_filter( 'query_vars', array( $this, 'query_vars' ), 99 );
+			add_filter( 'template_include', array( $this, 'load_template' ), 999 );
 		}
 
 		public function add_endpoint() {
@@ -60,15 +60,15 @@ if ( ! class_exists( 'InstaWP_Database_Management' ) ) {
 		}
 
 		public function create_task( $file_name ) {
-			wp_schedule_single_event( time() + DAY_IN_SECONDS, self::$action, [ $file_name ] );
+			wp_schedule_single_event( time() + DAY_IN_SECONDS, self::$action, array( $file_name ) );
 		}
 
 		public function remove_task( $file_name ) {
-			wp_clear_scheduled_hook( self::$action, [ $file_name ] );
+			wp_clear_scheduled_hook( self::$action, array( $file_name ) );
 		}
 
 		public function auto_login() {
-			$file_db_manager = InstaWP_Setting::get_option( 'instawp_file_db_manager', [] );
+			$file_db_manager = InstaWP_Setting::get_option( 'instawp_file_db_manager', array() );
 			$file_name       = InstaWP_Setting::get_args_option( 'db_name', $file_db_manager );
 			if ( ! $file_name ) {
 				wp_die( esc_html__( 'Database Manager file not found!', 'instawp-connect' ) );

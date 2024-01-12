@@ -7,22 +7,22 @@ class InstaWP_Setting {
 	public static function get_stages() {
 
 		$stages = array(
-			'initiated'              => esc_html__( 'Migration started', 'instawp-connect' ),
-			'start-insta-site'       => esc_html__( 'Site creation started in InstaWP', 'instawp-connect' ),
-			'pull-ready'             => esc_html__( 'Ready to pull files and database', 'instawp-connect' ),
-			'finished-insta-site'    => esc_html__( 'Site created at InstaWP', 'instawp-connect' ),
-			'pull-initiated'         => esc_html__( 'Pull started for files and database', 'instawp-connect' ),
-			'pull-files-in-progress' => esc_html__( 'Files pulling is running', 'instawp-connect' ),
-			'pull-files-finished'    => esc_html__( 'Files pulling is completed', 'instawp-connect' ),
-			'pull-db-in-progress'    => esc_html__( 'Database pulling is running', 'instawp-connect' ),
-			'pull-db-finished'       => esc_html__( 'Database pulling is completed', 'instawp-connect' ),
-//			'pull-db-restore-started'  => esc_html__( 'Database restoration started', 'instawp-connect' ),
-//			'pull-db-restore-finished' => esc_html__( 'Database restoration is completed', 'instawp-connect' ),
-			'pull-finished'          => esc_html__( 'Pull completed for files and database', 'instawp-connect' ),
-			'migration-finished'     => esc_html__( 'Migration is completed', 'instawp-connect' ),
-//			'timeout'                  => esc_html__( 'Migration is timed out', 'instawp-connect' ),
-//			'aborted'                  => esc_html__( 'Migration is aborted', 'instawp-connect' ),
-//			'failed'                   => esc_html__( 'Migration is failed', 'instawp-connect' ),
+			'initiated'                 => esc_html__( 'Migration started', 'instawp-connect' ),
+			'start-insta-site'          => esc_html__( 'Site creation started in InstaWP', 'instawp-connect' ),
+			'pull-ready'                => esc_html__( 'Ready to pull files and database', 'instawp-connect' ),
+			'finished-insta-site'       => esc_html__( 'Site created at InstaWP', 'instawp-connect' ),
+			'pull-initiated'            => esc_html__( 'Pull started for files and database', 'instawp-connect' ),
+			'pull-files-in-progress'    => esc_html__( 'Files pulling is running', 'instawp-connect' ),
+			'pull-files-finished'       => esc_html__( 'Files pulling is completed', 'instawp-connect' ),
+			'pull-db-in-progress'       => esc_html__( 'Database pulling is running', 'instawp-connect' ),
+			'pull-db-finished'          => esc_html__( 'Database pulling is completed', 'instawp-connect' ),
+			//          'pull-db-restore-started'  => esc_html__( 'Database restoration started', 'instawp-connect' ),
+			//          'pull-db-restore-finished' => esc_html__( 'Database restoration is completed', 'instawp-connect' ),
+						'pull-finished' => esc_html__( 'Pull completed for files and database', 'instawp-connect' ),
+			'migration-finished'        => esc_html__( 'Migration is completed', 'instawp-connect' ),
+//          'timeout'                  => esc_html__( 'Migration is timed out', 'instawp-connect' ),
+//          'aborted'                  => esc_html__( 'Migration is aborted', 'instawp-connect' ),
+//          'failed'                   => esc_html__( 'Migration is failed', 'instawp-connect' ),
 		);
 
 		return apply_filters( 'INSTAWP_CONNECT/Filters/get_stages', $stages );
@@ -60,8 +60,8 @@ class InstaWP_Setting {
 			unset( $instawp_nav_items['manage'] );
 		}
 
-		$instawp_sync_tab_roles = InstaWP_Setting::get_option( 'instawp_sync_tab_roles', [ 'administrator' ] );
-		$instawp_sync_tab_roles = empty( $instawp_sync_tab_roles ) ? [ 'administrator' ] : $instawp_sync_tab_roles;
+		$instawp_sync_tab_roles = InstaWP_Setting::get_option( 'instawp_sync_tab_roles', array( 'administrator' ) );
+		$instawp_sync_tab_roles = empty( $instawp_sync_tab_roles ) ? array( 'administrator' ) : $instawp_sync_tab_roles;
 
 		if ( ! in_array( 'administrator', $instawp_sync_tab_roles ) ) {
 			unset( $instawp_nav_items['create'] );
@@ -76,7 +76,7 @@ class InstaWP_Setting {
 	public static function get_allowed_role() {
 		$allowed_role = 'administrator';
 
-		foreach ( InstaWP_Setting::get_option( 'instawp_sync_tab_roles', [] ) as $role ) {
+		foreach ( InstaWP_Setting::get_option( 'instawp_sync_tab_roles', array() ) as $role ) {
 			if ( current_user_can( $role ) ) {
 				$allowed_role = $role;
 				break;
@@ -136,7 +136,7 @@ class InstaWP_Setting {
 			$label_class .= ' ' . $field_label_class;
 		}
 
-		$field_name_class      = str_replace( [ '[', ']' ], [ '_', '' ], $field_name );
+		$field_name_class      = str_replace( array( '[', ']' ), array( '_', '' ), $field_name );
 		$field_container_class = 'instawp-single-field ' . esc_attr( str_replace( '_', '-', $field_name_class ) ) . '-field';
 		if ( ! empty( $field_parent_class ) ) {
 			$field_container_class .= ' ' . $field_parent_class;
@@ -218,7 +218,7 @@ class InstaWP_Setting {
 
 	public static function generate_section( $section = array(), $index = 0 ) {
 
-		$section_classes = [ 'section' ];
+		$section_classes = array( 'section' );
 		$internal        = self::get_args_option( 'internal', $section, false );
 		$css_class       = self::get_args_option( 'class', $section );
 		$can_split       = self::get_args_option( 'split', $section, true );
@@ -273,7 +273,7 @@ class InstaWP_Setting {
 	}
 
 	public static function get_migrate_settings() {
-		$settings = [];
+		$settings = array();
 
 		// Section - Settings
 		$settings['settings'] = array(
@@ -286,7 +286,7 @@ class InstaWP_Setting {
 					'type'        => 'text',
 					'title'       => esc_html__( 'API Key', 'instawp-connect' ),
 					'placeholder' => esc_attr( 'gL8tbdZFfG8yQCXu0IycBa' ),
-					'attributes'  => array(//						'readonly' => true,
+					'attributes'  => array(//                       'readonly' => true,
 					),
 				),
 				array(
@@ -299,7 +299,7 @@ class InstaWP_Setting {
 						'min' => '10',
 						'max' => '1024',
 					),
-				)
+				),
 			),
 		);
 
@@ -317,7 +317,7 @@ class InstaWP_Setting {
 					'event'   => 'instawp_get_users',
 					'title'   => esc_html__( 'Default User', 'instawp-connect' ),
 					'desc'    => esc_html__( 'This option will allow to set default user for events syncing.', 'instawp-connect' ),
-					'options' => self::get_select2_default_selected_option( 'instawp_default_user' )
+					'options' => self::get_select2_default_selected_option( 'instawp_default_user' ),
 				),
 				array(
 					'id'       => 'instawp_sync_tab_roles',
@@ -328,8 +328,8 @@ class InstaWP_Setting {
 					'event'    => 'instawp_sync_tab_roles',
 					'title'    => esc_html__( 'Sync Tab Access', 'instawp-connect' ),
 					'desc'     => esc_html__( 'This option will allow to set roles for sync tab. Only assigned role\'s users can access the syncing features.', 'instawp-connect' ),
-					'options'  => self::get_select2_default_selected_option( 'instawp_sync_tab_roles' )
-				)
+					'options'  => self::get_select2_default_selected_option( 'instawp_sync_tab_roles' ),
+				),
 			),
 		);
 
@@ -339,62 +339,62 @@ class InstaWP_Setting {
 			'internal'   => false,
 			'grid_class' => 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6',
 			'fields'     => array(
-				[
+				array(
 					'id'      => 'instawp_sync_post',
 					'type'    => 'toggle',
 					'title'   => __( 'Posts', 'instawp-connect' ),
 					'tooltip' => __( 'Enabling this option will allow plugin to log events related to all posts, pages and custom post types.', 'instawp-connect' ),
 					'class'   => 'save-ajax',
 					'default' => 'on',
-				],
-				[
+				),
+				array(
 					'id'      => 'instawp_sync_term',
 					'type'    => 'toggle',
 					'title'   => __( 'Taxonomies', 'instawp-connect' ),
 					'tooltip' => __( 'Enabling this option will allow plugin to log events related to all categories tags and custom taxonomies.', 'instawp-connect' ),
 					'class'   => 'save-ajax',
 					'default' => 'on',
-				],
-				[
+				),
+				array(
 					'id'      => 'instawp_sync_user',
 					'type'    => 'toggle',
 					'title'   => __( 'Users', 'instawp-connect' ),
 					'tooltip' => __( 'Enabling this option will allow plugin to log events related to all users.', 'instawp-connect' ),
 					'class'   => 'save-ajax',
 					'default' => 'on',
-				],
-				[
+				),
+				array(
 					'id'      => 'instawp_sync_plugin',
 					'type'    => 'toggle',
 					'title'   => __( 'Plugins', 'instawp-connect' ),
 					'tooltip' => __( 'Enabling this option will allow plugin to log events related to plugins.', 'instawp-connect' ),
 					'class'   => 'save-ajax',
 					'default' => 'on',
-				],
-				[
+				),
+				array(
 					'id'      => 'instawp_sync_theme',
 					'type'    => 'toggle',
 					'title'   => __( 'Themes', 'instawp-connect' ),
 					'tooltip' => __( 'Enabling this option will allow plugin to log events related to all themes.', 'instawp-connect' ),
 					'class'   => 'save-ajax',
 					'default' => 'on',
-				],
-				[
+				),
+				array(
 					'id'      => 'instawp_sync_option',
 					'type'    => 'toggle',
 					'title'   => __( 'WP Options (Beta)', 'instawp-connect' ),
 					'tooltip' => __( 'Enabling this option will allow plugin to log WordPress options.', 'instawp-connect' ),
 					'class'   => 'save-ajax',
 					'default' => 'off',
-				],
-				[
+				),
+				array(
 					'id'      => 'instawp_sync_wc',
 					'type'    => 'toggle',
 					'title'   => __( 'WooCommerce (Beta)', 'instawp-connect' ),
 					'tooltip' => __( 'Enabling this option will allow plugin to log WooCommerce events.', 'instawp-connect' ),
 					'class'   => 'save-ajax',
 					'default' => 'off',
-				]
+				),
 			),
 		);
 
@@ -428,16 +428,16 @@ class InstaWP_Setting {
 	}
 
 	public static function get_management_settings() {
-		$settings  = [];
+		$settings  = array();
 		$heartbeat = InstaWP_Setting::get_option( 'instawp_rm_heartbeat', 'on' );
 		$heartbeat = empty( $heartbeat ) ? 'on' : $heartbeat;
 
 		// Section - Heartbeat
-		$settings['heartbeat'] = [
+		$settings['heartbeat'] = array(
 			'title'  => __( 'Heartbeat', 'instawp-connect' ),
 			'desc'   => __( 'Update your website\'s heartbeat settings.', 'instawp-connect' ),
-			'fields' => [
-				[
+			'fields' => array(
+				array(
 					'id'      => 'instawp_rm_heartbeat',
 					'type'    => 'toggle',
 					'title'   => __( 'Heartbeat', 'instawp-connect' ),
@@ -445,8 +445,8 @@ class InstaWP_Setting {
 					'desc'    => __( 'Disabling this will automatically disconnect this site from InstaWP dashboard after 1 hour.', 'instawp-connect' ),
 					'class'   => 'save-ajax',
 					'default' => 'on',
-				],
-				[
+				),
+				array(
 					'id'           => 'instawp_api_heartbeat',
 					'type'         => 'number',
 					'title'        => __( 'Heartbeat Interval (Minutes)', 'instawp-connect' ),
@@ -455,70 +455,70 @@ class InstaWP_Setting {
 					'placeholder'  => '15',
 					'class'        => '!w-80',
 					'parent_class' => ( $heartbeat !== 'on' ) ? 'hidden' : '',
-					'attributes'   => [
+					'attributes'   => array(
 						'min' => 15,
-						'max' => 60
-					],
-				],
-			],
-		];
+						'max' => 60,
+					),
+				),
+			),
+		);
 
 		// Section - Management
-		$settings['management'] = [
+		$settings['management'] = array(
 			'title'      => __( 'Remote Management (Beta)', 'instawp-connect' ),
 			'desc'       => sprintf( __( 'Update your website\'s remote management settings. To use this feature in the InstaWP dashboard, switch on the beta program from %s section.', 'instawp-connect' ), '<a href="https://app.instawp.io/user/profile" target="_blank">' . __( 'My Accounts', 'instawp-connect' ) . '</a>' ),
 			'grid_class' => 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6',
-			'fields'     => [
-				[
+			'fields'     => array(
+				array(
 					'id'      => 'instawp_rm_file_manager',
 					'type'    => 'toggle',
 					'title'   => __( 'File Manager', 'instawp-connect' ),
 					'tooltip' => __( 'Enabling this option will allow creation of remote file manager on this website remotely using the REST API.', 'instawp-connect' ),
 					'class'   => 'save-ajax',
 					'default' => 'off',
-				],
-				[
+				),
+				array(
 					'id'      => 'instawp_rm_database_manager',
 					'type'    => 'toggle',
 					'title'   => __( 'Database Manager', 'instawp-connect' ),
 					'tooltip' => __( 'Enabling this option will allow creation of remote database manager on this website remotely using the REST API.', 'instawp-connect' ),
 					'class'   => 'save-ajax',
 					'default' => 'off',
-				],
-				[
+				),
+				array(
 					'id'      => 'instawp_rm_install_plugin_theme',
 					'type'    => 'toggle',
 					'title'   => __( 'Install Plugin / Themes', 'instawp-connect' ),
 					'tooltip' => __( 'Enabling this option will allow install plugins and themes on this website remotely using the REST API.', 'instawp-connect' ),
 					'class'   => 'save-ajax',
 					'default' => 'off',
-				],
-				[
+				),
+				array(
 					'id'      => 'instawp_rm_config_management',
 					'type'    => 'toggle',
 					'title'   => __( 'Config Management', 'instawp-connect' ),
 					'tooltip' => __( 'Enabling this option will allow reading, updating and deleting the WordPress constant values on this website remotely using the REST API.', 'instawp-connect' ),
 					'class'   => 'save-ajax',
 					'default' => 'off',
-				],
-				[
+				),
+				array(
 					'id'      => 'instawp_rm_inventory',
 					'type'    => 'toggle',
 					'title'   => __( 'Site Inventory', 'instawp-connect' ),
 					'tooltip' => __( 'Enabling this option will allow reading the installed WordPress version, themes and plugins on this website remotely using the REST API.', 'instawp-connect' ),
 					'class'   => 'save-ajax',
 					'default' => 'on',
-				],
-				[
+				),
+				array(
 					'id'      => 'instawp_rm_debug_log',
 					'type'    => 'toggle',
 					'title'   => __( 'Debug Log', 'instawp-connect' ),
 					'tooltip' => __( 'Enabling this option will allow reading WordPress error logs on this website remotely using the REST API.', 'instawp-connect' ),
 					'class'   => 'save-ajax',
 					'default' => 'off',
-				],
-			],
-		];
+				),
+			),
+		);
 
 		return apply_filters( 'INSTAWP_CONNECT/Filters/management_settings', $settings );
 	}
@@ -543,7 +543,7 @@ class InstaWP_Setting {
 	public static function set_api_domain( $instawp_api_url = '' ) {
 		$instawp_api_url = empty( $instawp_api_url ) ? INSTAWP_API_DOMAIN_PROD : $instawp_api_url;
 
-		$api_options            = self::get_option( 'instawp_api_options', [] );
+		$api_options            = self::get_option( 'instawp_api_options', array() );
 		$api_options['api_url'] = sanitize_url( $instawp_api_url );
 
 		return update_option( 'instawp_api_options', $api_options );
@@ -554,32 +554,32 @@ class InstaWP_Setting {
 	}
 
 	public static function get_api_domain() {
-		$api_options = self::get_option( 'instawp_api_options', [] );
+		$api_options = self::get_option( 'instawp_api_options', array() );
 
 		return self::get_args_option( 'api_url', $api_options, INSTAWP_API_DOMAIN_PROD );
 	}
 
 	public static function get_api_key() {
-		$api_options = self::get_option( 'instawp_api_options', [] );
+		$api_options = self::get_option( 'instawp_api_options', array() );
 
 		return self::get_args_option( 'api_key', $api_options );
 	}
 
 	public static function set_api_key( $api_key ) {
-		$api_options            = self::get_option( 'instawp_api_options', [] );
+		$api_options            = self::get_option( 'instawp_api_options', array() );
 		$api_options['api_key'] = sanitize_text_field( wp_unslash( $api_key ) );
 
 		return update_option( 'instawp_api_options', $api_options );
 	}
 
 	public static function get_connect_id() {
-		$api_options = self::get_option( 'instawp_api_options', [] );
+		$api_options = self::get_option( 'instawp_api_options', array() );
 
 		return self::get_args_option( 'connect_id', $api_options );
 	}
 
 	public static function set_connect_id( $connect_id ) {
-		$api_options               = self::get_option( 'instawp_api_options', [] );
+		$api_options               = self::get_option( 'instawp_api_options', array() );
 		$api_options['connect_id'] = intval( $connect_id );
 
 		return update_option( 'instawp_api_options', $api_options );
@@ -616,17 +616,17 @@ class InstaWP_Setting {
 			return false;
 		}
 
-		$api_response = InstaWP_Curl::do_curl( 'check-key', [], [], false, 'v1', $api_key );
+		$api_response = InstaWP_Curl::do_curl( 'check-key', array(), array(), false, 'v1', $api_key );
 
 		if ( isset( $api_response['data']['status'] ) && $api_response['data']['status'] == 1 ) {
 
-			$api_options = self::get_option( 'instawp_api_options', [] );
+			$api_options = self::get_option( 'instawp_api_options', array() );
 
 			if ( is_array( $api_options ) && is_array( $api_response['data'] ) ) {
-				update_option( 'instawp_api_options', array_merge( $api_options, [
+				update_option( 'instawp_api_options', array_merge( $api_options, array(
 					'api_key'  => $api_key,
-					'response' => $api_response['data']
-				] ) );
+					'response' => $api_response['data'],
+				) ) );
 			}
 		} else {
 			error_log( 'instawp_generate_api_key error, response from check-key api: ' . json_encode( $api_response ) );
@@ -640,7 +640,7 @@ class InstaWP_Setting {
 			'php_version' => $php_version,
 			'username'    => base64_encode( InstaWP_Tools::get_admin_username() ),
 		);
-		$connect_response = InstaWP_Curl::do_curl( 'connects', $connect_body, [], true, 'v1' );
+		$connect_response = InstaWP_Curl::do_curl( 'connects', $connect_body, array(), true, 'v1' );
 
 		if ( isset( $connect_response['data']['status'] ) && $connect_response['data']['status'] == 1 ) {
 			if ( isset( $connect_response['data']['id'] ) && ! empty( $connect_id = $connect_response['data']['id'] ) ) {
@@ -680,10 +680,10 @@ class InstaWP_Setting {
 		if ( $option == 'instawp_default_user' ) {
 			$user = get_user_by( 'ID', self::get_option( $option ) );
 			if ( ! empty( $user ) ) {
-				return [ $user->data->ID => $user->data->user_login ];
+				return array( $user->data->ID => $user->data->user_login );
 			}
-		} else if ( $option == 'instawp_sync_tab_roles' ) {
-			$role_options   = [];
+		} elseif ( $option == 'instawp_sync_tab_roles' ) {
+			$role_options   = array();
 			$all_roles      = wp_roles()->roles;
 			$selected_roles = InstaWP_Setting::get_option( $option );
 			foreach ( $selected_roles as $role ) {
@@ -693,6 +693,6 @@ class InstaWP_Setting {
 			return $role_options;
 		}
 
-		return [];
+		return array();
 	}
 }

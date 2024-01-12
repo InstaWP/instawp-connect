@@ -15,7 +15,7 @@ $root_path_dir = __DIR__;
 $root_path     = __DIR__;
 
 while ( ! file_exists( $root_path . DIRECTORY_SEPARATOR . 'wp-config.php' ) ) {
-	$level ++;
+	++$level ;
 	$root_path = dirname( $root_path_dir, $level );
 
 	// If we have reached the root directory and still couldn't find wp-config.php
@@ -128,7 +128,7 @@ if ( ! function_exists( 'zipStatusString' ) ) {
 	}
 }
 
-$excluded_paths     = [];
+$excluded_paths     = array();
 $file_relative_path = trim( $_SERVER['HTTP_X_FILE_RELATIVE_PATH'] );
 $file_type          = isset( $_SERVER['HTTP_X_FILE_TYPE'] ) ? trim( $_SERVER['HTTP_X_FILE_TYPE'] ) : 'single';
 $req_order          = isset( $_GET['r'] ) ? intval( $_GET['r'] ) : 1;
@@ -155,7 +155,7 @@ if ( $file_relative_path === 'db.sql' ) {
 	if ( file_exists( $file_save_path ) ) {
 		unlink( $file_save_path );
 	}
-//	$file_save_path = $root_path . DIRECTORY_SEPARATOR . time() . '.sql'; // added for debugging
+//  $file_save_path = $root_path . DIRECTORY_SEPARATOR . time() . '.sql'; // added for debugging
 	$file_stream = fopen( $file_save_path, 'a+b' );
 } else {
 	$file_stream = fopen( $file_save_path, 'wb' );
@@ -270,7 +270,7 @@ if ( $file_type === 'db' ) {
 					}
 				}
 
-//				$instawp_api_options = stripslashes( $instawp_api_options );
+//              $instawp_api_options = stripslashes( $instawp_api_options );
 				$is_insert_failed = false;
 
 				try {
@@ -280,9 +280,9 @@ if ( $file_type === 'db' ) {
 						$is_insert_failed = true;
 					}
 					// log start
-//					$log_content = file_get_contents( 'iwp_log.txt' );
-//					$log_content .= "insert response: " . var_dump( $insert_response ) . "\n";
-//					file_put_contents( 'iwp_log.txt', $log_content );
+//                  $log_content = file_get_contents( 'iwp_log.txt' );
+//                  $log_content .= "insert response: " . var_dump( $insert_response ) . "\n";
+//                  file_put_contents( 'iwp_log.txt', $log_content );
 					// log end
 				} catch ( Exception $e ) {
 					$is_insert_failed = true;
@@ -293,9 +293,9 @@ if ( $file_type === 'db' ) {
 						$insert_response = $mysqli->query( "UPDATE `{$table_prefix}options` SET `option_value` = '{$instawp_api_options}' WHERE `option_name` = 'instawp_api_options'" );
 
 						// log start
-//						$log_content = file_get_contents( 'iwp_log.txt' );
-//						$log_content .= "update response: " . var_dump( $insert_response ) . "\n";
-//						file_put_contents( 'iwp_log.txt', $log_content );
+//                      $log_content = file_get_contents( 'iwp_log.txt' );
+//                      $log_content .= "update response: " . var_dump( $insert_response ) . "\n";
+//                      file_put_contents( 'iwp_log.txt', $log_content );
 						// log end
 
 					} catch ( Exception $e ) {
@@ -306,12 +306,12 @@ if ( $file_type === 'db' ) {
 				}
 
 				// log start
-//				$log_content = file_get_contents( 'iwp_log.txt' );
-//				$log_content .= "full-json-data: " . json_encode( $jsonData ) . "\n";
-//				$log_content .= "api-options-data: " . $instawp_api_options . "\n";
-//				$log_content .= "table_prefix: {$table_prefix}\n";
-//				$log_content .= "mysql-success: " . json_encode( $insert_response ) . "\n";
-//				file_put_contents( 'iwp_log.txt', $log_content );
+//              $log_content = file_get_contents( 'iwp_log.txt' );
+//              $log_content .= "full-json-data: " . json_encode( $jsonData ) . "\n";
+//              $log_content .= "api-options-data: " . $instawp_api_options . "\n";
+//              $log_content .= "table_prefix: {$table_prefix}\n";
+//              $log_content .= "mysql-success: " . json_encode( $insert_response ) . "\n";
+//              file_put_contents( 'iwp_log.txt', $log_content );
 				// log end
 			}
 		}
@@ -355,7 +355,7 @@ if ( $file_type === 'zip' ) {
 			header( 'x-iwp-message: ' . $e->getMessage() . "\n" );
 			die();
 		}
-	} else if ( class_exists( 'PharData' ) ) {
+	} elseif ( class_exists( 'PharData' ) ) {
 		try {
 			$phar = new PharData( $file_save_path );
 			$phar->extractTo( $directory_name, null, true );
