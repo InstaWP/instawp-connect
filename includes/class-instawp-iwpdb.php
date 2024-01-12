@@ -8,7 +8,7 @@ class IWPDB {
 	public $conn = null;
 	public $last_error = '';
 	private $migrate_key = '';
-	private $options_data = [];
+	private $options_data = array();
 
 	public function __construct( $key ) {
 		$this->migrate_key = $key;
@@ -18,7 +18,7 @@ class IWPDB {
 		$this->create_require_tables();
 	}
 
-	public function insert( $table_name, $data = [] ) {
+	public function insert( $table_name, $data = array() ) {
 
 		$column_names  = implode( ',', array_keys( $data ) );
 		$column_values = implode( ',', array_values( $data ) );
@@ -32,9 +32,9 @@ class IWPDB {
 		return false;
 	}
 
-	public function update( $table_name, $data = [], $where_array = [] ) {
+	public function update( $table_name, $data = array(), $where_array = array() ) {
 
-		$set_arr = [];
+		$set_arr = array();
 
 		foreach ( $data as $key => $val ) {
 			$set_arr[] = "`$key` = '$val'";
@@ -50,17 +50,17 @@ class IWPDB {
 		return false;
 	}
 
-	public function get_row( $table_name, $where_array = [] ) {
+	public function get_row( $table_name, $where_array = array() ) {
 
 		$fetch_row_res = $this->query( "SELECT * FROM {$table_name} WHERE {$this->build_where_clauses($where_array)} LIMIT 1" );
 
-//		try {
+//      try {
 //
-//		} catch ( Exception $e ) {
-//			echo "<pre>";
-//			print_r( $e->getMessage() );
-//			echo "</pre>";
-//		}
+//      } catch ( Exception $e ) {
+//          echo "<pre>";
+//          print_r( $e->getMessage() );
+//          echo "</pre>";
+//      }
 
 		$this->fetch_rows( $fetch_row_res, $result );
 
@@ -68,10 +68,10 @@ class IWPDB {
 			return $result[0];
 		}
 
-		return [];
+		return array();
 	}
 
-	public function get_rows( $table_name, $where_array = [] ) {
+	public function get_rows( $table_name, $where_array = array() ) {
 		/**
 		 * @todo implement latter
 		 */
@@ -88,7 +88,7 @@ class IWPDB {
 		}
 	}
 
-	public function query_count( $table_name, $where_array = [] ) {
+	public function query_count( $table_name, $where_array = array() ) {
 		$query_count_res = $this->query( "SELECT count(*) as count FROM {$table_name} WHERE {$this->build_where_clauses($where_array)}" );
 
 		if ( ! $query_count_res ) {
@@ -180,7 +180,7 @@ class IWPDB {
 		return $result && $result->num_rows > 0;
 	}
 
-	public function create_file_indexes( $table_name, $indexes = [] ) {
+	public function create_file_indexes( $table_name, $indexes = array() ) {
 		foreach ( $indexes as $indexName => $columnName ) {
 			if ( ! $this->index_exists( $indexName, $table_name ) ) {
 				$this->query( "CREATE INDEX `$indexName` ON `$table_name`(`$columnName`)" );
@@ -190,7 +190,7 @@ class IWPDB {
 
 	public function get_all_tables() {
 
-		$all_tables      = [];
+		$all_tables      = array();
 		$show_tables_res = $this->query( 'SHOW TABLES' );
 
 		$this->fetch_rows( $show_tables_res, $tables );
@@ -208,7 +208,7 @@ class IWPDB {
 		foreach ( $tables as $table_name ) {
 
 			// remove our tracking tables
-			if ( in_array( $table_name, [ 'iwp_db_sent', 'iwp_files_sent' ] ) ) {
+			if ( in_array( $table_name, array( 'iwp_db_sent', 'iwp_files_sent' ) ) ) {
 				continue;
 			}
 
@@ -222,9 +222,9 @@ class IWPDB {
 		return $all_tables;
 	}
 
-	private function build_where_clauses( $where_arr = [] ) {
+	private function build_where_clauses( $where_arr = array() ) {
 		$where_str     = '1';
-		$where_strings = [];
+		$where_strings = array();
 
 		foreach ( $where_arr as $key => $value ) {
 			$where_strings[] = "`{$key}` = '$value'";

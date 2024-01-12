@@ -116,7 +116,7 @@ class InstaWP_Sync_Helpers {
 		#find media form content.
 		preg_match_all( '!(https?:)?//\S+\.(?:jpe?g|jpg|png|gif|mp4|pdf|doc|docx|xls|xlsx|csv|txt|rtf|html|zip|mp3|wma|mpg|flv|avi)!Ui', $content, $match );
 		
-		$media = [];
+		$media = array();
 		if ( isset( $match[0] ) ) {
 			$attachment_urls = array_unique( $match[0] );
 
@@ -138,12 +138,12 @@ class InstaWP_Sync_Helpers {
 					}
 
 					#It's check media exist or not
-					$media[] = [
+					$media[] = array(
 						'attachment_url'        => $attachment_url,
 						'attachment_id'         => $attachment_id,
 						'attachment_media'      => get_post( $attachment_id ),
 						'attachment_media_meta' => get_post_meta( $attachment_id ),
-					];
+					);
 				}
 			}
 		}
@@ -151,15 +151,15 @@ class InstaWP_Sync_Helpers {
 		return wp_json_encode( $media );
 	}
 
-	public static function sync_response( $data, $log_data = [], $args = [] ): array {
-		$data = [
-			'data' => wp_parse_args( $args, [
+	public static function sync_response( $data, $log_data = array(), $args = array() ): array {
+		$data = array(
+			'data' => wp_parse_args( $args, array(
 				'id'      => $data->id,
 				'hash'    => $data->event_hash,
 				'status'  => 'completed',
-				'message' => 'Sync successfully.'
-			] )
-		];
+				'message' => 'Sync successfully.',
+			) ),
+		);
 
 		if ( ! empty( $log_data ) ) {
 			$data['log_data'] = $log_data;

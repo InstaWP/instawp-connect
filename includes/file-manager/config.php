@@ -5,9 +5,9 @@ if ( ! defined( 'INSTAWP_PLUGIN_DIR' ) ) {
 }
 
 $use_auth = true;
-$auth_users = [
+$auth_users = array(
     INSTAWP_FILE_MANAGER_USERNAME => password_hash( INSTAWP_FILE_MANAGER_PASSWORD, PASSWORD_DEFAULT ),
-];
+);
 
 $wp_timezone_string = wp_timezone_string();
 if ( strpos( $wp_timezone_string, '/' ) !== false ) {
@@ -29,9 +29,9 @@ if ( defined( 'ABSPATH' ) ) {
     $root_path = ABSPATH;
 }
 
-$exclude_items = [
-    'instawp_exclude_tables_rows.json'
-];
+$exclude_items = array(
+    'instawp_exclude_tables_rows.json',
+);
 
 $global_readonly = false;
 $edit_files = true;

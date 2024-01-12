@@ -13,7 +13,6 @@ if ( ! class_exists( 'INSTAWP_Settings' ) ) {
 		 * INSTAWP_Settings Constructor
 		 */
 		public function __construct() {
-
 		}
 
 

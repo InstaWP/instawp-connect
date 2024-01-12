@@ -16,11 +16,11 @@ class InstaWP_Sync_DB {
 
 	private $wpdb;
 
-	public static $tables = [
+	public static $tables = array(
 		'ch_table' => INSTAWP_DB_TABLE_EVENTS,
 		'sh_table' => INSTAWP_DB_TABLE_SYNC_HISTORY,
-		'se_table' => INSTAWP_DB_TABLE_EVENT_SITES
-	];
+		'se_table' => INSTAWP_DB_TABLE_EVENT_SITES,
+	);
 
 	public function __construct() {
 		global $wpdb;
@@ -47,7 +47,7 @@ class InstaWP_Sync_DB {
 	 * Delete
 	 */
 	public static function delete( $table_name, $id, $key = 'id' ) {
-		self::wpdb()->delete( $table_name, [ $key => $id ] );
+		self::wpdb()->delete( $table_name, array( $key => $id ) );
 	}
 
 	/**
@@ -61,14 +61,14 @@ class InstaWP_Sync_DB {
 	 * Update
 	 */
 	public static function update( $table_name = null, $data = null, $id = null, $key = 'id' ) {
-		return self::wpdb()->update( $table_name, $data, [ $key => $id ] );
+		return self::wpdb()->update( $table_name, $data, array( $key => $id ) );
 	}
 
 	/**
 	 * update/insert event data
 	 */
 	public static function insert_update_event( $event_name = null, $event_slug = null, $event_type = null, $source_id = null, $title = null, $details = null, $event_id = null ) {
-		$data = [
+		$data = array(
 			'event_name'     => $event_name,
 			'event_slug'     => $event_slug,
 			'event_hash'     => InstaWP_Tools::get_random_string(),
@@ -80,8 +80,8 @@ class InstaWP_Sync_DB {
 			'date'           => date( 'Y-m-d H:i:s' ),
 			'status'         => 'pending',
 			'prod'           => '',
-			'synced_message' => ''
-		];
+			'synced_message' => '',
+		);
 
 		if ( is_numeric( $event_id ) ) {
 			self::update( INSTAWP_DB_TABLE_EVENTS, $data, $event_id );
@@ -100,7 +100,7 @@ class InstaWP_Sync_DB {
 	/**
 	 * Bulk delete
 	 */
-	public static function bulk_delete( $table_name, $ids = [] ) {
+	public static function bulk_delete( $table_name, $ids = array() ) {
 		foreach ( $ids as $id ) {
 			self::delete( $table_name, $id );
 		}
@@ -146,8 +146,8 @@ class InstaWP_Sync_DB {
 	}
 
 	public static function getByInCondition( $table_name, $conditions ) {
-		$str = [];
-		foreach( $conditions as $key => $value ) {
+		$str = array();
+		foreach ( $conditions as $key => $value ) {
 			if ( is_array( $value ) ) {
 				$value = join( ',', $value );
 				$str[] = "$key IN ($value)";
@@ -160,11 +160,11 @@ class InstaWP_Sync_DB {
 		return self::wpdb()->get_results( "SELECT * FROM $table_name WHERE {$str}" );
 	}
 
-	public static function get_count( $table_name, $conditions = [] ) {
-		$str = [];
+	public static function get_count( $table_name, $conditions = array() ) {
+		$str = array();
 		$sql = "SELECT COUNT(*) FROM $table_name";
 
-		foreach( $conditions as $key => $value ) {
+		foreach ( $conditions as $key => $value ) {
 			if ( is_array( $value ) ) {
 				$value = join( ',', $value );
 				$str[] = "$key IN ($value)";

@@ -22,11 +22,11 @@ class InstaWP_Sync_Admin {
 
 	public function list_events() {
 		$rel = InstaWP_Sync_DB::getAllEvents();
-		$data = [];
+		$data = array();
 		if ( ! empty( $rel ) && is_array( $rel ) ) {
 			foreach ( $rel as $v ) {
 				$btn    = ( $v->status != 'completed' ) ? '<button type="button" id="btn-sync-' . $v->id . '" data-id="' . $v->id . '" class="two-way-sync-btn btn-single-sync">Sync changes</button> <span class="sync-loader"></span><span class="sync-success"></span>' : '<p class="sync_completed">Synced</p>';
-				$data[] = [
+				$data[] = array(
 					'ID'             => $v->id,
 					'event_name'     => $v->event_name,
 					'event_slug'     => $v->event_slug,
@@ -38,7 +38,7 @@ class InstaWP_Sync_Admin {
 					'synced_message' => $v->synced_message,
 					'date'           => '<span class="synced_status">' . $v->status . '</span><br/><span>' . $v->date . '</span>',
 					'sync'           => $btn,
-				];
+				);
 			}
 		}
 

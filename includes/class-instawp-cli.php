@@ -56,12 +56,12 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 				'php_version'       => PHP_VERSION,
 				'wp_version'        => $wp_version,
 				'plugin_version'    => INSTAWP_PLUGIN_VERSION,
-				'migrate_key'       => $migrate_key
+				'migrate_key'       => $migrate_key,
 			);
 			$migrate_res         = InstaWP_Curl::do_curl( 'migrates-v3/local-push', $migrate_args );
 			$migrate_res_status  = (bool) InstaWP_Setting::get_args_option( 'success', $migrate_res, true );
 			$migrate_res_message = InstaWP_Setting::get_args_option( 'message', $migrate_res );
-			$migrate_res_data    = InstaWP_Setting::get_args_option( 'data', $migrate_res, [] );
+			$migrate_res_data    = InstaWP_Setting::get_args_option( 'data', $migrate_res, array() );
 
 			if ( ! $migrate_res_status ) {
 				die( $migrate_res_message );
@@ -79,7 +79,7 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 			if ( is_wp_error( $file_upload_status = InstaWP_Tools::cli_upload_using_sftp( $site_id, $archive_path_file, $archive_path_db ) ) ) {
 
 				// Mark the migration failed
-				instawp_update_migration_stages( [ 'failed' => true ], $migrate_id, $migrate_key );
+				instawp_update_migration_stages( array( 'failed' => true ), $migrate_id, $migrate_key );
 
 				die( $file_upload_status->get_error_message() );
 			}
@@ -88,13 +88,13 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 			if ( is_wp_error( $file_upload_status = InstaWP_Tools::cli_restore_website( $site_id, $archive_path_file, $archive_path_db ) ) ) {
 
 				// Mark the migration failed
-				instawp_update_migration_stages( [ 'failed' => true ], $migrate_id, $migrate_key );
+				instawp_update_migration_stages( array( 'failed' => true ), $migrate_id, $migrate_key );
 
 				die( $file_upload_status->get_error_message() );
 			}
 
 			// Mark the migration failed
-			instawp_update_migration_stages( [ 'migration-finished' => true ], $migrate_id, $migrate_key );
+			instawp_update_migration_stages( array( 'migration-finished' => true ), $migrate_id, $migrate_key );
 
 			WP_CLI::success( 'Migration successful.' );
 		}
@@ -113,7 +113,10 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 			if ( isset( $args[0] ) && $args[0] === 'set-waas-mode' ) {
 
 				if ( isset( $args[1] ) ) {
-					$wp_config = new WPConfig( [ 'INSTAWP_CONNECT_MODE' => 'WAAS_GO_LIVE', 'INSTAWP_CONNECT_WAAS_URL' => $args[1] ] );
+					$wp_config = new WPConfig( array(
+						'INSTAWP_CONNECT_MODE'     => 'WAAS_GO_LIVE',
+						'INSTAWP_CONNECT_WAAS_URL' => $args[1],
+					) );
 					$wp_config->update();
 				}
 
@@ -121,7 +124,7 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 			}
 
 			if ( isset( $args[0] ) && $args[0] === 'reset-waas-mode' ) {
-				$wp_config = new WPConfig( [ 'INSTAWP_CONNECT_MODE', 'INSTAWP_CONNECT_WAAS_URL' ] );
+				$wp_config = new WPConfig( array( 'INSTAWP_CONNECT_MODE', 'INSTAWP_CONNECT_WAAS_URL' ) );
 				$wp_config->delete();
 
 				return true;
@@ -131,7 +134,7 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 				if ( isset( $args[1] ) ) {
 					if ( $args[1] === 'api-key' ) {
 						InstaWP_Setting::instawp_generate_api_key( $args[2], 'true' );
-					} else if ( $args[1] === 'api-domain' ) {
+					} elseif ( $args[1] === 'api-domain' ) {
 						InstaWP_Setting::set_api_domain( $args[2] );
 					}
 				}
@@ -142,7 +145,7 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 
 					if ( isset( $payload['mode'] ) ) {
 						if ( isset( $payload['mode']['name'] ) ) {
-							$wp_config = new WPConfig( [ 'INSTAWP_CONNECT_MODE' => $payload['mode']['name'] ] );
+							$wp_config = new WPConfig( array( 'INSTAWP_CONNECT_MODE' => $payload['mode']['name'] ) );
 							$wp_config->update();
 						}
 					}
@@ -153,7 +156,7 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 
 			if ( isset( $args[0] ) && $args[0] === 'config-remove' ) {
 				$option = new \InstaWP\Connect\Helpers\Option();
-				$option->delete( [ 'instawp_api_key', 'instawp_api_options', 'instawp_connect_id_options' ] );
+				$option->delete( array( 'instawp_api_key', 'instawp_api_options', 'instawp_connect_id_options' ) );
 
 				return true;
 			}

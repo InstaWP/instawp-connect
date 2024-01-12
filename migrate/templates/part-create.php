@@ -4,7 +4,7 @@
  */
 
 $nav_item_classes  = array( 'nav-item-content' );
-$migration_details = InstaWP_Setting::get_option( 'instawp_migration_details', [] );
+$migration_details = InstaWP_Setting::get_option( 'instawp_migration_details', array() );
 $migrate_id        = InstaWP_Setting::get_args_option( 'migrate_id', $migration_details );
 
 if ( ! empty( $migrate_id ) ) {
@@ -16,9 +16,9 @@ if ( ! empty( $migrate_id ) ) {
 	<?php
 	if ( instawp()->has_unsupported_plugins || ! instawp()->can_bundle ) {
 		include INSTAWP_PLUGIN_DIR . '/migrate/templates/part-create-error.php';
-	} else if ( instawp()->is_connected && instawp()->is_on_local ) {
+	} elseif ( instawp()->is_connected && instawp()->is_on_local ) {
 		include INSTAWP_PLUGIN_DIR . '/migrate/templates/part-create-local.php';
-	} else if ( instawp()->is_connected ) {
+	} elseif ( instawp()->is_connected ) {
 		include INSTAWP_PLUGIN_DIR . '/migrate/templates/part-create-staging.php';
 	} else {
 		include INSTAWP_PLUGIN_DIR . '/migrate/templates/part-create-connect.php';

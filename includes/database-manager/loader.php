@@ -12,7 +12,7 @@ if ( ! function_exists( 'adminer_object' ) ) {
             }
 
             function credentials() {
-                return [ DB_HOST, DB_USER, DB_PASSWORD ];
+                return array( DB_HOST, DB_USER, DB_PASSWORD );
             }
 
             function database() {
@@ -63,11 +63,11 @@ if ( ! function_exists( 'adminer_object' ) ) {
             }
         }
 
-        return new InstaWP_Adminer;
+        return new InstaWP_Adminer();
 	}
 }
 
-$file_db_manager = InstaWP_Setting::get_option( 'instawp_file_db_manager', [] );
+$file_db_manager = InstaWP_Setting::get_option( 'instawp_file_db_manager', array() );
 $file_name       = InstaWP_Setting::get_args_option( 'db_name', $file_db_manager );
 if ( ! empty( $file_name ) ) {
     $file_path = \InstaWP\Connect\Helpers\DatabaseManager::get_file_path( $file_name );

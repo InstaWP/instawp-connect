@@ -15,7 +15,7 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 		 */
 		public function __construct() {
 
-			if ( isset( $_GET['page'] ) && in_array( sanitize_text_field( $_GET['page'] ), [ 'instawp', 'instawp-template-migrate' ] ) ) {
+			if ( isset( $_GET['page'] ) && in_array( sanitize_text_field( $_GET['page'] ), array( 'instawp', 'instawp-template-migrate' ) ) ) {
 				add_filter( 'admin_footer_text', '__return_false' );
 				add_filter( 'update_footer', '__return_false', 99 );
 			}
@@ -73,7 +73,7 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 
 				if ( 'instawp_api_options' === $field_id ) {
 					$api_key     = InstaWP_Setting::get_args_option( 'api_key', $field_value );
-					$api_options = InstaWP_Setting::get_option( 'instawp_api_options', [] );
+					$api_options = InstaWP_Setting::get_option( 'instawp_api_options', array() );
 					$old_api_key = InstaWP_Setting::get_args_option( 'api_key', $api_options );
 
 					if ( ! empty( $api_key ) && $api_key != $old_api_key ) {

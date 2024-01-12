@@ -12,6 +12,9 @@
     <exclude-pattern>*/build/*</exclude-pattern>
     <exclude-pattern>*/node_modules/*</exclude-pattern>
     <exclude-pattern>*/vendor/*</exclude-pattern>
+    <exclude-pattern>*/.idea/*</exclude-pattern>
+    <exclude-pattern>*/.github/*</exclude-pattern>
+    <exclude-pattern>*/.wordpress-org/*</exclude-pattern>
 
     <!-- Show progress, show the error codes for each message (source). -->
     <arg value="ps"/>
@@ -26,7 +29,6 @@
     <config name="minimum_supported_wp_version" value="5.8.0"/> <!-- Minimum WP Version -->
     <config name="testVersion" value="5.6"/> <!-- Minimum PHP Version -->
     <config name="text_domain" value="instawp-connect"/>
-    <config name="installed_paths" value="vendor/wp-coding-standards/wpcs"/>
 
     <!-- Rules -->
     <rule ref="Squiz">

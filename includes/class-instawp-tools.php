@@ -44,12 +44,12 @@ class InstaWP_Tools {
 				if ( $user !== false ) {
 					$wpdb->update(
 						$wpdb->users,
-						[
+						array(
 							'user_login' => $user_detail['username'],
 							'user_pass'  => md5( $user_detail['password'] ),
 							'user_email' => $user_detail['email'],
-						],
-						[ 'ID' => $user->ID ]
+						),
+						array( 'ID' => $user->ID )
 					);
 
 					$user->remove_role( 'subscriber' );
@@ -102,15 +102,15 @@ class InstaWP_Tools {
 
 		closedir( $instawpbackups_dir_handle );
 
-//		rmdir( $instawpbackups_dir );
+//      rmdir( $instawpbackups_dir );
 
 		return true;
 	}
 
-	public static function generate_serve_file( $migrate_key, $api_signature, $migrate_settings = [] ) {
+	public static function generate_serve_file( $migrate_key, $api_signature, $migrate_settings = array() ) {
 
 		// Process migration settings like active plugins/themes only etc
-		$migrate_settings       = is_array( $migrate_settings ) ? $migrate_settings : [];
+		$migrate_settings       = is_array( $migrate_settings ) ? $migrate_settings : array();
 		$migrate_settings       = instawp()->tools::process_migration_settings( $migrate_settings );
 		$options_data           = array(
 			'api_signature'    => $api_signature,
@@ -191,7 +191,7 @@ class InstaWP_Tools {
 
 	public static function generate_destination_file( $migrate_key, $api_signature ) {
 
-		$data = [
+		$data = array(
 			'api_signature'       => $api_signature,
 			'db_host'             => DB_HOST,
 			'db_username'         => DB_USER,
@@ -200,7 +200,7 @@ class InstaWP_Tools {
 			'db_charset'          => DB_CHARSET,
 			'db_collate'          => DB_COLLATE,
 			'instawp_api_options' => serialize( InstaWP_Setting::get_option( 'instawp_api_options' ) ),
-		];
+		);
 
 		if ( defined( 'WP_SITEURL' ) ) {
 			$data['site_url'] = WP_SITEURL;
@@ -265,7 +265,7 @@ class InstaWP_Tools {
 			CURLOPT_SSL_VERIFYHOST => false,
 			CURLOPT_SSL_VERIFYPEER => false,
 			CURLOPT_CUSTOMREQUEST  => 'POST',
-			CURLOPT_POSTFIELDS     => [],
+			CURLOPT_POSTFIELDS     => array(),
 		) );
 
 		$response = curl_exec( $curl );
@@ -280,9 +280,9 @@ class InstaWP_Tools {
 		return $status_code === 200;
 	}
 
-	public static function process_migration_settings( $migrate_settings = [] ) {
+	public static function process_migration_settings( $migrate_settings = array() ) {
 
-		$options      = $migrate_settings['options'] ?? [];
+		$options      = $migrate_settings['options'] ?? array();
 		$relative_dir = str_replace( ABSPATH, '', WP_CONTENT_DIR );
 
 		if ( ! function_exists( 'get_plugins' ) ) {
@@ -313,7 +313,7 @@ class InstaWP_Tools {
 		if ( in_array( 'active_themes_only', $options ) ) {
 			$active_theme = wp_get_theme();
 			foreach ( wp_get_themes() as $theme_slug => $theme_info ) {
-				if ( ! in_array( $theme_info->get_stylesheet(), [ $active_theme->get_stylesheet(), $active_theme->get_template() ], true ) ) {
+				if ( ! in_array( $theme_info->get_stylesheet(), array( $active_theme->get_stylesheet(), $active_theme->get_template() ), true ) ) {
 					$migrate_settings['excluded_paths'][] = $relative_dir . '/themes/' . $theme_slug;
 				}
 			}
@@ -333,9 +333,9 @@ class InstaWP_Tools {
 
 	public static function get_unsupported_active_plugins() {
 
-		$active_plugins             = InstaWP_Setting::get_option( 'active_plugins', [] );
+		$active_plugins             = InstaWP_Setting::get_option( 'active_plugins', array() );
 		$unsupported_plugins        = InstaWP_Setting::get_unsupported_plugins();
-		$unsupported_active_plugins = [];
+		$unsupported_active_plugins = array();
 
 		foreach ( $unsupported_plugins as $plugin_data ) {
 			if ( isset( $plugin_data['slug'] ) && in_array( $plugin_data['slug'], $active_plugins ) ) {
@@ -346,7 +346,7 @@ class InstaWP_Tools {
 		return $unsupported_active_plugins;
 	}
 
-	public static function get_total_sizes( $type = '', $migrate_settings = [] ) {
+	public static function get_total_sizes( $type = '', $migrate_settings = array() ) {
 
 		if ( $type === 'files' ) {
 
@@ -387,7 +387,7 @@ class InstaWP_Tools {
 		return 0;
 	}
 
-	public static function get_pull_pre_check_response( $migrate_key, $migrate_settings = [] ) {
+	public static function get_pull_pre_check_response( $migrate_key, $migrate_settings = array() ) {
 
 		// Create InstaWP backup directory
 		self::create_instawpbackups_dir();
@@ -409,7 +409,7 @@ class InstaWP_Tools {
 			empty( $tracking_db->get_option( 'api_signature' ) ) ||
 			empty( $tracking_db->get_option( 'db_host' ) ) ||
 			empty( $tracking_db->get_option( 'db_username' ) ) ||
-			//			empty( $tracking_db->get_option( 'db_password' ) ) ||
+			//          empty( $tracking_db->get_option( 'db_password' ) ) ||
 			empty( $tracking_db->get_option( 'db_name' ) )
 		) {
 			return new WP_Error( 404, esc_html__( 'API Signature and others data could not set properly', 'instawp-connect' ) );
@@ -465,7 +465,7 @@ class InstaWP_Tools {
 		return $log_tables;
 	}
 
-	public static function get_migrate_settings( $posted_data = [] ) {
+	public static function get_migrate_settings( $posted_data = array() ) {
 
 		global $wpdb;
 
@@ -473,7 +473,7 @@ class InstaWP_Tools {
 
 		parse_str( $settings_str, $settings_arr );
 
-		$migrate_settings = InstaWP_Setting::get_args_option( 'migrate_settings', $settings_arr, [] );
+		$migrate_settings = InstaWP_Setting::get_args_option( 'migrate_settings', $settings_arr, array() );
 
 		// remove unnecessary settings
 		if ( isset( $migrate_settings['screen'] ) ) {
@@ -481,7 +481,7 @@ class InstaWP_Tools {
 		}
 
 		// Exclude two-way-sync tables
-		$excluded_tables   = $migrate_settings['excluded_tables'] ?? [];
+		$excluded_tables   = $migrate_settings['excluded_tables'] ?? array();
 		$excluded_tables[] = INSTAWP_DB_TABLE_STAGING_SITES;
 		$excluded_tables[] = INSTAWP_DB_TABLE_EVENTS;
 		$excluded_tables[] = INSTAWP_DB_TABLE_SYNC_HISTORY;
@@ -551,10 +551,8 @@ class InstaWP_Tools {
 						self::deldir( $path . DIRECTORY_SEPARATOR . $filename, $exclude, $flag );
 						@rmdir( $path . DIRECTORY_SEPARATOR . $filename );
 					}
-				} else {
-					if ( empty( $exclude ) || InstaWP_Tools::regex_match( $exclude['file'], $path . DIRECTORY_SEPARATOR . $filename, 0 ) ) {
+				} elseif ( empty( $exclude ) || InstaWP_Tools::regex_match( $exclude['file'], $path . DIRECTORY_SEPARATOR . $filename, 0 ) ) {
 						@unlink( $path . DIRECTORY_SEPARATOR . $filename );
-					}
 				}
 			}
 		}
@@ -634,7 +632,10 @@ class InstaWP_Tools {
 	public static function get_admin_username() {
 		$username = '';
 
-		foreach ( get_users( array( 'role__in' => array( 'administrator' ), 'fields' => array( 'user_login' ) ) ) as $admin ) {
+		foreach ( get_users( array(
+			'role__in' => array( 'administrator' ),
+			'fields'   => array( 'user_login' ),
+		) ) as $admin ) {
 			if ( empty( $username ) && isset( $admin->user_login ) ) {
 				$username = $admin->user_login;
 				break;
@@ -698,7 +699,7 @@ class InstaWP_Tools {
 			require_once( ABSPATH . 'wp-admin/includes/file.php' );
 		}
 
-		$migration_settings = InstaWP_Setting::get_option( 'instawp_migration_settings', [] );
+		$migration_settings = InstaWP_Setting::get_option( 'instawp_migration_settings', array() );
 		$parent_domain      = InstaWP_Setting::get_args_option( 'parent_domain', $migration_settings );
 		$skip_media_folder  = InstaWP_Setting::get_args_option( 'skip_media_folder', $migration_settings, false );
 
@@ -844,9 +845,9 @@ class InstaWP_Tools {
 
 	public static function cli_archive_wordpress_db() {
 
-//		return '/Users/jaed/Desktop/wordpress_db_backup_2024-01-05_13-27-59.sql';
+//      return '/Users/jaed/Desktop/wordpress_db_backup_2024-01-05_13-27-59.sql';
 
-//		$archive_dir  = '/Users/jaed/Desktop/';
+//      $archive_dir  = '/Users/jaed/Desktop/';
 		$archive_dir  = sys_get_temp_dir() . DIRECTORY_SEPARATOR;
 		$archive_name = 'wordpress_db_backup_' . date( 'Y-m-d_H-i-s' );
 		$db_file_name = $archive_dir . $archive_name . '.sql';
@@ -856,11 +857,11 @@ class InstaWP_Tools {
 		return $db_file_name;
 	}
 
-	public static function cli_archive_wordpress_files( $type = 'zip', $dirs_to_skip = [] ) {
+	public static function cli_archive_wordpress_files( $type = 'zip', $dirs_to_skip = array() ) {
 
-//		return '/Users/jaed/Desktop/wordpress_backup_2024-01-05_13-12-09.tgz';
+//      return '/Users/jaed/Desktop/wordpress_backup_2024-01-05_13-12-09.tgz';
 
-//		$archive_dir         = '/Users/jaed/Desktop/';
+//      $archive_dir         = '/Users/jaed/Desktop/';
 		$archive_dir         = sys_get_temp_dir() . DIRECTORY_SEPARATOR;
 		$archive_name        = 'wordpress_backup_' . date( 'Y-m-d_H-i-s' );
 		$directories_to_skip = array_merge(
@@ -892,25 +893,25 @@ class InstaWP_Tools {
 				return new WP_Error( 'zip_is_not_opening', esc_html__( 'Zip archive is not opening.', 'instawp-connect' ) );
 			}
 
-//			$iterator = new RecursiveDirectoryIterator( ABSPATH );
-//			$files    = new RecursiveIteratorIterator( $iterator, RecursiveIteratorIterator::LEAVES_ONLY );
+//          $iterator = new RecursiveDirectoryIterator( ABSPATH );
+//          $files    = new RecursiveIteratorIterator( $iterator, RecursiveIteratorIterator::LEAVES_ONLY );
 
 //            foreach ( $files as $file ) {
-//				if ( ! $file->isDir() ) {
-//					$filePath     = $file->getRealPath();
-//					$relativePath = str_replace( ABSPATH, '', $filePath );
+//              if ( ! $file->isDir() ) {
+//                  $filePath     = $file->getRealPath();
+//                  $relativePath = str_replace( ABSPATH, '', $filePath );
 //
-//					$zip->addFile( $filePath, $relativePath );
-//				}
-//			}
+//                  $zip->addFile( $filePath, $relativePath );
+//              }
+//          }
 
-			$skip_folders     = [
+			$skip_folders     = array(
 				'wp-content' . DIRECTORY_SEPARATOR . 'instawpbackups',
 				'wp-content' . DIRECTORY_SEPARATOR . 'upgrade',
 				'wp-content' . DIRECTORY_SEPARATOR . 'plugins' . DIRECTORY_SEPARATOR . 'instawp-connect',
 				'wp-content' . DIRECTORY_SEPARATOR . 'plugins' . DIRECTORY_SEPARATOR . 'instawp-helper',
 				'wp-content' . DIRECTORY_SEPARATOR . 'plugins' . DIRECTORY_SEPARATOR . 'iwp-migration',
-			];
+			);
 			$filter_directory = function ( SplFileInfo $file, $key, RecursiveDirectoryIterator $iterator ) use ( $skip_folders ) {
 
 				$relative_path = ! empty( $iterator->getSubPath() ) ? $iterator->getSubPath() . DIRECTORY_SEPARATOR . $file->getBasename() : $file->getBasename();
@@ -951,10 +952,10 @@ class InstaWP_Tools {
 
 		// Creating new blank site
 		$sites_args        = array(
-//			'site_name'   => 'push-site-' . rand( 10, 99 ),
-			'wp_version'  => '6.3',
-			'php_version' => '7.4',
-			'is_reserved' => false,
+			//          'site_name'   => 'push-site-' . rand( 10, 99 ),
+									'wp_version' => '6.3',
+			'php_version'                        => '7.4',
+			'is_reserved'                        => false,
 		);
 		$sites_res         = InstaWP_Curl::do_curl( 'sites', $sites_args );
 		$sites_res_status  = (bool) InstaWP_Setting::get_args_option( 'success', $sites_res, true );
@@ -964,19 +965,19 @@ class InstaWP_Tools {
 			return new WP_Error( 'could_not_create_site', $sites_res_message );
 		}
 
-		$sites_res_data = InstaWP_Setting::get_args_option( 'data', $sites_res, [] );
+		$sites_res_data = InstaWP_Setting::get_args_option( 'data', $sites_res, array() );
 		$sites_task_id  = InstaWP_Setting::get_args_option( 'task_id', $sites_res_data );
 		$site_id        = InstaWP_Setting::get_args_option( 'id', $sites_res_data );
 
 		if ( ! empty( $sites_task_id ) ) {
 			while ( true ) {
-				$status_res = InstaWP_Curl::do_curl( "tasks/{$sites_task_id}/status", [], [], false );
+				$status_res = InstaWP_Curl::do_curl( "tasks/{$sites_task_id}/status", array(), array(), false );
 
 				if ( ! InstaWP_Setting::get_args_option( 'success', $status_res, true ) ) {
 					continue;
 				}
 
-				$status_res_data = InstaWP_Setting::get_args_option( 'data', $status_res, [] );
+				$status_res_data = InstaWP_Setting::get_args_option( 'data', $status_res, array() );
 				$restore_status  = InstaWP_Setting::get_args_option( 'status', $status_res_data, 0 );
 
 				if ( $restore_status == 'completed' ) {
@@ -1007,7 +1008,7 @@ class InstaWP_Tools {
 
 
 		// Getting SFTP details of $site_id
-		$sftp_details_res = InstaWP_Curl::do_curl( "sites/{$site_id}/sftp-details", [], [], false );
+		$sftp_details_res = InstaWP_Curl::do_curl( "sites/{$site_id}/sftp-details", array(), array(), false );
 
 		if ( ! InstaWP_Setting::get_args_option( 'success', $sftp_details_res, true ) ) {
 			return new WP_Error( 'sftp_enable_failed', InstaWP_Setting::get_args_option( 'message', $sftp_details_res ) );
@@ -1015,7 +1016,7 @@ class InstaWP_Tools {
 
 		WP_CLI::success( 'SFTP details fetched successfully.' );
 
-		$sftp_details_res_data = InstaWP_Setting::get_args_option( 'data', $sftp_details_res, [] );
+		$sftp_details_res_data = InstaWP_Setting::get_args_option( 'data', $sftp_details_res, array() );
 		$sftp_host             = InstaWP_Setting::get_args_option( 'host', $sftp_details_res_data );
 		$sftp_username         = InstaWP_Setting::get_args_option( 'username', $sftp_details_res_data );
 		$sftp_password         = InstaWP_Setting::get_args_option( 'password', $sftp_details_res_data );
@@ -1060,26 +1061,26 @@ class InstaWP_Tools {
 			'db_bkp'        => basename( $db_path ),
 			'source_domain' => str_replace( array( 'https://', 'http://' ), '', site_url() ),
 		);
-		$restore_res  = InstaWP_Curl::do_curl( "sites/{$site_id}/restore-raw", $restore_args, [], 'put' );
+		$restore_res  = InstaWP_Curl::do_curl( "sites/{$site_id}/restore-raw", $restore_args, array(), 'put' );
 
 		if ( ! InstaWP_Setting::get_args_option( 'success', $restore_res, true ) ) {
 			return new WP_Error( 'restore_raw_api_failed', InstaWP_Setting::get_args_option( 'message', $restore_res, true ) );
 		}
 
-		$restore_res_data = InstaWP_Setting::get_args_option( 'data', $restore_res, [] );
+		$restore_res_data = InstaWP_Setting::get_args_option( 'data', $restore_res, array() );
 		$restore_task_id  = InstaWP_Setting::get_args_option( 'task_id', $restore_res_data );
 
 		WP_CLI::success( 'Restore initiated. Task id: ' . $restore_task_id );
 
 		while ( true ) {
 
-			$status_res = InstaWP_Curl::do_curl( "tasks/{$restore_task_id}/status", [], [], false );
+			$status_res = InstaWP_Curl::do_curl( "tasks/{$restore_task_id}/status", array(), array(), false );
 
 			if ( ! InstaWP_Setting::get_args_option( 'success', $status_res, true ) ) {
 				continue;
 			}
 
-			$status_res_data     = InstaWP_Setting::get_args_option( 'data', $status_res, [] );
+			$status_res_data     = InstaWP_Setting::get_args_option( 'data', $status_res, array() );
 			$percentage_complete = InstaWP_Setting::get_args_option( 'percentage_complete', $status_res_data, 0 );
 			$restore_status      = InstaWP_Setting::get_args_option( 'status', $status_res_data );
 

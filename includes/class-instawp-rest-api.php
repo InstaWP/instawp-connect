@@ -131,11 +131,11 @@ class InstaWP_Backup_Api {
 			'permission_callback' => '__return_true',
 		) );
 
-//		register_rest_route( $this->namespace . '/' . $this->version_3, '/get-push-config', array(
-//			'methods'             => 'GET',
-//			'callback'            => array( $this, 'handle_get_push_config_api' ),
-//			'permission_callback' => '__return_true',
-//		) );
+//      register_rest_route( $this->namespace . '/' . $this->version_3, '/get-push-config', array(
+//          'methods'             => 'GET',
+//          'callback'            => array( $this, 'handle_get_push_config_api' ),
+//          'permission_callback' => '__return_true',
+//      ) );
 
 		register_rest_route( $this->namespace . '/' . $this->version_3, '/debug', array(
 			'methods'             => 'POST',
@@ -151,15 +151,15 @@ class InstaWP_Backup_Api {
 			return $this->throw_error( $response );
 		}
 
-		$drivers   = [];
-		$libraries = [
+		$drivers   = array();
+		$libraries = array(
 			'SQLite3'                         => extension_loaded( 'sqlite3' ),
 			'Zip'                             => extension_loaded( 'zip' ),
 			'PDO'                             => extension_loaded( 'pdo' ),
 			"PHP's zlib (for gz compression)" => extension_loaded( 'zlib' ),
 			'PharData'                        => extension_loaded( 'phar' ),
-			'mysqli_real_connect'             => extension_loaded( 'mysqli' )
-		];
+			'mysqli_real_connect'             => extension_loaded( 'mysqli' ),
+		);
 
 		$pearArchiveTarExists = false;
 
@@ -247,7 +247,7 @@ class InstaWP_Backup_Api {
 				'plugin_version'   => INSTAWP_PLUGIN_VERSION,
 				'file_size'        => instawp()->tools::get_total_sizes( 'files', $migrate_settings ),
 				'db_size'          => instawp()->tools::get_total_sizes( 'db' ),
-				'active_plugins'   => InstaWP_Setting::get_option( 'active_plugins', [] ),
+				'active_plugins'   => InstaWP_Setting::get_option( 'active_plugins', array() ),
 				'migrate_settings' => $migrate_settings,
 				'migrate_key'      => $migrate_key,
 				'dest_url'         => $dest_file_url,
@@ -264,29 +264,29 @@ class InstaWP_Backup_Api {
 	 *
 	 * @return WP_REST_Response
 	 */
-//	public function handle_get_push_config_api( WP_REST_Request $request ) {
+//  public function handle_get_push_config_api( WP_REST_Request $request ) {
 //
-//		$response = $this->validate_api_request( $request );
-//		if ( is_wp_error( $response ) ) {
-//			return $this->throw_error( $response );
-//		}
+//      $response = $this->validate_api_request( $request );
+//      if ( is_wp_error( $response ) ) {
+//          return $this->throw_error( $response );
+//      }
 //
-//		global $wp_version;
+//      global $wp_version;
 //
-//		$migrate_settings = instawp()->tools::get_migrate_settings();
+//      $migrate_settings = instawp()->tools::get_migrate_settings();
 //
-//		return $this->send_response(
-//			array(
-//				'php_version'    => PHP_VERSION,
-//				'wp_version'     => $wp_version,
-//				'plugin_version' => INSTAWP_PLUGIN_VERSION,
-//				'file_size'      => instawp()->tools::get_total_sizes( 'files', $migrate_settings ),
-//				'db_size'        => instawp()->tools::get_total_sizes( 'db' ),
-//				'settings'       => $migrate_settings,
-//				'active_plugins' => InstaWP_Setting::get_option( 'active_plugins', [] ),
-//			)
-//		);
-//	}
+//      return $this->send_response(
+//          array(
+//              'php_version'    => PHP_VERSION,
+//              'wp_version'     => $wp_version,
+//              'plugin_version' => INSTAWP_PLUGIN_VERSION,
+//              'file_size'      => instawp()->tools::get_total_sizes( 'files', $migrate_settings ),
+//              'db_size'        => instawp()->tools::get_total_sizes( 'db' ),
+//              'settings'       => $migrate_settings,
+//              'active_plugins' => InstaWP_Setting::get_option( 'active_plugins', [] ),
+//          )
+//      );
+//  }
 
 
 	/**
@@ -324,10 +324,10 @@ class InstaWP_Backup_Api {
 
 		instawp_reset_running_migration( 'hard' );
 
-		return $this->send_response( [
+		return $this->send_response( array(
 			'success' => true,
-			'message' => __( 'Plugin reset Successful.', 'instawp-connect' )
-		] );
+			'message' => __( 'Plugin reset Successful.', 'instawp-connect' ),
+		) );
 	}
 
 	/**
@@ -731,12 +731,12 @@ class InstaWP_Backup_Api {
 			$body = ( array ) json_decode( wp_remote_retrieve_body( $response ), true );
 
 			if ( $body['status'] == true ) {
-				$api_options = InstaWP_Setting::get_option( 'instawp_api_options', [] );
+				$api_options = InstaWP_Setting::get_option( 'instawp_api_options', array() );
 
-				update_option( 'instawp_api_options', array_merge( $api_options, [
+				update_option( 'instawp_api_options', array_merge( $api_options, array(
 					'api_key'  => $api_key,
 					'response' => $body,
-				] ) );
+				) ) );
 
 				$res = self::config_connect( $api_key );
 			} else {
@@ -889,7 +889,7 @@ class InstaWP_Backup_Api {
 			return $this->throw_error( $response );
 		}
 
-		$params    = ( array ) $request->get_param( 'wp-config' ) ?? [];
+		$params    = ( array ) $request->get_param( 'wp-config' ) ?? array();
 		$wp_config = new \InstaWP\Connect\Helpers\WPConfig( $params );
 		$response  = $wp_config->fetch();
 
@@ -910,7 +910,7 @@ class InstaWP_Backup_Api {
 			return $this->throw_error( $response );
 		}
 
-		$params    = ( array ) $request->get_param( 'wp-config' ) ?? [];
+		$params    = ( array ) $request->get_param( 'wp-config' ) ?? array();
 		$wp_config = new \InstaWP\Connect\Helpers\WPConfig( $params );
 		$response  = $wp_config->update();
 
@@ -931,7 +931,7 @@ class InstaWP_Backup_Api {
 			return $this->throw_error( $response );
 		}
 
-		$params    = ( array ) $request->get_param( 'wp-config' ) ?? [];
+		$params    = ( array ) $request->get_param( 'wp-config' ) ?? array();
 		$wp_config = new \InstaWP\Connect\Helpers\WPConfig( $params );
 		$response  = $wp_config->delete();
 
@@ -1015,7 +1015,7 @@ class InstaWP_Backup_Api {
 			return $this->throw_error( $response );
 		}
 
-		$results = [];
+		$results = array();
 		$options = $this->get_management_options();
 		foreach ( array_keys( $options ) as $option ) {
 			$default = 'heartbeat' === $option ? 'on' : 'off';
@@ -1044,7 +1044,7 @@ class InstaWP_Backup_Api {
 
 		$params  = $this->filter_params( $request );
 		$options = $this->get_management_options();
-		$results = [];
+		$results = array();
 
 		foreach ( $params as $key => $value ) {
 			$results[ $key ]['status'] = false;
@@ -1124,10 +1124,10 @@ class InstaWP_Backup_Api {
 	 * @return WP_REST_Response|WP_Error|WP_HTTP_Response
 	 */
 	public function throw_error( $error ) {
-		$response = new WP_REST_Response( [
+		$response = new WP_REST_Response( array(
 			'success' => false,
 			'message' => $error->get_error_message(),
-		] );
+		) );
 		$response->set_status( $error->get_error_code() );
 
 		return rest_ensure_response( $response );
@@ -1156,7 +1156,7 @@ class InstaWP_Backup_Api {
 	 * @return array
 	 */
 	private function filter_params( $request ) {
-		$params = $request->get_params() ?? [];
+		$params = $request->get_params() ?? array();
 		if ( array_key_exists( 'rest_route', $params ) ) {
 			unset( $params['rest_route'] );
 		}
@@ -1172,7 +1172,7 @@ class InstaWP_Backup_Api {
 	 * @return array|string
 	 */
 	private function get_management_options( $name = '' ) {
-		$options = [
+		$options = array(
 			'heartbeat'            => __( 'Heartbeat', 'instawp-connect' ),
 			'file_manager'         => __( 'File Manager', 'instawp-connect' ),
 			'database_manager'     => __( 'Database Manager', 'instawp-connect' ),
@@ -1180,7 +1180,7 @@ class InstaWP_Backup_Api {
 			'config_management'    => __( 'Config Management', 'instawp-connect' ),
 			'inventory'            => __( 'Site Inventory', 'instawp-connect' ),
 			'debug_log'            => __( 'Debug Log', 'instawp-connect' ),
-		];
+		);
 		if ( ! empty( $name ) ) {
 			return isset( $options[ $name ] ) ? $options[ $name ] : '';
 		}

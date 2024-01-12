@@ -9,7 +9,7 @@ $error_message = esc_html__( 'You may use a third party backup and restore plugi
 if ( ! instawp()->can_bundle ) {
 	$error_title   = esc_html__( 'We did not find either ZipArchive or Phardata for faster staging upload.', 'instawp-connect' );
 	$error_message = esc_html__( 'Please ask your hosting provider to enable this support.', 'instawp-connect' );
-} else if ( instawp()->has_unsupported_plugins ) {
+} elseif ( instawp()->has_unsupported_plugins ) {
 	$unsupported_plugins     = array_map( function ( $plugin ) {
 		return $plugin['name'] ?? '';
 	}, instawp()->tools::get_unsupported_active_plugins() );
