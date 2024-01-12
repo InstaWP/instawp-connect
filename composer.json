@@ -14,6 +14,10 @@
         "instawp/connect-helpers": "dev-main",
         "phpseclib/phpseclib": "~3.0"
     },
+    "require-dev": {
+        "wp-coding-standards/wpcs": "^2.3",
+        "phpcompatibility/phpcompatibility-wp": "^2.1"
+    },
     "repositories": [
         {
             "type": "vcs",
@@ -29,6 +33,9 @@
         ]
     },
     "config": {
-        "optimize-autoloader": true
+        "optimize-autoloader": true,
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
     }
 }

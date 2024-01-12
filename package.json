@@ -19,6 +19,12 @@
     },
     "scripts": {
         "tailwind-start": "npx tailwindcss -i assets/src/tailwind-input.css -o ./assets/css/tailwind.min.css --minify --watch",
-        "start": "sass --watch assets/src/style.scss assets/css/style.min.css --style compressed"
+        "start": "sass --watch assets/src/style.scss assets/css/style.min.css --style compressed",
+        "lint:php": "vendor/bin/phpcs",
+        "lint:php:fix": "vendor/bin/phpcbf",
+        "lint": "eslint assets/src/js/*",
+        "lint:fix": "eslint --fix assets/src/js/*",
+        "lint-css": "stylelint 'assets/src/sass/**/*.scss'",
+        "lint-css:fix": "npm run lint-css -- --fix"
     }
 }
