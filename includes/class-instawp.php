@@ -248,6 +248,11 @@ class instaWP {
 	}
 
 	public function get_directory_contents( $dir, $sort_by ) {
+
+		if ( empty( $dir ) ) {
+			return [];
+		}
+
 		$files_data = scandir( $dir );
 
 		if ( ! $files_data ) {
@@ -309,7 +314,7 @@ class instaWP {
 			if ( $path !== false && $path != '' && file_exists( $path ) ) {
 				foreach ( new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $path, FilesystemIterator::SKIP_DOTS ) ) as $object ) {
 					$bytes_total += $object->getSize();
-					++$files_total ;
+					++ $files_total;
 				}
 			}
 		} catch ( Exception $e ) {
@@ -366,14 +371,14 @@ class instaWP {
 					}
 					$this->get_dir_files( $files, $folder, $path . DIRECTORY_SEPARATOR . $filename, $except_regex, $exclude_folder );
 				} elseif ( $except_regex === false || ! $this->regex_match( $except_regex['file'], $path . DIRECTORY_SEPARATOR . $filename, $flag ) ) {
-						if ( in_array( $filename, $exclude_files ) ) {
-							continue;
-						}
-						if ( $exclude_file_size == 0 ) {
-							$files[] = $path . DIRECTORY_SEPARATOR . $filename;
-						} elseif ( filesize( $path . DIRECTORY_SEPARATOR . $filename ) < $exclude_file_size * 1024 * 1024 ) {
-							$files[] = $path . DIRECTORY_SEPARATOR . $filename;
-						}
+					if ( in_array( $filename, $exclude_files ) ) {
+						continue;
+					}
+					if ( $exclude_file_size == 0 ) {
+						$files[] = $path . DIRECTORY_SEPARATOR . $filename;
+					} elseif ( filesize( $path . DIRECTORY_SEPARATOR . $filename ) < $exclude_file_size * 1024 * 1024 ) {
+						$files[] = $path . DIRECTORY_SEPARATOR . $filename;
+					}
 				}
 			}
 		}
@@ -474,7 +479,7 @@ class instaWP {
 			if ( $handler !== false ) {
 				while ( ( $filename = readdir( $handler ) ) !== false ) {
 					if ( $filename != "." && $filename != ".." ) {
-						++$count ;
+						++ $count;
 
 						if ( is_dir( $root . DIRECTORY_SEPARATOR . $filename ) ) {
 							$size = self::get_folder_size( $root . DIRECTORY_SEPARATOR . $filename, $size );
