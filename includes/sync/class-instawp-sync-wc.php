@@ -8,16 +8,16 @@ class InstaWP_Sync_WC extends InstaWP_Sync_Post {
 	    parent::__construct();
 
 		// Hooks
-        add_filter( 'INSTAWP_CONNECT/Filters/two_way_sync_post_data', [ $this, 'add_post_data' ], 10, 3 );
-        add_action( 'INSTAWP_CONNECT/Actions/process_two_way_sync_post', [ $this, 'process_gallery' ], 10, 2 );
+        add_filter( 'INSTAWP_CONNECT/Filters/two_way_sync_post_data', array( $this, 'add_post_data' ), 10, 3 );
+        add_action( 'INSTAWP_CONNECT/Actions/process_two_way_sync_post', array( $this, 'process_gallery' ), 10, 2 );
 
 		// Attributes actions
-	    add_action( 'woocommerce_attribute_added', [ $this,'attribute_added' ], 10, 2 );
-	    add_action( 'woocommerce_attribute_updated', [ $this, 'attribute_updated' ], 10, 3 );
-	    add_action( 'woocommerce_attribute_deleted', [ $this, 'attribute_deleted' ], 10, 2 );
+	    add_action( 'woocommerce_attribute_added', array( $this, 'attribute_added' ), 10, 2 );
+	    add_action( 'woocommerce_attribute_updated', array( $this, 'attribute_updated' ), 10, 3 );
+	    add_action( 'woocommerce_attribute_deleted', array( $this, 'attribute_deleted' ), 10, 2 );
 
 	    // Process event
-	    add_filter( 'INSTAWP_CONNECT/Filters/process_two_way_sync', [ $this, 'parse_event' ], 10, 2 );
+	    add_filter( 'INSTAWP_CONNECT/Filters/process_two_way_sync', array( $this, 'parse_event' ), 10, 2 );
     }
 
 	public function add_post_data( $data, $type, $post ) {
@@ -32,7 +32,7 @@ class InstaWP_Sync_WC extends InstaWP_Sync_Post {
 		if ( $this->can_sync() && $post['post_type'] === 'product' ) {
 			if ( isset( $data->details->product_gallery ) && ! empty( $data->details->product_gallery ) ) {
 				$product_gallery = $data->details->product_gallery;
-				$gallery_ids     = [];
+				$gallery_ids     = array();
 				foreach ( $product_gallery as $gallery ) {
 					if ( ! empty( $gallery->media ) && ! empty( $gallery->url ) ) {
 						$gallery_ids[] = $this->handle_attachments( ( array ) $gallery->media, ( array ) $gallery->media_meta, $gallery->url );
@@ -91,7 +91,7 @@ class InstaWP_Sync_WC extends InstaWP_Sync_Post {
 		}
 
 		$event_name = __( 'Woocommerce attribute deleted', 'instawp-connect' );
-		$this->add_event( $event_name, 'woocommerce_attribute_deleted', [ 'attribute_id' => $id ], $name );
+		$this->add_event( $event_name, 'woocommerce_attribute_deleted', array( 'attribute_id' => $id ), $name );
 	}
 
 	public function parse_event( $response, $v ) {
@@ -100,18 +100,18 @@ class InstaWP_Sync_WC extends InstaWP_Sync_Post {
 		}
 
 		$details  = ( array ) $v->details;
-		$log_data = [];
+		$log_data = array();
 
 		// add or update attribute
-		if ( in_array( $v->event_slug, [ 'woocommerce_attribute_added', 'woocommerce_attribute_updated' ], true ) ) {
+		if ( in_array( $v->event_slug, array( 'woocommerce_attribute_added', 'woocommerce_attribute_updated' ), true ) ) {
 			$attribute_id   = wc_attribute_taxonomy_id_by_name( $v->source_id );
-			$attribute_data = [
-				'name'          => $details['attribute_label'],
-				'slug'          => $details['attribute_name'],
-				'type'          => $details['attribute_type'],
-				'orderby'       => $details['attribute_orderby'],
-				'has_archives'  => isset( $details['attribute_public'] ) ? (int) $details['attribute_public'] : 0,
-			];
+			$attribute_data = array(
+				'name'         => $details['attribute_label'],
+				'slug'         => $details['attribute_name'],
+				'type'         => $details['attribute_type'],
+				'orderby'      => $details['attribute_orderby'],
+				'has_archives' => isset( $details['attribute_public'] ) ? (int) $details['attribute_public'] : 0,
+			);
 
 			if ( $attribute_id ) {
 				$attribute = wc_update_attribute( $attribute_id, $attribute_data );
@@ -122,10 +122,10 @@ class InstaWP_Sync_WC extends InstaWP_Sync_Post {
 			if ( is_wp_error( $attribute ) ) {
 				$log_data[ $v->id ] = $attribute->get_error_message();
 
-				return InstaWP_Sync_Helpers::sync_response( $v, $log_data, [
+				return InstaWP_Sync_Helpers::sync_response( $v, $log_data, array(
 					'status'  => 'pending',
-					'message' => $attribute->get_error_message()
-				] );
+					'message' => $attribute->get_error_message(),
+				) );
 			}
 		}
 
@@ -136,16 +136,16 @@ class InstaWP_Sync_WC extends InstaWP_Sync_Post {
 				$response = wc_delete_attribute( $attribute_id );
 
 				if ( ! $response ) {
-					return InstaWP_Sync_Helpers::sync_response( $v, [], [
+					return InstaWP_Sync_Helpers::sync_response( $v, array(), array(
 						'status'  => 'pending',
-						'message' => 'Failed'
-					] );
+						'message' => 'Failed',
+					) );
 				}
 			} else {
-				return InstaWP_Sync_Helpers::sync_response( $v, [], [
+				return InstaWP_Sync_Helpers::sync_response( $v, array(), array(
 					'status'  => 'pending',
-					'message' => 'Attribute not found'
-				] );
+					'message' => 'Attribute not found',
+				) );
 			}
 		}
 
@@ -168,7 +168,7 @@ class InstaWP_Sync_WC extends InstaWP_Sync_Post {
 				$title = $details['attribute_label'];
 				break;
 			case 'woocommerce_attribute_deleted':
-				$title = ucfirst( str_replace( [ '-', '_' ], ' ', $source_id ) );
+				$title = ucfirst( str_replace( array( '-', '_' ), ' ', $source_id ) );
 				break;
 			default:
 				$title = $details;
@@ -187,7 +187,7 @@ class InstaWP_Sync_WC extends InstaWP_Sync_Post {
 		global $wpdb;
 
 		$args   = wp_unslash( $args );
-		$format = [ '%s', '%s', '%s', '%s', '%d' ];
+		$format = array( '%s', '%s', '%s', '%s', '%d' );
 
 		// Validate type.
 		if ( empty( $args['type'] ) || ! array_key_exists( $args['type'], wc_get_attribute_types() ) ) {
@@ -195,18 +195,18 @@ class InstaWP_Sync_WC extends InstaWP_Sync_Post {
 		}
 
 		// Validate order by.
-		if ( empty( $args['order_by'] ) || ! in_array( $args['order_by'], [ 'menu_order', 'name', 'name_num', 'id' ], true ) ) {
+		if ( empty( $args['order_by'] ) || ! in_array( $args['order_by'], array( 'menu_order', 'name', 'name_num', 'id' ), true ) ) {
 			$args['order_by'] = 'menu_order';
 		}
 
-		$data = [
+		$data = array(
 			'attribute_id'      => intval( $source_id ),
 			'attribute_label'   => $args['name'],
 			'attribute_name'    => $args['slug'],
 			'attribute_type'    => $args['type'],
 			'attribute_orderby' => $args['order_by'],
 			'attribute_public'  => isset( $args['has_archives'] ) ? (int) $args['has_archives'] : 0,
-		];
+		);
 
 		$results = $wpdb->insert(
 			$wpdb->prefix . 'woocommerce_attribute_taxonomies',
@@ -215,7 +215,7 @@ class InstaWP_Sync_WC extends InstaWP_Sync_Post {
 		);
 
 		if ( is_wp_error( $results ) ) {
-			return new WP_Error( 'cannot_create_attribute', 'Can not create attribute!', [ 'status' => 400 ] );
+			return new WP_Error( 'cannot_create_attribute', 'Can not create attribute!', array( 'status' => 400 ) );
 		}
 
 		$id = $wpdb->insert_id;
@@ -240,7 +240,7 @@ class InstaWP_Sync_WC extends InstaWP_Sync_Post {
      * Get product gallery images
      */
 	private function get_product_gallery( $product_id ): array {
-		$gallery = [];
+		$gallery = array();
 		$product = $this->get_product( $product_id );
 
 		if ( $product ) {
@@ -249,12 +249,12 @@ class InstaWP_Sync_WC extends InstaWP_Sync_Post {
 			if ( ! empty( $attachment_ids ) && is_array( $attachment_ids ) ) {
 				foreach ( $attachment_ids as $attachment_id ) {
 					$url       = wp_get_attachment_url( intval( $attachment_id ) );
-					$gallery[] = [
+					$gallery[] = array(
 						'id'         => $attachment_id,
 						'url'        => $url,
 						'media'      => get_post( $attachment_id ),
 						'media_meta' => get_post_meta( $attachment_id ),
-					];
+					);
 				}
 			}
 		}
