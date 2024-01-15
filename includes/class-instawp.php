@@ -250,7 +250,7 @@ class instaWP {
 	public function get_directory_contents( $dir, $sort_by ) {
 
 		if ( empty( $dir ) ) {
-			return [];
+			return array();
 		}
 
 		$files_data = scandir( $dir );
