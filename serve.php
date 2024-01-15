@@ -199,6 +199,11 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 				$pattern = '/#Begin Really Simple SSL Redirect.*?#End Really Simple SSL Redirect/s';
 				$content = preg_replace( $pattern, '', $content );
 
+				// MalCare Support
+				$pattern = '/#MalCare WAF.*?#END MalCare WAF/s';
+				$content = preg_replace( $pattern, '', $content );
+
+
 				if ( ! empty( $site_url ) && ! empty( $dest_url ) ) {
 					$url_path = parse_url( $site_url, PHP_URL_PATH );
 
