@@ -182,4 +182,15 @@ class InstaWP_Sync_Helpers {
 
 		return 'on' === $value;
 	}
+
+	public static function object_to_array( $object ) {
+		if ( is_object( $object ) || is_array( $object ) ) {
+			$result = array();
+			foreach ( $object as $key => $value ) {
+				$result[ $key ] = self::object_to_array( $value );
+			}
+			return $result;
+		}
+		return $object;
+	}
 }

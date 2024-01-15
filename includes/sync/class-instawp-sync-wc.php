@@ -11,6 +11,12 @@ class InstaWP_Sync_WC extends InstaWP_Sync_Post {
         add_filter( 'INSTAWP_CONNECT/Filters/two_way_sync_post_data', array( $this, 'add_post_data' ), 10, 3 );
         add_action( 'INSTAWP_CONNECT/Actions/process_two_way_sync_post', array( $this, 'process_gallery' ), 10, 2 );
 
+	    // Order actions
+	    add_action( 'woocommerce_new_order', array( $this, 'create_order' ) );
+	    add_action( 'woocommerce_update_order', array( $this, 'update_order' ) );
+	    add_action( 'woocommerce_before_trash_order', array( $this, 'trash_order' ) );
+	    add_action( 'woocommerce_before_delete_order', array( $this, 'delete_order' ) );
+
 		// Attributes actions
 	    add_action( 'woocommerce_attribute_added', array( $this, 'attribute_added' ), 10, 2 );
 	    add_action( 'woocommerce_attribute_updated', array( $this, 'attribute_updated' ), 10, 3 );
@@ -19,6 +25,48 @@ class InstaWP_Sync_WC extends InstaWP_Sync_Post {
 	    // Process event
 	    add_filter( 'INSTAWP_CONNECT/Filters/process_two_way_sync', array( $this, 'parse_event' ), 10, 2 );
     }
+
+	public function create_order( $order_id ) {
+		$order = wc_get_order( $order_id );
+		if ( ! $order ) {
+			return;
+		}
+
+		$event_name  = __('Order created', 'instawp-connect' );
+		$this->add_event( $event_name, 'woocommerce_order_created', $order->get_id(), $order->get_order_key() );
+	}
+
+	public function update_order( $order_id ) {
+		$order = wc_get_order( $order_id );
+		if ( ! $order ) {
+			return;
+		}
+
+		$event_id   = InstaWP_Sync_DB::existing_update_events(INSTAWP_DB_TABLE_EVENTS, 'woocommerce_order_updated', $order->get_order_key() );
+		$event_name = __('Order updated', 'instawp-connect' );
+		$this->add_event( $event_name, 'woocommerce_order_updated', $order->get_id(), $order->get_order_key(), $event_id );
+	}
+
+	public function trash_order( $order_id ) {
+		$order = wc_get_order( $order_id );
+		if ( ! $order ) {
+			return;
+		}
+
+		$event_id   = InstaWP_Sync_DB::existing_update_events(INSTAWP_DB_TABLE_EVENTS, 'woocommerce_order_trashed', $order->get_order_key() );
+		$event_name = __('Order trashed', 'instawp-connect' );
+		$this->add_event( $event_name, 'woocommerce_order_trashed', $order->get_id(), $order->get_order_key(), $event_id );
+	}
+
+	public function delete_order( $order_id ) {
+		$order = wc_get_order( $order_id );
+		if ( ! $order ) {
+			return;
+		}
+
+		$event_name = __('Order trashed', 'instawp-connect' );
+		$this->add_event( $event_name, 'woocommerce_order_deleted', $order->get_id(), $order->get_order_key() );
+	}
 
 	public function add_post_data( $data, $type, $post ) {
 		if ( $this->can_sync() && $type === 'product' ) {
@@ -33,11 +81,13 @@ class InstaWP_Sync_WC extends InstaWP_Sync_Post {
 			if ( isset( $data->details->product_gallery ) && ! empty( $data->details->product_gallery ) ) {
 				$product_gallery = $data->details->product_gallery;
 				$gallery_ids     = array();
+
 				foreach ( $product_gallery as $gallery ) {
 					if ( ! empty( $gallery->media ) && ! empty( $gallery->url ) ) {
 						$gallery_ids[] = $this->handle_attachments( ( array ) $gallery->media, ( array ) $gallery->media_meta, $gallery->url );
 					}
 				}
+
 				$this->set_product_gallery( $post['ID'], $gallery_ids );
 			}
 		}
@@ -99,8 +149,134 @@ class InstaWP_Sync_WC extends InstaWP_Sync_Post {
 			return $response;
 		}
 
-		$details  = ( array ) $v->details;
-		$log_data = array();
+		$reference_id = $v->source_id;
+		$details      = InstaWP_Sync_Helpers::object_to_array( $v->details );
+		$log_data     = array();
+
+		// add or update order
+		if ( in_array( $v->event_slug, array( 'woocommerce_order_created', 'woocommerce_order_updated' ), true ) ) {
+			$order_id = wc_get_order_id_by_order_key( $reference_id );
+
+			if ( $order_id ) {
+				$order = wc_get_order( $order_id );
+				$types = array( 'line_item', 'fee', 'shipping', 'coupon', 'tax' );
+
+				foreach ( $order->get_items( $types ) as $item_id => $item ) {
+					wc_delete_order_item( $item_id );
+				}
+			} else {
+				$order = wc_create_order();
+
+				try {
+					$order->set_order_key( $reference_id );
+				} catch ( Exception $e ) {
+					return InstaWP_Sync_Helpers::sync_response( $v, array(), array(
+						'status'  => 'pending',
+						'message' => $e->getMessage(),
+					) );
+				}
+			}
+
+			foreach ( $details['line_items'] as $line_item ) {
+				if ( empty( $line_item ) ) {
+					continue;
+				}
+
+				$product_id = $this->get_post_by_reference( $line_item['post_data']['post_type'], $line_item['reference_id'], $line_item['post_data']['post_name'] );
+				if ( ! $product_id ) {
+					$product_id = $this->create_or_update_post( $line_item['post_data'], $line_item['post_meta'], $line_item['reference_id'] );
+				}
+				$order->add_product( wc_get_product( $product_id ), $line_item['quantity'] );
+			}
+
+			foreach ( $details['shipping_lines'] as $shipping_item ) {
+				if ( empty( $shipping_item ) ) {
+					continue;
+				}
+
+				$shipping = new \WC_Order_Item_Shipping();
+				$shipping->set_props( $shipping_item );
+				$order->add_item( $shipping );
+			}
+
+			foreach ( $details['fee_lines'] as $fee_item ) {
+				if ( empty( $fee_item ) ) {
+					continue;
+				}
+				unset( $fee_item['order_id'] );
+
+				$fee = new \WC_Order_Item_Fee();
+				$fee->set_props( $fee_item );
+				$order->add_item( $fee );
+			}
+
+			foreach ( $details['tax_lines'] as $tax_item ) {
+				if ( empty( $tax_item ) ) {
+					continue;
+				}
+				unset( $tax_item['order_id'] );
+
+				$tax = new \WC_Order_Item_Tax();
+				$tax->set_props( $tax_item );
+				$order->add_item( $tax );
+			}
+
+			foreach ( $details['coupon_lines'] as $coupon_item ) {
+				if ( empty( $coupon_item ) ) {
+					continue;
+				}
+
+				$this->create_or_update_post( $coupon_item['post_data'], $coupon_item['post_meta'], $coupon_item['reference_id'] );
+				$coupon_code    = $coupon_item['data']['code'];
+				$coupon         = new \WC_Coupon( $coupon_code );
+				$discount_total = $coupon->get_amount();
+
+				$item = new \WC_Order_Item_Coupon();
+				$item->set_props( array(
+					'code'     => $coupon_code,
+					'discount' => $discount_total,
+				) );
+				$order->add_item( $item );
+			}
+
+			$order->set_address( $details['billing'], 'billing' );
+			$order->set_address( $details['shipping'], 'shipping' );
+
+			try {
+				$order->set_payment_method( $details['payment_method'] );
+				$order->set_payment_method_title( $details['payment_method_title'] );
+			} catch ( Exception $e ) {
+				return InstaWP_Sync_Helpers::sync_response( $v, array(), array(
+					'status'  => 'pending',
+					'message' => $e->getMessage(),
+				) );
+			}
+
+			$order->set_status( $details['status'] );
+			$order->set_customer_ip_address( $details['customer_ip_address'] );
+			$order->set_customer_user_agent( $details['customer_user_agent'] );
+			$order->set_transaction_id( $details['transaction_id'] );
+			$order->set_customer_note( $details['customer_note'] );
+			$order->set_customer_id( $details['customer_id'] );
+
+			$order->calculate_totals();
+			$order->save();
+		}
+
+		// delete order
+		if ( in_array( $v->event_slug, array( 'woocommerce_order_trashed', 'woocommerce_order_deleted' ), true ) ) {
+			$order_id = wc_get_order_id_by_order_key( $reference_id );
+
+			if ( $order_id ) {
+				$order = wc_get_order( $order_id );
+				$order->delete( $v->event_slug === 'woocommerce_order_deleted' );
+			} else {
+				return InstaWP_Sync_Helpers::sync_response( $v, array(), array(
+					'status'  => 'pending',
+					'message' => 'Order not found',
+				) );
+			}
+		}
 
 		// add or update attribute
 		if ( in_array( $v->event_slug, array( 'woocommerce_attribute_added', 'woocommerce_attribute_updated' ), true ) ) {
@@ -109,7 +285,7 @@ class InstaWP_Sync_WC extends InstaWP_Sync_Post {
 				'name'         => $details['attribute_label'],
 				'slug'         => $details['attribute_name'],
 				'type'         => $details['attribute_type'],
-				'orderby'      => $details['attribute_orderby'],
+				'order_by'     => $details['attribute_orderby'],
 				'has_archives' => isset( $details['attribute_public'] ) ? (int) $details['attribute_public'] : 0,
 			);
 
@@ -170,6 +346,15 @@ class InstaWP_Sync_WC extends InstaWP_Sync_Post {
 			case 'woocommerce_attribute_deleted':
 				$title = ucfirst( str_replace( array( '-', '_' ), ' ', $source_id ) );
 				break;
+			case 'woocommerce_order_created':
+			case 'woocommerce_order_updated':
+				$title   = sprintf( __('Order %s', 'instawp-connect' ), '#' . $details );
+				$details = $this->order_data( $details );
+				break;
+			case 'woocommerce_order_trashed':
+			case 'woocommerce_order_deleted':
+				$title = sprintf( __('Order %s', 'instawp-connect' ), '#' . $details );
+				break;
 			default:
 				$title = $details;
 		}
@@ -178,62 +363,6 @@ class InstaWP_Sync_WC extends InstaWP_Sync_Post {
 
 	private function can_sync(): bool {
 		return InstaWP_Sync_Helpers::can_sync( 'wc' ) && class_exists( 'WooCommerce' );
-	}
-
-	/**
-	 * Create woocommerce attribute
-	 */
-	public function create_attribute( $source_id, $args ) {
-		global $wpdb;
-
-		$args   = wp_unslash( $args );
-		$format = array( '%s', '%s', '%s', '%s', '%d' );
-
-		// Validate type.
-		if ( empty( $args['type'] ) || ! array_key_exists( $args['type'], wc_get_attribute_types() ) ) {
-			$args['type'] = 'select';
-		}
-
-		// Validate order by.
-		if ( empty( $args['order_by'] ) || ! in_array( $args['order_by'], array( 'menu_order', 'name', 'name_num', 'id' ), true ) ) {
-			$args['order_by'] = 'menu_order';
-		}
-
-		$data = array(
-			'attribute_id'      => intval( $source_id ),
-			'attribute_label'   => $args['name'],
-			'attribute_name'    => $args['slug'],
-			'attribute_type'    => $args['type'],
-			'attribute_orderby' => $args['order_by'],
-			'attribute_public'  => isset( $args['has_archives'] ) ? (int) $args['has_archives'] : 0,
-		);
-
-		$results = $wpdb->insert(
-			$wpdb->prefix . 'woocommerce_attribute_taxonomies',
-			$data,
-			$format
-		);
-
-		if ( is_wp_error( $results ) ) {
-			return new WP_Error( 'cannot_create_attribute', 'Can not create attribute!', array( 'status' => 400 ) );
-		}
-
-		$id = $wpdb->insert_id;
-
-		/**
-		 * Attribute added.
-		 *
-		 * @param int $id Added attribute ID.
-		 * @param array $data Attribute data.
-		 */
-		do_action( 'woocommerce_attribute_added', $id, $data );
-
-		// Clear cache and flush rewrite rules.
-		wp_schedule_single_event( time(), 'woocommerce_flush_rewrite_rules' );
-		delete_transient( 'wc_attribute_taxonomies' );
-		\WC_Cache_Helper::invalidate_cache_group( 'woocommerce-attributes' );
-
-		return $id;
 	}
 
 	/*
@@ -278,6 +407,72 @@ class InstaWP_Sync_WC extends InstaWP_Sync_Post {
 	 */
 	private function get_product( $product_id ) {
 		return function_exists( 'wc_get_product' ) ? wc_get_product( $product_id ) : false;
+	}
+
+	private function order_data( $order_id ): array {
+		$order      = wc_get_order( $order_id );
+		$order_data = $order->get_data();
+		$data       = $order_data;
+
+		foreach ( $order_data['meta_data'] as $meta ) {
+			if ( in_array( $meta->key, array( '_edit_lock' ) ) ) {
+				continue;
+			}
+
+			$data['meta_data'][ $meta->key ] = $meta->value;
+		}
+
+		foreach ( $order_data['fee_lines'] as $fee ) {
+			$data['fee_lines'][] = $fee->get_data();
+		}
+
+		foreach ( $order_data['shipping_lines'] as $shipping ) {
+			$data['shipping_lines'][] = $shipping->get_data();
+		}
+
+		foreach ( $order_data['tax_lines'] as $tax ) {
+			$data['tax_lines'][] = $tax->get_data();
+		}
+
+		foreach ( $order_data['coupon_lines'] as $coupon ) {
+			$post_id = wc_get_coupon_id_by_code( $coupon['code'] );
+			$post    = get_post( $post_id );
+
+			if ( ! $post ) {
+				continue;
+			}
+
+			$reference_id           = InstaWP_Sync_Helpers::set_post_reference_id( $post->ID );
+			$data['coupon_lines'][] = array(
+				'reference_id' => $reference_id,
+				'post_id'      => $post->ID,
+				'post_data'    => $post,
+				'meta_data'    => get_post_meta( $post->ID ),
+				'data'         => $coupon->get_data(),
+			);
+		}
+
+		foreach ( $order_data['line_items'] as $product ) {
+			$product_data = $product->get_data();
+			$post_id      = $product_data['product_id'];
+			$post         = get_post( $post_id );
+
+			if ( ! $post ) {
+				continue;
+			}
+
+			$reference_id         = InstaWP_Sync_Helpers::set_post_reference_id( $post->ID );
+			$data['line_items'][] = array(
+				'reference_id' => $reference_id,
+				'post_id'      => $post->ID,
+				'quantity'     => $product_data['quantity'],
+				'post_data'    => $post,
+				'meta_data'    => get_post_meta( $post->ID ),
+				'data'         => $product_data,
+			);
+		}
+
+		return $data;
 	}
 }
 
