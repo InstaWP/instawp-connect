@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.4
 Tested up to: 6.4.2
 Requires PHP: 7.4
-Stable tag: 0.1.0.10
+Stable tag: 0.1.0.11
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -93,6 +93,10 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 6. Update API Key and Settings.
 
 == Changelog ==
+
+= 0.1.0.11 - 15 Jan 2024 =
+- NEW - Added support for Malcare security plugin.
+- FIX - Fixed migration issues while checking usages.
 
 = 0.1.0.10 - 12 Jan 2024 =
 - FIX - Fixed vulnerability issues.
