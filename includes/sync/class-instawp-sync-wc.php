@@ -27,6 +27,10 @@ class InstaWP_Sync_WC extends InstaWP_Sync_Post {
     }
 
 	public function create_order( $order_id ) {
+		if ( ! $this->can_sync() ) {
+			return;
+		}
+
 		$order = wc_get_order( $order_id );
 		if ( ! $order ) {
 			return;
@@ -37,6 +41,10 @@ class InstaWP_Sync_WC extends InstaWP_Sync_Post {
 	}
 
 	public function update_order( $order_id ) {
+		if ( ! $this->can_sync() ) {
+			return;
+		}
+
 		$order = wc_get_order( $order_id );
 		if ( ! $order ) {
 			return;
@@ -48,6 +56,10 @@ class InstaWP_Sync_WC extends InstaWP_Sync_Post {
 	}
 
 	public function trash_order( $order_id ) {
+		if ( ! $this->can_sync() ) {
+			return;
+		}
+
 		$order = wc_get_order( $order_id );
 		if ( ! $order ) {
 			return;
@@ -59,6 +71,10 @@ class InstaWP_Sync_WC extends InstaWP_Sync_Post {
 	}
 
 	public function delete_order( $order_id ) {
+		if ( ! $this->can_sync() ) {
+			return;
+		}
+
 		$order = wc_get_order( $order_id );
 		if ( ! $order ) {
 			return;
