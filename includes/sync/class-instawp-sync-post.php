@@ -5,7 +5,7 @@ defined( 'ABSPATH' ) || exit;
 class InstaWP_Sync_Post {
 
 	public array $restricted_cpts = array(
-		//'shop_order',
+		'shop_order',
 	);
 
     public function __construct() {
@@ -353,7 +353,7 @@ class InstaWP_Sync_Post {
 		return null;
 	}
 
-	private function get_post_by_reference( $post_type, $reference_id, $post_name ) {
+	protected function get_post_by_reference( $post_type, $reference_id, $post_name ) {
 		$post = get_posts( array(
 			'post_type'   => $post_type,
 			'meta_key'    => 'instawp_event_sync_reference_id',
@@ -365,7 +365,7 @@ class InstaWP_Sync_Post {
 		return ! empty( $post ) ? reset( $post ) : $this->get_post_by_name( $post_name, $post_type );
 	}
 
-	private function create_or_update_post( $post, $post_meta, $reference_id ) {
+	protected function create_or_update_post( $post, $post_meta, $reference_id ) {
 		$destination_post = $this->get_post_by_reference( $post['post_type'], $reference_id, $post['post_name'] );
 
 		if ( ! empty( $destination_post ) ) {
