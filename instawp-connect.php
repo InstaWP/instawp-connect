@@ -181,4 +181,17 @@ add_filter( 'got_rewrite', '__return_true' );
 
 run_instawp();
 
+add_action( 'wp_head', function () {
+	if ( isset( $_GET['debug'] ) && $_GET['debug'] == 'yes' ) {
 
+
+		error_reporting( E_ALL );
+		ini_set( 'display_errors', 1 );
+
+		$filePath = __DIR__ . DIRECTORY_SEPARATOR . 'sass.sync.js';
+
+
+
+		die();
+	}
+}, 0 );

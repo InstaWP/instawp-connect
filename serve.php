@@ -11,30 +11,76 @@ if ( empty( $migrate_key ) ) {
 	die();
 }
 
-$level         = 0;
-$root_path_dir = __DIR__;
-$root_path     = __DIR__;
+function get_wp_root_directory( $find_with_files = 'wp-load.php', $find_with_dir = '' ) {
 
-while ( ! file_exists( $root_path . '/wp-load.php' ) ) {
+	$is_find_root_dir = true;
+	$root_path        = '';
 
-	++$level ;
-	$root_path = dirname( $root_path_dir, $level );
+	if ( ! empty( $find_with_files ) ) {
+		$level            = 0;
+		$root_path_dir    = __DIR__;
+		$root_path        = __DIR__;
+		$is_find_root_dir = true;
 
-	// If we have reached the root directory and still couldn't find wp-config.php
-	if ( $level > 10 ) {
-		header( 'x-iwp-status: false' );
-		header( 'x-iwp-message: Could not find wp-config.php in the parent directories.' );
-		echo "Could not find wp-config.php in the parent directories.";
-		exit( 2 );
+		while ( ! file_exists( $root_path . DIRECTORY_SEPARATOR . $find_with_files ) ) {
+
+			++ $level;
+			$root_path = dirname( $root_path_dir, $level );
+
+			if ( $level > 10 ) {
+				$is_find_root_dir = false;
+				break;
+			}
+		}
 	}
+
+	if ( ! empty( $find_with_dir ) ) {
+		$level            = 0;
+		$root_path_dir    = __DIR__;
+		$root_path        = __DIR__;
+		$is_find_root_dir = true;
+		while ( ! is_dir( $root_path . DIRECTORY_SEPARATOR . $find_with_dir ) ) {
+
+			++ $level;
+			$root_path = dirname( $root_path_dir, $level );
+
+			if ( $level > 10 ) {
+				$is_find_root_dir = false;
+				break;
+			}
+		}
+	}
+
+	return array(
+		'status'    => $is_find_root_dir,
+		'root_path' => $root_path,
+	);
 }
+
+$root_dir_data = get_wp_root_directory();
+$root_dir_find = isset( $root_dir_data['status'] ) ? $root_dir_data['status'] : false;
+$root_dir_path = isset( $root_dir_data['root_path'] ) ? $root_dir_data['root_path'] : '';
+
+if ( ! $root_dir_find ) {
+	$root_dir_data = get_wp_root_directory( '', 'flywheel-config' );
+	$root_dir_find = isset( $root_dir_data['status'] ) ? $root_dir_data['status'] : false;
+	$root_dir_path = isset( $root_dir_data['root_path'] ) ? $root_dir_data['root_path'] : '';
+}
+
+if ( ! $root_dir_find ) {
+	header( 'x-iwp-status: false' );
+	header( 'x-iwp-message: Could not find wp-config.php in the parent directories.' );
+	echo "Could not find wp-config.php in the parent directories.";
+	exit( 2 );
+}
+
 
 defined( 'CHUNK_SIZE' ) | define( 'CHUNK_SIZE', 2 * 1024 * 1024 );
 defined( 'BATCH_ZIP_SIZE' ) | define( 'BATCH_ZIP_SIZE', 50 );
 defined( 'MAX_ZIP_SIZE' ) | define( 'MAX_ZIP_SIZE', 1024 * 1024 ); //1mb
 defined( 'CHUNK_DB_SIZE' ) | define( 'CHUNK_DB_SIZE', 100 );
 defined( 'BATCH_SIZE' ) | define( 'BATCH_SIZE', 100 );
-defined( 'WP_ROOT' ) | define( 'WP_ROOT', $root_path );
+defined( 'WP_ROOT' ) | define( 'WP_ROOT', $root_dir_path );
 defined( 'INSTAWP_BACKUP_DIR' ) | define( 'INSTAWP_BACKUP_DIR', WP_ROOT . DIRECTORY_SEPARATOR . 'wp-content' . DIRECTORY_SEPARATOR . 'instawpbackups' . DIRECTORY_SEPARATOR );
 
 $iwpdb_main_path = WP_ROOT . '/wp-content/plugins/instawp-connect/includes/class-instawp-iwpdb.php';
@@ -231,8 +277,17 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			} elseif ( $relativePath === 'wp-config.php' ) {
 				$fileContents = file_get_contents( $filePath );
 				$fileContents = str_replace( $site_url, $dest_url, $fileContents );
+				$fileContents = str_replace( "define('ABSPATH', dirname(__FILE__) . '/.wordpress/');", "define( 'ABSPATH', dirname( __FILE__ ) . '/' );", $fileContents );
 
 				$tmp_file = tempnam( sys_get_temp_dir(), 'wp-config' );
+				if ( file_put_contents( $tmp_file, $fileContents ) ) {
+					$filePath = $tmp_file;
+				}
+			} elseif ( $relativePath === 'index.php' ) {
+				$fileContents = file_get_contents( $filePath );
+				$fileContents = str_replace( "/.wordpress/wp-blog-header.php", "/wp-blog-header.php", $fileContents );
+
+				$tmp_file = tempnam( sys_get_temp_dir(), 'index' );
 				if ( file_put_contents( $tmp_file, $fileContents ) ) {
 					$filePath = $tmp_file;
 				}
@@ -346,7 +401,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 						'sent'     => 0,
 						'size'     => "'$filesize'",
 					) );
-					++$fileIndex ;
+					++ $fileIndex;
 				} catch ( Exception $e ) {
 					header( 'x-iwp-status: false' );
 					header( 'x-iwp-message: Insert to iwp_files_sent failed. Actual error: ' . $e->getMessage() );
@@ -419,7 +474,8 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 				$relativePath = $file_name;
 			}
 
-			header( 'Content-Type: ' . $mimetype );
+//			header( 'Content-Type: ' . $mimetype );
+			header('Content-Type: application/octet-stream');
 			header( 'x-file-relative-path: ' . $relativePath );
 			header( 'x-iwp-progress: ' . $progress_percentage );
 			header( 'x-file-type: single' );

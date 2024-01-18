@@ -502,6 +502,7 @@ class InstaWP_Tools {
 				'option_name:instawp_is_event_syncing',
 				'option_name:_transient_instawp_staging_sites',
 				'option_name:_transient_timeout_instawp_staging_sites',
+				'option_name:instawp_is_staging',
 			),
 		);
 
@@ -553,7 +554,7 @@ class InstaWP_Tools {
 						@rmdir( $path . DIRECTORY_SEPARATOR . $filename );
 					}
 				} elseif ( empty( $exclude ) || InstaWP_Tools::regex_match( $exclude['file'], $path . DIRECTORY_SEPARATOR . $filename, 0 ) ) {
-						@unlink( $path . DIRECTORY_SEPARATOR . $filename );
+					@unlink( $path . DIRECTORY_SEPARATOR . $filename );
 				}
 			}
 		}
@@ -633,10 +634,12 @@ class InstaWP_Tools {
 	public static function get_admin_username() {
 		$username = '';
 
-		foreach ( get_users( array(
-			'role__in' => array( 'administrator' ),
-			'fields'   => array( 'user_login' ),
-		) ) as $admin ) {
+		foreach (
+			get_users( array(
+				'role__in' => array( 'administrator' ),
+				'fields'   => array( 'user_login' ),
+			) ) as $admin
+		) {
 			if ( empty( $username ) && isset( $admin->user_login ) ) {
 				$username = $admin->user_login;
 				break;
@@ -954,9 +957,9 @@ class InstaWP_Tools {
 		// Creating new blank site
 		$sites_args        = array(
 			//          'site_name'   => 'push-site-' . rand( 10, 99 ),
-									'wp_version' => '6.3',
-			'php_version'                        => '7.4',
-			'is_reserved'                        => false,
+			'wp_version'  => '6.3',
+			'php_version' => '7.4',
+			'is_reserved' => false,
 		);
 		$sites_res         = InstaWP_Curl::do_curl( 'sites', $sites_args );
 		$sites_res_status  = (bool) InstaWP_Setting::get_args_option( 'success', $sites_res, true );
