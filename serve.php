@@ -490,7 +490,6 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			$fileId       = $row['id'];
 			$filePath     = $row['filepath'];
 			$file_name    = basename( $filePath );
-			$mimetype     = mime_content_type( $filePath );
 			$relativePath = ltrim( str_replace( WP_ROOT, "", $filePath ), DIRECTORY_SEPARATOR );
 			$filePath     = process_files( $tracking_db, $filePath, $relativePath );
 
@@ -498,7 +497,6 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 				$relativePath = $file_name;
 			}
 
-//			header( 'Content-Type: ' . $mimetype );
 			header( 'Content-Type: application/octet-stream' );
 			header( 'x-file-relative-path: ' . $relativePath );
 			header( 'x-iwp-progress: ' . $progress_percentage );
