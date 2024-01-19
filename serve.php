@@ -229,6 +229,22 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		}
 	}
 
+	if ( ! function_exists( 'search_and_comment_specific_line' ) ) {
+		function search_and_comment_specific_line( $pattern, $file_contents ) {
+
+			$matches = [];
+
+			if ( preg_match_all( $pattern, $file_contents, $matches, PREG_OFFSET_CAPTURE ) ) {
+				foreach ( $matches[0] as $match ) {
+					$line_content  = strtok( substr( $file_contents, $match[1] ), "\n" );
+					$file_contents = str_replace( $line_content, "// $line_content", $file_contents );
+				}
+			}
+
+			return $file_contents;
+		}
+	}
+
 	if ( ! function_exists( 'process_files' ) ) {
 		function process_files( IWPDB $tracking_db, $filePath, $relativePath ) {
 			$site_url         = $tracking_db->get_option( 'site_url' );
@@ -275,20 +291,28 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 					$filePath = $tmp_file;
 				}
 			} elseif ( $relativePath === 'wp-config.php' ) {
-				$fileContents = file_get_contents( $filePath );
-				$fileContents = str_replace( $site_url, $dest_url, $fileContents );
-				$fileContents = str_replace( "define('ABSPATH', dirname(__FILE__) . '/.wordpress/');", "define( 'ABSPATH', dirname( __FILE__ ) . '/' );", $fileContents );
+				$file_contents = file_get_contents( $filePath );
+				$file_contents = str_replace( $site_url, $dest_url, $file_contents );
+
+				// Flywheel support
+				$file_contents = str_replace( "define('ABSPATH', dirname(__FILE__) . '/.wordpress/');", "define( 'ABSPATH', dirname( __FILE__ ) . '/' );", $file_contents );
+
+				// Comment WP_SITEURL constant
+				$file_contents = search_and_comment_specific_line( "/define\(\s*'WP_SITEURL'/", $file_contents );
+
+				// Comment WP_HOME constant
+				$file_contents = search_and_comment_specific_line( "/define\(\s*'WP_HOME'/", $file_contents );
 
 				$tmp_file = tempnam( sys_get_temp_dir(), 'wp-config' );
-				if ( file_put_contents( $tmp_file, $fileContents ) ) {
+				if ( file_put_contents( $tmp_file, $file_contents ) ) {
 					$filePath = $tmp_file;
 				}
 			} elseif ( $relativePath === 'index.php' ) {
-				$fileContents = file_get_contents( $filePath );
-				$fileContents = str_replace( "/.wordpress/wp-blog-header.php", "/wp-blog-header.php", $fileContents );
+				$file_contents = file_get_contents( $filePath );
+				$file_contents = str_replace( "/.wordpress/wp-blog-header.php", "/wp-blog-header.php", $file_contents );
 
 				$tmp_file = tempnam( sys_get_temp_dir(), 'index' );
-				if ( file_put_contents( $tmp_file, $fileContents ) ) {
+				if ( file_put_contents( $tmp_file, $file_contents ) ) {
 					$filePath = $tmp_file;
 				}
 			}
@@ -475,7 +499,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			}
 
 //			header( 'Content-Type: ' . $mimetype );
-			header('Content-Type: application/octet-stream');
+			header( 'Content-Type: application/octet-stream' );
 			header( 'x-file-relative-path: ' . $relativePath );
 			header( 'x-iwp-progress: ' . $progress_percentage );
 			header( 'x-file-type: single' );
