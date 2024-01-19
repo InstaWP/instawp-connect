@@ -380,6 +380,14 @@ class InstaWP_Setting {
 					'default' => 'on',
 				),
 				array(
+					'id'      => 'instawp_sync_customizer',
+					'type'    => 'toggle',
+					'title'   => __( 'WP Customizer', 'instawp-connect' ),
+					'tooltip' => __( 'Enabling this option will allow plugin to log WP Customizer.', 'instawp-connect' ),
+					'class'   => 'save-ajax',
+					'default' => 'on',
+				),
+				array(
 					'id'      => 'instawp_sync_option',
 					'type'    => 'toggle',
 					'title'   => __( 'WP Options (Beta)', 'instawp-connect' ),

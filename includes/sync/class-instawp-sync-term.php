@@ -2,11 +2,9 @@
 
 defined( 'ABSPATH' ) || exit;
 
-class InstaWP_Sync_Term extends InstaWP_Sync_Post {
+class InstaWP_Sync_Term {
 
     public function __construct() {
-	    parent::__construct();
-
 	    // Term actions
 	    add_action( 'created_term', array( $this, 'create_term' ), 10, 3 );
 	    add_action( 'edited_term', array( $this, 'edit_term' ), 10, 3 );
@@ -32,21 +30,9 @@ class InstaWP_Sync_Term extends InstaWP_Sync_Post {
 
 		$term_details = ( array ) get_term( $term_id, $taxonomy );
 		$event_name   = sprintf( __('%s created', 'instawp-connect'), $this->taxonomy_name( $taxonomy ) );
+		$source_id    = InstaWP_Sync_Helpers::set_term_reference_id( $term_id );
+		$term_details = $this->term_details( $term_details, $term_id, $taxonomy );
 
-		if ( $term_details['parent'] ) {
-			$term_details['parent_details'] = array(
-				'data'      => ( array ) get_term( $term_details['parent'], $taxonomy ),
-				'source_id' => InstaWP_Sync_Helpers::set_term_reference_id( $term_details['parent'] ),
-			);
-		}
-
-		$source_id = InstaWP_Sync_Helpers::set_term_reference_id( $term_id );
-		$term_meta = get_term_meta( $term_id );
-
-		$term_details['term_meta'] = array(
-			'data'  => $term_meta,
-			'media' => $this->handle_meta_attachments( $term_meta ),
-		);
 		InstaWP_Sync_DB::insert_update_event( $event_name, 'create_term', $taxonomy, $source_id, $term_details['name'], $term_details );
 	}
 
@@ -66,21 +52,9 @@ class InstaWP_Sync_Term extends InstaWP_Sync_Post {
 
 		$term_details = ( array ) get_term( $term_id, $taxonomy );
 		$event_name   = sprintf( __('%s modified', 'instawp-connect'), $this->taxonomy_name( $taxonomy ) );
+		$source_id    = InstaWP_Sync_Helpers::set_term_reference_id( $term_id );
+		$term_details = $this->term_details( $term_details, $term_id, $taxonomy );
 
-		if ( $term_details['parent'] ) {
-			$term_details['parent_details'] = array(
-				'data'      => ( array ) get_term( $term_details['parent'], $taxonomy ),
-				'source_id' => InstaWP_Sync_Helpers::set_term_reference_id( $term_details['parent'] ),
-			);
-		}
-
-		$source_id = InstaWP_Sync_Helpers::set_term_reference_id( $term_id );
-		$term_meta = get_term_meta( $term_id );
-
-		$term_details['term_meta'] = array(
-			'data'  => $term_meta,
-			'media' => $this->handle_meta_attachments( $term_meta ),
-		);
 		InstaWP_Sync_DB::insert_update_event( $event_name, 'edit_term', $taxonomy, $source_id, $term_details['name'], $term_details );
 	}
 
@@ -106,12 +80,12 @@ class InstaWP_Sync_Term extends InstaWP_Sync_Post {
 
 	public function parse_event( $response, $v ) {
 		$source_id = $v->source_id;
+		$term      = InstaWP_Sync_Helpers::object_to_array( $v->details );
 		$logs      = array();
 
 		// create and update term
 		if ( in_array( $v->event_slug, array( 'create_term', 'edit_term' ), true ) ) {
-			$term      = ( array ) $v->details;
-			$term_meta = ( array ) $term['term_meta'];
+			$term_meta = $term['term_meta'];
 			unset( $term['term_meta'] );
 
 			$parent_term_id = $term['parent'];
@@ -155,9 +129,11 @@ class InstaWP_Sync_Term extends InstaWP_Sync_Post {
 				update_term_meta( $term_id, $key, maybe_unserialize( reset( $value ) ) );
 			}
 
-			foreach ( $term_meta['media'] as $media ) {
-				$media_id = $this->handle_attachments( ( array ) $media->media, ( array ) $media->media_meta, $media->media->guid );
-				$this->process_post_meta( ( array ) $media->media_meta, $media_id );
+			foreach ( $term_meta['media'] as $key => $media ) {
+				$attachment_id = InstaWP_Sync_Helpers::string_to_attachment( $media );
+				if ( ! empty( $attachment_id ) ) {
+					update_term_meta( $term_id, $key, $attachment_id );
+				}
 			}
 
 			return InstaWP_Sync_Helpers::sync_response( $v, $logs );
@@ -165,7 +141,6 @@ class InstaWP_Sync_Term extends InstaWP_Sync_Post {
 
 		// delete term
 		if ( $v->event_slug === 'delete_term' ) {
-			$term    = ( array ) $v->details;
 			$term_id = $this->get_term( $source_id, $term, array(), false );
 			$status  = 'pending';
 			
@@ -241,17 +216,28 @@ class InstaWP_Sync_Term extends InstaWP_Sync_Post {
 			if ( ! in_array( $key, $attachment_keys ) ) {
 				continue;
 			}
-
-			$attachments[] = array(
-				'media_id'   => $meta[0],
-				'media_url'  => wp_get_attachment_image_url( $meta[0], 'full' ),
-				'media'      => get_post( $meta[0] ),
-				'media_meta' => get_post_meta( $meta[0] ),
-				'ref_id'     => InstaWP_Sync_Helpers::set_post_reference_id( $meta[0] ),
-			);
+			$attachments[ $key ] = InstaWP_Sync_Helpers::attachment_to_string( $meta[0] );
 		}
 
 		return $attachments;
+	}
+
+	private function term_details( $term_details, $term_id, $taxonomy ) {
+		$term_meta = get_term_meta( $term_id );
+
+		$term_details['term_meta'] = array(
+			'data'  => $term_meta,
+			'media' => $this->handle_meta_attachments( $term_meta ),
+		);
+
+		if ( ! empty( $term_details['parent'] ) ) {
+			$term_details['parent_details'] = array(
+				'data'      => ( array ) get_term( $term_details['parent'], $taxonomy ),
+				'source_id' => InstaWP_Sync_Helpers::set_term_reference_id( $term_details['parent'] ),
+			);
+		}
+
+		return $term_details;
 	}
 }
 
