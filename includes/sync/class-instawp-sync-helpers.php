@@ -247,7 +247,7 @@ class InstaWP_Sync_Helpers {
 				'post_title'     => sanitize_file_name( $file_name ),
 				'post_content'   => '',
 				'post_status'    => 'inherit',
-				'guid'           => $save_path
+				'guid'           => $save_path,
 			);
 
 			$parent_post_id = 0;

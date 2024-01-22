@@ -63,6 +63,7 @@ class InstaWP_Curl {
 		);
 		curl_setopt_array( $curl, $curl_options );
 		$api_response = curl_exec( $curl );
+		$http_code    = curl_getinfo( $curl, CURLINFO_HTTP_CODE );
 		curl_close( $curl );
 
 		if ( defined( 'INSTAWP_DEBUG_LOG' ) && INSTAWP_DEBUG_LOG ) {
@@ -80,6 +81,7 @@ class InstaWP_Curl {
 			'success' => $response_status,
 			'message' => $response_message,
 			'data'    => $response_data,
+			'code'    => $http_code,
 		);
 	}
 

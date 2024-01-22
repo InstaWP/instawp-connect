@@ -39,6 +39,8 @@ class InstaWP_Sync_Ajax {
 		$sync_status = $_POST['sync_status'];
 		update_option( 'instawp_is_event_syncing', $sync_status );
 
+		instawp_create_db_tables();
+
 		$message = ( $sync_status == 1 ) ? 'Syncing enabled!' : 'Syncing disabled!';
 		wp_send_json( array(
 			'sync_status' => $sync_status,

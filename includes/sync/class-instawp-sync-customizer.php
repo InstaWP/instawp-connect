@@ -8,12 +8,12 @@ class InstaWP_Sync_Customizer {
 		'page_on_front',
 		'page_for_posts',
 		'wp_page_for_privacy_policy',
-		'woocommerce_terms_page_id'
+		'woocommerce_terms_page_id',
 	);
 
 	public array $parsable_attachment_options = array(
 		'site_icon',
-		'custom_logo'
+		'custom_logo',
 	);
 
 	public function __construct() {
@@ -32,10 +32,10 @@ class InstaWP_Sync_Customizer {
 			return;
 		}
 
-		$theme		= get_stylesheet();
-		$template	= get_template();
-		$charset	= get_option( 'blog_charset' );
-		$mods		= get_theme_mods();
+		$theme      = get_stylesheet();
+		$template   = get_template();
+		$charset    = get_option( 'blog_charset' );
+		$mods       = get_theme_mods();
 
 		foreach ( $mods as $key => $value ) {
 			if ( in_array( $key, $this->parsable_attachment_options ) ) {
@@ -47,8 +47,8 @@ class InstaWP_Sync_Customizer {
 
 		$data = array(
 			'template' => $template,
-			'mods'	   => $mods ?? array(),
-			'options'  => array()
+			'mods'     => $mods ?? array(),
+			'options'  => array(),
 		);
 
 		// Get options from the Customizer API.
@@ -101,9 +101,9 @@ class InstaWP_Sync_Customizer {
 		if ( isset( $data['options'] ) ) {
 			foreach ( $data['options'] as $option_key => $option_value ) {
 				$option = new \InstaWP_Sync_Customize_Setting( $wp_customize, $option_key, array(
-					'default'		=> '',
-					'type'			=> 'option',
-					'capability'	=> 'edit_theme_options'
+					'default'    => '',
+					'type'       => 'option',
+					'capability' => 'edit_theme_options',
 				) );
 
 				if ( in_array( $option_key, $this->parsable_page_options ) ) {

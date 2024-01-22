@@ -167,14 +167,10 @@ if ( isset( $instawp_plugin ) && is_a( $instawp_plugin, 'instaWP' ) ) {
 
 
 function run_instawp() {
-
 	$instawp_plugin = new instaWP();
 
 	$GLOBALS['instawp_plugin'] = $instawp_plugin;
 	$GLOBALS['instawp']        = $instawp_plugin;
-
-	instawp_create_db_tables();
-	// instawp_alter_db_tables();
 }
 
 add_filter( 'got_rewrite', '__return_true' );
