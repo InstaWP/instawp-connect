@@ -99,6 +99,8 @@ class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
 			return new WP_Error( 400, esc_html__( 'Invalid data', 'instawp-connect' ) );
 		}
 
+		instawp_create_db_tables();
+
 		$encrypted_contents = json_decode( $bodyArr->encrypted_contents );
 		$sync_id            = $bodyArr->sync_id;
 		$source_connect_id  = $bodyArr->source_connect_id;

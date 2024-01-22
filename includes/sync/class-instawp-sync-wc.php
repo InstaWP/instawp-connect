@@ -384,7 +384,7 @@ class InstaWP_Sync_WC {
 		$product = $this->get_product( $product_id );
 
 		if ( $product ) {
-			$attachment_ids = $product->get_gallery_image_ids() ?? [];
+			$attachment_ids = $product->get_gallery_image_ids() ?? array();
 
 			foreach ( $attachment_ids as $attachment_id ) {
 				$gallery[] = InstaWP_Sync_Helpers::attachment_to_string( $attachment_id, 'full' );
