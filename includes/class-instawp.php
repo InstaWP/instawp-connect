@@ -249,7 +249,7 @@ class instaWP {
 
 	public function get_directory_contents( $dir, $sort_by ) {
 
-		if ( empty( $dir ) ) {
+		if ( empty( $dir ) || ! is_dir( $dir ) ) {
 			return array();
 		}
 

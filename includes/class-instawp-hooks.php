@@ -27,6 +27,10 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 
 		function add_instawp_menu_icon( WP_Admin_Bar $admin_bar ) {
 
+			if ( ! apply_filters( 'INSTAWP_CONNECT/Filters/display_menu_bar_icon', true ) ) {
+				return;
+			}
+
 			global $current_user;
 
 			$sync_tab_roles = InstaWP_Setting::get_option( 'instawp_sync_tab_roles', array( 'administrator' ) );
