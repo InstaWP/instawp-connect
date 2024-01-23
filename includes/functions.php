@@ -14,23 +14,6 @@ if ( ! function_exists( 'instawp_create_db_tables' ) ) {
 			require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 		}
 
-		// $sql_create_staging_site_table = "CREATE TABLE " . INSTAWP_DB_TABLE_STAGING_SITES . " (
-		//  id int(50) NOT NULL AUTO_INCREMENT,
-		//  task_id varchar(255) NOT NULL,
-		//  connect_id varchar(255) NOT NULL,
-		//  site_name varchar(255) NOT NULL,
-		//  site_url varchar(255) NOT NULL,
-		//  admin_email varchar(255) NOT NULL,
-		//  username varchar(255) NOT NULL,
-		//  password varchar(255) NOT NULL,
-		//  auto_login_hash varchar(255) NOT NULL,
-		//  datetime  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-		//  PRIMARY KEY (id)
-		// );";
-
-		// maybe_create_table( INSTAWP_DB_TABLE_STAGING_SITES, $sql_create_staging_site_table );
-
-
 		$sql_create_events_table = "CREATE TABLE " . INSTAWP_DB_TABLE_EVENTS . " (
 			id int(20) NOT NULL AUTO_INCREMENT,
 			event_hash varchar(50) NOT NULL,
@@ -635,7 +618,7 @@ if ( ! function_exists( 'instawp_send_heartbeat' ) ) {
 	 *
 	 * @return bool
 	 */
-	function instawp_send_heartbeat( $connect_id = '' ) {
+	function instawp_send_heartbeat( $connect_id = '' ): bool {
 
 		if ( defined( 'INSTAWP_DEBUG_LOG' ) && true === INSTAWP_DEBUG_LOG ) {
 			error_log( "HEARTBEAT RAN AT : " . date( 'd-m-Y, H:i:s, h:i:s' ) );
@@ -674,7 +657,19 @@ if ( ! function_exists( 'instawp_send_heartbeat' ) ) {
 				)
 			)
 		);
-		$heartbeat_response = InstaWP_Curl::do_curl( "connects/{$connect_id}/heartbeat", $heartbeat_body, array(), true, 'v1' );
+
+		$success = false;
+		for ( $i = 0; $i < 10; $i++ ) {
+			$heartbeat_response = InstaWP_Curl::do_curl( "connects/{$connect_id}/heartbeat", $heartbeat_body, array(), true, 'v1' );
+			if ( $heartbeat_response['code'] == 200 ) {
+				$success = true;
+				break;
+			}
+		}
+
+		if ( ! $success ) {
+			update_option( 'instawp_rm_heartbeat', 'off' );
+		}
 
 		if ( defined( 'INSTAWP_DEBUG_LOG' ) && INSTAWP_DEBUG_LOG ) {
 			error_log( "Print Heartbeat API Curl Response Start" );
@@ -682,7 +677,7 @@ if ( ! function_exists( 'instawp_send_heartbeat' ) ) {
 			error_log( "Print Heartbeat API Curl Response End" );
 		}
 
-		return true;
+		return $success;
 	}
 }
 

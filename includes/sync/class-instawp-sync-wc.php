@@ -2,11 +2,9 @@
 
 defined( 'ABSPATH' ) || exit;
 
-class InstaWP_Sync_WC extends InstaWP_Sync_Post {
+class InstaWP_Sync_WC {
 
     public function __construct() {
-	    parent::__construct();
-
 		// Hooks
         add_filter( 'INSTAWP_CONNECT/Filters/two_way_sync_post_data', array( $this, 'add_post_data' ), 10, 3 );
         add_action( 'INSTAWP_CONNECT/Actions/process_two_way_sync_post', array( $this, 'process_gallery' ), 10, 2 );
@@ -93,19 +91,15 @@ class InstaWP_Sync_WC extends InstaWP_Sync_Post {
 	}
 	
 	public function process_gallery( $post, $data ) {
-		if ( $this->can_sync() && $post['post_type'] === 'product' ) {
-			if ( isset( $data->details->product_gallery ) && ! empty( $data->details->product_gallery ) ) {
-				$product_gallery = $data->details->product_gallery;
-				$gallery_ids     = array();
+		if ( $post['post_type'] === 'product' ) {
+			$product_gallery = $data['product_gallery'] ?? array();
+			$gallery_ids     = array();
 
-				foreach ( $product_gallery as $gallery ) {
-					if ( ! empty( $gallery->media ) && ! empty( $gallery->url ) ) {
-						$gallery_ids[] = $this->handle_attachments( ( array ) $gallery->media, ( array ) $gallery->media_meta, $gallery->url );
-					}
-				}
-
-				$this->set_product_gallery( $post['ID'], $gallery_ids );
+			foreach ( $product_gallery as $gallery_item ) {
+				$gallery_ids[] = InstaWP_Sync_Helpers::string_to_attachment( $gallery_item );
 			}
+
+			$this->set_product_gallery( $post['ID'], $gallery_ids );
 		}
 	}
 
@@ -198,9 +192,9 @@ class InstaWP_Sync_WC extends InstaWP_Sync_Post {
 					continue;
 				}
 
-				$product_id = $this->get_post_by_reference( $line_item['post_data']['post_type'], $line_item['reference_id'], $line_item['post_data']['post_name'] );
+				$product_id = InstaWP_Sync_Helpers::get_post_by_reference( $line_item['post_data']['post_type'], $line_item['reference_id'], $line_item['post_data']['post_name'] );
 				if ( ! $product_id ) {
-					$product_id = $this->create_or_update_post( $line_item['post_data'], $line_item['post_meta'], $line_item['reference_id'] );
+					$product_id = InstaWP_Sync_Helpers::create_or_update_post( $line_item['post_data'], $line_item['post_meta'], $line_item['reference_id'] );
 				}
 				$order->add_product( wc_get_product( $product_id ), $line_item['quantity'] );
 			}
@@ -242,7 +236,8 @@ class InstaWP_Sync_WC extends InstaWP_Sync_Post {
 					continue;
 				}
 
-				$this->create_or_update_post( $coupon_item['post_data'], $coupon_item['post_meta'], $coupon_item['reference_id'] );
+				InstaWP_Sync_Helpers::create_or_update_post( $coupon_item['post_data'], $coupon_item['post_meta'], $coupon_item['reference_id'] );
+				
 				$coupon_code    = $coupon_item['data']['code'];
 				$coupon         = new \WC_Coupon( $coupon_code );
 				$discount_total = $coupon->get_amount();
@@ -389,18 +384,10 @@ class InstaWP_Sync_WC extends InstaWP_Sync_Post {
 		$product = $this->get_product( $product_id );
 
 		if ( $product ) {
-			$attachment_ids = $product->get_gallery_image_ids();
+			$attachment_ids = $product->get_gallery_image_ids() ?? array();
 
-			if ( ! empty( $attachment_ids ) && is_array( $attachment_ids ) ) {
-				foreach ( $attachment_ids as $attachment_id ) {
-					$url       = wp_get_attachment_url( intval( $attachment_id ) );
-					$gallery[] = array(
-						'id'         => $attachment_id,
-						'url'        => $url,
-						'media'      => get_post( $attachment_id ),
-						'media_meta' => get_post_meta( $attachment_id ),
-					);
-				}
+			foreach ( $attachment_ids as $attachment_id ) {
+				$gallery[] = InstaWP_Sync_Helpers::attachment_to_string( $attachment_id, 'full' );
 			}
 		}
 
@@ -412,7 +399,7 @@ class InstaWP_Sync_WC extends InstaWP_Sync_Post {
 	 */
 	private function set_product_gallery( $product_id, $gallery_ids ) {
 		$product = $this->get_product( $product_id );
-		if ( $product ) {
+		if ( $product && $gallery_ids ) {
 			$product->set_gallery_image_ids( $gallery_ids );
 			$product->save();
 		}

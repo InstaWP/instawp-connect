@@ -232,7 +232,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 	if ( ! function_exists( 'search_and_comment_specific_line' ) ) {
 		function search_and_comment_specific_line( $pattern, $file_contents ) {
 
-			$matches = [];
+			$matches = array();
 
 			if ( preg_match_all( $pattern, $file_contents, $matches, PREG_OFFSET_CAPTURE ) ) {
 				foreach ( $matches[0] as $match ) {

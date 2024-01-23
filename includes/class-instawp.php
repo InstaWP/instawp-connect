@@ -637,8 +637,9 @@ class instaWP {
 		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-events.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-ajax.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-apis.php';
+		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-customize-setting.php';
 
-		$files = array( 'option', 'plugin-theme', 'post', 'term', 'user', 'wc' );
+		$files = array( 'option', 'plugin-theme', 'post', 'term', 'user', 'customizer', 'wc' );
 		foreach ( $files as $file ) {
 			require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-' . $file . '.php';
 		}
