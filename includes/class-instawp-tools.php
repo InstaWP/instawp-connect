@@ -107,11 +107,11 @@ class InstaWP_Tools {
 		return true;
 	}
 
-	public static function generate_serve_file( $migrate_key, $api_signature, $migrate_settings = array() ) {
+	public static function generate_serve_file_response( $migrate_key, $api_signature, $migrate_settings = array() ) {
 
 		// Process migration settings like active plugins/themes only etc
 		$migrate_settings       = is_array( $migrate_settings ) ? $migrate_settings : array();
-		$migrate_settings       = instawp()->tools::process_migration_settings( $migrate_settings );
+		$migrate_settings       = instawp()->tools::get_migrate_settings( [], $migrate_settings );
 		$options_data           = array(
 			'api_signature'    => $api_signature,
 			'migrate_settings' => $migrate_settings,
@@ -136,7 +136,10 @@ class InstaWP_Tools {
 		$wpdb->query( "DROP TABLE IF EXISTS `iwp_db_sent`;" );
 		$wpdb->query( "DROP TABLE IF EXISTS `iwp_files_sent`;" );
 
-		return INSTAWP_PLUGIN_URL . 'serve.php';
+		return array(
+			'serve_url'        => INSTAWP_PLUGIN_URL . 'serve.php',
+			'migrate_settings' => $migrate_settings
+		);
 	}
 
 	public static function generate_forwarded_file( $forwarded_path = ABSPATH, $file_name = 'fwd.php' ) {
@@ -399,8 +402,11 @@ class InstaWP_Tools {
 		$api_signature = hash( 'sha512', $migrate_key . current_time( 'U' ) );
 
 		// Generate serve file in instawpbackups directory
-		$serve_file_url = self::generate_serve_file( $migrate_key, $api_signature, $migrate_settings );
-		$tracking_db    = self::get_tracking_database( $migrate_key );
+
+		$serve_file_response = self::generate_serve_file_response( $migrate_key, $api_signature, $migrate_settings );
+		$serve_file_url      = InstaWP_Setting::get_args_option( 'serve_url', $serve_file_response );
+		$migrate_settings    = InstaWP_Setting::get_args_option( 'migrate_settings', $serve_file_response );
+		$tracking_db         = self::get_tracking_database( $migrate_key );
 
 		if ( ! $tracking_db ) {
 			new WP_Error( 404, esc_html__( 'Tracking database could not found.', 'instawp-connect' ) );
@@ -443,8 +449,9 @@ class InstaWP_Tools {
 		}
 
 		return array(
-			'serve_url'     => $serve_file_url,
-			'api_signature' => $api_signature,
+			'serve_url'        => $serve_file_url,
+			'api_signature'    => $api_signature,
+			'migrate_settings' => $migrate_settings,
 		);
 	}
 
@@ -466,15 +473,17 @@ class InstaWP_Tools {
 		return $log_tables;
 	}
 
-	public static function get_migrate_settings( $posted_data = array() ) {
+	public static function get_migrate_settings( $posted_data = array(), $migrate_settings = array() ) {
 
 		global $wpdb;
 
-		$settings_str = isset( $posted_data['settings'] ) ? $posted_data['settings'] : '';
+		if ( empty( $migrate_settings ) ) {
+			$settings_str = isset( $posted_data['settings'] ) ? $posted_data['settings'] : '';
 
-		parse_str( $settings_str, $settings_arr );
+			parse_str( $settings_str, $settings_arr );
 
-		$migrate_settings = InstaWP_Setting::get_args_option( 'migrate_settings', $settings_arr, array() );
+			$migrate_settings = InstaWP_Setting::get_args_option( 'migrate_settings', $settings_arr, array() );
+		}
 
 		// remove unnecessary settings
 		if ( isset( $migrate_settings['screen'] ) ) {
