@@ -341,6 +341,23 @@ class Cache {
 			];
 		}
 
+		// RunCloud Hub.
+		if ( is_plugin_active( 'runcloud-hub/runcloud-hub.php' ) ) {
+			$message = '';
+
+			if ( class_exists( '\RunCloud_Hub' ) && method_exists( '\RunCloud_Hub', 'purge_cache_all' ) ) {
+				\RunCloud_Hub::purge_cache_all();
+			} else {
+				$message = 'Class or Method not exists.';
+			}
+
+			$results[] = [
+				'slug'    => 'runcloud-hub',
+				'name'    => 'RunCloud Hub',
+				'message' => $message
+			];
+		}
+
 		// Nginx Helper.
 		if ( is_plugin_active( 'nginx-helper/nginx-helper.php' ) ) {
 			$message = '';

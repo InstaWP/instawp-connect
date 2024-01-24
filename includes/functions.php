@@ -669,6 +669,7 @@ if ( ! function_exists( 'instawp_send_heartbeat' ) ) {
 
 		if ( ! $success ) {
 			update_option( 'instawp_rm_heartbeat', 'off' );
+			wp_unschedule_hook( 'instawp_handle_heartbeat' );
 		}
 
 		if ( defined( 'INSTAWP_DEBUG_LOG' ) && INSTAWP_DEBUG_LOG ) {
