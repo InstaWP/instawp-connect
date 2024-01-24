@@ -69,6 +69,7 @@ class InstaWP_Curl {
 		if ( defined( 'INSTAWP_DEBUG_LOG' ) && INSTAWP_DEBUG_LOG ) {
 			error_log( 'API URL - ' . $api_url );
 			error_log( 'API ARGS - ' . json_encode( $body ) );
+			error_log( 'API HEADERS - ' . json_encode( $headers ) );
 			error_log( 'API Response - ' . $api_response );
 		}
 

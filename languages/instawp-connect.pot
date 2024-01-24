@@ -1,10 +1,11 @@
+InstaWP
 msgid ""
 msgstr ""
 "Project-Id-Version: InstaWP Connect\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2024-01-22 14:19+0000\n"
+"POT-Creation-Date: 2024-01-24 04:56+0000\n"
 "X-Poedit-Basepath: ..\n"
 "X-Poedit-KeywordsList: __;_e;_ex:1,2c;_n:1,2;_n_noop:1,2;_nx:1,2,4c;_nx_noop:1,2,3c;_x:1,2c;esc_attr__;esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c\n"
 "X-Poedit-SearchPath-0: .\n"
@@ -472,51 +473,51 @@ msgstr ""
 msgid "Enabling this option will allow reading WordPress error logs on this website remotely using the REST API."
 msgstr ""
 
-#: includes/class-instawp-tools.php:406
+#: includes/class-instawp-tools.php:412
 msgid "Tracking database could not found."
 msgstr ""
 
-#: includes/class-instawp-tools.php:416
+#: includes/class-instawp-tools.php:422
 msgid "API Signature and others data could not set properly"
 msgstr ""
 
-#: includes/class-instawp-tools.php:425
+#: includes/class-instawp-tools.php:431
 msgid "Could not create the forwarded file."
 msgstr ""
 
-#: includes/class-instawp-tools.php:429
+#: includes/class-instawp-tools.php:435
 msgid "InstaWP could not access the forwarded file due to security issue."
 msgstr ""
 
-#: includes/class-instawp-tools.php:438
+#: includes/class-instawp-tools.php:444
 msgid "InstaWP could not access or read required files from your WordPress directory due to file permission issue."
 msgstr ""
 
-#: includes/class-instawp-tools.php:440
+#: includes/class-instawp-tools.php:446
 msgid "Learn more."
 msgstr ""
 
-#: includes/class-instawp-tools.php:756
+#: includes/class-instawp-tools.php:765
 msgid "Launch %s"
 msgstr ""
 
-#: includes/class-instawp-tools.php:897
+#: includes/class-instawp-tools.php:906
 msgid "Zip archive is not opening."
 msgstr ""
 
-#: includes/class-instawp-tools.php:996
+#: includes/class-instawp-tools.php:1005
 msgid "Site ID not found in site create response."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1034
+#: includes/class-instawp-tools.php:1043
 msgid "SFTP login failed."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1045
+#: includes/class-instawp-tools.php:1054
 msgid "SFTP upload failed for files."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1053
+#: includes/class-instawp-tools.php:1062
 msgid "SFTP upload failed for database."
 msgstr ""
 
