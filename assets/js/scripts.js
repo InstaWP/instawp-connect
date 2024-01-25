@@ -1005,7 +1005,7 @@
                 $(document).find('.settings .instawp-form').addClass('loading');
             },
             success: function (response) {
-                if (response.success == true) {
+                if (response.success === true) {
                     window.location = window.location.href.split("?")[0] + '?page=instawp';
                 } else {
                     $(document).find('.settings .instawp-form').removeClass('loading');
@@ -1023,7 +1023,7 @@
                                 $(document).find('.settings .instawp-form').addClass('loading');
                             },
                             success: function (response) {
-                                if (response.success == true) {
+                                if (response.success === true) {
                                     window.location = window.location.href.split("?")[0] + '?page=instawp';
                                 } else {
                                     $(document).find('.settings .instawp-form').removeClass('loading');

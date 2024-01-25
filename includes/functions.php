@@ -182,6 +182,7 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 			delete_option( 'instawp_rm_inventory' );
 			delete_option( 'instawp_rm_debug_log' );
 			delete_option( 'instawp_last_heartbeat_sent' );
+			delete_option( 'instawp_is_staging' );
 
 			delete_transient( 'instawp_staging_sites' );
 			delete_transient( 'instawp_migration_completed' );
@@ -406,7 +407,7 @@ if ( ! function_exists( 'instawp_get_dir_contents' ) ) {
 	 * Get directory content.
 	 */
 	function instawp_get_dir_contents( $dir = '/', $sort_by = false ) {
-		return instawp()->get_directory_contents( realpath(ABSPATH . $dir ), $sort_by );
+		return instawp()->get_directory_contents( realpath( ABSPATH . $dir ), $sort_by );
 	}
 }
 
@@ -574,7 +575,7 @@ if ( ! function_exists( 'get_connect_detail_by_connect_id' ) ) {
 			}
 		}
 
-		return $response;
+		return (array) $response;
 	}
 }
 
@@ -632,18 +633,18 @@ if ( ! function_exists( 'instawp_send_heartbeat' ) ) {
 			require_once ABSPATH . 'wp-admin/includes/class-wp-debug-data.php';
 		}
 
-		$sizes_data         = WP_Debug_Data::get_sizes();
-		$wp_version         = get_bloginfo( 'version' );
-		$php_version        = phpversion();
-		$total_size         = $sizes_data['total_size']['size'];
-		$active_theme       = wp_get_theme()->get( 'Name' );
-		$count_posts        = wp_count_posts();
-		$posts              = $count_posts->publish;
-		$count_pages        = wp_count_posts( 'page' );
-		$pages              = $count_pages->publish;
-		$count_users        = count_users();
-		$users              = $count_users['total_users'];
-		$heartbeat_body     = base64_encode(
+		$sizes_data     = WP_Debug_Data::get_sizes();
+		$wp_version     = get_bloginfo( 'version' );
+		$php_version    = phpversion();
+		$total_size     = $sizes_data['total_size']['size'];
+		$active_theme   = wp_get_theme()->get( 'Name' );
+		$count_posts    = wp_count_posts();
+		$posts          = $count_posts->publish;
+		$count_pages    = wp_count_posts( 'page' );
+		$pages          = $count_pages->publish;
+		$count_users    = count_users();
+		$users          = $count_users['total_users'];
+		$heartbeat_body = base64_encode(
 			wp_json_encode(
 				array(
 					"wp_version"     => $wp_version,
@@ -659,7 +660,7 @@ if ( ! function_exists( 'instawp_send_heartbeat' ) ) {
 		);
 
 		$success = false;
-		for ( $i = 0; $i < 10; $i++ ) {
+		for ( $i = 0; $i < 10; $i ++ ) {
 			$heartbeat_response = InstaWP_Curl::do_curl( "connects/{$connect_id}/heartbeat", $heartbeat_body, array(), true, 'v1' );
 			if ( $heartbeat_response['code'] == 200 ) {
 				$success = true;

@@ -265,6 +265,8 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 				$pattern = '/#MalCare WAF.*?#END MalCare WAF/s';
 				$content = preg_replace( $pattern, '', $content );
 
+				// Comment any any php_value
+				$content = preg_replace( '/^\s*php_value\s+/m', '# php_value ', $content );
 
 				if ( ! empty( $site_url ) && ! empty( $dest_url ) ) {
 					$url_path = parse_url( $site_url, PHP_URL_PATH );
