@@ -120,24 +120,11 @@ class instaWP {
 
 	public function clean_migrate_files() {
 
-		$migration_details  = InstaWP_Setting::get_option( 'instawp_migration_details', array() );
-		$migrate_id         = InstaWP_Setting::get_args_option( 'migrate_id', $migration_details );
-		$migrate_key        = InstaWP_Setting::get_args_option( 'migrate_key', $migration_details );
-		$instawp_backup_dir = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . INSTAWP_DEFAULT_BACKUP_DIR . DIRECTORY_SEPARATOR;
+		$migration_details = InstaWP_Setting::get_option( 'instawp_migration_details', array() );
+		$migrate_id        = InstaWP_Setting::get_args_option( 'migrate_id', $migration_details );
+		$migrate_key       = InstaWP_Setting::get_args_option( 'migrate_key', $migration_details );
 
 		if ( empty( $migrate_id ) && empty( $migrate_key ) ) {
-
-			$files_to_delete = scandir( $instawp_backup_dir );
-			$files_to_delete = array_diff( $files_to_delete, [ '.', '..' ] );
-
-			foreach ( $files_to_delete as $file ) {
-				if ( is_file( $instawp_backup_dir . $file ) ) {
-					@unlink( $instawp_backup_dir . $file );
-				}
-			}
-
-			@unlink( ABSPATH . 'fwd.php' );
-
 			instawp_reset_running_migration( 'hard' );
 		}
 	}

@@ -164,6 +164,19 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 			return false;
 		}
 
+		$instawp_backup_dir = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . INSTAWP_DEFAULT_BACKUP_DIR . DIRECTORY_SEPARATOR;
+		$files_to_delete    = scandir( $instawp_backup_dir );
+		$files_to_delete    = array_diff( $files_to_delete, [ '.', '..' ] );
+
+		foreach ( $files_to_delete as $file ) {
+			if ( is_file( $instawp_backup_dir . $file ) ) {
+				@unlink( $instawp_backup_dir . $file );
+			}
+		}
+
+		@unlink( ABSPATH . 'fwd.php' );
+
+
 		if ( 'hard' == $reset_type ) {
 			delete_option( 'instawp_api_key' );
 			delete_option( 'instawp_backup_part_size' );
