@@ -461,7 +461,7 @@ class InstaWP_Sync_Helpers {
 		return $items;
 	}
 
-	public  static function create_or_update_post( $post, $post_meta, $reference_id ) {
+	public static function create_or_update_post( $post, $post_meta, $reference_id ) {
 		$destination_post = self::get_post_by_reference( $post['post_type'], $reference_id, $post['post_name'] );
 
 		if ( ! empty( $destination_post ) ) {
