@@ -340,8 +340,6 @@ class InstaWP_Backup_Api {
 			return $this->throw_error( $response );
 		}
 
-		$response_array = array();
-
 		// Hashed string
 		$param_api_key = $request->get_param( 'api_key' );
 
@@ -360,10 +358,7 @@ class InstaWP_Backup_Api {
 			$current_api_key_hash = ! empty( $current_api_key ) ? hash( 'sha256', $current_api_key ) : "";
 		}
 
-		if (
-			! empty( $param_api_key ) &&
-			$param_api_key === $current_api_key_hash
-		) {
+		if ( ! empty( $param_api_key ) && $param_api_key === $current_api_key_hash ) {
 			$uuid_code     = wp_generate_uuid4();
 			$uuid_code_256 = str_shuffle( $uuid_code . $uuid_code );
 
@@ -407,36 +402,22 @@ class InstaWP_Backup_Api {
 			return $this->throw_error( $response );
 		}
 
-		$response_array = array();
-		$param_api_key  = $request->get_param( 'api_key' );
-		$param_code     = $request->get_param( 'c' );
-		$param_user     = $request->get_param( 's' );
+		$param_api_key        = $request->get_param( 'api_key' );
+		$param_user           = $request->get_param( 's' );
+		$current_api_key_hash = InstaWP_Setting::get_api_key( true );
 
-		$connect_options = get_option( 'instawp_api_options', '' );
+		$username_to_login = base64_decode( $param_user );
 
-		// Non hashed
-		$current_api_key = ! empty( $connect_options ) ? $connect_options['api_key'] : '';
+		$user_to_login = instawp_get_user_to_login( $username_to_login );
 
-		$current_login_code   = get_transient( 'instawp_auto_login_code' );
-		$current_api_key_hash = "";
 
-		// check for pipe
-		if ( ! empty( $current_api_key ) && strpos( $current_api_key, '|' ) !== false ) {
-			$exploded             = explode( '|', $current_api_key );
-			$current_api_key_hash = hash( 'sha256', $exploded[1] );
-		} else {
-			$current_api_key_hash = ! empty( $current_api_key ) ? hash( 'sha256', $current_api_key ) : "";
-		}
+		echo "<pre>";
+		print_r( $user_to_login );
+		echo "</pre>";
 
-		if (
-			! empty( $param_api_key ) &&
-			! empty( $param_code ) &&
-			! empty( $param_user ) &&
-			$param_api_key === $current_api_key_hash &&
-			false !== $current_login_code &&
-			$param_code === $current_login_code
-		) {
-			// Decoded user
+		die();
+		if ( ! empty( $param_api_key ) && $param_api_key === $current_api_key_hash ) {
+
 			$site_user = base64_decode( $param_user );
 
 			// Make url

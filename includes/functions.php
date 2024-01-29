@@ -697,6 +697,23 @@ if ( ! function_exists( 'instawp_send_heartbeat' ) ) {
 }
 
 
+function instawp_get_user_to_login( $username = '' ) {
+
+	$default_username = InstaWP_Setting::get_option( 'instawp_default_username' );
+
+	// If username provided and has a valid user
+	if ( ! empty( $username ) ) {
+		$user_to_login = get_user_by( 'login', $username );
+		if ( $user_to_login instanceof WP_User ) {
+			return $user_to_login->user_login;
+		} else {
+			$user_to_login = get_user_by( 'login', $default_username );
+		}
+	}
+
+
+}
+
 function addFileToPhar( $phar, $sourceDir, $file, $localName ) {
 	// Check if the file is a symbolic link
 	if ( is_link( $file ) ) {

@@ -181,8 +181,9 @@ add_action( 'wp_head', function () {
 	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
 
 		echo "<pre>";
-		print_r( get_option( 'instawp_migration_details' ) );
+		print_r( base64_encode( 'admin' ) );
 		echo "</pre>";
+
 		die();
 	}
 }, 0 );
