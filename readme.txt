@@ -94,13 +94,14 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 
 == Changelog ==
 
-= 0.1.0.13 - 19 Jan 2024 =
+= 0.1.0.13 - 25 Jan 2024 =
 - NEW - Added support for WordPress Customizer.
 - NEW - Added support for RunCloud Hub cache purge support.
 - FIX - Changed image upload mechanism for 2 way sync.
 - FIX - Added check for heartbeat run 10 times.
 - FIX - Install sync tables only when needed.
 - FIX - Fixed mysql allocated length issue in IWPDB.
+- FIX - Migration Issues.
 
 = 0.1.0.12 - 19 Jan 2024 =
 - NEW - Added support for Flywheel.
