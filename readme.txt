@@ -94,6 +94,11 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 
 == Changelog ==
 
+= 0.1.0.14 =
+- NEW - Added support for Core, Theme and Plugin Update via REST API.
+- NEW - Added support for Theme and Plugin Activation and Deactivation via REST API.
+- FIX - Auto Disconnect from InstaWP API.
+
 = 0.1.0.13 - 25 Jan 2024 =
 - NEW - Added support for WordPress Customizer.
 - NEW - Added support for RunCloud Hub cache purge support.

@@ -502,6 +502,22 @@ class InstaWP_Setting {
 					'default' => 'off',
 				),
 				array(
+					'id'      => 'instawp_rm_update_core_plugin_theme',
+					'type'    => 'toggle',
+					'title'   => __( 'Update Core / Plugin / Themes', 'instawp-connect' ),
+					'tooltip' => __( 'Enabling this option will allow update WordPress core, plugins and themes on this website remotely using the REST API.', 'instawp-connect' ),
+					'class'   => 'save-ajax',
+					'default' => 'on',
+				),
+				array(
+					'id'      => 'instawp_rm_activate_deactivate',
+					'type'    => 'toggle',
+					'title'   => __( 'Activate / Deactivate', 'instawp-connect' ),
+					'tooltip' => __( 'Enabling this option will allow update WordPress core, plugins and themes on this website remotely using the REST API.', 'instawp-connect' ),
+					'class'   => 'save-ajax',
+					'default' => 'on',
+				),
+				array(
 					'id'      => 'instawp_rm_config_management',
 					'type'    => 'toggle',
 					'title'   => __( 'Config Management', 'instawp-connect' ),
