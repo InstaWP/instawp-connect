@@ -125,7 +125,7 @@ class instaWP {
 		$migrate_key       = InstaWP_Setting::get_args_option( 'migrate_key', $migration_details );
 
 		if ( empty( $migrate_id ) && empty( $migrate_key ) ) {
-			instawp_reset_running_migration( 'hard' );
+			instawp_reset_running_migration();
 		}
 	}
 
