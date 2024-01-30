@@ -64,6 +64,24 @@ class InstaWP_Backup_Api {
 			'permission_callback' => '__return_true',
 		) );
 
+		register_rest_route( $this->namespace . '/' . $this->version_2 . '/manage', '/update', array(
+			'methods'             => 'POST',
+			'callback'            => array( $this, 'perform_update' ),
+			'permission_callback' => '__return_true',
+		) );
+
+		register_rest_route( $this->namespace . '/' . $this->version_2 . '/manage', '/activate', array(
+			'methods'             => 'POST',
+			'callback'            => array( $this, 'perform_activation' ),
+			'permission_callback' => '__return_true',
+		) );
+
+		register_rest_route( $this->namespace . '/' . $this->version_2 . '/manage', '/deactivate', array(
+			'methods'             => 'POST',
+			'callback'            => array( $this, 'perform_deactivation' ),
+			'permission_callback' => '__return_true',
+		) );
+
 		register_rest_route( $this->namespace . '/' . $this->version_2 . '/manage', '/configuration', array(
 			array(
 				'methods'             => 'GET',
@@ -648,7 +666,7 @@ class InstaWP_Backup_Api {
 	 *
 	 * @return WP_Error|bool
 	 */
-	public function validate_api_request( WP_REST_Request $request, $option = '' ) {
+	public function validate_api_request( WP_REST_Request $request, string $option = '' ) {
 
 		// get authorization header value.
 		$bearer_token = sanitize_text_field( $request->get_header( 'authorization' ) );
@@ -689,7 +707,7 @@ class InstaWP_Backup_Api {
 		return true;
 	}
 
-	public static function config_check_key( $api_key ) {
+	public static function config_check_key( $api_key ): array {
 
 		$res        = array(
 			'error'   => true,
@@ -731,7 +749,7 @@ class InstaWP_Backup_Api {
 		return $res;
 	}
 
-	public static function config_connect( $api_key ) {
+	public static function config_connect( $api_key ): array {
 		global $InstaWP_Curl;
 
 		$res         = array(
@@ -800,7 +818,7 @@ class InstaWP_Backup_Api {
 	 *
 	 * @return WP_REST_Response
 	 */
-	function clear_cache( WP_REST_Request $request ) {
+	public function clear_cache( WP_REST_Request $request ) {
 
 		$response = $this->validate_api_request( $request );
 		if ( is_wp_error( $response ) ) {
@@ -833,7 +851,6 @@ class InstaWP_Backup_Api {
 		return $this->send_response( $response );
 	}
 
-
 	/**
 	 * Handle response for plugin and theme installation and activation.
 	 *
@@ -854,6 +871,96 @@ class InstaWP_Backup_Api {
 		$response  = $installer->start();
 
 		return $this->send_response( $response );
+	}
+
+	/**
+	 * Handle response for core, plugin and theme update.
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function perform_update( WP_REST_Request $request ) {
+
+		$response = $this->validate_api_request( $request, 'update_core_plugin_theme' );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
+
+		$params = $this->filter_params( $request );
+
+		$installer = new \InstaWP\Connect\Helpers\Updater( $params );
+		$response  = $installer->update();
+
+		return $this->send_response( $response );
+	}
+
+	/**
+	 * Handle response activate plugins and theme.
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function perform_activation( WP_REST_Request $request ) {
+
+		$response = $this->validate_api_request( $request, 'activate_deactivate' );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
+
+		$response = array();
+		$params   = $this->filter_params( $request );
+
+		foreach ( $params as $key => $param ) {
+			if ( 'plugin' === $param['type'] ) {
+				if ( ! function_exists( 'activate_plugin' ) ) {
+					require_once ABSPATH . 'wp-admin/includes/plugin.php';
+				}
+
+				$activate = activate_plugin( $param['path'] );
+				$response[ $key ] = array_merge( [
+					'success' => ! is_wp_error( $activate ),
+					'message' => is_wp_error( $activate ) ? $activate->get_error_message() : ''
+				], $param );
+			} elseif ( 'theme' === $param['type'] ) {
+				if ( ! function_exists( 'switch_theme' ) ) {
+					require_once ABSPATH . 'wp-includes/theme.php';
+				}
+
+				switch_theme( $param['stylesheet'] );
+				$response[ $key ] = array_merge( [
+					'success' => true
+				], $param );
+			}
+		}
+
+		return $this->send_response( $response );
+	}
+
+	/**
+	 * Handle response deactivate plugins.
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function perform_deactivation( WP_REST_Request $request ) {
+
+		$response = $this->validate_api_request( $request, 'activate_deactivate' );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
+
+		$params = $this->filter_params( $request );
+
+		if ( ! function_exists( 'deactivate_plugins' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		}
+
+		deactivate_plugins( $params );
+
+		return $this->send_response( [ 'success' => true ] );
 	}
 
 	/**
@@ -1121,8 +1228,8 @@ class InstaWP_Backup_Api {
 	 *
 	 * @return bool
 	 */
-	private function is_enabled( $key ) {
-		$default = ( 'inventory' === $key ) ? 'on' : 'off';
+	private function is_enabled( string $key ): bool {
+		$default = in_array( $key, array( 'inventory', 'update_core_plugin_theme', 'activate_deactivate' ) ) ? 'on' : 'off';
 		$value   = InstaWP_Setting::get_option( 'instawp_rm_' . $key, $default );
 		$value   = empty( $value ) ? $default : $value;
 
