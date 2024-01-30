@@ -82,6 +82,12 @@ class InstaWP_Backup_Api {
 			'permission_callback' => '__return_true',
 		) );
 
+		register_rest_route( $this->namespace . '/' . $this->version_2 . '/manage', '/auto-update', array(
+			'methods'             => 'POST',
+			'callback'            => array( $this, 'auto_update' ),
+			'permission_callback' => '__return_true',
+		) );
+
 		register_rest_route( $this->namespace . '/' . $this->version_2 . '/manage', '/configuration', array(
 			array(
 				'methods'             => 'GET',
@@ -915,7 +921,7 @@ class InstaWP_Backup_Api {
 	}
 
 	/**
-	 * Handle response activate plugins and theme.
+	 * Handle response for activate plugins and theme.
 	 *
 	 * @param WP_REST_Request $request
 	 *
@@ -937,7 +943,7 @@ class InstaWP_Backup_Api {
 					require_once ABSPATH . 'wp-admin/includes/plugin.php';
 				}
 
-				$activate = activate_plugin( $param['path'] );
+				$activate = activate_plugin( $param['asset'] );
 				$response[ $key ] = array_merge( [
 					'success' => ! is_wp_error( $activate ),
 					'message' => is_wp_error( $activate ) ? $activate->get_error_message() : ''
@@ -947,7 +953,7 @@ class InstaWP_Backup_Api {
 					require_once ABSPATH . 'wp-includes/theme.php';
 				}
 
-				switch_theme( $param['stylesheet'] );
+				switch_theme( $param['asset'] );
 				$response[ $key ] = array_merge( [
 					'success' => true
 				], $param );
@@ -958,7 +964,7 @@ class InstaWP_Backup_Api {
 	}
 
 	/**
-	 * Handle response deactivate plugins.
+	 * Handle response for deactivate plugins.
 	 *
 	 * @param WP_REST_Request $request
 	 *
@@ -980,6 +986,76 @@ class InstaWP_Backup_Api {
 		deactivate_plugins( $params );
 
 		return $this->send_response( [ 'success' => true ] );
+	}
+
+	/**
+	 * Handle response for toggle plugin and theme auto update.
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function auto_update( WP_REST_Request $request ) {
+
+		$response = $this->validate_api_request( $request, 'update_core_plugin_theme' );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
+
+		$response = array();
+		$params   = $this->filter_params( $request );
+
+		foreach ( $params as $key => $param ) {
+			$type  = $param['type'] ?? 'plugin';
+			$asset = $param['asset'] ?? '';
+			$state = $param['state'] ?? 'disable';
+
+			if ( 'plugin' === $type ) {
+				$option = 'auto_update_plugins';
+
+				/** This filter is documented in wp-admin/includes/class-wp-plugins-list-table.php */
+				$all_items = apply_filters( 'all_plugins', get_plugins() );
+			} elseif ( 'theme' === $type ) {
+				$option    = 'auto_update_themes';
+				$all_items = wp_get_themes();
+			}
+
+			if ( ! isset( $option ) || ! isset( $all_items ) ) {
+				$response[ $key ] = array(
+					'success' => false,
+					'message' => __( 'Invalid data. Unknown type.' )
+				);
+				continue;
+			}
+
+			if ( ! array_key_exists( $asset, $all_items ) ) {
+				$response[ $key ] = array(
+					'success' => false,
+					'message' => __( 'Invalid data. The item does not exist.' )
+				);
+				continue;
+			}
+
+			$auto_updates = (array) get_site_option( $option, array() );
+
+			if ( 'disable' === $state ) {
+				$auto_updates = array_diff( $auto_updates, array( $asset ) );
+			} else {
+				$auto_updates[] = $asset;
+				$auto_updates   = array_unique( $auto_updates );
+			}
+
+			// Remove items that have been deleted since the site option was last updated.
+			$auto_updates = array_intersect( $auto_updates, array_keys( $all_items ) );
+
+			update_site_option( $option, $auto_updates );
+
+			$response[ $key ] = array_merge( array(
+				'success' => true
+			), $param );
+		}
+
+		return $this->send_response( $response );
 	}
 
 	/**
