@@ -274,39 +274,6 @@ class InstaWP_Backup_Api {
 		);
 	}
 
-
-	/**
-	 * Handle get-push-config api
-	 *
-	 * @param WP_REST_Request $request
-	 *
-	 * @return WP_REST_Response
-	 */
-//  public function handle_get_push_config_api( WP_REST_Request $request ) {
-//
-//      $response = $this->validate_api_request( $request );
-//      if ( is_wp_error( $response ) ) {
-//          return $this->throw_error( $response );
-//      }
-//
-//      global $wp_version;
-//
-//      $migrate_settings = instawp()->tools::get_migrate_settings();
-//
-//      return $this->send_response(
-//          array(
-//              'php_version'    => PHP_VERSION,
-//              'wp_version'     => $wp_version,
-//              'plugin_version' => INSTAWP_PLUGIN_VERSION,
-//              'file_size'      => instawp()->tools::get_total_sizes( 'files', $migrate_settings ),
-//              'db_size'        => instawp()->tools::get_total_sizes( 'db' ),
-//              'settings'       => $migrate_settings,
-//              'active_plugins' => InstaWP_Setting::get_option( 'active_plugins', [] ),
-//          )
-//      );
-//  }
-
-
 	/**
 	 * Handle website total size info
 	 *
@@ -420,69 +387,35 @@ class InstaWP_Backup_Api {
 			return $this->throw_error( $response );
 		}
 
-		$param_api_key        = $request->get_param( 'api_key' );
-		$param_user           = $request->get_param( 's' );
-		$current_api_key_hash = InstaWP_Setting::get_api_key( true );
+		$param_user     = $request->get_param( 's' );
+		$login_userinfo = instawp_get_user_to_login( base64_decode( $param_user ) );
 
-		$username_to_login = base64_decode( $param_user );
-
-		$user_to_login = instawp_get_user_to_login( $username_to_login );
-
-
-		echo "<pre>";
-		print_r( $user_to_login );
-		echo "</pre>";
-
-		die();
-		if ( ! empty( $param_api_key ) && $param_api_key === $current_api_key_hash ) {
-
-			$site_user = base64_decode( $param_user );
-
-			// Make url
-			$auto_login_url = add_query_arg(
-				array(
-					'c' => $param_code,
-					's' => base64_encode( $site_user ),
-				),
-				wp_login_url( '', true )
-			);
-			// Auto Login Logic to be written
-			$message        = "success";
-			$response_array = array(
-				'error'     => false,
-				'message'   => $message,
-				'login_url' => $auto_login_url,
-			);
-		} else {
-			$message = "request invalid - ";
-
-			if ( empty( $param_api_key ) ) { // api key parameter is empty
-				$message .= "key parameter missing";
-			} elseif ( empty( $param_code ) ) { // code parameter is empty
-				$message .= "code parameter missing";
-			} elseif ( empty( $param_user ) ) { // user parameter is empty
-				$message .= "user parameter missing";
-			} elseif ( $param_api_key !== $current_api_key_hash ) { // local and param, api key hash not matched
-				$message .= "api key mismatch";
-			} elseif ( $param_code !== $current_login_code ) { // local and param, code not matched
-				$message .= "code mismatch";
-			} elseif ( false === $current_login_code ) { // local code parameter option not set
-				$message .= "code expired";
-			} else { // default response
-				$message = "invalid request";
-			}
-
-			$response_array = array(
-				'error'   => true,
-				'message' => $message,
-			);
+		if ( is_wp_error( $login_userinfo ) ) {
+			return $this->throw_error( $login_userinfo );
 		}
 
-		$response = new WP_REST_Response( $response_array );
+		$username_to_login = InstaWP_Setting::get_args_option( 'username', $login_userinfo );
+		$response_message  = InstaWP_Setting::get_args_option( 'message', $login_userinfo );
+		$uuid_code         = wp_generate_uuid4();
+		$login_code        = str_shuffle( $uuid_code . $uuid_code );
+		$auto_login_url    = add_query_arg(
+			array(
+				'c' => $login_code,
+				's' => base64_encode( $username_to_login ),
+			),
+			wp_login_url( '', true )
+		);
 
-		return rest_ensure_response( $response );
+		update_option( 'instawp_login_code', [ 'code' => $login_code, 'updated_at' => current_time( 'U' ) ] );
+
+		return $this->send_response(
+			array(
+				'error'     => false,
+				'message'   => $response_message,
+				'login_url' => $auto_login_url,
+			)
+		);
 	}
-
 
 	/**
 	 * Move files and folder from one place to another
@@ -513,7 +446,6 @@ class InstaWP_Backup_Api {
 
 		rmdir( $src );
 	}
-
 
 	/**
 	 * Override the plugin with remote plugin file
@@ -583,7 +515,6 @@ class InstaWP_Backup_Api {
 
 		unlink( $plugin_zip );
 	}
-
 
 	public function config( $request ) {
 
@@ -918,7 +849,7 @@ class InstaWP_Backup_Api {
 					require_once ABSPATH . 'wp-admin/includes/plugin.php';
 				}
 
-				$activate = activate_plugin( $param['path'] );
+				$activate         = activate_plugin( $param['path'] );
 				$response[ $key ] = array_merge( [
 					'success' => ! is_wp_error( $activate ),
 					'message' => is_wp_error( $activate ) ? $activate->get_error_message() : ''

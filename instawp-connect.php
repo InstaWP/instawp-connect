@@ -27,13 +27,6 @@ define( 'INSTAWP_PLUGIN_VERSION', '0.1.0.13' );
 define( 'INSTAWP_RESTORE_INIT', 'init' );
 define( 'INSTAWP_API_DOMAIN_PROD', 'https://app.instawp.io' );
 
-define( 'INSTAWP_RESTORE_READY', 'ready' );
-define( 'INSTAWP_RESTORE_COMPLETED', 'completed' );
-define( 'INSTAWP_RESTORE_RUNNING', 'running' );
-define( 'INSTAWP_RESTORE_ERROR', 'error' );
-define( 'INSTAWP_RESTORE_WAIT', 'wait' );
-define( 'INSTAWP_RESTORE_TIMEOUT', 180 );
-
 $wp_plugin_url   = WP_PLUGIN_URL . '/' . plugin_basename( __DIR__ ) . '/';
 $wp_site_url     = get_option( 'siteurl' );
 $parsed_site_url = parse_url( $wp_site_url );

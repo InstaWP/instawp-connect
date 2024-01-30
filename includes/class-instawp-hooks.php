@@ -18,6 +18,43 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			add_action( 'admin_init', array( $this, 'handle_clear_all' ) );
 			add_action( 'admin_bar_menu', array( $this, 'add_instawp_menu_icon' ), 999 );
 			add_action( 'wp_enqueue_scripts', array( $this, 'front_enqueue_scripts' ) );
+			add_action( 'login_init', array( $this, 'handle_auto_login_request' ) );
+		}
+
+		public function handle_auto_login_request() {
+
+			$url_args       = array_map( 'sanitize_text_field', $_GET );
+			$reauth         = InstaWP_Setting::get_args_option( 'reauth', $url_args );
+			$login_code     = InstaWP_Setting::get_args_option( 'c', $url_args );
+			$login_username = InstaWP_Setting::get_args_option( 's', $url_args );
+			$login_username = base64_decode( $login_username );
+
+			if ( empty( $reauth ) || empty( $login_code ) || empty( $login_username ) ) {
+				return;
+			}
+
+			$instawp_login_code = InstaWP_Setting::get_option( 'instawp_login_code', [] );
+			$saved_login_code   = InstaWP_Setting::get_args_option( 'code', $instawp_login_code );
+			$saved_updated_at   = InstaWP_Setting::get_args_option( 'updated_at', $instawp_login_code );
+
+			if ( ( current_time( 'U' ) - $saved_updated_at <= 30 ) && $saved_login_code == $login_code && username_exists( $login_username ) ) {
+
+				$login_user = get_user_by( 'login', $login_username );
+
+				wp_set_current_user( $login_user->ID, $login_user->user_login );
+				wp_set_auth_cookie( $login_user->ID );
+
+				do_action( 'wp_login', $login_user->user_login, $login_user );
+				delete_option( 'instawp_login_code' );
+
+				wp_redirect( admin_url() );
+				exit();
+			}
+
+			delete_option( 'instawp_login_code' );
+//			wp_logout();
+			wp_redirect( wp_login_url() );
+			exit();
 		}
 
 
