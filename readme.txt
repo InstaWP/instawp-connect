@@ -97,6 +97,7 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 = 0.1.0.14 - 30 Jan 2024 =
 - NEW - Added support for Core, Theme and Plugin Update via REST API.
 - NEW - Added support for Theme and Plugin Activation and Deactivation via REST API.
+- NEW - Added support for Enable or Disable Theme and Plugin Auto Update via REST API.
 - FIX - Auto Disconnect from InstaWP API.
 - FIX - Auto login method updated and fixed multiple issues regarding the magic login.
 

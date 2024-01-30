@@ -412,7 +412,10 @@ class InstaWP_Backup_Api {
 			wp_login_url( '', true )
 		);
 
-		update_option( 'instawp_login_code', [ 'code' => $login_code, 'updated_at' => current_time( 'U' ) ] );
+		update_option( 'instawp_login_code', array(
+			'code'       => $login_code,
+			'updated_at' => current_time( 'U' ),
+		) );
 
 		return $this->send_response(
 			array(
@@ -856,19 +859,19 @@ class InstaWP_Backup_Api {
 				}
 
 				$activate         = activate_plugin( $param['asset'] );
-				$response[ $key ] = array_merge( [
+				$response[ $key ] = array_merge( array(
 					'success' => ! is_wp_error( $activate ),
-					'message' => is_wp_error( $activate ) ? $activate->get_error_message() : ''
-				], $param );
+					'message' => is_wp_error( $activate ) ? $activate->get_error_message() : '',
+				), $param );
 			} elseif ( 'theme' === $param['type'] ) {
 				if ( ! function_exists( 'switch_theme' ) ) {
 					require_once ABSPATH . 'wp-includes/theme.php';
 				}
 
 				switch_theme( $param['asset'] );
-				$response[ $key ] = array_merge( [
-					'success' => true
-				], $param );
+				$response[ $key ] = array_merge( array(
+					'success' => true,
+				), $param );
 			}
 		}
 
@@ -897,7 +900,7 @@ class InstaWP_Backup_Api {
 
 		deactivate_plugins( $params );
 
-		return $this->send_response( [ 'success' => true ] );
+		return $this->send_response( array( 'success' => true ) );
 	}
 
 	/**
@@ -935,7 +938,7 @@ class InstaWP_Backup_Api {
 			if ( ! isset( $option ) || ! isset( $all_items ) ) {
 				$response[ $key ] = array(
 					'success' => false,
-					'message' => __( 'Invalid data. Unknown type.' )
+					'message' => __( 'Invalid data. Unknown type.' ),
 				);
 				continue;
 			}
@@ -943,7 +946,7 @@ class InstaWP_Backup_Api {
 			if ( ! array_key_exists( $asset, $all_items ) ) {
 				$response[ $key ] = array(
 					'success' => false,
-					'message' => __( 'Invalid data. The item does not exist.' )
+					'message' => __( 'Invalid data. The item does not exist.' ),
 				);
 				continue;
 			}
@@ -963,7 +966,7 @@ class InstaWP_Backup_Api {
 			update_site_option( $option, $auto_updates );
 
 			$response[ $key ] = array_merge( array(
-				'success' => true
+				'success' => true,
 			), $param );
 		}
 
@@ -1192,7 +1195,7 @@ class InstaWP_Backup_Api {
 	 *
 	 * @return string
 	 */
-	private function get_current_route() {
+	private function get_current_route(): bool {
 		$rest_route = $GLOBALS['wp']->query_vars['rest_route'];
 
 		return ( empty( $rest_route ) || is_null( $rest_route ) || '/' == $rest_route ) ? $rest_route : untrailingslashit( $rest_route );
@@ -1205,7 +1208,7 @@ class InstaWP_Backup_Api {
 	 *
 	 * @return WP_REST_Response|WP_Error|WP_HTTP_Response
 	 */
-	protected function send_response( $results ) {
+	protected function send_response( array $results ) {
 		$response = new WP_REST_Response( $results );
 
 		return rest_ensure_response( $response );
@@ -1218,7 +1221,7 @@ class InstaWP_Backup_Api {
 	 *
 	 * @return WP_REST_Response|WP_Error|WP_HTTP_Response
 	 */
-	public function throw_error( $error ) {
+	public function throw_error( WP_Error $error ) {
 		$response = new WP_REST_Response( array(
 			'success' => false,
 			'message' => $error->get_error_message(),
@@ -1246,11 +1249,11 @@ class InstaWP_Backup_Api {
 	/**
 	 * Filter params.
 	 *
-	 * @param object $request
+	 * @param WP_REST_Request $request
 	 *
 	 * @return array
 	 */
-	private function filter_params( $request ) {
+	private function filter_params( WP_REST_Request $request ) {
 		$params = $request->get_params() ?? array();
 		if ( array_key_exists( 'rest_route', $params ) ) {
 			unset( $params['rest_route'] );
@@ -1266,18 +1269,21 @@ class InstaWP_Backup_Api {
 	 *
 	 * @return array|string
 	 */
-	private function get_management_options( $name = '' ) {
+	private function get_management_options( string $name = '' ) {
 		$options = array(
-			'heartbeat'            => __( 'Heartbeat', 'instawp-connect' ),
-			'file_manager'         => __( 'File Manager', 'instawp-connect' ),
-			'database_manager'     => __( 'Database Manager', 'instawp-connect' ),
-			'install_plugin_theme' => __( 'Install Plugin / Themes', 'instawp-connect' ),
-			'config_management'    => __( 'Config Management', 'instawp-connect' ),
-			'inventory'            => __( 'Site Inventory', 'instawp-connect' ),
-			'debug_log'            => __( 'Debug Log', 'instawp-connect' ),
+			'heartbeat'                => __( 'Heartbeat', 'instawp-connect' ),
+			'file_manager'             => __( 'File Manager', 'instawp-connect' ),
+			'database_manager'         => __( 'Database Manager', 'instawp-connect' ),
+			'install_plugin_theme'     => __( 'Install Plugin / Themes', 'instawp-connect' ),
+			'update_core_plugin_theme' => __( 'Update Core / Plugin / Themes', 'instawp-connect' ),
+			'activate_deactivate'      => __( 'Activate / Deactivate', 'instawp-connect' ),
+			'config_management'        => __( 'Config Management', 'instawp-connect' ),
+			'inventory'                => __( 'Site Inventory', 'instawp-connect' ),
+			'debug_log'                => __( 'Debug Log', 'instawp-connect' ),
 		);
+
 		if ( ! empty( $name ) ) {
-			return isset( $options[ $name ] ) ? $options[ $name ] : '';
+			return $options[ $name ] ?? '';
 		}
 
 		return $options;

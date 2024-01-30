@@ -33,7 +33,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 				return;
 			}
 
-			$instawp_login_code = InstaWP_Setting::get_option( 'instawp_login_code', [] );
+			$instawp_login_code = InstaWP_Setting::get_option( 'instawp_login_code', array() );
 			$saved_login_code   = InstaWP_Setting::get_args_option( 'code', $instawp_login_code );
 			$saved_updated_at   = InstaWP_Setting::get_args_option( 'updated_at', $instawp_login_code );
 
@@ -52,7 +52,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			}
 
 			delete_option( 'instawp_login_code' );
-//			wp_logout();
+//          wp_logout();
 			wp_redirect( wp_login_url() );
 			exit();
 		}
