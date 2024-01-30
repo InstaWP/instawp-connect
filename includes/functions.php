@@ -166,7 +166,7 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 
 		$instawp_backup_dir = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . INSTAWP_DEFAULT_BACKUP_DIR . DIRECTORY_SEPARATOR;
 		$files_to_delete    = scandir( $instawp_backup_dir );
-		$files_to_delete    = array_diff( $files_to_delete, [ '.', '..' ] );
+		$files_to_delete    = array_diff( $files_to_delete, array( '.', '..' ) );
 
 		foreach ( $files_to_delete as $file ) {
 			if ( is_file( $instawp_backup_dir . $file ) ) {
