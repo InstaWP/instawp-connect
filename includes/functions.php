@@ -697,68 +697,141 @@ if ( ! function_exists( 'instawp_send_heartbeat' ) ) {
 }
 
 
-function addFileToPhar( $phar, $sourceDir, $file, $localName ) {
-	// Check if the file is a symbolic link
-	if ( is_link( $file ) ) {
-		// Resolve the path that the link points to
-		$realFilePath = readlink( $file );
-		// Add the resolved path file to the Phar archive
-		$phar->addFile( $realFilePath, $localName );
-	} else {
-		// Add the file to the Phar archive
-		$phar->addFile( $file, $localName );
+if ( ! function_exists( 'instawp_get_user_to_login' ) ) {
+	/**
+	 * Validate and Return the user to login
+	 *
+	 * @param string $username
+	 *
+	 * @return WP_Error|array
+	 */
+	function instawp_get_user_to_login( $username = '' ) {
+
+		if ( username_exists( $username ) ) {
+			$user_to_login = get_user_by( 'login', $username );
+			$message       = esc_html__( 'Login information for the given username', 'instawp-connect' );
+		} elseif ( ! empty( $default_username = InstaWP_Setting::get_option( 'instawp_default_username' ) ) && ! empty( $default_username ) ) {
+			$user_to_login = get_user_by( 'login', $default_username );
+			$message       = esc_html__( 'Login information for the given username didn\'t found, You are going to login with default login username.', 'instawp-connect' );
+		} else {
+			$admin_users   = get_users( array( 'role' => 'administrator' ) );
+			$user_to_login = is_array( $admin_users ) && isset( $admin_users[0] ) ? $admin_users[0] : false;
+			$message       = esc_html__( 'No login found with given username and default username, You are going to login with first admin user.', 'instawp-connect' );
+		}
+
+		if ( ! $user_to_login instanceof WP_User ) {
+			return new WP_Error( 'login_user_not_found', esc_html__( 'No login information found.', 'instawp-connect' ) );
+		}
+
+		return array(
+			'username' => $user_to_login->user_login,
+			'message'  => $message,
+		);
 	}
 }
 
-function addDirToPhar( $phar, $sourceDir, $skipDirs, $dir = '' ) {
-	$fullDir = realpath( $sourceDir . '/' . $dir );
 
-	if ( in_array( $fullDir, $skipDirs ) ) {
-		return;
-	}
-
-	$handle = opendir( $fullDir );
-
-	while ( false !== ( $entry = readdir( $handle ) ) ) {
-		if ( $entry != '.' && $entry != '..' ) {
-			$fullPath  = $fullDir . '/' . $entry;
-			$localName = $dir . '/' . $entry;
-
-			if ( is_dir( $fullPath ) ) {
-				addDirToPhar( $phar, $sourceDir, $skipDirs, $localName );
-			} else {
-				addFileToPhar( $phar, $sourceDir, $fullPath, $localName );
-			}
+if ( ! function_exists( 'instawp_add_file_to_phar' ) ) {
+	/**
+	 * Add files to phar
+	 *
+	 * @param $phar
+	 * @param $sourceDir
+	 * @param $file
+	 * @param $localName
+	 *
+	 * @return void
+	 */
+	function instawp_add_file_to_phar( $phar, $sourceDir, $file, $localName ) {
+		// Check if the file is a symbolic link
+		if ( is_link( $file ) ) {
+			// Resolve the path that the link points to
+			$realFilePath = readlink( $file );
+			// Add the resolved path file to the Phar archive
+			$phar->addFile( $realFilePath, $localName );
+		} else {
+			// Add the file to the Phar archive
+			$phar->addFile( $file, $localName );
 		}
 	}
-
-	closedir( $handle );
 }
 
-function instawp_zip_folder_with_phar( $source, $destination, array $skipDirs = array() ) {
-	$source = rtrim( $source, '/' );
 
-	if ( ! file_exists( $source ) ) {
-		throw new Exception( "Source directory does not exist: $source" );
+if ( ! function_exists( 'instawp_add_dir_to_phar' ) ) {
+
+	/**
+	 * Add directories to phar
+	 *
+	 * @param $phar
+	 * @param $sourceDir
+	 * @param $skipDirs
+	 * @param $dir
+	 *
+	 * @return void
+	 */
+	function instawp_add_dir_to_phar( $phar, $sourceDir, $skipDirs, $dir = '' ) {
+		$fullDir = realpath( $sourceDir . '/' . $dir );
+
+		if ( in_array( $fullDir, $skipDirs ) ) {
+			return;
+		}
+
+		$handle = opendir( $fullDir );
+
+		while ( false !== ( $entry = readdir( $handle ) ) ) {
+			if ( $entry != '.' && $entry != '..' ) {
+				$fullPath  = $fullDir . '/' . $entry;
+				$localName = $dir . '/' . $entry;
+
+				if ( is_dir( $fullPath ) ) {
+					instawp_add_dir_to_phar( $phar, $sourceDir, $skipDirs, $localName );
+				} else {
+					instawp_add_file_to_phar( $phar, $sourceDir, $fullPath, $localName );
+				}
+			}
+		}
+
+		closedir( $handle );
 	}
+}
 
-	// Prepare full paths for directories to skip
-	foreach ( $skipDirs as &$dir ) {
-		$dir = realpath( $source . '/' . $dir );
+
+if ( ! function_exists( 'instawp_zip_folder_with_phar' ) ) {
+	/**
+	 * Make archive with phar
+	 *
+	 * @param $source
+	 * @param $destination
+	 * @param array $skipDirs
+	 *
+	 * @return void
+	 * @throws Exception
+	 */
+	function instawp_zip_folder_with_phar( $source, $destination, array $skipDirs = array() ) {
+		$source = rtrim( $source, '/' );
+
+		if ( ! file_exists( $source ) ) {
+			throw new Exception( "Source directory does not exist: $source" );
+		}
+
+		// Prepare full paths for directories to skip
+		foreach ( $skipDirs as &$dir ) {
+			$dir = realpath( $source . '/' . $dir );
+		}
+
+		// Initialize PharData with .tar
+		$phar = new PharData( $destination . '.tar' );
+
+		// Manually add files to Phar, taking care of symbolic links and skipping directories
+		instawp_add_dir_to_phar( $phar, $source, $skipDirs );
+
+		// Compress the .tar into .tar.gz
+		$phar->compress( Phar::GZ );
+
+		// Clean up the .tar file
+		unlink( $destination . '.tar' );
+
+		// Rename .tar.gz to .zip
+		rename( $destination . '.tar.gz', $destination );
 	}
-
-	// Initialize PharData with .tar
-	$phar = new PharData( $destination . '.tar' );
-
-	// Manually add files to Phar, taking care of symbolic links and skipping directories
-	addDirToPhar( $phar, $source, $skipDirs );
-
-	// Compress the .tar into .tar.gz
-	$phar->compress( Phar::GZ );
-
-	// Clean up the .tar file
-	unlink( $destination . '.tar' );
-
-	// Rename .tar.gz to .zip
-	rename( $destination . '.tar.gz', $destination );
 }

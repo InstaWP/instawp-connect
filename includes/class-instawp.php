@@ -71,7 +71,6 @@ class instaWP {
 		add_action( 'instawp_clean_migrate_files', array( $this, 'clean_migrate_files' ) );
 		add_action( 'add_option_instawp_enable_wp_debug', array( $this, 'toggle_wp_debug' ), 10, 2 );
 		add_action( 'update_option_instawp_enable_wp_debug', array( $this, 'toggle_wp_debug' ), 10, 2 );
-		add_action( 'login_init', array( $this, 'instawp_auto_login_redirect' ) );
 	}
 
 	public function toggle_wp_debug( $old_value, $value ) {
@@ -169,64 +168,6 @@ class instaWP {
 	public function clear_staging_sites_list() {
 		delete_option( 'instawp_large_files_list' );
 		do_action( 'instawp_prepare_large_files_list' );
-	}
-
-	public function instawp_auto_login_redirect() {
-		include_once ABSPATH . 'wp-admin/includes/plugin.php';
-
-		$current_setup_plugins = array_keys( get_plugins() );
-		$instawp_plugin        = null;
-		$instawp_index_default = array_search( 'instawp-connect/instawp-connect.php', $current_setup_plugins );
-		$instawp_index_main    = array_search( 'instawp-connect-main/instawp-connect.php', $current_setup_plugins );
-
-		if ( false !== $instawp_index_default ) {
-			$instawp_plugin = $current_setup_plugins[ $instawp_index_default ];
-		}
-
-		if ( false !== $instawp_index_main ) {
-			$instawp_plugin = $current_setup_plugins[ $instawp_index_main ];
-		}
-
-		// check for plugin using plugin name
-		if ( ! is_null( $instawp_plugin ) && is_plugin_active( $instawp_plugin ) ) {
-			// Check for params
-			if (
-				isset( $_GET['reauth'] ) &&
-				isset( $_GET['c'] ) &&
-				isset( $_GET['s'] ) &&
-				! empty( $_GET['reauth'] ) &&
-				! empty( $_GET['c'] ) &&
-				! empty( $_GET['s'] )
-			) {
-				$param_code   = $_GET['c'];
-				$param_user   = base64_decode( $_GET['s'] );
-				$current_code = get_transient( 'instawp_auto_login_code' );
-				$username     = sanitize_user( $param_user );
-				if (
-					$param_code === $current_code &&
-					false !== $current_code &&
-					username_exists( $username )
-				) {
-					//plugin is activated
-					require_once( 'wp-load.php' );
-					$loginusername = $username;
-					$user          = get_user_by( 'login', $loginusername );
-					$user_id       = $user->ID;
-					wp_set_current_user( $user_id, $loginusername );
-					wp_set_auth_cookie( $user_id );
-					do_action( 'wp_login', $loginusername, $user );
-
-					// Remove transient
-					delete_transient( 'instawp_auto_login_code' );
-					wp_redirect( admin_url() );
-					exit();
-				} else {
-					delete_transient( 'instawp_auto_login_code' );
-					wp_redirect( wp_login_url( '', false ) );
-					exit();
-				}
-			}
-		}
 	}
 
 	private function set_locale() {

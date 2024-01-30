@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.4
 Tested up to: 6.4.2
 Requires PHP: 7.4
-Stable tag: 0.1.0.13
+Stable tag: 0.1.0.14
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -94,10 +94,11 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 
 == Changelog ==
 
-= 0.1.0.14 =
+= 0.1.0.14 - 30 Jan 2024 =
 - NEW - Added support for Core, Theme and Plugin Update via REST API.
 - NEW - Added support for Theme and Plugin Activation and Deactivation via REST API.
 - FIX - Auto Disconnect from InstaWP API.
+- FIX - Auto login method updated and fixed multiple issues regarding the magic login.
 
 = 0.1.0.13 - 25 Jan 2024 =
 - NEW - Added support for WordPress Customizer.
