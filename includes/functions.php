@@ -683,7 +683,10 @@ if ( ! function_exists( 'instawp_send_heartbeat' ) ) {
 
 		if ( ! $success ) {
 			update_option( 'instawp_rm_heartbeat', 'off' );
+			update_option( 'instawp_rm_heartbeat_failed', true );
 			wp_unschedule_hook( 'instawp_handle_heartbeat' );
+		} else {
+			delete_option( 'instawp_rm_heartbeat_failed' );
 		}
 
 		if ( defined( 'INSTAWP_DEBUG_LOG' ) && INSTAWP_DEBUG_LOG ) {
