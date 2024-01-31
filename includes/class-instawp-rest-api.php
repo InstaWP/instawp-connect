@@ -70,6 +70,12 @@ class InstaWP_Backup_Api {
 			'permission_callback' => '__return_true',
 		) );
 
+		register_rest_route( $this->namespace . '/' . $this->version_2 . '/manage', '/delete', array(
+			'methods'             => 'POST',
+			'callback'            => array( $this, 'perform_delete' ),
+			'permission_callback' => '__return_true',
+		) );
+
 		register_rest_route( $this->namespace . '/' . $this->version_2 . '/manage', '/activate', array(
 			'methods'             => 'POST',
 			'callback'            => array( $this, 'perform_activation' ),
@@ -831,6 +837,49 @@ class InstaWP_Backup_Api {
 
 		$installer = new \InstaWP\Connect\Helpers\Updater( $params );
 		$response  = $installer->update();
+
+		return $this->send_response( $response );
+	}
+
+	/**
+	 * Handle response for deletion of plugin and theme update.
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function perform_delete( WP_REST_Request $request ) {
+
+		$response = $this->validate_api_request( $request, 'install_plugin_theme' );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
+
+		$response = array();
+		$params   = $this->filter_params( $request );
+
+		foreach ( $params as $key => $param ) {
+			if ( 'plugin' === $param['type'] ) {
+				if ( ! function_exists( 'delete_plugins' ) ) {
+					require_once ABSPATH . 'wp-admin/includes/plugin.php';
+				}
+
+				$deleted          = delete_plugins( array( $param['asset'] ) );
+				$response[ $key ] = array_merge( array(
+					'success' => ! is_wp_error( $deleted ),
+					'message' => is_wp_error( $deleted ) ? $deleted->get_error_message() : '',
+				), $param );
+			} elseif ( 'theme' === $param['type'] ) {
+				if ( ! function_exists( 'delete_theme' ) ) {
+					require_once ABSPATH . 'wp-includes/theme.php';
+				}
+
+				delete_theme( $param['asset'] );
+				$response[ $key ] = array_merge( array(
+					'success' => true,
+				), $param );
+			}
+		}
 
 		return $this->send_response( $response );
 	}
