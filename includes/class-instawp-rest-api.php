@@ -871,7 +871,7 @@ class InstaWP_Backup_Api {
 				), $param );
 			} elseif ( 'theme' === $param['type'] ) {
 				if ( ! function_exists( 'delete_theme' ) ) {
-					require_once ABSPATH . 'wp-includes/theme.php';
+					require_once ABSPATH . 'wp-admin/includes/theme.php';
 				}
 
 				delete_theme( $param['asset'] );
