@@ -2,7 +2,7 @@
 
 defined( 'ABSPATH' ) || die;
 
-class InstaWP_Backup_Api {
+class InstaWP_Rest_Api {
 
 	protected $namespace;
 	protected $version;
@@ -42,6 +42,12 @@ class InstaWP_Backup_Api {
 		register_rest_route( $this->namespace . '/' . $this->version_2, '/auto-login', array(
 			'methods'             => 'POST',
 			'callback'            => array( $this, 'auto_login' ),
+			'permission_callback' => '__return_true',
+		) );
+
+		register_rest_route( $this->namespace . '/' . $this->version_2, '/heartbeat', array(
+			'methods'             => 'GET',
+			'callback'            => array( $this, 'handle_heartbeat' ),
 			'permission_callback' => '__return_true',
 		) );
 
@@ -758,6 +764,25 @@ class InstaWP_Backup_Api {
 	}
 
 	/**
+	 * Handle response for heartbeat endpoint
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function handle_heartbeat( WP_REST_Request $request ) {
+
+		$response = $this->validate_api_request( $request );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
+
+		$response = InstaWP_Heartbeat::prepare_data();
+
+		return $this->send_response( $response );
+	}
+
+	/**
 	 * Handle response for clear cache endpoint
 	 *
 	 * @param WP_REST_Request $request
@@ -1339,5 +1364,4 @@ class InstaWP_Backup_Api {
 	}
 }
 
-global $InstaWP_Backup_Api;
-$InstaWP_Backup_Api = new InstaWP_Backup_Api();
+new InstaWP_Rest_Api();
