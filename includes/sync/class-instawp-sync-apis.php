@@ -10,11 +10,11 @@
 
 defined( 'ABSPATH' ) || exit;
 
-if ( ! class_exists( 'InstaWP_Backup_Api' ) ) {
+if ( ! class_exists( 'InstaWP_Rest_Api' ) ) {
 	require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-rest-api.php';
 }
 
-class InstaWP_Sync_Apis extends InstaWP_Backup_Api {
+class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 
 	private $wpdb;
 

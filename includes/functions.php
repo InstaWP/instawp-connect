@@ -633,69 +633,7 @@ if ( ! function_exists( 'instawp_send_heartbeat' ) ) {
 	 * @return bool
 	 */
 	function instawp_send_heartbeat( $connect_id = '' ): bool {
-
-		if ( defined( 'INSTAWP_DEBUG_LOG' ) && true === INSTAWP_DEBUG_LOG ) {
-			error_log( "HEARTBEAT RAN AT : " . date( 'd-m-Y, H:i:s, h:i:s' ) );
-		}
-
-		if ( empty( $connect_id ) ) {
-			$connect_id = instawp()->connect_id;
-		}
-
-		if ( ! class_exists( 'WP_Debug_Data' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/class-wp-debug-data.php';
-		}
-
-		$sizes_data     = WP_Debug_Data::get_sizes();
-		$wp_version     = get_bloginfo( 'version' );
-		$php_version    = phpversion();
-		$total_size     = $sizes_data['total_size']['size'];
-		$active_theme   = wp_get_theme()->get( 'Name' );
-		$count_posts    = wp_count_posts();
-		$posts          = $count_posts->publish;
-		$count_pages    = wp_count_posts( 'page' );
-		$pages          = $count_pages->publish;
-		$count_users    = count_users();
-		$users          = $count_users['total_users'];
-		$heartbeat_body = base64_encode(
-			wp_json_encode(
-				array(
-					"wp_version"     => $wp_version,
-					"php_version"    => $php_version,
-					"plugin_version" => INSTAWP_PLUGIN_VERSION,
-					"total_size"     => $total_size,
-					"theme"          => $active_theme,
-					"posts"          => $posts,
-					"pages"          => $pages,
-					"users"          => $users,
-				)
-			)
-		);
-
-		$success = false;
-		for ( $i = 0; $i < 10; $i ++ ) {
-			$heartbeat_response = InstaWP_Curl::do_curl( "connects/{$connect_id}/heartbeat", $heartbeat_body, array(), true, 'v1' );
-			if ( $heartbeat_response['code'] == 200 ) {
-				$success = true;
-				break;
-			}
-		}
-
-		if ( ! $success ) {
-			update_option( 'instawp_rm_heartbeat', 'off' );
-			update_option( 'instawp_rm_heartbeat_failed', true );
-			wp_unschedule_hook( 'instawp_handle_heartbeat' );
-		} else {
-			delete_option( 'instawp_rm_heartbeat_failed' );
-		}
-
-		if ( defined( 'INSTAWP_DEBUG_LOG' ) && INSTAWP_DEBUG_LOG ) {
-			error_log( "Print Heartbeat API Curl Response Start" );
-			error_log( wp_json_encode( $heartbeat_response, true ) );
-			error_log( "Print Heartbeat API Curl Response End" );
-		}
-
-		return $success;
+		return InstaWP_Heartbeat::send_heartbeat( $connect_id );
 	}
 }
 
@@ -836,5 +774,36 @@ if ( ! function_exists( 'instawp_zip_folder_with_phar' ) ) {
 
 		// Rename .tar.gz to .zip
 		rename( $destination . '.tar.gz', $destination );
+	}
+}
+
+if ( ! function_exists( 'instawp_array_recursive_diff' ) ) {
+
+	/**
+	 * Filer to get difference of recursive array data
+	 *
+	 * @param $array1
+	 * @param $array2
+	 *
+	 * @return array
+	 */
+	function instawp_array_recursive_diff( $array1, $array2 ): array {
+		$diff = array();
+		foreach ( $array1 as $key => $value ) {
+			if ( is_array( $value ) ) {
+				if ( ! isset( $array2[ $key ] ) || ! is_array( $array2[ $key ] ) ) {
+					$diff[ $key ] = $value;
+				} else {
+					$recursive_diff = instawp_array_recursive_diff( $value, $array2[ $key ] );
+					if ( ! empty( $recursive_diff ) ) {
+						$diff[ $key ] = $recursive_diff;
+					}
+				}
+			} elseif ( ! array_key_exists( $key, $array2 ) || $array2[ $key ] !== $value ) {
+				$diff[ $key ] = $value;
+			}
+		}
+
+		return $diff;
 	}
 }
