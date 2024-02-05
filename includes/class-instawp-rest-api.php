@@ -880,6 +880,10 @@ class InstaWP_Rest_Api {
 			return $this->throw_error( $response );
 		}
 
+		if ( ! function_exists( 'request_filesystem_credentials' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+		}
+
 		$response = array();
 		$params   = $this->filter_params( $request );
 
@@ -921,6 +925,10 @@ class InstaWP_Rest_Api {
 		$response = $this->validate_api_request( $request, 'activate_deactivate' );
 		if ( is_wp_error( $response ) ) {
 			return $this->throw_error( $response );
+		}
+
+		if ( ! function_exists( 'request_filesystem_credentials' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
 		}
 
 		$response = array();
@@ -967,6 +975,10 @@ class InstaWP_Rest_Api {
 		}
 
 		$params = $this->filter_params( $request );
+
+		if ( ! function_exists( 'request_filesystem_credentials' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+		}
 
 		if ( ! function_exists( 'deactivate_plugins' ) ) {
 			require_once ABSPATH . 'wp-admin/includes/plugin.php';
