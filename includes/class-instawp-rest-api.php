@@ -889,8 +889,17 @@ class InstaWP_Rest_Api {
 
 		foreach ( $params as $key => $param ) {
 			if ( 'plugin' === $param['type'] ) {
-				if ( ! function_exists( 'delete_plugins' ) ) {
+				if ( ! function_exists( 'delete_plugins' ) || ! function_exists( 'is_plugin_active' ) ) {
 					require_once ABSPATH . 'wp-admin/includes/plugin.php';
+				}
+
+				if ( is_plugin_active( $param['asset'] ) ) {
+					$response[ $key ] = array_merge( array(
+						'success' => false,
+						'message' => esc_html__( 'Please deactivate the plugin first.', 'instawp-connect' ),
+					), $param );
+
+					continue;
 				}
 
 				$deleted          = delete_plugins( array( $param['asset'] ) );
@@ -898,9 +907,23 @@ class InstaWP_Rest_Api {
 					'success' => ! is_wp_error( $deleted ),
 					'message' => is_wp_error( $deleted ) ? $deleted->get_error_message() : '',
 				), $param );
+
 			} elseif ( 'theme' === $param['type'] ) {
 				if ( ! function_exists( 'delete_theme' ) ) {
 					require_once ABSPATH . 'wp-admin/includes/theme.php';
+				}
+
+				if ( ! function_exists( 'get_stylesheet' ) ) {
+					require_once ABSPATH . 'wp-includes/theme.php';
+				}
+
+				if ( get_stylesheet() === $param['asset'] ) {
+					$response[ $key ] = array_merge( array(
+						'success' => false,
+						'message' => esc_html__( 'Please deactivate the theme first.', 'instawp-connect' ),
+					), $param );
+
+					continue;
 				}
 
 				delete_theme( $param['asset'] );
