@@ -472,6 +472,23 @@ class Cache {
 			];
 		}
 
+		// Elementor.
+		if ( is_plugin_active( 'elementor/elementor.php' ) ) {
+			$message = '';
+
+			if ( class_exists( '\Elementor\Plugin' ) ) {
+				\Elementor\Plugin::$instance->files_manager->clear_cache();
+			} else {
+				$message = 'Class or Method not exists.';
+			}
+			
+			$results[] = [
+				'slug'    => 'elementor',
+				'name'    => 'Elementor',
+				'message' => $message
+			];
+		}
+
 		$results = array_map( function( $result ) {
 			$message = trim( $result['message'] );
 			unset( $result['message'] );
