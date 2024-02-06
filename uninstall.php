@@ -5,101 +5,66 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 	exit;
 }
 
-function instawp_clear_free_dir( $directory ) {
-    if ( file_exists($directory) ) {
-        if ( $dir_handle = @opendir($directory) ) {
-            while ( $filename = readdir($dir_handle) ) {
-                if ( $filename != '.' && $filename != '..' ) {
-                    $subFile = $directory."/".$filename;
-                    if ( is_dir($subFile) ) {
-                        instawp_clear_free_dir($subFile);
-                    }
-                    if ( is_file($subFile) ) {
-                        unlink($subFile);
-                    }
-                }
-            }
-            closedir($dir_handle);
-            rmdir($directory);
-        }
-    }
+defined( 'INSTAWP_DEFAULT_BACKUP_DIR' ) || define( 'INSTAWP_DEFAULT_BACKUP_DIR', 'instawpbackups' );
+
+$instawp_backup_dir = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . INSTAWP_DEFAULT_BACKUP_DIR . DIRECTORY_SEPARATOR;
+$files_to_delete    = scandir( $instawp_backup_dir );
+$files_to_delete    = array_diff( $files_to_delete, array( '.', '..' ) );
+
+foreach ( $files_to_delete as $file ) {
+	if ( is_file( $instawp_backup_dir . $file ) ) {
+		@unlink( $instawp_backup_dir . $file );
+	}
 }
 
-$instawp_common_setting = get_option('instawp_common_setting', array());
-if ( ! empty($instawp_common_setting) ) {
-    if ( isset($instawp_common_setting['uninstall_clear_folder']) && $instawp_common_setting['uninstall_clear_folder'] ) {
-        $instawp_local_setting = get_option('instawp_local_setting', array());
-        if ( isset($instawp_local_setting['path']) ) {
-            if ( $instawp_local_setting['path'] !== 'instawpbackups' ) {
-                instawp_clear_free_dir(WP_CONTENT_DIR.DIRECTORY_SEPARATOR.'instawpbackups');
-            }
-            instawp_clear_free_dir(WP_CONTENT_DIR.DIRECTORY_SEPARATOR.$instawp_local_setting['path']);
-        }
-        else {
-            instawp_clear_free_dir(WP_CONTENT_DIR.DIRECTORY_SEPARATOR.'instawpbackups');
-        }
-    }
+@unlink( ABSPATH . 'fwd.php' );
+
+$api_options = get_option( 'instawp_api_options', array() );
+$connect_id  = $api_options['connect_id'] ?? '';
+$api_key     = $api_options['api_key'] ?? '';
+
+if ( ! empty( $connect_id ) && ! empty( $api_key ) ) {
+	wp_remote_post( "https://app.instawp.io/api/v2/connects/{$connect_id}/disconnect", [
+		'headers' => array(
+			'Authorization' => 'Bearer ' . $api_key,
+			'Accept'        => 'application/json',
+			'Content-Type'  => 'application/json',
+			'Referer'       => site_url()
+		)
+	] );
 }
 
-delete_option('instawp_schedule_setting');
-delete_option('instawp_email_setting');
-delete_option('instawp_compress_setting');
-delete_option('instawp_local_setting');
-delete_option('instawp_upload_setting');
-delete_option('instawp_common_setting');
-delete_option('instawp_backup_list');
-delete_option('instawp_task_list');
-delete_option('instawp_init');
-delete_option('instawp_remote_init');
-delete_option('instawp_last_msg');
-delete_option('instawp_download_cache');
-delete_option('instawp_download_task');
-delete_option('instawp_user_history');
-delete_option('instawp_saved_api_token');
-delete_option('instawp_import_list_cache');
-delete_option('instawp_importer_task_list');
-delete_option('instawp_list_cache');
-delete_option('instawp_exporter_task_list');
-delete_option('instawp_need_review');
-delete_option('instawp_review_msg');
-delete_option('instawp_migrate_status');
-delete_option('clean_task');
-delete_option('cron_backup_count');
-delete_option('instawp_backup_success_count');
-delete_option('instawp_backup_error_array');
-delete_option('instawp_amazons3_notice');
-delete_option('instawp_hide_mwp_tab_page_v1');
-delete_option('instawp_hide_wp_cron_notice');
-delete_option('instawp_transfer_error_array');
-delete_option('instawp_transfer_success_count');
-delete_option('instawp_api_token');
-delete_option('instawp_download_task_v2');
-delete_option('instawp_export_list');
-delete_option('instawp_backup_report');
-delete_option('instawp_large_files_list');
+delete_option( 'instawp_api_options' );
+delete_option( 'instawp_large_files_list' );
+delete_option( 'instawp_api_key' );
+delete_option( 'instawp_backup_part_size' );
+delete_option( 'instawp_max_file_size_allowed' );
+delete_option( 'instawp_reset_type' );
+delete_option( 'instawp_db_method' );
+delete_option( 'instawp_default_user' );
+delete_option( 'instawp_api_options' );
+delete_option( 'instawp_rm_heartbeat' );
+delete_option( 'instawp_api_heartbeat' );
+delete_option( 'instawp_rm_file_manager' );
+delete_option( 'instawp_migration_details' );
+delete_option( 'instawp_rm_database_manager' );
+delete_option( 'instawp_rm_install_plugin_theme' );
+delete_option( 'instawp_rm_config_management' );
+delete_option( 'instawp_rm_inventory' );
+delete_option( 'instawp_rm_debug_log' );
+delete_option( 'instawp_last_heartbeat_sent' );
+delete_option( 'instawp_is_staging' );
+
+delete_transient( 'instawp_staging_sites' );
+delete_transient( 'instawp_migration_completed' );
 delete_transient( 'instawp_staging_sites' );
 delete_transient( 'instawp_generate_large_files' );
 
-$options = get_option('instawp_staging_options',array());
-$staging_keep_setting = isset($options['staging_keep_setting']) ? $options['staging_keep_setting'] : true;
-if ( $staging_keep_setting ) {
-
-}
-else {
-    delete_option('instawp_staging_task_list');
-    delete_option('instawp_staging_task_cancel');
-    delete_option('instawp_staging_options');
-    delete_option('instawp_staging_history');
-    delete_option('instawp_staging_list');
-}
-
-define('INSTAWP_MAIN_SCHEDULE_EVENT','instawp_main_schedule_event');
-
-if ( wp_get_schedule(INSTAWP_MAIN_SCHEDULE_EVENT) ) {
-    wp_clear_scheduled_hook(INSTAWP_MAIN_SCHEDULE_EVENT);
-    $timestamp = wp_next_scheduled(INSTAWP_MAIN_SCHEDULE_EVENT);
-    wp_unschedule_event($timestamp,INSTAWP_MAIN_SCHEDULE_EVENT);
-}
+wp_unschedule_hook( 'instawp_handle_heartbeat' );
+wp_unschedule_hook( 'instawp_send_heartbeat' );
+wp_unschedule_hook( 'instawp_handle_heartbeat_status' );
+wp_unschedule_hook( 'instawp_prepare_large_files_list' );
+wp_unschedule_hook( 'instawp_clean_migrate_files' );
 
 // Clear scheduled tasks.
 if ( class_exists( 'ActionScheduler_QueueRunner' ) ) {
