@@ -111,7 +111,7 @@ class InstaWP_Tools {
 
 		// Process migration settings like active plugins/themes only etc
 		$migrate_settings       = is_array( $migrate_settings ) ? $migrate_settings : array();
-		$migrate_settings       = instawp()->tools::get_migrate_settings( [], $migrate_settings );
+		$migrate_settings       = instawp()->tools::get_migrate_settings( array(), $migrate_settings );
 		$options_data           = array(
 			'api_signature'    => $api_signature,
 			'migrate_settings' => $migrate_settings,
@@ -138,7 +138,7 @@ class InstaWP_Tools {
 
 		return array(
 			'serve_url'        => INSTAWP_PLUGIN_URL . 'serve.php',
-			'migrate_settings' => $migrate_settings
+			'migrate_settings' => $migrate_settings,
 		);
 	}
 

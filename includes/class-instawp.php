@@ -60,11 +60,6 @@ class instaWP {
 		}
 
 		add_action( 'init', array( $this, 'register_actions' ), 11 );
-		add_action( 'add_option_instawp_api_heartbeat', array( $this, 'clear_heartbeat_action' ) );
-		add_action( 'update_option_instawp_api_heartbeat', array( $this, 'clear_heartbeat_action' ) );
-		add_action( 'add_option_instawp_rm_heartbeat', array( $this, 'clear_heartbeat_action' ) );
-		add_action( 'update_option_instawp_rm_heartbeat', array( $this, 'clear_heartbeat_action' ) );
-		add_action( 'instawp_handle_heartbeat', array( $this, 'handle_heartbeat' ) );
 		add_action( 'instawp_prepare_large_files_list', array( $this, 'prepare_large_files_list' ) );
 		add_action( 'add_option_instawp_max_file_size_allowed', array( $this, 'clear_staging_sites_list' ) );
 		add_action( 'update_option_instawp_max_file_size_allowed', array( $this, 'clear_staging_sites_list' ) );
@@ -92,22 +87,7 @@ class instaWP {
 		$wp_config->update();
 	}
 
-	public function clear_heartbeat_action() {
-		wp_unschedule_hook( 'instawp_handle_heartbeat' );
-	}
-
 	public function register_actions() {
-
-		$heartbeat = InstaWP_Setting::get_option( 'instawp_rm_heartbeat', 'on' );
-		$heartbeat = empty( $heartbeat ) ? 'on' : $heartbeat;
-
-		$interval = InstaWP_Setting::get_option( 'instawp_api_heartbeat', 15 );
-		$interval = empty( $interval ) ? 15 : (int) $interval;
-
-		if ( ! empty( InstaWP_Setting::get_api_key() ) && $heartbeat === 'on' && ! wp_next_scheduled( 'instawp_handle_heartbeat' ) ) {
-			wp_schedule_single_event( time() + ( $interval * MINUTE_IN_SECONDS ), 'instawp_handle_heartbeat' );
-		}
-
 		if ( ! wp_next_scheduled( 'instawp_prepare_large_files_list' ) ) {
 			wp_schedule_event( time(), 'hourly', 'instawp_prepare_large_files_list' );
 		}
@@ -126,14 +106,6 @@ class instaWP {
 		if ( empty( $migrate_id ) && empty( $migrate_key ) ) {
 			instawp_reset_running_migration();
 		}
-	}
-
-	public function handle_heartbeat() {
-		if ( empty( $this->api_key ) || empty( $this->connect_id ) ) {
-			return;
-		}
-
-		instawp_send_heartbeat( $this->connect_id );
 	}
 
 	public function prepare_large_files_list() {
@@ -570,6 +542,7 @@ class instaWP {
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-curl.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-ajax.php';
 		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-setting.php';
+		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-heartbeat.php';
 		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-file-management.php';
 		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-database-management.php';
 		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-tools.php';

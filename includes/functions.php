@@ -166,7 +166,7 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 
 		$instawp_backup_dir = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . INSTAWP_DEFAULT_BACKUP_DIR . DIRECTORY_SEPARATOR;
 		$files_to_delete    = scandir( $instawp_backup_dir );
-		$files_to_delete    = array_diff( $files_to_delete, [ '.', '..' ] );
+		$files_to_delete    = array_diff( $files_to_delete, array( '.', '..' ) );
 
 		foreach ( $files_to_delete as $file ) {
 			if ( is_file( $instawp_backup_dir . $file ) ) {
@@ -633,6 +633,7 @@ if ( ! function_exists( 'instawp_send_heartbeat' ) ) {
 	 * @return bool
 	 */
 	function instawp_send_heartbeat( $connect_id = '' ): bool {
+<<<<<<< HEAD
 
 		if ( defined( 'INSTAWP_DEBUG_LOG' ) && true === INSTAWP_DEBUG_LOG ) {
 			error_log( "HEARTBEAT RAN AT : " . date( 'd-m-Y, H:i:s, h:i:s' ) );
@@ -717,6 +718,9 @@ if ( ! function_exists( 'instawp_send_heartbeat' ) ) {
 		}
 
 		return $success;
+=======
+		return InstaWP_Heartbeat::send_heartbeat( $connect_id );
+>>>>>>> fefaa392c430afd4356a50bf5038d7ddaf359ad0
 	}
 }
 
@@ -857,5 +861,36 @@ if ( ! function_exists( 'instawp_zip_folder_with_phar' ) ) {
 
 		// Rename .tar.gz to .zip
 		rename( $destination . '.tar.gz', $destination );
+	}
+}
+
+if ( ! function_exists( 'instawp_array_recursive_diff' ) ) {
+
+	/**
+	 * Filer to get difference of recursive array data
+	 *
+	 * @param $array1
+	 * @param $array2
+	 *
+	 * @return array
+	 */
+	function instawp_array_recursive_diff( $array1, $array2 ): array {
+		$diff = array();
+		foreach ( $array1 as $key => $value ) {
+			if ( is_array( $value ) ) {
+				if ( ! isset( $array2[ $key ] ) || ! is_array( $array2[ $key ] ) ) {
+					$diff[ $key ] = $value;
+				} else {
+					$recursive_diff = instawp_array_recursive_diff( $value, $array2[ $key ] );
+					if ( ! empty( $recursive_diff ) ) {
+						$diff[ $key ] = $recursive_diff;
+					}
+				}
+			} elseif ( ! array_key_exists( $key, $array2 ) || $array2[ $key ] !== $value ) {
+				$diff[ $key ] = $value;
+			}
+		}
+
+		return $diff;
 	}
 }

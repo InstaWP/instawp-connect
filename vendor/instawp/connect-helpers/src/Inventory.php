@@ -3,12 +3,14 @@ declare( strict_types=1 );
 
 namespace InstaWP\Connect\Helpers;
 
+use InstaWP\Connect\Helpers\Helper;
+
 class Inventory {
 
-    public function fetch(): array {
-        $results = [];
+	public function fetch(): array {
+		$results = [];
 
-        if ( ! function_exists( 'get_plugins' ) || ! function_exists( 'get_mu_plugins' ) ) {
+		if ( ! function_exists( 'get_plugins' ) || ! function_exists( 'get_mu_plugins' ) ) {
 			require_once ABSPATH . 'wp-admin/includes/plugin.php';
 		}
 
@@ -25,8 +27,8 @@ class Inventory {
 				'activated'        => in_array( $name, $active_plugins, true ),
 				'update_available' => array_key_exists( $name, $plugin_update_data ),
 				'update_version'   => array_key_exists( $name, $plugin_update_data ) ? $plugin_update_data[ $name ]->new_version : '',
+				'is_on_wp_org'     => Helper::is_on_wordpress_org( $slug[0] ),
 				'icon_url'         => 'https://ps.w.org/' . $slug[0] . '/assets/icon-128x128.png',
-				'data'             => $plugin,
 			];
 		}
 
@@ -61,16 +63,38 @@ class Inventory {
 				'activated'        => $stylesheet === $current_theme->get_stylesheet(),
 				'update_available' => array_key_exists( $stylesheet, $theme_update_data ),
 				'update_version'   => array_key_exists( $stylesheet, $theme_update_data ) ? $theme_update_data[ $stylesheet ]['new_version'] : '',
+				'is_on_wp_org'     => Helper::is_on_wordpress_org( $stylesheet, 'theme' ),
 			];
 		}
 
+		$from_api      = get_site_transient( 'update_core' );
+		$updates       = [];
+		$latest_update = '';
+
+		if ( isset( $from_api->updates ) && is_array( $from_api->updates ) ) {
+			foreach ( $from_api->updates as $key => $update ) {
+				if ( ! in_array( $update->response, array( 'latest', 'upgrade' ) ) ) {
+					$updates[] = $update;
+				}
+			}
+		}
+
+		if ( ! empty( $updates ) ) {
+			$latest_update = $updates[0]->current;
+		}
+
 		$results = [
+			'core'      => [
+				[
+					'version'          => get_bloginfo( 'version' ),
+					'update_available' => ! empty( $updates ),
+					'update_version'   => $latest_update,
+				    'updates'          => $updates,
+				],
+			],
 			'theme'     => $themes,
 			'plugin'    => $plugins,
 			'mu_plugin' => $mu_plugins,
-			'core'      => [
-				[ 'version' => get_bloginfo( 'version' ) ],
-			],
 		];
 
         return $results;

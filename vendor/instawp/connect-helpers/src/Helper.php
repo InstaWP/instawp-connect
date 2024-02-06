@@ -58,4 +58,26 @@ class Helper {
 			'count' => $files_total
 		];
 	}
+
+	public static function is_on_wordpress_org( $slug, $type = 'plugin' ) {
+		$api_url  = 'https://api.wordpress.org/' . ( $type === 'plugin' ? 'plugins' : 'themes' ) . '/info/1.2/';
+		$response = wp_remote_get( add_query_arg( [
+			'action'  => $type . '_information',
+			'request' => [
+				'slug' => $slug
+			],
+		], $api_url ) );
+
+		if ( is_wp_error( $response ) ) {
+			return false;
+		}
+
+		$data = json_decode( wp_remote_retrieve_body( $response ), true );
+
+		if ( ! empty( $data['name'] ) && ! empty( $data['slug'] ) && $data['slug'] === $slug ) {
+			return true;
+		}
+
+		return false;
+	}
 }
