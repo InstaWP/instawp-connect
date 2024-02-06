@@ -660,14 +660,38 @@ if ( ! function_exists( 'instawp_send_heartbeat' ) ) {
 		$heartbeat_body = base64_encode(
 			wp_json_encode(
 				array(
-					"wp_version"     => $wp_version,
-					"php_version"    => $php_version,
-					"plugin_version" => INSTAWP_PLUGIN_VERSION,
-					"total_size"     => $total_size,
-					"theme"          => $active_theme,
-					"posts"          => $posts,
-					"pages"          => $pages,
-					"users"          => $users,
+					"wp_version"        => $wp_version,
+					"php_version"       => $php_version,
+					"plugin_version"    => INSTAWP_PLUGIN_VERSION,
+					"total_size"        => $total_size,
+					"theme"             => $active_theme,
+					"posts"             => $posts,
+					"pages"             => $pages,
+					"users"             => $users,
+					"consolidated_data" => array(
+						"posts_count" => 102,
+					),
+					"themes"            => array(
+						array(
+							"slug"             => "kadence",
+							"version"          => "1.1.51",
+							"parent"           => "",
+							"activated"        => true,
+							"update_available" => false,
+							"update_version"   => "",
+							"is_wp_org"        => true,
+						)
+					),
+					"plugins"           => array(
+						array(
+							"slug"             => "kadence",
+							"version"          => "1.1.51",
+							"parent"           => "",
+							"activated"        => true,
+							"update_available" => false,
+							"update_version"   => ""
+						)
+					),
 				)
 			)
 		);
