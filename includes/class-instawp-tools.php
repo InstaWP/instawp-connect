@@ -177,6 +177,12 @@ class InstaWP_Tools {
 
 	public static function get_tracking_database( $migrate_key ) {
 
+		$options_data_filename = INSTAWP_BACKUP_DIR . 'options-' . $migrate_key . '.txt';
+
+		if ( ! file_exists( $options_data_filename ) || ! is_readable( $options_data_filename ) ) {
+			return false;
+		}
+
 		if ( ! class_exists( 'IWPDB' ) ) {
 			require_once INSTAWP_PLUGIN_DIR . 'includes/class-instawp-iwpdb.php';
 		}
@@ -858,9 +864,6 @@ class InstaWP_Tools {
 
 	public static function cli_archive_wordpress_db() {
 
-//      return '/Users/jaed/Desktop/wordpress_db_backup_2024-01-05_13-27-59.sql';
-
-//      $archive_dir  = '/Users/jaed/Desktop/';
 		$archive_dir  = sys_get_temp_dir() . DIRECTORY_SEPARATOR;
 		$archive_name = 'wordpress_db_backup_' . date( 'Y-m-d_H-i-s' );
 		$db_file_name = $archive_dir . $archive_name . '.sql';
@@ -872,9 +875,6 @@ class InstaWP_Tools {
 
 	public static function cli_archive_wordpress_files( $type = 'zip', $dirs_to_skip = array() ) {
 
-//      return '/Users/jaed/Desktop/wordpress_backup_2024-01-05_13-12-09.tgz';
-
-//      $archive_dir         = '/Users/jaed/Desktop/';
 		$archive_dir         = sys_get_temp_dir() . DIRECTORY_SEPARATOR;
 		$archive_name        = 'wordpress_backup_' . date( 'Y-m-d_H-i-s' );
 		$directories_to_skip = array_merge(
@@ -905,18 +905,6 @@ class InstaWP_Tools {
 			if ( $zip->open( $archive_path, ZipArchive::CREATE ) !== true ) {
 				return new WP_Error( 'zip_is_not_opening', esc_html__( 'Zip archive is not opening.', 'instawp-connect' ) );
 			}
-
-//          $iterator = new RecursiveDirectoryIterator( ABSPATH );
-//          $files    = new RecursiveIteratorIterator( $iterator, RecursiveIteratorIterator::LEAVES_ONLY );
-
-//            foreach ( $files as $file ) {
-//              if ( ! $file->isDir() ) {
-//                  $filePath     = $file->getRealPath();
-//                  $relativePath = str_replace( ABSPATH, '', $filePath );
-//
-//                  $zip->addFile( $filePath, $relativePath );
-//              }
-//          }
 
 			$skip_folders     = array(
 				'wp-content' . DIRECTORY_SEPARATOR . 'instawpbackups',
@@ -965,7 +953,6 @@ class InstaWP_Tools {
 
 		// Creating new blank site
 		$sites_args        = array(
-			//          'site_name'   => 'push-site-' . rand( 10, 99 ),
 			'wp_version'  => '6.3',
 			'php_version' => '7.4',
 			'is_reserved' => false,

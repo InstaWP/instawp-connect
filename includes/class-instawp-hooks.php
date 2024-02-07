@@ -10,15 +10,18 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 	class InstaWP_Hooks {
 
 		public function __construct() {
-
-			add_action( 'init', array( $this, 'ob_start' ) );
-			add_action( 'wp_footer', array( $this, 'ob_end' ) );
-
 			add_action( 'init', array( $this, 'handle_hard_disable_seo_visibility' ) );
 			add_action( 'admin_init', array( $this, 'handle_clear_all' ) );
 			add_action( 'admin_bar_menu', array( $this, 'add_instawp_menu_icon' ), 999 );
 			add_action( 'wp_enqueue_scripts', array( $this, 'front_enqueue_scripts' ) );
 			add_action( 'login_init', array( $this, 'handle_auto_login_request' ) );
+
+			add_filter( 'admin_title', array( $this, 'update_admin_document_title' ), 0 );
+		}
+
+		public function update_admin_document_title( $title ) {
+
+			return $title;
 		}
 
 		public function handle_auto_login_request() {
@@ -57,7 +60,6 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			exit();
 		}
 
-
 		public function front_enqueue_scripts() {
 			wp_enqueue_style( 'instawp-connect', instawp()::get_asset_url( 'assets/css/style.min.css' ) );
 		}
@@ -92,13 +94,11 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			}
 		}
 
-
 		function handle_hard_disable_seo_visibility() {
 			if ( instawp()->is_staging && (int) INSTAWP_Setting::get_option( 'blog_public' ) === 1 ) {
 				update_option( 'blog_public', '0' );
 			}
 		}
-
 
 		function handle_clear_all() {
 
@@ -120,36 +120,6 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 
 				wp_redirect( admin_url( 'tools.php?page=instawp' ) );
 				exit();
-			}
-		}
-
-
-		/**
-		 * Return Buffered Content
-		 *
-		 * @param $buffer
-		 *
-		 * @return mixed
-		 */
-		function ob_callback( $buffer ) {
-			return $buffer;
-		}
-
-
-		/**
-		 * Start of Output Buffer
-		 */
-		function ob_start() {
-			ob_start( array( $this, 'ob_callback' ) );
-		}
-
-
-		/**
-		 * End of Output Buffer
-		 */
-		function ob_end() {
-			if ( ob_get_length() ) {
-				ob_end_flush();
 			}
 		}
 	}

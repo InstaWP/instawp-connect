@@ -85,7 +85,6 @@ class InstaWP_AJAX {
 		}
 
 		if ( isset( $response_data['stage']['migration-finished'] ) && $response_data['stage']['migration-finished'] === true ) {
-			instawp_reset_running_migration();
 
 			$tracking_db      = InstaWP_Tools::get_tracking_database( $migrate_key );
 			$migrate_settings = $tracking_db->get_option( 'migrate_settings' );
@@ -97,6 +96,8 @@ class InstaWP_AJAX {
 
 			// update staging websites list
 			instawp_get_staging_sites_list( true, true );
+
+			instawp_reset_running_migration();
 		}
 
 		if ( ! empty( $auto_login_hash ) ) {

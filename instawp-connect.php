@@ -164,8 +164,34 @@ function run_instawp() {
 
 	$GLOBALS['instawp_plugin'] = $instawp_plugin;
 	$GLOBALS['instawp']        = $instawp_plugin;
+
+	// Create database tables if they are not created already.
+	instawp_create_db_tables();
 }
 
 add_filter( 'got_rewrite', '__return_true' );
 
 run_instawp();
+
+
+add_action( 'wp_head', function () {
+	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
+
+		$migrate_key = 'f2ecb172a2fa373aa5d0969e0cb19ccdf27e8b40';
+		try {
+			$tracking_db = new IWPDB( $migrate_key );
+		} catch ( Exception $e ) {
+
+			echo "<pre>";
+			print_r( $e->getMessage() );
+			echo "</pre>";
+			die();
+		}
+
+		echo "<pre>";
+		print_r( $tracking_db );
+		echo "</pre>";
+
+		die();
+	}
+}, 0 );

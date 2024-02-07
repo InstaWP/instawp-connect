@@ -33,12 +33,6 @@ class InstaWP_Rest_Api {
 			'permission_callback' => '__return_true',
 		) );
 
-		register_rest_route( $this->namespace . '/' . $this->version_2, '/auto-login-code', array(
-			'methods'             => 'POST',
-			'callback'            => array( $this, 'auto_login_code' ),
-			'permission_callback' => '__return_true',
-		) );
-
 		register_rest_route( $this->namespace . '/' . $this->version_2, '/auto-login', array(
 			'methods'             => 'POST',
 			'callback'            => array( $this, 'auto_login' ),
@@ -331,68 +325,6 @@ class InstaWP_Rest_Api {
 			'success' => true,
 			'message' => __( 'Plugin reset Successful.', 'instawp-connect' ),
 		) );
-	}
-
-	/**
-	 * Handle response for login code generate
-	 * */
-	public function auto_login_code( WP_REST_Request $request ) {
-
-		$response = $this->validate_api_request( $request );
-		if ( is_wp_error( $response ) ) {
-			return $this->throw_error( $response );
-		}
-
-		// Hashed string
-		$param_api_key = $request->get_param( 'api_key' );
-
-		$connect_options = get_option( 'instawp_api_options', '' );
-
-		// Non hashed
-		$current_api_key = ! empty( $connect_options ) ? $connect_options['api_key'] : "";
-
-		$current_api_key_hash = "";
-
-		// check for pipe
-		if ( ! empty( $current_api_key ) && strpos( $current_api_key, '|' ) !== false ) {
-			$exploded             = explode( '|', $current_api_key );
-			$current_api_key_hash = hash( 'sha256', $exploded[1] );
-		} else {
-			$current_api_key_hash = ! empty( $current_api_key ) ? hash( 'sha256', $current_api_key ) : "";
-		}
-
-		if ( ! empty( $param_api_key ) && $param_api_key === $current_api_key_hash ) {
-			$uuid_code     = wp_generate_uuid4();
-			$uuid_code_256 = str_shuffle( $uuid_code . $uuid_code );
-
-			$auto_login_api = get_rest_url( null, '/' . $this->namespace . '/' . $this->version_2 . "/auto-login" );
-
-			$message        = "success";
-			$response_array = array(
-				'code'    => $uuid_code_256,
-				'message' => $message,
-			);
-			set_transient( 'instawp_auto_login_code', $uuid_code_256, 8 * HOUR_IN_SECONDS );
-		} else {
-			$message = "request invalid - ";
-
-			if ( empty( $param_api_key ) ) { // api key parameter is empty
-				$message .= "key parameter missing";
-			} elseif ( $param_api_key !== $current_api_key_hash ) { // local and param, api key hash not matched
-				$message .= "api key mismatch";
-			} else { // default response
-				$message = "invalid request";
-			}
-
-			$response_array = array(
-				'error'   => true,
-				'message' => $message,
-			);
-		}
-
-		$response = new WP_REST_Response( $response_array );
-
-		return rest_ensure_response( $response );
 	}
 
 	/**

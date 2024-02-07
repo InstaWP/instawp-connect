@@ -131,16 +131,27 @@ class IWPDB {
 		$db_name     = $this->get_option( 'db_name' );
 		$mysqli      = new mysqli( $db_host, $db_username, $db_password, $db_name );
 
-		mysqli_set_charset( $mysqli, "utf8" );
+		if ( $mysqli->connect_error ) {
+			$this->last_error = $mysqli->connect_error;
+		}
 
-		if ( $mysqli instanceof mysqli ) {
+		error_log( 'mysql:' . json_encode( $mysqli ) );
+
+		if ( $mysqli ) {
+			mysqli_set_charset( $mysqli, "utf8" );
+
 			$this->conn = $mysqli;
 		}
 	}
 
 	public function set_options_data() {
 
-		$options_data_filename  = INSTAWP_BACKUP_DIR . 'options-' . $this->migrate_key . '.txt';
+		$options_data_filename = INSTAWP_BACKUP_DIR . 'options-' . $this->migrate_key . '.txt';
+
+		if ( ! is_readable( $options_data_filename ) ) {
+			return;
+		}
+
 		$options_data_encrypted = file_get_contents( $options_data_filename );
 
 		if ( $options_data_encrypted ) {
