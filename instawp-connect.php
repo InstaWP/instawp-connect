@@ -177,12 +177,19 @@ run_instawp();
 add_action( 'wp_head', function () {
 	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
 
-		$migrate_key        = 'f2ecb172a2fa373aa5d0969e0cb19ccdf27e8b40';
-		$migrate_settings   = [];
-		$pre_check_response = instawp()->tools::get_pull_pre_check_response( $migrate_key, $migrate_settings );
+		$migrate_key = 'f2ecb172a2fa373aa5d0969e0cb19ccdf27e8b40';
+		try {
+			$tracking_db = new IWPDB( $migrate_key );
+		} catch ( Exception $e ) {
+
+			echo "<pre>";
+			print_r( $e->getMessage() );
+			echo "</pre>";
+			die();
+		}
 
 		echo "<pre>";
-		print_r( $pre_check_response );
+		print_r( $tracking_db );
 		echo "</pre>";
 
 		die();

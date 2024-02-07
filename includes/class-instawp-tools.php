@@ -177,6 +177,12 @@ class InstaWP_Tools {
 
 	public static function get_tracking_database( $migrate_key ) {
 
+		$options_data_filename = INSTAWP_BACKUP_DIR . 'options-' . $migrate_key . '.txt';
+
+		if ( ! file_exists( $options_data_filename ) || ! is_readable( $options_data_filename ) ) {
+			return false;
+		}
+
 		if ( ! class_exists( 'IWPDB' ) ) {
 			require_once INSTAWP_PLUGIN_DIR . 'includes/class-instawp-iwpdb.php';
 		}
