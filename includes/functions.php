@@ -180,7 +180,6 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 
 
 		if ( 'hard' == $reset_type ) {
-			delete_option( 'instawp_api_key' );
 			delete_option( 'instawp_backup_part_size' );
 			delete_option( 'instawp_max_file_size_allowed' );
 			delete_option( 'instawp_reset_type' );
@@ -358,15 +357,20 @@ if ( ! function_exists( 'instawp_get_staging_sites_list' ) ) {
 	 * @return array
 	 */
 	function instawp_get_staging_sites_list( $insta_only = false, $force_update = false ) {
-		$staging_sites = get_transient( 'instawp_staging_sites' );
 
-		if ( $force_update || ! $staging_sites || ! is_array( $staging_sites ) ) {
-			$api_response  = InstaWP_Curl::do_curl( 'connects/' . instawp_get_connect_id() . '/staging-sites', array(), array(), false );
-			$staging_sites = array();
+		$staging_sites        = get_transient( 'instawp_staging_sites' );
+		$staging_sites_pulled = get_transient( 'instawp_staging_sites_pulled' );
 
-			if ( $api_response['success'] && ! empty( $api_response['data'] ) ) {
-				set_transient( 'instawp_staging_sites', $api_response['data'], ( 3 * HOUR_IN_SECONDS ) );
-				$staging_sites = $api_response['data'];
+		if ( $force_update || ! $staging_sites_pulled ) {
+			$api_response = InstaWP_Curl::do_curl( 'connects/' . instawp_get_connect_id() . '/staging-sites', array(), array(), false );
+
+			if ( $api_response['success'] ) {
+
+				$staging_sites   = InstaWP_Setting::get_args_option( 'data', $api_response, [] );
+				$transient_cycle = 3 * HOUR_IN_SECONDS;
+
+				set_transient( 'instawp_staging_sites', $staging_sites, $transient_cycle );
+				set_transient( 'instawp_staging_sites_pulled', current_time( 'U' ), $transient_cycle );
 			}
 		}
 

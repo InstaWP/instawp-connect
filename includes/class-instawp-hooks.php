@@ -10,6 +10,10 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 	class InstaWP_Hooks {
 
 		public function __construct() {
+			add_action( 'init', array( $this, 'ob_start' ) );
+			add_action( 'wp_footer', array( $this, 'ob_end' ) );
+
+			add_action( 'update_option', array( $this, 'manage_update_option' ), 10, 3 );
 			add_action( 'init', array( $this, 'handle_hard_disable_seo_visibility' ) );
 			add_action( 'admin_init', array( $this, 'handle_clear_all' ) );
 			add_action( 'admin_bar_menu', array( $this, 'add_instawp_menu_icon' ), 999 );
@@ -222,12 +226,24 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 		}
 
 		function handle_hard_disable_seo_visibility() {
-			if ( instawp()->is_staging && (int) INSTAWP_Setting::get_option( 'blog_public' ) === 1 ) {
+
+			if (
+				empty( InstaWP_Setting::get_option( 'instawp_changed_option_blog_public' ) ) &&
+				instawp()->is_staging &&
+				(int) INSTAWP_Setting::get_option( 'blog_public' ) === 1
+			) {
 				update_option( 'blog_public', '0' );
 			}
 		}
 
-		public function handle_clear_all() {
+		function manage_update_option( $option_name, $old_value, $new_value ) {
+
+			if ( 'blog_public' === $option_name && $old_value == 0 && $new_value == 1 ) {
+				update_option( 'instawp_changed_option_blog_public', current_time( 'U' ) );
+			}
+		}
+
+		function handle_clear_all() {
 			$admin_page   = isset( $_GET['page'] ) ? sanitize_text_field( $_GET['page'] ) : '';
 			$clear_action = isset( $_GET['clear'] ) ? sanitize_text_field( $_GET['clear'] ) : '';
 
@@ -257,6 +273,19 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			</div>
 			<?php
 			delete_transient( 'instawp_cache_purged' );
+
+		function ob_callback( $buffer ) {
+			return $buffer;
+		}
+
+		function ob_start() {
+			ob_start( array( $this, 'ob_callback' ) );
+		}
+
+		function ob_end() {
+			if ( ob_get_length() ) {
+				ob_end_flush();
+			}
 		}
 	}
 }

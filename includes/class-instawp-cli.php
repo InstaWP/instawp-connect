@@ -156,7 +156,7 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 
 			if ( isset( $args[0] ) && $args[0] === 'config-remove' ) {
 				$option = new \InstaWP\Connect\Helpers\Option();
-				$option->delete( array( 'instawp_api_key', 'instawp_api_options', 'instawp_connect_id_options' ) );
+				$option->delete( array( 'instawp_api_options', 'instawp_connect_id_options' ) );
 
 				return true;
 			}

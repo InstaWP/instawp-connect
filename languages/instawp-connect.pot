@@ -497,27 +497,27 @@ msgstr ""
 msgid "Learn more."
 msgstr ""
 
-#: includes/class-instawp-tools.php:771
+#: includes/class-instawp-tools.php:762
 msgid "Launch %s"
 msgstr ""
 
-#: includes/class-instawp-tools.php:906
+#: includes/class-instawp-tools.php:897
 msgid "Zip archive is not opening."
 msgstr ""
 
-#: includes/class-instawp-tools.php:992
+#: includes/class-instawp-tools.php:983
 msgid "Site ID not found in site create response."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1030
+#: includes/class-instawp-tools.php:1021
 msgid "SFTP login failed."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1041
+#: includes/class-instawp-tools.php:1032
 msgid "SFTP upload failed for files."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1049
+#: includes/class-instawp-tools.php:1040
 msgid "SFTP upload failed for database."
 msgstr ""
 
@@ -525,19 +525,19 @@ msgstr ""
 msgid "Migration aborted forcefully"
 msgstr ""
 
-#: includes/functions.php:662
+#: includes/functions.php:667
 msgid "No login found with given username and default username, You are going to login with first admin user."
 msgstr ""
 
-#: includes/functions.php:658
+#: includes/functions.php:663
 msgid "Login information for the given username didn't found, You are going to login with default login username."
 msgstr ""
 
-#: includes/functions.php:655
+#: includes/functions.php:660
 msgid "Login information for the given username"
 msgstr ""
 
-#: includes/functions.php:666
+#: includes/functions.php:671
 msgid "No login information found."
 msgstr ""
 
