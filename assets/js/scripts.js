@@ -1157,7 +1157,7 @@
             type: 'POST',
             url: plugin_object.ajax_url,
             data: {
-                'action': 'instawp_create_file_db_manager',
+                'action': 'instawp_process_ajax',
                 'type': el.data('type'),
                 'security': instawp_migrate.security
             },
@@ -1170,6 +1170,47 @@
             }
         });
     });
+
+    $(document).on('click', '.instawp-tools', function (e) {
+        e.preventDefault();
+        let el = $(this).find('a');
+        $.ajax({
+            type: 'POST',
+            url: plugin_object.ajax_url,
+            data: {
+                'action': 'instawp_process_ajax',
+                'type': el.attr('target'),
+                'security': instawp_migrate.security
+            },
+            success: function (response) {
+                console.log(response)
+                if(el.attr('target') === 'cache') {
+                    window.location.reload();
+                } else {
+                    window.open(response.data.login_url, '_blank');
+                }
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                console.log(errorThrown);
+            }
+        });
+    });
+
+    $(document).on('click', '.instawp-shortcuts', function (e) {
+        e.preventDefault();
+        let el = $(this).find('a');
+        localStorage.setItem('instawp_admin_current', el.attr('target'));
+        window.location = el.attr('href');
+    });
+
+    function setLocalStorage() {
+        // Set a value in localStorage
+        localStorage.setItem('myKey', 'myValue');
+
+        // Optionally, you can also retrieve the value and log it
+        var retrievedValue = localStorage.getItem('myKey');
+        console.log('Retrieved value from localStorage:', retrievedValue);
+    }
 
 })(jQuery, window, document, instawp_migrate);
 

@@ -16,14 +16,14 @@ class InstaWP_AJAX {
 		add_action( 'wp_ajax_instawp_get_dir_contents', array( $this, 'get_dir_contents' ) );
 		add_action( 'wp_ajax_instawp_get_database_tables', array( $this, 'get_database_tables' ) );
 		add_action( 'wp_ajax_instawp_get_large_files', array( $this, 'get_large_files' ) );
-		add_action( 'wp_ajax_instawp_create_file_db_manager', array( $this, 'create_file_db_manager' ) );
+		add_action( 'wp_ajax_instawp_process_ajax', array( $this, 'process_ajax' ) );
 
 		add_action( 'wp_ajax_instawp_check_usages_limit', array( $this, 'check_usages_limit' ) );
 		add_action( 'wp_ajax_instawp_migrate_init', array( $this, 'migrate_init' ) );
 		add_action( 'wp_ajax_instawp_migrate_progress', array( $this, 'migrate_progress' ) );
 	}
 
-	public function create_file_db_manager() {
+	public function process_ajax() {
 		check_ajax_referer( 'instawp-migrate', 'security' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -40,7 +40,13 @@ class InstaWP_AJAX {
 		} elseif ( $type === 'database' ) {
 			$manager = new \InstaWP\Connect\Helpers\DatabaseManager();
 		    wp_send_json_success( $manager->get() );
-		} elseif ( $type === 'debug_log' ) {
+		} elseif ( $type === 'cache' ) {
+			$cache_api = new \InstaWP\Connect\Helpers\Cache();
+            $response  = $cache_api->clean();
+
+            set_transient( 'instawp_cache_purged', $response, 300 );
+            wp_send_json_success( $response );
+        } elseif ( $type === 'debug_log' ) {
 			wp_send_json_success( array( 'login_url' => site_url( 'wp-content/debug.log' ) ) );
 		}
 
