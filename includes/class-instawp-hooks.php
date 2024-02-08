@@ -10,6 +10,9 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 	class InstaWP_Hooks {
 
 		public function __construct() {
+			add_action( 'init', array( $this, 'ob_start' ) );
+			add_action( 'wp_footer', array( $this, 'ob_end' ) );
+
 			add_action( 'update_option', array( $this, 'manage_update_option' ), 10, 3 );
 			add_action( 'init', array( $this, 'handle_hard_disable_seo_visibility' ) );
 			add_action( 'admin_init', array( $this, 'handle_clear_all' ) );
@@ -133,6 +136,20 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 
 				wp_redirect( admin_url( 'tools.php?page=instawp' ) );
 				exit();
+			}
+		}
+
+		function ob_callback( $buffer ) {
+			return $buffer;
+		}
+
+		function ob_start() {
+			ob_start( array( $this, 'ob_callback' ) );
+		}
+
+		function ob_end() {
+			if ( ob_get_length() ) {
+				ob_end_flush();
 			}
 		}
 	}
