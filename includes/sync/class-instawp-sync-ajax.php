@@ -457,7 +457,7 @@ class InstaWP_Sync_Ajax {
 	private function get_connect_quota_remaining_limit() {
 		$connect_id   = instawp_get_connect_id();
 
-		// connects/<connect_id>/staging-sites
+		// connects/<connect_id>/get-sync-quota
 		$api_response = InstaWP_Curl::do_curl( "connects/{$connect_id}/get-sync-quota", array(), array(), false );
 
 		if ( $api_response['success'] && ! empty( $api_response['data'] ) ) {
