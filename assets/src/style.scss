@@ -57,16 +57,16 @@
     }
 
     li#wp-admin-bar-instawp {
+        > a {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
 
         &.recording-on {
-            a {
-                padding-left: 22px;
-
+            > a {
                 &:before {
                     content: "\f1131";
-                    top: 50%;
-                    left: -22px;
-                    transform: translateY(-50%);
                     width: 12px;
                     height: 12px;
                     background-color: #E91E63;
@@ -76,29 +76,6 @@
                     animation-iteration-count: infinite;
                     box-sizing: border-box;
                 }
-            }
-        }
-
-        a {
-            position: relative;
-            width: 24px;
-            transition: 0.3s;
-
-            &:hover,
-            &:focus,
-            &:visited {
-                background: transparent;
-                color: transparent;
-            }
-
-            &:after {
-                position: absolute;
-                content: url("../images/instawp-logo.svg");
-                top: 50%;
-                left: 50%;
-                width: 24px;
-                height: 26px;
-                transform: translate(-50%, -50%);
             }
         }
     }
