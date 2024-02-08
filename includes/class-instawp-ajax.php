@@ -88,12 +88,15 @@ class InstaWP_AJAX {
 
 		if ( isset( $response_data['stage']['migration-finished'] ) && $response_data['stage']['migration-finished'] === true ) {
 
-			$tracking_db      = InstaWP_Tools::get_tracking_database( $migrate_key );
-			$migrate_settings = $tracking_db->get_option( 'migrate_settings' );
-			$migrate_options  = $migrate_settings['options'] ?? array();
+			$tracking_db = InstaWP_Tools::get_tracking_database( $migrate_key );
 
-			if ( is_array( $migrate_options ) && in_array( 'enable_event_syncing', $migrate_options ) ) {
-				update_option( 'instawp_is_event_syncing', 1 );
+			if ( $tracking_db instanceof IWPDB ) {
+				$migrate_settings = $tracking_db->get_option( 'migrate_settings' );
+				$migrate_options  = $migrate_settings['options'] ?? array();
+
+				if ( is_array( $migrate_options ) && in_array( 'enable_event_syncing', $migrate_options ) ) {
+					update_option( 'instawp_is_event_syncing', 1 );
+				}
 			}
 
 			// update staging websites list
@@ -311,8 +314,8 @@ class InstaWP_AJAX {
 				$theme_item_checked = true;
 
 				if ( in_array( $data['full_path'], array( $theme_path, $template_path, $themes_dir, $themes_dir . '/index.php' ) )
-					|| strpos( $data['full_path'], $theme_path ) !== false
-					|| strpos( $data['full_path'], $template_path ) !== false ) {
+				     || strpos( $data['full_path'], $theme_path ) !== false
+				     || strpos( $data['full_path'], $template_path ) !== false ) {
 
 					$theme_item_checked = false;
 				}
@@ -324,7 +327,7 @@ class InstaWP_AJAX {
 				$plugin_item_checked = true;
 
 				if ( in_array( $data['full_path'], array( wp_normalize_path( WP_PLUGIN_DIR ), wp_normalize_path( WP_PLUGIN_DIR ) . '/index.php' ) )
-					|| in_array( basename( $data['relative_path'] ), array_map( 'dirname', $active_plugins ) ) ) {
+				     || in_array( basename( $data['relative_path'] ), array_map( 'dirname', $active_plugins ) ) ) {
 
 					$plugin_item_checked = false;
 				}
