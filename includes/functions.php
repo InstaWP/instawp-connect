@@ -28,7 +28,7 @@ if ( ! function_exists( 'instawp_create_db_tables' ) ) {
 			prod varchar(128) NOT NULL,
 			status ENUM ('pending','in_progress','completed','error') DEFAULT 'pending',
 			synced_message varchar(128),
-			PRIMARY KEY  (id)
+			PRIMARY KEY (id)
         ) ";
 
 		maybe_create_table( INSTAWP_DB_TABLE_EVENTS, $sql_create_events_table );
@@ -41,7 +41,7 @@ if ( ! function_exists( 'instawp_create_db_tables' ) ) {
 			status ENUM ('pending','in_progress','completed','error') DEFAULT 'pending',
 			synced_message text NULL,
             date datetime NOT NULL,
-            PRIMARY KEY  (id)
+            PRIMARY KEY (id)
         )";
 
 		maybe_create_table( INSTAWP_DB_TABLE_EVENT_SITES, $sql_create_sync_history_table );
@@ -59,7 +59,7 @@ if ( ! function_exists( 'instawp_create_db_tables' ) ) {
             source_connect_id int(20) NOT NULL,
             source_url varchar(128),
             date datetime NOT NULL,
-            PRIMARY KEY  (id)
+            PRIMARY KEY (id)
             ) ";
 
 		maybe_create_table( INSTAWP_DB_TABLE_SYNC_HISTORY, $sql_create_event_sites_table );
@@ -84,11 +84,13 @@ if ( ! function_exists( 'instawp_alter_db_tables' ) ) {
 	function instawp_alter_db_tables() {
 		global $wpdb;
 
-		$row = $wpdb->get_row( "SELECT * FROM " . INSTAWP_DB_TABLE_EVENTS, ARRAY_A );
-		$row = $row ?? array();
+		foreach ( [ INSTAWP_DB_TABLE_EVENTS, INSTAWP_DB_TABLE_EVENTS, INSTAWP_DB_TABLE_SYNC_HISTORY ] as $table_name ) {
+			$db_name = $wpdb->dbname;
+			$has_col = $wpdb->get_results(  "SELECT `COLUMN_NAME` FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `table_name` = '{$table_name}' AND `TABLE_SCHEMA` = '{$db_name}' AND `COLUMN_NAME` = 'event_hash'"  );
 
-		if ( ! array_key_exists( 'event_hash', $row ) ) {
-			$wpdb->query( "ALTER TABLE " . INSTAWP_DB_TABLE_EVENTS . " ADD `event_hash` varchar(50) NOT NULL AFTER `id`" );
+			if ( empty( $has_col ) ) {
+				$wpdb->query( "ALTER TABLE " . $table_name . " ADD `event_hash` varchar(50) NOT NULL AFTER `id`" );
+			}
 		}
 	}
 }
