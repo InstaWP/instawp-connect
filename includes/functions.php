@@ -87,7 +87,7 @@ if ( ! function_exists( 'instawp_alter_db_tables' ) ) {
 		$row = $wpdb->get_row( "SELECT * FROM " . INSTAWP_DB_TABLE_EVENTS, ARRAY_A );
 		$row = $row ?? array();
 
-		if ( ( ! array_key_exists( 'event_hash', $row ) ) ) {
+		if ( ! array_key_exists( 'event_hash', $row ) ) {
 			$wpdb->query( "ALTER TABLE " . INSTAWP_DB_TABLE_EVENTS . " ADD `event_hash` varchar(50) NOT NULL AFTER `id`" );
 		}
 	}
