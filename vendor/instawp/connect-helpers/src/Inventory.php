@@ -3,8 +3,6 @@ declare( strict_types=1 );
 
 namespace InstaWP\Connect\Helpers;
 
-use InstaWP\Connect\Helpers\Helper;
-
 class Inventory {
 
 	public function fetch(): array {
@@ -27,7 +25,6 @@ class Inventory {
 				'activated'        => in_array( $name, $active_plugins, true ),
 				'update_available' => array_key_exists( $name, $plugin_update_data ),
 				'update_version'   => array_key_exists( $name, $plugin_update_data ) ? $plugin_update_data[ $name ]->new_version : '',
-				'is_on_wp_org'     => Helper::is_on_wordpress_org( $slug[0] ),
 				'icon_url'         => 'https://ps.w.org/' . $slug[0] . '/assets/icon-128x128.png',
 			];
 		}
@@ -63,7 +60,6 @@ class Inventory {
 				'activated'        => $stylesheet === $current_theme->get_stylesheet(),
 				'update_available' => array_key_exists( $stylesheet, $theme_update_data ),
 				'update_version'   => array_key_exists( $stylesheet, $theme_update_data ) ? $theme_update_data[ $stylesheet ]['new_version'] : '',
-				'is_on_wp_org'     => Helper::is_on_wordpress_org( $stylesheet, 'theme' ),
 			];
 		}
 

@@ -30,19 +30,21 @@ class InstaWP_AJAX {
 			wp_send_json_error();
 		}
 		
-		$type = isset( $_POST['type'] ) ? $_POST['type'] : 'file';
+		$type = isset( $_POST['type'] ) ? sanitize_text_field( $_POST['type'] ) : 'file';
 
 		InstaWP_Tools::instawp_reset_permalink();
 
 		if ( $type === 'file' ) {
 			$manager = new \InstaWP\Connect\Helpers\FileManager();
+		    wp_send_json_success( $manager->get() );
 		} elseif ( $type === 'database' ) {
 			$manager = new \InstaWP\Connect\Helpers\DatabaseManager();
+		    wp_send_json_success( $manager->get() );
 		} elseif ( $type === 'debug_log' ) {
 			wp_send_json_success( array( 'login_url' => site_url( 'wp-content/debug.log' ) ) );
 		}
 
-		wp_send_json_success( $manager->get() );
+		wp_send_json_error();
 	}
 
 	public function migrate_progress() {
