@@ -67,6 +67,11 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 				require_once ABSPATH . 'wp-admin/includes/class-wp-debug-data.php';
 			}
 
+//			$heartbeat_data = get_transient( 'instawp_heartbeat_data' );
+//			if ( ! empty( $heartbeat_data ) ) {
+//				return $heartbeat_data;
+//			}
+
 			$sizes_data     = WP_Debug_Data::get_sizes();
 			$wp_version     = get_bloginfo( 'version' );
 			$php_version    = phpversion();
@@ -79,15 +84,15 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 			$count_users    = count_users();
 			$users          = $count_users['total_users'];
 
-			$posts = array();
+			$post_data = array();
 			foreach ( get_post_types() as $post_type ) {
-				$posts[ $post_type ] = ( array ) wp_count_posts( $post_type );
+				$post_data[ $post_type ] = ( array ) wp_count_posts( $post_type );
 			}
 
 			$inventory = new \InstaWP\Connect\Helpers\Inventory();
 			$site_data = $inventory->fetch();
 
-			return array(
+			$heartbeat_data = array(
 				'wp_version'        => $wp_version,
 				'php_version'       => $php_version,
 				'plugin_version'    => INSTAWP_PLUGIN_VERSION,
@@ -104,9 +109,13 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 				'mu_plugins'        => $site_data['mu_plugin'],
 				'consolidated_data' => array(
 					'users' => $count_users['avail_roles'],
-					'posts' => $posts,
+					'posts' => $post_data,
 				),
 			);
+
+			//set_transient( 'instawp_heartbeat_data', $heartbeat_data, 300 );
+
+			return $heartbeat_data;
 		}
 
 		public static function send_heartbeat( $connect_id = null, $unfiltered = false ): bool {

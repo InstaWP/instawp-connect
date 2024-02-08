@@ -167,6 +167,7 @@ function run_instawp() {
 
 	// Create database tables if they are not created already.
 	instawp_create_db_tables();
+	instawp_alter_db_tables();
 }
 
 add_filter( 'got_rewrite', '__return_true' );
