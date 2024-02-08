@@ -178,19 +178,15 @@ run_instawp();
 add_action( 'wp_head', function () {
 	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
 
-		$migrate_key = 'f2ecb172a2fa373aa5d0969e0cb19ccdf27e8b40';
-		try {
-			$tracking_db = new IWPDB( $migrate_key );
-		} catch ( Exception $e ) {
+//		$api_key          = 'auLF3EBeFaoGrfQKVqsG3Qe7Giyi1wPCtDL3DtS3';
+//		$connect_response = InstaWP_Setting::instawp_generate_api_key( $api_key, true );
 
-			echo "<pre>";
-			print_r( $e->getMessage() );
-			echo "</pre>";
-			die();
-		}
+//		$api_response = InstaWP_Curl::do_curl( 'check-key', array(), array(), false, 'v1', $api_key );
+
+		$api_options = get_option( 'instawp_api_options', array() );
 
 		echo "<pre>";
-		print_r( $tracking_db );
+		print_r( $api_options );
 		echo "</pre>";
 
 		die();
