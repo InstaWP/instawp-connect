@@ -54,6 +54,7 @@ delete_option( 'instawp_rm_inventory' );
 delete_option( 'instawp_rm_debug_log' );
 delete_option( 'instawp_last_heartbeat_sent' );
 delete_option( 'instawp_is_staging' );
+delete_option( 'instawp_is_event_syncing' );
 
 delete_transient( 'instawp_staging_sites' );
 delete_transient( 'instawp_migration_completed' );
