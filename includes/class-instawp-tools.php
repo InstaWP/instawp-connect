@@ -744,15 +744,6 @@ class InstaWP_Tools {
 
 
 	/**
-	 * Update Search engine visibility
-	 *
-	 * @return void
-	 */
-	public static function update_search_engine_visibility( $should_visible = false ) {
-		update_option( 'blog_public', (bool) $should_visible );
-	}
-
-	/**
 	 * Auto login page HTML code.
 	 */
 	public static function auto_login_page( $fields, $url, $title ) {
