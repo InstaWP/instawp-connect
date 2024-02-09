@@ -2,9 +2,9 @@
 Contributors: instawp
 Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.4
-Tested up to: 6.4.2
+Tested up to: 6.4.3
 Requires PHP: 7.4
-Stable tag: 0.1.0.14
+Stable tag: 0.1.0.15
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -93,6 +93,17 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 6. Update API Key and Settings.
 
 == Changelog ==
+
+= 0.1.0.15 - 9 Feb 2024 =
+- NEW - Added cleanup on uninstalling the plugin.
+- NEW - Added admin bar navigation on InstaWP icon.
+- NEW - Added connect dashboard link to the connect message.
+- FIX - Fixed screen reload after migration finished.
+- FIX - Fixed unnecessary API hit to staging-sites endpoint.
+- FIX - Fixed search engine visibility issue.
+- FIX - Fixed redirect issue after connect from authentication screen.
+- FIX - Fixed 2-ways-sync issues.
+- FIX - Fixed migration issues during staging website creation.
 
 = 0.1.0.14 - 30 Jan 2024 =
 - NEW - Added support for Core, Theme and Plugin Update via REST API.

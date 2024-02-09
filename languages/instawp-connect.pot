@@ -1,10 +1,11 @@
+InstaWP
 msgid ""
 msgstr ""
 "Project-Id-Version: InstaWP Connect\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2024-02-08 12:54+0000\n"
+"POT-Creation-Date: 2024-02-09 05:54+0000\n"
 "X-Poedit-Basepath: ..\n"
 "X-Poedit-KeywordsList: __;_e;_ex:1,2c;_n:1,2;_n_noop:1,2;_nx:1,2,4c;_nx_noop:1,2,3c;_x:1,2c;esc_attr__;esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c\n"
 "X-Poedit-SearchPath-0: .\n"
@@ -12,7 +13,7 @@ msgstr ""
 "X-Poedit-SourceCharset: UTF-8\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: admin/class-instawp-admin.php:66, includes/class-instawp-hooks.php:140, includes/class-instawp-setting.php:36
+#: admin/class-instawp-admin.php:66, includes/class-instawp-hooks.php:144, includes/class-instawp-setting.php:36
 msgid "Create Staging"
 msgstr ""
 
@@ -104,51 +105,51 @@ msgstr ""
 msgid "InstaWP File Manager"
 msgstr ""
 
-#: includes/class-instawp-hooks.php:91
+#: includes/class-instawp-hooks.php:95
 msgid "Tools"
 msgstr ""
 
-#: includes/class-instawp-hooks.php:98
+#: includes/class-instawp-hooks.php:102
 msgid "Purge All Cache"
 msgstr ""
 
-#: includes/class-instawp-hooks.php:109, includes/class-instawp-rest-api.php:1316, includes/class-instawp-setting.php:483
+#: includes/class-instawp-hooks.php:113, includes/class-instawp-rest-api.php:1316, includes/class-instawp-setting.php:483
 msgid "File Manager"
 msgstr ""
 
-#: includes/class-instawp-hooks.php:120, includes/class-instawp-rest-api.php:1317, includes/class-instawp-setting.php:491
+#: includes/class-instawp-hooks.php:124, includes/class-instawp-rest-api.php:1317, includes/class-instawp-setting.php:491
 msgid "Database Manager"
 msgstr ""
 
-#: includes/class-instawp-hooks.php:132
+#: includes/class-instawp-hooks.php:136
 msgid "Shortcuts"
 msgstr ""
 
-#: includes/class-instawp-hooks.php:152, includes/class-instawp-setting.php:40
+#: includes/class-instawp-hooks.php:156, includes/class-instawp-setting.php:40
 msgid "Staging Sites"
 msgstr ""
 
-#: includes/class-instawp-hooks.php:164, includes/class-instawp-setting.php:44
+#: includes/class-instawp-hooks.php:168, includes/class-instawp-setting.php:44
 msgid "Manage"
 msgstr ""
 
-#: includes/class-instawp-hooks.php:176, includes/class-instawp-setting.php:49
+#: includes/class-instawp-hooks.php:180, includes/class-instawp-setting.php:49
 msgid "Sync (Beta)"
 msgstr ""
 
-#: includes/class-instawp-hooks.php:187, includes/class-instawp-setting.php:53, includes/class-instawp-setting.php:280
+#: includes/class-instawp-hooks.php:191, includes/class-instawp-setting.php:53, includes/class-instawp-setting.php:280
 msgid "Settings"
 msgstr ""
 
-#: includes/class-instawp-hooks.php:202
+#: includes/class-instawp-hooks.php:206
 msgid "Go to InstaWP ➝"
 msgstr ""
 
-#: includes/class-instawp-hooks.php:214
+#: includes/class-instawp-hooks.php:218
 msgid "Contact Support"
 msgstr ""
 
-#: includes/class-instawp-hooks.php:256
+#: includes/class-instawp-hooks.php:272
 msgid "Cache cleared for %s."
 msgstr ""
 
@@ -520,23 +521,23 @@ msgstr ""
 msgid "SFTP upload failed for database."
 msgstr ""
 
-#: includes/functions.php:226
+#: includes/functions.php:225
 msgid "Migration aborted forcefully"
 msgstr ""
 
-#: includes/functions.php:667
+#: includes/functions.php:666
 msgid "No login found with given username and default username, You are going to login with first admin user."
 msgstr ""
 
-#: includes/functions.php:663
+#: includes/functions.php:662
 msgid "Login information for the given username didn't found, You are going to login with default login username."
 msgstr ""
 
-#: includes/functions.php:660
+#: includes/functions.php:659
 msgid "Login information for the given username"
 msgstr ""
 
-#: includes/functions.php:671
+#: includes/functions.php:670
 msgid "No login information found."
 msgstr ""
 
