@@ -104,6 +104,7 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 - FIX - Fixed redirect issue after connect from authentication screen.
 - FIX - Fixed 2-ways-sync issues.
 - FIX - Fixed migration issues during staging website creation.
+- FIX - Fixed issue with missing database column.
 
 = 0.1.0.14 - 30 Jan 2024 =
 - NEW - Added support for Core, Theme and Plugin Update via REST API.
