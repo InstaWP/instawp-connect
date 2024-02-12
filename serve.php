@@ -280,7 +280,9 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 							'## BEGIN InstaWP Connect',
 							'<IfModule mod_rewrite.c>',
 							'RewriteEngine On',
-							'RedirectMatch 301 ^/wp-content/uploads/(.*)$ ' . $site_url . '/wp-content/uploads/$1',
+//							'RedirectMatch 301 ^/wp-content/uploads/(.*)$ ' . $site_url . '/wp-content/uploads/$1',
+							'RewriteCond %{REQUEST_FILENAME} !-f',
+							'RewriteRule ^wp-content/uploads/(.*)$ ' . $site_url . '/wp-content/uploads/$1 [R=301,L]',
 							'</IfModule>',
 							'## END InstaWP Connect',
 						);
