@@ -177,8 +177,8 @@ input:checked + .slider-toggle:before {
     display: inline-block;
     background: #ccc;
     border-radius: 16px;
-    width: 58px;
-    height: 32px;
+    width: 36px;
+    height: 16px;
     position: relative;
     vertical-align: middle;
     transition: background 0.25s;
@@ -194,11 +194,11 @@ input:checked + .slider-toggle:before {
     background: #fff;
     border-radius: 50%;
     /* box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25); */
-    width: 24px;
-    height: 24px;
+    width: 12px;
+    height: 12px;
     position: absolute;
-    top: 4px;
-    left: 4px;
+    top: 2px;
+    left: 2px;
     transition: left 0.25s;
 }
 
@@ -209,11 +209,11 @@ input:checked + .slider-toggle:before {
 }
 
 .toggle-control .toggle-checkbox:checked + .toggle-switch {
-    background: #005e54;
+    background: var(--instawp-color-green);
 }
 
 .toggle-control .toggle-checkbox:checked + .toggle-switch:before {
-    left: 30px;
+    left: 22px;
 }
 
 .toggle-control .toggle-checkbox {
@@ -294,11 +294,20 @@ input:checked + .slider-toggle:before {
 .instawp-wrap .nav-items .nav-item > a > svg > path {
     fill: var(--instawp-color-gray);
     transition: 0.3s;
+    /*stroke: none;*/
 }
+
+
 
 .instawp-wrap .nav-items .nav-item.active > a > svg > path,
 .instawp-wrap .nav-items .nav-item > a:hover > svg > path {
     fill: var(--instawp-color-primary);
+    /*stroke: var(--instawp-color-primary);*/
+    stroke: none;
+    /*stroke: var(--instawp-color-gray);*/
+}
+
+.instawp-wrap .nav-items .nav-item > a > svg > path[stroke="#9CA3AF"]:hover {
     stroke: var(--instawp-color-primary);
 }
 
