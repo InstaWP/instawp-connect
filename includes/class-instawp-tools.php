@@ -307,6 +307,10 @@ class InstaWP_Tools {
 		$migrate_settings['excluded_paths'][] = 'index.html';
 		$migrate_settings['excluded_paths'][] = '.user.ini';
 
+        // Skip cache folders
+        $migrate_settings['excluded_paths'][] = $relative_dir . '/cache';
+
+
 		// Skip wp object cache forcefully
 		if ( file_exists( $relative_dir . '/mu-plugins/redis-cache-pro.php' ) ) {
 			$migrate_settings['excluded_paths'][] = $relative_dir . '/mu-plugins/redis-cache-pro.php';
