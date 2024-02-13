@@ -135,8 +135,6 @@ class IWPDB {
 			$this->last_error = $mysqli->connect_error;
 		}
 
-		error_log( 'mysql:' . json_encode( $mysqli ) );
-
 		if ( $mysqli ) {
 			mysqli_set_charset( $mysqli, "utf8" );
 

@@ -86,7 +86,7 @@ if ( ! function_exists( 'instawp_alter_db_tables' ) ) {
 
 		foreach ( [ INSTAWP_DB_TABLE_EVENTS, INSTAWP_DB_TABLE_EVENTS, INSTAWP_DB_TABLE_SYNC_HISTORY ] as $table_name ) {
 			$db_name = $wpdb->dbname;
-			$has_col = $wpdb->get_results(  "SELECT `COLUMN_NAME` FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `table_name` = '{$table_name}' AND `TABLE_SCHEMA` = '{$db_name}' AND `COLUMN_NAME` = 'event_hash'"  );
+			$has_col = $wpdb->get_results( "SELECT `COLUMN_NAME` FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `table_name` = '{$table_name}' AND `TABLE_SCHEMA` = '{$db_name}' AND `COLUMN_NAME` = 'event_hash'" );
 
 			if ( empty( $has_col ) ) {
 				$wpdb->query( "ALTER TABLE " . $table_name . " ADD `event_hash` varchar(50) NOT NULL AFTER `id`" );
@@ -168,6 +168,7 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 
 		$instawp_backup_dir = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . INSTAWP_DEFAULT_BACKUP_DIR . DIRECTORY_SEPARATOR;
 		$files_to_delete    = scandir( $instawp_backup_dir );
+		$files_to_delete    = ! is_array( $files_to_delete ) ? array() : $files_to_delete;
 		$files_to_delete    = array_diff( $files_to_delete, array( '.', '..' ) );
 
 		foreach ( $files_to_delete as $file ) {

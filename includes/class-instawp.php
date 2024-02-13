@@ -181,7 +181,12 @@ class instaWP {
 		$files           = $folders = array();
 
 		foreach ( $files_data as $key => $value ) {
-			$path            = $dir . DIRECTORY_SEPARATOR . $value;
+			$path = $dir . DIRECTORY_SEPARATOR . $value;
+
+			if ( ! file_exists( $path ) || ! is_readable( $path ) ) {
+				continue;
+			}
+
 			$normalized_path = wp_normalize_path( $path );
 
 			try {
@@ -264,45 +269,6 @@ class instaWP {
 		}
 
 		return number_format( $size ) . " B";
-	}
-
-	public function get_dir_files( &$files, &$folder, $path, $except_regex, $exclude_files = array(), $exclude_folder = array(), $exclude_file_size = 0, $flag = true ) {
-		$handler = opendir( $path );
-		if ( $handler === false ) {
-			return;
-		}
-
-		while ( ( $filename = readdir( $handler ) ) !== false ) {
-			if ( $filename != "." && $filename != ".." ) {
-				$dir = str_replace( '/', DIRECTORY_SEPARATOR, $path . DIRECTORY_SEPARATOR . $filename );
-
-				if ( in_array( $dir, $exclude_folder ) ) {
-					continue;
-				} elseif ( is_dir( $path . DIRECTORY_SEPARATOR . $filename ) ) {
-					if ( $except_regex !== false ) {
-						if ( $this->regex_match( $except_regex['file'], $path . DIRECTORY_SEPARATOR . $filename, $flag ) ) {
-							continue;
-						}
-						$folder[] = $path . DIRECTORY_SEPARATOR . $filename;
-					} else {
-						$folder[] = $path . DIRECTORY_SEPARATOR . $filename;
-					}
-					$this->get_dir_files( $files, $folder, $path . DIRECTORY_SEPARATOR . $filename, $except_regex, $exclude_folder );
-				} elseif ( $except_regex === false || ! $this->regex_match( $except_regex['file'], $path . DIRECTORY_SEPARATOR . $filename, $flag ) ) {
-					if ( in_array( $filename, $exclude_files ) ) {
-						continue;
-					}
-					if ( $exclude_file_size == 0 ) {
-						$files[] = $path . DIRECTORY_SEPARATOR . $filename;
-					} elseif ( filesize( $path . DIRECTORY_SEPARATOR . $filename ) < $exclude_file_size * 1024 * 1024 ) {
-						$files[] = $path . DIRECTORY_SEPARATOR . $filename;
-					}
-				}
-			}
-		}
-		if ( $handler ) {
-			@closedir( $handler );
-		}
 	}
 
 	public function get_current_mode( $data_to_get = '' ) {
@@ -402,7 +368,9 @@ class instaWP {
 						if ( is_dir( $root . DIRECTORY_SEPARATOR . $filename ) ) {
 							$size = self::get_folder_size( $root . DIRECTORY_SEPARATOR . $filename, $size );
 						} else {
-							$size += filesize( $root . DIRECTORY_SEPARATOR . $filename );
+							if ( file_exists( $filepath = $root . DIRECTORY_SEPARATOR . $filename ) && is_readable( $filepath ) ) {
+								$size += filesize( $filepath );
+							}
 						}
 					}
 				}
