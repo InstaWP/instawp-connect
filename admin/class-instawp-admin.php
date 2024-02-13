@@ -177,5 +177,11 @@ class InstaWP_Admin {
 		wp_enqueue_style( 'instawp-connect', instawp()::get_asset_url( 'assets/css/style.min.css' ), array(), current_time( 'U' ) );
 		wp_enqueue_script( 'instawp-migrate', instawp()::get_asset_url( 'assets/js/scripts.js' ), array(), current_time( 'U' ) );
 		wp_localize_script( 'instawp-migrate', 'instawp_migrate', $this->get_localize_data() );
+
+		wp_enqueue_script( 'instawp-common', instawp()::get_asset_url( 'assets/js/common.js' ), array(), current_time( 'U' ) );
+		wp_localize_script( 'instawp-common', 'instawp_common', array(
+			'ajax_url' => admin_url( 'admin-ajax.php' ),
+			'security' => wp_create_nonce( 'instawp-migrate' ),
+		) );
 	}
 }
