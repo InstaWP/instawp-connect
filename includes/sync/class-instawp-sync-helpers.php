@@ -555,7 +555,7 @@ class InstaWP_Sync_Helpers {
 	}
 
 	public static function is_built_with_elementor( $post_id ): bool {
-		if ( class_exists( '\Elementor' ) ) {
+		if ( ! defined( 'ELEMENTOR_VERSION' ) ) {
 			return false;
 		}
 
