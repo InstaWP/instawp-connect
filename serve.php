@@ -287,7 +287,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 							'## END InstaWP Connect',
 						);
 						$htaccess_content = implode( "\n", $htaccess_content );
-						$content          = $content . "\n" . $htaccess_content;
+						$content          = $htaccess_content . "\n\n" . $content;
 					}
 				}
 
