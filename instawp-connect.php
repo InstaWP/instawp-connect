@@ -174,12 +174,9 @@ run_instawp();
 add_action( 'wp_head', function () {
 	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
 
-		$migrate_key      = instawp()->tools::get_random_string( 40 );
-		$migrate_settings = instawp()->tools::get_migrate_settings();
+//		$migrate_key      = instawp()->tools::get_random_string( 40 );
+//		$migrate_settings = instawp()->tools::get_migrate_settings();
 
-		echo "<pre>";
-		print_r( $migrate_settings );
-		echo "</pre>";
 
 		die();
 	}

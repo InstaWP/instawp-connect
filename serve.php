@@ -268,6 +268,13 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 				// Comment any any php_value
 				$content = preg_replace( '/^\s*php_value\s+/m', '# php_value ', $content );
 
+				// Comment some unnecessary lines in htaccess
+				$content = preg_replace( '/^(.*AuthGroupFile.*)$/m', '# $1', $content );
+				$content = preg_replace( '/^(.*AuthUserFile.*)$/m', '# $1', $content );
+				$content = preg_replace( '/^(.*AuthName.*)$/m', '# $1', $content );
+				$content = preg_replace( '/^(.*ErrorDocument.*)$/m', '# $1', $content );
+
+
 				if ( ! empty( $site_url ) && ! empty( $dest_url ) ) {
 					$url_path = parse_url( $site_url, PHP_URL_PATH );
 
@@ -280,7 +287,6 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 							'## BEGIN InstaWP Connect',
 							'<IfModule mod_rewrite.c>',
 							'RewriteEngine On',
-//							'RedirectMatch 301 ^/wp-content/uploads/(.*)$ ' . $site_url . '/wp-content/uploads/$1',
 							'RewriteCond %{REQUEST_FILENAME} !-f',
 							'RewriteRule ^wp-content/uploads/(.*)$ ' . $site_url . '/wp-content/uploads/$1 [R=301,L]',
 							'</IfModule>',
