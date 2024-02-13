@@ -187,6 +187,7 @@ class InstaWP_Sync_WC {
 				}
 			}
 
+			kses_remove_filters();
 			foreach ( $details['line_items'] as $line_item ) {
 				if ( empty( $line_item ) ) {
 					continue;
@@ -198,6 +199,7 @@ class InstaWP_Sync_WC {
 				}
 				$order->add_product( wc_get_product( $product_id ), $line_item['quantity'] );
 			}
+			kses_init_filters();
 
 			foreach ( $details['shipping_lines'] as $shipping_item ) {
 				if ( empty( $shipping_item ) ) {
@@ -236,8 +238,10 @@ class InstaWP_Sync_WC {
 					continue;
 				}
 
+				kses_remove_filters();
 				InstaWP_Sync_Helpers::create_or_update_post( $coupon_item['post_data'], $coupon_item['post_meta'], $coupon_item['reference_id'] );
-				
+				kses_init_filters();
+
 				$coupon_code    = $coupon_item['data']['code'];
 				$coupon         = new \WC_Coupon( $coupon_code );
 				$discount_total = $coupon->get_amount();

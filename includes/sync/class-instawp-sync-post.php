@@ -13,7 +13,8 @@ class InstaWP_Sync_Post {
 	    $this->restricted_cpts = (array) apply_filters( 'INSTAWP_CONNECT/Filters/two_way_sync_restricted_post_types', $this->restricted_cpts );
 
 		// Post Actions.
-	    add_action( 'wp_after_insert_post', array( $this, 'handle_post' ), 999, 4 );
+	    add_action( 'wp_after_insert_post', array( $this, 'handle_post' ), 999 );
+	    add_action( 'elementor/document/after_save', array( $this, 'handle_elementor' ), 999 ); // elementor
 	    add_action( 'before_delete_post', array( $this, 'delete_post' ), 10, 2 );
 	    add_action( 'transition_post_status', array( $this, 'transition_post_status' ), 10, 3 );
 
@@ -28,15 +29,14 @@ class InstaWP_Sync_Post {
 	/**
 	 * Function for `wp_insert_post` action-hook.
 	 *
-	 * @param int   $post     Post ID.
-	 * @param bool  $update   Whether this is an existing post being updated.
+	 * @param int  $post Post ID.
 	 *
 	 * @return void
 	 */
-	public function handle_post( $post_id, $post, $update, $post_before ) {
+	public function handle_post( $post_id ) {
 		$post = get_post( $post_id );
 
-		if ( ! InstaWP_Sync_Helpers::can_sync( 'post' ) || in_array( $post->post_type, $this->restricted_cpts ) ) {
+		if ( ! $post || ! InstaWP_Sync_Helpers::can_sync( 'post' ) || in_array( $post->post_type, $this->restricted_cpts ) ) {
 			return;
 		}
 
@@ -66,9 +66,17 @@ class InstaWP_Sync_Post {
 		}
 
 		$singular_name = InstaWP_Sync_Helpers::get_post_type_name( $post->post_type );
-		if ( $update ) {
-			$this->handle_post_events( sprintf( __('%s modified', 'instawp-connect'), $singular_name ), 'post_change', $post );
-		}
+		$this->handle_post_events( sprintf( __('%s modified', 'instawp-connect'), $singular_name ), 'post_change', $post );
+	}
+
+	/**
+	 * After document save.
+	 *
+	 * @param \Elementor\Core\Base\Document $this The current document.
+	 * @param $data.
+	 */
+	public function handle_elementor( $document ) {
+		$this->handle_post( $document->get_post()->ID );
 	}
 
 	/**
