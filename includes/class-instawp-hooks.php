@@ -273,6 +273,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			</div>
 			<?php
 			delete_transient( 'instawp_cache_purged' );
+		}
 
 		function ob_callback( $buffer ) {
 			return $buffer;

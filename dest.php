@@ -305,6 +305,11 @@ if ( $file_type === 'db' ) {
 					}
 				}
 
+				// Delete unnecessary options and update required settings
+				$mysqli->query( "DELETE FROM `{$table_prefix}options` WHERE `option_name` = 'instawp_is_staging'" );
+				$mysqli->query( "DELETE FROM `{$table_prefix}options` WHERE `option_name` = 'instawp_sync_connect_id'" );
+				$mysqli->query( "UPDATE `{$table_prefix}options` SET `option_value` = '1' WHERE `option_name` = 'blog_public'" );
+
 				// log start
 //              $log_content = file_get_contents( 'iwp_log.txt' );
 //              $log_content .= "full-json-data: " . json_encode( $jsonData ) . "\n";

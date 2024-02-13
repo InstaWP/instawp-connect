@@ -30,7 +30,7 @@ if ( ! in_array( $current_tab, array_keys( $plugin_nav_items ) ) ) {
             </button>
 		<?php else : ?>
             <span class="w-1 h-1 <?= strpos( $api_domain, 'stage' ) !== false ? 'bg-amber-600' : 'bg-primary-700'; ?> rounded-full mr-2"></span>
-            <span class="mr-4 <?= strpos( $api_domain, 'stage' ) !== false ? 'text-amber-600' : 'text-primary-700'; ?>"><?php echo esc_html__( 'Your account is connected', 'instawp-connect' ); ?></span>
+            <a href="<?php echo esc_url( sprintf( '%s/connects/%s/dashboard', InstaWP_Setting::get_api_domain(), instawp()->connect_id ) ); ?>" target="_blank" class="mr-4 focus:ring-0 hover:ring-0 focus:outline-0 hover:outline-0 <?= strpos( $api_domain, 'stage' ) !== false ? 'text-amber-600 hover:text-amber-600 focus:text-amber-600' : 'text-primary-700 hover:text-primary-700 focus:text-primary-700'; ?>"><?php echo esc_html__( 'Your website is connected', 'instawp-connect' ); ?></a>
 		<?php endif; ?>
     </div>
 </div>

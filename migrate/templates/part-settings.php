@@ -11,13 +11,6 @@
 			<?php foreach ( array_values( InstaWP_Setting::get_migrate_settings() ) as $index => $section ) : ?>
 				<?php InstaWP_Setting::generate_section( $section, $index ); ?>
 			<?php endforeach; ?>
-			<?php if ( isset( $_GET['internal'] ) && $_GET['internal'] == 1 ) { ?>
-                <div class="mt-5 flex gap-3">
-                    <button type="button" class="bg-primary-900 text-white py-2 px-4 text-sm font-medium rounded-md instawp-manager" data-type="file"><?php echo esc_html__( 'File Manager', 'instawp-connect' ); ?></button>
-                    <button type="button" class="bg-primary-900 text-white py-2 px-4 text-sm font-medium rounded-md instawp-manager" data-type="database"><?php echo esc_html__( 'Database Manager', 'instawp-connect' ); ?></button>
-                    <button type="button" class="bg-primary-900 text-white py-2 px-4 text-sm font-medium rounded-md instawp-manager" data-type="debug_log"><?php echo esc_html__( 'Debug Log', 'instawp-connect' ); ?></button>
-                </div>
-			<?php } ?>
         </div>
         <div class="instawp-form-footer rounded-md bg-grayCust-400 p-3 mt-6 flex justify-between items-center">
             <div class="instawp-form-buttons flex gap-4">

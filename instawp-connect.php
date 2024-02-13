@@ -7,7 +7,7 @@
  * @wordpress-plugin
  * Plugin Name:       InstaWP Connect
  * Description:       1-click WP Staging with Sync. Manage your Live sites.
- * Version:           0.1.0.14
+ * Version:           0.1.0.15
  * Author:            InstaWP Team
  * Author URI:        https://instawp.com/
  * License:           GPL-3.0+
@@ -23,8 +23,7 @@ if ( ! defined( 'WPINC' ) ) {
 
 global $wpdb;
 
-define( 'INSTAWP_PLUGIN_VERSION', '0.1.0.14' );
-define( 'INSTAWP_RESTORE_INIT', 'init' );
+define( 'INSTAWP_PLUGIN_VERSION', '0.1.0.15' );
 define( 'INSTAWP_API_DOMAIN_PROD', 'https://app.instawp.io' );
 
 $wp_plugin_url   = WP_PLUGIN_URL . '/' . plugin_basename( __DIR__ ) . '/';
@@ -88,9 +87,6 @@ define( 'INSTAWP_DB_TABLE_SYNC_HISTORY', $wpdb->prefix . 'instawp_sync_history' 
 define( 'INSTAWP_DB_TABLE_EVENT_SITES', $wpdb->prefix . 'instawp_event_sites' );
 define( 'INSTAWP_DB_TABLE_EVENT_SYNC_LOGS', $wpdb->prefix . 'instawp_event_sync_logs' );
 
-define( 'INSTAWP_SUCCESS', 'success' );
-define( 'INSTAWP_FAILED', 'failed' );
-define( 'INSTAWP_UPLOAD_TO_CLOUD', true );
 define( 'INSTAWP_API_URL', '/api/v1' );
 define( 'INSTAWP_API_2_URL', '/api/v2' );
 define( 'INSTAWP_EVENTS_PER_PAGE', 20 );
@@ -178,17 +174,15 @@ run_instawp();
 add_action( 'wp_head', function () {
 	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
 
-//		$api_key          = 'auLF3EBeFaoGrfQKVqsG3Qe7Giyi1wPCtDL3DtS3';
-//		$connect_response = InstaWP_Setting::instawp_generate_api_key( $api_key, true );
-
-//		$api_response = InstaWP_Curl::do_curl( 'check-key', array(), array(), false, 'v1', $api_key );
-
-		$api_options = get_option( 'instawp_api_options', array() );
+		$migrate_key      = instawp()->tools::get_random_string( 40 );
+		$migrate_settings = instawp()->tools::get_migrate_settings();
 
 		echo "<pre>";
-		print_r( $api_options );
+		print_r( $migrate_settings );
 		echo "</pre>";
 
 		die();
 	}
 }, 0 );
+
+

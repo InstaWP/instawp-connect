@@ -161,12 +161,6 @@ class InstaWP_Rest_Api {
 			'permission_callback' => '__return_true',
 		) );
 
-//      register_rest_route( $this->namespace . '/' . $this->version_3, '/get-push-config', array(
-//          'methods'             => 'GET',
-//          'callback'            => array( $this, 'handle_get_push_config_api' ),
-//          'permission_callback' => '__return_true',
-//      ) );
-
 		register_rest_route( $this->namespace . '/' . $this->version_3, '/debug', array(
 			'methods'             => 'POST',
 			'callback'            => array( $this, 'handle_debug' ),
