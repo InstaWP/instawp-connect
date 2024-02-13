@@ -311,13 +311,28 @@ class InstaWP_Sync_Helpers {
 			return;
 		}
 
-		foreach ( $meta_data as $key => $value ) {
-			update_post_meta( $post_id, $key, maybe_unserialize( reset( $value ) ) );
-		}
-
 		if ( array_key_exists( '_elementor_version', $meta_data ) && ! array_key_exists( '_elementor_css', $meta_data ) ) {
 			$elementor_css = array();
 			add_post_meta( $post_id, '_elementor_css', $elementor_css );
+		}
+
+		foreach ( $meta_data as $meta_key => $values ) {
+			$value = $values[0];
+
+			if ( '_elementor_data' === $meta_key ) {
+				$value = wp_slash( $value );
+			} else {
+				$value = maybe_unserialize( $value );
+			}
+
+			update_metadata( 'post', $post_id, $meta_key, $value );
+		}
+
+		if ( self::is_built_with_elementor( $post_id ) ) {
+			$css_file = \Elementor\Core\Files\CSS\Post::create( $post_id );
+			$css_file->delete();
+
+			//\Elementor\Utils::replace_urls( $from, $to );
 		}
 
 		delete_post_meta( $post_id, '_edit_lock' );
@@ -330,6 +345,8 @@ class InstaWP_Sync_Helpers {
 		if ( ! $wp_post ) {
 			return 0;
 		}
+
+		kses_remove_filters();
 
 		if ( $wp_post['post_type'] === 'attachment' ) {
 			$wp_post['ID'] = self::string_to_attachment( $details['attachment'] );
@@ -385,10 +402,14 @@ class InstaWP_Sync_Helpers {
 			) );
 		}
 
+		kses_init_filters();
+
 		return $wp_post['ID'];
 	}
 
 	public static function parse_post_data( $post ) {
+		kses_remove_filters();
+
 		$post = get_post( $post );
 		if ( ! $post ) {
 			return $post;
@@ -399,7 +420,6 @@ class InstaWP_Sync_Helpers {
 		$reference_id   = self::set_post_reference_id( $post->ID );
 
 		$data = array(
-			'content'      => $post_content,
 			'post'         => $post,
 			'post_meta'    => get_post_meta( $post->ID ),
 			'reference_id' => $reference_id,
@@ -410,12 +430,10 @@ class InstaWP_Sync_Helpers {
 		} else {
 			$taxonomies    = self::get_taxonomies_items( $post->ID );
 			$media         = self::get_media_from_content( $post_content );
-			$elementor_css = self::get_elementor_css( $post->ID );
 
 			$data = array_merge( $data, array(
 				'taxonomies'    => $taxonomies,
 				'media'         => $media,
-				'elementor_css' => $elementor_css,
 			) );
 
 			$featured_image_id  = get_post_thumbnail_id( $post->ID );
@@ -431,6 +449,8 @@ class InstaWP_Sync_Helpers {
 				$data['parent'] = self::parse_post_data( $post_parent );
 			}
 		}
+
+		kses_init_filters();
 
 		return $data;
 	}
@@ -534,19 +554,11 @@ class InstaWP_Sync_Helpers {
 		}
 	}
 
-	/*
-	 * get post css from elementor files 'post-{post_id}.css'
-	 */
-	public static function get_elementor_css( $post_id ) {
-		$upload_dir = wp_upload_dir();
-		$filename   = 'post-' . $post_id . '.css';
-		$filePath   = $upload_dir['basedir'] . '/elementor/css/' . $filename;
-		$css        = '';
-
-		if ( file_exists( $filePath ) ) {
-			$css = file_get_contents( $filePath );
+	public static function is_built_with_elementor( $post_id ): bool {
+		if ( class_exists( '\Elementor' ) ) {
+			return false;
 		}
 
-		return $css;
+		return \Elementor\Plugin::$instance->documents->get( $post_id )->is_built_with_elementor();
 	}
 }
