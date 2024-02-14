@@ -1057,7 +1057,7 @@
                     setTimeout(function () {
                         label_field.text(label_field.data(value));
                         $(document).find('.manage .instawp-form').removeClass('loading');
-
+                        $(document).trigger("instawpToggleSave", [name, value]);
                     }, 300);
                 } else {
                     alert('Can\'t update settings. Please try again!');
