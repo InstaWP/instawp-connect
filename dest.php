@@ -10,24 +10,71 @@ if ( ! isset( $_SERVER['HTTP_X_IWP_MIGRATE_KEY'] ) || empty( $migrate_key = $_SE
 	die();
 }
 
-$level         = 0;
-$root_path_dir = __DIR__;
-$root_path     = __DIR__;
+function get_wp_root_directory( $find_with_files = 'wp-load.php', $find_with_dir = '' ) {
 
-while ( ! file_exists( $root_path . DIRECTORY_SEPARATOR . 'wp-config.php' ) ) {
-	++$level ;
-	$root_path = dirname( $root_path_dir, $level );
+	$is_find_root_dir = true;
+	$root_path        = '';
 
-	// If we have reached the root directory and still couldn't find wp-config.php
-	if ( $level > 10 ) {
-		header( 'x-iwp-status: false' );
-		header( 'x-iwp-message: Could not find wp-config.php in the parent directories.' );
-		echo "Could not find wp-config.php in the parent directories.";
-		exit( 2 );
+	if ( ! empty( $find_with_files ) ) {
+		$level            = 0;
+		$root_path_dir    = __DIR__;
+		$root_path        = __DIR__;
+		$is_find_root_dir = true;
+
+		while ( ! file_exists( $root_path . DIRECTORY_SEPARATOR . $find_with_files ) ) {
+
+			++ $level;
+			$root_path = dirname( $root_path_dir, $level );
+
+			if ( $level > 10 ) {
+				$is_find_root_dir = false;
+				break;
+			}
+		}
 	}
+
+	if ( ! empty( $find_with_dir ) ) {
+		$level            = 0;
+		$root_path_dir    = __DIR__;
+		$root_path        = __DIR__;
+		$is_find_root_dir = true;
+		while ( ! is_dir( $root_path . DIRECTORY_SEPARATOR . $find_with_dir ) ) {
+
+			++ $level;
+			$root_path = dirname( $root_path_dir, $level );
+
+			if ( $level > 10 ) {
+				$is_find_root_dir = false;
+				break;
+			}
+		}
+	}
+
+	return array(
+		'status'    => $is_find_root_dir,
+		'root_path' => $root_path,
+	);
 }
 
-$json_path = $root_path . DIRECTORY_SEPARATOR . 'wp-content' . DIRECTORY_SEPARATOR . 'instawpbackups' . DIRECTORY_SEPARATOR . $migrate_key . '.json';
+$root_dir_data = get_wp_root_directory();
+$root_dir_find = isset( $root_dir_data['status'] ) ? $root_dir_data['status'] : false;
+$root_dir_path = isset( $root_dir_data['root_path'] ) ? $root_dir_data['root_path'] : '';
+
+if ( ! $root_dir_find ) {
+	$root_dir_data = get_wp_root_directory( '', 'flywheel-config' );
+	$root_dir_find = isset( $root_dir_data['status'] ) ? $root_dir_data['status'] : false;
+	$root_dir_path = isset( $root_dir_data['root_path'] ) ? $root_dir_data['root_path'] : '';
+}
+
+if ( ! $root_dir_find ) {
+	header( 'x-iwp-status: false' );
+	header( 'x-iwp-message: Could not find wp-config.php in the parent directories.' );
+	echo "Could not find wp-config.php in the parent directories.";
+	exit( 2 );
+}
+
+
+$json_path = $root_dir_path . DIRECTORY_SEPARATOR . 'wp-content' . DIRECTORY_SEPARATOR . 'instawpbackups' . DIRECTORY_SEPARATOR . $migrate_key . '.json';
 
 if ( file_exists( $json_path ) ) {
 	$jsonString = file_get_contents( $json_path );
@@ -137,7 +184,7 @@ if ( in_array( $file_relative_path, $excluded_paths ) ) {
 	exit( 0 );
 }
 
-$file_save_path = $root_path . DIRECTORY_SEPARATOR . $file_relative_path;
+$file_save_path = $root_dir_path . DIRECTORY_SEPARATOR . $file_relative_path;
 $directory_name = dirname( $file_save_path );
 
 if ( ! file_exists( $directory_name ) ) {
@@ -155,7 +202,7 @@ if ( $file_relative_path === 'db.sql' ) {
 	if ( file_exists( $file_save_path ) ) {
 		unlink( $file_save_path );
 	}
-//  $file_save_path = $root_path . DIRECTORY_SEPARATOR . time() . '.sql'; // added for debugging
+//  $file_save_path = $root_dir_path . DIRECTORY_SEPARATOR . time() . '.sql'; // added for debugging
 	$file_stream = fopen( $file_save_path, 'a+b' );
 } else {
 	$file_stream = fopen( $file_save_path, 'wb' );
@@ -385,7 +432,7 @@ if ( $file_relative_path === 'wp-config.php' ) {
 		die();
 	}
 
-	$wp_config_path = $root_path . DIRECTORY_SEPARATOR . 'wp-config.php';
+	$wp_config_path = $root_dir_path . DIRECTORY_SEPARATOR . 'wp-config.php';
 	$wp_config      = file_get_contents( $wp_config_path );
 
 	$wp_config = preg_replace(
