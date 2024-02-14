@@ -335,7 +335,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		function is_valid_file( $filepath ): bool {
 			$filename = basename( $filepath );
 
-			return is_file( $filepath ) && is_readable( $filepath ) && ( preg_match( '/^[a-zA-Z0-9_.\s-]+$/', $filename ) === 1 );
+			return is_file( $filepath ) && is_readable( $filepath ) && ( preg_match( '/^[a-zA-Z0-9_.@\s-]+$/', $filename ) === 1 );
 		}
 	}
 

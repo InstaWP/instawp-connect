@@ -174,6 +174,18 @@ run_instawp();
 add_action( 'wp_head', function () {
 	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
 
+//		$migrate_key      = instawp()->tools::get_random_string( 40 );
+//		$migrate_settings = instawp()->tools::get_migrate_settings();
+
+		$missing_file = '/Volumes/Devroot/InstaWP/instawp-main/wp-content/plugins/wpforms-lite/vendor/woocommerce/action-scheduler/deprecated/ActionScheduler_Abstract_QueueRunner_Deprecated.php';
+
+
+		$filename = 'wpforms-monsterinsights@2x.png';
+
+		echo "<pre>";
+		var_dump( ( preg_match( '/^[a-zA-Z0-9_.\s-]+$/', $filename ) === 1 ) );
+		echo "</pre>";
+
 		die();
 	}
 }, 0 );
