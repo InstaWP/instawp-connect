@@ -489,16 +489,18 @@ class InstaWP_AJAX {
 	public function disconnect_api() {
 		check_ajax_referer( 'instawp-migrate', 'security' );
 
-		$check_api  = isset( $_POST['api'] ) && filter_var( $_POST['api'], FILTER_VALIDATE_BOOLEAN );
-		$connect_id = instawp()->connect_id;
+		$check_api = isset( $_POST['api'] ) && filter_var( $_POST['api'], FILTER_VALIDATE_BOOLEAN );
+		if ( $check_api ) {
+		    $connect_id = instawp_get_connect_id();
 
-		// connects/<connect_id>/disconnect
-		$api_response = InstaWP_Curl::do_curl( "connects/{$connect_id}/disconnect" );
+			// connects/<connect_id>/disconnect
+			$api_response = InstaWP_Curl::do_curl( "connects/{$connect_id}/disconnect" );
 
-		if ( $check_api && ( empty( $api_response['success'] ) || ! $api_response['success'] ) ) {
-			wp_send_json_error( array(
-				'message' => $api_response['message'],
-			) );
+            if ( empty( $api_response['success'] ) || ! $api_response['success'] ) {
+				wp_send_json_error( array(
+					'message' => $api_response['message'],
+				) );
+			}
 		}
 
 		instawp_reset_running_migration( 'hard' );
