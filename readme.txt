@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.4
 Tested up to: 6.4.3
 Requires PHP: 7.4
-Stable tag: 0.1.0.16
+Stable tag: 0.1.0.17
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -93,6 +93,10 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 6. Update API Key and Settings.
 
 == Changelog ==
+
+= 0.1.0.17 - 15 Feb 2024 =
+- FIX - Fixed iwpdb database table structure.
+- FIX - Fixed connect id issue.
 
 = 0.1.0.16 - 15 Feb 2024 =
 - NEW - Deselect search engine visibility option after go live.

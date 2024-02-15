@@ -406,13 +406,15 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		$fileIndex  = 0;
 
 		if ( $handle_config_separately ) {
-			$totalFiles       += 1;
-			$config_file_size = filesize( $config_file_path );
+			$totalFiles            += 1;
+			$config_file_size      = filesize( $config_file_path );
+			$config_file_path_hash = hash( 'sha256', $config_file_size );
 
 			$tracking_db->insert( 'iwp_files_sent', array(
-				'filepath' => "'$config_file_path'",
-				'sent'     => 0,
-				'size'     => "'$config_file_size'",
+				'filepath'      => "'$config_file_path'",
+				'filepath_hash' => "'$config_file_path_hash'",
+				'sent'          => 0,
+				'size'          => "'$config_file_size'",
 			) );
 		}
 
@@ -424,16 +426,18 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 				continue;
 			}
 
-			$filesize   = $file->getSize();
-			$currentDir = str_replace( WP_ROOT . '/', '', $file->getPath() );
-			$row        = $tracking_db->get_row( 'iwp_files_sent', array( 'filepath' => $filepath ) );
+			$filesize      = $file->getSize();
+			$filepath_hash = hash( 'sha256', $filepath );
+			$currentDir    = str_replace( WP_ROOT . '/', '', $file->getPath() );
+			$row           = $tracking_db->get_row( 'iwp_files_sent', array( 'filepath_hash' => $filepath_hash ) );
 
 			if ( ! $row ) {
 				try {
 					$tracking_db->insert( 'iwp_files_sent', array(
-						'filepath' => "'$filepath'",
-						'sent'     => 0,
-						'size'     => "'$filesize'",
+						'filepath'      => "'$filepath'",
+						'filepath_hash' => "'$filepath_hash'",
+						'sent'          => 0,
+						'size'          => "'$filesize'",
 					) );
 					++ $fileIndex;
 				} catch ( Exception $e ) {
@@ -463,7 +467,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
 		$tracking_db->create_file_indexes( 'iwp_files_sent', array(
 			'idx_sent'      => 'sent',
-			'idx_file_path' => 'filepath',
+//			'idx_file_path' => 'filepath',
 			'idx_file_size' => 'size',
 		) );
 	}
@@ -544,7 +548,6 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 	$excluded_tables_rows  = $migrate_settings['excluded_tables_rows'] ?? array();
 	$total_tracking_tables = $tracking_db->query_count( 'iwp_db_sent' );
 
-
 	// Skip our files sent table
 	if ( ! in_array( 'iwp_files_sent', $excluded_tables ) ) {
 		$excluded_tables[] = 'iwp_files_sent';
@@ -558,9 +561,11 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 	if ( $total_tracking_tables == 0 ) {
 		foreach ( $tracking_db->get_all_tables() as $table_name => $rows_count ) {
 			if ( ! in_array( $table_name, $excluded_tables ) ) {
+				$table_name_hash = hash( 'sha256', $table_name );
 				$tracking_db->insert( 'iwp_db_sent', array(
-					'table_name' => "'$table_name'",
-					'rows_total' => $rows_count,
+					'table_name'      => "'$table_name'",
+					'table_name_hash' => "'$table_name_hash'",
+					'rows_total'      => $rows_count,
 				) );
 			}
 		}
@@ -650,7 +655,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 	}
 
 	$sql_statements_count = count( $sqlStatements );
-	$curr_table_info      = $tracking_db->get_row( 'iwp_db_sent', array( 'table_name' => $curr_table_name ) );
+	$curr_table_info      = $tracking_db->get_row( 'iwp_db_sent', array( 'table_name_hash' => hash( 'sha256', $curr_table_name ) ) );
 	$offset               += $sql_statements_count;
 
 	$all_tables     = $tracking_db->get_rows( 'iwp_db_sent' );
@@ -663,11 +668,11 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 	}
 
 	// Update the offset and rows_finished
-	$tracking_db->update( 'iwp_db_sent', array( 'offset' => $offset ), array( 'table_name' => $curr_table_name ) );
+	$tracking_db->update( 'iwp_db_sent', array( 'offset' => $offset ), array( 'table_name_hash' => hash( 'sha256', $curr_table_name ) ) );
 
 	// Mark table as completed if all rows were fetched
 	if ( count( $sqlStatements ) < CHUNK_DB_SIZE ) {
-		$tracking_db->update( 'iwp_db_sent', array( 'completed' => '1' ), array( 'table_name' => $curr_table_name ) );
+		$tracking_db->update( 'iwp_db_sent', array( 'completed' => '1' ), array( 'table_name_hash' => hash( 'sha256', $curr_table_name ) ) );
 	}
 
 	$completed_tables   = $tracking_db->query_count( 'iwp_db_sent', array( 'completed' => '1' ) );

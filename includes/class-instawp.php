@@ -42,17 +42,21 @@ class instaWP {
 
 		$this->load_dependencies();
 
-		$this->version      = INSTAWP_PLUGIN_VERSION;
-		$this->plugin_name  = INSTAWP_PLUGIN_SLUG;
-		$this->api_key      = InstaWP_Setting::get_api_key();
-		$this->is_connected = ! empty( $this->api_key );
-		$this->is_on_local  = instawp_is_website_on_local();
-		$this->connect_id   = instawp_get_connect_id();
-		$this->is_staging   = (bool) InstaWP_Setting::get_option( 'instawp_is_staging', false );
-
+		$this->version                 = INSTAWP_PLUGIN_VERSION;
+		$this->plugin_name             = INSTAWP_PLUGIN_SLUG;
+		$this->api_key                 = InstaWP_Setting::get_api_key();
+		$this->is_connected            = ! empty( $this->api_key );
+		$this->is_on_local             = instawp_is_website_on_local();
+		$this->connect_id              = instawp_get_connect_id();
+		$this->is_staging              = (bool) InstaWP_Setting::get_option( 'instawp_is_staging', false );
 		$this->tools                   = new InstaWP_Tools();
 		$this->has_unsupported_plugins = ! empty( $this->tools::get_unsupported_active_plugins() );
 		$this->can_bundle              = ( class_exists( 'ZipArchive' ) || class_exists( 'PharData' ) );
+
+		// if connect id is empty then remove all connection
+		if ( empty( $this->connect_id ) ) {
+			instawp_reset_running_migration( 'hard' );
+		}
 
 		if ( is_admin() ) {
 			$this->set_locale();
