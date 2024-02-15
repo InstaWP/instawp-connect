@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.4
 Tested up to: 6.4.3
 Requires PHP: 7.4
-Stable tag: 0.1.0.15
+Stable tag: 0.1.0.16
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -93,6 +93,17 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 6. Update API Key and Settings.
 
 == Changelog ==
+
+= 0.1.0.16 - 15 Feb 2024 =
+- NEW - Deselect search engine visibility option after go live.
+- NEW - Exclude cache folders by default on the migration.
+- FIX - Fixed regular expression for missing images issue in migration.
+- FIX - Fixed iwpdb database table structure for missing file issue in migration.
+- FIX - Minor updates on UI of the plugin page.
+- FIX - Fixed 2-way-sync for Elementor plugin.
+- FIX - Comment unnecessary lines from htaccess during the migration for staging websites.
+- FIX - Fixed htaccess rule for images from both source and current website.
+- FIX - Fixed root path finding logic in push/go live case.
 
 = 0.1.0.15 - 9 Feb 2024 =
 - NEW - Added cleanup on uninstalling the plugin.
