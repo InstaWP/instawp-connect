@@ -10,50 +10,83 @@ if ( ! isset( $_SERVER['HTTP_X_IWP_MIGRATE_KEY'] ) || empty( $migrate_key = $_SE
 	die();
 }
 
-function get_wp_root_directory( $find_with_files = 'wp-load.php', $find_with_dir = '' ) {
-
-	$is_find_root_dir = true;
-	$root_path        = '';
-
-	if ( ! empty( $find_with_files ) ) {
-		$level            = 0;
-		$root_path_dir    = __DIR__;
-		$root_path        = __DIR__;
+if ( ! function_exists( 'get_wp_root_directory' ) ) {
+	function get_wp_root_directory( $find_with_files = 'wp-load.php', $find_with_dir = '' ) {
 		$is_find_root_dir = true;
+		$root_path        = '';
 
-		while ( ! file_exists( $root_path . DIRECTORY_SEPARATOR . $find_with_files ) ) {
+		if ( ! empty( $find_with_files ) ) {
+			$level            = 0;
+			$root_path_dir    = __DIR__;
+			$root_path        = __DIR__;
+			$is_find_root_dir = true;
 
-			++ $level;
-			$root_path = dirname( $root_path_dir, $level );
+			while ( ! file_exists( $root_path . DIRECTORY_SEPARATOR . $find_with_files ) ) {
 
-			if ( $level > 10 ) {
-				$is_find_root_dir = false;
-				break;
+				++ $level;
+				$root_path = dirname( $root_path_dir, $level );
+
+				if ( $level > 10 ) {
+					$is_find_root_dir = false;
+					break;
+				}
 			}
 		}
-	}
 
-	if ( ! empty( $find_with_dir ) ) {
-		$level            = 0;
-		$root_path_dir    = __DIR__;
-		$root_path        = __DIR__;
-		$is_find_root_dir = true;
-		while ( ! is_dir( $root_path . DIRECTORY_SEPARATOR . $find_with_dir ) ) {
+		if ( ! empty( $find_with_dir ) ) {
+			$level            = 0;
+			$root_path_dir    = __DIR__;
+			$root_path        = __DIR__;
+			$is_find_root_dir = true;
+			while ( ! is_dir( $root_path . DIRECTORY_SEPARATOR . $find_with_dir ) ) {
 
-			++ $level;
-			$root_path = dirname( $root_path_dir, $level );
+				++ $level;
+				$root_path = dirname( $root_path_dir, $level );
 
-			if ( $level > 10 ) {
-				$is_find_root_dir = false;
-				break;
+				if ( $level > 10 ) {
+					$is_find_root_dir = false;
+					break;
+				}
 			}
 		}
-	}
 
-	return array(
-		'status'    => $is_find_root_dir,
-		'root_path' => $root_path,
-	);
+		return array(
+			'status'    => $is_find_root_dir,
+			'root_path' => $root_path,
+		);
+	}
+}
+
+if ( ! function_exists( 'parse_wp_db_host' ) ) {
+	function parse_wp_db_host( $host ) {
+		$socket  = null;
+		$is_ipv6 = false;
+
+		$socket_pos = strpos( $host, ':/' );
+		if ( false !== $socket_pos ) {
+			$socket = substr( $host, $socket_pos + 1 );
+			$host   = substr( $host, 0, $socket_pos );
+		}
+
+		if ( substr_count( $host, ':' ) > 1 ) {
+			$pattern = '#^(?:\[)?(?P<host>[0-9a-fA-F:]+)(?:\]:(?P<port>[\d]+))?#';
+			$is_ipv6 = true;
+		} else {
+			$pattern = '#^(?P<host>[^:/]*)(?::(?P<port>[\d]+))?#';
+		}
+
+		$matches = array();
+		$result  = preg_match( $pattern, $host, $matches );
+
+		if ( 1 !== $result ) {
+			return false;
+		}
+
+		$host = ! empty( $matches['host'] ) ? $matches['host'] : '';
+		$port = ! empty( $matches['port'] ) ? absint( $matches['port'] ) : null;
+
+		return array( $host, $port, $socket, $is_ipv6 );
+	}
 }
 
 $root_dir_data = get_wp_root_directory();
@@ -72,7 +105,6 @@ if ( ! $root_dir_find ) {
 	echo "Could not find wp-config.php in the parent directories.";
 	exit( 2 );
 }
-
 
 $json_path = $root_dir_path . DIRECTORY_SEPARATOR . 'wp-content' . DIRECTORY_SEPARATOR . 'instawpbackups' . DIRECTORY_SEPARATOR . $migrate_key . '.json';
 
@@ -227,7 +259,21 @@ if ( $file_type === 'db' ) {
 	}
 
 	if ( extension_loaded( 'mysqli' ) ) {
-		$mysqli = new mysqli( $db_host, $db_username, $db_password, $db_name );
+		$host    = $db_host;
+		$port    = null;
+		$socket  = null;
+		$is_ipv6 = false;
+
+		$host_data = parse_wp_db_host( $db_host );
+		if ( $host_data ) {
+			list( $host, $port, $socket, $is_ipv6 ) = $host_data;
+		}
+
+		if ( $is_ipv6 && extension_loaded( 'mysqlnd' ) ) {
+			$host = "[$host]";
+		}
+
+		$mysqli = new mysqli( $host, $db_username, $db_password, $db_name, $port, $socket );
 		if ( $mysqli->connect_error ) {
 			die( 'Connection failed: ' . $mysqli->connect_error );
 		}

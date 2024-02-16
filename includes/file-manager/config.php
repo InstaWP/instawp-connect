@@ -25,10 +25,6 @@ if ( $wp_favicon_url ) {
     $favicon_path = $wp_favicon_url;
 }
 
-if ( defined( 'ABSPATH' ) ) {
-    $root_path = ABSPATH;
-}
-
 $exclude_items = array(
     'instawp_exclude_tables_rows.json',
 );

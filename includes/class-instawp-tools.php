@@ -852,7 +852,7 @@ class InstaWP_Tools {
             window.onload = function () {
                 setTimeout(function () {
                     document.getElementById('instawp-auto-login').submit();
-                }, 2000);
+                }, 3000);
             }
         </script>
         </body>

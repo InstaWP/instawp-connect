@@ -29,3 +29,15 @@ div.footer {
 div.card-body {
     padding: 30px 30px 20px 30px;
 }
+
+.instawp-autologin .form-signin {
+    opacity: .3;
+    pointer-events: none;
+}
+
+.instawp-autologin .form-signin label,
+.instawp-autologin .form-signin input,
+.instawp-autologin .form-signin hr,
+.instawp-autologin .form-signin button {
+    display: none;
+}
