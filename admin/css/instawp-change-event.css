@@ -365,7 +365,7 @@ body.show {
         padding: 48px 14px 48px;
     }
 }
-select#destination-site, select#staging-site-sync {
+select#destination-site, select#staging-site-sync, select#filter-sync-events {
     border-radius: 6px;
     border: 1px solid #D1D5DB;
     width: 100%;

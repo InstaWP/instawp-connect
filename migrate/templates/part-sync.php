@@ -61,20 +61,18 @@ if ( ! empty( $parent_connect_data ) ) {
                         </label>
                     </div>
                     <div class="flex items-center justify-between flex-row-reverse gap-3">
-                        <div class="button-ct flex">
-                            <button type="button" class="bulk-sync-popup-btn text-white bg-[#005e54] font-medium py-2 px-3 rounded text-center inline-flex items-center mr-3">
-                                <svg class="w-4 h-4 mr-2" width="14" height="16" viewBox="0 0 14 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path fill-rule="evenodd" clip-rule="evenodd" style="fill: #fff;"
-                                          d="M1.59995 0.800049C2.09701 0.800049 2.49995 1.20299 2.49995 1.70005V3.59118C3.64303 2.42445 5.23642 1.70005 6.99995 1.70005C9.74442 1.70005 12.0768 3.45444 12.9412 5.90013C13.1069 6.36877 12.8612 6.88296 12.3926 7.0486C11.924 7.21425 11.4098 6.96862 11.2441 6.49997C10.6259 4.75097 8.95787 3.50005 6.99995 3.50005C5.52851 3.50005 4.22078 4.20657 3.39937 5.30005H6.09995C6.59701 5.30005 6.99995 5.70299 6.99995 6.20005C6.99995 6.6971 6.59701 7.10005 6.09995 7.10005H1.59995C1.10289 7.10005 0.699951 6.6971 0.699951 6.20005V1.70005C0.699951 1.20299 1.10289 0.800049 1.59995 0.800049ZM1.6073 8.95149C2.07594 8.78585 2.59014 9.03148 2.75578 9.50013C3.37396 11.2491 5.04203 12.5 6.99995 12.5C8.47139 12.5 9.77912 11.7935 10.6005 10.7L7.89995 10.7C7.40289 10.7 6.99995 10.2971 6.99995 9.80005C6.99995 9.30299 7.40289 8.90005 7.89995 8.90005H12.3999C12.6386 8.90005 12.8676 8.99487 13.0363 9.16365C13.2051 9.33243 13.3 9.56135 13.3 9.80005V14.3C13.3 14.7971 12.897 15.2 12.4 15.2C11.9029 15.2 11.5 14.7971 11.5 14.3V12.4089C10.3569 13.5757 8.76348 14.3 6.99995 14.3C4.25549 14.3 1.92309 12.5457 1.05867 10.1C0.893024 9.63132 1.13866 9.11714 1.6073 8.95149Z"/>
-                                </svg>
-                                <span class="sync-text"><?php echo esc_html__( 'Sync All', 'instawp-connect' ); ?></span>
-                            </button>
-                            <button type="button" class="bg-white py-2 px-2 border rounded shadow instawp-refresh-events">
-                                <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" width="14" height="16" viewBox="0 0 24 24">
-                                    <path fill-rule="evenodd" clip-rule="evenodd" style="fill: #005e54;" d="M13.5 2c-5.629 0-10.212 4.436-10.475 10h-3.025l4.537 5.917 4.463-5.917h-2.975c.26-3.902 3.508-7 7.475-7 4.136 0 7.5 3.364 7.5 7.5s-3.364 7.5-7.5 7.5c-2.381 0-4.502-1.119-5.876-2.854l-1.847 2.449c1.919 2.088 4.664 3.405 7.723 3.405 5.798 0 10.5-4.702 10.5-10.5s-4.702-10.5-10.5-10.5z"/>
-                                </svg>
-                            </button>
-                        </div>
+                        <button type="button" class="bg-white py-2 px-2 border rounded shadow instawp-refresh-events">
+                            <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" width="14" height="16" viewBox="0 0 24 24">
+                                <path fill-rule="evenodd" clip-rule="evenodd" style="fill: #005e54;" d="M13.5 2c-5.629 0-10.212 4.436-10.475 10h-3.025l4.537 5.917 4.463-5.917h-2.975c.26-3.902 3.508-7 7.475-7 4.136 0 7.5 3.364 7.5 7.5s-3.364 7.5-7.5 7.5c-2.381 0-4.502-1.119-5.876-2.854l-1.847 2.449c1.919 2.088 4.664 3.405 7.723 3.405 5.798 0 10.5-4.702 10.5-10.5s-4.702-10.5-10.5-10.5z"/>
+                            </svg>
+                        </button>
+                        <button type="button" class="bulk-sync-popup-btn text-white bg-[#005e54] font-medium py-2 px-3 rounded text-center inline-flex items-center">
+                            <svg class="w-4 h-4 mr-2" width="14" height="16" viewBox="0 0 14 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path fill-rule="evenodd" clip-rule="evenodd" style="fill: #fff;"
+                                      d="M1.59995 0.800049C2.09701 0.800049 2.49995 1.20299 2.49995 1.70005V3.59118C3.64303 2.42445 5.23642 1.70005 6.99995 1.70005C9.74442 1.70005 12.0768 3.45444 12.9412 5.90013C13.1069 6.36877 12.8612 6.88296 12.3926 7.0486C11.924 7.21425 11.4098 6.96862 11.2441 6.49997C10.6259 4.75097 8.95787 3.50005 6.99995 3.50005C5.52851 3.50005 4.22078 4.20657 3.39937 5.30005H6.09995C6.59701 5.30005 6.99995 5.70299 6.99995 6.20005C6.99995 6.6971 6.59701 7.10005 6.09995 7.10005H1.59995C1.10289 7.10005 0.699951 6.6971 0.699951 6.20005V1.70005C0.699951 1.20299 1.10289 0.800049 1.59995 0.800049ZM1.6073 8.95149C2.07594 8.78585 2.59014 9.03148 2.75578 9.50013C3.37396 11.2491 5.04203 12.5 6.99995 12.5C8.47139 12.5 9.77912 11.7935 10.6005 10.7L7.89995 10.7C7.40289 10.7 6.99995 10.2971 6.99995 9.80005C6.99995 9.30299 7.40289 8.90005 7.89995 8.90005H12.3999C12.6386 8.90005 12.8676 8.99487 13.0363 9.16365C13.2051 9.33243 13.3 9.56135 13.3 9.80005V14.3C13.3 14.7971 12.897 15.2 12.4 15.2C11.9029 15.2 11.5 14.7971 11.5 14.3V12.4089C10.3569 13.5757 8.76348 14.3 6.99995 14.3C4.25549 14.3 1.92309 12.5457 1.05867 10.1C0.893024 9.63132 1.13866 9.11714 1.6073 8.95149Z"/>
+                            </svg>
+                            <span class="sync-text"><?php echo esc_html__( 'Sync All', 'instawp-connect' ); ?></span>
+                        </button>
                         <div class="select-ct <?php echo empty( $staging_sites ) ? 'hidden' : '' ?>">
                             <select id="staging-site-sync" data-page="instawp">
 								<?php foreach ( $staging_sites as $site ) : ?>
@@ -85,13 +83,13 @@ if ( ! empty( $parent_connect_data ) ) {
                             </select>
                         </div>
                         <div class="select-ct <?php echo empty( $staging_sites ) ? 'hidden' : '' ?>">
-                            <select id="staging-site-sync">
+                            <select id="filter-sync-events">
 			                    <option value="all"><?php echo esc_html__( 'All', 'instawp-connect' ); ?></option>
 			                    <option value="pending"><?php echo esc_html__( 'Pending', 'instawp-connect' ); ?></option>
 			                    <option value="completed"><?php echo esc_html__( 'Completed', 'instawp-connect' ); ?></option>
                             </select>
                         </div>
-                        <button type="button" id="instawp-delete-events" class="bg-white hover:bg-red-100 text-red-400 py-2 px-2 border border-red-400 rounded shadow mr-3 hidden">
+                        <button type="button" id="instawp-delete-events" class="bg-white hover:bg-red-100 text-red-400 py-2 px-2 border border-red-400 rounded shadow hidden">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/>
                             </svg>
