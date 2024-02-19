@@ -142,9 +142,9 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 						$sync_response[] = $response_data['data'];
 					}
 
-					if ( class_exists( '\Elementor\Utils' ) && method_exists('\Elementor\Utils', 'replace_urls' ) ) {
-						try{
-							\Elementor\Utils::replace_urls( $v->site_url, site_url() );
+					if ( isset( $v->details->site_url ) && class_exists( '\Elementor\Utils' ) && method_exists('\Elementor\Utils', 'replace_urls' ) ) {
+						try {
+							\Elementor\Utils::replace_urls( $v->details->site_url, site_url() );
 						} catch ( \Exception $e ) {}
 					}
 
