@@ -142,12 +142,6 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 						$sync_response[] = $response_data['data'];
 					}
 
-					if ( isset( $v->details->site_url ) && class_exists( '\Elementor\Utils' ) && method_exists('\Elementor\Utils', 'replace_urls' ) ) {
-						try {
-							\Elementor\Utils::replace_urls( $v->details->site_url, site_url() );
-						} catch ( \Exception $e ) {}
-					}
-
 					if ( ! empty( $response_data['log_data'] ) ) {
 						$this->logs = array_merge( $this->logs, $response_data['log_data'] );
 					}
@@ -202,6 +196,12 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 				$this->sync_update( $sync_id, $syncUpdate );
 				++$count ;
 			}
+		}
+
+		if ( ! empty( $source_url ) && class_exists( '\Elementor\Utils' ) && method_exists('\Elementor\Utils', 'replace_urls' ) ) {
+			try {
+				\Elementor\Utils::replace_urls( $source_url, site_url() );
+			} catch ( \Exception $e ) {}
 		}
 
 		#Sync history save
