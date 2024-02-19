@@ -26,6 +26,7 @@ class Inventory {
 				'update_available' => array_key_exists( $name, $plugin_update_data ),
 				'update_version'   => array_key_exists( $name, $plugin_update_data ) ? $plugin_update_data[ $name ]->new_version : '',
 				'icon_url'         => 'https://ps.w.org/' . $slug[0] . '/assets/icon-128x128.png',
+				'data'             => $plugin,
 			];
 		}
 
