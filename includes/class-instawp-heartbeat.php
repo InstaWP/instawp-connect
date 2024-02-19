@@ -48,7 +48,7 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 		}
 
 		public function send_heartbeat_data() {
-			self::send_heartbeat( null, true );
+			self::send_heartbeat();
 		}
 
 		public function handle_heartbeat_status() {
@@ -118,7 +118,7 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 			return $heartbeat_data;
 		}
 
-		public static function send_heartbeat( $connect_id = null, $unfiltered = false ): bool {
+		public static function send_heartbeat( $connect_id = null ): bool {
 			if ( defined( 'INSTAWP_DEBUG_LOG' ) && true === INSTAWP_DEBUG_LOG ) {
 				error_log( "HEARTBEAT RAN AT : " . date( 'd-m-Y, H:i:s, h:i:s' ) );
 			}
@@ -129,8 +129,10 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 
 			$last_sent_data = get_option( 'instawp_heartbeat_sent_data', array() );
 			$heartbeat_data = self::prepare_data();
-			$filtered_data  = $unfiltered ? $heartbeat_data : instawp_array_recursive_diff( $last_sent_data, $heartbeat_data );
-			$heartbeat_body = base64_encode( wp_json_encode( $filtered_data ) );
+			$heartbeat_body = base64_encode( wp_json_encode( array(
+				'site_information' => $heartbeat_data,
+				'new_changes'      => instawp_array_recursive_diff( $heartbeat_data, $last_sent_data )
+			) ) );
 
 			$success = false;
 			for ( $i = 0; $i < 10; $i ++ ) {

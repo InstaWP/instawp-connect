@@ -845,16 +845,7 @@ class InstaWP_Tools {
                 </p>
             </div>
         </div>
-        <form id="instawp-auto-login" action="<?php echo esc_url( $url ); ?>" method="POST">
-			<?php echo $fields; ?>
-        </form>
-        <script type="text/javascript">
-            window.onload = function () {
-                setTimeout(function () {
-                    document.getElementById('instawp-auto-login').submit();
-                }, 3000);
-            }
-        </script>
+        <?php echo $fields; ?>
         </body>
         </html>
 		<?php
