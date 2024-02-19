@@ -79,6 +79,7 @@ class InstaWP_Sync_DB {
 			'user_id'        => get_current_user_id(),
 			'date'           => date( 'Y-m-d H:i:s' ),
 			'status'         => 'pending',
+			'site_url'       => site_url(),
 			'prod'           => '',
 			'synced_message' => '',
 		);

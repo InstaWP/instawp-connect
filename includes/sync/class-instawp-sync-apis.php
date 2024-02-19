@@ -84,6 +84,7 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 	 * @param WP_REST_Request $req
 	 *
 	 * @return WP_Error|WP_HTTP_Response|WP_REST_Response
+	 * @throws Exception
 	 */
 	public function events_receiver( WP_REST_Request $req ) {
 
@@ -139,6 +140,12 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 					$response_data = apply_filters( 'INSTAWP_CONNECT/Filters/process_two_way_sync', array(), $v );
 					if ( ! empty( $response_data['data'] ) ) {
 						$sync_response[] = $response_data['data'];
+					}
+
+					if ( class_exists( '\Elementor\Utils' ) && method_exists('\Elementor\Utils', 'replace_urls' ) ) {
+						try{
+							\Elementor\Utils::replace_urls( $v->site_url, site_url() );
+						} catch ( \Exception $e ) {}
 					}
 
 					if ( ! empty( $response_data['log_data'] ) ) {

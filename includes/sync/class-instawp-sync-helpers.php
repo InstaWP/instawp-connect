@@ -331,8 +331,6 @@ class InstaWP_Sync_Helpers {
 		if ( self::is_built_with_elementor( $post_id ) ) {
 			$css_file = \Elementor\Core\Files\CSS\Post::create( $post_id );
 			$css_file->delete();
-
-			//\Elementor\Utils::replace_urls( $from, $to );
 		}
 
 		delete_post_meta( $post_id, '_edit_lock' );
