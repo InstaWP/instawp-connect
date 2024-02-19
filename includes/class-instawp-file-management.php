@@ -28,7 +28,6 @@ if ( ! class_exists( 'InstaWP_File_Management' ) ) {
 			self::$action       = 'instawp_clean_file_manager';
 
 			add_action( 'init', array( $this, 'add_endpoint' ) );
-			add_action( 'wp', array( $this, 'filter_redirect' ) );
 			add_action( 'template_redirect', array( $this, 'redirect' ) );
 			add_action( self::$action, array( $this, 'clean' ) );
 			add_action( 'admin_post_instawp-file-manager-auto-login', array( $this, 'auto_login' ) );
@@ -42,13 +41,6 @@ if ( ! class_exists( 'InstaWP_File_Management' ) ) {
 
 		public function add_endpoint() {
 			add_rewrite_endpoint( self::$query_var, EP_ROOT | EP_PAGES );
-		}
-		
-		public function filter_redirect() {
-			if ( $this->get_template() ) {
-				remove_action( 'template_redirect', 'redirect_canonical' );
-				add_filter( 'redirect_canonical', '__return_false' );
-			}
 		}
 
 		public function redirect() {
@@ -76,9 +68,9 @@ if ( ! class_exists( 'InstaWP_File_Management' ) ) {
 		}
 
 		public function auto_login() {
-			$file_db_manager = InstaWP_Setting::get_option( 'instawp_file_db_manager', array() );
-			$file_name       = InstaWP_Setting::get_args_option( 'file_name', $file_db_manager );
-			if ( ! $file_name ) {
+			$file_name = defined( 'INSTAWP_FILE_MANAGER_FILE_NAME' ) ? INSTAWP_FILE_MANAGER_FILE_NAME : '';
+
+			if ( empty( $file_name ) ) {
 				wp_die( esc_html__( 'File Manager file not found!', 'instawp-connect' ) );
 			}
 
@@ -91,7 +83,10 @@ if ( ! class_exists( 'InstaWP_File_Management' ) ) {
 				wp_die( esc_html__( 'InstaWP File Manager: Token mismatch or not valid!', 'instawp-connect' ) );
 			}
 
+			@set_time_limit( 900 );
 			@ini_set( 'session.gc_maxlifetime', 1800 ); // 30 minutes
+			@ini_set( 'default_charset', 'UTF-8' );
+
 			session_cache_limiter( 'nocache' ); // Prevent logout issue after page was cached
 			session_name( INSTAWP_FILE_MANAGER_SESSION_ID );
 			function session_error_handling_function( $code, $msg, $file, $line ) {
@@ -116,7 +111,7 @@ if ( ! class_exists( 'InstaWP_File_Management' ) ) {
 			<input type="hidden" name="fm_usr" required="required" value="<?php echo esc_attr( INSTAWP_FILE_MANAGER_USERNAME ); ?>">
 			<input type="hidden" name="fm_pwd" required="required" value="<?php echo esc_attr( INSTAWP_FILE_MANAGER_PASSWORD ); ?>">
 			<input type="hidden" name="token" required="required" value="<?php echo esc_attr( $_SESSION['token'] ); ?>">
-			
+
 			<?php
 			$fields = ob_get_clean();
 			instawp()->tools::auto_login_page( $fields, $file_manager_url, __( 'InstaWP File Manager', 'instawp-connect' ) );

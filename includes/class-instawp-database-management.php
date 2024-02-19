@@ -68,9 +68,9 @@ if ( ! class_exists( 'InstaWP_Database_Management' ) ) {
 		}
 
 		public function auto_login() {
-			$file_db_manager = InstaWP_Setting::get_option( 'instawp_file_db_manager', array() );
-			$file_name       = InstaWP_Setting::get_args_option( 'db_name', $file_db_manager );
-			if ( ! $file_name ) {
+			$file_name = defined( 'INSTAWP_DATABASE_MANAGER_FILE_NAME' ) ? INSTAWP_DATABASE_MANAGER_FILE_NAME : '';
+
+			if ( empty( $file_name ) ) {
 				wp_die( esc_html__( 'Database Manager file not found!', 'instawp-connect' ) );
 			}
 
@@ -87,12 +87,12 @@ if ( ! class_exists( 'InstaWP_Database_Management' ) ) {
 			ob_start() ?>
 
 			<input type="hidden" name="auth[driver]" required="required" value="server">
-			<input type="hidden" name="auth[server]" required="required" value="<?php echo esc_attr( DB_HOST ); ?>">
+<!--			<input type="hidden" name="auth[server]" required="required" value="--><?php //echo esc_attr( DB_HOST ); ?><!--">-->
 			<input type="hidden" name="auth[username]" required="required" value="<?php echo esc_attr( DB_USER ); ?>">
 			<input type="hidden" name="auth[password]" required="required" value="<?php echo esc_attr( DB_PASSWORD ); ?>">
 			<input type="hidden" name="auth[db]" required="required" value="<?php echo esc_attr( DB_NAME ); ?>">
 			<input type="hidden" name="auth[permanent]" required="required" value="1">
-			
+
 			<?php
 			$fields = ob_get_clean();
 			instawp()->tools::auto_login_page( $fields, $database_manager_url, __( 'InstaWP Database Manager', 'instawp-connect' ) );
