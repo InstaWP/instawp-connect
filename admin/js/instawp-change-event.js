@@ -119,7 +119,7 @@ jQuery(document).ready(function ($) {
         get_site_events(page);
     });
 
-    $(document).on('change', '#staging-site-sync', function () {
+    $(document).on('change', '#staging-site-sync, #filter-sync-events', function () {
         get_site_events();
     });
 
@@ -225,6 +225,7 @@ jQuery(document).ready(function ($) {
 
     const get_site_events = async (page = 1) => {
         let site_id = $("#staging-site-sync").val();
+        let filter_status = $("#filter-sync-events").val();
         let current_page = $("#staging-site-sync").data('page');
 
         if (current_page == undefined) return;
@@ -232,6 +233,7 @@ jQuery(document).ready(function ($) {
         formData.append('action', 'instawp_get_site_events');
         formData.append('epage', page);
         formData.append('connect_id', site_id);
+        formData.append('filter_status', filter_status);
 
         $("#part-sync-results").html('<tr><td colspan="5" class="event-sync-cell loading"></td></tr>');
 

@@ -56,6 +56,7 @@ class InstaWP_Sync_Ajax {
 		}
 
 		$connect_id     = ! empty( $_POST['connect_id'] ) ? intval( $_POST['connect_id'] ) : 0;
+		$filter_status  = ! empty( $_POST['filter_status'] ) ? sanitize_text_field( $_POST['filter_status'] ) : 'all';
 		$where          = '1=1';
 		$items_per_page = INSTAWP_EVENTS_PER_PAGE;
 
@@ -76,6 +77,15 @@ class InstaWP_Sync_Ajax {
 		$offset = ( $page * $items_per_page ) - $items_per_page;
 
 		$events = $this->wpdb->get_results( $query . " ORDER BY date DESC LIMIT {$offset}, {$items_per_page}" );
+
+		if ( $filter_status !== 'all' ) {
+			$events = array_filter( $events, function ( $event ) use ( $connect_id, $filter_status ) {
+				$event_row = InstaWP_Sync_DB::getSiteEventStatus( $connect_id, $event->event_hash );
+				$status    = $event_row && $event_row->status != '' ? $event_row->status : 'pending';
+
+				return $filter_status === $status;
+			} );
+		}
 
 		$totalPage = ceil( $total / $items_per_page );
 
