@@ -466,9 +466,9 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		}
 
 		$tracking_db->create_file_indexes( 'iwp_files_sent', array(
-			'idx_sent'      => 'sent',
-//			'idx_file_path' => 'filepath',
-			'idx_file_size' => 'size',
+			'idx_sent'                              => 'sent',
+			//          'idx_file_path' => 'filepath',
+									'idx_file_size' => 'size',
 		) );
 	}
 

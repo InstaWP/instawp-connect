@@ -67,10 +67,10 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 				require_once ABSPATH . 'wp-admin/includes/class-wp-debug-data.php';
 			}
 
-//			$heartbeat_data = get_transient( 'instawp_heartbeat_data' );
-//			if ( ! empty( $heartbeat_data ) ) {
-//				return $heartbeat_data;
-//			}
+//          $heartbeat_data = get_transient( 'instawp_heartbeat_data' );
+//          if ( ! empty( $heartbeat_data ) ) {
+//              return $heartbeat_data;
+//          }
 
 			$sizes_data     = WP_Debug_Data::get_sizes();
 			$wp_version     = get_bloginfo( 'version' );
@@ -131,7 +131,7 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 			$heartbeat_data = self::prepare_data();
 			$heartbeat_body = base64_encode( wp_json_encode( array(
 				'site_information' => $heartbeat_data,
-				'new_changes'      => instawp_array_recursive_diff( $heartbeat_data, $last_sent_data )
+				'new_changes'      => instawp_array_recursive_diff( $heartbeat_data, $last_sent_data ),
 			) ) );
 
 			$success = false;

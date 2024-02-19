@@ -54,9 +54,9 @@ class instaWP {
 		$this->can_bundle              = ( class_exists( 'ZipArchive' ) || class_exists( 'PharData' ) );
 
 		// if connect id is empty then remove all connection
-//		if ( empty( $this->connect_id ) ) {
-//			instawp_reset_running_migration( 'hard' );
-//		}
+//      if ( empty( $this->connect_id ) ) {
+//          instawp_reset_running_migration( 'hard' );
+//      }
 
 		if ( is_admin() ) {
 			$this->set_locale();
@@ -371,10 +371,8 @@ class instaWP {
 
 						if ( is_dir( $root . DIRECTORY_SEPARATOR . $filename ) ) {
 							$size = self::get_folder_size( $root . DIRECTORY_SEPARATOR . $filename, $size );
-						} else {
-							if ( file_exists( $filepath = $root . DIRECTORY_SEPARATOR . $filename ) && is_readable( $filepath ) ) {
+						} elseif ( file_exists( $filepath = $root . DIRECTORY_SEPARATOR . $filename ) && is_readable( $filepath ) ) {
 								$size += filesize( $filepath );
-							}
 						}
 					}
 				}

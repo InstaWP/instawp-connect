@@ -206,7 +206,6 @@ class InstaWP_Setting {
 				break;
 
 			case 'qa_tools':
-
 				echo '<div class="inline-block w-full instawp-qa-tools">';
 				echo '<button type="button" class="instawp-manager" data-type="file">' . esc_html__( 'File Manager', 'instawp-connect' ) . '</button>';
 				echo '<button type="button" class="instawp-manager" data-type="database">' . esc_html__( 'Database Manager', 'instawp-connect' ) . '</button>';
