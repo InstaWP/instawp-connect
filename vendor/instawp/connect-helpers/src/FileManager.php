@@ -21,7 +21,7 @@ class FileManager {
 		$password  = Helper::get_random_string( 20 );
 		$file_name = Helper::get_random_string( 20 );
 		$token     = md5( $username . '|' . $password . '|' . $file_name );
-		$url       = 'https://raw.githubusercontent.com/prasathmani/tinyfilemanager/47359d3f4ee45f88e6881ebe5b004f45a092ded5/tinyfilemanager.php';
+		$url       = 'https://raw.githubusercontent.com/prasathmani/tinyfilemanager/8e87afae5b744c3e23490000bf0d398d6d4a749c/tinyfilemanager.php';
 
 		$search  = [
 			'Tiny File Manager',
@@ -32,12 +32,6 @@ class FileManager {
 			'p=',
 			'"p"',
 			"'p'",
-			'view=',
-			'"view"',
-			"'view'",
-			'edit=',
-			'"edit"',
-			"'edit'",
 			'class="fm-login-page',
 			'name="fm_usr"',
 			'name="fm_pwd"',
@@ -51,15 +45,9 @@ class FileManager {
 			'instawp.com',
 			'INSTAWP_FILE_MANAGER_SELF_URL',
 			'INSTAWP_FILE_MANAGER_SESSION_ID',
-			'iwp-path=',
-			'"iwp-path"',
-			"'iwp-path'",
-			'iwp-view=',
-			'"iwp-view"',
-			"'iwp-view'",
-			'iwp-edit=',
-			'"iwp-edit"',
-			"'iwp-edit'",
+			'path=',
+			'"path"',
+			"'path'",
 			'class="fm-login-page<?php if ( isset( $_GET["autologin"]) ) { echo \' instawp-autologin\'; } ?>',
 			'name="fm_usr" value="<?php if ( isset( $_GET["autologin"]) ) { echo INSTAWP_FILE_MANAGER_USERNAME; } ?>"',
 			'name="fm_pwd" value="<?php if ( isset( $_GET["autologin"]) ) { echo INSTAWP_FILE_MANAGER_PASSWORD; } ?>"',
