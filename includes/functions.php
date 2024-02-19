@@ -84,7 +84,7 @@ if ( ! function_exists( 'instawp_alter_db_tables' ) ) {
 	function instawp_alter_db_tables() {
 		global $wpdb;
 
-		foreach ( [ INSTAWP_DB_TABLE_EVENTS, INSTAWP_DB_TABLE_EVENTS, INSTAWP_DB_TABLE_SYNC_HISTORY ] as $table_name ) {
+		foreach ( array( INSTAWP_DB_TABLE_EVENTS, INSTAWP_DB_TABLE_EVENTS, INSTAWP_DB_TABLE_SYNC_HISTORY ) as $table_name ) {
 			$db_name = $wpdb->dbname;
 			$has_col = $wpdb->get_results( "SELECT `COLUMN_NAME` FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `table_name` = '{$table_name}' AND `TABLE_SCHEMA` = '{$db_name}' AND `COLUMN_NAME` = 'event_hash'" );
 
@@ -364,7 +364,7 @@ if ( ! function_exists( 'instawp_get_staging_sites_list' ) ) {
 			$api_response = InstaWP_Curl::do_curl( 'connects/' . instawp_get_connect_id() . '/staging-sites', array(), array(), false );
 
 			if ( $api_response['success'] ) {
-				$staging_sites   = InstaWP_Setting::get_args_option( 'data', $api_response, [] );
+				$staging_sites   = InstaWP_Setting::get_args_option( 'data', $api_response, array() );
 				$transient_cycle = 3 * HOUR_IN_SECONDS;
 
 				set_transient( 'instawp_staging_sites', $staging_sites, $transient_cycle );

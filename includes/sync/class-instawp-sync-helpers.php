@@ -430,8 +430,8 @@ class InstaWP_Sync_Helpers {
 			$media         = self::get_media_from_content( $post_content );
 
 			$data = array_merge( $data, array(
-				'taxonomies'    => $taxonomies,
-				'media'         => $media,
+				'taxonomies' => $taxonomies,
+				'media'      => $media,
 			) );
 
 			$featured_image_id  = get_post_thumbnail_id( $post->ID );

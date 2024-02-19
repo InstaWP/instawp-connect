@@ -24,14 +24,14 @@ $connect_id  = $api_options['connect_id'] ?? '';
 $api_key     = $api_options['api_key'] ?? '';
 
 if ( ! empty( $connect_id ) && ! empty( $api_key ) ) {
-	wp_remote_post( "https://app.instawp.io/api/v2/connects/{$connect_id}/disconnect", [
+	wp_remote_post( "https://app.instawp.io/api/v2/connects/{$connect_id}/disconnect", array(
 		'headers' => array(
 			'Authorization' => 'Bearer ' . $api_key,
 			'Accept'        => 'application/json',
 			'Content-Type'  => 'application/json',
-			'Referer'       => site_url()
-		)
-	] );
+			'Referer'       => site_url(),
+		),
+	) );
 }
 
 delete_option( 'instawp_api_options' );
