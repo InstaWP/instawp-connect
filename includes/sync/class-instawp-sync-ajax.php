@@ -93,7 +93,7 @@ class InstaWP_Sync_Ajax {
 	public function handle_select2() {
 		if ( isset( $_GET['event'] ) ) {
 			if ( $_GET['event'] == 'instawp_get_users' ) {
-				$keyword = $_GET['term'];
+				$keyword = ! empty( $_GET['term'] ) ? sanitize_text_field( $_GET['term'] ) : '';
 				$args    = array(
 					'search'         => $keyword,
 					'paged'          => 1,

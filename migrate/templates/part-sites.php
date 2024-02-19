@@ -39,6 +39,11 @@ if ( ! empty( $parent_connect_data ) ) {
                         </svg>
                     </div>
                     <div class="text-sm font-medium text-grayCust-200 mb-1"><?php echo esc_html__( 'No Staging Sites found!', 'instawp-connect' ); ?></div>
+                    <button type="button" class="instawp-green-btn instawp-clear-staging-sites mt-3">
+                        <svg width="14" height="16" viewBox="0 0 14 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" clip-rule="evenodd" style="fill: #fff ;" d="M1.59995 0.800049C2.09701 0.800049 2.49995 1.20299 2.49995 1.70005V3.59118C3.64303 2.42445 5.23642 1.70005 6.99995 1.70005C9.74442 1.70005 12.0768 3.45444 12.9412 5.90013C13.1069 6.36877 12.8612 6.88296 12.3926 7.0486C11.924 7.21425 11.4098 6.96862 11.2441 6.49997C10.6259 4.75097 8.95787 3.50005 6.99995 3.50005C5.52851 3.50005 4.22078 4.20657 3.39937 5.30005H6.09995C6.59701 5.30005 6.99995 5.70299 6.99995 6.20005C6.99995 6.6971 6.59701 7.10005 6.09995 7.10005H1.59995C1.10289 7.10005 0.699951 6.6971 0.699951 6.20005V1.70005C0.699951 1.20299 1.10289 0.800049 1.59995 0.800049ZM1.6073 8.95149C2.07594 8.78585 2.59014 9.03148 2.75578 9.50013C3.37396 11.2491 5.04203 12.5 6.99995 12.5C8.47139 12.5 9.77912 11.7935 10.6005 10.7L7.89995 10.7C7.40289 10.7 6.99995 10.2971 6.99995 9.80005C6.99995 9.30299 7.40289 8.90005 7.89995 8.90005H12.3999C12.6386 8.90005 12.8676 8.99487 13.0363 9.16365C13.2051 9.33243 13.3 9.56135 13.3 9.80005V14.3C13.3 14.7971 12.897 15.2 12.4 15.2C11.9029 15.2 11.5 14.7971 11.5 14.3V12.4089C10.3569 13.5757 8.76348 14.3 6.99995 14.3C4.25549 14.3 1.92309 12.5457 1.05867 10.1C0.893024 9.63132 1.13866 9.11714 1.6073 8.95149Z"></path>
+                        </svg>
+                    </button>
                 </div>
             </div>
         </div>
@@ -57,16 +62,16 @@ if ( ! empty( $parent_connect_data ) ) {
                 <div class="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
                     <div class="shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
                         <table class="min-w-full divide-y divide-gray-300">
-                            <thead class="bg-gray-50">
-                            <tr>
-                                <th scope="col" class="px-4 py-4  uppercase text-left text-sm font-medium text-grayCust-900"><?php echo esc_html__( 'Site Name', 'instawp-connect' ); ?></th>
+                            <thead class="bg-gray-50 sm:rounded-lg">
+                            <tr class="sm:rounded-lg">
+                                <th scope="col" class="px-4 py-4  uppercase text-left text-sm font-medium text-grayCust-900 sm:rounded-lg"><?php echo esc_html__( 'Site Name', 'instawp-connect' ); ?></th>
                                 <th scope="col" class="px-4 py-4 text-left uppercase text-sm font-medium text-grayCust-900"><?php echo esc_html__( 'Username', 'instawp-connect' ); ?></th>
                                 <th scope="col" class="px-4 py-4 text-left uppercase text-sm font-medium text-grayCust-900"><?php echo esc_html__( 'Password', 'instawp-connect' ); ?></th>
                                 <th scope="col" class="px-4 py-4 text-left uppercase text-sm font-medium text-grayCust-900"><?php echo esc_html__( 'Created date', 'instawp-connect' ); ?></th>
-                                <th scope="col" class="px-4 py-4 text-center uppercase text-sm font-medium text-grayCust-900"><?php echo esc_html__( 'Actions', 'instawp-connect' ); ?></th>
+                                <th scope="col" class="px-4 py-4 text-center uppercase text-sm font-medium text-grayCust-900 sm:rounded-lg"><?php echo esc_html__( 'Actions', 'instawp-connect' ); ?></th>
                             </tr>
                             </thead>
-                            <tbody class="divide-y divide-gray-200 bg-white">
+                            <tbody class="divide-y divide-gray-200 bg-white sm:rounded-lg">
 							<?php foreach ( $staging_sites as $index => $site ) :
 
 								$site_name = isset( $site['url'] ) ? $site['url'] : '';
@@ -77,8 +82,8 @@ if ( ! empty( $parent_connect_data ) ) {
 								$datetime = isset( $site['timestamp'] ) ? $site['timestamp'] : '';
 								$datetime = $datetime != '' ? date( 'M j, Y', strtotime( $datetime ) ) : '';
 								?>
-                                <tr class="staging-site-list">
-                                    <td class="whitespace-nowrap py-8 px-4 text-sm font-medium flex items-center text-grayCust-300">
+                                <tr class="staging-site-list sm:rounded-lg">
+                                    <td class="whitespace-nowrap py-8 px-4 text-sm font-medium flex items-center text-grayCust-300 sm:rounded-lg">
 										<?php
 										printf( '<img src="%s" class="mr-2" alt=""><a target="_blank" class="focus:outline-none focus:ring-0 hover:text-primary-900 border-b border-transparent border-1 border-dashed hover:border-primary-700" href="%s">%s</a>',
 											instawp()::get_asset_url( 'migrate/assets/images/glob.svg' ),
@@ -95,7 +100,7 @@ if ( ! empty( $parent_connect_data ) ) {
                                     <td class="whitespace-nowrap text-left px-4 py-6 font-medium text-sm text-grayCust-300">
                                         <span><?php echo esc_html( $datetime ); ?></span>
                                     </td>
-                                    <td class="whitespace-nowrap px-4 py-6 font-medium text-sm text-grayCust-300">
+                                    <td class="whitespace-nowrap px-4 py-6 font-medium text-sm text-grayCust-300 sm:rounded-lg">
                                         <div class="flex items-center justify-center">
 											<?php if ( $auto_login_url ) : ?>
                                                 <a href="<?php echo esc_url( $auto_login_url ); ?>" target="_blank" type="button" class="relative flex items-center px-2.5 w-11 h-9 lg:px-3 rounded-md border border-grayCust-350 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:z-10 focus:outline-none focus:ring-0 focus:border-grayCust-350">

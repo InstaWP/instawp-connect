@@ -249,16 +249,7 @@ jQuery(document).ready(function ($) {
         });
     }
 
-    /**
-     * call the function for load events
-     */
-    $(document).on('click', '#sync', function () {
-        get_site_events();
-    });
-
-    if ($('#sync').hasClass('active')) {
-        get_site_events();
-    }
+    get_site_events();
 
     $(document).on('click', '.load-more-event-type', function () {
         $('body').find('.event-type-count:gt(2)').toggle();

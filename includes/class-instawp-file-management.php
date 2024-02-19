@@ -83,34 +83,16 @@ if ( ! class_exists( 'InstaWP_File_Management' ) ) {
 				wp_die( esc_html__( 'InstaWP File Manager: Token mismatch or not valid!', 'instawp-connect' ) );
 			}
 
-			@set_time_limit( 900 );
-			@ini_set( 'session.gc_maxlifetime', 1800 ); // 30 minutes
-			@ini_set( 'default_charset', 'UTF-8' );
-
-			session_cache_limiter( 'nocache' ); // Prevent logout issue after page was cached
-			session_name( INSTAWP_FILE_MANAGER_SESSION_ID );
-			function session_error_handling_function( $code, $msg, $file, $line ) {
-				// Permission denied for default session, try to create a new one
-				if ( $code == 2 ) {
-					session_abort();
-					session_id( session_create_id() );
-					@session_start();
-				}
-			}
-			set_error_handler( 'session_error_handling_function' );
-			session_start();
-			restore_error_handler();
-
-			if ( empty( $_SESSION['token'] ) ) {
-				$_SESSION['token'] = InstaWP_Tools::get_random_string( 64 );
-			}
-			
-			$file_manager_url = $this->file_manager::get_file_manager_url( $file_name ); 
+			$file_manager_url = $this->file_manager::get_file_manager_url( $file_name );
 			ob_start() ?>
 
-			<input type="hidden" name="fm_usr" required="required" value="<?php echo esc_attr( INSTAWP_FILE_MANAGER_USERNAME ); ?>">
-			<input type="hidden" name="fm_pwd" required="required" value="<?php echo esc_attr( INSTAWP_FILE_MANAGER_PASSWORD ); ?>">
-			<input type="hidden" name="token" required="required" value="<?php echo esc_attr( $_SESSION['token'] ); ?>">
+            <script type="text/javascript">
+                window.onload = function () {
+                    setTimeout(function () {
+                        location.href = '<?php echo esc_url( $file_manager_url ); ?>?autologin';
+                    }, 2000);
+                }
+            </script>
 
 			<?php
 			$fields = ob_get_clean();

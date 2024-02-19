@@ -86,12 +86,21 @@ if ( ! class_exists( 'InstaWP_Database_Management' ) ) {
 			$database_manager_url = $this->database_manager::get_database_manager_url( $file_name );
 			ob_start() ?>
 
-			<input type="hidden" name="auth[driver]" required="required" value="server">
-<!--			<input type="hidden" name="auth[server]" required="required" value="--><?php //echo esc_attr( DB_HOST ); ?><!--">-->
-			<input type="hidden" name="auth[username]" required="required" value="<?php echo esc_attr( DB_USER ); ?>">
-			<input type="hidden" name="auth[password]" required="required" value="<?php echo esc_attr( DB_PASSWORD ); ?>">
-			<input type="hidden" name="auth[db]" required="required" value="<?php echo esc_attr( DB_NAME ); ?>">
-			<input type="hidden" name="auth[permanent]" required="required" value="1">
+            <form id="instawp-auto-login" action="<?php echo esc_url( $database_manager_url ); ?>" method="POST">
+                <input type="hidden" name="auth[driver]" required="required" value="server">
+                <!--			<input type="hidden" name="auth[server]" required="required" value="--><?php //echo esc_attr( DB_HOST ); ?><!--">-->
+                <input type="hidden" name="auth[username]" required="required" value="<?php echo esc_attr( DB_USER ); ?>">
+                <input type="hidden" name="auth[password]" required="required" value="<?php echo esc_attr( DB_PASSWORD ); ?>">
+                <input type="hidden" name="auth[db]" required="required" value="<?php echo esc_attr( DB_NAME ); ?>">
+                <input type="hidden" name="auth[permanent]" required="required" value="1">
+            </form>
+            <script type="text/javascript">
+                window.onload = function () {
+                    setTimeout(function () {
+                        document.getElementById('instawp-auto-login').submit();
+                    }, 3000);
+                }
+            </script>
 
 			<?php
 			$fields = ob_get_clean();
