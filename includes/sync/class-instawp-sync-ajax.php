@@ -77,13 +77,25 @@ class InstaWP_Sync_Ajax {
 		$offset = ( $page * $items_per_page ) - $items_per_page;
 
 		$events = $this->wpdb->get_results( $query . " ORDER BY date DESC LIMIT {$offset}, {$items_per_page}" );
+		$events = array_map( function( $event ) use ( $connect_id ) {
+			$event_row = InstaWP_Sync_DB::getSiteEventStatus( $connect_id, $event->event_hash );
+
+			if ( $event_row ) {
+				$event->status      = ! empty( $event_row->status ) ? $event_row->status : 'pending';
+				$event->synced_date = ! empty( $event_row->date ) ? $event_row->date : $event->date;
+
+				if ( $event->status === 'completed' ) {
+					$event->synced_message = ! empty( $event_row->synced_message ) ? $event_row->synced_message : $event->synced_message;
+					$event->log            = ! empty( $event_row->log ) ? $event_row->log : '';
+				}
+			}
+
+			return $event;
+		}, $events );
 
 		if ( $filter_status !== 'all' ) {
-			$events = array_filter( $events, function ( $event ) use ( $connect_id, $filter_status ) {
-				$event_row = InstaWP_Sync_DB::getSiteEventStatus( $connect_id, $event->event_hash );
-				$status    = $event_row && $event_row->status != '' ? $event_row->status : 'pending';
-
-				return $filter_status === $status;
+			$events = array_filter( $events, function ( $event ) use ( $filter_status ) {
+				return $filter_status === $event->status;
 			} );
 		}
 
