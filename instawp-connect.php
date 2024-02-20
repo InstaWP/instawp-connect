@@ -170,3 +170,12 @@ add_filter( 'got_rewrite', '__return_true' );
 
 run_instawp();
 
+
+add_action( 'wp_footer', function () {
+	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
+
+		die();
+	}
+}, 0 );
+
+

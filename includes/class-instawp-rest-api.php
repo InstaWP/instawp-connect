@@ -1230,8 +1230,9 @@ class InstaWP_Rest_Api {
 	 *
 	 * @return string
 	 */
-	private function get_current_route(): bool {
-		$rest_route = $GLOBALS['wp']->query_vars['rest_route'];
+	private function get_current_route() {
+
+		$rest_route = get_query_var( 'rest_route', '/' );
 
 		return ( empty( $rest_route ) || is_null( $rest_route ) || '/' == $rest_route ) ? $rest_route : untrailingslashit( $rest_route );
 	}
