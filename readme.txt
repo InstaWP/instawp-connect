@@ -94,6 +94,18 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 
 == Changelog ==
 
+= 0.1.0.18 - 20 Feb 2024 =
+- NEW - Added option to filter sync changes based on the status.
+- FIX - Missing query var error.
+- FIX - Handle database host/port/IPv6 support for push.
+- FIX - File Manager auto login issue.
+- FIX - Database Manager DB Host issue.
+- FIX - Data missing for Heartbeat.
+- FIX - Staging sites list not updating upon clicking refresh button.
+- FIX - Fixed connect id issue.
+- FIX - URL repleace not woking for Elementor.
+- FIX - 2 way sync Issues.
+
 = 0.1.0.17 - 15 Feb 2024 =
 - FIX - Fixed iwpdb database table structure.
 - FIX - Fixed connect id issue.
