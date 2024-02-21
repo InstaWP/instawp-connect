@@ -66,11 +66,11 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 				'ajax_url' => admin_url( 'admin-ajax.php' ),
 				'security' => wp_create_nonce( 'instawp-migrate' ),
 			) );
-        }
+		}
 
 		public function add_instawp_menu_icon( WP_Admin_Bar $admin_bar ) {
 
-			if ( ! apply_filters( 'INSTAWP_CONNECT/Filters/display_menu_bar_icon', true ) ) {
+			if ( ! apply_filters( 'INSTAWP_CONNECT/Filters/display_menu_bar_icon', true ) || 'on' === InstaWP_Setting::get_option( 'instawp_hide_plugin_icon_topbar', 'off' ) ) {
 				return;
 			}
 
@@ -274,9 +274,9 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			if ( ! $cache_cleared ) {
 				return;
 			} ?>
-			<div class="notice notice-success is-dismissible">
-				<p><?php printf( esc_html__( 'Cache cleared for %s.', 'instawp-connect' ), join( ', ', wp_list_pluck( $cache_cleared, 'name' ) ) ); ?></p>
-			</div>
+            <div class="notice notice-success is-dismissible">
+                <p><?php printf( esc_html__( 'Cache cleared for %s.', 'instawp-connect' ), join( ', ', wp_list_pluck( $cache_cleared, 'name' ) ) ); ?></p>
+            </div>
 			<?php
 			delete_transient( 'instawp_cache_purged' );
 		}

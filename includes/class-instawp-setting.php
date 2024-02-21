@@ -302,12 +302,20 @@ class InstaWP_Setting {
 					'id'          => 'instawp_max_file_size_allowed',
 					'type'        => 'number',
 					'title'       => esc_html__( 'Maximum Allowed File Size', 'instawp-connect' ),
-					'desc'        => esc_html__( 'This option will set maximum allowed file size. Default - ' . INSTAWP_DEFAULT_MAX_FILE_SIZE_ALLOWED . ' MB', 'instawp-connect' ),
+					'tooltip'     => esc_html__( 'This option will set maximum allowed file size. Default - ' . INSTAWP_DEFAULT_MAX_FILE_SIZE_ALLOWED . ' MB', 'instawp-connect' ),
 					'placeholder' => esc_attr( INSTAWP_DEFAULT_MAX_FILE_SIZE_ALLOWED ),
 					'attributes'  => array(
 						'min' => '10',
 						'max' => '1024',
 					),
+				),
+				array(
+					'id'      => 'instawp_hide_plugin_icon_topbar',
+					'type'    => 'toggle',
+					'title'   => __( 'Hide Icon on Topbar', 'instawp-connect' ),
+					'tooltip' => __( 'Remove the InstaWP icon from top admin bar. It will also remove the flashing icon.', 'instawp-connect' ),
+					'class'   => 'save-ajax',
+					'default' => 'off',
 				),
 			),
 		);
