@@ -7,6 +7,9 @@ class InstaWP_Sync_Post {
 	public array $restricted_cpts = array(
 		'shop_order',
 		'customize_changeset',
+//		'wp_template',
+//		'wp_template_part',
+//		'wp_global_styles'
 	);
 
     public function __construct() {
