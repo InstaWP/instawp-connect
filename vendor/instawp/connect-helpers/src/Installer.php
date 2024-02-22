@@ -173,6 +173,14 @@ class Installer {
 
         $message = isset( $error_message ) ? trim( $error_message ) : '';
 
+        if ( ! function_exists( 'wp_clean_update_cache' ) || ! function_exists( 'wp_update_themes' ) || ! function_exists( 'wp_update_plugins' ) ) {
+            require_once ABSPATH . 'wp-includes\update.php';
+        }
+
+        wp_clean_update_cache();
+        wp_update_themes();
+        wp_update_plugins();
+
         return [
             'message' => empty( $message ) ? esc_html( 'Success!' ) : $message,
             'status'  => empty( $message ),
