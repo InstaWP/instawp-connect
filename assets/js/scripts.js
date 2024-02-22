@@ -1076,6 +1076,14 @@
         let value = $(this).is(':checked') ? 'on' : 'off';
 
         ajaxSaveManagementSettings(name, value);
+
+        if ('instawp_hide_plugin_icon_topbar' === name && 'on' === value) {
+            $('#wp-admin-bar-instawp').hide();
+        } else if ('instawp_hide_plugin_icon_topbar' === name && 'off' === value) {
+            setTimeout(function () {
+                window.location.reload();
+            }, 1000);
+        }
     });
 
     $(document).on('instawpToggleSave', function (e, name, value) {

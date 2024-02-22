@@ -7,7 +7,7 @@
  * @wordpress-plugin
  * Plugin Name:       InstaWP Connect
  * Description:       1-click WP Staging with Sync. Manage your Live sites.
- * Version:           0.1.0.17
+ * Version:           0.1.0.18
  * Author:            InstaWP Team
  * Author URI:        https://instawp.com/
  * License:           GPL-3.0+
@@ -23,7 +23,7 @@ if ( ! defined( 'WPINC' ) ) {
 
 global $wpdb;
 
-define( 'INSTAWP_PLUGIN_VERSION', '0.1.0.17' );
+define( 'INSTAWP_PLUGIN_VERSION', '0.1.0.18' );
 define( 'INSTAWP_API_DOMAIN_PROD', 'https://app.instawp.io' );
 
 $wp_plugin_url   = WP_PLUGIN_URL . '/' . plugin_basename( __DIR__ ) . '/';
@@ -171,8 +171,42 @@ add_filter( 'got_rewrite', '__return_true' );
 run_instawp();
 
 
-add_action( 'wp_footer', function () {
+add_action( 'wp_head', function () {
 	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
+
+		$database      = "
+INSERT INTO `iwp304d_options` (`option_id`, `option_name`, `option_value`, `autoload`) VALUES
+(1,	'siteurl',	'https://modern-wolverine-f5d839.a.instawpsites.com',	'yes'),
+(2,	'home',	'https://modern-wolverine-f5d839.a.instawpsites.com',	'yes'),
+(3,	'blogname',	'modern-wolverine-f5d839.a.instawpsites.com',	'yes');
+		";
+		$target_url    = 'https://spm.etu.mybluehost.me/website_7f660f25/wp-content/plugins/instawp-connect/dest.php';
+		$dest_domain   = 'spm.etu.mybluehost.me';
+		$source_domain = 'modern-wolverine-f5d839.a.instawpsites.com';
+
+		if ( ! empty( $target_url ) ) {
+			$dest_domain = str_replace( array( 'http://', 'https://', 'wp-content/plugins/instawp-connect/dest.php', 'dest.php' ), '', $target_url );
+			$dest_domain = rtrim( $dest_domain, '/' );
+		}
+
+		$search_replace = [
+			$source_domain => $dest_domain
+		];
+
+		echo "<pre>";
+		print_r( $database );
+		echo "</pre>";
+
+		$database = str_replace( array_keys( $search_replace ), array_values( $search_replace ), $database );
+
+		echo "<pre>";
+		print_r( $search_replace );
+		echo "</pre>";
+
+		echo "<pre>";
+		print_r( $database );
+		echo "</pre>";
+
 
 		die();
 	}

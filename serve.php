@@ -313,6 +313,9 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 				// Comment WP_HOME constant
 				$file_contents = search_and_comment_specific_line( "/define\(\s*'WP_HOME'/", $file_contents );
 
+				// Comment COOKIE_DOMAIN constant
+				$file_contents = search_and_comment_specific_line( "/define\(\s*'COOKIE_DOMAIN'/", $file_contents );
+
 				$tmp_file = tempnam( sys_get_temp_dir(), 'wp-config' );
 				if ( file_put_contents( $tmp_file, $file_contents ) ) {
 					$filePath = $tmp_file;
