@@ -45,6 +45,12 @@ class InstaWP_Rest_Api {
 			'permission_callback' => '__return_true',
 		) );
 
+		register_rest_route( $this->namespace . '/' . $this->version_2, '/config-manager', array(
+			'methods'             => 'POST',
+			'callback'            => array( $this, 'config_manager' ),
+			'permission_callback' => '__return_true',
+		) );
+
 		// Remote Management //
 		register_rest_route( $this->namespace . '/' . $this->version_2 . '/manage', '/clear-cache', array(
 			'methods'             => 'POST',
@@ -704,6 +710,27 @@ class InstaWP_Rest_Api {
 		}
 
 		$response = InstaWP_Heartbeat::prepare_data();
+
+		return $this->send_response( $response );
+	}
+
+	/**
+	 * Handle wp-config.php file's constant modification.
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function config_manager( WP_REST_Request $request ) {
+
+		$response = $this->validate_api_request( $request );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
+
+		$params    = ( array ) $request->get_param( 'wp-config' ) ?? array();
+		$wp_config = new \InstaWP\Connect\Helpers\WPConfig( $params );
+		$response  = $wp_config->update();
 
 		return $this->send_response( $response );
 	}

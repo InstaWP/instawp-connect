@@ -75,7 +75,7 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 			$sizes_data     = WP_Debug_Data::get_sizes();
 			$wp_version     = get_bloginfo( 'version' );
 			$php_version    = phpversion();
-			$total_size     = $sizes_data['total_size']['size'];
+			$total_size     = $sizes_data['total_size']['raw'];
 			$active_theme   = wp_get_theme()->get( 'Name' );
 			$count_posts    = wp_count_posts();
 			$posts          = $count_posts->publish;

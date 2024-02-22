@@ -17,9 +17,9 @@ class InstaWP_Sync_Term {
 	/**
 	 * Function for `created_(taxonomy)` action-hook.
 	 *
-	 * @param int   $term_id Term ID.
-	 * @param int   $tt_id   Term taxonomy ID.
-	 * @param array $args    Arguments passed to wp_insert_term().
+	 * @param int    $term_id   Term ID.
+	 * @param int    $tt_id     Term taxonomy ID.
+	 * @param string $taxonomy  Taxonomy name.
 	 *
 	 * @return void
 	 */

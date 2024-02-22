@@ -367,6 +367,16 @@ if ( ! function_exists( 'instawp_get_staging_sites_list' ) ) {
 				$staging_sites   = InstaWP_Setting::get_args_option( 'data', $api_response, array() );
 				$transient_cycle = 3 * HOUR_IN_SECONDS;
 
+				foreach ( $staging_sites as $key => $staging_site ) {
+					$staging_site_data = instawp_get_connect_detail_by_connect_id( $staging_site['connect_id'] );
+					if ( ! $staging_site_data ) {
+						continue;
+					}
+
+					unset( $staging_site_data['site_information'], $staging_site_data['site_information_raw'] );
+					$staging_sites[ $key ]['data'] = $staging_site_data;
+				}
+
 				set_transient( 'instawp_staging_sites', $staging_sites, $transient_cycle );
 			}
 		}
@@ -559,14 +569,14 @@ if ( ! function_exists( 'instawp_get_source_site_detail' ) ) {
 		}
 
 		$connect_id  = instawp_get_connect_id();
-		$parent_data = get_connect_detail_by_connect_id( $connect_id );
+		$parent_data = instawp_get_connect_detail_by_connect_id( $connect_id );
 
 		update_option( 'instawp_sync_parent_connect_data', $parent_data );
 	}
 }
 
 
-if ( ! function_exists( 'get_connect_detail_by_connect_id' ) ) {
+if ( ! function_exists( 'instawp_get_connect_detail_by_connect_id' ) ) {
 	/**
 	 * Connect detail
 	 *
@@ -574,7 +584,7 @@ if ( ! function_exists( 'get_connect_detail_by_connect_id' ) ) {
 	 *
 	 * @return array
 	 */
-	function get_connect_detail_by_connect_id( $connect_id ): array {
+	function instawp_get_connect_detail_by_connect_id( $connect_id ): array {
 		// connects/<connect_id>
 		$response        = array();
 		$site_connect_id = instawp_get_connect_id();
@@ -595,10 +605,40 @@ if ( ! function_exists( 'get_connect_detail_by_connect_id' ) ) {
 			}
 		}
 
-		return (array) $response;
+		return ( array ) $response;
 	}
 }
 
+if ( ! function_exists( 'instawp_get_site_detail_by_connect_id' ) ) {
+	/**
+	 * Site detail
+	 *
+	 * @param $connect_id
+	 *
+	 * @return mixed
+	 */
+	function instawp_get_site_detail_by_connect_id( $connect_id, $field = '', $force_update = false ) {
+		$staging_sites = instawp_get_staging_sites_list( false, $force_update );
+		$site_data     = [];
+
+		foreach ( $staging_sites as $staging_site ) {
+			if ( $staging_site['connect_id'] === $connect_id ) {
+				if ( ! empty( $staging_site ) && ( empty( $field ) || ! empty( $staging_site[ $field ] ) ) ) {
+					$site_data = $staging_site;
+				} else {
+					$site_data = instawp_get_site_detail_by_connect_id( $staging_site['connect_id'], '', true );
+				}
+				break;
+			}
+		}
+
+		if ( ! empty( $field ) ) {
+			return $site_data[ $field ] ?? '';
+		}
+
+		return $site_data;
+	}
+}
 
 if ( ! function_exists( 'instawp_send_connect_log' ) ) {
 	/**
