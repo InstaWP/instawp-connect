@@ -38,6 +38,7 @@ class Inventory {
 			$slug         = explode( '/', $name );
 			$mu_plugins[] = [
 				'slug'    => $slug[0],
+				'name'    => $name,
 				'version' => $plugin['Version'],
 				'data'    => $plugin,
 			];
