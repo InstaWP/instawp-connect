@@ -3,8 +3,6 @@ declare( strict_types=1 );
 
 namespace InstaWP\Connect\Helpers;
 
-use InstaWP\Connect\Helpers\Installer;
-
 class Updater {
 
 	public array $args;
@@ -22,28 +20,14 @@ class Updater {
 		}
 
 		$results = [];
-
-		$core_updates = array_filter( $this->args, function( $value ) {
-			return $value['type'] === 'core';
-		} );
-
-		if ( ! empty( $core_updates ) ) {
-			$results[] = $this->core_update( reset( $core_updates ) );
-		}
-
-		$plugin_theme_updates = array_filter( $this->args, function( $value ) {
-			return $value['type'] !== 'core';
-		} );
-
-		if ( ! empty( $plugin_theme_updates ) ) {
-			$installer = new Installer( $plugin_theme_updates, true );
-			$results   = array_merge( $results, array_values( $installer->start() ) );
+		foreach ( $this->args as $update ) {
+			$results[] = 'core' === $update['type'] ? $this->core_updater( $update ) : $this->updater( $update['type'], $update['slug'] );
 		}
 
 		return $results;
 	}
 
-	private function core_update( array $args = [] ): array {
+	private function core_updater( array $args = [] ): array {
 		$args = wp_parse_args( $args, [
 			'locale'  => get_locale(),
 			'version' => get_bloginfo( 'version' )
@@ -83,6 +67,10 @@ class Updater {
 			require_once ABSPATH . 'wp-admin/includes/class-core-upgrader.php';
 		}
 
+		if ( ! class_exists( 'WP_Upgrader_Skin' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader-skin.php';
+		}
+
 		if ( ! class_exists( 'Automatic_Upgrader_Skin' ) ) {
 			require_once ABSPATH . 'wp-admin/includes/class-automatic-upgrader-skin.php';
 		}
@@ -104,6 +92,82 @@ class Updater {
 				$error_message = __( 'Installation failed.' );
 			}
 		}
+
+		$message = isset( $error_message ) ? trim( $error_message ) : '';
+
+		return [
+			'message' => empty( $message ) ? esc_html( 'Success!' ) : $message,
+			'status'  => empty( $message ),
+		];
+	}
+
+	private function updater( string $type, string $item ): array {
+		if ( ! class_exists( 'WP_Upgrader' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+		}
+
+		if ( ! class_exists( 'Plugin_Upgrader' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/class-plugin-upgrader.php';
+		}
+
+		if ( ! class_exists( 'Theme_Upgrader' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/class-theme-upgrader.php';
+		}
+
+		if ( ! class_exists( 'WP_Upgrader_Skin' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader-skin.php';
+		}
+
+		if ( ! class_exists( 'Automatic_Upgrader_Skin' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/class-automatic-upgrader-skin.php';
+		}
+
+		if ( ! class_exists( 'WP_Automatic_Updater' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/class-wp-automatic-updater.php';
+		}
+
+		add_filter( 'automatic_updater_disabled', '__return_false', 201 );
+		add_filter( "auto_update_{$type}", '__return_true', 201 );
+		
+		$upgrader = new \WP_Automatic_Updater();
+
+		if ( 'plugin' === $type ) {
+			wp_update_plugins();
+
+			$plugin_updates = get_site_transient( 'update_plugins' );
+			if ( $plugin_updates && ! empty( $plugin_updates->response ) && ! empty( $plugin_updates->response[ $item ] ) ) {
+				if ( ! function_exists( 'activate_plugin' ) || ! function_exists( 'is_plugin_active' ) ) {
+					include_once ABSPATH . 'wp-admin/includes/plugin.php';
+				}
+				$is_plugin_active = is_plugin_active( $item );
+
+				$result = $upgrader->update( 'plugin', $plugin_updates->response[ $item ] );
+				wp_clean_plugins_cache();
+
+				if ( $is_plugin_active ) {
+					activate_plugin( $item, '', false, true );
+				}
+			}
+		} elseif ( 'theme' === $type ) {
+			wp_update_themes();
+
+			$theme_updates = get_site_transient( 'update_themes' );
+			if ( $theme_updates && ! empty( $theme_updates->response ) && ! empty( $theme_updates->response[ $item ] ) ) {
+				$result = $upgrader->update( 'theme', ( object ) $theme_updates->response[ $item ] );
+				wp_clean_themes_cache();
+			}
+		}
+
+		if ( isset( $result ) && is_wp_error( $result ) ) {
+			if ( $result->get_error_data() && is_string( $result->get_error_data() ) ) {
+				$error_message = $result->get_error_message() . ': ' . $result->get_error_data();
+			} else {
+				$error_message = $result->get_error_message();
+			}
+		}
+
+		remove_filter( 'automatic_updater_disabled', '__return_false', 201 );
+		remove_filter( "auto_update_{$type}", '__return_true', 201 );
 
 		$message = isset( $error_message ) ? trim( $error_message ) : '';
 

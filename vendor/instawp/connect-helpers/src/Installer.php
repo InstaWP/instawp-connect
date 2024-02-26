@@ -18,11 +18,9 @@ class Installer {
     public string $type;
     public bool $activate;
     public string $url;
-    public bool $overwrite;
 
-    public function __construct( array $args = [], bool $overwrite = false ) {
-        $this->args      = $args;
-        $this->overwrite = $overwrite;
+    public function __construct( array $args = [] ) {
+        $this->args = $args;
     }
 
     public function start(): array {
@@ -142,7 +140,7 @@ class Installer {
 
             if ( empty( $error_message ) && $this->is_link_valid() ) {
                 $result = $upgrader->install( $this->url, [
-                    'overwrite_package' => $this->overwrite,
+                    'overwrite_package' => true,
                 ] );
 
                 if ( ! $result || is_wp_error( $result ) ) {
@@ -174,7 +172,7 @@ class Installer {
         $message = isset( $error_message ) ? trim( $error_message ) : '';
 
         if ( ! function_exists( 'wp_clean_update_cache' ) || ! function_exists( 'wp_update_themes' ) || ! function_exists( 'wp_update_plugins' ) ) {
-            require_once ABSPATH . 'wp-includes\update.php';
+            require_once ABSPATH . 'wp-includes/update.php';
         }
 
         wp_clean_update_cache();

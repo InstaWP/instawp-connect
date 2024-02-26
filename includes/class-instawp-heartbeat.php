@@ -67,15 +67,9 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 				require_once ABSPATH . 'wp-admin/includes/class-wp-debug-data.php';
 			}
 
-//          $heartbeat_data = get_transient( 'instawp_heartbeat_data' );
-//          if ( ! empty( $heartbeat_data ) ) {
-//              return $heartbeat_data;
-//          }
-
 			$sizes_data     = WP_Debug_Data::get_sizes();
 			$wp_version     = get_bloginfo( 'version' );
 			$php_version    = phpversion();
-			$total_size     = $sizes_data['total_size']['raw'];
 			$active_theme   = wp_get_theme()->get( 'Name' );
 			$count_posts    = wp_count_posts();
 			$posts          = $count_posts->publish;
@@ -92,17 +86,17 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 			$inventory = new \InstaWP\Connect\Helpers\Inventory();
 			$site_data = $inventory->fetch();
 
-			$heartbeat_data = array(
+			return array(
 				'wp_version'        => $wp_version,
 				'php_version'       => $php_version,
 				'plugin_version'    => INSTAWP_PLUGIN_VERSION,
-				'total_size'        => $total_size,
-				// old items
+				'total_size'        => $sizes_data['total_size']['raw'],
+				'file_size'         => $sizes_data['total_size']['raw'] - $sizes_data['database_size']['raw'],
+				'db_size'           => $sizes_data['database_size']['raw'],
 				'theme'             => $active_theme,
 				'posts'             => $posts,
 				'pages'             => $pages,
 				'users'             => $users,
-				// new items
 				'core'              => $site_data['core'],
 				'themes'            => $site_data['theme'],
 				'plugins'           => $site_data['plugin'],
@@ -112,10 +106,6 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 					'posts' => $post_data,
 				),
 			);
-
-			//set_transient( 'instawp_heartbeat_data', $heartbeat_data, 300 );
-
-			return $heartbeat_data;
 		}
 
 		public static function send_heartbeat( $connect_id = null ): bool {

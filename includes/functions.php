@@ -387,7 +387,7 @@ if ( ! function_exists( 'instawp_get_staging_sites_list' ) ) {
 
 		if ( $insta_only ) {
 			$staging_sites = array_filter( $staging_sites, function ( $value ) {
-				return ( ! isset( $value['is_insta_site'] ) || ( isset( $value['is_insta_site'] ) && $value['is_insta_site'] ) );
+				return ! empty( $value['is_insta_site'] );
 			} );
 		}
 
