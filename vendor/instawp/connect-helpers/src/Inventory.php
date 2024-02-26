@@ -21,6 +21,7 @@ class Inventory {
 			$slug      = explode( '/', $name );
 			$plugins[] = [
 				'slug'             => $slug[0],
+				'name'             => $name,
 				'version'          => $plugin['Version'],
 				'activated'        => in_array( $name, $active_plugins, true ),
 				'update_available' => array_key_exists( $name, $plugin_update_data ),
