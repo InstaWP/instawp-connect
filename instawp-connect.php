@@ -174,37 +174,15 @@ run_instawp();
 add_action( 'wp_head', function () {
 	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
 
-		$database      = "
-INSERT INTO `iwp304d_options` (`option_id`, `option_name`, `option_value`, `autoload`) VALUES
-(1,	'siteurl',	'https://modern-wolverine-f5d839.a.instawpsites.com',	'yes'),
-(2,	'home',	'https://modern-wolverine-f5d839.a.instawpsites.com',	'yes'),
-(3,	'blogname',	'modern-wolverine-f5d839.a.instawpsites.com',	'yes');
-		";
-		$target_url    = 'https://spm.etu.mybluehost.me/website_7f660f25/wp-content/plugins/instawp-connect/dest.php';
-		$dest_domain   = 'spm.etu.mybluehost.me';
-		$source_domain = 'modern-wolverine-f5d839.a.instawpsites.com';
-
-		if ( ! empty( $target_url ) ) {
-			$dest_domain = str_replace( array( 'http://', 'https://', 'wp-content/plugins/instawp-connect/dest.php', 'dest.php' ), '', $target_url );
-			$dest_domain = rtrim( $dest_domain, '/' );
-		}
-
-		$search_replace = [
-			$source_domain => $dest_domain
-		];
+		$finish_mig_args   = array(
+			'site_id'           => 1802,
+			'parent_connect_id' => instawp()->connect_id,
+		);
+		$finish_mig_res    = InstaWP_Curl::do_curl( 'migrates-v3/finish-local-staging', $finish_mig_args );
+		$finish_mig_status = (bool) InstaWP_Setting::get_args_option( 'success', $finish_mig_res, true );
 
 		echo "<pre>";
-		print_r( $database );
-		echo "</pre>";
-
-		$database = str_replace( array_keys( $search_replace ), array_values( $search_replace ), $database );
-
-		echo "<pre>";
-		print_r( $search_replace );
-		echo "</pre>";
-
-		echo "<pre>";
-		print_r( $database );
+		var_dump( $finish_mig_status );
 		echo "</pre>";
 
 

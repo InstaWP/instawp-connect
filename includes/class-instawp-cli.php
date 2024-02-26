@@ -96,6 +96,19 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 			// Mark the migration failed
 			instawp_update_migration_stages( array( 'migration-finished' => true ), $migrate_id, $migrate_key );
 
+			// Finish configuration of the staging website
+			$finish_mig_args    = array(
+				'site_id'           => $site_id,
+				'parent_connect_id' => instawp()->connect_id,
+			);
+			$finish_mig_res     = InstaWP_Curl::do_curl( 'migrates-v3/finish-local-staging', $finish_mig_args );
+			$finish_mig_status  = (bool) InstaWP_Setting::get_args_option( 'success', $finish_mig_res, true );
+			$finish_mig_message = InstaWP_Setting::get_args_option( 'message', $finish_mig_res );
+
+			if ( ! $finish_mig_status ) {
+				WP_CLI::success( 'Error in configuring the staging website. Error message: ' . $finish_mig_message );
+			}
+
 			WP_CLI::success( 'Migration successful.' );
 		}
 
