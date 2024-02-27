@@ -10,12 +10,32 @@ class IWPDB {
 	private $migrate_key = '';
 	private $options_data = array();
 
+	private static $_table_option = 'iwp_options';
+
 	public function __construct( $key ) {
 		$this->migrate_key = $key;
 
 		$this->set_options_data();
 		$this->connect_database();
 		$this->create_require_tables();
+	}
+
+	public function db_get_option( $option_name, $default_value = '' ) {
+
+		$option_data = $this->get_row( self::$_table_option, array( 'option_name' => $option_name ) );
+
+		return isset( $option_data['option_value'] ) ? $option_data['option_value'] : $default_value;
+	}
+
+	public function db_update_option( $option_name, $option_value = '' ) {
+
+		$option_data = $this->get_row( self::$_table_option, array( 'option_name' => $option_name ) );
+
+		if ( empty( $option_data ) || ! $option_data ) {
+			return $this->insert( self::$_table_option, array( 'option_name' => "'{$option_name}'", 'option_value' => "'{$option_value}'" ) );
+		}
+
+		return $this->update( self::$_table_option, array( 'option_value' => $option_value ), array( 'option_name' => $option_name ) );
 	}
 
 	public function insert( $table_name, $data = array() ) {
@@ -53,14 +73,6 @@ class IWPDB {
 	public function get_row( $table_name, $where_array = array() ) {
 
 		$fetch_row_res = $this->query( "SELECT * FROM {$table_name} WHERE {$this->build_where_clauses($where_array)} LIMIT 1" );
-
-//      try {
-//
-//      } catch ( Exception $e ) {
-//          echo "<pre>";
-//          print_r( $e->getMessage() );
-//          echo "</pre>";
-//      }
 
 		$this->fetch_rows( $fetch_row_res, $result );
 
@@ -102,10 +114,6 @@ class IWPDB {
 
 	public function query( $str_query = '' ) {
 
-		if ( empty( $str_query ) ) {
-			return false;
-		}
-
 		try {
 			$query_result = $this->conn->query( $str_query );
 		} catch ( Exception $e ) {
@@ -122,6 +130,7 @@ class IWPDB {
 	public function create_require_tables() {
 		$this->query( "CREATE TABLE IF NOT EXISTS iwp_files_sent (id INT AUTO_INCREMENT PRIMARY KEY, filepath TEXT, filepath_hash CHAR(64) UNIQUE, sent INT DEFAULT 0, size INT)" );
 		$this->query( "CREATE TABLE IF NOT EXISTS iwp_db_sent (id INT AUTO_INCREMENT PRIMARY KEY, table_name TEXT, table_name_hash CHAR(64) UNIQUE, `offset` INT DEFAULT 0, rows_total INT DEFAULT 0, completed INT DEFAULT 0);" );
+		$this->query( "CREATE TABLE IF NOT EXISTS iwp_options (id INT AUTO_INCREMENT PRIMARY KEY, option_name CHAR(64), option_value CHAR(64));" );
 	}
 
 	public function connect_database() {

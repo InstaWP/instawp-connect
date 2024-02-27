@@ -74,7 +74,6 @@ if ( ! $root_dir_find ) {
 	exit( 2 );
 }
 
-
 defined( 'CHUNK_SIZE' ) | define( 'CHUNK_SIZE', 2 * 1024 * 1024 );
 defined( 'BATCH_ZIP_SIZE' ) | define( 'BATCH_ZIP_SIZE', 50 );
 defined( 'MAX_ZIP_SIZE' ) | define( 'MAX_ZIP_SIZE', 1024 * 1024 ); //1mb
@@ -114,9 +113,11 @@ if ( ! $tracking_db ) {
 	die();
 }
 
-if ( $tracking_db->get_option( 'api_signature' ) !== $api_signature ) {
+$db_api_signature = $tracking_db->get_option( 'api_signature' );
+
+if ( $db_api_signature !== $api_signature ) {
 	header( 'x-iwp-status: false' );
-	header( 'x-iwp-message: Mismatched api signature.' );
+	header( 'x-iwp-message: Mismatched api signature. Signature in db is: ' . $db_api_signature );
 	die();
 }
 
@@ -342,8 +343,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		}
 	}
 
-	$total_files_path         = INSTAWP_BACKUP_DIR . '.total-files-' . $migrate_key;
-	$current_file_index_path  = INSTAWP_BACKUP_DIR . 'current_file_index.txt';
+//	$total_files_path         = INSTAWP_BACKUP_DIR . '.total-files-' . $migrate_key;
 	$migrate_settings         = $tracking_db->get_option( 'migrate_settings' );
 	$excluded_paths           = $migrate_settings['excluded_paths'] ?? array();
 	$skip_folders             = array_merge( array( 'wp-content/cache', 'editor', 'wp-content/upgrade', 'wp-content/instawpbackups' ), $excluded_paths );
@@ -367,7 +367,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 	$unsent_files_count  = $tracking_db->query_count( 'iwp_files_sent', array( 'sent' => '0' ) );
 	$progress_percentage = 0;
 
-	if ( file_exists( $total_files_path ) && ( $totalFiles = @file_get_contents( $total_files_path ) ) ) {
+	if ( $totalFiles = (int) $tracking_db->db_get_option( 'total_files', '0' ) ) {
 		$total_files_count   = $tracking_db->query_count( 'iwp_files_sent' );
 		$total_files_sent    = $total_files_count - $unsent_files_count;
 		$progress_percentage = round( ( $total_files_sent / $totalFiles ) * 100, 2 );
@@ -389,11 +389,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		$iterator         = new RecursiveIteratorIterator( new RecursiveCallbackFilterIterator( $directory, $filter_directory ), RecursiveIteratorIterator::LEAVES_ONLY, RecursiveIteratorIterator::CATCH_GET_CHILD );
 
 		// Get the current file index from the database or file
-		$currentFileIndex = 0; // Set the default value to 0
-
-		if ( file_exists( $current_file_index_path ) ) {
-			$currentFileIndex = (int) file_get_contents( $current_file_index_path );
-		}
+		$currentFileIndex = (int) $tracking_db->db_get_option( 'current_file_index', '0' );
 
 		// Create a limited iterator to skip the files that are already indexed
 		$limitedIterator = array();
@@ -421,10 +417,11 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			) );
 		}
 
-		file_put_contents( $total_files_path, $totalFiles );
+		$tracking_db->db_update_option( 'total_files', $totalFiles );
 
 		foreach ( $limitedIterator as $file ) {
 			$filepath = $file->getPathname();
+
 			if ( ! is_valid_file( $filepath ) ) {
 				continue;
 			}
@@ -458,20 +455,19 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			}
 		}
 
-		file_put_contents( $current_file_index_path, $currentFileIndex + BATCH_SIZE );
+		$current_file_index = ( $currentFileIndex + BATCH_SIZE );
+		$ret                = $tracking_db->db_update_option( 'current_file_index', $current_file_index );
 
 		if ( $fileIndex == 0 ) {
 			header( 'x-iwp-status: true' );
 			header( 'x-iwp-transfer-complete: true' );
-			header( 'x-iwp-message: No more files left to download.' );
-			unlink( $current_file_index_path );
+			header( 'x-iwp-message: No more files left to download as FileIndex is 0. current_file_index: ' . json_encode( $ret ) );
 			exit;
 		}
 
 		$tracking_db->create_file_indexes( 'iwp_files_sent', array(
-			'idx_sent'                              => 'sent',
-			//          'idx_file_path' => 'filepath',
-									'idx_file_size' => 'size',
+			'idx_sent'      => 'sent',
+			'idx_file_size' => 'size',
 		) );
 	}
 
@@ -525,10 +521,9 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
 			$tracking_db->update( 'iwp_files_sent', array( 'sent' => '1' ), array( 'id' => $fileId ) );
 		} else {
-			unlink( $current_file_index_path );
 			header( 'x-iwp-status: true' );
 			header( 'x-iwp-transfer-complete: true' );
-			header( 'x-iwp-message: No more files left to download.' );
+			header( 'x-iwp-message: No more files left to download according to iwp_files_sent table.' );
 		}
 	}
 }

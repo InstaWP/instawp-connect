@@ -174,17 +174,126 @@ run_instawp();
 add_action( 'wp_head', function () {
 	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
 
-		$finish_mig_args   = array(
-			'site_id'           => 1802,
-			'parent_connect_id' => instawp()->connect_id,
-		);
-		$finish_mig_res    = InstaWP_Curl::do_curl( 'migrates-v3/finish-local-staging', $finish_mig_args );
-		$finish_mig_status = (bool) InstaWP_Setting::get_args_option( 'success', $finish_mig_res, true );
+		require_once plugin_dir_path( __FILE__ ) . 'includes/class-instawp-iwpdb.php';
+
+		$tracking_db = new IWPDB( '4a33b8fa2bfe8ad9534e5938ab1dc13601d44021' );
+
+		$tracking_db->db_update_option( 'sample_option', time() );
 
 		echo "<pre>";
-		var_dump( $finish_mig_status );
+		var_dump( $tracking_db->db_get_option( 'sample_option' ) );
 		echo "</pre>";
 
+		echo "<pre>";
+		print_r( $tracking_db->last_error );
+		echo "</pre>";
+
+		die();
+
+//		function get_wp_root_directory( $find_with_files = 'wp-load.php', $find_with_dir = '' ) {
+//
+//			$is_find_root_dir = true;
+//			$root_path        = '';
+//
+//			if ( ! empty( $find_with_files ) ) {
+//				$level            = 0;
+//				$root_path_dir    = __DIR__;
+//				$root_path        = __DIR__;
+//				$is_find_root_dir = true;
+//
+//				while ( ! file_exists( $root_path . DIRECTORY_SEPARATOR . $find_with_files ) ) {
+//
+//					++ $level;
+//					$root_path = dirname( $root_path_dir, $level );
+//
+//					if ( $level > 10 ) {
+//						$is_find_root_dir = false;
+//						break;
+//					}
+//				}
+//			}
+//
+//			if ( ! empty( $find_with_dir ) ) {
+//				$level            = 0;
+//				$root_path_dir    = __DIR__;
+//				$root_path        = __DIR__;
+//				$is_find_root_dir = true;
+//				while ( ! is_dir( $root_path . DIRECTORY_SEPARATOR . $find_with_dir ) ) {
+//
+//					++ $level;
+//					$root_path = dirname( $root_path_dir, $level );
+//
+//					if ( $level > 10 ) {
+//						$is_find_root_dir = false;
+//						break;
+//					}
+//				}
+//			}
+//
+//			return array(
+//				'status'    => $is_find_root_dir,
+//				'root_path' => $root_path,
+//			);
+//		}
+//
+//		$root_dir_data = get_wp_root_directory();
+//		$root_dir_find = isset( $root_dir_data['status'] ) ? $root_dir_data['status'] : false;
+//		$root_dir_path = isset( $root_dir_data['root_path'] ) ? $root_dir_data['root_path'] : '';
+//
+//		if ( ! $root_dir_find ) {
+//			$root_dir_data = get_wp_root_directory( '', 'flywheel-config' );
+//			$root_dir_find = isset( $root_dir_data['status'] ) ? $root_dir_data['status'] : false;
+//			$root_dir_path = isset( $root_dir_data['root_path'] ) ? $root_dir_data['root_path'] : '';
+//		}
+//
+//		echo "<pre>"; print_r( $root_dir_path ); echo "</pre>";
+//
+//		die();
+
+		if ( ! function_exists( 'is_valid_file' ) ) {
+			function is_valid_file( $filepath ): bool {
+				$filename = basename( $filepath );
+
+				return is_file( $filepath ) && is_readable( $filepath ) && ( preg_match( '/^[a-zA-Z0-9_.@\s-]+$/', $filename ) === 1 );
+			}
+		}
+
+		$wp_root      = '/mnt/customers/customers-3g3m02/b2c08e94-0ded-418f-a086-775f047ec96a/wp-content';
+		$skip_folders = array( 'wp-content', 'wp-admin', 'wp-includes' );
+//		$skip_folders     = [];
+		$filter_directory = function ( SplFileInfo $file, $key, RecursiveDirectoryIterator $iterator ) use ( $skip_folders ) {
+
+			$relative_path = ! empty( $iterator->getSubPath() ) ? $iterator->getSubPath() . '/' . $file->getBasename() : $file->getBasename();
+
+			if ( in_array( $relative_path, $skip_folders ) ) {
+				return false;
+			}
+
+			return ! in_array( $iterator->getSubPath(), $skip_folders );
+		};
+		$directory        = new RecursiveDirectoryIterator( $wp_root, RecursiveDirectoryIterator::SKIP_DOTS | RecursiveDirectoryIterator::FOLLOW_SYMLINKS );
+		$iterator         = new RecursiveIteratorIterator( new RecursiveCallbackFilterIterator( $directory, $filter_directory ), RecursiveIteratorIterator::LEAVES_ONLY, RecursiveIteratorIterator::CATCH_GET_CHILD );
+		$limitedIterator  = array();
+
+		try {
+			$limitedIterator = new LimitIterator( $iterator, 0, 20 );
+		} catch ( Exception $e ) {
+			echo "<pre>";
+			print_r( $e->getMessage() );
+			echo "</pre>";
+		}
+
+		foreach ( $limitedIterator as $file ) {
+
+			$filepath = $file->getPathname();
+
+			echo "<pre>";
+			print_r( [
+				'$filepath' => $filepath,
+				'is_valid'  => is_valid_file( $filepath ),
+			] );
+			echo "</pre>";
+		}
 
 		die();
 	}
