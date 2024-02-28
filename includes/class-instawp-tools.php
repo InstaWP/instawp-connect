@@ -130,11 +130,12 @@ class InstaWP_Tools {
 			return false;
 		}
 
-		// Delete `iwp_db_sent` and `iwp_files_sent` tables
+		// Delete `iwp_options`, `iwp_db_sent` and `iwp_files_sent` tables
 		global $wpdb;
 
 		$wpdb->query( "DROP TABLE IF EXISTS `iwp_db_sent`;" );
 		$wpdb->query( "DROP TABLE IF EXISTS `iwp_files_sent`;" );
+		$wpdb->query( "DROP TABLE IF EXISTS `iwp_options`;" );
 
 		return array(
 			'serve_url'        => INSTAWP_PLUGIN_URL . 'serve.php',

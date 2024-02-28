@@ -534,6 +534,31 @@ if ( $file_relative_path === 'wp-config.php' ) {
 	}
 
 	file_put_contents( $wp_config_path, $wp_config, LOCK_EX );
+
+	/**
+	 * Adding support for Elementor cloud
+	 */
+	if ( strpos( $site_url, 'elementor.cloud' ) !== false ) {
+
+		$line_number  = false;
+		$config_lines = file( $wp_config_path );
+		$new_lines    = array(
+			'if ( isset( $_SERVER["HTTP_X_FORWARDED_PROTO"] ) && $_SERVER["HTTP_X_FORWARDED_PROTO"] === "https" ) { $_SERVER["HTTPS"] = "on"; }',
+		);
+
+		foreach ( $config_lines as $key => $line ) {
+			if ( strpos( $line, "DB_COLLATE" ) !== false ) {
+				$line_number = $key;
+				break;
+			}
+		}
+
+		if ( $line_number !== false ) {
+			array_splice( $config_lines, $line_number + 1, 0, $new_lines );
+		}
+
+		file_put_contents( $wp_config_path, implode( "", $config_lines ) );
+	}
 }
 
 header( 'x-iwp-status: true' );

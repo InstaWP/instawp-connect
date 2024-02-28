@@ -174,19 +174,32 @@ run_instawp();
 add_action( 'wp_head', function () {
 	if ( isset( $_GET['debug'] ) && 'yes' == sanitize_text_field( $_GET['debug'] ) ) {
 
-		require_once plugin_dir_path( __FILE__ ) . 'includes/class-instawp-iwpdb.php';
+		$wp_root    = '/mnt/customers/customers-3g3m02/b2c08e94-0ded-418f-a086-775f047ec96a/wp-content';
+		$filePath   = $wp_root . '/wp-config.php';
+		$target_url = "https://twnpxqwt.elementor.cloud/wp-content/plugins/instawp-connect/dest.php";
 
-		$tracking_db = new IWPDB( '4a33b8fa2bfe8ad9534e5938ab1dc13601d44021' );
+		if ( strpos( $target_url, 'elementor.cloud' ) !== false ) {
 
-		$tracking_db->db_update_option( 'sample_option', time() );
+			$line_number  = false;
+			$config_lines = file( $filePath );
 
-		echo "<pre>";
-		var_dump( $tracking_db->db_get_option( 'sample_option' ) );
-		echo "</pre>";
+			$new_lines = array(
+				'if ( isset( $_SERVER["HTTP_X_FORWARDED_PROTO"] ) && $_SERVER["HTTP_X_FORWARDED_PROTO"] === "https" ) { $_SERVER["HTTPS"] = "on"; }',
+			);
 
-		echo "<pre>";
-		print_r( $tracking_db->last_error );
-		echo "</pre>";
+			foreach ( $config_lines as $key => $line ) {
+				if ( strpos( $line, "DB_COLLATE" ) !== false ) {
+					$line_number = $key;
+					break;
+				}
+			}
+
+			if ( $line_number !== false ) {
+				array_splice( $config_lines, $line_number + 1, 0, $new_lines );
+			}
+
+			file_put_contents( $filePath, implode( "", $config_lines ) );
+		}
 
 		die();
 

@@ -226,7 +226,7 @@ class IWPDB {
 		foreach ( $tables as $table_name ) {
 
 			// remove our tracking tables
-			if ( in_array( $table_name, array( 'iwp_db_sent', 'iwp_files_sent' ) ) ) {
+			if ( in_array( $table_name, array( 'iwp_db_sent', 'iwp_files_sent', 'iwp_options' ) ) ) {
 				continue;
 			}
 
