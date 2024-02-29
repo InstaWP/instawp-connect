@@ -181,7 +181,7 @@ jQuery(document).ready(function ($) {
     });
 
     const baseCall = async (body) => {
-        body.append('nonce', instawp_tws.security);
+        body.append('security', instawp_tws.security);
         return await fetch(instawp_tws.ajax_url, {
             method: "POST",
             credentials: 'same-origin',

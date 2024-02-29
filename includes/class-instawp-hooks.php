@@ -230,8 +230,8 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 		function handle_hard_disable_seo_visibility() {
 
 			if (
-				empty( InstaWP_Setting::get_option( 'instawp_changed_option_blog_public' ) ) &&
 				instawp()->is_staging &&
+				empty( InstaWP_Setting::get_option( 'instawp_changed_option_blog_public' ) ) &&
 				(int) INSTAWP_Setting::get_option( 'blog_public' ) === 1
 			) {
 				update_option( 'blog_public', '0' );

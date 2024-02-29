@@ -89,7 +89,7 @@ if ( ! function_exists( 'instawp_alter_db_tables' ) ) {
 
 		foreach ( array( INSTAWP_DB_TABLE_EVENTS, INSTAWP_DB_TABLE_EVENTS, INSTAWP_DB_TABLE_SYNC_HISTORY ) as $table_name ) {
 			$has_col = $wpdb->get_results(
-				$wpdb->prepare("SELECT `COLUMN_NAME` FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `table_name`=%s AND `TABLE_SCHEMA`=%s AND `COLUMN_NAME`=%s", $table_name, $wpdb->dbname, 'event_hash' )
+				$wpdb->prepare( "SELECT `COLUMN_NAME` FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `table_name`=%s AND `TABLE_SCHEMA`=%s AND `COLUMN_NAME`=%s", $table_name, $wpdb->dbname, 'event_hash' )
 			);
 
 			if ( empty( $has_col ) ) {
@@ -567,8 +567,12 @@ if ( ! function_exists( 'instawp_whitelist_ip' ) ) {
 
 if ( ! function_exists( 'instawp_get_source_site_detail' ) ) {
 	function instawp_get_source_site_detail(): void {
-		$parent_data = InstaWP_Setting::get_option( 'instawp_sync_parent_connect_data' );
-		if ( ! empty( $parent_data ) || ! instawp()->is_staging ) {
+
+		if ( ! instawp()->is_staging ) {
+			return;
+		}
+
+		if ( ! empty( InstaWP_Setting::get_option( 'instawp_sync_parent_connect_data' ) ) ) {
 			return;
 		}
 
@@ -613,6 +617,7 @@ if ( ! function_exists( 'instawp_get_connect_detail_by_connect_id' ) ) {
 	}
 }
 
+
 if ( ! function_exists( 'instawp_get_site_detail_by_connect_id' ) ) {
 	/**
 	 * Site detail
@@ -643,6 +648,7 @@ if ( ! function_exists( 'instawp_get_site_detail_by_connect_id' ) ) {
 		return $site_data;
 	}
 }
+
 
 if ( ! function_exists( 'instawp_send_connect_log' ) ) {
 	/**
@@ -827,6 +833,7 @@ if ( ! function_exists( 'instawp_zip_folder_with_phar' ) ) {
 		rename( $destination . '.tar.gz', $destination );
 	}
 }
+
 
 if ( ! function_exists( 'instawp_array_recursive_diff' ) ) {
 

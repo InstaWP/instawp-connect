@@ -23,10 +23,14 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 			$heartbeat = InstaWP_Setting::get_option( 'instawp_rm_heartbeat', 'on' );
 			$heartbeat = empty( $heartbeat ) ? 'on' : $heartbeat;
 
+			if ( 'on' !== $heartbeat ) {
+				return;
+			}
+
 			$interval = InstaWP_Setting::get_option( 'instawp_api_heartbeat', 15 );
 			$interval = empty( $interval ) ? 15 : (int) $interval;
 
-			if ( ! empty( InstaWP_Setting::get_api_key() ) && $heartbeat === 'on' && ! wp_next_scheduled( 'instawp_handle_heartbeat' ) ) {
+			if ( ! empty( InstaWP_Setting::get_api_key() ) && ! wp_next_scheduled( 'instawp_handle_heartbeat' ) ) {
 				wp_schedule_single_event( time() + ( $interval * MINUTE_IN_SECONDS ), 'instawp_handle_heartbeat' );
 			}
 
@@ -67,16 +71,16 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 				require_once ABSPATH . 'wp-admin/includes/class-wp-debug-data.php';
 			}
 
-			$sizes_data     = WP_Debug_Data::get_sizes();
-			$wp_version     = get_bloginfo( 'version' );
-			$php_version    = phpversion();
-			$active_theme   = wp_get_theme()->get( 'Name' );
-			$count_posts    = wp_count_posts();
-			$posts          = $count_posts->publish;
-			$count_pages    = wp_count_posts( 'page' );
-			$pages          = $count_pages->publish;
-			$count_users    = count_users();
-			$users          = $count_users['total_users'];
+			$sizes_data   = WP_Debug_Data::get_sizes();
+			$wp_version   = get_bloginfo( 'version' );
+			$php_version  = phpversion();
+			$active_theme = wp_get_theme()->get( 'Name' );
+			$count_posts  = wp_count_posts();
+			$posts        = $count_posts->publish;
+			$count_pages  = wp_count_posts( 'page' );
+			$pages        = $count_pages->publish;
+			$count_users  = count_users();
+			$users        = $count_users['total_users'];
 
 			$post_data = array();
 			foreach ( get_post_types() as $post_type ) {
@@ -137,7 +141,7 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 						'meta'      => array(),
 						'data'      => array( ( array ) $result ),
 					);
-					$log_ids[] = $result->id;
+					$log_ids[]               = $result->id;
 				}
 
 				$heartbeat_data['activity_logs'] = $logs;
