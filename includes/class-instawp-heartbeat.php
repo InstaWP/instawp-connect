@@ -109,6 +109,8 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 		}
 
 		public static function send_heartbeat( $connect_id = null ): bool {
+			global $wpdb;
+
 			if ( defined( 'INSTAWP_DEBUG_LOG' ) && true === INSTAWP_DEBUG_LOG ) {
 				error_log( "HEARTBEAT RAN AT : " . date( 'd-m-Y, H:i:s, h:i:s' ) );
 			}
@@ -119,6 +121,28 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 
 			$last_sent_data = get_option( 'instawp_heartbeat_sent_data', array() );
 			$heartbeat_data = self::prepare_data();
+
+			$setting = InstaWP_Setting::get_option( 'instawp_activity_log', 'off' );
+			if ( $setting === 'on' ) {
+				$log_ids    = $logs = array();
+				$table_name = INSTAWP_DB_TABLE_ACTIVITY_LOGS;
+				$results    = $wpdb->get_results(
+					$wpdb->prepare( "SELECT * FROM {$table_name} WHERE severity!=%s", 'critical' ),
+				);
+
+				foreach ( $results as $result ) {
+					$logs[ $result->action ] = array(
+						'data_type' => current( explode( '_', $result->action ) ),
+						'count'     => ! empty( $logs[ $result->action ]['count'] ) ? $logs[ $result->action ]['count'] + 1 : 1,
+						'meta'      => array(),
+						'data'      => array( ( array ) $result ),
+					);
+					$log_ids[] = $result->id;
+				}
+
+				$heartbeat_data['activity_logs'] = $logs;
+			}
+
 			$heartbeat_body = base64_encode( wp_json_encode( array(
 				'site_information' => $heartbeat_data,
 				'new_changes'      => instawp_array_recursive_diff( $heartbeat_data, $last_sent_data ),
@@ -140,6 +164,13 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 			} else {
 				delete_option( 'instawp_rm_heartbeat_failed' );
 				update_option( 'instawp_heartbeat_sent_data', $heartbeat_data );
+
+				if ( $setting === 'on' ) {
+					$placeholders = implode( ',', array_fill( 0, count( $log_ids ), '%d' ) );
+					$wpdb->query(
+						$wpdb->prepare( "DELETE FROM {$table_name} WHERE id IN ($placeholders)", $log_ids )
+					);
+				}
 			}
 
 			if ( defined( 'INSTAWP_DEBUG_LOG' ) && INSTAWP_DEBUG_LOG ) {
