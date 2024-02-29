@@ -6,7 +6,7 @@
 global $staging_sites;
 
 $staging_sites_count = is_array( $staging_sites ) ? count( $staging_sites ) : 0;
-$pagination          = INSTAWP_STAGING_SITES_PER_PAGE;
+$pagination          = 10;
 $parent_connect_data = InstaWP_Setting::get_option( 'instawp_sync_parent_connect_data', array() );
 
 if ( ! empty( $parent_connect_data ) ) {

@@ -241,64 +241,6 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 }
 
 
-if ( ! function_exists( 'instawp_upload_to_cloud' ) ) {
-	/**
-	 * Upload file to presigned url
-	 *
-	 * @param $cloud_url
-	 * @param $local_file
-	 * @param $args
-	 *
-	 * @return bool
-	 */
-	function instawp_upload_to_cloud( $cloud_url = '', $local_file = '', $args = array() ) {
-
-		if ( empty( $cloud_url ) || empty( $local_file ) || ! file_exists( $local_file ) || ! is_file( $local_file ) ) {
-			return false;
-		}
-
-		$useragent = isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '';
-		$file      = file_get_contents( $local_file );
-		if ( false === $file ) {
-			return false;
-		}
-
-		$default_args = array(
-			'method'     => 'PUT',
-			'body'       => $file,
-			'timeout'    => 0,
-			'decompress' => false,
-			'stream'     => false,
-			'filename'   => '',
-			'user-agent' => $useragent,
-			'headers'    => array(
-				'Content-Type' => 'multipart/form-data',
-			),
-			'upload'     => true,
-		);
-		$upload_args  = wp_parse_args( $args, $default_args );
-
-		for ( $i = 0; $i < INSTAWP_REMOTE_CONNECT_RETRY_TIMES; $i ++ ) {
-
-			$WP_Http_Curl = new WP_Http_Curl();
-			$response     = $WP_Http_Curl->request( $cloud_url, $upload_args );
-
-			if ( defined( 'INSTAWP_DEBUG_LOG' ) && INSTAWP_DEBUG_LOG ) {
-				error_log( 'Upload to cloud - $cloud_url - ' . $cloud_url );
-				error_log( 'Upload to cloud - $local_file - ' . $local_file );
-				error_log( 'Upload to cloud - $response - ' . json_encode( $response ) );
-			}
-
-			if ( ! is_wp_error( $response ) && isset( $response['response']['code'] ) && 200 == $response['response']['code'] ) {
-				return true;
-			}
-		}
-
-		return false;
-	}
-}
-
-
 if ( ! function_exists( 'instawp_is_website_on_local' ) ) {
 	/**
 	 * Check if the current website is on local server or live

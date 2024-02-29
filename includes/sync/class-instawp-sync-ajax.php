@@ -60,7 +60,7 @@ class InstaWP_Sync_Ajax {
 		$connect_id     = ! empty( $_POST['connect_id'] ) ? intval( $_POST['connect_id'] ) : 0;
 		$filter_status  = ! empty( $_POST['filter_status'] ) ? sanitize_text_field( $_POST['filter_status'] ) : 'all';
 		$where          = '1=1';
-		$items_per_page = INSTAWP_EVENTS_PER_PAGE;
+		$items_per_page = 20;
 
 		if ( $connect_id > 0 ) {
 			$staging_site = instawp_get_site_detail_by_connect_id( $connect_id, 'data' );

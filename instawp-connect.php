@@ -47,66 +47,21 @@ defined( 'INSTAWP_PLUGIN_DIR' ) || define( 'INSTAWP_PLUGIN_DIR', plugin_dir_path
 defined( 'INSTAWP_DEFAULT_BACKUP_DIR' ) || define( 'INSTAWP_DEFAULT_BACKUP_DIR', 'instawpbackups' );
 defined( 'INSTAWP_BACKUP_DIR' ) || define( 'INSTAWP_BACKUP_DIR', WP_CONTENT_DIR . DIRECTORY_SEPARATOR . INSTAWP_DEFAULT_BACKUP_DIR . DIRECTORY_SEPARATOR );
 defined( 'INSTAWP_DOCS_URL_PLUGIN' ) || define( 'INSTAWP_DOCS_URL_PLUGIN', esc_url( 'https://instawp.to/docs/plugin-errors' ) );
-
-define( 'INSTAWP_CHUNK_SIZE', 1024 * 1024 );
-
-define( 'INSTAWP_PLUGIN_SLUG', 'instawp-connect' );
-define( 'INSTAWP_PLUGIN_NAME', plugin_basename( __FILE__ ) );
-define( 'INSTAWP_PLUGIN_IMAGES_URL', INSTAWP_PLUGIN_URL . '/admin/partials/images/' );
-
-//Log save folder under WP_CONTENT_DIR
-define( 'INSTAWP_DEFAULT_LOG_DIR', 'instawpbackups' . DIRECTORY_SEPARATOR . 'instawp_log' );
-define( 'INSTAWP_DEFAULT_ROLLBACK_DIR', 'instawp-old-files' );
-//
-define( 'INSTAWP_DEFAULT_ADMIN_BAR', true );
-define( 'INSTAWP_DEFAULT_TAB_MENU', true );
-define( 'INSTAWP_DEFAULT_DOMAIN_INCLUDE', false );
-//
-define( 'INSTAWP_DEFAULT_ESTIMATE_BACKUP', false );
-//Specify the folder and database to be backed up
-define( 'INSTAWP_DEFAULT_SUBPACKAGE_PLUGIN_UPLOAD', false );
-
-//define schedule hooks
-define( 'INSTAWP_MAIN_SCHEDULE_EVENT', 'instawp_main_schedule_event' );
-define( 'INSTAWP_RESUME_SCHEDULE_EVENT', 'instawp_resume_schedule_event' );
-define( 'INSTAWP_CLEAN_BACKING_UP_DATA_EVENT', 'instawp_clean_backing_up_data_event' );
-define( 'INSTAWP_TASK_MONITOR_EVENT', 'instawp_task_monitor_event' );
-define( 'INSTAWP_CLEAN_BACKUP_RECORD_EVENT', 'instawp_clean_backup_record_event' );
-//backup resume retry times
-define( 'INSTAWP_RESUME_RETRY_TIMES', 6 );
-define( 'INSTAWP_RESUME_INTERVAL', 60 );
-
-define( 'INSTAWP_REMOTE_CONNECT_RETRY_TIMES', 3 );
-define( 'INSTAWP_REMOTE_CONNECT_RETRY_INTERVAL', '3' );
-
-define( 'INSTAWP_PACK_SIZE', 1 << 20 );
-
-define( 'INSTAWP_DB_TABLE_EVENTS', $wpdb->prefix . 'instawp_events' );
-define( 'INSTAWP_DB_TABLE_SYNC_HISTORY', $wpdb->prefix . 'instawp_sync_history' );
-define( 'INSTAWP_DB_TABLE_EVENT_SITES', $wpdb->prefix . 'instawp_event_sites' );
-define( 'INSTAWP_DB_TABLE_EVENT_SYNC_LOGS', $wpdb->prefix . 'instawp_event_sync_logs' );
-define( 'INSTAWP_DB_TABLE_ACTIVITY_LOGS', $wpdb->prefix . 'instawp_activity_logs' );
-
-define( 'INSTAWP_API_URL', '/api/v1' );
-define( 'INSTAWP_API_2_URL', '/api/v2' );
-define( 'INSTAWP_EVENTS_PER_PAGE', 20 );
-define( 'INSTAWP_DEFAULT_MAX_FILE_SIZE_ALLOWED', 50 );
-define( 'INSTAWP_EVENTS_SYNC_PER_PAGE', 5 );
-define( 'INSTAWP_STAGING_SITES_PER_PAGE', 10 );
-@ini_set( 'memory_limit', '2048M' );
-
+defined( 'INSTAWP_PLUGIN_SLUG' ) || define( 'INSTAWP_PLUGIN_SLUG', 'instawp-connect' );
+defined( 'INSTAWP_PLUGIN_NAME' ) || define( 'INSTAWP_PLUGIN_NAME', plugin_basename( __FILE__ ) );
+defined( 'INSTAWP_DB_TABLE_EVENTS' ) || define( 'INSTAWP_DB_TABLE_EVENTS', $wpdb->prefix . 'instawp_events' );
+defined( 'INSTAWP_DB_TABLE_SYNC_HISTORY' ) || define( 'INSTAWP_DB_TABLE_SYNC_HISTORY', $wpdb->prefix . 'instawp_sync_history' );
+defined( 'INSTAWP_DB_TABLE_EVENT_SITES' ) || define( 'INSTAWP_DB_TABLE_EVENT_SITES', $wpdb->prefix . 'instawp_event_sites' );
+defined( 'INSTAWP_DB_TABLE_EVENT_SYNC_LOGS' ) || define( 'INSTAWP_DB_TABLE_EVENT_SYNC_LOGS', $wpdb->prefix . 'instawp_event_sync_logs' );
+defined( 'INSTAWP_DB_TABLE_ACTIVITY_LOGS' ) || define( 'INSTAWP_DB_TABLE_ACTIVITY_LOGS', $wpdb->prefix . 'instawp_activity_logs' );
+defined( 'INSTAWP_DEFAULT_MAX_FILE_SIZE_ALLOWED' ) || define( 'INSTAWP_DEFAULT_MAX_FILE_SIZE_ALLOWED', 50 );
+defined( 'INSTAWP_EVENTS_SYNC_PER_PAGE' ) || define( 'INSTAWP_EVENTS_SYNC_PER_PAGE', 5 );
+defined( 'INSTAWP_API_URL' ) || define( 'INSTAWP_API_URL', '/api/v1' );
 
 /**
  * @global instaWP $instawp_plugin
  */
 global $instawp_plugin;
-
-/**
- * The core plugin class that is used to define internationalization,
- * admin-specific hooks, and public-facing site hooks.
- */
-//when active plugin redirect plugin page.
-
 
 require_once plugin_dir_path( __FILE__ ) . 'vendor/autoload.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-instawp.php';
