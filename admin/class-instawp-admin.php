@@ -70,7 +70,6 @@ class InstaWP_Admin {
 		return array_merge( $action_links, $links );
 	}
 
-
 	function add_admin_bar_button( WP_Admin_Bar $admin_bar ) {
 
 		if ( self::$_is_template_migration_mode ) {
@@ -103,7 +102,6 @@ class InstaWP_Admin {
 		}
 	}
 
-
 	function handle_instawp_plugin_display( $plugins ) {
 
 		if ( in_array( INSTAWP_PLUGIN_NAME, array_keys( $plugins ) ) ) {
@@ -112,7 +110,6 @@ class InstaWP_Admin {
 
 		return $plugins;
 	}
-
 
 	function add_migrate_plugin_menu_items() {
 
@@ -139,7 +136,6 @@ class InstaWP_Admin {
 			InstaWP_Setting::get_allowed_role(), 'instawp', array( $this, 'render_migrate_page' ), 1
 		);
 	}
-
 
 	function render_template_migrate_page() {
 		include INSTAWP_PLUGIN_DIR . '/migrate/templates/main-migrate.php';
