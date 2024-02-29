@@ -959,13 +959,13 @@
 
 
     // Staging Sites List start //
-    $(document).on('click', '.instawp-wrap .instawp-clear-staging-sites', function () {
+    $(document).on('click', '.instawp-wrap .instawp-refresh-staging-sites', function () {
         $.ajax({
             type: 'POST',
             url: plugin_object.ajax_url,
             context: this,
             data: {
-                'action': 'instawp_clear_staging_sites',
+                'action': 'instawp_refresh_staging_sites',
                 'security': instawp_migrate.security
             },
             beforeSend: function () {

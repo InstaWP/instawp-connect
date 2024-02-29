@@ -12,7 +12,7 @@ class InstaWP_AJAX {
 		// Management
 		add_action( 'wp_ajax_instawp_save_management_settings', array( $this, 'save_management_settings' ) );
 		add_action( 'wp_ajax_instawp_disconnect_plugin', array( $this, 'disconnect_api' ) );
-		add_action( 'wp_ajax_instawp_clear_staging_sites', array( $this, 'clear_staging_sites' ) );
+		add_action( 'wp_ajax_instawp_refresh_staging_sites', array( $this, 'refresh_staging_sites' ) );
 		add_action( 'wp_ajax_instawp_get_dir_contents', array( $this, 'get_dir_contents' ) );
 		add_action( 'wp_ajax_instawp_get_database_tables', array( $this, 'get_database_tables' ) );
 		add_action( 'wp_ajax_instawp_get_large_files', array( $this, 'get_large_files' ) );
@@ -510,10 +510,10 @@ class InstaWP_AJAX {
 		) );
 	}
 
-	public function clear_staging_sites() {
+	public function refresh_staging_sites() {
 		check_ajax_referer( 'instawp-connect', 'security' );
 
-		delete_transient( 'instawp_staging_sites' );
+		instawp_set_staging_sites_list();
 
 		wp_send_json_success();
 	}

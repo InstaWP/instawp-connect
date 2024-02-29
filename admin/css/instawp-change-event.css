@@ -345,11 +345,11 @@ body.show {
 /*Toggle Switch*/
 .instawp_is_event_syncing {
     margin-left: 10px;
-    margin-top: 0 !important;
+    margin-top: 10px !important
 }
 
 .syncing_status_msg p.success {
-    margin: 0 0px 0 6px !important;
+    margin: 0 0 0 6px !important;
     font-size: 14px;
     color: #005e54;
 }

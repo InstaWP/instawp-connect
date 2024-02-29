@@ -226,6 +226,27 @@ input:checked + .slider-toggle:before {
     vertical-align: middle;
 }
 
+.instawp_is_event_syncing .toggle-control .toggle-switch {
+    width: 76px;
+    height: 32px;
+    border-radius: 32px;
+}
+
+.instawp_is_event_syncing .toggle-control .toggle-switch:before {
+    width: 24px;
+    height: 24px;
+    top: 4px;
+    left: 4px;
+}
+
+.instawp_is_event_syncing .toggle-control .toggle-checkbox:checked + .toggle-switch:before {
+    left: 48px;
+}
+
+.instawp_is_event_syncing .toggle-control .toggle-label {
+    display: none;
+}
+
 .sync-listining {
     display: none;
 }
@@ -296,7 +317,6 @@ input:checked + .slider-toggle:before {
     transition: 0.3s;
     /*stroke: none;*/
 }
-
 
 
 .instawp-wrap .nav-items .nav-item.active > a > svg > path,
