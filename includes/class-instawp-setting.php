@@ -324,6 +324,7 @@ class InstaWP_Setting {
 		$settings['activity_log'] = array(
 			'title'  => esc_html__( 'Activity Log', 'instawp-connect' ),
 			'desc'   => esc_html__( 'These are some basic settings for Activity Log.', 'instawp-connect' ),
+			'internal' => true,
 			'fields' => array(
 				array(
 					'id'      => 'instawp_activity_log',
