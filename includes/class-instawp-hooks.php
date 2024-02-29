@@ -266,6 +266,10 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 		}
 
 		public function admin_notice() {
+            if ( ! isset( $_GET['instawp-cache-cleared'] ) ) {
+	            return;
+            }
+
 			$cache_cleared = get_transient( 'instawp_cache_purged' );
 			if ( ! $cache_cleared ) {
 				return;
