@@ -29,24 +29,24 @@ class InstaWP_AJAX {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error();
 		}
-		
+
 		$type = isset( $_POST['type'] ) ? sanitize_text_field( $_POST['type'] ) : 'file';
 
 		InstaWP_Tools::instawp_reset_permalink();
 
 		if ( $type === 'file' ) {
 			$manager = new \InstaWP\Connect\Helpers\FileManager();
-		    wp_send_json_success( $manager->get() );
+			wp_send_json_success( $manager->get() );
 		} elseif ( $type === 'database' ) {
 			$manager = new \InstaWP\Connect\Helpers\DatabaseManager();
-		    wp_send_json_success( $manager->get() );
+			wp_send_json_success( $manager->get() );
 		} elseif ( $type === 'cache' ) {
 			$cache_api = new \InstaWP\Connect\Helpers\Cache();
-            $response  = $cache_api->clean();
+			$response  = $cache_api->clean();
 
-            set_transient( 'instawp_cache_purged', $response, 300 );
-            wp_send_json_success( $response );
-        } elseif ( $type === 'debug_log' ) {
+			set_transient( 'instawp_cache_purged', $response, 300 );
+			wp_send_json_success( $response );
+		} elseif ( $type === 'debug_log' ) {
 			wp_send_json_success( array( 'login_url' => site_url( 'wp-content/debug.log' ) ) );
 		}
 
@@ -106,7 +106,7 @@ class InstaWP_AJAX {
 			}
 
 			// update staging websites list
-			instawp_get_staging_sites_list( true, true );
+			instawp_set_staging_sites_list();
 
 			instawp_reset_running_migration();
 		}
@@ -320,8 +320,8 @@ class InstaWP_AJAX {
 				$theme_item_checked = true;
 
 				if ( in_array( $data['full_path'], array( $theme_path, $template_path, $themes_dir, $themes_dir . '/index.php' ) )
-					|| strpos( $data['full_path'], $theme_path ) !== false
-					|| strpos( $data['full_path'], $template_path ) !== false ) {
+				     || strpos( $data['full_path'], $theme_path ) !== false
+				     || strpos( $data['full_path'], $template_path ) !== false ) {
 
 					$theme_item_checked = false;
 				}
@@ -333,7 +333,7 @@ class InstaWP_AJAX {
 				$plugin_item_checked = true;
 
 				if ( in_array( $data['full_path'], array( wp_normalize_path( WP_PLUGIN_DIR ), wp_normalize_path( WP_PLUGIN_DIR ) . '/index.php' ) )
-					|| in_array( basename( $data['relative_path'] ), array_map( 'dirname', $active_plugins ) ) ) {
+				     || in_array( basename( $data['relative_path'] ), array_map( 'dirname', $active_plugins ) ) ) {
 
 					$plugin_item_checked = false;
 				}
@@ -491,12 +491,12 @@ class InstaWP_AJAX {
 
 		$check_api = isset( $_POST['api'] ) && filter_var( $_POST['api'], FILTER_VALIDATE_BOOLEAN );
 		if ( $check_api ) {
-		    $connect_id = instawp_get_connect_id();
+			$connect_id = instawp_get_connect_id();
 
 			// connects/<connect_id>/disconnect
 			$api_response = InstaWP_Curl::do_curl( "connects/{$connect_id}/disconnect" );
 
-            if ( empty( $api_response['success'] ) || ! $api_response['success'] ) {
+			if ( empty( $api_response['success'] ) || ! $api_response['success'] ) {
 				wp_send_json_error( array(
 					'message' => $api_response['message'],
 				) );

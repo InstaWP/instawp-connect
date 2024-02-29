@@ -3,8 +3,10 @@
  * Migrate template - Create Site
  */
 
+global $instawp_settings;
+
 $nav_item_classes  = array( 'nav-item-content' );
-$migration_details = InstaWP_Setting::get_option( 'instawp_migration_details', array() );
+$migration_details = InstaWP_Setting::get_args_option( 'instawp_migration_details', $instawp_settings );
 $migrate_id        = InstaWP_Setting::get_args_option( 'migrate_id', $migration_details );
 
 if ( ! empty( $migrate_id ) ) {

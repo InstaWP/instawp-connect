@@ -3,12 +3,19 @@
  * Migrate template - Main
  */
 
-global $staging_sites;
+global $staging_sites, $instawp_settings;
 
 $connect_classes = array();
 $access_token    = isset( $_REQUEST['access_token'] ) ? sanitize_text_field( $_REQUEST['access_token'] ) : '';
 $success_status  = isset( $_REQUEST['success'] ) ? sanitize_text_field( $_REQUEST['success'] ) : '';
 $staging_sites   = instawp_get_staging_sites_list();
+
+$syncing_status    = InstaWP_Setting::get_option( 'instawp_is_event_syncing' );
+$migration_details = InstaWP_Setting::get_option( 'instawp_migration_details', array() );
+
+$instawp_settings['instawp_is_event_syncing']  = $syncing_status;
+$instawp_settings['instawp_migration_details'] = $migration_details;
+
 
 if ( 'true' == $success_status && InstaWP_Setting::get_api_key() != $access_token ) {
 	InstaWP_Setting::instawp_generate_api_key( $access_token, (bool) $success_status );

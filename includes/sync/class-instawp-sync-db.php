@@ -15,6 +15,7 @@ defined( 'ABSPATH' ) || exit;
 class InstaWP_Sync_DB {
 
 	private $wpdb;
+	public static $is_event_syncing = false;
 
 	public static $tables = array(
 		'ch_table' => INSTAWP_DB_TABLE_EVENTS,
@@ -23,10 +24,14 @@ class InstaWP_Sync_DB {
 	);
 
 	public function __construct() {
-		global $wpdb;
-		$this->wpdb = $wpdb;
+		global $wpdb, $instawp_settings;
 
-		instawp_create_db_tables();
+		$this->wpdb             = $wpdb;
+		self::$is_event_syncing = (bool) InstaWP_Setting::get_args_option( 'instawp_is_event_syncing', $instawp_settings, '0' );
+
+		if ( self::$is_event_syncing ) {
+			instawp_create_db_tables();
+		}
 	}
 
 	public static function wpdb() {
@@ -125,6 +130,11 @@ class InstaWP_Sync_DB {
 	 * Select
 	 */
 	public static function getAllEvents( $orderBy = 'id asc' ) {
+
+		if ( ! self::$is_event_syncing ) {
+			return [];
+		}
+
 		$table_name = self::$tables['ch_table'];
 
 		return self::wpdb()->get_results( "SELECT * FROM {$table_name} order by {$orderBy}" );
