@@ -81,11 +81,11 @@ define( 'INSTAWP_REMOTE_CONNECT_RETRY_INTERVAL', '3' );
 
 define( 'INSTAWP_PACK_SIZE', 1 << 20 );
 
-define( 'INSTAWP_DB_TABLE_STAGING_SITES', $wpdb->prefix . 'instawp_staging_sites' );
 define( 'INSTAWP_DB_TABLE_EVENTS', $wpdb->prefix . 'instawp_events' );
 define( 'INSTAWP_DB_TABLE_SYNC_HISTORY', $wpdb->prefix . 'instawp_sync_history' );
 define( 'INSTAWP_DB_TABLE_EVENT_SITES', $wpdb->prefix . 'instawp_event_sites' );
 define( 'INSTAWP_DB_TABLE_EVENT_SYNC_LOGS', $wpdb->prefix . 'instawp_event_sync_logs' );
+define( 'INSTAWP_DB_TABLE_ACTIVITY_LOGS', $wpdb->prefix . 'instawp_activity_logs' );
 
 define( 'INSTAWP_API_URL', '/api/v1' );
 define( 'INSTAWP_API_2_URL', '/api/v2' );
@@ -160,10 +160,6 @@ function run_instawp() {
 
 	$GLOBALS['instawp_plugin'] = $instawp_plugin;
 	$GLOBALS['instawp']        = $instawp_plugin;
-
-	// Create database tables if they are not created already.
-	instawp_create_db_tables();
-	instawp_alter_db_tables();
 }
 
 add_filter( 'got_rewrite', '__return_true' );
