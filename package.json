@@ -19,6 +19,6 @@
     },
     "scripts": {
         "tailwind-start": "npx tailwindcss -i assets/src/tailwind-input.css -o ./assets/css/tailwind.min.css --minify --watch",
-        "start": "sass --watch assets/src/style.scss assets/css/style.min.css --style compressed"
+        "start": "sass --watch assets/src/common.scss assets/css/common.min.css --style compressed"
     }
 }

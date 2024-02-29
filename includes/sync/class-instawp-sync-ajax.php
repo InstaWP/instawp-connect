@@ -30,7 +30,7 @@ class InstaWP_Sync_Ajax {
 	}
 
 	public function is_event_syncing() {
-		check_ajax_referer( 'instawp-tws', 'nonce' );
+		check_ajax_referer( 'instawp-connect', 'security' );
 
 		if ( ! current_user_can( InstaWP_Setting::get_allowed_role() ) ) {
 			$this->send_error( 'Can\'t perform this action.' );
@@ -49,7 +49,7 @@ class InstaWP_Sync_Ajax {
 	}
 
 	public function get_site_events() {
-		check_ajax_referer( 'instawp-tws', 'nonce' );
+		check_ajax_referer( 'instawp-connect', 'security' );
 
 		if ( ! current_user_can( InstaWP_Setting::get_allowed_role() ) ) {
 			$this->send_error( 'Can\'t perform this action.' );
@@ -152,7 +152,7 @@ class InstaWP_Sync_Ajax {
 	}
 
 	public function pack_events() {
-		check_ajax_referer( 'instawp-tws', 'nonce' );
+		check_ajax_referer( 'instawp-connect', 'security' );
 
 		if ( ! current_user_can( InstaWP_Setting::get_allowed_role() ) ) {
 			$this->send_error( 'Can\'t perform this action.' );
@@ -179,7 +179,7 @@ class InstaWP_Sync_Ajax {
 	}
 
 	public function sync_changes() {
-		check_ajax_referer( 'instawp-tws', 'nonce' );
+		check_ajax_referer( 'instawp-connect', 'security' );
 
 		if ( ! current_user_can( InstaWP_Setting::get_allowed_role() ) ) {
 			$this->send_error( 'Can\'t perform this action.' );
@@ -245,7 +245,7 @@ class InstaWP_Sync_Ajax {
 	}
 
 	public function get_events_summary() {
-		check_ajax_referer( 'instawp-tws', 'nonce' );
+		check_ajax_referer( 'instawp-connect', 'security' );
 
 		if ( ! current_user_can( InstaWP_Setting::get_allowed_role() ) ) {
 			$this->send_error( 'Can\'t perform this action.' );
@@ -318,7 +318,7 @@ class InstaWP_Sync_Ajax {
 	}
 
 	public function delete_events() {
-		check_ajax_referer( 'instawp-tws', 'nonce' );
+		check_ajax_referer( 'instawp-connect', 'security' );
 
 		if ( ! current_user_can( InstaWP_Setting::get_allowed_role() ) ) {
 			$this->send_error( 'Can\'t perform this action.' );
@@ -339,7 +339,7 @@ class InstaWP_Sync_Ajax {
 	}
 
 	public function calculate_events() {
-		check_ajax_referer( 'instawp-tws', 'nonce' );
+		check_ajax_referer( 'instawp-connect', 'security' );
 
 		if ( ! current_user_can( InstaWP_Setting::get_allowed_role() ) ) {
 			$this->send_error( 'Can\'t perform this action.' );

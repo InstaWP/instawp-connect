@@ -30,12 +30,11 @@ class InstaWP_Admin {
 
 	private $version;
 
-	private $screen_ids = array();
-
 	protected static $_is_waas_mode = false;
 
 	protected static $_is_template_migration_mode = false;
 
+	protected static $_assets_version = null;
 
 	public function __construct( $plugin_name, $version ) {
 
@@ -46,6 +45,8 @@ class InstaWP_Admin {
 		if ( defined( 'INSTAWP_CONNECT_MODE' ) && 'WAAS_GO_LIVE' == INSTAWP_CONNECT_MODE ) {
 			self::$_is_waas_mode = true;
 		}
+
+		self::$_assets_version = defined( 'INSTAWP_DEBUG_LOG' ) && INSTAWP_DEBUG_LOG ? current_time( 'U' ) : INSTAWP_PLUGIN_VERSION;
 
 		$this->plugin_name = $plugin_name;
 		$this->version     = $version;
@@ -148,40 +149,26 @@ class InstaWP_Admin {
 		include INSTAWP_PLUGIN_DIR . '/migrate/templates/main.php';
 	}
 
-	public function get_localize_data() {
-		return array(
-			'ajax_url'          => admin_url( 'admin-ajax.php' ),
-			'nonce'             => wp_create_nonce( 'instawp-tws' ),
-			'plugin_images_url' => INSTAWP_PLUGIN_IMAGES_URL,
-			'trans'             => array(
-				'create_staging_site_txt' => __( 'Please create staging sites first.', 'instawp-connect' ),
-			),
-			'security'          => wp_create_nonce( 'instawp-migrate' ),
-		);
-	}
-
 	public function enqueue_scripts() {
-		wp_enqueue_style( 'instawp-hint', instawp()::get_asset_url( 'assets/css/hint.min.css' ) );
-		wp_enqueue_style( 'instawp-select2', instawp()::get_asset_url( 'admin/css/select2.min.css' ) );
-		wp_enqueue_style( 'instawp-change-event', instawp()::get_asset_url( 'admin/css/instawp-change-event.css' ) );
-
-		wp_enqueue_script( 'instawp-select2', instawp()::get_asset_url( 'admin/js/select2.min.js' ) );
-		wp_enqueue_script( 'instawp-change-event', instawp()::get_asset_url( 'admin/js/instawp-change-event.js' ), array( 'jquery' ), $this->version );
-		wp_localize_script( 'instawp-change-event', 'instawp_tws', $this->get_localize_data() );
 
 		if ( isset( $_GET['page'] ) && in_array( sanitize_text_field( $_GET['page'] ), array( 'instawp', 'instawp-template-migrate' ) ) ) {
-			wp_enqueue_style( 'instawp-tailwind', instawp()::get_asset_url( 'assets/css/tailwind.min.css' ), array(), current_time( 'U' ) );
+
+			wp_enqueue_style( 'instawp-hint', instawp()::get_asset_url( 'assets/css/hint.min.css' ) );
+			wp_enqueue_style( 'instawp-tailwind', instawp()::get_asset_url( 'assets/css/tailwind.min.css' ), [], self::$_assets_version );
+			wp_enqueue_style( 'instawp-select2', instawp()::get_asset_url( 'admin/css/select2.min.css' ) );
+			wp_enqueue_script( 'instawp-select2', instawp()::get_asset_url( 'admin/js/select2.min.js' ) );
+
+			wp_enqueue_style( 'instawp-change-event', instawp()::get_asset_url( 'admin/css/instawp-change-event.css' ), [], self::$_assets_version );
+			wp_enqueue_script( 'instawp-change-event', instawp()::get_asset_url( 'admin/js/instawp-change-event.js' ), array( 'jquery' ), self::$_assets_version );
+			wp_localize_script( 'instawp-change-event', 'instawp_tws', instawp()->tools::get_localize_data() );
+
+			wp_enqueue_style( 'instawp-migrate', instawp()::get_asset_url( 'migrate/assets/css/style.css' ), [], self::$_assets_version );
+			wp_enqueue_script( 'instawp-migrate', instawp()::get_asset_url( 'assets/js/scripts.js' ), [], self::$_assets_version );
+			wp_localize_script( 'instawp-migrate', 'instawp_migrate', instawp()->tools::get_localize_data() );
 		}
 
-		wp_enqueue_style( 'instawp-migrate', instawp()::get_asset_url( 'migrate/assets/css/style.css' ), array(), current_time( 'U' ) );
-		wp_enqueue_style( 'instawp-connect', instawp()::get_asset_url( 'assets/css/style.min.css' ), array(), current_time( 'U' ) );
-		wp_enqueue_script( 'instawp-migrate', instawp()::get_asset_url( 'assets/js/scripts.js' ), array(), current_time( 'U' ) );
-		wp_localize_script( 'instawp-migrate', 'instawp_migrate', $this->get_localize_data() );
-
-		wp_enqueue_script( 'instawp-common', instawp()::get_asset_url( 'assets/js/common.js' ), array(), current_time( 'U' ) );
-		wp_localize_script( 'instawp-common', 'instawp_common', array(
-			'ajax_url' => admin_url( 'admin-ajax.php' ),
-			'security' => wp_create_nonce( 'instawp-migrate' ),
-		) );
+		wp_enqueue_style( 'instawp-common', instawp()::get_asset_url( 'assets/css/common.min.css' ) );
+		wp_enqueue_script( 'instawp-common', instawp()::get_asset_url( 'assets/js/common.js' ), [], self::$_assets_version );
+		wp_localize_script( 'instawp-common', 'instawp_common', instawp()->tools::get_localize_data() );
 	}
 }

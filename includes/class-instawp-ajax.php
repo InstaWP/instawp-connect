@@ -24,7 +24,7 @@ class InstaWP_AJAX {
 	}
 
 	public function process_ajax() {
-		check_ajax_referer( 'instawp-migrate', 'security' );
+		check_ajax_referer( 'instawp-connect', 'security' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error();
@@ -272,7 +272,7 @@ class InstaWP_AJAX {
 	}
 
 	public function get_dir_contents() {
-		check_ajax_referer( 'instawp-migrate', 'security' );
+		check_ajax_referer( 'instawp-connect', 'security' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error();
@@ -376,7 +376,7 @@ class InstaWP_AJAX {
 	}
 
 	public function get_database_tables() {
-		check_ajax_referer( 'instawp-migrate', 'security' );
+		check_ajax_referer( 'instawp-connect', 'security' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error();
@@ -420,7 +420,7 @@ class InstaWP_AJAX {
 	}
 
 	public function get_large_files() {
-		check_ajax_referer( 'instawp-migrate', 'security' );
+		check_ajax_referer( 'instawp-connect', 'security' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error();
@@ -465,7 +465,7 @@ class InstaWP_AJAX {
 	}
 
 	public function save_management_settings() {
-		check_ajax_referer( 'instawp-migrate', 'security' );
+		check_ajax_referer( 'instawp-connect', 'security' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error();
@@ -487,7 +487,7 @@ class InstaWP_AJAX {
 	}
 
 	public function disconnect_api() {
-		check_ajax_referer( 'instawp-migrate', 'security' );
+		check_ajax_referer( 'instawp-connect', 'security' );
 
 		$check_api = isset( $_POST['api'] ) && filter_var( $_POST['api'], FILTER_VALIDATE_BOOLEAN );
 		if ( $check_api ) {
@@ -511,7 +511,7 @@ class InstaWP_AJAX {
 	}
 
 	public function clear_staging_sites() {
-		check_ajax_referer( 'instawp-migrate', 'security' );
+		check_ajax_referer( 'instawp-connect', 'security' );
 
 		delete_transient( 'instawp_staging_sites' );
 

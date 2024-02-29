@@ -52,7 +52,6 @@ define( 'INSTAWP_CHUNK_SIZE', 1024 * 1024 );
 
 define( 'INSTAWP_PLUGIN_SLUG', 'instawp-connect' );
 define( 'INSTAWP_PLUGIN_NAME', plugin_basename( __FILE__ ) );
-define( 'INSTAWP_PLUGIN_IMAGES_URL', INSTAWP_PLUGIN_URL . '/admin/partials/images/' );
 
 //Log save folder under WP_CONTENT_DIR
 define( 'INSTAWP_DEFAULT_LOG_DIR', 'instawpbackups' . DIRECTORY_SEPARATOR . 'instawp_log' );
