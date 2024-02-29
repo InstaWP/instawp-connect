@@ -532,5 +532,14 @@ class instaWP {
 		foreach ( $files as $file ) {
 			require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-' . $file . '.php';
 		}
+
+		$setting = InstaWP_Setting::get_option( 'instawp_activity_log', 'off' );
+		if ( $setting === 'on' ) {
+			require_once INSTAWP_PLUGIN_DIR . '/includes/activity-log/class-instawp-activity-log.php';
+			$files = array( 'posts', 'attachments', 'users', 'menus', 'plugins', 'themes', 'taxonomies', 'widgets' );
+			foreach ( $files as $file ) {
+				require_once INSTAWP_PLUGIN_DIR . '/includes/activity-log/class-instawp-activity-log-' . $file . '.php';
+			}
+		}
 	}
 }

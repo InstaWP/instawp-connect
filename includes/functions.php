@@ -9,6 +9,9 @@ if ( ! function_exists( 'instawp_create_db_tables' ) ) {
 	 * @return void
 	 */
 	function instawp_create_db_tables() {
+		global $wpdb;
+
+		$charset_collate = $wpdb->get_charset_collate();
 
 		if ( ! function_exists( 'maybe_create_table' ) ) {
 			require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -29,7 +32,7 @@ if ( ! function_exists( 'instawp_create_db_tables' ) ) {
 			status ENUM ('pending','in_progress','completed','error') DEFAULT 'pending',
 			synced_message varchar(128),
 			PRIMARY KEY (id)
-        ) ";
+        ) $charset_collate;";
 
 		maybe_create_table( INSTAWP_DB_TABLE_EVENTS, $sql_create_events_table );
 
@@ -42,7 +45,7 @@ if ( ! function_exists( 'instawp_create_db_tables' ) ) {
 			synced_message text NULL,
             date datetime NOT NULL,
             PRIMARY KEY (id)
-        )";
+        ) $charset_collate;";
 
 		maybe_create_table( INSTAWP_DB_TABLE_EVENT_SITES, $sql_create_sync_history_table );
 
@@ -60,7 +63,7 @@ if ( ! function_exists( 'instawp_create_db_tables' ) ) {
             source_url varchar(128),
             date datetime NOT NULL,
             PRIMARY KEY (id)
-            ) ";
+            ) $charset_collate;";
 
 		maybe_create_table( INSTAWP_DB_TABLE_SYNC_HISTORY, $sql_create_event_sites_table );
 
@@ -73,7 +76,7 @@ if ( ! function_exists( 'instawp_create_db_tables' ) ) {
 			logs text NOT NULL,
 			date datetime NOT NULL,
 			PRIMARY KEY (id)
-        ) ";
+        ) $charset_collate;";
 
 		maybe_create_table( INSTAWP_DB_TABLE_EVENT_SYNC_LOGS, $sql_create_event_sync_log_table );
 	}
@@ -85,8 +88,9 @@ if ( ! function_exists( 'instawp_alter_db_tables' ) ) {
 		global $wpdb;
 
 		foreach ( array( INSTAWP_DB_TABLE_EVENTS, INSTAWP_DB_TABLE_EVENTS, INSTAWP_DB_TABLE_SYNC_HISTORY ) as $table_name ) {
-			$db_name = $wpdb->dbname;
-			$has_col = $wpdb->get_results( "SELECT `COLUMN_NAME` FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `table_name` = '{$table_name}' AND `TABLE_SCHEMA` = '{$db_name}' AND `COLUMN_NAME` = 'event_hash'" );
+			$has_col = $wpdb->get_results(
+				$wpdb->prepare("SELECT `COLUMN_NAME` FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `table_name`=%s AND `TABLE_SCHEMA`=%s AND `COLUMN_NAME`=%s", $table_name, $wpdb->dbname, 'event_hash' )
+			);
 
 			if ( empty( $has_col ) ) {
 				$wpdb->query( "ALTER TABLE " . $table_name . " ADD `event_hash` varchar(50) NOT NULL AFTER `id`" );
@@ -619,7 +623,7 @@ if ( ! function_exists( 'instawp_get_site_detail_by_connect_id' ) ) {
 	 */
 	function instawp_get_site_detail_by_connect_id( $connect_id, $field = '', $force_update = false ) {
 		$staging_sites = instawp_get_staging_sites_list( false, $force_update );
-		$site_data     = [];
+		$site_data     = array();
 
 		foreach ( $staging_sites as $staging_site ) {
 			if ( $staging_site['connect_id'] === $connect_id ) {

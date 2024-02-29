@@ -32,7 +32,10 @@ class IWPDB {
 		$option_data = $this->get_row( self::$_table_option, array( 'option_name' => $option_name ) );
 
 		if ( empty( $option_data ) || ! $option_data ) {
-			return $this->insert( self::$_table_option, array( 'option_name' => "'{$option_name}'", 'option_value' => "'{$option_value}'" ) );
+			return $this->insert( self::$_table_option, array(
+				'option_name'  => "'{$option_name}'",
+				'option_value' => "'{$option_value}'",
+			) );
 		}
 
 		return $this->update( self::$_table_option, array( 'option_value' => $option_value ), array( 'option_name' => $option_name ) );

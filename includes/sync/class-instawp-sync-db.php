@@ -24,8 +24,9 @@ class InstaWP_Sync_DB {
 
 	public function __construct() {
 		global $wpdb;
-
 		$this->wpdb = $wpdb;
+
+		instawp_create_db_tables();
 	}
 
 	public static function wpdb() {

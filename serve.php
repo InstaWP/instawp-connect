@@ -343,7 +343,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		}
 	}
 
-//	$total_files_path         = INSTAWP_BACKUP_DIR . '.total-files-' . $migrate_key;
+//  $total_files_path         = INSTAWP_BACKUP_DIR . '.total-files-' . $migrate_key;
 	$migrate_settings         = $tracking_db->get_option( 'migrate_settings' );
 	$excluded_paths           = $migrate_settings['excluded_paths'] ?? array();
 	$skip_folders             = array_merge( array( 'wp-content/cache', 'editor', 'wp-content/upgrade', 'wp-content/instawpbackups' ), $excluded_paths );

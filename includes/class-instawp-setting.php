@@ -320,6 +320,40 @@ class InstaWP_Setting {
 			),
 		);
 
+		// Section - Activity Log
+		$settings['activity_log'] = array(
+			'title'  => esc_html__( 'Activity Log', 'instawp-connect' ),
+			'desc'   => esc_html__( 'These are some basic settings for Activity Log.', 'instawp-connect' ),
+			'fields' => array(
+				array(
+					'id'      => 'instawp_activity_log',
+					'type'    => 'toggle',
+					'title'   => __( 'Activity Log', 'instawp-connect' ),
+					'tooltip' => __( 'Enable / Disable InstaWP activity log for this website.', 'instawp-connect' ),
+					'class'   => 'save-ajax',
+					'default' => 'off',
+				),
+				array(
+					'id'      => 'instawp_log_visitor_ip_source',
+					'type'    => 'select',
+					'title'   => __( 'Visitor IP Detected', 'instawp-connect' ),
+					'tooltip' => __( 'Select the source of the visitor IP address. For example, if you are using Cloudflare, select HTTP_CF_CONNECTING_IP.', 'instawp-connect' ),
+					'options' => array(
+						'no-collect-ip'            => __( 'Do not collect IP', 'instawp-connect' ),
+						'REMOTE_ADDR'              => 'REMOTE_ADDR',
+						'HTTP_CF_CONNECTING_IP'    => 'HTTP_CF_CONNECTING_IP',
+						'HTTP_TRUE_CLIENT_IP'      => 'HTTP_TRUE_CLIENT_IP',
+						'HTTP_CLIENT_IP'           => 'HTTP_CLIENT_IP',
+						'HTTP_X_FORWARDED_FOR'     => 'HTTP_X_FORWARDED_FOR',
+						'HTTP_X_FORWARDED'         => 'HTTP_X_FORWARDED',
+						'HTTP_X_CLUSTER_CLIENT_IP' => 'HTTP_X_CLUSTER_CLIENT_IP',
+						'HTTP_FORWARDED_FOR'       => 'HTTP_FORWARDED_FOR',
+						'HTTP_FORWARDED'           => 'HTTP_FORWARDED',
+					),
+				),
+			),
+		);
+
 		// Section - Sync settings
 		$settings['sync_settings'] = array(
 			'title'    => esc_html__( 'Sync Settings', 'instawp-connect' ),

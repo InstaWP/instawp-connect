@@ -7,9 +7,14 @@ class InstaWP_Sync_Post {
 	public array $restricted_cpts = array(
 		'shop_order',
 		'customize_changeset',
-//		'wp_template',
-//		'wp_template_part',
-//		'wp_global_styles'
+		'revision',
+		'nav_menu_item',
+		'custom_css',
+		'oembed_cache',
+		'user_request',
+//      'wp_template',
+//      'wp_template_part',
+//      'wp_global_styles'
 	);
 
     public function __construct() {
@@ -24,6 +29,10 @@ class InstaWP_Sync_Post {
 	    // Media Actions.
 	    add_action( 'add_attachment', array( $this, 'add_attachment' ) );
 	    add_action( 'attachment_updated', array( $this, 'attachment_updated' ), 10, 3 );
+
+		// Duplicate post
+	    add_filter( 'duplicate_post_excludelist_filter', array( $this, 'custom_fields_filter' ) );
+	    add_filter( 'duplicate_post_post_copy', array( $this, 'generate_reference' ), 10, 2 );
 
 	    // Process event
 	    add_filter( 'INSTAWP_CONNECT/Filters/process_two_way_sync', array( $this, 'parse_event' ), 10, 2 );
@@ -80,6 +89,16 @@ class InstaWP_Sync_Post {
 	 */
 	public function handle_elementor( $document ) {
 		$this->handle_post( $document->get_post()->ID );
+	}
+
+	public function custom_fields_filter( $meta_excludelist ) {
+		$meta_excludelist[] = 'instawp_event_sync_reference_id';
+		return $meta_excludelist;
+	}
+
+	public function generate_reference( $new_post_id, $post ) {
+		$reference_id = InstaWP_Tools::get_random_string();
+		update_post_meta( $new_post_id, 'instawp_event_sync_reference_id', $reference_id );
 	}
 
 	/**

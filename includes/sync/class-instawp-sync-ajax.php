@@ -36,7 +36,7 @@ class InstaWP_Sync_Ajax {
 			$this->send_error( 'Can\'t perform this action.' );
 		}
 
-		$sync_status = $_POST['sync_status'];
+		$sync_status = ! empty( $_POST['sync_status'] ) ? intval( $_POST['sync_status'] ) : 0;
 		update_option( 'instawp_is_event_syncing', $sync_status );
 
 		instawp_create_db_tables();
@@ -54,6 +54,8 @@ class InstaWP_Sync_Ajax {
 		if ( ! current_user_can( InstaWP_Setting::get_allowed_role() ) ) {
 			$this->send_error( 'Can\'t perform this action.' );
 		}
+
+		instawp_create_db_tables();
 
 		$connect_id     = ! empty( $_POST['connect_id'] ) ? intval( $_POST['connect_id'] ) : 0;
 		$filter_status  = ! empty( $_POST['filter_status'] ) ? sanitize_text_field( $_POST['filter_status'] ) : 'all';
