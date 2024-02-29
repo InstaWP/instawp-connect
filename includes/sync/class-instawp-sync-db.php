@@ -15,7 +15,6 @@ defined( 'ABSPATH' ) || exit;
 class InstaWP_Sync_DB {
 
 	private $wpdb;
-	public static $is_event_syncing = false;
 
 	public static $tables = array(
 		'ch_table' => INSTAWP_DB_TABLE_EVENTS,
@@ -26,12 +25,17 @@ class InstaWP_Sync_DB {
 	public function __construct() {
 		global $wpdb, $instawp_settings;
 
-		$this->wpdb             = $wpdb;
-		self::$is_event_syncing = (bool) InstaWP_Setting::get_args_option( 'instawp_is_event_syncing', $instawp_settings, '0' );
+		$this->wpdb = $wpdb;
 
-		if ( self::$is_event_syncing ) {
+		if ( self::can_sync() ) {
 			instawp_create_db_tables();
 		}
+	}
+
+	public static function can_sync() {
+		global $instawp_settings;
+
+		return (bool) InstaWP_Setting::get_args_option( 'instawp_is_event_syncing', $instawp_settings, '0' );
 	}
 
 	public static function wpdb() {
@@ -64,7 +68,14 @@ class InstaWP_Sync_DB {
 	}
 
 	/**
-	 * Update
+	 * Update sync table data
+	 *
+	 * @param $table_name
+	 * @param $data
+	 * @param $id
+	 * @param $key
+	 *
+	 * @return bool|int|mysqli_result|null
 	 */
 	public static function update( $table_name = null, $data = null, $id = null, $key = 'id' ) {
 		return self::wpdb()->update( $table_name, $data, array( $key => $id ) );
@@ -131,11 +142,12 @@ class InstaWP_Sync_DB {
 	 */
 	public static function getAllEvents( $orderBy = 'id asc' ) {
 
-		if ( ! self::$is_event_syncing ) {
+		$table_name = self::$tables['ch_table'];
+		$query      = self::wpdb()->prepare( 'SHOW TABLES LIKE %s', self::wpdb()->esc_like( $table_name ) );
+
+		if ( self::wpdb()->get_var( $query ) !== $table_name ) {
 			return [];
 		}
-
-		$table_name = self::$tables['ch_table'];
 
 		return self::wpdb()->get_results( "SELECT * FROM {$table_name} order by {$orderBy}" );
 	}

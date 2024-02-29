@@ -5,7 +5,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2024-02-29 06:27+0000\n"
+"POT-Creation-Date: 2024-02-29 10:34+0000\n"
 "X-Poedit-Basepath: ..\n"
 "X-Poedit-KeywordsList: __;_e;_ex:1,2c;_n:1,2;_n_noop:1,2;_nx:1,2,4c;_nx_noop:1,2,3c;_x:1,2c;esc_attr__;esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c\n"
 "X-Poedit-SearchPath-0: .\n"
@@ -31,10 +31,6 @@ msgstr ""
 
 #: admin/class-instawp-admin.php:134, admin/class-instawp-admin.php:135
 msgid "InstaWP"
-msgstr ""
-
-#: includes/activity-log/class-instawp-activity-log-posts.php:79
-msgid "(no title)"
 msgstr ""
 
 #: includes/class-instawp-ajax.php:90
@@ -149,7 +145,7 @@ msgstr ""
 msgid "Contact Support"
 msgstr ""
 
-#: includes/class-instawp-hooks.php:274
+#: includes/class-instawp-hooks.php:278
 msgid "Cache cleared for %s."
 msgstr ""
 
@@ -573,20 +569,24 @@ msgstr ""
 msgid "Migration aborted forcefully"
 msgstr ""
 
-#: includes/functions.php:711
+#: includes/functions.php:721
 msgid "No login found with given username and default username, You are going to login with first admin user."
 msgstr ""
 
-#: includes/functions.php:707
+#: includes/functions.php:717
 msgid "Login information for the given username didn't found, You are going to login with default login username."
 msgstr ""
 
-#: includes/functions.php:704
+#: includes/functions.php:714
 msgid "Login information for the given username"
 msgstr ""
 
-#: includes/functions.php:715
+#: includes/functions.php:725
 msgid "No login information found."
+msgstr ""
+
+#: includes/activity-log/class-instawp-activity-log-posts.php:79
+msgid "(no title)"
 msgstr ""
 
 #: includes/sync/class-instawp-sync-ajax.php:297
