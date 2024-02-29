@@ -98,7 +98,7 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 				'object_name'    => '',
 				'object_id'      => '',
 				'user_ip'        => $this->get_ip_address(),
-				'timestamp'      => current_time( 'mysql' ),
+				'timestamp'      => current_time( 'mysql', 1 ),
 			) );
 
 			$args['severity'] = $this->get_severity( $args['action'] );

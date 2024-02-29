@@ -20,6 +20,7 @@ class InstaWP_Activity_Log_Menus {
 			InstaWP_Activity_Log::insert_log( array(
 				'action'      => $action,
 				'object_type' => 'Menus',
+				'object_id'   => $menu_object->term_id,
 				'object_name' => $menu_object->name,
 			) );
 		}
@@ -29,6 +30,7 @@ class InstaWP_Activity_Log_Menus {
 		InstaWP_Activity_Log::insert_log( array(
 			'action'      => 'menu_deleted',
 			'object_type' => 'Menus',
+			'object_id'   => $deleted_term->term_id,
 			'object_name' => $deleted_term->name,
 		) );
 	}
