@@ -152,10 +152,14 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 				'new_changes'      => instawp_array_recursive_diff( $heartbeat_data, $last_sent_data ),
 			) ) );
 
-			$success = false;
+			$success       = false;
+			$response_code = '';
+
 			for ( $i = 0; $i < 10; $i ++ ) {
 				$heartbeat_response = InstaWP_Curl::do_curl( "connects/{$connect_id}/heartbeat", $heartbeat_body, array(), true, 'v1' );
-				if ( $heartbeat_response['code'] == 200 ) {
+				$response_code      = $heartbeat_response['code'] ?? '';
+
+				if ( $response_code == 200 ) {
 					$success = true;
 					break;
 				}
@@ -165,6 +169,10 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 				update_option( 'instawp_rm_heartbeat', 'off' );
 				update_option( 'instawp_rm_heartbeat_failed', true );
 				wp_unschedule_hook( 'instawp_handle_heartbeat' );
+
+				if ( $response_code == 404 ) {
+					instawp_reset_running_migration( 'hard' );
+				}
 			} else {
 				delete_option( 'instawp_rm_heartbeat_failed' );
 				update_option( 'instawp_heartbeat_sent_data', $heartbeat_data );
