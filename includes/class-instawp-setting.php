@@ -59,6 +59,10 @@ class InstaWP_Setting {
 			unset( $instawp_nav_items['manage'] );
 		}
 
+		if ( instawp()->is_on_local ) {
+			unset( $instawp_nav_items['sync'] );
+		}
+
 		$instawp_sync_tab_roles = InstaWP_Setting::get_option( 'instawp_sync_tab_roles', array( 'administrator' ) );
 		$instawp_sync_tab_roles = empty( $instawp_sync_tab_roles ) ? array( 'administrator' ) : $instawp_sync_tab_roles;
 
