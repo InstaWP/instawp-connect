@@ -409,7 +409,60 @@ class InstaWP_Tools {
 		return 0;
 	}
 
+	public static function is_wp_root_available( $find_with_files = 'wp-load.php', $find_with_dir = '' ) {
+
+		$is_find_root_dir = true;
+		$searching_tier   = 10;
+
+		if ( ! empty( $find_with_files ) ) {
+			$level            = 0;
+			$root_path_dir    = __DIR__;
+			$root_path        = __DIR__;
+			$is_find_root_dir = true;
+
+			while ( ! file_exists( $root_path . DIRECTORY_SEPARATOR . $find_with_files ) ) {
+
+				++ $level;
+				$root_path = dirname( $root_path_dir, $level );
+
+				if ( $level > $searching_tier ) {
+					$is_find_root_dir = false;
+					break;
+				}
+			}
+		}
+
+		if ( ! empty( $find_with_dir ) ) {
+			$level            = 0;
+			$root_path_dir    = __DIR__;
+			$root_path        = __DIR__;
+			$is_find_root_dir = true;
+			while ( ! is_dir( $root_path . DIRECTORY_SEPARATOR . $find_with_dir ) ) {
+
+				++ $level;
+				$root_path = dirname( $root_path_dir, $level );
+
+				if ( $level > $searching_tier ) {
+					$is_find_root_dir = false;
+					break;
+				}
+			}
+		}
+
+		return $is_find_root_dir;
+	}
+
 	public static function get_pull_pre_check_response( $migrate_key, $migrate_settings = array() ) {
+
+		$is_wp_root_available = self::is_wp_root_available();
+
+		if ( ! $is_wp_root_available ) {
+			$is_wp_root_available = self::is_wp_root_available( '', 'flywheel-config' );
+		}
+
+		if ( ! $is_wp_root_available ) {
+			return new WP_Error( 404, esc_html__( 'Root directory for this WordPress installation could not find.', 'instawp-connect' ) );
+		}
 
 		// Create InstaWP backup directory
 		self::create_instawpbackups_dir();
@@ -520,15 +573,15 @@ class InstaWP_Tools {
 		// Remove instawp connect options
 		$excluded_tables_rows = $migrate_settings['excluded_tables_rows'] ?? array();
 
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_api_options';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_connect_id_options';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_sync_parent_connect_data';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_migration_details';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_api_key_config_completed';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_is_event_syncing';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:_transient_instawp_staging_sites';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:_transient_timeout_instawp_staging_sites';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_is_staging';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_api_options';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_connect_id_options';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_sync_parent_connect_data';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_migration_details';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_api_key_config_completed';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_is_event_syncing';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:_transient_instawp_staging_sites';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:_transient_timeout_instawp_staging_sites';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_is_staging';
 
 		$migrate_settings['excluded_tables_rows'] = $excluded_tables_rows;
 
