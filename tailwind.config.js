@@ -3,6 +3,15 @@ module.exports = {
     content: ["./**/*.{html,js,php}"],
     theme: {
         extend: {
+            animation: {
+                'spin-reverse': 'spin-reverse 1s linear infinite',
+            },
+            keyframes: {
+                'spin-reverse': {
+                    '0%': { transform: 'rotate(360deg)' },
+                    '100%': { transform: 'rotate(0deg)' },
+                },
+            },
             colors: {
                 grayCust: {
                     50: '#6B7280',

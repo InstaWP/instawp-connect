@@ -960,6 +960,7 @@
 
     // Staging Sites List start //
     $(document).on('click', '.instawp-wrap .instawp-refresh-staging-sites', function () {
+        const el = $(this)
         $.ajax({
             type: 'POST',
             url: plugin_object.ajax_url,
@@ -969,6 +970,7 @@
                 'security': instawp_migrate.security
             },
             beforeSend: function () {
+                el.find('svg').addClass('animate-spin-reverse');
                 $(document).find('.settings .instawp-form').addClass('loading');
             },
             success: function (response) {

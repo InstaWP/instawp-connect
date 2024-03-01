@@ -230,7 +230,7 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 			'source_url' => $source_url,
 			'data'       => wp_json_encode( $data->details ),
 			'logs'       => $this->logs[ $data->id ] ?? '',
-			'date'       => date( 'Y-m-d H:i:s' ),
+			'date'       => current_time( 'mysql', 1 ),
 		);
 		InstaWP_Sync_DB::insert( INSTAWP_DB_TABLE_EVENT_SYNC_LOGS, $data );
 	}
@@ -238,7 +238,7 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 	#Insert history
 	public function sync_history_save( $body = null, $changes = null, $status = null ) {
 		$dir     = 'dev-to-live';
-		$date    = date( 'Y-m-d H:i:s' );
+		$date    = current_time( 'mysql', 1 );
 		$bodyArr = json_decode( $body );
 		$message = $bodyArr->sync_message ?? '';
 		$data    = array(
@@ -247,11 +247,11 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 			'sync_response'      => '',
 			'direction'          => $dir,
 			'status'             => $status,
-			'user_id'            => isset( $bodyArr->upload_wp_user ) ? $bodyArr->upload_wp_user : '',
-			'changes_sync_id'    => isset( $bodyArr->sync_id ) ? $bodyArr->sync_id : '',
+			'user_id'            => $bodyArr->upload_wp_user ?? '',
+			'changes_sync_id'    => $bodyArr->sync_id ?? '',
 			'sync_message'       => $message,
 			'source_connect_id'  => '',
-			'source_url'         => isset( $bodyArr->source_url ) ? $bodyArr->source_url : '',
+			'source_url'         => $bodyArr->source_url ?? '',
 			'date'               => $date,
 		);
 

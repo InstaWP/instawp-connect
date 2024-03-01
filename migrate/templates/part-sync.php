@@ -5,8 +5,7 @@
 
 global $staging_sites, $instawp_settings;
 
-$changeEvent         = new InstaWP_Sync_Admin();
-$events              = $changeEvent->list_events();
+$events              = InstaWP_Sync_DB::total_events();
 $syncing_status      = InstaWP_Setting::get_args_option( 'instawp_is_event_syncing', $instawp_settings );
 $syncing_status_val  = ( $syncing_status == 1 ) ? 'checked' : '';
 $parent_connect_data = InstaWP_Setting::get_option( 'instawp_sync_parent_connect_data' );

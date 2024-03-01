@@ -94,6 +94,13 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 
 == Changelog ==
 
+= 0.1.0.19 =
+- NEW - Added Activity Log.
+- FIX - 2 way sync event date timezone issue.
+- FIX - 2 way sync duplicate event issue.
+- FIX - 2 way sync performance optimizations.
+- FIX - Added animation on staging site refresh button.
+
 = 0.1.0.18 - 20 Feb 2024 =
 - NEW - Added option to filter sync changes based on the status.
 - FIX - Missing query var error.

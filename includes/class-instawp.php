@@ -151,14 +151,13 @@ class instaWP {
 	}
 
 	private function define_admin_hook() {
-
 		$this->admin = new InstaWP_Admin( $this->get_plugin_name(), $this->get_version() );
 
 		// Add Settings link to the plugin
 		$plugin_basename = plugin_basename( plugin_dir_path( __DIR__ ) . 'instawp-connect.php' );
 		add_filter( 'plugin_action_links_' . $plugin_basename, array( $this->admin, 'add_action_links' ) );
-
 		add_filter( 'instawp_add_tab_page', array( $this->admin, 'instawp_add_default_tab_page' ) );
+		add_action( 'admin_init', 'instawp_get_source_site_detail', 999 );
 	}
 
 	public function get_plugin_name() {
@@ -521,9 +520,7 @@ class instaWP {
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-cli.php';
 
 		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-db.php';
-		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-admin.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-helpers.php';
-		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-events.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-ajax.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-apis.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-customize-setting.php';
