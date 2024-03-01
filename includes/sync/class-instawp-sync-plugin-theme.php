@@ -295,30 +295,11 @@ class InstaWP_Sync_Plugin_Theme {
 						$title = $details;
 					}
 				}
-
-//              if ( $event_slug === 'deleted_plugin' ) {
-//                  $statement = $this->wpdb->prepare( "SELECT * FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE source_id=%s AND status=%s", $source_id, 'pending' );
-//                  $events    = $this->wpdb->get_results( $statement );
-//
-//                  if ( ! empty( $events ) ) {
-//                      foreach ( $events as $event ) {
-//                          $this->wpdb->query( $this->wpdb->prepare( "DELETE FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE id=%d", $event->id ) );
-//                      }
-//                      return;
-//                  }
-//              }
-				break;
-			case 'woocommerce_attribute':
-			case 'woocommerce_attribute_updated':
-				$title = $details['attribute_label'];
-				break;
-			case 'woocommerce_attribute_deleted':
-				$title = 'WooCommerce Attribute Deleted (' . $details . ')';
 				break;
 			default:
 				$title = $details['name'];
 		}
-		InstaWP_Sync_DB::insert_update_event( $event_name, $event_slug, $type, $source_id, $title, $details, $event_id );
+		InstaWP_Sync_DB::insert_update_event( $event_name, $event_slug, $type, $source_id, $title, $details );
 	}
 
 	#Plugin activate.

@@ -5,7 +5,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2024-02-29 12:58+0000\n"
+"POT-Creation-Date: 2024-03-01 10:03+0000\n"
 "X-Poedit-Basepath: ..\n"
 "X-Poedit-KeywordsList: __;_e;_ex:1,2c;_n:1,2;_n_noop:1,2;_nx:1,2,4c;_nx_noop:1,2,3c;_x:1,2c;esc_attr__;esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c\n"
 "X-Poedit-SearchPath-0: .\n"
@@ -271,6 +271,10 @@ msgstr ""
 
 #: includes/class-instawp-setting.php:22
 msgid "Migration is completed"
+msgstr ""
+
+#: includes/class-instawp-setting.php:39
+msgid "Staging"
 msgstr ""
 
 #: includes/class-instawp-setting.php:163, includes/class-instawp-setting.php:169
@@ -589,31 +593,31 @@ msgstr ""
 msgid "No login information found."
 msgstr ""
 
-#: includes/sync/class-instawp-sync-ajax.php:297
+#: includes/sync/class-instawp-sync-ajax.php:294
 msgid "%1$u %2$s %3$s"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-ajax.php:285
+#: includes/sync/class-instawp-sync-ajax.php:282
 msgid "%1$u %2$s"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-ajax.php:290
+#: includes/sync/class-instawp-sync-ajax.php:287
 msgid "Show more"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-ajax.php:318
+#: includes/sync/class-instawp-sync-ajax.php:315
 msgid "Events loaded"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-ajax.php:318, includes/sync/class-instawp-sync-ajax.php:379
+#: includes/sync/class-instawp-sync-ajax.php:315, includes/sync/class-instawp-sync-ajax.php:376
 msgid "No pending events found!"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-ajax.php:375
+#: includes/sync/class-instawp-sync-ajax.php:372
 msgid "You have reached your sync limit. Current usage %1$u out of %2$u."
 msgstr ""
 
-#: includes/sync/class-instawp-sync-ajax.php:372
+#: includes/sync/class-instawp-sync-ajax.php:369
 msgid " Completed ( 0 out of %d events )"
 msgstr ""
 
@@ -713,26 +717,26 @@ msgstr ""
 msgid "Order created"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-wc.php:52
+#: includes/sync/class-instawp-sync-wc.php:51
 msgid "Order updated"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-wc.php:67, includes/sync/class-instawp-sync-wc.php:81
+#: includes/sync/class-instawp-sync-wc.php:65, includes/sync/class-instawp-sync-wc.php:79
 msgid "Order trashed"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-wc.php:117
+#: includes/sync/class-instawp-sync-wc.php:115
 msgid "Woocommerce attribute added"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-wc.php:135
+#: includes/sync/class-instawp-sync-wc.php:133
 msgid "Woocommerce attribute updated"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-wc.php:153
+#: includes/sync/class-instawp-sync-wc.php:149
 msgid "Woocommerce attribute deleted"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-wc.php:366, includes/sync/class-instawp-sync-wc.php:371
+#: includes/sync/class-instawp-sync-wc.php:362, includes/sync/class-instawp-sync-wc.php:367
 msgid "Order %s"
 msgstr ""

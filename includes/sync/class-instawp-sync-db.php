@@ -84,7 +84,7 @@ class InstaWP_Sync_DB {
 	/**
 	 * update/insert event data
 	 */
-	public static function insert_update_event( $event_name = null, $event_slug = null, $event_type = null, $source_id = null, $title = null, $details = null, $event_id = null ) {
+	public static function insert_update_event( $event_name = null, $event_slug = null, $event_type = null, $source_id = null, $title = null, $details = null ) {
 		$data = array(
 			'event_name'     => $event_name,
 			'event_slug'     => $event_slug,
@@ -94,13 +94,14 @@ class InstaWP_Sync_DB {
 			'title'          => $title,
 			'details'        => wp_json_encode( $details ),
 			'user_id'        => get_current_user_id(),
-			'date'           => date( 'Y-m-d H:i:s' ),
+			'date'           => current_time( 'mysql', 1 ),
 			'status'         => 'pending',
 			'prod'           => '',
 			'synced_message' => '',
 		);
 
-		if ( is_numeric( $event_id ) ) {
+		$event_id = self::existing_update_events( self::$tables['ch_table'], $event_slug, $source_id );
+		if ( $event_id && is_numeric( $event_id ) ) {
 			self::update( INSTAWP_DB_TABLE_EVENTS, $data, $event_id );
 		} else {
 			self::insert( INSTAWP_DB_TABLE_EVENTS, $data );
@@ -133,32 +134,19 @@ class InstaWP_Sync_DB {
 	/*
 	* Count total traking events
 	*/
-	public static function totalEvents( $table_name, $status ) {
-		return self::wpdb()->get_var( self::wpdb()->prepare( "SELECT COUNT(*) FROM $table_name WHERE `status`=%s", $status ) );
-	}
-
-	/**
-	 * Select
-	 */
-	public static function getAllEvents( $orderBy = 'id asc' ) {
-
+	public static function total_events() {
 		$table_name = self::$tables['ch_table'];
-		$query      = self::wpdb()->prepare( 'SHOW TABLES LIKE %s', self::wpdb()->esc_like( $table_name ) );
 
-		if ( self::wpdb()->get_var( $query ) !== $table_name ) {
-			return [];
-		}
-
-		return self::wpdb()->get_results( "SELECT * FROM {$table_name} order by {$orderBy}" );
+		return self::wpdb()->get_var( "SELECT COUNT(*) FROM {$table_name}" );
 	}
 
 	/*
 	* Get site event status row
 	*/
-	public static function getSiteEventStatus( $connect_id, $event_id ) {
+	public static function get_sync_event_by_id( $connect_id, $event_id ) {
 		$table_name = self::$tables['se_table'];
 
-		return self::wpdb()->get_row( "SELECT * FROM {$table_name}  WHERE `connect_id`={$connect_id} AND `event_hash`='{$event_id}'" );
+		return self::wpdb()->get_row( self::wpdb()->prepare( "SELECT * FROM {$table_name}  WHERE `connect_id`=%s AND `event_hash`=%s", $connect_id, $event_id ) );
 	}
 
 	/*
@@ -204,7 +192,7 @@ class InstaWP_Sync_DB {
 	}
 
 	public static function existing_update_events( $table_name, $event_slug, $source_id ) {
-		return self::wpdb()->get_var( "SELECT id FROM $table_name WHERE `event_slug`='" . $event_slug . "' AND `source_id`='" . $source_id . "'  AND TIMESTAMPDIFF(SECOND, `date`, '" . current_time( 'mysql' ) . "') <= 5;" );
+		return self::wpdb()->get_var( "SELECT id FROM $table_name WHERE `event_slug`='" . $event_slug . "' AND `source_id`='" . $source_id . "'  AND TIMESTAMPDIFF(SECOND, `date`, '" . current_time( 'mysql', 1 ) . "') <= 5;" );
 	}
 
 	public static function checkCustomizerChanges( $table_name ) {

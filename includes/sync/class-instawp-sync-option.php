@@ -24,7 +24,7 @@ class InstaWP_Sync_Option {
 				'name'  => $option,
 				'value' => maybe_serialize( $value ),
 			);
-			InstaWP_Sync_DB::insert_update_event( __( 'Option added', 'instawp-connect' ), 'add_option', 'option', '', ucfirst( str_replace( array( '-', '_' ), ' ', $option ) ), $data );
+			InstaWP_Sync_DB::insert_update_event( __( 'Option added', 'instawp-connect' ), 'add_option', 'option', $option, ucfirst( str_replace( array( '-', '_' ), ' ', $option ) ), $data );
 		}
 	}
 
@@ -38,7 +38,7 @@ class InstaWP_Sync_Option {
 				'name'  => $option,
 				'value' => maybe_serialize( $value ),
 			);
-			InstaWP_Sync_DB::insert_update_event( __( 'Option updated', 'instawp-connect' ), 'update_option', 'option', '', ucfirst( str_replace( array( '-', '_' ), ' ', $option ) ), $data );
+			InstaWP_Sync_DB::insert_update_event( __( 'Option updated', 'instawp-connect' ), 'update_option', 'option', $option, ucfirst( str_replace( array( '-', '_' ), ' ', $option ) ), $data );
 		}
 	}
 
@@ -48,7 +48,7 @@ class InstaWP_Sync_Option {
 		}
 
 		if ( ! $this->is_protected_option( $option ) ) {
-			InstaWP_Sync_DB::insert_update_event( __( 'Option deleted', 'instawp-connect' ), 'delete_option', 'option', '', ucfirst( str_replace( array( '-', '_' ), ' ', $option ) ), $option );
+			InstaWP_Sync_DB::insert_update_event( __( 'Option deleted', 'instawp-connect' ), 'delete_option', 'option', $option, ucfirst( str_replace( array( '-', '_' ), ' ', $option ) ), $option );
 		}
 	}
 

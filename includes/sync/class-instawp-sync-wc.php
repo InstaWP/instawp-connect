@@ -48,9 +48,8 @@ class InstaWP_Sync_WC {
 			return;
 		}
 
-		$event_id   = InstaWP_Sync_DB::existing_update_events(INSTAWP_DB_TABLE_EVENTS, 'woocommerce_order_updated', $order->get_order_key() );
 		$event_name = __('Order updated', 'instawp-connect' );
-		$this->add_event( $event_name, 'woocommerce_order_updated', $order->get_id(), $order->get_order_key(), $event_id );
+		$this->add_event( $event_name, 'woocommerce_order_updated', $order->get_id(), $order->get_order_key() );
 	}
 
 	public function trash_order( $order_id ) {
@@ -63,9 +62,8 @@ class InstaWP_Sync_WC {
 			return;
 		}
 
-		$event_id   = InstaWP_Sync_DB::existing_update_events(INSTAWP_DB_TABLE_EVENTS, 'woocommerce_order_trashed', $order->get_order_key() );
 		$event_name = __('Order trashed', 'instawp-connect' );
-		$this->add_event( $event_name, 'woocommerce_order_trashed', $order->get_id(), $order->get_order_key(), $event_id );
+		$this->add_event( $event_name, 'woocommerce_order_trashed', $order->get_id(), $order->get_order_key() );
 	}
 
 	public function delete_order( $order_id ) {
@@ -133,10 +131,8 @@ class InstaWP_Sync_WC {
 		}
 
 		$event_name = __('Woocommerce attribute updated', 'instawp-connect' );
-		$event_id   = InstaWP_Sync_DB::existing_update_events(INSTAWP_DB_TABLE_EVENTS, 'woocommerce_attribute_updated', $old_slug );
-
 		$data['attribute_id'] = $id;
-		$this->add_event( $event_name, 'woocommerce_attribute_updated', $data, $old_slug, $event_id );
+		$this->add_event( $event_name, 'woocommerce_attribute_updated', $data, $old_slug );
 	}
 
 	/**
@@ -352,7 +348,7 @@ class InstaWP_Sync_WC {
 	 * @param $source_id
 	 * @return void
 	 */
-	private function add_event( $event_name, $event_slug, $details, $source_id, $event_id = null ) {
+	private function add_event( $event_name, $event_slug, $details, $source_id ) {
 		switch ( $event_slug ) {
 			case 'woocommerce_attribute_added':
 			case 'woocommerce_attribute_updated':
@@ -373,7 +369,7 @@ class InstaWP_Sync_WC {
 			default:
 				$title = $details;
 		}
-		InstaWP_Sync_DB::insert_update_event( $event_name, $event_slug, 'woocommerce', $source_id, $title, $details, $event_id );
+		InstaWP_Sync_DB::insert_update_event( $event_name, $event_slug, 'woocommerce', $source_id, $title, $details );
 	}
 
 	private function can_sync(): bool {

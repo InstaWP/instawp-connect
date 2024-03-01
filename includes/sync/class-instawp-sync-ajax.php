@@ -59,28 +59,25 @@ class InstaWP_Sync_Ajax {
 
 		$connect_id     = ! empty( $_POST['connect_id'] ) ? intval( $_POST['connect_id'] ) : 0;
 		$filter_status  = ! empty( $_POST['filter_status'] ) ? sanitize_text_field( $_POST['filter_status'] ) : 'all';
-		$where          = '1=1';
 		$items_per_page = 20;
 
-		if ( $connect_id > 0 ) {
-			$staging_site = instawp_get_site_detail_by_connect_id( $connect_id, 'data' );
+		$query        = "SELECT * FROM " . INSTAWP_DB_TABLE_EVENTS;
+		$staging_site = instawp_get_site_detail_by_connect_id( $connect_id, 'data' );
 
-			if ( ! empty( $staging_site ) && isset( $staging_site['created_at'] ) ) {
-				$staging_site_created = date( 'Y-m-d h:i:s', strtotime( $staging_site['created_at'] ) );
-				$where                .= " AND date >= '" . $staging_site_created . "'";
-			}
+		if ( ! empty( $staging_site ) && isset( $staging_site['created_at'] ) ) {
+			$staging_site_created = date( 'Y-m-d h:i:s', strtotime( $staging_site['created_at'] ) );
+			$query                .= " WHERE `date` >= '" . $staging_site_created . "'";
 		}
 
-		$query       = "SELECT * FROM " . INSTAWP_DB_TABLE_EVENTS . "  WHERE $where";
 		$total_query = "SELECT COUNT(1) FROM ({$query}) AS combined_table ";
 		$total       = $this->wpdb->get_var( $total_query );
 
 		$page   = isset( $_POST['epage'] ) ? abs( (int) $_POST['epage'] ) : 1;
 		$offset = ( $page * $items_per_page ) - $items_per_page;
 
-		$events = $this->wpdb->get_results( $query . " ORDER BY date DESC, id DESC LIMIT {$offset}, {$items_per_page}" );
+		$events = $this->wpdb->get_results( $query . " ORDER BY `date` DESC, `id` DESC LIMIT {$offset}, {$items_per_page}" );
 		$events = array_map( function( $event ) use ( $connect_id ) {
-			$event_row = InstaWP_Sync_DB::getSiteEventStatus( $connect_id, $event->event_hash );
+			$event_row = InstaWP_Sync_DB::get_sync_event_by_id( $connect_id, $event->event_hash );
 
 			if ( $event_row ) {
 				$event->status      = ! empty( $event_row->status ) ? $event_row->status : 'pending';
@@ -407,7 +404,7 @@ class InstaWP_Sync_Ajax {
 						'connect_id'     => $connect_id,
 						'status'         => $data['status'],
 						'synced_message' => $data['message'],
-						'date'           => date( 'Y-m-d h:i:s' ),
+						'date'           => current_time( 'mysql', 1 ),
 					) );
 				}
 			}

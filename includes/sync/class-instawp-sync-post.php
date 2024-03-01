@@ -236,9 +236,8 @@ class InstaWP_Sync_Post {
 		$data       = InstaWP_Sync_Helpers::parse_post_data( $post );
 		$title      = $post->post_title ?? '';
 		$data       = apply_filters( 'INSTAWP_CONNECT/Filters/two_way_sync_post_data', $data, $event_type, $post );
-
-		$event_id = InstaWP_Sync_DB::existing_update_events(INSTAWP_DB_TABLE_EVENTS, $event_slug, $data['reference_id'] );
-		InstaWP_Sync_DB::insert_update_event( $event_name, $event_slug, $event_type, $data['reference_id'], $title, $data, $event_id );
+		
+		InstaWP_Sync_DB::insert_update_event( $event_name, $event_slug, $event_type, $data['reference_id'], $title, $data );
 	}
 }
 
