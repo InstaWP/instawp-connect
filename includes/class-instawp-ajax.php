@@ -260,9 +260,27 @@ class InstaWP_AJAX {
 		$total_files_size     = instawp()->tools::get_total_sizes( 'files', $migrate_settings );
 		$check_usage_response = instawp()->instawp_check_usage_on_cloud( $total_files_size );
 		$can_proceed          = (bool) InstaWP_Setting::get_args_option( 'can_proceed', $check_usage_response, false );
+		$api_response         = InstaWP_Setting::get_args_option( 'api_response', $check_usage_response, [] );
+		$api_response_code    = InstaWP_Setting::get_args_option( 'code', $api_response );
 
 		if ( $can_proceed ) {
 			wp_send_json_success( $check_usage_response );
+		}
+
+		if ( $api_response_code == 404 ) {
+
+			$return_url      = urlencode( admin_url( 'tools.php?page=instawp' ) );
+			$api_domain      = InstaWP_Setting::get_api_domain();
+			$connect_api_url = $api_domain . '/authorize?source=InstaWP Connect&return_url=' . $return_url;
+
+			instawp_reset_running_migration( 'hard' );
+
+			InstaWP_Setting::set_api_domain( $api_domain );
+
+			wp_send_json_error( array(
+				'button_text' => esc_html__( 'Connect Again', 'instawp-connect' ),
+				'button_url'  => $connect_api_url,
+			) );
 		}
 
 		$check_usage_response['button_text'] = esc_html__( 'Increase Limit', 'instawp-connect' );

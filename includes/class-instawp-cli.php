@@ -188,6 +188,14 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 				return true;
 			}
 
+			if ( isset( $args[0] ) && $args[0] === 'reset' ) {
+				if ( isset( $args[1] ) && $args[1] === 'staging' ) {
+					delete_option( 'instawp_sync_connect_id' );
+					delete_option( 'instawp_is_staging' );
+					instawp_reset_running_migration();
+				}
+			}
+
 			return true;
 		}
 
