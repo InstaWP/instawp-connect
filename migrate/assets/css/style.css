@@ -226,12 +226,14 @@ input:checked + .slider-toggle:before {
     vertical-align: middle;
 }
 
+.events-head-left .toggle-control .toggle-switch,
 .instawp_is_event_syncing .toggle-control .toggle-switch {
     width: 76px;
     height: 32px;
     border-radius: 32px;
 }
 
+.events-head-left .toggle-control .toggle-switch:before,
 .instawp_is_event_syncing .toggle-control .toggle-switch:before {
     width: 24px;
     height: 24px;
@@ -239,10 +241,12 @@ input:checked + .slider-toggle:before {
     left: 4px;
 }
 
+.events-head-left .toggle-control .toggle-checkbox:checked + .toggle-switch:before,
 .instawp_is_event_syncing .toggle-control .toggle-checkbox:checked + .toggle-switch:before {
     left: 48px;
 }
 
+.events-head-left .toggle-control .toggle-label,
 .instawp_is_event_syncing .toggle-control .toggle-label {
     display: none;
 }

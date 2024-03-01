@@ -1,7 +1,7 @@
 <?php
 /**
- * 
- * This file is used for change event traking 
+ *
+ * This file is used for change event traking
  *
  * @link       https://instawp.com/
  * @since      1.0
@@ -9,8 +9,8 @@
  * @subpackage instaWP/admin
  */
 /**
- * This file is used for change event traking 
- * 
+ * This file is used for change event traking
+ *
  * @since      1.0
  * @package    instawp
  * @subpackage instawp/admin
@@ -44,19 +44,19 @@ class InstaWP_Sync_Helpers {
 		return get_post_meta( $post_id, 'instawp_event_sync_reference_id', true ) ?? '0';
 	}
 
-    /*
-     * Update post metas
-     */
-    public static function set_post_reference_id( $post_id ): string {
+	/*
+	 * Update post metas
+	 */
+	public static function set_post_reference_id( $post_id ): string {
 		$reference_id = self::get_post_reference_id( $post_id );
 
-        if ( empty( $reference_id ) ) {
-	        $reference_id = InstaWP_Tools::get_random_string();
-            update_post_meta( $post_id, 'instawp_event_sync_reference_id', $reference_id );
-        }
+		if ( empty( $reference_id ) ) {
+			$reference_id = InstaWP_Tools::get_random_string();
+			update_post_meta( $post_id, 'instawp_event_sync_reference_id', $reference_id );
+		}
 
 		return $reference_id;
-    }
+	}
 
 	/*
 	 * Get user metas
@@ -86,19 +86,19 @@ class InstaWP_Sync_Helpers {
 		return get_user_meta( $user_id, 'instawp_event_user_sync_reference_id', true ) ?? '0';
 	}
 
-    /*
-     * Update user metas
-     */
-    public static function set_user_reference_id( $user_id ): string {
-	    $reference_id = self::get_user_reference_id( $user_id );
+	/*
+	 * Update user metas
+	 */
+	public static function set_user_reference_id( $user_id ): string {
+		$reference_id = self::get_user_reference_id( $user_id );
 
-	    if ( empty( $reference_id ) ) {
-		    $reference_id = InstaWP_Tools::get_random_string();
-            update_user_meta( $user_id, 'instawp_event_user_sync_reference_id', $reference_id );
+		if ( empty( $reference_id ) ) {
+			$reference_id = InstaWP_Tools::get_random_string();
+			update_user_meta( $user_id, 'instawp_event_user_sync_reference_id', $reference_id );
 		}
 
 		return $reference_id;
-    }
+	}
 
 	public static function can_sync( string $module ): bool {
 		$syncing_status = get_option( 'instawp_is_event_syncing', 0 );
@@ -112,17 +112,17 @@ class InstaWP_Sync_Helpers {
 	 */
 	public static function get_media_from_content( $content ): array {
 		global $wpdb;
-		
+
 		#find media form content.
 		preg_match_all( '!(https?:)?//\S+\.(?:jpe?g|jpg|png|gif|mp4|pdf|doc|docx|xls|xlsx|csv|txt|rtf|html|zip|mp3|wma|mpg|flv|avi)!Ui', $content, $match );
-		
+
 		$media = array();
 		if ( isset( $match[0] ) ) {
 			$attachment_urls = array_unique( $match[0] );
 
 			foreach ( $attachment_urls as $attachment_url ) {
 				if ( strpos( $attachment_url, $_SERVER['HTTP_HOST'] ) !== false ) {
-					$full_attachment_url = preg_replace('~-[0-9]+x[0-9]+.~', '.', $attachment_url );
+					$full_attachment_url = preg_replace( '~-[0-9]+x[0-9]+.~', '.', $attachment_url );
 					$attachment_data     = self::url_to_attachment( $full_attachment_url );
 
 					$media[] = array_merge( $attachment_data, array(
@@ -192,8 +192,10 @@ class InstaWP_Sync_Helpers {
 			foreach ( $object as $key => $value ) {
 				$result[ $key ] = self::object_to_array( $value );
 			}
+
 			return $result;
 		}
+
 		return $object;
 	}
 
@@ -406,6 +408,7 @@ class InstaWP_Sync_Helpers {
 	}
 
 	public static function parse_post_data( $post ) {
+
 		kses_remove_filters();
 
 		$post = get_post( $post );
@@ -426,15 +429,15 @@ class InstaWP_Sync_Helpers {
 		if ( $post->post_type === 'attachment' ) {
 			$data['attachment'] = self::attachment_to_string( $post->ID, 'full', true );
 		} else {
-			$taxonomies    = self::get_taxonomies_items( $post->ID );
-			$media         = self::get_media_from_content( $post_content );
+			$taxonomies = self::get_taxonomies_items( $post->ID );
+			$media      = self::get_media_from_content( $post_content );
 
 			$data = array_merge( $data, array(
 				'taxonomies' => $taxonomies,
 				'media'      => $media,
 			) );
 
-			$featured_image_id  = get_post_thumbnail_id( $post->ID );
+			$featured_image_id = get_post_thumbnail_id( $post->ID );
 			if ( $featured_image_id ) {
 				$data['featured_image'] = self::attachment_to_string( $featured_image_id );
 			}
@@ -449,6 +452,8 @@ class InstaWP_Sync_Helpers {
 		}
 
 		kses_init_filters();
+
+		error_log( print_r( $data, true ) );
 
 		return $data;
 	}
@@ -495,6 +500,7 @@ class InstaWP_Sync_Helpers {
 
 		if ( $post_id && ! is_wp_error( $post_id ) ) {
 			self::process_post_meta( $post_meta, $post_id );
+
 			return $post_id;
 		}
 
