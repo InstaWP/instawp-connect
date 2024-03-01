@@ -260,7 +260,7 @@ class InstaWP_AJAX {
 		$total_files_size     = instawp()->tools::get_total_sizes( 'files', $migrate_settings );
 		$check_usage_response = instawp()->instawp_check_usage_on_cloud( $total_files_size );
 		$can_proceed          = (bool) InstaWP_Setting::get_args_option( 'can_proceed', $check_usage_response, false );
-		$api_response         = InstaWP_Setting::get_args_option( 'api_response', $check_usage_response, [] );
+		$api_response         = InstaWP_Setting::get_args_option( 'api_response', $check_usage_response, array() );
 		$api_response_code    = InstaWP_Setting::get_args_option( 'code', $api_response );
 
 		if ( $can_proceed ) {
@@ -338,8 +338,8 @@ class InstaWP_AJAX {
 				$theme_item_checked = true;
 
 				if ( in_array( $data['full_path'], array( $theme_path, $template_path, $themes_dir, $themes_dir . '/index.php' ) )
-				     || strpos( $data['full_path'], $theme_path ) !== false
-				     || strpos( $data['full_path'], $template_path ) !== false ) {
+					|| strpos( $data['full_path'], $theme_path ) !== false
+					|| strpos( $data['full_path'], $template_path ) !== false ) {
 
 					$theme_item_checked = false;
 				}
@@ -351,7 +351,7 @@ class InstaWP_AJAX {
 				$plugin_item_checked = true;
 
 				if ( in_array( $data['full_path'], array( wp_normalize_path( WP_PLUGIN_DIR ), wp_normalize_path( WP_PLUGIN_DIR ) . '/index.php' ) )
-				     || in_array( basename( $data['relative_path'] ), array_map( 'dirname', $active_plugins ) ) ) {
+					|| in_array( basename( $data['relative_path'] ), array_map( 'dirname', $active_plugins ) ) ) {
 
 					$plugin_item_checked = false;
 				}

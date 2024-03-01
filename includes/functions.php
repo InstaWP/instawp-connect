@@ -302,7 +302,7 @@ if ( ! function_exists( 'instawp_get_staging_sites_list' ) ) {
 		$staging_sites = get_transient( 'instawp_staging_sites' );
 
 		if ( ! $staging_sites || ! is_array( $staging_sites ) ) {
-			return [];
+			return array();
 		}
 
 		if ( $insta_only ) {
