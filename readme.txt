@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.4
 Tested up to: 6.4.3
 Requires PHP: 7.4
-Stable tag: 0.1.0.18
+Stable tag: 0.1.0.19
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -96,10 +96,19 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 
 = 0.1.0.19 =
 - NEW - Added Activity Log.
+- NEW - Added CLI command for reset staging.
+- NEW - Added migration support for Elementor Cloud.
+- NEW - Added option to hide shortcut and hide flashing.
+- FIX - Improve plugin overall performance every dashboard page loading.
+- FIX - Fixed config issues after staging creation from local environment.
+- FIX - Fixed support for COOKIE_DOMAIN constant in wp-config.
+- FIX - Stabilize the staging site creation process.
 - FIX - 2 way sync event date timezone issue.
 - FIX - 2 way sync duplicate event issue.
 - FIX - 2 way sync performance optimizations.
 - FIX - Added animation on staging site refresh button.
+- FIX - Staging site list remove automatically due to transient
+
 
 = 0.1.0.18 - 20 Feb 2024 =
 - NEW - Added option to filter sync changes based on the status.
