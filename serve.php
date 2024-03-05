@@ -268,6 +268,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
 				// Comment any any php_value
 				$content = preg_replace( '/^\s*php_value\s+/m', '# php_value ', $content );
+				$content = preg_replace( '/^\s*php_flag\s+/m', '# php_flag ', $content );
 
 				// Comment some unnecessary lines in htaccess
 				$content = preg_replace( '/^(.*AuthGroupFile.*)$/m', '# $1', $content );

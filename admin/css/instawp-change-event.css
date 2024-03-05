@@ -468,10 +468,9 @@ body.show {
 select#destination-site, select#staging-site-sync, select#filter-sync-events {
     border-radius: 6px;
     border: 1px solid #D1D5DB;
-    width: 100%;
     color: #6b7280;
     padding: 4px 24px 4px 12px;
-    max-width: 100%;
+    max-width: 280px;
 }
 
 select#event-action-type {
