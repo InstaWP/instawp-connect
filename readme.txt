@@ -94,7 +94,7 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 
 == Changelog ==
 
-= 0.1.0.19 =
+= 0.1.0.19 - 5 Mar 2024 =
 - NEW - Added Activity Log.
 - NEW - Added CLI command for reset staging.
 - NEW - Added migration support for Elementor Cloud.
