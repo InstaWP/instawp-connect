@@ -473,6 +473,11 @@ select#destination-site, select#staging-site-sync, select#filter-sync-events {
     max-width: 280px;
 }
 
+select#destination-site {
+    max-width: 100%;
+    width: 100%;
+}
+
 select#event-action-type {
     border-radius: 6px;
     border: 1px solid #D1D5DB;
