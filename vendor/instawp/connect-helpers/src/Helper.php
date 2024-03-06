@@ -80,4 +80,17 @@ class Helper {
 
 		return false;
 	}
+
+	public static function clean_file( $directory ) {
+		if ( file_exists( $directory ) && is_dir( $directory ) ) {
+			if ( $handle = opendir( $directory ) ) {
+				while ( false !== ( $file = readdir( $handle ) ) ) {
+					if ( $file != "." && $file != ".." && strpos( $file, 'instawp' ) !== false ) {
+						unlink( $directory . $file );
+					}
+				}
+				closedir( $handle );
+			}
+		}
+	}
 }

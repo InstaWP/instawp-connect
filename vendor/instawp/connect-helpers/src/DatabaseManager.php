@@ -5,12 +5,12 @@ namespace InstaWP\Connect\Helpers;
 
 use Exception;
 use InstaWP\Connect\Helpers\Helper;
-use InstaWP\Connect\Helpers\WPConfig;
 
 class DatabaseManager {
 
 	public string $file;
 	public static string $query_var = 'instawp-database-manager';
+	public static string $action = 'instawp_clean_database_manager';
 
     public function get(): array {
         $results = [];
@@ -19,7 +19,7 @@ class DatabaseManager {
 
 		$file_name = Helper::get_random_string( 20 );
 		$token     = md5( $file_name );
-		$url       = 'https://github.com/vrana/adminer/releases/download/v4.8.1/adminer-4.8.1-mysql.php';
+		$url       = 'https://github.com/adminerevo/adminerevo/releases/download/v4.8.3/adminer-4.8.3.php';
 
 		$search  = [
 			'/\bjs_escape\b/',
@@ -40,13 +40,6 @@ class DatabaseManager {
 		$file_path            = self::get_file_path( $file_name );
 		$database_manager_url = self::get_database_manager_url( $file_name );
 
-		$results = [
-			'login_url' => add_query_arg( [
-				'action' => 'instawp-database-manager-auto-login',
-				'token'  => hash( 'sha256', $token ),
-			], admin_url( 'admin-post.php' ) ),
-		];
-
 		try {
 			$result = file_put_contents( $file_path, $file, LOCK_EX );
 			if ( false === $result ) {
@@ -63,18 +56,17 @@ class DatabaseManager {
 			fwrite( $fp, implode( '', $file ) );
 			fclose( $fp );
 
-			$constants = [
-				'INSTAWP_DATABASE_MANAGER_URL'       => $database_manager_url,
-				'INSTAWP_DATABASE_MANAGER_FILE_NAME' => $file_name,
-			];
-
-			$wp_config = new WPConfig( $constants );
-			$wp_config->update();
-
-			set_transient( 'instawp_database_manager_login_token', $token, ( 15 * MINUTE_IN_SECONDS ) );
+			set_transient( 'instawp_database_manager_login_token', $token, ( 5 * MINUTE_IN_SECONDS ) );
+			wp_schedule_single_event( time() + HOUR_IN_SECONDS, self::$action );
 			flush_rewrite_rules();
 
-			do_action( 'instawp_connect_create_database_manager_task', $file_name );
+			$results = [
+				'login_url' => add_query_arg( [
+					'action'   => 'instawp-database-manager-auto-login',
+					'token'    => hash( 'sha256', $token ),
+					'template' => base64_encode( $file_name ),
+				], admin_url( 'admin-post.php' ) ),
+			];
 		} catch ( Exception $e ) {
 			$results = [
 				'success' => false,
@@ -85,37 +77,22 @@ class DatabaseManager {
         return $results;
     }
 
-	public function clean( $file_name = null ): void {
-		$file_name = defined( 'INSTAWP_DATABASE_MANAGER_FILE_NAME' ) ? INSTAWP_DATABASE_MANAGER_FILE_NAME : $file_name;
+	public function clean(): void {
+		Helper::clean_file( self::get_directory() );
 
-		if ( ! empty( $file_name ) ) {
-			$file_path = self::get_file_path( $file_name );
-			
-			if ( file_exists( $file_path ) ) {
-				@unlink( $file_path );
-			}
-
-			$constants = [ 
-				'INSTAWP_DATABASE_MANAGER_URL',
-				'INSTAWP_DATABASE_MANAGER_FILE_NAME'
-			];
-			$wp_config = new WPConfig( $constants );
-			$wp_config->delete();
-
-			flush_rewrite_rules();
-			do_action( 'instawp_connect_remove_database_manager_task', $file_name );
-		}
+		flush_rewrite_rules();
+		wp_clear_scheduled_hook( self::$action );
 	}
 
-	public static function get_query_var(): string {
-		return self::$query_var;
+	public static function get_directory(): string {
+		return INSTAWP_PLUGIN_DIR . '/includes/database-manager/';
 	}
 
-	public static function get_file_path( $file_name ): string {
-		return INSTAWP_PLUGIN_DIR . '/includes/database-manager/instawp' . $file_name . '.php';
+	public static function get_file_path( string $file_name ): string {
+		return self::get_directory() . 'instawp' . $file_name . '.php';
 	}
 
-	public static function get_database_manager_url( $file_name ): string {
+	public static function get_database_manager_url( string $file_name ): string {
 		return home_url( self::$query_var . '/' . $file_name );
 	}
 }

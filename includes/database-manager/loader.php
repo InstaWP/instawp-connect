@@ -27,8 +27,13 @@ if ( ! function_exists( 'adminer_object' ) ) {
                 <style>
                     #version,
                     #dbs,
-                    .version {
+                    .version,
+                    p.logout {
                         display: none;
+                    }
+                    #menu h1 {
+                        padding: .8em 1em !important;
+                        background-image: none;
                     }
                     #breadcrumb > a:nth-child(1) {
                         pointer-events: none;
@@ -67,8 +72,7 @@ if ( ! function_exists( 'adminer_object' ) ) {
 	}
 }
 
-$file_name = defined( 'INSTAWP_DATABASE_MANAGER_FILE_NAME' ) ? INSTAWP_DATABASE_MANAGER_FILE_NAME : '';
-
+$file_name = get_query_var( 'instawp-database-manager' );
 if ( ! empty( $file_name ) ) {
     $file_path = \InstaWP\Connect\Helpers\DatabaseManager::get_file_path( $file_name );
 

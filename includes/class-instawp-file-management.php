@@ -9,7 +9,6 @@ if ( ! class_exists( 'InstaWP_File_Management' ) ) {
 		
 		protected static $_instance = null;
 		private static $query_var;
-		private static $action;
 		private $file_manager;
 
 		/**
@@ -24,23 +23,28 @@ if ( ! class_exists( 'InstaWP_File_Management' ) ) {
 
 		public function __construct() {
 			$this->file_manager = new \InstaWP\Connect\Helpers\FileManager();
-			self::$query_var    = $this->file_manager::get_query_var();
-			self::$action       = 'instawp_clean_file_manager';
+			self::$query_var    = $this->file_manager::$query_var;
 
 			add_action( 'init', array( $this, 'add_endpoint' ) );
+			add_action( 'wp', array( $this, 'filter_redirect' ), 0 );
 			add_action( 'template_redirect', array( $this, 'redirect' ) );
-			add_action( self::$action, array( $this, 'clean' ) );
+			add_action( $this->file_manager::$action, array( $this, 'clean' ) );
 			add_action( 'admin_post_instawp-file-manager-auto-login', array( $this, 'auto_login' ) );
 			add_action( 'admin_post_nopriv_instawp-file-manager-auto-login', array( $this, 'auto_login' ) );
-			add_action( 'update_option_instawp_rm_file_manager', array( $this, 'clean_file' ) );
-			add_action( 'instawp_connect_create_file_manager_task', array( $this, 'create_task' ) );
-			add_action( 'instawp_connect_remove_file_manager_task', array( $this, 'remove_task' ) );
+			add_action( 'update_option_instawp_rm_file_manager', array( $this, 'clean' ) );
 			add_filter( 'query_vars', array( $this, 'query_vars' ), 99 );
 			add_filter( 'template_include', array( $this, 'load_template' ), 999 );
 		}
 
 		public function add_endpoint() {
 			add_rewrite_endpoint( self::$query_var, EP_ROOT | EP_PAGES );
+		}
+
+		public function filter_redirect() {
+			if ( $this->get_template() ) {
+				remove_action( 'template_redirect', 'redirect_canonical' );
+				add_filter( 'redirect_canonical', '__return_false' );
+			}
 		}
 
 		public function redirect() {
@@ -51,26 +55,13 @@ if ( ! class_exists( 'InstaWP_File_Management' ) ) {
 			}
 		}
 
-		public function clean( $file_name ) {
-			$this->file_manager->clean( $file_name );
-		}
-
-		public function clean_file() {
+		public function clean() {
 			$this->file_manager->clean();
 		}
 
-		public function create_task( $file_name ) {
-			wp_schedule_single_event( time() + DAY_IN_SECONDS, self::$action, array( $file_name ) );
-		}
-
-		public function remove_task( $file_name ) {
-			wp_clear_scheduled_hook( self::$action, array( $file_name ) );
-		}
-
 		public function auto_login() {
-			$file_name = defined( 'INSTAWP_FILE_MANAGER_FILE_NAME' ) ? INSTAWP_FILE_MANAGER_FILE_NAME : '';
-
-			if ( empty( $file_name ) ) {
+			$template = ! empty( $_GET['template'] ) ? sanitize_text_field( wp_unslash( $_GET['template'] ) ) : '';
+			if ( ! $template ) {
 				wp_die( esc_html__( 'File Manager file not found!', 'instawp-connect' ) );
 			}
 
@@ -83,14 +74,14 @@ if ( ! class_exists( 'InstaWP_File_Management' ) ) {
 				wp_die( esc_html__( 'InstaWP File Manager: Token mismatch or not valid!', 'instawp-connect' ) );
 			}
 
-			$file_manager_url = $this->file_manager::get_file_manager_url( $file_name );
+			$file_manager_url = $this->file_manager::get_file_manager_url( base64_decode( $template ) );
 			ob_start() ?>
 
             <script type="text/javascript">
                 window.onload = function () {
                     setTimeout(function () {
                         location.href = '<?php echo esc_url( $file_manager_url ); ?>?autologin';
-                    }, 2000);
+                    }, 3000);
                 }
             </script>
 
