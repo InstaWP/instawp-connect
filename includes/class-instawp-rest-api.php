@@ -216,8 +216,7 @@ class InstaWP_Rest_Api {
 
 		$response = array();
 		$post_types = get_post_types( array(
-			'public'             => true,
-			'publicly_queryable' => true,
+			'public' => true,
 		) );
 		foreach ( $post_types as $post_type ) {
 			$response[ $post_type ] = array_sum( ( array ) wp_count_posts( $post_type ) );
