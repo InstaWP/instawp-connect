@@ -41,19 +41,17 @@ class InstaWP_Sync_Helpers {
      * Update post metas
      */
 	public static function get_post_reference_id( $post_id ): string {
-		return get_post_meta( $post_id, 'instawp_event_sync_reference_id', true ) ?? '0';
+		$reference_id = get_post_meta( $post_id, 'instawp_event_sync_reference_id', true );
+
+		return ! empty( $reference_id ) ? $reference_id : self::set_post_reference_id( $post_id );
 	}
 
 	/*
 	 * Update post metas
 	 */
 	public static function set_post_reference_id( $post_id ): string {
-		$reference_id = self::get_post_reference_id( $post_id );
-
-		if ( empty( $reference_id ) ) {
-			$reference_id = InstaWP_Tools::get_random_string();
-			update_post_meta( $post_id, 'instawp_event_sync_reference_id', $reference_id );
-		}
+		$reference_id = InstaWP_Tools::get_random_string();
+		update_post_meta( $post_id, 'instawp_event_sync_reference_id', $reference_id );
 
 		return $reference_id;
 	}
@@ -62,19 +60,17 @@ class InstaWP_Sync_Helpers {
 	 * Get user metas
 	 */
 	public static function get_term_reference_id( $term_id ): string {
-		return get_term_meta( $term_id, 'instawp_event_term_sync_reference_id', true ) ?? '0';
+		$reference_id = get_term_meta( $term_id, 'instawp_event_term_sync_reference_id', true );
+
+		return ! empty( $reference_id ) ? $reference_id : self::set_term_reference_id( $term_id );
 	}
 
 	/*
 	 * Update user metas
 	 */
 	public static function set_term_reference_id( $term_id ): string {
-		$reference_id = self::get_term_reference_id( $term_id );
-
-		if ( empty( $reference_id ) ) {
-			$reference_id = InstaWP_Tools::get_random_string();
-			update_term_meta( $term_id, 'instawp_event_term_sync_reference_id', $reference_id );
-		}
+		$reference_id = InstaWP_Tools::get_random_string();
+		update_term_meta( $term_id, 'instawp_event_term_sync_reference_id', $reference_id );
 
 		return $reference_id;
 	}
@@ -83,19 +79,17 @@ class InstaWP_Sync_Helpers {
      * Get user metas
      */
 	public static function get_user_reference_id( $user_id ): string {
-		return get_user_meta( $user_id, 'instawp_event_user_sync_reference_id', true ) ?? '0';
+		$reference_id = get_user_meta( $user_id, 'instawp_event_user_sync_reference_id', true );
+
+		return ! empty( $reference_id ) ? $reference_id : self::set_user_reference_id( $user_id );
 	}
 
 	/*
 	 * Update user metas
 	 */
 	public static function set_user_reference_id( $user_id ): string {
-		$reference_id = self::get_user_reference_id( $user_id );
-
-		if ( empty( $reference_id ) ) {
-			$reference_id = InstaWP_Tools::get_random_string();
-			update_user_meta( $user_id, 'instawp_event_user_sync_reference_id', $reference_id );
-		}
+		$reference_id = InstaWP_Tools::get_random_string();
+		update_user_meta( $user_id, 'instawp_event_user_sync_reference_id', $reference_id );
 
 		return $reference_id;
 	}
@@ -214,7 +208,7 @@ class InstaWP_Sync_Helpers {
 		$image_string = base64_encode( file_get_contents( $image_path ) );
 		$attachment   = get_post( $attachment_id );
 
-		$image_info['reference_id'] = self::set_post_reference_id( $attachment_id );
+		$image_info['reference_id'] = self::get_post_reference_id( $attachment_id );
 		$image_info['post_name']    = $attachment->post_name;
 		$image_info['post_meta']    = get_post_meta( $attachment_id );
 		$image_info['file_type']    = $file_type['type'];
@@ -418,7 +412,7 @@ class InstaWP_Sync_Helpers {
 
 		$post_content   = $post->post_content ?? '';
 		$post_parent_id = $post->post_parent;
-		$reference_id   = self::set_post_reference_id( $post->ID );
+		$reference_id   = self::get_post_reference_id( $post->ID );
 
 		$data = array(
 			'post'         => $post,

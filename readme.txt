@@ -94,6 +94,10 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 
 == Changelog ==
 
+= 0.1.0.20 =
+- FIX - 2 way sync issues.
+- FIX - Added 2 way sync from local site to staging.
+
 = 0.1.0.19 - 5 Mar 2024 =
 - NEW - Added Activity Log.
 - NEW - Added CLI command for reset staging.
@@ -109,7 +113,6 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 - FIX - Added animation on staging site refresh button.
 - FIX - Staging site list remove automatically due to transient
 
-
 = 0.1.0.18 - 20 Feb 2024 =
 - NEW - Added option to filter sync changes based on the status.
 - FIX - Missing query var error.
@@ -119,7 +122,7 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 - FIX - Data missing for Heartbeat.
 - FIX - Staging sites list not updating upon clicking refresh button.
 - FIX - Fixed connect id issue.
-- FIX - URL repleace not woking for Elementor.
+- FIX - URL replace not working for Elementor.
 - FIX - 2 way sync Issues.
 
 = 0.1.0.17 - 15 Feb 2024 =

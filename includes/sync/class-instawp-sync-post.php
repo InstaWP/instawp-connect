@@ -70,7 +70,6 @@ class InstaWP_Sync_Post {
 		// acf feild group check
 		if ( $post->post_type == 'acf-field-group' && $post->post_content == '' ) {
 			InstaWP_Sync_Helpers::set_post_reference_id( $post->ID );
-
 			return;
 		}
 
@@ -195,10 +194,9 @@ class InstaWP_Sync_Post {
 
 			return InstaWP_Sync_Helpers::sync_response( $v );
 		}
-
 		// trash, untrash and delete
 		if ( in_array( $v->event_slug, array( 'post_trash', 'post_delete', 'untrashed_post' ), true ) ) {
-			$wp_post   = $details['posts'] ?? array();
+			$wp_post   = $details['post'] ?? array();
 			$post_name = $wp_post['post_name'];
 			$function  = 'wp_delete_post';
 			$data      = array();
@@ -243,13 +241,20 @@ class InstaWP_Sync_Post {
 			return;
 		}
 
+		$data = [];
+		if ( in_array( $event_slug, array( 'post_trash', 'post_delete', 'untrashed_post' ) ) ) {
+			$reference_id = InstaWP_Sync_Helpers::get_term_reference_id( $post->ID );
+		} else {
+			$data = InstaWP_Sync_Helpers::parse_post_data( $post );
+			$reference_id = $data['reference_id'] ?? '';
+		}
+
 		$event_type = $post->post_type;
 		$title      = $post->post_title;
-		$data       = InstaWP_Sync_Helpers::parse_post_data( $post );
 		$data       = apply_filters( 'INSTAWP_CONNECT/Filters/two_way_sync_post_data', $data, $event_type, $post );
 
-		if ( is_array( $data ) && isset( $data['reference_id'] ) ) {
-			InstaWP_Sync_DB::insert_update_event( $event_name, $event_slug, $event_type, $data['reference_id'], $title, $data );
+		if ( is_array( $data ) && ! empty( $reference_id ) ) {
+			InstaWP_Sync_DB::insert_update_event( $event_name, $event_slug, $event_type, $reference_id, $title, $data );
 		}
 	}
 }

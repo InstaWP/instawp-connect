@@ -28,6 +28,8 @@ class instaWP {
 
 	public $is_on_local = false;
 
+	public $is_parent_on_local = false;
+
 	public $has_unsupported_plugins = false;
 
 	public $can_bundle = false;
@@ -49,6 +51,7 @@ class instaWP {
 		$this->is_on_local             = instawp_is_website_on_local();
 		$this->connect_id              = instawp_get_connect_id();
 		$this->is_staging              = (bool) InstaWP_Setting::get_option( 'instawp_is_staging', false );
+		$this->is_parent_on_local      = (bool) InstaWP_Setting::get_option( 'instawp_parent_is_on_local', false );
 		$this->tools                   = new InstaWP_Tools();
 		$this->has_unsupported_plugins = ! empty( $this->tools::get_unsupported_active_plugins() );
 		$this->can_bundle              = ( class_exists( 'ZipArchive' ) || class_exists( 'PharData' ) );

@@ -29,7 +29,7 @@ if ( ! function_exists( 'instawp_create_db_tables' ) ) {
 			user_id int(20) NOT NULL,
 			date datetime NOT NULL,
 			prod varchar(128) NOT NULL,
-			status ENUM ('pending','in_progress','completed','error') DEFAULT 'pending',
+			status varchar(50) NOT NULL DEFAULT 'pending',
 			synced_message varchar(128),
 			PRIMARY KEY (id)
         ) $charset_collate;";
@@ -41,7 +41,7 @@ if ( ! function_exists( 'instawp_create_db_tables' ) ) {
             event_id int(20) NOT NULL,
             event_hash varchar(50) NOT NULL,
             connect_id int(20) NOT NULL,
-			status ENUM ('pending','in_progress','completed','error') DEFAULT 'pending',
+			status varchar(50) NOT NULL DEFAULT 'pending',
 			synced_message text NULL,
             date datetime NOT NULL,
             PRIMARY KEY (id)
@@ -55,7 +55,7 @@ if ( ! function_exists( 'instawp_create_db_tables' ) ) {
             changes longtext NOT NULL,
             sync_response longtext NOT NULL,
             direction varchar(128) NOT NULL,
-            status varchar(128) NOT NULL,
+            status varchar(128) NOT NULL DEFAULT 'pending',
             user_id int(20) NOT NULL,
             changes_sync_id int(20) NOT NULL,
             sync_message varchar(128) NOT NULL,
@@ -73,12 +73,15 @@ if ( ! function_exists( 'instawp_create_db_tables' ) ) {
 			event_hash varchar(50) NOT NULL,
 			source_url varchar(128) NOT NULL,
 			data longtext NOT NULL,
+			status varchar(50) NOT NULL DEFAULT 'pending',
 			logs text NOT NULL,
 			date datetime NOT NULL,
 			PRIMARY KEY (id)
         ) $charset_collate;";
 
 		maybe_create_table( INSTAWP_DB_TABLE_EVENT_SYNC_LOGS, $sql_create_event_sync_log_table );
+
+		instawp_alter_db_tables();
 	}
 }
 
@@ -95,6 +98,15 @@ if ( ! function_exists( 'instawp_alter_db_tables' ) ) {
 			if ( empty( $has_col ) ) {
 				$wpdb->query( "ALTER TABLE " . $table_name . " ADD `event_hash` varchar(50) NOT NULL AFTER `id`" );
 			}
+		}
+
+		$table_name = INSTAWP_DB_TABLE_EVENT_SYNC_LOGS;
+		$has_col    = $wpdb->get_results(
+			$wpdb->prepare( "SELECT `COLUMN_NAME` FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `table_name`=%s AND `TABLE_SCHEMA`=%s AND `COLUMN_NAME`=%s", $table_name, $wpdb->dbname, 'status' )
+		);
+
+		if ( empty( $has_col ) ) {
+			$wpdb->query( "ALTER TABLE " . $table_name . " ADD `status` varchar(50) NOT NULL DEFAULT 'pending' AFTER `data`" );
 		}
 	}
 }

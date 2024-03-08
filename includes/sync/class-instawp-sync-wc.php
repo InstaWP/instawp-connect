@@ -445,7 +445,7 @@ class InstaWP_Sync_WC {
 				continue;
 			}
 
-			$reference_id           = InstaWP_Sync_Helpers::set_post_reference_id( $post->ID );
+			$reference_id           = InstaWP_Sync_Helpers::get_post_reference_id( $post->ID );
 			$data['coupon_lines'][] = array(
 				'reference_id' => $reference_id,
 				'post_id'      => $post->ID,
@@ -464,7 +464,7 @@ class InstaWP_Sync_WC {
 				continue;
 			}
 
-			$reference_id         = InstaWP_Sync_Helpers::set_post_reference_id( $post->ID );
+			$reference_id         = InstaWP_Sync_Helpers::get_post_reference_id( $post->ID );
 			$data['line_items'][] = array(
 				'reference_id' => $reference_id,
 				'post_id'      => $post->ID,

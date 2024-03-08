@@ -5,6 +5,26 @@
 
 global $staging_sites, $instawp_settings;
 
+if ( instawp()->is_staging && instawp()->is_parent_on_local || 1) { ?>
+    <div class="nav-item-content sync bg-white rounded-md p-6">
+        <div class="data-listening">
+            <div class="w-full">
+                <div class="text-center">
+                    <div class="mb-5 mt-3">
+                        <svg class="mx-auto" width="26" height="25" viewBox="0 0 26 25" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" clip-rule="evenodd" d="M14.6458 1.00577C15.8462 1.54778 16.7587 3.17728 18.5837 6.43627L22.9441 14.2227C24.6984 17.3554 25.5756 18.9217 25.4289 20.2044C25.3009 21.3234 24.707 22.3366 23.7932 22.995C22.7458 23.7498 20.9505 23.7498 17.3601 23.7498H8.63928C5.04883 23.7498 3.25361 23.7498 2.2062 22.995C1.29238 22.3366 0.698519 21.3234 0.570511 20.2044C0.423789 18.9217 1.30094 17.3554 3.05525 14.2227L7.41565 6.43627C9.24069 3.17728 10.1532 1.54778 11.3536 1.00577C12.4001 0.533234 13.5993 0.533234 14.6458 1.00577ZM13.7497 9.99978C13.7497 9.58556 13.4139 9.24978 12.9997 9.24978C12.5854 9.24978 12.2497 9.58556 12.2497 9.99978V13.9998C12.2497 14.414 12.5854 14.7498 12.9997 14.7498C13.4139 14.7498 13.7497 14.414 13.7497 13.9998V9.99978ZM12.9997 16.2498C12.3093 16.2498 11.7497 16.8094 11.7497 17.4998C11.7497 18.1901 12.3093 18.7498 12.9997 18.7498C13.69 18.7498 14.2497 18.1901 14.2497 17.4998C14.2497 16.8094 13.69 16.2498 12.9997 16.2498Z" fill="#F43F5E"/>
+                        </svg>
+                    </div>
+                    <div class="text-sm font-medium text-grayCust-200 mb-2"><?php esc_html_e( 'This is a staging site of a local site', 'instawp-connect' ); ?></div>
+                    <div class="text-sm font-normal text-grayCust-50 mb-1"><?php esc_html_e( 'Sync from a staging website to a local website is not supported.', 'instawp-connect' ); ?></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <?php
+    return;
+}
+
 $events              = InstaWP_Sync_DB::total_events();
 $syncing_status      = InstaWP_Setting::get_args_option( 'instawp_is_event_syncing', $instawp_settings );
 $syncing_status_val  = ( $syncing_status == 1 ) ? 'checked' : '';
@@ -34,8 +54,8 @@ if ( ! empty( $parent_connect_data ) ) {
                             <path d="M13 17H25H13ZM19 11V23V11ZM1 25V5C1 3.93913 1.42143 2.92172 2.17157 2.17157C2.92172 1.42143 3.93913 1 5 1H17L21 5H33C34.0609 5 35.0783 5.42143 35.8284 6.17157C36.5786 6.92172 37 7.93913 37 9V25C37 26.0609 36.5786 27.0783 35.8284 27.8284C35.0783 28.5786 34.0609 29 33 29H5C3.93913 29 2.92172 28.5786 2.17157 27.8284C1.42143 27.0783 1 26.0609 1 25Z" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
                     </div>
-                    <div class="text-sm font-medium text-grayCust-200 mb-2"><?php echo esc_html__( 'No Data found!', 'instawp-connect' ); ?></div>
-                    <div class="text-sm font-normal text-grayCust-50 mb-1"><?php echo esc_html__( 'Start Listening for Changes', 'instawp-connect' ); ?></div>
+                    <div class="text-sm font-medium text-grayCust-200 mb-2"><?php esc_html_e( 'No Data found!', 'instawp-connect' ); ?></div>
+                    <div class="text-sm font-normal text-grayCust-50 mb-1"><?php esc_html_e( 'Start Listening for Changes', 'instawp-connect' ); ?></div>
                     <div class="instawp_is_event_syncing">
                         <label class="toggle-control">
                             <input type="checkbox" <?php echo $syncing_status_val; ?> name="instawp_is_event_syncing" id="instawp_is_event_syncing" class="toggle-checkbox">

@@ -30,7 +30,7 @@ class InstaWP_Sync_Term {
 
 		$term_details = ( array ) get_term( $term_id, $taxonomy );
 		$event_name   = sprintf( __('%s created', 'instawp-connect'), $this->taxonomy_name( $taxonomy ) );
-		$source_id    = InstaWP_Sync_Helpers::set_term_reference_id( $term_id );
+		$source_id    = InstaWP_Sync_Helpers::get_term_reference_id( $term_id );
 		$term_details = $this->term_details( $term_details, $term_id, $taxonomy );
 
 		InstaWP_Sync_DB::insert_update_event( $event_name, 'create_term', $taxonomy, $source_id, $term_details['name'], $term_details );
@@ -52,7 +52,7 @@ class InstaWP_Sync_Term {
 
 		$term_details = ( array ) get_term( $term_id, $taxonomy );
 		$event_name   = sprintf( __('%s modified', 'instawp-connect'), $this->taxonomy_name( $taxonomy ) );
-		$source_id    = InstaWP_Sync_Helpers::set_term_reference_id( $term_id );
+		$source_id    = InstaWP_Sync_Helpers::get_term_reference_id( $term_id );
 		$term_details = $this->term_details( $term_details, $term_id, $taxonomy );
 
 		InstaWP_Sync_DB::insert_update_event( $event_name, 'edit_term', $taxonomy, $source_id, $term_details['name'], $term_details );
@@ -233,7 +233,7 @@ class InstaWP_Sync_Term {
 		if ( ! empty( $term_details['parent'] ) ) {
 			$term_details['parent_details'] = array(
 				'data'      => ( array ) get_term( $term_details['parent'], $taxonomy ),
-				'source_id' => InstaWP_Sync_Helpers::set_term_reference_id( $term_details['parent'] ),
+				'source_id' => InstaWP_Sync_Helpers::get_term_reference_id( $term_details['parent'] ),
 			);
 		}
 

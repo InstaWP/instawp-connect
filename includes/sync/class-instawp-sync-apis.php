@@ -108,6 +108,7 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 		$source_url         = $bodyArr->source_url;
 		$is_enabled         = false;
 		$changes            = array();
+		$sync_response      = array();
 
 		if ( get_option( 'instawp_is_event_syncing' ) ) {
 			$is_enabled = true;
@@ -116,7 +117,6 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 		delete_option( 'instawp_is_event_syncing' );
 
 		if ( ! empty( $encrypted_contents ) && is_array( $encrypted_contents ) ) {
-			$sync_response   = array();
 			$count           = 1;
 			$total_op        = count( $encrypted_contents );
 			$progress        = intval( $count / $total_op * 100 );
@@ -124,11 +124,13 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 			$progress_status = ( $progress > 100 ) ? 'in_progress' : 'completed';
 
 			foreach ( $encrypted_contents as $v ) {
-				$isResult = $this->wpdb->get_var( $this->wpdb->prepare( "SELECT ID FROM " . INSTAWP_DB_TABLE_EVENT_SYNC_LOGS . " WHERE event_hash = %s ", $v->event_hash ) );
+				$has_log = $this->wpdb->get_var(
+					$this->wpdb->prepare( "SELECT id FROM " . INSTAWP_DB_TABLE_EVENT_SYNC_LOGS . " WHERE event_hash=%s AND status=%s", $v->event_hash, 'completed' )
+				);
 
-				if ( $isResult ) {
+				if ( $has_log ) {
 					$response_data   = InstaWP_Sync_Helpers::sync_response( $v );
-					$sync_response[] = $response_data['data'];
+					$sync_response[ $v->id ] = $response_data['data'];
 				} else {
 					if ( empty( $v->event_slug ) || empty( $v->details ) ) {
 						continue;
@@ -139,61 +141,31 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 
 					$response_data = apply_filters( 'INSTAWP_CONNECT/Filters/process_two_way_sync', array(), $v );
 					if ( ! empty( $response_data['data'] ) ) {
-						$sync_response[] = $response_data['data'];
+						$sync_response[ $v->id ] = $response_data['data'];
 					}
 
 					if ( ! empty( $response_data['log_data'] ) ) {
 						$this->logs = array_merge( $this->logs, $response_data['log_data'] );
 					}
 
-					/*
-					* widget
-					*/
-					if ( isset( $v->event_type ) && $v->event_type == 'widget' ) {
-						$widget_block = (array) $v->details->widget_block;
-						$appp         = (array) $v->details;
-						$dataIns      = array(
-							'data' => json_encode( $appp ),
-						);
-						InstaWP_Sync_DB::insert( 'wp_testing', $dataIns );
-
-						$widget_block_arr = array();
-						foreach ( $widget_block as $widget_key => $widget_val ) {
-							if ( $widget_key == '_multiwidget' ) {
-								$widget_block_arr[ $widget_key ] = $widget_val;
-							} else {
-								$widget_val_arr                  = (array) $widget_val;
-								$widget_block_arr[ $widget_key ] = array( 'content' => $widget_val_arr['content'] );
-							}
-						}
-						update_option( 'widget_block', $widget_block_arr );
-						#message
-						$message         = 'Sync successfully.';
-						$status          = 'completed';
-						$sync_response[] = $this->sync_opration_response( $status, $message, $v );
-						#changes
-
-					}
-
-					//record logs
-					$this->event_sync_logs( $v, $source_url );
+					// record logs
+					$this->event_sync_logs( $v, $source_url, $sync_response );
 				}
 
-				/*
+				/**
 				* Update api for cloud
 				*/
-				#Sync update
-				$syncUpdate = array(
+				$sync_update = array(
 					'progress' => $progress,
 					'status'   => $progress_status,
 					'message'  => $sync_message,
 					'changes'  => array(
 						'changes'       => $changes,
-						'sync_response' => $sync_response,
+						'sync_response' => array_values( $sync_response ),
 						'logs'          => $this->logs,
 					),
 				);
-				$this->sync_update( $sync_id, $syncUpdate );
+				$this->sync_update( $sync_id, $sync_update );
 				++$count ;
 			}
 		}
@@ -218,16 +190,18 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 			'source_connect_id'  => $source_connect_id,
 			'changes'            => array(
 				'changes'       => $changes,
-				'sync_response' => $sync_response,
+				'sync_response' => array_values( $sync_response ),
 			),
 		) );
 	}
 
-	public function event_sync_logs( $data, $source_url ) {
-		$data = array(
+	public function event_sync_logs( $data, $source_url, $response ) {
+		$status = ! empty( $this->logs[ $data->id ] ) ? 'failed' : $response[ $data->id ]['status'] ?? 'error';
+		$data   = array(
 			'event_id'   => $data->id,
 			'event_hash' => $data->event_hash,
 			'source_url' => $source_url,
+			'status'     => $status,
 			'data'       => wp_json_encode( $data->details ),
 			'logs'       => $this->logs[ $data->id ] ?? '',
 			'date'       => current_time( 'mysql', 1 ),

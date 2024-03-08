@@ -8,7 +8,7 @@
 
             if ( $status === 'completed' ) {
                 $label_class      .= ' hint--top hint--low';
-                $label_attributes .= ' aria-label="Synced:' . wp_date( 'M j, Y H:i A', strtotime( $event->synced_date ) ) . '"';
+                $label_attributes .= sprintf(' aria-label="%s: %s"', __(  'Synced', 'instawp-connect' ), wp_date( 'M j, Y H:i A', strtotime( $event->synced_date ) ) );
             }
         ?>
         <tr>

@@ -27,10 +27,13 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 			}
 			WP_CLI::success( 'Files backup created successfully.' );
 
+			update_option( 'instawp_parent_is_on_local', true );
+
 			// Database backup
 			$archive_path_db = InstaWP_Tools::cli_archive_wordpress_db();
 			WP_CLI::success( 'Database backup created successfully.' );
 
+			delete_option( 'instawp_parent_is_on_local' );
 
 			// Create Site
 			if ( is_wp_error( $create_site_res = InstaWP_Tools::create_insta_site() ) ) {
