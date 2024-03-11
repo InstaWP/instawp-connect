@@ -24,13 +24,13 @@ if ( ! in_array( $current_tab, array_keys( $plugin_nav_items ) ) ) {
     </div>
     <div class="flex items-center text-sm font-medium">
 		<?php if ( empty( InstaWP_Setting::get_api_key() ) ) : ?>
-            <div class="flex items-center text-grayCust-1300"><?php echo esc_html__( 'Please connect InstaWP account', 'instawp-connect' ); ?></div>
+            <div class="flex items-center text-grayCust-1300"><?php esc_html_e( 'Please connect InstaWP account', 'instawp-connect' ); ?></div>
             <button type="button" class="instawp-button-connect px-4 rounded-lg py-2 border border-primary-900 text-primary-900 text-sm font-medium ml-3 mr-3">
-                <span><?php echo esc_html__( 'Connect', 'instawp-connect' ); ?></span>
+                <span><?php esc_html_e( 'Connect', 'instawp-connect' ); ?></span>
             </button>
 		<?php else : ?>
             <span class="w-1 h-1 <?= strpos( $api_domain, 'stage' ) !== false ? 'bg-amber-600' : 'bg-primary-700'; ?> rounded-full mr-2"></span>
-            <a href="<?php echo esc_url( sprintf( '%s/connects/%s/dashboard', InstaWP_Setting::get_api_domain(), instawp()->connect_id ) ); ?>" target="_blank" class="mr-4 focus:ring-0 hover:ring-0 focus:outline-0 hover:outline-0 <?= strpos( $api_domain, 'stage' ) !== false ? 'text-amber-600 hover:text-amber-600 focus:text-amber-600' : 'text-primary-700 hover:text-primary-700 focus:text-primary-700'; ?>"><?php echo esc_html__( 'Your website is connected', 'instawp-connect' ); ?></a>
+            <a href="<?php echo esc_url( sprintf( '%s/connects/%s/dashboard', InstaWP_Setting::get_api_domain(), instawp()->connect_id ) ); ?>" target="_blank" class="mr-4 focus:ring-0 hover:ring-0 focus:outline-0 hover:outline-0 <?= strpos( $api_domain, 'stage' ) !== false ? 'text-amber-600 hover:text-amber-600 focus:text-amber-600' : 'text-primary-700 hover:text-primary-700 focus:text-primary-700'; ?>"><?php esc_html_e( 'Your website is connected', 'instawp-connect' ); ?></a>
 		<?php endif; ?>
     </div>
 </div>

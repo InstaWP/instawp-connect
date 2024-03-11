@@ -5,7 +5,7 @@
 
 global $staging_sites, $instawp_settings;
 
-if ( instawp()->is_staging && instawp()->is_parent_on_local || 1) { ?>
+if ( instawp()->is_staging && instawp()->is_parent_on_local ) { ?>
     <div class="nav-item-content sync bg-white rounded-md p-6">
         <div class="data-listening">
             <div class="w-full">
@@ -27,7 +27,6 @@ if ( instawp()->is_staging && instawp()->is_parent_on_local || 1) { ?>
 
 $events              = InstaWP_Sync_DB::total_events();
 $syncing_status      = InstaWP_Setting::get_args_option( 'instawp_is_event_syncing', $instawp_settings );
-$syncing_status_val  = ( $syncing_status == 1 ) ? 'checked' : '';
 $parent_connect_data = InstaWP_Setting::get_option( 'instawp_sync_parent_connect_data' );
 $staging_sites       = empty( $staging_sites ) || ! is_array( $staging_sites ) ? array() : $staging_sites;
 
@@ -46,7 +45,6 @@ if ( ! empty( $parent_connect_data ) ) {
 <div class="nav-item-content sync bg-white rounded-md p-6">
 	<?php if ( empty( $events ) ) : ?>
         <div class="data-listening">
-            <!--        <div class="bg-white  box-shadow rounded-md data-padding flex items-center justify-center">-->
             <div class="w-full">
                 <div class="text-center ">
                     <div class="mb-4">
@@ -58,24 +56,22 @@ if ( ! empty( $parent_connect_data ) ) {
                     <div class="text-sm font-normal text-grayCust-50 mb-1"><?php esc_html_e( 'Start Listening for Changes', 'instawp-connect' ); ?></div>
                     <div class="instawp_is_event_syncing">
                         <label class="toggle-control">
-                            <input type="checkbox" <?php echo $syncing_status_val; ?> name="instawp_is_event_syncing" id="instawp_is_event_syncing" class="toggle-checkbox">
+                            <input type="checkbox" <?php checked( $syncing_status, 1 ); ?> name="instawp_is_event_syncing" id="instawp_is_event_syncing" class="toggle-checkbox">
                             <div class="toggle-switch"></div>
                             <span class="toggle-label" data-on="1" data-off="0"></span>
                         </label>
                     </div>
                 </div>
             </div>
-            <!--        </div>-->
         </div>
 	<?php else : ?>
         <div class="sync-listining1">
-            <!--        <div class="bg-white  box-shadow rounded-md p-6 flex items-center justify-center">-->
             <div class="w-full">
                 <div class="events-head">
                     <div class="events-head-left flex items-center justify-center">
-                        <div class="text-grayCust-200 text-lg font-medium"><?php echo esc_html__( 'Listening for Changes', 'instawp-connect' ); ?></div>
+                        <div class="text-grayCust-200 text-lg font-medium"><?php esc_html_e( 'Listening for Changes', 'instawp-connect' ); ?></div>
                         <label class="toggle-control instawp_is_event_syncing">
-                            <input type="checkbox" class="toggle-checkbox" <?php echo $syncing_status_val; ?>>
+                            <input type="checkbox" class="toggle-checkbox" <?php checked( $syncing_status, 1 ); ?>>
                             <div class="toggle-switch"></div>
                         </label>
                     </div>
@@ -90,7 +86,7 @@ if ( ! empty( $parent_connect_data ) ) {
                                 <path fill-rule="evenodd" clip-rule="evenodd" style="fill: #fff;"
                                         d="M1.59995 0.800049C2.09701 0.800049 2.49995 1.20299 2.49995 1.70005V3.59118C3.64303 2.42445 5.23642 1.70005 6.99995 1.70005C9.74442 1.70005 12.0768 3.45444 12.9412 5.90013C13.1069 6.36877 12.8612 6.88296 12.3926 7.0486C11.924 7.21425 11.4098 6.96862 11.2441 6.49997C10.6259 4.75097 8.95787 3.50005 6.99995 3.50005C5.52851 3.50005 4.22078 4.20657 3.39937 5.30005H6.09995C6.59701 5.30005 6.99995 5.70299 6.99995 6.20005C6.99995 6.6971 6.59701 7.10005 6.09995 7.10005H1.59995C1.10289 7.10005 0.699951 6.6971 0.699951 6.20005V1.70005C0.699951 1.20299 1.10289 0.800049 1.59995 0.800049ZM1.6073 8.95149C2.07594 8.78585 2.59014 9.03148 2.75578 9.50013C3.37396 11.2491 5.04203 12.5 6.99995 12.5C8.47139 12.5 9.77912 11.7935 10.6005 10.7L7.89995 10.7C7.40289 10.7 6.99995 10.2971 6.99995 9.80005C6.99995 9.30299 7.40289 8.90005 7.89995 8.90005H12.3999C12.6386 8.90005 12.8676 8.99487 13.0363 9.16365C13.2051 9.33243 13.3 9.56135 13.3 9.80005V14.3C13.3 14.7971 12.897 15.2 12.4 15.2C11.9029 15.2 11.5 14.7971 11.5 14.3V12.4089C10.3569 13.5757 8.76348 14.3 6.99995 14.3C4.25549 14.3 1.92309 12.5457 1.05867 10.1C0.893024 9.63132 1.13866 9.11714 1.6073 8.95149Z"/>
                             </svg>
-                            <span class="sync-text"><?php echo esc_html__( 'Sync All', 'instawp-connect' ); ?></span>
+                            <span class="sync-text"><?php esc_html_e( 'Sync All', 'instawp-connect' ); ?></span>
                         </button>
                         <div class="select-ct <?php echo empty( $staging_sites ) ? 'hidden' : '' ?>">
                             <select id="staging-site-sync" data-page="instawp">
@@ -103,9 +99,9 @@ if ( ! empty( $parent_connect_data ) ) {
                         </div>
                         <div class="select-ct <?php echo empty( $staging_sites ) ? 'hidden' : '' ?>">
                             <select id="filter-sync-events">
-                                <option value="all"><?php echo esc_html__( 'All', 'instawp-connect' ); ?></option>
-                                <option value="pending"><?php echo esc_html__( 'Pending', 'instawp-connect' ); ?></option>
-                                <option value="completed"><?php echo esc_html__( 'Completed', 'instawp-connect' ); ?></option>
+                                <option value="all"><?php esc_html_e( 'All', 'instawp-connect' ); ?></option>
+                                <option value="pending"><?php esc_html_e( 'Pending', 'instawp-connect' ); ?></option>
+                                <option value="completed"><?php esc_html_e( 'Completed', 'instawp-connect' ); ?></option>
                             </select>
                         </div>
                         <button type="button" id="instawp-delete-events" class="bg-white hover:bg-red-100 text-red-400 py-2 px-2 border border-red-400 rounded shadow hidden">
@@ -124,11 +120,11 @@ if ( ! empty( $parent_connect_data ) ) {
                                         <thead class="bg-gray-50">
                                         <tr>
                                             <th scope="col" class="px-3 py-3 uppercase text-center text-sm font-medium text-grayCust-900 w-0.5"><input type="checkbox" name="select_all_event" id="select-all-event"></th>
-                                            <th scope="col" class="px-3 py-3 uppercase text-left text-sm font-medium text-grayCust-900"><?php echo esc_html__( 'event', 'instawp-connect' ); ?></th>
-                                            <th scope="col" class="px-3 py-3 text-left uppercase text-sm font-medium text-grayCust-900"><?php echo esc_html__( 'event details', 'instawp-connect' ); ?></th>
-                                            <th scope="col" class="px-3 py-3 text-left uppercase text-sm font-medium text-grayCust-900"><?php echo esc_html__( 'Date', 'instawp-connect' ); ?></th>
-                                            <th scope="col" class="px-3 py-3 text-center uppercase text-sm font-medium text-grayCust-900"><?php echo esc_html__( 'Status', 'instawp-connect' ); ?></th>
-                                            <!-- <th scope="col" class="px-6 py-4 text-center uppercase text-sm font-medium text-grayCust-900"><?php echo esc_html__( 'Actions', 'instawp-connect' ); ?></th> -->
+                                            <th scope="col" class="px-3 py-3 uppercase text-left text-sm font-medium text-grayCust-900"><?php esc_html_e( 'event', 'instawp-connect' ); ?></th>
+                                            <th scope="col" class="px-3 py-3 text-left uppercase text-sm font-medium text-grayCust-900"><?php esc_html_e( 'event details', 'instawp-connect' ); ?></th>
+                                            <th scope="col" class="px-3 py-3 text-left uppercase text-sm font-medium text-grayCust-900"><?php esc_html_e( 'Date', 'instawp-connect' ); ?></th>
+                                            <th scope="col" class="px-3 py-3 text-center uppercase text-sm font-medium text-grayCust-900"><?php esc_html_e( 'Status', 'instawp-connect' ); ?></th>
+                                            <!-- <th scope="col" class="px-6 py-4 text-center uppercase text-sm font-medium text-grayCust-900"><?php esc_html_e( 'Actions', 'instawp-connect' ); ?></th> -->
                                         </tr>
                                         </thead>
                                         <tbody class="divide-y divide-gray-200 bg-white" id="part-sync-results">
@@ -140,27 +136,8 @@ if ( ! empty( $parent_connect_data ) ) {
                                 </form>
                             </div>
                         </div>
-                        <!-- pagination -->
                         <nav id="event-sync-pagination-area" class="flex items-center justify-between border-t border-gray-200 mx-9 my-5 hidden">
                             <div id="event-sync-pagination"></div>
-                            <!-- <div class="-mt-px flex w-0 flex-1">
-                                    <a href="#" class="inline-flex items-center border-t-2 border-transparent pt-3 pr-1 text-sm font-medium text-grayCust-300 hover:border-gray-300 hover:text-gray-700">
-                                       
-                                        <svg class="mr-3 h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="#1F2937" aria-hidden="true">
-                                            <path fill-rule="evenodd" d="M18 10a.75.75 0 01-.75.75H4.66l2.1 1.95a.75.75 0 11-1.02 1.1l-3.5-3.25a.75.75 0 010-1.1l3.5-3.25a.75.75 0 111.02 1.1l-2.1 1.95h12.59A.75.75 0 0118 10z" clip-rule="evenodd" />
-                                        </svg>
-                                        <?php echo esc_html__( 'Previous', 'instawp-connect' ); ?>
-                                    </a>
-                                </div>
-                                <div class="-mt-px flex w-0 flex-1 justify-end">
-                                    <a href="#" class="inline-flex items-center border-t-2 border-transparent pt-3 pl-1 text-sm font-medium text-grayCust-300 hover:border-gray-300 hover:text-gray-700">
-                                        <?php echo esc_html__( 'Next', 'instawp-connect' ); ?>
-                                        
-                                        <svg class="ml-3 h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="#1F2937" aria-hidden="true">
-                                            <path fill-rule="evenodd" d="M2 10a.75.75 0 01.75-.75h12.59l-2.1-1.95a.75.75 0 111.02-1.1l3.5 3.25a.75.75 0 010 1.1l-3.5 3.25a.75.75 0 11-1.02-1.1l2.1-1.95H2.75A.75.75 0 012 10z" clip-rule="evenodd" />
-                                        </svg>
-                                    </a>
-                                </div> -->
                         </nav>
                     </div>
                 </div>
@@ -170,9 +147,9 @@ if ( ! empty( $parent_connect_data ) ) {
             <div class="instawp-popup-main">
                 <div class="instawppopwrap">
                     <div class="topinstawppopwrap">
-                        <h3><?php echo esc_html__( 'Preparing Events for Sync', 'instawp-connect' ); ?></h3>
+                        <h3><?php esc_html_e( 'Preparing Events for Sync', 'instawp-connect' ); ?></h3>
                         <div class="destination_form">
-                            <label for="destination-site"><?php echo esc_html__( 'Destination site', 'instawp-connect' ); ?></label>
+                            <label for="destination-site"><?php esc_html_e( 'Destination site', 'instawp-connect' ); ?></label>
                             <select id="destination-site">
 								<?php foreach ( $staging_sites as $site ) : ?>
 									<?php if ( isset( $site['url'] ) && isset( $site['connect_id'] ) ) : ?>
@@ -199,36 +176,35 @@ if ( ! empty( $parent_connect_data ) ) {
                                 </div>
                                 <div class="instawpcatlftcol selected-events-info">
                                     <ul class="list">
-                                        <li><span class="post-change">0</span><?php echo esc_html__( 'post change events', 'instawp-connect' ); ?></li>
-                                        <li><span class="post-delete">0</span><?php echo esc_html__( 'post delete events', 'instawp-connect' ); ?></li>
-                                        <li><span class="post-trash">0</span><?php echo esc_html__( 'post trash events', 'instawp-connect' ); ?></li>
-                                        <li><span class="others">0</span><?php echo esc_html__( 'other events', 'instawp-connect' ); ?></li>
+                                        <li><span class="post-change">0</span><?php esc_html_e( 'post change events', 'instawp-connect' ); ?></li>
+                                        <li><span class="post-delete">0</span><?php esc_html_e( 'post delete events', 'instawp-connect' ); ?></li>
+                                        <li><span class="post-trash">0</span><?php esc_html_e( 'post trash events', 'instawp-connect' ); ?></li>
+                                        <li><span class="others">0</span><?php esc_html_e( 'other events', 'instawp-connect' ); ?></li>
                                     </ul>
                                 </div>
                                 <div class="instawpcatrgtcol sync_process bg-[#fff]">
                                     <ul>
-                                        <li class="step-1 process_pending"><?php echo esc_html__( 'Packing things', 'instawp-connect' ); ?></li>
-                                        <li class="step-2 process_pending"><?php echo esc_html__( 'Pushing', 'instawp-connect' ); ?></li>
-                                        <li class="step-3 process_pending"><?php echo esc_html__( 'Merging to destination', 'instawp-connect' ); ?></li>
+                                        <li class="step-1 process_pending"><?php esc_html_e( 'Packing things', 'instawp-connect' ); ?></li>
+                                        <li class="step-2 process_pending"><?php esc_html_e( 'Pushing', 'instawp-connect' ); ?></li>
+                                        <li class="step-3 process_pending"><?php esc_html_e( 'Merging to destination', 'instawp-connect' ); ?></li>
                                     </ul>
                                 </div>
                             </div>
                         </div>
                         <div class="sync_error_success_msg"></div>
                         <div class="sync_message_main textarea_json destination_form mt-6">
-                            <label for="sync_message"><?php echo esc_html__( 'Message:', 'instawp-connect' ); ?></label>
+                            <label for="sync_message"><?php esc_html_e( 'Message:', 'instawp-connect' ); ?></label>
                             <input type="hidden" id="id_syncIds" value=""/>
                             <textarea id="sync_message" name="sync_message" rows="4"></textarea>
                         </div>
                         <div class="instawp_buttons mt-6">
-                            <div class="bulk-close-btn"><a class="cancel-btn close" href="javascript:void(0);"><?php echo esc_html__( 'Cancel', 'instawp-connect' ); ?></a></div>
-                            <div class="bulk-sync-btn"><a class="changes-btn sync-changes-btn disabled" href="javascript:void(0);"><span><?php echo esc_html__( 'Sync', 'instawp-connect' ); ?></span></a></div>
+                            <div class="bulk-close-btn"><a class="cancel-btn close" href="javascript:void(0);"><?php esc_html_e( 'Cancel', 'instawp-connect' ); ?></a></div>
+                            <div class="bulk-sync-btn"><a class="changes-btn sync-changes-btn disabled" href="javascript:void(0);"><span><?php esc_html_e( 'Sync', 'instawp-connect' ); ?></span></a></div>
                         </div>
                     </div>
                     <div><input type="hidden" id="selected_events" name="selected_events" value=""></div>
                 </div>
             </div>
         </div>
-        <!--    </div>-->
 	<?php endif ?>
 </div>
