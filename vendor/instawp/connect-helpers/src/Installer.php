@@ -181,7 +181,7 @@ class Installer {
 
         return [
             'message' => empty( $message ) ? esc_html( 'Success!' ) : $message,
-            'status'  => empty( $message ),
+            'success' => empty( $message ),
         ];
     }
 

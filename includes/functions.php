@@ -168,6 +168,7 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 	 * @return bool
 	 */
 	function instawp_reset_running_migration( $reset_type = 'soft', $abort_forcefully = false ) {
+		global $wpdb;
 
 		$migration_details = InstaWP_Setting::get_option( 'instawp_migration_details', array() );
 		$migrate_id        = InstaWP_Setting::get_args_option( 'migrate_id', $migration_details );
@@ -194,7 +195,11 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 		}
 
 		@unlink( ABSPATH . 'fwd.php' );
+		@unlink( ABSPATH . 'dest.php' );
 
+		$wpdb->query( "DROP TABLE IF EXISTS `iwp_db_sent`;" );
+		$wpdb->query( "DROP TABLE IF EXISTS `iwp_files_sent`;" );
+		$wpdb->query( "DROP TABLE IF EXISTS `iwp_options`;" );
 
 		if ( 'hard' == $reset_type ) {
 			delete_option( 'instawp_backup_part_size' );
@@ -218,19 +223,11 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 			delete_transient( 'instawp_staging_sites' );
 			delete_transient( 'instawp_migration_completed' );
 
-			$file_db_manager = InstaWP_Setting::get_option( 'instawp_file_db_manager', array() );
-			$file_name       = InstaWP_Setting::get_args_option( 'file_name', $file_db_manager );
-			if ( $file_name ) {
-				wp_clear_scheduled_hook( 'instawp_clean_file_manager', array( $file_name ) );
-				do_action( 'instawp_clean_file_manager', $file_name );
-			}
+			wp_clear_scheduled_hook( 'instawp_clean_file_manager' );
+			wp_clear_scheduled_hook( 'instawp_clean_database_manager' );
 
-			$file_db_manager = InstaWP_Setting::get_option( 'instawp_file_db_manager', array() );
-			$file_name       = InstaWP_Setting::get_args_option( 'db_name', $file_db_manager );
-			if ( $file_name ) {
-				wp_clear_scheduled_hook( 'instawp_clean_database_manager', array( $file_name ) );
-				do_action( 'instawp_clean_database_manager', $file_name );
-			}
+			do_action( 'instawp_clean_file_manager' );
+			do_action( 'instawp_clean_database_manager' );
 		}
 
 		if ( $abort_forcefully === true && ! empty( $migrate_id ) && ! empty( $migrate_key ) ) {

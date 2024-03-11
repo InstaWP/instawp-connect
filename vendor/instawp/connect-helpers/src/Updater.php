@@ -57,7 +57,7 @@ class Updater {
 		if ( ! $update ) {
 			return [
 				'message' => esc_html( 'Update not found!' ),
-				'status'  => false,
+				'success' => false,
 			];
 		}
 
@@ -105,7 +105,7 @@ class Updater {
 
 		return [
 			'message' => empty( $message ) ? esc_html( 'Success!' ) : $message,
-			'status'  => empty( $message ),
+			'success' => empty( $message ),
 		];
 	}
 
@@ -183,13 +183,13 @@ class Updater {
 
 			return [
 				'message' => empty( $message ) ? esc_html( 'Success!' ) : $message,
-				'status'  => empty( $message ),
+				'success'  => empty( $message ),
 			];
 		}
 
 		return [
 			'message' => $result ? esc_html( 'Success!' ) : esc_html( 'Update Failed!' ),
-			'status'  => $result,
+			'success'  => $result,
 		];
 	}
 }

@@ -1024,17 +1024,25 @@ class InstaWP_Rest_Api {
 
 		foreach ( $params as $key => $param ) {
 			if ( 'plugin' === $param['type'] ) {
-				if ( ! function_exists( 'delete_plugins' ) || ! function_exists( 'is_plugin_active' ) ) {
+				if ( ! function_exists( 'request_filesystem_credentials' ) ) {
+					require_once ABSPATH . 'wp-admin/includes/file.php';
+				}
+
+				if ( ! function_exists( 'delete_plugins' ) || ! function_exists( 'is_plugin_active' ) || ! function_exists( 'deactivate_plugins' )  ) {
 					require_once ABSPATH . 'wp-admin/includes/plugin.php';
 				}
 
 				if ( is_plugin_active( $param['asset'] ) ) {
-					$response[ $key ] = array_merge( array(
-						'success' => false,
-						'message' => esc_html__( 'Please deactivate the plugin first.', 'instawp-connect' ),
-					), $param );
+					if ( ! empty( $param['force'] ) ) {
+						deactivate_plugins( array( $param['asset'] ) );
+					} else {
+						$response[ $key ] = array_merge( array(
+							'success' => false,
+							'message' => esc_html__( 'Please deactivate the plugin first.', 'instawp-connect' ),
+						), $param );
 
-					continue;
+						continue;
+					}
 				}
 
 				$deleted          = delete_plugins( array( $param['asset'] ) );
@@ -1389,14 +1397,14 @@ class InstaWP_Rest_Api {
 		$results = array();
 
 		foreach ( $params as $key => $value ) {
-			$results[ $key ]['status'] = false;
+			$results[ $key ]['success'] = false;
 
 			if ( array_key_exists( $key, $options ) ) {
 				$results[ $key ]['message'] = esc_html__( 'Success!', 'instawp-connect' );
 
 				if ( 'off' === $value ) {
 					$update                    = update_option( 'instawp_rm_' . $key, $value );
-					$results[ $key ]['status'] = $update;
+					$results[ $key ]['success'] = $update;
 					if ( ! $update ) {
 						$results[ $key ]['message'] = esc_html__( 'Setting is already disabled.', 'instawp-connect' );
 					}
@@ -1455,6 +1463,9 @@ class InstaWP_Rest_Api {
 	 */
 	protected function send_response( array $results ) {
 		$response = new WP_REST_Response( $results );
+		if ( isset( $results['success'] ) && $results['success'] === false ) {
+			$response->set_status( 400 );
+		}
 
 		return rest_ensure_response( $response );
 	}

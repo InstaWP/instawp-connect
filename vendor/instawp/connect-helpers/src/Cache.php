@@ -493,7 +493,7 @@ class Cache {
 			$message = trim( $result['message'] );
 			unset( $result['message'] );
 
-			$result['status']  = empty( $message );
+			$result['success'] = empty( $message );
 			$result['message'] = $message;
 			
 			return $result;
