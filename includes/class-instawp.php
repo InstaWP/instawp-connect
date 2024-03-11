@@ -95,12 +95,12 @@ class instaWP {
 	}
 
 	public function register_actions() {
-		if ( ! wp_next_scheduled( 'instawp_prepare_large_files_list' ) ) {
-			wp_schedule_event( time(), 'hourly', 'instawp_prepare_large_files_list' );
+		if ( ! as_has_scheduled_action( 'instawp_prepare_large_files_list', [], 'instawp-connect' ) ) {
+			as_schedule_recurring_action( time(), HOUR_IN_SECONDS, 'instawp_prepare_large_files_list', [], 'instawp-connect' );
 		}
 
-		if ( ! wp_next_scheduled( 'instawp_clean_migrate_files' ) ) {
-			wp_schedule_event( time(), 'daily', 'instawp_clean_migrate_files' );
+		if ( ! as_has_scheduled_action( 'instawp_clean_migrate_files', [], 'instawp-connect' ) ) {
+			as_schedule_recurring_action( time(), DAY_IN_SECONDS, 'instawp_clean_migrate_files', [], 'instawp-connect' );
 		}
 	}
 
@@ -374,7 +374,7 @@ class instaWP {
 						if ( is_dir( $root . DIRECTORY_SEPARATOR . $filename ) ) {
 							$size = self::get_folder_size( $root . DIRECTORY_SEPARATOR . $filename, $size );
 						} elseif ( file_exists( $filepath = $root . DIRECTORY_SEPARATOR . $filename ) && is_readable( $filepath ) ) {
-								$size += filesize( $filepath );
+							$size += filesize( $filepath );
 						}
 					}
 				}

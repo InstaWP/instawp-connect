@@ -23,28 +23,28 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 			$heartbeat = InstaWP_Setting::get_option( 'instawp_rm_heartbeat', 'on' );
 			$heartbeat = empty( $heartbeat ) ? 'on' : $heartbeat;
 
-			if ( 'on' !== $heartbeat ) {
+			if ( 'on' !== $heartbeat || empty( InstaWP_Setting::get_api_key() ) ) {
 				return;
 			}
 
 			$interval = InstaWP_Setting::get_option( 'instawp_api_heartbeat', 15 );
 			$interval = empty( $interval ) ? 15 : (int) $interval;
 
-			if ( ! empty( InstaWP_Setting::get_api_key() ) && ! wp_next_scheduled( 'instawp_handle_heartbeat' ) ) {
-				wp_schedule_single_event( time() + ( $interval * MINUTE_IN_SECONDS ), 'instawp_handle_heartbeat' );
+			if ( ! as_has_scheduled_action( 'instawp_handle_heartbeat', [], 'instawp-connect' ) ) {
+				as_schedule_recurring_action( time(), ( $interval * MINUTE_IN_SECONDS ), 'instawp_handle_heartbeat', [], 'instawp-connect' );
 			}
 
-			if ( ! wp_next_scheduled( 'instawp_send_heartbeat' ) ) {
-				wp_schedule_event( time(), 'daily', 'instawp_send_heartbeat' );
+			if ( ! as_has_scheduled_action( 'instawp_send_heartbeat', [], 'instawp-connect' ) ) {
+				as_schedule_recurring_action( time(), DAY_IN_SECONDS, 'instawp_send_heartbeat', [], 'instawp-connect' );
 			}
 
-			if ( ! wp_next_scheduled( 'instawp_handle_heartbeat_status' ) ) {
-				wp_schedule_event( time(), 'daily', 'instawp_handle_heartbeat_status' );
+			if ( ! as_has_scheduled_action( 'instawp_handle_heartbeat_status', [], 'instawp-connect' ) ) {
+				as_schedule_recurring_action( time(), DAY_IN_SECONDS, 'instawp_handle_heartbeat_status', [], 'instawp-connect' );
 			}
 		}
 
 		public function clear_heartbeat_action() {
-			wp_unschedule_hook( 'instawp_handle_heartbeat' );
+			as_unschedule_all_actions( 'instawp_handle_heartbeat', [], 'instawp-connect' );
 		}
 
 		public function handle_heartbeat() {
@@ -168,7 +168,7 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 			if ( ! $success ) {
 				update_option( 'instawp_rm_heartbeat', 'off' );
 				update_option( 'instawp_rm_heartbeat_failed', true );
-				wp_unschedule_hook( 'instawp_handle_heartbeat' );
+				as_unschedule_all_actions( 'instawp_handle_heartbeat', [], 'instawp-connect' );
 
 				if ( $response_code == 404 ) {
 					instawp_reset_running_migration( 'hard' );

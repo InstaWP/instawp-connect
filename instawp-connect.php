@@ -109,7 +109,6 @@ if ( isset( $instawp_plugin ) && is_a( $instawp_plugin, 'instaWP' ) ) {
 	return;
 }
 
-
 function run_instawp() {
 	$instawp_plugin = new instaWP();
 

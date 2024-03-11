@@ -12,7 +12,8 @@
     "require": {
         "php": ">= 7.4.0",
         "instawp/connect-helpers": "dev-main",
-        "phpseclib/phpseclib": "~3.0"
+        "phpseclib/phpseclib": "~3.0",
+        "woocommerce/action-scheduler": "^3.7"
     },
     "repositories": [
         {
@@ -20,6 +21,11 @@
             "url": "git@github.com:InstaWP/connect-helpers.git"
         }
     ],
+    "autoload": {
+        "files": [
+            "vendor/woocommerce/action-scheduler/action-scheduler.php"
+        ]
+    },
     "scripts": {
         "build": [
             "composer dump-autoload"

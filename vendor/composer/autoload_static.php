@@ -9,6 +9,7 @@ class ComposerStaticInitbc4230231e9e48017a738b41afd9f581
     public static $files = array (
         'ac949ce40a981819ba132473518a9a31' => __DIR__ . '/..' . '/wp-cli/wp-config-transformer/src/WPConfigTransformer.php',
         'decc78cc4436b1292c6c0d151b19445c' => __DIR__ . '/..' . '/phpseclib/phpseclib/phpseclib/bootstrap.php',
+        '19f598e9424dd4284ce70db88f808477' => __DIR__ . '/..' . '/woocommerce/action-scheduler/action-scheduler.php',
     );
 
     public static $prefixLengthsPsr4 = array (

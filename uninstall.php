@@ -59,12 +59,6 @@ delete_transient( 'instawp_migration_completed' );
 delete_transient( 'instawp_staging_sites' );
 delete_transient( 'instawp_generate_large_files' );
 
-wp_unschedule_hook( 'instawp_handle_heartbeat' );
-wp_unschedule_hook( 'instawp_send_heartbeat' );
-wp_unschedule_hook( 'instawp_handle_heartbeat_status' );
-wp_unschedule_hook( 'instawp_prepare_large_files_list' );
-wp_unschedule_hook( 'instawp_clean_migrate_files' );
-
 // Clear scheduled tasks.
 if ( class_exists( 'ActionScheduler_QueueRunner' ) ) {
 	ActionScheduler_QueueRunner::instance()->unhook_dispatch_async_request();
