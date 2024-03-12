@@ -119,7 +119,7 @@ class InstaWP_Curl {
 		);
 		$WP_Http_Curl   = new WP_Http_Curl();
 		$this->response = $WP_Http_Curl->request( $url, $args );
-		update_option( 'main_curl_1', $this->response );
+		InstaWP_Setting::update_option( 'main_curl_1', $this->response );
 
 		if ( $this->response instanceof WP_Error || is_wp_error( $this->response ) ) {
 			return array(

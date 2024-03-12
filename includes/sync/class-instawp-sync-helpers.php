@@ -105,9 +105,6 @@ class InstaWP_Sync_Helpers {
 	 * Get media from content
 	 */
 	public static function get_media_from_content( $content ): array {
-		global $wpdb;
-
-		#find media form content.
 		preg_match_all( '!(https?:)?//\S+\.(?:jpe?g|jpg|png|gif|mp4|pdf|doc|docx|xls|xlsx|csv|txt|rtf|html|zip|mp3|wma|mpg|flv|avi)!Ui', $content, $match );
 
 		$media = array();
@@ -410,9 +407,10 @@ class InstaWP_Sync_Helpers {
 			return $post;
 		}
 
-		$post_content   = $post->post_content ?? '';
-		$post_parent_id = $post->post_parent;
-		$reference_id   = self::get_post_reference_id( $post->ID );
+		$post_content       = $post->post_content ?? '';
+		$post_parent_id     = $post->post_parent;
+		$reference_id       = self::get_post_reference_id( $post->ID );
+		$post->post_content = base64_encode( $post_content );
 
 		$data = array(
 			'post'         => $post,
@@ -501,9 +499,10 @@ class InstaWP_Sync_Helpers {
 		return 0;
 	}
 
-	public static function prepare_post_data( $post, $post_id = null ) {
-		unset( $post['ID'] );
-		unset( $post['guid'] );
+	public static function prepare_post_data( $post, $post_id = 0 ) {
+		unset( $post['ID'], $post['guid'] );
+
+		$post['post_content'] = base64_decode( $post['post_content'] );
 
 		if ( $post_id ) {
 			$post['ID'] = $post_id;

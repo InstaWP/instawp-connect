@@ -241,7 +241,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 		function manage_update_option( $option_name, $old_value, $new_value ) {
 
 			if ( 'blog_public' === $option_name && $old_value == 0 && $new_value == 1 ) {
-				update_option( 'instawp_changed_option_blog_public', current_time( 'U' ) );
+				InstaWP_Setting::update_option( 'instawp_changed_option_blog_public', current_time( 'U' ) );
 			}
 		}
 
@@ -254,7 +254,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 
 				$instawp_api_options['connect_id'] = sanitize_text_field( $_GET['connect_id'] );
 
-				update_option( 'instawp_api_options', $instawp_api_options );
+				InstaWP_Setting::update_option( 'instawp_api_options', $instawp_api_options );
 			}
 
 			if ( 'instawp' === $admin_page && 'all' === $clear_action ) {

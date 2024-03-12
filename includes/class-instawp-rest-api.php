@@ -538,7 +538,7 @@ class InstaWP_Rest_Api {
 			wp_login_url( '', true )
 		);
 
-		update_option( 'instawp_login_code', array(
+		InstaWP_Setting::update_option( 'instawp_login_code', array(
 			'code'       => $login_code,
 			'updated_at' => current_time( 'U' ),
 		) );
@@ -712,7 +712,7 @@ class InstaWP_Rest_Api {
 		// if any wp_option is passed, then store it
 		if ( isset( $parameters['wp'] ) && isset( $parameters['wp']['options'] ) && is_array( $parameters['wp']['options'] ) ) {
 			foreach ( $parameters['wp']['options'] as $option_key => $option_value ) {
-				update_option( $option_key, $option_value );
+				InstaWP_Setting::update_option( $option_key, $option_value );
 			}
 		}
 
@@ -798,7 +798,7 @@ class InstaWP_Rest_Api {
 			if ( $body['status'] == true ) {
 				$api_options = InstaWP_Setting::get_option( 'instawp_api_options', array() );
 
-				update_option( 'instawp_api_options', array_merge( $api_options, array(
+				InstaWP_Setting::update_option( 'instawp_api_options', array_merge( $api_options, array(
 					'api_key'  => $api_key,
 					'response' => $body,
 				) ) );
@@ -1028,7 +1028,7 @@ class InstaWP_Rest_Api {
 					require_once ABSPATH . 'wp-admin/includes/file.php';
 				}
 
-				if ( ! function_exists( 'delete_plugins' ) || ! function_exists( 'is_plugin_active' ) || ! function_exists( 'deactivate_plugins' )  ) {
+				if ( ! function_exists( 'delete_plugins' ) || ! function_exists( 'is_plugin_active' ) || ! function_exists( 'deactivate_plugins' ) ) {
 					require_once ABSPATH . 'wp-admin/includes/plugin.php';
 				}
 
@@ -1403,7 +1403,7 @@ class InstaWP_Rest_Api {
 				$results[ $key ]['message'] = esc_html__( 'Success!', 'instawp-connect' );
 
 				if ( 'off' === $value ) {
-					$update                    = update_option( 'instawp_rm_' . $key, $value );
+					$update                    = InstaWP_Setting::update_option( 'instawp_rm_' . $key, $value );
 					$results[ $key ]['success'] = $update;
 					if ( ! $update ) {
 						$results[ $key ]['message'] = esc_html__( 'Setting is already disabled.', 'instawp-connect' );

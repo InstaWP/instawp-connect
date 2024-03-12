@@ -12,7 +12,7 @@ class Option {
 			foreach( $args as $name => $value ) {
 				$results[] = [
 					'name'    => $name,
-					'success' => update_option( $name, $value ),
+					'success' => update_option( $name, $value, false ),
 				];
 			}
 		} catch ( Exception $e ) {

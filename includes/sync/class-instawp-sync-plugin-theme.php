@@ -1,5 +1,7 @@
 <?php
 
+use InstaWP\Connect\Helpers\Helper;
+
 defined( 'ABSPATH' ) || exit;
 
 class InstaWP_Sync_Plugin_Theme {
@@ -38,7 +40,7 @@ class InstaWP_Sync_Plugin_Theme {
 		$event_name = sprintf( esc_html__('%1$s %2$s%3$s', 'instawp-connect'), ucfirst( $hook_extra['type'] ), $hook_extra['action'], $hook_extra['action'] == 'update' ? 'd' : 'ed' );
 
 		// hooks for theme and record the event
-		if ( InstaWP_Sync_Helpers::can_sync( 'theme' ) && $upgrader instanceof Theme_Upgrader && $hook_extra['type'] === 'theme' ) {
+		if ( InstaWP_Sync_Helpers::can_sync( 'theme' ) && $upgrader instanceof \Theme_Upgrader && $hook_extra['type'] === 'theme' ) {
 			$destination_name = $upgrader->result['destination_name'];
 			$theme            = wp_get_theme( $destination_name );
 
@@ -48,12 +50,15 @@ class InstaWP_Sync_Plugin_Theme {
 					'stylesheet' => $theme->get_stylesheet(),
 					'data'       => $upgrader->new_theme_data ?? array(),
 				);
-				$this->parse_plugin_theme_event( $event_name, $event_slug, $details, 'theme' );
+
+				if ( Helper::is_on_wordpress_org( $theme->get_stylesheet(), 'theme' ) ) {
+					$this->parse_plugin_theme_event( $event_name, $event_slug, $details, 'theme' );
+				}
 			}
 		}
 
 		// hooks for plugins and record the plugin.
-		if ( InstaWP_Sync_Helpers::can_sync( 'plugin' ) && $upgrader instanceof Plugin_Upgrader && $hook_extra['type'] === 'plugin' ) {
+		if ( InstaWP_Sync_Helpers::can_sync( 'plugin' ) && $upgrader instanceof \Plugin_Upgrader && $hook_extra['type'] === 'plugin' ) {
 			if ( $hook_extra['action'] === 'install' && ! empty( $upgrader->new_plugin_data ) ) {
 				$plugin_data = $upgrader->new_plugin_data;
 			} elseif ( $hook_extra['action'] === 'update' && ! empty( $upgrader->skin->plugin_info ) ) {
@@ -68,7 +73,10 @@ class InstaWP_Sync_Plugin_Theme {
 					'slug' => $slug,
 					'data' => $plugin_data,
 				);
-				$this->parse_plugin_theme_event( $event_name, $event_slug, $details, 'plugin' );
+
+				if ( Helper::is_on_wordpress_org( $slug, 'plugin' ) ) {
+					$this->parse_plugin_theme_event( $event_name, $event_slug, $details, 'plugin' );
+				}
 			}
 		}
 	}
@@ -236,7 +244,7 @@ class InstaWP_Sync_Plugin_Theme {
 					$logs[ $v->id ] = sprintf( 'Theme %s not found for update operation.', $stylesheet );
 				}
 			} elseif ( ! $theme->exists() ) {
-					$this->theme_install( $stylesheet );
+				$this->theme_install( $stylesheet );
 			}
 
 			if ( $v->event_slug === 'switch_theme' ) {
@@ -258,7 +266,7 @@ class InstaWP_Sync_Plugin_Theme {
 				} elseif ( false === $result ) {
 					$logs[ $v->id ] = sprintf( 'Theme %s could not be deleted.', $stylesheet );
 				}           
-} else {
+			} else {
 				$logs[ $v->id ] = sprintf( 'Theme %s not found for delete operation.', $stylesheet );
 			}
 		}
@@ -272,10 +280,9 @@ class InstaWP_Sync_Plugin_Theme {
 	 * @param $event_slug
 	 * @param $details
 	 * @param $type
-	 * @param $source_id
 	 * @return void
 	 */
-	private function parse_plugin_theme_event( $event_name, $event_slug, $details, $type, $source_id = '', $event_id = null ) {
+	private function parse_plugin_theme_event( $event_name, $event_slug, $details, $type ) {
 		switch ( $type ) {
 			case 'plugin':
 				if ( ! empty( $details ) && is_array( $details ) ) {
@@ -297,7 +304,8 @@ class InstaWP_Sync_Plugin_Theme {
 				}
 				break;
 			default:
-				$title = $details['name'];
+				$title     = $details['name'];
+				$source_id = $details['stylesheet'];
 		}
 		InstaWP_Sync_DB::insert_update_event( $event_name, $event_slug, $type, $source_id, $title, $details );
 	}
@@ -376,7 +384,7 @@ class InstaWP_Sync_Plugin_Theme {
 		include_once( ABSPATH . 'wp-admin/includes/misc.php' );
 
 		if ( ! is_wp_error( $api ) ) {
-			$upgrader = new Theme_Upgrader();
+			$upgrader = new \Theme_Upgrader();
 			$upgrader->install( $api->download_link, array( 'overwrite_package' => $overwrite_package ) );
 		}
 	}

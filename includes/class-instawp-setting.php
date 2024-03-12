@@ -634,7 +634,7 @@ class InstaWP_Setting {
 		$api_options            = self::get_option( 'instawp_api_options', array() );
 		$api_options['api_url'] = sanitize_url( $instawp_api_url );
 
-		return update_option( 'instawp_api_options', $api_options );
+		return InstaWP_Setting::update_option( 'instawp_api_options', $api_options );
 	}
 
 	public static function get_pro_subscription_url( $pro_subscription_slug = 'subscriptions' ) {
@@ -670,7 +670,7 @@ class InstaWP_Setting {
 		$api_options            = self::get_option( 'instawp_api_options', array() );
 		$api_options['api_key'] = sanitize_text_field( wp_unslash( $api_key ) );
 
-		return update_option( 'instawp_api_options', $api_options );
+		return InstaWP_Setting::update_option( 'instawp_api_options', $api_options );
 	}
 
 	public static function get_connect_id() {
@@ -683,7 +683,7 @@ class InstaWP_Setting {
 		$api_options               = self::get_option( 'instawp_api_options', array() );
 		$api_options['connect_id'] = intval( $connect_id );
 
-		return update_option( 'instawp_api_options', $api_options );
+		return InstaWP_Setting::update_option( 'instawp_api_options', $api_options );
 	}
 
 	public static function get_unsupported_plugins() {
@@ -724,7 +724,7 @@ class InstaWP_Setting {
 			$api_options = self::get_option( 'instawp_api_options', array() );
 
 			if ( is_array( $api_options ) && is_array( $api_response['data'] ) ) {
-				update_option( 'instawp_api_options', array_merge( $api_options, array(
+				InstaWP_Setting::update_option( 'instawp_api_options', array_merge( $api_options, array(
 					'api_key'  => $api_key,
 					'response' => $api_response['data'],
 				) ) );
@@ -769,12 +769,12 @@ class InstaWP_Setting {
 		return get_option( $option_name, $default );
 	}
 
-	public static function update_option( $option_name, $options ) {
-		update_option( $option_name, $options, 'no' );
+	public static function update_option( $option_name, $option_value, $autoload = false ): bool {
+		return update_option( $option_name, $option_value, $autoload );
 	}
 
-	public static function delete_option( $option_name ) {
-		delete_option( $option_name );
+	public static function delete_option( $option_name ): bool {
+		return delete_option( $option_name );
 	}
 
 	public static function get_select2_default_selected_option( $option ) {

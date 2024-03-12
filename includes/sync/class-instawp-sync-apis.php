@@ -68,8 +68,8 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 		}
 
 		delete_option( 'instawp_sync_parent_connect_data' );
-		update_option( 'instawp_sync_connect_id', intval( $request->parent_connect_id ) );
-		update_option( 'instawp_is_staging', true );
+		InstaWP_Setting::update_option( 'instawp_sync_connect_id', intval( $request->parent_connect_id ) );
+		InstaWP_Setting::update_option( 'instawp_is_staging', true );
 		instawp_get_source_site_detail();
 
 		return $this->send_response( array(
@@ -181,7 +181,7 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 
 		#enable is back if syncing already enabled at the destination
 		if ( $is_enabled ) {
-			update_option( 'instawp_is_event_syncing', 1 );
+			InstaWP_Setting::update_option( 'instawp_is_event_syncing', 1 );
 		}
 
 		return $this->send_response( array(

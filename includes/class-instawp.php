@@ -95,12 +95,12 @@ class instaWP {
 	}
 
 	public function register_actions() {
-		if ( ! as_has_scheduled_action( 'instawp_prepare_large_files_list', [], 'instawp-connect' ) ) {
-			as_schedule_recurring_action( time(), HOUR_IN_SECONDS, 'instawp_prepare_large_files_list', [], 'instawp-connect' );
+		if ( ! as_has_scheduled_action( 'instawp_prepare_large_files_list', array(), 'instawp-connect' ) ) {
+			as_schedule_recurring_action( time(), HOUR_IN_SECONDS, 'instawp_prepare_large_files_list', array(), 'instawp-connect' );
 		}
 
-		if ( ! as_has_scheduled_action( 'instawp_clean_migrate_files', [], 'instawp-connect' ) ) {
-			as_schedule_recurring_action( time(), DAY_IN_SECONDS, 'instawp_clean_migrate_files', [], 'instawp-connect' );
+		if ( ! as_has_scheduled_action( 'instawp_clean_migrate_files', array(), 'instawp-connect' ) ) {
+			as_schedule_recurring_action( time(), DAY_IN_SECONDS, 'instawp_clean_migrate_files', array(), 'instawp-connect' );
 		}
 	}
 
@@ -117,7 +117,7 @@ class instaWP {
 
 	public function prepare_large_files_list() {
 		$maxbytes = (int) InstaWP_Setting::get_option( 'instawp_max_file_size_allowed', INSTAWP_DEFAULT_MAX_FILE_SIZE_ALLOWED );
-		$maxbytes = $maxbytes ? $maxbytes : INSTAWP_DEFAULT_MAX_FILE_SIZE_ALLOWED;
+		$maxbytes = $maxbytes ?: INSTAWP_DEFAULT_MAX_FILE_SIZE_ALLOWED;
 		$maxbytes = ( $maxbytes * 1024 * 1024 );
 		$path     = ABSPATH;
 		$data     = array();
@@ -141,7 +141,7 @@ class instaWP {
 		}
 
 		set_transient( 'instawp_generate_large_files', true, HOUR_IN_SECONDS );
-		update_option( 'instawp_large_files_list', $data );
+		InstaWP_Setting::update_option( 'instawp_large_files_list', $data );
 	}
 
 	public function clear_staging_sites_list() {

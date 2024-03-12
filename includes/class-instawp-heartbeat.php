@@ -30,21 +30,21 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 			$interval = InstaWP_Setting::get_option( 'instawp_api_heartbeat', 15 );
 			$interval = empty( $interval ) ? 15 : (int) $interval;
 
-			if ( ! as_has_scheduled_action( 'instawp_handle_heartbeat', [], 'instawp-connect' ) ) {
-				as_schedule_recurring_action( time(), ( $interval * MINUTE_IN_SECONDS ), 'instawp_handle_heartbeat', [], 'instawp-connect' );
+			if ( ! as_has_scheduled_action( 'instawp_handle_heartbeat', array(), 'instawp-connect' ) ) {
+				as_schedule_recurring_action( time(), ( $interval * MINUTE_IN_SECONDS ), 'instawp_handle_heartbeat', array(), 'instawp-connect' );
 			}
 
-			if ( ! as_has_scheduled_action( 'instawp_send_heartbeat', [], 'instawp-connect' ) ) {
-				as_schedule_recurring_action( time(), DAY_IN_SECONDS, 'instawp_send_heartbeat', [], 'instawp-connect' );
+			if ( ! as_has_scheduled_action( 'instawp_send_heartbeat', array(), 'instawp-connect' ) ) {
+				as_schedule_recurring_action( time(), DAY_IN_SECONDS, 'instawp_send_heartbeat', array(), 'instawp-connect' );
 			}
 
-			if ( ! as_has_scheduled_action( 'instawp_handle_heartbeat_status', [], 'instawp-connect' ) ) {
-				as_schedule_recurring_action( time(), DAY_IN_SECONDS, 'instawp_handle_heartbeat_status', [], 'instawp-connect' );
+			if ( ! as_has_scheduled_action( 'instawp_handle_heartbeat_status', array(), 'instawp-connect' ) ) {
+				as_schedule_recurring_action( time(), DAY_IN_SECONDS, 'instawp_handle_heartbeat_status', array(), 'instawp-connect' );
 			}
 		}
 
 		public function clear_heartbeat_action() {
-			as_unschedule_all_actions( 'instawp_handle_heartbeat', [], 'instawp-connect' );
+			as_unschedule_all_actions( 'instawp_handle_heartbeat', array(), 'instawp-connect' );
 		}
 
 		public function handle_heartbeat() {
@@ -62,7 +62,7 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 			}
 
 			if ( self::send_heartbeat() ) {
-				update_option( 'instawp_rm_heartbeat', 'on' );
+				InstaWP_Setting::update_option( 'instawp_rm_heartbeat', 'on' );
 			}
 		}
 
@@ -166,16 +166,16 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 			}
 
 			if ( ! $success ) {
-				update_option( 'instawp_rm_heartbeat', 'off' );
-				update_option( 'instawp_rm_heartbeat_failed', true );
-				as_unschedule_all_actions( 'instawp_handle_heartbeat', [], 'instawp-connect' );
+				InstaWP_Setting::update_option( 'instawp_rm_heartbeat', 'off' );
+				InstaWP_Setting::update_option( 'instawp_rm_heartbeat_failed', true );
+				as_unschedule_all_actions( 'instawp_handle_heartbeat', array(), 'instawp-connect' );
 
 				if ( $response_code == 404 ) {
 					instawp_reset_running_migration( 'hard' );
 				}
 			} else {
 				delete_option( 'instawp_rm_heartbeat_failed' );
-				update_option( 'instawp_heartbeat_sent_data', $heartbeat_data );
+				InstaWP_Setting::update_option( 'instawp_heartbeat_sent_data', $heartbeat_data );
 
 				if ( $setting === 'on' ) {
 					$placeholders = implode( ',', array_fill( 0, count( $log_ids ), '%d' ) );

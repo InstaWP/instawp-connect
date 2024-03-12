@@ -67,7 +67,7 @@ class InstaWP_Sync_Post {
 			return;
 		}
 
-		// acf feild group check
+		// acf field group check
 		if ( $post->post_type == 'acf-field-group' && $post->post_content == '' ) {
 			InstaWP_Sync_Helpers::set_post_reference_id( $post->ID );
 			return;
@@ -241,7 +241,7 @@ class InstaWP_Sync_Post {
 			return;
 		}
 
-		$data = [];
+		$data = array();
 		if ( in_array( $event_slug, array( 'post_trash', 'post_delete', 'untrashed_post' ) ) ) {
 			$reference_id = InstaWP_Sync_Helpers::get_term_reference_id( $post->ID );
 		} else {

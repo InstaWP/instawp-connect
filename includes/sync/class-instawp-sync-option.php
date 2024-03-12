@@ -61,7 +61,7 @@ class InstaWP_Sync_Option {
 
 		// add or update option
 		if ( in_array( $v->event_slug, array( 'add_option', 'update_option' ), true ) ) {
-			update_option( $data['name'], maybe_unserialize( $data['value'] ) );
+			InstaWP_Setting::update_option( $data['name'], maybe_unserialize( $data['value'] ) );
 		}
 
 		// delete option
@@ -73,7 +73,7 @@ class InstaWP_Sync_Option {
 	}
 
 	private function is_protected_option( $option ): bool {
-		$excluded_options = array( 'cron', 'instawp_api_options', 'siteurl', 'home', 'permalink_structure', 'rewrite_rules', 'recently_activated', 'active_plugins', 'theme_switched', 'sidebars_widgets', 'theme_switch_menu_locations', 'recovery_mode_email_last_sent', 'recovery_keys', 'auto_updater.lock' );
+		$excluded_options = array( 'cron', 'instawp_api_options', 'siteurl', 'home', 'permalink_structure', 'rewrite_rules', 'recently_activated', 'active_plugins', 'theme_switched', 'sidebars_widgets', 'theme_switch_menu_locations', 'recovery_mode_email_last_sent', 'recovery_keys', 'auto_updater.lock', 'elementor_version', 'elementor_log' );
 
 		if ( in_array( $option, $excluded_options, true )
 			|| strpos( $option, '_transient' ) !== false
