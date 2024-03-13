@@ -1,17 +1,15 @@
 <?php
-declare( strict_types=1 );
-
 namespace InstaWP\Connect\Helpers;
 
 class Updater {
 
-	public array $args;
+	public $args;
 
 	public function __construct( array $args = [] ) {
 		$this->args = $args;
 	}
 
-	public function update(): array {
+	public function update() {
 		if ( count( $this->args ) < 1 || count( $this->args ) > 5 ) {
 			return [
 				'success' => false,
@@ -35,7 +33,7 @@ class Updater {
 		return $results;
 	}
 
-	private function core_updater( array $args = [] ): array {
+	private function core_updater( array $args = [] ) {
 		$args = wp_parse_args( $args, [
 			'locale'  => get_locale(),
 			'version' => get_bloginfo( 'version' )
@@ -109,7 +107,7 @@ class Updater {
 		];
 	}
 
-	private function updater( string $type, string $item ): array {
+	private function updater( $type, $item ) {
 		if ( ! class_exists( 'WP_Upgrader' ) ) {
 			require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
 		}

@@ -4,14 +4,14 @@ defined( 'ABSPATH' ) || exit;
 
 class InstaWP_Sync_Customizer {
 
-	public array $parsable_page_options = array(
+	public $parsable_page_options = array(
 		'page_on_front',
 		'page_for_posts',
 		'wp_page_for_privacy_policy',
 		'woocommerce_terms_page_id',
 	);
 
-	public array $parsable_attachment_options = array(
+	public $parsable_attachment_options = array(
 		'site_icon',
 		'custom_logo',
 	);
@@ -47,7 +47,7 @@ class InstaWP_Sync_Customizer {
 
 		$data = array(
 			'template' => $template,
-			'mods'     => $mods ?? array(),
+			'mods'     => isset( $mods ) ? $mods : array(),
 			'options'  => array(),
 		);
 
@@ -145,7 +145,7 @@ class InstaWP_Sync_Customizer {
 		return InstaWP_Sync_Helpers::sync_response( $v );
 	}
 
-	private function is_image_url( $string = '' ): bool {
+	private function is_image_url( $string = '' ) {
 		if ( is_string( $string ) ) {
 			if ( preg_match( '/\.(jpg|jpeg|png|gif)/i', $string ) ) {
 				return true;

@@ -1,20 +1,15 @@
 <?php
-declare( strict_types=1 );
-
 namespace InstaWP\Connect\Helpers;
 
 use Exception;
-use InstaWP\Connect\Helpers\Helper;
 
 class FileManager {
 
-	public string $file;
-	public static string $query_var = 'instawp-file-manager';
-	public static string $action = 'instawp_clean_file_manager';
+	public $file;
+	public static $query_var = 'instawp-file-manager';
+	public static $action = 'instawp_clean_file_manager';
 
-    public function get(): array {
-        $results = [];
-		
+    public function get() {
 		$this->clean();
 
 		$username  = Helper::get_random_string( 15 );
@@ -94,22 +89,22 @@ class FileManager {
         return $results;
     }
 
-	public function clean(): void {
+	public function clean() {
 		Helper::clean_file( self::get_directory() );
 
 		flush_rewrite_rules();
 		wp_clear_scheduled_hook( self::$action );
 	}
 
-	public static function get_directory(): string {
+	public static function get_directory() {
 		return INSTAWP_PLUGIN_DIR . '/includes/file-manager/';
 	}
 
-	public static function get_file_path( string $file_name ): string {
+	public static function get_file_path( $file_name ) {
 		return self::get_directory() . 'instawp' . $file_name . '.php';
 	}
 
-	public static function get_file_manager_url( string $file_name ): string {
+	public static function get_file_manager_url( $file_name ) {
 		return home_url( self::$query_var . '/' . $file_name );
 	}
 }

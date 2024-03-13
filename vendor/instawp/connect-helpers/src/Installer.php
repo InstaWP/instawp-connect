@@ -1,29 +1,27 @@
 <?php
-declare( strict_types=1 );
-
 namespace InstaWP\Connect\Helpers;
 
 class Installer {
 
-    public array $defaults = [
+    public $defaults = [
         'slug'     => '',
         'source'   => 'wp.org',
         'type'     => 'plugin',
         'activate' => false
     ];
     
-    public array $args;
-    public string $slug;
-    public string $source;
-    public string $type;
-    public bool $activate;
-    public string $url;
+    public $args;
+    public $slug;
+    public $source;
+    public $type;
+    public $activate;
+    public $url;
 
     public function __construct( array $args = [] ) {
         $this->args = $args;
     }
 
-    public function start(): array {
+    public function start() {
 		if ( count( $this->args ) < 1 || count( $this->args ) > 5 ) {
 			return [
 				'success' => false,
@@ -51,7 +49,7 @@ class Installer {
         return $results;
     }
 
-	private function install(): array {
+	private function install() {
         try {
             if ( ! class_exists( 'WP_Upgrader' ) ) {
                 require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';

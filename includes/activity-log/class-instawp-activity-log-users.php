@@ -20,7 +20,7 @@ class InstaWP_Activity_Log_Users {
 			'object_type'    => 'Users',
 			'object_subtype' => 'Profile',
 			'object_id'      => $user->ID,
-			'object_name'    => $user->display_name ?? $user->user_nicename,
+			'object_name'    => ! empty( $user->display_name ) ? $user->display_name : $user->user_nicename,
 		) );
 	}
 	public function hooks_delete_user( $user_id ) {
@@ -31,7 +31,7 @@ class InstaWP_Activity_Log_Users {
 			'object_type'    => 'Users',
 			'object_subtype' => 'Profile',
 			'object_id'      => $user->ID,
-			'object_name'    => $user->display_name ?? $user->user_nicename,
+			'object_name'    => ! empty( $user->display_name ) ? $user->display_name : $user->user_nicename,
 		) );
 	}
 
@@ -42,7 +42,7 @@ class InstaWP_Activity_Log_Users {
 			'object_subtype' => 'Session',
 			'user_id'        => $user->ID,
 			'object_id'      => $user->ID,
-			'object_name'    => $user->display_name ?? $user->user_nicename,
+			'object_name'    => ! empty( $user->display_name ) ? $user->display_name : $user->user_nicename,
 		) );
 	}
 
@@ -59,7 +59,7 @@ class InstaWP_Activity_Log_Users {
 			'object_subtype' => 'Session',
 			'user_id'        => $user->ID,
 			'object_id'      => $user->ID,
-			'object_name'    => $user->display_name ?? $user->user_nicename,
+			'object_name'    => ! empty( $user->display_name ) ? $user->display_name : $user->user_nicename,
 		) );
 	}
 
@@ -71,7 +71,7 @@ class InstaWP_Activity_Log_Users {
 			'object_type'    => 'Users',
 			'object_subtype' => 'Profile',
 			'object_id'      => $user->ID,
-			'object_name'    => $user->display_name ?? $user->user_nicename,
+			'object_name'    => ! empty( $user->display_name ) ? $user->display_name : $user->user_nicename,
 		) );
 	}
 

@@ -63,7 +63,7 @@ class InstaWP_Sync_DB {
 	/**
 	 * Delete
 	 */
-	public static function prefix(): string {
+	public static function prefix() {
 		return self::wpdb()->prefix;
 	}
 

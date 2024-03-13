@@ -1,11 +1,9 @@
 <?php
-declare( strict_types=1 );
-
 namespace InstaWP\Connect\Helpers;
 
 class Cache {
 
-    public function clean(): array {
+    public function clean() {
         $results = [];
 
         if ( ! function_exists( 'is_plugin_active' ) ) {
@@ -489,7 +487,7 @@ class Cache {
 			];
 		}
 
-		$results = array_map( function( $result ) {
+		return array_map( function( $result ) {
 			$message = trim( $result['message'] );
 			unset( $result['message'] );
 
@@ -498,7 +496,5 @@ class Cache {
 			
 			return $result;
 		}, $results );
-
-        return $results;
     }
 }

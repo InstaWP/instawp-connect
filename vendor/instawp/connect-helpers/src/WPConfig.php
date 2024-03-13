@@ -1,15 +1,13 @@
 <?php
-declare( strict_types=1 );
-
 namespace InstaWP\Connect\Helpers;
 
 class WPConfig {
 
-	public string $file;
-	public array $data;
-	public bool $is_cli;
+	public $file;
+	public $data;
+	public $is_cli;
 
-	public array $constants = [
+	public $constants = [
 		'WP_ENVIRONMENT_TYPE',
 		'WP_DEVELOPMENT_MODE',
 		'WP_DISABLE_FATAL_ERROR_HANDLER',
@@ -37,7 +35,7 @@ class WPConfig {
 		'CONCATENATE_SCRIPTS',
 	];
 
-	public array $blacklisted = [
+	public $blacklisted = [
 		'DB_NAME',
 		'DB_USER',
 		'DB_PASSWORD',
@@ -67,8 +65,8 @@ class WPConfig {
 		$this->is_cli = $is_cli;
     }
 
-    public function fetch(): array {
-        $results = [];
+    public function fetch() {
+        $constants = [];
 		
 		$this->data = array_filter( $this->data );
 		if ( ! empty( $this->data ) ) {
@@ -104,7 +102,7 @@ class WPConfig {
 					$results['wp-config-undefined'][ $constant ] = defined( $constant ) ? constant( $constant ) : '';
 				}
 			}
-		} catch ( Exception $e ) {
+		} catch ( \Exception $e ) {
 			$results = [
 				'success' => false,
 				'message' => $e->getMessage(),
@@ -114,8 +112,7 @@ class WPConfig {
         return $results;
     }
 
-	public function update(): array {
-        $results = [];
+	public function update() {
         $args    = [
 			'normalize' => true,
 			'add'       => true,
@@ -124,7 +121,7 @@ class WPConfig {
 
 		if ( false === strpos( $content, "/* That's all, stop editing!" ) ) {
 			preg_match( '@\$table_prefix = (.*);@', $content, $matches );
-			$args['anchor']    = $matches[0] ?? '';
+			$args['anchor']    = isset( $matches[0] ) ? $matches[0] : '';
 			$args['placement'] = 'after';
 		}
 
@@ -170,7 +167,7 @@ class WPConfig {
 
 				$config->update( 'constant', $key, $value, $args );
 			}
-		} catch ( Exception $e ) {
+		} catch ( \Exception $e ) {
 			$results = [
 				'success' => false,
 				'message' => $e->getMessage(),
@@ -180,9 +177,7 @@ class WPConfig {
         return $results;
     }
 
-	public function delete(): array {
-        $results = [];
-
+	public function delete() {
 		$constants = array_filter( $this->data );
 		if ( empty( $constants ) ) {
 			return [
@@ -198,7 +193,7 @@ class WPConfig {
 			foreach ( $constants as $constant ) {
 				$config->remove( 'constant', $constant );
 			}
-		} catch ( Exception $e ) {
+		} catch ( \Exception $e ) {
 			$results = [
 				'success' => false,
 				'message' => $e->getMessage(),

@@ -4,7 +4,7 @@ defined( 'ABSPATH' ) || exit;
 
 class InstaWP_Sync_Post {
 
-	public array $restricted_cpts = array(
+	public $restricted_cpts = array(
 		'shop_order',
 		'customize_changeset',
 		'revision',
@@ -196,7 +196,7 @@ class InstaWP_Sync_Post {
 		}
 		// trash, untrash and delete
 		if ( in_array( $v->event_slug, array( 'post_trash', 'post_delete', 'untrashed_post' ), true ) ) {
-			$wp_post   = $details['post'] ?? array();
+			$wp_post   = isset( $details['post'] ) ? $details['post'] : array();
 			$post_name = $wp_post['post_name'];
 			$function  = 'wp_delete_post';
 			$data      = array();
@@ -246,7 +246,7 @@ class InstaWP_Sync_Post {
 			$reference_id = InstaWP_Sync_Helpers::get_term_reference_id( $post->ID );
 		} else {
 			$data = InstaWP_Sync_Helpers::parse_post_data( $post );
-			$reference_id = $data['reference_id'] ?? '';
+			$reference_id = isset( $data['reference_id'] ) ? $data['reference_id'] : '';
 		}
 
 		$event_type = $post->post_type;

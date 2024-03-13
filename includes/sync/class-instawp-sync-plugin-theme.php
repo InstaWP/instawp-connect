@@ -48,7 +48,7 @@ class InstaWP_Sync_Plugin_Theme {
 				$details = array(
 					'name'       => $theme->display( 'Name' ),
 					'stylesheet' => $theme->get_stylesheet(),
-					'data'       => $upgrader->new_theme_data ?? array(),
+					'data'       => isset( $upgrader->new_theme_data ) ? $upgrader->new_theme_data : array(),
 				);
 
 				if ( Helper::is_on_wordpress_org( $theme->get_stylesheet(), 'theme' ) ) {
@@ -67,7 +67,7 @@ class InstaWP_Sync_Plugin_Theme {
 
 			if ( ! empty( $plugin_data ) ) {
 				$post_slug = ! empty( $_POST['slug'] ) ? sanitize_text_field( $_POST['slug'] ) : null;
-				$slug      = empty( $plugin_data['TextDomain'] ) ? ( $post_slug ?? $plugin_data['TextDomain'] ) : $plugin_data['TextDomain'];
+				$slug      = empty( $plugin_data['TextDomain'] ) ? ( isset( $post_slug ) ? $post_slug : $plugin_data['TextDomain'] ) : $plugin_data['TextDomain'];
 				$details   = array(
 					'name' => $plugin_data['Name'],
 					'slug' => $slug,
@@ -396,7 +396,7 @@ class InstaWP_Sync_Plugin_Theme {
 	 *
 	 * @return bool
 	 */
-	public function is_plugin_installed( $plugin_slug ): bool {
+	public function is_plugin_installed( $plugin_slug ) {
 		$installed_plugins = get_plugins();
 
 		return array_key_exists( $plugin_slug, $installed_plugins ) || in_array( $plugin_slug, $installed_plugins, true );
@@ -409,7 +409,7 @@ class InstaWP_Sync_Plugin_Theme {
 	 *
 	 * @return bool
 	 */
-	public function check_plugin_installed_by_textdomain( $textdomain ): bool {
+	public function check_plugin_installed_by_textdomain( $textdomain ) {
 		$installed_plugins_data = get_plugins();
 		$installed_text_domains = array_column( array_values( $installed_plugins_data ), 'TextDomain' );
 
@@ -423,7 +423,7 @@ class InstaWP_Sync_Plugin_Theme {
 	 *
 	 * @return bool
 	 */
-	public function check_theme_installed( $stylesheet ): bool {
+	public function check_theme_installed( $stylesheet ) {
 		$installed_themes = wp_get_themes();
 
 		return array_key_exists( $stylesheet, $installed_themes );

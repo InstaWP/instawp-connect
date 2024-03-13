@@ -1,13 +1,9 @@
 <?php
-declare( strict_types=1 );
-
 namespace InstaWP\Connect\Helpers;
 
 class DebugLog {
 
-    public function fetch(): array {
-        $results = [];
-		
+    public function fetch() {
 		try {
 			$debug_enabled  = false;
 			$debug_log_file = WP_CONTENT_DIR . '/debug.log';
@@ -69,7 +65,7 @@ class DebugLog {
 			@fclose( $fh );
 
 			$results = $logs;
-		} catch ( Exception $e ) {
+		} catch ( \Exception $e ) {
 			$results = [
 				'success' => false,
 				'message' => $e->getMessage(),

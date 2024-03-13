@@ -72,7 +72,7 @@ class InstaWP_Sync_Option {
 		return InstaWP_Sync_Helpers::sync_response( $v );
 	}
 
-	private function is_protected_option( $option ): bool {
+	private function is_protected_option( $option ) {
 		$excluded_options = array( 'cron', 'instawp_api_options', 'siteurl', 'home', 'permalink_structure', 'rewrite_rules', 'recently_activated', 'active_plugins', 'theme_switched', 'sidebars_widgets', 'theme_switch_menu_locations', 'recovery_mode_email_last_sent', 'recovery_keys', 'auto_updater.lock', 'elementor_version', 'elementor_log' );
 
 		if ( in_array( $option, $excluded_options, true )

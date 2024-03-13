@@ -131,7 +131,7 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 				$log_ids    = $logs = array();
 				$table_name = INSTAWP_DB_TABLE_ACTIVITY_LOGS;
 				$results    = $wpdb->get_results(
-					$wpdb->prepare( "SELECT * FROM {$table_name} WHERE severity!=%s", 'critical' ),
+					$wpdb->prepare( "SELECT * FROM {$table_name} WHERE severity!=%s", 'critical' )
 				);
 
 				foreach ( $results as $result ) {

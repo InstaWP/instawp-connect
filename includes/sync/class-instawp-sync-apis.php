@@ -120,7 +120,7 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 			$count           = 1;
 			$total_op        = count( $encrypted_contents );
 			$progress        = intval( $count / $total_op * 100 );
-			$sync_message    = $bodyArr->sync_message ?? '';
+			$sync_message    = isset( $bodyArr->sync_message ) ? $bodyArr->sync_message : '';
 			$progress_status = ( $progress > 100 ) ? 'in_progress' : 'completed';
 
 			foreach ( $encrypted_contents as $v ) {
@@ -196,14 +196,14 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 	}
 
 	public function event_sync_logs( $data, $source_url, $response ) {
-		$status = ! empty( $this->logs[ $data->id ] ) ? 'failed' : $response[ $data->id ]['status'] ?? 'error';
+		$status = ! empty( $this->logs[ $data->id ] ) ? 'failed' : isset( $response[ $data->id ]['status'] ) ? $response[ $data->id ]['status'] : 'error';
 		$data   = array(
 			'event_id'   => $data->id,
 			'event_hash' => $data->event_hash,
 			'source_url' => $source_url,
 			'status'     => $status,
 			'data'       => wp_json_encode( $data->details ),
-			'logs'       => $this->logs[ $data->id ] ?? '',
+			'logs'       => isset( $this->logs[ $data->id ] ) ? $this->logs[ $data->id ] : '',
 			'date'       => current_time( 'mysql', 1 ),
 		);
 		InstaWP_Sync_DB::insert( INSTAWP_DB_TABLE_EVENT_SYNC_LOGS, $data );
@@ -214,18 +214,18 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 		$dir     = 'dev-to-live';
 		$date    = current_time( 'mysql', 1 );
 		$bodyArr = json_decode( $body );
-		$message = $bodyArr->sync_message ?? '';
+		$message = isset( $bodyArr->sync_message ) ? $bodyArr->sync_message : '';
 		$data    = array(
 			'encrypted_contents' => $bodyArr->encrypted_contents,
 			'changes'            => wp_json_encode( $changes ),
 			'sync_response'      => '',
 			'direction'          => $dir,
 			'status'             => $status,
-			'user_id'            => $bodyArr->upload_wp_user ?? '',
-			'changes_sync_id'    => $bodyArr->sync_id ?? '',
+			'user_id'            => isset( $bodyArr->upload_wp_user ) ? $bodyArr->upload_wp_user : '',
+			'changes_sync_id'    => isset( $bodyArr->sync_id ) ? $bodyArr->sync_id : '',
 			'sync_message'       => $message,
 			'source_connect_id'  => '',
-			'source_url'         => $bodyArr->source_url ?? '',
+			'source_url'         => isset( $bodyArr->source_url ) ? $bodyArr->source_url : '',
 			'date'               => $date,
 		);
 
@@ -242,7 +242,7 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 	 *
 	 * @return array
 	 */
-	public function sync_opration_response( $status, $message, $v ): array {
+	public function sync_opration_response( $status, $message, $v ) {
 		return array(
 			'id'      => $v->id,
 			'status'  => $status,
@@ -258,7 +258,7 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 	 *
 	 * @return array
 	 */
-	public function sync_update( $sync_id, $data ): array {
+	public function sync_update( $sync_id, $data ) {
 		$connect_id = instawp_get_connect_id();
 
 		// connects/<connect_id>/syncs/<sync_id>

@@ -515,7 +515,7 @@ if ( ! function_exists( 'instawp_whitelist_ip' ) ) {
 
 
 if ( ! function_exists( 'instawp_get_source_site_detail' ) ) {
-	function instawp_get_source_site_detail(): void {
+	function instawp_get_source_site_detail() {
 
 		if ( ! instawp()->is_staging ) {
 			return;

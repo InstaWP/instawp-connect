@@ -202,13 +202,13 @@ class InstaWP_Sync_Term {
 		return $term_id;
 	}
 
-	private function taxonomy_name( $taxonomy ): string {
+	private function taxonomy_name( $taxonomy ) {
 		$taxonomy = str_replace( 'pa_', '', $taxonomy );
 
 		return ucwords( str_replace( array( '-', '_' ), ' ', $taxonomy ) );
 	}
 
-	private function handle_meta_attachments( $metadata ): array {
+	private function handle_meta_attachments( $metadata ) {
 		$attachment_keys = array( 'thumbnail_id' );
 		$attachments     = array();
 

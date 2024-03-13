@@ -163,7 +163,7 @@ class InstaWP_Sync_Ajax {
 				$data = array();
 				foreach ( $events as $row ) {
 					if ( ! empty( $row->event_type ) ) {
-						$count                    = $data[ $row->event_type ] ?? 0;
+						$count                    = isset( $data[ $row->event_type ] ) ? $data[ $row->event_type ] : 0;
 						$data[ $row->event_type ] = $count + 1;
 					}
 				}
@@ -392,11 +392,11 @@ class InstaWP_Sync_Ajax {
 		) );
 	}
 
-	private function update_sync_events_status( $connect_id, $sync_id ): array {
+	private function update_sync_events_status( $connect_id, $sync_id ) {
 		try {
 			$response = $this->get_sync_object( $sync_id );
 			if ( $response['success'] === true ) {
-				$sync_response = $response['data']['changes']['changes']['sync_response'] ?? array();
+				$sync_response = isset( $response['data']['changes']['changes']['sync_response'] ) ? $response['data']['changes']['changes']['sync_response'] : array();
 				foreach ( $sync_response as $data ) {
 					InstaWP_Sync_DB::insert( INSTAWP_DB_TABLE_EVENT_SITES, array(
 						'event_id'       => $data['id'],
@@ -410,7 +410,7 @@ class InstaWP_Sync_Ajax {
 			}
 
 			return $response;
-		} catch ( Exception $e ) {
+		} catch ( \Exception $e ) {
 			return array(
 				'success' => false,
 				'message' => 'Caught Exception: ' . $e->getMessage(),
@@ -461,14 +461,14 @@ class InstaWP_Sync_Ajax {
 		return $this->wpdb->get_var( $query );
 	}
 
-	private function sync_upload( $data = null ): array {
+	private function sync_upload( $data = null ) {
 		$connect_id = instawp_get_connect_id();
 
 		// connects/<connect_id>/syncs
 		return InstaWP_Curl::do_curl( "connects/{$connect_id}/syncs", $data );
 	}
 
-	private function get_sync_object( $sync_id = null ): array {
+	private function get_sync_object( $sync_id = null ) {
 		$connect_id = instawp_get_connect_id();
 
 		// connects/<connect_id>/syncs
@@ -508,7 +508,7 @@ class InstaWP_Sync_Ajax {
 		return $this->wpdb->get_results( $query );
 	}
 
-	private function get_wp_events(): array {
+	private function get_wp_events() {
 		try {
 			$encrypted_content = array();
 			$events            = $this->pack_pending_sync_events();

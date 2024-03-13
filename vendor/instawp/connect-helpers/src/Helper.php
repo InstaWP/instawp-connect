@@ -1,16 +1,14 @@
 <?php
-declare( strict_types=1 );
-
 namespace InstaWP\Connect\Helpers;
 
 class Helper {
 
-    public static function get_random_string( int $length ): string {
+    public static function get_random_string( $length ) {
         try {
 			$length        = ( int ) round( ceil( absint( $length ) / 2 ) );
 			$bytes         = function_exists( 'random_bytes' ) ? random_bytes( $length ) : openssl_random_pseudo_bytes( $length );
 			$random_string = bin2hex( $bytes );
-		} catch ( Exception $e ) {
+		} catch ( \Exception $e ) {
 			$random_string = substr( hash( 'sha256', wp_generate_uuid4() ), 0, absint( $length ) );
 		}
 
@@ -18,9 +16,7 @@ class Helper {
 	}
 
 	public static function get_option( $option_name, $default = [] ) {
-		$option = get_option( $option_name, $default );
-
-		return $option;
+		return get_option( $option_name, $default );
 	}
 
 	public static function get_args_option( $key = '', $args = [], $default = '' ) {
@@ -28,7 +24,7 @@ class Helper {
 		$value   = ! is_array( $default ) && ! is_bool( $default ) && empty( $default ) ? '' : $default;
 		$key     = empty( $key ) ? '' : $key;
 
-		if ( isset( $args[ $key ] ) && ! empty( $args[ $key ] ) ) {
+		if ( ! empty( $args[ $key ] ) ) {
 			$value = $args[ $key ];
 		}
 
@@ -50,8 +46,7 @@ class Helper {
 					$files_total ++;
 				}
 			}
-		} catch ( Exception $e ) {
-		}
+		} catch ( \Exception $e ) {}
 
 		return [
 			'size'  => $bytes_total,

@@ -90,7 +90,7 @@ class InstaWP_Sync_WC {
 	
 	public function process_gallery( $post, $data ) {
 		if ( $post['post_type'] === 'product' ) {
-			$product_gallery = $data['product_gallery'] ?? array();
+			$product_gallery = isset( $data['product_gallery'] ) ? $data['product_gallery'] : array();
 			$gallery_ids     = array();
 
 			foreach ( $product_gallery as $gallery_item ) {
@@ -372,19 +372,19 @@ class InstaWP_Sync_WC {
 		InstaWP_Sync_DB::insert_update_event( $event_name, $event_slug, 'woocommerce', $source_id, $title, $details );
 	}
 
-	private function can_sync(): bool {
+	private function can_sync() {
 		return InstaWP_Sync_Helpers::can_sync( 'wc' ) && class_exists( 'WooCommerce' );
 	}
 
 	/*
      * Get product gallery images
      */
-	private function get_product_gallery( $product_id ): array {
+	private function get_product_gallery( $product_id ) {
 		$gallery = array();
 		$product = $this->get_product( $product_id );
 
 		if ( $product ) {
-			$attachment_ids = $product->get_gallery_image_ids() ?? array();
+			$attachment_ids = ! empty( $product->get_gallery_image_ids() ) ? $product->get_gallery_image_ids() : array();
 
 			foreach ( $attachment_ids as $attachment_id ) {
 				$gallery[] = InstaWP_Sync_Helpers::attachment_to_string( $attachment_id, 'full' );
@@ -412,7 +412,7 @@ class InstaWP_Sync_WC {
 		return function_exists( 'wc_get_product' ) ? wc_get_product( $product_id ) : false;
 	}
 
-	private function order_data( $order_id ): array {
+	private function order_data( $order_id ) {
 		$order      = wc_get_order( $order_id );
 		$order_data = $order->get_data();
 		$data       = $order_data;

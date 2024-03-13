@@ -8,7 +8,7 @@ defined( 'ABSPATH' ) || exit;
 if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 	class InstaWP_Activity_Log {
 
-		private string $table_name;
+		private $table_name;
 		private $wpdb;
 
 		public function __construct() {
@@ -30,7 +30,7 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 			$log_ids    = $logs = array();
 			$table_name = INSTAWP_DB_TABLE_ACTIVITY_LOGS;
 			$results    = $this->wpdb->get_results(
-				$this->wpdb->prepare( "SELECT * FROM {$table_name} WHERE severity=%s", 'critical' ),
+				$this->wpdb->prepare( "SELECT * FROM {$table_name} WHERE severity=%s", 'critical' )
 			);
 
 			foreach ( $results as $result ) {
@@ -128,12 +128,12 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 			}
 		}
 
-		private function setup_userdata( array $args ): array {
+		private function setup_userdata( array $args ) {
 			$user = function_exists( 'get_user_by' ) ? get_user_by( 'id', get_current_user_id() ) : false;
 
 			if ( $user ) {
 				$args['user_caps'] = strtolower( key( $user->caps ) );
-				$args['user_name'] = $user->user_login ?? $user->display_name;
+				$args['user_name'] = ! empty( $user->user_login ) ? $user->user_login : $user->display_name;
 				if ( empty( $args['user_id'] ) ) {
 					$args['user_id'] = $user->ID;
 				}
@@ -152,7 +152,7 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 			return $args;
 		}
 
-		private function get_severity( $action ): string {
+		private function get_severity( $action ) {
 			$severity_list = $this->event_severity();
 			$severity      = 'low';
 
@@ -166,7 +166,7 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 			return $severity;
 		}
 
-		private function event_severity(): array {
+		private function event_severity() {
 			return array(
 				'low'      => array(
 					'post_updated',
@@ -213,7 +213,7 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 			);
 		}
 
-		private function get_ip_address(): string {
+		private function get_ip_address() {
 			$header_key = InstaWP_Setting::get_option( 'instawp_log_visitor_ip_source' );
 
 			if ( empty( $header_key ) ) {

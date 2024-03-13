@@ -1,11 +1,9 @@
 <?php
-declare( strict_types=1 );
-
 namespace InstaWP\Connect\Helpers;
 
 class Inventory {
 
-	public function fetch(): array {
+	public function fetch() {
 		$results = [];
 
 		if ( ! function_exists( 'get_plugins' ) || ! function_exists( 'get_mu_plugins' ) ) {
@@ -14,8 +12,9 @@ class Inventory {
 
 		$wp_plugins         = get_plugins();
 		$active_plugins     = ( array ) get_option( 'active_plugins', [] );
-		$plugin_update_data = get_site_transient( 'update_plugins' )->response ?? [];
-		$plugins        = [];
+		$plugin_update_data = get_site_transient( 'update_plugins' );
+		$plugin_update_data = isset( $plugin_update_data->response ) ? $plugin_update_data->response : [];
+		$plugins            = [];
 
 		foreach ( $wp_plugins as $name => $plugin ) {
 			$slug      = explode( '/', $name );
@@ -50,7 +49,8 @@ class Inventory {
 
 		$wp_themes         = wp_get_themes();
 		$current_theme     = wp_get_theme();
-		$theme_update_data = get_site_transient( 'update_themes' )->response ?? [];
+		$theme_update_data = get_site_transient( 'update_themes' );
+		$theme_update_data = isset( $theme_update_data->response ) ? $theme_update_data->response : [];
 		$themes            = [];
 
 		foreach ( $wp_themes as $theme ) {
@@ -82,7 +82,7 @@ class Inventory {
 			$latest_update = $updates[0]->current;
 		}
 
-		$results = [
+		return [
 			'core'      => [
 				[
 					'version'          => get_bloginfo( 'version' ),
@@ -95,7 +95,5 @@ class Inventory {
 			'plugin'    => $plugins,
 			'mu_plugin' => $mu_plugins,
 		];
-
-        return $results;
     }
 }

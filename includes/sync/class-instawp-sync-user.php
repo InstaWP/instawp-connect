@@ -116,7 +116,7 @@ class InstaWP_Sync_User {
 
 		$get_user_by_reference_id = get_users( array(
 			'meta_key'   => 'instawp_event_user_sync_reference_id',
-			'meta_value' => $user_meta['instawp_event_user_sync_reference_id'][0] ?? '',
+			'meta_value' => isset( $user_meta['instawp_event_user_sync_reference_id'][0] ) ? $user_meta['instawp_event_user_sync_reference_id'][0] : '',
 		) );
 		$user = ! empty( $get_user_by_reference_id ) ? reset( $get_user_by_reference_id ) : get_user_by( 'email', $user_data['email'] );
 
