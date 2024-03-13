@@ -134,6 +134,10 @@ class Updater {
 			require_once ABSPATH . 'wp-admin/includes/class-wp-automatic-updater.php';
 		}
 
+		if ( ! function_exists( 'wp_is_auto_update_enabled_for_type' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/update.php';
+		}
+
 		add_filter( 'automatic_updater_disabled', '__return_false', 201 );
 		add_filter( "auto_update_{$type}", '__return_true', 201 );
 		
