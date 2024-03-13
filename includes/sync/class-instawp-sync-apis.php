@@ -196,7 +196,7 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 	}
 
 	public function event_sync_logs( $data, $source_url, $response ) {
-		$status = ! empty( $this->logs[ $data->id ] ) ? 'failed' : isset( $response[ $data->id ]['status'] ) ? $response[ $data->id ]['status'] : 'error';
+		$status = ! empty( $this->logs[ $data->id ] ) ? 'failed' : ( isset( $response[ $data->id ]['status'] ) ? $response[ $data->id ]['status'] : 'error' );
 		$data   = array(
 			'event_id'   => $data->id,
 			'event_hash' => $data->event_hash,
@@ -231,8 +231,6 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 
 		InstaWP_Sync_DB::insert( $this->tables['sh_table'], $data );
 	}
-
-
 
 	/** sync operation response
 	 *
