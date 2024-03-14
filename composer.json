@@ -10,7 +10,7 @@
         }
     ],
     "require": {
-        "php": ">= 7.4.0",
+        "php": ">= 5.6",
         "instawp/connect-helpers": "dev-main",
         "phpseclib/phpseclib": "~3.0",
         "woocommerce/action-scheduler": "^3.7"
