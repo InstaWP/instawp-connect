@@ -6,10 +6,13 @@ if ( ! defined( 'INSTAWP_PLUGIN_DIR' ) ) {
 
 if ( ! class_exists( 'InstaWP_File_Management' ) ) {
 	class InstaWP_File_Management {
-		
+
 		protected static $_instance = null;
-		private static $query_var;
 		private $file_manager;
+
+		public static $query_var = 'instawp-file-manager';
+		public static $action = 'instawp_clean_file_manager';
+
 
 		/**
 		 * @return InstaWP_File_Management
@@ -18,17 +21,17 @@ if ( ! class_exists( 'InstaWP_File_Management' ) ) {
 			if ( is_null( self::$_instance ) ) {
 				self::$_instance = new self();
 			}
+
 			return self::$_instance;
 		}
 
 		public function __construct() {
 			$this->file_manager = new \InstaWP\Connect\Helpers\FileManager();
-			self::$query_var    = $this->file_manager::$query_var;
 
 			add_action( 'init', array( $this, 'add_endpoint' ) );
 			add_action( 'wp', array( $this, 'filter_redirect' ), 0 );
 			add_action( 'template_redirect', array( $this, 'redirect' ) );
-			add_action( $this->file_manager::$action, array( $this, 'clean' ) );
+			add_action( self::$action, array( $this, 'clean' ) );
 			add_action( 'admin_post_instawp-file-manager-auto-login', array( $this, 'auto_login' ) );
 			add_action( 'admin_post_nopriv_instawp-file-manager-auto-login', array( $this, 'auto_login' ) );
 			add_action( 'update_option_instawp_rm_file_manager', array( $this, 'clean' ) );
@@ -87,7 +90,7 @@ if ( ! class_exists( 'InstaWP_File_Management' ) ) {
 
 			<?php
 			$fields = ob_get_clean();
-			instawp()->tools::auto_login_page( $fields, $file_manager_url, __( 'InstaWP File Manager', 'instawp-connect' ) );
+			InstaWP_Tools::auto_login_page( $fields, $file_manager_url, __( 'InstaWP File Manager', 'instawp-connect' ) );
 		}
 
 		public function query_vars( $query_vars ) {
@@ -97,7 +100,7 @@ if ( ! class_exists( 'InstaWP_File_Management' ) ) {
 
 			return $query_vars;
 		}
-		
+
 		public function load_template( $template ) {
 			return $this->get_template( $template );
 		}

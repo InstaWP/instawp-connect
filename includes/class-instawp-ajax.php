@@ -72,17 +72,17 @@ class InstaWP_AJAX {
 
 		if ( isset( $response['success'] ) && $response['success'] !== true ) {
 			error_log( json_encode( $response ) );
-			wp_send_json_error( array( 'message' => $response['message'] ?? '' ) );
+			wp_send_json_error( array( 'message' => InstaWP_Setting::get_args_option( 'message', $response ) ) );
 		}
 
 		$response_data                     = InstaWP_Setting::get_args_option( 'data', $response, array() );
-		$auto_login_hash                   = $response_data['dest_wp']['auto_login_hash'] ?? '';
+		$auto_login_hash                   = isset( $response_data['dest_wp']['auto_login_hash'] ) ? $response_data['dest_wp']['auto_login_hash'] : '';
 		$response_data['migrate_id']       = $migrate_id;
-		$response_data['progress_files']   = $response_data['progress_files'] ?? 0;
-		$response_data['progress_db']      = $response_data['progress_db'] ?? 0;
-		$response_data['progress_restore'] = $response_data['progress_restore'] ?? 0;
-		$response_data['server_logs']      = $response_data['server_logs'] ?? '';
-		$response_data['failed_message']   = $response_data['failed_message'] ?? esc_html( 'Something went wrong' );
+		$response_data['progress_files']   = InstaWP_Setting::get_args_option( 'progress_files', $response_data, 0 );
+		$response_data['progress_db']      = InstaWP_Setting::get_args_option( 'progress_db', $response_data, 0 );
+		$response_data['progress_restore'] = InstaWP_Setting::get_args_option( 'progress_restore', $response_data, 0 );
+		$response_data['server_logs']      = InstaWP_Setting::get_args_option( 'server_logs', $response_data );
+		$response_data['failed_message']   = InstaWP_Setting::get_args_option( 'failed_message', $response_data, esc_html( 'Something went wrong' ) );
 
 		if ( isset( $response_data['stage']['failed'] ) && $response_data['stage']['failed'] === true ) {
 			instawp_reset_running_migration();
@@ -98,7 +98,7 @@ class InstaWP_AJAX {
 
 			if ( $tracking_db instanceof IWPDB ) {
 				$migrate_settings = $tracking_db->get_option( 'migrate_settings' );
-				$migrate_options  = $migrate_settings['options'] ?? array();
+				$migrate_options  = InstaWP_Setting::get_args_option( 'options', $migrate_settings, [] );
 
 				if ( is_array( $migrate_options ) && in_array( 'enable_event_syncing', $migrate_options ) ) {
 					InstaWP_Setting::update_option( 'instawp_is_event_syncing', 1 );
@@ -114,7 +114,7 @@ class InstaWP_AJAX {
 		if ( ! empty( $auto_login_hash ) ) {
 			$response_data['dest_wp']['auto_login_url'] = sprintf( '%s/wordpress-auto-login?site=%s', InstaWP_Setting::get_api_domain(), $auto_login_hash );
 		} else {
-			$response_data['dest_wp']['auto_login_url'] = $response_data['dest_wp']['url'] ?? '';
+			$response_data['dest_wp']['auto_login_url'] = isset( $response_data['dest_wp']['url'] ) ? $response_data['dest_wp']['url'] : '';
 		}
 
 		if ( isset( $response_data['dest_wp']['url'] ) && ! empty( $dest_url = $response_data['dest_wp']['url'] ) ) {
@@ -145,9 +145,9 @@ class InstaWP_AJAX {
 			instawp_set_whitelist_ip();
 		}
 
-		$migrate_settings   = instawp()->tools::get_migrate_settings( $_POST );
-		$migrate_key        = instawp()->tools::get_random_string( 40 );
-		$pre_check_response = instawp()->tools::get_pull_pre_check_response( $migrate_key, $migrate_settings );
+		$migrate_settings   = InstaWP_Tools::get_migrate_settings( $_POST );
+		$migrate_key        = InstaWP_Tools::get_random_string( 40 );
+		$pre_check_response = InstaWP_Tools::get_pull_pre_check_response( $migrate_key, $migrate_settings );
 
 		if ( is_wp_error( $pre_check_response ) ) {
 
@@ -193,8 +193,8 @@ class InstaWP_AJAX {
 			'php_version'         => PHP_VERSION,
 			'wp_version'          => $wp_version,
 			'plugin_version'      => INSTAWP_PLUGIN_VERSION,
-			'file_size'           => instawp()->tools::get_total_sizes( 'files', $migrate_settings ),
-			'db_size'             => instawp()->tools::get_total_sizes( 'db' ),
+			'file_size'           => InstaWP_Tools::get_total_sizes( 'files', $migrate_settings ),
+			'db_size'             => InstaWP_Tools::get_total_sizes( 'db' ),
 			'is_website_on_local' => $is_website_on_local,
 			'settings'            => $migrate_settings,
 			'active_plugins'      => InstaWP_Setting::get_option( 'active_plugins', array() ),
@@ -243,7 +243,7 @@ class InstaWP_AJAX {
 			'dest_url'     => $destination_site_url,
 			'started_at'   => current_time( 'mysql' ),
 		);
-		$tracking_db           = instawp()->tools::get_tracking_database( $migrate_key );
+		$tracking_db           = InstaWP_Tools::get_tracking_database( $migrate_key );
 
 		if ( $tracking_db ) {
 			$tracking_db->update_option( 'dest_url', $destination_site_url );
@@ -256,8 +256,8 @@ class InstaWP_AJAX {
 
 	public function check_usages_limit() {
 
-		$migrate_settings     = instawp()->tools::get_migrate_settings( $_POST );
-		$total_files_size     = instawp()->tools::get_total_sizes( 'files', $migrate_settings );
+		$migrate_settings     = InstaWP_Tools::get_migrate_settings( $_POST );
+		$total_files_size     = InstaWP_Tools::get_total_sizes( 'files', $migrate_settings );
 		$check_usage_response = instawp()->instawp_check_usage_on_cloud( $total_files_size );
 		$can_proceed          = (bool) InstaWP_Setting::get_args_option( 'can_proceed', $check_usage_response, false );
 		$api_response         = InstaWP_Setting::get_args_option( 'api_response', $check_usage_response, array() );
@@ -312,7 +312,7 @@ class InstaWP_AJAX {
 			wp_send_json_success( array( 'content' => __( 'Empty folder!', 'instawp-connect' ) ) );
 		}
 
-		$list_data      = get_option( 'instawp_large_files_list', array() ) ?? array();
+		$list_data      = get_option( 'instawp_large_files_list', array() );
 		$paths          = wp_list_pluck( $list_data, 'realpath' );
 		$upload_dir     = wp_upload_dir();
 		$active_plugins = (array) get_option( 'active_plugins', array() );
@@ -338,8 +338,8 @@ class InstaWP_AJAX {
 				$theme_item_checked = true;
 
 				if ( in_array( $data['full_path'], array( $theme_path, $template_path, $themes_dir, $themes_dir . '/index.php' ) )
-					|| strpos( $data['full_path'], $theme_path ) !== false
-					|| strpos( $data['full_path'], $template_path ) !== false ) {
+				     || strpos( $data['full_path'], $theme_path ) !== false
+				     || strpos( $data['full_path'], $template_path ) !== false ) {
 
 					$theme_item_checked = false;
 				}
@@ -351,7 +351,7 @@ class InstaWP_AJAX {
 				$plugin_item_checked = true;
 
 				if ( in_array( $data['full_path'], array( wp_normalize_path( WP_PLUGIN_DIR ), wp_normalize_path( WP_PLUGIN_DIR ) . '/index.php' ) )
-					|| in_array( basename( $data['relative_path'] ), array_map( 'dirname', $active_plugins ) ) ) {
+				     || in_array( basename( $data['relative_path'] ), array_map( 'dirname', $active_plugins ) ) ) {
 
 					$plugin_item_checked = false;
 				}

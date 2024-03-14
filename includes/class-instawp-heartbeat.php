@@ -66,7 +66,7 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 			}
 		}
 
-		public static function prepare_data(): array {
+		public static function prepare_data() {
 			if ( ! class_exists( 'WP_Debug_Data' ) ) {
 				require_once ABSPATH . 'wp-admin/includes/class-wp-debug-data.php';
 			}
@@ -112,7 +112,7 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 			);
 		}
 
-		public static function send_heartbeat( $connect_id = null ): bool {
+		public static function send_heartbeat( $connect_id = null ) {
 			global $wpdb;
 
 			if ( defined( 'INSTAWP_DEBUG_LOG' ) && true === INSTAWP_DEBUG_LOG ) {
@@ -157,7 +157,7 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 
 			for ( $i = 0; $i < 10; $i ++ ) {
 				$heartbeat_response = InstaWP_Curl::do_curl( "connects/{$connect_id}/heartbeat", $heartbeat_body, array(), true, 'v1' );
-				$response_code      = $heartbeat_response['code'] ?? '';
+				$response_code      = InstaWP_Setting::get_args_option( 'code', $heartbeat_response );
 
 				if ( $response_code == 200 ) {
 					$success = true;

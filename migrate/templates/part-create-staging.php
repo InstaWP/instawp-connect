@@ -32,7 +32,7 @@ $customize_options     = array(
 );
 $current_create_screen = isset( $_GET['screen'] ) ? sanitize_text_field( $_GET['screen'] ) : 1;
 $tables                = instawp_get_database_details();
-$log_tables_to_exclude = instawp()->tools::get_log_tables_to_exclude();
+$log_tables_to_exclude = InstaWP_Tools::get_log_tables_to_exclude();
 $list_data             = get_option( 'instawp_large_files_list', array() ) ?? array();
 $migration_details     = InstaWP_Setting::get_args_option( 'instawp_migration_details', $instawp_settings );
 $tracking_url          = InstaWP_Setting::get_args_option( 'tracking_url', $migration_details );
@@ -44,7 +44,7 @@ $whitelist_ip          = instawp_whitelist_ip();
 <div class="bg-white text-center rounded-md py-20 flex items-center justify-center connected <?= empty( $migrate_id ) ? '' : 'hidden'; ?>">
     <div class="w-2/3">
         <div class="mb-4">
-            <img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/connected.svg' ) ); ?>" class="mx-auto" alt="">
+            <img src="<?php echo esc_url( instaWP::get_asset_url( 'migrate/assets/images/connected.svg' ) ); ?>" class="mx-auto" alt="">
         </div>
         <div class="text-sm font-medium text-grayCust-200 mb-1"><?php esc_html_e( 'Your account is now connected', 'instawp-connect' ); ?></div>
         <div class="text-center inline-block text-sm font-normal text-grayCust-50 mb-4"><?php esc_html_e( 'Start by creating a new staging site', 'instawp-connect' ); ?></div>
@@ -77,7 +77,7 @@ $whitelist_ip          = instawp_whitelist_ip();
                         <div class="relative flex space-x-3">
                             <div>
                                 <div class="screen-nav-icon h-8 w-8 rounded-full border-2 border-primary-900 flex items-center justify-center <?php echo ( $index == 0 ) ? 'bg-primary-900' : 'bg-white'; ?>">
-                                    <img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/true-icon.svg' ) ); ?>" alt="True Icon">
+                                    <img src="<?php echo esc_url( instaWP::get_asset_url( 'migrate/assets/images/true-icon.svg' ) ); ?>" alt="True Icon">
                                     <span class="w-2 h-2 bg-primary-900 rounded"></span>
                                 </div>
                             </div>
@@ -115,7 +115,7 @@ $whitelist_ip          = instawp_whitelist_ip();
                 <div class="panel mt-6 block">
                     <div for="quick_staging" class="instawp-staging-type cursor-pointer flex justify-between items-center border mb-4 flex p-4 rounded-xl">
                         <div class="flex items-center">
-                            <div class="w-10 h-10 bg-white rounded-lg flex justify-center items-center border custom-border"><img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/icon-quick.svg' ) ); ?>" alt=""></div>
+                            <div class="w-10 h-10 bg-white rounded-lg flex justify-center items-center border custom-border"><img src="<?php echo esc_url( instaWP::get_asset_url( 'migrate/assets/images/icon-quick.svg' ) ); ?>" alt=""></div>
                             <div class="ml-4">
                                 <div class="text-graCust-300 text-lg font-medium staging-type-label"><?php esc_html_e( 'Quick Staging', 'instawp-connect' ); ?></div>
                                 <div class="text-grayCust-50 text-sm font-normal"><?php esc_html_e( 'Create a staging environment without include media folder.', 'instawp-connect' ); ?></div>
@@ -127,7 +127,7 @@ $whitelist_ip          = instawp_whitelist_ip();
                     </div>
                     <div for="full_staging" class="instawp-staging-type cursor-pointer flex justify-between items-center border mb-4 flex p-4 rounded-xl">
                         <div class="flex items-center">
-                            <div class="w-10 h-10 bg-white rounded-lg flex justify-center items-center border custom-border"><img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/icon-full.svg' ) ); ?>" alt=""></div>
+                            <div class="w-10 h-10 bg-white rounded-lg flex justify-center items-center border custom-border"><img src="<?php echo esc_url( instaWP::get_asset_url( 'migrate/assets/images/icon-full.svg' ) ); ?>" alt=""></div>
                             <div class="ml-4">
                                 <div class="text-graCust-300 text-lg font-medium staging-type-label"><?php esc_html_e( 'Full Staging', 'instawp-connect' ); ?></div>
                                 <div class="text-grayCust-50 text-sm font-normal"><?php esc_html_e( 'Create an exact copy as a staging environment. Time may vary based on site size.', 'instawp-connect' ); ?></div>
@@ -139,7 +139,7 @@ $whitelist_ip          = instawp_whitelist_ip();
                     </div>
                     <div for="custom_staging" class="instawp-staging-type cursor-pointer flex justify-between items-center border flex p-4 rounded-xl">
                         <div class="flex items-center">
-                            <div class="w-10 h-10 bg-white rounded-lg flex justify-center items-center border custom-border"><img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/icon-custom.svg' ) ); ?>" alt=""></div>
+                            <div class="w-10 h-10 bg-white rounded-lg flex justify-center items-center border custom-border"><img src="<?php echo esc_url( instaWP::get_asset_url( 'migrate/assets/images/icon-custom.svg' ) ); ?>" alt=""></div>
                             <div class="ml-4">
                                 <div class="text-graCust-300 text-lg font-medium staging-type-label"><?php esc_html_e( 'Custom Staging', 'instawp-connect' ); ?></div>
                                 <div class="text-grayCust-50 text-sm font-normal"><?php esc_html_e( 'Choose the options that matches your requirements.', 'instawp-connect' ); ?></div>
@@ -325,7 +325,7 @@ $whitelist_ip          = instawp_whitelist_ip();
                 </div>
 
                 <div class="confirmation-warning hidden text-center px-24 py-8">
-                    <div class="mb-2 flex justify-center text-center"><img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/warning.svg' ) ); ?>" alt="Warning"></div>
+                    <div class="mb-2 flex justify-center text-center"><img src="<?php echo esc_url( instaWP::get_asset_url( 'migrate/assets/images/warning.svg' ) ); ?>" alt="Warning"></div>
                     <div class="mb-2 text-graCust-300 text-lg font-medium staging-type-label"><?php esc_html_e( 'You have reached your limit', 'instawp-connect' ); ?></div>
                     <div class="mb-2 text-gray-500 text-sm font-normal leading-6"><?php esc_html_e( 'You have exceeded the maximum allowance of your plan.', 'instawp-connect' ); ?></div>
 
@@ -408,14 +408,14 @@ $whitelist_ip          = instawp_whitelist_ip();
                         <div class="instawp-track-migration-area bg-grayCust-250 px-5 py-4 rounded-bl-lg rounded-br-lg flex content-center items-center <?= empty( $tracking_url ) ? 'justify-end' : 'justify-between' ?>">
                             <a class="instawp-track-migration text-primary-900 hover:text-primary-900 focus:ring-0 text-sm text-left flex items-center <?= empty( $tracking_url ) ? 'hidden' : '' ?>" href="<?php echo esc_url( $tracking_url ); ?>" target="_blank">
                                 <span class="mr-2"><?php esc_html_e( 'Track Migration', 'instawp-connect' ); ?></span>
-                                <img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/share-icon.svg' ) ); ?>" class="inline ml-1" alt="">
+                                <img src="<?php echo esc_url( instaWP::get_asset_url( 'migrate/assets/images/share-icon.svg' ) ); ?>" class="inline ml-1" alt="">
                             </a>
                             <button type="button" class="instawp-migrate-abort btn-shadow border border-grayCust-350 rounded-md py-2 px-8 bg-white text-sm font-medium text-red-400"><?php esc_html_e( 'Abort', 'instawp-connect' ); ?></button>
                         </div>
                     </div>
                     <div class="migration-completed hidden border border-grayCust-100 rounded-lg">
                         <div class="p-6 border-b border-grayCust-10 flex items-center justify-center text-lg font-medium text-grayCust-800">
-                            <img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/check-icon.png' ) ); ?>" class="mr-2" alt=""><?php esc_html_e( 'Your new WordPress website is ready!', 'instawp-connect' ); ?>
+                            <img src="<?php echo esc_url( instaWP::get_asset_url( 'migrate/assets/images/check-icon.png' ) ); ?>" class="mr-2" alt=""><?php esc_html_e( 'Your new WordPress website is ready!', 'instawp-connect' ); ?>
                         </div>
                         <div class="p-6 custom-bg">
                             <div class="flex items-center mb-6">
@@ -423,7 +423,7 @@ $whitelist_ip          = instawp_whitelist_ip();
                                 <div class="flex items-center cursor-pointer text-primary-900 border-b font-medium text-base border-dashed border-primary-900 ">
                                     <a target="_blank" id="instawp-site-url" class="focus:shadow-none focus:outline-0">
                                         <span></span>
-                                        <img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/share-icon.svg' ) ); ?>" class="inline ml-1" alt="">
+                                        <img src="<?php echo esc_url( instaWP::get_asset_url( 'migrate/assets/images/share-icon.svg' ) ); ?>" class="inline ml-1" alt="">
                                     </a>
                                 </div>
                             </div>
@@ -463,8 +463,8 @@ $whitelist_ip          = instawp_whitelist_ip();
             <div class="text-grayCust-900 text-sm font-medium cursor-pointer flex items-center instawp-show-staging-sites">
                 <span><?php esc_html_e( 'Show my staging sites', 'instawp-connect' ); ?></span>
                 <div class="flex items-center ml-2">
-                    <img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/right-icon.svg' ) ); ?>" alt="">
-                    <img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/right-icon.svg' ) ); ?>" alt="">
+                    <img src="<?php echo esc_url( instaWP::get_asset_url( 'migrate/assets/images/right-icon.svg' ) ); ?>" alt="">
+                    <img src="<?php echo esc_url( instaWP::get_asset_url( 'migrate/assets/images/right-icon.svg' ) ); ?>" alt="">
                 </div>
             </div>
         </div>

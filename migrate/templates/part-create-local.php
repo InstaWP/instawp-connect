@@ -11,7 +11,7 @@ $sh_command = 'wp instawp local push';
     <div class="w-3/5">
 
         <div class="mb-2">
-            <img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/staging.svg' ) ); ?>" class="mx-auto" alt="">
+            <img src="<?php echo esc_url( instaWP::get_asset_url( 'migrate/assets/images/staging.svg' ) ); ?>" class="mx-auto" alt="">
         </div>
 
         <div class="text-sm text-gray-700 font-medium text-grayCust-200 mb-1"><?php esc_html_e( 'Support for Local websites is back!', 'instawp-connect' ) ?></div>

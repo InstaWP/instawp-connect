@@ -262,8 +262,8 @@ if ( ! function_exists( 'instawp_is_website_on_local' ) ) {
 			return false;
 		}
 
-		$http_host       = $_SERVER['HTTP_HOST'] ?? '';
-		$remote_address  = $_SERVER['REMOTE_ADDR'] ?? '';
+		$http_host       = isset( $_SERVER['HTTP_HOST'] ) ? $_SERVER['HTTP_HOST'] : '';
+		$remote_address  = isset( $_SERVER['REMOTE_ADDR'] ) ? $_SERVER['REMOTE_ADDR'] : '';
 		$local_addresses = array(
 			'127.0.0.1',
 			'::1',
@@ -295,7 +295,7 @@ if ( ! function_exists( 'instawp_get_post_type_singular_name' ) ) {
 	 *
 	 * @return string
 	 */
-	function instawp_get_post_type_singular_name( $post_type ): string {
+	function instawp_get_post_type_singular_name( $post_type ) {
 		$post_type_object = get_post_type_object( $post_type );
 		if ( ! empty( $post_type_object ) ) {
 			return $post_type_object->labels->singular_name;
@@ -371,11 +371,19 @@ if ( ! function_exists( 'instawp_get_database_details' ) ) {
 
 			if ( $sort_by === 'descending' ) {
 				usort( $tables, function ( $item1, $item2 ) {
-					return $item2['size'] <=> $item1['size'];
+					if ( $item1['size'] == $item2['size'] ) {
+						return 0;
+					}
+
+					return ( $item1['size'] > $item2['size'] ) ? - 1 : 1;
 				} );
 			} elseif ( $sort_by === 'ascending' ) {
 				usort( $tables, function ( $item1, $item2 ) {
-					return $item1['size'] <=> $item2['size'];
+					if ( $item1['size'] == $item2['size'] ) {
+						return 0;
+					}
+
+					return ( $item1['size'] < $item2['size'] ) ? - 1 : 1;
 				} );
 			}
 		}
@@ -541,7 +549,7 @@ if ( ! function_exists( 'instawp_get_connect_detail_by_connect_id' ) ) {
 	 *
 	 * @return array
 	 */
-	function instawp_get_connect_detail_by_connect_id( $connect_id ): array {
+	function instawp_get_connect_detail_by_connect_id( $connect_id ) {
 		// connects/<connect_id>
 		$response        = array();
 		$site_connect_id = instawp_get_connect_id();
@@ -596,7 +604,7 @@ if ( ! function_exists( 'instawp_get_site_detail_by_connect_id' ) ) {
 		}
 
 		if ( ! empty( $field ) ) {
-			return $site_data[ $field ] ?? '';
+			return isset( $site_data[ $field ] ) ? $site_data[ $field ] : '';
 		}
 
 		return $site_data;
@@ -643,7 +651,7 @@ if ( ! function_exists( 'instawp_send_heartbeat' ) ) {
 	 *
 	 * @return bool
 	 */
-	function instawp_send_heartbeat( $connect_id = '' ): bool {
+	function instawp_send_heartbeat( $connect_id = '' ) {
 		return InstaWP_Heartbeat::send_heartbeat( $connect_id );
 	}
 }
@@ -799,7 +807,7 @@ if ( ! function_exists( 'instawp_array_recursive_diff' ) ) {
 	 *
 	 * @return array
 	 */
-	function instawp_array_recursive_diff( $array1, $array2 ): array {
+	function instawp_array_recursive_diff( $array1, $array2 ) {
 		$diff = array();
 		foreach ( $array1 as $key => $value ) {
 			if ( is_array( $value ) ) {

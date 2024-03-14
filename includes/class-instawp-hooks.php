@@ -59,9 +59,9 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 		}
 
 		public function front_enqueue_scripts() {
-			wp_enqueue_style( 'instawp-common', instawp()::get_asset_url( 'assets/css/common.min.css' ) );
-			wp_enqueue_script( 'instawp-common', instawp()::get_asset_url( 'assets/js/common.js' ), array( 'jquery' ) );
-			wp_localize_script( 'instawp-common', 'instawp_common', instawp()->tools::get_localize_data() );
+			wp_enqueue_style( 'instawp-common', instaWP::get_asset_url( 'assets/css/common.min.css' ) );
+			wp_enqueue_script( 'instawp-common', instaWP::get_asset_url( 'assets/js/common.js' ), array( 'jquery' ) );
+			wp_localize_script( 'instawp-common', 'instawp_common', InstaWP_Tools::get_localize_data() );
 		}
 
 		public function add_instawp_menu_icon( WP_Admin_Bar $admin_bar ) {

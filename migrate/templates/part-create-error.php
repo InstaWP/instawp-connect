@@ -12,7 +12,7 @@ if ( ! instawp()->can_bundle ) {
 } elseif ( instawp()->has_unsupported_plugins ) {
 	$unsupported_plugins     = array_map( function ( $plugin ) {
 		return $plugin['name'] ?? '';
-	}, instawp()->tools::get_unsupported_active_plugins() );
+	}, InstaWP_Tools::get_unsupported_active_plugins() );
 	$unsupported_plugins_str = implode( ', ', $unsupported_plugins );
 
 	$error_title   = esc_html__( 'Unsupported plugins detected.', 'instawp-connect' );
@@ -24,7 +24,7 @@ if ( ! instawp()->can_bundle ) {
 <div class="bg-white text-center rounded-md py-20 flex items-center justify-center">
     <div class="w-2/3">
         <div class="mb-4">
-            <img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/createsite.svg' ) ); ?>" class="mx-auto" alt="">
+            <img src="<?php echo esc_url( instaWP::get_asset_url( 'migrate/assets/images/createsite.svg' ) ); ?>" class="mx-auto" alt="">
         </div>
         <div class="text-sm text-redCust-100 font-medium text-grayCust-200 mb-1"><?= $error_title ?></div>
         <div class="text-center inline-block text-sm font-normal text-grayCust-50 mb-4"><?= $error_message ?></div>

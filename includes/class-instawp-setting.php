@@ -769,11 +769,11 @@ class InstaWP_Setting {
 		return get_option( $option_name, $default );
 	}
 
-	public static function update_option( $option_name, $option_value, $autoload = false ): bool {
+	public static function update_option( $option_name, $option_value, $autoload = false ) {
 		return update_option( $option_name, $option_value, $autoload );
 	}
 
-	public static function delete_option( $option_name ): bool {
+	public static function delete_option( $option_name ) {
 		return delete_option( $option_name );
 	}
 

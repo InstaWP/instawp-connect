@@ -411,7 +411,7 @@ class InstaWP_Rest_Api {
 
 		$migrate_key        = sanitize_text_field( $request->get_param( 'migrate_key' ) );
 		$migrate_settings   = $request->get_param( 'migrate_settings' );
-		$pre_check_response = instawp()->tools::get_pull_pre_check_response( $migrate_key, $migrate_settings );
+		$pre_check_response = InstaWP_Tools::get_pull_pre_check_response( $migrate_key, $migrate_settings );
 
 		if ( is_wp_error( $pre_check_response ) ) {
 			return $this->throw_error( $pre_check_response );
@@ -437,18 +437,18 @@ class InstaWP_Rest_Api {
 		global $wp_version;
 
 		// Create InstaWP backup directory
-		instawp()->tools::create_instawpbackups_dir();
+		InstaWP_Tools::create_instawpbackups_dir();
 
 		// Clean InstaWP backup directory
-		instawp()->tools::clean_instawpbackups_dir();
+		InstaWP_Tools::clean_instawpbackups_dir();
 
-		$migrate_key      = instawp()->tools::get_random_string( 40 );
-		$migrate_settings = instawp()->tools::get_migrate_settings();
+		$migrate_key      = InstaWP_Tools::get_random_string( 40 );
+		$migrate_settings = InstaWP_Tools::get_migrate_settings();
 		$api_signature    = hash( 'sha512', $migrate_key . current_time( 'U' ) );
-		$dest_file_url    = instawp()->tools::generate_destination_file( $migrate_key, $api_signature );
+		$dest_file_url    = InstaWP_Tools::generate_destination_file( $migrate_key, $api_signature );
 
 		// Check accessibility of serve file
-		if ( ! instawp()->tools::is_migrate_file_accessible( $dest_file_url ) ) {
+		if ( ! InstaWP_Tools::is_migrate_file_accessible( $dest_file_url ) ) {
 			return $this->throw_error( new WP_Error( 403, esc_html__( 'Could not create destination file.', 'instawp-connect' ) ) );
 		}
 
@@ -457,8 +457,8 @@ class InstaWP_Rest_Api {
 				'php_version'      => PHP_VERSION,
 				'wp_version'       => $wp_version,
 				'plugin_version'   => INSTAWP_PLUGIN_VERSION,
-				'file_size'        => instawp()->tools::get_total_sizes( 'files', $migrate_settings ),
-				'db_size'          => instawp()->tools::get_total_sizes( 'db' ),
+				'file_size'        => InstaWP_Tools::get_total_sizes( 'files', $migrate_settings ),
+				'db_size'          => InstaWP_Tools::get_total_sizes( 'db' ),
 				'active_plugins'   => InstaWP_Setting::get_option( 'active_plugins', array() ),
 				'migrate_settings' => $migrate_settings,
 				'migrate_key'      => $migrate_key,

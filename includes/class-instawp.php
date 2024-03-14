@@ -52,8 +52,7 @@ class instaWP {
 		$this->connect_id              = instawp_get_connect_id();
 		$this->is_staging              = (bool) InstaWP_Setting::get_option( 'instawp_is_staging', false );
 		$this->is_parent_on_local      = (bool) InstaWP_Setting::get_option( 'instawp_parent_is_on_local', false );
-		$this->tools                   = new InstaWP_Tools();
-		$this->has_unsupported_plugins = ! empty( $this->tools::get_unsupported_active_plugins() );
+		$this->has_unsupported_plugins = ! empty( InstaWP_Tools::get_unsupported_active_plugins() );
 		$this->can_bundle              = ( class_exists( 'ZipArchive' ) || class_exists( 'PharData' ) );
 
 		// if connect id is empty then remove all connection
@@ -225,11 +224,19 @@ class instaWP {
 
 		if ( $sort_by === 'descending' ) {
 			usort( $files_list, function ( $item1, $item2 ) {
-				return $item2['size'] <=> $item1['size'];
+				if ( $item1['size'] == $item2['size'] ) {
+					return 0;
+				}
+
+				return ( $item1['size'] > $item2['size'] ) ? - 1 : 1;
 			} );
 		} elseif ( $sort_by === 'ascending' ) {
 			usort( $files_list, function ( $item1, $item2 ) {
-				return $item1['size'] <=> $item2['size'];
+				if ( $item1['size'] == $item2['size'] ) {
+					return 0;
+				}
+
+				return ( $item1['size'] < $item2['size'] ) ? - 1 : 1;
 			} );
 		}
 
@@ -282,10 +289,10 @@ class instaWP {
 
 		if ( ! empty( INSTAWP_CONNECT_MODE ) ) {
 			$mode_data['type'] = INSTAWP_CONNECT_MODE;
-			$mode_data['name'] = INSTAWP_CONNECT_MODE_NAME ?? '';
-			$mode_data['link'] = INSTAWP_CONNECT_MODE_LINK ?? '';
-			$mode_data['desc'] = INSTAWP_CONNECT_MODE_DESC ?? '';
-			$mode_data['logo'] = INSTAWP_CONNECT_MODE_LOGO ?? '';
+			$mode_data['name'] = defined( INSTAWP_CONNECT_MODE_NAME ) ? INSTAWP_CONNECT_MODE_NAME : '';
+			$mode_data['link'] = defined( INSTAWP_CONNECT_MODE_LINK ) ? INSTAWP_CONNECT_MODE_LINK : '';
+			$mode_data['desc'] = defined( INSTAWP_CONNECT_MODE_DESC ) ? INSTAWP_CONNECT_MODE_DESC : '';
+			$mode_data['logo'] = defined( INSTAWP_CONNECT_MODE_LOGO ) ? INSTAWP_CONNECT_MODE_LOGO : '';
 		}
 
 		if ( ! empty( $data_to_get ) ) {
@@ -396,7 +403,7 @@ class instaWP {
 		$plugins_included        = array();
 		$plugins_excluded        = array();
 		$list                    = get_plugins();
-		$active_plugins_only     = $options['migrate_settings']['active_plugins_only'] ?? false;
+		$active_plugins_only     = isset( $options['migrate_settings']['active_plugins_only'] ) ? $options['migrate_settings']['active_plugins_only'] : false;
 		$exclude_default_plugins = self::get_exclude_default_plugins();
 
 		foreach ( $list as $key => $item ) {
@@ -419,7 +426,7 @@ class instaWP {
 		$plugins_excluded = array_map( function ( $slug ) {
 			$slug_parts = explode( '/', $slug );
 
-			return $slug_parts[0] ?? '';
+			return isset( $slug_parts[0] ) ? $slug_parts[0] : '';
 		}, $plugins_excluded );
 		$plugins          = array(
 			'plugins_included' => $plugins_included,
@@ -430,7 +437,7 @@ class instaWP {
 			return $plugins;
 		}
 
-		return $plugins[ $return_type ] ?? array();
+		return isset( $plugins[ $return_type ] ) ? $plugins[ $return_type ] : array();
 	}
 
 	public static function get_themes_list( $options = array(), $return_type = 'themes_included' ) {
@@ -442,7 +449,7 @@ class instaWP {
 		$themes_included    = array();
 		$themes_excluded    = array();
 		$current_theme      = wp_get_theme();
-		$active_themes_only = $options['migrate_settings']['active_themes_only'] ?? false;
+		$active_themes_only = isset( $options['migrate_settings']['active_themes_only'] ) ? $options['migrate_settings']['active_themes_only'] : false;
 
 		foreach ( wp_get_themes() as $key => $item ) {
 			if ( ( 'true' == $active_themes_only || '1' == $active_themes_only ) && ! in_array( $item->get_stylesheet(), array( $current_theme->get_stylesheet(), $current_theme->get_template() ) ) ) {
@@ -463,7 +470,7 @@ class instaWP {
 			return $themes;
 		}
 
-		return $themes[ $return_type ] ?? array();
+		return isset( $themes[ $return_type ] ) ? $themes[ $return_type ] : array();
 	}
 
 	public function instawp_check_usage_on_cloud( $total_size = 0 ) {
