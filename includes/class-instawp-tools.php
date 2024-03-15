@@ -417,9 +417,11 @@ include $file_path;';
 			$is_find_root_dir = true;
 
 			while ( ! file_exists( $root_path . DIRECTORY_SEPARATOR . $find_with_files ) ) {
+				$level ++;
 
-				++ $level;
-				$root_path = dirname( $root_path_dir, $level );
+				$path_parts = explode( DIRECTORY_SEPARATOR, $root_path );
+				array_pop( $path_parts ); // Remove the last directory
+				$root_path = implode( DIRECTORY_SEPARATOR, $path_parts );
 
 				if ( $level > $searching_tier ) {
 					$is_find_root_dir = false;
@@ -434,9 +436,10 @@ include $file_path;';
 			$root_path        = __DIR__;
 			$is_find_root_dir = true;
 			while ( ! is_dir( $root_path . DIRECTORY_SEPARATOR . $find_with_dir ) ) {
-
-				++ $level;
-				$root_path = dirname( $root_path_dir, $level );
+				$level ++;
+				$path_parts = explode( DIRECTORY_SEPARATOR, $root_path );
+				array_pop( $path_parts ); // Remove the last directory
+				$root_path = implode( DIRECTORY_SEPARATOR, $path_parts );
 
 				if ( $level > $searching_tier ) {
 					$is_find_root_dir = false;

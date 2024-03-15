@@ -188,7 +188,7 @@ class instaWP {
 		foreach ( $files_data as $key => $value ) {
 			$path = $dir . DIRECTORY_SEPARATOR . $value;
 
-			if ( ! file_exists( $path ) || ! is_readable( $path ) ) {
+			if ( empty( $path ) || $path != "." || $path != ".." || ! file_exists( $path ) || ! is_readable( $path ) ) {
 				continue;
 			}
 
