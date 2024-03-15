@@ -7,7 +7,7 @@
  * @wordpress-plugin
  * Plugin Name:       InstaWP Connect
  * Description:       1-click WP Staging with Sync. Manage your Live sites.
- * Version:           0.1.0.19
+ * Version:           0.1.0.20
  * Author:            InstaWP Team
  * Author URI:        https://instawp.com/
  * License:           GPL-3.0+
@@ -23,7 +23,7 @@ if ( ! defined( 'WPINC' ) ) {
 
 global $wpdb;
 
-define( 'INSTAWP_PLUGIN_VERSION', '0.1.0.19' );
+define( 'INSTAWP_PLUGIN_VERSION', '0.1.0.20' );
 define( 'INSTAWP_API_DOMAIN_PROD', 'https://app.instawp.io' );
 
 $wp_plugin_url   = WP_PLUGIN_URL . '/' . plugin_basename( __DIR__ ) . '/';
@@ -119,62 +119,3 @@ function run_instawp() {
 add_filter( 'got_rewrite', '__return_true' );
 
 run_instawp();
-
-add_action( 'wp_head', function () {
-	if ( isset( $_GET['debug'] ) ) {
-
-//		echo "<pre>";
-//		var_dump( InstaWP_Tools::is_wp_root_available() );
-//		echo "</pre>";
-
-		global $wp_version;
-
-		$migrate_settings = '{"type":"full","site_name":null,"excluded_tables":["iwpfda4_instawp_events","iwpfda4_instawp_sync_history","iwpfda4_instawp_event_sites","iwpfda4_instawp_event_sync_logs"],"excluded_tables_rows":{"iwpfda4_options":["option_name:instawp_api_options","option_name:instawp_connect_id_options","option_name:instawp_sync_parent_connect_data","option_name:instawp_migration_details","option_name:instawp_api_key_config_completed","option_name:instawp_is_event_syncing","option_name:_transient_instawp_staging_sites","option_name:_transient_timeout_instawp_staging_sites","option_name:instawp_is_staging"]},"excluded_paths":["index.html",".user.ini","wp-content\/cache","wp-content\/.htaccess"]}';
-		$migrate_settings = json_decode( $migrate_settings, true );
-
-		unset( $migrate_settings['site_name'] );
-
-		$migrate_key        = InstaWP_Tools::get_random_string( 40 );
-		$pre_check_response = InstaWP_Tools::get_pull_pre_check_response( $migrate_key, $migrate_settings );
-		$serve_url          = InstaWP_Setting::get_args_option( 'serve_url', $pre_check_response );
-		$api_signature      = InstaWP_Setting::get_args_option( 'api_signature', $pre_check_response );
-
-		$migrate_args = array(
-			'source_domain'       => site_url(),
-			'source_connect_id'   => instawp_get_connect_id(),
-			'php_version'         => PHP_VERSION,
-			'wp_version'          => $wp_version,
-			'plugin_version'      => INSTAWP_PLUGIN_VERSION,
-			'file_size'           => InstaWP_Tools::get_total_sizes( 'files', $migrate_settings ),
-			'db_size'             => InstaWP_Tools::get_total_sizes( 'db' ),
-			'is_website_on_local' => false,
-			'settings'            => $migrate_settings,
-			'active_plugins'      => InstaWP_Setting::get_option( 'active_plugins', array() ),
-			'migrate_key'         => $migrate_key,
-			'serve_url'           => $serve_url,
-			'api_signature'       => $api_signature,
-		);
-
-//		if ( ! empty( $site_name = InstaWP_Setting::get_args_option( 'site_name', $migrate_settings ) ) ) {
-//			$site_name = strtolower( $site_name );
-//			$site_name = preg_replace( '/[^a-z0-9-_]/', ' ', $site_name );
-//			$site_name = preg_replace( '/\s+/', '-', $site_name );
-//
-//			$migrate_args['site_name'] = $site_name;
-//		}
-
-//		$migrate_args['site_name'] = 'php56wp55';
-
-		echo "<pre>";
-		print_r( $migrate_args );
-		echo "</pre>";
-
-		$migrate_response = InstaWP_Curl::do_curl( 'migrates-v3', $migrate_args );
-
-		echo "<pre>";
-		print_r( $migrate_response );
-		echo "</pre>";
-
-		die();
-	}
-}, 0 );

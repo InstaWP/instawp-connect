@@ -1,10 +1,10 @@
 === InstaWP Connect - 1-click WP Staging & Migration ===
 Contributors: instawp
 Tags: clone, migrate, staging, backup, restore
-Requires at least: 5.4
-Tested up to: 6.4.3
-Requires PHP: 7.4
-Stable tag: 0.1.0.19
+Requires at least: 5.6
+Tested up to: 6.5
+Requires PHP: 5.6
+Stable tag: 0.1.0.20
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -95,6 +95,9 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 == Changelog ==
 
 = 0.1.0.20 =
+- NEW - Added support for PHP 5.6.
+- FIX - Improve plugin performance.
+- FIX - Increase security in 2-way-sync.
 - FIX - 2 way sync issues.
 - FIX - Added 2 way sync from local site to staging.
 
