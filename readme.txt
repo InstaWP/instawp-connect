@@ -94,7 +94,7 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 
 == Changelog ==
 
-= 0.1.0.20 =
+= 0.1.0.20 - 15 Mar 2024 =
 - NEW - Added support for PHP 5.6.
 - FIX - Improve plugin performance.
 - FIX - Increase security in 2-way-sync.
