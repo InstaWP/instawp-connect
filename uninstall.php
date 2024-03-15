@@ -20,8 +20,8 @@ foreach ( $files_to_delete as $file ) {
 @unlink( ABSPATH . 'fwd.php' );
 
 $api_options = get_option( 'instawp_api_options', array() );
-$connect_id  = $api_options['connect_id'] ?? '';
-$api_key     = $api_options['api_key'] ?? '';
+$connect_id  = isset( $api_options['connect_id'] ) ? $api_options['connect_id'] : '';
+$api_key     = isset( $api_options['api_key'] ) ? $api_options['api_key'] : '';
 
 if ( ! empty( $connect_id ) && ! empty( $api_key ) ) {
 	wp_remote_post( "https://app.instawp.io/api/v2/connects/{$connect_id}/disconnect", array(

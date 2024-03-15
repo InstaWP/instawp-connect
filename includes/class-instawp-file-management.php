@@ -1,5 +1,7 @@
 <?php
 
+use InstaWP\Connect\Helpers\FileManager;
+
 if ( ! defined( 'INSTAWP_PLUGIN_DIR' ) ) {
 	die;
 }
@@ -9,10 +11,6 @@ if ( ! class_exists( 'InstaWP_File_Management' ) ) {
 
 		protected static $_instance = null;
 		private $file_manager;
-
-		public static $query_var = 'instawp-file-manager';
-		public static $action = 'instawp_clean_file_manager';
-
 
 		/**
 		 * @return InstaWP_File_Management
@@ -31,7 +29,7 @@ if ( ! class_exists( 'InstaWP_File_Management' ) ) {
 			add_action( 'init', array( $this, 'add_endpoint' ) );
 			add_action( 'wp', array( $this, 'filter_redirect' ), 0 );
 			add_action( 'template_redirect', array( $this, 'redirect' ) );
-			add_action( self::$action, array( $this, 'clean' ) );
+			add_action( FileManager::$action, array( $this, 'clean' ) );
 			add_action( 'admin_post_instawp-file-manager-auto-login', array( $this, 'auto_login' ) );
 			add_action( 'admin_post_nopriv_instawp-file-manager-auto-login', array( $this, 'auto_login' ) );
 			add_action( 'update_option_instawp_rm_file_manager', array( $this, 'clean' ) );
@@ -40,7 +38,7 @@ if ( ! class_exists( 'InstaWP_File_Management' ) ) {
 		}
 
 		public function add_endpoint() {
-			add_rewrite_endpoint( self::$query_var, EP_ROOT | EP_PAGES );
+			add_rewrite_endpoint( FileManager::$query_var, EP_ROOT | EP_PAGES );
 		}
 
 		public function filter_redirect() {
@@ -51,7 +49,7 @@ if ( ! class_exists( 'InstaWP_File_Management' ) ) {
 		}
 
 		public function redirect() {
-			$template_name = get_query_var( self::$query_var, false );
+			$template_name = get_query_var( FileManager::$query_var, false );
 			if ( $template_name && ! $this->get_template() ) {
 				wp_safe_redirect( home_url() );
 				exit();
@@ -77,7 +75,7 @@ if ( ! class_exists( 'InstaWP_File_Management' ) ) {
 				wp_die( esc_html__( 'InstaWP File Manager: Token mismatch or not valid!', 'instawp-connect' ) );
 			}
 
-			$file_manager_url = $this->file_manager::get_file_manager_url( base64_decode( $template ) );
+			$file_manager_url = FileManager::get_file_manager_url( base64_decode( $template ) );
 			ob_start() ?>
 
             <script type="text/javascript">
@@ -94,8 +92,8 @@ if ( ! class_exists( 'InstaWP_File_Management' ) ) {
 		}
 
 		public function query_vars( $query_vars ) {
-			if ( ! in_array( self::$query_var, $query_vars, true ) ) {
-				$query_vars[] = self::$query_var;
+			if ( ! in_array( FileManager::$query_var, $query_vars, true ) ) {
+				$query_vars[] = FileManager::$query_var;
 			}
 
 			return $query_vars;
@@ -106,8 +104,8 @@ if ( ! class_exists( 'InstaWP_File_Management' ) ) {
 		}
 
 		private function get_template( $template = false ) {
-			$template_name = get_query_var( self::$query_var );
-			$template_path = $this->file_manager::get_file_path( $template_name );
+			$template_name = get_query_var( FileManager::$query_var );
+			$template_path = FileManager::get_file_path( $template_name );
 
 			if ( file_exists( $template_path ) ) {
 				$template = $template_path;

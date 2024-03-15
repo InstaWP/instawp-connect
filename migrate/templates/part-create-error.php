@@ -11,7 +11,7 @@ if ( ! instawp()->can_bundle ) {
 	$error_message = esc_html__( 'Please ask your hosting provider to enable this support.', 'instawp-connect' );
 } elseif ( instawp()->has_unsupported_plugins ) {
 	$unsupported_plugins     = array_map( function ( $plugin ) {
-		return $plugin['name'] ?? '';
+		return isset( $plugin['name'] ) ? $plugin['name'] : '';
 	}, InstaWP_Tools::get_unsupported_active_plugins() );
 	$unsupported_plugins_str = implode( ', ', $unsupported_plugins );
 

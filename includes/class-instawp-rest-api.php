@@ -214,7 +214,7 @@ class InstaWP_Rest_Api {
 			return $this->throw_error( $response );
 		}
 
-		$response = array();
+		$response   = array();
 		$post_types = get_post_types( array(
 			'public' => true,
 		) );
@@ -240,7 +240,7 @@ class InstaWP_Rest_Api {
 		}
 
 		$post_type = $request->get_param( 'post_type' );
-		$exists = post_type_exists( $post_type );
+		$exists    = post_type_exists( $post_type );
 		if ( ! $exists ) {
 			return $this->send_response( array(
 				'success' => false,
@@ -248,10 +248,12 @@ class InstaWP_Rest_Api {
 			) );
 		}
 
-		$response = array();
-		$posts = get_posts( array(
-			'posts_per_page' => $request->get_param( 'count' ) ?? 50,
-			'offset'         => $request->get_param( 'offset' ) ?? 0,
+		$response       = array();
+		$posts_per_page = $request->get_param( 'count' );
+		$offset         = $request->get_param( 'offset' );
+		$posts          = get_posts( array(
+			'posts_per_page' => ! empty( $posts_per_page ) ? $posts_per_page : 50,
+			'offset'         => ! empty( $offset ) ? $offset : 0,
 			'post_type'      => $post_type,
 			'post_status'    => 'any',
 		) );
@@ -270,7 +272,7 @@ class InstaWP_Rest_Api {
 				'comment_status' => $post->comment_status,
 				'comment_count'  => $post->comment_count,
 				'preview_url'    => get_permalink( $post->ID ),
-				'edit_url'       => apply_filters( 'get_edit_post_link', admin_url( 'post.php?post=' . $post->ID  . '&action=edit' ), $post->ID, '' ),
+				'edit_url'       => apply_filters( 'get_edit_post_link', admin_url( 'post.php?post=' . $post->ID . '&action=edit' ), $post->ID, '' ),
 			);
 		}
 
@@ -291,11 +293,13 @@ class InstaWP_Rest_Api {
 			return $this->throw_error( $response );
 		}
 
-		$response    = array();
-		$sizes       = get_intermediate_image_sizes();
-		$attachments = get_posts( array(
-			'posts_per_page' => $request->get_param( 'count' ) ?? 50,
-			'offset'         => $request->get_param( 'offset' ) ?? 0,
+		$response       = array();
+		$sizes          = get_intermediate_image_sizes();
+		$posts_per_page = $request->get_param( 'count' );
+		$offset         = $request->get_param( 'offset' );
+		$attachments    = get_posts( array(
+			'posts_per_page' => ! empty( $posts_per_page ) ? $posts_per_page : 50,
+			'offset'         => ! empty( $offset ) ? $offset : 0,
 			'post_type'      => 'attachment',
 			'post_status'    => 'any',
 		) );
@@ -319,7 +323,7 @@ class InstaWP_Rest_Api {
 				'created_at'  => $attachment->post_date_gmt,
 				'updated_at'  => $attachment->post_modified_gmt,
 				'preview_url' => wp_get_attachment_url( $attachment->ID ),
-				'edit_url'    => apply_filters( 'get_edit_post_link', admin_url( 'post.php?post=' . $attachment->ID  . '&action=edit' ), $attachment->ID, '' ),
+				'edit_url'    => apply_filters( 'get_edit_post_link', admin_url( 'post.php?post=' . $attachment->ID . '&action=edit' ), $attachment->ID, '' ),
 			);
 		}
 
@@ -341,7 +345,7 @@ class InstaWP_Rest_Api {
 		}
 
 		$response = array();
-		$users = get_users();
+		$users    = get_users();
 		foreach ( $users as $user ) {
 			$response[] = array(
 				'id'             => $user->ID,
@@ -633,7 +637,7 @@ class InstaWP_Rest_Api {
 
 			$installed_plugin_info = $plugin_upgrader->plugin_info();
 			$installed_plugin_info = explode( '/', $installed_plugin_info );
-			$installed_plugin_slug = $installed_plugin_info[0] ?? '';
+			$installed_plugin_slug = isset( $installed_plugin_info[0] ) ? $installed_plugin_info[0] : '';
 
 			if ( ! empty( $installed_plugin_slug ) ) {
 
@@ -732,7 +736,7 @@ class InstaWP_Rest_Api {
 	 *
 	 * @return WP_Error|bool
 	 */
-	public function validate_api_request( WP_REST_Request $request, string $option = '' ) {
+	public function validate_api_request( WP_REST_Request $request, $option = '' ) {
 
 		// get authorization header value.
 		$bearer_token = sanitize_text_field( $request->get_header( 'authorization' ) );
@@ -773,7 +777,7 @@ class InstaWP_Rest_Api {
 		return true;
 	}
 
-	public static function config_check_key( $api_key ): array {
+	public static function config_check_key( $api_key ) {
 
 		$res        = array(
 			'error'   => true,
@@ -815,7 +819,7 @@ class InstaWP_Rest_Api {
 		return $res;
 	}
 
-	public static function config_connect( $api_key ): array {
+	public static function config_connect( $api_key ) {
 		global $InstaWP_Curl;
 
 		$res         = array(
@@ -910,9 +914,10 @@ class InstaWP_Rest_Api {
 			return $this->throw_error( $response );
 		}
 
-		$params    = ( array ) $request->get_param( 'wp-config' ) ?? array();
-		$wp_config = new \InstaWP\Connect\Helpers\WPConfig( $params );
-		$response  = $wp_config->update();
+		$wp_config_params = $request->get_param( 'wp-config' );
+		$params           = ! is_array( $wp_config_params ) ? array() : $wp_config_params;
+		$wp_config        = new \InstaWP\Connect\Helpers\WPConfig( $params );
+		$response         = $wp_config->update();
 
 		return $this->send_response( $response );
 	}
@@ -1173,9 +1178,9 @@ class InstaWP_Rest_Api {
 		$params   = $this->filter_params( $request );
 
 		foreach ( $params as $key => $param ) {
-			$type  = $param['type'] ?? 'plugin';
-			$asset = $param['asset'] ?? '';
-			$state = $param['state'] ?? 'disable';
+			$type  = isset( $param['type'] ) ? $param['type'] : 'plugin';
+			$asset = isset( $param['asset'] ) ? $param['asset'] : '';
+			$state = isset( $param['state'] ) ? $param['state'] : 'disable';
 
 			if ( 'plugin' === $type ) {
 				$option = 'auto_update_plugins';
@@ -1239,9 +1244,10 @@ class InstaWP_Rest_Api {
 			return $this->throw_error( $response );
 		}
 
-		$params    = ( array ) $request->get_param( 'wp-config' ) ?? array();
-		$wp_config = new \InstaWP\Connect\Helpers\WPConfig( $params );
-		$response  = $wp_config->fetch();
+		$wp_config_params = $request->get_param( 'wp-config' );
+		$params           = ! is_array( $wp_config_params ) ? array() : $wp_config_params;
+		$wp_config        = new \InstaWP\Connect\Helpers\WPConfig( $params );
+		$response         = $wp_config->fetch();
 
 		return $this->send_response( $response );
 	}
@@ -1260,9 +1266,10 @@ class InstaWP_Rest_Api {
 			return $this->throw_error( $response );
 		}
 
-		$params    = ( array ) $request->get_param( 'wp-config' ) ?? array();
-		$wp_config = new \InstaWP\Connect\Helpers\WPConfig( $params );
-		$response  = $wp_config->update();
+		$wp_config_params = $request->get_param( 'wp-config' );
+		$params           = ! is_array( $wp_config_params ) ? array() : $wp_config_params;
+		$wp_config        = new \InstaWP\Connect\Helpers\WPConfig( $params );
+		$response         = $wp_config->update();
 
 		return $this->send_response( $response );
 	}
@@ -1281,9 +1288,10 @@ class InstaWP_Rest_Api {
 			return $this->throw_error( $response );
 		}
 
-		$params    = ( array ) $request->get_param( 'wp-config' ) ?? array();
-		$wp_config = new \InstaWP\Connect\Helpers\WPConfig( $params );
-		$response  = $wp_config->delete();
+		$wp_config_params = $request->get_param( 'wp-config' );
+		$params           = ! is_array( $wp_config_params ) ? array() : $wp_config_params;
+		$wp_config        = new \InstaWP\Connect\Helpers\WPConfig( $params );
+		$response         = $wp_config->delete();
 
 		return $this->send_response( $response );
 	}
@@ -1403,7 +1411,7 @@ class InstaWP_Rest_Api {
 				$results[ $key ]['message'] = esc_html__( 'Success!', 'instawp-connect' );
 
 				if ( 'off' === $value ) {
-					$update                    = InstaWP_Setting::update_option( 'instawp_rm_' . $key, $value );
+					$update                     = InstaWP_Setting::update_option( 'instawp_rm_' . $key, $value );
 					$results[ $key ]['success'] = $update;
 					if ( ! $update ) {
 						$results[ $key ]['message'] = esc_html__( 'Setting is already disabled.', 'instawp-connect' );
@@ -1494,7 +1502,7 @@ class InstaWP_Rest_Api {
 	 *
 	 * @return bool
 	 */
-	private function is_enabled( string $key ): bool {
+	private function is_enabled( $key ) {
 		$default = in_array( $key, array( 'inventory', 'update_core_plugin_theme', 'activate_deactivate' ) ) ? 'on' : 'off';
 		$value   = InstaWP_Setting::get_option( 'instawp_rm_' . $key, $default );
 		$value   = empty( $value ) ? $default : $value;
@@ -1510,7 +1518,8 @@ class InstaWP_Rest_Api {
 	 * @return array
 	 */
 	private function filter_params( WP_REST_Request $request ) {
-		$params = $request->get_params() ?? array();
+		$params = $request->get_params();
+		$params = ! is_array( $params ) ? array() : $params;
 		if ( array_key_exists( 'rest_route', $params ) ) {
 			unset( $params['rest_route'] );
 		}
@@ -1525,7 +1534,7 @@ class InstaWP_Rest_Api {
 	 *
 	 * @return array|string
 	 */
-	private function get_management_options( string $name = '' ) {
+	private function get_management_options( $name = '' ) {
 		$options = array(
 			'heartbeat'                => __( 'Heartbeat', 'instawp-connect' ),
 			'file_manager'             => __( 'File Manager', 'instawp-connect' ),
@@ -1539,7 +1548,7 @@ class InstaWP_Rest_Api {
 		);
 
 		if ( ! empty( $name ) ) {
-			return $options[ $name ] ?? '';
+			return isset( $options[ $name ] ) ? $options[ $name ] : '';
 		}
 
 		return $options;
