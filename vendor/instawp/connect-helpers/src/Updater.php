@@ -136,6 +136,10 @@ class Updater {
 			require_once ABSPATH . 'wp-admin/includes/update.php';
 		}
 
+		if ( ! function_exists( 'request_filesystem_credentials' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+		}
+
 		add_filter( 'automatic_updater_disabled', '__return_false', 201 );
 		add_filter( "auto_update_{$type}", '__return_true', 201 );
 		
