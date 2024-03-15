@@ -111,7 +111,7 @@ class InstaWP_Tools {
 
 		// Process migration settings like active plugins/themes only etc
 		$migrate_settings       = is_array( $migrate_settings ) ? $migrate_settings : array();
-		$migrate_settings       = instawp()->tools::get_migrate_settings( array(), $migrate_settings );
+		$migrate_settings       = InstaWP_Tools::get_migrate_settings( array(), $migrate_settings );
 		$options_data           = array(
 			'api_signature'    => $api_signature,
 			'migrate_settings' => $migrate_settings,
@@ -145,25 +145,23 @@ class InstaWP_Tools {
 
 	public static function generate_forwarded_file( $forwarded_path = ABSPATH, $file_name = 'fwd.php' ) {
 
-		$forwarded_content      = <<<'EOD'
-        <?php
-        $path_structure = array(
-            __DIR__,
-            'wp-content',
-            'plugins',
-            'instawp-connect',
-            'serve.php',
-        );
-        $file_path      = implode( DIRECTORY_SEPARATOR, $path_structure );
-        
-        if ( ! is_readable( $file_path ) ) {
-            header( 'x-iwp-status: false' );
-            header( 'x-iwp-message: File is not readable' );
-            exit( 2004 );
-        }
-        
-        include $file_path;
-        EOD;
+		$forwarded_content      = '<?php
+$path_structure = array(
+    __DIR__,
+    \'wp-content\',
+    \'plugins\',
+    \'instawp-connect\',
+    \'serve.php\',
+);
+$file_path      = implode( DIRECTORY_SEPARATOR, $path_structure );
+
+if ( ! is_readable( $file_path ) ) {
+    header( \'x-iwp-status: false\' );
+    header( \'x-iwp-message: File is not readable\' );
+    exit( 2004 );
+}
+
+include $file_path;';
 		$forwarded_file_path    = $forwarded_path . DIRECTORY_SEPARATOR . $file_name;
 		$forwarded_file_created = file_put_contents( $forwarded_file_path, $forwarded_content );
 
@@ -227,25 +225,23 @@ class InstaWP_Tools {
 			$dest_url = INSTAWP_PLUGIN_URL . 'dest.php';
 
 			if ( ! self::is_migrate_file_accessible( $dest_url ) ) {
-				$forwarded_content      = <<<'EOD'
-				<?php
-				$path_structure = array(
-					__DIR__,
-					'wp-content',
-					'plugins',
-					'instawp-connect',
-					'dest.php', 
-				);
-				$file_path      = implode( DIRECTORY_SEPARATOR, $path_structure );
-				
-				if ( ! is_readable( $file_path ) ) {
-					header( 'x-iwp-status: false' );
-					header( 'x-iwp-message: File is not readable' );
-					exit( 2004 );
-				}
-				
-				include $file_path;
-				EOD;
+				$forwarded_content      = '<?php
+$path_structure = array(
+	__DIR__,
+	\'wp-content\',
+	\'plugins\',
+	\'instawp-connect\',
+	\'dest.php\', 
+);
+$file_path      = implode( DIRECTORY_SEPARATOR, $path_structure );
+
+if ( ! is_readable( $file_path ) ) {
+	header( \'x-iwp-status: false\' );
+	header( \'x-iwp-message: File is not readable\' );
+	exit( 2004 );
+}
+
+include $file_path;';
 				$file_name              = 'dest.php';
 				$forwarded_file_path    = ABSPATH . $file_name;
 				$forwarded_file_created = file_put_contents( $forwarded_file_path, $forwarded_content, LOCK_EX );
@@ -292,7 +288,7 @@ class InstaWP_Tools {
 
 	public static function process_migration_settings( $migrate_settings = array() ) {
 
-		$options      = $migrate_settings['options'] ?? array();
+		$options      = InstaWP_Setting::get_args_option( 'options', $migrate_settings, [] );
 		$relative_dir = str_replace( ABSPATH, '', WP_CONTENT_DIR );
 
 		// Check if db.sql should keep or not after migration
@@ -343,7 +339,7 @@ class InstaWP_Tools {
 
 		if ( in_array( 'skip_media_folder', $options ) ) {
 			$upload_dir      = wp_upload_dir();
-			$upload_base_dir = $upload_dir['basedir'] ?? '';
+			$upload_base_dir = isset( $upload_dir['basedir'] ) ? $upload_dir['basedir'] : '';
 
 			if ( ! empty( $upload_base_dir ) ) {
 				$migrate_settings['excluded_paths'][] = str_replace( ABSPATH, '', $upload_base_dir );
@@ -375,7 +371,7 @@ class InstaWP_Tools {
 			$total_size_to_skip = 0;
 			$total_files        = instawp_get_dir_contents( '/' );
 			$total_files_sizes  = array_map( function ( $data ) {
-				return $data['size'] ?? 0;
+				return isset( $data['size'] ) ? $data['size'] : 0;
 			}, $total_files );
 			$total_files_size   = array_sum( $total_files_sizes );
 
@@ -387,7 +383,7 @@ class InstaWP_Tools {
 				foreach ( $migrate_settings['excluded_paths'] as $path ) {
 					$dir_contents      = instawp_get_dir_contents( $path );
 					$dir_contents_size = array_map( function ( $dir_info ) {
-						return $dir_info['size'] ?? 0;
+						return isset( $dir_info['size'] ) ? $dir_info['size'] : 0;
 					}, $dir_contents );
 
 					$total_size_to_skip += array_sum( $dir_contents_size );
@@ -400,7 +396,7 @@ class InstaWP_Tools {
 		if ( $type === 'files' ) {
 			$tables       = instawp_get_database_details();
 			$tables_sizes = array_map( function ( $data ) {
-				return $data['size'] ?? 0;
+				return isset( $data['size'] ) ? $data['size'] : 0;
 			}, $tables );
 
 			return array_sum( $tables_sizes );
@@ -421,9 +417,11 @@ class InstaWP_Tools {
 			$is_find_root_dir = true;
 
 			while ( ! file_exists( $root_path . DIRECTORY_SEPARATOR . $find_with_files ) ) {
+				$level ++;
 
-				++ $level;
-				$root_path = dirname( $root_path_dir, $level );
+				$path_parts = explode( DIRECTORY_SEPARATOR, $root_path );
+				array_pop( $path_parts ); // Remove the last directory
+				$root_path = implode( DIRECTORY_SEPARATOR, $path_parts );
 
 				if ( $level > $searching_tier ) {
 					$is_find_root_dir = false;
@@ -438,9 +436,10 @@ class InstaWP_Tools {
 			$root_path        = __DIR__;
 			$is_find_root_dir = true;
 			while ( ! is_dir( $root_path . DIRECTORY_SEPARATOR . $find_with_dir ) ) {
-
-				++ $level;
-				$root_path = dirname( $root_path_dir, $level );
+				$level ++;
+				$path_parts = explode( DIRECTORY_SEPARATOR, $root_path );
+				array_pop( $path_parts ); // Remove the last directory
+				$root_path = implode( DIRECTORY_SEPARATOR, $path_parts );
 
 				if ( $level > $searching_tier ) {
 					$is_find_root_dir = false;
@@ -562,7 +561,7 @@ class InstaWP_Tools {
 		}
 
 		// Exclude two-way-sync tables
-		$excluded_tables   = $migrate_settings['excluded_tables'] ?? array();
+		$excluded_tables   = InstaWP_Setting::get_args_option( 'excluded_tables', $migrate_settings, [] );
 		$excluded_tables[] = INSTAWP_DB_TABLE_EVENTS;
 		$excluded_tables[] = INSTAWP_DB_TABLE_SYNC_HISTORY;
 		$excluded_tables[] = INSTAWP_DB_TABLE_EVENT_SITES;
@@ -571,143 +570,21 @@ class InstaWP_Tools {
 		$migrate_settings['excluded_tables'] = $excluded_tables;
 
 		// Remove instawp connect options
-		$excluded_tables_rows = $migrate_settings['excluded_tables_rows'] ?? array();
+		$excluded_tables_rows = InstaWP_Setting::get_args_option( 'excluded_tables_rows', $migrate_settings, [] );
 
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_api_options';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_connect_id_options';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_sync_parent_connect_data';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_migration_details';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_api_key_config_completed';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_is_event_syncing';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:_transient_instawp_staging_sites';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:_transient_timeout_instawp_staging_sites';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_is_staging';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_api_options';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_connect_id_options';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_sync_parent_connect_data';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_migration_details';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_api_key_config_completed';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_is_event_syncing';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:_transient_instawp_staging_sites';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:_transient_timeout_instawp_staging_sites';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_is_staging';
 
 		$migrate_settings['excluded_tables_rows'] = $excluded_tables_rows;
 
 		return self::process_migration_settings( $migrate_settings );
-	}
-
-	public static function clean_junk_cache() {
-		$home_url_prefix = get_home_url();
-		$parse           = parse_url( $home_url_prefix );
-		$tmppath         = str_replace( '/', '_', $parse['path'] );
-		$home_url_prefix = $parse['host'] . $tmppath;
-		$path            = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . InstaWP_Setting::get_backupdir();
-		$handler         = opendir( $path );
-		if ( $handler === false ) {
-			return;
-		}
-		while ( ( $filename = readdir( $handler ) ) !== false ) {
-			/*if(is_dir($path.DIRECTORY_SEPARATOR.$filename) && preg_match('#temp-'.$home_url_prefix.'_'.'#',$filename))
-			{
-				InstaWP_Tools::deldir($path.DIRECTORY_SEPARATOR.$filename,'',true);
-			}
-			if(is_dir($path.DIRECTORY_SEPARATOR.$filename) && preg_match('#temp-'.'#',$filename))
-			{
-				InstaWP_Tools::deldir($path.DIRECTORY_SEPARATOR.$filename,'',true);
-			}*/
-			if ( preg_match( '#pclzip-.*\.tmp#', $filename ) ) {
-				@unlink( $path . DIRECTORY_SEPARATOR . $filename );
-			}
-			if ( preg_match( '#pclzip-.*\.gz#', $filename ) ) {
-				@unlink( $path . DIRECTORY_SEPARATOR . $filename );
-			}
-		}
-		@closedir( $handler );
-	}
-
-	public static function deldir( $path, $exclude = '', $flag = false ) {
-		if ( ! is_dir( $path ) ) {
-			return;
-		}
-		$handler = opendir( $path );
-		if ( empty( $handler ) ) {
-			return;
-		}
-		while ( ( $filename = readdir( $handler ) ) !== false ) {
-			if ( $filename != "." && $filename != ".." ) {
-				if ( is_dir( $path . DIRECTORY_SEPARATOR . $filename ) ) {
-					if ( empty( $exclude ) || InstaWP_Tools::regex_match( $exclude['directory'], $path . DIRECTORY_SEPARATOR . $filename, 0 ) ) {
-						self::deldir( $path . DIRECTORY_SEPARATOR . $filename, $exclude, $flag );
-						@rmdir( $path . DIRECTORY_SEPARATOR . $filename );
-					}
-				} elseif ( empty( $exclude ) || InstaWP_Tools::regex_match( $exclude['file'], $path . DIRECTORY_SEPARATOR . $filename, 0 ) ) {
-					@unlink( $path . DIRECTORY_SEPARATOR . $filename );
-				}
-			}
-		}
-		if ( $handler ) {
-			@closedir( $handler );
-		}
-		if ( $flag ) {
-			@rmdir( $path );
-		}
-	}
-
-	public static function regex_match( $regex_array, $string, $mode ) {
-		if ( empty( $regex_array ) ) {
-			return true;
-		}
-
-		if ( $mode == 0 ) {
-			foreach ( $regex_array as $regex ) {
-				if ( preg_match( $regex, $string ) ) {
-					return false;
-				}
-			}
-
-			return true;
-		}
-
-		if ( $mode == 1 ) {
-			foreach ( $regex_array as $regex ) {
-				if ( preg_match( $regex, $string ) ) {
-					return true;
-				}
-			}
-
-			return false;
-		}
-
-		return true;
-	}
-
-	public static function file_put_array( $json, $file ) {
-		file_put_contents( $file, json_encode( $json ) );
-	}
-
-	public static function file_get_array( $file ) {
-		global $instawp_plugin;
-		if ( file_exists( $file ) ) {
-			$get_file_ret = json_decode( file_get_contents( $file ), true );
-			if ( empty( $get_file_ret ) ) {
-				sleep( 1 );
-				$contents = file_get_contents( $file );
-				if ( $contents == false ) {
-					if ( $instawp_plugin->restore_data ) {
-						$instawp_plugin->restore_data->write_log( 'file_get_contents failed.', 'notice' );
-					}
-				}
-				$get_file_ret = json_decode( $contents, true );
-				if ( empty( $get_file_ret ) ) {
-					if ( $instawp_plugin->restore_data ) {
-						$instawp_plugin->restore_data->write_log( 'Failed to decode restore data file.', 'notice' );
-					}
-				}
-
-				return $get_file_ret;
-			}
-
-			return $get_file_ret;
-		} else {
-
-			if ( $instawp_plugin->restore_data ) {
-				$instawp_plugin->restore_data->write_log( 'Failed to open restore data file, the file may not exist.', 'notice' );
-			}
-
-			return array();
-		}
 	}
 
 	public static function get_admin_username() {

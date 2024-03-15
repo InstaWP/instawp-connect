@@ -49,8 +49,8 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 			WP_CLI::success( 'Site created successfully. URL: ' . $site_wp_url );
 
 			// Add migration entry
-			$migrate_key         = instawp()->tools::get_random_string( 40 );
-			$migrate_settings    = instawp()->tools::get_migrate_settings( $_POST );
+			$migrate_key         = InstaWP_Tools::get_random_string( 40 );
+			$migrate_settings    = InstaWP_Tools::get_migrate_settings( $_POST );
 			$migrate_args        = array(
 				'site_id'           => $site_id,
 				'mode'              => 'local-push',

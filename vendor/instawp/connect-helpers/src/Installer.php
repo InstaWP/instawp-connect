@@ -188,7 +188,7 @@ class Installer {
      * 
 	 * @return bool
 	 */
-	private function is_link_valid(): bool {
+	private function is_link_valid() {
 		$is_valid = false;
 		if ( $this->url && filter_var( $this->url, FILTER_VALIDATE_URL ) ) {
 			$response = wp_remote_get( $this->url, [

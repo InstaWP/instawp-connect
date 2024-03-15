@@ -1,14 +1,15 @@
 <?php
 
+use InstaWP\Connect\Helpers\DatabaseManager;
+
 if ( ! defined( 'INSTAWP_PLUGIN_DIR' ) ) {
 	die;
 }
 
 if ( ! class_exists( 'InstaWP_Database_Management' ) ) {
 	class InstaWP_Database_Management {
-		
+
 		protected static $_instance = null;
-		private static $query_var;
 		private $database_manager;
 
 		/**
@@ -18,16 +19,16 @@ if ( ! class_exists( 'InstaWP_Database_Management' ) ) {
 			if ( is_null( self::$_instance ) ) {
 				self::$_instance = new self();
 			}
+
 			return self::$_instance;
 		}
 
 		public function __construct() {
 			$this->database_manager = new \InstaWP\Connect\Helpers\DatabaseManager();
-			self::$query_var        = $this->database_manager::$query_var;
 
 			add_action( 'init', array( $this, 'add_endpoint' ) );
 			add_action( 'template_redirect', array( $this, 'redirect' ) );
-			add_action( $this->database_manager::$action, array( $this, 'clean' ) );
+			add_action( DatabaseManager::$action, array( $this, 'clean' ) );
 			add_action( 'admin_post_instawp-database-manager-auto-login', array( $this, 'auto_login' ) );
 			add_action( 'admin_post_nopriv_instawp-database-manager-auto-login', array( $this, 'auto_login' ) );
 			add_action( 'update_option_instawp_rm_database_manager', array( $this, 'clean' ) );
@@ -36,11 +37,11 @@ if ( ! class_exists( 'InstaWP_Database_Management' ) ) {
 		}
 
 		public function add_endpoint() {
-			add_rewrite_endpoint( self::$query_var, EP_ROOT | EP_PAGES );
+			add_rewrite_endpoint( DatabaseManager::$query_var, EP_ROOT | EP_PAGES );
 		}
 
 		public function redirect() {
-			$template_name = get_query_var( self::$query_var, false );
+			$template_name = get_query_var( DatabaseManager::$query_var, false );
 			if ( $template_name && ! $this->get_template() ) {
 				wp_safe_redirect( home_url() );
 				exit();
@@ -66,7 +67,7 @@ if ( ! class_exists( 'InstaWP_Database_Management' ) ) {
 				wp_die( esc_html__( 'InstaWP Database Manager: Token mismatch or not valid!', 'instawp-connect' ) );
 			}
 
-			$database_manager_url = $this->database_manager::get_database_manager_url( base64_decode( $template ) );
+			$database_manager_url = DatabaseManager::get_database_manager_url( base64_decode( $template ) );
 			ob_start() ?>
 
             <form id="instawp-auto-login" action="<?php echo esc_url( $database_manager_url ); ?>" method="POST">
@@ -87,24 +88,24 @@ if ( ! class_exists( 'InstaWP_Database_Management' ) ) {
 
 			<?php
 			$fields = ob_get_clean();
-			instawp()->tools::auto_login_page( $fields, $database_manager_url, __( 'InstaWP Database Manager', 'instawp-connect' ) );
+			InstaWP_Tools::auto_login_page( $fields, $database_manager_url, __( 'InstaWP Database Manager', 'instawp-connect' ) );
 		}
 
 		public function query_vars( $query_vars ) {
-			if ( ! in_array( self::$query_var, $query_vars, true ) ) {
-				$query_vars[] = self::$query_var;
+			if ( ! in_array( DatabaseManager::$query_var, $query_vars, true ) ) {
+				$query_vars[] = DatabaseManager::$query_var;
 			}
 
 			return $query_vars;
 		}
-		
+
 		public function load_template( $template ) {
 			return $this->get_template( $template );
 		}
 
 		private function get_template( $template = false ) {
-			$template_name = get_query_var( self::$query_var );
-			$template_path = $this->database_manager::get_file_path( $template_name );
+			$template_name = get_query_var( DatabaseManager::$query_var );
+			$template_path = DatabaseManager::get_file_path( $template_name );
 			$loader_path   = INSTAWP_PLUGIN_DIR . '/includes/database-manager/loader.php';
 
 			if ( file_exists( $template_path ) && file_exists( $loader_path ) ) {

@@ -220,7 +220,7 @@ class IWPDB {
 			if ( is_array( $table_name ) ) {
 				$table_name_arr = array_values( $table_name );
 
-				return $table_name_arr[0] ?? '';
+				return isset( $table_name_arr[0] ) ? $table_name_arr[0] : '';
 			}
 
 			return '';

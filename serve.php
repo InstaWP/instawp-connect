@@ -15,6 +15,7 @@ function get_wp_root_directory( $find_with_files = 'wp-load.php', $find_with_dir
 
 	$is_find_root_dir = true;
 	$root_path        = '';
+	$searching_tier   = 10;
 
 	if ( ! empty( $find_with_files ) ) {
 		$level            = 0;
@@ -23,11 +24,13 @@ function get_wp_root_directory( $find_with_files = 'wp-load.php', $find_with_dir
 		$is_find_root_dir = true;
 
 		while ( ! file_exists( $root_path . DIRECTORY_SEPARATOR . $find_with_files ) ) {
+			$level ++;
 
-			++ $level;
-			$root_path = dirname( $root_path_dir, $level );
+			$path_parts = explode( DIRECTORY_SEPARATOR, $root_path );
+			array_pop( $path_parts ); // Remove the last directory
+			$root_path = implode( DIRECTORY_SEPARATOR, $path_parts );
 
-			if ( $level > 10 ) {
+			if ( $level > $searching_tier ) {
 				$is_find_root_dir = false;
 				break;
 			}
@@ -40,11 +43,12 @@ function get_wp_root_directory( $find_with_files = 'wp-load.php', $find_with_dir
 		$root_path        = __DIR__;
 		$is_find_root_dir = true;
 		while ( ! is_dir( $root_path . DIRECTORY_SEPARATOR . $find_with_dir ) ) {
+			$level ++;
+			$path_parts = explode( DIRECTORY_SEPARATOR, $root_path );
+			array_pop( $path_parts ); // Remove the last directory
+			$root_path = implode( DIRECTORY_SEPARATOR, $path_parts );
 
-			++ $level;
-			$root_path = dirname( $root_path_dir, $level );
-
-			if ( $level > 10 ) {
+			if ( $level > $searching_tier ) {
 				$is_find_root_dir = false;
 				break;
 			}
@@ -177,7 +181,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			header( 'x-iwp-filename: ' . $tmpZip );
 
 			foreach ( $unsentFiles as $file ) {
-				$filePath         = $file['filepath'] ?? '';
+				$filePath         = isset( $file['filepath'] ) ? $file['filepath'] : '';
 				$relativePath     = ltrim( str_replace( WP_ROOT, "", $filePath ), DIRECTORY_SEPARATOR );
 				$filePath         = process_files( $tracking_db, $filePath, $relativePath );
 				$file_fopen_check = fopen( $filePath, 'r' );
@@ -251,7 +255,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			$site_url         = $tracking_db->get_option( 'site_url' );
 			$dest_url         = $tracking_db->get_option( 'dest_url' );
 			$migrate_settings = $tracking_db->get_option( 'migrate_settings' );
-			$options          = $migrate_settings['options'] ?? array();
+			$options          = isset( $migrate_settings['options'] ) ? $migrate_settings['options'] : array();
 
 			if ( basename( $relativePath ) === '.htaccess' ) {
 
@@ -337,7 +341,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 	}
 
 	if ( ! function_exists( 'is_valid_file' ) ) {
-		function is_valid_file( $filepath ): bool {
+		function is_valid_file( $filepath ) {
 			$filename = basename( $filepath );
 
 			return is_file( $filepath ) && is_readable( $filepath ) && ( preg_match( '/^[a-zA-Z0-9_.@\s-]+$/', $filename ) === 1 );
@@ -346,7 +350,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
 //  $total_files_path         = INSTAWP_BACKUP_DIR . '.total-files-' . $migrate_key;
 	$migrate_settings         = $tracking_db->get_option( 'migrate_settings' );
-	$excluded_paths           = $migrate_settings['excluded_paths'] ?? array();
+	$excluded_paths           = isset( $migrate_settings['excluded_paths'] ) ? $migrate_settings['excluded_paths'] : array();
 	$skip_folders             = array_merge( array( 'wp-content/cache', 'editor', 'wp-content/upgrade', 'wp-content/instawpbackups' ), $excluded_paths );
 	$skip_folders             = array_unique( $skip_folders );
 	$skip_files               = array();
@@ -543,8 +547,8 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 		die();
 	}
 
-	$excluded_tables       = $migrate_settings['excluded_tables'] ?? array();
-	$excluded_tables_rows  = $migrate_settings['excluded_tables_rows'] ?? array();
+	$excluded_tables       = isset( $migrate_settings['excluded_tables'] ) ? $migrate_settings['excluded_tables'] : array();
+	$excluded_tables_rows  = isset( $migrate_settings['excluded_tables_rows'] ) ? $migrate_settings['excluded_tables_rows'] : array();
 	$total_tracking_tables = $tracking_db->query_count( 'iwp_db_sent' );
 
 	// Skip our files sent table
@@ -579,8 +583,8 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 		die();
 	}
 
-	$curr_table_name = $result['table_name'] ?? '';
-	$offset          = $result['offset'] ?? '';
+	$curr_table_name = isset( $result['table_name'] ) ? $result['table_name'] : '';
+	$offset          = isset( $result['offset'] ) ? $result['offset'] : '';
 	$sqlStatements   = array();
 
 	// Check if it's the first batch of rows for this table
@@ -600,8 +604,8 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 			foreach ( $excluded_tables_rows[ $curr_table_name ] as $excluded_info ) {
 
 				$excluded_info_arr = explode( ':', $excluded_info );
-				$column_name       = $excluded_info_arr[0] ?? '';
-				$column_value      = $excluded_info_arr[1] ?? '';
+				$column_name       = isset( $excluded_info_arr[0] ) ? $excluded_info_arr[0] : '';
+				$column_value      = isset( $excluded_info_arr[1] ) ? $excluded_info_arr[1] : '';
 
 				if ( ! empty( $column_name ) && ! empty( $column_value ) ) {
 					$where_clause_arr[] = "{$column_name} != '{$column_value}'";
@@ -662,8 +666,8 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 	$finished_total = 0;
 
 	foreach ( $all_tables as $table_data ) {
-		$rows_total_all += $table_data['rows_total'] ?? 0;
-		$finished_total += $table_data['offset'] ?? 0;
+		$rows_total_all += isset( $table_data['rows_total'] ) ? $table_data['rows_total'] : 0;
+		$finished_total += isset( $table_data['offset'] ) ? $table_data['offset'] : 0;
 	}
 
 	// Update the offset and rows_finished

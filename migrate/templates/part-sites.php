@@ -20,7 +20,7 @@ if ( ! empty( $parent_connect_data ) ) {
         <div class="bg-white text-center rounded-md py-14 flex items-center justify-center">
             <div>
                 <div class="mb-4">
-                    <img src="<?php echo esc_url( instawp()::get_asset_url( 'migrate/assets/images/staging.svg' ) ); ?>" class="mx-auto" alt="">
+                    <img src="<?php echo esc_url( instaWP::get_asset_url( 'migrate/assets/images/staging.svg' ) ); ?>" class="mx-auto" alt="">
                 </div>
 				<?php if ( isset( $parent_domain ) && ! empty( $parent_domain ) ) { ?>
                     <div class="text-sm font-medium text-grayCust-200"><?php printf( __( 'This is a staging site connected to %s', 'instawp-connect' ), '<a target="_blank" class="text-primary-900 focus:outline-none focus:ring-0 hover:text-primary-900 border-b border-transparent border-1 border-dashed hover:border-primary-700" href="' . esc_url( $parent_domain ) . '">' . esc_html( $parent_domain ) . '</a>' ); ?></div>
@@ -86,7 +86,7 @@ if ( ! empty( $parent_connect_data ) ) {
                                     <td class="whitespace-nowrap py-8 px-4 text-sm font-medium flex items-center text-grayCust-300 sm:rounded-lg">
 										<?php
 										printf( '<img src="%s" class="mr-2" alt=""><a target="_blank" class="focus:outline-none focus:ring-0 hover:text-primary-900 border-b border-transparent border-1 border-dashed hover:border-primary-700" href="%s">%s</a>',
-											instawp()::get_asset_url( 'migrate/assets/images/glob.svg' ),
+											instaWP::get_asset_url( 'migrate/assets/images/glob.svg' ),
 											esc_url_raw( $site_name ), $site_name
 										);
 										?>
