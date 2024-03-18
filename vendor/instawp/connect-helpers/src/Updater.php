@@ -142,37 +142,32 @@ class Updater {
 
 		add_filter( 'automatic_updater_disabled', '__return_false', 201 );
 		add_filter( "auto_update_{$type}", '__return_true', 201 );
-		
-		$upgrader = new \WP_Automatic_Updater();
+
+		$skin     = new \Automatic_Upgrader_Skin();
 		$result   = false;
 
 		if ( 'plugin' === $type ) {
 			wp_update_plugins();
 
-			$plugin_updates = get_site_transient( 'update_plugins' );
-			if ( $plugin_updates && ! empty( $plugin_updates->response ) && ! empty( $plugin_updates->response[ $item ] ) ) {
-				if ( ! function_exists( 'activate_plugin' ) || ! function_exists( 'is_plugin_active' ) ) {
-					include_once ABSPATH . 'wp-admin/includes/plugin.php';
-				}
-				$is_plugin_active = is_plugin_active( $item );
+			$upgrader = new \Plugin_Upgrader( $skin );
+			$result = $upgrader->upgrade( $item );
 
-				$result = $upgrader->update( 'plugin', $plugin_updates->response[ $item ] );
-				wp_clean_plugins_cache();
-				wp_update_plugins();
-				
-				if ( $is_plugin_active ) {
-					activate_plugin( $item, '', false, true );
-				}
+			if ( ! function_exists( 'activate_plugin' ) || ! function_exists( 'is_plugin_active' ) ) {
+				include_once ABSPATH . 'wp-admin/includes/plugin.php';
 			}
+			$is_plugin_active = is_plugin_active( $item );
+
+			if ( $is_plugin_active ) {
+				activate_plugin( $item, '', false, true );
+			}
+			wp_update_plugins();
 		} elseif ( 'theme' === $type ) {
 			wp_update_themes();
 
-			$theme_updates = get_site_transient( 'update_themes' );
-			if ( $theme_updates && ! empty( $theme_updates->response ) && ! empty( $theme_updates->response[ $item ] ) ) {
-				$result = $upgrader->update( 'theme', ( object ) $theme_updates->response[ $item ] );
-				wp_clean_themes_cache();
-				wp_update_themes();
-			}
+			$upgrader = new \Theme_Upgrader( $skin );
+			$result = $upgrader->upgrade( $item );
+
+			wp_update_themes();
 		}
 
 		remove_filter( 'automatic_updater_disabled', '__return_false', 201 );
