@@ -288,7 +288,7 @@ include $file_path;';
 
 	public static function process_migration_settings( $migrate_settings = array() ) {
 
-		$options      = InstaWP_Setting::get_args_option( 'options', $migrate_settings, [] );
+		$options      = InstaWP_Setting::get_args_option( 'options', $migrate_settings, array() );
 		$relative_dir = str_replace( ABSPATH, '', WP_CONTENT_DIR );
 
 		// Check if db.sql should keep or not after migration
@@ -417,7 +417,7 @@ include $file_path;';
 			$is_find_root_dir = true;
 
 			while ( ! file_exists( $root_path . DIRECTORY_SEPARATOR . $find_with_files ) ) {
-				$level ++;
+				++$level ;
 
 				$path_parts = explode( DIRECTORY_SEPARATOR, $root_path );
 				array_pop( $path_parts ); // Remove the last directory
@@ -436,7 +436,7 @@ include $file_path;';
 			$root_path        = __DIR__;
 			$is_find_root_dir = true;
 			while ( ! is_dir( $root_path . DIRECTORY_SEPARATOR . $find_with_dir ) ) {
-				$level ++;
+				++$level ;
 				$path_parts = explode( DIRECTORY_SEPARATOR, $root_path );
 				array_pop( $path_parts ); // Remove the last directory
 				$root_path = implode( DIRECTORY_SEPARATOR, $path_parts );
@@ -561,7 +561,7 @@ include $file_path;';
 		}
 
 		// Exclude two-way-sync tables
-		$excluded_tables   = InstaWP_Setting::get_args_option( 'excluded_tables', $migrate_settings, [] );
+		$excluded_tables   = InstaWP_Setting::get_args_option( 'excluded_tables', $migrate_settings, array() );
 		$excluded_tables[] = INSTAWP_DB_TABLE_EVENTS;
 		$excluded_tables[] = INSTAWP_DB_TABLE_SYNC_HISTORY;
 		$excluded_tables[] = INSTAWP_DB_TABLE_EVENT_SITES;
@@ -570,17 +570,17 @@ include $file_path;';
 		$migrate_settings['excluded_tables'] = $excluded_tables;
 
 		// Remove instawp connect options
-		$excluded_tables_rows = InstaWP_Setting::get_args_option( 'excluded_tables_rows', $migrate_settings, [] );
+		$excluded_tables_rows = InstaWP_Setting::get_args_option( 'excluded_tables_rows', $migrate_settings, array() );
 
-		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_api_options';
-		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_connect_id_options';
-		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_sync_parent_connect_data';
-		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_migration_details';
-		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_api_key_config_completed';
-		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_is_event_syncing';
-		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:_transient_instawp_staging_sites';
-		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:_transient_timeout_instawp_staging_sites';
-		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_is_staging';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_api_options';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_connect_id_options';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_sync_parent_connect_data';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_migration_details';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_api_key_config_completed';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_is_event_syncing';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:_transient_instawp_staging_sites';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:_transient_timeout_instawp_staging_sites';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_is_staging';
 
 		$migrate_settings['excluded_tables_rows'] = $excluded_tables_rows;
 
