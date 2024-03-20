@@ -398,8 +398,7 @@ class InstaWP_Sync_Helpers {
 		return $wp_post['ID'];
 	}
 
-	public static function parse_post_data( $post ) {
-
+	public static function parse_post_data( $post, $post_before = null ) {
 		kses_remove_filters();
 
 		$post = get_post( $post );
@@ -412,8 +411,15 @@ class InstaWP_Sync_Helpers {
 		$reference_id       = self::get_post_reference_id( $post->ID );
 		$post->post_content = base64_encode( $post_content );
 
+		if ( $post_before ) {
+			$post_before->post_content = base64_encode( $post_before->post_content );
+			$post_object               = ( object ) instawp_array_recursive_diff( ( array ) $post, ( array ) $post_before );
+		} else {
+			$post_object = $post;
+		}
+
 		$data = array(
-			'post'         => $post,
+			'post'         => $post_object,
 			'post_meta'    => get_post_meta( $post->ID ),
 			'reference_id' => $reference_id,
 		);
@@ -422,16 +428,17 @@ class InstaWP_Sync_Helpers {
 			$data['attachment'] = self::attachment_to_string( $post->ID, 'full', true );
 		} else {
 			$taxonomies = self::get_taxonomies_items( $post->ID );
-			$media      = self::get_media_from_content( $post_content );
-
-			$data = array_merge( $data, array(
-				'taxonomies' => $taxonomies,
-				'media'      => $media,
-			) );
+			if ( ! empty( $taxonomies ) ) {
+				$data['taxonomies'] = $taxonomies;
+			}
 
 			$featured_image_id = get_post_thumbnail_id( $post->ID );
 			if ( $featured_image_id ) {
 				$data['featured_image'] = self::attachment_to_string( $featured_image_id );
+			}
+
+			if ( ! empty( $post_object->post_content ) && $post_content ) {
+				$data['media'] = self::get_media_from_content( $post_content );
 			}
 		}
 
@@ -445,15 +452,13 @@ class InstaWP_Sync_Helpers {
 
 		kses_init_filters();
 
-		error_log( print_r( $data, true ) );
-
 		return $data;
 	}
 
 	/**
 	 * Get taxonomies items
 	 */
-	public static function get_taxonomies_items( $post_id ) {
+	public static function  get_taxonomies_items( $post_id ) {
 		$taxonomies = get_post_taxonomies( $post_id );
 		$items      = array();
 

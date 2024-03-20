@@ -22,7 +22,7 @@ class InstaWP_Sync_Post {
 		$this->restricted_cpts = (array) apply_filters( 'INSTAWP_CONNECT/Filters/two_way_sync_restricted_post_types', $this->restricted_cpts );
 
 		// Post Actions.
-		add_action( 'wp_after_insert_post', array( $this, 'handle_post' ), 999 );
+		add_action( 'wp_after_insert_post', array( $this, 'handle_post' ), 999, 4 );
 		add_action( 'elementor/document/after_save', array( $this, 'handle_elementor' ), 999 ); // elementor
 		add_action( 'before_delete_post', array( $this, 'delete_post' ), 10, 2 );
 		add_action( 'transition_post_status', array( $this, 'transition_post_status' ), 10, 3 );
@@ -46,10 +46,10 @@ class InstaWP_Sync_Post {
 	 *
 	 * @return void
 	 */
-	public function handle_post( $post_id ) {
+	public function handle_post( $post_id, $post, $update, $post_before ) {
 		$post = get_post( $post_id );
 
-		if ( ! $post || ! InstaWP_Sync_Helpers::can_sync( 'post' ) || in_array( $post->post_type, $this->restricted_cpts ) ) {
+		if ( ! $post || ! $update || ! InstaWP_Sync_Helpers::can_sync( 'post' ) || in_array( $post->post_type, $this->restricted_cpts ) ) {
 			return;
 		}
 
@@ -79,7 +79,7 @@ class InstaWP_Sync_Post {
 		}
 
 		$singular_name = InstaWP_Sync_Helpers::get_post_type_name( $post->post_type );
-		$this->handle_post_events( sprintf( __( '%s modified', 'instawp-connect' ), $singular_name ), 'post_change', $post );
+		$this->handle_post_events( sprintf( __( '%s modified', 'instawp-connect' ), $singular_name ), 'post_change', $post, $post_before );
 	}
 
 	/**
@@ -231,10 +231,11 @@ class InstaWP_Sync_Post {
 	 * @param $event_name
 	 * @param $event_slug
 	 * @param $post
+	 * @param $post_before
 	 *
 	 * @return void
 	 */
-	private function handle_post_events( $event_name, $event_slug, $post ) {
+	private function handle_post_events( $event_name, $event_slug, $post, $post_before = null ) {
 		$post = get_post( $post );
 
 		if ( ! $post instanceof WP_Post ) {
@@ -245,7 +246,7 @@ class InstaWP_Sync_Post {
 		if ( in_array( $event_slug, array( 'post_trash', 'post_delete', 'untrashed_post' ) ) ) {
 			$reference_id = InstaWP_Sync_Helpers::get_term_reference_id( $post->ID );
 		} else {
-			$data = InstaWP_Sync_Helpers::parse_post_data( $post );
+			$data = InstaWP_Sync_Helpers::parse_post_data( $post, $post_before );
 			$reference_id = isset( $data['reference_id'] ) ? $data['reference_id'] : '';
 		}
 
