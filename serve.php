@@ -24,7 +24,7 @@ function get_wp_root_directory( $find_with_files = 'wp-load.php', $find_with_dir
 		$is_find_root_dir = true;
 
 		while ( ! file_exists( $root_path . DIRECTORY_SEPARATOR . $find_with_files ) ) {
-			$level ++;
+			++$level ;
 
 			$path_parts = explode( DIRECTORY_SEPARATOR, $root_path );
 			array_pop( $path_parts ); // Remove the last directory
@@ -43,7 +43,7 @@ function get_wp_root_directory( $find_with_files = 'wp-load.php', $find_with_dir
 		$root_path        = __DIR__;
 		$is_find_root_dir = true;
 		while ( ! is_dir( $root_path . DIRECTORY_SEPARATOR . $find_with_dir ) ) {
-			$level ++;
+			++$level ;
 			$path_parts = explode( DIRECTORY_SEPARATOR, $root_path );
 			array_pop( $path_parts ); // Remove the last directory
 			$root_path = implode( DIRECTORY_SEPARATOR, $path_parts );

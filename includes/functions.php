@@ -398,7 +398,17 @@ if ( ! function_exists( 'instawp_get_dir_contents' ) ) {
 	 * Get directory content.
 	 */
 	function instawp_get_dir_contents( $dir = '/', $sort_by = false ) {
-		return instawp()->get_directory_contents( realpath( ABSPATH . $dir ), $sort_by );
+		return instawp()->get_directory_contents( instawp_get_root_path() . $dir, $sort_by );
+	}
+}
+
+
+if ( ! function_exists( 'instawp_get_root_path' ) ) {
+	function instawp_get_root_path() {
+		$root_path = $_SERVER['DOCUMENT_ROOT'];
+		$root_path = rtrim( $root_path, '\\/' );
+
+		return str_replace( '\\', '/', $root_path );
 	}
 }
 

@@ -171,24 +171,22 @@ class instaWP {
 	}
 
 	public function get_directory_contents( $dir, $sort_by ) {
-
 		if ( empty( $dir ) || ! is_dir( $dir ) ) {
 			return array();
 		}
 
 		$files_data = scandir( $dir );
-
 		if ( ! $files_data ) {
 			return array();
 		}
 
-		$path_to_replace = wp_normalize_path( ABSPATH );
+		$path_to_replace = wp_normalize_path( instawp_get_root_path() . DIRECTORY_SEPARATOR );
 		$files           = $folders = array();
 
-		foreach ( $files_data as $key => $value ) {
-			$path = $dir . DIRECTORY_SEPARATOR . $value;
+		foreach ( $files_data as $value ) {
+			$path = rtrim( $dir, '/' ) . DIRECTORY_SEPARATOR . $value;
 
-			if ( empty( $path ) || $path != "." || $path != ".." || ! file_exists( $path ) || ! is_readable( $path ) ) {
+			if ( empty( $path ) || $value == "." || $value == ".." || ! file_exists( $path ) || ! is_readable( $path ) ) {
 				continue;
 			}
 
@@ -205,7 +203,7 @@ class instaWP {
 						'count'         => 1,
 						'type'          => 'file',
 					);
-				} elseif ( $value != "." && $value != ".." ) {
+				} else {
 					$directory_info = $this->get_directory_info( $path );
 					$folders[]      = array(
 						'name'          => $value,

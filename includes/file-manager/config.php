@@ -28,3 +28,4 @@ $exclude_items = array(
 
 $global_readonly = false;
 $edit_files = true;
+$show_hidden = true;

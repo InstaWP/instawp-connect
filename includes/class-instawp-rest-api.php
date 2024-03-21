@@ -17,10 +17,10 @@ class InstaWP_Rest_Api {
 
 		add_action( 'rest_api_init', array( $this, 'add_api_routes' ) );
 		add_filter( 'rest_authentication_errors', array( $this, 'rest_access' ), 999 );
+		add_action( 'init', array( $this, 'perform_actions' ), 0 );
 	}
 
 	public function add_api_routes() {
-
 		register_rest_route( $this->namespace . '/' . $this->version, '/config', array(
 			'methods'             => 'POST',
 			'callback'            => array( $this, 'config' ),
@@ -1441,13 +1441,31 @@ class InstaWP_Rest_Api {
 	 * @return WP_Error|null|boolean
 	 */
 	public function rest_access( $access ) {
+		return $this->is_instawp_route() ? true : $access;
+	}
+
+	/**
+	 * Check if Current REST route contains instawp or not
+	 */
+	public function perform_actions() {
+		if ( $this->is_instawp_route() ) {
+			remove_action( 'init', 'csmm_plugin_init' ); // minimal-coming-soon-maintenance-mode support
+		}
+	}
+
+	/**
+	 * Check if Current REST route contains instawp or not.
+	 *
+	 * @return bool
+	 */
+	private function is_instawp_route() {
 		$current_route = $this->get_current_route();
 
-		if ( strpos( $current_route, 'instawp-connect' ) !== false ) {
-			return null;
+		if ( $current_route && strpos( $current_route, 'instawp-connect' ) !== false ) {
+			return true;
 		}
 
-		return $access;
+		return false;
 	}
 
 	/**
@@ -1456,10 +1474,15 @@ class InstaWP_Rest_Api {
 	 * @return string
 	 */
 	private function get_current_route() {
-
 		$rest_route = get_query_var( 'rest_route', '/' );
 
-		return ( empty( $rest_route ) || is_null( $rest_route ) || '/' == $rest_route ) ? $rest_route : untrailingslashit( $rest_route );
+		if ( isset( $GLOBALS['wp']->query_vars['rest_route'] ) ) {
+			$rest_route = $GLOBALS['wp']->query_vars['rest_route'];
+		} elseif ( isset( $_SERVER['REQUEST_URI'] ) ) {
+			$rest_route = $_SERVER['REQUEST_URI'];
+		}
+
+		return ( empty( $rest_route ) || '/' == $rest_route ) ? $rest_route : untrailingslashit( $rest_route );
 	}
 
 	/**
