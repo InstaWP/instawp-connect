@@ -297,7 +297,7 @@ include $file_path;';
 		}
 
 		if ( ! function_exists( 'get_plugins' ) ) {
-			require_once ABSPATH . 'wp-includes/plugin.php';
+			include ABSPATH . 'wp-includes/plugin.php';
 		}
 
 		// Skip index.html file forcefully
@@ -381,7 +381,7 @@ include $file_path;';
 
 			if ( isset( $migrate_settings['excluded_paths'] ) && is_array( $migrate_settings['excluded_paths'] ) ) {
 				foreach ( $migrate_settings['excluded_paths'] as $path ) {
-					$dir_contents      = instawp_get_dir_contents( $path );
+					$dir_contents      = instawp_get_dir_contents( $path, false, false );
 					$dir_contents_size = array_map( function ( $dir_info ) {
 						return isset( $dir_info['size'] ) ? $dir_info['size'] : 0;
 					}, $dir_contents );
@@ -417,7 +417,7 @@ include $file_path;';
 			$is_find_root_dir = true;
 
 			while ( ! file_exists( $root_path . DIRECTORY_SEPARATOR . $find_with_files ) ) {
-				++$level ;
+				++ $level;
 
 				$path_parts = explode( DIRECTORY_SEPARATOR, $root_path );
 				array_pop( $path_parts ); // Remove the last directory
@@ -436,7 +436,7 @@ include $file_path;';
 			$root_path        = __DIR__;
 			$is_find_root_dir = true;
 			while ( ! is_dir( $root_path . DIRECTORY_SEPARATOR . $find_with_dir ) ) {
-				++$level ;
+				++ $level;
 				$path_parts = explode( DIRECTORY_SEPARATOR, $root_path );
 				array_pop( $path_parts ); // Remove the last directory
 				$root_path = implode( DIRECTORY_SEPARATOR, $path_parts );
@@ -572,15 +572,15 @@ include $file_path;';
 		// Remove instawp connect options
 		$excluded_tables_rows = InstaWP_Setting::get_args_option( 'excluded_tables_rows', $migrate_settings, array() );
 
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_api_options';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_connect_id_options';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_sync_parent_connect_data';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_migration_details';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_api_key_config_completed';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_is_event_syncing';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:_transient_instawp_staging_sites';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:_transient_timeout_instawp_staging_sites';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_is_staging';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_api_options';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_connect_id_options';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_sync_parent_connect_data';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_migration_details';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_api_key_config_completed';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_is_event_syncing';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:_transient_instawp_staging_sites';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:_transient_timeout_instawp_staging_sites';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_is_staging';
 
 		$migrate_settings['excluded_tables_rows'] = $excluded_tables_rows;
 

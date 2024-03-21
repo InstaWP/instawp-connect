@@ -397,8 +397,11 @@ if ( ! function_exists( 'instawp_get_dir_contents' ) ) {
 	/**
 	 * Get directory content.
 	 */
-	function instawp_get_dir_contents( $dir = '/', $sort_by = false ) {
-		return instawp()->get_directory_contents( instawp_get_root_path() . $dir, $sort_by );
+	function instawp_get_dir_contents( $dir = '/', $sort_by = false, $add_root_path = true ) {
+
+		$dir = $add_root_path ? instawp_get_root_path() . $dir : $dir;
+
+		return instawp()->get_directory_contents( $dir, $sort_by );
 	}
 }
 
