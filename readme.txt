@@ -94,6 +94,16 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 
 == Changelog ==
 
+= 0.1.0.21 - 21 Mar 2024 =
+- NEW - Added full support for PHP 5.6.
+- FIX - Migration exclude screen undefined path issue.
+- FIX - Fix heartbeat actions ordering.
+- FIX - Fix Total site calculation for migration.
+- FIX - Only changed post object parameters will be logged in 2 way sync.
+- FIX - 2 way sync optimizations.
+- FIX - Magic login support for maintenance mode plugin by webfactory.
+- FIX - Rest api blocking issue by security plugins.
+
 = 0.1.0.20 - 15 Mar 2024 =
 - NEW - Added support for PHP 5.6.
 - FIX - Improve plugin performance.
