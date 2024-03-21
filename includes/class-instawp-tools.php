@@ -364,7 +364,7 @@ include $file_path;';
 		return $unsupported_active_plugins;
 	}
 
-	public static function get_total_sizes( $type = '', $migrate_settings = array() ) {
+	public static function get_total_sizes( $type = 'files', $migrate_settings = array() ) {
 
 		if ( $type === 'files' ) {
 
@@ -393,7 +393,7 @@ include $file_path;';
 			return $total_files_size - $total_size_to_skip;
 		}
 
-		if ( $type === 'files' ) {
+		if ( $type === 'db' ) {
 			$tables       = instawp_get_database_details();
 			$tables_sizes = array_map( function ( $data ) {
 				return isset( $data['size'] ) ? $data['size'] : 0;
