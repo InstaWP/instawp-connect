@@ -9,31 +9,17 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 	class InstaWP_Heartbeat {
 
 		public function __construct() {
-			add_action( 'init', array( $this, 'register_events' ), 11 );
+			add_action( 'init', array( $this, 'register_events' ) );
 			add_action( 'add_option_instawp_api_heartbeat', array( $this, 'clear_heartbeat_action' ) );
 			add_action( 'update_option_instawp_api_heartbeat', array( $this, 'clear_heartbeat_action' ) );
 			add_action( 'add_option_instawp_rm_heartbeat', array( $this, 'clear_heartbeat_action' ) );
 			add_action( 'update_option_instawp_rm_heartbeat', array( $this, 'clear_heartbeat_action' ) );
-			add_action( 'instawp_handle_heartbeat', array( $this, 'handle_heartbeat' ) );
+			add_action( 'instawp_handle_heartbeat', array( $this, 'send_heartbeat_data' ) );
 			add_action( 'instawp_send_heartbeat', array( $this, 'send_heartbeat_data' ) );
 			add_action( 'instawp_handle_heartbeat_status', array( $this, 'handle_heartbeat_status' ) );
 		}
 
 		public function register_events() {
-			$heartbeat = InstaWP_Setting::get_option( 'instawp_rm_heartbeat', 'on' );
-			$heartbeat = empty( $heartbeat ) ? 'on' : $heartbeat;
-
-			if ( 'on' !== $heartbeat || empty( InstaWP_Setting::get_api_key() ) ) {
-				return;
-			}
-
-			$interval = InstaWP_Setting::get_option( 'instawp_api_heartbeat', 15 );
-			$interval = empty( $interval ) ? 15 : (int) $interval;
-
-			if ( ! as_has_scheduled_action( 'instawp_handle_heartbeat', array(), 'instawp-connect' ) ) {
-				as_schedule_recurring_action( time(), ( $interval * MINUTE_IN_SECONDS ), 'instawp_handle_heartbeat', array(), 'instawp-connect' );
-			}
-
 			if ( ! as_has_scheduled_action( 'instawp_send_heartbeat', array(), 'instawp-connect' ) ) {
 				as_schedule_recurring_action( time(), DAY_IN_SECONDS, 'instawp_send_heartbeat', array(), 'instawp-connect' );
 			}
@@ -41,14 +27,22 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 			if ( ! as_has_scheduled_action( 'instawp_handle_heartbeat_status', array(), 'instawp-connect' ) ) {
 				as_schedule_recurring_action( time(), DAY_IN_SECONDS, 'instawp_handle_heartbeat_status', array(), 'instawp-connect' );
 			}
+
+			$heartbeat = InstaWP_Setting::get_option( 'instawp_rm_heartbeat', 'on' );
+			$heartbeat = empty( $heartbeat ) ? 'on' : $heartbeat;
+
+			if ( 'on' === $heartbeat ) {
+				$interval = InstaWP_Setting::get_option( 'instawp_api_heartbeat', 15 );
+				$interval = empty( $interval ) ? 15 : (int) $interval;
+
+				if ( ! as_has_scheduled_action( 'instawp_handle_heartbeat', array(), 'instawp-connect' ) ) {
+					as_schedule_recurring_action( time(), ( $interval * MINUTE_IN_SECONDS ), 'instawp_handle_heartbeat', array(), 'instawp-connect' );
+				}
+			}
 		}
 
 		public function clear_heartbeat_action() {
 			as_unschedule_all_actions( 'instawp_handle_heartbeat', array(), 'instawp-connect' );
-		}
-
-		public function handle_heartbeat() {
-			self::send_heartbeat();
 		}
 
 		public function send_heartbeat_data() {
@@ -152,9 +146,7 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 				'new_changes'      => instawp_array_recursive_diff( $heartbeat_data, $last_sent_data ),
 			) ) );
 
-			$success       = false;
-			$response_code = '';
-
+			$success = false;
 			for ( $i = 0; $i < 10; $i ++ ) {
 				$heartbeat_response = InstaWP_Curl::do_curl( "connects/{$connect_id}/heartbeat", $heartbeat_body, array(), true, 'v1' );
 				$response_code      = InstaWP_Setting::get_args_option( 'code', $heartbeat_response );
