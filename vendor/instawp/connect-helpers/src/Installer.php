@@ -67,6 +67,14 @@ class Installer {
                 require_once ABSPATH . 'wp-admin/includes/class-automatic-upgrader-skin.php';
             }
 
+            if ( ! function_exists( 'request_filesystem_credentials' ) ) {
+                require_once ABSPATH . 'wp-admin/includes/file.php';
+            }
+
+            if ( ! function_exists( 'get_plugin_data' ) ) {
+                require_once ABSPATH . 'wp-admin/includes/plugin.php';
+            }
+
             $skin = new \Automatic_Upgrader_Skin();
 
             if ( 'plugin' === $this->type ) {
