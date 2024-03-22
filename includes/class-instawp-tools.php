@@ -297,7 +297,7 @@ include $file_path;';
 		}
 
 		if ( ! function_exists( 'get_plugins' ) ) {
-			include ABSPATH . 'wp-includes/plugin.php';
+			include ABSPATH . 'wp-admin/includes/plugin.php';
 		}
 
 		// Skip index.html file forcefully
