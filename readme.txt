@@ -98,6 +98,7 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 - NEW - Added full support for PHP 5.6.
 - NEW - Added User Create/Update/Delete APIs.
 - FIX - Migration exclude screen undefined path issue.
+- FIX - Magic login errors.
 - FIX - Fix heartbeat actions ordering.
 - FIX - Fix Total site calculation for migration.
 - FIX - Only changed post object parameters will be logged in 2 way sync.
