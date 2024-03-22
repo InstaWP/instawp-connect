@@ -414,6 +414,8 @@ class InstaWP_Sync_Helpers {
 		if ( $post_before ) {
 			$post_before->post_content = base64_encode( $post_before->post_content );
 			$post_object               = ( object ) instawp_array_recursive_diff( ( array ) $post, ( array ) $post_before );
+			$post_object->post_name    = $post->post_name;
+			$post_object->post_status  = $post->post_status;
 		} else {
 			$post_object = $post;
 		}
@@ -458,7 +460,7 @@ class InstaWP_Sync_Helpers {
 	/**
 	 * Get taxonomies items
 	 */
-	public static function  get_taxonomies_items( $post_id ) {
+	public static function get_taxonomies_items( $post_id ) {
 		$taxonomies = get_post_taxonomies( $post_id );
 		$items      = array();
 

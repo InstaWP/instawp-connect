@@ -140,6 +140,10 @@ class Updater {
 			require_once ABSPATH . 'wp-admin/includes/file.php';
 		}
 
+		if ( ! function_exists( 'get_plugin_data' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		}
+
 		add_filter( 'automatic_updater_disabled', '__return_false', 201 );
 		add_filter( "auto_update_{$type}", '__return_true', 201 );
 
