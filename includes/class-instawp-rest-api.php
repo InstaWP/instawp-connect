@@ -218,100 +218,6 @@ class InstaWP_Rest_Api {
 	}
 
 	/**
-	 * Handle response for create user
-	 *
-	 * @param WP_REST_Request $request
-	 *
-	 * @return WP_REST_Response
-	 */
-	public function add_user( WP_REST_Request $request ) {
-
-		$response = $this->validate_api_request( $request );
-		if ( is_wp_error( $response ) ) {
-			return $this->throw_error( $response );
-		}
-
-		$params = $this->filter_params( $request );
-
-		if ( empty( $params['user_login'] ) ) {
-			return $this->send_response( array(
-				'success' => false,
-				'message' => 'Username can\'t be empty!',
-			) );
-		}
-
-		$user_id = wp_insert_user( wp_parse_args( $params, array(
-			'user_pass' => wp_generate_password(),
-		) ) );
-
-		if ( is_wp_error( $user_id ) ) {
-			return $this->throw_error( $user_id );
-		}
-
-		$user = get_user_by( 'id', $user_id );
-
-		return $this->send_response( array(
-			'success'  => true,
-			'userdata' => $user
-		) );
-	}
-
-	/**
-	 * Handle response for update user
-	 *
-	 * @param WP_REST_Request $request
-	 *
-	 * @return WP_REST_Response
-	 */
-	public function update_user( WP_REST_Request $request ) {
-
-		$response = $this->validate_api_request( $request );
-		if ( is_wp_error( $response ) ) {
-			return $this->throw_error( $response );
-		}
-
-		$params  = $this->filter_params( $request );
-		$user_id = wp_update_user( $params );
-
-		if ( is_wp_error( $user_id ) ) {
-			return $this->throw_error( $user_id );
-		}
-
-		$user = get_user_by( 'id', $user_id );
-
-		return $this->send_response( array(
-			'success'  => true,
-			'userdata' => $user
-		) );
-	}
-
-	/**
-	 * Handle response for delete user
-	 *
-	 * @param WP_REST_Request $request
-	 *
-	 * @return WP_REST_Response
-	 */
-	public function delete_user( WP_REST_Request $request ) {
-
-		$response = $this->validate_api_request( $request );
-		if ( is_wp_error( $response ) ) {
-			return $this->throw_error( $response );
-		}
-
-		$params = $this->filter_params( $request );
-		$params = wp_parse_args( $params, array(
-			'reassign' => null
-		) );
-		$status = wp_delete_user( $params['user_id'], $params['reassign'] );
-
-		return $this->send_response( array(
-			'success'  => $status,
-			'userdata' => $params
-		) );
-	}
-
-	/**
 	 * Handle response for pull api
 	 *
 	 * @param WP_REST_Request $request
@@ -1419,6 +1325,114 @@ class InstaWP_Rest_Api {
 
 		return $this->send_response( $response );
 	}
+
+
+	/**
+	 * Handle response for create user
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function add_user( WP_REST_Request $request ) {
+
+		$response = $this->validate_api_request( $request );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
+
+		$params = $this->filter_params( $request );
+
+		if ( empty( $params['user_login'] ) ) {
+			return $this->send_response( array(
+				'success' => false,
+				'message' => 'Username can\'t be empty!',
+			) );
+		}
+
+		if ( ! function_exists( 'wp_insert_user' ) ) {
+			require_once ABSPATH . 'wp-includes/user.php';
+		}
+
+		$user_id = wp_insert_user( wp_parse_args( $params, array(
+			'user_pass' => wp_generate_password(),
+		) ) );
+
+		if ( is_wp_error( $user_id ) ) {
+			return $this->throw_error( $user_id );
+		}
+
+		$user = get_user_by( 'id', $user_id );
+
+		return $this->send_response( array(
+			'success'  => true,
+			'userdata' => $user
+		) );
+	}
+
+	/**
+	 * Handle response for update user
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function update_user( WP_REST_Request $request ) {
+
+		$response = $this->validate_api_request( $request );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
+
+		if ( ! function_exists( 'wp_update_user' ) ) {
+			require_once ABSPATH . 'wp-includes/user.php';
+		}
+
+		$params  = $this->filter_params( $request );
+		$user_id = wp_update_user( $params );
+
+		if ( is_wp_error( $user_id ) ) {
+			return $this->throw_error( $user_id );
+		}
+
+		$user = get_user_by( 'id', $user_id );
+
+		return $this->send_response( array(
+			'success'  => true,
+			'userdata' => $user
+		) );
+	}
+
+	/**
+	 * Handle response for delete user
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function delete_user( WP_REST_Request $request ) {
+
+		$response = $this->validate_api_request( $request );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
+
+		if ( ! function_exists( 'wp_delete_user' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/user.php';
+		}
+
+		$params = $this->filter_params( $request );
+		$params = wp_parse_args( $params, array(
+			'reassign' => null
+		) );
+		$status = wp_delete_user( $params['user_id'], $params['reassign'] );
+
+		return $this->send_response( array(
+			'success'  => $status,
+			'userdata' => $params
+		) );
+	}
+
 
 	/**
 	 * Handle file manager system.
