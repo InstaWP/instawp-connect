@@ -645,13 +645,26 @@ class InstaWP_Rest_Api {
 		$response_message  = InstaWP_Setting::get_args_option( 'message', $login_userinfo );
 		$uuid_code         = wp_generate_uuid4();
 		$login_code        = str_shuffle( $uuid_code . $uuid_code );
-		$auto_login_url    = add_query_arg(
-			array(
-				'c' => $login_code,
-				's' => base64_encode( $username_to_login ),
-			),
-			wp_login_url( '', true )
+		$args              = array(
+			'c' => $login_code,
+			's' => base64_encode( $username_to_login ),
 		);
+
+		if ( ! function_exists( 'is_plugin_active' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		}
+
+		if ( is_plugin_active( 'admin-site-enhancements/admin-site-enhancements.php' ) ) {
+			$options    = get_option( 'admin_site_enhancements' );
+			$login_slug = ! empty( $options['custom_login_slug'] ) ? $options['custom_login_slug'] : '';
+
+			if ( ! empty( $options['change_login_url'] ) && ! empty( $login_slug ) ) {
+				$args[ $login_slug ] = 1;
+				$args['redirect']    = 'false';
+			}
+		}
+
+		$auto_login_url = add_query_arg( $args, wp_login_url( '', true ) );
 
 		InstaWP_Setting::update_option( 'instawp_login_code', array(
 			'code'       => $login_code,
