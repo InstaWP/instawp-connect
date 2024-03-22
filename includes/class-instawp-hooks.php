@@ -37,24 +37,20 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			$instawp_login_code = InstaWP_Setting::get_option( 'instawp_login_code', array() );
 			$saved_login_code   = InstaWP_Setting::get_args_option( 'code', $instawp_login_code );
 			$saved_updated_at   = InstaWP_Setting::get_args_option( 'updated_at', $instawp_login_code );
+            $redirect           = wp_login_url();
 
-			if ( ( current_time( 'U' ) - $saved_updated_at <= 30 ) && $saved_login_code == $login_code && username_exists( $login_username ) ) {
-
-				$login_user = get_user_by( 'login', $login_username );
+			if ( $saved_login_code && $saved_updated_at && ( current_time( 'U' ) - intval( $saved_updated_at ) <= 30 ) && $saved_login_code === $login_code && username_exists( $login_username ) ) {
+				$redirect   = admin_url();
+                $login_user = get_user_by( 'login', $login_username );
 
 				wp_set_current_user( $login_user->ID, $login_user->user_login );
 				wp_set_auth_cookie( $login_user->ID );
 
 				do_action( 'wp_login', $login_user->user_login, $login_user );
-				delete_option( 'instawp_login_code' );
-
-				wp_redirect( admin_url() );
-				exit();
 			}
 
 			delete_option( 'instawp_login_code' );
-//          wp_logout();
-			wp_redirect( wp_login_url() );
+			wp_safe_redirect( $redirect );
 			exit();
 		}
 
