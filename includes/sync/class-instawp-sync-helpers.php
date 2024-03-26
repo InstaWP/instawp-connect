@@ -345,6 +345,7 @@ class InstaWP_Sync_Helpers {
 			$post_meta      = isset( $details['post_meta'] ) ? $details['post_meta'] : array();
 			$featured_image = isset( $details['featured_image'] ) ? $details['featured_image'] : array();
 			$content_media  = isset( $details['media'] ) ? $details['media'] : array();
+			$taxonomies     = isset( $details['taxonomies'] ) ? $details['taxonomies'] : array();
 			$wp_post['ID']  = self::create_or_update_post( $wp_post, $post_meta, $details['reference_id'] );
 
 			delete_post_thumbnail( $wp_post['ID'] );
@@ -360,7 +361,7 @@ class InstaWP_Sync_Helpers {
 
 			self::reset_post_terms( $wp_post['ID'] );
 
-			foreach ( $details['taxonomies'] as $taxonomy => $terms ) {
+			foreach ( $taxonomies as $taxonomy => $terms ) {
 				$term_ids = array();
 				foreach ( $terms as $term ) {
 					$term = ( array ) $term;
@@ -416,6 +417,7 @@ class InstaWP_Sync_Helpers {
 			$post_object               = ( object ) instawp_array_recursive_diff( ( array ) $post, ( array ) $post_before );
 			$post_object->post_name    = $post->post_name;
 			$post_object->post_status  = $post->post_status;
+			$post_object->post_type    = $post->post_type;
 		} else {
 			$post_object = $post;
 		}
@@ -509,7 +511,9 @@ class InstaWP_Sync_Helpers {
 	public static function prepare_post_data( $post, $post_id = 0 ) {
 		unset( $post['ID'], $post['guid'] );
 
-		$post['post_content'] = base64_decode( $post['post_content'] );
+		if ( isset( $post['post_content'] ) ) {
+			$post['post_content'] = base64_decode( $post['post_content'] );
+		}
 
 		if ( $post_id ) {
 			$post['ID'] = $post_id;
