@@ -570,6 +570,15 @@ class InstaWP_Rest_Api {
 			}
 		}
 
+		if ( is_plugin_active( 'better-wp-security/better-wp-security.php' ) ) {
+			$options    = get_option( 'itsec-storage' );
+			$login_slug = ! empty( $options['hide-backend']['slug'] ) ? $options['hide-backend']['slug'] : '';
+
+			if ( ! empty( $options['hide-backend']['enabled'] ) && ! empty( $login_slug ) ) {
+				$args['itsec-hb-token'] = $login_slug;
+			}
+		}
+
 		$auto_login_url = add_query_arg( $args, wp_login_url( '', true ) );
 
 		InstaWP_Setting::update_option( 'instawp_login_code', array(

@@ -89,7 +89,12 @@ class InstaWP_Sync_Post {
 	 * @param $data .
 	 */
 	public function handle_elementor( $document ) {
-		$this->handle_post( $document->get_post()->ID );
+		if ( ! InstaWP_Sync_Helpers::can_sync( 'post' ) ) {
+			return;
+		}
+
+		$post = $document->get_post();
+		$this->handle_post( $post->ID, $post, true, null );
 	}
 
 	public function custom_fields_filter( $meta_excludelist ) {

@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.6
 Tested up to: 6.5
 Requires PHP: 5.6
-Stable tag: 0.1.0.21
+Stable tag: 0.1.0.22
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -93,6 +93,10 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 6. Update API Key and Settings.
 
 == Changelog ==
+
+= 0.1.0.22 - 26 Mar 2024 =
+- NEW - Added Magic Login support for Solid Security plugin.
+- FIX - 2 way sync issues.
 
 = 0.1.0.21 - 22 Mar 2024 =
 - NEW - Added full support for PHP 5.6.
