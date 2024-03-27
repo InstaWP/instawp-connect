@@ -78,9 +78,9 @@ class InstaWP_AJAX {
 		$response_data                     = InstaWP_Setting::get_args_option( 'data', $response, array() );
 		$auto_login_hash                   = isset( $response_data['dest_wp']['auto_login_hash'] ) ? $response_data['dest_wp']['auto_login_hash'] : '';
 		$response_data['migrate_id']       = $migrate_id;
-		$response_data['progress_files']   = InstaWP_Setting::get_args_option( 'progress_files', $response_data, 0 );
-		$response_data['progress_db']      = InstaWP_Setting::get_args_option( 'progress_db', $response_data, 0 );
-		$response_data['progress_restore'] = InstaWP_Setting::get_args_option( 'progress_restore', $response_data, 0 );
+		$response_data['progress_files']   = InstaWP_Setting::get_args_option( 'progress_files', $response_data, '0' );
+		$response_data['progress_db']      = InstaWP_Setting::get_args_option( 'progress_db', $response_data, '0' );
+		$response_data['progress_restore'] = InstaWP_Setting::get_args_option( 'progress_restore', $response_data, '0' );
 		$response_data['server_logs']      = InstaWP_Setting::get_args_option( 'server_logs', $response_data );
 		$response_data['failed_message']   = InstaWP_Setting::get_args_option( 'failed_message', $response_data, esc_html( 'Something went wrong' ) );
 
@@ -338,8 +338,8 @@ class InstaWP_AJAX {
 				$theme_item_checked = true;
 
 				if ( in_array( $data['full_path'], array( $theme_path, $template_path, $themes_dir, $themes_dir . '/index.php' ) )
-					|| strpos( $data['full_path'], $theme_path ) !== false
-					|| strpos( $data['full_path'], $template_path ) !== false ) {
+				     || strpos( $data['full_path'], $theme_path ) !== false
+				     || strpos( $data['full_path'], $template_path ) !== false ) {
 
 					$theme_item_checked = false;
 				}
@@ -351,7 +351,7 @@ class InstaWP_AJAX {
 				$plugin_item_checked = true;
 
 				if ( in_array( $data['full_path'], array( wp_normalize_path( WP_PLUGIN_DIR ), wp_normalize_path( WP_PLUGIN_DIR ) . '/index.php' ) )
-					|| in_array( basename( $data['relative_path'] ), array_map( 'dirname', $active_plugins ) ) ) {
+				     || in_array( basename( $data['relative_path'] ), array_map( 'dirname', $active_plugins ) ) ) {
 
 					$plugin_item_checked = false;
 				}

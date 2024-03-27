@@ -182,7 +182,7 @@ $whitelist_ip          = instawp_whitelist_ip();
                     <button type="button" class="instawp-refresh-exclude-screen">
                         <svg class="w-4 h-4" viewBox="0 0 14 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path fill-rule="evenodd" clip-rule="evenodd" style="fill: #005e54;"
-                                    d="M1.59995 0.800049C2.09701 0.800049 2.49995 1.20299 2.49995 1.70005V3.59118C3.64303 2.42445 5.23642 1.70005 6.99995 1.70005C9.74442 1.70005 12.0768 3.45444 12.9412 5.90013C13.1069 6.36877 12.8612 6.88296 12.3926 7.0486C11.924 7.21425 11.4098 6.96862 11.2441 6.49997C10.6259 4.75097 8.95787 3.50005 6.99995 3.50005C5.52851 3.50005 4.22078 4.20657 3.39937 5.30005H6.09995C6.59701 5.30005 6.99995 5.70299 6.99995 6.20005C6.99995 6.6971 6.59701 7.10005 6.09995 7.10005H1.59995C1.10289 7.10005 0.699951 6.6971 0.699951 6.20005V1.70005C0.699951 1.20299 1.10289 0.800049 1.59995 0.800049ZM1.6073 8.95149C2.07594 8.78585 2.59014 9.03148 2.75578 9.50013C3.37396 11.2491 5.04203 12.5 6.99995 12.5C8.47139 12.5 9.77912 11.7935 10.6005 10.7L7.89995 10.7C7.40289 10.7 6.99995 10.2971 6.99995 9.80005C6.99995 9.30299 7.40289 8.90005 7.89995 8.90005H12.3999C12.6386 8.90005 12.8676 8.99487 13.0363 9.16365C13.2051 9.33243 13.3 9.56135 13.3 9.80005V14.3C13.3 14.7971 12.897 15.2 12.4 15.2C11.9029 15.2 11.5 14.7971 11.5 14.3V12.4089C10.3569 13.5757 8.76348 14.3 6.99995 14.3C4.25549 14.3 1.92309 12.5457 1.05867 10.1C0.893024 9.63132 1.13866 9.11714 1.6073 8.95149Z"></path>
+                                  d="M1.59995 0.800049C2.09701 0.800049 2.49995 1.20299 2.49995 1.70005V3.59118C3.64303 2.42445 5.23642 1.70005 6.99995 1.70005C9.74442 1.70005 12.0768 3.45444 12.9412 5.90013C13.1069 6.36877 12.8612 6.88296 12.3926 7.0486C11.924 7.21425 11.4098 6.96862 11.2441 6.49997C10.6259 4.75097 8.95787 3.50005 6.99995 3.50005C5.52851 3.50005 4.22078 4.20657 3.39937 5.30005H6.09995C6.59701 5.30005 6.99995 5.70299 6.99995 6.20005C6.99995 6.6971 6.59701 7.10005 6.09995 7.10005H1.59995C1.10289 7.10005 0.699951 6.6971 0.699951 6.20005V1.70005C0.699951 1.20299 1.10289 0.800049 1.59995 0.800049ZM1.6073 8.95149C2.07594 8.78585 2.59014 9.03148 2.75578 9.50013C3.37396 11.2491 5.04203 12.5 6.99995 12.5C8.47139 12.5 9.77912 11.7935 10.6005 10.7L7.89995 10.7C7.40289 10.7 6.99995 10.2971 6.99995 9.80005C6.99995 9.30299 7.40289 8.90005 7.89995 8.90005H12.3999C12.6386 8.90005 12.8676 8.99487 13.0363 9.16365C13.2051 9.33243 13.3 9.56135 13.3 9.80005V14.3C13.3 14.7971 12.897 15.2 12.4 15.2C11.9029 15.2 11.5 14.7971 11.5 14.3V12.4089C10.3569 13.5757 8.76348 14.3 6.99995 14.3C4.25549 14.3 1.92309 12.5457 1.05867 10.1C0.893024 9.63132 1.13866 9.11714 1.6073 8.95149Z"></path>
                         </svg>
                     </button>
                 </div>
@@ -364,9 +364,9 @@ $whitelist_ip          = instawp_whitelist_ip();
                 <div class="flex justify-between items-center">
                     <div class="text-grayCust-200 text-lg font-bold"><?php esc_html_e( '4. Creating Staging', 'instawp-connect' ); ?></div>
                     <span class="instawp-migration-loader text-primary-900 text-base font-normal"
-                            data-in-progress-text="<?php esc_attr_e( 'In Progress...', 'instawp-connect' ); ?>"
-                            data-error-text="<?php esc_attr_e( 'Migration Failed', 'instawp-connect' ); ?>"
-                            data-complete-text="<?php esc_attr_e( 'Completed', 'instawp-connect' ); ?>"><?php esc_html_e( 'In Progress...', 'instawp-connect' ); ?></span>
+                          data-in-progress-text="<?php esc_attr_e( 'In Progress...', 'instawp-connect' ); ?>"
+                          data-error-text="<?php esc_attr_e( 'Migration Failed', 'instawp-connect' ); ?>"
+                          data-complete-text="<?php esc_attr_e( 'Completed', 'instawp-connect' ); ?>"><?php esc_html_e( 'In Progress...', 'instawp-connect' ); ?></span>
                 </div>
                 <div class="panel mt-6 block">
                     <div class="migration-running border border-grayCust-100 rounded-lg">
@@ -389,22 +389,58 @@ $whitelist_ip          = instawp_whitelist_ip();
                                     <div class="progress-text text-grayCust-650 text-sm font-medium"><?php esc_html_e( '0%', 'instawp-connect' ); ?></div>
                                 </div>
                             </div>
-                            <div class="flex items-center">
-                                <div class="instawp-progress-stage text-border rounded-xl w-full text-bg py-4 flex items-center px-4">
-                                    <ul class="text-sm grid grid-cols-1 sm:grid-cols-2 gap-3">
-										<?php foreach ( InstaWP_Setting::get_stages() as $stage_key => $label ) : ?>
-                                            <li class="stage-<?= $stage_key ?> flex space-x-3 item [&_.active]:text-green-600">
-                                                <svg class="stage-status icon flex-shrink-0 h-6 w-6 text-gray-600" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                    <path d="M15.1965 7.85999C15.1965 3.71785 11.8387 0.359985 7.69653 0.359985C3.5544 0.359985 0.196533 3.71785 0.196533 7.85999C0.196533 12.0021 3.5544 15.36 7.69653 15.36C11.8387 15.36 15.1965 12.0021 15.1965 7.85999Z" fill="currentColor" fill-opacity="0.1"></path>
-                                                    <path d="M10.9295 4.88618C11.1083 4.67577 11.4238 4.65019 11.6343 4.82904C11.8446 5.00788 11.8702 5.32343 11.6914 5.53383L7.44139 10.5338C7.25974 10.7475 6.93787 10.77 6.72825 10.5837L4.47825 8.5837C4.27186 8.40024 4.25327 8.0842 4.43673 7.87781C4.62019 7.67142 4.93622 7.65283 5.14261 7.83629L7.01053 9.49669L10.9295 4.88618Z" fill="currentColor"></path>
-                                                </svg>
-                                                <span class="stage-status label text-gray-600"><?= $label; ?></span>
-                                            </li>
-										<?php endforeach; ?>
-                                    </ul>
+
+                            <div class="visibility-box text-border rounded-xl w-full text-bg p-4">
+                                <div class="mb-6 box-header flex items-center justify-between">
+                                    <span class="text-grayCust-900 text-base font-normal box-title">Currently Processing</span>
+                                    <span class="cursor-pointer box-controller open">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5"/>
+                                            <!-- <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /> -->
+                                        </svg>
+                                    </span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-md mr-6">
+                                    <div class="flex justify-between items-center">
+                                        <span>wp-config.php (52mb)</span>
+                                        <div class="flex">
+                                            <span>Skip this file</span>
+                                            <span>Continue migration</span>
+                                        </div>
+                                    </div>
+                                    <div class="instawp-progress-bar h-2 bg-primary-900 rounded-md"></div>
+                                    <div class="flex justify-start items-center">
+                                        <span>Unknown file format</span>
+                                    </div>
                                 </div>
                             </div>
+
+                            <div class="visibility-box text-border rounded-xl w-full text-bg p-4">
+                                <div class="mb-6 box-header flex items-center justify-between">
+                                    <span class="text-grayCust-900 text-base font-normal box-title">Stages Completed <span class="stage-finished">6</span><span>/</span><span class="stage-total">13</span></span>
+                                    <span class="cursor-pointer box-controller open">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5"/>
+                                            <!-- <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /> -->
+                                        </svg>
+                                    </span>
+                                </div>
+
+                                <ul class="text-sm grid grid-cols-1 sm:grid-cols-2 gap-3">
+									<?php foreach ( InstaWP_Setting::get_stages() as $stage_key => $label ) : ?>
+                                        <li class="stage-<?= $stage_key ?> flex space-x-3 item [&_.active]:text-green-600">
+                                            <svg class="stage-status icon flex-shrink-0 h-6 w-6 text-gray-600" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M15.1965 7.85999C15.1965 3.71785 11.8387 0.359985 7.69653 0.359985C3.5544 0.359985 0.196533 3.71785 0.196533 7.85999C0.196533 12.0021 3.5544 15.36 7.69653 15.36C11.8387 15.36 15.1965 12.0021 15.1965 7.85999Z" fill="currentColor" fill-opacity="0.1"></path>
+                                                <path d="M10.9295 4.88618C11.1083 4.67577 11.4238 4.65019 11.6343 4.82904C11.8446 5.00788 11.8702 5.32343 11.6914 5.53383L7.44139 10.5338C7.25974 10.7475 6.93787 10.77 6.72825 10.5837L4.47825 8.5837C4.27186 8.40024 4.25327 8.0842 4.43673 7.87781C4.62019 7.67142 4.93622 7.65283 5.14261 7.83629L7.01053 9.49669L10.9295 4.88618Z" fill="currentColor"></path>
+                                            </svg>
+                                            <span class="stage-status label text-gray-600"><?= $label; ?></span>
+                                        </li>
+									<?php endforeach; ?>
+                                </ul>
+                            </div>
+
                         </div>
+
                         <div class="instawp-track-migration-area bg-grayCust-250 px-5 py-4 rounded-bl-lg rounded-br-lg flex content-center items-center <?= empty( $tracking_url ) ? 'justify-end' : 'justify-between' ?>">
                             <a class="instawp-track-migration text-primary-900 hover:text-primary-900 focus:ring-0 text-sm text-left flex items-center <?= empty( $tracking_url ) ? 'hidden' : '' ?>" href="<?php echo esc_url( $tracking_url ); ?>" target="_blank">
                                 <span class="mr-2"><?php esc_html_e( 'Track Migration', 'instawp-connect' ); ?></span>
@@ -476,8 +512,8 @@ $whitelist_ip          = instawp_whitelist_ip();
                     <div class="focus-visible:outline-none">
                         <svg width="22" height="21" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path fill-rule="evenodd" clip-rule="evenodd"
-                                    d="M11 20.2719C13.6673 20.2719 16.2254 19.2123 18.1115 17.3263C19.9976 15.4401 21.0571 12.8821 21.0571 10.2147C21.0571 7.54742 19.9976 4.98934 18.1115 3.10327C16.2254 1.21718 13.6673 0.157593 11 0.157593C8.33269 0.157593 5.77463 1.21718 3.88853 3.10327C2.00246 4.98934 0.942871 7.54742 0.942871 10.2147C0.942871 12.8821 2.00246 15.4401 3.88853 17.3263C5.77463 19.2123 8.33269 20.2719 11 20.2719ZM3.87453 7.73439C4.34129 6.39769 5.17415 5.21897 6.27819 4.33256C6.6151 4.84673 7.1959 5.18616 7.85716 5.18616C8.35728 5.18616 8.83692 5.38484 9.19057 5.73847C9.5442 6.09212 9.74288 6.57175 9.74288 7.07188V7.70045C9.74288 8.36729 10.0078 9.00679 10.4793 9.47832C10.9508 9.94984 11.5903 10.2147 12.2572 10.2147C12.924 10.2147 13.5635 9.94984 14.035 9.47832C14.5066 9.00679 14.7714 8.36729 14.7714 7.70045C14.7712 7.13778 14.9598 6.5913 15.3069 6.14846C15.654 5.70563 16.1396 5.39202 16.686 5.25782C17.8858 6.63021 18.5456 8.39191 18.5428 10.2147C18.5428 10.6422 18.5076 11.0633 18.4385 11.4719H17.2857C16.6189 11.4719 15.9793 11.7368 15.5079 12.2083C15.0363 12.6798 14.7714 13.3193 14.7714 13.9862V16.7481C13.6253 17.4113 12.3242 17.7595 11 17.7576V15.2433C11 14.5765 10.7351 13.937 10.2636 13.4654C9.79208 12.9939 9.15255 12.729 8.48573 12.729C7.8189 12.729 7.17937 12.4641 6.70787 11.9926C6.23634 11.5211 5.97145 10.8816 5.97145 10.2147C5.97167 9.62011 5.76113 9.04463 5.37723 8.59054C4.99333 8.13644 4.46091 7.83311 3.87453 7.73439Z"
-                                    fill="#005E54"/>
+                                  d="M11 20.2719C13.6673 20.2719 16.2254 19.2123 18.1115 17.3263C19.9976 15.4401 21.0571 12.8821 21.0571 10.2147C21.0571 7.54742 19.9976 4.98934 18.1115 3.10327C16.2254 1.21718 13.6673 0.157593 11 0.157593C8.33269 0.157593 5.77463 1.21718 3.88853 3.10327C2.00246 4.98934 0.942871 7.54742 0.942871 10.2147C0.942871 12.8821 2.00246 15.4401 3.88853 17.3263C5.77463 19.2123 8.33269 20.2719 11 20.2719ZM3.87453 7.73439C4.34129 6.39769 5.17415 5.21897 6.27819 4.33256C6.6151 4.84673 7.1959 5.18616 7.85716 5.18616C8.35728 5.18616 8.83692 5.38484 9.19057 5.73847C9.5442 6.09212 9.74288 6.57175 9.74288 7.07188V7.70045C9.74288 8.36729 10.0078 9.00679 10.4793 9.47832C10.9508 9.94984 11.5903 10.2147 12.2572 10.2147C12.924 10.2147 13.5635 9.94984 14.035 9.47832C14.5066 9.00679 14.7714 8.36729 14.7714 7.70045C14.7712 7.13778 14.9598 6.5913 15.3069 6.14846C15.654 5.70563 16.1396 5.39202 16.686 5.25782C17.8858 6.63021 18.5456 8.39191 18.5428 10.2147C18.5428 10.6422 18.5076 11.0633 18.4385 11.4719H17.2857C16.6189 11.4719 15.9793 11.7368 15.5079 12.2083C15.0363 12.6798 14.7714 13.3193 14.7714 13.9862V16.7481C13.6253 17.4113 12.3242 17.7595 11 17.7576V15.2433C11 14.5765 10.7351 13.937 10.2636 13.4654C9.79208 12.9939 9.15255 12.729 8.48573 12.729C7.8189 12.729 7.17937 12.4641 6.70787 11.9926C6.23634 11.5211 5.97145 10.8816 5.97145 10.2147C5.97167 9.62011 5.76113 9.04463 5.37723 8.59054C4.99333 8.13644 4.46091 7.83311 3.87453 7.73439Z"
+                                  fill="#005E54"/>
                         </svg>
                     </div>
                 </div>

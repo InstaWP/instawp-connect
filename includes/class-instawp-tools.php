@@ -259,6 +259,10 @@ include $file_path;';
 
 	public static function is_migrate_file_accessible( $file_url ) {
 
+		if ( defined( 'INSTAWP_LOCAL_DEV' ) && INSTAWP_LOCAL_DEV === true ) {
+			return true;
+		}
+
 		$curl = curl_init();
 		curl_setopt_array( $curl, array(
 			CURLOPT_URL            => INSTAWP_API_DOMAIN_PROD . '/public/check/?url=' . urlencode( $file_url ),
