@@ -309,6 +309,30 @@ class InstaWP_Sync_Helpers {
 			add_post_meta( $post_id, '_elementor_css', $elementor_css );
 		}
 
+		$bricks_meta = [ '_bricks_page_content_2', '_bricks_page_header_2', '_bricks_page_footer_2' ];
+
+		// Bricks
+		add_action( 'init', function () use ( $bricks_meta ) {
+			if ( class_exists( '\Bricks\Ajax' ) ) {
+				$class = new \Bricks\Ajax();
+				remove_filter( 'update_post_metadata', [ $class, 'update_bricks_postmeta' ] );
+
+				foreach ( $bricks_meta as $bricks_meta_key ) {
+					remove_filter( 'sanitize_post_meta_' . $bricks_meta_key, [
+						$class,
+						'sanitize_bricks_postmeta'
+					], 10 );
+				}
+			}
+		} );
+
+		// Bricks
+		add_filter( 'update_post_metadata', function ( $check, $object_id, $meta_key, $meta_value, $prev_value ) use ( $bricks_meta ) {
+			$is_bricks_postmeta = in_array( $meta_key, $bricks_meta, true );
+
+			return $is_bricks_postmeta ? null : $check;
+		}, 9999, 5 );
+
 		foreach ( $meta_data as $meta_key => $values ) {
 			$value = $values[0];
 
