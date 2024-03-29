@@ -215,6 +215,43 @@ class InstaWP_Rest_Api {
 			'callback'            => array( $this, 'handle_debug' ),
 			'permission_callback' => '__return_true',
 		) );
+
+		register_rest_route( $this->namespace . '/' . $this->version_3, '/post-cleanup', array(
+			'methods'             => 'POST',
+			'callback'            => array( $this, 'handle_post_migration_cleanup' ),
+			'permission_callback' => '__return_true',
+		) );
+	}
+
+	public function handle_post_migration_cleanup( WP_REST_Request $request ) {
+
+		$response = $this->validate_api_request( $request );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
+
+		// reset everything and remove connection
+		instawp_reset_running_migration( 'hard', true );
+
+		if ( ! function_exists( 'deactivate_plugins' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		}
+
+		if ( ! function_exists( 'request_filesystem_credentials' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+		}
+
+		$plugin_slug = INSTAWP_PLUGIN_SLUG . '/' . INSTAWP_PLUGIN_SLUG . '.php';
+
+		deactivate_plugins( $plugin_slug );
+
+		$is_deleted = delete_plugins( array( $plugin_slug ) );
+
+		if ( is_wp_error( $is_deleted ) ) {
+			return $this->throw_error( $is_deleted );
+		}
+
+		return $this->send_response( array( 'success' => true, 'message' => esc_html__( 'Post migration cleanup completed.' ) ) );
 	}
 
 	/**

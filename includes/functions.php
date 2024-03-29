@@ -196,6 +196,7 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 
 		@unlink( ABSPATH . 'fwd.php' );
 		@unlink( ABSPATH . 'dest.php' );
+		@unlink( ABSPATH . 'iwp_log.txt' );
 
 		$wpdb->query( "DROP TABLE IF EXISTS `iwp_db_sent`;" );
 		$wpdb->query( "DROP TABLE IF EXISTS `iwp_files_sent`;" );
