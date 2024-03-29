@@ -869,6 +869,16 @@ include $file_path;';
 					$filePath     = $file->getRealPath();
 					$relativePath = str_replace( ABSPATH, '', str_replace( '\\', '/', $filePath ) );
 
+					if ( ! is_readable( $filePath ) ) {
+						error_log( 'Can not read file: ' . $filePath );
+						continue;
+					}
+
+					if ( ! is_file( $filePath ) ) {
+						error_log( 'Invalid file: ' . $filePath );
+						continue;
+					}
+
 					$zip->addFile( $filePath, $relativePath );
 				}
 			}
