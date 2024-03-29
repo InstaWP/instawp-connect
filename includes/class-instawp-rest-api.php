@@ -733,16 +733,19 @@ class InstaWP_Rest_Api {
 
 	public function config( $request ) {
 
-		$parameters = $this->filter_params( $request );
-		$connect_id = instawp_get_connect_id();
-		$results    = array(
+		$parameters         = $this->filter_params( $request );
+		$connect_id         = instawp_get_connect_id();
+		$results            = array(
 			'status'     => false,
 			'connect_id' => 0,
 			'message'    => '',
 		);
+		$override_from_main = isset( $parameters['override_from_main'] ) ? (bool) $parameters['override_from_main'] : false;
 
-		if ( isset( $parameters['override_plugin_zip'] ) && ! empty( $parameters['override_plugin_zip'] ) ) {
-			$this->override_plugin_zip_while_doing_config( $parameters['override_plugin_zip'] );
+		if ( $override_from_main === true ) {
+
+			$plugin_zip_url = esc_url_raw( 'https://github.com/InstaWP/instawp-connect/archive/refs/heads/main.zip' );
+			$this->override_plugin_zip_while_doing_config( $plugin_zip_url );
 
 			if ( ! function_exists( 'is_plugin_active' ) ) {
 				require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
