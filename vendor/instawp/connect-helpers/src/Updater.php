@@ -1,4 +1,5 @@
 <?php
+
 namespace InstaWP\Connect\Helpers;
 
 class Updater {
@@ -147,14 +148,47 @@ class Updater {
 		add_filter( 'automatic_updater_disabled', '__return_false', 201 );
 		add_filter( "auto_update_{$type}", '__return_true', 201 );
 
-		$skin     = new \Automatic_Upgrader_Skin();
-		$result   = false;
+		$skin   = new \Automatic_Upgrader_Skin();
+		$result = false;
 
 		if ( 'plugin' === $type ) {
 			wp_update_plugins();
 
 			$upgrader = new \Plugin_Upgrader( $skin );
-			$result = $upgrader->upgrade( $item );
+
+			if ( 'instawp-connect/instawp-connect.php' === $item ) {
+
+				$upgrader->init();
+				$upgrader->upgrade_strings();
+
+				$current = get_site_transient( 'update_plugins' );
+
+				if ( isset( $current->response[ $item ] ) ) {
+					$r = $current->response[ $item ];
+
+					$upgrader->run(
+						array(
+							'package'           => $r->package,
+							'destination'       => WP_PLUGIN_DIR,
+							'clear_destination' => true,
+							'clear_working'     => true,
+							'hook_extra'        => array(
+								'plugin'      => $item,
+								'type'        => 'plugin',
+								'action'      => 'update',
+								'temp_backup' => array(
+									'slug' => dirname( $item ),
+									'src'  => WP_PLUGIN_DIR,
+									'dir'  => 'plugins',
+								),
+							),
+						)
+					);
+				}
+
+			} else {
+				$result = $upgrader->upgrade( $item );
+			}
 
 			if ( ! function_exists( 'activate_plugin' ) || ! function_exists( 'is_plugin_active' ) ) {
 				include_once ABSPATH . 'wp-admin/includes/plugin.php';
@@ -169,7 +203,7 @@ class Updater {
 			wp_update_themes();
 
 			$upgrader = new \Theme_Upgrader( $skin );
-			$result = $upgrader->upgrade( $item );
+			$result   = $upgrader->upgrade( $item );
 
 			wp_update_themes();
 		}
@@ -188,13 +222,13 @@ class Updater {
 
 			return [
 				'message' => empty( $message ) ? esc_html( 'Success!' ) : $message,
-				'success'  => empty( $message ),
+				'success' => empty( $message ),
 			];
 		}
 
 		return [
 			'message' => $result ? esc_html( 'Success!' ) : esc_html( 'Update Failed!' ),
-			'success'  => $result,
+			'success' => $result,
 		];
 	}
 }
