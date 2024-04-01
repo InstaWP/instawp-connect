@@ -6,7 +6,7 @@
  *
  * @wordpress-plugin
  * Plugin Name:       InstaWP Connect
- * Description:       1-click WP Staging with Sync. Manage your Live sites.
+ * Description:       1-click WordPress plugin for Staging, Migrations, Management, Sync and Companion plugin for InstaWP.
  * Version:           0.1.0.24
  * Author:            InstaWP Team
  * Author URI:        https://instawp.com/
