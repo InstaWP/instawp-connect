@@ -164,9 +164,8 @@ class Updater {
 				$current = get_site_transient( 'update_plugins' );
 
 				if ( isset( $current->response[ $item ] ) ) {
-					$r = $current->response[ $item ];
-
-					$upgrader->run(
+					$r               = $current->response[ $item ];
+					$self_update_res = $upgrader->run(
 						array(
 							'package'           => $r->package,
 							'destination'       => WP_PLUGIN_DIR,
@@ -184,6 +183,10 @@ class Updater {
 							),
 						)
 					);
+
+					if ( $self_update_res && ! is_wp_error( $self_update_res ) ) {
+						$result = true;
+					}
 				}
 
 			} else {
