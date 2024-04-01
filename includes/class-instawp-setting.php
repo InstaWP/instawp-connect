@@ -514,7 +514,7 @@ class InstaWP_Setting {
 					'type'    => 'toggle',
 					'title'   => __( 'Heartbeat', 'instawp-connect' ),
 					'tooltip' => __( 'Enabling this option will allow remotely communicate with InstaWP API and sends data (e.g. wp_version, php_version, theme name, number of published posts, number of published pages, total number of users, total_size of the wordpress site etc.) on this website.', 'instawp-connect' ),
-					'desc'    => __( 'Disabling this will automatically disconnect this site from InstaWP dashboard after 1 hour.', 'instawp-connect' ),
+					'desc'    => __( 'Disabling this will automatically disconnect this site from InstaWP dashboard', 'instawp-connect' ),
 					'class'   => 'save-ajax',
 					'default' => 'on',
 				),

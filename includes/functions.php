@@ -90,7 +90,7 @@ if ( ! function_exists( 'instawp_alter_db_tables' ) ) {
 	function instawp_alter_db_tables() {
 		global $wpdb;
 
-		foreach ( array( INSTAWP_DB_TABLE_EVENTS, INSTAWP_DB_TABLE_EVENTS, INSTAWP_DB_TABLE_SYNC_HISTORY ) as $table_name ) {
+		foreach ( array( INSTAWP_DB_TABLE_EVENTS, INSTAWP_DB_TABLE_EVENTS, INSTAWP_DB_TABLE_EVENT_SYNC_LOGS ) as $table_name ) {
 			$has_col = $wpdb->get_results(
 				$wpdb->prepare( "SELECT `COLUMN_NAME` FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `table_name`=%s AND `TABLE_SCHEMA`=%s AND `COLUMN_NAME`=%s", $table_name, $wpdb->dbname, 'event_hash' )
 			);
