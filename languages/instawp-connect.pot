@@ -5,7 +5,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2024-04-02 07:20+0000\n"
+"POT-Creation-Date: 2024-04-02 11:37+0000\n"
 "X-Poedit-Basepath: ..\n"
 "X-Poedit-KeywordsList: __;_e;_ex:1,2c;_n:1,2;_n_noop:1,2;_nx:1,2,4c;_nx_noop:1,2,3c;_x:1,2c;esc_attr__;esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c\n"
 "X-Poedit-SearchPath-0: .\n"
@@ -577,35 +577,35 @@ msgstr ""
 msgid "Learn more."
 msgstr ""
 
-#: includes/class-instawp-tools.php:693
+#: includes/class-instawp-tools.php:698
 msgid "Launch %s"
 msgstr ""
 
-#: includes/class-instawp-tools.php:781
+#: includes/class-instawp-tools.php:786
 msgid "Please create staging sites first."
 msgstr ""
 
-#: includes/class-instawp-tools.php:828
+#: includes/class-instawp-tools.php:833
 msgid "Zip archive is not opening."
 msgstr ""
 
-#: includes/class-instawp-tools.php:881
+#: includes/class-instawp-tools.php:886
 msgid "No compression method find."
 msgstr ""
 
-#: includes/class-instawp-tools.php:924
+#: includes/class-instawp-tools.php:929
 msgid "Site ID not found in site create response."
 msgstr ""
 
-#: includes/class-instawp-tools.php:962
+#: includes/class-instawp-tools.php:967
 msgid "SFTP login failed."
 msgstr ""
 
-#: includes/class-instawp-tools.php:973
+#: includes/class-instawp-tools.php:978
 msgid "SFTP upload failed for files."
 msgstr ""
 
-#: includes/class-instawp-tools.php:981
+#: includes/class-instawp-tools.php:986
 msgid "SFTP upload failed for database."
 msgstr ""
 

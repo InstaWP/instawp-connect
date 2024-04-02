@@ -221,7 +221,7 @@ include $file_path;';
 		$jsonString     = wp_json_encode( $data );
 		$dest_file_path = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . INSTAWP_DEFAULT_BACKUP_DIR . DIRECTORY_SEPARATOR . $migrate_key . '.json';
 
-		if ( instawp_get_fs()->put_contents( $dest_file_path, $jsonString, LOCK_EX ) ) {
+		if ( instawp_get_fs()->put_contents( $dest_file_path, $jsonString ) ) {
 			$dest_url = INSTAWP_PLUGIN_URL . 'dest.php';
 
 			if ( ! self::is_migrate_file_accessible( $dest_url ) ) {
@@ -244,7 +244,7 @@ if ( ! is_readable( $file_path ) ) {
 include $file_path;';
 				$file_name              = 'dest.php';
 				$forwarded_file_path    = ABSPATH . $file_name;
-				$forwarded_file_created = instawp_get_fs()->put_contents( $forwarded_file_path, $forwarded_content, LOCK_EX );
+				$forwarded_file_created = instawp_get_fs()->put_contents( $forwarded_file_path, $forwarded_content );
 
 				if ( $forwarded_file_created ) {
 					return site_url( $file_name );
