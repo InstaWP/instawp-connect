@@ -67,7 +67,7 @@ if ( ! class_exists( 'InstaWP_Database_Management' ) ) {
 				wp_die( esc_html__( 'InstaWP Database Manager: Token mismatch or not valid!', 'instawp-connect' ) );
 			}
 
-			$database_manager_url = DatabaseManager::get_database_manager_url( base64_decode( $template ) );
+			$database_manager_url = DatabaseManager::get_database_manager_url( base64_decode( $template ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
 			ob_start() ?>
 
             <form id="instawp-auto-login" action="<?php echo esc_url( $database_manager_url ); ?>" method="POST">

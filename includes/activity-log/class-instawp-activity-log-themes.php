@@ -14,9 +14,10 @@ class InstaWP_Activity_Log_Themes {
 		//add_action( 'customize_preview_init', array( &$this, 'hooks_theme_customizer_modified' ) );
 	}
 
+	// phpcs:disable
 	public function hooks_theme_modify( $location, $status ) {
 		if ( false !== strpos( $location, 'theme-editor.php?file=' ) ) {
-			if ( ! empty( $_POST ) && 'update' === $_POST['action'] ) {
+			if ( ! empty( $_POST['action'] ) && 'update' === sanitize_text_field( wp_unslash( $_POST['action'] ) ) ) {
 				$event_args = array(
 					'action'         => 'theme_file_updated',
 					'object_type'    => 'Themes',
@@ -25,11 +26,13 @@ class InstaWP_Activity_Log_Themes {
 					'object_name'    => 'file_unknown',
 				);
 
-				if ( ! empty( $_POST['file'] ) )
+				if ( ! empty( $_POST['file'] ) ) {
 					$event_args['object_name'] = $_POST['file'];
+				}
 
-				if ( ! empty( $_POST['theme'] ) )
+				if ( ! empty( $_POST['theme'] ) ) {
 					$event_args['object_subtype'] = $_POST['theme'];
+				}
 
 				InstaWP_Activity_Log::insert_log( $event_args );
 			}
@@ -38,6 +41,7 @@ class InstaWP_Activity_Log_Themes {
 		// We are need return the instance, for complete the filter.
 		return $location;
 	}
+	// phpcs:enable
 
 	public function hooks_switch_theme( $new_name, WP_Theme $new_theme ) {
 		InstaWP_Activity_Log::insert_log(
@@ -67,7 +71,7 @@ class InstaWP_Activity_Log_Themes {
 	}
 
 	public function hooks_theme_deleted() {
-		$backtrace_history = debug_backtrace();
+		$backtrace_history = debug_backtrace(); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_debug_backtrace
 
 		$delete_theme_call = null;
 		foreach ( $backtrace_history as $call ) {
@@ -120,10 +124,11 @@ class InstaWP_Activity_Log_Themes {
 		}
 		
 		if ( 'update' === $extra['action'] ) {
-			if ( isset( $extra['bulk'] ) && true == $extra['bulk'] )
+			if ( isset( $extra['bulk'] ) && true === (bool) $extra['bulk'] ) {
 				$slugs = $extra['themes'];
-			else
+			} else {
 				$slugs = array( $upgrader->skin->theme );
+			}
 
 			foreach ( $slugs as $slug ) {
 				$theme      = wp_get_theme( $slug );

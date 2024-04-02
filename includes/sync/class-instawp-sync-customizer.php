@@ -55,7 +55,7 @@ class InstaWP_Sync_Customizer {
 		$settings = $manager->settings();
 
 		foreach ( $settings as $key => $setting ) {
-			if ( 'option' == $setting->type ) {
+			if ( 'option' === $setting->type ) {
 				if ( 'widget_' === substr( strtolower( $key ), 0, 7 ) ) {
 					continue;
 				}
@@ -145,9 +145,9 @@ class InstaWP_Sync_Customizer {
 		return InstaWP_Sync_Helpers::sync_response( $v );
 	}
 
-	private function is_image_url( $string = '' ) {
-		if ( is_string( $string ) ) {
-			if ( preg_match( '/\.(jpg|jpeg|png|gif)/i', $string ) ) {
+	private function is_image_url( $item = '' ) {
+		if ( is_string( $item ) ) {
+			if ( preg_match( '/\.(jpg|jpeg|png|gif)/i', $item ) ) {
 				return true;
 			}
 		}
