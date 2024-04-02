@@ -146,7 +146,7 @@ class InstaWP_Sync_DB {
 	public static function get_sync_event_by_id( $connect_id, $event_id ) {
 		$table_name = self::$tables['se_table'];
 
-		return self::wpdb()->get_row( self::wpdb()->prepare( "SELECT * FROM {$table_name}  WHERE `connect_id`=%s AND `event_hash`=%s", $connect_id, $event_id ) );
+		return self::wpdb()->get_row( self::wpdb()->prepare( "SELECT * FROM {$table_name} WHERE `connect_id`=%s AND `event_hash`=%s", $connect_id, $event_id ) );
 	}
 
 	/*

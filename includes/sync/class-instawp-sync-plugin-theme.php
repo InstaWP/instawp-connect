@@ -37,7 +37,7 @@ class InstaWP_Sync_Plugin_Theme {
 		}
 
 		$event_slug = $hook_extra['type'] . '_' . $hook_extra['action'];
-		$event_name = sprintf( esc_html__('%1$s %2$s%3$s', 'instawp-connect'), ucfirst( $hook_extra['type'] ), $hook_extra['action'], $hook_extra['action'] == 'update' ? 'd' : 'ed' );
+		$event_name = sprintf( esc_html__('%1$s %2$s%3$s', 'instawp-connect'), ucfirst( $hook_extra['type'] ), $hook_extra['action'], $hook_extra['action'] === 'update' ? 'd' : 'ed' );
 
 		// hooks for theme and record the event
 		if ( InstaWP_Sync_Helpers::can_sync( 'theme' ) && $upgrader instanceof \Theme_Upgrader && $hook_extra['type'] === 'theme' ) {
@@ -66,7 +66,7 @@ class InstaWP_Sync_Plugin_Theme {
 			}
 
 			if ( ! empty( $plugin_data ) ) {
-				$post_slug = ! empty( $_POST['slug'] ) ? sanitize_text_field( $_POST['slug'] ) : null;
+				$post_slug = ! empty( $_POST['slug'] ) ? sanitize_text_field( wp_unslash( $_POST['slug'] ) ) : null; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 				$slug      = empty( $plugin_data['TextDomain'] ) ? ( isset( $post_slug ) ? $post_slug : $plugin_data['TextDomain'] ) : $plugin_data['TextDomain'];
 				$details   = array(
 					'name' => $plugin_data['Name'],
@@ -228,7 +228,7 @@ class InstaWP_Sync_Plugin_Theme {
 			if ( is_wp_error( $result ) ) {
 				$logs[ $v->id ] = $result->get_error_message();
 			} elseif ( false === $result ) {
-				$logs[ $v->id ] = __( 'Plugin could not be deleted.' );
+				$logs[ $v->id ] = __( 'Plugin could not be deleted.', 'instawp-connect' );
 			}
 		}
 
@@ -294,9 +294,9 @@ class InstaWP_Sync_Plugin_Theme {
 						require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
 					}
 					$plugin_data = get_plugin_data( WP_PLUGIN_DIR . '/' . $details );
-					if ( $plugin_data['Name'] != '' ) {
-						$title     = $plugin_data['Name'];
-					} elseif ( $plugin_data['TextDomain'] != '' ) {
+					if ( $plugin_data['Name'] !== '' ) {
+						$title = $plugin_data['Name'];
+					} elseif ( $plugin_data['TextDomain'] !== '' ) {
 						$title = $plugin_data['TextDomain'];
 					} else {
 						$title = $details;

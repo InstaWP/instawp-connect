@@ -75,7 +75,7 @@ if ( ! class_exists( 'InstaWP_File_Management' ) ) {
 				wp_die( esc_html__( 'InstaWP File Manager: Token mismatch or not valid!', 'instawp-connect' ) );
 			}
 
-			$file_manager_url = FileManager::get_file_manager_url( base64_decode( $template ) );
+			$file_manager_url = FileManager::get_file_manager_url( base64_decode( $template ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
 			ob_start() ?>
 
             <script type="text/javascript">
