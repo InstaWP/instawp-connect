@@ -1,5 +1,6 @@
 <?php
 
+// phpcs:disable
 class IWPDB {
 
 	/**
@@ -306,4 +307,4 @@ class IWPDB {
 		$this->conn->close();
 	}
 }
-
+// phpcs:enable

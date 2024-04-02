@@ -23,6 +23,7 @@ class InstaWP_Activity_Log_Plugins {
 		$this->add_plugin_log( 'plugin_deleted', $plugin_file );
 	}
 
+	// phpcs:disable
 	public function hooks_plugin_modify( $location, $status ) {
 		if ( false !== strpos( $location, 'plugin-editor.php' ) ) {
 			if ( ( ! empty( $_POST ) && 'update' === $_REQUEST['action'] ) ) {
@@ -50,20 +51,22 @@ class InstaWP_Activity_Log_Plugins {
 		// We are need return the instance, for complete the filter.
 		return $location;
 	}
+	//phpcs:enable
 
 	/**
 	 * @param Plugin_Upgrader $upgrader
 	 * @param array $extra
 	 */
 	public function hooks_plugin_install_or_update( $upgrader, $extra ) {
-		if ( ! isset( $extra['type'] ) || 'plugin' !== $extra['type'] )
+		if ( ! isset( $extra['type'] ) || 'plugin' !== $extra['type'] ) {
 			return;
+		}
 
 		if ( 'install' === $extra['action'] ) {
 			$path = $upgrader->plugin_info();
-			if ( ! $path )
+			if ( ! $path ) {
 				return;
-			
+			}
 			$data = get_plugin_data( $upgrader->skin->result['local_destination'] . '/' . $path, true, false );
 			
 			InstaWP_Activity_Log::insert_log(
@@ -77,7 +80,7 @@ class InstaWP_Activity_Log_Plugins {
 		}
 
 		if ( 'update' === $extra['action'] ) {
-			if ( isset( $extra['bulk'] ) && true == $extra['bulk'] ) {
+			if ( isset( $extra['bulk'] ) && true === (bool) $extra['bulk'] ) {
 				$slugs = $extra['plugins'];
 			} else {
 				$plugin_slug = isset( $upgrader->skin->plugin ) ? $upgrader->skin->plugin : $extra['plugin'];

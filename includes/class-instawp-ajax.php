@@ -6,10 +6,6 @@ class InstaWP_AJAX {
 	public $instawp_log;
 
 	public function __construct() {
-		add_action( 'init', array( $this, 'delete_folder_handle' ) );
-		add_action( 'admin_notices', array( $this, 'reset_admin_notices' ) );
-
-		// Management
 		add_action( 'wp_ajax_instawp_save_management_settings', array( $this, 'save_management_settings' ) );
 		add_action( 'wp_ajax_instawp_disconnect_plugin', array( $this, 'disconnect_api' ) );
 		add_action( 'wp_ajax_instawp_refresh_staging_sites', array( $this, 'refresh_staging_sites' ) );
@@ -17,7 +13,6 @@ class InstaWP_AJAX {
 		add_action( 'wp_ajax_instawp_get_database_tables', array( $this, 'get_database_tables' ) );
 		add_action( 'wp_ajax_instawp_get_large_files', array( $this, 'get_large_files' ) );
 		add_action( 'wp_ajax_instawp_process_ajax', array( $this, 'process_ajax' ) );
-
 		add_action( 'wp_ajax_instawp_check_usages_limit', array( $this, 'check_usages_limit' ) );
 		add_action( 'wp_ajax_instawp_migrate_init', array( $this, 'migrate_init' ) );
 		add_action( 'wp_ajax_instawp_migrate_progress', array( $this, 'migrate_progress' ) );
@@ -30,7 +25,7 @@ class InstaWP_AJAX {
 			wp_send_json_error();
 		}
 
-		$type = isset( $_POST['type'] ) ? sanitize_text_field( $_POST['type'] ) : 'file';
+		$type = isset( $_POST['type'] ) ? sanitize_text_field( wp_unslash( $_POST['type'] ) ) : 'file';
 
 		InstaWP_Tools::instawp_reset_permalink();
 
@@ -71,7 +66,7 @@ class InstaWP_AJAX {
 		$response = InstaWP_Curl::do_curl( "migrates-v3/{$migrate_id}", array( 'migrate_key' => $migrate_key ) );
 
 		if ( isset( $response['success'] ) && $response['success'] !== true ) {
-			error_log( json_encode( $response ) );
+			error_log( wp_json_encode( $response ) );
 			wp_send_json_error( array( 'message' => InstaWP_Setting::get_args_option( 'message', $response ) ) );
 		}
 
@@ -118,7 +113,7 @@ class InstaWP_AJAX {
 		}
 
 		if ( isset( $response_data['dest_wp']['url'] ) && ! empty( $dest_url = $response_data['dest_wp']['url'] ) ) {
-			$url_parts = parse_url( $dest_url );
+			$url_parts = wp_parse_url( $dest_url );
 			$url_raw   = $url_parts['host'] . ( isset( $url_parts['path'] ) ? $url_parts['path'] : '' ) . ( isset( $url_parts['query'] ) ? '?' . $url_parts['query'] : '' ) . ( isset( $url_parts['fragment'] ) ? '#' . $url_parts['fragment'] : '' );
 			$url_ip    = gethostbyname( $url_raw );
 
@@ -130,10 +125,15 @@ class InstaWP_AJAX {
 
 
 	public function migrate_init() {
+		check_ajax_referer( 'instawp-connect', 'security' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error();
+		}
 
 		global $wp_version;
 
-		$settings_str = isset( $_POST['settings'] ) ? $_POST['settings'] : '';
+		$settings_str = isset( $_POST['settings'] ) ? $_POST['settings'] : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 
 		parse_str( $settings_str, $settings_arr );
 
@@ -141,7 +141,7 @@ class InstaWP_AJAX {
 		$is_website_on_local = instawp_is_website_on_local();
 		$instawp_migrate     = InstaWP_Setting::get_args_option( 'instawp_migrate', $settings_arr, array() );
 
-		if ( isset( $instawp_migrate['whitelist_ip'] ) && $instawp_migrate['whitelist_ip'] == 'yes' ) {
+		if ( isset( $instawp_migrate['whitelist_ip'] ) && $instawp_migrate['whitelist_ip'] === 'yes' ) {
 			instawp_set_whitelist_ip();
 		}
 
@@ -156,7 +156,7 @@ class InstaWP_AJAX {
 				'migrate_settings' => $migrate_settings,
 				'message'          => $pre_check_response->get_error_message(),
 			);
-			instawp_send_connect_log( 'pull-precheck', json_encode( $log_array ) );
+			instawp_send_connect_log( 'pull-precheck', wp_json_encode( $log_array ) );
 
 			wp_send_json_error( array( 'message' => $pre_check_response->get_error_message() ) );
 		}
@@ -169,7 +169,7 @@ class InstaWP_AJAX {
 				'migrate_settings' => $migrate_settings,
 				'message'          => $message,
 			);
-			instawp_send_connect_log( 'pull-precheck', json_encode( $log_array ) );
+			instawp_send_connect_log( 'pull-precheck', wp_json_encode( $log_array ) );
 
 			wp_send_json_error( array( 'message' => $message ) );
 		}
@@ -182,7 +182,7 @@ class InstaWP_AJAX {
 				'migrate_settings' => $migrate_settings,
 				'message'          => $message,
 			);
-			instawp_send_connect_log( 'pull-precheck', json_encode( $log_array ) );
+			instawp_send_connect_log( 'pull-precheck', wp_json_encode( $log_array ) );
 
 			wp_send_json_error( array( 'message' => $message ) );
 		}
@@ -222,11 +222,11 @@ class InstaWP_AJAX {
 				'migrate_settings' => $migrate_settings,
 				'message'          => $migrate_response,
 			);
-			instawp_send_connect_log( 'pull-failed', json_encode( $log_array ) );
+			instawp_send_connect_log( 'pull-failed', wp_json_encode( $log_array ) );
 
-			error_log( json_encode( $migrate_response ) );
+			error_log( wp_json_encode( $migrate_response ) );
 
-			$migrate_response_message = empty( $migrate_response_message ) ? esc_html__( 'Could not create migrate id.' ) : $migrate_response_message;
+			$migrate_response_message = empty( $migrate_response_message ) ? esc_html__( 'Could not create migrate id.', 'instawp-connect' ) : $migrate_response_message;
 
 			wp_send_json_error( array( 'message' => $migrate_response_message ) );
 		}
@@ -255,6 +255,11 @@ class InstaWP_AJAX {
 	}
 
 	public function check_usages_limit() {
+		check_ajax_referer( 'instawp-connect', 'security' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error();
+		}
 
 		$migrate_settings     = InstaWP_Tools::get_migrate_settings( $_POST );
 		$total_files_size     = InstaWP_Tools::get_total_sizes( 'files', $migrate_settings );
@@ -267,9 +272,8 @@ class InstaWP_AJAX {
 			wp_send_json_success( $check_usage_response );
 		}
 
-		if ( $api_response_code == 404 ) {
-
-			$return_url      = urlencode( admin_url( 'tools.php?page=instawp' ) );
+		if ( intval( $api_response_code ) === 404 ) {
+			$return_url      = rawurlencode( admin_url( 'tools.php?page=instawp' ) );
 			$api_domain      = InstaWP_Setting::get_api_domain();
 			$connect_api_url = $api_domain . '/authorize?source=InstaWP Connect&return_url=' . $return_url;
 
@@ -296,13 +300,15 @@ class InstaWP_AJAX {
 			wp_send_json_error();
 		}
 
+        // phpcs:disable
 		$path                = isset( $_POST['path'] ) ? sanitize_text_field( wp_unslash( $_POST['path'] ) ) : '/';
-		$active_plugins_only = isset( $_POST['active_plugins'] ) ? filter_var( $_POST['active_plugins'], FILTER_VALIDATE_BOOLEAN ) : false;
-		$active_themes_only  = isset( $_POST['active_themes'] ) ? filter_var( $_POST['active_themes'], FILTER_VALIDATE_BOOLEAN ) : false;
-		$skip_media_folder   = isset( $_POST['skip_media_folder'] ) ? filter_var( $_POST['skip_media_folder'], FILTER_VALIDATE_BOOLEAN ) : false;
-		$is_item_checked     = isset( $_POST['is_checked'] ) ? filter_var( $_POST['is_checked'], FILTER_VALIDATE_BOOLEAN ) : false;
-		$is_select_all       = isset( $_POST['select_all'] ) ? filter_var( $_POST['select_all'], FILTER_VALIDATE_BOOLEAN ) : false;
+		$active_plugins_only = isset( $_POST['active_plugins'] ) && filter_var( $_POST['active_plugins'], FILTER_VALIDATE_BOOLEAN );
+		$active_themes_only  = isset( $_POST['active_themes'] ) && filter_var( $_POST['active_themes'], FILTER_VALIDATE_BOOLEAN );
+		$skip_media_folder   = isset( $_POST['skip_media_folder'] ) && filter_var( $_POST['skip_media_folder'], FILTER_VALIDATE_BOOLEAN );
+		$is_item_checked     = isset( $_POST['is_checked'] ) && filter_var( $_POST['is_checked'], FILTER_VALIDATE_BOOLEAN );
+		$is_select_all       = isset( $_POST['select_all'] ) && filter_var( $_POST['select_all'], FILTER_VALIDATE_BOOLEAN );
 		$sort_by             = isset( $_POST['sort_by'] ) ? sanitize_text_field( wp_unslash( $_POST['sort_by'] ) ) : false;
+        // phpcs:enable
 
 		if ( ! $path ) {
 			wp_send_json_error();
@@ -325,7 +331,7 @@ class InstaWP_AJAX {
 
 		ob_start();
 		foreach ( $dir_data as $key => $data ) {
-			if ( $data['name'] == "." || $data['name'] == ".." || strpos( $data['full_path'], 'instawp-connect' ) !== false ) {
+			if ( $data['name'] === "." || $data['name'] === ".." || strpos( $data['full_path'], 'instawp-connect' ) !== false ) {
 				continue;
 			}
 			$total_size  += $data['size'];
@@ -413,7 +419,7 @@ class InstaWP_AJAX {
                         <div class="flex justify-between items-center">
                             <div class="flex items-center cursor-pointer" style="transform: translate(0em);">
                                 <input name="instawp_migrate[excluded_tables][]" id="<?php echo esc_attr( $element_id ); ?>" value="<?php echo esc_attr( $table['name'] ); ?>" type="checkbox" class="instawp-checkbox exclude-database-item !mt-0 !mr-3 rounded border-gray-300 text-primary-900 focus:ring-primary-900" data-size="<?php echo esc_html( $table['size'] ); ?>">
-                                <label for="<?php echo esc_attr( $element_id ); ?>" class="text-sm font-medium text-grayCust-800 truncate" style="width: calc(400px - 1em);"><?php echo esc_html( $table['name'] ); ?> (<?php printf( __( '%s rows', 'instawp-connect' ), $table['rows'] ); ?>)</label>
+                                <label for="<?php echo esc_attr( $element_id ); ?>" class="text-sm font-medium text-grayCust-800 truncate" style="width: calc(400px - 1em);"><?php echo esc_html( $table['name'] ); ?> (<?php printf( esc_html__( '%s rows', 'instawp-connect' ), esc_html( $table['rows'] ) ); ?>)</label>
                             </div>
                             <div class="flex items-center" style="width: 105px;">
                                 <svg width="14" height="13" viewBox="0 0 14 13" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -444,8 +450,8 @@ class InstaWP_AJAX {
 			wp_send_json_error();
 		}
 
-		$skip     = isset( $_POST['skip'] ) ? filter_var( $_POST['skip'], FILTER_VALIDATE_BOOLEAN ) : false;
-		$generate = isset( $_POST['generate'] ) ? filter_var( $_POST['generate'], FILTER_VALIDATE_BOOLEAN ) : false;
+		$skip     = isset( $_POST['skip'] ) && filter_var( $_POST['skip'], FILTER_VALIDATE_BOOLEAN ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash
+		$generate = isset( $_POST['generate'] ) && filter_var( $_POST['generate'], FILTER_VALIDATE_BOOLEAN ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash
 
 		if ( $generate ) {
 			delete_option( 'instawp_large_files_list' );
@@ -507,14 +513,14 @@ class InstaWP_AJAX {
 	public function disconnect_api() {
 		check_ajax_referer( 'instawp-connect', 'security' );
 
-		$check_api = isset( $_POST['api'] ) && filter_var( $_POST['api'], FILTER_VALIDATE_BOOLEAN );
+		$check_api = isset( $_POST['api'] ) && filter_var( wp_unslash( $_POST['api'] ), FILTER_VALIDATE_BOOLEAN ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash)
 		if ( $check_api ) {
 			$connect_id = instawp_get_connect_id();
 
 			// connects/<connect_id>/disconnect
 			$api_response = InstaWP_Curl::do_curl( "connects/{$connect_id}/disconnect" );
 
-			if ( empty( $api_response['success'] ) || ! $api_response['success'] ) {
+			if ( empty( $api_response['success'] ) ) {
 				wp_send_json_error( array(
 					'message' => $api_response['message'],
 				) );
@@ -524,7 +530,7 @@ class InstaWP_AJAX {
 		instawp_reset_running_migration( 'hard' );
 
 		wp_send_json_success( array(
-			'message' => esc_html__( 'Plugin reset successfully.' ) . $api_response['message'],
+			'message' => esc_html__( 'Plugin reset successfully.', 'instawp-connect' ),
 		) );
 	}
 
@@ -534,56 +540,6 @@ class InstaWP_AJAX {
 		instawp_set_staging_sites_list();
 
 		wp_send_json_success();
-	}
-
-	// Set transient admin notice function
-	public function reset_admin_notices() {
-		if ( isset( $_GET['page'] ) && $_GET['page'] === "instawp-settings" ) {
-			$plugins_reset_notice = get_transient( 'instawp_connect_plugin_reset_notice' );
-			if ( false !== $plugins_reset_notice ) {
-				$html = '<div class="notice notice-warning is-dismissible">';
-				$html .= '<p>';
-				$html .= $plugins_reset_notice;
-				$html .= '</p>';
-				$html .= '</div>';
-				echo $html;
-				delete_transient( 'instawp_connect_plugin_reset_notice' );
-			}
-		}
-	}
-
-	// Remove From settings internal
-	public static function delete_folder_handle() {
-		if ( isset( $_REQUEST['delete_wpnonce'] ) && wp_verify_nonce( $_REQUEST['delete_wpnonce'], 'delete_wpnonce' ) ) {
-
-			/* Delete Instawp related Options Start */
-			global $wpdb;
-			$options_table = $wpdb->prefix . "options";
-			$sql           = "DELETE FROM $options_table WHERE option_name LIKE '%instawp%' AND option_name !='instawp_api_url'";
-			$query         = $wpdb->query( $sql );
-			/* Delete Instawp related Options End */
-
-			self::instawp_folder_remover_handle();
-			//After Delete Option Set API Domain
-			InstaWP_Setting::set_api_domain();
-
-			$transient_message = __( "InstaWP Connect Settings has been reset successfully.", 'instawp-connect' );
-
-			set_transient( 'instawp_connect_plugin_reset_notice', $transient_message, MINUTE_IN_SECONDS );
-
-			$redirect_url = admin_url( "admin.php?page=instawp-settings" );
-			wp_redirect( $redirect_url );
-			exit();
-		}
-	}
-
-	public function ajax_check_security( $role = 'administrator' ) {
-		check_ajax_referer( 'instawp_ajax', 'nonce' );
-		$check = is_admin() && current_user_can( $role );
-		$check = apply_filters( 'instawp_ajax_check_security', $check );
-		if ( ! $check ) {
-			wp_die();
-		}
 	}
 }
 

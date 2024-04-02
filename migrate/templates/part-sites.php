@@ -23,9 +23,9 @@ if ( ! empty( $parent_connect_data ) ) {
                     <img src="<?php echo esc_url( instaWP::get_asset_url( 'migrate/assets/images/staging.svg' ) ); ?>" class="mx-auto" alt="">
                 </div>
 				<?php if ( isset( $parent_domain ) && ! empty( $parent_domain ) ) { ?>
-                    <div class="text-sm font-medium text-grayCust-200"><?php printf( __( 'This is a staging site connected to %s', 'instawp-connect' ), '<a target="_blank" class="text-primary-900 focus:outline-none focus:ring-0 hover:text-primary-900 border-b border-transparent border-1 border-dashed hover:border-primary-700" href="' . esc_url( $parent_domain ) . '">' . esc_html( $parent_domain ) . '</a>' ); ?></div>
+                    <div class="text-sm font-medium text-grayCust-200"><?php printf( esc_html__( 'This is a staging site connected to %s', 'instawp-connect' ), '<a target="_blank" class="text-primary-900 focus:outline-none focus:ring-0 hover:text-primary-900 border-b border-transparent border-1 border-dashed hover:border-primary-700" href="' . esc_url( $parent_domain ) . '">' . esc_html( $parent_domain ) . '</a>' ); ?></div>
 				<?php } else { ?>
-                    <div class="text-sm font-medium text-grayCust-200"><?php printf( __( 'This is a staging site', 'instawp-connect' ) ); ?></div>
+                    <div class="text-sm font-medium text-grayCust-200"><?php printf( esc_html__( 'This is a staging site', 'instawp-connect' ) ); ?></div>
 				<?php } ?>
             </div>
         </div>
@@ -80,14 +80,14 @@ if ( ! empty( $parent_connect_data ) ) {
 								$password = isset( $site['password'] ) ? $site['password'] : '';
 								$auto_login_url = isset( $site['magic_domain'] ) ? $site['magic_domain'] : '';
 								$datetime = isset( $site['timestamp'] ) ? $site['timestamp'] : '';
-								$datetime = $datetime != '' ? date( 'M j, Y', strtotime( $datetime ) ) : '';
+								$datetime = $datetime !== '' ? date( 'M j, Y', strtotime( $datetime ) ) : '';
 								?>
                                 <tr class="staging-site-list sm:rounded-lg">
                                     <td class="whitespace-nowrap py-8 px-4 text-sm font-medium flex items-center text-grayCust-300 sm:rounded-lg">
 										<?php
 										printf( '<img src="%s" class="mr-2" alt=""><a target="_blank" class="focus:outline-none focus:ring-0 hover:text-primary-900 border-b border-transparent border-1 border-dashed hover:border-primary-700" href="%s">%s</a>',
-											instaWP::get_asset_url( 'migrate/assets/images/glob.svg' ),
-											esc_url_raw( $site_name ), $site_name
+											esc_url( instaWP::get_asset_url( 'migrate/assets/images/glob.svg' ) ),
+											esc_url_raw( $site_name ), esc_html( $site_name )
 										);
 										?>
                                     </td>
@@ -139,11 +139,11 @@ if ( ! empty( $parent_connect_data ) ) {
                                 <span class="prev-item p-2 pr-5 disabled"><?php esc_html_e( '« Previous', 'instawp-connect' ); ?></span>
                                 <span class="nav-item">
                                     <?php
-                                    $page = 1;
+                                    $page_item = 1;
                                     for ( $x = 1; $x <= $staging_sites_count; $x += $pagination ) {
-	                                    $css_class = ( $x == 1 ) ? 'page-item p-2 active' : 'page-item p-2';
-	                                    echo '<span class="' . $css_class . '" data-item="' . $page . '">' . $page . '</span>';
-	                                    ++ $page;
+	                                    $css_class = ( $x === 1 ) ? 'page-item p-2 active' : 'page-item p-2';
+	                                    echo '<span class="' . esc_attr( $css_class ) . '" data-item="' . esc_attr( $page_item ) . '">' . esc_html( $page_item ). '</span>';
+	                                    ++ $page_item;
                                     }
                                     ?>
                                 </span>

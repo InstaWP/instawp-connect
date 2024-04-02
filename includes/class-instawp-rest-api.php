@@ -133,7 +133,7 @@ class InstaWP_Rest_Api {
 				'methods'             => 'DELETE',
 				'callback'            => array( $this, 'delete_user' ),
 				'permission_callback' => '__return_true',
-			)
+			),
 		) );
 
 		register_rest_route( $this->namespace . '/' . $this->version_2 . '/manage', '/file-manager', array(
@@ -210,12 +210,6 @@ class InstaWP_Rest_Api {
 			'permission_callback' => '__return_true',
 		) );
 
-		register_rest_route( $this->namespace . '/' . $this->version_3, '/debug', array(
-			'methods'             => 'POST',
-			'callback'            => array( $this, 'handle_debug' ),
-			'permission_callback' => '__return_true',
-		) );
-
 		register_rest_route( $this->namespace . '/' . $this->version_3, '/post-cleanup', array(
 			'methods'             => 'POST',
 			'callback'            => array( $this, 'handle_post_migration_cleanup' ),
@@ -251,7 +245,10 @@ class InstaWP_Rest_Api {
 			return $this->throw_error( $is_deleted );
 		}
 
-		return $this->send_response( array( 'success' => true, 'message' => esc_html__( 'Post migration cleanup completed.' ) ) );
+		return $this->send_response( array(
+			'success' => true,
+			'message' => esc_html__( 'Post migration cleanup completed.', 'instawp-connect' ),
+		) );
 	}
 
 	/**
@@ -414,45 +411,6 @@ class InstaWP_Rest_Api {
 		return $this->send_response( $response );
 	}
 
-	function handle_debug( WP_REST_Request $request ) {
-
-		$response = $this->validate_api_request( $request );
-		if ( is_wp_error( $response ) ) {
-			return $this->throw_error( $response );
-		}
-
-		$drivers   = array();
-		$libraries = array(
-			'SQLite3'                         => extension_loaded( 'sqlite3' ),
-			'Zip'                             => extension_loaded( 'zip' ),
-			'PDO'                             => extension_loaded( 'pdo' ),
-			"PHP's zlib (for gz compression)" => extension_loaded( 'zlib' ),
-			'PharData'                        => extension_loaded( 'phar' ),
-			'mysqli_real_connect'             => extension_loaded( 'mysqli' ),
-		);
-
-		$pearArchiveTarExists = false;
-
-		@include 'Archive/Tar.php';
-
-		if ( class_exists( 'Archive_Tar' ) ) {
-			$pearArchiveTarExists = true;
-		}
-
-		$libraries['PEAR Archive_Tar'] = $pearArchiveTarExists;
-
-		if ( $libraries['PDO'] ) {
-			$drivers = PDO::getAvailableDrivers();
-		}
-
-		return $this->send_response( array(
-			'libraries'          => $libraries,
-			'drivers'            => $drivers,
-			'memory_limit'       => ini_get( 'memory_limit' ),
-			'max_execution_time' => ini_get( 'max_execution_time' ),
-		) );
-	}
-
 	/**
 	 * Handle response for pull api
 	 *
@@ -502,7 +460,7 @@ class InstaWP_Rest_Api {
 
 		$migrate_key      = InstaWP_Tools::get_random_string( 40 );
 		$migrate_settings = InstaWP_Tools::get_migrate_settings();
-		$api_signature    = hash( 'sha512', $migrate_key . current_time( 'U' ) );
+		$api_signature    = hash( 'sha512', $migrate_key . wp_generate_uuid4() );
 		$dest_file_url    = InstaWP_Tools::generate_destination_file( $migrate_key, $api_signature );
 
 		// Check accessibility of serve file
@@ -578,7 +536,7 @@ class InstaWP_Rest_Api {
 		}
 
 		$param_user     = $request->get_param( 's' );
-		$login_userinfo = instawp_get_user_to_login( base64_decode( $param_user ) );
+		$login_userinfo = instawp_get_user_to_login( base64_decode( $param_user ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
 
 		if ( is_wp_error( $login_userinfo ) ) {
 			return $this->throw_error( $login_userinfo );
@@ -590,7 +548,7 @@ class InstaWP_Rest_Api {
 		$login_code        = str_shuffle( $uuid_code . $uuid_code );
 		$args              = array(
 			'c' => $login_code,
-			's' => base64_encode( $username_to_login ),
+			's' => base64_encode( $username_to_login ), // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
 		);
 
 		if ( ! function_exists( 'is_plugin_active' ) ) {
@@ -620,7 +578,7 @@ class InstaWP_Rest_Api {
 
 		InstaWP_Setting::update_option( 'instawp_login_code', array(
 			'code'       => $login_code,
-			'updated_at' => current_time( 'U' ),
+			'updated_at' => time(),
 		) );
 
 		return $this->send_response(
@@ -643,23 +601,21 @@ class InstaWP_Rest_Api {
 	public function move_files_folders( $src, $dst ) {
 
 		$dir = opendir( $src );
-
-		@mkdir( $dst );
+		instawp_get_fs()->mkdir( $dst );
 
 		while ( $file = readdir( $dir ) ) {
-			if ( ( $file != '.' ) && ( $file != '..' ) ) {
+			if ( ( $file !== '.' ) && ( $file !== '..' ) ) {
 				if ( is_dir( $src . '/' . $file ) ) {
 					$this->move_files_folders( $src . '/' . $file, $dst . '/' . $file );
 				} else {
-					copy( $src . '/' . $file, $dst . '/' . $file );
-					unlink( $src . '/' . $file );
+					instawp_get_fs()->copy( $src . '/' . $file, $dst . '/' . $file );
+					wp_delete_file( $src . '/' . $file );
 				}
 			}
 		}
 
 		closedir( $dir );
-
-		rmdir( $src );
+		instawp_get_fs()->rmdir( $src );
 	}
 
 	/**
@@ -679,10 +635,10 @@ class InstaWP_Rest_Api {
 		$plugins_path = WP_CONTENT_DIR . '/plugins/';
 
 		// Download the file from remote location
-		file_put_contents( $plugin_zip, fopen( $plugin_zip_url, 'r' ) );
+		instawp_get_fs()->put_contents( $plugin_zip, fopen( $plugin_zip_url, 'r' ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
 
 		// Setting permission
-		chmod( $plugin_zip, 0777 );
+		instawp_get_fs()->chmod( $plugin_zip, 0777 );
 
 		if ( ! function_exists( 'request_filesystem_credentials' ) ) {
 			require_once ABSPATH . 'wp-admin/includes/file.php';
@@ -723,12 +679,12 @@ class InstaWP_Rest_Api {
 				$this->move_files_folders( $source, $destination );
 
 				if ( $destination ) {
-					rmdir( $destination );
+					instawp_get_fs()->rmdir( $destination );
 				}
 			}
 		}
 
-		unlink( $plugin_zip );
+		wp_delete_file( $plugin_zip );
 	}
 
 	public function config( $request ) {
@@ -777,11 +733,9 @@ class InstaWP_Rest_Api {
 			InstaWP_Setting::set_api_domain( $parameters['api_domain'] );
 		}
 
-		$config_response = self::config_check_key( $parameters['api_key'] );
-
-		if ( $config_response['error'] ) {
-			$results['message'] = InstaWP_Setting::get_args_option( 'message', $config_response );
-
+		$config_response = InstaWP_Setting::instawp_generate_api_key( $parameters['api_key'] );
+		if ( ! $config_response ) {
+			$results['message'] = __( 'Key is not valid', 'instawp-connect' );
 			return $this->send_response( $results );
 		}
 
@@ -856,109 +810,6 @@ class InstaWP_Rest_Api {
 		return true;
 	}
 
-	public static function config_check_key( $api_key ) {
-
-		$res        = array(
-			'error'   => true,
-			'message' => '',
-		);
-		$api_domain = InstaWP_Setting::get_api_domain();
-		$url        = $api_domain . INSTAWP_API_URL . '/check-key';
-
-		$response = wp_remote_get( $url, array(
-			'sslverify' => false,
-			'headers'   => array(
-				'Authorization' => 'Bearer ' . $api_key,
-				'Accept'        => 'application/json',
-			),
-		) );
-
-		$response_code = wp_remote_retrieve_response_code( $response );
-
-		if ( ! is_wp_error( $response ) && $response_code == 200 ) {
-			$body = ( array ) json_decode( wp_remote_retrieve_body( $response ), true );
-
-			if ( $body['status'] == true ) {
-				$api_options = InstaWP_Setting::get_option( 'instawp_api_options', array() );
-
-				InstaWP_Setting::update_option( 'instawp_api_options', array_merge( $api_options, array(
-					'api_key'  => $api_key,
-					'response' => $body,
-				) ) );
-
-				$res = self::config_connect( $api_key );
-			} else {
-				$res = array(
-					'error'   => true,
-					'message' => 'Key Not Valid',
-				);
-			}
-		}
-
-		return $res;
-	}
-
-	public static function config_connect( $api_key ) {
-		global $InstaWP_Curl;
-
-		$res         = array(
-			'error'   => true,
-			'message' => '',
-		);
-		$php_version = substr( phpversion(), 0, 3 );
-
-		/*Get username*/
-		$username    = null;
-		$admin_users = get_users(
-			array(
-				'role__in' => array( 'administrator' ),
-				'fields'   => array( 'user_login' ),
-			)
-		);
-
-		if ( ! empty( $admin_users ) ) {
-			if ( is_null( $username ) ) {
-				foreach ( $admin_users as $admin ) {
-					$username = $admin->user_login;
-					break;
-				}
-			}
-		}
-
-		/*Get username closes*/
-		$body = json_encode(
-			array(
-				"url"         => get_site_url(),
-				"php_version" => $php_version,
-				"username"    => ! is_null( $username ) ? base64_encode( $username ) : "notfound",
-			)
-		);
-
-		$api_domain = InstaWP_Setting::get_api_domain();
-		$url        = $api_domain . INSTAWP_API_URL . '/connects';
-
-		$curl_response = $InstaWP_Curl->curl( $url, $body );
-
-		if ( $curl_response['error'] == false ) {
-			$response = ( array ) json_decode( $curl_response['curl_res'], true );
-
-			if ( $response['status'] == true ) {
-				InstaWP_Setting::set_api_key( $api_key );
-
-				if ( isset( $response['data']['id'] ) && ! empty( $response['data']['id'] ) ) {
-					InstaWP_Setting::set_connect_id( $response['data']['id'] );
-				}
-
-				$res['message'] = $response['message'];
-				$res['error']   = false;
-			} else {
-				$res['message'] = 'Something Went Wrong. Please try again';
-				$res['error']   = true;
-			}
-		}
-
-		return $res;
-	}
 
 	/**
 	 * Handle response for heartbeat endpoint
@@ -1274,7 +1125,7 @@ class InstaWP_Rest_Api {
 			if ( ! isset( $option ) || ! isset( $all_items ) ) {
 				$response[ $key ] = array(
 					'success' => false,
-					'message' => __( 'Invalid data. Unknown type.' ),
+					'message' => __( 'Invalid data. Unknown type.', 'instawp-connect' ),
 				);
 				continue;
 			}
@@ -1282,7 +1133,7 @@ class InstaWP_Rest_Api {
 			if ( ! array_key_exists( $asset, $all_items ) ) {
 				$response[ $key ] = array(
 					'success' => false,
-					'message' => __( 'Invalid data. The item does not exist.' ),
+					'message' => __( 'Invalid data. The item does not exist.', 'instawp-connect' ),
 				);
 				continue;
 			}
@@ -1415,7 +1266,7 @@ class InstaWP_Rest_Api {
 
 		return $this->send_response( array(
 			'success'  => true,
-			'userdata' => $user
+			'userdata' => $user,
 		) );
 	}
 
@@ -1448,7 +1299,7 @@ class InstaWP_Rest_Api {
 
 		return $this->send_response( array(
 			'success'  => true,
-			'userdata' => $user
+			'userdata' => $user,
 		) );
 	}
 
@@ -1472,13 +1323,13 @@ class InstaWP_Rest_Api {
 
 		$params = $this->filter_params( $request );
 		$params = wp_parse_args( $params, array(
-			'reassign' => null
+			'reassign' => null,
 		) );
 		$status = wp_delete_user( $params['user_id'], $params['reassign'] );
 
 		return $this->send_response( array(
 			'success'  => $status,
-			'userdata' => $params
+			'userdata' => $params,
 		) );
 	}
 
@@ -1666,10 +1517,10 @@ class InstaWP_Rest_Api {
 		if ( isset( $GLOBALS['wp']->query_vars['rest_route'] ) ) {
 			$rest_route = $GLOBALS['wp']->query_vars['rest_route'];
 		} elseif ( isset( $_SERVER['REQUEST_URI'] ) ) {
-			$rest_route = $_SERVER['REQUEST_URI'];
+			$rest_route = $_SERVER['REQUEST_URI']; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 		}
 
-		return ( empty( $rest_route ) || '/' == $rest_route ) ? $rest_route : untrailingslashit( $rest_route );
+		return ( empty( $rest_route ) || '/' === $rest_route ) ? $rest_route : untrailingslashit( $rest_route );
 	}
 
 	/**

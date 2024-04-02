@@ -94,6 +94,13 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 
 == Changelog ==
 
+= 0.1.0.25 =
+- FIX - Fixed Action Scheduler error after staging creation.
+- FIX - Strengthen plugin security.
+- FIX - All WPCS related issues.
+- FIX - Remove legacy codes and implemented code reusability.
+- FIX - Replaced wrong database constant.
+
 = 0.1.0.24 - 1 Apr 2024 =
 - FIX - Fixed plugin update issue using REST Api.
 

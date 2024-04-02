@@ -9,12 +9,8 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 	class InstaWP_Activity_Log {
 
 		private $table_name;
-		private $wpdb;
 
 		public function __construct() {
-			global $wpdb;
-
-			$this->wpdb       = $wpdb;
 			$this->table_name = INSTAWP_DB_TABLE_ACTIVITY_LOGS;
 
 			add_action( 'init', array( $this, 'create_table' ) );
@@ -27,10 +23,11 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 				return;
 			}
 
-			$log_ids    = $logs = array();
-			$table_name = INSTAWP_DB_TABLE_ACTIVITY_LOGS;
-			$results    = $this->wpdb->get_results(
-				$this->wpdb->prepare( "SELECT * FROM {$table_name} WHERE severity=%s", 'critical' )
+			global $wpdb;
+
+			$log_ids = $logs = array();
+			$results = $wpdb->get_results(
+				$wpdb->prepare( "SELECT * FROM {$this->table_name} WHERE severity=%s", 'critical' ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			);
 
 			foreach ( $results as $result ) {
@@ -46,7 +43,7 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 			$success = false;
 			for ( $i = 0; $i < 10; $i ++ ) {
 				$response = InstaWP_Curl::do_curl( "connects/{$connect_id}/activity-log", array( 'activity_logs' => $logs ) );
-				if ( $response['code'] == 200 ) {
+				if ( intval( $response['code'] ) === 200 ) {
 					$success = true;
 					break;
 				}
@@ -54,20 +51,21 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 
 			if ( $success ) {
 				$placeholders = implode( ',', array_fill( 0, count( $log_ids ), '%d' ) );
-				$this->wpdb->query(
-					$this->wpdb->prepare( "DELETE FROM {$table_name} WHERE id IN ($placeholders)", $log_ids )
+				$wpdb->query(
+					$wpdb->prepare( "DELETE FROM {$this->table_name} WHERE id IN ($placeholders)", $log_ids ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 				);
 			}
 		}
 
 		public function create_table() {
-			$charset_collate = $this->wpdb->get_charset_collate();
+			global $wpdb;
 
 			if ( ! function_exists( 'maybe_create_table' ) ) {
 				require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 			}
 
-			$sql_query  = "CREATE TABLE " . $this->table_name . " (
+			$charset_collate = $wpdb->get_charset_collate();
+			$sql_query       = "CREATE TABLE " . $this->table_name . " (
 				id int(20) NOT NULL AUTO_INCREMENT,
 				action varchar(255) NOT NULL,
 				severity varchar(20) NOT NULL DEFAULT 'low',
@@ -91,6 +89,8 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 		 * @return void
 		 */
 		private function insert( array $args ) {
+			global $wpdb;
+
 			$args = wp_parse_args( $args, array(
 				'action'         => '',
 				'object_type'    => '',
@@ -104,7 +104,7 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 			$args['severity'] = $this->get_severity( $args['action'] );
 			$args             = $this->setup_userdata( $args );
 
-			$this->wpdb->insert(
+			$wpdb->insert(
 				$this->table_name,
 				array(
 					'action'         => $args['action'],
@@ -226,7 +226,7 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 
 			$visitor_ip_address = '';
 			if ( ! empty( $_SERVER[ $header_key ] ) ) {
-				$visitor_ip_address = $_SERVER[ $header_key ];
+				$visitor_ip_address = $_SERVER[ $header_key ]; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 			}
 
 			$remote_address = apply_filters( 'INSTAWP_CONNECT/Filters/get_ip_address', $visitor_ip_address );

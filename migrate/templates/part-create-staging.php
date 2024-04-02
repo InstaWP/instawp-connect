@@ -30,7 +30,7 @@ $customize_options     = array(
 		),
 	),
 );
-$current_create_screen = isset( $_GET['screen'] ) ? sanitize_text_field( $_GET['screen'] ) : 1;
+$current_create_screen = isset( $_GET['screen'] ) ? intval( $_GET['screen'] ) : 1;
 $tables                = instawp_get_database_details();
 $log_tables_to_exclude = InstaWP_Tools::get_log_tables_to_exclude();
 $list_data             = InstaWP_Setting::get_option( 'instawp_large_files_list' );
@@ -70,20 +70,20 @@ $whitelist_ip          = instawp_whitelist_ip();
         <ul role="list" class="screen-nav-items -mb-8">
 			<?php foreach ( $staging_screens as $index => $screen ) : ?>
                 <li>
-                    <div class="screen-nav relative pb-8 <?php echo ( $index == 0 ) ? 'active' : ''; ?>">
+                    <div class="screen-nav relative pb-8 <?php echo ( $index === 0 ) ? 'active' : ''; ?>">
 						<?php if ( $index < 4 ) : ?>
                             <span class="screen-nav-line absolute left-4 top-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true"></span>
 						<?php endif; ?>
                         <div class="relative flex space-x-3">
                             <div>
-                                <div class="screen-nav-icon h-8 w-8 rounded-full border-2 border-primary-900 flex items-center justify-center <?php echo ( $index == 0 ) ? 'bg-primary-900' : 'bg-white'; ?>">
+                                <div class="screen-nav-icon h-8 w-8 rounded-full border-2 border-primary-900 flex items-center justify-center <?php echo ( $index === 0 ) ? 'bg-primary-900' : 'bg-white'; ?>">
                                     <img src="<?php echo esc_url( instaWP::get_asset_url( 'migrate/assets/images/true-icon.svg' ) ); ?>" alt="True Icon">
                                     <span class="w-2 h-2 bg-primary-900 rounded"></span>
                                 </div>
                             </div>
                             <div class="flex justify-between items-center">
                                 <div>
-                                    <p class="screen-nav-label text-xs font-medium uppercase <?php echo ( $index == 0 ) ? 'text-primary-900' : 'text-grayCust-50'; ?>"><?php echo esc_html( $screen ); ?></p>
+                                    <p class="screen-nav-label text-xs font-medium uppercase <?php echo ( $index === 0 ) ? 'text-primary-900' : 'text-grayCust-50'; ?>"><?php echo esc_html( $screen ); ?></p>
                                 </div>
                             </div>
                         </div>
@@ -95,14 +95,14 @@ $whitelist_ip          = instawp_whitelist_ip();
 
     <div class="w-full">
         <div class="p-6 bg-white rounded-md">
-            <div class="screen screen-1 <?= $current_create_screen == 1 ? 'active' : ''; ?>">
+            <div class="screen screen-1 <?= $current_create_screen === 1 ? 'active' : ''; ?>">
                 <div class="flex justify-between items-center">
                     <div class="text-grayCust-200 text-lg font-bold"><?php esc_html_e( '1. Select Staging', 'instawp-connect' ); ?></div>
                 </div>
 				<?php if ( $whitelist_ip['can_whitelist'] ) { ?>
                     <div class="wordfence-whitelist bg-yellow-50 border border-2 border-r-0 border-y-0 border-l-orange-400 rounded-lg text-sm text-orange-700 mt-4 p-4 flex flex-col items-start gap-3">
                         <div class="flex items-center gap-3">
-                            <div class="texdt-xs fonht-medium"><?php printf( esc_html( 'We have detected %s in your website, which might block API calls from our server. Whitelisting our IP address solves this problem. Shall we add a whitelist entry?', 'instawp-connect' ), $whitelist_ip['plugins'] ); ?></div>
+                            <div class="texdt-xs fonht-medium"><?php printf( esc_html__( 'We have detected %s in your website, which might block API calls from our server. Whitelisting our IP address solves this problem. Shall we add a whitelist entry?', 'instawp-connect' ), esc_html( $whitelist_ip['plugins'] ) ); ?></div>
                         </div>
                         <div class="flex flex-col items-start gap-3">
                             <div class="flex justify-between items-center text-xss">
@@ -152,7 +152,7 @@ $whitelist_ip          = instawp_whitelist_ip();
                 </div>
             </div>
 
-            <div class="screen screen-2 <?= $current_create_screen == 2 ? 'active' : ''; ?>">
+            <div class="screen screen-2 <?= $current_create_screen === 2 ? 'active' : ''; ?>">
                 <div class="flex justify-between items-center">
                     <div class="text-grayCust-200 text-lg font-bold"><?php esc_html_e( '2. Select Your Information', 'instawp-connect' ); ?></div>
                 </div>
@@ -160,15 +160,15 @@ $whitelist_ip          = instawp_whitelist_ip();
 					<?php foreach ( $customize_options as $customize_option ) : ?>
                         <div class="text-[16px] font-semibold mb-2"><?php echo esc_html( InstaWP_Setting::get_args_option( 'label', $customize_option ) ); ?></div>
                         <div class="grid grid-cols-3 gap-5 mb-4">
-							<?php foreach ( InstaWP_Setting::get_args_option( 'options', $customize_option, array() ) as $id => $label ) : ?>
+							<?php foreach ( InstaWP_Setting::get_args_option( 'options', $customize_option, array() ) as $setting_id => $label ) : ?>
                                 <!--relative flex items-start border border-primary-900 card-active p-3 px-4 rounded-lg-->
-                                <label for="<?php echo esc_attr( $id ); ?>" class="relative flex items-start border border-grayCust-350 p-3 px-4 rounded-lg items-center">
-                                            <span>
-                                                <input id="<?php echo esc_attr( $id ); ?>" name="migrate_settings[options][]" value="<?php echo esc_attr( $id ); ?>" type="checkbox" class="instawp-option-selector rounded border-gray-300 text-primary-900 focus:ring-primary-900">
-                                            </span>
+                                <label for="<?php echo esc_attr( $setting_id ); ?>" class="relative flex items-start border border-grayCust-350 p-3 px-4 rounded-lg items-center">
+                                    <span>
+                                        <input id="<?php echo esc_attr( $setting_id ); ?>" name="migrate_settings[options][]" value="<?php echo esc_attr( $setting_id ); ?>" type="checkbox" class="instawp-option-selector rounded border-gray-300 text-primary-900 focus:ring-primary-900">
+                                    </span>
                                     <span class="ml-2 text-sm">
-                                                <span class="option-label font-medium text-sm text-grayCust-700"><?php echo esc_html( $label ); ?></span>
-                                            </span>
+                                        <span class="option-label font-medium text-sm text-grayCust-700"><?php echo esc_html( $label ); ?></span>
+                                    </span>
                                 </label>
 							<?php endforeach; ?>
                         </div>
@@ -176,7 +176,7 @@ $whitelist_ip          = instawp_whitelist_ip();
                 </div>
             </div>
 
-            <div class="screen screen-3 <?= $current_create_screen == 3 ? 'active' : ''; ?>">
+            <div class="screen screen-3 <?= $current_create_screen === 3 ? 'active' : ''; ?>">
                 <div class="flex justify-between items-center">
                     <div class="text-grayCust-200 text-lg font-bold"><?php esc_html_e( '3. Exclude', 'instawp-connect' ); ?></div>
                     <button type="button" class="instawp-refresh-exclude-screen">
@@ -248,7 +248,7 @@ $whitelist_ip          = instawp_whitelist_ip();
                                         <?php if ( ! empty( $tables ) ) {
 	                                        $table_count = count( $tables );
 	                                        $table_size  = array_sum( wp_list_pluck( $tables, 'size' ) );
-	                                        echo '(' . $table_count . ') - ' . instawp()->get_file_size_with_unit( $table_size );
+	                                        echo '(' . esc_html( $table_count ) . ') - ' . esc_html( instawp()->get_file_size_with_unit( $table_size ) );
                                         } ?>
                                     </span>
                                 </div>
@@ -280,7 +280,7 @@ $whitelist_ip          = instawp_whitelist_ip();
                                                 <div class="flex justify-between items-center">
                                                     <div class="flex items-center cursor-pointer" style="transform: translate(0em);">
                                                         <input name="migrate_settings[excluded_tables][]" id="<?php echo esc_attr( $element_id ); ?>" value="<?php echo esc_attr( $table['name'] ); ?>" type="checkbox" class="instawp-checkbox exclude-database-item !mt-0 !mr-3 rounded border-gray-300 text-primary-900 focus:ring-primary-900 <?= in_array( $table['name'], $log_tables_to_exclude ) ? 'log-table' : ''; ?>" data-size="<?php echo esc_html( $table['size'] ); ?>">
-                                                        <label for="<?php echo esc_attr( $element_id ); ?>" class="text-sm font-medium text-grayCust-800 truncate" style="width: calc(400px - 1em);"><?php echo esc_html( $table['name'] ); ?> (<?php printf( __( '%s rows', 'instawp-connect' ), $table['rows'] ); ?>)</label>
+                                                        <label for="<?php echo esc_attr( $element_id ); ?>" class="text-sm font-medium text-grayCust-800 truncate" style="width: calc(400px - 1em);"><?php echo esc_html( $table['name'] ); ?> (<?php printf( esc_html__( '%s rows', 'instawp-connect' ), esc_html( $table['rows'] ) ); ?>)</label>
                                                     </div>
                                                     <div class="flex items-center" style="width: 105px;">
                                                         <svg width="14" height="13" viewBox="0 0 14 13" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -299,7 +299,7 @@ $whitelist_ip          = instawp_whitelist_ip();
                 </div>
             </div>
 
-            <div class="screen screen-4 <?= $current_create_screen == 4 ? 'active' : ''; ?>">
+            <div class="screen screen-4 <?= $current_create_screen === 4 ? 'active' : ''; ?>">
                 <div class="confirmation-preview">
                     <div class="flex justify-between items-center">
                         <div class="text-grayCust-200 text-lg font-bold"><?php esc_html_e( '4. Confirmation', 'instawp-connect' ); ?></div>
@@ -360,7 +360,7 @@ $whitelist_ip          = instawp_whitelist_ip();
                 </div>
             </div>
 
-            <div class="screen screen-5 <?= $current_create_screen == 5 ? 'active' : ''; ?>">
+            <div class="screen screen-5 <?= $current_create_screen === 5 ? 'active' : ''; ?>">
                 <div class="flex justify-between items-center">
                     <div class="text-grayCust-200 text-lg font-bold"><?php esc_html_e( '4. Creating Staging', 'instawp-connect' ); ?></div>
                     <span class="instawp-migration-loader text-primary-900 text-base font-normal"
@@ -393,12 +393,12 @@ $whitelist_ip          = instawp_whitelist_ip();
                                 <div class="instawp-progress-stage text-border rounded-xl w-full text-bg py-4 flex items-center px-4">
                                     <ul class="text-sm grid grid-cols-1 sm:grid-cols-2 gap-3">
 										<?php foreach ( InstaWP_Setting::get_stages() as $stage_key => $label ) : ?>
-                                            <li class="stage-<?= $stage_key ?> flex space-x-3 item [&_.active]:text-green-600">
+                                            <li class="stage-<?= esc_attr( $stage_key ); ?> flex space-x-3 item [&_.active]:text-green-600">
                                                 <svg class="stage-status icon flex-shrink-0 h-6 w-6 text-gray-600" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                     <path d="M15.1965 7.85999C15.1965 3.71785 11.8387 0.359985 7.69653 0.359985C3.5544 0.359985 0.196533 3.71785 0.196533 7.85999C0.196533 12.0021 3.5544 15.36 7.69653 15.36C11.8387 15.36 15.1965 12.0021 15.1965 7.85999Z" fill="currentColor" fill-opacity="0.1"></path>
                                                     <path d="M10.9295 4.88618C11.1083 4.67577 11.4238 4.65019 11.6343 4.82904C11.8446 5.00788 11.8702 5.32343 11.6914 5.53383L7.44139 10.5338C7.25974 10.7475 6.93787 10.77 6.72825 10.5837L4.47825 8.5837C4.27186 8.40024 4.25327 8.0842 4.43673 7.87781C4.62019 7.67142 4.93622 7.65283 5.14261 7.83629L7.01053 9.49669L10.9295 4.88618Z" fill="currentColor"></path>
                                                 </svg>
-                                                <span class="stage-status label text-gray-600"><?= $label; ?></span>
+                                                <span class="stage-status label text-gray-600"><?= esc_html( $label ); ?></span>
                                             </li>
 										<?php endforeach; ?>
                                     </ul>
@@ -491,7 +491,7 @@ $whitelist_ip          = instawp_whitelist_ip();
                 </div>
             </div>
             <p class="doing-request"><span class="loader"></span><?php esc_html_e( 'Checking usages...', 'instawp-connect' ); ?></p>
-            <input name="migrate_settings[screen]" type="hidden" id="instawp-screen" value="<?= $current_create_screen; ?>">
+            <input name="migrate_settings[screen]" type="hidden" id="instawp-screen" value="<?= esc_attr( $current_create_screen ); ?>">
             <div class="button-group">
                 <button type="button" data-increment="-1" class="instawp-button-migrate back hidden btn-shadow border border-grayCust-350 mr-4 rounded-md py-2 px-8 bg-white text-grayCust-700 text-sm font-medium"><?php esc_html_e( 'Back', 'instawp-connect' ); ?></button>
                 <button type="button" data-increment="1" class="instawp-button-migrate continue btn-shadow rounded-md py-2 px-4 bg-primary-900 text-white hover:text-white text-sm font-medium"><?php esc_html_e( 'Next Step', 'instawp-connect' ); ?></button>

@@ -28,14 +28,14 @@ class InstaWP_Activity_Log_Widgets {
 	}
 
 	public function hooks_widget_delete() {
-		if ( 'post' == strtolower( $_SERVER['REQUEST_METHOD'] ) && ! empty( $_REQUEST['widget-id'] ) ) {
+		if ( ! empty( $_SERVER['REQUEST_METHOD'] ) && 'post' === strtolower( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) ) && ! empty( $_REQUEST['widget-id'] ) ) {
 			if ( isset( $_REQUEST['delete_widget'] ) && 1 === (int) $_REQUEST['delete_widget'] ) {
 				InstaWP_Activity_Log::insert_log( array(
 					'action'         => 'widget_deleted',
 					'object_type'    => 'Widget',
-					'object_subtype' => strtolower( sanitize_text_field( $_REQUEST['sidebar'] ) ),
+					'object_subtype' => ! empty( $_REQUEST['sidebar'] ) ? strtolower( sanitize_text_field( wp_unslash( $_REQUEST['sidebar'] ) ) ) : 'unknown',
 					'object_id'      => 0,
-					'object_name'    => sanitize_text_field( $_REQUEST['id_base'] ),
+					'object_name'    => ! empty( $_REQUEST['id_base'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['id_base'] ) ) : 'unknown',
 				) );
 			}
 		}

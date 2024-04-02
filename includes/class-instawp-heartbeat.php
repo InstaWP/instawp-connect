@@ -125,7 +125,7 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 				$log_ids    = $logs = array();
 				$table_name = INSTAWP_DB_TABLE_ACTIVITY_LOGS;
 				$results    = $wpdb->get_results(
-					$wpdb->prepare( "SELECT * FROM {$table_name} WHERE severity!=%s", 'critical' )
+					$wpdb->prepare( "SELECT * FROM {$table_name} WHERE severity!=%s", 'critical' ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				);
 
 				foreach ( $results as $result ) {
@@ -141,17 +141,18 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 				$heartbeat_data['activity_logs'] = $logs;
 			}
 
-			$heartbeat_body = base64_encode( wp_json_encode( array(
+			$heartbeat_body = wp_json_encode( array(
 				'site_information' => $heartbeat_data,
 				'new_changes'      => instawp_array_recursive_diff( $heartbeat_data, $last_sent_data ),
-			) ) );
+			) );
+			$heartbeat_body = base64_encode( $heartbeat_body ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
 
 			$success = false;
 			for ( $i = 0; $i < 10; $i ++ ) {
 				$heartbeat_response = InstaWP_Curl::do_curl( "connects/{$connect_id}/heartbeat", $heartbeat_body, array(), true, 'v1' );
 				$response_code      = InstaWP_Setting::get_args_option( 'code', $heartbeat_response );
 
-				if ( $response_code == 200 ) {
+				if ( intval( $response_code ) === 200 ) {
 					$success = true;
 					break;
 				}
@@ -162,7 +163,7 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 				InstaWP_Setting::update_option( 'instawp_rm_heartbeat_failed', true );
 				as_unschedule_all_actions( 'instawp_handle_heartbeat', array(), 'instawp-connect' );
 
-				if ( $response_code == 404 ) {
+				if ( intval( $response_code ) === 404 ) {
 					instawp_reset_running_migration( 'hard' );
 				}
 			} else {
@@ -172,7 +173,7 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 				if ( $setting === 'on' ) {
 					$placeholders = implode( ',', array_fill( 0, count( $log_ids ), '%d' ) );
 					$wpdb->query(
-						$wpdb->prepare( "DELETE FROM {$table_name} WHERE id IN ($placeholders)", $log_ids )
+						$wpdb->prepare( "DELETE FROM {$table_name} WHERE id IN ($placeholders)", $log_ids ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 					);
 				}
 			}

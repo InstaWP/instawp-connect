@@ -90,13 +90,13 @@ if ( ! function_exists( 'instawp_alter_db_tables' ) ) {
 	function instawp_alter_db_tables() {
 		global $wpdb;
 
-		foreach ( array( INSTAWP_DB_TABLE_EVENTS, INSTAWP_DB_TABLE_EVENTS, INSTAWP_DB_TABLE_SYNC_HISTORY ) as $table_name ) {
+		foreach ( array( INSTAWP_DB_TABLE_EVENTS, INSTAWP_DB_TABLE_EVENTS, INSTAWP_DB_TABLE_EVENT_SYNC_LOGS ) as $table_name ) {
 			$has_col = $wpdb->get_results(
 				$wpdb->prepare( "SELECT `COLUMN_NAME` FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `table_name`=%s AND `TABLE_SCHEMA`=%s AND `COLUMN_NAME`=%s", $table_name, $wpdb->dbname, 'event_hash' )
 			);
 
 			if ( empty( $has_col ) ) {
-				$wpdb->query( "ALTER TABLE " . $table_name . " ADD `event_hash` varchar(50) NOT NULL AFTER `id`" );
+				$wpdb->query( "ALTER TABLE " . $table_name . " ADD `event_hash` varchar(50) NOT NULL AFTER `id`" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 			}
 		}
 
@@ -106,7 +106,7 @@ if ( ! function_exists( 'instawp_alter_db_tables' ) ) {
 		);
 
 		if ( empty( $has_col ) ) {
-			$wpdb->query( "ALTER TABLE " . $table_name . " ADD `status` varchar(50) NOT NULL DEFAULT 'pending' AFTER `data`" );
+			$wpdb->query( "ALTER TABLE " . $table_name . " ADD `status` varchar(50) NOT NULL DEFAULT 'pending' AFTER `data`" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		}
 	}
 }
@@ -190,19 +190,18 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 
 		foreach ( $files_to_delete as $file ) {
 			if ( is_file( $instawp_backup_dir . $file ) ) {
-				@unlink( $instawp_backup_dir . $file );
+				wp_delete_file( $instawp_backup_dir . $file );
 			}
 		}
-
-		@unlink( ABSPATH . 'fwd.php' );
-		@unlink( ABSPATH . 'dest.php' );
-		@unlink( ABSPATH . 'iwp_log.txt' );
+		wp_delete_file( ABSPATH . 'fwd.php' );
+		wp_delete_file( ABSPATH . 'dest.php' );
+		wp_delete_file( ABSPATH . 'iwp_log.txt' );
 
 		$wpdb->query( "DROP TABLE IF EXISTS `iwp_db_sent`;" );
 		$wpdb->query( "DROP TABLE IF EXISTS `iwp_files_sent`;" );
 		$wpdb->query( "DROP TABLE IF EXISTS `iwp_options`;" );
 
-		if ( 'hard' == $reset_type ) {
+		if ( 'hard' === $reset_type ) {
 			delete_option( 'instawp_backup_part_size' );
 			delete_option( 'instawp_max_file_size_allowed' );
 			delete_option( 'instawp_reset_type' );
@@ -242,7 +241,7 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 			);
 
 			if ( isset( $response['success'] ) && ! $response['success'] ) {
-				error_log( json_encode( $response ) );
+				//error_log( wp_json_encode( $response ) );
 			}
 		}
 
@@ -263,15 +262,15 @@ if ( ! function_exists( 'instawp_is_website_on_local' ) ) {
 			return false;
 		}
 
-		$http_host       = isset( $_SERVER['HTTP_HOST'] ) ? $_SERVER['HTTP_HOST'] : '';
-		$remote_address  = isset( $_SERVER['REMOTE_ADDR'] ) ? $_SERVER['REMOTE_ADDR'] : '';
+		$http_host       = isset( $_SERVER['HTTP_HOST'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_HOST'] ) ) : '';
+		$remote_address  = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
 		$local_addresses = array(
 			'127.0.0.1',
 			'::1',
 		);
 		$local_addresses = apply_filters( 'INSTAWP_CONNECT/Filters/local_addresses', $local_addresses );
 
-		return ( $http_host == 'localhost' || in_array( $remote_address, $local_addresses ) );
+		return ( $http_host === 'localhost' || in_array( $remote_address, $local_addresses ) );
 	}
 }
 
@@ -372,7 +371,7 @@ if ( ! function_exists( 'instawp_get_database_details' ) ) {
 
 			if ( $sort_by === 'descending' ) {
 				usort( $tables, function ( $item1, $item2 ) {
-					if ( $item1['size'] == $item2['size'] ) {
+					if ( $item1['size'] === $item2['size'] ) {
 						return 0;
 					}
 
@@ -380,7 +379,7 @@ if ( ! function_exists( 'instawp_get_database_details' ) ) {
 				} );
 			} elseif ( $sort_by === 'ascending' ) {
 				usort( $tables, function ( $item1, $item2 ) {
-					if ( $item1['size'] == $item2['size'] ) {
+					if ( $item1['size'] === $item2['size'] ) {
 						return 0;
 					}
 
@@ -409,7 +408,7 @@ if ( ! function_exists( 'instawp_get_dir_contents' ) ) {
 
 if ( ! function_exists( 'instawp_get_root_path' ) ) {
 	function instawp_get_root_path() {
-		$root_path = $_SERVER['DOCUMENT_ROOT'];
+		$root_path = ! empty( $_SERVER['DOCUMENT_ROOT'] ) ? $_SERVER['DOCUMENT_ROOT'] : ABSPATH; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 		$root_path = rtrim( $root_path, '\\/' );
 
 		return str_replace( '\\', '/', $root_path );
@@ -753,7 +752,7 @@ if ( ! function_exists( 'instawp_add_dir_to_phar' ) ) {
 		$handle = opendir( $fullDir );
 
 		while ( false !== ( $entry = readdir( $handle ) ) ) {
-			if ( $entry != '.' && $entry != '..' ) {
+			if ( $entry !== '.' && $entry !== '..' ) {
 				$fullPath  = $fullDir . '/' . $entry;
 				$localName = $dir . '/' . $entry;
 
@@ -782,10 +781,16 @@ if ( ! function_exists( 'instawp_zip_folder_with_phar' ) ) {
 	 * @throws Exception
 	 */
 	function instawp_zip_folder_with_phar( $source, $destination, array $skipDirs = array() ) {
+		global $wp_filesystem;
+
+		// Make sure that the above variable is properly setup.
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+		WP_Filesystem();
+
 		$source = rtrim( $source, '/' );
 
 		if ( ! file_exists( $source ) ) {
-			throw new Exception( "Source directory does not exist: $source" );
+			throw new Exception( "Source directory does not exist: " . esc_html( $source ) );
 		}
 
 		// Prepare full paths for directories to skip
@@ -803,10 +808,10 @@ if ( ! function_exists( 'instawp_zip_folder_with_phar' ) ) {
 		$phar->compress( Phar::GZ );
 
 		// Clean up the .tar file
-		unlink( $destination . '.tar' );
+		wp_delete_file( $destination . '.tar' );
 
 		// Rename .tar.gz to .zip
-		rename( $destination . '.tar.gz', $destination );
+		instawp_get_fs()->move( $destination . '.tar.gz', $destination );
 	}
 }
 
@@ -839,5 +844,18 @@ if ( ! function_exists( 'instawp_array_recursive_diff' ) ) {
 		}
 
 		return $diff;
+	}
+}
+
+if ( ! function_exists( 'instawp_get_fs' ) ) {
+	function instawp_get_fs() {
+		global $wp_filesystem;
+
+		if ( empty( $wp_filesystem ) ) {
+			require_once ABSPATH . '/wp-admin/includes/file.php';
+			WP_Filesystem();
+		}
+
+		return $wp_filesystem;
 	}
 }

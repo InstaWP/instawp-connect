@@ -116,12 +116,12 @@ class instaWP {
 
 	public function prepare_large_files_list() {
 		$maxbytes = (int) InstaWP_Setting::get_option( 'instawp_max_file_size_allowed', INSTAWP_DEFAULT_MAX_FILE_SIZE_ALLOWED );
-		$maxbytes = $maxbytes ?: INSTAWP_DEFAULT_MAX_FILE_SIZE_ALLOWED;
+		$maxbytes = $maxbytes ? $maxbytes : INSTAWP_DEFAULT_MAX_FILE_SIZE_ALLOWED;
 		$maxbytes = ( $maxbytes * 1024 * 1024 );
 		$path     = ABSPATH;
 		$data     = array();
 
-		if ( $path != '' && file_exists( $path ) && is_readable( $path ) ) {
+		if ( $path !== '' && file_exists( $path ) && is_readable( $path ) ) {
 			try {
 				foreach ( new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $path, FilesystemIterator::SKIP_DOTS ) ) as $object ) {
 					if ( $object->getSize() > $maxbytes && strpos( $object->getPath(), 'instawpbackups' ) === false ) {
@@ -134,8 +134,8 @@ class instaWP {
 						);
 					}
 				}
-			} catch ( Exception $e ) {
-				error_log( 'error in prepare_large_files_list: ' . $e->getMessage() );
+			} catch ( \Exception $e ) {
+				error_log( 'error in prepare_large_files_list: ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 			}
 		}
 
@@ -186,7 +186,7 @@ class instaWP {
 		foreach ( $files_data as $value ) {
 			$path = rtrim( $dir, '/' ) . DIRECTORY_SEPARATOR . $value;
 
-			if ( empty( $path ) || $value == "." || $value == ".." || ! file_exists( $path ) || ! is_readable( $path ) ) {
+			if ( empty( $path ) || $value === "." || $value === ".." || ! file_exists( $path ) || ! is_readable( $path ) ) {
 				continue;
 			}
 
@@ -222,7 +222,7 @@ class instaWP {
 
 		if ( $sort_by === 'descending' ) {
 			usort( $files_list, function ( $item1, $item2 ) {
-				if ( $item1['size'] == $item2['size'] ) {
+				if ( $item1['size'] === $item2['size'] ) {
 					return 0;
 				}
 
@@ -230,7 +230,7 @@ class instaWP {
 			} );
 		} elseif ( $sort_by === 'ascending' ) {
 			usort( $files_list, function ( $item1, $item2 ) {
-				if ( $item1['size'] == $item2['size'] ) {
+				if ( $item1['size'] === $item2['size'] ) {
 					return 0;
 				}
 
@@ -245,7 +245,7 @@ class instaWP {
 		$bytes_total = 0;
 		$files_total = 0;
 		try {
-			if ( $path !== false && $path != '' && file_exists( $path ) ) {
+			if ( $path !== false && $path !== '' && file_exists( $path ) ) {
 				foreach ( new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $path, FilesystemIterator::SKIP_DOTS ) ) as $object ) {
 					$bytes_total += $object->getSize();
 					++ $files_total;
@@ -267,15 +267,15 @@ class instaWP {
 	}
 
 	public function get_file_size_with_unit( $size, $unit = "" ) {
-		if ( ( ! $unit && $size >= 1 << 30 ) || $unit == "GB" ) {
+		if ( ( ! $unit && $size >= 1 << 30 ) || $unit === "GB" ) {
 			return number_format( $size / ( 1 << 30 ), 2 ) . " GB";
 		}
 
-		if ( ( ! $unit && $size >= 1 << 20 ) || $unit == "MB" ) {
+		if ( ( ! $unit && $size >= 1 << 20 ) || $unit === "MB" ) {
 			return number_format( $size / ( 1 << 20 ), 2 ) . " MB";
 		}
 
-		if ( ( ! $unit && $size >= 1 << 10 ) || $unit == "KB" ) {
+		if ( ( ! $unit && $size >= 1 << 10 ) || $unit === "KB" ) {
 			return number_format( $size / ( 1 << 10 ), 2 ) . " KB";
 		}
 
@@ -298,56 +298,6 @@ class instaWP {
 		}
 
 		return $mode_data;
-	}
-
-	public static function disable_cache_elements_before_restore() {
-
-		if ( ! function_exists( 'get_plugins' ) ) {
-			include ABSPATH . 'wp-admin/includes/plugin.php';
-		}
-
-		$file_name_ap   = ABSPATH . 'instawp-active-plugins.json';
-		$active_plugins = (array) get_option( 'active_plugins', array() );
-
-		// Ignore instawp plugin
-		if ( ( $key = array_search( INSTAWP_PLUGIN_NAME, $active_plugins ) ) !== false ) {
-			unset( $active_plugins[ $key ] );
-		}
-
-		file_put_contents( $file_name_ap, json_encode( $active_plugins ) );
-
-		// For the Breeze plugin support
-		if ( in_array( 'breeze/breeze.php', $active_plugins ) ) {
-			if ( ! function_exists( 'WP_Filesystem' ) ) {
-				include ABSPATH . 'wp-admin/includes/file.php';
-				include WP_CONTENT_DIR . '/plugins/breeze/inc/cache/config-cache.php';
-				include WP_CONTENT_DIR . '/plugins/breeze/inc/breeze-configuration.php';
-			}
-		}
-
-		deactivate_plugins( $active_plugins );
-	}
-
-
-	public static function enable_cache_elements_before_restore() {
-
-		if ( ! function_exists( 'get_plugins' ) ) {
-			include ABSPATH . 'wp-admin/includes/plugin.php';
-		}
-
-		$file_name_ap   = ABSPATH . 'instawp-active-plugins.json';
-		$active_plugins = file_get_contents( $file_name_ap );
-		$active_plugins = json_decode( $active_plugins, true );
-		$response       = activate_plugins( $active_plugins );
-
-		if ( ! is_wp_error( $response ) && $response ) {
-			unlink( $file_name_ap );
-		}
-
-		// Flush Redis Cache
-		if ( class_exists( '\RedisCachePro\Plugin' ) ) {
-			\RedisCachePro\Plugin::boot()->flush();
-		}
 	}
 
 
@@ -373,7 +323,7 @@ class instaWP {
 			$handler = opendir( $root );
 			if ( $handler !== false ) {
 				while ( ( $filename = readdir( $handler ) ) !== false ) {
-					if ( $filename != "." && $filename != ".." ) {
+					if ( $filename !== "." && $filename !== ".." ) {
 						++ $count;
 
 						if ( is_dir( $root . DIRECTORY_SEPARATOR . $filename ) ) {
@@ -384,7 +334,7 @@ class instaWP {
 					}
 				}
 				if ( $handler ) {
-					@closedir( $handler );
+					@closedir( $handler ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
 				}
 			}
 		}
@@ -392,84 +342,6 @@ class instaWP {
 		return $size;
 	}
 
-	public static function get_plugins_list( $options = array(), $return_type = 'plugins_included' ) {
-
-		if ( ! function_exists( 'get_plugins' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/plugin.php';
-		}
-
-		$plugins_included        = array();
-		$plugins_excluded        = array();
-		$list                    = get_plugins();
-		$active_plugins_only     = isset( $options['migrate_settings']['active_plugins_only'] ) ? $options['migrate_settings']['active_plugins_only'] : false;
-		$exclude_default_plugins = self::get_exclude_default_plugins();
-
-		foreach ( $list as $key => $item ) {
-			$dirname = dirname( $key );
-
-			if ( in_array( $dirname, $exclude_default_plugins ) ) {
-				$plugins_excluded[] = $key;
-				continue;
-			}
-
-			if ( ( 'true' == $active_plugins_only || '1' == $active_plugins_only ) && ! is_plugin_active( $key ) ) {
-				$plugins_excluded[] = $key;
-				continue;
-			}
-
-			$plugins_included[ $dirname ]['slug'] = $dirname;
-			$plugins_included[ $dirname ]['size'] = self::get_folder_size( WP_PLUGIN_DIR . DIRECTORY_SEPARATOR . $dirname, 0 );
-		}
-
-		$plugins_excluded = array_map( function ( $slug ) {
-			$slug_parts = explode( '/', $slug );
-
-			return isset( $slug_parts[0] ) ? $slug_parts[0] : '';
-		}, $plugins_excluded );
-		$plugins          = array(
-			'plugins_included' => $plugins_included,
-			'plugins_excluded' => array_filter( $plugins_excluded ),
-		);
-
-		if ( empty( $return_type ) ) {
-			return $plugins;
-		}
-
-		return isset( $plugins[ $return_type ] ) ? $plugins[ $return_type ] : array();
-	}
-
-	public static function get_themes_list( $options = array(), $return_type = 'themes_included' ) {
-
-		if ( ! function_exists( 'wp_get_themes' ) ) {
-			require_once ABSPATH . 'wp-includes/theme.php';
-		}
-
-		$themes_included    = array();
-		$themes_excluded    = array();
-		$current_theme      = wp_get_theme();
-		$active_themes_only = isset( $options['migrate_settings']['active_themes_only'] ) ? $options['migrate_settings']['active_themes_only'] : false;
-
-		foreach ( wp_get_themes() as $key => $item ) {
-			if ( ( 'true' == $active_themes_only || '1' == $active_themes_only ) && ! in_array( $item->get_stylesheet(), array( $current_theme->get_stylesheet(), $current_theme->get_template() ) ) ) {
-				$themes_excluded[] = $key;
-				continue;
-			}
-
-			$themes_included[ $key ]['slug'] = $key;
-			$themes_included[ $key ]['size'] = self::get_folder_size( get_theme_root() . DIRECTORY_SEPARATOR . $key, 0 );
-		}
-
-		$themes = array(
-			'themes_included' => $themes_included,
-			'themes_excluded' => $themes_excluded,
-		);
-
-		if ( empty( $return_type ) ) {
-			return $themes;
-		}
-
-		return isset( $themes[ $return_type ] ) ? $themes[ $return_type ] : array();
-	}
 
 	public function instawp_check_usage_on_cloud( $total_size = 0 ) {
 
@@ -479,7 +351,7 @@ class instaWP {
 		$api_response_data   = InstaWP_Setting::get_args_option( 'data', $api_response, array() );
 
 		// send usage check log before starting the pull
-		instawp_send_connect_log( 'usage-check', json_encode( $api_response ) );
+		instawp_send_connect_log( 'usage-check', wp_json_encode( $api_response ) );
 
 		if ( ! $api_response_status ) {
 			return array(

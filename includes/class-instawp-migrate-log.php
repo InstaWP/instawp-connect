@@ -4,6 +4,7 @@ if ( ! defined( 'INSTAWP_PLUGIN_DIR' ) ) {
 	die;
 }
 
+// phpcs:disable
 class InstaWP_Migrate_Log {
 	public static $log_file;
 	public static $log_file_handle;
@@ -51,3 +52,4 @@ class InstaWP_Migrate_Log {
 		return $path;
 	}
 }
+// phpcs:enable

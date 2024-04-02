@@ -68,13 +68,13 @@ class InstaWP_Sync_Post {
 		}
 
 		// acf field group check
-		if ( $post->post_type == 'acf-field-group' && $post->post_content == '' ) {
+		if ( $post->post_type === 'acf-field-group' && $post->post_content === '' ) {
 			InstaWP_Sync_Helpers::set_post_reference_id( $post->ID );
 			return;
 		}
 
 		// acf check for acf post type
-		if ( in_array( $post->post_type, array( 'acf-post-type', 'acf-taxonomy' ) ) && $post->post_title == 'Auto Draft' ) {
+		if ( in_array( $post->post_type, array( 'acf-post-type', 'acf-taxonomy' ) ) && $post->post_title === 'Auto Draft' ) {
 			return;
 		}
 
