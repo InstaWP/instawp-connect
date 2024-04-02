@@ -137,11 +137,25 @@ class IWPDB {
 	}
 
 	public function connect_database() {
-		$db_host     = $this->get_option( 'db_host' );
 		$db_username = $this->get_option( 'db_username' );
 		$db_password = $this->get_option( 'db_password' );
 		$db_name     = $this->get_option( 'db_name' );
-		$mysqli      = new mysqli( $db_host, $db_username, $db_password, $db_name );
+		$db_host     = $this->get_option( 'db_host' );
+		$host        = $db_host;
+		$port        = null;
+		$socket      = null;
+		$is_ipv6     = false;
+		$host_data   = $this->parse_db_host( $db_host );
+
+		if ( $host_data ) {
+			list( $host, $port, $socket, $is_ipv6 ) = $host_data;
+		}
+
+		if ( $is_ipv6 && extension_loaded( 'mysqlnd' ) ) {
+			$host = "[$host]";
+		}
+
+		$mysqli = new mysqli( $host, $db_username, $db_password, $db_name, $port, $socket );
 
 		if ( $mysqli->connect_error ) {
 			$this->last_error = $mysqli->connect_error;
@@ -256,6 +270,36 @@ class IWPDB {
 		}
 
 		return $where_str;
+	}
+
+	private function parse_db_host( $host ) {
+		$socket  = null;
+		$is_ipv6 = false;
+
+		$socket_pos = strpos( $host, ':/' );
+		if ( false !== $socket_pos ) {
+			$socket = substr( $host, $socket_pos + 1 );
+			$host   = substr( $host, 0, $socket_pos );
+		}
+
+		if ( substr_count( $host, ':' ) > 1 ) {
+			$pattern = '#^(?:\[)?(?P<host>[0-9a-fA-F:]+)(?:\]:(?P<port>[\d]+))?#';
+			$is_ipv6 = true;
+		} else {
+			$pattern = '#^(?P<host>[^:/]*)(?::(?P<port>[\d]+))?#';
+		}
+
+		$matches = array();
+		$result  = preg_match( $pattern, $host, $matches );
+
+		if ( 1 !== $result ) {
+			return false;
+		}
+
+		$host = ! empty( $matches['host'] ) ? $matches['host'] : '';
+		$port = ! empty( $matches['port'] ) ? absint( $matches['port'] ) : null;
+
+		return array( $host, $port, $socket, $is_ipv6 );
 	}
 
 	public function __destruct() {

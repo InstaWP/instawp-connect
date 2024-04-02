@@ -472,7 +472,6 @@ include $file_path;';
 		$api_signature = hash( 'sha512', $migrate_key . current_time( 'U' ) );
 
 		// Generate serve file in instawpbackups directory
-
 		$serve_file_response = self::generate_serve_file_response( $migrate_key, $api_signature, $migrate_settings );
 		$serve_file_url      = InstaWP_Setting::get_args_option( 'serve_url', $serve_file_response );
 		$migrate_settings    = InstaWP_Setting::get_args_option( 'migrate_settings', $serve_file_response );
