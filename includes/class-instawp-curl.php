@@ -64,7 +64,7 @@ class InstaWP_Curl {
 			error_log( 'API URL - ' . $api_url );
 			error_log( 'API ARGS - ' . wp_json_encode( $body ) );
 			error_log( 'API HEADERS - ' . wp_json_encode( $headers ) );
-			error_log( 'API Response - ' . $response );
+			error_log( 'API Response - ' . wp_json_encode( $response ) );
 		}
 
 		if ( is_wp_error( $response ) ) {
