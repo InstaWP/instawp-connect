@@ -285,7 +285,7 @@ class instaWP {
 	public function get_current_mode( $data_to_get = '' ) {
 		$mode_data = array();
 
-		if ( ! empty( INSTAWP_CONNECT_MODE ) ) {
+		if ( defined( 'INSTAWP_CONNECT_MODE' ) && ! empty( INSTAWP_CONNECT_MODE ) ) {
 			$mode_data['type'] = INSTAWP_CONNECT_MODE;
 			$mode_data['name'] = defined( INSTAWP_CONNECT_MODE_NAME ) ? INSTAWP_CONNECT_MODE_NAME : '';
 			$mode_data['link'] = defined( INSTAWP_CONNECT_MODE_LINK ) ? INSTAWP_CONNECT_MODE_LINK : '';
@@ -303,43 +303,6 @@ class instaWP {
 
 	public static function get_asset_url( $asset_name ) {
 		return INSTAWP_PLUGIN_URL . $asset_name;
-	}
-
-	public static function get_exclude_default_plugins() {
-
-		$exclude_plugins = array(
-			'instawp-connect',
-			'wp-cerber',
-			'instawp-backup-pro',
-			'.',
-		);
-
-		return apply_filters( 'INSTAWP_CONNECT/Filters/get_exclude_default_plugins', $exclude_plugins );
-	}
-
-	public static function get_folder_size( $root, $size ) {
-		$count = 0;
-		if ( is_dir( $root ) ) {
-			$handler = opendir( $root );
-			if ( $handler !== false ) {
-				while ( ( $filename = readdir( $handler ) ) !== false ) {
-					if ( $filename !== "." && $filename !== ".." ) {
-						++ $count;
-
-						if ( is_dir( $root . DIRECTORY_SEPARATOR . $filename ) ) {
-							$size = self::get_folder_size( $root . DIRECTORY_SEPARATOR . $filename, $size );
-						} elseif ( file_exists( $filepath = $root . DIRECTORY_SEPARATOR . $filename ) && is_readable( $filepath ) ) {
-							$size += filesize( $filepath );
-						}
-					}
-				}
-				if ( $handler ) {
-					@closedir( $handler ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
-				}
-			}
-		}
-
-		return $size;
 	}
 
 
