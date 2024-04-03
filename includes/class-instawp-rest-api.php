@@ -435,6 +435,9 @@ class InstaWP_Rest_Api {
 			return $this->throw_error( $pre_check_response );
 		}
 
+		// Add admin email to the response
+		$pre_check_response['wp_admin_email'] = get_bloginfo( 'admin_email' );
+
 		return $this->send_response( $pre_check_response );
 	}
 
@@ -738,6 +741,7 @@ class InstaWP_Rest_Api {
 		$config_response = InstaWP_Setting::instawp_generate_api_key( $parameters['api_key'] );
 		if ( ! $config_response ) {
 			$results['message'] = __( 'Key is not valid', 'instawp-connect' );
+
 			return $this->send_response( $results );
 		}
 

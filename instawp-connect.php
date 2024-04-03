@@ -128,3 +128,4 @@ add_action( 'wp_head', function () {
 		die();
 	}
 }, 0 );
+
