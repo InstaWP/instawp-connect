@@ -14,6 +14,7 @@
 
 use InstaWP\Connect\Helpers\Curl;
 use InstaWP\Connect\Helpers\Helper;
+use InstaWP\Connect\Helpers\Option;
 
 defined( 'ABSPATH' ) || exit;
 
