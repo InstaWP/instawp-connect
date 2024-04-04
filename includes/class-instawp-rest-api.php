@@ -1,5 +1,7 @@
 <?php
 
+use InstaWP\Connect\Helpers;
+
 defined( 'ABSPATH' ) || die;
 
 class InstaWP_Rest_Api {
@@ -850,7 +852,7 @@ class InstaWP_Rest_Api {
 
 		$wp_config_params = $request->get_param( 'wp-config' );
 		$params           = ! is_array( $wp_config_params ) ? array() : $wp_config_params;
-		$wp_config        = new \InstaWP\Connect\Helpers\WPConfig( $params );
+		$wp_config        = new Helpers\WPConfig( $params );
 		$response         = $wp_config->update();
 
 		return $this->send_response( $response );
@@ -870,7 +872,7 @@ class InstaWP_Rest_Api {
 			return $this->throw_error( $response );
 		}
 
-		$cache_api = new \InstaWP\Connect\Helpers\Cache();
+		$cache_api = new Helpers\Cache();
 		$response  = $cache_api->clean();
 
 		return $this->send_response( $response );
@@ -890,7 +892,7 @@ class InstaWP_Rest_Api {
 			return $this->throw_error( $response );
 		}
 
-		$inventory = new \InstaWP\Connect\Helpers\Inventory();
+		$inventory = new Helpers\Inventory();
 		$response  = $inventory->fetch();
 
 		return $this->send_response( $response );
@@ -912,7 +914,7 @@ class InstaWP_Rest_Api {
 
 		$params = $this->filter_params( $request );
 
-		$installer = new \InstaWP\Connect\Helpers\Installer( $params );
+		$installer = new Helpers\Installer( $params );
 		$response  = $installer->start();
 
 		return $this->send_response( $response );
@@ -934,7 +936,7 @@ class InstaWP_Rest_Api {
 
 		$params = $this->filter_params( $request );
 
-		$installer = new \InstaWP\Connect\Helpers\Updater( $params );
+		$installer = new Helpers\Updater( $params );
 		$response  = $installer->update();
 
 		return $this->send_response( $response );
@@ -958,62 +960,10 @@ class InstaWP_Rest_Api {
 			require_once ABSPATH . 'wp-admin/includes/file.php';
 		}
 
-		$response = array();
 		$params   = $this->filter_params( $request );
 
-		foreach ( $params as $key => $param ) {
-			if ( 'plugin' === $param['type'] ) {
-				if ( ! function_exists( 'request_filesystem_credentials' ) ) {
-					require_once ABSPATH . 'wp-admin/includes/file.php';
-				}
-
-				if ( ! function_exists( 'delete_plugins' ) || ! function_exists( 'is_plugin_active' ) || ! function_exists( 'deactivate_plugins' ) ) {
-					require_once ABSPATH . 'wp-admin/includes/plugin.php';
-				}
-
-				if ( is_plugin_active( $param['asset'] ) ) {
-					if ( ! empty( $param['force'] ) ) {
-						deactivate_plugins( array( $param['asset'] ) );
-					} else {
-						$response[ $key ] = array_merge( array(
-							'success' => false,
-							'message' => esc_html__( 'Please deactivate the plugin first.', 'instawp-connect' ),
-						), $param );
-
-						continue;
-					}
-				}
-
-				$deleted          = delete_plugins( array( $param['asset'] ) );
-				$response[ $key ] = array_merge( array(
-					'success' => ! is_wp_error( $deleted ),
-					'message' => is_wp_error( $deleted ) ? $deleted->get_error_message() : '',
-				), $param );
-
-			} elseif ( 'theme' === $param['type'] ) {
-				if ( ! function_exists( 'delete_theme' ) ) {
-					require_once ABSPATH . 'wp-admin/includes/theme.php';
-				}
-
-				if ( ! function_exists( 'get_stylesheet' ) ) {
-					require_once ABSPATH . 'wp-includes/theme.php';
-				}
-
-				if ( get_stylesheet() === $param['asset'] ) {
-					$response[ $key ] = array_merge( array(
-						'success' => false,
-						'message' => esc_html__( 'Please deactivate the theme first.', 'instawp-connect' ),
-					), $param );
-
-					continue;
-				}
-
-				delete_theme( $param['asset'] );
-				$response[ $key ] = array_merge( array(
-					'success' => true,
-				), $param );
-			}
-		}
+		$uninstaller = new Helpers\Uninstaller( $params );
+		$response    = $uninstaller->uninstall();
 
 		return $this->send_response( $response );
 	}
@@ -1032,35 +982,10 @@ class InstaWP_Rest_Api {
 			return $this->throw_error( $response );
 		}
 
-		if ( ! function_exists( 'request_filesystem_credentials' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/file.php';
-		}
+		$params = $this->filter_params( $request );
 
-		$response = array();
-		$params   = $this->filter_params( $request );
-
-		foreach ( $params as $key => $param ) {
-			if ( 'plugin' === $param['type'] ) {
-				if ( ! function_exists( 'activate_plugin' ) ) {
-					require_once ABSPATH . 'wp-admin/includes/plugin.php';
-				}
-
-				$activate         = activate_plugin( $param['asset'] );
-				$response[ $key ] = array_merge( array(
-					'success' => ! is_wp_error( $activate ),
-					'message' => is_wp_error( $activate ) ? $activate->get_error_message() : '',
-				), $param );
-			} elseif ( 'theme' === $param['type'] ) {
-				if ( ! function_exists( 'switch_theme' ) ) {
-					require_once ABSPATH . 'wp-includes/theme.php';
-				}
-
-				switch_theme( $param['asset'] );
-				$response[ $key ] = array_merge( array(
-					'success' => true,
-				), $param );
-			}
-		}
+		$activator = new Helpers\Activator( $params );
+		$response  = $activator->activate();
 
 		return $this->send_response( $response );
 	}
@@ -1081,17 +1006,10 @@ class InstaWP_Rest_Api {
 
 		$params = $this->filter_params( $request );
 
-		if ( ! function_exists( 'request_filesystem_credentials' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/file.php';
-		}
+		$deactivator = new Helpers\Deactivator( $params );
+		$response    = $deactivator->deactivate();
 
-		if ( ! function_exists( 'deactivate_plugins' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/plugin.php';
-		}
-
-		deactivate_plugins( $params );
-
-		return $this->send_response( array( 'success' => true ) );
+		return $this->send_response( $response );
 	}
 
 	/**
@@ -1180,7 +1098,7 @@ class InstaWP_Rest_Api {
 
 		$wp_config_params = $request->get_param( 'wp-config' );
 		$params           = ! is_array( $wp_config_params ) ? array() : $wp_config_params;
-		$wp_config        = new \InstaWP\Connect\Helpers\WPConfig( $params );
+		$wp_config        = new Helpers\WPConfig( $params );
 		$response         = $wp_config->fetch();
 
 		return $this->send_response( $response );
@@ -1202,7 +1120,7 @@ class InstaWP_Rest_Api {
 
 		$wp_config_params = $request->get_param( 'wp-config' );
 		$params           = ! is_array( $wp_config_params ) ? array() : $wp_config_params;
-		$wp_config        = new \InstaWP\Connect\Helpers\WPConfig( $params );
+		$wp_config        = new Helpers\WPConfig( $params );
 		$response         = $wp_config->update();
 
 		return $this->send_response( $response );
@@ -1224,7 +1142,7 @@ class InstaWP_Rest_Api {
 
 		$wp_config_params = $request->get_param( 'wp-config' );
 		$params           = ! is_array( $wp_config_params ) ? array() : $wp_config_params;
-		$wp_config        = new \InstaWP\Connect\Helpers\WPConfig( $params );
+		$wp_config        = new Helpers\WPConfig( $params );
 		$response         = $wp_config->delete();
 
 		return $this->send_response( $response );
@@ -1353,7 +1271,7 @@ class InstaWP_Rest_Api {
 
 		InstaWP_Tools::instawp_reset_permalink();
 
-		$file_manager = new \InstaWP\Connect\Helpers\FileManager();
+		$file_manager = new Helpers\FileManager();
 		$response     = $file_manager->get();
 
 		return $this->send_response( $response );
@@ -1375,7 +1293,7 @@ class InstaWP_Rest_Api {
 
 		InstaWP_Tools::instawp_reset_permalink();
 
-		$database_manager = new \InstaWP\Connect\Helpers\DatabaseManager();
+		$database_manager = new Helpers\DatabaseManager();
 		$response         = $database_manager->get();
 
 		return $this->send_response( $response );
@@ -1395,7 +1313,7 @@ class InstaWP_Rest_Api {
 			return $this->throw_error( $response );
 		}
 
-		$debug_log = new \InstaWP\Connect\Helpers\DebugLog();
+		$debug_log = new Helpers\DebugLog();
 		$response  = $debug_log->fetch();
 
 		return $this->send_response( $response );
