@@ -3,6 +3,9 @@
  * Class for all hooks
  */
 
+use InstaWP\Connect\Helpers\Helper;
+use InstaWP\Connect\Helpers\Option;
+
 defined( 'ABSPATH' ) || exit;
 
 
@@ -25,18 +28,18 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 		public function handle_auto_login_request() {
 
 			$url_args       = array_map( 'sanitize_text_field', $_GET );
-			$reauth         = InstaWP_Setting::get_args_option( 'reauth', $url_args );
-			$login_code     = InstaWP_Setting::get_args_option( 'c', $url_args );
-			$login_username = InstaWP_Setting::get_args_option( 's', $url_args );
+			$reauth         = Helper::get_args_option( 'reauth', $url_args );
+			$login_code     = Helper::get_args_option( 'c', $url_args );
+			$login_username = Helper::get_args_option( 's', $url_args );
 			$login_username = base64_decode( $login_username ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
 
 			if ( empty( $reauth ) || empty( $login_code ) || empty( $login_username ) ) {
 				return;
 			}
 
-			$instawp_login_code = InstaWP_Setting::get_option( 'instawp_login_code', array() );
-			$saved_login_code   = InstaWP_Setting::get_args_option( 'code', $instawp_login_code );
-			$saved_updated_at   = InstaWP_Setting::get_args_option( 'updated_at', $instawp_login_code );
+			$instawp_login_code = Option::get_option( 'instawp_login_code', array() );
+			$saved_login_code   = Helper::get_args_option( 'code', $instawp_login_code );
+			$saved_updated_at   = Helper::get_args_option( 'updated_at', $instawp_login_code );
             $redirect           = wp_login_url();
 
 			if ( $saved_login_code && $saved_updated_at && ( time() - intval( $saved_updated_at ) <= 30 ) && $saved_login_code === $login_code && username_exists( $login_username ) ) {
@@ -62,17 +65,17 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 
 		public function add_instawp_menu_icon( WP_Admin_Bar $admin_bar ) {
 
-			if ( ! apply_filters( 'INSTAWP_CONNECT/Filters/display_menu_bar_icon', true ) || 'on' === InstaWP_Setting::get_option( 'instawp_hide_plugin_icon_topbar', 'off' ) ) {
+			if ( ! apply_filters( 'INSTAWP_CONNECT/Filters/display_menu_bar_icon', true ) || 'on' === Option::get_option( 'instawp_hide_plugin_icon_topbar', 'off' ) ) {
 				return;
 			}
 
 			global $current_user;
 
-			$sync_tab_roles = InstaWP_Setting::get_option( 'instawp_sync_tab_roles', array( 'administrator' ) );
+			$sync_tab_roles = Option::get_option( 'instawp_sync_tab_roles', array( 'administrator' ) );
 			$sync_tab_roles = ! is_array( $sync_tab_roles ) || empty( $sync_tab_roles ) ? array( 'administrator' ) : $sync_tab_roles;
 			$meta_classes   = array( 'instawp-sync-recording' );
 
-			if ( 1 === (int) InstaWP_Setting::get_option( 'instawp_is_event_syncing', '0' ) ) {
+			if ( 1 === (int) Option::get_option( 'instawp_is_event_syncing', '0' ) ) {
 				$meta_classes[] = 'recording-on';
 			}
 
@@ -197,7 +200,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 				$connect_id = InstaWP_Setting::get_connect_id();
 
 				if ( ! empty( $connect_id ) && current_user_can( 'manage_options' ) ) {
-					$app_domain = InstaWP_Setting::get_api_domain();
+					$app_domain = Helper::get_api_domain();
 					$admin_bar->add_menu( array(
 						'parent' => 'instawp',
 						'id'     => 'instawp-app-dashboard',
@@ -227,7 +230,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 
 			if (
 				instawp()->is_staging &&
-				empty( InstaWP_Setting::get_option( 'instawp_changed_option_blog_public' ) ) &&
+				empty( Option::get_option( 'instawp_changed_option_blog_public' ) ) &&
 				(int) INSTAWP_Setting::get_option( 'blog_public' ) === 1
 			) {
 				update_option( 'blog_public', '0' );

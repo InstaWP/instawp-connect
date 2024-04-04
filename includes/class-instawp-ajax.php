@@ -1,5 +1,12 @@
 <?php
 
+use InstaWP\Connect\Helpers\Cache;
+use InstaWP\Connect\Helpers\Curl;
+use InstaWP\Connect\Helpers\DatabaseManager;
+use InstaWP\Connect\Helpers\FileManager;
+use InstaWP\Connect\Helpers\Helper;
+use InstaWP\Connect\Helpers\Option;
+
 defined( 'ABSPATH' ) || exit;
 
 class InstaWP_AJAX {
@@ -30,13 +37,13 @@ class InstaWP_AJAX {
 		InstaWP_Tools::instawp_reset_permalink();
 
 		if ( $type === 'file' ) {
-			$manager = new \InstaWP\Connect\Helpers\FileManager();
+			$manager = new FileManager();
 			wp_send_json_success( $manager->get() );
 		} elseif ( $type === 'database' ) {
-			$manager = new \InstaWP\Connect\Helpers\DatabaseManager();
+			$manager = new DatabaseManager();
 			wp_send_json_success( $manager->get() );
 		} elseif ( $type === 'cache' ) {
-			$cache_api = new \InstaWP\Connect\Helpers\Cache();
+			$cache_api = new Cache();
 			$response  = $cache_api->clean();
 
 			set_transient( 'instawp_cache_purged', $response, 300 );
@@ -55,29 +62,29 @@ class InstaWP_AJAX {
 			'progress_db'      => 0,
 			'progress_restore' => 0,
 		);
-		$migration_details = InstaWP_Setting::get_option( 'instawp_migration_details', array() );
-		$migrate_id        = InstaWP_Setting::get_args_option( 'migrate_id', $migration_details );
-		$migrate_key       = InstaWP_Setting::get_args_option( 'migrate_key', $migration_details );
+		$migration_details = Option::get_option( 'instawp_migration_details', array() );
+		$migrate_id        = Helper::get_args_option( 'migrate_id', $migration_details );
+		$migrate_key       = Helper::get_args_option( 'migrate_key', $migration_details );
 
 		if ( empty( $migrate_id ) || empty( $migrate_key ) ) {
 			wp_send_json_success( $progress );
 		}
 
-		$response = InstaWP_Curl::do_curl( "migrates-v3/{$migrate_id}", array( 'migrate_key' => $migrate_key ) );
+		$response = Curl::do_curl( "migrates-v3/{$migrate_id}", array( 'migrate_key' => $migrate_key ) );
 
 		if ( isset( $response['success'] ) && $response['success'] !== true ) {
 			error_log( wp_json_encode( $response ) );
-			wp_send_json_error( array( 'message' => InstaWP_Setting::get_args_option( 'message', $response ) ) );
+			wp_send_json_error( array( 'message' => Helper::get_args_option( 'message', $response ) ) );
 		}
 
-		$response_data                     = InstaWP_Setting::get_args_option( 'data', $response, array() );
+		$response_data                     = Helper::get_args_option( 'data', $response, array() );
 		$auto_login_hash                   = isset( $response_data['dest_wp']['auto_login_hash'] ) ? $response_data['dest_wp']['auto_login_hash'] : '';
 		$response_data['migrate_id']       = $migrate_id;
-		$response_data['progress_files']   = InstaWP_Setting::get_args_option( 'progress_files', $response_data, 0 );
-		$response_data['progress_db']      = InstaWP_Setting::get_args_option( 'progress_db', $response_data, 0 );
-		$response_data['progress_restore'] = InstaWP_Setting::get_args_option( 'progress_restore', $response_data, 0 );
-		$response_data['server_logs']      = InstaWP_Setting::get_args_option( 'server_logs', $response_data );
-		$response_data['failed_message']   = InstaWP_Setting::get_args_option( 'failed_message', $response_data, esc_html( 'Something went wrong' ) );
+		$response_data['progress_files']   = Helper::get_args_option( 'progress_files', $response_data, 0 );
+		$response_data['progress_db']      = Helper::get_args_option( 'progress_db', $response_data, 0 );
+		$response_data['progress_restore'] = Helper::get_args_option( 'progress_restore', $response_data, 0 );
+		$response_data['server_logs']      = Helper::get_args_option( 'server_logs', $response_data );
+		$response_data['failed_message']   = Helper::get_args_option( 'failed_message', $response_data, esc_html( 'Something went wrong' ) );
 
 		if ( isset( $response_data['stage']['failed'] ) && $response_data['stage']['failed'] === true ) {
 			instawp_reset_running_migration();
@@ -93,7 +100,7 @@ class InstaWP_AJAX {
 
 			if ( $tracking_db instanceof IWPDB ) {
 				$migrate_settings = $tracking_db->get_option( 'migrate_settings' );
-				$migrate_options  = InstaWP_Setting::get_args_option( 'options', $migrate_settings, array() );
+				$migrate_options  = Helper::get_args_option( 'options', $migrate_settings, array() );
 
 				if ( is_array( $migrate_options ) && in_array( 'enable_event_syncing', $migrate_options ) ) {
 					InstaWP_Setting::update_option( 'instawp_is_event_syncing', 1 );
@@ -107,7 +114,7 @@ class InstaWP_AJAX {
 		}
 
 		if ( ! empty( $auto_login_hash ) ) {
-			$response_data['dest_wp']['auto_login_url'] = sprintf( '%s/wordpress-auto-login?site=%s', InstaWP_Setting::get_api_domain(), $auto_login_hash );
+			$response_data['dest_wp']['auto_login_url'] = sprintf( '%s/wordpress-auto-login?site=%s', Helper::get_api_domain(), $auto_login_hash );
 		} else {
 			$response_data['dest_wp']['auto_login_url'] = isset( $response_data['dest_wp']['url'] ) ? $response_data['dest_wp']['url'] : '';
 		}
@@ -139,7 +146,7 @@ class InstaWP_AJAX {
 
 		$source_domain       = site_url();
 		$is_website_on_local = instawp_is_website_on_local();
-		$instawp_migrate     = InstaWP_Setting::get_args_option( 'instawp_migrate', $settings_arr, array() );
+		$instawp_migrate     = Helper::get_args_option( 'instawp_migrate', $settings_arr, array() );
 
 		if ( isset( $instawp_migrate['whitelist_ip'] ) && $instawp_migrate['whitelist_ip'] === 'yes' ) {
 			instawp_set_whitelist_ip();
@@ -161,7 +168,7 @@ class InstaWP_AJAX {
 			wp_send_json_error( array( 'message' => $pre_check_response->get_error_message() ) );
 		}
 
-		if ( empty( $serve_url = InstaWP_Setting::get_args_option( 'serve_url', $pre_check_response ) ) ) {
+		if ( empty( $serve_url = Helper::get_args_option( 'serve_url', $pre_check_response ) ) ) {
 
 			// send log to app before starting migrate pull
 			$message   = esc_html__( 'Error: Empty serve url found in pre-check response.', 'instawp-connect' );
@@ -174,7 +181,7 @@ class InstaWP_AJAX {
 			wp_send_json_error( array( 'message' => $message ) );
 		}
 
-		if ( empty( $api_signature = InstaWP_Setting::get_args_option( 'api_signature', $pre_check_response ) ) ) {
+		if ( empty( $api_signature = Helper::get_args_option( 'api_signature', $pre_check_response ) ) ) {
 
 			// send log to app before starting migrate pull
 			$message   = esc_html__( 'Error: Empty api signature found in pre-check response.', 'instawp-connect' );
@@ -197,13 +204,13 @@ class InstaWP_AJAX {
 			'db_size'             => InstaWP_Tools::get_total_sizes( 'db' ),
 			'is_website_on_local' => $is_website_on_local,
 			'settings'            => $migrate_settings,
-			'active_plugins'      => InstaWP_Setting::get_option( 'active_plugins', array() ),
+			'active_plugins'      => Option::get_option( 'active_plugins', array() ),
 			'migrate_key'         => $migrate_key,
 			'serve_url'           => $serve_url,
 			'api_signature'       => $api_signature,
 		);
 
-		if ( ! empty( $site_name = InstaWP_Setting::get_args_option( 'site_name', $migrate_settings ) ) ) {
+		if ( ! empty( $site_name = Helper::get_args_option( 'site_name', $migrate_settings ) ) ) {
 			$site_name = strtolower( $site_name );
 			$site_name = preg_replace( '/[^a-z0-9-_]/', ' ', $site_name );
 			$site_name = preg_replace( '/\s+/', '-', $site_name );
@@ -211,9 +218,9 @@ class InstaWP_AJAX {
 			$migrate_args['site_name'] = $site_name;
 		}
 
-		$migrate_response         = InstaWP_Curl::do_curl( 'migrates-v3', $migrate_args );
-		$migrate_response_status  = (bool) InstaWP_Setting::get_args_option( 'success', $migrate_response, true );
-		$migrate_response_message = InstaWP_Setting::get_args_option( 'message', $migrate_response );
+		$migrate_response         = Curl::do_curl( 'migrates-v3', $migrate_args );
+		$migrate_response_status  = (bool) Helper::get_args_option( 'success', $migrate_response, true );
+		$migrate_response_message = Helper::get_args_option( 'message', $migrate_response );
 
 		if ( $migrate_response_status === false ) {
 
@@ -231,11 +238,11 @@ class InstaWP_AJAX {
 			wp_send_json_error( array( 'message' => $migrate_response_message ) );
 		}
 
-		$migrate_response_data = InstaWP_Setting::get_args_option( 'data', $migrate_response, array() );
-		$migrate_id            = InstaWP_Setting::get_args_option( 'migrate_id', $migrate_response_data );
-		$migrate_key           = InstaWP_Setting::get_args_option( 'migrate_key', $migrate_response_data );
-		$tracking_url          = InstaWP_Setting::get_args_option( 'tracking_url', $migrate_response_data );
-		$destination_site_url  = InstaWP_Setting::get_args_option( 'destination_site_url', $migrate_response_data );
+		$migrate_response_data = Helper::get_args_option( 'data', $migrate_response, array() );
+		$migrate_id            = Helper::get_args_option( 'migrate_id', $migrate_response_data );
+		$migrate_key           = Helper::get_args_option( 'migrate_key', $migrate_response_data );
+		$tracking_url          = Helper::get_args_option( 'tracking_url', $migrate_response_data );
+		$destination_site_url  = Helper::get_args_option( 'destination_site_url', $migrate_response_data );
 		$migration_details     = array(
 			'migrate_id'   => $migrate_id,
 			'migrate_key'  => $migrate_key,
@@ -264,9 +271,9 @@ class InstaWP_AJAX {
 		$migrate_settings     = InstaWP_Tools::get_migrate_settings( $_POST );
 		$total_files_size     = InstaWP_Tools::get_total_sizes( 'files', $migrate_settings );
 		$check_usage_response = instawp()->instawp_check_usage_on_cloud( $total_files_size );
-		$can_proceed          = (bool) InstaWP_Setting::get_args_option( 'can_proceed', $check_usage_response, false );
-		$api_response         = InstaWP_Setting::get_args_option( 'api_response', $check_usage_response, array() );
-		$api_response_code    = InstaWP_Setting::get_args_option( 'code', $api_response );
+		$can_proceed          = (bool) Helper::get_args_option( 'can_proceed', $check_usage_response, false );
+		$api_response         = Helper::get_args_option( 'api_response', $check_usage_response, array() );
+		$api_response_code    = Helper::get_args_option( 'code', $api_response );
 
 		if ( $can_proceed ) {
 			wp_send_json_success( $check_usage_response );
@@ -274,7 +281,7 @@ class InstaWP_AJAX {
 
 		if ( intval( $api_response_code ) === 404 ) {
 			$return_url      = rawurlencode( admin_url( 'tools.php?page=instawp' ) );
-			$api_domain      = InstaWP_Setting::get_api_domain();
+			$api_domain      = Helper::get_api_domain();
 			$connect_api_url = $api_domain . '/authorize?source=InstaWP Connect&return_url=' . $return_url;
 
 			instawp_reset_running_migration( 'hard' );
@@ -518,7 +525,7 @@ class InstaWP_AJAX {
 			$connect_id = instawp_get_connect_id();
 
 			// connects/<connect_id>/disconnect
-			$api_response = InstaWP_Curl::do_curl( "connects/{$connect_id}/disconnect" );
+			$api_response = Curl::do_curl( "connects/{$connect_id}/disconnect" );
 
 			if ( empty( $api_response['success'] ) ) {
 				wp_send_json_error( array(

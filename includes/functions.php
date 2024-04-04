@@ -4,6 +4,7 @@
  */
 
 
+use InstaWP\Connect\Helpers\Curl;
 use InstaWP\Connect\Helpers\Helper;
 
 if ( ! function_exists( 'instawp_create_db_tables' ) ) {
@@ -142,8 +143,8 @@ if ( ! function_exists( 'instawp_update_migration_stages' ) ) {
 	 */
 	function instawp_update_migration_stages( $stages = array(), $migrate_id = '', $migrate_key = '' ) {
 
-		$migrate_id  = empty( $migrate_id ) ? InstaWP_Setting::get_option( 'migrate_id' ) : $migrate_id;
-		$migrate_key = empty( $migrate_key ) ? InstaWP_Setting::get_option( 'migrate_key' ) : $migrate_key;
+		$migrate_id  = empty( $migrate_id ) ? Option::get_option( 'migrate_id' ) : $migrate_id;
+		$migrate_key = empty( $migrate_key ) ? Option::get_option( 'migrate_key' ) : $migrate_key;
 
 		if ( empty( $stages ) || ! is_array( $stages ) || empty( $migrate_id ) || empty( $migrate_key ) ) {
 			return false;
@@ -153,9 +154,9 @@ if ( ! function_exists( 'instawp_update_migration_stages' ) ) {
 			'migrate_key' => $migrate_key,
 			'stage'       => $stages,
 		);
-		$stage_response = InstaWP_Curl::do_curl( 'migrates-v3/' . $migrate_id . '/update-status', $stage_args );
+		$stage_response = Curl::do_curl( 'migrates-v3/' . $migrate_id . '/update-status', $stage_args );
 
-		return (bool) InstaWP_Setting::get_args_option( 'success', $stage_response, true );
+		return (bool) Helper::get_args_option( 'success', $stage_response, true );
 	}
 }
 
@@ -172,14 +173,14 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 	function instawp_reset_running_migration( $reset_type = 'soft', $abort_forcefully = false ) {
 		global $wpdb;
 
-		$migration_details = InstaWP_Setting::get_option( 'instawp_migration_details', array() );
-		$migrate_id        = InstaWP_Setting::get_args_option( 'migrate_id', $migration_details );
-		$migrate_key       = InstaWP_Setting::get_args_option( 'migrate_key', $migration_details );
+		$migration_details = Option::get_option( 'instawp_migration_details', array() );
+		$migrate_id        = Helper::get_args_option( 'migrate_id', $migration_details );
+		$migrate_key       = Helper::get_args_option( 'migrate_key', $migration_details );
 
 		// Delete migration details
 		delete_option( 'instawp_migration_details' );
 
-		$reset_type = empty( $reset_type ) ? InstaWP_Setting::get_option( 'instawp_reset_type', 'soft' ) : $reset_type;
+		$reset_type = empty( $reset_type ) ? Option::get_option( 'instawp_reset_type', 'soft' ) : $reset_type;
 
 		if ( ! in_array( $reset_type, array( 'soft', 'hard' ) ) ) {
 			return false;
@@ -234,7 +235,7 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 
 		if ( $abort_forcefully === true && ! empty( $migrate_id ) && ! empty( $migrate_key ) ) {
 
-			$response = InstaWP_Curl::do_curl( "migrates-v3/{$migrate_id}/update-status",
+			$response = Curl::do_curl( "migrates-v3/{$migrate_id}/update-status",
 				array(
 					'migrate_key'    => $migrate_key,
 					'stage'          => array( 'aborted' => true ),
@@ -330,10 +331,10 @@ if ( ! function_exists( 'instawp_get_staging_sites_list' ) ) {
 if ( ! function_exists( 'instawp_set_staging_sites_list' ) ) {
 	function instawp_set_staging_sites_list() {
 
-		$api_response = InstaWP_Curl::do_curl( 'connects/' . instawp_get_connect_id() . '/staging-sites', array(), array(), false );
+		$api_response = Curl::do_curl( 'connects/' . instawp_get_connect_id() . '/staging-sites', array(), array(), false );
 
 		if ( $api_response['success'] ) {
-			$staging_sites = InstaWP_Setting::get_args_option( 'data', $api_response, array() );
+			$staging_sites = Helper::get_args_option( 'data', $api_response, array() );
 
 			foreach ( $staging_sites as $key => $staging_site ) {
 				$staging_site_data = instawp_get_connect_detail_by_connect_id( $staging_site['connect_id'] );
@@ -544,7 +545,7 @@ if ( ! function_exists( 'instawp_get_source_site_detail' ) ) {
 			return;
 		}
 
-		if ( ! empty( InstaWP_Setting::get_option( 'instawp_sync_parent_connect_data' ) ) ) {
+		if ( ! empty( Option::get_option( 'instawp_sync_parent_connect_data' ) ) ) {
 			return;
 		}
 
@@ -568,10 +569,10 @@ if ( ! function_exists( 'instawp_get_connect_detail_by_connect_id' ) ) {
 		// connects/<connect_id>
 		$response        = array();
 		$site_connect_id = instawp_get_connect_id();
-		$api_response    = InstaWP_Curl::do_curl( 'connects/' . $site_connect_id . '/connected-sites', array(), array(), false );
+		$api_response    = Curl::do_curl( 'connects/' . $site_connect_id . '/connected-sites', array(), array(), false );
 
 		if ( $api_response['success'] ) {
-			$api_response = InstaWP_Setting::get_args_option( 'data', $api_response, array() );
+			$api_response = Helper::get_args_option( 'data', $api_response, array() );
 
 			if ( isset( $api_response['is_parent'] ) ) {
 				$response = $api_response['is_parent'] ? $api_response['parent'] : $api_response['children'];
@@ -649,7 +650,7 @@ if ( ! function_exists( 'instawp_send_connect_log' ) ) {
 		);
 
 		// connects/<connect_id>/logs
-		$log_response = InstaWP_Curl::do_curl( "connects/{$connect_id}/logs", $log_args );
+		$log_response = Curl::do_curl( "connects/{$connect_id}/logs", $log_args );
 
 		if ( isset( $log_response['success'] ) && $log_response['success'] ) {
 			return true;
@@ -685,7 +686,7 @@ if ( ! function_exists( 'instawp_get_user_to_login' ) ) {
 		if ( username_exists( $username ) ) {
 			$user_to_login = get_user_by( 'login', $username );
 			$message       = esc_html__( 'Login information for the given username', 'instawp-connect' );
-		} elseif ( ! empty( $default_username = InstaWP_Setting::get_option( 'instawp_default_username' ) ) && ! empty( $default_username ) ) {
+		} elseif ( ! empty( $default_username = Option::get_option( 'instawp_default_username' ) ) && ! empty( $default_username ) ) {
 			$user_to_login = get_user_by( 'login', $default_username );
 			$message       = esc_html__( 'Login information for the given username didn\'t found, You are going to login with default login username.', 'instawp-connect' );
 		} else {

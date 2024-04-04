@@ -3,6 +3,8 @@
  * InstaWP CLI Commands
  */
 
+use InstaWP\Connect\Helpers\Curl;
+use InstaWP\Connect\Helpers\Helper;
 use InstaWP\Connect\Helpers\WPConfig;
 
 if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
@@ -40,11 +42,11 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 				die( esc_html( $create_site_res->get_error_message() ) );
 			}
 
-			$site_id          = InstaWP_Setting::get_args_option( 'id', $create_site_res );
-			$site_wp_url      = InstaWP_Setting::get_args_option( 'wp_url', $create_site_res );
-			$site_wp_username = InstaWP_Setting::get_args_option( 'wp_username', $create_site_res );
-			$site_wp_password = InstaWP_Setting::get_args_option( 'wp_password', $create_site_res );
-			$site_s_hash      = InstaWP_Setting::get_args_option( 's_hash', $create_site_res );
+			$site_id          = Helper::get_args_option( 'id', $create_site_res );
+			$site_wp_url      = Helper::get_args_option( 'wp_url', $create_site_res );
+			$site_wp_username = Helper::get_args_option( 'wp_username', $create_site_res );
+			$site_wp_password = Helper::get_args_option( 'wp_password', $create_site_res );
+			$site_s_hash      = Helper::get_args_option( 's_hash', $create_site_res );
 
 			WP_CLI::success( 'Site created successfully. URL: ' . $site_wp_url );
 
@@ -61,17 +63,17 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 				'plugin_version'    => INSTAWP_PLUGIN_VERSION,
 				'migrate_key'       => $migrate_key,
 			);
-			$migrate_res         = InstaWP_Curl::do_curl( 'migrates-v3/local-push', $migrate_args );
-			$migrate_res_status  = (bool) InstaWP_Setting::get_args_option( 'success', $migrate_res, true );
-			$migrate_res_message = InstaWP_Setting::get_args_option( 'message', $migrate_res );
-			$migrate_res_data    = InstaWP_Setting::get_args_option( 'data', $migrate_res, array() );
+			$migrate_res         = Curl::do_curl( 'migrates-v3/local-push', $migrate_args );
+			$migrate_res_status  = (bool) Helper::get_args_option( 'success', $migrate_res, true );
+			$migrate_res_message = Helper::get_args_option( 'message', $migrate_res );
+			$migrate_res_data    = Helper::get_args_option( 'data', $migrate_res, array() );
 
 			if ( ! $migrate_res_status ) {
 				die( esc_html( $migrate_res_message ) );
 			}
 
-			$migrate_id   = InstaWP_Setting::get_args_option( 'migrate_id', $migrate_res_data );
-			$tracking_url = InstaWP_Setting::get_args_option( 'tracking_url', $migrate_res_data );
+			$migrate_id   = Helper::get_args_option( 'migrate_id', $migrate_res_data );
+			$tracking_url = Helper::get_args_option( 'tracking_url', $migrate_res_data );
 
 			WP_CLI::success( "Migration initiated with migrate_id: {$migrate_id}. Tracking URL: {$tracking_url}" );
 
@@ -104,9 +106,9 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 				'site_id'           => $site_id,
 				'parent_connect_id' => instawp()->connect_id,
 			);
-			$finish_mig_res     = InstaWP_Curl::do_curl( 'migrates-v3/finish-local-staging', $finish_mig_args );
-			$finish_mig_status  = (bool) InstaWP_Setting::get_args_option( 'success', $finish_mig_res, true );
-			$finish_mig_message = InstaWP_Setting::get_args_option( 'message', $finish_mig_res );
+			$finish_mig_res     = Curl::do_curl( 'migrates-v3/finish-local-staging', $finish_mig_args );
+			$finish_mig_status  = (bool) Helper::get_args_option( 'success', $finish_mig_res, true );
+			$finish_mig_message = Helper::get_args_option( 'message', $finish_mig_res );
 
 			if ( ! $finish_mig_status ) {
 				WP_CLI::success( 'Error in configuring the staging website. Error message: ' . $finish_mig_message );

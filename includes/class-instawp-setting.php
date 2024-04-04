@@ -1,5 +1,8 @@
 <?php
 
+use InstaWP\Connect\Helpers\Curl;
+use InstaWP\Connect\Helpers\Option;
+
 defined( 'ABSPATH' ) || exit;
 
 class InstaWP_Setting {
@@ -59,7 +62,7 @@ class InstaWP_Setting {
 			unset( $instawp_nav_items['manage'] );
 		}
 
-		$instawp_sync_tab_roles = InstaWP_Setting::get_option( 'instawp_sync_tab_roles', array( 'administrator' ) );
+		$instawp_sync_tab_roles = Option::get_option( 'instawp_sync_tab_roles', array( 'administrator' ) );
 		$instawp_sync_tab_roles = empty( $instawp_sync_tab_roles ) ? array( 'administrator' ) : $instawp_sync_tab_roles;
 
 		if ( ! in_array( 'administrator', $instawp_sync_tab_roles ) ) {
@@ -75,7 +78,7 @@ class InstaWP_Setting {
 	public static function get_allowed_role() {
 		$allowed_role = 'administrator';
 
-		foreach ( InstaWP_Setting::get_option( 'instawp_sync_tab_roles', array() ) as $role ) {
+		foreach ( Option::get_option( 'instawp_sync_tab_roles', array() ) as $role ) {
 			if ( current_user_can( $role ) ) {
 				$allowed_role = $role;
 				break;
@@ -498,7 +501,7 @@ class InstaWP_Setting {
 
 	public static function get_management_settings() {
 		$settings  = array();
-		$heartbeat = InstaWP_Setting::get_option( 'instawp_rm_heartbeat', 'on' );
+		$heartbeat = Option::get_option( 'instawp_rm_heartbeat', 'on' );
 		$heartbeat = empty( $heartbeat ) ? 'on' : $heartbeat;
 
 		// Section - Heartbeat
@@ -709,7 +712,7 @@ class InstaWP_Setting {
 			return false;
 		}
 
-		$api_response = InstaWP_Curl::do_curl( 'check-key', array(), array(), false, 'v1', $api_key );
+		$api_response = Curl::do_curl( 'check-key', array(), array(), false, 'v1', $api_key );
 
 		if ( ! empty( $api_response['data']['status'] ) ) {
 			$api_options = self::get_option( 'instawp_api_options', array() );
@@ -731,7 +734,7 @@ class InstaWP_Setting {
 			'php_version' => $php_version,
 			'username'    => base64_encode( InstaWP_Tools::get_admin_username() ), // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
 		);
-		$connect_response = InstaWP_Curl::do_curl( 'connects', $connect_body, array(), true, 'v1' );
+		$connect_response = Curl::do_curl( 'connects', $connect_body, array(), true, 'v1' );
 
 		if ( ! empty( $connect_response['data']['status'] ) ) {
 			$connect_id = ! empty( $connect_response['data']['id'] ) ? intval( $connect_response['data']['id'] ) : '';
@@ -775,7 +778,7 @@ class InstaWP_Setting {
 		} elseif ( $option === 'instawp_sync_tab_roles' ) {
 			$role_options   = array();
 			$all_roles      = wp_roles()->roles;
-			$selected_roles = InstaWP_Setting::get_option( $option );
+			$selected_roles = Option::get_option( $option );
 			foreach ( $selected_roles as $role ) {
 				$role_options[ $role ] = isset( $all_roles[ $role ] ) ? $all_roles[ $role ]['name'] : $role;
 			}

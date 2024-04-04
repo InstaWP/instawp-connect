@@ -10,8 +10,8 @@ $access_token    = isset( $_REQUEST['access_token'] ) ? sanitize_text_field( wp_
 $success_status  = isset( $_REQUEST['success'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['success'] ) ) : '';
 $staging_sites   = instawp_get_staging_sites_list();
 
-$syncing_status    = InstaWP_Setting::get_option( 'instawp_is_event_syncing' );
-$migration_details = InstaWP_Setting::get_option( 'instawp_migration_details', array() );
+$syncing_status    = Option::get_option( 'instawp_is_event_syncing' );
+$migration_details = Option::get_option( 'instawp_migration_details', array() );
 
 $instawp_settings['instawp_is_event_syncing']  = $syncing_status;
 $instawp_settings['instawp_migration_details'] = $migration_details;

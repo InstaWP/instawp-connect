@@ -17,6 +17,8 @@
  */
 
 // If this file is called directly, abort.
+use InstaWP\Connect\Helpers\Option;
+
 if ( ! defined( 'WPINC' ) ) {
 	die;
 }
@@ -74,12 +76,12 @@ function instawp_plugin_activate() {
 	do_action( 'instawp_prepare_large_files_list' );
 
 	//set default user for sync settings if user empty
-	$default_user = InstaWP_Setting::get_option( 'instawp_default_user' );
+	$default_user = Option::get_option( 'instawp_default_user' );
 	if ( empty( $default_user ) ) {
 		add_option( 'instawp_default_user', get_current_user_id() );
 	}
 
-	$instawp_sync_tab_roles = InstaWP_Setting::get_option( 'instawp_sync_tab_roles' );
+	$instawp_sync_tab_roles = Option::get_option( 'instawp_sync_tab_roles' );
 	if ( empty( $instawp_sync_tab_roles ) ) {
 		$user  = wp_get_current_user();
 		$roles = ( array ) $user->roles;

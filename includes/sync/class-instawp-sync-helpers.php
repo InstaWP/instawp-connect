@@ -171,7 +171,7 @@ class InstaWP_Sync_Helpers {
 	 */
 	public static function is_enabled( $key ) {
 		$default = ( 'option' === $key ) ? 'off' : 'on';
-		$value   = InstaWP_Setting::get_option( 'instawp_sync_' . $key, $default );
+		$value   = Option::get_option( 'instawp_sync_' . $key, $default );
 		$value   = empty( $value ) ? $default : $value;
 
 		return 'on' === $value;
@@ -516,7 +516,7 @@ class InstaWP_Sync_Helpers {
 			unset( $post['post_author'] );
 			$post_id = wp_update_post( self::prepare_post_data( $post, $destination_post->ID ) );
 		} else {
-			$default_post_user = InstaWP_Setting::get_option( 'instawp_default_user' );
+			$default_post_user = Option::get_option( 'instawp_default_user' );
 			if ( ! empty( $default_post_user ) ) {
 				$post['post_author'] = $default_post_user;
 			}

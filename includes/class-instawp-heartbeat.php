@@ -3,6 +3,10 @@
  * Class for heartbeat
  */
 
+use InstaWP\Connect\Helpers\Curl;
+use InstaWP\Connect\Helpers\Helper;
+use InstaWP\Connect\Helpers\Option;
+
 defined( 'ABSPATH' ) || exit;
 
 if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
@@ -28,11 +32,11 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 				as_schedule_recurring_action( time(), DAY_IN_SECONDS, 'instawp_handle_heartbeat_status', array(), 'instawp-connect' );
 			}
 
-			$heartbeat = InstaWP_Setting::get_option( 'instawp_rm_heartbeat', 'on' );
+			$heartbeat = Option::get_option( 'instawp_rm_heartbeat', 'on' );
 			$heartbeat = empty( $heartbeat ) ? 'on' : $heartbeat;
 
 			if ( 'on' === $heartbeat ) {
-				$interval = InstaWP_Setting::get_option( 'instawp_api_heartbeat', 15 );
+				$interval = Option::get_option( 'instawp_api_heartbeat', 15 );
 				$interval = empty( $interval ) ? 15 : (int) $interval;
 
 				if ( ! as_has_scheduled_action( 'instawp_handle_heartbeat', array(), 'instawp-connect' ) ) {
@@ -120,7 +124,7 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 			$last_sent_data = get_option( 'instawp_heartbeat_sent_data', array() );
 			$heartbeat_data = self::prepare_data();
 
-			$setting = InstaWP_Setting::get_option( 'instawp_activity_log', 'off' );
+			$setting = Option::get_option( 'instawp_activity_log', 'off' );
 			if ( $setting === 'on' ) {
 				$log_ids    = $logs = array();
 				$table_name = INSTAWP_DB_TABLE_ACTIVITY_LOGS;
@@ -149,8 +153,8 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 
 			$success = false;
 			for ( $i = 0; $i < 10; $i ++ ) {
-				$heartbeat_response = InstaWP_Curl::do_curl( "connects/{$connect_id}/heartbeat", $heartbeat_body, array(), true, 'v1' );
-				$response_code      = InstaWP_Setting::get_args_option( 'code', $heartbeat_response );
+				$heartbeat_response = Curl::do_curl( "connects/{$connect_id}/heartbeat", $heartbeat_body, array(), true, 'v1' );
+				$response_code      = Helper::get_args_option( 'code', $heartbeat_response );
 
 				if ( intval( $response_code ) === 200 ) {
 					$success = true;

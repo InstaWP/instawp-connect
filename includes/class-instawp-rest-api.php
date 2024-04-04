@@ -1,6 +1,8 @@
 <?php
 
 use InstaWP\Connect\Helpers;
+use InstaWP\Connect\Helpers\Helper;
+use InstaWP\Connect\Helpers\Option;
 
 defined( 'ABSPATH' ) || die;
 
@@ -480,7 +482,7 @@ class InstaWP_Rest_Api {
 				'plugin_version'   => INSTAWP_PLUGIN_VERSION,
 				'file_size'        => InstaWP_Tools::get_total_sizes( 'files', $migrate_settings ),
 				'db_size'          => InstaWP_Tools::get_total_sizes( 'db' ),
-				'active_plugins'   => InstaWP_Setting::get_option( 'active_plugins', array() ),
+				'active_plugins'   => Option::get_option( 'active_plugins', array() ),
 				'migrate_settings' => $migrate_settings,
 				'migrate_key'      => $migrate_key,
 				'dest_url'         => $dest_file_url,
@@ -547,8 +549,8 @@ class InstaWP_Rest_Api {
 			return $this->throw_error( $login_userinfo );
 		}
 
-		$username_to_login = InstaWP_Setting::get_args_option( 'username', $login_userinfo );
-		$response_message  = InstaWP_Setting::get_args_option( 'message', $login_userinfo );
+		$username_to_login = Helper::get_args_option( 'username', $login_userinfo );
+		$response_message  = Helper::get_args_option( 'message', $login_userinfo );
 		$uuid_code         = wp_generate_uuid4();
 		$login_code        = str_shuffle( $uuid_code . $uuid_code );
 		$args              = array(
@@ -1337,7 +1339,7 @@ class InstaWP_Rest_Api {
 		$options = $this->get_management_options();
 		foreach ( array_keys( $options ) as $option ) {
 			$default = 'heartbeat' === $option ? 'on' : 'off';
-			$value   = InstaWP_Setting::get_option( 'instawp_rm_' . $option, $default );
+			$value   = Option::get_option( 'instawp_rm_' . $option, $default );
 			$value   = empty( $value ) ? $default : $value;
 
 			$results[ $option ] = $value;
@@ -1379,7 +1381,7 @@ class InstaWP_Rest_Api {
 				} else {
 					$results[ $key ]['message'] = esc_html__( 'You can not enable this setting through API.', 'instawp-connect' );
 					$default                    = 'heartbeat' === $key ? 'on' : 'off';
-					$value                      = InstaWP_Setting::get_option( 'instawp_rm_' . $key, $default );
+					$value                      = Option::get_option( 'instawp_rm_' . $key, $default );
 					$value                      = empty( $value ) ? $default : $value;
 				}
 
@@ -1487,7 +1489,7 @@ class InstaWP_Rest_Api {
 	 */
 	private function is_enabled( $key ) {
 		$default = in_array( $key, array( 'inventory', 'update_core_plugin_theme', 'activate_deactivate' ) ) ? 'on' : 'off';
-		$value   = InstaWP_Setting::get_option( 'instawp_rm_' . $key, $default );
+		$value   = Option::get_option( 'instawp_rm_' . $key, $default );
 		$value   = empty( $value ) ? $default : $value;
 
 		return 'on' === $value;

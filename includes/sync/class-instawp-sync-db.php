@@ -10,6 +10,8 @@
  * @subpackage instawp/includes
  */
 
+use InstaWP\Connect\Helpers\Helper;
+
 defined( 'ABSPATH' ) || exit;
 
 class InstaWP_Sync_DB {
@@ -35,7 +37,7 @@ class InstaWP_Sync_DB {
 	public static function can_sync() {
 		global $instawp_settings;
 
-		return (bool) InstaWP_Setting::get_args_option( 'instawp_is_event_syncing', $instawp_settings, '0' );
+		return (bool) Helper::get_args_option( 'instawp_is_event_syncing', $instawp_settings, '0' );
 	}
 
 	public static function wpdb() {

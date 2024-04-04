@@ -7,10 +7,10 @@ global $staging_sites;
 
 $staging_sites_count = is_array( $staging_sites ) ? count( $staging_sites ) : 0;
 $pagination          = 10;
-$parent_connect_data = InstaWP_Setting::get_option( 'instawp_sync_parent_connect_data', array() );
+$parent_connect_data = Option::get_option( 'instawp_sync_parent_connect_data', array() );
 
 if ( ! empty( $parent_connect_data ) ) {
-	$parent_domain = preg_replace( "(^https?://)", '', InstaWP_Setting::get_args_option( 'domain', $parent_connect_data, '' ) );
+	$parent_domain = preg_replace( "(^https?://)", '', Helper::get_args_option( 'domain', $parent_connect_data, '' ) );
 }
 
 ?>

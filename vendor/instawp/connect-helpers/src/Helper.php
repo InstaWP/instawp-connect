@@ -90,7 +90,6 @@ class Helper {
 		return $current_api_key_hash;
 	}
 
-	
     public static function get_random_string( $length ) {
         try {
 			$length        = ( int ) round( ceil( absint( $length ) / 2 ) );
@@ -101,10 +100,6 @@ class Helper {
 		}
 
 		return $random_string;
-	}
-
-	public static function get_option( $option_name, $default = [] ) {
-		return get_option( $option_name, $default );
 	}
 
 	public static function get_args_option( $key = '', $args = [], $default = '' ) {

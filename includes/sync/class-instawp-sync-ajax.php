@@ -7,6 +7,8 @@
  * @subpackage instawp/includes
  */
 
+use InstaWP\Connect\Helpers\Curl;
+
 defined( 'ABSPATH' ) || exit;
 
 class InstaWP_Sync_Ajax {
@@ -217,7 +219,7 @@ class InstaWP_Sync_Ajax {
 
 			$this->update_sync_events_status( $dest_connect_id, $sync_id );
 
-			$batch_data      = InstaWP_Setting::get_option( 'instawp_event_batch_data' );
+			$batch_data      = Option::get_option( 'instawp_event_batch_data' );
 			$total_completed = $batch_data['total_completed'] + count( $events['data']['contents'] );
 			$percentage      = round( ( $batch_data['current_batch'] * 100 ) / intval( $batch_data['total_batch'] ) );
 			$next_batch      = $batch_data['current_batch'] + 1;
@@ -475,21 +477,21 @@ class InstaWP_Sync_Ajax {
 		$connect_id = instawp_get_connect_id();
 
 		// connects/<connect_id>/syncs
-		return InstaWP_Curl::do_curl( "connects/{$connect_id}/syncs", $data );
+		return Curl::do_curl( "connects/{$connect_id}/syncs", $data );
 	}
 
 	private function get_sync_object( $sync_id = null ) {
 		$connect_id = instawp_get_connect_id();
 
 		// connects/<connect_id>/syncs
-		return InstaWP_Curl::do_curl( "connects/{$connect_id}/syncs/{$sync_id}", array(), array(), false );
+		return Curl::do_curl( "connects/{$connect_id}/syncs/{$sync_id}", array(), array(), false );
 	}
 
 	private function get_connect_quota_remaining_limit() {
 		$connect_id   = instawp_get_connect_id();
 
 		// connects/<connect_id>/get-sync-quota
-		$api_response = InstaWP_Curl::do_curl( "connects/{$connect_id}/get-sync-quota", array(), array(), false );
+		$api_response = Curl::do_curl( "connects/{$connect_id}/get-sync-quota", array(), array(), false );
 
 		if ( $api_response['success'] && ! empty( $api_response['data'] ) ) {
 			return $api_response['data'];

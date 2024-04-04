@@ -3,6 +3,9 @@
  * Class for heartbeat
  */
 
+use InstaWP\Connect\Helpers\Curl;
+use InstaWP\Connect\Helpers\Option;
+
 defined( 'ABSPATH' ) || exit;
 
 if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
@@ -42,7 +45,7 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 
 			$success = false;
 			for ( $i = 0; $i < 10; $i ++ ) {
-				$response = InstaWP_Curl::do_curl( "connects/{$connect_id}/activity-log", array( 'activity_logs' => $logs ) );
+				$response = Curl::do_curl( "connects/{$connect_id}/activity-log", array( 'activity_logs' => $logs ) );
 				if ( intval( $response['code'] ) === 200 ) {
 					$success = true;
 					break;
@@ -214,7 +217,7 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 		}
 
 		private function get_ip_address() {
-			$header_key = InstaWP_Setting::get_option( 'instawp_log_visitor_ip_source' );
+			$header_key = Option::get_option( 'instawp_log_visitor_ip_source' );
 
 			if ( empty( $header_key ) ) {
 				$header_key = 'no-collect-ip';

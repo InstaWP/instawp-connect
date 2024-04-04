@@ -12,6 +12,9 @@
  * @subpackage instawp/includes
  */
 
+use InstaWP\Connect\Helpers\Curl;
+use InstaWP\Connect\Helpers\Helper;
+
 defined( 'ABSPATH' ) || exit;
 
 class instaWP {
@@ -50,8 +53,8 @@ class instaWP {
 		$this->is_connected            = ! empty( $this->api_key );
 		$this->is_on_local             = instawp_is_website_on_local();
 		$this->connect_id              = instawp_get_connect_id();
-		$this->is_staging              = (bool) InstaWP_Setting::get_option( 'instawp_is_staging', false );
-		$this->is_parent_on_local      = (bool) InstaWP_Setting::get_option( 'instawp_parent_is_on_local', false );
+		$this->is_staging              = (bool) Option::get_option( 'instawp_is_staging', false );
+		$this->is_parent_on_local      = (bool) Option::get_option( 'instawp_parent_is_on_local', false );
 		$this->has_unsupported_plugins = ! empty( InstaWP_Tools::get_unsupported_active_plugins() );
 		$this->can_bundle              = ( class_exists( 'ZipArchive' ) || class_exists( 'PharData' ) );
 
@@ -105,9 +108,9 @@ class instaWP {
 
 	public function clean_migrate_files() {
 
-		$migration_details = InstaWP_Setting::get_option( 'instawp_migration_details', array() );
-		$migrate_id        = InstaWP_Setting::get_args_option( 'migrate_id', $migration_details );
-		$migrate_key       = InstaWP_Setting::get_args_option( 'migrate_key', $migration_details );
+		$migration_details = Option::get_option( 'instawp_migration_details', array() );
+		$migrate_id        = Helper::get_args_option( 'migrate_id', $migration_details );
+		$migrate_key       = Helper::get_args_option( 'migrate_key', $migration_details );
 
 		if ( empty( $migrate_id ) && empty( $migrate_key ) ) {
 			instawp_reset_running_migration();
@@ -115,7 +118,7 @@ class instaWP {
 	}
 
 	public function prepare_large_files_list() {
-		$maxbytes = (int) InstaWP_Setting::get_option( 'instawp_max_file_size_allowed', INSTAWP_DEFAULT_MAX_FILE_SIZE_ALLOWED );
+		$maxbytes = (int) Option::get_option( 'instawp_max_file_size_allowed', INSTAWP_DEFAULT_MAX_FILE_SIZE_ALLOWED );
 		$maxbytes = $maxbytes ? $maxbytes : INSTAWP_DEFAULT_MAX_FILE_SIZE_ALLOWED;
 		$maxbytes = ( $maxbytes * 1024 * 1024 );
 		$path     = ABSPATH;
@@ -294,7 +297,7 @@ class instaWP {
 		}
 
 		if ( ! empty( $data_to_get ) ) {
-			return InstaWP_Setting::get_args_option( $data_to_get, $mode_data );
+			return Helper::get_args_option( $data_to_get, $mode_data );
 		}
 
 		return $mode_data;
@@ -309,9 +312,9 @@ class instaWP {
 	public function instawp_check_usage_on_cloud( $total_size = 0 ) {
 
 		// connects/<connect_id>/usage
-		$api_response        = InstaWP_Curl::do_curl( "connects/{$this->connect_id}/usage", array(), array(), false, 'v1' );
-		$api_response_status = InstaWP_Setting::get_args_option( 'success', $api_response, false );
-		$api_response_data   = InstaWP_Setting::get_args_option( 'data', $api_response, array() );
+		$api_response        = Curl::do_curl( "connects/{$this->connect_id}/usage", array(), array(), false, 'v1' );
+		$api_response_status = Helper::get_args_option( 'success', $api_response, false );
+		$api_response_data   = Helper::get_args_option( 'data', $api_response, array() );
 
 		// send usage check log before starting the pull
 		instawp_send_connect_log( 'usage-check', wp_json_encode( $api_response ) );
@@ -324,10 +327,10 @@ class instaWP {
 			);
 		}
 
-		$remaining_site       = (int) InstaWP_Setting::get_args_option( 'remaining_site', $api_response_data, '0' );
+		$remaining_site       = (int) Helper::get_args_option( 'remaining_site', $api_response_data, '0' );
 		$can_proceed          = $remaining_site > 0;
 		$issue_for            = 'remaining_site';
-		$available_disk_space = (int) InstaWP_Setting::get_args_option( 'remaining_disk_space', $api_response_data, '0' );
+		$available_disk_space = (int) Helper::get_args_option( 'remaining_disk_space', $api_response_data, '0' );
 
 
 		$total_site_size = round( $total_size / 1048576, 2 );
@@ -351,7 +354,6 @@ class instaWP {
 		require_once INSTAWP_PLUGIN_DIR . '/migrate/class-instawp-migrate.php';
 
 		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-migrate-log.php';
-		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-curl.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-ajax.php';
 		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-setting.php';
 		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-heartbeat.php';
@@ -373,7 +375,7 @@ class instaWP {
 			require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-' . $file . '.php';
 		}
 
-		$setting = InstaWP_Setting::get_option( 'instawp_activity_log', 'off' );
+		$setting = Option::get_option( 'instawp_activity_log', 'off' );
 		if ( $setting === 'on' ) {
 			require_once INSTAWP_PLUGIN_DIR . '/includes/activity-log/class-instawp-activity-log.php';
 			$files = array( 'posts', 'attachments', 'users', 'menus', 'plugins', 'themes', 'taxonomies', 'widgets' );
