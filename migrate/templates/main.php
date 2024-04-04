@@ -7,6 +7,15 @@ use InstaWP\Connect\Helpers\Option;
 
 global $staging_sites, $instawp_settings;
 
+if ( ! empty( $_GET['debug'] ) && current_user_can( 'manage_options' ) ) {
+    $file_path = INSTAWP_PLUGIN_DIR . '/migrate/templates/debug/' . sanitize_text_field( wp_unslash( $_GET['debug'] ) ) . '.php';
+
+    if ( file_exists( $file_path ) ) {
+        include $file_path;
+        return;
+    }
+}
+
 $connect_classes = array();
 $access_token    = isset( $_REQUEST['access_token'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['access_token'] ) ) : '';
 $success_status  = isset( $_REQUEST['success'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['success'] ) ) : '';

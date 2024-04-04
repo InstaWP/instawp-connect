@@ -132,9 +132,11 @@ class IWPDB {
 	}
 
 	public function create_require_tables() {
-		$this->query( "CREATE TABLE IF NOT EXISTS iwp_files_sent (id INT AUTO_INCREMENT PRIMARY KEY, filepath TEXT, filepath_hash CHAR(64) UNIQUE, sent INT DEFAULT 0, size INT)" );
-		$this->query( "CREATE TABLE IF NOT EXISTS iwp_db_sent (id INT AUTO_INCREMENT PRIMARY KEY, table_name TEXT, table_name_hash CHAR(64) UNIQUE, `offset` INT DEFAULT 0, rows_total INT DEFAULT 0, completed INT DEFAULT 0);" );
-		$this->query( "CREATE TABLE IF NOT EXISTS iwp_options (id INT AUTO_INCREMENT PRIMARY KEY, option_name CHAR(64), option_value CHAR(64));" );
+		$collate = "DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci";
+
+		$this->query( "CREATE TABLE IF NOT EXISTS iwp_files_sent (id INT AUTO_INCREMENT PRIMARY KEY, filepath TEXT, filepath_hash CHAR(64) UNIQUE, sent INT DEFAULT 0, size INT) {$collate};" );
+		$this->query( "CREATE TABLE IF NOT EXISTS iwp_db_sent (id INT AUTO_INCREMENT PRIMARY KEY, table_name TEXT, table_name_hash CHAR(64) UNIQUE, `offset` INT DEFAULT 0, rows_total INT DEFAULT 0, completed INT DEFAULT 0) {$collate};" );
+		$this->query( "CREATE TABLE IF NOT EXISTS iwp_options (id INT AUTO_INCREMENT PRIMARY KEY, option_name CHAR(64), option_value CHAR(64)) {$collate};" );
 	}
 
 	public function connect_database() {
