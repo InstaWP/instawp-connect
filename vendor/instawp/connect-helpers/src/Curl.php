@@ -1,14 +1,12 @@
 <?php
 
-defined( 'ABSPATH' ) || die;
+namespace InstaWP\Connect\Helpers;
 
-class InstaWP_Curl {
-
-
+class Curl {
 
 	public static function do_curl( $endpoint, $body = array(), $headers = array(), $is_post = true, $api_version = 'v2', $api_key = '' ) {
 
-		$api_url = InstaWP_Setting::get_api_domain();
+		$api_url = Helper::get_api_domain();
 		if ( empty( $api_url ) ) {
 			return array(
 				'success' => false,
@@ -17,7 +15,7 @@ class InstaWP_Curl {
 		}
 
 		if ( empty( $api_key ) ) {
-			$api_key = InstaWP_Setting::get_api_key();
+			$api_key = Helper::get_api_key();
 		}
 
 		if ( empty( $api_key ) ) {
@@ -82,13 +80,12 @@ class InstaWP_Curl {
 			);
 		}
 
-		$response_code = wp_remote_retrieve_response_code( $response );
-		$response_body = wp_remote_retrieve_body( $response );
-
+		$response_code    = wp_remote_retrieve_response_code( $response );
+		$response_body    = wp_remote_retrieve_body( $response );
 		$api_response     = json_decode( $response_body, true );
-		$response_status  = InstaWP_Setting::get_args_option( 'status', $api_response );
-		$response_data    = InstaWP_Setting::get_args_option( 'data', $api_response, array() );
-		$response_message = InstaWP_Setting::get_args_option( 'message', $api_response );
+		$response_status  = Helper::get_args_option( 'status', $api_response );
+		$response_data    = Helper::get_args_option( 'data', $api_response, array() );
+		$response_message = Helper::get_args_option( 'message', $api_response );
 
 		return array(
 			'success' => $response_status,

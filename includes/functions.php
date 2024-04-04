@@ -4,6 +4,8 @@
  */
 
 
+use InstaWP\Connect\Helpers\Helper;
+
 if ( ! function_exists( 'instawp_create_db_tables' ) ) {
 	/**
 	 * @return void
@@ -282,7 +284,7 @@ if ( ! function_exists( 'instawp_get_connect_id' ) ) {
 	 * @return int
 	 */
 	function instawp_get_connect_id() {
-		return InstaWP_Setting::get_connect_id();
+		return Helper::get_connect_id();
 	}
 }
 

@@ -3,6 +3,94 @@ namespace InstaWP\Connect\Helpers;
 
 class Helper {
 
+	public static function instawp_generate_api_key( $api_key ) {
+
+		if ( empty( $api_key ) ) {
+			error_log( 'instawp_generate_api_key empty api_key parameter' );
+
+			return false;
+		}
+
+		$api_response = Curl::do_curl( 'check-key', array(), array(), false, 'v1', $api_key );
+
+		if ( ! empty( $api_response['data']['status'] ) ) {
+			$api_options = Option::get_option( 'instawp_api_options', array() );
+
+			if ( is_array( $api_options ) && is_array( $api_response['data'] ) ) {
+				Option::update_option( 'instawp_api_options', array_merge( $api_options, array(
+					'api_key'  => $api_key,
+					'response' => $api_response['data'],
+				) ) );
+			}
+		} else {
+			error_log( 'instawp_generate_api_key error, response from check-key api: ' . wp_json_encode( $api_response ) );
+
+			return false;
+		}
+
+		$php_version      = substr( phpversion(), 0, 3 );
+		$connect_body     = array(
+			'url'         => get_site_url(),
+			'php_version' => $php_version,
+			'username'    => base64_encode( self::get_admin_username() ),
+		);
+		$connect_response = Curl::do_curl( 'connects', $connect_body, array(), true, 'v1' );
+
+		if ( ! empty( $connect_response['data']['status'] ) ) {
+			$connect_id = ! empty( $connect_response['data']['id'] ) ? intval( $connect_response['data']['id'] ) : '';
+
+			if ( $connect_id ) {
+				// set connect id
+				self::set_connect_id( $connect_id );
+
+				// Send heartbeat to InstaWP
+				if ( function_exists( 'instawp_send_heartbeat' ) ) {
+					instawp_send_heartbeat( $connect_id );
+				}
+			} else {
+				error_log( 'instawp_generate_api_key connect id not found in response.' );
+
+				return false;
+			}
+		} else {
+			error_log( 'instawp_generate_api_key error, response from connects api: ' . wp_json_encode( $connect_response ) );
+
+			return false;
+		}
+
+		return true;
+	}
+
+	public static function get_api_domain( $default_domain = '' ) {
+		$api_options = Option::get_option( 'instawp_api_options', array() );
+
+		if ( ! empty( $default ) && defined( 'INSTAWP_API_DOMAIN_PROD' ) ) {
+			$default_domain = INSTAWP_API_DOMAIN_PROD;
+		}
+
+		return self::get_args_option( 'api_url', $api_options, $default_domain );
+	}
+
+	public static function get_api_key( $return_hashed = false, $default_key = '' ) {
+
+		$api_options = Option::get_option( 'instawp_api_options', array() );
+		$api_key     = self::get_args_option( 'api_key', $api_options, $default_key );
+
+		if ( ! $return_hashed ) {
+			return $api_key;
+		}
+
+		if ( ! empty( $api_key ) && strpos( $api_key, '|' ) !== false ) {
+			$exploded             = explode( '|', $api_key );
+			$current_api_key_hash = hash( 'sha256', $exploded[1] );
+		} else {
+			$current_api_key_hash = ! empty( $api_key ) ? hash( 'sha256', $api_key ) : "";
+		}
+
+		return $current_api_key_hash;
+	}
+
+	
     public static function get_random_string( $length ) {
         try {
 			$length        = ( int ) round( ceil( absint( $length ) / 2 ) );
@@ -87,5 +175,42 @@ class Helper {
 				closedir( $handle );
 			}
 		}
+	}
+
+	public static function get_admin_username() {
+		$username = '';
+
+		foreach (
+			get_users( array(
+				'role__in' => array( 'administrator' ),
+				'fields'   => array( 'user_login' ),
+			) ) as $admin
+		) {
+			if ( empty( $username ) && isset( $admin->user_login ) ) {
+				$username = $admin->user_login;
+				break;
+			}
+		}
+
+		return $username;
+	}
+
+	public static function get_connect_id() {
+		$api_options = Option::get_option( 'instawp_api_options', array() );
+
+		return self::get_args_option( 'connect_id', $api_options );
+	}
+
+	public static function get_connect_uuid() {
+		$api_options = Option::get_option( 'instawp_api_options', array() );
+
+		return self::get_args_option( 'connect_uuid', $api_options );
+	}
+
+	public static function set_connect_id( $connect_id ) {
+		$api_options               = Option::get_option( 'instawp_api_options', array() );
+		$api_options['connect_id'] = intval( $connect_id );
+
+		return Option::update_option( 'instawp_api_options', $api_options );
 	}
 }

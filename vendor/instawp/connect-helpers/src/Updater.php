@@ -62,7 +62,7 @@ class Updater {
 
 		/*
 		 * Allow relaxed file ownership writes for User-initiated upgrades when the API specifies
-		* that it's safe to do so. This only happens when there are no new files to create.
+		 * that it's safe to do so. This only happens when there are no new files to create.
 		*/
 		$allow_relaxed_file_ownership = isset( $update->new_files ) && ! $update->new_files;
 
@@ -157,7 +157,6 @@ class Updater {
 			$upgrader = new \Plugin_Upgrader( $skin );
 
 			if ( 'instawp-connect/instawp-connect.php' === $item ) {
-
 				$upgrader->init();
 				$upgrader->upgrade_strings();
 
@@ -188,7 +187,6 @@ class Updater {
 						$result = true;
 					}
 				}
-
 			} else {
 				$result = $upgrader->upgrade( $item );
 			}
