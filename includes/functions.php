@@ -6,6 +6,7 @@
 
 use InstaWP\Connect\Helpers\Curl;
 use InstaWP\Connect\Helpers\Helper;
+use InstaWP\Connect\Helpers\Option;
 
 if ( ! function_exists( 'instawp_create_db_tables' ) ) {
 	/**

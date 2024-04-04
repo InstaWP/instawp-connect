@@ -4,6 +4,7 @@
  */
 
 use InstaWP\Connect\Helpers\Helper;
+use InstaWP\Connect\Helpers\Option;
 
 global $instawp_settings;
 

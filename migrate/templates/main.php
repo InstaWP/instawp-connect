@@ -3,6 +3,8 @@
  * Migrate template - Main
  */
 
+use InstaWP\Connect\Helpers\Option;
+
 global $staging_sites, $instawp_settings;
 
 $connect_classes = array();

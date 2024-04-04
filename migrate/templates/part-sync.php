@@ -3,6 +3,9 @@
  * Migrate template - Sync
  */
 
+use InstaWP\Connect\Helpers\Helper;
+use InstaWP\Connect\Helpers\Option;
+
 global $staging_sites, $instawp_settings;
 
 if ( instawp()->is_staging && instawp()->is_parent_on_local ) { ?>

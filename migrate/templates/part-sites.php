@@ -3,6 +3,10 @@
  * Migrate template - Create Site
  */
 
+
+use InstaWP\Connect\Helpers\Helper;
+use InstaWP\Connect\Helpers\Option;
+
 global $staging_sites;
 
 $staging_sites_count = is_array( $staging_sites ) ? count( $staging_sites ) : 0;

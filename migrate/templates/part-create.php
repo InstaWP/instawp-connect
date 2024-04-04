@@ -3,6 +3,8 @@
  * Migrate template - Create Site
  */
 
+use InstaWP\Connect\Helpers\Helper;
+
 global $instawp_settings;
 
 $nav_item_classes  = array( 'nav-item-content' );
