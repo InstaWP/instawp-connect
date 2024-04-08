@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.6
 Tested up to: 6.5
 Requires PHP: 5.6
-Stable tag: 0.1.0.22
+Stable tag: 0.1.0.24
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -93,6 +93,23 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 6. Update API Key and Settings.
 
 == Changelog ==
+
+= 0.1.0.25 =
+- FIX - Fixed Action Scheduler error after staging creation.
+- FIX - Strengthen plugin security.
+- FIX - All WPCS related issues.
+- FIX - Remove legacy codes and implemented code reusability.
+- FIX - Replaced wrong database constant.
+- FIX - Total Site Size calculation issue.
+- FIX - Skip size in confirmation window.
+
+= 0.1.0.24 - 1 Apr 2024 =
+- FIX - Fixed plugin update issue using REST Api.
+
+= 0.1.0.23 - 29 Mar 2024 =
+- NEW - Added post migration cleanup API.
+- FIX - Fixed vulnerability issue in a REST API.
+- FIX - Added check for empty and/or invalid filepath during local push.
 
 = 0.1.0.22 - 26 Mar 2024 =
 - NEW - Added Magic Login support for Solid Security plugin.

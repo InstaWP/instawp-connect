@@ -1,5 +1,9 @@
 <?php
 
+use InstaWP\Connect\Helpers;
+use InstaWP\Connect\Helpers\Helper;
+use InstaWP\Connect\Helpers\Option;
+
 defined( 'ABSPATH' ) || die;
 
 class InstaWP_Rest_Api {
@@ -133,7 +137,7 @@ class InstaWP_Rest_Api {
 				'methods'             => 'DELETE',
 				'callback'            => array( $this, 'delete_user' ),
 				'permission_callback' => '__return_true',
-			)
+			),
 		) );
 
 		register_rest_route( $this->namespace . '/' . $this->version_2 . '/manage', '/file-manager', array(
@@ -210,10 +214,44 @@ class InstaWP_Rest_Api {
 			'permission_callback' => '__return_true',
 		) );
 
-		register_rest_route( $this->namespace . '/' . $this->version_3, '/debug', array(
+		register_rest_route( $this->namespace . '/' . $this->version_3, '/post-cleanup', array(
 			'methods'             => 'POST',
-			'callback'            => array( $this, 'handle_debug' ),
+			'callback'            => array( $this, 'handle_post_migration_cleanup' ),
 			'permission_callback' => '__return_true',
+		) );
+	}
+
+	public function handle_post_migration_cleanup( WP_REST_Request $request ) {
+
+		$response = $this->validate_api_request( $request );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
+
+		// reset everything and remove connection
+		instawp_reset_running_migration( 'hard', true );
+
+		if ( ! function_exists( 'deactivate_plugins' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		}
+
+		if ( ! function_exists( 'request_filesystem_credentials' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+		}
+
+		$plugin_slug = INSTAWP_PLUGIN_SLUG . '/' . INSTAWP_PLUGIN_SLUG . '.php';
+
+		deactivate_plugins( $plugin_slug );
+
+		$is_deleted = delete_plugins( array( $plugin_slug ) );
+
+		if ( is_wp_error( $is_deleted ) ) {
+			return $this->throw_error( $is_deleted );
+		}
+
+		return $this->send_response( array(
+			'success' => true,
+			'message' => esc_html__( 'Post migration cleanup completed.', 'instawp-connect' ),
 		) );
 	}
 
@@ -377,45 +415,6 @@ class InstaWP_Rest_Api {
 		return $this->send_response( $response );
 	}
 
-	function handle_debug( WP_REST_Request $request ) {
-
-		$response = $this->validate_api_request( $request );
-		if ( is_wp_error( $response ) ) {
-			return $this->throw_error( $response );
-		}
-
-		$drivers   = array();
-		$libraries = array(
-			'SQLite3'                         => extension_loaded( 'sqlite3' ),
-			'Zip'                             => extension_loaded( 'zip' ),
-			'PDO'                             => extension_loaded( 'pdo' ),
-			"PHP's zlib (for gz compression)" => extension_loaded( 'zlib' ),
-			'PharData'                        => extension_loaded( 'phar' ),
-			'mysqli_real_connect'             => extension_loaded( 'mysqli' ),
-		);
-
-		$pearArchiveTarExists = false;
-
-		@include 'Archive/Tar.php';
-
-		if ( class_exists( 'Archive_Tar' ) ) {
-			$pearArchiveTarExists = true;
-		}
-
-		$libraries['PEAR Archive_Tar'] = $pearArchiveTarExists;
-
-		if ( $libraries['PDO'] ) {
-			$drivers = PDO::getAvailableDrivers();
-		}
-
-		return $this->send_response( array(
-			'libraries'          => $libraries,
-			'drivers'            => $drivers,
-			'memory_limit'       => ini_get( 'memory_limit' ),
-			'max_execution_time' => ini_get( 'max_execution_time' ),
-		) );
-	}
-
 	/**
 	 * Handle response for pull api
 	 *
@@ -437,6 +436,9 @@ class InstaWP_Rest_Api {
 		if ( is_wp_error( $pre_check_response ) ) {
 			return $this->throw_error( $pre_check_response );
 		}
+
+		// Add admin email to the response
+		$pre_check_response['wp_admin_email'] = get_bloginfo( 'admin_email' );
 
 		return $this->send_response( $pre_check_response );
 	}
@@ -465,7 +467,7 @@ class InstaWP_Rest_Api {
 
 		$migrate_key      = InstaWP_Tools::get_random_string( 40 );
 		$migrate_settings = InstaWP_Tools::get_migrate_settings();
-		$api_signature    = hash( 'sha512', $migrate_key . current_time( 'U' ) );
+		$api_signature    = hash( 'sha512', $migrate_key . wp_generate_uuid4() );
 		$dest_file_url    = InstaWP_Tools::generate_destination_file( $migrate_key, $api_signature );
 
 		// Check accessibility of serve file
@@ -480,7 +482,7 @@ class InstaWP_Rest_Api {
 				'plugin_version'   => INSTAWP_PLUGIN_VERSION,
 				'file_size'        => InstaWP_Tools::get_total_sizes( 'files', $migrate_settings ),
 				'db_size'          => InstaWP_Tools::get_total_sizes( 'db' ),
-				'active_plugins'   => InstaWP_Setting::get_option( 'active_plugins', array() ),
+				'active_plugins'   => Option::get_option( 'active_plugins', array() ),
 				'migrate_settings' => $migrate_settings,
 				'migrate_key'      => $migrate_key,
 				'dest_url'         => $dest_file_url,
@@ -541,19 +543,19 @@ class InstaWP_Rest_Api {
 		}
 
 		$param_user     = $request->get_param( 's' );
-		$login_userinfo = instawp_get_user_to_login( base64_decode( $param_user ) );
+		$login_userinfo = instawp_get_user_to_login( base64_decode( $param_user ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
 
 		if ( is_wp_error( $login_userinfo ) ) {
 			return $this->throw_error( $login_userinfo );
 		}
 
-		$username_to_login = InstaWP_Setting::get_args_option( 'username', $login_userinfo );
-		$response_message  = InstaWP_Setting::get_args_option( 'message', $login_userinfo );
+		$username_to_login = Helper::get_args_option( 'username', $login_userinfo );
+		$response_message  = Helper::get_args_option( 'message', $login_userinfo );
 		$uuid_code         = wp_generate_uuid4();
 		$login_code        = str_shuffle( $uuid_code . $uuid_code );
 		$args              = array(
 			'c' => $login_code,
-			's' => base64_encode( $username_to_login ),
+			's' => base64_encode( $username_to_login ), // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
 		);
 
 		if ( ! function_exists( 'is_plugin_active' ) ) {
@@ -583,7 +585,7 @@ class InstaWP_Rest_Api {
 
 		InstaWP_Setting::update_option( 'instawp_login_code', array(
 			'code'       => $login_code,
-			'updated_at' => current_time( 'U' ),
+			'updated_at' => time(),
 		) );
 
 		return $this->send_response(
@@ -606,23 +608,21 @@ class InstaWP_Rest_Api {
 	public function move_files_folders( $src, $dst ) {
 
 		$dir = opendir( $src );
-
-		@mkdir( $dst );
+		instawp_get_fs()->mkdir( $dst );
 
 		while ( $file = readdir( $dir ) ) {
-			if ( ( $file != '.' ) && ( $file != '..' ) ) {
+			if ( ( $file !== '.' ) && ( $file !== '..' ) ) {
 				if ( is_dir( $src . '/' . $file ) ) {
 					$this->move_files_folders( $src . '/' . $file, $dst . '/' . $file );
 				} else {
-					copy( $src . '/' . $file, $dst . '/' . $file );
-					unlink( $src . '/' . $file );
+					instawp_get_fs()->copy( $src . '/' . $file, $dst . '/' . $file );
+					wp_delete_file( $src . '/' . $file );
 				}
 			}
 		}
 
 		closedir( $dir );
-
-		rmdir( $src );
+		instawp_get_fs()->rmdir( $src );
 	}
 
 	/**
@@ -642,10 +642,10 @@ class InstaWP_Rest_Api {
 		$plugins_path = WP_CONTENT_DIR . '/plugins/';
 
 		// Download the file from remote location
-		file_put_contents( $plugin_zip, fopen( $plugin_zip_url, 'r' ) );
+		instawp_get_fs()->put_contents( $plugin_zip, fopen( $plugin_zip_url, 'r' ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
 
 		// Setting permission
-		chmod( $plugin_zip, 0777 );
+		instawp_get_fs()->chmod( $plugin_zip, 0777 );
 
 		if ( ! function_exists( 'request_filesystem_credentials' ) ) {
 			require_once ABSPATH . 'wp-admin/includes/file.php';
@@ -686,26 +686,29 @@ class InstaWP_Rest_Api {
 				$this->move_files_folders( $source, $destination );
 
 				if ( $destination ) {
-					rmdir( $destination );
+					instawp_get_fs()->rmdir( $destination );
 				}
 			}
 		}
 
-		unlink( $plugin_zip );
+		wp_delete_file( $plugin_zip );
 	}
 
 	public function config( $request ) {
 
-		$parameters = $this->filter_params( $request );
-		$connect_id = instawp_get_connect_id();
-		$results    = array(
+		$parameters         = $this->filter_params( $request );
+		$connect_id         = instawp_get_connect_id();
+		$results            = array(
 			'status'     => false,
 			'connect_id' => 0,
 			'message'    => '',
 		);
+		$override_from_main = isset( $parameters['override_from_main'] ) ? (bool) $parameters['override_from_main'] : false;
 
-		if ( isset( $parameters['override_plugin_zip'] ) && ! empty( $parameters['override_plugin_zip'] ) ) {
-			$this->override_plugin_zip_while_doing_config( $parameters['override_plugin_zip'] );
+		if ( $override_from_main === true ) {
+
+			$plugin_zip_url = esc_url_raw( 'https://github.com/InstaWP/instawp-connect/archive/refs/heads/main.zip' );
+			$this->override_plugin_zip_while_doing_config( $plugin_zip_url );
 
 			if ( ! function_exists( 'is_plugin_active' ) ) {
 				require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
@@ -737,10 +740,9 @@ class InstaWP_Rest_Api {
 			InstaWP_Setting::set_api_domain( $parameters['api_domain'] );
 		}
 
-		$config_response = self::config_check_key( $parameters['api_key'] );
-
-		if ( $config_response['error'] ) {
-			$results['message'] = InstaWP_Setting::get_args_option( 'message', $config_response );
+		$config_response = InstaWP_Setting::instawp_generate_api_key( $parameters['api_key'] );
+		if ( ! $config_response ) {
+			$results['message'] = __( 'Key is not valid', 'instawp-connect' );
 
 			return $this->send_response( $results );
 		}
@@ -816,109 +818,6 @@ class InstaWP_Rest_Api {
 		return true;
 	}
 
-	public static function config_check_key( $api_key ) {
-
-		$res        = array(
-			'error'   => true,
-			'message' => '',
-		);
-		$api_domain = InstaWP_Setting::get_api_domain();
-		$url        = $api_domain . INSTAWP_API_URL . '/check-key';
-
-		$response = wp_remote_get( $url, array(
-			'sslverify' => false,
-			'headers'   => array(
-				'Authorization' => 'Bearer ' . $api_key,
-				'Accept'        => 'application/json',
-			),
-		) );
-
-		$response_code = wp_remote_retrieve_response_code( $response );
-
-		if ( ! is_wp_error( $response ) && $response_code == 200 ) {
-			$body = ( array ) json_decode( wp_remote_retrieve_body( $response ), true );
-
-			if ( $body['status'] == true ) {
-				$api_options = InstaWP_Setting::get_option( 'instawp_api_options', array() );
-
-				InstaWP_Setting::update_option( 'instawp_api_options', array_merge( $api_options, array(
-					'api_key'  => $api_key,
-					'response' => $body,
-				) ) );
-
-				$res = self::config_connect( $api_key );
-			} else {
-				$res = array(
-					'error'   => true,
-					'message' => 'Key Not Valid',
-				);
-			}
-		}
-
-		return $res;
-	}
-
-	public static function config_connect( $api_key ) {
-		global $InstaWP_Curl;
-
-		$res         = array(
-			'error'   => true,
-			'message' => '',
-		);
-		$php_version = substr( phpversion(), 0, 3 );
-
-		/*Get username*/
-		$username    = null;
-		$admin_users = get_users(
-			array(
-				'role__in' => array( 'administrator' ),
-				'fields'   => array( 'user_login' ),
-			)
-		);
-
-		if ( ! empty( $admin_users ) ) {
-			if ( is_null( $username ) ) {
-				foreach ( $admin_users as $admin ) {
-					$username = $admin->user_login;
-					break;
-				}
-			}
-		}
-
-		/*Get username closes*/
-		$body = json_encode(
-			array(
-				"url"         => get_site_url(),
-				"php_version" => $php_version,
-				"username"    => ! is_null( $username ) ? base64_encode( $username ) : "notfound",
-			)
-		);
-
-		$api_domain = InstaWP_Setting::get_api_domain();
-		$url        = $api_domain . INSTAWP_API_URL . '/connects';
-
-		$curl_response = $InstaWP_Curl->curl( $url, $body );
-
-		if ( $curl_response['error'] == false ) {
-			$response = ( array ) json_decode( $curl_response['curl_res'], true );
-
-			if ( $response['status'] == true ) {
-				InstaWP_Setting::set_api_key( $api_key );
-
-				if ( isset( $response['data']['id'] ) && ! empty( $response['data']['id'] ) ) {
-					InstaWP_Setting::set_connect_id( $response['data']['id'] );
-				}
-
-				$res['message'] = $response['message'];
-				$res['error']   = false;
-			} else {
-				$res['message'] = 'Something Went Wrong. Please try again';
-				$res['error']   = true;
-			}
-		}
-
-		return $res;
-	}
 
 	/**
 	 * Handle response for heartbeat endpoint
@@ -955,7 +854,7 @@ class InstaWP_Rest_Api {
 
 		$wp_config_params = $request->get_param( 'wp-config' );
 		$params           = ! is_array( $wp_config_params ) ? array() : $wp_config_params;
-		$wp_config        = new \InstaWP\Connect\Helpers\WPConfig( $params );
+		$wp_config        = new Helpers\WPConfig( $params );
 		$response         = $wp_config->update();
 
 		return $this->send_response( $response );
@@ -975,7 +874,7 @@ class InstaWP_Rest_Api {
 			return $this->throw_error( $response );
 		}
 
-		$cache_api = new \InstaWP\Connect\Helpers\Cache();
+		$cache_api = new Helpers\Cache();
 		$response  = $cache_api->clean();
 
 		return $this->send_response( $response );
@@ -995,7 +894,7 @@ class InstaWP_Rest_Api {
 			return $this->throw_error( $response );
 		}
 
-		$inventory = new \InstaWP\Connect\Helpers\Inventory();
+		$inventory = new Helpers\Inventory();
 		$response  = $inventory->fetch();
 
 		return $this->send_response( $response );
@@ -1017,7 +916,7 @@ class InstaWP_Rest_Api {
 
 		$params = $this->filter_params( $request );
 
-		$installer = new \InstaWP\Connect\Helpers\Installer( $params );
+		$installer = new Helpers\Installer( $params );
 		$response  = $installer->start();
 
 		return $this->send_response( $response );
@@ -1039,7 +938,7 @@ class InstaWP_Rest_Api {
 
 		$params = $this->filter_params( $request );
 
-		$installer = new \InstaWP\Connect\Helpers\Updater( $params );
+		$installer = new Helpers\Updater( $params );
 		$response  = $installer->update();
 
 		return $this->send_response( $response );
@@ -1063,62 +962,10 @@ class InstaWP_Rest_Api {
 			require_once ABSPATH . 'wp-admin/includes/file.php';
 		}
 
-		$response = array();
 		$params   = $this->filter_params( $request );
 
-		foreach ( $params as $key => $param ) {
-			if ( 'plugin' === $param['type'] ) {
-				if ( ! function_exists( 'request_filesystem_credentials' ) ) {
-					require_once ABSPATH . 'wp-admin/includes/file.php';
-				}
-
-				if ( ! function_exists( 'delete_plugins' ) || ! function_exists( 'is_plugin_active' ) || ! function_exists( 'deactivate_plugins' ) ) {
-					require_once ABSPATH . 'wp-admin/includes/plugin.php';
-				}
-
-				if ( is_plugin_active( $param['asset'] ) ) {
-					if ( ! empty( $param['force'] ) ) {
-						deactivate_plugins( array( $param['asset'] ) );
-					} else {
-						$response[ $key ] = array_merge( array(
-							'success' => false,
-							'message' => esc_html__( 'Please deactivate the plugin first.', 'instawp-connect' ),
-						), $param );
-
-						continue;
-					}
-				}
-
-				$deleted          = delete_plugins( array( $param['asset'] ) );
-				$response[ $key ] = array_merge( array(
-					'success' => ! is_wp_error( $deleted ),
-					'message' => is_wp_error( $deleted ) ? $deleted->get_error_message() : '',
-				), $param );
-
-			} elseif ( 'theme' === $param['type'] ) {
-				if ( ! function_exists( 'delete_theme' ) ) {
-					require_once ABSPATH . 'wp-admin/includes/theme.php';
-				}
-
-				if ( ! function_exists( 'get_stylesheet' ) ) {
-					require_once ABSPATH . 'wp-includes/theme.php';
-				}
-
-				if ( get_stylesheet() === $param['asset'] ) {
-					$response[ $key ] = array_merge( array(
-						'success' => false,
-						'message' => esc_html__( 'Please deactivate the theme first.', 'instawp-connect' ),
-					), $param );
-
-					continue;
-				}
-
-				delete_theme( $param['asset'] );
-				$response[ $key ] = array_merge( array(
-					'success' => true,
-				), $param );
-			}
-		}
+		$uninstaller = new Helpers\Uninstaller( $params );
+		$response    = $uninstaller->uninstall();
 
 		return $this->send_response( $response );
 	}
@@ -1137,35 +984,10 @@ class InstaWP_Rest_Api {
 			return $this->throw_error( $response );
 		}
 
-		if ( ! function_exists( 'request_filesystem_credentials' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/file.php';
-		}
+		$params = $this->filter_params( $request );
 
-		$response = array();
-		$params   = $this->filter_params( $request );
-
-		foreach ( $params as $key => $param ) {
-			if ( 'plugin' === $param['type'] ) {
-				if ( ! function_exists( 'activate_plugin' ) ) {
-					require_once ABSPATH . 'wp-admin/includes/plugin.php';
-				}
-
-				$activate         = activate_plugin( $param['asset'] );
-				$response[ $key ] = array_merge( array(
-					'success' => ! is_wp_error( $activate ),
-					'message' => is_wp_error( $activate ) ? $activate->get_error_message() : '',
-				), $param );
-			} elseif ( 'theme' === $param['type'] ) {
-				if ( ! function_exists( 'switch_theme' ) ) {
-					require_once ABSPATH . 'wp-includes/theme.php';
-				}
-
-				switch_theme( $param['asset'] );
-				$response[ $key ] = array_merge( array(
-					'success' => true,
-				), $param );
-			}
-		}
+		$activator = new Helpers\Activator( $params );
+		$response  = $activator->activate();
 
 		return $this->send_response( $response );
 	}
@@ -1186,17 +1008,10 @@ class InstaWP_Rest_Api {
 
 		$params = $this->filter_params( $request );
 
-		if ( ! function_exists( 'request_filesystem_credentials' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/file.php';
-		}
+		$deactivator = new Helpers\Deactivator( $params );
+		$response    = $deactivator->deactivate();
 
-		if ( ! function_exists( 'deactivate_plugins' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/plugin.php';
-		}
-
-		deactivate_plugins( $params );
-
-		return $this->send_response( array( 'success' => true ) );
+		return $this->send_response( $response );
 	}
 
 	/**
@@ -1234,7 +1049,7 @@ class InstaWP_Rest_Api {
 			if ( ! isset( $option ) || ! isset( $all_items ) ) {
 				$response[ $key ] = array(
 					'success' => false,
-					'message' => __( 'Invalid data. Unknown type.' ),
+					'message' => __( 'Invalid data. Unknown type.', 'instawp-connect' ),
 				);
 				continue;
 			}
@@ -1242,7 +1057,7 @@ class InstaWP_Rest_Api {
 			if ( ! array_key_exists( $asset, $all_items ) ) {
 				$response[ $key ] = array(
 					'success' => false,
-					'message' => __( 'Invalid data. The item does not exist.' ),
+					'message' => __( 'Invalid data. The item does not exist.', 'instawp-connect' ),
 				);
 				continue;
 			}
@@ -1285,7 +1100,7 @@ class InstaWP_Rest_Api {
 
 		$wp_config_params = $request->get_param( 'wp-config' );
 		$params           = ! is_array( $wp_config_params ) ? array() : $wp_config_params;
-		$wp_config        = new \InstaWP\Connect\Helpers\WPConfig( $params );
+		$wp_config        = new Helpers\WPConfig( $params );
 		$response         = $wp_config->fetch();
 
 		return $this->send_response( $response );
@@ -1307,7 +1122,7 @@ class InstaWP_Rest_Api {
 
 		$wp_config_params = $request->get_param( 'wp-config' );
 		$params           = ! is_array( $wp_config_params ) ? array() : $wp_config_params;
-		$wp_config        = new \InstaWP\Connect\Helpers\WPConfig( $params );
+		$wp_config        = new Helpers\WPConfig( $params );
 		$response         = $wp_config->update();
 
 		return $this->send_response( $response );
@@ -1329,7 +1144,7 @@ class InstaWP_Rest_Api {
 
 		$wp_config_params = $request->get_param( 'wp-config' );
 		$params           = ! is_array( $wp_config_params ) ? array() : $wp_config_params;
-		$wp_config        = new \InstaWP\Connect\Helpers\WPConfig( $params );
+		$wp_config        = new Helpers\WPConfig( $params );
 		$response         = $wp_config->delete();
 
 		return $this->send_response( $response );
@@ -1375,7 +1190,7 @@ class InstaWP_Rest_Api {
 
 		return $this->send_response( array(
 			'success'  => true,
-			'userdata' => $user
+			'userdata' => $user,
 		) );
 	}
 
@@ -1408,7 +1223,7 @@ class InstaWP_Rest_Api {
 
 		return $this->send_response( array(
 			'success'  => true,
-			'userdata' => $user
+			'userdata' => $user,
 		) );
 	}
 
@@ -1432,13 +1247,13 @@ class InstaWP_Rest_Api {
 
 		$params = $this->filter_params( $request );
 		$params = wp_parse_args( $params, array(
-			'reassign' => null
+			'reassign' => null,
 		) );
 		$status = wp_delete_user( $params['user_id'], $params['reassign'] );
 
 		return $this->send_response( array(
 			'success'  => $status,
-			'userdata' => $params
+			'userdata' => $params,
 		) );
 	}
 
@@ -1458,7 +1273,7 @@ class InstaWP_Rest_Api {
 
 		InstaWP_Tools::instawp_reset_permalink();
 
-		$file_manager = new \InstaWP\Connect\Helpers\FileManager();
+		$file_manager = new Helpers\FileManager();
 		$response     = $file_manager->get();
 
 		return $this->send_response( $response );
@@ -1480,7 +1295,7 @@ class InstaWP_Rest_Api {
 
 		InstaWP_Tools::instawp_reset_permalink();
 
-		$database_manager = new \InstaWP\Connect\Helpers\DatabaseManager();
+		$database_manager = new Helpers\DatabaseManager();
 		$response         = $database_manager->get();
 
 		return $this->send_response( $response );
@@ -1500,7 +1315,7 @@ class InstaWP_Rest_Api {
 			return $this->throw_error( $response );
 		}
 
-		$debug_log = new \InstaWP\Connect\Helpers\DebugLog();
+		$debug_log = new Helpers\DebugLog();
 		$response  = $debug_log->fetch();
 
 		return $this->send_response( $response );
@@ -1524,7 +1339,7 @@ class InstaWP_Rest_Api {
 		$options = $this->get_management_options();
 		foreach ( array_keys( $options ) as $option ) {
 			$default = 'heartbeat' === $option ? 'on' : 'off';
-			$value   = InstaWP_Setting::get_option( 'instawp_rm_' . $option, $default );
+			$value   = Option::get_option( 'instawp_rm_' . $option, $default );
 			$value   = empty( $value ) ? $default : $value;
 
 			$results[ $option ] = $value;
@@ -1566,7 +1381,7 @@ class InstaWP_Rest_Api {
 				} else {
 					$results[ $key ]['message'] = esc_html__( 'You can not enable this setting through API.', 'instawp-connect' );
 					$default                    = 'heartbeat' === $key ? 'on' : 'off';
-					$value                      = InstaWP_Setting::get_option( 'instawp_rm_' . $key, $default );
+					$value                      = Option::get_option( 'instawp_rm_' . $key, $default );
 					$value                      = empty( $value ) ? $default : $value;
 				}
 
@@ -1626,10 +1441,10 @@ class InstaWP_Rest_Api {
 		if ( isset( $GLOBALS['wp']->query_vars['rest_route'] ) ) {
 			$rest_route = $GLOBALS['wp']->query_vars['rest_route'];
 		} elseif ( isset( $_SERVER['REQUEST_URI'] ) ) {
-			$rest_route = $_SERVER['REQUEST_URI'];
+			$rest_route = $_SERVER['REQUEST_URI']; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 		}
 
-		return ( empty( $rest_route ) || '/' == $rest_route ) ? $rest_route : untrailingslashit( $rest_route );
+		return ( empty( $rest_route ) || '/' === $rest_route ) ? $rest_route : untrailingslashit( $rest_route );
 	}
 
 	/**
@@ -1674,7 +1489,7 @@ class InstaWP_Rest_Api {
 	 */
 	private function is_enabled( $key ) {
 		$default = in_array( $key, array( 'inventory', 'update_core_plugin_theme', 'activate_deactivate' ) ) ? 'on' : 'off';
-		$value   = InstaWP_Setting::get_option( 'instawp_rm_' . $key, $default );
+		$value   = Option::get_option( 'instawp_rm_' . $key, $default );
 		$value   = empty( $value ) ? $default : $value;
 
 		return 'on' === $value;

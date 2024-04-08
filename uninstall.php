@@ -13,11 +13,11 @@ $files_to_delete    = array_diff( $files_to_delete, array( '.', '..' ) );
 
 foreach ( $files_to_delete as $file ) {
 	if ( is_file( $instawp_backup_dir . $file ) ) {
-		@unlink( $instawp_backup_dir . $file );
+		wp_delete_file( $instawp_backup_dir . $file );
 	}
 }
 
-@unlink( ABSPATH . 'fwd.php' );
+wp_delete_file( ABSPATH . 'fwd.php' );
 
 $api_options = get_option( 'instawp_api_options', array() );
 $connect_id  = isset( $api_options['connect_id'] ) ? $api_options['connect_id'] : '';

@@ -3,6 +3,9 @@
  * Migrate template - Sync
  */
 
+use InstaWP\Connect\Helpers\Helper;
+use InstaWP\Connect\Helpers\Option;
+
 global $staging_sites, $instawp_settings;
 
 if ( instawp()->is_staging && instawp()->is_parent_on_local ) { ?>
@@ -26,17 +29,17 @@ if ( instawp()->is_staging && instawp()->is_parent_on_local ) { ?>
 	return;
 }
 
-$syncing_status      = (bool) InstaWP_Setting::get_args_option( 'instawp_is_event_syncing', $instawp_settings );
+$syncing_status      = (bool) Helper::get_args_option( 'instawp_is_event_syncing', $instawp_settings );
 $events              = $syncing_status ? InstaWP_Sync_DB::total_events() : array();
-$parent_connect_data = InstaWP_Setting::get_option( 'instawp_sync_parent_connect_data' );
+$parent_connect_data = Option::get_option( 'instawp_sync_parent_connect_data' );
 $staging_sites       = empty( $staging_sites ) || ! is_array( $staging_sites ) ? array() : $staging_sites;
 
 if ( ! empty( $parent_connect_data ) ) {
 	if ( ! array_key_exists( 'url', $parent_connect_data ) ) {
-		$parent_connect_data['url'] = InstaWP_Setting::get_args_option( 'domain', $parent_connect_data, '' );
+		$parent_connect_data['url'] = Helper::get_args_option( 'domain', $parent_connect_data, '' );
 	}
 	if ( ! array_key_exists( 'connect_id', $parent_connect_data ) ) {
-		$parent_connect_data['connect_id'] = InstaWP_Setting::get_args_option( 'id', $parent_connect_data, '' );
+		$parent_connect_data['connect_id'] = Helper::get_args_option( 'id', $parent_connect_data, '' );
 	}
 
 	$staging_sites[] = $parent_connect_data;

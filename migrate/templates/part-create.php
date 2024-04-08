@@ -3,11 +3,13 @@
  * Migrate template - Create Site
  */
 
+use InstaWP\Connect\Helpers\Helper;
+
 global $instawp_settings;
 
 $nav_item_classes  = array( 'nav-item-content' );
-$migration_details = InstaWP_Setting::get_args_option( 'instawp_migration_details', $instawp_settings );
-$migrate_id        = InstaWP_Setting::get_args_option( 'migrate_id', $migration_details );
+$migration_details = Helper::get_args_option( 'instawp_migration_details', $instawp_settings );
+$migrate_id        = Helper::get_args_option( 'migrate_id', $migration_details );
 
 if ( ! empty( $migrate_id ) ) {
 	$nav_item_classes[] = 'loading';

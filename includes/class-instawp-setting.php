@@ -1,5 +1,8 @@
 <?php
 
+use InstaWP\Connect\Helpers\Curl;
+use InstaWP\Connect\Helpers\Option;
+
 defined( 'ABSPATH' ) || exit;
 
 class InstaWP_Setting {
@@ -59,7 +62,7 @@ class InstaWP_Setting {
 			unset( $instawp_nav_items['manage'] );
 		}
 
-		$instawp_sync_tab_roles = InstaWP_Setting::get_option( 'instawp_sync_tab_roles', array( 'administrator' ) );
+		$instawp_sync_tab_roles = Option::get_option( 'instawp_sync_tab_roles', array( 'administrator' ) );
 		$instawp_sync_tab_roles = empty( $instawp_sync_tab_roles ) ? array( 'administrator' ) : $instawp_sync_tab_roles;
 
 		if ( ! in_array( 'administrator', $instawp_sync_tab_roles ) ) {
@@ -75,7 +78,7 @@ class InstaWP_Setting {
 	public static function get_allowed_role() {
 		$allowed_role = 'administrator';
 
-		foreach ( InstaWP_Setting::get_option( 'instawp_sync_tab_roles', array() ) as $role ) {
+		foreach ( Option::get_option( 'instawp_sync_tab_roles', array() ) as $role ) {
 			if ( current_user_can( $role ) ) {
 				$allowed_role = $role;
 				break;
@@ -113,8 +116,8 @@ class InstaWP_Setting {
 		$field_value = ( $field_name ) ? self::get_args_option( $field_name, $field_value, $field_default_value ) : $field_value;
 		$field_name  = ( $field_name ) ? $field_id . '[' . $field_name . ']' : $field_id;
 
-		if ( true === $internal || 1 == $internal ) {
-			if ( ! isset( $_REQUEST['internal'] ) || '1' != sanitize_text_field( $_REQUEST['internal'] ) ) {
+		if ( $internal ) {
+			if ( ! isset( $_REQUEST['internal'] ) || 1 !== intval( $_REQUEST['internal'] ) ) {
 				return;
 			}
 		}
@@ -123,7 +126,6 @@ class InstaWP_Setting {
 			$attributes[] = $attribute_key . '="' . $attribute_val . '"';
 		}
 
-		$label_attributes = '';
 		$label_class      = 'inline-block text-sm font-medium text-gray-700 mb-3 sm:mt-px sm:pt-2';
 		$label_content    = '<span>' . esc_html( $field_title ) . '</span>';
 		if ( ! empty( $field_tooltip ) ) {
@@ -145,7 +147,7 @@ class InstaWP_Setting {
 		}
 
 		echo '<div class="' . esc_attr( $field_container_class ) . '">';
-		echo '<label for="' . esc_attr( $field_name_class ) . '" class="' . esc_attr( $label_class ) . '"' . $label_attributes . '>' . $label_content . '</label>';
+		echo '<label for="' . esc_attr( $field_name_class ) . '" class="' . esc_attr( $label_class ) . '">' . $label_content . '</label>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 
 		switch ( $field_type ) {
 			case 'text':
@@ -155,7 +157,7 @@ class InstaWP_Setting {
 				$css_class = 'inline-block rounded-md border-grayCust-350 shadow-sm focus:border-primary-900 focus:ring-1 focus:ring-primary-900 sm:text-sm';
 				$css_class = $field_class ? $css_class . ' ' . trim( $field_class ) : 'w-full ' . $css_class;
 
-				echo '<input ' . implode( ' ', $attributes ) . ' type="' . esc_attr( $field_type ) . '" name="' . esc_attr( $field_name ) . '" id="' . esc_attr( $field_name_class ) . '" value="' . esc_attr( $field_value ) . '" autocomplete="off" placeholder="' . esc_attr( $field_placeholder ) . '" class="' . esc_attr( $css_class ) . '" />';
+				echo '<input ' . implode( ' ', $attributes ) . ' type="' . esc_attr( $field_type ) . '" name="' . esc_attr( $field_name ) . '" id="' . esc_attr( $field_name_class ) . '" value="' . esc_attr( $field_value ) . '" autocomplete="off" placeholder="' . esc_attr( $field_placeholder ) . '" class="' . esc_attr( $css_class ) . '" />'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 				break;
 
 			case 'toggle':
@@ -174,7 +176,7 @@ class InstaWP_Setting {
 			case 'select':
 				$css_class = $field_class ? $field_class : '';
 
-				echo '<select ' . implode( ' ', $attributes ) . ' name="' . esc_attr( $field_name ) . '" id="' . esc_attr( $field_name_class ) . '" class="' . esc_attr( $css_class ) . '">';
+				echo '<select ' . implode( ' ', $attributes ) . ' name="' . esc_attr( $field_name ) . '" id="' . esc_attr( $field_name_class ) . '" class="' . esc_attr( $css_class ) . '">'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 				if ( ! empty( $field_placeholder ) ) {
 					echo '<option value="">' . esc_html( $field_placeholder ) . '</option>';
 				}
@@ -187,10 +189,10 @@ class InstaWP_Setting {
 			case 'select2':
 				$css_class = $field_class ? $field_class : '';
 				$css_class .= $remote ? ' instawp_select2_ajax' : ' instawp_select2';
-				if ( $multiple == true ) {
-					array_push( $attributes, 'multiple' );
+				if ( $multiple ) {
+					$attributes[] = 'multiple';
 				}
-				echo '<select ' . ( $remote === true ? 'data-ajax--url="' . admin_url( 'admin-ajax.php?action=' . $action . '&event=' . $event ) . '"' : '' ) . implode( ' ', $attributes ) . ' name="' . esc_attr( $field_name ) . ( $multiple == true ? '[]' : '' ) . '" id="' . esc_attr( $field_name_class ) . '" class="' . esc_attr( $css_class ) . '">';
+				echo '<select ' . ( $remote === true ? 'data-ajax--url="' . esc_url( admin_url( 'admin-ajax.php?action=' . $action . '&event=' . $event ) ) . '"' : '' ) . implode( ' ', $attributes ) . ' name="' . esc_attr( $field_name ) . ( $multiple ? '[]' : '' ) . '" id="' . esc_attr( $field_name_class ) . '" class="' . esc_attr( $css_class ) . '">'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 				if ( ! empty( $field_placeholder ) ) {
 					echo '<option value="">' . esc_html( $field_placeholder ) . '</option>';
 				}
@@ -200,7 +202,7 @@ class InstaWP_Setting {
 					} else {
 						$selected = selected( $field_value, $key, false );
 					}
-					echo '<option ' . $selected . ' value="' . esc_attr( $key ) . '">' . esc_html( $value ) . '</option>';
+					echo '<option ' . $selected . ' value="' . esc_attr( $key ) . '">' . esc_html( $value ) . '</option>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 				}
 				echo '</select>';
 				break;
@@ -233,8 +235,8 @@ class InstaWP_Setting {
 		$can_split       = self::get_args_option( 'split', $section, true );
 		$grid_css_class  = self::get_args_option( 'grid_class', $section, 'grid grid-cols-1 md:grid-cols-2 gap-6' );
 
-		if ( true === $internal || 1 == $internal ) {
-			if ( ! isset( $_REQUEST['internal'] ) || '1' != sanitize_text_field( $_REQUEST['internal'] ) ) {
+		if ( $internal ) {
+			if ( ! isset( $_REQUEST['internal'] ) || 1 !== intval( $_REQUEST['internal'] ) ) {
 				return;
 			}
 		}
@@ -302,7 +304,7 @@ class InstaWP_Setting {
 					'id'          => 'instawp_max_file_size_allowed',
 					'type'        => 'number',
 					'title'       => esc_html__( 'Maximum Allowed File Size', 'instawp-connect' ),
-					'tooltip'     => esc_html__( 'This option will set maximum allowed file size. Default - ' . INSTAWP_DEFAULT_MAX_FILE_SIZE_ALLOWED . ' MB', 'instawp-connect' ),
+					'tooltip'     => sprintf( esc_html__( 'This option will set maximum allowed file size. Default - %s MB', 'instawp-connect' ), INSTAWP_DEFAULT_MAX_FILE_SIZE_ALLOWED ),
 					'placeholder' => esc_attr( INSTAWP_DEFAULT_MAX_FILE_SIZE_ALLOWED ),
 					'attributes'  => array(
 						'min' => '10',
@@ -357,10 +359,9 @@ class InstaWP_Setting {
 
 		// Section - Sync settings
 		$settings['sync_settings'] = array(
-			'title'    => esc_html__( 'Sync Settings', 'instawp-connect' ),
-			'desc'     => esc_html__( 'This section only applicable for the sync settings.', 'instawp-connect' ),
-			'internal' => false,
-			'fields'   => array(
+			'title'  => esc_html__( 'Sync Settings', 'instawp-connect' ),
+			'desc'   => esc_html__( 'This section only applicable for the sync settings.', 'instawp-connect' ),
+			'fields' => array(
 				array(
 					'id'      => 'instawp_default_user',
 					'type'    => 'select2',
@@ -388,7 +389,6 @@ class InstaWP_Setting {
 		$settings['sync_events_settings'] = array(
 			'title'      => esc_html__( 'Sync Events Settings', 'instawp-connect' ),
 			'desc'       => esc_html__( 'This section only applicable for the sync event settings.', 'instawp-connect' ),
-			'internal'   => false,
 			'grid_class' => 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6',
 			'fields'     => array(
 				array(
@@ -501,7 +501,7 @@ class InstaWP_Setting {
 
 	public static function get_management_settings() {
 		$settings  = array();
-		$heartbeat = InstaWP_Setting::get_option( 'instawp_rm_heartbeat', 'on' );
+		$heartbeat = Option::get_option( 'instawp_rm_heartbeat', 'on' );
 		$heartbeat = empty( $heartbeat ) ? 'on' : $heartbeat;
 
 		// Section - Heartbeat
@@ -611,18 +611,14 @@ class InstaWP_Setting {
 		return apply_filters( 'INSTAWP_CONNECT/Filters/management_settings', $settings );
 	}
 
-	public static function get_args_option( $key = '', $args = array(), $default = '' ) {
+	public static function get_args_option( $key = '', $args = array(), $default_value = '' ) {
 
-		$default = is_array( $default ) && empty( $default ) ? array() : $default;
-		$value   = ! is_array( $default ) && ! is_bool( $default ) && empty( $default ) ? '' : $default;
-		$key     = empty( $key ) ? '' : $key;
+		$default_value = is_array( $default_value ) && empty( $default_value ) ? array() : $default_value;
+		$value         = ! is_array( $default_value ) && ! is_bool( $default_value ) && empty( $default_value ) ? '' : $default_value;
+		$key           = empty( $key ) ? '' : $key;
 
-		if ( isset( $args[ $key ] ) && ! empty( $args[ $key ] ) ) {
+		if ( ! empty( $key ) && ! empty( $args[ $key ] ) ) {
 			$value = $args[ $key ];
-		}
-
-		if ( isset( $args[ $key ] ) && is_bool( $default ) ) {
-			$value = ! ( 0 == $args[ $key ] || '' == $args[ $key ] );
 		}
 
 		return $value;
@@ -709,18 +705,16 @@ class InstaWP_Setting {
 		return apply_filters( 'INSTAWP_CONNECT/Filters/get_unsupported_plugins', $unsupported_plugins );
 	}
 
-	public static function instawp_generate_api_key( $api_key, $status ) {
+	public static function instawp_generate_api_key( $api_key ) {
 
-		if ( empty( $api_key ) || 'true' != $status ) {
-			error_log( 'instawp_generate_api_key empty api_key or status is not true' );
-
+		if ( empty( $api_key ) ) {
+			error_log( 'instawp_generate_api_key empty api_key parameter' );
 			return false;
 		}
 
-		$api_response = InstaWP_Curl::do_curl( 'check-key', array(), array(), false, 'v1', $api_key );
+		$api_response = Curl::do_curl( 'check-key', array(), array(), false, 'v1', $api_key );
 
-		if ( isset( $api_response['data']['status'] ) && $api_response['data']['status'] == 1 ) {
-
+		if ( ! empty( $api_response['data']['status'] ) ) {
 			$api_options = self::get_option( 'instawp_api_options', array() );
 
 			if ( is_array( $api_options ) && is_array( $api_response['data'] ) ) {
@@ -730,8 +724,7 @@ class InstaWP_Setting {
 				) ) );
 			}
 		} else {
-			error_log( 'instawp_generate_api_key error, response from check-key api: ' . json_encode( $api_response ) );
-
+			error_log( 'instawp_generate_api_key error, response from check-key api: ' . wp_json_encode( $api_response ) );
 			return false;
 		}
 
@@ -739,13 +732,14 @@ class InstaWP_Setting {
 		$connect_body     = array(
 			'url'         => get_site_url(),
 			'php_version' => $php_version,
-			'username'    => base64_encode( InstaWP_Tools::get_admin_username() ),
+			'username'    => base64_encode( InstaWP_Tools::get_admin_username() ), // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
 		);
-		$connect_response = InstaWP_Curl::do_curl( 'connects', $connect_body, array(), true, 'v1' );
+		$connect_response = Curl::do_curl( 'connects', $connect_body, array(), true, 'v1' );
 
-		if ( isset( $connect_response['data']['status'] ) && $connect_response['data']['status'] == 1 ) {
-			if ( isset( $connect_response['data']['id'] ) && ! empty( $connect_id = $connect_response['data']['id'] ) ) {
+		if ( ! empty( $connect_response['data']['status'] ) ) {
+			$connect_id = ! empty( $connect_response['data']['id'] ) ? intval( $connect_response['data']['id'] ) : '';
 
+			if ( $connect_id ) {
 				// set connect id
 				self::set_connect_id( $connect_id );
 
@@ -753,20 +747,18 @@ class InstaWP_Setting {
 				instawp_send_heartbeat( $connect_id );
 			} else {
 				error_log( 'instawp_generate_api_key connect id not found in response.' );
-
 				return false;
 			}
 		} else {
-			error_log( 'instawp_generate_api_key error, response from connects api: ' . json_encode( $connect_response ) );
-
+			error_log( 'instawp_generate_api_key error, response from connects api: ' . wp_json_encode( $connect_response ) );
 			return false;
 		}
 
 		return true;
 	}
 
-	public static function get_option( $option_name, $default = array() ) {
-		return get_option( $option_name, $default );
+	public static function get_option( $option_name, $default_value = array() ) {
+		return get_option( $option_name, $default_value );
 	}
 
 	public static function update_option( $option_name, $option_value, $autoload = false ) {
@@ -778,15 +770,15 @@ class InstaWP_Setting {
 	}
 
 	public static function get_select2_default_selected_option( $option ) {
-		if ( $option == 'instawp_default_user' ) {
+		if ( $option = 'instawp_default_user' ) {
 			$user = get_user_by( 'ID', self::get_option( $option ) );
 			if ( ! empty( $user ) ) {
 				return array( $user->data->ID => $user->data->user_login );
 			}
-		} elseif ( $option == 'instawp_sync_tab_roles' ) {
+		} elseif ( $option === 'instawp_sync_tab_roles' ) {
 			$role_options   = array();
 			$all_roles      = wp_roles()->roles;
-			$selected_roles = InstaWP_Setting::get_option( $option );
+			$selected_roles = Option::get_option( $option );
 			foreach ( $selected_roles as $role ) {
 				$role_options[ $role ] = isset( $all_roles[ $role ] ) ? $all_roles[ $role ]['name'] : $role;
 			}

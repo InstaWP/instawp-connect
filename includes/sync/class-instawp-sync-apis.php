@@ -8,6 +8,8 @@
  * @subpackage instawp/includes
  */
 
+use InstaWP\Connect\Helpers\Curl;
+
 defined( 'ABSPATH' ) || exit;
 
 if ( ! class_exists( 'InstaWP_Rest_Api' ) ) {
@@ -16,18 +18,12 @@ if ( ! class_exists( 'InstaWP_Rest_Api' ) ) {
 
 class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 
-	private $wpdb;
-
 	private $tables;
 
 	private $logs = array();
 
 	public function __construct() {
 		parent::__construct();
-
-		global $wpdb;
-
-		$this->wpdb   = $wpdb;
 		$this->tables = InstaWP_Sync_DB::$tables;
 
 		add_action( 'rest_api_init', array( $this, 'add_api_routes' ) );
@@ -93,6 +89,8 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 			return $this->throw_error( $response );
 		}
 
+		global $wpdb;
+
 		$body    = $req->get_body();
 		$bodyArr = json_decode( $body );
 
@@ -124,8 +122,8 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 			$progress_status = ( $progress > 100 ) ? 'in_progress' : 'completed';
 
 			foreach ( $encrypted_contents as $v ) {
-				$has_log = $this->wpdb->get_var(
-					$this->wpdb->prepare( "SELECT id FROM " . INSTAWP_DB_TABLE_EVENT_SYNC_LOGS . " WHERE event_hash=%s AND status=%s", $v->event_hash, 'completed' )
+				$has_log = $wpdb->get_var(
+					$wpdb->prepare( "SELECT id FROM %s WHERE event_hash=%s AND status=%s", INSTAWP_DB_TABLE_EVENT_SYNC_LOGS, $v->event_hash, 'completed' )
 				);
 
 				if ( $has_log ) {
@@ -260,7 +258,7 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 		$connect_id = instawp_get_connect_id();
 
 		// connects/<connect_id>/syncs/<sync_id>
-		return InstaWP_Curl::do_curl( "connects/{$connect_id}/syncs/{$sync_id}", $data, array(), 'patch' );
+		return Curl::do_curl( "connects/{$connect_id}/syncs/{$sync_id}", $data, array(), 'patch' );
 	}
 }
 

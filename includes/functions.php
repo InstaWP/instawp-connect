@@ -4,6 +4,10 @@
  */
 
 
+use InstaWP\Connect\Helpers\Curl;
+use InstaWP\Connect\Helpers\Helper;
+use InstaWP\Connect\Helpers\Option;
+
 if ( ! function_exists( 'instawp_create_db_tables' ) ) {
 	/**
 	 * @return void
@@ -90,13 +94,13 @@ if ( ! function_exists( 'instawp_alter_db_tables' ) ) {
 	function instawp_alter_db_tables() {
 		global $wpdb;
 
-		foreach ( array( INSTAWP_DB_TABLE_EVENTS, INSTAWP_DB_TABLE_EVENTS, INSTAWP_DB_TABLE_SYNC_HISTORY ) as $table_name ) {
+		foreach ( array( INSTAWP_DB_TABLE_EVENTS, INSTAWP_DB_TABLE_EVENTS, INSTAWP_DB_TABLE_EVENT_SYNC_LOGS ) as $table_name ) {
 			$has_col = $wpdb->get_results(
 				$wpdb->prepare( "SELECT `COLUMN_NAME` FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `table_name`=%s AND `TABLE_SCHEMA`=%s AND `COLUMN_NAME`=%s", $table_name, $wpdb->dbname, 'event_hash' )
 			);
 
 			if ( empty( $has_col ) ) {
-				$wpdb->query( "ALTER TABLE " . $table_name . " ADD `event_hash` varchar(50) NOT NULL AFTER `id`" );
+				$wpdb->query( "ALTER TABLE " . $table_name . " ADD `event_hash` varchar(50) NOT NULL AFTER `id`" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 			}
 		}
 
@@ -106,7 +110,7 @@ if ( ! function_exists( 'instawp_alter_db_tables' ) ) {
 		);
 
 		if ( empty( $has_col ) ) {
-			$wpdb->query( "ALTER TABLE " . $table_name . " ADD `status` varchar(50) NOT NULL DEFAULT 'pending' AFTER `data`" );
+			$wpdb->query( "ALTER TABLE " . $table_name . " ADD `status` varchar(50) NOT NULL DEFAULT 'pending' AFTER `data`" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		}
 	}
 }
@@ -140,8 +144,8 @@ if ( ! function_exists( 'instawp_update_migration_stages' ) ) {
 	 */
 	function instawp_update_migration_stages( $stages = array(), $migrate_id = '', $migrate_key = '' ) {
 
-		$migrate_id  = empty( $migrate_id ) ? InstaWP_Setting::get_option( 'migrate_id' ) : $migrate_id;
-		$migrate_key = empty( $migrate_key ) ? InstaWP_Setting::get_option( 'migrate_key' ) : $migrate_key;
+		$migrate_id  = empty( $migrate_id ) ? Option::get_option( 'migrate_id' ) : $migrate_id;
+		$migrate_key = empty( $migrate_key ) ? Option::get_option( 'migrate_key' ) : $migrate_key;
 
 		if ( empty( $stages ) || ! is_array( $stages ) || empty( $migrate_id ) || empty( $migrate_key ) ) {
 			return false;
@@ -151,9 +155,9 @@ if ( ! function_exists( 'instawp_update_migration_stages' ) ) {
 			'migrate_key' => $migrate_key,
 			'stage'       => $stages,
 		);
-		$stage_response = InstaWP_Curl::do_curl( 'migrates-v3/' . $migrate_id . '/update-status', $stage_args );
+		$stage_response = Curl::do_curl( 'migrates-v3/' . $migrate_id . '/update-status', $stage_args );
 
-		return (bool) InstaWP_Setting::get_args_option( 'success', $stage_response, true );
+		return (bool) Helper::get_args_option( 'success', $stage_response, true );
 	}
 }
 
@@ -170,14 +174,14 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 	function instawp_reset_running_migration( $reset_type = 'soft', $abort_forcefully = false ) {
 		global $wpdb;
 
-		$migration_details = InstaWP_Setting::get_option( 'instawp_migration_details', array() );
-		$migrate_id        = InstaWP_Setting::get_args_option( 'migrate_id', $migration_details );
-		$migrate_key       = InstaWP_Setting::get_args_option( 'migrate_key', $migration_details );
+		$migration_details = Option::get_option( 'instawp_migration_details', array() );
+		$migrate_id        = Helper::get_args_option( 'migrate_id', $migration_details );
+		$migrate_key       = Helper::get_args_option( 'migrate_key', $migration_details );
 
 		// Delete migration details
 		delete_option( 'instawp_migration_details' );
 
-		$reset_type = empty( $reset_type ) ? InstaWP_Setting::get_option( 'instawp_reset_type', 'soft' ) : $reset_type;
+		$reset_type = empty( $reset_type ) ? Option::get_option( 'instawp_reset_type', 'soft' ) : $reset_type;
 
 		if ( ! in_array( $reset_type, array( 'soft', 'hard' ) ) ) {
 			return false;
@@ -190,18 +194,18 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 
 		foreach ( $files_to_delete as $file ) {
 			if ( is_file( $instawp_backup_dir . $file ) ) {
-				@unlink( $instawp_backup_dir . $file );
+				wp_delete_file( $instawp_backup_dir . $file );
 			}
 		}
-
-		@unlink( ABSPATH . 'fwd.php' );
-		@unlink( ABSPATH . 'dest.php' );
+		wp_delete_file( ABSPATH . 'fwd.php' );
+		wp_delete_file( ABSPATH . 'dest.php' );
+		wp_delete_file( ABSPATH . 'iwp_log.txt' );
 
 		$wpdb->query( "DROP TABLE IF EXISTS `iwp_db_sent`;" );
 		$wpdb->query( "DROP TABLE IF EXISTS `iwp_files_sent`;" );
 		$wpdb->query( "DROP TABLE IF EXISTS `iwp_options`;" );
 
-		if ( 'hard' == $reset_type ) {
+		if ( 'hard' === $reset_type ) {
 			delete_option( 'instawp_backup_part_size' );
 			delete_option( 'instawp_max_file_size_allowed' );
 			delete_option( 'instawp_reset_type' );
@@ -232,7 +236,7 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 
 		if ( $abort_forcefully === true && ! empty( $migrate_id ) && ! empty( $migrate_key ) ) {
 
-			$response = InstaWP_Curl::do_curl( "migrates-v3/{$migrate_id}/update-status",
+			$response = Curl::do_curl( "migrates-v3/{$migrate_id}/update-status",
 				array(
 					'migrate_key'    => $migrate_key,
 					'stage'          => array( 'aborted' => true ),
@@ -241,7 +245,7 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 			);
 
 			if ( isset( $response['success'] ) && ! $response['success'] ) {
-				error_log( json_encode( $response ) );
+				//error_log( wp_json_encode( $response ) );
 			}
 		}
 
@@ -262,15 +266,15 @@ if ( ! function_exists( 'instawp_is_website_on_local' ) ) {
 			return false;
 		}
 
-		$http_host       = isset( $_SERVER['HTTP_HOST'] ) ? $_SERVER['HTTP_HOST'] : '';
-		$remote_address  = isset( $_SERVER['REMOTE_ADDR'] ) ? $_SERVER['REMOTE_ADDR'] : '';
+		$http_host       = isset( $_SERVER['HTTP_HOST'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_HOST'] ) ) : '';
+		$remote_address  = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
 		$local_addresses = array(
 			'127.0.0.1',
 			'::1',
 		);
 		$local_addresses = apply_filters( 'INSTAWP_CONNECT/Filters/local_addresses', $local_addresses );
 
-		return ( $http_host == 'localhost' || in_array( $remote_address, $local_addresses ) );
+		return ( $http_host === 'localhost' || in_array( $remote_address, $local_addresses ) );
 	}
 }
 
@@ -282,7 +286,7 @@ if ( ! function_exists( 'instawp_get_connect_id' ) ) {
 	 * @return int
 	 */
 	function instawp_get_connect_id() {
-		return InstaWP_Setting::get_connect_id();
+		return Helper::get_connect_id();
 	}
 }
 
@@ -328,10 +332,10 @@ if ( ! function_exists( 'instawp_get_staging_sites_list' ) ) {
 if ( ! function_exists( 'instawp_set_staging_sites_list' ) ) {
 	function instawp_set_staging_sites_list() {
 
-		$api_response = InstaWP_Curl::do_curl( 'connects/' . instawp_get_connect_id() . '/staging-sites', array(), array(), false );
+		$api_response = Curl::do_curl( 'connects/' . instawp_get_connect_id() . '/staging-sites', array(), array(), false );
 
 		if ( $api_response['success'] ) {
-			$staging_sites = InstaWP_Setting::get_args_option( 'data', $api_response, array() );
+			$staging_sites = Helper::get_args_option( 'data', $api_response, array() );
 
 			foreach ( $staging_sites as $key => $staging_site ) {
 				$staging_site_data = instawp_get_connect_detail_by_connect_id( $staging_site['connect_id'] );
@@ -371,7 +375,7 @@ if ( ! function_exists( 'instawp_get_database_details' ) ) {
 
 			if ( $sort_by === 'descending' ) {
 				usort( $tables, function ( $item1, $item2 ) {
-					if ( $item1['size'] == $item2['size'] ) {
+					if ( $item1['size'] === $item2['size'] ) {
 						return 0;
 					}
 
@@ -379,7 +383,7 @@ if ( ! function_exists( 'instawp_get_database_details' ) ) {
 				} );
 			} elseif ( $sort_by === 'ascending' ) {
 				usort( $tables, function ( $item1, $item2 ) {
-					if ( $item1['size'] == $item2['size'] ) {
+					if ( $item1['size'] === $item2['size'] ) {
 						return 0;
 					}
 
@@ -398,7 +402,6 @@ if ( ! function_exists( 'instawp_get_dir_contents' ) ) {
 	 * Get directory content.
 	 */
 	function instawp_get_dir_contents( $dir = '/', $sort_by = false, $add_root_path = true ) {
-
 		$dir = $add_root_path ? instawp_get_root_path() . $dir : $dir;
 
 		return instawp()->get_directory_contents( $dir, $sort_by );
@@ -408,7 +411,7 @@ if ( ! function_exists( 'instawp_get_dir_contents' ) ) {
 
 if ( ! function_exists( 'instawp_get_root_path' ) ) {
 	function instawp_get_root_path() {
-		$root_path = $_SERVER['DOCUMENT_ROOT'];
+		$root_path = ! empty( $_SERVER['DOCUMENT_ROOT'] ) ? $_SERVER['DOCUMENT_ROOT'] : ABSPATH; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 		$root_path = rtrim( $root_path, '\\/' );
 
 		return str_replace( '\\', '/', $root_path );
@@ -542,7 +545,7 @@ if ( ! function_exists( 'instawp_get_source_site_detail' ) ) {
 			return;
 		}
 
-		if ( ! empty( InstaWP_Setting::get_option( 'instawp_sync_parent_connect_data' ) ) ) {
+		if ( ! empty( Option::get_option( 'instawp_sync_parent_connect_data' ) ) ) {
 			return;
 		}
 
@@ -566,10 +569,10 @@ if ( ! function_exists( 'instawp_get_connect_detail_by_connect_id' ) ) {
 		// connects/<connect_id>
 		$response        = array();
 		$site_connect_id = instawp_get_connect_id();
-		$api_response    = InstaWP_Curl::do_curl( 'connects/' . $site_connect_id . '/connected-sites', array(), array(), false );
+		$api_response    = Curl::do_curl( 'connects/' . $site_connect_id . '/connected-sites', array(), array(), false );
 
 		if ( $api_response['success'] ) {
-			$api_response = InstaWP_Setting::get_args_option( 'data', $api_response, array() );
+			$api_response = Helper::get_args_option( 'data', $api_response, array() );
 
 			if ( isset( $api_response['is_parent'] ) ) {
 				$response = $api_response['is_parent'] ? $api_response['parent'] : $api_response['children'];
@@ -647,7 +650,7 @@ if ( ! function_exists( 'instawp_send_connect_log' ) ) {
 		);
 
 		// connects/<connect_id>/logs
-		$log_response = InstaWP_Curl::do_curl( "connects/{$connect_id}/logs", $log_args );
+		$log_response = Curl::do_curl( "connects/{$connect_id}/logs", $log_args );
 
 		if ( isset( $log_response['success'] ) && $log_response['success'] ) {
 			return true;
@@ -683,7 +686,7 @@ if ( ! function_exists( 'instawp_get_user_to_login' ) ) {
 		if ( username_exists( $username ) ) {
 			$user_to_login = get_user_by( 'login', $username );
 			$message       = esc_html__( 'Login information for the given username', 'instawp-connect' );
-		} elseif ( ! empty( $default_username = InstaWP_Setting::get_option( 'instawp_default_username' ) ) && ! empty( $default_username ) ) {
+		} elseif ( ! empty( $default_username = Option::get_option( 'instawp_default_username' ) ) && ! empty( $default_username ) ) {
 			$user_to_login = get_user_by( 'login', $default_username );
 			$message       = esc_html__( 'Login information for the given username didn\'t found, You are going to login with default login username.', 'instawp-connect' );
 		} else {
@@ -752,7 +755,7 @@ if ( ! function_exists( 'instawp_add_dir_to_phar' ) ) {
 		$handle = opendir( $fullDir );
 
 		while ( false !== ( $entry = readdir( $handle ) ) ) {
-			if ( $entry != '.' && $entry != '..' ) {
+			if ( $entry !== '.' && $entry !== '..' ) {
 				$fullPath  = $fullDir . '/' . $entry;
 				$localName = $dir . '/' . $entry;
 
@@ -781,10 +784,16 @@ if ( ! function_exists( 'instawp_zip_folder_with_phar' ) ) {
 	 * @throws Exception
 	 */
 	function instawp_zip_folder_with_phar( $source, $destination, array $skipDirs = array() ) {
+		global $wp_filesystem;
+
+		// Make sure that the above variable is properly setup.
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+		WP_Filesystem();
+
 		$source = rtrim( $source, '/' );
 
 		if ( ! file_exists( $source ) ) {
-			throw new Exception( "Source directory does not exist: $source" );
+			throw new Exception( "Source directory does not exist: " . esc_html( $source ) );
 		}
 
 		// Prepare full paths for directories to skip
@@ -802,10 +811,10 @@ if ( ! function_exists( 'instawp_zip_folder_with_phar' ) ) {
 		$phar->compress( Phar::GZ );
 
 		// Clean up the .tar file
-		unlink( $destination . '.tar' );
+		wp_delete_file( $destination . '.tar' );
 
 		// Rename .tar.gz to .zip
-		rename( $destination . '.tar.gz', $destination );
+		instawp_get_fs()->move( $destination . '.tar.gz', $destination );
 	}
 }
 
@@ -838,5 +847,18 @@ if ( ! function_exists( 'instawp_array_recursive_diff' ) ) {
 		}
 
 		return $diff;
+	}
+}
+
+if ( ! function_exists( 'instawp_get_fs' ) ) {
+	function instawp_get_fs() {
+		global $wp_filesystem;
+
+		if ( empty( $wp_filesystem ) ) {
+			require_once ABSPATH . '/wp-admin/includes/file.php';
+			WP_Filesystem();
+		}
+
+		return $wp_filesystem;
 	}
 }

@@ -3,15 +3,18 @@
  * InstaWP Migration Process
  */
 
+use InstaWP\Connect\Helpers\Helper;
+use InstaWP\Connect\Helpers\Option;
+
 defined( 'ABSPATH' ) || exit;
 
-if ( ! class_exists( 'INSTAWP_Migration' ) ) {
-	class INSTAWP_Migration {
+if ( ! class_exists( 'InstaWP_Migration' ) ) {
+	class InstaWP_Migration {
 
 		protected static $_instance = null;
 
 		/**
-		 * INSTAWP_Migration Constructor
+		 * InstaWP_Migration Constructor
 		 */
 		public function __construct() {
 
@@ -26,61 +29,72 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 		}
 
 
-		function reset_plugin() {
+		public function reset_plugin() {
+			check_ajax_referer( 'instawp-connect', 'security' );
 
-			$reset_type = isset( $_POST['reset_type'] ) ? sanitize_text_field( $_POST['reset_type'] ) : '';
-			$reset_type = empty( $reset_type ) ? InstaWP_Setting::get_option( 'instawp_reset_type', 'soft' ) : $reset_type;
+			if ( ! current_user_can( 'manage_options' ) ) {
+				wp_send_json_error( array( 'message' => esc_html__( 'Permission denied.', 'instawp-connect' ) ) );
+			}
+
+			$reset_type = isset( $_POST['reset_type'] ) ? sanitize_text_field( wp_unslash( $_POST['reset_type'] ) ) : '';
+			$reset_type = empty( $reset_type ) ? Option::get_option( 'instawp_reset_type', 'soft' ) : $reset_type;
 
 			if ( ! in_array( $reset_type, array( 'soft', 'hard' ) ) ) {
-				wp_send_json_error( array( 'message' => esc_html__( 'Invalid reset type.' ) ) );
+				wp_send_json_error( array( 'message' => esc_html__( 'Invalid reset type.', 'instawp-connect' ) ) );
 			}
 
 			if ( ! instawp_reset_running_migration( $reset_type ) ) {
-				wp_send_json_error( array( 'message' => esc_html__( 'Plugin reset unsuccessful.' ) ) );
+				wp_send_json_error( array( 'message' => esc_html__( 'Plugin reset unsuccessful.', 'instawp-connect' ) ) );
 			}
 
-			wp_send_json_success( array( 'message' => esc_html__( 'Plugin reset successfully.' ) ) );
+			wp_send_json_success( array( 'message' => esc_html__( 'Plugin reset successfully.', 'instawp-connect' ) ) );
 		}
 
 
-		function connect_api_url() {
+		public function connect_api_url() {
+			check_ajax_referer( 'instawp-connect', 'security' );
 
-			$return_url      = urlencode( admin_url( 'tools.php?page=instawp' ) );
-			$connect_api_url = InstaWP_Setting::get_api_domain() . '/authorize?source=InstaWP Connect&return_url=' . $return_url;
+			if ( ! current_user_can( 'manage_options' ) ) {
+				wp_send_json_error( array( 'message' => esc_html__( 'Permission denied.', 'instawp-connect' ) ) );
+			}
+
+			$return_url      = rawurlencode( admin_url( 'tools.php?page=instawp' ) );
+			$connect_api_url = Helper::get_api_domain() . '/authorize?source=InstaWP Connect&return_url=' . $return_url;
 
 			wp_send_json_success( array( 'connect_url' => $connect_api_url ) );
 		}
 
 
-		function update_settings() {
+		public function update_settings() {
 
-			$_form_data = isset( $_REQUEST['form_data'] ) ? wp_kses_post( $_REQUEST['form_data'] ) : '';
+			$_form_data = isset( $_REQUEST['form_data'] ) ? wp_kses_post( wp_unslash( $_REQUEST['form_data'] ) ) : '';
 			$_form_data = str_replace( 'amp;', '', $_form_data );
 
 			parse_str( $_form_data, $form_data );
 
-			$settings_nonce = InstaWP_Setting::get_args_option( 'instawp_settings_nonce', $form_data );
+			$settings_nonce = Helper::get_args_option( 'instawp_settings_nonce', $form_data );
 
 			if ( ! wp_verify_nonce( $settings_nonce, 'instawp_settings_nonce_action' ) ) {
-				wp_send_json_error( array( 'message' => esc_html__( 'Failed. Please try again reloading the page.' ) ) );
+				wp_send_json_error( array( 'message' => esc_html__( 'Failed. Please try again reloading the page.', 'instawp-connect' ) ) );
 			}
 
 			foreach ( InstaWP_Setting::get_migrate_settings_fields() as $field_id ) {
 				if ( ! isset( $form_data[ $field_id ] ) ) {
 					continue;
 				}
-				$field_value = InstaWP_Setting::get_args_option( $field_id, $form_data );
+				$field_value = Helper::get_args_option( $field_id, $form_data );
 
 				if ( 'instawp_api_options' === $field_id ) {
-					$api_key     = InstaWP_Setting::get_args_option( 'api_key', $field_value );
-					$api_options = InstaWP_Setting::get_option( 'instawp_api_options', array() );
-					$old_api_key = InstaWP_Setting::get_args_option( 'api_key', $api_options );
+					$api_key     = Helper::get_args_option( 'api_key', $field_value );
+					$api_options = Option::get_option( 'instawp_api_options', array() );
+					$old_api_key = Helper::get_args_option( 'api_key', $api_options );
 
-					if ( ! empty( $api_key ) && $api_key != $old_api_key ) {
-						$api_key_check_response = InstaWP_Rest_Api::config_check_key( $api_key );
-	
-						if ( isset( $api_key_check_response['error'] ) && $api_key_check_response['error'] == 1 ) {
-							wp_send_json_error( array( 'message' => InstaWP_Setting::get_args_option( 'message', $api_key_check_response, esc_html__( 'Error. Invalid API Key', 'instawp-connect' ) ) ) );
+					if ( ! empty( $api_key ) && $api_key !== $old_api_key ) {
+						$api_key_check_response = InstaWP_Setting::instawp_generate_api_key( $api_key );
+						if ( ! $api_key_check_response ) {
+							wp_send_json_error( array(
+								'message' => esc_html__( 'Error. Invalid API Key', 'instawp-connect' ),
+							) );
 						}
 						continue;
 					}
@@ -89,11 +103,11 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 				InstaWP_Setting::update_option( $field_id, $field_value );
 			}
 
-			wp_send_json_success( array( 'message' => esc_html__( 'Success. Settings updated.' ) ) );
+			wp_send_json_success( array( 'message' => esc_html__( 'Success. Settings updated.', 'instawp-connect' ) ) );
 		}
 
 		/**
-		 * @return INSTAWP_Migration
+		 * @return InstaWP_Migration
 		 */
 		public static function instance() {
 
@@ -106,6 +120,4 @@ if ( ! class_exists( 'INSTAWP_Migration' ) ) {
 	}
 }
 
-INSTAWP_Migration::instance();
-
-
+InstaWP_Migration::instance();

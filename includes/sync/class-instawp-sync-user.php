@@ -66,10 +66,10 @@ class InstaWP_Sync_User {
 		$reassign_details = null;
 		if ( $reassign ) {
 			$reassign_user    = get_user_by( 'id', $reassign );
-			$reassign_details = [
+			$reassign_details = array(
 				'user_data'    => $reassign_user->data,
-				'reference_id' => InstaWP_Sync_Helpers::get_user_reference_id( $reassign )
-			];
+				'reference_id' => InstaWP_Sync_Helpers::get_user_reference_id( $reassign ),
+			);
 		}
 
 		$event_name   = __( 'User deleted', 'instawp-connect' );
@@ -92,7 +92,7 @@ class InstaWP_Sync_User {
 	 * @return void
 	 */
 	public function profile_update( $user_id ) {
-		if ( ! isset( $_POST['submit'] ) || ! InstaWP_Sync_Helpers::can_sync( 'user' ) ) {
+		if ( ! InstaWP_Sync_Helpers::can_sync( 'user' ) ) {
 			return;
 		}
 
@@ -107,8 +107,6 @@ class InstaWP_Sync_User {
 			'reference_id' => $reference_id,
 			'db_prefix'    => InstaWP_Sync_DB::prefix(),
 		);
-
-		error_log(print_r($details,1));
 
 		InstaWP_Sync_DB::insert_update_event( $event_name, 'profile_update', 'users', $reference_id, $user_data->data->user_login, $details );
 	}
@@ -194,7 +192,7 @@ class InstaWP_Sync_User {
 		$get_users_by_reference_id = get_users( array(
 			'meta_key'   => 'instawp_event_user_sync_reference_id',
 			'meta_value' => $reference_id,
-			'fields'     => 'ID'
+			'fields'     => 'ID',
 		) );
 		$user_id = ! empty( $get_users_by_reference_id[0] ) ? $get_users_by_reference_id[0] : null;
 

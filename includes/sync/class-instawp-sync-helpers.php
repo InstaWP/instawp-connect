@@ -9,13 +9,15 @@
  * @subpackage instaWP/admin
  */
 /**
- * This file is used for change event traking
+ * This file is used for change event tracking
  *
  * @since      1.0
  * @package    instawp
  * @subpackage instawp/admin
  * @author     instawp team
  */
+
+use InstaWP\Connect\Helpers\Option;
 
 defined( 'ABSPATH' ) || die;
 
@@ -112,7 +114,7 @@ class InstaWP_Sync_Helpers {
 			$attachment_urls = array_unique( $match[0] );
 
 			foreach ( $attachment_urls as $attachment_url ) {
-				if ( strpos( $attachment_url, $_SERVER['HTTP_HOST'] ) !== false ) {
+				if ( ! empty( $_SERVER['HTTP_HOST'] ) && strpos( $attachment_url, sanitize_text_field( wp_unslash( $_SERVER['HTTP_HOST'] ) ) ) !== false ) {
 					$full_attachment_url = preg_replace( '~-[0-9]+x[0-9]+.~', '.', $attachment_url );
 					$attachment_data     = self::url_to_attachment( $full_attachment_url );
 
@@ -133,9 +135,9 @@ class InstaWP_Sync_Helpers {
 
 		if ( $attachment_id === 0 ) {
 			$post_name = sanitize_title( pathinfo( $attachment_url, PATHINFO_FILENAME ) );
-
-			$sql     = $wpdb->prepare( "SELECT ID FROM {$wpdb->posts} WHERE post_type='attachment' AND post_name = '%s'", $post_name );
-			$results = $wpdb->get_results( $sql );
+			$results   = $wpdb->get_results(
+				$wpdb->prepare( "SELECT ID FROM {$wpdb->posts} WHERE post_type='attachment' AND post_name=%s", $post_name )
+			);
 
 			if ( $results ) {
 				$attachment_id = reset( $results )->ID;
@@ -171,23 +173,23 @@ class InstaWP_Sync_Helpers {
 	 */
 	public static function is_enabled( $key ) {
 		$default = ( 'option' === $key ) ? 'off' : 'on';
-		$value   = InstaWP_Setting::get_option( 'instawp_sync_' . $key, $default );
+		$value   = Option::get_option( 'instawp_sync_' . $key, $default );
 		$value   = empty( $value ) ? $default : $value;
 
 		return 'on' === $value;
 	}
 
-	public static function object_to_array( $object ) {
-		if ( is_object( $object ) || is_array( $object ) ) {
+	public static function object_to_array( $object_or_array ) {
+		if ( is_object( $object_or_array ) || is_array( $object_or_array ) ) {
 			$result = array();
-			foreach ( $object as $key => $value ) {
+			foreach ( $object_or_array as $key => $value ) {
 				$result[ $key ] = self::object_to_array( $value );
 			}
 
 			return $result;
 		}
 
-		return $object;
+		return $object_or_array;
 	}
 
 	public static function attachment_to_string( $attachment_id, $size = 'thumbnail', $parent_check = false ) {
@@ -202,7 +204,7 @@ class InstaWP_Sync_Helpers {
 
 		$image_info   = pathinfo( $image_path );
 		$file_type    = wp_check_filetype( $image_info['basename'], null );
-		$image_string = base64_encode( file_get_contents( $image_path ) );
+		$image_string = base64_encode( file_get_contents( $image_path ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode, WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 		$attachment   = get_post( $attachment_id );
 
 		$image_info['reference_id'] = self::get_post_reference_id( $attachment_id );
@@ -228,12 +230,12 @@ class InstaWP_Sync_Helpers {
 
 		$attachment = self::get_post_by_reference( 'attachment', $data['reference_id'], $data['post_name'] );
 		if ( ! $attachment ) {
-			$image_data = base64_decode( $data['base_data'] );
+			$image_data = base64_decode( $data['base_data'] ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
 			$upload_dir = wp_upload_dir();
 			$file_name  = wp_unique_filename( $upload_dir['path'], $data['basename'] );
 			$save_path  = $upload_dir['path'] . DIRECTORY_SEPARATOR . $file_name;
 
-			file_put_contents( $save_path, $image_data );
+			instawp_get_fs()->put_contents( $save_path, $image_data );
 
 			$attachment = array(
 				'post_mime_type' => $data['file_type'],
@@ -308,6 +310,30 @@ class InstaWP_Sync_Helpers {
 			$elementor_css = array();
 			add_post_meta( $post_id, '_elementor_css', $elementor_css );
 		}
+
+		$bricks_meta = array( '_bricks_page_content_2', '_bricks_page_header_2', '_bricks_page_footer_2' );
+
+		// Bricks
+		add_action( 'init', function () use ( $bricks_meta ) {
+			if ( class_exists( '\Bricks\Ajax' ) ) {
+				$class = new \Bricks\Ajax();
+				remove_filter( 'update_post_metadata', array( $class, 'update_bricks_postmeta' ) );
+
+				foreach ( $bricks_meta as $bricks_meta_key ) {
+					remove_filter( 'sanitize_post_meta_' . $bricks_meta_key, array(
+						$class,
+						'sanitize_bricks_postmeta',
+					), 10 );
+				}
+			}
+		} );
+
+		// Bricks
+		add_filter( 'update_post_metadata', function ( $check, $object_id, $meta_key, $meta_value, $prev_value ) use ( $bricks_meta ) {
+			$is_bricks_postmeta = in_array( $meta_key, $bricks_meta, true );
+
+			return $is_bricks_postmeta ? null : $check;
+		}, 9999, 5 );
 
 		foreach ( $meta_data as $meta_key => $values ) {
 			$value = $values[0];
@@ -410,10 +436,10 @@ class InstaWP_Sync_Helpers {
 		$post_content       = isset( $post->post_content ) ? $post->post_content : '';
 		$post_parent_id     = $post->post_parent;
 		$reference_id       = self::get_post_reference_id( $post->ID );
-		$post->post_content = base64_encode( $post_content );
+		$post->post_content = base64_encode( $post_content ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
 
 		if ( $post_before ) {
-			$post_before->post_content = base64_encode( $post_before->post_content );
+			$post_before->post_content = base64_encode( $post_before->post_content ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
 			$post_object               = ( object ) instawp_array_recursive_diff( ( array ) $post, ( array ) $post_before );
 			$post_object->post_name    = $post->post_name;
 			$post_object->post_status  = $post->post_status;
@@ -492,7 +518,7 @@ class InstaWP_Sync_Helpers {
 			unset( $post['post_author'] );
 			$post_id = wp_update_post( self::prepare_post_data( $post, $destination_post->ID ) );
 		} else {
-			$default_post_user = InstaWP_Setting::get_option( 'instawp_default_user' );
+			$default_post_user = Option::get_option( 'instawp_default_user' );
 			if ( ! empty( $default_post_user ) ) {
 				$post['post_author'] = $default_post_user;
 			}
@@ -512,7 +538,7 @@ class InstaWP_Sync_Helpers {
 		unset( $post['ID'], $post['guid'] );
 
 		if ( isset( $post['post_content'] ) ) {
-			$post['post_content'] = base64_decode( $post['post_content'] );
+			$post['post_content'] = base64_decode( $post['post_content'] ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
 		}
 
 		if ( $post_id ) {

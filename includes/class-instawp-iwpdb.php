@@ -1,5 +1,6 @@
 <?php
 
+// phpcs:disable
 class IWPDB {
 
 	/**
@@ -131,17 +132,33 @@ class IWPDB {
 	}
 
 	public function create_require_tables() {
-		$this->query( "CREATE TABLE IF NOT EXISTS iwp_files_sent (id INT AUTO_INCREMENT PRIMARY KEY, filepath TEXT, filepath_hash CHAR(64) UNIQUE, sent INT DEFAULT 0, size INT)" );
-		$this->query( "CREATE TABLE IF NOT EXISTS iwp_db_sent (id INT AUTO_INCREMENT PRIMARY KEY, table_name TEXT, table_name_hash CHAR(64) UNIQUE, `offset` INT DEFAULT 0, rows_total INT DEFAULT 0, completed INT DEFAULT 0);" );
-		$this->query( "CREATE TABLE IF NOT EXISTS iwp_options (id INT AUTO_INCREMENT PRIMARY KEY, option_name CHAR(64), option_value CHAR(64));" );
+		$collate = "DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci";
+
+		$this->query( "CREATE TABLE IF NOT EXISTS iwp_files_sent (id INT AUTO_INCREMENT PRIMARY KEY, filepath TEXT, filepath_hash CHAR(64) UNIQUE, sent INT DEFAULT 0, size INT) {$collate};" );
+		$this->query( "CREATE TABLE IF NOT EXISTS iwp_db_sent (id INT AUTO_INCREMENT PRIMARY KEY, table_name TEXT, table_name_hash CHAR(64) UNIQUE, `offset` INT DEFAULT 0, rows_total INT DEFAULT 0, completed INT DEFAULT 0) {$collate};" );
+		$this->query( "CREATE TABLE IF NOT EXISTS iwp_options (id INT AUTO_INCREMENT PRIMARY KEY, option_name CHAR(64), option_value CHAR(64)) {$collate};" );
 	}
 
 	public function connect_database() {
-		$db_host     = $this->get_option( 'db_host' );
 		$db_username = $this->get_option( 'db_username' );
 		$db_password = $this->get_option( 'db_password' );
 		$db_name     = $this->get_option( 'db_name' );
-		$mysqli      = new mysqli( $db_host, $db_username, $db_password, $db_name );
+		$db_host     = $this->get_option( 'db_host' );
+		$host        = $db_host;
+		$port        = null;
+		$socket      = null;
+		$is_ipv6     = false;
+		$host_data   = $this->parse_db_host( $db_host );
+
+		if ( $host_data ) {
+			list( $host, $port, $socket, $is_ipv6 ) = $host_data;
+		}
+
+		if ( $is_ipv6 && extension_loaded( 'mysqlnd' ) ) {
+			$host = "[$host]";
+		}
+
+		$mysqli = new mysqli( $host, $db_username, $db_password, $db_name, $port, $socket );
 
 		if ( $mysqli->connect_error ) {
 			$this->last_error = $mysqli->connect_error;
@@ -258,8 +275,38 @@ class IWPDB {
 		return $where_str;
 	}
 
+	private function parse_db_host( $host ) {
+		$socket  = null;
+		$is_ipv6 = false;
+
+		$socket_pos = strpos( $host, ':/' );
+		if ( false !== $socket_pos ) {
+			$socket = substr( $host, $socket_pos + 1 );
+			$host   = substr( $host, 0, $socket_pos );
+		}
+
+		if ( substr_count( $host, ':' ) > 1 ) {
+			$pattern = '#^(?:\[)?(?P<host>[0-9a-fA-F:]+)(?:\]:(?P<port>[\d]+))?#';
+			$is_ipv6 = true;
+		} else {
+			$pattern = '#^(?P<host>[^:/]*)(?::(?P<port>[\d]+))?#';
+		}
+
+		$matches = array();
+		$result  = preg_match( $pattern, $host, $matches );
+
+		if ( 1 !== $result ) {
+			return false;
+		}
+
+		$host = ! empty( $matches['host'] ) ? $matches['host'] : '';
+		$port = ! empty( $matches['port'] ) ? absint( $matches['port'] ) : null;
+
+		return array( $host, $port, $socket, $is_ipv6 );
+	}
+
 	public function __destruct() {
 		$this->conn->close();
 	}
 }
-
+// phpcs:enable

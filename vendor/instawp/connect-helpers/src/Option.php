@@ -42,4 +42,12 @@ class Option {
 
         return $results;
     }
+
+	public static function get_option( $option_name, $default = [] ) {
+		return get_option( $option_name, $default );
+	}
+
+	public static function update_option( $option_name, $option_value, $autoload = false ) {
+		return update_option( $option_name, $option_value, $autoload );
+	}
 }

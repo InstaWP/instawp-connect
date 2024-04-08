@@ -3,6 +3,9 @@
  * Class for all hooks
  */
 
+use InstaWP\Connect\Helpers\Helper;
+use InstaWP\Connect\Helpers\Option;
+
 defined( 'ABSPATH' ) || exit;
 
 
@@ -25,21 +28,21 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 		public function handle_auto_login_request() {
 
 			$url_args       = array_map( 'sanitize_text_field', $_GET );
-			$reauth         = InstaWP_Setting::get_args_option( 'reauth', $url_args );
-			$login_code     = InstaWP_Setting::get_args_option( 'c', $url_args );
-			$login_username = InstaWP_Setting::get_args_option( 's', $url_args );
-			$login_username = base64_decode( $login_username );
+			$reauth         = Helper::get_args_option( 'reauth', $url_args );
+			$login_code     = Helper::get_args_option( 'c', $url_args );
+			$login_username = Helper::get_args_option( 's', $url_args );
+			$login_username = base64_decode( $login_username ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
 
 			if ( empty( $reauth ) || empty( $login_code ) || empty( $login_username ) ) {
 				return;
 			}
 
-			$instawp_login_code = InstaWP_Setting::get_option( 'instawp_login_code', array() );
-			$saved_login_code   = InstaWP_Setting::get_args_option( 'code', $instawp_login_code );
-			$saved_updated_at   = InstaWP_Setting::get_args_option( 'updated_at', $instawp_login_code );
+			$instawp_login_code = Option::get_option( 'instawp_login_code', array() );
+			$saved_login_code   = Helper::get_args_option( 'code', $instawp_login_code );
+			$saved_updated_at   = Helper::get_args_option( 'updated_at', $instawp_login_code );
             $redirect           = wp_login_url();
 
-			if ( $saved_login_code && $saved_updated_at && ( current_time( 'U' ) - intval( $saved_updated_at ) <= 30 ) && $saved_login_code === $login_code && username_exists( $login_username ) ) {
+			if ( $saved_login_code && $saved_updated_at && ( time() - intval( $saved_updated_at ) <= 30 ) && $saved_login_code === $login_code && username_exists( $login_username ) ) {
 				$redirect   = admin_url();
                 $login_user = get_user_by( 'login', $login_username );
 
@@ -55,24 +58,24 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 		}
 
 		public function front_enqueue_scripts() {
-			wp_enqueue_style( 'instawp-common', instaWP::get_asset_url( 'assets/css/common.min.css' ) );
-			wp_enqueue_script( 'instawp-common', instaWP::get_asset_url( 'assets/js/common.js' ), array( 'jquery' ) );
+			wp_enqueue_style( 'instawp-common', instaWP::get_asset_url( 'assets/css/common.min.css' ), array(), INSTAWP_PLUGIN_VERSION );
+			wp_enqueue_script( 'instawp-common', instaWP::get_asset_url( 'assets/js/common.js' ), array( 'jquery' ), INSTAWP_PLUGIN_VERSION, true );
 			wp_localize_script( 'instawp-common', 'instawp_common', InstaWP_Tools::get_localize_data() );
 		}
 
 		public function add_instawp_menu_icon( WP_Admin_Bar $admin_bar ) {
 
-			if ( ! apply_filters( 'INSTAWP_CONNECT/Filters/display_menu_bar_icon', true ) || 'on' === InstaWP_Setting::get_option( 'instawp_hide_plugin_icon_topbar', 'off' ) ) {
+			if ( ! apply_filters( 'INSTAWP_CONNECT/Filters/display_menu_bar_icon', true ) || 'on' === Option::get_option( 'instawp_hide_plugin_icon_topbar', 'off' ) ) {
 				return;
 			}
 
 			global $current_user;
 
-			$sync_tab_roles = InstaWP_Setting::get_option( 'instawp_sync_tab_roles', array( 'administrator' ) );
+			$sync_tab_roles = Option::get_option( 'instawp_sync_tab_roles', array( 'administrator' ) );
 			$sync_tab_roles = ! is_array( $sync_tab_roles ) || empty( $sync_tab_roles ) ? array( 'administrator' ) : $sync_tab_roles;
 			$meta_classes   = array( 'instawp-sync-recording' );
 
-			if ( '1' == InstaWP_Setting::get_option( 'instawp_is_event_syncing', '0' ) ) {
+			if ( 1 === (int) Option::get_option( 'instawp_is_event_syncing', '0' ) ) {
 				$meta_classes[] = 'recording-on';
 			}
 
@@ -197,7 +200,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 				$connect_id = InstaWP_Setting::get_connect_id();
 
 				if ( ! empty( $connect_id ) && current_user_can( 'manage_options' ) ) {
-					$app_domain = InstaWP_Setting::get_api_domain();
+					$app_domain = Helper::get_api_domain();
 					$admin_bar->add_menu( array(
 						'parent' => 'instawp',
 						'id'     => 'instawp-app-dashboard',
@@ -223,40 +226,37 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			}
 		}
 
-		function handle_hard_disable_seo_visibility() {
+		public function handle_hard_disable_seo_visibility() {
 
 			if (
 				instawp()->is_staging &&
-				empty( InstaWP_Setting::get_option( 'instawp_changed_option_blog_public' ) ) &&
+				empty( Option::get_option( 'instawp_changed_option_blog_public' ) ) &&
 				(int) INSTAWP_Setting::get_option( 'blog_public' ) === 1
 			) {
 				update_option( 'blog_public', '0' );
 			}
 		}
 
-		function manage_update_option( $option_name, $old_value, $new_value ) {
+		public function manage_update_option( $option_name, $old_value, $new_value ) {
 
-			if ( 'blog_public' === $option_name && $old_value == 0 && $new_value == 1 ) {
-				InstaWP_Setting::update_option( 'instawp_changed_option_blog_public', current_time( 'U' ) );
+			if ( 'blog_public' === $option_name && intval( $old_value ) === 0 && intval( $new_value ) === 1 ) {
+				InstaWP_Setting::update_option( 'instawp_changed_option_blog_public', time() );
 			}
 		}
 
-		function handle_clear_all() {
-			$admin_page   = isset( $_GET['page'] ) ? sanitize_text_field( $_GET['page'] ) : '';
-			$clear_action = isset( $_GET['clear'] ) ? sanitize_text_field( $_GET['clear'] ) : '';
+		public function handle_clear_all() {
+			$admin_page   = isset( $_GET['page'] ) ? sanitize_text_field( wp_unslash( $_GET['page'] ) ) : '';
+			$clear_action = isset( $_GET['clear'] ) ? sanitize_text_field( wp_unslash( $_GET['clear'] ) ) : '';
+			$connect_id   = isset( $_GET['connect_id'] ) ? intval( $_GET['connect_id'] ) : 0;
 
-			if ( isset( $_GET['connect_id'] ) && ! empty( $_GET['connect_id'] ) ) {
-				$instawp_api_options = get_option( 'instawp_api_options', array() );
-
-				$instawp_api_options['connect_id'] = sanitize_text_field( $_GET['connect_id'] );
-
-				InstaWP_Setting::update_option( 'instawp_api_options', $instawp_api_options );
+			if ( ! empty( $connect_id ) ) {
+				InstaWP_Setting::set_connect_id( $connect_id );
 			}
 
 			if ( 'instawp' === $admin_page && 'all' === $clear_action ) {
 				instawp_reset_running_migration( 'soft', true );
 
-				wp_redirect( admin_url( 'tools.php?page=instawp' ) );
+				wp_safe_redirect( admin_url( 'tools.php?page=instawp' ) );
 				exit();
 			}
 		}
@@ -271,7 +271,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 				return;
 			} ?>
             <div class="notice notice-success is-dismissible">
-                <p><?php printf( esc_html__( 'Cache cleared for %s.', 'instawp-connect' ), join( ', ', wp_list_pluck( $cache_cleared, 'name' ) ) ); ?></p>
+                <p><?php printf( esc_html__( 'Cache cleared for %s.', 'instawp-connect' ), esc_html( join( ', ', wp_list_pluck( $cache_cleared, 'name' ) ) ) ); ?></p>
             </div>
 			<?php
 			delete_transient( 'instawp_cache_purged' );

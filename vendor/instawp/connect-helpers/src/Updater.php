@@ -1,4 +1,5 @@
 <?php
+
 namespace InstaWP\Connect\Helpers;
 
 class Updater {
@@ -61,7 +62,7 @@ class Updater {
 
 		/*
 		 * Allow relaxed file ownership writes for User-initiated upgrades when the API specifies
-		* that it's safe to do so. This only happens when there are no new files to create.
+		 * that it's safe to do so. This only happens when there are no new files to create.
 		*/
 		$allow_relaxed_file_ownership = isset( $update->new_files ) && ! $update->new_files;
 
@@ -147,14 +148,48 @@ class Updater {
 		add_filter( 'automatic_updater_disabled', '__return_false', 201 );
 		add_filter( "auto_update_{$type}", '__return_true', 201 );
 
-		$skin     = new \Automatic_Upgrader_Skin();
-		$result   = false;
+		$skin   = new \Automatic_Upgrader_Skin();
+		$result = false;
 
 		if ( 'plugin' === $type ) {
 			wp_update_plugins();
 
 			$upgrader = new \Plugin_Upgrader( $skin );
-			$result = $upgrader->upgrade( $item );
+
+			if ( 'instawp-connect/instawp-connect.php' === $item ) {
+				$upgrader->init();
+				$upgrader->upgrade_strings();
+
+				$current = get_site_transient( 'update_plugins' );
+
+				if ( isset( $current->response[ $item ] ) ) {
+					$r               = $current->response[ $item ];
+					$self_update_res = $upgrader->run(
+						array(
+							'package'           => $r->package,
+							'destination'       => WP_PLUGIN_DIR,
+							'clear_destination' => true,
+							'clear_working'     => true,
+							'hook_extra'        => array(
+								'plugin'      => $item,
+								'type'        => 'plugin',
+								'action'      => 'update',
+								'temp_backup' => array(
+									'slug' => dirname( $item ),
+									'src'  => WP_PLUGIN_DIR,
+									'dir'  => 'plugins',
+								),
+							),
+						)
+					);
+
+					if ( $self_update_res && ! is_wp_error( $self_update_res ) ) {
+						$result = true;
+					}
+				}
+			} else {
+				$result = $upgrader->upgrade( $item );
+			}
 
 			if ( ! function_exists( 'activate_plugin' ) || ! function_exists( 'is_plugin_active' ) ) {
 				include_once ABSPATH . 'wp-admin/includes/plugin.php';
@@ -169,7 +204,7 @@ class Updater {
 			wp_update_themes();
 
 			$upgrader = new \Theme_Upgrader( $skin );
-			$result = $upgrader->upgrade( $item );
+			$result   = $upgrader->upgrade( $item );
 
 			wp_update_themes();
 		}
@@ -188,13 +223,13 @@ class Updater {
 
 			return [
 				'message' => empty( $message ) ? esc_html( 'Success!' ) : $message,
-				'success'  => empty( $message ),
+				'success' => empty( $message ),
 			];
 		}
 
 		return [
 			'message' => $result ? esc_html( 'Success!' ) : esc_html( 'Update Failed!' ),
-			'success'  => $result,
+			'success' => $result,
 		];
 	}
 }
