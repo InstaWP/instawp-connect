@@ -100,6 +100,8 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 - FIX - All WPCS related issues.
 - FIX - Remove legacy codes and implemented code reusability.
 - FIX - Replaced wrong database constant.
+- FIX - Total Site Size calculation issue.
+- FIX - Skip size in confirmation window.
 
 = 0.1.0.24 - 1 Apr 2024 =
 - FIX - Fixed plugin update issue using REST Api.

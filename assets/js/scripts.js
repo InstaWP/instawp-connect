@@ -699,7 +699,20 @@
     $(document).on('change', '.instawp-checkbox.exclude-file-item:not(.large-file)', function () {
         let el = $(this),
             parentEl = el.closest('.item'),
-            subEl = parentEl.find('.sub-item .instawp-checkbox.exclude-file-item:not(.large-file)');
+            subEl = parentEl.find('.sub-item .instawp-checkbox.exclude-file-item:not(.large-file)'),
+            subElDisabled = subEl.not(":disabled");
+
+        if ($(document).find('#active_plugins_only').is(":checked")) {
+            subEl = subEl.not('.plugins').not('[class*=plugins-]');
+        }
+
+        if ($(document).find('#active_themes_only').is(":checked")) {
+            subEl = subEl.not('.themes').not('[class*=themes-]');
+        }
+
+        if ($(document).find('#skip_media_folder').is(":checked")) {
+            subEl = subEl.not('.uploads').not('[class*=uploads-]');
+        }
 
         if ($(document).find('.exclude-files-container .instawp-checkbox.exclude-file-item:not(.large-file)').not(':checked').length) {
             $(document).find('#instawp-files-select-all').prop("checked", false);
@@ -707,32 +720,34 @@
             $(document).find('#instawp-files-select-all').prop("checked", true);
         }
 
-        subEl.not(":disabled").prop("checked", el.is(":checked")).trigger('change');
+        subEl.prop("checked", el.is(":checked")).prop("disabled", el.is(":checked")).trigger('change');
     });
 
     $(document).on('change', '.instawp-checkbox.exclude-file-item', function () {
-        let cEl = $(document).find('.instawp-checkbox.exclude-file-item:checked');
+        let cEl = $(document).find('.instawp-checkbox.exclude-file-item:checked:not(.item-disabled)').not(":disabled");
         let sum = 0;
+        let count = 0;
         cEl.each(function () {
             sum = sum + $(this).data('size')
+            count = count + $(this).data('count')
         });
         if (cEl.length > 0) {
             $(document).find('.files-select').removeClass('hidden');
-            $(document).find('.selected-files').html(`${cEl.length} files (${formatBytes(sum)}) skipped`);
+            $(document).find('.selected-files').html(`${count} files (${formatBytes(sum)}) skipped`);
         } else {
             $(document).find('.files-select').addClass('hidden');
         }
     });
 
     $(document).on('change', '.instawp-checkbox.exclude-database-item', function () {
-        let cEl = $(document).find('.instawp-checkbox.exclude-database-item:checked');
+        let cEl = $(document).find('.instawp-checkbox.exclude-database-item:checked').not(":disabled");
         let sum = 0;
         cEl.each(function () {
             sum = sum + $(this).data('size')
         });
         if (cEl.length > 0) {
             $(document).find('.db-tables-select').removeClass('hidden');
-            $(document).find('.selected-db-tables').html(`${cEl.length} tables (${formatBytes(sum)}) skipped`);
+            $(document).find('.selected-db-tables').html(`${cEl.length} table(s) (${formatBytes(sum)}) skipped`);
         } else {
             $(document).find('.db-tables-select').addClass('hidden');
         }
@@ -757,6 +772,7 @@
         $(document).find('#instawp-files-select-all').prop("checked", false).prop("disabled", true);
         $(document).find('.instawp-files-sort-by').attr('data-sort', 'none').addClass('pointer-events-none');
         $(document).find('.instawp-checkbox.exclude-database-item.log-table').prop("checked", true);
+        $(document).find('.files-select, .db-tables-select').addClass('hidden');
     });
 
     $(document).on('click', '.instawp-refresh-exclude-screen', function () {

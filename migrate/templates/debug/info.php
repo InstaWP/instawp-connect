@@ -16,7 +16,6 @@ $details    = array(
     'PHP Version'       => phpversion(),
     'WordPress Version' => get_bloginfo( 'version' ),
     'Site URL'          => get_bloginfo( 'url' ),
-    'WordPress URL'     => get_bloginfo( 'wpurl' ),
     'Plugin Version'    => INSTAWP_PLUGIN_VERSION,
     'Connected Name'    => ! empty( $api_data['response']['name'] ) ? $api_data['response']['name'] : '',
     'Connect ID'        => instawp_get_connect_id(),
@@ -27,12 +26,9 @@ $details    = array(
     'WordPress Size'    => $sizes_data['wordpress_size']['debug'],
     'Themes Size'       => $sizes_data['themes_size']['debug'],
     'Plugins Size'      => $sizes_data['plugins_size']['debug'],
+    'Uploads Size'      => $sizes_data['uploads_size']['debug'],
     'Database Size'     => $sizes_data['database_size']['debug'],
     'Total Site Size'   => $sizes_data['total_size']['debug'],
-    'Database Host'     => DB_HOST,
-    'Database Name'     => DB_NAME,
-    'Database Username' => DB_USER,
-    'Database Password' => DB_PASSWORD,
 )
 ?>
 

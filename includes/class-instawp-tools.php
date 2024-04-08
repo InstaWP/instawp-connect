@@ -357,9 +357,7 @@ include $file_path;';
 	}
 
 	public static function get_total_sizes( $type = 'files', $migrate_settings = array() ) {
-
 		if ( $type === 'files' ) {
-
 			$total_size_to_skip = 0;
 			$total_files        = instawp_get_dir_contents( '/' );
 			$total_files_sizes  = array_map( function ( $data ) {
@@ -373,12 +371,20 @@ include $file_path;';
 
 			if ( isset( $migrate_settings['excluded_paths'] ) && is_array( $migrate_settings['excluded_paths'] ) ) {
 				foreach ( $migrate_settings['excluded_paths'] as $path ) {
-					$dir_contents      = instawp_get_dir_contents( $path, false, false );
-					$dir_contents_size = array_map( function ( $dir_info ) {
-						return isset( $dir_info['size'] ) ? $dir_info['size'] : 0;
-					}, $dir_contents );
+                    $path =  rtrim( instawp_get_root_path(), '/' ) . DIRECTORY_SEPARATOR . $path;
+                    if ( ! file_exists( $path ) || ! is_readable( $path ) ) {
+                        continue;
+                    }
 
-					$total_size_to_skip += array_sum( $dir_contents_size );
+                    if ( is_dir( $path ) ) {
+	                    $dir_contents      = instawp_get_dir_contents( $path, false, false );
+	                    $dir_contents_size = array_map( function ( $dir_info ) {
+		                    return isset( $dir_info['size'] ) ? $dir_info['size'] : 0;
+	                    }, $dir_contents );
+					    $total_size_to_skip += array_sum( $dir_contents_size );
+                    } else {
+	                    $total_size_to_skip += filesize( $path );
+                    }
 				}
 			}
 

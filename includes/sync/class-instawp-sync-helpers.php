@@ -9,13 +9,15 @@
  * @subpackage instaWP/admin
  */
 /**
- * This file is used for change event traking
+ * This file is used for change event tracking
  *
  * @since      1.0
  * @package    instawp
  * @subpackage instawp/admin
  * @author     instawp team
  */
+
+use InstaWP\Connect\Helpers\Option;
 
 defined( 'ABSPATH' ) || die;
 
