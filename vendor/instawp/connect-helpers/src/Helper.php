@@ -66,6 +66,14 @@ class Helper {
 	public static function get_api_domain( $default_domain = '' ) {
 		$api_options = Option::get_option( 'instawp_api_options' );
 
+		if ( empty( $default_domain ) && defined( 'INSTAWP_API_DOMAIN_PROD' ) ) {
+			$default_domain = INSTAWP_API_DOMAIN_PROD;
+		}
+
+		if ( empty( $default_domain ) ) {
+			$default_domain = esc_url_raw( 'https://app.instawp.io' );
+		}
+
 		return self::get_args_option( 'api_url', $api_options, $default_domain );
 	}
 
