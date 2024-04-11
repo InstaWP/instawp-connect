@@ -300,7 +300,7 @@ class IWPDB {
 		}
 
 		$host = ! empty( $matches['host'] ) ? $matches['host'] : '';
-		$port = ! empty( $matches['port'] ) ? absint( $matches['port'] ) : null;
+		$port = ! empty( $matches['port'] ) ? abs( (int) $matches['port'] ) : null;
 
 		return array( $host, $port, $socket, $is_ipv6 );
 	}
