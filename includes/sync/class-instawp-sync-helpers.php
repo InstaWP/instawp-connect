@@ -422,6 +422,8 @@ class InstaWP_Sync_Helpers {
 
 		kses_init_filters();
 
+		clean_post_cache( $wp_post['ID'] );
+
 		return $wp_post['ID'];
 	}
 

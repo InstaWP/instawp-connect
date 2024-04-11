@@ -220,6 +220,8 @@ class InstaWP_Sync_Post {
 				$status  = isset( $post->ID ) ? 'completed' : 'pending';
 				$message = isset( $post->ID ) ? 'Sync successfully.' : 'Something went wrong.';
 
+				clean_post_cache( $post_id );
+
 				$data = compact( 'status', 'message' );
 			} else {
 				$logs[ $v->id ] = sprintf( '%s not found at destination', ucfirst( str_replace( array( '-', '_' ), '', $wp_post['post_type'] ) ) );
@@ -242,6 +244,8 @@ class InstaWP_Sync_Post {
 	 * @return void
 	 */
 	private function handle_post_events( $event_name, $event_slug, $post, $post_before = null ) {
+		clean_post_cache( $post->ID );
+
 		$post = get_post( $post );
 
 		if ( ! $post instanceof WP_Post ) {
