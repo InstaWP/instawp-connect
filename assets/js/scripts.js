@@ -23,11 +23,67 @@
         return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`
     }
 
+    let getCurrentDateTime = () => {
+        const now = new Date();
+
+        // Get date components
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+
+        // Get time components
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+
+        // Concatenate date and time components
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    }
+
+    let elapsedInterval = null;
+
+    let updateTimer = (startTime) => {
+        // Get current time
+        const currentTime = new Date();
+
+        // Calculate time difference in milliseconds
+        const timeDifference = currentTime.getTime() - new Date(startTime).getTime();
+
+        // Calculate elapsed time in days, hours, minutes, and seconds
+        const days = Math.floor(timeDifference / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((timeDifference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((timeDifference % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((timeDifference % (1000 * 60)) / 1000);
+
+        let string = '';
+        if ( seconds >= 0) {
+            string = seconds + 's';
+        }
+        if ( minutes > 0) {
+            string = minutes + 'm ' + string;
+        }
+        if ( hours > 0) {
+            string = hours + 'h ' + string;
+        }
+        if ( days > 0) {
+            string = days + 'd ' + string;
+        }
+        $(document).find('#timer').text(string);
+    }
+
+    let migrationSteps = {
+        'pull-files-in-progress': plugin_object.trans.pull_files_in_progress_txt,
+        //'pull-files-finished': plugin_object.trans.pull_files_finished_txt,
+        'pull-db-in-progress': plugin_object.trans.pull_db_in_progress_txt,
+        //'pull-db-finished': plugin_object.trans.pull_db_finished_txt,
+    };
+
     let instawp_migrate_progress = () => {
 
             let create_container = $('.instawp-wrap .nav-item-content.create'),
                 el_bar_files = create_container.find('.instawp-progress-files'),
                 el_bar_db = create_container.find('.instawp-progress-db'),
+                el_visibility_box = create_container.find('#visibility-box'),
                 el_bar_restore = create_container.find('.instawp-progress-restore'),
                 el_migration_loader = create_container.find('.instawp-migration-loader'),
                 el_migration_progress_wrap = create_container.find('.migration-running'),
@@ -57,15 +113,23 @@
                     'action': 'instawp_migrate_progress',
                 },
                 success: function (response) {
-
                     if (response.success) {
-
-                        let progress_files = response.data.progress_files,
-                            progress_db = response.data.progress_db,
-                            progress_restore = response.data.progress_restore,
+                        let progress_files = response.data.progress_files ? response.data.progress_files : 0,
+                            progress_db = response.data.progress_db ? response.data.progress_db : 0,
+                            progress_restore = response.data.progress_restore ? response.data.progress_restore : 0,
                             progress_stages = response.data.stage,
                             failed_message = response.data.failed_message,
+                            processed_files = response.data.processed_files ? response.data.processed_files : [],
+                            processed_db = response.data.processed_db ? response.data.processed_db : [],
+                            startTime = response.data.started_at ?? null,
+                            current_stage = 'processing',
                             stage_migration_finished = false;
+
+                        if(!elapsedInterval) {
+                            elapsedInterval = setInterval(()=> {
+                                updateTimer(startTime)
+                            }, 1000);
+                        }
 
                         el_bar_files.find('.instawp-progress-bar').css('width', progress_files + '%');
                         el_bar_files.find('.progress-text').text(progress_files + '%');
@@ -78,19 +142,59 @@
 
                         $.each(progress_stages, function (stage_key, stage_value) {
                             if (stage_value === true) {
-
                                 if (stage_key === 'migration-finished') {
                                     stage_migration_finished = true;
                                 }
-
-                                el_stage_wrapper.find('.stage-' + stage_key).find('.stage-status').addClass('active');
+                                current_stage = stage_key;
+                                //el_stage_wrapper.find('.stage-' + stage_key).find('.stage-status').addClass('active');
                             }
                         });
 
+                        if (Object.keys(migrationSteps).includes(current_stage)) {
+                            el_visibility_box.find('#visibility-content-area').append('<div class="flex gap-3 items-center hover:bg-zinc-800 hover:rounded-lg py-1.5 px-2.5 "><span class="text-gray-100 min-w-36">' + getCurrentDateTime() + '</span><span class="text-gray-100 break-all font-medium">' + migrationSteps[ current_stage ] + '</span></div>');
+                            delete migrationSteps[ current_stage ];
+                        }
+
+                        let current_stage_item = el_visibility_box.find('.stage-' + current_stage);
+                        if(current_stage_item.hasClass('hidden')) {
+                            el_visibility_box.find('.stage').addClass('hidden');
+                            current_stage_item.removeClass('hidden');
+                        }
+
+                        if (processed_files.length > 0 || processed_db.length > 0) {
+                            el_visibility_box.find('#visibility-content-area, .full-screen-btn').removeClass('hidden');
+                            let content_html = '';
+
+                            $.each(processed_files, function (key, value) {
+                                content_html += '<div class="flex gap-3 items-center hover:bg-zinc-800 hover:rounded-lg py-1.5 px-2.5 group ' + value.status + '">';
+                                content_html += '<span class="text-gray-100 min-w-36">' + getCurrentDateTime() + '</span><span class="text-gray-100 break-all group-[.sent]:text-emerald-300 group-[.failed]:text-rose-500 group-[.skipped]:text-yellow-300">' + value.filepath + ' (' + value.size + ')';
+                                if(value.status === 'in-progress') {
+                                    content_html += ' <span class="hidden group-hover:inline-block cursor-pointer ml-2 px-2 py-1 text-xs rounded-lg border border-zinc-700 text-rose-500 instawp-skip-item" data-type="file" data-item="'+ value.id + '">' + plugin_object.trans.skip_item_txt + '</span>';
+                                }
+                                content_html += '</span></div>';
+                            });
+
+                            $.each(processed_db, function (key, value) {
+                                content_html += '<div class="flex gap-3 items-center hover:bg-zinc-800 hover:rounded-lg py-1.5 px-2.5 group ' + value.status + '">';
+                                content_html += '<span class="text-gray-100 min-w-36">' + getCurrentDateTime() + '</span><span class="text-gray-100 break-all group-[.sent]:text-emerald-300 group-[.failed]:text-rose-500 group-[.skipped]:text-yellow-300">' + value.table_name + ' - ' + value.offset + ' / ' + value.rows_total + ' rows';
+                                if(value.status === 'in-progress') {
+                                    content_html += ' <span class="hidden group-hover:inline-block cursor-pointer ml-2 px-2 py-1 text-xs rounded-lg border border-zinc-700 text-rose-500 instawp-skip-item" data-type="db" data-item="'+ value.table_name + '">' + plugin_object.trans.skip_item_txt + '</span>';
+                                }
+                                content_html += '</span></div>';
+                            });
+
+                            el_visibility_box.find('#visibility-content-area').append(content_html);
+
+                            let el_box_area = el_visibility_box.find('#visibility-box-area');
+                            el_box_area.animate({
+                                scrollTop: el_box_area[0].scrollHeight
+                            }, 500);
+                        }
+
                         // Completed
                         if (stage_migration_finished === true) {
-
                             create_container.removeClass('loading').addClass('completed');
+                            el_visibility_box.find('#visibility-box, .full-screen-btn').addClass('hidden');
                             clearInterval(create_container.attr('interval-id'));
 
                             if (
@@ -175,6 +279,11 @@
                     console.log(response);
 
                     if (response.success) {
+                        if(!elapsedInterval) {
+                            elapsedInterval = setInterval(()=> {
+                                updateTimer(response.data.started_at)
+                            }, 1000);
+                        }
 
                         // populate the tracking url
                         if (typeof response.data.tracking_url !== 'undefined' && response.data.tracking_url.length > 0) {
@@ -1183,6 +1292,8 @@
     // Site list pagination end //
 
     $(document).on('click', '.instawp-manager', function (e) {
+        e.preventDefault();
+
         let el = $(this);
         $.ajax({
             type: 'POST',
@@ -1195,6 +1306,41 @@
             success: function (response) {
                 console.log(response)
                 window.open(response.data.login_url, '_blank');
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                console.log(errorThrown);
+            }
+        });
+    });
+
+    $(document).on('click', '.full-screen-btn', function (e) {
+        e.preventDefault();
+        let el = $(document).find('#visibility-box');
+        if( el.hasClass('full-screen') ) {
+            el.removeClass('full-screen')
+        } else {
+            el.addClass('full-screen')
+        }
+    });
+
+    $(document).on('click', '.instawp-skip-item', function (e) {
+        e.preventDefault();
+
+        let el = $(this);
+        $.ajax({
+            type: 'POST',
+            url: plugin_object.ajax_url,
+            data: {
+                'action': 'instawp_skip_item',
+                'type': el.data('type'),
+                'item': el.data('item'),
+                'security': plugin_object.security
+            },
+            success: function (response) {
+                console.log(response)
+                if(response.success !== true) {
+                    alert(response.data.message)
+                }
             },
             error: function (jqXHR, textStatus, errorThrown) {
                 console.log(errorThrown);

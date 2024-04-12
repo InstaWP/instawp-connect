@@ -262,6 +262,10 @@ include $file_path;';
 
 	public static function is_migrate_file_accessible( $file_url ) {
 
+		if ( defined( 'INSTAWP_LOCAL_DEV' ) && INSTAWP_LOCAL_DEV === true ) {
+			return true;
+		}
+
 		$response = wp_remote_post( INSTAWP_API_DOMAIN_PROD . '/public/check/?url=' . rawurlencode( $file_url ), array(
 			'timeout'   => 30,
 			'sslverify' => false, // Set to true if your server configuration allows SSL verification
@@ -371,7 +375,7 @@ include $file_path;';
 
 			if ( isset( $migrate_settings['excluded_paths'] ) && is_array( $migrate_settings['excluded_paths'] ) ) {
 				foreach ( $migrate_settings['excluded_paths'] as $path ) {
-                    $path =  rtrim( instawp_get_root_path(), '/' ) . DIRECTORY_SEPARATOR . $path;
+                    $path = rtrim( instawp_get_root_path(), '/' ) . DIRECTORY_SEPARATOR . $path;
                     if ( ! file_exists( $path ) || ! is_readable( $path ) ) {
                         continue;
                     }
@@ -791,7 +795,12 @@ include $file_path;';
 		return array(
 			'ajax_url' => admin_url( 'admin-ajax.php' ),
 			'trans'    => array(
-				'create_staging_site_txt' => __( 'Please create staging sites first.', 'instawp-connect' ),
+				'create_staging_site_txt'    => __( 'Please create staging sites first.', 'instawp-connect' ),
+				'skip_item_txt'              => __( 'Skip', 'instawp-connect' ),
+				'pull_files_in_progress_txt' => __( 'Step 6 - Files Pulling Started', 'instawp-connect' ),
+                'pull_files_finished_txt'    => __( 'Step 7 - Files Pulling Finished', 'instawp-connect' ),
+                'pull_db_in_progress_txt'    => __( 'Step 8 - Database Pulling Started', 'instawp-connect' ),
+                'pull_db_finished_txt'       => __( 'Step 9 - Database Pulling Finished', 'instawp-connect' ),
 			),
 			'security' => wp_create_nonce( 'instawp-connect' ),
 		);

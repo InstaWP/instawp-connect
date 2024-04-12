@@ -100,6 +100,12 @@ if ( ! $root_dir_find ) {
 }
 
 if ( ! $root_dir_find ) {
+	$root_dir_data = get_wp_root_directory( '', 'wp' );
+	$root_dir_find = isset( $root_dir_data['status'] ) ? $root_dir_data['status'] : false;
+	$root_dir_path = isset( $root_dir_data['root_path'] ) ? $root_dir_data['root_path'] : '';
+}
+
+if ( ! $root_dir_find ) {
 	header( 'x-iwp-status: false' );
 	header( 'x-iwp-message: Could not find wp-config.php in the parent directories.' );
 	echo "Could not find wp-config.php in the parent directories.";
