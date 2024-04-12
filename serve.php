@@ -119,9 +119,9 @@ if ( ! $tracking_db ) {
 
 $db_api_signature = $tracking_db->get_option( 'api_signature' );
 
-if ( $db_api_signature !== $api_signature ) {
+if ( ! hash_equals( $db_api_signature, $api_signature ) ) {
 	header( 'x-iwp-status: false' );
-	header( 'x-iwp-message: Mismatched api signature. Signature in db is: ' . $db_api_signature );
+	header( 'x-iwp-message: Mismatched api signature.' );
 	die();
 }
 

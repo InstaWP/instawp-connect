@@ -83,7 +83,7 @@ if ( ! function_exists( 'parse_wp_db_host' ) ) {
 		}
 
 		$host = ! empty( $matches['host'] ) ? $matches['host'] : '';
-		$port = ! empty( $matches['port'] ) ? absint( $matches['port'] ) : null;
+		$port = ! empty( $matches['port'] ) ? abs( (int) $matches['port'] ) : null;
 
 		return array( $host, $port, $socket, $is_ipv6 );
 	}
@@ -125,7 +125,7 @@ if ( file_exists( $json_path ) ) {
 	die();
 }
 
-if ( ! isset( $api_signature ) || ! isset( $_SERVER['HTTP_X_IWP_API_SIGNATURE'] ) || $api_signature !== $_SERVER['HTTP_X_IWP_API_SIGNATURE'] ) {
+if ( ! isset( $api_signature ) || ! isset( $_SERVER['HTTP_X_IWP_API_SIGNATURE'] ) || ! hash_equals( $api_signature, $_SERVER['HTTP_X_IWP_API_SIGNATURE'] ) ) {
 	header( 'x-iwp-status: false' );
 	header( 'x-iwp-message: Mismatched api signature.' );
 	die();
