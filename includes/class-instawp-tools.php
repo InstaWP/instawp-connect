@@ -795,13 +795,10 @@ include $file_path;';
 		return array(
 			'ajax_url' => admin_url( 'admin-ajax.php' ),
 			'trans'    => array(
-				'create_staging_site_txt'    => __( 'Please create staging sites first.', 'instawp-connect' ),
-				'skip_item_txt'              => __( 'Skip', 'instawp-connect' ),
-				'pull_files_in_progress_txt' => __( 'Step 6 - Files Pulling Started', 'instawp-connect' ),
-                'pull_files_finished_txt'    => __( 'Step 7 - Files Pulling Finished', 'instawp-connect' ),
-                'pull_db_in_progress_txt'    => __( 'Step 8 - Database Pulling Started', 'instawp-connect' ),
-                'pull_db_finished_txt'       => __( 'Step 9 - Database Pulling Finished', 'instawp-connect' ),
-			),
+				'create_staging_site_txt' => __( 'Please create staging sites first.', 'instawp-connect' ),
+				'skip_item_txt'           => __( 'Skip', 'instawp-connect' ),
+                'stages'                  => InstaWP_Setting::get_stages(),
+            ),
 			'security' => wp_create_nonce( 'instawp-connect' ),
 		);
 	}

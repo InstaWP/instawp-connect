@@ -71,12 +71,10 @@
         $(document).find('#timer').text(string);
     }
 
-    let migrationSteps = {
-        'pull-files-in-progress': plugin_object.trans.pull_files_in_progress_txt,
-        //'pull-files-finished': plugin_object.trans.pull_files_finished_txt,
-        'pull-db-in-progress': plugin_object.trans.pull_db_in_progress_txt,
-        //'pull-db-finished': plugin_object.trans.pull_db_finished_txt,
-    };
+    let migrationSteps = {};
+    $.each(plugin_object.trans.stages, function (stage_key, stage_value) {
+        migrationSteps[ stage_key ] = stage_value;
+    });
 
     let instawp_migrate_progress = () => {
 
@@ -161,28 +159,28 @@
                             current_stage_item.removeClass('hidden');
                         }
 
-                        if (processed_files.length > 0 || processed_db.length > 0) {
-                            el_visibility_box.find('#visibility-content-area, .full-screen-btn').removeClass('hidden');
-                            let content_html = '';
+                        el_visibility_box.find('#visibility-content-area, .full-screen-btn').removeClass('hidden');
+                        let content_html = '';
 
-                            $.each(processed_files, function (key, value) {
-                                content_html += '<div class="flex gap-3 items-center hover:bg-zinc-800 hover:rounded-lg py-1.5 px-2.5 group ' + value.status + '">';
-                                content_html += '<span class="text-gray-100 min-w-36">' + getCurrentDateTime() + '</span><span class="text-gray-100 break-all group-[.sent]:text-emerald-300 group-[.failed]:text-rose-500 group-[.skipped]:text-yellow-300">' + value.filepath + ' (' + value.size + ')';
-                                if(value.status === 'in-progress') {
-                                    content_html += ' <span class="hidden group-hover:inline-block cursor-pointer ml-2 px-2 py-1 text-xs rounded-lg border border-zinc-700 text-rose-500 instawp-skip-item" data-type="file" data-item="'+ value.id + '">' + plugin_object.trans.skip_item_txt + '</span>';
-                                }
-                                content_html += '</span></div>';
-                            });
+                        $.each(processed_files, function (key, value) {
+                            content_html += '<div class="flex gap-3 items-center hover:bg-zinc-800 hover:rounded-lg py-1.5 px-2.5 group ' + value.status + '">';
+                            content_html += '<span class="text-gray-100 min-w-36">' + getCurrentDateTime() + '</span><span class="text-gray-100 break-all group-[.sent]:text-emerald-300 group-[.failed]:text-rose-500 group-[.skipped]:text-yellow-300">' + value.filepath + ' (' + value.size + ')';
+                            if(value.status === 'in-progress') {
+                                content_html += ' <span class="hidden group-hover:inline-block cursor-pointer ml-2 px-2 py-1 text-xs rounded-lg border border-zinc-700 text-rose-500 instawp-skip-item" data-type="file" data-item="'+ value.id + '">' + plugin_object.trans.skip_item_txt + '</span>';
+                            }
+                            content_html += '</span></div>';
+                        });
 
-                            $.each(processed_db, function (key, value) {
-                                content_html += '<div class="flex gap-3 items-center hover:bg-zinc-800 hover:rounded-lg py-1.5 px-2.5 group ' + value.status + '">';
-                                content_html += '<span class="text-gray-100 min-w-36">' + getCurrentDateTime() + '</span><span class="text-gray-100 break-all group-[.sent]:text-emerald-300 group-[.failed]:text-rose-500 group-[.skipped]:text-yellow-300">' + value.table_name + ' - ' + value.offset + ' / ' + value.rows_total + ' rows';
-                                if(value.status === 'in-progress') {
-                                    content_html += ' <span class="hidden group-hover:inline-block cursor-pointer ml-2 px-2 py-1 text-xs rounded-lg border border-zinc-700 text-rose-500 instawp-skip-item" data-type="db" data-item="'+ value.table_name + '">' + plugin_object.trans.skip_item_txt + '</span>';
-                                }
-                                content_html += '</span></div>';
-                            });
+                        $.each(processed_db, function (key, value) {
+                            content_html += '<div class="flex gap-3 items-center hover:bg-zinc-800 hover:rounded-lg py-1.5 px-2.5 group ' + value.status + '">';
+                            content_html += '<span class="text-gray-100 min-w-36">' + getCurrentDateTime() + '</span><span class="text-gray-100 break-all group-[.sent]:text-emerald-300 group-[.failed]:text-rose-500 group-[.skipped]:text-yellow-300">' + value.table_name + ' - ' + value.offset + ' / ' + value.rows_total + ' rows';
+                            if(value.status === 'in-progress') {
+                                content_html += ' <span class="hidden group-hover:inline-block cursor-pointer ml-2 px-2 py-1 text-xs rounded-lg border border-zinc-700 text-rose-500 instawp-skip-item" data-type="db" data-item="'+ value.table_name + '">' + plugin_object.trans.skip_item_txt + '</span>';
+                            }
+                            content_html += '</span></div>';
+                        });
 
+                        if(content_html) {
                             el_visibility_box.find('#visibility-content-area').append(content_html);
 
                             let el_box_area = el_visibility_box.find('#visibility-box-area');
