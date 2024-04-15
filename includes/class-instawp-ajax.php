@@ -23,6 +23,7 @@ class InstaWP_AJAX {
 		add_action( 'wp_ajax_instawp_check_usages_limit', array( $this, 'check_usages_limit' ) );
 		add_action( 'wp_ajax_instawp_migrate_init', array( $this, 'migrate_init' ) );
 		add_action( 'wp_ajax_instawp_migrate_progress', array( $this, 'migrate_progress' ) );
+		add_action( 'wp_ajax_instawp_skip_item', array( $this, 'skip_item' ) );
 	}
 
 	public function process_ajax() {
@@ -65,6 +66,7 @@ class InstaWP_AJAX {
 		$migration_details = Option::get_option( 'instawp_migration_details', array() );
 		$migrate_id        = Helper::get_args_option( 'migrate_id', $migration_details );
 		$migrate_key       = Helper::get_args_option( 'migrate_key', $migration_details );
+		$started_at        = Helper::get_args_option( 'started_at', $migration_details );
 
 		if ( empty( $migrate_id ) || empty( $migrate_key ) ) {
 			wp_send_json_success( $progress );
@@ -80,6 +82,7 @@ class InstaWP_AJAX {
 		$response_data                     = Helper::get_args_option( 'data', $response, array() );
 		$auto_login_hash                   = isset( $response_data['dest_wp']['auto_login_hash'] ) ? $response_data['dest_wp']['auto_login_hash'] : '';
 		$response_data['migrate_id']       = $migrate_id;
+		$response_data['started_at']       = $started_at;
 		$response_data['progress_files']   = Helper::get_args_option( 'progress_files', $response_data, 0 );
 		$response_data['progress_db']      = Helper::get_args_option( 'progress_db', $response_data, 0 );
 		$response_data['progress_restore'] = Helper::get_args_option( 'progress_restore', $response_data, 0 );
@@ -94,9 +97,69 @@ class InstaWP_AJAX {
 			wp_send_json_error( $response_data );
 		}
 
-		if ( isset( $response_data['stage']['migration-finished'] ) && $response_data['stage']['migration-finished'] === true ) {
+		$tracking_db = InstaWP_Tools::get_tracking_database( $migrate_key );
+		$statuses    = array(
+			1 => 'sent',
+			2 => 'in-progress',
+			3 => 'failed',
+			4 => 'skipped',
+		);
 
-			$tracking_db = InstaWP_Tools::get_tracking_database( $migrate_key );
+        if ( $tracking_db instanceof IWPDB ) {
+			$sendingFiles    = array();
+            $file_offset     = Option::get_option( 'instawp_files_offset', 0 );
+			$file_offset     = empty( $file_offset ) ? 0 : $file_offset;
+
+			$files_query_res = $tracking_db->query( "SELECT id, filepath, size, sent FROM iwp_files_sent WHERE sent != 0 LIMIT {$file_offset}, 18446744073709551615" );
+            $tracking_db->fetch_rows( $files_query_res, $sendingFiles );
+
+            if ( ! empty( $sendingFiles ) ) {
+	            $sendingFiles = array_map( function( $value ) use( $statuses ) {
+		            $path_to_replace   = wp_normalize_path( instawp_get_root_path() . DIRECTORY_SEPARATOR );
+
+                    $value['filepath'] = str_replace( $path_to_replace, '', wp_normalize_path( $value['filepath'] ) );
+                    $value['size']     = instawp()->get_file_size_with_unit( $value['size'] );
+                    $value['status']   = $statuses[ intval( $value['sent'] ) ];
+
+                    return $value;
+                }, $sendingFiles );
+
+	            $sendingFilesOffset = array_filter( $sendingFiles, function( $value ) {
+		            return $value['status'] !== 'in-progress';
+	            } );
+
+	            Option::update_option( 'instawp_files_offset', count( $sendingFilesOffset ) + $file_offset );
+            }
+
+			$response_data['processed_files'] = $sendingFiles;
+
+			$sendingDB = array();
+			$db_offset = Option::get_option( 'instawp_db_offset', 0 );
+			$db_offset = empty( $db_offset ) ? 0 : $db_offset;
+
+			$db_query_res = $tracking_db->query( "SELECT id, table_name, offset, rows_total, completed FROM iwp_db_sent WHERE completed != 0 LIMIT {$db_offset}, 18446744073709551615" );
+			$tracking_db->fetch_rows( $db_query_res, $sendingDB );
+
+			if ( ! empty( $sendingDB ) ) {
+				$sendingDB = array_map( function( $value ) use ( $statuses ) {
+					$value['status'] = $statuses[ intval( $value['completed'] ) ];
+
+					return $value;
+				}, $sendingDB );
+
+				$sendingDBOffset = array_filter( $sendingDB, function( $value ) {
+					return $value['status'] !== 'in-progress';
+				} );
+
+				Option::update_option( 'instawp_db_offset', count( $sendingDBOffset ) + $db_offset );
+			}
+
+			$response_data['processed_db'] = $sendingDB;
+		}
+
+		if ( isset( $response_data['stage']['migration-finished'] ) && $response_data['stage']['migration-finished'] === true ) {
+			delete_option( 'instawp_files_offset' );
+			delete_option( 'instawp_db_offset' );
 
 			if ( $tracking_db instanceof IWPDB ) {
 				$migrate_settings = $tracking_db->get_option( 'migrate_settings' );
@@ -128,6 +191,36 @@ class InstaWP_AJAX {
 		}
 
 		wp_send_json_success( $response_data );
+	}
+
+	public function skip_item() {
+		check_ajax_referer( 'instawp-connect', 'security' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error();
+		}
+
+		$item              = isset( $_POST['item'] ) ? sanitize_text_field( wp_unslash( $_POST['item'] ) ) : '';
+		$item_type         = isset( $_POST['type'] ) ? sanitize_text_field( wp_unslash( $_POST['type'] ) ) : 'file';
+		$migration_details = Option::get_option( 'instawp_migration_details', array() );
+		$migrate_key       = Helper::get_args_option( 'migrate_key', $migration_details );
+
+		if ( empty( $migrate_key ) || empty( $item ) ) {
+			wp_send_json_error( array( 'message' => __( 'Migrate key or item is missing!', 'instawp-connect' ) ) );
+		}
+
+		$tracking_db = InstaWP_Tools::get_tracking_database( $migrate_key );
+		if ( $tracking_db instanceof IWPDB ) {
+			if ( $item_type === 'file' ) {
+				$tracking_db->update( 'iwp_files_sent', array( 'sent' => '1' ), array( 'id' => $item ) );
+			} elseif ( $item_type === 'db' ) {
+				$tracking_db->update( 'iwp_db_sent', array( 'completed' => '1' ), array( 'table_name_hash' => hash( 'sha256', $item ) ) );
+			}
+
+			wp_send_json_success();
+		} else {
+		    wp_send_json_error( array( 'message' => __( 'Can not initiate database.', 'instawp-connect' ) ) );
+        }
 	}
 
 
