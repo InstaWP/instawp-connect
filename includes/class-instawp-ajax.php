@@ -94,7 +94,8 @@ class InstaWP_AJAX {
                 if ( ! $status ) {
                     continue;
                 }
-                Option::update_option( 'instawp_migration_status', $stage );
+	            $migration_details['status'] = 'finished';
+	            Option::update_option( 'instawp_last_migration_details', $migration_details );
             }
         }
 
@@ -170,7 +171,8 @@ class InstaWP_AJAX {
 			delete_option( 'instawp_files_offset' );
 			delete_option( 'instawp_db_offset' );
 
-			Option::update_option( 'instawp_migration_status', 'finished' );
+            $migration_details['status'] = 'finished';
+			Option::update_option( 'instawp_last_migration_details', $migration_details );
 
 			if ( $tracking_db instanceof IWPDB ) {
 				$migrate_settings = $tracking_db->get_option( 'migrate_settings' );
@@ -352,7 +354,8 @@ class InstaWP_AJAX {
 			'migrate_key'  => $migrate_key,
 			'tracking_url' => $tracking_url,
 			'dest_url'     => $destination_site_url,
-			'started_at'   => current_time( 'mysql' ),
+			'started_at'   => current_time( 'mysql', 1 ),
+			'status'       => 'initiated',
 		);
 		$tracking_db           = InstaWP_Tools::get_tracking_database( $migrate_key );
 
@@ -361,7 +364,6 @@ class InstaWP_AJAX {
 		}
 
 		Option::update_option( 'instawp_migration_details', $migration_details );
-		delete_option( 'instawp_migration_status' );
 
 		wp_send_json_success( $migration_details );
 	}

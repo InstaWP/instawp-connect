@@ -47,7 +47,7 @@
         const currentTime = new Date();
 
         // Calculate time difference in milliseconds
-        const timeDifference = currentTime.getTime() - new Date(startTime).getTime();
+        const timeDifference = currentTime.getTime() - new Date(startTime + " UTC").getTime();
 
         // Calculate elapsed time in days, hours, minutes, and seconds
         const days = Math.floor(timeDifference / (1000 * 60 * 60 * 24));
