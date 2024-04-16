@@ -228,6 +228,11 @@ class InstaWP_Rest_Api {
 			return $this->throw_error( $response );
 		}
 
+		$response = array(
+			'success' => true,
+			'message' => esc_html__( 'Post migration cleanup completed.', 'instawp-connect' ),
+		);
+
 		// reset everything and remove connection
 		instawp_reset_running_migration( 'hard', true );
 
@@ -249,10 +254,15 @@ class InstaWP_Rest_Api {
 			return $this->throw_error( $is_deleted );
 		}
 
-		return $this->send_response( array(
-			'success' => true,
-			'message' => esc_html__( 'Post migration cleanup completed.', 'instawp-connect' ),
-		) );
+		$post_installs = $request->get_param( 'post_installs' );
+
+		if ( ! empty( $post_installs ) && is_array( $post_installs ) ) {
+			$installer = new Helpers\Installer( $post_installs );
+
+			$response['post_installs'] = $installer->start();
+		}
+
+		return $this->send_response( $response );
 	}
 
 	/**
@@ -962,7 +972,7 @@ class InstaWP_Rest_Api {
 			require_once ABSPATH . 'wp-admin/includes/file.php';
 		}
 
-		$params   = $this->filter_params( $request );
+		$params = $this->filter_params( $request );
 
 		$uninstaller = new Helpers\Uninstaller( $params );
 		$response    = $uninstaller->uninstall();
