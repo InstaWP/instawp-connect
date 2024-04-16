@@ -371,7 +371,7 @@ include $file_path;';
 
 			if ( isset( $migrate_settings['excluded_paths'] ) && is_array( $migrate_settings['excluded_paths'] ) ) {
 				foreach ( $migrate_settings['excluded_paths'] as $path ) {
-                    $path =  rtrim( instawp_get_root_path(), '/' ) . DIRECTORY_SEPARATOR . $path;
+                    $path = rtrim( instawp_get_root_path(), '/' ) . DIRECTORY_SEPARATOR . $path;
                     if ( ! file_exists( $path ) || ! is_readable( $path ) ) {
                         continue;
                     }
@@ -792,7 +792,9 @@ include $file_path;';
 			'ajax_url' => admin_url( 'admin-ajax.php' ),
 			'trans'    => array(
 				'create_staging_site_txt' => __( 'Please create staging sites first.', 'instawp-connect' ),
-			),
+				'skip_item_txt'           => __( 'Skip', 'instawp-connect' ),
+                'stages'                  => InstaWP_Setting::get_stages(),
+            ),
 			'security' => wp_create_nonce( 'instawp-connect' ),
 		);
 	}

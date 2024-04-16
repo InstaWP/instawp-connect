@@ -64,8 +64,8 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 		}
 
 		delete_option( 'instawp_sync_parent_connect_data' );
-		InstaWP_Setting::update_option( 'instawp_sync_connect_id', intval( $request->parent_connect_id ) );
-		InstaWP_Setting::update_option( 'instawp_is_staging', true );
+		Option::update_option( 'instawp_sync_connect_id', intval( $request->parent_connect_id ) );
+		Option::update_option( 'instawp_is_staging', true );
 		instawp_get_source_site_detail();
 
 		return $this->send_response( array(
@@ -115,11 +115,9 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 		delete_option( 'instawp_is_event_syncing' );
 
 		if ( ! empty( $encrypted_contents ) && is_array( $encrypted_contents ) ) {
-			$count           = 1;
-			$total_op        = count( $encrypted_contents );
-			$progress        = intval( $count / $total_op * 100 );
-			$sync_message    = isset( $bodyArr->sync_message ) ? $bodyArr->sync_message : '';
-			$progress_status = ( $progress > 100 ) ? 'in_progress' : 'completed';
+			$count        = 1;
+			$total_op     = count( $encrypted_contents );
+			$sync_message = isset( $bodyArr->sync_message ) ? $bodyArr->sync_message : '';
 
 			foreach ( $encrypted_contents as $v ) {
 				$has_log = $wpdb->get_var(
@@ -150,9 +148,12 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 					$this->event_sync_logs( $v, $source_url, $sync_response );
 				}
 
+				$progress        = intval( ( $count / $total_op ) * 100 );
+				$progress_status = ( $progress < 100 ) ? 'in_progress' : 'completed';
+
 				/**
-				* Update api for cloud
-				*/
+				 * Update api for cloud
+				 */
 				$sync_update = array(
 					'progress' => $progress,
 					'status'   => $progress_status,
@@ -179,7 +180,7 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 
 		#enable is back if syncing already enabled at the destination
 		if ( $is_enabled ) {
-			InstaWP_Setting::update_option( 'instawp_is_event_syncing', 1 );
+			Option::update_option( 'instawp_is_event_syncing', 1 );
 		}
 
 		return $this->send_response( array(

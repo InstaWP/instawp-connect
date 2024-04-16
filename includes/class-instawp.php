@@ -144,7 +144,7 @@ class instaWP {
 		}
 
 		set_transient( 'instawp_generate_large_files', true, HOUR_IN_SECONDS );
-		InstaWP_Setting::update_option( 'instawp_large_files_list', $data );
+		Option::update_option( 'instawp_large_files_list', $data );
 	}
 
 	public function clear_staging_sites_list() {

@@ -72,6 +72,12 @@ if ( ! $root_dir_find ) {
 }
 
 if ( ! $root_dir_find ) {
+	$root_dir_data = get_wp_root_directory( '', 'wp' );
+	$root_dir_find = isset( $root_dir_data['status'] ) ? $root_dir_data['status'] : false;
+	$root_dir_path = isset( $root_dir_data['root_path'] ) ? $root_dir_data['root_path'] : '';
+}
+
+if ( ! $root_dir_find ) {
 	header( 'x-iwp-status: false' );
 	header( 'x-iwp-message: Could not find wp-config.php in the parent directories.' );
 	echo "Could not find wp-config.php in the parent directories.";
@@ -163,7 +169,8 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			header( 'x-file-type: zip' );
 			header( 'x-iwp-progress: ' . $progress_percentage );
 
-			$tmpZip = tempnam( sys_get_temp_dir(), 'batchzip' );
+			$tmpZip          = tempnam( sys_get_temp_dir(), 'batchzip' );
+			$zipSuccessFiles = array();
 
 			if ( $archiveType === 'ziparchive' ) {
 				$archive = new ZipArchive();
@@ -181,6 +188,8 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			header( 'x-iwp-filename: ' . $tmpZip );
 
 			foreach ( $unsentFiles as $file ) {
+				$tracking_db->update( 'iwp_files_sent', array( 'sent' => 2 ), array( 'id' => $file['id'] ) ); // mark as sending
+
 				$filePath         = isset( $file['filepath'] ) ? $file['filepath'] : '';
 				$relativePath     = ltrim( str_replace( WP_ROOT, "", $filePath ), DIRECTORY_SEPARATOR );
 				$filePath         = process_files( $tracking_db, $filePath, $relativePath );
@@ -188,6 +197,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 				$file_name        = basename( $filePath );
 
 				if ( ! $file_fopen_check ) {
+					$tracking_db->update( 'iwp_files_sent', array( 'sent' => 3 ), array( 'id' => $file['id'] ) ); // mark as failed
 					error_log( 'Can not open file: ' . $filePath );
 					continue;
 				}
@@ -195,11 +205,13 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 				fclose( $file_fopen_check );
 
 				if ( ! is_readable( $filePath ) ) {
+					$tracking_db->update( 'iwp_files_sent', array( 'sent' => 3 ), array( 'id' => $file['id'] ) ); // mark as failed
 					error_log( 'Can not read file: ' . $filePath );
 					continue;
 				}
 
 				if ( ! is_file( $filePath ) ) {
+					$tracking_db->update( 'iwp_files_sent', array( 'sent' => 3 ), array( 'id' => $file['id'] ) ); // mark as failed
 					error_log( 'Invalid file: ' . $filePath );
 					continue;
 				}
@@ -211,7 +223,10 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 				$added_to_zip = $archive->addFile( $filePath, $relativePath );
 
 				if ( ! $added_to_zip ) {
+					$tracking_db->update( 'iwp_files_sent', array( 'sent' => 3 ), array( 'id' => $file['id'] ) ); // mark as failed
 					error_log( 'Could not add to zip. File: : ' . $filePath );
+				} else {
+					$zipSuccessFiles[] = $file;
 				}
 			}
 
@@ -226,7 +241,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 				header( 'x-iwp-message: Error in reading file. Message - ' . $exception->getMessage() );
 			}
 
-			foreach ( $unsentFiles as $file ) {
+			foreach ( $zipSuccessFiles as $file ) {
 				$tracking_db->update( 'iwp_files_sent', array( 'sent' => 1 ), array( 'id' => $file['id'] ) );
 			}
 
@@ -505,6 +520,8 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		$row = $tracking_db->get_row( 'iwp_files_sent', array( 'sent' => '0' ) );
 
 		if ( $row ) {
+			$tracking_db->update( 'iwp_files_sent', array( 'sent' => '2' ), array( 'id' => $row['id'] ) ); // mark as sending
+
 			$fileId       = $row['id'];
 			$filePath     = $row['filepath'];
 			$file_name    = basename( $filePath );
@@ -574,7 +591,10 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 		}
 	}
 
-	$result = $tracking_db->get_row( 'iwp_db_sent', array( 'completed' => '0' ) );
+	$result = $tracking_db->get_row( 'iwp_db_sent', array( 'completed' => '2' ) );
+	if ( empty( $result ) ) {
+		$result = $tracking_db->get_row( 'iwp_db_sent', array( 'completed' => '0' ) );
+	}
 
 	if ( empty( $result ) ) {
 		header( 'x-iwp-status: true' );
@@ -671,7 +691,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 	}
 
 	// Update the offset and rows_finished
-	$tracking_db->update( 'iwp_db_sent', array( 'offset' => $offset ), array( 'table_name_hash' => hash( 'sha256', $curr_table_name ) ) );
+	$tracking_db->update( 'iwp_db_sent', array( 'offset' => $offset, 'completed' => '2' ), array( 'table_name_hash' => hash( 'sha256', $curr_table_name ) ) );
 
 	// Mark table as completed if all rows were fetched
 	if ( count( $sqlStatements ) < CHUNK_DB_SIZE ) {

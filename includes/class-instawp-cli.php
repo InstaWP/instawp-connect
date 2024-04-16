@@ -6,6 +6,7 @@
 use InstaWP\Connect\Helpers\Curl;
 use InstaWP\Connect\Helpers\Helper;
 use InstaWP\Connect\Helpers\WPConfig;
+use InstaWP\Connect\Helpers\Option;
 
 if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 	class INSTAWP_CLI_Commands {
@@ -29,7 +30,7 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 			}
 			WP_CLI::success( 'Files backup created successfully.' );
 
-			InstaWP_Setting::update_option( 'instawp_parent_is_on_local', true );
+			Option::update_option( 'instawp_parent_is_on_local', true );
 
 			// Database backup
 			$archive_path_db = InstaWP_Tools::cli_archive_wordpress_db();
@@ -186,8 +187,8 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 			}
 
 			if ( isset( $args[0] ) && $args[0] === 'staging-set' && ! empty( $args[1] ) ) {
-				InstaWP_Setting::update_option( 'instawp_sync_connect_id', intval( $args[1] ) );
-				InstaWP_Setting::update_option( 'instawp_is_staging', true );
+				Option::update_option( 'instawp_sync_connect_id', intval( $args[1] ) );
+				Option::update_option( 'instawp_is_staging', true );
 				instawp_get_source_site_detail();
 
 				return true;
