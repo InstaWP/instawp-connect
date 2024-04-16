@@ -235,6 +235,7 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 		}
 
 		if ( $abort_forcefully === true && ! empty( $migrate_id ) && ! empty( $migrate_key ) ) {
+			Option::update_option( 'instawp_migration_status', 'aborted' );
 
 			$response = Curl::do_curl( "migrates-v3/{$migrate_id}/update-status",
 				array(
@@ -245,7 +246,7 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 			);
 
 			if ( isset( $response['success'] ) && ! $response['success'] ) {
-				//error_log( wp_json_encode( $response ) );
+				error_log( wp_json_encode( $response ) );
 			}
 		}
 

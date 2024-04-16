@@ -89,6 +89,15 @@ class InstaWP_AJAX {
 		$response_data['server_logs']      = Helper::get_args_option( 'server_logs', $response_data );
 		$response_data['failed_message']   = Helper::get_args_option( 'failed_message', $response_data, esc_html( 'Something went wrong' ) );
 
+		if ( ! empty( $response_data['stage'] ) ) {
+            foreach ( $response_data['stage'] as $stage => $status ) {
+                if ( ! $status ) {
+                    continue;
+                }
+                Option::update_option( 'instawp_migration_status', $stage );
+            }
+        }
+
 		if ( isset( $response_data['stage']['failed'] ) && $response_data['stage']['failed'] === true ) {
 			instawp_reset_running_migration();
 
@@ -161,6 +170,8 @@ class InstaWP_AJAX {
 			delete_option( 'instawp_files_offset' );
 			delete_option( 'instawp_db_offset' );
 
+			Option::update_option( 'instawp_migration_status', 'finished' );
+
 			if ( $tracking_db instanceof IWPDB ) {
 				$migrate_settings = $tracking_db->get_option( 'migrate_settings' );
 				$migrate_options  = Helper::get_args_option( 'options', $migrate_settings, array() );
@@ -212,9 +223,9 @@ class InstaWP_AJAX {
 		$tracking_db = InstaWP_Tools::get_tracking_database( $migrate_key );
 		if ( $tracking_db instanceof IWPDB ) {
 			if ( $item_type === 'file' ) {
-				$tracking_db->update( 'iwp_files_sent', array( 'sent' => '1' ), array( 'id' => $item ) );
+				$tracking_db->update( 'iwp_files_sent', array( 'sent' => '4' ), array( 'id' => $item ) );
 			} elseif ( $item_type === 'db' ) {
-				$tracking_db->update( 'iwp_db_sent', array( 'completed' => '1' ), array( 'table_name_hash' => hash( 'sha256', $item ) ) );
+				$tracking_db->update( 'iwp_db_sent', array( 'completed' => '4' ), array( 'table_name_hash' => hash( 'sha256', $item ) ) );
 			}
 
 			wp_send_json_success();
@@ -350,6 +361,7 @@ class InstaWP_AJAX {
 		}
 
 		InstaWP_Setting::update_option( 'instawp_migration_details', $migration_details );
+		InstaWP_Setting::delete_option( 'instawp_migration_status' );
 
 		wp_send_json_success( $migration_details );
 	}
