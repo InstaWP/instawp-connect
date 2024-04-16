@@ -60,7 +60,7 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 			}
 
 			if ( self::send_heartbeat() ) {
-				InstaWP_Setting::update_option( 'instawp_rm_heartbeat', 'on' );
+				Option::update_option( 'instawp_rm_heartbeat', 'on' );
 			}
 		}
 
@@ -163,8 +163,8 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 			}
 
 			if ( ! $success ) {
-				InstaWP_Setting::update_option( 'instawp_rm_heartbeat', 'off' );
-				InstaWP_Setting::update_option( 'instawp_rm_heartbeat_failed', true );
+				Option::update_option( 'instawp_rm_heartbeat', 'off' );
+				Option::update_option( 'instawp_rm_heartbeat_failed', true );
 				as_unschedule_all_actions( 'instawp_handle_heartbeat', array(), 'instawp-connect' );
 
 				if ( intval( $response_code ) === 404 ) {
@@ -172,7 +172,7 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 				}
 			} else {
 				delete_option( 'instawp_rm_heartbeat_failed' );
-				InstaWP_Setting::update_option( 'instawp_heartbeat_sent_data', $heartbeat_data );
+				Option::update_option( 'instawp_heartbeat_sent_data', $heartbeat_data );
 
 				if ( $setting === 'on' ) {
 					$placeholders = implode( ',', array_fill( 0, count( $log_ids ), '%d' ) );

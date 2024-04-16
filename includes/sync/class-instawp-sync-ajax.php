@@ -40,7 +40,7 @@ class InstaWP_Sync_Ajax {
 		}
 
 		$sync_status = ! empty( $_POST['sync_status'] ) ? intval( $_POST['sync_status'] ) : 0;
-		InstaWP_Setting::update_option( 'instawp_is_event_syncing', $sync_status );
+		Option::update_option( 'instawp_is_event_syncing', $sync_status );
 
 		instawp_create_db_tables();
 
@@ -239,7 +239,7 @@ class InstaWP_Sync_Ajax {
 			$batch_data['current_batch']   = $next_batch;
 			$batch_data['total_completed'] = $total_completed;
 
-			InstaWP_Setting::update_option( 'instawp_event_batch_data', $batch_data );
+			Option::update_option( 'instawp_event_batch_data', $batch_data );
 
 			$this->send_success( $response['message'], $result );
 		} else {
@@ -371,7 +371,7 @@ class InstaWP_Sync_Ajax {
 						'percent_completed' => 0,
 						'total_completed'   => 0,
 					);
-					InstaWP_Setting::update_option( 'instawp_event_batch_data', $batch_data );
+					Option::update_option( 'instawp_event_batch_data', $batch_data );
 
 					$this->send_success( 'Event fetched.', array(
 						'count'         => $total_events,

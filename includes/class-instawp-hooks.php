@@ -231,7 +231,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			if (
 				instawp()->is_staging &&
 				empty( Option::get_option( 'instawp_changed_option_blog_public' ) ) &&
-				(int) INSTAWP_Setting::get_option( 'blog_public' ) === 1
+				(int) Option::get_option( 'blog_public' ) === 1
 			) {
 				update_option( 'blog_public', '0' );
 			}
@@ -240,7 +240,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 		public function manage_update_option( $option_name, $old_value, $new_value ) {
 
 			if ( 'blog_public' === $option_name && intval( $old_value ) === 0 && intval( $new_value ) === 1 ) {
-				InstaWP_Setting::update_option( 'instawp_changed_option_blog_public', time() );
+				Option::update_option( 'instawp_changed_option_blog_public', time() );
 			}
 		}
 

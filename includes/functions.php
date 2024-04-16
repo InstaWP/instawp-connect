@@ -348,7 +348,7 @@ if ( ! function_exists( 'instawp_set_staging_sites_list' ) ) {
 				$staging_sites[ $key ]['data'] = $staging_site_data;
 			}
 
-			InstaWP_Setting::update_option( 'instawp_staging_sites', $staging_sites );
+			Option::update_option( 'instawp_staging_sites', $staging_sites );
 		}
 	}
 }
@@ -553,7 +553,7 @@ if ( ! function_exists( 'instawp_get_source_site_detail' ) ) {
 		$connect_id  = instawp_get_connect_id();
 		$parent_data = instawp_get_connect_detail_by_connect_id( $connect_id );
 
-		InstaWP_Setting::update_option( 'instawp_sync_parent_connect_data', $parent_data );
+		Option::update_option( 'instawp_sync_parent_connect_data', $parent_data );
 	}
 }
 

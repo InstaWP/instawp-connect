@@ -177,7 +177,7 @@ class InstaWP_AJAX {
 				$migrate_options  = Helper::get_args_option( 'options', $migrate_settings, array() );
 
 				if ( is_array( $migrate_options ) && in_array( 'enable_event_syncing', $migrate_options ) ) {
-					InstaWP_Setting::update_option( 'instawp_is_event_syncing', 1 );
+					Option::update_option( 'instawp_is_event_syncing', 1 );
 				}
 			}
 
@@ -360,8 +360,8 @@ class InstaWP_AJAX {
 			$tracking_db->update_option( 'dest_url', $destination_site_url );
 		}
 
-		InstaWP_Setting::update_option( 'instawp_migration_details', $migration_details );
-		InstaWP_Setting::delete_option( 'instawp_migration_status' );
+		Option::update_option( 'instawp_migration_details', $migration_details );
+		delete_option( 'instawp_migration_status' );
 
 		wp_send_json_success( $migration_details );
 	}
@@ -618,7 +618,7 @@ class InstaWP_AJAX {
 			wp_send_json_error();
 		}
 
-		InstaWP_Setting::update_option( $option_name, $option_value );
+		Option::update_option( $option_name, $option_value );
 		wp_send_json_success();
 	}
 

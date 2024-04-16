@@ -5,7 +5,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2024-04-12 06:00+0000\n"
+"POT-Creation-Date: 2024-04-16 07:33+0000\n"
 "X-Poedit-Basepath: ..\n"
 "X-Poedit-KeywordsList: __;_e;_ex:1,2c;_n:1,2;_n_noop:1,2;_nx:1,2,4c;_nx_noop:1,2,3c;_x:1,2c;esc_attr__;esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c\n"
 "X-Poedit-SearchPath-0: .\n"
@@ -37,51 +37,51 @@ msgstr ""
 msgid "(no title)"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:95
+#: includes/class-instawp-ajax.php:104
 msgid "Migration failed."
 msgstr ""
 
-#: includes/class-instawp-ajax.php:209
+#: includes/class-instawp-ajax.php:220
 msgid "Migrate key or item is missing!"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:222
+#: includes/class-instawp-ajax.php:233
 msgid "Can not initiate database."
 msgstr ""
 
-#: includes/class-instawp-ajax.php:267
+#: includes/class-instawp-ajax.php:278
 msgid "Error: Empty serve url found in pre-check response."
 msgstr ""
 
-#: includes/class-instawp-ajax.php:280
+#: includes/class-instawp-ajax.php:291
 msgid "Error: Empty api signature found in pre-check response."
 msgstr ""
 
-#: includes/class-instawp-ajax.php:329
+#: includes/class-instawp-ajax.php:340
 msgid "Could not create migrate id."
 msgstr ""
 
-#: includes/class-instawp-ajax.php:385
+#: includes/class-instawp-ajax.php:397
 msgid "Connect Again"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:390
+#: includes/class-instawp-ajax.php:402
 msgid "Increase Limit"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:418
+#: includes/class-instawp-ajax.php:430
 msgid "Empty folder!"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:522
+#: includes/class-instawp-ajax.php:534
 msgid "%s rows"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:569
+#: includes/class-instawp-ajax.php:581
 msgid "We have identified following large files in your installation:"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:633
+#: includes/class-instawp-ajax.php:645
 msgid "Plugin reset successfully."
 msgstr ""
 
@@ -541,103 +541,87 @@ msgstr ""
 msgid "Enabling this option will allow reading WordPress error logs on this website remotely using the REST API."
 msgstr ""
 
-#: includes/class-instawp-tools.php:465
+#: includes/class-instawp-tools.php:461
 msgid "Root directory for this WordPress installation could not find."
 msgstr ""
 
-#: includes/class-instawp-tools.php:483
+#: includes/class-instawp-tools.php:479
 msgid "Tracking database could not found."
 msgstr ""
 
-#: includes/class-instawp-tools.php:493
+#: includes/class-instawp-tools.php:489
 msgid "API Signature and others data could not set properly"
 msgstr ""
 
-#: includes/class-instawp-tools.php:502
+#: includes/class-instawp-tools.php:498
 msgid "Could not create the forwarded file."
 msgstr ""
 
-#: includes/class-instawp-tools.php:506
+#: includes/class-instawp-tools.php:502
 msgid "InstaWP could not access the forwarded file due to security issue."
 msgstr ""
 
-#: includes/class-instawp-tools.php:515
+#: includes/class-instawp-tools.php:511
 msgid "InstaWP could not access or read required files from your WordPress directory due to file permission issue."
 msgstr ""
 
-#: includes/class-instawp-tools.php:517
+#: includes/class-instawp-tools.php:513
 msgid "Learn more."
 msgstr ""
 
-#: includes/class-instawp-tools.php:710
+#: includes/class-instawp-tools.php:706
 msgid "Launch %s"
 msgstr ""
 
-#: includes/class-instawp-tools.php:798
+#: includes/class-instawp-tools.php:794
 msgid "Please create staging sites first."
 msgstr ""
 
-#: includes/class-instawp-tools.php:799
+#: includes/class-instawp-tools.php:795
 msgid "Skip"
 msgstr ""
 
-#: includes/class-instawp-tools.php:800
-msgid "Step 6 - Files Pulling Started"
-msgstr ""
-
-#: includes/class-instawp-tools.php:801
-msgid "Step 7 - Files Pulling Finished"
-msgstr ""
-
-#: includes/class-instawp-tools.php:802
-msgid "Step 8 - Database Pulling Started"
-msgstr ""
-
-#: includes/class-instawp-tools.php:803
-msgid "Step 9 - Database Pulling Finished"
-msgstr ""
-
-#: includes/class-instawp-tools.php:850
+#: includes/class-instawp-tools.php:843
 msgid "Zip archive is not opening."
 msgstr ""
 
-#: includes/class-instawp-tools.php:903
+#: includes/class-instawp-tools.php:896
 msgid "No compression method find."
 msgstr ""
 
-#: includes/class-instawp-tools.php:946
+#: includes/class-instawp-tools.php:939
 msgid "Site ID not found in site create response."
 msgstr ""
 
-#: includes/class-instawp-tools.php:984
+#: includes/class-instawp-tools.php:977
 msgid "SFTP login failed."
 msgstr ""
 
-#: includes/class-instawp-tools.php:995
+#: includes/class-instawp-tools.php:988
 msgid "SFTP upload failed for files."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1003
+#: includes/class-instawp-tools.php:996
 msgid "SFTP upload failed for database."
 msgstr ""
 
-#: includes/functions.php:243
+#: includes/functions.php:244
 msgid "Migration aborted forcefully"
 msgstr ""
 
-#: includes/functions.php:695
+#: includes/functions.php:696
 msgid "No login found with given username and default username, You are going to login with first admin user."
 msgstr ""
 
-#: includes/functions.php:691
+#: includes/functions.php:692
 msgid "Login information for the given username didn't found, You are going to login with default login username."
 msgstr ""
 
-#: includes/functions.php:688
+#: includes/functions.php:689
 msgid "Login information for the given username"
 msgstr ""
 
-#: includes/functions.php:699
+#: includes/functions.php:700
 msgid "No login information found."
 msgstr ""
 
@@ -699,15 +683,15 @@ msgstr ""
 msgid "WP Customizer Changes"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-option.php:27
+#: includes/sync/class-instawp-sync-option.php:29
 msgid "Option added"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-option.php:41
+#: includes/sync/class-instawp-sync-option.php:43
 msgid "Option updated"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-option.php:51
+#: includes/sync/class-instawp-sync-option.php:53
 msgid "Option deleted"
 msgstr ""
 

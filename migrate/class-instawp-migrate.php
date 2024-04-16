@@ -100,7 +100,7 @@ if ( ! class_exists( 'InstaWP_Migration' ) ) {
 					}
 					$field_value = array_merge( $api_options, $field_value );
 				}
-				InstaWP_Setting::update_option( $field_id, $field_value );
+				Option::update_option( $field_id, $field_value );
 			}
 
 			wp_send_json_success( array( 'message' => esc_html__( 'Success. Settings updated.', 'instawp-connect' ) ) );

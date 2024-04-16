@@ -583,7 +583,7 @@ class InstaWP_Rest_Api {
 
 		$auto_login_url = add_query_arg( $args, wp_login_url( '', true ) );
 
-		InstaWP_Setting::update_option( 'instawp_login_code', array(
+		Option::update_option( 'instawp_login_code', array(
 			'code'       => $login_code,
 			'updated_at' => time(),
 		) );
@@ -757,7 +757,7 @@ class InstaWP_Rest_Api {
 		// if any wp_option is passed, then store it
 		if ( isset( $parameters['wp'] ) && isset( $parameters['wp']['options'] ) && is_array( $parameters['wp']['options'] ) ) {
 			foreach ( $parameters['wp']['options'] as $option_key => $option_value ) {
-				InstaWP_Setting::update_option( $option_key, $option_value );
+				Option::update_option( $option_key, $option_value );
 			}
 		}
 
@@ -1373,7 +1373,7 @@ class InstaWP_Rest_Api {
 				$results[ $key ]['message'] = esc_html__( 'Success!', 'instawp-connect' );
 
 				if ( 'off' === $value ) {
-					$update                     = InstaWP_Setting::update_option( 'instawp_rm_' . $key, $value );
+					$update                     = Option::update_option( 'instawp_rm_' . $key, $value );
 					$results[ $key ]['success'] = $update;
 					if ( ! $update ) {
 						$results[ $key ]['message'] = esc_html__( 'Setting is already disabled.', 'instawp-connect' );

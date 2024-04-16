@@ -1,5 +1,7 @@
 <?php
 
+use InstaWP\Connect\Helpers\Option;
+
 defined( 'ABSPATH' ) || exit;
 
 class InstaWP_Sync_Option {
@@ -61,7 +63,7 @@ class InstaWP_Sync_Option {
 
 		// add or update option
 		if ( in_array( $v->event_slug, array( 'add_option', 'update_option' ), true ) ) {
-			InstaWP_Setting::update_option( $data['name'], maybe_unserialize( $data['value'] ) );
+			Option::update_option( $data['name'], maybe_unserialize( $data['value'] ) );
 		}
 
 		// delete option
