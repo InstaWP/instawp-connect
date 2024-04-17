@@ -2,7 +2,7 @@
 Contributors: instawp
 Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.6
-Tested up to: 6.5
+Tested up to: 6.5.2
 Requires PHP: 5.6
 Stable tag: 0.1.0.28
 License: GPLv3 or later
@@ -94,8 +94,10 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 
 == Changelog ==
 
-= 0.1.0.28 - 16 Apr 2024 =
+= 0.1.0.28 - 17 Apr 2024 =
 - NEW - Added Migration Visibility.
+- NEW - Added support for installing plugins/themes in post cleanup migration API.
+- FIX - Stabilize the staging site creation process.
 
 = 0.1.0.27 - 11 Apr 2024 =
 - FIX - Migration not working with db host ports.
