@@ -363,6 +363,24 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		}
 	}
 
+	if ( ! function_exists( 'get_iterator_items' ) ) {
+		function get_iterator_items( $skip_folders, $root ) {
+			$filter_directory = function ( SplFileInfo $file, $key, RecursiveDirectoryIterator $iterator ) use ( $skip_folders ) {
+
+				$relative_path = ! empty( $iterator->getSubPath() ) ? $iterator->getSubPath() . '/' . $file->getBasename() : $file->getBasename();
+
+				if ( in_array( $relative_path, $skip_folders ) ) {
+					return false;
+				}
+
+				return ! in_array( $iterator->getSubPath(), $skip_folders );
+			};
+			$directory        = new RecursiveDirectoryIterator( $root, RecursiveDirectoryIterator::SKIP_DOTS | RecursiveDirectoryIterator::FOLLOW_SYMLINKS );
+
+			return new RecursiveIteratorIterator( new RecursiveCallbackFilterIterator( $directory, $filter_directory ), RecursiveIteratorIterator::LEAVES_ONLY, RecursiveIteratorIterator::CATCH_GET_CHILD );
+		}
+	}
+
 //  $total_files_path         = INSTAWP_BACKUP_DIR . '.total-files-' . $migrate_key;
 	$migrate_settings         = $tracking_db->get_option( 'migrate_settings' );
 	$excluded_paths           = isset( $migrate_settings['excluded_paths'] ) ? $migrate_settings['excluded_paths'] : array();
@@ -394,19 +412,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 	}
 
 	if ( $unsent_files_count == 0 ) {
-
-		$filter_directory = function ( SplFileInfo $file, $key, RecursiveDirectoryIterator $iterator ) use ( $skip_folders ) {
-
-			$relative_path = ! empty( $iterator->getSubPath() ) ? $iterator->getSubPath() . '/' . $file->getBasename() : $file->getBasename();
-
-			if ( in_array( $relative_path, $skip_folders ) ) {
-				return false;
-			}
-
-			return ! in_array( $iterator->getSubPath(), $skip_folders );
-		};
-		$directory        = new RecursiveDirectoryIterator( WP_ROOT, RecursiveDirectoryIterator::SKIP_DOTS | RecursiveDirectoryIterator::FOLLOW_SYMLINKS );
-		$iterator         = new RecursiveIteratorIterator( new RecursiveCallbackFilterIterator( $directory, $filter_directory ), RecursiveIteratorIterator::LEAVES_ONLY, RecursiveIteratorIterator::CATCH_GET_CHILD );
+		$iterator         = get_iterator_items( $skip_folders, WP_ROOT );
 
 		// Get the current file index from the database or file
 		$currentFileIndex = (int) $tracking_db->db_get_option( 'current_file_index', '0' );
@@ -545,9 +551,46 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
 			$tracking_db->update( 'iwp_files_sent', array( 'sent' => '1' ), array( 'id' => $fileId ) );
 		} else {
-			header( 'x-iwp-status: true' );
-			header( 'x-iwp-transfer-complete: true' );
-			header( 'x-iwp-message: No more files left to download according to iwp_files_sent table.' );
+			$iterator   = get_iterator_items( $skip_folders, WP_ROOT );
+			$totalFiles = iterator_count( $iterator );
+			$fileIndex  = 0;
+
+			$tracking_db->db_update_option( 'total_files', $totalFiles );
+
+			foreach ( $iterator as $file ) {
+				$filepath = $file->getPathname();
+
+				if ( ! is_valid_file( $filepath ) ) {
+					continue;
+				}
+
+				$filesize      = $file->getSize();
+				$filepath_hash = hash( 'sha256', $filepath );
+				$currentDir    = str_replace( WP_ROOT . '/', '', $file->getPath() );
+				$row           = $tracking_db->get_row( 'iwp_files_sent', array( 'filepath_hash' => $filepath_hash ) );
+
+				if ( ! $row ) {
+					try {
+						$tracking_db->insert( 'iwp_files_sent', array(
+							'filepath'      => "'$filepath'",
+							'filepath_hash' => "'$filepath_hash'",
+							'sent'          => 0,
+							'size'          => "'$filesize'",
+						) );
+						++ $fileIndex;
+					} catch ( Exception $e ) {
+						header( 'x-iwp-status: false' );
+						header( 'x-iwp-message: Insert to iwp_files_sent failed. Actual error: ' . $e->getMessage() );
+						die();
+					}
+				}
+			}
+
+			if ( $fileIndex === 0 ) {
+				header( 'x-iwp-status: true' );
+				header( 'x-iwp-transfer-complete: true' );
+				header( 'x-iwp-message: No more files left to download according to iwp_files_sent table.' );
+			}
 		}
 	}
 }
