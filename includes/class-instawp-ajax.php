@@ -121,7 +121,9 @@ class InstaWP_AJAX {
 			$file_offset     = empty( $file_offset ) ? 0 : $file_offset;
 
 			$files_query_res = $tracking_db->query( "SELECT id, filepath, size, sent FROM iwp_files_sent WHERE sent != 0 LIMIT {$file_offset}, 18446744073709551615" );
-            $tracking_db->fetch_rows( $files_query_res, $sendingFiles );
+	        if ( $files_query_res instanceof mysqli_result ) {
+		        $tracking_db->fetch_rows( $files_query_res, $sendingFiles );
+	        }
 
             if ( ! empty( $sendingFiles ) ) {
 	            $sendingFiles = array_map( function( $value ) use( $statuses ) {
@@ -148,7 +150,9 @@ class InstaWP_AJAX {
 			$db_offset = empty( $db_offset ) ? 0 : $db_offset;
 
 			$db_query_res = $tracking_db->query( "SELECT id, table_name, offset, rows_total, completed FROM iwp_db_sent WHERE completed != 0 LIMIT {$db_offset}, 18446744073709551615" );
-			$tracking_db->fetch_rows( $db_query_res, $sendingDB );
+	        if ( $db_query_res instanceof mysqli_result ) {
+                $tracking_db->fetch_rows( $db_query_res, $sendingDB );
+	        }
 
 			if ( ! empty( $sendingDB ) ) {
 				$sendingDB = array_map( function( $value ) use ( $statuses ) {

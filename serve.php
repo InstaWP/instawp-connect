@@ -501,7 +501,9 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		$is_archive_available   = true;
 		$unsent_files_query_res = $tracking_db->query( "SELECT id,filepath,size FROM iwp_files_sent WHERE sent = 0 and size < " . MAX_ZIP_SIZE . " ORDER by size LIMIT " . BATCH_ZIP_SIZE );
 
-		$tracking_db->fetch_rows( $unsent_files_query_res, $unsentFiles );
+		if ( $unsent_files_query_res instanceof mysqli_result ) {
+			$tracking_db->fetch_rows( $unsent_files_query_res, $unsentFiles );
+		}
 	}
 
 	if ( $is_archive_available && count( $unsentFiles ) > 0 ) {

@@ -91,9 +91,12 @@ class IWPDB {
 		/**
 		 * @todo implement latter
 		 */
+		$results   = [];
 		$query_res = $this->query( "SELECT * FROM {$table_name} WHERE {$this->build_where_clauses($where_array)}" );
 
-		$this->fetch_rows( $query_res, $results );
+		if ( $query_res instanceof mysqli_result ) {
+			$this->fetch_rows( $query_res, $results );
+		}
 
 		return $results;
 	}
@@ -229,9 +232,12 @@ class IWPDB {
 	public function get_all_tables() {
 
 		$all_tables      = array();
+		$tables          = array();
 		$show_tables_res = $this->query( 'SHOW TABLES' );
 
-		$this->fetch_rows( $show_tables_res, $tables );
+		if ( $show_tables_res instanceof mysqli_result ) {
+			$this->fetch_rows( $show_tables_res, $tables );
+		}
 
 		$tables = array_map( function ( $table_name ) {
 			if ( is_array( $table_name ) ) {
