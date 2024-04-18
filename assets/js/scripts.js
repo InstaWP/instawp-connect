@@ -164,7 +164,7 @@
 
                         $.each(processed_files, function (key, value) {
                             content_html += '<div class="flex gap-3 items-center hover:bg-zinc-800 hover:rounded-lg py-1.5 px-2.5 group ' + value.status + '">';
-                            content_html += '<span class="text-gray-100 min-w-36">' + getCurrentDateTime() + '</span><span class="text-gray-100 break-all group-[.sent]:text-emerald-300 group-[.failed]:text-rose-500 group-[.skipped]:text-yellow-300">' + value.filepath + ' (' + value.size + ')';
+                            content_html += '<span class="text-gray-100 min-w-36">' + getCurrentDateTime() + '</span><span class="text-gray-100 break-all group-[.sent]:text-emerald-300 group-[.failed]:text-rose-500 group-[.skipped]:text-yellow-300 group-[.invalid]:text-red-300">' + value.filepath + ' (' + value.size + ')';
                             if(value.status === 'in-progress') {
                                 content_html += ' <span class="hidden group-hover:inline-block cursor-pointer ml-2 px-2 py-1 text-xs rounded-lg border border-zinc-700 text-rose-500 instawp-skip-item" data-type="file" data-item="'+ value.id + '">' + plugin_object.trans.skip_item_txt + '</span>';
                             }
@@ -173,7 +173,7 @@
 
                         $.each(processed_db, function (key, value) {
                             content_html += '<div class="flex gap-3 items-center hover:bg-zinc-800 hover:rounded-lg py-1.5 px-2.5 group ' + value.status + '">';
-                            content_html += '<span class="text-gray-100 min-w-36">' + getCurrentDateTime() + '</span><span class="text-gray-100 break-all group-[.sent]:text-emerald-300 group-[.failed]:text-rose-500 group-[.skipped]:text-yellow-300">' + value.table_name + ' - ' + value.offset + ' / ' + value.rows_total + ' rows';
+                            content_html += '<span class="text-gray-100 min-w-36">' + getCurrentDateTime() + '</span><span class="text-gray-100 break-all group-[.sent]:text-emerald-300 group-[.failed]:text-rose-500 group-[.skipped]:text-yellow-300 group-[.invalid]:text-red-300">' + value.table_name + ' - ' + value.offset + ' / ' + value.rows_total + ' rows';
                             if(value.status === 'in-progress') {
                                 content_html += ' <span class="hidden group-hover:inline-block cursor-pointer ml-2 px-2 py-1 text-xs rounded-lg border border-zinc-700 text-rose-500 instawp-skip-item" data-type="db" data-item="'+ value.table_name + '">' + plugin_object.trans.skip_item_txt + '</span>';
                             }

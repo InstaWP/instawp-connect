@@ -446,14 +446,22 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		$tracking_db->db_update_option( 'total_files', $totalFiles );
 
 		foreach ( $limitedIterator as $file ) {
-			$filepath = $file->getPathname();
+			$filepath      = $file->getPathname();
+			$filesize      = $file->getSize();
+			$filepath_hash = hash( 'sha256', $filepath );
 
 			if ( ! is_valid_file( $filepath ) ) {
+				try {
+					$tracking_db->insert( 'iwp_files_sent', array(
+						'filepath'      => "'$filepath'",
+						'filepath_hash' => "'$filepath_hash'",
+						'sent'          => 5,
+						'size'          => "'$filesize'",
+					) );
+				} catch ( Exception $e ) {}
 				continue;
 			}
 
-			$filesize      = $file->getSize();
-			$filepath_hash = hash( 'sha256', $filepath );
 			$currentDir    = str_replace( WP_ROOT . '/', '', $file->getPath() );
 			$row           = $tracking_db->get_row( 'iwp_files_sent', array( 'filepath_hash' => $filepath_hash ) );
 
@@ -558,14 +566,22 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			$tracking_db->db_update_option( 'total_files', $totalFiles );
 
 			foreach ( $iterator as $file ) {
-				$filepath = $file->getPathname();
+				$filepath      = $file->getPathname();
+				$filesize      = $file->getSize();
+				$filepath_hash = hash( 'sha256', $filepath );
 
 				if ( ! is_valid_file( $filepath ) ) {
+					try {
+						$tracking_db->insert( 'iwp_files_sent', array(
+							'filepath'      => "'$filepath'",
+							'filepath_hash' => "'$filepath_hash'",
+							'sent'          => 5,
+							'size'          => "'$filesize'",
+						) );
+					} catch ( Exception $e ) {}
 					continue;
 				}
 
-				$filesize      = $file->getSize();
-				$filepath_hash = hash( 'sha256', $filepath );
 				$currentDir    = str_replace( WP_ROOT . '/', '', $file->getPath() );
 				$row           = $tracking_db->get_row( 'iwp_files_sent', array( 'filepath_hash' => $filepath_hash ) );
 

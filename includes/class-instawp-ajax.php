@@ -113,6 +113,7 @@ class InstaWP_AJAX {
 			2 => 'in-progress',
 			3 => 'failed',
 			4 => 'skipped',
+			5 => 'invalid',
 		);
 
         if ( $tracking_db instanceof IWPDB ) {
