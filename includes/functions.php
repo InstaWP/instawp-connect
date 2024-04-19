@@ -834,6 +834,10 @@ if ( ! function_exists( 'instawp_array_recursive_diff' ) ) {
 	 */
 	function instawp_array_recursive_diff( $array1, $array2 ) {
 		$diff = array();
+		if ( ! is_array( $array1 ) || ! is_array( $array2 ) ) {
+			return $diff;
+		}
+
 		foreach ( $array1 as $key => $value ) {
 			if ( is_array( $value ) ) {
 				if ( ! isset( $array2[ $key ] ) || ! is_array( $array2[ $key ] ) ) {
