@@ -447,8 +447,17 @@ class InstaWP_Rest_Api {
 			return $this->throw_error( $pre_check_response );
 		}
 
-		// Add admin email to the response
-		$pre_check_response['wp_admin_email'] = get_bloginfo( 'admin_email' );
+		global $wp_version;
+
+		$pre_check_response['source_domain']       = site_url();
+		$pre_check_response['php_version']         = PHP_VERSION;
+		$pre_check_response['wp_version']          = $wp_version;
+		$pre_check_response['plugin_version']      = INSTAWP_PLUGIN_VERSION;
+		$pre_check_response['file_size']           = InstaWP_Tools::get_total_sizes( 'files', $migrate_settings );
+		$pre_check_response['db_size']             = InstaWP_Tools::get_total_sizes( 'db' );
+		$pre_check_response['is_website_on_local'] = instawp_is_website_on_local();
+		$pre_check_response['active_plugins']      = Option::get_option( 'active_plugins' );
+		$pre_check_response['wp_admin_email']      = get_bloginfo( 'admin_email' );
 
 		return $this->send_response( $pre_check_response );
 	}

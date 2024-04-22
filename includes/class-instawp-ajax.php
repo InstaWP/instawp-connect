@@ -90,14 +90,14 @@ class InstaWP_AJAX {
 		$response_data['failed_message']   = Helper::get_args_option( 'failed_message', $response_data, esc_html( 'Something went wrong' ) );
 
 		if ( ! empty( $response_data['stage'] ) ) {
-            foreach ( $response_data['stage'] as $stage => $status ) {
-                if ( ! $status ) {
-                    continue;
-                }
-	            $migration_details['status'] = 'finished';
-	            Option::update_option( 'instawp_last_migration_details', $migration_details );
-            }
-        }
+			foreach ( $response_data['stage'] as $stage => $status ) {
+				if ( ! $status ) {
+					continue;
+				}
+				$migration_details['status'] = 'finished';
+				Option::update_option( 'instawp_last_migration_details', $migration_details );
+			}
+		}
 
 		if ( isset( $response_data['stage']['failed'] ) && $response_data['stage']['failed'] === true ) {
 			instawp_reset_running_migration();
@@ -116,33 +116,33 @@ class InstaWP_AJAX {
 			5 => 'invalid',
 		);
 
-        if ( $tracking_db instanceof IWPDB ) {
-			$sendingFiles    = array();
-            $file_offset     = Option::get_option( 'instawp_files_offset', 0 );
-			$file_offset     = empty( $file_offset ) ? 0 : $file_offset;
+		if ( $tracking_db instanceof IWPDB ) {
+			$sendingFiles = array();
+			$file_offset  = Option::get_option( 'instawp_files_offset', 0 );
+			$file_offset  = empty( $file_offset ) ? 0 : $file_offset;
 
 			$files_query_res = $tracking_db->query( "SELECT id, filepath, size, sent FROM iwp_files_sent WHERE sent != 0 LIMIT {$file_offset}, 18446744073709551615" );
-	        if ( $files_query_res instanceof mysqli_result ) {
-		        $tracking_db->fetch_rows( $files_query_res, $sendingFiles );
-	        }
+			if ( $files_query_res instanceof mysqli_result ) {
+				$tracking_db->fetch_rows( $files_query_res, $sendingFiles );
+			}
 
-            if ( ! empty( $sendingFiles ) ) {
-	            $sendingFiles = array_map( function( $value ) use( $statuses ) {
-		            $path_to_replace   = wp_normalize_path( instawp_get_root_path() . DIRECTORY_SEPARATOR );
+			if ( ! empty( $sendingFiles ) ) {
+				$sendingFiles = array_map( function ( $value ) use ( $statuses ) {
+					$path_to_replace = wp_normalize_path( instawp_get_root_path() . DIRECTORY_SEPARATOR );
 
-                    $value['filepath'] = str_replace( $path_to_replace, '', wp_normalize_path( $value['filepath'] ) );
-                    $value['size']     = instawp()->get_file_size_with_unit( $value['size'] );
-                    $value['status']   = $statuses[ intval( $value['sent'] ) ];
+					$value['filepath'] = str_replace( $path_to_replace, '', wp_normalize_path( $value['filepath'] ) );
+					$value['size']     = instawp()->get_file_size_with_unit( $value['size'] );
+					$value['status']   = $statuses[ intval( $value['sent'] ) ];
 
-                    return $value;
-                }, $sendingFiles );
+					return $value;
+				}, $sendingFiles );
 
-	            $sendingFilesOffset = array_filter( $sendingFiles, function( $value ) {
-		            return $value['status'] !== 'in-progress';
-	            } );
+				$sendingFilesOffset = array_filter( $sendingFiles, function ( $value ) {
+					return $value['status'] !== 'in-progress';
+				} );
 
-	            Option::update_option( 'instawp_files_offset', count( $sendingFilesOffset ) + $file_offset );
-            }
+				Option::update_option( 'instawp_files_offset', count( $sendingFilesOffset ) + $file_offset );
+			}
 
 			$response_data['processed_files'] = $sendingFiles;
 
@@ -151,18 +151,18 @@ class InstaWP_AJAX {
 			$db_offset = empty( $db_offset ) ? 0 : $db_offset;
 
 			$db_query_res = $tracking_db->query( "SELECT id, table_name, offset, rows_total, completed FROM iwp_db_sent WHERE completed != 0 LIMIT {$db_offset}, 18446744073709551615" );
-	        if ( $db_query_res instanceof mysqli_result ) {
-                $tracking_db->fetch_rows( $db_query_res, $sendingDB );
-	        }
+			if ( $db_query_res instanceof mysqli_result ) {
+				$tracking_db->fetch_rows( $db_query_res, $sendingDB );
+			}
 
 			if ( ! empty( $sendingDB ) ) {
-				$sendingDB = array_map( function( $value ) use ( $statuses ) {
+				$sendingDB = array_map( function ( $value ) use ( $statuses ) {
 					$value['status'] = $statuses[ intval( $value['completed'] ) ];
 
 					return $value;
 				}, $sendingDB );
 
-				$sendingDBOffset = array_filter( $sendingDB, function( $value ) {
+				$sendingDBOffset = array_filter( $sendingDB, function ( $value ) {
 					return $value['status'] !== 'in-progress';
 				} );
 
@@ -176,7 +176,7 @@ class InstaWP_AJAX {
 			delete_option( 'instawp_files_offset' );
 			delete_option( 'instawp_db_offset' );
 
-            $migration_details['status'] = 'finished';
+			$migration_details['status'] = 'finished';
 			Option::update_option( 'instawp_last_migration_details', $migration_details );
 
 			if ( $tracking_db instanceof IWPDB ) {
@@ -237,8 +237,8 @@ class InstaWP_AJAX {
 
 			wp_send_json_success();
 		} else {
-		    wp_send_json_error( array( 'message' => __( 'Can not initiate database.', 'instawp-connect' ) ) );
-        }
+			wp_send_json_error( array( 'message' => __( 'Can not initiate database.', 'instawp-connect' ) ) );
+		}
 	}
 
 
@@ -419,7 +419,7 @@ class InstaWP_AJAX {
 			wp_send_json_error();
 		}
 
-        // phpcs:disable
+		// phpcs:disable
 		$path                = isset( $_POST['path'] ) ? sanitize_text_field( wp_unslash( $_POST['path'] ) ) : '/';
 		$active_plugins_only = isset( $_POST['active_plugins'] ) && filter_var( $_POST['active_plugins'], FILTER_VALIDATE_BOOLEAN );
 		$active_themes_only  = isset( $_POST['active_themes'] ) && filter_var( $_POST['active_themes'], FILTER_VALIDATE_BOOLEAN );
@@ -427,7 +427,7 @@ class InstaWP_AJAX {
 		$is_item_checked     = isset( $_POST['is_checked'] ) && filter_var( $_POST['is_checked'], FILTER_VALIDATE_BOOLEAN );
 		$is_select_all       = isset( $_POST['select_all'] ) && filter_var( $_POST['select_all'], FILTER_VALIDATE_BOOLEAN );
 		$sort_by             = isset( $_POST['sort_by'] ) ? sanitize_text_field( wp_unslash( $_POST['sort_by'] ) ) : false;
-        // phpcs:enable
+		// phpcs:enable
 
 		if ( ! $path ) {
 			wp_send_json_error();
@@ -463,8 +463,8 @@ class InstaWP_AJAX {
 				$theme_item_checked = true;
 
 				if ( in_array( $data['full_path'], array( $theme_path, $template_path, $themes_dir, $themes_dir . '/index.php' ) )
-					|| strpos( $data['full_path'], $theme_path ) !== false
-					|| strpos( $data['full_path'], $template_path ) !== false ) {
+				     || strpos( $data['full_path'], $theme_path ) !== false
+				     || strpos( $data['full_path'], $template_path ) !== false ) {
 
 					$theme_item_checked = false;
 				}
@@ -476,7 +476,7 @@ class InstaWP_AJAX {
 				$plugin_item_checked = true;
 
 				if ( in_array( $data['full_path'], array( wp_normalize_path( WP_PLUGIN_DIR ), wp_normalize_path( WP_PLUGIN_DIR ) . '/index.php' ) )
-					|| in_array( basename( $data['relative_path'] ), array_map( 'dirname', $active_plugins ) ) ) {
+				     || in_array( basename( $data['relative_path'] ), array_map( 'dirname', $active_plugins ) ) ) {
 
 					$plugin_item_checked = false;
 				}
