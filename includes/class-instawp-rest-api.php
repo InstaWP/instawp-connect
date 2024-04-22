@@ -651,7 +651,7 @@ class InstaWP_Rest_Api {
 	 *
 	 * @return void
 	 */
-	function override_plugin_zip_while_doing_config( $plugin_zip_url ) {
+	function override_plugin_zip_while_doing_config_issue( $plugin_zip_url ) {
 
 		if ( empty( $plugin_zip_url ) ) {
 			return;
@@ -711,6 +711,68 @@ class InstaWP_Rest_Api {
 		}
 
 		wp_delete_file( $plugin_zip );
+	}
+
+	function override_plugin_zip_while_doing_config( $plugin_zip_url ) {
+
+		if ( empty( $plugin_zip_url ) ) {
+			return;
+		}
+
+		$plugin_zip   = INSTAWP_PLUGIN_SLUG . '.zip';
+		$plugins_path = WP_CONTENT_DIR . '/plugins/';
+
+		// Download the file from remote location
+		file_put_contents( $plugin_zip, fopen( $plugin_zip_url, 'r' ) );
+
+		// Setting permission
+		chmod( $plugin_zip, 0777 );
+
+		if ( ! function_exists( 'request_filesystem_credentials' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+		}
+
+		if ( ! function_exists( 'show_message' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/misc.php';
+		}
+
+		if ( ! function_exists( 'get_plugin_data' ) ) {
+			require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
+		}
+
+		if ( ! class_exists( 'Plugin_Upgrader' ) ) {
+			require_once( ABSPATH . 'wp-admin/includes/class-wp-upgrader.php' );
+		}
+
+		if ( ! defined( 'FS_METHOD' ) ) {
+			define( 'FS_METHOD', 'direct' );
+		}
+
+		wp_cache_flush();
+
+		$plugin_upgrader = new Plugin_Upgrader();
+		$installed       = $plugin_upgrader->install( $plugin_zip, array( 'overwrite_package' => true ) );
+
+		if ( $installed ) {
+
+			$installed_plugin_info = $plugin_upgrader->plugin_info();
+			$installed_plugin_info = explode( '/', $installed_plugin_info );
+			$installed_plugin_slug = isset( $installed_plugin_info[0] ) ? $installed_plugin_info[0] : '';
+
+			if ( ! empty( $installed_plugin_slug ) ) {
+
+				$source      = $plugins_path . $installed_plugin_slug;
+				$destination = $plugins_path . INSTAWP_PLUGIN_SLUG;
+
+				$this->move_files_folders( $source, $destination );
+
+				if ( $destination ) {
+					rmdir( $destination );
+				}
+			}
+		}
+
+		unlink( $plugin_zip );
 	}
 
 	public function config( $request ) {
