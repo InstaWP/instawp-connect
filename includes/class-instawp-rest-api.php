@@ -494,6 +494,14 @@ class InstaWP_Rest_Api {
 			return $this->throw_error( new WP_Error( 403, esc_html__( 'Could not create destination file.', 'instawp-connect' ) ) );
 		}
 
+		Option::update_option( 'instawp_migration_details', array(
+			'migrate_key' => $migrate_key,
+			'dest_url'    => $dest_file_url,
+			'started_at'  => current_time( 'mysql', 1 ),
+			'status'      => 'initiated',
+			'mode'        => 'push'
+		) );
+
 		return $this->send_response(
 			array(
 				'php_version'      => PHP_VERSION,

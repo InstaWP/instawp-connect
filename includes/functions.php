@@ -174,7 +174,7 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 	function instawp_reset_running_migration( $reset_type = 'soft', $abort_forcefully = false ) {
 		global $wpdb;
 
-		$migration_details = Option::get_option( 'instawp_migration_details', array() );
+		$migration_details = Option::get_option( 'instawp_migration_details' );
 		$migrate_id        = Helper::get_args_option( 'migrate_id', $migration_details );
 		$migrate_key       = Helper::get_args_option( 'migrate_key', $migration_details );
 
@@ -248,6 +248,10 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 			}
 
 			$migration_details['status'] = 'aborted';
+		}
+
+		if ( isset( $migration_details['status'] ) && $migration_details['status'] != 'aborted' ) {
+			$migration_details['status'] = 'completed';
 		}
 
 		Option::update_option( 'instawp_last_migration_details', $migration_details );

@@ -63,7 +63,7 @@ class InstaWP_AJAX {
 			'progress_db'      => 0,
 			'progress_restore' => 0,
 		);
-		$migration_details = Option::get_option( 'instawp_migration_details', array() );
+		$migration_details = Option::get_option( 'instawp_migration_details' );
 		$migrate_id        = Helper::get_args_option( 'migrate_id', $migration_details );
 		$migrate_key       = Helper::get_args_option( 'migrate_key', $migration_details );
 		$started_at        = Helper::get_args_option( 'started_at', $migration_details );
@@ -361,6 +361,7 @@ class InstaWP_AJAX {
 			'dest_url'     => $destination_site_url,
 			'started_at'   => current_time( 'mysql', 1 ),
 			'status'       => 'initiated',
+			'mode'         => 'pull'
 		);
 		$tracking_db           = InstaWP_Tools::get_tracking_database( $migrate_key );
 
