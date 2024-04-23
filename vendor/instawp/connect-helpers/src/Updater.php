@@ -156,39 +156,35 @@ class Updater {
 
 			$upgrader = new \Plugin_Upgrader( $skin );
 
-			if ( 'instawp-connect/instawp-connect.php' === $item ) {
-				$upgrader->init();
-				$upgrader->upgrade_strings();
+			$upgrader->init();
+			$upgrader->upgrade_strings();
 
-				$current = get_site_transient( 'update_plugins' );
+			$current = get_site_transient( 'update_plugins' );
 
-				if ( isset( $current->response[ $item ] ) ) {
-					$r               = $current->response[ $item ];
-					$self_update_res = $upgrader->run(
-						array(
-							'package'           => $r->package,
-							'destination'       => WP_PLUGIN_DIR,
-							'clear_destination' => true,
-							'clear_working'     => true,
-							'hook_extra'        => array(
-								'plugin'      => $item,
-								'type'        => 'plugin',
-								'action'      => 'update',
-								'temp_backup' => array(
-									'slug' => dirname( $item ),
-									'src'  => WP_PLUGIN_DIR,
-									'dir'  => 'plugins',
-								),
+			if ( isset( $current->response[ $item ] ) ) {
+				$r               = $current->response[ $item ];
+				$self_update_res = $upgrader->run(
+					array(
+						'package'           => $r->package,
+						'destination'       => WP_PLUGIN_DIR,
+						'clear_destination' => true,
+						'clear_working'     => true,
+						'hook_extra'        => array(
+							'plugin'      => $item,
+							'type'        => 'plugin',
+							'action'      => 'update',
+							'temp_backup' => array(
+								'slug' => dirname( $item ),
+								'src'  => WP_PLUGIN_DIR,
+								'dir'  => 'plugins',
 							),
-						)
-					);
+						),
+					)
+				);
 
-					if ( $self_update_res && ! is_wp_error( $self_update_res ) ) {
-						$result = true;
-					}
+				if ( $self_update_res && ! is_wp_error( $self_update_res ) ) {
+					$result = true;
 				}
-			} else {
-				$result = $upgrader->upgrade( $item );
 			}
 
 			if ( ! function_exists( 'activate_plugin' ) || ! function_exists( 'is_plugin_active' ) ) {

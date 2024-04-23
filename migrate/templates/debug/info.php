@@ -9,10 +9,10 @@ if ( ! class_exists( 'WP_Debug_Data' ) ) {
 	require_once ABSPATH . 'wp-admin/includes/class-wp-debug-data.php';
 }
 
-$api_data   = Helpers\Option::get_option( 'instawp_api_options', array() );
-$sizes_data = WP_Debug_Data::get_sizes();
-
-$details    = array(
+$api_data       = Helpers\Option::get_option( 'instawp_api_options', array() );
+$sizes_data     = WP_Debug_Data::get_sizes();
+$active_plugins = ( array ) get_option( 'active_plugins', array() );
+$details        = array(
     'PHP Version'       => phpversion(),
     'WordPress Version' => get_bloginfo( 'version' ),
     'Site URL'          => get_bloginfo( 'url' ),
@@ -29,6 +29,8 @@ $details    = array(
     'Uploads Size'      => $sizes_data['uploads_size']['debug'],
     'Database Size'     => $sizes_data['database_size']['debug'],
     'Total Site Size'   => $sizes_data['total_size']['debug'],
+    'Active Theme'      => wp_get_theme()->get( 'Name' ),
+    'Active Plugin(s)'  => join( ",\n", $active_plugins ),
 )
 ?>
 
