@@ -250,7 +250,7 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 			$migration_details['status'] = 'aborted';
 		}
 
-		if ( isset( $migration_details['status'] ) && $migration_details['status'] != 'aborted' ) {
+		if ( isset( $migration_details['status'] ) && $migration_details['status'] !== 'aborted' ) {
 			$migration_details['status'] = 'completed';
 		}
 
