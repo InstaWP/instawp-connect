@@ -164,12 +164,14 @@ add_action( 'wp_head', function () {
 		if ( ! empty( $site_url ) && ! empty( $dest_url ) ) {
 			$url_path = parse_url( $site_url, PHP_URL_PATH );
 
-			echo "<pre>"; print_r( $url_path ); echo "</pre>";
-
 			if ( ! empty( $url_path ) && $url_path !== '/' ) {
-				$content = str_replace( $url_path, '/', $content );
-				$content = str_replace( "RewriteBase //", "RewriteBase /", $content );
-				$content = str_replace( "RewriteRule . //index.php", "RewriteRule . /index.php", $content );
+//				$content = str_replace( $url_path, '/', $content );
+
+				$content = preg_replace('/RewriteBase\s+\/([^\/]+)\//', 'RewriteBase /', $content);
+				$content = preg_replace("/(RewriteRule\s+\.\s+\/)([^\/]+)/", 'RewriteRule . ', $content);
+
+//				$content = str_replace( "RewriteBase //", "RewriteBase /", $content );
+//				$content = str_replace( "RewriteRule . //index.php", "RewriteRule . /index.php", $content );
 			}
 		}
 
