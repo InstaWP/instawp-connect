@@ -122,3 +122,79 @@ function run_instawp() {
 add_filter( 'got_rewrite', '__return_true' );
 
 run_instawp();
+
+add_action( 'wp_head', function () {
+	if ( isset( $_GET['debug'] ) ) {
+
+//		echo "<pre>";
+//		print_r( NewfoldLabs\WP\Module\Migration\Services\MigrationSSO::get_magic_login_url() );
+//		echo "</pre>";
+
+		$site_url = site_url();
+		$dest_url = 'https://realistic-koala-3d3b45.instawp.xyz';
+		$filePath = ABSPATH . '.htaccess';
+		$content  = file_get_contents( $filePath );
+
+		echo "<pre>";
+		print_r( $content );
+		echo "</pre>";
+
+		// RSSR Support
+		$pattern = '/#Begin Really Simple SSL Redirect.*?#End Really Simple SSL Redirect/s';
+		$content = preg_replace( $pattern, '', $content );
+
+		// MalCare Support
+		$pattern = '/#MalCare WAF.*?#END MalCare WAF/s';
+		$content = preg_replace( $pattern, '', $content );
+
+		// Comment any any php_value
+		$content = preg_replace( '/^\s*php_value\s+/m', '# php_value ', $content );
+		$content = preg_replace( '/^\s*php_flag\s+/m', '# php_flag ', $content );
+
+		// Comment some unnecessary lines in htaccess
+		$content = preg_replace( '/^(.*AuthGroupFile.*)$/m', '# $1', $content );
+		$content = preg_replace( '/^(.*AuthUserFile.*)$/m', '# $1', $content );
+		$content = preg_replace( '/^(.*AuthName.*)$/m', '# $1', $content );
+		$content = preg_replace( '/^(.*ErrorDocument.*)$/m', '# $1', $content );
+
+
+		if ( ! empty( $site_url ) && ! empty( $dest_url ) ) {
+			$url_path = parse_url( $site_url, PHP_URL_PATH );
+
+			if ( ! empty( $url_path ) && $url_path !== '/' ) {
+				$content = str_replace( $url_path, '/', $content );
+				$content = str_replace( "RewriteBase //", "RewriteBase /", $content );
+				$content = str_replace( "RewriteRule . //index.php", "RewriteRule . /index.php", $content );
+			}
+		}
+
+
+		echo "<pre>";
+		print_r( '==============================================================================================================' );
+		echo "</pre>";
+
+
+		$target_url        = 'https://vlw.lcg.mybluehost.me/website_7fbf6cd8/wp-content/plugins/instawp-connect/dest.php';
+		$dest_domain       = str_replace( array( 'http://', 'https://', 'wp-content/plugins/instawp-connect/dest.php', 'dest.php' ), '', $target_url );
+		$dest_domain       = rtrim( $dest_domain, '/' );
+		$dest_domain_parts = explode( '/', $dest_domain );
+
+		if ( isset( $dest_domain_parts[0] ) ) {
+			unset( $dest_domain_parts[0] );
+		}
+
+		$dest_subdomain = implode( '/', $dest_domain_parts );
+
+		if ( ! empty( $dest_subdomain ) ) {
+			$content = str_replace( "RewriteBase /", "RewriteBase /{$dest_subdomain}/", $content );
+			$content = str_replace( "RewriteRule . /index.php", "RewriteRule . /{$dest_subdomain}/index.php", $content );
+		}
+
+		echo "<pre>";
+		print_r( $content );
+		echo "</pre>";
+
+
+		die();
+	}
+}, 0 );
