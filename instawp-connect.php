@@ -138,6 +138,9 @@ add_action( 'wp_head', function () {
 		echo "<pre>";
 		print_r( $content );
 		echo "</pre>";
+		echo "<pre>";
+		print_r( '==============================================================================================================' );
+		echo "</pre>";
 
 		// RSSR Support
 		$pattern = '/#Begin Really Simple SSL Redirect.*?#End Really Simple SSL Redirect/s';
@@ -161,6 +164,8 @@ add_action( 'wp_head', function () {
 		if ( ! empty( $site_url ) && ! empty( $dest_url ) ) {
 			$url_path = parse_url( $site_url, PHP_URL_PATH );
 
+			echo "<pre>"; print_r( $url_path ); echo "</pre>";
+
 			if ( ! empty( $url_path ) && $url_path !== '/' ) {
 				$content = str_replace( $url_path, '/', $content );
 				$content = str_replace( "RewriteBase //", "RewriteBase /", $content );
@@ -169,6 +174,9 @@ add_action( 'wp_head', function () {
 		}
 
 
+		echo "<pre>";
+		print_r( $content );
+		echo "</pre>";
 		echo "<pre>";
 		print_r( '==============================================================================================================' );
 		echo "</pre>";

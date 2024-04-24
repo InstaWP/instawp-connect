@@ -244,6 +244,14 @@ class InstaWP_Rest_Api {
 			require_once ABSPATH . 'wp-admin/includes/file.php';
 		}
 
+		$post_installs = $request->get_param( 'post_installs' );
+
+		if ( ! empty( $post_installs ) && is_array( $post_installs ) ) {
+			$installer = new Helpers\Installer( $post_installs );
+
+			$response['post_installs'] = $installer->start();
+		}
+
 		$plugin_slug = INSTAWP_PLUGIN_SLUG . '/' . INSTAWP_PLUGIN_SLUG . '.php';
 
 		deactivate_plugins( $plugin_slug );
@@ -252,14 +260,6 @@ class InstaWP_Rest_Api {
 
 		if ( is_wp_error( $is_deleted ) ) {
 			return $this->throw_error( $is_deleted );
-		}
-
-		$post_installs = $request->get_param( 'post_installs' );
-
-		if ( ! empty( $post_installs ) && is_array( $post_installs ) ) {
-			$installer = new Helpers\Installer( $post_installs );
-
-			$response['post_installs'] = $installer->start();
 		}
 
 		return $this->send_response( $response );
