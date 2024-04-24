@@ -14,7 +14,7 @@ class DatabaseManager {
 
 		$file_name = Helper::get_random_string( 20 );
 		$token     = md5( $file_name );
-		$url       = 'https://github.com/adminerevo/adminerevo/releases/download/v4.8.3/adminer-4.8.3.php';
+		$url       = 'https://github.com/adminerevo/adminerevo/releases/download/v4.8.4/adminer-4.8.4.php';
 
 		$search  = [
 			'/\bjs_escape\b/',
@@ -41,15 +41,10 @@ class DatabaseManager {
 				throw new Exception( esc_html( 'Failed to create the database manager file.' ) );
 			}
 
-			$file       = file( $file_path );
-			$new_line   = "if ( ! defined( 'INSTAWP_PLUGIN_DIR' ) ) { die; }";
-			$first_line = array_shift( $file );
-			array_unshift( $file, $new_line );
-			array_unshift( $file, $first_line );
-
-			$fp = fopen( $file_path, 'w' );
-			fwrite( $fp, implode( '', $file ) );
-			fclose( $fp );
+			$file_arr   = file( $file_path );
+			$new_line   = "if ( ! defined( 'INSTAWP_PLUGIN_DIR' ) ) { die; }\n";
+			array_splice( $file_arr, 1, 0, $new_line );
+			file_put_contents( $file_path, implode( '', $file_arr ) );
 
 			set_transient( 'instawp_database_manager_login_token', $token, ( 5 * MINUTE_IN_SECONDS ) );
 			wp_schedule_single_event( time() + HOUR_IN_SECONDS, self::$action );
