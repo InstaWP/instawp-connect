@@ -588,7 +588,7 @@ class InstaWP_AJAX {
                 <div class="flex items-center gap-3">
                     <div class="text-sm font-medium"><?php esc_html_e( 'We have identified following large files in your installation:', 'instawp-connect' ); ?></div>
                 </div>
-                <div class="flex flex-col items-start gap-3">
+                <div class="flex flex-col items-start gap-3 max-h-48 w-full overflow-auto">
 					<?php foreach ( $list_data as $data ) {
 						$element_id = wp_generate_uuid4(); ?>
                         <div class="flex justify-between items-center text-xs">
