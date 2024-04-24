@@ -301,6 +301,8 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
 					if ( ! empty( $url_path ) && $url_path !== '/' ) {
 						$content = str_replace( $url_path, '/', $content );
+						$content = str_replace( "RewriteBase //", "RewriteBase /", $content );
+						$content = str_replace( "RewriteRule . //index.php", "RewriteRule . /index.php", $content );
 					}
 
 					if ( in_array( 'skip_media_folder', $options ) ) {
