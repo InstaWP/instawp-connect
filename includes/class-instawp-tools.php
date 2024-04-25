@@ -573,6 +573,7 @@ include $file_path;';
 		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_connect_id_options';
 		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_sync_parent_connect_data';
 		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_migration_details';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_last_migration_details';
 		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_api_key_config_completed';
 		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_is_event_syncing';
 		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:_transient_instawp_staging_sites';
