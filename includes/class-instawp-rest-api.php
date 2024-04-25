@@ -244,12 +244,26 @@ class InstaWP_Rest_Api {
 			require_once ABSPATH . 'wp-admin/includes/file.php';
 		}
 
+		// Install the plugins if there is any in the request
 		$post_installs = $request->get_param( 'post_installs' );
 
 		if ( ! empty( $post_installs ) && is_array( $post_installs ) ) {
 			$installer = new Helpers\Installer( $post_installs );
 
 			$response['post_installs'] = $installer->start();
+		}
+
+		// SSO Url for the Bluehost
+		if ( class_exists( 'NewfoldLabs\WP\Module\Migration\Services\MigrationSSO' ) ) {
+			$login_url_response = NewfoldLabs\WP\Module\Migration\Services\MigrationSSO::get_magic_login_url();
+
+			if ( $login_url_response instanceof WP_REST_Response && $login_url_response->get_status() === 200 ) {
+				$response['sso_login_url'] = $login_url_response->get_data();
+			} else {
+				error_log( 'sso_url_response: ' . json_encode( $login_url_response ) );
+			}
+		} else {
+			error_log( esc_html__( 'sso_url_class_not_found: This class NewfoldLabs\WP\Module\Migration\Services\MigrationSSO not found.', 'instawp-connect' ) );
 		}
 
 		$plugin_slug = INSTAWP_PLUGIN_SLUG . '/' . INSTAWP_PLUGIN_SLUG . '.php';
