@@ -233,6 +233,12 @@ class InstaWP_Rest_Api {
 			'message' => esc_html__( 'Post migration cleanup completed.', 'instawp-connect' ),
 		);
 
+		$migration_details           = Option::get_option( 'instawp_migration_details' );
+		$migration_details['status'] = 'completed';
+
+		Option::update_option( 'instawp_last_migration_details', $migration_details );
+
+
 		// reset everything and remove connection
 		instawp_reset_running_migration( 'hard', true );
 

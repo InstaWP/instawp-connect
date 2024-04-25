@@ -178,10 +178,6 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 		$migrate_id        = Helper::get_args_option( 'migrate_id', $migration_details );
 		$migrate_key       = Helper::get_args_option( 'migrate_key', $migration_details );
 
-		if ( ! isset( $migration_details['status'] ) ) {
-			$migration_details['status'] = '';
-		}
-
 		// Delete migration details
 		delete_option( 'instawp_migration_details' );
 
@@ -250,16 +246,7 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 			if ( isset( $response['success'] ) && ! $response['success'] ) {
 				error_log( wp_json_encode( $response ) );
 			}
-
-			$migration_details['status'] = 'aborted';
 		}
-
-
-		if ( isset( $migration_details['status'] ) && $migration_details['status'] !== 'aborted' ) {
-			$migration_details['status'] = 'completed';
-		}
-
-		Option::update_option( 'instawp_last_migration_details', $migration_details );
 
 		return true;
 	}
