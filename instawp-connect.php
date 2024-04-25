@@ -130,6 +130,17 @@ add_action( 'wp_head', function () {
 //		print_r( NewfoldLabs\WP\Module\Migration\Services\MigrationSSO::get_magic_login_url() );
 //		echo "</pre>";
 
+
+		$migrate_key        = InstaWP_Tools::get_random_string( 40 );
+		$migrate_settings   = [];
+		$pre_check_response = InstaWP_Tools::get_pull_pre_check_response( $migrate_key, $migrate_settings );
+
+		echo "<pre>";
+		print_r( $pre_check_response );
+		echo "</pre>";
+
+		die();
+
 		$site_url = site_url();
 		$dest_url = 'https://realistic-koala-3d3b45.instawp.xyz';
 		$filePath = ABSPATH . '.htaccess';
@@ -167,8 +178,8 @@ add_action( 'wp_head', function () {
 			if ( ! empty( $url_path ) && $url_path !== '/' ) {
 //				$content = str_replace( $url_path, '/', $content );
 
-				$content = preg_replace('/RewriteBase\s+\/([^\/]+)\//', 'RewriteBase /', $content);
-				$content = preg_replace("/(RewriteRule\s+\.\s+\/)([^\/]+)/", 'RewriteRule . ', $content);
+				$content = preg_replace( '/RewriteBase\s+\/([^\/]+)\//', 'RewriteBase /', $content );
+				$content = preg_replace( "/(RewriteRule\s+\.\s+\/)([^\/]+)/", 'RewriteRule . ', $content );
 
 //				$content = str_replace( "RewriteBase //", "RewriteBase /", $content );
 //				$content = str_replace( "RewriteRule . //index.php", "RewriteRule . /index.php", $content );
@@ -179,6 +190,7 @@ add_action( 'wp_head', function () {
 		echo "<pre>";
 		print_r( $content );
 		echo "</pre>";
+
 		echo "<pre>";
 		print_r( '==============================================================================================================' );
 		echo "</pre>";

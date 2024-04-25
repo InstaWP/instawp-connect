@@ -459,6 +459,14 @@ class InstaWP_Rest_Api {
 		$pre_check_response['active_plugins']      = Option::get_option( 'active_plugins' );
 		$pre_check_response['wp_admin_email']      = get_bloginfo( 'admin_email' );
 
+		Option::update_option( 'instawp_migration_details', array(
+			'migrate_key' => $migrate_key,
+//			'dest_url'    => Helper::get_args_option( 'serve_url', $pre_check_response ),
+			'started_at'  => current_time( 'mysql', 1 ),
+			'status'      => 'initiated',
+			'mode'        => 'pull',
+		) );
+
 		return $this->send_response( $pre_check_response );
 	}
 

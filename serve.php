@@ -295,15 +295,21 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 				$content = preg_replace( '/^(.*AuthName.*)$/m', '# $1', $content );
 				$content = preg_replace( '/^(.*ErrorDocument.*)$/m', '# $1', $content );
 
-
-				if ( ! empty( $site_url ) && ! empty( $dest_url ) ) {
+				if ( ! empty( $site_url ) ) {
 					$url_path = parse_url( $site_url, PHP_URL_PATH );
 
+					$content .= "# url_path: $url_path\n";
+
 					if ( ! empty( $url_path ) && $url_path !== '/' ) {
+
+						$content .= "# url_path_inside: $url_path\n";
 
 						$content = preg_replace('/RewriteBase\s+\/([^\/]+)\//', 'RewriteBase /', $content);
 						$content = preg_replace("/(RewriteRule\s+\.\s+\/)([^\/]+)/", 'RewriteRule . ', $content);
 
+						/**
+						 * @todo will finalize the logic latter
+						 */
 //						$content = str_replace( $url_path, '/', $content );
 //						$content = str_replace( "RewriteBase //", "RewriteBase /", $content );
 //						$content = str_replace( "RewriteRule . //index.php", "RewriteRule . /index.php", $content );
