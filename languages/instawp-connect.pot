@@ -5,7 +5,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2024-04-26 06:37+0000\n"
+"POT-Creation-Date: 2024-04-26 09:19+0000\n"
 "X-Poedit-Basepath: ..\n"
 "X-Poedit-KeywordsList: __;_e;_ex:1,2c;_n:1,2;_n_noop:1,2;_nx:1,2,4c;_nx_noop:1,2,3c;_x:1,2c;esc_attr__;esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c\n"
 "X-Poedit-SearchPath-0: .\n"
@@ -541,87 +541,87 @@ msgstr ""
 msgid "Enabling this option will allow reading WordPress error logs on this website remotely using the REST API."
 msgstr ""
 
-#: includes/class-instawp-tools.php:461
+#: includes/class-instawp-tools.php:465
 msgid "Root directory for this WordPress installation could not find."
 msgstr ""
 
-#: includes/class-instawp-tools.php:479
+#: includes/class-instawp-tools.php:483
 msgid "Tracking database could not found."
 msgstr ""
 
-#: includes/class-instawp-tools.php:489
+#: includes/class-instawp-tools.php:493
 msgid "API Signature and others data could not set properly"
 msgstr ""
 
-#: includes/class-instawp-tools.php:498
+#: includes/class-instawp-tools.php:502
 msgid "Could not create the forwarded file."
 msgstr ""
 
-#: includes/class-instawp-tools.php:502
+#: includes/class-instawp-tools.php:506
 msgid "InstaWP could not access the forwarded file due to security issue."
 msgstr ""
 
-#: includes/class-instawp-tools.php:511
+#: includes/class-instawp-tools.php:515
 msgid "InstaWP could not access or read required files from your WordPress directory due to file permission issue."
 msgstr ""
 
-#: includes/class-instawp-tools.php:513
+#: includes/class-instawp-tools.php:517
 msgid "Learn more."
 msgstr ""
 
-#: includes/class-instawp-tools.php:707
+#: includes/class-instawp-tools.php:711
 msgid "Launch %s"
 msgstr ""
 
-#: includes/class-instawp-tools.php:795
+#: includes/class-instawp-tools.php:799
 msgid "Please create staging sites first."
 msgstr ""
 
-#: includes/class-instawp-tools.php:796
+#: includes/class-instawp-tools.php:800
 msgid "Skip"
 msgstr ""
 
-#: includes/class-instawp-tools.php:844
+#: includes/class-instawp-tools.php:848
 msgid "Zip archive is not opening."
 msgstr ""
 
-#: includes/class-instawp-tools.php:897
+#: includes/class-instawp-tools.php:901
 msgid "No compression method find."
 msgstr ""
 
-#: includes/class-instawp-tools.php:940
+#: includes/class-instawp-tools.php:944
 msgid "Site ID not found in site create response."
 msgstr ""
 
-#: includes/class-instawp-tools.php:978
+#: includes/class-instawp-tools.php:982
 msgid "SFTP login failed."
 msgstr ""
 
-#: includes/class-instawp-tools.php:989
+#: includes/class-instawp-tools.php:993
 msgid "SFTP upload failed for files."
 msgstr ""
 
-#: includes/class-instawp-tools.php:997
+#: includes/class-instawp-tools.php:1001
 msgid "SFTP upload failed for database."
 msgstr ""
 
-#: includes/functions.php:242
+#: includes/functions.php:245
 msgid "Migration aborted forcefully"
 msgstr ""
 
-#: includes/functions.php:694
+#: includes/functions.php:697
 msgid "No login found with given username and default username, You are going to login with first admin user."
 msgstr ""
 
-#: includes/functions.php:690
+#: includes/functions.php:693
 msgid "Login information for the given username didn't found, You are going to login with default login username."
 msgstr ""
 
-#: includes/functions.php:687
+#: includes/functions.php:690
 msgid "Login information for the given username"
 msgstr ""
 
-#: includes/functions.php:698
+#: includes/functions.php:701
 msgid "No login information found."
 msgstr ""
 
