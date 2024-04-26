@@ -458,6 +458,10 @@ include $file_path;';
 		}
 
 		if ( ! $is_wp_root_available ) {
+			$is_wp_root_available = self::is_wp_root_available( '', 'wp' );
+		}
+
+		if ( ! $is_wp_root_available ) {
 			return new WP_Error( 404, esc_html__( 'Root directory for this WordPress installation could not find.', 'instawp-connect' ) );
 		}
 

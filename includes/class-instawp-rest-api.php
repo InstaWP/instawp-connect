@@ -484,7 +484,7 @@ class InstaWP_Rest_Api {
 
 		Option::update_option( 'instawp_migration_details', array(
 			'migrate_key' => $migrate_key,
-//			'dest_url'    => Helper::get_args_option( 'serve_url', $pre_check_response ),
+			//'dest_url'    => Helper::get_args_option( 'serve_url', $pre_check_response ),
 			'started_at'  => current_time( 'mysql', 1 ),
 			'status'      => 'initiated',
 			'mode'        => 'pull',
