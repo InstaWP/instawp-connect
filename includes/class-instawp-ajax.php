@@ -94,7 +94,7 @@ class InstaWP_AJAX {
 				if ( ! $status ) {
 					continue;
 				}
-				$migration_details['status'] = 'finished';
+				$migration_details['status'] = 'completed';
 				Option::update_option( 'instawp_last_migration_details', $migration_details );
 			}
 		}
@@ -176,7 +176,7 @@ class InstaWP_AJAX {
 			delete_option( 'instawp_files_offset' );
 			delete_option( 'instawp_db_offset' );
 
-			$migration_details['status'] = 'finished';
+			$migration_details['status'] = 'completed';
 			Option::update_option( 'instawp_last_migration_details', $migration_details );
 
 			if ( $tracking_db instanceof IWPDB ) {
