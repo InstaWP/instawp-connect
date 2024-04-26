@@ -122,33 +122,3 @@ function run_instawp() {
 add_filter( 'got_rewrite', '__return_true' );
 
 run_instawp();
-
-add_action( 'wp_head', function () {
-	if ( isset( $_GET['debug'] ) ) {
-
-//		if ( class_exists( 'NewfoldLabs\WP\Module\Migration\Services\MigrationSSO' ) ) {
-//			$login_url_response = NewfoldLabs\WP\Module\Migration\Services\MigrationSSO::get_magic_login_url();
-//
-//			if ( $login_url_response instanceof WP_REST_Response && $login_url_response->get_status() === 200 ) {
-//				$login_url = $login_url_response->get_data();
-//			}
-//		}
-
-
-		$migrate_key        = 'asdasdsadqwr213d3rdf3cewd3edswcwf';
-		$migrate_settings   = array(
-			"migrate_push_settings" => [
-				"destination_connect_id"   => 1010,
-				"destination_url"          => 'https://dest.com',
-				"migrate_white_label_slug" => 'bluehost',
-			]
-		);
-		$pre_check_response = InstaWP_Tools::get_pull_pre_check_response( $migrate_key, $migrate_settings );
-
-		echo "<pre>";
-		print_r( $pre_check_response );
-		echo "</pre>";
-
-		die();
-	}
-}, 0 );

@@ -229,8 +229,9 @@ class InstaWP_Rest_Api {
 		}
 
 		$response           = array(
-			'success' => true,
-			'message' => esc_html__( 'Post migration cleanup completed.', 'instawp-connect' ),
+			'success'       => true,
+			'sso_login_url' => site_url(),
+			'message'       => esc_html__( 'Post migration cleanup completed.', 'instawp-connect' ),
 		);
 		$migrate_group_uuid = $request->get_param( 'migrate_group_uuid' );
 		$migration_status   = $request->get_param( 'migration_status' );
