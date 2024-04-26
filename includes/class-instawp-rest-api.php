@@ -234,7 +234,7 @@ class InstaWP_Rest_Api {
 			'message'       => esc_html__( 'Post migration cleanup completed.', 'instawp-connect' ),
 		);
 		$migrate_group_uuid = $request->get_param( 'migrate_group_uuid' );
-		$migration_status   = $request->get_param( 'migration_status' );
+		$migration_status   = $request->get_param( 'status' );
 		$migration_details  = Option::get_option( 'instawp_migration_details' );
 
 		$migration_details['migrate_group_uuid'] = $migrate_group_uuid;
