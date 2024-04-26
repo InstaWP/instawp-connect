@@ -228,16 +228,19 @@ class InstaWP_Rest_Api {
 			return $this->throw_error( $response );
 		}
 
-		$response = array(
-			'success' => true,
-			'message' => esc_html__( 'Post migration cleanup completed.', 'instawp-connect' ),
+		$response           = array(
+			'success'       => true,
+			'sso_login_url' => site_url(),
+			'message'       => esc_html__( 'Post migration cleanup completed.', 'instawp-connect' ),
 		);
+		$migrate_group_uuid = $request->get_param( 'migrate_group_uuid' );
+		$migration_status   = $request->get_param( 'migration_status' );
+		$migration_details  = Option::get_option( 'instawp_migration_details' );
 
-		$migration_details           = Option::get_option( 'instawp_migration_details' );
-		$migration_details['status'] = 'completed';
+		$migration_details['migrate_group_uuid'] = $migrate_group_uuid;
+		$migration_details['status']             = $migration_status;
 
 		Option::update_option( 'instawp_last_migration_details', $migration_details );
-
 
 		// reset everything and remove connection
 		instawp_reset_running_migration( 'hard', true );

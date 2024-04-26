@@ -122,19 +122,3 @@ function run_instawp() {
 add_filter( 'got_rewrite', '__return_true' );
 
 run_instawp();
-
-add_action( 'wp_head', function () {
-	if ( isset( $_GET['debug'] ) ) {
-
-		if ( class_exists( 'NewfoldLabs\WP\Module\Migration\Services\MigrationSSO' ) ) {
-			$login_url_response = NewfoldLabs\WP\Module\Migration\Services\MigrationSSO::get_magic_login_url();
-
-			if ( $login_url_response instanceof WP_REST_Response && $login_url_response->get_status() === 200 ) {
-				$login_url = $login_url_response->get_data();
-			}
-		}
-
-
-		die();
-	}
-}, 0 );
