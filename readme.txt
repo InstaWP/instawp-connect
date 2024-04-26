@@ -100,6 +100,7 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 - FIX - Added scroll view to large files list.
 - FIX - Updated AdminerEvo to latest version.
 - FIX - Fixed Plugin activation after update using API.
+- FIX - Fixed PHP errors at cleanup.
 
 = 0.1.0.30 - 22 Apr 2024 =
 - FIX - Fixed plugin config API.

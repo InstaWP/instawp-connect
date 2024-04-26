@@ -142,6 +142,14 @@ class IWPDB {
 		$this->query( "CREATE TABLE IF NOT EXISTS iwp_options (id INT AUTO_INCREMENT PRIMARY KEY, option_name CHAR(64), option_value CHAR(64)) {$collate};" );
 	}
 
+	public function rename_table( $old_name, $new_name ) {
+		$this->query( "RENAME TABLE {$old_name} TO {$new_name};" );
+	}
+
+	public function copy_table( $old_name, $new_name ) {
+		$this->query( "CREATE TABLE {$new_name} AS SELECT * FROM {$old_name};" );
+	}
+
 	public function connect_database() {
 		$db_username = $this->get_option( 'db_username' );
 		$db_password = $this->get_option( 'db_password' );
