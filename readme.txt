@@ -94,6 +94,9 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 
 == Changelog ==
 
+= 0.1.0.32 =
+- FIX - Fixed DOMAIN_CURRENT_SITE constant support for push.
+
 = 0.1.0.31 - 26 Apr 2024 =
 - FIX - Fixed File Manager Settings was not saving.
 - FIX - Fixed wrong text in sync quota warning.

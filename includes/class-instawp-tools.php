@@ -210,16 +210,10 @@ include $file_path;';
 			'db_name'             => DB_NAME,
 			'db_charset'          => DB_CHARSET,
 			'db_collate'          => DB_COLLATE,
+			'site_url'            => defined( 'WP_SITEURL' ) ? WP_SITEURL : site_url(),
+			'home_url'            => defined( 'WP_HOME' ) ? WP_HOME : home_url(),
 			'instawp_api_options' => maybe_serialize( Option::get_option( 'instawp_api_options' ) ),
 		);
-
-		if ( defined( 'WP_SITEURL' ) ) {
-			$data['site_url'] = WP_SITEURL;
-		}
-
-		if ( defined( 'WP_HOME' ) ) {
-			$data['home_url'] = WP_HOME;
-		}
 
 		$jsonString     = wp_json_encode( $data );
 		$dest_file_path = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . INSTAWP_DEFAULT_BACKUP_DIR . DIRECTORY_SEPARATOR . $migrate_key . '.json';
