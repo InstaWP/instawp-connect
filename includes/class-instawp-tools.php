@@ -149,6 +149,8 @@ class InstaWP_Tools {
 	public static function generate_forwarded_file( $forwarded_path = ABSPATH, $file_name = 'fwd.php' ) {
 
 		$forwarded_content      = '<?php
+/* Copyright (c) InstaWP Inc. */
+
 $path_structure = array(
     __DIR__,
     \'wp-content\',
