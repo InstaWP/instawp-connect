@@ -127,6 +127,80 @@ run_instawp();
 add_action( 'wp_head', function () {
 	if ( isset( $_GET['debug'] ) ) {
 
+//		global $wpdb;
+//
+//		$table_name = 'fg_tires';
+//		$products   = $wpdb->get_results( "SELECT * FROM " . $table_name . " WHERE 1 " );
+//
+//		foreach ( $products as $product ) {
+//
+//			echo "<pre>";
+//			print_r( $product->ManufacturerProductCode );
+//			echo "</pre>";
+//		}
+
+
+//		$migrate_key        = InstaWP_Tools::get_random_string( 40 );
+//		$migrate_settings   = InstaWP_Tools::get_migrate_settings();
+//		$pre_check_response = InstaWP_Tools::get_pull_pre_check_response( $migrate_key, $migrate_settings );
+//
+//		echo "<pre>";
+//		print_r( $pre_check_response );
+//		echo "</pre>";
+
+		global $tracking_db;
+
+		include INSTAWP_PLUGIN_DIR . 'includes/class-instawp-iwpdb.php';
+
+		$migrate_key     = 'a2a3f989983c951f1be882b539dae372221a6115';
+		$tracking_db     = new IWPDB( $migrate_key );
+		$curr_table_name = 'fg_tires';
+
+		$result = $tracking_db->query( "SELECT * FROM `$curr_table_name` WHERE 1" );
+
+		while ( $dataRow = $result->fetch_assoc() ) {
+
+			$columns = array_map( function ( $value ) {
+
+				global $tracking_db;
+
+				if ( is_array( $value ) && empty( $value ) ) {
+					return array();
+				} elseif ( is_string( $value ) && empty( $value ) ) {
+					return '';
+				}
+
+				return $tracking_db->conn->real_escape_string( $value );
+			}, array_keys( $dataRow ) );
+			$values  = array_map( function ( $value ) {
+
+				global $tracking_db;
+
+				if ( is_numeric( $value ) ) {
+					if ( substr( $value, 0, 1 ) !== '0' ) {
+						return $value;
+					}
+				} elseif ( is_null( $value ) ) {
+					return "NULL";
+				} elseif ( is_array( $value ) && empty( $value ) ) {
+					$value = array();
+				} elseif ( is_string( $value ) ) {
+					$value = $tracking_db->conn->real_escape_string( $value );
+				}
+
+				return "'" . $value . "'";
+			}, array_values( $dataRow ) );
+
+			$sql = "INSERT IGNORE INTO `$curr_table_name` (`" . implode( "`, `", $columns ) . "`) VALUES (" . implode( ", ", $values ) . ");";
+
+			echo "<pre>";
+			print_r( $sql );
+			echo "</pre>";
+		}
+
+
+		die();
+
 //		$data = "a:13:{i:0;a:6:{s:2:\"id\";s:6:\"xrjuvz\";s:4:\"name\";s:7:\"section\";s:6:\"parent\";i:0;s:8:\"children\";a:1:{i:0;s:6:\"llxgtk\";}s:8:\"settings\";a:2:{s:3:\"tag\";s:3:\"div\";s:17:\"_cssGlobalClasses\";a:1:{i:0;s:6:\"eircxj\";}}s:5:\"label\";s:10:\"Top Header\";}i:1;a:6:{s:2:\"id\";s:6:\"llxgtk\";s:4:\"name\";s:9:\"container\";s:6:\"parent\";s:6:\"xrjuvz\";s:8:\"children\";a:1:{i:0;s:6:\"eukwpf\";}s:8:\"settings\";a:1:{s:17:\"_cssGlobalClasses\";a:1:{i:0;s:6:\"fxerrl\";}}s:5:\"label\";s:16:\"Top Header Inner\";}i:2;a:6:{s:2:\"id\";s:6:\"eukwpf\";s:4:\"name\";s:3:\"div\";s:6:\"parent\";s:6:\"llxgtk\";s:8:\"children\";a:3:{i:0;s:6:\"pebshg\";i:1;s:6:\"owtjkg\";i:2;s:6:\"iwzngu\";}s:8:\"settings\";a:3:{s:3:\"tag\";s:2:\"ul\";s:17:\"_cssGlobalClasses\";a:2:{i:0;s:6:\"azamgj\";i:1;s:6:\"vxored\";}s:11:\"_attributes\";a:1:{i:0;a:3:{s:2:\"id\";s:6:\"ycvxgo\";s:4:\"name\";s:10:\"aria-label\";s:5:\"value\";s:56:\"Lijst met telefoonnummer en e-mailadres van {site_title}\";}}}s:5:\"label\";s:4:\"List\";}i:3;a:6:{s:2:\"id\";s:6:\"nccqhk\";s:4:\"name\";s:10:\"text-basic\";s:6:\"parent\";s:6:\"pebshg\";s:8:\"children\";a:0:{}s:8:\"settings\";a:2:{s:4:\"text\";s:24:\"Ewa 06 165 000 95\";s:4:\"link\";a:2:{s:4:\"type\";s:8:\"external\";s:3:\"url\";s:16:\"tel:+31616500095\";}}s:5:\"label\";s:5:\"Phone\";}i:4;a:6:{s:2:\"id\";s:6:\"dqbeta\";s:4:\"name\";s:10:\"text-basic\";s:6:\"parent\";s:6:\"iwzngu\";s:8:\"children\";a:0:{}s:8:\"settings\";a:2:{s:4:\"text\";s:43:\"E-mail {echo:display_customer_email}\";s:4:\"link\";a:3:{s:4:\"type\";s:8:\"external\";s:9:\"ariaLabel\";s:55:\"{echo:display_customer_email}, e-mailadres {site_title}\";s:3:\"url\";s:29:\"{echo:display_customer_email}\";}}s:5:\"label\";s:5:\"Email\";}i:5;a:6:{s:2:\"id\";s:6:\"nwuate\";s:4:\"name\";s:7:\"section\";s:6:\"parent\";i:0;s:8:\"children\";a:1:{i:0;s:6:\"mrkqqh\";}s:8:\"settings\";a:1:{s:17:\"_cssGlobalClasses\";a:1:{i:0;s:6:\"pfkjpg\";}}s:5:\"label\";s:6:\"Header\";}i:6;a:6:{s:2:\"id\";s:6:\"mrkqqh\";s:4:\"name\";s:9:\"container\";s:6:\"parent\";s:6:\"nwuate\";s:8:\"children\";a:2:{i:0;s:6:\"ebockw\";i:1;s:6:\"bspzcf\";}s:8:\"settings\";a:1:{s:17:\"_cssGlobalClasses\";a:1:{i:0;s:6:\"avacsi\";}}s:5:\"label\";s:12:\"Header Inner\";}i:7;a:6:{s:2:\"id\";s:6:\"bspzcf\";s:4:\"name\";s:8:\"nav-menu\";s:6:\"parent\";s:6:\"mrkqqh\";s:8:\"children\";a:0:{}s:8:\"settings\";a:4:{s:17:\"_cssGlobalClasses\";a:1:{i:0;s:6:\"nkgrlj\";}s:4:\"menu\";s:1:\"2\";s:10:\"mobileMenu\";s:15:\"tablet_portrait\";s:16:\"mobileMenuFadeIn\";b:1;}s:11:\"themeStyles\";a:0:{}}i:8;a:5:{s:2:\"id\";s:6:\"ebockw\";s:4:\"name\";s:4:\"logo\";s:6:\"parent\";s:6:\"mrkqqh\";s:8:\"children\";a:0:{}s:8:\"settings\";a:3:{s:4:\"logo\";a:5:{s:2:\"id\";i:49;s:8:\"filename\";s:8:\"logo.png\";s:4:\"size\";s:4:\"full\";s:4:\"full\";s:73:\"https://uniclean-facility.instawp.xyz/wp-content/uploads/2024/03/logo.png\";s:3:\"url\";s:73:\"https://uniclean-facility.instawp.xyz/wp-content/uploads/2024/03/logo.png\";}s:8:\"logoText\";s:12:\"{site_title}\";s:17:\"_cssGlobalClasses\";a:1:{i:0;s:6:\"vgryml\";}}}i:9;a:6:{s:2:\"id\";s:6:\"pebshg\";s:4:\"name\";s:3:\"div\";s:6:\"parent\";s:6:\"eukwpf\";s:8:\"children\";a:1:{i:0;s:6:\"nccqhk\";}s:8:\"settings\";a:1:{s:3:\"tag\";s:2:\"li\";}s:5:\"label\";s:9:\"List item\";}i:10;a:6:{s:2:\"id\";s:6:\"iwzngu\";s:4:\"name\";s:3:\"div\";s:6:\"parent\";s:6:\"eukwpf\";s:8:\"children\";a:1:{i:0;s:6:\"dqbeta\";}s:8:\"settings\";a:1:{s:3:\"tag\";s:2:\"li\";}s:5:\"label\";s:9:\"List item\";}i:11;a:6:{s:2:\"id\";s:6:\"owtjkg\";s:4:\"name\";s:3:\"div\";s:6:\"parent\";s:6:\"eukwpf\";s:8:\"children\";a:1:{i:0;s:6:\"beusmo\";}s:8:\"settings\";a:1:{s:3:\"tag\";s:2:\"li\";}s:5:\"label\";s:9:\"List item\";}i:12;a:6:{s:2:\"id\";s:6:\"beusmo\";s:4:\"name\";s:10:\"text-basic\";s:6:\"parent\";s:6:\"owtjkg\";s:8:\"children\";a:0:{}s:8:\"settings\";a:2:{s:4:\"text\";s:30:\"Sebastian 06 260 955 21\";s:4:\"link\";a:2:{s:4:\"type\";s:8:\"external\";s:3:\"url\";s:16:\"tel:+31626095521\";}}s:5:\"label\";s:5:\"Phone\";}}";
 //		$data = stripslashes_deep($data);
 //

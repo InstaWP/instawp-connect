@@ -5,7 +5,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2024-04-26 09:19+0000\n"
+"POT-Creation-Date: 2024-05-01 07:12+0000\n"
 "X-Poedit-Basepath: ..\n"
 "X-Poedit-KeywordsList: __;_e;_ex:1,2c;_n:1,2;_n_noop:1,2;_nx:1,2,4c;_nx_noop:1,2,3c;_x:1,2c;esc_attr__;esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c\n"
 "X-Poedit-SearchPath-0: .\n"
@@ -117,11 +117,11 @@ msgstr ""
 msgid "Purge All Cache"
 msgstr ""
 
-#: includes/class-instawp-hooks.php:114, includes/class-instawp-rest-api.php:1577, includes/class-instawp-setting.php:212, includes/class-instawp-setting.php:547
+#: includes/class-instawp-hooks.php:114, includes/class-instawp-rest-api.php:1708, includes/class-instawp-setting.php:212, includes/class-instawp-setting.php:547
 msgid "File Manager"
 msgstr ""
 
-#: includes/class-instawp-hooks.php:125, includes/class-instawp-rest-api.php:1578, includes/class-instawp-setting.php:213, includes/class-instawp-setting.php:555
+#: includes/class-instawp-hooks.php:125, includes/class-instawp-rest-api.php:1709, includes/class-instawp-setting.php:213, includes/class-instawp-setting.php:555
 msgid "Database Manager"
 msgstr ""
 
@@ -157,91 +157,91 @@ msgstr ""
 msgid "Cache cleared for %s."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:234
+#: includes/class-instawp-rest-api.php:246
 msgid "Post migration cleanup completed."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:275
+#: includes/class-instawp-rest-api.php:287
 msgid "sso_url_class_not_found: This class NewfoldLabs\WP\Module\Migration\Services\MigrationSSO not found."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:525
+#: includes/class-instawp-rest-api.php:656
 msgid "Could not create destination file."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:589
+#: includes/class-instawp-rest-api.php:720
 msgid "Plugin reset Successful."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:777
+#: includes/class-instawp-rest-api.php:908
 msgid "Already Configured"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:785
+#: includes/class-instawp-rest-api.php:916
 msgid "Api key is required"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:797
+#: includes/class-instawp-rest-api.php:928
 msgid "Key is not valid"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:840
+#: includes/class-instawp-rest-api.php:971
 msgid "Empty bearer token."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:857
+#: includes/class-instawp-rest-api.php:988
 msgid "Invalid bearer token."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1104
+#: includes/class-instawp-rest-api.php:1235
 msgid "Invalid data. Unknown type."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1112
+#: includes/class-instawp-rest-api.php:1243
 msgid "Invalid data. The item does not exist."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1442
+#: includes/class-instawp-rest-api.php:1573
 msgid "Setting does not exist."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1425
+#: includes/class-instawp-rest-api.php:1556
 msgid "Success!"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1434
+#: includes/class-instawp-rest-api.php:1565
 msgid "You can not enable this setting through API."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1431
+#: includes/class-instawp-rest-api.php:1562
 msgid "Setting is already disabled."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1576, includes/class-instawp-setting.php:509, includes/class-instawp-setting.php:515
+#: includes/class-instawp-rest-api.php:1707, includes/class-instawp-setting.php:509, includes/class-instawp-setting.php:515
 msgid "Heartbeat"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1579, includes/class-instawp-setting.php:563
+#: includes/class-instawp-rest-api.php:1710, includes/class-instawp-setting.php:563
 msgid "Install Plugin / Themes"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1580, includes/class-instawp-setting.php:571
+#: includes/class-instawp-rest-api.php:1711, includes/class-instawp-setting.php:571
 msgid "Update Core / Plugin / Themes"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1581, includes/class-instawp-setting.php:579
+#: includes/class-instawp-rest-api.php:1712, includes/class-instawp-setting.php:579
 msgid "Activate / Deactivate"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1582, includes/class-instawp-setting.php:587
+#: includes/class-instawp-rest-api.php:1713, includes/class-instawp-setting.php:587
 msgid "Config Management"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1583, includes/class-instawp-setting.php:595
+#: includes/class-instawp-rest-api.php:1714, includes/class-instawp-setting.php:595
 msgid "Site Inventory"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1584, includes/class-instawp-setting.php:214, includes/class-instawp-setting.php:603
+#: includes/class-instawp-rest-api.php:1715, includes/class-instawp-setting.php:214, includes/class-instawp-setting.php:603
 msgid "Debug Log"
 msgstr ""
 
@@ -541,67 +541,67 @@ msgstr ""
 msgid "Enabling this option will allow reading WordPress error logs on this website remotely using the REST API."
 msgstr ""
 
-#: includes/class-instawp-tools.php:465
+#: includes/class-instawp-tools.php:461
 msgid "Root directory for this WordPress installation could not find."
 msgstr ""
 
-#: includes/class-instawp-tools.php:483
+#: includes/class-instawp-tools.php:479
 msgid "Tracking database could not found."
 msgstr ""
 
-#: includes/class-instawp-tools.php:493
+#: includes/class-instawp-tools.php:489
 msgid "API Signature and others data could not set properly"
 msgstr ""
 
-#: includes/class-instawp-tools.php:502
+#: includes/class-instawp-tools.php:498
 msgid "Could not create the forwarded file."
 msgstr ""
 
-#: includes/class-instawp-tools.php:506
+#: includes/class-instawp-tools.php:502
 msgid "InstaWP could not access the forwarded file due to security issue."
 msgstr ""
 
-#: includes/class-instawp-tools.php:515
+#: includes/class-instawp-tools.php:511
 msgid "InstaWP could not access or read required files from your WordPress directory due to file permission issue."
 msgstr ""
 
-#: includes/class-instawp-tools.php:517
+#: includes/class-instawp-tools.php:513
 msgid "Learn more."
 msgstr ""
 
-#: includes/class-instawp-tools.php:711
+#: includes/class-instawp-tools.php:707
 msgid "Launch %s"
 msgstr ""
 
-#: includes/class-instawp-tools.php:799
+#: includes/class-instawp-tools.php:795
 msgid "Please create staging sites first."
 msgstr ""
 
-#: includes/class-instawp-tools.php:800
+#: includes/class-instawp-tools.php:796
 msgid "Skip"
 msgstr ""
 
-#: includes/class-instawp-tools.php:848
+#: includes/class-instawp-tools.php:844
 msgid "Zip archive is not opening."
 msgstr ""
 
-#: includes/class-instawp-tools.php:901
+#: includes/class-instawp-tools.php:897
 msgid "No compression method find."
 msgstr ""
 
-#: includes/class-instawp-tools.php:944
+#: includes/class-instawp-tools.php:940
 msgid "Site ID not found in site create response."
 msgstr ""
 
-#: includes/class-instawp-tools.php:982
+#: includes/class-instawp-tools.php:978
 msgid "SFTP login failed."
 msgstr ""
 
-#: includes/class-instawp-tools.php:993
+#: includes/class-instawp-tools.php:989
 msgid "SFTP upload failed for files."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1001
+#: includes/class-instawp-tools.php:997
 msgid "SFTP upload failed for database."
 msgstr ""
 
@@ -609,19 +609,19 @@ msgstr ""
 msgid "Migration aborted forcefully"
 msgstr ""
 
-#: includes/functions.php:697
+#: includes/functions.php:699
 msgid "No login found with given username and default username, You are going to login with first admin user."
 msgstr ""
 
-#: includes/functions.php:693
+#: includes/functions.php:695
 msgid "Login information for the given username didn't found, You are going to login with default login username."
 msgstr ""
 
-#: includes/functions.php:690
+#: includes/functions.php:692
 msgid "Login information for the given username"
 msgstr ""
 
-#: includes/functions.php:701
+#: includes/functions.php:703
 msgid "No login information found."
 msgstr ""
 

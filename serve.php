@@ -24,7 +24,7 @@ function get_wp_root_directory( $find_with_files = 'wp-load.php', $find_with_dir
 		$is_find_root_dir = true;
 
 		while ( ! file_exists( $root_path . DIRECTORY_SEPARATOR . $find_with_files ) ) {
-			++$level ;
+			++ $level;
 
 			$path_parts = explode( DIRECTORY_SEPARATOR, $root_path );
 			array_pop( $path_parts ); // Remove the last directory
@@ -43,7 +43,7 @@ function get_wp_root_directory( $find_with_files = 'wp-load.php', $find_with_dir
 		$root_path        = __DIR__;
 		$is_find_root_dir = true;
 		while ( ! is_dir( $root_path . DIRECTORY_SEPARATOR . $find_with_dir ) ) {
-			++$level ;
+			++ $level;
 			$path_parts = explode( DIRECTORY_SEPARATOR, $root_path );
 			array_pop( $path_parts ); // Remove the last directory
 			$root_path = implode( DIRECTORY_SEPARATOR, $path_parts );
@@ -304,8 +304,8 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
 						$content .= "# url_path_inside: $url_path\n";
 
-						$content = preg_replace('/RewriteBase\s+\/([^\/]+)\//', 'RewriteBase /', $content);
-						$content = preg_replace("/(RewriteRule\s+\.\s+\/)([^\/]+)/", 'RewriteRule . ', $content);
+						$content = preg_replace( '/RewriteBase\s+\/([^\/]+)\//', 'RewriteBase /', $content );
+						$content = preg_replace( "/(RewriteRule\s+\.\s+\/)([^\/]+)/", 'RewriteRule . ', $content );
 
 						/**
 						 * @todo will finalize the logic latter
@@ -424,7 +424,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 	}
 
 	if ( $unsent_files_count == 0 ) {
-		$iterator         = get_iterator_items( $skip_folders, WP_ROOT );
+		$iterator = get_iterator_items( $skip_folders, WP_ROOT );
 
 		// Get the current file index from the database or file
 		$currentFileIndex = (int) $tracking_db->db_get_option( 'current_file_index', '0' );
@@ -470,12 +470,13 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 						'sent'          => 5,
 						'size'          => "'$filesize'",
 					) );
-				} catch ( Exception $e ) {}
+				} catch ( Exception $e ) {
+				}
 				continue;
 			}
 
-			$currentDir    = str_replace( WP_ROOT . '/', '', $file->getPath() );
-			$row           = $tracking_db->get_row( 'iwp_files_sent', array( 'filepath_hash' => $filepath_hash ) );
+			$currentDir = str_replace( WP_ROOT . '/', '', $file->getPath() );
+			$row        = $tracking_db->get_row( 'iwp_files_sent', array( 'filepath_hash' => $filepath_hash ) );
 
 			if ( ! $row ) {
 				try {
@@ -590,12 +591,13 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 							'sent'          => 5,
 							'size'          => "'$filesize'",
 						) );
-					} catch ( Exception $e ) {}
+					} catch ( Exception $e ) {
+					}
 					continue;
 				}
 
-				$currentDir    = str_replace( WP_ROOT . '/', '', $file->getPath() );
-				$row           = $tracking_db->get_row( 'iwp_files_sent', array( 'filepath_hash' => $filepath_hash ) );
+				$currentDir = str_replace( WP_ROOT . '/', '', $file->getPath() );
+				$row        = $tracking_db->get_row( 'iwp_files_sent', array( 'filepath_hash' => $filepath_hash ) );
 
 				if ( ! $row ) {
 					try {
@@ -734,7 +736,10 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 				global $tracking_db;
 
 				if ( is_numeric( $value ) ) {
-					return $value;
+					// If $value has leading zero it will mark as string and bypass returning as numeric
+					if ( substr( $value, 0, 1 ) !== '0' ) {
+						return $value;
+					}
 				} elseif ( is_null( $value ) ) {
 					return "NULL";
 				} elseif ( is_array( $value ) && empty( $value ) ) {

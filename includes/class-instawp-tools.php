@@ -265,12 +265,13 @@ include $file_path;';
 
 		if ( is_wp_error( $response ) ) {
 			error_log( 'HTTP Error: ' . $response->get_error_message() );
+
 			return false;
 		}
 
 		$status_code = wp_remote_retrieve_response_code( $response );
 
-        // Check if the request was successful (status code 200)
+		// Check if the request was successful (status code 200)
 		return $status_code === 200;
 	}
 
@@ -367,20 +368,20 @@ include $file_path;';
 
 			if ( isset( $migrate_settings['excluded_paths'] ) && is_array( $migrate_settings['excluded_paths'] ) ) {
 				foreach ( $migrate_settings['excluded_paths'] as $path ) {
-                    $path = rtrim( instawp_get_root_path(), '/' ) . DIRECTORY_SEPARATOR . $path;
-                    if ( ! file_exists( $path ) || ! is_readable( $path ) ) {
-                        continue;
-                    }
+					$path = rtrim( instawp_get_root_path(), '/' ) . DIRECTORY_SEPARATOR . $path;
+					if ( ! file_exists( $path ) || ! is_readable( $path ) ) {
+						continue;
+					}
 
-                    if ( is_dir( $path ) ) {
-	                    $dir_contents      = instawp_get_dir_contents( $path, false, false );
-	                    $dir_contents_size = array_map( function ( $dir_info ) {
-		                    return isset( $dir_info['size'] ) ? $dir_info['size'] : 0;
-	                    }, $dir_contents );
-					    $total_size_to_skip += array_sum( $dir_contents_size );
-                    } else {
-	                    $total_size_to_skip += filesize( $path );
-                    }
+					if ( is_dir( $path ) ) {
+						$dir_contents       = instawp_get_dir_contents( $path, false, false );
+						$dir_contents_size  = array_map( function ( $dir_info ) {
+							return isset( $dir_info['size'] ) ? $dir_info['size'] : 0;
+						}, $dir_contents );
+						$total_size_to_skip += array_sum( $dir_contents_size );
+					} else {
+						$total_size_to_skip += filesize( $path );
+					}
 				}
 			}
 
@@ -517,6 +518,7 @@ include $file_path;';
 
 		return array(
 			'serve_url'        => $serve_file_url,
+			'migrate_key'      => $migrate_key,
 			'api_signature'    => $api_signature,
 			'migrate_settings' => $migrate_settings,
 		);
@@ -569,21 +571,21 @@ include $file_path;';
 		// Remove instawp connect options
 		$excluded_tables_rows = Helper::get_args_option( 'excluded_tables_rows', $migrate_settings, array() );
 
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_api_options';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_connect_id_options';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_sync_parent_connect_data';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_migration_details';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_last_migration_details';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_api_key_config_completed';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_is_event_syncing';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:_transient_instawp_staging_sites';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:_transient_timeout_instawp_staging_sites';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_is_staging';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:schema-ActionScheduler_StoreSchema';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:schema-ActionScheduler_LoggerSchema';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:action_scheduler_hybrid_store_demarkation';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:_transient_timeout_action_scheduler_last_pastdue_actions_check';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:_transient_action_scheduler_last_pastdue_actions_check';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_api_options';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_connect_id_options';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_sync_parent_connect_data';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_migration_details';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_last_migration_details';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_api_key_config_completed';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_is_event_syncing';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:_transient_instawp_staging_sites';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:_transient_timeout_instawp_staging_sites';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_is_staging';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:schema-ActionScheduler_StoreSchema';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:schema-ActionScheduler_LoggerSchema';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:action_scheduler_hybrid_store_demarkation';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:_transient_timeout_action_scheduler_last_pastdue_actions_check';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:_transient_action_scheduler_last_pastdue_actions_check';
 
 		$migrate_settings['excluded_tables_rows'] = $excluded_tables_rows;
 
@@ -691,7 +693,7 @@ include $file_path;';
 	 * Auto login page HTML code.
 	 */
 	public static function auto_login_page( $fields, $url, $title ) {
-        // phpcs:disable
+		// phpcs:disable
 		?>
         <!DOCTYPE html>
         <html lang="en">
@@ -785,7 +787,7 @@ include $file_path;';
         </body>
         </html>
 		<?php
-        // phpcs:enable
+		// phpcs:enable
 	}
 
 	public static function get_localize_data() {
@@ -794,8 +796,8 @@ include $file_path;';
 			'trans'    => array(
 				'create_staging_site_txt' => __( 'Please create staging sites first.', 'instawp-connect' ),
 				'skip_item_txt'           => __( 'Skip', 'instawp-connect' ),
-                'stages'                  => InstaWP_Setting::get_stages(),
-            ),
+				'stages'                  => InstaWP_Setting::get_stages(),
+			),
 			'security' => wp_create_nonce( 'instawp-connect' ),
 		);
 	}
