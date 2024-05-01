@@ -523,21 +523,24 @@ if ( $file_relative_path === 'wp-config.php' ) {
 		$wp_config
 	);
 
-	if ( isset( $site_url ) ) {
-		$wp_config = preg_replace(
-			"/'WP_SITEURL',\s*'[^']*'/",
-			"'WP_SITEURL', '$site_url'",
-			$wp_config
-		);
-	}
+	$wp_config = preg_replace(
+		"/'WP_SITEURL',\s*'[^']*'/",
+		"'WP_SITEURL', '$site_url'",
+		$wp_config
+	);
 
-	if ( isset( $home_url ) ) {
-		$wp_config = preg_replace(
-			"/'WP_HOME',\s*'[^']*'/",
-			"'WP_HOME', '$home_url'",
-			$wp_config
-		);
-	}
+	$wp_config = preg_replace(
+		"/'WP_HOME',\s*'[^']*'/",
+		"'WP_HOME', '$home_url'",
+		$wp_config
+	);
+
+	$current_domain = str_replace( [ 'https://', 'http://' ], '', rtrim( $home_url, '/\\' ) );
+	$wp_config      = preg_replace(
+		"/'DOMAIN_CURRENT_SITE',\s*'[^']*'/",
+		"'DOMAIN_CURRENT_SITE', '$current_domain'",
+		$wp_config
+	);
 
 	file_put_contents( $wp_config_path, $wp_config, LOCK_EX );
 

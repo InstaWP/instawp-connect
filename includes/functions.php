@@ -451,7 +451,8 @@ if ( ! function_exists( 'instawp_is_wordfence_whitelisted' ) ) {
 		$whitelisted = false;
 		if ( class_exists( '\wfConfig' ) && method_exists( '\wfConfig', 'get' ) ) {
 			$whites = \wfConfig::get( 'whitelisted', array() );
-			$arr    = explode( ',', $whites );
+			$arr    = is_array( $whites ) ? $whites : explode( ',', $whites );
+
 			if ( in_array( '167.71.233.239', $arr ) && in_array( '159.65.64.73', $arr ) ) {
 				$whitelisted = true;
 			}
@@ -467,6 +468,7 @@ if ( ! function_exists( 'instawp_is_solid_wp_whitelisted' ) ) {
 		$whitelisted = false;
 		if ( class_exists( '\ITSEC_Modules' ) && method_exists( '\ITSEC_Modules', 'get_settings' ) ) {
 			$whites = \ITSEC_Modules::get_setting( 'global', 'lockout_white_list', array() );
+
 			if ( in_array( '167.71.233.239', $whites ) && in_array( '159.65.64.73', $whites ) ) {
 				$whitelisted = true;
 			}

@@ -196,6 +196,18 @@ class InstaWP_Rest_Api {
 			'permission_callback' => '__return_true',
 		) );
 
+		register_rest_route( $this->namespace . '/' . $this->version_2 . '/3rdparty', '/woocommerce/orders', array(
+			'methods'             => 'GET',
+			'callback'            => array( $this, 'get_orders' ),
+			'permission_callback' => '__return_true',
+		) );
+
+		register_rest_route( $this->namespace . '/' . $this->version_2 . '/3rdparty', '/woocommerce/users', array(
+			'methods'             => 'GET',
+			'callback'            => array( $this, 'get_customers' ),
+			'permission_callback' => '__return_true',
+		) );
+
 		register_rest_route( $this->namespace . '/' . $this->version_3, '/site-usage', array(
 			'methods'             => 'GET',
 			'callback'            => array( $this, 'site_usage' ),
@@ -446,6 +458,125 @@ class InstaWP_Rest_Api {
 		}
 
 		return $this->send_response( $response );
+	}
+
+	/**
+	 * Handle response for pull api
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function get_orders( WP_REST_Request $request ) {
+
+		$response = $this->validate_api_request( $request );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
+
+		$response = array();
+		$limit    = $request->get_param( 'limit' );
+		$offset   = $request->get_param( 'offset' );
+		$orders   = wc_get_orders( [
+			'limit'  => ! empty( $limit ) ? $limit : 10,
+			'offset' => ! empty( $offset ) ? $offset : 0
+		] );
+
+		foreach ( $orders as $order ) {
+			$order_data = $order->get_data();
+			$data       = $order_data;
+
+			$data['fee_lines'] = [];
+			foreach ( $order_data['fee_lines'] as $fee ) {
+				$data['fee_lines'][] = $fee->get_data();
+			}
+
+			$data['shipping_lines'] = [];
+			foreach ( $order_data['shipping_lines'] as $shipping ) {
+				$data['shipping_lines'][] = $shipping->get_data();
+			}
+
+			$data['tax_lines'] = [];
+			foreach ( $order_data['tax_lines'] as $tax ) {
+				$data['tax_lines'][] = $tax->get_data();
+			}
+
+			$data['line_items'] = [];
+			foreach ( $order_data['line_items'] as $product ) {
+				$data['line_items'][] = $product->get_data();
+			}
+
+			$response[] = $data;
+		}
+
+		return $this->send_response( $response );
+	}
+
+	/**
+	 * Handle response for pull api
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function get_customers( WP_REST_Request $request ) {
+
+		$response = $this->validate_api_request( $request );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
+
+		$response  = array();
+		$customers = get_users( array( 'role' => array( 'customer' ) ) );
+		foreach ( $customers as $customer ) {
+			$customer = new \WC_Customer( $customer->ID );
+			$response[] = $this->get_formatted_item_data( $customer );
+		}
+
+		return $this->send_response( $response );
+	}
+
+	protected function get_formatted_item_data( $object ) {
+		$formatted_data                 = $this->get_formatted_item_data_core( $object );
+		$formatted_data['orders_count'] = $object->get_order_count();
+		$formatted_data['total_spent']  = $object->get_total_spent();
+		return $formatted_data;
+	}
+
+	protected function get_formatted_item_data_core( $object ) {
+		$data        = $object->get_data();
+		$format_date = array( 'date_created', 'date_modified' );
+
+		// Format date values.
+		foreach ( $format_date as $key ) {
+			// Date created is stored UTC, date modified is stored WP local time.
+			$datetime              = 'date_created' === $key && is_subclass_of( $data[ $key ], 'DateTime' ) ? get_date_from_gmt( gmdate( 'Y-m-d H:i:s', $data[ $key ]->getTimestamp() ) ) : $data[ $key ];
+			$data[ $key ]          = wc_rest_prepare_date_response( $datetime, false );
+			$data[ $key . '_gmt' ] = wc_rest_prepare_date_response( $datetime );
+		}
+
+		$formatted_data = array(
+			'id'                 => $object->get_id(),
+			'date_created'       => $data['date_created'],
+			'date_created_gmt'   => $data['date_created_gmt'],
+			'date_modified'      => $data['date_modified'],
+			'date_modified_gmt'  => $data['date_modified_gmt'],
+			'email'              => $data['email'],
+			'first_name'         => $data['first_name'],
+			'last_name'          => $data['last_name'],
+			'role'               => $data['role'],
+			'username'           => $data['username'],
+			'billing'            => $data['billing'],
+			'shipping'           => $data['shipping'],
+			'is_paying_customer' => $data['is_paying_customer'],
+			'avatar_url'         => $object->get_avatar_url(),
+		);
+
+		if ( wc_current_user_has_role( 'administrator' ) ) {
+			$formatted_data['meta_data'] = $data['meta_data'];
+		}
+
+		return $formatted_data;
 	}
 
 	/**
@@ -737,8 +868,8 @@ class InstaWP_Rest_Api {
 
 				$this->move_files_folders( $source, $destination );
 
-				if ( $destination ) {
-					rmdir( $destination ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod
+				if ( file_exists( $destination ) ) {
+					instawp_get_fs()->rmdir( $destination );
 				}
 			}
 		}
