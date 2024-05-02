@@ -240,6 +240,15 @@ class InstaWP_Rest_Api {
 			return $this->throw_error( $response );
 		}
 
+		if ( ! function_exists( 'deactivate_plugins' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		}
+
+		if ( ! function_exists( 'request_filesystem_credentials' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+		}
+
+		$plugin_slug        = INSTAWP_PLUGIN_SLUG . '/' . INSTAWP_PLUGIN_SLUG . '.php';
 		$response           = array(
 			'success'       => true,
 			'sso_login_url' => site_url(),
@@ -253,17 +262,6 @@ class InstaWP_Rest_Api {
 		$migration_details['status']             = $migration_status;
 
 		Option::update_option( 'instawp_last_migration_details', $migration_details );
-
-		// reset everything and remove connection
-		instawp_reset_running_migration( 'hard', true );
-
-		if ( ! function_exists( 'deactivate_plugins' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/plugin.php';
-		}
-
-		if ( ! function_exists( 'request_filesystem_credentials' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/file.php';
-		}
 
 		// Install the plugins if there is any in the request
 		$post_installs = $request->get_param( 'post_installs' );
@@ -287,8 +285,10 @@ class InstaWP_Rest_Api {
 			error_log( esc_html__( 'sso_url_class_not_found: This class NewfoldLabs\WP\Module\Migration\Services\MigrationSSO not found.', 'instawp-connect' ) );
 		}
 
-		$plugin_slug = INSTAWP_PLUGIN_SLUG . '/' . INSTAWP_PLUGIN_SLUG . '.php';
+		// reset everything and remove connection
+		instawp_reset_running_migration( 'hard', true );
 
+		// deactivate plugin
 		deactivate_plugins( $plugin_slug );
 
 		$is_deleted = delete_plugins( array( $plugin_slug ) );
@@ -529,7 +529,7 @@ class InstaWP_Rest_Api {
 		$response  = array();
 		$customers = get_users( array( 'role' => array( 'customer' ) ) );
 		foreach ( $customers as $customer ) {
-			$customer = new \WC_Customer( $customer->ID );
+			$customer   = new \WC_Customer( $customer->ID );
 			$response[] = $this->get_formatted_item_data( $customer );
 		}
 
@@ -540,6 +540,7 @@ class InstaWP_Rest_Api {
 		$formatted_data                 = $this->get_formatted_item_data_core( $object );
 		$formatted_data['orders_count'] = $object->get_order_count();
 		$formatted_data['total_spent']  = $object->get_total_spent();
+
 		return $formatted_data;
 	}
 
