@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.6
 Tested up to: 6.5.2
 Requires PHP: 5.6
-Stable tag: 0.1.0.31
+Stable tag: 0.1.0.33
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -94,7 +94,7 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 
 == Changelog ==
 
-= 0.1.0.33 =
+= 0.1.0.33 - 2 May 2024 =
 - FIX - Fixed display of parent sites list for 2 way sync.
 
 = 0.1.0.32 - 2 May 2024 =
