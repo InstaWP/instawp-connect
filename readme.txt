@@ -96,6 +96,7 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 
 = 0.1.0.32 =
 - FIX - Fixed DOMAIN_CURRENT_SITE constant support for push.
+- FIX - Fixed missing class at mark at staging site.
 
 = 0.1.0.31 - 26 Apr 2024 =
 - FIX - Fixed File Manager Settings was not saving.
