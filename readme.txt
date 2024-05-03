@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.6
 Tested up to: 6.5.2
 Requires PHP: 5.6
-Stable tag: 0.1.0.33
+Stable tag: 0.1.0.34
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -94,10 +94,10 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 
 == Changelog ==
 
-= 0.1.0.34 =
-- NEW - Added WooCommerce related APIs.
+= 0.1.0.34 - 3 May 2024 =
 - NEW - Added Expand/Collapse to migration visibility.
 - FIX - Typos and untranslated strings.
+- FIX - @ way sync duplicate event logging.
 
 = 0.1.0.33 - 2 May 2024 =
 - FIX - Fixed display of parent sites list for 2 way sync.

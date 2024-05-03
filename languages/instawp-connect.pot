@@ -5,7 +5,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2024-05-03 11:12+0000\n"
+"POT-Creation-Date: 2024-05-03 13:44+0000\n"
 "X-Poedit-Basepath: ..\n"
 "X-Poedit-KeywordsList: __;_e;_ex:1,2c;_n:1,2;_n_noop:1,2;_nx:1,2,4c;_nx_noop:1,2,3c;_x:1,2c;esc_attr__;esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c\n"
 "X-Poedit-SearchPath-0: .\n"
@@ -735,31 +735,31 @@ msgstr ""
 msgid "Plugin could not be deleted."
 msgstr ""
 
-#: includes/sync/class-instawp-sync-post.php:82, includes/sync/class-instawp-sync-term.php:54
+#: includes/sync/class-instawp-sync-post.php:83, includes/sync/class-instawp-sync-post.php:160, includes/sync/class-instawp-sync-term.php:54
 msgid "%s modified"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-post.php:125, includes/sync/class-instawp-sync-term.php:76
+#: includes/sync/class-instawp-sync-post.php:126, includes/sync/class-instawp-sync-term.php:76
 msgid "%s deleted"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-post.php:143
-msgid "%s trashed"
-msgstr ""
-
-#: includes/sync/class-instawp-sync-post.php:148
+#: includes/sync/class-instawp-sync-post.php:157
 msgid "%s restored"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-post.php:153, includes/sync/class-instawp-sync-term.php:32
+#: includes/sync/class-instawp-sync-post.php:154
+msgid "%s trashed"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-post.php:149, includes/sync/class-instawp-sync-term.php:32
 msgid "%s created"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-post.php:170
+#: includes/sync/class-instawp-sync-post.php:179
 msgid "Media created"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-post.php:188
+#: includes/sync/class-instawp-sync-post.php:197
 msgid "Media updated"
 msgstr ""
 

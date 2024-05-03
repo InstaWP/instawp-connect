@@ -22,7 +22,7 @@ class InstaWP_Sync_Post {
 		$this->restricted_cpts = (array) apply_filters( 'INSTAWP_CONNECT/Filters/two_way_sync_restricted_post_types', $this->restricted_cpts );
 
 		// Post Actions.
-		add_action( 'wp_after_insert_post', array( $this, 'handle_post' ), 999, 4 );
+		//add_action( 'wp_after_insert_post', array( $this, 'handle_post' ), 999, 4 );
 		add_action( 'elementor/document/after_save', array( $this, 'handle_elementor' ), 999 ); // elementor
 		add_action( 'before_delete_post', array( $this, 'delete_post' ), 10, 2 );
 		add_action( 'transition_post_status', array( $this, 'transition_post_status' ), 10, 3 );
@@ -79,6 +79,7 @@ class InstaWP_Sync_Post {
 		}
 
 		$singular_name = InstaWP_Sync_Helpers::get_post_type_name( $post->post_type );
+
 		$this->handle_post_events( sprintf( __( '%s modified', 'instawp-connect' ), $singular_name ), 'post_change', $post, $post_before );
 	}
 
@@ -139,20 +140,28 @@ class InstaWP_Sync_Post {
 			return;
 		}
 
-		if ( $new_status === 'trash' && $new_status !== $old_status && $post->post_type !== 'customize_changeset' ) {
-			$event_name = sprintf( __( '%s trashed', 'instawp-connect' ), InstaWP_Sync_Helpers::get_post_type_name( $post->post_type ) );
-			$this->handle_post_events( $event_name, 'post_trash', $post );
+		// Check auto save or revision.
+		if ( wp_is_post_autosave( $post->ID ) || wp_is_post_revision( $post->ID ) ) {
+			return;
 		}
 
-		if ( $new_status === 'draft' && $old_status === 'trash' ) {
-			$event_name = sprintf( __( '%s restored', 'instawp-connect' ), InstaWP_Sync_Helpers::get_post_type_name( $post->post_type ) );
-			$this->handle_post_events( $event_name, 'untrashed_post', $post );
-		}
-
-		if ( $old_status === 'auto-draft' && $new_status !== $old_status ) {
+		if ( 'auto-draft' === $old_status && ( 'auto-draft' !== $new_status && 'inherit' !== $new_status ) ) {
 			$event_name = sprintf( __( '%s created', 'instawp-connect' ), InstaWP_Sync_Helpers::get_post_type_name( $post->post_type ) );
-			$this->handle_post_events( $event_name, 'post_new', $post );
+			$action     = 'post_new';
+		} elseif ( 'auto-draft' === $new_status || ( 'new' === $old_status && 'inherit' === $new_status ) ) {
+			return;
+		} elseif ( 'trash' === $new_status ) {
+			$event_name = sprintf( __( '%s trashed', 'instawp-connect' ), InstaWP_Sync_Helpers::get_post_type_name( $post->post_type ) );
+			$action     = 'post_trash';
+		} elseif ( 'trash' === $old_status ) {
+			$event_name = sprintf( __( '%s restored', 'instawp-connect' ), InstaWP_Sync_Helpers::get_post_type_name( $post->post_type ) );
+			$action     = 'untrashed_post';
+		} else {
+			$event_name = sprintf( __( '%s modified', 'instawp-connect' ), InstaWP_Sync_Helpers::get_post_type_name( $post->post_type ) );
+			$action     = 'post_change';
 		}
+
+		$this->handle_post_events( $event_name, $action, $post );
 	}
 
 	/**
