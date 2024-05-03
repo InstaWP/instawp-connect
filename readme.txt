@@ -97,7 +97,7 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 = 0.1.0.34 - 3 May 2024 =
 - NEW - Added Expand/Collapse to migration visibility.
 - FIX - Typos and untranslated strings.
-- FIX - @ way sync duplicate event logging.
+- FIX - 2 way sync duplicate event logging.
 
 = 0.1.0.33 - 2 May 2024 =
 - FIX - Fixed display of parent sites list for 2 way sync.
