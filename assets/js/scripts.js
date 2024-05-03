@@ -1114,7 +1114,7 @@
 
     // Disconnect start //
     $(document).on('click', '.instawp-wrap .instawp-disconnect-plugin', function () {
-        if (!confirm('Do you really want to disconnect the plugin? It will completely remove the existing staging sites form the plugin.')) {
+        if (!confirm(plugin_object.trans.disconnect_txt)) {
             return;
         }
         $.ajax({
@@ -1134,7 +1134,7 @@
                     window.location = window.location.href.split("?")[0] + '?page=instawp';
                 } else {
                     $(document).find('.settings .instawp-form').removeClass('loading');
-                    if (confirm(response.data.message + ' Do you still want to disconnect the plugin?')) {
+                    if (confirm(response.data.message + ' ' + plugin_object.trans.disconnect_confirm_txt)) {
                         $.ajax({
                             type: 'POST',
                             url: plugin_object.ajax_url,

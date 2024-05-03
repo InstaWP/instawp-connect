@@ -795,6 +795,8 @@ include $file_path;';
 			'trans'    => array(
 				'create_staging_site_txt' => __( 'Please create staging sites first.', 'instawp-connect' ),
 				'skip_item_txt'           => __( 'Skip', 'instawp-connect' ),
+				'disconnect_txt'          => __( 'Do you really want to disconnect the plugin? It will completely remove the existing staging sites from the plugin.', 'instawp-connect' ),
+				'disconnect_confirm_txt'  => __( 'Do you still want to disconnect the plugin?', 'instawp-connect' ),
 				'stages'                  => InstaWP_Setting::get_stages(),
 			),
 			'security' => wp_create_nonce( 'instawp-connect' ),

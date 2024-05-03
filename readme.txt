@@ -94,6 +94,11 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 
 == Changelog ==
 
+= 0.1.0.34 =
+- NEW - Added WooCommerce related APIs.
+- NEW - Added Expand/Collapse to migration visibility.
+- FIX - Typos and untranslated strings.
+
 = 0.1.0.33 - 2 May 2024 =
 - FIX - Fixed display of parent sites list for 2 way sync.
 
