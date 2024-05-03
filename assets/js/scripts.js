@@ -68,7 +68,7 @@
         if ( days > 0) {
             string = days + 'd ' + string;
         }
-        $(document).find('#timer').text(string);
+        $(document).find('#visibility-timer').text(string);
     }
 
     let migrationSteps = {};
@@ -109,6 +109,8 @@
                 },
                 data: {
                     'action': 'instawp_migrate_progress',
+                    'visible': !$(document).find('#visibility-box-area').hasClass('hidden'),
+                    'security': plugin_object.security,
                 },
                 success: function (response) {
                     if (response.success) {
@@ -149,7 +151,7 @@
                         });
 
                         if (Object.keys(migrationSteps).includes(current_stage)) {
-                            el_visibility_box.find('#visibility-content-area').append('<div class="flex gap-3 items-center hover:bg-zinc-800 hover:rounded-lg py-1.5 px-2.5 "><span class="text-gray-100 min-w-36">' + getCurrentDateTime() + '</span><span class="text-gray-100 break-all font-medium">' + migrationSteps[ current_stage ] + '</span></div>');
+                            el_visibility_box.find('#visibility-content-area').append('<div class="visibility-content-item flex gap-3 items-center hover:bg-zinc-800 hover:rounded-lg py-1.5 px-2.5 "><span class="text-gray-100 min-w-36">' + response.data.timestamp + '</span><span class="text-gray-100 break-all font-medium">' + migrationSteps[ current_stage ] + '</span></div>');
                             delete migrationSteps[ current_stage ];
                         }
 
@@ -159,12 +161,11 @@
                             current_stage_item.removeClass('hidden');
                         }
 
-                        el_visibility_box.find('#visibility-content-area, .full-screen-btn').removeClass('hidden');
                         let content_html = '';
 
                         $.each(processed_files, function (key, value) {
-                            content_html += '<div class="flex gap-3 items-center hover:bg-zinc-800 hover:rounded-lg py-1.5 px-2.5 group ' + value.status + '">';
-                            content_html += '<span class="text-gray-100 min-w-36">' + getCurrentDateTime() + '</span><span class="text-gray-100 break-all group-[.sent]:text-emerald-300 group-[.failed]:text-rose-500 group-[.skipped]:text-yellow-300 group-[.invalid]:text-red-300">' + value.filepath + ' (' + value.size + ')';
+                            content_html += '<div class="visibility-content-item flex gap-3 items-center hover:bg-zinc-800 hover:rounded-lg py-1.5 px-2.5 group ' + value.status + '">';
+                            content_html += '<span class="text-gray-100 min-w-36">' + response.data.timestamp + '</span><span class="text-gray-100 break-all group-[.sent]:text-emerald-300 group-[.failed]:text-rose-500 group-[.skipped]:text-yellow-300 group-[.invalid]:text-red-300">' + value.filepath + ' (' + value.size + ')';
                             if(value.status === 'in-progress') {
                                 content_html += ' <span class="hidden group-hover:inline-block cursor-pointer ml-2 px-2 py-1 text-xs rounded-lg border border-zinc-700 text-rose-500 instawp-skip-item" data-type="file" data-item="'+ value.id + '">' + plugin_object.trans.skip_item_txt + '</span>';
                             }
@@ -172,8 +173,8 @@
                         });
 
                         $.each(processed_db, function (key, value) {
-                            content_html += '<div class="flex gap-3 items-center hover:bg-zinc-800 hover:rounded-lg py-1.5 px-2.5 group ' + value.status + '">';
-                            content_html += '<span class="text-gray-100 min-w-36">' + getCurrentDateTime() + '</span><span class="text-gray-100 break-all group-[.sent]:text-emerald-300 group-[.failed]:text-rose-500 group-[.skipped]:text-yellow-300 group-[.invalid]:text-red-300">' + value.table_name + ' - ' + value.offset + ' / ' + value.rows_total + ' rows';
+                            content_html += '<div class="visibility-content-item flex gap-3 items-center hover:bg-zinc-800 hover:rounded-lg py-1.5 px-2.5 group ' + value.status + '">';
+                            content_html += '<span class="text-gray-100 min-w-36">' + response.data.timestamp + '</span><span class="text-gray-100 break-all group-[.sent]:text-emerald-300 group-[.failed]:text-rose-500 group-[.skipped]:text-yellow-300 group-[.invalid]:text-red-300">' + value.table_name + ' - ' + value.offset + ' / ' + value.rows_total + ' rows';
                             if(value.status === 'in-progress') {
                                 content_html += ' <span class="hidden group-hover:inline-block cursor-pointer ml-2 px-2 py-1 text-xs rounded-lg border border-zinc-700 text-rose-500 instawp-skip-item" data-type="db" data-item="'+ value.table_name + '">' + plugin_object.trans.skip_item_txt + '</span>';
                             }
@@ -183,7 +184,7 @@
                         if(content_html) {
                             el_visibility_box.find('#visibility-content-area').append(content_html);
 
-                            let el_box_area = el_visibility_box.find('#visibility-box-area');
+                            let el_box_area = el_visibility_box.find('#visibility-content-area');
                             el_box_area.animate({
                                 scrollTop: el_box_area[0].scrollHeight
                             }, 500);
@@ -288,7 +289,6 @@
                             create_container.find('.instawp-track-migration').attr('href', response.data.tracking_url).removeClass('hidden');
                             create_container.find('.instawp-track-migration-area').removeClass('justify-end').addClass('justify-between');
                         }
-
                         create_container.attr('interval-id', setInterval(instawp_migrate_progress, 3000));
                     } else {
                         create_container.removeClass('loading');
@@ -1311,13 +1311,30 @@
         });
     });
 
+    $(document).on('click', '#visibility-expand', function (e) {
+        e.preventDefault();
+        $(this).addClass('hidden');
+        $(document).find('#visibility-collapse, #visibility-box-area').removeClass('hidden');
+    });
+
+    $(document).on('click', '#visibility-collapse', function (e) {
+        e.preventDefault();
+        $(this).addClass('hidden');
+        $(document).find('#visibility-expand').removeClass('hidden');
+        $(document).find('#visibility-box-area').addClass('hidden');
+    });
+
     $(document).on('click', '.full-screen-btn', function (e) {
         e.preventDefault();
         let el = $(document).find('#visibility-box');
         if( el.hasClass('full-screen') ) {
             el.removeClass('full-screen')
+            $(document).find('body').removeClass('overflow-hidden');
+            $(document).find('#visibility-collapse').removeClass('hidden');
         } else {
             el.addClass('full-screen')
+            $(document).find('body').addClass('overflow-hidden');
+            $(document).find('#visibility-collapse').addClass('hidden');
         }
     });
 
@@ -1325,6 +1342,7 @@
         e.preventDefault();
 
         let el = $(this);
+        el.closest('.visibility-content-item > .break-all').addClass('line-through');
         $.ajax({
             type: 'POST',
             url: plugin_object.ajax_url,
@@ -1337,6 +1355,7 @@
             success: function (response) {
                 console.log(response)
                 if(response.success !== true) {
+                    el.closest('.visibility-content-item > .break-all').removeClass('line-through');
                     alert(response.data.message)
                 }
             },

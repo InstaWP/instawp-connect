@@ -391,37 +391,81 @@ delete_option( 'instawp_db_offset' );
                                     <div class="progress-text text-grayCust-650 text-sm font-medium"><?php esc_html_e( '0%', 'instawp-connect' ); ?></div>
                                 </div>
                             </div>
-                            <div id="visibility-box" class="flex flex-col rounded-xl w-full bg-black max-h-[300px] relative overflow-hidden">
-                                <div id="visibility-box-area" class="flex flex-col relative rounded-xl p-4 overflow-auto">
-                                    <div class="flex sticky top-0 rounded-lg justify-between bg-zinc-800 border border-zinc-700 px-3 py-2">
-                                        <span class="flex items-center text-gray-100 font-medium gap-2">
-                                            <svg width="16" height="16" fill="none" class="animate-spin flex-shrink-0" xmlns="http://www.w3.org/2000/svg" aria-label="In progress"><path opacity=".5" d="M8 15A7 7 0 108 1a7 7 0 000 14v0z" stroke="#DBAB0A" stroke-width="2"></path><path d="M15 8a7 7 0 01-7 7" stroke="#DBAB0A" stroke-width="2"></path><path d="M8 12a4 4 0 100-8 4 4 0 000 8z" fill="#DBAB0A"></path></svg>
-                                            <span class="stage stage-processing"><?php printf( esc_html__( 'Processing (0/%s stages)', 'instawp-connect' ), count( InstaWP_Setting::get_stages() ) ); ?></span>
+                            <div id="visibility-box" class="flex flex-col gap-2 rounded-xl w-full bg-zinc-800 border border-zinc-700 p-2">
+                                <div class="flex sticky top-0 rounded-lg justify-between p-1">
+                                    <div class="flex items-center text-gray-100 font-medium gap-2">
+                                        <svg width="16" height="16" fill="none" class="animate-spin flex-shrink-0" xmlns="http://www.w3.org/2000/svg" aria-label="In progress"><path opacity=".5" d="M8 15A7 7 0 108 1a7 7 0 000 14v0z" stroke="#DBAB0A" stroke-width="2"></path><path d="M15 8a7 7 0 01-7 7" stroke="#DBAB0A" stroke-width="2"></path><path d="M8 12a4 4 0 100-8 4 4 0 000 8z" fill="#DBAB0A"></path></svg>
+                                        <span class="stage stage-processing"><?php printf( esc_html__( 'Processing (0/%s stages)', 'instawp-connect' ), count( InstaWP_Setting::get_stages() ) ); ?></span>
+                                        <?php
+                                        $index = 1;
+                                        foreach ( InstaWP_Setting::get_stages() as $stage_key => $label ) { ?>
+                                            <span class="stage stage-<?= esc_attr( $stage_key ) ?> hidden"><?= esc_html( $label ); ?> <?php printf( esc_html__( '(%1$s/%2$s stages)', 'instawp-connect' ), esc_html( $index ), count( InstaWP_Setting::get_stages() ) ); ?></span>
                                             <?php
-                                            $index = 1;
-                                            foreach ( InstaWP_Setting::get_stages() as $stage_key => $label ) { ?>
-                                                <span class="stage stage-<?= esc_attr( $stage_key ) ?> hidden"><?= esc_html( $label ); ?> <?php printf( esc_html__( '(%1$s/%2$s stages)', 'instawp-connect' ), esc_html( $index ), count( InstaWP_Setting::get_stages() ) ); ?></span>
-                                            <?php
-	                                            ++$index;
-                                            } ?>
-                                        </span>
-                                        <span id="timer" class="text-gray-100 font-medium"></span>
+                                            ++$index;
+                                        } ?>
                                     </div>
-                                    <div id="visibility-content-area" class="flex flex-col pt-2.5 pb-0.5 hidden">
+                                    <div class="text-gray-100 font-medium flex gap-3">
+                                        <span id="visibility-timer" class="text-gray-100 font-medium"></span>
+                                        <span id="visibility-collapse" class="cursor-pointer hidden">
+                                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M4.16634 12.5L9.99967 6.66667L15.833 12.5" stroke="#FAFAFA" stroke-width="1.66667" stroke-linecap="round" stroke-linejoin="round"/>
+                                            </svg>
+                                        </span>
+                                        <span id="visibility-expand" class="cursor-pointer">
+                                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M15.8332 7.5L9.99984 13.3333L4.1665 7.5" stroke="#FAFAFA" stroke-width="1.66667" stroke-linecap="round" stroke-linejoin="round"/>
+                                            </svg>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div id="visibility-box-area" class="flex flex-col relative rounded-lg bg-black max-h-[300px] overflow-hidden hidden">
+                                    <div id="visibility-content-area" class="flex flex-col overflow-auto p-2">
+                                        <div class="visibility-content-item flex gap-3 items-center hover:bg-zinc-800 hover:rounded-lg py-1.5 px-2.5 "><span class="text-gray-100 min-w-36"><?= wp_date( 'Y-m-d H:i:s' ); ?></span><span class="text-gray-100 break-all font-medium"><?= esc_html__( 'Migration Initiated', 'instawp-connect' ); ?></span></div>
+<!--                                        --><?php //foreach( range( 0, 10 ) as $index ) { ?>
+<!--                                            <div class="visibility-content-item flex gap-3 items-center hover:bg-zinc-800 hover:rounded-lg py-1.5 px-2.5 group skipped">-->
+<!--                                                <span class="text-gray-100 min-w-36">--><?php //= wp_date( 'Y-m-d H:i:s' ); ?><!--</span>-->
+<!--                                                <span class="text-gray-100 break-all group-[.sent]:text-emerald-300 group-[.failed]:text-rose-500 group-[.skipped]:text-yellow-300">wp_config/matomo/app/plugins/file.php - 5 mb <span class="hidden group-hover:inline-block ml-2 px-2 py-1 text-xs rounded-lg border border-zinc-700 text-rose-500 cursor-pointer instawp-skip-item" data-type="file" data-item="5">Skip</span></span>-->
+<!--                                            </div>-->
+<!--                                        --><?php //} ?>
+                                    </div>
+                                    <div class="absolute bg-zinc-800 border border-zinc-700 p-1.5 bottom-3 right-3 rounded-sm cursor-pointer full-screen-btn">
+                                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M2 14V11.3333M2 14H4.66667M2 14L6 10M14 2H11.3333M14 2V4.66667M14 2L10 6M2 2V4.66667M2 2H4.66667M2 2L6 6M14 14H11.3333M14 14V11.3333M14 14L10 10" stroke="white" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                            </div>
+<!--                            <div id="visibility-box" class="flex flex-col rounded-xl w-full bg-black max-h-[300px] relative overflow-hidden">-->
+<!--                                <div id="visibility-box-area" class="flex flex-col relative rounded-xl p-4 overflow-auto">-->
+<!--                                    <div class="flex sticky top-0 rounded-lg justify-between bg-zinc-800 border border-zinc-700 px-3 py-2">-->
+<!--                                        <span class="flex items-center text-gray-100 font-medium gap-2">-->
+<!--                                            <svg width="16" height="16" fill="none" class="animate-spin flex-shrink-0" xmlns="http://www.w3.org/2000/svg" aria-label="In progress"><path opacity=".5" d="M8 15A7 7 0 108 1a7 7 0 000 14v0z" stroke="#DBAB0A" stroke-width="2"></path><path d="M15 8a7 7 0 01-7 7" stroke="#DBAB0A" stroke-width="2"></path><path d="M8 12a4 4 0 100-8 4 4 0 000 8z" fill="#DBAB0A"></path></svg>-->
+<!--                                            <span class="stage stage-processing">--><?php //printf( esc_html__( 'Processing (0/%s stages)', 'instawp-connect' ), count( InstaWP_Setting::get_stages() ) ); ?><!--</span>-->
+<!--                                            --><?php
+//                                            $index = 1;
+//                                            foreach ( InstaWP_Setting::get_stages() as $stage_key => $label ) { ?>
+<!--                                                <span class="stage stage---><?php //= esc_attr( $stage_key ) ?><!-- hidden">--><?php //= esc_html( $label ); ?><!-- --><?php //printf( esc_html__( '(%1$s/%2$s stages)', 'instawp-connect' ), esc_html( $index ), count( InstaWP_Setting::get_stages() ) ); ?><!--</span>-->
+<!--                                            --><?php
+//	                                            ++$index;
+//                                            } ?>
+<!--                                        </span>-->
+<!--                                        <span id="timer" class="text-gray-100 font-medium"></span>-->
+<!--                                    </div>-->
+<!--                                    <div id="visibility-content-area" class="flex flex-col pt-2.5 pb-0.5 hidden">-->
 <!--                                        --><?php //foreach( range( 0, 10 ) as $index ) { ?>
 <!--                                            <div class="flex gap-3 items-center hover:bg-zinc-800 hover:rounded-lg py-1.5 px-2.5 group skipped">-->
 <!--                                                <span class="text-gray-100 min-w-36">--><?php //= wp_date( 'Y-m-d H:i:s' ); ?><!--</span>-->
 <!--                                                <span class="text-gray-100 break-all group-[.sent]:text-emerald-300 group-[.failed]:text-rose-500 group-[.skipped]:text-yellow-300">wp_config/matomo/app/plugins/file.php - 5 mb <span class="hidden group-hover:inline-block ml-2 px-2 py-1 text-xs rounded-lg border border-zinc-700 text-rose-500 cursor-pointer instawp-skip-item" data-type="file" data-item="5">Skip</span></span>-->
 <!--                                            </div>-->
 <!--                                        --><?php //} ?>
-                                    </div>
-                                </div>
-                                <div class="absolute bg-zinc-800 border border-zinc-700 p-1.5 bottom-4 right-4 rounded-sm cursor-pointer full-screen-btn hidden">
-                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M2 14V11.3333M2 14H4.66667M2 14L6 10M14 2H11.3333M14 2V4.66667M14 2L10 6M2 2V4.66667M2 2H4.66667M2 2L6 6M14 14H11.3333M14 14V11.3333M14 14L10 10" stroke="white" stroke-linecap="round" stroke-linejoin="round"/>
-                                    </svg>
-                                </div>
-                            </div>
+<!--                                    </div>-->
+<!--                                </div>-->
+<!--                                <div class="absolute bg-zinc-800 border border-zinc-700 p-1.5 bottom-4 right-4 rounded-sm cursor-pointer full-screen-btn hidden">-->
+<!--                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">-->
+<!--                                        <path d="M2 14V11.3333M2 14H4.66667M2 14L6 10M14 2H11.3333M14 2V4.66667M14 2L10 6M2 2V4.66667M2 2H4.66667M2 2L6 6M14 14H11.3333M14 14V11.3333M14 14L10 10" stroke="white" stroke-linecap="round" stroke-linejoin="round"/>-->
+<!--                                    </svg>-->
+<!--                                </div>-->
+<!--                            </div>-->
 <!--                            <div class="visibility-box1 text-border rounded-xl w-full text-bg p-4">-->
 <!--                                <div class="mb-6 box-header flex items-center justify-between">-->
 <!--                                    <span class="text-grayCust-900 text-base font-normal box-title">Stages Completed <span class="stage-finished">6</span><span>/</span><span class="stage-total">13</span></span>-->

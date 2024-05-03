@@ -720,22 +720,22 @@ input:checked + .slider-toggle:before {
     }
 }
 
-#visibility-box-area::-webkit-scrollbar {
-    width: 8px;
+#visibility-content-area::-webkit-scrollbar {
+    width: 3px;
 }
 
 /* Track */
-#visibility-box-area::-webkit-scrollbar-track {
+#visibility-content-area::-webkit-scrollbar-track {
     background: #f1f1f1;
 }
 
 /* Handle */
-#visibility-box-area::-webkit-scrollbar-thumb {
+#visibility-content-area::-webkit-scrollbar-thumb {
     background: #888;
 }
 
 /* Handle on hover */
-#visibility-box-area::-webkit-scrollbar-thumb:hover {
+#visibility-content-area::-webkit-scrollbar-thumb:hover {
     background: #555;
 }
 
@@ -747,5 +747,9 @@ input:checked + .slider-toggle:before {
     height: 100%;
     z-index: 99999999999;
     border-radius: 0;
+}
+
+#visibility-box.full-screen #visibility-box-area {
     max-height: unset;
+    height: 100vh;
 }

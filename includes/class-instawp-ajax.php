@@ -57,7 +57,13 @@ class InstaWP_AJAX {
 	}
 
 	public function migrate_progress() {
+		check_ajax_referer( 'instawp-connect', 'security' );
 
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error();
+		}
+
+		$visibility        = isset( $_POST['visible'] ) && filter_var( $_POST['visible'], FILTER_VALIDATE_BOOLEAN );
 		$progress          = array(
 			'progress_files'   => 0,
 			'progress_db'      => 0,
@@ -83,6 +89,9 @@ class InstaWP_AJAX {
 		$auto_login_hash                   = isset( $response_data['dest_wp']['auto_login_hash'] ) ? $response_data['dest_wp']['auto_login_hash'] : '';
 		$response_data['migrate_id']       = $migrate_id;
 		$response_data['started_at']       = $started_at;
+		$response_data['timestamp']        = wp_date( 'Y-m-d H:i:s' );
+		$response_data['processed_files']  = array();
+		$response_data['processed_db']     = array();
 		$response_data['progress_files']   = Helper::get_args_option( 'progress_files', $response_data, 0 );
 		$response_data['progress_db']      = Helper::get_args_option( 'progress_db', $response_data, 0 );
 		$response_data['progress_restore'] = Helper::get_args_option( 'progress_restore', $response_data, 0 );
@@ -116,7 +125,7 @@ class InstaWP_AJAX {
 			5 => 'invalid',
 		);
 
-		if ( $tracking_db instanceof IWPDB ) {
+		if ( $visibility && $tracking_db instanceof IWPDB ) {
 			$sendingFiles = array();
 			$file_offset  = Option::get_option( 'instawp_files_offset', 0 );
 			$file_offset  = empty( $file_offset ) ? 0 : $file_offset;
