@@ -5,22 +5,23 @@ defined( 'ABSPATH' ) || exit;
 class InstaWP_Sync_WC {
 
     public function __construct() {
-		// Hooks
-        add_filter( 'INSTAWP_CONNECT/Filters/two_way_sync_post_data', array( $this, 'add_post_data' ), 10, 3 );
-        add_action( 'INSTAWP_CONNECT/Actions/process_two_way_sync_post', array( $this, 'process_gallery' ), 10, 2 );
-
-	    // Order actions
+	    // Order Actions.
 	    add_action( 'woocommerce_new_order', array( $this, 'create_order' ) );
 	    add_action( 'woocommerce_update_order', array( $this, 'update_order' ) );
 	    add_action( 'woocommerce_before_trash_order', array( $this, 'trash_order' ) );
 	    add_action( 'woocommerce_before_delete_order', array( $this, 'delete_order' ) );
 
-		// Attributes actions
+		// Attributes Actions.
 	    add_action( 'woocommerce_attribute_added', array( $this, 'attribute_added' ), 10, 2 );
 	    add_action( 'woocommerce_attribute_updated', array( $this, 'attribute_updated' ), 10, 3 );
 	    add_action( 'woocommerce_attribute_deleted', array( $this, 'attribute_deleted' ), 10, 2 );
 
-	    // Process event
+	    // Hooks.
+	    add_filter( 'INSTAWP_CONNECT/Filters/two_way_sync_can_sync_post', array( $this, 'can_sync_post' ), 10, 2 );
+	    add_filter( 'INSTAWP_CONNECT/Filters/two_way_sync_post_data', array( $this, 'add_post_data' ), 10, 3 );
+	    add_action( 'INSTAWP_CONNECT/Actions/process_two_way_sync_post', array( $this, 'process_gallery' ), 10, 2 );
+
+	    // Process Events.
 	    add_filter( 'INSTAWP_CONNECT/Filters/process_two_way_sync', array( $this, 'parse_event' ), 10, 2 );
     }
 
@@ -80,27 +81,6 @@ class InstaWP_Sync_WC {
 		$this->add_event( $event_name, 'woocommerce_order_deleted', $order->get_id(), $order->get_order_key() );
 	}
 
-	public function add_post_data( $data, $type, $post ) {
-		if ( $this->can_sync() && $type === 'product' ) {
-			$data['product_gallery'] = $this->get_product_gallery( $post->ID );
-		}
-
-		return $data;
-	}
-	
-	public function process_gallery( $post, $data ) {
-		if ( $post['post_type'] === 'product' ) {
-			$product_gallery = isset( $data['product_gallery'] ) ? $data['product_gallery'] : array();
-			$gallery_ids     = array();
-
-			foreach ( $product_gallery as $gallery_item ) {
-				$gallery_ids[] = InstaWP_Sync_Helpers::string_to_attachment( $gallery_item );
-			}
-
-			$this->set_product_gallery( $post['ID'], $gallery_ids );
-		}
-	}
-
 	/**
 	 * Attribute added (hook).
 	 *
@@ -150,6 +130,35 @@ class InstaWP_Sync_WC {
 		$this->add_event( $event_name, 'woocommerce_attribute_deleted', array( 'attribute_id' => $id ), $name );
 	}
 
+	public function can_sync_post( $can_sync, $post ) {
+		if ( $this->can_sync() && in_array( $post->post_type, array( 'product', 'shop_coupon' ), true ) ) {
+			$can_sync = true;
+		}
+
+		return $can_sync;
+	}
+
+	public function add_post_data( $data, $type, $post ) {
+		if ( $this->can_sync() && $type === 'product' ) {
+			$data['product_gallery'] = $this->get_product_gallery( $post->ID );
+		}
+
+		return $data;
+	}
+
+	public function process_gallery( $post, $data ) {
+		if ( $post['post_type'] === 'product' ) {
+			$product_gallery = isset( $data['product_gallery'] ) ? $data['product_gallery'] : array();
+			$gallery_ids     = array();
+
+			foreach ( $product_gallery as $gallery_item ) {
+				$gallery_ids[] = InstaWP_Sync_Parser::string_to_attachment( $gallery_item );
+			}
+
+			$this->set_product_gallery( $post['ID'], $gallery_ids );
+		}
+	}
+
 	public function parse_event( $response, $v ) {
 		if ( $v->event_type !== 'woocommerce' || empty( $v->source_id ) || ! class_exists( 'WooCommerce' ) ) {
 			return $response;
@@ -191,7 +200,7 @@ class InstaWP_Sync_WC {
 
 				$product_id = InstaWP_Sync_Helpers::get_post_by_reference( $line_item['post_data']['post_type'], $line_item['reference_id'], $line_item['post_data']['post_name'] );
 				if ( ! $product_id ) {
-					$product_id = InstaWP_Sync_Helpers::create_or_update_post( $line_item['post_data'], $line_item['post_meta'], $line_item['reference_id'] );
+					$product_id = InstaWP_Sync_Parser::create_or_update_post( $line_item['post_data'], $line_item['post_meta'], $line_item['reference_id'] );
 				}
 				$order->add_product( wc_get_product( $product_id ), $line_item['quantity'] );
 			}
@@ -235,7 +244,7 @@ class InstaWP_Sync_WC {
 				}
 
 				kses_remove_filters();
-				InstaWP_Sync_Helpers::create_or_update_post( $coupon_item['post_data'], $coupon_item['post_meta'], $coupon_item['reference_id'] );
+				InstaWP_Sync_Parser::create_or_update_post( $coupon_item['post_data'], $coupon_item['post_meta'], $coupon_item['reference_id'] );
 				kses_init_filters();
 
 				$coupon_code    = $coupon_item['data']['code'];
@@ -387,7 +396,7 @@ class InstaWP_Sync_WC {
 			$attachment_ids = ! empty( $product->get_gallery_image_ids() ) ? $product->get_gallery_image_ids() : array();
 
 			foreach ( $attachment_ids as $attachment_id ) {
-				$gallery[] = InstaWP_Sync_Helpers::attachment_to_string( $attachment_id, 'full' );
+				$gallery[] = InstaWP_Sync_Parser::attachment_to_string( $attachment_id, 'full' );
 			}
 		}
 

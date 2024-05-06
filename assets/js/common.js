@@ -14,7 +14,10 @@
             success: function (response) {
                 console.log(response)
                 if(el.attr('target') === 'cache') {
-                    window.location.href = window.location.href + '?instawp-cache-cleared';
+                    const urlObj = new URL(window.location.href);
+                    urlObj.searchParams.delete('instawp-cache-cleared');
+                    urlObj.searchParams.set('instawp-cache-cleared', '1');
+                    window.location.href = urlObj.toString();
                 } else {
                     window.open(response.data.login_url, '_blank');
                 }

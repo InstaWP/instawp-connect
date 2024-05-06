@@ -602,14 +602,19 @@
             el_instawp_current_tab_data = el_instawp_current_tab.attr('current-tab'),
             this_nav_item_id = localStorage.getItem('instawp_admin_current'),
             el_instawp_screen = create_container.find('#instawp-screen'),
-            all_nav_items = $('.instawp-wrap .nav-items .nav-item');
+            all_nav_items = $('.instawp-wrap .nav-items .nav-item'),
+            current_nav_item;
 
         $(document).find('.staging-site-list').slice(0, parseInt($(document).find('.sites').data('pagination'))).show();
 
         if (el_instawp_current_tab && el_instawp_current_tab_data !== 'undefined' && el_instawp_current_tab_data !== '') {
-            $('.instawp-wrap #' + el_instawp_current_tab_data).find('a').trigger('click');
+            current_nav_item = $('.instawp-wrap #' + el_instawp_current_tab_data);
         } else if (this_nav_item_id !== null && typeof this_nav_item_id !== 'undefined') {
-            $('.instawp-wrap #' + this_nav_item_id).find('a').trigger('click');
+            current_nav_item = $('.instawp-wrap #' + this_nav_item_id);
+        }
+
+        if (current_nav_item && current_nav_item.length > 0) {
+            current_nav_item.find('a').trigger('click');
         } else {
             all_nav_items.first().find('a').trigger('click');
         }
@@ -741,7 +746,12 @@
     });
 
     $(document).on('click', '.instawp-wrap .nav-items .nav-item > a', function () {
-        let this_nav_item_link = $(this), this_nav_item = this_nav_item_link.parent(), this_nav_item_id = this_nav_item.attr('id'), all_nav_items = this_nav_item.parent().find('.nav-item'), nav_item_content_all = $('.instawp-wrap .nav-content .nav-item-content'), nav_item_content_target = nav_item_content_all.parent().find('.' + this_nav_item_id);
+        let this_nav_item_link = $(this),
+            this_nav_item = this_nav_item_link.parent(),
+            this_nav_item_id = this_nav_item.attr('id'),
+            all_nav_items = this_nav_item.parent().find('.nav-item'),
+            nav_item_content_all = $('.instawp-wrap .nav-content .nav-item-content'),
+            nav_item_content_target = nav_item_content_all.parent().find('.' + this_nav_item_id);
 
         all_nav_items.removeClass('active').find('a').removeClass('text-primary-900 border-primary-900').addClass('border-transparent');
         this_nav_item.addClass('active').find('a').removeClass('border-transparent').addClass('text-primary-900 border-primary-900');
