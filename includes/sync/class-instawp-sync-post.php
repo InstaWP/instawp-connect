@@ -272,6 +272,7 @@ class InstaWP_Sync_Post {
 			// WooCommerce
 			'product',
 			'shop_order',
+			'shop_order_placehold',
 			'shop_coupon',
 		);
 		$restricted_cpts = (array) apply_filters( 'INSTAWP_CONNECT/Filters/two_way_sync_restricted_post_types', $restricted_cpts );
