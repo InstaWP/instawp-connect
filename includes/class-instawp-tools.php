@@ -293,6 +293,9 @@ include $file_path;';
 		$migrate_settings['excluded_paths'][] = 'index.html';
 		$migrate_settings['excluded_paths'][] = '.user.ini';
 
+        // Skip mu-pluginsold folder
+		$migrate_settings['excluded_paths'][] = $relative_dir . '/mu-plugins/mu-pluginsold';
+
 		// Skip cache folders
 		$migrate_settings['excluded_paths'][] = $relative_dir . '/cache';
 
