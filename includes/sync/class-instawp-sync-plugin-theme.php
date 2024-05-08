@@ -544,12 +544,12 @@ class InstaWP_Sync_Plugin_Theme {
 	 * Plugin or Theme activate
 	 */
 	public function activate_item( $item, $type ) {
-		$activator = new Activator( [
-			[
+		$activator = new Activator( array(
+			array(
 				'asset' => $item,
-				'type'  => $type
-			]
-		] );
+				'type'  => $type,
+			),
+		) );
 
 		return $activator->activate();
 	}
@@ -558,7 +558,7 @@ class InstaWP_Sync_Plugin_Theme {
 	 * Plugin deactivate
 	 */
 	public function deactivate_item( $plugin ) {
-		$deactivator = new Deactivator( [ $plugin ] );
+		$deactivator = new Deactivator( array( $plugin ) );
 
 		return $deactivator->deactivate();
 	}
@@ -567,12 +567,12 @@ class InstaWP_Sync_Plugin_Theme {
 	 * Plugin or Theme update
 	 */
 	public function update_item( $item, $type ) {
-		$updater = new Updater( [
-			[
+		$updater = new Updater( array(
+			array(
 				'slug' => $item,
-				'type' => $type
-			]
-		] );
+				'type' => $type,
+			),
+		) );
 
 		return $updater->update();
 	}
@@ -581,14 +581,14 @@ class InstaWP_Sync_Plugin_Theme {
 	 * Plugin or Theme install
 	 */
 	public function install_item( $item, $type, $activate = false ) {
-		$installer = new Installer( [
-			[
+		$installer = new Installer( array(
+			array(
 				'slug'     => $item,
 				'source'   => 'wp.org',
 				'type'     => $type,
-				'activate' => $activate
-			]
-		] );
+				'activate' => $activate,
+			),
+		) );
 
 		return $installer->start();
 	}
@@ -597,12 +597,12 @@ class InstaWP_Sync_Plugin_Theme {
 	 * Plugin or Theme uninstall
 	 */
 	public function uninstall_item( $item, $type ) {
-		$uninstaller = new Uninstaller( [
-			[
+		$uninstaller = new Uninstaller( array(
+			array(
 				'asset' => $item,
 				'type'  => $type,
-			]
-		] );
+			),
+		) );
 
 		return $uninstaller->uninstall();
 	}

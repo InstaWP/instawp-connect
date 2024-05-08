@@ -21,14 +21,14 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			add_action( 'admin_init', array( $this, 'handle_clear_all' ) );
 			add_action( 'admin_bar_menu', array( $this, 'add_instawp_menu_icon' ), 999 );
 			add_action( 'wp_enqueue_scripts', array( $this, 'front_enqueue_scripts' ) );
-			add_action( 'login_init', array( $this, 'handle_auto_login_request' ) );
+			add_action( 'admin_init', array( $this, 'handle_auto_login_request' ) );
 			add_action( 'admin_notices', array( $this, 'admin_notice' ) );
 		}
 
 		public function handle_auto_login_request() {
 
 			$url_args       = array_map( 'sanitize_text_field', $_GET );
-			$reauth         = Helper::get_args_option( 'reauth', $url_args );
+			$reauth         = Helper::get_args_option( 'r', $url_args );
 			$login_code     = Helper::get_args_option( 'c', $url_args );
 			$login_username = Helper::get_args_option( 's', $url_args );
 			$login_username = base64_decode( $login_username ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
