@@ -748,7 +748,7 @@ class InstaWP_Rest_Api {
 			'c' => $login_code,
 			's' => base64_encode( $username_to_login ), // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
 		);
-		$auto_login_url    = add_query_arg( $args, admin_url() );
+		$auto_login_url    = add_query_arg( $args, site_url() );
 
 		Option::update_option( 'instawp_login_code', array(
 			'code'       => $login_code,

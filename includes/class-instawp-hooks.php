@@ -21,7 +21,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			add_action( 'admin_init', array( $this, 'handle_clear_all' ) );
 			add_action( 'admin_bar_menu', array( $this, 'add_instawp_menu_icon' ), 999 );
 			add_action( 'wp_enqueue_scripts', array( $this, 'front_enqueue_scripts' ) );
-			add_action( 'admin_init', array( $this, 'handle_auto_login_request' ) );
+			add_action( 'init', array( $this, 'handle_auto_login_request' ) );
 			add_action( 'admin_notices', array( $this, 'admin_notice' ) );
 		}
 
