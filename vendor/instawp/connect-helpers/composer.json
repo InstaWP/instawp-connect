@@ -2,6 +2,7 @@
     "name": "instawp/connect-helpers",
     "description": "CLI Package for InstaWP Remote Features",
     "type": "library",
+    "version": "1.0.0",
     "license": "MIT",
     "authors": [
         {

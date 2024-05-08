@@ -128,7 +128,7 @@ class InstaWP_Sync_Helpers {
 	 * @return bool
 	 */
 	public static function is_enabled( $key ) {
-		$default = in_array( $key, [ 'wc', 'option' ], true ) ? 'off' : 'on';
+		$default = in_array( $key, array( 'wc', 'option' ), true ) ? 'off' : 'on';
 		$value   = Option::get_option( 'instawp_sync_' . $key, $default );
 		$value   = empty( $value ) ? $default : $value;
 

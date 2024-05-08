@@ -85,12 +85,12 @@ class InstaWP_Sync_Ajax {
 			$event_row = InstaWP_Sync_DB::get_sync_event_by_id( $connect_id, $event->event_hash );
 
 			if ( $event_row ) {
-				$event->status      = ! empty( $event_row->status ) ? $event_row->status : 'pending';
-				$event->synced_date = ! empty( $event_row->date ) ? $event_row->date : $event->date;
+				$event->status         = ! empty( $event_row->status ) ? $event_row->status : 'pending';
+				$event->synced_date    = ! empty( $event_row->date ) ? $event_row->date : $event->date;
+				$event->synced_message = ! empty( $event_row->synced_message ) ? $event_row->synced_message : $event->synced_message;
 
 				if ( $event->status === 'completed' ) {
-					$event->synced_message = ! empty( $event_row->synced_message ) ? $event_row->synced_message : $event->synced_message;
-					$event->log            = ! empty( $event_row->log ) ? $event_row->log : '';
+					$event->log = ! empty( $event_row->log ) ? $event_row->log : '';
 				}
 			}
 
@@ -254,7 +254,8 @@ class InstaWP_Sync_Ajax {
 			$this->send_error( 'Can\'t perform this action.' );
 		}
 
-		$where  = "`status`='completed'";
+		//$where  = "`status`='completed'";
+		$where  = "`status` IN ('completed', 'invalid', 'error')";
 		$where2 = array();
 		$connect_id = ! empty( $_POST['connect_id'] ) ? intval( $_POST['connect_id'] ) : 0;
 		$entry_ids  = ! empty( $_POST['ids'] ) ? array_map( 'intval', explode( ',', sanitize_text_field( wp_unslash( $_POST['ids'] ) ) ) ) : array();
@@ -271,7 +272,7 @@ class InstaWP_Sync_Ajax {
 
 		if ( ! empty( $entry_ids ) ) {
 			$entry_ids = join( ', ', $entry_ids );
-			$where2[]  = " `id` IN($entry_ids)";
+			$where2[]  = "`id` IN($entry_ids)";
 		}
 
 		$where2 = empty( $where2 ) ? "1=1" : join( ' AND ', $where2 );
@@ -446,7 +447,8 @@ class InstaWP_Sync_Ajax {
 
 	// phpcs:disable
 	private function get_total_pending_events_count() {
-		$where  = "`status`='completed'";
+		//$where  = "`status`='completed'";
+		$where  = "`status` IN ('completed', 'invalid', 'error')";
 		$where2 = array();
 		$connect_id = ! empty( $_POST['connect_id'] ) ? intval( $_POST['connect_id'] ) : 0;
 		$entry_ids  = ! empty( $_POST['ids'] ) ? array_map( 'intval', explode( ',', $_POST['ids'] ) ) : array();
@@ -463,7 +465,7 @@ class InstaWP_Sync_Ajax {
 
 		if ( ! empty( $entry_ids ) ) {
 			$entry_ids = join( ', ', $entry_ids );
-			$where2[]  = " `id` IN($entry_ids)";
+			$where2[]  = "`id` IN($entry_ids)";
 		}
 
 		$where2 = empty( $where2 ) ? "1=1" : join( ' AND ', $where2 );
@@ -503,8 +505,9 @@ class InstaWP_Sync_Ajax {
 
 	// phpcs:disable
 	private function pack_pending_sync_events() {
-		$where  = "`status`='completed'";
-		$where2 = "1=1";
+		//$where  = "`status`='completed'";
+		$where  = "`status` IN ('completed', 'invalid', 'error')";
+		$where2 = array();
 		$connect_id = ! empty( $_POST['dest_connect_id'] ) ? intval( $_POST['dest_connect_id'] ) : 0;
 		$entry_ids  = ! empty( $_POST['ids'] ) ? array_map( 'intval', explode( ',', $_POST['ids'] ) ) : array();
 
@@ -514,8 +517,10 @@ class InstaWP_Sync_Ajax {
 
 		if ( ! empty( $entry_ids ) ) {
 			$entry_ids = join( ',', $entry_ids );
-			$where2    .= " AND `id` IN($entry_ids)";
+			$where2[]  = "`id` IN($entry_ids)";
 		}
+
+		$where2 = empty( $where2 ) ? "1=1" : join( ' AND ', $where2 );
 
 		$query = "SELECT * FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE $where2 AND `event_hash` NOT IN (SELECT event_hash AS id FROM " . INSTAWP_DB_TABLE_EVENT_SITES . " WHERE $where) ORDER BY date ASC, id ASC LIMIT " . INSTAWP_EVENTS_SYNC_PER_PAGE;
 

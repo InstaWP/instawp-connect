@@ -477,31 +477,31 @@ class InstaWP_Rest_Api {
 		$response = array();
 		$limit    = $request->get_param( 'limit' );
 		$offset   = $request->get_param( 'offset' );
-		$orders   = wc_get_orders( [
+		$orders   = wc_get_orders( array(
 			'limit'  => ! empty( $limit ) ? $limit : 10,
-			'offset' => ! empty( $offset ) ? $offset : 0
-		] );
+			'offset' => ! empty( $offset ) ? $offset : 0,
+		) );
 
 		foreach ( $orders as $order ) {
 			$order_data = $order->get_data();
 			$data       = $order_data;
 
-			$data['fee_lines'] = [];
+			$data['fee_lines'] = array();
 			foreach ( $order_data['fee_lines'] as $fee ) {
 				$data['fee_lines'][] = $fee->get_data();
 			}
 
-			$data['shipping_lines'] = [];
+			$data['shipping_lines'] = array();
 			foreach ( $order_data['shipping_lines'] as $shipping ) {
 				$data['shipping_lines'][] = $shipping->get_data();
 			}
 
-			$data['tax_lines'] = [];
+			$data['tax_lines'] = array();
 			foreach ( $order_data['tax_lines'] as $tax ) {
 				$data['tax_lines'][] = $tax->get_data();
 			}
 
-			$data['line_items'] = [];
+			$data['line_items'] = array();
 			foreach ( $order_data['line_items'] as $product ) {
 				$data['line_items'][] = $product->get_data();
 			}

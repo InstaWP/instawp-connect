@@ -541,22 +541,6 @@ td.event-sync-cell.loading:after,
     margin: -8px -8px;
 }
 
-.synced_status.completed {
-    background-color: #D1FAE5;
-}
-
-.synced_status.pending {
-    background-color: #ffd7ce;
-    color: #895959;
-}
-
-.synced_status.error {
-    margin: 0 !important;
-    border: none;
-    background: #ffd7ce;
-}
-
-
 td.event-sync-cell.loading,
 .exclude-files-container > .loading,
 .exclude-database-container > .loading {

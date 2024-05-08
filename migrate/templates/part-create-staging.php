@@ -435,59 +435,6 @@ delete_option( 'instawp_db_offset' );
                                     </div>
                                 </div>
                             </div>
-<!--                            <div id="visibility-box" class="flex flex-col rounded-xl w-full bg-black max-h-[300px] relative overflow-hidden">-->
-<!--                                <div id="visibility-box-area" class="flex flex-col relative rounded-xl p-4 overflow-auto">-->
-<!--                                    <div class="flex sticky top-0 rounded-lg justify-between bg-zinc-800 border border-zinc-700 px-3 py-2">-->
-<!--                                        <span class="flex items-center text-gray-100 font-medium gap-2">-->
-<!--                                            <svg width="16" height="16" fill="none" class="animate-spin flex-shrink-0" xmlns="http://www.w3.org/2000/svg" aria-label="In progress"><path opacity=".5" d="M8 15A7 7 0 108 1a7 7 0 000 14v0z" stroke="#DBAB0A" stroke-width="2"></path><path d="M15 8a7 7 0 01-7 7" stroke="#DBAB0A" stroke-width="2"></path><path d="M8 12a4 4 0 100-8 4 4 0 000 8z" fill="#DBAB0A"></path></svg>-->
-<!--                                            <span class="stage stage-processing">--><?php //printf( esc_html__( 'Processing (0/%s stages)', 'instawp-connect' ), count( InstaWP_Setting::get_stages() ) ); ?><!--</span>-->
-<!--                                            --><?php
-//                                            $index = 1;
-//                                            foreach ( InstaWP_Setting::get_stages() as $stage_key => $label ) { ?>
-<!--                                                <span class="stage stage---><?php //= esc_attr( $stage_key ) ?><!-- hidden">--><?php //= esc_html( $label ); ?><!-- --><?php //printf( esc_html__( '(%1$s/%2$s stages)', 'instawp-connect' ), esc_html( $index ), count( InstaWP_Setting::get_stages() ) ); ?><!--</span>-->
-<!--                                            --><?php
-//	                                            ++$index;
-//                                            } ?>
-<!--                                        </span>-->
-<!--                                        <span id="timer" class="text-gray-100 font-medium"></span>-->
-<!--                                    </div>-->
-<!--                                    <div id="visibility-content-area" class="flex flex-col pt-2.5 pb-0.5 hidden">-->
-<!--                                        --><?php //foreach( range( 0, 10 ) as $index ) { ?>
-<!--                                            <div class="flex gap-3 items-center hover:bg-zinc-800 hover:rounded-lg py-1.5 px-2.5 group skipped">-->
-<!--                                                <span class="text-gray-100 min-w-36">--><?php //= wp_date( 'Y-m-d H:i:s' ); ?><!--</span>-->
-<!--                                                <span class="text-gray-100 break-all group-[.sent]:text-emerald-300 group-[.failed]:text-rose-500 group-[.skipped]:text-yellow-300">wp_config/matomo/app/plugins/file.php - 5 mb <span class="hidden group-hover:inline-block ml-2 px-2 py-1 text-xs rounded-lg border border-zinc-700 text-rose-500 cursor-pointer instawp-skip-item" data-type="file" data-item="5">Skip</span></span>-->
-<!--                                            </div>-->
-<!--                                        --><?php //} ?>
-<!--                                    </div>-->
-<!--                                </div>-->
-<!--                                <div class="absolute bg-zinc-800 border border-zinc-700 p-1.5 bottom-4 right-4 rounded-sm cursor-pointer full-screen-btn hidden">-->
-<!--                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">-->
-<!--                                        <path d="M2 14V11.3333M2 14H4.66667M2 14L6 10M14 2H11.3333M14 2V4.66667M14 2L10 6M2 2V4.66667M2 2H4.66667M2 2L6 6M14 14H11.3333M14 14V11.3333M14 14L10 10" stroke="white" stroke-linecap="round" stroke-linejoin="round"/>-->
-<!--                                    </svg>-->
-<!--                                </div>-->
-<!--                            </div>-->
-<!--                            <div class="visibility-box1 text-border rounded-xl w-full text-bg p-4">-->
-<!--                                <div class="mb-6 box-header flex items-center justify-between">-->
-<!--                                    <span class="text-grayCust-900 text-base font-normal box-title">Stages Completed <span class="stage-finished">6</span><span>/</span><span class="stage-total">13</span></span>-->
-<!--                                    <span class="cursor-pointer box-controller open">-->
-<!--                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">-->
-<!--                                            <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5"/>-->
-                                            <!-- <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /> -->
-<!--                                        </svg>-->
-<!--                                    </span>-->
-<!--                                </div>-->
-<!--                                <ul class="text-sm grid grid-cols-1 sm:grid-cols-2 gap-3">-->
-<!--									--><?php //foreach ( InstaWP_Setting::get_stages() as $stage_key => $label ) : ?>
-<!--                                        <li class="stage---><?php //= esc_attr( $stage_key ) ?><!-- flex space-x-3 item [&_.active]:text-green-600">-->
-<!--                                            <svg class="stage-status icon flex-shrink-0 h-6 w-6 text-gray-600" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">-->
-<!--                                                <path d="M15.1965 7.85999C15.1965 3.71785 11.8387 0.359985 7.69653 0.359985C3.5544 0.359985 0.196533 3.71785 0.196533 7.85999C0.196533 12.0021 3.5544 15.36 7.69653 15.36C11.8387 15.36 15.1965 12.0021 15.1965 7.85999Z" fill="currentColor" fill-opacity="0.1"></path>-->
-<!--                                                <path d="M10.9295 4.88618C11.1083 4.67577 11.4238 4.65019 11.6343 4.82904C11.8446 5.00788 11.8702 5.32343 11.6914 5.53383L7.44139 10.5338C7.25974 10.7475 6.93787 10.77 6.72825 10.5837L4.47825 8.5837C4.27186 8.40024 4.25327 8.0842 4.43673 7.87781C4.62019 7.67142 4.93622 7.65283 5.14261 7.83629L7.01053 9.49669L10.9295 4.88618Z" fill="currentColor"></path>-->
-<!--                                            </svg>-->
-<!--                                            <span class="stage-status label text-gray-600">--><?php //= esc_html( $label ); ?><!--</span>-->
-<!--                                        </li>-->
-<!--									--><?php //endforeach; ?>
-<!--                                </ul>-->
-<!--                            </div>-->
                         </div>
                         <div class="instawp-track-migration-area bg-grayCust-250 px-5 py-4 rounded-bl-lg rounded-br-lg flex content-center items-center <?= empty( $tracking_url ) ? 'justify-end' : 'justify-between' ?>">
                             <a class="instawp-track-migration text-primary-900 hover:text-primary-900 focus:ring-0 text-sm text-left flex items-center <?= empty( $tracking_url ) ? 'hidden' : '' ?>" href="<?php echo esc_url( $tracking_url ); ?>" target="_blank">

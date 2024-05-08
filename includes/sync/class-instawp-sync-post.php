@@ -111,8 +111,9 @@ class InstaWP_Sync_Post {
 			return;
 		}
 
+		$post       = get_post( $post_id );
 		$event_name = esc_html__( 'Media created', 'instawp-connect' );
-		$this->handle_post_events( $event_name, 'post_new', $post_id );
+		$this->handle_post_events( $event_name, 'post_new', $post );
 	}
 
 	/**
@@ -271,7 +272,7 @@ class InstaWP_Sync_Post {
 			// WooCommerce
 			'product',
 			'shop_order',
-			'shop_coupon'
+			'shop_coupon',
 		);
 		$restricted_cpts = (array) apply_filters( 'INSTAWP_CONNECT/Filters/two_way_sync_restricted_post_types', $restricted_cpts );
 
