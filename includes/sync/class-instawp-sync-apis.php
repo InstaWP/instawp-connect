@@ -122,7 +122,7 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 
 			foreach ( $encrypted_contents as $v ) {
 				$has_log = $wpdb->get_var(
-					$wpdb->prepare( "SELECT id FROM %s WHERE event_hash=%s AND status=%s", INSTAWP_DB_TABLE_EVENT_SYNC_LOGS, $v->event_hash, 'completed' )
+					$wpdb->prepare( "SELECT id FROM " . INSTAWP_DB_TABLE_EVENT_SYNC_LOGS . " WHERE `event_hash`=%s AND `status`=%s", $v->event_hash, 'completed' ) // phpcs:ignore (WordPress.DB.PreparedSQL.NotPrepared
 				);
 
 				if ( $has_log ) {

@@ -182,7 +182,9 @@ class Updater {
 					)
 				);
 
-				if ( $self_update_res && ! is_wp_error( $self_update_res ) ) {
+				if ( is_wp_error( $self_update_res ) ) {
+					$result = $self_update_res;
+				} else if ( $self_update_res ) {
 					$result = true;
 				}
 			}

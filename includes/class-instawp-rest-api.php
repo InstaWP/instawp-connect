@@ -279,7 +279,7 @@ class InstaWP_Rest_Api {
 			if ( $login_url_response instanceof WP_REST_Response && $login_url_response->get_status() === 200 ) {
 				$response['sso_login_url'] = $login_url_response->get_data();
 			} else {
-				error_log( 'sso_url_response: ' . json_encode( $login_url_response ) );
+				error_log( 'sso_url_response: ' . wp_json_encode( $login_url_response ) );
 			}
 		} else {
 			error_log( esc_html__( 'sso_url_class_not_found: This class NewfoldLabs\WP\Module\Migration\Services\MigrationSSO not found.', 'instawp-connect' ) );
@@ -477,31 +477,31 @@ class InstaWP_Rest_Api {
 		$response = array();
 		$limit    = $request->get_param( 'limit' );
 		$offset   = $request->get_param( 'offset' );
-		$orders   = wc_get_orders( [
+		$orders   = wc_get_orders( array(
 			'limit'  => ! empty( $limit ) ? $limit : 10,
-			'offset' => ! empty( $offset ) ? $offset : 0
-		] );
+			'offset' => ! empty( $offset ) ? $offset : 0,
+		) );
 
 		foreach ( $orders as $order ) {
 			$order_data = $order->get_data();
 			$data       = $order_data;
 
-			$data['fee_lines'] = [];
+			$data['fee_lines'] = array();
 			foreach ( $order_data['fee_lines'] as $fee ) {
 				$data['fee_lines'][] = $fee->get_data();
 			}
 
-			$data['shipping_lines'] = [];
+			$data['shipping_lines'] = array();
 			foreach ( $order_data['shipping_lines'] as $shipping ) {
 				$data['shipping_lines'][] = $shipping->get_data();
 			}
 
-			$data['tax_lines'] = [];
+			$data['tax_lines'] = array();
 			foreach ( $order_data['tax_lines'] as $tax ) {
 				$data['tax_lines'][] = $tax->get_data();
 			}
 
-			$data['line_items'] = [];
+			$data['line_items'] = array();
 			foreach ( $order_data['line_items'] as $product ) {
 				$data['line_items'][] = $product->get_data();
 			}
@@ -536,16 +536,16 @@ class InstaWP_Rest_Api {
 		return $this->send_response( $response );
 	}
 
-	protected function get_formatted_item_data( $object ) {
-		$formatted_data                 = $this->get_formatted_item_data_core( $object );
-		$formatted_data['orders_count'] = $object->get_order_count();
-		$formatted_data['total_spent']  = $object->get_total_spent();
+	protected function get_formatted_item_data( $object_data ) {
+		$formatted_data                 = $this->get_formatted_item_data_core( $object_data );
+		$formatted_data['orders_count'] = $object_data->get_order_count();
+		$formatted_data['total_spent']  = $object_data->get_total_spent();
 
 		return $formatted_data;
 	}
 
-	protected function get_formatted_item_data_core( $object ) {
-		$data        = $object->get_data();
+	protected function get_formatted_item_data_core( $object_data ) {
+		$data        = $object_data->get_data();
 		$format_date = array( 'date_created', 'date_modified' );
 
 		// Format date values.
@@ -557,7 +557,7 @@ class InstaWP_Rest_Api {
 		}
 
 		$formatted_data = array(
-			'id'                 => $object->get_id(),
+			'id'                 => $object_data->get_id(),
 			'date_created'       => $data['date_created'],
 			'date_created_gmt'   => $data['date_created_gmt'],
 			'date_modified'      => $data['date_modified'],
@@ -570,7 +570,7 @@ class InstaWP_Rest_Api {
 			'billing'            => $data['billing'],
 			'shipping'           => $data['shipping'],
 			'is_paying_customer' => $data['is_paying_customer'],
-			'avatar_url'         => $object->get_avatar_url(),
+			'avatar_url'         => $object_data->get_avatar_url(),
 		);
 
 		if ( wc_current_user_has_role( 'administrator' ) ) {
@@ -744,34 +744,11 @@ class InstaWP_Rest_Api {
 		$uuid_code         = wp_generate_uuid4();
 		$login_code        = str_shuffle( $uuid_code . $uuid_code );
 		$args              = array(
+			'r' => true,
 			'c' => $login_code,
 			's' => base64_encode( $username_to_login ), // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
 		);
-
-		if ( ! function_exists( 'is_plugin_active' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/plugin.php';
-		}
-
-		if ( is_plugin_active( 'admin-site-enhancements/admin-site-enhancements.php' ) ) {
-			$options    = get_option( 'admin_site_enhancements' );
-			$login_slug = ! empty( $options['custom_login_slug'] ) ? $options['custom_login_slug'] : '';
-
-			if ( ! empty( $options['change_login_url'] ) && ! empty( $login_slug ) ) {
-				$args[ $login_slug ] = 1;
-				$args['redirect']    = 'false';
-			}
-		}
-
-		if ( is_plugin_active( 'better-wp-security/better-wp-security.php' ) ) {
-			$options    = get_option( 'itsec-storage' );
-			$login_slug = ! empty( $options['hide-backend']['slug'] ) ? $options['hide-backend']['slug'] : '';
-
-			if ( ! empty( $options['hide-backend']['enabled'] ) && ! empty( $login_slug ) ) {
-				$args['itsec-hb-token'] = $login_slug;
-			}
-		}
-
-		$auto_login_url = add_query_arg( $args, wp_login_url( '', true ) );
+		$auto_login_url    = add_query_arg( $args, site_url() );
 
 		Option::update_option( 'instawp_login_code', array(
 			'code'       => $login_code,
@@ -829,7 +806,7 @@ class InstaWP_Rest_Api {
 		file_put_contents( $plugin_zip, fopen( $plugin_zip_url, 'r' ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen, WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 
 		// Setting permission
-		chmod( $plugin_zip, 0777 );
+		chmod( $plugin_zip, 0777 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod
 
 		if ( ! function_exists( 'request_filesystem_credentials' ) ) {
 			require_once ABSPATH . 'wp-admin/includes/file.php';

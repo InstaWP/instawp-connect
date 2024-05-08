@@ -4,66 +4,36 @@ defined( 'ABSPATH' ) || exit;
 
 class InstaWP_Sync_Post {
 
-	public $restricted_cpts = array(
-		'shop_order',
-		'customize_changeset',
-		'revision',
-		'nav_menu_item',
-		'custom_css',
-		'oembed_cache',
-		'user_request',
-//      'wp_template',
-//      'wp_template_part',
-//      'wp_global_styles'
-	);
-
 	public function __construct() {
-
-		$this->restricted_cpts = (array) apply_filters( 'INSTAWP_CONNECT/Filters/two_way_sync_restricted_post_types', $this->restricted_cpts );
-
 		// Post Actions.
-		//add_action( 'wp_after_insert_post', array( $this, 'handle_post' ), 999, 4 );
-		add_action( 'elementor/document/after_save', array( $this, 'handle_elementor' ), 999 ); // elementor
-		add_action( 'before_delete_post', array( $this, 'delete_post' ), 10, 2 );
 		add_action( 'transition_post_status', array( $this, 'transition_post_status' ), 10, 3 );
+		add_action( 'before_delete_post', array( $this, 'delete_post' ), 10, 2 );
 
 		// Media Actions.
 		add_action( 'add_attachment', array( $this, 'add_attachment' ) );
-		add_action( 'attachment_updated', array( $this, 'attachment_updated' ), 10, 3 );
+		add_action( 'edit_attachment', array( $this, 'edit_attachment' ) );
+		add_action( 'delete_attachment', array( $this, 'delete_attachment' ) );
 
-		// Duplicate post
+		// Elementor.
+		add_action( 'elementor/document/after_save', array( $this, 'handle_elementor' ), 999 );
+
+		// Duplicate Post.
 		add_filter( 'duplicate_post_excludelist_filter', array( $this, 'custom_fields_filter' ) );
-		add_filter( 'duplicate_post_post_copy', array( $this, 'generate_reference' ), 10, 2 );
+		add_filter( 'duplicate_post_post_copy', array( $this, 'generate_reference' ) );
 
-		// Process event
+		// Process Events.
 		add_filter( 'INSTAWP_CONNECT/Filters/process_two_way_sync', array( $this, 'parse_event' ), 10, 2 );
 	}
 
 	/**
-	 * Function for `wp_insert_post` action-hook.
+	 * Fire a callback only when my-custom-post-type posts are transitioned to 'publish'.
 	 *
-	 * @param int $post Post ID.
-	 *
-	 * @return void
+	 * @param string $new_status New post status.
+	 * @param string $old_status Old post status.
+	 * @param WP_Post $post Post object.
 	 */
-	public function handle_post( $post_id, $post, $update, $post_before ) {
-		$post = get_post( $post_id );
-
-		if ( ! $post || ! $update || ! InstaWP_Sync_Helpers::can_sync( 'post' ) || in_array( $post->post_type, $this->restricted_cpts ) ) {
-			return;
-		}
-
-		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
-			return;
-		}
-
-		// Check auto save or revision.
-		if ( wp_is_post_autosave( $post->ID ) || wp_is_post_revision( $post->ID ) ) {
-			return;
-		}
-
-		// Check post status auto draft.
-		if ( in_array( $post->post_status, array( 'auto-draft', 'trash' ) ) ) {
+	public function transition_post_status( $new_status, $old_status, $post ) {
+		if ( ! $this->can_sync_post( $post ) ) {
 			return;
 		}
 
@@ -78,90 +48,55 @@ class InstaWP_Sync_Post {
 			return;
 		}
 
-		$singular_name = InstaWP_Sync_Helpers::get_post_type_name( $post->post_type );
-
-		$this->handle_post_events( sprintf( __( '%s modified', 'instawp-connect' ), $singular_name ), 'post_change', $post, $post_before );
-	}
-
-	/**
-	 * After document save.
-	 *
-	 * @param \Elementor\Core\Base\Document $this The current document.
-	 * @param $data .
-	 */
-	public function handle_elementor( $document ) {
-		if ( ! InstaWP_Sync_Helpers::can_sync( 'post' ) ) {
-			return;
-		}
-
-		$post = $document->get_post();
-		$this->handle_post( $post->ID, $post, true, null );
-	}
-
-	public function custom_fields_filter( $meta_excludelist ) {
-		$meta_excludelist[] = 'instawp_event_sync_reference_id';
-
-		return $meta_excludelist;
-	}
-
-	public function generate_reference( $new_post_id, $post ) {
-		$reference_id = InstaWP_Tools::get_random_string();
-		update_post_meta( $new_post_id, 'instawp_event_sync_reference_id', $reference_id );
-	}
-
-	/**
-	 * Function for `after_delete_post` action-hook.
-	 *
-	 * @param int $post_id Post ID.
-	 * @param WP_Post $post Post object.
-	 *
-	 * @return void
-	 */
-	public function delete_post( $post_id, $post ) {
-		if ( ! InstaWP_Sync_Helpers::can_sync( 'post' ) || in_array( $post->post_type, $this->restricted_cpts ) ) {
-			return;
-		}
-
-		if ( get_post_type( $post_id ) !== 'revision' ) {
-			$event_name = sprintf( __( '%s deleted', 'instawp-connect' ), InstaWP_Sync_Helpers::get_post_type_name( $post->post_type ) );
-			$this->handle_post_events( $event_name, 'post_delete', $post );
-		}
-	}
-
-	/**
-	 * Fire a callback only when my-custom-post-type posts are transitioned to 'publish'.
-	 *
-	 * @param string $new_status New post status.
-	 * @param string $old_status Old post status.
-	 * @param WP_Post $post Post object.
-	 */
-	public function transition_post_status( $new_status, $old_status, $post ) {
-		if ( ! InstaWP_Sync_Helpers::can_sync( 'post' ) || in_array( $post->post_type, $this->restricted_cpts ) ) {
-			return;
-		}
-
 		// Check auto save or revision.
 		if ( wp_is_post_autosave( $post->ID ) || wp_is_post_revision( $post->ID ) ) {
 			return;
 		}
 
+		$singular_name = InstaWP_Sync_Helpers::get_post_type_name( $post->post_type );
+
 		if ( 'auto-draft' === $old_status && ( 'auto-draft' !== $new_status && 'inherit' !== $new_status ) ) {
-			$event_name = sprintf( __( '%s created', 'instawp-connect' ), InstaWP_Sync_Helpers::get_post_type_name( $post->post_type ) );
+			$event_name = sprintf( __( '%s created', 'instawp-connect' ), $singular_name );
 			$action     = 'post_new';
 		} elseif ( 'auto-draft' === $new_status || ( 'new' === $old_status && 'inherit' === $new_status ) ) {
 			return;
 		} elseif ( 'trash' === $new_status ) {
-			$event_name = sprintf( __( '%s trashed', 'instawp-connect' ), InstaWP_Sync_Helpers::get_post_type_name( $post->post_type ) );
+			$event_name = sprintf( __( '%s trashed', 'instawp-connect' ), $singular_name );
 			$action     = 'post_trash';
 		} elseif ( 'trash' === $old_status ) {
-			$event_name = sprintf( __( '%s restored', 'instawp-connect' ), InstaWP_Sync_Helpers::get_post_type_name( $post->post_type ) );
+			$event_name = sprintf( __( '%s restored', 'instawp-connect' ), $singular_name );
 			$action     = 'untrashed_post';
 		} else {
-			$event_name = sprintf( __( '%s modified', 'instawp-connect' ), InstaWP_Sync_Helpers::get_post_type_name( $post->post_type ) );
+			$event_name = sprintf( __( '%s modified', 'instawp-connect' ), $singular_name );
 			$action     = 'post_change';
 		}
 
 		$this->handle_post_events( $event_name, $action, $post );
+	}
+
+	/**
+	 * Function for `before_delete_post` action-hook.
+	 *
+	 * @param int     $post_id Post ID.
+	 * @param WP_Post $post    Post object.
+	 *
+	 * @return void
+	 */
+	public function delete_post( $post_id, $post ) {
+		if ( ! $this->can_sync_post( $post ) ) {
+			return;
+		}
+
+		if ( wp_is_post_revision( $post_id ) ) {
+			return;
+		}
+
+		if ( in_array( $post->post_status, array( 'auto-draft', 'inherit' ) ) ) {
+			return;
+		}
+
+		$event_name = sprintf( __( '%s deleted', 'instawp-connect' ), InstaWP_Sync_Helpers::get_post_type_name( $post->post_type ) );
+		$this->handle_post_events( $event_name, 'post_delete', $post );
 	}
 
 	/**
@@ -176,26 +111,75 @@ class InstaWP_Sync_Post {
 			return;
 		}
 
+		$post       = get_post( $post_id );
 		$event_name = esc_html__( 'Media created', 'instawp-connect' );
-		$this->handle_post_events( $event_name, 'post_new', $post_id );
+		$this->handle_post_events( $event_name, 'post_new', $post );
 	}
 
 	/**
-	 * Function for `attachment_updated` action-hook
+	 * Function for `edit_attachment` action-hook
 	 *
 	 * @param $post_id
-	 * @param $post_after
-	 * @param $post_before
 	 *
 	 * @return void
 	 */
-	public function attachment_updated( $post_id, $post_after, $post_before ) {
+	public function edit_attachment( $post_id ) {
 		if ( ! InstaWP_Sync_Helpers::can_sync( 'post' ) ) {
 			return;
 		}
 
+		$post       = get_post( $post_id );
 		$event_name = esc_html__( 'Media updated', 'instawp-connect' );
-		$this->handle_post_events( $event_name, 'post_change', $post_after );
+		$this->handle_post_events( $event_name, 'post_change', $post );
+	}
+
+	/**
+	 * Function for `delete_attachment` action-hook
+	 *
+	 * @param $post_id
+	 *
+	 * @return void
+	 */
+	public function delete_attachment( $post_id ) {
+		if ( ! InstaWP_Sync_Helpers::can_sync( 'post' ) ) {
+			return;
+		}
+
+		$post       = get_post( $post_id );
+		$event_name = esc_html__( 'Media deleted', 'instawp-connect' );
+		$this->handle_post_events( $event_name, 'post_delete', $post );
+	}
+
+	/**
+	 * After document save.
+	 *
+	 * @param $document
+	 */
+	public function handle_elementor( $document ) {
+		$post = $document->get_post();
+
+		if ( ! InstaWP_Sync_Helpers::can_sync( 'post' ) || in_array( $post->post_type, $this->restricted_cpts() ) ) {
+			return;
+		}
+
+		if ( in_array( $post->post_status, array( 'auto-draft', 'inherit' ) ) ) {
+			return;
+		}
+
+		$singular_name = InstaWP_Sync_Helpers::get_post_type_name( $post->post_type );
+		$event_name    = sprintf( __( '%s modified', 'instawp-connect' ), $singular_name );
+
+		$this->handle_post_events( $event_name, 'post_change', $post );
+	}
+
+	public function custom_fields_filter( $meta_exclude_list ) {
+		$meta_exclude_list[] = 'instawp_event_sync_reference_id';
+		return $meta_exclude_list;
+	}
+
+	public function generate_reference( $new_post_id ) {
+		$reference_id = InstaWP_Tools::get_random_string();
+		update_post_meta( $new_post_id, 'instawp_event_sync_reference_id', $reference_id );
 	}
 
 	public function parse_event( $response, $v ) {
@@ -204,7 +188,7 @@ class InstaWP_Sync_Post {
 
 		// create and update
 		if ( in_array( $v->event_slug, array( 'post_change', 'post_new' ), true ) ) {
-			InstaWP_Sync_Helpers::parse_post_events( $details );
+			InstaWP_Sync_Parser::parse_post_events( $details );
 
 			return InstaWP_Sync_Helpers::sync_response( $v );
 		}
@@ -248,20 +232,18 @@ class InstaWP_Sync_Post {
 	 * @param $event_name
 	 * @param $event_slug
 	 * @param $post
-	 * @param $post_before
 	 *
 	 * @return void
 	 */
-	private function handle_post_events( $event_name, $event_slug, $post, $post_before = null ) {
+	private function handle_post_events( $event_name, $event_slug, $post ) {
 		clean_post_cache( $post->ID );
 
 		$post = get_post( $post );
-
 		if ( ! $post instanceof WP_Post ) {
 			return;
 		}
 
-		$data         = InstaWP_Sync_Helpers::parse_post_data( $post, $post_before );
+		$data         = InstaWP_Sync_Parser::parse_post_data( $post );
 		$reference_id = isset( $data['reference_id'] ) ? $data['reference_id'] : '';
 
 		$event_type = $post->post_type;
@@ -271,6 +253,35 @@ class InstaWP_Sync_Post {
 		if ( is_array( $data ) && ! empty( $reference_id ) ) {
 			InstaWP_Sync_DB::insert_update_event( $event_name, $event_slug, $event_type, $reference_id, $title, $data );
 		}
+	}
+
+	private function can_sync_post( $post ) {
+		$can_sync        = false;
+		$restricted_cpts = array(
+			// WordPress
+			'customize_changeset',
+			'revision',
+			'nav_menu_item',
+			'custom_css',
+			'oembed_cache',
+			'user_request',
+			'wp_template',
+			'wp_template_part',
+			'wp_global_styles',
+
+			// WooCommerce
+			'product',
+			'shop_order',
+			'shop_order_placehold',
+			'shop_coupon',
+		);
+		$restricted_cpts = (array) apply_filters( 'INSTAWP_CONNECT/Filters/two_way_sync_restricted_post_types', $restricted_cpts );
+
+		if ( InstaWP_Sync_Helpers::can_sync( 'post' ) && ! in_array( $post->post_type, $restricted_cpts ) ) {
+			$can_sync = true;
+		}
+
+		return (bool) apply_filters( 'INSTAWP_CONNECT/Filters/two_way_sync_can_sync_post', $can_sync, $post );
 	}
 }
 

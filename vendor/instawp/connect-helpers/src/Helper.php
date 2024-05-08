@@ -145,7 +145,7 @@ class Helper {
 		];
 	}
 
-	public static function is_on_wordpress_org( $slug, $type = 'plugin' ) {
+	public static function is_on_wordpress_org( $slug, $type ) {
 		$api_url  = 'https://api.wordpress.org/' . ( $type === 'plugin' ? 'plugins' : 'themes' ) . '/info/1.2/';
 		$response = wp_remote_get( add_query_arg( [
 			'action'  => $type . '_information',

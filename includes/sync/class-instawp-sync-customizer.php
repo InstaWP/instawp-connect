@@ -39,10 +39,10 @@ class InstaWP_Sync_Customizer {
 
 		foreach ( $mods as $key => $value ) {
 			if ( in_array( $key, $this->parsable_attachment_options ) ) {
-				$value = InstaWP_Sync_Helpers::attachment_to_string( $value );
+				$value = InstaWP_Sync_Parser::attachment_to_string( $value );
 			}
 
-			$mods[ $key ] = $this->is_image_url( $value ) ? array_merge( InstaWP_Sync_Helpers::url_to_attachment( $value ), array( 'url_output' => true ) ) : $value;
+			$mods[ $key ] = $this->is_image_url( $value ) ? array_merge( InstaWP_Sync_Parser::url_to_attachment( $value ), array( 'url_output' => true ) ) : $value;
 		}
 
 		$data = array(
@@ -67,7 +67,7 @@ class InstaWP_Sync_Customizer {
 				$value = $setting->value();
 
 				if ( in_array( $key, $this->parsable_page_options ) ) {
-					$value = InstaWP_Sync_Helpers::parse_post_data( $value );
+					$value = InstaWP_Sync_Parser::parse_post_data( $value );
 				}
 
 				$data['options'][ $key ] = $value;
@@ -107,7 +107,7 @@ class InstaWP_Sync_Customizer {
 				) );
 
 				if ( in_array( $option_key, $this->parsable_page_options ) ) {
-					$option_value = InstaWP_Sync_Helpers::parse_post_events( $option_value );
+					$option_value = InstaWP_Sync_Parser::parse_post_events( $option_value );
 				}
 
 				$option->import( $option_value );
@@ -121,11 +121,11 @@ class InstaWP_Sync_Customizer {
 		foreach ( $data['mods'] as $key => $value ) {
 
 			if ( in_array( $key, $this->parsable_attachment_options ) ) {
-				$value = InstaWP_Sync_Helpers::string_to_attachment( $value );
+				$value = InstaWP_Sync_Parser::string_to_attachment( $value );
 			}
 
 			if ( is_array( $value ) && ! empty( $value['url_output'] ) ) {
-				$value = wp_get_attachment_url( InstaWP_Sync_Helpers::string_to_attachment( $value ) );
+				$value = wp_get_attachment_url( InstaWP_Sync_Parser::string_to_attachment( $value ) );
 			}
 
 			// Call the customize_save_ dynamic action.

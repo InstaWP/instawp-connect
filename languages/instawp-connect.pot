@@ -5,7 +5,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2024-05-03 13:44+0000\n"
+"POT-Creation-Date: 2024-05-07 12:29+0000\n"
 "X-Poedit-Basepath: ..\n"
 "X-Poedit-KeywordsList: __;_e;_ex:1,2c;_n:1,2;_n_noop:1,2;_nx:1,2,4c;_nx_noop:1,2,3c;_x:1,2c;esc_attr__;esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c\n"
 "X-Poedit-SearchPath-0: .\n"
@@ -711,56 +711,72 @@ msgstr ""
 msgid "%1$s %2$s%3$s"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-plugin-theme.php:98
+#: includes/sync/class-instawp-sync-plugin-theme.php:152
 msgid "Plugin deactivated"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-plugin-theme.php:115
+#: includes/sync/class-instawp-sync-plugin-theme.php:169
 msgid "Plugin activated"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-plugin-theme.php:132
+#: includes/sync/class-instawp-sync-plugin-theme.php:186
 msgid "Plugin deleted"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-plugin-theme.php:155
+#: includes/sync/class-instawp-sync-plugin-theme.php:208
 msgid "Theme switched from %1$s to %2$s"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-plugin-theme.php:178
+#: includes/sync/class-instawp-sync-plugin-theme.php:232
 msgid "Theme deleted"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-plugin-theme.php:231
+#: includes/sync/class-instawp-sync-plugin-theme.php:257
+msgid "Slug missing."
+msgstr ""
+
+#: includes/sync/class-instawp-sync-plugin-theme.php:298, includes/sync/class-instawp-sync-plugin-theme.php:321, includes/sync/class-instawp-sync-plugin-theme.php:345
+msgid "Plugin %s not found at destination."
+msgstr ""
+
+#: includes/sync/class-instawp-sync-plugin-theme.php:353
+msgid "Plugin file missing."
+msgstr ""
+
+#: includes/sync/class-instawp-sync-plugin-theme.php:372
 msgid "Plugin could not be deleted."
 msgstr ""
 
-#: includes/sync/class-instawp-sync-post.php:83, includes/sync/class-instawp-sync-post.php:160, includes/sync/class-instawp-sync-term.php:54
+#: includes/sync/class-instawp-sync-post.php:70, includes/sync/class-instawp-sync-post.php:170, includes/sync/class-instawp-sync-term.php:54
 msgid "%s modified"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-post.php:126, includes/sync/class-instawp-sync-term.php:76
-msgid "%s deleted"
-msgstr ""
-
-#: includes/sync/class-instawp-sync-post.php:157
+#: includes/sync/class-instawp-sync-post.php:67
 msgid "%s restored"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-post.php:154
+#: includes/sync/class-instawp-sync-post.php:64
 msgid "%s trashed"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-post.php:149, includes/sync/class-instawp-sync-term.php:32
+#: includes/sync/class-instawp-sync-post.php:59, includes/sync/class-instawp-sync-term.php:32
 msgid "%s created"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-post.php:179
+#: includes/sync/class-instawp-sync-post.php:98, includes/sync/class-instawp-sync-term.php:76
+msgid "%s deleted"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-post.php:115
 msgid "Media created"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-post.php:197
+#: includes/sync/class-instawp-sync-post.php:132
 msgid "Media updated"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-post.php:149
+msgid "Media deleted"
 msgstr ""
 
 #: includes/sync/class-instawp-sync-user.php:34
@@ -783,30 +799,30 @@ msgstr ""
 msgid "User not found for delete operation."
 msgstr ""
 
-#: includes/sync/class-instawp-sync-wc.php:37
+#: includes/sync/class-instawp-sync-wc.php:38
 msgid "Order created"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-wc.php:51
+#: includes/sync/class-instawp-sync-wc.php:52
 msgid "Order updated"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-wc.php:65, includes/sync/class-instawp-sync-wc.php:79
+#: includes/sync/class-instawp-sync-wc.php:66, includes/sync/class-instawp-sync-wc.php:80
 msgid "Order trashed"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-wc.php:115
+#: includes/sync/class-instawp-sync-wc.php:95
 msgid "Woocommerce attribute added"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-wc.php:133
+#: includes/sync/class-instawp-sync-wc.php:113
 msgid "Woocommerce attribute updated"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-wc.php:149
+#: includes/sync/class-instawp-sync-wc.php:129
 msgid "Woocommerce attribute deleted"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-wc.php:362, includes/sync/class-instawp-sync-wc.php:367
+#: includes/sync/class-instawp-sync-wc.php:371, includes/sync/class-instawp-sync-wc.php:376
 msgid "Order %s"
 msgstr ""
