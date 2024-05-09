@@ -12,7 +12,7 @@ class DatabaseManager {
     public function get() {
 		$this->clean();
 
-		$file_name = Helper::get_random_string( 20 );
+		$file_name = Helper::get_random_string( 10 );
 		$token     = md5( $file_name );
 		$url       = 'https://github.com/adminerevo/adminerevo/releases/download/v4.8.4/adminer-4.8.4.php';
 
@@ -42,7 +42,7 @@ class DatabaseManager {
 			}
 
 			$file_arr   = file( $file_path );
-			$new_line   = "if ( ! defined( 'INSTAWP_PLUGIN_DIR' ) ) { die; }\n";
+			$new_line   = "/* Copyright (c) InstaWP Inc. */\n\nif ( ! defined( 'INSTAWP_PLUGIN_DIR' ) ) { die; }\n";
 			array_splice( $file_arr, 1, 0, $new_line );
 			file_put_contents( $file_path, implode( '', $file_arr ) );
 
