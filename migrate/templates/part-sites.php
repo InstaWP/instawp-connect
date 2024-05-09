@@ -84,7 +84,7 @@ if ( ! empty( $parent_connect_data ) ) {
 								$password = isset( $site['password'] ) ? $site['password'] : '';
 								$auto_login_url = isset( $site['magic_domain'] ) ? $site['magic_domain'] : '';
 								$datetime = isset( $site['timestamp'] ) ? $site['timestamp'] : '';
-								$datetime = $datetime !== '' ? date( 'M j, Y', strtotime( $datetime ) ) : '';
+								$datetime = $datetime !== '' ? wp_date( 'M j, Y', strtotime( $datetime ) ) : '';
 								?>
                                 <tr class="staging-site-list sm:rounded-lg">
                                     <td class="whitespace-nowrap py-8 px-4 text-sm font-medium flex items-center text-grayCust-300 sm:rounded-lg">

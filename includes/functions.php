@@ -326,6 +326,10 @@ if ( ! function_exists( 'instawp_get_staging_sites_list' ) ) {
 			} );
 		}
 
+		usort( $staging_sites, function ( $a, $b ) {
+			return strtotime( $b['timestamp'] ) - strtotime( $a['timestamp'] );
+		} );
+
 		return $staging_sites;
 	}
 }
