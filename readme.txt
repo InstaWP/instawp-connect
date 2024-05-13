@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.6
 Tested up to: 6.5.2
 Requires PHP: 5.6
-Stable tag: 0.1.0.34
+Stable tag: 0.1.0.35
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -93,6 +93,15 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 6. Update API Key and Settings.
 
 == Changelog ==
+
+= 0.1.0.35 - 13 May 2024 =
+- FIX - 2 way sync plugin updates are not working.
+- FIX - 2 way sync even if WooCommerce toggle off then product & orders recorded.
+- FIX - 2 way sync duplicate events are recording.
+- FIX - Show Staging site list in descending order by site created time.
+- FIX - Fix multiple instawp-cache-cleared parameter in URL after cache clear.
+- FIX - Fix auto login issue if default login url is blocked or changed by any plugin.
+- FIX - Several other migration related issues.
 
 = 0.1.0.34 - 3 May 2024 =
 - NEW - Added Expand/Collapse to migration visibility.
