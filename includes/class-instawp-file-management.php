@@ -2,9 +2,7 @@
 
 use InstaWP\Connect\Helpers\FileManager;
 
-if ( ! defined( 'INSTAWP_PLUGIN_DIR' ) ) {
-	die;
-}
+defined( 'ABSPATH' ) || exit;
 
 if ( ! class_exists( 'InstaWP_File_Management' ) ) {
 	class InstaWP_File_Management {
@@ -24,17 +22,21 @@ if ( ! class_exists( 'InstaWP_File_Management' ) ) {
 		}
 
 		public function __construct() {
-			$this->file_manager = new \InstaWP\Connect\Helpers\FileManager();
+            if ( ! class_exists( 'InstaWP\Connect\Helpers\FileManager' ) ) {
+	            return;
+            }
 
-			add_action( 'init', array( $this, 'add_endpoint' ) );
-			add_action( 'wp', array( $this, 'filter_redirect' ), 0 );
-			add_action( 'template_redirect', array( $this, 'redirect' ) );
-			add_action( FileManager::$action, array( $this, 'clean' ) );
-			add_action( 'admin_post_instawp-file-manager-auto-login', array( $this, 'auto_login' ) );
-			add_action( 'admin_post_nopriv_instawp-file-manager-auto-login', array( $this, 'auto_login' ) );
-			add_action( 'update_option_instawp_rm_file_manager', array( $this, 'clean' ) );
-			add_filter( 'query_vars', array( $this, 'query_vars' ), 99 );
-			add_filter( 'template_include', array( $this, 'load_template' ), 999 );
+            $this->file_manager = new FileManager();
+
+            add_action( 'init', array( $this, 'add_endpoint' ) );
+            add_action( 'wp', array( $this, 'filter_redirect' ), 0 );
+            add_action( 'template_redirect', array( $this, 'redirect' ) );
+            add_action( FileManager::$action, array( $this, 'clean' ) );
+            add_action( 'admin_post_instawp-file-manager-auto-login', array( $this, 'auto_login' ) );
+            add_action( 'admin_post_nopriv_instawp-file-manager-auto-login', array( $this, 'auto_login' ) );
+            add_action( 'update_option_instawp_rm_file_manager', array( $this, 'clean' ) );
+            add_filter( 'query_vars', array( $this, 'query_vars' ), 99 );
+            add_filter( 'template_include', array( $this, 'load_template' ), 999 );
 		}
 
 		public function add_endpoint() {

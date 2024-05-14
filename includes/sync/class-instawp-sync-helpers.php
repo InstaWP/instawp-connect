@@ -51,8 +51,8 @@ class InstaWP_Sync_Helpers {
 	/*
 	 * Update post metas
 	 */
-	public static function set_post_reference_id( $post_id ) {
-		$reference_id = InstaWP_Tools::get_random_string();
+	public static function set_post_reference_id( $post_id, $reference_id = '' ) {
+		$reference_id = ! empty( $reference_id ) ? $reference_id : InstaWP_Tools::get_random_string();
 		update_post_meta( $post_id, 'instawp_event_sync_reference_id', $reference_id );
 
 		return $reference_id;
@@ -70,8 +70,8 @@ class InstaWP_Sync_Helpers {
 	/*
 	 * Update user metas
 	 */
-	public static function set_term_reference_id( $term_id ) {
-		$reference_id = InstaWP_Tools::get_random_string();
+	public static function set_term_reference_id( $term_id, $reference_id = '' ) {
+		$reference_id = ! empty( $reference_id ) ? $reference_id : InstaWP_Tools::get_random_string();
 		update_term_meta( $term_id, 'instawp_event_term_sync_reference_id', $reference_id );
 
 		return $reference_id;
@@ -89,8 +89,8 @@ class InstaWP_Sync_Helpers {
 	/*
 	 * Update user metas
 	 */
-	public static function set_user_reference_id( $user_id ) {
-		$reference_id = InstaWP_Tools::get_random_string();
+	public static function set_user_reference_id( $user_id, $reference_id = '' ) {
+		$reference_id = ! empty( $reference_id ) ? $reference_id : InstaWP_Tools::get_random_string();
 		update_user_meta( $user_id, 'instawp_event_user_sync_reference_id', $reference_id );
 
 		return $reference_id;
@@ -175,6 +175,17 @@ class InstaWP_Sync_Helpers {
 		) );
 
 		return ! empty( $post ) ? reset( $post ) : self::get_post_by_name( $post_name, $post_type );
+	}
+
+	public static function get_term_by_reference( $taxonomy, $reference_id, $slug ) {
+		$terms = get_terms( array(
+			'hide_empty' => false,
+			'meta_key'   => 'instawp_event_term_sync_reference_id',
+			'meta_value' => $reference_id,
+			'taxonomy'   => $taxonomy,
+		) );
+
+		return ! empty( $terms ) ? reset( $terms ) : get_term_by( 'slug', $slug, $taxonomy );
 	}
 
 	/**

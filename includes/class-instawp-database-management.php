@@ -2,9 +2,7 @@
 
 use InstaWP\Connect\Helpers\DatabaseManager;
 
-if ( ! defined( 'INSTAWP_PLUGIN_DIR' ) ) {
-	die;
-}
+defined( 'ABSPATH' ) || exit;
 
 if ( ! class_exists( 'InstaWP_Database_Management' ) ) {
 	class InstaWP_Database_Management {
@@ -24,7 +22,11 @@ if ( ! class_exists( 'InstaWP_Database_Management' ) ) {
 		}
 
 		public function __construct() {
-			$this->database_manager = new \InstaWP\Connect\Helpers\DatabaseManager();
+			if ( ! class_exists( 'InstaWP\Connect\Helpers\DatabaseManager' ) ) {
+				return;
+			}
+
+			$this->database_manager = new DatabaseManager();
 
 			add_action( 'init', array( $this, 'add_endpoint' ) );
 			add_action( 'template_redirect', array( $this, 'redirect' ) );

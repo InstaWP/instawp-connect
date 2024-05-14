@@ -417,6 +417,12 @@ if ( ! function_exists( 'instawp_get_dir_contents' ) ) {
 
 if ( ! function_exists( 'instawp_get_root_path' ) ) {
 	function instawp_get_root_path() {
+		$server = ! empty( $_SERVER['SERVER_SOFTWARE'] ) ? strtolower( $_SERVER['SERVER_SOFTWARE'] ): 'unknown'; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+
+		if ( false === strpos( $server, 'flywheel' ) && file_exists( ABSPATH . 'wp-config.php' ) ) {
+			return ABSPATH;
+		}
+
 		$root_path = ! empty( $_SERVER['DOCUMENT_ROOT'] ) ? $_SERVER['DOCUMENT_ROOT'] : ABSPATH; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 		$root_path = rtrim( $root_path, '\\/' );
 

@@ -158,11 +158,7 @@ class InstaWP_Sync_Post {
 	public function handle_elementor( $document ) {
 		$post = $document->get_post();
 
-		if ( ! InstaWP_Sync_Helpers::can_sync( 'post' ) || in_array( $post->post_type, $this->restricted_cpts() ) ) {
-			return;
-		}
-
-		if ( in_array( $post->post_status, array( 'auto-draft', 'inherit' ) ) ) {
+		if ( ! $this->can_sync_post( $post ) || in_array( $post->post_status, array( 'auto-draft', 'inherit' ) ) ) {
 			return;
 		}
 

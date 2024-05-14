@@ -8,7 +8,6 @@ use InstaWP\Connect\Helpers\Option;
 
 defined( 'ABSPATH' ) || exit;
 
-
 if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 	class InstaWP_Hooks {
 
