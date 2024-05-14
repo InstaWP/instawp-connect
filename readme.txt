@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.6
 Tested up to: 6.5.2
 Requires PHP: 5.6
-Stable tag: 0.1.0.35
+Stable tag: 0.1.0.36
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -93,6 +93,11 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 6. Update API Key and Settings.
 
 == Changelog ==
+
+= 0.1.0.36 - 14 May 2024 =
+- FIX - File manager missing error due to auto deletion of file from server.
+- FIX - 2 way sync elementor issue.
+- FIX - Mechanism to get the root path.
 
 = 0.1.0.35 - 13 May 2024 =
 - FIX - 2 way sync plugin updates are not working.
