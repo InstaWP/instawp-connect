@@ -20,7 +20,7 @@ class Updater {
 
 		$results = [];
 		foreach ( $this->args as $update ) {
-			if ( ! isset( $item['type'], $item['slug'] ) ) {
+			if ( ! isset( $update['type'], $update['slug'] ) ) {
 				$results[] = [
 					'success' => false,
 					'message' => esc_html( 'Required parameters are missing!' ),
