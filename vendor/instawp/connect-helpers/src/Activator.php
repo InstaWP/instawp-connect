@@ -21,7 +21,7 @@ class Activator {
 		$results = [];
 
 		foreach ( $this->args as $item ) {
-			if ( empty( $item['type'] ) || count( $item ) != 2 ) {
+			if ( ! isset( $item['type'], $item['asset'] ) ) {
 				$results[] = [
 					'success' => false,
 					'message' => esc_html( 'Required parameters are missing!' ),
