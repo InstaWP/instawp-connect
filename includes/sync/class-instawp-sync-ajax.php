@@ -68,7 +68,7 @@ class InstaWP_Sync_Ajax {
 		$staging_site   = instawp_get_site_detail_by_connect_id( $connect_id, 'data' );
 		$site_created   = '1970-01-01 00:00:00';
 		if ( ! empty( $staging_site ) && isset( $staging_site['created_at'] ) ) {
-			$staging_site_created = date( 'Y-m-d h:i:s', strtotime( $staging_site['created_at'] ) );
+			$site_created = date( 'Y-m-d h:i:s', strtotime( $staging_site['created_at'] ) );
 		}
 
 		$total = $wpdb->get_var(
