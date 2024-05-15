@@ -70,12 +70,12 @@ class InstaWP_Sync_Menu {
 	/**
 	 * Function for `delete_(taxonomy)` action-hook.
 	 *
-	 * @param int     $term_id         Term ID.
+	 * @param int     $menu_id         Term ID.
 	 * @param int     $taxonomy        Term taxonomy ID.
 	 *
 	 * @return void
 	 */
-	public function delete_nav_menu( $term_id, $taxonomy ) {
+	public function delete_nav_menu( $menu_id, $taxonomy ) {
 		if ( ! InstaWP_Sync_Helpers::can_sync( 'menu' ) ) {
 			return;
 		}
@@ -84,8 +84,8 @@ class InstaWP_Sync_Menu {
 			return;
 		}
 
-		$menu_details = ( array ) get_term( $term_id, $taxonomy );
-		$source_id    = InstaWP_Sync_Helpers::get_term_reference_id( $term_id );;
+		$menu_details = ( array ) get_term( $menu_id, $taxonomy );
+		$source_id    = InstaWP_Sync_Helpers::get_term_reference_id( $menu_id );;
 		$event_name   = __('Nav Menu deleted', 'instawp-connect' );
 
 		InstaWP_Sync_DB::insert_update_event( $event_name, 'nav_menu_deleted', $taxonomy, $source_id, $menu_details['name'], $menu_details );
@@ -93,12 +93,12 @@ class InstaWP_Sync_Menu {
 
 	public function parse_event( $response, $v, $source_url ) {
 		$source_id = $v->source_id;
-		$term      = InstaWP_Sync_Helpers::object_to_array( $v->details );
+		$menu      = InstaWP_Sync_Helpers::object_to_array( $v->details );
 		$logs      = array();
 
 		// delete nav menu
 		if ( $v->event_slug === 'nav_menu_created' ) {
-			$menu_id = wp_create_nav_menu( $term['name'] );
+			$menu_id = wp_create_nav_menu( $menu['name'] );
 
 			if ( is_wp_error( $menu_id ) ) {
 				$logs[ $v->id ] = $menu_id->get_error_message();
@@ -111,15 +111,15 @@ class InstaWP_Sync_Menu {
 
 			InstaWP_Sync_Helpers::set_term_reference_id( $menu_id, $source_id );
 
-			$this->set_locations( $term, $menu_id );
-			$this->setup_auto_add( $term, $menu_id );
+			$this->set_locations( $menu, $menu_id );
+			$this->setup_auto_add( $menu, $menu_id );
 
 			return InstaWP_Sync_Helpers::sync_response( $v );
 		}
 
 		// update nav menu
 		if ( $v->event_slug === 'nav_menu_updated' ) {
-			$menu_id = $this->get_nav_menu( $source_id, $term );
+			$menu_id = $this->get_nav_menu( $source_id, $menu );
 
 			if ( $menu_id ) {
 				$menu_objects = get_objects_in_term( $menu_id, 'nav_menu' );
@@ -130,7 +130,7 @@ class InstaWP_Sync_Menu {
 					}
 				}
 			} else {
-				$menu_id = wp_create_nav_menu( $term['name'] );
+				$menu_id = wp_create_nav_menu( $menu['name'] );
 
 				if ( is_wp_error( $menu_id ) ) {
 					$logs[ $v->id ] = $menu_id->get_error_message();
@@ -142,8 +142,8 @@ class InstaWP_Sync_Menu {
 				}
 			}
 
-			if ( ! empty( $term['items'] ) ) {
-				foreach ( $term['items'] as $value ) {
+			if ( ! empty( $menu['items'] ) ) {
+				foreach ( $menu['items'] as $value ) {
 					$value = ( object ) $value;
 
 					// Create new menu item to get the id.
@@ -188,15 +188,15 @@ class InstaWP_Sync_Menu {
 				}
 			}
 
-			$this->set_locations( $term, $menu_id );
-			$this->setup_auto_add( $term, $menu_id );
+			$this->set_locations( $menu, $menu_id );
+			$this->setup_auto_add( $menu, $menu_id );
 
 			return InstaWP_Sync_Helpers::sync_response( $v );
 		}
 
 		// delete nav menu
 		if ( $v->event_slug === 'nav_menu_deleted' ) {
-			$menu_id = $this->get_nav_menu( $source_id, $term );
+			$menu_id = $this->get_nav_menu( $source_id, $menu );
 
 			if ( ! $menu_id ) {
 				$logs[ $v->id ] = __( 'Can not find nav menu', 'instawp-connect' );
@@ -224,49 +224,61 @@ class InstaWP_Sync_Menu {
 		return $response;
 	}
 
-	private function get_nav_menu( $source_id, $term ) {
-		$term_id = 0;
+	private function get_nav_menu( $source_id, $menu ) {
+		$menu_id = 0;
 
-		$terms = wp_get_nav_menus( array(
+		$menus = wp_get_nav_menus( array(
 			'meta_key'   => 'instawp_event_term_sync_reference_id',
 			'meta_value' => $source_id,
 			'fields'     => 'ids',
 		) );
 
-		if ( empty( $terms ) ) {
-			$get_term_by = ( array ) get_term_by( 'slug', $term['slug'], 'nav_menu' );
+		if ( empty( $menus ) ) {
+			$get_term_by = ( array ) get_term_by( 'slug', $menu['slug'], 'nav_menu' );
 
 			if ( ! empty( $get_term_by['term_id'] ) ) {
-				$term_id = $get_term_by['term_id'];
-				InstaWP_Sync_Helpers::set_term_reference_id( $term_id, $source_id );
+				$menu_id = $get_term_by['term_id'];
+				InstaWP_Sync_Helpers::set_term_reference_id( $menu_id, $source_id );
 			}
 		} else {
-			$term_id = current( $terms );
+			$menu_id = current( $menus );
 		}
 
-		return $term_id;
+		return $menu_id;
 	}
 
-	private function set_locations( $term, $menu_id ) {
-		if ( ! empty( $term['locations'] ) ) {
-			$locations        = [];
+	private function set_locations( $menu, $menu_id ) {
+		if ( ! empty( $menu['locations'] ) ) {
+			$locations        = get_theme_mod( 'nav_menu_locations' );
 			$registered_menus = get_registered_nav_menus();
 
-			foreach ( $term['locations'] as $location ) {
+			foreach ( $locations as $location => $nav_menu_id ) {
+				if ( intval( $nav_menu_id ) === intval( $menu_id ) ) {
+					unset( $locations[ $location ] );
+				}
+			}
+
+			foreach ( $menu['locations'] as $location ) {
 				if ( in_array( $location, array_keys( $registered_menus ) ) ) {
 					$locations[ $location ] = $menu_id;
 				}
 			}
 
-			if ( ! empty( $locations ) ) {
-				set_theme_mod( 'nav_menu_locations', $locations );
-			}
+			set_theme_mod( 'nav_menu_locations', $locations );
 		}
 	}
 
-	private function setup_auto_add( $term, $menu_id ) {
-		if ( ! empty( $term['auto_add'] ) ) {
-			$options               = get_option( 'nav_menu_options' );
+	private function setup_auto_add( $menu, $menu_id ) {
+		if ( ! empty( $menu['auto_add'] ) ) {
+			$options = get_option( 'nav_menu_options' );
+
+			foreach ( $options['auto_add'] as $key => $value ) {
+				if ( intval( $value ) === intval( $menu_id ) ) {
+					unset( $options['auto_add'][ $key ] );
+				}
+			}
+			$options['auto_add'] = array_values( $options['auto_add'] );
+
 			$options['auto_add'][] = $menu_id;
 
 			update_option( 'nav_menu_options', $options );
