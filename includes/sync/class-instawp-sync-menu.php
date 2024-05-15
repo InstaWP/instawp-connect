@@ -23,6 +23,10 @@ class InstaWP_Sync_Menu {
 	 * @return void
 	 */
 	public function create_or_update_nav_menu( $nav_menu_id, $menu_data = array() ) {
+		if ( ! InstaWP_Sync_Helpers::can_sync( 'menu' ) ) {
+			return;
+		}
+
 		$source_id    = InstaWP_Sync_Helpers::get_term_reference_id( $nav_menu_id );
 		$term_details = ( array ) wp_get_nav_menu_object( $nav_menu_id );
 
@@ -60,6 +64,10 @@ class InstaWP_Sync_Menu {
 	 * @return void
 	 */
 	public function delete_nav_menu( $term_id, $taxonomy ) {
+		if ( ! InstaWP_Sync_Helpers::can_sync( 'menu' ) ) {
+			return;
+		}
+
 		if ( $taxonomy !== 'nav_menu' ) {
 			return;
 		}
