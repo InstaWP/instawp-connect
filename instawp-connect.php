@@ -123,3 +123,10 @@ add_filter( 'got_rewrite', '__return_true' );
 
 run_instawp();
 
+add_action('wp_head', function() {
+	$menus = get_registered_nav_menus();
+
+
+  echo "<pre>"; print_r( $menus ); echo "</pre>";
+  die;
+});

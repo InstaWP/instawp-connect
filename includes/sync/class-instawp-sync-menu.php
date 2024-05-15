@@ -15,10 +15,10 @@ class InstaWP_Sync_Menu {
     }
 
 	/**
-	 * Function for `created_(taxonomy)` action-hook.
+	 * Function for nav menu created or updated.
 	 *
-	 * @param int   $menu_id   ID of the updated menu.
-	 * @param array $menu_data An array of menu data.
+	 * @param int   $nav_menu_id ID of the updated menu.
+	 * @param array $menu_data   An array of menu data.
 	 *
 	 * @return void
 	 */
@@ -28,7 +28,7 @@ class InstaWP_Sync_Menu {
 		}
 
 		$source_id    = InstaWP_Sync_Helpers::get_term_reference_id( $nav_menu_id );
-		$term_details = ( array ) wp_get_nav_menu_object( $nav_menu_id );
+		$menu_details = ( array ) wp_get_nav_menu_object( $nav_menu_id );
 
 		if ( 'wp_create_nav_menu' === current_filter() ) {
 			$event_name = __('Nav Menu created', 'instawp-connect' );
@@ -49,10 +49,22 @@ class InstaWP_Sync_Menu {
 				return $item;
 			}, $menu_items );
 
-			$term_details['items'] = $menu_items;
+			$menu_details['items'] = $menu_items;
 		}
 
-		InstaWP_Sync_DB::insert_update_event( $event_name, $event_slug, 'nav_menu', $source_id, $term_details['name'], $term_details );
+		$menus = get_nav_menu_locations();
+		foreach ( $menus as $menu_name => $menu_id ) {
+			if ( intval( $nav_menu_id ) === $menu_id ) {
+				$menu_details['locations'][] = $menu_name;
+			}
+		}
+
+		$options = get_option( 'nav_menu_options' );
+		if ( ! empty( $options['auto_add'] ) && in_array( $nav_menu_id, $options['auto_add'] ) ) {
+			$menu_details['auto_add'] = true;
+		}
+
+		InstaWP_Sync_DB::insert_update_event( $event_name, $event_slug, 'nav_menu', $source_id, $menu_details['name'], $menu_details );
 	}
 
 	/**
@@ -72,11 +84,11 @@ class InstaWP_Sync_Menu {
 			return;
 		}
 
-		$term_details = ( array ) get_term( $term_id, $taxonomy );
+		$menu_details = ( array ) get_term( $term_id, $taxonomy );
 		$source_id    = InstaWP_Sync_Helpers::get_term_reference_id( $term_id );;
 		$event_name   = __('Nav Menu deleted', 'instawp-connect' );
 
-		InstaWP_Sync_DB::insert_update_event( $event_name, 'nav_menu_deleted', $taxonomy, $source_id, $term_details['name'], $term_details );
+		InstaWP_Sync_DB::insert_update_event( $event_name, 'nav_menu_deleted', $taxonomy, $source_id, $menu_details['name'], $menu_details );
 	}
 
 	public function parse_event( $response, $v, $source_url ) {
@@ -98,6 +110,9 @@ class InstaWP_Sync_Menu {
 			}
 
 			InstaWP_Sync_Helpers::set_term_reference_id( $menu_id, $source_id );
+
+			$this->set_locations( $term, $menu_id );
+			$this->setup_auto_add( $term, $menu_id );
 
 			return InstaWP_Sync_Helpers::sync_response( $v );
 		}
@@ -127,49 +142,54 @@ class InstaWP_Sync_Menu {
 				}
 			}
 
-			foreach ( $term['items'] as $value ) {
-				$value = ( object ) $value;
+			if ( ! empty( $term['items'] ) ) {
+				foreach ( $term['items'] as $value ) {
+					$value = ( object ) $value;
 
-				// Create new menu item to get the id.
-				$menu_item_id = wp_update_nav_menu_item( $menu_id, 0, null );
+					// Create new menu item to get the id.
+					$menu_item_id = wp_update_nav_menu_item( $menu_id, 0, null );
 
-				// Store all parent child relationships in an array.
-				$parent_child[ $value->db_id ] = $menu_item_id;
+					// Store all parent child relationships in an array.
+					$parent_child[ $value->db_id ] = $menu_item_id;
 
-				if ( isset( $parent_child[ $value->menu_item_parent ] ) ) {
-					$menu_item_parent_id = $parent_child[ $value->menu_item_parent ];
-				} else {
-					$menu_item_parent_id = 0;
+					if ( isset( $parent_child[ $value->menu_item_parent ] ) ) {
+						$menu_item_parent_id = $parent_child[ $value->menu_item_parent ];
+					} else {
+						$menu_item_parent_id = 0;
+					}
+
+					if ( $value->type === 'post_type' ) {
+						$post             = InstaWP_Sync_Helpers::get_post_by_reference( $value->object, $value->reference_id, $value->object_name );
+						$value->object_id = $post->ID;
+					} else if ( $value->type === 'taxonomy' ) {
+						$term             = InstaWP_Sync_Helpers::get_term_by_reference( $value->object, $value->reference_id, $value->object_name );
+						$value->object_id = $term->term_id;
+					}
+
+					$args = array(
+						//'menu-item-db-id'       => $value->db_id,
+						'menu-item-object-id'   => $value->object_id,
+						'menu-item-object'      => $value->object,
+						'menu-item-parent-id'   => intval( $menu_item_parent_id ),
+						'menu-item-position'    => $value->menu_order,
+						'menu-item-title'       => $value->title,
+						'menu-item-type'        => $value->type,
+						'menu-item-url'         => str_replace( $source_url, site_url(), $value->url ),
+						'menu-item-description' => $value->description,
+						'menu-item-attr-title'  => $value->attr_title,
+						'menu-item-target'      => $value->target,
+						'menu-item-classes'     => implode( ' ', $value->classes ),
+						'menu-item-xfn'         => $value->xfn,
+						'menu-item-status'      => $value->post_status,
+					);
+
+					// Update the menu nav item with all information.
+					wp_update_nav_menu_item( $menu_id, $menu_item_id, $args );
 				}
-
-				if ( $value->type === 'post_type' ) {
-					$post             = InstaWP_Sync_Helpers::get_post_by_reference( $value->object, $value->reference_id, $value->object_name );
-					$value->object_id = $post->ID;
-				} else if ( $value->type === 'taxonomy' ) {
-					$term             = InstaWP_Sync_Helpers::get_term_by_reference( $value->object, $value->reference_id, $value->object_name );
-					$value->object_id = $term->term_id;
-				}
-
-				$args = array(
-					//'menu-item-db-id'       => $value->db_id,
-					'menu-item-object-id'   => $value->object_id,
-					'menu-item-object'      => $value->object,
-					'menu-item-parent-id'   => intval( $menu_item_parent_id ),
-					'menu-item-position'    => $value->menu_order,
-					'menu-item-title'       => $value->title,
-					'menu-item-type'        => $value->type,
-					'menu-item-url'         => str_replace( $source_url, site_url(), $value->url ),
-					'menu-item-description' => $value->description,
-					'menu-item-attr-title'  => $value->attr_title,
-					'menu-item-target'      => $value->target,
-					'menu-item-classes'     => implode( ' ', $value->classes ),
-					'menu-item-xfn'         => $value->xfn,
-					'menu-item-status'      => $value->post_status,
-				);
-
-				// Update the menu nav item with all information.
-				wp_update_nav_menu_item( $menu_id, $menu_item_id, $args );
 			}
+
+			$this->set_locations( $term, $menu_id );
+			$this->setup_auto_add( $term, $menu_id );
 
 			return InstaWP_Sync_Helpers::sync_response( $v );
 		}
@@ -225,6 +245,32 @@ class InstaWP_Sync_Menu {
 		}
 
 		return $term_id;
+	}
+
+	private function set_locations( $term, $menu_id ) {
+		if ( ! empty( $term['locations'] ) ) {
+			$locations        = [];
+			$registered_menus = get_registered_nav_menus();
+
+			foreach ( $term['locations'] as $location ) {
+				if ( in_array( $location, array_keys( $registered_menus ) ) ) {
+					$locations[ $location ] = $menu_id;
+				}
+			}
+
+			if ( ! empty( $locations ) ) {
+				set_theme_mod( 'nav_menu_locations', $locations );
+			}
+		}
+	}
+
+	private function setup_auto_add( $term, $menu_id ) {
+		if ( ! empty( $term['auto_add'] ) ) {
+			$options               = get_option( 'nav_menu_options' );
+			$options['auto_add'][] = $menu_id;
+
+			update_option( 'nav_menu_options', $options );
+		}
 	}
 }
 
