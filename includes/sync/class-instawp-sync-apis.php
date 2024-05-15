@@ -136,7 +136,7 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 					$source_id    = ( ! empty( $v->source_id ) ) ? sanitize_text_field( $v->source_id ) : null;
 					$v->source_id = $source_id;
 
-					$response_data = apply_filters( 'INSTAWP_CONNECT/Filters/process_two_way_sync', array(), $v );
+					$response_data = apply_filters( 'INSTAWP_CONNECT/Filters/process_two_way_sync', array(), $v, $source_url );
 					if ( ! empty( $response_data['data'] ) ) {
 						$sync_response[ $v->id ] = $response_data['data'];
 					}

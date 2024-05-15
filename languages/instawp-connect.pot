@@ -5,7 +5,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2024-05-10 07:58+0000\n"
+"POT-Creation-Date: 2024-05-15 05:56+0000\n"
 "X-Poedit-Basepath: ..\n"
 "X-Poedit-KeywordsList: __;_e;_ex:1,2c;_n:1,2;_n_noop:1,2;_nx:1,2,4c;_nx_noop:1,2,3c;_x:1,2c;esc_attr__;esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c\n"
 "X-Poedit-SearchPath-0: .\n"
@@ -13,7 +13,7 @@ msgstr ""
 "X-Poedit-SourceCharset: UTF-8\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: admin/class-instawp-admin.php:67, includes/class-instawp-hooks.php:145, includes/class-instawp-setting.php:38
+#: admin/class-instawp-admin.php:67, includes/class-instawp-hooks.php:144, includes/class-instawp-setting.php:38
 msgid "Create Staging"
 msgstr ""
 
@@ -85,79 +85,79 @@ msgstr ""
 msgid "Plugin reset successfully."
 msgstr ""
 
-#: includes/class-instawp-database-management.php:58
+#: includes/class-instawp-database-management.php:60
 msgid "Database Manager file not found!"
 msgstr ""
 
-#: includes/class-instawp-database-management.php:63, includes/class-instawp-file-management.php:71
+#: includes/class-instawp-database-management.php:65, includes/class-instawp-file-management.php:73
 msgid "Auto Login token expired or missing!"
 msgstr ""
 
-#: includes/class-instawp-database-management.php:67
+#: includes/class-instawp-database-management.php:69
 msgid "InstaWP Database Manager: Token mismatch or not valid!"
 msgstr ""
 
-#: includes/class-instawp-database-management.php:91
+#: includes/class-instawp-database-management.php:93
 msgid "InstaWP Database Manager"
 msgstr ""
 
-#: includes/class-instawp-file-management.php:66
+#: includes/class-instawp-file-management.php:68
 msgid "File Manager file not found!"
 msgstr ""
 
-#: includes/class-instawp-file-management.php:75
+#: includes/class-instawp-file-management.php:77
 msgid "InstaWP File Manager: Token mismatch or not valid!"
 msgstr ""
 
-#: includes/class-instawp-file-management.php:91
+#: includes/class-instawp-file-management.php:93
 msgid "InstaWP File Manager"
 msgstr ""
 
-#: includes/class-instawp-hooks.php:96
+#: includes/class-instawp-hooks.php:95
 msgid "Tools"
 msgstr ""
 
-#: includes/class-instawp-hooks.php:103
+#: includes/class-instawp-hooks.php:102
 msgid "Purge All Cache"
 msgstr ""
 
-#: includes/class-instawp-hooks.php:114, includes/class-instawp-rest-api.php:1686, includes/class-instawp-setting.php:212, includes/class-instawp-setting.php:547
+#: includes/class-instawp-hooks.php:113, includes/class-instawp-rest-api.php:1686, includes/class-instawp-setting.php:212, includes/class-instawp-setting.php:547
 msgid "File Manager"
 msgstr ""
 
-#: includes/class-instawp-hooks.php:125, includes/class-instawp-rest-api.php:1687, includes/class-instawp-setting.php:213, includes/class-instawp-setting.php:555
+#: includes/class-instawp-hooks.php:124, includes/class-instawp-rest-api.php:1687, includes/class-instawp-setting.php:213, includes/class-instawp-setting.php:555
 msgid "Database Manager"
 msgstr ""
 
-#: includes/class-instawp-hooks.php:137
+#: includes/class-instawp-hooks.php:136
 msgid "Shortcuts"
 msgstr ""
 
-#: includes/class-instawp-hooks.php:157, includes/class-instawp-setting.php:42
+#: includes/class-instawp-hooks.php:156, includes/class-instawp-setting.php:42
 msgid "Staging Sites"
 msgstr ""
 
-#: includes/class-instawp-hooks.php:169, includes/class-instawp-setting.php:46
+#: includes/class-instawp-hooks.php:168, includes/class-instawp-setting.php:46
 msgid "Manage"
 msgstr ""
 
-#: includes/class-instawp-hooks.php:181, includes/class-instawp-setting.php:51
+#: includes/class-instawp-hooks.php:180, includes/class-instawp-setting.php:51
 msgid "Sync (Beta)"
 msgstr ""
 
-#: includes/class-instawp-hooks.php:192, includes/class-instawp-setting.php:55, includes/class-instawp-setting.php:291
+#: includes/class-instawp-hooks.php:191, includes/class-instawp-setting.php:55, includes/class-instawp-setting.php:291
 msgid "Settings"
 msgstr ""
 
-#: includes/class-instawp-hooks.php:207
+#: includes/class-instawp-hooks.php:206
 msgid "Go to InstaWP ➝"
 msgstr ""
 
-#: includes/class-instawp-hooks.php:219
+#: includes/class-instawp-hooks.php:218
 msgid "Contact Support"
 msgstr ""
 
-#: includes/class-instawp-hooks.php:274
+#: includes/class-instawp-hooks.php:273
 msgid "Cache cleared for %s."
 msgstr ""
 
@@ -695,6 +695,26 @@ msgstr ""
 msgid "WP Customizer Changes"
 msgstr ""
 
+#: includes/sync/class-instawp-sync-menu.php:33
+msgid "Nav Menu updated"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-menu.php:30
+msgid "Nav Menu created"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-menu.php:69
+msgid "Nav Menu deleted"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-menu.php:174
+msgid "Can not find nav menu"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-menu.php:185
+msgid "Can not delete Nav Menu."
+msgstr ""
+
 #: includes/sync/class-instawp-sync-option.php:29
 msgid "Option added"
 msgstr ""
@@ -751,7 +771,7 @@ msgstr ""
 msgid "Theme %s not found at destination."
 msgstr ""
 
-#: includes/sync/class-instawp-sync-post.php:70, includes/sync/class-instawp-sync-post.php:170, includes/sync/class-instawp-sync-term.php:54
+#: includes/sync/class-instawp-sync-post.php:70, includes/sync/class-instawp-sync-post.php:166, includes/sync/class-instawp-sync-term.php:54
 msgid "%s modified"
 msgstr ""
 

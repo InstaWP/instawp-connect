@@ -372,7 +372,7 @@ class instaWP {
 		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-apis.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-customize-setting.php';
 
-		$files = array( 'option', 'plugin-theme', 'post', 'term', 'user', 'customizer', 'wc' );
+		$files = array( 'option', 'plugin-theme', 'post', 'term', 'menu', 'user', 'customizer', 'wc' );
 		foreach ( $files as $file ) {
 			require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-' . $file . '.php';
 		}

@@ -94,6 +94,10 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 
 == Changelog ==
 
+= 0.1.0.37 - 16 May 2024 =
+- NEW - Added 2 way sync navigation menu support.
+- FIX - Update and Delete plugins/themes API.
+
 = 0.1.0.36 - 14 May 2024 =
 - FIX - File manager missing error due to auto deletion of file from server.
 - FIX - 2 way sync elementor issue.
