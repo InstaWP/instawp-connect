@@ -12,8 +12,8 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 	class InstaWP_Hooks {
 
 		public function __construct() {
-			add_action( 'init', array( $this, 'ob_start' ) );
-			add_action( 'wp_footer', array( $this, 'ob_end' ) );
+//			add_action( 'init', array( $this, 'ob_start' ) );
+//			add_action( 'wp_footer', array( $this, 'ob_end' ) );
 
 			add_action( 'update_option', array( $this, 'manage_update_option' ), 10, 3 );
 			add_action( 'init', array( $this, 'handle_hard_disable_seo_visibility' ) );
