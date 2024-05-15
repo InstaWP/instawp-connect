@@ -425,6 +425,31 @@ class Cache {
 			];
 		}
 
+	    // WPC Edge Cache
+	    if ( class_exists( '\Edge_Cache_Plugin' ) ) {
+		    $message = '';
+
+			$edge_cache = new \Edge_Cache_Plugin();
+		    $data       = array(
+			    'wp_action' => sprintf( 'manual_%s', 'purge' ),
+			    'wp_domain' => $edge_cache->get_wp_domain(),
+			    'at_host'   => php_uname('n'),
+			    'ip_addr'   => $_SERVER['REMOTE_ADDR'],
+			    'batcache'  => $edge_cache->purge_batcache(),
+		    );
+
+		    $response = $edge_cache->query_ec_backend( 'purge', array( 'body' => $data ) );
+		    if ( $response['success'] === false && ! empty( $response['error'] ) ) {
+			    $message = $response['error'];
+		    }
+
+		    $results[] = [
+			    'slug'    => 'edge-cache',
+			    'name'    => 'Edge Cache',
+			    'message' => $message,
+		    ];
+	    }
+
 		// WP Engine
 		if ( class_exists( '\WpeCommon' ) ) {
 			$message = [];
