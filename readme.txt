@@ -97,6 +97,8 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 = 0.1.0.37 =
 - NEW - Added 2 way sync navigation menu support.
 - NEW - Added Edge Cache purge support.
+- FIX - Push Migration table prefix issue.
+- FIX - Added Push Migration event logging.
 - FIX - Added 2 way sync event display issue.
 - FIX - Update and Delete plugins/themes API.
 

@@ -307,6 +307,11 @@ include $file_path;';
 			$migrate_settings['excluded_paths'][] = $relative_dir . '/mu-plugins/redis-cache-pro.php';
 		}
 
+		// Skip wp stack cache forcefully
+		if ( file_exists( $relative_dir . '/mu-plugins/wp-stack-cache.php' ) ) {
+			$migrate_settings['excluded_paths'][] = $relative_dir . '/mu-plugins/wp-stack-cache.php';
+		}
+
 		// Skip object-cache-iwp file if exists forcefully
 		if ( file_exists( $relative_dir . '/object-cache-iwp.php' ) ) {
 			$migrate_settings['excluded_paths'][] = $relative_dir . '/object-cache-iwp.php';
