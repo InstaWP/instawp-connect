@@ -450,7 +450,7 @@ if ( $file_type === 'db' ) {
 						file_put_contents( 'iwp_log.txt', "update query: " . $query . "\n", FILE_APPEND );
 						// log end
 
-						$update_response = $mysqli->query( "UPDATE `{$table_prefix}options` SET `option_value` = '{$instawp_api_options}' WHERE `option_name` = 'instawp_api_options'" );
+						$update_response = $mysqli->query( $query );
 
 						// log start
 						file_put_contents( 'iwp_log.txt', "update response: " . var_dump( $update_response ) . "\n", FILE_APPEND );

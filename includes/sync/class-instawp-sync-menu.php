@@ -41,7 +41,7 @@ class InstaWP_Sync_Menu {
 				if ( $item->type === 'post_type' ) {
 					$item->object_name  = get_post( $item->object_id )->post_name;
 					$item->reference_id = InstaWP_Sync_Helpers::get_post_reference_id( $item->object_id );
-				} else if ( $item->type === 'taxonomy' ) {
+				} elseif ( $item->type === 'taxonomy' ) {
 					$item->object_name  = get_term( $item->object_id )->slug;
 					$item->reference_id = InstaWP_Sync_Helpers::get_term_reference_id( $item->object_id );
 				}
@@ -161,7 +161,7 @@ class InstaWP_Sync_Menu {
 					if ( $value->type === 'post_type' ) {
 						$post             = InstaWP_Sync_Helpers::get_post_by_reference( $value->object, $value->reference_id, $value->object_name );
 						$value->object_id = $post->ID;
-					} else if ( $value->type === 'taxonomy' ) {
+					} elseif ( $value->type === 'taxonomy' ) {
 						$term             = InstaWP_Sync_Helpers::get_term_by_reference( $value->object, $value->reference_id, $value->object_name );
 						$value->object_id = $term->term_id;
 					}
