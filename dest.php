@@ -400,7 +400,7 @@ if ( $file_type === 'db' ) {
 						$table_name = $row[ "Tables_in_" . $db_name ];
 
 						if ( str_ends_with( $table_name, '_options' ) ) {
-							$table_names[] = explode( '_', $table_name );
+							$table_names[] = explode( '_', str_replace( '_options', '', $table_name ) );
 						}
 					}
 				}
@@ -412,7 +412,7 @@ if ( $file_type === 'db' ) {
 						$table_name_items = $table_names[0];
 					}
 
-					$table_prefix = implode( '_', array_diff( $table_name_items, array( 'options' ) ) ) . '_';
+					$table_prefix = implode( '_', $table_name_items ) . '_';
 				}
 
 				// log start
@@ -439,6 +439,10 @@ if ( $file_type === 'db' ) {
 						$is_insert_failed = true;
 					}
 				} catch ( Exception $e ) {
+					// log start
+					file_put_contents( 'iwp_log.txt', "insert exception: " . $e->getMessage() . "\n", FILE_APPEND );
+					// log end
+
 					$is_insert_failed = true;
 				}
 
