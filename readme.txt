@@ -94,7 +94,7 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 
 == Changelog ==
 
-= 0.1.0.37 - 14 May 2024 =
+= 0.1.0.37 - 20 May 2024 =
 - NEW - Added 2 way sync navigation menu support.
 - NEW - Added Edge Cache purge support.
 - FIX - Push Migration table prefix issue.
