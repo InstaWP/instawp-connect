@@ -146,7 +146,7 @@ if ( ! $root_dir_find ) {
 	exit( 2 );
 }
 
-$json_path = $root_dir_path . DIRECTORY_SEPARATOR . 'wp-content' . DIRECTORY_SEPARATOR . 'instawpbackups' . DIRECTORY_SEPARATOR . $migrate_key . '.json';
+$json_path = $root_dir_path . DIRECTORY_SEPARATOR . 'wp-content' . DIRECTORY_SEPARATOR . 'instawpbackups' . DIRECTORY_SEPARATOR . 'migrate-push-db-' . substr( $migrate_key, 0, 5 ) . '.json';
 
 if ( file_exists( $json_path ) ) {
 	$jsonString = file_get_contents( $json_path );

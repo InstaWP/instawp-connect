@@ -218,7 +218,7 @@ include $file_path;';
 		);
 
 		$jsonString     = wp_json_encode( $data );
-		$dest_file_path = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . INSTAWP_DEFAULT_BACKUP_DIR . DIRECTORY_SEPARATOR . $migrate_key . '.json';
+		$dest_file_path = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . INSTAWP_DEFAULT_BACKUP_DIR . DIRECTORY_SEPARATOR . 'migrate-push-db-' . substr( $migrate_key, 0, 5 ) . '.json';
 
 		if ( instawp_get_fs()->put_contents( $dest_file_path, $jsonString ) ) {
 			$dest_url = INSTAWP_PLUGIN_URL . 'dest.php';
