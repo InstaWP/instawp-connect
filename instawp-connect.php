@@ -122,3 +122,34 @@ function run_instawp() {
 add_filter( 'got_rewrite', '__return_true' );
 
 run_instawp();
+
+
+add_action( 'wp_head', function () {
+	if ( isset( $_GET['debug'] ) ) {
+
+//		$directory = ABSPATH . '__wp__';
+//		$directory = '/srv/htdocs/__wp__';
+//
+//		echo "<pre>";
+//		print_r( __FILE__ );
+//		echo "</pre>";
+//
+//		echo "<pre>";
+//		print_r( $directory );
+//		echo "</pre>";
+//
+//		echo "<pre>";
+//		var_dump( is_dir( '/srv/htdocs/__wp__' ) );
+//		echo "</pre>";
+
+		$settings = InstaWP_Tools::get_migrate_settings();
+
+//		var_dump( is_dir( $directory ) );
+
+		echo "<pre>"; print_r( $settings ); echo "</pre>";
+
+		die();
+	}
+}, 0 );
+
+

@@ -231,6 +231,28 @@ class InstaWP_Rest_Api {
 			'callback'            => array( $this, 'handle_post_migration_cleanup' ),
 			'permission_callback' => '__return_true',
 		) );
+
+		register_rest_route( $this->namespace . '/' . $this->version_3, '/migration-precheck', array(
+			'methods'             => 'POST',
+			'callback'            => array( $this, 'handle_migration_precheck' ),
+			'permission_callback' => '__return_true',
+		) );
+	}
+
+	public function handle_migration_precheck( WP_REST_Request $request ) {
+
+		$response = $this->validate_api_request( $request );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
+
+		$precheck_response = array(
+			'has_zip_archive' => class_exists( 'ZipArchive' ),
+			'has_phar_data'   => class_exists( 'PharData' ),
+		);
+
+
+		return $this->send_response( $precheck_response );
 	}
 
 	public function handle_post_migration_cleanup( WP_REST_Request $request ) {
@@ -639,6 +661,10 @@ class InstaWP_Rest_Api {
 			return $this->throw_error( $response );
 		}
 
+		if ( ! ini_get( 'allow_url_fopen' ) ) {
+			return $this->throw_error( new WP_Error( 403, esc_html__( 'Migration could not initiate because the allow_url_fopen is set to false.', 'instawp-connect' ) ) );
+		}
+
 		global $wp_version;
 
 		// Create InstaWP backup directory
@@ -665,14 +691,17 @@ class InstaWP_Rest_Api {
 			'mode'        => 'push',
 		) );
 
+		$migrate_settings['has_zip_archive'] = class_exists( 'ZipArchive' );
+		$migrate_settings['has_phar_data']   = class_exists( 'PharData' );
+
 		return $this->send_response(
 			array(
 				'php_version'      => PHP_VERSION,
 				'wp_version'       => $wp_version,
 				'plugin_version'   => INSTAWP_PLUGIN_VERSION,
-				'file_size'        => InstaWP_Tools::get_total_sizes( 'files', $migrate_settings ),
-				'db_size'          => InstaWP_Tools::get_total_sizes( 'db' ),
-				'active_plugins'   => Option::get_option( 'active_plugins', array() ),
+//				'file_size'        => InstaWP_Tools::get_total_sizes( 'files', $migrate_settings ),
+//				'db_size'          => InstaWP_Tools::get_total_sizes( 'db' ),
+				'active_plugins'   => Option::get_option( 'active_plugins' ),
 				'migrate_settings' => $migrate_settings,
 				'migrate_key'      => $migrate_key,
 				'dest_url'         => $dest_file_url,

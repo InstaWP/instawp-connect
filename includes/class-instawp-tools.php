@@ -279,6 +279,7 @@ include $file_path;';
 
 		$options      = Helper::get_args_option( 'options', $migrate_settings, array() );
 		$relative_dir = str_replace( ABSPATH, '', WP_CONTENT_DIR );
+		$wp_root_dir  = dirname( $relative_dir );
 
 		// Check if db.sql should keep or not after migration
 		if ( 'on' === Option::get_option( 'instawp_keep_db_sql_after_migration', 'off' ) ) {
@@ -289,11 +290,29 @@ include $file_path;';
 			include ABSPATH . 'wp-admin/includes/plugin.php';
 		}
 
+		// Remove __wp__ folder for WPC file structure
+		if ( is_dir( $wp_root_dir . '/__wp__' ) ) {
+			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/__wp__';
+			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-load.php';
+			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-activate.php';
+			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-blog-header.php';
+			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-comments-post.php';
+			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-config-sample.php';
+			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-cron.php';
+			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-links-opml.php';
+			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-login.php';
+			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-mail.php';
+			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-settings.php';
+			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-signup.php';
+			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-trackback.php';
+			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/xmlrpc.php';
+		}
+
 		// Skip index.html file forcefully
 		$migrate_settings['excluded_paths'][] = 'index.html';
 		$migrate_settings['excluded_paths'][] = '.user.ini';
 
-        // Skip mu-pluginsold folder
+		// Skip mu-pluginsold folder
 		$migrate_settings['excluded_paths'][] = $relative_dir . '/mu-plugins/mu-pluginsold';
 
 		// Skip cache folders
@@ -306,6 +325,7 @@ include $file_path;';
 		if ( file_exists( $relative_dir . '/mu-plugins/redis-cache-pro.php' ) ) {
 			$migrate_settings['excluded_paths'][] = $relative_dir . '/mu-plugins/redis-cache-pro.php';
 		}
+
 
 		// Skip wp stack cache forcefully
 		if ( file_exists( $relative_dir . '/mu-plugins/wp-stack-cache.php' ) ) {
@@ -579,20 +599,20 @@ include $file_path;';
 		// Remove instawp connect options
 		$excluded_tables_rows = Helper::get_args_option( 'excluded_tables_rows', $migrate_settings, array() );
 
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_api_options';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_connect_id_options';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_sync_parent_connect_data';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_migration_details';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_last_migration_details';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_api_key_config_completed';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_is_event_syncing';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_staging_sites';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_is_staging';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:schema-ActionScheduler_StoreSchema';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:schema-ActionScheduler_LoggerSchema';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:action_scheduler_hybrid_store_demarkation';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:_transient_timeout_action_scheduler_last_pastdue_actions_check';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:_transient_action_scheduler_last_pastdue_actions_check';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_api_options';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_connect_id_options';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_sync_parent_connect_data';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_migration_details';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_last_migration_details';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_api_key_config_completed';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_is_event_syncing';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_staging_sites';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_is_staging';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:schema-ActionScheduler_StoreSchema';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:schema-ActionScheduler_LoggerSchema';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:action_scheduler_hybrid_store_demarkation';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:_transient_timeout_action_scheduler_last_pastdue_actions_check';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:_transient_action_scheduler_last_pastdue_actions_check';
 
 		$migrate_settings['excluded_tables_rows'] = $excluded_tables_rows;
 

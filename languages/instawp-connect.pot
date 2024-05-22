@@ -5,7 +5,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2024-05-20 05:51+0000\n"
+"POT-Creation-Date: 2024-05-21 12:20+0000\n"
 "X-Poedit-Basepath: ..\n"
 "X-Poedit-KeywordsList: __;_e;_ex:1,2c;_n:1,2;_n_noop:1,2;_nx:1,2,4c;_nx_noop:1,2,3c;_x:1,2c;esc_attr__;esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c\n"
 "X-Poedit-SearchPath-0: .\n"
@@ -31,10 +31,6 @@ msgstr ""
 
 #: admin/class-instawp-admin.php:134, admin/class-instawp-admin.php:135
 msgid "InstaWP"
-msgstr ""
-
-#: includes/activity-log/class-instawp-activity-log-posts.php:79
-msgid "(no title)"
 msgstr ""
 
 #: includes/class-instawp-ajax.php:114
@@ -121,11 +117,11 @@ msgstr ""
 msgid "Purge All Cache"
 msgstr ""
 
-#: includes/class-instawp-hooks.php:113, includes/class-instawp-rest-api.php:1686, includes/class-instawp-setting.php:212, includes/class-instawp-setting.php:555
+#: includes/class-instawp-hooks.php:113, includes/class-instawp-rest-api.php:1715, includes/class-instawp-setting.php:212, includes/class-instawp-setting.php:555
 msgid "File Manager"
 msgstr ""
 
-#: includes/class-instawp-hooks.php:124, includes/class-instawp-rest-api.php:1687, includes/class-instawp-setting.php:213, includes/class-instawp-setting.php:563
+#: includes/class-instawp-hooks.php:124, includes/class-instawp-rest-api.php:1716, includes/class-instawp-setting.php:213, includes/class-instawp-setting.php:563
 msgid "Database Manager"
 msgstr ""
 
@@ -161,91 +157,91 @@ msgstr ""
 msgid "Cache cleared for %s."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:255
+#: includes/class-instawp-rest-api.php:277
 msgid "Post migration cleanup completed."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:285
+#: includes/class-instawp-rest-api.php:307
 msgid "sso_url_class_not_found: This class NewfoldLabs\WP\Module\Migration\Services\MigrationSSO not found."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:657
+#: includes/class-instawp-rest-api.php:679
 msgid "Could not create destination file."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:721
+#: includes/class-instawp-rest-api.php:750
 msgid "Plugin reset Successful."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:886
+#: includes/class-instawp-rest-api.php:915
 msgid "Already Configured"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:894
+#: includes/class-instawp-rest-api.php:923
 msgid "Api key is required"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:906
+#: includes/class-instawp-rest-api.php:935
 msgid "Key is not valid"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:949
+#: includes/class-instawp-rest-api.php:978
 msgid "Empty bearer token."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:966
+#: includes/class-instawp-rest-api.php:995
 msgid "Invalid bearer token."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1213
+#: includes/class-instawp-rest-api.php:1242
 msgid "Invalid data. Unknown type."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1221
+#: includes/class-instawp-rest-api.php:1250
 msgid "Invalid data. The item does not exist."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1551
+#: includes/class-instawp-rest-api.php:1580
 msgid "Setting does not exist."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1534
+#: includes/class-instawp-rest-api.php:1563
 msgid "Success!"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1543
+#: includes/class-instawp-rest-api.php:1572
 msgid "You can not enable this setting through API."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1540
+#: includes/class-instawp-rest-api.php:1569
 msgid "Setting is already disabled."
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1685, includes/class-instawp-setting.php:517, includes/class-instawp-setting.php:523
+#: includes/class-instawp-rest-api.php:1714, includes/class-instawp-setting.php:517, includes/class-instawp-setting.php:523
 msgid "Heartbeat"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1688, includes/class-instawp-setting.php:571
+#: includes/class-instawp-rest-api.php:1717, includes/class-instawp-setting.php:571
 msgid "Install Plugin / Themes"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1689, includes/class-instawp-setting.php:579
+#: includes/class-instawp-rest-api.php:1718, includes/class-instawp-setting.php:579
 msgid "Update Core / Plugin / Themes"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1690, includes/class-instawp-setting.php:587
+#: includes/class-instawp-rest-api.php:1719, includes/class-instawp-setting.php:587
 msgid "Activate / Deactivate"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1691, includes/class-instawp-setting.php:595
+#: includes/class-instawp-rest-api.php:1720, includes/class-instawp-setting.php:595
 msgid "Config Management"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1692, includes/class-instawp-setting.php:603
+#: includes/class-instawp-rest-api.php:1721, includes/class-instawp-setting.php:603
 msgid "Site Inventory"
 msgstr ""
 
-#: includes/class-instawp-rest-api.php:1693, includes/class-instawp-setting.php:214, includes/class-instawp-setting.php:611
+#: includes/class-instawp-rest-api.php:1722, includes/class-instawp-setting.php:214, includes/class-instawp-setting.php:611
 msgid "Debug Log"
 msgstr ""
 
@@ -643,6 +639,10 @@ msgstr ""
 
 #: includes/functions.php:713
 msgid "No login information found."
+msgstr ""
+
+#: includes/activity-log/class-instawp-activity-log-posts.php:79
+msgid "(no title)"
 msgstr ""
 
 #: includes/sync/class-instawp-sync-ajax.php:299
