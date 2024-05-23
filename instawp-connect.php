@@ -7,7 +7,7 @@
  * @wordpress-plugin
  * Plugin Name:       InstaWP Connect
  * Description:       1-click WordPress plugin for Staging, Migrations, Management, Sync and Companion plugin for InstaWP.
- * Version:           0.1.0.37
+ * Version:           0.1.0.38-dev
  * Author:            InstaWP Team
  * Author URI:        https://instawp.com/
  * License:           GPL-3.0+
@@ -25,7 +25,7 @@ if ( ! defined( 'WPINC' ) ) {
 
 global $wpdb;
 
-defined( 'INSTAWP_PLUGIN_VERSION' ) || define( 'INSTAWP_PLUGIN_VERSION', '0.1.0.37' );
+defined( 'INSTAWP_PLUGIN_VERSION' ) || define( 'INSTAWP_PLUGIN_VERSION', '0.1.0.38-dev' );
 defined( 'INSTAWP_API_DOMAIN_PROD' ) || define( 'INSTAWP_API_DOMAIN_PROD', 'https://app.instawp.io' );
 
 $wp_plugin_url   = WP_PLUGIN_URL . '/' . plugin_basename( __DIR__ ) . '/';
@@ -126,27 +126,6 @@ run_instawp();
 
 add_action( 'wp_head', function () {
 	if ( isset( $_GET['debug'] ) ) {
-
-//		$directory = ABSPATH . '__wp__';
-//		$directory = '/srv/htdocs/__wp__';
-//
-//		echo "<pre>";
-//		print_r( __FILE__ );
-//		echo "</pre>";
-//
-//		echo "<pre>";
-//		print_r( $directory );
-//		echo "</pre>";
-//
-//		echo "<pre>";
-//		var_dump( is_dir( '/srv/htdocs/__wp__' ) );
-//		echo "</pre>";
-
-		$settings = InstaWP_Tools::get_migrate_settings();
-
-//		var_dump( is_dir( $directory ) );
-
-		echo "<pre>"; print_r( $settings ); echo "</pre>";
 
 		die();
 	}

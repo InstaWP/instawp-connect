@@ -100,6 +100,7 @@ if ( ! class_exists( 'InstaWP_Migration' ) ) {
 					}
 					$field_value = array_merge( $api_options, $field_value );
 				}
+
 				Option::update_option( $field_id, $field_value );
 			}
 
