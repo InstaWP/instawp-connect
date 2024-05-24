@@ -15,6 +15,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 //          add_action( 'init', array( $this, 'ob_start' ) );
 //          add_action( 'wp_footer', array( $this, 'ob_end' ) );
 
+			add_action( 'init', array( $this, 'generate_api_key' ) );
 			add_action( 'update_option', array( $this, 'manage_update_option' ), 10, 3 );
 			add_action( 'init', array( $this, 'handle_hard_disable_seo_visibility' ) );
 			add_action( 'admin_init', array( $this, 'handle_clear_all' ) );
@@ -23,6 +24,18 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			add_action( 'init', array( $this, 'handle_auto_login_request' ) );
 			add_action( 'admin_notices', array( $this, 'admin_notice' ) );
 		}
+
+        public function generate_api_key() {
+	        $access_token    = isset( $_REQUEST['access_token'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['access_token'] ) ) : '';
+	        $success_status  = isset( $_REQUEST['success'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['success'] ) ) : '';
+
+	        if ( 'true' === $success_status && InstaWP_Setting::get_api_key() !== $access_token ) {
+		        InstaWP_Setting::instawp_generate_api_key( $access_token );
+
+		        wp_safe_redirect( admin_url( 'tools.php?page=instawp' ) );
+		        exit();
+	        }
+        }
 
 		public function handle_auto_login_request() {
 
