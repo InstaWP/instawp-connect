@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.6
 Tested up to: 6.5.2
 Requires PHP: 5.6
-Stable tag: 0.1.0.37
+Stable tag: 0.1.0.38
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -96,7 +96,10 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 
 = 0.1.0.38 =
 - FIX - Excluded SEOPress 404 posts from 2 way sync.
-- FIX - Headers already sent issue.
+- FIX - Fixed headers already sent issue.
+- FIX - Fixed push migration API responses.
+- FIX - Fixed post migration cleanup API.
+- FIX - Post migration cleanup API.
 
 = 0.1.0.37 - 20 May 2024 =
 - NEW - Added 2 way sync navigation menu support.

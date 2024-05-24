@@ -231,28 +231,6 @@ class InstaWP_Rest_Api {
 			'callback'            => array( $this, 'handle_post_migration_cleanup' ),
 			'permission_callback' => '__return_true',
 		) );
-
-		register_rest_route( $this->namespace . '/' . $this->version_3, '/migration-precheck', array(
-			'methods'             => 'POST',
-			'callback'            => array( $this, 'handle_migration_precheck' ),
-			'permission_callback' => '__return_true',
-		) );
-	}
-
-	public function handle_migration_precheck( WP_REST_Request $request ) {
-
-		$response = $this->validate_api_request( $request );
-		if ( is_wp_error( $response ) ) {
-			return $this->throw_error( $response );
-		}
-
-		$precheck_response = array(
-			'has_zip_archive' => class_exists( 'ZipArchive' ),
-			'has_phar_data'   => class_exists( 'PharData' ),
-		);
-
-
-		return $this->send_response( $precheck_response );
 	}
 
 	public function handle_post_migration_cleanup( WP_REST_Request $request ) {
