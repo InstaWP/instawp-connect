@@ -28,6 +28,21 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 		$this->tables = InstaWP_Sync_DB::$tables;
 
 		add_action( 'rest_api_init', array( $this, 'add_api_routes' ) );
+		add_action( 'INSTAWP_CONNECT/Actions/parse_two_way_sync', array( $this, 'register_event' ), 10, 2 );
+	}
+
+	public function register_event( $event, $reference_id ) {
+		$event = ( object ) wp_parse_args( ( array ) $event, array(
+			'name'  => '', // Event name.
+			'slug'  => '', // Event slug i.e. post_meta_added/post_meta_deleted.
+			'type'  => '', // Event type i.e. Object type i.e. Post/User/Term   .
+			'title' => '', // Event title.
+			'data'  => array(), // Event data.
+		) );
+
+		if ( ! empty( $reference_id ) ) { // Reference ID should be unique for each event.
+			InstaWP_Sync_DB::insert_update_event( $event->name, $event->slug, $event->type, $reference_id, $event->title, $event->data );
+		}
 	}
 
 	public function add_api_routes() {

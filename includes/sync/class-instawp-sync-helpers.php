@@ -129,6 +129,7 @@ class InstaWP_Sync_Helpers {
 	 */
 	public static function is_enabled( $key ) {
 		$default = in_array( $key, array( 'wc', 'option' ), true ) ? 'off' : 'on';
+		$default = apply_filters( 'INSTAWP_CONNECT/Filters/default_two_way_sync_settings', $default, $key );
 		$value   = Option::get_option( 'instawp_sync_' . $key, $default );
 		$value   = empty( $value ) ? $default : $value;
 
