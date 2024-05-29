@@ -361,9 +361,14 @@ class instaWP {
 		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-file-management.php';
 		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-database-management.php';
 		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-tools.php';
-		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-rest-api.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-hooks.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-cli.php';
+
+		require_once INSTAWP_PLUGIN_DIR . '/includes/apis/class-instawp-rest-api.php';
+		require_once INSTAWP_PLUGIN_DIR . '/includes/apis/class-instawp-rest-api-content.php';
+		require_once INSTAWP_PLUGIN_DIR . '/includes/apis/class-instawp-rest-api-manage.php';
+		require_once INSTAWP_PLUGIN_DIR . '/includes/apis/class-instawp-rest-api-migration.php';
+		require_once INSTAWP_PLUGIN_DIR . '/includes/apis/class-instawp-rest-api-woocommerce.php';
 
 		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-db.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-helpers.php';

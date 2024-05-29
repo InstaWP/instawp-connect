@@ -13,10 +13,6 @@ use InstaWP\Connect\Helpers\Option;
 
 defined( 'ABSPATH' ) || exit;
 
-if ( ! class_exists( 'InstaWP_Rest_Api' ) ) {
-	require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-rest-api.php';
-}
-
 class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 
 	private $tables;
@@ -31,62 +27,11 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 		add_action( 'INSTAWP_CONNECT/Actions/parse_two_way_sync', array( $this, 'register_event' ), 10, 2 );
 	}
 
-	public function register_event( $event, $reference_id ) {
-		$event = ( object ) wp_parse_args( ( array ) $event, array(
-			'name'  => '', // Event name.
-			'slug'  => '', // Event slug i.e. post_meta_added/post_meta_deleted.
-			'type'  => '', // Event type i.e. Object type i.e. Post/User/Term   .
-			'title' => '', // Event title.
-			'data'  => array(), // Event data.
-		) );
-
-		if ( ! empty( $reference_id ) ) { // Reference ID should be unique for each event.
-			InstaWP_Sync_DB::insert_update_event( $event->name, $event->slug, $event->type, $reference_id, $event->title, $event->data );
-		}
-	}
-
 	public function add_api_routes() {
-		register_rest_route( $this->namespace . '/' . $this->version, '/mark-staging', array(
-			'methods'             => 'POST',
-			'callback'            => array( $this, 'mark_staging' ),
-			'permission_callback' => '__return_true',
-		) );
-
 		register_rest_route( $this->namespace . '/' . $this->version, '/sync', array(
 			'methods'             => 'POST',
 			'callback'            => array( $this, 'events_receiver' ),
 			'permission_callback' => '__return_true',
-		) );
-	}
-
-	/**
-	 * Handle events receiver api
-	 *
-	 * @param WP_REST_Request $req
-	 *
-	 * @return WP_Error|WP_HTTP_Response|WP_REST_Response
-	 */
-	public function mark_staging( WP_REST_Request $req ) {
-		$response = $this->validate_api_request( $req );
-		if ( is_wp_error( $response ) ) {
-			return $this->throw_error( $response );
-		}
-
-		$body    = $req->get_body();
-		$request = json_decode( $body );
-
-		if ( ! isset( $request->parent_connect_id ) ) {
-			return new WP_Error( 400, esc_html__( 'Invalid connect ID', 'instawp-connect' ) );
-		}
-
-		delete_option( 'instawp_sync_parent_connect_data' );
-		Option::update_option( 'instawp_sync_connect_id', intval( $request->parent_connect_id ) );
-		Option::update_option( 'instawp_is_staging', true );
-		instawp_get_source_site_detail();
-
-		return $this->send_response( array(
-			'status'  => true,
-			'message' => __( 'Site has been marked as staging', 'instawp-connect' ),
 		) );
 	}
 
@@ -210,6 +155,20 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 		) );
 	}
 
+	public function register_event( $event, $reference_id ) {
+		$event = ( object ) wp_parse_args( ( array ) $event, array(
+			'name'  => '', // Event name.
+			'slug'  => '', // Event slug i.e. post_meta_added/post_meta_deleted.
+			'type'  => '', // Event type i.e. Object type i.e. Post/User/Term   .
+			'title' => '', // Event title.
+			'data'  => array(), // Event data.
+		) );
+
+		if ( ! empty( $reference_id ) ) { // Reference ID should be unique for each event.
+			InstaWP_Sync_DB::insert_update_event( $event->name, $event->slug, $event->type, $reference_id, $event->title, $event->data );
+		}
+	}
+
 	public function event_sync_logs( $data, $source_url, $response ) {
 		$status = ! empty( $this->logs[ $data->id ] ) ? 'failed' : ( isset( $response[ $data->id ]['status'] ) ? $response[ $data->id ]['status'] : 'error' );
 		$data   = array(
@@ -245,22 +204,6 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 		);
 
 		InstaWP_Sync_DB::insert( $this->tables['sh_table'], $data );
-	}
-
-	/** sync operation response
-	 *
-	 * @param $status
-	 * @param $message
-	 * @param $v
-	 *
-	 * @return array
-	 */
-	public function sync_opration_response( $status, $message, $v ) {
-		return array(
-			'id'      => $v->id,
-			'status'  => $status,
-			'message' => $message,
-		);
 	}
 
 	/** sync update
