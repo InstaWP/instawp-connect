@@ -458,8 +458,17 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		$tracking_db->db_update_option( 'total_files', $totalFiles );
 
 		foreach ( $limitedIterator as $file ) {
-			$filepath      = $file->getPathname();
-			$filesize      = $file->getSize();
+
+			$filepath = '';
+			$filesize = 0;
+
+			try {
+				$filepath = $file->getPathname();
+				$filesize = $file->getSize();
+			} catch ( Exception $e ) {
+				continue;
+			}
+
 			$filepath_hash = hash( 'sha256', $filepath );
 
 			if ( ! is_valid_file( $filepath ) ) {
