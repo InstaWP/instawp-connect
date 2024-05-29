@@ -218,9 +218,10 @@ include $file_path;';
 		);
 
 		$jsonString     = wp_json_encode( $data );
-		$dest_file_path = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . INSTAWP_DEFAULT_BACKUP_DIR . DIRECTORY_SEPARATOR . 'migrate-push-db-' . substr( $migrate_key, 0, 5 ) . '.json';
+        $data_encrypted = openssl_encrypt( $jsonString, 'AES-128-ECB', $migrate_key );
+		$dest_file_path = INSTAWP_BACKUP_DIR . 'migrate-push-db-' . substr( $migrate_key, 0, 5 ) . '.txt';
 
-		if ( instawp_get_fs()->put_contents( $dest_file_path, $jsonString ) ) {
+		if ( instawp_get_fs()->put_contents( $dest_file_path, $data_encrypted ) ) {
 			$dest_url = INSTAWP_PLUGIN_URL . 'dest.php';
 
 			if ( ! self::is_migrate_file_accessible( $dest_url ) ) {

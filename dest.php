@@ -146,11 +146,12 @@ if ( ! $root_dir_find ) {
 	exit( 2 );
 }
 
-$json_path = $root_dir_path . DIRECTORY_SEPARATOR . 'wp-content' . DIRECTORY_SEPARATOR . 'instawpbackups' . DIRECTORY_SEPARATOR . 'migrate-push-db-' . substr( $migrate_key, 0, 5 ) . '.json';
+$options_data_path = $root_dir_path . DIRECTORY_SEPARATOR . 'wp-content' . DIRECTORY_SEPARATOR . 'instawpbackups' . DIRECTORY_SEPARATOR . 'migrate-push-db-' . substr( $migrate_key, 0, 5 ) . '.txt';
 
-if ( file_exists( $json_path ) ) {
-	$jsonString = file_get_contents( $json_path );
-	$jsonData   = json_decode( $jsonString, true );
+if ( file_exists( $options_data_path ) ) {
+	$options_data_encrypted = file_get_contents( $options_data_path );
+	$options_data_decrypted = openssl_decrypt( $options_data_encrypted, 'AES-128-ECB', $migrate_key );
+	$jsonData               = json_decode( $options_data_decrypted, true );
 
 	if ( $jsonData !== null ) {
 		extract( $jsonData );
