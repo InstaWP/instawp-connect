@@ -193,7 +193,8 @@ class IWPDB {
 		$options_data_encrypted = file_get_contents( $options_data_filename );
 
 		if ( $options_data_encrypted ) {
-			$options_data_decrypted = openssl_decrypt( $options_data_encrypted, 'AES-128-ECB', $this->migrate_key );
+			$passphrase             = openssl_digest( $this->migrate_key, 'SHA256', true );
+			$options_data_decrypted = openssl_decrypt( $options_data_encrypted, 'AES-256-CBC', $passphrase );
 			$this->options_data     = json_decode( $options_data_decrypted, true );
 		}
 	}
@@ -211,7 +212,8 @@ class IWPDB {
 		$this->options_data[ $option_name ] = $value;
 
 		$options_data_str       = json_encode( $this->options_data );
-		$options_data_encrypted = openssl_encrypt( $options_data_str, 'AES-128-ECB', $this->migrate_key );
+		$passphrase             = openssl_digest( $this->migrate_key, 'SHA256', true );
+		$options_data_encrypted = openssl_encrypt( $options_data_str, 'AES-256-CBC', $passphrase );
 		$options_data_filename  = INSTAWP_BACKUP_DIR . 'options-' . $this->migrate_key . '.txt';
 		$options_data_stored    = file_put_contents( $options_data_filename, $options_data_encrypted );
 

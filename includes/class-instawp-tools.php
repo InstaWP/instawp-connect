@@ -125,7 +125,8 @@ class InstaWP_Tools {
 			'site_url'         => site_url(),
 		);
 		$options_data_str       = wp_json_encode( $options_data );
-		$options_data_encrypted = openssl_encrypt( $options_data_str, 'AES-128-ECB', $migrate_key );
+		$passphrase             = openssl_digest( $migrate_key, 'SHA256', true );
+		$options_data_encrypted = openssl_encrypt( $options_data_str, 'AES-256-CBC', $passphrase );
 		$options_data_filename  = INSTAWP_BACKUP_DIR . 'options-' . $migrate_key . '.txt';
 		$options_data_stored    = instawp_get_fs()->put_contents( $options_data_filename, $options_data_encrypted );
 
@@ -218,7 +219,8 @@ include $file_path;';
 		);
 
 		$jsonString     = wp_json_encode( $data );
-        $data_encrypted = openssl_encrypt( $jsonString, 'AES-128-ECB', $migrate_key );
+		$passphrase     = openssl_digest( $migrate_key, 'SHA256', true );
+        $data_encrypted = openssl_encrypt( $jsonString, 'AES-256-CBC', $passphrase );
 		$dest_file_path = INSTAWP_BACKUP_DIR . 'migrate-push-db-' . substr( $migrate_key, 0, 5 ) . '.txt';
 
 		if ( instawp_get_fs()->put_contents( $dest_file_path, $data_encrypted ) ) {
