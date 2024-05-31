@@ -77,16 +77,45 @@ class InstaWP_Rest_Api {
 	 */
 	public function set_config( $request ) {
 
-		$parameters         = $this->filter_params( $request );
-		$connect_id         = instawp_get_connect_id();
-		$results            = array(
-			'status'     => false,
-			'connect_id' => 0,
-			'message'    => '',
-		);
-		$override_from_main = isset( $parameters['override_from_main'] ) ? (bool) $parameters['override_from_main'] : false;
+		$parameters           = $this->filter_params( $request );
+		$connect_id           = instawp_get_connect_id();
+		$wp_username          = isset( $parameters['wp_username'] ) ? sanitize_text_field( $parameters['wp_username'] ) : '';
+		$application_password = isset( $parameters['application_password'] ) ? sanitize_text_field( $parameters['application_password'] ) : '';
 
-		if ( $override_from_main === true ) {
+		if ( empty( $wp_username ) || empty( $application_password ) ) {
+			return $this->send_response( [ 'status' => false, 'message' => esc_html__( 'This request is not authorized.', 'instawp-connect' ) ] );
+		}
+
+		if ( empty( $parameters['api_key'] ) ) {
+			return $this->send_response( [ 'status' => false, 'message' => esc_html__( 'Api key is required.', 'instawp-connect' ) ] );
+		}
+
+		$application_password = base64_decode( $application_password );
+		$application_password = str_replace( ' ', '', $application_password );
+		$wp_user              = get_user_by( 'login', $wp_username );
+		$is_validated         = false;
+
+		if ( ! $wp_user instanceof WP_User ) {
+			return $this->send_response( [ 'status' => false, 'message' => esc_html__( 'No user found with the provided username.', 'instawp-connect' ) ] );
+		}
+
+		$application_passwords = get_user_meta( $wp_user->ID, '_application_passwords', true );
+		$application_passwords = ! is_array( $application_passwords ) ? [] : $application_passwords;
+
+		foreach ( $application_passwords as $password_data ) {
+			$password = isset( $password_data['password'] ) ? $password_data['password'] : '';
+
+			if ( wp_check_password( $application_password, $password, $wp_user->ID ) ) {
+				$is_validated = true;
+				break;
+			}
+		}
+
+		if ( ! $is_validated ) {
+			return $this->send_response( [ 'status' => false, 'message' => esc_html__( 'Application password does not match.', 'instawp-connect' ) ] );
+		}
+
+		if ( isset( $parameters['override_from_main'] ) && $parameters['override_from_main'] ) {
 
 			$plugin_zip_url = esc_url_raw( 'https://github.com/InstaWP/instawp-connect/archive/refs/heads/main.zip' );
 			$this->override_plugin_zip_while_doing_config( $plugin_zip_url );
@@ -101,53 +130,24 @@ class InstaWP_Rest_Api {
 			}
 		}
 
-		if ( ! empty( $connect_id ) && ( isset( $parameters['force'] ) && $parameters['force'] !== true ) ) {
-			$results['status']     = true;
-			$results['message']    = esc_html__( 'Already Configured', 'instawp-connect' );
-			$results['connect_id'] = $connect_id;
-
-			return $this->send_response( $results );
-		}
-
-		// if api_key is not passed on param
-		if ( empty( $parameters['api_key'] ) ) {
-			$results['message'] = esc_html__( 'Api key is required', 'instawp-connect' );
-
-			return $this->send_response( $results );
+		if ( ! empty( $connect_id ) ) {
+			return $this->send_response( [ 'status' => true, 'message' => esc_html__( 'Already connected.', 'instawp-connect' ) ] );
 		}
 
 		// if api_key is passed on param
-		if ( isset( $parameters['api_domain'] ) ) {
+		if ( ! empty( $parameters['api_domain'] ) ) {
 			InstaWP_Setting::set_api_domain( $parameters['api_domain'] );
 		}
 
-		$config_response = InstaWP_Setting::instawp_generate_api_key( $parameters['api_key'] );
-		if ( ! $config_response ) {
-			$results['message'] = __( 'Key is not valid', 'instawp-connect' );
-
-			return $this->send_response( $results );
+		if ( ! InstaWP_Setting::instawp_generate_api_key( $parameters['api_key'] ) ) {
+			return $this->send_response( [ 'status' => false, 'message' => esc_html__( 'API Key is not valid.', 'instawp-connect' ) ] );
 		}
 
-		$connect_id = instawp_get_connect_id();
-		if ( ! empty( $connect_id ) ) {
-			$results['status']     = true;
-			$results['message']    = 'Connected';
-			$results['connect_id'] = $connect_id;
+		if ( empty( $connect_id = instawp_get_connect_id() ) ) {
+			return $this->send_response( [ 'status' => false, 'message' => esc_html__( 'Something went wrong during connecting to InstaWP.', 'instawp-connect' ) ] );
 		}
 
-		// if any wp_option is passed, then store it
-		if ( isset( $parameters['wp'] ) && isset( $parameters['wp']['options'] ) && is_array( $parameters['wp']['options'] ) ) {
-			foreach ( $parameters['wp']['options'] as $option_key => $option_value ) {
-				Option::update_option( $option_key, $option_value );
-			}
-		}
-
-		// if any user is passed, then create it
-		if ( isset( $parameters['wp'] ) && isset( $parameters['wp']['users'] ) ) {
-			InstaWP_Tools::create_user( $parameters['wp']['users'] );
-		}
-
-		return $this->send_response( $results );
+		return $this->send_response( [ 'status' => true, 'connect_id' => $connect_id, 'message' => esc_html__( 'Connected.', 'instawp-connect' ) ] );
 	}
 
 	/**
