@@ -150,7 +150,8 @@ $options_data_path = $root_dir_path . DIRECTORY_SEPARATOR . 'wp-content' . DIREC
 
 if ( file_exists( $options_data_path ) ) {
 	$options_data_encrypted = file_get_contents( $options_data_path );
-	$options_data_decrypted = openssl_decrypt( $options_data_encrypted, 'AES-128-ECB', $migrate_key );
+	$passphrase             = openssl_digest( $migrate_key, 'SHA256', true );
+	$options_data_decrypted = openssl_decrypt( $options_data_encrypted, 'AES-256-CBC', $passphrase );
 	$jsonData               = json_decode( $options_data_decrypted, true );
 
 	if ( $jsonData !== null ) {
