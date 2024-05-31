@@ -94,7 +94,10 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 
 == Changelog ==
 
-= 0.1.0.38 =
+= 0.1.0.39 - 31 May 2024 =
+- NEW - WooCommerce Summary API.
+
+= 0.1.0.38 - 24 May 2024 =
 - FIX - Excluded SEOPress 404 posts from 2 way sync.
 - FIX - Fixed headers already sent issue.
 - FIX - Fixed push migration API responses.

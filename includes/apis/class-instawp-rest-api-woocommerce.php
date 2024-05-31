@@ -15,11 +15,17 @@ class InstaWP_Rest_Api_WooCommerce extends InstaWP_Rest_Api {
 			'methods'             => 'GET',
 			'callback'            => array( $this, 'get_summary' ),
 			'args'                => array(
+				'limit'     => array(
+					'default'           => 10,
+					'validate_callback' => 'is_integer',
+				),
+				'offset'    => array(
+					'default'           => 0,
+					'validate_callback' => 'is_integer',
+				),
 				'compare'   => array(
 					'default'           => false,
-					'validate_callback' => function( $param, $request, $key ) {
-						return is_bool( $param );
-					},
+					'validate_callback' => 'is_bool',
 				),
 				'from_date' => array(
 					'required'          => true,
@@ -37,15 +43,71 @@ class InstaWP_Rest_Api_WooCommerce extends InstaWP_Rest_Api {
 			'permission_callback' => '__return_true',
 		) );
 
+		register_rest_route( $this->namespace . '/' . $this->version_2 . '/woocommerce', '/graph', array(
+			'methods'             => 'GET',
+			'callback'            => array( $this, 'get_summary' ),
+			'args'                => array(
+				'limit'     => array(
+					'default'           => 10,
+					'validate_callback' => 'is_integer',
+				),
+				'offset'    => array(
+					'default'           => 0,
+					'validate_callback' => 'is_integer',
+				),
+				'compare'   => array(
+					'default'           => false,
+					'validate_callback' => 'is_bool',
+				),
+				'from_date' => array(
+					'required'          => true,
+					'validate_callback' => function( $param, $request, $key ) {
+						return strtotime( $param ) !== false;
+					},
+				),
+				'to_date'   => array(
+					'required'          => true,
+					'validate_callback' => function( $param, $request, $key ) {
+						return strtotime( $param ) !== false;
+					},
+				),
+				'type'      => array(
+					'default'           => 'orders',
+					'validate_callback' => 'sanitize_text_field',
+				),
+			),
+			'permission_callback' => '__return_true',
+		) );
+
 		register_rest_route( $this->namespace . '/' . $this->version_2 . '/woocommerce', '/products', array(
 			'methods'             => 'GET',
 			'callback'            => array( $this, 'get_products' ),
+			'args'                => array(
+				'limit'  => array(
+					'default'           => 10,
+					'validate_callback' => 'is_integer',
+				),
+				'offset' => array(
+					'default'           => 0,
+					'validate_callback' => 'is_integer',
+				),
+			),
 			'permission_callback' => '__return_true',
 		) );
 
 		register_rest_route( $this->namespace . '/' . $this->version_2 . '/woocommerce', '/orders', array(
 			'methods'             => 'GET',
 			'callback'            => array( $this, 'get_orders' ),
+			'args'                => array(
+				'limit'  => array(
+					'default'           => 10,
+					'validate_callback' => 'is_integer',
+				),
+				'offset' => array(
+					'default'           => 0,
+					'validate_callback' => 'is_integer',
+				),
+			),
 			'permission_callback' => '__return_true',
 		) );
 
@@ -71,8 +133,8 @@ class InstaWP_Rest_Api_WooCommerce extends InstaWP_Rest_Api {
 		$compare   = $request->get_param( 'compare' );
 
 		$orders    = $this->get_wc_orders( array(
-			'limit'        => ! empty( $limit ) ? $limit : 10,
-			'offset'       => ! empty( $offset ) ? $offset : 0,
+			'limit'        => $limit,
+			'offset'       => $offset,
 			'date_created' => date( 'Y-m-d H:i:s', strtotime( $from_date ) ) . '...' . date( 'Y-m-d H:i:s', strtotime( $to_date ) ),
 		) );
 
@@ -93,6 +155,17 @@ class InstaWP_Rest_Api_WooCommerce extends InstaWP_Rest_Api {
 			}
 		}
 
+		$args = array(
+			'role'       => 'customer',
+			'date_query' => array(
+				'after'     => date( 'Y-m-d H:i:s', strtotime( $from_date ) ),
+				'before'    => date( 'Y-m-d H:i:s', strtotime( $to_date ) ),
+				'inclusive' => true,
+			),
+			'fields'     => 'ID',
+		);
+		$user_query = new WP_User_Query( $args );
+
 		$response['current'] = array(
 			'net_sales'      => $net_sales,
 			'total_sales'    => $total_sales,
@@ -100,12 +173,13 @@ class InstaWP_Rest_Api_WooCommerce extends InstaWP_Rest_Api {
 			'total_refunded' => $total_refunded,
 			'orders_count'   => count( $orders ),
 			'orders'         => $orders,
+			'customers'      => $user_query->get_total(),
 		);
 
 		if ( $compare ) {
 			$orders    = $this->get_wc_orders( array(
-				'limit'        => ! empty( $limit ) ? $limit : 10,
-				'offset'       => ! empty( $offset ) ? $offset : 0,
+				'limit'        => $limit,
+				'offset'       => $offset,
 				'date_created' => date( 'Y-m-d H:i:s', strtotime( $from_date . ' -1 month' ) ) . '...' . date( 'Y-m-d H:i:s', strtotime( $to_date . ' -1 month' ) ),
 			) );
 
@@ -126,6 +200,17 @@ class InstaWP_Rest_Api_WooCommerce extends InstaWP_Rest_Api {
 				}
 			}
 
+			$args = array(
+				'role'       => 'customer',
+				'date_query' => array(
+					'after'     => date( 'Y-m-d H:i:s', strtotime( $from_date . ' -1 month' ) ),
+					'before'    => date( 'Y-m-d H:i:s', strtotime( $to_date . ' -1 month' ) ),
+					'inclusive' => true,
+				),
+				'fields'     => 'ID',
+			);
+			$user_query = new WP_User_Query( $args );
+
 			$response['previous'] = array(
 				'net_sales'      => $net_sales,
 				'total_sales'    => $total_sales,
@@ -133,6 +218,7 @@ class InstaWP_Rest_Api_WooCommerce extends InstaWP_Rest_Api {
 				'total_refunded' => $total_refunded,
 				'orders_count'   => count( $orders ),
 				'orders'         => $orders,
+				'customers'      => $user_query->get_total(),
 			);
 		}
 
@@ -157,11 +243,60 @@ class InstaWP_Rest_Api_WooCommerce extends InstaWP_Rest_Api {
 		$offset   = $request->get_param( 'offset' );
 
 		$products = $this->get_wc_products( array(
-			'limit'  => ! empty( $limit ) ? $limit : 10,
-			'offset' => ! empty( $offset ) ? $offset : 0,
+			'limit'  => $limit,
+			'offset' => $offset,
 		) );
 
 		return $this->send_response( $products );
+	}
+
+	/**
+	 * Handle response WooCommerce Orders API.
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function get_orders( WP_REST_Request $request ) {
+
+		$response = $this->validate_api_request( $request );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
+
+		$limit  = $request->get_param( 'limit' );
+		$offset = $request->get_param( 'offset' );
+
+		$orders = $this->get_wc_orders( array(
+			'limit'  => $limit,
+			'offset' => $offset,
+		) );
+
+		return $this->send_response( $orders );
+	}
+
+	/**
+	 * Handle response for WooCommerce Customers API.
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function get_customers( WP_REST_Request $request ) {
+
+		$response = $this->validate_api_request( $request );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
+
+		$response  = array();
+		$customers = get_users( array( 'role' => array( 'customer' ) ) );
+		foreach ( $customers as $customer ) {
+			$customer   = new \WC_Customer( $customer->ID );
+			$response[] = $this->get_formatted_item_data( $customer );
+		}
+
+		return $this->send_response( $response );
 	}
 
 	public function get_product_data( $product ) {
@@ -341,55 +476,6 @@ class InstaWP_Rest_Api_WooCommerce extends InstaWP_Rest_Api {
 		}
 
 		return $products_data;
-	}
-
-	/**
-	 * Handle response WooCommerce Orders API.
-	 *
-	 * @param WP_REST_Request $request
-	 *
-	 * @return WP_REST_Response
-	 */
-	public function get_orders( WP_REST_Request $request ) {
-
-		$response = $this->validate_api_request( $request );
-		if ( is_wp_error( $response ) ) {
-			return $this->throw_error( $response );
-		}
-
-		$limit  = $request->get_param( 'limit' );
-		$offset = $request->get_param( 'offset' );
-
-		$orders = $this->get_wc_orders( array(
-			'limit'  => ! empty( $limit ) ? $limit : 10,
-			'offset' => ! empty( $offset ) ? $offset : 0,
-		) );
-
-		return $this->send_response( $orders );
-	}
-
-	/**
-	 * Handle response for WooCommerce Customers API.
-	 *
-	 * @param WP_REST_Request $request
-	 *
-	 * @return WP_REST_Response
-	 */
-	public function get_customers( WP_REST_Request $request ) {
-
-		$response = $this->validate_api_request( $request );
-		if ( is_wp_error( $response ) ) {
-			return $this->throw_error( $response );
-		}
-
-		$response  = array();
-		$customers = get_users( array( 'role' => array( 'customer' ) ) );
-		foreach ( $customers as $customer ) {
-			$customer   = new \WC_Customer( $customer->ID );
-			$response[] = $this->get_formatted_item_data( $customer );
-		}
-
-		return $this->send_response( $response );
 	}
 
 	protected function get_formatted_item_data( $object_data ) {

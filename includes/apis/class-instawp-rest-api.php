@@ -83,24 +83,33 @@ class InstaWP_Rest_Api {
 		$application_password = isset( $parameters['application_password'] ) ? sanitize_text_field( $parameters['application_password'] ) : '';
 
 		if ( empty( $wp_username ) || empty( $application_password ) ) {
-			return $this->send_response( [ 'status' => false, 'message' => esc_html__( 'This request is not authorized.', 'instawp-connect' ) ] );
+			return $this->send_response( array(
+				'status'  => false,
+				'message' => esc_html__( 'This request is not authorized.', 'instawp-connect' ),
+			) );
 		}
 
 		if ( empty( $parameters['api_key'] ) ) {
-			return $this->send_response( [ 'status' => false, 'message' => esc_html__( 'Api key is required.', 'instawp-connect' ) ] );
+			return $this->send_response( array(
+				'status'  => false,
+				'message' => esc_html__( 'Api key is required.', 'instawp-connect' ),
+			) );
 		}
 
-		$application_password = base64_decode( $application_password );
+		$application_password = base64_decode( $application_password ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
 		$application_password = str_replace( ' ', '', $application_password );
 		$wp_user              = get_user_by( 'login', $wp_username );
 		$is_validated         = false;
 
 		if ( ! $wp_user instanceof WP_User ) {
-			return $this->send_response( [ 'status' => false, 'message' => esc_html__( 'No user found with the provided username.', 'instawp-connect' ) ] );
+			return $this->send_response( array(
+				'status'  => false,
+				'message' => esc_html__( 'No user found with the provided username.', 'instawp-connect' ),
+			) );
 		}
 
 		$application_passwords = get_user_meta( $wp_user->ID, '_application_passwords', true );
-		$application_passwords = ! is_array( $application_passwords ) ? [] : $application_passwords;
+		$application_passwords = ! is_array( $application_passwords ) ? array() : $application_passwords;
 
 		foreach ( $application_passwords as $password_data ) {
 			$password = isset( $password_data['password'] ) ? $password_data['password'] : '';
@@ -112,7 +121,10 @@ class InstaWP_Rest_Api {
 		}
 
 		if ( ! $is_validated ) {
-			return $this->send_response( [ 'status' => false, 'message' => esc_html__( 'Application password does not match.', 'instawp-connect' ) ] );
+			return $this->send_response( array(
+				'status'  => false,
+				'message' => esc_html__( 'Application password does not match.', 'instawp-connect' ),
+			) );
 		}
 
 		if ( isset( $parameters['override_from_main'] ) && $parameters['override_from_main'] ) {
@@ -131,7 +143,10 @@ class InstaWP_Rest_Api {
 		}
 
 		if ( ! empty( $connect_id ) ) {
-			return $this->send_response( [ 'status' => true, 'message' => esc_html__( 'Already connected.', 'instawp-connect' ) ] );
+			return $this->send_response( array(
+				'status'  => true,
+				'message' => esc_html__( 'Already connected.', 'instawp-connect' ),
+			) );
 		}
 
 		// if api_key is passed on param
@@ -140,14 +155,24 @@ class InstaWP_Rest_Api {
 		}
 
 		if ( ! InstaWP_Setting::instawp_generate_api_key( $parameters['api_key'] ) ) {
-			return $this->send_response( [ 'status' => false, 'message' => esc_html__( 'API Key is not valid.', 'instawp-connect' ) ] );
+			return $this->send_response( array(
+				'status'  => false,
+				'message' => esc_html__( 'API Key is not valid.', 'instawp-connect' ),
+			) );
 		}
 
 		if ( empty( $connect_id = instawp_get_connect_id() ) ) {
-			return $this->send_response( [ 'status' => false, 'message' => esc_html__( 'Something went wrong during connecting to InstaWP.', 'instawp-connect' ) ] );
+			return $this->send_response( array(
+				'status'  => false,
+				'message' => esc_html__( 'Something went wrong during connecting to InstaWP.', 'instawp-connect' ),
+			) );
 		}
 
-		return $this->send_response( [ 'status' => true, 'connect_id' => $connect_id, 'message' => esc_html__( 'Connected.', 'instawp-connect' ) ] );
+		return $this->send_response( array(
+			'status'     => true,
+			'connect_id' => $connect_id,
+			'message'    => esc_html__( 'Connected.', 'instawp-connect' ),
+		) );
 	}
 
 	/**
@@ -385,7 +410,7 @@ class InstaWP_Rest_Api {
 	public function move_files_folders( $src, $dst ) {
 
 		$dir = opendir( $src );
-		mkdir( $dst );
+		mkdir( $dst ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir
 
 		while ( $file = readdir( $dir ) ) {
 			if ( ( $file !== '.' ) && ( $file !== '..' ) ) {
@@ -399,7 +424,7 @@ class InstaWP_Rest_Api {
 		}
 
 		closedir( $dir );
-		rmdir( $src );
+		rmdir( $src ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
 	}
 
 	public function override_plugin_zip_while_doing_config( $plugin_zip_url ) {
@@ -464,7 +489,7 @@ class InstaWP_Rest_Api {
 				$this->move_files_folders( $source, $destination );
 
 				if ( file_exists( $destination ) ) {
-					rmdir( $destination );
+					rmdir( $destination ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
 				}
 			}
 		}

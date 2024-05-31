@@ -272,7 +272,7 @@ class InstaWP_Sync_Post {
 			'shop_coupon',
 
 			// SEOPress
-			'seopress_404'
+			'seopress_404',
 		);
 		$restricted_cpts = (array) apply_filters( 'INSTAWP_CONNECT/Filters/two_way_sync_restricted_post_types', $restricted_cpts );
 

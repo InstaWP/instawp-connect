@@ -63,7 +63,7 @@ class InstaWP_AJAX {
 			wp_send_json_error();
 		}
 
-		$visibility        = isset( $_POST['visible'] ) && filter_var( $_POST['visible'], FILTER_VALIDATE_BOOLEAN );
+		$visibility        = isset( $_POST['visible'] ) && filter_var( wp_unslash( $_POST['visible'] ), FILTER_VALIDATE_BOOLEAN );
 		$progress          = array(
 			'progress_files'   => 0,
 			'progress_db'      => 0,
