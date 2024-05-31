@@ -385,21 +385,21 @@ class InstaWP_Rest_Api {
 	public function move_files_folders( $src, $dst ) {
 
 		$dir = opendir( $src );
-		instawp_get_fs()->mkdir( $dst );
+		mkdir( $dst );
 
 		while ( $file = readdir( $dir ) ) {
 			if ( ( $file !== '.' ) && ( $file !== '..' ) ) {
 				if ( is_dir( $src . '/' . $file ) ) {
 					$this->move_files_folders( $src . '/' . $file, $dst . '/' . $file );
 				} else {
-					instawp_get_fs()->copy( $src . '/' . $file, $dst . '/' . $file );
+					copy( $src . '/' . $file, $dst . '/' . $file );
 					wp_delete_file( $src . '/' . $file );
 				}
 			}
 		}
 
 		closedir( $dir );
-		instawp_get_fs()->rmdir( $src );
+		rmdir( $src );
 	}
 
 	public function override_plugin_zip_while_doing_config( $plugin_zip_url ) {
@@ -408,8 +408,8 @@ class InstaWP_Rest_Api {
 			return;
 		}
 
-		$plugin_zip   = INSTAWP_PLUGIN_SLUG . '.zip';
 		$plugins_path = WP_CONTENT_DIR . '/plugins/';
+		$plugin_zip   = $plugins_path . INSTAWP_PLUGIN_SLUG . '.zip';
 
 		// Download the file from remote location
 		file_put_contents( $plugin_zip, fopen( $plugin_zip_url, 'r' ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen, WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
@@ -429,6 +429,14 @@ class InstaWP_Rest_Api {
 			require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
 		}
 
+		if ( ! class_exists( 'WP_Upgrader_Skin' ) ) {
+			require_once( ABSPATH . 'wp-admin/includes/class-wp-upgrader-skin.php' );
+		}
+
+		if ( ! class_exists( 'Automatic_Upgrader_Skin' ) ) {
+			require_once( ABSPATH . 'wp-admin/includes/class-automatic-upgrader-skin.php' );
+		}
+
 		if ( ! class_exists( 'Plugin_Upgrader' ) ) {
 			require_once( ABSPATH . 'wp-admin/includes/class-wp-upgrader.php' );
 		}
@@ -439,7 +447,7 @@ class InstaWP_Rest_Api {
 
 		wp_cache_flush();
 
-		$plugin_upgrader = new Plugin_Upgrader();
+		$plugin_upgrader = new Plugin_Upgrader( new Automatic_Upgrader_Skin() );
 		$installed       = $plugin_upgrader->install( $plugin_zip, array( 'overwrite_package' => true ) );
 
 		if ( $installed ) {
@@ -456,7 +464,7 @@ class InstaWP_Rest_Api {
 				$this->move_files_folders( $source, $destination );
 
 				if ( file_exists( $destination ) ) {
-					instawp_get_fs()->rmdir( $destination );
+					rmdir( $destination );
 				}
 			}
 		}
