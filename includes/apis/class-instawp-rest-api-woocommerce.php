@@ -6,8 +6,10 @@ class InstaWP_Rest_Api_WooCommerce extends InstaWP_Rest_Api {
 	
 	public function __construct() {
 		parent::__construct();
-		
-		add_action( 'rest_api_init', array( $this, 'add_api_routes' ) );
+
+		if ( class_exists( 'WooCommerce') ) {
+			add_action( 'rest_api_init', array( $this, 'add_api_routes' ) );
+		}
 	}
 
 	public function add_api_routes() {
@@ -16,16 +18,16 @@ class InstaWP_Rest_Api_WooCommerce extends InstaWP_Rest_Api {
 			'callback'            => array( $this, 'get_summary' ),
 			'args'                => array(
 				'limit'     => array(
-					'default'           => 10,
-					'validate_callback' => 'is_integer',
+					'default'           => -1,
+					'validate_callback' => 'is_numeric',
 				),
 				'offset'    => array(
 					'default'           => 0,
-					'validate_callback' => 'is_integer',
+					'validate_callback' => 'is_numeric',
 				),
 				'compare'   => array(
 					'default'           => false,
-					'validate_callback' => 'is_bool',
+					'validate_callback' => 'is_boolean',
 				),
 				'from_date' => array(
 					'required'          => true,
@@ -45,19 +47,19 @@ class InstaWP_Rest_Api_WooCommerce extends InstaWP_Rest_Api {
 
 		register_rest_route( $this->namespace . '/' . $this->version_2 . '/woocommerce', '/graph', array(
 			'methods'             => 'GET',
-			'callback'            => array( $this, 'get_summary' ),
+			'callback'            => array( $this, 'get_graph' ),
 			'args'                => array(
 				'limit'     => array(
-					'default'           => 10,
-					'validate_callback' => 'is_integer',
+					'default'           => -1,
+					'validate_callback' => 'is_numeric',
 				),
 				'offset'    => array(
 					'default'           => 0,
-					'validate_callback' => 'is_integer',
+					'validate_callback' => 'is_numeric',
 				),
 				'compare'   => array(
 					'default'           => false,
-					'validate_callback' => 'is_bool',
+					'validate_callback' => 'is_boolean',
 				),
 				'from_date' => array(
 					'required'          => true,
@@ -73,7 +75,15 @@ class InstaWP_Rest_Api_WooCommerce extends InstaWP_Rest_Api {
 				),
 				'type'      => array(
 					'default'           => 'orders',
-					'validate_callback' => 'sanitize_text_field',
+					'validate_callback' => function( $param, $request, $key ) {
+						return in_array( $param, array( 'orders', 'sales', 'customers' ), true );
+					},
+				),
+				'granularity'      => array(
+					'default'           => 'daily',
+					'validate_callback' => function( $param, $request, $key ) {
+						return in_array( $param, array( 'hourly', 'daily', 'weekly', 'monthly', 'yearly' ), true );
+					},
 				),
 			),
 			'permission_callback' => '__return_true',
@@ -85,11 +95,11 @@ class InstaWP_Rest_Api_WooCommerce extends InstaWP_Rest_Api {
 			'args'                => array(
 				'limit'  => array(
 					'default'           => 10,
-					'validate_callback' => 'is_integer',
+					'validate_callback' => 'is_numeric',
 				),
 				'offset' => array(
 					'default'           => 0,
-					'validate_callback' => 'is_integer',
+					'validate_callback' => 'is_numeric',
 				),
 			),
 			'permission_callback' => '__return_true',
@@ -101,11 +111,11 @@ class InstaWP_Rest_Api_WooCommerce extends InstaWP_Rest_Api {
 			'args'                => array(
 				'limit'  => array(
 					'default'           => 10,
-					'validate_callback' => 'is_integer',
+					'validate_callback' => 'is_numeric',
 				),
 				'offset' => array(
 					'default'           => 0,
-					'validate_callback' => 'is_integer',
+					'validate_callback' => 'is_numeric',
 				),
 			),
 			'permission_callback' => '__return_true',
@@ -132,94 +142,93 @@ class InstaWP_Rest_Api_WooCommerce extends InstaWP_Rest_Api {
 		$to_date   = $request->get_param( 'to_date' );
 		$compare   = $request->get_param( 'compare' );
 
-		$orders    = $this->get_wc_orders( array(
+		$response['current'] = $this->calculate_orders_summary( array(
 			'limit'        => $limit,
 			'offset'       => $offset,
 			'date_created' => date( 'Y-m-d H:i:s', strtotime( $from_date ) ) . '...' . date( 'Y-m-d H:i:s', strtotime( $to_date ) ),
+			'return'       => 'ids',
 		) );
-
-		$total_sales    = 0;
-		$net_sales      = 0;
-		$total_tax      = 0;
-		$total_refunded = 0;
-
-		foreach ( $orders as $order ) {
-			$order       = wc_get_order( $order['id'] );
-			$total_sales += $order->get_total();
-			$net_sales   += $order->get_total() - $order->get_total_tax() - $order->get_shipping_total();
-			$total_tax   += $order->get_total_tax();
-
-			$refunds = $order->get_refunds();
-			foreach ( $refunds as $refund ) {
-				$total_refunded += $refund->get_amount();
-			}
-		}
-
-		$args = array(
-			'role'       => 'customer',
-			'date_query' => array(
-				'after'     => date( 'Y-m-d H:i:s', strtotime( $from_date ) ),
-				'before'    => date( 'Y-m-d H:i:s', strtotime( $to_date ) ),
-				'inclusive' => true,
-			),
-			'fields'     => 'ID',
-		);
-		$user_query = new WP_User_Query( $args );
-
-		$response['current'] = array(
-			'net_sales'      => $net_sales,
-			'total_sales'    => $total_sales,
-			'total_tax'      => $total_tax,
-			'total_refunded' => $total_refunded,
-			'orders_count'   => count( $orders ),
-			'orders'         => $orders,
-			'customers'      => $user_query->get_total(),
-		);
+		$response['current']['customers'] = $this->calculate_customers_summary( $from_date, $to_date );
 
 		if ( $compare ) {
-			$orders    = $this->get_wc_orders( array(
+			$date1 = new DateTime( $from_date );
+			$date2 = new DateTime( $to_date );
+
+			$interval = $date1->diff( $date2 );
+			$days     = $interval->days;
+
+			$from_date = strtotime( $from_date . " -$days days" );
+			$to_date   = strtotime( $to_date . " -$days days" );
+
+			$from_date = date( 'Y-m-d H:i:s', $from_date );
+			$to_date   = date( 'Y-m-d H:i:s', $to_date );
+
+			$response['previous'] = $this->calculate_orders_summary( array(
 				'limit'        => $limit,
 				'offset'       => $offset,
-				'date_created' => date( 'Y-m-d H:i:s', strtotime( $from_date . ' -1 month' ) ) . '...' . date( 'Y-m-d H:i:s', strtotime( $to_date . ' -1 month' ) ),
+				'date_created' => date( 'Y-m-d H:i:s', strtotime( $from_date ) ) . '...' . date( 'Y-m-d H:i:s', strtotime( $to_date ) ),
+				'return'       => 'ids',
+			) );
+			$response['previous']['customers'] = $this->calculate_customers_summary( $from_date, $to_date );
+		}
+
+		return $this->send_response( $response );
+	}
+
+	public function get_graph( WP_REST_Request $request ) {
+
+		$response = $this->validate_api_request( $request );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
+
+		$response    = array();
+		$limit       = $request->get_param( 'limit' );
+		$offset      = $request->get_param( 'offset' );
+		$from_date   = $request->get_param( 'from_date' );
+		$to_date     = $request->get_param( 'to_date' );
+		$compare     = $request->get_param( 'compare' );
+		$type        = $request->get_param( 'type' );
+		$granularity = $request->get_param( 'granularity' );
+
+		if ( in_array( $type, array( 'orders', 'sales' ), true ) ) {
+			$orders = wc_get_orders( array(
+				'limit'        => $limit,
+				'offset'       => $offset,
+				'date_created' => date( 'Y-m-d H:i:s', strtotime( $from_date ) ) . '...' . date( 'Y-m-d H:i:s', strtotime( $to_date ) ),
 			) );
 
-			$total_sales    = 0;
-			$net_sales      = 0;
-			$total_tax      = 0;
-			$total_refunded = 0;
+			$response['current'] = ( $type === 'orders' ) ? $this->get_orders_by_granularity( $orders, $granularity ) : $this->get_sales_by_granularity( $orders, $granularity );
+		} else {
+			$customers = $this->get_customers_registered( $from_date, $to_date );
+			$response['current'] = $this->get_customers_by_granularity( $customers, $granularity );
+		}
 
-			foreach ( $orders as $order ) {
-				$order       = wc_get_order( $order['id'] );
-				$total_sales += $order->get_total();
-				$net_sales   += $order->get_total() - $order->get_total_tax() - $order->get_shipping_total();
-				$total_tax   += $order->get_total_tax();
+		if ( $compare ) {
+			$date1 = new DateTime( $from_date );
+			$date2 = new DateTime( $to_date );
 
-				$refunds = $order->get_refunds();
-				foreach ( $refunds as $refund ) {
-					$total_refunded += $refund->get_amount();
-				}
+			$interval = $date1->diff( $date2 );
+			$days     = $interval->days;
+
+			$from_date = strtotime( $from_date . " -$days days" );
+			$to_date   = strtotime( $to_date . " -$days days" );
+
+			$from_date = date( 'Y-m-d H:i:s', $from_date );
+			$to_date   = date( 'Y-m-d H:i:s', $to_date );
+
+			if ( in_array( $type, array( 'orders', 'sales' ), true ) ) {
+				$orders = wc_get_orders( array(
+					'limit'        => $limit,
+					'offset'       => $offset,
+					'date_created' => date( 'Y-m-d H:i:s', strtotime( $from_date ) ) . '...' . date( 'Y-m-d H:i:s', strtotime( $to_date ) ),
+				) );
+
+				$response['previous'] = ( $type === 'orders' ) ? $this->get_orders_by_granularity( $orders, $granularity ) : $this->get_sales_by_granularity( $orders, $granularity );
+			} else {
+				$customers = $this->get_customers_registered( $from_date, $to_date );
+				$response['previous'] = $this->get_customers_by_granularity( $customers, $granularity );
 			}
-
-			$args = array(
-				'role'       => 'customer',
-				'date_query' => array(
-					'after'     => date( 'Y-m-d H:i:s', strtotime( $from_date . ' -1 month' ) ),
-					'before'    => date( 'Y-m-d H:i:s', strtotime( $to_date . ' -1 month' ) ),
-					'inclusive' => true,
-				),
-				'fields'     => 'ID',
-			);
-			$user_query = new WP_User_Query( $args );
-
-			$response['previous'] = array(
-				'net_sales'      => $net_sales,
-				'total_sales'    => $total_sales,
-				'total_tax'      => $total_tax,
-				'total_refunded' => $total_refunded,
-				'orders_count'   => count( $orders ),
-				'orders'         => $orders,
-				'customers'      => $user_query->get_total(),
-			);
 		}
 
 		return $this->send_response( $response );
@@ -476,6 +485,177 @@ class InstaWP_Rest_Api_WooCommerce extends InstaWP_Rest_Api {
 		}
 
 		return $products_data;
+	}
+
+	public function calculate_orders_summary( $args ) {
+		$orders   = wc_get_orders( $args );
+
+		$total_sales    = 0;
+		$net_sales      = 0;
+		$total_tax      = 0;
+		$total_refunded = 0;
+
+		foreach ( $orders as $order_id ) {
+			$order       = wc_get_order( $order_id );
+			$total_sales += $order->get_total();
+			$net_sales   += $order->get_total() - $order->get_total_tax() - $order->get_shipping_total();
+			$total_tax   += $order->get_total_tax();
+
+			$refunds = $order->get_refunds();
+			foreach ( $refunds as $refund ) {
+				$total_refunded += $refund->get_amount();
+			}
+		}
+
+		return array(
+			'net_sales'      => $net_sales,
+			'total_sales'    => $total_sales,
+			'total_tax'      => $total_tax,
+			'total_refunded' => $total_refunded,
+			'orders'         => count( $orders ),
+		);
+	}
+
+	public function calculate_customers_summary( $from_date, $to_date ) {
+		$args = array(
+			'role'       => 'customer',
+			'date_query' => array(
+				'after'     => date( 'Y-m-d H:i:s', strtotime( $from_date ) ),
+				'before'    => date( 'Y-m-d H:i:s', strtotime( $to_date ) ),
+				'inclusive' => true,
+			),
+			'fields'     => 'ID',
+		);
+		$user_query = new WP_User_Query( $args );
+
+		return $user_query->get_total();
+	}
+
+	public function get_customers_registered( $from_date, $to_date ) {
+		$args = array(
+			'role'       => 'customer',
+			'date_query' => array(
+				'after'     => date( 'Y-m-d H:i:s', strtotime( $from_date ) ),
+				'before'    => date( 'Y-m-d H:i:s', strtotime( $to_date ) ),
+				'inclusive' => true,
+			),
+			'fields' => array( 'ID', 'user_registered' ),
+		);
+		$user_query = new WP_User_Query( $args );
+
+		return $user_query->get_results();
+	}
+
+	public function get_orders_by_granularity( $orders, $granularity ) {
+		$grouped = array();
+
+		foreach ( $orders as $order ) {
+			$date_created = $order->get_date_created();
+			if ( ! $date_created ) continue;
+
+			switch ( $granularity ) {
+				case 'hourly':
+					$key = $date_created->date( 'Y-m-d H:00:00' );
+					break;
+				case 'daily':
+					$key = $date_created->date( 'Y-m-d' );
+					break;
+				case 'weekly':
+					$key = $date_created->date( 'o-W' );
+					break;
+				case 'monthly':
+					$key = $date_created->date( 'Y-m' );
+					break;
+				case 'yearly':
+					$key = $date_created->date( 'Y' );
+					break;
+				default:
+					$key = $date_created->date( 'Y-m-d' );
+			}
+
+			if ( ! isset( $grouped[ $key ] ) ) {
+				$grouped[ $key ] = 0;
+			}
+
+			$grouped[ $key ]++;
+		}
+
+		return $grouped;
+	}
+
+	public function get_sales_by_granularity( $orders, $granularity ) {
+		$grouped = array();
+
+		foreach ( $orders as $order ) {
+			$date_created = $order->get_date_created();
+			if ( ! $date_created ) continue;
+
+			$net_sales = $order->get_total() - $order->get_total_tax() - $order->get_shipping_total();
+
+			switch ( $granularity ) {
+				case 'hourly':
+					$key = $date_created->date( 'Y-m-d H:00:00' );
+					break;
+				case 'daily':
+					$key = $date_created->date( 'Y-m-d' );
+					break;
+				case 'weekly':
+					$key = $date_created->date( 'o-W' );
+					break;
+				case 'monthly':
+					$key = $date_created->date( 'Y-m' );
+					break;
+				case 'yearly':
+					$key = $date_created->date( 'Y' );
+					break;
+				default:
+					$key = $date_created->date( 'Y-m-d' );
+			}
+
+			if ( ! isset( $grouped[ $key ] ) ) {
+				$grouped[ $key ] = 0;
+			}
+
+			$grouped[ $key ] = $grouped[ $key ] + $net_sales;
+		}
+
+		return $grouped;
+	}
+
+	function get_customers_by_granularity( $users, $granularity ) {
+		$grouped = array();
+
+		foreach ( $users as $user ) {
+			$date_registered = new DateTime( $user->user_registered );
+
+			switch ( $granularity ) {
+				case 'hourly':
+					$key = $date_registered->format( 'Y-m-d H:00:00' );
+					break;
+				case 'daily':
+					$key = $date_registered->format( 'Y-m-d' );
+					break;
+				case 'weekly':
+					$key = $date_registered->format( 'o-W' );
+					break;
+				case 'monthly':
+					$key = $date_registered->format( 'Y-m' );
+					break;
+				case 'yearly':
+					$key = $date_registered->format( 'Y' );
+					break;
+				default:
+					$key = $date_registered->format( 'Y-m-d' );
+			}
+
+			if ( ! isset( $grouped[ $key ] ) ) {
+				$grouped[ $key ] = 0;
+			}
+
+			$grouped[ $key ]++;
+		}
+
+		return $grouped;
 	}
 
 	protected function get_formatted_item_data( $object_data ) {
