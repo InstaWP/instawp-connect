@@ -459,17 +459,23 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
 		foreach ( $limitedIterator as $file ) {
 
-			$filepath = '';
-			$filesize = 0;
+			$filepath      = '';
+			$filesize      = 0;
+			$filepath_hash = hash( 'sha256', $filepath );
 
 			try {
 				$filepath = $file->getPathname();
 				$filesize = $file->getSize();
 			} catch ( Exception $e ) {
+				$tracking_db->insert( 'iwp_files_sent', array(
+					'filepath'      => "'$filepath'",
+					'filepath_hash' => "'$filepath_hash'",
+					'sent'          => 5,
+					'size'          => "'$filesize'",
+				) );
 				continue;
 			}
 
-			$filepath_hash = hash( 'sha256', $filepath );
 
 			if ( ! is_valid_file( $filepath ) ) {
 				try {
