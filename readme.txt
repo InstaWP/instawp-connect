@@ -23,7 +23,7 @@ Once you activate InstaWP Connect, you can click Create Site and connect your si
 
 One-click, and the staging creation process will begin!
 
-Once the process is complete (it takes a few minutes depending on the site’s size), you will be able to find the staging of your live site in the InstaWP dashboard. Now, it’s possible to test, develop, edit, clone, migrate, or log in to your staging site in seconds.
+Once the process is complete (it takes a few minutes depending on the site’s size), you will be able to find the staging of your live site in the InstaWP dashboard. Now, it’s possible to test, develop, edit, clone, migrate, or log in to your [staging site](https://instawp.com/wordpress-staging/) in seconds.
 
 ## PLUGIN FEATURES
 Using this companion plugin, you can connect your existing WordPress sites anywhere on the internet to your InstaWP. After your site is connected, you can create 1-click staging websites from within the WP admin panel.
@@ -91,6 +91,10 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 4. Staging Process - Monitor Progress.
 5. All Staging Sites
 6. Update API Key and Settings.
+
+== Frequently Asked Questions ==
+=How can I report security issues?=
+You can report security bugs through the Patchstack Vulnerability Disclosure Program. The Patchstack team helps validate, triage, and handle any security vulnerabilities. [Report a security vulnerability](https://patchstack.com/database/vdp/instawp-connect).
 
 == Changelog ==
 
