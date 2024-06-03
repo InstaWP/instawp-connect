@@ -128,14 +128,18 @@ class instaWP {
 		if ( $path !== '' && file_exists( $path ) && is_readable( $path ) ) {
 			try {
 				foreach ( new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $path, FilesystemIterator::SKIP_DOTS ) ) as $object ) {
-					if ( $object->getSize() > $maxbytes && strpos( $object->getPath(), 'instawpbackups' ) === false ) {
-						$data[] = array(
-							'size'          => $object->getSize(),
-							'path'          => wp_normalize_path( $object->getPath() ),
-							'pathname'      => wp_normalize_path( $object->getPathname() ),
-							'realpath'      => wp_normalize_path( $object->getRealPath() ),
-							'relative_path' => str_replace( wp_normalize_path( ABSPATH ), '', wp_normalize_path( $object->getRealPath() ) ),
-						);
+					try {
+						if ( $object->getSize() > $maxbytes && strpos( $object->getPath(), 'instawpbackups' ) === false ) {
+							$data[] = array(
+								'size'          => $object->getSize(),
+								'path'          => wp_normalize_path( $object->getPath() ),
+								'pathname'      => wp_normalize_path( $object->getPathname() ),
+								'realpath'      => wp_normalize_path( $object->getRealPath() ),
+								'relative_path' => str_replace( wp_normalize_path( ABSPATH ), '', wp_normalize_path( $object->getRealPath() ) ),
+							);
+						}
+					} catch ( Exception $e ){
+						continue;
 					}
 				}
 			} catch ( \Exception $e ) {
@@ -251,8 +255,12 @@ class instaWP {
 		try {
 			if ( $path !== false && $path !== '' && file_exists( $path ) ) {
 				foreach ( new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $path, FilesystemIterator::SKIP_DOTS ) ) as $object ) {
-					$bytes_total += $object->getSize();
-					++ $files_total;
+					try {
+						$bytes_total += $object->getSize();
+						++ $files_total;
+					} catch ( Exception $e ){
+						continue;
+					}
 				}
 			}
 		} catch ( Exception $e ) {
