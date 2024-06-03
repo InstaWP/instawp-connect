@@ -49,37 +49,37 @@ class InstaWP_Rest_Api_WooCommerce extends InstaWP_Rest_Api {
 			'methods'             => 'GET',
 			'callback'            => array( $this, 'get_graph' ),
 			'args'                => array(
-				'limit'     => array(
+				'limit'       => array(
 					'default'           => -1,
 					'validate_callback' => 'is_numeric',
 				),
-				'offset'    => array(
+				'offset'      => array(
 					'default'           => 0,
 					'validate_callback' => 'is_numeric',
 				),
-				'compare'   => array(
+				'compare'     => array(
 					'default'           => false,
 					'validate_callback' => 'is_boolean',
 				),
-				'from_date' => array(
+				'from_date'   => array(
 					'required'          => true,
 					'validate_callback' => function( $param, $request, $key ) {
 						return strtotime( $param ) !== false;
 					},
 				),
-				'to_date'   => array(
+				'to_date'     => array(
 					'required'          => true,
 					'validate_callback' => function( $param, $request, $key ) {
 						return strtotime( $param ) !== false;
 					},
 				),
-				'type'      => array(
+				'type'        => array(
 					'default'           => 'orders',
 					'validate_callback' => function( $param, $request, $key ) {
 						return in_array( $param, array( 'orders', 'sales', 'customers' ), true );
 					},
 				),
-				'granularity'      => array(
+				'granularity' => array(
 					'default'           => 'daily',
 					'validate_callback' => function( $param, $request, $key ) {
 						return in_array( $param, array( 'hourly', 'daily', 'weekly', 'monthly', 'yearly' ), true );
@@ -539,7 +539,7 @@ class InstaWP_Rest_Api_WooCommerce extends InstaWP_Rest_Api {
 				'before'    => date( 'Y-m-d H:i:s', strtotime( $to_date ) ),
 				'inclusive' => true,
 			),
-			'fields' => array( 'ID', 'user_registered' ),
+			'fields'     => array( 'ID', 'user_registered' ),
 		);
 		$user_query = new WP_User_Query( $args );
 
@@ -577,7 +577,7 @@ class InstaWP_Rest_Api_WooCommerce extends InstaWP_Rest_Api {
 				$grouped[ $key ] = 0;
 			}
 
-			$grouped[ $key ]++;
+			++$grouped[ $key ];
 		}
 
 		return $grouped;
@@ -652,7 +652,7 @@ class InstaWP_Rest_Api_WooCommerce extends InstaWP_Rest_Api {
 				$grouped[ $key ] = 0;
 			}
 
-			$grouped[ $key ]++;
+			++$grouped[ $key ];
 		}
 
 		return $grouped;
