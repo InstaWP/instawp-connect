@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.6
 Tested up to: 6.5.2
 Requires PHP: 5.6
-Stable tag: 0.1.0.38
+Stable tag: 0.1.0.39
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -98,8 +98,12 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
-= 0.1.0.39 - 31 May 2024 =
+= 0.1.0.39 - 04 Jun 2024 =
 - NEW - WooCommerce Summary API.
+- FIX - Fixed config API and added extra security.
+- FIX - Update the migration messages and logs.
+- FIX - Encrypted push options data.
+- FIX - Fixed file size calculating issue in serve script.
 
 = 0.1.0.38 - 24 May 2024 =
 - FIX - Excluded SEOPress 404 posts from 2 way sync.
