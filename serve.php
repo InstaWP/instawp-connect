@@ -7,7 +7,7 @@ $api_signature = isset( $_POST['api_signature'] ) ? $_POST['api_signature'] : ''
 
 if ( empty( $migrate_key ) ) {
 	header( 'x-iwp-status: false' );
-	header( 'x-iwp-message: Invalid migrate key.' );
+	header( 'x-iwp-message: The migration key is invalid.' );
 	die();
 }
 
@@ -101,9 +101,9 @@ if ( file_exists( $iwpdb_main_path ) && is_readable( $iwpdb_main_path ) ) {
 	require_once( $iwpdb_git_path );
 } else {
 	header( 'x-iwp-status: false' );
-	header( 'x-iwp-message: Could not find class-instawp-iwpdb in the plugin directory.' );
+	header( 'x-iwp-message: The migration script could not find `class-instawp-iwpdb.php` inside the plugin directory.' );
 	header( 'x-iwp-root-path: ' . WP_ROOT );
-	echo "Could not find class-instawp-iwpdb in the plugin directory.";
+	echo "The migration script could not find the `class-instawp-iwpdb` inside the plugin directory.";
 	exit( 2 );
 }
 
@@ -113,13 +113,13 @@ try {
 	$tracking_db = new IWPDB( $migrate_key );
 } catch ( Exception $e ) {
 	header( 'x-iwp-status: false' );
-	header( 'x-iwp-message: Database connection error. Actual error: ' . $e->getMessage() );
+	header( 'x-iwp-message: Migration script could not connect to the database. Actual error is: ' . $e->getMessage() );
 	die();
 }
 
 if ( ! $tracking_db ) {
 	header( 'x-iwp-status: false' );
-	header( 'x-iwp-message: Could not find tracking database.' );
+	header( 'x-iwp-message: The migration tracking database could not find or load properly.' );
 	die();
 }
 
@@ -127,7 +127,7 @@ $db_api_signature = $tracking_db->get_option( 'api_signature' );
 
 if ( ! hash_equals( $db_api_signature, $api_signature ) ) {
 	header( 'x-iwp-status: false' );
-	header( 'x-iwp-message: Mismatched api signature.' );
+	header( 'x-iwp-message: The given api signature and the stored one are not matching, maybe the tracking database reset or wrong api signature passed to migration script.' );
 	die();
 }
 
@@ -238,7 +238,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 				readfile_chunked( $tmpZip );
 			} catch ( Exception $exception ) {
 				header( 'x-iwp-status: false' );
-				header( 'x-iwp-message: Error in reading file. Message - ' . $exception->getMessage() );
+				header( 'x-iwp-message: The migration script could not read this specific file. Actual exception message is: ' . $exception->getMessage() );
 			}
 
 			foreach ( $zipSuccessFiles as $file ) {
@@ -435,7 +435,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			$limitedIterator = new LimitIterator( $iterator, $currentFileIndex, BATCH_SIZE );
 		} catch ( Exception $e ) {
 			header( 'x-iwp-status: false' );
-			header( 'x-iwp-message: limitIterator error. Actual error: ' . $e->getMessage() );
+			header( 'x-iwp-message: Migration script could not traverse all the files using the limited iterator. Actual reason is: ' . $e->getMessage() );
 			die();
 		}
 
@@ -504,7 +504,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 					++ $fileIndex;
 				} catch ( Exception $e ) {
 					header( 'x-iwp-status: false' );
-					header( 'x-iwp-message: Insert to iwp_files_sent failed. Actual error: ' . $e->getMessage() );
+					header( 'x-iwp-message: Insert to tracking database (iwp_files_sent table) was failed. Actual error message is: ' . $e->getMessage() );
 					die();
 				}
 			} else {
@@ -523,7 +523,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		if ( $fileIndex == 0 ) {
 			header( 'x-iwp-status: true' );
 			header( 'x-iwp-transfer-complete: true' );
-			header( 'x-iwp-message: No more files left to download as FileIndex is 0. current_file_index: ' . json_encode( $ret ) );
+			header( 'x-iwp-message: No more files left to download as the FileIndex is 0. Current file index is: ' . json_encode( $ret ) );
 			exit;
 		}
 
@@ -734,7 +734,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 
 		if ( ! $result ) {
 			header( 'x-iwp-status: false' );
-			header( 'x-iwp-message: Database query error - ' . $tracking_db->last_error );
+			header( 'x-iwp-message: There is an error in the database query operation. Actual error message is: ' . $tracking_db->last_error );
 			die();
 		}
 
