@@ -149,6 +149,9 @@ class InstaWP_Rest_Api {
 			if ( defined( 'INSTAWP_API_DOMAIN' ) ) {
 				InstaWP_Setting::set_api_domain( INSTAWP_API_DOMAIN );
 			} else {
+
+				$api_domain = rtrim( $api_domain, '/' );
+
 				if ( in_array( $api_domain, [ 'https://stage.instawp.io', 'https://app.instawp.io' ] ) ) {
 					InstaWP_Setting::set_api_domain( $api_domain );
 				} else {
