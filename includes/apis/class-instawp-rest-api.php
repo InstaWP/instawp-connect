@@ -166,6 +166,7 @@ class InstaWP_Rest_Api {
 			if ( defined( 'INSTAWP_API_DOMAIN' ) ) {
 				InstaWP_Setting::set_api_domain( INSTAWP_API_DOMAIN );
 			} elseif ( in_array( $api_domain, array( 'https://stage.instawp.io', 'https://app.instawp.io' ) ) ) {
+				$api_domain = rtrim( $api_domain, '/' );
 				InstaWP_Setting::set_api_domain( $api_domain );
 			} else {
 				return $this->send_response( array(

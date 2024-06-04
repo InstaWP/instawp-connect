@@ -5,6 +5,7 @@
 
 use InstaWP\Connect\Helpers\Curl;
 use InstaWP\Connect\Helpers\Helper;
+use InstaWP\Connect\Helpers\Inventory;
 use InstaWP\Connect\Helpers\Option;
 
 defined( 'ABSPATH' ) || exit;
@@ -54,7 +55,7 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 		}
 
 		public function handle_heartbeat_status() {
-			$disabled = get_option( 'instawp_rm_heartbeat_failed' );
+			$disabled = Option::get_option( 'instawp_rm_heartbeat_failed' );
 			if ( ! $disabled ) {
 				return;
 			}
@@ -85,7 +86,7 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 				$post_data[ $post_type ] = ( array ) wp_count_posts( $post_type );
 			}
 
-			$inventory = new \InstaWP\Connect\Helpers\Inventory();
+			$inventory = new Inventory();
 			$site_data = $inventory->fetch();
 
 			return array(
@@ -118,7 +119,11 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 			}
 
 			if ( empty( $connect_id ) ) {
-				$connect_id = instawp()->connect_id;
+				$connect_id = instawp_get_connect_id();
+			}
+
+			if ( empty( $connect_id ) ) {
+				return false;
 			}
 
 			$last_sent_data = get_option( 'instawp_heartbeat_sent_data', array() );
@@ -151,27 +156,33 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 			) );
 			$heartbeat_body = base64_encode( $heartbeat_body ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
 
-			$success = false;
-			for ( $i = 0; $i < 10; $i ++ ) {
-				$heartbeat_response = Curl::do_curl( "connects/{$connect_id}/heartbeat", $heartbeat_body, array(), true, 'v1' );
-				$response_code      = Helper::get_args_option( 'code', $heartbeat_response );
-
-				if ( intval( $response_code ) === 200 ) {
-					$success = true;
-					break;
-				}
-			}
+			$heartbeat_response = Curl::do_curl( "connects/{$connect_id}/heartbeat", $heartbeat_body, array(), true, 'v1' );
+			$response_code      = Helper::get_args_option( 'code', $heartbeat_response );
+			$success            = intval( $response_code ) === 200;
 
 			if ( ! $success ) {
-				Option::update_option( 'instawp_rm_heartbeat', 'off' );
-				Option::update_option( 'instawp_rm_heartbeat_failed', true );
-				as_unschedule_all_actions( 'instawp_handle_heartbeat', array(), 'instawp-connect' );
+				$failed_count = Option::get_option( 'instawp_heartbeat_failed', 0 );
+				$failed_count = $failed_count ?: 0;
 
-				if ( intval( $response_code ) === 404 ) {
-					instawp_reset_running_migration( 'hard' );
+				++$failed_count;
+
+				if ( $failed_count > 10 ) {
+					Option::update_option( 'instawp_rm_heartbeat', 'off' );
+					Option::update_option( 'instawp_rm_heartbeat_failed', true );
+
+					delete_option( 'instawp_heartbeat_failed' );
+					as_unschedule_all_actions( 'instawp_handle_heartbeat', array(), 'instawp-connect' );
+
+					if ( intval( $response_code ) === 404 ) {
+						instawp_reset_running_migration( 'hard' );
+					}
+				} else {
+					Option::update_option( 'instawp_heartbeat_failed', $failed_count );
 				}
 			} else {
+				delete_option( 'instawp_heartbeat_failed' );
 				delete_option( 'instawp_rm_heartbeat_failed' );
+
 				Option::update_option( 'instawp_heartbeat_sent_data', $heartbeat_data );
 
 				if ( $setting === 'on' ) {
