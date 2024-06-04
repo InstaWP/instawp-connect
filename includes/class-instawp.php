@@ -138,7 +138,7 @@ class instaWP {
 								'relative_path' => str_replace( wp_normalize_path( ABSPATH ), '', wp_normalize_path( $object->getRealPath() ) ),
 							);
 						}
-					} catch ( Exception $e ){
+					} catch ( Exception $e ) {
 						continue;
 					}
 				}
@@ -258,7 +258,7 @@ class instaWP {
 					try {
 						$bytes_total += $object->getSize();
 						++ $files_total;
-					} catch ( Exception $e ){
+					} catch ( Exception $e ) {
 						continue;
 					}
 				}
