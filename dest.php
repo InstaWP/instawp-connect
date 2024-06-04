@@ -158,18 +158,18 @@ if ( file_exists( $options_data_path ) ) {
 		extract( $jsonData );
 	} else {
 		header( 'x-iwp-status: false' );
-		header( 'x-iwp-message: Error: Unable to parse JSON data.' );
+		header( 'x-iwp-message: Migration push-script could not parse JSON data.' );
 		die();
 	}
 } else {
 	header( 'x-iwp-status: false' );
-	header( 'x-iwp-message: Error: JSON file not found.' );
+	header( 'x-iwp-message: Migration push-script could not find the JSON file.' );
 	die();
 }
 
 if ( ! isset( $api_signature ) || ! isset( $_SERVER['HTTP_X_IWP_API_SIGNATURE'] ) || ! hash_equals( $api_signature, $_SERVER['HTTP_X_IWP_API_SIGNATURE'] ) ) {
 	header( 'x-iwp-status: false' );
-	header( 'x-iwp-message: Mismatched api signature.' );
+	header( 'x-iwp-message: (Push) The given api signature and the stored one are not matching, maybe the tracking database reset or wrong api signature passed to migration script.' );
 	die();
 }
 
@@ -184,7 +184,7 @@ if ( isset( $_POST['check'] ) ) {
 
 if ( ! isset( $_SERVER['HTTP_X_FILE_RELATIVE_PATH'] ) ) {
 	header( 'x-iwp-status: false' );
-	header( 'x-iwp-message: Could not find the X-File-Relative-Path header in the request.' );
+	header( 'x-iwp-message: The migration script could not find the X-File-Relative-Path header in the request.' );
 	die();
 }
 
