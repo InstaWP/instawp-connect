@@ -461,7 +461,6 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
 			$filepath      = '';
 			$filesize      = 0;
-			$filepath_hash = hash( 'sha256', $filepath );
 
 			try {
 				$filepath = $file->getPathname();
@@ -476,6 +475,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 				continue;
 			}
 
+			$filepath_hash = hash( 'sha256', $filepath );
 
 			if ( ! is_valid_file( $filepath ) ) {
 				try {
