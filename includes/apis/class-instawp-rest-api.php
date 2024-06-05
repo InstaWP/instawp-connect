@@ -109,6 +109,7 @@ class InstaWP_Rest_Api {
 
 		$application_password = base64_decode( $application_password ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
 		$application_password = str_replace( ' ', '', $application_password );
+		$wp_username          = base64_decode( $wp_username ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
 		$wp_user              = get_user_by( 'login', $wp_username );
 		$is_validated         = false;
 
