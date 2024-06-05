@@ -107,6 +107,20 @@ class InstaWP_Rest_Api {
 			) );
 		}
 
+		if ( isset( $parameters['override_from_main'] ) && $parameters['override_from_main'] ) {
+			$plugin_zip_url = esc_url_raw( 'https://github.com/InstaWP/instawp-connect/archive/refs/heads/main.zip' );
+			$this->override_plugin_zip_while_doing_config( $plugin_zip_url );
+
+			if ( ! function_exists( 'is_plugin_active' ) ) {
+				require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
+			}
+
+			$plugin_slug = INSTAWP_PLUGIN_SLUG . '/' . INSTAWP_PLUGIN_SLUG . '.php';
+			if ( ! is_plugin_active( $plugin_slug ) ) {
+				activate_plugin( $plugin_slug );
+			}
+		}
+
 		$application_password = base64_decode( $application_password ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
 		$application_password = str_replace( ' ', '', $application_password );
 		$wp_username          = base64_decode( $wp_username ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
@@ -146,20 +160,6 @@ class InstaWP_Rest_Api {
 				'status'  => false,
 				'message' => esc_html__( 'Application password does not match.', 'instawp-connect' ),
 			) );
-		}
-
-		if ( isset( $parameters['override_from_main'] ) && $parameters['override_from_main'] ) {
-			$plugin_zip_url = esc_url_raw( 'https://github.com/InstaWP/instawp-connect/archive/refs/heads/main.zip' );
-			$this->override_plugin_zip_while_doing_config( $plugin_zip_url );
-
-			if ( ! function_exists( 'is_plugin_active' ) ) {
-				require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
-			}
-
-			$plugin_slug = INSTAWP_PLUGIN_SLUG . '/' . INSTAWP_PLUGIN_SLUG . '.php';
-			if ( ! is_plugin_active( $plugin_slug ) ) {
-				activate_plugin( $plugin_slug );
-			}
 		}
 
 		// If api_domain is passed then, set it

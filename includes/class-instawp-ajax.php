@@ -393,6 +393,7 @@ class InstaWP_AJAX {
 		$migrate_settings     = InstaWP_Tools::get_migrate_settings( $_POST );
 		$total_files_size     = InstaWP_Tools::get_total_sizes( 'files', $migrate_settings );
 		$check_usage_response = instawp()->instawp_check_usage_on_cloud( $total_files_size );
+
 		$can_proceed          = (bool) Helper::get_args_option( 'can_proceed', $check_usage_response, false );
 		$api_response         = Helper::get_args_option( 'api_response', $check_usage_response, array() );
 		$api_response_code    = Helper::get_args_option( 'code', $api_response );
