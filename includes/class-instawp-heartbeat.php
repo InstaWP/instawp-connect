@@ -162,7 +162,7 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 
 			if ( ! $success ) {
 				$failed_count = Option::get_option( 'instawp_heartbeat_failed', 0 );
-				$failed_count = $failed_count ?: 0;
+				$failed_count = $failed_count ? $failed_count : 0;
 
 				++$failed_count;
 

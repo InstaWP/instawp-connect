@@ -13,7 +13,7 @@ class InstaWP_Sync_Option {
 	    add_action( 'deleted_option', array( $this, 'deleted_option' ) );
 
 	    // Process event
-	    add_filter( 'INSTAWP_CONNECT/Filters/process_two_way_sync', array( $this, 'parse_event' ), 10, 2 );
+	    add_filter( 'instawp/filters/2waysync/process_event', array( $this, 'parse_event' ), 10, 2 );
     }
 
 	public function added_option( $option, $value ) {

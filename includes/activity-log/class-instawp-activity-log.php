@@ -232,7 +232,7 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 				$visitor_ip_address = $_SERVER[ $header_key ]; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 			}
 
-			$remote_address = apply_filters( 'INSTAWP_CONNECT/Filters/get_ip_address', $visitor_ip_address );
+			$remote_address = apply_filters( 'instawp/filters/get_ip_address', $visitor_ip_address );
 
 			if ( ! empty( $remote_address ) && filter_var( $remote_address, FILTER_VALIDATE_IP ) ) {
 				return $remote_address;

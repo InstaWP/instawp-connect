@@ -93,10 +93,16 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 6. Update API Key and Settings.
 
 == Frequently Asked Questions ==
-=How can I report security issues?=
+= How can I report security issues? =
 You can report security bugs through the Patchstack Vulnerability Disclosure Program. The Patchstack team helps validate, triage, and handle any security vulnerabilities. [Report a security vulnerability](https://patchstack.com/database/vdp/instawp-connect).
 
 == Changelog ==
+
+= 0.1.0.41 =
+- NEW - Integrated 3rd party API to log 2 way sync events from any 3rd party plugin.
+- FIX - Renamed all actions and filters.
+- FIX - Fixed 2 way sync events display logic.
+- FIX - Fixed PHP errors on some sites.
 
 = 0.1.0.40 - 05 Jun 2024 =
 - FIX - Fixed config API.

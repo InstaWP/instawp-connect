@@ -17,12 +17,12 @@ class InstaWP_Sync_WC {
 	    add_action( 'woocommerce_attribute_deleted', array( $this, 'attribute_deleted' ), 10, 2 );
 
 	    // Hooks.
-	    add_filter( 'INSTAWP_CONNECT/Filters/two_way_sync_can_sync_post', array( $this, 'can_sync_post' ), 10, 2 );
-	    add_filter( 'INSTAWP_CONNECT/Filters/two_way_sync_post_data', array( $this, 'add_post_data' ), 10, 3 );
-	    add_action( 'INSTAWP_CONNECT/Actions/process_two_way_sync_post', array( $this, 'process_gallery' ), 10, 2 );
+	    add_filter( 'instawp/filters/2waysync/can_sync_post', array( $this, 'can_sync_post' ), 10, 2 );
+	    add_filter( 'instawp/filters/2waysync/post_data', array( $this, 'add_post_data' ), 10, 3 );
+	    add_action( 'instawp/actions/2waysync/process_event_post', array( $this, 'process_gallery' ), 10, 2 );
 
 	    // Process Events.
-	    add_filter( 'INSTAWP_CONNECT/Filters/process_two_way_sync', array( $this, 'parse_event' ), 10, 2 );
+	    add_filter( 'instawp/filters/2waysync/process_event', array( $this, 'parse_event' ), 10, 2 );
     }
 
 	public function create_order( $order_id ) {
@@ -160,11 +160,11 @@ class InstaWP_Sync_WC {
 	}
 
 	public function parse_event( $response, $v ) {
-		if ( $v->event_type !== 'woocommerce' || empty( $v->source_id ) || ! class_exists( 'WooCommerce' ) ) {
+		if ( $v->event_type !== 'woocommerce' || empty( $v->reference_id ) || ! class_exists( 'WooCommerce' ) ) {
 			return $response;
 		}
 
-		$reference_id = $v->source_id;
+		$reference_id = $v->reference_id;
 		$details      = InstaWP_Sync_Helpers::object_to_array( $v->details );
 		$log_data     = array();
 
@@ -300,7 +300,7 @@ class InstaWP_Sync_WC {
 
 		// add or update attribute
 		if ( in_array( $v->event_slug, array( 'woocommerce_attribute_added', 'woocommerce_attribute_updated' ), true ) ) {
-			$attribute_id   = wc_attribute_taxonomy_id_by_name( $v->source_id );
+			$attribute_id   = wc_attribute_taxonomy_id_by_name( $v->reference_id );
 			$attribute_data = array(
 				'name'         => $details['attribute_label'],
 				'slug'         => $details['attribute_name'],
@@ -326,7 +326,7 @@ class InstaWP_Sync_WC {
 		}
 
 		if ( $v->event_slug === 'woocommerce_attribute_deleted' ) {
-			$attribute_id = wc_attribute_taxonomy_id_by_name( $v->source_id );
+			$attribute_id = wc_attribute_taxonomy_id_by_name( $v->reference_id );
 
 			if ( $attribute_id ) {
 				$response = wc_delete_attribute( $attribute_id );

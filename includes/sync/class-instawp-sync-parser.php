@@ -64,7 +64,7 @@ class InstaWP_Sync_Parser {
 		return self::attachment_to_string( $attachment_id );
 	}
 
-	public static function attachment_to_string( $attachment_id, $size = 'thumbnail', $parent_check = false ) {
+	public static function attachment_to_string( $attachment_id, $size = 'thumbnail', $is_attachment = false ) {
 		if ( ! $attachment_id ) {
 			return array();
 		}
@@ -74,21 +74,22 @@ class InstaWP_Sync_Parser {
 			return array();
 		}
 
-		$image_info   = pathinfo( $image_path );
-		$file_type    = wp_check_filetype( $image_info['basename'], null );
-		$image_string = base64_encode( file_get_contents( $image_path ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode, WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-		$attachment   = get_post( $attachment_id );
+		$image_info = pathinfo( $image_path );
+		$file_type  = wp_check_filetype( $image_info['basename'], null );
+		$attachment = get_post( $attachment_id );
 
 		$image_info['reference_id'] = InstaWP_Sync_Helpers::get_post_reference_id( $attachment_id );
 		$image_info['post_name']    = $attachment->post_name;
-		$image_info['post_meta']    = get_post_meta( $attachment_id );
 		$image_info['file_type']    = $file_type['type'];
+		$image_info['path']         = $image_path;
 
-		if ( $attachment->post_parent && $parent_check ) {
-			$image_info['post_parent'] = self::parse_post_data( $attachment->post_parent );
-		}
+		if ( ! $is_attachment ) {
+            $image_info['post_meta'] = get_post_meta( $attachment_id );
+        }
 
-		$image_info['base_data'] = $image_string;
+        if ( $is_attachment && $attachment->post_parent ) {
+            $image_info['post_parent'] = self::parse_post_data( $attachment->post_parent );
+        }
 
 		return $image_info;
 	}
@@ -107,7 +108,7 @@ class InstaWP_Sync_Parser {
 			$file_name  = wp_unique_filename( $upload_dir['path'], $data['basename'] );
 			$save_path  = $upload_dir['path'] . DIRECTORY_SEPARATOR . $file_name;
 
-			instawp_get_fs()->put_contents( $save_path, $image_data );
+			file_put_contents( $save_path, $image_data ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 
 			$attachment = array(
 				'post_mime_type' => $data['file_type'],
@@ -226,7 +227,7 @@ class InstaWP_Sync_Parser {
 				}
 			}
 
-			do_action( 'INSTAWP_CONNECT/Actions/process_two_way_sync_post', $wp_post, $details );
+			do_action( 'instawp/actions/2waysync/process_event_post', $wp_post, $details );
 
 			InstaWP_Sync_Helpers::reset_post_terms( $wp_post['ID'] );
 

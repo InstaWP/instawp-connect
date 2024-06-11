@@ -11,7 +11,7 @@ class InstaWP_Sync_Term {
 	    add_action( 'pre_delete_term', array( $this, 'delete_term' ), 10, 2 );
 
 	    // Process event
-	    add_filter( 'INSTAWP_CONNECT/Filters/process_two_way_sync', array( $this, 'parse_event' ), 10, 2 );
+	    add_filter( 'instawp/filters/2waysync/process_event', array( $this, 'parse_event' ), 10, 2 );
     }
 
 	/**
@@ -79,7 +79,7 @@ class InstaWP_Sync_Term {
 	}
 
 	public function parse_event( $response, $v ) {
-		$source_id = $v->source_id;
+		$source_id = $v->reference_id;
 		$term      = InstaWP_Sync_Helpers::object_to_array( $v->details );
 		$logs      = array();
 
@@ -245,13 +245,13 @@ class InstaWP_Sync_Term {
 		$restricted_taxonomies = array(
 			'nav_menu',
 		);
-		$restricted_taxonomies = (array) apply_filters( 'INSTAWP_CONNECT/Filters/two_way_sync_restricted_taxonomies', $restricted_taxonomies );
+		$restricted_taxonomies = (array) apply_filters( 'instawp/filters/2waysync/restricted_taxonomies', $restricted_taxonomies );
 
 		if ( InstaWP_Sync_Helpers::can_sync( 'term' ) && ! in_array( $taxonomy, $restricted_taxonomies ) ) {
 			$can_sync = true;
 		}
 
-		return (bool) apply_filters( 'INSTAWP_CONNECT/Filters/two_way_sync_can_sync_taxonomy', $can_sync, $taxonomy );
+		return (bool) apply_filters( 'instawp/filters/2waysync/can_sync_taxonomy', $can_sync, $taxonomy );
 	}
 }
 

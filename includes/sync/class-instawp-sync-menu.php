@@ -11,7 +11,7 @@ class InstaWP_Sync_Menu {
 	    add_action( 'pre_delete_term', array( $this, 'delete_nav_menu' ), 10, 2 );
 
 	    // Process event
-	    add_filter( 'INSTAWP_CONNECT/Filters/process_two_way_sync', array( $this, 'parse_event' ), 10, 3 );
+	    add_filter( 'instawp/filters/2waysync/process_event', array( $this, 'parse_event' ), 10, 3 );
     }
 
 	/**
@@ -92,7 +92,7 @@ class InstaWP_Sync_Menu {
 	}
 
 	public function parse_event( $response, $v, $source_url ) {
-		$source_id = $v->source_id;
+		$source_id = $v->reference_id;
 		$menu      = InstaWP_Sync_Helpers::object_to_array( $v->details );
 		$logs      = array();
 

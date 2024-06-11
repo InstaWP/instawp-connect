@@ -79,7 +79,7 @@ class InstaWP_Sync_Ajax {
 		$offset = ( $page * $items_per_page ) - $items_per_page;
 
 		$events = $wpdb->get_results(
-			$wpdb->prepare( "SELECT * FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE `date` >= %s ORDER BY `date` DESC, `id` DESC LIMIT %d, %d", $site_created, $offset, $items_per_page ) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			$wpdb->prepare( "SELECT * FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE `date` >= %s ORDER BY `date` DESC, `id` DESC LIMIT %d, %d", $site_created, $offset, $total ) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		);
 		$events = array_map( function( $event ) use ( $connect_id ) {
 			$event_row = InstaWP_Sync_DB::get_sync_event_by_id( $connect_id, $event->event_hash );
@@ -96,6 +96,7 @@ class InstaWP_Sync_Ajax {
 
 			return $event;
 		}, $events );
+        $events = $this->filter_events( $events );
 
 		if ( $filter_status !== 'all' ) {
 			$events = array_filter( $events, function ( $event ) use ( $filter_status ) {
@@ -103,12 +104,13 @@ class InstaWP_Sync_Ajax {
 			} );
 		}
 
+        $events = array_slice( $events, 0, $items_per_page, true );
+
 		$totalPage = ceil( $total / $items_per_page );
 
 		ob_start();
 		include INSTAWP_PLUGIN_DIR . '/migrate/templates/ajax/part-sync-items.php';
-		$data = ob_get_contents();
-		ob_end_clean();
+		$data = ob_get_clean();
 
 		$this->send_success( 'Event fetched.', array(
 			'results'    => $data,
@@ -162,7 +164,7 @@ class InstaWP_Sync_Ajax {
 		}
 
 		try {
-			$events = $this->pack_pending_sync_events();
+			$events = $this->get_pending_sync_events();
 			if ( ! empty( $events ) ) {
 				$data = array();
 				foreach ( $events as $row ) {
@@ -233,7 +235,7 @@ class InstaWP_Sync_Ajax {
 				'percent_completed' => $percentage,
 				'per_batch'         => INSTAWP_EVENTS_SYNC_PER_PAGE,
 				'total_batch'       => intval( $batch_data['total_batch'] ),
-				'progress_text'     => $percentage . '%' . sprintf( " Completed ( %u out of %s events)", $total_completed, intval( $batch_data['total_events'] ) ),
+				'progress_text'     => $percentage . '%' . sprintf( " Completed (%u out of %s events)", $total_completed, intval( $batch_data['total_events'] ) ),
 			);
 
 			$batch_data['current_batch']   = $next_batch;
@@ -277,21 +279,35 @@ class InstaWP_Sync_Ajax {
 
 		$where2 = empty( $where2 ) ? "1=1" : join( ' AND ', $where2 );
 
-		$query   = "SELECT event_name, COUNT(*) as event_count FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE $where2 AND `event_hash` NOT IN (SELECT event_hash AS id FROM " . INSTAWP_DB_TABLE_EVENT_SITES . " WHERE $where) GROUP BY event_name HAVING event_count > 0";
-		$results = $this->wpdb->get_results( $query ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+//      $query   = "SELECT event_name, COUNT(*) as event_count FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE $where2 AND `event_hash` NOT IN (SELECT event_hash AS id FROM " . INSTAWP_DB_TABLE_EVENT_SITES . " WHERE $where) GROUP BY event_name HAVING event_count > 0";
+//      $results = $this->wpdb->get_results( $query ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+
+        $query  = "SELECT * FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE $where2 AND `event_hash` NOT IN (SELECT event_hash AS id FROM " . INSTAWP_DB_TABLE_EVENT_SITES . " WHERE $where)";
+        $events = $this->wpdb->get_results( $query ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+        $events = $this->filter_events( $events );
+
+        $results = array();
+
+        foreach ( $events as $event ) {
+            if ( ! isset( $results[ $event->event_name ] ) ) {
+                $results[ $event->event_name ] = 0;
+            }
+            ++$results[ $event->event_name ];
+        }
 
 		$html = '<ul class="list">';
 		if ( ! empty( $results ) ) {
-			foreach ( $results as $i => $row ) {
+            $i = 0;
+			foreach ( $results as $event_name => $event_count ) {
 				$html .= '<li class="event-type-count ' . ( $i > 2 ? 'hidden' : '' ) . '">';
-				$html .= sprintf( __( '%1$u %2$s', 'instawp-connect' ), $row->event_count, ucfirst( str_replace( "_", " ", $row->event_name ) ) );
+				$html .= sprintf( __( '%1$u %2$s', 'instawp-connect' ), $event_count, ucfirst( str_replace( "_", " ", $event_name ) ) );
 				$html .= '</li>';
+                ++$i;
 			}
 
 			$html .= '<li class="event-type-count-show-more" style="display:none">';
 			$html .= '<a href="javascript:void(0)" class="load-more-event-type">' . esc_html( __( 'Show more', 'instawp-connect' ) ) . '</a>';
 			$html .= '</li>';
-
 		} else {
 			$results = array( 'Post', 'Page', 'Theme', 'Plugin' );
 			foreach ( $results as $row ) {
@@ -304,7 +320,7 @@ class InstaWP_Sync_Ajax {
 
 		delete_option( 'instawp_event_batch_data' );
 
-		$total_events = $this->get_total_pending_events_count();
+		$total_events = $this->get_pending_sync_events( true );
 
 		$this->send_success( 'Summery fetched', array(
 			'html'          => $html,
@@ -356,7 +372,7 @@ class InstaWP_Sync_Ajax {
 			$this->send_error( 'Can\'t perform this action.' );
 		}
 
-		$total_events = $this->get_total_pending_events_count();
+		$total_events = $this->get_pending_sync_events( true );
 
 		if ( $total_events > 0 ) {
 			delete_option( 'instawp_event_batch_data' );
@@ -378,7 +394,7 @@ class InstaWP_Sync_Ajax {
 						'count'         => $total_events,
 						'page'          => 1,
 						'per_page'      => INSTAWP_EVENTS_SYNC_PER_PAGE,
-						'progress_text' => '0%' . sprintf( __( ' Completed ( 0 out of %d events )', 'instawp-connect' ), $total_events ),
+						'progress_text' => '0%' . sprintf( __( ' Completed (0 out of %d events)', 'instawp-connect' ), $total_events ),
 					) );
 				} else {
 					$this->send_error( sprintf( __( 'You have reached your sync limit. Remaining quota %1$s out of %2$s.', 'instawp-connect' ), $sync_quota_response['remaining'], $sync_quota_response['sync_quota_limit'] ) );
@@ -445,37 +461,6 @@ class InstaWP_Sync_Ajax {
 		) );
 	}
 
-	// phpcs:disable
-	private function get_total_pending_events_count() {
-		//$where  = "`status`='completed'";
-		$where  = "`status` IN ('completed', 'invalid', 'error')";
-		$where2 = array();
-		$connect_id = ! empty( $_POST['connect_id'] ) ? intval( $_POST['connect_id'] ) : 0;
-		$entry_ids  = ! empty( $_POST['ids'] ) ? array_map( 'intval', explode( ',', $_POST['ids'] ) ) : array();
-
-		if ( $connect_id > 0 ) {
-			$where        .= " AND connect_id=" . $connect_id;
-			$staging_site = instawp_get_site_detail_by_connect_id( $connect_id, 'data' );
-
-			if ( ! empty( $staging_site ) && isset( $staging_site['created_at'] ) && ! instawp()->is_staging ) {
-				$staging_site_created = date( 'Y-m-d h:i:s', strtotime( $staging_site['created_at'] ) );
-				$where2[]             = "`date` >= '" . $staging_site_created . "'";
-			}
-		}
-
-		if ( ! empty( $entry_ids ) ) {
-			$entry_ids = join( ', ', $entry_ids );
-			$where2[]  = "`id` IN($entry_ids)";
-		}
-
-		$where2 = empty( $where2 ) ? "1=1" : join( ' AND ', $where2 );
-
-		$query = "SELECT COUNT(1) FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE $where2 AND `event_hash` NOT IN (SELECT event_hash AS id FROM " . INSTAWP_DB_TABLE_EVENT_SITES . " WHERE $where)";
-
-		return $this->wpdb->get_var( $query );
-	}
-	// phpcs:enable
-
 	private function sync_upload( $data = null ) {
 		$connect_id = instawp_get_connect_id();
 
@@ -504,15 +489,22 @@ class InstaWP_Sync_Ajax {
 	}
 
 	// phpcs:disable
-	private function pack_pending_sync_events() {
+	private function get_pending_sync_events( $count = false ) {
 		//$where  = "`status`='completed'";
 		$where  = "`status` IN ('completed', 'invalid', 'error')";
 		$where2 = array();
-		$connect_id = ! empty( $_POST['dest_connect_id'] ) ? intval( $_POST['dest_connect_id'] ) : 0;
+		$connect_id = ! empty( $_POST['connect_id'] ) ? intval( $_POST['connect_id'] ) : 0;
+		$connect_id = ! empty( $_POST['dest_connect_id'] ) ? intval( $_POST['dest_connect_id'] ) : $connect_id;
 		$entry_ids  = ! empty( $_POST['ids'] ) ? array_map( 'intval', explode( ',', $_POST['ids'] ) ) : array();
 
 		if ( $connect_id > 0 ) {
 			$where .= " AND `connect_id`=" . $connect_id;
+            $staging_site = instawp_get_site_detail_by_connect_id( $connect_id, 'data' );
+
+            if ( ! empty( $staging_site ) && isset( $staging_site['created_at'] ) && ! instawp()->is_staging ) {
+                $staging_site_created = date( 'Y-m-d h:i:s', strtotime( $staging_site['created_at'] ) );
+                $where2[]             = "`date` >= '" . $staging_site_created . "'";
+            }
 		}
 
 		if ( ! empty( $entry_ids ) ) {
@@ -522,16 +514,18 @@ class InstaWP_Sync_Ajax {
 
 		$where2 = empty( $where2 ) ? "1=1" : join( ' AND ', $where2 );
 
-		$query = "SELECT * FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE $where2 AND `event_hash` NOT IN (SELECT event_hash AS id FROM " . INSTAWP_DB_TABLE_EVENT_SITES . " WHERE $where) ORDER BY date ASC, id ASC LIMIT " . INSTAWP_EVENTS_SYNC_PER_PAGE;
+		$query = "SELECT * FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE $where2 AND `event_hash` NOT IN (SELECT event_hash AS id FROM " . INSTAWP_DB_TABLE_EVENT_SITES . " WHERE $where) ORDER BY date ASC, id ASC";
+        $events = $this->wpdb->get_results( $query );
+        $events = $this->filter_events( $events );
 
-		return $this->wpdb->get_results( $query );
+        return $count ? count( $events ) : array_slice( $events, 0, INSTAWP_EVENTS_SYNC_PER_PAGE, true );
 	}
 	// phpcs:enable
 
 	private function get_wp_events() {
 		try {
 			$encrypted_content = array();
-			$events            = $this->pack_pending_sync_events();
+			$events            = $this->get_pending_sync_events();
 			$output            = array(
 				'success' => false,
 				'message' => '',
@@ -572,6 +566,21 @@ class InstaWP_Sync_Ajax {
 
 		return $output;
 	}
+
+    private function filter_events( $events ) {
+        $fields       = InstaWP_Setting::get_plugin_settings();
+        $sync_sources = wp_list_pluck( $fields['sync_events']['fields'], 'source' );
+
+        $events = array_filter( $events, function ( $event ) use ( $sync_sources ) {
+            if ( empty( $event->prod ) || $event->prod === 'internal' ) {
+                return true;
+            }
+
+            return in_array( $event->prod, $sync_sources, true );
+        } );
+
+        return array_values( $events );
+    }
 }
 
 new InstaWP_Sync_Ajax();

@@ -24,7 +24,7 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 		$this->tables = InstaWP_Sync_DB::$tables;
 
 		add_action( 'rest_api_init', array( $this, 'add_api_routes' ) );
-		add_action( 'INSTAWP_CONNECT/Actions/parse_two_way_sync', array( $this, 'register_event' ), 10, 2 );
+		add_action( 'instawp/actions/2waysync/record_event', array( $this, 'register_event' ), 10, 3 );
 	}
 
 	public function add_api_routes() {
@@ -93,10 +93,10 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 						continue;
 					}
 
-					$source_id    = ( ! empty( $v->source_id ) ) ? sanitize_text_field( $v->source_id ) : null;
-					$v->source_id = $source_id;
+					$reference_id    = ( ! empty( $v->source_id ) ) ? sanitize_text_field( $v->source_id ) : null;
+					$v->reference_id = $reference_id;
 
-					$response_data = apply_filters( 'INSTAWP_CONNECT/Filters/process_two_way_sync', array(), $v, $source_url );
+					$response_data = ( array ) apply_filters( 'instawp/filters/2waysync/process_event', array(), $v, $source_url );
 					if ( ! empty( $response_data['data'] ) ) {
 						$sync_response[ $v->id ] = $response_data['data'];
 					}
@@ -155,17 +155,18 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 		) );
 	}
 
-	public function register_event( $event, $reference_id ) {
-		$event = ( object ) wp_parse_args( ( array ) $event, array(
+	public function register_event( $event, $reference_id, $source ) {
+		$event = wp_parse_args( ( array ) $event, array(
 			'name'  => '', // Event name.
 			'slug'  => '', // Event slug i.e. post_meta_added/post_meta_deleted.
-			'type'  => '', // Event type i.e. Object type i.e. Post/User/Term   .
+			'type'  => '', // Event type i.e. Object type i.e. Post/User/Term.
 			'title' => '', // Event title.
 			'data'  => array(), // Event data.
 		) );
 
 		if ( ! empty( $reference_id ) ) { // Reference ID should be unique for each event.
-			InstaWP_Sync_DB::insert_update_event( $event->name, $event->slug, $event->type, $reference_id, $event->title, $event->data );
+            $event_source = 'instawp_sync_source_' . $source;
+			InstaWP_Sync_DB::insert_update_event( $event['name'], $event['slug'], $event['type'], $reference_id, $event['title'], $event['data'], $event_source );
 		}
 	}
 

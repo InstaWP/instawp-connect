@@ -86,7 +86,7 @@ class InstaWP_Sync_DB {
 	/**
 	 * update/insert event data
 	 */
-	public static function insert_update_event( $event_name = null, $event_slug = null, $event_type = null, $source_id = null, $title = null, $details = null ) {
+	public static function insert_update_event( $event_name = null, $event_slug = null, $event_type = null, $source_id = null, $title = null, $details = null, $source = 'internal' ) {
 		$data = array(
 			'event_name'     => $event_name,
 			'event_slug'     => $event_slug,
@@ -98,7 +98,7 @@ class InstaWP_Sync_DB {
 			'user_id'        => get_current_user_id(),
 			'date'           => current_time( 'mysql', 1 ),
 			'status'         => 'pending',
-			'prod'           => '',
+			'prod'           => $source,
 			'synced_message' => '',
 		);
 

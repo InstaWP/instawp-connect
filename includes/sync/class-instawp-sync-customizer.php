@@ -21,7 +21,7 @@ class InstaWP_Sync_Customizer {
 	    add_action( 'customize_save_after', array( $this, 'track_changes' ), 999 );
 
 		// Process event
-	    add_filter( 'INSTAWP_CONNECT/Filters/process_two_way_sync', array( $this, 'parse_event' ), 10, 2 );
+	    add_filter( 'instawp/filters/2waysync/process_event', array( $this, 'parse_event' ), 10, 2 );
     }
 
 	/**

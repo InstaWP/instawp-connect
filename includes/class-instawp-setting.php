@@ -8,7 +8,6 @@ defined( 'ABSPATH' ) || exit;
 class InstaWP_Setting {
 
 	public static function get_stages() {
-
 		$stages = array(
 			'initiated'              => esc_html__( 'Migration started', 'instawp-connect' ),
 			'start-insta-site'       => esc_html__( 'Site creation started in InstaWP', 'instawp-connect' ),
@@ -28,11 +27,10 @@ class InstaWP_Setting {
 //          'failed'                   => esc_html__( 'Migration is failed', 'instawp-connect' ),
 		);
 
-		return apply_filters( 'INSTAWP_CONNECT/Filters/get_stages', $stages );
+		return apply_filters( 'instawp/filters/get_stages', $stages );
 	}
 
 	public static function get_plugin_nav_items() {
-
 		$instawp_nav_items = array(
 			'create'   => array(
 				'label' => __( 'Create Staging', 'instawp-connect' ),
@@ -72,7 +70,7 @@ class InstaWP_Setting {
 			unset( $instawp_nav_items['settings'] );
 		}
 
-		return apply_filters( 'INSTAWP_CONNECT/Filters/plugin_nav_items', $instawp_nav_items );
+		return apply_filters( 'instawp/filters/plugin_nav_items', $instawp_nav_items );
 	}
 
 	public static function get_allowed_role() {
@@ -89,7 +87,6 @@ class InstaWP_Setting {
 	}
 
 	public static function generate_section_field( $field = array() ) {
-
 		$field_id            = self::get_args_option( 'id', $field );
 		$field_name          = self::get_args_option( 'name', $field );
 		$field_class         = self::get_args_option( 'class', $field );
@@ -228,7 +225,6 @@ class InstaWP_Setting {
 	}
 
 	public static function generate_section( $section = array(), $index = 0 ) {
-
 		$section_classes = array( 'section' );
 		$internal        = self::get_args_option( 'internal', $section, false );
 		$css_class       = self::get_args_option( 'class', $section );
@@ -270,12 +266,11 @@ class InstaWP_Setting {
 		echo '</div>';
 	}
 
-	public static function get_migrate_settings_fields() {
-
+	public static function get_plugin_settings_fields() {
 		$all_fields = array();
 
-		foreach ( self::get_migrate_settings() as $migrate_setting ) {
-			foreach ( self::get_args_option( 'fields', $migrate_setting, array() ) as $field ) {
+		foreach ( self::get_plugin_settings() as $plugin_setting ) {
+			foreach ( self::get_args_option( 'fields', $plugin_setting, array() ) as $field ) {
 				$all_fields[] = self::get_args_option( 'id', $field );
 			}
 		}
@@ -283,7 +278,7 @@ class InstaWP_Setting {
 		return array_filter( $all_fields );
 	}
 
-	public static function get_migrate_settings() {
+	public static function get_plugin_settings() {
 		$settings = array();
 
 		// Section - Settings
@@ -358,7 +353,7 @@ class InstaWP_Setting {
 		);
 
 		// Section - Sync settings
-		$settings['sync_settings'] = array(
+		$settings['sync'] = array(
 			'title'  => esc_html__( 'Sync Settings', 'instawp-connect' ),
 			'desc'   => esc_html__( 'This section only applicable for the sync settings.', 'instawp-connect' ),
 			'fields' => array(
@@ -386,84 +381,77 @@ class InstaWP_Setting {
 			),
 		);
 
-		$settings['sync_events_settings'] = array(
+        // Section - 2-way sync
+        $sync_fields = apply_filters( 'instawp/filters/2waysync/event_providers', array(
+            array(
+                'id'      => 'post',
+                'title'   => __( 'Posts', 'instawp-connect' ),
+                'tooltip' => __( 'Enabling this option will allow plugin to log events related to all posts, pages and custom post types.', 'instawp-connect' ),
+                'default' => 'on',
+            ),
+            array(
+                'id'      => 'term',
+                'title'   => __( 'Taxonomies', 'instawp-connect' ),
+                'tooltip' => __( 'Enabling this option will allow plugin to log events related to all categories tags and custom taxonomies.', 'instawp-connect' ),
+                'default' => 'on',
+            ),
+            array(
+                'id'      => 'user',
+                'title'   => __( 'Users', 'instawp-connect' ),
+                'tooltip' => __( 'Enabling this option will allow plugin to log events related to all users.', 'instawp-connect' ),
+                'default' => 'on',
+            ),
+            array(
+                'id'      => 'plugin',
+                'title'   => __( 'Plugins', 'instawp-connect' ),
+                'tooltip' => __( 'Enabling this option will allow plugin to log events related to plugins.', 'instawp-connect' ),
+                'default' => 'on',
+            ),
+            array(
+                'id'      => 'theme',
+                'title'   => __( 'Themes', 'instawp-connect' ),
+                'tooltip' => __( 'Enabling this option will allow plugin to log events related to all themes.', 'instawp-connect' ),
+                'default' => 'on',
+            ),
+            array(
+                'id'      => 'menu',
+                'title'   => __( 'Navigation Menu', 'instawp-connect' ),
+                'tooltip' => __( 'Enabling this option will allow plugin to log Navigation menu item related changes.', 'instawp-connect' ),
+                'default' => 'on',
+            ),
+            array(
+                'id'      => 'customizer',
+                'title'   => __( 'WP Customizer', 'instawp-connect' ),
+                'tooltip' => __( 'Enabling this option will allow plugin to log WP Customizer.', 'instawp-connect' ),
+                'default' => 'on',
+            ),
+            array(
+                'id'      => 'option',
+                'title'   => __( 'WP Options (Beta)', 'instawp-connect' ),
+                'tooltip' => __( 'Enabling this option will allow plugin to log WordPress options.', 'instawp-connect' ),
+            ),
+            array(
+                'id'      => 'wc',
+                'title'   => __( 'WooCommerce (Beta)', 'instawp-connect' ),
+                'tooltip' => __( 'Enabling this option will allow plugin to log WooCommerce events.', 'instawp-connect' ),
+            ),
+        ) );
+
+        $sync_fields = array_map( function ( $value ) {
+            $value['source']  = 'instawp_sync_source_' . $value['id'];
+            $value['id']      = 'instawp_sync_' . $value['id'];
+            $value['type']    = 'toggle';
+            $value['class']   = isset( $value['class'] ) ? $value['class'] . ' save-ajax' : 'save-ajax';
+            $value['default'] = isset( $value['default'] ) ? $value['default'] : 'off';
+
+            return $value;
+        }, $sync_fields );
+
+		$settings['sync_events'] = array(
 			'title'      => esc_html__( 'Sync Events Settings', 'instawp-connect' ),
 			'desc'       => esc_html__( 'This section only applicable for the sync event settings.', 'instawp-connect' ),
 			'grid_class' => 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6',
-			'fields'     => array(
-				array(
-					'id'      => 'instawp_sync_post',
-					'type'    => 'toggle',
-					'title'   => __( 'Posts', 'instawp-connect' ),
-					'tooltip' => __( 'Enabling this option will allow plugin to log events related to all posts, pages and custom post types.', 'instawp-connect' ),
-					'class'   => 'save-ajax',
-					'default' => 'on',
-				),
-				array(
-					'id'      => 'instawp_sync_term',
-					'type'    => 'toggle',
-					'title'   => __( 'Taxonomies', 'instawp-connect' ),
-					'tooltip' => __( 'Enabling this option will allow plugin to log events related to all categories tags and custom taxonomies.', 'instawp-connect' ),
-					'class'   => 'save-ajax',
-					'default' => 'on',
-				),
-				array(
-					'id'      => 'instawp_sync_user',
-					'type'    => 'toggle',
-					'title'   => __( 'Users', 'instawp-connect' ),
-					'tooltip' => __( 'Enabling this option will allow plugin to log events related to all users.', 'instawp-connect' ),
-					'class'   => 'save-ajax',
-					'default' => 'on',
-				),
-				array(
-					'id'      => 'instawp_sync_plugin',
-					'type'    => 'toggle',
-					'title'   => __( 'Plugins', 'instawp-connect' ),
-					'tooltip' => __( 'Enabling this option will allow plugin to log events related to plugins.', 'instawp-connect' ),
-					'class'   => 'save-ajax',
-					'default' => 'on',
-				),
-				array(
-					'id'      => 'instawp_sync_theme',
-					'type'    => 'toggle',
-					'title'   => __( 'Themes', 'instawp-connect' ),
-					'tooltip' => __( 'Enabling this option will allow plugin to log events related to all themes.', 'instawp-connect' ),
-					'class'   => 'save-ajax',
-					'default' => 'on',
-				),
-				array(
-					'id'      => 'instawp_sync_menu',
-					'type'    => 'toggle',
-					'title'   => __( 'Navigation Menu', 'instawp-connect' ),
-					'tooltip' => __( 'Enabling this option will allow plugin to log Navigation menu item related changes.', 'instawp-connect' ),
-					'class'   => 'save-ajax',
-					'default' => 'on',
-				),
-				array(
-					'id'      => 'instawp_sync_customizer',
-					'type'    => 'toggle',
-					'title'   => __( 'WP Customizer', 'instawp-connect' ),
-					'tooltip' => __( 'Enabling this option will allow plugin to log WP Customizer.', 'instawp-connect' ),
-					'class'   => 'save-ajax',
-					'default' => 'on',
-				),
-				array(
-					'id'      => 'instawp_sync_option',
-					'type'    => 'toggle',
-					'title'   => __( 'WP Options (Beta)', 'instawp-connect' ),
-					'tooltip' => __( 'Enabling this option will allow plugin to log WordPress options.', 'instawp-connect' ),
-					'class'   => 'save-ajax',
-					'default' => 'off',
-				),
-				array(
-					'id'      => 'instawp_sync_wc',
-					'type'    => 'toggle',
-					'title'   => __( 'WooCommerce (Beta)', 'instawp-connect' ),
-					'tooltip' => __( 'Enabling this option will allow plugin to log WooCommerce events.', 'instawp-connect' ),
-					'class'   => 'save-ajax',
-					'default' => 'off',
-				),
-			),
+			'fields'     => $sync_fields,
 		);
 
 		// Section - Developer Options
@@ -504,7 +492,7 @@ class InstaWP_Setting {
 			),
 		);
 
-		return apply_filters( 'INSTAWP_CONNECT/Filters/migrate_settings', $settings );
+		return apply_filters( 'instawp/filters/plugin_settings', $settings );
 	}
 
 	public static function get_management_settings() {
@@ -616,11 +604,10 @@ class InstaWP_Setting {
 			),
 		);
 
-		return apply_filters( 'INSTAWP_CONNECT/Filters/management_settings', $settings );
+		return apply_filters( 'instawp/filters/management_settings', $settings );
 	}
 
 	public static function get_args_option( $key = '', $args = array(), $default_value = '' ) {
-
 		$default_value = is_array( $default_value ) && empty( $default_value ) ? array() : $default_value;
 		$value         = ! is_array( $default_value ) && ! is_bool( $default_value ) && empty( $default_value ) ? '' : $default_value;
 		$key           = empty( $key ) ? '' : $key;
@@ -633,12 +620,9 @@ class InstaWP_Setting {
 	}
 
 	public static function set_api_domain( $instawp_api_url = '' ) {
-
 		if ( empty( $instawp_api_url ) ) {
 			return false;
 		}
-
-		$instawp_api_url = empty( $instawp_api_url ) ? INSTAWP_API_DOMAIN_PROD : $instawp_api_url;
 
 		$api_options            = self::get_option( 'instawp_api_options', array() );
 		$api_options['api_url'] = sanitize_url( $instawp_api_url );
@@ -696,7 +680,6 @@ class InstaWP_Setting {
 	}
 
 	public static function get_unsupported_plugins() {
-
 		$unsupported_plugins = array(
 			array(
 				'slug'       => 'breeze/breeze.php',
@@ -715,11 +698,10 @@ class InstaWP_Setting {
 			),
 		);
 
-		return apply_filters( 'INSTAWP_CONNECT/Filters/get_unsupported_plugins', $unsupported_plugins );
+		return apply_filters( 'instawp/filters/get_unsupported_plugins', $unsupported_plugins );
 	}
 
 	public static function instawp_generate_api_key( $api_key ) {
-
 		if ( empty( $api_key ) ) {
 			error_log( 'instawp_generate_api_key empty api_key parameter' );
 

@@ -11,7 +11,7 @@ class InstaWP_Sync_User {
 	    add_action( 'profile_update', array( $this, 'profile_update' ) );
 
 		// Process event
-	    add_filter( 'INSTAWP_CONNECT/Filters/process_two_way_sync', array( $this, 'parse_event' ), 10, 2 );
+	    add_filter( 'instawp/filters/2waysync/process_event', array( $this, 'parse_event' ), 10, 2 );
     }
 
 	/**

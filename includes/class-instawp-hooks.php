@@ -77,7 +77,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 
 		public function add_instawp_menu_icon( WP_Admin_Bar $admin_bar ) {
 
-			if ( ! apply_filters( 'INSTAWP_CONNECT/Filters/display_menu_bar_icon', true ) || 'on' === Option::get_option( 'instawp_hide_plugin_icon_topbar', 'off' ) ) {
+			if ( ! apply_filters( 'instawp/filters/display_menu_bar_icon', true ) || 'on' === Option::get_option( 'instawp_hide_plugin_icon_topbar', 'off' ) ) {
 				return;
 			}
 

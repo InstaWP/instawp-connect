@@ -71,7 +71,7 @@ class InstaWP_Tools {
 		}
 
 		if ( ! is_dir( $instawpbackups_dir ) ) {
-			if ( instawp_get_fs()->mkdir( $instawpbackups_dir, 0777 ) ) {
+			if ( mkdir( $instawpbackups_dir, 0777, true ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir
 				return true;
 			} else {
 				return false;
@@ -95,11 +95,13 @@ class InstaWP_Tools {
 		while ( false !== ( $file = readdir( $instawpbackups_dir_handle ) ) ) {
 			if ( $file !== '.' && $file !== '..' ) {
 				$file_path = $instawpbackups_dir . DIRECTORY_SEPARATOR . $file;
-				if ( is_dir( $file_path ) ) {
-					self::clean_instawpbackups_dir( $file_path );
-				} else {
-					wp_delete_file( $file_path );
-				}
+                if ( file_exists( $file_path ) ) {
+                    if ( is_dir( $file_path ) ) {
+                        self::clean_instawpbackups_dir( $file_path );
+                    } else {
+                        wp_delete_file( $file_path );
+                    }
+                }
 			}
 		}
 
@@ -128,7 +130,7 @@ class InstaWP_Tools {
 		$passphrase             = openssl_digest( $migrate_key, 'SHA256', true );
 		$options_data_encrypted = openssl_encrypt( $options_data_str, 'AES-256-CBC', $passphrase );
 		$options_data_filename  = INSTAWP_BACKUP_DIR . 'options-' . $migrate_key . '.txt';
-		$options_data_stored    = instawp_get_fs()->put_contents( $options_data_filename, $options_data_encrypted );
+		$options_data_stored    = file_put_contents( $options_data_filename, $options_data_encrypted ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 
 		if ( ! $options_data_stored ) {
 			return false;
@@ -169,7 +171,7 @@ if ( ! is_readable( $file_path ) ) {
 
 include $file_path;';
 		$forwarded_file_path    = $forwarded_path . DIRECTORY_SEPARATOR . $file_name;
-		$forwarded_file_created = instawp_get_fs()->put_contents( $forwarded_file_path, $forwarded_content );
+		$forwarded_file_created = file_put_contents( $forwarded_file_path, $forwarded_content ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 
 		if ( $forwarded_file_created ) {
 			return site_url( $file_name );
@@ -223,7 +225,7 @@ include $file_path;';
         $data_encrypted = openssl_encrypt( $jsonString, 'AES-256-CBC', $passphrase );
 		$dest_file_path = INSTAWP_BACKUP_DIR . 'migrate-push-db-' . substr( $migrate_key, 0, 5 ) . '.txt';
 
-		if ( instawp_get_fs()->put_contents( $dest_file_path, $data_encrypted ) ) {
+		if ( file_put_contents( $dest_file_path, $data_encrypted ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 			$dest_url = INSTAWP_PLUGIN_URL . 'dest.php';
 
 			if ( ! self::is_migrate_file_accessible( $dest_url ) ) {
@@ -246,7 +248,7 @@ if ( ! is_readable( $file_path ) ) {
 include $file_path;';
 				$file_name              = 'dest.php';
 				$forwarded_file_path    = ABSPATH . $file_name;
-				$forwarded_file_created = instawp_get_fs()->put_contents( $forwarded_file_path, $forwarded_content );
+				$forwarded_file_created = file_put_contents( $forwarded_file_path, $forwarded_content ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 
 				if ( $forwarded_file_created ) {
 					return site_url( $file_name );
@@ -366,7 +368,7 @@ include $file_path;';
 			}
 		}
 
-		return apply_filters( 'INSTAWP_CONNECT/Filters/process_migration_settings', $migrate_settings );
+		return apply_filters( 'instawp/filters/process_migration_settings', $migrate_settings );
 	}
 
 	public static function get_unsupported_active_plugins() {
@@ -560,7 +562,7 @@ include $file_path;';
 		$log_tables = array(
 			'actionscheduler_logs',
 		);
-		$log_tables = apply_filters( 'INSTAWP_CONNECT/Filters/log_tables', $log_tables );
+		$log_tables = apply_filters( 'instawp/filters/log_tables', $log_tables );
 
 		if ( $with_prefix ) {
 			return array_map( function ( $table_name ) {
@@ -710,9 +712,9 @@ include $file_path;';
 				'## END InstaWP Connect',
 			);
 			$htaccess_content = implode( "\n", $htaccess_content );
-			$htaccess_content = $htaccess_content . "\n\n\n" . instawp_get_fs()->get_contents( $htaccess_file );
+			$htaccess_content = $htaccess_content . "\n\n\n" . file_get_contents( $htaccess_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 
-			instawp_get_fs()->put_contents( $htaccess_file, $htaccess_content );
+			file_put_contents( $htaccess_file, $htaccess_content ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 		}
 
 		return false;

@@ -100,7 +100,7 @@ class InstaWP_Sync_Helpers {
 		$syncing_status = get_option( 'instawp_is_event_syncing', 0 );
 		$can_sync       = ( intval( $syncing_status ) === 1 ) && self::is_enabled( $module );
 
-		return (bool) apply_filters( 'INSTAWP_CONNECT/Filters/can_two_way_sync', $can_sync, $module );
+		return (bool) apply_filters( 'instawp/filters/can_two_way_sync', $can_sync, $module );
 	}
 
 	public static function sync_response( $data, $log_data = array(), $args = array() ) {
@@ -128,10 +128,12 @@ class InstaWP_Sync_Helpers {
 	 * @return bool
 	 */
 	public static function is_enabled( $key ) {
-		$default = in_array( $key, array( 'wc', 'option' ), true ) ? 'off' : 'on';
-		$default = apply_filters( 'INSTAWP_CONNECT/Filters/default_two_way_sync_settings', $default, $key );
-		$value   = Option::get_option( 'instawp_sync_' . $key, $default );
-		$value   = empty( $value ) ? $default : $value;
+        $field         = 'instawp_sync_' . $key;
+        $fields        = InstaWP_Setting::get_plugin_settings();
+        $sync_settings = wp_list_pluck( $fields['sync_events']['fields'], 'default', 'id' );
+		$default       = isset( $sync_settings[ $field ] ) ? $sync_settings[ $field ] : 'off';
+		$value         = Option::get_option( $field, $default );
+		$value         = empty( $value ) ? $default : $value;
 
 		return 'on' === $value;
 	}

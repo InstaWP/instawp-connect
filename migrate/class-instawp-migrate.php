@@ -78,7 +78,7 @@ if ( ! class_exists( 'InstaWP_Migration' ) ) {
 				wp_send_json_error( array( 'message' => esc_html__( 'Failed. Please try again reloading the page.', 'instawp-connect' ) ) );
 			}
 
-			foreach ( InstaWP_Setting::get_migrate_settings_fields() as $field_id ) {
+			foreach ( InstaWP_Setting::get_plugin_settings_fields() as $field_id ) {
 				if ( ! isset( $form_data[ $field_id ] ) ) {
 					continue;
 				}

@@ -8,7 +8,7 @@
 <div class="nav-item-content settings bg-white rounded-md p-6">
     <form class="instawp-form w-full">
         <div class="instawp-form-fields">
-			<?php foreach ( array_values( InstaWP_Setting::get_migrate_settings() ) as $index => $section ) : ?>
+			<?php foreach ( array_values( InstaWP_Setting::get_plugin_settings() ) as $index => $section ) : ?>
 				<?php InstaWP_Setting::generate_section( $section, $index ); ?>
 			<?php endforeach; ?>
         </div>

@@ -200,9 +200,11 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 			}
 		}
 
-		wp_delete_file( ABSPATH . 'fwd.php' );
-		wp_delete_file( ABSPATH . 'dest.php' );
-		wp_delete_file( ABSPATH . 'iwp_log.txt' );
+        foreach ( array( 'fwd.php', 'dest.php', 'iwp_log.txt' ) as $file ) {
+            if ( file_exists( ABSPATH . $file ) ) {
+                wp_delete_file( ABSPATH . $file );
+            }
+        }
 
 		$wpdb->query( "DROP TABLE IF EXISTS `iwp_db_sent`;" );
 		$wpdb->query( "DROP TABLE IF EXISTS `iwp_files_sent`;" );
@@ -274,7 +276,7 @@ if ( ! function_exists( 'instawp_is_website_on_local' ) ) {
 			'127.0.0.1',
 			'::1',
 		);
-		$local_addresses = apply_filters( 'INSTAWP_CONNECT/Filters/local_addresses', $local_addresses );
+		$local_addresses = apply_filters( 'instawp/filters/local_addresses', $local_addresses );
 
 		return ( $http_host === 'localhost' || in_array( $remote_address, $local_addresses ) );
 	}
@@ -828,7 +830,7 @@ if ( ! function_exists( 'instawp_zip_folder_with_phar' ) ) {
 		wp_delete_file( $destination . '.tar' );
 
 		// Rename .tar.gz to .zip
-		instawp_get_fs()->move( $destination . '.tar.gz', $destination );
+		rename( $destination . '.tar.gz', $destination ); // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename
 	}
 }
 

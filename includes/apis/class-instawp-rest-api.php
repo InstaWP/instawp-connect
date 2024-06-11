@@ -136,7 +136,7 @@ class InstaWP_Rest_Api {
 		}
 
 		// Check if the user is an administrator or not
-		if ( ! user_can( $wp_user, 'administrator' ) ) {
+		if ( ! user_can( $wp_user, 'manage_options' ) ) {
 			return $this->send_response( array(
 				'status'  => false,
 				'message' => esc_html__( 'This user does not have capability to config the website.', 'instawp-connect' ),

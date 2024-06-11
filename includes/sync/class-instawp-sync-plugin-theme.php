@@ -21,7 +21,7 @@ class InstaWP_Sync_Plugin_Theme {
 	    add_action( 'deleted_theme', array( $this, 'delete_theme' ), 10, 2 );
 
 	    // Process event
-	    add_filter( 'INSTAWP_CONNECT/Filters/process_two_way_sync', array( $this, 'parse_event' ), 10, 2 );
+	    add_filter( 'instawp/filters/2waysync/process_event', array( $this, 'parse_event' ), 10, 2 );
     }
 
 	/**

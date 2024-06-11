@@ -22,7 +22,7 @@ class InstaWP_Sync_Post {
 		add_filter( 'duplicate_post_post_copy', array( $this, 'generate_reference' ) );
 
 		// Process Events.
-		add_filter( 'INSTAWP_CONNECT/Filters/process_two_way_sync', array( $this, 'parse_event' ), 10, 2 );
+		add_filter( 'instawp/filters/2waysync/process_event', array( $this, 'parse_event' ), 10, 2 );
 	}
 
 	/**
@@ -179,7 +179,7 @@ class InstaWP_Sync_Post {
 	}
 
 	public function parse_event( $response, $v ) {
-		$reference_id = $v->source_id;
+		$reference_id = $v->reference_id;
 		$details      = InstaWP_Sync_Helpers::object_to_array( $v->details );
 
 		// create and update
@@ -244,7 +244,7 @@ class InstaWP_Sync_Post {
 
 		$event_type = $post->post_type;
 		$title      = $post->post_title;
-		$data       = apply_filters( 'INSTAWP_CONNECT/Filters/two_way_sync_post_data', $data, $event_type, $post );
+		$data       = apply_filters( 'instawp/filters/2waysync/post_data', $data, $event_type, $post );
 
 		if ( is_array( $data ) && ! empty( $reference_id ) ) {
 			InstaWP_Sync_DB::insert_update_event( $event_name, $event_slug, $event_type, $reference_id, $title, $data );
@@ -274,13 +274,13 @@ class InstaWP_Sync_Post {
 			// SEOPress
 			'seopress_404',
 		);
-		$restricted_cpts = (array) apply_filters( 'INSTAWP_CONNECT/Filters/two_way_sync_restricted_post_types', $restricted_cpts );
+		$restricted_cpts = (array) apply_filters( 'instawp/filters/2waysync/restricted_post_types', $restricted_cpts );
 
 		if ( InstaWP_Sync_Helpers::can_sync( 'post' ) && ! in_array( $post->post_type, $restricted_cpts ) ) {
 			$can_sync = true;
 		}
 
-		return (bool) apply_filters( 'INSTAWP_CONNECT/Filters/two_way_sync_can_sync_post', $can_sync, $post );
+		return (bool) apply_filters( 'instawp/filters/2waysync/can_sync_post', $can_sync, $post );
 	}
 }
 
