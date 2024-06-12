@@ -438,7 +438,7 @@ class InstaWP_Setting {
         ) );
 
         $sync_fields = array_map( function ( $value ) {
-            $value['source']  = 'instawp_sync_source_' . $value['id'];
+            $value['source']  = 'source_' . $value['id'];
             $value['id']      = 'instawp_sync_' . $value['id'];
             $value['type']    = 'toggle';
             $value['class']   = isset( $value['class'] ) ? $value['class'] . ' save-ajax' : 'save-ajax';

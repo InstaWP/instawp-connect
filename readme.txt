@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.6
 Tested up to: 6.5.2
 Requires PHP: 5.6
-Stable tag: 0.1.0.40
+Stable tag: 0.1.0.41
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -98,7 +98,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
-= 0.1.0.41 =
+= 0.1.0.41 - 12 Jun 2024  =
 - NEW - Integrated 3rd party API to log 2 way sync events from any 3rd party plugin.
 - FIX - Renamed all actions and filters.
 - FIX - Fixed temporary path populate logic.

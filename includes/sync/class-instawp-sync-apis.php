@@ -165,7 +165,7 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 		) );
 
 		if ( ! empty( $reference_id ) ) { // Reference ID should be unique for each event.
-            $event_source = 'instawp_sync_source_' . $source;
+            $event_source = 'source_' . $source;
 			InstaWP_Sync_DB::insert_update_event( $event['name'], $event['slug'], $event['type'], $reference_id, $event['title'], $event['data'], $event_source );
 		}
 	}
