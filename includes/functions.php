@@ -869,16 +869,3 @@ if ( ! function_exists( 'instawp_array_recursive_diff' ) ) {
 		return $diff;
 	}
 }
-
-if ( ! function_exists( 'instawp_get_fs' ) ) {
-	function instawp_get_fs() {
-		global $wp_filesystem;
-
-		if ( empty( $wp_filesystem ) ) {
-			require_once ABSPATH . '/wp-admin/includes/file.php';
-			WP_Filesystem();
-		}
-
-		return $wp_filesystem;
-	}
-}

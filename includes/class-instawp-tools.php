@@ -838,7 +838,7 @@ include $file_path;';
 
 	public static function cli_archive_wordpress_db() {
 
-		$archive_dir  = sys_get_temp_dir() . DIRECTORY_SEPARATOR;
+		$archive_dir  = get_temp_dir();
 		$archive_name = 'wordpress_db_backup_' . date( 'Y-m-d_H-i-s' );
 		$db_file_name = $archive_dir . $archive_name . '.sql';
 
@@ -849,7 +849,7 @@ include $file_path;';
 
 	public static function cli_archive_wordpress_files( $type = 'zip', $dirs_to_skip = array() ) {
 
-		$archive_dir         = sys_get_temp_dir() . DIRECTORY_SEPARATOR;
+		$archive_dir         = get_temp_dir();
 		$archive_name        = 'wordpress_backup_' . date( 'Y-m-d_H-i-s' );
 		$directories_to_skip = array_merge(
 			$dirs_to_skip,

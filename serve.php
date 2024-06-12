@@ -133,6 +133,29 @@ if ( ! hash_equals( $db_api_signature, $api_signature ) ) {
 
 if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
+    if ( ! function_exists( 'get_server_temp_dir' ) ) {
+        function get_server_temp_dir() {
+            if ( function_exists( 'sys_get_temp_dir' ) ) {
+                $temp = sys_get_temp_dir();
+                if ( @is_dir( $temp ) && is_writable( $temp ) ) {
+                    return $temp . '/';
+                }
+            }
+
+            $temp = ini_get( 'upload_tmp_dir' );
+            if ( @is_dir( $temp ) && is_writable( $temp ) ) {
+                return $temp . '/';
+            }
+
+            $temp = WP_ROOT . '/';
+            if ( is_dir( $temp ) && is_writable( $temp ) ) {
+                return $temp;
+            }
+
+            return '/tmp/';
+        }
+    }
+
 	if ( ! function_exists( 'readfile_chunked' ) ) {
 		function readfile_chunked( $filename, $retbytes = true ) {
 			$cnt    = 0;
@@ -169,7 +192,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			header( 'x-file-type: zip' );
 			header( 'x-iwp-progress: ' . $progress_percentage );
 
-			$tmpZip          = tempnam( sys_get_temp_dir(), 'batchzip' );
+			$tmpZip          = tempnam( get_server_temp_dir(), 'batchzip' );
 			$zipSuccessFiles = array();
 
 			if ( $archiveType === 'ziparchive' ) {
@@ -275,7 +298,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			if ( basename( $relativePath ) === '.htaccess' ) {
 
 				$content  = file_get_contents( $filePath );
-				$tmp_file = tempnam( sys_get_temp_dir(), 'htaccess' );
+				$tmp_file = tempnam( get_server_temp_dir(), 'htaccess' );
 
 				// RSSR Support
 				$pattern = '/#Begin Really Simple SSL Redirect.*?#End Really Simple SSL Redirect/s';
@@ -349,7 +372,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 				// Comment COOKIE_DOMAIN constant
 				$file_contents = search_and_comment_specific_line( "/define\(\s*'COOKIE_DOMAIN'/", $file_contents );
 
-				$tmp_file = tempnam( sys_get_temp_dir(), 'wp-config' );
+				$tmp_file = tempnam( get_server_temp_dir(), 'wp-config' );
 				if ( file_put_contents( $tmp_file, $file_contents ) ) {
 					$filePath = $tmp_file;
 				}
@@ -357,7 +380,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 				$file_contents = file_get_contents( $filePath );
 				$file_contents = str_replace( "/.wordpress/wp-blog-header.php", "/wp-blog-header.php", $file_contents );
 
-				$tmp_file = tempnam( sys_get_temp_dir(), 'index' );
+				$tmp_file = tempnam( get_server_temp_dir(), 'index' );
 				if ( file_put_contents( $tmp_file, $file_contents ) ) {
 					$filePath = $tmp_file;
 				}

@@ -101,6 +101,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 = 0.1.0.41 =
 - NEW - Integrated 3rd party API to log 2 way sync events from any 3rd party plugin.
 - FIX - Renamed all actions and filters.
+- FIX - Fixed temporary path populate logic.
 - FIX - Fixed 2 way sync events display logic.
 - FIX - Fixed PHP errors on some sites.
 
