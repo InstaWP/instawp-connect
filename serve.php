@@ -317,6 +317,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 				$content = preg_replace( '/^(.*AuthUserFile.*)$/m', '# $1', $content );
 				$content = preg_replace( '/^(.*AuthName.*)$/m', '# $1', $content );
 				$content = preg_replace( '/^(.*ErrorDocument.*)$/m', '# $1', $content );
+				$content = str_replace('SetHandler proxy:fcgi://continental-php82', '# SetHandler proxy:fcgi://continental-php82', $content );
 
 				if ( ! empty( $site_url ) ) {
 					$url_path = parse_url( $site_url, PHP_URL_PATH );
@@ -362,6 +363,11 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
 				// Flywheel support
 				$file_contents = str_replace( "define('ABSPATH', dirname(__FILE__) . '/.wordpress/');", "define( 'ABSPATH', dirname( __FILE__ ) . '/' );", $file_contents );
+
+                // GridPane Support
+				$file_contents = str_replace( "include __DIR__ . '/user-configs.php';", "// include __DIR__ . '/user-configs.php';", $file_contents );
+				$file_contents = str_replace( "include __DIR__ . '/wp-fail2ban-configs.php';", "// include __DIR__ . '/wp-fail2ban-configs.php';", $file_contents );
+				$file_contents = str_replace( "include __DIR__ . '/smtp-provider-wp-configs.php';", "// include __DIR__ . '/smtp-provider-wp-configs.php';", $file_contents );
 
 				// Comment WP_SITEURL constant
 				$file_contents = search_and_comment_specific_line( "/define\(\s*'WP_SITEURL'/", $file_contents );
