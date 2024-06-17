@@ -152,7 +152,7 @@ class InstaWP_Sync_WC {
 			$gallery_ids     = array();
 
 			foreach ( $product_gallery as $gallery_item ) {
-				$gallery_ids[] = InstaWP_Sync_Parser::string_to_attachment( $gallery_item );
+				$gallery_ids[] = InstaWP_Sync_Parser::process_attachment_data( $gallery_item );
 			}
 
 			$this->set_product_gallery( $post['ID'], $gallery_ids );
@@ -396,7 +396,7 @@ class InstaWP_Sync_WC {
 			$attachment_ids = ! empty( $product->get_gallery_image_ids() ) ? $product->get_gallery_image_ids() : array();
 
 			foreach ( $attachment_ids as $attachment_id ) {
-				$gallery[] = InstaWP_Sync_Parser::attachment_to_string( $attachment_id, 'full' );
+				$gallery[] = InstaWP_Sync_Parser::generate_attachment_data( $attachment_id, 'full' );
 			}
 		}
 

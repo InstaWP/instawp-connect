@@ -3,7 +3,7 @@
         'name' => 'instawp/connect',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => 'cd3d97839e6cb3486fd943d9146bcbc670554e4c',
+        'reference' => 'feb860cc6ed8bdf264666839f6f0334543b908ea',
         'type' => 'wordpress-plugin',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -13,7 +13,7 @@
         'instawp/connect' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => 'cd3d97839e6cb3486fd943d9146bcbc670554e4c',
+            'reference' => 'feb860cc6ed8bdf264666839f6f0334543b908ea',
             'type' => 'wordpress-plugin',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
@@ -22,7 +22,7 @@
         'instawp/connect-helpers' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '17417f72851f37bd1fead011ff870e8fdbca0622',
+            'reference' => '5e83f0446bbbcc45148b14be4e359e42ca7a7178',
             'type' => 'library',
             'install_path' => __DIR__ . '/../instawp/connect-helpers',
             'aliases' => array(
@@ -58,9 +58,9 @@
             'dev_requirement' => false,
         ),
         'woocommerce/action-scheduler' => array(
-            'pretty_version' => '3.7.4',
-            'version' => '3.7.4.0',
-            'reference' => '5fb655253dc004bb7a6d840da807f0949aea8bcd',
+            'pretty_version' => '3.8.0',
+            'version' => '3.8.0.0',
+            'reference' => '99cd7981f51c98883082534d4852491858d72834',
             'type' => 'wordpress-plugin',
             'install_path' => __DIR__ . '/../woocommerce/action-scheduler',
             'aliases' => array(),

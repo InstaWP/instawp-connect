@@ -39,10 +39,15 @@ class InstaWP_Sync_Customizer {
 
 		foreach ( $mods as $key => $value ) {
 			if ( in_array( $key, $this->parsable_attachment_options ) ) {
-				$value = InstaWP_Sync_Parser::attachment_to_string( $value );
+				$value = InstaWP_Sync_Parser::generate_attachment_data( $value );
 			}
 
-			$mods[ $key ] = $this->is_image_url( $value ) ? array_merge( InstaWP_Sync_Parser::url_to_attachment( $value ), array( 'url_output' => true ) ) : $value;
+            if ( $this->is_image_url( $value ) ) {
+                $attachment_id = InstaWP_Sync_Parser::url_to_attachment( $value );
+                $value         = array_merge( InstaWP_Sync_Parser::generate_attachment_data( $attachment_id ), array( 'url_output' => true ) );
+            }
+
+			$mods[ $key ] = $value;
 		}
 
 		$data = array(
@@ -121,11 +126,11 @@ class InstaWP_Sync_Customizer {
 		foreach ( $data['mods'] as $key => $value ) {
 
 			if ( in_array( $key, $this->parsable_attachment_options ) ) {
-				$value = InstaWP_Sync_Parser::string_to_attachment( $value );
+				$value = InstaWP_Sync_Parser::process_attachment_data( $value );
 			}
 
 			if ( is_array( $value ) && ! empty( $value['url_output'] ) ) {
-				$value = wp_get_attachment_url( InstaWP_Sync_Parser::string_to_attachment( $value ) );
+				$value = wp_get_attachment_url( InstaWP_Sync_Parser::process_attachment_data( $value ) );
 			}
 
 			// Call the customize_save_ dynamic action.

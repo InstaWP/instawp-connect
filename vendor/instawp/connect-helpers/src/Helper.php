@@ -132,8 +132,12 @@ class Helper {
 		try {
 			if ( $path !== false && $path != '' && file_exists( $path ) ) {
 				foreach ( new \RecursiveIteratorIterator( new \RecursiveDirectoryIterator( $path, \FilesystemIterator::SKIP_DOTS ) ) as $object ) {
-					$bytes_total += $object->getSize();
-					$files_total ++;
+					try {
+						$bytes_total += $object->getSize();
+						++ $files_total;
+					} catch ( \Exception $e ) {
+						continue;
+					}
 				}
 			}
 		} catch ( \Exception $e ) {

@@ -17,6 +17,7 @@
  * @author     instawp team
  */
 
+use InstaWP\Connect\Helpers\Curl;
 use InstaWP\Connect\Helpers\Option;
 
 defined( 'ABSPATH' ) || die;
@@ -33,9 +34,12 @@ class InstaWP_Sync_Parser {
 			foreach ( $attachment_urls as $attachment_url ) {
 				if ( ! empty( $_SERVER['HTTP_HOST'] ) && strpos( $attachment_url, sanitize_text_field( wp_unslash( $_SERVER['HTTP_HOST'] ) ) ) !== false ) {
 					$full_attachment_url = preg_replace( '~-[0-9]+x[0-9]+.~', '.', $attachment_url );
-					$attachment_data     = self::url_to_attachment( $full_attachment_url );
+                    $attachment_id       = self::url_to_attachment( $full_attachment_url );
+					$attachment_data     = self::generate_attachment_data( $attachment_id );;
+                    $attachment_size     = self::get_image_size_name_from_url( $attachment_url );
 
 					$media[] = array_merge( $attachment_data, array(
+                        'size'           => $attachment_size ? $attachment_size : 'full',
 						'attachment_url' => $attachment_url,
 					) );
 				}
@@ -44,6 +48,41 @@ class InstaWP_Sync_Parser {
 
 		return $media;
 	}
+
+    public static function get_image_size_name_from_url( $image_url ) {
+        // Get the attachment ID from the image URL
+        $attachment_id = self::url_to_attachment( $image_url );
+        if ( ! $attachment_id ) {
+            return false;
+        }
+
+        // Get the image metadata
+        $image_meta = wp_get_attachment_metadata( $attachment_id );
+        if ( ! $image_meta ) {
+            return false;
+        }
+
+        // Get the uploads directory URL
+        $upload_dir = wp_upload_dir();
+        $base_url   = trailingslashit( $upload_dir['baseurl'] );
+
+        // Get the file name relative to the uploads directory
+        $relative_file_name = str_replace( $base_url, '', $image_url );
+
+        // Check the original image
+        if ( $relative_file_name === $image_meta['file'] ) {
+            return 'full';
+        }
+
+        // Check each image size
+        foreach ( $image_meta['sizes'] as $size => $size_data ) {
+            if ( $relative_file_name === $size_data['file'] ) {
+                return $size;
+            }
+        }
+
+        return false;
+    }
 
 	public static function url_to_attachment( $attachment_url ) {
 		global $wpdb;
@@ -61,40 +100,41 @@ class InstaWP_Sync_Parser {
 			}
 		}
 
-		return self::attachment_to_string( $attachment_id );
+		return $attachment_id;
 	}
 
-	public static function attachment_to_string( $attachment_id, $size = 'thumbnail', $is_attachment = false ) {
+	public static function generate_attachment_data( $attachment_id, $size = 'thumbnail', $is_attachment = false ) {
 		if ( ! $attachment_id ) {
 			return array();
 		}
 
-		$image_path = wp_get_attachment_image_url( $attachment_id, $size, false );
-		if ( ! $image_path ) {
+		$attachment_path = wp_attachment_is_image( $attachment_id ) ? wp_get_attachment_image_url( $attachment_id, $size, false ) : wp_get_attachment_url( $attachment_id );
+		if ( ! $attachment_path ) {
 			return array();
 		}
 
-		$image_info = pathinfo( $image_path );
-		$file_type  = wp_check_filetype( $image_info['basename'], null );
-		$attachment = get_post( $attachment_id );
+		$attachment_info = pathinfo( $attachment_path );
+		$file_type       = wp_check_filetype( $attachment_info['basename'], null );
+		$attachment      = get_post( $attachment_id );
 
-		$image_info['reference_id'] = InstaWP_Sync_Helpers::get_post_reference_id( $attachment_id );
-		$image_info['post_name']    = $attachment->post_name;
-		$image_info['file_type']    = $file_type['type'];
-		$image_info['path']         = $image_path;
+		$attachment_info['post_id']   = $attachment->ID;
+		$attachment_info['post_name'] = $attachment->post_name;
+		$attachment_info['file_type'] = $file_type['type'];
+		$attachment_info['path']      = $attachment_path;
+
+        if ( wp_attachment_is_image( $attachment_id ) ) {
+		    $attachment_info['size'] = $size;
+        }
 
 		if ( ! $is_attachment ) {
-            $image_info['post_meta'] = get_post_meta( $attachment_id );
+		    $attachment_info['reference_id'] = InstaWP_Sync_Helpers::get_post_reference_id( $attachment_id );
+            $attachment_info['post_meta']    = get_post_meta( $attachment_id );
         }
 
-        if ( $is_attachment && $attachment->post_parent ) {
-            $image_info['post_parent'] = self::parse_post_data( $attachment->post_parent );
-        }
-
-		return $image_info;
+		return $attachment_info;
 	}
 
-	public static function string_to_attachment( $data ) {
+	public static function process_attachment_data( $data ) {
 		$attachment_id = 0;
 
 		if ( empty( $data ) ) {
@@ -103,20 +143,31 @@ class InstaWP_Sync_Parser {
 
 		$attachment = InstaWP_Sync_Helpers::get_post_by_reference( 'attachment', $data['reference_id'], $data['post_name'] );
 		if ( ! $attachment ) {
-			$image_data = base64_decode( $data['base_data'] ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
+            $image_url  = isset( $data['url'] ) ? $data['url'] : $data['path'];
+			$image_data = file_get_contents( $image_url ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+
+            if ( $image_data === false ) {
+                $image_data = file_get_contents( $data['path'] ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+            }
+
+            if ( $image_data === false ) {
+                // backward compatibility
+                if ( ! empty( $data['base_data'] ) ) {
+                    $image_data = base64_decode( $data['base_data'] ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
+                } else {
+                    return $attachment_id;
+                }
+            }
+
 			$upload_dir = wp_upload_dir();
 			$file_name  = wp_unique_filename( $upload_dir['path'], $data['basename'] );
 			$save_path  = $upload_dir['path'] . DIRECTORY_SEPARATOR . $file_name;
 
 			file_put_contents( $save_path, $image_data ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 
-			$attachment = array(
-				'post_mime_type' => $data['file_type'],
-				'post_title'     => sanitize_file_name( $file_name ),
-				'post_content'   => '',
-				'post_status'    => 'inherit',
-				'guid'           => $save_path,
-			);
+			$attachment = wp_parse_args( array(
+				'guid' => $save_path,
+			), self::prepare_post_data( $data['post'] ) );
 
 			$parent_post_id = 0;
 
@@ -132,15 +183,18 @@ class InstaWP_Sync_Parser {
 			$attachment_id = wp_insert_attachment( $attachment, $save_path, $parent_post_id );
 
 			if ( ! is_wp_error( $attachment_id ) ) {
+		        self::process_post_meta( $data['post_meta'], $attachment_id );
+
 				$attachment_data = wp_generate_attachment_metadata( $attachment_id, $save_path );
 				wp_update_attachment_metadata( $attachment_id, $attachment_data );
-				update_post_meta( $attachment_id, 'instawp_event_sync_reference_id', $data['reference_id'] );
+
+                InstaWP_Sync_Helpers::set_post_reference_id( $attachment_id, $data['reference_id'] );
 			}
 		} else {
-			$attachment_id = $attachment->ID;
-		}
+            $attachment_id = wp_update_post( self::prepare_post_data( $data['post'], $attachment->ID ) );
 
-		self::process_post_meta( $data['post_meta'], $attachment_id );
+            self::process_post_meta( $data['post_meta'], $attachment_id );
+		}
 
 		return $attachment_id;
 	}
@@ -173,11 +227,9 @@ class InstaWP_Sync_Parser {
 		} );
 
 		// Bricks
-		add_filter( 'update_post_metadata', function ( $check, $object_id, $meta_key, $meta_value, $prev_value ) use ( $bricks_meta ) {
-			$is_bricks_postmeta = in_array( $meta_key, $bricks_meta, true );
-
-			return $is_bricks_postmeta ? null : $check;
-		}, 9999, 5 );
+		add_filter( 'update_post_metadata', function ( $check, $object_id, $meta_key ) use ( $bricks_meta ) {
+			return in_array( $meta_key, $bricks_meta, true ) ? null : $check;
+		}, 9999, 3 );
 
 		foreach ( $meta_data as $meta_key => $values ) {
 			$value = $values[0];
@@ -202,6 +254,7 @@ class InstaWP_Sync_Parser {
 	public static function parse_post_events( $details ) {
 		$wp_post     = isset( $details['post'] ) ? $details['post'] : array();
 		$parent_data = isset( $details['parent'] ) ? $details['parent'] : array();
+        $post_meta   = isset( $details['post_meta'] ) ? $details['post_meta'] : array();
 
 		if ( ! $wp_post ) {
 			return 0;
@@ -210,9 +263,15 @@ class InstaWP_Sync_Parser {
 		kses_remove_filters();
 
 		if ( $wp_post['post_type'] === 'attachment' ) {
-			$wp_post['ID'] = self::string_to_attachment( $details['attachment'] );
+            $attachment = array_merge( $details['attachment'], array(
+                'reference_id' => $details['reference_id'],
+                'post_parent'  => $parent_data,
+                'post_meta'    => $post_meta,
+                'post'         => $wp_post,
+            ) );
+
+			$wp_post['ID'] = self::process_attachment_data( $attachment );
 		} else {
-			$post_meta      = isset( $details['post_meta'] ) ? $details['post_meta'] : array();
 			$featured_image = isset( $details['featured_image'] ) ? $details['featured_image'] : array();
 			$content_media  = isset( $details['media'] ) ? $details['media'] : array();
 			$taxonomies     = isset( $details['taxonomies'] ) ? $details['taxonomies'] : array();
@@ -221,7 +280,7 @@ class InstaWP_Sync_Parser {
 			delete_post_thumbnail( $wp_post['ID'] );
 
 			if ( ! empty( $featured_image ) ) {
-				$attachment_id = self::string_to_attachment( $featured_image );
+				$attachment_id = self::process_attachment_data( $featured_image );
 				if ( ! empty( $attachment_id ) ) {
 					set_post_thumbnail( $wp_post['ID'], $attachment_id );
 				}
@@ -252,7 +311,7 @@ class InstaWP_Sync_Parser {
 				wp_set_post_terms( $wp_post['ID'], $term_ids, $taxonomy );
 			}
 
-			self::upload_content_media( $content_media, $wp_post['ID'] );
+			self::replace_media_items( $content_media, $wp_post['ID'] );
 		}
 
 		if ( ! empty( $parent_data ) ) {
@@ -292,7 +351,7 @@ class InstaWP_Sync_Parser {
 		);
 
 		if ( $post->post_type === 'attachment' ) {
-			$data['attachment'] = self::attachment_to_string( $post->ID, 'full', true );
+			$data['attachment'] = self::generate_attachment_data( $post->ID, 'full', true );
 		} else {
 			$taxonomies = InstaWP_Sync_Helpers::get_taxonomies_items( $post->ID );
 			if ( ! empty( $taxonomies ) ) {
@@ -301,21 +360,21 @@ class InstaWP_Sync_Parser {
 
 			$featured_image_id = get_post_thumbnail_id( $post->ID );
 			if ( $featured_image_id ) {
-				$data['featured_image'] = self::attachment_to_string( $featured_image_id );
+				$data['featured_image'] = self::generate_attachment_data( $featured_image_id );
 			}
 
-			if ( ! empty( $post->post_content ) ) {
-				$data['media'] = self::get_media_from_content( $post->post_content );
-			}
-		}
-
-		if ( $post_parent_id > 0 ) {
-			$post_parent = get_post( $post_parent_id );
-
-			if ( $post_parent->post_status !== 'auto-draft' ) {
-				$data['parent'] = self::parse_post_data( $post_parent );
+			if ( ! empty( $post_content ) ) {
+				$data['media'] = self::get_media_from_content( $post_content );
 			}
 		}
+
+        if ( $post_parent_id > 0 ) {
+            $post_parent = get_post( $post_parent_id );
+
+            if ( $post_parent->post_status !== 'auto-draft' ) {
+                $data['parent'] = self::parse_post_data( $post_parent );
+            }
+        }
 
 		kses_init_filters();
 
@@ -359,24 +418,96 @@ class InstaWP_Sync_Parser {
 		return $post;
 	}
 
-	public static function upload_content_media( $media, $post_id ) {
+	public static function replace_media_items( $media, $post_id ) {
 		$post    = get_post( $post_id );
 		$content = $post->post_content;
-		$new     = $old = array();
+		$search  = $replace = array();
 
 		if ( ! empty( $media ) ) {
 			foreach ( $media as $media_item ) {
 				if ( ! empty( $media_item['attachment_url'] ) ) {
-					$attachment_id = self::string_to_attachment( $media_item );
-					$new[]         = wp_get_attachment_url( $attachment_id );
-					$old[]         = $media_item['attachment_url'];
+					$attachment_id   = self::process_attachment_data( $media_item );
+                    $attachment_size = isset( $media_item['size'] ) ? $media_item['size'] : 'full';
+					$search[]        = wp_attachment_is_image( $attachment_id ) ? wp_get_attachment_image_url( $attachment_id, $attachment_size, false ) : wp_get_attachment_url( $attachment_id );
+					$replace[]       = $media_item['attachment_url'];
 				}
 			}
 
 			wp_update_post( array(
 				'ID'           => $post_id,
-				'post_content' => str_replace( $old, $new, $content ),
+				'post_content' => str_replace( $search, $replace, $content ),
 			) );
 		}
 	}
+
+    public static function upload_attachment( $fields = array() ) {
+        $attachment_id = isset( $fields['post_id'] ) ? $fields['post_id'] : 0;
+        $connect_id    = instawp_get_connect_id();
+        if ( ! $attachment_id || ! $connect_id ) {
+            return $fields;
+        }
+
+        $local_file    = get_attached_file( $attachment_id );
+        $boundary      = wp_generate_password( 24, false );
+        $headers       = array(
+            'Content-Type' => 'multipart/form-data; boundary=' . $boundary,
+        );
+        $payload       = '';
+        $file_name     = $fields['filename'];
+        $fields['filename'] = $fields['basename'];
+
+        // First, add the standard POST fields
+        foreach ( $fields as $name => $value ) {
+            if ( is_array( $value ) || is_object( $value ) ) {
+                continue;
+            }
+            $payload .= '--' . $boundary . "\r\n";
+            $payload .= 'Content-Disposition: form-data; name="' . $name . '"' . "\r\n";
+            $payload .= "\r\n" . $value . "\r\n";
+        }
+
+        // Upload the file
+        if ( $local_file ) {
+            $payload .= '--' . $boundary . "\r\n";
+            $payload .= 'Content-Disposition: form-data; name="file"; filename="' . $fields['filename'] . '"' . "\r\n";
+            $payload .= 'Content-Type: ' . $fields['file_type'] . "\r\n";
+            $payload .= "\r\n" . file_get_contents( $local_file ) . "\r\n"; // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+        }
+        $payload .= '--' . $boundary . '--';
+
+        // sync/<connect_id>/upload-attachment
+        $response = Curl::do_curl( "sync/{$connect_id}/upload-attachment", $payload, $headers );
+        if ( $response['code'] !== 200 || ! $response['success'] ) {
+            $fields['filename'] = $file_name;
+
+            return $fields;
+        }
+
+        $data = $response['data'];
+        unset( $data['file'] );
+
+        $data['filename'] = $file_name;
+
+        if ( ! empty( $fields['post_meta'] ) ) {
+            $data['post_meta'] = $fields['post_meta'];
+        }
+
+        return $data;
+    }
+
+    public static function process_attachments( $array_data ) {
+        foreach ( $array_data as $key => $value ) {
+            if ( in_array( $key, array( 'attachment', 'featured_image' ) ) ) {
+                $array_data[ $key ] = InstaWP_Sync_Parser::upload_attachment( $value );
+            } elseif ( in_array( $key, array( 'media', 'product_gallery' ) ) ) {
+                $array_data[ $key ] = array_map( function ( $value ) {
+                    return InstaWP_Sync_Parser::upload_attachment( $value );
+                }, $value );
+            } elseif ( is_array( $value ) ) {
+                $array_data[ $key ] = self::process_attachments( $value );
+            }
+        }
+        
+        return $array_data;
+    }
 }

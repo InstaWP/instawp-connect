@@ -130,7 +130,7 @@ class InstaWP_Sync_Term {
 			}
 
 			foreach ( $term_meta['media'] as $key => $media ) {
-				$attachment_id = InstaWP_Sync_Parser::string_to_attachment( $media );
+				$attachment_id = InstaWP_Sync_Parser::process_attachment_data( $media );
 				if ( ! empty( $attachment_id ) ) {
 					update_term_meta( $term_id, $key, $attachment_id );
 				}
@@ -216,7 +216,7 @@ class InstaWP_Sync_Term {
 			if ( ! in_array( $key, $attachment_keys ) ) {
 				continue;
 			}
-			$attachments[ $key ] = InstaWP_Sync_Parser::attachment_to_string( $meta[0] );
+			$attachments[ $key ] = InstaWP_Sync_Parser::generate_attachment_data( $meta[0] );
 		}
 
 		return $attachments;

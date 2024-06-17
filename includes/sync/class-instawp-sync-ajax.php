@@ -532,23 +532,24 @@ class InstaWP_Sync_Ajax {
 			);
 
 			if ( ! empty( $events ) && is_array( $events ) ) {
-				foreach ( $events as $k => $v ) {
-					$event_hash = $v->event_hash;
+				foreach ( $events as $event ) {
+					$event_hash = $event->event_hash;
+                    $content    = json_decode( $event->details, true );
 
 					if ( empty( $event_hash ) ) {
 						$event_hash = InstaWP_Tools::get_random_string();
-						$this->wpdb->update( INSTAWP_DB_TABLE_EVENT_SYNC_LOGS, array( 'event_hash' => $event_hash ), array( 'id' => $v->id ) );
+						$this->wpdb->update( INSTAWP_DB_TABLE_EVENT_SYNC_LOGS, array( 'event_hash' => $event_hash ), array( 'id' => $event->id ) );
 					}
 
 					$encrypted_content[] = array(
-						'id'         => $v->id,
+						'id'         => $event->id,
 						'event_hash' => $event_hash,
-						'details'    => json_decode( $v->details ),
-						'event_name' => $v->event_name,
-						'event_slug' => $v->event_slug,
-						'event_type' => $v->event_type,
-						'source_id'  => $v->source_id,
-						'user_id'    => $v->user_id,
+						'details'    => InstaWP_Sync_Parser::process_attachments( $content ),
+						'event_name' => $event->event_name,
+						'event_slug' => $event->event_slug,
+						'event_type' => $event->event_type,
+						'source_id'  => $event->source_id,
+						'user_id'    => $event->user_id,
 					);
 				}
 
