@@ -13,6 +13,7 @@ class InstaWP_Sync_Post {
 		add_action( 'add_attachment', array( $this, 'add_attachment' ) );
 		add_action( 'edit_attachment', array( $this, 'edit_attachment' ) );
 		add_action( 'delete_attachment', array( $this, 'delete_attachment' ) );
+		//add_action( 'wp_ajax_image-editor', array( $this, 'edit_attachment_item' ), 1 );
 
 		// Elementor.
 		add_action( 'elementor/document/after_save', array( $this, 'handle_elementor' ), 999 );
@@ -106,49 +107,69 @@ class InstaWP_Sync_Post {
 	 *
 	 * @return void
 	 */
-	public function add_attachment( $post_id ) {
+	public function add_attachment( $attachment_id ) {
 		if ( ! InstaWP_Sync_Helpers::can_sync( 'post' ) ) {
 			return;
 		}
 
-		$post       = get_post( $post_id );
+		$attachment = get_post( $attachment_id );
 		$event_name = esc_html__( 'Media created', 'instawp-connect' );
-		$this->handle_post_events( $event_name, 'post_new', $post );
+		$this->handle_post_events( $event_name, 'post_new', $attachment );
 	}
 
 	/**
 	 * Function for `edit_attachment` action-hook
 	 *
-	 * @param $post_id
+	 * @param $attachment_id
 	 *
 	 * @return void
 	 */
-	public function edit_attachment( $post_id ) {
+	public function edit_attachment( $attachment_id ) {
 		if ( ! InstaWP_Sync_Helpers::can_sync( 'post' ) ) {
 			return;
 		}
 
-		$post       = get_post( $post_id );
+		$attachment = get_post( $attachment_id );
 		$event_name = esc_html__( 'Media updated', 'instawp-connect' );
-		$this->handle_post_events( $event_name, 'post_change', $post );
+		$this->handle_post_events( $event_name, 'post_change', $attachment );
 	}
 
 	/**
 	 * Function for `delete_attachment` action-hook
 	 *
-	 * @param $post_id
+	 * @param $attachment_id
 	 *
 	 * @return void
 	 */
-	public function delete_attachment( $post_id ) {
+	public function delete_attachment( $attachment_id ) {
 		if ( ! InstaWP_Sync_Helpers::can_sync( 'post' ) ) {
 			return;
 		}
 
-		$post       = get_post( $post_id );
+		$attachment = get_post( $attachment_id );
 		$event_name = esc_html__( 'Media deleted', 'instawp-connect' );
-		$this->handle_post_events( $event_name, 'post_delete', $post );
+		$this->handle_post_events( $event_name, 'post_delete', $attachment );
 	}
+
+    /**
+     * Function for `wp_ajax_image-editor` action-hook
+     *
+     * @return void
+     */
+    public function edit_attachment_item() {
+        if ( ! InstaWP_Sync_Helpers::can_sync( 'post' ) ) {
+            return;
+        }
+
+        $attachment_id = ! empty( $_POST['postid'] ) ? (int) $_POST['postid'] : 0; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+        if ( ! $attachment_id ) {
+            return;
+        }
+
+        $attachment = get_post( $attachment_id );
+        $event_name = esc_html__( 'Media updated', 'instawp-connect' );
+        $this->handle_post_events( $event_name, 'post_change', $attachment );
+    }
 
 	/**
 	 * After document save.

@@ -107,7 +107,7 @@ class InstaWP_Setting {
 		$field_default_value = self::get_args_option( 'default', $field );
 		$field_label_class   = self::get_args_option( 'label_class', $field );
 		$field_parent_class  = self::get_args_option( 'parent_class', $field );
-		$field_value         = self::get_option( $field_id, $field_default_value );
+		$field_value         = Option::get_option( $field_id, $field_default_value );
 		$attributes          = array();
 
 		$field_value = ( $field_name ) ? self::get_args_option( $field_name, $field_value, $field_default_value ) : $field_value;
@@ -624,7 +624,7 @@ class InstaWP_Setting {
 			return false;
 		}
 
-		$api_options            = self::get_option( 'instawp_api_options', array() );
+		$api_options            = Option::get_option( 'instawp_api_options', array() );
 		$api_options['api_url'] = sanitize_url( $instawp_api_url );
 
 		return Option::update_option( 'instawp_api_options', $api_options );
@@ -635,14 +635,14 @@ class InstaWP_Setting {
 	}
 
 	public static function get_api_domain() {
-		$api_options = self::get_option( 'instawp_api_options', array() );
+		$api_options = Option::get_option( 'instawp_api_options', array() );
 
 		return self::get_args_option( 'api_url', $api_options, INSTAWP_API_DOMAIN_PROD );
 	}
 
 	public static function get_api_key( $return_hashed = false ) {
 
-		$api_options = self::get_option( 'instawp_api_options', array() );
+		$api_options = Option::get_option( 'instawp_api_options', array() );
 		$api_key     = self::get_args_option( 'api_key', $api_options );
 
 		if ( ! $return_hashed ) {
@@ -660,20 +660,20 @@ class InstaWP_Setting {
 	}
 
 	public static function set_api_key( $api_key ) {
-		$api_options            = self::get_option( 'instawp_api_options', array() );
+		$api_options            = Option::get_option( 'instawp_api_options', array() );
 		$api_options['api_key'] = sanitize_text_field( wp_unslash( $api_key ) );
 
 		return Option::update_option( 'instawp_api_options', $api_options );
 	}
 
 	public static function get_connect_id() {
-		$api_options = self::get_option( 'instawp_api_options', array() );
+		$api_options = Option::get_option( 'instawp_api_options', array() );
 
 		return self::get_args_option( 'connect_id', $api_options );
 	}
 
 	public static function set_connect_id( $connect_id ) {
-		$api_options               = self::get_option( 'instawp_api_options', array() );
+		$api_options               = Option::get_option( 'instawp_api_options', array() );
 		$api_options['connect_id'] = intval( $connect_id );
 
 		return Option::update_option( 'instawp_api_options', $api_options );
@@ -711,7 +711,7 @@ class InstaWP_Setting {
 		$api_response = Curl::do_curl( 'check-key', array(), array(), false, 'v1', $api_key );
 
 		if ( ! empty( $api_response['data']['status'] ) ) {
-			$api_options = self::get_option( 'instawp_api_options', array() );
+			$api_options = Option::get_option( 'instawp_api_options', array() );
 
 			if ( is_array( $api_options ) && is_array( $api_response['data'] ) ) {
 				Option::update_option( 'instawp_api_options', array_merge( $api_options, array(
@@ -756,16 +756,15 @@ class InstaWP_Setting {
 		return true;
 	}
 
-	public static function get_option( $option_name, $default_value = array() ) {
-		return Option::get_option( $option_name, $default_value );
-	}
-
 	public static function get_select2_default_selected_option( $option ) {
-		if ( $option = 'instawp_default_user' ) {
-			$user = get_user_by( 'ID', self::get_option( $option ) );
-			if ( ! empty( $user ) ) {
-				return array( $user->data->ID => $user->data->user_login );
-			}
+		if ( $option === 'instawp_default_user' ) {
+            $user_id = Option::get_option( $option, 0 );
+            if ( $user_id ) {
+                $user = get_user_by('ID', $user_id );
+                if ( ! empty( $user ) ) {
+                    return array( $user->data->ID => $user->data->user_login );
+                }
+            }
 		} elseif ( $option === 'instawp_sync_tab_roles' ) {
 			$role_options   = array();
 			$all_roles      = wp_roles()->roles;

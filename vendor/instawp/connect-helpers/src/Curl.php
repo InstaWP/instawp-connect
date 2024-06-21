@@ -55,14 +55,14 @@ class Curl {
 		);
 
 		if ( ! empty( $body ) ) {
-			$args['body'] = wp_json_encode( $body );
+			$args['body'] = is_array( $body ) ? wp_json_encode( $body ) : $body;
 		}
 
 		$response = wp_remote_request( $api_url, $args );
 
 		if ( defined( 'INSTAWP_DEBUG_LOG' ) && INSTAWP_DEBUG_LOG ) {
 			error_log( 'API URL - ' . $api_url );
-			error_log( 'API ARGS - ' . wp_json_encode( $body ) );
+			error_log( 'API ARGS - ' . is_array( $body ) ? wp_json_encode( $body ) : $body );
 			error_log( 'API HEADERS - ' . wp_json_encode( $headers ) );
 			error_log( 'API Response - ' . wp_json_encode( $response ) );
 		}

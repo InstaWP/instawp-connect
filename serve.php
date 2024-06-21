@@ -320,6 +320,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 				$content = preg_replace( '/^(.*AuthName.*)$/m', '# $1', $content );
 				$content = preg_replace( '/^(.*ErrorDocument.*)$/m', '# $1', $content );
 				$content = str_replace( 'SetHandler proxy:fcgi://continental-php82', '# SetHandler proxy:fcgi://continental-php82', $content );
+				$content = preg_replace( '/^(.*proxy:fcgi.*)$/m', '# $1', $content );
 
 				if ( ! empty( $site_url ) ) {
 					$url_path = parse_url( $site_url, PHP_URL_PATH );

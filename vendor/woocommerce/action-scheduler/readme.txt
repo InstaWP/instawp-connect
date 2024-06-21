@@ -1,11 +1,11 @@
 === Action Scheduler ===
 Contributors: Automattic, wpmuguru, claudiosanches, peterfabian1000, vedjain, jamosova, obliviousharmony, konamiman, sadowski, royho, barryhughes-1
 Tags: scheduler, cron
-Stable tag: 3.7.4
+Stable tag: 3.8.0
 License: GPLv3
-Requires at least: 6.2
+Requires at least: 6.3
 Tested up to: 6.5
-Requires PHP: 5.6
+Requires PHP: 7.0
 
 Action Scheduler - Job Queue for WordPress
 
@@ -47,9 +47,15 @@ Collaboration is cool. We'd love to work with you to improve Action Scheduler. [
 
 == Changelog ==
 
+= 3.8.0 - 2024-05-22 =
+* Bump "Tested up to" version to 6.5.
+* Fix typos in perf.md.
+* Merge Release/3.7.4 into trunk.
+* Tweak - WP 6.5 compatibility.
+* Update minimum requirements for WordPress (and PHP). Fix test matrix.
+
 = 3.7.4 - 2024-04-05 =
 * Give a clear description of how the $unique parameter works.
-* Merge release/3.7.3 into trunk.
 * Preserve the tab field if set.
 * Tweak - WP 6.5 compatibility.
 
