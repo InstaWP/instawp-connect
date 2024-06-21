@@ -77,15 +77,6 @@ class InstaWP_Rest_Api {
 	 */
 	public function set_config( $request ) {
 
-		$connect_id = instawp_get_connect_id();
-
-		if ( ! empty( $connect_id ) ) {
-			return $this->send_response( array(
-				'status'  => true,
-				'message' => esc_html__( 'This website is already connected!', 'instawp-connect' ),
-			) );
-		}
-
 		$parameters           = $this->filter_params( $request );
 		$wp_username          = isset( $parameters['wp_username'] ) ? sanitize_text_field( $parameters['wp_username'] ) : '';
 		$application_password = isset( $parameters['application_password'] ) ? sanitize_text_field( $parameters['application_password'] ) : '';
@@ -105,20 +96,6 @@ class InstaWP_Rest_Api {
 				'status'  => false,
 				'message' => esc_html__( 'Api key is required.', 'instawp-connect' ),
 			) );
-		}
-
-		if ( isset( $parameters['override_from_main'] ) && $parameters['override_from_main'] ) {
-			$plugin_zip_url = esc_url_raw( 'https://github.com/InstaWP/instawp-connect/archive/refs/heads/main.zip' );
-			$this->override_plugin_zip_while_doing_config( $plugin_zip_url );
-
-			if ( ! function_exists( 'is_plugin_active' ) ) {
-				require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
-			}
-
-			$plugin_slug = INSTAWP_PLUGIN_SLUG . '/' . INSTAWP_PLUGIN_SLUG . '.php';
-			if ( ! is_plugin_active( $plugin_slug ) ) {
-				activate_plugin( $plugin_slug );
-			}
 		}
 
 		$application_password = base64_decode( $application_password ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
@@ -159,6 +136,28 @@ class InstaWP_Rest_Api {
 			return $this->send_response( array(
 				'status'  => false,
 				'message' => esc_html__( 'Application password does not match.', 'instawp-connect' ),
+			) );
+		}
+
+		if ( isset( $parameters['override_from_main'] ) && $parameters['override_from_main'] ) {
+			$plugin_zip_url = esc_url_raw( 'https://github.com/InstaWP/instawp-connect/archive/refs/heads/main.zip' );
+			$this->override_plugin_zip_while_doing_config( $plugin_zip_url );
+
+			if ( ! function_exists( 'is_plugin_active' ) ) {
+				require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
+			}
+
+			$plugin_slug = INSTAWP_PLUGIN_SLUG . '/' . INSTAWP_PLUGIN_SLUG . '.php';
+			if ( ! is_plugin_active( $plugin_slug ) ) {
+				activate_plugin( $plugin_slug );
+			}
+		}
+
+		// If already connected then ignore
+		if ( ! empty( instawp_get_connect_id() ) ) {
+			return $this->send_response( array(
+				'status'  => true,
+				'message' => esc_html__( 'This website is already connected!', 'instawp-connect' ),
 			) );
 		}
 

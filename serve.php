@@ -11,6 +11,8 @@ if ( empty( $migrate_key ) ) {
 	die();
 }
 
+
+
 function get_wp_root_directory( $find_with_files = 'wp-load.php', $find_with_dir = '' ) {
 
 	$is_find_root_dir = true;
@@ -133,28 +135,28 @@ if ( ! hash_equals( $db_api_signature, $api_signature ) ) {
 
 if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
-    if ( ! function_exists( 'get_server_temp_dir' ) ) {
-        function get_server_temp_dir() {
-            if ( function_exists( 'sys_get_temp_dir' ) ) {
-                $temp = sys_get_temp_dir();
-                if ( @is_dir( $temp ) && is_writable( $temp ) ) {
-                    return $temp . '/';
-                }
-            }
+	if ( ! function_exists( 'get_server_temp_dir' ) ) {
+		function get_server_temp_dir() {
+			if ( function_exists( 'sys_get_temp_dir' ) ) {
+				$temp = sys_get_temp_dir();
+				if ( @is_dir( $temp ) && is_writable( $temp ) ) {
+					return $temp . '/';
+				}
+			}
 
-            $temp = ini_get( 'upload_tmp_dir' );
-            if ( @is_dir( $temp ) && is_writable( $temp ) ) {
-                return $temp . '/';
-            }
+			$temp = ini_get( 'upload_tmp_dir' );
+			if ( @is_dir( $temp ) && is_writable( $temp ) ) {
+				return $temp . '/';
+			}
 
-            $temp = WP_ROOT . '/';
-            if ( is_dir( $temp ) && is_writable( $temp ) ) {
-                return $temp;
-            }
+			$temp = WP_ROOT . '/';
+			if ( is_dir( $temp ) && is_writable( $temp ) ) {
+				return $temp;
+			}
 
-            return '/tmp/';
-        }
-    }
+			return '/tmp/';
+		}
+	}
 
 	if ( ! function_exists( 'readfile_chunked' ) ) {
 		function readfile_chunked( $filename, $retbytes = true ) {
@@ -317,7 +319,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 				$content = preg_replace( '/^(.*AuthUserFile.*)$/m', '# $1', $content );
 				$content = preg_replace( '/^(.*AuthName.*)$/m', '# $1', $content );
 				$content = preg_replace( '/^(.*ErrorDocument.*)$/m', '# $1', $content );
-				$content = str_replace('SetHandler proxy:fcgi://continental-php82', '# SetHandler proxy:fcgi://continental-php82', $content );
+				$content = str_replace( 'SetHandler proxy:fcgi://continental-php82', '# SetHandler proxy:fcgi://continental-php82', $content );
 
 				if ( ! empty( $site_url ) ) {
 					$url_path = parse_url( $site_url, PHP_URL_PATH );
@@ -364,7 +366,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 				// Flywheel support
 				$file_contents = str_replace( "define('ABSPATH', dirname(__FILE__) . '/.wordpress/');", "define( 'ABSPATH', dirname( __FILE__ ) . '/' );", $file_contents );
 
-                // GridPane Support
+				// GridPane Support
 				$file_contents = str_replace( "include __DIR__ . '/user-configs.php';", "// include __DIR__ . '/user-configs.php';", $file_contents );
 				$file_contents = str_replace( "include __DIR__ . '/wp-fail2ban-configs.php';", "// include __DIR__ . '/wp-fail2ban-configs.php';", $file_contents );
 				$file_contents = str_replace( "include __DIR__ . '/smtp-provider-wp-configs.php';", "// include __DIR__ . '/smtp-provider-wp-configs.php';", $file_contents );
@@ -492,12 +494,12 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			$filesize      = 0;
 
 			try {
-				$filepath = $file->getPathname();
-				$filesize = $file->getSize();
+				$filepath      = $file->getPathname();
+				$filesize      = $file->getSize();
 			} catch ( Exception $e ) {
 				$tracking_db->insert( 'iwp_files_sent', array(
 					'filepath'      => "'$filepath'",
-					'filepath_hash' => "'$filepath_hash'",
+					'filepath_hash' => "",
 					'sent'          => 5,
 					'size'          => "'$filesize'",
 				) );

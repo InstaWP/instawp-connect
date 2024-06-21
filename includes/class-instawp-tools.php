@@ -11,6 +11,31 @@ if ( ! defined( 'INSTAWP_PLUGIN_DIR' ) ) {
 
 class InstaWP_Tools {
 
+	public static function send_migration_log( $migrate_id, $label = '', $description = '', $payload = [] ) {
+
+		if ( ! is_int( $migrate_id ) ) {
+			return new WP_Error( 'invalid_migration_id', esc_html__( 'Invalid Migration ID', 'instawp-connect' ) );
+		}
+
+		$log_args             = array(
+			'migrate_id'  => $migrate_id,
+			'url'         => site_url(),
+			'type'        => 'plugin',
+			'label'       => $label,
+			'description' => $description,
+			'payload'     => $payload,
+		);
+		$log_response         = Curl::do_curl( 'migrates-v3/log', $log_args );
+		$log_response_success = (bool) Helper::get_args_option( 'success', $log_response, false );
+		$log_response_message = Helper::get_args_option( 'message', $log_response );
+
+		if ( ! $log_response_success ) {
+			return new WP_Error( 'log_send_failed', $log_response_message );
+		}
+
+		return true;
+	}
+
 	public static function write_log( $message = '', $type = 'notice' ) {
 
 		global $instawp_log;
@@ -95,13 +120,13 @@ class InstaWP_Tools {
 		while ( false !== ( $file = readdir( $instawpbackups_dir_handle ) ) ) {
 			if ( $file !== '.' && $file !== '..' ) {
 				$file_path = $instawpbackups_dir . DIRECTORY_SEPARATOR . $file;
-                if ( file_exists( $file_path ) ) {
-                    if ( is_dir( $file_path ) ) {
-                        self::clean_instawpbackups_dir( $file_path );
-                    } else {
-                        wp_delete_file( $file_path );
-                    }
-                }
+				if ( file_exists( $file_path ) ) {
+					if ( is_dir( $file_path ) ) {
+						self::clean_instawpbackups_dir( $file_path );
+					} else {
+						wp_delete_file( $file_path );
+					}
+				}
 			}
 		}
 
@@ -222,7 +247,7 @@ include $file_path;';
 
 		$jsonString     = wp_json_encode( $data );
 		$passphrase     = openssl_digest( $migrate_key, 'SHA256', true );
-        $data_encrypted = openssl_encrypt( $jsonString, 'AES-256-CBC', $passphrase );
+		$data_encrypted = openssl_encrypt( $jsonString, 'AES-256-CBC', $passphrase );
 		$dest_file_path = INSTAWP_BACKUP_DIR . 'migrate-push-db-' . substr( $migrate_key, 0, 5 ) . '.txt';
 
 		if ( file_put_contents( $dest_file_path, $data_encrypted ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
@@ -604,20 +629,20 @@ include $file_path;';
 		// Remove instawp connect options
 		$excluded_tables_rows = Helper::get_args_option( 'excluded_tables_rows', $migrate_settings, array() );
 
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_api_options';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_connect_id_options';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_sync_parent_connect_data';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_migration_details';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_last_migration_details';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_api_key_config_completed';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_is_event_syncing';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_staging_sites';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_is_staging';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:schema-ActionScheduler_StoreSchema';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:schema-ActionScheduler_LoggerSchema';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:action_scheduler_hybrid_store_demarkation';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:_transient_timeout_action_scheduler_last_pastdue_actions_check';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:_transient_action_scheduler_last_pastdue_actions_check';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_api_options';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_connect_id_options';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_sync_parent_connect_data';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_migration_details';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_last_migration_details';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_api_key_config_completed';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_is_event_syncing';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_staging_sites';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_is_staging';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:schema-ActionScheduler_StoreSchema';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:schema-ActionScheduler_LoggerSchema';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:action_scheduler_hybrid_store_demarkation';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:_transient_timeout_action_scheduler_last_pastdue_actions_check';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:_transient_action_scheduler_last_pastdue_actions_check';
 
 		$migrate_settings['excluded_tables_rows'] = $excluded_tables_rows;
 
