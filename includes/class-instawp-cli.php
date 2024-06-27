@@ -118,6 +118,9 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 			WP_CLI::success( 'Migration successful.' );
 		}
 
+		/**
+		 * @throws \WP_CLI\ExitException
+		 */
 		public function handle_instawp_commands( $args ) {
 
 			if ( isset( $args[0] ) && $args[0] === 'local' ) {
@@ -202,7 +205,77 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 				}
 			}
 
+			if ( isset( $args[0] ) && $args[0] === 'scan' ) {
+				$wp_scanner = new \InstaWP\Connect\Helpers\WPScanner();
+
+				if ( isset( $args[1] ) && $args[1] === 'summary' ) {
+					$summary_res = $wp_scanner->scan_summary();
+
+					if ( is_wp_error( $summary_res ) ) {
+						WP_CLI::error( $summary_res->get_error_message() );
+
+						return false;
+					}
+
+					if ( ! is_array( $summary_res ) ) {
+						WP_CLI::error( esc_html__( 'Failed: Could not create performance summary.', 'instawp-connect' ) );
+
+						return false;
+					}
+
+					WP_CLI::success( esc_html__( 'Performance Summary of this website is given below:', 'instawp-connect' ) );
+
+					$this->render_cli_from_array( $summary_res );
+				}
+
+				if ( isset( $args[1] ) && $args[1] === 'slow-item' ) {
+					$slow_items = $wp_scanner->scan_slow_items();
+
+					if ( is_wp_error( $slow_items ) ) {
+						WP_CLI::error( $slow_items->get_error_message() );
+
+						return false;
+					}
+
+					if ( ! is_array( $slow_items ) ) {
+						WP_CLI::error( esc_html__( 'Failed: Could not calculate slow items.', 'instawp-connect' ) );
+
+						return false;
+					}
+
+					$slow_items_table = [];
+					$counter          = 0;
+					$fields           = array( 'ID', 'Name', 'Type', 'Time Taken' );
+
+					foreach ( $slow_items as $slow_item ) {
+						$counter ++;
+						$slow_items_table[] = array(
+							'ID'         => $counter,
+							'Name'       => $slow_item[2],
+							'Type'       => $slow_item[3],
+							'Time Taken' => $slow_item[1],
+						);
+					}
+
+					WP_CLI::success( esc_html__( 'Slow items of this website are given below: (Top is the slowest one)', 'instawp-connect' ) );
+
+					WP_CLI\Utils\format_items( 'table', $slow_items_table, $fields );
+				}
+			}
+
 			return true;
+		}
+
+		public function render_cli_from_array( $args ) {
+			if ( is_array( $args ) ) {
+				foreach ( $args as $key => $value ) {
+					if ( is_array( $value ) ) {
+						$this->render_cli_from_array( $value );
+					} else {
+						WP_CLI::line( strtoupper( $key ) . ': ' . $value );
+					}
+				}
+			}
 		}
 
 		/**

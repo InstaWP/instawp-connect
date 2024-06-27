@@ -128,7 +128,37 @@ add_action( 'wp_head', function () {
 	if ( isset( $_GET['debug'] ) ) {
 
 
-//		InstaWP_Tools::send_migration_log( 507, 'test at ' . current_time( 'mysql' ), 'sample description', $_SERVER );
+		$output            = [];
+		$_POST['cp_nonce'] = wp_create_nonce( 'start_profiler_nonce' );
+		$_POST['profile']  = 'WP-CLI_' . time();
+		$_POST['ua']       = 'Firefox';
+		$_POST['where']    = 'frontend';
+		$_POST['post']     = home_url( '/' );
+		$_POST['user']     = 'unauthenticated';
+
+		$response           = json_decode( codeprofiler_start_profiler(), true );
+		$_POST['microtime'] = $response['microtime'];
+
+		$response = json_decode( codeprofiler_prepare_report(), true );
+		$profile  = $response['cp_profile'];
+		$cp_file  = code_profiler_get_profile_path( $profile );
+		$cp_file  = $cp_file . '.slugs.profile';
+
+		$summary_file      = str_replace( '.slugs.profile', '', $cp_file );
+		$output['summary'] = json_decode( file_get_contents( "$summary_file.summary.profile" ), true );
+
+
+		$profile     = str_replace( '.slugs.profile', '', $cp_file );
+		$profile_res = code_profiler_get_profile_data( $profile );
+		usort( $profile_res, function ( $a, $b ) {
+			return $b[1] <=> $a[1];
+		} );
+
+		$output['profile'] = $profile_res;
+
+		echo "<pre>";
+		print_r( $output );
+		echo "</pre>";
 
 		die();
 	}
