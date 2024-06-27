@@ -87,7 +87,7 @@ function instawp_plugin_activate() {
 		add_option( 'instawp_sync_tab_roles', $roles );
 	}
 
-    $api_options = get_option( 'instawp_api_options_backup', array() );
+    $api_options = get_option( 'instawp_api_options', array() );
     $connect_id  = isset( $api_options['connect_id'] ) ? $api_options['connect_id'] : '';
     $api_key     = isset( $api_options['api_key'] ) ? $api_options['api_key'] : '';
     $api_url     = isset( $api_options['api_url'] ) ? $api_options['api_url'] : 'https://app.instawp.io';
@@ -103,10 +103,9 @@ function instawp_plugin_activate() {
             'body'    => wp_json_encode( array( 'url' => site_url() ) ),
         ) );
         $response = json_decode( wp_remote_retrieve_body( $response ), true );
-        if ( $response['status'] ) {
-            update_option( 'instawp_api_options', $api_options );
+        if ( ! $response['status'] ) {
+            delete_option( 'instawp_api_options' );
         }
-        delete_option( 'instawp_api_options_backup' );
     }
 }
 
@@ -131,9 +130,6 @@ function instawp_plugin_deactivate() {
             'method'  => 'DELETE',
         ) );
     }
-
-    delete_option( 'instawp_api_options' );
-    update_option( 'instawp_api_options_backup', $api_options );
 }
 
 register_activation_hook( __FILE__, 'instawp_plugin_activate' );

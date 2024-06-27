@@ -39,7 +39,6 @@ if ( ! empty( $connect_id ) && ! empty( $api_key ) ) {
 }
 
 delete_option( 'instawp_api_options' );
-delete_option( 'instawp_api_options_backup' );
 delete_option( 'instawp_large_files_list' );
 delete_option( 'instawp_backup_part_size' );
 delete_option( 'instawp_max_file_size_allowed' );
