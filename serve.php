@@ -402,8 +402,23 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 	if ( ! function_exists( 'is_valid_file' ) ) {
 		function is_valid_file( $filepath ) {
 			$filename = basename( $filepath );
+            if ( empty( $filename ) ) {
+                return false;
+            }
 
-			return is_file( $filepath ) && is_readable( $filepath ) && ( preg_match( '/^[a-zA-Z0-9_.()@\s-]+$/', $filename ) === 1 );
+            // Check for disallowed characters
+            $disallowed = array( '/', '\\', ':', '*', '?', '"', '<', '>', '|' );
+            foreach ( $disallowed as $char ) {
+                if ( strpos( $filename, $char ) !== false ) {
+                    return false;
+                }
+            }
+
+            if ( $filename === '.' || $filename === '..' ) {
+                return false;
+            }
+
+			return is_file( $filepath ) && is_readable( $filepath );
 		}
 	}
 
