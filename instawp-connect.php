@@ -71,7 +71,6 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/class-instawp.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/functions.php';
 
 function instawp_plugin_activate() {
-
 	InstaWP_Tools::instawp_reset_permalink();
 	do_action( 'instawp_prepare_large_files_list' );
 
@@ -87,12 +86,50 @@ function instawp_plugin_activate() {
 		$roles = ( array ) $user->roles;
 		add_option( 'instawp_sync_tab_roles', $roles );
 	}
+
+    $api_options = get_option( 'instawp_api_options', array() );
+    $connect_id  = isset( $api_options['connect_id'] ) ? $api_options['connect_id'] : '';
+    $api_key     = isset( $api_options['api_key'] ) ? $api_options['api_key'] : '';
+    $api_url     = isset( $api_options['api_url'] ) ? $api_options['api_url'] : 'https://app.instawp.io';
+
+    if ( ! empty( $connect_id ) && ! empty( $api_key ) ) {
+        $response = wp_remote_post( "{$api_url}/api/v2/connects/{$connect_id}/restore", array(
+            'headers' => array(
+                'Authorization' => 'Bearer ' . $api_key,
+                'Accept'        => 'application/json',
+                'Content-Type'  => 'application/json',
+                'Referer'       => site_url(),
+            ),
+            'body'    => wp_json_encode( array( 'url' => site_url() ) ),
+        ) );
+        $response = json_decode( wp_remote_retrieve_body( $response ), true );
+        if ( ! $response['status'] ) {
+            delete_option( 'instawp_api_options' );
+        }
+    }
 }
 
 /*Deactivate Hook Handle*/
 function instawp_plugin_deactivate() {
 	InstaWP_Tools::instawp_reset_permalink();
 	delete_option( 'instawp_last_heartbeat_sent' );
+
+    $api_options = get_option( 'instawp_api_options', array() );
+    $connect_id  = isset( $api_options['connect_id'] ) ? $api_options['connect_id'] : '';
+    $api_key     = isset( $api_options['api_key'] ) ? $api_options['api_key'] : '';
+    $api_url     = isset( $api_options['api_url'] ) ? $api_options['api_url'] : 'https://app.instawp.io';
+
+    if ( ! empty( $connect_id ) && ! empty( $api_key ) ) {
+        wp_remote_request( "{$api_url}/api/v2/connects/{$connect_id}/delete", array(
+            'headers' => array(
+                'Authorization' => 'Bearer ' . $api_key,
+                'Accept'        => 'application/json',
+                'Content-Type'  => 'application/json',
+                'Referer'       => site_url(),
+            ),
+            'method'  => 'DELETE',
+        ) );
+    }
 }
 
 register_activation_hook( __FILE__, 'instawp_plugin_activate' );
@@ -122,45 +159,4 @@ function run_instawp() {
 add_filter( 'got_rewrite', '__return_true' );
 
 run_instawp();
-
-
-add_action( 'wp_head', function () {
-	if ( isset( $_GET['debug'] ) ) {
-
-
-		$output            = [];
-		$_POST['cp_nonce'] = wp_create_nonce( 'start_profiler_nonce' );
-		$_POST['profile']  = 'WP-CLI_' . time();
-		$_POST['ua']       = 'Firefox';
-		$_POST['where']    = 'frontend';
-		$_POST['post']     = home_url( '/' );
-		$_POST['user']     = 'unauthenticated';
-
-		$response           = json_decode( codeprofiler_start_profiler(), true );
-		$_POST['microtime'] = $response['microtime'];
-
-		$response = json_decode( codeprofiler_prepare_report(), true );
-		$profile  = $response['cp_profile'];
-		$cp_file  = code_profiler_get_profile_path( $profile );
-		$cp_file  = $cp_file . '.slugs.profile';
-
-		$summary_file      = str_replace( '.slugs.profile', '', $cp_file );
-		$output['summary'] = json_decode( file_get_contents( "$summary_file.summary.profile" ), true );
-
-
-		$profile     = str_replace( '.slugs.profile', '', $cp_file );
-		$profile_res = code_profiler_get_profile_data( $profile );
-		usort( $profile_res, function ( $a, $b ) {
-			return $b[1] <=> $a[1];
-		} );
-
-		$output['profile'] = $profile_res;
-
-		echo "<pre>";
-		print_r( $output );
-		echo "</pre>";
-
-		die();
-	}
-}, 0 );
 
