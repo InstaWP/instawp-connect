@@ -103,7 +103,7 @@ function instawp_plugin_activate() {
             'body'    => wp_json_encode( array( 'url' => site_url() ) ),
         ) );
         $response = json_decode( wp_remote_retrieve_body( $response ), true );
-        if ( ! $response['status'] ) {
+        if ( empty( $response['status'] ) ) {
             delete_option( 'instawp_api_options' );
         }
     }
