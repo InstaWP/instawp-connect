@@ -25,9 +25,10 @@ wp_delete_file( ABSPATH . 'fwd.php' );
 $api_options = get_option( 'instawp_api_options', array() );
 $connect_id  = isset( $api_options['connect_id'] ) ? $api_options['connect_id'] : '';
 $api_key     = isset( $api_options['api_key'] ) ? $api_options['api_key'] : '';
+$api_url     = isset( $api_options['api_url'] ) ? $api_options['api_url'] : 'https://app.instawp.io';
 
 if ( ! empty( $connect_id ) && ! empty( $api_key ) ) {
-	wp_remote_post( "https://app.instawp.io/api/v2/connects/{$connect_id}/disconnect", array(
+	wp_remote_post( "{$api_url}/api/v2/connects/{$connect_id}/disconnect", array(
 		'headers' => array(
 			'Authorization' => 'Bearer ' . $api_key,
 			'Accept'        => 'application/json',
@@ -38,6 +39,7 @@ if ( ! empty( $connect_id ) && ! empty( $api_key ) ) {
 }
 
 delete_option( 'instawp_api_options' );
+delete_option( 'instawp_api_options_backup' );
 delete_option( 'instawp_large_files_list' );
 delete_option( 'instawp_backup_part_size' );
 delete_option( 'instawp_max_file_size_allowed' );
