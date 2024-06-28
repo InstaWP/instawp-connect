@@ -28,7 +28,7 @@ if ( ! in_array( $current_tab, array_keys( $plugin_nav_items ) ) ) {
 		} ?>
     </div>
     <div class="flex items-center text-sm font-medium">
-		<?php if ( empty( InstaWP_Setting::get_api_key() ) ) : ?>
+		<?php if ( empty( Helper::get_api_key() ) ) : ?>
             <div class="flex items-center text-grayCust-1300"><?php esc_html_e( 'Please connect InstaWP account', 'instawp-connect' ); ?></div>
             <button type="button" class="instawp-button-connect px-4 rounded-lg py-2 border border-primary-900 text-primary-900 text-sm font-medium ml-3 mr-3">
                 <span><?php esc_html_e( 'Connect', 'instawp-connect' ); ?></span>

@@ -445,7 +445,7 @@ class Cache {
 
 		    $results[] = [
 			    'slug'    => 'edge-cache',
-			    'name'    => 'Edge Cache',
+			    'name'    => 'InstaWP Live Cache',
 			    'message' => $message,
 		    ];
 	    }

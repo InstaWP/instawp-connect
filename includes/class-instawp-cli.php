@@ -52,7 +52,7 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 			WP_CLI::success( 'Site created successfully. URL: ' . $site_wp_url );
 
 			// Add migration entry
-			$migrate_key         = InstaWP_Tools::get_random_string( 40 );
+			$migrate_key         = Helper::get_random_string( 40 );
 			$migrate_settings    = InstaWP_Tools::get_migrate_settings( $_POST ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 			$migrate_args        = array(
 				'site_id'           => $site_id,
@@ -155,9 +155,9 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 			if ( isset( $args[0] ) && $args[0] === 'config-set' ) {
 				if ( isset( $args[1] ) ) {
 					if ( $args[1] === 'api-key' ) {
-						InstaWP_Setting::instawp_generate_api_key( $args[2] );
+						Helper::instawp_generate_api_key( $args[2] );
 					} elseif ( $args[1] === 'api-domain' ) {
-						InstaWP_Setting::set_api_domain( $args[2] );
+						Helper::set_api_domain( $args[2] );
 					}
 				}
 

@@ -17,6 +17,7 @@
  */
 
 // If this file is called directly, abort.
+use InstaWP\Connect\Helpers\Curl;
 use InstaWP\Connect\Helpers\Option;
 
 if ( ! defined( 'WPINC' ) ) {
@@ -87,23 +88,10 @@ function instawp_plugin_activate() {
 		add_option( 'instawp_sync_tab_roles', $roles );
 	}
 
-    $api_options = get_option( 'instawp_api_options', array() );
-    $connect_id  = isset( $api_options['connect_id'] ) ? $api_options['connect_id'] : '';
-    $api_key     = isset( $api_options['api_key'] ) ? $api_options['api_key'] : '';
-    $api_url     = isset( $api_options['api_url'] ) ? $api_options['api_url'] : 'https://app.instawp.io';
-
-    if ( ! empty( $connect_id ) && ! empty( $api_key ) ) {
-        $response = wp_remote_post( "{$api_url}/api/v2/connects/{$connect_id}/restore", array(
-            'headers' => array(
-                'Authorization' => 'Bearer ' . $api_key,
-                'Accept'        => 'application/json',
-                'Content-Type'  => 'application/json',
-                'Referer'       => site_url(),
-            ),
-            'body'    => wp_json_encode( array( 'url' => site_url() ) ),
-        ) );
-        $response = json_decode( wp_remote_retrieve_body( $response ), true );
-        if ( empty( $response['status'] ) ) {
+    $connect_id = instawp_get_connect_id();
+    if ( ! empty( $connect_id ) ) {
+        $response = Curl::do_curl( "connects/{$connect_id}/restore", array( 'url' => site_url() ) );
+        if ( empty( $response['success'] ) ) {
             delete_option( 'instawp_api_options' );
         }
     }
@@ -114,21 +102,9 @@ function instawp_plugin_deactivate() {
 	InstaWP_Tools::instawp_reset_permalink();
 	delete_option( 'instawp_last_heartbeat_sent' );
 
-    $api_options = get_option( 'instawp_api_options', array() );
-    $connect_id  = isset( $api_options['connect_id'] ) ? $api_options['connect_id'] : '';
-    $api_key     = isset( $api_options['api_key'] ) ? $api_options['api_key'] : '';
-    $api_url     = isset( $api_options['api_url'] ) ? $api_options['api_url'] : 'https://app.instawp.io';
-
-    if ( ! empty( $connect_id ) && ! empty( $api_key ) ) {
-        wp_remote_request( "{$api_url}/api/v2/connects/{$connect_id}/delete", array(
-            'headers' => array(
-                'Authorization' => 'Bearer ' . $api_key,
-                'Accept'        => 'application/json',
-                'Content-Type'  => 'application/json',
-                'Referer'       => site_url(),
-            ),
-            'method'  => 'DELETE',
-        ) );
+    $connect_id = instawp_get_connect_id();
+    if ( ! empty( $connect_id ) ) {
+        Curl::do_curl( "connects/{$connect_id}/delete", array(), array(), 'DELETE' );
     }
 }
 
@@ -159,4 +135,3 @@ function run_instawp() {
 add_filter( 'got_rewrite', '__return_true' );
 
 run_instawp();
-

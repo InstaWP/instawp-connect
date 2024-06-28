@@ -50,7 +50,7 @@ class instaWP {
 
 		$this->version                 = INSTAWP_PLUGIN_VERSION;
 		$this->plugin_name             = INSTAWP_PLUGIN_SLUG;
-		$this->api_key                 = InstaWP_Setting::get_api_key();
+		$this->api_key                 = Helper::get_api_key();
 		$this->is_connected            = ! empty( $this->api_key );
 		$this->is_on_local             = instawp_is_website_on_local();
 		$this->connect_id              = instawp_get_connect_id();
@@ -321,7 +321,7 @@ class instaWP {
 	public function instawp_check_usage_on_cloud( $total_size = 0 ) {
 
 		// connects/<connect_id>/usage
-		$api_response        = Curl::do_curl( "connects/{$this->connect_id}/usage", array(), array(), false, 'v1' );
+		$api_response        = Curl::do_curl( "connects/{$this->connect_id}/usage", array(), array(), 'GET', 'v1' );
 		$api_response_status = Helper::get_args_option( 'success', $api_response, false );
 		$api_response_data   = Helper::get_args_option( 'data', $api_response, array() );
 

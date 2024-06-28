@@ -219,7 +219,7 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 		$connect_id = instawp_get_connect_id();
 
 		// connects/<connect_id>/syncs/<sync_id>
-		return Curl::do_curl( "connects/{$connect_id}/syncs/{$sync_id}", $data, array(), 'patch' );
+		return Curl::do_curl( "connects/{$connect_id}/syncs/{$sync_id}", $data, array(), 'PATCH' );
 	}
 }
 

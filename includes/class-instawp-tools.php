@@ -649,44 +649,6 @@ include $file_path;';
 		return self::process_migration_settings( $migrate_settings );
 	}
 
-	public static function get_admin_username() {
-		$username = '';
-
-		foreach (
-			get_users( array(
-				'role__in' => array( 'administrator' ),
-				'fields'   => array( 'user_login' ),
-			) ) as $admin
-		) {
-			if ( empty( $username ) && isset( $admin->user_login ) ) {
-				$username = $admin->user_login;
-				break;
-			}
-		}
-
-		return $username;
-	}
-
-	/**
-	 * Returns the random string based on length.
-	 *
-	 * @param int $length
-	 *
-	 * @return string
-	 */
-	public static function get_random_string( $length = 6 ) {
-		try {
-			$length        = ceil( absint( $length ) / 2 );
-			$bytes         = function_exists( 'random_bytes' ) ? random_bytes( $length ) : openssl_random_pseudo_bytes( $length );
-			$random_string = bin2hex( $bytes );
-		} catch ( Exception $e ) {
-			$random_string = substr( hash( 'sha256', wp_generate_uuid4() ), 0, absint( $length ) );
-		}
-
-		return $random_string;
-	}
-
-
 	/**
 	 * Reset permalink structure
 	 *
@@ -980,7 +942,7 @@ include $file_path;';
 
 		if ( ! empty( $sites_task_id ) ) {
 			while ( true ) {
-				$status_res = Curl::do_curl( "tasks/{$sites_task_id}/status", array(), array(), false );
+				$status_res = Curl::do_curl( "tasks/{$sites_task_id}/status", array(), array(), 'GET' );
 
 				if ( ! Helper::get_args_option( 'success', $status_res, true ) ) {
 					continue;
@@ -1017,7 +979,7 @@ include $file_path;';
 
 
 		// Getting SFTP details of $site_id
-		$sftp_details_res = Curl::do_curl( "sites/{$site_id}/sftp-details", array(), array(), false );
+		$sftp_details_res = Curl::do_curl( "sites/{$site_id}/sftp-details", array(), array(), 'GET' );
 
 		if ( ! Helper::get_args_option( 'success', $sftp_details_res, true ) ) {
 			return new WP_Error( 'sftp_enable_failed', Helper::get_args_option( 'message', $sftp_details_res ) );
@@ -1070,7 +1032,7 @@ include $file_path;';
 			'db_bkp'        => basename( $db_path ),
 			'source_domain' => str_replace( array( 'https://', 'http://' ), '', site_url() ),
 		);
-		$restore_res  = Curl::do_curl( "sites/{$site_id}/restore-raw", $restore_args, array(), 'put' );
+		$restore_res  = Curl::do_curl( "sites/{$site_id}/restore-raw", $restore_args, array(), 'PUT' );
 
 		if ( ! Helper::get_args_option( 'success', $restore_res, true ) ) {
 			return new WP_Error( 'restore_raw_api_failed', Helper::get_args_option( 'message', $restore_res, true ) );
@@ -1083,7 +1045,7 @@ include $file_path;';
 
 		while ( true ) {
 
-			$status_res = Curl::do_curl( "tasks/{$restore_task_id}/status", array(), array(), false );
+			$status_res = Curl::do_curl( "tasks/{$restore_task_id}/status", array(), array(), 'GET' );
 
 			if ( ! Helper::get_args_option( 'success', $status_res, true ) ) {
 				continue;

@@ -17,6 +17,7 @@
  * @author     instawp team
  */
 
+use InstaWP\Connect\Helpers\Helper;
 use InstaWP\Connect\Helpers\Option;
 
 defined( 'ABSPATH' ) || die;
@@ -52,7 +53,7 @@ class InstaWP_Sync_Helpers {
 	 * Update post metas
 	 */
 	public static function set_post_reference_id( $post_id, $reference_id = '' ) {
-		$reference_id = ! empty( $reference_id ) ? $reference_id : InstaWP_Tools::get_random_string();
+		$reference_id = ! empty( $reference_id ) ? $reference_id : Helper::get_random_string( 8 );
 		update_post_meta( $post_id, 'instawp_event_sync_reference_id', $reference_id );
 
 		return $reference_id;
@@ -71,7 +72,7 @@ class InstaWP_Sync_Helpers {
 	 * Update user metas
 	 */
 	public static function set_term_reference_id( $term_id, $reference_id = '' ) {
-		$reference_id = ! empty( $reference_id ) ? $reference_id : InstaWP_Tools::get_random_string();
+		$reference_id = ! empty( $reference_id ) ? $reference_id : Helper::get_random_string( 8 );
 		update_term_meta( $term_id, 'instawp_event_term_sync_reference_id', $reference_id );
 
 		return $reference_id;
@@ -90,7 +91,7 @@ class InstaWP_Sync_Helpers {
 	 * Update user metas
 	 */
 	public static function set_user_reference_id( $user_id, $reference_id = '' ) {
-		$reference_id = ! empty( $reference_id ) ? $reference_id : InstaWP_Tools::get_random_string();
+		$reference_id = ! empty( $reference_id ) ? $reference_id : Helper::get_random_string( 8 );
 		update_user_meta( $user_id, 'instawp_event_user_sync_reference_id', $reference_id );
 
 		return $reference_id;

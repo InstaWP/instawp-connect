@@ -1,6 +1,6 @@
 <?php
 
-use InstaWP\Connect\Helpers\Curl;
+use InstaWP\Connect\Helpers\Helper;
 use InstaWP\Connect\Helpers\Option;
 
 defined( 'ABSPATH' ) || exit;
@@ -619,64 +619,8 @@ class InstaWP_Setting {
 		return $value;
 	}
 
-	public static function set_api_domain( $instawp_api_url = '' ) {
-		if ( empty( $instawp_api_url ) ) {
-			return false;
-		}
-
-		$api_options            = Option::get_option( 'instawp_api_options', array() );
-		$api_options['api_url'] = sanitize_url( $instawp_api_url );
-
-		return Option::update_option( 'instawp_api_options', $api_options );
-	}
-
 	public static function get_pro_subscription_url( $pro_subscription_slug = 'subscriptions' ) {
-		return self::get_api_domain() . '/' . $pro_subscription_slug;
-	}
-
-	public static function get_api_domain() {
-		$api_options = Option::get_option( 'instawp_api_options', array() );
-
-		return self::get_args_option( 'api_url', $api_options, INSTAWP_API_DOMAIN_PROD );
-	}
-
-	public static function get_api_key( $return_hashed = false ) {
-
-		$api_options = Option::get_option( 'instawp_api_options', array() );
-		$api_key     = self::get_args_option( 'api_key', $api_options );
-
-		if ( ! $return_hashed ) {
-			return $api_key;
-		}
-
-		if ( ! empty( $api_key ) && strpos( $api_key, '|' ) !== false ) {
-			$exploded             = explode( '|', $api_key );
-			$current_api_key_hash = hash( 'sha256', $exploded[1] );
-		} else {
-			$current_api_key_hash = ! empty( $api_key ) ? hash( 'sha256', $api_key ) : "";
-		}
-
-		return $current_api_key_hash;
-	}
-
-	public static function set_api_key( $api_key ) {
-		$api_options            = Option::get_option( 'instawp_api_options', array() );
-		$api_options['api_key'] = sanitize_text_field( wp_unslash( $api_key ) );
-
-		return Option::update_option( 'instawp_api_options', $api_options );
-	}
-
-	public static function get_connect_id() {
-		$api_options = Option::get_option( 'instawp_api_options', array() );
-
-		return self::get_args_option( 'connect_id', $api_options );
-	}
-
-	public static function set_connect_id( $connect_id ) {
-		$api_options               = Option::get_option( 'instawp_api_options', array() );
-		$api_options['connect_id'] = intval( $connect_id );
-
-		return Option::update_option( 'instawp_api_options', $api_options );
+		return Helper::get_api_domain() . '/' . $pro_subscription_slug;
 	}
 
 	public static function get_unsupported_plugins() {
@@ -699,61 +643,6 @@ class InstaWP_Setting {
 		);
 
 		return apply_filters( 'instawp/filters/get_unsupported_plugins', $unsupported_plugins );
-	}
-
-	public static function instawp_generate_api_key( $api_key ) {
-		if ( empty( $api_key ) ) {
-			error_log( 'instawp_generate_api_key empty api_key parameter' );
-
-			return false;
-		}
-
-		$api_response = Curl::do_curl( 'check-key', array(), array(), false, 'v1', $api_key );
-
-		if ( ! empty( $api_response['data']['status'] ) ) {
-			$api_options = Option::get_option( 'instawp_api_options', array() );
-
-			if ( is_array( $api_options ) && is_array( $api_response['data'] ) ) {
-				Option::update_option( 'instawp_api_options', array_merge( $api_options, array(
-					'api_key'  => $api_key,
-					'response' => $api_response['data'],
-				) ) );
-			}
-		} else {
-			error_log( 'instawp_generate_api_key error, response from check-key api: ' . wp_json_encode( $api_response ) );
-
-			return false;
-		}
-
-		$php_version      = substr( phpversion(), 0, 3 );
-		$connect_body     = array(
-			'url'         => get_site_url(),
-			'php_version' => $php_version,
-			'username'    => base64_encode( InstaWP_Tools::get_admin_username() ), // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
-		);
-		$connect_response = Curl::do_curl( 'connects', $connect_body, array(), true, 'v1' );
-
-		if ( ! empty( $connect_response['data']['status'] ) ) {
-			$connect_id = ! empty( $connect_response['data']['id'] ) ? intval( $connect_response['data']['id'] ) : '';
-
-			if ( $connect_id ) {
-				// set connect id
-				self::set_connect_id( $connect_id );
-
-				// Send heartbeat to InstaWP
-				instawp_send_heartbeat( $connect_id );
-			} else {
-				error_log( 'instawp_generate_api_key connect id not found in response.' );
-
-				return false;
-			}
-		} else {
-			error_log( 'instawp_generate_api_key error, response from connects api: ' . wp_json_encode( $connect_response ) );
-
-			return false;
-		}
-
-		return true;
 	}
 
 	public static function get_select2_default_selected_option( $option ) {

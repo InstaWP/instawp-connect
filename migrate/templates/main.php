@@ -3,6 +3,7 @@
  * Migrate template - Main
  */
 
+use InstaWP\Connect\Helpers\Helper;
 use InstaWP\Connect\Helpers\Option;
 
 global $staging_sites, $instawp_settings;
@@ -25,7 +26,7 @@ $migration_details = Option::get_option( 'instawp_migration_details', array() );
 $instawp_settings['instawp_is_event_syncing']  = $syncing_status;
 $instawp_settings['instawp_migration_details'] = $migration_details;
 
-instawp()->is_connected = ! empty( InstaWP_Setting::get_api_key() );
+instawp()->is_connected = ! empty( Helper::get_api_key() );
 
 if ( ! instawp()->is_connected ) {
 	$connect_classes[] = 'p-0';

@@ -4,9 +4,9 @@ namespace InstaWP\Connect\Helpers;
 
 class Curl {
 
-	public static function do_curl( $endpoint, $body = array(), $headers = array(), $is_post = true, $api_version = 'v2', $api_key = '' ) {
-
+	public static function do_curl( $endpoint, $body = array(), $headers = array(), $method = 'POST', $api_version = 'v2', $api_key = '' ) {
 		$api_url = Helper::get_api_domain();
+
 		if ( empty( $api_url ) ) {
 			return array(
 				'success' => false,
@@ -33,16 +33,8 @@ class Curl {
 			'Referer'       => site_url(),
 		) );
 
-		if ( $is_post === 'patch' ) {
-			$api_method = 'PATCH';
-		} elseif ( $is_post === 'put' ) {
-			$api_method = 'PUT';
-		} else {
-			$api_method = $is_post ? 'POST' : 'GET';
-		}
-
 		$args = array(
-			'method'          => $api_method,
+			'method'          => strtoupper( $method ),
 			'headers'         => $headers,
 			'timeout'         => 60,
 			'redirection'     => 10,

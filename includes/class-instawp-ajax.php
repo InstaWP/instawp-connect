@@ -9,8 +9,7 @@ use InstaWP\Connect\Helpers\Option;
 
 defined( 'ABSPATH' ) || exit;
 
-class InstaWP_AJAX {
-	public $instawp_log;
+class InstaWP_Ajax {
 
 	public function __construct() {
 		add_action( 'wp_ajax_instawp_save_management_settings', array( $this, 'save_management_settings' ) );
@@ -273,7 +272,7 @@ class InstaWP_AJAX {
 		}
 
 		$migrate_settings   = InstaWP_Tools::get_migrate_settings( $_POST );
-		$migrate_key        = InstaWP_Tools::get_random_string( 40 );
+		$migrate_key        = Helper::get_random_string( 40 );
 		$pre_check_response = InstaWP_Tools::get_pull_pre_check_response( $migrate_key, $migrate_settings );
 
 		if ( is_wp_error( $pre_check_response ) ) {
@@ -409,7 +408,7 @@ class InstaWP_AJAX {
 
 			instawp_reset_running_migration( 'hard' );
 
-			InstaWP_Setting::set_api_domain( $api_domain );
+			Helper::set_api_domain( $api_domain );
 
 			wp_send_json_error( array(
 				'button_text' => esc_html__( 'Connect Again', 'instawp-connect' ),
@@ -673,4 +672,4 @@ class InstaWP_AJAX {
 	}
 }
 
-new InstaWP_AJAX();
+new InstaWP_Ajax();

@@ -3,6 +3,8 @@
  * Migrate template - Settings
  */
 
+use InstaWP\Connect\Helpers\Helper;
+
 ?>
 
 <div class="nav-item-content settings bg-white rounded-md p-6">
@@ -14,7 +16,7 @@
         </div>
         <div class="instawp-form-footer rounded-md bg-grayCust-400 p-3 mt-6 flex justify-between items-center">
             <div class="instawp-form-buttons flex gap-4">
-				<?php if ( ! empty( InstaWP_Setting::get_api_key() ) ) { ?>
+				<?php if ( ! empty( Helper::get_api_key() ) ) { ?>
                     <button type="button" class="text-grayCust-500 py-3 px-5 border border-grayCust-350 text-sm font-medium rounded-md instawp-disconnect-plugin"><?php esc_html_e( 'Disconnect', 'instawp-connect' ); ?></button>
 				<?php } ?>
                 <p class="instawp-form-response loading flex items-center text-sm font-medium"></p>
