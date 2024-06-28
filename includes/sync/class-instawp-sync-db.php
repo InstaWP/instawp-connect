@@ -90,7 +90,7 @@ class InstaWP_Sync_DB {
 		$data = array(
 			'event_name'     => $event_name,
 			'event_slug'     => $event_slug,
-			'event_hash'     => InstaWP_Tools::get_random_string(),
+			'event_hash'     => Helper::get_random_string(),
 			'event_type'     => $event_type,
 			'source_id'      => $source_id,
 			'title'          => $title,

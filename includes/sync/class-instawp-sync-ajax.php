@@ -8,6 +8,7 @@
  */
 
 use InstaWP\Connect\Helpers\Curl;
+use InstaWP\Connect\Helpers\Helper;
 use InstaWP\Connect\Helpers\Option;
 
 defined( 'ABSPATH' ) || exit;
@@ -472,14 +473,14 @@ class InstaWP_Sync_Ajax {
 		$connect_id = instawp_get_connect_id();
 
 		// connects/<connect_id>/syncs
-		return Curl::do_curl( "connects/{$connect_id}/syncs/{$sync_id}", array(), array(), false );
+		return Curl::do_curl( "connects/{$connect_id}/syncs/{$sync_id}", array(), array(), 'GET' );
 	}
 
 	private function get_connect_quota_remaining_limit() {
 		$connect_id   = instawp_get_connect_id();
 
 		// connects/<connect_id>/get-sync-quota
-		$api_response = Curl::do_curl( "connects/{$connect_id}/get-sync-quota", array(), array(), false );
+		$api_response = Curl::do_curl( "connects/{$connect_id}/get-sync-quota", array(), array(), 'GET' );
 
 		if ( $api_response['success'] && ! empty( $api_response['data'] ) ) {
 			return $api_response['data'];
@@ -537,7 +538,7 @@ class InstaWP_Sync_Ajax {
                     $content    = json_decode( $event->details, true );
 
 					if ( empty( $event_hash ) ) {
-						$event_hash = InstaWP_Tools::get_random_string();
+						$event_hash = Helper::get_random_string();
 						$this->wpdb->update( INSTAWP_DB_TABLE_EVENT_SYNC_LOGS, array( 'event_hash' => $event_hash ), array( 'id' => $event->id ) );
 					}
 

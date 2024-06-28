@@ -340,7 +340,7 @@ if ( ! function_exists( 'instawp_get_staging_sites_list' ) ) {
 if ( ! function_exists( 'instawp_set_staging_sites_list' ) ) {
 	function instawp_set_staging_sites_list() {
 
-		$api_response = Curl::do_curl( 'connects/' . instawp_get_connect_id() . '/staging-sites', array(), array(), false );
+		$api_response = Curl::do_curl( 'connects/' . instawp_get_connect_id() . '/staging-sites', array(), array(), 'GET' );
 
 		if ( $api_response['success'] ) {
 			$staging_sites = Helper::get_args_option( 'data', $api_response, array() );
@@ -585,7 +585,7 @@ if ( ! function_exists( 'instawp_get_connect_detail_by_connect_id' ) ) {
 		// connects/<connect_id>
 		$response        = array();
 		$site_connect_id = instawp_get_connect_id();
-		$api_response    = Curl::do_curl( 'connects/' . $site_connect_id . '/connected-sites', array(), array(), false );
+		$api_response    = Curl::do_curl( 'connects/' . $site_connect_id . '/connected-sites', array(), array(), 'GET' );
 
 		if ( $api_response['success'] ) {
 			$api_response = Helper::get_args_option( 'data', $api_response, array() );

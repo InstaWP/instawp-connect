@@ -27,11 +27,12 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
                 return;
             }
 
+            $api_key        = Helper::get_api_key();
             $access_token   = isset( $_REQUEST['access_token'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['access_token'] ) ) : '';
 			$success_status = isset( $_REQUEST['success'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['success'] ) ) : '';
 
-			if ( 'true' === $success_status && empty( InstaWP_Setting::get_api_key() ) && InstaWP_Setting::get_api_key() !== $access_token ) {
-				InstaWP_Setting::instawp_generate_api_key( $access_token );
+			if ( 'true' === $success_status && empty( $api_key ) && $api_key !== $access_token ) {
+				Helper::instawp_generate_api_key( $access_token );
 
 				wp_safe_redirect( admin_url( 'tools.php?page=instawp' ) );
 				exit();
@@ -39,7 +40,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 		}
 
 		public function handle_auto_login_request() {
-            if ( empty( InstaWP_Setting::get_api_key() ) ) {
+            if ( empty( Helper::get_api_key() ) ) {
                 return;
             }
 
@@ -206,7 +207,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 					),
 				) );
 
-				$connect_id = InstaWP_Setting::get_connect_id();
+				$connect_id = Helper::get_connect_id();
 
 				if ( ! empty( $connect_id ) && current_user_can( 'manage_options' ) ) {
 					$app_domain = Helper::get_api_domain();
@@ -277,7 +278,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			$connect_id   = isset( $_GET['connect_id'] ) ? intval( $_GET['connect_id'] ) : 0;
 
 			if ( ! empty( $connect_id ) ) {
-				InstaWP_Setting::set_connect_id( $connect_id );
+				Helper::set_connect_id( $connect_id );
 			}
 
 			if ( 'instawp' === $admin_page && 'all' === $clear_action ) {

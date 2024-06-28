@@ -5,14 +5,13 @@ namespace InstaWP\Connect\Helpers;
 class Helper {
 
 	public static function instawp_generate_api_key( $api_key ) {
-
 		if ( empty( $api_key ) ) {
 			error_log( 'instawp_generate_api_key empty api_key parameter' );
 
 			return false;
 		}
 
-		$api_response = Curl::do_curl( 'check-key', array(), array(), false, 'v1', $api_key );
+		$api_response = Curl::do_curl( 'check-key', array(), array(), 'GET', 'v1', $api_key );
 
 		if ( ! empty( $api_response['data']['status'] ) ) {
 			$api_options = Option::get_option( 'instawp_api_options', array() );
@@ -35,7 +34,7 @@ class Helper {
 			'php_version' => $php_version,
 			'username'    => base64_encode( self::get_admin_username() ),
 		);
-		$connect_response = Curl::do_curl( 'connects', $connect_body, array(), true, 'v1' );
+		$connect_response = Curl::do_curl( 'connects', $connect_body, array(), 'POST', 'v1' );
 
 		if ( ! empty( $connect_response['data']['status'] ) ) {
 			$connect_id   = ! empty( $connect_response['data']['id'] ) ? intval( $connect_response['data']['id'] ) : '';
@@ -78,7 +77,6 @@ class Helper {
 	}
 
 	public static function get_api_key( $return_hashed = false, $default_key = '' ) {
-
 		$api_options = Option::get_option( 'instawp_api_options', array() );
 		$api_key     = self::get_args_option( 'api_key', $api_options, $default_key );
 
@@ -97,7 +95,7 @@ class Helper {
 	}
 
 
-	public static function get_random_string( $length ) {
+	public static function get_random_string( $length = 6 ) {
 		try {
 			$length        = ( int ) round( ceil( absint( $length ) / 2 ) );
 			$bytes         = function_exists( 'random_bytes' ) ? random_bytes( $length ) : openssl_random_pseudo_bytes( $length );
@@ -129,6 +127,7 @@ class Helper {
 		$bytes_total = 0;
 		$files_total = 0;
 		$path        = realpath( $path );
+
 		try {
 			if ( $path !== false && $path != '' && file_exists( $path ) ) {
 				foreach ( new \RecursiveIteratorIterator( new \RecursiveDirectoryIterator( $path, \FilesystemIterator::SKIP_DOTS ) ) as $object ) {
@@ -229,7 +228,6 @@ class Helper {
 	}
 
 	public static function set_api_domain( $api_domain = '' ) {
-
 		if ( empty( $api_domain ) ) {
 			$api_domain = esc_url_raw( 'https://app.instawp.io' );
 		}

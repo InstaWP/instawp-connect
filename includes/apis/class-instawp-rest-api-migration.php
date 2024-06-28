@@ -1,6 +1,7 @@
 <?php
 
 use InstaWP\Connect\Helpers;
+use InstaWP\Connect\Helpers\Helper;
 use InstaWP\Connect\Helpers\Option;
 
 defined( 'ABSPATH' ) || die;
@@ -104,7 +105,7 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 		// Clean InstaWP backup directory
 		InstaWP_Tools::clean_instawpbackups_dir();
 
-		$migrate_key      = InstaWP_Tools::get_random_string( 40 );
+		$migrate_key      = Helper::get_random_string( 40 );
 		$migrate_settings = InstaWP_Tools::get_migrate_settings();
 		$api_signature    = hash( 'sha512', $migrate_key . wp_generate_uuid4() );
 		$dest_file_url    = InstaWP_Tools::generate_destination_file( $migrate_key, $api_signature );

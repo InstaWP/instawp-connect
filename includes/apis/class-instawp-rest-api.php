@@ -164,10 +164,10 @@ class InstaWP_Rest_Api {
 		// If api_domain is passed then, set it
 		if ( ! empty( $api_domain ) ) {
 			if ( defined( 'INSTAWP_API_DOMAIN' ) ) {
-				InstaWP_Setting::set_api_domain( INSTAWP_API_DOMAIN );
+				Helper::set_api_domain( INSTAWP_API_DOMAIN );
 			} elseif ( in_array( $api_domain, array( 'https://stage.instawp.io', 'https://app.instawp.io' ) ) ) {
 				$api_domain = rtrim( $api_domain, '/' );
-				InstaWP_Setting::set_api_domain( $api_domain );
+				Helper::set_api_domain( $api_domain );
 			} else {
 				return $this->send_response( array(
 					'status'  => false,
@@ -176,7 +176,7 @@ class InstaWP_Rest_Api {
 			}
 		}
 
-		if ( ! InstaWP_Setting::instawp_generate_api_key( $api_key ) ) {
+		if ( ! Helper::instawp_generate_api_key( $api_key ) ) {
 			return $this->send_response( array(
 				'status'  => false,
 				'message' => esc_html__( 'API Key is not valid.', 'instawp-connect' ),
@@ -393,7 +393,7 @@ class InstaWP_Rest_Api {
 
 		//in some cases Laravel stores api key with ID attached in front of it.
 		//so we need to remove it and then hash the key
-		$api_key          = InstaWP_Setting::get_api_key();
+		$api_key          = Helper::get_api_key();
 		$api_key_exploded = explode( '|', $api_key );
 
 		if ( count( $api_key_exploded ) > 1 ) {
