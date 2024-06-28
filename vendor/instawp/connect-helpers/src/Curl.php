@@ -33,8 +33,14 @@ class Curl {
 			'Referer'       => site_url(),
 		) );
 
+		if ( is_bool( $method ) ) {
+			$method = $method ? 'POST' : 'GET';
+		} else {
+			$method = strtoupper( $method );
+		}
+
 		$args = array(
-			'method'          => strtoupper( $method ),
+			'method'          => $method,
 			'headers'         => $headers,
 			'timeout'         => 60,
 			'redirection'     => 10,
