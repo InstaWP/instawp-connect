@@ -197,7 +197,7 @@ class InstaWP_Sync_Post {
 	}
 
 	public function generate_reference( $new_post_id ) {
-		$reference_id = Helper::get_random_string();
+		$reference_id = Helper::get_random_string( 8 );
 		update_post_meta( $new_post_id, 'instawp_event_sync_reference_id', $reference_id );
 	}
 

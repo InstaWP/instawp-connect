@@ -538,7 +538,7 @@ class InstaWP_Sync_Ajax {
                     $content    = json_decode( $event->details, true );
 
 					if ( empty( $event_hash ) ) {
-						$event_hash = Helper::get_random_string();
+						$event_hash = Helper::get_random_string( 8 );
 						$this->wpdb->update( INSTAWP_DB_TABLE_EVENT_SYNC_LOGS, array( 'event_hash' => $event_hash ), array( 'id' => $event->id ) );
 					}
 
