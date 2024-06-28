@@ -10,6 +10,22 @@ class WPScanner {
 
 	public function __construct() {
 		$this->cp_enabled = defined( 'CODE_PROFILER_VERSION' );
+
+//		if ( ! $this->cp_enabled ) {
+//			$installer = new \InstaWP\Connect\Helpers\Installer( array(
+//				array(
+//					'slug'     => 'code-profiler',
+//					'source'   => 'wp.org',
+//					'type'     => 'plugin',
+//					'activate' => true,
+//				),
+//			) );
+//			$installer->start();
+//
+//			sleep( 5 );
+//
+//			$this->cp_enabled = true;
+//		}
 	}
 
 	public function scan_slow_items() {

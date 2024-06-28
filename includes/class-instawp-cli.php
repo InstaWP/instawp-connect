@@ -206,9 +206,16 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 			}
 
 			if ( isset( $args[0] ) && $args[0] === 'scan' ) {
-				$wp_scanner = new \InstaWP\Connect\Helpers\WPScanner();
 
 				if ( isset( $args[1] ) && $args[1] === 'summary' ) {
+
+//					$result = WP_CLI::runcommand( 'plugin is-active code-profiler', [ 'return' => 'all', 'exit_error' => false ] );
+//
+//					if ( $result->return_code === 1 ) {
+//						WP_CLI::runcommand( 'plugin install code-profiler --force --activate' );
+//					}
+
+					$wp_scanner  = new \InstaWP\Connect\Helpers\WPScanner();
 					$summary_res = $wp_scanner->scan_summary();
 
 					if ( is_wp_error( $summary_res ) ) {
@@ -229,6 +236,8 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 				}
 
 				if ( isset( $args[1] ) && $args[1] === 'slow-item' ) {
+
+					$wp_scanner = new \InstaWP\Connect\Helpers\WPScanner();
 					$slow_items = $wp_scanner->scan_slow_items();
 
 					if ( is_wp_error( $slow_items ) ) {
