@@ -15,7 +15,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 //          add_action( 'init', array( $this, 'ob_start' ) );
 //          add_action( 'wp_footer', array( $this, 'ob_end' ) );
 
-			add_action( 'init', array( $this, 'generate_api_key' ) );
+			add_action( 'admin_init', array( $this, 'generate_api_key' ) );
 			add_action( 'update_option', array( $this, 'manage_update_option' ), 10, 3 );
 			add_action( 'init', array( $this, 'handle_hard_disable_seo_visibility' ) );
 			add_action( 'admin_init', array( $this, 'handle_clear_all' ) );
@@ -25,17 +25,17 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			add_action( 'admin_notices', array( $this, 'admin_notice' ) );
 		}
 
-        public function generate_api_key() {
-	        $access_token    = isset( $_REQUEST['access_token'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['access_token'] ) ) : '';
-	        $success_status  = isset( $_REQUEST['success'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['success'] ) ) : '';
+		public function generate_api_key() {
+			$access_token   = isset( $_REQUEST['access_token'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['access_token'] ) ) : '';
+			$success_status = isset( $_REQUEST['success'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['success'] ) ) : '';
 
-	        if ( 'true' === $success_status && InstaWP_Setting::get_api_key() !== $access_token ) {
-		        InstaWP_Setting::instawp_generate_api_key( $access_token );
+			if ( current_user_can( 'manage_options' ) && 'true' === $success_status && InstaWP_Setting::get_api_key() !== $access_token ) {
+				InstaWP_Setting::instawp_generate_api_key( $access_token );
 
-		        wp_safe_redirect( admin_url( 'tools.php?page=instawp' ) );
-		        exit();
-	        }
-        }
+				wp_safe_redirect( admin_url( 'tools.php?page=instawp' ) );
+				exit();
+			}
+		}
 
 		public function handle_auto_login_request() {
 
@@ -52,11 +52,11 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			$instawp_login_code = Option::get_option( 'instawp_login_code', array() );
 			$saved_login_code   = Helper::get_args_option( 'code', $instawp_login_code );
 			$saved_updated_at   = Helper::get_args_option( 'updated_at', $instawp_login_code );
-            $redirect           = wp_login_url();
+			$redirect           = wp_login_url();
 
 			if ( $saved_login_code && $saved_updated_at && ( time() - intval( $saved_updated_at ) <= 30 ) && $saved_login_code === $login_code && username_exists( $login_username ) ) {
 				$redirect   = admin_url();
-                $login_user = get_user_by( 'login', $login_username );
+				$login_user = get_user_by( 'login', $login_username );
 
 				wp_set_current_user( $login_user->ID, $login_user->user_login );
 				wp_set_auth_cookie( $login_user->ID );
@@ -274,9 +274,9 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 		}
 
 		public function admin_notice() {
-            if ( ! isset( $_GET['instawp-cache-cleared'] ) ) {
-	            return;
-            }
+			if ( ! isset( $_GET['instawp-cache-cleared'] ) ) {
+				return;
+			}
 
 			$cache_cleared = get_transient( 'instawp_cache_purged' );
 			if ( ! $cache_cleared ) {
