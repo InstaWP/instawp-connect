@@ -438,7 +438,7 @@
         $(document).find('.create-staging').removeClass('hidden');
     });
 
-    $(document).on('click', '.browse-staging-btn', function (e) {
+    $(document).on('click', '.browse-staging-btn, .instawp-show-staging-sites', function (e) {
         $(document).find('.nav-items > #sites > a').trigger('click');
     });
 

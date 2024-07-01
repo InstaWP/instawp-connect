@@ -163,7 +163,7 @@ if ( file_exists( $options_data_path ) ) {
 	}
 } else {
 	header( 'x-iwp-status: false' );
-	header( 'x-iwp-message: Migration push-script could not find the JSON file.' );
+	header( 'x-iwp-message: Migration push-script could not find the info file.' );
 	die();
 }
 

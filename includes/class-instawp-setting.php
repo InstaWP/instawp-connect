@@ -649,6 +649,10 @@ class InstaWP_Setting {
 		if ( $option === 'instawp_default_user' ) {
             $user_id = Option::get_option( $option, 0 );
             if ( $user_id ) {
+                if ( ! function_exists( 'get_user_by' ) ) {
+                    require_once ABSPATH . 'wp-includes/pluggable.php';
+                }
+
                 $user = get_user_by('ID', $user_id );
                 if ( ! empty( $user ) ) {
                     return array( $user->data->ID => $user->data->user_login );
