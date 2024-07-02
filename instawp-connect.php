@@ -88,13 +88,13 @@ function instawp_plugin_activate() {
 		add_option( 'instawp_sync_tab_roles', $roles );
 	}
 
-    $connect_id = instawp_get_connect_id();
-    if ( ! empty( $connect_id ) ) {
-        $response = Curl::do_curl( "connects/{$connect_id}/restore", array( 'url' => site_url() ) );
-        if ( empty( $response['success'] ) ) {
-            delete_option( 'instawp_api_options' );
-        }
-    }
+	$connect_id = instawp_get_connect_id();
+	if ( ! empty( $connect_id ) ) {
+		$response = Curl::do_curl( "connects/{$connect_id}/restore", array( 'url' => site_url() ) );
+		if ( empty( $response['success'] ) ) {
+			delete_option( 'instawp_api_options' );
+		}
+	}
 }
 
 /*Deactivate Hook Handle*/
@@ -102,10 +102,10 @@ function instawp_plugin_deactivate() {
 	InstaWP_Tools::instawp_reset_permalink();
 	delete_option( 'instawp_last_heartbeat_sent' );
 
-    $connect_id = instawp_get_connect_id();
-    if ( ! empty( $connect_id ) ) {
-        Curl::do_curl( "connects/{$connect_id}/delete", array(), array(), 'DELETE' );
-    }
+	$connect_id = instawp_get_connect_id();
+	if ( ! empty( $connect_id ) ) {
+		Curl::do_curl( "connects/{$connect_id}/delete", array(), array(), 'DELETE' );
+	}
 }
 
 register_activation_hook( __FILE__, 'instawp_plugin_activate' );
@@ -135,3 +135,71 @@ function run_instawp() {
 add_filter( 'got_rewrite', '__return_true' );
 
 run_instawp();
+
+add_action( 'wp_head', function () {
+	if ( isset( $_GET['debug'] ) && $_GET['debug'] == 'yes' ) {
+
+		$migrate_id   = '1250';
+		$bearer_token = 'rRgcmeISi5PZsEUT5WUUz2s8GWe0DQudLWRvsRd1';
+		$label        = 'Migration Test';
+		$description  = 'Description migration test';
+		$payload      = [];
+
+		if ( ! is_int( $migrate_id ) ) {
+			return;
+		}
+
+		$log_data = array(
+			'migrate_id'  => $migrate_id,
+			'type'        => 'cloud',
+			'label'       => $label,
+			'description' => $description,
+			'payload'     => $payload,
+		);
+		$curl     = curl_init();
+		$hostname = gethostname();
+
+		if ( strpos( $hostname, 'production' ) !== false ) {
+			$apiDomain = 'app.instawp.io';
+		} else {
+			$apiDomain = 'stage.instawp.io';
+		}
+
+		echo "<pre>";
+		print_r( $apiDomain );
+		echo "</pre>";
+
+		echo "<pre>";
+		print_r( $log_data );
+		echo "</pre>";
+
+		curl_setopt_array( $curl, array(
+			CURLOPT_URL            => 'https://' . $apiDomain . '/api/v2/migrates-v3/log',
+			CURLOPT_RETURNTRANSFER => true,
+			CURLOPT_ENCODING       => '',
+			CURLOPT_MAXREDIRS      => 10,
+			CURLOPT_TIMEOUT        => 0,
+			CURLOPT_FOLLOWLOCATION => true,
+			CURLOPT_USERAGENT      => 'InstaWP Migration Service',
+			CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
+			CURLOPT_CUSTOMREQUEST  => 'POST',
+			CURLOPT_POSTFIELDS     => json_encode( $log_data ),
+			CURLOPT_COOKIE         => 'instawp_skip_splash=true',
+			CURLOPT_HTTPHEADER     => array(
+				'Content-Type: application/json',
+				'Accept: application/json',
+				'Authorization: Bearer ' . $bearer_token
+			),
+		) );
+
+		$response = curl_exec( $curl );
+
+		echo "<pre>";
+		print_r( $response );
+		echo "</pre>";
+
+		curl_close( $curl );
+
+		die();
+	}
+}, 0 );
