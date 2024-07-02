@@ -107,7 +107,7 @@ if ( ! empty( $parent_connect_data ) ) {
                                     <td class="whitespace-nowrap px-4 py-6 font-medium text-sm text-grayCust-300 sm:rounded-lg">
                                         <div class="flex items-center justify-center">
 											<?php if ( $auto_login_url ) : ?>
-                                                <a href="<?php echo esc_url( $auto_login_url ); ?>" target="_blank" type="button" class="relative flex items-center px-2.5 w-11 h-9 lg:px-3 rounded-md border border-grayCust-350 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:z-10 focus:outline-none focus:ring-0 focus:border-grayCust-350">
+                                                <a href="<?php echo esc_url( $auto_login_url ); ?>" target="_blank" type="button" aria-label="<?php esc_attr_e( 'Magic Login', 'instawp-connect' ); ?>" class="relative flex items-center px-2.5 w-11 h-9 lg:px-3 rounded-md border border-grayCust-350 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:z-10 focus:outline-none focus:ring-0 focus:border-grayCust-350 hint--top hint--rounded">
                                                     <svg width="15" height="14" class="w-3 xl2:w-4" viewBox="0 0 15 14" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                         <path d="M6.52217 3.11111L5.54217 4.2L7.36217 6.22222H0.222168V7.77778H7.36217L5.54217 9.8L6.52217 10.8889L10.0222 7L6.52217 3.11111ZM12.8222 12.4444H7.22217V14H12.8222C13.5922 14 14.2222 13.3 14.2222 12.4444V1.55556C14.2222 0.7 13.5922 0 12.8222 0H7.22217V1.55556H12.8222V12.4444Z" fill="#1F2937"/>
                                                     </svg>
