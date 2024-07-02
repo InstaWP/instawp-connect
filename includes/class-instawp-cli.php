@@ -209,12 +209,6 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 
 				if ( isset( $args[1] ) && $args[1] === 'summary' ) {
 
-//					$result = WP_CLI::runcommand( 'plugin is-active code-profiler', [ 'return' => 'all', 'exit_error' => false ] );
-//
-//					if ( $result->return_code === 1 ) {
-//						WP_CLI::runcommand( 'plugin install code-profiler --force --activate' );
-//					}
-
 					$wp_scanner  = new \InstaWP\Connect\Helpers\WPScanner();
 					$summary_res = $wp_scanner->scan_summary();
 

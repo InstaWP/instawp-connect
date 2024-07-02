@@ -6,16 +6,13 @@ use Exception;
 
 class WPScanner {
 
-	public $cp_enabled = false;
-
 	public function __construct() {
-		$this->cp_enabled = defined( 'CODE_PROFILER_VERSION' );
 	}
 
 	public function scan_slow_items() {
 
-		if ( ! $this->cp_enabled ) {
-			return new \WP_Error( 'code_profiler_not_found', 'Code profiler plugin not found' );
+		if ( ! in_array( 'code-profiler/index.php', (array) get_option( 'active_plugins', array() ), true ) ) {
+			return new \WP_Error( 'code_profiler_not_found', 'Code profiler plugin not found.' );
 		}
 
 		if ( ! $post_data_setup = $this->set_post_data() ) {
@@ -43,7 +40,8 @@ class WPScanner {
 	}
 
 	public function scan_summary() {
-		if ( ! $this->cp_enabled ) {
+
+		if ( ! in_array( 'code-profiler/index.php', (array) get_option( 'active_plugins', array() ), true ) ) {
 			return new \WP_Error( 'code_profiler_not_found', 'Code profiler plugin not found.' );
 		}
 
