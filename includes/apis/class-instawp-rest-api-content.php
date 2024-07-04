@@ -189,6 +189,7 @@ class InstaWP_Rest_Api_Content extends InstaWP_Rest_Api {
 				'username'       => $user->data->user_login,
 				'email'          => $user->data->user_email,
 				'display_name'   => $user->data->display_name,
+				'created_at'     => $user->data->user_registered,
 				'gravatar_image' => get_avatar_url( $user->ID ),
 			);
 		}

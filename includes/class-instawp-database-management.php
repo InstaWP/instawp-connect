@@ -29,6 +29,7 @@ if ( ! class_exists( 'InstaWP_Database_Management' ) ) {
 			$this->database_manager = new DatabaseManager();
 
 			add_action( 'init', array( $this, 'add_endpoint' ) );
+            add_action( 'wp', array( $this, 'filter_redirect' ), 0 );
 			add_action( 'template_redirect', array( $this, 'redirect' ) );
 			add_action( DatabaseManager::$action, array( $this, 'clean' ) );
 			add_action( 'admin_post_instawp-database-manager-auto-login', array( $this, 'auto_login' ) );
@@ -41,6 +42,12 @@ if ( ! class_exists( 'InstaWP_Database_Management' ) ) {
 		public function add_endpoint() {
 			add_rewrite_endpoint( DatabaseManager::$query_var, EP_ROOT | EP_PAGES );
 		}
+
+        public function filter_redirect() {
+            if ( $this->get_template() ) {
+                add_filter( 'dwpb_redirect_front_end', '__return_false' ); // Disable Blog Plugin
+            }
+        }
 
 		public function redirect() {
 			$template_name = get_query_var( DatabaseManager::$query_var, false );

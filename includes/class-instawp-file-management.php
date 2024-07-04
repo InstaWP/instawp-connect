@@ -45,8 +45,8 @@ if ( ! class_exists( 'InstaWP_File_Management' ) ) {
 
 		public function filter_redirect() {
 			if ( $this->get_template() ) {
-				remove_action( 'template_redirect', 'redirect_canonical' );
 				add_filter( 'redirect_canonical', '__return_false' );
+				add_filter( 'dwpb_redirect_front_end', '__return_false' ); // Disable Blog Plugin
 			}
 		}
 

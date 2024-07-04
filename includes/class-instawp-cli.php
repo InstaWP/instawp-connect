@@ -246,12 +246,12 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 						return false;
 					}
 
-					$slow_items_table = [];
+					$slow_items_table = array();
 					$counter          = 0;
 					$fields           = array( 'ID', 'Name', 'Type', 'Time Taken' );
 
 					foreach ( $slow_items as $slow_item ) {
-						$counter ++;
+						++$counter ;
 						$slow_items_table[] = array(
 							'ID'         => $counter,
 							'Name'       => $slow_item[2],
