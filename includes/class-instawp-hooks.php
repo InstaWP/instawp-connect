@@ -23,15 +23,16 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 		}
 
 		public function generate_api_key() {
-            if ( ! current_user_can( 'manage_options' ) ) {
-                return;
-            }
+			if ( ! current_user_can( 'manage_options' ) ) {
+				return;
+			}
 
-            $api_key        = Helper::get_api_key();
-            $access_token   = isset( $_REQUEST['access_token'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['access_token'] ) ) : '';
+			$api_key        = Helper::get_api_key();
+			$access_token   = isset( $_REQUEST['access_token'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['access_token'] ) ) : '';
 			$success_status = isset( $_REQUEST['success'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['success'] ) ) : '';
+			$instawp_nonce  = isset( $_REQUEST['instawp-nonce'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['instawp-nonce'] ) ) : '';
 
-			if ( 'true' === $success_status && empty( $api_key ) && $api_key !== $access_token ) {
+			if ( 'true' === $success_status && empty( $api_key ) && $api_key !== $access_token && wp_verify_nonce( $instawp_nonce, 'instawp_connect_nonce' ) ) {
 				Helper::instawp_generate_api_key( $access_token );
 
 				wp_safe_redirect( admin_url( 'tools.php?page=instawp' ) );
@@ -40,9 +41,9 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 		}
 
 		public function handle_auto_login_request() {
-            if ( empty( Helper::get_api_key() ) ) {
-                return;
-            }
+			if ( empty( Helper::get_api_key() ) ) {
+				return;
+			}
 
 			$url_args       = array_map( 'sanitize_text_field', $_GET );
 			$reauth         = Helper::get_args_option( 'r', $url_args );
@@ -75,11 +76,11 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 		}
 
 		public function front_enqueue_scripts() {
-            if ( $this->can_show_navbar() ) {
-                wp_enqueue_style( 'instawp-common', instaWP::get_asset_url( 'assets/css/common.min.css' ), array(), INSTAWP_PLUGIN_VERSION );
-                wp_enqueue_script( 'instawp-common', instaWP::get_asset_url( 'assets/js/common.js' ), array( 'jquery' ), INSTAWP_PLUGIN_VERSION, true );
-                wp_localize_script( 'instawp-common', 'instawp_common', InstaWP_Tools::get_localize_data() );
-            }
+			if ( $this->can_show_navbar() ) {
+				wp_enqueue_style( 'instawp-common', instaWP::get_asset_url( 'assets/css/common.min.css' ), array(), INSTAWP_PLUGIN_VERSION );
+				wp_enqueue_script( 'instawp-common', instaWP::get_asset_url( 'assets/js/common.js' ), array( 'jquery' ), INSTAWP_PLUGIN_VERSION, true );
+				wp_localize_script( 'instawp-common', 'instawp_common', InstaWP_Tools::get_localize_data() );
+			}
 		}
 
 		public function add_instawp_menu_icon( WP_Admin_Bar $admin_bar ) {
@@ -236,23 +237,23 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			}
 		}
 
-        private function can_show_navbar() {
-            if ( ! apply_filters( 'instawp/filters/display_menu_bar_icon', true ) ) {
-                return false;
-            }
+		private function can_show_navbar() {
+			if ( ! apply_filters( 'instawp/filters/display_menu_bar_icon', true ) ) {
+				return false;
+			}
 
-            global $current_user;
+			global $current_user;
 
-            $can_show       = 'off' === Option::get_option( 'instawp_hide_plugin_icon_topbar', 'off' );
-            $sync_tab_roles = Option::get_option( 'instawp_sync_tab_roles', array( 'administrator' ) );
-            $sync_tab_roles = ! is_array( $sync_tab_roles ) || empty( $sync_tab_roles ) ? array( 'administrator' ) : $sync_tab_roles;
+			$can_show       = 'off' === Option::get_option( 'instawp_hide_plugin_icon_topbar', 'off' );
+			$sync_tab_roles = Option::get_option( 'instawp_sync_tab_roles', array( 'administrator' ) );
+			$sync_tab_roles = ! is_array( $sync_tab_roles ) || empty( $sync_tab_roles ) ? array( 'administrator' ) : $sync_tab_roles;
 
-            if ( $can_show && empty( array_intersect( $sync_tab_roles, $current_user->roles ) ) ) {
-                $can_show = false;
-            }
+			if ( $can_show && empty( array_intersect( $sync_tab_roles, $current_user->roles ) ) ) {
+				$can_show = false;
+			}
 
-            return $can_show;
-        }
+			return $can_show;
+		}
 
 		public function handle_hard_disable_seo_visibility() {
 

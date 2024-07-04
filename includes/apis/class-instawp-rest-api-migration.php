@@ -128,16 +128,14 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 
 		return $this->send_response(
 			array(
-				'php_version'                    => PHP_VERSION,
-				'wp_version'                     => $wp_version,
-				'plugin_version'                 => INSTAWP_PLUGIN_VERSION,
-				//              'file_size'        => InstaWP_Tools::get_total_sizes( 'files', $migrate_settings ),
-				//              'db_size'          => InstaWP_Tools::get_total_sizes( 'db' ),
-								'active_plugins' => Option::get_option( 'active_plugins' ),
-				'migrate_settings'               => $migrate_settings,
-				'migrate_key'                    => $migrate_key,
-				'dest_url'                       => $dest_file_url,
-				'api_signature'                  => $api_signature,
+				'php_version'      => PHP_VERSION,
+				'wp_version'       => $wp_version,
+				'plugin_version'   => INSTAWP_PLUGIN_VERSION,
+				'active_plugins'   => Option::get_option( 'active_plugins' ),
+				'migrate_settings' => $migrate_settings,
+				'migrate_key'      => $migrate_key,
+				'dest_url'         => $dest_file_url,
+				'api_signature'    => $api_signature,
 			)
 		);
 	}
