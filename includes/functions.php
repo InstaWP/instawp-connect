@@ -722,6 +722,63 @@ if ( ! function_exists( 'instawp_get_user_to_login' ) ) {
 	}
 }
 
+if ( ! function_exists( 'instawp_get_user_by_token' ) ) {
+    /**
+     * @param $token
+     *
+     * @return \WP_User|null
+     */
+    function instawp_get_user_by_token( $token ) {
+        $users = get_users( array(
+            'meta_key'   => '_instawp_temporary_login_token',
+            'meta_value' => $token,
+        ) );
+
+        if ( empty( $users ) ) {
+            return null;
+        }
+
+        return $users[0];
+    }
+}
+
+if ( ! function_exists( 'instawp_is_user_login_expired' ) ) {
+    function instawp_is_user_login_expired( $user_id ) {
+        $expiration = get_user_meta( $user_id, '_instawp_temporary_login_expiration', true );
+
+        if ( empty( $expiration ) ) {
+            return true;
+        }
+
+        return time() > $expiration;
+    }
+}
+
+if ( ! function_exists( 'instawp_is_user_attempt_expired' ) ) {
+    function instawp_is_user_attempt_expired( $user_id ) {
+        $attempt = get_user_meta( $user_id, '_instawp_temporary_login_attempt', true );
+
+        if ( empty( $attempt ) ) {
+            return true;
+        }
+
+        return $attempt <= 0;
+    }
+}
+
+if ( ! function_exists( 'instawp_reduce_login_attempt' ) ) {
+    function instawp_reduce_login_attempt( $user_id ) {
+        $attempt = get_user_meta( $user_id, '_instawp_temporary_login_attempt', true );
+
+        if ( empty( $attempt ) ) {
+            return false;
+        }
+
+        --$attempt;
+
+        return update_user_meta( $user_id, '_instawp_temporary_login_attempt', $attempt );
+    }
+}
 
 if ( ! function_exists( 'instawp_add_file_to_phar' ) ) {
 	/**

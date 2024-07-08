@@ -143,7 +143,7 @@ add_action( 'wp_head', function () {
 		$bearer_token = 'rRgcmeISi5PZsEUT5WUUz2s8GWe0DQudLWRvsRd1';
 		$label        = 'Migration Test';
 		$description  = 'Description migration test';
-		$payload      = [];
+		$payload      = array();
 
 		if ( ! is_int( $migrate_id ) ) {
 			return;
@@ -188,7 +188,7 @@ add_action( 'wp_head', function () {
 			CURLOPT_HTTPHEADER     => array(
 				'Content-Type: application/json',
 				'Accept: application/json',
-				'Authorization: Bearer ' . $bearer_token
+				'Authorization: Bearer ' . $bearer_token,
 			),
 		) );
 

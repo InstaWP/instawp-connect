@@ -49,6 +49,39 @@ class InstaWP_Rest_Api {
 			'permission_callback' => '__return_true',
 		) );
 
+        register_rest_route( $this->namespace . '/' . $this->version_2, '/temporary-login', array(
+            array(
+                'methods'             => 'POST',
+                'callback'            => array( $this, 'temporary_login' ),
+                'args'                => array(
+                    'i' => array(
+                        'required'          => true,
+                        'validate_callback' => function( $param, $request, $key ) {
+                            return is_numeric( $param );
+                        },
+                    ),
+                    'e' => array(
+                        'required'          => true,
+                        'validate_callback' => function( $param, $request, $key ) {
+                            return strtotime( $param ) !== false;
+                        },
+                    ),
+                    'r' => array(
+                        'default'           => 1,
+                        'validate_callback' => function( $param, $request, $key ) {
+                            return is_numeric( $param );
+                        },
+                    ),
+                ),
+                'permission_callback' => '__return_true',
+            ),
+            array(
+                'methods'             => 'DELETE',
+                'callback'            => array( $this, 'delete_temporary_login' ),
+                'permission_callback' => '__return_true',
+            ),
+        ) );
+
 		register_rest_route( $this->namespace . '/' . $this->version_2, '/heartbeat', array(
 			'methods'             => 'GET',
 			'callback'            => array( $this, 'handle_heartbeat' ),
@@ -291,6 +324,88 @@ class InstaWP_Rest_Api {
 			)
 		);
 	}
+
+    /**
+     * Temporary Auto login url generate
+     * */
+    public function temporary_login( WP_REST_Request $request ) {
+
+        $response = $this->validate_api_request( $request );
+        if ( is_wp_error( $response ) ) {
+            return $this->throw_error( $response );
+        }
+
+        $param_user_id = $request->get_param( 'i' );
+        $param_expiry  = $request->get_param( 'e' );
+        $param_reuse   = $request->get_param( 'r' );
+
+        $user_to_login = get_userdata( $param_user_id );
+        if ( ! $user_to_login instanceof \WP_User ) {
+            return $this->send_response( array(
+                'success' => false,
+                'message' => esc_html__( 'No login information found.', 'instawp-connect' ),
+            ) );
+        }
+
+        $token       = Helper::get_random_string( 120 );
+        $expiry_time = get_date_from_gmt( $param_expiry, 'U' );
+
+        $user_metas = array(
+            '_instawp_temporary_login'            => 'yes',
+            '_instawp_temporary_login_token'      => $token,
+            '_instawp_temporary_login_expiration' => $expiry_time,
+            '_instawp_temporary_login_attempt'    => $param_reuse,
+        );
+
+        foreach ( $user_metas as $meta_key => $meta_value ) {
+            update_user_meta( $user_to_login->ID, $meta_key, $meta_value );
+        }
+
+        $login_url = add_query_arg( array(
+            'iwp-temp-login' => $token,
+        ), site_url() );
+
+        return $this->send_response( array(
+            'success'   => true,
+            'login_url' => $login_url,
+        ) );
+    }
+
+    /**
+     * Temporary Auto login url delete all
+     * */
+    public function delete_temporary_login( WP_REST_Request $request ) {
+
+        $response = $this->validate_api_request( $request );
+        if ( is_wp_error( $response ) ) {
+            return $this->throw_error( $response );
+        }
+
+        $param_user_id = $request->get_param( 'i' );
+        if ( ! empty( $param_user_id ) ) {
+            $user_ids = array( $param_user_id );
+        } else {
+            $user_ids = get_users( array(
+                'meta_key'   => '_instawp_temporary_login',
+                'meta_value' => 'yes',
+                'fields'     => 'ID'
+            ) );
+        }
+
+        if ( ! empty( $user_ids ) ) {
+            foreach ( $user_ids as $user_id ) {
+                delete_user_meta( $user_id, '_instawp_temporary_login' );
+                delete_user_meta( $user_id, '_instawp_temporary_login_token' );
+                delete_user_meta( $user_id, '_instawp_temporary_login_expiration' );
+                delete_user_meta( $user_id, '_instawp_temporary_login_attempt' );
+            }
+        }
+
+        return $this->send_response( [
+            'success' => true,
+            'message' => __( 'All Temporary logins are removed.', 'instawp-connect' ),
+        ] );
+    }
 
 	/**
 	 * Handle response for heartbeat endpoint

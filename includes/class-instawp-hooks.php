@@ -19,6 +19,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			add_action( 'admin_bar_menu', array( $this, 'add_instawp_menu_icon' ), 999 );
 			add_action( 'wp_enqueue_scripts', array( $this, 'front_enqueue_scripts' ) );
 			add_action( 'init', array( $this, 'handle_auto_login_request' ) );
+			add_action( 'init', array( $this, 'handle_temporary_login_request' ) );
 			add_action( 'admin_notices', array( $this, 'admin_notice' ) );
 		}
 
@@ -74,6 +75,42 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			wp_safe_redirect( $redirect );
 			exit();
 		}
+
+        public function handle_temporary_login_request() {
+            if ( empty( Helper::get_api_key() ) ) {
+                return;
+            }
+
+            $url_args    = array_map( 'sanitize_text_field', $_GET );
+            $login_token = Helper::get_args_option( 'iwp-temp-login', $url_args );
+
+            if ( empty( $login_token ) ) {
+                return;
+            }
+
+            $user = instawp_get_user_by_token( $login_token );
+            if ( ! $user || instawp_is_user_login_expired( $user->ID ) || instawp_is_user_attempt_expired( $user->ID ) ) {
+                wp_safe_redirect( home_url() );
+                exit();
+            }
+
+            if ( is_user_logged_in() ) {
+                $current_user_id = get_current_user_id();
+                if ( $user->ID !== $current_user_id ) {
+                    wp_logout();
+                }
+            }
+
+            instawp_reduce_login_attempt( $user->ID );
+
+            wp_set_current_user( $user->ID, $user->user_login );
+            wp_set_auth_cookie( $user->ID );
+
+            do_action( 'wp_login', $user->user_login, $user );
+
+            wp_safe_redirect( admin_url() );
+            exit();
+        }
 
 		public function front_enqueue_scripts() {
 			if ( $this->can_show_navbar() ) {
