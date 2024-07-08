@@ -156,7 +156,7 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 			) );
 			$heartbeat_body = base64_encode( $heartbeat_body ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
 
-			$heartbeat_response = Curl::do_curl( "connects/{$connect_id}/heartbeat", $heartbeat_body, array(), 'POST', 'v1' );
+			$heartbeat_response = Curl::do_curl( "connects/{$connect_id}/heartbeat", [ $heartbeat_body ], array(), 'POST', 'v1' );
 			$response_code      = Helper::get_args_option( 'code', $heartbeat_response );
 			$success            = intval( $response_code ) === 200;
 
