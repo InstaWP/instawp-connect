@@ -7,7 +7,7 @@
  * @wordpress-plugin
  * Plugin Name:       InstaWP Connect
  * Description:       1-click WordPress plugin for Staging, Migrations, Management, Sync and Companion plugin for InstaWP.
- * Version:           0.1.0.44
+ * Version:           0.1.0.45
  * Author:            InstaWP Team
  * Author URI:        https://instawp.com/
  * License:           GPL-3.0+
@@ -26,7 +26,7 @@ if ( ! defined( 'WPINC' ) ) {
 
 global $wpdb;
 
-defined( 'INSTAWP_PLUGIN_VERSION' ) || define( 'INSTAWP_PLUGIN_VERSION', '0.1.0.44' );
+defined( 'INSTAWP_PLUGIN_VERSION' ) || define( 'INSTAWP_PLUGIN_VERSION', '0.1.0.45' );
 defined( 'INSTAWP_API_DOMAIN_PROD' ) || define( 'INSTAWP_API_DOMAIN_PROD', 'https://app.instawp.io' );
 
 $wp_plugin_url   = WP_PLUGIN_URL . '/' . plugin_basename( __DIR__ ) . '/';
@@ -135,71 +135,3 @@ function run_instawp() {
 add_filter( 'got_rewrite', '__return_true' );
 
 run_instawp();
-
-add_action( 'wp_head', function () {
-	if ( isset( $_GET['debug'] ) && $_GET['debug'] == 'yes' ) {
-
-		$migrate_id   = '1250';
-		$bearer_token = 'rRgcmeISi5PZsEUT5WUUz2s8GWe0DQudLWRvsRd1';
-		$label        = 'Migration Test';
-		$description  = 'Description migration test';
-		$payload      = array();
-
-		if ( ! is_int( $migrate_id ) ) {
-			return;
-		}
-
-		$log_data = array(
-			'migrate_id'  => $migrate_id,
-			'type'        => 'cloud',
-			'label'       => $label,
-			'description' => $description,
-			'payload'     => $payload,
-		);
-		$curl     = curl_init();
-		$hostname = gethostname();
-
-		if ( strpos( $hostname, 'production' ) !== false ) {
-			$apiDomain = 'app.instawp.io';
-		} else {
-			$apiDomain = 'stage.instawp.io';
-		}
-
-		echo "<pre>";
-		print_r( $apiDomain );
-		echo "</pre>";
-
-		echo "<pre>";
-		print_r( $log_data );
-		echo "</pre>";
-
-		curl_setopt_array( $curl, array(
-			CURLOPT_URL            => 'https://' . $apiDomain . '/api/v2/migrates-v3/log',
-			CURLOPT_RETURNTRANSFER => true,
-			CURLOPT_ENCODING       => '',
-			CURLOPT_MAXREDIRS      => 10,
-			CURLOPT_TIMEOUT        => 0,
-			CURLOPT_FOLLOWLOCATION => true,
-			CURLOPT_USERAGENT      => 'InstaWP Migration Service',
-			CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
-			CURLOPT_CUSTOMREQUEST  => 'POST',
-			CURLOPT_POSTFIELDS     => json_encode( $log_data ),
-			CURLOPT_COOKIE         => 'instawp_skip_splash=true',
-			CURLOPT_HTTPHEADER     => array(
-				'Content-Type: application/json',
-				'Accept: application/json',
-				'Authorization: Bearer ' . $bearer_token,
-			),
-		) );
-
-		$response = curl_exec( $curl );
-
-		echo "<pre>";
-		print_r( $response );
-		echo "</pre>";
-
-		curl_close( $curl );
-
-		die();
-	}
-}, 0 );
