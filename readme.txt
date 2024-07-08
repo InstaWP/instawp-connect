@@ -98,6 +98,11 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 0.1.0.45 - 8 July 2024 =
+- FIX - Fixed User interface issues.
+- FIX - Fixed support for disable blog plugin for file & db manager.
+- FIX - Fixed scan command.
+
 = 0.1.0.44 - 28 Jun 2024 =
 - FIX - Fixed security vulnerability issue in auto login.
 
