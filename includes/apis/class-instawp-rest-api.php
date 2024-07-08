@@ -388,7 +388,7 @@ class InstaWP_Rest_Api {
             $user_ids = get_users( array(
                 'meta_key'   => '_instawp_temporary_login',
                 'meta_value' => 'yes',
-                'fields'     => 'ID'
+                'fields'     => 'ID',
             ) );
         }
 
@@ -401,10 +401,10 @@ class InstaWP_Rest_Api {
             }
         }
 
-        return $this->send_response( [
+        return $this->send_response( array(
             'success' => true,
             'message' => __( 'All Temporary logins are removed.', 'instawp-connect' ),
-        ] );
+        ) );
     }
 
 	/**
