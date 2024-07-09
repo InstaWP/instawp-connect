@@ -62,9 +62,8 @@ class InstaWP_Admin {
 	}
 
 	public function add_action_links( $links ) {
-
 		$action_links = array(
-			sprintf( '<a href="%s">%s</a>', esc_url( admin_url( 'tools.php?page=instawp' ) ), esc_html__( 'Create Staging', 'instawp-connect' ) ),
+			sprintf( '<a href="%s">%s</a>', esc_url( admin_url( 'tools.php?page=instawp' ) ), instawp()->is_staging ? esc_html__( 'Settings', 'instawp-connect' ) : esc_html__( 'Create Staging', 'instawp-connect' ) ),
 		);
 
 		return array_merge( $action_links, $links );
