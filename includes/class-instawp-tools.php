@@ -352,20 +352,16 @@ include $file_path;';
 		$migrate_settings['excluded_paths'][] = $relative_dir . '/.htaccess';
 
 		// Skip wp object cache forcefully
-		if ( file_exists( $relative_dir . '/mu-plugins/redis-cache-pro.php' ) ) {
-			$migrate_settings['excluded_paths'][] = $relative_dir . '/mu-plugins/redis-cache-pro.php';
-		}
+		$migrate_settings['excluded_paths'][] = $relative_dir . '/mu-plugins/redis-cache-pro.php';
 
+        // Skip sso forcefully
+        $migrate_settings['excluded_paths'][] = $relative_dir . '/mu-plugins/sso.php';
 
 		// Skip wp stack cache forcefully
-		if ( file_exists( $relative_dir . '/mu-plugins/wp-stack-cache.php' ) ) {
-			$migrate_settings['excluded_paths'][] = $relative_dir . '/mu-plugins/wp-stack-cache.php';
-		}
+		$migrate_settings['excluded_paths'][] = $relative_dir . '/mu-plugins/wp-stack-cache.php';
 
 		// Skip object-cache-iwp file if exists forcefully
-		if ( file_exists( $relative_dir . '/object-cache-iwp.php' ) ) {
-			$migrate_settings['excluded_paths'][] = $relative_dir . '/object-cache-iwp.php';
-		}
+		$migrate_settings['excluded_paths'][] = $relative_dir . '/object-cache-iwp.php';
 
 		if ( in_array( 'active_plugins_only', $options ) ) {
 			foreach ( get_plugins() as $plugin_slug => $plugin_info ) {
