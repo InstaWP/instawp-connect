@@ -496,10 +496,13 @@ class InstaWP_Rest_Api {
 	 * @return WP_Error|bool
 	 */
 	public function validate_api_request( WP_REST_Request $request, $option = '' ) {
-
 		// get authorization header value.
 		$bearer_token = sanitize_text_field( $request->get_header( 'authorization' ) );
-		$bearer_token = str_replace( 'Bearer ', '', $bearer_token );
+        if ( ! empty( $bearer_token ) ) {
+		    $bearer_token = str_replace( 'Bearer ', '', $bearer_token );
+        } else {
+            $bearer_token = sanitize_text_field( $request->get_header( 'x_iwp_auth' ) );
+        }
 
 		// check if the bearer token is empty
 		if ( empty( $bearer_token ) ) {
