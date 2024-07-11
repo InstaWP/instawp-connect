@@ -98,20 +98,14 @@ class InstaWP_Sync_Plugin_Theme {
 		if ( InstaWP_Sync_Helpers::can_sync( 'theme' ) && $hook_extra['type'] === 'theme' ) {
 
 			if ( 'install' === $hook_extra['action'] ) {
-				$theme = $upgrader->theme_info();
-				if ( ! $theme ) {
-					return;
-				}
-
 				wp_clean_themes_cache();
-				$theme   = wp_get_theme( $theme );
 				$details = array(
-					'name'       => $theme->display( 'Name' ),
-					'stylesheet' => $theme->get( 'TextDomain' ),
+					'name'       => ! empty( $upgrader->new_theme_data['Name'] ) ? $upgrader->new_theme_data['Name'] : ucfirst( $upgrader->result['destination_name'] ),
+					'stylesheet' => $upgrader->result['destination_name'],
 					'data'       => isset( $upgrader->new_theme_data ) ? $upgrader->new_theme_data : array(),
 				);
 
-				if ( Helper::is_on_wordpress_org( $theme->get( 'TextDomain' ), $hook_extra['type'] ) ) {
+				if ( Helper::is_on_wordpress_org( $upgrader->result['destination_name'], $hook_extra['type'] ) ) {
 					$this->parse_plugin_theme_event( $event_name, $event_slug, $details, $hook_extra['type'] );
 				}
 			}
