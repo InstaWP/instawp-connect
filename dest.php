@@ -123,6 +123,21 @@ if ( ! function_exists( 'str_ends_with' ) ) {
 	}
 }
 
+if ( ! function_exists( 'array_contains_str' ) ) {
+    function array_contains_str( $string, $array ) {
+        if ( in_array( $string, $array, true ) ) {
+            return true;
+        }
+
+        foreach ( $array as $item ) {
+            if ( str_contains( $string, $item ) ) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+
 $root_dir_data = get_wp_root_directory();
 $root_dir_find = isset( $root_dir_data['status'] ) ? $root_dir_data['status'] : false;
 $root_dir_path = isset( $root_dir_data['root_path'] ) ? $root_dir_data['root_path'] : '';
@@ -249,7 +264,7 @@ if ( ! function_exists( 'zipStatusString' ) ) {
 	}
 }
 
-$excluded_paths     = array();
+$excluded_paths     = isset( $excluded_paths ) ? $excluded_paths : array();
 $file_relative_path = trim( $_SERVER['HTTP_X_FILE_RELATIVE_PATH'] );
 $file_type          = isset( $_SERVER['HTTP_X_FILE_TYPE'] ) ? trim( $_SERVER['HTTP_X_FILE_TYPE'] ) : 'single';
 $req_order          = isset( $_GET['r'] ) ? intval( $_GET['r'] ) : 1;
@@ -259,6 +274,11 @@ if ( in_array( $file_relative_path, $excluded_paths ) ) {
 }
 
 $file_save_path = $root_dir_path . DIRECTORY_SEPARATOR . $file_relative_path;
+
+if ( in_array( $file_save_path, $excluded_paths ) ) {
+    exit( 0 );
+}
+
 $directory_name = dirname( $file_save_path );
 
 if ( ! file_exists( $directory_name ) ) {
@@ -492,7 +512,18 @@ if ( $file_type === 'zip' ) {
 			$res = $zip->open( $file_save_path );
 
 			if ( $res === true || $zip->status == 0 ) {
-				$zip->extractTo( $directory_name );
+                $extracted_files = [];
+                for ( $i = 0; $i < $zip->numFiles; $i++ ) {
+                    $file_name = $zip->getNameIndex( $i );
+
+                    if ( ! array_contains_str( $directory_name . DIRECTORY_SEPARATOR . $file_name, $excluded_paths ) ) {
+                        $extracted_files[] = $file_name;
+                    }
+                }
+
+                foreach ( $extracted_files as $file ) {
+                    $zip->extractTo( $directory_name, $file );
+                }
 				$zip->close();
 
 				if ( file_exists( $file_save_path ) ) {
@@ -517,7 +548,18 @@ if ( $file_type === 'zip' ) {
 	} elseif ( class_exists( 'PharData' ) ) {
 		try {
 			$phar = new PharData( $file_save_path );
-			$phar->extractTo( $directory_name, null, true );
+            $extracted_files = [];
+            foreach ( new RecursiveIteratorIterator( $phar ) as $file ) {
+                $file_name = $file->getRelativePathname();
+
+                if ( ! array_contains_str( $directory_name . DIRECTORY_SEPARATOR . $file_name, $excluded_paths ) ) {
+                    $extracted_files[] = $file_name;
+                }
+            }
+
+            foreach ( $extracted_files as $file ) {
+                $phar->extractTo( $directory_name, $file, true );
+            }
 
 			if ( file_exists( $file_save_path ) ) {
 				unlink( $file_save_path );

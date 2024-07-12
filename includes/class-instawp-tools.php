@@ -230,9 +230,9 @@ include $file_path;';
 		return $tracking_db;
 	}
 
-	public static function generate_destination_file( $migrate_key, $api_signature ) {
+	public static function generate_destination_file( $migrate_key, $api_signature, $migrate_settings = array() ) {
 
-		$data = array(
+		$data = array_merge( array(
 			'api_signature'       => $api_signature,
 			'db_host'             => DB_HOST,
 			'db_username'         => DB_USER,
@@ -243,7 +243,7 @@ include $file_path;';
 			'site_url'            => defined( 'WP_SITEURL' ) ? WP_SITEURL : site_url(),
 			'home_url'            => defined( 'WP_HOME' ) ? WP_HOME : home_url(),
 			'instawp_api_options' => maybe_serialize( Option::get_option( 'instawp_api_options' ) ),
-		);
+		), $migrate_settings );
 
 		$jsonString     = wp_json_encode( $data );
 		$passphrase     = openssl_digest( $migrate_key, 'SHA256', true );
@@ -323,6 +323,10 @@ include $file_path;';
 		// Remove __wp__ folder for WPC file structure
 		if ( is_dir( $wp_root_dir . '/__wp__' ) ) {
 			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/__wp__';
+			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-admin';
+			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-includes';
+            $migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-cli.yml';
+			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/index.php';
 			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-load.php';
 			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-activate.php';
 			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-blog-header.php';
