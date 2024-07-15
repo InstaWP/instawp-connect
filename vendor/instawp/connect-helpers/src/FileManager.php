@@ -16,7 +16,7 @@ class FileManager {
 		$password  = Helper::get_random_string( 20 );
 		$file_name = Helper::get_random_string( 10 );
 		$token     = md5( $username . '|' . $password . '|' . $file_name );
-		$url       = 'https://raw.githubusercontent.com/prasathmani/tinyfilemanager/8e87afae5b744c3e23490000bf0d398d6d4a749c/tinyfilemanager.php';
+		$url       = 'https://raw.githubusercontent.com/prasathmani/tinyfilemanager/master/tinyfilemanager.php';
 
 		$search  = [
 			'Tiny File Manager',
@@ -45,7 +45,16 @@ class FileManager {
 			password_hash( $password, PASSWORD_DEFAULT )
 		];
 
-		$file = file_get_contents( $url );
+		$response = wp_remote_get( $url );
+		if ( is_wp_error( $response ) ) {
+			return [
+				'success' => false,
+				'message' => $response->get_error_message(),
+			];
+		} else {
+			$file = wp_remote_retrieve_body( $response );
+		}
+		
 		$file = str_replace( $search, $replace, $file );
 		$file = preg_replace( '!/\*.*?\*/!s', '', $file );
 

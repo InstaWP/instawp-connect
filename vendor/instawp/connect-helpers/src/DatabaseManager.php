@@ -29,7 +29,16 @@ class DatabaseManager {
 			'instawp_sid',
 		];
 
-		$file = file_get_contents( $url );
+		$response = wp_remote_get( $url );
+		if ( is_wp_error( $response ) ) {
+			return [
+				'success' => false,
+				'message' => $response->get_error_message(),
+			];
+		} else {
+			$file = wp_remote_retrieve_body( $response );
+		}
+
 		$file = preg_replace( $search, $replace, $file );
 
 		$file_path            = self::get_file_path( $file_name );

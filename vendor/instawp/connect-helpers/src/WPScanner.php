@@ -6,9 +6,6 @@ use Exception;
 
 class WPScanner {
 
-	public function __construct() {
-	}
-
 	public function scan_slow_items() {
 
 		if ( ! in_array( 'code-profiler/index.php', (array) get_option( 'active_plugins', array() ), true ) ) {
