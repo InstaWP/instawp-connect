@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.6
 Tested up to: 6.5
 Requires PHP: 5.6
-Stable tag: 0.1.0.45
+Stable tag: 0.1.0.46
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -98,8 +98,10 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
-= 0.1.0.46 =
+= 0.1.0.46 - 15 July 2024 =
 - FIX - Changes "Create Staging" text to "Setting" in case of staging site.
+- FIX - Fixed theme install sync event not recording.
+- FIX - Fixed authorization header not working on some cases.
 - FIX - Fixed migration issues.
 
 = 0.1.0.45 - 8 July 2024 =
