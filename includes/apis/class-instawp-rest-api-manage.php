@@ -444,7 +444,7 @@ class InstaWP_Rest_Api_Manage extends InstaWP_Rest_Api {
             ) );
         }
 
-        if ( email_exists( $params['email'] ) ) {
+        if ( email_exists( $params['user_email'] ) ) {
             return $this->send_response( array(
                 'success' => false,
                 'message' => 'Email is already in use!',
