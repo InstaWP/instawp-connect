@@ -437,12 +437,19 @@ class InstaWP_Rest_Api_Manage extends InstaWP_Rest_Api {
 
 		$params = $this->filter_params( $request );
 
-		if ( empty( $params['user_login'] ) ) {
-			return $this->send_response( array(
-				'success' => false,
-				'message' => 'Username can\'t be empty!',
-			) );
-		}
+        if ( username_exists( $params['user_login'] ) ) {
+            return $this->send_response( array(
+                'success' => false,
+                'message' => 'Username is already in use!',
+            ) );
+        }
+
+        if ( email_exists( $params['user_email'] ) ) {
+            return $this->send_response( array(
+                'success' => false,
+                'message' => 'Email is already in use!',
+            ) );
+        }
 
 		if ( ! function_exists( 'wp_insert_user' ) ) {
 			require_once ABSPATH . 'wp-includes/user.php';
