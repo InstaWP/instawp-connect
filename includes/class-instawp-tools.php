@@ -325,7 +325,7 @@ include $file_path;';
 			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/__wp__';
 			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-admin';
 			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-includes';
-            $migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-cli.yml';
+			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-cli.yml';
 			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/index.php';
 			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-load.php';
 			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-activate.php';
@@ -358,8 +358,8 @@ include $file_path;';
 		// Skip wp object cache forcefully
 		$migrate_settings['excluded_paths'][] = $relative_dir . '/mu-plugins/redis-cache-pro.php';
 
-        // Skip sso forcefully
-        $migrate_settings['excluded_paths'][] = $relative_dir . '/mu-plugins/sso.php';
+		// Skip sso forcefully
+		$migrate_settings['excluded_paths'][] = $relative_dir . '/mu-plugins/sso.php';
 
 		// Skip wp stack cache forcefully
 		$migrate_settings['excluded_paths'][] = $relative_dir . '/mu-plugins/wp-stack-cache.php';
@@ -624,25 +624,30 @@ include $file_path;';
 		$excluded_tables[] = INSTAWP_DB_TABLE_EVENT_SITES;
 		$excluded_tables[] = INSTAWP_DB_TABLE_EVENT_SYNC_LOGS;
 
+		// Exclude rocket cache db tables
+		$excluded_tables[] = $wpdb->prefix . 'wpr_rocket_cache';
+		$excluded_tables[] = $wpdb->prefix . 'wpr_rucss_used_css';
+		$excluded_tables[] = $wpdb->prefix . 'wpr_above_the_fold';
+
 		$migrate_settings['excluded_tables'] = $excluded_tables;
 
 		// Remove instawp connect options
 		$excluded_tables_rows = Helper::get_args_option( 'excluded_tables_rows', $migrate_settings, array() );
 
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_api_options';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_connect_id_options';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_sync_parent_connect_data';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_migration_details';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_last_migration_details';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_api_key_config_completed';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_is_event_syncing';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_staging_sites';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_is_staging';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:schema-ActionScheduler_StoreSchema';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:schema-ActionScheduler_LoggerSchema';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:action_scheduler_hybrid_store_demarkation';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:_transient_timeout_action_scheduler_last_pastdue_actions_check';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:_transient_action_scheduler_last_pastdue_actions_check';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_api_options';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_connect_id_options';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_sync_parent_connect_data';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_migration_details';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_last_migration_details';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_api_key_config_completed';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_is_event_syncing';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_staging_sites';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_is_staging';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:schema-ActionScheduler_StoreSchema';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:schema-ActionScheduler_LoggerSchema';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:action_scheduler_hybrid_store_demarkation';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:_transient_timeout_action_scheduler_last_pastdue_actions_check';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:_transient_action_scheduler_last_pastdue_actions_check';
 
 		$migrate_settings['excluded_tables_rows'] = $excluded_tables_rows;
 
