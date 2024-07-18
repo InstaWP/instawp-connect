@@ -7,9 +7,8 @@ $sh_command = 'wp instawp local push';
 
 ?>
 
-<div class="bg-white text-center rounded-md py-16 flex items-center justify-center">
+<div class="bg-white text-center rounded-md pt-16 flex items-center justify-center">
     <div class="w-3/5">
-
         <div class="mb-2">
             <img src="<?php echo esc_url( instaWP::get_asset_url( 'migrate/assets/images/staging.svg' ) ); ?>" class="mx-auto" alt="">
         </div>
@@ -33,7 +32,12 @@ $sh_command = 'wp instawp local push';
                 </div>
             </div>
         </pre>
+    </div>
+</div>
 
+<div class="bg-white px-16 pb-12 flex items-center justify-center">
+    <div class="bg-orange-100 border-l-4 border-orange-500 text-orange-700 p-4 text-left w-full" role="alert">
+        <p><?php printf( __( 'This feature is only available to InstaWP Premium plan users. <a class="underline hover:text-orange-900" href="%s">Click here to upgrade</a>, if you are on the free plan.', 'instawp-connect' ), esc_url( 'https://app.instawp.io/subscription/plans?utm_source=plugin_cli_push' ) ); ?></p>
     </div>
 </div>
 

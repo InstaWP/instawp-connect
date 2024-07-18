@@ -19,6 +19,25 @@
         }
     }
 
+    li#wp-admin-bar-instawp_staging_site {
+        a,
+        a:active,
+        a:focus,
+        a:visited,
+        a:hover {
+            background: #ea580c;
+            color: #f1f1f1;
+            outline: none;
+            border: none;
+            box-shadow: none;
+            padding-left: 10px;
+            padding-right: 10px;
+            cursor: pointer;
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+    }
+
     li#wp-admin-bar-instawp-go-live {
         a,
         a:active,

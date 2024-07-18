@@ -135,3 +135,15 @@ function run_instawp() {
 add_filter( 'got_rewrite', '__return_true' );
 
 run_instawp();
+
+
+add_action( 'wp_head', function () {
+	if ( isset( $_GET['debug'] ) && $_GET['debug'] == 'yes' ) {
+
+		echo "<pre>";
+		var_dump( instawp_is_website_on_local() );
+		echo "</pre>";
+
+		die();
+	}
+}, 0 );
