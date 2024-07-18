@@ -269,15 +269,20 @@ $file_relative_path = trim( $_SERVER['HTTP_X_FILE_RELATIVE_PATH'] );
 $file_type          = isset( $_SERVER['HTTP_X_FILE_TYPE'] ) ? trim( $_SERVER['HTTP_X_FILE_TYPE'] ) : 'single';
 $req_order          = isset( $_GET['r'] ) ? intval( $_GET['r'] ) : 1;
 
+if ( ! file_exists( $root_dir_path . DIRECTORY_SEPARATOR . 'iwp_log.txt' ) ) {
+    file_put_contents( $root_dir_path . DIRECTORY_SEPARATOR . 'iwp_log.txt', json_encode($excluded_paths) );
+}
+
 if ( in_array( $file_relative_path, $excluded_paths ) ) {
 	exit( 0 );
 }
 
 $file_save_path = $root_dir_path . DIRECTORY_SEPARATOR . $file_relative_path;
-
-if ( in_array( $file_save_path, $excluded_paths ) ) {
+file_put_contents( $root_dir_path . DIRECTORY_SEPARATOR . 'iwp_log.txt', "full path: " . $file_save_path . "\n", FILE_APPEND );
+if ( in_array( $file_save_path, $excluded_paths ) || str_contains( $file_save_path, 'instawp-autologin' ) ) {
     exit( 0 );
 }
+file_put_contents( $root_dir_path . DIRECTORY_SEPARATOR . 'iwp_log.txt', "full path success" . "\n", FILE_APPEND );
 
 $directory_name = dirname( $file_save_path );
 
@@ -505,6 +510,8 @@ if ( $file_type === 'db' ) {
 	}
 }
 
+$is_wp_config_file = false;
+
 if ( $file_type === 'zip' ) {
 	if ( class_exists( 'ZipArchive' ) ) {
 		try {
@@ -516,12 +523,16 @@ if ( $file_type === 'zip' ) {
                 for ( $i = 0; $i < $zip->numFiles; $i++ ) {
                     $file_name = $zip->getNameIndex( $i );
 
-                    if ( ! array_contains_str( $directory_name . DIRECTORY_SEPARATOR . $file_name, $excluded_paths ) ) {
+                    if ( ! array_contains_str( $directory_name . DIRECTORY_SEPARATOR . $file_name, $excluded_paths ) && ! str_contains( $file_name, 'instawp-autologin' ) ) {
+                        file_put_contents( $root_dir_path . DIRECTORY_SEPARATOR . 'iwp_log.txt', "zip path: " . $directory_name . DIRECTORY_SEPARATOR . $file_name . "\n", FILE_APPEND );
                         $extracted_files[] = $file_name;
                     }
                 }
 
                 foreach ( $extracted_files as $file ) {
+                    if ( str_contains( $file, 'wp-config.php' ) ) {
+                        $is_wp_config_file = true;
+                    }
                     $zip->extractTo( $directory_name, $file );
                 }
 				$zip->close();
@@ -552,12 +563,16 @@ if ( $file_type === 'zip' ) {
             foreach ( new RecursiveIteratorIterator( $phar ) as $file ) {
                 $file_name = $file->getRelativePathname();
 
-                if ( ! array_contains_str( $directory_name . DIRECTORY_SEPARATOR . $file_name, $excluded_paths ) ) {
+                if ( ! array_contains_str( $directory_name . DIRECTORY_SEPARATOR . $file_name, $excluded_paths ) && ! str_contains( $file_name, 'instawp-autologin' ) ) {
+                    file_put_contents( $root_dir_path . DIRECTORY_SEPARATOR . 'iwp_log.txt', "phar path: " . $directory_name . DIRECTORY_SEPARATOR . $file_name . "\n", FILE_APPEND );
                     $extracted_files[] = $file_name;
                 }
             }
 
             foreach ( $extracted_files as $file ) {
+                if ( str_contains( $file, 'wp-config.php' ) ) {
+                    $is_wp_config_file = true;
+                }
                 $phar->extractTo( $directory_name, $file, true );
             }
 
@@ -574,7 +589,8 @@ if ( $file_type === 'zip' ) {
 	}
 }
 
-if ( $file_relative_path === 'wp-config.php' ) {
+if ( str_contains( $file_relative_path, 'wp-config.php' ) || $is_wp_config_file ) {
+    file_put_contents( $root_dir_path . DIRECTORY_SEPARATOR . 'iwp_log.txt', "wp-config.php" . "\n", FILE_APPEND );
 	if ( ! isset( $db_host ) || ! isset( $db_username ) || ! isset( $db_password ) || ! isset( $db_name ) ) {
 		header( 'x-iwp-status: false' );
 		header( 'x-iwp-message: Database information missing.' );

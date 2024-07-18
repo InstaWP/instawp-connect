@@ -340,6 +340,12 @@ include $file_path;';
 			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-signup.php';
 			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-trackback.php';
 			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/xmlrpc.php';
+			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/.ftpquota';
+			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/.htaccess';
+			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/error_log';
+			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/license.txt';
+			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/readme.html';
+			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/robots.txt';
 		}
 
 		// Skip index.html file forcefully
