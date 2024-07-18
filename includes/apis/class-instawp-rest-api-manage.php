@@ -26,6 +26,12 @@ class InstaWP_Rest_Api_Manage extends InstaWP_Rest_Api {
 			'permission_callback' => '__return_true',
 		) );
 
+        register_rest_route( $this->namespace . '/' . $this->version_2 . '/manage', '/get-user-roles', array(
+            'methods'             => 'GET',
+            'callback'            => array( $this, 'get_user_roles' ),
+            'permission_callback' => '__return_true',
+        ) );
+
 		register_rest_route( $this->namespace . '/' . $this->version_2 . '/manage', '/install', array(
 			'methods'             => 'POST',
 			'callback'            => array( $this, 'perform_install' ),
@@ -169,6 +175,39 @@ class InstaWP_Rest_Api_Manage extends InstaWP_Rest_Api {
 
 		return $this->send_response( $response );
 	}
+
+    /**
+     * Handle response for site inventory.
+     *
+     * @param WP_REST_Request $request
+     *
+     * @return WP_REST_Response
+     */
+    public function get_user_roles( WP_REST_Request $request ) {
+
+        $response = $this->validate_api_request( $request );
+        if ( is_wp_error( $response ) ) {
+            return $this->throw_error( $response );
+        }
+
+        $data = array();
+        $i    = 1;
+        $roles = wp_roles()->get_names();
+
+        foreach ( $roles as $role => $name ) {
+            $data[] = array(
+                'id'    => $i,
+                'name'  => $name,
+                'value' => $role,
+            );
+            ++$i;
+        }
+
+        return $this->send_response( array(
+            'success' => true,
+            'roles'   => $data,
+        ) );
+    }
 
 	/**
 	 * Handle response for plugin and theme installation and activation.
