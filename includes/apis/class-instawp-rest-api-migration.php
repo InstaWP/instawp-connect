@@ -199,6 +199,14 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 			error_log( esc_html__( 'sso_url_class_not_found: This class NewfoldLabs\WP\Module\Migration\Services\MigrationSSO not found.', 'instawp-connect' ) );
 		}
 
+        // disable bluehost coming soon notice
+        if ( class_exists( 'NewfoldLabs\WP\Module\ComingSoon\Service' ) ) {
+            $service_class = new NewfoldLabs\WP\Module\ComingSoon\Service();
+            $service_class->disable();
+        } else {
+            error_log( esc_html__( 'coming_soon_service_class_not_found: This class NewfoldLabs\WP\Module\ComingSoon\Service not found.', 'instawp-connect' ) );
+        }
+
 		// reset everything and remove connection
 		instawp_reset_running_migration( 'hard', true );
 
