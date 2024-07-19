@@ -89,13 +89,17 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 			$inventory = new Inventory();
 			$site_data = $inventory->fetch();
 
+            unset( $sizes_data['total_size'] );
+            $total_size    = array_sum( array_filter( wp_list_pluck( $sizes_data, 'raw' ) ) );
+            $database_size = ! empty( $sizes_data['database_size']['raw'] ) ? $sizes_data['database_size']['raw'] : 0;
+
 			return array(
 				'wp_version'        => $wp_version,
 				'php_version'       => $php_version,
 				'plugin_version'    => INSTAWP_PLUGIN_VERSION,
-				'total_size'        => $sizes_data['total_size']['raw'],
-				'file_size'         => $sizes_data['total_size']['raw'] - $sizes_data['database_size']['raw'],
-				'db_size'           => $sizes_data['database_size']['raw'],
+				'total_size'        => $total_size,
+				'file_size'         => $total_size - $database_size,
+				'db_size'           => $database_size,
 				'theme'             => $active_theme,
 				'posts'             => $posts,
 				'pages'             => $pages,
