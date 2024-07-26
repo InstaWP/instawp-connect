@@ -528,7 +528,6 @@ class InstaWP_Rest_Api {
 		}
 
 		if ( ! empty( $option ) && ! $this->is_enabled( $option ) ) {
-
 			$message = sprintf( 'Setting is disabled! Please enable %s Option from InstaWP Connect <a href="%s" target="_blank">Remote Management settings</a> page.',
 				$this->get_management_options( $option ),
 				admin_url( 'admin.php?page=instawp&tab=manage' )

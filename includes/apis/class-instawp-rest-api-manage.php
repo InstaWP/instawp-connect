@@ -368,10 +368,18 @@ class InstaWP_Rest_Api_Manage extends InstaWP_Rest_Api {
 			return $this->throw_error( $response );
 		}
 
-		$wp_config_params = $request->get_param( 'wp-config' );
-		$params           = ! is_array( $wp_config_params ) ? array() : $wp_config_params;
-		$wp_config        = new Helpers\WPConfig( $params );
-		$response         = $wp_config->fetch();
+        try {
+            $wp_config_params = $request->get_param( 'wp-config' );
+            $params           = ! is_array( $wp_config_params ) ? array() : $wp_config_params;
+
+            $wp_config = new Helpers\WPConfig( $params );
+            $response  = $wp_config->get();
+        } catch ( \Exception $e ) {
+            $response = [
+                'success' => false,
+                'message' => $e->getMessage(),
+            ];
+        }
 
 		return $this->send_response( $response );
 	}
@@ -392,8 +400,16 @@ class InstaWP_Rest_Api_Manage extends InstaWP_Rest_Api {
 
 		$wp_config_params = $request->get_param( 'wp-config' );
 		$params           = ! is_array( $wp_config_params ) ? array() : $wp_config_params;
-		$wp_config        = new Helpers\WPConfig( $params );
-		$response         = $wp_config->update();
+
+        try {
+            $wp_config = new Helpers\WPConfig( $params );
+            $response  = $wp_config->set();
+        } catch ( \Exception $e ) {
+            $response = [
+                'success' => false,
+                'message' => $e->getMessage(),
+            ];
+        }
 
 		return $this->send_response( $response );
 	}
@@ -414,8 +430,16 @@ class InstaWP_Rest_Api_Manage extends InstaWP_Rest_Api {
 
 		$wp_config_params = $request->get_param( 'wp-config' );
 		$params           = ! is_array( $wp_config_params ) ? array() : $wp_config_params;
-		$wp_config        = new Helpers\WPConfig( $params );
-		$response         = $wp_config->delete();
+
+        try {
+            $wp_config = new Helpers\WPConfig( $params );
+            $response  = $wp_config->delete();
+        } catch ( \Exception $e ) {
+            $response = [
+                'success' => false,
+                'message' => $e->getMessage(),
+            ];
+        }
 
 		return $this->send_response( $response );
 	}
