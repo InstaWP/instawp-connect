@@ -366,7 +366,6 @@ class instaWP {
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-ajax.php';
 		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-setting.php';
 		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-heartbeat.php';
-		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-file-management.php';
 		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-database-management.php';
 		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-tools.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-hooks.php';

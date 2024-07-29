@@ -206,7 +206,6 @@ class InstaWP_Setting {
 
 			case 'qa_tools':
 				echo '<div class="inline-block w-full instawp-qa-tools">';
-				echo '<button type="button" class="instawp-manager" data-type="file">' . esc_html__( 'File Manager', 'instawp-connect' ) . '</button>';
 				echo '<button type="button" class="instawp-manager" data-type="database">' . esc_html__( 'Database Manager', 'instawp-connect' ) . '</button>';
 				echo '<button type="button" class="instawp-manager" data-type="debug_log">' . esc_html__( 'Debug Log', 'instawp-connect' ) . '</button>';
 				echo '</div>';
@@ -537,14 +536,6 @@ class InstaWP_Setting {
 			'desc'       => sprintf( __( 'Update your website\'s remote management settings. To use this feature in the InstaWP dashboard, switch on the beta program from %s section.', 'instawp-connect' ), '<a href="https://app.instawp.io/user/profile" target="_blank">' . __( 'My Accounts', 'instawp-connect' ) . '</a>' ),
 			'grid_class' => 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6',
 			'fields'     => array(
-				array(
-					'id'      => 'instawp_rm_file_manager',
-					'type'    => 'toggle',
-					'title'   => __( 'File Manager', 'instawp-connect' ),
-					'tooltip' => __( 'Enabling this option will allow creation of remote file manager on this website remotely using the REST API.', 'instawp-connect' ),
-					'class'   => 'save-ajax',
-					'default' => 'off',
-				),
 				array(
 					'id'      => 'instawp_rm_database_manager',
 					'type'    => 'toggle',

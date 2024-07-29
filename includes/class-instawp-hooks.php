@@ -177,17 +177,6 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 
 					$admin_bar->add_menu( array(
 						'parent' => 'instawp-tools',
-						'id'     => 'instawp-file-manager',
-						'title'  => __( 'File Manager', 'instawp-connect' ),
-						'href'   => '#',
-						'meta'   => array(
-							'class'  => 'instawp-tools',
-							'target' => 'file',
-						),
-					) );
-
-					$admin_bar->add_menu( array(
-						'parent' => 'instawp-tools',
 						'id'     => 'instawp-database-manager',
 						'title'  => __( 'Database Manager', 'instawp-connect' ),
 						'href'   => '#',

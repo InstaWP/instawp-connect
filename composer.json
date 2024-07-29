@@ -13,7 +13,8 @@
         "php": ">= 5.6",
         "instawp/connect-helpers": "dev-main",
         "phpseclib/phpseclib": "~3.0",
-        "woocommerce/action-scheduler": "^3.7"
+        "woocommerce/action-scheduler": "^3.7",
+        "paragonie/constant_time_encoding": "2.7.0"
     },
     "repositories": [
         {
