@@ -12,6 +12,7 @@ class Inventory {
 
 		$wp_plugins         = get_plugins();
 		$active_plugins     = ( array ) get_option( 'active_plugins', [] );
+		$auto_updates       = ( array ) get_site_option( 'auto_update_plugins', [] );
 		$plugin_update_data = get_site_transient( 'update_plugins' );
 		$plugin_update_data = isset( $plugin_update_data->response ) ? $plugin_update_data->response : [];
 		$plugins            = [];
@@ -25,6 +26,7 @@ class Inventory {
 				'activated'        => in_array( $name, $active_plugins, true ),
 				'update_available' => array_key_exists( $name, $plugin_update_data ),
 				'update_version'   => array_key_exists( $name, $plugin_update_data ) ? $plugin_update_data[ $name ]->new_version : '',
+				'update_enabled'   => in_array( $name, $auto_updates, true ),
 				'icon_url'         => 'https://ps.w.org/' . $slug[0] . '/assets/icon-128x128.png',
 				'data'             => $plugin,
 			];
@@ -49,6 +51,7 @@ class Inventory {
 
 		$wp_themes         = wp_get_themes();
 		$current_theme     = wp_get_theme();
+		$auto_updates      = ( array ) get_site_option( 'auto_update_themes', [] );
 		$theme_update_data = get_site_transient( 'update_themes' );
 		$theme_update_data = isset( $theme_update_data->response ) ? $theme_update_data->response : [];
 		$themes            = [];
@@ -63,6 +66,7 @@ class Inventory {
 				'activated'        => $stylesheet === $current_theme->get_stylesheet(),
 				'update_available' => array_key_exists( $stylesheet, $theme_update_data ),
 				'update_version'   => array_key_exists( $stylesheet, $theme_update_data ) ? $theme_update_data[ $stylesheet ]['new_version'] : '',
+				'update_enabled'   => in_array( $stylesheet, $auto_updates, true ),
 			];
 		}
 
