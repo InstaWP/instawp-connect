@@ -744,7 +744,6 @@ class InstaWP_Rest_Api {
 	protected function get_management_options( $name = '' ) {
 		$options = array(
 			'heartbeat'                => __( 'Heartbeat', 'instawp-connect' ),
-			'file_manager'             => __( 'File Manager', 'instawp-connect' ),
 			'database_manager'         => __( 'Database Manager', 'instawp-connect' ),
 			'install_plugin_theme'     => __( 'Install Plugin / Themes', 'instawp-connect' ),
 			'update_core_plugin_theme' => __( 'Update Core / Plugin / Themes', 'instawp-connect' ),

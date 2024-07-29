@@ -36,10 +36,7 @@ class InstaWP_Ajax {
 
 		InstaWP_Tools::instawp_reset_permalink();
 
-		if ( $type === 'file' && class_exists( 'InstaWP\Connect\Helpers\FileManager' ) ) {
-			$manager = new FileManager();
-			wp_send_json_success( $manager->get() );
-		} elseif ( $type === 'database' && class_exists( 'InstaWP\Connect\Helpers\DatabaseManager' ) ) {
+		if ( $type === 'database' && class_exists( 'InstaWP\Connect\Helpers\DatabaseManager' ) ) {
 			$manager = new DatabaseManager();
 			wp_send_json_success( $manager->get() );
 		} elseif ( $type === 'cache' ) {
