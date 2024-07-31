@@ -117,6 +117,7 @@ class InstaWP_Sync_Parser {
 		$file_type       = wp_check_filetype( $attachment_info['basename'], null );
 		$attachment      = get_post( $attachment_id );
 
+		$attachment_info['post']      = $attachment;
 		$attachment_info['post_id']   = $attachment->ID;
 		$attachment_info['post_name'] = $attachment->post_name;
 		$attachment_info['file_type'] = $file_type['type'];
@@ -232,8 +233,11 @@ class InstaWP_Sync_Parser {
 		}, 9999, 3 );
 
 		foreach ( $meta_data as $meta_key => $values ) {
-			$value = $values[0];
+            if ( in_array( $meta_key, array( '_wp_attachment_metadata', '_wp_attached_file' ) ) ) {
+                continue;
+            }
 
+			$value = $values[0];
 			if ( '_elementor_data' === $meta_key ) {
 				$value = wp_slash( $value );
 			} else {
@@ -428,8 +432,8 @@ class InstaWP_Sync_Parser {
 				if ( ! empty( $media_item['attachment_url'] ) ) {
 					$attachment_id   = self::process_attachment_data( $media_item );
                     $attachment_size = isset( $media_item['size'] ) ? $media_item['size'] : 'full';
-					$search[]        = wp_attachment_is_image( $attachment_id ) ? wp_get_attachment_image_url( $attachment_id, $attachment_size, false ) : wp_get_attachment_url( $attachment_id );
-					$replace[]       = $media_item['attachment_url'];
+					$search[]        = $media_item['attachment_url'];
+					$replace[]       = wp_attachment_is_image( $attachment_id ) ? wp_get_attachment_image_url( $attachment_id, $attachment_size, false ) : wp_get_attachment_url( $attachment_id );
 				}
 			}
 
@@ -488,8 +492,15 @@ class InstaWP_Sync_Parser {
 
         $data['filename'] = $file_name;
 
-        if ( ! empty( $fields['post_meta'] ) ) {
-            $data['post_meta'] = $fields['post_meta'];
+        $fields_to_retain = array(
+            'post',
+            'post_meta',
+        );
+
+        foreach ( $fields_to_retain as $field ) {
+            if ( ! empty( $fields[ $field ] ) ) {
+                $data[ $field ] = $fields[ $field ];
+            }
         }
 
         return $data;
