@@ -222,7 +222,7 @@ class InstaWP_Rest_Api_Content extends InstaWP_Rest_Api {
         $params   = $this->filter_params( $request );
 		$response = array(
             'total' => count_users()['total_users'],
-            'users' => [],
+            'users' => array(),
         );
 		$users    = get_users( $params );
 		foreach ( $users as $user ) {

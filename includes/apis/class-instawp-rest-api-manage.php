@@ -304,14 +304,22 @@ class InstaWP_Rest_Api_Manage extends InstaWP_Rest_Api {
 		foreach ( $params as $key => $param ) {
 			$type  = isset( $param['type'] ) ? $param['type'] : 'plugin';
 			$asset = isset( $param['asset'] ) ? $param['asset'] : '';
-			$state = isset( $param['state'] ) ? $param['state'] : 'disable';
+			$state = isset( $param['state'] ) ? $param['state'] : false;
 
 			if ( 'plugin' === $type ) {
+                if ( ! function_exists( 'get_plugins' ) ) {
+                    require_once ABSPATH . 'wp-admin/includes/plugin.php';
+                }
+
 				$option = 'auto_update_plugins';
 
 				/** This filter is documented in wp-admin/includes/class-wp-plugins-list-table.php */
 				$all_items = apply_filters( 'all_plugins', get_plugins() );
 			} elseif ( 'theme' === $type ) {
+                if ( ! function_exists( 'wp_get_themes' ) ) {
+                    require_once ABSPATH . 'wp-includes/theme.php';
+                }
+
 				$option    = 'auto_update_themes';
 				$all_items = wp_get_themes();
 			}
@@ -334,7 +342,7 @@ class InstaWP_Rest_Api_Manage extends InstaWP_Rest_Api {
 
 			$auto_updates = (array) get_site_option( $option, array() );
 
-			if ( 'disable' === $state ) {
+			if ( false === $state ) {
 				$auto_updates = array_diff( $auto_updates, array( $asset ) );
 			} else {
 				$auto_updates[] = $asset;
@@ -375,10 +383,10 @@ class InstaWP_Rest_Api_Manage extends InstaWP_Rest_Api {
             $wp_config = new Helpers\WPConfig( $params );
             $response  = $wp_config->get();
         } catch ( \Exception $e ) {
-            $response = [
+            $response = array(
                 'success' => false,
                 'message' => $e->getMessage(),
-            ];
+            );
         }
 
 		return $this->send_response( $response );
@@ -405,10 +413,10 @@ class InstaWP_Rest_Api_Manage extends InstaWP_Rest_Api {
             $wp_config = new Helpers\WPConfig( $params );
             $response  = $wp_config->set();
         } catch ( \Exception $e ) {
-            $response = [
+            $response = array(
                 'success' => false,
                 'message' => $e->getMessage(),
-            ];
+            );
         }
 
 		return $this->send_response( $response );
@@ -435,10 +443,10 @@ class InstaWP_Rest_Api_Manage extends InstaWP_Rest_Api {
             $wp_config = new Helpers\WPConfig( $params );
             $response  = $wp_config->delete();
         } catch ( \Exception $e ) {
-            $response = [
+            $response = array(
                 'success' => false,
                 'message' => $e->getMessage(),
-            ];
+            );
         }
 
 		return $this->send_response( $response );

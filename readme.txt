@@ -98,6 +98,9 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 0.1.0.48 =
+- FIX - Removed File Manager due to security concern.
+
 = 0.1.0.47 - 19 July 2024 =
 - NEW - Added Users API.
 - FIX - Added staging in top bar and add notice for local cli migration.
