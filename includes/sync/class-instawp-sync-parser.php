@@ -479,31 +479,19 @@ class InstaWP_Sync_Parser {
         }
         $payload .= '--' . $boundary . '--';
 
+        // Set it back
+        $fields['filename'] = $file_name;
+
         // sync/<connect_id>/upload-attachment
         $response = Curl::do_curl( "sync/{$connect_id}/upload-attachment", $payload, $headers );
         if ( $response['code'] !== 200 || ! $response['success'] ) {
-            $fields['filename'] = $file_name;
-
             return $fields;
         }
 
         $data = $response['data'];
         unset( $data['file'] );
 
-        $data['filename'] = $file_name;
-
-        $fields_to_retain = array(
-            'post',
-            'post_meta',
-        );
-
-        foreach ( $fields_to_retain as $field ) {
-            if ( ! empty( $fields[ $field ] ) ) {
-                $data[ $field ] = $fields[ $field ];
-            }
-        }
-
-        return $data;
+        return array_merge( $fields, $data );
     }
 
     public static function process_attachments( $array_data ) {
