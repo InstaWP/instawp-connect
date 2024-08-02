@@ -100,6 +100,8 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 = 0.1.0.48 =
 - FIX - Removed File Manager due to security concern.
+- FIX - 2 Way Sync for images present in post content.
+- FIX - Added bot checking for temporary login url.
 
 = 0.1.0.47 - 19 July 2024 =
 - NEW - Added Users API.

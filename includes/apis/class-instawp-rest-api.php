@@ -464,10 +464,11 @@ class InstaWP_Rest_Api {
 	 *
 	 * @param WP_REST_Request $request
 	 * @param string $option
+	 * @param boolean $match_key
 	 *
 	 * @return WP_Error|bool
 	 */
-	public function validate_api_request( WP_REST_Request $request, $option = '' ) {
+	public function validate_api_request( WP_REST_Request $request, $option = '', $match_key = false ) {
 		// get authorization header value.
 		$bearer_token = sanitize_key( $request->get_header( 'authorization' ) );
         if ( ! empty( $bearer_token ) ) {
@@ -488,16 +489,28 @@ class InstaWP_Rest_Api {
 		$api_key_exploded = explode( '|', $api_key );
 
 		if ( count( $api_key_exploded ) > 1 ) {
-			$api_key_hash = hash( 'sha256', $api_key_exploded[1] );
-		} else {
-			$api_key_hash = hash( 'sha256', $api_key );
-		}
+            $api_key = $api_key_exploded[1];
+        }
 
-		$bearer_token_hash = trim( $bearer_token );
+        if ( empty( $api_key ) ) {
+            return new WP_Error( 403, esc_html__( 'Empty api key.', 'instawp-connect' ) );
+        }
 
-		if ( empty( $api_key ) || ! hash_equals( $api_key_hash, $bearer_token_hash ) ) {
-			return new WP_Error( 403, esc_html__( 'Invalid bearer token.', 'instawp-connect' ) );
-		}
+        $is_matched = false;
+
+        // match the api key with bearer token
+        if ( $match_key && hash_equals( $api_key, $bearer_token ) ) {
+            $is_matched = true;
+        }
+
+        if ( ! $is_matched ) {
+            $api_key_hash = hash( 'sha256', $api_key );
+
+            // match the api key hash with bearer token
+            if ( ! hash_equals( $api_key_hash, $bearer_token ) ) {
+                return new WP_Error( 403, esc_html__( 'Invalid bearer token.', 'instawp-connect' ) );
+            }
+        }
 
 		if ( ! empty( $option ) && ! $this->is_enabled( $option ) ) {
 			$message = sprintf( 'Setting is disabled! Please enable %s Option from InstaWP Connect <a href="%s" target="_blank">Remote Management settings</a> page.',

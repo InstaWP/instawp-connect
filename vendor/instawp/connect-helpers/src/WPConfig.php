@@ -85,6 +85,7 @@ class WPConfig extends \WPConfigTransformer {
             'add'       => true,
         ];
         $content = file_get_contents( $this->wp_config_path );
+
         if ( ! trim( $content ) ) {
             throw new \Exception( 'Config file is empty.' );
         }
@@ -131,7 +132,11 @@ class WPConfig extends \WPConfigTransformer {
                 $args['raw'] = false;
             }
 
-            $this->update( 'constant', $key, $value, $args );
+            try {
+                $this->update( 'constant', $key, $value, $args );
+            } catch ( \Exception $e ) {
+                throw new \Exception( $e->getMessage() );
+            }
         }
 
         return [ 'success' => true ];
@@ -139,12 +144,17 @@ class WPConfig extends \WPConfigTransformer {
 
     public function delete() {
         $constants = array_filter( $this->config_data );
+
         if ( empty( $constants ) ) {
             throw new \Exception( 'No constants provided!' );
         }
 
         foreach ( $constants as $constant ) {
-            $this->remove( 'constant', $constant );
+            try {
+                $this->remove( 'constant', $constant );
+            } catch ( \Exception $e ) {
+                throw new \Exception( $e->getMessage() );
+            }
         }
 
         return [ 'success' => true ];
