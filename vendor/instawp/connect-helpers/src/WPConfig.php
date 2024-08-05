@@ -23,6 +23,9 @@ class WPConfig extends \WPConfigTransformer {
         'ABSPATH',
         'WP_HOME',
         'WP_SITEURL',
+        'WP_CACHE_KEY_SALT',
+        'COOKIE_DOMAIN',
+        'DOMAIN_CURRENT_SITE',
     ];
 
     public function __construct( array $constants = [], $is_cli = false ) {
