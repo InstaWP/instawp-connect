@@ -135,3 +135,153 @@ function run_instawp() {
 add_filter( 'got_rewrite', '__return_true' );
 
 run_instawp();
+
+
+function instawp_get_folder_checksum( $dir ) {
+	if ( ! is_dir( $dir ) ) {
+		return false;
+	}
+
+	$files = new RecursiveIteratorIterator(
+		new RecursiveDirectoryIterator( $dir, RecursiveDirectoryIterator::SKIP_DOTS ),
+		RecursiveIteratorIterator::LEAVES_ONLY
+	);
+
+	$hash = hash_init( 'md5' );
+
+	foreach ( $files as $file ) {
+		if ( $file->isFile() ) {
+			$filePath     = $file->getPathname();
+			$relativePath = str_replace( $dir, '', $filePath );
+			$fileContent  = file_get_contents( $filePath );
+			hash_update( $hash, $relativePath . $fileContent );
+		}
+	}
+
+	return hash_final( $hash );
+}
+
+function instawp_delete_directory( string $dirPath ): void {
+	if ( ! is_dir( $dirPath ) ) {
+		throw new InvalidArgumentException( "$dirPath must be a directory" );
+	}
+	if ( substr( $dirPath, strlen( $dirPath ) - 1, 1 ) != '/' ) {
+		$dirPath .= '/';
+	}
+	$files = glob( $dirPath . '*', GLOB_MARK );
+	foreach ( $files as $file ) {
+		if ( is_dir( $file ) ) {
+			instawp_delete_directory( $file );
+		} else {
+			unlink( $file );
+		}
+	}
+	rmdir( $dirPath );
+}
+
+function instawp_get_wp_plugin_checksum( $plugin_slug = '' ) {
+
+	$api_url  = "https://api.wordpress.org/plugins/info/1.0/{$plugin_slug}.json";
+	$response = wp_remote_get( $api_url );
+
+	if ( is_wp_error( $response ) ) {
+		return false;
+	}
+
+	$plugin_data   = json_decode( wp_remote_retrieve_body( $response ), true );
+	$download_link = $plugin_data['download_link'] ?? '';
+
+	if ( empty( $download_link ) ) {
+		return false;
+	}
+
+	$temp_dir  = sys_get_temp_dir();
+	$temp_file = $temp_dir . $plugin_slug . '-' . uniqid() . '.zip';
+
+	$ch = curl_init( $download_link );
+	$fp = fopen( $temp_file, 'wb' );
+	curl_setopt( $ch, CURLOPT_FILE, $fp );
+	curl_setopt( $ch, CURLOPT_FOLLOWLOCATION, true );
+	curl_setopt( $ch, CURLOPT_TIMEOUT, 50 );
+
+	if ( curl_exec( $ch ) === false ) {
+		curl_close( $ch );
+		fclose( $fp );
+		@unlink( $temp_file );
+
+		return false;
+	}
+
+	$http_code = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
+	curl_close( $ch );
+	fclose( $fp );
+
+	if ( $http_code !== 200 ) {
+		@unlink( $temp_file );
+
+		return false;
+	}
+
+	if ( ! file_exists( $temp_file ) ) {
+		return false;
+	}
+
+	$zip = new ZipArchive;
+	$res = $zip->open( $temp_file );
+
+	if ( $res === false ) {
+		return false;
+	}
+
+	$zip->extractTo( dirname( $temp_file ) );
+	$zip->close();
+
+	@unlink( $temp_file );
+
+	$plugin_folder   = $temp_dir . '/' . $plugin_slug;
+	$plugin_checksum = instawp_get_folder_checksum( $plugin_folder );
+
+	instawp_delete_directory( $plugin_folder );
+
+	return $plugin_checksum;
+}
+
+
+add_action( 'wp_head', function () {
+	if ( isset( $_GET['debug'] ) ) {
+
+//		if ( ! function_exists( 'get_plugins' ) ) {
+//			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+//		}
+//
+//		$all_plugins = get_plugins();
+//		$all_plugins = array_keys( $all_plugins );
+//		$all_plugins = array_map( function ( $plugin ) {
+//			$plugin_arr = explode( '/', $plugin );
+//
+//			return $plugin_arr[0] ?? '';
+//		}, $all_plugins );
+//
+//		$plugins_cs = [];
+//
+//		foreach ( $all_plugins as $plugin_slug ) {
+//			$plugins_cs[ $plugin_slug ] = array(
+//				'wp_repo' => instawp_get_wp_plugin_checksum( $plugin_slug ),
+//			);
+//		}
+
+		$plugin_slug      = 'classic-editor';
+		$plugin_dir_local = WP_PLUGIN_DIR . '/' . $plugin_slug;
+
+		echo "<pre>";
+		print_r( [
+			instawp_get_wp_plugin_checksum( $plugin_slug ),
+			instawp_get_folder_checksum( $plugin_dir_local ),
+		] );
+		echo "</pre>";
+
+		die();
+	}
+}, 0 );
+
+

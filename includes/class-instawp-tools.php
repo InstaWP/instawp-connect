@@ -139,6 +139,8 @@ class InstaWP_Tools {
 
 	public static function generate_serve_file_response( $migrate_key, $api_signature, $migrate_settings = array() ) {
 
+        global $table_prefix;
+
 		// Process migration settings like active plugins/themes only etc
 		$migrate_settings       = is_array( $migrate_settings ) ? $migrate_settings : array();
 		$migrate_settings       = InstaWP_Tools::get_migrate_settings( array(), $migrate_settings );
@@ -149,6 +151,7 @@ class InstaWP_Tools {
 			'db_username'      => DB_USER,
 			'db_password'      => DB_PASSWORD,
 			'db_name'          => DB_NAME,
+			'table_prefix'     => $table_prefix,
 			'site_url'         => site_url(),
 		);
 		$options_data_str       = wp_json_encode( $options_data );
