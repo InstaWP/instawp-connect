@@ -57,10 +57,17 @@ class InstaWP_Rest_Api_Manage extends InstaWP_Rest_Api {
 		) );
 
 		register_rest_route( $this->namespace . '/' . $this->version_2 . '/manage', '/auto-update', array(
-			'methods'             => 'POST',
-			'callback'            => array( $this, 'auto_update' ),
-			'permission_callback' => '__return_true',
-		) );
+            array(
+                'methods'             => 'GET',
+                'callback'            => array( $this, 'get_auto_update' ),
+                'permission_callback' => '__return_true',
+            ),
+            array(
+                'methods'             => 'POST',
+                'callback'            => array( $this, 'set_auto_update' ),
+                'permission_callback' => '__return_true',
+            ),
+        ) );
 
 		register_rest_route( $this->namespace . '/' . $this->version_2 . '/manage', '/configuration', array(
 			array(
@@ -96,12 +103,6 @@ class InstaWP_Rest_Api_Manage extends InstaWP_Rest_Api {
 				'callback'            => array( $this, 'delete_user' ),
 				'permission_callback' => '__return_true',
 			),
-		) );
-
-		register_rest_route( $this->namespace . '/' . $this->version_2 . '/manage', '/file-manager', array(
-			'methods'             => 'POST',
-			'callback'            => array( $this, 'file_manager' ),
-			'permission_callback' => '__return_true',
 		) );
 
 		register_rest_route( $this->namespace . '/' . $this->version_2 . '/manage', '/database-manager', array(
@@ -284,6 +285,36 @@ class InstaWP_Rest_Api_Manage extends InstaWP_Rest_Api {
 		return $this->send_response( $response );
 	}
 
+    /**
+     * Handle response to retrieve the defined constant values.
+     *
+     * @param WP_REST_Request $request
+     *
+     * @return WP_REST_Response
+     */
+    public function get_auto_update( WP_REST_Request $request ) {
+
+        $response = $this->validate_api_request( $request );
+        if ( is_wp_error( $response ) ) {
+            return $this->throw_error( $response );
+        }
+
+        try {
+            $wp_config = new Helpers\WPConfig( array(
+                'AUTOMATIC_UPDATER_DISABLED',
+                'WP_AUTO_UPDATE_CORE',
+            ) );
+            $response  = $wp_config->get();
+        } catch ( \Exception $e ) {
+            $response = array(
+                'success' => false,
+                'message' => $e->getMessage(),
+            );
+        }
+
+        return $this->send_response( $response );
+    }
+
 	/**
 	 * Handle response for toggle plugin and theme auto update.
 	 *
@@ -291,65 +322,93 @@ class InstaWP_Rest_Api_Manage extends InstaWP_Rest_Api {
 	 *
 	 * @return WP_REST_Response
 	 */
-	public function auto_update( WP_REST_Request $request ) {
+	public function set_auto_update( WP_REST_Request $request ) {
 
-		$response = $this->validate_api_request( $request, 'update_core_plugin_theme' );
+		$response = $this->validate_api_request( $request );
 		if ( is_wp_error( $response ) ) {
 			return $this->throw_error( $response );
 		}
 
-		$response = array();
-		$params   = $this->filter_params( $request );
+		$response     = array();
+		$wp_config    = $request->get_param( 'wp-config' );
+		$plugin_theme = $request->get_param( 'plugin-theme' );
 
-		foreach ( $params as $key => $param ) {
-			$type  = isset( $param['type'] ) ? $param['type'] : 'plugin';
-			$asset = isset( $param['asset'] ) ? $param['asset'] : '';
-			$state = isset( $param['state'] ) ? $param['state'] : 'disable';
+        if ( ! empty( $wp_config ) ) {
+            try {
+                $wp_config     = new Helpers\WPConfig( array(
+                    'AUTOMATIC_UPDATER_DISABLED' => ! empty( $wp_config['updater_disabled'] ) ? $wp_config['updater_disabled'] : false,
+                    'WP_AUTO_UPDATE_CORE'        => ! empty( $wp_config['auto_update_core'] ) ? $wp_config['auto_update_core'] : false,
+                ) );
+                $response['wp-config'] = $wp_config->set();
 
-			if ( 'plugin' === $type ) {
-				$option = 'auto_update_plugins';
+                wp_cache_flush();
+            } catch ( \Exception $e ) {
+                $response['wp-config'] = array(
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                );
+            }
+        }
 
-				/** This filter is documented in wp-admin/includes/class-wp-plugins-list-table.php */
-				$all_items = apply_filters( 'all_plugins', get_plugins() );
-			} elseif ( 'theme' === $type ) {
-				$option    = 'auto_update_themes';
-				$all_items = wp_get_themes();
-			}
+        if ( ! empty( $plugin_theme ) ) {
+		    foreach ( $plugin_theme as $key => $param ) {
+                $type  = isset( $param['type'] ) ? $param['type'] : 'plugin';
+                $asset = isset( $param['asset'] ) ? $param['asset'] : '';
+                $state = isset( $param['state'] ) ? $param['state'] : false;
 
-			if ( ! isset( $option ) || ! isset( $all_items ) ) {
-				$response[ $key ] = array(
-					'success' => false,
-					'message' => __( 'Invalid data. Unknown type.', 'instawp-connect' ),
-				);
-				continue;
-			}
+                if ( 'plugin' === $type ) {
+                    if ( ! function_exists( 'get_plugins' ) ) {
+                        require_once ABSPATH . 'wp-admin/includes/plugin.php';
+                    }
 
-			if ( ! array_key_exists( $asset, $all_items ) ) {
-				$response[ $key ] = array(
-					'success' => false,
-					'message' => __( 'Invalid data. The item does not exist.', 'instawp-connect' ),
-				);
-				continue;
-			}
+                    $option = 'auto_update_plugins';
 
-			$auto_updates = (array) get_site_option( $option, array() );
+                    /** This filter is documented in wp-admin/includes/class-wp-plugins-list-table.php */
+                    $all_items = apply_filters( 'all_plugins', get_plugins() );
+                } elseif ( 'theme' === $type ) {
+                    if ( ! function_exists( 'wp_get_themes' ) ) {
+                        require_once ABSPATH . 'wp-includes/theme.php';
+                    }
 
-			if ( 'disable' === $state ) {
-				$auto_updates = array_diff( $auto_updates, array( $asset ) );
-			} else {
-				$auto_updates[] = $asset;
-				$auto_updates   = array_unique( $auto_updates );
-			}
+                    $option    = 'auto_update_themes';
+                    $all_items = wp_get_themes();
+                }
 
-			// Remove items that have been deleted since the site option was last updated.
-			$auto_updates = array_intersect( $auto_updates, array_keys( $all_items ) );
+                if ( ! isset( $option ) || ! isset( $all_items ) ) {
+                    $response['plugin-theme'][ $key ] = array(
+                        'success' => false,
+                        'message' => __( 'Invalid data. Unknown type.', 'instawp-connect' ),
+                    );
+                    continue;
+                }
 
-			update_site_option( $option, $auto_updates );
+                if ( ! array_key_exists( $asset, $all_items ) ) {
+                    $response['plugin-theme'][ $key ] = array(
+                        'success' => false,
+                        'message' => __( 'Invalid data. The item does not exist.', 'instawp-connect' ),
+                    );
+                    continue;
+                }
 
-			$response[ $key ] = array_merge( array(
-				'success' => true,
-			), $param );
-		}
+                $auto_updates = ( array ) get_site_option( $option, array() );
+
+                if ( false === $state ) {
+                    $auto_updates = array_diff( $auto_updates, array( $asset ) );
+                } else {
+                    $auto_updates[] = $asset;
+                    $auto_updates   = array_unique( $auto_updates );
+                }
+
+                // Remove items that have been deleted since the site option was last updated.
+                $auto_updates = array_intersect( $auto_updates, array_keys( $all_items ) );
+
+                update_site_option( $option, $auto_updates );
+
+                $response['plugin-theme'][ $key ] = array_merge( array(
+                    'success' => true,
+                ), $param );
+            }
+        }
 
 		return $this->send_response( $response );
 	}
@@ -375,10 +434,10 @@ class InstaWP_Rest_Api_Manage extends InstaWP_Rest_Api {
             $wp_config = new Helpers\WPConfig( $params );
             $response  = $wp_config->get();
         } catch ( \Exception $e ) {
-            $response = [
+            $response = array(
                 'success' => false,
                 'message' => $e->getMessage(),
-            ];
+            );
         }
 
 		return $this->send_response( $response );
@@ -404,11 +463,13 @@ class InstaWP_Rest_Api_Manage extends InstaWP_Rest_Api {
         try {
             $wp_config = new Helpers\WPConfig( $params );
             $response  = $wp_config->set();
+
+            wp_cache_flush();
         } catch ( \Exception $e ) {
-            $response = [
+            $response = array(
                 'success' => false,
                 'message' => $e->getMessage(),
-            ];
+            );
         }
 
 		return $this->send_response( $response );
@@ -434,11 +495,13 @@ class InstaWP_Rest_Api_Manage extends InstaWP_Rest_Api {
         try {
             $wp_config = new Helpers\WPConfig( $params );
             $response  = $wp_config->delete();
+
+            wp_cache_flush();
         } catch ( \Exception $e ) {
-            $response = [
+            $response = array(
                 'success' => false,
                 'message' => $e->getMessage(),
-            ];
+            );
         }
 
 		return $this->send_response( $response );
@@ -558,27 +621,6 @@ class InstaWP_Rest_Api_Manage extends InstaWP_Rest_Api {
 		) );
 	}
 
-
-	/**
-	 * Handle file manager system.
-	 *
-	 * @param WP_REST_Request $request
-	 *
-	 * @return WP_REST_Response
-	 */
-	public function file_manager( WP_REST_Request $request ) {
-		$response = $this->validate_api_request( $request, 'file_manager' );
-		if ( is_wp_error( $response ) ) {
-			return $this->throw_error( $response );
-		}
-
-		InstaWP_Tools::instawp_reset_permalink();
-
-		$file_manager = new Helpers\FileManager();
-		$response     = $file_manager->get();
-
-		return $this->send_response( $response );
-	}
 
 	/**
 	 * Handle database manager system.

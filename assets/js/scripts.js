@@ -23,6 +23,23 @@
         return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`
     }
 
+    let blinkElement = (selector, times, interval) => {
+        let blinkCount = 0;
+        let blinkInterval = setInterval(function () {
+            $(selector).toggleClass('bg-yellow-100');
+            blinkCount++;
+            if (blinkCount >= times * 2) {
+                clearInterval(blinkInterval);
+                $(selector).removeClass('bg-yellow-100');
+            }
+        }, interval);
+    }
+
+    let getQueryParameter = (name) => {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get(name);
+    }
+
     let getCurrentDateTime = () => {
         const now = new Date();
 
@@ -622,6 +639,11 @@
         if (create_container.hasClass('loading')) {
             el_instawp_screen.val(5).trigger('change');
             create_container.attr('interval-id', setInterval(instawp_migrate_progress, 3000));
+        }
+
+        const fieldValue = getQueryParameter('field');
+        if (fieldValue) {
+            blinkElement('.instawp-' + fieldValue + '-field', 3, 250);
         }
 
         $(document).mousedown(function (event) {

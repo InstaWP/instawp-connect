@@ -633,6 +633,8 @@ class InstaWP_Ajax {
 		}
 
 		Option::update_option( $option_name, $option_value );
+        wp_cache_flush();
+
 		wp_send_json_success();
 	}
 

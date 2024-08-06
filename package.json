@@ -5,7 +5,7 @@
     "author": "instawp",
     "license": "ISC",
     "dependencies": {
-        "gulp-cli": "^2.3.0"
+        "gulp-cli": "^3.0.0"
     },
     "devDependencies": {
         "autoprefixer": "^10.4.16",

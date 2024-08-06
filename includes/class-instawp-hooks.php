@@ -85,7 +85,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			$url_args    = array_map( 'sanitize_text_field', $_GET );
 			$login_token = Helper::get_args_option( 'iwp-temp-login', $url_args );
 
-			if ( empty( $login_token ) ) {
+			if ( empty( $login_token ) || instawp_is_bot_request() ) {
 				return;
 			}
 
