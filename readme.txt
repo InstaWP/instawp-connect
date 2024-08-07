@@ -98,10 +98,12 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
-= 0.1.0.48 - 7 Aug 2024 =
+= 0.1.0.48 - 7 August 2024 =
+- NEW - Auto Updates endpoints.
 - FIX - Removed File Manager due to security concern.
 - FIX - 2 Way Sync for images present in post content.
 - FIX - Added bot checking for temporary login url.
+- FIX - Changed Sites endpoint.
 
 = 0.1.0.47 - 19 July 2024 =
 - NEW - Added Users API.
