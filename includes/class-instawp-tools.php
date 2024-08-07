@@ -939,6 +939,7 @@ include $file_path;';
 	}
 
 	public static function create_insta_site() {
+        $connect_id = instawp_get_connect_id();
 
 		// Creating new blank site
 		$sites_args        = array(
@@ -946,7 +947,7 @@ include $file_path;';
 			'php_version' => '7.4',
 			'is_reserved' => false,
 		);
-		$sites_res         = Curl::do_curl( 'sites', $sites_args );
+		$sites_res         = Curl::do_curl( "connects/{$connect_id}/sites/create-staging", $sites_args );
 		$sites_res_status  = (bool) Helper::get_args_option( 'success', $sites_res, true );
 		$sites_res_message = Helper::get_args_option( 'message', $sites_res, true );
 
@@ -960,7 +961,7 @@ include $file_path;';
 
 		if ( ! empty( $sites_task_id ) ) {
 			while ( true ) {
-				$status_res = Curl::do_curl( "tasks/{$sites_task_id}/status", array(), array(), 'GET' );
+				$status_res = Curl::do_curl( "connects/{$connect_id}/tasks/{$sites_task_id}/status", array(), array(), 'GET' );
 
 				if ( ! Helper::get_args_option( 'success', $status_res, true ) ) {
 					continue;
@@ -985,9 +986,10 @@ include $file_path;';
 	}
 
 	public static function cli_upload_using_sftp( $site_id, $file_path, $db_path ) {
+        $connect_id = instawp_get_connect_id();
 
 		// Enabling SFTP
-		$sftp_enable_res = Curl::do_curl( "sites/{$site_id}/update-sftp-status", array( 'status' => 1 ) );
+		$sftp_enable_res = Curl::do_curl( "connects/{$connect_id}/sites/{$site_id}/update-sftp-status", array( 'status' => 1 ) );
 
 		if ( ! Helper::get_args_option( 'success', $sftp_enable_res, true ) ) {
 			return new WP_Error( 'sftp_enable_failed', Helper::get_args_option( 'message', $sftp_enable_res ) );
@@ -997,7 +999,7 @@ include $file_path;';
 
 
 		// Getting SFTP details of $site_id
-		$sftp_details_res = Curl::do_curl( "sites/{$site_id}/sftp-details", array(), array(), 'GET' );
+		$sftp_details_res = Curl::do_curl( "connects/{$connect_id}/sites/{$site_id}/sftp-details", array(), array(), 'GET' );
 
 		if ( ! Helper::get_args_option( 'success', $sftp_details_res, true ) ) {
 			return new WP_Error( 'sftp_enable_failed', Helper::get_args_option( 'message', $sftp_details_res ) );
@@ -1044,13 +1046,13 @@ include $file_path;';
 	}
 
 	public static function cli_restore_website( $site_id, $file_path, $db_path ) {
-
+        $connect_id   = instawp_get_connect_id();
 		$restore_args = array(
 			'file_bkp'      => basename( $file_path ),
 			'db_bkp'        => basename( $db_path ),
 			'source_domain' => str_replace( array( 'https://', 'http://' ), '', site_url() ),
 		);
-		$restore_res  = Curl::do_curl( "sites/{$site_id}/restore-raw", $restore_args, array(), 'PUT' );
+		$restore_res  = Curl::do_curl( "connects/{$connect_id}/sites/{$site_id}/restore-raw", $restore_args, array(), 'PUT' );
 
 		if ( ! Helper::get_args_option( 'success', $restore_res, true ) ) {
 			return new WP_Error( 'restore_raw_api_failed', Helper::get_args_option( 'message', $restore_res, true ) );
@@ -1063,7 +1065,7 @@ include $file_path;';
 
 		while ( true ) {
 
-			$status_res = Curl::do_curl( "tasks/{$restore_task_id}/status", array(), array(), 'GET' );
+			$status_res = Curl::do_curl( "connects/{$connect_id}/tasks/{$restore_task_id}/status", array(), array(), 'GET' );
 
 			if ( ! Helper::get_args_option( 'success', $status_res, true ) ) {
 				continue;
