@@ -5,7 +5,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2024-08-02 11:25+0000\n"
+"POT-Creation-Date: 2024-08-08 10:08+0000\n"
 "X-Poedit-Basepath: ..\n"
 "X-Poedit-KeywordsList: __;_e;_ex:1,2c;_n:1,2;_n_noop:1,2;_nx:1,2,4c;_nx_noop:1,2,3c;_x:1,2c;esc_attr__;esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c\n"
 "X-Poedit-SearchPath-0: .\n"
@@ -41,27 +41,27 @@ msgstr ""
 msgid "(no title)"
 msgstr ""
 
-#: includes/apis/class-instawp-rest-api-manage.php:386
+#: includes/apis/class-instawp-rest-api-manage.php:380
 msgid "Invalid data. Unknown type."
 msgstr ""
 
-#: includes/apis/class-instawp-rest-api-manage.php:394
+#: includes/apis/class-instawp-rest-api-manage.php:388
 msgid "Invalid data. The item does not exist."
 msgstr ""
 
-#: includes/apis/class-instawp-rest-api-manage.php:760
+#: includes/apis/class-instawp-rest-api-manage.php:733
 msgid "Setting does not exist."
 msgstr ""
 
-#: includes/apis/class-instawp-rest-api-manage.php:743
+#: includes/apis/class-instawp-rest-api-manage.php:716
 msgid "Success!"
 msgstr ""
 
-#: includes/apis/class-instawp-rest-api-manage.php:752
+#: includes/apis/class-instawp-rest-api-manage.php:725
 msgid "You can not enable this setting through API."
 msgstr ""
 
-#: includes/apis/class-instawp-rest-api-manage.php:749
+#: includes/apis/class-instawp-rest-api-manage.php:722
 msgid "Setting is already disabled."
 msgstr ""
 
@@ -613,75 +613,75 @@ msgstr ""
 msgid "Invalid Migration ID"
 msgstr ""
 
-#: includes/class-instawp-tools.php:526
+#: includes/class-instawp-tools.php:529
 msgid "Root directory for this WordPress installation could not find."
 msgstr ""
 
-#: includes/class-instawp-tools.php:544
+#: includes/class-instawp-tools.php:547
 msgid "Tracking database could not found."
 msgstr ""
 
-#: includes/class-instawp-tools.php:554
+#: includes/class-instawp-tools.php:557
 msgid "API Signature and others data could not set properly"
 msgstr ""
 
-#: includes/class-instawp-tools.php:563
+#: includes/class-instawp-tools.php:566
 msgid "Could not create the forwarded file."
 msgstr ""
 
-#: includes/class-instawp-tools.php:567
+#: includes/class-instawp-tools.php:570
 msgid "InstaWP could not access the forwarded file due to security issue."
 msgstr ""
 
-#: includes/class-instawp-tools.php:576
+#: includes/class-instawp-tools.php:579
 msgid "InstaWP could not access or read required files from your WordPress directory due to file permission issue."
 msgstr ""
 
-#: includes/class-instawp-tools.php:578
+#: includes/class-instawp-tools.php:581
 msgid "Learn more."
 msgstr ""
 
-#: includes/class-instawp-tools.php:743
+#: includes/class-instawp-tools.php:746
 msgid "Launch %s"
 msgstr ""
 
-#: includes/class-instawp-tools.php:831
+#: includes/class-instawp-tools.php:834
 msgid "Please create staging sites first."
 msgstr ""
 
-#: includes/class-instawp-tools.php:832
+#: includes/class-instawp-tools.php:835
 msgid "Skip"
 msgstr ""
 
-#: includes/class-instawp-tools.php:833
+#: includes/class-instawp-tools.php:836
 msgid "Do you really want to disconnect the plugin? It will completely remove the existing staging sites from the plugin."
 msgstr ""
 
-#: includes/class-instawp-tools.php:834
+#: includes/class-instawp-tools.php:837
 msgid "Do you still want to disconnect the plugin?"
 msgstr ""
 
-#: includes/class-instawp-tools.php:882
+#: includes/class-instawp-tools.php:885
 msgid "Zip archive is not opening."
 msgstr ""
 
-#: includes/class-instawp-tools.php:935
+#: includes/class-instawp-tools.php:938
 msgid "No compression method find."
 msgstr ""
 
-#: includes/class-instawp-tools.php:978
+#: includes/class-instawp-tools.php:982
 msgid "Site ID not found in site create response."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1016
+#: includes/class-instawp-tools.php:1021
 msgid "SFTP login failed."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1027
+#: includes/class-instawp-tools.php:1032
 msgid "SFTP upload failed for files."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1035
+#: includes/class-instawp-tools.php:1040
 msgid "SFTP upload failed for database."
 msgstr ""
 
@@ -701,49 +701,49 @@ msgstr ""
 msgid "Login information for the given username"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-ajax.php:316
+#: includes/sync/class-instawp-sync-ajax.php:312
 msgid "%1$u %2$s %3$s"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-ajax.php:304
+#: includes/sync/class-instawp-sync-ajax.php:300
 msgid "%1$u %2$s"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-ajax.php:310
+#: includes/sync/class-instawp-sync-ajax.php:306
 msgid "Show more"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-ajax.php:330
+#: includes/sync/class-instawp-sync-ajax.php:326
 msgid "Waiting for Sync to Start (%d event)"
 msgid_plural "Waiting for Sync to Start (%d events)"
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/sync/class-instawp-sync-ajax.php:338
+#: includes/sync/class-instawp-sync-ajax.php:334
 msgid "Events loaded"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-ajax.php:338, includes/sync/class-instawp-sync-ajax.php:405
+#: includes/sync/class-instawp-sync-ajax.php:334, includes/sync/class-instawp-sync-ajax.php:401
 msgid "No pending events found!"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-ajax.php:401
+#: includes/sync/class-instawp-sync-ajax.php:397
 msgid "You have reached your sync limit. Remaining quota %1$s out of %2$s."
 msgstr ""
 
-#: includes/sync/class-instawp-sync-ajax.php:398
+#: includes/sync/class-instawp-sync-ajax.php:394
 msgid " Completed (0 out of %d events)"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-ajax.php:454
+#: includes/sync/class-instawp-sync-ajax.php:450
 msgid "« Previous"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-ajax.php:455
+#: includes/sync/class-instawp-sync-ajax.php:451
 msgid "Next »"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-apis.php:59
+#: includes/sync/class-instawp-sync-apis.php:344
 msgid "Invalid data"
 msgstr ""
 
