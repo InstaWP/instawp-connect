@@ -55,10 +55,16 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
                 'permission_callback' => '__return_true',
             )
         ) );
+
+        register_rest_route( $this->namespace . '/' . $this->version, '/sync/summary', array(
+            'methods'             => 'GET',
+            'callback'            => array( $this, 'events_summary' ),
+            'permission_callback' => '__return_true',
+        ) );
 	}
 
     /**
-     * Handle response for update user
+     * Handle response for 2 ways sync prepare events
      *
      * @param WP_REST_Request $request
      *
@@ -139,7 +145,7 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
     }
 
     /**
-     * Handle response for update user
+     * Handle response for 2 ways sync process events
      *
      * @param WP_REST_Request $request
      *
@@ -281,7 +287,7 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
     }
 
     /**
-     * Handle response for update user
+     * Handle response for 2 ways sync delete events
      *
      * @param WP_REST_Request $request
      *
@@ -320,6 +326,61 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
             'success' => true,
             'message' => 'Events deleted successfully',
         ] );
+    }
+
+    /**
+     * Handle response for 2 way sync events summary
+     *
+     * @param WP_REST_Request $request
+     *
+     * @return WP_REST_Response
+     */
+    public function events_summary( WP_REST_Request $request ) {
+
+        $response = $this->validate_api_request( $request );
+        if ( is_wp_error( $response ) ) {
+            return $this->throw_error( $response );
+        }
+
+        global $wpdb;
+
+        $params     = $request->get_params();
+        $connect_id = ! empty( $params['connect_id'] ) ? intval( $params['connect_id'] ) : 0;
+
+        $staging_site = instawp_get_site_detail_by_connect_id( $connect_id, 'data' );
+        $site_created = '1970-01-01 00:00:00';
+
+        if ( ! empty( $staging_site ) && isset( $staging_site['created_at'] ) ) {
+            $site_created = date( 'Y-m-d h:i:s', strtotime( $staging_site['created_at'] ) );
+        }
+
+        $events = $wpdb->get_results(
+            $wpdb->prepare( "SELECT * FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE `date` >= %s ORDER BY `date` ASC, `id` ASC", $site_created ) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+        );
+        $events = array_map( function( $event ) use ( $connect_id ) {
+            $event_row = InstaWP_Sync_DB::get_sync_event_by_id( $connect_id, $event->event_hash );
+
+            if ( $event_row ) {
+                $event->status         = ! empty( $event_row->status ) ? $event_row->status : 'pending';
+                $event->synced_date    = ! empty( $event_row->date ) ? $event_row->date : $event->date;
+                $event->synced_message = ! empty( $event_row->synced_message ) ? $event_row->synced_message : $event->synced_message;
+
+                if ( $event->status === 'completed' ) {
+                    $event->log = ! empty( $event_row->log ) ? $event_row->log : '';
+                }
+            }
+
+            return $event;
+        }, $events );
+        $events = $this->sync->filter_events( $events );
+        $events = array_filter( $events, function ( $event ) {
+            return 'pending' === $event->status;
+        } );
+
+        return $this->send_response( array(
+            'status' => get_option( 'instawp_is_event_syncing', 0 ) ? 'on' : 'off',
+            'pending_events' => count( $events ),
+        ) );
     }
 
 	/**
