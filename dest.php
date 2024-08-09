@@ -328,7 +328,7 @@ if ( $file_type === 'db' ) {
 
 	if ( ! isset( $_SERVER['HTTP_X_IWP_TABLE_PREFIX'] ) || empty( $table_prefix = $_SERVER['HTTP_X_IWP_TABLE_PREFIX'] ) ) {
 		header( 'x-iwp-status: false' );
-		header( 'x-iwp-message: Empty table prefix.' );
+		header( 'x-iwp-message: Empty table prefix. Headers are: ' . json_encode( $_SERVER ) );
 		die();
 	}
 
