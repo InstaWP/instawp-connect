@@ -135,19 +135,31 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 			if ( isset( $args[0] ) && $args[0] === 'set-waas-mode' ) {
 
 				if ( isset( $args[1] ) ) {
-					$wp_config = new WPConfig( array(
-						'INSTAWP_CONNECT_MODE'     => 'WAAS_GO_LIVE',
-						'INSTAWP_CONNECT_WAAS_URL' => $args[1],
-					) );
-					$wp_config->update();
+					try {
+						$wp_config = new WPConfig( array(
+							'INSTAWP_CONNECT_MODE'     => 'WAAS_GO_LIVE',
+							'INSTAWP_CONNECT_WAAS_URL' => $args[1],
+						) );
+						$wp_config->set();
+					} catch ( \Exception $e ) {
+						WP_CLI::error( $e->getMessage() );
+
+						return false;
+					}
 				}
 
 				return true;
 			}
 
 			if ( isset( $args[0] ) && $args[0] === 'reset-waas-mode' ) {
-				$wp_config = new WPConfig( array( 'INSTAWP_CONNECT_MODE', 'INSTAWP_CONNECT_WAAS_URL' ) );
-				$wp_config->delete();
+				try {
+					$wp_config = new WPConfig( array( 'INSTAWP_CONNECT_MODE', 'INSTAWP_CONNECT_WAAS_URL' ) );
+					$wp_config->delete();
+				} catch ( \Exception $e ) {
+					WP_CLI::error( $e->getMessage() );
+
+					return false;
+				}
 
 				return true;
 			}
@@ -167,8 +179,14 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 
 					if ( isset( $payload['mode'] ) ) {
 						if ( isset( $payload['mode']['name'] ) ) {
-							$wp_config = new WPConfig( array( 'INSTAWP_CONNECT_MODE' => $payload['mode']['name'] ) );
-							$wp_config->update();
+							try {
+								$wp_config = new WPConfig( array( 'INSTAWP_CONNECT_MODE' => $payload['mode']['name'] ) );
+								$wp_config->set();
+							} catch ( \Exception $e ) {
+								WP_CLI::error( $e->getMessage() );
+
+								return false;
+							}
 						}
 					}
 				}

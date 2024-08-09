@@ -5,7 +5,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2024-08-08 11:58+0000\n"
+"POT-Creation-Date: 2024-08-09 11:18+0000\n"
 "X-Poedit-Basepath: ..\n"
 "X-Poedit-KeywordsList: __;_e;_ex:1,2c;_n:1,2;_n_noop:1,2;_nx:1,2,4c;_nx_noop:1,2,3c;_x:1,2c;esc_attr__;esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c\n"
 "X-Poedit-SearchPath-0: .\n"
@@ -13,11 +13,11 @@ msgstr ""
 "X-Poedit-SourceCharset: UTF-8\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: admin/class-instawp-admin.php:66, includes/class-instawp-hooks.php:248, includes/class-instawp-setting.php:53, includes/class-instawp-setting.php:285
+#: admin/class-instawp-admin.php:66, includes/class-instawp-hooks.php:250, includes/class-instawp-setting.php:53, includes/class-instawp-setting.php:285
 msgid "Settings"
 msgstr ""
 
-#: admin/class-instawp-admin.php:66, includes/class-instawp-hooks.php:201, includes/class-instawp-setting.php:36
+#: admin/class-instawp-admin.php:66, includes/class-instawp-hooks.php:203, includes/class-instawp-setting.php:36
 msgid "Create Staging"
 msgstr ""
 
@@ -161,7 +161,7 @@ msgstr ""
 msgid "Heartbeat"
 msgstr ""
 
-#: includes/apis/class-instawp-rest-api.php:732, includes/class-instawp-hooks.php:181, includes/class-instawp-setting.php:209, includes/class-instawp-setting.php:542
+#: includes/apis/class-instawp-rest-api.php:732, includes/class-instawp-hooks.php:183, includes/class-instawp-setting.php:209, includes/class-instawp-setting.php:542
 msgid "Database Manager"
 msgstr ""
 
@@ -237,19 +237,19 @@ msgstr ""
 msgid "Plugin reset successfully."
 msgstr ""
 
-#: includes/class-instawp-cli.php:222
+#: includes/class-instawp-cli.php:240
 msgid "Failed: Could not create performance summary."
 msgstr ""
 
-#: includes/class-instawp-cli.php:227
+#: includes/class-instawp-cli.php:245
 msgid "Performance Summary of this website is given below:"
 msgstr ""
 
-#: includes/class-instawp-cli.php:244
+#: includes/class-instawp-cli.php:262
 msgid "Failed: Could not calculate slow items."
 msgstr ""
 
-#: includes/class-instawp-cli.php:263
+#: includes/class-instawp-cli.php:281
 msgid "Slow items of this website are given below: (Top is the slowest one)"
 msgstr ""
 
@@ -269,43 +269,43 @@ msgstr ""
 msgid "InstaWP Database Manager"
 msgstr ""
 
-#: includes/class-instawp-hooks.php:130
+#: includes/class-instawp-hooks.php:132
 msgid "Staging Site"
 msgstr ""
 
-#: includes/class-instawp-hooks.php:163
+#: includes/class-instawp-hooks.php:165
 msgid "Tools"
 msgstr ""
 
-#: includes/class-instawp-hooks.php:170
+#: includes/class-instawp-hooks.php:172
 msgid "Purge All Cache"
 msgstr ""
 
-#: includes/class-instawp-hooks.php:193
+#: includes/class-instawp-hooks.php:195
 msgid "Shortcuts"
 msgstr ""
 
-#: includes/class-instawp-hooks.php:213, includes/class-instawp-setting.php:40
+#: includes/class-instawp-hooks.php:215, includes/class-instawp-setting.php:40
 msgid "Staging Sites"
 msgstr ""
 
-#: includes/class-instawp-hooks.php:225, includes/class-instawp-setting.php:44
+#: includes/class-instawp-hooks.php:227, includes/class-instawp-setting.php:44
 msgid "Manage"
 msgstr ""
 
-#: includes/class-instawp-hooks.php:237, includes/class-instawp-setting.php:49
+#: includes/class-instawp-hooks.php:239, includes/class-instawp-setting.php:49
 msgid "Sync (Beta)"
 msgstr ""
 
-#: includes/class-instawp-hooks.php:263
+#: includes/class-instawp-hooks.php:265
 msgid "Go to InstaWP ➝"
 msgstr ""
 
-#: includes/class-instawp-hooks.php:275
+#: includes/class-instawp-hooks.php:277
 msgid "Contact Support"
 msgstr ""
 
-#: includes/class-instawp-hooks.php:348
+#: includes/class-instawp-hooks.php:350
 msgid "Cache cleared for %s."
 msgstr ""
 
