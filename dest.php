@@ -12,12 +12,6 @@ if ( ! isset( $_SERVER['HTTP_X_IWP_MIGRATE_KEY'] ) || empty( $migrate_key = $_SE
 	die();
 }
 
-if ( ! isset( $_SERVER['HTTP_X_IWP_TABLE_PREFIX'] ) || empty( $table_prefix = $_SERVER['HTTP_X_IWP_TABLE_PREFIX'] ) ) {
-	header( 'x-iwp-status: false' );
-	header( 'x-iwp-message: Empty table prefix.' );
-	die();
-}
-
 if ( ! function_exists( 'get_wp_root_directory' ) ) {
 	function get_wp_root_directory( $find_with_files = 'wp-load.php', $find_with_dir = '' ) {
 		$is_find_root_dir = true;
@@ -329,6 +323,12 @@ if ( $file_type === 'db' ) {
 	if ( ! isset( $db_host ) || ! isset( $db_username ) || ! isset( $db_password ) || ! isset( $db_name ) ) {
 		header( 'x-iwp-status: false' );
 		header( 'x-iwp-message: Database information missing.' );
+		die();
+	}
+
+	if ( ! isset( $_SERVER['HTTP_X_IWP_TABLE_PREFIX'] ) || empty( $table_prefix = $_SERVER['HTTP_X_IWP_TABLE_PREFIX'] ) ) {
+		header( 'x-iwp-status: false' );
+		header( 'x-iwp-message: Empty table prefix.' );
 		die();
 	}
 
