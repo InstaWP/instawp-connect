@@ -85,7 +85,7 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
         $num_page       = ! empty( $params['num_page'] ) ? intval( $params['num_page'] ) : 1;
         $items_per_page = ! empty( $params['items_per_page'] ) ? intval( $params['items_per_page'] ) : 10;
         $connect_id     = ! empty( $params['connect_id'] ) ? intval( $params['connect_id'] ) : 0;
-        $filter_status  = ! empty( $params['type'] ) ? $params['type'] : 'pending';
+        $filter_status  = ! empty( $params['type'] ) ? $params['type'] : 'all';
         $offset         = ( $num_page * $items_per_page ) - $items_per_page;
 
         $staging_site = instawp_get_site_detail_by_connect_id( $connect_id, 'data' );
