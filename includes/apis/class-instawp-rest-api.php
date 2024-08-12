@@ -470,11 +470,11 @@ class InstaWP_Rest_Api {
 	 */
 	public function validate_api_request( WP_REST_Request $request, $option = '', $match_key = false ) {
 		// get authorization header value.
-		$bearer_token = sanitize_key( $request->get_header( 'authorization' ) );
+		$bearer_token = sanitize_text_field( $request->get_header( 'authorization' ) );
         if ( ! empty( $bearer_token ) ) {
 		    $bearer_token = str_ireplace( 'bearer', '', $bearer_token );
         } else {
-            $bearer_token = sanitize_key( $request->get_header( 'x_iwp_auth' ) );
+            $bearer_token = sanitize_text_field( $request->get_header( 'x_iwp_auth' ) );
         }
         $bearer_token = trim( $bearer_token );
 

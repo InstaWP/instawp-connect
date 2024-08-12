@@ -72,7 +72,7 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
      */
     public function get_events( WP_REST_Request $request ) {
 
-        $response = $this->validate_api_request( $request );
+        $response = $this->validate_api_request( $request, '', true );
         if ( is_wp_error( $response ) ) {
             return $this->throw_error( $response );
         }
@@ -153,7 +153,7 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
      */
     public function process_events( WP_REST_Request $request ) {
 
-        $response = $this->validate_api_request( $request );
+        $response = $this->validate_api_request( $request, '', true );
         if ( is_wp_error( $response ) ) {
             return $this->throw_error( $response );
         }
@@ -295,7 +295,7 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
      */
     public function delete_events( WP_REST_Request $request ) {
 
-        $response = $this->validate_api_request( $request );
+        $response = $this->validate_api_request( $request, '', true );
         if ( is_wp_error( $response ) ) {
             return $this->throw_error( $response );
         }
@@ -337,7 +337,7 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
      */
     public function events_summary( WP_REST_Request $request ) {
 
-        $response = $this->validate_api_request( $request );
+        $response = $this->validate_api_request( $request, '', true );
         if ( is_wp_error( $response ) ) {
             return $this->throw_error( $response );
         }
