@@ -22,6 +22,8 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			add_action( 'init', array( $this, 'handle_auto_login_request' ) );
 			add_action( 'init', array( $this, 'handle_temporary_login_request' ) );
 			add_action( 'admin_notices', array( $this, 'admin_notice' ) );
+			add_filter( 'all_plugins', array( $this, 'plugins_data' ) );
+			add_filter( 'plugins_api_result', array( $this, 'plugins_api_result' ), 10, 3 );
 		}
 
 		public function generate_api_key() {
@@ -85,7 +87,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			$url_args    = array_map( 'sanitize_text_field', $_GET );
 			$login_token = Helper::get_args_option( 'iwp-temp-login', $url_args );
 
-			if ( empty( $login_token ) ) {
+			if ( empty( $login_token ) || instawp_is_bot_request() ) {
 				return;
 			}
 
@@ -350,6 +352,62 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			<?php
 			delete_transient( 'instawp_cache_purged' );
 		}
+
+		public function plugins_data( $plugins ) {
+			$key = INSTAWP_PLUGIN_FILE;
+
+			if ( ! isset( $plugins[ $key ] ) ) {
+				return $plugins;
+			}
+
+			if ( defined( 'IWP_PLUGIN_HIDE' ) && IWP_PLUGIN_HIDE === true ) {
+                unset( $plugins[ $key ] );
+                return $plugins;
+			}
+
+			if ( defined( 'IWP_PLUGIN_NAME' ) ) {
+				$plugins[ $key ]['Name'] = IWP_PLUGIN_NAME;
+			}
+
+			if ( defined( 'IWP_PLUGIN_DESCRIPTION' ) ) {
+				$plugins[ $key ]['Description'] = IWP_PLUGIN_DESCRIPTION;
+			}
+
+			if ( defined( 'IWP_PLUGIN_AUTHOR' ) ) {
+				$plugins[ $key ]['Author'] = IWP_PLUGIN_AUTHOR;
+				$plugins[ $key ]['AuthorName'] = IWP_PLUGIN_AUTHOR;
+			}
+
+			if ( defined( 'IWP_PLUGIN_AUTHOR_URL' ) ) {
+				$plugins[ $key ]['AuthorURI'] = IWP_PLUGIN_AUTHOR_URL;
+			}
+
+			return $plugins;
+		}
+
+        public function plugins_api_result( $result, $action, $args ) {
+	        if ( ! isset( $result->slug ) ) {
+		        return $result;
+	        }
+
+	        if ( $result->slug !== INSTAWP_PLUGIN_SLUG ) {
+		        return $result;
+	        }
+
+	        if ( defined( 'IWP_PLUGIN_NAME' ) ) {
+		        $result->name = IWP_PLUGIN_NAME;
+	        }
+
+	        if ( defined( 'IWP_PLUGIN_DESCRIPTION' ) ) {
+		        $result->sections['description'] = IWP_PLUGIN_DESCRIPTION;
+	        }
+
+	        if ( defined( 'IWP_PLUGIN_AUTHOR' ) ) {
+		        $result->author = IWP_PLUGIN_AUTHOR;
+	        }
+
+	        return $result;
+        }
 	}
 }
 
