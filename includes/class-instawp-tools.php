@@ -139,8 +139,6 @@ class InstaWP_Tools {
 
 	public static function generate_serve_file_response( $migrate_key, $api_signature, $migrate_settings = array() ) {
 
-		global $table_prefix;
-
 		// Process migration settings like active plugins/themes only etc
 		$migrate_settings       = is_array( $migrate_settings ) ? $migrate_settings : array();
 		$migrate_settings       = InstaWP_Tools::get_migrate_settings( array(), $migrate_settings );
@@ -151,7 +149,6 @@ class InstaWP_Tools {
 			'db_username'      => DB_USER,
 			'db_password'      => DB_PASSWORD,
 			'db_name'          => DB_NAME,
-			'table_prefix'     => $table_prefix,
 			'site_url'         => site_url(),
 		);
 		$options_data_str       = wp_json_encode( $options_data );
@@ -647,20 +644,20 @@ include $file_path;';
 		// Remove instawp connect options
 		$excluded_tables_rows = Helper::get_args_option( 'excluded_tables_rows', $migrate_settings, array() );
 
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_api_options';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_connect_id_options';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_sync_parent_connect_data';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_migration_details';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_last_migration_details';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_api_key_config_completed';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_is_event_syncing';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_staging_sites';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_is_staging';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:schema-ActionScheduler_StoreSchema';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:schema-ActionScheduler_LoggerSchema';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:action_scheduler_hybrid_store_demarkation';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:_transient_timeout_action_scheduler_last_pastdue_actions_check';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:_transient_action_scheduler_last_pastdue_actions_check';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_api_options';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_connect_id_options';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_sync_parent_connect_data';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_migration_details';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_last_migration_details';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_api_key_config_completed';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_is_event_syncing';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_staging_sites';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_is_staging';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:schema-ActionScheduler_StoreSchema';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:schema-ActionScheduler_LoggerSchema';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:action_scheduler_hybrid_store_demarkation';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:_transient_timeout_action_scheduler_last_pastdue_actions_check';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:_transient_action_scheduler_last_pastdue_actions_check';
 
 		$migrate_settings['excluded_tables_rows'] = $excluded_tables_rows;
 
@@ -939,7 +936,6 @@ include $file_path;';
 	}
 
 	public static function create_insta_site() {
-        $connect_id = instawp_get_connect_id();
 
 		// Creating new blank site
 		$sites_args        = array(
@@ -947,7 +943,7 @@ include $file_path;';
 			'php_version' => '7.4',
 			'is_reserved' => false,
 		);
-		$sites_res         = Curl::do_curl( "connects/{$connect_id}/sites/create-staging", $sites_args );
+		$sites_res         = Curl::do_curl( 'sites', $sites_args );
 		$sites_res_status  = (bool) Helper::get_args_option( 'success', $sites_res, true );
 		$sites_res_message = Helper::get_args_option( 'message', $sites_res, true );
 
@@ -961,7 +957,7 @@ include $file_path;';
 
 		if ( ! empty( $sites_task_id ) ) {
 			while ( true ) {
-				$status_res = Curl::do_curl( "connects/{$connect_id}/tasks/{$sites_task_id}/status", array(), array(), 'GET' );
+				$status_res = Curl::do_curl( "tasks/{$sites_task_id}/status", array(), array(), 'GET' );
 
 				if ( ! Helper::get_args_option( 'success', $status_res, true ) ) {
 					continue;
@@ -986,10 +982,9 @@ include $file_path;';
 	}
 
 	public static function cli_upload_using_sftp( $site_id, $file_path, $db_path ) {
-        $connect_id = instawp_get_connect_id();
 
 		// Enabling SFTP
-		$sftp_enable_res = Curl::do_curl( "connects/{$connect_id}/sites/{$site_id}/update-sftp-status", array( 'status' => 1 ) );
+		$sftp_enable_res = Curl::do_curl( "sites/{$site_id}/update-sftp-status", array( 'status' => 1 ) );
 
 		if ( ! Helper::get_args_option( 'success', $sftp_enable_res, true ) ) {
 			return new WP_Error( 'sftp_enable_failed', Helper::get_args_option( 'message', $sftp_enable_res ) );
@@ -999,7 +994,7 @@ include $file_path;';
 
 
 		// Getting SFTP details of $site_id
-		$sftp_details_res = Curl::do_curl( "connects/{$connect_id}/sites/{$site_id}/sftp-details", array(), array(), 'GET' );
+		$sftp_details_res = Curl::do_curl( "sites/{$site_id}/sftp-details", array(), array(), 'GET' );
 
 		if ( ! Helper::get_args_option( 'success', $sftp_details_res, true ) ) {
 			return new WP_Error( 'sftp_enable_failed', Helper::get_args_option( 'message', $sftp_details_res ) );
@@ -1046,13 +1041,13 @@ include $file_path;';
 	}
 
 	public static function cli_restore_website( $site_id, $file_path, $db_path ) {
-        $connect_id   = instawp_get_connect_id();
+
 		$restore_args = array(
 			'file_bkp'      => basename( $file_path ),
 			'db_bkp'        => basename( $db_path ),
 			'source_domain' => str_replace( array( 'https://', 'http://' ), '', site_url() ),
 		);
-		$restore_res  = Curl::do_curl( "connects/{$connect_id}/sites/{$site_id}/restore-raw", $restore_args, array(), 'PUT' );
+		$restore_res  = Curl::do_curl( "sites/{$site_id}/restore-raw", $restore_args, array(), 'PUT' );
 
 		if ( ! Helper::get_args_option( 'success', $restore_res, true ) ) {
 			return new WP_Error( 'restore_raw_api_failed', Helper::get_args_option( 'message', $restore_res, true ) );
@@ -1065,7 +1060,7 @@ include $file_path;';
 
 		while ( true ) {
 
-			$status_res = Curl::do_curl( "connects/{$connect_id}/tasks/{$restore_task_id}/status", array(), array(), 'GET' );
+			$status_res = Curl::do_curl( "tasks/{$restore_task_id}/status", array(), array(), 'GET' );
 
 			if ( ! Helper::get_args_option( 'success', $status_res, true ) ) {
 				continue;
