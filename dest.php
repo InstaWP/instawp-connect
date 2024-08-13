@@ -419,32 +419,6 @@ if ( $file_type === 'db' ) {
 
 			// update instawp_api_options after the push db finished
 			if ( ! empty( $instawp_api_options ) ) {
-
-//				$show_table_result = $mysqli->query( "SHOW TABLES" );
-//				$table_prefix      = '';
-//				$table_names       = [];
-//
-//				if ( $show_table_result->num_rows > 0 ) {
-//					while ( $row = $show_table_result->fetch_assoc() ) {
-//						$table_name = $row[ "Tables_in_" . $db_name ];
-//
-//						if ( str_ends_with( $table_name, '_options' ) ) {
-//							$table_names[] = explode( '_', str_replace( '_options', '', $table_name ) );
-//						}
-//					}
-//				}
-//
-//				if ( ! empty( $table_names ) ) {
-//					if ( count( $table_names ) > 1 ) {
-//						$table_name_items = call_user_func_array( 'array_intersect', $table_names );
-//					} else {
-//						$table_name_items = $table_names[0];
-//					}
-//
-//					$table_prefix = implode( '_', $table_name_items ) . '_';
-//				}
-
-//              $instawp_api_options = stripslashes( $instawp_api_options );
 				$is_insert_failed = false;
 
 				try {
