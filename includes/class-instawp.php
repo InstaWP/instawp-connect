@@ -370,6 +370,7 @@ class instaWP {
 		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-tools.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-hooks.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-cli.php';
+		// require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-checksum.php';
 
 		require_once INSTAWP_PLUGIN_DIR . '/includes/apis/class-instawp-rest-api.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/apis/class-instawp-rest-api-content.php';
