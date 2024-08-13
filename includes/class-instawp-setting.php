@@ -55,6 +55,12 @@ class InstaWP_Setting {
 			),
 		);
 
+		if ( defined( 'IWP_PLUGIN_DISABLE_FEATURES' ) && is_array( IWP_PLUGIN_DISABLE_FEATURES ) ) {
+			foreach ( IWP_PLUGIN_DISABLE_FEATURES as $key ) {
+				unset( $instawp_nav_items[ $key ] );
+			}
+		}
+
 		if ( instawp()->is_staging ) {
 			unset( $instawp_nav_items['create'] );
 			unset( $instawp_nav_items['manage'] );
@@ -94,6 +100,7 @@ class InstaWP_Setting {
 		$field_type          = self::get_args_option( 'type', $field );
 		$field_desc          = self::get_args_option( 'desc', $field );
 		$internal            = self::get_args_option( 'internal', $field, false );
+		$hidden              = self::get_args_option( 'hide', $field, false );
 		$remote              = self::get_args_option( 'remote', $field );
 		$event               = self::get_args_option( 'event', $field );
 		$multiple            = self::get_args_option( 'multiple', $field );
@@ -113,8 +120,18 @@ class InstaWP_Setting {
 		$field_value = ( $field_name ) ? self::get_args_option( $field_name, $field_value, $field_default_value ) : $field_value;
 		$field_name  = ( $field_name ) ? $field_id . '[' . $field_name . ']' : $field_id;
 
+		if ( $hidden === true ) {
+			return;
+		}
+
 		if ( $internal ) {
 			if ( ! isset( $_REQUEST['internal'] ) || 1 !== intval( $_REQUEST['internal'] ) ) {
+				return;
+			}
+		}
+
+		if ( defined( 'IWP_PLUGIN_DISABLE_SETTINGS' ) && is_array( IWP_PLUGIN_DISABLE_SETTINGS ) ) {
+			if ( in_array( $field_id, IWP_PLUGIN_DISABLE_SETTINGS, true ) ) {
 				return;
 			}
 		}
@@ -312,6 +329,7 @@ class InstaWP_Setting {
 					'tooltip' => __( 'Remove the InstaWP icon from top admin bar. It will also remove the flashing icon.', 'instawp-connect' ),
 					'class'   => 'save-ajax',
 					'default' => 'off',
+					'hide' => defined( 'IWP_PLUGIN_TOPBAR_HIDE' ) && IWP_PLUGIN_TOPBAR_HIDE === true,
 				),
 			),
 		);

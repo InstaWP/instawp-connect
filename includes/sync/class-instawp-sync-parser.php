@@ -495,7 +495,7 @@ class InstaWP_Sync_Parser {
     }
 
     public static function process_attachments( $array_data ) {
-		if ( empty( $array_data ) ) {
+		if ( empty( $array_data ) || ! is_array( $array_data ) ) {
 			return $array_data;
 		}
 
