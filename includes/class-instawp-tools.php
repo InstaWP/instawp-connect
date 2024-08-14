@@ -961,7 +961,7 @@ include $file_path;';
 
 		if ( ! empty( $sites_task_id ) ) {
 			while ( true ) {
-				$status_res = Curl::do_curl( "connects/{$connect_id}/tasks/{$sites_task_id}/status" );
+				$status_res = Curl::do_curl( "connects/{$connect_id}/tasks/{$sites_task_id}/status", array(), array(), 'GET' );
 
 				if ( ! Helper::get_args_option( 'success', $status_res, true ) ) {
 					continue;
@@ -1065,7 +1065,7 @@ include $file_path;';
 
 		while ( true ) {
 
-			$status_res = Curl::do_curl( "connects/{$connect_id}/tasks/{$restore_task_id}/status" );
+			$status_res = Curl::do_curl( "connects/{$connect_id}/tasks/{$restore_task_id}/status", array(), array(), 'GET' );
 
 			if ( ! Helper::get_args_option( 'success', $status_res, true ) ) {
 				continue;

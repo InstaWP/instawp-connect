@@ -149,6 +149,9 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 	 */
 	public function handle_post_migration_cleanup( WP_REST_Request $request ) {
 
+		// Flushing db cache after migration
+		wp_cache_flush();
+
 		$response = $this->validate_api_request( $request );
 		if ( is_wp_error( $response ) ) {
 			return $this->throw_error( $response );
@@ -199,13 +202,13 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 			error_log( esc_html__( 'sso_url_class_not_found: This class NewfoldLabs\WP\Module\Migration\Services\MigrationSSO not found.', 'instawp-connect' ) );
 		}
 
-        // disable bluehost coming soon notice
-        if ( class_exists( 'NewfoldLabs\WP\Module\ComingSoon\Service' ) ) {
-            $service_class = new NewfoldLabs\WP\Module\ComingSoon\Service();
-            $service_class->disable();
-        } else {
-            error_log( esc_html__( 'coming_soon_service_class_not_found: This class NewfoldLabs\WP\Module\ComingSoon\Service not found.', 'instawp-connect' ) );
-        }
+		// disable bluehost coming soon notice
+		if ( class_exists( 'NewfoldLabs\WP\Module\ComingSoon\Service' ) ) {
+			$service_class = new NewfoldLabs\WP\Module\ComingSoon\Service();
+			$service_class->disable();
+		} else {
+			error_log( esc_html__( 'coming_soon_service_class_not_found: This class NewfoldLabs\WP\Module\ComingSoon\Service not found.', 'instawp-connect' ) );
+		}
 
 		// reset everything and remove connection
 		instawp_reset_running_migration( 'hard', true );

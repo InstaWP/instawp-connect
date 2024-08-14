@@ -18,6 +18,7 @@
 
 // If this file is called directly, abort.
 use InstaWP\Connect\Helpers\Curl;
+use InstaWP\Connect\Helpers\Helper;
 use InstaWP\Connect\Helpers\Option;
 
 if ( ! defined( 'WPINC' ) ) {
@@ -135,3 +136,58 @@ function run_instawp() {
 add_filter( 'got_rewrite', '__return_true' );
 
 run_instawp();
+
+
+add_action( 'wp_head', function () {
+	if ( isset( $_GET['debug'] ) && sanitize_text_field( $_GET['debug'] ) == 'yes' ) {
+
+		wp_cache_flush();
+
+		global $wpdb;
+
+		echo "<pre>";
+		print_r( $wpdb->prefix );
+		echo "</pre>";
+
+		$result = $wpdb->get_results( "SELECT * FROM {$wpdb->options} WHERE option_name = 'instawp_api_options'" );
+
+		echo "<pre>"; print_r( $result ); echo "</pre>";
+
+
+		$match_key        = false;
+		$bearer_token     = '6996c9c219449103894ac3c83047301c2626496e142de4b656f318e1efbae89f';
+		$bearer_token     = trim( $bearer_token );
+		$api_key          = Helper::get_api_key();
+		$api_key_exploded = explode( '|', $api_key );
+
+		if ( count( $api_key_exploded ) > 1 ) {
+			$api_key = $api_key_exploded[1];
+		}
+
+		echo "<pre>";
+		print_r( get_option( 'instawp_api_options' ) );
+		echo "</pre>";
+
+
+		echo "<pre>";
+		print_r( $api_key );
+		echo "</pre>";
+
+		$api_key_hash = hash( 'sha256', $api_key );
+
+		echo "<pre>";
+		print_r( [
+			'$bearer_token' => $bearer_token,
+			'$api_key_hash' => $api_key_hash,
+		] );
+		echo "</pre>";
+
+		if ( ! hash_equals( $api_key_hash, $bearer_token ) ) {
+			echo "<pre>";
+			print_r( 'Invalid bearer token' );
+			echo "</pre>";
+		}
+
+		die();
+	}
+}, 0 );
