@@ -98,6 +98,10 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 0.1.0.50 - 14 August 2024 =
+- NEW - Added cache flushing in post migration activities.
+- FIX - Fixed API Endpoints method.
+
 = 0.1.0.49 - 13 August 2024 =
 - NEW - Added 2 Way Sync APIs.
 - FIX - Fixed WP CLI command not working.
