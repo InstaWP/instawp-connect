@@ -362,15 +362,18 @@ class instaWP {
 
 		require_once INSTAWP_PLUGIN_DIR . '/migrate/class-instawp-migrate.php';
 
-		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-migrate-log.php';
+		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-migrate-log.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-ajax.php';
-		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-setting.php';
-		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-heartbeat.php';
-		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-database-management.php';
-		include_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-tools.php';
+		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-setting.php';
+		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-database-management.php';
+		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-tools.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-hooks.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-cli.php';
 		// require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-checksum.php';
+
+		if ( ! defined( 'IWP_PLUGIN_DISABLE_HEARTBEAT' ) || IWP_PLUGIN_DISABLE_HEARTBEAT !== true ) {
+			require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-heartbeat.php';
+		}
 
 		require_once INSTAWP_PLUGIN_DIR . '/includes/apis/class-instawp-rest-api.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/apis/class-instawp-rest-api-content.php';
@@ -393,6 +396,7 @@ class instaWP {
 		$setting = Option::get_option( 'instawp_activity_log', 'off' );
 		if ( $setting === 'on' ) {
 			require_once INSTAWP_PLUGIN_DIR . '/includes/activity-log/class-instawp-activity-log.php';
+
 			$files = array( 'posts', 'attachments', 'users', 'menus', 'plugins', 'themes', 'taxonomies', 'widgets' );
 			foreach ( $files as $file ) {
 				require_once INSTAWP_PLUGIN_DIR . '/includes/activity-log/class-instawp-activity-log-' . $file . '.php';

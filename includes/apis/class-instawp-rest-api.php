@@ -447,14 +447,20 @@ class InstaWP_Rest_Api {
 	 * @return WP_Error|null|boolean
 	 */
 	public function rest_access( $access ) {
-		return $this->is_instawp_route() ? true : $access;
+		$instawp_route = $this->is_instawp_route();
+
+		if ( is_wp_error( $instawp_route ) ) {
+			return $instawp_route;
+		}
+
+		return $instawp_route ? true : $access;
 	}
 
 	/**
 	 * Check if Current REST route contains instawp or not
 	 */
 	public function perform_actions() {
-		if ( $this->is_instawp_route() ) {
+		if ( $this->is_instawp_route() === true ) {
 			remove_action( 'init', 'csmm_plugin_init' ); // minimal-coming-soon-maintenance-mode support
 		}
 	}
@@ -625,12 +631,32 @@ class InstaWP_Rest_Api {
 	/**
 	 * Check if Current REST route contains instawp or not.
 	 *
-	 * @return bool
+	 * @return bool|WP_Error
 	 */
 	protected function is_instawp_route() {
 		$current_route = $this->get_current_route();
 
 		if ( $current_route && strpos( $current_route, 'instawp-connect' ) !== false ) {
+			$endpoints = [
+				'create' => [ 'pull', 'push', 'post-cleanup' ],
+				'manage' => [ 'manage', 'content', 'woocommerce' ],
+				'sync' => [ 'sync' ],
+			];
+
+			if ( defined( 'IWP_PLUGIN_DISABLE_FEATURES' ) && is_array( IWP_PLUGIN_DISABLE_FEATURES ) ) {
+				foreach ( IWP_PLUGIN_DISABLE_FEATURES as $key ) {
+					if ( ! isset( $endpoints[ $key ] ) ) {
+						continue;
+					}
+
+					foreach ( $endpoints[ $key ] as $endpoint ) {
+						if ( strpos( $current_route, $endpoint ) !== false ) {
+							return new WP_Error( 400, esc_html__( 'Route not allowed', 'instawp-connect' ) );
+						}
+					}
+				}
+			}
+
 			return true;
 		}
 

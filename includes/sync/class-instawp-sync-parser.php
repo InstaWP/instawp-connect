@@ -495,7 +495,11 @@ class InstaWP_Sync_Parser {
     }
 
     public static function process_attachments( $array_data ) {
-        foreach ( $array_data as $key => $value ) {
+		if ( empty( $array_data ) || ! is_array( $array_data ) ) {
+			return $array_data;
+		}
+
+        foreach ( ( array ) $array_data as $key => $value ) {
             if ( in_array( $key, array( 'attachment', 'featured_image' ) ) ) {
                 $array_data[ $key ] = InstaWP_Sync_Parser::upload_attachment( $value );
             } elseif ( in_array( $key, array( 'media', 'product_gallery' ) ) ) {
