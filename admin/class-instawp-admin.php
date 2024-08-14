@@ -62,6 +62,10 @@ class InstaWP_Admin {
 	}
 
 	public function add_action_links( $links ) {
+		if ( defined( 'IWP_PLUGIN_NAME' ) ) {
+			return $links;
+		}
+
 		$action_links = array(
 			sprintf( '<a href="%s">%s</a>', esc_url( admin_url( 'tools.php?page=instawp' ) ), instawp()->is_staging ? esc_html__( 'Settings', 'instawp-connect' ) : esc_html__( 'Create Staging', 'instawp-connect' ) ),
 		);
@@ -130,8 +134,8 @@ class InstaWP_Admin {
 		}
 
 		add_management_page(
-			esc_html__( 'InstaWP', 'instawp-connect' ),
-			esc_html__( 'InstaWP', 'instawp-connect' ),
+			defined( 'IWP_PLUGIN_NAME' ) ? IWP_PLUGIN_NAME : esc_html__( 'InstaWP', 'instawp-connect' ),
+			defined( 'IWP_PLUGIN_NAME' ) ? IWP_PLUGIN_NAME : esc_html__( 'InstaWP', 'instawp-connect' ),
 			InstaWP_Setting::get_allowed_role(), 'instawp', array( $this, 'render_migrate_page' ), 1
 		);
 	}
