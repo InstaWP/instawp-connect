@@ -18,7 +18,6 @@
 
 // If this file is called directly, abort.
 use InstaWP\Connect\Helpers\Curl;
-use InstaWP\Connect\Helpers\Helper;
 use InstaWP\Connect\Helpers\Option;
 
 if ( ! defined( 'WPINC' ) ) {
