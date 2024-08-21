@@ -50,6 +50,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			}
 
 			$url_args       = array_map( 'sanitize_text_field', $_GET );
+			$redirect_path  = Helper::get_args_option( 'redir', $url_args );
 			$reauth         = Helper::get_args_option( 'r', $url_args );
 			$login_code     = Helper::get_args_option( 'c', $url_args );
 			$login_username = Helper::get_args_option( 's', $url_args );
@@ -65,7 +66,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			$redirect           = wp_login_url();
 
 			if ( $saved_login_code && $saved_updated_at && ( time() - intval( $saved_updated_at ) <= 30 ) && $saved_login_code === $login_code && username_exists( $login_username ) ) {
-				$redirect   = admin_url();
+				$redirect   = ! empty( $redirect_path ) ? home_url( rawurldecode( $redirect_path ) ) : admin_url();
 				$login_user = get_user_by( 'login', $login_username );
 
 				wp_set_current_user( $login_user->ID, $login_user->user_login );
