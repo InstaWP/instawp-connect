@@ -331,6 +331,24 @@ class InstaWP_Setting {
 					'default' => 'off',
 					'hide' => defined( 'IWP_PLUGIN_TOPBAR_HIDE' ) && IWP_PLUGIN_TOPBAR_HIDE === true,
 				),
+				array(
+					'id'      => 'instawp_show_plugin_to_users',
+					'type'     => 'select2',
+					'remote'   => true,
+					'multiple' => true,
+					'action'  => 'instawp_handle_select2',
+					'event'   => 'instawp_get_users',
+					'title'   => esc_html__( 'Show InstaWP Menu Item to Users', 'instawp-connect' ),
+					'options' => self::get_select2_default_selected_option( 'instawp_show_plugin_to_users' ),
+				),
+				array(
+					'id'      => 'instawp_hide_edge_cache',
+					'type'    => 'toggle',
+					'title'   => __( 'Apply "InstaWP Menu Item to Users" Edge Cache Menu Item', 'instawp-connect' ),
+					'class'   => 'save-ajax',
+					'default' => 'off',
+					'hide' => ! class_exists( '\Edge_Cache_Plugin' ),
+				),
 			),
 		);
 
@@ -671,11 +689,30 @@ class InstaWP_Setting {
 			$role_options   = array();
 			$all_roles      = wp_roles()->roles;
 			$selected_roles = Option::get_option( $option );
+
 			foreach ( $selected_roles as $role ) {
 				$role_options[ $role ] = isset( $all_roles[ $role ] ) ? $all_roles[ $role ]['name'] : $role;
 			}
 
 			return $role_options;
+		} elseif ( $option === 'instawp_show_plugin_to_users' ) {
+			$users_data = array();
+			$selected_users = Option::get_option( $option );
+			$selected_users = ! empty( $selected_users ) ? $selected_users : array( get_current_user_id() );
+			$selected_users[] = get_current_user_id();
+
+			if ( ! empty( $selected_users ) ) {
+				$users = get_users( array(
+					'include' => $selected_users,
+					'fields'  => array( 'ID', 'user_login' ),
+				) );
+
+				foreach ( $users as $user ) {
+					$users_data[ $user->ID ] = $user->user_login;
+				}
+			}
+
+			return $users_data;
 		}
 
 		return array();

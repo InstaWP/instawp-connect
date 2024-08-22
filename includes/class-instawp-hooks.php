@@ -24,6 +24,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			add_action( 'admin_notices', array( $this, 'admin_notice' ) );
 			add_filter( 'all_plugins', array( $this, 'plugins_data' ) );
 			add_filter( 'plugins_api_result', array( $this, 'plugins_api_result' ), 10, 3 );
+			add_action( 'admin_menu', array( $this, 'remove_edge_cache_submenu' ), 999 );
 		}
 
 		public function generate_api_key() {
@@ -422,6 +423,21 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 
 	        return $result;
         }
+
+		public function remove_edge_cache_submenu() {
+			$selected_users = Option::get_option( 'instawp_show_plugin_to_users' );
+			$selected_users = ! empty( $selected_users ) ? $selected_users : array( get_current_user_id() );
+			if ( ! in_array( get_current_user_id(), $selected_users ) ) {
+				return;
+			}
+
+			$edge_cache = Option::get_option( 'instawp_hide_edge_cache' );
+			if ( $edge_cache !== 'on' ) {
+				return;
+			}
+
+			remove_submenu_page( 'options-general.php', 'edge-cache' );
+		}
 	}
 }
 
