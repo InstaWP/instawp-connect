@@ -139,6 +139,83 @@ if ( ! function_exists( 'array_contains_str' ) ) {
 	}
 }
 
+if ( ! function_exists( 'iwp_is_serialized' ) ) {
+	function iwp_is_serialized( $data, $strict = true ) {
+		// If it isn't a string, it isn't serialized.
+		if ( ! is_string( $data ) ) {
+			return false;
+		}
+		$data = trim( $data );
+		if ( 'N;' === $data ) {
+			return true;
+		}
+		if ( strlen( $data ) < 4 ) {
+			return false;
+		}
+		if ( ':' !== $data[1] ) {
+			return false;
+		}
+		if ( $strict ) {
+			$lastc = substr( $data, - 1 );
+			if ( ';' !== $lastc && '}' !== $lastc ) {
+				return false;
+			}
+		} else {
+			$semicolon = strpos( $data, ';' );
+			$brace     = strpos( $data, '}' );
+			// Either ; or } must exist.
+			if ( false === $semicolon && false === $brace ) {
+				return false;
+			}
+			// But neither must be in the first X characters.
+			if ( false !== $semicolon && $semicolon < 3 ) {
+				return false;
+			}
+			if ( false !== $brace && $brace < 4 ) {
+				return false;
+			}
+		}
+		$token = $data[0];
+		switch ( $token ) {
+			case 's':
+				if ( $strict ) {
+					if ( '"' !== substr( $data, - 2, 1 ) ) {
+						return false;
+					}
+				} elseif ( ! str_contains( $data, '"' ) ) {
+					return false;
+				}
+			// Or else fall through.
+			case 'a':
+			case 'O':
+			case 'E':
+				return (bool) preg_match( "/^{$token}:[0-9]+:/s", $data );
+			case 'b':
+			case 'i':
+			case 'd':
+				$end = $strict ? '$' : '';
+
+				return (bool) preg_match( "/^{$token}:[0-9.E+-]+;$end/", $data );
+		}
+
+		return false;
+	}
+}
+
+if ( ! function_exists( 'iwp_maybe_serialize' ) ) {
+	function iwp_maybe_serialize( $data ) {
+		if ( is_array( $data ) || is_object( $data ) ) {
+			return serialize( $data );
+		}
+
+		if ( iwp_is_serialized( $data, false ) ) {
+			return serialize( $data );
+		}
+
+		return $data;
+	}
+}
+
 $root_dir_data = get_wp_root_directory();
 $root_dir_find = isset( $root_dir_data['status'] ) ? $root_dir_data['status'] : false;
 $root_dir_path = isset( $root_dir_data['root_path'] ) ? $root_dir_data['root_path'] : '';
