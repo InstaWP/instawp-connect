@@ -417,6 +417,55 @@ if ( $file_type === 'db' ) {
 
 		if ( isset( $_SERVER['HTTP_X_IWP_PROGRESS'] ) && $_SERVER['HTTP_X_IWP_PROGRESS'] == 100 ) {
 
+			// Retaining user after migration
+			if ( $retain_user ) {
+
+				$user_details_data  = isset( $user_details['data'] ) ? (array) $user_details['data'] : array();
+				$user_details_caps  = isset( $user_details['caps'] ) ? (array) $user_details['caps'] : array();
+				$user_details_roles = isset( $user_details['roles'] ) ? (array) $user_details['roles'] : array();
+
+				$user_data = array(
+					'user_login'          => isset( $user_details_data['user_login'] ) ? $user_details_data['user_login'] : '',
+					'user_pass'           => isset( $user_details_data['user_pass'] ) ? base64_decode( $user_details_data['user_pass'] ) : '',
+					'user_nicename'       => isset( $user_details_data['user_nicename'] ) ? $user_details_data['user_nicename'] : '',
+					'user_email'          => isset( $user_details_data['user_email'] ) ? $user_details_data['user_email'] : '',
+					'user_url'            => isset( $user_details_data['user_url'] ) ? $user_details_data['user_url'] : '',
+					'user_registered'     => isset( $user_details_data['user_registered'] ) ? $user_details_data['user_registered'] : '',
+					'user_activation_key' => isset( $user_details_data['user_activation_key'] ) ? $user_details_data['user_activation_key'] : '',
+					'user_status'         => isset( $user_details_data['user_status'] ) ? $user_details_data['user_status'] : '',
+					'display_name'        => isset( $user_details_data['display_name'] ) ? $user_details_data['display_name'] : '',
+				);
+
+				$fields         = implode( ', ', array_keys( $user_data ) );
+				$values         = "'" . implode( "', '", array_map( array( $mysqli, 'real_escape_string' ), $user_data ) ) . "'";
+				$query          = "INSERT INTO {$table_prefix}users ($fields) VALUES ($values)";
+				$query_response = $mysqli->query( $query );
+
+				if ( $query_response ) {
+					$user_id = $mysqli->insert_id;
+
+					if ( $user_id ) {
+
+						// Set user capabilities
+						$caps_key   = $mysqli->real_escape_string( $table_prefix . 'capabilities' );
+						$caps_value = $mysqli->real_escape_string( iwp_maybe_serialize( $user_details_caps ) );
+						$caps_query = "INSERT INTO {$table_prefix}usermeta (user_id, meta_key, meta_value) VALUES ($user_id, '$caps_key', '$caps_value')";
+						$mysqli->query( $caps_query );
+
+						// Set user roles
+						$roles_key   = $mysqli->real_escape_string( $table_prefix . 'user_level' );
+						$roles_value = $mysqli->real_escape_string( max( array_keys( $user_details_roles ) ) );
+						$roles_query = "INSERT INTO {$table_prefix}usermeta (user_id, meta_key, meta_value) VALUES ($user_id, '$roles_key', '$roles_value')";
+						$mysqli->query( $roles_query );
+					}
+				}
+
+				if ( $mysqli->error ) {
+					file_put_contents( 'iwp_log.txt', "insert response: " . $mysqli->error . "\n", FILE_APPEND );
+				}
+			}
+
+
 			// update instawp_api_options after the push db finished
 			if ( ! empty( $instawp_api_options ) ) {
 				$is_insert_failed = false;
