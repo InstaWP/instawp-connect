@@ -28,6 +28,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			add_action( 'admin_notices', array( $this, 'admin_notice' ) );
 			add_filter( 'all_plugins', array( $this, 'plugins_data' ) );
 			add_filter( 'plugins_api_result', array( $this, 'plugins_api_result' ), 10, 3 );
+			add_action( 'admin_menu', array( $this, 'remove_edge_cache_submenu' ), 999 );
 		}
 
 		public function generate_api_key() {
@@ -54,6 +55,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			}
 
 			$url_args       = array_map( 'sanitize_text_field', $_GET );
+			$redirect_path  = Helper::get_args_option( 'redir', $url_args );
 			$reauth         = Helper::get_args_option( 'r', $url_args );
 			$login_code     = Helper::get_args_option( 'c', $url_args );
 			$login_username = Helper::get_args_option( 's', $url_args );
@@ -69,7 +71,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			$redirect           = wp_login_url();
 
 			if ( $saved_login_code && $saved_updated_at && ( time() - intval( $saved_updated_at ) <= 30 ) && $saved_login_code === $login_code && username_exists( $login_username ) ) {
-				$redirect   = admin_url();
+				$redirect   = ! empty( $redirect_path ) ? home_url( rawurldecode( $redirect_path ) ) : admin_url();
 				$login_user = get_user_by( 'login', $login_username );
 
 				wp_set_current_user( $login_user->ID, $login_user->user_login );
@@ -424,7 +426,22 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 				$result->author = IWP_PLUGIN_AUTHOR;
 			}
 
-			return $result;
+	        return $result;
+        }
+
+		public function remove_edge_cache_submenu() {
+			$selected_users = Option::get_option( 'instawp_show_plugin_to_users' );
+			$selected_users = ! empty( $selected_users ) ? $selected_users : array( get_current_user_id() );
+			if ( ! in_array( get_current_user_id(), $selected_users ) ) {
+				return;
+			}
+
+			$edge_cache = Option::get_option( 'instawp_hide_edge_cache' );
+			if ( $edge_cache !== 'on' ) {
+				return;
+			}
+
+			remove_submenu_page( 'options-general.php', 'edge-cache' );
 		}
 	}
 }

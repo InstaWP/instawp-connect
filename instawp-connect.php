@@ -78,14 +78,19 @@ function instawp_plugin_activate() {
 	//set default user for sync settings if user empty
 	$default_user = Option::get_option( 'instawp_default_user' );
 	if ( empty( $default_user ) ) {
-		add_option( 'instawp_default_user', get_current_user_id() );
+		update_option( 'instawp_default_user', get_current_user_id() );
 	}
 
 	$instawp_sync_tab_roles = Option::get_option( 'instawp_sync_tab_roles' );
 	if ( empty( $instawp_sync_tab_roles ) ) {
 		$user  = wp_get_current_user();
 		$roles = ( array ) $user->roles;
-		add_option( 'instawp_sync_tab_roles', $roles );
+		update_option( 'instawp_sync_tab_roles', $roles );
+	}
+
+	$default_users = Option::get_option( 'instawp_show_plugin_to_users' );
+	if ( empty( $default_users ) ) {
+		update_option( 'instawp_show_plugin_to_users', array( get_current_user_id() ) );
 	}
 
 	$connect_id = instawp_get_connect_id();

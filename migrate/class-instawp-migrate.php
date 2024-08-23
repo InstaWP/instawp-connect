@@ -71,7 +71,7 @@ if ( ! class_exists( 'InstaWP_Migration' ) ) {
 			$_form_data = str_replace( 'amp;', '', $_form_data );
 
 			parse_str( $_form_data, $form_data );
-
+error_log(print_r($form_data, true));
 			$settings_nonce = Helper::get_args_option( 'instawp_settings_nonce', $form_data );
 
 			if ( ! wp_verify_nonce( $settings_nonce, 'instawp_settings_nonce_action' ) ) {
@@ -84,7 +84,7 @@ if ( ! class_exists( 'InstaWP_Migration' ) ) {
 				}
 				$field_value = Helper::get_args_option( $field_id, $form_data );
 
-				if ( 'instawp_api_options' === $field_id ) {
+				if ( 'instawp_api_options' === $field_id && is_array( $field_value ) ) {
 					$api_key     = Helper::get_args_option( 'api_key', $field_value );
 					$api_options = Option::get_option( 'instawp_api_options', array() );
 					$old_api_key = Helper::get_args_option( 'api_key', $api_options );
@@ -99,6 +99,11 @@ if ( ! class_exists( 'InstaWP_Migration' ) ) {
 						continue;
 					}
 					$field_value = array_merge( $api_options, $field_value );
+				}
+
+				if ( 'instawp_show_plugin_to_users' === $field_id && is_array( $field_value ) ) {
+					$field_value = ! empty( $field_value ) ? array_merge( $field_value, array( get_current_user_id() ) ) : array( get_current_user_id() );
+					$field_value = array_unique( $field_value );
 				}
 
 				Option::update_option( $field_id, $field_value );

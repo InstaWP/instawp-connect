@@ -1,12 +1,12 @@
 jQuery(document).ready(function ($) {
 
     jQuery('.instawp_select2').select2({
-        width: "180px",
+        width: "100%",
     });
 
     //select2 for default user settings
     jQuery('.instawp_select2_ajax').select2({
-        width: "180px",
+        width: "100%",
         ajax: {
             dataType: 'json',
             delay: 100,

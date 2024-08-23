@@ -20,6 +20,8 @@
  * @author     instawp team
  */
 
+use InstaWP\Connect\Helpers\Option;
+
 if ( ! defined( 'INSTAWP_PLUGIN_DIR' ) ) {
 	die;
 }
@@ -134,6 +136,12 @@ class InstaWP_Admin {
 
 		// Go Live mode
 		if ( self::$_is_waas_mode ) {
+			return;
+		}
+
+		$selected_users = Option::get_option( 'instawp_show_plugin_to_users' );
+		$selected_users = ! empty( $selected_users ) ? $selected_users : array( get_current_user_id() );
+		if ( ! in_array( get_current_user_id(), $selected_users ) ) {
 			return;
 		}
 
