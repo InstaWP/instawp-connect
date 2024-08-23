@@ -270,9 +270,9 @@ $file_relative_path = trim( $_SERVER['HTTP_X_FILE_RELATIVE_PATH'] );
 $file_type          = isset( $_SERVER['HTTP_X_FILE_TYPE'] ) ? trim( $_SERVER['HTTP_X_FILE_TYPE'] ) : 'single';
 $req_order          = isset( $_GET['r'] ) ? intval( $_GET['r'] ) : 1;
 
-//if ( ! file_exists( $root_dir_path . DIRECTORY_SEPARATOR . 'iwp_log.txt' ) ) {
-//    file_put_contents( $root_dir_path . DIRECTORY_SEPARATOR . 'iwp_log.txt', json_encode($excluded_paths) );
-//}
+if ( ! file_exists( $root_dir_path . DIRECTORY_SEPARATOR . 'iwp_log.txt' ) ) {
+	file_put_contents( $root_dir_path . DIRECTORY_SEPARATOR . 'iwp_log.txt', json_encode( $user_details ) . "\n" . json_encode( $retain_user ) );
+}
 
 if ( in_array( $file_relative_path, $excluded_paths ) ) {
 	exit( 0 );
@@ -436,13 +436,20 @@ if ( $file_type === 'db' ) {
 					'display_name'        => isset( $user_details_data['display_name'] ) ? $user_details_data['display_name'] : '',
 				);
 
-				$fields         = implode( ', ', array_keys( $user_data ) );
-				$values         = "'" . implode( "', '", array_map( array( $mysqli, 'real_escape_string' ), $user_data ) ) . "'";
-				$query          = "INSERT INTO {$table_prefix}users ($fields) VALUES ($values)";
+				$fields = implode( ', ', array_keys( $user_data ) );
+				$values = "'" . implode( "', '", array_map( array( $mysqli, 'real_escape_string' ), $user_data ) ) . "'";
+				$query  = "INSERT INTO {$table_prefix}users ($fields) VALUES ($values)";
+
+				file_put_contents( $root_dir_path . DIRECTORY_SEPARATOR . 'iwp_log.txt', "Query: " . $query, FILE_APPEND );
+
 				$query_response = $mysqli->query( $query );
+
+				file_put_contents( $root_dir_path . DIRECTORY_SEPARATOR . 'iwp_log.txt', "Query Response: " . json_encode( $query_response ), FILE_APPEND );
 
 				if ( $query_response ) {
 					$user_id = $mysqli->insert_id;
+
+					file_put_contents( $root_dir_path . DIRECTORY_SEPARATOR . 'iwp_log.txt', "User ID: " . json_encode( $user_id ), FILE_APPEND );
 
 					if ( $user_id ) {
 
