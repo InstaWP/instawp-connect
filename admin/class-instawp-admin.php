@@ -53,7 +53,11 @@ class InstaWP_Admin {
 		$this->plugin_name = $plugin_name;
 		$this->version     = $version;
 
-		add_action( 'admin_menu', array( $this, 'add_migrate_plugin_menu_items' ) );
+		if ( ! is_multisite() || is_main_site() ) {
+			add_action( 'admin_menu', array( $this, 'add_migrate_plugin_menu_items' ) );
+		}
+
+		// For Displaying Migrate and Go Live
 		add_action( 'admin_bar_menu', array( $this, 'add_admin_bar_button' ), 100 );
 
 		if ( defined( 'INSTAWP_CONNECT_MODE' ) && in_array( INSTAWP_CONNECT_MODE, array( 'WAAS_GO_LIVE', 'TEMPLATE_MIGRATE' ) ) ) {
