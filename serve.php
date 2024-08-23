@@ -324,12 +324,10 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
 				if ( ! empty( $site_url ) ) {
 					$url_path = parse_url( $site_url, PHP_URL_PATH );
-
-					$content .= "# url_path: $url_path\n";
+					$content .= "\n# url_path: $url_path\n";
 
 					if ( ! empty( $url_path ) && $url_path !== '/' ) {
-
-						$content .= "# url_path_inside: $url_path\n";
+						$content .= "\n# url_path_inside: $url_path\n";
 
 						$content = preg_replace( '/RewriteBase\s+\/([^\/]+)\//', 'RewriteBase /', $content );
 						$content = preg_replace( "/(RewriteRule\s+\.\s+\/)([^\/]+)/", 'RewriteRule . ', $content );
