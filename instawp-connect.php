@@ -19,6 +19,7 @@
 // If this file is called directly, abort.
 use InstaWP\Connect\Helpers\Curl;
 use InstaWP\Connect\Helpers\Option;
+use InstaWP\Connect\Helpers;
 
 if ( ! defined( 'WPINC' ) ) {
 	die;
@@ -141,9 +142,24 @@ add_filter( 'got_rewrite', '__return_true' );
 
 run_instawp();
 
-//add_action( 'wp_head', function () {
-//	if ( isset( $_GET['debug'] ) ) {
+add_action( 'wp_head', function () {
+	if ( isset( $_GET['debug'] ) ) {
+
+//		$installer         = new Helpers\Installer( [
+//			[
+//				"slug"     => "woocommerce",
+//				"source"   => "wp.org",
+//				"type"     => "plugin",
+//				"activate" => true,
+//			]
+//		] );
+//		$post_installs_res = $installer->start();
 //
-//		die();
-//	}
-//}, 0 );
+//		echo "<pre>";
+//		print_r( $post_installs_res );
+//		echo "</pre>";
+
+
+		die();
+	}
+}, 0 );

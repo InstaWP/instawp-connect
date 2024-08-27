@@ -169,7 +169,6 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 		$response           = array(
 			'success'       => true,
 			'sso_login_url' => site_url(),
-			'message'       => esc_html__( 'Post migration cleanup completed.', 'instawp-connect' ),
 		);
 		$migrate_group_uuid = $request->get_param( 'migrate_group_uuid' );
 		$migration_status   = $request->get_param( 'status' );
@@ -184,9 +183,18 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 		$post_installs = $request->get_param( 'post_installs' );
 
 		if ( ! empty( $post_installs ) && is_array( $post_installs ) ) {
-			$installer = new Helpers\Installer( $post_installs );
+			$installer         = new Helpers\Installer( $post_installs );
+			$post_installs_res = $installer->start();
 
-			$response['post_installs'] = $installer->start();
+			foreach ( $post_installs_res as $install_res ) {
+				if ( ! isset( $install_res['success'] ) || ! $install_res['success'] ) {
+					$response['success']            = false;
+					$response['post_install_error'] = esc_html__( 'Installation failed', 'instawp-connect' );
+					break;
+				}
+			}
+
+			$response['post_installs'] = $post_installs_res;
 		}
 
 		// SSO Url for the Bluehost
@@ -196,6 +204,9 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 			if ( $login_url_response instanceof WP_REST_Response && $login_url_response->get_status() === 200 ) {
 				$response['sso_login_url'] = $login_url_response->get_data();
 			} else {
+				$response['success']       = false;
+				$response['cleanup_error'] = esc_html__( 'Error getting SSO login url.', 'instawp-connect' );
+
 				error_log( 'sso_url_response: ' . wp_json_encode( $login_url_response ) );
 			}
 		} else {
@@ -208,13 +219,18 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 		// reset everything and remove connection
 		instawp_reset_running_migration( 'hard', true );
 
-		// deactivate plugin
+		// deactivate instawp-connect plugin
 		deactivate_plugins( $plugin_slug );
 
 		$is_deleted = delete_plugins( array( $plugin_slug ) );
 
 		if ( is_wp_error( $is_deleted ) ) {
-			return $this->throw_error( $is_deleted );
+			$response['success']       = false;
+			$response['cleanup_error'] = $is_deleted->get_error_message();
+		}
+
+		if ( $response['success'] ) {
+			$response['message'] = esc_html__( 'Post migration cleanup completed.', 'instawp-connect' );
 		}
 
 		return $this->send_response( $response );
