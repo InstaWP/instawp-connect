@@ -360,6 +360,7 @@ include $file_path;';
 
 		// Skip cache folders
 		$migrate_settings['excluded_paths'][] = $relative_dir . '/cache';
+		$migrate_settings['excluded_paths'][] = $relative_dir . '/et-cache';
 
 		// Skip htaccess from inside wp-content
 		$migrate_settings['excluded_paths'][] = $relative_dir . '/.htaccess';

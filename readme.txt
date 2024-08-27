@@ -98,6 +98,9 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 0.1.0.52 =
+- FIX - Removed InstaWP menu from topbar and menu for sub-sites in multisite.
+
 = 0.1.0.51 - 23 August 2024 =
 - NEW - Added support for retaining users after push in auto migration.
 - FIX - Fixed htaccess for url path.
