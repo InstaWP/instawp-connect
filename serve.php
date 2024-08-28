@@ -196,6 +196,8 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
 			$tmpZip          = tempnam( get_server_temp_dir(), 'batchzip' );
 			$zipSuccessFiles = array();
+			$sent_filename = basename($tmpZip) . '.zip';
+			$fileContents = '';
 
 			if ( $archiveType === 'ziparchive' ) {
 				$archive = new ZipArchive();
@@ -266,8 +268,19 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 				header( 'x-iwp-message: The migration script could not read this specific file. Actual exception message is: ' . $exception->getMessage() );
 			}
 
-			foreach ( $zipSuccessFiles as $file ) {
-				$tracking_db->update( 'iwp_files_sent', array( 'sent' => 1 ), array( 'id' => $file['id'] ) );
+			// Calculate checksum
+			$fileSize = filesize($tmpZip);
+			$fileMTime = filemtime($tmpZip);
+			$checksum = hash('crc32b', $sent_filename . $fileSize . $fileMTime);
+
+			header('x-iwp-sent-filename: ' . $sent_filename);
+			header('x-iwp-checksum: ' . $checksum);
+
+			foreach ($zipSuccessFiles as $file) {
+				$tracking_db->update('iwp_files_sent', 
+					array('sent' => 1, 'sent_filename' => $sent_filename, 'checksum' => $checksum), 
+					array('id' => $file['id'])
+				);
 			}
 
 			unlink( $tmpZip );
@@ -621,16 +634,26 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 				$relativePath = $file_name;
 			}
 
-			header( 'Content-Type: application/octet-stream' );
-			header( 'x-file-relative-path: ' . $relativePath );
-			header( 'x-iwp-progress: ' . $progress_percentage );
-			header( 'x-file-type: single' );
+			$sent_filename = basename($filePath);
+			$fileSize = filesize($filePath);
+			$fileMTime = filemtime($filePath);
+			$checksum = hash('crc32b', $sent_filename . $fileSize . $fileMTime);
 
-			if ( file_exists( $filePath ) && is_file( $filePath ) ) {
-				readfile_chunked( $filePath );
+			header('Content-Type: application/octet-stream');
+			header('x-file-relative-path: ' . $relativePath);
+			header('x-iwp-progress: ' . $progress_percentage);
+			header('x-file-type: single');
+			header('x-iwp-sent-filename: ' . $sent_filename);
+			header('x-iwp-checksum: ' . $checksum);
+
+			if (file_exists($filePath) && is_file($filePath)) {
+				readfile_chunked($filePath);
 			}
 
-			$tracking_db->update( 'iwp_files_sent', array( 'sent' => '1' ), array( 'id' => $fileId ) );
+			$tracking_db->update('iwp_files_sent', 
+				array('sent' => 1, 'sent_filename' => $sent_filename, 'checksum' => $checksum), 
+				array('id' => $fileId)
+			);
 		} else {
 			$iterator   = get_iterator_items( $skip_folders, WP_ROOT );
 			$totalFiles = iterator_count( $iterator );
@@ -687,6 +710,22 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 				header( 'x-iwp-message: No more files left to download according to iwp_files_sent table.' );
 			}
 		}
+	}
+
+	// Add a new endpoint to unmark sent files
+	if (isset($_REQUEST['serve_type']) && 'unmark_sent_files' === $_REQUEST['serve_type']) {
+		$sent_filename = isset($_POST['sent_filename']) ? $_POST['sent_filename'] : '';
+		
+		if (!empty($sent_filename)) {
+			$tracking_db->update('iwp_files_sent', 
+				array('sent' => 0, 'sent_filename' => null, 'checksum' => null), 
+				array('sent_filename' => $sent_filename)
+			);
+			echo "Files unmarked successfully.";
+		} else {
+			echo "No filename provided.";
+		}
+		exit;
 	}
 }
 
