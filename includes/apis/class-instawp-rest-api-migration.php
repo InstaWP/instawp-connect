@@ -194,6 +194,11 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 				}
 			}
 
+            foreach ( $post_installs_res as $key => $install_res ) {
+                $post_installs_res[$key]['success'] = false;
+                $post_installs_res[$key]['message'] = esc_html__( 'Installation failed', 'instawp-connect' );;
+            }
+
 			$response['post_installs'] = $post_installs_res;
 		}
 
