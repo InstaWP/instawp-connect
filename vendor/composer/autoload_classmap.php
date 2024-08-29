@@ -197,6 +197,7 @@ return array(
     'phpseclib3\\Exception\\InvalidPacketLengthException' => $vendorDir . '/phpseclib/phpseclib/phpseclib/Exception/InvalidPacketLengthException.php',
     'phpseclib3\\Exception\\NoKeyLoadedException' => $vendorDir . '/phpseclib/phpseclib/phpseclib/Exception/NoKeyLoadedException.php',
     'phpseclib3\\Exception\\NoSupportedAlgorithmsException' => $vendorDir . '/phpseclib/phpseclib/phpseclib/Exception/NoSupportedAlgorithmsException.php',
+    'phpseclib3\\Exception\\TimeoutException' => $vendorDir . '/phpseclib/phpseclib/phpseclib/Exception/TimeoutException.php',
     'phpseclib3\\Exception\\UnableToConnectException' => $vendorDir . '/phpseclib/phpseclib/phpseclib/Exception/UnableToConnectException.php',
     'phpseclib3\\Exception\\UnsupportedAlgorithmException' => $vendorDir . '/phpseclib/phpseclib/phpseclib/Exception/UnsupportedAlgorithmException.php',
     'phpseclib3\\Exception\\UnsupportedCurveException' => $vendorDir . '/phpseclib/phpseclib/phpseclib/Exception/UnsupportedCurveException.php',

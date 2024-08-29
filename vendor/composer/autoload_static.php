@@ -234,6 +234,7 @@ class ComposerStaticInitbc4230231e9e48017a738b41afd9f581
         'phpseclib3\\Exception\\InvalidPacketLengthException' => __DIR__ . '/..' . '/phpseclib/phpseclib/phpseclib/Exception/InvalidPacketLengthException.php',
         'phpseclib3\\Exception\\NoKeyLoadedException' => __DIR__ . '/..' . '/phpseclib/phpseclib/phpseclib/Exception/NoKeyLoadedException.php',
         'phpseclib3\\Exception\\NoSupportedAlgorithmsException' => __DIR__ . '/..' . '/phpseclib/phpseclib/phpseclib/Exception/NoSupportedAlgorithmsException.php',
+        'phpseclib3\\Exception\\TimeoutException' => __DIR__ . '/..' . '/phpseclib/phpseclib/phpseclib/Exception/TimeoutException.php',
         'phpseclib3\\Exception\\UnableToConnectException' => __DIR__ . '/..' . '/phpseclib/phpseclib/phpseclib/Exception/UnableToConnectException.php',
         'phpseclib3\\Exception\\UnsupportedAlgorithmException' => __DIR__ . '/..' . '/phpseclib/phpseclib/phpseclib/Exception/UnsupportedAlgorithmException.php',
         'phpseclib3\\Exception\\UnsupportedCurveException' => __DIR__ . '/..' . '/phpseclib/phpseclib/phpseclib/Exception/UnsupportedCurveException.php',

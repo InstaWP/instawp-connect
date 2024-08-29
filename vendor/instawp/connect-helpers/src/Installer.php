@@ -188,7 +188,7 @@ class Installer {
                                 'activated'        => in_array( $plugin_file, $active_plugins, true ),
                                 'update_available' => array_key_exists( $plugin_file, $plugin_update_data ),
                                 'update_version'   => array_key_exists( $plugin_file, $plugin_update_data ) ? $plugin_update_data[ $plugin_file ]->new_version : '',
-                                'update_enabled'   => in_array( $name, $auto_updates, true ),
+                                'update_enabled'   => in_array( $plugin_file, $auto_updates, true ),
                                 'icon_url'         => 'https://ps.w.org/' . $slug[0] . '/assets/icon-128x128.png',
                                 'data'             => $plugin_data,
                             ];

@@ -3,7 +3,7 @@
         'name' => 'instawp/connect',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '0aea79b5bf1726a2a800f2852ece75e94fc5d7ba',
+        'reference' => '69659f2539b0781044b2fe785451133896144bca',
         'type' => 'wordpress-plugin',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -13,7 +13,7 @@
         'instawp/connect' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '0aea79b5bf1726a2a800f2852ece75e94fc5d7ba',
+            'reference' => '69659f2539b0781044b2fe785451133896144bca',
             'type' => 'wordpress-plugin',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
@@ -22,7 +22,7 @@
         'instawp/connect-helpers' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => 'b26218d2831ea3adb5e0a75938a022e2af00f67d',
+            'reference' => 'dbde49559d6ad98504b6fca29bcfecb4b36550e8',
             'type' => 'library',
             'install_path' => __DIR__ . '/../instawp/connect-helpers',
             'aliases' => array(
@@ -49,9 +49,9 @@
             'dev_requirement' => false,
         ),
         'phpseclib/phpseclib' => array(
-            'pretty_version' => '3.0.39',
-            'version' => '3.0.39.0',
-            'reference' => '211ebc399c6e73c225a018435fe5ae209d1d1485',
+            'pretty_version' => '3.0.41',
+            'version' => '3.0.41.0',
+            'reference' => '621c73f7dcb310b61de34d1da4c4204e8ace6ceb',
             'type' => 'library',
             'install_path' => __DIR__ . '/../phpseclib/phpseclib',
             'aliases' => array(),
