@@ -2,6 +2,29 @@
 set_time_limit( 0 );
 error_reporting( 0 );
 
+//$wp_root_path = '/home/bagehumaka7228/web/jaed-pull-migration-test.a.instawpsites.com/public_html';
+//$zip_file     = '/home/bagehumaka7228/web/jaed-pull-migration-test.a.instawpsites.com/public_html/aa-zip-' . time() . '.zip';
+//$files_to_add = [
+//	'/home/bagehumaka7228/web/jaed-pull-migration-test.a.instawpsites.com/public_html/wp-includes/blocks/navigation-submenu/editor.min.css',
+//];
+////$archive      = new PharData( $zip_file );
+//$archive = new ZipArchive();
+//
+//foreach ( $files_to_add as $file_path ) {
+//	$relative_path = ltrim( str_replace( $wp_root_path, "", $file_path ), DIRECTORY_SEPARATOR );
+////	$ret           = $archive->addFile( $file_path, $relative_path );
+//
+//	if ( $archive->open( $zip_file, ZipArchive::OVERWRITE ) === true ) {
+//		$ret = $archive->addFile( $file_path, $relative_path );
+//
+//		echo "<pre>";
+//		var_dump( $ret );
+//		echo "</pre>";
+//	}
+//}
+//
+//exit();
+
 $migrate_key   = isset( $_POST['migrate_key'] ) ? $_POST['migrate_key'] : '';
 $api_signature = isset( $_POST['api_signature'] ) ? $_POST['api_signature'] : '';
 
@@ -10,8 +33,6 @@ if ( empty( $migrate_key ) ) {
 	header( 'x-iwp-message: The migration key is invalid.' );
 	die();
 }
-
-
 
 function get_wp_root_directory( $find_with_files = 'wp-load.php', $find_with_dir = '' ) {
 
@@ -210,10 +231,12 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 				die( "Invalid archive type" );
 			}
 
-			header( 'x-iwp-filename: ' . $tmpZip );
+			$tmpZipName = basename( $tmpZip );
+			header( 'x-iwp-filename: ' . $tmpZipName );
+			header( 'x-iwp-filepath: ' . $tmpZip );
 
 			foreach ( $unsentFiles as $file ) {
-				$tracking_db->update( 'iwp_files_sent', array( 'sent' => 2 ), array( 'id' => $file['id'] ) ); // mark as sending
+				$tracking_db->update( 'iwp_files_sent', array( 'sent' => 2 ), array( 'id' => $file['id'] ) );
 
 				$filePath         = isset( $file['filepath'] ) ? $file['filepath'] : '';
 				$relativePath     = ltrim( str_replace( WP_ROOT, "", $filePath ), DIRECTORY_SEPARATOR );
@@ -224,6 +247,9 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 				if ( ! $file_fopen_check ) {
 					$tracking_db->update( 'iwp_files_sent', array( 'sent' => 3 ), array( 'id' => $file['id'] ) ); // mark as failed
 					error_log( 'Can not open file: ' . $filePath );
+
+					header( 'x-iwp-error: ' . 'Can not open the file: : ' . $filePath );
+
 					continue;
 				}
 
@@ -232,12 +258,18 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 				if ( ! is_readable( $filePath ) ) {
 					$tracking_db->update( 'iwp_files_sent', array( 'sent' => 3 ), array( 'id' => $file['id'] ) ); // mark as failed
 					error_log( 'Can not read file: ' . $filePath );
+
+					header( 'x-iwp-error: ' . 'Can not read the file: : ' . $filePath );
+
 					continue;
 				}
 
 				if ( ! is_file( $filePath ) ) {
 					$tracking_db->update( 'iwp_files_sent', array( 'sent' => 3 ), array( 'id' => $file['id'] ) ); // mark as failed
 					error_log( 'Invalid file: ' . $filePath );
+
+					header( 'x-iwp-error: ' . 'Invalid file: : ' . $filePath );
+
 					continue;
 				}
 
@@ -245,15 +277,33 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 					$relativePath = $file_name;
 				}
 
-				$added_to_zip = $archive->addFile( $filePath, $relativePath );
+				$added_to_zip = true;
+				try {
+					if ( $archiveType === 'ziparchive' ) {
+						$added_to_zip = $archive->addFile( $filePath, $relativePath );
+					} else {
+						$archive->addFile( $filePath, $relativePath );
+					}
+				} catch ( Exception $e ) {
+					$added_to_zip = false;
+					header( 'x-iwp-error: ' . 'Exception when adding file to archive: ' . $e->getMessage() );
+				}
 
 				if ( ! $added_to_zip ) {
 					$tracking_db->update( 'iwp_files_sent', array( 'sent' => 3 ), array( 'id' => $file['id'] ) ); // mark as failed
-					error_log( 'Could not add to zip. File: : ' . $filePath );
+					header( 'x-iwp-error: ' . 'Could not add to zip, here is the file path - ' . $filePath );
 				} else {
 					$zipSuccessFiles[] = $file;
 				}
 			}
+
+			$fileSize  = filesize( $tmpZip );
+			$fileMTime = filemtime( $tmpZip );
+			$checksum  = hash( 'crc32b', $tmpZipName . $fileSize );
+
+			header( 'x-iwp-sent-filename: ' . $tmpZipName );
+			header( 'x-iwp-filesize: ' . $fileSize );
+			header( 'x-iwp-checksum: ' . $checksum );
 
 			try {
 				if ( $archiveType === 'ziparchive' ) {
@@ -267,7 +317,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			}
 
 			foreach ( $zipSuccessFiles as $file ) {
-				$tracking_db->update( 'iwp_files_sent', array( 'sent' => 1 ), array( 'id' => $file['id'] ) );
+				$tracking_db->update( 'iwp_files_sent', array( 'sent' => 1, 'sent_filename' => $tmpZipName, 'checksum' => $checksum ), array( 'id' => $file['id'] ) );
 			}
 
 			unlink( $tmpZip );
@@ -324,7 +374,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
 				if ( ! empty( $site_url ) ) {
 					$url_path = parse_url( $site_url, PHP_URL_PATH );
-					$content .= "\n# url_path: $url_path\n";
+					$content  .= "\n# url_path: $url_path\n";
 
 					if ( ! empty( $url_path ) && $url_path !== '/' ) {
 						$content .= "\n# url_path_inside: $url_path\n";
@@ -400,21 +450,21 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 	if ( ! function_exists( 'is_valid_file' ) ) {
 		function is_valid_file( $filepath ) {
 			$filename = basename( $filepath );
-            if ( empty( $filename ) ) {
-                return false;
-            }
+			if ( empty( $filename ) ) {
+				return false;
+			}
 
-            // Check for disallowed characters
-            $disallowed = array( '/', '\\', ':', '*', '?', '"', '<', '>', '|' );
-            foreach ( $disallowed as $char ) {
-                if ( strpos( $filename, $char ) !== false ) {
-                    return false;
-                }
-            }
+			// Check for disallowed characters
+			$disallowed = array( '/', '\\', ':', '*', '?', '"', '<', '>', '|' );
+			foreach ( $disallowed as $char ) {
+				if ( strpos( $filename, $char ) !== false ) {
+					return false;
+				}
+			}
 
-            if ( $filename === '.' || $filename === '..' ) {
-                return false;
-            }
+			if ( $filename === '.' || $filename === '..' ) {
+				return false;
+			}
 
 			return is_file( $filepath ) && is_readable( $filepath );
 		}
@@ -504,12 +554,12 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
 		foreach ( $limitedIterator as $file ) {
 
-			$filepath      = '';
-			$filesize      = 0;
+			$filepath = '';
+			$filesize = 0;
 
 			try {
-				$filepath      = $file->getPathname();
-				$filesize      = $file->getSize();
+				$filepath = $file->getPathname();
+				$filesize = $file->getSize();
 			} catch ( Exception $e ) {
 				$tracking_db->insert( 'iwp_files_sent', array(
 					'filepath'      => "'$filepath'",
@@ -609,7 +659,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		$row = $tracking_db->get_row( 'iwp_files_sent', array( 'sent' => '0' ) );
 
 		if ( $row ) {
-			$tracking_db->update( 'iwp_files_sent', array( 'sent' => '2' ), array( 'id' => $row['id'] ) ); // mark as sending
+			$tracking_db->update( 'iwp_files_sent', array( 'sent' => 2 ), array( 'id' => $row['id'] ) ); // mark as sending
 
 			$fileId       = $row['id'];
 			$filePath     = $row['filepath'];
@@ -689,6 +739,31 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		}
 	}
 }
+
+
+if ( isset( $_REQUEST['serve_type'] ) && 'unmark_sent_files' === $_REQUEST['serve_type'] ) {
+
+	$sent_filename = isset( $_POST['sent_filename'] ) ? $_POST['sent_filename'] : '';
+
+	if ( empty( $sent_filename ) ) {
+		header( 'x-iwp-status: false' );
+		header( 'x-iwp-message: Empty zip(sent_filename) provided, Received the name as: ' . $sent_filename );
+		die();
+	}
+
+	$update_response = $tracking_db->update( 'iwp_files_sent', array( 'sent' => '0' ), array( 'sent_filename' => "'$sent_filename'" ) );
+
+	if ( ! $update_response ) {
+		header( 'x-iwp-status: false' );
+		header( 'x-iwp-message: Could not reset the sent status for: ' . $sent_filename );
+		die();
+	}
+
+	header( 'x-iwp-status: true' );
+	header( 'x-iwp-message: Reset the sent status for: ' . $sent_filename );
+	die();
+}
+
 
 if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 
