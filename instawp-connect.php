@@ -163,7 +163,7 @@ add_action( 'wp_head', function () {
 //		print_r( $post_installs_res );
 //		echo "</pre>";
 
-
+        //do_action( 'instawp_create_update_task', [ 'core', 'plugins', 'themes' ] );
 		die();
 	}
 }, 0 );

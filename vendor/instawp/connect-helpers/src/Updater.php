@@ -21,14 +21,14 @@ class Updater {
 		$results = [];
 		foreach ( $this->args as $update ) {
 			if ( ! isset( $update['type'], $update['slug'] ) ) {
-				$results[] = [
+				$results[ $update['slug'] ] = [
 					'success' => false,
 					'message' => esc_html( 'Required parameters are missing!' ),
 				];
 				continue;
 			}
 
-			$results[] = 'core' === $update['type'] ? $this->core_updater( $update ) : $this->updater( $update['type'], $update['slug'] );
+			$results[ $update['slug'] ] = 'core' === $update['type'] ? $this->core_updater( $update ) : $this->updater( $update['type'], $update['slug'] );
 		}
 
 		return $results;
