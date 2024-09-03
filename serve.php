@@ -744,6 +744,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 if ( isset( $_REQUEST['serve_type'] ) && 'unmark_sent_files' === $_REQUEST['serve_type'] ) {
 
 	$sent_filename = isset( $_POST['sent_filename'] ) ? $_POST['sent_filename'] : '';
+	$checksum      = isset( $_POST['checksum'] ) ? $_POST['checksum'] : '';
 
 	if ( empty( $sent_filename ) ) {
 		header( 'x-iwp-status: false' );
@@ -751,16 +752,22 @@ if ( isset( $_REQUEST['serve_type'] ) && 'unmark_sent_files' === $_REQUEST['serv
 		die();
 	}
 
-	$update_response = $tracking_db->update( 'iwp_files_sent', array( 'sent' => '0' ), array( 'sent_filename' => "'$sent_filename'" ) );
+	if ( empty( $checksum ) ) {
+		header( 'x-iwp-status: false' );
+		header( 'x-iwp-message: Empty zip(checksum) provided, Received checksum: ' . $checksum );
+		die();
+	}
+
+	$update_response = $tracking_db->update( 'iwp_files_sent', array( 'sent' => '0' ), array( 'checksum' => "'$checksum'" ) );
 
 	if ( ! $update_response ) {
 		header( 'x-iwp-status: false' );
-		header( 'x-iwp-message: Could not reset the sent status for: ' . $sent_filename );
+		header( 'x-iwp-message: Could not reset the sent status for: ' . $sent_filename . ' with checksum: ' . $checksum );
 		die();
 	}
 
 	header( 'x-iwp-status: true' );
-	header( 'x-iwp-message: Reset the sent status for: ' . $sent_filename );
+	header( 'x-iwp-message: Reset the sent status for: ' . $sent_filename . ' with checksum: ' . $checksum );
 	die();
 }
 
