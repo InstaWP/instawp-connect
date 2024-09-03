@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.6
 Tested up to: 6.6
 Requires PHP: 7.0
-Stable tag: 0.1.0.51
+Stable tag: 0.1.0.52
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -99,7 +99,9 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 == Changelog ==
 
 = 0.1.0.52 =
+- NEW - Scheduled Updates endpoint.
 - FIX - Removed InstaWP menu from topbar and menu for sub-sites in multisite.
+- FIX - Plugin settings not accessible some some cases of InstaWP Live.
 
 = 0.1.0.51 - 23 August 2024 =
 - NEW - Added support for retaining users after push in auto migration.
