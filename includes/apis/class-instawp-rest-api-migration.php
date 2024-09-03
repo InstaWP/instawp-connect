@@ -194,11 +194,6 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 				}
 			}
 
-            foreach ( $post_installs_res as $key => $install_res ) {
-                $post_installs_res[$key]['success'] = false;
-                $post_installs_res[$key]['message'] = esc_html__( 'Installation failed', 'instawp-connect' );;
-            }
-
 			$response['post_installs'] = $post_installs_res;
 		}
 
@@ -217,10 +212,6 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 		} else {
 			error_log( esc_html__( 'sso_url_class_not_found: This class NewfoldLabs\WP\Module\Migration\Services\MigrationSSO not found.', 'instawp-connect' ) );
 		}
-
-		$response['success']       = false;
-		$response['post_install_error'] = esc_html__( 'Installation failed', 'instawp-connect' );
-		$response['cleanup_error'] = esc_html__( 'Error getting SSO login url.', 'instawp-connect' );
 
 		// disable bluehost coming soon notice
 		update_option( 'nfd_coming_soon', false );
