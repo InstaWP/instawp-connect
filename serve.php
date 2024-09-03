@@ -218,8 +218,6 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			$tmpZip          = tempnam( get_server_temp_dir(), 'batchzip' );
 			$zipSuccessFiles = array();
 
-			$archiveType = 'phardata';
-
 			if ( $archiveType === 'ziparchive' ) {
 				$archive = new ZipArchive();
 
