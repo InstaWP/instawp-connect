@@ -101,7 +101,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 = 0.1.0.52 - 3 September 2024 =
 - NEW - Scheduled Updates endpoint.
 - FIX - Removed InstaWP menu from topbar and menu for sub-sites in multisite.
-- FIX - Plugin settings not accessible some some cases of InstaWP Live.
+- FIX - Plugin settings not accessible on some cases of InstaWP Live.
 
 = 0.1.0.51 - 23 August 2024 =
 - NEW - Added support for retaining users after push in auto migration.
