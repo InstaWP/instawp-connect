@@ -468,6 +468,9 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
             }
 
             if ( in_array( 'plugins', $items ) ) {
+                if ( ! function_exists( 'get_plugins' ) ) {
+                    require_once ABSPATH . 'wp-admin/includes/plugin.php';
+                }
                 $update_info = get_plugin_updates();
 
                 if ( ! empty( $update_info ) ) {
