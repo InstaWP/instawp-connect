@@ -321,6 +321,13 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 				$can_show = false;
 			}
 
+            if ( $can_show ) {
+                $selected_users = Option::get_option( 'instawp_hide_plugin_to_users' );
+                if ( ! empty( $selected_users ) && is_array( $selected_users ) && in_array( get_current_user_id(), $selected_users ) ) {
+                    $can_show = false;
+                }
+            }
+
 			return $can_show;
 		}
 
@@ -433,18 +440,10 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
         }
 
 		public function remove_edge_cache_submenu() {
-			$edge_cache = Option::get_option( 'instawp_hide_edge_cache' );
-			if ( $edge_cache !== 'on' ) {
-				return;
-			}
-
-			$selected_users = Option::get_option( 'instawp_show_plugin_to_users' );
-			$selected_users = ! empty( $selected_users ) ? $selected_users : array( get_current_user_id() );
-			if ( in_array( get_current_user_id(), $selected_users ) ) {
-				return;
-			}
-
-			remove_submenu_page( 'options-general.php', 'edge-cache' );
+            $selected_users = Option::get_option( 'instawp_hide_plugin_to_users' );
+            if ( ! empty( $selected_users ) && is_array( $selected_users ) && in_array( get_current_user_id(), $selected_users ) ) {
+			    remove_submenu_page( 'options-general.php', 'edge-cache' );
+            }
 		}
 
         public function perform_update_task( $items ) {
