@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.6
 Tested up to: 6.6
 Requires PHP: 7.0
-Stable tag: 0.1.0.52
+Stable tag: 0.1.0.53
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -100,6 +100,8 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 = 0.1.0.53 - 4 September 2024 =
 - FIX - Modified option to hide plugin menu item from users.
+- FIX - Sync Tab Access option is not saving if there is no option selected.
+- FIX - Missing Magic Login icon.
 
 = 0.1.0.52 - 3 September 2024 =
 - NEW - Scheduled Updates endpoint.

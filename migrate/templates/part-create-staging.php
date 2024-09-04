@@ -467,7 +467,12 @@ delete_option( 'instawp_db_offset' );
                                     <div class="text-grayCust-900 text-base font-normal w-24"><?php esc_html_e( 'Password', 'instawp-connect' ); ?></div>
                                     <div aria-label="<?php echo esc_attr__( 'This password is same as production, due to security reasons, we don\'t know or keep the plain-text password', 'instawp-connect' ); ?>" id="instawp-site-password" class="hint--top hint--medium text-grayCust-300 font-medium text-base"></div>
                                 </div>
-                                <a href="" target="_blank" id="instawp-site-magic-url" class="py-2 px-4 text-white active:text-white focus:text-white hover:text-white bg-primary-700 rounded-md text-sm font-medium focus:shadow-none"><?php esc_html_e( 'Magic Login', 'instawp-connect' ); ?></a>
+                                <a href="" target="_blank" id="instawp-site-magic-url" class="py-2 px-4 text-white active:text-white focus:text-white hover:text-white bg-primary-700 rounded-md text-sm font-medium focus:shadow-none flex items-center justify-center gap-2">
+                                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M13.3337 16.668L14.167 16.668C15.5477 16.668 16.667 15.5487 16.667 14.168L16.667 5.83464C16.667 4.45392 15.5477 3.33464 14.167 3.33464L13.3337 3.33464M10.0003 6.66797L13.3337 10.0013M13.3337 10.0013L10.0003 13.3346M13.3337 10.0013L3.33366 10.0013" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                    <?php esc_html_e( 'Magic Login', 'instawp-connect' ); ?>
+                                </a>
                             </div>
                         </div>
                     </div>
