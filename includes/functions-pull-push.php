@@ -1,5 +1,5 @@
 <?php
-
+// phpcs:disable
 if ( ! function_exists( 'iwp_debug' ) ) {
 	function iwp_debug( $data ) {
 
@@ -278,3 +278,4 @@ if ( ! function_exists( 'zipStatusString' ) ) {
 		}
 	}
 }
+// phpcs:enable

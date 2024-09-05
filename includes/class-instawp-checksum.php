@@ -67,7 +67,7 @@ if ( ! class_exists( 'INSTAWP_Checksum' ) ) {
 				return false;
 			}
 
-			$zip = new ZipArchive;
+			$zip = new ZipArchive();
 			$res = $zip->open( $temp_file );
 
 			if ( $res === false ) {

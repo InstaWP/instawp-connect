@@ -449,19 +449,19 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
         public function perform_update_task( $items ) {
             require_once ABSPATH . 'wp-admin/includes/update.php';
 
-            $response_data = [];
+            $response_data = array();
 
             if ( in_array( 'core', $items ) ) {
                 $update_info = get_core_updates();
 
                 if ( ! empty( $update_info ) && $update_info[0]->response === 'upgrade' ) {
-                    $installer = new Updater( [
-                        [
-                            'type' => 'core',
-                            'slug' => 'wordpress',
-                            'version' => $update_info[0]->version
-                        ]
-                    ] );
+                    $installer = new Updater( array(
+                        array(
+                            'type'    => 'core',
+                            'slug'    => 'wordpress',
+                            'version' => $update_info[0]->version,
+                        ),
+                    ) );
                     $response              = $installer->update();
                     $response_data['core'] = $response['wordpress'];
                 }
@@ -475,16 +475,16 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 
                 if ( ! empty( $update_info ) ) {
                     $plugins = array_chunk( array_keys( $update_info ), 5 );
-                    $response_data['plugins'] = [];
+                    $response_data['plugins'] = array();
 
                     foreach ( $plugins as $plugin_chunk ) {
-                        $update_data = [];
+                        $update_data = array();
 
                         foreach ( $plugin_chunk as $plugin ) {
-                            $update_data[] = [
+                            $update_data[] = array(
                                 'type' => 'plugin',
                                 'slug' => $plugin,
-                            ];
+                            );
                         }
 
                         $installer                = new Updater( $update_data );
@@ -498,16 +498,16 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 
                 if ( ! empty( $update_info ) ) {
                     $themes = array_chunk( array_keys( $update_info ), 5 );
-                    $response_data['themes'] = [];
+                    $response_data['themes'] = array();
 
                     foreach ( $themes as $theme_chunk ) {
-                        $update_data = [];
+                        $update_data = array();
 
                         foreach ( $theme_chunk as $theme ) {
-                            $update_data[] = [
+                            $update_data[] = array(
                                 'type' => 'theme',
                                 'slug' => $theme,
-                            ];
+                            );
                         }
 
                         $installer               = new Updater( $update_data );
@@ -516,7 +516,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
                 }
             }
 
-			as_enqueue_async_action( 'instawp_send_heartbeat', [], 'instawp-connect' );
+			as_enqueue_async_action( 'instawp_send_heartbeat', array(), 'instawp-connect' );
 			
 			$connect_id = instawp_get_connect_id();
 			if ( ! empty( $connect_id ) ) {

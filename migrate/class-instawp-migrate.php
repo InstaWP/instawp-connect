@@ -72,10 +72,10 @@ if ( ! class_exists( 'InstaWP_Migration' ) ) {
 
 			parse_str( $_form_data, $form_data );
 
-            $form_data = wp_parse_args( $form_data, [
-                'instawp_hide_plugin_to_users' => [],
-                'instawp_sync_tab_roles' => [],
-            ] );
+            $form_data = wp_parse_args( $form_data, array(
+                'instawp_hide_plugin_to_users' => array(),
+                'instawp_sync_tab_roles'       => array(),
+            ) );
 
 			$settings_nonce = Helper::get_args_option( 'instawp_settings_nonce', $form_data );
 
@@ -107,7 +107,7 @@ if ( ! class_exists( 'InstaWP_Migration' ) ) {
 				}
 
 				if ( 'instawp_hide_plugin_to_users' === $field_id && is_array( $field_value ) ) {
-					$field_value = array_diff( $field_value,  [ get_current_user_id() ] );
+					$field_value = array_diff( $field_value,  array( get_current_user_id() ) );
 				}
 
 				Option::update_option( $field_id, $field_value );

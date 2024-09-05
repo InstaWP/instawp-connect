@@ -471,7 +471,7 @@ class InstaWP_Rest_Api {
         }
 
         $parameters = $this->filter_params( $request );
-        $items      = ! empty( $parameters['items'] ) ? array_map( 'sanitize_text_field', $parameters['items'] ): array();
+        $items      = ! empty( $parameters['items'] ) ? array_map( 'sanitize_text_field', $parameters['items'] ) : array();
 
         if ( empty( $items ) ) {
             return $this->send_response( array(
@@ -480,8 +480,8 @@ class InstaWP_Rest_Api {
             ) );
         }
 
-        as_unschedule_all_actions( 'instawp_create_update_task', [ $items ], 'instawp-connect' );
-        as_enqueue_async_action( 'instawp_create_update_task', [ $items ], 'instawp-connect' );
+        as_unschedule_all_actions( 'instawp_create_update_task', array( $items ), 'instawp-connect' );
+        as_enqueue_async_action( 'instawp_create_update_task', array( $items ), 'instawp-connect' );
 
         return $this->send_response( array(
             'success' => true,
@@ -687,11 +687,11 @@ class InstaWP_Rest_Api {
 		$current_route = $this->get_current_route();
 
 		if ( $current_route && strpos( $current_route, 'instawp-connect' ) !== false ) {
-			$endpoints = [
-				'create' => [ 'pull', 'push', 'post-cleanup' ],
-				'manage' => [ 'manage', 'content', 'woocommerce' ],
-				'sync' => [ 'sync' ],
-			];
+			$endpoints = array(
+				'create' => array( 'pull', 'push', 'post-cleanup' ),
+				'manage' => array( 'manage', 'content', 'woocommerce' ),
+				'sync'   => array( 'sync' ),
+			);
 
 			if ( defined( 'IWP_PLUGIN_DISABLE_FEATURES' ) && is_array( IWP_PLUGIN_DISABLE_FEATURES ) ) {
 				foreach ( IWP_PLUGIN_DISABLE_FEATURES as $key ) {
