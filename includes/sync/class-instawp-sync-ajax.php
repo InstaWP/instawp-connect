@@ -133,7 +133,24 @@ class InstaWP_Sync_Ajax {
 						'id'   => 'ID',
 					),
 				) );
-			} elseif ( $_GET['event'] === 'instawp_sync_tab_roles' ) {
+			} elseif ( $_GET['event'] === 'instawp_get_users_exclude_current' ) {
+                $keyword = ! empty( $_GET['term'] ) ? sanitize_text_field( wp_unslash( $_GET['term'] ) ) : '';
+                $args    = array(
+                    'search'         => $keyword,
+                    'paged'          => 1,
+                    'exclude'        => get_current_user_id(),
+                    'search_columns' => array( 'user_login', 'user_nicename', 'user_email' ),
+                    'fields'         => array( 'id', 'user_login' ),
+                );
+                $users   = get_users( $args );
+                $this->send_success( "Users loaded", array(
+                    'results' => $users,
+                    'opt_col' => array(
+                        'text' => 'user_login',
+                        'id'   => 'ID',
+                    ),
+                ) );
+            } elseif ( $_GET['event'] === 'instawp_sync_tab_roles' ) {
 				$results   = array();
 				$all_roles = wp_roles()->roles;
 				foreach ( $all_roles as $slug => $role ) {

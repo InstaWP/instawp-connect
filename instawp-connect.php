@@ -7,7 +7,7 @@
  * @wordpress-plugin
  * Plugin Name:       InstaWP Connect
  * Description:       1-click WordPress plugin for Staging, Migrations, Management, Sync and Companion plugin for InstaWP.
- * Version:           0.1.0.51
+ * Version:           0.1.0.53
  * Author:            InstaWP Team
  * Author URI:        https://instawp.com/
  * License:           GPL-3.0+
@@ -19,7 +19,6 @@
 // If this file is called directly, abort.
 use InstaWP\Connect\Helpers\Curl;
 use InstaWP\Connect\Helpers\Option;
-use InstaWP\Connect\Helpers;
 
 if ( ! defined( 'WPINC' ) ) {
 	die;
@@ -27,7 +26,7 @@ if ( ! defined( 'WPINC' ) ) {
 
 global $wpdb;
 
-defined( 'INSTAWP_PLUGIN_VERSION' ) || define( 'INSTAWP_PLUGIN_VERSION', '0.1.0.51' );
+defined( 'INSTAWP_PLUGIN_VERSION' ) || define( 'INSTAWP_PLUGIN_VERSION', '0.1.0.53' );
 defined( 'INSTAWP_API_DOMAIN_PROD' ) || define( 'INSTAWP_API_DOMAIN_PROD', 'https://app.instawp.io' );
 
 $wp_plugin_url   = WP_PLUGIN_URL . '/' . plugin_basename( __DIR__ ) . '/';
@@ -89,15 +88,6 @@ function instawp_plugin_activate() {
 		update_option( 'instawp_sync_tab_roles', $roles );
 	}
 
-	$default_users = Option::get_option( 'instawp_show_plugin_to_users' );
-	if ( empty( $default_users ) ) {
-		$user_id = get_current_user_id();
-
-		if ( $user_id ) {
-			update_option( 'instawp_show_plugin_to_users', array( $user_id ) );
-		}
-	}
-
 	$connect_id = instawp_get_connect_id();
 	if ( ! empty( $connect_id ) ) {
 		$response = Curl::do_curl( "connects/{$connect_id}/restore", array( 'url' => site_url() ) );
@@ -145,25 +135,3 @@ function run_instawp() {
 add_filter( 'got_rewrite', '__return_true' );
 
 run_instawp();
-
-add_action( 'wp_head', function () {
-	if ( isset( $_GET['debug'] ) ) {
-
-//		$installer         = new Helpers\Installer( [
-//			[
-//				"slug"     => "woocommerce",
-//				"source"   => "wp.org",
-//				"type"     => "plugin",
-//				"activate" => true,
-//			]
-//		] );
-//		$post_installs_res = $installer->start();
-//
-//		echo "<pre>";
-//		print_r( $post_installs_res );
-//		echo "</pre>";
-
-
-		die();
-	}
-}, 0 );

@@ -139,9 +139,8 @@ class InstaWP_Admin {
 			return;
 		}
 
-		$selected_users = Option::get_option( 'instawp_show_plugin_to_users' );
-		$selected_users = ! empty( $selected_users ) ? $selected_users : array( get_current_user_id() );
-		if ( ! in_array( get_current_user_id(), $selected_users ) ) {
+		$selected_users = Option::get_option( 'instawp_hide_plugin_to_users' );
+		if ( ! empty( $selected_users ) && is_array( $selected_users ) && in_array( get_current_user_id(), $selected_users ) ) {
 			return;
 		}
 

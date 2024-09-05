@@ -93,6 +93,20 @@ class InstaWP_Rest_Api {
 			'callback'            => array( $this, 'site_usage' ),
 			'permission_callback' => '__return_true',
 		) );
+
+        register_rest_route( $this->namespace . '/' . $this->version_3, '/create-update-task', array(
+            'methods'             => 'POST',
+            'callback'            => array( $this, 'create_update_task' ),
+            'args'                => array(
+                'items' => array(
+                    'required'          => true,
+                    'validate_callback' => function( $param, $request, $key ) {
+                        return is_array( $param );
+                    },
+                ),
+            ),
+            'permission_callback' => '__return_true',
+        ) );
 	}
 
 	/**
@@ -102,7 +116,7 @@ class InstaWP_Rest_Api {
 	 *
 	 * @return WP_REST_Response
 	 */
-	public function set_config( $request ) {
+	public function set_config( WP_REST_Request $request ) {
 
 		$parameters           = $this->filter_params( $request );
 		$wp_username          = isset( $parameters['wp_username'] ) ? sanitize_text_field( $parameters['wp_username'] ) : '';
@@ -442,6 +456,38 @@ class InstaWP_Rest_Api {
 
 		return $this->send_response( $info );
 	}
+
+    /**
+     * Handle create update task api
+     *
+     * @param WP_REST_Request $request
+     *
+     * @return WP_REST_Response
+     */
+    public function create_update_task( WP_REST_Request $request ) {
+        $response = $this->validate_api_request( $request );
+        if ( is_wp_error( $response ) ) {
+            return $this->throw_error( $response );
+        }
+
+        $parameters = $this->filter_params( $request );
+        $items      = ! empty( $parameters['items'] ) ? array_map( 'sanitize_text_field', $parameters['items'] ): array();
+
+        if ( empty( $items ) ) {
+            return $this->send_response( array(
+                'success' => false,
+                'message' => __( 'No items found', 'instawp-connect' ),
+            ) );
+        }
+
+        as_unschedule_all_actions( 'instawp_create_update_task', [ $items ], 'instawp-connect' );
+        as_enqueue_async_action( 'instawp_create_update_task', [ $items ], 'instawp-connect' );
+
+        return $this->send_response( array(
+            'success' => true,
+            'message' => __( 'Update task create successfully', 'instawp-connect' ),
+        ) );
+    }
 
 	/**
 	 * Checks for a current route being requested, and processes the allowlist

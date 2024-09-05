@@ -3,8 +3,10 @@
  * Class for all hooks
  */
 
+use InstaWP\Connect\Helpers\Curl;
 use InstaWP\Connect\Helpers\Helper;
 use InstaWP\Connect\Helpers\Option;
+use InstaWP\Connect\Helpers\Updater;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -29,6 +31,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			add_filter( 'all_plugins', array( $this, 'plugins_data' ) );
 			add_filter( 'plugins_api_result', array( $this, 'plugins_api_result' ), 10, 3 );
 			add_action( 'admin_menu', array( $this, 'remove_edge_cache_submenu' ), 999 );
+			add_action( 'instawp_create_update_task', array( $this, 'perform_update_task' ) );
 		}
 
 		public function generate_api_key() {
@@ -318,6 +321,13 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 				$can_show = false;
 			}
 
+            if ( $can_show ) {
+                $selected_users = Option::get_option( 'instawp_hide_plugin_to_users' );
+                if ( ! empty( $selected_users ) && is_array( $selected_users ) && in_array( get_current_user_id(), $selected_users ) ) {
+                    $can_show = false;
+                }
+            }
+
 			return $can_show;
 		}
 
@@ -430,19 +440,89 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
         }
 
 		public function remove_edge_cache_submenu() {
-			$edge_cache = Option::get_option( 'instawp_hide_edge_cache' );
-			if ( $edge_cache !== 'on' ) {
-				return;
-			}
-
-			$selected_users = Option::get_option( 'instawp_show_plugin_to_users' );
-			$selected_users = ! empty( $selected_users ) ? $selected_users : array( get_current_user_id() );
-			if ( in_array( get_current_user_id(), $selected_users ) ) {
-				return;
-			}
-
-			remove_submenu_page( 'options-general.php', 'edge-cache' );
+            $selected_users = Option::get_option( 'instawp_hide_plugin_to_users' );
+            if ( ! empty( $selected_users ) && is_array( $selected_users ) && in_array( get_current_user_id(), $selected_users ) ) {
+			    remove_submenu_page( 'options-general.php', 'edge-cache' );
+            }
 		}
+
+        public function perform_update_task( $items ) {
+            require_once ABSPATH . 'wp-admin/includes/update.php';
+
+            $response_data = [];
+
+            if ( in_array( 'core', $items ) ) {
+                $update_info = get_core_updates();
+
+                if ( ! empty( $update_info ) && $update_info[0]->response === 'upgrade' ) {
+                    $installer = new Updater( [
+                        [
+                            'type' => 'core',
+                            'slug' => 'wordpress',
+                            'version' => $update_info[0]->version
+                        ]
+                    ] );
+                    $response              = $installer->update();
+                    $response_data['core'] = $response['wordpress'];
+                }
+            }
+
+            if ( in_array( 'plugins', $items ) ) {
+                if ( ! function_exists( 'get_plugins' ) ) {
+                    require_once ABSPATH . 'wp-admin/includes/plugin.php';
+                }
+                $update_info = get_plugin_updates();
+
+                if ( ! empty( $update_info ) ) {
+                    $plugins = array_chunk( array_keys( $update_info ), 5 );
+                    $response_data['plugins'] = [];
+
+                    foreach ( $plugins as $plugin_chunk ) {
+                        $update_data = [];
+
+                        foreach ( $plugin_chunk as $plugin ) {
+                            $update_data[] = [
+                                'type' => 'plugin',
+                                'slug' => $plugin,
+                            ];
+                        }
+
+                        $installer                = new Updater( $update_data );
+                        $response_data['plugins'] = array_merge( $installer->update(), $response_data['plugins'] );
+                    }
+                }
+            }
+
+            if ( in_array( 'themes', $items ) ) {
+                $update_info = get_theme_updates();
+
+                if ( ! empty( $update_info ) ) {
+                    $themes = array_chunk( array_keys( $update_info ), 5 );
+                    $response_data['themes'] = [];
+
+                    foreach ( $themes as $theme_chunk ) {
+                        $update_data = [];
+
+                        foreach ( $theme_chunk as $theme ) {
+                            $update_data[] = [
+                                'type' => 'theme',
+                                'slug' => $theme,
+                            ];
+                        }
+
+                        $installer               = new Updater( $update_data );
+                        $response_data['themes'] = array_merge( $installer->update(), $response_data['themes'] );
+                    }
+                }
+            }
+
+			as_enqueue_async_action( 'instawp_send_heartbeat', [], 'instawp-connect' );
+			
+			$connect_id = instawp_get_connect_id();
+			if ( ! empty( $connect_id ) ) {
+				Curl::do_curl( "connects/{$connect_id}/scheduled-updates", array( 'logs' => $response_data ) );
+			}
+        }
 	}
 }
 
