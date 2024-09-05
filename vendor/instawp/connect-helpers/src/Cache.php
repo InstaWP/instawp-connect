@@ -427,15 +427,26 @@ class Cache {
 
 	    // WPC Edge Cache
 	    if ( class_exists( '\Edge_Cache_Plugin' ) ) {
-		    $message = '';
-
+		    $message    = '';
 			$edge_cache = new \Edge_Cache_Plugin();
+
+			if ( class_exists( '\Edge_Cache_Atomic' ) && class_exists( '\Edge_Cache_Purge' ) ) {
+                $platform = new \Edge_Cache_Atomic();
+				$purge    = new \Edge_Cache_Purge( $platform );
+
+				$wp_domain = $platform->get_domain_name();
+				$bat_cache = $purge->purge_batcache();
+            } else {
+				$wp_domain = $edge_cache->get_wp_domain();
+				$bat_cache = $edge_cache->purge_batcache();
+			}
+
 		    $data       = array(
 			    'wp_action' => sprintf( 'manual_%s', 'purge' ),
-			    'wp_domain' => $edge_cache->get_wp_domain(),
+			    'wp_domain' => $wp_domain,
 			    'at_host'   => php_uname('n'),
 			    'ip_addr'   => $_SERVER['REMOTE_ADDR'],
-			    'batcache'  => $edge_cache->purge_batcache(),
+			    'batcache'  => $bat_cache,
 		    );
 
 		    $response = $edge_cache->query_ec_backend( 'purge', array( 'body' => $data ) );
