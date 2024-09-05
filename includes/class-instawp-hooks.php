@@ -30,7 +30,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			add_action( 'admin_notices', array( $this, 'admin_notice' ) );
 			add_filter( 'all_plugins', array( $this, 'plugins_data' ) );
 			add_filter( 'plugins_api_result', array( $this, 'plugins_api_result' ), 10, 3 );
-			add_action( 'admin_menu', array( $this, 'remove_edge_cache_submenu' ), 999 );
+			add_filter( 'edge_cache_user_can_manage_edge_cache', array( $this, 'remove_edge_cache_submenu' ), 999, 2 );
 			add_action( 'instawp_create_update_task', array( $this, 'perform_update_task' ) );
 		}
 
@@ -439,11 +439,13 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 	        return $result;
         }
 
-		public function remove_edge_cache_submenu() {
+		public function remove_edge_cache_submenu( $can_show, $current_user ) {
             $selected_users = Option::get_option( 'instawp_hide_plugin_to_users' );
-            if ( ! empty( $selected_users ) && is_array( $selected_users ) && in_array( get_current_user_id(), $selected_users ) ) {
-			    remove_submenu_page( 'options-general.php', 'edge-cache' );
+            if ( ! empty( $selected_users ) && is_array( $selected_users ) ) {
+			    $can_show = ! in_array( $current_user->ID, $selected_users );
             }
+
+            return $can_show;
 		}
 
         public function perform_update_task( $items ) {
