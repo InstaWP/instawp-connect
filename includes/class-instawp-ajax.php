@@ -393,10 +393,18 @@ class InstaWP_Ajax {
 		$can_proceed          = (bool) Helper::get_args_option( 'can_proceed', $check_usage_response, false );
 		$api_response         = Helper::get_args_option( 'api_response', $check_usage_response, array() );
 		$api_response_code    = Helper::get_args_option( 'code', $api_response );
+		$message 			  = Helper::get_args_option( 'message', $api_response );
 
 		if ( $can_proceed ) {
 			wp_send_json_success( $check_usage_response );
 		}
+
+		$error = array(
+			'error' 	=> true,
+			'title' 	=> esc_html__( 'Communication Error', 'instawp-connect' ),
+			'message' 	=> empty( $message) ? esc_html__( 'Something went wrong.', 'instawp-connect' ): esc_html( $message ),
+			'http_code'	=> empty( $api_response_code ) ? 400: intval( $api_response_code ),
+		);
 
 		if ( intval( $api_response_code ) === 404 ) {
 			$return_url      = rawurlencode( admin_url( 'tools.php?page=instawp' ) );
@@ -407,9 +415,23 @@ class InstaWP_Ajax {
 
 			Helper::set_api_domain( $api_domain );
 
-			wp_send_json_error( array(
-				'button_text' => esc_html__( 'Connect Again', 'instawp-connect' ),
-				'button_url'  => $connect_api_url,
+			wp_send_json_error( array_merge(
+				$error,
+				array(
+					'button_text' => esc_html__( 'Connect Again', 'instawp-connect' ),
+					'button_url'  => $connect_api_url,
+				)
+			) );
+		}
+
+		// Disk space data not found
+		if ( ! isset( $check_usage_response['remaining_disk_space'] ) && ! empty( $api_response ) && isset( $api_response['success'] ) && false === $api_response['success'] ) {
+			wp_send_json_error( array_merge(
+				$error,
+				array(
+					'button_text' => esc_html__( 'Contact Support', 'instawp-connect' ),
+					'button_url'  => 'https://instawp.com/support',
+				)
 			) );
 		}
 

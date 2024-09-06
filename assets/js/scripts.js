@@ -594,6 +594,22 @@
                         el_confirmation_warning.removeClass('hidden');
                         el_confirmation_warning.find('a').attr('href', response.data.button_url).html(response.data.button_text);
 
+                        // Error found other than disk limit
+                        if ( undefined !== response.data.error && true === response.data.error && undefined !== response.data.http_code ) {
+                            // Update warning title
+                            el_confirmation_warning.find('.warning-title').html(response.data.title);
+                            // Update warning sub title
+                            let subtitle = el_confirmation_warning.find('.warning-subtitle');
+                            subtitle.html( response.data.message +'<br> HTTP Error: '+ response.data.http_code );
+                            // Remove margin 
+                            subtitle.removeClass('mb-2');
+                            // Add margin bottom
+                            subtitle.addClass('mb-4');
+                            // Remove details as we don't have such details
+                            el_confirmation_warning.find('.warning-details').remove();
+                            return true;
+                        }
+
                         el_confirmation_warning.find('.remaining-site').html(response.data.remaining_site);
                         el_confirmation_warning.find('.user-allow-site').html(response.data.userAllowSite);
                         el_confirmation_warning.find('.remaining-disk-space').html(response.data.remaining_disk_space);

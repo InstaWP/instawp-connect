@@ -328,9 +328,9 @@ delete_option( 'instawp_db_offset' );
                 </div>
                 <div class="confirmation-warning hidden text-center px-24 py-8">
                     <div class="mb-2 flex justify-center text-center"><img src="<?php echo esc_url( instaWP::get_asset_url( 'migrate/assets/images/warning.svg' ) ); ?>" alt="Warning"></div>
-                    <div class="mb-2 text-graCust-300 text-lg font-medium staging-type-label"><?php esc_html_e( 'You have reached your limit', 'instawp-connect' ); ?></div>
-                    <div class="mb-2 text-gray-500 text-sm font-normal leading-6"><?php esc_html_e( 'You have exceeded the maximum allowance of your plan.', 'instawp-connect' ); ?></div>
-                    <div class="p-6 custom-bg rounded-lg border my-6">
+                    <div class="mb-2 text-graCust-300 text-lg font-medium warning-title staging-type-label"><?php esc_html_e( 'You have reached your limit', 'instawp-connect' ); ?></div>
+                    <div class="mb-2 text-gray-500 text-sm font-normal leading-6 warning-subtitle"><?php esc_html_e( 'You have exceeded the maximum allowance of your plan.', 'instawp-connect' ); ?></div>
+                    <div class="p-6 custom-bg rounded-lg warning-details border my-6">
                         <div class="flex items-center mb-6">
                             <div class="text-grayCust-900 text-base text-left font-normal w-48"><?php esc_html_e( 'Remaining Sites', 'instawp-connect' ); ?></div>
                             <div class="flex items-center text-primary-900 text-base">
