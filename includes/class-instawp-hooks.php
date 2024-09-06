@@ -453,22 +453,6 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 
             $response_data = array();
 
-            if ( in_array( 'core', $items ) ) {
-                $update_info = get_core_updates();
-
-                if ( ! empty( $update_info ) && $update_info[0]->response === 'upgrade' ) {
-                    $installer = new Updater( array(
-                        array(
-                            'type'    => 'core',
-                            'slug'    => 'wordpress',
-                            'version' => $update_info[0]->version,
-                        ),
-                    ) );
-                    $response              = $installer->update();
-                    $response_data['core'] = $response['wordpress'];
-                }
-            }
-
             if ( in_array( 'plugins', $items ) ) {
                 if ( ! function_exists( 'get_plugins' ) ) {
                     require_once ABSPATH . 'wp-admin/includes/plugin.php';
@@ -515,6 +499,22 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
                         $installer               = new Updater( $update_data );
                         $response_data['themes'] = array_merge( $installer->update(), $response_data['themes'] );
                     }
+                }
+            }
+
+            if ( in_array( 'core', $items ) ) {
+                $update_info = get_core_updates();
+
+                if ( ! empty( $update_info ) && $update_info[0]->response === 'upgrade' ) {
+                    $installer = new Updater( array(
+                        array(
+                            'type'    => 'core',
+                            'slug'    => 'wordpress',
+                            'version' => $update_info[0]->version,
+                        ),
+                    ) );
+                    $response              = $installer->update();
+                    $response_data['core'] = $response['wordpress'];
                 }
             }
 
