@@ -399,7 +399,7 @@ class InstaWP_Ajax {
 		}
 
 		if ( intval( $api_response_code ) === 404 ) {
-			$return_url      = rawurlencode( admin_url( 'tools.php?page=instawp' ) );
+            $return_url      = urlencode( admin_url( 'tools.php?page=instawp&instawp-nonce=' . wp_create_nonce( 'instawp_connect_nonce' ) ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.urlencode_urlencode
 			$api_domain      = Helper::get_api_domain();
 			$connect_api_url = $api_domain . '/authorize?source=InstaWP Connect&return_url=' . $return_url;
 
