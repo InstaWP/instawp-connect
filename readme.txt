@@ -98,6 +98,9 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 0.1.0.55 - 5 September 2024 =
+- FIX - Fixed BuddyBoss blocking InstaWP Connect plugin's REST API.
+
 = 0.1.0.54 - 5 September 2024 =
 - FIX - Fixed migration related issues in push migration.
 
