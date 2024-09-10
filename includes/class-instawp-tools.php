@@ -377,20 +377,101 @@ include $file_path;';
 		// Skip object-cache-iwp file if exists forcefully
 		$migrate_settings['excluded_paths'][] = $relative_dir . '/object-cache-iwp.php';
 
-		if ( in_array( 'active_plugins_only', $options ) ) {
-			foreach ( get_plugins() as $plugin_slug => $plugin_info ) {
-				if ( ! is_plugin_active( $plugin_slug ) ) {
-					$migrate_settings['excluded_paths'][] = $relative_dir . '/plugins/' . strstr( $plugin_slug, '/', true );
-				}
+		// Get plugins and themes inventory
+		$inventory_items = array();
+		// Get active plugins inventory
+		$active_plugins_only = in_array( 'active_plugins_only', $options );
+		foreach ( get_plugins() as $plugin_slug => $plugin_info ) {
+			// Get the plugin slug without the .php extension
+			$p_slug = strstr( $plugin_slug, '/', true );
+			// Get the plugin path
+			$p_path = $relative_dir . '/plugins/' . $p_slug;
+			// Check if the plugin is active
+			$is_active_plugin = is_plugin_active( $plugin_slug );
+			// If the plugin is not active and we are only considering active plugins, exclude the plugin
+			if ( $active_plugins_only && ! $is_active_plugin ) {
+				$migrate_settings['excluded_paths'][] = $p_path;
+			} else {
+				// Add the plugin to the inventory items
+				$inventory_items[] = array(
+					'slug'		=> $p_slug,
+					'version'	=> $plugin_info['Version'],
+					'type'		=> 'plugin',
+					'path'		=> $p_path,
+					'is_active'	=> $is_active_plugin,
+				);
 			}
 		}
 
-		if ( in_array( 'active_themes_only', $options ) ) {
-			$active_theme = wp_get_theme();
-			foreach ( wp_get_themes() as $theme_slug => $theme_info ) {
-				if ( ! in_array( $theme_info->get_stylesheet(), array( $active_theme->get_stylesheet(), $active_theme->get_template() ), true ) ) {
-					$migrate_settings['excluded_paths'][] = $relative_dir . '/themes/' . $theme_slug;
+		// Get active themes inventory
+		$active_themes_only = in_array( 'active_themes_only', $options );
+		$active_theme = wp_get_theme();
+		foreach ( wp_get_themes() as $theme_slug => $theme_info ) {
+			// Get the theme slug without the .php extension
+			$is_active_theme = in_array( $theme_info->get_stylesheet(), array( $active_theme->get_stylesheet(), $active_theme->get_template() ), true );
+			// If the theme is not active and we are only considering active themes, exclude the theme
+			if ( $active_themes_only && ! $is_active_theme ) {
+				$migrate_settings['excluded_paths'][] = $relative_dir . '/themes/' . $theme_slug;
+			} else {
+				// Add the theme to the inventory items
+				$inventory_items[] = array(
+					'slug'		=> $theme_slug,
+					'version'	=> $theme_info->get('Version'),
+					'type'		=> 'theme',
+					'path'		=> $relative_dir . '/themes/' . $theme_slug,
+					'is_active'	=> $is_active_theme,
+				);
+			}
+		}
+
+		// Save invertory items( plugins and themes ) data to process server side
+		if ( ! empty( $inventory_items ) ) {
+			
+			// Inventory data 
+			$inventory_data = array_map(
+				function($item) {
+					unset($item['path']);
+					unset($item['is_active']);
+					return $item;
+				},
+				$inventory_items
+			);
+			// Get data from api
+			$inventory_data = $this->inventory_api_call( 
+				'checksum', 
+				array(
+					'items' => $inventory_data
+				)
+		 	);
+			if ( ! empty( $inventory_data['success'] ) && ! empty( $inventory_data['data'] ) ) {
+				$inventory_data = $inventory_data['data'];
+				// final 
+				if ( empty( $migrate_settings['inventory_items'] ) ) {
+					$migrate_settings['inventory_items'] = array(
+						'items' => array(),
+						'with_checksum' => array(),
+					);
 				}
+				foreach ( $inventory_items as $inventory_key => $item ) {
+					// if the item is not a plugin or theme, we need to exclude it
+					if ( empty( $item['slug'] ) || empty( $item['version'] ) || empty( $item['type'] ) || ! in_array( $item['type'], array( 'plugin', 'theme' ), true ) || empty( $item['path'] ) ) {
+						continue;
+					}
+					if ( ! empty( $inventory_data[ $item['slug'] ] ) && ! empty( $inventory_data[ $item['slug'] ][ $item['version'] ]['checksum'] ) ) {
+						// if the checksum is the same as the one in the inventory, we need to exclude the path
+						if ( $inventory_data[ $item['slug'] ][ $item['version'] ]['checksum'] === $this->calculate_checksum( $item['path'] ) ) {
+							$migrate_settings['excluded_paths'][] = $item['path'];
+							unset($item['path']);
+							$item['checksum'] = $inventory_data[ $item['slug'] ][ $item['version'] ]['checksum'];
+							$migrate_settings['inventory_items']['with_checksum'][] = $item;
+							unset($item['checksum']);
+							unset($item['is_active']);
+							$migrate_settings['inventory_items']['items'][] = $item;
+							
+						}
+					}
+				}
+				
 			}
 		}
 

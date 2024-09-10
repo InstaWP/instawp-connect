@@ -155,7 +155,6 @@ if ( ! hash_equals( $db_api_signature, $api_signature ) ) {
 }
 
 if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
-
 	if ( ! function_exists( 'get_server_temp_dir' ) ) {
 		function get_server_temp_dir() {
 			if ( function_exists( 'sys_get_temp_dir' ) ) {
@@ -385,9 +384,9 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 						/**
 						 * @todo will finalize the logic latter
 						 */
-//						$content = str_replace( $url_path, '/', $content );
-//						$content = str_replace( "RewriteBase //", "RewriteBase /", $content );
-//						$content = str_replace( "RewriteRule . //index.php", "RewriteRule . /index.php", $content );
+						//						$content = str_replace( $url_path, '/', $content );
+						//						$content = str_replace( "RewriteBase //", "RewriteBase /", $content );
+						//						$content = str_replace( "RewriteRule . //index.php", "RewriteRule . /index.php", $content );
 					}
 
 					if ( in_array( 'skip_media_folder', $options ) ) {
@@ -488,7 +487,36 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		}
 	}
 
-//  $total_files_path         = INSTAWP_BACKUP_DIR . '.total-files-' . $migrate_key;
+	if ( ! function_exists( 'send_plugin_theme_inventory' ) ) {
+
+		/**
+		 * Send plugin and theme inventory.
+		 *
+		 * @param array $migrate_settings Migration settings.
+		 */
+		function send_plugin_theme_inventory( $migrate_settings ) {
+			if ( empty( $migrate_settings['inventory_items'] ) || ! is_array( $migrate_settings['inventory_items'] ) || empty( $migrate_settings['inventory_items']['items'] ) || empty( $migrate_settings['inventory_items']['with_checksum'] ) ) {
+				return;
+			}
+			global $tracking_db;
+			// Check if the function has already been run
+			$has_run = $tracking_db->get_option( 'instawp_inventory_sent', 0 );
+
+			if ( ! empty( $has_run ) ) {
+				// Set the flag to indicate the function has run
+				$tracking_db->update_option( 'instawp_inventory_sent', 1 );
+				header( 'x-iwp-status: true' );
+				header( 'x-iwp-message: Inventory items sent' );
+				header( 'Content-Type: application/json' );
+				header( 'x-file-type: inventory' );
+				echo json_encode( $migrate_settings['inventory_items'] );
+				die();
+			}
+		}
+		
+	}
+
+	//  $total_files_path         = INSTAWP_BACKUP_DIR . '.total-files-' . $migrate_key;
 	$migrate_settings         = $tracking_db->get_option( 'migrate_settings' );
 	$excluded_paths           = isset( $migrate_settings['excluded_paths'] ) ? $migrate_settings['excluded_paths'] : array();
 	$skip_folders             = array_merge( array( 'wp-content/cache', 'editor', 'wp-content/upgrade', 'wp-content/instawpbackups' ), $excluded_paths );
@@ -508,6 +536,9 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			die();
 		}
 	}
+
+	// Send plugin and theme inventory
+	send_plugin_theme_inventory( $migrate_settings );
 
 	$unsent_files_count  = $tracking_db->query_count( 'iwp_files_sent', array( 'sent' => '0' ) );
 	$progress_percentage = 0;
