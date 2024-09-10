@@ -53,7 +53,7 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 				'methods'             => 'DELETE',
 				'callback'            => array( $this, 'delete_events' ),
 				'permission_callback' => '__return_true',
-			)
+			),
 		) );
 
 		register_rest_route( $this->namespace . '/' . $this->version, '/sync/summary', array(
@@ -169,19 +169,19 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 		$message    = ! empty( $params['message'] ) ? $params['message'] : '';
 
 		if ( count( $event_ids ) > 5 ) {
-			return $this->send_response( [
+			return $this->send_response( array(
 				'success' => false,
 				'message' => 'More than 5 events are not allowed at a time.',
-			] );
+			) );
 		}
 
 		$events = $this->sync->generate_pending_sync_events( $connect_id, $event_ids );
 
 		if ( empty( $events ) ) {
-			return $this->send_response( [
+			return $this->send_response( array(
 				'success' => false,
 				'message' => 'No events found',
-			] );
+			) );
 		}
 
 		$events       = array_slice( $events, 0, INSTAWP_EVENTS_SYNC_PER_PAGE );
@@ -197,10 +197,10 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 		}
 
 		if ( $sync_quota_full ) {
-			return $this->send_response( [
+			return $this->send_response( array(
 				'success' => false,
 				'message' => 'Sync Quota Full',
-			] );
+			) );
 		}
 
 		$data     = array( 'total_events' => INSTAWP_EVENTS_SYNC_PER_PAGE );
@@ -232,7 +232,10 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 			}
 		}
 
-		$admin_users = get_users( array( 'role' => 'administrator', 'fields' => 'ID' ) );
+		$admin_users = get_users( array(
+			'role'   => 'administrator',
+			'fields' => 'ID',
+		) );
 		$user_id     = is_array( $admin_users ) && isset( $admin_users[0] ) ? (int) $admin_users[0] : 1;
 
 		$packed_data = array(
@@ -248,24 +251,24 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 		$response = $this->sync->sync_upload( $packed_data );
 
 		if ( ! isset( $response['success'] ) || $response['success'] !== true ) {
-			return $this->send_response( [
+			return $this->send_response( array(
 				'success' => false,
 				'message' => $response['message'],
-			] );
+			) );
 		}
 
 		$sync_id = ! empty( $response['data']['sync_id'] ) ? $response['data']['sync_id'] : '';
 
 		if ( empty( $sync_id ) ) {
-			return $this->send_response( [
+			return $this->send_response( array(
 				'success' => false,
 				'message' => 'Sync ID missing!',
-			] );
+			) );
 		}
 
 		$response = $this->sync->update_sync_events_status( $connect_id, $sync_id );
 		if ( $response['success'] === true ) {
-			$events        = [];
+			$events        = array();
 			$sync_response = isset( $response['data']['changes']['changes']['sync_response'] ) ? $response['data']['changes']['changes']['sync_response'] : array();
 
 			foreach ( $sync_response as $data ) {
@@ -304,13 +307,13 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 		global $wpdb;
 
 		$params    = $request->get_params();
-		$event_ids = ! empty( $params['event_ids'] ) ? array_map( 'intval', $params['event_ids'] ) : [];
+		$event_ids = ! empty( $params['event_ids'] ) ? array_map( 'intval', $params['event_ids'] ) : array();
 
 		if ( count( $event_ids ) < 1 ) {
-			return $this->send_response( [
+			return $this->send_response( array(
 				'success' => false,
 				'message' => 'No event ids provided',
-			] );
+			) );
 		}
 
 		$placeholders = implode( ',', array_fill( 0, count( $event_ids ), '%d' ) );
@@ -323,10 +326,10 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 			$wpdb->prepare( "DELETE FROM " . INSTAWP_DB_TABLE_EVENT_SITES . " WHERE event_id IN ($placeholders)", $event_ids ) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 		);
 
-		return $this->send_response( [
+		return $this->send_response( array(
 			'success' => true,
 			'message' => 'Events deleted successfully',
-		] );
+		) );
 	}
 
 	/**

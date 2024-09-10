@@ -21,6 +21,7 @@ class InstaWP_Rest_Api {
 
 		add_action( 'rest_api_init', array( $this, 'add_api_routes' ) );
 		add_filter( 'rest_authentication_errors', array( $this, 'rest_access' ), 999 );
+        add_filter( 'bb_exclude_endpoints_from_restriction', array( $this, 'endpoints_from_restriction_callback' ), 99, 2 );
 		add_action( 'init', array( $this, 'perform_actions' ), 0 );
 	}
 
@@ -471,7 +472,7 @@ class InstaWP_Rest_Api {
         }
 
         $parameters = $this->filter_params( $request );
-        $items      = ! empty( $parameters['items'] ) ? array_map( 'sanitize_text_field', $parameters['items'] ): array();
+        $items      = ! empty( $parameters['items'] ) ? array_map( 'sanitize_text_field', $parameters['items'] ) : array();
 
         if ( empty( $items ) ) {
             return $this->send_response( array(
@@ -480,8 +481,8 @@ class InstaWP_Rest_Api {
             ) );
         }
 
-        as_unschedule_all_actions( 'instawp_create_update_task', [ $items ], 'instawp-connect' );
-        as_enqueue_async_action( 'instawp_create_update_task', [ $items ], 'instawp-connect' );
+        as_unschedule_all_actions( 'instawp_create_update_task', array( $items ), 'instawp-connect' );
+        as_enqueue_async_action( 'instawp_create_update_task', array( $items ), 'instawp-connect' );
 
         return $this->send_response( array(
             'success' => true,
@@ -505,6 +506,16 @@ class InstaWP_Rest_Api {
 
 		return $instawp_route ? true : $access;
 	}
+
+    /**
+     * Bypass BuddyBoss endpoints blocking
+     */
+    public function endpoints_from_restriction_callback( $default_exclude_endpoint, $current_endpoint ) {
+        if ( strpos( $current_endpoint, 'instawp-connect' ) !== false ) {
+            $default_exclude_endpoint[] = $current_endpoint;
+        }
+        return $default_exclude_endpoint;
+    }
 
 	/**
 	 * Check if Current REST route contains instawp or not
@@ -687,11 +698,11 @@ class InstaWP_Rest_Api {
 		$current_route = $this->get_current_route();
 
 		if ( $current_route && strpos( $current_route, 'instawp-connect' ) !== false ) {
-			$endpoints = [
-				'create' => [ 'pull', 'push', 'post-cleanup' ],
-				'manage' => [ 'manage', 'content', 'woocommerce' ],
-				'sync' => [ 'sync' ],
-			];
+			$endpoints = array(
+				'create' => array( 'pull', 'push', 'post-cleanup' ),
+				'manage' => array( 'manage', 'content', 'woocommerce' ),
+				'sync'   => array( 'sync' ),
+			);
 
 			if ( defined( 'IWP_PLUGIN_DISABLE_FEATURES' ) && is_array( IWP_PLUGIN_DISABLE_FEATURES ) ) {
 				foreach ( IWP_PLUGIN_DISABLE_FEATURES as $key ) {

@@ -1,6 +1,8 @@
 <?php
-
 // phpcs:disable
+
+include_once 'includes/functions-pull-push.php';
+
 class IWPDB {
 
 	/**
@@ -10,6 +12,7 @@ class IWPDB {
 	public $last_error = '';
 	private $migrate_key = '';
 	private $options_data = array();
+	private $max_retries = 10;
 
 	private static $_table_option = 'iwp_options';
 
@@ -190,17 +193,28 @@ class IWPDB {
 			$host = "[$host]";
 		}
 
-		$mysqli = new mysqli( $host, $db_username, $db_password, $db_name, $port, $socket );
+		$attempt = 0;
 
-		if ( $mysqli->connect_error ) {
+		while ( $attempt < $this->max_retries ) {
+			$mysqli = new mysqli( $host, $db_username, $db_password, $db_name, $port, $socket );
+
+			if ( ! $mysqli->connect_error ) {
+				mysqli_set_charset( $mysqli, "utf8" );
+				$this->conn = $mysqli;
+
+				return;
+			}
+
 			$this->last_error = $mysqli->connect_error;
+
+			$attempt ++;
+			if ( $attempt < $this->max_retries ) {
+				$retry_delay = iwp_backoff_timer( $attempt );
+				sleep( $retry_delay );
+			}
 		}
 
-		if ( $mysqli ) {
-			mysqli_set_charset( $mysqli, "utf8" );
-
-			$this->conn = $mysqli;
-		}
+		error_log( "Failed to connect to database after {$this->max_retries} attempts. Last error: {$this->last_error}" );
 	}
 
 	public function set_options_data() {
