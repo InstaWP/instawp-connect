@@ -15,6 +15,7 @@
 use InstaWP\Connect\Helpers\Curl;
 use InstaWP\Connect\Helpers\Helper;
 use InstaWP\Connect\Helpers\Option;
+use InstaWP\Connect\Helpers\WPConfig;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -93,8 +94,12 @@ class instaWP {
 			);
 		}
 
-		$wp_config = new \InstaWP\Connect\Helpers\WPConfig( $params );
-		$wp_config->update();
+        try {
+            $wp_config = new WPConfig( $params );
+            $wp_config->set();
+        } catch ( \Exception $e ) {
+            error_log( $e->getMessage() );
+        }
 	}
 
 	public function register_actions() {

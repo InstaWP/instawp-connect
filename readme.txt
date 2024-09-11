@@ -98,6 +98,10 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 0.1.0.56 - September 2024 =
+- FIX - Fixed Debug Log can't delete issue.
+- FIX - Set default heartbeat interval to 4 hours.
+
 = 0.1.0.55 - 10 September 2024 =
 - FIX - Fixed BuddyBoss blocking InstaWP Connect plugin's REST API.
 - FIX - Improved migration error handling.
