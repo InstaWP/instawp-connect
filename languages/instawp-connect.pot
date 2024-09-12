@@ -5,7 +5,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2024-09-09 10:37+0000\n"
+"POT-Creation-Date: 2024-09-11 12:26+0000\n"
 "X-Poedit-Basepath: ..\n"
 "X-Poedit-KeywordsList: __;_e;_ex:1,2c;_n:1,2;_n_noop:1,2;_nx:1,2,4c;_nx_noop:1,2,3c;_x:1,2c;esc_attr__;esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c\n"
 "X-Poedit-SearchPath-0: .\n"
@@ -229,27 +229,39 @@ msgstr ""
 msgid "Could not create migrate id."
 msgstr ""
 
-#: includes/class-instawp-ajax.php:411
+#: includes/class-instawp-ajax.php:404
+msgid "Communication Error"
+msgstr ""
+
+#: includes/class-instawp-ajax.php:405
+msgid "Something went wrong."
+msgstr ""
+
+#: includes/class-instawp-ajax.php:421
 msgid "Connect Again"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:416
+#: includes/class-instawp-ajax.php:432, includes/class-instawp-hooks.php:299
+msgid "Contact Support"
+msgstr ""
+
+#: includes/class-instawp-ajax.php:438
 msgid "Increase Limit"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:444
+#: includes/class-instawp-ajax.php:466
 msgid "Empty folder!"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:548
+#: includes/class-instawp-ajax.php:570
 msgid "%s rows"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:595
+#: includes/class-instawp-ajax.php:617
 msgid "We have identified following large files in your installation:"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:661
+#: includes/class-instawp-ajax.php:683
 msgid "Plugin reset successfully."
 msgstr ""
 
@@ -315,10 +327,6 @@ msgstr ""
 
 #: includes/class-instawp-hooks.php:287
 msgid "Go to InstaWP ➝"
-msgstr ""
-
-#: includes/class-instawp-hooks.php:299
-msgid "Contact Support"
 msgstr ""
 
 #: includes/class-instawp-hooks.php:379

@@ -550,7 +550,7 @@ class InstaWP_Setting {
 					'title'        => __( 'Heartbeat Interval (Minutes)', 'instawp-connect' ),
 					'tooltip'      => __( 'It is the interval of heartbeat in minutes.', 'instawp-connect' ),
 					'desc'         => __( 'Minimum is 15 minutes and maximum is 60 minutes.', 'instawp-connect' ),
-					'placeholder'  => '15',
+					'placeholder'  => '240',
 					'class'        => '!w-80',
 					'parent_class' => ( $heartbeat !== 'on' ) ? 'hidden' : '',
 					'attributes'   => array(

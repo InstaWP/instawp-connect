@@ -37,8 +37,8 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 			$heartbeat = empty( $heartbeat ) ? 'on' : $heartbeat;
 
 			if ( 'on' === $heartbeat ) {
-				$interval = Option::get_option( 'instawp_api_heartbeat', 15 );
-				$interval = empty( $interval ) ? 15 : (int) $interval;
+				$interval = Option::get_option( 'instawp_api_heartbeat', 240 );
+				$interval = empty( $interval ) ? 240 : (int) $interval;
 
 				if ( ! as_has_scheduled_action( 'instawp_handle_heartbeat', array(), 'instawp-connect' ) ) {
 					as_schedule_recurring_action( time(), ( $interval * MINUTE_IN_SECONDS ), 'instawp_handle_heartbeat', array(), 'instawp-connect' );
