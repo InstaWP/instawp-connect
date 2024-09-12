@@ -234,6 +234,11 @@ class InstaWP_Sync_Helpers {
 			return false;
 		}
 
-		return \Elementor\Plugin::$instance->documents->get( $post_id )->is_built_with_elementor();
+        $document = \Elementor\Plugin::$instance->documents->get( $post_id );
+        if ( ! $document || ! $document->is_built_with_elementor() ) {
+            return false;
+        }
+
+		return true;
 	}
 }
