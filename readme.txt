@@ -101,6 +101,9 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 = 0.1.0.56 - September 2024 =
 - FIX - Fixed Debug Log can't delete issue.
 - FIX - Set default heartbeat interval to 4 hours.
+- FIX - 2 Way Sync Customizer Changes not saving.
+- FIX - 2 Way Sync error in Elementor checking.
+- FIX - 2 Way Sync Divi Builder issue.
 
 = 0.1.0.55 - 10 September 2024 =
 - FIX - Fixed BuddyBoss blocking InstaWP Connect plugin's REST API.

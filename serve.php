@@ -101,7 +101,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		 * @param array $migrate_settings Migration settings.
 		 */
 		function send_plugin_theme_inventory( $migrate_settings ) {
-			if ( empty( $migrate_settings['inventory_items'] ) || ! is_array( $migrate_settings['inventory_items'] ) || empty( $migrate_settings['inventory_items']['items'] ) || empty( $migrate_settings['inventory_items']['with_checksum'] ) ) {
+			if ( empty( $migrate_settings['inventory_items'] ) || ! is_array( $migrate_settings['inventory_items'] ) || empty( $migrate_settings['inventory_items']['token'] ) || empty( $migrate_settings['inventory_items']['items'] ) || empty( $migrate_settings['inventory_items']['with_checksum'] ) ) {
 				return;
 			}
 			global $tracking_db;

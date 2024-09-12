@@ -20,6 +20,9 @@ class InstaWP_Sync_Post {
 		// Elementor.
 		add_action( 'elementor/document/after_save', array( $this, 'handle_elementor' ), 999 );
 
+        // Divi.
+        add_filter( 'et_fb_ajax_save_verification_result', '__return_true' );
+
 		// Duplicate Post.
 		add_filter( 'duplicate_post_excludelist_filter', array( $this, 'custom_fields_filter' ) );
 		add_filter( 'duplicate_post_post_copy', array( $this, 'generate_reference' ) );

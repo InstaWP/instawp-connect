@@ -426,7 +426,10 @@ include $file_path;';
 
 		// Save invertory items( plugins and themes ) data to process server side
 		try {
-			if ( ! empty( $inventory_items ) ) {
+			// Get api key
+			$encoded_api_key = Helper::get_api_key();
+			if ( ! empty( $inventory_items ) && ! empty( $encoded_api_key ) ) {
+				$encoded_api_key = base64_encode( $encoded_api_key );
 				
 				// Inventory data 
 				$inventory_data = array_map(
@@ -437,8 +440,10 @@ include $file_path;';
 					},
 					$inventory_items
 				);
+				
 				// Get data from api
 				$inventory_data = InstaWP_Tools::inventory_api_call( 
+					$encoded_api_key,
 					'checksum', 
 					array(
 						'items' => $inventory_data
@@ -449,6 +454,7 @@ include $file_path;';
 					// final 
 					if ( empty( $migrate_settings['inventory_items'] ) ) {
 						$migrate_settings['inventory_items'] = array(
+							'token' => $encoded_api_key,
 							'items' => array(),
 							'with_checksum' => array(),
 						);
@@ -504,9 +510,8 @@ include $file_path;';
 	 * @param array $body
 	 * @return array
 	 */
-	public static function inventory_api_call( $end_point = 'checksum', $body = array() ) {
+	public static function inventory_api_call( $api_key, $end_point = 'checksum', $body = array() ) {
 
-		$api_key = Helper::get_api_key();
 		if ( empty( $api_key ) ) {
 			return array(
 				'success' => false,

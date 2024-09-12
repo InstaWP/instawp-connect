@@ -83,16 +83,10 @@ class InstaWP_Sync_Customizer {
 			$data['wp_css'] = wp_get_custom_css();
 		}
 
-		$customizer = InstaWP_Sync_DB::checkCustomizerChanges( INSTAWP_DB_TABLE_EVENTS );
-		$event_id   = null;
-
-		if ( ! empty( $customizer ) ) {
-			$customizer = reset( $customizer );
-			$event_id   = $customizer->id;
-		}
+		$reference_id = $template . '_customizer';
 
 		$event_name = __('WP Customizer Changes', 'instawp-connect' );
-		InstaWP_Sync_DB::insert_update_event( $event_name, 'customizer_changes', 'customizer', '', $event_name, $data, $event_id );
+		InstaWP_Sync_DB::insert_update_event( $event_name, 'customizer_changes', 'customizer', $reference_id, $event_name, $data );
 	}
 
 	public function parse_event( $response, $v ) {
