@@ -425,54 +425,64 @@ include $file_path;';
 		}
 
 		// Save invertory items( plugins and themes ) data to process server side
-		if ( ! empty( $inventory_items ) ) {
-			
-			// Inventory data 
-			$inventory_data = array_map(
-				function($item) {
-					unset($item['path']);
-					unset($item['is_active']);
-					return $item;
-				},
-				$inventory_items
-			);
-			// Get data from api
-			$inventory_data = $this->inventory_api_call( 
-				'checksum', 
-				array(
-					'items' => $inventory_data
-				)
-		 	);
-			if ( ! empty( $inventory_data['success'] ) && ! empty( $inventory_data['data'] ) ) {
-				$inventory_data = $inventory_data['data'];
-				// final 
-				if ( empty( $migrate_settings['inventory_items'] ) ) {
-					$migrate_settings['inventory_items'] = array(
-						'items' => array(),
-						'with_checksum' => array(),
-					);
-				}
-				foreach ( $inventory_items as $inventory_key => $item ) {
-					// if the item is not a plugin or theme, we need to exclude it
-					if ( empty( $item['slug'] ) || empty( $item['version'] ) || empty( $item['type'] ) || ! in_array( $item['type'], array( 'plugin', 'theme' ), true ) || empty( $item['path'] ) ) {
-						continue;
+		try {
+			if ( ! empty( $inventory_items ) ) {
+				
+				// Inventory data 
+				$inventory_data = array_map(
+					function($item) {
+						unset($item['path']);
+						unset($item['is_active']);
+						return $item;
+					},
+					$inventory_items
+				);
+				// Get data from api
+				$inventory_data = InstaWP_Tools::inventory_api_call( 
+					'checksum', 
+					array(
+						'items' => $inventory_data
+					)
+				);
+				if ( ! empty( $inventory_data['success'] ) && ! empty( $inventory_data['data'] ) ) {
+					$inventory_data = $inventory_data['data'];
+					// final 
+					if ( empty( $migrate_settings['inventory_items'] ) ) {
+						$migrate_settings['inventory_items'] = array(
+							'items' => array(),
+							'with_checksum' => array(),
+						);
 					}
-					if ( ! empty( $inventory_data[ $item['slug'] ] ) && ! empty( $inventory_data[ $item['slug'] ][ $item['version'] ]['checksum'] ) ) {
-						// if the checksum is the same as the one in the inventory, we need to exclude the path
-						if ( $inventory_data[ $item['slug'] ][ $item['version'] ]['checksum'] === $this->calculate_checksum( $item['path'] ) ) {
-							$migrate_settings['excluded_paths'][] = $item['path'];
-							unset($item['path']);
-							$item['checksum'] = $inventory_data[ $item['slug'] ][ $item['version'] ]['checksum'];
-							$migrate_settings['inventory_items']['with_checksum'][] = $item;
-							unset($item['checksum']);
-							unset($item['is_active']);
-							$migrate_settings['inventory_items']['items'][] = $item;
-							
+					foreach ( $inventory_items as $inventory_key => $item ) {
+						// if the item is not a plugin or theme, we need to exclude it
+						if ( empty( $item['slug'] ) || empty( $item['version'] ) || empty( $item['type'] ) || ! in_array( $item['type'], array( 'plugin', 'theme' ), true ) || empty( $item['path'] ) ) {
+							continue;
+						}
+						if ( ! empty( $inventory_data[ $item['type'] ][ $item['slug'] ] ) && ! empty( $inventory_data[ $item['type'] ][ $item['slug'] ][ $item['version'] ]['checksum'] ) ) {
+							// if the checksum is the same as the one in the inventory, we need to exclude the path
+							if ( $inventory_data[ $item['type'] ][ $item['slug'] ][ $item['version'] ]['checksum'] === InstaWP_Tools::calculate_checksum( $item['path'] ) ) {
+								// if the checksum is the same as the one in the inventory, we need to exclude the path
+								$migrate_settings['excluded_paths'][] = $item['path'];
+								unset($item['path']);
+								// add the checksum to the item
+								$item['checksum'] = sanitize_text_field( $inventory_data[ $item['type'] ][ $item['slug'] ][ $item['version'] ]['checksum'] );
+								// add the item to the inventory items
+								$migrate_settings['inventory_items']['with_checksum'][] = $item;
+
+								// unset the checksum from the item
+								unset($item['checksum']);
+								unset($item['is_active']);
+								// add the item to the inventory items
+								$migrate_settings['inventory_items']['items'][] = $item;
+								
+							}
 						}
 					}
+					
 				}
-				
 			}
+		} catch (\Exception $e) {
+			error_log( 'Error in processing migration settings inventory items: ' . $e->getMessage() );
 		}
 
 		if ( in_array( 'skip_media_folder', $options ) ) {
@@ -485,6 +495,108 @@ include $file_path;';
 		}
 
 		return apply_filters( 'instawp/filters/process_migration_settings', $migrate_settings );
+	}
+
+	/**
+	 * Inventory API call
+	 * 
+	 * @param string $end_point
+	 * @param array $body
+	 * @return array
+	 */
+	public static function inventory_api_call( $end_point = 'checksum', $body = array() ) {
+
+		$api_key = Helper::get_api_key();
+		if ( empty( $api_key ) ) {
+			return array(
+				'success' => false,
+				'message' => __( 'API key not found', 'instawp-connect' )
+			);
+		}
+		$response = wp_remote_post( 
+			esc_url( 'https://inventory.instawp.io/wp-json/instawp-checksum/v1/'. sanitize_key( $end_point ) ), 
+			array(
+				'body'    => $body,
+				'headers' => array(
+					'Authorization' => 'Bearer ' . $api_key,
+				),
+			)
+		);
+
+		if ( is_wp_error( $response ) ) {
+			return array(
+				'success' => false,
+				'message' => $response->get_error_message(),
+			);
+		}
+
+		$response_body = wp_remote_retrieve_body( $response );
+		$response_data = json_decode( $response_body, true );
+
+		if ( json_last_error() !== JSON_ERROR_NONE ) {
+			return array(
+				'success' => false,
+				'message' => 'Invalid response format',
+			);
+		}
+
+		return $response_data;
+	}
+
+	/**
+	 * Calculate the crc32 based checksum of all files in a WordPress plugin|theme directory.
+	 *
+	 * @param string $dir The path to the specific plugin|theme directory.
+	 * @param string $hash_algo The hashing algorithm to use (e.g., 'md5', 'sha256', 'xxh3').
+	 * @return string The checksum for the entire plugin|theme.
+	 */
+	public static function calculate_checksum( $folder ) {
+		$files = new RecursiveIteratorIterator(
+			new RecursiveDirectoryIterator( $folder, RecursiveDirectoryIterator::SKIP_DOTS ),
+			RecursiveIteratorIterator::LEAVES_ONLY
+		);
+
+		$totalHash = 0;
+		$fileCount = 0;
+		$totalSize = 0;
+
+		foreach ( $files as $file ) {
+			if ( $file->isFile() ) {
+
+				++$fileCount;
+				$filePath   = $file->getPathname();
+				$fileName   = $file->getFilename();
+				$fileSize   = $file->getSize();
+				$totalSize += $fileSize;
+				// Hash file metadata
+				$metadataHash = crc32( $fileName . $fileSize );
+
+				// Hash file contents (first and last 4KB)
+				$handle = fopen( $filePath, 'rb' );
+				if ( $handle ) {
+					// Read first 4KB
+					$firstChunk = fread( $handle, 4096 );
+					$firstHash  = crc32( $firstChunk );
+
+					// Read last 4KB
+					fseek( $handle, -4096, SEEK_END );
+					$lastChunk = fread( $handle, 4096 );
+					$lastHash  = crc32( $lastChunk );
+
+					fclose( $handle );
+				}
+
+				// Combine hashes
+				$fileHash   = $metadataHash ^ $firstHash ^ $lastHash;
+				$totalHash ^= $fileHash;
+			}
+		}
+
+		// Incorporate file count and total size into final hash
+		$finalHash = $totalHash ^ crc32( $fileCount . $totalSize );
+
+		// Return the checksum
+		return sprintf( '%u', $finalHash );
 	}
 
 	public static function get_unsupported_active_plugins() {
