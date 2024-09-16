@@ -93,6 +93,38 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 	$config_file_path         = WP_ROOT . '/wp-config.php';
 	$handle_config_separately = false;
 
+	if ( ! function_exists( 'send_plugin_theme_inventory' ) ) {
+
+		/**
+		 * Send plugin and theme inventory.
+		 *
+		 * @param array $migrate_settings Migration settings.
+		 */
+		function send_plugin_theme_inventory( $migrate_settings ) {
+			if ( empty( $migrate_settings['inventory_items'] ) || ! is_array( $migrate_settings['inventory_items'] ) || empty( $migrate_settings['inventory_items']['token'] ) || empty( $migrate_settings['inventory_items']['items'] ) || empty( $migrate_settings['inventory_items']['with_checksum'] ) ) {
+				return;
+			}
+			global $tracking_db;
+			// Check if the function has already been run
+			$has_run = $tracking_db->get_option( 'instawp_inventory_sent', 0 );
+
+			if ( empty( $has_run ) ) {
+				// Set the flag to indicate the function has run
+				$tracking_db->update_option( 'instawp_inventory_sent', 1 );
+				header( 'x-iwp-status: true' );
+				header( 'x-iwp-message: Inventory items sent' );
+				header( 'Content-Type: application/json' );
+				header( 'x-file-type: inventory' );
+				echo json_encode( $migrate_settings['inventory_items'] );
+				die();
+			}
+		}
+		
+	}
+
+	// Send plugin and theme inventory
+	send_plugin_theme_inventory( $migrate_settings );
+
 	if ( ! file_exists( $config_file_path ) ) {
 		$config_file_path = dirname( WP_ROOT ) . '/wp-config.php';
 
