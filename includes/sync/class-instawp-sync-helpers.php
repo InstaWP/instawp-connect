@@ -235,7 +235,7 @@ class InstaWP_Sync_Helpers {
 		}
 
         $document = \Elementor\Plugin::$instance->documents->get( $post_id );
-        if ( ! $document || ! $document->is_built_with_elementor() ) {
+        if ( ! $document || ! method_exists( $document, 'is_built_with_elementor' ) || ! $document->is_built_with_elementor() ) {
             return false;
         }
 

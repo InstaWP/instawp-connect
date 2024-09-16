@@ -5,6 +5,15 @@
             $label_classes    = array( $event_status, '[&.completed1]:text-red-500' );
             $label_attributes = '';
             $datetime         = wp_date( 'M j, Y H:i A', strtotime( $event->date ) );
+            $user_id          = $event->user_id;
+            $synced_by        = '--';
+
+            if ( ! empty( $user_id ) ) {
+                $user = get_user_by( 'id', $user_id );
+                if ( ! empty( $user ) ) {
+                    $synced_by = $user->display_name;
+                }
+            }
 
             if ( $event_status === 'completed' ) {
                 $label_classes[]   = 'hint--left hint--success';
@@ -22,6 +31,7 @@
             </td>
             <td class="whitespace-nowrap py-3 px-3 text-sm font-medium text-grayCust-300"><?php echo esc_html( $event->event_name ); ?></td>
             <td class="whitespace-nowrap px-3 py-3 font-medium text-sm text-grayCust-300 instawp-event-title-td"><?php echo esc_html( $event->title ); ?></td>
+            <td class="whitespace-nowrap px-3 py-3 font-medium text-sm text-grayCust-300"><?php echo esc_html( $synced_by ); ?></td>
             <td class="whitespace-nowrap px-3 py-3 font-medium text-sm text-grayCust-300"><?php echo esc_html( $datetime ); ?></td>
             <td class="whitespace-nowrap px-3 py-3 text-center font-medium text-sm text-grayCust-300">
                 <div class="flex flex-col items-center">
