@@ -1,7 +1,7 @@
 <?php
 // phpcs:disable
 
-include_once 'includes/functions-pull-push.php';
+include_once 'functions-pull-push.php';
 
 class IWPDB {
 
