@@ -441,12 +441,16 @@ include $file_path;';
 					$inventory_items
 				);
 				
+				// Check if its a staging site
+				$api_options = get_option( 'instawp_api_options', array() );
+				$is_staging = ( ! empty( $api_options ) && ! empty( $api_options['api_url'] ) && false !== stripos( $api_options['api_url'], 'stage' ) ) ? 1 : 0;
 				// Get data from api
 				$inventory_data = InstaWP_Tools::inventory_api_call( 
 					$encoded_api_key,
 					'checksum', 
+					$is_staging,
 					array(
-						'items' => $inventory_data
+						'items' => $inventory_data,
 					)
 				);
 				if ( ! empty( $inventory_data['success'] ) && ! empty( $inventory_data['data'] ) ) {
@@ -457,8 +461,13 @@ include $file_path;';
 							'token' => $encoded_api_key,
 							'items' => array(),
 							'with_checksum' => array(),
+							'staging' => $is_staging,
 						);
 					}
+
+					// Absolute path
+					$absolute_path = trailingslashit( ABSPATH );
+
 					foreach ( $inventory_items as $inventory_key => $item ) {
 						// if the item is not a plugin or theme, we need to exclude it
 						if ( empty( $item['slug'] ) || empty( $item['version'] ) || empty( $item['type'] ) || ! in_array( $item['type'], array( 'plugin', 'theme' ), true ) || empty( $item['path'] ) ) {
@@ -466,7 +475,7 @@ include $file_path;';
 						}
 						if ( ! empty( $inventory_data[ $item['type'] ][ $item['slug'] ] ) && ! empty( $inventory_data[ $item['type'] ][ $item['slug'] ][ $item['version'] ]['checksum'] ) ) {
 							// if the checksum is the same as the one in the inventory, we need to exclude the path
-							if ( $inventory_data[ $item['type'] ][ $item['slug'] ][ $item['version'] ]['checksum'] === InstaWP_Tools::calculate_checksum( $item['path'] ) ) {
+							if ( $inventory_data[ $item['type'] ][ $item['slug'] ][ $item['version'] ]['checksum'] === InstaWP_Tools::calculate_checksum( $absolute_path . '' . $item['path'] ) ) {
 								// if the checksum is the same as the one in the inventory, we need to exclude the path
 								$migrate_settings['excluded_paths'][] = $item['path'];
 								unset($item['path']);
@@ -510,7 +519,7 @@ include $file_path;';
 	 * @param array $body
 	 * @return array
 	 */
-	public static function inventory_api_call( $api_key, $end_point = 'checksum', $body = array() ) {
+	public static function inventory_api_call( $api_key, $end_point = 'checksum', $is_staging, $body = array() ) {
 
 		if ( empty( $api_key ) ) {
 			return array(
@@ -524,6 +533,7 @@ include $file_path;';
 				'body'    => $body,
 				'headers' => array(
 					'Authorization' => 'Bearer ' . $api_key,
+					'staging' => $is_staging
 				),
 			)
 		);
@@ -556,6 +566,11 @@ include $file_path;';
 	 * @return string The checksum for the entire plugin|theme.
 	 */
 	public static function calculate_checksum( $folder ) {
+
+		if ( ! is_dir( $folder ) ) {
+			return false;
+		}
+
 		$files = new RecursiveIteratorIterator(
 			new RecursiveDirectoryIterator( $folder, RecursiveDirectoryIterator::SKIP_DOTS ),
 			RecursiveIteratorIterator::LEAVES_ONLY
