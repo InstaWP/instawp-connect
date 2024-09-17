@@ -519,7 +519,7 @@ include $file_path;';
 	 * @param array $body
 	 * @return array
 	 */
-	public static function inventory_api_call( $api_key, $end_point = 'checksum', $is_staging, $body = array() ) {
+	public static function inventory_api_call( $api_key, $end_point = 'checksum', $is_staging = 0, $body = array() ) {
 
 		if ( empty( $api_key ) ) {
 			return array(
