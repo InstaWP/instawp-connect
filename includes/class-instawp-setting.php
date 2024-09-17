@@ -9,19 +9,21 @@ class InstaWP_Setting {
 
 	public static function get_stages() {
 		$stages = array(
-			'initiated'              => esc_html__( 'Migration started', 'instawp-connect' ),
-			'start-insta-site'       => esc_html__( 'Site creation started in InstaWP', 'instawp-connect' ),
-			'pull-ready'             => esc_html__( 'Ready to pull files and database', 'instawp-connect' ),
-			'finished-insta-site'    => esc_html__( 'Site created at InstaWP', 'instawp-connect' ),
-			'pull-initiated'         => esc_html__( 'Pull started for files and database', 'instawp-connect' ),
-			'pull-files-in-progress' => esc_html__( 'Files pulling is running', 'instawp-connect' ),
-			'pull-files-finished'    => esc_html__( 'Files pulling is completed', 'instawp-connect' ),
-			'pull-db-in-progress'    => esc_html__( 'Database pulling is running', 'instawp-connect' ),
-			'pull-db-finished'       => esc_html__( 'Database pulling is completed', 'instawp-connect' ),
+			'initiated'                        => esc_html__( 'Migration started', 'instawp-connect' ),
+			'start-insta-site'                 => esc_html__( 'Site creation started in InstaWP', 'instawp-connect' ),
+			'pull-ready'                       => esc_html__( 'Ready to pull files and database', 'instawp-connect' ),
+			'finished-insta-site'              => esc_html__( 'Site created at InstaWP', 'instawp-connect' ),
+			'pull-initiated'                   => esc_html__( 'Pull started for files and database', 'instawp-connect' ),
+			'pull-files-in-progress'           => esc_html__( 'Files pulling is running', 'instawp-connect' ),
+			'inventory-installation-started'   => esc_html__( 'Inventory installation started.', 'instawp-connect' ),
+			'inventory-installation-completed' => esc_html__( 'Inventory installation completed.', 'instawp-connect' ),
+			'pull-files-finished'              => esc_html__( 'Files pulling is completed', 'instawp-connect' ),
+			'pull-db-in-progress'              => esc_html__( 'Database pulling is running', 'instawp-connect' ),
+			'pull-db-finished'                 => esc_html__( 'Database pulling is completed', 'instawp-connect' ),
 			//          'pull-db-restore-started'  => esc_html__( 'Database restoration started', 'instawp-connect' ),
 			//          'pull-db-restore-finished' => esc_html__( 'Database restoration is completed', 'instawp-connect' ),
-			'pull-finished'          => esc_html__( 'Pull completed for files and database', 'instawp-connect' ),
-			'migration-finished'     => esc_html__( 'Migration is completed', 'instawp-connect' ),
+			'pull-finished'                    => esc_html__( 'Pull completed for files and database', 'instawp-connect' ),
+			'migration-finished'               => esc_html__( 'Migration is completed', 'instawp-connect' ),
 //          'timeout'                  => esc_html__( 'Migration is timed out', 'instawp-connect' ),
 //          'aborted'                  => esc_html__( 'Migration is aborted', 'instawp-connect' ),
 //          'failed'                   => esc_html__( 'Migration is failed', 'instawp-connect' ),
@@ -81,16 +83,16 @@ class InstaWP_Setting {
 
 	public static function get_allowed_role() {
 		$allowed_role   = 'administrator';
-        $selected_roles = Option::get_option( 'instawp_sync_tab_roles' );
+		$selected_roles = Option::get_option( 'instawp_sync_tab_roles' );
 
-        if ( ! empty( $selected_roles ) ) {
-            foreach ( $selected_roles as $role ) {
-                if ( current_user_can( $role ) ) {
-                    $allowed_role = $role;
-                    break;
-                }
-            }
-        }
+		if ( ! empty( $selected_roles ) ) {
+			foreach ( $selected_roles as $role ) {
+				if ( current_user_can( $role ) ) {
+					$allowed_role = $role;
+					break;
+				}
+			}
+		}
 
 		return $allowed_role;
 	}
@@ -411,71 +413,71 @@ class InstaWP_Setting {
 			),
 		);
 
-        // Section - 2-way sync
-        $sync_fields = apply_filters( 'instawp/filters/2waysync/event_providers', array(
-            array(
-                'id'      => 'post',
-                'title'   => __( 'Posts', 'instawp-connect' ),
-                'tooltip' => __( 'Enabling this option will allow plugin to log events related to all posts, pages and custom post types.', 'instawp-connect' ),
-                'default' => 'on',
-            ),
-            array(
-                'id'      => 'term',
-                'title'   => __( 'Taxonomies', 'instawp-connect' ),
-                'tooltip' => __( 'Enabling this option will allow plugin to log events related to all categories tags and custom taxonomies.', 'instawp-connect' ),
-                'default' => 'on',
-            ),
-            array(
-                'id'      => 'user',
-                'title'   => __( 'Users', 'instawp-connect' ),
-                'tooltip' => __( 'Enabling this option will allow plugin to log events related to all users.', 'instawp-connect' ),
-                'default' => 'on',
-            ),
-            array(
-                'id'      => 'plugin',
-                'title'   => __( 'Plugins', 'instawp-connect' ),
-                'tooltip' => __( 'Enabling this option will allow plugin to log events related to plugins.', 'instawp-connect' ),
-                'default' => 'on',
-            ),
-            array(
-                'id'      => 'theme',
-                'title'   => __( 'Themes', 'instawp-connect' ),
-                'tooltip' => __( 'Enabling this option will allow plugin to log events related to all themes.', 'instawp-connect' ),
-                'default' => 'on',
-            ),
-            array(
-                'id'      => 'menu',
-                'title'   => __( 'Navigation Menu', 'instawp-connect' ),
-                'tooltip' => __( 'Enabling this option will allow plugin to log Navigation menu item related changes.', 'instawp-connect' ),
-                'default' => 'on',
-            ),
-            array(
-                'id'      => 'customizer',
-                'title'   => __( 'WP Customizer', 'instawp-connect' ),
-                'tooltip' => __( 'Enabling this option will allow plugin to log WP Customizer.', 'instawp-connect' ),
-                'default' => 'on',
-            ),
-            array(
-                'id'      => 'option',
-                'title'   => __( 'WP Options (Beta)', 'instawp-connect' ),
-                'tooltip' => __( 'Enabling this option will allow plugin to log WordPress options.', 'instawp-connect' ),
-            ),
-            array(
-                'id'      => 'wc',
-                'title'   => __( 'WooCommerce (Beta)', 'instawp-connect' ),
-                'tooltip' => __( 'Enabling this option will allow plugin to log WooCommerce events.', 'instawp-connect' ),
-            ),
-        ) );
+		// Section - 2-way sync
+		$sync_fields = apply_filters( 'instawp/filters/2waysync/event_providers', array(
+			array(
+				'id'      => 'post',
+				'title'   => __( 'Posts', 'instawp-connect' ),
+				'tooltip' => __( 'Enabling this option will allow plugin to log events related to all posts, pages and custom post types.', 'instawp-connect' ),
+				'default' => 'on',
+			),
+			array(
+				'id'      => 'term',
+				'title'   => __( 'Taxonomies', 'instawp-connect' ),
+				'tooltip' => __( 'Enabling this option will allow plugin to log events related to all categories tags and custom taxonomies.', 'instawp-connect' ),
+				'default' => 'on',
+			),
+			array(
+				'id'      => 'user',
+				'title'   => __( 'Users', 'instawp-connect' ),
+				'tooltip' => __( 'Enabling this option will allow plugin to log events related to all users.', 'instawp-connect' ),
+				'default' => 'on',
+			),
+			array(
+				'id'      => 'plugin',
+				'title'   => __( 'Plugins', 'instawp-connect' ),
+				'tooltip' => __( 'Enabling this option will allow plugin to log events related to plugins.', 'instawp-connect' ),
+				'default' => 'on',
+			),
+			array(
+				'id'      => 'theme',
+				'title'   => __( 'Themes', 'instawp-connect' ),
+				'tooltip' => __( 'Enabling this option will allow plugin to log events related to all themes.', 'instawp-connect' ),
+				'default' => 'on',
+			),
+			array(
+				'id'      => 'menu',
+				'title'   => __( 'Navigation Menu', 'instawp-connect' ),
+				'tooltip' => __( 'Enabling this option will allow plugin to log Navigation menu item related changes.', 'instawp-connect' ),
+				'default' => 'on',
+			),
+			array(
+				'id'      => 'customizer',
+				'title'   => __( 'WP Customizer', 'instawp-connect' ),
+				'tooltip' => __( 'Enabling this option will allow plugin to log WP Customizer.', 'instawp-connect' ),
+				'default' => 'on',
+			),
+			array(
+				'id'      => 'option',
+				'title'   => __( 'WP Options (Beta)', 'instawp-connect' ),
+				'tooltip' => __( 'Enabling this option will allow plugin to log WordPress options.', 'instawp-connect' ),
+			),
+			array(
+				'id'      => 'wc',
+				'title'   => __( 'WooCommerce (Beta)', 'instawp-connect' ),
+				'tooltip' => __( 'Enabling this option will allow plugin to log WooCommerce events.', 'instawp-connect' ),
+			),
+		) );
 
-        $sync_fields = array_map( function ( $value ) {
-            $value['source']  = 'source_' . $value['id'];
-            $value['id']      = 'instawp_sync_' . $value['id'];
-            $value['type']    = 'toggle';
-            $value['class']   = isset( $value['class'] ) ? $value['class'] . ' save-ajax' : 'save-ajax';
-            $value['default'] = isset( $value['default'] ) ? $value['default'] : 'off';
+		$sync_fields = array_map( function ( $value ) {
+			$value['source']  = 'source_' . $value['id'];
+			$value['id']      = 'instawp_sync_' . $value['id'];
+			$value['type']    = 'toggle';
+			$value['class']   = isset( $value['class'] ) ? $value['class'] . ' save-ajax' : 'save-ajax';
+			$value['default'] = isset( $value['default'] ) ? $value['default'] : 'off';
 
-            return $value;
-        }, $sync_fields );
+			return $value;
+		}, $sync_fields );
 
 		$settings['sync_events'] = array(
 			'title'      => esc_html__( 'Sync Events Settings', 'instawp-connect' ),
@@ -669,27 +671,27 @@ class InstaWP_Setting {
 
 	public static function get_select2_default_selected_option( $option ) {
 		if ( $option === 'instawp_default_user' ) {
-            $user_id = Option::get_option( $option, 0 );
-            if ( $user_id ) {
-                if ( ! function_exists( 'get_user_by' ) ) {
-                    require_once ABSPATH . 'wp-includes/pluggable.php';
-                }
+			$user_id = Option::get_option( $option, 0 );
+			if ( $user_id ) {
+				if ( ! function_exists( 'get_user_by' ) ) {
+					require_once ABSPATH . 'wp-includes/pluggable.php';
+				}
 
-                $user = get_user_by('ID', $user_id );
-                if ( ! empty( $user ) ) {
-                    return array( $user->data->ID => $user->data->user_login );
-                }
-            }
+				$user = get_user_by( 'ID', $user_id );
+				if ( ! empty( $user ) ) {
+					return array( $user->data->ID => $user->data->user_login );
+				}
+			}
 		} elseif ( $option === 'instawp_sync_tab_roles' ) {
 			$role_options   = array();
 			$all_roles      = wp_roles()->roles;
 			$selected_roles = Option::get_option( $option );
 
-            if ( ! empty( $selected_roles ) ) {
-                foreach ( $selected_roles as $role ) {
-                    $role_options[ $role ] = isset( $all_roles[ $role ] ) ? $all_roles[ $role ]['name'] : $role;
-                }
-            }
+			if ( ! empty( $selected_roles ) ) {
+				foreach ( $selected_roles as $role ) {
+					$role_options[ $role ] = isset( $all_roles[ $role ] ) ? $all_roles[ $role ]['name'] : $role;
+				}
+			}
 
 			return $role_options;
 		} elseif ( $option === 'instawp_hide_plugin_to_users' ) {
