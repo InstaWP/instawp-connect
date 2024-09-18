@@ -111,6 +111,24 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			if ( empty( $has_run ) ) {
 				// Set the flag to indicate the function has run
 				$tracking_db->update_option( 'instawp_inventory_sent', 1 );
+				foreach ( $migrate_settings['inventory_items']['with_checksum'] as $inventory_key => $wp_item ) {
+					
+					if ( ! empty( $wp_item['path'] ) ) {
+						$filepath = $wp_item['path'];
+						$filepath_hash = hash( 'sha256', $filepath );
+						$tracking_db->insert( 'iwp_files_sent', array(
+							'filepath'      => "'$filepath'",
+							'filepath_hash' => "'$filepath_hash'",
+							'sent'          => 1,
+							'size'          => $wp_item['size'],
+							'file_type'		=> 'inventory',
+							'sent_filename'	=> $wp_item['slug'],
+							'file_count'	=> $wp_item['file_count'],
+							'checksum'		=> $wp_item['checksum']
+						) );
+					}
+					
+				}
 				header( 'x-iwp-status: true' );
 				header( 'x-iwp-message: Inventory items sent' );
 				header( 'Content-Type: application/json' );
@@ -121,9 +139,6 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		}
 		
 	}
-
-	// Send plugin and theme inventory
-	send_plugin_theme_inventory( $migrate_settings );
 
 	if ( ! file_exists( $config_file_path ) ) {
 		$config_file_path = dirname( WP_ROOT ) . '/wp-config.php';
@@ -256,6 +271,9 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		) );
 	}
 
+	// Send plugin and theme inventory
+	send_plugin_theme_inventory( $migrate_settings );
+
 	//TODO: this query runs every time even if there are no files to zip, may be we can cache the result in first time and don't run the query
 
 	$is_archive_available = false;
@@ -367,6 +385,10 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 	}
 }
 
+if ( isset( $_REQUEST['serve_type'] ) && 'inventory_sent_files' === $_REQUEST['serve_type'] && ! empty( $_POST['inventory_response'] ) ) {
+	$inventory_response = json_decode( $_POST['inventory_response'], true );
+
+}
 
 if ( isset( $_REQUEST['serve_type'] ) && 'unmark_sent_files' === $_REQUEST['serve_type'] ) {
 

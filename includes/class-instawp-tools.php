@@ -474,17 +474,29 @@ include $file_path;';
 							continue;
 						}
 						if ( ! empty( $inventory_data[ $item['type'] ][ $item['slug'] ] ) && ! empty( $inventory_data[ $item['type'] ][ $item['slug'] ][ $item['version'] ]['checksum'] ) ) {
+							$item_absolute_path = $absolute_path . '' . $item['path'];
+							$item_data = InstaWP_Tools::calculate_checksum( $item_absolute_path );
+							if ( empty( $item_data ) || empty( $item_data['checksum'] ) ) {
+								error_log( __( 'Failed to calculate checksum of item ' . $item_absolute_path , 'instawp-connect' ) );
+								continue;
+							}
 							// if the checksum is the same as the one in the inventory, we need to exclude the path
-							if ( $inventory_data[ $item['type'] ][ $item['slug'] ][ $item['version'] ]['checksum'] === InstaWP_Tools::calculate_checksum( $absolute_path . '' . $item['path'] ) ) {
+							if ( $inventory_data[ $item['type'] ][ $item['slug'] ][ $item['version'] ]['checksum'] === $item_data['checksum'] ) {
 								// if the checksum is the same as the one in the inventory, we need to exclude the path
 								$migrate_settings['excluded_paths'][] = $item['path'];
-								unset($item['path']);
+								$item['path'] = $item_absolute_path;
+								$item['file_count'] = $item_data['file_count'];
+								$item['size'] = $item_data['size'];
+								
 								// add the checksum to the item
 								$item['checksum'] = sanitize_text_field( $inventory_data[ $item['type'] ][ $item['slug'] ][ $item['version'] ]['checksum'] );
 								// add the item to the inventory items
 								$migrate_settings['inventory_items']['with_checksum'][] = $item;
 
-								// unset the checksum from the item
+								// unset non useful data from the item
+								unset($item['path']);
+								unset($item['file_count']);
+								unset($item['size']);
 								unset($item['checksum']);
 								unset($item['is_active']);
 								// add the item to the inventory items
@@ -616,7 +628,11 @@ include $file_path;';
 		$finalHash = $totalHash ^ crc32( $fileCount . $totalSize );
 
 		// Return the checksum
-		return sprintf( '%u', $finalHash );
+		return array(
+			'checksum'		=> sprintf( '%u', $finalHash ),
+			'file_count'	=> $fileCount,
+			'size'			=> $totalSize,
+		);
 	}
 
 	public static function get_unsupported_active_plugins() {
