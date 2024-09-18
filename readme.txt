@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.6
 Tested up to: 6.6
 Requires PHP: 7.0
-Stable tag: 0.1.0.55
+Stable tag: 0.1.0.56
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -98,7 +98,9 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
-= 0.1.0.56 - September 2024 =
+= 0.1.0.56 - 18 September 2024 =
+- NEW - Added a faster migration method on the staging site creation.
+- FIX - Fixed user interface issues while creation staging site.
 - FIX - Fixed Debug Log can't delete issue.
 - FIX - Set default heartbeat interval to 4 hours.
 - FIX - 2 Way Sync Customizer Changes not saving.
