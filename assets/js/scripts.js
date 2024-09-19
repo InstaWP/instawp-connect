@@ -1280,13 +1280,17 @@
         let name = el.attr('id');
         let value = parseInt(Math.abs($(this).val()));
 
+        if( !value ) {
+            return;
+        }
+
         clearTimeout(debounce);
         debounce = setTimeout(function () {
-            if (value >= 15 && value <= 60) {
+            if (value >= 60 && value <= 240) {
                 ajaxSaveManagementSettings(name, value);
             } else {
-                el.val(15);
-                ajaxSaveManagementSettings(name, 15);
+                el.val(60);
+                ajaxSaveManagementSettings(name, 60);
             }
         }, 500);
     });
