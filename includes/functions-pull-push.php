@@ -623,4 +623,23 @@ if ( ! function_exists( 'get_iterator_items' ) ) {
 	}
 }
 
+if ( ! function_exists( 'iwp_sanitize_key' ) ) {
+	/**
+	 * Sanitizes a key by lowercasing it and removing all non-alphanumeric
+	 * characters except dashes and underscores.
+	 *
+	 * @param string $key The key to be sanitized.
+	 *
+	 * @return string The sanitized key.
+	 */
+	function iwp_sanitize_key($key) {
+		// Lowercase the key
+		$key = strtolower($key);
+		
+		// Remove all characters except lowercase alphanumeric, dashes and underscores
+		$key = preg_replace('/[^a-z0-9_\-]/', '', $key);
+		
+		return $key;
+	}
+}
 // phpcs:enable
