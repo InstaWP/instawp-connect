@@ -5,7 +5,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2024-09-17 13:01+0000\n"
+"POT-Creation-Date: 2024-09-19 13:31+0000\n"
 "X-Poedit-Basepath: ..\n"
 "X-Poedit-KeywordsList: __;_e;_ex:1,2c;_n:1,2;_n_noop:1,2;_nx:1,2,4c;_nx_noop:1,2,3c;_x:1,2c;esc_attr__;esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c\n"
 "X-Poedit-SearchPath-0: .\n"
@@ -354,15 +354,15 @@ msgid "Pull started for files and database"
 msgstr ""
 
 #: includes/class-instawp-setting.php:17
-msgid "Files pulling is running"
-msgstr ""
-
-#: includes/class-instawp-setting.php:18
 msgid "Plugins and themes installation started."
 msgstr ""
 
-#: includes/class-instawp-setting.php:19
+#: includes/class-instawp-setting.php:18
 msgid "Plugins and themes installation completed."
+msgstr ""
+
+#: includes/class-instawp-setting.php:19
+msgid "Files pulling is running"
 msgstr ""
 
 #: includes/class-instawp-setting.php:20
@@ -610,7 +610,7 @@ msgid "It is the interval of heartbeat in minutes."
 msgstr ""
 
 #: includes/class-instawp-setting.php:554
-msgid "Minimum is 15 minutes and maximum is 60 minutes."
+msgid "Minimum is 60 minutes and maximum is 240 minutes."
 msgstr ""
 
 #: includes/class-instawp-setting.php:568
@@ -653,79 +653,79 @@ msgstr ""
 msgid "Invalid Migration ID"
 msgstr ""
 
-#: includes/class-instawp-tools.php:539
+#: includes/class-instawp-tools.php:556
 msgid "API key not found"
 msgstr ""
 
-#: includes/class-instawp-tools.php:759
+#: includes/class-instawp-tools.php:775
 msgid "Root directory for this WordPress installation could not find."
 msgstr ""
 
-#: includes/class-instawp-tools.php:777
+#: includes/class-instawp-tools.php:793
 msgid "Tracking database could not found."
 msgstr ""
 
-#: includes/class-instawp-tools.php:787
+#: includes/class-instawp-tools.php:803
 msgid "API Signature and others data could not set properly"
 msgstr ""
 
-#: includes/class-instawp-tools.php:796
+#: includes/class-instawp-tools.php:812
 msgid "Could not create the forwarded file."
 msgstr ""
 
-#: includes/class-instawp-tools.php:800
+#: includes/class-instawp-tools.php:816
 msgid "InstaWP could not access the forwarded file due to security issue."
 msgstr ""
 
-#: includes/class-instawp-tools.php:809
+#: includes/class-instawp-tools.php:825
 msgid "InstaWP could not access or read required files from your WordPress directory due to file permission issue."
 msgstr ""
 
-#: includes/class-instawp-tools.php:811
+#: includes/class-instawp-tools.php:827
 msgid "Learn more."
 msgstr ""
 
-#: includes/class-instawp-tools.php:976
+#: includes/class-instawp-tools.php:992
 msgid "Launch %s"
 msgstr ""
 
-#: includes/class-instawp-tools.php:1064
+#: includes/class-instawp-tools.php:1080
 msgid "Please create staging sites first."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1065
+#: includes/class-instawp-tools.php:1081
 msgid "Skip"
 msgstr ""
 
-#: includes/class-instawp-tools.php:1066
+#: includes/class-instawp-tools.php:1082
 msgid "Do you really want to disconnect the plugin? It will completely remove the existing staging sites from the plugin."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1067
+#: includes/class-instawp-tools.php:1083
 msgid "Do you still want to disconnect the plugin?"
 msgstr ""
 
-#: includes/class-instawp-tools.php:1115
+#: includes/class-instawp-tools.php:1131
 msgid "Zip archive is not opening."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1168
+#: includes/class-instawp-tools.php:1184
 msgid "No compression method find."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1212
+#: includes/class-instawp-tools.php:1228
 msgid "Site ID not found in site create response."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1251
+#: includes/class-instawp-tools.php:1267
 msgid "SFTP login failed."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1262
+#: includes/class-instawp-tools.php:1278
 msgid "SFTP upload failed for files."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1270
+#: includes/class-instawp-tools.php:1286
 msgid "SFTP upload failed for database."
 msgstr ""
 
@@ -787,7 +787,7 @@ msgstr ""
 msgid "Next »"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-apis.php:411
+#: includes/sync/class-instawp-sync-apis.php:464
 msgid "Invalid data"
 msgstr ""
 

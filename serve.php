@@ -111,7 +111,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			if ( empty( $has_run ) ) {
 				// Set the flag to indicate the function has run
 				$tracking_db->update_option( 'instawp_inventory_sent', 1 );
-				if ( ! empty( $migrate_settings['inventory_items']['without_checksum'] ) ) {
+				if ( ! empty( $migrate_settings['inventory_items']['with_checksum'] ) ) {
 					foreach ( $migrate_settings['inventory_items']['with_checksum'] as $inventory_key => $wp_item ) {
 						if ( ! empty( $wp_item['absolute_path'] ) ) {
 							$filepath = $wp_item['absolute_path'];
@@ -132,7 +132,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 								'slug' 		=> $wp_item['slug'],
 								'version' 	=> $wp_item['version'],
 								'type' 		=> $wp_item['type'],
-								'path' 		=> $wp_item['slug'],
+								'path' 		=> $wp_item['path'],
 								'checksum' 	=> $wp_item['checksum'],
 							);
 						}

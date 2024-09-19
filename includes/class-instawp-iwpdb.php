@@ -129,6 +129,7 @@ class IWPDB {
 			$query_result = $this->conn->query( $str_query );
 		} catch ( Exception $e ) {
 			$this->last_error = $e->getMessage();
+			
 		}
 
 		if ( $query_result instanceof mysqli_result ) {
