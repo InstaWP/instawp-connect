@@ -129,11 +129,11 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
 							// Add only necesssary data to inventory items
 							$migrate_settings['inventory_items']['with_checksum'][$inventory_key] = array(
-								'slug' => $wp_item['slug'],
-								'version' => $wp_item['version'],
-								'type' => $wp_item['type'],
-								'path' => $wp_item['slug'],
-								'checksum' => $wp_item['checksum'],
+								'slug' 		=> $wp_item['slug'],
+								'version' 	=> $wp_item['version'],
+								'type' 		=> $wp_item['type'],
+								'path' 		=> $wp_item['slug'],
+								'checksum' 	=> $wp_item['checksum'],
 							);
 						}
 						
