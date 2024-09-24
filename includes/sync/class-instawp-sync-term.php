@@ -245,6 +245,11 @@ class InstaWP_Sync_Term {
 		$restricted_taxonomies = array(
 			'nav_menu',
 		);
+        $wc_taxonomies = get_object_taxonomies( 'product', 'objects' );
+        foreach ( $wc_taxonomies as $wc_taxonomy ) {
+            $restricted_taxonomies[] = $wc_taxonomy->name;
+        }
+
 		$restricted_taxonomies = (array) apply_filters( 'instawp/filters/2waysync/restricted_taxonomies', $restricted_taxonomies );
 
 		if ( InstaWP_Sync_Helpers::can_sync( 'term' ) && ! in_array( $taxonomy, $restricted_taxonomies ) ) {

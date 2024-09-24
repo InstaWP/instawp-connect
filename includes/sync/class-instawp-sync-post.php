@@ -296,6 +296,7 @@ class InstaWP_Sync_Post {
 			'shop_order',
 			'shop_order_placehold',
 			'shop_coupon',
+            'product_variation',
 
 			// SEOPress
 			'seopress_404',
