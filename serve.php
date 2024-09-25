@@ -104,6 +104,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			if ( empty( $migrate_settings['inventory_items'] ) ) {
 				$migrate_settings['inventory_items'] = array();
 			}
+
 			global $tracking_db;
 			// Check if the function has already been run
 			$has_run = $tracking_db->get_option( 'instawp_inventory_sent', 0 );
@@ -116,29 +117,46 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 						if ( ! empty( $wp_item['absolute_path'] ) ) {
 							$filepath = $wp_item['absolute_path'];
 							$filepath_hash = hash( 'sha256', $filepath );
-							$tracking_db->insert( 'iwp_files_sent', array(
-								'filepath'      => "'$filepath'",
-								'filepath_hash' => "'$filepath_hash'",
-								'sent'          => 0,
-								'size'          => $wp_item['size'],
-								'file_type'		=> 'inventory',
-								'sent_filename'	=> $wp_item['slug'],
-								'file_count'	=> $wp_item['file_count'],
-								'checksum'		=> $wp_item['checksum']
-							) );
-
-							// Add only necesssary data to inventory items
-							$migrate_settings['inventory_items']['with_checksum'][$inventory_key] = array(
-								'slug' 		=> $wp_item['slug'],
-								'version' 	=> $wp_item['version'],
-								'type' 		=> $wp_item['type'],
-								'path' 		=> $wp_item['path'],
-								'checksum' 	=> $wp_item['checksum'],
-							);
+							$row        = $tracking_db->get_row( 'iwp_files_sent', array( 'filepath_hash' => $filepath_hash ) );
+							if ( ! $row ) {
+								try {
+									$slug = $wp_item['slug'];
+									$checksum = $wp_item['checksum'];
+									$tracking_db->insert( 'iwp_files_sent', array(
+										'filepath'      => "'$filepath'",
+										'filepath_hash' => "'$filepath_hash'",
+										'sent'          => 0,
+										'size'          => $wp_item['size'],
+										'file_type'		=> "'inventory'",
+										'sent_filename'	=> "'$slug'",
+										'file_count'	=> $wp_item['file_count'],
+										'checksum'		=> "'$checksum'",
+									) );
+		
+									// Add only necesssary data to inventory items
+									$migrate_settings['inventory_items']['with_checksum'][$inventory_key] = array(
+										'slug' 			=> $wp_item['slug'],
+										'version' 		=> $wp_item['version'],
+										'type' 			=> $wp_item['type'],
+										'path' 			=> $wp_item['path'],
+										'file_count'	=> $wp_item['file_count'],
+										'checksum' 		=> $wp_item['checksum'],
+									);
+								} catch ( Exception $e ) {
+									header( 'x-iwp-status: false' );
+									header( 'x-iwp-message: Insert to tracking database (iwp_files_sent table) was failed. Actual error message is: ' . $e->getMessage() );
+									die();
+								}
+							} else {
+								continue;
+							}
 						}
 						
 					}
 				}
+
+				$total_files_count   = $tracking_db->query_count( 'iwp_files_sent' );
+				$migrate_settings['inventory_items']['total_files_count'] = intval( $total_files_count );
 				
 				header( 'x-iwp-status: true' );
 				header( 'x-iwp-message: Inventory items sent' );
@@ -148,9 +166,6 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 				die();
 			}
 		}
-		
-		// Send plugin and theme inventory
-		send_plugin_theme_inventory( $migrate_settings );
 	}
 
 	if ( ! file_exists( $config_file_path ) ) {
@@ -167,11 +182,12 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
 	$unsent_files_count  = $tracking_db->query_count( 'iwp_files_sent', array( 'sent' => '0' ) );
 	$progress_percentage = 0;
+	$total_files_count   = $tracking_db->query_count( 'iwp_files_sent' );
 
-	if ( $totalFiles = (int) $tracking_db->db_get_option( 'total_files', '0' ) ) {
-		$total_files_count   = $tracking_db->query_count( 'iwp_files_sent' );
+	if ( 1 < intval( $total_files_count )) {
+		$total_files_count	= intval( $total_files_count );
 		$total_files_sent    = $total_files_count - $unsent_files_count;
-		$progress_percentage = round( ( $total_files_sent / $totalFiles ) * 100, 2 );
+		$progress_percentage = round( ( $total_files_sent / $total_files_count ) * 100, 2 );
 	}
 
 	if ( $unsent_files_count == 0 ) {
@@ -282,6 +298,9 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			'idx_sent'      => 'sent',
 			'idx_file_size' => 'size',
 		) );
+
+		// Send plugin and theme inventory
+		send_plugin_theme_inventory( $migrate_settings );
 	}
 
 
