@@ -394,18 +394,18 @@ include $file_path;';
 			} else {
 				// Add the plugin to the inventory items
 				$inventory_items[] = array(
-					'slug'		=> $p_slug,
-					'version'	=> $plugin_info['Version'],
-					'type'		=> 'plugin',
-					'path'		=> $p_path,
-					'is_active'	=> $is_active_plugin,
+					'slug'      => $p_slug,
+					'version'   => $plugin_info['Version'],
+					'type'      => 'plugin',
+					'path'      => $p_path,
+					'is_active' => $is_active_plugin,
 				);
 			}
 		}
 
 		// Get active themes inventory
 		$active_themes_only = in_array( 'active_themes_only', $options );
-		$active_theme = wp_get_theme();
+		$active_theme       = wp_get_theme();
 		foreach ( wp_get_themes() as $theme_slug => $theme_info ) {
 			// Get the theme slug without the .php extension
 			$is_active_theme = in_array( $theme_info->get_stylesheet(), array( $active_theme->get_stylesheet(), $active_theme->get_template() ), true );
@@ -415,11 +415,11 @@ include $file_path;';
 			} else {
 				// Add the theme to the inventory items
 				$inventory_items[] = array(
-					'slug'		=> $theme_slug,
-					'version'	=> $theme_info->get('Version'),
-					'type'		=> 'theme',
-					'path'		=> $relative_dir . '/themes/' . $theme_slug,
-					'is_active'	=> $is_active_theme,
+					'slug'      => $theme_slug,
+					'version'   => $theme_info->get( 'Version' ),
+					'type'      => 'theme',
+					'path'      => $relative_dir . '/themes/' . $theme_slug,
+					'is_active' => $is_active_theme,
 				);
 			}
 		}
@@ -430,24 +430,25 @@ include $file_path;';
 			$encoded_api_key = Helper::get_api_key();
 			if ( ! empty( $inventory_items ) && ! empty( $encoded_api_key ) ) {
 				$encoded_api_key = base64_encode( $encoded_api_key );
-				
+
 				// Inventory data 
 				$inventory_data = array_map(
-					function($item) {
-						unset($item['path']);
-						unset($item['is_active']);
+					function ( $item ) {
+						unset( $item['path'] );
+						unset( $item['is_active'] );
+
 						return $item;
 					},
 					$inventory_items
 				);
-				
+
 				// Check if its a staging site
 				$api_options = get_option( 'instawp_api_options', array() );
-				$is_staging = ( ! empty( $api_options ) && ! empty( $api_options['api_url'] ) && false !== stripos( $api_options['api_url'], 'stage' ) ) ? 1 : 0;
+				$is_staging  = ( ! empty( $api_options ) && ! empty( $api_options['api_url'] ) && false !== stripos( $api_options['api_url'], 'stage' ) ) ? 1 : 0;
 				// Get data from api
-				$inventory_data = InstaWP_Tools::inventory_api_call( 
+				$inventory_data = InstaWP_Tools::inventory_api_call(
 					$encoded_api_key,
-					'checksum', 
+					'checksum',
 					$is_staging,
 					array(
 						'items' => $inventory_data,
@@ -458,10 +459,10 @@ include $file_path;';
 					// final 
 					if ( empty( $migrate_settings['inventory_items'] ) ) {
 						$migrate_settings['inventory_items'] = array(
-							'token' => $encoded_api_key,
-							'items' => array(),
+							'token'         => $encoded_api_key,
+							'items'         => array(),
 							'with_checksum' => array(),
-							'staging' => $is_staging,
+							'staging'       => $is_staging,
 						);
 					}
 
@@ -478,25 +479,25 @@ include $file_path;';
 							if ( $inventory_data[ $item['type'] ][ $item['slug'] ][ $item['version'] ]['checksum'] === InstaWP_Tools::calculate_checksum( $absolute_path . '' . $item['path'] ) ) {
 								// if the checksum is the same as the one in the inventory, we need to exclude the path
 								$migrate_settings['excluded_paths'][] = $item['path'];
-								unset($item['path']);
+								unset( $item['path'] );
 								// add the checksum to the item
 								$item['checksum'] = sanitize_text_field( $inventory_data[ $item['type'] ][ $item['slug'] ][ $item['version'] ]['checksum'] );
 								// add the item to the inventory items
 								$migrate_settings['inventory_items']['with_checksum'][] = $item;
 
 								// unset the checksum from the item
-								unset($item['checksum']);
-								unset($item['is_active']);
+								unset( $item['checksum'] );
+								unset( $item['is_active'] );
 								// add the item to the inventory items
 								$migrate_settings['inventory_items']['items'][] = $item;
-								
+
 							}
 						}
 					}
-					
+
 				}
 			}
-		} catch (\Exception $e) {
+		} catch ( \Exception $e ) {
 			error_log( 'Error in processing migration settings inventory items: ' . $e->getMessage() );
 		}
 
@@ -514,9 +515,10 @@ include $file_path;';
 
 	/**
 	 * Inventory API call
-	 * 
+	 *
 	 * @param string $end_point
 	 * @param array $body
+	 *
 	 * @return array
 	 */
 	public static function inventory_api_call( $api_key, $end_point = 'checksum', $is_staging = 0, $body = array() ) {
@@ -527,13 +529,13 @@ include $file_path;';
 				'message' => __( 'API key not found', 'instawp-connect' )
 			);
 		}
-		$response = wp_remote_post( 
-			esc_url( 'https://inventory.instawp.io/wp-json/instawp-checksum/v1/'. sanitize_key( $end_point ) ), 
+		$response = wp_remote_post(
+			esc_url( 'https://inventory.instawp.io/wp-json/instawp-checksum/v1/' . sanitize_key( $end_point ) ),
 			array(
 				'body'    => $body,
 				'headers' => array(
 					'Authorization' => 'Bearer ' . $api_key,
-					'staging' => $is_staging
+					'staging'       => $is_staging
 				),
 			)
 		);
@@ -563,6 +565,7 @@ include $file_path;';
 	 *
 	 * @param string $dir The path to the specific plugin|theme directory.
 	 * @param string $hash_algo The hashing algorithm to use (e.g., 'md5', 'sha256', 'xxh3').
+	 *
 	 * @return string The checksum for the entire plugin|theme.
 	 */
 	public static function calculate_checksum( $folder ) {
@@ -583,10 +586,10 @@ include $file_path;';
 		foreach ( $files as $file ) {
 			if ( $file->isFile() ) {
 
-				++$fileCount;
-				$filePath   = $file->getPathname();
-				$fileName   = $file->getFilename();
-				$fileSize   = $file->getSize();
+				++ $fileCount;
+				$filePath  = $file->getPathname();
+				$fileName  = $file->getFilename();
+				$fileSize  = $file->getSize();
 				$totalSize += $fileSize;
 				// Hash file metadata
 				$metadataHash = crc32( $fileName . $fileSize );
@@ -599,7 +602,7 @@ include $file_path;';
 					$firstHash  = crc32( $firstChunk );
 
 					// Read last 4KB
-					fseek( $handle, -4096, SEEK_END );
+					fseek( $handle, - 4096, SEEK_END );
 					$lastChunk = fread( $handle, 4096 );
 					$lastHash  = crc32( $lastChunk );
 
@@ -607,7 +610,7 @@ include $file_path;';
 				}
 
 				// Combine hashes
-				$fileHash   = $metadataHash ^ $firstHash ^ $lastHash;
+				$fileHash  = $metadataHash ^ $firstHash ^ $lastHash;
 				$totalHash ^= $fileHash;
 			}
 		}
@@ -772,18 +775,18 @@ include $file_path;';
 		}
 
 		// Check accessibility of serve file
-		if ( empty( $serve_file_url ) || ! self::is_migrate_file_accessible( $serve_file_url ) ) {
-
-			$serve_file_url = self::generate_forwarded_file();
-
-			if ( empty( $serve_file_url ) ) {
-				return new WP_Error( 403, esc_html__( 'Could not create the forwarded file.', 'instawp-connect' ) );
-			}
-
-			if ( ! self::is_migrate_file_accessible( $serve_file_url ) ) {
-				return new WP_Error( 403, esc_html__( 'InstaWP could not access the forwarded file due to security issue.', 'instawp-connect' ) );
-			}
-		}
+//		if ( empty( $serve_file_url ) || ! self::is_migrate_file_accessible( $serve_file_url ) ) {
+//
+//			$serve_file_url = self::generate_forwarded_file();
+//
+//			if ( empty( $serve_file_url ) ) {
+//				return new WP_Error( 403, esc_html__( 'Could not create the forwarded file.', 'instawp-connect' ) );
+//			}
+//
+//			if ( ! self::is_migrate_file_accessible( $serve_file_url ) ) {
+//				return new WP_Error( 403, esc_html__( 'InstaWP could not access the forwarded file due to security issue.', 'instawp-connect' ) );
+//			}
+//		}
 
 		$iwpdb_main_path = INSTAWP_PLUGIN_DIR . 'includes/class-instawp-iwpdb.php';
 
@@ -798,7 +801,8 @@ include $file_path;';
 		}
 
 		return array(
-			'serve_url'        => $serve_file_url,
+//			'serve_url'        => $serve_file_url,
+			'serve_url'        => site_url( 'serve-instawp' ),
 			'migrate_key'      => $migrate_key,
 			'api_signature'    => $api_signature,
 			'migrate_settings' => $migrate_settings,
@@ -861,20 +865,20 @@ include $file_path;';
 		// Remove instawp connect options
 		$excluded_tables_rows = Helper::get_args_option( 'excluded_tables_rows', $migrate_settings, array() );
 
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_api_options';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_connect_id_options';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_sync_parent_connect_data';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_migration_details';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_last_migration_details';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_api_key_config_completed';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_is_event_syncing';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_staging_sites';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_is_staging';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:schema-ActionScheduler_StoreSchema';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:schema-ActionScheduler_LoggerSchema';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:action_scheduler_hybrid_store_demarkation';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:_transient_timeout_action_scheduler_last_pastdue_actions_check';
-		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:_transient_action_scheduler_last_pastdue_actions_check';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_api_options';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_connect_id_options';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_sync_parent_connect_data';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_migration_details';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_last_migration_details';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_api_key_config_completed';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_is_event_syncing';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_staging_sites';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_is_staging';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:schema-ActionScheduler_StoreSchema';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:schema-ActionScheduler_LoggerSchema';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:action_scheduler_hybrid_store_demarkation';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:_transient_timeout_action_scheduler_last_pastdue_actions_check';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:_transient_action_scheduler_last_pastdue_actions_check';
 
 		$migrate_settings['excluded_tables_rows'] = $excluded_tables_rows;
 
