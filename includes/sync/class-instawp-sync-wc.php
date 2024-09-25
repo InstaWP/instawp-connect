@@ -18,6 +18,7 @@ class InstaWP_Sync_WC {
 
 	    // Hooks.
 	    add_filter( 'instawp/filters/2waysync/can_sync_post', array( $this, 'can_sync_post' ), 10, 2 );
+	    add_filter( 'instawp/filters/2waysync/can_sync_taxonomy', array( $this, 'can_sync_taxonomy' ), 10, 2 );
 	    add_filter( 'instawp/filters/2waysync/post_data', array( $this, 'add_post_data' ), 10, 3 );
 	    add_action( 'instawp/actions/2waysync/process_event_post', array( $this, 'process_gallery' ), 10, 2 );
 
@@ -137,6 +138,23 @@ class InstaWP_Sync_WC {
 
 		return $can_sync;
 	}
+
+    public function can_sync_taxonomy( $can_sync, $taxonomy ) {
+        $taxonomies    = [];
+        $wc_taxonomies = get_object_taxonomies( 'product', 'objects' );
+        foreach ( $wc_taxonomies as $wc_taxonomy ) {
+            if ( in_array( $wc_taxonomy->name, [ 'product_type', 'product_visibility', 'product_shipping_class' ], true ) ) {
+                continue;
+            }
+            $taxonomies[] = $wc_taxonomy->name;
+        }
+
+        if ( $this->can_sync() && in_array( $taxonomy, $taxonomies, true ) ) {
+            $can_sync = true;
+        }
+
+        return $can_sync;
+    }
 
 	public function add_post_data( $data, $type, $post ) {
 		if ( $this->can_sync() && $type === 'product' ) {

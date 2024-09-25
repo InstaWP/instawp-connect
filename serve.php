@@ -111,6 +111,35 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			if ( empty( $has_run ) ) {
 				// Set the flag to indicate the function has run
 				$tracking_db->update_option( 'instawp_inventory_sent', 1 );
+				if ( ! empty( $migrate_settings['inventory_items']['with_checksum'] ) ) {
+					foreach ( $migrate_settings['inventory_items']['with_checksum'] as $inventory_key => $wp_item ) {
+						if ( ! empty( $wp_item['absolute_path'] ) ) {
+							$filepath = $wp_item['absolute_path'];
+							$filepath_hash = hash( 'sha256', $filepath );
+							$tracking_db->insert( 'iwp_files_sent', array(
+								'filepath'      => "'$filepath'",
+								'filepath_hash' => "'$filepath_hash'",
+								'sent'          => 0,
+								'size'          => $wp_item['size'],
+								'file_type'		=> 'inventory',
+								'sent_filename'	=> $wp_item['slug'],
+								'file_count'	=> $wp_item['file_count'],
+								'checksum'		=> $wp_item['checksum']
+							) );
+
+							// Add only necesssary data to inventory items
+							$migrate_settings['inventory_items']['with_checksum'][$inventory_key] = array(
+								'slug' 		=> $wp_item['slug'],
+								'version' 	=> $wp_item['version'],
+								'type' 		=> $wp_item['type'],
+								'path' 		=> $wp_item['path'],
+								'checksum' 	=> $wp_item['checksum'],
+							);
+						}
+						
+					}
+				}
+				
 				header( 'x-iwp-status: true' );
 				header( 'x-iwp-message: Inventory items sent' );
 				header( 'Content-Type: application/json' );
@@ -120,10 +149,9 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			}
 		}
 		
+		// Send plugin and theme inventory
+		send_plugin_theme_inventory( $migrate_settings );
 	}
-
-	// Send plugin and theme inventory
-	send_plugin_theme_inventory( $migrate_settings );
 
 	if ( ! file_exists( $config_file_path ) ) {
 		$config_file_path = dirname( WP_ROOT ) . '/wp-config.php';
@@ -256,6 +284,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		) );
 	}
 
+
 	//TODO: this query runs every time even if there are no files to zip, may be we can cache the result in first time and don't run the query
 
 	$is_archive_available = false;
@@ -367,6 +396,36 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 	}
 }
 
+
+/**
+ * Inventory success - If all plugins and themes have been installed 
+ * and if so, mark all files as sent.
+ */
+if ( isset( $_REQUEST['serve_type'] ) && 'inventory_sent_files' === $_REQUEST['serve_type'] && function_exists( 'iwp_sanitize_key' ) ) {
+
+	$slug = empty( $_POST['slug'] ) ? '': iwp_sanitize_key( $_POST['slug'] );
+	if ( empty( $slug ) ) {
+		header( 'x-iwp-status: false' );
+		header( 'x-iwp-message: Empty slug provided.' );
+		die();
+	}
+
+	// Update inventory sent files
+	$tracking_db->update( 
+		'iwp_files_sent', 
+		array( 'sent' => '1' ), 
+		array( 
+			'file_type'		=> 'inventory',
+			'sent_filename'	=> $slug,
+		) 
+	);
+
+	$message = empty( $_POST['item_type'] ) ? 'Plugin or theme': ucfirst( iwp_sanitize_key( $_POST['item_type'] ) );
+	$message = $message . '' . $slug . ' installation report sent';
+	header( 'x-iwp-status: true' );
+	header( 'x-iwp-message: ' . $message );
+	die();
+}
 
 if ( isset( $_REQUEST['serve_type'] ) && 'unmark_sent_files' === $_REQUEST['serve_type'] ) {
 

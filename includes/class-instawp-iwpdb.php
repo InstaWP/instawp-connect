@@ -13,6 +13,7 @@ class IWPDB {
 	private $migrate_key = '';
 	private $options_data = array();
 	private $max_retries = 10;
+	private $table_files_sent = 'iwp_files_sent';
 
 	private static $_table_option = 'iwp_options';
 
@@ -111,7 +112,7 @@ class IWPDB {
 	}
 
 	public function query_count( $table_name, $where_array = array() ) {
-		$query_count_res = $this->query( "SELECT count(*) as count FROM {$table_name} WHERE {$this->build_where_clauses($where_array)}" );
+		$query_count_res = $this->query( ( $table_name === $this->table_files_sent ? "SELECT SUM(file_count)":"SELECT count(*)" ) . " as count FROM {$table_name} WHERE {$this->build_where_clauses($where_array)}" );
 
 		if ( ! $query_count_res ) {
 			return 0;
@@ -128,6 +129,7 @@ class IWPDB {
 			$query_result = $this->conn->query( $str_query );
 		} catch ( Exception $e ) {
 			$this->last_error = $e->getMessage();
+			
 		}
 
 		if ( $query_result instanceof mysqli_result ) {
@@ -140,14 +142,30 @@ class IWPDB {
 	public function create_require_tables() {
 		$collate = "DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci";
 
-		$this->query( "CREATE TABLE IF NOT EXISTS iwp_files_sent (
+		/**
+		 * Create the 'iwp_files_sent' table if it doesn't exist.
+		 *
+		 * This table stores information about files that have been sent:
+		 * - id: Auto-incrementing primary key
+		 * - filepath: The full path of the file
+		 * - filepath_hash: A unique hash of the filepath for quick lookups
+		 * - sent: Flag indicating if the file has been sent (0 = not sent, 1 = sent)
+		 * - size: Size of the file in bytes
+		 * - sent_filename: The name of the file when it was sent
+		 * - checksum: MD5 checksum of the file for integrity verification
+		 * - file_type: Type of the file inventory/file (default is 'file')
+		 * - file_count: Number of files (default is 1, used for directories)
+		 */
+		$this->query( "CREATE TABLE IF NOT EXISTS {$this->table_files_sent} (
             id INT AUTO_INCREMENT PRIMARY KEY, 
             filepath TEXT, 
             filepath_hash CHAR(64) UNIQUE, 
             sent INT DEFAULT 0, 
             size INT,
             sent_filename VARCHAR(255),
-            checksum VARCHAR(32)
+            checksum VARCHAR(32),
+			file_type VARCHAR(32) NOT NULL DEFAULT 'file',
+			file_count INT NOT NULL DEFAULT 1
         ) {$collate};" );
 
 		$this->query( "CREATE TABLE IF NOT EXISTS iwp_db_sent (
@@ -297,7 +315,7 @@ class IWPDB {
 		foreach ( $tables as $table_name ) {
 
 			// remove our tracking tables
-			if ( in_array( $table_name, array( 'iwp_db_sent', 'iwp_files_sent', 'iwp_options' ) ) ) {
+			if ( in_array( $table_name, array( 'iwp_db_sent', $this->table_files_sent, 'iwp_options' ) ) ) {
 				continue;
 			}
 
