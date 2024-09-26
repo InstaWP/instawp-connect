@@ -395,11 +395,11 @@ include $file_path;';
 			} else {
 				// Add the plugin to the inventory items
 				$inventory_items[] = array(
-					'slug'		=> $p_slug,
-					'version'	=> $plugin_info['Version'],
-					'type'		=> 'plugin',
-					'path'		=> $p_path,
-					'is_active'	=> $is_active_plugin,
+					'slug'      => $p_slug,
+					'version'   => $plugin_info['Version'],
+					'type'      => 'plugin',
+					'path'      => $p_path,
+					'is_active' => $is_active_plugin,
 				);
 			}
 		}
@@ -416,11 +416,11 @@ include $file_path;';
 			} else {
 				// Add the theme to the inventory items
 				$inventory_items[] = array(
-					'slug'		=> $theme_slug,
-					'version'	=> $theme_info->get('Version'),
-					'type'		=> 'theme',
-					'path'		=> $relative_dir . '/themes/' . $theme_slug,
-					'is_active'	=> $is_active_theme,
+					'slug'      => $theme_slug,
+					'version'   => $theme_info->get('Version'),
+					'type'      => 'theme',
+					'path'      => $relative_dir . '/themes/' . $theme_slug,
+					'is_active' => $is_active_theme,
 				);
 			}
 		}
@@ -460,10 +460,10 @@ include $file_path;';
 					// final 
 					if ( empty( $migrate_settings['inventory_items'] ) ) {
 						$migrate_settings['inventory_items'] = array(
-							'token' => $encoded_api_key,
-							'items' => array(),
+							'token'         => $encoded_api_key,
+							'items'         => array(),
 							'with_checksum' => array(),
-							'staging' => $is_staging,
+							'staging'       => $is_staging,
 						);
 					}
 
@@ -509,23 +509,22 @@ include $file_path;';
 
 								// add the item to the inventory items
 								$migrate_settings['inventory_items']['items'][] = array(
-									'slug' => $item['slug'],
+									'slug'    => $item['slug'],
 									'version' => $item['version'],
-									'type' => $item['type'],
+									'type'    => $item['type'],
 								);
 								
 							}
 						}
-					}
-					
-				} else {
+					}               
+} else {
 					if ( empty( $inventory_data ) || ! is_array( $inventory_data ) ) {
 						$inventory_data = array();
 					}
 					error_log("Inventory fetch error. Response:" . json_encode( $inventory_data ) );
 				}
 			}
-		} catch (\Exception $e) {
+		} catch ( \Exception $e ) {
 			error_log( 'Error in processing migration settings inventory items: ' . $e->getMessage() );
 		}
 
@@ -553,7 +552,7 @@ include $file_path;';
 		if ( empty( $api_key ) ) {
 			return array(
 				'success' => false,
-				'message' => __( 'API key not found', 'instawp-connect' )
+				'message' => __( 'API key not found', 'instawp-connect' ),
 			);
 		}
 		$response = wp_remote_post( 
@@ -562,7 +561,7 @@ include $file_path;';
 				'body'    => $body,
 				'headers' => array(
 					'Authorization' => 'Bearer ' . $api_key,
-					'staging' => $is_staging
+					'staging'       => $is_staging,
 				),
 			)
 		);
@@ -645,9 +644,9 @@ include $file_path;';
 
 		// Return the checksum
 		return array(
-			'checksum'		=> sprintf( '%u', $finalHash ),
-			'file_count'	=> $fileCount,
-			'size'			=> $totalSize,
+			'checksum'   => sprintf( '%u', $finalHash ),
+			'file_count' => $fileCount,
+			'size'       => $totalSize,
 		);
 	}
 

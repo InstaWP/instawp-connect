@@ -28,7 +28,7 @@ class WPConfig extends \WPConfigTransformer {
         'DOMAIN_CURRENT_SITE',
     ];
 
-    public function __construct( array $constants = [], $is_cli = false ) {
+    public function __construct( array $constants = [], $is_cli = false, $read_only = false ) {
         $file = ABSPATH . 'wp-config.php';
         if ( ! file_exists( $file ) ) {
             if ( @file_exists( dirname( ABSPATH ) . '/wp-config.php' ) ) {
@@ -36,7 +36,7 @@ class WPConfig extends \WPConfigTransformer {
             }
         }
 
-        parent::__construct( $file );
+        parent::__construct( $file, $read_only );
 
         $this->config_data = $constants;
         $this->is_cli      = $is_cli;

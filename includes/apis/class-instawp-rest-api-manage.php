@@ -303,7 +303,7 @@ class InstaWP_Rest_Api_Manage extends InstaWP_Rest_Api {
             $wp_config = new Helpers\WPConfig( array(
                 'AUTOMATIC_UPDATER_DISABLED',
                 'WP_AUTO_UPDATE_CORE',
-            ) );
+            ), false, true );
             $response  = $wp_config->get();
         } catch ( \Exception $e ) {
             $response = array(
