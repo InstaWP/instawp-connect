@@ -18,6 +18,7 @@
 
 // If this file is called directly, abort.
 use InstaWP\Connect\Helpers\Curl;
+use InstaWP\Connect\Helpers\Helper;
 use InstaWP\Connect\Helpers\Option;
 
 if ( ! defined( 'WPINC' ) ) {
@@ -137,61 +138,8 @@ add_filter( 'got_rewrite', '__return_true' );
 run_instawp();
 
 
-// Add our custom rewrite rule
-add_action( 'init', function () {
-	add_rewrite_rule( '^serve-instawp/?$', 'index.php?instawp_serve=1', 'top' );
-}, 1 );
-
-// Register our query var
-add_filter( 'query_vars', function ( $vars ) {
-	$vars[] = 'instawp_serve';
-
-	return $vars;
-} );
-
-// Hook into WordPress as early as possible
-add_action( 'parse_request', function ( $wp ) {
-	if ( isset( $wp->query_vars['instawp_serve'] ) ) {
-		$serve_file = WP_CONTENT_DIR . '/plugins/instawp-connect/serve.php';
-
-		if ( file_exists( $serve_file ) ) {
-			// Prevent WordPress from loading further
-			defined( 'SHORTINIT' ) || define( 'SHORTINIT', true );
-
-			// Load serve.php
-			include_once $serve_file;
-			exit;
-		}
-//		else {
-//			header( 'HTTP/1.0 404 Not Found' );
-//			exit( 'File not found' );
-//		}
-
-		exit;
-	}
-}, 0 );
-
-// Flush rewrite rules on plugin activation (you'll need to trigger this manually once)
-function instawp_flush_rewrite_rules() {
-	add_rewrite_rule( '^serve-instawp/?$', 'index.php?instawp_serve=1', 'top' );
-	flush_rewrite_rules();
-}
-
-
 add_action( 'wp_head', function () {
 	if ( isset( $_GET['debug'] ) ) {
-
-		$migrate_settings     = InstaWP_Tools::get_migrate_settings();
-		$total_files_size     = InstaWP_Tools::get_total_sizes( 'files', $migrate_settings );
-		$check_usage_response = instawp()->instawp_check_usage_on_cloud( $total_files_size );
-
-		echo "<pre>";
-		print_r( [
-			$total_files_size,
-			$check_usage_response
-		] );
-		echo "</pre>";
-
 
 		die();
 	}
