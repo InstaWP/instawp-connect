@@ -17,6 +17,12 @@ if ( ! empty( $parent_connect_data ) ) {
 	$parent_domain = preg_replace( "(^https?://)", '', Helper::get_args_option( 'domain', $parent_connect_data, '' ) );
 }
 
+$connect_id    = instawp_get_connect_id();
+$staging_sites = get_option( 'instawp_staging_sites' );
+if ( empty( $connect_id ) && ! empty( $staging_sites ) ) {
+    delete_option( 'instawp_staging_sites' );
+}
+
 ?>
 
 <div class="nav-item-content sites bg-white rounded-md p-6" data-pagination="<?php echo esc_attr( $pagination ); ?>">
