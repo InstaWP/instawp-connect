@@ -41,7 +41,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 		public function handle_migration_through_wp( $wp ) {
 
 			if ( isset( $wp->query_vars['instawp_serve'] ) ) {
-				$serve_file = INSTAWP_PLUGIN_URL . 'serve.php';
+				$serve_file = INSTAWP_PLUGIN_DIR . 'serve.php';
 
 				if ( file_exists( $serve_file ) ) {
 					// Prevent WordPress from loading further

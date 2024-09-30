@@ -552,6 +552,11 @@ include $file_path;';
 	 */
 	public static function inventory_api_call( $api_key, $end_point = 'checksum', $is_staging = 0, $body = array() ) {
 
+		return array(
+			'success' => false,
+			'message' => 'forcefully ignored',
+		);
+
 		if ( empty( $api_key ) ) {
 			return array(
 				'success' => false,
