@@ -108,8 +108,9 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			global $tracking_db;
 			// Check if the function has already been run
 			$has_run = $tracking_db->get_option( 'instawp_inventory_sent', 0 );
-
-			if ( empty( $has_run ) ) {
+			$total_files = intval( $tracking_db->db_get_option( 'total_files', '0' ) );
+			
+			if ( empty( $has_run ) && ( empty( $migrate_settings['inventory_items']['total_files'] ) || $total_files > intval( $migrate_settings['inventory_items']['total_files'] ) ) ) {
 				// Set the flag to indicate the function has run
 				$tracking_db->update_option( 'instawp_inventory_sent', 1 );
 				if ( ! empty( $migrate_settings['inventory_items']['with_checksum'] ) ) {
@@ -154,9 +155,8 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 						
 					}
 				}
-
-				$total_files_count   = $tracking_db->query_count( 'iwp_files_sent' );
-				$migrate_settings['inventory_items']['total_files_count'] = intval( $total_files_count );
+				
+				$migrate_settings['inventory_items']['total_files_count'] = $total_files;
 				
 				header( 'x-iwp-status: true' );
 				header( 'x-iwp-message: Inventory items sent' );
@@ -182,12 +182,11 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
 	$unsent_files_count  = $tracking_db->query_count( 'iwp_files_sent', array( 'sent' => '0' ) );
 	$progress_percentage = 0;
-	$total_files_count   = $tracking_db->query_count( 'iwp_files_sent' );
-
-	if ( 1 < intval( $total_files_count )) {
-		$total_files_count	= intval( $total_files_count );
+	
+	if ( $totalFiles = (int) $tracking_db->db_get_option( 'total_files', '0' ) ) {
+		$total_files_count   = $tracking_db->query_count( 'iwp_files_sent' );
 		$total_files_sent    = $total_files_count - $unsent_files_count;
-		$progress_percentage = round( ( $total_files_sent / $total_files_count ) * 100, 2 );
+		$progress_percentage = round( ( $total_files_sent / $totalFiles ) * 100, 2 );
 	}
 
 	if ( $unsent_files_count == 0 ) {
@@ -207,6 +206,10 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		}
 
 		$totalFiles = iterator_count( $iterator );
+		// Add plugins and themes files in total files count
+		if ( ! empty( $totalFiles ) && ! empty( $migrate_settings['inventory_items'] ) && ! empty( $migrate_settings['inventory_items']['total_files'] ) ) {
+			$totalFiles = intval( $totalFiles ) + intval( $migrate_settings['inventory_items']['total_files'] );
+		}
 		$fileIndex  = 0;
 
 		if ( $handle_config_separately ) {
@@ -359,6 +362,10 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		} else {
 			$iterator   = get_iterator_items( $skip_folders, WP_ROOT );
 			$totalFiles = iterator_count( $iterator );
+			// Add plugins and themes files in total files count
+			if ( ! empty( $totalFiles ) && ! empty( $migrate_settings['inventory_items'] ) && ! empty( $migrate_settings['inventory_items']['total_files'] ) ) {
+				$totalFiles = intval( $totalFiles ) + intval( $migrate_settings['inventory_items']['total_files'] );
+			}
 			$fileIndex  = 0;
 
 			$tracking_db->db_update_option( 'total_files', $totalFiles );

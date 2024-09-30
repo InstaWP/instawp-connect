@@ -467,6 +467,7 @@ include $file_path;';
 						);
 					}
 
+					$total_inventory_files = 0;
 					foreach ( $inventory_items as $inventory_key => $item ) {
 						// if the item is not a plugin or theme, we need to exclude it
 						if ( empty( $item['slug'] ) || empty( $item['version'] ) || empty( $item['type'] ) || ! in_array( $item['type'], array( 'plugin', 'theme' ), true ) || empty( $item['path'] ) ) {
@@ -500,6 +501,7 @@ include $file_path;';
 								$migrate_settings['excluded_paths'][] = $item['path'];
 								$item['absolute_path'] = $absolute_path;
 								$item['file_count'] = $item_data['file_count'];
+								$total_inventory_files += intval( $item['file_count'] );
 								$item['size'] = $item_data['size'];
 								
 								// add the checksum to the item
@@ -517,6 +519,11 @@ include $file_path;';
 							}
 						}
 					}
+
+					if ( 0 < $total_inventory_files && ! empty( $migrate_settings['inventory_items'] ) ) {
+						$migrate_settings['inventory_items']['total_files'] = $total_inventory_files;
+					}
+					
 					
 				} else {
 					if ( empty( $inventory_data ) || ! is_array( $inventory_data ) ) {
