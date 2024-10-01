@@ -378,6 +378,32 @@ include $file_path;';
 		// Skip object-cache-iwp file if exists forcefully
 		$migrate_settings['excluded_paths'][] = $relative_dir . '/object-cache-iwp.php';
 
+		// Get inventory settings
+		$migrate_settings = InstaWP_Tools::inventory_migration_settings( 
+			$migrate_settings,
+			$options, 
+			$relative_dir,
+			$wp_root_dir
+		);
+
+		if ( in_array( 'skip_media_folder', $options ) ) {
+			$upload_dir      = wp_upload_dir();
+			$upload_base_dir = isset( $upload_dir['basedir'] ) ? $upload_dir['basedir'] : '';
+
+			if ( ! empty( $upload_base_dir ) ) {
+				$migrate_settings['excluded_paths'][] = str_replace( ABSPATH, '', $upload_base_dir );
+			}
+		}
+
+		return apply_filters( 'instawp/filters/process_migration_settings', $migrate_settings );
+	}
+
+	public static function inventory_migration_settings( $migrate_settings, $options, $relative_dir, $wp_root_dir ) {
+
+		if ( ! empty( $migrate_settings['inventory_items'] ) ) {
+			return $migrate_settings;
+		}
+
 		// Get plugins and themes inventory
 		$inventory_items = array();
 		// Get active plugins inventory
@@ -467,6 +493,7 @@ include $file_path;';
 						);
 					}
 
+					$total_inventory_files = 0;
 					foreach ( $inventory_items as $inventory_key => $item ) {
 						// if the item is not a plugin or theme, we need to exclude it
 						if ( empty( $item['slug'] ) || empty( $item['version'] ) || empty( $item['type'] ) || ! in_array( $item['type'], array( 'plugin', 'theme' ), true ) || empty( $item['path'] ) ) {
@@ -500,6 +527,7 @@ include $file_path;';
 								$migrate_settings['excluded_paths'][] = $item['path'];
 								$item['absolute_path'] = $absolute_path;
 								$item['file_count'] = $item_data['file_count'];
+								$total_inventory_files += intval( $item['file_count'] );
 								$item['size'] = $item_data['size'];
 								
 								// add the checksum to the item
@@ -516,8 +544,14 @@ include $file_path;';
 								
 							}
 						}
-					}               
-} else {
+					}
+
+					if ( 0 < $total_inventory_files && ! empty( $migrate_settings['inventory_items'] ) ) {
+						$migrate_settings['inventory_items']['total_files'] = $total_inventory_files;
+					}
+					
+					
+				} else {
 					if ( empty( $inventory_data ) || ! is_array( $inventory_data ) ) {
 						$inventory_data = array();
 					}
@@ -528,16 +562,7 @@ include $file_path;';
 			error_log( 'Error in processing migration settings inventory items: ' . $e->getMessage() );
 		}
 
-		if ( in_array( 'skip_media_folder', $options ) ) {
-			$upload_dir      = wp_upload_dir();
-			$upload_base_dir = isset( $upload_dir['basedir'] ) ? $upload_dir['basedir'] : '';
-
-			if ( ! empty( $upload_base_dir ) ) {
-				$migrate_settings['excluded_paths'][] = str_replace( ABSPATH, '', $upload_base_dir );
-			}
-		}
-
-		return apply_filters( 'instawp/filters/process_migration_settings', $migrate_settings );
+		return $migrate_settings;
 	}
 
 	/**
