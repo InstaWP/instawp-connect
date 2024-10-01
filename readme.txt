@@ -98,6 +98,9 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 0.1.0.57 - September 2024 =
+- FIX - Showing error if wp-config.php is not writable.
+
 = 0.1.0.56 - 18 September 2024 =
 - NEW - Added a faster migration method on the staging site creation.
 - FIX - Fixed user interface issues while creation staging site.

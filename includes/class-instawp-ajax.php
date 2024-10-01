@@ -393,17 +393,17 @@ class InstaWP_Ajax {
 		$can_proceed          = (bool) Helper::get_args_option( 'can_proceed', $check_usage_response, false );
 		$api_response         = Helper::get_args_option( 'api_response', $check_usage_response, array() );
 		$api_response_code    = Helper::get_args_option( 'code', $api_response );
-		$message 			  = Helper::get_args_option( 'message', $api_response );
+		$message              = Helper::get_args_option( 'message', $api_response );
 
 		if ( $can_proceed ) {
 			wp_send_json_success( $check_usage_response );
 		}
 
 		$error = array(
-			'error' 	=> true,
-			'title' 	=> esc_html__( 'Communication Error', 'instawp-connect' ),
-			'message' 	=> empty( $message) ? esc_html__( 'Something went wrong.', 'instawp-connect' ): esc_html( $message ),
-			'http_code'	=> empty( $api_response_code ) ? 400: intval( $api_response_code ),
+			'error'     => true,
+			'title'     => esc_html__( 'Communication Error', 'instawp-connect' ),
+			'message'   => empty( $message) ? esc_html__( 'Something went wrong.', 'instawp-connect' ) : esc_html( $message ),
+			'http_code' => empty( $api_response_code ) ? 400 : intval( $api_response_code ),
 		);
 
 		if ( intval( $api_response_code ) === 404 ) {
