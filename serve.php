@@ -174,15 +174,6 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		$progress_percentage = round( ( $total_files_sent / $totalFiles ) * 100, 2 );
 	}
 
-	$tracking_db->db_update_option( 'current_file_index', '0' );
-
-//	echo "<pre>";
-//	print_r( [
-//		'$skip_folders' => $skip_folders,
-//		'WP_ROOT'       => WP_ROOT,
-//	] );
-//	echo "</pre>";
-
 	if ( $unsent_files_count == 0 ) {
 		$iterator = get_iterator_items( $skip_folders, WP_ROOT );
 
