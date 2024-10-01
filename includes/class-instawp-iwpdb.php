@@ -14,7 +14,7 @@ class IWPDB {
 	private $options_data = array();
 	private $max_retries = 10;
 	private $table_files_sent = 'iwp_files_sent';
-	private $use_wpdb = false;
+	public $use_wpdb = false;
 
 	private static $_table_option = 'iwp_options';
 
@@ -27,8 +27,8 @@ class IWPDB {
 	}
 
 	public function db_get_option( $option_name, $default_value = '' ) {
-		if ($this->use_wpdb) {
-			return get_option($option_name, $default_value);
+		if ( $this->use_wpdb ) {
+			return get_option( $option_name, $default_value );
 		}
 
 		$option_data = $this->get_row( self::$_table_option, array( 'option_name' => $option_name ) );
@@ -37,8 +37,8 @@ class IWPDB {
 	}
 
 	public function db_update_option( $option_name, $option_value = '' ) {
-		if ($this->use_wpdb) {
-			return update_option($option_name, $option_value);
+		if ( $this->use_wpdb ) {
+			return update_option( $option_name, $option_value );
 		}
 
 		$option_data = $this->get_row( self::$_table_option, array( 'option_name' => $option_name ) );
@@ -54,8 +54,8 @@ class IWPDB {
 	}
 
 	public function insert( $table_name, $data = array() ) {
-		if ($this->use_wpdb) {
-			return $this->conn->insert($table_name, $data);
+		if ( $this->use_wpdb ) {
+			return $this->conn->insert( $table_name, $data );
 		}
 
 		$column_names  = implode( ',', array_keys( $data ) );
@@ -70,9 +70,10 @@ class IWPDB {
 		return false;
 	}
 
+
 	public function update( $table_name, $data = array(), $where_array = array() ) {
-		if ($this->use_wpdb) {
-			return $this->conn->update($table_name, $data, $where_array);
+		if ( $this->use_wpdb ) {
+			return $this->conn->update( $table_name, $data, $where_array );
 		}
 
 		$set_arr = array();
@@ -92,9 +93,10 @@ class IWPDB {
 	}
 
 	public function get_row( $table_name, $where_array = array() ) {
-		if ($this->use_wpdb) {
-			$where_clause = $this->build_where_clauses($where_array);
-			return $this->conn->get_row("SELECT * FROM {$table_name} WHERE {$where_clause} LIMIT 1", ARRAY_A);
+		if ( $this->use_wpdb ) {
+			$where_clause = $this->build_where_clauses( $where_array );
+
+			return $this->conn->get_row( "SELECT * FROM {$table_name} WHERE {$where_clause} LIMIT 1", ARRAY_A );
 		}
 
 		$fetch_row_res = $this->query( "SELECT * FROM {$table_name} WHERE {$this->build_where_clauses($where_array)} LIMIT 1" );
@@ -109,9 +111,10 @@ class IWPDB {
 	}
 
 	public function get_rows( $table_name, $where_array = array() ) {
-		if ($this->use_wpdb) {
-			$where_clause = $this->build_where_clauses($where_array);
-			return $this->conn->get_results("SELECT * FROM {$table_name} WHERE {$where_clause}", ARRAY_A);
+		if ( $this->use_wpdb ) {
+			$where_clause = $this->build_where_clauses( $where_array );
+
+			return $this->conn->get_results( "SELECT * FROM {$table_name} WHERE {$where_clause}", ARRAY_A );
 		}
 
 		/**
@@ -134,13 +137,14 @@ class IWPDB {
 	}
 
 	public function query_count( $table_name, $where_array = array() ) {
-		if ($this->use_wpdb) {
-			$where_clause = $this->build_where_clauses($where_array);
+		if ( $this->use_wpdb ) {
+			$where_clause = $this->build_where_clauses( $where_array );
 			$count_column = $table_name === $this->table_files_sent ? "SUM(file_count)" : "count(*)";
-			return $this->conn->get_var("SELECT {$count_column} as count FROM {$table_name} WHERE {$where_clause}");
+
+			return $this->conn->get_var( "SELECT {$count_column} as count FROM {$table_name} WHERE {$where_clause}" );
 		}
 
-		$query_count_res = $this->query( ( $table_name === $this->table_files_sent ? "SELECT SUM(file_count)":"SELECT count(*)" ) . " as count FROM {$table_name} WHERE {$this->build_where_clauses($where_array)}" );
+		$query_count_res = $this->query( ( $table_name === $this->table_files_sent ? "SELECT SUM(file_count)" : "SELECT count(*)" ) . " as count FROM {$table_name} WHERE {$this->build_where_clauses($where_array)}" );
 
 		if ( ! $query_count_res ) {
 			return 0;
@@ -152,15 +156,15 @@ class IWPDB {
 	}
 
 	public function query( $str_query = '' ) {
-		if ($this->use_wpdb) {
-			return $this->conn->query($str_query);
+		if ( $this->use_wpdb ) {
+			return $this->conn->query( $str_query );
 		}
 
 		try {
 			$query_result = $this->conn->query( $str_query );
 		} catch ( Exception $e ) {
 			$this->last_error = $e->getMessage();
-			
+
 		}
 
 		if ( $query_result instanceof mysqli_result ) {
@@ -226,9 +230,10 @@ class IWPDB {
 	public function connect_database() {
 		global $wpdb;
 
-		if (isset($wpdb) && $wpdb instanceof wpdb) {
-			$this->conn = $wpdb;
+		if ( isset( $wpdb ) && $wpdb instanceof wpdb ) {
+			$this->conn     = $wpdb;
 			$this->use_wpdb = true;
+
 			return;
 		}
 
@@ -414,7 +419,7 @@ class IWPDB {
 	}
 
 	public function __destruct() {
-		if (!$this->use_wpdb && $this->conn instanceof mysqli) {
+		if ( ! $this->use_wpdb && $this->conn instanceof mysqli ) {
 			$this->conn->close();
 		}
 	}

@@ -174,6 +174,15 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		$progress_percentage = round( ( $total_files_sent / $totalFiles ) * 100, 2 );
 	}
 
+	$tracking_db->db_update_option( 'current_file_index', '0' );
+
+//	echo "<pre>";
+//	print_r( [
+//		'$skip_folders' => $skip_folders,
+//		'WP_ROOT'       => WP_ROOT,
+//	] );
+//	echo "</pre>";
+
 	if ( $unsent_files_count == 0 ) {
 		$iterator = get_iterator_items( $skip_folders, WP_ROOT );
 
@@ -183,10 +192,25 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		// Create a limited iterator to skip the files that are already indexed
 		$limitedIterator = array();
 		try {
+			$iterator   = get_iterator_items( $skip_folders, WP_ROOT );
+			$totalFiles = iterator_count( $iterator );
+
+			if ( $totalFiles == 0 ) {
+				throw new Exception( "No files found in the iterator." );
+			}
+
 			$limitedIterator = new LimitIterator( $iterator, $currentFileIndex, BATCH_SIZE );
+
+			// Test if the limited iterator has any items
+			$limitedIterator->rewind();
+			if ( ! $limitedIterator->valid() ) {
+				header( 'x-iwp-status: false' );
+				header( "x-iwp-message: LimitIterator is empty. Current file index: $currentFileIndex, Batch size: " . BATCH_SIZE );
+				die();
+			}
 		} catch ( Exception $e ) {
 			header( 'x-iwp-status: false' );
-			header( 'x-iwp-message: Migration script could not traverse all the files using the limited iterator. Actual reason is: ' . $e->getMessage() );
+			header( 'x-iwp-message: Migration script could not traverse files using the limited iterator. Error: ' . $e->getMessage() );
 			die();
 		}
 
@@ -199,10 +223,10 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			$config_file_path_hash = hash( 'sha256', $config_file_size );
 
 			$tracking_db->insert( 'iwp_files_sent', array(
-				'filepath'      => "'$config_file_path'",
-				'filepath_hash' => "'$config_file_path_hash'",
+				'filepath'      => $tracking_db->use_wpdb ? $config_file_path : "'$config_file_path'",
+				'filepath_hash' => $tracking_db->use_wpdb ? $config_file_path_hash : "'$config_file_path_hash'",
 				'sent'          => 0,
-				'size'          => "'$config_file_size'",
+				'size'          => $tracking_db->use_wpdb ? $config_file_size : "'$config_file_size'",
 			) );
 		}
 
@@ -218,10 +242,10 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 				$filesize = $file->getSize();
 			} catch ( Exception $e ) {
 				$tracking_db->insert( 'iwp_files_sent', array(
-					'filepath'      => "'$filepath'",
+					'filepath'      => $tracking_db->use_wpdb ? $filepath : "'$filepath'",
 					'filepath_hash' => "",
 					'sent'          => 5,
-					'size'          => "'$filesize'",
+					'size'          => $tracking_db->use_wpdb ? $filesize : "'$filesize'",
 				) );
 				continue;
 			}
@@ -231,10 +255,10 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			if ( ! is_valid_file( $filepath ) ) {
 				try {
 					$tracking_db->insert( 'iwp_files_sent', array(
-						'filepath'      => "'$filepath'",
-						'filepath_hash' => "'$filepath_hash'",
+						'filepath'      => $tracking_db->use_wpdb ? $filepath : "'$filepath'",
+						'filepath_hash' => $tracking_db->use_wpdb ? $filepath_hash : "'$filepath_hash'",
 						'sent'          => 5,
-						'size'          => "'$filesize'",
+						'size'          => $tracking_db->use_wpdb ? $filesize : "'$filesize'",
 					) );
 				} catch ( Exception $e ) {
 				}
@@ -247,10 +271,10 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			if ( ! $row ) {
 				try {
 					$tracking_db->insert( 'iwp_files_sent', array(
-						'filepath'      => "'$filepath'",
-						'filepath_hash' => "'$filepath_hash'",
+						'filepath'      => $tracking_db->use_wpdb ? $filepath : "'$filepath'",
+						'filepath_hash' => $tracking_db->use_wpdb ? $filepath_hash : "'$filepath_hash'",
 						'sent'          => 0,
-						'size'          => "'$filesize'",
+						'size'          => $tracking_db->use_wpdb ? $filesize : "'$filesize'",
 					) );
 					++ $fileIndex;
 				} catch ( Exception $e ) {
@@ -356,10 +380,10 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 				if ( ! is_valid_file( $filepath ) ) {
 					try {
 						$tracking_db->insert( 'iwp_files_sent', array(
-							'filepath'      => "'$filepath'",
-							'filepath_hash' => "'$filepath_hash'",
+							'filepath'      => $tracking_db->use_wpdb ? $filepath : "'$filepath'",
+							'filepath_hash' => $tracking_db->use_wpdb ? $filepath_hash : "'$filepath_hash'",
 							'sent'          => 5,
-							'size'          => "'$filesize'",
+							'size'          => $tracking_db->use_wpdb ? $filesize : "'$filesize'",
 						) );
 					} catch ( Exception $e ) {
 					}
