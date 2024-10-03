@@ -100,6 +100,10 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 = 0.1.0.57 - September 2024 =
 - FIX - Showing error if wp-config.php is not writable.
+- FIX - Duplicate plugin and theme installation slug in migration settings
+- NEW - Show progress of plugin and theme installations during staging creation.
+- NEW - Add plugin and theme details in file count table
+- FIX - Relative directory path for migration
 
 = 0.1.0.56 - 18 September 2024 =
 - NEW - Added a faster migration method on the staging site creation.
