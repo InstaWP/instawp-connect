@@ -291,8 +291,6 @@ include $file_path;';
 
 	public static function is_migrate_file_accessible( $file_url ) {
 
-		return false;
-
 		$response = wp_remote_post( INSTAWP_API_DOMAIN_PROD . '/public/check/?url=' . rawurlencode( $file_url ), array(
 			'timeout'   => 30,
 			'sslverify' => false, // Set to true if your server configuration allows SSL verification
