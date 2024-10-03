@@ -841,9 +841,9 @@ include $file_path;';
 			}
 
 			// Check if none of them are accessible, then throw error
-			if ( ! self::is_migrate_file_accessible( $serve_file_url ) ) {
-				return new WP_Error( 403, esc_html__( 'InstaWP could not access the forwarded file due to security issue.', 'instawp-connect' ) );
-			}
+//			if ( ! self::is_migrate_file_accessible( $serve_file_url ) ) {
+//				return new WP_Error( 403, esc_html__( 'InstaWP could not access the forwarded file due to security issue.', 'instawp-connect' ) );
+//			}
 		}
 
 		$iwpdb_main_path = INSTAWP_PLUGIN_DIR . 'includes/class-instawp-iwpdb.php';
