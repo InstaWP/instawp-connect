@@ -140,10 +140,10 @@ class InstaWP_Sync_WC {
 	}
 
     public function can_sync_taxonomy( $can_sync, $taxonomy ) {
-        $taxonomies    = [];
+        $taxonomies    = array();
         $wc_taxonomies = get_object_taxonomies( 'product', 'objects' );
         foreach ( $wc_taxonomies as $wc_taxonomy ) {
-            if ( in_array( $wc_taxonomy->name, [ 'product_type', 'product_visibility', 'product_shipping_class' ], true ) ) {
+            if ( in_array( $wc_taxonomy->name, array( 'product_type', 'product_visibility', 'product_shipping_class' ), true ) ) {
                 continue;
             }
             $taxonomies[] = $wc_taxonomy->name;

@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.6
 Tested up to: 6.6
 Requires PHP: 7.0
-Stable tag: 0.1.0.56
+Stable tag: 0.1.0.57
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -97,6 +97,15 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 You can report security bugs through the Patchstack Vulnerability Disclosure Program. The Patchstack team helps validate, triage, and handle any security vulnerabilities. [Report a security vulnerability](https://patchstack.com/database/vdp/instawp-connect).
 
 == Changelog ==
+
+= 0.1.0.57 - 3 October 2024 =
+- FIX - Showing error if wp-config.php is not writable.
+- FIX - Duplicate plugin and theme installation slug in migration settings
+- NEW - Show progress of plugin and theme installations during staging creation.
+- NEW - Add plugin and theme details in file count table
+- FIX - Relative directory path for migration
+- FIX - Delete staging sites when the plugin is disconnected from the app.
+- FIX - Fixed 2 way sync event recording for woocommerce
 
 = 0.1.0.56 - 18 September 2024 =
 - NEW - Added a faster migration method on the staging site creation.
