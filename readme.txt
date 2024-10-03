@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.6
 Tested up to: 6.6
 Requires PHP: 7.0
-Stable tag: 0.1.0.56
+Stable tag: 0.1.0.57
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -98,12 +98,14 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
-= 0.1.0.57 - September 2024 =
+= 0.1.0.57 - 3 October 2024 =
 - FIX - Showing error if wp-config.php is not writable.
 - FIX - Duplicate plugin and theme installation slug in migration settings
 - NEW - Show progress of plugin and theme installations during staging creation.
 - NEW - Add plugin and theme details in file count table
 - FIX - Relative directory path for migration
+- FIX - Delete staging sites when the plugin is disconnected from the app.
+- FIX - Fixed 2 way sync event recording for woocommerce
 
 = 0.1.0.56 - 18 September 2024 =
 - NEW - Added a faster migration method on the staging site creation.
