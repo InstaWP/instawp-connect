@@ -18,6 +18,7 @@
 
 // If this file is called directly, abort.
 use InstaWP\Connect\Helpers\Curl;
+use InstaWP\Connect\Helpers\Helper;
 use InstaWP\Connect\Helpers\Option;
 
 if ( ! defined( 'WPINC' ) ) {
@@ -135,3 +136,4 @@ function run_instawp() {
 add_filter( 'got_rewrite', '__return_true' );
 
 run_instawp();
+

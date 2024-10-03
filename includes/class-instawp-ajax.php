@@ -359,14 +359,16 @@ class InstaWP_Ajax {
 		$migrate_key           = Helper::get_args_option( 'migrate_key', $migrate_response_data );
 		$tracking_url          = Helper::get_args_option( 'tracking_url', $migrate_response_data );
 		$destination_site_url  = Helper::get_args_option( 'destination_site_url', $migrate_response_data );
+		$serve_with_wp         = (bool) Helper::get_args_option( 'serve_with_wp', $pre_check_response );
 		$migration_details     = array(
-			'migrate_id'   => $migrate_id,
-			'migrate_key'  => $migrate_key,
-			'tracking_url' => $tracking_url,
-			'dest_url'     => $destination_site_url,
-			'started_at'   => current_time( 'mysql', 1 ),
-			'status'       => 'initiated',
-			'mode'         => 'pull',
+			'migrate_id'    => $migrate_id,
+			'migrate_key'   => $migrate_key,
+			'tracking_url'  => $tracking_url,
+			'dest_url'      => $destination_site_url,
+			'started_at'    => current_time( 'mysql', 1 ),
+			'status'        => 'initiated',
+			'mode'          => 'pull',
+			'serve_with_wp' => $serve_with_wp,
 		);
 		$tracking_db           = InstaWP_Tools::get_tracking_database( $migrate_key );
 
@@ -390,10 +392,10 @@ class InstaWP_Ajax {
 		$total_files_size     = InstaWP_Tools::get_total_sizes( 'files', $migrate_settings );
 		$check_usage_response = instawp()->instawp_check_usage_on_cloud( $total_files_size );
 
-		$can_proceed          = (bool) Helper::get_args_option( 'can_proceed', $check_usage_response, false );
-		$api_response         = Helper::get_args_option( 'api_response', $check_usage_response, array() );
-		$api_response_code    = Helper::get_args_option( 'code', $api_response );
-		$message              = Helper::get_args_option( 'message', $api_response );
+		$can_proceed       = (bool) Helper::get_args_option( 'can_proceed', $check_usage_response, false );
+		$api_response      = Helper::get_args_option( 'api_response', $check_usage_response, array() );
+		$api_response_code = Helper::get_args_option( 'code', $api_response );
+		$message           = Helper::get_args_option( 'message', $api_response );
 
 		if ( $can_proceed ) {
 			wp_send_json_success( $check_usage_response );
@@ -402,12 +404,12 @@ class InstaWP_Ajax {
 		$error = array(
 			'error'     => true,
 			'title'     => esc_html__( 'Communication Error', 'instawp-connect' ),
-			'message'   => empty( $message) ? esc_html__( 'Something went wrong.', 'instawp-connect' ) : esc_html( $message ),
+			'message'   => empty( $message ) ? esc_html__( 'Something went wrong.', 'instawp-connect' ) : esc_html( $message ),
 			'http_code' => empty( $api_response_code ) ? 400 : intval( $api_response_code ),
 		);
 
 		if ( intval( $api_response_code ) === 404 ) {
-            $return_url      = urlencode( admin_url( 'tools.php?page=instawp&instawp-nonce=' . wp_create_nonce( 'instawp_connect_nonce' ) ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.urlencode_urlencode
+			$return_url      = urlencode( admin_url( 'tools.php?page=instawp&instawp-nonce=' . wp_create_nonce( 'instawp_connect_nonce' ) ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.urlencode_urlencode
 			$api_domain      = Helper::get_api_domain();
 			$connect_api_url = $api_domain . '/authorize?source=InstaWP Connect&return_url=' . $return_url;
 
@@ -492,8 +494,8 @@ class InstaWP_Ajax {
 				$theme_item_checked = true;
 
 				if ( in_array( $data['full_path'], array( $theme_path, $template_path, $themes_dir, $themes_dir . '/index.php' ) )
-					|| strpos( $data['full_path'], $theme_path ) !== false
-					|| strpos( $data['full_path'], $template_path ) !== false ) {
+				     || strpos( $data['full_path'], $theme_path ) !== false
+				     || strpos( $data['full_path'], $template_path ) !== false ) {
 
 					$theme_item_checked = false;
 				}
@@ -505,7 +507,7 @@ class InstaWP_Ajax {
 				$plugin_item_checked = true;
 
 				if ( in_array( $data['full_path'], array( wp_normalize_path( WP_PLUGIN_DIR ), wp_normalize_path( WP_PLUGIN_DIR ) . '/index.php' ) )
-					|| in_array( basename( $data['relative_path'] ), array_map( 'dirname', $active_plugins ) ) ) {
+				     || in_array( basename( $data['relative_path'] ), array_map( 'dirname', $active_plugins ) ) ) {
 
 					$plugin_item_checked = false;
 				}
@@ -655,7 +657,7 @@ class InstaWP_Ajax {
 		}
 
 		Option::update_option( $option_name, $option_value );
-        wp_cache_flush();
+		wp_cache_flush();
 
 		wp_send_json_success();
 	}
