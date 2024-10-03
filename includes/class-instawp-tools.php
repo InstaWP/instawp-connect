@@ -789,6 +789,9 @@ include $file_path;';
 		// Clean InstaWP backup directory
 		self::clean_instawpbackups_dir();
 
+		delete_option( 'current_file_index' );
+		delete_option( 'total_files' );
+
 		$api_signature = hash( 'sha512', $migrate_key . wp_generate_uuid4() );
 
 		// Generate serve file in instawpbackups directory
@@ -932,7 +935,7 @@ include $file_path;';
 
 		global $wp_rewrite;
 
-        // For migration support through wp
+		// For migration support through wp
 		add_rewrite_rule( '^serve-instawp/?$', 'index.php?instawp_serve=1', 'top' );
 
 		if ( get_option( 'permalink_structure' ) === '' ) {
