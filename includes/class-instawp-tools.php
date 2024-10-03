@@ -172,8 +172,7 @@ class InstaWP_Tools {
 		$wpdb->query( "DROP TABLE IF EXISTS `iwp_options`;" );
 
 		return array(
-//			'serve_url'        => INSTAWP_PLUGIN_URL . 'serve.php',
-			'serve_url'        => site_url( 'serve-instawp' ),
+			'serve_url'        => INSTAWP_PLUGIN_URL . 'serve.php',
 			'migrate_settings' => $migrate_settings,
 		);
 	}
@@ -292,6 +291,8 @@ include $file_path;';
 
 	public static function is_migrate_file_accessible( $file_url ) {
 
+		return false;
+
 		$response = wp_remote_post( INSTAWP_API_DOMAIN_PROD . '/public/check/?url=' . rawurlencode( $file_url ), array(
 			'timeout'   => 30,
 			'sslverify' => false, // Set to true if your server configuration allows SSL verification
@@ -380,9 +381,9 @@ include $file_path;';
 		$migrate_settings['excluded_paths'][] = $relative_dir . '/object-cache-iwp.php';
 
 		// Get inventory settings
-		$migrate_settings = InstaWP_Tools::inventory_migration_settings( 
+		$migrate_settings = InstaWP_Tools::inventory_migration_settings(
 			$migrate_settings,
-			$options, 
+			$options,
 			$relative_dir,
 			$wp_root_dir
 		);
@@ -474,14 +475,7 @@ include $file_path;';
 				$api_options = get_option( 'instawp_api_options', array() );
 				$is_staging  = ( ! empty( $api_options ) && ! empty( $api_options['api_url'] ) && false !== stripos( $api_options['api_url'], 'stage' ) ) ? 1 : 0;
 				// Get data from api
-				$inventory_data = InstaWP_Tools::inventory_api_call(
-					$encoded_api_key,
-					'checksum',
-					$is_staging,
-					array(
-						'items' => $inventory_data,
-					)
-				);
+				$inventory_data = InstaWP_Tools::inventory_api_call( $encoded_api_key, 'checksum', $is_staging, array( 'items' => $inventory_data, ) );
 
 				if ( ! empty( $inventory_data['success'] ) && ! empty( $inventory_data['data'] ) ) {
 					$inventory_data = $inventory_data['data'];
@@ -527,10 +521,10 @@ include $file_path;';
 							if ( $inventory_data[ $item['type'] ][ $item['slug'] ][ $item['version'] ]['checksum'] === $item_data['checksum'] ) {
 								// if the checksum is the same as the one in the inventory, we need to exclude the path
 								$migrate_settings['excluded_paths'][] = $item['path'];
-								$item['absolute_path'] = $absolute_path;
-								$item['file_count'] = $item_data['file_count'];
-								$total_inventory_files += intval( $item['file_count'] );
-								$item['size'] = $item_data['size'];
+								$item['absolute_path']                = $absolute_path;
+								$item['file_count']                   = $item_data['file_count'];
+								$total_inventory_files                += intval( $item['file_count'] );
+								$item['size']                         = $item_data['size'];
 
 								// add the checksum to the item
 								$item['checksum'] = sanitize_text_field( $inventory_data[ $item['type'] ][ $item['slug'] ][ $item['version'] ]['checksum'] );
@@ -576,11 +570,6 @@ include $file_path;';
 	 */
 	public static function inventory_api_call( $api_key, $end_point = 'checksum', $is_staging = 0, $body = array() ) {
 
-		return array(
-			'success' => false,
-			'message' => 'forcefully ignored',
-		);
-
 		if ( empty( $api_key ) ) {
 			return array(
 				'success' => false,
@@ -623,7 +612,7 @@ include $file_path;';
 	 *
 	 * @param string $folder The path to the specific plugin|theme directory.
 	 *
-	 * @return array An array of checksum, file_count and size.
+	 * @return array|bool An array of checksum, file_count and size.
 	 */
 	public static function calculate_checksum( $folder ) {
 
@@ -794,6 +783,7 @@ include $file_path;';
 	public static function get_pull_pre_check_response( $migrate_key, $migrate_settings = array() ) {
 
 		$is_wp_root_available = self::is_wp_root_available();
+		$serve_with_wp        = false;
 
 		if ( ! $is_wp_root_available ) {
 			$is_wp_root_available = self::is_wp_root_available( '', 'flywheel-config' );
@@ -838,19 +828,23 @@ include $file_path;';
 			return new WP_Error( 404, esc_html__( 'API Signature and others data could not set properly', 'instawp-connect' ) );
 		}
 
-		// Check accessibility of serve file
-//		if ( empty( $serve_file_url ) || ! self::is_migrate_file_accessible( $serve_file_url ) ) {
-//
-//			$serve_file_url = self::generate_forwarded_file();
-//
-//			if ( empty( $serve_file_url ) ) {
-//				return new WP_Error( 403, esc_html__( 'Could not create the forwarded file.', 'instawp-connect' ) );
-//			}
-//
-//			if ( ! self::is_migrate_file_accessible( $serve_file_url ) ) {
-//				return new WP_Error( 403, esc_html__( 'InstaWP could not access the forwarded file due to security issue.', 'instawp-connect' ) );
-//			}
-//		}
+		// Check accessibility of serve.php file
+		if ( empty( $serve_file_url ) || ! self::is_migrate_file_accessible( $serve_file_url ) ) {
+
+			$serve_file_url = self::generate_forwarded_file();
+
+			// Check accessibility of fwd.php file
+			if ( empty( $serve_file_url ) || ! self::is_migrate_file_accessible( $serve_file_url ) ) {
+				// Serve through WordPress
+				$serve_file_url = site_url( 'serve-instawp' );
+				$serve_with_wp  = true;
+			}
+
+			// Check if none of them are accessible, then throw error
+			if ( ! self::is_migrate_file_accessible( $serve_file_url ) ) {
+				return new WP_Error( 403, esc_html__( 'InstaWP could not access the forwarded file due to security issue.', 'instawp-connect' ) );
+			}
+		}
 
 		$iwpdb_main_path = INSTAWP_PLUGIN_DIR . 'includes/class-instawp-iwpdb.php';
 
@@ -866,6 +860,7 @@ include $file_path;';
 
 		return array(
 			'serve_url'        => $serve_file_url,
+			'serve_with_wp'    => $serve_with_wp,
 			'migrate_key'      => $migrate_key,
 			'api_signature'    => $api_signature,
 			'migrate_settings' => $migrate_settings,

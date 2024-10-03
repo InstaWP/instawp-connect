@@ -73,16 +73,16 @@
         const seconds = Math.floor((timeDifference % (1000 * 60)) / 1000);
 
         let string = '';
-        if ( seconds >= 0) {
+        if (seconds >= 0) {
             string = seconds + 's';
         }
-        if ( minutes > 0) {
+        if (minutes > 0) {
             string = minutes + 'm ' + string;
         }
-        if ( hours > 0) {
+        if (hours > 0) {
             string = hours + 'h ' + string;
         }
-        if ( days > 0) {
+        if (days > 0) {
             string = days + 'd ' + string;
         }
         $(document).find('#visibility-timer').text(string);
@@ -90,7 +90,7 @@
 
     let migrationSteps = {};
     $.each(plugin_object.trans.stages, function (stage_key, stage_value) {
-        migrationSteps[ stage_key ] = stage_value;
+        migrationSteps[stage_key] = stage_value;
     });
 
     let instawp_migrate_progress = () => {
@@ -142,8 +142,8 @@
                             current_stage = 'processing',
                             stage_migration_finished = false;
 
-                        if(!elapsedInterval) {
-                            elapsedInterval = setInterval(()=> {
+                        if (!elapsedInterval) {
+                            elapsedInterval = setInterval(() => {
                                 updateTimer(startTime)
                             }, 1000);
                         }
@@ -168,12 +168,12 @@
                         });
 
                         if (Object.keys(migrationSteps).includes(current_stage)) {
-                            el_visibility_box.find('#visibility-content-area').append('<div class="visibility-content-item flex gap-3 items-center hover:bg-zinc-800 hover:rounded-lg py-1.5 px-2.5 "><span class="text-gray-100 min-w-36">' + response.data.timestamp + '</span><span class="text-gray-100 break-all font-medium">' + migrationSteps[ current_stage ] + '</span></div>');
-                            delete migrationSteps[ current_stage ];
+                            el_visibility_box.find('#visibility-content-area').append('<div class="visibility-content-item flex gap-3 items-center hover:bg-zinc-800 hover:rounded-lg py-1.5 px-2.5 "><span class="text-gray-100 min-w-36">' + response.data.timestamp + '</span><span class="text-gray-100 break-all font-medium">' + migrationSteps[current_stage] + '</span></div>');
+                            delete migrationSteps[current_stage];
                         }
 
                         let current_stage_item = el_visibility_box.find('.stage-' + current_stage);
-                        if(current_stage_item.hasClass('hidden')) {
+                        if (current_stage_item.hasClass('hidden')) {
                             el_visibility_box.find('.stage').addClass('hidden');
                             current_stage_item.removeClass('hidden');
                         }
@@ -183,8 +183,8 @@
                         $.each(processed_files, function (key, value) {
                             content_html += '<div class="visibility-content-item flex gap-3 items-center hover:bg-zinc-800 hover:rounded-lg py-1.5 px-2.5 group ' + value.status + '">';
                             content_html += '<span class="text-gray-100 min-w-36">' + response.data.timestamp + '</span><span class="text-gray-100 break-all group-[.sent]:text-emerald-300 group-[.failed]:text-rose-500 group-[.skipped]:text-yellow-300 group-[.invalid]:text-red-300">' + value.filepath + ' (' + value.size + ')';
-                            if(value.status === 'in-progress') {
-                                content_html += ' <span class="hidden group-hover:inline-block cursor-pointer ml-2 px-2 py-1 text-xs rounded-lg border border-zinc-700 text-rose-500 instawp-skip-item" data-type="file" data-item="'+ value.id + '">' + plugin_object.trans.skip_item_txt + '</span>';
+                            if (value.status === 'in-progress') {
+                                content_html += ' <span class="hidden group-hover:inline-block cursor-pointer ml-2 px-2 py-1 text-xs rounded-lg border border-zinc-700 text-rose-500 instawp-skip-item" data-type="file" data-item="' + value.id + '">' + plugin_object.trans.skip_item_txt + '</span>';
                             }
                             content_html += '</span></div>';
                         });
@@ -192,13 +192,13 @@
                         $.each(processed_db, function (key, value) {
                             content_html += '<div class="visibility-content-item flex gap-3 items-center hover:bg-zinc-800 hover:rounded-lg py-1.5 px-2.5 group ' + value.status + '">';
                             content_html += '<span class="text-gray-100 min-w-36">' + response.data.timestamp + '</span><span class="text-gray-100 break-all group-[.sent]:text-emerald-300 group-[.failed]:text-rose-500 group-[.skipped]:text-yellow-300 group-[.invalid]:text-red-300">' + value.table_name + ' - ' + value.offset + ' / ' + value.rows_total + ' rows';
-                            if(value.status === 'in-progress') {
-                                content_html += ' <span class="hidden group-hover:inline-block cursor-pointer ml-2 px-2 py-1 text-xs rounded-lg border border-zinc-700 text-rose-500 instawp-skip-item" data-type="db" data-item="'+ value.table_name + '">' + plugin_object.trans.skip_item_txt + '</span>';
+                            if (value.status === 'in-progress') {
+                                content_html += ' <span class="hidden group-hover:inline-block cursor-pointer ml-2 px-2 py-1 text-xs rounded-lg border border-zinc-700 text-rose-500 instawp-skip-item" data-type="db" data-item="' + value.table_name + '">' + plugin_object.trans.skip_item_txt + '</span>';
                             }
                             content_html += '</span></div>';
                         });
 
-                        if(content_html) {
+                        if (content_html) {
                             el_visibility_box.find('#visibility-content-area').append(content_html);
 
                             let el_box_area = el_visibility_box.find('#visibility-content-area');
@@ -295,8 +295,8 @@
                     console.log(response);
 
                     if (response.success) {
-                        if(!elapsedInterval) {
-                            elapsedInterval = setInterval(()=> {
+                        if (!elapsedInterval) {
+                            elapsedInterval = setInterval(() => {
                                 updateTimer(response.data.started_at)
                             }, 1000);
                         }
@@ -306,6 +306,11 @@
                             create_container.find('.instawp-track-migration').attr('href', response.data.tracking_url).removeClass('hidden');
                             create_container.find('.instawp-track-migration-area').removeClass('justify-end').addClass('justify-between');
                         }
+
+                        if (typeof response.data.serve_with_wp !== 'undefined' && response.data.serve_with_wp) {
+                            create_container.find('.notice-serve-with-wp').removeClass('hidden');
+                        }
+
                         create_container.attr('interval-id', setInterval(instawp_migrate_progress, 3000));
                     } else {
                         create_container.removeClass('loading');
@@ -595,12 +600,12 @@
                         el_confirmation_warning.find('a').attr('href', response.data.button_url).html(response.data.button_text);
 
                         // Error found other than disk limit
-                        if ( undefined !== response.data.error && true === response.data.error && undefined !== response.data.http_code ) {
+                        if (undefined !== response.data.error && true === response.data.error && undefined !== response.data.http_code) {
                             // Update warning title
                             el_confirmation_warning.find('.warning-title').html(response.data.title);
                             // Update warning sub title
                             let subtitle = el_confirmation_warning.find('.warning-subtitle');
-                            subtitle.html( response.data.message +'<br> HTTP Error: '+ response.data.http_code );
+                            subtitle.html(response.data.message + '<br> HTTP Error: ' + response.data.http_code);
                             // Remove margin 
                             subtitle.removeClass('mb-2');
                             // Add margin bottom
@@ -1280,7 +1285,7 @@
         let name = el.attr('id');
         let value = parseInt(Math.abs($(this).val()));
 
-        if( !value ) {
+        if (!value) {
             return;
         }
 
@@ -1379,7 +1384,7 @@
     $(document).on('click', '.full-screen-btn', function (e) {
         e.preventDefault();
         let el = $(document).find('#visibility-box');
-        if( el.hasClass('full-screen') ) {
+        if (el.hasClass('full-screen')) {
             el.removeClass('full-screen')
             $(document).find('body').removeClass('overflow-hidden');
             $(document).find('#visibility-collapse').removeClass('hidden');
@@ -1406,7 +1411,7 @@
             },
             success: function (response) {
                 console.log(response)
-                if(response.success !== true) {
+                if (response.success !== true) {
                     el.closest('.visibility-content-item > .break-all').removeClass('line-through');
                     alert(response.data.message)
                 }
