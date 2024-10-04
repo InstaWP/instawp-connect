@@ -360,6 +360,15 @@ delete_option( 'instawp_db_offset' );
                         <button type="button" class="instawp-migration-start-over text-gray-700 py-3 px-6 border border-grayCust-350 text-sm font-medium rounded-md"><?php esc_html_e( 'Start Over', 'instawp-connect' ); ?></button>
                         <a href="#" target="_blank" class="btn-shadow rounded-md w-fit text-center py-3 px-6 bg-primary-900 text-white hover:text-white text-sm font-medium" style="background: #11BF85;"><?php esc_html_e( 'Increase Limit', 'instawp-connect' ); ?></a>
                     </div>
+
+                    <div class="p-4 mt-6 text-sm text-left w-full text-red-800 rounded-lg bg-red-50" role="alert">
+						<?php printf( '<span>%s</span><a class="font-medium underline ml-2" href="%s">%s</a>',
+							esc_html__( 'Provide more information to help you with this migration.', 'instawp-connect' ),
+							esc_url( 'https://instawp.com/migration-help-query/' ),
+							esc_html__( 'Get Help', 'instawp-connect' )
+						); ?>
+                    </div>
+
                 </div>
             </div>
             <div class="screen screen-5 <?= $current_create_screen === 5 ? 'active' : ''; ?>">
