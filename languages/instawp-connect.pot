@@ -5,7 +5,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2024-10-03 13:54+0000\n"
+"POT-Creation-Date: 2024-10-08 08:04+0000\n"
 "X-Poedit-Basepath: ..\n"
 "X-Poedit-KeywordsList: __;_e;_ex:1,2c;_n:1,2;_n_noop:1,2;_nx:1,2,4c;_nx_noop:1,2,3c;_x:1,2c;esc_attr__;esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c\n"
 "X-Poedit-SearchPath-0: .\n"
@@ -521,75 +521,71 @@ msgstr ""
 msgid "Invalid Migration ID"
 msgstr ""
 
-#: includes/class-instawp-tools.php:576
+#: includes/class-instawp-tools.php:574
 msgid "API key not found"
 msgstr ""
 
-#: includes/class-instawp-tools.php:797
+#: includes/class-instawp-tools.php:795
 msgid "Root directory for this WordPress installation could not find."
 msgstr ""
 
-#: includes/class-instawp-tools.php:818
+#: includes/class-instawp-tools.php:816
 msgid "Tracking database could not found."
 msgstr ""
 
-#: includes/class-instawp-tools.php:828
+#: includes/class-instawp-tools.php:826
 msgid "API Signature and others data could not set properly"
 msgstr ""
 
-#: includes/class-instawp-tools.php:845
-msgid "InstaWP could not access the forwarded file due to security issue."
-msgstr ""
-
-#: includes/class-instawp-tools.php:854
+#: includes/class-instawp-tools.php:852
 msgid "InstaWP could not access or read required files from your WordPress directory due to file permission issue."
 msgstr ""
 
-#: includes/class-instawp-tools.php:856
+#: includes/class-instawp-tools.php:854
 msgid "Learn more."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1025
+#: includes/class-instawp-tools.php:1023
 msgid "Launch %s"
 msgstr ""
 
-#: includes/class-instawp-tools.php:1113
+#: includes/class-instawp-tools.php:1111
 msgid "Please create staging sites first."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1114
+#: includes/class-instawp-tools.php:1112
 msgid "Skip"
 msgstr ""
 
-#: includes/class-instawp-tools.php:1115
+#: includes/class-instawp-tools.php:1113
 msgid "Do you really want to disconnect the plugin? It will completely remove the existing staging sites from the plugin."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1116
+#: includes/class-instawp-tools.php:1114
 msgid "Do you still want to disconnect the plugin?"
 msgstr ""
 
-#: includes/class-instawp-tools.php:1164
+#: includes/class-instawp-tools.php:1162
 msgid "Zip archive is not opening."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1217
+#: includes/class-instawp-tools.php:1215
 msgid "No compression method find."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1261
+#: includes/class-instawp-tools.php:1259
 msgid "Site ID not found in site create response."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1300
+#: includes/class-instawp-tools.php:1298
 msgid "SFTP login failed."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1311
+#: includes/class-instawp-tools.php:1309
 msgid "SFTP upload failed for files."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1319
+#: includes/class-instawp-tools.php:1317
 msgid "SFTP upload failed for database."
 msgstr ""
 

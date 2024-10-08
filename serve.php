@@ -134,7 +134,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 										'file_count'	=> $wp_item['file_count'],
 										'checksum'		=> "'$checksum'",
 									) );
-		
+
 									// Add only necesssary data to inventory items
 									$migrate_settings['inventory_items']['with_checksum'][$inventory_key] = array(
 										'slug' 			=> $wp_item['slug'],
