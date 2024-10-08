@@ -151,6 +151,8 @@ class InstaWP_Tools {
 			'db_username'      => DB_USER,
 			'db_password'      => DB_PASSWORD,
 			'db_name'          => DB_NAME,
+			'db_charset'       => DB_CHARSET,
+			'db_collate'       => DB_COLLATE,
 			'table_prefix'     => $table_prefix,
 			'site_url'         => site_url(),
 		);
