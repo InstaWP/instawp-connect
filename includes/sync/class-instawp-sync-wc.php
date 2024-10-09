@@ -4,6 +4,9 @@ defined( 'ABSPATH' ) || exit;
 
 class InstaWP_Sync_WC {
 
+	// Order id meta key
+	private $order_id_meta_key = '_iwp_sync_order_id';
+
     public function __construct() {
 	    // Order Actions.
 	    add_action( 'woocommerce_new_order', array( $this, 'create_order' ) );
@@ -24,6 +27,9 @@ class InstaWP_Sync_WC {
 
 	    // Process Events.
 	    add_filter( 'instawp/filters/2waysync/process_event', array( $this, 'parse_event' ), 10, 2 );
+
+		// Display order number
+		add_filter( 'woocommerce_order_number', array( $this, 'display_order_number_from_meta' ), 10, 2 );
     }
 
 	public function create_order( $order_id ) {
@@ -35,9 +41,54 @@ class InstaWP_Sync_WC {
 		if ( ! $order ) {
 			return;
 		}
+		// Add order ID as order meta
+		$this->add_order_number_meta( $order_id, $order );
 
 		$event_name  = __('Order created', 'instawp-connect' );
 		$this->add_event( $event_name, 'woocommerce_order_created', $order->get_id(), $order->get_order_key() );
+	}
+
+	/**
+	 * Add order ID as order meta to WC order object in order to display this ID. After sync, this meta
+	 * will be saved as it is in destination site. It will help to match order with source site.
+	 *
+	 * @param int    $order_id The ID of the order to add the custom ID to.
+	 * @param object $order    The WC order object to add the custom ID to.
+	 *
+	 * @return void
+	 */
+	private function add_order_number_meta( $order_id, $order ) {
+		if ( empty( $order_id ) || empty( $order ) ) {
+			return;
+		}
+		// Check if custom order ID already exists
+		$custom_id = $order->get_meta( $this->order_id_meta_key );
+		if ( ! empty( $custom_id ) ) {
+			return;
+		}
+
+		// Set custom order ID as order meta
+		$order->update_meta_data( $this->order_id_meta_key, $order_id );
+		$order->save();
+	}
+
+	/**
+	 * Display custom order ID from meta, if it exists. Here custom ID will be same as source site order id
+	 *
+	 * @param int    $order_id The ID of the order to get the custom ID from.
+	 * @param object $order    The WC order object to get the custom ID from.
+	 *
+	 * @return int The custom order ID if it exists, otherwise the original ID.
+	 */
+	public function display_order_number_from_meta( $order_id, $order ) {
+		if ( empty( $order_id ) || empty( $order ) ) {
+			return $order_id;
+		}
+		$custom_id = $order->get_meta( $this->order_id_meta_key );
+		if ( empty( $custom_id ) ) {
+			return $order_id;
+		}
+		return $custom_id;
 	}
 
 	public function update_order( $order_id ) {
