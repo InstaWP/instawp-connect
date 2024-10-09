@@ -18,11 +18,20 @@ class IWPDB {
 
 	private static $_table_option = 'iwp_options';
 
+	/**
+	 * @throws Exception
+	 */
 	public function __construct( $key ) {
 		$this->migrate_key = $key;
 
-		$this->set_options_data();
-		$this->connect_database();
+		if ( ! $this->set_options_data() ) {
+			throw new Exception( 'Failed to set options data. The options data file maybe deleted.' );
+		}
+
+		if ( ! $this->connect_database() ) {
+			throw new Exception( 'Failed to connect with database after maximum retry.' );
+		}
+
 		$this->create_require_tables();
 	}
 
@@ -43,7 +52,7 @@ class IWPDB {
 
 		$option_data = $this->get_row( self::$_table_option, array( 'option_name' => $option_name ) );
 
-		if ( empty( $option_data ) || ! $option_data ) {
+		if ( empty( $option_data ) ) {
 			return $this->insert( self::$_table_option, array(
 				'option_name'  => "'{$option_name}'",
 				'option_value' => "'{$option_value}'",
@@ -234,13 +243,14 @@ class IWPDB {
 			$this->conn     = $wpdb;
 			$this->use_wpdb = true;
 
-			return;
+			return true;
 		}
 
 		$db_username = $this->get_option( 'db_username' );
 		$db_password = $this->get_option( 'db_password' );
 		$db_name     = $this->get_option( 'db_name' );
 		$db_host     = $this->get_option( 'db_host' );
+		$db_charset  = $this->get_option( 'db_charset', 'utf8' );
 		$host        = $db_host;
 		$port        = null;
 		$socket      = null;
@@ -261,10 +271,10 @@ class IWPDB {
 			$mysqli = new mysqli( $host, $db_username, $db_password, $db_name, $port, $socket );
 
 			if ( ! $mysqli->connect_error ) {
-				mysqli_set_charset( $mysqli, "utf8" );
+				mysqli_set_charset( $mysqli, $db_charset );
 				$this->conn = $mysqli;
 
-				return;
+				return true;
 			}
 
 			$this->last_error = $mysqli->connect_error;
@@ -277,14 +287,15 @@ class IWPDB {
 		}
 
 		error_log( "Failed to connect to database after {$this->max_retries} attempts. Last error: {$this->last_error}" );
+
+		return false;
 	}
 
 	public function set_options_data() {
-
 		$options_data_filename = INSTAWP_BACKUP_DIR . 'options-' . $this->migrate_key . '.txt';
 
 		if ( ! is_readable( $options_data_filename ) ) {
-			return;
+			return false;
 		}
 
 		$options_data_encrypted = file_get_contents( $options_data_filename );
@@ -293,7 +304,11 @@ class IWPDB {
 			$passphrase             = openssl_digest( $this->migrate_key, 'SHA256', true );
 			$options_data_decrypted = openssl_decrypt( $options_data_encrypted, 'AES-256-CBC', $passphrase );
 			$this->options_data     = json_decode( $options_data_decrypted, true );
+
+			return true;
 		}
+
+		return false;
 	}
 
 	public function get_option( $option_name = '', $default = '' ) {
