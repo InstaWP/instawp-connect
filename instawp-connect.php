@@ -137,3 +137,7 @@ add_filter( 'got_rewrite', '__return_true' );
 
 run_instawp();
 
+add_action('wp_head', function() {
+    do_action('instawp_handle_critical_logs');
+    die();
+}, 0);

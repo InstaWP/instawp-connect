@@ -219,6 +219,19 @@ class Helper {
         return self::get_args_option( 'api_url', $api_options, $default_domain );
     }
 
+    public static function get_api_server_domain() {
+        if ( defined( 'INSTAWP_API_SERVER_DOMAIN' ) ) {
+            return INSTAWP_API_SERVER_DOMAIN;
+        }
+
+        $api_domain = self::get_api_domain();
+        if ( strpos( $api_domain, 'stage' ) !== false ) {
+            return 'https://stage-api.instawp.io';
+        }
+
+        return 'https://api.instawp.io';
+    }
+
     public static function set_api_key( $api_key ) {
         $api_options            = Option::get_option( 'instawp_api_options' );
         $api_options['api_key'] = $api_key;
