@@ -98,6 +98,14 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 0.1.0.58 - Beta =
+- FIX - Sync WooCommerce meta data
+- FIX - Sync display WooCommerce order ID on the staging site that matches with the production site
+- FIX - Sync WooCommerce order created and modified date
+- FIX - Sync WooCommerce order total
+- FIX - Sync WooCommerce order blank item added on the staging site
+- FIX - Sync WooCommerce order origin
+
 = 0.1.0.57 - 3 October 2024 =
 - FIX - Showing error if wp-config.php is not writable.
 - FIX - Duplicate plugin and theme installation slug in migration settings
