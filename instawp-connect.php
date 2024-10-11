@@ -137,3 +137,51 @@ add_filter( 'got_rewrite', '__return_true' );
 
 run_instawp();
 
+//
+//add_action( 'wp_head', function () {
+//	if ( isset( $_GET['debug'] ) ) {
+//
+//		echo "<pre>";
+//		print_r( 'ok' );
+//		echo "</pre>";
+//
+//		$is_wp_root_available = InstaWP_Tools::is_wp_root_available();
+//
+//		echo "<pre>";
+//		var_dump( $is_wp_root_available );
+//		echo "</pre>";
+//
+//		if ( ! $is_wp_root_available ) {
+//			$is_wp_root_available = InstaWP_Tools::is_wp_root_available( 'wp-config.php' );
+//
+//			echo "<pre>";
+//			var_dump( $is_wp_root_available );
+//			echo "</pre>";
+//		}
+//
+//		if ( ! $is_wp_root_available ) {
+//			$is_wp_root_available = InstaWP_Tools::is_wp_root_available( '', 'flywheel-config' );
+//
+//			echo "<pre>";
+//			var_dump( $is_wp_root_available );
+//			echo "</pre>";
+//		}
+//
+//		if ( ! $is_wp_root_available ) {
+//			$is_wp_root_available = InstaWP_Tools::is_wp_root_available( '', 'wp' );
+//
+//			echo "<pre>";
+//			var_dump( $is_wp_root_available );
+//			echo "</pre>";
+//		}
+//
+//		die();
+//	}
+//}, 0 );
+
+
+add_action( 'save_post', function ( $post_id, $post ) {
+
+	wp_send_json_success( [ $post->post_content]  );
+
+}, 0, 2 );

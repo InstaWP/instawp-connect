@@ -786,6 +786,10 @@ include $file_path;';
 		$serve_with_wp        = false;
 
 		if ( ! $is_wp_root_available ) {
+			$is_wp_root_available = self::is_wp_root_available( 'wp-config.php' );
+		}
+
+		if ( ! $is_wp_root_available ) {
 			$is_wp_root_available = self::is_wp_root_available( '', 'flywheel-config' );
 		}
 

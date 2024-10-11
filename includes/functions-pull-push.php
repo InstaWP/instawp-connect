@@ -480,6 +480,12 @@ if ( ! function_exists( 'process_files' ) ) {
 		$site_url         = $tracking_db->get_option( 'site_url' );
 		$dest_url         = $tracking_db->get_option( 'dest_url' );
 		$migrate_settings = $tracking_db->get_option( 'migrate_settings' );
+
+
+		$site_url         = '';
+		$dest_url         = '';
+		$migrate_settings = [];
+
 		$options          = isset( $migrate_settings['options'] ) ? $migrate_settings['options'] : array();
 
 		if ( basename( $relativePath ) === '.htaccess' ) {
