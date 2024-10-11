@@ -105,6 +105,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 - FIX - Sync WooCommerce order total
 - FIX - Sync WooCommerce order blank item added on the staging site
 - FIX - Sync WooCommerce order origin
+- NEW - Exclude WP core folders for migration
 
 = 0.1.0.57 - 3 October 2024 =
 - FIX - Showing error if wp-config.php is not writable.

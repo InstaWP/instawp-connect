@@ -326,6 +326,14 @@ include $file_path;';
 			include ABSPATH . 'wp-admin/includes/plugin.php';
 		}
 
+		/**
+		 * Exclude wp-admin and wp-includes folders, as minor wp version will auto install during 
+		 * staging creation.
+		 * @since 0.1.0.58
+		 */
+		$migrate_settings['excluded_paths'][] = 'wp-admin';
+		$migrate_settings['excluded_paths'][] = 'wp-includes';
+
 		// Remove __wp__ folder for WPC file structure
 		if ( is_dir( $wp_root_dir . '/__wp__' ) ) {
 			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/__wp__';
