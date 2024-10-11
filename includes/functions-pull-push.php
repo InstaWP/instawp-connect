@@ -461,17 +461,21 @@ if ( ! function_exists( 'send_by_zip' ) ) {
 
 if ( ! function_exists( 'search_and_comment_specific_line' ) ) {
 	function search_and_comment_specific_line( $pattern, $file_contents ) {
+		$lines         = explode( "\n", $file_contents );
+		$updated_lines = array();
 
-		$matches = array();
-
-		if ( preg_match_all( $pattern, $file_contents, $matches, PREG_OFFSET_CAPTURE ) ) {
-			foreach ( $matches[0] as $match ) {
-				$line_content  = strtok( substr( $file_contents, $match[1] ), "\n" );
-				$file_contents = str_replace( $line_content, "// $line_content", $file_contents );
+		foreach ( $lines as $line ) {
+			$trimmed_line = trim( $line );
+			if ( empty( $trimmed_line ) || strpos( $trimmed_line, '//' ) === 0 || strpos( $trimmed_line, '*' ) === 0 ) {
+				$updated_lines[] = $line;
+			} elseif ( preg_match( $pattern, $line ) ) {
+				$updated_lines[] = "// " . $line;
+			} else {
+				$updated_lines[] = $line;
 			}
 		}
 
-		return $file_contents;
+		return implode( "\n", $updated_lines );
 	}
 }
 
@@ -486,7 +490,7 @@ if ( ! function_exists( 'process_files' ) ) {
 		$dest_url         = '';
 		$migrate_settings = [];
 
-		$options          = isset( $migrate_settings['options'] ) ? $migrate_settings['options'] : array();
+		$options = isset( $migrate_settings['options'] ) ? $migrate_settings['options'] : array();
 
 		if ( basename( $relativePath ) === '.htaccess' ) {
 
@@ -638,13 +642,13 @@ if ( ! function_exists( 'iwp_sanitize_key' ) ) {
 	 *
 	 * @return string The sanitized key.
 	 */
-	function iwp_sanitize_key($key) {
+	function iwp_sanitize_key( $key ) {
 		// Lowercase the key
-		$key = strtolower($key);
-		
+		$key = strtolower( $key );
+
 		// Remove all characters except lowercase alphanumeric, dashes and underscores
-		$key = preg_replace('/[^a-z0-9_\-]/', '', $key);
-		
+		$key = preg_replace( '/[^a-z0-9_\-]/', '', $key );
+
 		return $key;
 	}
 }

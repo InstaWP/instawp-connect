@@ -327,7 +327,7 @@ include $file_path;';
 		}
 
 		/**
-		 * Exclude wp-admin and wp-includes folders, as minor wp version will auto install during 
+		 * Exclude wp-admin and wp-includes folders, as minor wp version will auto install during
 		 * staging creation.
 		 * @since 0.1.0.58
 		 */

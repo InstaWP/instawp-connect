@@ -7,11 +7,11 @@ include_once 'includes/functions-pull-push.php';
 $migrate_key   = isset( $_POST['migrate_key'] ) ? $_POST['migrate_key'] : '';
 $api_signature = isset( $_POST['api_signature'] ) ? $_POST['api_signature'] : '';
 
-//if ( empty( $migrate_key ) ) {
-//	header( 'x-iwp-status: false' );
-//	header( 'x-iwp-message: The migration key is invalid.' );
-//	die();
-//}
+if ( empty( $migrate_key ) ) {
+	header( 'x-iwp-status: false' );
+	header( 'x-iwp-message: The migration key is invalid.' );
+	die();
+}
 
 $root_dir_data = iwp_get_wp_root_directory();
 $root_dir_find = isset( $root_dir_data['status'] ) ? $root_dir_data['status'] : false;
@@ -53,74 +53,48 @@ defined( 'INSTAWP_BACKUP_DIR' ) | define( 'INSTAWP_BACKUP_DIR', WP_ROOT . DIRECT
 $iwpdb_main_path = WP_ROOT . '/wp-content/plugins/instawp-connect/includes/class-instawp-iwpdb.php';
 $iwpdb_git_path  = WP_ROOT . '/wp-content/plugins/instawp-connect-main/includes/class-instawp-iwpdb.php';
 
-//if ( file_exists( $iwpdb_main_path ) && is_readable( $iwpdb_main_path ) ) {
-//	require_once( $iwpdb_main_path );
-//} elseif ( file_exists( $iwpdb_git_path ) && is_readable( $iwpdb_main_path ) ) {
-//	require_once( $iwpdb_git_path );
-//} else {
-//	header( 'x-iwp-status: false' );
-//	header( 'x-iwp-message: The migration script could not find `class-instawp-iwpdb.php` inside the plugin directory.' );
-//	header( 'x-iwp-root-path: ' . WP_ROOT );
-//	echo "The migration script could not find the `class-instawp-iwpdb` inside the plugin directory.";
-//	exit( 2 );
-//}
+if ( file_exists( $iwpdb_main_path ) && is_readable( $iwpdb_main_path ) ) {
+	require_once( $iwpdb_main_path );
+} elseif ( file_exists( $iwpdb_git_path ) && is_readable( $iwpdb_main_path ) ) {
+	require_once( $iwpdb_git_path );
+} else {
+	header( 'x-iwp-status: false' );
+	header( 'x-iwp-message: The migration script could not find `class-instawp-iwpdb.php` inside the plugin directory.' );
+	header( 'x-iwp-root-path: ' . WP_ROOT );
+	echo "The migration script could not find the `class-instawp-iwpdb` inside the plugin directory.";
+	exit( 2 );
+}
 
 global $tracking_db;
 
-//try {
-//	$tracking_db = new IWPDB( $migrate_key );
-//} catch ( Exception $e ) {
-//	header( 'x-iwp-status: false' );
-//	header( 'x-iwp-message: Migration script could not connect to the database. Actual error is: ' . $e->getMessage() );
-//	die();
-//}
+try {
+	$tracking_db = new IWPDB( $migrate_key );
+} catch ( Exception $e ) {
+	header( 'x-iwp-status: false' );
+	header( 'x-iwp-message: Migration script could not connect to the database. Actual error is: ' . $e->getMessage() );
+	die();
+}
 
-//if ( ! $tracking_db ) {
-//	header( 'x-iwp-status: false' );
-//	header( 'x-iwp-message: The migration tracking database could not find or load properly.' );
-//	die();
-//}
+if ( ! $tracking_db ) {
+	header( 'x-iwp-status: false' );
+	header( 'x-iwp-message: The migration tracking database could not find or load properly.' );
+	die();
+}
 
-//$db_api_signature = $tracking_db->get_option( 'api_signature' );
+$db_api_signature = $tracking_db->get_option( 'api_signature' );
 
-//if ( ! hash_equals( $db_api_signature, $api_signature ) ) {
-//	header( 'x-iwp-status: false' );
-//	header( 'x-iwp-message: The given api signature and the stored one are not matching, maybe the tracking database reset or wrong api signature passed to migration script.' );
-//	die();
-//}
+if ( ! hash_equals( $db_api_signature, $api_signature ) ) {
+	header( 'x-iwp-status: false' );
+	header( 'x-iwp-message: The given api signature and the stored one are not matching, maybe the tracking database reset or wrong api signature passed to migration script.' );
+	die();
+}
 
-$filePath     = '/bitnami/wordpress/wp-config.php';
-$file_name    = basename( $filePath );
-$relativePath = ltrim( str_replace( WP_ROOT, "", $filePath ), DIRECTORY_SEPARATOR );
-//$filePath     = process_files( $tracking_db, $filePath, $relativePath );
-
-$file_contents = file_get_contents( $filePath );
-//$file_contents = str_replace( $site_url, $dest_url, $file_contents );
-
-// Flywheel support
- $file_contents = str_replace( "define('ABSPATH', dirname(__FILE__) . '/.wordpress/');", "define( 'ABSPATH', dirname( __FILE__ ) . '/' );", $file_contents );
-
-// GridPane Support
-//$file_contents = str_replace( "include __DIR__ . '/user-configs.php';", "// include __DIR__ . '/user-configs.php';", $file_contents );
-//$file_contents = str_replace( "include __DIR__ . '/wp-fail2ban-configs.php';", "// include __DIR__ . '/wp-fail2ban-configs.php';", $file_contents );
-//$file_contents = str_replace( "include __DIR__ . '/smtp-provider-wp-configs.php';", "// include __DIR__ . '/smtp-provider-wp-configs.php';", $file_contents );
-
-
-//$file_contents = search_and_comment_specific_line( "/define\(\s*'WP_SITEURL'/", $file_contents );
-//$file_contents = search_and_comment_specific_line( "/define\(\s*'WP_HOME'/", $file_contents );
-//$file_contents = search_and_comment_specific_line( "/define\(\s*'COOKIE_DOMAIN'/", $file_contents );
-
-
-echo $file_contents;
-exit();
-
-//readfile_chunked( $filePath );
 
 if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
-//	$migrate_settings         = $tracking_db->get_option( 'migrate_settings' );
-//	$excluded_paths           = isset( $migrate_settings['excluded_paths'] ) ? $migrate_settings['excluded_paths'] : array();
-//	$skip_folders             = array_merge( array( 'wp-content/cache', 'editor', 'wp-content/upgrade', 'wp-content/instawpbackups' ), $excluded_paths );
-//	$skip_folders             = array_unique( $skip_folders );
+	$migrate_settings         = $tracking_db->get_option( 'migrate_settings' );
+	$excluded_paths           = isset( $migrate_settings['excluded_paths'] ) ? $migrate_settings['excluded_paths'] : array();
+	$skip_folders             = array_merge( array( 'wp-content/cache', 'editor', 'wp-content/upgrade', 'wp-content/instawpbackups' ), $excluded_paths );
+	$skip_folders             = array_unique( $skip_folders );
 	$skip_files               = array();
 	$config_file_path         = WP_ROOT . '/wp-config.php';
 	$handle_config_separately = false;
@@ -139,7 +113,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
 			global $tracking_db;
 			// Check if the function has already been run
-			$has_run     = $tracking_db->get_option( 'instawp_inventory_sent', 0 );
+			$has_run = $tracking_db->get_option( 'instawp_inventory_sent', 0 );
 			$total_files = intval( $tracking_db->db_get_option( 'total_files', '0' ) );
 
 			if ( empty( $has_run ) && ( empty( $migrate_settings['inventory_items']['total_files'] ) || $total_files > intval( $migrate_settings['inventory_items']['total_files'] ) ) ) {
@@ -151,30 +125,30 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 							$filepath      = $wp_item['absolute_path'];
 							$filepath_hash = hash( 'sha256', $filepath );
 
-							$row = $tracking_db->get_row( 'iwp_files_sent', array( 'filepath_hash' => $filepath_hash ) );
+							$row        = $tracking_db->get_row( 'iwp_files_sent', array( 'filepath_hash' => $filepath_hash ) );
 							if ( ! $row ) {
 								try {
-									$slug     = $wp_item['slug'];
+									$slug = $wp_item['slug'];
 									$checksum = $wp_item['checksum'];
 									$tracking_db->insert( 'iwp_files_sent', array(
 										'filepath'      => "'$filepath'",
 										'filepath_hash' => "'$filepath_hash'",
 										'sent'          => 0,
 										'size'          => $wp_item['size'],
-										'file_type'     => "'inventory'",
-										'sent_filename' => "'$slug'",
-										'file_count'    => $wp_item['file_count'],
-										'checksum'      => "'$checksum'",
+										'file_type'		=> "'inventory'",
+										'sent_filename'	=> "'$slug'",
+										'file_count'	=> $wp_item['file_count'],
+										'checksum'		=> "'$checksum'",
 									) );
 
 									// Add only necesssary data to inventory items
-									$migrate_settings['inventory_items']['with_checksum'][ $inventory_key ] = array(
-										'slug'       => $wp_item['slug'],
-										'version'    => $wp_item['version'],
-										'type'       => $wp_item['type'],
-										'path'       => $wp_item['path'],
-										'file_count' => $wp_item['file_count'],
-										'checksum'   => $wp_item['checksum'],
+									$migrate_settings['inventory_items']['with_checksum'][$inventory_key] = array(
+										'slug' 			=> $wp_item['slug'],
+										'version' 		=> $wp_item['version'],
+										'type' 			=> $wp_item['type'],
+										'path' 			=> $wp_item['path'],
+										'file_count'	=> $wp_item['file_count'],
+										'checksum' 		=> $wp_item['checksum'],
 									);
 								} catch ( Exception $e ) {
 									header( 'x-iwp-status: false' );
@@ -211,14 +185,14 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		}
 	}
 
-//	$unsent_files_count  = $tracking_db->query_count( 'iwp_files_sent', array( 'sent' => '0' ) );
-//	$progress_percentage = 0;
-//
-//	if ( $totalFiles = (int) $tracking_db->db_get_option( 'total_files', '0' ) ) {
-//		$total_files_count   = $tracking_db->query_count( 'iwp_files_sent' );
-//		$total_files_sent    = $total_files_count - $unsent_files_count;
-//		$progress_percentage = round( ( $total_files_sent / $totalFiles ) * 100, 2 );
-//	}
+	$unsent_files_count  = $tracking_db->query_count( 'iwp_files_sent', array( 'sent' => '0' ) );
+	$progress_percentage = 0;
+
+	if ( $totalFiles = (int) $tracking_db->db_get_option( 'total_files', '0' ) ) {
+		$total_files_count   = $tracking_db->query_count( 'iwp_files_sent' );
+		$total_files_sent    = $total_files_count - $unsent_files_count;
+		$progress_percentage = round( ( $total_files_sent / $totalFiles ) * 100, 2 );
+	}
 
 	if ( $unsent_files_count == 0 ) {
 		$iterator = get_iterator_items( $skip_folders, WP_ROOT );
@@ -256,7 +230,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		if ( ! empty( $totalFiles ) && ! empty( $migrate_settings['inventory_items'] ) && ! empty( $migrate_settings['inventory_items']['total_files'] ) ) {
 			$totalFiles = intval( $totalFiles ) + intval( $migrate_settings['inventory_items']['total_files'] );
 		}
-		$fileIndex = 0;
+		$fileIndex  = 0;
 
 		if ( $handle_config_separately ) {
 			$totalFiles            += 1;
@@ -411,7 +385,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			if ( ! empty( $totalFiles ) && ! empty( $migrate_settings['inventory_items'] ) && ! empty( $migrate_settings['inventory_items']['total_files'] ) ) {
 				$totalFiles = intval( $totalFiles ) + intval( $migrate_settings['inventory_items']['total_files'] );
 			}
-			$fileIndex = 0;
+			$fileIndex  = 0;
 
 			$tracking_db->db_update_option( 'total_files', $totalFiles );
 
