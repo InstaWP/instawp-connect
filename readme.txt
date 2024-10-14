@@ -99,15 +99,15 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 == Changelog ==
 
 = 0.1.0.58 - Beta =
-Fixed: Issue with syncing WooCommerce meta data.
-Fixed: WooCommerce order ID now correctly displays on the staging site, matching the production site.
-Fixed: WooCommerce order creation and modification dates now sync properly.
-Fixed: Corrected synchronization of WooCommerce order totals.
-Fixed: Resolved issue where blank items were being added to WooCommerce orders on the staging site.
-Fixed: WooCommerce order origin now syncs correctly.
-New: WordPress core folders are now excluded from the migration process.
-Fixed: Post meta data is now saved correctly when triggered by action hooks.
-Fixed: Proper synchronization of post meta data saved via the save_post hook.
+- Fixed: Issue with syncing WooCommerce meta data.
+- Fixed: WooCommerce order ID now correctly displays on the staging site, matching the production site.
+- Fixed: WooCommerce order creation and modification dates now sync properly.
+- Fixed: Corrected synchronization of WooCommerce order totals.
+- Fixed: Resolved issue where blank items were being added to WooCommerce orders on the staging site.
+- Fixed: WooCommerce order origin now syncs correctly.
+- New: WordPress core folders are now excluded from the migration process.
+- Fixed: Post meta data is now saved correctly when triggered by action hooks.
+- Fixed: Proper synchronization of post meta data saved via the save_post hook.
 
 = 0.1.0.57 - 3 October 2024 =
 - FIX - Showing error if wp-config.php is not writable.
