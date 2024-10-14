@@ -5,7 +5,7 @@ defined( 'ABSPATH' ) || exit;
 class InstaWP_Sync_WC {
 
 	/**
-	 * Order ID meta key
+	 * Order ID meta key. Use to match staging order id with production order id
 	 * @var string
 	 * @since 0.1.0.58
 	 */
@@ -116,8 +116,35 @@ class InstaWP_Sync_WC {
 		return $custom_id;
 	}
 
+
+	/**
+	 * Sync order on update.
+	 *
+	 * Triggered when an order is updated. This will sync the order to the staging site.
+	 *
+	 * @since 0.1.0.58
+	 *
+	 * @param int $order_id The order ID to sync.
+	 */
 	public function update_order( $order_id ) {
 		if ( ! $this->can_sync() ) {
+			return;
+		}
+		$this->add_update_order_event( $order_id );
+	}
+
+	/**
+	 * Add event for when an order is updated. This event is used to sync
+	 * the order with the staging site.
+	 *
+	 * @since  0.1.0.58
+	 *
+	 * @param int    $order_id The ID of the order to add the event for.
+	 *
+	 * @return void
+	 */
+	private function add_update_order_event( $order_id ) {
+		if ( empty( $order_id ) ) {
 			return;
 		}
 
@@ -404,6 +431,16 @@ class InstaWP_Sync_WC {
 			$order = wc_get_order( $order_id );
 			$order->calculate_totals();
 			$order->save();
+			/**
+			 * Add update order event at production site with order ID as order meta, 
+			 * if it doesn't exist. It will be used to match staging order id with production 
+			 * order id.
+			 * 
+			 */
+			if ( ! instawp()->is_staging && ( empty( $details['meta_data'] ) || empty( $details['meta_data'][$this->order_id_meta_key] ) ) ) {
+				// Add order ID as order meta
+				$this->add_update_order_event( $order_id );
+			}
 		}
 
 		// delete order

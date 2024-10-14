@@ -18,6 +18,12 @@ $root_dir_find = isset( $root_dir_data['status'] ) ? $root_dir_data['status'] : 
 $root_dir_path = isset( $root_dir_data['root_path'] ) ? $root_dir_data['root_path'] : '';
 
 if ( ! $root_dir_find ) {
+	$root_dir_data = iwp_get_wp_root_directory( 'wp-config.php' );
+	$root_dir_find = isset( $root_dir_data['status'] ) ? $root_dir_data['status'] : false;
+	$root_dir_path = isset( $root_dir_data['root_path'] ) ? $root_dir_data['root_path'] : '';
+}
+
+if ( ! $root_dir_find ) {
 	$root_dir_data = iwp_get_wp_root_directory( '', 'flywheel-config' );
 	$root_dir_find = isset( $root_dir_data['status'] ) ? $root_dir_data['status'] : false;
 	$root_dir_path = isset( $root_dir_data['root_path'] ) ? $root_dir_data['root_path'] : '';
@@ -109,7 +115,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			// Check if the function has already been run
 			$has_run = $tracking_db->get_option( 'instawp_inventory_sent', 0 );
 			$total_files = intval( $tracking_db->db_get_option( 'total_files', '0' ) );
-			
+
 			if ( empty( $has_run ) && ( empty( $migrate_settings['inventory_items']['total_files'] ) || $total_files > intval( $migrate_settings['inventory_items']['total_files'] ) ) ) {
 				// Set the flag to indicate the function has run
 				$tracking_db->update_option( 'instawp_inventory_sent', 1 );
@@ -181,7 +187,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
 	$unsent_files_count  = $tracking_db->query_count( 'iwp_files_sent', array( 'sent' => '0' ) );
 	$progress_percentage = 0;
-	
+
 	if ( $totalFiles = (int) $tracking_db->db_get_option( 'total_files', '0' ) ) {
 		$total_files_count   = $tracking_db->query_count( 'iwp_files_sent' );
 		$total_files_sent    = $total_files_count - $unsent_files_count;

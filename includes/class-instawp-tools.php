@@ -327,7 +327,7 @@ include $file_path;';
 		}
 
 		/**
-		 * Exclude wp-admin and wp-includes folders, as minor wp version will auto install during 
+		 * Exclude wp-admin and wp-includes folders, as minor wp version will auto install during
 		 * staging creation.
 		 * @since 0.1.0.58
 		 */
@@ -792,6 +792,10 @@ include $file_path;';
 
 		$is_wp_root_available = self::is_wp_root_available();
 		$serve_with_wp        = false;
+
+		if ( ! $is_wp_root_available ) {
+			$is_wp_root_available = self::is_wp_root_available( 'wp-config.php' );
+		}
 
 		if ( ! $is_wp_root_available ) {
 			$is_wp_root_available = self::is_wp_root_available( '', 'flywheel-config' );
