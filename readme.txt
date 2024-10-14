@@ -106,6 +106,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 - FIX - Sync WooCommerce order blank item added on the staging site
 - FIX - Sync WooCommerce order origin
 - NEW - Exclude WP core folders for migration
+- FIX - Save post meta on action hook
 
 = 0.1.0.57 - 3 October 2024 =
 - FIX - Showing error if wp-config.php is not writable.

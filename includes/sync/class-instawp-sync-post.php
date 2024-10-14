@@ -9,6 +9,8 @@ class InstaWP_Sync_Post {
 	public function __construct() {
 		// Post Actions.
 		add_action( 'transition_post_status', array( $this, 'transition_post_status' ), 10, 3 );
+		add_action( 'save_post', array( $this, 'save_post' ), 999, 2 );
+
 		add_action( 'before_delete_post', array( $this, 'delete_post' ), 10, 2 );
 
 		// Media Actions.
@@ -78,6 +80,34 @@ class InstaWP_Sync_Post {
 		}
 
 		$this->handle_post_events( $event_name, $action, $post );
+	}
+
+	/**
+	 * Save post sync event.
+	 *
+	 * @since 0.1.0.58
+	 * @param int     $post_id Post ID.
+	 * @param WP_Post $post    Post object.
+	 *
+	 * @return void
+	 */
+	public function save_post( $post_id, $post ) {
+		// Check if this is an auto save routine.
+		if ( wp_is_post_revision( $post_id ) ) {
+			return;
+		}
+		// Unhook this function so it doesn't loop infinitely
+        remove_action( 'save_post', array( $this, 'save_post' ) );
+		
+		/**
+		 * Since save_post action called after transition_post_status, 
+		 * we need to call transition_post_status again.
+		 * github.com/WordPress/wordpress-develop/blob/6.6.2/src/wp-includes/post.php#L5521-L5521
+		 */
+		$this->transition_post_status( $post->post_status, $post->post_status, $post );
+
+		 // Re-hook this function.
+        add_action( 'save_post', array( $this, 'save_post' ), 999, 2 );
 	}
 
 	/**
