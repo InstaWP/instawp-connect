@@ -342,7 +342,8 @@ class InstaWP_Sync_Parser {
 			return $post;
 		}
 
-		$post               = $_post;
+		// Clone of the post object to avoid reference issues
+		$post               = clone $_post;
 		$post_content       = isset( $post->post_content ) ? $post->post_content : '';
 		$post_parent_id     = $post->post_parent;
 		$reference_id       = InstaWP_Sync_Helpers::get_post_reference_id( $post->ID );
