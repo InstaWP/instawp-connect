@@ -40,7 +40,9 @@ $list_data             = Option::get_option( 'instawp_large_files_list' );
 $migration_details     = Helper::get_args_option( 'instawp_migration_details', $instawp_settings );
 $tracking_url          = Helper::get_args_option( 'tracking_url', $migration_details );
 $migrate_id            = Helper::get_args_option( 'migrate_id', $migration_details );
+$serve_with_wp         = (bool) Helper::get_args_option( 'serve_with_wp', $migration_details );
 $whitelist_ip          = instawp_whitelist_ip();
+
 
 delete_option( 'instawp_files_offset' );
 delete_option( 'instawp_db_offset' );
@@ -186,7 +188,7 @@ delete_option( 'instawp_db_offset' );
                     <button type="button" class="instawp-refresh-exclude-screen">
                         <svg class="w-4 h-4" viewBox="0 0 14 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path fill-rule="evenodd" clip-rule="evenodd" style="fill: #005e54;"
-                                    d="M1.59995 0.800049C2.09701 0.800049 2.49995 1.20299 2.49995 1.70005V3.59118C3.64303 2.42445 5.23642 1.70005 6.99995 1.70005C9.74442 1.70005 12.0768 3.45444 12.9412 5.90013C13.1069 6.36877 12.8612 6.88296 12.3926 7.0486C11.924 7.21425 11.4098 6.96862 11.2441 6.49997C10.6259 4.75097 8.95787 3.50005 6.99995 3.50005C5.52851 3.50005 4.22078 4.20657 3.39937 5.30005H6.09995C6.59701 5.30005 6.99995 5.70299 6.99995 6.20005C6.99995 6.6971 6.59701 7.10005 6.09995 7.10005H1.59995C1.10289 7.10005 0.699951 6.6971 0.699951 6.20005V1.70005C0.699951 1.20299 1.10289 0.800049 1.59995 0.800049ZM1.6073 8.95149C2.07594 8.78585 2.59014 9.03148 2.75578 9.50013C3.37396 11.2491 5.04203 12.5 6.99995 12.5C8.47139 12.5 9.77912 11.7935 10.6005 10.7L7.89995 10.7C7.40289 10.7 6.99995 10.2971 6.99995 9.80005C6.99995 9.30299 7.40289 8.90005 7.89995 8.90005H12.3999C12.6386 8.90005 12.8676 8.99487 13.0363 9.16365C13.2051 9.33243 13.3 9.56135 13.3 9.80005V14.3C13.3 14.7971 12.897 15.2 12.4 15.2C11.9029 15.2 11.5 14.7971 11.5 14.3V12.4089C10.3569 13.5757 8.76348 14.3 6.99995 14.3C4.25549 14.3 1.92309 12.5457 1.05867 10.1C0.893024 9.63132 1.13866 9.11714 1.6073 8.95149Z"></path>
+                                  d="M1.59995 0.800049C2.09701 0.800049 2.49995 1.20299 2.49995 1.70005V3.59118C3.64303 2.42445 5.23642 1.70005 6.99995 1.70005C9.74442 1.70005 12.0768 3.45444 12.9412 5.90013C13.1069 6.36877 12.8612 6.88296 12.3926 7.0486C11.924 7.21425 11.4098 6.96862 11.2441 6.49997C10.6259 4.75097 8.95787 3.50005 6.99995 3.50005C5.52851 3.50005 4.22078 4.20657 3.39937 5.30005H6.09995C6.59701 5.30005 6.99995 5.70299 6.99995 6.20005C6.99995 6.6971 6.59701 7.10005 6.09995 7.10005H1.59995C1.10289 7.10005 0.699951 6.6971 0.699951 6.20005V1.70005C0.699951 1.20299 1.10289 0.800049 1.59995 0.800049ZM1.6073 8.95149C2.07594 8.78585 2.59014 9.03148 2.75578 9.50013C3.37396 11.2491 5.04203 12.5 6.99995 12.5C8.47139 12.5 9.77912 11.7935 10.6005 10.7L7.89995 10.7C7.40289 10.7 6.99995 10.2971 6.99995 9.80005C6.99995 9.30299 7.40289 8.90005 7.89995 8.90005H12.3999C12.6386 8.90005 12.8676 8.99487 13.0363 9.16365C13.2051 9.33243 13.3 9.56135 13.3 9.80005V14.3C13.3 14.7971 12.897 15.2 12.4 15.2C11.9029 15.2 11.5 14.7971 11.5 14.3V12.4089C10.3569 13.5757 8.76348 14.3 6.99995 14.3C4.25549 14.3 1.92309 12.5457 1.05867 10.1C0.893024 9.63132 1.13866 9.11714 1.6073 8.95149Z"></path>
                         </svg>
                     </button>
                 </div>
@@ -358,20 +360,37 @@ delete_option( 'instawp_db_offset' );
                         <button type="button" class="instawp-migration-start-over text-gray-700 py-3 px-6 border border-grayCust-350 text-sm font-medium rounded-md"><?php esc_html_e( 'Start Over', 'instawp-connect' ); ?></button>
                         <a href="#" target="_blank" class="btn-shadow rounded-md w-fit text-center py-3 px-6 bg-primary-900 text-white hover:text-white text-sm font-medium" style="background: #11BF85;"><?php esc_html_e( 'Increase Limit', 'instawp-connect' ); ?></a>
                     </div>
+
+                    <div class="p-4 mt-6 text-sm text-left w-full text-red-800 rounded-lg bg-red-50" role="alert">
+						<?php printf( '<span>%s</span><a class="font-medium underline ml-2" href="%s">%s</a>',
+							esc_html__( 'Provide more information to help you with this migration.', 'instawp-connect' ),
+							esc_url( 'https://instawp.com/migration-help-query/' ),
+							esc_html__( 'Get Help', 'instawp-connect' )
+						); ?>
+                    </div>
+
                 </div>
             </div>
             <div class="screen screen-5 <?= $current_create_screen === 5 ? 'active' : ''; ?>">
                 <div class="flex justify-between items-center">
                     <div class="text-grayCust-200 text-lg font-bold"><?php esc_html_e( '4. Creating Staging', 'instawp-connect' ); ?></div>
                     <span class="instawp-migration-loader text-primary-900 text-base font-normal"
-                        data-in-progress-text="<?php esc_attr_e( 'In Progress...', 'instawp-connect' ); ?>"
-                        data-error-text="<?php esc_attr_e( 'Migration Failed', 'instawp-connect' ); ?>"
-                        data-complete-text="<?php esc_attr_e( 'Completed', 'instawp-connect' ); ?>">
+                          data-in-progress-text="<?php esc_attr_e( 'In Progress...', 'instawp-connect' ); ?>"
+                          data-error-text="<?php esc_attr_e( 'Migration Failed', 'instawp-connect' ); ?>"
+                          data-complete-text="<?php esc_attr_e( 'Completed', 'instawp-connect' ); ?>">
                         <?php esc_html_e( 'In Progress...', 'instawp-connect' ); ?>
                     </span>
                 </div>
                 <div class="panel mt-6 block">
                     <div class="migration-running border border-grayCust-100 rounded-lg">
+
+                        <div class="<?php echo esc_attr( $serve_with_wp ? '' : 'hidden' ); ?> notice-serve-with-wp p-5 mb-4 text-sm text-yellow-800 rounded-lg bg-yellow-50 gap-4" role="alert">
+							<?php printf( '<span class="font-medium">%s</span><span>%s</span>',
+								esc_html__( 'Using slow mode: ', 'instawp-connect' ),
+								esc_html__( 'We’re currently experiencing access restrictions, so the migration process may take longer than usual.', 'instawp-connect' )
+							); ?>
+                        </div>
+
                         <div class="p-5 flex flex-col gap-4">
                             <div class="flex items-center">
                                 <div class="w-24 text-grayCust-900 text-base font-normal"><?php esc_html_e( 'Files', 'instawp-connect' ); ?></div>
@@ -394,15 +413,19 @@ delete_option( 'instawp_db_offset' );
                             <div id="visibility-box" class="flex flex-col gap-2 rounded-xl w-full bg-zinc-800 border border-zinc-700 p-2">
                                 <div class="flex sticky top-0 rounded-lg justify-between p-1">
                                     <div class="flex items-center text-gray-100 font-medium gap-2">
-                                        <svg width="16" height="16" fill="none" class="animate-spin flex-shrink-0" xmlns="http://www.w3.org/2000/svg" aria-label="In progress"><path opacity=".5" d="M8 15A7 7 0 108 1a7 7 0 000 14v0z" stroke="#DBAB0A" stroke-width="2"></path><path d="M15 8a7 7 0 01-7 7" stroke="#DBAB0A" stroke-width="2"></path><path d="M8 12a4 4 0 100-8 4 4 0 000 8z" fill="#DBAB0A"></path></svg>
+                                        <svg width="16" height="16" fill="none" class="animate-spin flex-shrink-0" xmlns="http://www.w3.org/2000/svg" aria-label="In progress">
+                                            <path opacity=".5" d="M8 15A7 7 0 108 1a7 7 0 000 14v0z" stroke="#DBAB0A" stroke-width="2"></path>
+                                            <path d="M15 8a7 7 0 01-7 7" stroke="#DBAB0A" stroke-width="2"></path>
+                                            <path d="M8 12a4 4 0 100-8 4 4 0 000 8z" fill="#DBAB0A"></path>
+                                        </svg>
                                         <span class="stage stage-processing"><?php printf( esc_html__( 'Processing (0/%s stages)', 'instawp-connect' ), count( InstaWP_Setting::get_stages() ) ); ?></span>
-                                        <?php
-                                        $index = 1;
-                                        foreach ( InstaWP_Setting::get_stages() as $stage_key => $label ) { ?>
-                                            <span class="stage stage-<?= esc_attr( $stage_key ) ?> hidden"><?= esc_html( $label ); ?> <?php printf( esc_html__( '(%1$s/%2$s stages)', 'instawp-connect' ), esc_html( $index ), count( InstaWP_Setting::get_stages() ) ); ?></span>
-                                            <?php
-                                            ++$index;
-                                        } ?>
+										<?php
+										$index = 1;
+										foreach ( InstaWP_Setting::get_stages() as $stage_key => $label ) { ?>
+                                            <span class="stage stage-<?= esc_attr( $stage_key ) ?> hidden"><?= esc_html( $label ); ?><?php printf( esc_html__( '(%1$s/%2$s stages)', 'instawp-connect' ), esc_html( $index ), count( InstaWP_Setting::get_stages() ) ); ?></span>
+											<?php
+											++ $index;
+										} ?>
                                     </div>
                                     <div class="text-gray-100 font-medium flex gap-3">
                                         <span id="visibility-timer" class="text-gray-100 font-medium"></span>
@@ -421,12 +444,12 @@ delete_option( 'instawp_db_offset' );
                                 <div id="visibility-box-area" class="flex flex-col relative rounded-lg bg-black max-h-[300px] overflow-hidden hidden">
                                     <div id="visibility-content-area" class="flex flex-col overflow-auto p-2">
                                         <div class="visibility-content-item flex gap-3 items-center hover:bg-zinc-800 hover:rounded-lg py-1.5 px-2.5 "><span class="text-gray-100 min-w-36"><?= esc_html( wp_date( 'Y-m-d H:i:s' ) ); ?></span><span class="text-gray-100 break-all font-medium"><?= esc_html__( 'Migration Initiated', 'instawp-connect' ); ?></span></div>
-<!--                                        --><?php //foreach( range( 0, 10 ) as $index ) { ?>
-<!--                                            <div class="visibility-content-item flex gap-3 items-center hover:bg-zinc-800 hover:rounded-lg py-1.5 px-2.5 group skipped">-->
-<!--                                                <span class="text-gray-100 min-w-36">--><?php //= wp_date( 'Y-m-d H:i:s' ); ?><!--</span>-->
-<!--                                                <span class="text-gray-100 break-all group-[.sent]:text-emerald-300 group-[.failed]:text-rose-500 group-[.skipped]:text-yellow-300">wp_config/matomo/app/plugins/file.php - 5 mb <span class="hidden group-hover:inline-block ml-2 px-2 py-1 text-xs rounded-lg border border-zinc-700 text-rose-500 cursor-pointer instawp-skip-item" data-type="file" data-item="5">Skip</span></span>-->
-<!--                                            </div>-->
-<!--                                        --><?php //} ?>
+                                        <!--                                        --><?php //foreach( range( 0, 10 ) as $index ) { ?>
+                                        <!--                                            <div class="visibility-content-item flex gap-3 items-center hover:bg-zinc-800 hover:rounded-lg py-1.5 px-2.5 group skipped">-->
+                                        <!--                                                <span class="text-gray-100 min-w-36">--><?php //= wp_date( 'Y-m-d H:i:s' ); ?><!--</span>-->
+                                        <!--                                                <span class="text-gray-100 break-all group-[.sent]:text-emerald-300 group-[.failed]:text-rose-500 group-[.skipped]:text-yellow-300">wp_config/matomo/app/plugins/file.php - 5 mb <span class="hidden group-hover:inline-block ml-2 px-2 py-1 text-xs rounded-lg border border-zinc-700 text-rose-500 cursor-pointer instawp-skip-item" data-type="file" data-item="5">Skip</span></span>-->
+                                        <!--                                            </div>-->
+                                        <!--                                        --><?php //} ?>
                                     </div>
                                     <div class="absolute bg-zinc-800 border border-zinc-700 p-1.5 bottom-3 right-3 rounded-sm cursor-pointer full-screen-btn">
                                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -471,7 +494,7 @@ delete_option( 'instawp_db_offset' );
                                     <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                                         <path d="M13.3337 16.668L14.167 16.668C15.5477 16.668 16.667 15.5487 16.667 14.168L16.667 5.83464C16.667 4.45392 15.5477 3.33464 14.167 3.33464L13.3337 3.33464M10.0003 6.66797L13.3337 10.0013M13.3337 10.0013L10.0003 13.3346M13.3337 10.0013L3.33366 10.0013" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                                     </svg>
-                                    <?php esc_html_e( 'Magic Login', 'instawp-connect' ); ?>
+									<?php esc_html_e( 'Magic Login', 'instawp-connect' ); ?>
                                 </a>
                             </div>
                         </div>
@@ -507,22 +530,22 @@ delete_option( 'instawp_db_offset' );
 
         <div class="screen-buttons <?php echo esc_attr( ! empty( $migrate_id ) ? 'hidden' : '' ); ?> bg-grayCust-250 px-5 py-4 rounded-bl-lg rounded-br-lg flex justify-between">
 
-            <div class="instawp-site-name flex items-center mt-1 focus-visible:outline-none cursor-pointer hint--top hint--rounded" aria-label="<?= esc_attr__('Leave blank for Auto Generated name', 'instawp-connect' ) ?>" style="max-width: 350px;">
+            <div class="instawp-site-name flex items-center mt-1 focus-visible:outline-none cursor-pointer hint--top hint--rounded" aria-label="<?= esc_attr__( 'Leave blank for Auto Generated name', 'instawp-connect' ) ?>" style="max-width: 350px;">
                 <div class="focus-visible:outline-none">
                     <div class="focus-visible:outline-none">
                         <svg width="22" height="21" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path fill-rule="evenodd" clip-rule="evenodd"
-                                d="M11 20.2719C13.6673 20.2719 16.2254 19.2123 18.1115 17.3263C19.9976 15.4401 21.0571 12.8821 21.0571 10.2147C21.0571 7.54742 19.9976 4.98934 18.1115 3.10327C16.2254 1.21718 13.6673 0.157593 11 0.157593C8.33269 0.157593 5.77463 1.21718 3.88853 3.10327C2.00246 4.98934 0.942871 7.54742 0.942871 10.2147C0.942871 12.8821 2.00246 15.4401 3.88853 17.3263C5.77463 19.2123 8.33269 20.2719 11 20.2719ZM3.87453 7.73439C4.34129 6.39769 5.17415 5.21897 6.27819 4.33256C6.6151 4.84673 7.1959 5.18616 7.85716 5.18616C8.35728 5.18616 8.83692 5.38484 9.19057 5.73847C9.5442 6.09212 9.74288 6.57175 9.74288 7.07188V7.70045C9.74288 8.36729 10.0078 9.00679 10.4793 9.47832C10.9508 9.94984 11.5903 10.2147 12.2572 10.2147C12.924 10.2147 13.5635 9.94984 14.035 9.47832C14.5066 9.00679 14.7714 8.36729 14.7714 7.70045C14.7712 7.13778 14.9598 6.5913 15.3069 6.14846C15.654 5.70563 16.1396 5.39202 16.686 5.25782C17.8858 6.63021 18.5456 8.39191 18.5428 10.2147C18.5428 10.6422 18.5076 11.0633 18.4385 11.4719H17.2857C16.6189 11.4719 15.9793 11.7368 15.5079 12.2083C15.0363 12.6798 14.7714 13.3193 14.7714 13.9862V16.7481C13.6253 17.4113 12.3242 17.7595 11 17.7576V15.2433C11 14.5765 10.7351 13.937 10.2636 13.4654C9.79208 12.9939 9.15255 12.729 8.48573 12.729C7.8189 12.729 7.17937 12.4641 6.70787 11.9926C6.23634 11.5211 5.97145 10.8816 5.97145 10.2147C5.97167 9.62011 5.76113 9.04463 5.37723 8.59054C4.99333 8.13644 4.46091 7.83311 3.87453 7.73439Z"
-                                fill="#005E54"/>
+                                  d="M11 20.2719C13.6673 20.2719 16.2254 19.2123 18.1115 17.3263C19.9976 15.4401 21.0571 12.8821 21.0571 10.2147C21.0571 7.54742 19.9976 4.98934 18.1115 3.10327C16.2254 1.21718 13.6673 0.157593 11 0.157593C8.33269 0.157593 5.77463 1.21718 3.88853 3.10327C2.00246 4.98934 0.942871 7.54742 0.942871 10.2147C0.942871 12.8821 2.00246 15.4401 3.88853 17.3263C5.77463 19.2123 8.33269 20.2719 11 20.2719ZM3.87453 7.73439C4.34129 6.39769 5.17415 5.21897 6.27819 4.33256C6.6151 4.84673 7.1959 5.18616 7.85716 5.18616C8.35728 5.18616 8.83692 5.38484 9.19057 5.73847C9.5442 6.09212 9.74288 6.57175 9.74288 7.07188V7.70045C9.74288 8.36729 10.0078 9.00679 10.4793 9.47832C10.9508 9.94984 11.5903 10.2147 12.2572 10.2147C12.924 10.2147 13.5635 9.94984 14.035 9.47832C14.5066 9.00679 14.7714 8.36729 14.7714 7.70045C14.7712 7.13778 14.9598 6.5913 15.3069 6.14846C15.654 5.70563 16.1396 5.39202 16.686 5.25782C17.8858 6.63021 18.5456 8.39191 18.5428 10.2147C18.5428 10.6422 18.5076 11.0633 18.4385 11.4719H17.2857C16.6189 11.4719 15.9793 11.7368 15.5079 12.2083C15.0363 12.6798 14.7714 13.3193 14.7714 13.9862V16.7481C13.6253 17.4113 12.3242 17.7595 11 17.7576V15.2433C11 14.5765 10.7351 13.937 10.2636 13.4654C9.79208 12.9939 9.15255 12.729 8.48573 12.729C7.8189 12.729 7.17937 12.4641 6.70787 11.9926C6.23634 11.5211 5.97145 10.8816 5.97145 10.2147C5.97167 9.62011 5.76113 9.04463 5.37723 8.59054C4.99333 8.13644 4.46091 7.83311 3.87453 7.73439Z"
+                                  fill="#005E54"/>
                         </svg>
                     </div>
                 </div>
                 <div class="flex items-center ml-2 focus-visible:outline-none">
                     <div class="flex items-center focus-visible:outline-none placeholder-text">
-                        <p class="truncate cursor-pointer text-sm hover:border-primary-900 border-b border-transparent focus-visible:outline-none" data-text="<?= esc_attr__('Enter Site Name', 'instawp-connect' ) ?>"><?= esc_html__('Enter Site Name', 'instawp-connect' ) ?></p>
+                        <p class="truncate cursor-pointer text-sm hover:border-primary-900 border-b border-transparent focus-visible:outline-none" data-text="<?= esc_attr__( 'Enter Site Name', 'instawp-connect' ) ?>"><?= esc_html__( 'Enter Site Name', 'instawp-connect' ) ?></p>
                     </div>
                     <div class="focus-visible:outline-none site-name-input-wrap hidden">
-                        <input id="site-prefix" name="migrate_settings[site_name]" data-postfix="" class="w-44 border-b-[1px] border-primary-900 focus-visible:outline-none bg-transparent" placeholder="<?= esc_attr__('Enter Site Name (max 16 characters)', 'instawp-connect' ) ?>" autocomplete="off" maxlength="16">
+                        <input id="site-prefix" name="migrate_settings[site_name]" data-postfix="" class="w-44 border-b-[1px] border-primary-900 focus-visible:outline-none bg-transparent" placeholder="<?= esc_attr__( 'Enter Site Name (max 16 characters)', 'instawp-connect' ) ?>" autocomplete="off" maxlength="16">
                     </div>
                 </div>
             </div>

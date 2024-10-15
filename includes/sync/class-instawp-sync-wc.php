@@ -4,6 +4,27 @@ defined( 'ABSPATH' ) || exit;
 
 class InstaWP_Sync_WC {
 
+	/**
+	 * Order ID meta key. Use to match staging order id with production order id
+	 * @var string
+	 * @since 0.1.0.58
+	 */
+	private $order_id_meta_key = '_iwp_wc_sync_order_id';
+	
+	/**
+	 * Order created date key
+	 * @var string
+	 * @since 0.1.0.58
+	 */
+	private $order_created_date_key = 'iwp_sync_date_created';
+	
+	/**
+	 * Order modified date key
+	 * @var string
+	 * @since 0.1.0.58
+	 */
+	private $order_modified_date_key = 'iwp_sync_date_modified';
+
     public function __construct() {
 	    // Order Actions.
 	    add_action( 'woocommerce_new_order', array( $this, 'create_order' ) );
@@ -24,6 +45,9 @@ class InstaWP_Sync_WC {
 
 	    // Process Events.
 	    add_filter( 'instawp/filters/2waysync/process_event', array( $this, 'parse_event' ), 10, 2 );
+
+		// Display order number
+		add_filter( 'woocommerce_order_number', array( $this, 'display_order_number_from_meta' ), 10, 2 );
     }
 
 	public function create_order( $order_id ) {
@@ -35,13 +59,92 @@ class InstaWP_Sync_WC {
 		if ( ! $order ) {
 			return;
 		}
+		// Add order ID as order meta
+		$this->add_order_number_meta( $order_id, $order );
 
 		$event_name  = __('Order created', 'instawp-connect' );
 		$this->add_event( $event_name, 'woocommerce_order_created', $order->get_id(), $order->get_order_key() );
 	}
 
+	/**
+	 * Production only : Add order ID as order meta to WC order object in order to display this ID. 
+	 * After sync, this meta data will be saved as it is in staging site. It will help to match order 
+	 * number with production site.
+	 *
+	 * @since  0.1.0.58
+	 * @param int    $order_id The ID of the order to add the custom ID to.
+	 * @param object $order    The WC order object to add the custom ID to.
+	 *
+	 * @return void
+	 */
+	private function add_order_number_meta( $order_id, $order ) {
+		// Meta data for order id will not be created in staging
+		if ( instawp()->is_staging || empty( $order_id ) || empty( $order ) ) {
+			return;
+		}
+		// Check if custom order ID already exists
+		$custom_id = $order->get_meta( $this->order_id_meta_key );
+		if ( ! empty( $custom_id ) ) {
+			return;
+		}
+
+		// Set custom order ID as order meta
+		$order->update_meta_data( $this->order_id_meta_key, $order_id );
+		$order->save();
+	}
+
+	/**
+	 * Staging only: Display order ID from meta, if it exists. Here custom ID will be same as 
+	 * source site order id
+	 *
+	 * @since  0.1.0.58
+	 * @param int    $order_id The ID of the order to get the custom ID from.
+	 * @param object $order    The WC order object to get the custom ID from.
+	 *
+	 * @return int The custom order ID if it exists, otherwise the original ID.
+	 */
+	public function display_order_number_from_meta( $order_id, $order ) {
+		// Production site order id will be same as custom order id
+		if ( ! instawp()->is_staging || empty( $order_id ) || empty( $order ) ) {
+			return $order_id;
+		}
+
+		$custom_id = $order->get_meta( $this->order_id_meta_key );
+		if ( empty( $custom_id ) ) {
+			return $order_id;
+		}
+		return $custom_id;
+	}
+
+
+	/**
+	 * Sync order on update.
+	 *
+	 * Triggered when an order is updated. This will sync the order to the staging site.
+	 *
+	 * @since 0.1.0.58
+	 *
+	 * @param int $order_id The order ID to sync.
+	 */
 	public function update_order( $order_id ) {
 		if ( ! $this->can_sync() ) {
+			return;
+		}
+		$this->add_update_order_event( $order_id );
+	}
+
+	/**
+	 * Add event for when an order is updated. This event is used to sync
+	 * the order with the staging site.
+	 *
+	 * @since  0.1.0.58
+	 *
+	 * @param int    $order_id The ID of the order to add the event for.
+	 *
+	 * @return void
+	 */
+	private function add_update_order_event( $order_id ) {
+		if ( empty( $order_id ) ) {
 			return;
 		}
 
@@ -49,6 +152,9 @@ class InstaWP_Sync_WC {
 		if ( ! $order ) {
 			return;
 		}
+
+		// Add order ID as order meta
+		$this->add_order_number_meta( $order_id, $order );
 
 		$event_name = __('Order updated', 'instawp-connect' );
 		$this->add_event( $event_name, 'woocommerce_order_updated', $order->get_id(), $order->get_order_key() );
@@ -199,7 +305,7 @@ class InstaWP_Sync_WC {
 				}
 			} else {
 				$order = wc_create_order();
-
+				$order_id = $order->get_id();
 				try {
 					$order->set_order_key( $reference_id );
 				} catch ( Exception $e ) {
@@ -210,9 +316,24 @@ class InstaWP_Sync_WC {
 				}
 			}
 
+			// set order created date
+			if ( ! empty( $details[$this->order_created_date_key] ) ) {
+				$order->set_date_created( $details[$this->order_created_date_key] );
+			}
+			$previous_modified_date = $order->get_meta( $this->order_modified_date_key );
+			// set order meta
+			if ( ! empty( $details['meta_data'] ) && is_array( $details['meta_data'] ) ) {
+				foreach ( $details['meta_data'] as $meta_key => $meta_value ) {
+					if ( empty( $meta_key ) ) {
+						continue;
+					}
+					$order->update_meta_data( $meta_key, $meta_value );
+				}
+			}
+
 			kses_remove_filters();
 			foreach ( $details['line_items'] as $line_item ) {
-				if ( empty( $line_item ) ) {
+				if ( empty( $line_item ) || empty( $line_item['reference_id'] ) ) {
 					continue;
 				}
 
@@ -290,15 +411,36 @@ class InstaWP_Sync_WC {
 				) );
 			}
 
-			$order->set_status( $details['status'] );
+			// set order status only if it has changed
+			if ( empty( $previous_modified_date ) || empty( $details[$this->order_modified_date_key] ) || absint( $previous_modified_date ) < absint( $details[$this->order_modified_date_key] ) ) {
+				$order->set_status( $details['status'] );
+			}
+
+			// set order modified date
+			if ( ! empty( $details[$this->order_modified_date_key] ) ) {
+				$order->set_date_modified( $details[$this->order_modified_date_key] );
+			}
+			
 			$order->set_customer_ip_address( $details['customer_ip_address'] );
 			$order->set_customer_user_agent( $details['customer_user_agent'] );
 			$order->set_transaction_id( $details['transaction_id'] );
 			$order->set_customer_note( $details['customer_note'] );
 			$order->set_customer_id( $details['customer_id'] );
-
+			$order->save();
+			// Grab the order and recalculate
+			$order = wc_get_order( $order_id );
 			$order->calculate_totals();
 			$order->save();
+			/**
+			 * Add update order event at production site with order ID as order meta, 
+			 * if it doesn't exist. It will be used to match staging order id with production 
+			 * order id.
+			 * 
+			 */
+			if ( ! instawp()->is_staging && ( empty( $details['meta_data'] ) || empty( $details['meta_data'][$this->order_id_meta_key] ) ) ) {
+				// Add order ID as order meta
+				$this->add_update_order_event( $order_id );
+			}
 		}
 
 		// delete order
@@ -443,7 +585,22 @@ class InstaWP_Sync_WC {
 		$order      = wc_get_order( $order_id );
 		$order_data = $order->get_data();
 		$data       = $order_data;
+		
+		// Get order created date
+		if ( ! empty( $order_data['date_created'] ) && is_a( $order_data['date_created'], 'WC_DateTime' ) ) {
+			$data[ $this->order_created_date_key ] = $order_data['date_created']->getTimestamp();
+		}
 
+		// Get order created date
+		$date_modified = time();
+		if ( ! empty( $order_data['date_modified'] ) && is_a( $order_data['date_modified'], 'WC_DateTime' ) ) {
+			$date_modified = $order_data['date_modified']->getTimestamp();
+			$data[ $this->order_modified_date_key ] = $date_modified;
+		}
+		
+
+		$data['meta_data'] = array();
+		$data['meta_data'][$this->order_modified_date_key] = $date_modified;
 		foreach ( $order_data['meta_data'] as $meta ) {
 			if ( in_array( $meta->key, array( '_edit_lock' ) ) ) {
 				continue;
@@ -452,18 +609,22 @@ class InstaWP_Sync_WC {
 			$data['meta_data'][ $meta->key ] = $meta->value;
 		}
 
+		$data['fee_lines'] = array();
 		foreach ( $order_data['fee_lines'] as $fee ) {
 			$data['fee_lines'][] = $fee->get_data();
 		}
 
+		$data['shipping_lines'] = array();
 		foreach ( $order_data['shipping_lines'] as $shipping ) {
 			$data['shipping_lines'][] = $shipping->get_data();
 		}
 
+		$data['tax_lines'] = array();
 		foreach ( $order_data['tax_lines'] as $tax ) {
 			$data['tax_lines'][] = $tax->get_data();
 		}
 
+		$data['coupon_lines'] = array();
 		foreach ( $order_data['coupon_lines'] as $coupon ) {
 			$post_id = wc_get_coupon_id_by_code( $coupon['code'] );
 			$post    = get_post( $post_id );
@@ -481,7 +642,8 @@ class InstaWP_Sync_WC {
 				'data'         => $coupon->get_data(),
 			);
 		}
-
+		// Get line items
+		$data['line_items'] = array();
 		foreach ( $order_data['line_items'] as $product ) {
 			$product_data = $product->get_data();
 			$post_id      = $product_data['product_id'];

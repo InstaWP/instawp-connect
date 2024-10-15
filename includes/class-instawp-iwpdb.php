@@ -6,7 +6,7 @@ include_once 'functions-pull-push.php';
 class IWPDB {
 
 	/**
-	 * @var mysqli
+	 * @var mysqli|wpdb
 	 */
 	public $conn = null;
 	public $last_error = '';
@@ -14,18 +14,31 @@ class IWPDB {
 	private $options_data = array();
 	private $max_retries = 10;
 	private $table_files_sent = 'iwp_files_sent';
+	public $use_wpdb = false;
 
 	private static $_table_option = 'iwp_options';
 
+	/**
+	 * @throws Exception
+	 */
 	public function __construct( $key ) {
 		$this->migrate_key = $key;
 
-		$this->set_options_data();
-		$this->connect_database();
+		if ( ! $this->set_options_data() ) {
+			throw new Exception( 'Failed to set options data. The options data file maybe deleted.' );
+		}
+
+		if ( ! $this->connect_database() ) {
+			throw new Exception( 'Failed to connect with database after maximum retry.' );
+		}
+
 		$this->create_require_tables();
 	}
 
 	public function db_get_option( $option_name, $default_value = '' ) {
+		if ( $this->use_wpdb ) {
+			return get_option( $option_name, $default_value );
+		}
 
 		$option_data = $this->get_row( self::$_table_option, array( 'option_name' => $option_name ) );
 
@@ -33,10 +46,13 @@ class IWPDB {
 	}
 
 	public function db_update_option( $option_name, $option_value = '' ) {
+		if ( $this->use_wpdb ) {
+			return update_option( $option_name, $option_value );
+		}
 
 		$option_data = $this->get_row( self::$_table_option, array( 'option_name' => $option_name ) );
 
-		if ( empty( $option_data ) || ! $option_data ) {
+		if ( empty( $option_data ) ) {
 			return $this->insert( self::$_table_option, array(
 				'option_name'  => "'{$option_name}'",
 				'option_value' => "'{$option_value}'",
@@ -47,6 +63,9 @@ class IWPDB {
 	}
 
 	public function insert( $table_name, $data = array() ) {
+		if ( $this->use_wpdb ) {
+			return $this->conn->insert( $table_name, $data );
+		}
 
 		$column_names  = implode( ',', array_keys( $data ) );
 		$column_values = implode( ',', array_values( $data ) );
@@ -60,7 +79,11 @@ class IWPDB {
 		return false;
 	}
 
+
 	public function update( $table_name, $data = array(), $where_array = array() ) {
+		if ( $this->use_wpdb ) {
+			return $this->conn->update( $table_name, $data, $where_array );
+		}
 
 		$set_arr = array();
 
@@ -79,6 +102,11 @@ class IWPDB {
 	}
 
 	public function get_row( $table_name, $where_array = array() ) {
+		if ( $this->use_wpdb ) {
+			$where_clause = $this->build_where_clauses( $where_array );
+
+			return $this->conn->get_row( "SELECT * FROM {$table_name} WHERE {$where_clause} LIMIT 1", ARRAY_A );
+		}
 
 		$fetch_row_res = $this->query( "SELECT * FROM {$table_name} WHERE {$this->build_where_clauses($where_array)} LIMIT 1" );
 
@@ -92,6 +120,12 @@ class IWPDB {
 	}
 
 	public function get_rows( $table_name, $where_array = array() ) {
+		if ( $this->use_wpdb ) {
+			$where_clause = $this->build_where_clauses( $where_array );
+
+			return $this->conn->get_results( "SELECT * FROM {$table_name} WHERE {$where_clause}", ARRAY_A );
+		}
+
 		/**
 		 * @todo implement latter
 		 */
@@ -112,7 +146,14 @@ class IWPDB {
 	}
 
 	public function query_count( $table_name, $where_array = array() ) {
-		$query_count_res = $this->query( ( $table_name === $this->table_files_sent ? "SELECT SUM(file_count)":"SELECT count(*)" ) . " as count FROM {$table_name} WHERE {$this->build_where_clauses($where_array)}" );
+		if ( $this->use_wpdb ) {
+			$where_clause = $this->build_where_clauses( $where_array );
+			$count_column = $table_name === $this->table_files_sent ? "SUM(file_count)" : "count(*)";
+
+			return $this->conn->get_var( "SELECT {$count_column} as count FROM {$table_name} WHERE {$where_clause}" );
+		}
+
+		$query_count_res = $this->query( ( $table_name === $this->table_files_sent ? "SELECT SUM(file_count)" : "SELECT count(*)" ) . " as count FROM {$table_name} WHERE {$this->build_where_clauses($where_array)}" );
 
 		if ( ! $query_count_res ) {
 			return 0;
@@ -124,12 +165,15 @@ class IWPDB {
 	}
 
 	public function query( $str_query = '' ) {
+		if ( $this->use_wpdb ) {
+			return $this->conn->query( $str_query );
+		}
 
 		try {
 			$query_result = $this->conn->query( $str_query );
 		} catch ( Exception $e ) {
 			$this->last_error = $e->getMessage();
-			
+
 		}
 
 		if ( $query_result instanceof mysqli_result ) {
@@ -193,10 +237,20 @@ class IWPDB {
 	}
 
 	public function connect_database() {
+		global $wpdb;
+
+		if ( isset( $wpdb ) && $wpdb instanceof wpdb ) {
+			$this->conn     = $wpdb;
+			$this->use_wpdb = true;
+
+			return true;
+		}
+
 		$db_username = $this->get_option( 'db_username' );
 		$db_password = $this->get_option( 'db_password' );
 		$db_name     = $this->get_option( 'db_name' );
 		$db_host     = $this->get_option( 'db_host' );
+		$db_charset  = $this->get_option( 'db_charset', 'utf8' );
 		$host        = $db_host;
 		$port        = null;
 		$socket      = null;
@@ -217,10 +271,10 @@ class IWPDB {
 			$mysqli = new mysqli( $host, $db_username, $db_password, $db_name, $port, $socket );
 
 			if ( ! $mysqli->connect_error ) {
-				mysqli_set_charset( $mysqli, "utf8" );
+				mysqli_set_charset( $mysqli, $db_charset );
 				$this->conn = $mysqli;
 
-				return;
+				return true;
 			}
 
 			$this->last_error = $mysqli->connect_error;
@@ -233,14 +287,15 @@ class IWPDB {
 		}
 
 		error_log( "Failed to connect to database after {$this->max_retries} attempts. Last error: {$this->last_error}" );
+
+		return false;
 	}
 
 	public function set_options_data() {
-
 		$options_data_filename = INSTAWP_BACKUP_DIR . 'options-' . $this->migrate_key . '.txt';
 
 		if ( ! is_readable( $options_data_filename ) ) {
-			return;
+			return false;
 		}
 
 		$options_data_encrypted = file_get_contents( $options_data_filename );
@@ -249,7 +304,11 @@ class IWPDB {
 			$passphrase             = openssl_digest( $this->migrate_key, 'SHA256', true );
 			$options_data_decrypted = openssl_decrypt( $options_data_encrypted, 'AES-256-CBC', $passphrase );
 			$this->options_data     = json_decode( $options_data_decrypted, true );
+
+			return true;
 		}
+
+		return false;
 	}
 
 	public function get_option( $option_name = '', $default = '' ) {
@@ -375,7 +434,9 @@ class IWPDB {
 	}
 
 	public function __destruct() {
-		$this->conn->close();
+		if ( ! $this->use_wpdb && $this->conn instanceof mysqli ) {
+			$this->conn->close();
+		}
 	}
 }
 // phpcs:enable

@@ -48,9 +48,10 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 			return $this->throw_error( $response );
 		}
 
-		$migrate_key        = sanitize_text_field( $request->get_param( 'migrate_key' ) );
-		$migrate_settings   = $request->get_param( 'migrate_settings' );
-		$pre_check_response = InstaWP_Tools::get_pull_pre_check_response( $migrate_key, $migrate_settings );
+		$migrate_key              = sanitize_text_field( $request->get_param( 'migrate_key' ) );
+		$migrate_settings         = $request->get_param( 'migrate_settings' );
+		$migrate_settings['mode'] = 'pull';
+		$pre_check_response       = InstaWP_Tools::get_pull_pre_check_response( $migrate_key, $migrate_settings );
 
 		if ( is_wp_error( $pre_check_response ) ) {
 			return $this->throw_error( $pre_check_response );
@@ -106,7 +107,7 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 		InstaWP_Tools::clean_instawpbackups_dir();
 
 		$migrate_key      = Helper::get_random_string( 40 );
-		$migrate_settings = InstaWP_Tools::get_migrate_settings();
+		$migrate_settings = InstaWP_Tools::get_migrate_settings( [], [ 'mode' => 'push' ] );
 		$api_signature    = hash( 'sha512', $migrate_key . wp_generate_uuid4() );
 		$dest_file_url    = InstaWP_Tools::generate_destination_file( $migrate_key, $api_signature, $migrate_settings );
 

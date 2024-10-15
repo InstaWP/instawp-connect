@@ -18,6 +18,12 @@ $root_dir_find = isset( $root_dir_data['status'] ) ? $root_dir_data['status'] : 
 $root_dir_path = isset( $root_dir_data['root_path'] ) ? $root_dir_data['root_path'] : '';
 
 if ( ! $root_dir_find ) {
+	$root_dir_data = iwp_get_wp_root_directory( 'wp-config.php' );
+	$root_dir_find = isset( $root_dir_data['status'] ) ? $root_dir_data['status'] : false;
+	$root_dir_path = isset( $root_dir_data['root_path'] ) ? $root_dir_data['root_path'] : '';
+}
+
+if ( ! $root_dir_find ) {
 	$root_dir_data = iwp_get_wp_root_directory( '', 'flywheel-config' );
 	$root_dir_find = isset( $root_dir_data['status'] ) ? $root_dir_data['status'] : false;
 	$root_dir_path = isset( $root_dir_data['root_path'] ) ? $root_dir_data['root_path'] : '';
@@ -109,15 +115,16 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			// Check if the function has already been run
 			$has_run = $tracking_db->get_option( 'instawp_inventory_sent', 0 );
 			$total_files = intval( $tracking_db->db_get_option( 'total_files', '0' ) );
-			
+
 			if ( empty( $has_run ) && ( empty( $migrate_settings['inventory_items']['total_files'] ) || $total_files > intval( $migrate_settings['inventory_items']['total_files'] ) ) ) {
 				// Set the flag to indicate the function has run
 				$tracking_db->update_option( 'instawp_inventory_sent', 1 );
 				if ( ! empty( $migrate_settings['inventory_items']['with_checksum'] ) ) {
 					foreach ( $migrate_settings['inventory_items']['with_checksum'] as $inventory_key => $wp_item ) {
 						if ( ! empty( $wp_item['absolute_path'] ) ) {
-							$filepath = $wp_item['absolute_path'];
+							$filepath      = $wp_item['absolute_path'];
 							$filepath_hash = hash( 'sha256', $filepath );
+
 							$row        = $tracking_db->get_row( 'iwp_files_sent', array( 'filepath_hash' => $filepath_hash ) );
 							if ( ! $row ) {
 								try {
@@ -133,7 +140,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 										'file_count'	=> $wp_item['file_count'],
 										'checksum'		=> "'$checksum'",
 									) );
-		
+
 									// Add only necesssary data to inventory items
 									$migrate_settings['inventory_items']['with_checksum'][$inventory_key] = array(
 										'slug' 			=> $wp_item['slug'],
@@ -148,16 +155,14 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 									header( 'x-iwp-message: Insert to tracking database (iwp_files_sent table) was failed. Actual error message is: ' . $e->getMessage() );
 									die();
 								}
-							} else {
-								continue;
 							}
 						}
-						
+
 					}
 				}
-				
+
 				$migrate_settings['inventory_items']['total_files_count'] = $total_files;
-				
+
 				header( 'x-iwp-status: true' );
 				header( 'x-iwp-message: Inventory items sent' );
 				header( 'Content-Type: application/json' );
@@ -182,7 +187,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
 	$unsent_files_count  = $tracking_db->query_count( 'iwp_files_sent', array( 'sent' => '0' ) );
 	$progress_percentage = 0;
-	
+
 	if ( $totalFiles = (int) $tracking_db->db_get_option( 'total_files', '0' ) ) {
 		$total_files_count   = $tracking_db->query_count( 'iwp_files_sent' );
 		$total_files_sent    = $total_files_count - $unsent_files_count;
@@ -198,10 +203,25 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		// Create a limited iterator to skip the files that are already indexed
 		$limitedIterator = array();
 		try {
+			$iterator   = get_iterator_items( $skip_folders, WP_ROOT );
+			$totalFiles = iterator_count( $iterator );
+
+			if ( $totalFiles == 0 ) {
+				throw new Exception( "No files found in the iterator." );
+			}
+
 			$limitedIterator = new LimitIterator( $iterator, $currentFileIndex, BATCH_SIZE );
+
+			// Test if the limited iterator has any items
+			$limitedIterator->rewind();
+			if ( ! $limitedIterator->valid() ) {
+				header( 'x-iwp-status: false' );
+				header( "x-iwp-message: LimitIterator is empty. Current file index: $currentFileIndex, Batch size: " . BATCH_SIZE );
+				die();
+			}
 		} catch ( Exception $e ) {
 			header( 'x-iwp-status: false' );
-			header( 'x-iwp-message: Migration script could not traverse all the files using the limited iterator. Actual reason is: ' . $e->getMessage() );
+			header( 'x-iwp-message: Migration script could not traverse files using the limited iterator. Error: ' . $e->getMessage() );
 			die();
 		}
 
@@ -218,10 +238,10 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			$config_file_path_hash = hash( 'sha256', $config_file_size );
 
 			$tracking_db->insert( 'iwp_files_sent', array(
-				'filepath'      => "'$config_file_path'",
-				'filepath_hash' => "'$config_file_path_hash'",
+				'filepath'      => $tracking_db->use_wpdb ? $config_file_path : "'$config_file_path'",
+				'filepath_hash' => $tracking_db->use_wpdb ? $config_file_path_hash : "'$config_file_path_hash'",
 				'sent'          => 0,
-				'size'          => "'$config_file_size'",
+				'size'          => $tracking_db->use_wpdb ? $config_file_size : "'$config_file_size'",
 			) );
 		}
 
@@ -237,10 +257,10 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 				$filesize = $file->getSize();
 			} catch ( Exception $e ) {
 				$tracking_db->insert( 'iwp_files_sent', array(
-					'filepath'      => "'$filepath'",
+					'filepath'      => $tracking_db->use_wpdb ? $filepath : "'$filepath'",
 					'filepath_hash' => "",
 					'sent'          => 5,
-					'size'          => "'$filesize'",
+					'size'          => $tracking_db->use_wpdb ? $filesize : "'$filesize'",
 				) );
 				continue;
 			}
@@ -250,10 +270,10 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			if ( ! is_valid_file( $filepath ) ) {
 				try {
 					$tracking_db->insert( 'iwp_files_sent', array(
-						'filepath'      => "'$filepath'",
-						'filepath_hash' => "'$filepath_hash'",
+						'filepath'      => $tracking_db->use_wpdb ? $filepath : "'$filepath'",
+						'filepath_hash' => $tracking_db->use_wpdb ? $filepath_hash : "'$filepath_hash'",
 						'sent'          => 5,
-						'size'          => "'$filesize'",
+						'size'          => $tracking_db->use_wpdb ? $filesize : "'$filesize'",
 					) );
 				} catch ( Exception $e ) {
 				}
@@ -266,10 +286,10 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			if ( ! $row ) {
 				try {
 					$tracking_db->insert( 'iwp_files_sent', array(
-						'filepath'      => "'$filepath'",
-						'filepath_hash' => "'$filepath_hash'",
+						'filepath'      => $tracking_db->use_wpdb ? $filepath : "'$filepath'",
+						'filepath_hash' => $tracking_db->use_wpdb ? $filepath_hash : "'$filepath_hash'",
 						'sent'          => 0,
-						'size'          => "'$filesize'",
+						'size'          => $tracking_db->use_wpdb ? $filesize : "'$filesize'",
 					) );
 					++ $fileIndex;
 				} catch ( Exception $e ) {
@@ -348,7 +368,6 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			if ( $handle_config_separately && $file_name === 'wp-config.php' ) {
 				$relativePath = $file_name;
 			}
-
 			header( 'Content-Type: application/octet-stream' );
 			header( 'x-file-relative-path: ' . $relativePath );
 			header( 'x-iwp-progress: ' . $progress_percentage );
@@ -383,10 +402,10 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 				if ( ! is_valid_file( $filepath ) ) {
 					try {
 						$tracking_db->insert( 'iwp_files_sent', array(
-							'filepath'      => "'$filepath'",
-							'filepath_hash' => "'$filepath_hash'",
+							'filepath'      => $tracking_db->use_wpdb ? $filepath : "'$filepath'",
+							'filepath_hash' => $tracking_db->use_wpdb ? $filepath_hash : "'$filepath_hash'",
 							'sent'          => 5,
-							'size'          => "'$filesize'",
+							'size'          => $tracking_db->use_wpdb ? $filesize : "'$filesize'",
 						) );
 					} catch ( Exception $e ) {
 					}
@@ -424,12 +443,12 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
 
 /**
- * Inventory success - If all plugins and themes have been installed 
+ * Inventory success - If all plugins and themes have been installed
  * and if so, mark all files as sent.
  */
 if ( isset( $_REQUEST['serve_type'] ) && 'inventory_sent_files' === $_REQUEST['serve_type'] && function_exists( 'iwp_sanitize_key' ) ) {
 
-	$slug = empty( $_POST['slug'] ) ? '': iwp_sanitize_key( $_POST['slug'] );
+	$slug = empty( $_POST['slug'] ) ? '' : iwp_sanitize_key( $_POST['slug'] );
 	if ( empty( $slug ) ) {
 		header( 'x-iwp-status: false' );
 		header( 'x-iwp-message: Empty slug provided.' );
@@ -437,16 +456,16 @@ if ( isset( $_REQUEST['serve_type'] ) && 'inventory_sent_files' === $_REQUEST['s
 	}
 
 	// Update inventory sent files
-	$tracking_db->update( 
-		'iwp_files_sent', 
-		array( 'sent' => '1' ), 
-		array( 
-			'file_type'		=> 'inventory',
-			'sent_filename'	=> $slug,
-		) 
+	$tracking_db->update(
+		'iwp_files_sent',
+		array( 'sent' => '1' ),
+		array(
+			'file_type'     => 'inventory',
+			'sent_filename' => $slug,
+		)
 	);
 
-	$message = empty( $_POST['item_type'] ) ? 'Plugin or theme': ucfirst( iwp_sanitize_key( $_POST['item_type'] ) );
+	$message = empty( $_POST['item_type'] ) ? 'Plugin or theme' : ucfirst( iwp_sanitize_key( $_POST['item_type'] ) );
 	$message = $message . '' . $slug . ' installation report sent';
 	header( 'x-iwp-status: true' );
 	header( 'x-iwp-message: ' . $message );
