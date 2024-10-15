@@ -9,7 +9,7 @@ jobs:
     name: New tag
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@main
     - name: Build # Remove or modify this step as needed
       run: |
         echo "building"
