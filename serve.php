@@ -563,74 +563,77 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 	// Check if it's the first batch of rows for this table
 	if ( $offset == 0 && $create_table_sql = $tracking_db->query( "SHOW CREATE TABLE `$curr_table_name`" ) ) {
 		$createRow = $create_table_sql->fetch_assoc();
-		echo $createRow['Create Table'] . ";\n\n";
+		echo "\n\n" . $createRow['Create Table'] . ";\n\n";
 	}
 
 	if ( ! in_array( $curr_table_name, $excluded_tables ) ) {
-
+		// Get the primary key or a suitable unique column for the table
+		$unique_column = $tracking_db->get_unique_column($curr_table_name);
+		
 		$where_clause = '1';
+		$order_clause = '';
+		$last_value = null;
+		$offset = isset($result['offset']) ? $result['offset'] : 0;
 
-		if ( isset( $excluded_tables_rows[ $curr_table_name ] ) && is_array( $excluded_tables_rows[ $curr_table_name ] ) && ! empty( $excluded_tables_rows[ $curr_table_name ] ) ) {
-
-			$where_clause_arr = array();
-
-			foreach ( $excluded_tables_rows[ $curr_table_name ] as $excluded_info ) {
-
-				$excluded_info_arr = explode( ':', $excluded_info );
-				$column_name       = isset( $excluded_info_arr[0] ) ? $excluded_info_arr[0] : '';
-				$column_value      = isset( $excluded_info_arr[1] ) ? $excluded_info_arr[1] : '';
-
-				if ( ! empty( $column_name ) && ! empty( $column_value ) ) {
-					$where_clause_arr[] = "{$column_name} != '{$column_value}'";
-				}
+		if ($unique_column) {
+			$last_value = $tracking_db->get_option("last_exported_value_$curr_table_name");
+			if ($last_value !== null) {
+				$where_clause = "`$unique_column` > " . $tracking_db->escape($last_value);
 			}
-
-			$where_clause = implode( ' AND ', $where_clause_arr );
+			$order_clause = "ORDER BY `$unique_column`";
+		} else {
+			$order_clause = "ORDER BY 1"; // Order by the first column if no unique column
 		}
 
-		$result = $tracking_db->query( "SELECT * FROM `$curr_table_name` WHERE {$where_clause} LIMIT " . CHUNK_DB_SIZE . " OFFSET $offset" );
+		// ... existing where_clause logic ...
 
-		if ( ! $result ) {
-			header( 'x-iwp-status: false' );
-			header( 'x-iwp-message: There is an error in the database query operation. Actual error message is: ' . $tracking_db->last_error );
-			die();
+		$query = "SELECT * FROM `$curr_table_name` WHERE {$where_clause} $order_clause";
+		if (!$unique_column) {
+			$query .= " LIMIT " . CHUNK_DB_SIZE . " OFFSET $offset";
+		} else {
+			$query .= " LIMIT " . CHUNK_DB_SIZE;
 		}
 
+		$result = $tracking_db->query($query);
+
+		// ... existing code ...
+
+		$new_last_value = $last_value;
+		$rows_processed = 0;
 		while ( $dataRow = $result->fetch_assoc() ) {
-			$columns         = array_map( function ( $value ) {
+			// ... existing code ...
+			
+			if ($unique_column && isset($dataRow[$unique_column])) {
+				$new_last_value = $dataRow[$unique_column];
+			}
+			$rows_processed++;
 
-				global $tracking_db;
-
-				if ( is_array( $value ) && empty( $value ) ) {
-					return array();
-				} elseif ( is_string( $value ) && empty( $value ) ) {
-					return '';
-				}
-
-				return $tracking_db->conn->real_escape_string( $value );
-			}, array_keys( $dataRow ) );
-			$values          = array_map( function ( $value ) {
-
-				global $tracking_db;
-
-				if ( is_numeric( $value ) ) {
-					// If $value has leading zero it will mark as string and bypass returning as numeric
-					if ( substr( $value, 0, 1 ) !== '0' ) {
-						return $value;
-					}
-				} elseif ( is_null( $value ) ) {
-					return "NULL";
-				} elseif ( is_array( $value ) && empty( $value ) ) {
-					$value = array();
-				} elseif ( is_string( $value ) ) {
-					$value = $tracking_db->conn->real_escape_string( $value );
-				}
-
-				return "'" . $value . "'";
-			}, array_values( $dataRow ) );
-			$sql             = "INSERT IGNORE INTO `$curr_table_name` (`" . implode( "`, `", $columns ) . "`) VALUES (" . implode( ", ", $values ) . ");";
+			// Use REPLACE INTO instead of INSERT IGNORE
+			$sql = "REPLACE INTO `$curr_table_name` (`" . implode("`, `", $columns) . "`) VALUES (" . implode(", ", $values) . ");";
+			
 			$sqlStatements[] = $sql;
 		}
+
+		// Update the last exported value or offset
+		if ($unique_column) {
+			$tracking_db->update_option("last_exported_value_$curr_table_name", $new_last_value);
+		} else {
+			$offset += $rows_processed;
+		}
+
+		// Update progress
+		$total_rows = $tracking_db->query("SELECT COUNT(*) as count FROM `$curr_table_name`")->fetch_assoc()['count'];
+		$progress = ($unique_column) 
+			? (($new_last_value - $last_value) / $total_rows) * 100 
+			: ($offset / $total_rows) * 100;
+
+		$tracking_db->update('iwp_db_sent', 
+			array(
+				'offset' => $unique_column ? $new_last_value : $offset,
+				'completed' => $progress >= 100 ? '1' : '2'
+			), 
+			array('table_name_hash' => hash('sha256', $curr_table_name))
+		);
 	}
 
 	$sql_statements_count = count( $sqlStatements );
@@ -662,4 +665,23 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 	header( "x-iwp-progress: $avg_progress" );
 
 	echo implode( "\n", $sqlStatements );
+}
+
+public function get_unique_column($table_name) {
+    // First, check for a primary key
+    $result = $this->query("SHOW KEYS FROM `$table_name` WHERE Key_name = 'PRIMARY'");
+    if ($result && $result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        return $row['Column_name'];
+    }
+
+    // If no primary key, look for a unique index
+    $result = $this->query("SHOW INDEXES FROM `$table_name` WHERE Non_unique = 0");
+    if ($result && $result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        return $row['Column_name'];
+    }
+
+    // If no unique column found, return null
+    return null;
 }
