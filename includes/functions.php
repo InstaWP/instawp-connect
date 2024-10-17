@@ -339,8 +339,12 @@ if ( ! function_exists( 'instawp_get_staging_sites_list' ) ) {
 
 if ( ! function_exists( 'instawp_set_staging_sites_list' ) ) {
 	function instawp_set_staging_sites_list() {
+        $connect_id = instawp_get_connect_id();
+        if ( empty( $connect_id ) ) {
+            return false;
+        }
 
-		$api_response = Curl::do_curl( 'connects/' . instawp_get_connect_id() . '/staging-sites', array(), array(), 'GET' );
+		$api_response = Curl::do_curl( 'connects/' . $connect_id . '/staging-sites', array(), array(), 'GET' );
 
 		if ( $api_response['success'] ) {
 			$staging_sites = Helper::get_args_option( 'data', $api_response, array() );
@@ -356,7 +360,11 @@ if ( ! function_exists( 'instawp_set_staging_sites_list' ) ) {
 			}
 
 			Option::update_option( 'instawp_staging_sites', $staging_sites );
-		}
+
+            return true;
+        }
+
+        return false;
 	}
 }
 
