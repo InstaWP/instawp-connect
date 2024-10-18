@@ -454,18 +454,65 @@ if ( isset( $_REQUEST['serve_type'] ) && 'inventory_sent_files' === $_REQUEST['s
 		header( 'x-iwp-message: Empty slug provided.' );
 		die();
 	}
+	$message = '';
+	if ( ! empty( $_POST['failed_items'] ) ) {
+		$mig_settings         = $tracking_db->get_option( 'migrate_settings' );
+		if ( ! empty( $mig_settings ) && ! empty( $mig_settings['inventory_items'] ) && ! empty( $mig_settings['excluded_paths'] ) && ! empty( $mig_settings['inventory_items']['total_files'] )  ) {
+			$failed_item_files = 0;
+			$include_paths = array();
+			// Failed to install items
+			foreach ( $_POST['failed_items'] as $failed_item ) {
+				if ( empty( $failed_item['slug'] ) || empty( $failed_item['path'] ) || empty( $failed_item['file_count'] ) ) {
+					continue;
+				}
+				// failed item files count
+				$failed_item_files += intval( $failed_item['file_count'] );
 
-	// Update inventory sent files
-	$tracking_db->update(
-		'iwp_files_sent',
-		array( 'sent' => '1' ),
-		array(
-			'file_type'     => 'inventory',
-			'sent_filename' => $slug,
-		)
-	);
+				$include_paths[] = $failed_item['path'];
 
-	$message = empty( $_POST['item_type'] ) ? 'Plugin or theme' : ucfirst( iwp_sanitize_key( $_POST['item_type'] ) );
+				$slug = iwp_sanitize_key( $failed_item['slug'] );
+				// Update inventory sent files
+				$tracking_db->update(
+					'iwp_files_sent',
+					array( 
+						'size'          => 0,
+						'file_count'	=> 0,
+					),
+					array(
+						'file_type'     => 'inventory',
+						'sent_filename' => $slug,
+					)
+				);
+			}
+
+			if ( ! empty( $include_paths ) ) {
+				// Update excluded paths
+				$mig_settings['excluded_paths'] = array_diff( $mig_settings['excluded_paths'], $include_paths );
+				// Update total files
+				$mig_settings['inventory_items']['total_files'] = intval( $mig_settings['inventory_items']['total_files'] ) - $failed_item_files;
+				// Update settings
+				$tracking_db->update_option( 'migrate_settings', $mig_settings );
+				// Update total files
+				$totalFiles = (int) $tracking_db->db_get_option( 'total_files', '0' );
+				if ( $failed_item_files < $totalFiles ) {
+					$tracking_db->update_option( 'total_files', $totalFiles - $failed_item_files );
+				}
+			}
+			$message = 'Inventory';
+		}
+	} else {
+		// Update inventory sent files
+		$tracking_db->update(
+			'iwp_files_sent',
+			array( 'sent' => '1' ),
+			array(
+				'file_type'     => 'inventory',
+				'sent_filename' => $slug,
+			)
+		);
+		$message = empty( $_POST['item_type'] ) ? 'Plugin or theme' : ucfirst( iwp_sanitize_key( $_POST['item_type'] ) );
+	}
+
 	$message = $message . '' . $slug . ' installation report sent';
 	header( 'x-iwp-status: true' );
 	header( 'x-iwp-message: ' . $message );
