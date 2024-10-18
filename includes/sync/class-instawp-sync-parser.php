@@ -427,6 +427,8 @@ class InstaWP_Sync_Parser {
 		$post    = get_post( $post_id );
 		$content = $post->post_content;
 		$search  = $replace = array();
+		$search_ids = array();
+		$replace_ids = array();
 
 		if ( ! empty( $media ) ) {
 			foreach ( $media as $media_item ) {
@@ -435,6 +437,8 @@ class InstaWP_Sync_Parser {
                     $attachment_size = isset( $media_item['size'] ) ? $media_item['size'] : 'full';
 					$search[]        = $media_item['attachment_url'];
 					$replace[]       = wp_attachment_is_image( $attachment_id ) ? wp_get_attachment_image_url( $attachment_id, $attachment_size, false ) : wp_get_attachment_url( $attachment_id );
+					$search_ids[]	 = ',"id":' . esc_attr( $media_item['post_id'] ) . ',';
+					$replace_ids[]	 = ',"id":' . esc_attr( $attachment_id ) . ',';
 				}
 			}
 
@@ -442,6 +446,11 @@ class InstaWP_Sync_Parser {
 				'ID'           => $post_id,
 				'post_content' => str_replace( $search, $replace, $content ),
 			) );
+
+			$elementor_data = get_post_meta( $post_id, '_elementor_data', true );
+			if ( is_string( $elementor_data ) && ! empty( $elementor_data ) ) {
+				
+			}
 		}
 	}
 
