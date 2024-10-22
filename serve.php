@@ -531,6 +531,11 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 		$excluded_tables[] = 'iwp_db_sent';
 	}
 
+	$tracking_db->get_all_tables();
+
+//	echo "<pre>"; print_r( $tracking_db->get_all_tables() ); echo "</pre>";
+	exit();
+
 	if ( $total_tracking_tables == 0 ) {
 		foreach ( $tracking_db->get_all_tables() as $table_name => $rows_count ) {
 			if ( ! in_array( $table_name, $excluded_tables ) ) {

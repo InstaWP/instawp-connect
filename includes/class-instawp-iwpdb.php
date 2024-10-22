@@ -371,6 +371,10 @@ class IWPDB {
 			return '';
 		}, $tables );
 
+		echo "<pre>";
+		print_r( $tables );
+		echo "</pre>";
+
 		foreach ( $tables as $table_name ) {
 
 			// remove our tracking tables
@@ -384,6 +388,8 @@ class IWPDB {
 
 			$all_tables[ $table_name ] = $row_count;
 		}
+
+		var_dump( $all_tables );
 
 		return $all_tables;
 	}
