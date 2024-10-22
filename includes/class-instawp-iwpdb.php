@@ -357,8 +357,18 @@ class IWPDB {
 		$tables          = array();
 		$show_tables_res = $this->query( 'SHOW TABLES' );
 
+		if ( ! $show_tables_res ) {
+			$this->last_error = "IWPDB: Error fetching tables: " . $this->last_error;
+
+			return $all_tables;
+		}
+
 		if ( $show_tables_res instanceof mysqli_result ) {
 			$this->fetch_rows( $show_tables_res, $tables );
+		} else {
+			$this->last_error = "IWPDB: Unexpected result type from SHOW TABLES query";
+
+			return $all_tables;
 		}
 
 		$tables = array_map( function ( $table_name ) {
@@ -372,17 +382,29 @@ class IWPDB {
 		}, $tables );
 
 		foreach ( $tables as $table_name ) {
-
 			// remove our tracking tables
 			if ( in_array( $table_name, array( 'iwp_db_sent', $this->table_files_sent, 'iwp_options' ) ) ) {
 				continue;
 			}
 
-			$row_count_res = $this->query( "SELECT COUNT(*) AS row_count FROM `$table_name`" );
-			$row_count_row = $row_count_res->fetch_assoc();
-			$row_count     = $row_count_row['row_count'];
+			try {
+				$row_count_res = $this->query( "SELECT COUNT(*) AS row_count FROM `$table_name`" );
 
-			$all_tables[ $table_name ] = $row_count;
+				if ( ! $row_count_res ) {
+					$this->last_error = "IWPDB: Error counting rows in table $table_name: " . $this->last_error;
+					continue;
+				}
+
+				if ( $row_count_res instanceof mysqli_result ) {
+					$row_count_row             = $row_count_res->fetch_assoc();
+					$row_count                 = $row_count_row['row_count'];
+					$all_tables[ $table_name ] = $row_count;
+				} else {
+					$this->last_error = "IWPDB: Unexpected result type when counting rows in table $table_name";
+				}
+			} catch ( Exception $e ) {
+				$this->last_error = "IWPDB: Exception when processing table $table_name: " . $e->getMessage();
+			}
 		}
 
 		return $all_tables;
