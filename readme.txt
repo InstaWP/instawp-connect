@@ -98,6 +98,9 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 0.1.0.61 =
+- FIX: Exclude whitelabel if WP CLI is in use.
+
 = 0.1.0.60 - 17 October 2024 =
 - FIX: Added API Endpoint to refresh all staging sites list.
 

@@ -416,6 +416,10 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 		}
 
 		public function plugins_data( $plugins ) {
+			if ( defined( 'WP_CLI' ) && WP_CLI ) {
+				return $plugins;
+			}
+
 			$key = INSTAWP_PLUGIN_FILE;
 
 			if ( ! isset( $plugins[ $key ] ) ) {
@@ -449,6 +453,10 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 		}
 
 		public function plugins_api_result( $result, $action, $args ) {
+			if ( defined( 'WP_CLI' ) && WP_CLI ) {
+				return $result;
+			}
+
 			if ( ! isset( $result->slug ) ) {
 				return $result;
 			}
