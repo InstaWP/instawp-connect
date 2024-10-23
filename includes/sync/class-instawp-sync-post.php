@@ -6,9 +6,18 @@ defined( 'ABSPATH' ) || exit;
 
 class InstaWP_Sync_Post {
 
+	/**
+	 * Post Events
+	 * @var array
+	 * @since 0.1.0.58
+	 */
+	private $post_events = array();
+
 	public function __construct() {
 		// Post Actions.
 		add_action( 'transition_post_status', array( $this, 'transition_post_status' ), 10, 3 );
+		add_action( 'save_post', array( $this, 'save_post' ), 999, 2 );
+
 		add_action( 'before_delete_post', array( $this, 'delete_post' ), 10, 2 );
 
 		// Media Actions.
@@ -33,6 +42,8 @@ class InstaWP_Sync_Post {
 
 	/**
 	 * Fire a callback only when my-custom-post-type posts are transitioned to 'publish'.
+	 * If transition_post_status fires, save_post will always fire 
+	 * afterward, since both are part of the same post save process in WordPress
 	 *
 	 * @param string $new_status New post status.
 	 * @param string $old_status Old post status.
@@ -77,7 +88,39 @@ class InstaWP_Sync_Post {
 			$action     = 'post_change';
 		}
 
-		$this->handle_post_events( $event_name, $action, $post );
+		// Save event to array.
+		$this->post_events[ $post->ID ] = array(
+			'event_name' => $event_name,
+			'action'     => $action,
+		);
+	}
+
+	/**
+	 * Save post sync event. If transition_post_status fires, save_post will always fire 
+	 * afterward, since both are part of the same post save process in WordPress
+	 *
+	 * @since 0.1.0.58
+	 * @param int     $post_id Post ID.
+	 * @param WP_Post $post    Post object.
+	 *
+	 * @return void
+	 */
+	public function save_post( $post_id, $post ) {
+		// Check if post has been transitioned.
+		if ( empty( $this->post_events[ $post_id ] ) ) {
+			return;
+		}
+		// Unhook this function so it doesn't loop infinitely
+        remove_action( 'save_post', array( $this, 'save_post' ) );
+		
+		$this->handle_post_events(
+			$this->post_events[ $post_id ]['event_name'], 
+			$this->post_events[ $post_id ]['action'], 
+			$post 
+		);
+
+		 // Re-hook this function.
+        add_action( 'save_post', array( $this, 'save_post' ), 999, 2 );
 	}
 
 	/**

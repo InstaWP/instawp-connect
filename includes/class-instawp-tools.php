@@ -151,6 +151,8 @@ class InstaWP_Tools {
 			'db_username'      => DB_USER,
 			'db_password'      => DB_PASSWORD,
 			'db_name'          => DB_NAME,
+			'db_charset'       => DB_CHARSET,
+			'db_collate'       => DB_COLLATE,
 			'table_prefix'     => $table_prefix,
 			'site_url'         => site_url(),
 		);
@@ -323,6 +325,14 @@ include $file_path;';
 		if ( ! function_exists( 'get_plugins' ) ) {
 			include ABSPATH . 'wp-admin/includes/plugin.php';
 		}
+
+		/**
+		 * Exclude wp-admin and wp-includes folders, as minor wp version will auto install during
+		 * staging creation.
+		 * @since 0.1.0.58
+		 */
+		$migrate_settings['excluded_paths'][] = 'wp-admin';
+		$migrate_settings['excluded_paths'][] = 'wp-includes';
 
 		// Remove __wp__ folder for WPC file structure
 		if ( is_dir( $wp_root_dir . '/__wp__' ) ) {
@@ -782,6 +792,10 @@ include $file_path;';
 
 		$is_wp_root_available = self::is_wp_root_available();
 		$serve_with_wp        = false;
+
+		if ( ! $is_wp_root_available ) {
+			$is_wp_root_available = self::is_wp_root_available( 'wp-config.php' );
+		}
 
 		if ( ! $is_wp_root_available ) {
 			$is_wp_root_available = self::is_wp_root_available( '', 'flywheel-config' );

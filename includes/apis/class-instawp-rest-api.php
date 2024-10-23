@@ -38,6 +38,12 @@ class InstaWP_Rest_Api {
 			'permission_callback' => '__return_true',
 		) );
 
+        register_rest_route( $this->namespace . '/' . $this->version_2, '/refresh-staging-sites-list', array(
+            'methods'             => 'POST',
+            'callback'            => array( $this, 'refresh_staging_sites_list' ),
+            'permission_callback' => '__return_true',
+        ) );
+
 		register_rest_route( $this->namespace . '/' . $this->version_2, '/disconnect', array(
 			'methods'             => 'POST',
 			'callback'            => array( $this, 'disconnect' ),
@@ -241,7 +247,7 @@ class InstaWP_Rest_Api {
 	}
 
 	/**
-	 * Handle events receiver api
+	 * Mark website as staging.
 	 *
 	 * @param WP_REST_Request $req
 	 *
@@ -270,6 +276,27 @@ class InstaWP_Rest_Api {
 			'message' => __( 'Site has been marked as staging', 'instawp-connect' ),
 		) );
 	}
+
+    /**
+     * Refresh staging site list.
+     *
+     * @param WP_REST_Request $req
+     *
+     * @return WP_Error|WP_HTTP_Response|WP_REST_Response
+     */
+    public function refresh_staging_sites_list( WP_REST_Request $req ) {
+        $response = $this->validate_api_request( $req );
+        if ( is_wp_error( $response ) ) {
+            return $this->throw_error( $response );
+        }
+
+        instawp_set_staging_sites_list();
+
+        return $this->send_response( array(
+            'status'  => true,
+            'message' => __( 'Staging Site List Refreshed.', 'instawp-connect' ),
+        ) );
+    }
 
 	/**
 	 * Handle response for disconnect api

@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.6
 Tested up to: 6.6
 Requires PHP: 7.0
-Stable tag: 0.1.0.57
+Stable tag: 0.1.0.60
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -97,6 +97,26 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 You can report security bugs through the Patchstack Vulnerability Disclosure Program. The Patchstack team helps validate, triage, and handle any security vulnerabilities. [Report a security vulnerability](https://patchstack.com/database/vdp/instawp-connect).
 
 == Changelog ==
+
+= 0.1.0.61 =
+- FIX: Exclude whitelabel if WP CLI is in use.
+
+= 0.1.0.60 - 17 October 2024 =
+- FIX: Added API Endpoint to refresh all staging sites list.
+
+= 0.1.0.59 - 15 October 2024 =
+- FIX: Fixed plugin version.
+
+= 0.1.0.58 - 15 October 2024 =
+- NEW: WordPress core folders are now excluded from the migration process.
+- FIX: Issue with syncing WooCommerce meta data.
+- FIX: WooCommerce order ID now correctly displays on the staging site, matching the production site.
+- FIX: WooCommerce order creation and modification dates now sync properly.
+- FIX: Corrected synchronization of WooCommerce order totals.
+- FIX: Resolved issue where blank items were being added to WooCommerce orders on the staging site.
+- FIX: WooCommerce order origin now syncs correctly.
+- FIX: Post meta data is now saved correctly when triggered by action hooks.
+- FIX: Proper synchronization of post meta data saved via the save_post hook.
 
 = 0.1.0.57 - 3 October 2024 =
 - FIX - Showing error if wp-config.php is not writable.
