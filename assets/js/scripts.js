@@ -1279,8 +1279,18 @@
         }
     });
 
+    $(document).on('change', '#instawp_activity_log_interval', function () {
+        let value = $(this).val();
+        console.log(value);
+        if (value === 'every_x_minutes') {
+            $(document).find('.instawp-activity-log-interval-minutes-field').show();
+        } else if (value === 'instantly') {
+            $(document).find('.instawp-activity-log-interval-minutes-field').hide();
+        }
+    });
+
     let debounce = null;
-    $(document).on('input', '#instawp_api_heartbeat', function (e) {
+    $(document).on('input', '#instawp_api_heartbeat, #instawp_activity_log_interval_minutes', function (e) {
         let el = $(this);
         let name = el.attr('id');
         let value = parseInt(Math.abs($(this).val()));
@@ -1291,11 +1301,11 @@
 
         clearTimeout(debounce);
         debounce = setTimeout(function () {
-            if (value >= 60 && value <= 240) {
+            if (value >= el.attr('min') && value <= el.attr('max')) {
                 ajaxSaveManagementSettings(name, value);
             } else {
-                el.val(60);
-                ajaxSaveManagementSettings(name, 60);
+                el.val(el.attr('min'));
+                ajaxSaveManagementSettings(name, el.attr('min'));
             }
         }, 500);
     });

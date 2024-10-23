@@ -74,11 +74,12 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 
 			$api_key        = Helper::get_api_key();
 			$access_token   = isset( $_REQUEST['access_token'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['access_token'] ) ) : '';
+            $jwt            = isset( $_REQUEST['jwt'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['jwt'] ) ) : '';
 			$success_status = isset( $_REQUEST['success'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['success'] ) ) : '';
 			$instawp_nonce  = isset( $_REQUEST['instawp-nonce'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['instawp-nonce'] ) ) : '';
 
 			if ( 'true' === $success_status && empty( $api_key ) && $api_key !== $access_token && wp_verify_nonce( $instawp_nonce, 'instawp_connect_nonce' ) ) {
-				Helper::instawp_generate_api_key( $access_token );
+				Helper::instawp_generate_api_key( $access_token, $jwt );
 
 				wp_safe_redirect( admin_url( 'tools.php?page=instawp' ) );
 				exit();
