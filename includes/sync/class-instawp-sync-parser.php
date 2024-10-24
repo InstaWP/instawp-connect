@@ -25,7 +25,7 @@ defined( 'ABSPATH' ) || die;
 class InstaWP_Sync_Parser {
 
 	public static function get_media_from_content( $content ) {
-		preg_match_all( '!(https?:)?//\S+\.(?:jpe?g|jpg|png|gif|mp4|pdf|doc|docx|xls|xlsx|csv|txt|rtf|html|zip|mp3|wma|mpg|flv|avi)!Ui', $content, $match );
+		preg_match_all( '!(https?:)?//\S+\.(?:jpe?g|jpg|png|gif|svg|mp4|pdf|doc|docx|xls|xlsx|csv|txt|rtf|html|zip|mp3|wma|mpg|flv|avi)!Ui', $content, $match );
 
 		$media = array();
 		if ( isset( $match[0] ) ) {
@@ -143,7 +143,7 @@ class InstaWP_Sync_Parser {
 		}
 
 		$attachment = InstaWP_Sync_Helpers::get_post_by_reference( 'attachment', $data['reference_id'], $data['post_name'] );
-		if ( ! $attachment ) {
+		if ( empty( $attachment ) ) {
             $image_url  = isset( $data['url'] ) ? $data['url'] : $data['path'];
 			$image_data = file_get_contents( $image_url ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 
@@ -192,12 +192,91 @@ class InstaWP_Sync_Parser {
                 InstaWP_Sync_Helpers::set_post_reference_id( $attachment_id, $data['reference_id'] );
 			}
 		} else {
-            $attachment_id = wp_update_post( self::prepare_post_data( $data['post'], $attachment->ID ) );
-
-            self::process_post_meta( $data['post_meta'], $attachment_id );
+			$attachment_id = empty( $attachment->ID ) ? 0 : intval( $attachment->ID );
+			if ( 0 < $attachment_id ) {
+				wp_update_post( self::prepare_post_data( $data['post'], $attachment_id ) );
+				self::process_scaled_image( $data, $attachment_id );
+            	self::process_post_meta( $data['post_meta'], $attachment_id );
+			}
 		}
 
 		return $attachment_id;
+	}
+
+	
+	/**
+	 * Process scaled image, if found in post meta.
+	 *
+	 * @param array $data Post data.
+	 * @param int $id Attachment ID.
+	 */
+	public static function process_scaled_image( $data, $id ) {
+		
+		if ( empty( $id ) || empty( $data['post_meta'] ) || empty( $data['post_meta']['_wp_attached_file'] ) || !  is_array( $data['post_meta']['_wp_attached_file'] ) ) {
+			return;
+		}
+
+		try {
+
+			$image_url  = isset( $data['url'] ) ? $data['url'] : $data['path'];
+			$scaled_file = $data['post_meta']['_wp_attached_file'][0];
+
+			// Scaled image not required
+			if ( empty( $image_url ) || empty( $scaled_file ) || false === stripos( $scaled_file, '-scaled.' ) || false !== stripos( $image_url, $scaled_file ) ) {
+				return;
+			}
+
+			$id = absint( $id );
+			$file = get_post_meta( $id, '_wp_attached_file', true );
+
+			// Already processed
+			if ( empty( $file ) || false !== stripos( $file, '-scaled.' ) ) {
+				return;
+			}
+
+			// Include required files
+			if ( file_exists( ABSPATH . 'wp-admin/includes/image.php' ) && file_exists( ABSPATH . 'wp-admin/includes/file.php' ) && file_exists( ABSPATH . 'wp-admin/includes/media.php' ) ) {
+				include_once ABSPATH . 'wp-admin/includes/image.php';
+				include_once ABSPATH . 'wp-admin/includes/file.php';
+				include_once ABSPATH . 'wp-admin/includes/media.php';
+			}
+
+			// Get attachment metadata
+			$metadata = wp_get_attachment_metadata( $id, true );
+
+			// Already processed
+			if ( empty( $metadata ) || empty( $metadata['file'] ) || false !== stripos( $metadata['file'], '-scaled.' ) ) {
+				return;
+			}
+			
+			if ( ! function_exists( 'wp_get_image_editor' ) || ! function_exists( '_wp_image_meta_replace_original' ) ) {
+				error_log( "wp_get_image_editor or _wp_image_meta_replace_original function not found ");
+				return;
+			}
+
+			$upload_dir = wp_upload_dir();
+			$filepath  = trailingslashit( $upload_dir['basedir'] ) . $file;
+
+			$editor = wp_get_image_editor( $filepath );
+
+			if ( is_wp_error( $editor ) ) {
+				error_log( " Failed to get image editor for path " . $filepath . ". Error " . $editor->get_error_message() );
+				return;
+			}
+
+			$saved = $editor->save( $editor->generate_filename( 'scaled' ) );
+
+			if ( is_wp_error( $saved ) ) {
+				error_log( " Failed to create scaled image for path " . $filepath . ". Error " . $saved->get_error_message() );
+				return;
+			} 
+
+			$metadata = _wp_image_meta_replace_original( $saved, $file, $metadata, $id );
+			wp_update_attachment_metadata( $id, $metadata );	
+			
+		} catch ( \Exception $e ) {
+			error_log( " Failed to get scaled image " . $e->getMessage() . " " . json_encode( $data ) );
+		}
 	}
 
 	public static function process_post_meta( $meta_data, $post_id ) {
@@ -368,7 +447,12 @@ class InstaWP_Sync_Parser {
 				$data['featured_image'] = self::generate_attachment_data( $featured_image_id );
 			}
 
-			if ( ! empty( $post_content ) ) {
+			// Flattens the post meta array by replacing single-element arrays with their sole element.
+			$flat_meta = InstaWP_Sync_Helpers::flat_post_meta( $data['post_meta'] );
+			// If edit with elementor then get media from elementor data
+			if ( class_exists( '\Elementor\Plugin' ) && ! empty( $flat_meta['_elementor_edit_mode'] ) && 'builder' === $flat_meta['_elementor_edit_mode'] && ! empty( $flat_meta['_elementor_data'] ) && is_string( $flat_meta['_elementor_data'] ) ) {
+				$data['media'] = self::get_media_from_content( wp_unslash( $flat_meta['_elementor_data'] ) );
+			} else if ( ! empty( $post_content ) ) {
 				$data['media'] = self::get_media_from_content( $post_content );
 			}
 		}
@@ -437,8 +521,12 @@ class InstaWP_Sync_Parser {
                     $attachment_size = isset( $media_item['size'] ) ? $media_item['size'] : 'full';
 					$search[]        = $media_item['attachment_url'];
 					$replace[]       = wp_attachment_is_image( $attachment_id ) ? wp_get_attachment_image_url( $attachment_id, $attachment_size, false ) : wp_get_attachment_url( $attachment_id );
-					$search_ids[]	 = ',"id":' . esc_attr( $media_item['post_id'] ) . ',';
-					$replace_ids[]	 = ',"id":' . esc_attr( $attachment_id ) . ',';
+					if ( ! empty( $attachment_id ) && ! empty( $media_item['post_id'] ) ) {
+						$search_ids[]	 = ',"id":' . esc_attr( $media_item['post_id'] ) . ',';
+					    $replace_ids[]	 = ',"id":' . esc_attr( $attachment_id ) . ',';
+					} else {
+						error_log( 'MEDIA ID NOT FOUND' );
+					}
 				}
 			}
 
@@ -447,9 +535,14 @@ class InstaWP_Sync_Parser {
 				'post_content' => str_replace( $search, $replace, $content ),
 			) );
 
+			// Update Elementor data
 			$elementor_data = get_post_meta( $post_id, '_elementor_data', true );
-			if ( is_string( $elementor_data ) && ! empty( $elementor_data ) ) {
-				
+			if ( ! empty( $elementor_data ) && is_string( $elementor_data ) && ! empty( $search_ids ) ) {
+				// Replace image ids
+				$elementor_data = str_replace( $search_ids, $replace_ids, wp_unslash( $elementor_data ) );
+				// We need to use wp_slash in order to avoid unslashing during the update_post_meta
+				$elementor_data = wp_slash( $elementor_data );
+				update_metadata( 'post', $post_id, '_elementor_data', $elementor_data );
 			}
 		}
 	}

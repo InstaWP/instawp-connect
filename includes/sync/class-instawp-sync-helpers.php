@@ -169,6 +169,29 @@ class InstaWP_Sync_Helpers {
 		return null;
 	}
 
+	/**
+	 * Flattens the post meta array by replacing single-element arrays with their sole element.
+	 *
+	 * Iterates through the provided meta array and for each key, if the value is an array with
+	 * exactly one element, it replaces the array with that single element.
+	 *
+	 * @param array $meta The meta data array where keys are meta keys and values are meta values,
+	 *                    which can be single-element arrays.
+	 *                    
+	 * @return array The flattened meta array with single-element arrays replaced by their element.
+	 */
+	public static function flat_post_meta( $meta = array() ) {
+		if ( empty( $meta ) || ! is_array( $meta ) ) {
+			return array();
+		}
+		foreach ( $meta as $key => $value ) {
+			if ( is_array( $value ) && 1 === count( $value ) && isset( $value[0] ) ) {
+				$meta[ $key ] = $value[0];
+			}
+		}
+		return $meta;
+	}
+
 	public static function get_post_by_reference( $post_type, $reference_id, $post_name ) {
 		$post = get_posts( array(
 			'post_type'   => $post_type,
