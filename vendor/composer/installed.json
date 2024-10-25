@@ -7,19 +7,19 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/InstaWP/connect-helpers.git",
-                "reference": "16679d1fd412a07d6344514f18e7b0e83d5713d8"
+                "reference": "2e6503bc12615ca2c767178b8a5b5f242c1b1301"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/InstaWP/connect-helpers/zipball/16679d1fd412a07d6344514f18e7b0e83d5713d8",
-                "reference": "16679d1fd412a07d6344514f18e7b0e83d5713d8",
+                "url": "https://api.github.com/repos/InstaWP/connect-helpers/zipball/2e6503bc12615ca2c767178b8a5b5f242c1b1301",
+                "reference": "2e6503bc12615ca2c767178b8a5b5f242c1b1301",
                 "shasum": ""
             },
             "require": {
                 "php": ">= 5.6",
                 "wp-cli/wp-config-transformer": "^1.3"
             },
-            "time": "2024-10-07T09:56:08+00:00",
+            "time": "2024-10-17T09:04:12+00:00",
             "default-branch": true,
             "type": "library",
             "installation-source": "dist",
@@ -336,17 +336,17 @@
         },
         {
             "name": "wp-cli/wp-config-transformer",
-            "version": "v1.4.0",
-            "version_normalized": "1.4.0.0",
+            "version": "v1.4.1",
+            "version_normalized": "1.4.1.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/wp-cli/wp-config-transformer.git",
-                "reference": "9b470f6f1a75707b22e9cfb85bb74120256243b4"
+                "reference": "9da378b5a4e28bba3bce4ff4ff04a54d8c9f1a01"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/wp-cli/wp-config-transformer/zipball/9b470f6f1a75707b22e9cfb85bb74120256243b4",
-                "reference": "9b470f6f1a75707b22e9cfb85bb74120256243b4",
+                "url": "https://api.github.com/repos/wp-cli/wp-config-transformer/zipball/9da378b5a4e28bba3bce4ff4ff04a54d8c9f1a01",
+                "reference": "9da378b5a4e28bba3bce4ff4ff04a54d8c9f1a01",
                 "shasum": ""
             },
             "require": {
@@ -355,8 +355,13 @@
             "require-dev": {
                 "wp-cli/wp-cli-tests": "^4.0"
             },
-            "time": "2024-09-17T19:05:47+00:00",
+            "time": "2024-10-16T12:50:47+00:00",
             "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-main": "1.x-dev"
+                }
+            },
             "installation-source": "dist",
             "autoload": {
                 "files": [
@@ -377,7 +382,7 @@
             "homepage": "https://github.com/wp-cli/wp-config-transformer",
             "support": {
                 "issues": "https://github.com/wp-cli/wp-config-transformer/issues",
-                "source": "https://github.com/wp-cli/wp-config-transformer/tree/v1.4.0"
+                "source": "https://github.com/wp-cli/wp-config-transformer/tree/v1.4.1"
             },
             "install-path": "../wp-cli/wp-config-transformer"
         }

@@ -257,7 +257,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 						'parent' => 'instawp-shortcuts',
 						'id'     => 'instawp-create-staging',
 						'title'  => __( 'Create Staging', 'instawp-connect' ),
-						'href'   => admin_url( 'tools.php?page=instawp' ),
+						'href'   => admin_url( 'tools.php?page=instawp&step=1' ),
 						'meta'   => array(
 							'class'  => 'instawp-shortcuts',
 							'target' => 'create',
