@@ -4,8 +4,8 @@ namespace InstaWP\Connect\Helpers;
 
 class Curl {
 
-	public static function do_curl( $endpoint, $body = array(), $headers = array(), $method = 'POST', $api_version = 'v2', $api_key = '' ) {
-		$api_url = Helper::get_api_domain();
+    public static function do_curl( $endpoint, $body = array(), $headers = array(), $method = 'POST', $api_version = 'v2', $api_key = '', $api_domain = '' ) {
+        $api_url = ! empty( $api_domain ) ? $api_domain : Helper::get_api_domain();
 
 		if ( empty( $api_url ) ) {
 			return array(
@@ -25,7 +25,12 @@ class Curl {
 			);
 		}
 
-		$api_url = $api_url . '/api/' . $api_version . '/' . $endpoint;
+        if ( $api_version !== null ) {
+		    $api_url = $api_url . '/api/' . $api_version . '/' . $endpoint;
+        } else {
+            $api_url = $api_url . '/api/' . $endpoint;
+        }
+
 		$headers = wp_parse_args( $headers, array(
 			'Authorization' => 'Bearer ' . $api_key,
 			'Accept'        => 'application/json',
