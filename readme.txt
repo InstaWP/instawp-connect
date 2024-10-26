@@ -101,7 +101,6 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 = 0.1.0.61 - 26 October 2024 =
 - FIX: Exclude whitelabel if WP CLI is in use.
 - FIX: 2 Way Sync API for list events not working correctly on staging sites.
-- FIX: WP CLI is not working properly if whitelabel is in use.
 - FIX: Fix database table fetching issue in iwpdb.
 - FIX: Remove exclude path if wp item failed to install via inventory.
 
