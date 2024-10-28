@@ -331,8 +331,10 @@ include $file_path;';
 		 * staging creation.
 		 * @since 0.1.0.58
 		 */
-		$migrate_settings['excluded_paths'][] = 'wp-admin';
-		$migrate_settings['excluded_paths'][] = 'wp-includes';
+		if ( empty( $migrate_settings['mode'] ) || 'push' !== $migrate_settings['mode'] ) {
+			$migrate_settings['excluded_paths'][] = 'wp-admin';
+			$migrate_settings['excluded_paths'][] = 'wp-includes';
+		}
 
 		// Remove __wp__ folder for WPC file structure
 		if ( is_dir( $wp_root_dir . '/__wp__' ) ) {
