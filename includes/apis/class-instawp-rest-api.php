@@ -140,7 +140,7 @@ class InstaWP_Rest_Api {
 			) );
 		}
 
-		if ( empty( $api_key ) || empty( $jwt ) ) {
+		if ( empty( $api_key ) ) {
 			return $this->send_response( array(
 				'status'  => false,
 				'message' => esc_html__( 'API key and JWT token is required.', 'instawp-connect' ),
