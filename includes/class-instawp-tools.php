@@ -331,8 +331,17 @@ include $file_path;';
 		 * staging creation.
 		 * @since 0.1.0.58
 		 */
-		$migrate_settings['excluded_paths'][] = 'wp-admin';
-		$migrate_settings['excluded_paths'][] = 'wp-includes';
+		if ( empty( $migrate_settings['mode'] ) || 'push' !== $migrate_settings['mode'] ) {
+			$migrate_settings['excluded_paths'][] = 'wp-admin';
+		    $migrate_settings['excluded_paths'][] = 'wp-includes';
+		} else {
+			$upload_dir      = wp_upload_dir();
+			// push mode
+			$migrate_settings['wp_paths'] = array(
+				'wp_content_dir' 	=> WP_CONTENT_DIR,
+				'upload_dir' 		=> isset( $upload_dir['basedir'] ) ? $upload_dir['basedir'] : '',
+			);
+		}
 
 		// Remove __wp__ folder for WPC file structure
 		if ( is_dir( $wp_root_dir . '/__wp__' ) ) {

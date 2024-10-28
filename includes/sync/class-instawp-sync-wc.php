@@ -339,9 +339,61 @@ class InstaWP_Sync_WC {
 
 				$product_id = InstaWP_Sync_Helpers::get_post_by_reference( $line_item['post_data']['post_type'], $line_item['reference_id'], $line_item['post_data']['post_name'] );
 				if ( ! $product_id ) {
-					$product_id = InstaWP_Sync_Parser::create_or_update_post( $line_item['post_data'], $line_item['post_meta'], $line_item['reference_id'] );
+					$product_id = InstaWP_Sync_Parser::create_or_update_post( $line_item['post_data'], $line_item['meta_data'], $line_item['reference_id'] );
 				}
-				$order->add_product( wc_get_product( $product_id ), $line_item['quantity'] );
+
+				// Product Variation 
+				$variation_id = 0;
+				if ( ! empty( $line_item['variation_data'] ) ) {
+					$variation_id = InstaWP_Sync_Helpers::get_post_by_reference( $line_item['variation_data']['post_data']['post_type'], $line_item['variation_data']['reference_id'], $line_item['variation_data']['post_data']['post_name'] );
+					if ( ! $variation_id ) {
+						$variation_id = InstaWP_Sync_Parser::create_or_update_post( $line_item['variation_data']['post_data'], $line_item['variation_data']['meta_data'], $line_item['variation_data']['reference_id'] );
+					}
+				}
+
+				$variation_id = empty( $variation_id ) ? 0 : intval( $variation_id );
+				$product_id = intval( $product_id );
+
+				$product = wc_get_product( 0 < $variation_id ? $variation_id : $product_id );
+				if ( empty(	$product ) ) {
+					continue;
+				}
+
+				$args = array();
+				
+				if ( ! empty( $line_item['data']['name'] ) ) {
+					$args['name'] = $line_item['data']['name'];
+				}
+
+				if ( ! empty( $line_item['data']['tax_class'] ) ) {
+					$args['tax_class'] = $line_item['data']['tax_class'];
+				}
+
+				if ( ! empty( $line_item['data']['subtotal'] ) ) {
+					$args['subtotal'] = $line_item['data']['subtotal'];
+				}
+
+				if ( ! empty( $line_item['data']['total'] ) ) {
+					$args['total'] = $line_item['data']['total'];
+				}
+
+				if ( ! empty( $line_item['data']['taxes'] ) ) {
+					$args['taxes'] = $line_item['data']['taxes'];
+				}
+				
+				// Add product to order
+				$item_id = $order->add_product( $product, $line_item['quantity'], $args );
+
+				// Set meta if available
+				if ( ! empty( $item_id ) && ! empty( $line_item['data']['meta_data'] ) ) {
+					// Get the WC_Order_Item_Product object by item ID
+					$item = $order->get_item( $item_id );
+					foreach ( $line_item['data']['meta_data'] as $product_meta ) {
+						$item->update_meta_data( $product_meta['key'], $product_meta['value'] );
+					}
+					$item->save();
+				}
+				
 			}
 			kses_init_filters();
 
@@ -645,22 +697,22 @@ class InstaWP_Sync_WC {
 		// Get line items
 		$data['line_items'] = array();
 		foreach ( $order_data['line_items'] as $product ) {
-			$product_data = $product->get_data();
-			$post_id      = $product_data['product_id'];
-			$post         = get_post( $post_id );
+			$product_data 	= $product->get_data();
+			$post_id      	= $product_data['product_id'];
+			$product_post   = InstaWP_Sync_Helpers::get_post_meta_reference_id( $post_id );
 
-			if ( ! $post ) {
+			if ( false === $product_post ) {
 				continue;
 			}
 
-			$reference_id         = InstaWP_Sync_Helpers::get_post_reference_id( $post->ID );
 			$data['line_items'][] = array(
-				'reference_id' => $reference_id,
-				'post_id'      => $post->ID,
-				'quantity'     => $product_data['quantity'],
-				'post_data'    => $post,
-				'meta_data'    => get_post_meta( $post->ID ),
-				'data'         => $product_data,
+				'reference_id' 		=> $product_post['reference_id'],
+				'post_id'      		=> $product_post['post_id'],
+				'quantity'     		=> $product_data['quantity'],
+				'post_data'    		=> $product_post['post_data'],
+				'meta_data'    		=> $product_post['meta_data'],
+				'data'         		=> $product_data,
+				'variation_data'  	=> empty( $product_data['variation_id'] ) ? null : InstaWP_Sync_Helpers::get_post_meta_reference_id( $product_data['variation_id'] ),
 			);
 		}
 
