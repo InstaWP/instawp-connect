@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.6
 Tested up to: 6.6
 Requires PHP: 7.0
-Stable tag: 0.1.0.60
+Stable tag: 0.1.0.61
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -98,8 +98,11 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
-= 0.1.0.61 =
+= 0.1.0.61 - 26 October 2024 =
 - FIX: Exclude whitelabel if WP CLI is in use.
+- FIX: 2 Way Sync API for list events not working correctly on staging sites.
+- FIX: Fix database table fetching issue in iwpdb.
+- FIX: Remove exclude path if wp item failed to install via inventory.
 
 = 0.1.0.60 - 17 October 2024 =
 - FIX: Added API Endpoint to refresh all staging sites list.
