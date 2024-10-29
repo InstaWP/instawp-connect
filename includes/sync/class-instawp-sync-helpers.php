@@ -50,7 +50,7 @@ class InstaWP_Sync_Helpers {
 	}
 
 	/**
-	 * Retrieve the post, post meta and its associated reference ID.
+	 * Retrieve the post data, post meta and its associated reference ID.
 	 *
 	 * @param int $post_id The ID of the post to retrieve.
 	 *
