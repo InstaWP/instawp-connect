@@ -98,6 +98,12 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 0.1.0.64 -  =
+- New: Sync WooCommerce order notes.
+- FIX: Sync WooCommerce product variant.
+- FIX: Sync WooCommerce order item meta.
+- NEW: Disable WooCommerce email for WooCommerce data sync.
+
 = 0.1.0.63 - 29 October 2024 =
 - NEW: Pull migration plugin and theme installation fallback to pages migration.
 - FIX: Improve pull and push migration scripts.

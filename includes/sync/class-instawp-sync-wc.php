@@ -44,7 +44,7 @@ class InstaWP_Sync_WC {
 	    add_action( 'instawp/actions/2waysync/process_event_post', array( $this, 'process_gallery' ), 10, 2 );
 
 	    // Process Events.
-	    add_filter( 'instawp/filters/2waysync/process_event', array( $this, 'parse_event' ), 10, 2 );
+	    add_filter( 'instawp/filters/2waysync/process_event', array( $this, 'parse_event_wrapper' ), 10, 2 );
 
 		// Display order number
 		add_filter( 'woocommerce_order_number', array( $this, 'display_order_number_from_meta' ), 10, 2 );
@@ -324,14 +324,27 @@ class InstaWP_Sync_WC {
 		};
 	}
 
+	/**
+	 * Wraps the WooCommerce event parsing process with email disabling functionality.
+	 *
+	 * This function temporarily disables WooCommerce emails during the parsing of a WooCommerce
+	 * event to prevent emails from being sent during synchronization. It restores the email
+	 * functionality after the parsing process is completed or if an exception occurs.
+	 *
+	 * @param mixed $response The response object to be modified during the event parsing.
+	 * @param object $v The event data containing the event type and reference ID.
+	 *
+	 * @return mixed The modified response object after processing the WooCommerce event.
+	 */
 	public function parse_event_wrapper( $response, $v ) {
 		if ( $v->event_type !== 'woocommerce' || empty( $v->reference_id ) || ! class_exists( 'WooCommerce' ) ) {
 			return $response;
 		}
 
+		$wc_mail_ids = array('new_order', 'cancelled_order', 'failed_order', 'customer_on_hold_order', 'customer_processing_order', 'customer_completed_order', 'customer_refunded_order', 'customer_invoice', 'customer_note', 'customer_reset_password', 'customer_new_account', 'failed_renewal_authentication', 'failed_preorder_sca_authentication', 'failed_authentication_requested');
+
 		try {
 			// Disable WooCommerce emails
-			$wc_mail_ids = ['new_order', 'cancelled_order', 'failed_order', 'customer_on_hold_order', 'customer_processing_order', 'customer_completed_order', 'customer_refunded_order', 'customer_invoice', 'customer_note', 'customer_reset_password', 'customer_new_account'];
 			foreach ( $wc_mail_ids as $wc_mail_id) {
 				add_filter( 'woocommerce_email_enabled_' . $wc_mail_id, '__return_false', PHP_INT_MAX );
 			}
@@ -349,6 +362,12 @@ class InstaWP_Sync_WC {
 
 			return $response;
 		} catch ( \Exception $e ) {
+			// Restore WooCommerce emails
+			remove_filter( 'woocommerce_mail_callback', array( $this, 'disable_woocommerce_emails' ), PHP_INT_MAX );
+			foreach ( $wc_mail_ids as $wc_mail_id) {
+				remove_filter( 'woocommerce_email_enabled_' . $wc_mail_id, '__return_false', PHP_INT_MAX );
+			}
+
 			return InstaWP_Sync_Helpers::sync_response( $v, array(), array(
 				'status'  => 'pending',
 				'message' => $e->getMessage(),
