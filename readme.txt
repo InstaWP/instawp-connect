@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.6
 Tested up to: 6.6
 Requires PHP: 7.0
-Stable tag: 0.1.0.63
+Stable tag: 0.1.0.64
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -97,6 +97,13 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 You can report security bugs through the Patchstack Vulnerability Disclosure Program. The Patchstack team helps validate, triage, and handle any security vulnerabilities. [Report a security vulnerability](https://patchstack.com/database/vdp/instawp-connect).
 
 == Changelog ==
+
+= 0.1.0.64 - 30 October 2024 =
+- New: Sync WooCommerce order notes.
+- NEW: Activity Log feature is now available.
+- NEW: Disable WooCommerce email for WooCommerce data sync.
+- FIX: Sync WooCommerce product variant.
+- FIX: Sync WooCommerce order item meta.
 
 = 0.1.0.63 - 29 October 2024 =
 - NEW: Pull migration plugin and theme installation fallback to pages migration.
