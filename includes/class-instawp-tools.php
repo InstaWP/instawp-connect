@@ -337,9 +337,15 @@ include $file_path;';
 		} else {
 			$upload_dir      = wp_upload_dir();
 			// push mode
-			$migrate_settings['wp_paths'] = array(
-				'wp_content_dir' 	=> WP_CONTENT_DIR,
-				'upload_dir' 		=> isset( $upload_dir['basedir'] ) ? $upload_dir['basedir'] : '',
+			$migrate_settings['iwp_paths'] = array(
+				'uploads' => isset( $upload_dir['basedir'] ) ? str_replace( ABSPATH, '', $upload_dir['basedir'] ) : $relative_dir . '/uploads',
+				'plugins' => $relative_dir . '/plugins',
+				'themes' => $relative_dir . '/themes',
+				'mu_plugins' => $relative_dir . '/mu-plugins',
+				'wp_content' => $relative_dir,
+				'wp_admin' => 'wp-admin',
+				'wp_includes' => 'wp-includes',
+				'index' => 'index.php'
 			);
 		}
 

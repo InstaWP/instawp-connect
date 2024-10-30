@@ -69,8 +69,88 @@ $has_zip_archive = class_exists( 'ZipArchive' );
 $has_phar_data   = class_exists( 'PharData' );
 
 if ( isset( $_POST['check'] ) ) {
+	/**
+	 * Creates backup copies of WordPress core folders
+	 *
+	 * @param string $root_dir_path Root directory path of WordPress installation
+	 * @return array Array containing status and messages for each operation
+	 */
+	if ( ! function_exists( 'iwp_backup_wp_core_folders' ) ) {
+		function iwp_backup_wp_core_folders( $root_dir_path ) {
+			$result = array(
+				'status' => true,
+				'messages' => array()
+			);
+	
+			$folders_to_backup = array(
+				'plugins',
+				'themes',
+				'mu-plugins'
+			);
+	
+			foreach ($folders_to_backup as $folder) {
+				try {
+					$source_path = $root_dir_path . DIRECTORY_SEPARATOR . 'wp-content' . DIRECTORY_SEPARATOR . $folder;
+					$backup_path = $source_path . '-old';
+					
+					// Skip if source doesn't exist
+					if ( ! file_exists( $source_path ) ) {
+						$result['messages'][] = "Notice: {$folder} folder does not exist, skipping backup.";
+						continue;
+					}
+	
+					// Check if backup already exists
+					if (file_exists($backup_path)) {
+						// Add date if backup exists
+						$timestamp = date('Y-m-d');
+						$backup_path = $source_path . '-old-' . $timestamp;
+					}
+
+					// Skip if backup already exists
+					if ( file_exists( $backup_path ) ) {
+						continue;
+					}
+	
+					// Create backup directory if it doesn't exist
+					if ( ! is_dir( $backup_path ) ) {
+						mkdir( $backup_path, 0777, true );
+					}
+
+					// Copy files from source to backup directory
+					$iterator = new RecursiveIteratorIterator(
+						new RecursiveDirectoryIterator( $source_path, RecursiveDirectoryIterator::SKIP_DOTS ),
+						RecursiveIteratorIterator::SELF_FIRST
+					);
+
+					foreach ( $iterator as $item ) {
+						// Get relative path of source file or folder
+						$relative_path = str_replace($source_path, "", $item->getPathname());
+						$target = $backup_path . DIRECTORY_SEPARATOR . $relative_path;
+						if ( $item->isDir() ) {
+							if ( ! is_dir( $target ) ) {
+								mkdir($target, 0777, true);
+							}
+						} else {
+							// copy file
+							copy($item->getPathname(), $target);
+						}
+					}
+					
+					$result['messages'][] = "Success: {$folder} folder backed up to " . basename( $backup_path );
+	
+				} catch ( Exception $e ) {
+					$result['status'] = false;
+					$result['messages'][] = "Error backing up {$folder}: " . $e->getMessage();
+				}
+			}
+	
+			return $result;
+		}
+	}
+	$backup_result = iwp_backup_wp_core_folders( $root_dir_path );
 	header( 'x-iwp-zip: ' . $has_zip_archive );
 	header( 'x-iwp-phar: ' . $has_phar_data );
+	header( 'x-iwp-message: ' . json_encode( $backup_result ) );
 	die();
 }
 
