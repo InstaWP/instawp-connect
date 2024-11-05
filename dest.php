@@ -100,20 +100,21 @@ if ( isset( $_POST['check'] ) ) {
 					}
 	
 					// Check if backup already exists
-					if (file_exists($backup_path)) {
+					if ( file_exists( $backup_path ) ) {
 						// Add date if backup exists
-						$timestamp = date('Y-m-d');
+						$timestamp = date('Y-m-d-H-i');
 						$backup_path = $source_path . '-old-' . $timestamp;
 					}
-
-					// Skip if backup already exists
+	
+					// Skip if backup directory already exists
 					if ( file_exists( $backup_path ) ) {
 						continue;
-					}
-	
-					// Create backup directory if it doesn't exist
-					if ( ! is_dir( $backup_path ) ) {
-						mkdir( $backup_path, 0777, true );
+					} else {
+						// Create backup directory if it doesn't exist
+						if ( ! is_dir( $backup_path ) && ! mkdir( $backup_path, 0777, true ) ) {
+							$result['messages'][] = "Failed to create {$folder} backup directory: {$backup_path}";
+							continue;
+						}
 					}
 
 					// Copy files from source to backup directory
@@ -124,19 +125,67 @@ if ( isset( $_POST['check'] ) ) {
 
 					foreach ( $iterator as $item ) {
 						// Get relative path of source file or folder
-						$relative_path = str_replace($source_path, "", $item->getPathname());
+						$relative_path = str_replace( $source_path, "", $item->getPathname() );
+						// Remove the first and last slash from the relative path
+						$relative_path = trim( $relative_path, DIRECTORY_SEPARATOR );
+						// Get target file or folder
 						$target = $backup_path . DIRECTORY_SEPARATOR . $relative_path;
 						if ( $item->isDir() ) {
-							if ( ! is_dir( $target ) ) {
-								mkdir($target, 0777, true);
+							if ( ! is_dir( $target ) && ! mkdir( $target, 0777, true ) ) {
+								$result['messages'][] = "Failed to create backup directory: {$target}";
+								continue 2;
 							}
 						} else {
-							// copy file
-							copy($item->getPathname(), $target);
+							if ( ! file_exists( $target ) && ! copy( $item->getPathname(), $target ) ) {
+								$result['messages'][] = "Failed to copy file: {$item->getPathname()} to {$target}";
+								continue 2;
+							}
 						}
 					}
-					
+
+					// Success
 					$result['messages'][] = "Success: {$folder} folder backed up to " . basename( $backup_path );
+
+					// Delete the source folder
+					$folder_iterator = new DirectoryIterator( $source_path );
+                    foreach ( $folder_iterator as $folder_item ) {
+                        if ( $folder_item->isDot() ) {
+                            continue;
+                        }
+
+                        $remove_path = $folder_item->getPathname();
+                        if ( false === stripos( $folder_item->getFilename(), 'instawp-connect' ) && is_dir( $remove_path ) ) {
+							/**
+							 * Recursively remove all files and directories in the folder. Process deepest items first
+							 * UNIX_PATHS ensure proper handling of hidden files during directory deletion
+							 */
+                            $remove_items = new RecursiveIteratorIterator(
+								new RecursiveDirectoryIterator( 
+									$remove_path, 
+									RecursiveDirectoryIterator::SKIP_DOTS | RecursiveDirectoryIterator::UNIX_PATHS
+								),
+								RecursiveIteratorIterator::CHILD_FIRST
+							);
+				
+							foreach ( $remove_items as $remove_item ) {
+								if ( $remove_item->isDir() ) {
+									if ( ! rmdir( $remove_item->getPathname() ) ) {
+										$result['messages'][] = "Failed to remove directory: {$remove_item->getPathname()}";
+										continue 2;
+									}
+								} else {
+									if ( ! unlink( $remove_item->getPathname() ) ) {
+										$result['messages'][] = "Failed to remove file: {$remove_item->getPathname()}";
+										continue 2;
+									}
+								}
+							}
+				
+							if ( ! rmdir( $remove_path ) ) {
+								$result['messages'][] = "Failed to remove parent directory: {$remove_path}";
+							}
+                        }
+                    }
 	
 				} catch ( Exception $e ) {
 					$result['status'] = false;

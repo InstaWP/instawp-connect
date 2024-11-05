@@ -334,19 +334,6 @@ include $file_path;';
 		if ( empty( $migrate_settings['mode'] ) || 'push' !== $migrate_settings['mode'] ) {
 			$migrate_settings['excluded_paths'][] = 'wp-admin';
 		    $migrate_settings['excluded_paths'][] = 'wp-includes';
-		} else {
-			$upload_dir      = wp_upload_dir();
-			// push mode
-			$migrate_settings['iwp_paths'] = array(
-				'uploads' => isset( $upload_dir['basedir'] ) ? str_replace( ABSPATH, '', $upload_dir['basedir'] ) : $relative_dir . '/uploads',
-				'plugins' => $relative_dir . '/plugins',
-				'themes' => $relative_dir . '/themes',
-				'mu_plugins' => $relative_dir . '/mu-plugins',
-				'wp_content' => $relative_dir,
-				'wp_admin' => 'wp-admin',
-				'wp_includes' => 'wp-includes',
-				'index' => 'index.php'
-			);
 		}
 
 		// Remove __wp__ folder for WPC file structure
