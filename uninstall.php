@@ -28,14 +28,24 @@ $api_key     = isset( $api_options['api_key'] ) ? $api_options['api_key'] : '';
 $api_url     = isset( $api_options['api_url'] ) ? $api_options['api_url'] : 'https://app.instawp.io';
 
 if ( ! empty( $connect_id ) && ! empty( $api_key ) ) {
-	wp_remote_post( "{$api_url}/api/v2/connects/{$connect_id}/disconnect", array(
-		'headers' => array(
+	$args = array(
+		'headers'         => array(
 			'Authorization' => 'Bearer ' . $api_key,
 			'Accept'        => 'application/json',
 			'Content-Type'  => 'application/json',
 			'Referer'       => site_url(),
 		),
-	) );
+		'timeout'         => 60,
+		'redirection'     => 10,
+		'httpversion'     => '1.1',
+		'user-agent'      => isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '',
+		'sslverify'       => false,
+		'sslverifyhost'   => false,
+		'follow_location' => true,
+		'max_redirects'   => 10,
+	);
+
+	wp_remote_post( "{$api_url}/api/v2/connects/{$connect_id}/disconnect", $args );
 }
 
 delete_option( 'instawp_api_options' );
