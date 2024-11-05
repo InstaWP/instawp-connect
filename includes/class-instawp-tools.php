@@ -5,9 +5,7 @@ use InstaWP\Connect\Helpers\Helper;
 use InstaWP\Connect\Helpers\Option;
 use phpseclib3\Net\SFTP;
 
-if ( ! defined( 'INSTAWP_PLUGIN_DIR' ) ) {
-	die;
-}
+defined( 'ABSPATH' ) || exit;
 
 class InstaWP_Tools {
 
