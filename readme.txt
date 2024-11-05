@@ -98,6 +98,9 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 0.1.0.65 - =
+- FIX: Sync plugin and theme update php error
+
 = 0.1.0.64 - 30 October 2024 =
 - New: Sync WooCommerce order notes.
 - NEW: Activity Log feature is now available.
