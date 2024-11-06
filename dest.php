@@ -70,26 +70,34 @@ $has_phar_data   = class_exists( 'PharData' );
 $excluded_paths     = isset( $excluded_paths ) ? $excluded_paths : array();
 
 if ( isset( $_POST['check'] ) ) {
-	/**
-	 * Creates backup copies of WordPress core folders
-	 *
-	 * @param string $root_dir_path Root directory path of WordPress installation
-	 * @return array Array containing status and messages for each operation
-	 */
 	if ( ! function_exists( 'iwp_backup_wp_core_folders' ) ) {
+		/**
+		 * Backs up core WordPress folders (plugins, themes, mu-plugins) to a datestamped
+		 * folder. If the source folder does not exist, it will be skipped. If the backup
+		 * folder already exists, it will be skipped. If the backup folder cannot be
+		 * created, an error message will be added to the result.
+		 *
+		 * @param string $root_dir_path The root directory of WordPress.
+		 * @param array  $excluded_paths Paths to exclude from deletion.
+		 *
+		 * @return array An associative array with the following keys:
+		 *     - status: A boolean indicating whether the backup was successful.
+		 *     - messages: An array of success or error messages.
+		 *     - excluded_deletion: An array of paths that were excluded from deletion.
+		 */
 		function iwp_backup_wp_core_folders( $root_dir_path, $excluded_paths = array() ) {
 			$result = array(
-				'status' => true,
-				'messages' => array()
+				'status'   => true,
+				'messages' => array(),
 			);
 	
 			$folders_to_backup = array(
 				'plugins',
 				'themes',
-				'mu-plugins'
+				'mu-plugins',
 			);
 	
-			foreach ($folders_to_backup as $folder) {
+			foreach ( $folders_to_backup as $folder ) {
 				try {
 					$source_path = $root_dir_path . DIRECTORY_SEPARATOR . 'wp-content' . DIRECTORY_SEPARATOR . $folder;
 					// Skip if source doesn't exist
@@ -98,30 +106,30 @@ if ( isset( $_POST['check'] ) ) {
 						continue;
 					}
 					// Add datestamp to backup folder
-					$timestamp = date('YmdHi');
+					$timestamp   = date( 'YmdHi' );
 					$backup_path = $source_path . '-' . $timestamp;
-					
+	
 					// Skip if backup directory already exists
 					if ( file_exists( $backup_path ) ) {
 						$result['messages'][] = "Notice: {$backup_path} folder already exist, skipping backup.";
 						continue;
 					}
-					 
+	
 					// Create backup directory if it doesn't exist
 					if ( ! is_dir( $backup_path ) && ! mkdir( $backup_path, 0777, true ) ) {
 						$result['messages'][] = "Failed to create {$folder} backup directory: {$backup_path}";
 						continue;
 					}
-					
+	
 					// Copy files from source to backup directory
 					$iterator = new RecursiveIteratorIterator(
 						new RecursiveDirectoryIterator( $source_path, RecursiveDirectoryIterator::SKIP_DOTS ),
 						RecursiveIteratorIterator::SELF_FIRST
 					);
-
+	
 					foreach ( $iterator as $item ) {
 						// Get relative path of source file or folder
-						$relative_path = str_replace( $source_path, "", $item->getPathname() );
+						$relative_path = str_replace( $source_path, '', $item->getPathname() );
 						// Remove the first and last slash from the relative path
 						$relative_path = trim( $relative_path, DIRECTORY_SEPARATOR );
 						// Get target file or folder
@@ -131,29 +139,27 @@ if ( isset( $_POST['check'] ) ) {
 								$result['messages'][] = "Failed to create backup directory: {$target}";
 								continue 2;
 							}
-						} else {
-							if ( ! file_exists( $target ) && ! copy( $item->getPathname(), $target ) ) {
+						} else if ( ! file_exists( $target ) && ! copy( $item->getPathname(), $target ) ) {
 								$result['messages'][] = "Failed to copy file: {$item->getPathname()} to {$target}";
 								continue 2;
-							}
 						}
 					}
-
+	
 					// Success
 					$result['messages'][] = "Success: {$folder} folder backed up to " . basename( $backup_path );
-
+	
 					// Delete the source folder
 					$folder_iterator = new DirectoryIterator( $source_path );
-                    foreach ( $folder_iterator as $folder_item ) {
-                        if ( $folder_item->isDot() ) {
-                            continue;
-                        }
-
-                        $remove_path = $folder_item->getPathname();
-						$remove_relative_path = str_replace( $root_dir_path . DIRECTORY_SEPARATOR , "", $remove_path );
-						
+					foreach ( $folder_iterator as $folder_item ) {
+						if ( $folder_item->isDot() ) {
+							continue;
+						}
+	
+						$remove_path          = $folder_item->getPathname();
+						$remove_relative_path = str_replace( $root_dir_path . DIRECTORY_SEPARATOR, '', $remove_path );
+	
 						/**
-						 * Skip excluded paths, folder items and files with "instawp-connect" in 
+						 * Skip excluded paths, folder items and files with "instawp-connect" in
 						 * their name
 						 */
 						if ( in_array( $remove_relative_path, $excluded_paths ) || false !== stripos( $folder_item->getFilename(), 'instawp-connect' ) || ! is_dir( $remove_path ) ) {
@@ -162,41 +168,37 @@ if ( isset( $_POST['check'] ) ) {
 							}
 							continue;
 						}
-
+	
 						/**
 						 * Recursively remove all files and directories in the folder. Process deepest items first
 						 * UNIX_PATHS ensure proper handling of hidden files during directory deletion
 						 */
 						$remove_items = new RecursiveIteratorIterator(
-							new RecursiveDirectoryIterator( 
-								$remove_path, 
+							new RecursiveDirectoryIterator(
+								$remove_path,
 								RecursiveDirectoryIterator::SKIP_DOTS | RecursiveDirectoryIterator::UNIX_PATHS
 							),
 							RecursiveIteratorIterator::CHILD_FIRST
 						);
-			
+	
 						foreach ( $remove_items as $remove_item ) {
 							if ( $remove_item->isDir() ) {
 								if ( ! rmdir( $remove_item->getPathname() ) ) {
 									$result['messages'][] = "Failed to remove directory: {$remove_item->getPathname()}";
 									continue 2;
 								}
-							} else {
-								if ( ! unlink( $remove_item->getPathname() ) ) {
-									$result['messages'][] = "Failed to remove file: {$remove_item->getPathname()}";
-									continue 2;
-								}
+							} else if ( ! unlink( $remove_item->getPathname() ) ) {
+								$result['messages'][] = "Failed to remove file: {$remove_item->getPathname()}";
+								continue 2;
 							}
 						}
-			
+	
 						if ( ! rmdir( $remove_path ) ) {
 							$result['messages'][] = "Failed to remove parent directory: {$remove_path}";
 						}
-                        
-                    }
-	
+					}
 				} catch ( Exception $e ) {
-					$result['status'] = false;
+					$result['status']     = false;
 					$result['messages'][] = "Error backing up {$folder}: " . $e->getMessage();
 				}
 			}
