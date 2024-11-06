@@ -102,7 +102,7 @@ if ( isset( $_POST['check'] ) ) {
 					// Check if backup already exists
 					if ( file_exists( $backup_path ) ) {
 						// Add date if backup exists
-						$timestamp = date('Y-m-d-H-i');
+						$timestamp = date('Y-m-d-H');
 						$backup_path = $source_path . '-old-' . $timestamp;
 					}
 	
