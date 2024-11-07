@@ -45,13 +45,13 @@ class InstaWP_Activity_Log_Themes {
 
 	public function hooks_switch_theme( $new_name, WP_Theme $new_theme ) {
 		InstaWP_Activity_Log::insert_log(
-				array(
-					'action'         => 'theme_activated',
-					'object_type'    => 'Themes',
-					'object_subtype' => $new_theme->get_stylesheet(),
-					'object_id'      => 0,
-					'object_name'    => $new_name,
-				)
+            array(
+                'action'         => 'theme_activated',
+                'object_type'    => 'Themes',
+                'object_subtype' => $new_theme->get_stylesheet(),
+                'object_id'      => 0,
+                'object_name'    => $new_name,
+            )
 		);
 	}
 

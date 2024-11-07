@@ -74,11 +74,12 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 
 			$api_key        = Helper::get_api_key();
 			$access_token   = isset( $_REQUEST['access_token'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['access_token'] ) ) : '';
+            $jwt            = isset( $_REQUEST['jwt'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['jwt'] ) ) : '';
 			$success_status = isset( $_REQUEST['success'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['success'] ) ) : '';
 			$instawp_nonce  = isset( $_REQUEST['instawp-nonce'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['instawp-nonce'] ) ) : '';
 
 			if ( 'true' === $success_status && empty( $api_key ) && $api_key !== $access_token && wp_verify_nonce( $instawp_nonce, 'instawp_connect_nonce' ) ) {
-				Helper::instawp_generate_api_key( $access_token );
+				Helper::instawp_generate_api_key( $access_token, $jwt );
 
 				wp_safe_redirect( admin_url( 'tools.php?page=instawp' ) );
 				exit();
@@ -256,7 +257,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 						'parent' => 'instawp-shortcuts',
 						'id'     => 'instawp-create-staging',
 						'title'  => __( 'Create Staging', 'instawp-connect' ),
-						'href'   => admin_url( 'tools.php?page=instawp' ),
+						'href'   => admin_url( 'tools.php?page=instawp&step=1' ),
 						'meta'   => array(
 							'class'  => 'instawp-shortcuts',
 							'target' => 'create',
@@ -416,6 +417,10 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 		}
 
 		public function plugins_data( $plugins ) {
+			if ( defined( 'WP_CLI' ) && WP_CLI ) {
+				return $plugins;
+			}
+
 			$key = INSTAWP_PLUGIN_FILE;
 
 			if ( ! isset( $plugins[ $key ] ) ) {
@@ -449,6 +454,10 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 		}
 
 		public function plugins_api_result( $result, $action, $args ) {
+			if ( defined( 'WP_CLI' ) && WP_CLI ) {
+				return $result;
+			}
+
 			if ( ! isset( $result->slug ) ) {
 				return $result;
 			}

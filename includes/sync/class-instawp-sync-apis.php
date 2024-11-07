@@ -96,7 +96,7 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 		$filter_status  = ! empty( $params['type'] ) ? $params['type'] : 'all';
 		$offset         = ( $num_page * $items_per_page ) - $items_per_page;
 
-        $staging_sites = instawp_get_staging_sites_list();
+        $staging_sites = instawp_get_connected_sites_list();
         $connect_ids   = wp_list_pluck( $staging_sites, 'connect_id' );
 
         if ( ! in_array( $connect_id, $connect_ids ) ) {
@@ -201,7 +201,7 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 			) );
 		}
 
-        $staging_sites = instawp_get_staging_sites_list();
+		$staging_sites = instawp_get_connected_sites_list();
         $connect_ids   = wp_list_pluck( $staging_sites, 'connect_id' );
 
         if ( ! in_array( $connect_id, $connect_ids ) ) {
@@ -394,7 +394,7 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
             ) );
         }
 
-        $staging_sites = instawp_get_staging_sites_list();
+		$staging_sites = instawp_get_connected_sites_list();
         $connect_ids   = wp_list_pluck( $staging_sites, 'connect_id' );
 
         if ( ! in_array( $connect_id, $connect_ids ) ) {

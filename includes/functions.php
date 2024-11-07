@@ -368,6 +368,30 @@ if ( ! function_exists( 'instawp_set_staging_sites_list' ) ) {
 	}
 }
 
+if ( ! function_exists( 'instawp_get_connected_sites_list' ) ) {
+	function instawp_get_connected_sites_list( $insta_only = false ) {
+		$staging_sites = instawp_get_staging_sites_list( $insta_only );
+		$staging_sites = empty( $staging_sites ) || ! is_array( $staging_sites ) ? array() : $staging_sites;
+
+		if ( instawp()->is_staging ) {
+			$parent_connect_data = Option::get_option( 'instawp_sync_parent_connect_data' );
+
+			if ( ! empty( $parent_connect_data ) ) {
+				if ( ! array_key_exists( 'url', $parent_connect_data ) ) {
+					$parent_connect_data['url'] = Helper::get_args_option( 'domain', $parent_connect_data, '' );
+				}
+				if ( ! array_key_exists( 'connect_id', $parent_connect_data ) ) {
+					$parent_connect_data['connect_id'] = Helper::get_args_option( 'id', $parent_connect_data, '' );
+				}
+
+				$staging_sites[] = $parent_connect_data;
+			}
+		}
+
+		return $staging_sites;
+	}
+}
+
 
 if ( ! function_exists( 'instawp_get_database_details' ) ) {
 	/**

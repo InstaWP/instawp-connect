@@ -49,6 +49,32 @@ class InstaWP_Sync_Helpers {
 		return ! empty( $reference_id ) ? $reference_id : self::set_post_reference_id( $post_id );
 	}
 
+	/**
+	 * Retrieve the post data, post meta and its associated reference ID.
+	 *
+	 * @param int $post_id The ID of the post to retrieve.
+	 *
+	 * @return array An associative array containing the post object and its reference ID.
+	 */
+	public static function get_post_meta_reference_id( $post_id ) {
+		if ( empty( $post_id ) || ! is_numeric( $post_id ) || 0 >= intval( $post_id ) ) {
+			return false;
+		}
+
+		$post = get_post( $post_id );
+
+		if ( empty( $post ) ) {
+			return false;
+		}
+
+		return array(
+			'post_id'        => $post->ID,
+			'post_data'      => $post,
+			'meta_data'      => get_post_meta( $post->ID ),
+			'reference_id' 	 => self::get_post_reference_id( $post->ID ),
+		);
+	}
+
 	/*
 	 * Update post metas
 	 */

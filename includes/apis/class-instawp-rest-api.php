@@ -128,6 +128,7 @@ class InstaWP_Rest_Api {
 		$parameters           = $this->filter_params( $request );
 		$wp_username          = isset( $parameters['wp_username'] ) ? sanitize_text_field( $parameters['wp_username'] ) : '';
 		$application_password = isset( $parameters['application_password'] ) ? sanitize_text_field( $parameters['application_password'] ) : '';
+		$jwt                  = isset( $parameters['token'] ) ? sanitize_text_field( $parameters['token'] ) : '';
 		$api_key              = isset( $parameters['api_key'] ) ? sanitize_text_field( $parameters['api_key'] ) : '';
 		$api_domain           = isset( $parameters['api_domain'] ) ? sanitize_text_field( $parameters['api_domain'] ) : '';
 		$api_domain           = rtrim( $api_domain, '/' );
@@ -142,7 +143,7 @@ class InstaWP_Rest_Api {
 		if ( empty( $api_key ) ) {
 			return $this->send_response( array(
 				'status'  => false,
-				'message' => esc_html__( 'Api key is required.', 'instawp-connect' ),
+				'message' => esc_html__( 'API key and JWT token is required.', 'instawp-connect' ),
 			) );
 		}
 
@@ -224,7 +225,7 @@ class InstaWP_Rest_Api {
 			}
 		}
 
-		if ( ! Helper::instawp_generate_api_key( $api_key ) ) {
+		if ( ! Helper::instawp_generate_api_key( $api_key, $jwt ) ) {
 			return $this->send_response( array(
 				'status'  => false,
 				'message' => esc_html__( 'API Key is not valid.', 'instawp-connect' ),

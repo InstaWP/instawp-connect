@@ -519,6 +519,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'inventory_sent_files' === $_REQUEST['s
 	die();
 }
 
+
 if ( isset( $_REQUEST['serve_type'] ) && 'unmark_sent_files' === $_REQUEST['serve_type'] ) {
 
 	$sent_filename = isset( $_POST['sent_filename'] ) ? $_POST['sent_filename'] : '';

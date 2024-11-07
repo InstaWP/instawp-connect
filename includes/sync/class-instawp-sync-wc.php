@@ -44,7 +44,7 @@ class InstaWP_Sync_WC {
 	    add_action( 'instawp/actions/2waysync/process_event_post', array( $this, 'process_gallery' ), 10, 2 );
 
 	    // Process Events.
-	    add_filter( 'instawp/filters/2waysync/process_event', array( $this, 'parse_event' ), 10, 2 );
+	    add_filter( 'instawp/filters/2waysync/process_event', array( $this, 'parse_event_wrapper' ), 10, 2 );
 
 		// Display order number
 		add_filter( 'woocommerce_order_number', array( $this, 'display_order_number_from_meta' ), 10, 2 );
@@ -283,10 +283,99 @@ class InstaWP_Sync_WC {
 		}
 	}
 
-	public function parse_event( $response, $v ) {
+	/**
+	 * Adds an order item with specified properties to a WooCommerce order.
+	 *
+	 * This function sets the properties of the given item, updates its metadata
+	 * if available, and then saves the item. Finally, it adds the item to the order.
+	 *
+	 * @param WC_Order $order The WooCommerce order to add the item to.
+	 * @param WC_Order_Item $item The order item to be added.
+	 * @param array $props The properties to set on the order item.
+	 */
+	private function add_order_item( &$order, &$item, $props ) {
+		if ( empty( $props ) ) {
+			return;
+		}
+		/**
+		 * Remove id, order_id and instance_id from item as they are related to source site
+		 */
+		foreach ( array( 'id', 'order_id', 'instance_id' ) as $remove_key ) {
+			if ( ! empty( $props[ $remove_key ] ) ) {
+				unset( $props[ $remove_key ] );
+			}
+		}
+		
+		$item->set_props( $props );
+		// Set meta if available
+		if ( ! empty( $props['meta_data'] ) ) {
+			foreach ( $props['meta_data'] as $meta ) {
+				$item->update_meta_data( $meta['key'], $meta['value'] );
+			}
+		}
+		$item->save();
+		$order->add_item( $item );
+	}
+
+	public function disable_woocommerce_emails( $mailer ) {
+		return function(  $to, $subject, $message, $headers = '', $attachments = array() ) {
+			// Do nothing and return true to mimic successful sending
+			return true;
+		};
+	}
+
+	/**
+	 * Wraps the WooCommerce event parsing process with email disabling functionality.
+	 *
+	 * This function temporarily disables WooCommerce emails during the parsing of a WooCommerce
+	 * event to prevent emails from being sent during synchronization. It restores the email
+	 * functionality after the parsing process is completed or if an exception occurs.
+	 *
+	 * @param mixed $response The response object to be modified during the event parsing.
+	 * @param object $v The event data containing the event type and reference ID.
+	 *
+	 * @return mixed The modified response object after processing the WooCommerce event.
+	 */
+	public function parse_event_wrapper( $response, $v ) {
 		if ( $v->event_type !== 'woocommerce' || empty( $v->reference_id ) || ! class_exists( 'WooCommerce' ) ) {
 			return $response;
 		}
+
+		$wc_mail_ids = array( 'new_order', 'cancelled_order', 'failed_order', 'customer_on_hold_order', 'customer_processing_order', 'customer_completed_order', 'customer_refunded_order', 'customer_invoice', 'customer_note', 'customer_reset_password', 'customer_new_account', 'failed_renewal_authentication', 'failed_preorder_sca_authentication', 'failed_authentication_requested' );
+
+		try {
+			// Disable WooCommerce emails
+			foreach ( $wc_mail_ids as $wc_mail_id ) {
+				add_filter( 'woocommerce_email_enabled_' . $wc_mail_id, '__return_false', PHP_INT_MAX );
+			}
+			
+			// Disable WooCommerce emails by replacing the mailer with the noop function
+			add_filter( 'woocommerce_mail_callback', array( $this, 'disable_woocommerce_emails' ), PHP_INT_MAX );
+			// parse order
+			$response = $this->parse_event( $response, $v );
+
+			// Restore WooCommerce emails
+			remove_filter( 'woocommerce_mail_callback', array( $this, 'disable_woocommerce_emails' ), PHP_INT_MAX );
+			foreach ( $wc_mail_ids as $wc_mail_id ) {
+				remove_filter( 'woocommerce_email_enabled_' . $wc_mail_id, '__return_false', PHP_INT_MAX );
+			}
+
+			return $response;
+		} catch ( \Exception $e ) {
+			// Restore WooCommerce emails
+			remove_filter( 'woocommerce_mail_callback', array( $this, 'disable_woocommerce_emails' ), PHP_INT_MAX );
+			foreach ( $wc_mail_ids as $wc_mail_id ) {
+				remove_filter( 'woocommerce_email_enabled_' . $wc_mail_id, '__return_false', PHP_INT_MAX );
+			}
+
+			return InstaWP_Sync_Helpers::sync_response( $v, array(), array(
+				'status'  => 'pending',
+				'message' => $e->getMessage(),
+			) );
+		}
+	}
+
+	public function parse_event( $response, $v ) {
 
 		$reference_id = $v->reference_id;
 		$details      = InstaWP_Sync_Helpers::object_to_array( $v->details );
@@ -317,8 +406,8 @@ class InstaWP_Sync_WC {
 			}
 
 			// set order created date
-			if ( ! empty( $details[$this->order_created_date_key] ) ) {
-				$order->set_date_created( $details[$this->order_created_date_key] );
+			if ( ! empty( $details[ $this->order_created_date_key ] ) ) {
+				$order->set_date_created( $details[ $this->order_created_date_key ] );
 			}
 			$previous_modified_date = $order->get_meta( $this->order_modified_date_key );
 			// set order meta
@@ -333,48 +422,88 @@ class InstaWP_Sync_WC {
 
 			kses_remove_filters();
 			foreach ( $details['line_items'] as $line_item ) {
-				if ( empty( $line_item ) || empty( $line_item['reference_id'] ) ) {
+				if ( empty( $line_item ) || empty( $line_item['reference_id'] ) || empty( $line_item['data'] ) ) {
 					continue;
 				}
 
 				$product_id = InstaWP_Sync_Helpers::get_post_by_reference( $line_item['post_data']['post_type'], $line_item['reference_id'], $line_item['post_data']['post_name'] );
 				if ( ! $product_id ) {
-					$product_id = InstaWP_Sync_Parser::create_or_update_post( $line_item['post_data'], $line_item['post_meta'], $line_item['reference_id'] );
+					$product_id = InstaWP_Sync_Parser::create_or_update_post( $line_item['post_data'], $line_item['meta_data'], $line_item['reference_id'] );
 				}
-				$order->add_product( wc_get_product( $product_id ), $line_item['quantity'] );
-			}
+
+				// Product Variation 
+				if ( ! empty( $line_item['variation_data'] ) ) {
+					$variation_id = InstaWP_Sync_Helpers::get_post_by_reference( $line_item['variation_data']['post_data']['post_type'], $line_item['variation_data']['reference_id'], $line_item['variation_data']['post_data']['post_name'] );
+					if ( ! $variation_id ) {
+						$variation_id = InstaWP_Sync_Parser::create_or_update_post( $line_item['variation_data']['post_data'], $line_item['variation_data']['meta_data'], $line_item['variation_data']['reference_id'] );
+					}
+					$product = wc_get_product( $variation_id );
+				} else {
+					$product = wc_get_product( $product_id );
+				}
+
+				
+				if ( empty( $product ) ) {
+					continue;
+				}
+
+				$args = array();
+				
+				// Add line item arguments
+				foreach ( array(
+					'name',
+					'subtotal',
+					'total',
+					'taxes',
+					'tax_class',
+				) as $line_item_key ) {
+					if ( ! empty( $line_item['data'][ $line_item_key ] ) ) {
+						$args[ $line_item_key ] = $line_item['data'][ $line_item_key ];
+					}
+				}
+				
+				// Add product to order
+				$item_id = $order->add_product( $product, $line_item['quantity'], $args );
+
+				// Set meta if available
+				if ( ! empty( $item_id ) && ! empty( $line_item['data']['meta_data'] ) ) {
+					// Get the WC_Order_Item_Product object by item ID
+					$wc_item = $order->get_item( $item_id );
+					if ( ! empty( $wc_item ) ) {
+						foreach ( $line_item['data']['meta_data'] as $product_meta ) {
+							$wc_item->update_meta_data( $product_meta['key'], $product_meta['value'] );
+						}
+						$wc_item->save();
+					}
+				}           
+}
 			kses_init_filters();
 
 			foreach ( $details['shipping_lines'] as $shipping_item ) {
-				if ( empty( $shipping_item ) ) {
-					continue;
-				}
-
-				$shipping = new \WC_Order_Item_Shipping();
-				$shipping->set_props( $shipping_item );
-				$order->add_item( $shipping );
+				$wc_item = new \WC_Order_Item_Shipping();
+				$this->add_order_item(
+					$order,
+					$wc_item,
+					$shipping_item
+				);
 			}
 
 			foreach ( $details['fee_lines'] as $fee_item ) {
-				if ( empty( $fee_item ) ) {
-					continue;
-				}
-				unset( $fee_item['order_id'] );
-
-				$fee = new \WC_Order_Item_Fee();
-				$fee->set_props( $fee_item );
-				$order->add_item( $fee );
+				$wc_item = new \WC_Order_Item_Fee();
+				$this->add_order_item(
+					$order,
+					$wc_item,
+					$fee_item
+				);
 			}
 
 			foreach ( $details['tax_lines'] as $tax_item ) {
-				if ( empty( $tax_item ) ) {
-					continue;
-				}
-				unset( $tax_item['order_id'] );
-
-				$tax = new \WC_Order_Item_Tax();
-				$tax->set_props( $tax_item );
-				$order->add_item( $tax );
+				$wc_item = new \WC_Order_Item_Tax();
+				$this->add_order_item(
+					$order,
+					$wc_item,
+					$tax_item
+				);
 			}
 
 			foreach ( $details['coupon_lines'] as $coupon_item ) {
@@ -383,19 +512,20 @@ class InstaWP_Sync_WC {
 				}
 
 				kses_remove_filters();
-				InstaWP_Sync_Parser::create_or_update_post( $coupon_item['post_data'], $coupon_item['post_meta'], $coupon_item['reference_id'] );
+				InstaWP_Sync_Parser::create_or_update_post( $coupon_item['post_data'], $coupon_item['meta_data'], $coupon_item['reference_id'] );
 				kses_init_filters();
 
 				$coupon_code    = $coupon_item['data']['code'];
 				$coupon         = new \WC_Coupon( $coupon_code );
 				$discount_total = $coupon->get_amount();
-
-				$item = new \WC_Order_Item_Coupon();
-				$item->set_props( array(
-					'code'     => $coupon_code,
-					'discount' => $discount_total,
-				) );
-				$order->add_item( $item );
+				
+				$coupon_item['data']['discount'] = isset( $coupon_item['data']['discount'] ) ? $coupon_item['data']['discount'] : $discount_total;
+				$wc_item = new \WC_Order_Item_Coupon();
+				$this->add_order_item(
+					$order,
+					$wc_item,
+					$coupon_item['data']
+				);
 			}
 
 			$order->set_address( $details['billing'], 'billing' );
@@ -412,13 +542,13 @@ class InstaWP_Sync_WC {
 			}
 
 			// set order status only if it has changed
-			if ( empty( $previous_modified_date ) || empty( $details[$this->order_modified_date_key] ) || absint( $previous_modified_date ) < absint( $details[$this->order_modified_date_key] ) ) {
+			if ( empty( $previous_modified_date ) || empty( $details[ $this->order_modified_date_key ] ) || absint( $previous_modified_date ) < absint( $details[ $this->order_modified_date_key ] ) ) {
 				$order->set_status( $details['status'] );
 			}
 
 			// set order modified date
-			if ( ! empty( $details[$this->order_modified_date_key] ) ) {
-				$order->set_date_modified( $details[$this->order_modified_date_key] );
+			if ( ! empty( $details[ $this->order_modified_date_key ] ) ) {
+				$order->set_date_modified( $details[ $this->order_modified_date_key ] );
 			}
 			
 			$order->set_customer_ip_address( $details['customer_ip_address'] );
@@ -427,17 +557,68 @@ class InstaWP_Sync_WC {
 			$order->set_customer_note( $details['customer_note'] );
 			$order->set_customer_id( $details['customer_id'] );
 			$order->save();
+
 			// Grab the order and recalculate
 			$order = wc_get_order( $order_id );
+
+			// Set order notes
+			if ( ! empty( $details['order_notes'] ) && is_array( $details['order_notes'] ) && function_exists( 'wc_get_order_notes' ) && function_exists( 'wc_delete_order_note' ) ) {
+				$order_notes = wc_get_order_notes( array( 'order_id' => $order_id ) );
+				
+				// Delete order notes
+				foreach ( $order_notes as $note ) {
+					if ( ! empty( $note->id ) ) {
+						wc_delete_order_note( $note->id );
+					}
+				}
+				
+				$details['order_notes'] = array_reverse( $details['order_notes'] );
+				foreach ( $details['order_notes'] as $note ) {
+					if ( empty( $note ) ) {
+						continue;
+					}
+					// Add note
+					$note_id = $order->add_order_note(
+						$note['content'],
+						$note['customer_note'],
+						$note['added_by']
+					);
+	
+					if ( ! empty( $note_id ) && is_numeric( $note_id ) && 0 < $note_id ) {
+						// Update the comment date to match original
+						$date_created = is_array($note['date_created']) ? $note['date_created']['date'] : $note['date_created'];
+						
+						global $wpdb;
+						$wpdb->update(
+							$wpdb->comments,
+							array(
+								'comment_date'     => $date_created,
+								'comment_date_gmt' => get_gmt_from_date($date_created),
+							),
+							array( 'comment_ID' => $note_id ),
+							array(
+								'%s',
+								'%s',
+							),
+							array(
+								'%d',
+							)
+						);
+					}
+				}
+			}
+
 			$order->calculate_totals();
 			$order->save();
+
+			
 			/**
 			 * Add update order event at production site with order ID as order meta, 
 			 * if it doesn't exist. It will be used to match staging order id with production 
 			 * order id.
 			 * 
 			 */
-			if ( ! instawp()->is_staging && ( empty( $details['meta_data'] ) || empty( $details['meta_data'][$this->order_id_meta_key] ) ) ) {
+			if ( ! instawp()->is_staging && ( empty( $details['meta_data'] ) || empty( $details['meta_data'][ $this->order_id_meta_key ] ) ) ) {
 				// Add order ID as order meta
 				$this->add_update_order_event( $order_id );
 			}
@@ -585,7 +766,7 @@ class InstaWP_Sync_WC {
 		$order      = wc_get_order( $order_id );
 		$order_data = $order->get_data();
 		$data       = $order_data;
-		
+		$data['order_notes'] = wc_get_order_notes( array( 'order_id' => $order_id ) );
 		// Get order created date
 		if ( ! empty( $order_data['date_created'] ) && is_a( $order_data['date_created'], 'WC_DateTime' ) ) {
 			$data[ $this->order_created_date_key ] = $order_data['date_created']->getTimestamp();
@@ -600,7 +781,7 @@ class InstaWP_Sync_WC {
 		
 
 		$data['meta_data'] = array();
-		$data['meta_data'][$this->order_modified_date_key] = $date_modified;
+		$data['meta_data'][ $this->order_modified_date_key ] = $date_modified;
 		foreach ( $order_data['meta_data'] as $meta ) {
 			if ( in_array( $meta->key, array( '_edit_lock' ) ) ) {
 				continue;
@@ -627,41 +808,34 @@ class InstaWP_Sync_WC {
 		$data['coupon_lines'] = array();
 		foreach ( $order_data['coupon_lines'] as $coupon ) {
 			$post_id = wc_get_coupon_id_by_code( $coupon['code'] );
-			$post    = get_post( $post_id );
+			// Retrieve the coupon post data, post meta and its associated reference ID.
+			$coupon_post   = InstaWP_Sync_Helpers::get_post_meta_reference_id( $post_id );
 
-			if ( ! $post ) {
+			if ( false === $coupon_post ) {
 				continue;
 			}
-
-			$reference_id           = InstaWP_Sync_Helpers::get_post_reference_id( $post->ID );
-			$data['coupon_lines'][] = array(
-				'reference_id' => $reference_id,
-				'post_id'      => $post->ID,
-				'post_data'    => $post,
-				'meta_data'    => get_post_meta( $post->ID ),
-				'data'         => $coupon->get_data(),
-			);
+            // post_id, post_data, meta_data, reference_id key will be added by $coupon_post
+			$data['coupon_lines'][] = array_merge( $coupon_post, array(
+				'data' => $coupon->get_data(),
+			) );
 		}
 		// Get line items
 		$data['line_items'] = array();
 		foreach ( $order_data['line_items'] as $product ) {
-			$product_data = $product->get_data();
-			$post_id      = $product_data['product_id'];
-			$post         = get_post( $post_id );
+			$product_data   = $product->get_data();
+			// Retrieve the product post data, post meta and its associated reference ID.
+			$product_post   = InstaWP_Sync_Helpers::get_post_meta_reference_id( $product_data['product_id'] );
 
-			if ( ! $post ) {
+			if ( false === $product_post ) {
 				continue;
 			}
 
-			$reference_id         = InstaWP_Sync_Helpers::get_post_reference_id( $post->ID );
-			$data['line_items'][] = array(
-				'reference_id' => $reference_id,
-				'post_id'      => $post->ID,
-				'quantity'     => $product_data['quantity'],
-				'post_data'    => $post,
-				'meta_data'    => get_post_meta( $post->ID ),
-				'data'         => $product_data,
-			);
+			// post_id, post_data, meta_data, reference_id key will be added by $product_post
+			$data['line_items'][] = array_merge( $product_post, array(
+				'quantity'       => $product_data['quantity'],
+				'data'           => $product_data,
+				'variation_data' => empty( $product_data['variation_id'] ) ? null : InstaWP_Sync_Helpers::get_post_meta_reference_id( $product_data['variation_id'] ),
+			) );
 		}
 
 		return $data;

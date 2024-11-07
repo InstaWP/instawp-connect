@@ -195,7 +195,7 @@ class InstaWP_Setting {
 			case 'select':
 				$css_class = $field_class ? $field_class : '';
 
-				echo '<select ' . implode( ' ', $attributes ) . ' name="' . esc_attr( $field_name ) . '" id="' . esc_attr( $field_name_class ) . '" class="' . esc_attr( $css_class ) . '">'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+				echo '<select ' . implode( ' ', $attributes ) . ' name="' . esc_attr( $field_name ) . '" id="' . esc_attr( $field_name_class ) . '" class="' . esc_attr( $css_class ) . '" style="max-width: unset;">'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 				if ( ! empty( $field_placeholder ) ) {
 					echo '<option value="">' . esc_html( $field_placeholder ) . '</option>';
 				}
@@ -349,11 +349,13 @@ class InstaWP_Setting {
 			),
 		);
 
+        $activity_log_interval = Option::get_option( 'instawp_activity_log_interval', 'instantly' );
+        $activity_log_interval = empty( $activity_log_interval ) ? 'instantly' : $activity_log_interval;
+
 		// Section - Activity Log
 		$settings['activity_log'] = array(
 			'title'    => esc_html__( 'Activity Log', 'instawp-connect' ),
 			'desc'     => esc_html__( 'These are some basic settings for Activity Log.', 'instawp-connect' ),
-			'internal' => true,
 			'fields'   => array(
 				array(
 					'id'      => 'instawp_activity_log',
@@ -366,6 +368,7 @@ class InstaWP_Setting {
 				array(
 					'id'      => 'instawp_log_visitor_ip_source',
 					'type'    => 'select',
+                    'class'   => 'w-full',
 					'title'   => __( 'Visitor IP Detected', 'instawp-connect' ),
 					'tooltip' => __( 'Select the source of the visitor IP address. For example, if you are using Cloudflare, select HTTP_CF_CONNECTING_IP.', 'instawp-connect' ),
 					'options' => array(
@@ -381,6 +384,31 @@ class InstaWP_Setting {
 						'HTTP_FORWARDED'           => 'HTTP_FORWARDED',
 					),
 				),
+                array(
+                    'id'      => 'instawp_activity_log_interval',
+                    'type'    => 'select',
+                    'title'   => __( 'Send Non-Critical Activity Log', 'instawp-connect' ),
+                    'tooltip' => __( 'Send non-critical activity log to InstaWP. Critical Activity Logs will be send instantly.', 'instawp-connect' ),
+                    'default' => 'off',
+                    'class'   => 'w-full',
+                    'options' => array(
+                        'instantly' => __( 'Instantly', 'instawp-connect' ),
+                        'every_x_minutes' => __( 'Every X Minutes', 'instawp-connect' ),
+                    )
+                ),
+                array(
+                    'id'           => 'instawp_activity_log_interval_minutes',
+                    'type'         => 'number',
+                    'title'        => __( 'Activity Log Interval (Minutes)', 'instawp-connect' ),
+                    'tooltip'      => __( 'It is the interval of activity log send in minutes.', 'instawp-connect' ),
+                    'desc'         => __( 'Minimum is 1 minutes and maximum is 60 minutes.', 'instawp-connect' ),
+                    'placeholder'  => '5',
+                    'parent_class' => ( $activity_log_interval !== 'every_x_minutes' ) ? 'hidden' : '',
+                    'attributes'   => array(
+                        'min' => 1,
+                        'max' => 60,
+                    ),
+                ),
 			),
 		);
 

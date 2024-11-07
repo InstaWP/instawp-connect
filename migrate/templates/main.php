@@ -19,7 +19,7 @@ if ( ! empty( $_GET['debug'] ) && current_user_can( 'manage_options' ) ) {
 }
 
 $connect_classes = array();
-$staging_sites   = instawp_get_staging_sites_list();
+$staging_sites   = instawp_get_connected_sites_list();
 
 $syncing_status    = Option::get_option( 'instawp_is_event_syncing' );
 $migration_details = Option::get_option( 'instawp_migration_details', array() );
