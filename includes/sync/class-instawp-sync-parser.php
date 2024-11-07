@@ -522,10 +522,16 @@ class InstaWP_Sync_Parser {
 					$search[]        = $media_item['attachment_url'];
 					$replace[]       = wp_attachment_is_image( $attachment_id ) ? wp_get_attachment_image_url( $attachment_id, $attachment_size, false ) : wp_get_attachment_url( $attachment_id );
 					if ( ! empty( $attachment_id ) && ! empty( $media_item['post_id'] ) ) {
-						$search_ids[]	 = ',"id":' . esc_attr( $media_item['post_id'] ) . ',';
-					    $replace_ids[]	 = ',"id":' . esc_attr( $attachment_id ) . ',';
+						/**
+						 * Elementor data
+						 * SVG: {"selected_icon":{"value":{"url":"","id":26},"library":"svg"}}
+						 * Image: {"image":{"url":"","id":30,"size":"","alt":"nature","source":"library"}}
+						 */
+						$last_char = 'svg' === $media_item['extension'] ? '}' : ',';
+						$search_ids[]	 = ',"id":' . esc_attr( $media_item['post_id'] ) . $last_char;
+					    $replace_ids[]	 = ',"id":' . esc_attr( $attachment_id ) . $last_char;
 					} else {
-						error_log( 'MEDIA ID NOT FOUND' );
+						error_log( 'MEDIA ID NOT FOUND. Media name: ' . esc_attr( $media_item['basename'] ) . ' Reference id: ' . esc_attr( $media_item['reference_id'] ) );
 					}
 				}
 			}
@@ -538,8 +544,11 @@ class InstaWP_Sync_Parser {
 			// Update Elementor data
 			$elementor_data = get_post_meta( $post_id, '_elementor_data', true );
 			if ( ! empty( $elementor_data ) && is_string( $elementor_data ) && ! empty( $search_ids ) ) {
+				$elementor_data = wp_unslash( $elementor_data );
+				// Replace image urls
+				$elementor_data = str_replace( $search, $replace, $elementor_data );
 				// Replace image ids
-				$elementor_data = str_replace( $search_ids, $replace_ids, wp_unslash( $elementor_data ) );
+				$elementor_data = str_replace( $search_ids, $replace_ids, $elementor_data );
 				// We need to use wp_slash in order to avoid unslashing during the update_post_meta
 				$elementor_data = wp_slash( $elementor_data );
 				update_metadata( 'post', $post_id, '_elementor_data', $elementor_data );
