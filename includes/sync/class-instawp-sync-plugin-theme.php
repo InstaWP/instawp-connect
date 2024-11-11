@@ -326,9 +326,15 @@ class InstaWP_Sync_Plugin_Theme {
 		if ( $v->event_slug === 'plugin_update' ) {
 			if ( ! empty( $v->details->path ) ) {
 				if ( $this->is_plugin_installed( $v->details->path ) ) {
-					$response = $this->update_item( $v->details->path, 'plugin' )[0];
+					$response = $this->update_item( $v->details->path, 'plugin' );
+					
+					if ( isset( $response[ $v->details->path ] ) ) {
+						$response = $response[ $v->details->path ];
+					} else if ( isset( $response[0] ) ) {
+						$response = $response[0];
+					}
 
-					if ( ! $response['success'] ) {
+					if ( isset( $response['success'] ) && false === $response['success'] ) {
 						$logs[ $v->id ] = $response['message'];
 
 						return InstaWP_Sync_Helpers::sync_response( $v, $logs, array(
@@ -446,9 +452,15 @@ class InstaWP_Sync_Plugin_Theme {
 			$theme      = wp_get_theme( $stylesheet );
 
 			if ( $theme->exists() ) {
-				$response = $this->update_item( $stylesheet, 'theme' )[0];
+				$response = $this->update_item( $stylesheet, 'theme' );
 
-				if ( ! $response['success'] ) {
+				if ( isset( $response[ $stylesheet ] ) ) {
+					$response = $response[ $stylesheet ];
+				} else if ( isset( $response[0] ) ) {
+					$response = $response[0];
+				}
+
+				if ( isset( $response['success'] ) && false === $response['success'] ) {
 					$logs[ $v->id ] = $response['message'];
 
 					return InstaWP_Sync_Helpers::sync_response( $v, $logs, array(

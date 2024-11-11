@@ -5,9 +5,7 @@ use InstaWP\Connect\Helpers\Helper;
 use InstaWP\Connect\Helpers\Option;
 use phpseclib3\Net\SFTP;
 
-if ( ! defined( 'INSTAWP_PLUGIN_DIR' ) ) {
-	die;
-}
+defined( 'ABSPATH' ) || exit;
 
 class InstaWP_Tools {
 
@@ -333,7 +331,7 @@ include $file_path;';
 		 */
 		if ( empty( $migrate_settings['mode'] ) || 'push' !== $migrate_settings['mode'] ) {
 			$migrate_settings['excluded_paths'][] = 'wp-admin';
-			$migrate_settings['excluded_paths'][] = 'wp-includes';
+		    $migrate_settings['excluded_paths'][] = 'wp-includes';
 		}
 
 		// Remove __wp__ folder for WPC file structure
