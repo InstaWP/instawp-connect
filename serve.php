@@ -42,6 +42,14 @@ if ( ! $root_dir_find ) {
 	exit( 2 );
 }
 
+$root_dir_path_arr = explode( '/', $root_dir_path );
+
+if ( end( $root_dir_path_arr ) === 'wp-content' ) {
+	array_pop( $root_dir_path_arr );
+}
+
+$root_dir_path = implode( DIRECTORY_SEPARATOR, $root_dir_path_arr );
+
 defined( 'CHUNK_SIZE' ) | define( 'CHUNK_SIZE', 2 * 1024 * 1024 );
 defined( 'BATCH_ZIP_SIZE' ) | define( 'BATCH_ZIP_SIZE', 50 );
 defined( 'MAX_ZIP_SIZE' ) | define( 'MAX_ZIP_SIZE', 1024 * 1024 ); //1mb
@@ -50,8 +58,8 @@ defined( 'BATCH_SIZE' ) | define( 'BATCH_SIZE', 100 );
 defined( 'WP_ROOT' ) | define( 'WP_ROOT', $root_dir_path );
 defined( 'INSTAWP_BACKUP_DIR' ) | define( 'INSTAWP_BACKUP_DIR', WP_ROOT . DIRECTORY_SEPARATOR . 'wp-content' . DIRECTORY_SEPARATOR . 'instawpbackups' . DIRECTORY_SEPARATOR );
 
-$iwpdb_main_path = WP_ROOT . '/wp-content/plugins/instawp-connect/includes/class-instawp-iwpdb.php';
-$iwpdb_git_path  = WP_ROOT . '/wp-content/plugins/instawp-connect-main/includes/class-instawp-iwpdb.php';
+$iwpdb_main_path = WP_ROOT . DIRECTORY_SEPARATOR . 'wp-content' . DIRECTORY_SEPARATOR . 'plugins' . DIRECTORY_SEPARATOR . 'instawp-connect' . DIRECTORY_SEPARATOR . 'includes' . DIRECTORY_SEPARATOR . 'class-instawp-iwpdb.php';
+$iwpdb_git_path  = WP_ROOT . DIRECTORY_SEPARATOR . 'wp-content' . DIRECTORY_SEPARATOR . 'plugins' . DIRECTORY_SEPARATOR . 'instawp-connect-main' . DIRECTORY_SEPARATOR . 'includes' . DIRECTORY_SEPARATOR . 'class-instawp-iwpdb.php';
 
 if ( file_exists( $iwpdb_main_path ) && is_readable( $iwpdb_main_path ) ) {
 	require_once( $iwpdb_main_path );
@@ -113,7 +121,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
 			global $tracking_db;
 			// Check if the function has already been run
-			$has_run = $tracking_db->get_option( 'instawp_inventory_sent', 0 );
+			$has_run     = $tracking_db->get_option( 'instawp_inventory_sent', 0 );
 			$total_files = intval( $tracking_db->db_get_option( 'total_files', '0' ) );
 
 			if ( empty( $has_run ) && ( empty( $migrate_settings['inventory_items']['total_files'] ) || $total_files > intval( $migrate_settings['inventory_items']['total_files'] ) ) ) {
@@ -125,30 +133,30 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 							$filepath      = $wp_item['absolute_path'];
 							$filepath_hash = hash( 'sha256', $filepath );
 
-							$row        = $tracking_db->get_row( 'iwp_files_sent', array( 'filepath_hash' => $filepath_hash ) );
+							$row = $tracking_db->get_row( 'iwp_files_sent', array( 'filepath_hash' => $filepath_hash ) );
 							if ( ! $row ) {
 								try {
-									$slug = $wp_item['slug'];
+									$slug     = $wp_item['slug'];
 									$checksum = $wp_item['checksum'];
 									$tracking_db->insert( 'iwp_files_sent', array(
 										'filepath'      => "'$filepath'",
 										'filepath_hash' => "'$filepath_hash'",
 										'sent'          => 0,
 										'size'          => $wp_item['size'],
-										'file_type'		=> "'inventory'",
-										'sent_filename'	=> "'$slug'",
-										'file_count'	=> $wp_item['file_count'],
-										'checksum'		=> "'$checksum'",
+										'file_type'     => "'inventory'",
+										'sent_filename' => "'$slug'",
+										'file_count'    => $wp_item['file_count'],
+										'checksum'      => "'$checksum'",
 									) );
 
 									// Add only necesssary data to inventory items
-									$migrate_settings['inventory_items']['with_checksum'][$inventory_key] = array(
-										'slug' 			=> $wp_item['slug'],
-										'version' 		=> $wp_item['version'],
-										'type' 			=> $wp_item['type'],
-										'path' 			=> $wp_item['path'],
-										'file_count'	=> $wp_item['file_count'],
-										'checksum' 		=> $wp_item['checksum'],
+									$migrate_settings['inventory_items']['with_checksum'][ $inventory_key ] = array(
+										'slug'       => $wp_item['slug'],
+										'version'    => $wp_item['version'],
+										'type'       => $wp_item['type'],
+										'path'       => $wp_item['path'],
+										'file_count' => $wp_item['file_count'],
+										'checksum'   => $wp_item['checksum'],
 									);
 								} catch ( Exception $e ) {
 									header( 'x-iwp-status: false' );
@@ -230,7 +238,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		if ( ! empty( $totalFiles ) && ! empty( $migrate_settings['inventory_items'] ) && ! empty( $migrate_settings['inventory_items']['total_files'] ) ) {
 			$totalFiles = intval( $totalFiles ) + intval( $migrate_settings['inventory_items']['total_files'] );
 		}
-		$fileIndex  = 0;
+		$fileIndex = 0;
 
 		if ( $handle_config_separately ) {
 			$totalFiles            += 1;
@@ -385,7 +393,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			if ( ! empty( $totalFiles ) && ! empty( $migrate_settings['inventory_items'] ) && ! empty( $migrate_settings['inventory_items']['total_files'] ) ) {
 				$totalFiles = intval( $totalFiles ) + intval( $migrate_settings['inventory_items']['total_files'] );
 			}
-			$fileIndex  = 0;
+			$fileIndex = 0;
 
 			$tracking_db->db_update_option( 'total_files', $totalFiles );
 
@@ -456,10 +464,10 @@ if ( isset( $_REQUEST['serve_type'] ) && 'inventory_sent_files' === $_REQUEST['s
 	}
 	$message = '';
 	if ( ! empty( $_POST['failed_items'] ) ) {
-		$mig_settings         = $tracking_db->get_option( 'migrate_settings' );
-		if ( ! empty( $mig_settings ) && ! empty( $mig_settings['inventory_items'] ) && ! empty( $mig_settings['excluded_paths'] ) && ! empty( $mig_settings['inventory_items']['total_files'] )  ) {
+		$mig_settings = $tracking_db->get_option( 'migrate_settings' );
+		if ( ! empty( $mig_settings ) && ! empty( $mig_settings['inventory_items'] ) && ! empty( $mig_settings['excluded_paths'] ) && ! empty( $mig_settings['inventory_items']['total_files'] ) ) {
 			$failed_item_files = 0;
-			$include_paths = array();
+			$include_paths     = array();
 			// Failed to install items
 			foreach ( $_POST['failed_items'] as $failed_item ) {
 				if ( empty( $failed_item['slug'] ) || empty( $failed_item['path'] ) || empty( $failed_item['file_count'] ) ) {
@@ -474,9 +482,9 @@ if ( isset( $_REQUEST['serve_type'] ) && 'inventory_sent_files' === $_REQUEST['s
 				// Update inventory sent files
 				$tracking_db->update(
 					'iwp_files_sent',
-					array( 
-						'size'          => 0,
-						'file_count'	=> 0,
+					array(
+						'size'       => 0,
+						'file_count' => 0,
 					),
 					array(
 						'file_type'     => 'inventory',

@@ -99,9 +99,10 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 == Changelog ==
 
 = 0.1.0.65 - =
+- NEW: Push migration create backup of plugins, themes and mu-plugin files before start.
 - FIX: Sync plugin and theme update php error
 - FIX: Auto fetch JWT from API.
-- NEW: Push migration create backup of plugins, themes and mu-plugin files before start
+- FIX: Added support for wp-content in the root path.
 
 = 0.1.0.64 - 30 October 2024 =
 - New: Sync WooCommerce order notes.
