@@ -510,6 +510,15 @@ class InstaWP_Sync_Parser {
 		return $post;
 	}
 
+	/**
+	 * Replace media items in the post content.
+	 *
+	 * @param array $media Media items to replace.
+	 * @param int $post_id Post ID.
+	 * @param array $details Details of post content.
+	 *
+	 * @return void
+	 */
 	public static function replace_media_items( $media, $post_id, $details = array() ) {
 		$post    = get_post( $post_id );
 		$content = $post->post_content;
@@ -548,6 +557,14 @@ class InstaWP_Sync_Parser {
 	}
 
 	
+	/**
+	 * Replace Elementor metadata
+	 * Replaces post and term ids in Elementor data.
+	 * @param int $post_id The post id
+	 * @param array $replace_data The data for replacement
+	 * 
+	 * @return void
+	 */
 	private static function replace_elementor_metadata( $post_id, $replace_data ) {
 		if ( ! InstaWP_Sync_Helpers::is_built_with_elementor( $post_id ) ) {
 			return;
@@ -622,6 +639,8 @@ class InstaWP_Sync_Parser {
 	 * @param array $data
 	 * @param int $id
 	 * @param string $type
+	 * @param string $taxonomy
+	 * @return void
 	 */
 	private static function add_reference_data( &$data, $id, $type = 'post_ids', $taxonomy = '' ) {
 		$id = empty( $id ) ? 0 : intval( $id );
