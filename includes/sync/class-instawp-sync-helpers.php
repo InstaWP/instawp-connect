@@ -50,6 +50,31 @@ class InstaWP_Sync_Helpers {
 	}
 
 	/**
+	 * Retrieve the post type name, post name and its associated reference ID.
+	 *
+	 * @param int $post_id The ID of the post to retrieve.
+	 *
+	 * @return array An associative array containing the post type name, post name and its reference ID.
+	 */
+	public static function get_post_type_name_reference_id( $post_id ) {
+		if ( empty( $post_id ) || ! is_numeric( $post_id ) || 0 >= intval( $post_id ) ) {
+			return false;
+		}
+
+		$post = get_post( $post_id );
+
+		if ( empty( $post ) ) {
+			return false;
+		}
+
+		return array(
+			'post_type' 	=> $post->post_type,
+			'post_name' 	=> $post->post_name,
+			'reference_id' 	=> self::get_post_reference_id( $post->ID ),
+		);
+	}
+
+	/**
 	 * Retrieve the post data, post meta and its associated reference ID.
 	 *
 	 * @param int $post_id The ID of the post to retrieve.
@@ -92,6 +117,31 @@ class InstaWP_Sync_Helpers {
 		$reference_id = get_term_meta( $term_id, 'instawp_event_term_sync_reference_id', true );
 
 		return ! empty( $reference_id ) ? $reference_id : self::set_term_reference_id( $term_id );
+	}
+
+	/**
+	 * Retrieve the term taxonomy, slug and its associated reference ID.
+	 *
+	 * @param int $term_id The ID of the term to retrieve.
+	 *
+	 * @return array An associative array containing the term taxonomy, slug and its reference ID.
+	 */
+	public static function get_term_taxonomy_slug_reference_id( $term_id, $taxonomy = '' ) {
+		if ( empty( $term_id ) || ! is_numeric( $term_id ) || 0 >= intval( $term_id ) ) {
+			return false;
+		}
+
+		$term = get_term( $term_id, $taxonomy );
+
+		if ( empty( $term ) || is_wp_error( $term ) ) {
+			return false;
+		}
+
+		return array(
+			'taxonomy' 		=> $term->taxonomy,
+			'slug' 			=> $term->slug,
+			'reference_id' 	=> self::get_term_reference_id( $term->term_id ),
+		);
 	}
 
 	/*

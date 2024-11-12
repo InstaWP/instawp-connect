@@ -70,16 +70,18 @@ class InstaWP_Sync_Parser {
         $relative_file_name = str_replace( $base_url, '', $image_url );
 
         // Check the original image
-        if ( $relative_file_name === $image_meta['file'] ) {
+        if ( ! empty( $image_meta['file'] ) && $relative_file_name === $image_meta['file'] ) {
             return 'full';
         }
 
         // Check each image size
-        foreach ( $image_meta['sizes'] as $size => $size_data ) {
-            if ( $relative_file_name === $size_data['file'] ) {
-                return $size;
-            }
-        }
+		if ( ! empty( $image_meta['sizes'] ) ) {
+			foreach ( $image_meta['sizes'] as $size => $size_data ) {
+				if ( $relative_file_name === $size_data['file'] ) {
+					return $size;
+				}
+			}
+		}
 
         return false;
     }
@@ -394,7 +396,7 @@ class InstaWP_Sync_Parser {
 				wp_set_post_terms( $wp_post['ID'], $term_ids, $taxonomy );
 			}
 
-			self::replace_media_items( $content_media, $wp_post['ID'] );
+			self::replace_media_items( $content_media, $wp_post['ID'], $details );
 		}
 
 		if ( ! empty( $parent_data ) ) {
@@ -450,8 +452,9 @@ class InstaWP_Sync_Parser {
 			// Flattens the post meta array by replacing single-element arrays with their sole element.
 			$flat_meta = InstaWP_Sync_Helpers::flat_post_meta( $data['post_meta'] );
 			// If edit with elementor then get media from elementor data
-			if ( class_exists( '\Elementor\Plugin' ) && ! empty( $flat_meta['_elementor_edit_mode'] ) && 'builder' === $flat_meta['_elementor_edit_mode'] && ! empty( $flat_meta['_elementor_data'] ) && is_string( $flat_meta['_elementor_data'] ) ) {
+			if ( ! empty( $flat_meta['_elementor_data'] ) && InstaWP_Sync_Helpers::is_built_with_elementor( $post->ID ) && is_string( $flat_meta['_elementor_data'] ) ) {
 				$data['media'] = self::get_media_from_content( wp_unslash( $flat_meta['_elementor_data'] ) );
+				$data['ids'] = self::extract_dynamic_elementor_data( json_decode( $flat_meta['_elementor_data'], true ) );
 			} else if ( ! empty( $post_content ) ) {
 				$data['media'] = self::get_media_from_content( $post_content );
 			}
@@ -507,29 +510,27 @@ class InstaWP_Sync_Parser {
 		return $post;
 	}
 
-	public static function replace_media_items( $media, $post_id ) {
+	public static function replace_media_items( $media, $post_id, $details = array() ) {
 		$post    = get_post( $post_id );
 		$content = $post->post_content;
 		$search  = $replace = array();
-		$search_ids = array();
-		$replace_ids = array();
-
+		$replace_data = isset( $details['ids'] ) ? $details['ids'] : array(
+			'urls' 		=> array(),
+			'post_ids' => array(),
+			'term_ids' => array(),
+			'user_ids' => array(),
+		);
 		if ( ! empty( $media ) ) {
 			foreach ( $media as $media_item ) {
 				if ( ! empty( $media_item['attachment_url'] ) ) {
 					$attachment_id   = self::process_attachment_data( $media_item );
                     $attachment_size = isset( $media_item['size'] ) ? $media_item['size'] : 'full';
 					$search[]        = $media_item['attachment_url'];
-					$replace[]       = wp_attachment_is_image( $attachment_id ) ? wp_get_attachment_image_url( $attachment_id, $attachment_size, false ) : wp_get_attachment_url( $attachment_id );
+					$attachment_url  = wp_attachment_is_image( $attachment_id ) ? wp_get_attachment_image_url( $attachment_id, $attachment_size, false ) : wp_get_attachment_url( $attachment_id );
+					$replace[]       = $attachment_url;
 					if ( ! empty( $attachment_id ) && ! empty( $media_item['post_id'] ) ) {
-						/**
-						 * Elementor data
-						 * SVG: {"selected_icon":{"value":{"url":"","id":26},"library":"svg"}}
-						 * Image: {"image":{"url":"","id":30,"size":"","alt":"nature","source":"library"}}
-						 */
-						$last_char = 'svg' === $media_item['extension'] ? '}' : ',';
-						$search_ids[]	 = ',"id":' . esc_attr( $media_item['post_id'] ) . $last_char;
-					    $replace_ids[]	 = ',"id":' . esc_attr( $attachment_id ) . $last_char;
+						$replace_data['urls'][ $media_item['attachment_url'] ] = $attachment_url;
+						$replace_data['post_ids'][ $media_item['post_id'] ] = $attachment_id;
 					} else {
 						error_log( 'MEDIA ID NOT FOUND. Media name: ' . esc_attr( $media_item['basename'] ) . ' Reference id: ' . esc_attr( $media_item['reference_id'] ) );
 					}
@@ -540,22 +541,334 @@ class InstaWP_Sync_Parser {
 				'ID'           => $post_id,
 				'post_content' => str_replace( $search, $replace, $content ),
 			) );
+		}
 
-			// Update Elementor data
-			$elementor_data = get_post_meta( $post_id, '_elementor_data', true );
-			if ( ! empty( $elementor_data ) && is_string( $elementor_data ) && ! empty( $search_ids ) ) {
-				$elementor_data = wp_unslash( $elementor_data );
-				// Replace image urls
-				$elementor_data = str_replace( $search, $replace, $elementor_data );
-				// Replace image ids
-				$elementor_data = str_replace( $search_ids, $replace_ids, $elementor_data );
-				// We need to use wp_slash in order to avoid unslashing during the update_post_meta
-				$elementor_data = wp_slash( $elementor_data );
-				update_metadata( 'post', $post_id, '_elementor_data', $elementor_data );
+		self::replace_elementor_metadata( $post_id, $replace_data );
+		
+	}
+
+	
+	private static function replace_elementor_metadata( $post_id, $replace_data ) {
+		if ( ! InstaWP_Sync_Helpers::is_built_with_elementor( $post_id ) ) {
+			return;
+		}
+		// Update Elementor data
+		$elementor_data = get_post_meta( $post_id, '_elementor_data', true );
+		if ( empty( $elementor_data ) || ! is_string( $elementor_data ) || ( empty( $replace_data['post_ids'] ) && empty( $replace_data['term_ids'] ) ) ) {
+			return;
+		}
+
+		// Prepare post and term ids
+		foreach ( $replace_data as $item_type => $item_ids ) {
+			if ( ! in_array( $item_type, array( 'post_ids', 'term_ids', 'user_ids' ) ) ) {
+				continue;
 			}
+			foreach ( $item_ids as $item_id => $item ) {
+				if ( ! is_array( $item ) ) {
+					continue;
+				}
+				if ( empty( $item['reference_id'] ) ) {
+					unset( $replace_data[ $item_type ][ $item_id ] );
+					continue;
+				}
+				$is_set_id = false; // flag to check if id is set
+				if ( $item_type === 'post_ids' ) {
+					if ( is_array( $item ) ) {
+						if ( ! empty( $item['post_type'] ) && isset( $item['post_name'] ) ) {
+							$post = InstaWP_Sync_Helpers::get_post_by_reference( $item['post_type'], $item['reference_id'], $item['post_name'] );
+							if ( ! empty( $post ) ) {
+								$replace_data[ $item_type ][ $item_id ] = $post->ID;
+								$is_set_id = true;
+							}
+						} 
+					}
+				} else if ( $item_type === 'term_ids' ) {
+					if ( ! empty( $item['taxonomy'] ) && isset( $item['slug'] ) ) {
+						$term = InstaWP_Sync_Helpers::get_term_by_reference( $item['taxonomy'], $item['reference_id'], $item['slug'] );
+						if ( ! empty( $term ) ) {
+							$replace_data[ $item_type ][ $item_id ] = $term->term_id;
+							$is_set_id = true;
+						}
+					}
+				} else if ( $item_type === 'user_ids' ) {
+					if ( ! empty( $item['user_email'] ) ) {
+						$user = get_user_by( 'email', $item['user_email'] );
+						if ( ! empty( $user ) ) {
+							$replace_data[ $item_type ][ $item_id ] = $user->ID;
+							$is_set_id = true;
+						}
+					}
+				}
+
+				if ( ! $is_set_id ) {
+					// unset if id is not set
+					unset( $replace_data[ $item_type ][ $item_id ] );
+				}
+			}
+		}
+
+		$elementor_data = json_decode( $elementor_data, true );
+		if ( ! empty( $elementor_data ) ) {
+			$elementor_data = self::replace_in_elementor_data( $elementor_data, $replace_data );
+			// We need to use wp_slash in order to avoid unslashing during the update_post_meta
+			$elementor_data = wp_slash( wp_json_encode( $elementor_data ) );
+			update_metadata( 'post', $post_id, '_elementor_data', $elementor_data );
 		}
 	}
 
+	/**
+	 * Add reference ids to the data array
+	 *
+	 * @param array $data
+	 * @param int $id
+	 * @param string $type
+	 */
+	private static function add_reference_data( &$data, $id, $type = 'post_ids', $taxonomy = '' ) {
+		$id = empty( $id ) ? 0 : intval( $id );
+		// Return if reference id is already set
+		if ( isset( $data[ $type ][ $id ] ) || 0 >= $id ) {
+			return;
+		}
+
+		switch ( $type ) {
+			case 'post_ids':
+				$post = InstaWP_Sync_Helpers::get_post_type_name_reference_id( $id );
+				if ( ! empty( $post ) ) {
+					$data[ $type ][ $id ] = $post;
+				}
+				break;
+			case 'term_ids':
+				$term = InstaWP_Sync_Helpers::get_term_taxonomy_slug_reference_id( $id, $taxonomy );
+				if ( ! empty( $term ) ) {
+					$data[ $type ][ $id ] = $term;
+				}
+				break;
+			case 'user_ids':
+				$user = get_user_by('id', $id);
+				if ( ! empty( $user ) ) {
+					$data[ $type ][ $id ] = array(
+						'reference_id' => InstaWP_Sync_Helpers::get_user_reference_id( $user->ID ),
+						'user_email' => $user->user_email,
+					);
+				}
+				break;
+			default:
+				break;
+		}
+	}
+
+	/**
+	 * Get dynamic data from Elementor data
+	 *
+	 * @param array $elementor_data The Elementor data array
+	 * 
+	 * @return array Dynamic data
+	 */
+	private static function extract_dynamic_elementor_data( $elementor_data, $dynamic_data = array() ) {
+		if ( empty( $elementor_data ) || ! is_array( $elementor_data ) ) {
+			return array();
+		}
+
+		if ( ! isset( $dynamic_data['post_ids'] ) ) {
+			$dynamic_data = array(
+				'post_ids' => array(),
+				'term_ids' => array(),
+				'user_ids' => array(),
+			);
+		}
+		
+		// Recursively process each element
+		foreach ( $elementor_data as $element ) {
+			// Process settings
+			if ( ! empty( $element['settings'] ) && is_array( $element['settings'] ) ) {
+				foreach ( $element['settings'] as $key => $value ) {
+
+					if ( '__dynamic__' === $key ) {
+						foreach ( $value as $dynamic_key => $dynamic_value ) {
+							// Extract ID and settings from the dynamic tag.
+							$tag = self::elementor_tag_text_to_tag_data( $dynamic_value );
+							if ( ! empty( $tag ) && ! empty( $tag['settings'] ) ) {
+								$tag = $tag['settings'];
+								
+								foreach ( array(
+									'attachment_id',
+									'post_id',
+									'author_id',
+									'taxonomy_id',
+								) as $tag_key ) {
+									$type = 'post_ids';
+									if ( 'author_id' === $tag_key ) {
+										$type = 'user_ids';
+									} else if ( 'taxonomy_id' === $tag_key ) {
+										$type = 'term_ids';
+									}
+									self::add_reference_data( $dynamic_data, $tag[ $tag_key ], $type );
+								}
+							}
+						}
+					} elseif ( $key === 'wp' && is_array( $value ) ) {
+						// Handle WordPress widgets
+						foreach ( $value as $wp_key => $wp_value ) {
+							if ( 'exclude' === $wp_key ) {
+								$exclude_ids = explode( ',', $wp_value );
+								foreach ( $exclude_ids as $exclude_key => $exclude_id ) {
+									self::add_reference_data( $dynamic_data, $exclude_id );
+								}
+							} else if ( 'nav_menu' === $wp_key ) {
+								if ( ! is_array( $wp_value ) && 0 < intval( $wp_value ) ) {
+									self::add_reference_data( $dynamic_data, $wp_value, 'term_ids', 'nav_menu' );
+								}
+							}
+						}
+					}
+				}
+			}
+
+			// Process elements recursively
+			if ( ! empty( $element['elements'] ) && is_array( $element['elements'] ) ) {
+				$dynamic_data = self::extract_dynamic_elementor_data( $element['elements'], $dynamic_data );
+			}
+		}
+
+		return $dynamic_data;
+	}
+
+	/**
+	 * Replace items in Elementor data
+	 *
+	 * @param array $elementor_data The Elementor data array
+	 * @param array $replace_data Array of items to replace ['old_id' => 'new_id', 'old_url' => 'new_url']
+	 * @return array Modified Elementor data
+	 */
+	private static function replace_in_elementor_data( $elementor_data, $replace_data ) {
+		if ( empty( $elementor_data ) || ! is_array( $elementor_data ) ) {
+			return $elementor_data;
+		}
+
+		// Recursively process each element
+		foreach ( $elementor_data as &$element ) {
+			// Process settings
+			if ( ! empty( $element['settings'] ) ) {
+				$element['settings'] = self::process_elementor_data_settings( $element['settings'], $replace_data );
+			}
+
+			// Process elements recursively
+			if ( ! empty( $element['elements'] ) && is_array( $element['elements'] ) ) {
+				$element['elements'] = self::replace_in_elementor_data( $element['elements'], $replace_data );
+			}
+		}
+
+		return $elementor_data;
+	}
+
+	/**
+	 * Process settings array replacements
+	 *
+	 * @param array $settings
+	 * @param array $replace_data
+	 * @return array
+	 */
+	private static function process_elementor_data_settings( $settings, $replace_data ) {
+		foreach ( $settings as $key => &$value ) {
+
+			if ( $key === 'image' && is_array( $value ) ) {
+				// Handle image widget
+				if ( ! empty( $value['id'] ) && isset( $replace_data['post_ids'][ $value['id'] ] ) ) {
+					$value['id'] = $replace_data['post_ids'][ $value['id'] ];
+				}
+				if ( ! empty( $value['url'] ) && ! empty( $replace_data['urls'][ wp_unslash( $value['url'] ) ] ) ) {
+					$value['url'] = $replace_data['urls'][ wp_unslash( $value['url'] ) ];
+				}
+			} else if ( $key === 'selected_icon' && is_array( $value ) && ! empty( $value['value']['id'] )  ) {
+				// Handle icon widget with SVG
+				if ( isset( $replace_data['post_ids'][ $value['value']['id'] ] ) ) {
+					$value['value']['id'] = $replace_data['post_ids'][ $value['value']['id'] ];
+				}
+				if ( ! empty( $value['value']['url'] ) && ! empty( $replace_data['urls'][ wp_unslash( $value['value']['url'] ) ] ) ) {
+					$value['value']['url'] = $replace_data['urls'][ wp_unslash( $value['value']['url'] ) ];
+				}
+			} else if ( '__dynamic__' === $key ) {
+				foreach ( $value as $dynamic_key => &$dynamic_value ) {
+					// Extract ID and settings from the dynamic tag.
+					$tag_data = self::elementor_tag_text_to_tag_data( $dynamic_value );
+					if ( ! empty( $tag_data ) ) {
+						$tag_id       = $tag_data['id'];
+						$tag_name     = $tag_data['name'];
+						$tag_settings = $tag_data['settings'];
+						
+						if ( ! empty( $tag_settings ) ) {
+							// Replace attachment ID.
+							if ( isset( $tag_settings['attachment_id'] ) && isset( $replace_data['post_ids'][ $tag_settings['attachment_id'] ] ) ) {
+								$tag_settings['attachment_id'] = $replace_data['post_ids'][ $tag_settings['attachment_id'] ];
+							}
+							
+							// Replace post ID.
+							if ( isset( $tag_settings['post_id'] ) && isset( $replace_data['post_ids'][ $tag_settings['post_id'] ] ) ) {
+								$tag_settings['post_id'] = $replace_data['post_ids'][ $tag_settings['post_id'] ];
+							}
+
+							// Replace author ID.
+							if ( isset( $tag_settings['author_id'] ) && isset( $replace_data['user_ids'][ $tag_settings['author_id'] ] ) ) {
+								$tag_settings['author_id'] = $replace_data['user_ids'][ $tag_settings['author_id'] ];
+							}
+
+							// Replace taxonomy ID.
+							if ( isset( $tag_settings['taxonomy_id'] ) && isset( $replace_data['term_ids'][ $tag_settings['taxonomy_id'] ] ) ) {
+								$tag_settings['taxonomy_id'] = $replace_data['term_ids'][ $tag_settings['taxonomy_id'] ];
+							}
+							
+							// Rebuild the dynamic tag with updated settings.
+							$dynamic_value = sprintf(
+								'[elementor-tag id="%s" name="%s" settings="%s"]',
+								$tag_id,
+								$tag_name,
+								urlencode( wp_json_encode( $tag_settings, JSON_FORCE_OBJECT ) )
+							);
+						}
+					}
+				}
+			} elseif ( $key === 'wp' && is_array( $value ) ) {
+				// Handle WordPress widgets
+				foreach ( $value as $wp_key => $wp_value ) {
+					if ( 'exclude' === $wp_key ) {
+						$exclude_ids = explode( ',', $wp_value );
+						foreach ( $exclude_ids as $exclude_key => $exclude_id ) {
+							$exclude_ids[ $exclude_key ] = isset( $replace_data['post_ids'][ $exclude_id ] ) ? $replace_data['post_ids'][ $exclude_id ] : $exclude_id;
+						}
+						$value[ $wp_key ] = implode( ',', $exclude_ids );
+					} else if ( 'nav_menu' === $wp_key && ! empty( $replace_data[ 'term_ids' ][ $wp_value ] ) ) {
+						$value[ $wp_key ] = $replace_data[ 'term_ids' ][ $wp_value ];
+					}
+				}
+			}
+		}
+
+		return $settings;
+	}
+
+	/**
+	 * Convert Elementor tag text to tag data
+	 *
+	 * @param string $tag_text
+	 * @return array|null
+	 */
+	public static function elementor_tag_text_to_tag_data( $tag_text ) {
+		preg_match( '/id="(.*?(?="))"/', $tag_text, $tag_id_match );
+		preg_match( '/name="(.*?(?="))"/', $tag_text, $tag_name_match );
+		preg_match( '/settings="(.*?(?="]))/', $tag_text, $tag_settings_match );
+
+		if ( ! $tag_id_match || ! $tag_name_match || ! $tag_settings_match ) {
+			return null;
+		}
+
+		return [
+			'id' => $tag_id_match[1],
+			'name' => $tag_name_match[1],
+			'settings' => json_decode( urldecode( $tag_settings_match[1] ), true ),
+		];
+	}
+
+	
     public static function upload_attachment( $fields = array() ) {
         $attachment_id = isset( $fields['post_id'] ) ? $fields['post_id'] : 0;
         $connect_id    = instawp_get_connect_id();
