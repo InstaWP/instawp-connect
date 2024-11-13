@@ -453,6 +453,22 @@ include $file_path;';
 			unset( $config_constants['COOKIE_DOMAIN'] );
 		}
 
+        if ( isset( $config_constants['DB_NAME'] ) ) {
+			unset( $config_constants['DB_NAME'] );
+		}
+
+        if ( isset( $config_constants['DB_USER'] ) ) {
+			unset( $config_constants['DB_USER'] );
+		}
+
+        if ( isset( $config_constants['DB_PASSWORD'] ) ) {
+			unset( $config_constants['DB_PASSWORD'] );
+		}
+
+        if ( isset( $config_constants['DB_HOST'] ) ) {
+			unset( $config_constants['DB_HOST'] );
+		}
+
 		if ( isset( $config_constants['ABSPATH'] ) ) {
 			$config_constants['ABSPATH'] = "dirname( __FILE__ ) . '/'";
 		}
