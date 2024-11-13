@@ -360,6 +360,7 @@ include $file_path;';
 			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/license.txt';
 			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/readme.html';
 			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/robots.txt';
+			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-config.php';
 		}
 
 		// Skip index.html file forcefully
