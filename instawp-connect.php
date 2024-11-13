@@ -141,9 +141,18 @@ run_instawp();
 add_action( 'wp_head', function () {
 	if ( isset( $_GET['debug'] ) ) {
 
-		echo "<pre>";
-		print_r( __FILE__ );
-		echo "</pre>";
+//		$all_defined = get_defined_constants( true );
+//		if ( isset( $all_defined['user'] ) ) {
+//			foreach ( $all_defined['user'] as $constant => $value ) {
+//				if ( ! isset( $defined_constants[ $constant ] ) ) {
+//					$defined_constants[ $constant ] = $value;
+//				}
+//			}
+//		}
+//
+//		echo '<pre>';
+//		print_r( $defined_constants );
+//		echo '</pre>';
 
 		die();
 	}

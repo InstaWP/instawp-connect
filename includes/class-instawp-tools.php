@@ -331,7 +331,7 @@ include $file_path;';
 		 */
 		if ( empty( $migrate_settings['mode'] ) || 'push' !== $migrate_settings['mode'] ) {
 			$migrate_settings['excluded_paths'][] = 'wp-admin';
-		    $migrate_settings['excluded_paths'][] = 'wp-includes';
+			$migrate_settings['excluded_paths'][] = 'wp-includes';
 		}
 
 		// Remove __wp__ folder for WPC file structure
@@ -405,7 +405,59 @@ include $file_path;';
 			}
 		}
 
+		$migrate_settings['wp_config_constants'] = self::get_wp_config_constants();
+
 		return apply_filters( 'instawp/filters/process_migration_settings', $migrate_settings );
+	}
+
+	public static function get_wp_config_constants( $config_path = '' ) {
+
+		if ( empty( $config_path ) ) {
+			$config_path = ABSPATH . 'wp-config.php';
+		}
+
+		$config_contents  = file_get_contents( $config_path );
+		$config_constants = array();
+
+		if ( $config_contents ) {
+			// Match define statements like: define('CONSTANT_NAME', 'value');
+			preg_match_all( "/define\s*\(\s*['\"]([^'\"]+)['\"]\s*,\s*([^)]+)\)/", $config_contents, $matches );
+
+			if ( ! empty( $matches[1] ) ) {
+				foreach ( $matches[1] as $index => $constant ) {
+					$value = trim( $matches[2][ $index ] );
+					// Remove quotes if present
+					$value = preg_replace( "/^['\"](.*)['\"]$/", "$1", $value );
+
+					// Only store if constant isn't already defined
+					if ( ! defined( $constant ) ) {
+						$config_constants[ $constant ] = $value;
+					} else {
+						// Get actual runtime value if constant is already defined
+						$config_constants[ $constant ] = constant( $constant );
+					}
+				}
+			}
+		}
+
+		// Remove some constants from config.php
+		if ( isset( $config_constants['WP_SITEURL'] ) ) {
+			unset( $config_constants['WP_SITEURL'] );
+		}
+
+		if ( isset( $config_constants['WP_HOME'] ) ) {
+			unset( $config_constants['WP_HOME'] );
+		}
+
+		if ( isset( $config_constants['COOKIE_DOMAIN'] ) ) {
+			unset( $config_constants['COOKIE_DOMAIN'] );
+		}
+
+		if ( isset( $config_constants['ABSPATH'] ) ) {
+			$config_constants['ABSPATH'] = "dirname( __FILE__ ) . '/'";
+		}
+
+		return $config_constants;
 	}
 
 	public static function inventory_migration_settings( $migrate_settings, $options, $relative_dir, $wp_root_dir ) {
