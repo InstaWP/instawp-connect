@@ -360,7 +360,7 @@ class InstaWP_Sync_Parser {
 			$featured_image = isset( $details['featured_image'] ) ? $details['featured_image'] : array();
 			$content_media  = isset( $details['media'] ) ? $details['media'] : array();
 			$taxonomies     = isset( $details['taxonomies'] ) ? $details['taxonomies'] : array();
-			$wp_post['ID']  = self::create_or_update_post( $wp_post, $post_meta, $details['reference_id'] );
+			$wp_post['ID']  = self::create_or_update_post( $wp_post, $post_meta, $details['reference_id'], $details );
 
 			delete_post_thumbnail( $wp_post['ID'] );
 
@@ -449,14 +449,26 @@ class InstaWP_Sync_Parser {
 				$data['featured_image'] = self::generate_attachment_data( $featured_image_id );
 			}
 
+			// Set dynamic data
+			$data['ids'] = array(
+				'post_ids' => array(),
+				'term_ids' => array(),
+				'user_ids' => array(),
+			);
+
 			// Flattens the post meta array by replacing single-element arrays with their sole element.
 			$flat_meta = InstaWP_Sync_Helpers::flat_post_meta( $data['post_meta'] );
 			// If edit with elementor then get media from elementor data
 			if ( ! empty( $flat_meta['_elementor_data'] ) && InstaWP_Sync_Helpers::is_built_with_elementor( $post->ID ) && is_string( $flat_meta['_elementor_data'] ) ) {
 				$data['media'] = self::get_media_from_content( wp_unslash( $flat_meta['_elementor_data'] ) );
-				$data['ids'] = self::extract_dynamic_elementor_data( json_decode( $flat_meta['_elementor_data'], true ) );
+				$data['ids'] = self::extract_dynamic_elementor_data( json_decode( $flat_meta['_elementor_data'], true ), $data['ids'] );
 			} else if ( ! empty( $post_content ) ) {
 				$data['media'] = self::get_media_from_content( $post_content );
+				if ( has_blocks( $post_content ) ) {
+					// Get dynamic data
+					$data['ids'] = self::extract_dynamic_gutenberg_data( parse_blocks( $post_content ), $data['ids'] );
+				}
+				
 			}
 		}
 
@@ -473,18 +485,18 @@ class InstaWP_Sync_Parser {
 		return $data;
 	}
 
-	public static function create_or_update_post( $post, $post_meta, $reference_id ) {
+	public static function create_or_update_post( $post, $post_meta, $reference_id, $details = array() ) {
 		$destination_post = InstaWP_Sync_Helpers::get_post_by_reference( $post['post_type'], $reference_id, $post['post_name'] );
 
 		if ( ! empty( $destination_post ) ) {
 			unset( $post['post_author'] );
-			$post_id = wp_update_post( self::prepare_post_data( $post, $destination_post->ID ) );
+			$post_id = wp_update_post( self::prepare_post_data( $post, $destination_post->ID, $details ) );
 		} else {
 			$default_post_user = Option::get_option( 'instawp_default_user' );
 			if ( ! empty( $default_post_user ) ) {
 				$post['post_author'] = $default_post_user;
 			}
-			$post_id = wp_insert_post( self::prepare_post_data( $post ) );
+			$post_id = wp_insert_post( self::prepare_post_data( $post, 0, $details ) );
 		}
 
 		if ( $post_id && ! is_wp_error( $post_id ) ) {
@@ -496,11 +508,24 @@ class InstaWP_Sync_Parser {
 		return 0;
 	}
 
-	public static function prepare_post_data( $post, $post_id = 0 ) {
+	public static function prepare_post_data( $post, $post_id = 0, $details = array() ) {
 		unset( $post['ID'], $post['guid'] );
 
 		if ( isset( $post['post_content'] ) ) {
 			$post['post_content'] = base64_decode( $post['post_content'] ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
+			if ( ! empty( $details['ids'] ) && has_blocks( $post['post_content'] ) ) {
+				$blocks = parse_blocks( $post['post_content'] );
+				if ( ! empty( $blocks ) ) {
+					// Prepare post, term and user ids
+					$blocks = self::process_gutenberg_blocks( 
+						$blocks,
+						InstaWP_Sync_Helpers::prepare_post_term_user_ids( $details['ids'] )
+					);
+					if ( ! empty( $blocks ) || is_array( $blocks ) ) {
+						$post['post_content'] = wp_slash( serialize_blocks( $blocks ) );
+					}
+				}
+			}
 		}
 
 		if ( $post_id ) {
@@ -508,6 +533,115 @@ class InstaWP_Sync_Parser {
 		}
 
 		return $post;
+	}
+
+	/**
+	 * Replace block content
+	 *
+	 * @param array $block
+	 * @param string|array $search
+	 * @param string|array $replace
+	 * 
+	 * @return array $block The processed block
+	 */
+	public static function replace_block_content( $block, $search, $replace ) {
+		if ( empty( $search ) || empty( $replace ) ) {
+			return $block;
+		}
+		foreach ( array( 'innerHTML', 'innerContent' ) as $key ) {
+			if ( ! empty( $block[ $key ] ) ) {
+				$block[ $key ] = str_replace( $search, $replace, $block[ $key ] );
+			}
+		}
+		return $block;
+	}
+
+	/**
+	 * Process Gutenberg content
+	 * Replaces dynamic data in the content.
+	 * @param array $blocks The Gutenberg parse_blocks
+	 * @param array $replace_data post, term and user ids to be replaced
+	 * 
+	 * @return array The processed blocks
+	 */
+	private static function process_gutenberg_blocks( $blocks, $replace_data ) {
+		if ( empty( $blocks ) || ! is_array( $blocks ) || empty( $replace_data ) || ! is_array( $replace_data ) ) {
+			return $blocks;
+		}
+
+		foreach ( $blocks as &$block ) {
+			if ( empty( $block['blockName'] ) ) {
+				continue;
+			}
+			
+			// Kadence blocks
+			if ( false !== strpos( $block['blockName'], 'kadence/' ) || 'core/image' === $block['blockName'] ) {
+				if ( ! empty( $block['attrs'] ) && is_array( $block['attrs'] ) ) {
+					foreach ( array( 'id', 'ids', 'icon', 'categories', 'tags' ) as $attr_key ) {
+						// Skip if attribute is empty
+						if ( empty( $block['attrs'][ $attr_key ] ) ) {
+							continue;
+						}
+						$attr_value = $block['attrs'][ $attr_key ];
+
+						if ( 'id' === $attr_key ) {
+							if ( is_numeric( $attr_value ) && isset( $replace_data['post_ids'][ $attr_value ] ) ) {
+								$block['attrs'][ $attr_key ] = $replace_data['post_ids'][ $attr_value ];
+							}
+						} else if ( 'ids' === $attr_key ) {
+							if ( is_array( $attr_value ) ) {
+								foreach ( $attr_value as $attr_val_key => $attr_val ) {
+									if ( isset( $replace_data['post_ids'][ $attr_val ] ) ) {
+										$block['attrs'][ $attr_key ][ $attr_val_key ] = $replace_data['post_ids'][ $attr_val ];
+									}
+								}
+								// kadence advanced gallery block
+								if ( ! empty( $block['attrs'][ 'imagesDynamic' ] ) && is_array( $block['attrs'][ 'imagesDynamic' ] ) ) {
+									foreach ( $block['attrs'][ 'imagesDynamic' ] as $image_dynamic_key => $image_dynamic_value ) {
+										if ( ! empty( $image_dynamic_value['id'] ) && isset( $replace_data['post_ids'][ $image_dynamic_value['id'] ] ) ) {
+											// Replace id
+											$block['attrs']['imagesDynamic'][ $image_dynamic_key ]['id'] = $replace_data['post_ids'][ $image_dynamic_value['id'] ];
+											if ( ! empty( $image_dynamic_value['link'] ) ) {
+												// Replace link
+												$block['attrs']['imagesDynamic'][ $image_dynamic_key ]['link'] = str_replace( 
+													parse_url( wp_unslash( $image_dynamic_value['link'] ), PHP_URL_HOST ), 
+													parse_url( home_url(), PHP_URL_HOST ), 
+													$image_dynamic_value['link'] 
+												);
+											}
+										}
+									}
+								}
+							}
+						} else if ( 'icon' === $attr_key ) {
+							if ( false !== strpos( $attr_value, 'kb-custom-' ) ) {
+								// Remove kb-custom- prefix
+								$icon_id = str_replace( 'kb-custom-', '', $attr_value );
+								if ( isset( $replace_data['post_ids'][ $icon_id ] ) ) {
+									$new_icon_id = 'kb-custom-' . $replace_data['post_ids'][ $icon_id ];
+									$block['attrs'][ $attr_key ] = $new_icon_id;
+									$block = self::replace_block_content( $block, $attr_value, $new_icon_id );
+								}
+							}
+						} else if ( in_array( $attr_key, array( 'categories', 'tags' ) ) ) {
+							if ( is_array( $attr_value ) ) {
+								foreach ( $attr_value as $attr_val_key => $attr_val ) {
+									if ( ! is_array( $attr_val ) || empty( $attr_val['value'] ) || ! is_numeric( $attr_val['value'] ) || ! isset( $replace_data['term_ids'][ $attr_val['value'] ] ) ) {
+										continue;
+									}
+									$block['attrs'][ $attr_key ][ $attr_val_key ]['value'] = $replace_data['term_ids'][ $attr_val['value'] ];
+								}
+							}
+						}
+					}
+				}
+
+				if ( ! empty( $block['innerBlocks'] ) ) {
+					$block['innerBlocks'] = self::process_gutenberg_blocks( $block['innerBlocks'], $replace_data );
+				}
+			}
+		}
+		return $blocks;
 	}
 
 	/**
@@ -575,54 +709,7 @@ class InstaWP_Sync_Parser {
 			return;
 		}
 
-		// Prepare post and term ids
-		foreach ( $replace_data as $item_type => $item_ids ) {
-			if ( ! in_array( $item_type, array( 'post_ids', 'term_ids', 'user_ids' ) ) ) {
-				continue;
-			}
-			foreach ( $item_ids as $item_id => $item ) {
-				if ( ! is_array( $item ) ) {
-					continue;
-				}
-				if ( empty( $item['reference_id'] ) ) {
-					unset( $replace_data[ $item_type ][ $item_id ] );
-					continue;
-				}
-				$is_set_id = false; // flag to check if id is set
-				if ( $item_type === 'post_ids' ) {
-					if ( is_array( $item ) ) {
-						if ( ! empty( $item['post_type'] ) && isset( $item['post_name'] ) ) {
-							$post = InstaWP_Sync_Helpers::get_post_by_reference( $item['post_type'], $item['reference_id'], $item['post_name'] );
-							if ( ! empty( $post ) ) {
-								$replace_data[ $item_type ][ $item_id ] = $post->ID;
-								$is_set_id = true;
-							}
-						} 
-					}
-				} else if ( $item_type === 'term_ids' ) {
-					if ( ! empty( $item['taxonomy'] ) && isset( $item['slug'] ) ) {
-						$term = InstaWP_Sync_Helpers::get_term_by_reference( $item['taxonomy'], $item['reference_id'], $item['slug'] );
-						if ( ! empty( $term ) ) {
-							$replace_data[ $item_type ][ $item_id ] = $term->term_id;
-							$is_set_id = true;
-						}
-					}
-				} else if ( $item_type === 'user_ids' ) {
-					if ( ! empty( $item['user_email'] ) ) {
-						$user = get_user_by( 'email', $item['user_email'] );
-						if ( ! empty( $user ) ) {
-							$replace_data[ $item_type ][ $item_id ] = $user->ID;
-							$is_set_id = true;
-						}
-					}
-				}
-
-				if ( ! $is_set_id ) {
-					// unset if id is not set
-					unset( $replace_data[ $item_type ][ $item_id ] );
-				}
-			}
-		}
+		$replace_data = InstaWP_Sync_Helpers::prepare_post_term_user_ids( $replace_data );
 
 		$elementor_data = json_decode( $elementor_data, true );
 		if ( ! empty( $elementor_data ) ) {
@@ -643,7 +730,10 @@ class InstaWP_Sync_Parser {
 	 * @return void
 	 */
 	private static function add_reference_data( &$data, $id, $type = 'post_ids', $taxonomy = '' ) {
-		$id = empty( $id ) ? 0 : intval( $id );
+		if ( empty( $id ) || ! is_numeric( $id ) ) {
+			return;
+		}
+		$id = intval( $id );
 		// Return if reference id is already set
 		if ( isset( $data[ $type ][ $id ] ) || 0 >= $id ) {
 			return;
@@ -677,6 +767,81 @@ class InstaWP_Sync_Parser {
 	}
 
 	/**
+	 * Get dynamic data from Gutenberg blocks
+	 *
+	 * @param string $blocks The Gutenberg blocks
+	 * 
+	 * @return array Dynamic data
+	 */
+	private static function extract_dynamic_gutenberg_data( $blocks, $dynamic_data = array() ) {
+		if ( empty( $blocks ) || ! is_array( $blocks ) ) {
+			return $dynamic_data;
+		}
+		// Set dynamic data
+		if ( ! isset( $dynamic_data['post_ids'] ) ) {
+			$dynamic_data = array(
+				'post_ids' => array(),
+				'term_ids' => array(),
+				'user_ids' => array(),
+			);
+		}
+
+		foreach ( $blocks as $block ) {
+			if ( empty( $block['blockName'] ) ) {
+				continue;
+			}
+			// Kadence blocks
+			if ( false !== strpos( $block['blockName'], 'kadence/' ) || 'core/image' === $block['blockName'] ) {
+				if ( ! empty( $block['attrs'] ) && is_array( $block['attrs'] ) ) {
+					foreach ( array( 'id', 'ids', 'icon', 'categories', 'tags' ) as $attr_key ) {
+						// Skip if attribute is empty
+						if ( empty( $block['attrs'][ $attr_key ] ) ) {
+							continue;
+						}
+						$attr_value = $block['attrs'][ $attr_key ];
+
+						if ( 'id' === $attr_key ) {
+							self::add_reference_data( $dynamic_data, $attr_value );
+						} else if ( 'ids' === $attr_key ) {
+							if ( is_array( $attr_value ) ) {
+								foreach ( $attr_value as $attr_val ) {
+									self::add_reference_data( $dynamic_data, $attr_val );
+								}
+							}
+						} else if ( 'icon' === $attr_key ) {
+							if ( false !== strpos( $attr_value, 'kb-custom-' ) ) {
+								// Remove kb-custom- prefix
+								$icon_id = str_replace( 'kb-custom-', '', $attr_value );
+								self::add_reference_data( $dynamic_data, $icon_id );
+							}
+						} else if ( in_array( $attr_key, array( 'categories', 'tags' ) ) ) {
+							if ( is_array( $attr_value ) ) {
+								foreach ( $attr_value as $attr_val ) {
+									if ( ! is_array( $attr_val ) || empty( $attr_val['value'] ) ) {
+										continue;
+									}
+									self::add_reference_data(
+										$dynamic_data,
+										$attr_val['value'], 
+										'term_ids',
+										$attr_key === 'categories' ? 'category' : 'post_tag'
+									);
+								}
+							}
+						}
+					}
+				}
+
+				if ( ! empty( $block['innerBlocks'] ) ) {
+					$dynamic_data = self::extract_dynamic_gutenberg_data( $block['innerBlocks'], $dynamic_data );
+				}
+			}
+		}
+		return $dynamic_data;
+	}
+
+
+	/**
 	 * Get dynamic data from Elementor data
 	 *
 	 * @param array $elementor_data The Elementor data array
@@ -685,7 +850,7 @@ class InstaWP_Sync_Parser {
 	 */
 	private static function extract_dynamic_elementor_data( $elementor_data, $dynamic_data = array() ) {
 		if ( empty( $elementor_data ) || ! is_array( $elementor_data ) ) {
-			return array();
+			return $dynamic_data;
 		}
 
 		if ( ! isset( $dynamic_data['post_ids'] ) ) {

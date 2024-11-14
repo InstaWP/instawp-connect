@@ -340,4 +340,62 @@ class InstaWP_Sync_Helpers {
 
 		return true;
 	}
+
+	/**
+	 * Prepare post, term and user ids
+	 *
+	 * @param array $data
+	 * @return array
+	 */
+	public static function prepare_post_term_user_ids( $data = array() ) {
+		foreach ( $data as $item_type => $item_ids ) {
+			if ( ! in_array( $item_type, array( 'post_ids', 'term_ids', 'user_ids' ) ) ) {
+				continue;
+			}
+			foreach ( $item_ids as $item_id => $item ) {
+				if ( ! is_array( $item ) ) {
+					continue;
+				}
+				if ( empty( $item['reference_id'] ) ) {
+					unset( $data[ $item_type ][ $item_id ] );
+					continue;
+				}
+				$is_set_id = false; // flag to check if id is set
+				if ( $item_type === 'post_ids' ) {
+					if ( is_array( $item ) ) {
+						if ( ! empty( $item['post_type'] ) && isset( $item['post_name'] ) ) {
+							$post = self::get_post_by_reference( $item['post_type'], $item['reference_id'], $item['post_name'] );
+							if ( ! empty( $post ) ) {
+								$data[ $item_type ][ $item_id ] = $post->ID;
+								$is_set_id = true;
+							}
+						} 
+					}
+				} else if ( $item_type === 'term_ids' ) {
+					if ( ! empty( $item['taxonomy'] ) && isset( $item['slug'] ) ) {
+						$term = self::get_term_by_reference( $item['taxonomy'], $item['reference_id'], $item['slug'] );
+						if ( ! empty( $term ) ) {
+							$data[ $item_type ][ $item_id ] = $term->term_id;
+							$is_set_id = true;
+						}
+					}
+				} else if ( $item_type === 'user_ids' ) {
+					if ( ! empty( $item['user_email'] ) ) {
+						$user = get_user_by( 'email', $item['user_email'] );
+						if ( ! empty( $user ) ) {
+							$data[ $item_type ][ $item_id ] = $user->ID;
+							$is_set_id = true;
+						}
+					}
+				}
+
+				if ( ! $is_set_id ) {
+					// unset if id is not set
+					unset( $data[ $item_type ][ $item_id ] );
+				}
+			}
+		}
+
+		return $data;
+	}
 }
