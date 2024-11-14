@@ -103,6 +103,12 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 - FIX: Sync plugin and theme update php error
 - FIX: Auto fetch JWT from API.
 - FIX: Added support for wp-content in the root path.
+- FIX: Elementor image or icon upload sync.
+- FIX: Scaled image sync.
+- FIX: Elementor dynamic page content
+- FIX: Kadence block css sync.
+- FIX: WordPress editor image, icon and gallery block sync.
+- FIX: Kadence dynamic page content sync.
 
 = 0.1.0.64 - 30 October 2024 =
 - New: Sync WooCommerce order notes.

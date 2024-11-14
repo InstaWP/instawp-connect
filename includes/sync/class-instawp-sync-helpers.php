@@ -50,6 +50,31 @@ class InstaWP_Sync_Helpers {
 	}
 
 	/**
+	 * Retrieve the post type name, post name and its associated reference ID.
+	 *
+	 * @param int $post_id The ID of the post to retrieve.
+	 *
+	 * @return array An associative array containing the post type name, post name and its reference ID.
+	 */
+	public static function get_post_type_name_reference_id( $post_id ) {
+		if ( empty( $post_id ) || ! is_numeric( $post_id ) || 0 >= intval( $post_id ) ) {
+			return false;
+		}
+
+		$post = get_post( $post_id );
+
+		if ( empty( $post ) ) {
+			return false;
+		}
+
+		return array(
+			'post_type' 	=> $post->post_type,
+			'post_name' 	=> $post->post_name,
+			'reference_id' 	=> self::get_post_reference_id( $post->ID ),
+		);
+	}
+
+	/**
 	 * Retrieve the post data, post meta and its associated reference ID.
 	 *
 	 * @param int $post_id The ID of the post to retrieve.
@@ -92,6 +117,31 @@ class InstaWP_Sync_Helpers {
 		$reference_id = get_term_meta( $term_id, 'instawp_event_term_sync_reference_id', true );
 
 		return ! empty( $reference_id ) ? $reference_id : self::set_term_reference_id( $term_id );
+	}
+
+	/**
+	 * Retrieve the term taxonomy, slug and its associated reference ID.
+	 *
+	 * @param int $term_id The ID of the term to retrieve.
+	 *
+	 * @return array An associative array containing the term taxonomy, slug and its reference ID.
+	 */
+	public static function get_term_taxonomy_slug_reference_id( $term_id, $taxonomy = '' ) {
+		if ( empty( $term_id ) || ! is_numeric( $term_id ) || 0 >= intval( $term_id ) ) {
+			return false;
+		}
+
+		$term = get_term( $term_id, $taxonomy );
+
+		if ( empty( $term ) || is_wp_error( $term ) ) {
+			return false;
+		}
+
+		return array(
+			'taxonomy' 		=> $term->taxonomy,
+			'slug' 			=> $term->slug,
+			'reference_id' 	=> self::get_term_reference_id( $term->term_id ),
+		);
 	}
 
 	/*
@@ -195,6 +245,29 @@ class InstaWP_Sync_Helpers {
 		return null;
 	}
 
+	/**
+	 * Flattens the post meta array by replacing single-element arrays with their sole element.
+	 *
+	 * Iterates through the provided meta array and for each key, if the value is an array with
+	 * exactly one element, it replaces the array with that single element.
+	 *
+	 * @param array $meta The meta data array where keys are meta keys and values are meta values,
+	 *                    which can be single-element arrays.
+	 *                    
+	 * @return array The flattened meta array with single-element arrays replaced by their element.
+	 */
+	public static function flat_post_meta( $meta = array() ) {
+		if ( empty( $meta ) || ! is_array( $meta ) ) {
+			return array();
+		}
+		foreach ( $meta as $key => $value ) {
+			if ( is_array( $value ) && 1 === count( $value ) && isset( $value[0] ) ) {
+				$meta[ $key ] = $value[0];
+			}
+		}
+		return $meta;
+	}
+
 	public static function get_post_by_reference( $post_type, $reference_id, $post_name ) {
 		$post = get_posts( array(
 			'post_type'   => $post_type,
@@ -266,5 +339,63 @@ class InstaWP_Sync_Helpers {
         }
 
 		return true;
+	}
+
+	/**
+	 * Prepare post, term and user ids
+	 *
+	 * @param array $data
+	 * @return array
+	 */
+	public static function prepare_post_term_user_ids( $data = array() ) {
+		foreach ( $data as $item_type => $item_ids ) {
+			if ( ! in_array( $item_type, array( 'post_ids', 'term_ids', 'user_ids' ) ) ) {
+				continue;
+			}
+			foreach ( $item_ids as $item_id => $item ) {
+				if ( ! is_array( $item ) ) {
+					continue;
+				}
+				if ( empty( $item['reference_id'] ) ) {
+					unset( $data[ $item_type ][ $item_id ] );
+					continue;
+				}
+				$is_set_id = false; // flag to check if id is set
+				if ( $item_type === 'post_ids' ) {
+					if ( is_array( $item ) ) {
+						if ( ! empty( $item['post_type'] ) && isset( $item['post_name'] ) ) {
+							$post = self::get_post_by_reference( $item['post_type'], $item['reference_id'], $item['post_name'] );
+							if ( ! empty( $post ) ) {
+								$data[ $item_type ][ $item_id ] = $post->ID;
+								$is_set_id = true;
+							}
+						} 
+					}
+				} else if ( $item_type === 'term_ids' ) {
+					if ( ! empty( $item['taxonomy'] ) && isset( $item['slug'] ) ) {
+						$term = self::get_term_by_reference( $item['taxonomy'], $item['reference_id'], $item['slug'] );
+						if ( ! empty( $term ) ) {
+							$data[ $item_type ][ $item_id ] = $term->term_id;
+							$is_set_id = true;
+						}
+					}
+				} else if ( $item_type === 'user_ids' ) {
+					if ( ! empty( $item['user_email'] ) ) {
+						$user = get_user_by( 'email', $item['user_email'] );
+						if ( ! empty( $user ) ) {
+							$data[ $item_type ][ $item_id ] = $user->ID;
+							$is_set_id = true;
+						}
+					}
+				}
+
+				if ( ! $is_set_id ) {
+					// unset if id is not set
+					unset( $data[ $item_type ][ $item_id ] );
+				}
+			}
+		}
+
+		return $data;
 	}
 }
