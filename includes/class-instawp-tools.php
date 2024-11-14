@@ -366,6 +366,7 @@ include $file_path;';
 		// Skip index.html file forcefully
 		$migrate_settings['excluded_paths'][] = 'index.html';
 		$migrate_settings['excluded_paths'][] = '.user.ini';
+		$migrate_settings['excluded_paths'][] = 'wp-config.php';
 
 		// Skip mu-pluginsold folder
 		$migrate_settings['excluded_paths'][] = $relative_dir . '/mu-plugins/mu-pluginsold';
@@ -405,6 +406,9 @@ include $file_path;';
 				$migrate_settings['excluded_paths'][] = str_replace( ABSPATH, '', $upload_base_dir );
 			}
 		}
+
+		global $table_prefix;
+		$migrate_settings['table_prefix'] = $table_prefix;
 
 		$migrate_settings['wp_config_constants'] = self::get_wp_config_constants();
 
@@ -454,19 +458,19 @@ include $file_path;';
 			unset( $config_constants['COOKIE_DOMAIN'] );
 		}
 
-        if ( isset( $config_constants['DB_NAME'] ) ) {
+		if ( isset( $config_constants['DB_NAME'] ) ) {
 			unset( $config_constants['DB_NAME'] );
 		}
 
-        if ( isset( $config_constants['DB_USER'] ) ) {
+		if ( isset( $config_constants['DB_USER'] ) ) {
 			unset( $config_constants['DB_USER'] );
 		}
 
-        if ( isset( $config_constants['DB_PASSWORD'] ) ) {
+		if ( isset( $config_constants['DB_PASSWORD'] ) ) {
 			unset( $config_constants['DB_PASSWORD'] );
 		}
 
-        if ( isset( $config_constants['DB_HOST'] ) ) {
+		if ( isset( $config_constants['DB_HOST'] ) ) {
 			unset( $config_constants['DB_HOST'] );
 		}
 

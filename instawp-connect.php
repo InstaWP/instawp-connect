@@ -141,18 +141,11 @@ run_instawp();
 add_action( 'wp_head', function () {
 	if ( isset( $_GET['debug'] ) ) {
 
-		$config_constants = InstaWP_Tools::get_wp_config_constants();
-
-		unset( $config_constants['DB_NAME'] );
-		unset( $config_constants['DB_USER'] );
-		unset( $config_constants['DB_PASSWORD'] );
-		unset( $config_constants['DB_HOST'] );
-
-		$config_constants = json_encode( $config_constants );
-
-		echo '<pre>';
-		print_r( $config_constants );
-		echo '</pre>';
+//		$config_constants = InstaWP_Tools::get_wp_config_constants();
+//
+//		echo '<pre>';
+//		print_r( $config_constants );
+//		echo '</pre>';
 
 		die();
 	}
