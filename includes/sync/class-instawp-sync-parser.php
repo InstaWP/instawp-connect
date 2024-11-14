@@ -578,11 +578,11 @@ class InstaWP_Sync_Parser {
 			if ( false !== strpos( $block['blockName'], 'kadence/' ) || 'core/image' === $block['blockName'] ) {
 				if ( ! empty( $block['attrs'] ) && is_array( $block['attrs'] ) ) {
 					foreach ( array( 'id', 'ids', 'icon', 'categories', 'tags' ) as $attr_key ) {
-						$attr_value = $block['attrs'][ $attr_key ];
 						// Skip if attribute is empty
-						if ( empty( $attr_value ) ) {
+						if ( empty( $block['attrs'][ $attr_key ] ) ) {
 							continue;
 						}
+						$attr_value = $block['attrs'][ $attr_key ];
 						
 						if ( 'id' === $attr_key ) {
 							if ( is_numeric( $attr_value ) && isset( $replace_data['post_ids'][ $attr_value ] ) ) {
