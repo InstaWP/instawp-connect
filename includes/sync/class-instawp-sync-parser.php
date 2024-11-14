@@ -578,15 +578,23 @@ class InstaWP_Sync_Parser {
 			if ( false !== strpos( $block['blockName'], 'kadence/' ) || 'core/image' === $block['blockName'] ) {
 				if ( ! empty( $block['attrs'] ) && is_array( $block['attrs'] ) ) {
 					foreach ( array( 'id', 'ids', 'icon', 'categories', 'tags' ) as $attr_key ) {
+						$attr_value = $block['attrs'][ $attr_key ];
 						// Skip if attribute is empty
-						if ( empty( $block['attrs'][ $attr_key ] ) ) {
+						if ( empty( $attr_value ) ) {
 							continue;
 						}
-						$attr_value = $block['attrs'][ $attr_key ];
-
+						
 						if ( 'id' === $attr_key ) {
 							if ( is_numeric( $attr_value ) && isset( $replace_data['post_ids'][ $attr_value ] ) ) {
 								$block['attrs'][ $attr_key ] = $replace_data['post_ids'][ $attr_value ];
+								// Replace image id
+								if ( in_array( $block['blockName'], array( 'core/image', 'kadence/image' ) ) ) {
+									$block = self::replace_block_content( 
+										$block, 
+										'wp-image-' . $attr_value, 
+										'wp-image-' . $replace_data['post_ids'][ $attr_value ] 
+									);
+								}
 							}
 						} else if ( 'ids' === $attr_key ) {
 							if ( is_array( $attr_value ) ) {
@@ -635,10 +643,10 @@ class InstaWP_Sync_Parser {
 						}
 					}
 				}
+			}
 
-				if ( ! empty( $block['innerBlocks'] ) ) {
-					$block['innerBlocks'] = self::process_gutenberg_blocks( $block['innerBlocks'], $replace_data );
-				}
+			if ( ! empty( $block['innerBlocks'] ) ) {
+				$block['innerBlocks'] = self::process_gutenberg_blocks( $block['innerBlocks'], $replace_data );
 			}
 		}
 		return $blocks;
