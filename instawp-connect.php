@@ -136,17 +136,3 @@ function run_instawp() {
 add_filter( 'got_rewrite', '__return_true' );
 
 run_instawp();
-
-
-add_action( 'wp_head', function () {
-	if ( isset( $_GET['debug'] ) ) {
-
-//		$config_constants = InstaWP_Tools::get_wp_config_constants();
-//
-//		echo '<pre>';
-//		print_r( $config_constants );
-//		echo '</pre>';
-
-		die();
-	}
-}, 0 );
