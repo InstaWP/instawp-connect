@@ -2,9 +2,9 @@
 Contributors: instawp
 Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.6
-Tested up to: 6.6
+Tested up to: 6.7
 Requires PHP: 7.0
-Stable tag: 0.1.0.64
+Stable tag: 0.1.0.65
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -97,6 +97,19 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 You can report security bugs through the Patchstack Vulnerability Disclosure Program. The Patchstack team helps validate, triage, and handle any security vulnerabilities. [Report a security vulnerability](https://patchstack.com/database/vdp/instawp-connect).
 
 == Changelog ==
+
+= 0.1.0.65 - 15 October 2024 =
+- NEW: Push migration create backup of plugins, themes and mu-plugin files before start.
+- FIX: Sync plugin and theme update php error
+- FIX: Auto fetch JWT from API.
+- FIX: Added support for wp-content in the root path.
+- FIX: Elementor image or icon upload sync.
+- FIX: Scaled image sync.
+- FIX: Elementor dynamic page content
+- FIX: Kadence block css sync.
+- FIX: WordPress editor image, icon and gallery block sync.
+- FIX: Kadence dynamic page content sync.
+- FIX: Sync post content links.
 
 = 0.1.0.64 - 30 October 2024 =
 - New: Sync WooCommerce order notes.
