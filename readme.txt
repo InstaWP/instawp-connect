@@ -2,7 +2,7 @@
 Contributors: instawp
 Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.6
-Tested up to: 6.6
+Tested up to: 6.7
 Requires PHP: 7.0
 Stable tag: 0.1.0.65
 License: GPLv3 or later
@@ -98,7 +98,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
-= 0.1.0.65 - =
+= 0.1.0.65 - 15 October 2024 =
 - NEW: Push migration create backup of plugins, themes and mu-plugin files before start.
 - FIX: Sync plugin and theme update php error
 - FIX: Auto fetch JWT from API.
