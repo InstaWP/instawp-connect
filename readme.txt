@@ -109,6 +109,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 - FIX: Kadence block css sync.
 - FIX: WordPress editor image, icon and gallery block sync.
 - FIX: Kadence dynamic page content sync.
+- FIX: Sync post content links.
 
 = 0.1.0.64 - 30 October 2024 =
 - New: Sync WooCommerce order notes.
