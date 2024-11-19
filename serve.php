@@ -575,7 +575,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 
 	$excluded_tables       = isset( $migrate_settings['excluded_tables'] ) ? $migrate_settings['excluded_tables'] : array();
 	$excluded_tables_rows  = isset( $migrate_settings['excluded_tables_rows'] ) ? $migrate_settings['excluded_tables_rows'] : array();
-	$total_tracking_tables = $tracking_db->query_count( 'iwp_db_sent' );
+	$total_tracking_tables = (int) $tracking_db->query_count( 'iwp_db_sent' );
 
 	// Skip our files sent table
 	if ( ! in_array( 'iwp_files_sent', $excluded_tables ) ) {
@@ -710,7 +710,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 		$tracking_db->update( 'iwp_db_sent', array( 'completed' => '1' ), array( 'table_name_hash' => hash( 'sha256', $curr_table_name ) ) );
 	}
 
-	$completed_tables   = $tracking_db->query_count( 'iwp_db_sent', array( 'completed' => '1' ) );
+	$completed_tables   = (int) $tracking_db->query_count( 'iwp_db_sent', array( 'completed' => '1' ) );
 	$tracking_progress  = $completed_tables === 0 || $total_tracking_tables === 0 ? 0 : number_format( ( $completed_tables * 100 ) / $total_tracking_tables, 2, '.', '' );
 	$row_based_progress = number_format( $finished_total / $rows_total_all * 100, 2, '.', '' );
 	$avg_progress       = round( ( (float) $row_based_progress + (float) $tracking_progress ) / 2 );
