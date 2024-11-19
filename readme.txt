@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.6
 Tested up to: 6.7
 Requires PHP: 7.0
-Stable tag: 0.1.0.65
+Stable tag: 0.1.0.66
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -98,10 +98,11 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
-= 0.1.0.66 - =
+= 0.1.0.66 - 19 November 2024 =
 - FIX: Sync Kadence form, dynamic list, dynamic HTML, Navigation block content.
+- FIX: Fixed database table schema missing issue in pull migration.
 
-= 0.1.0.65 - 15 October 2024 =
+= 0.1.0.65 - 15 November 2024 =
 - NEW: Push migration create backup of plugins, themes and mu-plugin files before start.
 - FIX: Sync plugin and theme update php error
 - FIX: Auto fetch JWT from API.
