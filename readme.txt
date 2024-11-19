@@ -98,6 +98,9 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 0.1.0.66 - =
+- FIX: Sync Kadence form, dynamic list, dynamic HTML, Navigation block content.
+
 = 0.1.0.65 - 15 October 2024 =
 - NEW: Push migration create backup of plugins, themes and mu-plugin files before start.
 - FIX: Sync plugin and theme update php error
