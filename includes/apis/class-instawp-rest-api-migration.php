@@ -107,7 +107,7 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 		InstaWP_Tools::clean_instawpbackups_dir();
 
 		$migrate_key      = Helper::get_random_string( 40 );
-		$migrate_settings = InstaWP_Tools::get_migrate_settings( [], [ 'mode' => 'push' ] );
+		$migrate_settings = InstaWP_Tools::get_migrate_settings( array(), array( 'mode' => 'push' ) );
 		$api_signature    = hash( 'sha512', $migrate_key . wp_generate_uuid4() );
 		$dest_file_url    = InstaWP_Tools::generate_destination_file( $migrate_key, $api_signature, $migrate_settings );
 

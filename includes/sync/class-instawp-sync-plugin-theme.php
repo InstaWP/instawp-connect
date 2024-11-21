@@ -330,7 +330,7 @@ class InstaWP_Sync_Plugin_Theme {
 					
 					if ( isset( $response[ $v->details->path ] ) ) {
 						$response = $response[ $v->details->path ];
-					} else if ( isset( $response[0] ) ) {
+					} elseif ( isset( $response[0] ) ) {
 						$response = $response[0];
 					}
 
@@ -456,7 +456,7 @@ class InstaWP_Sync_Plugin_Theme {
 
 				if ( isset( $response[ $stylesheet ] ) ) {
 					$response = $response[ $stylesheet ];
-				} else if ( isset( $response[0] ) ) {
+				} elseif ( isset( $response[0] ) ) {
 					$response = $response[0];
 				}
 
