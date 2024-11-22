@@ -119,7 +119,7 @@ class InstaWP_Sync_Post {
 			$post 
 		);
 
-		 // Re-hook this function.
+		// Re-hook this function.
         add_action( 'save_post', array( $this, 'save_post' ), 999, 2 );
 	}
 

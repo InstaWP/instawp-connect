@@ -214,7 +214,7 @@ class InstaWP_Sync_Parser {
 	 */
 	public static function process_scaled_image( $data, $id ) {
 		
-		if ( empty( $id ) || empty( $data['post_meta'] ) || empty( $data['post_meta']['_wp_attached_file'] ) || !  is_array( $data['post_meta']['_wp_attached_file'] ) ) {
+		if ( empty( $id ) || empty( $data['post_meta'] ) || empty( $data['post_meta']['_wp_attached_file'] ) || ! is_array( $data['post_meta']['_wp_attached_file'] ) ) {
 			return;
 		}
 
@@ -274,7 +274,7 @@ class InstaWP_Sync_Parser {
 			} 
 
 			$metadata = _wp_image_meta_replace_original( $saved, $file, $metadata, $id );
-			wp_update_attachment_metadata( $id, $metadata );	
+			wp_update_attachment_metadata( $id, $metadata );    
 			
 		} catch ( \Exception $e ) {
 			error_log( " Failed to get scaled image " . $e->getMessage() . " " . json_encode( $data ) );
@@ -463,14 +463,13 @@ class InstaWP_Sync_Parser {
 			if ( ! empty( $flat_meta['_elementor_data'] ) && InstaWP_Sync_Helpers::is_built_with_elementor( $post->ID ) && is_string( $flat_meta['_elementor_data'] ) ) {
 				$data['media'] = self::get_media_from_content( wp_unslash( $flat_meta['_elementor_data'] ) );
 				$data['ids'] = self::extract_dynamic_elementor_data( json_decode( $flat_meta['_elementor_data'], true ), $data['ids'] );
-			} else if ( ! empty( $post_content ) ) {
+			} elseif ( ! empty( $post_content ) ) {
 				$data['media'] = self::get_media_from_content( $post_content );
 				if ( has_blocks( $post_content ) ) {
 					// Get dynamic data
 					$data['ids'] = self::extract_dynamic_gutenberg_data( parse_blocks( $post_content ), $data['ids'] );
-				}
-				
-			}
+				}           
+}
 		}
 
         if ( $post_parent_id > 0 ) {
@@ -590,7 +589,7 @@ class InstaWP_Sync_Parser {
 									);
 								}
 							}
-						} else if ( in_array( $attr_key, array( 'postID', 'formID' ) ) ) {
+						} elseif ( in_array( $attr_key, array( 'postID', 'formID' ) ) ) {
 							if ( is_numeric( $attr_value ) && isset( $replace_data['post_ids'][ $attr_value ] ) ) {
 								// Convert to string as postID and formID are string values
 								$post_id = (string) $replace_data['post_ids'][ $attr_value ];
@@ -619,7 +618,7 @@ class InstaWP_Sync_Parser {
 									$block['attrs']['uniqueID'] = $uniqueID;
 								}
 							}
-						} else if ( 'ids' === $attr_key ) {
+						} elseif ( 'ids' === $attr_key ) {
 							if ( is_array( $attr_value ) ) {
 								foreach ( $attr_value as $attr_val_key => $attr_val ) {
 									if ( isset( $replace_data['post_ids'][ $attr_val ] ) ) {
@@ -627,8 +626,8 @@ class InstaWP_Sync_Parser {
 									}
 								}
 								// kadence advanced gallery block
-								if ( ! empty( $block['attrs'][ 'imagesDynamic' ] ) && is_array( $block['attrs'][ 'imagesDynamic' ] ) ) {
-									foreach ( $block['attrs'][ 'imagesDynamic' ] as $image_dynamic_key => $image_dynamic_value ) {
+								if ( ! empty( $block['attrs']['imagesDynamic'] ) && is_array( $block['attrs']['imagesDynamic'] ) ) {
+									foreach ( $block['attrs']['imagesDynamic'] as $image_dynamic_key => $image_dynamic_value ) {
 										if ( ! empty( $image_dynamic_value['id'] ) && isset( $replace_data['post_ids'][ $image_dynamic_value['id'] ] ) ) {
 											// Replace id
 											$block['attrs']['imagesDynamic'][ $image_dynamic_key ]['id'] = $replace_data['post_ids'][ $image_dynamic_value['id'] ];
@@ -636,7 +635,7 @@ class InstaWP_Sync_Parser {
 									}
 								}
 							}
-						} else if ( 'icon' === $attr_key ) {
+						} elseif ( 'icon' === $attr_key ) {
 							if ( false !== strpos( $attr_value, 'kb-custom-' ) ) {
 								// Remove kb-custom- prefix
 								$icon_id = str_replace( 'kb-custom-', '', $attr_value );
@@ -646,12 +645,12 @@ class InstaWP_Sync_Parser {
 									$block = self::replace_block_content( $block, $attr_value, $new_icon_id );
 								}
 							}
-						} else if ( 'source' === $attr_key ) {
+						} elseif ( 'source' === $attr_key ) {
 							if ( is_numeric( $attr_value ) && isset( $replace_data['post_ids'][ $attr_value ] ) && in_array( $block['blockName'], array( 'kadence/dynamiclist', 'kadence/dynamichtml', 'kadence/repeater' ) ) ) {
 								// Convert to string as source is a string value
 								$block['attrs'][ $attr_key ] = (string) $replace_data['post_ids'][ $attr_value ];
 							}
-						} else if ( 'mediaIcon' === $attr_key ) {
+						} elseif ( 'mediaIcon' === $attr_key ) {
 							if ( is_array( $attr_value ) ) {
 								foreach ( $attr_value as $media_icon_key => $media_icon ) {
 									if ( false !== strpos( $media_icon['icon'], 'kb-custom-' ) ) {
@@ -665,7 +664,7 @@ class InstaWP_Sync_Parser {
 									}
 								}
 							}
-						} else if ( in_array( $attr_key, array( 'categories', 'tags' ) ) ) {
+						} elseif ( in_array( $attr_key, array( 'categories', 'tags' ) ) ) {
 							if ( is_array( $attr_value ) ) {
 								foreach ( $attr_value as $attr_val_key => $attr_val ) {
 									if ( ! is_array( $attr_val ) || empty( $attr_val['value'] ) || ! is_numeric( $attr_val['value'] ) || ! isset( $replace_data['term_ids'][ $attr_val['value'] ] ) ) {
@@ -674,7 +673,7 @@ class InstaWP_Sync_Parser {
 									$block['attrs'][ $attr_key ][ $attr_val_key ]['value'] = $replace_data['term_ids'][ $attr_val['value'] ];
 								}
 							}
-						} else if ( 'authors' === $attr_key ) {
+						} elseif ( 'authors' === $attr_key ) {
 							if ( is_array( $attr_value ) ) {
 								foreach ( $attr_value as $attr_val_key => $attr_val ) {
 									if ( ! is_array( $attr_val ) || empty( $attr_val['value'] ) || ! is_numeric( $attr_val['value'] ) || ! isset( $replace_data['user_ids'][ $attr_val['value'] ] ) ) {
@@ -713,10 +712,10 @@ class InstaWP_Sync_Parser {
 		$search  = $replace = array();
 		$details['ids'] = empty( $details['ids'] ) ? array() : $details['ids'];
 		$replace_data = array_merge( array(
-			'urls' 		=> array(),
-			'post_ids' 	=> array(),
-			'term_ids' 	=> array(),
-			'user_ids' 	=> array(),
+			'urls'     => array(),
+			'post_ids' => array(),
+			'term_ids' => array(),
+			'user_ids' => array(),
 		), $details['ids'] );
 		// Flag to check if the post should be updated
 		$should_update_post = false;
@@ -780,7 +779,6 @@ class InstaWP_Sync_Parser {
 		}
 
 		self::replace_elementor_metadata( $post_id, $replace_data );
-		
 	}
 
 	
@@ -848,7 +846,7 @@ class InstaWP_Sync_Parser {
 				if ( ! empty( $user ) ) {
 					$data[ $type ][ $id ] = array(
 						'reference_id' => InstaWP_Sync_Helpers::get_user_reference_id( $user->ID ),
-						'user_email' => $user->user_email,
+						'user_email'   => $user->user_email,
 					);
 				}
 				break;
@@ -893,23 +891,23 @@ class InstaWP_Sync_Parser {
 
 						if ( in_array( $attr_key, array( 'id', 'postID', 'formID' ) ) ) {
 							self::add_reference_data( $dynamic_data, $attr_value );
-						} else if ( 'ids' === $attr_key ) {
+						} elseif ( 'ids' === $attr_key ) {
 							if ( is_array( $attr_value ) ) {
 								foreach ( $attr_value as $attr_val ) {
 									self::add_reference_data( $dynamic_data, $attr_val );
 								}
 							}
-						} else if ( 'icon' === $attr_key ) {
+						} elseif ( 'icon' === $attr_key ) {
 							if ( false !== strpos( $attr_value, 'kb-custom-' ) ) {
 								// Remove kb-custom- prefix
 								$icon_id = str_replace( 'kb-custom-', '', $attr_value );
 								self::add_reference_data( $dynamic_data, $icon_id );
 							}
-						} else if ( 'source' === $attr_key ) {
+						} elseif ( 'source' === $attr_key ) {
 							if ( in_array( $block['blockName'], array( 'kadence/dynamiclist', 'kadence/dynamichtml', 'kadence/repeater' ) ) ) {
 								self::add_reference_data( $dynamic_data, $attr_value );
 							}
-						} else if ( 'mediaIcon' === $attr_key ) {
+						} elseif ( 'mediaIcon' === $attr_key ) {
 							if ( is_array( $attr_value ) ) {
 								foreach ( $attr_value as $media_icon ) {
 									if ( ! empty( $media_icon['icon'] ) && false !== strpos( $media_icon['icon'], 'kb-custom-' ) ) {
@@ -919,7 +917,7 @@ class InstaWP_Sync_Parser {
 									}
 								}
 							}
-						} else if ( in_array( $attr_key, array( 'categories', 'tags' ) ) ) {
+						} elseif ( in_array( $attr_key, array( 'categories', 'tags' ) ) ) {
 							if ( is_array( $attr_value ) ) {
 								foreach ( $attr_value as $attr_val ) {
 									if ( ! is_array( $attr_val ) || empty( $attr_val['value'] ) ) {
@@ -933,7 +931,7 @@ class InstaWP_Sync_Parser {
 									);
 								}
 							}
-						} else if ( 'authors' === $attr_key ) {
+						} elseif ( 'authors' === $attr_key ) {
 							if ( is_array( $attr_value ) ) {
 								foreach ( $attr_value as $attr_val ) {
 									if ( ! is_array( $attr_val ) || empty( $attr_val['value'] ) ) {
@@ -1001,7 +999,7 @@ class InstaWP_Sync_Parser {
 									$type = 'post_ids';
 									if ( 'author_id' === $tag_key ) {
 										$type = 'user_ids';
-									} else if ( 'taxonomy_id' === $tag_key ) {
+									} elseif ( 'taxonomy_id' === $tag_key ) {
 										$type = 'term_ids';
 									}
 									self::add_reference_data( $dynamic_data, $tag[ $tag_key ], $type );
@@ -1016,7 +1014,7 @@ class InstaWP_Sync_Parser {
 								foreach ( $exclude_ids as $exclude_key => $exclude_id ) {
 									self::add_reference_data( $dynamic_data, $exclude_id );
 								}
-							} else if ( 'nav_menu' === $wp_key ) {
+							} elseif ( 'nav_menu' === $wp_key ) {
 								if ( ! is_array( $wp_value ) && 0 < intval( $wp_value ) ) {
 									self::add_reference_data( $dynamic_data, $wp_value, 'term_ids', 'nav_menu' );
 								}
@@ -1081,7 +1079,7 @@ class InstaWP_Sync_Parser {
 				if ( ! empty( $value['url'] ) && ! empty( $replace_data['urls'][ wp_unslash( $value['url'] ) ] ) ) {
 					$value['url'] = $replace_data['urls'][ wp_unslash( $value['url'] ) ];
 				}
-			} else if ( $key === 'selected_icon' && is_array( $value ) && ! empty( $value['value']['id'] )  ) {
+			} elseif ( $key === 'selected_icon' && is_array( $value ) && ! empty( $value['value']['id'] ) ) {
 				// Handle icon widget with SVG
 				if ( isset( $replace_data['post_ids'][ $value['value']['id'] ] ) ) {
 					$value['value']['id'] = $replace_data['post_ids'][ $value['value']['id'] ];
@@ -1089,7 +1087,7 @@ class InstaWP_Sync_Parser {
 				if ( ! empty( $value['value']['url'] ) && ! empty( $replace_data['urls'][ wp_unslash( $value['value']['url'] ) ] ) ) {
 					$value['value']['url'] = $replace_data['urls'][ wp_unslash( $value['value']['url'] ) ];
 				}
-			} else if ( '__dynamic__' === $key ) {
+			} elseif ( '__dynamic__' === $key ) {
 				foreach ( $value as $dynamic_key => &$dynamic_value ) {
 					// Extract ID and settings from the dynamic tag.
 					$tag_data = self::elementor_tag_text_to_tag_data( $dynamic_value );
@@ -1138,8 +1136,8 @@ class InstaWP_Sync_Parser {
 							$exclude_ids[ $exclude_key ] = isset( $replace_data['post_ids'][ $exclude_id ] ) ? $replace_data['post_ids'][ $exclude_id ] : $exclude_id;
 						}
 						$value[ $wp_key ] = implode( ',', $exclude_ids );
-					} else if ( 'nav_menu' === $wp_key && ! empty( $replace_data[ 'term_ids' ][ $wp_value ] ) ) {
-						$value[ $wp_key ] = $replace_data[ 'term_ids' ][ $wp_value ];
+					} elseif ( 'nav_menu' === $wp_key && ! empty( $replace_data['term_ids'][ $wp_value ] ) ) {
+						$value[ $wp_key ] = $replace_data['term_ids'][ $wp_value ];
 					}
 				}
 			}
@@ -1163,11 +1161,11 @@ class InstaWP_Sync_Parser {
 			return null;
 		}
 
-		return [
-			'id' => $tag_id_match[1],
-			'name' => $tag_name_match[1],
+		return array(
+			'id'       => $tag_id_match[1],
+			'name'     => $tag_name_match[1],
 			'settings' => json_decode( urldecode( $tag_settings_match[1] ), true ),
-		];
+		);
 	}
 
 	
