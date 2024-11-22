@@ -25,7 +25,7 @@ defined( 'ABSPATH' ) || die;
 class InstaWP_Sync_Parser {
 
 	public static function get_media_from_content( $content ) {
-		preg_match_all( '!(https?:)?//\S+\.(?:jpe?g|jpg|png|gif|svg|mp4|pdf|doc|docx|xls|xlsx|csv|txt|rtf|html|zip|mp3|wma|mpg|flv|avi)!Ui', $content, $match );
+		preg_match_all( '!(https?:)?//\S+\.(?:jpe?g|jpg|png|gif|webp|svg|mp4|pdf|doc|docx|xls|xlsx|csv|txt|rtf|html|zip|mp3|wma|mpg|flv|avi)!Ui', $content, $match );
 
 		$media = array();
 		if ( isset( $match[0] ) ) {
@@ -514,8 +514,13 @@ class InstaWP_Sync_Parser {
 
 		if ( isset( $post['post_content'] ) ) {
 			$post['post_content'] = base64_decode( $post['post_content'] ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
-			if ( has_blocks( $post['post_content'] ) && false !== strpos( $post['post_content'], 'kadence/' ) ) {
-				// fix kadence blocks custom css slash issue
+			if ( has_blocks( $post['post_content'] ) ) {
+				/**
+				 * When getting content with get_post(), the content is already unslashed. 
+				 * When updating the same content back, it need to wp_slash(). 
+				 * This preserves all encoded characters in the content. 
+				 * eg. \n in CSS, var(\u002d\u002dast-global-color-1)
+				 */
 				$post['post_content'] = wp_slash( $post['post_content'] );
 			}
 		}
@@ -565,10 +570,24 @@ class InstaWP_Sync_Parser {
 			if ( empty( $block['blockName'] ) ) {
 				continue;
 			}
-			
-			// Kadence blocks
-			if ( false !== strpos( $block['blockName'], 'kadence/' ) || 'core/image' === $block['blockName'] ) {
-				if ( ! empty( $block['attrs'] ) && is_array( $block['attrs'] ) ) {
+
+			if ( ! empty( $block['attrs'] ) && is_array( $block['attrs'] ) ) {
+
+				if ( in_array( $block['blockName'], array( 'core/image', 'kadence/image', 'uagb/image' ) && ! empty( $block['attrs']['id'] ) ) ) {
+					$post_id = intval( $block['attrs']['id'] );
+					if ( 0 < $post_id ) {
+						$block['attrs']['id'] = $post_id;
+						$block = self::replace_block_content( 
+							$block, 
+							'-image-' . $attr_value, 
+							'-image-' . $post_id 
+						);
+					}
+					continue;
+				}
+				
+				// Kadence blocks
+				if ( false !== strpos( $block['blockName'], 'kadence/' ) ) {
 					foreach ( array( 'id', 'postID', 'formID', 'ids', 'icon', 'source', 'mediaIcon', 'categories', 'tags', 'authors' ) as $attr_key ) {
 						// Skip if attribute is empty
 						if ( empty( $block['attrs'][ $attr_key ] ) ) {
@@ -578,17 +597,7 @@ class InstaWP_Sync_Parser {
 						
 						if ( in_array( $attr_key, array( 'id' ) ) ) {
 							if ( is_numeric( $attr_value ) && isset( $replace_data['post_ids'][ $attr_value ] ) ) {
-								$post_id = intval( $replace_data['post_ids'][ $attr_value ] );
-								$block['attrs'][ $attr_key ] = $post_id;
-								
-								// Replace image id
-								if ( in_array( $block['blockName'], array( 'core/image', 'kadence/image' ) ) ) {
-									$block = self::replace_block_content( 
-										$block, 
-										'wp-image-' . $attr_value, 
-										'wp-image-' . $post_id 
-									);
-								}
+								$block['attrs'][ $attr_key ] = intval( $replace_data['post_ids'][ $attr_value ] );
 							}
 						} else if ( in_array( $attr_key, array( 'postID', 'formID' ) ) ) {
 							if ( is_numeric( $attr_value ) && isset( $replace_data['post_ids'][ $attr_value ] ) ) {
@@ -614,7 +623,7 @@ class InstaWP_Sync_Parser {
 											'value=\"' . $post_id . '\"',
 										)
 									);
-									 
+										
 									// Update uniqueID
 									$block['attrs']['uniqueID'] = $uniqueID;
 								}
@@ -682,6 +691,54 @@ class InstaWP_Sync_Parser {
 									}
 									$block['attrs'][ $attr_key ][ $attr_val_key ]['value'] = $replace_data['user_ids'][ $attr_val['value'] ];
 								}
+							}
+						}
+					}
+				} else if ( false !== strpos( $block['blockName'], 'uagb/' ) ) {
+					// Stackable blocks
+					foreach ( array( 'id', 'mediaIDs', 'categories', 'tags', 'authors' ) as $attr_key ) {
+						// Skip if attribute is empty
+						if ( empty( $block['attrs'][ $attr_key ] ) ) {
+							continue;
+						}
+						$attr_value = $block['attrs'][ $attr_key ];
+						if ( in_array( $attr_key, array( 'id' ) ) ) {
+							if ( is_numeric( $attr_value ) && isset( $replace_data['post_ids'][ $attr_value ] ) ) {
+								$block['attrs'][ $attr_key ] = intval( $replace_data['post_ids'][ $attr_value ] );
+							}
+						} else if ( in_array( $attr_key, array( 'mediaIDs' ) ) ) {
+							if ( is_array( $attr_value ) ) {
+								foreach ( $attr_value as $media_id_key => $media_id ) {
+									if ( isset( $replace_data['post_ids'][ $media_id ] ) ) {
+										$block['attrs'][ $attr_key ][ $media_id_key ] = $replace_data['post_ids'][ $media_id ];
+									}
+								}
+
+								// Stackable gallery block
+								if ( ! empty( $block['attrs']['mediaGallery'] ) && is_array( $block['attrs']['mediaGallery'] ) ) {
+									foreach ( $block['attrs']['mediaGallery'] as $media_gallery_key => $media ) {
+										if ( ! empty( $media['id'] ) && isset( $replace_data['post_ids'][ $media['id'] ] ) ) {
+											// Replace id
+											$media_id = $replace_data['post_ids'][ $media['id'] ];
+											$block['attrs']['mediaGallery'][ $media_gallery_key ]['id'] = $media_id;
+											// Replace link
+											if ( ! empty( $media['link'] ) && false !== strpos( $media['link'], 'attachment_id=' . $media['id'] ) ) {
+												$block['attrs']['mediaGallery'][ $media_gallery_key ]['link'] = str_replace( 'attachment_id=' . $media['id'], 'attachment_id=' . $media_id, $media['link'] );
+											}
+										}
+									}
+								}
+							}
+						} else if ( 'categories' === $attr_key ) {
+							
+							if ( is_array( $attr_value ) ) {
+								foreach ( $attr_value as $attr_val_key => $attr_val ) {
+									if ( is_numeric( $attr_val ) && isset( $replace_data['term_ids'][ $attr_val ] ) ) {
+										$block['attrs'][ $attr_key ][ $attr_val_key ] = $replace_data['term_ids'][ $attr_val ];
+									}
+								}
+							} else if ( is_numeric( $attr_value ) && isset( $replace_data['term_ids'][ $attr_value ] ) ) {
+								$block['attrs'][ $attr_key ] = (string) $replace_data['term_ids'][ $attr_value ];
 							}
 						}
 					}
@@ -814,14 +871,28 @@ class InstaWP_Sync_Parser {
 	/**
 	 * Add reference ids to the data array
 	 *
-	 * @param array $data
-	 * @param int $id
-	 * @param string $type
-	 * @param string $taxonomy
+	 * @param array $data The data array
+	 * @param int|array $id The id or array of ids
+	 * @param string $type The type of data
+	 * @param string $taxonomy The taxonomy
 	 * @return void
 	 */
 	private static function add_reference_data( &$data, $id, $type = 'post_ids', $taxonomy = '' ) {
-		if ( empty( $id ) || ! is_numeric( $id ) ) {
+		if ( empty( $id ) ) {
+			return;
+		}
+		// Add reference data for array of ids
+		if ( is_array( $id ) ) {
+			foreach ( $id as $id_val ) {
+				if ( is_array( $id_val ) ) {
+					return;
+				}
+				self::add_reference_data( $data, $id_val, $type, $taxonomy );
+			}
+			return;
+		}
+		// Return if id is not numeric
+		if ( ! is_numeric( $id ) ) {
 			return;
 		}
 		$id = intval( $id );
@@ -881,9 +952,19 @@ class InstaWP_Sync_Parser {
 			if ( empty( $block['blockName'] ) ) {
 				continue;
 			}
-			// Kadence blocks
-			if ( false !== strpos( $block['blockName'], 'kadence/' ) || 'core/image' === $block['blockName'] ) {
-				if ( ! empty( $block['attrs'] ) && is_array( $block['attrs'] ) ) {
+
+			if ( ! empty( $block['attrs'] ) && is_array( $block['attrs'] ) ) {
+				// Image block
+				if ( in_array( $block['blockName'], array( 'core/image', 'kadence/image', 'uagb/image' ) && ! empty( $block['attrs']['id'] ) ) ) {
+					$post_id = intval( $block['attrs']['id'] );
+					if ( 0 < $post_id ) {
+						self::add_reference_data( $dynamic_data, $post_id );
+					}
+					continue;
+				}
+
+				// Kadence blocks
+				if ( false !== strpos( $block['blockName'], 'kadence/' ) ) {
 					foreach ( array( 'id', 'postID', 'formID', 'ids', 'icon', 'source', 'mediaIcon', 'categories', 'tags', 'authors' ) as $attr_key ) {
 						// Skip if attribute is empty
 						if ( empty( $block['attrs'][ $attr_key ] ) ) {
@@ -891,14 +972,8 @@ class InstaWP_Sync_Parser {
 						}
 						$attr_value = $block['attrs'][ $attr_key ];
 
-						if ( in_array( $attr_key, array( 'id', 'postID', 'formID' ) ) ) {
+						if ( in_array( $attr_key, array( 'id', 'ids', 'postID', 'formID' ) ) ) {
 							self::add_reference_data( $dynamic_data, $attr_value );
-						} else if ( 'ids' === $attr_key ) {
-							if ( is_array( $attr_value ) ) {
-								foreach ( $attr_value as $attr_val ) {
-									self::add_reference_data( $dynamic_data, $attr_val );
-								}
-							}
 						} else if ( 'icon' === $attr_key ) {
 							if ( false !== strpos( $attr_value, 'kb-custom-' ) ) {
 								// Remove kb-custom- prefix
@@ -948,11 +1023,31 @@ class InstaWP_Sync_Parser {
 							}
 						}
 					}
-				}
+				} else if ( false !== strpos( $block['blockName'], 'uagb/' ) ) {
+					// Stackable blocks
+					foreach ( array( 'id', 'mediaIDs', 'categories', 'tags', 'authors' ) as $attr_key ) {
+						// Skip if attribute is empty
+						if ( empty( $block['attrs'][ $attr_key ] ) ) {
+							continue;
+						}
+						$attr_value = $block['attrs'][ $attr_key ];
 
-				if ( ! empty( $block['innerBlocks'] ) ) {
-					$dynamic_data = self::extract_dynamic_gutenberg_data( $block['innerBlocks'], $dynamic_data );
+						if ( in_array( $attr_key, array( 'id', 'mediaIDs' ) ) ) {
+							self::add_reference_data( $dynamic_data, $attr_value );
+						} else if ( 'categories' === $attr_key ) {
+							self::add_reference_data( 
+								$dynamic_data, 
+								$attr_value,
+								'term_ids',
+								empty( $block['attrs']['taxonomyType'] ) ? 'category' : $block['attrs']['taxonomyType']
+							);
+						}
+					}
 				}
+			}
+
+			if ( ! empty( $block['innerBlocks'] ) ) {
+				$dynamic_data = self::extract_dynamic_gutenberg_data( $block['innerBlocks'], $dynamic_data );
 			}
 		}
 		return $dynamic_data;
