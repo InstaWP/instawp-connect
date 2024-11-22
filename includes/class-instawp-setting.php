@@ -354,9 +354,9 @@ class InstaWP_Setting {
 
 		// Section - Activity Log
 		$settings['activity_log'] = array(
-			'title'    => esc_html__( 'Activity Log', 'instawp-connect' ),
-			'desc'     => esc_html__( 'These are some basic settings for Activity Log.', 'instawp-connect' ),
-			'fields'   => array(
+			'title'  => esc_html__( 'Activity Log', 'instawp-connect' ),
+			'desc'   => esc_html__( 'These are some basic settings for Activity Log.', 'instawp-connect' ),
+			'fields' => array(
 				array(
 					'id'      => 'instawp_activity_log',
 					'type'    => 'toggle',
@@ -392,9 +392,9 @@ class InstaWP_Setting {
                     'default' => 'off',
                     'class'   => 'w-full',
                     'options' => array(
-                        'instantly' => __( 'Instantly', 'instawp-connect' ),
+                        'instantly'       => __( 'Instantly', 'instawp-connect' ),
                         'every_x_minutes' => __( 'Every X Minutes', 'instawp-connect' ),
-                    )
+                    ),
                 ),
                 array(
                     'id'           => 'instawp_activity_log_interval_minutes',

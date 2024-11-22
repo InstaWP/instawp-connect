@@ -68,9 +68,9 @@ class InstaWP_Sync_Helpers {
 		}
 
 		return array(
-			'post_type' 	=> $post->post_type,
-			'post_name' 	=> $post->post_name,
-			'reference_id' 	=> self::get_post_reference_id( $post->ID ),
+			'post_type'    => $post->post_type,
+			'post_name'    => $post->post_name,
+			'reference_id' => self::get_post_reference_id( $post->ID ),
 		);
 	}
 
@@ -93,10 +93,10 @@ class InstaWP_Sync_Helpers {
 		}
 
 		return array(
-			'post_id'        => $post->ID,
-			'post_data'      => $post,
-			'meta_data'      => get_post_meta( $post->ID ),
-			'reference_id' 	 => self::get_post_reference_id( $post->ID ),
+			'post_id'      => $post->ID,
+			'post_data'    => $post,
+			'meta_data'    => get_post_meta( $post->ID ),
+			'reference_id' => self::get_post_reference_id( $post->ID ),
 		);
 	}
 
@@ -138,9 +138,9 @@ class InstaWP_Sync_Helpers {
 		}
 
 		return array(
-			'taxonomy' 		=> $term->taxonomy,
-			'slug' 			=> $term->slug,
-			'reference_id' 	=> self::get_term_reference_id( $term->term_id ),
+			'taxonomy'     => $term->taxonomy,
+			'slug'         => $term->slug,
+			'reference_id' => self::get_term_reference_id( $term->term_id ),
 		);
 	}
 
@@ -371,7 +371,7 @@ class InstaWP_Sync_Helpers {
 							}
 						} 
 					}
-				} else if ( $item_type === 'term_ids' ) {
+				} elseif ( $item_type === 'term_ids' ) {
 					if ( ! empty( $item['taxonomy'] ) && isset( $item['slug'] ) ) {
 						$term = self::get_term_by_reference( $item['taxonomy'], $item['reference_id'], $item['slug'] );
 						if ( ! empty( $term ) ) {
@@ -379,7 +379,7 @@ class InstaWP_Sync_Helpers {
 							$is_set_id = true;
 						}
 					}
-				} else if ( $item_type === 'user_ids' ) {
+				} elseif ( $item_type === 'user_ids' ) {
 					if ( ! empty( $item['user_email'] ) ) {
 						$user = get_user_by( 'email', $item['user_email'] );
 						if ( ! empty( $user ) ) {
