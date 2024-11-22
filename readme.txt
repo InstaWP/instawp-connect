@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.6
 Tested up to: 6.7
 Requires PHP: 7.0
-Stable tag: 0.1.0.66
+Stable tag: 0.1.0.67
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -98,9 +98,10 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
-= 0.1.0.67 =
+= 0.1.0.67 - 22 November 2024 =
 - FIX: Send Site Title, Favicon url, PHP version, Plugin version and WordPress version on initial connect.
 - FIX: Added support for core update in activity logs.
+- FIX: Fixed push migration issue of database table prefix.
 
 = 0.1.0.66 - 19 November 2024 =
 - FIX: Sync Kadence form, dynamic list, dynamic HTML, Navigation block content.
