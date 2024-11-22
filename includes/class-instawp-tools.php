@@ -360,13 +360,19 @@ include $file_path;';
 			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/license.txt';
 			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/readme.html';
 			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/robots.txt';
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-config.php';
+
+			if ( empty( $migrate_settings['mode'] ) || 'pull' == $migrate_settings['mode'] ) {
+				$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-config.php';
+			}
 		}
 
 		// Skip index.html file forcefully
 		$migrate_settings['excluded_paths'][] = 'index.html';
 		$migrate_settings['excluded_paths'][] = '.user.ini';
-		$migrate_settings['excluded_paths'][] = 'wp-config.php';
+
+		if ( empty( $migrate_settings['mode'] ) || 'pull' == $migrate_settings['mode'] ) {
+			$migrate_settings['excluded_paths'][] = 'wp-config.php';
+		}
 
 		// Skip mu-pluginsold folder
 		$migrate_settings['excluded_paths'][] = $relative_dir . '/mu-plugins/mu-pluginsold';
