@@ -248,12 +248,14 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 					'plugin_installed',
 					'plugin_updated',
 					'plugin_file_updated',
+					'core_updated_minor',
 				),
 				'critical' => array(
 					'post_deleted',
 					'user_deleted',
 					'theme_deleted',
 					'plugin_deleted',
+					'core_updated_major',
 				),
 			);
 		}
