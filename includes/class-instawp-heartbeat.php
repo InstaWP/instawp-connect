@@ -94,6 +94,8 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
             $database_size = ! empty( $sizes_data['database_size']['raw'] ) ? $sizes_data['database_size']['raw'] : 0;
 
 			return array(
+				'title'             => get_bloginfo( 'name' ),
+				'icon'              => get_site_icon_url(),
 				'wp_version'        => $wp_version,
 				'php_version'       => $php_version,
 				'plugin_version'    => INSTAWP_PLUGIN_VERSION,
