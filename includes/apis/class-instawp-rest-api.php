@@ -240,12 +240,9 @@ class InstaWP_Rest_Api {
 		}
 
 		return $this->send_response( array(
-			'status'         => true,
-			'connect_id'     => $connect_id,
-			'wp_version'     => get_bloginfo( 'version' ),
-			'php_version'    => phpversion(),
-			'plugin_version' => INSTAWP_PLUGIN_VERSION,
-			'message'        => esc_html__( 'Connected.', 'instawp-connect' ),
+			'status'     => true,
+			'connect_id' => $connect_id,
+			'message'    => esc_html__( 'Connected.', 'instawp-connect' ),
 		) );
 	}
 
