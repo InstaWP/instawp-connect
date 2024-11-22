@@ -52,6 +52,11 @@ class Helper {
 				if ( function_exists( 'instawp_send_heartbeat' ) ) {
 					instawp_send_heartbeat( $connect_id );
 				}
+
+				// Update staging sites
+				if ( function_exists( 'instawp_set_staging_sites_list' ) ) {
+					instawp_set_staging_sites_list();
+				}
 			} else {
 				error_log( 'instawp_generate_api_key connect id not found in response.' );
 

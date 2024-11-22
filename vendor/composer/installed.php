@@ -3,7 +3,7 @@
         'name' => 'instawp/connect',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '6bf4d4c6243c9f4a6d874cb393cf48be7cea482f',
+        'reference' => '7bb7bfe75f173ada4de375a48b8cfbdc8ed98b6c',
         'type' => 'wordpress-plugin',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -13,7 +13,7 @@
         'instawp/connect' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '6bf4d4c6243c9f4a6d874cb393cf48be7cea482f',
+            'reference' => '7bb7bfe75f173ada4de375a48b8cfbdc8ed98b6c',
             'type' => 'wordpress-plugin',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
@@ -22,7 +22,7 @@
         'instawp/connect-helpers' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '22ec8f9d962f121d5ca2041968e7fa16858646d1',
+            'reference' => 'df5239bc6ba2a65e11f87304b9e7a8c7be57d2c0',
             'type' => 'library',
             'install_path' => __DIR__ . '/../instawp/connect-helpers',
             'aliases' => array(

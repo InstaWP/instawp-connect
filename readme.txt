@@ -101,6 +101,8 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 = 0.1.0.67 =
 - FIX: Send Site Title, Favicon url, PHP version, Plugin version and WordPress version on initial connect.
 - FIX: Added support for core update in activity logs.
+- FIX: Update staging sites list after connect.
+- FIX: Added support to clear sync events via WP CLI.
 
 = 0.1.0.66 - 19 November 2024 =
 - FIX: Sync Kadence form, dynamic list, dynamic HTML, Navigation block content.
