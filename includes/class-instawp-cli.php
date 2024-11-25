@@ -121,10 +121,8 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 		/**
 		 * @throws \WP_CLI\ExitException
 		 */
-		public function handle_instawp_commands( $args ) {
-
+		public function handle_instawp_commands( $args, $assoc_args ) {
 			if ( isset( $args[0] ) && $args[0] === 'local' ) {
-
 				if ( isset( $args[1] ) && $args[1] === 'push' ) {
 					$this->cli_local_push();
 				}
@@ -133,7 +131,6 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 			}
 
 			if ( isset( $args[0] ) && $args[0] === 'set-waas-mode' ) {
-
 				if ( isset( $args[1] ) ) {
 					try {
 						$wp_config = new WPConfig( array(
@@ -204,6 +201,22 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 			if ( isset( $args[0] ) && $args[0] === 'hard-reset' ) {
 				instawp_reset_running_migration( 'hard', false );
 
+				if ( ! empty( $assoc_args['clear-events'] ) ) {
+					instawp_delete_sync_entries();
+				}
+
+				return true;
+			}
+
+			if ( isset( $args[0] ) && $args[0] === 'clear-events' ) {
+				instawp_delete_sync_entries();
+
+				return true;
+			}
+
+			if ( isset( $args[0] ) && $args[0] === 'refresh-staging-list' ) {
+				instawp_set_staging_sites_list();
+
 				return true;
 			}
 
@@ -224,9 +237,7 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 			}
 
 			if ( isset( $args[0] ) && $args[0] === 'scan' ) {
-
 				if ( isset( $args[1] ) && $args[1] === 'summary' ) {
-
 					$wp_scanner  = new \InstaWP\Connect\Helpers\WPScanner();
 					$summary_res = $wp_scanner->scan_summary();
 
@@ -248,7 +259,6 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 				}
 
 				if ( isset( $args[1] ) && $args[1] === 'slow-item' ) {
-
 					$wp_scanner = new \InstaWP\Connect\Helpers\WPScanner();
 					$slow_items = $wp_scanner->scan_slow_items();
 

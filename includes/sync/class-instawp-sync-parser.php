@@ -25,16 +25,25 @@ defined( 'ABSPATH' ) || die;
 class InstaWP_Sync_Parser {
 
 	public static function get_media_from_content( $content ) {
-		preg_match_all( '!(https?:)?//\S+\.(?:jpe?g|jpg|png|gif|webp|svg|mp4|pdf|doc|docx|xls|xlsx|csv|txt|rtf|html|zip|mp3|wma|mpg|flv|avi)!Ui', $content, $match );
+		//preg_match_all( '!(https?:)?//\S+\.(?:jpe?g|jpg|png|gif|webp|svg|mp4|pdf|doc|docx|xls|xlsx|csv|txt|rtf|html|zip|mp3|wma|mpg|flv|avi)!Ui', $content, $match );
+		preg_match_all(
+			'!(https?:\/\/[^\s",]+?\.(?:jpe?g|png|gif|webp|svg|mp4|pdf|docx?|xlsx?|csv|txt|rtf|html|zip|mp3|wma|mpg|flv|avi))!i',
+			$content,
+			$match
+		);
 
 		$media = array();
 		if ( isset( $match[0] ) ) {
 			$attachment_urls = array_unique( $match[0] );
 
 			foreach ( $attachment_urls as $attachment_url ) {
-				if ( ! empty( $_SERVER['HTTP_HOST'] ) && strpos( $attachment_url, sanitize_text_field( wp_unslash( $_SERVER['HTTP_HOST'] ) ) ) !== false ) {
+				if ( filter_var( $attachment_url, FILTER_VALIDATE_URL ) && ! empty( $_SERVER['HTTP_HOST'] ) && strpos( $attachment_url, sanitize_text_field( wp_unslash( $_SERVER['HTTP_HOST'] ) ) ) !== false ) {
+					$attachment_url = esc_url( $attachment_url );
 					$full_attachment_url = preg_replace( '~-[0-9]+x[0-9]+.~', '.', $attachment_url );
                     $attachment_id       = self::url_to_attachment( $full_attachment_url );
+					if ( empty( $attachment_id ) ) {
+						continue;
+					}
 					$attachment_data     = self::generate_attachment_data( $attachment_id );;
                     $attachment_size     = self::get_image_size_name_from_url( $attachment_url );
 
@@ -147,6 +156,10 @@ class InstaWP_Sync_Parser {
 		$attachment = InstaWP_Sync_Helpers::get_post_by_reference( 'attachment', $data['reference_id'], $data['post_name'] );
 		if ( empty( $attachment ) ) {
             $image_url  = isset( $data['url'] ) ? $data['url'] : $data['path'];
+			if ( false === wp_http_validate_url( $image_url ) ) {
+				error_log( 'Invalid image URL Sync: ' . $image_url );
+				return $attachment_id;
+			}
 			$image_data = file_get_contents( $image_url ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 
             if ( $image_data === false ) {
@@ -564,7 +577,6 @@ class InstaWP_Sync_Parser {
 		if ( empty( $blocks ) || ! is_array( $blocks ) || empty( $replace_data ) || ! is_array( $replace_data ) ) {
 			return $blocks;
 		}
-
 		foreach ( $blocks as &$block ) {
 			if ( empty( $block['blockName'] ) ) {
 				continue;
@@ -572,15 +584,15 @@ class InstaWP_Sync_Parser {
 
 			if ( ! empty( $block['attrs'] ) && is_array( $block['attrs'] ) ) {
 
-				if ( in_array( $block['blockName'], array( 'core/image', 'kadence/image', 'uagb/image' ) && ! empty( $block['attrs']['id'] ) ) ) {
-					$post_id = intval( $block['attrs']['id'] );
+				if ( in_array( $block['blockName'], array( 'core/image', 'kadence/image', 'uagb/image' ) ) && ! empty( $block['attrs']['id'] ) ) {
+					$post_id = intval( $replace_data['post_ids'][ $block['attrs']['id'] ] );
 					if ( 0 < $post_id ) {
-						$block['attrs']['id'] = $post_id;
 						$block = self::replace_block_content( 
 							$block, 
-							'-image-' . $attr_value, 
+							'-image-' . $block['attrs']['id'], 
 							'-image-' . $post_id 
 						);
+						$block['attrs']['id'] = $post_id;
 					}
 					continue;
 				}
@@ -694,7 +706,7 @@ class InstaWP_Sync_Parser {
 						}
 					}
 				} else if ( false !== strpos( $block['blockName'], 'uagb/' ) ) {
-					// Stackable blocks
+					// Spectra blocks
 					foreach ( array( 'id', 'mediaIDs', 'categories', 'tags', 'authors' ) as $attr_key ) {
 						// Skip if attribute is empty
 						if ( empty( $block['attrs'][ $attr_key ] ) ) {
@@ -705,7 +717,7 @@ class InstaWP_Sync_Parser {
 							if ( is_numeric( $attr_value ) && isset( $replace_data['post_ids'][ $attr_value ] ) ) {
 								$block['attrs'][ $attr_key ] = intval( $replace_data['post_ids'][ $attr_value ] );
 							}
-						} else if ( in_array( $attr_key, array( 'mediaIDs' ) ) ) {
+						} else if ( 'mediaIDs' === $attr_key ) {
 							if ( is_array( $attr_value ) ) {
 								foreach ( $attr_value as $media_id_key => $media_id ) {
 									if ( isset( $replace_data['post_ids'][ $media_id ] ) ) {
@@ -713,7 +725,7 @@ class InstaWP_Sync_Parser {
 									}
 								}
 
-								// Stackable gallery block
+								// Spectra gallery block
 								if ( ! empty( $block['attrs']['mediaGallery'] ) && is_array( $block['attrs']['mediaGallery'] ) ) {
 									foreach ( $block['attrs']['mediaGallery'] as $media_gallery_key => $media ) {
 										if ( ! empty( $media['id'] ) && isset( $replace_data['post_ids'][ $media['id'] ] ) ) {
@@ -779,13 +791,16 @@ class InstaWP_Sync_Parser {
 
 		if ( ! empty( $media ) ) {
 			foreach ( $media as $media_item ) {
-				if ( ! empty( $media_item['attachment_url'] ) ) {
+				if ( ! empty( $media_item['attachment_url'] ) && filter_var( $media_item['attachment_url'], FILTER_VALIDATE_URL ) ) {
 					$attachment_id   = self::process_attachment_data( $media_item );
+					if ( empty( $attachment_id ) ) {
+						continue;
+					}
                     $attachment_size = isset( $media_item['size'] ) ? $media_item['size'] : 'full';
 					$search[]        = $media_item['attachment_url'];
 					$attachment_url  = wp_attachment_is_image( $attachment_id ) ? wp_get_attachment_image_url( $attachment_id, $attachment_size, false ) : wp_get_attachment_url( $attachment_id );
 					$replace[]       = $attachment_url;
-					if ( ! empty( $attachment_id ) && ! empty( $media_item['post_id'] ) ) {
+					if ( ! empty( $media_item['post_id'] ) ) {
 						$replace_data['urls'][ $media_item['attachment_url'] ] = $attachment_url;
 						$replace_data['post_ids'][ $media_item['post_id'] ] = $attachment_id;
 					} else {
@@ -814,17 +829,21 @@ class InstaWP_Sync_Parser {
 
 		// Replace blocks data
 		if ( has_blocks( $content ) ) {
-			$blocks = parse_blocks( $content );
-			if ( ! empty( $blocks ) ) {
-				// Prepare post, term and user ids
-				$blocks = self::process_gutenberg_blocks( 
-					$blocks,
-					$replace_data
-				);
-				if ( ! empty( $blocks ) && is_array( $blocks ) ) {
-					$content = wp_slash( serialize_blocks( $blocks ) );
-					$should_update_post = true;
+			try {
+				$blocks = parse_blocks( $content );
+				if ( ! empty( $blocks ) ) {
+					// Prepare post, term and user ids
+					$blocks = self::process_gutenberg_blocks( 
+						$blocks,
+						$replace_data
+					);
+					if ( ! empty( $blocks ) && is_array( $blocks ) ) {
+						$content = wp_slash( serialize_blocks( $blocks ) );
+						$should_update_post = true;
+					}
 				}
+			} catch (\Throwable $th) {
+				error_log( 'Error processing Gutenberg blocks: ' . $th->getMessage() );
 			}
 		}
 
@@ -953,7 +972,7 @@ class InstaWP_Sync_Parser {
 
 			if ( ! empty( $block['attrs'] ) && is_array( $block['attrs'] ) ) {
 				// Image block
-				if ( in_array( $block['blockName'], array( 'core/image', 'kadence/image', 'uagb/image' ) && ! empty( $block['attrs']['id'] ) ) ) {
+				if ( in_array( $block['blockName'], array( 'core/image', 'kadence/image', 'uagb/image' ) ) && ! empty( $block['attrs']['id'] ) ) {
 					$post_id = intval( $block['attrs']['id'] );
 					if ( 0 < $post_id ) {
 						self::add_reference_data( $dynamic_data, $post_id );
@@ -1022,7 +1041,7 @@ class InstaWP_Sync_Parser {
 						}
 					}
 				} else if ( false !== strpos( $block['blockName'], 'uagb/' ) ) {
-					// Stackable blocks
+					// Spectra blocks
 					foreach ( array( 'id', 'mediaIDs', 'categories', 'tags', 'authors' ) as $attr_key ) {
 						// Skip if attribute is empty
 						if ( empty( $block['attrs'][ $attr_key ] ) ) {

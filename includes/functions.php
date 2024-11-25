@@ -89,6 +89,22 @@ if ( ! function_exists( 'instawp_create_db_tables' ) ) {
 	}
 }
 
+if ( ! function_exists( 'instawp_delete_sync_entries' ) ) {
+	function instawp_delete_sync_entries() {
+		global $wpdb;
+
+		$tables = array(
+			INSTAWP_DB_TABLE_EVENTS,
+			INSTAWP_DB_TABLE_SYNC_HISTORY,
+			INSTAWP_DB_TABLE_EVENT_SITES,
+			INSTAWP_DB_TABLE_EVENT_SYNC_LOGS,
+		);
+
+		foreach ( $tables as $table ) {
+			$wpdb->query("TRUNCATE TABLE {$table}");
+		}
+	}
+}
 
 if ( ! function_exists( 'instawp_alter_db_tables' ) ) {
 	function instawp_alter_db_tables() {
@@ -171,7 +187,7 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 	 *
 	 * @return bool
 	 */
-	function instawp_reset_running_migration( $reset_type = 'soft', $abort_forcefully = false ) {
+	function instawp_reset_running_migration( $reset_type = 'soft', $abort_forcefully = false, $clear_events = false ) {
 		global $wpdb;
 
 		$migration_details = Option::get_option( 'instawp_migration_details' );
@@ -217,7 +233,6 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 			delete_option( 'instawp_db_method' );
 			delete_option( 'instawp_default_user' );
 			delete_option( 'instawp_api_options' );
-
 			delete_option( 'instawp_rm_heartbeat' );
 			delete_option( 'instawp_api_heartbeat' );
 			delete_option( 'instawp_rm_file_manager' );
@@ -229,6 +244,7 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 			delete_option( 'instawp_last_heartbeat_sent' );
 			delete_option( 'instawp_is_staging' );
             delete_option( 'instawp_staging_sites' );
+            delete_option( 'instawp_is_event_syncing' );
 
 			delete_transient( 'instawp_migration_completed' );
 
@@ -237,6 +253,10 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 
 			do_action( 'instawp_clean_file_manager' );
 			do_action( 'instawp_clean_database_manager' );
+
+			if ( $clear_events ) {
+				instawp_delete_sync_entries();
+			}
 		}
 
 		if ( $abort_forcefully === true && ! empty( $migrate_id ) && ! empty( $migrate_key ) ) {
@@ -338,7 +358,14 @@ if ( ! function_exists( 'instawp_get_staging_sites_list' ) ) {
 
 
 if ( ! function_exists( 'instawp_set_staging_sites_list' ) ) {
-	function instawp_set_staging_sites_list() {
+	function instawp_set_staging_sites_list( $force_update = true ) {
+		if ( ! $force_update ) {
+			$staging_sites = instawp_get_staging_sites_list();
+			if ( ! empty( $staging_sites ) ) {
+				return true;
+			}
+		}
+
         $connect_id = instawp_get_connect_id();
         if ( empty( $connect_id ) ) {
             return false;

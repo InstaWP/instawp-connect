@@ -469,7 +469,7 @@ delete_option( 'instawp_db_offset' );
                     </div>
                     <div class="migration-completed hidden border border-grayCust-100 rounded-lg">
                         <div class="p-6 border-b border-grayCust-10 flex items-center justify-center text-lg font-medium text-grayCust-800">
-                            <img src="<?php echo esc_url( instaWP::get_asset_url( 'migrate/assets/images/check-icon.png' ) ); ?>" class="mr-2" alt=""><?php esc_html_e( 'Your new WordPress website is ready!', 'instawp-connect' ); ?>
+                            <img src="<?php echo esc_url( instaWP::get_asset_url( 'migrate/assets/images/check-icon.png' ) ); ?>" class="mr-2" alt=""><?php esc_html_e( 'Your Staging Site is ready!', 'instawp-connect' ); ?>
                         </div>
                         <div class="p-6 custom-bg">
                             <div class="flex items-center mb-6">
