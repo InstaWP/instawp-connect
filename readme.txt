@@ -100,8 +100,9 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 = 0.1.0.68 =
 - FIX: Sync image with webp extension.
-- FIX: Sync spectra block content.
-- FIX: Sync media url from content
+- FIX: Sync Spectra block content.
+- FIX: Sync media url from content.
+- FIX: Sync Stackable image and taxonomy blocks.
 
 = 0.1.0.67 - 22 November 2024 =
 - FIX: Send Site Title, Favicon url, PHP version, Plugin version and WordPress version on initial connect.
