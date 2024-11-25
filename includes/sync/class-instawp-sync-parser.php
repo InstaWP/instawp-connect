@@ -595,6 +595,17 @@ class InstaWP_Sync_Parser {
 						$block['attrs']['id'] = $post_id;
 					}
 					continue;
+				} else if ( in_array( $block['blockName'], array( 'stackable/image' ) ) && ! empty( $block['attrs']['imageId'] ) ) {
+					$post_id = intval( $replace_data['post_ids'][ $block['attrs']['imageId'] ] );
+					if ( 0 < $post_id ) {
+						$block = self::replace_block_content( 
+							$block, 
+							'-image-' . $block['attrs']['imageId'], 
+							'-image-' . $post_id 
+						);
+						$block['attrs']['imageId'] = $post_id;
+					}
+					continue;
 				}
 				
 				// Kadence blocks
@@ -750,6 +761,25 @@ class InstaWP_Sync_Parser {
 								}
 							} else if ( is_numeric( $attr_value ) && isset( $replace_data['term_ids'][ $attr_value ] ) ) {
 								$block['attrs'][ $attr_key ] = (string) $replace_data['term_ids'][ $attr_value ];
+							}
+						}
+					}
+				} else if ( false !== strpos( $block['blockName'], 'stackable/' ) ) {
+					foreach ( array( 'taxonomy' ) as $attr_key ) {
+						// Skip if attribute is empty
+						if ( empty( $block['attrs'][ $attr_key ] ) ) {
+							continue;
+						}
+						$attr_value = $block['attrs'][ $attr_key ];
+						if ( 'taxonomy' === $attr_key ) {
+							if ( is_string( $attr_value ) ) {
+								$ids = explode( ',', $attr_value );
+								foreach ( $ids as $id_key => $id ) {
+									if ( isset( $replace_data['term_ids'][ $id ] ) ) {
+										$ids[$id_key] = $replace_data['term_ids'][ $id ];
+									}
+								}
+								$block['attrs'][ $attr_key ] = implode( ',', $ids );
 							}
 						}
 					}
@@ -973,10 +1003,10 @@ class InstaWP_Sync_Parser {
 			if ( ! empty( $block['attrs'] ) && is_array( $block['attrs'] ) ) {
 				// Image block
 				if ( in_array( $block['blockName'], array( 'core/image', 'kadence/image', 'uagb/image' ) ) && ! empty( $block['attrs']['id'] ) ) {
-					$post_id = intval( $block['attrs']['id'] );
-					if ( 0 < $post_id ) {
-						self::add_reference_data( $dynamic_data, $post_id );
-					}
+					self::add_reference_data( $dynamic_data, $block['attrs']['id'] );
+					continue;
+				} else if ( in_array( $block['blockName'], array( 'stackable/image' ) ) && ! empty( $block['attrs']['imageId'] ) ) {
+					self::add_reference_data( $dynamic_data, $block['attrs']['imageId'] );
 					continue;
 				}
 
@@ -1058,6 +1088,25 @@ class InstaWP_Sync_Parser {
 								'term_ids',
 								empty( $block['attrs']['taxonomyType'] ) ? 'category' : $block['attrs']['taxonomyType']
 							);
+						}
+					}
+				} else if ( false !== strpos( $block['blockName'], 'stackable/' ) ) {
+					foreach ( array( 'taxonomy' ) as $attr_key ) {
+						// Skip if attribute is empty
+						if ( empty( $block['attrs'][ $attr_key ] ) ) {
+							continue;
+						}
+						$attr_value = $block['attrs'][ $attr_key ];
+						if ( 'taxonomy' === $attr_key ) {
+							if ( is_string( $attr_value ) ) {
+								$ids = explode( ',', $attr_value );
+								self::add_reference_data( 
+									$dynamic_data, 
+									$ids, 
+									'term_ids', 
+									empty( $block['attrs']['taxonomyType'] ) ? 'category' : $block['attrs']['taxonomyType'] 
+								);
+							}
 						}
 					}
 				}
