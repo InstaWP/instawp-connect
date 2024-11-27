@@ -103,6 +103,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 - FIX: Sync Spectra block content.
 - FIX: Sync media url from content.
 - FIX: Sync Stackable image and taxonomy blocks.
+- FIX: Sync home url
 
 = 0.1.0.67 - 22 November 2024 =
 - FIX: Send Site Title, Favicon url, PHP version, Plugin version and WordPress version on initial connect.
