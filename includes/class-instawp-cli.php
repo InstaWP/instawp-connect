@@ -294,6 +294,13 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 				}
 			}
 
+			// InstaWP Iterative Pull Push CLI Commands
+			if ( ! empty( $args[0] ) && in_array( $args[0], array( 'push', 'pull' ) ) ) {
+				require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-ipp-cli.php';
+				$instawp_cli = new INSTAWP_IPP_CLI_Commands();
+				return $instawp_cli->run_command( $args, $assoc_args );
+			}
+
 			return true;
 		}
 

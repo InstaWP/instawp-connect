@@ -612,7 +612,6 @@ include $file_path;';
 								$item['file_count']                   = $item_data['file_count'];
 								$total_inventory_files                += intval( $item['file_count'] );
 								$item['size']                         = $item_data['size'];
-
 								// add the checksum to the item
 								$item['checksum'] = sanitize_text_field( $inventory_data[ $item['type'] ][ $item['slug'] ][ $item['version'] ]['checksum'] );
 								// add the item to the inventory items
@@ -632,7 +631,7 @@ include $file_path;';
 					if ( 0 < $total_inventory_files && ! empty( $migrate_settings['inventory_items'] ) ) {
 						$migrate_settings['inventory_items']['total_files'] = $total_inventory_files;
 					}               
-} else {
+				} else {
 					if ( empty( $inventory_data ) || ! is_array( $inventory_data ) ) {
 						$inventory_data = array();
 					}
@@ -1455,4 +1454,20 @@ include $file_path;';
 
 		return true;
 	}
+
+    /**
+     * Backup a specific database table
+     * 
+     * @param string $table_name Name of the table to backup
+     * @param int $chunk_size Number of rows to process at once (default 1000)
+     * @param string $backup_dir Custom backup directory (optional)
+     * @return array Result array with success status, file path, and message
+     */
+    public static function backup_table($table_name, $chunk_size = 1000, $backup_dir = null) {
+        require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-db-backup.php';
+        
+        $backup = new INSTAWP_DB_Backup($table_name, $backup_dir);
+        $backup->set_chunk_size($chunk_size);
+        return $backup->backup();
+    }
 }

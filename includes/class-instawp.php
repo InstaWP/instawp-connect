@@ -373,6 +373,8 @@ class instaWP {
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-database-management.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-tools.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-hooks.php';
+		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-ipp-helper.php';
+		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-ipp.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-cli.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-updates.php';
 		// require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-checksum.php';
