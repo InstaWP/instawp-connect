@@ -848,8 +848,8 @@ class InstaWP_Sync_Parser {
 		// Replace links
 		if ( ! empty( $details['site_url'] ) && filter_var( $details['site_url'], FILTER_VALIDATE_URL ) && function_exists( 'home_url' ) ) {
 			$content = str_replace( 
-				parse_url( wp_unslash( $details['site_url'] ), PHP_URL_HOST ), 
-				parse_url( home_url(), PHP_URL_HOST ), 
+				wp_unslash( $details['site_url'] ),
+				home_url(), 
 				$content 
 			);
 			$should_update_post = true;

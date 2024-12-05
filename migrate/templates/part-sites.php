@@ -96,7 +96,7 @@ if ( empty( $connect_id ) && ! empty( $staging_sites ) ) {
                                     <td class="whitespace-nowrap py-8 px-4 text-sm font-medium flex items-center text-grayCust-300 sm:rounded-lg">
 										<?php
 										printf( '<img src="%s" class="mr-2" alt=""><a target="_blank" class="focus:outline-none focus:ring-0 hover:text-primary-900 border-b border-transparent border-1 border-dashed hover:border-primary-700" href="%s">%s</a>',
-											esc_url( instaWP::get_asset_url( 'migrate/assets/images/glob.svg' ) ),
+											esc_url( instaWP::get_asset_url( 'assets/images/staging.svg' ) ),
 											esc_url_raw( $site_name ), esc_html( $site_name )
 										);
 										?>

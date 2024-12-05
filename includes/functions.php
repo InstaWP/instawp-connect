@@ -222,9 +222,9 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
             }
         }
 
-		$wpdb->query( "DROP TABLE IF EXISTS `iwp_db_sent`;" );
-		$wpdb->query( "DROP TABLE IF EXISTS `iwp_files_sent`;" );
-		$wpdb->query( "DROP TABLE IF EXISTS `iwp_options`;" );
+//		$wpdb->query( "DROP TABLE IF EXISTS `iwp_db_sent`;" );
+//		$wpdb->query( "DROP TABLE IF EXISTS `iwp_files_sent`;" );
+//		$wpdb->query( "DROP TABLE IF EXISTS `iwp_options`;" );
 
 		if ( 'hard' === $reset_type ) {
 			delete_option( 'instawp_backup_part_size' );

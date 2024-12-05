@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.6
 Tested up to: 6.7
 Requires PHP: 7.0
-Stable tag: 0.1.0.67
+Stable tag: 0.1.0.68
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -98,11 +98,13 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
-= 0.1.0.68 =
+= 0.1.0.68 - 27 November 2024 =
 - FIX: Sync image with webp extension.
 - FIX: Sync Spectra block content.
 - FIX: Sync media url from content.
 - FIX: Sync Stackable image and taxonomy blocks.
+- FIX: Sync home url
+- FIX: Fixed htaccess missing rule on skip media migration.
 
 = 0.1.0.67 - 22 November 2024 =
 - FIX: Send Site Title, Favicon url, PHP version, Plugin version and WordPress version on initial connect.
