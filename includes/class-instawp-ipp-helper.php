@@ -168,8 +168,8 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 			$checksum ^= crc32( $relative_path );
 			$checksum ^= $filesize;
 
-			// Use MD5 for final hash
-			return md5( $checksum );
+			// Convert to unsigned
+			return sprintf('%u', $checksum);;
 		}
 
 
@@ -419,19 +419,109 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 			return true;
 		}
 
+		/**
+		 * Check if any of the strings are present in the content.
+		 *
+		 * @param string $content The content to check.
+		 * @param array  $strings The strings to check for.
+		 *
+		 * @return bool True if any of the strings are present in the content, false otherwise.
+		 */
+		public function has_any_string( $content, $strings ) {
+			foreach ( $strings as $string ) {
+				if ( false !== stripos( $content, $string ) ) {
+					return true;
+				}
+			}
+			return false;
+		}
+
 
 		/**
 		 * Get the checksum of all tables in the database.
 		 *
 		 * @return array The checksums of all tables in the database.
 		 */
-		public function get_tables_checksum() {
-			$table_checksums = array();
+		public function get_tables_meta() {
+			global $wpdb;
+			$tables_meta = array();
 			$tables = $this->get_tables();
 			foreach ( $tables as $table ) {
-				$table_checksums[ $table ] = $this->get_table_checksum( $table );
+				$table = sprintf( '`%s`', $table );
+				$table_meta = $wpdb->get_results( 'SHOW COLUMNS FROM ' . $table, ARRAY_A );
+				if ( empty( $table_meta ) || ! isset( $table_meta[0]['Field'] ) ) {
+					continue;
+				}
+				$primary_key = '';
+				$modified_at_field = '';
+				$maybe_url_fields = array();
+				$non_url_fields = array();
+				foreach ( $table_meta as $meta_key => $meta_value ) {
+
+					if ( $primary_key === '' && isset( $meta_value['Key'] ) && $meta_value['Key'] === 'PRI' && isset( $meta_value['Extra'] ) && $meta_value['Extra'] === 'auto_increment' ) {
+						// Found primary key
+						$primary_key = $meta_value['Field'];
+					} else if ( $modified_at_field === '' && ( false !== strpos( $meta_value['Field'], 'modified' ) || false !== strpos( $meta_value['Field'], 'updated' ) ) && $meta_value['Type'] === 'timestamp' ) {
+						//  Found modified_at_field
+						$modified_at_field = $meta_value['Field'];
+					} else if ( in_array( $meta_value['Type'], array( 'text', 'mediumtext', 'longtext' ) ) ) {
+						$maybe_url_fields[] = $meta_value['Field'];
+					} else if ( 12 === strlen( $meta_value['Type'] ) && 0 === stripos( $meta_value['Type'], 'varchar' ) ) {
+						// at least varchar(100)
+						$maybe_url_fields[] = $meta_value['Field'];
+					} else {
+						$non_url_fields[] = $meta_value['Field'];
+					}
+					
+				}
+
+
+				$table_fields = array_column( $table_meta, 'Field' );
+				$tables_meta[ $table ] = array(
+					'fields' => $table_fields,
+					'primary_key' => $primary_key,
+					'modified_at_field' => $modified_at_field,
+					'last_modified_at' => empty( $modified_at_field ) ? '' : $wpdb->get_var( 'SELECT MAX(' . $modified_at_field . ') FROM ' . $table ),
+					'checksum' => $this->get_table_checksum( 
+						$table,
+						$table_fields
+					),
+					'time' => time(),
+				);
+
+				// Use home url instaed of regex
+
+				if ( ! empty( $primary_key ) ) {
+					$tables_meta[ $table ]['ids'] = $wpdb->get_col( 'SELECT ' . $primary_key . ' FROM ' . $table );
+					$tables_meta[ $table ]['rows_count'] = count( $tables_meta[ $table ]['ids'] );
+					if ( ! empty( $tables_meta[ $table ]['modified_at_field'] ) && 0 < $tables_meta[ $table ]['rows_count'] ) {
+						$last_id = end( $tables_meta[ $table ]['ids'] );
+						if ( $last_id < $tables_meta[ $table ]['ids'][0] ) {
+							$last_id = $tables_meta[ $table ]['ids'][0];
+						}
+
+						$start = 1;
+						$step = 49;
+						do {
+							$end = $start + $step;
+
+							if ( $end > $last_id ) {
+								$end = $last_id;
+							}
+					//SELECT REGEXP_REPLACE('{"id":2,{"url":https://example.com},"alt":"flower"}', '(https?://[^[:space:]",\'\\)\\}]+)(?=[[:space:]",\'\\)\\}]|$)', '') AS modified_content;
+							echo " start: $start End: $end <br>";
+							if ( $end === $last_id ) {
+								break;
+							}
+
+							$start = $end+1;  // Increment by step
+
+						} while ($start <= $last_id);
+					}
+				}
+
 			}
-			return $table_checksums;
+			return $tables_meta;
 		}
 
 		/**
@@ -454,7 +544,7 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 		 * Save the checksum of all tables in the database.
 		 */
 		public function save_tables_checksum() {
-			$this->update_db_checksum( 'table_checksums', $this->get_tables_checksum() );
+			$this->update_db_checksum( 'tables_meta', $this->get_tables_meta() );
 		}
 
 		/**
@@ -464,15 +554,8 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 		 *
 		 * @return string The checksum of the table.
 		 */
-		public function get_table_checksum( $table ) {
+		public function get_table_checksum( $table, $table_fields ) {
 			global $wpdb;
-			// Sanitize table name
-			$table = sprintf( '`%s`', $table );
-			$table_fields = $wpdb->get_results( 'SHOW COLUMNS FROM ' . $table );
-			if ( empty( $table_fields ) ) {
-				return '';
-			}
-			$table_fields = array_column( $table_fields, 'Field' );
 			$table_fields = array_map( function( $field ) {
 				return sprintf( "IFNULL(`%s`, '')", $field );
 			}, $table_fields );
