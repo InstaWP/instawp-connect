@@ -13,27 +13,9 @@ if ( empty( $migrate_key ) ) {
 	die();
 }
 
-$root_dir_data = iwp_get_wp_root_directory();
+$root_dir_data = iwp_get_root_dir();
 $root_dir_find = isset( $root_dir_data['status'] ) ? $root_dir_data['status'] : false;
 $root_dir_path = isset( $root_dir_data['root_path'] ) ? $root_dir_data['root_path'] : '';
-
-if ( ! $root_dir_find ) {
-	$root_dir_data = iwp_get_wp_root_directory( 'wp-config.php' );
-	$root_dir_find = isset( $root_dir_data['status'] ) ? $root_dir_data['status'] : false;
-	$root_dir_path = isset( $root_dir_data['root_path'] ) ? $root_dir_data['root_path'] : '';
-}
-
-if ( ! $root_dir_find ) {
-	$root_dir_data = iwp_get_wp_root_directory( '', 'flywheel-config' );
-	$root_dir_find = isset( $root_dir_data['status'] ) ? $root_dir_data['status'] : false;
-	$root_dir_path = isset( $root_dir_data['root_path'] ) ? $root_dir_data['root_path'] : '';
-}
-
-if ( ! $root_dir_find ) {
-	$root_dir_data = iwp_get_wp_root_directory( '', 'wp' );
-	$root_dir_find = isset( $root_dir_data['status'] ) ? $root_dir_data['status'] : false;
-	$root_dir_path = isset( $root_dir_data['root_path'] ) ? $root_dir_data['root_path'] : '';
-}
 
 if ( ! $root_dir_find ) {
 	header( 'x-iwp-status: false' );

@@ -8,11 +8,14 @@ if ( ! file_exists( 'iwp_log.txt' ) ) {
 	file_put_contents( 'iwp_log.txt', "Migration log started \n" );
 }
 
-if ( ! isset( $_SERVER['HTTP_X_IWP_MIGRATE_KEY'] ) || empty( $migrate_key = $_SERVER['HTTP_X_IWP_MIGRATE_KEY'] ) ) {
-	header( 'x-iwp-status: false' );
-	header( 'x-iwp-message: Empty migrate key.' );
-	die();
-}
+//if ( ! isset( $_SERVER['HTTP_X_IWP_MIGRATE_KEY'] ) || empty( $migrate_key = $_SERVER['HTTP_X_IWP_MIGRATE_KEY'] ) ) {
+//	header( 'x-iwp-status: false' );
+//	header( 'x-iwp-message: Empty migrate key.' );
+//	die();
+//}
+
+$migrate_key   = '5cb668fcb18dc05fc5908ead160bb3aecab03b62';
+$api_signature = 'b65957bb2a6cef2a189847d19328c420740080b11bdbb611eabad2ce46e5e9d634c4de8ed48e93556ebc38545b80cc44f1fd3dbc9bfc786ee50da4961454b309';
 
 $root_dir_data = iwp_get_wp_root_directory();
 $root_dir_find = isset( $root_dir_data['status'] ) ? $root_dir_data['status'] : false;
@@ -59,157 +62,31 @@ if ( file_exists( $options_data_path ) ) {
 	die();
 }
 
-if ( ! isset( $api_signature ) || ! isset( $_SERVER['HTTP_X_IWP_API_SIGNATURE'] ) || ! hash_equals( $api_signature, $_SERVER['HTTP_X_IWP_API_SIGNATURE'] ) ) {
-	header( 'x-iwp-status: false' );
-	header( 'x-iwp-message: (Push) The given api signature and the stored one are not matching, maybe the tracking database reset or wrong api signature passed to migration script.' );
-	die();
-}
+//if ( ! isset( $api_signature ) || ! isset( $_SERVER['HTTP_X_IWP_API_SIGNATURE'] ) || ! hash_equals( $api_signature, $_SERVER['HTTP_X_IWP_API_SIGNATURE'] ) ) {
+//	header( 'x-iwp-status: false' );
+//	header( 'x-iwp-message: (Push) The given api signature and the stored one are not matching, maybe the tracking database reset or wrong api signature passed to migration script.' );
+//	die();
+//}
 
 $has_zip_archive = class_exists( 'ZipArchive' );
 $has_phar_data   = class_exists( 'PharData' );
-$excluded_paths     = isset( $excluded_paths ) ? $excluded_paths : array();
+$excluded_paths  = isset( $excluded_paths ) ? $excluded_paths : array();
 
 if ( isset( $_POST['check'] ) ) {
-	if ( ! function_exists( 'iwp_backup_wp_core_folders' ) ) {
-		/**
-		 * Backs up core WordPress folders (plugins, themes, mu-plugins) to a datestamped
-		 * folder. If the source folder does not exist, it will be skipped. If the backup
-		 * folder already exists, it will be skipped. If the backup folder cannot be
-		 * created, an error message will be added to the result.
-		 *
-		 * @param string $root_dir_path The root directory of WordPress.
-		 * @param array  $excluded_paths Paths to exclude from deletion.
-		 *
-		 * @return array An associative array with the following keys:
-		 *     - status: A boolean indicating whether the backup was successful.
-		 *     - messages: An array of success or error messages.
-		 *     - excluded_deletion: An array of paths that were excluded from deletion.
-		 */
-		function iwp_backup_wp_core_folders( $root_dir_path, $excluded_paths = array() ) {
-			$result = array(
-				'status'   => true,
-				'messages' => array(),
-			);
-	
-			$folders_to_backup = array(
-				'plugins',
-				'themes',
-				'mu-plugins',
-			);
-	
-			foreach ( $folders_to_backup as $folder ) {
-				try {
-					$source_path = $root_dir_path . DIRECTORY_SEPARATOR . 'wp-content' . DIRECTORY_SEPARATOR . $folder;
-					// Skip if source doesn't exist
-					if ( ! file_exists( $source_path ) ) {
-						$result['messages'][] = "Notice: {$folder} folder does not exist, skipping backup.";
-						continue;
-					}
-					// Add datestamp to backup folder
-					$timestamp   = date( 'YmdHi' );
-					$backup_path = $source_path . '-' . $timestamp;
-	
-					// Skip if backup directory already exists
-					if ( file_exists( $backup_path ) ) {
-						$result['messages'][] = "Notice: {$backup_path} folder already exist, skipping backup.";
-						continue;
-					}
-	
-					// Create backup directory if it doesn't exist
-					if ( ! is_dir( $backup_path ) && ! mkdir( $backup_path, 0777, true ) ) {
-						$result['messages'][] = "Failed to create {$folder} backup directory: {$backup_path}";
-						continue;
-					}
-	
-					// Copy files from source to backup directory
-					$iterator = new RecursiveIteratorIterator(
-						new RecursiveDirectoryIterator( $source_path, RecursiveDirectoryIterator::SKIP_DOTS ),
-						RecursiveIteratorIterator::SELF_FIRST
-					);
-	
-					foreach ( $iterator as $item ) {
-						// Get relative path of source file or folder
-						$relative_path = str_replace( $source_path, '', $item->getPathname() );
-						// Remove the first and last slash from the relative path
-						$relative_path = trim( $relative_path, DIRECTORY_SEPARATOR );
-						// Get target file or folder
-						$target = $backup_path . DIRECTORY_SEPARATOR . $relative_path;
-						if ( $item->isDir() ) {
-							if ( ! is_dir( $target ) && ! mkdir( $target, 0777, true ) ) {
-								$result['messages'][] = "Failed to create backup directory: {$target}";
-								continue 2;
-							}
-						} else if ( ! file_exists( $target ) && ! copy( $item->getPathname(), $target ) ) {
-								$result['messages'][] = "Failed to copy file: {$item->getPathname()} to {$target}";
-								continue 2;
-						}
-					}
-	
-					// Success
-					$result['messages'][] = "Success: {$folder} folder backed up to " . basename( $backup_path );
-	
-					// Delete the source folder
-					$folder_iterator = new DirectoryIterator( $source_path );
-					foreach ( $folder_iterator as $folder_item ) {
-						if ( $folder_item->isDot() ) {
-							continue;
-						}
-	
-						$remove_path          = $folder_item->getPathname();
-						$remove_relative_path = str_replace( $root_dir_path . DIRECTORY_SEPARATOR, '', $remove_path );
-	
-						/**
-						 * Skip excluded paths, folder items and files with "instawp-connect" in
-						 * their name
-						 */
-						if ( in_array( $remove_relative_path, $excluded_paths ) || false !== stripos( $folder_item->getFilename(), 'instawp-connect' ) || ! is_dir( $remove_path ) ) {
-							if ( is_dir( $remove_path ) ) {
-								$result['excluded_deletion'][] = $remove_relative_path;
-							}
-							continue;
-						}
-	
-						/**
-						 * Recursively remove all files and directories in the folder. Process deepest items first
-						 * UNIX_PATHS ensure proper handling of hidden files during directory deletion
-						 */
-						$remove_items = new RecursiveIteratorIterator(
-							new RecursiveDirectoryIterator(
-								$remove_path,
-								RecursiveDirectoryIterator::SKIP_DOTS | RecursiveDirectoryIterator::UNIX_PATHS
-							),
-							RecursiveIteratorIterator::CHILD_FIRST
-						);
-	
-						foreach ( $remove_items as $remove_item ) {
-							if ( $remove_item->isDir() ) {
-								if ( ! rmdir( $remove_item->getPathname() ) ) {
-									$result['messages'][] = "Failed to remove directory: {$remove_item->getPathname()}";
-									continue 2;
-								}
-							} else if ( ! unlink( $remove_item->getPathname() ) ) {
-								$result['messages'][] = "Failed to remove file: {$remove_item->getPathname()}";
-								continue 2;
-							}
-						}
-	
-						if ( ! rmdir( $remove_path ) ) {
-							$result['messages'][] = "Failed to remove parent directory: {$remove_path}";
-						}
-					}
-				} catch ( Exception $e ) {
-					$result['status']     = false;
-					$result['messages'][] = "Error backing up {$folder}: " . $e->getMessage();
-				}
-			}
-	
-			return $result;
-		}
+
+	if ( ! isset( $db_host ) || ! isset( $db_username ) || ! isset( $db_password ) || ! isset( $db_name ) ) {
+		header( 'x-iwp-status: false' );
+		header( 'x-iwp-message: Database information missing.' );
+		die();
 	}
-	$backup_result = iwp_backup_wp_core_folders( $root_dir_path, $excluded_paths );
+
+	$timestamp            = date( 'YmdHi' );
+	$db_backup_response   = iwp_backup_wp_database( $db_host, $db_username, $db_password, $db_name, $root_dir_path, $timestamp );
+	$core_backup_response = iwp_backup_wp_core_folders( $root_dir_path, $excluded_paths, $timestamp );
+
 	header( 'x-iwp-zip: ' . $has_zip_archive );
 	header( 'x-iwp-phar: ' . $has_phar_data );
-	header( 'x-iwp-message: ' . json_encode( $backup_result ) );
+	header( 'x-iwp-message: ' . json_encode( $core_backup_response ) . json_encode( $db_backup_response ) );
 	die();
 }
 
