@@ -118,8 +118,6 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 		}
 
 		public static function send_heartbeat( $connect_id = null ) {
-			global $wpdb;
-
 			if ( defined( 'INSTAWP_DEBUG_LOG' ) && true === INSTAWP_DEBUG_LOG ) {
 				error_log( "HEARTBEAT RAN AT : " . date( 'd-m-Y, H:i:s, h:i:s' ) );
 			}
