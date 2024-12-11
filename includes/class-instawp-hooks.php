@@ -14,6 +14,8 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 	class InstaWP_Hooks {
 
 		public function __construct() {
+			add_action( 'instawp_connect_connected', array( $this, 'handle_connected' ) );
+			add_action( 'admin_init', array( $this, 'disconnect_site' ) );
 			add_action( 'admin_init', array( $this, 'generate_api_key' ) );
 			add_action( 'update_option', array( $this, 'manage_update_option' ), 10, 3 );
 			add_action( 'init', array( $this, 'handle_hard_disable_seo_visibility' ) );
@@ -38,8 +40,53 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			add_action( 'parse_request', array( $this, 'handle_migration_through_wp' ) );
 		}
 
-		public function handle_migration_through_wp( $wp ) {
+		public function handle_connected( $connect_id ) {
+			instawp_send_heartbeat( $connect_id );
+			instawp_set_staging_sites_list();
 
+			$connect_plan_id = Helper::get_connect_plan_id();
+			if ( $connect_plan_id && ! Option::get_option( "instawp_connect_plan_{$connect_plan_id}_timestamp" ) ) {
+				Option::update_option( "instawp_connect_plan_{$connect_plan_id}_timestamp", current_time( 'mysql' ) );
+			}
+		}
+
+		public function disconnect_site() {
+			if ( ! defined( 'CONNECT_WHITELABEL' ) || CONNECT_WHITELABEL !== true ) {
+				return;
+			}
+
+			$connect_id = instawp_get_connect_id();
+			if ( empty( $connect_id ) ) {
+				return;
+			}
+
+			$current_plan_id = (int) Option::get_option( 'instawp_connect_plan_id', INSTAWP_CONNECT_PLAN_ID );
+			$plans           = defined( 'CONNECT_WHITELABEL_PLAN_DETAILS' ) && is_array( CONNECT_WHITELABEL_PLAN_DETAILS ) ? CONNECT_WHITELABEL_PLAN_DETAILS : array();
+			$current_plan    = current( array_filter( $plans, function ( $plan ) use ( $current_plan_id ) {
+				return $plan['plan_id'] === $current_plan_id;
+			} ) );
+
+			$plan_activated = Option::get_option( "instawp_connect_plan_{$current_plan_id}_timestamp" );
+			if ( $plan_activated && $current_plan['trial'] > 0 ) {
+				$plan_activated_date = new DateTime( $plan_activated );
+				$today_date          = new DateTime( current_time( 'mysql' ) );
+				$diff                = $today_date->diff( $plan_activated_date );
+				$remaining_days      = $current_plan['trial'] - $diff->days;
+				
+				if ( $remaining_days <= 0 ) {
+					$api_response = Curl::do_curl( "connects/{$connect_id}/delete", array(), array(), 'DELETE' );
+
+					if ( empty( $api_response['success'] ) ) {
+						error_log( 'Error disconnecting site: ' . $api_response['message'] );
+					} else {
+						Option::delete_option( 'instawp_connect_plan_id' );
+						Option::update_option( 'instawp_connect_disconnected', true );
+					}
+				}
+			}
+		}
+
+		public function handle_migration_through_wp( $wp ) {
 			if ( isset( $wp->query_vars['instawp_serve'] ) ) {
 				$serve_file = INSTAWP_PLUGIN_DIR . 'serve.php';
 
@@ -57,7 +104,6 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 		}
 
 		public function add_query_vars( $query_vars ) {
-
 			$query_vars[] = 'instawp_serve';
 
 			return $query_vars;

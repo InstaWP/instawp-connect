@@ -214,6 +214,25 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 				return true;
 			}
 
+
+			if ( isset( $args[0] ) && $args[0] === 'activate-plan' ) {
+				$plan_id = isset( $args[1] ) ? intval( $args[1] ) : 0;
+				if ( ! $plan_id ) {
+					WP_CLI::error( esc_html__( 'Plan ID is required', 'instawp-connect' ) );
+
+					return false;
+				}
+
+				$response = instawp_connect_activate_plan( $plan_id );
+				if ( ! $response['success'] ) {
+					WP_CLI::error( $response['message'] );
+
+					return false;
+				}
+
+				return true;
+			}
+
 			if ( isset( $args[0] ) && $args[0] === 'refresh-staging-list' ) {
 				instawp_set_staging_sites_list();
 

@@ -595,7 +595,7 @@ class InstaWP_Sync_Parser {
 						$block['attrs']['id'] = $post_id;
 					}
 					continue;
-				} else if ( in_array( $block['blockName'], array( 'stackable/image' ) ) && ! empty( $block['attrs']['imageId'] ) ) {
+				} elseif ( in_array( $block['blockName'], array( 'stackable/image' ) ) && ! empty( $block['attrs']['imageId'] ) ) {
 					$post_id = intval( $replace_data['post_ids'][ $block['attrs']['imageId'] ] );
 					if ( 0 < $post_id ) {
 						$block = self::replace_block_content( 
@@ -716,7 +716,7 @@ class InstaWP_Sync_Parser {
 							}
 						}
 					}
-				} else if ( false !== strpos( $block['blockName'], 'uagb/' ) ) {
+				} elseif ( false !== strpos( $block['blockName'], 'uagb/' ) ) {
 					// Spectra blocks
 					foreach ( array( 'id', 'mediaIDs', 'categories', 'tags', 'authors' ) as $attr_key ) {
 						// Skip if attribute is empty
@@ -728,7 +728,7 @@ class InstaWP_Sync_Parser {
 							if ( is_numeric( $attr_value ) && isset( $replace_data['post_ids'][ $attr_value ] ) ) {
 								$block['attrs'][ $attr_key ] = intval( $replace_data['post_ids'][ $attr_value ] );
 							}
-						} else if ( 'mediaIDs' === $attr_key ) {
+						} elseif ( 'mediaIDs' === $attr_key ) {
 							if ( is_array( $attr_value ) ) {
 								foreach ( $attr_value as $media_id_key => $media_id ) {
 									if ( isset( $replace_data['post_ids'][ $media_id ] ) ) {
@@ -751,7 +751,7 @@ class InstaWP_Sync_Parser {
 									}
 								}
 							}
-						} else if ( 'categories' === $attr_key ) {
+						} elseif ( 'categories' === $attr_key ) {
 							
 							if ( is_array( $attr_value ) ) {
 								foreach ( $attr_value as $attr_val_key => $attr_val ) {
@@ -759,12 +759,12 @@ class InstaWP_Sync_Parser {
 										$block['attrs'][ $attr_key ][ $attr_val_key ] = $replace_data['term_ids'][ $attr_val ];
 									}
 								}
-							} else if ( is_numeric( $attr_value ) && isset( $replace_data['term_ids'][ $attr_value ] ) ) {
+							} elseif ( is_numeric( $attr_value ) && isset( $replace_data['term_ids'][ $attr_value ] ) ) {
 								$block['attrs'][ $attr_key ] = (string) $replace_data['term_ids'][ $attr_value ];
 							}
 						}
 					}
-				} else if ( false !== strpos( $block['blockName'], 'stackable/' ) ) {
+				} elseif ( false !== strpos( $block['blockName'], 'stackable/' ) ) {
 					foreach ( array( 'taxonomy' ) as $attr_key ) {
 						// Skip if attribute is empty
 						if ( empty( $block['attrs'][ $attr_key ] ) ) {
@@ -776,7 +776,7 @@ class InstaWP_Sync_Parser {
 								$ids = explode( ',', $attr_value );
 								foreach ( $ids as $id_key => $id ) {
 									if ( isset( $replace_data['term_ids'][ $id ] ) ) {
-										$ids[$id_key] = $replace_data['term_ids'][ $id ];
+										$ids[ $id_key ] = $replace_data['term_ids'][ $id ];
 									}
 								}
 								$block['attrs'][ $attr_key ] = implode( ',', $ids );
@@ -872,7 +872,7 @@ class InstaWP_Sync_Parser {
 						$should_update_post = true;
 					}
 				}
-			} catch (\Throwable $th) {
+			} catch ( \Throwable $th ) {
 				error_log( 'Error processing Gutenberg blocks: ' . $th->getMessage() );
 			}
 		}
@@ -1005,7 +1005,7 @@ class InstaWP_Sync_Parser {
 				if ( in_array( $block['blockName'], array( 'core/image', 'kadence/image', 'uagb/image' ) ) && ! empty( $block['attrs']['id'] ) ) {
 					self::add_reference_data( $dynamic_data, $block['attrs']['id'] );
 					continue;
-				} else if ( in_array( $block['blockName'], array( 'stackable/image' ) ) && ! empty( $block['attrs']['imageId'] ) ) {
+				} elseif ( in_array( $block['blockName'], array( 'stackable/image' ) ) && ! empty( $block['attrs']['imageId'] ) ) {
 					self::add_reference_data( $dynamic_data, $block['attrs']['imageId'] );
 					continue;
 				}
@@ -1021,7 +1021,7 @@ class InstaWP_Sync_Parser {
 
 						if ( in_array( $attr_key, array( 'id', 'ids', 'postID', 'formID' ) ) ) {
 							self::add_reference_data( $dynamic_data, $attr_value );
-						} else if ( 'icon' === $attr_key ) {
+						} elseif ( 'icon' === $attr_key ) {
 							if ( false !== strpos( $attr_value, 'kb-custom-' ) ) {
 								// Remove kb-custom- prefix
 								$icon_id = str_replace( 'kb-custom-', '', $attr_value );
@@ -1070,7 +1070,7 @@ class InstaWP_Sync_Parser {
 							}
 						}
 					}
-				} else if ( false !== strpos( $block['blockName'], 'uagb/' ) ) {
+				} elseif ( false !== strpos( $block['blockName'], 'uagb/' ) ) {
 					// Spectra blocks
 					foreach ( array( 'id', 'mediaIDs', 'categories', 'tags', 'authors' ) as $attr_key ) {
 						// Skip if attribute is empty
@@ -1081,7 +1081,7 @@ class InstaWP_Sync_Parser {
 
 						if ( in_array( $attr_key, array( 'id', 'mediaIDs' ) ) ) {
 							self::add_reference_data( $dynamic_data, $attr_value );
-						} else if ( 'categories' === $attr_key ) {
+						} elseif ( 'categories' === $attr_key ) {
 							self::add_reference_data( 
 								$dynamic_data, 
 								$attr_value,
@@ -1090,7 +1090,7 @@ class InstaWP_Sync_Parser {
 							);
 						}
 					}
-				} else if ( false !== strpos( $block['blockName'], 'stackable/' ) ) {
+				} elseif ( false !== strpos( $block['blockName'], 'stackable/' ) ) {
 					foreach ( array( 'taxonomy' ) as $attr_key ) {
 						// Skip if attribute is empty
 						if ( empty( $block['attrs'][ $attr_key ] ) ) {
