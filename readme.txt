@@ -98,6 +98,11 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 0.1.0.69 - 06 December 2024 =
+- FIX: Added support for multisite regarding the wp-config.
+- FIX: Added database backup before the push migration.
+- FIX: Change staging icon inside the plugin.
+
 = 0.1.0.68 - 27 November 2024 =
 - FIX: Sync image with webp extension.
 - FIX: Sync Spectra block content.

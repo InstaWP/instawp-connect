@@ -61,6 +61,30 @@ if ( ! function_exists( 'iwp_get_wp_root_directory' ) ) {
 	}
 }
 
+if ( ! function_exists( 'iwp_get_root_dir' ) ) {
+	function iwp_get_root_dir() {
+
+		$root_dir_data = iwp_get_wp_root_directory();
+		$root_dir_find = isset( $root_dir_data['status'] ) ? $root_dir_data['status'] : false;
+
+		if ( ! $root_dir_find ) {
+			$root_dir_data = iwp_get_wp_root_directory( 'wp-config.php' );
+			$root_dir_find = isset( $root_dir_data['status'] ) ? $root_dir_data['status'] : false;
+		}
+
+		if ( ! $root_dir_find ) {
+			$root_dir_data = iwp_get_wp_root_directory( '', 'flywheel-config' );
+			$root_dir_find = isset( $root_dir_data['status'] ) ? $root_dir_data['status'] : false;
+		}
+
+		if ( ! $root_dir_find ) {
+			$root_dir_data = iwp_get_wp_root_directory( '', 'wp' );
+		}
+
+		return $root_dir_data;
+	}
+}
+
 if ( ! function_exists( 'parse_wp_db_host' ) ) {
 	function parse_wp_db_host( $host ) {
 		$socket  = null;
@@ -644,6 +668,244 @@ if ( ! function_exists( 'iwp_sanitize_key' ) ) {
 		$key = preg_replace( '/[^a-z0-9_\-]/', '', $key );
 
 		return $key;
+	}
+}
+
+if ( ! function_exists( 'iwp_backup_wp_core_folders' ) ) {
+	/**
+	 * Backs up core WordPress folders (plugins, themes, mu-plugins) to a datestamped
+	 * folder. If the source folder does not exist, it will be skipped. If the backup
+	 * folder already exists, it will be skipped. If the backup folder cannot be
+	 * created, an error message will be added to the result.
+	 *
+	 * @param string $root_dir_path The root directory of WordPress.
+	 * @param array $excluded_paths Paths to exclude from deletion.
+	 *
+	 * @return array An associative array with the following keys:
+	 *     - status: A boolean indicating whether the backup was successful.
+	 *     - messages: An array of success or error messages.
+	 *     - excluded_deletion: An array of paths that were excluded from deletion.
+	 */
+	function iwp_backup_wp_core_folders( $root_dir_path, $excluded_paths = array(), $timestamp = '' ) {
+		$timestamp = empty( $timestamp ) ? date( 'YmdHi' ) : $timestamp;
+		$result    = array(
+			'status'   => true,
+			'messages' => array(),
+		);
+
+		$folders_to_backup = array(
+			'plugins',
+			'themes',
+			'mu-plugins',
+		);
+
+		foreach ( $folders_to_backup as $folder ) {
+			try {
+				$source_path = $root_dir_path . DIRECTORY_SEPARATOR . 'wp-content' . DIRECTORY_SEPARATOR . $folder;
+				// Skip if source doesn't exist
+				if ( ! file_exists( $source_path ) ) {
+					$result['messages'][] = "Notice: {$folder} folder does not exist, skipping backup.";
+					continue;
+				}
+				// Add datestamp to backup folder
+				$backup_path = $source_path . '-' . $timestamp;
+
+				// Skip if backup directory already exists
+				if ( file_exists( $backup_path ) ) {
+					$result['messages'][] = "Notice: {$backup_path} folder already exist, skipping backup.";
+					continue;
+				}
+
+				// Create backup directory if it doesn't exist
+				if ( ! is_dir( $backup_path ) && ! mkdir( $backup_path, 0777, true ) ) {
+					$result['messages'][] = "Failed to create {$folder} backup directory: {$backup_path}";
+					continue;
+				}
+
+				// Copy files from source to backup directory
+				$iterator = new RecursiveIteratorIterator(
+					new RecursiveDirectoryIterator( $source_path, RecursiveDirectoryIterator::SKIP_DOTS ),
+					RecursiveIteratorIterator::SELF_FIRST
+				);
+
+				foreach ( $iterator as $item ) {
+					// Get relative path of source file or folder
+					$relative_path = str_replace( $source_path, '', $item->getPathname() );
+					// Remove the first and last slash from the relative path
+					$relative_path = trim( $relative_path, DIRECTORY_SEPARATOR );
+					// Get target file or folder
+					$target = $backup_path . DIRECTORY_SEPARATOR . $relative_path;
+					if ( $item->isDir() ) {
+						if ( ! is_dir( $target ) && ! mkdir( $target, 0777, true ) ) {
+							$result['messages'][] = "Failed to create backup directory: {$target}";
+							continue 2;
+						}
+					} else if ( ! file_exists( $target ) && ! copy( $item->getPathname(), $target ) ) {
+						$result['messages'][] = "Failed to copy file: {$item->getPathname()} to {$target}";
+						continue 2;
+					}
+				}
+
+				// Success
+				$result['messages'][] = "Success: {$folder} folder backed up to " . basename( $backup_path );
+
+				// Delete the source folder
+				$folder_iterator = new DirectoryIterator( $source_path );
+				foreach ( $folder_iterator as $folder_item ) {
+					if ( $folder_item->isDot() ) {
+						continue;
+					}
+
+					$remove_path          = $folder_item->getPathname();
+					$remove_relative_path = str_replace( $root_dir_path . DIRECTORY_SEPARATOR, '', $remove_path );
+
+					/**
+					 * Skip excluded paths, folder items and files with "instawp-connect" in
+					 * their name
+					 */
+					if ( in_array( $remove_relative_path, $excluded_paths ) || false !== stripos( $folder_item->getFilename(), 'instawp-connect' ) || ! is_dir( $remove_path ) ) {
+						if ( is_dir( $remove_path ) ) {
+							$result['excluded_deletion'][] = $remove_relative_path;
+						}
+						continue;
+					}
+
+					/**
+					 * Recursively remove all files and directories in the folder. Process deepest items first
+					 * UNIX_PATHS ensure proper handling of hidden files during directory deletion
+					 */
+					$remove_items = new RecursiveIteratorIterator(
+						new RecursiveDirectoryIterator(
+							$remove_path,
+							RecursiveDirectoryIterator::SKIP_DOTS | RecursiveDirectoryIterator::UNIX_PATHS
+						),
+						RecursiveIteratorIterator::CHILD_FIRST
+					);
+
+					foreach ( $remove_items as $remove_item ) {
+						if ( $remove_item->isDir() ) {
+							if ( ! rmdir( $remove_item->getPathname() ) ) {
+								$result['messages'][] = "Failed to remove directory: {$remove_item->getPathname()}";
+								continue 2;
+							}
+						} else if ( ! unlink( $remove_item->getPathname() ) ) {
+							$result['messages'][] = "Failed to remove file: {$remove_item->getPathname()}";
+							continue 2;
+						}
+					}
+
+					if ( ! rmdir( $remove_path ) ) {
+						$result['messages'][] = "Failed to remove parent directory: {$remove_path}";
+					}
+				}
+			} catch ( Exception $e ) {
+				$result['status']     = false;
+				$result['messages'][] = "Error backing up {$folder}: " . $e->getMessage();
+			}
+		}
+
+		return $result;
+	}
+}
+
+if ( ! function_exists( 'iwp_backup_wp_database' ) ) {
+	function iwp_backup_wp_database( $db_host, $db_username, $db_password, $db_name, $root_dir_path = '', $timestamp = '' ) {
+
+		$root_dir_path = empty( $root_dir_path ) ? dirname( __FILE__ ) : $root_dir_path;
+		$timestamp     = empty( $timestamp ) ? date( 'YmdHi' ) : $timestamp;
+		$backup_file   = $root_dir_path . DIRECTORY_SEPARATOR . "wp-content" . DIRECTORY_SEPARATOR . "db-{$timestamp}.sql";
+		$pdo           = null;
+		$mysqli        = null;
+
+		if ( extension_loaded( 'pdo_mysql' ) ) {
+			try {
+				$pdo = new PDO( "mysql:host=$db_host;dbname=$db_name;charset=utf8", $db_username, $db_password );
+				$pdo->setAttribute( PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION );
+			} catch ( PDOException $e ) {
+			}
+		}
+
+		if ( $pdo === null ) {
+			if ( extension_loaded( 'mysqli' ) ) {
+				$mysqli = new mysqli( $db_host, $db_username, $db_password, $db_name );
+				if ( $mysqli->connect_error ) {
+					die( "Connection failed: " . $mysqli->connect_error );
+				}
+				$mysqli->set_charset( "utf8" );
+			} else {
+				die( "Neither PDO nor mysqli extensions are available" );
+			}
+		}
+
+		$output = "-- IWP Database Backup\n";
+		$output .= "-- Generated: " . date( 'Y-m-d H:i:s' ) . "\n";
+		$output .= "-- Database: " . $db_name . "\n\n";
+
+		if ( $pdo ) {
+			$tables = $pdo->query( "SHOW TABLES" )->fetchAll( PDO::FETCH_COLUMN );
+		} else {
+			$tables = array();
+			$result = $mysqli->query( "SHOW TABLES" );
+			while ( $row = $result->fetch_array( MYSQLI_NUM ) ) {
+				$tables[] = $row[0];
+			}
+		}
+
+		foreach ( $tables as $table ) {
+			$output .= "\n-- Table structure for $table\n";
+			$output .= "DROP TABLE IF EXISTS `$table`;\n";
+
+			if ( $pdo ) {
+				$create_table = $pdo->query( "SHOW CREATE TABLE `$table`" )->fetch( PDO::FETCH_ASSOC );
+				$output       .= $create_table['Create Table'] . ";\n\n";
+
+				// Get table data
+				$rows = $pdo->query( "SELECT * FROM `$table`" )->fetchAll( PDO::FETCH_ASSOC );
+			} else {
+				$result       = $mysqli->query( "SHOW CREATE TABLE `$table`" );
+				$create_table = $result->fetch_assoc();
+				$output       .= $create_table['Create Table'] . ";\n\n";
+
+				// Get table data
+				$result = $mysqli->query( "SELECT * FROM `$table`" );
+				$rows   = array();
+				while ( $row = $result->fetch_assoc() ) {
+					$rows[] = $row;
+				}
+			}
+
+			if ( $rows ) {
+				$output .= "-- Dumping data for table $table\n";
+
+				foreach ( $rows as $row ) {
+					$values = array_map( function ( $value ) use ( $pdo, $mysqli ) {
+						if ( $value === null ) {
+							return 'NULL';
+						}
+
+						return $pdo ? $pdo->quote( $value ) : "'" . $mysqli->real_escape_string( $value ) . "'";
+					}, $row );
+
+					$output .= "INSERT INTO `$table` (`" .
+					           implode( '`, `', array_keys( $row ) ) .
+					           "`) VALUES (" .
+					           implode( ', ', $values ) .
+					           ");\n";
+				}
+			}
+
+			$output .= "\n";
+		}
+
+		if ( file_put_contents( $backup_file, $output, LOCK_EX ) === false ) {
+			die( 'Failed to save backup file' );
+		}
+
+		chmod( $backup_file, 0644 );
+
+		return [
+			'db_file_path' => $backup_file,
+		];
 	}
 }
 // phpcs:enable

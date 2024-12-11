@@ -26,7 +26,7 @@ if ( ! class_exists( 'INSTAWP_IPP' ) ) {
 		/**
 		 * Database checksum name
 		 */
-		private $db_checksum_name = 'iwp_ipp_db_checksums_repo';
+		private $db_meta_name = 'iwp_ipp_db_meta_repo';
 
 		/**
 		 * @var INSTAWP_IPP_Helper
@@ -55,7 +55,7 @@ if ( ! class_exists( 'INSTAWP_IPP' ) ) {
 		public function schedule_cron() {
 			// Get api key
 			$encoded_api_key = Helper::get_api_key();
-			if ( ! empty( $encoded_api_key ) && ! wp_next_scheduled( $this->cron_hook ) && $this->should_check_checksum() ) {
+			if ( ! empty( $encoded_api_key ) && ! wp_next_scheduled( $this->cron_hook ) ) {
 				wp_schedule_event( time(), 'hourly', $this->cron_hook );
 			}
 		}
@@ -66,12 +66,44 @@ if ( ! class_exists( 'INSTAWP_IPP' ) ) {
 		 * @return void
 		 */
 		public function run_cron() {
-			// Process hit|miss log
+			$last_run_time = get_option( 'iwp_ipp_cli_last_run_time', 0 );
+			// Check if last run time is more than 2 hours ago
+			if ( time() - $last_run_time <  DAY_IN_SECONDS ) {
+				return;
+			}
+			// Prepare database checksum
+			$this->prepare_db_meta();
+			// Prepare files checksum
 			$this->prepare_files_checksum();
 		}
 
+		/**
+		 * Prepare database checksum
+		 *
+		 * @return void
+		 */
+		public function prepare_db_meta() {
+			$db_meta = get_option( $this->db_meta_name, array() );
+			if ( empty( $db_meta ) || 2 * DAY_IN_SECONDS > ( time() - intval( $db_meta['time'] ) ) ) {
+				if ( empty( $db_meta ) ) {
+					update_option( $this->db_meta_name . '_last_run_data', array() );
+				}
+				$this->helper->get_tables();
+			} else if ( ! empty( $db_meta['tables'] ) ) {
+				if ( empty( $db_meta['meta'] ) ) {
+					$db_meta['meta'] = array();
+				}
+				$meta = $this->helper->get_table_meta( $db_meta['tables'], $db_meta );
+				if ( ! empty( $meta ) && ! empty( $meta['table'] ) ) {
+					$db_meta['meta'][ $meta['table'] ] = $meta;
+					update_option( $this->db_meta_name, $db_meta );
+				}
+			}
+		}
+
 		private function prepare_files_checksum() {
-			if ( ! $this->should_check_checksum() ) {
+			$process = get_option( $this->file_checksum_name . '_processed_count', 0 );
+			if ( 'completed' === $process ) {
 				return;
 			}
 			$this->helper->get_file_settings( array( 
@@ -83,14 +115,6 @@ if ( ! class_exists( 'INSTAWP_IPP' ) ) {
 				'files_limit' => 1000, 
 			) );
 		}
-
-		private function should_check_checksum() {
-			$process = get_option( $this->file_checksum_name . '_processed_count', 0 );
-			return 'completed' !== $process;
-		}
-
-
-
 		
 	}
 
