@@ -440,22 +440,11 @@ include $file_path;';
 		$config_constants = array();
 
 		if ( $config_contents ) {
-			// Match define statements like: define('CONSTANT_NAME', 'value');
-			preg_match_all( "/define\s*\(\s*['\"]([^'\"]+)['\"]\s*,\s*([^)]+)\)/", $config_contents, $matches );
+			preg_match_all( '/(?<=^|;|<\?php\s|<\?\s)(\h*define\s*\(\s*[\'"](\w*?)[\'"]\s*)(,\s*(\'\'|""|\'.*?[^\\\\]\'|".*?[^\\\\]"|.*?)\s*)((?:,\s*(?:true|false)\s*)?\)\s*;)/ims', $config_contents, $constants );
 
-			if ( ! empty( $matches[1] ) ) {
-				foreach ( $matches[1] as $index => $constant ) {
-					$value = trim( $matches[2][ $index ] );
-					// Remove quotes if present
-					$value = preg_replace( "/^['\"](.*)['\"]$/", "$1", $value );
-
-					// Only store if constant isn't already defined
-					if ( ! defined( $constant ) ) {
-						$config_constants[ $constant ] = $value;
-					} else {
-						// Get actual runtime value if constant is already defined
-						$config_constants[ $constant ] = constant( $constant );
-					}
+			if ( ! empty( $constants[0] ) && ! empty( $constants[1] ) && ! empty( $constants[2] ) && ! empty( $constants[3] ) && ! empty( $constants[4] ) && ! empty( $constants[5] ) ) {
+				foreach ( $constants[2] as $index => $name ) {
+					$config_constants[ $name ] = $constants[4][ $index ];
 				}
 			}
 		}
@@ -493,7 +482,31 @@ include $file_path;';
 			$config_constants['ABSPATH'] = "dirname( __FILE__ ) . '/'";
 		}
 
+		foreach ( $config_constants as $key => $value ) {
+			$config_constants[ $key ] = base64_encode( $value );
+		}
+
 		return $config_constants;
+	}
+
+	public static function is_base64( $s ) {
+		// Check if there are valid base64 characters
+		if ( ! preg_match( '/^[a-zA-Z0-9\/\r\n+]*={0,2}$/', $s ) ) {
+			return false;
+		}
+
+		// Decode the string in strict mode and check the results
+		$decoded = base64_decode( $s, true );
+		if ( false === $decoded ) {
+			return false;
+		}
+
+		// Encode the string again
+		if ( base64_encode( $decoded ) != $s ) {
+			return false;
+		}
+
+		return true;
 	}
 
 	public static function inventory_migration_settings( $migrate_settings, $options, $relative_dir, $wp_root_dir ) {
