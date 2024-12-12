@@ -58,11 +58,11 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 		}
 
 		private function init() {
-			$api_key = Helper::get_api_key();
-			if ( empty( $api_key ) ) {
+			// Get hashed api key
+			$this->api_key = Helper::get_api_key( true );
+			if ( empty( $this->api_key ) ) {
 				WP_CLI::error( __( 'Missing API key.', 'instawp-connect' ) );
 			}
-			$api_key = hash( 'sha256', $api_key );
 			$connect_id    = instawp_get_connect_id();
 
 			if ( empty( $connect_id ) ) {
@@ -104,14 +104,6 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 			}
 
 			$this->init();
-			$ready = $this->call_api( 'is-ready' );
-			WP_CLI::success( "Run Successfully " . json_encode( $ready ) );
-			return;
-			if ( isset( $assoc_args['show-tables'] ) ) {
-				$tables = $this->helper->get_tables_checksum();
-				WP_CLI::success( "Tables = " . json_encode( $tables ) );
-				return;
-			}
 
 			// Set last run command
 			update_option( 'iwp_ipp_cli_last_run_time', time() );
@@ -132,6 +124,10 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 				WP_CLI::log( "Detecting files changes..." );
 
 				$start = time();
+				$action = array(
+					'to_send' => array(),
+					'to_delete' => array(),
+				);
 				$settings = $this->helper->get_file_settings(
 					array(
 						'exclude_paths' => empty( $assoc_args['exclude-paths'] ) ? array() : explode( ',', $assoc_args['exclude-paths'] ),
@@ -143,7 +139,56 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 					)
 				);
 
-				if ( ! empty( $settings ) ) {
+				if ( ! empty( $settings['checksums'] ) ) {
+					$target_checksums = $this->call_api( 'files-checksum' );
+					if ( ! empty( $target_checksums['success'] ) && ! empty( $target_checksums['data']['checksums'] ) ) {
+						$exclude_paths = array_merge( 
+							$settings['exclude_paths'],  
+							array( 
+								'wp-config.php',
+								'wp-config-sample.php',
+								'.htaccess',
+								'.htpasswd',
+								'wp-sitemap.xml',
+								'robots.txt',
+								'wp-content/debug.log',
+								'serve.php',
+								'dest.php',
+							)
+						);
+						$target_checksums = $target_checksums['data']['checksums'];
+						foreach ( $settings['checksums'] as $path_hash => $file ) {
+							if ( in_array( $file['path'], $exclude_paths ) || false !== strpos( $file['path'], 'plugins/instawp-connect' ) || false !== strpos( $file['path'], 'instawp-autologin' ) ) {
+								continue;
+							}
+							if ( ! isset( $target_checksums[$path_hash] ) || ( $target_checksums[$path_hash]['path'] === $file['path'] && $target_checksums[$path_hash]['checksum'] !== $file['checksum'] ) ) {
+								$action['to_send'][] = $file;
+							}
+						}
+						foreach ( $target_checksums as $path_hash => $file ) {
+							if ( ! isset( $settings['checksums'][$path_hash] ) && ! in_array( $file['path'], $exclude_paths ) && false === strpos( $file['path'], 'instawp-autologin' ) ) {
+								$action['to_delete'][] = $file;
+							}
+						}
+
+						$changed_files = 0;
+						$deleted_files = 0;
+						if ( ! empty( $action['to_send'] ) ) {
+							foreach ( $action['to_send'] as $file ) {
+								WP_CLI::log( "File: " . $file['path'] . " is changed." );
+							}
+							$changed_files = count( $action['to_send'] );
+						}
+						if ( ! empty( $action['to_delete'] ) ) {
+							foreach ( $action['to_delete'] as $file ) {
+								WP_CLI::log( "File: " . $file['path'] . " is deleted." );
+							}
+							$deleted_files = count( $action['to_delete'] );
+						}
+
+						WP_CLI::log( __( 'Files Changed:', 'instawp-connect' ) . ' ' . $changed_files );
+						WP_CLI::log( __( 'Files Deleted:', 'instawp-connect' ) . ' ' . $deleted_files );
+					}
 					WP_CLI::success( "Detecting files changes completed in " . ( time() - $start ) . " seconds" );
 				}
 			}
@@ -158,8 +203,8 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 				array( 
 					'body' => $body,
 					'headers' => array(
-						'Authorization' => 'Bearer ' . $api_key,
-						'staging'       => $is_staging,
+						'Authorization' => 'Bearer ' . $this->api_key,
+						'staging'       => $this->is_staging,
 					),
 				) 
 			);

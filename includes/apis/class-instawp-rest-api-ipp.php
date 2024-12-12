@@ -23,6 +23,10 @@ class InstaWP_Rest_Api_IPP extends InstaWP_Rest_Api {
 		add_action( 'rest_api_init', array( $this, 'add_api_routes' ) );
 	}
 
+	/**
+	 * Add REST API routes
+	 * developer.wordpress.org/rest-api/requests/#attributes
+	 */
 	public function add_api_routes() {
 
 		// GET Table List
@@ -37,9 +41,10 @@ class InstaWP_Rest_Api_IPP extends InstaWP_Rest_Api {
 			'methods'             => 'POST',
 			'callback'            => array( $this, 'is_ready' ),
 			'args'                => array(
-				'settings' => array(
+				'php_version' => array(
 					'required' => true,
-					'validate_callback' => 'is_array',
+					'type'     => 'string',
+					'sanitize_callback' => 'sanitize_text_field',
 				)
 			),
 			'permission_callback' => array( $this, 'validate_ipp_api' ),
@@ -58,11 +63,16 @@ class InstaWP_Rest_Api_IPP extends InstaWP_Rest_Api {
 			'args'                => array(
 				'table' => array(
 					'required' => true,
-					'validate_callback' => 'is_string',
+					'type'     => 'string',
+					'sanitize_callback' => 'sanitize_text_field',
+					'validate_callback' => 'rest_validate_request_arg',
 				),
 				'start_id' => array(
 					'required' => false,
-					'validate_callback' => 'is_numeric',
+					'type'     => 'integer',
+					'minimum'  => 1,
+					'sanitize_callback' => 'absint',
+					'validate_callback' => 'rest_validate_request_arg',
 				),
 			),
 			'permission_callback' => array( $this, 'validate_ipp_api' ),
@@ -74,7 +84,7 @@ class InstaWP_Rest_Api_IPP extends InstaWP_Rest_Api {
 			'args'                => array(
 				'settings' => array(
 					'required' => true,
-					'validate_callback' => 'is_array',
+					'type'     => 'array',
 				)
 			),
 			'permission_callback' => array( $this, 'validate_ipp_api' ),
@@ -109,26 +119,26 @@ class InstaWP_Rest_Api_IPP extends InstaWP_Rest_Api {
 	 * @return WP_REST_Response
 	 */
 	public function is_ready( WP_REST_Request $request ) {
-		$settings = $request->get_param( 'settings' );
-		if ( empty( $settings ) ) {
-			return array(
+		$php_version = $request->get_param( 'php_version' );
+		if ( empty( $php_version ) ) {
+			return $this->send_response( array(
 				'success' => false,	
-				'message' => __( 'Settings are required', 'instawp-connect' )
-			);
+				'message' => __( 'PHP version is required', 'instawp-connect' )
+			) );
 		}
 
 		// Check PHP version. Major version must be the same
-		if ( $settings['php_version'][0] !== PHP_VERSION[0] ) {
-			return array(
+		if ( $php_version[0] !== PHP_VERSION[0] ) {
+			return $this->send_response( array(
 				'success' => false,
 				'message' => sprintf( __( 'PHP version must be %s, but it is %s', 'instawp-connect' ), $settings['php_version'], PHP_VERSION )
-			);
+			) );
 		}
 
-		return array(
+		return $this->send_response( array(
 			'success' => true,
 			'message' => __( 'System is ready', 'instawp-connect' )
-		);
+		) );
 	}
 
 	/**
@@ -139,12 +149,12 @@ class InstaWP_Rest_Api_IPP extends InstaWP_Rest_Api {
 	 * @return WP_REST_Response
 	 */
 	public function get_table_list( WP_REST_Request $request ) {
-		return array(
+		return $this->send_response( array(
 			'success' => true,
 			'data'    => array(
 				'table_list' => $this->helper->get_table_list()
 			)
-		);
+		) );
 	}
 
 	/**
@@ -155,10 +165,10 @@ class InstaWP_Rest_Api_IPP extends InstaWP_Rest_Api {
 	 * @return WP_REST_Response
 	 */
 	public function get_files_checksum( WP_REST_Request $request ) {
-		return array(
+		return $this->send_response( array(
 			'success' => true,
 			'data'    => $this->helper->get_file_settings()
-		);
+		) );
 	}
 
 	/**
@@ -173,25 +183,25 @@ class InstaWP_Rest_Api_IPP extends InstaWP_Rest_Api {
 		$start_id = $request->get_param( 'start_id' );
 
 		if ( empty( $table ) ) {
-			return array(
+			return $this->send_response( array(
 				'success' => false,	
 				'message' => __( 'Table name is required', 'instawp-connect' )
-			);
+			) );
 		}
 		$db_meta = get_option( $this->db_meta_name, array() );
 		$table = sanitize_key( $table );
 		if ( ! empty( $db_meta['tables'] ) && ! in_array( $table, $db_meta['tables'] ) ) {
-			return array(
+			return $this->send_response( array(
 				'success' => false,	
 				'message' => __( 'Table not found', 'instawp-connect' )
-			);
+			) );
 		}
 		$start_id = empty( $start_id ) ? 1 : absint( sanitize_key( $start_id ) );
 		$meta = $this->helper->get_table_meta( array( $table ), $db_meta, true, $start_id );
-		return array(
+		return $this->send_response( array(
 			'success' => true,
 			'data'    => $meta
-		);
+		) );
 	}
 
 	/**
@@ -204,23 +214,23 @@ class InstaWP_Rest_Api_IPP extends InstaWP_Rest_Api {
 	public function set_pull_settings( WP_REST_Request $request ) {
 		$settings = $request->get_param( 'settings' );
 		if ( empty( $settings ) ) {
-			return array(
+			return $this->send_response( array(
 				'success' => false,	
 				'message' => __( 'Settings are required', 'instawp-connect' )
-			);
+			) );
 		}
 		if ( $settings['php_version'] !== PHP_VERSION ) {
-			return array(
+			return $this->send_response( array(
 				'success' => false,
 				'message' => sprintf( __( 'PHP version must be %s, but it is %s', 'instawp-connect' ), $settings['php_version'], PHP_VERSION )
-			);
+			) );
 		}
 		update_option( $this->db_meta_name . '_pull_settings', $settings );
 	
-		return array(
+		return $this->send_response( array(
 			'success' => true,
 			'message' => __( 'Settings saved successfully.', 'instawp-connect' )
-		);
+		) );
 	}
 
 }
