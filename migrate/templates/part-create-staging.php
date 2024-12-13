@@ -422,7 +422,7 @@ delete_option( 'instawp_db_offset' );
 										<?php
 										$index = 1;
 										foreach ( InstaWP_Setting::get_stages() as $stage_key => $label ) { ?>
-                                            <span class="stage stage-<?= esc_attr( $stage_key ) ?> hidden"><?= esc_html( $label ); ?><?php printf( esc_html__( '(%1$s/%2$s stages)', 'instawp-connect' ), esc_html( $index ), count( InstaWP_Setting::get_stages() ) ); ?></span>
+                                            <span class="stage stage-<?= esc_attr( $stage_key ) ?> hidden"><?= esc_html( $label ); ?><?php printf( esc_html__( ' (%1$s/%2$s stages)', 'instawp-connect' ), esc_html( $index ), count( InstaWP_Setting::get_stages() ) ); ?></span>
 											<?php
 											++ $index;
 										} ?>
