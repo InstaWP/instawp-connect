@@ -382,7 +382,7 @@ class InstaWP_Rest_Api {
 			return $this->throw_error( $response );
 		}
 
-		$setting = $request->get_param( 'activity_logs' ) ?? false;
+		$setting = (bool) $request->get_param( 'activity_logs' );
 
 		if ( $setting ) {
 			Option::update_option( 'instawp_activity_log', 'on' );
