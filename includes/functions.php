@@ -222,9 +222,9 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
             }
         }
 
-//		$wpdb->query( "DROP TABLE IF EXISTS `iwp_db_sent`;" );
-//		$wpdb->query( "DROP TABLE IF EXISTS `iwp_files_sent`;" );
-//		$wpdb->query( "DROP TABLE IF EXISTS `iwp_options`;" );
+//      $wpdb->query( "DROP TABLE IF EXISTS `iwp_db_sent`;" );
+//      $wpdb->query( "DROP TABLE IF EXISTS `iwp_files_sent`;" );
+//      $wpdb->query( "DROP TABLE IF EXISTS `iwp_options`;" );
 
 		if ( 'hard' === $reset_type ) {
 			delete_option( 'instawp_backup_part_size' );
@@ -1229,4 +1229,38 @@ if ( ! function_exists( 'instawp_array_recursive_diff' ) ) {
 
 		return $diff;
 	}
+}
+
+if ( ! function_exists( 'instawp_connect_activate_plan' ) ) {
+    function instawp_connect_activate_plan( $plan_id ) {
+        $connect_id = instawp_get_connect_id();
+		if ( empty( $connect_id ) ) {
+			return array(
+				'success' => false,
+				'message' => __( 'Connect ID not found', 'instawp-connect' ),
+			);
+		}
+
+        $response = Curl::do_curl( "connects/{$connect_id}/subscribe", array(
+            'plan_id' => $plan_id,
+        ) );    
+
+        if ( empty( $response['success'] ) ) {
+            return array(
+                'success' => false,
+                'message' => $response['message'],
+            );
+        }
+
+		Option::update_option( 'instawp_connect_plan_id', $plan_id );
+
+		if ( ! Option::get_option( "instawp_connect_plan_{$plan_id}_timestamp" ) ) {
+			Option::update_option( "instawp_connect_plan_{$plan_id}_timestamp", current_time( 'mysql' ) );
+		}
+
+        return array(
+			'success' => true,
+			'message' => __( 'Plan activated successfully', 'instawp-connect' ),
+		);
+    }
 }
