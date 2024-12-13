@@ -456,18 +456,19 @@ if ( ! function_exists( 'send_by_zip' ) ) {
 			}
 		}
 
-		$fileSize  = filesize( $tmpZip );
-		$fileMTime = filemtime( $tmpZip );
-		$checksum  = hash( 'crc32b', $tmpZipName . $fileSize );
-
 		header( 'x-iwp-sent-filename: ' . $tmpZipName );
-		header( 'x-iwp-filesize: ' . $fileSize );
-		header( 'x-iwp-checksum: ' . $checksum );
 
 		try {
 			if ( $archiveType === 'ziparchive' ) {
 				$archive->close();
 			}
+
+			$fileSize  = filesize( $tmpZip );
+			$fileMTime = filemtime( $tmpZip );
+			$checksum  = hash( 'crc32b', $tmpZipName . $fileSize );
+
+			header( 'x-iwp-filesize: ' . $fileSize );
+			header( 'x-iwp-checksum: ' . $checksum );
 
 			readfile_chunked( $tmpZip );
 		} catch ( Exception $exception ) {
