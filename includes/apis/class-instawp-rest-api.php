@@ -56,6 +56,12 @@ class InstaWP_Rest_Api {
 			'permission_callback' => '__return_true',
 		) );
 
+		register_rest_route( $this->namespace . '/' . $this->version_2, '/activity-logs', array(
+			'methods'             => 'POST',
+			'callback'            => array( $this, 'activity_logs' ),
+			'permission_callback' => '__return_true',
+		) );
+
         register_rest_route( $this->namespace . '/' . $this->version_2, '/temporary-login', array(
             array(
                 'methods'             => 'POST',
@@ -364,6 +370,30 @@ class InstaWP_Rest_Api {
 				'login_url' => $auto_login_url,
 			)
 		);
+	}
+
+	/**
+	 * Toggle activity log
+	 * */
+	public function activity_logs( WP_REST_Request $request ) {
+
+		$response = $this->validate_api_request( $request );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
+
+		$setting = $request->get_param( 'activity_logs' ) ?? false;
+
+		if ( $setting ) {
+			Option::update_option( 'instawp_activity_log', 'on' );
+		} else {
+			Option::update_option( 'instawp_activity_log', 'off' );
+		}
+
+		return $this->send_response( array(
+            'success' => true,
+            'message' => $setting ? __( 'Activity log is enabled.', 'instawp-connect' ) : __( 'Activity log is disabled.', 'instawp-connect' ),
+        ) );
 	}
 
     /**
