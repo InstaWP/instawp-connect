@@ -2,7 +2,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-function instawp_connect_0_1_0_69_migration() {
+function instawp_connect_0_1_0_70_migration() {
 	$plan_id = get_option( 'instawp_connect_plan_id' );
 	if ( ! empty( $plan_id ) ) {
 		return;
@@ -65,4 +65,4 @@ function instawp_connect_0_1_0_69_migration() {
 		}
 	}
 }
-instawp_connect_0_1_0_69_migration();
+instawp_connect_0_1_0_70_migration();
