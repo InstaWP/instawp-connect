@@ -27,6 +27,11 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 		private $db_checksum_name = 'iwp_ipp_db_checksums_repo';
 
 		/**
+		 * Rows limit for each query
+		 */
+		private $rows_limit_per_query = 100;
+
+		/**
 		 * @var INSTAWP_IPP_Helper
 		 */
 		private $helper;
@@ -103,6 +108,7 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 				return false;
 			}
 
+			global $wpdb;
 			$this->init();
 
 			// Set last run command
@@ -110,7 +116,13 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 
 			$command = $args[0];
 
-			if ( $command === 'push' ) {
+			if ( empty( $args[1] ) || 'db' !== $args[1] ) {
+				$command = $command . '-files';
+			} else {
+				$command = $command . '-db';
+			}
+
+			if ( $command === 'push-files' ) {
 				if ( isset( $assoc_args['purge-cache'] ) ) {
 					update_option( $this->file_checksum_name, array() );
 					update_option( $this->db_checksum_name, array() );
@@ -191,12 +203,166 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 					}
 					WP_CLI::success( "Detecting files changes completed in " . ( time() - $start ) . " seconds" );
 				}
+			} else if ( $command === 'push-db' ) {
+				WP_CLI::log( "Detecting database changes..." );
+				$start = time();
+				// Target DB
+				$target_db = $this->call_api( 'db-schema' );
+			
+				$start_id = empty( $assoc_args['start-id'] ) ? '' : $assoc_args['start-id'];
+				$tables = $this->helper->get_table_list();
+				if ( empty( $tables ) || empty( $target_db['tables'] ) ) {
+					WP_CLI::error( __( 'No tables found.', 'instawp-connect' ) );
+				}
+				
+				$actions = array(
+					'create_tables' => array(),
+					'clone_tables' => array(),
+					'drop_tables' => array(),
+					'tables' => array(),
+					'target' =>array(
+						'tables' => $target_db['tables'],
+						'table_prefix' => $target_db['table_prefix'],
+					),
+				);
+
+				// Drop tables
+				foreach ( $target_db['tables'] as $table ) {
+					if ( ! in_array( str_replace( $target_db['table_prefix'], $wpdb->prefix, $table ), $tables ) ) {
+						$actions['drop_tables'][] = $table;
+					}
+				}
+
+				
+				$db_meta = get_option( $this->db_meta_name, array() );
+				foreach ( $tables as $table ) {
+					$actions['tables'][ $table ] = array(
+						'insert_start_id' => 0, // Insert start from this id
+						'insert_end_id' => 0, // Insert end at this id
+						'delete_start_id' => 0, // Delete start from this id
+						'delete_end_id' => 0, // Delete end at this id
+						'insert_data' => array(),
+						'full_insert' => false,
+						'update_data' => array(),
+						'delete_data' => array(),
+					);
+					$target_table_name = str_replace( $wpdb->prefix, $target_db['table_prefix'], $table );
+					// Create tables
+					if ( ! in_array( $target_table_name, $target_db['tables'] ) ) {
+						$actions['create_tables'][] = $table;
+						continue;
+					}
+					$start_id = empty( $start_id ) ? 1 : absint( sanitize_key( $start_id ) );
+					$target_table_meta = $this->call_api( 'table-checksum', array( 'table' => $target_table_name ) );
+					// Check if table exists
+					if ( $target_table_meta['table'] !== $target_table_name ) {
+						// Table mismatch
+						WP_CLI::error( __( 'Table mismatch: ', 'instawp-connect' ) . $table . ' vs ' . $target_table_meta['table'] );
+					}
+
+					$meta = $this->helper->get_table_meta( array( $table ), true, $start_id );
+					if ( ! empty( $meta ) ) {
+						// Check if target table is empty
+						if ( 0 === $target_table_meta['rows_count'] ) {
+							// Continue if source table is empty
+							if ( 0 === $meta['rows_count'] ) {
+								continue;
+							}
+							// Insert all source table data to target
+							$actions['tables'][ $table ]['full_insert'] = true;
+							continue;
+						}
+
+						// Check if target table has primary key
+						if ( ! empty( $meta['primary_key'] ) ) {
+							// Continue if table has no checksum
+							if ( empty( $meta['last_id'] ) || empty( $meta['rows_checksum'] ) || empty( $target_table_meta['rows_checksum'] ) ) {
+								continue;
+							}
+							
+							$this->update_db_action( $actions, $meta, $target_table_meta );
+
+							// Get last id from target|source table where insertion is smaller
+							$last_id_to_process = $target_table_meta['last_id'] < $meta['last_id'] ? $target_table_meta['last_id'] : $meta['last_id']; 
+
+							while ( 0 < $meta['next_start_id'] && $meta['next_start_id'] <= $target_table_meta['last_id'] ) {
+								$meta = $this->helper->get_table_meta( 
+									array( $table ), 
+									true, 
+									$meta['next_start_id'], 
+									$last_id_to_process 
+								);
+								if ( empty( $meta['last_id'] ) || empty( $meta['rows_checksum'] ) || empty( $target_table_meta['rows_checksum'] ) ) {
+									continue 2;
+								}
+								$target_table_meta = $this->call_api( 
+									'table-checksum', 
+									array( 
+										'table' => $target_table_name,
+										'start_id' => $meta['next_start_id'],
+										'last_id_to_process' => $last_id_to_process
+									)
+								);
+								$this->update_db_action( $actions, $meta, $target_table_meta );
+							}
+
+							// Get first id from target|source table where insertion start
+							if ( $target_table_meta['last_id'] < $meta['last_id'] ) {
+								$actions['tables'][ $table ]['insert_start_id'] = $target_table_meta['last_id']+1;
+								$actions['tables'][ $table ]['insert_end_id'] = $meta['last_id'];
+							} else {
+								$actions['tables'][ $table ]['delete_start_id'] = $meta['last_id']+1;
+								$actions['tables'][ $table ]['delete_end_id'] = $meta['last_id']+1;
+							}
+
+						} else if ( ! empty( $meta['checksum'] ) ) {
+							// Clone tables if checksum mismatch for tables without primary key
+							if ( $meta['checksum'] !== $target_table_meta['checksum'] ) {
+								$actions['clone_tables'][] = $table;
+							}
+						}
+					}
+				}
+
+				foreach ($actions['tables'] as $table => $value) {
+					WP_CLI::log( 'Table ' . $table . ': ' . json_encode( $value ) );
+				}
+
+				WP_CLI::success( "Detecting database changes completed in " . ( time() - $start ) . " seconds" );
 			}
 
 			WP_CLI::success( "Run Successfully" );
 		}
 
-		private function call_api( $path, $body = array() ) {
+		/**
+		 * Update DB action
+		 * 
+		 */
+		private function update_db_action( &$action, $meta, $target_table_meta ) {
+			// For same first id and last id query in source and target table
+			if ( $meta['checksum_key'] === $target_table_meta['checksum_key'] ) {
+				// Target site rows checksum
+				$target_checksum = $target_table_meta['rows_checksum'][$target_table_meta['checksum_key']];
+				// Source site rows checksum	
+				$source_checksum = $meta['rows_checksum'][$meta['checksum_key']];
+				if ( $target_checksum['checksum'] !== $source_checksum['checksum'] || $target_checksum['ids'] !== $source_checksum['ids'] ) {
+					$target_checksum['ids'] = explode( ',', $target_checksum['ids'] );
+					$source_checksum['ids'] = explode( ',', $source_checksum['ids'] );
+					// Update rows
+					$actions['tables'][ $table ]['update_data'][] = $source_checksum['ids'];
+					// ID which are in target table but not in source
+					$deleted_ids = array_diff( $target_checksum['ids'], $source_checksum['ids'] );
+					if ( ! empty( $deleted_ids ) ) {
+						// Delete rows
+						$actions['tables'][ $table ]['delete_data'][] = $deleted_ids;
+					}
+				}
+			} else {
+				WP_CLI::error( __( 'Checksum key mismatch: ', 'instawp-connect' ) . $meta['checksum_key'] . ' vs ' . $target_table_meta['checksum_key'] );
+			}
+		}
+
+		private function call_api( $path, $body = array(), $only_data = true ) {
 			
 			$response = wp_remote_post( 
 				$this->staging_url . '/wp-json/instawp-connect/v2/ipp/' . $path, 
@@ -218,8 +384,12 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 			if ( json_last_error() !== JSON_ERROR_NONE ) {
 				WP_CLI::error( __( 'Invalid response format.', 'instawp-connect' ) );
 			}
+
+			if ( empty( $response['success'] ) ) {
+				WP_CLI::error( $response['message'] );
+			}
 	
-			return $response;
+			return $only_data ? $response['data'] : $response;
 		}
 
 		/**

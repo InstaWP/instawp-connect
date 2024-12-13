@@ -20,7 +20,7 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 		/**
 		 * Rows limit for each query
 		 */
-		private $rows_limit_per_query = 1000;
+		private $rows_limit_per_query = 100;
 
 		/**
 		 * Is cli
@@ -470,6 +470,29 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 		}
 
 		/**
+		 * Get the checksum key.
+		 *
+		 * @param int $start_id The start id of the table.
+		 * @param int $end_id The end id of the table.
+		 *
+		 * @return string The checksum key.
+		 */
+		public function get_checksum_key( $start_id, $end_id ) {
+			return $start_id . '-' . $end_id;
+		}
+
+		/**
+		 * Get end id.
+		 *
+		 * @param int $start_id The start id of the table.
+		 *
+		 * @return int The end id.
+		 */
+		public function get_end_id( $start_id ) {
+			return absint( absint( $start_id ) + $this->rows_limit_per_query );
+		}
+
+		/**
 		 * Get meta and checksum of a table.
 		 *
 		 * @param array  $tables The tables to get the checksum of.
@@ -477,8 +500,9 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 		 *
 		 * @return array The checksums of the tables.
 		 */
-		public function get_table_meta( $tables, $db_meta = array(), $is_api_call = false, $start_id = 1 ) {
+		public function get_table_meta( $tables, $is_api_call = false, $start_id = 1, $last_id_to_process = 0 ) {
 			global $wpdb;
+			$db_meta = get_option( $this->db_meta_name, array() );
 			$meta = array();
 			try {
 				// Get last run data
@@ -494,6 +518,7 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 
 				$last_run_data = empty( $last_run_data ) ? array(): $last_run_data;
 				$table = isset( $last_run_data['table'] ) ? $last_run_data['table']: $tables[0];
+				$table = $this->prepare_table_name( $table );
 				$table = sprintf( '`%s`', $table );
 				$start_id = absint( isset( $last_run_data['start_id'] ) ? $last_run_data['start_id']: $start_id );
 				if ( isset( $last_run_data['home_url'] ) ) {
@@ -569,23 +594,23 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 				
 				if ( ! empty( $meta['primary_key'] ) ) {
 					$query = $this->prepare_url_non_url_query( $meta['maybe_url_fields'], $meta['non_url_fields'], $home_url );
-					$meta['ids'] = $wpdb->get_col( 'SELECT ' . $meta['primary_key'] . ' FROM ' . $table );
-					$last_id = end( $meta['ids'] );
-					if ( $last_id < $meta['ids'][0] ) {
-						$last_id = $meta['ids'][0];
-					}
-					$meta['last_id'] = $last_id;
+					$meta['last_id'] = $wpdb->get_var( 'SELECT ' . $meta['primary_key'] . ' FROM ' . $table . ' ORDER BY ' . $meta['primary_key'] . ' DESC LIMIT 1' );
 
 					// Get checksum
-					$step = $this->rows_limit_per_query;
-					$end = $start_id + $step;
-
-					if ( $end > $last_id ) {
-						$end = $last_id;
+					$end_id = $this->get_end_id( $start_id );
+					if ( $last_id_to_process > 0 && $last_id_to_process < $end_id ) {
+						$end_id = $last_id_to_process;
+						$meta['next_start_id'] = 0;
+					} else if ( $end_id > $meta['last_id'] ) {
+						$end_id = $meta['last_id'];
+						$meta['next_start_id'] = 0;
 					}
+					$meta['end_id'] = $end_id;
+					
+					$meta['checksum_ids'] = $this->get_checksum( $start_id, $end_id );
 
-					$checksum_key = $start . '-' . $end;
-
+					$checksum_key = $this->get_checksum_key( $start_id, $end_id );
+					$meta['checksum_key'] = $checksum_key;
 
 					if ( ! empty( $meta['modified_at_field'] ) && 0 < $meta['rows_count'] ) {
 						// Check if checksum is already stored and updated
@@ -610,7 +635,8 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 						if ( empty( $meta['rows_checksum'][ $checksum_key ] ) ) {
 
 							$query = $wpdb->prepare(
-								"SELECT COUNT(*) AS rows_count, MAX(%s) AS last_modified_at, $query FROM `%s` WHERE `%s` BETWEEN %d AND %d;",
+								"SELECT COUNT(*) AS rows_count, GROUP_CONCAT(`%s`) AS ids, MAX(%s) AS last_modified_at, $query FROM `%s` WHERE `%s` BETWEEN %d AND %d",
+								$meta['primary_key'],
 								$meta['modified_at_field'],
 								$table,
 								$meta['primary_key'],
@@ -628,7 +654,8 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 						
 					} else if ( 0 < $meta['rows_count'] ) {
 						$query = $wpdb->prepare(
-							"SELECT COUNT(*) AS rows_count, $query FROM `%s` WHERE `%s` BETWEEN %d AND %d;",
+							"SELECT COUNT(*) AS rows_count, GROUP_CONCAT(`%s`) AS ids, $query FROM `%s` WHERE `%s` BETWEEN %d AND %d;",
+							$meta['primary_key'],
 							$table,
 							$meta['primary_key'],
 							$start,
@@ -647,8 +674,9 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 						$meta['checksum'] = $meta['rows_checksum'][ $checksum_key ];
 					}
 					 
-					if ( $end != $last_id ) {
-						$start = $end + 1;
+					if ( $end_id != $meta['last_id'] ) {
+						$start = $end_id + 1;
+						$meta['next_start_id'] = $start;
 					}
 				} else if ( $is_api_call ) {
 					$meta['checksum'] = $this->get_table_checksum( $table, $meta, $home_url );
@@ -680,6 +708,10 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 			}
 			
 			return $meta;
+		}
+
+		public function prepare_update_query( $table, $meta, $home_url ) {
+
 		}
 
 		/**
@@ -802,14 +834,25 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 		public function get_tables() {
 			global $wpdb;
 			$tables = $wpdb->get_col( "SHOW TABLES" );
-			if ( ! empty( $tables ) ) {
-				$db_meta = get_option( $this->db_meta_name );
-				$db_meta = empty( $db_meta ) ? array() : $db_meta;
-				$db_meta['time'] = time();
-				$db_meta['tables'] = $tables;
-				update_option( $this->db_meta_name, $db_meta );
-			}
 			return $tables;
+		}
+
+		public function prepare_table_name( $table ) {
+			global $wpdb;
+			return 0 === strpos( $table, $wpdb->prefix ) ? $table : $wpdb->prefix . $table;
+		}
+
+		/**
+		 * Get the database schema.
+		 *
+		 * @return array The database schema.
+		 */
+		public function get_db_schema() {
+			global $wpdb;
+			return array(
+				'tables' => $this->get_tables(),
+				'table_prefix' => $wpdb->prefix,
+			);
 		}
 
 		public function iwp_backoff_timer( $attempt, $base = 2, $maxWait = 300 ) {
