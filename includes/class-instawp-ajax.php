@@ -23,6 +23,7 @@ class InstaWP_Ajax {
 		add_action( 'wp_ajax_instawp_migrate_init', array( $this, 'migrate_init' ) );
 		add_action( 'wp_ajax_instawp_migrate_progress', array( $this, 'migrate_progress' ) );
 		add_action( 'wp_ajax_instawp_skip_item', array( $this, 'skip_item' ) );
+		add_action( 'wp_ajax_instawp_change_plan', array( $this, 'change_plan' ) );
 	}
 
 	public function process_ajax() {
@@ -692,6 +693,48 @@ class InstaWP_Ajax {
 		instawp_set_staging_sites_list();
 
 		wp_send_json_success();
+	}
+
+	public function change_plan() {
+		check_ajax_referer( 'instawp-connect', 'security' );
+
+		$plan_id = isset( $_POST['plan_id'] ) ? intval( $_POST['plan_id'] ) : 0;
+		if ( ! $plan_id ) {
+			wp_send_json_error();
+		}   
+
+		$connect_id   = instawp_get_connect_id();
+		$disconnected = Option::get_option( 'instawp_connect_disconnected' );
+
+		if ( ! empty( $disconnected ) ) {
+			$response = Curl::do_curl( "connects/{$connect_id}/restore", array( 'url' => site_url() ) );
+			if ( empty( $response['success'] ) ) {
+				$api_key = Helper::get_api_key();
+				$jwt     = Helper::get_jwt();
+
+				// Create new connect if not exists
+				Helper::instawp_generate_api_key( $api_key, $jwt );
+				$connect_id = instawp_get_connect_id();
+			}
+			Option::delete_option( 'instawp_connect_disconnected' );
+		}
+
+		$response = instawp_connect_activate_plan( $plan_id );
+
+		if ( empty( $response['success'] ) ) {
+			wp_send_json_error( array(
+				'message' => $response['message'],
+			) );
+		}
+
+		ob_start();
+		include INSTAWP_PLUGIN_DIR . '/migrate/templates/ajax/part-plans.php';
+		$data = ob_get_clean();
+
+		wp_send_json_success( array(
+			'message' => esc_html__( 'Plan changed successfully.', 'instawp-connect' ),
+			'plans'   => $data,
+		) );
 	}
 }
 

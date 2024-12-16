@@ -7,7 +7,7 @@
  * @wordpress-plugin
  * Plugin Name:       InstaWP Connect
  * Description:       1-click WordPress plugin for Staging, Migrations, Management, Sync and Companion plugin for InstaWP.
- * Version:           0.1.0.69
+ * Version:           0.1.0.71
  * Author:            InstaWP Team
  * Author URI:        https://instawp.com/
  * License:           GPL-3.0+
@@ -26,7 +26,7 @@ if ( ! defined( 'WPINC' ) ) {
 
 global $wpdb;
 
-defined( 'INSTAWP_PLUGIN_VERSION' ) || define( 'INSTAWP_PLUGIN_VERSION', '0.1.0.69' );
+defined( 'INSTAWP_PLUGIN_VERSION' ) || define( 'INSTAWP_PLUGIN_VERSION', '0.1.0.71' );
 defined( 'INSTAWP_API_DOMAIN_PROD' ) || define( 'INSTAWP_API_DOMAIN_PROD', 'https://app.instawp.io' );
 
 $wp_plugin_url   = WP_PLUGIN_URL . '/' . plugin_basename( __DIR__ ) . '/';
@@ -61,6 +61,8 @@ defined( 'INSTAWP_DB_TABLE_ACTIVITY_LOGS' ) || define( 'INSTAWP_DB_TABLE_ACTIVIT
 defined( 'INSTAWP_DEFAULT_MAX_FILE_SIZE_ALLOWED' ) || define( 'INSTAWP_DEFAULT_MAX_FILE_SIZE_ALLOWED', 50 );
 defined( 'INSTAWP_EVENTS_SYNC_PER_PAGE' ) || define( 'INSTAWP_EVENTS_SYNC_PER_PAGE', 5 );
 defined( 'INSTAWP_API_URL' ) || define( 'INSTAWP_API_URL', '/api/v1' );
+defined( 'INSTAWP_CONNECT_PLAN_ID' ) || define( 'INSTAWP_CONNECT_PLAN_ID', 1 );
+defined( 'INSTAWP_CONNECT_PLAN_EXPIRE_DAYS' ) || define( 'INSTAWP_CONNECT_PLAN_EXPIRE_DAYS', 0 );
 
 /**
  * @global instaWP $instawp_plugin
@@ -78,29 +80,46 @@ function instawp_plugin_activate() {
 	//set default user for sync settings if user empty
 	$default_user = Option::get_option( 'instawp_default_user' );
 	if ( empty( $default_user ) ) {
-		update_option( 'instawp_default_user', get_current_user_id() );
+		Option::update_option( 'instawp_default_user', get_current_user_id() );
 	}
 
 	$instawp_sync_tab_roles = Option::get_option( 'instawp_sync_tab_roles' );
 	if ( empty( $instawp_sync_tab_roles ) ) {
 		$user  = wp_get_current_user();
 		$roles = ( array ) $user->roles;
-		update_option( 'instawp_sync_tab_roles', $roles );
+		Option::update_option( 'instawp_sync_tab_roles', $roles );
 	}
 
 	$connect_id = instawp_get_connect_id();
 	if ( ! empty( $connect_id ) ) {
 		$response = Curl::do_curl( "connects/{$connect_id}/restore", array( 'url' => site_url() ) );
 		if ( empty( $response['success'] ) ) {
-			delete_option( 'instawp_api_options' );
+			Option::delete_option( 'instawp_api_options' );
 		}
 	}
+
+	$default_plan_id = INSTAWP_CONNECT_PLAN_ID;
+	$default_plan_expire_days = INSTAWP_CONNECT_PLAN_EXPIRE_DAYS;
+
+	if ( defined( 'CONNECT_WHITELABEL' ) && CONNECT_WHITELABEL && defined( 'CONNECT_WHITELABEL_PLAN_DETAILS' ) && is_array( CONNECT_WHITELABEL_PLAN_DETAILS ) ) {
+		$default_plan = array_filter( CONNECT_WHITELABEL_PLAN_DETAILS, function ( $plan ) {
+			return $plan['default'] === true;
+		} );
+
+		if ( ! empty( $default_plan ) ) {
+			$default_plan_id = $default_plan[0]['plan_id'];
+			$default_plan_expire_days = $default_plan[0]['trial'];
+		}
+	}
+
+	Option::update_option( 'instawp_connect_plan_id', $default_plan_id );
+	Option::update_option( 'instawp_connect_plan_expire_days', $default_plan_expire_days );
 }
 
 /*Deactivate Hook Handle*/
 function instawp_plugin_deactivate() {
 	InstaWP_Tools::instawp_reset_permalink();
-	delete_option( 'instawp_last_heartbeat_sent' );
+	Option::delete_option( 'instawp_last_heartbeat_sent' );
 
 	$connect_id = instawp_get_connect_id();
 	if ( ! empty( $connect_id ) ) {

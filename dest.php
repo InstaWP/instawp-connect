@@ -8,14 +8,11 @@ if ( ! file_exists( 'iwp_log.txt' ) ) {
 	file_put_contents( 'iwp_log.txt', "Migration log started \n" );
 }
 
-//if ( ! isset( $_SERVER['HTTP_X_IWP_MIGRATE_KEY'] ) || empty( $migrate_key = $_SERVER['HTTP_X_IWP_MIGRATE_KEY'] ) ) {
-//	header( 'x-iwp-status: false' );
-//	header( 'x-iwp-message: Empty migrate key.' );
-//	die();
-//}
-
-$migrate_key   = '5cb668fcb18dc05fc5908ead160bb3aecab03b62';
-$api_signature = 'b65957bb2a6cef2a189847d19328c420740080b11bdbb611eabad2ce46e5e9d634c4de8ed48e93556ebc38545b80cc44f1fd3dbc9bfc786ee50da4961454b309';
+if ( ! isset( $_SERVER['HTTP_X_IWP_MIGRATE_KEY'] ) || empty( $migrate_key = $_SERVER['HTTP_X_IWP_MIGRATE_KEY'] ) ) {
+	header( 'x-iwp-status: false' );
+	header( 'x-iwp-message: Empty migrate key.' );
+	die();
+}
 
 $root_dir_data = iwp_get_wp_root_directory();
 $root_dir_find = isset( $root_dir_data['status'] ) ? $root_dir_data['status'] : false;
@@ -62,11 +59,11 @@ if ( file_exists( $options_data_path ) ) {
 	die();
 }
 
-//if ( ! isset( $api_signature ) || ! isset( $_SERVER['HTTP_X_IWP_API_SIGNATURE'] ) || ! hash_equals( $api_signature, $_SERVER['HTTP_X_IWP_API_SIGNATURE'] ) ) {
-//	header( 'x-iwp-status: false' );
-//	header( 'x-iwp-message: (Push) The given api signature and the stored one are not matching, maybe the tracking database reset or wrong api signature passed to migration script.' );
-//	die();
-//}
+if ( ! isset( $api_signature ) || ! isset( $_SERVER['HTTP_X_IWP_API_SIGNATURE'] ) || ! hash_equals( $api_signature, $_SERVER['HTTP_X_IWP_API_SIGNATURE'] ) ) {
+	header( 'x-iwp-status: false' );
+	header( 'x-iwp-message: (Push) The given api signature and the stored one are not matching, maybe the tracking database reset or wrong api signature passed to migration script.' );
+	die();
+}
 
 $has_zip_archive = class_exists( 'ZipArchive' );
 $has_phar_data   = class_exists( 'PharData' );

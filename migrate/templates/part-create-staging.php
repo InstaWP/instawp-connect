@@ -62,7 +62,7 @@ delete_option( 'instawp_db_offset' );
                 </svg>
                 <span><?php esc_html_e( 'Create Staging Site', 'instawp-connect' ); ?></span>
             </button>
-            <button type="button" class="browse-staging-btn flex items-center justify-center gap-3 btn-shadow border border-grayCust-350 rounded-md py-2 px-4 bg-white text-grayCust-700 text-sm font-medium">
+            <button type="button" class="browse-staging-btn flex items-center justify-center gap-3 btn-shadow border border-grayCust-350 rounded-md py-2 px-4 bg-white text-sm font-medium">
                 <span><?php esc_html_e( 'Browse Staging Sites', 'instawp-connect' ); ?></span>
                 <svg width="15" height="14" viewBox="0 0 15 14" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M8.33329 1.16663L14.1666 6.99996L8.33329 12.8333M1.66663 1.16663L7.49996 6.99996L1.66663 12.8333" stroke="#101828" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -174,7 +174,7 @@ delete_option( 'instawp_db_offset' );
                                         <input id="<?php echo esc_attr( $option_id ); ?>" name="migrate_settings[options][]" value="<?php echo esc_attr( $option_id ); ?>" type="checkbox" class="instawp-option-selector rounded border-gray-300 text-primary-900 focus:ring-primary-900">
                                     </span>
                                     <span class="ml-2 text-sm">
-                                        <span class="option-label font-medium text-sm text-grayCust-700"><?php echo esc_html( $label ); ?></span>
+                                        <span class="option-label font-medium text-sm"><?php echo esc_html( $label ); ?></span>
                                     </span>
                                 </label>
 							<?php endforeach; ?>
@@ -422,7 +422,7 @@ delete_option( 'instawp_db_offset' );
 										<?php
 										$index = 1;
 										foreach ( InstaWP_Setting::get_stages() as $stage_key => $label ) { ?>
-                                            <span class="stage stage-<?= esc_attr( $stage_key ) ?> hidden"><?= esc_html( $label ); ?><?php printf( esc_html__( '(%1$s/%2$s stages)', 'instawp-connect' ), esc_html( $index ), count( InstaWP_Setting::get_stages() ) ); ?></span>
+                                            <span class="stage stage-<?= esc_attr( $stage_key ) ?> hidden"><?= esc_html( $label ); ?><?php printf( esc_html__( ' (%1$s/%2$s stages)', 'instawp-connect' ), esc_html( $index ), count( InstaWP_Setting::get_stages() ) ); ?></span>
 											<?php
 											++ $index;
 										} ?>
@@ -552,7 +552,7 @@ delete_option( 'instawp_db_offset' );
             <p class="doing-request"><span class="loader"></span><?php esc_html_e( 'Checking usages...', 'instawp-connect' ); ?></p>
             <input name="migrate_settings[screen]" type="hidden" id="instawp-screen" value="<?= esc_attr( $current_create_screen ); ?>">
             <div class="button-group">
-                <button type="button" data-increment="-1" class="instawp-button-migrate back hidden btn-shadow border border-grayCust-350 mr-4 rounded-md py-2 px-8 bg-white text-grayCust-700 text-sm font-medium"><?php esc_html_e( 'Back', 'instawp-connect' ); ?></button>
+                <button type="button" data-increment="-1" class="instawp-button-migrate back hidden btn-shadow border border-grayCust-350 mr-4 rounded-md py-2 px-8 bg-white text-sm font-medium"><?php esc_html_e( 'Back', 'instawp-connect' ); ?></button>
                 <button type="button" data-increment="1" class="instawp-button-migrate continue btn-shadow rounded-md py-2 px-4 bg-primary-900 text-white hover:text-white text-sm font-medium"><?php esc_html_e( 'Next Step', 'instawp-connect' ); ?></button>
             </div>
         </div>
