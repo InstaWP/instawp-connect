@@ -98,7 +98,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
-= 0.1.0.70 - 13 December 2024 =
+= 0.1.0.70 - 16 December 2024 =
 - NEW: Added white label support for enterprise customers.
 - NEW: Added support to toggle Activity logs via REST API.
 - FIX: Stabilize staging creation process.
