@@ -99,7 +99,7 @@ if ( ! class_exists( 'INSTAWP_IPP' ) ) {
 					$db_meta['meta'] = array();
 				}
 				$meta = $this->helper->get_table_meta( $db_meta['tables'] );
-				if ( ! empty( $meta ) && ! empty( $meta['table'] ) ) {
+				if ( ! empty( $meta ) && ! empty( $meta['table'] ) && empty( $meta['error']) ) {
 					$db_meta['meta'][ $meta['table'] ] = $meta;
 					update_option( $this->db_meta_name, $db_meta );
 				}

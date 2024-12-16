@@ -37,8 +37,11 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 		 * 
 		 * @param string $message
 		 */
-		public function print_message( $message ) {
+		public function print_message( $message, $error = false ) {
 			if ( $this->is_cli ) {
+				if ( $error ) {
+					WP_CLI::error( $message );
+				}
 				WP_CLI::warning( $message );
 			}
 		}
@@ -317,6 +320,9 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 						'', 
 						$filepath
 					);
+					if ( $relative_path[0] === '.' ) {
+						continue;
+					}
 					$rel_path_hash = md5( $relative_path ); // relative path hash
 					$filesize    = $file->getSize(); // file size
 					$filetime = $file->getMTime(); // file modified time
@@ -415,7 +421,7 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 			if ( ! file_exists( $filepath ) ) {
 				return false;
 			}
-			if ( ! is_file( $filepath ) ) {
+			if ( ! is_file( $filepath ) || $filepath[0] === '.' ) {
 				return false;
 			}
 
@@ -519,7 +525,6 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 				$last_run_data = empty( $last_run_data ) ? array(): $last_run_data;
 				$table = isset( $last_run_data['table'] ) ? $last_run_data['table']: $tables[0];
 				$table = $this->prepare_table_name( $table );
-				$table = sprintf( '`%s`', $table );
 				$start_id = absint( isset( $last_run_data['start_id'] ) ? $last_run_data['start_id']: $start_id );
 				if ( isset( $last_run_data['home_url'] ) ) {
 					$home_url = $last_run_data['home_url'];
@@ -535,7 +540,7 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 				if ( empty( $last_run_data['meta'] ) ) {	
 					$table_meta = $wpdb->get_results( 'SHOW COLUMNS FROM ' . $table, ARRAY_A );
 					if ( empty( $table_meta ) || ! isset( $table_meta[0]['Field'] ) ) {
-							return $meta;
+						return $meta;
 					}
 					$primary_key = '';
 					$modified_at_field = '';
@@ -606,9 +611,6 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 						$meta['next_start_id'] = 0;
 					}
 					$meta['end_id'] = $end_id;
-					
-					$meta['checksum_ids'] = $this->get_checksum( $start_id, $end_id );
-
 					$checksum_key = $this->get_checksum_key( $start_id, $end_id );
 					$meta['checksum_key'] = $checksum_key;
 
@@ -617,15 +619,12 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 						if ( $is_api_call ) {
 							if ( ! empty( $db_meta ) && ! empty( $db_meta['meta'][ $table ] ) && ! empty( $db_meta['meta'][ $table ]['rows_checksum'][ $checksum_key ] ) ) {
 								$query = $wpdb->prepare(
-									"SELECT COUNT(*) AS rows_count, MAX(%s) AS last_modified_at FROM `%s` WHERE `%s` BETWEEN %d AND %d;",
-									$meta['modified_at_field'],
-									$table,
-									$meta['primary_key'],
+									"SELECT COUNT(*) AS rows_count, MAX(".$meta['modified_at_field'].") AS last_modified_at FROM $table WHERE ".$meta['primary_key']." BETWEEN %d AND %d;",
 									$start,
-									$end
+									$end_id
 								);
-								$results = $wpdb->get_results( $query, ARRAY_A );
-								if ( ! empty( $results ) && $results[0]['last_modified_at'] === $db_meta['meta'][ $table ]['rows_checksum'][ $checksum_key ]['last_modified_at'] && intval( $results[0]['rows_count'] ) === intval( $db_meta['meta'][ $table ]['rows_checksum'][ $checksum_key ]['rows_count'] ) ) {
+								$results = $wpdb->get_row( $query, ARRAY_A );
+								if ( ! empty( $results ) && $results['last_modified_at'] === $db_meta['meta'][ $table ]['rows_checksum'][ $checksum_key ]['last_modified_at'] && intval( $results['rows_count'] ) === intval( $db_meta['meta'][ $table ]['rows_checksum'][ $checksum_key ]['rows_count'] ) ) {
 									// Use last run data checksum
 									$meta['rows_checksum'][ $checksum_key ] = $db_meta['meta'][ $table ]['rows_checksum'][ $checksum_key ];
 								}
@@ -635,42 +634,35 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 						if ( empty( $meta['rows_checksum'][ $checksum_key ] ) ) {
 
 							$query = $wpdb->prepare(
-								"SELECT COUNT(*) AS rows_count, GROUP_CONCAT(`%s`) AS ids, MAX(%s) AS last_modified_at, $query FROM `%s` WHERE `%s` BETWEEN %d AND %d",
-								$meta['primary_key'],
-								$meta['modified_at_field'],
-								$table,
-								$meta['primary_key'],
+								"SELECT COUNT(*) AS rows_count, GROUP_CONCAT(".$meta['primary_key'].") AS ids, MAX(".$meta['modified_at_field'].") AS last_modified_at, $query FROM $table WHERE ".$meta['primary_key']." BETWEEN %d AND %d",
 								$start,
-								$end
+								$end_id
 							);
 
-							$results = $wpdb->get_results( $query, ARRAY_A );
+							$results = $wpdb->get_row( $query, ARRAY_A );
 
 							if ( ! empty( $results ) ) {
-								$meta['rows_checksum'][ $checksum_key ] = $results[0];
-								$this->update_table_meta_repo( $is_api_call, $db_meta, $checksum_key, $meta, $results[0] );
+								$meta['rows_checksum'][ $checksum_key ] = $results;
+								$this->update_table_meta_repo( $is_api_call, $db_meta, $checksum_key, $meta, $results );
 							}
 						}
 						
 					} else if ( 0 < $meta['rows_count'] ) {
 						$query = $wpdb->prepare(
-							"SELECT COUNT(*) AS rows_count, GROUP_CONCAT(`%s`) AS ids, $query FROM `%s` WHERE `%s` BETWEEN %d AND %d;",
-							$meta['primary_key'],
-							$table,
-							$meta['primary_key'],
+							"SELECT COUNT(*) AS rows_count, GROUP_CONCAT(".$meta['primary_key'].") AS ids, $query FROM $table WHERE ".$meta['primary_key']." BETWEEN %d AND %d",
 							$start,
-							$end
+							$end_id
 						);
 
-						$results = $wpdb->get_results( $query, ARRAY_A );
-
+						$results = $wpdb->get_row( $query, ARRAY_A );
+						
 						if ( ! empty( $results ) ) {
-							$meta['rows_checksum'][ $checksum_key ] = $results[0];
-							$this->update_table_meta_repo( $is_api_call, $db_meta, $checksum_key, $meta, $results[0] );
+							$meta['rows_checksum'][ $checksum_key ] = $results;
+							$this->update_table_meta_repo( $is_api_call, $db_meta, $checksum_key, $meta, $results );
 						}
 					}
 
-					if ( $is_api_call ) {
+					if ( $is_api_call && ! empty( $meta['rows_checksum'] ) ) {
 						$meta['checksum'] = $meta['rows_checksum'][ $checksum_key ];
 					}
 					 
@@ -761,6 +753,10 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 		 */
 		public function prepare_url_non_url_query( $maybe_url_fields, $non_url_fields, $home_url ) {
 			$query = '';
+			if ( empty( $home_url ) ) {
+				$this->print_message( 'Error: home_url is empty.', true );
+				return $query;
+			}
 			// Prepare non url fields placeholders
 			if ( 0 < count( $non_url_fields ) ) {
 				$non_url_fields = array_map( function( $field ) {
@@ -772,8 +768,8 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 
 			// Prepare maybe url fields placeholders. Replace home url with empty string
 			if ( 0 < count( $maybe_url_fields ) ) {
-				$maybe_url_fields = array_map( function( $field ) {
-					return sprintf( "CASE WHEN `%s` IS NULL OR `%s` = '' THEN '' ELSE REPLACE(`%s`, %s, '') END)) AS UNSIGNED", $field, $field, $field, $home_url );
+				$maybe_url_fields = array_map( function( $field ) use ( $home_url ) {
+					return sprintf( " CASE WHEN `%s` IS NULL OR `%s` = '' THEN '' ELSE REPLACE(`%s`, '%s', '') END", $field, $field, $field, $home_url );
 				}, $maybe_url_fields );
 				$maybe_url_fields = implode( ',', $maybe_url_fields );
 				$query = ( empty( $query ) ? "" : $query .", " ) . "BIT_XOR(CAST(CRC32(CONCAT_WS('#', $maybe_url_fields )) AS UNSIGNED)) as content_hash";
@@ -818,12 +814,9 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 			if ( empty( $query ) ) {
 				return false;
 			}
-			$query = $wpdb->prepare(
-				"SELECT COUNT(*) AS rows_count, $query FROM `%s`",
-				$table
-			);
-			$results = $wpdb->get_results( $query, ARRAY_A );
-			return empty( $results ) ? false : $results[0];
+			$query = "SELECT COUNT(*) AS rows_count, $query FROM $table";
+			$results = $wpdb->get_row( $query, ARRAY_A );
+			return empty( $results ) ? false : $results;
 		}
 
 		/**

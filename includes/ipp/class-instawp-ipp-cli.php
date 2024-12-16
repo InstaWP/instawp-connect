@@ -24,7 +24,7 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 		/**
 		 * Database checksum name
 		 */
-		private $db_checksum_name = 'iwp_ipp_db_checksums_repo';
+		private $db_meta_name = 'iwp_ipp_db_meta_repo';
 
 		/**
 		 * Rows limit for each query
@@ -153,7 +153,7 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 
 				if ( ! empty( $settings['checksums'] ) ) {
 					$target_checksums = $this->call_api( 'files-checksum' );
-					if ( ! empty( $target_checksums['success'] ) && ! empty( $target_checksums['data']['checksums'] ) ) {
+					if (  ! empty( $target_checksums['checksums'] ) ) {
 						$exclude_paths = array_merge( 
 							$settings['exclude_paths'],  
 							array( 
@@ -168,7 +168,7 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 								'dest.php',
 							)
 						);
-						$target_checksums = $target_checksums['data']['checksums'];
+						$target_checksums = $target_checksums['checksums'];
 						foreach ( $settings['checksums'] as $path_hash => $file ) {
 							if ( in_array( $file['path'], $exclude_paths ) || false !== strpos( $file['path'], 'plugins/instawp-connect' ) || false !== strpos( $file['path'], 'instawp-autologin' ) ) {
 								continue;
@@ -210,7 +210,7 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 				$target_db = $this->call_api( 'db-schema' );
 			
 				$start_id = empty( $assoc_args['start-id'] ) ? '' : $assoc_args['start-id'];
-				$tables = $this->helper->get_table_list();
+				$tables = $this->helper->get_tables();
 				if ( empty( $tables ) || empty( $target_db['tables'] ) ) {
 					WP_CLI::error( __( 'No tables found.', 'instawp-connect' ) );
 				}
@@ -253,6 +253,17 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 						continue;
 					}
 					$start_id = empty( $start_id ) ? 1 : absint( sanitize_key( $start_id ) );
+					$meta = $this->helper->get_table_meta( array( $table ), true, $start_id );
+
+					if ( empty( $meta ) ) {
+						WP_CLI::log( __( 'Table: ', 'instawp-connect' ) . $table . __( ' no data found.', 'instawp-connect' ) );
+						continue;
+					}
+					if ( 0 === $meta['rows_count'] ) {
+						WP_CLI::log( __( 'Table: ', 'instawp-connect' ) . $table . __( ' is empty.', 'instawp-connect' ) );
+						continue;
+					}
+
 					$target_table_meta = $this->call_api( 'table-checksum', array( 'table' => $target_table_name ) );
 					// Check if table exists
 					if ( $target_table_meta['table'] !== $target_table_name ) {
@@ -260,66 +271,59 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 						WP_CLI::error( __( 'Table mismatch: ', 'instawp-connect' ) . $table . ' vs ' . $target_table_meta['table'] );
 					}
 
-					$meta = $this->helper->get_table_meta( array( $table ), true, $start_id );
-					if ( ! empty( $meta ) ) {
-						// Check if target table is empty
-						if ( 0 === $target_table_meta['rows_count'] ) {
-							// Continue if source table is empty
-							if ( 0 === $meta['rows_count'] ) {
-								continue;
+					// Check if target table is empty
+					if ( 0 === $target_table_meta['rows_count'] ) {
+						// Insert all source table data to target
+						$actions['tables'][ $table ]['full_insert'] = true;
+						continue;
+					}
+
+					// Check if target table has primary key
+					if ( ! empty( $meta['primary_key'] ) ) {
+						// Continue if table has no checksum
+						if ( ! isset( $meta['last_id'] ) ) {
+							WP_CLI::error( __( 'Table: ', 'instawp-connect' ) . $table . __( ' has no primary key.', 'instawp-connect' ) );
+						}
+						
+						$this->update_db_action( $actions, $meta, $target_table_meta );
+
+						// Get last id from target|source table where insertion is smaller
+						$last_id_to_process = $target_table_meta['last_id'] < $meta['last_id'] ? $target_table_meta['last_id'] : $meta['last_id']; 
+
+						while ( 0 < $meta['next_start_id'] && $meta['next_start_id'] <= $target_table_meta['last_id'] ) {
+							$meta = $this->helper->get_table_meta( 
+								array( $table ), 
+								true, 
+								$meta['next_start_id'], 
+								$last_id_to_process 
+							);
+							if ( empty( $meta['last_id'] ) || empty( $meta['rows_checksum'] ) || empty( $target_table_meta['rows_checksum'] ) ) {
+								continue 2;
 							}
-							// Insert all source table data to target
-							$actions['tables'][ $table ]['full_insert'] = true;
-							continue;
+							$target_table_meta = $this->call_api( 
+								'table-checksum', 
+								array( 
+									'table' => $target_table_name,
+									'start_id' => $meta['next_start_id'],
+									'last_id_to_process' => $last_id_to_process
+								)
+							);
+							$this->update_db_action( $actions, $meta, $target_table_meta );
 						}
 
-						// Check if target table has primary key
-						if ( ! empty( $meta['primary_key'] ) ) {
-							// Continue if table has no checksum
-							if ( empty( $meta['last_id'] ) || empty( $meta['rows_checksum'] ) || empty( $target_table_meta['rows_checksum'] ) ) {
-								continue;
-							}
-							
-							$this->update_db_action( $actions, $meta, $target_table_meta );
+						// Get first id from target|source table where insertion start
+						if ( $target_table_meta['last_id'] < $meta['last_id'] ) {
+							$actions['tables'][ $table ]['insert_start_id'] = $target_table_meta['last_id']+1;
+							$actions['tables'][ $table ]['insert_end_id'] = $meta['last_id'];
+						} else {
+							$actions['tables'][ $table ]['delete_start_id'] = $meta['last_id']+1;
+							$actions['tables'][ $table ]['delete_end_id'] = $meta['last_id']+1;
+						}
 
-							// Get last id from target|source table where insertion is smaller
-							$last_id_to_process = $target_table_meta['last_id'] < $meta['last_id'] ? $target_table_meta['last_id'] : $meta['last_id']; 
-
-							while ( 0 < $meta['next_start_id'] && $meta['next_start_id'] <= $target_table_meta['last_id'] ) {
-								$meta = $this->helper->get_table_meta( 
-									array( $table ), 
-									true, 
-									$meta['next_start_id'], 
-									$last_id_to_process 
-								);
-								if ( empty( $meta['last_id'] ) || empty( $meta['rows_checksum'] ) || empty( $target_table_meta['rows_checksum'] ) ) {
-									continue 2;
-								}
-								$target_table_meta = $this->call_api( 
-									'table-checksum', 
-									array( 
-										'table' => $target_table_name,
-										'start_id' => $meta['next_start_id'],
-										'last_id_to_process' => $last_id_to_process
-									)
-								);
-								$this->update_db_action( $actions, $meta, $target_table_meta );
-							}
-
-							// Get first id from target|source table where insertion start
-							if ( $target_table_meta['last_id'] < $meta['last_id'] ) {
-								$actions['tables'][ $table ]['insert_start_id'] = $target_table_meta['last_id']+1;
-								$actions['tables'][ $table ]['insert_end_id'] = $meta['last_id'];
-							} else {
-								$actions['tables'][ $table ]['delete_start_id'] = $meta['last_id']+1;
-								$actions['tables'][ $table ]['delete_end_id'] = $meta['last_id']+1;
-							}
-
-						} else if ( ! empty( $meta['checksum'] ) ) {
-							// Clone tables if checksum mismatch for tables without primary key
-							if ( $meta['checksum'] !== $target_table_meta['checksum'] ) {
-								$actions['clone_tables'][] = $table;
-							}
+					} else if ( ! empty( $meta['checksum'] ) ) {
+						// Clone tables if checksum mismatch for tables without primary key
+						if ( $meta['checksum'] !== $target_table_meta['checksum'] ) {
+							$actions['clone_tables'][] = $table;
 						}
 					}
 				}
@@ -339,6 +343,9 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 		 * 
 		 */
 		private function update_db_action( &$action, $meta, $target_table_meta ) {
+			if ( empty( $meta['rows_checksum'] ) || empty( $target_table_meta['rows_checksum'] ) ) {
+				return;
+			}
 			// For same first id and last id query in source and target table
 			if ( $meta['checksum_key'] === $target_table_meta['checksum_key'] ) {
 				// Target site rows checksum

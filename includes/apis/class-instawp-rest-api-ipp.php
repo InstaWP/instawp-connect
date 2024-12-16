@@ -185,34 +185,47 @@ class InstaWP_Rest_Api_IPP extends InstaWP_Rest_Api {
 	 * @return WP_REST_Response
 	 */
 	public function get_table_checksum( WP_REST_Request $request ) {
-		$table = $request->get_param( 'table' );
-		$start_id = $request->get_param( 'start_id' );
-		$last_id_to_process = $request->get_param( 'last_id_to_process' );
+		try {
+			$table = $request->get_param( 'table' );
+			$start_id = $request->get_param( 'start_id' );
+			$last_id_to_process = $request->get_param( 'last_id_to_process' );
 
-		if ( empty( $table ) ) {
+			if ( empty( $table ) ) {
+				return $this->send_response( array(
+					'success' => false,
+					'error_code' => 'table_name_required',	
+					'message' => __( 'Table name is required', 'instawp-connect' )
+				) );
+			}
+			$db_meta = get_option( $this->db_meta_name, array() );
+			$table = sanitize_key( $table );
+
+			if ( ! empty( $db_meta['tables'] ) && ! in_array( $table, $db_meta['tables'] ) ) {
+				return $this->send_response( array(
+					'success' => false,	
+					'error_code' => 'table_not_found',	
+					'message' => __( 'Table not found', 'instawp-connect' )
+				) );
+			}
+			$start_id = empty( $start_id ) ? 1 : absint( sanitize_key( $start_id ) );
+			$last_id_to_process = empty( $last_id_to_process ) ? 0 : absint( sanitize_key( $last_id_to_process ) );
+			$meta = $this->helper->get_table_meta( array( $table ), true, $start_id, $last_id_to_process );
+			if ( empty( $meta ) || ! empty( $meta['error'] ) ) {
+				return $this->send_response( array(
+					'success' => false,	
+					'message' => $meta['error']
+				) );
+			}
+			return $this->send_response( array(
+				'success' => true,
+				'data'    => $meta
+			) );
+		} catch ( \Exception $e ) {
 			return $this->send_response( array(
 				'success' => false,
-				'error_code' => 'table_name_required',	
-				'message' => __( 'Table name is required', 'instawp-connect' )
+				'message' => $e->getMessage()
 			) );
 		}
-		$db_meta = get_option( $this->db_meta_name, array() );
-		$table = sanitize_key( $table );
-
-		if ( ! empty( $db_meta['tables'] ) && ! in_array( $table, $db_meta['tables'] ) ) {
-			return $this->send_response( array(
-				'success' => false,	
-				'error_code' => 'table_not_found',	
-				'message' => __( 'Table not found', 'instawp-connect' )
-			) );
-		}
-		$start_id = empty( $start_id ) ? 1 : absint( sanitize_key( $start_id ) );
-		$last_id_to_process = empty( $last_id_to_process ) ? 0 : absint( sanitize_key( $last_id_to_process ) );
-		$meta = $this->helper->get_table_meta( array( $table ), true, $start_id, $last_id_to_process );
-		return $this->send_response( array(
-			'success' => true,
-			'data'    => $meta
-		) );
 	}
 
 	/**
