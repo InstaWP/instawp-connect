@@ -82,6 +82,13 @@ class InstaWP_Rest_Api_IPP extends InstaWP_Rest_Api {
 					'sanitize_callback' => 'absint',
 					'validate_callback' => 'rest_validate_request_arg',
 				),
+				'last_id_to_process' => array(
+					'required' => false,
+					'type'     => 'integer',
+					'minimum'  => 1,
+					'sanitize_callback' => 'absint',
+					'validate_callback' => 'rest_validate_request_arg',
+				),
 			),
 			'permission_callback' => array( $this, 'validate_ipp_api' ),
 		) );

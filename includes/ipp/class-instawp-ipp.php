@@ -90,14 +90,12 @@ if ( ! class_exists( 'INSTAWP_IPP' ) ) {
 					update_option( $this->db_meta_name . '_last_run_data', array() );
 				}
 				$db_meta = empty( $db_meta ) ? array() : $db_meta;
+				$db_meta['meta'] = array();
 				$db_meta['time'] = time();
 				$db_meta['tables'] = $this->helper->get_tables();
 				$db_meta['table_prefix'] = $wpdb->prefix;
 				update_option( $this->db_meta_name, $db_meta );
 			} else if ( ! empty( $db_meta['tables'] ) ) {
-				if ( empty( $db_meta['meta'] ) ) {
-					$db_meta['meta'] = array();
-				}
 				$meta = $this->helper->get_table_meta( $db_meta['tables'] );
 				if ( ! empty( $meta ) && ! empty( $meta['table'] ) && empty( $meta['error']) ) {
 					$db_meta['meta'][ $meta['table'] ] = $meta;

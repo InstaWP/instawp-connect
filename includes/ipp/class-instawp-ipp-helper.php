@@ -510,6 +510,7 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 			global $wpdb;
 			$db_meta = get_option( $this->db_meta_name, array() );
 			$meta = array();
+			$table = $tables[0];
 			try {
 				// Get last run data
 				if ( $is_api_call ) {
@@ -519,12 +520,26 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 						$last_run_data = $last_transient;
 					}
 				} else {
+					// Get last run data
 					$last_run_data = get_option( $this->db_meta_name . '_last_run_data' );
+					if ( isset( $last_run_data['table'] ) ) {
+						$table = $last_run_data['table'];
+					}
+					$key = array_search( $table, $tables );
+					$total_tables = count( $tables );
+					if ( in_array( $table, $exclude_tables ) ) {
+						$exclude_tables = $this->get_excluded_tables();
+						while ( $key < $total_tables ) {
+							$key = $key + 1;
+							$table = $tables[ $key ];
+							if ( ! in_array( $table, $exclude_tables ) ) {
+								break;
+							}
+						}	
+					}
 				}
 
 				$last_run_data = empty( $last_run_data ) ? array(): $last_run_data;
-				$table = isset( $last_run_data['table'] ) ? $last_run_data['table']: $tables[0];
-				$table = $this->prepare_table_name( $table );
 				$start_id = absint( isset( $last_run_data['start_id'] ) ? $last_run_data['start_id']: $start_id );
 				if ( isset( $last_run_data['home_url'] ) ) {
 					$home_url = $last_run_data['home_url'];
@@ -538,6 +553,7 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 			
 				// Get table meta
 				if ( empty( $last_run_data['meta'] ) ) {	
+					// Get table columns meta
 					$table_meta = $wpdb->get_results( 'SHOW COLUMNS FROM ' . $table, ARRAY_A );
 					if ( empty( $table_meta ) || ! isset( $table_meta[0]['Field'] ) ) {
 						return $meta;
@@ -546,6 +562,7 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 					$modified_at_field = '';
 					$maybe_url_fields = array();
 					$non_url_fields = array();
+					// Loop through table meta
 					foreach ( $table_meta as $meta_key => $meta_value ) {
 
 						if ( $primary_key === '' && isset( $meta_value['Key'] ) && $meta_value['Key'] === 'PRI' && isset( $meta_value['Extra'] ) && $meta_value['Extra'] === 'auto_increment' ) {
@@ -580,22 +597,14 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 					if ( 0 >= $meta['rows_count'] ) {
 						return $meta;
 					}
-					if ( $is_api_call ) {
-						// Set transient for 30 minutes
-						set_transient( $this->db_meta_name . '_last_run_transient', array(
-							'table' => $table,
-							'home_url' => $home_url,
-							'meta' => $meta
-						), 1800 );
-					}
 				} else {
 					$meta = $last_run_data['meta'];
 				}
 
+				$meta['next_start_id'] = 0;
 				$last_run_data = array();
 
 				$meta['last_modified_at'] = empty( $meta['modified_at_field'] ) ? '' : $wpdb->get_var( 'SELECT MAX(' . $meta['modified_at_field'] . ') FROM ' . $table );
-				$start = $start_id;
 				
 				if ( ! empty( $meta['primary_key'] ) ) {
 					$query = $this->prepare_url_non_url_query( $meta['maybe_url_fields'], $meta['non_url_fields'], $home_url );
@@ -603,13 +612,16 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 
 					// Get checksum
 					$end_id = $this->get_end_id( $start_id );
+					// Last ID to process
+					$last_id_to_process = $last_id_to_process > 0 ? $last_id_to_process: $meta['last_id'];
 					if ( $last_id_to_process > 0 && $last_id_to_process < $end_id ) {
+						// End id should be less than equal to last id
 						$end_id = $last_id_to_process;
-						$meta['next_start_id'] = 0;
-					} else if ( $end_id > $meta['last_id'] ) {
-						$end_id = $meta['last_id'];
-						$meta['next_start_id'] = 0;
+					} else {
+						// Next start
+						$meta['next_start_id'] = $end_id + 1;
 					}
+
 					$meta['end_id'] = $end_id;
 					$checksum_key = $this->get_checksum_key( $start_id, $end_id );
 					$meta['checksum_key'] = $checksum_key;
@@ -620,7 +632,7 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 							if ( ! empty( $db_meta ) && ! empty( $db_meta['meta'][ $table ] ) && ! empty( $db_meta['meta'][ $table ]['rows_checksum'][ $checksum_key ] ) ) {
 								$query = $wpdb->prepare(
 									"SELECT COUNT(*) AS rows_count, MAX(".$meta['modified_at_field'].") AS last_modified_at FROM $table WHERE ".$meta['primary_key']." BETWEEN %d AND %d;",
-									$start,
+									$start_id,
 									$end_id
 								);
 								$results = $wpdb->get_row( $query, ARRAY_A );
@@ -635,7 +647,7 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 
 							$query = $wpdb->prepare(
 								"SELECT COUNT(*) AS rows_count, GROUP_CONCAT(".$meta['primary_key'].") AS ids, MAX(".$meta['modified_at_field'].") AS last_modified_at, $query FROM $table WHERE ".$meta['primary_key']." BETWEEN %d AND %d",
-								$start,
+								$start_id,
 								$end_id
 							);
 
@@ -643,14 +655,13 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 
 							if ( ! empty( $results ) ) {
 								$meta['rows_checksum'][ $checksum_key ] = $results;
-								$this->update_table_meta_repo( $is_api_call, $db_meta, $checksum_key, $meta, $results );
 							}
 						}
 						
 					} else if ( 0 < $meta['rows_count'] ) {
 						$query = $wpdb->prepare(
 							"SELECT COUNT(*) AS rows_count, GROUP_CONCAT(".$meta['primary_key'].") AS ids, $query FROM $table WHERE ".$meta['primary_key']." BETWEEN %d AND %d",
-							$start,
+							$start_id,
 							$end_id
 						);
 
@@ -658,25 +669,21 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 						
 						if ( ! empty( $results ) ) {
 							$meta['rows_checksum'][ $checksum_key ] = $results;
-							$this->update_table_meta_repo( $is_api_call, $db_meta, $checksum_key, $meta, $results );
 						}
 					}
 
 					if ( $is_api_call && ! empty( $meta['rows_checksum'] ) ) {
 						$meta['checksum'] = $meta['rows_checksum'][ $checksum_key ];
 					}
-					 
-					if ( $end_id != $meta['last_id'] ) {
-						$start = $end_id + 1;
-						$meta['next_start_id'] = $start;
-					}
-				} else if ( $is_api_call ) {
+					
+				} 
+				
+				if ( $is_api_call && 1 === $start_id ) {
 					$meta['checksum'] = $this->get_table_checksum( $table, $meta, $home_url );
 				}
 
 				if ( ! $is_api_call ) {
-					if ( $start_id === $start ) {
-						$key = array_search( $table, $tables );
+					if ( 0 === $meta['next_start_id'] ) {
 						if ( false !== $key && $key < ( count( $tables ) - 1 ) ) {
 							$last_run_data = array(
 								'table' => $tables[ $key + 1 ],
@@ -687,13 +694,20 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 					} else {
 						$last_run_data = array(
 							'table' => $table,
-							'start_id' => $start,
+							'start_id' => $meta['next_start_id'],
 							'home_url' => $home_url,
 							'meta' => $meta
 						);
 					}
 	
 					update_option( $this->db_meta_name . '_last_run_data', $last_run_data );
+				} else {
+					// Set transient for 30 minutes
+					set_transient( $this->db_meta_name . '_last_run_transient', array(
+						'table' => $table,
+						'home_url' => $home_url,
+						'meta' => $meta
+					), 1800 );
 				}
 			} catch (\Exception $th) {
 				error_log( "IWP IPP Helper: get_table_meta: " . $th->getMessage() );
@@ -702,44 +716,24 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 			return $meta;
 		}
 
-		public function prepare_update_query( $table, $meta, $home_url ) {
-
-		}
-
 		/**
-		 * Update table meta repo.
-		 *
-		 * @param bool $should_update
-		 * @param array $db_meta
-		 * @param string $checksum_key
-		 * @param array $meta
-		 * @param string $checksum
+		 * Exclude tables.
 		 */
-		private function update_table_meta_repo( $should_update, $db_meta, $checksum_key, $meta, $checksum = '' ) {
-			if ( ! $should_update ) {
-				return;
-			}
-			if ( empty( $db_meta ) ) {
-				$db_meta = array();
-			}
-			if ( empty( $db_meta['meta'] ) ) {
-				$db_meta['meta'] = array();
-			}
-			if ( empty( $db_meta['meta'][ $meta['table'] ] ) ) {
-				$db_meta['meta'][ $meta['table'] ] = array();
-			}
-			if ( empty( $db_meta['meta'][ $meta['table'] ]['rows_checksum'] ) ) {
-				$db_meta['meta'][ $meta['table'] ]['rows_checksum'] = array();
-			}
-			foreach ( $meta as $key => $value) {
-				if ( $key !== 'rows_checksum' ) {
-					$db_meta['meta'][ $meta['table'] ][ $key ] = $value;
-				}
-			}
-			if ( ! empty( $checksum ) ) {
-				$db_meta['meta'][ $meta['table'] ]['rows_checksum'][ $checksum_key ] = $checksum;
-			}
-			update_option( $this->db_meta_name, $db_meta );
+		public function exclude_tables() {
+			global $wpdb;
+			return array(
+				$wpdb->prefix . 'actionscheduler_actions',
+				$wpdb->prefix . 'actionscheduler_claims',
+				$wpdb-> prefix . 'actionscheduler_groups',
+				$wpdb->prefix . 'actionscheduler_logs',
+				$wpdb->prefix . 'instawp_events',
+				$wpdb->prefix . 'instawp_event_sites',
+				$wpdb->prefix . 'instawp_event_sync_logs',
+				$wpdb->prefix . 'instawp_sync_history',
+				'iwp_db_sent',
+				'iwp_files_sent',
+				'iwp_options'
+			);
 		}
 
 		/**
