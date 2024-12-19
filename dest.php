@@ -38,7 +38,8 @@ if ( ! $root_dir_find ) {
 	exit( 2 );
 }
 
-$options_data_path = $root_dir_path . DIRECTORY_SEPARATOR . 'wp-content' . DIRECTORY_SEPARATOR . 'instawpbackups' . DIRECTORY_SEPARATOR . 'migrate-push-db-' . substr( $migrate_key, 0, 5 ) . '.txt';
+//$options_data_path = $root_dir_path . DIRECTORY_SEPARATORz . 'wp-content' . DIRECTORY_SEPARATOR . 'instawpbackups' . DIRECTORY_SEPARATOR . 'migrate-push-db-' . substr( $migrate_key, 0, 5 ) . '.txt';
+$options_data_path = $root_dir_path . DIRECTORY_SEPARATOR . 'migrate-push-db-' . substr( $migrate_key, 0, 5 ) . '.txt';
 
 if ( file_exists( $options_data_path ) ) {
 	$options_data_encrypted = file_get_contents( $options_data_path );
