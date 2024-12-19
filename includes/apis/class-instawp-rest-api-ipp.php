@@ -78,7 +78,7 @@ class InstaWP_Rest_Api_IPP extends InstaWP_Rest_Api {
 				'start_id' => array(
 					'required' => false,
 					'type'     => 'integer',
-					'minimum'  => 1,
+					'minimum'  => 0,
 					'sanitize_callback' => 'absint',
 					'validate_callback' => 'rest_validate_request_arg',
 				),

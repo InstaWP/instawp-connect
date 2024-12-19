@@ -516,7 +516,7 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 				if ( $is_api_call ) {
 					// Set transient for 30 minutes
 					$last_transient = get_transient( $this->db_meta_name . '_last_run_transient' );
-					if ( ! empty( $last_transient ) && $last_transient['table'] === $tables[0] ) {
+					if ( ! empty( $last_transient ) && $last_transient['table'] === $table ) {
 						$last_run_data = $last_transient;
 					}
 				} else {
@@ -601,15 +601,20 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 					$meta = $last_run_data['meta'];
 				}
 
-				$meta['next_start_id'] = 0;
+				$meta['next_start_id'] = 1;
 				$last_run_data = array();
-
+				// Get last id
+				$meta['last_id'] = empty( $meta['primary_key'] ) ? '' : $wpdb->get_var( 'SELECT ' . $meta['primary_key'] . ' FROM ' . $table . ' ORDER BY ' . $meta['primary_key'] . ' DESC LIMIT 1' );
+				// Get last modified
 				$meta['last_modified_at'] = empty( $meta['modified_at_field'] ) ? '' : $wpdb->get_var( 'SELECT MAX(' . $meta['modified_at_field'] . ') FROM ' . $table );
+				if ( 0 === $start_id ) {	
+					// Get checksum
+					$meta['checksum'] = $this->get_table_checksum( $table, $meta, $home_url );
+				}
 				
-				if ( ! empty( $meta['primary_key'] ) ) {
+				if ( ! empty( $meta['primary_key'] ) && 0 < $start_id ) {
+					// Get query
 					$query = $this->prepare_url_non_url_query( $meta['maybe_url_fields'], $meta['non_url_fields'], $home_url );
-					$meta['last_id'] = $wpdb->get_var( 'SELECT ' . $meta['primary_key'] . ' FROM ' . $table . ' ORDER BY ' . $meta['primary_key'] . ' DESC LIMIT 1' );
-
 					// Get checksum
 					$end_id = $this->get_end_id( $start_id );
 					// Last ID to process
@@ -617,6 +622,7 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 					if ( $last_id_to_process > 0 && $last_id_to_process < $end_id ) {
 						// End id should be less than equal to last id
 						$end_id = $last_id_to_process;
+						$meta['next_start_id'] = 0;
 					} else {
 						// Next start
 						$meta['next_start_id'] = $end_id + 1;
@@ -678,9 +684,6 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 					
 				} 
 				
-				if ( $is_api_call && 1 === $start_id ) {
-					$meta['checksum'] = $this->get_table_checksum( $table, $meta, $home_url );
-				}
 
 				if ( ! $is_api_call ) {
 					if ( 0 === $meta['next_start_id'] ) {
@@ -699,7 +702,6 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 							'meta' => $meta
 						);
 					}
-	
 					update_option( $this->db_meta_name . '_last_run_data', $last_run_data );
 				} else {
 					// Set transient for 30 minutes
