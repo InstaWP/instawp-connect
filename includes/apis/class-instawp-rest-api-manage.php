@@ -550,11 +550,12 @@ class InstaWP_Rest_Api_Manage extends InstaWP_Rest_Api {
 			return $this->throw_error( $user_id );
 		}
 
-		$user = get_user_by( 'id', $user_id );
+		$count_users  = count_users();
+		$users        = $count_users['total_users'];
 
 		return $this->send_response( array(
-			'success'  => true,
-			'userdata' => $user,
+			'success' => true,
+			'count' => $users,
 		) );
 	}
 
