@@ -62,6 +62,11 @@ class InstaWP_Rest_Api_IPP extends InstaWP_Rest_Api {
 		register_rest_route( $this->namespace . '/' . $this->version_2 . '/ipp', '/files-checksum', array(
 			'methods'             => 'POST',
 			'callback'            => array( $this, 'get_files_checksum' ),
+			'args'                => array(
+				'settings' => array(
+					'required' => true
+				)
+			),
 			'permission_callback' => array( $this, 'validate_ipp_api' ),
 		) );
 		// GET TABLE CHECKSUM
@@ -178,9 +183,18 @@ class InstaWP_Rest_Api_IPP extends InstaWP_Rest_Api {
 	 * @return WP_REST_Response
 	 */
 	public function get_files_checksum( WP_REST_Request $request ) {
+		$settings = $request->get_param( 'settings' );
+		if ( empty( $settings ) || ! is_array( $settings ) ) {
+			return $this->send_response( array(
+				'success' => false,	
+				'message' => __( 'Missing or invalid settings argument.', 'instawp-connect' )
+			) );
+		}
+
+		$settings = $this->helper->sanitize_array( $settings );
 		return $this->send_response( array(
 			'success' => true,
-			'data'    => $this->helper->get_file_settings()
+			'data'    => $this->helper->get_files_checksum( $settings )
 		) );
 	}
 

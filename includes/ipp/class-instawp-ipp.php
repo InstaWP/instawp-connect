@@ -20,15 +20,6 @@ if ( ! class_exists( 'INSTAWP_IPP' ) ) {
 		private $cron_hook = 'iwp_ipp_cron';
 
 		/**
-		 * File checksum name
-		 */
-		private $file_checksum_name = 'iwp_ipp_file_checksums_repo';
-		/**
-		 * Database checksum name
-		 */
-		private $db_meta_name = 'iwp_ipp_db_meta_repo';
-
-		/**
 		 * @var INSTAWP_IPP_Helper
 		 */
 		private $helper;
@@ -84,32 +75,32 @@ if ( ! class_exists( 'INSTAWP_IPP' ) ) {
 		 */
 		public function prepare_db_meta() {
 			global $wpdb;
-			$db_meta = get_option( $this->db_meta_name, array() );
+			$db_meta = get_option( $this->helper->vars['db_meta_repo'], array() );
 			if ( empty( $db_meta ) || 2 * DAY_IN_SECONDS > ( time() - intval( $db_meta['time'] ) ) ) {
 				if ( empty( $db_meta ) ) {
-					update_option( $this->db_meta_name . '_last_run_data', array() );
+					update_option( $this->helper->vars['db_last_run_data'], array() );
 				}
 				$db_meta = empty( $db_meta ) ? array() : $db_meta;
 				$db_meta['meta'] = array();
 				$db_meta['time'] = time();
 				$db_meta['tables'] = $this->helper->get_tables();
 				$db_meta['table_prefix'] = $wpdb->prefix;
-				update_option( $this->db_meta_name, $db_meta );
+				update_option( $this->helper->vars['db_meta_repo'], $db_meta );
 			} else if ( ! empty( $db_meta['tables'] ) ) {
 				$meta = $this->helper->get_table_meta( $db_meta['tables'] );
 				if ( ! empty( $meta ) && ! empty( $meta['table'] ) && empty( $meta['error']) ) {
 					$db_meta['meta'][ $meta['table'] ] = $meta;
-					update_option( $this->db_meta_name, $db_meta );
+					update_option( $this->helper->vars['db_meta_repo'], $db_meta );
 				}
 			}
 		}
 
 		private function prepare_files_checksum() {
-			$process = get_option( $this->file_checksum_name . '_processed_count', 0 );
+			$process = get_option( $this->helper->vars['file_checksum_processed_count'], 0 );
 			if ( 'completed' === $process ) {
 				return;
 			}
-			$this->helper->get_file_settings( array( 
+			$this->helper->get_files_checksum( array( 
 				'exclude_paths' => array(),
 				'include_paths' => array(),
 				'exclude_core' => false,

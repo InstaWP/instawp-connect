@@ -6,16 +6,10 @@ defined( 'ABSPATH' ) || exit;
 
 if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 	class INSTAWP_IPP_HELPER {
-
 		/**
-		 * File checksum name
+		 * variables
 		 */
-		private $file_checksum_name = 'iwp_ipp_file_checksums_repo';
-		/**
-		 * Database checksum name
-		 */
-		private $db_meta_name = 'iwp_ipp_db_meta_repo';
-
+		public $vars = array();
 
 		/**
 		 * Rows limit for each query
@@ -28,21 +22,59 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 		private $is_cli = false;
 
 
-		public function __construct( $is_cli = false ) {
-			$this->is_cli = $is_cli;
+		public function __construct() {
+			$this->is_cli = 'cli' === php_sapi_name();
+			/**
+			 * IPP option table option name variables.
+			 */
+			$this->vars = array(
+				'file_checksum_repo' => 'iwp_ipp_file_checksums_repo',
+				'file_checksum_processed_count' => 'iwp_ipp_file_checksums_repo_processed_count',
+				'db_meta_repo' => 'iwp_ipp_db_meta_repo',
+				'db_last_run_transient' => 'iwp_ipp_db_meta_repo_last_run_transient',
+				'db_last_run_data' => 'iwp_ipp_db_meta_repo_last_run_data',
+				'last_run_cli_time' => 'iwp_ipp_cli_last_run_time',
+				'ipp_run_settings' => 'iwp_ipp_run_settings',
+			);
+		}
+
+		// sanitize_array
+		public function sanitize_array( $array, $textarea_sanitize = true ) {
+			if ( ! empty( $array ) && is_array( $array ) ) {
+				foreach ( (array) $array as $key => $value ) {
+					if ( is_array( $value ) ) {
+						$array[ $key ] = $this->sanitize_array( $value );
+					} else {
+						$array[ $key ] = true === $textarea_sanitize ? sanitize_textarea_field( $value )  : sanitize_text_field( $value );
+					}
+				}
+			}
+			return $array;
 		}
 
 		/**
 		 * Print message
 		 * 
-		 * @param string $message
+		 * @param string|array $message
 		 */
 		public function print_message( $message, $error = false ) {
+			$message = is_array( $message) ? json_encode( $message ) : $message;
 			if ( $this->is_cli ) {
 				if ( $error ) {
 					WP_CLI::error( $message );
 				}
-				WP_CLI::warning( $message );
+				WP_CLI::log( $message );
+			}
+		}
+
+		public function wp_send_json( $res, $error = true ) {
+			if ( $this->is_cli ) {
+				$res = isset( $res['message'] ) ? $res['message'] : $res;
+				$this->print_message( $res, $error );
+			} else if ( $error ) {
+				wp_send_json_error( $res );
+			} else {
+				wp_send_json_success( $res );
 			}
 		}
 
@@ -184,96 +216,53 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 			return sprintf('%u', $checksum);;
 		}
 
+		public function core_files_folder_list() {
+			return array(
+				'wp-includes',
+				'wp-admin',
+				'index.php',
+				'readme.html',
+				'wp-config-sample.php',
+				'wp-activate.php',
+				'wp-config.php',
+				'wp-load.php',
+				'wp-mail.php',
+				'wp-login.php',
+				'wp-settings.php',
+				'wp-signup.php',
+				'wp-activate.php',
+				'wp-blog-header.php',
+				'wp-comments-post.php',
+				'wp-cron.php',
+				'wp-links-opml.php',
+				'wp-trackback.php',
+				'xmlrpc.php',
+			);
+		}
+
 
 		/**
 		 * Get checksums for all files in a directory
 		 *
-		 * @param string $dir Directory path
+		 * @param array $settings
 		 * 
 		 * @return array|false Array of filepath => checksum pairs or false on failure
 		 */
-		public function get_file_settings( $args = array() ) {
+		public function get_files_checksum( $settings = array() ) {
 			if ( ! defined( 'ABSPATH' ) || ! is_dir( ABSPATH ) ) {
 				$this->print_message( 'ABSPATH not defined or invalid directory' );
 				return false;
 			}
-
-			$args = wp_parse_args( $args, array( 
-				'exclude_paths' => array(),
-				'include_paths' => array(),
-				'exclude_core' => false,
-				'exclude_uploads' => false,
-				'exclude_large_files' => false,
-			) );
 			
-			$settings = array(
-				'exclude_paths' => array( 
-					'wp-content/cache', 
-					'editor', 
-					'wp-content/upgrade', 
-					'wp-content/instawpbackups',
-				),
-				'checksums' => array(),
-			);
+			$checksums = array();
 			// Saved settings
-			$checksum_repo =  get_option( $this->file_checksum_name, array() );
-			// Exclude core	files
-			if ( $args['exclude_core'] ) {
-				$settings['exclude_paths'][] = array(
-					'wp-includes',
-					'wp-admin',
-					'index.php',
-					'readme.html',
-					'wp-config-sample.php',
-					'wp-activate.php',
-					'wp-config.php',
-					'wp-load.php',
-					'wp-mail.php',
-					'wp-login.php',
-					'wp-settings.php',
-					'wp-signup.php',
-					'wp-activate.php',
-					'wp-blog-header.php',
-					'wp-comments-post.php',
-					'wp-cron.php',
-					'wp-links-opml.php',
-					'wp-trackback.php',
-					'xmlrpc.php',
-				);
-			}
-			// Exclude uploads
-			if ( $args['exclude_uploads'] ) {
-				$upload_dir      = wp_upload_dir();
-				$upload_base_dir = isset( $upload_dir['basedir'] ) ? $upload_dir['basedir'] : '';
-				if ( ! empty( $upload_base_dir ) ) {
-					$settings['exclude_paths'][] = str_replace( ABSPATH, '', $upload_base_dir );
-				}
-			}
-
-			if ( ! empty( $args['exclude_paths'] ) ) {
-				$settings['exclude_paths'] = array_merge( $settings['exclude_paths'], $args['exclude_paths'] );
-			}
-			$settings['exclude_paths'] = array_unique( $settings['exclude_paths'] );
-
-			if ( ! empty( $args['include_paths'] ) ) {
-				// Array that contains the entries from exclude_paths that are not present in include_paths 
-			    $settings['exclude_paths'] = array_diff( $settings['exclude_paths'], $args['include_paths'] );
-			}
-			 
-			$settings['exclude_paths'] = array_map( 'wp_normalize_path', $settings['exclude_paths'] );
+			$checksum_repo =  get_option( $this->vars['file_checksum_repo'], array() );
 			
-			// prepare_large_files_list();
-			if ( $args['exclude_large_files'] ) {
-				$maxbytes = (int) get_option( 'instawp_max_filesize_allowed', INSTAWP_DEFAULT_MAX_filesize_ALLOWED );
-				$maxbytes = $maxbytes ? $maxbytes : INSTAWP_DEFAULT_MAX_filesize_ALLOWED;
-				$maxbytes = ( $maxbytes * 1024 * 1024 );
-			}
-
 			$abspath = wp_normalize_path( ABSPATH );
 			
 			$files = $this->get_iterator_items( 
 				$abspath,
-				$settings['exclude_paths'],
+				$settings['excluded_paths'],
 				array(
 					'node_modules',
 					'.github',
@@ -288,10 +277,10 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 
 			$total = iterator_count( $files );
 			// should be multiple of 1000
-			$limit = empty( $args['files_limit'] ) ? 0 : absint( $args['files_limit'] );
+			$limit = empty( $settings['files_limit'] ) ? 0 : absint( $settings['files_limit'] );
 			$is_limit = $limit > 0;
 			if ( $is_limit ) {
-				$limit_processed_count = get_option( $this->file_checksum_name . '_processed_count', 0 );
+				$limit_processed_count = get_option( $this->vars['file_checksum_processed_count'], 0 );
 				if ( $limit_processed_count >= $total || 'completed' === $limit_processed_count ) {
 					$this->print_message( 'Checksum processing completed' );
 					return false;
@@ -301,7 +290,6 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 			$processed_files = 0;
 			// Batch size to save checksum
 			$batch = $is_limit ? $limit : 1000;
-			$settings['total_files'] = $total;
 			$processed = 0;
 			// Missed files in processing
 			$missed = array();
@@ -341,17 +329,9 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 						continue;
 					}
 
-					// Skip large files
-					if ( ! empty( $args['exclude_large_files'] ) && $filesize > $maxbytes && strpos( $filepath, 'instawpbackups' ) === false ) {
-						if ( ! in_array( $relative_path, $exclude_paths ) ) {
-							$settings['exclude_paths'][] = $relative_path;
-						}
-						continue;
-					}
-
 					//Get checksum from transient
 					if ( ! empty( $checksum_repo[ $rel_path_hash ] ) && $checksum_repo[ $rel_path_hash ]['filetime'] === $filetime ) {
-						$settings['checksums'][ $rel_path_hash ] = $checksum_repo[ $rel_path_hash ];
+						$checksums[ $rel_path_hash ] = $checksum_repo[ $rel_path_hash ];
 						continue;
 					}
 					
@@ -373,15 +353,15 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 					);
 
 					// Add to settings
-					$settings['checksums'][ $rel_path_hash ] = $checksum_repo[ $rel_path_hash ];
+					$checksums[ $rel_path_hash ] = $checksum_repo[ $rel_path_hash ];
 
 					$processed_files++;
 
 					if ( $is_save_checksums ) {
 						// Update checksum repo
-						update_option( $this->file_checksum_name, $checksum_repo );
+						update_option( $this->vars['file_checksum_repo'], $checksum_repo );
 						if ( $is_limit ) {
-							update_option( $this->file_checksum_name . '_processed_count', $processed );
+							update_option( $this->vars['file_checksum_processed_count'], $processed );
 							break;
 						}
 					}
@@ -390,13 +370,13 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 
 			if ( 0 === $processed_files ) {
 				if ( $is_limit ) {
-					update_option( $this->file_checksum_name . '_processed_count', 'completed' );
+					update_option( $this->vars['file_checksum_processed_count'], 'completed' );
 				}
 			} else {
 				// Update checksum repo
-				update_option( $this->file_checksum_name, $checksum_repo );
+				update_option( $this->vars['file_checksum_repo'], $checksum_repo );
 				if ( $is_limit ) {
-					update_option( $this->file_checksum_name . '_processed_count', $processed );
+					update_option( $this->vars['file_checksum_processed_count'], $processed );
 				}
 			}
 			
@@ -407,7 +387,7 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 				$this->print_message( 'Missed files: ' . json_encode( $missed ) );
 			}
 
-			return $settings;
+			return $checksums;
 		}
 
 		/**
@@ -427,7 +407,7 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 
 			$filename = basename( $filepath );
 			// Check for disallowed characters
-			$disallowed = array( '/', '\\', ':', '*', '?', '"', '<', '>', '|' );
+			$disallowed = array( '/', '\\', ':', '*', '?', '"', '<', '>', '|', '.log', '.zip' );
 			foreach ( $disallowed as $char ) {
 				if ( strpos( $filename, $char ) !== false ) {
 					return false;
@@ -508,20 +488,21 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 		 */
 		public function get_table_meta( $tables, $is_api_call = false, $start_id = 1, $last_id_to_process = 0 ) {
 			global $wpdb;
-			$db_meta = get_option( $this->db_meta_name, array() );
+			
+			$db_meta = get_option( $this->vars['db_meta_repo'], array() );
 			$meta = array();
 			$table = $tables[0];
 			try {
 				// Get last run data
 				if ( $is_api_call ) {
 					// Set transient for 30 minutes
-					$last_transient = get_transient( $this->db_meta_name . '_last_run_transient' );
+					$last_transient = get_transient( $this->vars['db_last_run_transient'] );
 					if ( ! empty( $last_transient ) && $last_transient['table'] === $table ) {
 						$last_run_data = $last_transient;
 					}
 				} else {
 					// Get last run data
-					$last_run_data = get_option( $this->db_meta_name . '_last_run_data' );
+					$last_run_data = get_option( $this->vars['db_last_run_data'] );
 					if ( isset( $last_run_data['table'] ) ) {
 						$table = $last_run_data['table'];
 					}
@@ -702,10 +683,10 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 							'meta' => $meta
 						);
 					}
-					update_option( $this->db_meta_name . '_last_run_data', $last_run_data );
+					update_option( $this->vars['db_last_run_data'], $last_run_data );
 				} else {
 					// Set transient for 30 minutes
-					set_transient( $this->db_meta_name . '_last_run_transient', array(
+					set_transient( $this->vars['db_last_run_transient'], array(
 						'table' => $table,
 						'home_url' => $home_url,
 						'meta' => $meta
@@ -771,29 +752,6 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 				$query = ( empty( $query ) ? "" : $query .", " ) . "BIT_XOR(CAST(CRC32(CONCAT_WS('#', $maybe_url_fields )) AS UNSIGNED)) as content_hash";
 			}
 			return $query;
-		}
-
-		/**
-		 * Update the database checksum.
-		 *
-		 * @param string $key   The key of the checksum.
-		 * @param string $value The value of the checksum.
-		 */
-		private function update_db_checksum( $key, $value ) {
-			$db_checksums = get_option( $this->db_meta_name );
-			if ( empty( $db_checksums ) ) {
-				$db_checksums = array();
-			}
-			$db_checksums[$key] = $value;
-			$db_checksums['time'] = time();
-			update_option( $this->db_meta_name, $db_checksums );
-		}
-
-		/**
-		 * Save the checksum of all tables in the database.
-		 */
-		public function save_tables_checksum() {
-			$this->update_db_checksum( 'tables_meta', $this->get_tables_meta() );
 		}
 
 		/**
