@@ -267,13 +267,6 @@ include $file_path;';
 
 		$dest_file_path = $root_dir_path . $info_filename;
 
-		echo "<pre>";
-		print_r( [
-			$dest_file_path,
-		] );
-		echo "</pre>";
-
-
 		if ( file_put_contents( $dest_file_path, $data_encrypted ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 			$dest_url = INSTAWP_PLUGIN_URL . 'dest.php';
 
