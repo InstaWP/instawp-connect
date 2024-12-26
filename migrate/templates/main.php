@@ -53,15 +53,8 @@ if ( ! instawp()->is_connected ) {
         <div class="pb-4 flex items-center justify-center">
             <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 text-left w-full" role="alert">
                 <div class="flex justify-between items-center">
-                    <div>
-						<?php printf( wp_kses_post( __( 'A new version of InstaWP Connect is available. You might experience failures in our services.', 'instawp-connect' ) ) ); ?>
-                    </div>
-                    <div>
-						<?php printf( wp_kses_post( __( '<a href="#" class="px-3 py-2 text-xs font-medium text-center inline-flex items-center text-white bg-blue-700 rounded-lg hover:bg-blue-800 instawp-update-plugin" data-plugin="%s">Update now</a>', 'instawp-connect' ) ), esc_attr( $plugin_file ) ); ?>
-                        <span class="instawp-update-spinner" style="display:none;">
-                            <img src="<?php echo esc_url( admin_url( 'images/spinner.gif' ) ); ?>" alt="Loading...">
-                        </span>
-                    </div>
+                    <span><?php printf( wp_kses_post( __( 'A new version of InstaWP Connect is available. You might experience failures in our services.', 'instawp-connect' ) ) ); ?></span>
+                    <span><?php printf( wp_kses_post( __( '<a href="#" class="px-4 py-2 text-xs font-medium text-center inline-flex items-center text-white bg-primary-700 rounded-3xl hover:bg-primary-800 hover:text-white ease-linear duration-300 instawp-update-plugin" data-plugin="%s">Update now</a>', 'instawp-connect' ) ), esc_attr( $plugin_file ) ); ?></span>
                 </div>
             </div>
         </div>
