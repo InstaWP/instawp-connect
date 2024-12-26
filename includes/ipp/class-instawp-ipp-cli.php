@@ -102,6 +102,9 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 				WP_CLI::error( 'Missing or invalid type command. Must be push or pull. e.g. ' . $this->command_start . ' push or ' . $this->command_start . ' pull or IWP pull' );
 				return false;
 			}
+
+			require_once INSTAWP_PLUGIN_DIR . '/includes/ipp/class-instawp-push-files.php';
+
 			try {
 				global $wpdb;
 				$this->init();
@@ -112,8 +115,11 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 				$command = $args[0];
 				if ( $command === 'push' ) {
 					if ( isset( $assoc_args['purge-cache'] ) ) {
-						update_option( $this->helper->vars['file_checksum_repo'], array() );
-						update_option( $this->helper->vars['db_meta_repo'], array() );
+						foreach ( $this->helper->vars as $option_name ) {
+							if ( 0 === strpos( $option_name, 'iwp_ipp_' ) ) {
+								delete_option( $option_name );
+							}
+						}
 						WP_CLI::success( "Cache purged for {$command} files successfully." );
 						return;
 					}
@@ -125,9 +131,14 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 							'editor',
 							'wp-config.php',
 							'wp-config-sample.php',
-							'wp-content/' . INSTAWP_DEFAULT_BACKUP_DIR,
 							'.htaccess',
-							'wp-content/plugins/intawp-connect'
+							'editor',
+							'wp-content' . DIRECTORY_SEPARATOR . 'cache',
+							'wp-content' . DIRECTORY_SEPARATOR . 'upgrade',
+							'wp-content' . DIRECTORY_SEPARATOR . INSTAWP_DEFAULT_BACKUP_DIR,
+							'wp-content' . DIRECTORY_SEPARATOR . 'plugins' . DIRECTORY_SEPARATOR . 'iwp-migration',
+							'wp-content' . DIRECTORY_SEPARATOR . 'plugins' . DIRECTORY_SEPARATOR . 'iwp-migration-main',
+							'wp-content' . DIRECTORY_SEPARATOR . 'plugins' . DIRECTORY_SEPARATOR . 'instawp-connect',
 						)
 					);
 					
@@ -203,6 +214,16 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 						}
 					}
 					$settings = InstaWP_Tools::get_migrate_settings( array(), $settings );
+					$settings = array_merge( 
+						$settings, 
+						array(
+							'target_url' => $this->staging_url,
+							'working_directory' => wp_normalize_path( ABSPATH ),
+							'source_domain' => $this->helper->get_domain(),
+							'migrate_settings' => $settings,
+							
+						) 
+					);
 					// $_POST['migrate_settings'] = $settings;
 					// do_action( 'instawp_migrate_init_ipp' );
 					// $migration_details = Option::get_option( 'instawp_migration_details' );
@@ -213,12 +234,15 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 					// $settings  = $tracking_db->get_option( 'migrate_settings' );
 					// Detect file changes
 					$settings['file_actions'] = $this->get_push_file_changes( $settings );
+					instawp_iterative_push_files( $settings );
 					// Detect database changes
 					if ( isset( $assoc_args['with-db'] ) ) {
 						$settings['db_actions'] = $this->get_push_db_changes( $settings );
+						
 					}
 
 					update_option( $this->helper->vars['ipp_run_settings'], $settings );
+					
 				}
 			} catch ( \Exception $e ) {
 				WP_CLI::error( $e->getMessage() );
