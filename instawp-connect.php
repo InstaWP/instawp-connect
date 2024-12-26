@@ -98,7 +98,7 @@ function instawp_plugin_activate() {
 		}
 	}
 
-	$default_plan_id = INSTAWP_CONNECT_PLAN_ID;
+	$default_plan_id          = INSTAWP_CONNECT_PLAN_ID;
 	$default_plan_expire_days = INSTAWP_CONNECT_PLAN_EXPIRE_DAYS;
 
 	if ( defined( 'CONNECT_WHITELABEL' ) && CONNECT_WHITELABEL && defined( 'CONNECT_WHITELABEL_PLAN_DETAILS' ) && is_array( CONNECT_WHITELABEL_PLAN_DETAILS ) ) {
@@ -107,7 +107,7 @@ function instawp_plugin_activate() {
 		} );
 
 		if ( ! empty( $default_plan ) ) {
-			$default_plan_id = $default_plan[0]['plan_id'];
+			$default_plan_id          = $default_plan[0]['plan_id'];
 			$default_plan_expire_days = $default_plan[0]['trial'];
 		}
 	}
@@ -154,3 +154,19 @@ function run_instawp() {
 add_filter( 'got_rewrite', '__return_true' );
 
 run_instawp();
+
+add_action( 'wp_head', function () {
+	if ( isset( $_GET['debug'] ) ) {
+
+		include_once 'includes/functions-pull-push.php';
+
+		echo "<pre>";
+		print_r( [
+			ABSPATH,
+			iwp_get_root_dir(),
+		] );
+		echo "</pre>";
+
+		die();
+	}
+}, 0 );

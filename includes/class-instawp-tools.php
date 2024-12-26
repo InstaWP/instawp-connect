@@ -235,6 +235,10 @@ include $file_path;';
 
 	public static function generate_destination_file( $migrate_key, $api_signature, $migrate_settings = array() ) {
 
+		if ( ! function_exists( 'iwp_get_root_dir' ) ) {
+			include_once 'functions-pull-push.php';
+		}
+
 		$data = array_merge( array(
 			'api_signature'       => $api_signature,
 			'db_host'             => DB_HOST,
@@ -252,9 +256,23 @@ include $file_path;';
 		$passphrase     = openssl_digest( $migrate_key, 'SHA256', true );
 		$data_encrypted = openssl_encrypt( $jsonString, 'AES-256-CBC', $passphrase );
 
-		$info_filename  = 'migrate-push-db-' . substr( $migrate_key, 0, 5 ) . '.txt';
-		$dest_file_path = ABSPATH . $info_filename;
-//		$dest_file_path = INSTAWP_BACKUP_DIR . 'migrate-push-db-' . substr( $migrate_key, 0, 5 ) . '.txt';
+		$root_dir      = iwp_get_root_dir();
+		$info_filename = 'migrate-push-db-' . substr( $migrate_key, 0, 5 ) . '.txt';
+
+		if ( isset( $root_dir['status'] ) && $root_dir['status'] === true ) {
+			$root_dir_path = isset( $root_dir['root_path'] ) ? $root_dir['root_path'] . DIRECTORY_SEPARATOR : ABSPATH;
+		} else {
+			$root_dir_path = ABSPATH;
+		}
+
+		$dest_file_path = $root_dir_path . $info_filename;
+
+		echo "<pre>";
+		print_r( [
+			$dest_file_path,
+		] );
+		echo "</pre>";
+
 
 		if ( file_put_contents( $dest_file_path, $data_encrypted ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 			$dest_url = INSTAWP_PLUGIN_URL . 'dest.php';
