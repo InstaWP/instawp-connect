@@ -12,13 +12,13 @@ wp_enqueue_script( 'updates' );
 global $staging_sites, $instawp_settings;
 
 // Add this code to check for plugin updates
-$current          = get_site_transient( 'update_plugins' );
-$plugin_file      = plugin_basename( INSTAWP_PLUGIN_FILE ); // Make sure INSTAWP_PLUGIN_FILE is defined in your main plugin file
+//$current          = get_site_transient( 'update_plugins' );
+//$plugin_file      = plugin_basename( INSTAWP_PLUGIN_FILE );
 $update_available = false;
 
-if ( isset( $current->response[ $plugin_file ] ) ) {
-	$update_available = true;
-}
+//if ( isset( $current->response[ $plugin_file ] ) ) {
+//	$update_available = true;
+//}
 
 if ( ! empty( $_GET['debug'] ) && current_user_can( 'manage_options' ) ) {
 	$file_path = INSTAWP_PLUGIN_DIR . '/migrate/templates/debug/' . sanitize_text_field( wp_unslash( $_GET['debug'] ) ) . '.php';
