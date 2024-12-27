@@ -639,8 +639,8 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 				// Get table meta
 				if ( empty( $last_run_data['meta'] ) ) {	
 					// Get table columns meta
-					$table_meta = $wpdb->get_results( 'SHOW COLUMNS FROM ' . $table, ARRAY_A );
-					if ( empty( $table_meta ) || ! isset( $table_meta[0]['Field'] ) ) {
+					$table_schema = $wpdb->get_results( 'SHOW FULL COLUMNS FROM ' . $table, ARRAY_A );
+					if ( empty( $table_schema ) || ! isset( $table_schema[0]['Field'] ) ) {
 						return $meta;
 					}
 					$primary_key = '';
@@ -648,7 +648,7 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 					$maybe_url_fields = array();
 					$non_url_fields = array();
 					// Loop through table meta
-					foreach ( $table_meta as $meta_key => $meta_value ) {
+					foreach ( $table_schema as $meta_key => $meta_value ) {
 
 						if ( $primary_key === '' && isset( $meta_value['Key'] ) && $meta_value['Key'] === 'PRI' && isset( $meta_value['Extra'] ) && $meta_value['Extra'] === 'auto_increment' ) {
 							// Found primary key
@@ -665,9 +665,11 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 						
 					}
 
-					$table_fields = array_column( $table_meta, 'Field' );
+					$table_fields = array_column( $table_schema, 'Field' );
 					$meta = array(
 						'table' => $table,
+						'table_schema' => $table_schema,
+						'indexes' => $wpdb->get_results( 'SHOW INDEX FROM ' . $table, ARRAY_A ),
 						'fields' => $table_fields,
 						'primary_key' => $primary_key,
 						'modified_at_field' => $modified_at_field,

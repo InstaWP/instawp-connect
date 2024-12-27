@@ -12,7 +12,6 @@ if ( ! function_exists( 'instawp_iterative_push_db' ) ) {
 
 		$ipp_helper = new INSTAWP_IPP_HELPER();
 		$required_parameters = array(
-			'db_actions',
 			'target_url',
 			'working_directory',
 			'api_signature',
@@ -29,12 +28,8 @@ if ( ! function_exists( 'instawp_iterative_push_db' ) ) {
 			}
 		}
 
-
-		$target_url        = $settings['target_url'];
 		$working_directory = $settings['working_directory'];
 		$api_signature     = $settings['api_signature'];
-		$migrate_key       = $settings['migrate_key'];
-		$migrate_id        = $settings['migrate_id'];
 		$bearer_token      = $settings['bearer_token'];
 		$source_domain     = $settings['source_domain'];
 		$mig_settings      = $settings['migrate_settings'];

@@ -5,7 +5,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2024-12-26 13:58+0000\n"
+"POT-Creation-Date: 2024-12-27 09:57+0000\n"
 "X-Poedit-Basepath: ..\n"
 "X-Poedit-KeywordsList: __;_e;_ex:1,2c;_n:1,2;_n_noop:1,2;_nx:1,2,4c;_nx_noop:1,2,3c;_x:1,2c;esc_attr__;esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c\n"
 "X-Poedit-SearchPath-0: .\n"
@@ -853,55 +853,55 @@ msgstr ""
 msgid "Connected Site:"
 msgstr ""
 
-#: includes/ipp/class-instawp-ipp-cli.php:236
+#: includes/ipp/class-instawp-ipp-cli.php:243
 msgid "Failed to generate migrate settings."
 msgstr ""
 
-#: includes/ipp/class-instawp-ipp-cli.php:241
+#: includes/ipp/class-instawp-ipp-cli.php:248
 msgid "Failed to create tracking database."
 msgstr ""
 
-#: includes/ipp/class-instawp-ipp-cli.php:345
+#: includes/ipp/class-instawp-ipp-cli.php:353
 msgid "Checksums not found."
 msgstr ""
 
-#: includes/ipp/class-instawp-ipp-cli.php:368
+#: includes/ipp/class-instawp-ipp-cli.php:376
 msgid "No tables found."
 msgstr ""
 
-#: includes/ipp/class-instawp-ipp-cli.php:434, includes/ipp/class-instawp-ipp-cli.php:439, includes/ipp/class-instawp-ipp-cli.php:446, includes/ipp/class-instawp-ipp-cli.php:474
+#: includes/ipp/class-instawp-ipp-cli.php:449, includes/ipp/class-instawp-ipp-cli.php:475, includes/ipp/class-instawp-ipp-cli.php:482, includes/ipp/class-instawp-ipp-cli.php:497
 msgid "Table: "
 msgstr ""
 
-#: includes/ipp/class-instawp-ipp-cli.php:434
+#: includes/ipp/class-instawp-ipp-cli.php:449
 msgid " No data found."
 msgstr ""
 
-#: includes/ipp/class-instawp-ipp-cli.php:439
-msgid " is empty."
-msgstr ""
-
-#: includes/ipp/class-instawp-ipp-cli.php:446
-msgid " no changes found since last sync."
-msgstr ""
-
-#: includes/ipp/class-instawp-ipp-cli.php:460
+#: includes/ipp/class-instawp-ipp-cli.php:464
 msgid "Table mismatch: "
 msgstr ""
 
-#: includes/ipp/class-instawp-ipp-cli.php:474
+#: includes/ipp/class-instawp-ipp-cli.php:475
+msgid " is empty."
+msgstr ""
+
+#: includes/ipp/class-instawp-ipp-cli.php:482
+msgid " no changes found since last sync."
+msgstr ""
+
+#: includes/ipp/class-instawp-ipp-cli.php:497
 msgid " has no primary key."
 msgstr ""
 
-#: includes/ipp/class-instawp-ipp-cli.php:605
+#: includes/ipp/class-instawp-ipp-cli.php:630
 msgid "Checksum key mismatch: "
 msgstr ""
 
-#: includes/ipp/class-instawp-ipp-cli.php:622
+#: includes/ipp/class-instawp-ipp-cli.php:872
 msgid "API call failed: "
 msgstr ""
 
-#: includes/ipp/class-instawp-ipp-cli.php:629
+#: includes/ipp/class-instawp-ipp-cli.php:879
 msgid "Invalid response format."
 msgstr ""
 

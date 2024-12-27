@@ -199,6 +199,9 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 								"{$wpdb->prefix}actionscheduler_claims",
 								"{$wpdb->prefix}actionscheduler_groups",
 								"{$wpdb->prefix}actionscheduler_logs", 
+								"iwp_db_sent",
+								"iwp_files_sent",
+								"iwp_options",
 							) 
 						);
 						$included_tables = empty( $assoc_args['include-tables'] ) ? array() : explode( ',', $assoc_args['include-tables'] );
@@ -225,6 +228,13 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 					// $settings  = $tracking_db->get_option( 'migrate_settings' );
 					// Detect file changes
 					$settings['file_actions'] = $this->get_push_file_changes( $settings );
+					$db_update_meta = array();
+					// Detect database changes
+					if ( isset( $assoc_args['with-db'] ) ) {
+						$db_changes = $this->get_push_db_changes( $settings );
+						$settings['db_actions'] = $db_changes['db_actions'];
+						$db_update_meta = $db_changes['db_update_meta'];
+					}
 					$migrate_id = time();
 					$target_url = 'https://lush-horse-1bbe62.a.instawpsites.com/wp-content/plugins/instawp-connect/dest.php';
 					$migrate_key = 'a50519d518965978b2408645109e2e417464361d';
@@ -242,14 +252,11 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 					}
 					
 					$settings = $settings['migrate_settings'];
+					
+					// Save ipp run settings to option
 					update_option( $this->helper->vars['ipp_run_settings'], $settings );
-					// Detect database changes
-					if ( isset( $assoc_args['with-db'] ) ) {
-						$settings['db_actions'] = $this->get_push_db_changes( $settings );
-						
-					}
-
-					instawp_iterative_push_files( array(
+					
+					$settings = array(
 						'target_url' => $target_url,
 						'working_directory' => wp_normalize_path( ABSPATH ),
 						'source_domain' => $this->helper->get_domain(),
@@ -258,10 +265,14 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 						'migrate_key' => $migrate_key,
 						'api_signature' => $api_signature,
 						'bearer_token' => $bearer_token,
-					) );
+					);
+					instawp_iterative_push_files( $settings );
+					//$push_db_status = instawp_iterative_push_db( $settings );
 
-					
-					
+					// if ( true === $push_db_status && ! empty( $db_update_meta ) ) {
+					// 	// Update db meta
+					// 	update_option( $this->helper->vars['db_meta_repo'], $db_update_meta );
+					// }
 				}
 			} catch ( \Exception $e ) {
 				WP_CLI::error( $e->getMessage() );
@@ -372,6 +383,7 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 				'create_tables' => array(),
 				'clone_tables' => array(),
 				'drop_tables' => array(),
+				'schema_queries' => array(), // create, drop or schema related queries
 				'tables' => array(),
 				'target' =>array(
 					'tables' => $target_db['tables'],
@@ -387,11 +399,11 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 			foreach ( $target_db['tables'] as $table ) {
 				if ( ! in_array( str_replace( $target_db['table_prefix'], $wpdb->prefix, $table ), $tables ) ) {
 					$db_actions['drop_tables'][] = $table;
+					$db_actions['schema_queries'][] = "DROP TABLE IF EXISTS `{$table}`;";
 				}
 			}
 
 			// flag to check if push db was successful
-			$success_push_db = true;
 			$db_meta = get_option( $this->helper->vars['db_meta_repo'], array() );
 			$new_tables_meta = array();
 			foreach ( $tables as $table ) {
@@ -399,7 +411,7 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 				// Create tables
 				if ( ! in_array( $target_table_name, $target_db['tables'] ) ) {
 					$db_actions['create_tables'][] = $table;
-					continue;
+					$db_actions['schema_queries'][] = "SHOW CREATE TABLE `{$table}`;";
 				}
 				// Skip excluded tables
 				if ( in_array( $table, $excluded_tables ) ) {
@@ -417,6 +429,12 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 				WP_CLI::log( "Checking table: " . $table );
 				// Action required
 				$db_actions['tables'][ $table ] = array(
+					'columns_added' => array(),
+					'columns_deleted' => array(),
+					'columns_modified' => array(),
+					'indexes_added' => array(),
+					'indexes_deleted' => array(),
+					'indexes_modified' => array(),
 					'insert_start_id' => 0, // Insert start from this id
 					'insert_end_id' => 0, // Insert end at this id
 					'delete_start_id' => 0, // Delete start from this id
@@ -434,19 +452,8 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 					WP_CLI::log( __( 'Table: ', 'instawp-connect' ) . $table . __( ' No data found.', 'instawp-connect' ) );
 					continue;
 				}
-				// Check if source table is empty
-				if ( 0 === absint( $meta['rows_count'] ) ) {
-					WP_CLI::log( __( 'Table: ', 'instawp-connect' ) . $table . __( ' is empty.', 'instawp-connect' ) );
-					continue;
-				}
-				// Table checksum
-				$new_tables_meta[ $table ] = $meta;
-				// Check if source table has no changes. Comapre from last checksum in sync
-				if ( ! empty( $db_meta['meta'][ $table ] ) && ! empty( $db_meta['meta'][ $table ]['checksum'] ) && $db_meta['meta'][ $table ]['checksum'] === $meta['checksum'] ) {
-					WP_CLI::log( __( 'Table: ', 'instawp-connect' ) . $table . __( ' no changes found since last sync.', 'instawp-connect' ) );
-					continue;
-				}
-
+				
+				// Target table meta
 				$target_table_meta = $this->call_api( 
 					'table-checksum',
 					array( 
@@ -458,6 +465,25 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 				if ( $target_table_meta['table'] !== $target_table_name ) {
 					// Table mismatch
 					WP_CLI::error( __( 'Table mismatch: ', 'instawp-connect' ) . $table . ' vs ' . $target_table_meta['table'] );
+				}
+
+				// Check table schema changes
+				$queries = $this->check_table_schema_changes( $db_actions['tables'][ $table ], $meta, $target_table_meta );
+				if ( ! empty( $queries ) && is_array( $queries ) ) {	
+					$db_actions['schema_queries'] = array_merge( $db_actions['schema_queries'], $queries );
+				}
+
+				// Check if source table is empty
+				if ( 0 === absint( $meta['rows_count'] ) ) {
+					WP_CLI::log( __( 'Table: ', 'instawp-connect' ) . $table . __( ' is empty.', 'instawp-connect' ) );
+					continue;
+				}
+				// Table checksum
+				$new_tables_meta[ $table ] = $meta;
+				// Check if source table has no changes. Comapre from last checksum in sync
+				if ( ! empty( $db_meta['meta'][ $table ] ) && ! empty( $db_meta['meta'][ $table ]['checksum'] ) && $db_meta['meta'][ $table ]['checksum'] === $meta['checksum'] ) {
+					WP_CLI::log( __( 'Table: ', 'instawp-connect' ) . $table . __( ' no changes found since last sync.', 'instawp-connect' ) );
+					continue;
 				}
 
 				// Check if target table is empty
@@ -505,7 +531,7 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 						$db_actions['tables'][ $table ]['source_meta'] = $meta;
 						$db_actions['tables'][ $table ]['target_meta'] = $target_table_meta;
 						// Update action data
-						$this->update_db_action( $db_actions, $table, $meta, $target_table_meta );
+						$this->update_db_action( $db_actions['tables'][ $table ], $meta, $target_table_meta );
 						// Get last id from target|source table where insertion is smaller
 						$target_table_meta['last_id'] =absint( $target_table_meta['last_id'] );
 						$meta['last_id'] = absint( $meta['last_id'] );
@@ -543,7 +569,7 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 			//WP_CLI::log( 'Table ' . $table . ': ' . json_encode( $db_actions ) );
 
 			// Update DB meta ipp repo
-			if ( $success_push_db === true && ! empty( $new_tables_meta ) ) {
+			if ( ! empty( $new_tables_meta ) ) {
 				$db_meta = empty( $db_meta ) ? array() : $db_meta;
 				$db_meta = array_merge( $db_meta, array(
 					'tables' => $tables,
@@ -556,18 +582,20 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 				foreach ( $new_tables_meta as $table => $meta ) {
 					$db_meta['meta'][ $table ] = $meta;
 				}
-				update_option( $this->helper->vars['db_meta_repo'], $db_meta );
 			}
 
 			WP_CLI::success( "Detecting database changes completed in " . ( time() - $start ) . " seconds" );
-			return $db_actions;
+			return array(
+				'db_actions' => $db_actions,
+				'db_update_meta' => $db_meta
+			);
 		}
 
 		/**
 		 * Update DB action
 		 * 
 		 */
-		private function update_db_action( &$db_actions, $table, $meta, $target_table_meta ) {
+		private function update_db_action( &$db_actions, $meta, $target_table_meta ) {
 			if ( empty( $meta['rows_checksum'] ) || empty( $target_table_meta['rows_checksum'] ) ) {
 				return false;
 			}
@@ -583,7 +611,7 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 					// Update rows
 					if ( ! empty( $source_checksum['ids'] ) ) {
 						$source_checksum['ids'] = explode( ',', $source_checksum['ids'] );
-						$db_actions['tables'][ $table ]['update_data'] = array_merge( $db_actions['tables'][ $table ]['update_data'], $source_checksum['ids'] );
+						$db_actions['update_data'] = array_merge( $db_actions['update_data'], $source_checksum['ids'] );
 					} else {
 						$source_checksum['ids'] = array();
 					}
@@ -594,8 +622,8 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 						$deleted_ids = array_diff( $target_checksum['ids'], $source_checksum['ids'] );
 						if ( ! empty( $deleted_ids ) ) {
 							// Delete rows
-							$db_actions['tables'][ $table ]['delete_data'] = array_merge(
-								$db_actions['tables'][ $table ]['delete_data'],
+							$db_actions['delete_data'] = array_merge(
+								$db_actions['delete_data'],
 								$deleted_ids
 							);
 						}
@@ -605,6 +633,267 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 				WP_CLI::log( __( 'Checksum key mismatch: ', 'instawp-connect' ) . $meta['checksum_key'] . ' vs ' . $target_table_meta['checksum_key'] );
 			}
 		}
+
+		/**
+		 * Check table schema changes
+		 */
+		private function check_table_schema_changes( &$db_actions, $meta, $target_table_meta ) {
+			// Columns
+			$target_columns = $target_table_meta['table_schema'];
+			$target_table = $target_table_meta['table'];
+			$source_table = $meta['table'];
+			$source_columns = $meta['table_schema'];
+			$queries = array();
+			// Columns details
+			$source_columns_details = array();
+			$target_columns_details = array();
+			foreach ( $source_columns as $source_column ) {
+				unset( $source_column['Privileges'] ); // It's not required
+				$source_columns_details[$source_column['Field']] = $source_column;
+			}
+			foreach ( $target_columns as $target_column ) {
+				unset( $target_column['Privileges'] ); // It's not required
+				$target_columns_details[$target_column['Field']] = $target_column;
+			}
+			// Detect column changes
+			$target_column_names = array_column($target_columns, 'Field');
+			$source_column_names = array_column($source_columns, 'Field');
+
+			foreach ( $source_columns_details as $col_name => $column_details ) {
+				if ( isset( $target_columns_details[$col_name] ) ) {
+					if ( json_encode( $column_details ) !== json_encode( $target_columns_details[$col_name] ) ) {
+						$db_actions['columns_modified'][$col_name] = [
+							'target' => $column_details,
+							'source' => $target_columns_details[$col_name],
+						];
+						$queries[] = sprintf(
+							"ALTER TABLE `%s` CHANGE COLUMN `%s` `%s` %s %s %s;", // Renaming and modifying column
+							$target_table,                // Table name
+							$col_name,             // Old column name (the one being renamed)
+							$col_name,             // New column name (the desired name)
+							$column_details['Type'],      // Data type
+							$column_details['Null'] === 'YES' ? 'NULL' : 'NOT NULL', // Nullability
+							isset($column_details['Default']) ? "DEFAULT '{$column_details['Default']}'" : '' // Default value
+						);
+					}
+				} else {
+					$db_actions['columns_added'][] = $col_name;
+				}
+			}
+	
+			// Columns which are in target_table table but not in source_table
+			$db_actions['columns_deleted'] = array_diff($target_column_names, $source_column_names);
+	
+			// Prepare added columns query
+			if ( empty( $db_actions['columns_added'] ) ) {
+				foreach ( $db_actions['columns_added'] as $column_name ) {
+					$column_details = $source_columns_details[$column_name];
+					$old_column_name = false;
+					// Check if column name modified or not
+					if ( ! empty( $db_actions['columns_deleted'] ) ) {
+						foreach ( $db_actions['columns_deleted'] as $del_col_name ) {
+							$columns_deleted_details = $target_columns_details[$del_col_name];
+							if ( empty( $columns_deleted_details ) ) {
+								continue;
+							}
+							// Check if column details are same
+							foreach ( array(
+								'Type',
+								'Collation',
+								'Null',
+								'Default',
+								'Key',
+								'Extra'
+							) as $key_to_check ) {
+								if ( $column_details[$key_to_check] !== $columns_deleted_details[$key_to_check] ) {
+									$old_column_name = false;
+									break;
+								} else	{
+									$old_column_name = $del_col_name;
+								}
+							}
+							if ( $del_col_name === $old_column_name ) {
+								break;
+							}
+						}
+					}
+
+					if ( ! empty( $old_column_name ) ) {
+						$query = sprintf(
+							"ALTER TABLE `%s` CHANGE COLUMN `%s` `%s` %s %s %s;", // Renaming and modifying column
+							$target_table,                // Table name
+							$old_column_name,             // Old column name (the one being renamed)
+							$new_column_name,             // New column name (the desired name)
+							$column_details['Type'],      // Data type
+							$column_details['Null'] === 'YES' ? 'NULL' : 'NOT NULL', // Nullability
+							isset($column_details['Default']) ? "DEFAULT '{$column_details['Default']}'" : '' // Default value
+						);
+						
+					} else {
+						$query = sprintf(
+							"ALTER TABLE `%s` ADD COLUMN `%s` %s %s %s",
+							$target_table,
+							$column_name,
+							$column_details['Type'], // Data type
+							$column_details['Null'] === 'YES' ? 'NULL' : 'NOT NULL', // Nullability
+							isset($column_details['Default']) ? "DEFAULT '{$column_details['Default']}'" : '' // Default value
+						);
+						 // Add primary key constraint
+						 if (isset($column_details['Key']) && $column_details['Key'] === 'PRI') {
+							$query .= ", ADD PRIMARY KEY (`$column_name`)";
+						}
+				
+						// Add unique key constraint
+						if (isset($column_details['Key']) && $column_details['Key'] === 'UNI') {
+							$query .= ", ADD UNIQUE (`$column_name`)";
+						}
+						$query .= ";";
+					}
+
+					$queries[] = $query;
+				}
+			}
+
+			// Prepare deleted columns query
+			if ( empty( $db_actions['columns_deleted'] ) ) {
+				foreach ( $db_actions['columns_deleted'] as $column_name ) {
+					$column_details = $target_columns_details[$column_name];
+					$query = sprintf(
+						"ALTER TABLE `%s` DROP COLUMN `%s`;",
+						$target_table,
+						$column_name
+					);
+					$queries[] = $query;
+				}
+			}
+	
+			// Return if no index found
+			if ( empty( $target_table_meta['indexes'] ) && empty( $meta['indexes'] ) ) {
+				return $queries;
+			}
+			// Detect index changes
+			$target_indexes = empty( $target_table_meta['indexes'] ) ? array() : $target_table_meta['indexes'];
+			$source_indexes = empty( $meta['indexes'] ) ? array() : $meta['indexes'];
+
+			// Group indexes by name for easier comparison
+			$target_grouped = $this->table_group_indexes_by_name($target_indexes);
+			$source_grouped = $this->table_group_indexes_by_name($source_indexes);
+		
+			// Detect added and deleted indexes
+			$target_index_names = array_keys($target_grouped);
+			$source_index_names = array_keys($source_grouped);
+		
+			$db_actions['indexes_added'] = array_diff($source_index_names, $target_index_names);
+			$db_actions['indexes_deleted'] = array_diff($target_index_names, $source_index_names);
+		
+			// Prepare added indexes query
+			if ( ! empty( $db_actions['indexes_added'] ) ) {
+				foreach ( $db_actions['indexes_added'] as $index_name ) {
+					$index_details = $source_grouped[$index_name];
+					$columns = array_column($index_details, 'Column_name');
+					$is_unique = $index_details[0]['Non_unique'] == 0 ? 'UNIQUE' : '';
+					$index_type = $index_details[0]['Index_type'];
+			
+					$queries[] = sprintf(
+						"ALTER TABLE `%s` ADD %s INDEX `%s` (%s) USING %s;",
+						$target_table,
+						$is_unique,
+						$index_name,
+						implode(', ', $columns),
+						$index_type
+					);
+				}
+			}
+			 
+			// Prepare deleted indexes query
+			if ( ! empty( $db_actions['indexes_deleted'] ) ) {
+				foreach ( $db_actions['indexes_deleted'] as $index_name ) {
+					$index_details = $target_grouped[$index_name];
+					$columns = array_column($index_details, 'Column_name');
+					$is_unique = $index_details[0]['Non_unique'] == 0 ? 'UNIQUE' : '';
+					$index_type = $index_details[0]['Index_type'];
+			
+					$queries[] = sprintf(
+						"ALTER TABLE `%s` DROP INDEX `%s`;",
+						$target_table,
+						$index_name
+					);
+				}
+			}
+
+			// Detect modified indexes
+			foreach ($target_grouped as $index_name => $target_index) {
+				if (isset($source_grouped[$index_name])) {
+					$source_index = $source_grouped[$index_name];
+					
+					if ( json_encode( $target_index ) !== json_encode( $source_index ) ) {
+						$db_actions['indexes_modified'][$index_name] = [
+							'target_index' => $target_index,
+							'source_index' => $source_index,
+						];
+						$columns = array_column($source_index, 'Column_name');
+						$is_unique = $source_index[0]['Non_unique'] == 0 ? 'UNIQUE' : '';
+        				$index_type = $source_index[0]['Index_type'];
+
+						// Drop the old index
+						$queries[] = sprintf(
+							"ALTER TABLE `%s` DROP INDEX `%s`;",
+							$target_table,
+							$index_name
+						);
+				
+						// Add the modified index
+						$queries[] = sprintf(
+							"ALTER TABLE `%s` ADD %s INDEX `%s` (%s) USING %s;",
+							$target_table,
+							$is_unique,
+							$index_name,
+							implode(', ', $columns),
+							$index_type
+						);
+					}
+				}
+			}
+			
+			return $queries;
+		}
+		
+		private function table_group_indexes_by_name($indexes) {
+			$grouped = [];
+			foreach ($indexes as $index) {
+				$key_name = $index['Key_name'];
+				if (!isset($grouped[$key_name])) {
+					$grouped[$key_name] = array();
+				}
+					
+				/**
+				 * Fields That Are Descriptive or Informative (Not Directly Part of Schema):
+				 * These fields provide additional information but do not define the core structure of the
+				 * index:
+				 * Table: The name of the table the index belongs to.
+				 * Cardinality: An estimate of the number of unique values in the index. This is for 
+				 * query optimization, not schema definition.
+				 * Packed: Indicates whether the index is compressed.
+				 * Null: Whether the column in the index allows NULL values.
+				 * Comment: Additional comments about the index.
+				 * Index_comment: Developer-defined comments on the index.
+				 * Visible: Whether the index is visible to the optimizer (introduced in MySQL 8.0).
+				 * Expression: Specifies if the index is based on an expression rather than a column 
+				 * (used for functional indexes).
+				 */
+				// Unset these fields
+				foreach ( array(
+					'Table',
+					'Cardinality',
+				) as $unset_key ) {
+					unset( $index[ $unset_key ] );
+				}
+
+				$grouped[$key_name][] = $index;
+			}
+			return $grouped;
+		}
+		
 
 		private function call_api( $path, $body = array(), $only_data = true ) {
 			
