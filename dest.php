@@ -5,7 +5,7 @@ error_reporting( 0 );
 include_once 'includes/functions-pull-push.php';
 
 if ( ! file_exists( 'iwp_log.txt' ) ) {
-	file_put_contents( 'iwp_log.txt', "Migration log started \n" );
+	file_put_contents( 'iwp_log.txt', "Migration log started Time:" . date("d-m-Y H:i:s") . " \n" );
 }
 
 if ( ! isset( $_SERVER['HTTP_X_IWP_MIGRATE_KEY'] ) || empty( $migrate_key = $_SERVER['HTTP_X_IWP_MIGRATE_KEY'] ) ) {
@@ -66,6 +66,12 @@ if ( ! isset( $api_signature ) || ! isset( $_SERVER['HTTP_X_IWP_API_SIGNATURE'] 
 	die();
 }
 
+if ( ! empty( $_POST['delete_files'] ) ) {
+	$delete_files_response = iwp_ipp_delete_files( $root_dir_path, $_POST['delete_files'] );
+	header( 'x-iwp-message: Files to delete:' . json_encode( $delete_files_response ) );
+	die();
+}
+
 $has_zip_archive = class_exists( 'ZipArchive' );
 $has_phar_data   = class_exists( 'PharData' );
 $excluded_paths  = isset( $excluded_paths ) ? $excluded_paths : array();
@@ -78,13 +84,15 @@ if ( isset( $_POST['check'] ) ) {
 		die();
 	}
 
-	$timestamp            = date( 'YmdHi' );
-	$db_backup_response   = iwp_backup_wp_database( $db_host, $db_username, $db_password, $db_name, $root_dir_path, $timestamp );
-	$core_backup_response = iwp_backup_wp_core_folders( $root_dir_path, $excluded_paths, $timestamp );
+	if ( empty( $_POST['mode'] ) || 'iterative_push' != $_POST['mode'] ) {
+		$timestamp            = date( 'YmdHi' );
+		$db_backup_response   = iwp_backup_wp_database( $db_host, $db_username, $db_password, $db_name, $root_dir_path, $timestamp );
+		$core_backup_response = iwp_backup_wp_core_folders( $root_dir_path, $excluded_paths, $timestamp );
+		header( 'x-iwp-message: ' . json_encode( $core_backup_response ) . json_encode( $db_backup_response ) );
+	}
 
 	header( 'x-iwp-zip: ' . $has_zip_archive );
 	header( 'x-iwp-phar: ' . $has_phar_data );
-	header( 'x-iwp-message: ' . json_encode( $core_backup_response ) . json_encode( $db_backup_response ) );
 	die();
 }
 

@@ -14,14 +14,13 @@ if ( ! function_exists( 'instawp_iterative_push_files' ) ) {
 	function instawp_iterative_push_files( $settings ) {
 
 		global $tracking_db, $migrate_key, $migrate_id, $bearer_token, $target_url;
-		$maz_zip_size =  1024 * 1024;
+		$max_zip_size =  1024 * 1024;
 		$max_retry = 5;
 		$retry_wait = 5;//in seconds
 		$batch_size = 100;
 		$batch_zip_size = 50;
 		$ipp_helper = new INSTAWP_IPP_HELPER();
 		$required_parameters = array(
-			'file_actions',
 			'target_url',
 			'working_directory',
 			'api_signature',
@@ -38,12 +37,8 @@ if ( ! function_exists( 'instawp_iterative_push_files' ) ) {
 			}
 		}
 
-		$target_url        = $settings['target_url'];
 		$working_directory = $settings['working_directory'];
 		$api_signature     = $settings['api_signature'];
-		$migrate_key       = $settings['migrate_key'];
-		$migrate_id        = $settings['migrate_id'];
-		$bearer_token      = $settings['bearer_token'];
 		$source_domain     = $settings['source_domain'];
 		$mig_settings      = $settings['migrate_settings'];
 		$curl_session      = curl_init( $target_url );
@@ -52,8 +47,13 @@ if ( ! function_exists( 'instawp_iterative_push_files' ) ) {
 		$progress_sent_at  = time();
 		$relative_path     = realpath( $working_directory ) . DIRECTORY_SEPARATOR;
 
+		if ( empty( $mig_settings['file_actions'] ) ) {
+			$ipp_helper->print_message( 'Missing parameter: file_actions', true );
+			return false;
+		}
+
 		// Delete files
-		if ( ! empty( $settings['file_actions']['to_delete'] ) ) {	
+		if ( ! empty( $mig_settings['file_actions']['to_delete'] ) ) {	
 			curl_setopt( $curl_session, CURLOPT_USERAGENT, 'InstaWP Migration Service - Push delete Files' );
 			curl_setopt( $curl_session, CURLOPT_REFERER, $source_domain );
 			curl_setopt( $curl_session, CURLOPT_RETURNTRANSFER, true );
@@ -63,7 +63,11 @@ if ( ! function_exists( 'instawp_iterative_push_files' ) ) {
 			curl_setopt( $curl_session, CURLOPT_HEADERFUNCTION, function ( $curl, $header ) use ( &$headers ) {
 				return iwp_process_curl_headers( $curl, $header, $headers );
 			} );
-			curl_setopt( $curl_session, CURLOPT_POSTFIELDS, http_build_query( [ 'delete_files' => $settings['file_actions']['to_delete'] ] ) );
+			curl_setopt( $curl_session, CURLOPT_POSTFIELDS, $ipp_helper->get_iterative_push_curl_params(
+				array(
+					'delete_files' => $mig_settings['file_actions']['to_delete']
+				)
+			) );
 			curl_setopt( $curl_session, CURLOPT_COOKIE, "instawp_skip_splash=true" );
 			curl_setopt( $curl_session, CURLOPT_HTTPHEADER, [
 				'x-iwp-api-signature: ' . $api_signature,
@@ -80,15 +84,8 @@ if ( ! function_exists( 'instawp_iterative_push_files' ) ) {
 			}
 		}
 
-		if ( empty( $settings['file_actions']['to_send'] ) ) {	
+		if ( empty( $mig_settings['file_actions']['to_send'] ) ) {	
 			$ipp_helper->print_message( 'No files found to send.', true );
-			return false;
-		}
-
-		try {
-			$tracking_db = new IWPDB( $migrate_key );
-		} catch ( Exception $e ) {
-			iwp_send_migration_log( 'push-files: Database connection failed', $e->getMessage() );
 			return false;
 		}
 
@@ -109,7 +106,7 @@ if ( ! function_exists( 'instawp_iterative_push_files' ) ) {
 		$progressPer      = 0;
 		$sentFilesCount   = 0;
 		$totalFiles       = $unsentFilesCount;
-		$files_to_send	   = empty( $settings['file_actions']['to_send'] ) ? array(): $settings['file_actions']['to_send'];
+		$files_to_send	   = empty( $mig_settings['file_actions']['to_send'] ) ? array(): $mig_settings['file_actions']['to_send'];
 
 		if ( $unsentFilesCount == 0 && ! empty( $files_to_send ) ) {
 			try { 
@@ -178,7 +175,11 @@ if ( ! function_exists( 'instawp_iterative_push_files' ) ) {
 		curl_setopt( $curl_session, CURLOPT_HEADERFUNCTION, function ( $curl, $header ) use ( &$headers ) {
 			return iwp_process_curl_headers( $curl, $header, $headers );
 		} );
-		curl_setopt( $curl_session, CURLOPT_POSTFIELDS, http_build_query( [ 'check' => true ] ) );
+		curl_setopt( $curl_session, CURLOPT_POSTFIELDS, $ipp_helper->get_iterative_push_curl_params(
+			array(
+				'check' => true
+			)
+		) );
 		curl_setopt( $curl_session, CURLOPT_COOKIE, "instawp_skip_splash=true" );
 		curl_setopt( $curl_session, CURLOPT_HTTPHEADER, [
 			'x-iwp-api-signature: ' . $api_signature,
@@ -227,7 +228,7 @@ if ( ! function_exists( 'instawp_iterative_push_files' ) ) {
 					return false;
 				}
 
-				$files_data = $tracking_db->getUnsentFiles( $batch_size, $maz_zip_size );
+				$files_data = $tracking_db->getUnsentFiles( $batch_size, $max_zip_size );
 
 				$tmpZip  = tempnam( sys_get_temp_dir(), 'batchzip' );
 				$archive = new ZipArchive();
@@ -434,7 +435,6 @@ if ( ! function_exists( 'instawp_iterative_push_files' ) ) {
 		}
 
 		curl_close( $curl_session );
-		$tracking_db->close();
 
 		// Files pushing is completed
 		iwp_send_progress( 100, 0, [ 'push-files-finished' => true ] );

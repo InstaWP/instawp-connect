@@ -104,7 +104,7 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 			}
 
 			require_once INSTAWP_PLUGIN_DIR . '/includes/ipp/class-instawp-push-files.php';
-
+			global $tracking_db, $migrate_key, $migrate_id, $bearer_token, $target_url;
 			try {
 				global $wpdb;
 				$this->init();
@@ -213,17 +213,8 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 							$settings['excluded_tables'] = array_unique( $excluded_tables );
 						}
 					}
+					
 					$settings = InstaWP_Tools::get_migrate_settings( array(), $settings );
-					$settings = array_merge( 
-						$settings, 
-						array(
-							'target_url' => $this->staging_url,
-							'working_directory' => wp_normalize_path( ABSPATH ),
-							'source_domain' => $this->helper->get_domain(),
-							'migrate_settings' => $settings,
-							
-						) 
-					);
 					// $_POST['migrate_settings'] = $settings;
 					// do_action( 'instawp_migrate_init_ipp' );
 					// $migration_details = Option::get_option( 'instawp_migration_details' );
@@ -234,14 +225,42 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 					// $settings  = $tracking_db->get_option( 'migrate_settings' );
 					// Detect file changes
 					$settings['file_actions'] = $this->get_push_file_changes( $settings );
-					instawp_iterative_push_files( $settings );
+					$migrate_id = time();
+					$target_url = 'https://lush-horse-1bbe62.a.instawpsites.com/wp-content/plugins/instawp-connect/dest.php';
+					$migrate_key = 'a50519d518965978b2408645109e2e417464361d';
+					$api_signature = '42cc2368dbf4f7455ed05b6edd2b518a5a163f44007d0c279382df9537f178f511bba6e17ac9cf59522284fb686b6775d978ba78c52a5db08aba894625a467ea';
+					$bearer_token = '56a0d5457478259ee93d904bd658e8db5a81e9d3c6a22e4a3755249762cfedcc';
+					// Generate migrate settings file
+					$settings = InstaWP_Tools::generate_serve_file_response( $migrate_key, $api_signature, $settings );
+					if ( empty( $settings ) ) {
+						WP_CLI::error( __( 'Failed to generate migrate settings.', 'instawp-connect' ) );
+					}
+					// Tracking database
+					$tracking_db = InstaWP_Tools::get_tracking_database( $migrate_key );
+					if ( empty( $tracking_db ) ) {
+						WP_CLI::error( __( 'Failed to create tracking database.', 'instawp-connect' ) );
+					}
+					
+					$settings = $settings['migrate_settings'];
+					update_option( $this->helper->vars['ipp_run_settings'], $settings );
 					// Detect database changes
 					if ( isset( $assoc_args['with-db'] ) ) {
 						$settings['db_actions'] = $this->get_push_db_changes( $settings );
 						
 					}
 
-					update_option( $this->helper->vars['ipp_run_settings'], $settings );
+					instawp_iterative_push_files( array(
+						'target_url' => $target_url,
+						'working_directory' => wp_normalize_path( ABSPATH ),
+						'source_domain' => $this->helper->get_domain(),
+						'migrate_settings' => $settings,
+						'migrate_id' => $migrate_id,
+						'migrate_key' => $migrate_key,
+						'api_signature' => $api_signature,
+						'bearer_token' => $bearer_token,
+					) );
+
+					
 					
 				}
 			} catch ( \Exception $e ) {
@@ -290,15 +309,15 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 					);
 		
 					foreach ( $checksums as $path_hash => $file ) {
-						if ( in_array( $file['path'], $excluded_paths ) || false !== strpos( $file['path'], 'plugins/instawp-connect' ) || false !== strpos( $file['path'], 'instawp-autologin' ) ) {
+						if ( in_array( $file['relative_path'], $excluded_paths ) || false !== strpos( $file['relative_path'], 'plugins/instawp-connect' ) || false !== strpos( $file['relative_path'], 'instawp-autologin' ) ) {
 							continue;
 						}
-						if ( ! isset( $target_checksums[$path_hash] ) || ( $target_checksums[$path_hash]['path'] === $file['path'] && $target_checksums[$path_hash]['checksum'] !== $file['checksum'] ) ) {
+						if ( ! isset( $target_checksums[$path_hash] ) || ( $target_checksums[$path_hash]['relative_path'] === $file['relative_path'] && $target_checksums[$path_hash]['checksum'] !== $file['checksum'] ) ) {
 							$action['to_send'][] = $file;
 						}
 					}
 					foreach ( $target_checksums as $path_hash => $file ) {
-						if ( ! isset( $checksums[$path_hash] ) && ! in_array( $file['path'], $excluded_paths ) && false === strpos( $file['path'], 'instawp-autologin' ) ) {
+						if ( ! isset( $checksums[$path_hash] ) && ! in_array( $file['relative_path'], $excluded_paths ) && false === strpos( $file['relative_path'], 'instawp-autologin' ) ) {
 							$action['to_delete'][] = $file;
 						}
 					}
@@ -307,13 +326,13 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 					$deleted_files = 0;
 					if ( ! empty( $action['to_send'] ) ) {
 						foreach ( $action['to_send'] as $file ) {
-							//WP_CLI::log( "File: " . $file['path'] . " is changed." );
+							//WP_CLI::log( "File: " . $file['relative_path'] . " is changed." );
 						}
 						$changed_files = count( $action['to_send'] );
 					}
 					if ( ! empty( $action['to_delete'] ) ) {
 						foreach ( $action['to_delete'] as $file ) {
-							//WP_CLI::log( "File: " . $file['path'] . " is deleted." );
+							//WP_CLI::log( "File: " . $file['relative_path'] . " is deleted." );
 						}
 						$deleted_files = count( $action['to_delete'] );
 					}

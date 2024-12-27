@@ -672,6 +672,30 @@ if ( ! function_exists( 'iwp_sanitize_key' ) ) {
 	}
 }
 
+if ( ! function_exists( 'iwp_ipp_delete_files' ) ) {
+	/**
+	 * Delete files.
+	 * Only files that are in wp content folder will be deleted.
+	 */
+	function iwp_ipp_delete_files( $root_dir_path, $files ) {
+		$result    = array(
+			'status'   => true,
+			'messages' => array(),
+		); 
+		foreach ( $files as $file ) {
+			if ( ! empty( $file['relative_path'] ) && 0 === strpos( $file['relative_path'], 'wp-content' ) && false === strpos( $file['relative_path'], '/iwp-' ) && false === strpos( $file['relative_path'], '/instawp' ) ) {
+				$file_path =$root_dir_path . DIRECTORY_SEPARATOR . $file['relative_path'];
+				if ( file_exists( $file_path ) && is_file( $file_path ) && ! unlink( $file_path ) ) {
+					$result['status'] = false;
+					$result['messages'][] = 'Failed to delete file: ' . $file_path;
+				}
+			}
+		}
+
+		return $result;
+	}
+}
+
 if ( ! function_exists( 'iwp_backup_wp_core_folders' ) ) {
 	/**
 	 * Backs up core WordPress folders (plugins, themes, mu-plugins) to a datestamped
@@ -925,10 +949,12 @@ if ( ! function_exists( 'iwp_backoff_timer' ) ) {
 
 if ( ! function_exists( 'iwp_send_migration_log' ) ) {
 	function iwp_send_migration_log( $label = '', $description = '', $payload = [], $echo = true ) {
-
+		
 		if ( $echo ) {
 			echo $description . "\n";
 		}
+
+		return true;
 
 		global $migrate_id, $bearer_token;
 
@@ -974,7 +1000,7 @@ if ( ! function_exists( 'iwp_send_migration_log' ) ) {
 
 if ( ! function_exists( 'iwp_send_progress' ) ) {
 	function iwp_send_progress( $progress_files = 0, $progress_db = 0, $stages = [] ) {
-
+		return true;
 		global $migrate_key, $migrate_id, $bearer_token;
 
 		$curl      = curl_init();

@@ -38,6 +38,38 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 			);
 		}
 
+		/**
+		 * Get iterative push curl params
+		 * @param array $params
+		 * 
+		 * @return string
+		 */
+		public function get_iterative_push_curl_params( $params = array() ) {
+			$params = empty( $params ) ? array() : $params;
+			return http_build_query( array_merge( 
+				array(
+					'mode' => 'iterative_push',
+				),
+				$params
+			) );
+		}
+
+		/**
+		 * Get iterative pull curl params
+		 * @param array $params
+		 * 
+		 * @return string
+		 */
+		public function get_iterative_pull_curl_params( $params = array() ) {
+			$params = empty( $params ) ? array() : $params;
+			return http_build_query( array_merge( 
+				array(
+					'mode' => 'iterative_pull',
+				),
+				$params
+			) );
+		}
+
 		// sanitize_array
 		public function sanitize_array( $array, $textarea_sanitize = true ) {
 			if ( ! empty( $array ) && is_array( $array ) ) {
@@ -380,7 +412,7 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 					if ( $relative_path[0] === '.' ) {
 						continue;
 					}
-					$filepath_hash = md5( $filepath ); // File path hash
+					$relative_path_hash = md5( $relative_path ); // File path hash
 					$filesize    = $file->getSize(); // file size
 					$filetime = $file->getMTime(); // file modified time
 					$is_save_checksums = $processed % $batch === 0;
@@ -399,8 +431,8 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 					}
 
 					//Get checksum from transient
-					if ( ! empty( $checksum_repo[ $filepath_hash ] ) && $checksum_repo[ $filepath_hash ]['filetime'] === $filetime ) {
-						$checksums[ $filepath_hash ] = $checksum_repo[ $filepath_hash ];
+					if ( ! empty( $checksum_repo[ $relative_path_hash ] ) && $checksum_repo[ $relative_path_hash ]['filetime'] === $filetime ) {
+						$checksums[ $relative_path_hash ] = $checksum_repo[ $relative_path_hash ];
 						continue;
 					}
 					
@@ -414,17 +446,18 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 						continue;
 					}
 
-					$checksum_repo[ $filepath_hash ] = array(
+					$checksum_repo[ $relative_path_hash ] = array(
 						'checksum' 		=> $file_checksum,
 						'size'     		=> $filesize,
 						'filepath'		=> $filepath,
-						'filepath_hash'	=> $filepath_hash,
+						'filepath_hash'	=> md5( $filepath ),
+						'relative_path_hash' => $relative_path_hash,
 						'relative_path' => $relative_path,
 						'filetime' 		=> $filetime,
 					);
 
 					// Add to settings
-					$checksums[ $filepath_hash ] = $checksum_repo[ $filepath_hash ];
+					$checksums[ $relative_path_hash ] = $checksum_repo[ $relative_path_hash ];
 
 					$processed_files++;
 

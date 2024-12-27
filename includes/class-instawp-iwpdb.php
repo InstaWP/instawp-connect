@@ -127,16 +127,29 @@ class IWPDB {
 	 */
 	public function getUnsentFiles( $batchSize, $maxSize = 0 ) {
 		if ( 1 > intval( $maxSize ) ) {
-			return $this->query( sprintf( 
-				"SELECT * FROM {$this->table_files_sent} WHERE sent = 0 and LIMIT %d",
+			$query = sprintf( 
+				"SELECT * FROM {$this->table_files_sent} WHERE sent = 0 LIMIT %d",
 				intval( $batchSize )
-			) );
+			);
+		} else {
+			$query = sprintf( 
+				"SELECT * FROM {$this->table_files_sent} WHERE sent = 0 AND size < %d LIMIT %d", 
+				intval( $maxSize ),
+				intval( $batchSize )
+			);
 		}
-		return $this->query( sprintf( 
-			"SELECT * FROM {$this->table_files_sent} WHERE sent = 0 and size < %d LIMIT %d", 
-			intval( $maxSize ),
-			intval( $batchSize )
-		) );
+
+		
+		if ( $this->use_wpdb ) {
+			$res = $this->conn->get_results( $query, ARRAY_A );
+		} else {
+			$res = array();
+			$query = $this->query( $query );
+			if ( $query instanceof mysqli_result ) {
+				$this->fetch_rows( $query, $res );
+			}
+		}
+		return $res;
 	}
 
 	public function get_rows( $table_name, $where_array = array() ) {
