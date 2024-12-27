@@ -5,6 +5,10 @@ namespace InstaWP\Connect\Helpers;
 class Helper {
 
 	public static function instawp_generate_api_key( $api_key, $jwt = '' ) {
+		return self::generate_api_key( $api_key, $jwt );
+	}
+
+	public static function generate_api_key( $api_key, $jwt = '' ) {
 		if ( empty( $api_key ) ) {
 			error_log( 'instawp_generate_api_key empty api_key parameter' );
 
@@ -49,19 +53,41 @@ class Helper {
 				self::set_connect_id( $connect_id );
 				self::set_connect_uuid( $connect_uuid );
 
+				if ( empty( $jwt ) ) {
+					self::generate_jwt( $connect_id );
+				}
+
 				do_action( 'instawp_connect_connected', $connect_id );
 			} else {
 				error_log( 'instawp_generate_api_key connect id not found in response.' );
-
 				return false;
 			}
 		} else {
-			error_log( 'instawp_generate_api_key error, response from connects api: ' . wp_json_encode( $connect_response ) );
-
+			error_log( 'generate_api_key error, response from connects api: ' . wp_json_encode( $connect_response ) );
 			return false;
 		}
 
 		return true;
+	}
+
+	public static function generate_jwt( $connect_id = '' ) {
+		$connect_id = ! empty( $connect_id ) ? $connect_id : self::get_connect_id();
+		if ( empty( $connect_id ) ) {
+			return false;
+		}
+
+		$response = Curl::do_curl( "connects/{$connect_id}/generate-token", array(), array(), 'GET' );
+		if ( ! empty( $response['success'] ) ) {
+			$jwt = ! empty( $response['data']['token'] ) ? $response['data']['token'] : '';
+			
+			if ( ! empty( $jwt ) ) {
+				self::set_jwt( $jwt );
+				return true;
+			}
+		}
+
+		error_log( 'generate_jwt error, response from generate-token api: ' . wp_json_encode( $response ) );
+		return false;
 	}
 
 	public static function get_random_string( $length = 6 ) {
