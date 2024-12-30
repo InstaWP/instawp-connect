@@ -17,7 +17,7 @@ if ( ! isset( $_SERVER['HTTP_X_IWP_MIGRATE_KEY'] ) || empty( $migrate_key = $_SE
 $root_dir_data = iwp_get_wp_root_directory();
 $root_dir_find = isset( $root_dir_data['status'] ) ? $root_dir_data['status'] : false;
 $root_dir_path = isset( $root_dir_data['root_path'] ) ? $root_dir_data['root_path'] : '';
-
+$is_iterative_push = ( ! empty( $_SERVER['HTTP_X_IWP_MODE'] ) && 'iterative_push' === trim( $_SERVER['HTTP_X_IWP_MODE'] ) );
 
 if ( ! $root_dir_find ) {
 	$root_dir_data = iwp_get_wp_root_directory( '', 'flywheel-config' );
@@ -68,7 +68,7 @@ if ( ! isset( $api_signature ) || ! isset( $_SERVER['HTTP_X_IWP_API_SIGNATURE'] 
 
 if ( ! empty( $_POST['delete_files'] ) ) {
 	$delete_files_response = iwp_ipp_delete_files( $root_dir_path, $_POST['delete_files'] );
-	header( 'x-iwp-message: Files to delete:' . json_encode( $delete_files_response ) );
+	header( 'x-iwp-message: Deleted files: ' . json_encode( $delete_files_response ) );
 	die();
 }
 
@@ -84,7 +84,7 @@ if ( isset( $_POST['check'] ) ) {
 		die();
 	}
 
-	if ( empty( $_POST['mode'] ) || 'iterative_push' != $_POST['mode'] ) {
+	if ( ! $is_iterative_push ) {
 		$timestamp            = date( 'YmdHi' );
 		$db_backup_response   = iwp_backup_wp_database( $db_host, $db_username, $db_password, $db_name, $root_dir_path, $timestamp );
 		$core_backup_response = iwp_backup_wp_core_folders( $root_dir_path, $excluded_paths, $timestamp );
@@ -106,20 +106,20 @@ $file_relative_path = trim( $_SERVER['HTTP_X_FILE_RELATIVE_PATH'] );
 $file_type          = isset( $_SERVER['HTTP_X_FILE_TYPE'] ) ? trim( $_SERVER['HTTP_X_FILE_TYPE'] ) : 'single';
 $req_order          = isset( $_GET['r'] ) ? intval( $_GET['r'] ) : 1;
 
-//if ( ! file_exists( $root_dir_path . DIRECTORY_SEPARATOR . 'iwp_log.txt' ) ) {
-//	file_put_contents( $root_dir_path . DIRECTORY_SEPARATOR . 'iwp_log.txt', json_encode( $user_details ) . "\n" . json_encode( $retain_user ) );
-//}
+if ( ! file_exists( $root_dir_path . DIRECTORY_SEPARATOR . 'iwp_log.txt' ) ) {
+	file_put_contents( $root_dir_path . DIRECTORY_SEPARATOR . 'iwp_log.txt', json_encode( $user_details ) . "\n" . json_encode( $retain_user ) );
+}
 
 if ( in_array( $file_relative_path, $excluded_paths ) ) {
 	exit( 0 );
 }
 
 $file_save_path = $root_dir_path . DIRECTORY_SEPARATOR . $file_relative_path;
-//file_put_contents( $root_dir_path . DIRECTORY_SEPARATOR . 'iwp_log.txt', "full path: " . $file_save_path . "\n", FILE_APPEND );
+file_put_contents( $root_dir_path . DIRECTORY_SEPARATOR . 'iwp_log.txt', "full path: " . $file_save_path . "\n", FILE_APPEND );
 if ( in_array( $file_save_path, $excluded_paths ) || str_contains( $file_save_path, 'instawp-autologin' ) ) {
 	exit( 0 );
 }
-//file_put_contents( $root_dir_path . DIRECTORY_SEPARATOR . 'iwp_log.txt', "full path success" . "\n", FILE_APPEND );
+file_put_contents( $root_dir_path . DIRECTORY_SEPARATOR . 'iwp_log.txt', "full path success" . "\n", FILE_APPEND );
 
 $directory_name = dirname( $file_save_path );
 
@@ -202,27 +202,29 @@ if ( $file_type === 'db' ) {
 		mysql_set_charset( 'UTF8', $connection );
 	}
 
-	if ( $req_order < 1 ) {
-		if ( extension_loaded( 'mysqli' ) ) {
-			$mysqli->query( 'SET foreign_key_checks = 0' );
-
-			if ( $result = $mysqli->query( 'SHOW TABLES' ) ) {
-				while ( $row = $result->fetch_array( MYSQLI_NUM ) ) {
-					$mysqli->query( 'DROP TABLE IF EXISTS ' . $row[0] );
+	if ( ! $is_iterative_push ) {
+		if ( $req_order < 1 ) {
+			if ( extension_loaded( 'mysqli' ) ) {
+				$mysqli->query( 'SET foreign_key_checks = 0' );
+	
+				if ( $result = $mysqli->query( 'SHOW TABLES' ) ) {
+					while ( $row = $result->fetch_array( MYSQLI_NUM ) ) {
+						$mysqli->query( 'DROP TABLE IF EXISTS ' . $row[0] );
+					}
 				}
-			}
-
-			$mysqli->query( 'SET foreign_key_checks = 1' );
-		} else {
-			mysql_query( 'SET foreign_key_checks = 0', $connection );
-
-			if ( $result = mysql_query( 'SHOW TABLES', $connection ) ) {
-				while ( $row = mysql_fetch_row( $result ) ) {
-					mysql_query( 'DROP TABLE IF EXISTS ' . $row[0], $connection );
+	
+				$mysqli->query( 'SET foreign_key_checks = 1' );
+			} else {
+				mysql_query( 'SET foreign_key_checks = 0', $connection );
+	
+				if ( $result = mysql_query( 'SHOW TABLES', $connection ) ) {
+					while ( $row = mysql_fetch_row( $result ) ) {
+						mysql_query( 'DROP TABLE IF EXISTS ' . $row[0], $connection );
+					}
 				}
+	
+				mysql_query( 'SET foreign_key_checks = 1', $connection );
 			}
-
-			mysql_query( 'SET foreign_key_checks = 1', $connection );
 		}
 	}
 

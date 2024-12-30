@@ -13,7 +13,7 @@ defined( 'ABSPATH' ) || exit;
 if ( ! function_exists( 'instawp_iterative_push_files' ) ) {
 	function instawp_iterative_push_files( $settings ) {
 
-		global $tracking_db, $migrate_key, $migrate_id, $bearer_token, $target_url;
+		global $tracking_db, $migrate_key, $migrate_id, $migrate_mode, $bearer_token, $target_url;
 		$max_zip_size =  1024 * 1024;
 		$max_retry = 5;
 		$retry_wait = 5;//in seconds
@@ -45,8 +45,7 @@ if ( ! function_exists( 'instawp_iterative_push_files' ) ) {
 		$errors_counter    = 0;
 		$headers           = [];
 		$progress_sent_at  = time();
-		$relative_path     = realpath( $working_directory ) . DIRECTORY_SEPARATOR;
-
+		$relative_path     = realpath( $working_directory ) . DIRECTORY_SEPARATOR;	
 		if ( empty( $mig_settings['file_actions'] ) ) {
 			$ipp_helper->print_message( 'Missing parameter: file_actions', true );
 			return false;
@@ -70,6 +69,7 @@ if ( ! function_exists( 'instawp_iterative_push_files' ) ) {
 			) );
 			curl_setopt( $curl_session, CURLOPT_COOKIE, "instawp_skip_splash=true" );
 			curl_setopt( $curl_session, CURLOPT_HTTPHEADER, [
+				'x-iwp-mode: ' . $migrate_mode,
 				'x-iwp-api-signature: ' . $api_signature,
 				'x-iwp-migrate-key: ' . $migrate_key,
 			] );
@@ -78,14 +78,13 @@ if ( ! function_exists( 'instawp_iterative_push_files' ) ) {
 			$processed_response         = iwp_process_curl_response( $response, $curl_session, $headers, $errors_counter, $slow_sleep, 'push-files-1' );
 			$processed_response_success = isset( $processed_response['success'] ) ? (bool) $processed_response['success'] : false;
 			$processed_response_message = isset( $processed_response['message'] ) ? $processed_response['message'] : '';
-
 			if ( ! $processed_response_success ) {
-				$ipp_helper->print_message( $processed_response_message );
+				$ipp_helper->print_message( $processed_response_message );	
 			}
 		}
 
 		if ( empty( $mig_settings['file_actions']['to_send'] ) ) {	
-			$ipp_helper->print_message( 'No files found to send.', true );
+			$ipp_helper->print_message( 'Files push completed.' );
 			return false;
 		}
 
@@ -129,7 +128,7 @@ if ( ! function_exists( 'instawp_iterative_push_files' ) ) {
 					$file_category_count = count( $files );
 					$currentIndex  = 0;
 					$batchSize     = 5000;
-					$ipp_helper->print_message( "Processing $file_category $file_category_count files start" );
+					//$ipp_helper->print_message( "Processing $file_category $file_category_count files start" );
 
 					// Process each file in batches
 					while ( $currentIndex < $file_category_count ) {
@@ -150,7 +149,7 @@ if ( ! function_exists( 'instawp_iterative_push_files' ) ) {
 					}
 					
 					// Log completion of file category
-					echo "Completed entries for $file_category\n";
+					//echo "Completed entries for $file_category\n";
 				}
 
 			} catch ( Exception $e ) {
@@ -182,6 +181,7 @@ if ( ! function_exists( 'instawp_iterative_push_files' ) ) {
 		) );
 		curl_setopt( $curl_session, CURLOPT_COOKIE, "instawp_skip_splash=true" );
 		curl_setopt( $curl_session, CURLOPT_HTTPHEADER, [
+			'x-iwp-mode: ' . $migrate_mode,
 			'x-iwp-api-signature: ' . $api_signature,
 			'x-iwp-migrate-key: ' . $migrate_key,
 		] );
@@ -304,6 +304,7 @@ if ( ! function_exists( 'instawp_iterative_push_files' ) ) {
 					'x-iwp-progress: ' . $progress_per,
 					'x-iwp-api-signature: ' . $api_signature,
 					'x-iwp-migrate-key: ' . $migrate_key,
+					'x-iwp-mode: ' . $migrate_mode,
 				] );
 				// curl_setopt($curl_session, CURLOPT_VERBOSE, true);
 
@@ -388,6 +389,7 @@ if ( ! function_exists( 'instawp_iterative_push_files' ) ) {
 					'x-iwp-progress: ' . $progress_per,
 					'x-iwp-api-signature: ' . $api_signature,
 					'x-iwp-migrate-key: ' . $migrate_key,
+					'x-iwp-mode: ' . $migrate_mode,
 				] );
 
 				$response                   = curl_exec( $curl_session );
@@ -439,7 +441,7 @@ if ( ! function_exists( 'instawp_iterative_push_files' ) ) {
 		// Files pushing is completed
 		iwp_send_progress( 100, 0, [ 'push-files-finished' => true ] );
 
-		echo "All files are transferred successfully to the destination website. \n";
+		$ipp_helper->print_message( 'Files push completed.' );
 		return true;
 	}
 }

@@ -50,6 +50,20 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 		private $is_staging = false;
 
 		/**
+		 * Instawp migration tables
+		 */
+		private $iwp_tables = array(
+			"iwp_db_sent",
+			"iwp_files_sent",
+			"iwp_options",
+		);
+
+		/**
+		 * Debug mode
+		 */
+		private $debug_mode = false;
+
+		/**
 		 * INSTAWP_IPP_CLI_Commands Constructor
 		 */
 		public function __construct() {
@@ -58,7 +72,8 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 		private function init() {
 			// Get hashed api key
 			//$this->api_key = Helper::get_api_key( true );
-			$this->api_key = get_option( 'iwp_connect_api_key' );
+			// staging site api key
+			$this->api_key = 'fb58487390a0cce8735ed9e472a03bae1c9fd4c43df7f1c6450d4972bb4abe40';
 			if ( empty( $this->api_key ) ) {
 				WP_CLI::error( __( 'Missing API key.', 'instawp-connect' ) );
 			}
@@ -102,9 +117,13 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 				WP_CLI::error( 'Missing or invalid type command. Must be push or pull. e.g. ' . $this->command_start . ' push or ' . $this->command_start . ' pull or IWP pull' );
 				return false;
 			}
-
+			// Debug mode
+			$this->debug_mode = isset( $assoc_args['debug'] );
 			require_once INSTAWP_PLUGIN_DIR . '/includes/ipp/class-instawp-push-files.php';
-			global $tracking_db, $migrate_key, $migrate_id, $bearer_token, $target_url;
+			require_once INSTAWP_PLUGIN_DIR . '/includes/ipp/class-instawp-push-db.php';
+			// Global variables
+			global $tracking_db, $migrate_key, $migrate_id, $migrate_mode, $bearer_token, $target_url;
+			$migrate_mode = 'iterative_push';
 			try {
 				global $wpdb;
 				$this->init();
@@ -139,6 +158,7 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 							'wp-content' . DIRECTORY_SEPARATOR . 'plugins' . DIRECTORY_SEPARATOR . 'iwp-migration',
 							'wp-content' . DIRECTORY_SEPARATOR . 'plugins' . DIRECTORY_SEPARATOR . 'iwp-migration-main',
 							'wp-content' . DIRECTORY_SEPARATOR . 'plugins' . DIRECTORY_SEPARATOR . 'instawp-connect',
+							'iwp_log.txt',
 						)
 					);
 					
@@ -199,10 +219,8 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 								"{$wpdb->prefix}actionscheduler_claims",
 								"{$wpdb->prefix}actionscheduler_groups",
 								"{$wpdb->prefix}actionscheduler_logs", 
-								"iwp_db_sent",
-								"iwp_files_sent",
-								"iwp_options",
-							) 
+							),
+							$this->iwp_tables
 						);
 						$included_tables = empty( $assoc_args['include-tables'] ) ? array() : explode( ',', $assoc_args['include-tables'] );
 
@@ -236,10 +254,11 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 						$db_update_meta = $db_changes['db_update_meta'];
 					}
 					$migrate_id = time();
-					$target_url = 'https://lush-horse-1bbe62.a.instawpsites.com/wp-content/plugins/instawp-connect/dest.php';
-					$migrate_key = 'a50519d518965978b2408645109e2e417464361d';
-					$api_signature = '42cc2368dbf4f7455ed05b6edd2b518a5a163f44007d0c279382df9537f178f511bba6e17ac9cf59522284fb686b6775d978ba78c52a5db08aba894625a467ea';
-					$bearer_token = '56a0d5457478259ee93d904bd658e8db5a81e9d3c6a22e4a3755249762cfedcc';
+					$target_url = 'https://joyous-aardvark-e09d51.a.instawpsites.com/wp-content/plugins/instawp-connect/dest.php';
+					$migrate_key = '372b2b50544ffbbf03f6f8ae9b88e93db61adb3b';
+					$api_signature = 'ba8d1daa0d0b3b9ee416d85f045e445c00730561430eac20f2e0f1705193992eac55d1e93eaab1384b00f20eba0b3a9e15010c5c708fcaccaf8a88cc584739d2';
+					$bearer_token = 'fb58487390a0cce8735ed9e472a03bae1c9fd4c43df7f1c6450d4972bb4abe40';
+					
 					// Generate migrate settings file
 					$settings = InstaWP_Tools::generate_serve_file_response( $migrate_key, $api_signature, $settings );
 					if ( empty( $settings ) ) {
@@ -265,14 +284,36 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 						'migrate_key' => $migrate_key,
 						'api_signature' => $api_signature,
 						'bearer_token' => $bearer_token,
+						'db_host' => 'localhost',
+						'db_username' => 'woxanilivi2839_picojaxune5617',
+						'db_password' => 'inKaPFlc3GAsI6WS0kBC',
+						'db_name' => 'woxanilivi2839_gGy1HvB6ZMTPqVKwtQI4',
+						'dest_domain' => $this->helper->get_domain( $target_url ),
+						'db_schema_only' => true
 					);
-					instawp_iterative_push_files( $settings );
-					//$push_db_status = instawp_iterative_push_db( $settings );
+					// Push files
+					if ( ! empty( $settings['migrate_settings']['file_actions'] ) && ( ! empty( $settings['migrate_settings']['file_actions']['to_send'] ) || ! empty( $settings['migrate_settings']['file_actions']['to_delete'] ) ) ) {
+						instawp_iterative_push_files( $settings );
+					} else {
+						$this->helper->print_message( 'No file changes detected for pushing.' );
+					}
+					
+					// Push database
+					if ( isset( $assoc_args['with-db'] ) ) {
+						if ( ! empty( $settings['migrate_settings']['db_actions'] ) && ! empty( $settings['migrate_settings']['db_actions']['schema_queries'] ) ) {
+							$this->helper->print_message( 'Pushing database schema...' );
+							//$this->helper->print_message(  $settings['migrate_settings']['db_actions']['schema_queries'] , true );
+							$push_db_status = instawp_iterative_push_db( $settings );
+						} else {
+							$this->helper->print_message( 'No database schema changes detected for pushing.' );
+						}
+						
+						// if ( true === $push_db_status && ! empty( $db_update_meta ) ) {
+						// 	// Update db meta
+						// 	update_option( $this->helper->vars['db_meta_repo'], $db_update_meta );
+						// }
+					}
 
-					// if ( true === $push_db_status && ! empty( $db_update_meta ) ) {
-					// 	// Update db meta
-					// 	update_option( $this->helper->vars['db_meta_repo'], $db_update_meta );
-					// }
 				}
 			} catch ( \Exception $e ) {
 				WP_CLI::error( $e->getMessage() );
@@ -328,7 +369,7 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 						}
 					}
 					foreach ( $target_checksums as $path_hash => $file ) {
-						if ( ! isset( $checksums[$path_hash] ) && ! in_array( $file['relative_path'], $excluded_paths ) && false === strpos( $file['relative_path'], 'instawp-autologin' ) ) {
+						if ( ! isset( $checksums[$path_hash] ) && ! in_array( $file['relative_path'], $excluded_paths ) && false === strpos( $file['relative_path'], 'instawp-autologin' ) && false === strpos( $file['relative_path'], 'migrate-p' ) ) {
 							$action['to_delete'][] = $file;
 						}
 					}
@@ -337,19 +378,19 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 					$deleted_files = 0;
 					if ( ! empty( $action['to_send'] ) ) {
 						foreach ( $action['to_send'] as $file ) {
-							//WP_CLI::log( "File: " . $file['relative_path'] . " is changed." );
+							$this->print_debug_log( "File: " . $file['relative_path'] . " is changed." );
 						}
 						$changed_files = count( $action['to_send'] );
 					}
 					if ( ! empty( $action['to_delete'] ) ) {
 						foreach ( $action['to_delete'] as $file ) {
-							//WP_CLI::log( "File: " . $file['relative_path'] . " is deleted." );
+							$this->print_debug_log( "File: " . $file['relative_path'] . " is deleted." );
 						}
 						$deleted_files = count( $action['to_delete'] );
 					}
 
-					//WP_CLI::log( __( 'Files Changed:', 'instawp-connect' ) . ' ' . $changed_files );
-					//WP_CLI::log( __( 'Files Deleted:', 'instawp-connect' ) . ' ' . $deleted_files );
+					WP_CLI::log( __( 'Files Changed:', 'instawp-connect' ) . ' ' . $changed_files );
+					WP_CLI::log( __( 'Files Deleted:', 'instawp-connect' ) . ' ' . $deleted_files );
 				}
 				WP_CLI::success( "Detecting files changes completed in " . ( time() - $start ) . " seconds" );
 			} else {
@@ -359,6 +400,17 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 			return $action;
 		}
 
+		/**
+		 * Print debug log
+		 * 
+		 * @param string|array $message
+		 */
+		public function print_debug_log( $message ) {
+			if ( $this->debug_mode ) {
+				$message = is_array( $message ) ? json_encode( $message ) : $message;
+				WP_CLI::log( $message );
+			}
+		}
 		/**
 		 * Get push db changes
 		 * 
@@ -391,6 +443,7 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 				),
 				'source' =>array(
 					'tables' => $tables,
+					'table_rows_count' => array(),
 					'table_prefix' => $wpdb->prefix,
 				),
 			);
@@ -399,23 +452,42 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 			foreach ( $target_db['tables'] as $table ) {
 				if ( ! in_array( str_replace( $target_db['table_prefix'], $wpdb->prefix, $table ), $tables ) ) {
 					$db_actions['drop_tables'][] = $table;
-					$db_actions['schema_queries'][] = "DROP TABLE IF EXISTS `{$table}`;";
+					$db_actions['schema_queries'][] = "DROP TABLE IF EXISTS `{$table}`";
 				}
 			}
 
 			// flag to check if push db was successful
 			$db_meta = get_option( $this->helper->vars['db_meta_repo'], array() );
 			$new_tables_meta = array();
+			$total = count( $tables );
+			$processed = 0;
 			foreach ( $tables as $table ) {
+				$processed++;
+				$this->helper->progress_bar( $processed, $total );
+				if ( in_array( $table, $this->iwp_tables ) ) {
+					continue;
+				}
+				// Source table meta
+				$meta = $this->helper->get_table_meta( array( $table ), true, 0 );
+				if ( empty( $meta ) ) {
+					$this->print_debug_log( __( 'Table: ', 'instawp-connect' ) . $table . __( ' No data found.', 'instawp-connect' ) );
+					continue;
+				}
+				$db_actions['source']['table_rows_count'][ $table ] = $meta['rows_count'];
+
 				$target_table_name = str_replace( $wpdb->prefix, $target_db['table_prefix'], $table );
 				// Create tables
 				if ( ! in_array( $target_table_name, $target_db['tables'] ) ) {
 					$db_actions['create_tables'][] = $table;
-					$db_actions['schema_queries'][] = "SHOW CREATE TABLE `{$table}`;";
+					// Create table
+					$create_table = $wpdb->get_row( "SHOW CREATE TABLE `{$table}`", ARRAY_A );
+					if ( ! empty( $create_table ) && ! empty( $create_table['Create Table'] ) ) {
+						$db_actions['schema_queries'][] = str_replace( $table, $target_table_name, $create_table['Create Table'] );
+					}
 				}
 				// Skip excluded tables
 				if ( in_array( $table, $excluded_tables ) ) {
-					WP_CLI::log( "Skipping table: " . $table );
+					$this->print_debug_log( "Skipping table: " . $table );
 					continue;
 				} 
 
@@ -426,7 +498,7 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 					continue;
 				}
 
-				WP_CLI::log( "Checking table: " . $table );
+				$this->print_debug_log( "Checking table: " . $table );
 				// Action required
 				$db_actions['tables'][ $table ] = array(
 					'columns_added' => array(),
@@ -444,14 +516,6 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 					'update_data' => array(),
 					'delete_data' => array(),
 				);
-				
-				// Source table meta
-				$meta = $this->helper->get_table_meta( array( $table ), true, 0 );
-
-				if ( empty( $meta ) ) {
-					WP_CLI::log( __( 'Table: ', 'instawp-connect' ) . $table . __( ' No data found.', 'instawp-connect' ) );
-					continue;
-				}
 				
 				// Target table meta
 				$target_table_meta = $this->call_api( 
@@ -475,14 +539,14 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 
 				// Check if source table is empty
 				if ( 0 === absint( $meta['rows_count'] ) ) {
-					WP_CLI::log( __( 'Table: ', 'instawp-connect' ) . $table . __( ' is empty.', 'instawp-connect' ) );
+					$this->print_debug_log( __( 'Table: ', 'instawp-connect' ) . $table . __( ' is empty.', 'instawp-connect' ) );
 					continue;
 				}
 				// Table checksum
 				$new_tables_meta[ $table ] = $meta;
 				// Check if source table has no changes. Comapre from last checksum in sync
 				if ( ! empty( $db_meta['meta'][ $table ] ) && ! empty( $db_meta['meta'][ $table ]['checksum'] ) && $db_meta['meta'][ $table ]['checksum'] === $meta['checksum'] ) {
-					WP_CLI::log( __( 'Table: ', 'instawp-connect' ) . $table . __( ' no changes found since last sync.', 'instawp-connect' ) );
+					$this->print_debug_log( __( 'Table: ', 'instawp-connect' ) . $table . __( ' no changes found since last sync.', 'instawp-connect' ) );
 					continue;
 				}
 
@@ -566,7 +630,7 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 				}
 			}
 
-			//WP_CLI::log( 'Table ' . $table . ': ' . json_encode( $db_actions ) );
+			$this->print_debug_log( 'Table ' . $table . ': ' . json_encode( $db_actions ) );
 
 			// Update DB meta ipp repo
 			if ( ! empty( $new_tables_meta ) ) {
@@ -667,7 +731,7 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 							'source' => $target_columns_details[$col_name],
 						];
 						$queries[] = sprintf(
-							"ALTER TABLE `%s` CHANGE COLUMN `%s` `%s` %s %s %s;", // Renaming and modifying column
+							"ALTER TABLE `%s` CHANGE COLUMN `%s` `%s` %s %s %s", // Renaming and modifying column
 							$target_table,                // Table name
 							$col_name,             // Old column name (the one being renamed)
 							$col_name,             // New column name (the desired name)
@@ -684,8 +748,8 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 			// Columns which are in target_table table but not in source_table
 			$db_actions['columns_deleted'] = array_diff($target_column_names, $source_column_names);
 	
-			// Prepare added columns query
-			if ( empty( $db_actions['columns_added'] ) ) {
+			// Prepare deleted columns query
+			if ( ! empty( $db_actions['columns_added'] ) ) {
 				foreach ( $db_actions['columns_added'] as $column_name ) {
 					$column_details = $source_columns_details[$column_name];
 					$old_column_name = false;
@@ -719,8 +783,9 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 					}
 
 					if ( ! empty( $old_column_name ) ) {
+						// Renaming and modifying column
 						$query = sprintf(
-							"ALTER TABLE `%s` CHANGE COLUMN `%s` `%s` %s %s %s;", // Renaming and modifying column
+							"ALTER TABLE `%s` CHANGE COLUMN `%s` `%s` %s %s %s", 
 							$target_table,                // Table name
 							$old_column_name,             // Old column name (the one being renamed)
 							$new_column_name,             // New column name (the desired name)
@@ -747,7 +812,7 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 						if (isset($column_details['Key']) && $column_details['Key'] === 'UNI') {
 							$query .= ", ADD UNIQUE (`$column_name`)";
 						}
-						$query .= ";";
+					
 					}
 
 					$queries[] = $query;
@@ -755,11 +820,10 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 			}
 
 			// Prepare deleted columns query
-			if ( empty( $db_actions['columns_deleted'] ) ) {
+			if ( ! empty( $db_actions['columns_deleted'] ) ) {
 				foreach ( $db_actions['columns_deleted'] as $column_name ) {
-					$column_details = $target_columns_details[$column_name];
 					$query = sprintf(
-						"ALTER TABLE `%s` DROP COLUMN `%s`;",
+						"ALTER TABLE `%s` DROP COLUMN `%s`",
 						$target_table,
 						$column_name
 					);
@@ -795,7 +859,7 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 					$index_type = $index_details[0]['Index_type'];
 			
 					$queries[] = sprintf(
-						"ALTER TABLE `%s` ADD %s INDEX `%s` (%s) USING %s;",
+						"ALTER TABLE `%s` ADD %s INDEX `%s` (%s) USING %s",
 						$target_table,
 						$is_unique,
 						$index_name,
@@ -814,7 +878,7 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 					$index_type = $index_details[0]['Index_type'];
 			
 					$queries[] = sprintf(
-						"ALTER TABLE `%s` DROP INDEX `%s`;",
+						"ALTER TABLE `%s` DROP INDEX `%s`",
 						$target_table,
 						$index_name
 					);
@@ -837,14 +901,14 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 
 						// Drop the old index
 						$queries[] = sprintf(
-							"ALTER TABLE `%s` DROP INDEX `%s`;",
+							"ALTER TABLE `%s` DROP INDEX `%s`",
 							$target_table,
 							$index_name
 						);
 				
 						// Add the modified index
 						$queries[] = sprintf(
-							"ALTER TABLE `%s` ADD %s INDEX `%s` (%s) USING %s;",
+							"ALTER TABLE `%s` ADD %s INDEX `%s` (%s) USING %s",
 							$target_table,
 							$is_unique,
 							$index_name,

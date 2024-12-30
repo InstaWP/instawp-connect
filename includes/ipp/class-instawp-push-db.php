@@ -4,9 +4,93 @@
  * Handles database pushing operations for InstaWP migrations
  */
 defined( 'ABSPATH' ) || exit;
+
+if ( ! function_exists( 'instawp_iterative_push_db_curl' ) ) {
+	/**
+	 * Iterative push database curl
+	 * Handles database pushing operations for InstaWP migrations
+	 * 
+	 * @param string $temp_destination
+	 * @param resource $curl_session
+	 * @param string $api_signature
+	 * @param int $index
+	 * @param array $tracking_progress_req
+	 * @param object $ipp_helper
+	 * 
+	 * @return boolean status
+	 */
+	function instawp_iterative_push_db_curl( $statements, $curl_session, $api_signature, $index, $tracking_progress_req, $ipp_helper, $progress_sent_at ) {
+		global $tracking_db, $table_prefix, $migrate_key, $migrate_id, $migrate_mode, $bearer_token, $search_replace, $target_url;
+		try {
+
+			$temp_destination = tempnam( sys_get_temp_dir(), "iwp-db" );
+			$file_pointer     = fopen( $temp_destination, 'w+b' );
+
+			fwrite( $file_pointer, $statements );
+			fclose( $file_pointer );
+			
+			$file_stream = fopen( $temp_destination, 'r' );
+
+			curl_setopt( $curl_session, CURLOPT_USERAGENT, 'InstaWP Migration Service - Iterative Push DB' );
+			curl_setopt( $curl_session, CURLOPT_URL, $target_url . '?r=' . $index );
+			curl_setopt( $curl_session, CURLOPT_HEADERFUNCTION, function ( $curl, $header ) use ( &$headers ) {
+				return iwp_process_curl_headers( $curl, $header, $headers );
+			} );
+			curl_setopt( $curl_session, CURLOPT_INFILE, $file_stream );
+			curl_setopt( $curl_session, CURLOPT_INFILESIZE, filesize( $temp_destination ) );
+			curl_setopt( $curl_session, CURLOPT_PUT, true );
+			curl_setopt( $curl_session, CURLOPT_COOKIE, "instawp_skip_splash=true" );
+			curl_setopt( $curl_session, CURLOPT_HTTPHEADER, [
+				'Content-Type: application/octet-stream',
+				'x-file-relative-path: db.sql',
+				'x-file-type: db',
+				'x-iwp-mode: ' . $migrate_mode,
+				'x-iwp-progress: ' . $tracking_progress_req,
+				'x-iwp-api-signature: ' . $api_signature,
+				'x-iwp-migrate-key: ' . $migrate_key,
+				'x-iwp-table-prefix: ' . $table_prefix,
+			] );
+
+			$response                   = curl_exec( $curl_session );
+			$processed_response         = iwp_process_curl_response( $response, $curl_session, $headers, $errors_counter, $slow_sleep, 'push-db' );
+			$processed_response_success = isset( $processed_response['success'] ) ? (bool) $processed_response['success'] : false;
+			$processed_response_message = isset( $processed_response['message'] ) ? $processed_response['message'] : '';
+
+			fclose( $file_stream );
+			
+			if ( ! $processed_response_success ) {
+				$ipp_helper->print_message( 'iterative-push-db: ' . $processed_response_message );	
+				return false;
+			}
+
+			$header_status  = $headers['x-iwp-status'] ?? false;
+			$header_message = $headers['x-iwp-message'] ?? '';
+
+			if ( $header_status == 'false' ) {
+
+				iwp_send_migration_log( 'iterative-push-db: Header status is false from dest.php', "Header status $header_status, Full response: " . json_encode( $response ) );
+
+				return false;
+			}
+
+			$tracking_progress = $tracking_progress_req;
+
+			if ( time() - $progress_sent_at > 3 ) {
+				iwp_send_progress( 0, $tracking_progress );
+				echo date( "H:i:s" ) . ": Progress: $tracking_progress%\n";
+				$progress_sent_at = time();
+			}
+		} catch ( Exception $e ) {
+			iwp_send_migration_log( 'iterative-push-db: Curl exception',  $e->getMessage() );
+			$ipp_helper->print_message( 'iterative-push-db: Curl exception error - ' . $e->getMessage(), true );
+			return false;
+		}
+		return true;
+	}
+}
 if ( ! function_exists( 'instawp_iterative_push_db' ) ) {
 	function instawp_iterative_push_db( $settings ) {
-		global $mysqli, $migrate_key, $migrate_id, $bearer_token, $search_replace;
+		global $tracking_db, $table_prefix, $migrate_key, $migrate_id, $migrate_mode, $bearer_token, $search_replace, $target_url;
 
 		define( 'CHUNK_DB_SIZE', 100 );
 
@@ -39,6 +123,14 @@ if ( ! function_exists( 'instawp_iterative_push_db' ) ) {
 		$db_name           = $settings['db_name'];
 		$dest_domain       = $settings['dest_domain'];
 		$table_prefix      = isset( $mig_settings['table_prefix'] ) ? $mig_settings['table_prefix'] : '';
+		$db_schema_only    = ! empty( $settings['db_schema_only'] );
+
+		if ( empty( $mig_settings['db_actions'] ) ) {
+			$ipp_helper->print_message( 'Missing parameter: db_actions', true );
+			return false;
+		}
+
+		$table_rows_count = $mig_settings['db_actions']['source']['table_rows_count'];
 
 		if ( ! empty( $target_url ) ) {
 			$dest_domain = str_replace( array( 'http://', 'https://', 'wp-content/plugins/instawp-connect/dest.php', 'dest.php' ), '', $target_url );
@@ -55,63 +147,58 @@ if ( ! function_exists( 'instawp_iterative_push_db' ) ) {
 		$progress_sent_at = time();
 
 		if ( ! isset( $db_host ) || ! isset( $db_username ) || ! isset( $db_password ) || ! isset( $db_name ) ) {
-			iwp_send_migration_log( 'push-db: DB information missing', "Could not found database information. Arguments: " . json_encode( $argv ) );
+			iwp_send_migration_log( 'iterative-push-db: DB information missing', "Could not found database information. Arguments: " . json_encode( $argv ) );
 
-			exit( 1 );
+			return false;
 		}
 
 		$excluded_tables      = [];
 		$excluded_tables_rows = [ 'option_name:_transient_wp_core_block_css_files' ];
 		$relative_path        = realpath( $working_directory ) . DIRECTORY_SEPARATOR;
-		$tracking_db_path     = $relative_path . 'wp-content' . DIRECTORY_SEPARATOR . 'instawpbackups' . DIRECTORY_SEPARATOR . 'db-sent-' . $migrate_key . '.db';
-		$directory_name       = dirname( $tracking_db_path );
 
-		if ( ! file_exists( $directory_name ) ) {
-			mkdir( $directory_name, 0777, true );
-		}
+		if ( ! $db_schema_only ) {
+			$excluded_tables       = isset( $migrate_settings['excluded_tables'] ) ? $migrate_settings['excluded_tables'] : array();
+			$excluded_tables_rows  = isset( $migrate_settings['excluded_tables_rows'] ) ? $migrate_settings['excluded_tables_rows'] : array();
+			$total_tracking_tables = (int) $tracking_db->query_count( 'iwp_db_sent' );
 
-		if ( file_exists( $tracking_db_path ) ) {
-			unlink( $tracking_db_path );
-		}
-
-		try {
-			$tracking_db = new InstaWPConnectDB( $tracking_db_path );
-			$tracking_db->createTableTracking();
-		} catch ( Exception $e ) {
-			iwp_send_migration_log( 'push-db: DB tracking connection failed', $e->getMessage() );
-			exit( 1 );
-		}
-
-		$mysqli = new mysqli( $db_host, $db_username, $db_password, $db_name );
-		$mysqli->set_charset( 'utf8' );
-
-		if ( $mysqli->connect_error ) {
-			iwp_send_migration_log( 'push-db: DB connection failed', "Could not connect database. Error: {$mysqli->connect_error}. Hostname: $db_host, Username: $db_username, Password: $db_password, DB Name: $db_name" );
-
-			exit( 1 );
-		}
-
-		$total_tracking_tables = $tracking_db->getTotalTablesCount();
-
-		if ( $total_tracking_tables == 0 ) {
-			$excluded_tables_sql      = array_map( function ( $table_name ) use ( $db_name ) {
-				return "tables_in_{$db_name} NOT LIKE '{$table_name}'";
-			}, $excluded_tables );
-			$table_names_result_where = empty( $excluded_tables_sql ) ? '' : 'WHERE ' . implode( ' AND ', $excluded_tables_sql );
-			$table_names_result       = $mysqli->query( "SHOW TABLES {$table_names_result_where}" );
-			$total_source_tables      = 0;
-
-			$tracking_db->beginTransaction();
-			while ( $table = $table_names_result->fetch_row() ) {
-				$tracking_db->insertTrackingTable( $table[0] );
-				$total_source_tables ++;
+			// Skip our files sent table
+			if ( ! in_array( 'iwp_files_sent', $excluded_tables ) ) {
+				$excluded_tables[] = 'iwp_files_sent';
 			}
-			$tracking_db->commit();
 
-			$total_tracking_tables = $total_source_tables;
+			// Skip our db sent table
+			if ( ! in_array( 'iwp_db_sent', $excluded_tables ) ) {
+				$excluded_tables[] = 'iwp_db_sent';
+			}
+
+			if ( $total_tracking_tables == 0 ) {
+				foreach ( $table_rows_count as $table_name => $rows_count ) {
+					if ( ! in_array( $table_name, $excluded_tables ) ) {
+						$total_tracking_tables++;
+						$table_name_hash = hash( 'md5', $table_name );
+						$tracking_db->insert( 'iwp_db_sent', array(
+							'table_name'      => "'$table_name'",
+							'table_name_hash' => "'$table_name_hash'",
+							'rows_total'      => $rows_count,
+						) );
+					} else {
+						unset( $table_rows_count[ $table_name ] );
+					}
+				}
+			}
+
+			$result = $tracking_db->get_row( 'iwp_db_sent', array( 'completed' => '2' ) );
+			if ( empty( $result ) ) {
+				$result = $tracking_db->get_row( 'iwp_db_sent', array( 'completed' => '0' ) );
+			}
+
+			if ( empty( $result ) ) {
+				$ipp_helper->print_message( 'No more tables to process.' );
+				return true;
+			}
 		}
 
-		curl_setopt( $curl_session, CURLOPT_USERAGENT, 'InstaWP Migration Service - Push DB' );
+		curl_setopt( $curl_session, CURLOPT_USERAGENT, 'InstaWP Migration Service - Iterative Push DB' );
 		curl_setopt( $curl_session, CURLOPT_REFERER, $source_domain );
 		curl_setopt( $curl_session, CURLOPT_RETURNTRANSFER, true );
 		curl_setopt( $curl_session, CURLOPT_TIMEOUT, 120 );
@@ -121,6 +208,7 @@ if ( ! function_exists( 'instawp_iterative_push_db' ) ) {
 		curl_setopt( $curl_session, CURLOPT_SSL_VERIFYPEER, false );
 		curl_setopt( $curl_session, CURLOPT_COOKIE, "instawp_skip_splash=true" );
 		curl_setopt( $curl_session, CURLOPT_HTTPHEADER, [
+			'x-iwp-mode: ' . $migrate_mode,
 			'x-iwp-api-signature: ' . $api_signature,
 			'x-iwp-migrate-key: ' . $migrate_key,
 			'x-iwp-table-prefix: ' . $table_prefix,
@@ -128,29 +216,33 @@ if ( ! function_exists( 'instawp_iterative_push_db' ) ) {
 
 		iwp_send_progress( 0, 0, [ 'push-db-in-progress' => true ] );
 
-		$stopPushing       = false;
+		
+		if ( ! empty( $mig_settings['db_actions']['schema_queries'] ) && is_array( $mig_settings['db_actions']['schema_queries'] ) ) {
+			$statements = implode( ";\n\n", $mig_settings['db_actions']['schema_queries'] );
+			$curl_response  = instawp_iterative_push_db_curl( $statements, $curl_session, $api_signature, 0, $db_schema_only ? 100: 0, $ipp_helper, $progress_sent_at );
+			$ipp_helper->print_message( 'Database schema push completed.' );
+		}
+		
+		// Return if database schema only push is required
+		if ( $db_schema_only ) {
+			// Files pushing is completed
+			iwp_send_progress( 0, 100, [ 'push-db-finished' => true ] );
+			return true;
+		}
+
 		$index             = 0;
 		$slow_sleep        = 0;
 		$tracking_progress = 0;
-
-		while ( ! $stopPushing ) {
+		/** 
+		foreach ( $table_rows_count as $table_name => $rows_count ) {
 
 			if ( $errors_counter >= 50 ) {
-				iwp_send_migration_log( 'push-db: Tried maximum times', 'Our migration script retried maximum times of pushing db. Now exiting the migration' );
+				iwp_send_migration_log( 'iterative-push-db: Tried maximum times', 'Our migration script retried maximum times of pushing db. Now exiting the migration', array(), true );
 
-				exit( 1 );
+				return false;
 			}
 
-			$row = $tracking_db->getUncompletedTable();
-
-			if ( ! $row ) {
-				$stopPushing = true;
-				if ( $index == 0 ) {
-					echo 'No more tables to process.';
-					exit( 2 );
-				}
-				break;
-			}
+			$sqlStatements   = array();
 
 			$statements = '';
 			$statements .= 'SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO"' . ";\n\n";
@@ -190,9 +282,9 @@ if ( ! function_exists( 'instawp_iterative_push_db' ) ) {
 			$result = $mysqli->query( $query );
 
 			if ( $mysqli->errno ) {
-				iwp_send_migration_log( 'push-db: Database query failed', "Database query error found. Actual error: {$mysqli->connect_error}, Query: $query" );
+				iwp_send_migration_log( 'iterative-push-db: Database query failed', "Database query error found. Actual error: {$mysqli->connect_error}, Query: $query" );
 
-				exit( 1 );
+				return false;
 			}
 
 			$sqlStatements = [];
@@ -256,84 +348,20 @@ if ( ! function_exists( 'instawp_iterative_push_db' ) ) {
 
 			$statements .= implode( "\n\n", $sqlStatements );
 
-			$temp_destination = tempnam( sys_get_temp_dir(), "iwp-db" );
-			$file_pointer     = fopen( $temp_destination, 'w+b' );
+			$curl_response  = instawp_iterative_push_db_curl( $statements, $curl_session, $api_signature, $index, $tracking_progress_req, $ipp_helper, $progress_sent_at );
 
-			fwrite( $file_pointer, $statements );
-			fclose( $file_pointer );
-
-			$file_stream = fopen( $temp_destination, 'r' );
-
-			curl_setopt( $curl_session, CURLOPT_USERAGENT, 'InstaWP Migration Service - Push DB' );
-			curl_setopt( $curl_session, CURLOPT_URL, $target_url . '?r=' . $index );
-			curl_setopt( $curl_session, CURLOPT_HEADERFUNCTION, function ( $curl, $header ) use ( &$headers ) {
-				return iwp_process_curl_headers( $curl, $header, $headers );
-			} );
-			curl_setopt( $curl_session, CURLOPT_INFILE, $file_stream );
-			curl_setopt( $curl_session, CURLOPT_INFILESIZE, filesize( $temp_destination ) );
-			curl_setopt( $curl_session, CURLOPT_PUT, true );
-			curl_setopt( $curl_session, CURLOPT_COOKIE, "instawp_skip_splash=true" );
-			curl_setopt( $curl_session, CURLOPT_HTTPHEADER, [
-				'Content-Type: application/octet-stream',
-				'x-file-relative-path: db.sql',
-				'x-file-type: db',
-				'x-iwp-progress: ' . $tracking_progress_req,
-				'x-iwp-api-signature: ' . $api_signature,
-				'x-iwp-migrate-key: ' . $migrate_key,
-				'x-iwp-table-prefix: ' . $table_prefix,
-			] );
-
-			$response                   = curl_exec( $curl_session );
-			$processed_response         = iwp_process_curl_response( $response, $curl_session, $headers, $errors_counter, $slow_sleep, 'push-db' );
-			$processed_response_success = isset( $processed_response['success'] ) ? (bool) $processed_response['success'] : false;
-			$processed_response_message = isset( $processed_response['message'] ) ? $processed_response['message'] : '';
-
-			if ( ! $processed_response_success ) {
-				echo $processed_response_message;
-
+			if ( false === $curl_response ) {
 				continue;
 			}
-
-			fclose( $file_stream );
-
-			$header_status  = $headers['x-iwp-status'] ?? false;
-			$header_message = $headers['x-iwp-message'] ?? '';
-
-			if ( $header_status == 'false' ) {
-
-				iwp_send_migration_log( 'push-db: Header status is false from dest.php', "Header status $header_status, Full response: " . json_encode( $response ) );
-
-				$mysqli->close();
-				$tracking_db->close();
-
-				exit( 1 );
-			}
-
-			$tracking_progress = $tracking_progress_req;
-
-			if ( time() - $progress_sent_at > 3 ) {
-				iwp_send_progress( 0, $tracking_progress );
-				echo date( "H:i:s" ) . ": Progress: $tracking_progress%\n";
-				$progress_sent_at = time();
-			}
-
 			$index ++;
 		}
-
-		$mysqli->close();
-		$tracking_db->close();
+		**/
 
 		// Files pushing is completed
 		iwp_send_progress( 0, 100, [ 'push-db-finished' => true ] );
 
-		try {
-			unlink( $tracking_db_path );
-		} catch ( Exception $e ) {
-			iwp_send_migration_log( 'push-db: Tracking path deletion failed', "An error occurred while deleting the DB file: {$e->getMessage()}, Database file path: $tracking_db_path" );
-		}
-
-		echo 'DB pushing completed';
-		echo "Whole database is transferred successfully to the destination website. \n";
-		exit( 0 );
+		// echo 'DB pushing completed';
+		// echo "Whole database is transferred successfully to the destination website. \n";
+		return true;
 	}
 }

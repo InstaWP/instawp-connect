@@ -337,9 +337,11 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 			);
 		}
 
-		public function get_domain() {
+		public function get_domain( $url = '' ) {
+			$url = empty( $url ) ? site_url() : $url;
+			$url = esc_url( $url );
 			$protocols = array( 'http://', 'https://', 'http://www.', 'https://www.', 'www.' );
-			return str_replace( $protocols, '', site_url() );
+			return str_replace( $protocols, '', $url );
 		 }
 
 		/**
