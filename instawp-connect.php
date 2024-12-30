@@ -17,6 +17,7 @@
  */
 
 use InstaWP\Connect\Helpers\Curl;
+use InstaWP\Connect\Helpers\Helper;
 use InstaWP\Connect\Helpers\Option;
 
 // If this file is called directly, abort.
@@ -30,7 +31,7 @@ defined( 'INSTAWP_PLUGIN_VERSION' ) || define( 'INSTAWP_PLUGIN_VERSION', '0.1.0.
 defined( 'INSTAWP_API_DOMAIN_PROD' ) || define( 'INSTAWP_API_DOMAIN_PROD', 'https://app.instawp.io' );
 
 $wp_plugin_url   = WP_PLUGIN_URL . '/' . plugin_basename( __DIR__ ) . '/';
-$wp_site_url     = get_option( 'siteurl' );
+$wp_site_url     = Helper::wp_site_url();
 $parsed_site_url = wp_parse_url( $wp_site_url );
 
 if ( isset( $parsed_site_url['scheme'] ) && strtolower( $parsed_site_url['scheme'] ) === 'http' ) {
@@ -92,7 +93,7 @@ function instawp_plugin_activate() {
 
 	$connect_id = instawp_get_connect_id();
 	if ( ! empty( $connect_id ) ) {
-		$response = Curl::do_curl( "connects/{$connect_id}/restore", array( 'url' => site_url() ) );
+		$response = Curl::do_curl( "connects/{$connect_id}/restore", array( 'url' => Helper::wp_site_url() ) );
 		if ( empty( $response['success'] ) ) {
 			Option::delete_option( 'instawp_api_options' );
 		}
@@ -154,3 +155,21 @@ function run_instawp() {
 add_filter( 'got_rewrite', '__return_true' );
 
 run_instawp();
+
+add_action( 'wp_head', function () {
+	if ( isset( $_GET['debug'] ) ) {
+
+		global $wpdb;
+		$site_url = $wpdb->get_var( "SELECT option_value FROM {$wpdb->options} WHERE option_name = 'siteurl'" );
+
+		echo "<pre>";
+		print_r( [
+			'query'    => $site_url,
+			'function' => Helper::wp_site_url(),
+		] );
+		echo "</pre>";
+
+
+		die();
+	}
+}, 0 );

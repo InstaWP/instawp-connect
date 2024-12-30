@@ -1,24 +1,26 @@
 <?php
 
+use InstaWP\Connect\Helpers\Helper;
+
 defined( 'ABSPATH' ) || exit;
 
 class InstaWP_Sync_Menu {
 
-    public function __construct() {
-	    // Term actions
-	    add_action( 'wp_create_nav_menu', array( $this, 'create_or_update_nav_menu' ), 10, 2 );
-	    add_action( 'wp_update_nav_menu', array( $this, 'create_or_update_nav_menu' ), 10, 2 );
-	    add_action( 'pre_delete_term', array( $this, 'delete_nav_menu' ), 10, 2 );
+	public function __construct() {
+		// Term actions
+		add_action( 'wp_create_nav_menu', array( $this, 'create_or_update_nav_menu' ), 10, 2 );
+		add_action( 'wp_update_nav_menu', array( $this, 'create_or_update_nav_menu' ), 10, 2 );
+		add_action( 'pre_delete_term', array( $this, 'delete_nav_menu' ), 10, 2 );
 
-	    // Process event
-	    add_filter( 'instawp/filters/2waysync/process_event', array( $this, 'parse_event' ), 10, 3 );
-    }
+		// Process event
+		add_filter( 'instawp/filters/2waysync/process_event', array( $this, 'parse_event' ), 10, 3 );
+	}
 
 	/**
 	 * Function for nav menu created or updated.
 	 *
-	 * @param int   $nav_menu_id ID of the updated menu.
-	 * @param array $menu_data   An array of menu data.
+	 * @param int $nav_menu_id ID of the updated menu.
+	 * @param array $menu_data An array of menu data.
 	 *
 	 * @return void
 	 */
@@ -31,13 +33,13 @@ class InstaWP_Sync_Menu {
 		$menu_details = ( array ) wp_get_nav_menu_object( $nav_menu_id );
 
 		if ( 'wp_create_nav_menu' === current_filter() ) {
-			$event_name = __('Nav Menu created', 'instawp-connect' );
+			$event_name = __( 'Nav Menu created', 'instawp-connect' );
 			$event_slug = 'nav_menu_created';
 		} else {
-			$event_name = __('Nav Menu updated', 'instawp-connect' );
+			$event_name = __( 'Nav Menu updated', 'instawp-connect' );
 			$event_slug = 'nav_menu_updated';
 			$menu_items = wp_get_nav_menu_items( $nav_menu_id );
-			$menu_items = array_map( function( $item ) {
+			$menu_items = array_map( function ( $item ) {
 				if ( $item->type === 'post_type' ) {
 					$item->object_name  = get_post( $item->object_id )->post_name;
 					$item->reference_id = InstaWP_Sync_Helpers::get_post_reference_id( $item->object_id );
@@ -70,8 +72,8 @@ class InstaWP_Sync_Menu {
 	/**
 	 * Function for `delete_(taxonomy)` action-hook.
 	 *
-	 * @param int     $menu_id         Term ID.
-	 * @param int     $taxonomy        Term taxonomy ID.
+	 * @param int $menu_id Term ID.
+	 * @param int $taxonomy Term taxonomy ID.
 	 *
 	 * @return void
 	 */
@@ -86,7 +88,7 @@ class InstaWP_Sync_Menu {
 
 		$menu_details = ( array ) get_term( $menu_id, $taxonomy );
 		$source_id    = InstaWP_Sync_Helpers::get_term_reference_id( $menu_id );;
-		$event_name   = __('Nav Menu deleted', 'instawp-connect' );
+		$event_name = __( 'Nav Menu deleted', 'instawp-connect' );
 
 		InstaWP_Sync_DB::insert_update_event( $event_name, 'nav_menu_deleted', $taxonomy, $source_id, $menu_details['name'], $menu_details );
 	}
@@ -174,7 +176,7 @@ class InstaWP_Sync_Menu {
 						'menu-item-position'    => $value->menu_order,
 						'menu-item-title'       => $value->title,
 						'menu-item-type'        => $value->type,
-						'menu-item-url'         => str_replace( $source_url, site_url(), $value->url ),
+						'menu-item-url'         => str_replace( $source_url, Helper::wp_site_url(), $value->url ),
 						'menu-item-description' => $value->description,
 						'menu-item-attr-title'  => $value->attr_title,
 						'menu-item-target'      => $value->target,

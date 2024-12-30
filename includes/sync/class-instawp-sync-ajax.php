@@ -221,7 +221,7 @@ class InstaWP_Sync_Ajax {
 				'upload_wp_user'    => get_current_user_id(),
 				'sync_message'      => $message,
 				'source_connect_id' => instawp()->connect_id,
-				'source_url'        => get_site_url(),
+				'source_url'        => Helper::wp_site_url(),
 			);
 
 			$response = $this->sync_upload( $packed_data );
