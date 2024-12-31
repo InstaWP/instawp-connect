@@ -156,9 +156,11 @@ class InstaWP_Tools {
 		);
 		$options_data_str       = wp_json_encode( $options_data );
 		$passphrase             = openssl_digest( $migrate_key, 'SHA256', true );
-		$options_data_encrypted = openssl_encrypt( $options_data_str, 'AES-256-CBC', $passphrase );
+		$openssl_iv             = openssl_random_pseudo_bytes( 16 );
+		$options_data_encrypted = openssl_encrypt( $options_data_str, 'AES-256-CBC', $passphrase, 0, $openssl_iv );
+		$final_encrypted_data   = base64_encode( $openssl_iv . base64_decode( $options_data_encrypted ) );
 		$options_data_filename  = INSTAWP_BACKUP_DIR . 'options-' . $migrate_key . '.txt';
-		$options_data_stored    = file_put_contents( $options_data_filename, $options_data_encrypted ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+		$options_data_stored    = file_put_contents( $options_data_filename, $final_encrypted_data );
 
 		if ( ! $options_data_stored ) {
 			return false;
@@ -252,9 +254,10 @@ include $file_path;';
 			'instawp_api_options' => maybe_serialize( Option::get_option( 'instawp_api_options' ) ),
 		), $migrate_settings );
 
-		$jsonString     = wp_json_encode( $data );
-		$passphrase     = openssl_digest( $migrate_key, 'SHA256', true );
-		$data_encrypted = openssl_encrypt( $jsonString, 'AES-256-CBC', $passphrase );
+		$options_data_str = wp_json_encode( $data );
+		$passphrase       = openssl_digest( $migrate_key, 'SHA256', true );
+		$openssl_iv       = openssl_random_pseudo_bytes( 16 );
+		$data_encrypted   = openssl_encrypt( $options_data_str, 'AES-256-CBC', $passphrase, 0, $openssl_iv );
 
 		$root_dir      = iwp_get_root_dir();
 		$info_filename = 'migrate-push-db-' . substr( $migrate_key, 0, 5 ) . '.txt';

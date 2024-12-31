@@ -31,7 +31,10 @@ $options_data_path = $root_dir_path . DIRECTORY_SEPARATOR . 'migrate-push-db-' .
 if ( file_exists( $options_data_path ) ) {
 	$options_data_encrypted = file_get_contents( $options_data_path );
 	$passphrase             = openssl_digest( $migrate_key, 'SHA256', true );
-	$options_data_decrypted = openssl_decrypt( $options_data_encrypted, 'AES-256-CBC', $passphrase );
+	$decoded_data           = base64_decode( $options_data_encrypted );
+	$openssl_iv             = substr( $decoded_data, 0, 16 );
+	$encrypted_data         = substr( $decoded_data, 16 );
+	$options_data_decrypted = openssl_decrypt( base64_encode( $encrypted_data ), 'AES-256-CBC', $passphrase, 0, $openssl_iv );
 	$jsonData               = json_decode( $options_data_decrypted, true );
 
 	if ( $jsonData !== null ) {
