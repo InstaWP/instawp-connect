@@ -6,6 +6,7 @@ use InstaWP\Connect\Helpers\DatabaseManager;
 use InstaWP\Connect\Helpers\FileManager;
 use InstaWP\Connect\Helpers\Helper;
 use InstaWP\Connect\Helpers\Option;
+use InstaWP\Connect\Helpers\Updater;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -24,6 +25,29 @@ class InstaWP_Ajax {
 		add_action( 'wp_ajax_instawp_migrate_progress', array( $this, 'migrate_progress' ) );
 		add_action( 'wp_ajax_instawp_skip_item', array( $this, 'skip_item' ) );
 		add_action( 'wp_ajax_instawp_change_plan', array( $this, 'change_plan' ) );
+		add_action( 'wp_ajax_instawp_update_plugin', array( $this, 'update_plugin' ) );
+	}
+
+	public function update_plugin() {
+		check_ajax_referer( 'instawp-connect', 'security' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'updated' => false, 'permission' => false ) );
+		}
+
+		$plugin_updater = new Updater( array(
+			array(
+				'type' => 'plugin',
+				'slug' => INSTAWP_PLUGIN_FILE,
+			),
+		) );
+		$response       = $plugin_updater->update();
+
+		if ( isset( $response[ INSTAWP_PLUGIN_FILE ] ) && isset( $response[ INSTAWP_PLUGIN_FILE ]['success'] ) && (bool) $response[ INSTAWP_PLUGIN_FILE ]['success'] === true ) {
+			wp_send_json_success( array( 'updated' => true ) );
+		}
+
+		wp_send_json_error( array( 'updated' => false ) );
 	}
 
 	public function process_ajax() {

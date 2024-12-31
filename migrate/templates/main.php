@@ -62,37 +62,6 @@ if ( ! instawp()->is_connected ) {
                 </div>
             </div>
         </div>
-
-        <script type="text/javascript">
-            jQuery(document).ready(function ($) {
-                $('.instawp-update-plugin').on('click', function (e) {
-                    e.preventDefault();
-
-                    const $updateLink = $(this);
-                    const $spinner = $('.instawp-update-spinner');
-                    const pluginSlug = $updateLink.data('plugin');
-
-                    $updateLink.hide();
-                    $spinner.show();
-
-                    wp.updates.maybeRequestFilesystemCredentials(e);
-
-                    wp.updates.updatePlugin({
-                        plugin: pluginSlug,
-                        success: function (response) {
-                            $spinner.hide();
-                            // Refresh the page after successful update
-                            location.reload();
-                        },
-                        error: function (response) {
-                            $spinner.hide();
-                            $updateLink.show();
-                            alert(response.errorMessage);
-                        }
-                    });
-                });
-            });
-        </script>
 	<?php endif; ?>
 
 

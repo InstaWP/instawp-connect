@@ -19,6 +19,7 @@
 use InstaWP\Connect\Helpers\Curl;
 use InstaWP\Connect\Helpers\Helper;
 use InstaWP\Connect\Helpers\Option;
+use InstaWP\Connect\Helpers\Updater;
 
 // If this file is called directly, abort.
 if ( ! defined( 'WPINC' ) ) {
@@ -157,17 +158,6 @@ run_instawp();
 
 add_action( 'wp_head', function () {
 	if ( isset( $_GET['debug'] ) ) {
-
-		global $wpdb;
-		$site_url = $wpdb->get_var( "SELECT option_value FROM {$wpdb->options} WHERE option_name = 'siteurl'" );
-
-		echo "<pre>";
-		print_r( [
-			'query'    => $site_url,
-			'function' => Helper::wp_site_url(),
-		] );
-		echo "</pre>";
-
 
 		die();
 	}

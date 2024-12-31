@@ -1498,5 +1498,29 @@
         });
     });
 
+
+    $(document).on('click', '.instawp-update-plugin', function (e) {
+        e.preventDefault();
+
+        $.ajax({
+            type: 'POST',
+            url: plugin_object.ajax_url,
+            context: this,
+            // beforeSend: function () {
+            //     create_container.addClass('loading doing-ajax');
+            // },
+            // complete: function () {
+            //     create_container.removeClass('doing-ajax');
+            // },
+            data: {
+                'action': 'instawp_update_plugin',
+                'security': plugin_object.security,
+            },
+            success: function (response) {
+                console.log(response);
+            }
+        });
+    });
+
 })(jQuery, window, document, instawp_migrate);
 
