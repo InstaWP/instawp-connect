@@ -31,6 +31,8 @@ class InstaWP_Ajax {
 	public function update_plugin() {
 		check_ajax_referer( 'instawp-connect', 'security' );
 
+		wp_send_json_error( array( 'updated' => false ) );
+
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error( array( 'updated' => false, 'permission' => false ) );
 		}
