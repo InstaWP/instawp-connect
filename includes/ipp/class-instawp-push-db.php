@@ -77,7 +77,7 @@ if ( ! function_exists( 'instawp_iterative_push_db_curl' ) ) {
 
 			if ( time() - $progress_sent_at > 3 ) {
 				iwp_send_progress( 0, $tracking_progress );
-				echo date( "H:i:s" ) . ": Progress: $tracking_progress%\n";
+				$ipp_helper->progress_bar( $tracking_progress, 100, 50, $migrate_mode );
 				$progress_sent_at = time();
 			}
 		} catch ( Exception $e ) {
@@ -111,7 +111,7 @@ if ( ! function_exists( 'instawp_iterative_push_db' ) ) {
 				return false;
 			}
 		}
-
+		$start = time();
 		$working_directory = $settings['working_directory'];
 		$api_signature     = $settings['api_signature'];
 		$bearer_token      = $settings['bearer_token'];
@@ -215,18 +215,19 @@ if ( ! function_exists( 'instawp_iterative_push_db' ) ) {
 		] );
 
 		iwp_send_progress( 0, 0, [ 'push-db-in-progress' => true ] );
-
+		$ipp_helper->progress_bar( 0, 100, 50, $migrate_mode );
 		
 		if ( ! empty( $mig_settings['db_actions']['schema_queries'] ) && is_array( $mig_settings['db_actions']['schema_queries'] ) ) {
 			$statements = implode( ";\n\n", $mig_settings['db_actions']['schema_queries'] );
 			$curl_response  = instawp_iterative_push_db_curl( $statements, $curl_session, $api_signature, 0, $db_schema_only ? 100: 0, $ipp_helper, $progress_sent_at );
-			$ipp_helper->print_message( 'Database schema push completed.' );
 		}
 		
 		// Return if database schema only push is required
 		if ( $db_schema_only ) {
 			// Files pushing is completed
 			iwp_send_progress( 0, 100, [ 'push-db-finished' => true ] );
+			$ipp_helper->progress_bar( 100, 100, 50, $migrate_mode );
+			$ipp_helper->print_message( 'Database schema push completed in ' . ( time() - $start ) . ' seconds' );
 			return true;
 		}
 
@@ -359,7 +360,8 @@ if ( ! function_exists( 'instawp_iterative_push_db' ) ) {
 
 		// Files pushing is completed
 		iwp_send_progress( 0, 100, [ 'push-db-finished' => true ] );
-
+		$ipp_helper->progress_bar( 100, 100, 50, $migrate_mode );
+		$ipp_helper->print_message( 'Database push completed in ' . ( time() - $start ) . ' seconds' );
 		// echo 'DB pushing completed';
 		// echo "Whole database is transferred successfully to the destination website. \n";
 		return true;

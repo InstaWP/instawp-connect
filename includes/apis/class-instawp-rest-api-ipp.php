@@ -11,15 +11,7 @@
 defined( 'ABSPATH' ) || die;
 
 class InstaWP_Rest_Api_IPP extends InstaWP_Rest_Api {
-
-	/**
-	 * File checksum name
-	 */
-	private $file_checksum_name = 'iwp_ipp_file_checksums_repo';
-	/**
-	 * Database checksum name
-	 */
-	private $db_meta_name = 'iwp_ipp_db_meta_repo';
+	
 	/**
 	 * @var Helper
 	 */
@@ -169,9 +161,18 @@ class InstaWP_Rest_Api_IPP extends InstaWP_Rest_Api {
 	 * @return WP_REST_Response
 	 */
 	public function get_db_schema( WP_REST_Request $request ) {
+		// Get db schema
+		$db_schema = $this->helper->get_db_schema();
+		// Merge db schema
+		$db_meta = get_option( $this->helper->vars['db_meta_repo'], array() );
+		$db_meta = empty( $db_meta ) ? array() : $db_meta;
+		$db_meta = array_merge( $db_meta, $db_schema );
+		// Update db meta
+		update_option( $this->helper->vars['db_meta_repo'], $db_meta );
+		// Send response
 		return $this->send_response( array(
 			'success' => true,
-			'data'    => $this->helper->get_db_schema()
+			'data'    => $db_schema
 		) );
 	}
 
@@ -218,7 +219,7 @@ class InstaWP_Rest_Api_IPP extends InstaWP_Rest_Api {
 					'message' => __( 'Table name is required', 'instawp-connect' )
 				) );
 			}
-			$db_meta = get_option( $this->db_meta_name, array() );
+			$db_meta = get_option( $this->helper->vars['db_meta_repo'], array() );
 			$table = sanitize_key( $table );
 
 			if ( ! empty( $db_meta['tables'] ) && ! in_array( $table, $db_meta['tables'] ) ) {
@@ -270,7 +271,7 @@ class InstaWP_Rest_Api_IPP extends InstaWP_Rest_Api {
 				'message' => sprintf( __( 'PHP version must be %s, but it is %s', 'instawp-connect' ), $settings['php_version'], PHP_VERSION )
 			) );
 		}
-		update_option( $this->db_meta_name . '_pull_settings', $settings );
+		update_option( $this->helper->vars['db_meta_repo'] . '_pull_settings', $settings );
 	
 		return $this->send_response( array(
 			'success' => true,

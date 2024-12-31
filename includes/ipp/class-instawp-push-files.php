@@ -14,6 +14,7 @@ if ( ! function_exists( 'instawp_iterative_push_files' ) ) {
 	function instawp_iterative_push_files( $settings ) {
 
 		global $tracking_db, $migrate_key, $migrate_id, $migrate_mode, $bearer_token, $target_url;
+		$start = time();
 		$max_zip_size =  1024 * 1024;
 		$max_retry = 5;
 		$retry_wait = 5;//in seconds
@@ -52,7 +53,7 @@ if ( ! function_exists( 'instawp_iterative_push_files' ) ) {
 		}
 
 		// Delete files
-		if ( ! empty( $mig_settings['file_actions']['to_delete'] ) ) {	
+		if ( ! empty( $mig_settings['file_actions']['to_delete'] ) || ! empty( $mig_settings['file_actions']['to_delete_folders'] ) ) {
 			curl_setopt( $curl_session, CURLOPT_USERAGENT, 'InstaWP Migration Service - Push delete Files' );
 			curl_setopt( $curl_session, CURLOPT_REFERER, $source_domain );
 			curl_setopt( $curl_session, CURLOPT_RETURNTRANSFER, true );
@@ -64,7 +65,8 @@ if ( ! function_exists( 'instawp_iterative_push_files' ) ) {
 			} );
 			curl_setopt( $curl_session, CURLOPT_POSTFIELDS, $ipp_helper->get_iterative_push_curl_params(
 				array(
-					'delete_files' => $mig_settings['file_actions']['to_delete']
+					'delete_files' => empty( $mig_settings['file_actions']['to_delete'] ) ? array() : $mig_settings['file_actions']['to_delete'],
+					'delete_folders' => empty( $mig_settings['file_actions']['to_delete_folders'] ) ? array() : $mig_settings['file_actions']['to_delete_folders'],
 				)
 			) );
 			curl_setopt( $curl_session, CURLOPT_COOKIE, "instawp_skip_splash=true" );
@@ -84,7 +86,7 @@ if ( ! function_exists( 'instawp_iterative_push_files' ) ) {
 		}
 
 		if ( empty( $mig_settings['file_actions']['to_send'] ) ) {	
-			$ipp_helper->print_message( 'Files push completed.' );
+			$ipp_helper->print_message( 'File push completed in ' . ( time() - $start ) . ' seconds' );
 			return false;
 		}
 
@@ -145,7 +147,7 @@ if ( ! function_exists( 'instawp_iterative_push_files' ) ) {
 						$currentIndex += $batchSize;
 
 						// Add progress logging for each file category
-						$ipp_helper->print_message( "Processing $file_category entries: " . round(($endIndex / $file_category_count) * 100) . "%\n" );
+						//$ipp_helper->print_message( "Processing $file_category entries: " . round(($endIndex / $file_category_count) * 100) . "%\n" );
 					}
 					
 					// Log completion of file category
@@ -201,11 +203,7 @@ if ( ! function_exists( 'instawp_iterative_push_files' ) ) {
 		$status_codes    = [];
 
 		iwp_send_progress( 0, 0, [ 'push-files-in-progress' => true ] );
-
-		// Log message
-		if ( ! empty( $headers['x-iwp-message'] ) ) {
-			echo "Message: " . $headers['x-iwp-message'] . "\n";
-		}
+		$ipp_helper->progress_bar( 0, $totalFiles, 50, $migrate_mode );
 
 		if ( $has_zip_archive || $has_phar_data ) {
 			$unsentFiles = [];
@@ -343,7 +341,7 @@ if ( ! function_exists( 'instawp_iterative_push_files' ) ) {
 
 				if ( time() - $progress_sent_at > 5 ) {
 					iwp_send_progress( $progressPer );
-					echo date( "H:i:s" ) . ": Progress: $progressPer%\n";
+					$ipp_helper->progress_bar( $sentFilesCount, $totalFiles, 50, $migrate_mode );
 					$progress_sent_at = time();
 				}
 
@@ -419,7 +417,7 @@ if ( ! function_exists( 'instawp_iterative_push_files' ) ) {
 
 				if ( time() - $progress_sent_at > 5 ) {
 					iwp_send_progress( $progressPer );
-					echo date( "H:i:s" ) . ": Progress: $progressPer%\n";
+					$ipp_helper->progress_bar( $sentFilesCount, $totalFiles, 50, $migrate_mode );
 					$progress_sent_at = time();
 				}
 
@@ -440,8 +438,8 @@ if ( ! function_exists( 'instawp_iterative_push_files' ) ) {
 
 		// Files pushing is completed
 		iwp_send_progress( 100, 0, [ 'push-files-finished' => true ] );
-
-		$ipp_helper->print_message( 'Files push completed.' );
+		$ipp_helper->progress_bar( $totalFiles, $totalFiles, 50, $migrate_mode );
+		$ipp_helper->print_message( 'File push completed in ' . ( time() - $start ) . ' seconds' );
 		return true;
 	}
 }

@@ -5,7 +5,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2024-12-30 14:12+0000\n"
+"POT-Creation-Date: 2024-12-31 12:50+0000\n"
 "X-Poedit-Basepath: ..\n"
 "X-Poedit-KeywordsList: __;_e;_ex:1,2c;_n:1,2;_n_noop:1,2;_nx:1,2,4c;_nx_noop:1,2,3c;_x:1,2c;esc_attr__;esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c\n"
 "X-Poedit-SearchPath-0: .\n"
@@ -41,39 +41,39 @@ msgstr ""
 msgid "(no title)"
 msgstr ""
 
-#: includes/apis/class-instawp-rest-api-ipp.php:129
+#: includes/apis/class-instawp-rest-api-ipp.php:121
 msgid "Site is not connected."
 msgstr ""
 
-#: includes/apis/class-instawp-rest-api-ipp.php:146
+#: includes/apis/class-instawp-rest-api-ipp.php:138
 msgid "PHP version is required"
 msgstr ""
 
-#: includes/apis/class-instawp-rest-api-ipp.php:154, includes/apis/class-instawp-rest-api-ipp.php:270
+#: includes/apis/class-instawp-rest-api-ipp.php:146, includes/apis/class-instawp-rest-api-ipp.php:271
 msgid "PHP version must be %s, but it is %s"
 msgstr ""
 
-#: includes/apis/class-instawp-rest-api-ipp.php:160
+#: includes/apis/class-instawp-rest-api-ipp.php:152
 msgid "System is ready"
 msgstr ""
 
-#: includes/apis/class-instawp-rest-api-ipp.php:190
+#: includes/apis/class-instawp-rest-api-ipp.php:191
 msgid "Missing or invalid settings argument."
 msgstr ""
 
-#: includes/apis/class-instawp-rest-api-ipp.php:218
+#: includes/apis/class-instawp-rest-api-ipp.php:219
 msgid "Table name is required"
 msgstr ""
 
-#: includes/apis/class-instawp-rest-api-ipp.php:228
+#: includes/apis/class-instawp-rest-api-ipp.php:229
 msgid "Table not found"
 msgstr ""
 
-#: includes/apis/class-instawp-rest-api-ipp.php:264
+#: includes/apis/class-instawp-rest-api-ipp.php:265
 msgid "Settings are required"
 msgstr ""
 
-#: includes/apis/class-instawp-rest-api-ipp.php:277
+#: includes/apis/class-instawp-rest-api-ipp.php:278
 msgid "Settings saved successfully."
 msgstr ""
 
@@ -837,79 +837,83 @@ msgstr ""
 msgid "Plan activated successfully"
 msgstr ""
 
-#: includes/ipp/class-instawp-ipp-cli.php:78
+#: includes/ipp/class-instawp-ipp-cli.php:83
 msgid "Missing API key."
 msgstr ""
 
-#: includes/ipp/class-instawp-ipp-cli.php:83
+#: includes/ipp/class-instawp-ipp-cli.php:88
 msgid "Missing Connect ID."
 msgstr ""
 
-#: includes/ipp/class-instawp-ipp-cli.php:93
+#: includes/ipp/class-instawp-ipp-cli.php:98
 msgid "Staging site not found."
 msgstr ""
 
-#: includes/ipp/class-instawp-ipp-cli.php:100
+#: includes/ipp/class-instawp-ipp-cli.php:105
 msgid "Connected Site:"
 msgstr ""
 
-#: includes/ipp/class-instawp-ipp-cli.php:265
+#: includes/ipp/class-instawp-ipp-cli.php:270
 msgid "Failed to generate migrate settings."
 msgstr ""
 
-#: includes/ipp/class-instawp-ipp-cli.php:270
+#: includes/ipp/class-instawp-ipp-cli.php:275
 msgid "Failed to create tracking database."
 msgstr ""
 
-#: includes/ipp/class-instawp-ipp-cli.php:397
+#: includes/ipp/class-instawp-ipp-cli.php:418
 msgid "Checksums not found."
 msgstr ""
 
-#: includes/ipp/class-instawp-ipp-cli.php:392
-msgid "Files Changed:"
+#: includes/ipp/class-instawp-ipp-cli.php:412
+msgid "Files Added:"
 msgstr ""
 
-#: includes/ipp/class-instawp-ipp-cli.php:393
+#: includes/ipp/class-instawp-ipp-cli.php:413
+msgid "Files Updated:"
+msgstr ""
+
+#: includes/ipp/class-instawp-ipp-cli.php:414
 msgid "Files Deleted:"
 msgstr ""
 
-#: includes/ipp/class-instawp-ipp-cli.php:431
+#: includes/ipp/class-instawp-ipp-cli.php:452
 msgid "No tables found."
 msgstr ""
 
-#: includes/ipp/class-instawp-ipp-cli.php:473, includes/ipp/class-instawp-ipp-cli.php:542, includes/ipp/class-instawp-ipp-cli.php:549, includes/ipp/class-instawp-ipp-cli.php:564
+#: includes/ipp/class-instawp-ipp-cli.php:494, includes/ipp/class-instawp-ipp-cli.php:568, includes/ipp/class-instawp-ipp-cli.php:575, includes/ipp/class-instawp-ipp-cli.php:590
 msgid "Table: "
 msgstr ""
 
-#: includes/ipp/class-instawp-ipp-cli.php:473
+#: includes/ipp/class-instawp-ipp-cli.php:494
 msgid " No data found."
 msgstr ""
 
-#: includes/ipp/class-instawp-ipp-cli.php:531
+#: includes/ipp/class-instawp-ipp-cli.php:552
 msgid "Table mismatch: "
 msgstr ""
 
-#: includes/ipp/class-instawp-ipp-cli.php:542
+#: includes/ipp/class-instawp-ipp-cli.php:568
 msgid " is empty."
 msgstr ""
 
-#: includes/ipp/class-instawp-ipp-cli.php:549
+#: includes/ipp/class-instawp-ipp-cli.php:575
 msgid " no changes found since last sync."
 msgstr ""
 
-#: includes/ipp/class-instawp-ipp-cli.php:564
+#: includes/ipp/class-instawp-ipp-cli.php:590
 msgid " has no primary key."
 msgstr ""
 
-#: includes/ipp/class-instawp-ipp-cli.php:697
+#: includes/ipp/class-instawp-ipp-cli.php:723
 msgid "Checksum key mismatch: "
 msgstr ""
 
-#: includes/ipp/class-instawp-ipp-cli.php:975
+#: includes/ipp/class-instawp-ipp-cli.php:1014
 msgid "API call failed: "
 msgstr ""
 
-#: includes/ipp/class-instawp-ipp-cli.php:982
+#: includes/ipp/class-instawp-ipp-cli.php:1021
 msgid "Invalid response format."
 msgstr ""
 

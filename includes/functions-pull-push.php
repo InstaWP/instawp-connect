@@ -672,24 +672,52 @@ if ( ! function_exists( 'iwp_sanitize_key' ) ) {
 	}
 }
 
+
+
 if ( ! function_exists( 'iwp_ipp_delete_files' ) ) {
 	/**
 	 * Delete files.
 	 * Only files that are in wp content folder will be deleted.
 	 */
-	function iwp_ipp_delete_files( $root_dir_path, $files ) {
+	function iwp_ipp_delete_files( $root_dir_path, $files = array(), $delete_folders = array() ) {
 		$result    = array(
 			'status'   => true,
 			'messages' => array(),
 		); 
-		foreach ( $files as $file ) {
-			if ( ! empty( $file['relative_path'] ) && 0 === strpos( $file['relative_path'], 'wp-content' ) && false === strpos( $file['relative_path'], '/iwp-' ) && false === strpos( $file['relative_path'], '/instawp' ) ) {
-				$file_path =$root_dir_path . DIRECTORY_SEPARATOR . $file['relative_path'];
-				if ( file_exists( $file_path ) && is_file( $file_path ) && ! unlink( $file_path ) ) {
-					$result['status'] = false;
-					$result['messages'][] = 'Failed to delete file: ' . $file_path;
+		try {
+			
+			// Delete files
+			if ( ! empty( $files ) && is_array( $files ) ) {
+				foreach ( $files as $file ) {
+					if ( ! empty( $file['relative_path'] ) && 0 === strpos( $file['relative_path'], 'wp-content' ) && false === strpos( $file['relative_path'], '/iwp-' ) && false === strpos( $file['relative_path'], '/instawp' ) ) {
+						// file path
+						$file_path =$root_dir_path . DIRECTORY_SEPARATOR . $file['relative_path'];
+						// delete file
+						if ( file_exists( $file_path ) && is_file( $file_path ) && ! unlink( $file_path ) ) {
+							$result['status'] = false;
+							$result['messages'][] = 'Failed to delete file: ' . $file_path;
+						}
+					}
 				}
 			}
+
+			// Delete empty folders
+			if ( ! empty( $delete_folders ) && is_array( $delete_folders ) ) {
+				foreach ( $delete_folders as $folder ) {
+					if ( ! empty( $folder['relative_path'] ) && 0 === strpos( $folder['relative_path'], 'wp-content' ) && false === strpos( $folder['relative_path'], '/iwp-' ) && false === strpos( $folder['relative_path'], '/instawp' ) ) {
+						// folder path
+						$folder_path = $root_dir_path . DIRECTORY_SEPARATOR . $folder['relative_path'];
+						// delete empty folder
+						if ( file_exists( $folder_path ) && is_dir( $folder_path ) && empty( array_diff( scandir( $folder_path ), ['.', '..'] ) ) && ! rmdir( $folder_path ) ) {
+							$result['status'] = false;
+							$result['messages'][] = 'Failed to delete empty folder: ' . $folder_path;
+						}
+					}
+				}
+			}
+		} catch ( Exception $e ) {
+			$result['status'] = false;
+			$result['messages'][] = "Failed to delete files or folders: " . $e->getMessage();
 		}
 
 		return $result;

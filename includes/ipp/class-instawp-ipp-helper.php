@@ -183,14 +183,19 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 		 * @param int $total The total number of items to be processed.
 		 * @param int $width Optional. The width of the progress bar in characters. Default is 50.
 		 */
-		public function progress_bar($done, $total, $width = 50) {
+		public function progress_bar($done, $total, $width = 50, $migrate_mode = '') {
 			if ( ! $this->is_cli ) {
+				// Not a CLI environment
 				return;
 			}
 			// Calculate the progress
 			$progress = ($done / $total);
 			$barWidth = floor($progress * $width);
 			$percent = floor($progress * 100);
+
+			if ( in_array( $migrate_mode, array( 'push', 'pull' ) ) ) {
+				echo date( "H:i:s" ) . ": Progress: $percent%\n";
+			}
 		
 			$bar = str_repeat('-', $barWidth);
 			$spaces = str_repeat(' ', $width - $barWidth);
@@ -403,18 +408,20 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 				if ( empty( $filepath ) ) {
 					continue;
 				}
+
+				// Calculate relative path from WordPress root
+				$relative_path = str_replace( 
+					$abspath, 
+					'', 
+					$filepath
+				);
+				if ( $relative_path[0] === '.' ) {
+					continue;
+				}
+				$relative_path_hash = md5( $relative_path ); // File path hash
 				
 				if ( $file->isFile() && $this->is_valid_file( $filepath ) ) {
-					// Calculate relative path from WordPress root
-					$relative_path = str_replace( 
-						$abspath, 
-						'', 
-						$filepath
-					);
-					if ( $relative_path[0] === '.' ) {
-						continue;
-					}
-					$relative_path_hash = md5( $relative_path ); // File path hash
+					
 					$filesize    = $file->getSize(); // file size
 					$filetime = $file->getMTime(); // file modified time
 					$is_save_checksums = $processed % $batch === 0;
@@ -471,6 +478,12 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 							break;
 						}
 					}
+				} else if ( file_exists( $filepath ) && is_dir( $filepath ) ) {
+					$checksums[ $relative_path_hash ] = array(
+						'is_dir' => true,
+						'relative_path_hash' => $relative_path_hash,
+						'relative_path' => $relative_path,
+					);
 				}
 			}
 

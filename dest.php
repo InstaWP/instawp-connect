@@ -66,8 +66,13 @@ if ( ! isset( $api_signature ) || ! isset( $_SERVER['HTTP_X_IWP_API_SIGNATURE'] 
 	die();
 }
 
-if ( ! empty( $_POST['delete_files'] ) ) {
-	$delete_files_response = iwp_ipp_delete_files( $root_dir_path, $_POST['delete_files'] );
+if ( ! empty( $_POST['delete_files'] ) || ! empty( $_POST['delete_folders'] ) ) {
+	$delete_files_response = iwp_ipp_delete_files( 
+		$root_dir_path, 
+		empty( $_POST['delete_files'] ) ? array() : $_POST['delete_files'], 
+		empty( $_POST['delete_folders'] ) ? array() : $_POST['delete_folders']
+	);
+	header( 'x-iwp-status: '. $delete_files_response['status'] );
 	header( 'x-iwp-message: Deleted files: ' . json_encode( $delete_files_response ) );
 	die();
 }
