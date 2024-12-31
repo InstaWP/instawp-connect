@@ -12,13 +12,17 @@ wp_enqueue_script( 'updates' );
 global $staging_sites, $instawp_settings;
 
 // Add this code to check for plugin updates
-//$current          = get_site_transient( 'update_plugins' );
-//$plugin_file      = plugin_basename( INSTAWP_PLUGIN_FILE );
-$update_available = false;
+$current             = get_site_transient( 'update_plugins' );
+$plugin_file         = plugin_basename( INSTAWP_PLUGIN_FILE );
+$update_available    = false;
+$curr_version_number = "";
+$new_version_number  = "";
 
-//if ( isset( $current->response[ $plugin_file ] ) ) {
-//	$update_available = true;
-//}
+if ( isset( $current->response[ $plugin_file ] ) ) {
+	$curr_version_number = INSTAWP_PLUGIN_VERSION;
+	$new_version_number  = isset( $current->response[ $plugin_file ]->new_version ) ? $current->response[ $plugin_file ]->new_version : '';
+	$update_available    = true;
+}
 
 if ( ! empty( $_GET['debug'] ) && current_user_can( 'manage_options' ) ) {
 	$file_path = INSTAWP_PLUGIN_DIR . '/migrate/templates/debug/' . sanitize_text_field( wp_unslash( $_GET['debug'] ) ) . '.php';
@@ -51,9 +55,9 @@ if ( ! instawp()->is_connected ) {
 
 	<?php if ( $update_available ) : ?>
         <div class="pb-4 flex items-center justify-center">
-            <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 text-left w-full" role="alert">
+            <div class="bg-yellow-50 border-l-4 border-yellow-500 text-yellow-700 p-4 text-left w-full" role="alert">
                 <div class="flex justify-between items-center">
-                    <span><?php printf( wp_kses_post( __( 'A new version of InstaWP Connect is available. You might experience failures in our services.', 'instawp-connect' ) ) ); ?></span>
+                    <span><?php printf( wp_kses_post( __( 'A new version of InstaWP Connect (%s) is available. You are using an older version (%s), it is recommended to update.', 'instawp-connect' ) ), $new_version_number, INSTAWP_PLUGIN_VERSION ); ?></span>
                     <span><?php printf( wp_kses_post( __( '<a href="#" class="px-4 py-2 text-xs font-medium text-center inline-flex items-center text-white bg-primary-700 rounded-3xl hover:bg-primary-800 hover:text-white ease-linear duration-300 instawp-update-plugin" data-plugin="%s">Update now</a>', 'instawp-connect' ) ), esc_attr( $plugin_file ) ); ?></span>
                 </div>
             </div>
