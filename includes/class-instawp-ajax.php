@@ -31,8 +31,6 @@ class InstaWP_Ajax {
 	public function update_plugin() {
 		check_ajax_referer( 'instawp-connect', 'security' );
 
-		wp_send_json_error( array( 'updated' => false ) );
-
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error( array( 'updated' => false, 'permission' => false ) );
 		}
@@ -46,10 +44,10 @@ class InstaWP_Ajax {
 		$response       = $plugin_updater->update();
 
 		if ( isset( $response[ INSTAWP_PLUGIN_FILE ] ) && isset( $response[ INSTAWP_PLUGIN_FILE ]['success'] ) && (bool) $response[ INSTAWP_PLUGIN_FILE ]['success'] === true ) {
-			wp_send_json_success( array( 'updated' => true ) );
+			wp_send_json_success( array( 'updated' => true, 'response' => $response ) );
 		}
 
-		wp_send_json_error( array( 'updated' => false ) );
+		wp_send_json_error( array( 'updated' => false, 'response' => $response ) );
 	}
 
 	public function process_ajax() {

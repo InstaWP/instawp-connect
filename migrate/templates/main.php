@@ -6,12 +6,8 @@
 use InstaWP\Connect\Helpers\Helper;
 use InstaWP\Connect\Helpers\Option;
 
-// Add WordPress update script
-wp_enqueue_script( 'updates' );
-
 global $staging_sites, $instawp_settings;
 
-// Add this code to check for plugin updates
 $current             = get_site_transient( 'update_plugins' );
 $plugin_file         = plugin_basename( INSTAWP_PLUGIN_FILE );
 $update_available    = false;
@@ -59,9 +55,9 @@ if ( ! instawp()->is_connected ) {
                 <div class="flex justify-between items-center transition-all duration-300">
                     <p class="max-w-[85%]">
                         <span class="inline-block"><?php printf( wp_kses_post( __( 'A new version of InstaWP Connect (%s) is available. You are using an older version (%s), it is recommended to update.', 'instawp-connect' ) ), $new_version_number, INSTAWP_PLUGIN_VERSION ); ?></span>
-                        <span class="instawp-update-notice hidden bg-red-700 text-gray-200 px-1.5 py-[2px] mt-2 rounded-sm transition-all duration-300"><?php esc_html_e('Could not update the plugin!', 'instawp-connect'); ?></span>
+                        <span class="instawp-update-notice hidden bg-red-700 text-gray-200 px-1.5 py-[2px] mt-2 rounded-sm transition-all duration-300"><?php esc_html_e( 'Could not update the plugin!', 'instawp-connect' ); ?></span>
                     </p>
-                    <?php printf( wp_kses_post( __( '<p class="cursor-pointer px-4 py-2 text-xs font-medium text-center inline-flex items-center text-white bg-primary-700 rounded-3xl hover:bg-primary-800 hover:text-white ease-linear duration-300 instawp-update-plugin" data-plugin="%s">Update Now</p>', 'instawp-connect' ) ), esc_attr( $plugin_file ) ); ?>
+					<?php printf( wp_kses_post( __( '<p class="cursor-pointer px-4 py-2 text-xs font-medium text-center inline-flex items-center text-white bg-primary-700 rounded-3xl hover:bg-primary-800 hover:text-white ease-linear duration-300 instawp-update-plugin" data-plugin="%s">Update Now</p>', 'instawp-connect' ) ), esc_attr( $plugin_file ) ); ?>
                 </div>
             </div>
         </div>
