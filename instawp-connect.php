@@ -19,7 +19,6 @@
 use InstaWP\Connect\Helpers\Curl;
 use InstaWP\Connect\Helpers\Helper;
 use InstaWP\Connect\Helpers\Option;
-use InstaWP\Connect\Helpers\Updater;
 
 // If this file is called directly, abort.
 if ( ! defined( 'WPINC' ) ) {
