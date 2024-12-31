@@ -1,6 +1,8 @@
 <?php
 
 // If uninstall not called from WordPress, then exit.
+use InstaWP\Connect\Helpers\Helper;
+
 if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 	exit;
 }
@@ -33,7 +35,7 @@ if ( ! empty( $connect_id ) && ! empty( $api_key ) ) {
 			'Authorization' => 'Bearer ' . $api_key,
 			'Accept'        => 'application/json',
 			'Content-Type'  => 'application/json',
-			'Referer'       => site_url(),
+			'Referer'       => Helper::wp_site_url(),
 		),
 		'timeout'         => 60,
 		'redirection'     => 10,

@@ -1,5 +1,7 @@
 <?php
 
+use InstaWP\Connect\Helpers\Helper;
+
 defined( 'ABSPATH' ) || exit;
 
 function instawp_connect_0_1_0_70_migration() {
@@ -8,7 +10,7 @@ function instawp_connect_0_1_0_70_migration() {
 		return;
 	}
 
-	$default_plan_id = INSTAWP_CONNECT_PLAN_ID;
+	$default_plan_id          = INSTAWP_CONNECT_PLAN_ID;
 	$default_plan_expire_days = INSTAWP_CONNECT_PLAN_EXPIRE_DAYS;
 
 	if ( defined( 'CONNECT_WHITELABEL' ) && CONNECT_WHITELABEL && defined( 'CONNECT_WHITELABEL_PLAN_DETAILS' ) && is_array( CONNECT_WHITELABEL_PLAN_DETAILS ) ) {
@@ -17,7 +19,7 @@ function instawp_connect_0_1_0_70_migration() {
 		} );
 
 		if ( ! empty( $default_plan ) ) {
-			$default_plan_id = $default_plan[0]['plan_id'];
+			$default_plan_id          = $default_plan[0]['plan_id'];
 			$default_plan_expire_days = $default_plan[0]['trial'];
 		}
 	}
@@ -36,7 +38,7 @@ function instawp_connect_0_1_0_70_migration() {
 				'Authorization' => 'Bearer ' . $api_key,
 				'Accept'        => 'application/json',
 				'Content-Type'  => 'application/json',
-				'Referer'       => site_url(),
+				'Referer'       => Helper::wp_site_url(),
 			),
 			'timeout'         => 60,
 			'redirection'     => 10,
@@ -65,4 +67,5 @@ function instawp_connect_0_1_0_70_migration() {
 		}
 	}
 }
+
 instawp_connect_0_1_0_70_migration();

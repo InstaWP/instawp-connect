@@ -1,5 +1,7 @@
 <?php
 
+use InstaWP\Connect\Helpers\Helper;
+
 defined( 'ABSPATH' ) || exit;
 
 function instawp_connect_0_1_0_65_migration() {
@@ -14,7 +16,7 @@ function instawp_connect_0_1_0_65_migration() {
 				'Authorization' => 'Bearer ' . $api_key,
 				'Accept'        => 'application/json',
 				'Content-Type'  => 'application/json',
-				'Referer'       => site_url(),
+				'Referer'       => Helper::wp_site_url(),
 			),
 			'timeout'         => 60,
 			'redirection'     => 10,
@@ -39,4 +41,5 @@ function instawp_connect_0_1_0_65_migration() {
 		}
 	}
 }
+
 instawp_connect_0_1_0_65_migration();

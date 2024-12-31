@@ -81,30 +81,30 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 
 		global $wpdb;
 
-		$params         = $request->get_params();
-		$connect_id     = ! empty( $params['connect_id'] ) ? intval( $params['connect_id'] ) : 0;
+		$params     = $request->get_params();
+		$connect_id = ! empty( $params['connect_id'] ) ? intval( $params['connect_id'] ) : 0;
 
-        if ( empty( $connect_id ) ) {
-            return $this->send_response( array(
-                'success' => false,
-                'message' => 'Connect ID is required.',
-            ) );
-        }
+		if ( empty( $connect_id ) ) {
+			return $this->send_response( array(
+				'success' => false,
+				'message' => 'Connect ID is required.',
+			) );
+		}
 
 		$num_page       = ! empty( $params['num_page'] ) ? intval( $params['num_page'] ) : 1;
 		$items_per_page = ! empty( $params['items_per_page'] ) ? intval( $params['items_per_page'] ) : 10;
 		$filter_status  = ! empty( $params['type'] ) ? $params['type'] : 'all';
 		$offset         = ( $num_page * $items_per_page ) - $items_per_page;
 
-        $staging_sites = instawp_get_connected_sites_list();
-        $connect_ids   = wp_list_pluck( $staging_sites, 'connect_id' );
+		$staging_sites = instawp_get_connected_sites_list();
+		$connect_ids   = wp_list_pluck( $staging_sites, 'connect_id' );
 
-        if ( ! in_array( $connect_id, $connect_ids ) ) {
-            return $this->send_response( array(
-                'success' => false,
-                'message' => 'There is no sites present with the provided Connect ID.',
-            ) );
-        }
+		if ( ! in_array( $connect_id, $connect_ids ) ) {
+			return $this->send_response( array(
+				'success' => false,
+				'message' => 'There is no sites present with the provided Connect ID.',
+			) );
+		}
 
 		$staging_site = instawp_get_site_detail_by_connect_id( $connect_id, 'data' );
 		$site_created = '1970-01-01 00:00:00';
@@ -183,12 +183,12 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 		$params     = $request->get_params();
 		$connect_id = ! empty( $params['connect_id'] ) ? intval( $params['connect_id'] ) : 0;
 
-        if ( empty( $connect_id ) ) {
-            return $this->send_response( array(
-                'success' => false,
-                'message' => 'Connect ID is required.',
-            ) );
-        }
+		if ( empty( $connect_id ) ) {
+			return $this->send_response( array(
+				'success' => false,
+				'message' => 'Connect ID is required.',
+			) );
+		}
 
 		$event_ids = isset( $params['event_ids'] ) ? (array) $params['event_ids'] : array();
 		$event_ids = array_map( 'intval', $event_ids );
@@ -202,14 +202,14 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 		}
 
 		$staging_sites = instawp_get_connected_sites_list();
-        $connect_ids   = wp_list_pluck( $staging_sites, 'connect_id' );
+		$connect_ids   = wp_list_pluck( $staging_sites, 'connect_id' );
 
-        if ( ! in_array( $connect_id, $connect_ids ) ) {
-            return $this->send_response( array(
-                'success' => false,
-                'message' => 'There is no sites present with the provided Connect ID.',
-            ) );
-        }
+		if ( ! in_array( $connect_id, $connect_ids ) ) {
+			return $this->send_response( array(
+				'success' => false,
+				'message' => 'There is no sites present with the provided Connect ID.',
+			) );
+		}
 
 		$events = $this->sync->generate_pending_sync_events( $connect_id, $event_ids );
 
@@ -281,7 +281,7 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 			'upload_wp_user'    => $user_id,
 			'sync_message'      => $message,
 			'source_connect_id' => instawp()->connect_id,
-			'source_url'        => get_site_url(),
+			'source_url'        => Helper::wp_site_url(),
 		);
 
 		$response = $this->sync->sync_upload( $packed_data );
@@ -387,22 +387,22 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 		$params     = $request->get_params();
 		$connect_id = ! empty( $params['connect_id'] ) ? intval( $params['connect_id'] ) : 0;
 
-        if ( empty( $connect_id ) ) {
-            return $this->send_response( array(
-                'success' => false,
-                'message' => 'Connect ID is required.',
-            ) );
-        }
+		if ( empty( $connect_id ) ) {
+			return $this->send_response( array(
+				'success' => false,
+				'message' => 'Connect ID is required.',
+			) );
+		}
 
 		$staging_sites = instawp_get_connected_sites_list();
-        $connect_ids   = wp_list_pluck( $staging_sites, 'connect_id' );
+		$connect_ids   = wp_list_pluck( $staging_sites, 'connect_id' );
 
-        if ( ! in_array( $connect_id, $connect_ids ) ) {
-            return $this->send_response( array(
-                'success' => false,
-                'message' => 'There is no sites present with the provided Connect ID.',
-            ) );
-        }
+		if ( ! in_array( $connect_id, $connect_ids ) ) {
+			return $this->send_response( array(
+				'success' => false,
+				'message' => 'There is no sites present with the provided Connect ID.',
+			) );
+		}
 
 		$staging_site = instawp_get_site_detail_by_connect_id( $connect_id, 'data' );
 		$site_created = '1970-01-01 00:00:00';

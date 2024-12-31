@@ -59,7 +59,7 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 
 		global $wp_version;
 
-		$pre_check_response['source_domain']       = site_url();
+		$pre_check_response['source_domain']       = Helper::wp_site_url();
 		$pre_check_response['php_version']         = PHP_VERSION;
 		$pre_check_response['wp_version']          = $wp_version;
 		$pre_check_response['plugin_version']      = INSTAWP_PLUGIN_VERSION;
@@ -169,7 +169,7 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 		$plugin_slug        = INSTAWP_PLUGIN_SLUG . '/' . INSTAWP_PLUGIN_SLUG . '.php';
 		$response           = array(
 			'success'       => true,
-			'sso_login_url' => site_url(),
+			'sso_login_url' => Helper::wp_site_url(),
 		);
 		$migrate_group_uuid = $request->get_param( 'migrate_group_uuid' );
 		$migration_status   = $request->get_param( 'status' );
