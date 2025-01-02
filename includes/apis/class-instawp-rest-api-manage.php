@@ -555,7 +555,7 @@ class InstaWP_Rest_Api_Manage extends InstaWP_Rest_Api {
 
 		return $this->send_response( array(
 			'success' => true,
-			'count' => $users,
+			'count'   => $users,
 		) );
 	}
 
