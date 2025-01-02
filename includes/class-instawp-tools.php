@@ -254,13 +254,13 @@ include $file_path;';
 			'instawp_api_options' => maybe_serialize( Option::get_option( 'instawp_api_options' ) ),
 		), $migrate_settings );
 
-		$options_data_str = wp_json_encode( $data );
-		$passphrase       = openssl_digest( $migrate_key, 'SHA256', true );
-		$openssl_iv       = openssl_random_pseudo_bytes( 16 );
-		$data_encrypted   = openssl_encrypt( $options_data_str, 'AES-256-CBC', $passphrase, 0, $openssl_iv );
-
-		$root_dir      = iwp_get_root_dir();
-		$info_filename = 'migrate-push-db-' . substr( $migrate_key, 0, 5 ) . '.txt';
+		$options_data_str       = wp_json_encode( $data );
+		$passphrase             = openssl_digest( $migrate_key, 'SHA256', true );
+		$openssl_iv             = openssl_random_pseudo_bytes( 16 );
+		$options_data_encrypted = openssl_encrypt( $options_data_str, 'AES-256-CBC', $passphrase, 0, $openssl_iv );
+		$data_encrypted         = base64_encode( $openssl_iv . base64_decode( $options_data_encrypted ) );
+		$root_dir               = iwp_get_root_dir();
+		$info_filename          = 'migrate-push-db-' . substr( $migrate_key, 0, 5 ) . '.txt';
 
 		if ( isset( $root_dir['status'] ) && $root_dir['status'] === true ) {
 			$root_dir_path = isset( $root_dir['root_path'] ) ? $root_dir['root_path'] . DIRECTORY_SEPARATOR : ABSPATH;
