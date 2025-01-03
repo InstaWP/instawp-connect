@@ -5,7 +5,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2024-12-31 12:50+0000\n"
+"POT-Creation-Date: 2025-01-03 13:17+0000\n"
 "X-Poedit-Basepath: ..\n"
 "X-Poedit-KeywordsList: __;_e;_ex:1,2c;_n:1,2;_n_noop:1,2;_nx:1,2,4c;_nx_noop:1,2,3c;_x:1,2c;esc_attr__;esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c\n"
 "X-Poedit-SearchPath-0: .\n"
@@ -861,7 +861,7 @@ msgstr ""
 msgid "Failed to create tracking database."
 msgstr ""
 
-#: includes/ipp/class-instawp-ipp-cli.php:418
+#: includes/ipp/class-instawp-ipp-cli.php:419
 msgid "Checksums not found."
 msgstr ""
 
@@ -877,43 +877,47 @@ msgstr ""
 msgid "Files Deleted:"
 msgstr ""
 
-#: includes/ipp/class-instawp-ipp-cli.php:452
+#: includes/ipp/class-instawp-ipp-cli.php:415
+msgid "Directories Deleted:"
+msgstr ""
+
+#: includes/ipp/class-instawp-ipp-cli.php:453
 msgid "No tables found."
 msgstr ""
 
-#: includes/ipp/class-instawp-ipp-cli.php:494, includes/ipp/class-instawp-ipp-cli.php:568, includes/ipp/class-instawp-ipp-cli.php:575, includes/ipp/class-instawp-ipp-cli.php:590
+#: includes/ipp/class-instawp-ipp-cli.php:495, includes/ipp/class-instawp-ipp-cli.php:569, includes/ipp/class-instawp-ipp-cli.php:576, includes/ipp/class-instawp-ipp-cli.php:591
 msgid "Table: "
 msgstr ""
 
-#: includes/ipp/class-instawp-ipp-cli.php:494
+#: includes/ipp/class-instawp-ipp-cli.php:495
 msgid " No data found."
 msgstr ""
 
-#: includes/ipp/class-instawp-ipp-cli.php:552
+#: includes/ipp/class-instawp-ipp-cli.php:553
 msgid "Table mismatch: "
 msgstr ""
 
-#: includes/ipp/class-instawp-ipp-cli.php:568
+#: includes/ipp/class-instawp-ipp-cli.php:569
 msgid " is empty."
 msgstr ""
 
-#: includes/ipp/class-instawp-ipp-cli.php:575
+#: includes/ipp/class-instawp-ipp-cli.php:576
 msgid " no changes found since last sync."
 msgstr ""
 
-#: includes/ipp/class-instawp-ipp-cli.php:590
+#: includes/ipp/class-instawp-ipp-cli.php:591
 msgid " has no primary key."
 msgstr ""
 
-#: includes/ipp/class-instawp-ipp-cli.php:723
+#: includes/ipp/class-instawp-ipp-cli.php:724
 msgid "Checksum key mismatch: "
 msgstr ""
 
-#: includes/ipp/class-instawp-ipp-cli.php:1014
+#: includes/ipp/class-instawp-ipp-cli.php:1015
 msgid "API call failed: "
 msgstr ""
 
-#: includes/ipp/class-instawp-ipp-cli.php:1021
+#: includes/ipp/class-instawp-ipp-cli.php:1022
 msgid "Invalid response format."
 msgstr ""
 

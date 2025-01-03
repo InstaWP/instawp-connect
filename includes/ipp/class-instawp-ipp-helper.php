@@ -250,6 +250,56 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 		}
 
 		/**
+		 * Get directories only from a given root path.
+		 *
+		 * @param string $root           The root directory path.
+		 * @param array  $exclude_paths  Paths to exclude (relative to root).
+		 * @param array  $skip_subfolders Subfolders to skip if found in the path.
+		 *
+		 * @return RecursiveIteratorIterator Iterator for directories only.
+		 */
+		public function get_directories_only( $root, $exclude_paths = array(), $skip_subfolders = array() ) {
+			$is_subfolder_check = count( $skip_subfolders ) > 0;
+
+			$filter_directories = function ( SplFileInfo $file, $key, RecursiveDirectoryIterator $iterator ) use ( $exclude_paths, $is_subfolder_check, $skip_subfolders ) {
+				// Get the relative path of the current file/directory
+				$relative_path = ! empty( $iterator->getSubPath() )
+					? $iterator->getSubPath() . '/' . $file->getBasename()
+					: $file->getBasename();
+
+				$relative_path = trim( $relative_path, '/' );
+				$relative_path = trim( $relative_path, '/\\' );
+
+				// Skip excluded paths
+				if ( in_array( $relative_path, $exclude_paths, true ) ) {
+					return false;
+				}
+
+				// Skip subfolders if specified
+				if ( $is_subfolder_check ) {
+					foreach ( $skip_subfolders as $subfolder ) {
+						if ( false !== strpos( wp_normalize_path( $relative_path ), '/' . $subfolder . '/' ) ) {
+							return false;
+						}
+					}
+				}
+
+				// Include only directories
+				return $file->isDir();
+			};
+
+			// Directory iterator
+			$directory = new RecursiveDirectoryIterator( $root, RecursiveDirectoryIterator::SKIP_DOTS | RecursiveDirectoryIterator::FOLLOW_SYMLINKS );
+
+			// Return an iterator for directories only
+			return new RecursiveIteratorIterator(
+				new RecursiveCallbackFilterIterator( $directory, $filter_directories ),
+				RecursiveIteratorIterator::SELF_FIRST, // Include directories in the result
+				RecursiveIteratorIterator::CATCH_GET_CHILD
+			);
+		}
+
+		/**
 		 * Generate checksum for a single file using multiple factors
 		 *
 		 * @param string $filepath Path to the file
@@ -353,10 +403,11 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 		 * Get checksums for all files in a directory
 		 *
 		 * @param array $settings
+		 * @param bool $include_dir_checksums
 		 * 
 		 * @return array|false Array of filepath => checksum pairs or false on failure
 		 */
-		public function get_files_checksum( $settings = array() ) {
+		public function get_files_checksum( $settings = array(), $include_dir_checksums = true ) {
 			if ( ! defined( 'ABSPATH' ) || ! is_dir( ABSPATH ) ) {
 				$this->print_message( 'ABSPATH not defined or invalid directory' );
 				return false;
@@ -367,20 +418,20 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 			$checksum_repo =  get_option( $this->vars['file_checksum_repo'], array() );
 			
 			$abspath = wp_normalize_path( ABSPATH );
-			
+			$excluded_subpaths = array(
+				'node_modules',
+				'.github',
+				'.git',
+				'.gitignore',
+				'.gitattributes',
+				'.distignore',
+				'.vscode',
+				'.wordpress-org',
+			);
 			$files = $this->get_iterator_items( 
 				$abspath,
 				$settings['excluded_paths'],
-				array(
-					'node_modules',
-					'.github',
-					'.git',
-					'.gitignore',
-					'.gitattributes',
-					'.distignore',
-					'.vscode',
-					'.wordpress-org',
-				)
+				$excluded_subpaths
 			);
 
 			$total = iterator_count( $files );
@@ -408,20 +459,20 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 				if ( empty( $filepath ) ) {
 					continue;
 				}
-
-				// Calculate relative path from WordPress root
-				$relative_path = str_replace( 
-					$abspath, 
-					'', 
-					$filepath
-				);
-				if ( $relative_path[0] === '.' ) {
-					continue;
-				}
-				$relative_path_hash = md5( $relative_path ); // File path hash
 				
 				if ( $file->isFile() && $this->is_valid_file( $filepath ) ) {
 					
+					// Calculate relative path from WordPress root
+					$relative_path = str_replace( 
+						$abspath, 
+						'', 
+						$filepath
+					);
+					if ( $relative_path[0] === '.' ) {
+						continue;
+					}
+					$relative_path_hash = md5( $relative_path ); // File path hash
+
 					$filesize    = $file->getSize(); // file size
 					$filetime = $file->getMTime(); // file modified time
 					$is_save_checksums = $processed % $batch === 0;
@@ -469,7 +520,6 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 					$checksums[ $relative_path_hash ] = $checksum_repo[ $relative_path_hash ];
 
 					$processed_files++;
-
 					if ( $is_save_checksums ) {
 						// Update checksum repo
 						update_option( $this->vars['file_checksum_repo'], $checksum_repo );
@@ -478,12 +528,6 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 							break;
 						}
 					}
-				} else if ( file_exists( $filepath ) && is_dir( $filepath ) ) {
-					$checksums[ $relative_path_hash ] = array(
-						'is_dir' => true,
-						'relative_path_hash' => $relative_path_hash,
-						'relative_path' => $relative_path,
-					);
 				}
 			}
 
@@ -505,8 +549,62 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 			if ( $total_missed > 0 ) {
 				$this->print_message( 'Missed files: ' . json_encode( $missed ) );
 			}
-
+			// Get directory checksum
+			if ( $include_dir_checksums ) {
+				$this->get_directory_checksum( 
+					$checksums, 
+					$abspath,
+					$settings['excluded_paths'],
+					$excluded_subpaths 
+				);
+			}
+			
 			return $checksums;
+		}
+
+		/**
+		 * Get directory checksum
+		 * 
+		 * @param array $checksums
+		 * @param string $root_dir_path
+		 * @param array $excluded_paths
+		 * @param array $excluded_subpaths
+		 * 
+		 * @return void
+		 */
+		public function get_directory_checksum( &$checksums, $root_dir_path, $excluded_paths = array(), $excluded_subpaths = array() ) {
+			try{
+				// Folder iterator
+				$directory_iterator = $this->get_directories_only(
+					$root_dir_path,
+					$excluded_paths,
+					$excluded_subpaths
+				);
+
+				$root_dir_path = trailingslashit( $root_dir_path );
+		
+				foreach ( $directory_iterator as $directory ) {
+					// Get path
+					$directory_path  = $directory->getPathname();
+					// Skip if not a directory
+					if ( ! file_exists( $directory )  || ! is_dir( $directory_path ) ) {
+						continue;
+					}
+					$relative_path = str_replace( $root_dir_path, '', $directory_path );
+					// Skip if path contains dot
+					if ( false !== strpos( $relative_path, '.' ) ) {
+						continue;
+					}
+					$relative_path_hash = md5( $relative_path );
+					$checksums[ $relative_path_hash ] = array(
+						'is_dir' => true,
+						'relative_path_hash' => $relative_path_hash,
+						'relative_path' => $relative_path,
+					);
+				}
+			} catch ( Exception $e ) {
+				$this->print_message( 'Error: checking directories ' . $e->getMessage(), true );
+			}
 		}
 
 		/**
@@ -534,7 +632,7 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 			}
 
 			// Check for disallowed characters and file start with dot
-			if ( $filename === '.' || $filename === '..' || $filename[0] === '.' ) {
+			if ( $filename === '.' || $filename === '..' ) {
 				return false;
 			}
 
@@ -627,8 +725,8 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 					}
 					$key = array_search( $table, $tables );
 					$total_tables = count( $tables );
+					$exclude_tables = $this->exclude_tables();
 					if ( in_array( $table, $exclude_tables ) ) {
-						$exclude_tables = $this->get_excluded_tables();
 						while ( $key < $total_tables ) {
 							$key = $key + 1;
 							$table = $tables[ $key ];

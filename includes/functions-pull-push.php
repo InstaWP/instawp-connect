@@ -680,42 +680,70 @@ if ( ! function_exists( 'iwp_ipp_delete_files' ) ) {
 	 * Only files that are in wp content folder will be deleted.
 	 */
 	function iwp_ipp_delete_files( $root_dir_path, $files = array(), $delete_folders = array() ) {
+		if ( ! is_array( $files ) || ! is_array( $delete_folders ) ) {
+			return array(
+				'status' => false,
+				'messages' => array( 'files' => 'Files should be an array', 'folders' => 'Folders should be an array' ),
+				'to_delete' => array(
+					'files' => count( $files ),
+					'folders' => count( $delete_folders ),
+				),
+			);
+		}
 		$result    = array(
 			'status'   => true,
 			'messages' => array(),
+			'to_delete' => array(
+				'files' => count( $files ),
+				'folders' => count( $delete_folders ),
+			),
+			'deleted_files_count' => 0,
+			'deleted_folders_count' => 0,
 		); 
 		try {
 			
 			// Delete files
-			if ( ! empty( $files ) && is_array( $files ) ) {
+			if ( ! empty( $files ) ) {
 				foreach ( $files as $file ) {
 					if ( ! empty( $file['relative_path'] ) && 0 === strpos( $file['relative_path'], 'wp-content' ) && false === strpos( $file['relative_path'], '/iwp-' ) && false === strpos( $file['relative_path'], '/instawp' ) ) {
 						// file path
 						$file_path =$root_dir_path . DIRECTORY_SEPARATOR . $file['relative_path'];
 						// delete file
-						if ( file_exists( $file_path ) && is_file( $file_path ) && ! unlink( $file_path ) ) {
-							$result['status'] = false;
-							$result['messages'][] = 'Failed to delete file: ' . $file_path;
+						if ( file_exists( $file_path ) && is_file( $file_path ) ) {
+							if ( unlink( $file_path ) ) {
+								$result['deleted_files_count']++;
+							} else {
+								$result['status'] = false;
+								$result['messages'][] = 'Failed to delete file: ' . $file_path;
+							}
 						}
 					}
 				}
 			}
 
 			// Delete empty folders
-			if ( ! empty( $delete_folders ) && is_array( $delete_folders ) ) {
+			if ( ! empty( $delete_folders ) ) {
 				foreach ( $delete_folders as $folder ) {
-					if ( ! empty( $folder['relative_path'] ) && 0 === strpos( $folder['relative_path'], 'wp-content' ) && false === strpos( $folder['relative_path'], '/iwp-' ) && false === strpos( $folder['relative_path'], '/instawp' ) ) {
-						// folder path
-						$folder_path = $root_dir_path . DIRECTORY_SEPARATOR . $folder['relative_path'];
-						// delete empty folder
-						if ( file_exists( $folder_path ) && is_dir( $folder_path ) && empty( array_diff( scandir( $folder_path ), ['.', '..'] ) ) && ! rmdir( $folder_path ) ) {
-							$result['status'] = false;
-							$result['messages'][] = 'Failed to delete empty folder: ' . $folder_path;
-						}
+					if ( empty( $folder['relative_path'] ) || in_array( $folder['relative_path'], array( 'wp-content', 'wp-includes', 'wp-admin' ) ) || false !== strpos( $folder['relative_path'], '/iwp-' ) || false !== strpos( $folder['relative_path'], '/instawp' ) ) {
+						continue;
 					}
+					// folder path
+					$folder_path = $root_dir_path . DIRECTORY_SEPARATOR . $folder['relative_path'];
+					if ( ! file_exists( $folder_path ) || ! is_dir( $folder_path ) ) {
+						continue;
+					}
+					// delete folder
+					$res = iwp_delete_folder_recursively( $folder_path );
+					if ( false === $res['status'] ) {
+						$result['status'] = false;
+						$result['messages'] = array_merge( $result['messages'], $res['messages'] );
+					} else {
+						$result['deleted_folders_count']++;
+					}
+					
 				}
 			}
-		} catch ( Exception $e ) {
+		} catch ( Throwable $e ) {
 			$result['status'] = false;
 			$result['messages'][] = "Failed to delete files or folders: " . $e->getMessage();
 		}
@@ -823,32 +851,11 @@ if ( ! function_exists( 'iwp_backup_wp_core_folders' ) ) {
 						continue;
 					}
 
-					/**
-					 * Recursively remove all files and directories in the folder. Process deepest items first
-					 * UNIX_PATHS ensure proper handling of hidden files during directory deletion
-					 */
-					$remove_items = new RecursiveIteratorIterator(
-						new RecursiveDirectoryIterator(
-							$remove_path,
-							RecursiveDirectoryIterator::SKIP_DOTS | RecursiveDirectoryIterator::UNIX_PATHS
-						),
-						RecursiveIteratorIterator::CHILD_FIRST
-					);
+					$res = iwp_delete_folder_recursively( $remove_path );
 
-					foreach ( $remove_items as $remove_item ) {
-						if ( $remove_item->isDir() ) {
-							if ( ! rmdir( $remove_item->getPathname() ) ) {
-								$result['messages'][] = "Failed to remove directory: {$remove_item->getPathname()}";
-								continue 2;
-							}
-						} else if ( ! unlink( $remove_item->getPathname() ) ) {
-							$result['messages'][] = "Failed to remove file: {$remove_item->getPathname()}";
-							continue 2;
-						}
-					}
-
-					if ( ! rmdir( $remove_path ) ) {
-						$result['messages'][] = "Failed to remove parent directory: {$remove_path}";
+					if ( false === $res['status'] ) {
+						$result['messages'] = array_merge( $result['messages'], $res['messages'] );
+						continue 2;
 					}
 				}
 			} catch ( Exception $e ) {
@@ -858,6 +865,52 @@ if ( ! function_exists( 'iwp_backup_wp_core_folders' ) ) {
 		}
 
 		return $result;
+	}
+}
+
+if ( ! function_exists( 'iwp_delete_folder_recursively' ) ) {
+	function iwp_delete_folder_recursively( $remove_path ) {
+		$result = array(
+			'status'   => false,
+			'messages' => array(),
+		);
+		if ( ! file_exists( $remove_path ) || ! is_dir( $remove_path ) ) {
+			$result['messages'][] = "Failed to remove invalid directory: {$remove_path}";
+			return $result;
+		}
+		/**
+		 * Recursively remove all files and directories in the folder. Process deepest items first
+		 * UNIX_PATHS ensure proper handling of hidden files during directory deletion
+		 */
+		$remove_items = new RecursiveIteratorIterator(
+			new RecursiveDirectoryIterator(
+				$remove_path,
+				RecursiveDirectoryIterator::SKIP_DOTS | RecursiveDirectoryIterator::UNIX_PATHS
+			),
+			RecursiveIteratorIterator::CHILD_FIRST
+		);
+
+		foreach ( $remove_items as $remove_item ) {
+			if ( $remove_item->isDir() ) {
+				if ( ! rmdir( $remove_item->getPathname() ) ) {
+					$result['messages'][] = "Failed to remove directory: {$remove_item->getPathname()}";
+					return $result;
+				}
+			} else if ( ! unlink( $remove_item->getPathname() ) ) {
+				$result['messages'][] = "Failed to remove file: {$remove_item->getPathname()}";
+				return $result;
+			}
+		}
+
+		if ( ! rmdir( $remove_path ) ) {
+			$result['messages'][] = "Failed to remove parent directory: {$remove_path}";
+			return $result;
+		}
+		
+		return array(
+			'status'   => true,
+			'messages' => 'Success: ' . $remove_path . ' deleted',
+		);
 	}
 }
 

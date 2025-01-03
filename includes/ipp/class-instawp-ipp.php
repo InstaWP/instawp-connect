@@ -101,13 +101,13 @@ if ( ! class_exists( 'INSTAWP_IPP' ) ) {
 				return;
 			}
 			$this->helper->get_files_checksum( array( 
-				'exclude_paths' => array(),
+				'excluded_paths' => array(),
 				'include_paths' => array(),
 				'exclude_core' => false,
 				'exclude_uploads' => false,
 				'exclude_large_files' => false,
 				'files_limit' => 1000, 
-			) );
+			), false );
 		}
 		
 	}

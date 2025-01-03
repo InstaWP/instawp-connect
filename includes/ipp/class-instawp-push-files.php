@@ -65,8 +65,8 @@ if ( ! function_exists( 'instawp_iterative_push_files' ) ) {
 			} );
 			curl_setopt( $curl_session, CURLOPT_POSTFIELDS, $ipp_helper->get_iterative_push_curl_params(
 				array(
-					'delete_files' => empty( $mig_settings['file_actions']['to_delete'] ) ? array() : $mig_settings['file_actions']['to_delete'],
-					'delete_folders' => empty( $mig_settings['file_actions']['to_delete_folders'] ) ? array() : $mig_settings['file_actions']['to_delete_folders'],
+					'delete_files' => empty( $mig_settings['file_actions']['to_delete'] ) ? array() : json_encode( $mig_settings['file_actions']['to_delete'] ),
+					'delete_folders' => empty( $mig_settings['file_actions']['to_delete_folders'] ) ? array() : json_encode( $mig_settings['file_actions']['to_delete_folders'] ),
 				)
 			) );
 			curl_setopt( $curl_session, CURLOPT_COOKIE, "instawp_skip_splash=true" );
@@ -80,6 +80,7 @@ if ( ! function_exists( 'instawp_iterative_push_files' ) ) {
 			$processed_response         = iwp_process_curl_response( $response, $curl_session, $headers, $errors_counter, $slow_sleep, 'push-files-1' );
 			$processed_response_success = isset( $processed_response['success'] ) ? (bool) $processed_response['success'] : false;
 			$processed_response_message = isset( $processed_response['message'] ) ? $processed_response['message'] : '';
+			
 			if ( ! $processed_response_success ) {
 				$ipp_helper->print_message( $processed_response_message );	
 			}

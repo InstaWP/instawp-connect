@@ -349,12 +349,12 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 			$checksums = $this->helper->get_files_checksum(
 				$settings
 			);
-
+			
 			if ( ! empty( $checksums ) ) {
 				$target_checksums = $this->call_api( 'files-checksum', array(
 					'settings' => $settings
 				) );
-
+				
 				if (  ! empty( $target_checksums ) ) {
 					$excluded_paths = array_merge( 
 						$settings['excluded_paths'],  
@@ -372,7 +372,7 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 					);
 		
 					foreach ( $checksums as $path_hash => $file ) {
-						if ( in_array( $file['relative_path'], $excluded_paths ) || false !== strpos( $file['relative_path'], 'plugins/instawp-connect' ) || false !== strpos( $file['relative_path'], 'instawp-autologin' ) ) {
+						if ( ! empty( $file['is_dir'] ) || in_array( $file['relative_path'], $excluded_paths ) || false !== strpos( $file['relative_path'], 'plugins/instawp-connect' ) || false !== strpos( $file['relative_path'], 'instawp-autologin' ) ) {
 							continue;
 						}
 						if ( ! isset( $target_checksums[$path_hash] ) || ( $target_checksums[$path_hash]['relative_path'] === $file['relative_path'] && $target_checksums[$path_hash]['checksum'] !== $file['checksum'] ) ) {
@@ -412,6 +412,7 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 					WP_CLI::log( __( 'Files Added:', 'instawp-connect' ) . ' ' . $action['added_files_count'] );
 					WP_CLI::log( __( 'Files Updated:', 'instawp-connect' ) . ' ' . $action['updated_files_count'] );
 					WP_CLI::log( __( 'Files Deleted:', 'instawp-connect' ) . ' ' . $action['deleted_files_count'] );
+					WP_CLI::log( __( 'Directories Deleted:', 'instawp-connect' ) . ' ' . count( $action['to_delete_folders'] ) );
 				}
 				WP_CLI::success( "Detection of file changes completed in " . ( time() - $start ) . " seconds" );
 			} else {
