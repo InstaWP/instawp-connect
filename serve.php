@@ -89,80 +89,6 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 	$config_file_path         = WP_ROOT . '/wp-config.php';
 	$handle_config_separately = false;
 
-	if ( ! function_exists( 'send_plugin_theme_inventory' ) ) {
-
-		/**
-		 * Send plugin and theme inventory.
-		 *
-		 * @param array $migrate_settings Migration settings.
-		 */
-		function send_plugin_theme_inventory( $migrate_settings ) {
-			if ( empty( $migrate_settings['inventory_items'] ) ) {
-				$migrate_settings['inventory_items'] = array();
-			}
-
-			global $tracking_db;
-			// Check if the function has already been run
-			$has_run     = $tracking_db->get_option( 'instawp_inventory_sent', 0 );
-			$total_files = intval( $tracking_db->db_get_option( 'total_files', '0' ) );
-
-			if ( empty( $has_run ) && ( empty( $migrate_settings['inventory_items']['total_files'] ) || $total_files > intval( $migrate_settings['inventory_items']['total_files'] ) ) ) {
-				// Set the flag to indicate the function has run
-				$tracking_db->update_option( 'instawp_inventory_sent', 1 );
-				if ( ! empty( $migrate_settings['inventory_items']['with_checksum'] ) ) {
-					foreach ( $migrate_settings['inventory_items']['with_checksum'] as $inventory_key => $wp_item ) {
-						if ( ! empty( $wp_item['absolute_path'] ) ) {
-							$filepath      = $wp_item['absolute_path'];
-							$filepath_hash = hash( 'sha256', $filepath );
-
-							$row = $tracking_db->get_row( 'iwp_files_sent', array( 'filepath_hash' => $filepath_hash ) );
-							if ( ! $row ) {
-								try {
-									$slug     = $wp_item['slug'];
-									$checksum = $wp_item['checksum'];
-									$tracking_db->insert( 'iwp_files_sent', array(
-										'filepath'      => "'$filepath'",
-										'filepath_hash' => "'$filepath_hash'",
-										'sent'          => 0,
-										'size'          => $wp_item['size'],
-										'file_type'     => "'inventory'",
-										'sent_filename' => "'$slug'",
-										'file_count'    => $wp_item['file_count'],
-										'checksum'      => "'$checksum'",
-									) );
-
-									// Add only necesssary data to inventory items
-									$migrate_settings['inventory_items']['with_checksum'][ $inventory_key ] = array(
-										'slug'       => $wp_item['slug'],
-										'version'    => $wp_item['version'],
-										'type'       => $wp_item['type'],
-										'path'       => $wp_item['path'],
-										'file_count' => $wp_item['file_count'],
-										'checksum'   => $wp_item['checksum'],
-									);
-								} catch ( Exception $e ) {
-									header( 'x-iwp-status: false' );
-									header( 'x-iwp-message: Insert to tracking database (iwp_files_sent table) was failed. Actual error message is: ' . $e->getMessage() );
-									die();
-								}
-							}
-						}
-
-					}
-				}
-
-				$migrate_settings['inventory_items']['total_files_count'] = $total_files;
-
-				header( 'x-iwp-status: true' );
-				header( 'x-iwp-message: Inventory items sent' );
-				header( 'Content-Type: application/json' );
-				header( 'x-file-type: inventory' );
-				echo json_encode( $migrate_settings['inventory_items'] );
-				die();
-			}
-		}
-	}
-
 	if ( ! file_exists( $config_file_path ) ) {
 		$config_file_path = dirname( WP_ROOT ) . '/wp-config.php';
 
@@ -313,7 +239,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		) );
 
 		// Send plugin and theme inventory
-		send_plugin_theme_inventory( $migrate_settings );
+		iwp_send_plugin_theme_inventory( $migrate_settings );
 	}
 
 

@@ -326,7 +326,7 @@ class IWPDB {
 
 		$this->options_data[ $option_name ] = $value;
 
-		$options_data_str       = wp_json_encode( $this->options_data );
+		$options_data_str       = json_encode( $this->options_data );
 		$passphrase             = openssl_digest( $this->migrate_key, 'SHA256', true );
 		$openssl_iv             = openssl_random_pseudo_bytes( 16 );
 		$options_data_encrypted = openssl_encrypt( $options_data_str, 'AES-256-CBC', $passphrase, 0, $openssl_iv );
