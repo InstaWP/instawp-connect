@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.6
 Tested up to: 6.7
 Requires PHP: 7.0
-Stable tag: 0.1.0.73
+Stable tag: 0.1.0.74
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -97,6 +97,13 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 You can report security bugs through the Patchstack Vulnerability Disclosure Program. The Patchstack team helps validate, triage, and handle any security vulnerabilities. [Report a security vulnerability](https://patchstack.com/database/vdp/instawp-connect).
 
 == Changelog ==
+
+= 0.1.0.74 - 03 January 2025 =
+- NEW: Show warning message if the plugin is not on latest version.
+- FIX: Fixed file skip support on WP Cloud infrastructure.
+- FIX: Added support for getting site_url from database not from built-in function during the migration.
+- FIX: Fixed openssl_encrypt warning issue regarding IV.
+- FIX: Fixed IWPDB issue during pull migration file transfer.
 
 = 0.1.0.73 - 26 December 2024 =
 - FIX: Fixed file permission issue for the info file on push migration.
