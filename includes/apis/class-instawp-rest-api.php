@@ -222,7 +222,7 @@ class InstaWP_Rest_Api {
 			// Use constant if defined, otherwise validate allowed domains
 			$domain_to_set = defined( 'INSTAWP_API_DOMAIN' ) 
 				? INSTAWP_API_DOMAIN
-				: ( in_array( $api_domain, array( 'https://stage.instawp.io', 'https://app.instawp.io' ) ) ? $api_domain : '');
+				: ( in_array( $api_domain, array( 'https://stage.instawp.io', 'https://app.instawp.io' ) ) ? $api_domain : '' );
 				
 			if ( empty( $domain_to_set ) ) {
 				return $this->send_response( array(
