@@ -4,11 +4,11 @@ namespace InstaWP\Connect\Helpers;
 
 class Helper {
 
-	public static function instawp_generate_api_key( $api_key, $jwt = '' ) {
-		return self::generate_api_key( $api_key, $jwt );
+	public static function instawp_generate_api_key( $api_key, $jwt = '', $managed = true ) {
+		return self::generate_api_key( $api_key, $jwt, $managed );
 	}
 
-	public static function generate_api_key( $api_key, $jwt = '' ) {
+	public static function generate_api_key( $api_key, $jwt = '', $managed = true ) {
 		if ( empty( $api_key ) ) {
 			error_log( 'instawp_generate_api_key empty api_key parameter' );
 
@@ -42,6 +42,7 @@ class Helper {
 			'icon'           => get_site_icon_url(),
 			'username'       => base64_encode( self::get_admin_username() ),
 			'plan_id'        => self::get_connect_plan_id(),
+			'managed'        => $managed,
 		);
 		$connect_response = Curl::do_curl( 'connects', $connect_body, array(), 'POST', 'v1' );
 

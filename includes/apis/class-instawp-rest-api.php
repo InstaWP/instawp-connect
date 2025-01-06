@@ -137,6 +137,7 @@ class InstaWP_Rest_Api {
 		$jwt                  = isset( $parameters['token'] ) ? sanitize_text_field( $parameters['token'] ) : '';
 		$api_key              = isset( $parameters['api_key'] ) ? sanitize_text_field( $parameters['api_key'] ) : '';
 		$api_domain           = isset( $parameters['api_domain'] ) ? sanitize_text_field( $parameters['api_domain'] ) : '';
+		$plan_id              = isset( $parameters['advance_connect_plan_id'] ) ? intval( $parameters['advance_connect_plan_id'] ) : 0;
 		$api_domain           = rtrim( $api_domain, '/' );
 
 		if ( empty( $wp_username ) || empty( $application_password ) ) {
@@ -218,17 +219,23 @@ class InstaWP_Rest_Api {
 
 		// If api_domain is passed then, set it
 		if ( ! empty( $api_domain ) ) {
-			if ( defined( 'INSTAWP_API_DOMAIN' ) ) {
-				Helper::set_api_domain( INSTAWP_API_DOMAIN );
-			} elseif ( in_array( $api_domain, array( 'https://stage.instawp.io', 'https://app.instawp.io' ) ) ) {
-				$api_domain = rtrim( $api_domain, '/' );
-				Helper::set_api_domain( $api_domain );
-			} else {
+			// Use constant if defined, otherwise validate allowed domains
+			$domain_to_set = defined( 'INSTAWP_API_DOMAIN' ) 
+				? INSTAWP_API_DOMAIN
+				: ( in_array( $api_domain, array( 'https://stage.instawp.io', 'https://app.instawp.io' ) ) ? $api_domain : '' );
+				
+			if ( empty( $domain_to_set ) ) {
 				return $this->send_response( array(
 					'status'  => false,
 					'message' => esc_html__( 'Invalid API domain parameter passed.', 'instawp-connect' ),
 				) );
 			}
+			
+			Helper::set_api_domain( $domain_to_set );
+		}
+
+		if ( ! empty( $plan_id ) ) {
+			Option::update_option( 'instawp_connect_plan_id', $plan_id );
 		}
 
 		if ( ! Helper::instawp_generate_api_key( $api_key, $jwt ) ) {
