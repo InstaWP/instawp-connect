@@ -7,6 +7,7 @@ use InstaWP\Connect\Helpers\Curl;
 use InstaWP\Connect\Helpers\Helper;
 use InstaWP\Connect\Helpers\WPConfig;
 use InstaWP\Connect\Helpers\Option;
+use InstaWP\Connect\Helpers\WPScanner;
 
 if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 	class INSTAWP_CLI_Commands {
@@ -122,198 +123,209 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 		 * @throws \WP_CLI\ExitException
 		 */
 		public function handle_instawp_commands( $args, $assoc_args ) {
-			if ( isset( $args[0] ) && $args[0] === 'local' ) {
-				if ( isset( $args[1] ) && $args[1] === 'push' ) {
-					$this->cli_local_push();
-				}
-
-				return true;
+			if ( empty( $args[0] ) ) {
+				return false;
 			}
+		
+			$command    = $args[0];
+			$subcommand = isset( $args[1] ) ? $args[1] : '';
 
-			if ( isset( $args[0] ) && $args[0] === 'set-waas-mode' ) {
-				if ( isset( $args[1] ) ) {
+			// Command handler mapping
+			$commands = array(
+				'local'                => array(
+					'push' => function() { // wp instawp local push
+						$this->cli_local_push();
+					},
+				),
+				'set-waas-mode'        => function( $args ) { // wp instawp set-waas-mode https://instawp.com
+					if ( empty( $args[0] ) ) {
+						WP_CLI::error( 'WaaS URL is required' );
+						return false;
+					}
+
 					try {
 						$wp_config = new WPConfig( array(
 							'INSTAWP_CONNECT_MODE'     => 'WAAS_GO_LIVE',
-							'INSTAWP_CONNECT_WAAS_URL' => $args[1],
+							'INSTAWP_CONNECT_WAAS_URL' => $args[0],
 						) );
 						$wp_config->set();
 					} catch ( \Exception $e ) {
 						WP_CLI::error( $e->getMessage() );
-
 						return false;
 					}
-				}
-
-				return true;
-			}
-
-			if ( isset( $args[0] ) && $args[0] === 'reset-waas-mode' ) {
-				try {
-					$wp_config = new WPConfig( array( 'INSTAWP_CONNECT_MODE', 'INSTAWP_CONNECT_WAAS_URL' ) );
-					$wp_config->delete();
-				} catch ( \Exception $e ) {
-					WP_CLI::error( $e->getMessage() );
-
-					return false;
-				}
-
-				return true;
-			}
-
-			if ( isset( $args[0] ) && $args[0] === 'config-set' ) {
-				if ( isset( $args[1] ) ) {
-					if ( $args[1] === 'api-key' ) {
-						Helper::instawp_generate_api_key( $args[2] );
-					} elseif ( $args[1] === 'api-domain' ) {
-						Helper::set_api_domain( $args[2] );
+				},
+				'reset-waas-mode'      => function() { // wp instawp reset-waas-mode
+					try {
+						$wp_config = new WPConfig( array( 'INSTAWP_CONNECT_MODE', 'INSTAWP_CONNECT_WAAS_URL' ) );
+						$wp_config->delete();
+					} catch ( \Exception $e ) {
+						WP_CLI::error( $e->getMessage() );
+						return false;
 					}
-				}
-
-				if ( isset( $args[3] ) ) {
-					$payload_decoded = base64_decode( $args[3] ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
-					$payload         = json_decode( $payload_decoded, true );
-
-					if ( isset( $payload['mode'] ) ) {
-						if ( isset( $payload['mode']['name'] ) ) {
-							try {
-								$wp_config = new WPConfig( array( 'INSTAWP_CONNECT_MODE' => $payload['mode']['name'] ) );
-								$wp_config->set();
-							} catch ( \Exception $e ) {
-								WP_CLI::error( $e->getMessage() );
-
-								return false;
-							}
+				},
+				'config-set' => [
+					'api-key' => function( $args, $assoc_args ) { // wp instawp config-set api-key 1234567890
+						if ( empty( $args[0] ) ) {
+							WP_CLI::error( 'API key value is required' );
+							return false;
 						}
+
+						$jwt     = ! empty( $assoc_args['jwt'] ) ? $assoc_args['jwt'] : '';
+						$managed = ! isset( $assoc_args['unmanaged'] );
+
+						Helper::generate_api_key( $args[0], $jwt, $managed );
+
+						if ( isset( $args[1] ) ) {
+							$this->set_connect_mode( $args[1] );
+						}
+					},
+					'api-domain' => function( $args ) { // wp instawp config-set api-domain https://instawp.com
+						if ( empty( $args[0] ) ) {
+							WP_CLI::error( 'API domain value is required' );
+							return false;
+						}
+						Helper::set_api_domain( $args[0] );
+
+						if ( isset( $args[1] ) ) {
+							$this->set_connect_mode( $args[1] );
+						}
+					},
+				],
+				'config-remove'        => function() { // wp instawp config-remove
+					$option = new Option();
+					$option->delete( array( 'instawp_api_options', 'instawp_connect_id_options' ) );
+				},
+				'hard-reset'           => function( $args, $assoc_args ) { // wp instawp hard-reset
+					instawp_reset_running_migration( 'hard', false );
+
+					if ( isset( $assoc_args['clear-events'] ) ) {
+						instawp_delete_sync_entries();
 					}
-				}
-
-				return true;
-			}
-
-			if ( isset( $args[0] ) && $args[0] === 'config-remove' ) {
-				$option = new \InstaWP\Connect\Helpers\Option();
-				$option->delete( array( 'instawp_api_options', 'instawp_connect_id_options' ) );
-
-				return true;
-			}
-
-			if ( isset( $args[0] ) && $args[0] === 'hard-reset' ) {
-				instawp_reset_running_migration( 'hard', false );
-
-				if ( ! empty( $assoc_args['clear-events'] ) ) {
+				},
+				'clear-events'         => function() { // wp instawp clear-events
 					instawp_delete_sync_entries();
-				}
-
-				return true;
-			}
-
-			if ( isset( $args[0] ) && $args[0] === 'clear-events' ) {
-				instawp_delete_sync_entries();
-
-				return true;
-			}
-
-
-			if ( isset( $args[0] ) && $args[0] === 'activate-plan' ) {
-				$plan_id = isset( $args[1] ) ? intval( $args[1] ) : 0;
-				if ( ! $plan_id ) {
-					WP_CLI::error( esc_html__( 'Plan ID is required', 'instawp-connect' ) );
-
-					return false;
-				}
-
-				$response = instawp_connect_activate_plan( $plan_id );
-				if ( ! $response['success'] ) {
-					WP_CLI::error( $response['message'] );
-
-					return false;
-				}
-
-				return true;
-			}
-
-			if ( isset( $args[0] ) && $args[0] === 'refresh-staging-list' ) {
-				instawp_set_staging_sites_list();
-
-				return true;
-			}
-
-			if ( isset( $args[0] ) && $args[0] === 'staging-set' && ! empty( $args[1] ) ) {
-				Option::update_option( 'instawp_sync_connect_id', intval( $args[1] ) );
-				Option::update_option( 'instawp_is_staging', true );
-				instawp_get_source_site_detail();
-
-				return true;
-			}
-
-			if ( isset( $args[0] ) && $args[0] === 'reset' ) {
-				if ( isset( $args[1] ) && $args[1] === 'staging' ) {
-					delete_option( 'instawp_sync_connect_id' );
-					delete_option( 'instawp_is_staging' );
-					instawp_reset_running_migration();
-				}
-			}
-
-			if ( isset( $args[0] ) && $args[0] === 'scan' ) {
-				if ( isset( $args[1] ) && $args[1] === 'summary' ) {
-					$wp_scanner  = new \InstaWP\Connect\Helpers\WPScanner();
-					$summary_res = $wp_scanner->scan_summary();
-
-					if ( is_wp_error( $summary_res ) ) {
-						WP_CLI::error( $summary_res->get_error_message() );
-
+				},
+				'activate-plan'        => function( $args ) { // wp instawp activate-plan 123
+					$plan_id = isset( $args[0] ) ? intval( $args[0] ) : 0;
+					if ( empty( $plan_id ) ) {
+						WP_CLI::error( __( 'Plan ID is required', 'instawp-connect' ) );
 						return false;
 					}
 
-					if ( ! is_array( $summary_res ) ) {
-						WP_CLI::error( esc_html__( 'Failed: Could not create performance summary.', 'instawp-connect' ) );
-
+					$response = instawp_connect_activate_plan( $plan_id );
+					if ( ! $response['success'] ) {
+						WP_CLI::error( $response['message'] );
 						return false;
 					}
-
-					WP_CLI::success( esc_html__( 'Performance Summary of this website is given below:', 'instawp-connect' ) );
-
-					$this->render_cli_from_array( $summary_res );
-				}
-
-				if ( isset( $args[1] ) && $args[1] === 'slow-item' ) {
-					$wp_scanner = new \InstaWP\Connect\Helpers\WPScanner();
-					$slow_items = $wp_scanner->scan_slow_items();
-
-					if ( is_wp_error( $slow_items ) ) {
-						WP_CLI::error( $slow_items->get_error_message() );
-
+				},
+				'refresh-staging-list' => function() { // wp instawp refresh-staging-list
+					instawp_set_staging_sites_list();
+				},
+				'staging-set'          => function( $args ) { // wp instawp staging-set 123
+					if ( empty( $args[0] ) ) {
+						WP_CLI::error( __( 'Staging ID is required', 'instawp-connect' ) );
 						return false;
 					}
+					Option::update_option( 'instawp_sync_connect_id', intval( $args[0] ) );
+					Option::update_option( 'instawp_is_staging', true );
 
-					if ( ! is_array( $slow_items ) ) {
-						WP_CLI::error( esc_html__( 'Failed: Could not calculate slow items.', 'instawp-connect' ) );
+					instawp_get_source_site_detail();
+				},
+				'reset'                => array(
+					'staging' => function() { // wp instawp reset staging
+						delete_option( 'instawp_sync_connect_id' );
+						delete_option( 'instawp_is_staging' );
 
-						return false;
-					}
+						instawp_reset_running_migration();
+					},
+				),
+				'scan'                 => array(
+					'summary'   => function() { // wp instawp scan summary
+						$this->handle_scan_summary();
+					},
+					'slow-item' => function() { // wp instawp scan slow-item
+						$this->handle_scan_slow_items();
+					},
+				),
+			);
+		
+			// Execute command if it exists
+			if ( isset( $commands[ $command ] ) ) {
+				unset( $args[0] );
+				$args = array_values( $args );
+				
+				if ( is_array( $commands[ $command ] ) && isset( $commands[ $command ][ $subcommand ] ) && is_callable( $commands[ $command ][ $subcommand ] ) ) {
+					unset( $args[0] );
+					$args = array_values( $args );
 
-					$slow_items_table = array();
-					$counter          = 0;
-					$fields           = array( 'ID', 'Name', 'Type', 'Time Taken' );
-
-					foreach ( $slow_items as $slow_item ) {
-						++ $counter;
-						$slow_items_table[] = array(
-							'ID'         => $counter,
-							'Name'       => $slow_item[2],
-							'Type'       => $slow_item[3],
-							'Time Taken' => $slow_item[1],
-						);
-					}
-
-					WP_CLI::success( esc_html__( 'Slow items of this website are given below: (Top is the slowest one)', 'instawp-connect' ) );
-
-					WP_CLI\Utils\format_items( 'table', $slow_items_table, $fields );
+					return $commands[ $command ][ $subcommand ]( $args, $assoc_args ) !== false;
+				} elseif ( is_callable( $commands[ $command ] ) ) {
+					return $commands[ $command ]( $args, $assoc_args ) !== false;
 				}
 			}
+		
+			return false;
+		}
 
-			return true;
+		// Set connect mode
+		private function set_connect_mode( $data ) {
+			try {
+				$payload = json_decode( base64_decode( $data ), true );
+				if ( json_last_error() !== JSON_ERROR_NONE ) {
+					throw new \Exception( 'Invalid payload format' );
+				}
+	
+				if ( ! empty( $payload['mode']['name'] ) ) {
+					$wp_config = new WPConfig( array( 'INSTAWP_CONNECT_MODE' => $payload['mode']['name'] ) );
+					$wp_config->set();
+					
+					WP_CLI::success( 'Mode configuration updated successfully' );
+				}
+			} catch ( \Exception $e ) {
+				WP_CLI::error( 'Failed to configure mode: ' . $e->getMessage() );
+				return false;
+			}
+		}
+		
+		// Helper methods for scan functionality
+		private function handle_scan_summary() {
+			$wp_scanner = new WPScanner();
+			$summary_res = $wp_scanner->scan_summary();
+		
+			if ( is_wp_error($summary_res) ) {
+				WP_CLI::error($summary_res->get_error_message());
+				return false;
+			}
+		
+			if ( ! is_array($summary_res) ) {
+				WP_CLI::error(__('Failed: Could not create performance summary.', 'instawp-connect'));
+				return false;
+			}
+		
+			WP_CLI::success(__('Performance Summary of this website is given below:', 'instawp-connect'));
+			$this->render_cli_from_array($summary_res);
+		}
+		
+		private function handle_scan_slow_items() {
+			$wp_scanner = new WPScanner();
+			$slow_items = $wp_scanner->scan_slow_items();
+		
+			if ( is_wp_error( $slow_items ) || ! is_array( $slow_items ) ) {
+				WP_CLI::error( __( 'Failed: Could not calculate slow items.', 'instawp-connect' ) );
+				return false;
+			}
+		
+			$slow_items_table = array_map( function( $item, $index ) {
+				return array(
+					'ID'         => $index + 1,
+					'Name'       => $item[2],
+					'Type'       => $item[3],
+					'Time Taken' => $item[1],
+				);
+			}, $slow_items, array_keys( $slow_items ) );
+		
+			WP_CLI::success( __( 'Slow items of this website are given below: (Top is the slowest one)', 'instawp-connect' ) );
+			WP_CLI\Utils\format_items( 'table', $slow_items_table, array( 'ID', 'Name', 'Type', 'Time Taken' ) );
 		}
 
 		public function render_cli_from_array( $args ) {
