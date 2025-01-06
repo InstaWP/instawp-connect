@@ -7,6 +7,8 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 	exit;
 }
 
+global $wpdb;
+
 defined( 'INSTAWP_DEFAULT_BACKUP_DIR' ) || define( 'INSTAWP_DEFAULT_BACKUP_DIR', 'instawpbackups' );
 
 $instawp_backup_dir = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . INSTAWP_DEFAULT_BACKUP_DIR . DIRECTORY_SEPARATOR;
@@ -28,6 +30,8 @@ $api_options = get_option( 'instawp_api_options', array() );
 $connect_id  = isset( $api_options['connect_id'] ) ? $api_options['connect_id'] : '';
 $api_key     = isset( $api_options['api_key'] ) ? $api_options['api_key'] : '';
 $api_url     = isset( $api_options['api_url'] ) ? $api_options['api_url'] : 'https://app.instawp.io';
+$site_url    = $wpdb->get_var( "SELECT option_value FROM {$wpdb->options} WHERE option_name = 'siteurl'" );
+$site_url    = empty( $site_url ) ? site_url() : $site_url;
 
 if ( ! empty( $connect_id ) && ! empty( $api_key ) ) {
 	$args = array(
@@ -35,7 +39,7 @@ if ( ! empty( $connect_id ) && ! empty( $api_key ) ) {
 			'Authorization' => 'Bearer ' . $api_key,
 			'Accept'        => 'application/json',
 			'Content-Type'  => 'application/json',
-			'Referer'       => Helper::wp_site_url(),
+			'Referer'       => $site_url,
 		),
 		'timeout'         => 60,
 		'redirection'     => 10,
