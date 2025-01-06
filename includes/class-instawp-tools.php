@@ -1086,7 +1086,7 @@ include $file_path;';
 			'HTTP_X_CLUSTER_CLIENT_IP',
 			'HTTP_FORWARDED_FOR',
 			'HTTP_FORWARDED',
-			'REMOTE_ADDR'
+			'REMOTE_ADDR',
 		);
 
 		// Loop through possible IP sources

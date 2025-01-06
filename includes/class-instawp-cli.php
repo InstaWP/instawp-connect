@@ -163,8 +163,8 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 						return false;
 					}
 				},
-				'config-set' => [
-					'api-key' => function( $args, $assoc_args ) { // wp instawp config-set api-key 1234567890
+				'config-set'           => array(
+					'api-key'    => function( $args, $assoc_args ) { // wp instawp config-set api-key 1234567890
 						if ( empty( $args[0] ) ) {
 							WP_CLI::error( 'API key value is required' );
 							return false;
@@ -190,7 +190,7 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 							$this->set_connect_mode( $args[1] );
 						}
 					},
-				],
+				),
 				'config-remove'        => function() { // wp instawp config-remove
 					$option = new Option();
 					$option->delete( array( 'instawp_api_options', 'instawp_connect_id_options' ) );
