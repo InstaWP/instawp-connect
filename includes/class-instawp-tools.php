@@ -1069,7 +1069,46 @@ include $file_path;';
 
 		$migrate_settings['excluded_tables_rows'] = $excluded_tables_rows;
 
+		$migrate_settings['source_ip_address'] = self::get_user_ip_address();
+
 		return self::process_migration_settings( $migrate_settings );
+	}
+
+	public static function get_user_ip_address() {
+		// Check for IPv6 and IPv4 validation
+		$ip_pattern = '/^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$|^(?:(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,7}:|(?:[0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,5}(?::[0-9a-fA-F]{1,4}){1,2}|(?:[0-9a-fA-F]{1,4}:){1,4}(?::[0-9a-fA-F]{1,4}){1,3}|(?:[0-9a-fA-F]{1,4}:){1,3}(?::[0-9a-fA-F]{1,4}){1,4}|(?:[0-9a-fA-F]{1,4}:){1,2}(?::[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:(?:(?::[0-9a-fA-F]{1,4}){1,6})|:(?:(?::[0-9a-fA-F]{1,4}){1,7}|:))$/';
+
+		// Array of possible IP address server variables
+		$ip_sources = array(
+			'HTTP_CLIENT_IP',
+			'HTTP_X_FORWARDED_FOR',
+			'HTTP_X_FORWARDED',
+			'HTTP_X_CLUSTER_CLIENT_IP',
+			'HTTP_FORWARDED_FOR',
+			'HTTP_FORWARDED',
+			'REMOTE_ADDR'
+		);
+
+		// Loop through possible IP sources
+		foreach ( $ip_sources as $source ) {
+			if ( isset( $_SERVER[ $source ] ) ) {
+				$ip = $_SERVER[ $source ];
+
+				// Handle X-Forwarded-For header which may contain multiple IPs
+				if ( $source === 'HTTP_X_FORWARDED_FOR' ) {
+					$ips = explode( ',', $ip );
+					$ip  = trim( $ips[0] ); // Get the first IP in the list
+				}
+
+				// Validate IP format
+				if ( filter_var( $ip, FILTER_VALIDATE_IP ) && preg_match( $ip_pattern, $ip ) ) {
+					return $ip;
+				}
+			}
+		}
+
+		// If no valid IP is found, return a fallback
+		return '0.0.0.0';
 	}
 
 	/**
