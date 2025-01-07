@@ -95,174 +95,174 @@
 
     let instawp_migrate_progress = () => {
 
-        let create_container = $('.instawp-wrap .nav-item-content.create'),
-            el_bar_files = create_container.find('.instawp-progress-files'),
-            el_bar_db = create_container.find('.instawp-progress-db'),
-            el_visibility_box = create_container.find('#visibility-box'),
-            el_bar_restore = create_container.find('.instawp-progress-restore'),
-            el_migration_loader = create_container.find('.instawp-migration-loader'),
-            el_migration_progress_wrap = create_container.find('.migration-running'),
-            el_site_detail_wrap = create_container.find('.migration-completed'),
-            el_migration_error_wrap = create_container.find('.migration-error'),
-            el_migration_error_message = el_migration_error_wrap.find('.error-message'),
-            el_migration_download_log = el_migration_error_wrap.find('.instawp-download-log'),
-            el_screen_buttons = create_container.find('.screen-buttons'),
-            el_screen_buttons_last = create_container.find('.screen-buttons-last'),
-            el_stage_wrapper = create_container.find('.instawp-progress-stage');
+            let create_container = $('.instawp-wrap .nav-item-content.create'),
+                el_bar_files = create_container.find('.instawp-progress-files'),
+                el_bar_db = create_container.find('.instawp-progress-db'),
+                el_visibility_box = create_container.find('#visibility-box'),
+                el_bar_restore = create_container.find('.instawp-progress-restore'),
+                el_migration_loader = create_container.find('.instawp-migration-loader'),
+                el_migration_progress_wrap = create_container.find('.migration-running'),
+                el_site_detail_wrap = create_container.find('.migration-completed'),
+                el_migration_error_wrap = create_container.find('.migration-error'),
+                el_migration_error_message = el_migration_error_wrap.find('.error-message'),
+                el_migration_download_log = el_migration_error_wrap.find('.instawp-download-log'),
+                el_screen_buttons = create_container.find('.screen-buttons'),
+                el_screen_buttons_last = create_container.find('.screen-buttons-last'),
+                el_stage_wrapper = create_container.find('.instawp-progress-stage');
 
-        if (create_container.hasClasses('doing-ajax completed')) {
-            return;
-        }
+            if (create_container.hasClasses('doing-ajax completed')) {
+                return;
+            }
 
-        $.ajax({
-            type: 'POST',
-            url: plugin_object.ajax_url,
-            context: this,
-            beforeSend: function () {
-                create_container.addClass('doing-ajax');
-            },
-            complete: function () {
-                create_container.removeClass('doing-ajax');
-            },
-            data: {
-                'action': 'instawp_migrate_progress',
-                'visible': !$(document).find('#visibility-box-area').hasClass('hidden'),
-                'security': plugin_object.security,
-            },
-            success: function (response) {
-                if (response.success) {
-                    let progress_files = response.data.progress_files ? response.data.progress_files : 0,
-                        progress_db = response.data.progress_db ? response.data.progress_db : 0,
-                        progress_restore = response.data.progress_restore ? response.data.progress_restore : 0,
-                        progress_stages = response.data.stage,
-                        failed_message = response.data.failed_message,
-                        processed_files = response.data.processed_files ? response.data.processed_files : [],
-                        processed_db = response.data.processed_db ? response.data.processed_db : [],
-                        startTime = response.data.started_at ?? null,
-                        current_stage = 'processing',
-                        stage_migration_finished = false;
+            $.ajax({
+                type: 'POST',
+                url: plugin_object.ajax_url,
+                context: this,
+                beforeSend: function () {
+                    create_container.addClass('doing-ajax');
+                },
+                complete: function () {
+                    create_container.removeClass('doing-ajax');
+                },
+                data: {
+                    'action': 'instawp_migrate_progress',
+                    'visible': !$(document).find('#visibility-box-area').hasClass('hidden'),
+                    'security': plugin_object.security,
+                },
+                success: function (response) {
+                    if (response.success) {
+                        let progress_files = response.data.progress_files ? response.data.progress_files : 0,
+                            progress_db = response.data.progress_db ? response.data.progress_db : 0,
+                            progress_restore = response.data.progress_restore ? response.data.progress_restore : 0,
+                            progress_stages = response.data.stage,
+                            failed_message = response.data.failed_message,
+                            processed_files = response.data.processed_files ? response.data.processed_files : [],
+                            processed_db = response.data.processed_db ? response.data.processed_db : [],
+                            startTime = response.data.started_at ?? null,
+                            current_stage = 'processing',
+                            stage_migration_finished = false;
 
-                    if (!elapsedInterval) {
-                        elapsedInterval = setInterval(() => {
-                            updateTimer(startTime)
-                        }, 1000);
-                    }
+                        if (!elapsedInterval) {
+                            elapsedInterval = setInterval(() => {
+                                updateTimer(startTime)
+                            }, 1000);
+                        }
 
-                    el_bar_files.find('.instawp-progress-bar').css('width', progress_files + '%');
-                    el_bar_files.find('.progress-text').text(progress_files + '%');
+                        el_bar_files.find('.instawp-progress-bar').css('width', progress_files + '%');
+                        el_bar_files.find('.progress-text').text(progress_files + '%');
 
-                    el_bar_db.find('.instawp-progress-bar').css('width', progress_db + '%');
-                    el_bar_db.find('.progress-text').text(progress_db + '%');
+                        el_bar_db.find('.instawp-progress-bar').css('width', progress_db + '%');
+                        el_bar_db.find('.progress-text').text(progress_db + '%');
 
-                    el_bar_restore.find('.instawp-progress-bar').css('width', progress_restore + '%');
-                    el_bar_restore.find('.progress-text').text(progress_restore + '%');
+                        el_bar_restore.find('.instawp-progress-bar').css('width', progress_restore + '%');
+                        el_bar_restore.find('.progress-text').text(progress_restore + '%');
 
-                    $.each(progress_stages, function (stage_key, stage_value) {
-                        if (stage_value === true) {
-                            if (stage_key === 'migration-finished') {
-                                stage_migration_finished = true;
+                        $.each(progress_stages, function (stage_key, stage_value) {
+                            if (stage_value === true) {
+                                if (stage_key === 'migration-finished') {
+                                    stage_migration_finished = true;
+                                }
+                                current_stage = stage_key;
+                                //el_stage_wrapper.find('.stage-' + stage_key).find('.stage-status').addClass('active');
                             }
-                            current_stage = stage_key;
-                            //el_stage_wrapper.find('.stage-' + stage_key).find('.stage-status').addClass('active');
+                        });
+
+                        if (Object.keys(migrationSteps).includes(current_stage)) {
+                            el_visibility_box.find('#visibility-content-area').append('<div class="visibility-content-item flex gap-3 items-center hover:bg-zinc-800 hover:rounded-lg py-1.5 px-2.5 "><span class="text-gray-100 min-w-36">' + response.data.timestamp + '</span><span class="text-gray-100 break-all font-medium">' + migrationSteps[current_stage] + '</span></div>');
+                            delete migrationSteps[current_stage];
                         }
-                    });
 
-                    if (Object.keys(migrationSteps).includes(current_stage)) {
-                        el_visibility_box.find('#visibility-content-area').append('<div class="visibility-content-item flex gap-3 items-center hover:bg-zinc-800 hover:rounded-lg py-1.5 px-2.5 "><span class="text-gray-100 min-w-36">' + response.data.timestamp + '</span><span class="text-gray-100 break-all font-medium">' + migrationSteps[current_stage] + '</span></div>');
-                        delete migrationSteps[current_stage];
-                    }
-
-                    let current_stage_item = el_visibility_box.find('.stage-' + current_stage);
-                    if (current_stage_item.hasClass('hidden')) {
-                        el_visibility_box.find('.stage').addClass('hidden');
-                        current_stage_item.removeClass('hidden');
-                    }
-
-                    let content_html = '';
-
-                    $.each(processed_files, function (key, value) {
-                        content_html += '<div class="visibility-content-item flex gap-3 items-center hover:bg-zinc-800 hover:rounded-lg py-1.5 px-2.5 group ' + value.status + '">';
-                        content_html += '<span class="text-gray-100 min-w-36">' + response.data.timestamp + '</span><span class="text-gray-100 break-all group-[.sent]:text-emerald-300 group-[.failed]:text-rose-500 group-[.skipped]:text-yellow-300 group-[.invalid]:text-red-300">' + value.filepath + ' (' + value.size + ')';
-                        if (value.status === 'in-progress') {
-                            content_html += ' <span class="hidden group-hover:inline-block cursor-pointer ml-2 px-2 py-1 text-xs rounded-lg border border-zinc-700 text-rose-500 instawp-skip-item" data-type="file" data-item="' + value.id + '">' + plugin_object.trans.skip_item_txt + '</span>';
+                        let current_stage_item = el_visibility_box.find('.stage-' + current_stage);
+                        if (current_stage_item.hasClass('hidden')) {
+                            el_visibility_box.find('.stage').addClass('hidden');
+                            current_stage_item.removeClass('hidden');
                         }
-                        content_html += '</span></div>';
-                    });
 
-                    $.each(processed_db, function (key, value) {
-                        content_html += '<div class="visibility-content-item flex gap-3 items-center hover:bg-zinc-800 hover:rounded-lg py-1.5 px-2.5 group ' + value.status + '">';
-                        content_html += '<span class="text-gray-100 min-w-36">' + response.data.timestamp + '</span><span class="text-gray-100 break-all group-[.sent]:text-emerald-300 group-[.failed]:text-rose-500 group-[.skipped]:text-yellow-300 group-[.invalid]:text-red-300">' + value.table_name + ' - ' + value.offset + ' / ' + value.rows_total + ' rows';
-                        if (value.status === 'in-progress') {
-                            content_html += ' <span class="hidden group-hover:inline-block cursor-pointer ml-2 px-2 py-1 text-xs rounded-lg border border-zinc-700 text-rose-500 instawp-skip-item" data-type="db" data-item="' + value.table_name + '">' + plugin_object.trans.skip_item_txt + '</span>';
+                        let content_html = '';
+
+                        $.each(processed_files, function (key, value) {
+                            content_html += '<div class="visibility-content-item flex gap-3 items-center hover:bg-zinc-800 hover:rounded-lg py-1.5 px-2.5 group ' + value.status + '">';
+                            content_html += '<span class="text-gray-100 min-w-36">' + response.data.timestamp + '</span><span class="text-gray-100 break-all group-[.sent]:text-emerald-300 group-[.failed]:text-rose-500 group-[.skipped]:text-yellow-300 group-[.invalid]:text-red-300">' + value.filepath + ' (' + value.size + ')';
+                            if (value.status === 'in-progress') {
+                                content_html += ' <span class="hidden group-hover:inline-block cursor-pointer ml-2 px-2 py-1 text-xs rounded-lg border border-zinc-700 text-rose-500 instawp-skip-item" data-type="file" data-item="' + value.id + '">' + plugin_object.trans.skip_item_txt + '</span>';
+                            }
+                            content_html += '</span></div>';
+                        });
+
+                        $.each(processed_db, function (key, value) {
+                            content_html += '<div class="visibility-content-item flex gap-3 items-center hover:bg-zinc-800 hover:rounded-lg py-1.5 px-2.5 group ' + value.status + '">';
+                            content_html += '<span class="text-gray-100 min-w-36">' + response.data.timestamp + '</span><span class="text-gray-100 break-all group-[.sent]:text-emerald-300 group-[.failed]:text-rose-500 group-[.skipped]:text-yellow-300 group-[.invalid]:text-red-300">' + value.table_name + ' - ' + value.offset + ' / ' + value.rows_total + ' rows';
+                            if (value.status === 'in-progress') {
+                                content_html += ' <span class="hidden group-hover:inline-block cursor-pointer ml-2 px-2 py-1 text-xs rounded-lg border border-zinc-700 text-rose-500 instawp-skip-item" data-type="db" data-item="' + value.table_name + '">' + plugin_object.trans.skip_item_txt + '</span>';
+                            }
+                            content_html += '</span></div>';
+                        });
+
+                        if (content_html) {
+                            el_visibility_box.find('#visibility-content-area').append(content_html);
+
+                            let el_box_area = el_visibility_box.find('#visibility-content-area');
+                            el_box_area.animate({
+                                scrollTop: el_box_area[0].scrollHeight
+                            }, 500);
                         }
-                        content_html += '</span></div>';
-                    });
 
-                    if (content_html) {
-                        el_visibility_box.find('#visibility-content-area').append(content_html);
+                        // Completed
+                        if (stage_migration_finished === true) {
+                            create_container.removeClass('loading').addClass('completed');
+                            el_visibility_box.find('#visibility-box, .full-screen-btn').addClass('hidden');
+                            clearInterval(create_container.attr('interval-id'));
 
-                        let el_box_area = el_visibility_box.find('#visibility-content-area');
-                        el_box_area.animate({
-                            scrollTop: el_box_area[0].scrollHeight
-                        }, 500);
-                    }
+                            if (
+                                typeof response.data.dest_wp.url !== 'undefined' &&
+                                typeof response.data.dest_wp.username !== 'undefined' &&
+                                typeof response.data.dest_wp.password !== 'undefined' &&
+                                typeof response.data.dest_wp.auto_login_url !== 'undefined'
+                            ) {
 
-                    // Completed
-                    if (stage_migration_finished === true) {
+                                el_migration_progress_wrap.addClass('hidden');
+                                el_site_detail_wrap.removeClass('hidden');
+                                el_migration_loader.text(el_migration_loader.data('complete-text'));
+
+                                // Remove active class
+                                el_stage_wrapper.find('.stage-status').removeClass('active');
+
+                                el_site_detail_wrap.find('#instawp-site-url').attr('href', response.data.dest_wp.url).find('span').html(response.data.dest_wp.url);
+                                el_site_detail_wrap.find('#instawp-site-username').html(response.data.dest_wp.username);
+                                el_site_detail_wrap.find('#instawp-site-password').html(response.data.dest_wp.password);
+                                el_site_detail_wrap.find('#instawp-site-magic-url').attr('href', response.data.dest_wp.auto_login_url);
+
+                                // screen-buttons-last
+                                el_screen_buttons.addClass('hidden');
+                                el_screen_buttons_last.removeClass('hidden');
+                            }
+                        }
+                    } else {
                         create_container.removeClass('loading').addClass('completed');
-                        el_visibility_box.find('#visibility-box, .full-screen-btn').addClass('hidden');
                         clearInterval(create_container.attr('interval-id'));
 
-                        if (
-                            typeof response.data.dest_wp.url !== 'undefined' &&
-                            typeof response.data.dest_wp.username !== 'undefined' &&
-                            typeof response.data.dest_wp.password !== 'undefined' &&
-                            typeof response.data.dest_wp.auto_login_url !== 'undefined'
-                        ) {
-
-                            el_migration_progress_wrap.addClass('hidden');
-                            el_site_detail_wrap.removeClass('hidden');
-                            el_migration_loader.text(el_migration_loader.data('complete-text'));
-
-                            // Remove active class
-                            el_stage_wrapper.find('.stage-status').removeClass('active');
-
-                            el_site_detail_wrap.find('#instawp-site-url').attr('href', response.data.dest_wp.url).find('span').html(response.data.dest_wp.url);
-                            el_site_detail_wrap.find('#instawp-site-username').html(response.data.dest_wp.username);
-                            el_site_detail_wrap.find('#instawp-site-password').html(response.data.dest_wp.password);
-                            el_site_detail_wrap.find('#instawp-site-magic-url').attr('href', response.data.dest_wp.auto_login_url);
-
-                            // screen-buttons-last
-                            el_screen_buttons.addClass('hidden');
-                            el_screen_buttons_last.removeClass('hidden');
+                        if (response.data.failed_message) {
+                            el_migration_error_message.html(response.data.failed_message);
+                        } else {
+                            el_migration_error_message.html(response.data.message);
                         }
+
+                        console.log(response);
+
+                        el_migration_download_log.data('migrate-id', response.data.migrate_id);
+                        el_migration_download_log.data('server-logs', response.data.server_logs);
+
+                        el_migration_loader.removeClass('text-primary-900').addClass('text-red-700').text(el_migration_loader.data('error-text'));
+                        el_migration_progress_wrap.addClass('hidden');
+                        el_migration_error_wrap.removeClass('hidden');
+                        el_screen_buttons_last.removeClass('hidden');
                     }
-                } else {
-                    create_container.removeClass('loading').addClass('completed');
-                    clearInterval(create_container.attr('interval-id'));
-
-                    if (response.data.failed_message) {
-                        el_migration_error_message.html(response.data.failed_message);
-                    } else {
-                        el_migration_error_message.html(response.data.message);
-                    }
-
-                    console.log(response);
-
-                    el_migration_download_log.data('migrate-id', response.data.migrate_id);
-                    el_migration_download_log.data('server-logs', response.data.server_logs);
-
-                    el_migration_loader.removeClass('text-primary-900').addClass('text-red-700').text(el_migration_loader.data('error-text'));
-                    el_migration_progress_wrap.addClass('hidden');
-                    el_migration_error_wrap.removeClass('hidden');
-                    el_screen_buttons_last.removeClass('hidden');
+                },
+                error: function () {
+                    window.location = window.location.href.split("?")[0] + '?page=instawp';
                 }
-            },
-            error: function () {
-                window.location = window.location.href.split("?")[0] + '?page=instawp';
-            }
-        });
-    },
+            });
+        },
         instawp_migrate_init = () => {
 
             let create_container = $('.instawp-wrap .nav-item-content.create'),
@@ -363,7 +363,7 @@
         let server_logs = $(this).data('server-logs'),
             migrate_id = $(this).data('migrate-id'),
             filename = migrate_id + '-log.txt',
-            blob = new Blob([server_logs], { type: 'text/plain;charset=utf-8;' });
+            blob = new Blob([server_logs], {type: 'text/plain;charset=utf-8;'});
 
         if (window.navigator.msSaveOrOpenBlob) {
             window.navigator.msSaveBlob(blob, filename);
@@ -1443,7 +1443,7 @@
 
         let el = $(this);
         el.prop('disabled', true).addClass('opacity-50').append('<svg class="instawp-loader inline ml-3 w-4 h-4 text-primary-900 animate-spin" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="#E5E7EB"></path><path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentColor"></path></svg>');
-        
+
         $.ajax({
             type: 'POST',
             url: plugin_object.ajax_url,
@@ -1472,7 +1472,7 @@
         e.preventDefault();
         let el = $(this);
         el.prop('disabled', true).addClass('opacity-50').append('<svg class="instawp-loader inline ml-3 w-4 h-4 text-primary-900 animate-spin" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="#E5E7EB"></path><path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentColor"></path></svg>');
-        
+
         let plan_id = $(document).find('.instawp-connect-plan-btn:not(.pointer-events-none)').first().data('plan-id');
         $.ajax({
             type: 'POST',
@@ -1494,6 +1494,39 @@
             error: function (jqXHR, textStatus, errorThrown) {
                 el.prop('disabled', false).removeClass('opacity-50').find('.instawp-loader').remove();
                 console.log(errorThrown);
+            }
+        });
+    });
+
+
+    $(document).on('click', '.instawp-update-plugin', function (e) {
+        e.preventDefault();
+
+        let updateButton = $(this),
+            updateNoticeArea = updateButton.parent().find('.instawp-update-notice');
+
+        $.ajax({
+            type: 'POST',
+            url: plugin_object.ajax_url,
+            context: this,
+            beforeSend: function () {
+                updateNoticeArea.addClass('hidden').removeClass('inline-block');
+                updateButton.prepend('<svg role="status" class="instawp-loader inline w-3 h-3 mr-1 text-primary-900 animate-spin" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg"><path data-v-fe125208="" d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="#E5E7EB"></path><path data-v-fe125208="" d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentColor"></path></svg>');
+            },
+            complete: function () {
+                updateButton.find('.instawp-loader').remove();
+            },
+            data: {
+                'action': 'instawp_update_plugin',
+                'security': plugin_object.security,
+            },
+            success: function (response) {
+                console.log(response.data.updated);
+                if (response.data.updated) {
+                    window.location.reload();
+                } else {
+                    updateNoticeArea.addClass('inline-block').removeClass('hidden');
+                }
             }
         });
     });

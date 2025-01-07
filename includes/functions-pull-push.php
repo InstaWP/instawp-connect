@@ -698,7 +698,6 @@ if ( ! function_exists( 'iwp_ipp_delete_files' ) ) {
 				'folders' => count( $delete_folders ),
 			),
 			'deleted_files_count' => 0,
-			'deleted_folders_count' => 0,
 		); 
 		try {
 			
@@ -737,8 +736,6 @@ if ( ! function_exists( 'iwp_ipp_delete_files' ) ) {
 					if ( false === $res['status'] ) {
 						$result['status'] = false;
 						$result['messages'] = array_merge( $result['messages'], $res['messages'] );
-					} else {
-						$result['deleted_folders_count']++;
 					}
 					
 				}

@@ -101,13 +101,13 @@ delete_option( 'instawp_db_offset' );
     </div>
 
     <div class="w-full">
-        <div class="p-6 bg-white rounded-md">
+        <div class="p-6 bg-white rounded-md min-h-[378px]">
             <div class="screen screen-1 <?= $current_create_screen === 1 ? 'active' : ''; ?>">
                 <div class="flex justify-between items-center">
                     <div class="text-grayCust-200 text-lg font-bold"><?php esc_html_e( '1. Select Staging', 'instawp-connect' ); ?></div>
                 </div>
 				<?php if ( $whitelist_ip['can_whitelist'] ) { ?>
-                    <div class="wordfence-whitelist bg-yellow-50 border border-2 border-r-0 border-y-0 border-l-orange-400 rounded-lg text-sm text-orange-700 mt-4 p-4 flex flex-col items-start gap-3">
+                    <div class="wordfence-whitelist bg-yellow-50 border-2 border-r-0 border-y-0 border-l-orange-400 rounded-lg text-sm text-orange-700 mt-4 p-4 flex flex-col items-start gap-3">
                         <div class="flex items-center gap-3">
                             <div class="texdt-xs fonht-medium"><?php printf( esc_html__( 'We have detected %s in your website, which might block API calls from our server. Whitelisting our IP address solves this problem. Shall we add a whitelist entry?', 'instawp-connect' ), esc_html( $whitelist_ip['plugins'] ) ); ?></div>
                         </div>
@@ -120,7 +120,7 @@ delete_option( 'instawp_db_offset' );
                     </div>
 				<?php } ?>
                 <div class="panel mt-6 block">
-                    <div for="quick_staging" class="instawp-staging-type cursor-pointer flex justify-between items-center border mb-4 flex p-4 rounded-xl">
+                    <div for="quick_staging" class="instawp-staging-type cursor-pointer flex justify-between items-center border mb-4 p-4 rounded-xl">
                         <div class="flex items-center">
                             <div class="w-10 h-10 bg-white rounded-lg flex justify-center items-center border custom-border"><img src="<?php echo esc_url( instaWP::get_asset_url( 'migrate/assets/images/icon-quick.svg' ) ); ?>" alt=""></div>
                             <div class="ml-4">

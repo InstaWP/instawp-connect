@@ -80,7 +80,7 @@ if ( ! function_exists( 'instawp_iterative_push_files' ) ) {
 			$processed_response         = iwp_process_curl_response( $response, $curl_session, $headers, $errors_counter, $slow_sleep, 'push-files-1' );
 			$processed_response_success = isset( $processed_response['success'] ) ? (bool) $processed_response['success'] : false;
 			$processed_response_message = isset( $processed_response['message'] ) ? $processed_response['message'] : '';
-			
+	
 			if ( ! $processed_response_success ) {
 				$ipp_helper->print_message( $processed_response_message );	
 			}

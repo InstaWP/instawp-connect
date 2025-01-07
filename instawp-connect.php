@@ -7,7 +7,7 @@
  * @wordpress-plugin
  * Plugin Name:       InstaWP Connect
  * Description:       1-click WordPress plugin for Staging, Migrations, Management, Sync and Companion plugin for InstaWP.
- * Version:           0.1.0.72
+ * Version:           0.1.0.74
  * Author:            InstaWP Team
  * Author URI:        https://instawp.com/
  * License:           GPL-3.0+
@@ -17,6 +17,7 @@
  */
 
 use InstaWP\Connect\Helpers\Curl;
+use InstaWP\Connect\Helpers\Helper;
 use InstaWP\Connect\Helpers\Option;
 
 // If this file is called directly, abort.
@@ -26,12 +27,11 @@ if ( ! defined( 'WPINC' ) ) {
 
 global $wpdb;
 
-defined( 'INSTAWP_PLUGIN_VERSION' ) || define( 'INSTAWP_PLUGIN_VERSION', '0.1.0.72' );
+defined( 'INSTAWP_PLUGIN_VERSION' ) || define( 'INSTAWP_PLUGIN_VERSION', '0.1.0.74' );
 defined( 'INSTAWP_API_DOMAIN_PROD' ) || define( 'INSTAWP_API_DOMAIN_PROD', 'https://app.instawp.io' );
 
 $wp_plugin_url   = WP_PLUGIN_URL . '/' . plugin_basename( __DIR__ ) . '/';
-$wp_site_url     = get_option( 'siteurl' );
-$parsed_site_url = wp_parse_url( $wp_site_url );
+$parsed_site_url = wp_parse_url( site_url() );
 
 if ( isset( $parsed_site_url['scheme'] ) && strtolower( $parsed_site_url['scheme'] ) === 'http' ) {
 	$is_protocol_https = ( ! empty( $_SERVER['HTTPS'] ) && $_SERVER['HTTPS'] !== 'off' ) || ( ! empty( $_SERVER['SERVER_PORT'] ) && $_SERVER['SERVER_PORT'] === 443 );
@@ -92,13 +92,13 @@ function instawp_plugin_activate() {
 
 	$connect_id = instawp_get_connect_id();
 	if ( ! empty( $connect_id ) ) {
-		$response = Curl::do_curl( "connects/{$connect_id}/restore", array( 'url' => site_url() ) );
+		$response = Curl::do_curl( "connects/{$connect_id}/restore", array( 'url' => Helper::wp_site_url() ) );
 		if ( empty( $response['success'] ) ) {
 			Option::delete_option( 'instawp_api_options' );
 		}
 	}
 
-	$default_plan_id = INSTAWP_CONNECT_PLAN_ID;
+	$default_plan_id          = INSTAWP_CONNECT_PLAN_ID;
 	$default_plan_expire_days = INSTAWP_CONNECT_PLAN_EXPIRE_DAYS;
 
 	if ( defined( 'CONNECT_WHITELABEL' ) && CONNECT_WHITELABEL && defined( 'CONNECT_WHITELABEL_PLAN_DETAILS' ) && is_array( CONNECT_WHITELABEL_PLAN_DETAILS ) ) {
@@ -107,7 +107,7 @@ function instawp_plugin_activate() {
 		} );
 
 		if ( ! empty( $default_plan ) ) {
-			$default_plan_id = $default_plan[0]['plan_id'];
+			$default_plan_id          = $default_plan[0]['plan_id'];
 			$default_plan_expire_days = $default_plan[0]['trial'];
 		}
 	}

@@ -5,7 +5,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2025-01-03 13:17+0000\n"
+"POT-Creation-Date: 2025-01-03 13:57+0000\n"
 "X-Poedit-Basepath: ..\n"
 "X-Poedit-KeywordsList: __;_e;_ex:1,2c;_n:1,2;_n_noop:1,2;_nx:1,2,4c;_nx_noop:1,2,3c;_x:1,2c;esc_attr__;esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c\n"
 "X-Poedit-SearchPath-0: .\n"
@@ -253,67 +253,67 @@ msgstr ""
 msgid "Debug Log"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:111
+#: includes/class-instawp-ajax.php:135
 msgid "Migration failed."
 msgstr ""
 
-#: includes/class-instawp-ajax.php:233
+#: includes/class-instawp-ajax.php:257
 msgid "Migrate key or item is missing!"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:246
+#: includes/class-instawp-ajax.php:270
 msgid "Can not initiate database."
 msgstr ""
 
-#: includes/class-instawp-ajax.php:291
+#: includes/class-instawp-ajax.php:316
 msgid "Error: Empty serve url found in pre-check response."
 msgstr ""
 
-#: includes/class-instawp-ajax.php:304
+#: includes/class-instawp-ajax.php:329
 msgid "Error: Empty api signature found in pre-check response."
 msgstr ""
 
-#: includes/class-instawp-ajax.php:353
+#: includes/class-instawp-ajax.php:378
 msgid "Could not create migrate id."
 msgstr ""
 
-#: includes/class-instawp-ajax.php:407
+#: includes/class-instawp-ajax.php:432
 msgid "Communication Error"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:408
+#: includes/class-instawp-ajax.php:433
 msgid "Something went wrong."
 msgstr ""
 
-#: includes/class-instawp-ajax.php:424
+#: includes/class-instawp-ajax.php:449
 msgid "Connect Again"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:435, includes/class-instawp-hooks.php:379
+#: includes/class-instawp-ajax.php:460, includes/class-instawp-hooks.php:379
 msgid "Contact Support"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:441
+#: includes/class-instawp-ajax.php:466
 msgid "Increase Limit"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:469
+#: includes/class-instawp-ajax.php:494
 msgid "Empty folder!"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:573
+#: includes/class-instawp-ajax.php:598
 msgid "%s rows"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:620
+#: includes/class-instawp-ajax.php:645
 msgid "We have identified following large files in your installation:"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:686
+#: includes/class-instawp-ajax.php:711
 msgid "Plugin reset successfully."
 msgstr ""
 
-#: includes/class-instawp-ajax.php:735
+#: includes/class-instawp-ajax.php:760
 msgid "Plan changed successfully."
 msgstr ""
 
@@ -745,71 +745,71 @@ msgstr ""
 msgid "Invalid Migration ID"
 msgstr ""
 
-#: includes/class-instawp-tools.php:686
+#: includes/class-instawp-tools.php:700
 msgid "API key not found"
 msgstr ""
 
-#: includes/class-instawp-tools.php:911
+#: includes/class-instawp-tools.php:925
 msgid "Root directory for this WordPress installation could not find."
 msgstr ""
 
-#: includes/class-instawp-tools.php:932
+#: includes/class-instawp-tools.php:946
 msgid "Tracking database could not found."
 msgstr ""
 
-#: includes/class-instawp-tools.php:942
+#: includes/class-instawp-tools.php:956
 msgid "API Signature and others data could not set properly"
 msgstr ""
 
-#: includes/class-instawp-tools.php:968
+#: includes/class-instawp-tools.php:982
 msgid "InstaWP could not access or read required files from your WordPress directory due to file permission issue."
 msgstr ""
 
-#: includes/class-instawp-tools.php:970
+#: includes/class-instawp-tools.php:984
 msgid "Learn more."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1139
+#: includes/class-instawp-tools.php:1153
 msgid "Launch %s"
 msgstr ""
 
-#: includes/class-instawp-tools.php:1227
+#: includes/class-instawp-tools.php:1241
 msgid "Please create staging sites first."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1228
+#: includes/class-instawp-tools.php:1242
 msgid "Skip"
 msgstr ""
 
-#: includes/class-instawp-tools.php:1229
+#: includes/class-instawp-tools.php:1243
 msgid "Do you really want to disconnect the plugin? It will completely remove the existing staging sites from the plugin."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1230
+#: includes/class-instawp-tools.php:1244
 msgid "Do you still want to disconnect the plugin?"
 msgstr ""
 
-#: includes/class-instawp-tools.php:1278
+#: includes/class-instawp-tools.php:1292
 msgid "Zip archive is not opening."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1331
+#: includes/class-instawp-tools.php:1345
 msgid "No compression method find."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1375
+#: includes/class-instawp-tools.php:1389
 msgid "Site ID not found in site create response."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1414
+#: includes/class-instawp-tools.php:1428
 msgid "SFTP login failed."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1425
+#: includes/class-instawp-tools.php:1439
 msgid "SFTP upload failed for files."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1433
+#: includes/class-instawp-tools.php:1447
 msgid "SFTP upload failed for database."
 msgstr ""
 
@@ -971,23 +971,23 @@ msgstr ""
 msgid "WP Customizer Changes"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-menu.php:37
+#: includes/sync/class-instawp-sync-menu.php:39
 msgid "Nav Menu updated"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-menu.php:34
+#: includes/sync/class-instawp-sync-menu.php:36
 msgid "Nav Menu created"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-menu.php:89
+#: includes/sync/class-instawp-sync-menu.php:91
 msgid "Nav Menu deleted"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-menu.php:202
+#: includes/sync/class-instawp-sync-menu.php:204
 msgid "Can not find nav menu"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-menu.php:213
+#: includes/sync/class-instawp-sync-menu.php:215
 msgid "Can not delete Nav Menu."
 msgstr ""
 

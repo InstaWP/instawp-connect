@@ -17,7 +17,7 @@ class InstaWP_Tools {
 
 		$log_args             = array(
 			'migrate_id'  => $migrate_id,
-			'url'         => site_url(),
+			'url'         => Helper::wp_site_url(),
 			'type'        => 'plugin',
 			'label'       => $label,
 			'description' => $description,
@@ -152,13 +152,15 @@ class InstaWP_Tools {
 			'db_charset'       => DB_CHARSET,
 			'db_collate'       => DB_COLLATE,
 			'table_prefix'     => $table_prefix,
-			'site_url'         => site_url(),
+			'site_url'         => Helper::wp_site_url(),
 		);
 		$options_data_str       = wp_json_encode( $options_data );
 		$passphrase             = openssl_digest( $migrate_key, 'SHA256', true );
-		$options_data_encrypted = openssl_encrypt( $options_data_str, 'AES-256-CBC', $passphrase );
+		$openssl_iv             = openssl_random_pseudo_bytes( 16 );
+		$options_data_encrypted = openssl_encrypt( $options_data_str, 'AES-256-CBC', $passphrase, 0, $openssl_iv );
+		$final_encrypted_data   = base64_encode( $openssl_iv . base64_decode( $options_data_encrypted ) );
 		$options_data_filename  = INSTAWP_BACKUP_DIR . 'options-' . $migrate_key . '.txt';
-		$options_data_stored    = file_put_contents( $options_data_filename, $options_data_encrypted ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+		$options_data_stored    = file_put_contents( $options_data_filename, $final_encrypted_data );
 
 		if ( ! $options_data_stored ) {
 			return false;
@@ -202,7 +204,7 @@ include $file_path;';
 		$forwarded_file_created = file_put_contents( $forwarded_file_path, $forwarded_content ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 
 		if ( $forwarded_file_created ) {
-			return site_url( $file_name );
+			return Helper::wp_site_url( $file_name );
 		}
 
 		error_log( 'Could not create the forwarded file' );
@@ -235,6 +237,10 @@ include $file_path;';
 
 	public static function generate_destination_file( $migrate_key, $api_signature, $migrate_settings = array() ) {
 
+		if ( ! function_exists( 'iwp_get_root_dir' ) ) {
+			include_once 'functions-pull-push.php';
+		}
+
 		$data = array_merge( array(
 			'api_signature'       => $api_signature,
 			'db_host'             => DB_HOST,
@@ -243,18 +249,26 @@ include $file_path;';
 			'db_name'             => DB_NAME,
 			'db_charset'          => DB_CHARSET,
 			'db_collate'          => DB_COLLATE,
-			'site_url'            => defined( 'WP_SITEURL' ) ? WP_SITEURL : site_url(),
+			'site_url'            => defined( 'WP_SITEURL' ) ? WP_SITEURL : Helper::wp_site_url(),
 			'home_url'            => defined( 'WP_HOME' ) ? WP_HOME : home_url(),
 			'instawp_api_options' => maybe_serialize( Option::get_option( 'instawp_api_options' ) ),
 		), $migrate_settings );
 
-		$jsonString     = wp_json_encode( $data );
-		$passphrase     = openssl_digest( $migrate_key, 'SHA256', true );
-		$data_encrypted = openssl_encrypt( $jsonString, 'AES-256-CBC', $passphrase );
+		$options_data_str       = wp_json_encode( $data );
+		$passphrase             = openssl_digest( $migrate_key, 'SHA256', true );
+		$openssl_iv             = openssl_random_pseudo_bytes( 16 );
+		$options_data_encrypted = openssl_encrypt( $options_data_str, 'AES-256-CBC', $passphrase, 0, $openssl_iv );
+		$data_encrypted         = base64_encode( $openssl_iv . base64_decode( $options_data_encrypted ) );
+		$root_dir               = iwp_get_root_dir();
+		$info_filename          = 'migrate-push-db-' . substr( $migrate_key, 0, 5 ) . '.txt';
 
-		$info_filename  = 'migrate-push-db-' . substr( $migrate_key, 0, 5 ) . '.txt';
-		$dest_file_path = ABSPATH . $info_filename;
-//		$dest_file_path = INSTAWP_BACKUP_DIR . 'migrate-push-db-' . substr( $migrate_key, 0, 5 ) . '.txt';
+		if ( isset( $root_dir['status'] ) && $root_dir['status'] === true ) {
+			$root_dir_path = isset( $root_dir['root_path'] ) ? $root_dir['root_path'] . DIRECTORY_SEPARATOR : ABSPATH;
+		} else {
+			$root_dir_path = ABSPATH;
+		}
+
+		$dest_file_path = $root_dir_path . $info_filename;
 
 		if ( file_put_contents( $dest_file_path, $data_encrypted ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 			$dest_url = INSTAWP_PLUGIN_URL . 'dest.php';
@@ -282,7 +296,7 @@ include $file_path;';
 				$forwarded_file_created = file_put_contents( $forwarded_file_path, $forwarded_content ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 
 				if ( $forwarded_file_created ) {
-					return site_url( $file_name );
+					return Helper::wp_site_url( $file_name );
 				}
 			}
 
@@ -339,34 +353,34 @@ include $file_path;';
 
 		// Remove __wp__ folder for WPC file structure
 		if ( is_dir( $wp_root_dir . '/__wp__' ) ) {
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/__wp__';
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-admin';
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-includes';
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-cli.yml';
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/index.php';
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-load.php';
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-activate.php';
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-blog-header.php';
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-comments-post.php';
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-config-sample.php';
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-cron.php';
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-links-opml.php';
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-login.php';
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-mail.php';
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-settings.php';
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-signup.php';
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-trackback.php';
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/xmlrpc.php';
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/.ftpquota';
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/.htaccess';
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/error_log';
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/license.txt';
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/readme.html';
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/robots.txt';
+			$migrate_settings['excluded_paths'][] = '__wp__';
+			$migrate_settings['excluded_paths'][] = 'wp-admin';
+			$migrate_settings['excluded_paths'][] = 'wp-includes';
+			$migrate_settings['excluded_paths'][] = 'wp-cli.yml';
+//			$migrate_settings['excluded_paths'][] = 'index.php';
+//			$migrate_settings['excluded_paths'][] = 'wp-load.php';
+//			$migrate_settings['excluded_paths'][] = 'wp-activate.php';
+//			$migrate_settings['excluded_paths'][] = 'wp-blog-header.php';
+//			$migrate_settings['excluded_paths'][] = 'wp-comments-post.php';
+//			$migrate_settings['excluded_paths'][] = 'wp-config-sample.php';
+//			$migrate_settings['excluded_paths'][] = 'wp-cron.php';
+//			$migrate_settings['excluded_paths'][] = 'wp-links-opml.php';
+//			$migrate_settings['excluded_paths'][] = 'wp-login.php';
+//			$migrate_settings['excluded_paths'][] = 'wp-mail.php';
+//			$migrate_settings['excluded_paths'][] = 'wp-settings.php';
+//			$migrate_settings['excluded_paths'][] = 'wp-signup.php';
+//			$migrate_settings['excluded_paths'][] = 'wp-trackback.php';
+			$migrate_settings['excluded_paths'][] = 'xmlrpc.php';
+			$migrate_settings['excluded_paths'][] = '.ftpquota';
+			$migrate_settings['excluded_paths'][] = '.htaccess';
+			$migrate_settings['excluded_paths'][] = 'error_log';
+			$migrate_settings['excluded_paths'][] = 'license.txt';
+			$migrate_settings['excluded_paths'][] = 'readme.html';
+			$migrate_settings['excluded_paths'][] = 'robots.txt';
 
-			if ( empty( $migrate_settings['mode'] ) || 'pull' == $migrate_settings['mode'] ) {
-				$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-config.php';
-			}
+//			if ( empty( $migrate_settings['mode'] ) || 'pull' == $migrate_settings['mode'] ) {
+//				$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-config.php';
+//			}
 		}
 
 		// Skip index.html file forcefully
@@ -950,7 +964,7 @@ include $file_path;';
 			// Check accessibility of fwd.php file
 			if ( empty( $serve_file_url ) || ! self::is_migrate_file_accessible( $serve_file_url ) ) {
 				// Serve through WordPress
-				$serve_file_url = site_url( 'serve-instawp' );
+				$serve_file_url = Helper::wp_site_url( 'serve-instawp' );
 				$serve_with_wp  = true;
 			}
 
@@ -1204,7 +1218,7 @@ include $file_path;';
                 <img class="instawp-logo-image" src="https://app.instawp.io/images/insta-logo-image.svg" alt="InstaWP Logo">
             </div>
             <div class="instawp-details">
-                <h3 class="instawp-details-title"><?php echo esc_url( site_url() ); ?></h3>
+                <h3 class="instawp-details-title"><?php echo esc_url( Helper::wp_site_url() ); ?></h3>
                 <p class="instawp-details-info">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 animate-spin inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
@@ -1443,7 +1457,7 @@ include $file_path;';
 		$restore_args = array(
 			'file_bkp'      => basename( $file_path ),
 			'db_bkp'        => basename( $db_path ),
-			'source_domain' => str_replace( array( 'https://', 'http://' ), '', site_url() ),
+			'source_domain' => str_replace( array( 'https://', 'http://' ), '', Helper::wp_site_url() ),
 		);
 		$restore_res  = Curl::do_curl( "connects/{$connect_id}/sites/{$site_id}/restore-raw", $restore_args, array(), 'PUT' );
 

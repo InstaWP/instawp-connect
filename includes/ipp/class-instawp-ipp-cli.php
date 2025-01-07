@@ -260,10 +260,10 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 					}
 					$migrate_id = time();
 					$target_url = 'https://rightful-grouse-51e3a4.a.instawpsites.com/wp-content/plugins/instawp-connect/dest.php';
-					$migrate_key = '6bfc59176954eb1c87f5eaf9aef11573b2da6236';
-					$api_signature = '255fedb26a5409fcb0c248c020b4b9fb34988c9fd6779fcc2d9213075ca08cca0cee73c1c9a561e2b3635c01e8f1f6429bcd732a50cf1c3cbb0e5983c89c1329';
+					$migrate_key = 'bd402fc612d8ca58995153ed7e4804bd40ed5d19';
+					$api_signature = 'adfe076580bff72cece9a8c991c2f09d94808ad21af72d79dd2ed6b1e33d7ed3c76f9930c62fdab2b93f79f8afee27eebe58d9a7a7bdfacc868856fc528c4bc7';
 					$bearer_token = '0e71f6cbeff626a99c09018522f075ccb0c9842fb0f84ed31406a1d7b88b5763';
-					
+
 					// Generate migrate settings file
 					$settings = InstaWP_Tools::generate_serve_file_response( $migrate_key, $api_signature, $settings );
 					if ( empty( $settings ) ) {

@@ -6,6 +6,7 @@ use InstaWP\Connect\Helpers\DatabaseManager;
 use InstaWP\Connect\Helpers\FileManager;
 use InstaWP\Connect\Helpers\Helper;
 use InstaWP\Connect\Helpers\Option;
+use InstaWP\Connect\Helpers\Updater;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -24,6 +25,29 @@ class InstaWP_Ajax {
 		add_action( 'wp_ajax_instawp_migrate_progress', array( $this, 'migrate_progress' ) );
 		add_action( 'wp_ajax_instawp_skip_item', array( $this, 'skip_item' ) );
 		add_action( 'wp_ajax_instawp_change_plan', array( $this, 'change_plan' ) );
+		add_action( 'wp_ajax_instawp_update_plugin', array( $this, 'update_plugin' ) );
+	}
+
+	public function update_plugin() {
+		check_ajax_referer( 'instawp-connect', 'security' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'updated' => false, 'permission' => false ) );
+		}
+
+		$plugin_updater = new Updater( array(
+			array(
+				'type' => 'plugin',
+				'slug' => INSTAWP_PLUGIN_FILE,
+			),
+		) );
+		$response       = $plugin_updater->update();
+
+		if ( isset( $response[ INSTAWP_PLUGIN_FILE ] ) && isset( $response[ INSTAWP_PLUGIN_FILE ]['success'] ) && (bool) $response[ INSTAWP_PLUGIN_FILE ]['success'] === true ) {
+			wp_send_json_success( array( 'updated' => true, 'response' => $response ) );
+		}
+
+		wp_send_json_error( array( 'updated' => false, 'response' => $response ) );
 	}
 
 	public function process_ajax() {
@@ -255,13 +279,14 @@ class InstaWP_Ajax {
 			wp_send_json_error();
 		}
 
-		global $wp_version;
-
 		$settings_str = isset( $_POST['settings'] ) ? $_POST['settings'] : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 
 		parse_str( $settings_str, $settings_arr );
 
-		$source_domain       = site_url();
+		global $wp_version, $wpdb;
+
+		$site_url            = $wpdb->get_var( "SELECT option_value FROM {$wpdb->options} WHERE option_name = 'siteurl'" );
+		$source_domain       = empty( $site_url ) ? site_url() : $site_url;
 		$is_website_on_local = instawp_is_website_on_local();
 		$instawp_migrate     = Helper::get_args_option( 'instawp_migrate', $settings_arr, array() );
 
@@ -495,8 +520,8 @@ class InstaWP_Ajax {
 				$theme_item_checked = true;
 
 				if ( in_array( $data['full_path'], array( $theme_path, $template_path, $themes_dir, $themes_dir . '/index.php' ) )
-					|| strpos( $data['full_path'], $theme_path ) !== false
-					|| strpos( $data['full_path'], $template_path ) !== false ) {
+				     || strpos( $data['full_path'], $theme_path ) !== false
+				     || strpos( $data['full_path'], $template_path ) !== false ) {
 
 					$theme_item_checked = false;
 				}
@@ -508,7 +533,7 @@ class InstaWP_Ajax {
 				$plugin_item_checked = true;
 
 				if ( in_array( $data['full_path'], array( wp_normalize_path( WP_PLUGIN_DIR ), wp_normalize_path( WP_PLUGIN_DIR ) . '/index.php' ) )
-					|| in_array( basename( $data['relative_path'] ), array_map( 'dirname', $active_plugins ) ) ) {
+				     || in_array( basename( $data['relative_path'] ), array_map( 'dirname', $active_plugins ) ) ) {
 
 					$plugin_item_checked = false;
 				}
@@ -701,7 +726,7 @@ class InstaWP_Ajax {
 		$plan_id = isset( $_POST['plan_id'] ) ? intval( $_POST['plan_id'] ) : 0;
 		if ( ! $plan_id ) {
 			wp_send_json_error();
-		}   
+		}
 
 		$connect_id   = instawp_get_connect_id();
 		$disconnected = Option::get_option( 'instawp_connect_disconnected' );
