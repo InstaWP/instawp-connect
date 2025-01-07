@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.6
 Tested up to: 6.7
 Requires PHP: 7.0
-Stable tag: 0.1.0.74
+Stable tag: 0.1.0.75
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -97,6 +97,11 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 You can report security bugs through the Patchstack Vulnerability Disclosure Program. The Patchstack team helps validate, triage, and handle any security vulnerabilities. [Report a security vulnerability](https://patchstack.com/database/vdp/instawp-connect).
 
 == Changelog ==
+
+= 0.1.0.75 - 03 January 2025 =
+- FIX: Added changes to directly connect to the advanced plan.
+- FIX: Added changes to create connect as unmanaged.
+- FIX: Fixed pull migration issue.
 
 = 0.1.0.74 - 03 January 2025 =
 - NEW: Show warning message if the plugin is not on latest version.
