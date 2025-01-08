@@ -127,64 +127,90 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 			require_once INSTAWP_PLUGIN_DIR . '/includes/ipp/class-instawp-push-files.php';
 			require_once INSTAWP_PLUGIN_DIR . '/includes/ipp/class-instawp-push-db.php';
 			// Global variables
-			global $tracking_db, $migrate_key, $migrate_id, $migrate_mode, $bearer_token, $target_url;
-			$migrate_mode = 'iterative_push';
+			global $tracking_db, $migrate_key, $migrate_id, $migrate_mode, $migrate_curl_title, $bearer_token, $target_url;
+			
 			try {
 				global $wpdb;
 				$this->init();
 
 				// Set last run command
 				update_option( $this->helper->vars['last_run_cli_time'], time() );
-				
-				$command = $args[0];
-				if ( $command === 'push' ) {
-					if ( isset( $assoc_args['purge-cache'] ) ) {
-						foreach ( $this->helper->vars as $option_name ) {
-							if ( 0 === strpos( $option_name, 'iwp_ipp_' ) ) {
-								delete_option( $option_name );
-							}
+
+				if ( isset( $assoc_args['purge-cache'] ) ) {
+					foreach ( $this->helper->vars as $option_name ) {
+						if ( 0 === strpos( $option_name, 'iwp_ipp_' ) ) {
+							delete_option( $option_name );
 						}
-						WP_CLI::success( "Cache purged for {$command} files successfully." );
-						return;
 					}
-					// Get exclude and include paths
-					$excluded_paths = empty( $assoc_args['exclude-paths'] ) ? array() : explode( ',', $assoc_args['exclude-paths'] );
-					$excluded_paths = array_merge( 
-						$excluded_paths, 
-						array(
-							'editor',
-							'wp-config.php',
-							'wp-config-sample.php',
-							'.htaccess',
-							'editor',
-							'wp-content' . DIRECTORY_SEPARATOR . 'cache',
-							'wp-content' . DIRECTORY_SEPARATOR . 'upgrade',
-							'wp-content' . DIRECTORY_SEPARATOR . INSTAWP_DEFAULT_BACKUP_DIR,
-							'wp-content' . DIRECTORY_SEPARATOR . 'plugins' . DIRECTORY_SEPARATOR . 'iwp-migration',
-							'wp-content' . DIRECTORY_SEPARATOR . 'plugins' . DIRECTORY_SEPARATOR . 'iwp-migration-main',
-							'wp-content' . DIRECTORY_SEPARATOR . 'plugins' . DIRECTORY_SEPARATOR . 'instawp-connect',
-							'iwp_log.txt',
-						)
-					);
-					
+					WP_CLI::success( "Cache purged for itterative pull push successfully." );
+					return;
+				}
 
-					$included_paths = empty( $assoc_args['include-paths'] ) ? array() : explode( ',', $assoc_args['include-paths'] );
-					
-					if ( ! empty( $included_paths ) ) {
-						// Array that contains the entries from excluded_paths that are not present in include_paths 
-						$excluded_paths = array_diff( $excluded_paths, $included_paths );
-					}
-					// Get exclude core files
-					$exclude_core  = isset( $assoc_args['exclude-core'] ) ? true : false;
-					if ( $exclude_core ) {
-						$excluded_paths = array_merge( $excluded_paths, $this->helper->core_files_folder_list() );
-					}
+				$command = $args[0];
+				// Set migrate settings
+				$migrate_settings = array(
+					'mode' => 'iterative_push',
+					'destination_site_url' => $this->staging_url,
+					'excluded_paths' => array(),
+					'options' => array()
+				);
+				// Get exclude and include paths
+				$excluded_paths = empty( $assoc_args['exclude-paths'] ) ? array() : explode( ',', $assoc_args['exclude-paths'] );
+				$excluded_paths = array_merge( 
+					$excluded_paths, 
+					array(
+						'editor',
+						'wp-config.php',
+						'wp-config-sample.php',
+						'.htaccess',
+						'editor',
+						'wp-content' . DIRECTORY_SEPARATOR . 'cache',
+						'wp-content' . DIRECTORY_SEPARATOR . 'upgrade',
+						'wp-content' . DIRECTORY_SEPARATOR . INSTAWP_DEFAULT_BACKUP_DIR,
+						'wp-content' . DIRECTORY_SEPARATOR . 'plugins' . DIRECTORY_SEPARATOR . 'iwp-migration',
+						'wp-content' . DIRECTORY_SEPARATOR . 'plugins' . DIRECTORY_SEPARATOR . 'iwp-migration-main',
+						'wp-content' . DIRECTORY_SEPARATOR . 'plugins' . DIRECTORY_SEPARATOR . 'instawp-connect',
+						'iwp_log.txt',
+					)
+				);
+				
+				$included_paths = empty( $assoc_args['include-paths'] ) ? array() : explode( ',', $assoc_args['include-paths'] );
+				
 
+				if ( ! empty( $included_paths ) ) {
+					// Array that contains the entries from excluded_paths that are not present in include_paths 
+					$excluded_paths = array_diff( $excluded_paths, $included_paths );
+				}
+
+				// Get exclude core
+				if ( isset( $assoc_args['exclude-core'] ) ) {
+					$excluded_paths = array_merge( $excluded_paths, $this->helper->core_files_folder_list() );
+					$migrate_settings['options'][] = 'skip_core_files';
+				}
+
+				// Get exclude uploads
+				if ( isset( $assoc_args['exclude-uploads'] ) ) {
+					$migrate_settings['options'][] = 'skip_media_folder';
+				}
+
+				// Get exclude large files
+				$exclude_large_files = isset( $assoc_args['exclude-large-files'] ) ? true : false;
+				if ( $exclude_large_files ) {
+					$migrate_settings['options'][] = 'skip_large_files';
+				}
+
+				// Iterative push
+				if ( $command === 'push' ) {
+					// Set migration mode
+					$migrate_mode = 'iterative_push';
+					// Set migration title
+					$migrate_curl_title = 'InstaWP Migration Service - Iterative Push';
+					
 					// Get exclude large files
-					$exclude_large_files = isset( $assoc_args['exclude-large-files'] ) ? true : false;
 					if ( $exclude_large_files ) {
 						$large_files = get_option( 'instawp_large_files_list' );
 						if ( empty( $large_files ) ) {
+							// Prepare large files
 							do_action( 'instawp_prepare_large_files_list' );
 							$large_files = get_option( 'instawp_large_files_list' );
 						}
@@ -194,25 +220,16 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 						}
 					}
 					$excluded_paths = array_unique( $excluded_paths );
-					// Get exclude uploads
-					$exclude_uploads = isset( $assoc_args['exclude-uploads'] ) ? true : false;
-					$settings = array(
-						'mode' => 'iterative_push',
-						'destination_site_url' => $this->staging_url,
-						'excluded_paths' => $excluded_paths,
-						'options' => array()
-					);
+					
+					$migrate_settings['excluded_paths'] = $excluded_paths;
 
-					if ( $exclude_uploads ) {
-						$settings['options'][] = 'skip_media_folder';
-					}
-
+					// Get exclude and include tables
 					if ( isset( $assoc_args['with-db'] ) ) {
-						$settings['excluded_tables_rows'] = array();
+						$migrate_settings['excluded_tables_rows'] = array();
 						$option_table_name = $wpdb->prefix . 'options';
-						$settings['excluded_tables_rows'][$option_table_name] = array();
+						$migrate_settings['excluded_tables_rows'][$option_table_name] = array();
 						foreach ( $this->helper->vars as $option_name ) {
-							$settings['excluded_tables_rows'][$option_table_name][] = 'option_name:' . $option_name;
+							$migrate_settings['excluded_tables_rows'][$option_table_name][] = 'option_name:' . $option_name;
 						}
 
 						// Get exclude and include tables
@@ -236,27 +253,18 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 
 						// Excluded tables
 						if ( ! empty( $excluded_tables ) ) {
-							$settings['excluded_tables'] = array_unique( $excluded_tables );
+							$migrate_settings['excluded_tables'] = array_unique( $excluded_tables );
 						}
 					}
 					
-					$settings = InstaWP_Tools::get_migrate_settings( array(), $settings );
-					// $_POST['migrate_settings'] = $settings;
-					// do_action( 'instawp_migrate_init_ipp' );
-					// $migration_details = Option::get_option( 'instawp_migration_details' );
-					// $this->helper->print_message( 'migrate details' );
-					// $this->helper->print_message( $migration_details );
-					// $migrate_key       = Helper::get_args_option( 'migrate_key', $migration_details );
-					// $tracking_db       = InstaWP_Tools::get_tracking_database( $migrate_key );
-					// $settings  = $tracking_db->get_option( 'migrate_settings' );
+					$migrate_settings = InstaWP_Tools::get_migrate_settings( array(), $migrate_settings );
+					
 					// Detect file changes
-					$settings['file_actions'] = $this->get_push_file_changes( $settings );
-					$db_update_meta = array();
+					$migrate_settings['file_actions'] = $this->get_push_file_changes( $migrate_settings );
 					// Detect database changes
 					if ( isset( $assoc_args['with-db'] ) ) {
-						$db_changes = $this->get_push_db_changes( $settings );
-						$settings['db_actions'] = $db_changes['db_actions'];
-						$db_update_meta = $db_changes['db_update_meta'];
+						$db_changes = $this->get_push_db_changes( $migrate_settings );
+						$migrate_settings['db_actions'] = $db_changes['db_actions'];
 					}
 					$migrate_id = time();
 					$target_url = 'https://rightful-grouse-51e3a4.a.instawpsites.com/wp-content/plugins/instawp-connect/dest.php';
@@ -265,8 +273,8 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 					$bearer_token = '0e71f6cbeff626a99c09018522f075ccb0c9842fb0f84ed31406a1d7b88b5763';
 
 					// Generate migrate settings file
-					$settings = InstaWP_Tools::generate_serve_file_response( $migrate_key, $api_signature, $settings );
-					if ( empty( $settings ) ) {
+					$migrate_settings = InstaWP_Tools::generate_serve_file_response( $migrate_key, $api_signature, $migrate_settings );
+					if ( empty( $migrate_settings ) ) {
 						WP_CLI::error( __( 'Failed to generate migrate settings.', 'instawp-connect' ) );
 					}
 					// Tracking database
@@ -275,16 +283,16 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 						WP_CLI::error( __( 'Failed to create tracking database.', 'instawp-connect' ) );
 					}
 					
-					$settings = $settings['migrate_settings'];
+					$migrate_settings = $migrate_settings['migrate_settings'];
 					
 					// Save ipp run settings to option
-					update_option( $this->helper->vars['ipp_run_settings'], $settings );
+					update_option( $this->helper->vars['ipp_run_settings'], $migrate_settings );
 					
 					$settings = array(
 						'target_url' => $target_url,
 						'working_directory' => wp_normalize_path( ABSPATH ),
 						'source_domain' => $this->helper->get_domain(),
-						'migrate_settings' => $settings,
+						'migrate_settings' => $migrate_settings,
 						'migrate_id' => $migrate_id,
 						'migrate_key' => $migrate_key,
 						'api_signature' => $api_signature,
@@ -297,7 +305,7 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 						'db_schema_only' => $this->db_schema_only,
 					);
 					// Push files
-					if ( ! empty( $settings['migrate_settings']['file_actions'] ) && ( ! empty( $settings['migrate_settings']['file_actions']['to_send'] ) || ! empty( $settings['migrate_settings']['file_actions']['to_delete'] ) || ! empty( $settings['migrate_settings']['file_actions']['to_delete_folders'] ) ) ) {
+					if ( ! empty( $migrate_settings['file_actions'] ) && ( ! empty( $migrate_settings['file_actions']['to_send'] ) || ! empty( $migrate_settings['file_actions']['to_delete'] ) || ! empty( $migrate_settings['file_actions']['to_delete_folders'] ) ) ) {
 						$this->helper->print_message( 'Pushing files...' );
 						instawp_iterative_push_files( $settings );
 					} else {
@@ -306,19 +314,33 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 					
 					// Push database
 					if ( isset( $assoc_args['with-db'] ) ) {
-						if ( ! empty( $settings['migrate_settings']['db_actions'] ) && ! empty( $settings['migrate_settings']['db_actions']['schema_queries'] ) ) {
+						if ( ! empty( $migrate_settings['db_actions'] ) && ! empty( $migrate_settings['db_actions']['schema_queries'] ) ) {
 							$this->helper->print_message( 'Pushing database schema...' );
 							$push_db_status = instawp_iterative_push_db( $settings );
 						} else {
 							$this->helper->print_message( 'No database schema changes detected for pushing.' );
 						}
-						
-						// if ( true === $push_db_status && ! empty( $db_update_meta ) ) {
-						// 	// Update db meta
-						// 	update_option( $this->helper->vars['db_meta_repo'], $db_update_meta );
-						// }
 					}
 
+				} else {
+					// Set migration mode
+					$migrate_mode = 'iterative_pull';
+					$migrate_curl_title = 'InstaWP Migration Service - Iterative Pull';
+					$migrate_settings['mode'] = $migrate_mode;
+					
+					// Pull files
+					$excluded_paths = array_unique( $excluded_paths );
+					
+					$migrate_settings['excluded_paths'] = $excluded_paths;
+					
+					// Detect file changes
+					$migrate_settings['file_actions'] = $this->get_pull_file_changes( $migrate_settings );
+					
+					// Detect database changes
+					if ( isset( $assoc_args['with-db'] ) ) {
+						// $db_changes = $this->get_pull_db_changes( $migrate_settings );
+						// $migrate_settings['db_actions'] = $db_changes['db_actions'];
+					}
 				}
 			} catch ( \Exception $e ) {
 				WP_CLI::error( $e->getMessage() );
@@ -680,6 +702,101 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 				'db_actions' => $db_actions,
 				'db_update_meta' => $db_meta
 			);
+		}
+
+		/**
+		 * Get push file changes
+		 * 
+		 * @param array $settings
+		 * 
+		 */
+		private function get_pull_file_changes( $settings ) {
+			WP_CLI::log( "Detecting files changes..." );
+			global $wpdb;
+			$start = time();
+			$action = array(
+				'to_send' => array(), // Files to send
+				'to_delete' => array(), // Deleted files
+				'to_delete_folders' => array(), // Deleted folders
+				'added_files_count' => 0, // Added files
+				'updated_files_count' => 0, // Updated files
+				'deleted_files_count' => 0, // Deleted files
+			);
+
+			$checksums = $this->helper->get_files_checksum(
+				$settings
+			);
+			
+			if ( ! empty( $checksums ) ) {
+				$target_checksums = $this->call_api( 'files-checksum', array(
+					'settings' => $settings
+				) );
+				
+				if (  ! empty( $target_checksums ) ) {
+					$excluded_paths = array_merge( 
+						$settings['excluded_paths'],  
+						array( 
+							'wp-config.php',
+							'wp-config-sample.php',
+							'.htaccess',
+							'.htpasswd',
+							'wp-sitemap.xml',
+							'robots.txt',
+							'wp-content/debug.log',
+							'serve.php',
+							'dest.php',
+						)
+					);
+		
+					foreach ( $checksums as $path_hash => $file ) {
+						if ( ! empty( $file['is_dir'] ) || in_array( $file['relative_path'], $excluded_paths ) || false !== strpos( $file['relative_path'], 'plugins/instawp-connect' ) || false !== strpos( $file['relative_path'], 'instawp-autologin' ) ) {
+							continue;
+						}
+						if ( ! isset( $target_checksums[$path_hash] ) || ( $target_checksums[$path_hash]['relative_path'] === $file['relative_path'] && $target_checksums[$path_hash]['checksum'] !== $file['checksum'] ) ) {
+							$file['is_updated'] = isset( $target_checksums[$path_hash] );
+							if ( $file['is_updated'] ) {
+								$action['updated_files_count']++;
+							} else {
+								$action['added_files_count']++;
+							}
+							
+							$action['to_send'][] = $file;
+						}
+					}
+					foreach ( $target_checksums as $path_hash => $file ) {
+						if ( ! isset( $checksums[$path_hash] ) && ! in_array( $file['relative_path'], $excluded_paths ) && false === strpos( $file['relative_path'], 'instawp-autologin' ) && false === strpos( $file['relative_path'], 'migrate-p' ) ) {
+							if ( isset( $file['is_dir'] ) && true === $file['is_dir'] ) {
+								$action['to_delete_folders'][] = $file;
+							} else {
+								$action['deleted_files_count']++;
+								$action['to_delete'][] = $file;
+							}
+						}
+					}
+
+				
+					if ( ! empty( $action['to_send'] ) ) {
+						foreach ( $action['to_send'] as $file ) {
+							$this->print_debug_log( "File: " . $file['relative_path'] . " is changed." );
+						}
+					}
+					if ( ! empty( $action['to_delete'] ) ) {
+						foreach ( $action['to_delete'] as $file ) {
+							$this->print_debug_log( "File: " . $file['relative_path'] . " is deleted." );
+						}
+					}
+
+					WP_CLI::log( __( 'Files Added:', 'instawp-connect' ) . ' ' . $action['added_files_count'] );
+					WP_CLI::log( __( 'Files Updated:', 'instawp-connect' ) . ' ' . $action['updated_files_count'] );
+					WP_CLI::log( __( 'Files Deleted:', 'instawp-connect' ) . ' ' . $action['deleted_files_count'] );
+					WP_CLI::log( __( 'Directories Deleted:', 'instawp-connect' ) . ' ' . count( $action['to_delete_folders'] ) );
+				}
+				WP_CLI::success( "Detection of file changes completed in " . ( time() - $start ) . " seconds" );
+			} else {
+				WP_CLI::log( __( 'Checksums not found.', 'instawp-connect' ) );
+			}
+
+			return $action;
 		}
 
 		/**

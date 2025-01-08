@@ -13,8 +13,9 @@ defined( 'ABSPATH' ) || exit;
 if ( ! function_exists( 'instawp_iterative_push_files' ) ) {
 	function instawp_iterative_push_files( $settings ) {
 
-		global $tracking_db, $migrate_key, $migrate_id, $migrate_mode, $bearer_token, $target_url;
+		global $tracking_db, $migrate_key, $migrate_id, $migrate_mode, $migrate_curl_title, $bearer_token, $target_url;
 		$start = time();
+		$migrate_curl_title = $migrate_curl_title . ' Files';
 		$max_zip_size =  1024 * 1024;
 		$max_retry = 5;
 		$retry_wait = 5;//in seconds
@@ -54,7 +55,7 @@ if ( ! function_exists( 'instawp_iterative_push_files' ) ) {
 
 		// Delete files
 		if ( ! empty( $mig_settings['file_actions']['to_delete'] ) || ! empty( $mig_settings['file_actions']['to_delete_folders'] ) ) {
-			curl_setopt( $curl_session, CURLOPT_USERAGENT, 'InstaWP Migration Service - Push delete Files' );
+			curl_setopt( $curl_session, CURLOPT_USERAGENT, $migrate_curl_title );
 			curl_setopt( $curl_session, CURLOPT_REFERER, $source_domain );
 			curl_setopt( $curl_session, CURLOPT_RETURNTRANSFER, true );
 			curl_setopt( $curl_session, CURLOPT_TIMEOUT, 120 );
@@ -168,7 +169,7 @@ if ( ! function_exists( 'instawp_iterative_push_files' ) ) {
 
 		$slow_sleep = 0;
 
-		curl_setopt( $curl_session, CURLOPT_USERAGENT, 'InstaWP Migration Service - Push Files' );
+		curl_setopt( $curl_session, CURLOPT_USERAGENT, $migrate_curl_title );
 		curl_setopt( $curl_session, CURLOPT_REFERER, $source_domain );
 		curl_setopt( $curl_session, CURLOPT_RETURNTRANSFER, true );
 		curl_setopt( $curl_session, CURLOPT_TIMEOUT, 120 );

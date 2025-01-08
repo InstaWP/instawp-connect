@@ -193,6 +193,9 @@ class InstaWP_Rest_Api_IPP extends InstaWP_Rest_Api {
 		}
 
 		$settings = $this->helper->sanitize_array( $settings );
+		if ( ! empty( $settings['mode'] ) && 'iterative_pull' === $settings['mode'] ) {
+			$settings = InstaWP_Tools::get_migrate_settings( array(), $settings );
+		}
 		return $this->send_response( array(
 			'success' => true,
 			'data'    => $this->helper->get_files_checksum( $settings )

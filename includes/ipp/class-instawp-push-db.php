@@ -20,7 +20,7 @@ if ( ! function_exists( 'instawp_iterative_push_db_curl' ) ) {
 	 * @return boolean status
 	 */
 	function instawp_iterative_push_db_curl( $statements, $curl_session, $api_signature, $index, $tracking_progress_req, $ipp_helper, $progress_sent_at ) {
-		global $tracking_db, $table_prefix, $migrate_key, $migrate_id, $migrate_mode, $bearer_token, $search_replace, $target_url;
+		global $tracking_db, $table_prefix, $migrate_key, $migrate_id, $migrate_mode, $migrate_curl_title, $bearer_token, $search_replace, $target_url;
 		try {
 
 			$temp_destination = tempnam( sys_get_temp_dir(), "iwp-db" );
@@ -31,7 +31,7 @@ if ( ! function_exists( 'instawp_iterative_push_db_curl' ) ) {
 			
 			$file_stream = fopen( $temp_destination, 'r' );
 
-			curl_setopt( $curl_session, CURLOPT_USERAGENT, 'InstaWP Migration Service - Iterative Push DB' );
+			curl_setopt( $curl_session, CURLOPT_USERAGENT, $migrate_curl_title );
 			curl_setopt( $curl_session, CURLOPT_URL, $target_url . '?r=' . $index );
 			curl_setopt( $curl_session, CURLOPT_HEADERFUNCTION, function ( $curl, $header ) use ( &$headers ) {
 				return iwp_process_curl_headers( $curl, $header, $headers );
@@ -90,11 +90,12 @@ if ( ! function_exists( 'instawp_iterative_push_db_curl' ) ) {
 }
 if ( ! function_exists( 'instawp_iterative_push_db' ) ) {
 	function instawp_iterative_push_db( $settings ) {
-		global $tracking_db, $table_prefix, $migrate_key, $migrate_id, $migrate_mode, $bearer_token, $search_replace, $target_url;
+		global $tracking_db, $table_prefix, $migrate_key, $migrate_id, $migrate_mode, $migrate_curl_title, $bearer_token, $search_replace, $target_url;
 
 		define( 'CHUNK_DB_SIZE', 100 );
 
 		$ipp_helper = new INSTAWP_IPP_HELPER();
+		$migrate_curl_title = $migrate_curl_title . ' DB';
 		$required_parameters = array(
 			'target_url',
 			'working_directory',
@@ -198,7 +199,7 @@ if ( ! function_exists( 'instawp_iterative_push_db' ) ) {
 			}
 		}
 
-		curl_setopt( $curl_session, CURLOPT_USERAGENT, 'InstaWP Migration Service - Iterative Push DB' );
+		curl_setopt( $curl_session, CURLOPT_USERAGENT, $migrate_curl_title );
 		curl_setopt( $curl_session, CURLOPT_REFERER, $source_domain );
 		curl_setopt( $curl_session, CURLOPT_RETURNTRANSFER, true );
 		curl_setopt( $curl_session, CURLOPT_TIMEOUT, 120 );
