@@ -138,7 +138,6 @@ class InstaWP_Rest_Api {
 		$api_key              = isset( $parameters['api_key'] ) ? sanitize_text_field( $parameters['api_key'] ) : '';
 		$api_domain           = isset( $parameters['api_domain'] ) ? sanitize_text_field( $parameters['api_domain'] ) : '';
 		$plan_id              = isset( $parameters['advance_connect_plan_id'] ) ? intval( $parameters['advance_connect_plan_id'] ) : 0;
-		$api_domain           = rtrim( $api_domain, '/' );
 
 		if ( empty( $wp_username ) || empty( $application_password ) ) {
 			return $this->send_response( array(
@@ -219,10 +218,16 @@ class InstaWP_Rest_Api {
 
 		// If api_domain is passed then, set it
 		if ( ! empty( $api_domain ) ) {
-			// Use constant if defined, otherwise validate allowed domains
+			$api_domain      = rtrim( $api_domain, '/' );
+			$allowed_domains = array(
+				'https://stage.instawp.io',
+				'https://dev.instawp.io', 
+				'https://app.instawp.io',
+			);
+
 			$domain_to_set = defined( 'INSTAWP_API_DOMAIN' ) 
 				? INSTAWP_API_DOMAIN
-				: ( in_array( $api_domain, array( 'https://stage.instawp.io', 'https://app.instawp.io' ) ) ? $api_domain : '' );
+				: ( in_array( $api_domain, $allowed_domains ) ? $api_domain : '' );
 				
 			if ( empty( $domain_to_set ) ) {
 				return $this->send_response( array(
