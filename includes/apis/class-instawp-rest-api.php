@@ -32,6 +32,12 @@ class InstaWP_Rest_Api {
 			'permission_callback' => '__return_true',
 		) );
 
+		register_rest_route( $this->namespace . '/' . $this->version, '/mark-parent', array(
+			'methods'             => 'POST',
+			'callback'            => array( $this, 'mark_parent' ),
+			'permission_callback' => '__return_true',
+		) );
+
 		register_rest_route( $this->namespace . '/' . $this->version, '/mark-staging', array(
 			'methods'             => 'POST',
 			'callback'            => array( $this, 'mark_staging' ),
@@ -265,27 +271,60 @@ class InstaWP_Rest_Api {
 	}
 
 	/**
-	 * Mark website as staging.
+	 * Mark website as parent.
 	 *
-	 * @param WP_REST_Request $req
+	 * @param WP_REST_Request $request
 	 *
 	 * @return WP_Error|WP_HTTP_Response|WP_REST_Response
 	 */
-	public function mark_staging( WP_REST_Request $req ) {
-		$response = $this->validate_api_request( $req );
+	public function mark_parent( WP_REST_Request $request ) {
+		$response = $this->validate_api_request( $request );
 		if ( is_wp_error( $response ) ) {
 			return $this->throw_error( $response );
 		}
 
-		$body    = $req->get_body();
-		$request = json_decode( $body );
-
-		if ( ! isset( $request->parent_connect_id ) ) {
-			return new WP_Error( 400, esc_html__( 'Invalid connect ID', 'instawp-connect' ) );
+		if ( ! instawp()->is_staging ) {
+			return $this->send_response( array(
+				'status'  => false,
+				'message' => __( 'This site is not currently marked as staging', 'instawp-connect' ),
+			) );
 		}
 
 		delete_option( 'instawp_sync_parent_connect_data' );
-		Option::update_option( 'instawp_sync_connect_id', intval( $request->parent_connect_id ) );
+		delete_option( 'instawp_sync_connect_id' );
+		delete_option( 'instawp_is_staging' );
+
+		instawp_set_staging_sites_list( true );
+
+		return $this->send_response( array(
+			'status'  => true,
+			'message' => __( 'Site has been marked as parent', 'instawp-connect' ),
+		) );
+	}
+
+	/**
+	 * Mark website as staging.
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return WP_Error|WP_HTTP_Response|WP_REST_Response
+	 */
+	public function mark_staging( WP_REST_Request $request ) {
+		$response = $this->validate_api_request( $request );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
+
+		$parent_connect_id = (int) $request->get_param( 'parent_connect_id' );
+		if ( empty( $parent_connect_id ) ) {
+			return $this->send_response( array(
+				'status'  => false,
+				'message' => esc_html__( 'Invalid connect ID', 'instawp-connect' ),
+			) );
+		}
+
+		delete_option( 'instawp_sync_parent_connect_data' );
+		Option::update_option( 'instawp_sync_connect_id', $parent_connect_id );
 		Option::update_option( 'instawp_is_staging', true );
 		instawp_get_source_site_detail();
 
@@ -298,12 +337,12 @@ class InstaWP_Rest_Api {
     /**
      * Refresh staging site list.
      *
-     * @param WP_REST_Request $req
+     * @param WP_REST_Request $request
      *
      * @return WP_Error|WP_HTTP_Response|WP_REST_Response
      */
-    public function refresh_staging_sites_list( WP_REST_Request $req ) {
-        $response = $this->validate_api_request( $req );
+    public function refresh_staging_sites_list( WP_REST_Request $request ) {
+        $response = $this->validate_api_request( $request );
         if ( is_wp_error( $response ) ) {
             return $this->throw_error( $response );
         }
