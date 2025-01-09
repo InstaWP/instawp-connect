@@ -290,9 +290,25 @@ class InstaWP_Rest_Api {
 			) );
 		}
 
-		delete_option( 'instawp_sync_parent_connect_data' );
-		delete_option( 'instawp_sync_connect_id' );
+		$parent_connect_id = (int) $request->get_param( 'parent_connect_id' );
+		if ( empty( $parent_connect_id ) ) {
+			return $this->send_response( array(
+				'status'  => false,
+				'message' => esc_html__( 'Invalid parent connect ID', 'instawp-connect' ),
+			) );
+		}
+
+		$sync_connect_id = (int) get_option( 'instawp_sync_connect_id', 0 );
+		if ( $sync_connect_id !== $parent_connect_id ) {
+			return $this->send_response( array(
+				'status'  => false,
+				'message' => esc_html__( 'Parent connect ID does not match', 'instawp-connect' ),
+			) );
+		}
+
 		delete_option( 'instawp_is_staging' );
+		delete_option( 'instawp_sync_connect_id' );
+		delete_option( 'instawp_sync_parent_connect_data' );
 
 		instawp_set_staging_sites_list( true );
 
