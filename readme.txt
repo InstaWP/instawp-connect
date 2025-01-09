@@ -98,6 +98,9 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 0.1.0.76 - January 2025 =
+- FIX: Added support to disconnect connect via CLI.
+
 = 0.1.0.75 - 07 January 2025 =
 - FIX: Added changes to directly connect to the advanced plan.
 - FIX: Added changes to create connect as unmanaged.
