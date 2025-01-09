@@ -701,14 +701,10 @@ class InstaWP_Ajax {
 
 		$check_api = isset( $_POST['api'] ) && filter_var( wp_unslash( $_POST['api'] ), FILTER_VALIDATE_BOOLEAN ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash)
 		if ( $check_api ) {
-			$connect_id = instawp_get_connect_id();
-
-			// connects/<connect_id>/disconnect
-			$api_response = Curl::do_curl( "connects/{$connect_id}/disconnect" );
-
-			if ( empty( $api_response['success'] ) ) {
+			$disconnect_res = instawp_disconnect_connect();
+			if ( ! $disconnect_res['success'] ) {
 				wp_send_json_error( array(
-					'message' => $api_response['message'],
+					'message' => $disconnect_res['message'],
 				) );
 			}
 		}

@@ -187,7 +187,7 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 	 *
 	 * @return bool
 	 */
-	function instawp_reset_running_migration( $reset_type = 'soft', $abort_forcefully = false, $clear_events = false ) {
+	function instawp_reset_running_migration( $reset_type = 'soft', $abort_forcefully = false, $clear_events = false, $disconnect_connect = false ) {
 		global $wpdb;
 
 		$migration_details = Option::get_option( 'instawp_migration_details' );
@@ -227,6 +227,10 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 //      $wpdb->query( "DROP TABLE IF EXISTS `iwp_options`;" );
 
 		if ( 'hard' === $reset_type ) {
+			if ( $disconnect_connect ) {
+				instawp_disconnect_connect();
+			}
+			
 			delete_option( 'instawp_backup_part_size' );
 			delete_option( 'instawp_max_file_size_allowed' );
 			delete_option( 'instawp_reset_type' );
@@ -1264,3 +1268,30 @@ if ( ! function_exists( 'instawp_connect_activate_plan' ) ) {
 		);
     }
 }
+
+
+if ( ! function_exists( 'instawp_disconnect_connect' ) ) {
+    function instawp_disconnect_connect() {
+        $connect_id = instawp_get_connect_id();
+        if ( empty( $connect_id ) ) {
+            return array(
+                'success' => false,
+                'message' => __( 'Connect ID not found', 'instawp-connect' ),
+            );
+        }
+
+        $api_response = Curl::do_curl( "connects/{$connect_id}/disconnect" );
+        if ( empty( $api_response['success'] ) ) {
+            return array(
+                'success' => false,
+                'message' => $api_response['message'],
+            );
+        }
+
+        return array(
+            'success' => true,
+            'message' => __( 'Connect disconnected successfully', 'instawp-connect' ),
+        );
+    }
+}
+

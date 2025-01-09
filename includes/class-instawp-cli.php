@@ -196,11 +196,21 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 					$option->delete( array( 'instawp_api_options', 'instawp_connect_id_options' ) );
 				},
 				'hard-reset'           => function( $args, $assoc_args ) { // wp instawp hard-reset
-					instawp_reset_running_migration( 'hard', false );
-
 					if ( isset( $assoc_args['clear-events'] ) ) {
 						instawp_delete_sync_entries();
 					}
+
+					if ( isset( $assoc_args['disconnect'] ) ) {
+						$disconnect_res = $this->handle_disconnect();
+						if ( ! $disconnect_res ) {
+							return false;
+						}
+					}
+
+					instawp_reset_running_migration( 'hard', false );
+				},
+				'disconnect'           => function() { // wp instawp disconnect
+					return $this->handle_disconnect();
 				},
 				'clear-events'         => function() { // wp instawp clear-events
 					instawp_delete_sync_entries();
@@ -285,6 +295,23 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 				WP_CLI::error( 'Failed to configure mode: ' . $e->getMessage() );
 				return false;
 			}
+		}
+
+		/**
+		 * Handle disconnect operation
+		 * 
+		 * @return bool
+		 */
+		private function handle_disconnect() {
+			$disconnect_res = instawp_disconnect_connect();
+			
+			if ( ! $disconnect_res['success'] ) {
+				WP_CLI::error( $disconnect_res['message'] );
+				return false;
+			}
+
+			WP_CLI::success( $disconnect_res['message'] );
+			return true;
 		}
 		
 		// Helper methods for scan functionality
