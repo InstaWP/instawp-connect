@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.6
 Tested up to: 6.7
 Requires PHP: 7.0
-Stable tag: 0.1.0.75
+Stable tag: 0.1.0.76
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -98,8 +98,9 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
-= 0.1.0.76 - January 2025 =
+= 0.1.0.76 - 10 January 2025 =
 - FIX: Added support to disconnect connect via CLI.
+- FIX: Fixed support to mark staging site as parent via API.
 
 = 0.1.0.75 - 07 January 2025 =
 - FIX: Added changes to directly connect to the advanced plan.
