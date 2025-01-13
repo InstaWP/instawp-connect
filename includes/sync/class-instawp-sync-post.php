@@ -330,9 +330,6 @@ class InstaWP_Sync_Post {
 			'custom_css',
 			'oembed_cache',
 			'user_request',
-			'wp_template',
-			'wp_template_part',
-			'wp_global_styles',
 
 			// WooCommerce
 			'product',

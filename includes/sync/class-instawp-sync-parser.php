@@ -408,7 +408,7 @@ class InstaWP_Sync_Parser {
 				}
 				wp_set_post_terms( $wp_post['ID'], $term_ids, $taxonomy );
 			}
-
+			
 			self::replace_media_items( $content_media, $wp_post['ID'], $details );
 		}
 
@@ -515,10 +515,26 @@ class InstaWP_Sync_Parser {
 		if ( $post_id && ! is_wp_error( $post_id ) ) {
 			self::process_post_meta( $post_meta, $post_id );
 
+			// Full Site Editing: Clean the caches.
+			if ( self::is_fse_cpt( $post ) && function_exists( 'wp_clean_theme_json_cache' ) ) {
+				// Cleans the caches under the theme_json group.
+				wp_clean_theme_json_cache();
+			}
 			return $post_id;
 		}
 
 		return 0;
+	}
+
+	/**
+	 * Check if post is FSE CPT. ie. 'wp_global_styles', 'wp_template_part', 'wp_template'
+	 * 
+	 * @param array $post
+	 * 
+	 * @return bool is FSE CPT
+	 */
+	public static function is_fse_cpt( $post ) {
+		return ( is_array( $post ) && ! empty( $post['post_type'] ) && in_array( $post['post_type'], array( 'wp_global_styles', 'wp_template_part', 'wp_template' ) ) );
 	}
 
 	public static function prepare_post_data( $post, $post_id = 0 ) {
@@ -526,7 +542,7 @@ class InstaWP_Sync_Parser {
 
 		if ( isset( $post['post_content'] ) ) {
 			$post['post_content'] = base64_decode( $post['post_content'] ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
-			if ( has_blocks( $post['post_content'] ) ) {
+			if ( has_blocks( $post['post_content'] ) || self::is_fse_cpt( $post ) ) {
 				/**
 				 * When getting content with get_post(), the content is already unslashed. 
 				 * When updating the same content back, it need to wp_slash(). 
@@ -846,7 +862,7 @@ class InstaWP_Sync_Parser {
 		}
 
 		// Replace links
-		if ( ! empty( $details['site_url'] ) && filter_var( $details['site_url'], FILTER_VALIDATE_URL ) && function_exists( 'home_url' ) ) {
+		if ( ! empty( $details['site_url'] ) && filter_var( $details['site_url'], FILTER_VALIDATE_URL ) && false !== strpos( $content, wp_unslash( $details['site_url'] ) ) && function_exists( 'home_url' ) ) {
 			$content = str_replace( 
 				wp_unslash( $details['site_url'] ),
 				home_url(), 
@@ -868,7 +884,7 @@ class InstaWP_Sync_Parser {
 						$replace_data
 					);
 					if ( ! empty( $blocks ) && is_array( $blocks ) ) {
-						$content = wp_slash( serialize_blocks( $blocks ) );
+						$content = serialize_blocks( $blocks );
 						$should_update_post = true;
 					}
 				}
@@ -880,7 +896,7 @@ class InstaWP_Sync_Parser {
 		if ( $should_update_post ) {
 			wp_update_post( array(
 				'ID'           => $post_id,
-				'post_content' => $content,
+				'post_content' => wp_slash( $content ),
 			) );
 		}
 

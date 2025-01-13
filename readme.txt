@@ -98,6 +98,9 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 0.1.0.77 - Beta =
+- Added: FSE Theme Global Styles, Templates, Template parts sync support
+
 = 0.1.0.76 - 10 January 2025 =
 - FIX: Added support to disconnect connect via CLI.
 - FIX: Fixed support to mark staging site as parent via API.
