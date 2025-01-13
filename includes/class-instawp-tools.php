@@ -386,7 +386,7 @@ include $file_path;';
 		// Skip index.html file forcefully
 		$migrate_settings['excluded_paths'][] = 'index.html';
 		$migrate_settings['excluded_paths'][] = '.user.ini';
-//		$migrate_settings['excluded_paths'][] = '.htaccess';
+		$migrate_settings['excluded_paths'][] = '.htaccess';
 
 		if ( empty( $migrate_settings['mode'] ) || 'pull' == $migrate_settings['mode'] ) {
 			$migrate_settings['excluded_paths'][] = 'wp-config.php';
