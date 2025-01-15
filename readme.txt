@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.6
 Tested up to: 6.7
 Requires PHP: 7.0
-Stable tag: 0.1.0.76
+Stable tag: 0.1.0.77
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -98,8 +98,9 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
-= 0.1.0.77 - Beta =
-- Added: FSE Theme Global Styles, Templates, Template parts sync support
+= 0.1.0.77 - 15 January 2025 =
+- NEW: Added FSE theme global styles, Templates, Template parts sync support.
+- FIX: Fixed 404 errors in push migration.
 
 = 0.1.0.76 - 10 January 2025 =
 - FIX: Added support to disconnect connect via CLI.
