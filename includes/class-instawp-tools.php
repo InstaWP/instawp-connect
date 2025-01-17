@@ -346,7 +346,7 @@ include $file_path;';
 		 * staging creation.
 		 * @since 0.1.0.58
 		 */
-		if ( empty( $migrate_settings['mode'] ) || 'push' !== $migrate_settings['mode'] ) {
+		if ( empty( $migrate_settings['mode'] ) || 'pull' === $migrate_settings['mode'] ) {
 			$migrate_settings['excluded_paths'][] = 'wp-admin';
 			$migrate_settings['excluded_paths'][] = 'wp-includes';
 		}
@@ -357,19 +357,19 @@ include $file_path;';
 			$migrate_settings['excluded_paths'][] = 'wp-admin';
 			$migrate_settings['excluded_paths'][] = 'wp-includes';
 			$migrate_settings['excluded_paths'][] = 'wp-cli.yml';
-//			$migrate_settings['excluded_paths'][] = 'index.php';
-//			$migrate_settings['excluded_paths'][] = 'wp-load.php';
-//			$migrate_settings['excluded_paths'][] = 'wp-activate.php';
-//			$migrate_settings['excluded_paths'][] = 'wp-blog-header.php';
-//			$migrate_settings['excluded_paths'][] = 'wp-comments-post.php';
-//			$migrate_settings['excluded_paths'][] = 'wp-config-sample.php';
-//			$migrate_settings['excluded_paths'][] = 'wp-cron.php';
-//			$migrate_settings['excluded_paths'][] = 'wp-links-opml.php';
-//			$migrate_settings['excluded_paths'][] = 'wp-login.php';
-//			$migrate_settings['excluded_paths'][] = 'wp-mail.php';
-//			$migrate_settings['excluded_paths'][] = 'wp-settings.php';
-//			$migrate_settings['excluded_paths'][] = 'wp-signup.php';
-//			$migrate_settings['excluded_paths'][] = 'wp-trackback.php';
+//          $migrate_settings['excluded_paths'][] = 'index.php';
+//          $migrate_settings['excluded_paths'][] = 'wp-load.php';
+//          $migrate_settings['excluded_paths'][] = 'wp-activate.php';
+//          $migrate_settings['excluded_paths'][] = 'wp-blog-header.php';
+//          $migrate_settings['excluded_paths'][] = 'wp-comments-post.php';
+//          $migrate_settings['excluded_paths'][] = 'wp-config-sample.php';
+//          $migrate_settings['excluded_paths'][] = 'wp-cron.php';
+//          $migrate_settings['excluded_paths'][] = 'wp-links-opml.php';
+//          $migrate_settings['excluded_paths'][] = 'wp-login.php';
+//          $migrate_settings['excluded_paths'][] = 'wp-mail.php';
+//          $migrate_settings['excluded_paths'][] = 'wp-settings.php';
+//          $migrate_settings['excluded_paths'][] = 'wp-signup.php';
+//          $migrate_settings['excluded_paths'][] = 'wp-trackback.php';
 			$migrate_settings['excluded_paths'][] = 'xmlrpc.php';
 			$migrate_settings['excluded_paths'][] = '.ftpquota';
 			$migrate_settings['excluded_paths'][] = '.htaccess';
@@ -378,18 +378,22 @@ include $file_path;';
 			$migrate_settings['excluded_paths'][] = 'readme.html';
 			$migrate_settings['excluded_paths'][] = 'robots.txt';
 
-//			if ( empty( $migrate_settings['mode'] ) || 'pull' == $migrate_settings['mode'] ) {
-//				$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-config.php';
-//			}
+//          if ( empty( $migrate_settings['mode'] ) || 'pull' == $migrate_settings['mode'] ) {
+//              $migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-config.php';
+//          }
 		}
 
 		// Skip index.html file forcefully
 		$migrate_settings['excluded_paths'][] = 'index.html';
 		$migrate_settings['excluded_paths'][] = '.user.ini';
+		$migrate_settings['excluded_paths'][] = '.htaccess';
 
 		if ( empty( $migrate_settings['mode'] ) || 'pull' == $migrate_settings['mode'] ) {
 			$migrate_settings['excluded_paths'][] = 'wp-config.php';
 		}
+
+		// Skip instawp-connect plugin
+		$migrate_settings['excluded_paths'][] = $relative_dir . '/plugins/instawp-connect';
 
 		// Skip mu-pluginsold folder
 		$migrate_settings['excluded_paths'][] = $relative_dir . '/mu-plugins/mu-pluginsold';
@@ -431,7 +435,8 @@ include $file_path;';
 		$migrate_settings['table_prefix'] = $table_prefix;
 
 		$migrate_settings['wp_config_constants'] = self::get_wp_config_constants();
-
+		// Remove duplicates from excluded paths
+		$migrate_settings['excluded_paths'] = array_unique( $migrate_settings['excluded_paths'] );
 		return apply_filters( 'instawp/filters/process_migration_settings', $migrate_settings );
 	}
 
@@ -1046,7 +1051,7 @@ include $file_path;';
 		$excluded_tables[] = $wpdb->prefix . 'rank_math_analytics_gsc';
 		$excluded_tables[] = $wpdb->prefix . 'rank_math_redirections_cache';
 
-		$migrate_settings['excluded_tables'] = $excluded_tables;
+		$migrate_settings['excluded_tables'] = array_unique( $excluded_tables );
 
 		// Remove instawp connect options
 		$excluded_tables_rows = Helper::get_args_option( 'excluded_tables_rows', $migrate_settings, array() );
@@ -1068,7 +1073,46 @@ include $file_path;';
 
 		$migrate_settings['excluded_tables_rows'] = $excluded_tables_rows;
 
+		$migrate_settings['source_ip_address'] = self::get_user_ip_address();
+
 		return self::process_migration_settings( $migrate_settings );
+	}
+
+	public static function get_user_ip_address() {
+		// Check for IPv6 and IPv4 validation
+		$ip_pattern = '/^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$|^(?:(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,7}:|(?:[0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,5}(?::[0-9a-fA-F]{1,4}){1,2}|(?:[0-9a-fA-F]{1,4}:){1,4}(?::[0-9a-fA-F]{1,4}){1,3}|(?:[0-9a-fA-F]{1,4}:){1,3}(?::[0-9a-fA-F]{1,4}){1,4}|(?:[0-9a-fA-F]{1,4}:){1,2}(?::[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:(?:(?::[0-9a-fA-F]{1,4}){1,6})|:(?:(?::[0-9a-fA-F]{1,4}){1,7}|:))$/';
+
+		// Array of possible IP address server variables
+		$ip_sources = array(
+			'HTTP_CLIENT_IP',
+			'HTTP_X_FORWARDED_FOR',
+			'HTTP_X_FORWARDED',
+			'HTTP_X_CLUSTER_CLIENT_IP',
+			'HTTP_FORWARDED_FOR',
+			'HTTP_FORWARDED',
+			'REMOTE_ADDR',
+		);
+
+		// Loop through possible IP sources
+		foreach ( $ip_sources as $source ) {
+			if ( isset( $_SERVER[ $source ] ) ) {
+				$ip = $_SERVER[ $source ];
+
+				// Handle X-Forwarded-For header which may contain multiple IPs
+				if ( $source === 'HTTP_X_FORWARDED_FOR' ) {
+					$ips = explode( ',', $ip );
+					$ip  = trim( $ips[0] ); // Get the first IP in the list
+				}
+
+				// Validate IP format
+				if ( filter_var( $ip, FILTER_VALIDATE_IP ) && preg_match( $ip_pattern, $ip ) ) {
+					return $ip;
+				}
+			}
+		}
+
+		// If no valid IP is found, return a fallback
+		return '0.0.0.0';
 	}
 
 	/**

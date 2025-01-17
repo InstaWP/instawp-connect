@@ -170,9 +170,29 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 				}
 				return $files_array;
 			} catch ( Exception $e ) {
-				$this->iwp_send_migration_log( 'push-files: Failed to get files', $e->getMessage() );
+				$this->print_message( 'push-files: Failed to get files', $e->getMessage() );
 				return array();
 			}
+		}
+
+		public function get_parent_folders_only($folders) {
+			// First, let's extract just the paths for easier processing
+			$paths = array_column($folders, 'relative_path');
+			
+			// Filter out folders that are subfolders of any other folder
+			return array_values( array_filter( $folders, function( $folder ) use ( $paths ) {
+				$currentPath = $folder['relative_path'];
+				
+				foreach ($paths as $path) {
+					// If another path contains this path as a prefix AND they're not the same path
+					// AND the other path is shorter (meaning it's a parent)
+					if ( $path !== $currentPath && 
+						str_starts_with($currentPath, $path . '/') ) {
+						return false; // This is a subfolder, so filter it out
+					}
+				}
+				return true; // This is either a parent folder or has no parent
+			}) );
 		}
 
 

@@ -32,6 +32,12 @@ class InstaWP_Rest_Api {
 			'permission_callback' => '__return_true',
 		) );
 
+		register_rest_route( $this->namespace . '/' . $this->version, '/mark-parent', array(
+			'methods'             => 'POST',
+			'callback'            => array( $this, 'mark_parent' ),
+			'permission_callback' => '__return_true',
+		) );
+
 		register_rest_route( $this->namespace . '/' . $this->version, '/mark-staging', array(
 			'methods'             => 'POST',
 			'callback'            => array( $this, 'mark_staging' ),
@@ -137,7 +143,7 @@ class InstaWP_Rest_Api {
 		$jwt                  = isset( $parameters['token'] ) ? sanitize_text_field( $parameters['token'] ) : '';
 		$api_key              = isset( $parameters['api_key'] ) ? sanitize_text_field( $parameters['api_key'] ) : '';
 		$api_domain           = isset( $parameters['api_domain'] ) ? sanitize_text_field( $parameters['api_domain'] ) : '';
-		$api_domain           = rtrim( $api_domain, '/' );
+		$plan_id              = isset( $parameters['advance_connect_plan_id'] ) ? intval( $parameters['advance_connect_plan_id'] ) : 0;
 
 		if ( empty( $wp_username ) || empty( $application_password ) ) {
 			return $this->send_response( array(
@@ -218,17 +224,29 @@ class InstaWP_Rest_Api {
 
 		// If api_domain is passed then, set it
 		if ( ! empty( $api_domain ) ) {
-			if ( defined( 'INSTAWP_API_DOMAIN' ) ) {
-				Helper::set_api_domain( INSTAWP_API_DOMAIN );
-			} elseif ( in_array( $api_domain, array( 'https://stage.instawp.io', 'https://app.instawp.io' ) ) ) {
-				$api_domain = rtrim( $api_domain, '/' );
-				Helper::set_api_domain( $api_domain );
-			} else {
+			$api_domain      = rtrim( $api_domain, '/' );
+			$allowed_domains = array(
+				'https://stage.instawp.io',
+				'https://dev.instawp.io', 
+				'https://app.instawp.io',
+			);
+
+			$domain_to_set = defined( 'INSTAWP_API_DOMAIN' ) 
+				? INSTAWP_API_DOMAIN
+				: ( in_array( $api_domain, $allowed_domains ) ? $api_domain : '' );
+				
+			if ( empty( $domain_to_set ) ) {
 				return $this->send_response( array(
 					'status'  => false,
 					'message' => esc_html__( 'Invalid API domain parameter passed.', 'instawp-connect' ),
 				) );
 			}
+			
+			Helper::set_api_domain( $domain_to_set );
+		}
+
+		if ( ! empty( $plan_id ) ) {
+			Option::update_option( 'instawp_connect_plan_id', $plan_id );
 		}
 
 		if ( ! Helper::instawp_generate_api_key( $api_key, $jwt ) ) {
@@ -253,27 +271,76 @@ class InstaWP_Rest_Api {
 	}
 
 	/**
-	 * Mark website as staging.
+	 * Mark website as parent.
 	 *
-	 * @param WP_REST_Request $req
+	 * @param WP_REST_Request $request
 	 *
 	 * @return WP_Error|WP_HTTP_Response|WP_REST_Response
 	 */
-	public function mark_staging( WP_REST_Request $req ) {
-		$response = $this->validate_api_request( $req );
+	public function mark_parent( WP_REST_Request $request ) {
+		$response = $this->validate_api_request( $request );
 		if ( is_wp_error( $response ) ) {
 			return $this->throw_error( $response );
 		}
 
-		$body    = $req->get_body();
-		$request = json_decode( $body );
+		if ( ! instawp()->is_staging ) {
+			return $this->send_response( array(
+				'status'  => false,
+				'message' => __( 'This site is not currently marked as staging', 'instawp-connect' ),
+			) );
+		}
 
-		if ( ! isset( $request->parent_connect_id ) ) {
-			return new WP_Error( 400, esc_html__( 'Invalid connect ID', 'instawp-connect' ) );
+		$parent_connect_id = (int) $request->get_param( 'parent_connect_id' );
+		if ( empty( $parent_connect_id ) ) {
+			return $this->send_response( array(
+				'status'  => false,
+				'message' => esc_html__( 'Invalid parent connect ID', 'instawp-connect' ),
+			) );
+		}
+
+		$sync_connect_id = (int) get_option( 'instawp_sync_connect_id', 0 );
+		if ( $sync_connect_id !== $parent_connect_id ) {
+			return $this->send_response( array(
+				'status'  => false,
+				'message' => esc_html__( 'Parent connect ID does not match', 'instawp-connect' ),
+			) );
+		}
+
+		delete_option( 'instawp_is_staging' );
+		delete_option( 'instawp_sync_connect_id' );
+		delete_option( 'instawp_sync_parent_connect_data' );
+
+		instawp_set_staging_sites_list( true );
+
+		return $this->send_response( array(
+			'status'  => true,
+			'message' => __( 'Site has been marked as parent', 'instawp-connect' ),
+		) );
+	}
+
+	/**
+	 * Mark website as staging.
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return WP_Error|WP_HTTP_Response|WP_REST_Response
+	 */
+	public function mark_staging( WP_REST_Request $request ) {
+		$response = $this->validate_api_request( $request );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
+
+		$parent_connect_id = (int) $request->get_param( 'parent_connect_id' );
+		if ( empty( $parent_connect_id ) ) {
+			return $this->send_response( array(
+				'status'  => false,
+				'message' => esc_html__( 'Invalid connect ID', 'instawp-connect' ),
+			) );
 		}
 
 		delete_option( 'instawp_sync_parent_connect_data' );
-		Option::update_option( 'instawp_sync_connect_id', intval( $request->parent_connect_id ) );
+		Option::update_option( 'instawp_sync_connect_id', $parent_connect_id );
 		Option::update_option( 'instawp_is_staging', true );
 		instawp_get_source_site_detail();
 
@@ -286,12 +353,12 @@ class InstaWP_Rest_Api {
     /**
      * Refresh staging site list.
      *
-     * @param WP_REST_Request $req
+     * @param WP_REST_Request $request
      *
      * @return WP_Error|WP_HTTP_Response|WP_REST_Response
      */
-    public function refresh_staging_sites_list( WP_REST_Request $req ) {
-        $response = $this->validate_api_request( $req );
+    public function refresh_staging_sites_list( WP_REST_Request $request ) {
+        $response = $this->validate_api_request( $request );
         if ( is_wp_error( $response ) ) {
             return $this->throw_error( $response );
         }
