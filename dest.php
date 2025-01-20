@@ -98,7 +98,7 @@ if ( in_array( $file_relative_path, $excluded_paths ) ) {
 
 $file_save_path      = $root_dir_path . DIRECTORY_SEPARATOR . $file_relative_path;
 $received_db_path    = $root_dir_path . DIRECTORY_SEPARATOR . 'db-received.sql';
-$received_db_pointer = fopen( $received_db_path, 'w+b' );
+//$received_db_pointer = fopen( $received_db_path, 'w+b' );
 
 //file_put_contents( $root_dir_path . DIRECTORY_SEPARATOR . 'iwp_log.txt', "full path: " . $file_save_path . "\n", FILE_APPEND );
 if ( in_array( $file_save_path, $excluded_paths ) || str_contains( $file_save_path, 'instawp-autologin' ) ) {
@@ -214,7 +214,7 @@ if ( $file_type === 'db' ) {
 	$sql_commands = file_get_contents( $file_save_path );
 	$commands     = explode( ";\n\n", $sql_commands );
 
-	fwrite( $received_db_pointer, $sql_commands );
+	file_put_contents( $received_db_path, $sql_commands, FILE_APPEND );
 
 	foreach ( $commands as $command ) {
 		if ( ! empty( trim( $command ) ) ) {
@@ -363,8 +363,6 @@ if ( $file_type === 'db' ) {
 //		unlink( $file_save_path );
 //	}
 }
-
-fclose( $received_db_pointer );
 
 $is_wp_config_file = false;
 
