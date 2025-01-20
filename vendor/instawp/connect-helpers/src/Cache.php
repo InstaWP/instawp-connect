@@ -42,19 +42,33 @@ class Cache {
 
 		// WP Rocket.
 		if ( is_plugin_active( 'wp-rocket/wp-rocket.php' ) ) {
-			$message = '';
-			
-			if ( function_exists( 'rocket_clean_minify' ) && function_exists( 'rocket_clean_domain' ) ) {
-				rocket_clean_minify();
-				rocket_clean_domain();
-			} else {
-				$message = 'Function not exists.';
-			}
+			$functions = [
+				'rocket_clean_minify',
+				'rocket_clean_domain',
+				'rocket_clean_cache_busting',
+				[ 'rocket_dismiss_box', 'rocket_warning_plugin_modification' ],
+				[ 'rocket_renew_box', 'preload_notice' ]
+			];
+
+			$executed = array_reduce( $functions, function( $count, $item ) {
+				if ( is_array( $item ) ) {
+					$func = $item[0];
+					$arg = $item[1];
+					if ( function_exists( $func ) ) {
+						$func( $arg );
+						return $count + 1;
+					}
+				} elseif ( function_exists( $item )) {
+					$item();
+					return $count + 1;
+				}
+				return $count;
+			}, 0 );
 
 			$results[] = [
 				'slug'    => 'wp-rocket',
 				'name'    => 'WP Rocket',
-				'message' => $message
+				'message' => $executed === 0 ? 'Function not exists.' : ''
 			];
 		}
 

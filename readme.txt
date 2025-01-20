@@ -98,6 +98,10 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 0.1.0.79 - January 2025 =
+- FIX: Fixed cache clearing issue with WP Rocket.
+- Fix: Push migration exclude files check
+
 = 0.1.0.78 - 16 January 2025 =
 - NEW: Added extra log message for handling pull migration failure.
 
