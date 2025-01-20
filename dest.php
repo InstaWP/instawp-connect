@@ -354,9 +354,9 @@ if ( $file_type === 'db' ) {
 		mysql_close( $connection );
 	}
 
-	if ( file_exists( $file_save_path ) ) {
-		unlink( $file_save_path );
-	}
+//	if ( file_exists( $file_save_path ) ) {
+//		unlink( $file_save_path );
+//	}
 }
 
 $is_wp_config_file = false;
