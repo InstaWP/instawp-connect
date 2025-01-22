@@ -280,7 +280,7 @@ class InstaWP_Ajax {
 	}
 
 
-	public function migrate_init() {
+	public function migrate_init_old() {
 		check_ajax_referer( 'instawp-connect', 'security' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -412,6 +412,59 @@ class InstaWP_Ajax {
 
 		Option::update_option( 'instawp_migration_details', $migration_details );
 
+		wp_send_json_success( $migration_details );
+	}
+
+	public function migrate_init() {
+		check_ajax_referer( 'instawp-connect', 'security' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error();
+		}
+
+		$args = InstaWP_Tools::get_migrate_args( $_POST );
+
+		if ( false === $args['success'] ) {
+			wp_send_json_error( array( 'message' => $args['message'] ) );
+		}
+
+		$migrate_response         = Curl::do_curl( 'migrates-v3', $args['migrate_args'] );
+		$migrate_response_status  = (bool) Helper::get_args_option( 'success', $migrate_response, true );
+		$migrate_response_message = Helper::get_args_option( 'message', $migrate_response );
+
+		if ( $migrate_response_status === false ) {
+
+			// send log to app when pull failed
+			$log_array = array(
+				'migrate_settings' => $args['migrate_settings'],
+				'message'          => $migrate_response,
+			);
+			instawp_send_connect_log( 'pull-failed', wp_json_encode( $log_array ) );
+
+			error_log( wp_json_encode( $migrate_response ) );
+
+			$migrate_response_message = empty( $migrate_response_message ) ? esc_html__( 'Could not create migrate id.', 'instawp-connect' ) : $migrate_response_message;
+
+			wp_send_json_error( array( 'message' => $migrate_response_message ) );
+		}
+
+		$migrate_response_data = Helper::get_args_option( 'data', $migrate_response, array() );
+		$migrate_id            = Helper::get_args_option( 'migrate_id', $migrate_response_data );
+		$migrate_key           = Helper::get_args_option( 'migrate_key', $migrate_response_data );
+		$tracking_url          = Helper::get_args_option( 'tracking_url', $migrate_response_data );
+		$destination_site_url  = Helper::get_args_option( 'destination_site_url', $migrate_response_data );
+		$serve_with_wp         = $args['serve_with_wp'];
+		$migration_details     = array(
+			'migrate_id'    => $migrate_id,
+			'migrate_key'   => $migrate_key,
+			'tracking_url'  => $tracking_url,
+			'dest_url'      => $destination_site_url,
+			'started_at'    => current_time( 'mysql', 1 ),
+			'status'        => 'initiated',
+			'mode'          => 'pull',
+			'serve_with_wp' => $serve_with_wp,
+		);
+		InstaWP_Tools::update_migrate_details( $migration_details );
 		wp_send_json_success( $migration_details );
 	}
 

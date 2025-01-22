@@ -90,13 +90,12 @@ class InstaWP_Rest_Api_IPP extends InstaWP_Rest_Api {
 			'permission_callback' => array( $this, 'validate_ipp_api' ),
 		) );
 
-		register_rest_route( $this->namespace . '/' . $this->version_2 . '/ipp', '/set-pull-settings', array(
+		register_rest_route( $this->namespace . '/' . $this->version_2 . '/ipp', '/initiate-iterative-pull', array(
 			'methods'             => 'POST',
-			'callback'            => array( $this, 'set_pull_settings' ),
+			'callback'            => array( $this, 'initiate_iterative_pull' ),
 			'args'                => array(
 				'settings' => array(
-					'required' => true,
-					'type'     => 'array',
+					'required' => true
 				)
 			),
 			'permission_callback' => array( $this, 'validate_ipp_api' ),
@@ -251,31 +250,48 @@ class InstaWP_Rest_Api_IPP extends InstaWP_Rest_Api {
 	}
 
 	/**
-	 * REST API for set pull settings
+	 * REST API for initiate iterative pull
 	 *
 	 * @param WP_REST_Request $request
 	 *
 	 * @return WP_REST_Response
 	 */
-	public function set_pull_settings( WP_REST_Request $request ) {
+	public function initiate_iterative_pull( WP_REST_Request $request ) {
 		$settings = $request->get_param( 'settings' );
-		if ( empty( $settings ) ) {
+		if ( empty( $settings ) || ! is_array( $settings ) ) {
 			return $this->send_response( array(
 				'success' => false,	
-				'message' => __( 'Settings are required', 'instawp-connect' )
+				'message' => __( 'Missing or invalid settings argument.', 'instawp-connect' )
 			) );
 		}
-		if ( $settings['php_version'] !== PHP_VERSION ) {
-			return $this->send_response( array(
-				'success' => false,
-				'message' => sprintf( __( 'PHP version must be %s, but it is %s', 'instawp-connect' ), $settings['php_version'], PHP_VERSION )
-			) );
+
+		$settings = $this->helper->sanitize_array( $settings );
+		$args = InstaWP_Tools::get_migrate_args( 
+			array(
+				'settings' => http_build_query( $settings )
+			) 
+		);
+
+		if ( false === $args['success'] ) {
+			return $this->send_response( $args );
 		}
-		update_option( $this->helper->vars['db_meta_repo'] . '_pull_settings', $settings );
+
+		$migration_details     = array(
+			'migrate_id'    => time(),
+			'migrate_key'   => $args['migrate_args']['migrate_key'],
+			'tracking_url'  => 'https://instawp.com',
+			'dest_url'      => $settings['destination_site_url'],
+			'started_at'    => current_time( 'mysql', 1 ),
+			'status'        => 'initiated',
+			'mode'          => 'iterative_pull',
+			'serve_with_wp' => $args['serve_with_wp'],
+		);
+		InstaWP_Tools::update_migrate_details( $migration_details );
 	
 		return $this->send_response( array(
 			'success' => true,
-			'message' => __( 'Settings saved successfully.', 'instawp-connect' )
+			'data' 	  => $args['migrate_args'],
+			'message' => __( 'Iterative pull initiated.', 'instawp-connect' )
 		) );
 	}
 

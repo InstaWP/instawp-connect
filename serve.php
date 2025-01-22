@@ -6,6 +6,7 @@ include_once 'includes/functions-pull-push.php';
 
 $migrate_key   = isset( $_POST['migrate_key'] ) ? $_POST['migrate_key'] : '';
 $api_signature = isset( $_POST['api_signature'] ) ? $_POST['api_signature'] : '';
+$is_iterative_pull = ( ! empty( $_POST['migrate_mode'] ) && 'iterative_pull' === $_POST['migrate_mode'] );
 
 if ( empty( $migrate_key ) ) {
 	header( 'x-iwp-status: false' );
@@ -110,7 +111,61 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		$progress_percentage = round( ( $total_files_sent / $totalFiles ) * 100, 2 );
 	}
 
-	if ( $unsent_files_count == 0 ) {
+	if ( $is_iterative_pull && 0 == $unsent_files_count ) {
+		if ( $totalFiles > 0 ) {
+			header( 'x-iwp-status: true' );
+			header( 'x-iwp-transfer-complete: true' );
+			header( 'x-iwp-message: No more files left to download' );
+			exit;
+		} else if ( empty( $migrate_settings['file_actions'] ) || empty( $migrate_settings['file_actions']['to_send'] ) ) {
+			header( 'x-iwp-status: true' );
+			header( 'x-iwp-transfer-complete: true' );
+			header( 'x-iwp-message: No file found to download' );
+			exit;
+		} 
+
+		foreach ( $migrate_settings['file_actions']['to_send'] as $file ) {
+			$filepath = $file['filepath'];
+
+			if ( ! is_valid_file( $filepath ) ) {
+				try {
+					$tracking_db->insert( 'iwp_files_sent', array(
+						'filepath'      => $tracking_db->use_wpdb ? $filepath : "'$filepath'",
+						'filepath_hash' => $tracking_db->use_wpdb ? $filepath_hash : "'$filepath_hash'",
+						'sent'          => 5,
+						'size'          => $tracking_db->use_wpdb ? $filesize : "'$filesize'",
+					) );
+				} catch ( Exception $e ) {
+				}
+				header( 'x-iwp-status: false' );
+				header( 'x-iwp-message: Not a valid file: ' . $filepath );
+				die();
+			}
+
+			$filepath_hash = hash( 'md5', $filepath );
+			$row        = $tracking_db->get_row( 'iwp_files_sent', array( 'filepath_hash' => $filepath_hash ) );
+			$filesize = $file['size'];
+
+			if ( ! $row ) {
+				try {
+					$tracking_db->insert( 'iwp_files_sent', array(
+						'filepath'      => "'$filepath'",
+						'filepath_hash' => "'$filepath_hash'",
+						'sent'          => 0,
+						'size'          => "'$filesize'",
+					) );
+					++ $totalFiles;
+				} catch ( Exception $e ) {
+					header( 'x-iwp-status: false' );
+					header( 'x-iwp-message: Insert to iwp_files_sent failed. Actual error: ' . $e->getMessage() );
+					die();
+				}
+			}
+		}
+
+		$tracking_db->db_update_option( 'total_files', $totalFiles );
+		
+	} else if ( $unsent_files_count == 0 ) {
 		$iterator = get_iterator_items( $skip_folders, WP_ROOT );
 
 		// Get the current file index from the database or file
@@ -151,7 +206,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		if ( $handle_config_separately ) {
 			$totalFiles            += 1;
 			$config_file_size      = filesize( $config_file_path );
-			$config_file_path_hash = hash( 'sha256', $config_file_size );
+			$config_file_path_hash = hash( 'md5', $config_file_size );
 
 			$tracking_db->insert( 'iwp_files_sent', array(
 				'filepath'      => $tracking_db->use_wpdb ? $config_file_path : "'$config_file_path'",
@@ -181,7 +236,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 				continue;
 			}
 
-			$filepath_hash = hash( 'sha256', $filepath );
+			$filepath_hash = hash( 'md5', $filepath );
 
 			if ( ! is_valid_file( $filepath ) ) {
 				try {
@@ -313,7 +368,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 					continue;
 				}
 
-				$filepath_hash = hash( 'sha256', $filepath );
+				$filepath_hash = hash( 'md5', $filepath );
 
 				if ( ! is_valid_file( $filepath ) ) {
 					try {
@@ -498,7 +553,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 	if ( $total_tracking_tables == 0 ) {
 		foreach ( $tracking_db->get_all_tables() as $table_name => $rows_count ) {
 			if ( ! in_array( $table_name, $excluded_tables ) ) {
-				$table_name_hash = hash( 'sha256', $table_name );
+				$table_name_hash = hash( 'md5', $table_name );
 				$tracking_db->insert( 'iwp_db_sent', array(
 					'table_name'      => "'$table_name'",
 					'table_name_hash' => "'$table_name_hash'",
@@ -598,7 +653,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 	}
 
 	$sql_statements_count = count( $sqlStatements );
-	$curr_table_info      = $tracking_db->get_row( 'iwp_db_sent', array( 'table_name_hash' => hash( 'sha256', $curr_table_name ) ) );
+	$curr_table_info      = $tracking_db->get_row( 'iwp_db_sent', array( 'table_name_hash' => hash( 'md5', $curr_table_name ) ) );
 	$offset               += $sql_statements_count;
 
 	$all_tables     = $tracking_db->get_rows( 'iwp_db_sent' );
@@ -611,11 +666,11 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 	}
 
 	// Update the offset and rows_finished
-	$tracking_db->update( 'iwp_db_sent', array( 'offset' => $offset, 'completed' => '2' ), array( 'table_name_hash' => hash( 'sha256', $curr_table_name ) ) );
+	$tracking_db->update( 'iwp_db_sent', array( 'offset' => $offset, 'completed' => '2' ), array( 'table_name_hash' => hash( 'md5', $curr_table_name ) ) );
 
 	// Mark table as completed if all rows were fetched
 	if ( count( $sqlStatements ) < CHUNK_DB_SIZE ) {
-		$tracking_db->update( 'iwp_db_sent', array( 'completed' => '1' ), array( 'table_name_hash' => hash( 'sha256', $curr_table_name ) ) );
+		$tracking_db->update( 'iwp_db_sent', array( 'completed' => '1' ), array( 'table_name_hash' => hash( 'md5', $curr_table_name ) ) );
 	}
 
 	$completed_tables   = (int) $tracking_db->query_count( 'iwp_db_sent', array( 'completed' => '1' ) );

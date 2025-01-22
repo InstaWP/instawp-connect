@@ -78,7 +78,7 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 			// Get hashed api key
 			//$this->api_key = Helper::get_api_key( true );
 			// staging site api key
-			$this->api_key = '0e71f6cbeff626a99c09018522f075ccb0c9842fb0f84ed31406a1d7b88b5763';
+			$this->api_key = '500f796c18878428ffb7f6b2442185902899b046e2659507ccd48de241803325';
 			if ( empty( $this->api_key ) ) {
 				WP_CLI::error( __( 'Missing API key.', 'instawp-connect' ) );
 			}
@@ -124,11 +124,16 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 			}
 			// Debug mode
 			$this->debug_mode = isset( $assoc_args['debug'] );
-			require_once INSTAWP_PLUGIN_DIR . '/includes/ipp/class-instawp-push-files.php';
-			require_once INSTAWP_PLUGIN_DIR . '/includes/ipp/class-instawp-push-db.php';
+			include_once INSTAWP_PLUGIN_DIR . '/includes/functions-pull-push.php';
+			include_once INSTAWP_PLUGIN_DIR . '/includes/instawp-connect-functions.php';
 			// Global variables
 			global $tracking_db, $migrate_key, $migrate_id, $migrate_mode, $migrate_curl_title, $bearer_token, $target_url;
+			$migrate_id = time();
 			
+			$migrate_key = '41312fed19f792994502ef831b842d8e25d392c6';
+			$api_signature = '804ebc7f08f9ea57bdac9e4fa5b7b30b86ce9e2abe6d21f282e6e522abaf0740f8543ea8eb89b6c43bdbfaaf5814b3c69361a6cc13d5371d874ecb4da031a48f';
+			$bearer_token = '500f796c18878428ffb7f6b2442185902899b046e2659507ccd48de241803325';
+
 			try {
 				global $wpdb;
 				$this->init();
@@ -215,8 +220,45 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 					$migrate_settings['options'][] = 'skip_large_files';
 				}
 
+				// Get exclude and include tables
+				if ( isset( $assoc_args['with-db'] ) ) {
+					$migrate_settings['excluded_tables_rows'] = array();
+					$option_table_name = $wpdb->prefix . 'options';
+					$migrate_settings['excluded_tables_rows'][$option_table_name] = array();
+					foreach ( $this->helper->vars as $option_name ) {
+						$migrate_settings['excluded_tables_rows'][$option_table_name][] = 'option_name:' . $option_name;
+					}
+
+					// Get exclude and include tables
+					$excluded_tables = empty( $assoc_args['exclude-tables'] ) ? array() : explode( ',', $assoc_args['exclude-tables'] );
+					$excluded_tables = array_merge( 
+						$excluded_tables, 
+						array( 
+							"{$wpdb->prefix}actionscheduler_actions",
+							"{$wpdb->prefix}actionscheduler_claims",
+							"{$wpdb->prefix}actionscheduler_groups",
+							"{$wpdb->prefix}actionscheduler_logs", 
+						),
+						$this->iwp_tables
+					);
+					$included_tables = empty( $assoc_args['include-tables'] ) ? array() : explode( ',', $assoc_args['include-tables'] );
+
+					if ( ! empty( $included_tables ) ) {
+						// Array that contains the entries from excluded_paths that are not present in include_paths 
+						$excluded_tables = array_diff( $excluded_tables, $included_tables );
+					}
+
+					// Excluded tables
+					if ( ! empty( $excluded_tables ) ) {
+						$migrate_settings['excluded_tables'] = array_unique( $excluded_tables );
+					}
+				}
+
 				// Iterative push
 				if ( $command === 'push' ) {
+					require_once INSTAWP_PLUGIN_DIR . '/includes/ipp/class-instawp-push-files.php';
+					require_once INSTAWP_PLUGIN_DIR . '/includes/ipp/class-instawp-push-db.php';
+					$target_url = 'https://wondrous-gull-fa3659.a.instawpsites.com/wp-content/plugins/instawp-connect/dest.php';
 					// Set migration mode
 					$migrate_mode = 'iterative_push';
 					// Set migration title
@@ -239,40 +281,6 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 					
 					$migrate_settings['excluded_paths'] = $excluded_paths;
 
-					// Get exclude and include tables
-					if ( isset( $assoc_args['with-db'] ) ) {
-						$migrate_settings['excluded_tables_rows'] = array();
-						$option_table_name = $wpdb->prefix . 'options';
-						$migrate_settings['excluded_tables_rows'][$option_table_name] = array();
-						foreach ( $this->helper->vars as $option_name ) {
-							$migrate_settings['excluded_tables_rows'][$option_table_name][] = 'option_name:' . $option_name;
-						}
-
-						// Get exclude and include tables
-						$excluded_tables = empty( $assoc_args['exclude-tables'] ) ? array() : explode( ',', $assoc_args['exclude-tables'] );
-						$excluded_tables = array_merge( 
-							$excluded_tables, 
-							array( 
-								"{$wpdb->prefix}actionscheduler_actions",
-								"{$wpdb->prefix}actionscheduler_claims",
-								"{$wpdb->prefix}actionscheduler_groups",
-								"{$wpdb->prefix}actionscheduler_logs", 
-							),
-							$this->iwp_tables
-						);
-						$included_tables = empty( $assoc_args['include-tables'] ) ? array() : explode( ',', $assoc_args['include-tables'] );
-
-						if ( ! empty( $included_tables ) ) {
-							// Array that contains the entries from excluded_paths that are not present in include_paths 
-							$excluded_tables = array_diff( $excluded_tables, $included_tables );
-						}
-
-						// Excluded tables
-						if ( ! empty( $excluded_tables ) ) {
-							$migrate_settings['excluded_tables'] = array_unique( $excluded_tables );
-						}
-					}
-
 					// Get migrate settings
 					$migrate_settings = InstaWP_Tools::get_migrate_settings( array(), $migrate_settings );
 					
@@ -283,12 +291,7 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 						$db_changes = $this->get_push_db_changes( $migrate_settings );
 						$migrate_settings['db_actions'] = $db_changes['db_actions'];
 					}
-					$migrate_id = time();
-					$target_url = 'https://rightful-grouse-51e3a4.a.instawpsites.com/wp-content/plugins/instawp-connect/dest.php';
-					$migrate_key = 'bd402fc612d8ca58995153ed7e4804bd40ed5d19';
-					$api_signature = 'adfe076580bff72cece9a8c991c2f09d94808ad21af72d79dd2ed6b1e33d7ed3c76f9930c62fdab2b93f79f8afee27eebe58d9a7a7bdfacc868856fc528c4bc7';
-					$bearer_token = '0e71f6cbeff626a99c09018522f075ccb0c9842fb0f84ed31406a1d7b88b5763';
-
+					
 					// Generate migrate settings file
 					$migrate_settings = InstaWP_Tools::generate_serve_file_response( $migrate_key, $api_signature, $migrate_settings );
 					if ( empty( $migrate_settings ) ) {
@@ -319,7 +322,7 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 						'db_schema_only' => $this->db_schema_only,
 					);
 					// Push files
-					if ( ! empty( $migrate_settings['file_actions'] ) && ( ! empty( $migrate_settings['file_actions']['to_send'] ) || ! empty( $migrate_settings['file_actions']['to_delete'] ) || ! empty( $migrate_settings['file_actions']['to_delete_folders'] ) ) ) {
+					if ( $this->has_file_changes( $migrate_settings ) ) {
 						$this->helper->print_message( 'Pushing files...' );
 						instawp_iterative_push_files( $settings );
 					} else {
@@ -328,7 +331,7 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 					
 					// Push database
 					if ( isset( $assoc_args['with-db'] ) ) {
-						if ( ! empty( $migrate_settings['db_actions'] ) && ! empty( $migrate_settings['db_actions']['schema_queries'] ) ) {
+						if ( $this->has_db_changes( $migrate_settings ) ) {
 							$this->helper->print_message( 'Pushing database schema...' );
 							$push_db_status = instawp_iterative_push_db( $settings );
 						} else {
@@ -337,11 +340,14 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 					}
 
 				} else {
+					require_once INSTAWP_PLUGIN_DIR . '/includes/ipp/instawp-fetch-files.php';
+					//require_once INSTAWP_PLUGIN_DIR . '/includes/ipp/class-instawp-push-db.php';
+					$target_url = 'https://rightful-grouse-51e3a4.a.instawpsites.com/wp-content/plugins/instawp-connect/serve.php';
 					// Set migration mode
 					$migrate_mode = 'iterative_pull';
 					$migrate_curl_title = 'InstaWP Migration Service - Iterative Pull';
 					$migrate_settings['mode'] = $migrate_mode;
-					
+					$migrate_settings['destination_site_url'] = site_url();
 					// Pull files
 					$excluded_paths = array_unique( $excluded_paths );
 					
@@ -352,8 +358,46 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 					
 					// Detect database changes
 					if ( isset( $assoc_args['with-db'] ) ) {
-						// $db_changes = $this->get_pull_db_changes( $migrate_settings );
-						// $migrate_settings['db_actions'] = $db_changes['db_actions'];
+						$db_changes = $this->get_pull_db_changes( $migrate_settings );
+						$migrate_settings['db_actions'] = $db_changes['db_actions'];
+					}
+
+					$has_file_changes  = $this->has_file_changes( $migrate_settings );
+					$hss_db_changes = $this->has_db_changes( $migrate_settings );
+
+					if ( $has_file_changes || $hss_db_changes ) {
+						$migrate_args = $this->call_api( 'initiate-iterative-pull', array(
+							'settings' => array(
+								'migrate_settings' 		=> $migrate_settings,
+								'migrate_key' 			=> $migrate_key,
+								'destination_site_url'	=> $migrate_settings['destination_site_url'],
+							)
+						) );
+	
+						// Check for required arguments
+						if ( empty( $migrate_args['serve_url'] ) || empty( $migrate_args['migrate_key'] ) || empty( $migrate_args['api_signature'] ) ) {
+							$this->helper->print_message( 'Pull initiation failed.', true );
+						}
+
+						$target_url = esc_url( $migrate_args['serve_url'] );
+						$migrate_key = $migrate_args['migrate_key'];
+						$api_signature = $migrate_args['api_signature'];
+
+						if ( $has_file_changes ) {
+							instawp_fetch_files(
+								array(
+									'migrate_settings' 		=> $migrate_settings,
+									'serve_type' 			=> 'files',
+									'api_signature' 		=> $api_signature,
+									'save_to_directory' 	=> wp_normalize_path( ABSPATH ),
+									'target_url' 			=> $target_url,
+								)
+							);
+						} else {
+							$this->helper->print_message( 'No file changes detected for pulling.' );
+						}
+					} else {
+						$this->helper->print_message( 'No changes detected for pulling.' );
 					}
 				}
 			} catch ( \Exception $e ) {
@@ -366,6 +410,28 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 			}
 			
 			WP_CLI::success( "Run Successfully" );
+		}
+
+		/**
+		 * Has files Changes
+		 * 
+		 * @param array $migrate_settings
+		 * 
+		 * @return bool 
+		 */
+		private function has_file_changes( $migrate_settings ) {
+			return ( ! empty( $migrate_settings['file_actions'] ) && ( ! empty( $migrate_settings['file_actions']['to_send'] ) || ! empty( $migrate_settings['file_actions']['to_delete'] ) || ! empty( $migrate_settings['file_actions']['to_delete_folders'] ) ) );
+		}
+
+		/**
+		 * Has db Changes
+		 * 
+		 * @param array $migrate_settings
+		 * 
+		 * @return bool 
+		 */
+		private function has_db_changes( $migrate_settings ) {
+			return ( ! empty( $migrate_settings['db_actions'] ) && ! empty( $migrate_settings['db_actions']['schema_queries'] ) );
 		}
 
 		/**
@@ -500,7 +566,8 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 
 			// Drop tables
 			foreach ( $target_db['tables'] as $table ) {
-				if ( ! in_array( str_replace( $target_db['table_prefix'], $wpdb->prefix, $table ), $tables ) ) {
+				$source_table_name = str_replace( $target_db['table_prefix'], $wpdb->prefix, $table );
+				if ( ! in_array( $source_table_name, $tables ) && ! in_array( $source_table_name, $excluded_tables ) ) {
 					$db_actions['drop_tables'][] = $table;
 					$db_actions['schema_queries'][] = "DROP TABLE IF EXISTS `{$table}`";
 				}
@@ -748,7 +815,7 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 						if ( ! empty( $file['is_dir'] ) || in_array( $file['relative_path'], $excluded_paths ) || false !== strpos( $file['relative_path'], 'plugins/instawp-connect' ) || false !== strpos( $file['relative_path'], 'instawp-autologin' ) || false !== strpos( $file['relative_path'], 'migrate-p' ) ) {
 							continue;
 						}
-						if ( ! isset( $target_checksums[$path_hash] ) || ( $target_checksums[$path_hash]['relative_path'] === $file['relative_path'] && $target_checksums[$path_hash]['checksum'] !== $file['checksum'] ) ) {
+						if ( ! isset( $target_checksums[$path_hash] ) || ( $target_checksums[$path_hash]['relative_path'] === $file['relative_path'] && $target_checksums[$path_hash]['checksum'] !== $file['checksum'] ) || ! ( $file['filepath'] ) ) {
 							$file['is_updated'] = isset( $target_checksums[$path_hash] );
 							if ( $file['is_updated'] ) {
 								$action['updated_files_count']++;
@@ -795,6 +862,262 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 			return $action;
 		}
 
+		
+		/**
+		 * Get pull db changes
+		 * 
+		 * @param array $args
+		 * @param array $assoc_args
+		 * 
+		 */
+		private function get_pull_db_changes( $settings ) {
+			global $wpdb;
+			WP_CLI::log( "Detecting database changes..." );
+			$start = time();
+
+			// Target DB
+			$source_db = $this->call_api( 'db-schema' );
+			if ( empty( $source_db ) || empty( $source_db['tables'] ) ) {
+				WP_CLI::error( __( 'No tables found.', 'instawp-connect' ) );
+			}
+			
+			$db_actions = array(
+				'create_tables' => array(),
+				'clone_tables' => array(),
+				'drop_tables' => array(),
+				'schema_queries' => array(), // create, drop or schema related queries
+				'tables' => array(),
+				'source' =>array(
+					'tables' => $source_db['tables'],
+					'table_rows_count' => array(),
+					'table_prefix' => $source_db['table_prefix'],
+				),
+				'target' =>array(
+					'tables' => $this->helper->get_tables(),
+					'table_prefix' => $wpdb->prefix,
+				),
+			);
+
+			$target_db= $db_actions['target'];
+			$tables = $source_db['tables'];
+			// Prepare source db excluded tables list
+			$excluded_tables = $settings['excluded_tables'];
+			foreach ( $excluded_tables as $table_key => $table ) {
+				$excluded_tables[$table_key] = str_replace( $wpdb->prefix, $source_db['table_prefix'], $table );
+			}
+
+			// Drop tables
+			foreach ( $target_db['tables'] as $table ) {
+				$source_table_name = str_replace( $target_db['table_prefix'], $source_db['table_prefix'], $table );
+				if ( ! in_array( $source_table_name, $tables ) && ! in_array( $source_table_name, $excluded_tables ) ) {
+					$db_actions['drop_tables'][] = $table;
+					$db_actions['schema_queries'][] = "DROP TABLE IF EXISTS `{$table}`";
+				}
+			}
+
+			// flag to check if push db was successful
+			$db_meta = get_option( $this->helper->vars['db_meta_repo'], array() );
+			$new_tables_meta = array();
+			$total = count( $tables );
+			$processed = 0;
+			foreach ( $tables as $table ) {
+				$processed++;
+				$this->helper->progress_bar( $processed, $total );
+				if ( in_array( $table, $this->iwp_tables ) ) {
+					continue;
+				}
+				
+				// Source table meta
+				$meta = $this->call_api( 
+					'table-checksum',
+					array( 
+						'table' => $table,
+						'start_id' => 0,
+					)
+				);
+				if ( empty( $meta ) ) {
+					$this->print_debug_log( __( 'Table: ', 'instawp-connect' ) . $table . __( ' No data found.', 'instawp-connect' ) );
+					continue;
+				}
+				$db_actions['source']['table_rows_count'][ $table ] = $meta['rows_count'];
+				$target_table_name = str_replace( $source_db['table_prefix'], $wpdb->prefix, $table );
+				// Create tables
+				if ( ! in_array( $target_table_name, $target_db['tables'] ) ) {
+					$db_actions['create_tables'][] = $table;
+					// Create table
+					$create_table = $wpdb->get_row( "SHOW CREATE TABLE `{$table}`", ARRAY_A );
+					if ( ! empty( $create_table ) && ! empty( $create_table['Create Table'] ) ) {
+						$db_actions['schema_queries'][] = str_replace( $table, $target_table_name, $create_table['Create Table'] );
+					}
+				}
+				// Skip excluded tables
+				if ( in_array( $table, $excluded_tables ) ) {
+					$this->print_debug_log( "Skipping table: " . $table );
+					continue;
+				} 
+
+				// Table which need to be created but not excluded then insert all data
+				if ( in_array( $table, $db_actions['create_tables'] ) ) {
+					// Insert all source table data to target
+					$db_actions['tables'][ $table ]['full_insert'] = true;
+					continue;
+				}
+
+				$this->print_debug_log( "Checking table: " . $table );
+				// Action required
+				$db_actions['tables'][ $table ] = array(
+					'columns_added' => array(),
+					'columns_deleted' => array(),
+					'columns_modified' => array(),
+					'indexes_added' => array(),
+					'indexes_deleted' => array(),
+					'indexes_modified' => array(),
+					'insert_start_id' => 0, // Insert start from this id
+					'insert_end_id' => 0, // Insert end at this id
+					'delete_start_id' => 0, // Delete start from this id
+					'delete_end_id' => 0, // Delete end at this id
+					'insert_data' => array(),
+					'full_insert' => false,
+					'update_data' => array(),
+					'delete_data' => array(),
+				);
+				
+				// Target table meta
+				$target_table_meta = $this->helper->get_table_meta( array( $target_table_name ), true, 0 );
+				// Check if table exists
+				if ( $target_table_meta['table'] !== $target_table_name ) {
+					// Table mismatch
+					WP_CLI::error( __( 'Table mismatch: ', 'instawp-connect' ) . $table . ' vs ' . $target_table_meta['table'] );
+				}
+
+				// Check table schema changes
+				$queries = $this->check_table_schema_changes( $db_actions['tables'][ $table ], $meta, $target_table_meta );
+				if ( ! empty( $queries ) && is_array( $queries ) ) {	
+					$db_actions['schema_queries'] = array_merge( $db_actions['schema_queries'], $queries );
+				}
+
+				// Continue if schema push|pull only
+				if ( $this->db_schema_only ) {
+					continue;
+				}
+
+				// Check if source table is empty
+				if ( 0 === absint( $meta['rows_count'] ) ) {
+					$this->print_debug_log( __( 'Table: ', 'instawp-connect' ) . $table . __( ' is empty.', 'instawp-connect' ) );
+					continue;
+				}
+				// Table checksum
+				$new_tables_meta[ $table ] = $meta;
+				// Check if source table has no changes. Comapre from last checksum in sync
+				if ( ! empty( $db_meta['meta'][ $table ] ) && ! empty( $db_meta['meta'][ $table ]['checksum'] ) && $db_meta['meta'][ $table ]['checksum'] === $meta['checksum'] ) {
+					$this->print_debug_log( __( 'Table: ', 'instawp-connect' ) . $table . __( ' no changes found since last sync.', 'instawp-connect' ) );
+					continue;
+				}
+
+				// Check if target table is empty
+				if ( 0 === absint( $target_table_meta['rows_count'] ) ) {
+					// Insert all source table data to target
+					$db_actions['tables'][ $table ]['full_insert'] = true;
+					continue;
+				}
+
+				// Check if target table has primary key
+				if ( ! empty( $meta['primary_key'] ) ) {
+					// Continue if table has no checksum
+					if ( ! isset( $meta['last_id'] ) ) {
+						WP_CLI::error( __( 'Table: ', 'instawp-connect' ) . $table . __( ' has no primary key.', 'instawp-connect' ) );
+					}
+
+					// Get last id from target|source table where insertion is smaller
+					$target_table_meta['last_id'] =absint( $target_table_meta['last_id'] );
+					$meta['last_id'] = absint( $meta['last_id'] );
+					$last_id_to_process = $target_table_meta['last_id'] < $meta['last_id'] ? $target_table_meta['last_id'] : $meta['last_id']; 
+					$next_start_id = absint( $meta['next_start_id'] );
+					// Loop through all batches
+					while ( 0 < $next_start_id && $next_start_id <= $last_id_to_process ) {
+						// Get next batch checksum data from source
+						$meta = $this->call_api( 
+							'table-checksum', 
+							array( 
+								'table' => $table,
+								'start_id' => $next_start_id,
+								'last_id_to_process' => $last_id_to_process,
+							)
+						);
+						$new_tables_meta[ $table ] = $meta;
+						// Get next batch checksum data from target
+						$target_table_meta = $this->helper->get_table_meta( 
+							array( $target_table_name ), 
+							true, 
+							$next_start_id, 
+							$last_id_to_process 
+						);
+						// Continue if data is missing. In case rows are not present in table
+						if ( empty( $meta['last_id'] ) || empty( $meta['rows_checksum'] ) || empty( $target_table_meta['rows_checksum'] ) ) {
+							continue;
+						}
+						$db_actions['tables'][ $table ]['source_meta'] = $meta;
+						$db_actions['tables'][ $table ]['target_meta'] = $target_table_meta;
+						// Update action data
+						$this->update_db_action( $db_actions['tables'][ $table ], $meta, $target_table_meta );
+						// Get last id from target|source table where insertion is smaller
+						$target_table_meta['last_id'] =absint( $target_table_meta['last_id'] );
+						$meta['last_id'] = absint( $meta['last_id'] );
+						$last_id_to_process = $target_table_meta['last_id'] < $meta['last_id'] ? $target_table_meta['last_id'] : $meta['last_id']; 
+						// Get next start id
+						$next_start_id = absint( $meta['next_start_id'] );
+					}
+
+					if ( $target_table_meta['last_id'] !== $meta['last_id'] ) {
+						// Get first id from target|source table where insertion start
+						if ( $target_table_meta['last_id'] < $meta['last_id'] ) {
+							$db_actions['tables'][ $table ]['insert_start_id'] = $target_table_meta['last_id'] + 1;
+							$db_actions['tables'][ $table ]['insert_end_id'] = $meta['last_id'];
+						} else {
+							$db_actions['tables'][ $table ]['delete_start_id'] = $meta['last_id'] + 1;
+							$db_actions['tables'][ $table ]['delete_end_id'] = $target_table_meta['last_id'];
+						}
+					} 
+					
+
+				} else if ( ! empty( $meta['checksum'] ) ) {
+					// Clone tables if checksum mismatch for tables without primary key
+					if ( $meta['checksum'] !== $target_table_meta['checksum'] ) {
+						// Table which need to be created but not excluded then insert all data
+						if ( in_array( $table, $db_actions['create_tables'] ) ) {
+							// Insert all source table data to target
+							$db_actions['tables'][ $table ]['full_insert'] = true;
+						} else {
+							$db_actions['clone_tables'][] = $table;
+						}
+					}
+				}
+			}
+
+			$this->print_debug_log( 'Table ' . $table . ': ' . json_encode( $db_actions ) );
+
+			// Update DB meta ipp repo
+			if ( ! empty( $new_tables_meta ) ) {
+				$db_meta = empty( $db_meta ) ? array() : $db_meta;
+				$db_meta = array_merge( $db_meta, array(
+					'tables' => $tables,
+					'time'	=> time(),
+					'table_prefix' => $wpdb->prefix
+				) );
+				if ( ! isset( $db_meta['meta'] ) ) {
+					$db_meta['meta'] = array();
+				}
+				foreach ( $new_tables_meta as $table => $meta ) {
+					$db_meta['meta'][ $table ] = $meta;
+				}
+			}
+
+			WP_CLI::success( "Detection of database changes completed in " . ( time() - $start ) . " seconds" );
+			return array(
+				'db_actions' => $db_actions,
+				'db_update_meta' => $db_meta
+			);
+		}
 		/**
 		 * Update DB action
 		 * 
@@ -1124,16 +1447,17 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 					),
 				) 
 			);
+
 			if ( is_wp_error( $response ) ) {
 				WP_CLI::error( __( 'API call failed: ', 'instawp-connect' ) . $response->get_error_message() );
 			}
 	
-			$response = wp_remote_retrieve_body( $response );
-			$response = json_decode( $response, true );
+			$res_body = wp_remote_retrieve_body( $response );
+			$response = json_decode( $res_body, true );
 	
 			if ( json_last_error() !== JSON_ERROR_NONE ) {
 				WP_CLI::log( __( 'Invalid response format.', 'instawp-connect' ) );
-				WP_CLI::error( $response );
+				WP_CLI::error( $res_body );
 			}
 
 			if ( empty( $response['success'] ) ) {

@@ -1078,6 +1078,125 @@ include $file_path;';
 		return self::process_migration_settings( $migrate_settings );
 	}
 
+	/**
+	 * Get migrate args
+	 * 
+	 * @param array $params
+	 * 
+	 * @return array migrate args
+	 */
+	public static function get_migrate_args( $params ) {
+		$response = array(
+			'success' => false,
+			'message' => __( 'Missing settings', 'instawp-connect' ),
+		);
+		if ( empty( $params ) ) {
+			return $response;
+		}
+		$settings_str = isset( $params['settings'] ) ? $params['settings'] : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+
+		parse_str( $settings_str, $settings_arr );
+
+		global $wp_version, $wpdb;
+
+		$site_url            = $wpdb->get_var( "SELECT option_value FROM {$wpdb->options} WHERE option_name = 'siteurl'" );
+		$source_domain       = empty( $site_url ) ? site_url() : $site_url;
+		$is_website_on_local = instawp_is_website_on_local();
+		$instawp_migrate     = Helper::get_args_option( 'instawp_migrate', $settings_arr, array() );
+
+		if ( isset( $instawp_migrate['whitelist_ip'] ) && $instawp_migrate['whitelist_ip'] === 'yes' ) {
+			instawp_set_whitelist_ip();
+		}
+
+		$migrate_settings   = self::get_migrate_settings( $params );
+		$migrate_key        = Helper::get_random_string( 40 );
+		$pre_check_response = self::get_pull_pre_check_response( $migrate_key, $migrate_settings );
+
+		if ( is_wp_error( $pre_check_response ) ) {
+
+			// send log to app before starting migrate pull
+			$log_array = array(
+				'migrate_settings' => $migrate_settings,
+				'message'          => $pre_check_response->get_error_message(),
+			);
+			instawp_send_connect_log( 'pull-precheck', wp_json_encode( $log_array ) );
+			$response['message'] = $pre_check_response->get_error_message();
+			return $response;
+		}
+
+		if ( empty( $serve_url = Helper::get_args_option( 'serve_url', $pre_check_response ) ) ) {
+
+			// send log to app before starting migrate pull
+			$message   = esc_html__( 'Error: Empty serve url found in pre-check response.', 'instawp-connect' );
+			$log_array = array(
+				'migrate_settings' => $migrate_settings,
+				'message'          => $message,
+			);
+			instawp_send_connect_log( 'pull-precheck', wp_json_encode( $log_array ) );
+			$response['message'] = $message;
+			return $response;
+		}
+
+		if ( empty( $api_signature = Helper::get_args_option( 'api_signature', $pre_check_response ) ) ) {
+
+			// send log to app before starting migrate pull
+			$message   = esc_html__( 'Error: Empty api signature found in pre-check response.', 'instawp-connect' );
+			$log_array = array(
+				'migrate_settings' => $migrate_settings,
+				'message'          => $message,
+			);
+			instawp_send_connect_log( 'pull-precheck', wp_json_encode( $log_array ) );
+			$response['message'] = $message;
+			return $response;
+		}
+
+		$migrate_args = array(
+			'source_domain'       => $source_domain,
+			'source_connect_id'   => instawp_get_connect_id(),
+			'php_version'         => PHP_VERSION,
+			'wp_version'          => $wp_version,
+			'plugin_version'      => INSTAWP_PLUGIN_VERSION,
+			'file_size'           => self::get_total_sizes( 'files', $migrate_settings ),
+			'db_size'             => self::get_total_sizes( 'db' ),
+			'is_website_on_local' => $is_website_on_local,
+			'settings'            => $migrate_settings,
+			'active_plugins'      => Option::get_option( 'active_plugins', array() ),
+			'migrate_key'         => $migrate_key,
+			'serve_url'           => $serve_url,
+			'api_signature'       => $api_signature,
+		);
+
+		if ( ! empty( $site_name = Helper::get_args_option( 'site_name', $migrate_settings ) ) ) {
+			$site_name = strtolower( $site_name );
+			$site_name = preg_replace( '/[^a-z0-9-_]/', ' ', $site_name );
+			$site_name = preg_replace( '/\s+/', '-', $site_name );
+
+			$migrate_args['site_name'] = $site_name;
+		}
+		
+		return array(
+			'success' => true,
+			'migrate_args' => $migrate_args,
+			'migrate_settings' => $migrate_settings,
+			'serve_with_wp' => (bool) Helper::get_args_option( 'serve_with_wp', $pre_check_response ),
+		);
+	}
+
+	/**
+	 * Update migrate details
+	 * 
+	 * @param array $migration_details
+	 * 
+	 * @return void
+	 */
+	public static function update_migrate_details( $migration_details ) {
+		$tracking_db  = self::get_tracking_database( $migration_details['migrate_key'] );
+		if ( $tracking_db ) {
+			$tracking_db->update_option( 'dest_url', $migration_details['dest_url'] );
+		}
+		Option::update_option( 'instawp_migration_details', $migration_details );
+	}
+
 	public static function get_user_ip_address() {
 		// Check for IPv6 and IPv4 validation
 		$ip_pattern = '/^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$|^(?:(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,7}:|(?:[0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,5}(?::[0-9a-fA-F]{1,4}){1,2}|(?:[0-9a-fA-F]{1,4}:){1,4}(?::[0-9a-fA-F]{1,4}){1,3}|(?:[0-9a-fA-F]{1,4}:){1,3}(?::[0-9a-fA-F]{1,4}){1,4}|(?:[0-9a-fA-F]{1,4}:){1,2}(?::[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:(?:(?::[0-9a-fA-F]{1,4}){1,6})|:(?:(?::[0-9a-fA-F]{1,4}){1,7}|:))$/';

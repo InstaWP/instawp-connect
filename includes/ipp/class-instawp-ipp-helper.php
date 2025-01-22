@@ -652,7 +652,7 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 			}
 
 			// Check for disallowed characters and file start with dot
-			if ( $filename === '.' || $filename === '..' ) {
+			if ( $filename[0] === '.' || $filename === '.' || $filename === '..' ) {
 				return false;
 			}
 

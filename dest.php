@@ -400,7 +400,11 @@ if ( $file_type === 'zip' ) {
 				for ( $i = 0; $i < $zip->numFiles; $i ++ ) {
 					$file_name = $zip->getNameIndex( $i );
 
-					if ( ! array_contains_str( $directory_name . DIRECTORY_SEPARATOR . $file_name, $excluded_paths ) && ! str_contains( $file_name, 'instawp-autologin' ) ) {
+					if ( false !== strpos( $directory_name, DIRECTORY_SEPARATOR . 'wp-content' ) || false !== strpos( $directory_name, DIRECTORY_SEPARATOR . 'wp-includes' ) || false !== strpos( $directory_name, DIRECTORY_SEPARATOR . 'wp-admin' ) ) {
+						if ( ! array_contains_str( $directory_name . DIRECTORY_SEPARATOR . $file_name, $excluded_paths ) && ! str_contains( $file_name, 'instawp-autologin' ) ) {
+							$extracted_files[] = $file_name;
+						}
+					} else if ( ! in_array( $file_name, $excluded_paths ) && ! str_contains( $file_name, 'instawp-autologin' ) ) {
 						//file_put_contents( $root_dir_path . DIRECTORY_SEPARATOR . 'iwp_log.txt', "zip path: " . $directory_name . DIRECTORY_SEPARATOR . $file_name . "\n", FILE_APPEND );
 						$extracted_files[] = $file_name;
 					}
