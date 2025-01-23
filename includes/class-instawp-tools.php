@@ -499,6 +499,10 @@ include $file_path;';
 			unset( $config_constants['DB_HOST'] );
 		}
 
+        if ( isset( $config_constants['MYSQL_CLIENT_FLAGS'] ) ) {
+			unset( $config_constants['MYSQL_CLIENT_FLAGS'] );
+		}
+
 		if ( isset( $config_constants['ABSPATH'] ) ) {
 			$config_constants['ABSPATH'] = "dirname( __FILE__ ) . '/'";
 		}
