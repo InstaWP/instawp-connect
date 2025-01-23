@@ -180,6 +180,14 @@ class Helper {
 	}
 
 	public static function get_admin_username() {
+		if ( current_user_can( 'manage_options' ) ) {
+			$current_user = wp_get_current_user();
+			
+			if ( ! empty( $current_user ) ) {
+				return $current_user->user_login;
+			}
+		}
+		
 		$username = '';
 
 		foreach (
