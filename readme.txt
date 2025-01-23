@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.6
 Tested up to: 6.7
 Requires PHP: 7.0
-Stable tag: 0.1.0.78
+Stable tag: 0.1.0.79
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -98,7 +98,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
-= 0.1.0.79 - January 2025 =
+= 0.1.0.79 - 23 January 2025 =
 - FIX: Fixed default username for magic login.
 - FIX: Added managed parameter to config API.
 - FIX: Fixed cache clearing issue with WP Rocket.
