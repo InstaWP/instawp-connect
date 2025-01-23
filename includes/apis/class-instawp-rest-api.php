@@ -144,6 +144,7 @@ class InstaWP_Rest_Api {
 		$api_key              = isset( $parameters['api_key'] ) ? sanitize_text_field( $parameters['api_key'] ) : '';
 		$api_domain           = isset( $parameters['api_domain'] ) ? sanitize_text_field( $parameters['api_domain'] ) : '';
 		$plan_id              = isset( $parameters['advance_connect_plan_id'] ) ? intval( $parameters['advance_connect_plan_id'] ) : 0;
+		$managed              = isset( $parameters['managed'] ) ? boolval( $parameters['managed'] ) : true;
 
 		if ( empty( $wp_username ) || empty( $application_password ) ) {
 			return $this->send_response( array(
@@ -249,7 +250,7 @@ class InstaWP_Rest_Api {
 			Option::update_option( 'instawp_connect_plan_id', $plan_id );
 		}
 
-		if ( ! Helper::instawp_generate_api_key( $api_key, $jwt ) ) {
+		if ( ! Helper::instawp_generate_api_key( $api_key, $jwt, $managed ) ) {
 			return $this->send_response( array(
 				'status'  => false,
 				'message' => esc_html__( 'API Key is not valid.', 'instawp-connect' ),
