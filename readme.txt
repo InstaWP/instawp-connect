@@ -98,11 +98,9 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
-= 0.1.0.80 - 23 January 2025 =
+= 0.1.0.79 - January 2025 =
 - FIX: Fixed default username for magic login.
 - FIX: Added managed parameter to config API.
-
-= 0.1.0.79 - January 2025 =
 - FIX: Fixed cache clearing issue with WP Rocket.
 - FIX: Push migration exclude files check.
 
