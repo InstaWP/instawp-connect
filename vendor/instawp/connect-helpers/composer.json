@@ -2,7 +2,7 @@
     "name": "instawp/connect-helpers",
     "description": "CLI Package for InstaWP Remote Features",
     "type": "library",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "license": "MIT",
     "authors": [
         {
@@ -10,7 +10,7 @@
             "email": "sayan@instawp.com"
         }
     ],
-    "minimum-stability": "dev",
+    "minimum-stability": "stable",
 	"prefer-stable": true,
     "require": {
         "php": ">= 5.6",
