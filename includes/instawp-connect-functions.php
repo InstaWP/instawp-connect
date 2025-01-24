@@ -263,55 +263,56 @@ if ( ! function_exists( 'iwp_maybe_serialize' ) ) {
 	}
 }
 
+if ( ! function_exists( 'iwp_recursive_unserialize_replace' ) ) {
+	function iwp_recursive_unserialize_replace( $data, $search_replace ) {
 
-function iwp_recursive_unserialize_replace( $data, $search_replace ) {
-
-	if ( is_string( $data ) ) {
-		return str_replace( array_keys( $search_replace ), array_values( $search_replace ), $data );
-	}
-
-	if ( is_array( $data ) ) {
-		$data = array_map( function ( $item ) use ( $search_replace ) {
-			return iwp_recursive_unserialize_replace( $item, $search_replace );
-		}, $data );
-	} elseif ( is_object( $data ) ) {
-		// Check if the object is __PHP_Incomplete_Class
-		if ( $data instanceof __PHP_Incomplete_Class ) {
-			$className = get_class( $data );
-			iwp_send_migration_log( 'Incomplete Class Warning', "Encountered incomplete class: $className. Make sure this class is loaded before unserialization.", [ 'class' => $className ] );
-
-			return $data;
+		if ( is_string( $data ) ) {
+			return str_replace( array_keys( $search_replace ), array_values( $search_replace ), $data );
 		}
 
-		$properties = [];
+		if ( is_array( $data ) ) {
+			$data = array_map( function ( $item ) use ( $search_replace ) {
+				return iwp_recursive_unserialize_replace( $item, $search_replace );
+			}, $data );
+		} elseif ( is_object( $data ) ) {
+			// Check if the object is __PHP_Incomplete_Class
+			if ( $data instanceof __PHP_Incomplete_Class ) {
+				$className = get_class( $data );
+				iwp_send_migration_log( 'Incomplete Class Warning', "Encountered incomplete class: $className. Make sure this class is loaded before unserialization.", [ 'class' => $className ] );
 
-		try {
-			$reflection = new ReflectionObject( $data );
-			$properties = $reflection->getProperties();
-		} catch ( Exception $e ) {
-			iwp_send_migration_log(
-				'Reflection Error',
-				"Failed to reflect object of class " . get_class( $data ),
-				[ 'error' => $e->getMessage() ]
-			);
+				return $data;
+			}
 
-			return $data;
-		}
+			$properties = [];
 
-		foreach ( $properties as $property ) {
 			try {
-				$property->setAccessible( true );
-				$value     = $property->getValue( $data );
-				$new_value = iwp_recursive_unserialize_replace( $value, $search_replace );
-				$property->setValue( $data, $new_value );
+				$reflection = new ReflectionObject( $data );
+				$properties = $reflection->getProperties();
 			} catch ( Exception $e ) {
-				// Skip this property if we can't access it
-				continue;
+				iwp_send_migration_log(
+					'Reflection Error',
+					"Failed to reflect object of class " . get_class( $data ),
+					[ 'error' => $e->getMessage() ]
+				);
+
+				return $data;
+			}
+
+			foreach ( $properties as $property ) {
+				try {
+					$property->setAccessible( true );
+					$value     = $property->getValue( $data );
+					$new_value = iwp_recursive_unserialize_replace( $value, $search_replace );
+					$property->setValue( $data, $new_value );
+				} catch ( Exception $e ) {
+					// Skip this property if we can't access it
+					continue;
+				}
 			}
 		}
-	}
 
-	return $data;
+		return $data;
+	}
 }
 
 if ( ! function_exists( 'iwp_maybe_unserialize' ) ) {

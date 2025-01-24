@@ -673,6 +673,16 @@ if ( ! function_exists( 'iwp_sanitize_key' ) ) {
 }
 
 
+if ( ! function_exists( 'iwp_ipp_can_delete_file' ) ) {
+	/**
+	 * Delete files.
+	 * Only files that are in wp content folder will be deleted.
+	 */
+	function iwp_ipp_can_delete_file( $file ) {
+		return ( ! empty( $file['relative_path'] ) && 0 === strpos( $file['relative_path'], 'wp-content' ) && false === strpos( $file['relative_path'], '/iwp-' ) && false === strpos( $file['relative_path'], '/instawp' ) && false === strpos( $file['relative_path'], 'instawp-autologin' ) && false === strpos( $file['relative_path'], 'migrate-p' ) );
+	}
+}
+
 
 if ( ! function_exists( 'iwp_ipp_delete_files' ) ) {
 	/**
@@ -704,7 +714,7 @@ if ( ! function_exists( 'iwp_ipp_delete_files' ) ) {
 			// Delete files
 			if ( ! empty( $files ) ) {
 				foreach ( $files as $file ) {
-					if ( ! empty( $file['relative_path'] ) && 0 === strpos( $file['relative_path'], 'wp-content' ) && false === strpos( $file['relative_path'], '/iwp-' ) && false === strpos( $file['relative_path'], '/instawp' ) ) {
+					if ( iwp_ipp_can_delete_file( $file ) ) {
 						// file path
 						$file_path =$root_dir_path . DIRECTORY_SEPARATOR . $file['relative_path'];
 						// delete file

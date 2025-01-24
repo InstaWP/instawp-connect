@@ -30,14 +30,14 @@ class InstaWP_Rest_Api_IPP extends InstaWP_Rest_Api {
 	public function add_api_routes() {
 
 		// GET Table List
-		register_rest_route( $this->namespace . '/' . $this->version_2 . '/ipp', '/db-schema', array(
+		register_rest_route( $this->namespace . '/' . $this->version_3 . '/ipp', '/db-schema', array(
 			'methods'             => 'POST',
 			'callback'            => array( $this, 'get_db_schema' ),
 			'permission_callback' => array( $this, 'validate_ipp_api' ),
 		) );
 
 		// Install or update plugins, themes or core
-		register_rest_route( $this->namespace . '/' . $this->version_2 . '/ipp', '/is-ready', array(
+		register_rest_route( $this->namespace . '/' . $this->version_3 . '/ipp', '/is-ready', array(
 			'methods'             => 'POST',
 			'callback'            => array( $this, 'is_ready' ),
 			'args'                => array(
@@ -51,7 +51,7 @@ class InstaWP_Rest_Api_IPP extends InstaWP_Rest_Api {
 		) );
 
 		// GET files checksum
-		register_rest_route( $this->namespace . '/' . $this->version_2 . '/ipp', '/files-checksum', array(
+		register_rest_route( $this->namespace . '/' . $this->version_3 . '/ipp', '/files-checksum', array(
 			'methods'             => 'POST',
 			'callback'            => array( $this, 'get_files_checksum' ),
 			'args'                => array(
@@ -62,7 +62,7 @@ class InstaWP_Rest_Api_IPP extends InstaWP_Rest_Api {
 			'permission_callback' => array( $this, 'validate_ipp_api' ),
 		) );
 		// GET TABLE CHECKSUM
-		register_rest_route( $this->namespace . '/' . $this->version_2 . '/ipp', '/table-checksum', array(
+		register_rest_route( $this->namespace . '/' . $this->version_3 . '/ipp', '/table-checksum', array(
 			'methods'             => 'POST',
 			'callback'            => array( $this, 'get_table_checksum' ),
 			'args'                => array(
@@ -90,7 +90,7 @@ class InstaWP_Rest_Api_IPP extends InstaWP_Rest_Api {
 			'permission_callback' => array( $this, 'validate_ipp_api' ),
 		) );
 
-		register_rest_route( $this->namespace . '/' . $this->version_2 . '/ipp', '/initiate-iterative-pull', array(
+		register_rest_route( $this->namespace . '/' . $this->version_3 . '/ipp', '/initiate-iterative-pull', array(
 			'methods'             => 'POST',
 			'callback'            => array( $this, 'initiate_iterative_pull' ),
 			'args'                => array(

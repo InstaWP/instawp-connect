@@ -656,7 +656,7 @@ if ( ! function_exists( 'instawp_fetch_files' ) ) {
         iwp_send_progress( 100, 0, [ 'pull-files-finished' => true ] );
         iwp_progress_bar( 100, 100, 50, $migrate_mode );
         if ( $is_iterative_pull ) {
-            echo "File pull completed in " . ( time() - $start ) . " seconds. \n";
+            echo "Files pull completed in " . ( time() - $start ) . " seconds. \n";
         } else {
             echo "All files are transferred successfully from the source website to the staging website. \n";
         }

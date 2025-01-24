@@ -99,13 +99,17 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 		}
 
 		global $wp_version;
+		$migrate_mode         = $request->get_param( 'migrate_mode' );
+		$is_iterative_push    = ( ! empty( $migrate_mode ) && 'iterative_push' === $migrate_mode );
 
-		// Create InstaWP backup directory
-		InstaWP_Tools::create_instawpbackups_dir();
+		if ( ! $is_iterative_push ) {
+			// Create InstaWP backup directory
+			InstaWP_Tools::create_instawpbackups_dir();
 
-		// Clean InstaWP backup directory
-		InstaWP_Tools::clean_instawpbackups_dir();
-
+			// Clean InstaWP backup directory
+			InstaWP_Tools::clean_instawpbackups_dir();
+		}
+		
 		$migrate_key      = Helper::get_random_string( 40 );
 		$migrate_settings = InstaWP_Tools::get_migrate_settings( array(), array( 'mode' => 'push' ) );
 		$api_signature    = hash( 'sha512', $migrate_key . wp_generate_uuid4() );

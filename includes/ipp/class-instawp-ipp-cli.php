@@ -258,11 +258,29 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 				if ( $command === 'push' ) {
 					require_once INSTAWP_PLUGIN_DIR . '/includes/ipp/instawp-push-files.php';
 					require_once INSTAWP_PLUGIN_DIR . '/includes/ipp/instawp-push-db.php';
-					$target_url = 'https://wondrous-gull-fa3659.a.instawpsites.com/wp-content/plugins/instawp-connect/dest.php';
+					
 					// Set migration mode
 					$migrate_mode = 'iterative_push';
+					// Initiate iterative push
+					$migrate_args = $this->call_api( 
+						'', 
+						array(
+							'migrate_mode' => $migrate_mode
+						), 
+						'push',
+						false
+					);
+
+					// Check migrate args
+					if ( empty( $migrate_args['migrate_key'] ) || empty( $migrate_args['dest_url'] ) || empty( $migrate_args['api_signature'] ) ) {
+						$this->helper->print_message( __( 'Failed to initiate iterative push.', 'instawp-connect' ), true );
+					}
+
+					$target_url = esc_url( $migrate_args['dest_url'] );
+					$migrate_key = $migrate_args['migrate_key'];
+					$api_signature = $migrate_args['api_signature'];
 					// Set migration title
-					$migrate_curl_title = 'InstaWP Migration Service - Iterative Push';
+					$migrate_curl_title = __( 'InstaWP Migration Service - Iterative Push', 'instawp-connect' );
 					
 					// Get exclude large files
 					if ( $exclude_large_files ) {
@@ -323,29 +341,29 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 					);
 					// Push files
 					if ( $this->has_file_changes( $migrate_settings ) ) {
-						$this->helper->print_message( 'Pushing files...' );
+						$this->helper->print_message( __( 'Pushing files...', 'instawp-connect' ) );
 						instawp_iterative_push_files( $settings );
 					} else {
-						$this->helper->print_message( 'No file changes detected for pushing.' );
+						$this->helper->print_message( __( 'No file changes detected for pushing.', 'instawp-connect' ) );
 					}
 					
 					// Push database
 					if ( isset( $assoc_args['with-db'] ) ) {
 						if ( $this->has_db_changes( $migrate_settings ) ) {
-							$this->helper->print_message( 'Pushing database schema...' );
+							$this->helper->print_message( __( 'Pushing database schema...', 'instawp-connect' ) );
 							$push_db_status = instawp_iterative_push_db( $settings );
 						} else {
-							$this->helper->print_message( 'No database schema changes detected for pushing.' );
+							$this->helper->print_message( __( 'No database schema changes detected for pushing.', 'instawp-connect' ) );
 						}
 					}
 
 				} else {
 					require_once INSTAWP_PLUGIN_DIR . '/includes/ipp/instawp-fetch-files.php';
 					//require_once INSTAWP_PLUGIN_DIR . '/includes/ipp/class-instawp-push-db.php';
-					$target_url = 'https://rightful-grouse-51e3a4.a.instawpsites.com/wp-content/plugins/instawp-connect/serve.php';
+					$target_url = 'https://humorous-worm-0588a4.instawp.xyz/wp-content/plugins/instawp-connect/serve.php';
 					// Set migration mode
 					$migrate_mode = 'iterative_pull';
-					$migrate_curl_title = 'InstaWP Migration Service - Iterative Pull';
+					$migrate_curl_title = __( 'InstaWP Migration Service - Iterative Pull', 'instawp-connect' );
 					$migrate_settings['mode'] = $migrate_mode;
 					$migrate_settings['destination_site_url'] = site_url();
 					// Pull files
@@ -357,43 +375,37 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 					$migrate_settings['file_actions'] = $this->get_pull_file_changes( $migrate_settings );
 
 					$has_file_changes  = $this->has_file_changes( $migrate_settings );
-					$hss_db_changes = $this->has_db_changes( $migrate_settings );
-
-					if ( $has_file_changes || $hss_db_changes ) {
-						$migrate_args = $this->call_api( 'initiate-iterative-pull', array(
-							'settings' => array(
-								'migrate_settings' 		=> $migrate_settings,
-								'migrate_key' 			=> $migrate_key,
-								'destination_site_url'	=> $migrate_settings['destination_site_url'],
-							)
-						) );
-	
-						// Check for required arguments
-						if ( empty( $migrate_args['serve_url'] ) || empty( $migrate_args['migrate_key'] ) || empty( $migrate_args['api_signature'] ) ) {
-							$this->helper->print_message( 'Pull initiation failed.', true );
-						}
-
-						$target_url = esc_url( $migrate_args['serve_url'] );
-						$migrate_key = $migrate_args['migrate_key'];
-						$api_signature = $migrate_args['api_signature'];
-
-						if ( $has_file_changes ) {
-							instawp_fetch_files(
-								array(
-									'migrate_settings' 		=> $migrate_settings,
-									'serve_type' 			=> 'files',
-									'api_signature' 		=> $api_signature,
-									'save_to_directory' 	=> wp_normalize_path( ABSPATH ),
-									'target_url' 			=> $target_url,
-								)
-							);
-						} else {
-							$this->helper->print_message( 'No file changes detected for pulling.' );
-						}
-					} else {
-						$this->helper->print_message( 'No file changes detected for pulling.' );
+					$migrate_args = $this->call_api( 'initiate-iterative-pull', array(
+						'settings' => array(
+							'migrate_settings' 		=> $migrate_settings,
+							'migrate_key' 			=> $migrate_key,
+							'destination_site_url'	=> $migrate_settings['destination_site_url'],
+						)
+					) );
+					// Check for required arguments
+					if ( empty( $migrate_args['serve_url'] ) || empty( $migrate_args['migrate_key'] ) || empty( $migrate_args['api_signature'] ) ) {
+						$this->helper->print_message( __( 'Pull initiation failed.', 'instawp-connect' ), true );
 					}
 
+					$target_url = esc_url( $migrate_args['serve_url'] );
+					$migrate_key = $migrate_args['migrate_key'];
+					$api_signature = $migrate_args['api_signature'];
+
+					if ( $has_file_changes ) {
+						$this->helper->print_message( __( 'Pulling files...', 'instawp-connect' ) );
+						instawp_fetch_files(
+							array(
+								'migrate_settings' 		=> $migrate_settings,
+								'serve_type' 			=> 'files',
+								'api_signature' 		=> $api_signature,
+								'save_to_directory' 	=> wp_normalize_path( ABSPATH ),
+								'target_url' 			=> $target_url,
+							)
+						);
+					} else {
+						$this->helper->print_message( __( 'No file changes detected for pulling.', 'instawp-connect' ) );
+					}
+					
 					// Detect database changes
 					if ( isset( $assoc_args['with-db'] ) ) {
 						$db_changes = $this->pull_db_changes( $migrate_settings );
@@ -409,7 +421,7 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 				update_option( $this->helper->vars['ipp_run_settings'], $migrate_settings );
 			}
 			
-			WP_CLI::success( "Run Successfully" );
+			WP_CLI::success( __( 'Run Successfully', 'instawp-connect' ) );
 		}
 
 		/**
@@ -484,7 +496,7 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 						if ( ! isset( $checksums[$path_hash] ) && ! in_array( $file['relative_path'], $excluded_paths ) && false === strpos( $file['relative_path'], 'instawp-autologin' ) && false === strpos( $file['relative_path'], 'migrate-p' ) ) {
 							if ( isset( $file['is_dir'] ) && true === $file['is_dir'] ) {
 								$action['to_delete_folders'][] = $file;
-							} else {
+							} else if ( iwp_ipp_can_delete_file( $file ) ) {
 								$action['deleted_files_count']++;
 								$action['to_delete'][] = $file;
 							}
@@ -830,7 +842,7 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 						if ( ! isset( $checksums[$path_hash] ) && ! in_array( $file['relative_path'], $excluded_paths ) && false === strpos( $file['relative_path'], 'instawp-autologin' ) && false === strpos( $file['relative_path'], 'migrate-p' ) ) {
 							if ( isset( $file['is_dir'] ) && true === $file['is_dir'] ) {
 								$action['to_delete_folders'][] = $file;
-							} else {
+							} else if ( iwp_ipp_can_delete_file( $file ) ) {
 								$action['deleted_files_count']++;
 								$action['to_delete'][] = $file;
 							}
@@ -1216,6 +1228,20 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 		}
 
 		/**
+		 * Get column query args
+		 * 
+		 * @param array $details
+		 * 
+		 * @return array
+		 */
+		private function column_query_args( $col = array() ) {
+			$col['Default'] = empty( $col['Default'] ) ? '': "DEFAULT '{$col['Default']}'";
+			$col['Collation'] = empty( $col['Collation'] ) ? '': "COLLATE '{$col['Collation']}'";
+			$col['Extra'] = empty( $col['Extra'] ) ? '': $col['Extra'];
+			return $col;
+		}
+
+		/**
 		 * Check table schema changes
 		 */
 		private function check_table_schema_changes( &$db_actions, $meta, $target_table_meta ) {
@@ -1248,16 +1274,16 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 							'target' => $column_details,
 							'source' => $target_columns_details[$col_name],
 						];
-						$column_details['Default'] = empty( $column_details['Default'] ) ? '': "DEFAULT '{$column_details['Default']}'";
-						$column_details['Collation'] = empty( $column_details['Collation'] ) ? '': "COLLATE '{$column_details['Collation']}'";
+						$column_details = $this->column_query_args( $column_details );
 						$queries[] = sprintf(
-							"ALTER TABLE `%s` CHANGE COLUMN `%s` `%s` %s %s %s %s", // Renaming and modifying column
+							"ALTER TABLE `%s` CHANGE COLUMN `%s` `%s` %s %s %s %s %s", // Renaming and modifying column
 							$target_table,                // Table name
 							$col_name,             // Old column name (the one being renamed)
 							$col_name,             // New column name (the desired name)
 							$column_details['Type'],      // Data type
 							$column_details['Null'] === 'YES' ? 'NULL' : 'NOT NULL', // Nullability
 							$column_details['Default'], // Default value,
+							$column_details['Extra'], // Extra
 							$column_details['Collation'] // Collation
 						);
 					}
@@ -1308,18 +1334,19 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 						}
 					}
 
+					$column_details = $this->column_query_args( $column_details );
 					if ( ! empty( $old_column_name ) ) {
-						$column_details['Default'] = empty( $column_details['Default'] ) ? '': "DEFAULT '{$column_details['Default']}'";
-						$column_details['Collation'] = empty( $column_details['Collation'] ) ? '': "COLLATE '{$column_details['Collation']}'";
+						
 						// Renaming and modifying column
 						$query = sprintf(
-							"ALTER TABLE `%s` CHANGE COLUMN `%s` `%s` %s %s %s %s", 
+							"ALTER TABLE `%s` CHANGE COLUMN `%s` `%s` %s %s %s %s %s", 
 							$target_table,                // Table name
 							$old_column_name,             // Old column name (the one being renamed)
 							$column_name,             // New column name (the desired name)
 							$column_details['Type'],      // Data type
 							$column_details['Null'] === 'YES' ? 'NULL' : 'NOT NULL', // Nullability
 							$column_details['Default'], // Default value
+							$column_details['Extra'], // Extra
 							$column_details['Collation'] // Collation
 						);
 
@@ -1332,12 +1359,14 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 						
 					} else {
 						$query = sprintf(
-							"ALTER TABLE `%s` ADD COLUMN `%s` %s %s %s",
+							"ALTER TABLE `%s` ADD COLUMN `%s` %s %s %s %s %s",
 							$target_table,
 							$column_name,
 							$column_details['Type'], // Data type
 							$column_details['Null'] === 'YES' ? 'NULL' : 'NOT NULL', // Nullability
-							isset($column_details['Default']) ? "DEFAULT '{$column_details['Default']}'" : '' // Default value
+							$column_details['Default'], // Default value
+							$column_details['Extra'], // Extra
+							$column_details['Collation'] // Collation
 						);
 						 // Add primary key constraint
 						 if (isset($column_details['Key']) && $column_details['Key'] === 'PRI') {
@@ -1495,10 +1524,10 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 		}
 		
 
-		private function call_api( $path, $body = array(), $only_data = true ) {
+		private function call_api( $path, $body = array(), $group = 'ipp/', $only_data = true ) {
 			
 			$response = wp_remote_post( 
-				$this->staging_url . '/wp-json/instawp-connect/v2/ipp/' . $path, 
+				$this->staging_url . '/wp-json/instawp-connect/v3/'.$group.'' . $path, 
 				array( 
 					'timeout'   => 200,
 					'body' => $body,
@@ -1521,7 +1550,7 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 				WP_CLI::error( $res_body );
 			}
 
-			if ( empty( $response['success'] ) ) {
+			if ( $only_data && empty( $response['success'] ) ) {
 				WP_CLI::error( $response['message'] );
 			}
 	

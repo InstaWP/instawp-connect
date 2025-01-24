@@ -70,7 +70,7 @@ if ( ! isset( $api_signature ) || ! isset( $_SERVER['HTTP_X_IWP_API_SIGNATURE'] 
 	die();
 }
 
-if ( ! empty( $_POST['delete_files'] ) || ! empty( $_POST['delete_folders'] ) ) {
+if ( $is_iterative_push && ( ! empty( $_POST['delete_files'] ) || ! empty( $_POST['delete_folders'] ) ) ) {
 	$delete_files_response = iwp_ipp_delete_files( 
 		$root_dir_path, 
 		empty( $_POST['delete_files'] ) ? array() : json_decode( $_POST['delete_files'], true ), 
