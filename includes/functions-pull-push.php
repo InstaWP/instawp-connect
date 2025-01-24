@@ -155,11 +155,11 @@ if ( ! function_exists( 'array_contains_str' ) ) {
 			return true;
 		}
 
-		foreach ( $array as $item ) {
-			if ( str_contains( $string, $item ) ) {
-				return true;
-			}
-		}
+//		foreach ( $array as $item ) {
+//			if ( str_contains( $string, $item ) ) {
+//				return true;
+//			}
+//		}
 
 		return false;
 	}

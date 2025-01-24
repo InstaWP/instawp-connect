@@ -38,7 +38,8 @@ if ( ! $root_dir_find ) {
 	exit( 2 );
 }
 
-//$options_data_path = $root_dir_path . DIRECTORY_SEPARATORz . 'wp-content' . DIRECTORY_SEPARATOR . 'instawpbackups' . DIRECTORY_SEPARATOR . 'migrate-push-db-' . substr( $migrate_key, 0, 5 ) . '.txt';
+$log_file_path     = $root_dir_path . DIRECTORY_SEPARATOR . 'iwp-push-log.txt';
+$received_db_path  = $root_dir_path . DIRECTORY_SEPARATOR . 'iwp-db-received.sql';
 $options_data_path = $root_dir_path . DIRECTORY_SEPARATOR . 'migrate-push-db-' . substr( $migrate_key, 0, 5 ) . '.txt';
 
 if ( file_exists( $options_data_path ) ) {
@@ -114,20 +115,15 @@ $file_relative_path = trim( $_SERVER['HTTP_X_FILE_RELATIVE_PATH'] );
 $file_type          = isset( $_SERVER['HTTP_X_FILE_TYPE'] ) ? trim( $_SERVER['HTTP_X_FILE_TYPE'] ) : 'single';
 $req_order          = isset( $_GET['r'] ) ? intval( $_GET['r'] ) : 1;
 
-if ( ! file_exists( $root_dir_path . DIRECTORY_SEPARATOR . 'iwp_log.txt' ) ) {
-	file_put_contents( $root_dir_path . DIRECTORY_SEPARATOR . 'iwp_log.txt', json_encode( $user_details ) . "\n" . json_encode( $retain_user ) );
-}
-
 if ( in_array( $file_relative_path, $excluded_paths ) ) {
 	exit( 0 );
 }
 
 $file_save_path = $root_dir_path . DIRECTORY_SEPARATOR . $file_relative_path;
-file_put_contents( $root_dir_path . DIRECTORY_SEPARATOR . 'iwp_log.txt', "full path: " . $file_save_path . "\n", FILE_APPEND );
+
 if ( in_array( $file_save_path, $excluded_paths ) || str_contains( $file_save_path, 'instawp-autologin' ) ) {
 	exit( 0 );
 }
-file_put_contents( $root_dir_path . DIRECTORY_SEPARATOR . 'iwp_log.txt', "full path success" . "\n", FILE_APPEND );
 
 $directory_name = dirname( $file_save_path );
 
@@ -146,7 +142,6 @@ if ( $file_relative_path === 'db.sql' ) {
 	if ( file_exists( $file_save_path ) ) {
 		unlink( $file_save_path );
 	}
-//  $file_save_path = $root_dir_path . DIRECTORY_SEPARATOR . time() . '.sql'; // added for debugging
 	$file_stream = fopen( $file_save_path, 'a+b' );
 } else {
 	$file_stream = fopen( $file_save_path, 'wb' );
@@ -239,6 +234,8 @@ if ( $file_type === 'db' ) {
 	$sql_commands = file_get_contents( $file_save_path );
 	$commands     = explode( ";\n\n", $sql_commands );
 
+	file_put_contents( $received_db_path, $sql_commands, FILE_APPEND );
+
 	foreach ( $commands as $command ) {
 		if ( ! empty( trim( $command ) ) ) {
 			if ( extension_loaded( 'mysqli' ) ) {
@@ -258,13 +255,10 @@ if ( $file_type === 'db' ) {
 
 		if ( isset( $_SERVER['HTTP_X_IWP_PROGRESS'] ) ) {
 			$log_content = "x-iwp-progress: {$_SERVER['HTTP_X_IWP_PROGRESS']}\n";
-			file_put_contents( 'iwp_log.txt', $log_content, FILE_APPEND );
+			file_put_contents( $log_file_path, $log_content, FILE_APPEND );
 		}
 
 		if ( isset( $_SERVER['HTTP_X_IWP_PROGRESS'] ) && $_SERVER['HTTP_X_IWP_PROGRESS'] == 100 ) {
-
-			file_put_contents( 'iwp_log.txt', "Retain User: " . var_dump( $retain_user ), FILE_APPEND );
-			file_put_contents( 'iwp_log.txt', "User Details: " . json_encode( $user_details ), FILE_APPEND );
 
 			// Retaining user after migration
 			if ( $retain_user ) {
@@ -289,19 +283,12 @@ if ( $file_type === 'db' ) {
 				$values = "'" . implode( "', '", array_map( array( $mysqli, 'real_escape_string' ), $user_data ) ) . "'";
 				$query  = "INSERT INTO {$table_prefix}users ($fields) VALUES ($values)";
 
-				file_put_contents( 'iwp_log.txt', "Query: " . $query, FILE_APPEND );
-
 				$query_response = $mysqli->query( $query );
-
-				file_put_contents( 'iwp_log.txt', "Query Response: " . json_encode( $query_response ), FILE_APPEND );
 
 				if ( $query_response ) {
 					$user_id = $mysqli->insert_id;
 
-					file_put_contents( 'iwp_log.txt', "User ID: " . json_encode( $user_id ), FILE_APPEND );
-
 					if ( $user_id ) {
-
 						// Set user capabilities
 						$caps_key   = $mysqli->real_escape_string( $table_prefix . 'capabilities' );
 						$caps_value = $mysqli->real_escape_string( iwp_maybe_serialize( $user_details_caps ) );
@@ -317,7 +304,7 @@ if ( $file_type === 'db' ) {
 				}
 
 				if ( $mysqli->error ) {
-					file_put_contents( 'iwp_log.txt', "insert response: " . $mysqli->error . "\n", FILE_APPEND );
+					file_put_contents( $log_file_path, "insert response: " . $mysqli->error . "\n", FILE_APPEND );
 				}
 			}
 
@@ -327,43 +314,25 @@ if ( $file_type === 'db' ) {
 				$is_insert_failed = false;
 
 				try {
-					$query = "INSERT INTO `{$table_prefix}options` (`option_name`, `option_value`) VALUES('instawp_api_options', '{$instawp_api_options}')";
-
-					// log start
-					file_put_contents( 'iwp_log.txt', "insert query: " . $query . "\n", FILE_APPEND );
-					// log end
-
+					$query           = "INSERT INTO `{$table_prefix}options` (`option_name`, `option_value`) VALUES('instawp_api_options', '{$instawp_api_options}')";
 					$insert_response = $mysqli->query( $query );
-
-					// log start
-					file_put_contents( 'iwp_log.txt', "insert response: " . var_dump( $insert_response ) . "\n", FILE_APPEND );
-					// log end
 
 					if ( ! $insert_response ) {
 						$is_insert_failed = true;
 					}
 				} catch ( Exception $e ) {
-					// log start
-					file_put_contents( 'iwp_log.txt', "insert exception: " . $e->getMessage() . "\n", FILE_APPEND );
-					// log end
+					file_put_contents( $log_file_path, "insert exception: " . $e->getMessage() . "\n", FILE_APPEND );
 
 					$is_insert_failed = true;
 				}
 
 				if ( $is_insert_failed ) {
 					try {
-						$query = "UPDATE `{$table_prefix}options` SET `option_value` = '{$instawp_api_options}' WHERE `option_name` = 'instawp_api_options'";
-
-						// log start
-						file_put_contents( 'iwp_log.txt', "update query: " . $query . "\n", FILE_APPEND );
-						// log end
-
+						$query           = "UPDATE `{$table_prefix}options` SET `option_value` = '{$instawp_api_options}' WHERE `option_name` = 'instawp_api_options'";
 						$update_response = $mysqli->query( $query );
-
-						// log start
-						file_put_contents( 'iwp_log.txt', "update response: " . var_dump( $update_response ) . "\n", FILE_APPEND );
-						// log end
 					} catch ( Exception $e ) {
+						file_put_contents( $log_file_path, "Update failed. Error message: {$e->getMessage()}\n", FILE_APPEND );
+
 						header( 'x-iwp-status: false' );
 						header( "x-iwp-message: Update failed. Error message: {$e->getMessage()}\n" );
 						die();
@@ -382,9 +351,9 @@ if ( $file_type === 'db' ) {
 		mysql_close( $connection );
 	}
 
-	if ( file_exists( $file_save_path ) ) {
-		unlink( $file_save_path );
-	}
+//	if ( file_exists( $file_save_path ) ) {
+//		unlink( $file_save_path );
+//	}
 }
 
 $is_wp_config_file = false;
@@ -479,7 +448,6 @@ if ( $file_type === 'zip' ) {
 }
 
 if ( str_contains( $file_relative_path, 'wp-config.php' ) || $is_wp_config_file ) {
-	//file_put_contents( $root_dir_path . DIRECTORY_SEPARATOR . 'iwp_log.txt', "wp-config.php" . "\n", FILE_APPEND );
 	if ( ! isset( $db_host ) || ! isset( $db_username ) || ! isset( $db_password ) || ! isset( $db_name ) ) {
 		header( 'x-iwp-status: false' );
 		header( 'x-iwp-message: Database information missing.' );
