@@ -256,8 +256,8 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 
 				// Iterative push
 				if ( $command === 'push' ) {
-					require_once INSTAWP_PLUGIN_DIR . '/includes/ipp/class-instawp-push-files.php';
-					require_once INSTAWP_PLUGIN_DIR . '/includes/ipp/class-instawp-push-db.php';
+					require_once INSTAWP_PLUGIN_DIR . '/includes/ipp/instawp-push-files.php';
+					require_once INSTAWP_PLUGIN_DIR . '/includes/ipp/instawp-push-db.php';
 					$target_url = 'https://wondrous-gull-fa3659.a.instawpsites.com/wp-content/plugins/instawp-connect/dest.php';
 					// Set migration mode
 					$migrate_mode = 'iterative_push';
