@@ -78,7 +78,7 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 			// Get hashed api key
 			//$this->api_key = Helper::get_api_key( true );
 			// staging site api key
-			$this->api_key = '500f796c18878428ffb7f6b2442185902899b046e2659507ccd48de241803325';
+			$this->api_key = '210a5d920c06c16c66d2ff9822c166841b64f8c2610ef0872f6d9454fd66d802';
 			if ( empty( $this->api_key ) ) {
 				WP_CLI::error( __( 'Missing API key.', 'instawp-connect' ) );
 			}
@@ -132,7 +132,7 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 			
 			$migrate_key = '41312fed19f792994502ef831b842d8e25d392c6';
 			$api_signature = '804ebc7f08f9ea57bdac9e4fa5b7b30b86ce9e2abe6d21f282e6e522abaf0740f8543ea8eb89b6c43bdbfaaf5814b3c69361a6cc13d5371d874ecb4da031a48f';
-			$bearer_token = '500f796c18878428ffb7f6b2442185902899b046e2659507ccd48de241803325';
+			$bearer_token = '210a5d920c06c16c66d2ff9822c166841b64f8c2610ef0872f6d9454fd66d802';
 
 			try {
 				global $wpdb;
@@ -355,12 +355,6 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 					
 					// Detect file changes
 					$migrate_settings['file_actions'] = $this->get_pull_file_changes( $migrate_settings );
-					
-					// Detect database changes
-					if ( isset( $assoc_args['with-db'] ) ) {
-						$db_changes = $this->get_pull_db_changes( $migrate_settings );
-						$migrate_settings['db_actions'] = $db_changes['db_actions'];
-					}
 
 					$has_file_changes  = $this->has_file_changes( $migrate_settings );
 					$hss_db_changes = $this->has_db_changes( $migrate_settings );
@@ -397,7 +391,13 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 							$this->helper->print_message( 'No file changes detected for pulling.' );
 						}
 					} else {
-						$this->helper->print_message( 'No changes detected for pulling.' );
+						$this->helper->print_message( 'No file changes detected for pulling.' );
+					}
+
+					// Detect database changes
+					if ( isset( $assoc_args['with-db'] ) ) {
+						$db_changes = $this->pull_db_changes( $migrate_settings );
+						$migrate_settings['db_actions'] = $db_changes['db_actions'];
 					}
 				}
 			} catch ( \Exception $e ) {
@@ -597,9 +597,9 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 				if ( ! in_array( $target_table_name, $target_db['tables'] ) ) {
 					$db_actions['create_tables'][] = $table;
 					// Create table
-					$create_table = $wpdb->get_row( "SHOW CREATE TABLE `{$table}`", ARRAY_A );
-					if ( ! empty( $create_table ) && ! empty( $create_table['Create Table'] ) ) {
-						$db_actions['schema_queries'][] = str_replace( $table, $target_table_name, $create_table['Create Table'] );
+					$create_table = $meta['create_table'];
+					if ( ! empty( $create_table ) ) {
+						$db_actions['schema_queries'][] = str_replace( $table, $target_table_name, $create_table );
 					}
 				}
 				// Skip excluded tables
@@ -870,249 +870,303 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 		 * @param array $assoc_args
 		 * 
 		 */
-		private function get_pull_db_changes( $settings ) {
-			global $wpdb;
+		private function pull_db_changes( $settings ) {
+			global $wpdb, $migrate_mode;
 			WP_CLI::log( "Detecting database changes..." );
 			$start = time();
-
-			// Target DB
-			$source_db = $this->call_api( 'db-schema' );
-			if ( empty( $source_db ) || empty( $source_db['tables'] ) ) {
-				WP_CLI::error( __( 'No tables found.', 'instawp-connect' ) );
-			}
-			
-			$db_actions = array(
-				'create_tables' => array(),
-				'clone_tables' => array(),
-				'drop_tables' => array(),
-				'schema_queries' => array(), // create, drop or schema related queries
-				'tables' => array(),
-				'source' =>array(
-					'tables' => $source_db['tables'],
-					'table_rows_count' => array(),
-					'table_prefix' => $source_db['table_prefix'],
-				),
-				'target' =>array(
-					'tables' => $this->helper->get_tables(),
-					'table_prefix' => $wpdb->prefix,
-				),
-			);
-
-			$target_db= $db_actions['target'];
-			$tables = $source_db['tables'];
-			// Prepare source db excluded tables list
-			$excluded_tables = $settings['excluded_tables'];
-			foreach ( $excluded_tables as $table_key => $table ) {
-				$excluded_tables[$table_key] = str_replace( $wpdb->prefix, $source_db['table_prefix'], $table );
-			}
-
-			// Drop tables
-			foreach ( $target_db['tables'] as $table ) {
-				$source_table_name = str_replace( $target_db['table_prefix'], $source_db['table_prefix'], $table );
-				if ( ! in_array( $source_table_name, $tables ) && ! in_array( $source_table_name, $excluded_tables ) ) {
-					$db_actions['drop_tables'][] = $table;
-					$db_actions['schema_queries'][] = "DROP TABLE IF EXISTS `{$table}`";
-				}
-			}
-
-			// flag to check if push db was successful
-			$db_meta = get_option( $this->helper->vars['db_meta_repo'], array() );
-			$new_tables_meta = array();
-			$total = count( $tables );
-			$processed = 0;
-			foreach ( $tables as $table ) {
-				$processed++;
-				$this->helper->progress_bar( $processed, $total );
-				if ( in_array( $table, $this->iwp_tables ) ) {
-					continue;
+			try {
+				// Target DB
+				$source_db = $this->call_api( 'db-schema' );
+				if ( empty( $source_db ) || empty( $source_db['tables'] ) ) {
+					WP_CLI::error( __( 'No tables found.', 'instawp-connect' ) );
 				}
 				
-				// Source table meta
-				$meta = $this->call_api( 
-					'table-checksum',
-					array( 
-						'table' => $table,
-						'start_id' => 0,
-					)
+				$db_actions = array(
+					'create_tables' => array(),
+					'clone_tables' => array(),
+					'drop_tables' => array(),
+					'schema_queries' => array(), // create, drop or schema related queries
+					'db_schema_only' => $this->db_schema_only ? 1 : 0,
+					'tables' => array(),
+					'source' =>array(
+						'tables' => $source_db['tables'],
+						'table_rows_count' => array(),
+						'table_prefix' => $source_db['table_prefix'],
+						'domain' => $source_db['domain'],
+					),
+					'target' =>array(
+						'tables' => $this->helper->get_tables(),
+						'table_prefix' => $wpdb->prefix,
+						'domain' => $this->helper->get_domain(),
+					),
 				);
-				if ( empty( $meta ) ) {
-					$this->print_debug_log( __( 'Table: ', 'instawp-connect' ) . $table . __( ' No data found.', 'instawp-connect' ) );
-					continue;
+
+				$target_db= $db_actions['target'];
+				$tables = $source_db['tables'];
+				// Prepare source db excluded tables list
+				$excluded_tables = $settings['excluded_tables'];
+				foreach ( $excluded_tables as $table_key => $table ) {
+					$excluded_tables[$table_key] = str_replace( $wpdb->prefix, $source_db['table_prefix'], $table );
 				}
-				$db_actions['source']['table_rows_count'][ $table ] = $meta['rows_count'];
-				$target_table_name = str_replace( $source_db['table_prefix'], $wpdb->prefix, $table );
-				// Create tables
-				if ( ! in_array( $target_table_name, $target_db['tables'] ) ) {
-					$db_actions['create_tables'][] = $table;
-					// Create table
-					$create_table = $wpdb->get_row( "SHOW CREATE TABLE `{$table}`", ARRAY_A );
-					if ( ! empty( $create_table ) && ! empty( $create_table['Create Table'] ) ) {
-						$db_actions['schema_queries'][] = str_replace( $table, $target_table_name, $create_table['Create Table'] );
+
+				// Drop tables
+				foreach ( $target_db['tables'] as $table ) {
+					$source_table_name = str_replace( $target_db['table_prefix'], $source_db['table_prefix'], $table );
+					if ( ! in_array( $source_table_name, $tables ) && ! in_array( $source_table_name, $excluded_tables ) ) {
+						$db_actions['drop_tables'][] = $table;
+						$db_actions['schema_queries'][] = "DROP TABLE IF EXISTS `{$table}`";
 					}
 				}
-				// Skip excluded tables
-				if ( in_array( $table, $excluded_tables ) ) {
-					$this->print_debug_log( "Skipping table: " . $table );
-					continue;
-				} 
 
-				// Table which need to be created but not excluded then insert all data
-				if ( in_array( $table, $db_actions['create_tables'] ) ) {
-					// Insert all source table data to target
-					$db_actions['tables'][ $table ]['full_insert'] = true;
-					continue;
-				}
-
-				$this->print_debug_log( "Checking table: " . $table );
-				// Action required
-				$db_actions['tables'][ $table ] = array(
-					'columns_added' => array(),
-					'columns_deleted' => array(),
-					'columns_modified' => array(),
-					'indexes_added' => array(),
-					'indexes_deleted' => array(),
-					'indexes_modified' => array(),
-					'insert_start_id' => 0, // Insert start from this id
-					'insert_end_id' => 0, // Insert end at this id
-					'delete_start_id' => 0, // Delete start from this id
-					'delete_end_id' => 0, // Delete end at this id
-					'insert_data' => array(),
-					'full_insert' => false,
-					'update_data' => array(),
-					'delete_data' => array(),
-				);
-				
-				// Target table meta
-				$target_table_meta = $this->helper->get_table_meta( array( $target_table_name ), true, 0 );
-				// Check if table exists
-				if ( $target_table_meta['table'] !== $target_table_name ) {
-					// Table mismatch
-					WP_CLI::error( __( 'Table mismatch: ', 'instawp-connect' ) . $table . ' vs ' . $target_table_meta['table'] );
-				}
-
-				// Check table schema changes
-				$queries = $this->check_table_schema_changes( $db_actions['tables'][ $table ], $meta, $target_table_meta );
-				if ( ! empty( $queries ) && is_array( $queries ) ) {	
-					$db_actions['schema_queries'] = array_merge( $db_actions['schema_queries'], $queries );
-				}
-
-				// Continue if schema push|pull only
-				if ( $this->db_schema_only ) {
-					continue;
-				}
-
-				// Check if source table is empty
-				if ( 0 === absint( $meta['rows_count'] ) ) {
-					$this->print_debug_log( __( 'Table: ', 'instawp-connect' ) . $table . __( ' is empty.', 'instawp-connect' ) );
-					continue;
-				}
-				// Table checksum
-				$new_tables_meta[ $table ] = $meta;
-				// Check if source table has no changes. Comapre from last checksum in sync
-				if ( ! empty( $db_meta['meta'][ $table ] ) && ! empty( $db_meta['meta'][ $table ]['checksum'] ) && $db_meta['meta'][ $table ]['checksum'] === $meta['checksum'] ) {
-					$this->print_debug_log( __( 'Table: ', 'instawp-connect' ) . $table . __( ' no changes found since last sync.', 'instawp-connect' ) );
-					continue;
-				}
-
-				// Check if target table is empty
-				if ( 0 === absint( $target_table_meta['rows_count'] ) ) {
-					// Insert all source table data to target
-					$db_actions['tables'][ $table ]['full_insert'] = true;
-					continue;
-				}
-
-				// Check if target table has primary key
-				if ( ! empty( $meta['primary_key'] ) ) {
-					// Continue if table has no checksum
-					if ( ! isset( $meta['last_id'] ) ) {
-						WP_CLI::error( __( 'Table: ', 'instawp-connect' ) . $table . __( ' has no primary key.', 'instawp-connect' ) );
+				// flag to check if push db was successful
+				$db_meta = get_option( $this->helper->vars['db_meta_repo'], array() );
+				$new_tables_meta = array();
+				$total = count( $tables );
+				$processed = 0;
+				foreach ( $tables as $table ) {
+					$processed++;
+					$this->helper->progress_bar( $processed, $total );
+					if ( in_array( $table, $this->iwp_tables ) ) {
+						continue;
 					}
-
-					// Get last id from target|source table where insertion is smaller
-					$target_table_meta['last_id'] =absint( $target_table_meta['last_id'] );
-					$meta['last_id'] = absint( $meta['last_id'] );
-					$last_id_to_process = $target_table_meta['last_id'] < $meta['last_id'] ? $target_table_meta['last_id'] : $meta['last_id']; 
-					$next_start_id = absint( $meta['next_start_id'] );
-					// Loop through all batches
-					while ( 0 < $next_start_id && $next_start_id <= $last_id_to_process ) {
-						// Get next batch checksum data from source
-						$meta = $this->call_api( 
-							'table-checksum', 
-							array( 
-								'table' => $table,
-								'start_id' => $next_start_id,
-								'last_id_to_process' => $last_id_to_process,
-							)
-						);
-						$new_tables_meta[ $table ] = $meta;
-						// Get next batch checksum data from target
-						$target_table_meta = $this->helper->get_table_meta( 
-							array( $target_table_name ), 
-							true, 
-							$next_start_id, 
-							$last_id_to_process 
-						);
-						// Continue if data is missing. In case rows are not present in table
-						if ( empty( $meta['last_id'] ) || empty( $meta['rows_checksum'] ) || empty( $target_table_meta['rows_checksum'] ) ) {
-							continue;
+					
+					// Source table meta
+					$meta = $this->call_api( 
+						'table-checksum',
+						array( 
+							'table' => $table,
+							'start_id' => 0,
+						)
+					);
+					if ( empty( $meta ) ) {
+						$this->print_debug_log( __( 'Table: ', 'instawp-connect' ) . $table . __( ' No data found.', 'instawp-connect' ) );
+						continue;
+					}
+					$db_actions['source']['table_rows_count'][ $table ] = $meta['rows_count'];
+					$target_table_name = str_replace( $source_db['table_prefix'], $wpdb->prefix, $table );
+					// Create tables
+					if ( ! in_array( $target_table_name, $target_db['tables'] ) ) {
+						$db_actions['create_tables'][] = $table;
+						// Create table
+						$create_table = $meta['create_table'];
+						if ( ! empty( $create_table ) ) {
+							$db_actions['schema_queries'][] = str_replace( $table, $target_table_name, $create_table );
 						}
-						$db_actions['tables'][ $table ]['source_meta'] = $meta;
-						$db_actions['tables'][ $table ]['target_meta'] = $target_table_meta;
-						// Update action data
-						$this->update_db_action( $db_actions['tables'][ $table ], $meta, $target_table_meta );
+					}
+					// Skip excluded tables
+					if ( in_array( $table, $excluded_tables ) ) {
+						$this->print_debug_log( "Skipping table: " . $table );
+						continue;
+					} 
+
+					// Table which need to be created but not excluded then insert all data
+					if ( in_array( $table, $db_actions['create_tables'] ) ) {
+						// Insert all source table data to target
+						$db_actions['tables'][ $table ]['full_insert'] = true;
+						continue;
+					}
+
+					$this->print_debug_log( "Checking table: " . $table );
+					// Action required
+					$db_actions['tables'][ $table ] = array(
+						'columns_added' => array(),
+						'columns_deleted' => array(),
+						'columns_modified' => array(),
+						'indexes_added' => array(),
+						'indexes_deleted' => array(),
+						'indexes_modified' => array(),
+						'insert_start_id' => 0, // Insert start from this id
+						'insert_end_id' => 0, // Insert end at this id
+						'delete_start_id' => 0, // Delete start from this id
+						'delete_end_id' => 0, // Delete end at this id
+						'insert_data' => array(),
+						'full_insert' => false,
+						'update_data' => array(),
+						'delete_data' => array(),
+					);
+					
+					// Target table meta
+					$target_table_meta = $this->helper->get_table_meta( array( $target_table_name ), true, 0 );
+					// Check if table exists
+					if ( $target_table_meta['table'] !== $target_table_name ) {
+						// Table mismatch
+						WP_CLI::error( __( 'Table mismatch: ', 'instawp-connect' ) . $table . ' vs ' . $target_table_meta['table'] );
+					}
+
+					// Check table schema changes
+					$queries = $this->check_table_schema_changes( $db_actions['tables'][ $table ], $meta, $target_table_meta );
+					if ( ! empty( $queries ) && is_array( $queries ) ) {	
+						$db_actions['schema_queries'] = array_merge( $db_actions['schema_queries'], $queries );
+					}
+
+					// Continue if schema push|pull only
+					if ( $this->db_schema_only ) {
+						continue;
+					}
+
+					// Check if source table is empty
+					if ( 0 === absint( $meta['rows_count'] ) ) {
+						$this->print_debug_log( __( 'Table: ', 'instawp-connect' ) . $table . __( ' is empty.', 'instawp-connect' ) );
+						continue;
+					}
+					// Table checksum
+					$new_tables_meta[ $table ] = $meta;
+					// Check if source table has no changes. Comapre from last checksum in sync
+					if ( ! empty( $db_meta['meta'][ $table ] ) && ! empty( $db_meta['meta'][ $table ]['checksum'] ) && $db_meta['meta'][ $table ]['checksum'] === $meta['checksum'] ) {
+						$this->print_debug_log( __( 'Table: ', 'instawp-connect' ) . $table . __( ' no changes found since last sync.', 'instawp-connect' ) );
+						continue;
+					}
+
+					// Check if target table is empty
+					if ( 0 === absint( $target_table_meta['rows_count'] ) ) {
+						// Insert all source table data to target
+						$db_actions['tables'][ $table ]['full_insert'] = true;
+						continue;
+					}
+
+					// Check if target table has primary key
+					if ( ! empty( $meta['primary_key'] ) ) {
+						// Continue if table has no checksum
+						if ( ! isset( $meta['last_id'] ) ) {
+							WP_CLI::error( __( 'Table: ', 'instawp-connect' ) . $table . __( ' has no primary key.', 'instawp-connect' ) );
+						}
+
 						// Get last id from target|source table where insertion is smaller
 						$target_table_meta['last_id'] =absint( $target_table_meta['last_id'] );
 						$meta['last_id'] = absint( $meta['last_id'] );
 						$last_id_to_process = $target_table_meta['last_id'] < $meta['last_id'] ? $target_table_meta['last_id'] : $meta['last_id']; 
-						// Get next start id
 						$next_start_id = absint( $meta['next_start_id'] );
-					}
-
-					if ( $target_table_meta['last_id'] !== $meta['last_id'] ) {
-						// Get first id from target|source table where insertion start
-						if ( $target_table_meta['last_id'] < $meta['last_id'] ) {
-							$db_actions['tables'][ $table ]['insert_start_id'] = $target_table_meta['last_id'] + 1;
-							$db_actions['tables'][ $table ]['insert_end_id'] = $meta['last_id'];
-						} else {
-							$db_actions['tables'][ $table ]['delete_start_id'] = $meta['last_id'] + 1;
-							$db_actions['tables'][ $table ]['delete_end_id'] = $target_table_meta['last_id'];
+						// Loop through all batches
+						while ( 0 < $next_start_id && $next_start_id <= $last_id_to_process ) {
+							// Get next batch checksum data from source
+							$meta = $this->call_api( 
+								'table-checksum', 
+								array( 
+									'table' => $table,
+									'start_id' => $next_start_id,
+									'last_id_to_process' => $last_id_to_process,
+								)
+							);
+							$new_tables_meta[ $table ] = $meta;
+							// Get next batch checksum data from target
+							$target_table_meta = $this->helper->get_table_meta( 
+								array( $target_table_name ), 
+								true, 
+								$next_start_id, 
+								$last_id_to_process 
+							);
+							// Continue if data is missing. In case rows are not present in table
+							if ( empty( $meta['last_id'] ) || empty( $meta['rows_checksum'] ) || empty( $target_table_meta['rows_checksum'] ) ) {
+								continue;
+							}
+							$db_actions['tables'][ $table ]['source_meta'] = $meta;
+							$db_actions['tables'][ $table ]['target_meta'] = $target_table_meta;
+							// Update action data
+							$this->update_db_action( $db_actions['tables'][ $table ], $meta, $target_table_meta );
+							// Get last id from target|source table where insertion is smaller
+							$target_table_meta['last_id'] =absint( $target_table_meta['last_id'] );
+							$meta['last_id'] = absint( $meta['last_id'] );
+							$last_id_to_process = $target_table_meta['last_id'] < $meta['last_id'] ? $target_table_meta['last_id'] : $meta['last_id']; 
+							// Get next start id
+							$next_start_id = absint( $meta['next_start_id'] );
 						}
-					} 
+
+						if ( $target_table_meta['last_id'] !== $meta['last_id'] ) {
+							// Get first id from target|source table where insertion start
+							if ( $target_table_meta['last_id'] < $meta['last_id'] ) {
+								$db_actions['tables'][ $table ]['insert_start_id'] = $target_table_meta['last_id'] + 1;
+								$db_actions['tables'][ $table ]['insert_end_id'] = $meta['last_id'];
+							} else {
+								$db_actions['tables'][ $table ]['delete_start_id'] = $meta['last_id'] + 1;
+								$db_actions['tables'][ $table ]['delete_end_id'] = $target_table_meta['last_id'];
+							}
+						} 
+						
+
+					} else if ( ! empty( $meta['checksum'] ) ) {
+						// Clone tables if checksum mismatch for tables without primary key
+						if ( $meta['checksum'] !== $target_table_meta['checksum'] ) {
+							// Table which need to be created but not excluded then insert all data
+							if ( in_array( $table, $db_actions['create_tables'] ) ) {
+								// Insert all source table data to target
+								$db_actions['tables'][ $table ]['full_insert'] = true;
+							} else {
+								$db_actions['clone_tables'][] = $table;
+							}
+						}
+					}
+				}
+
+				$this->print_debug_log( 'Table ' . $table . ': ' . json_encode( $db_actions ) );
+
+				// Update DB meta ipp repo
+				if ( ! empty( $new_tables_meta ) ) {
+					$db_meta = empty( $db_meta ) ? array() : $db_meta;
+					$db_meta = array_merge( $db_meta, array(
+						'tables' => $tables,
+						'time'	=> time(),
+						'table_prefix' => $wpdb->prefix
+					) );
+					if ( ! isset( $db_meta['meta'] ) ) {
+						$db_meta['meta'] = array();
+					}
+					foreach ( $new_tables_meta as $table => $meta ) {
+						$db_meta['meta'][ $table ] = $meta;
+					}
+				}
+
+				WP_CLI::success( "Detection of database changes completed in " . ( time() - $start ) . " seconds" );
+
+				if ( ! empty( $db_actions['schema_queries'] ) ) {
 					
-
-				} else if ( ! empty( $meta['checksum'] ) ) {
-					// Clone tables if checksum mismatch for tables without primary key
-					if ( $meta['checksum'] !== $target_table_meta['checksum'] ) {
-						// Table which need to be created but not excluded then insert all data
-						if ( in_array( $table, $db_actions['create_tables'] ) ) {
-							// Insert all source table data to target
-							$db_actions['tables'][ $table ]['full_insert'] = true;
-						} else {
-							$db_actions['clone_tables'][] = $table;
-						}
+					if ( empty( $db_actions['source']['domain'] ) || empty( $db_actions['target']['domain'] ) ) {
+						$this->helper->print_message( "Source or target domain is empty", true );
 					}
+					// Prepare SQL statement
+					$sql_statement = implode( ";\n\n", $db_actions['schema_queries'] );
+					// Replace source and target domain
+					$sql_statement = str_replace( $db_actions['source']['domain'], $db_actions['target']['domain'], $sql_statement );
+					// Db file path
+					$db_file_path =  wp_normalize_path( ABSPATH . 'iwp-db.sql' );
+					// Write to file
+					$db_file_pointer      = fopen( $db_file_path, 'w' );
+					// Check if file opened
+					if ( ! $db_file_pointer ) {
+						$this->helper->print_message( "Unable to open output file for writing", true );
+					}
+					// Write to file
+					fwrite( $db_file_pointer, $sql_statement );
+					// Close file
+					fclose( $db_file_pointer );
+					$this->helper->print_message( 'Pulling database schema...' );
+
+					$start = time();
+					iwp_progress_bar( 0, 100, 50, $migrate_mode );
+					// Update DB
+					$result = WP_CLI::runcommand( 
+						'db import ' . $db_file_path . ' --skip-plugins --skip-themes', 
+						array(
+						'return'     => true,   // Return output instead of printing
+						'parse'      => 'json', // Parse output as JSON
+						'launch'     => false,  // Run in same process
+						'exit_error' => true    // Throw exception on error
+						)
+					);
+					// Delete db file
+					unlink( $db_file_path );
+					if ( ! empty( $result ) && is_array( $result ) && false === $result['success'] ) {
+						$this->helper->print_message( $result, true );
+					} else {
+						iwp_progress_bar( 100, 100, 50, $migrate_mode );
+					}
+					$this->helper->print_message( 'Database pull completed in ' . ( time() - $start ) . ' seconds' );
+				} else {
+					$this->helper->print_message( 'No database schema changes detected' );
 				}
+			} catch (\Throwable $th) {
+				$this->helper->print_message( $th->getMessage(), true );
 			}
 
-			$this->print_debug_log( 'Table ' . $table . ': ' . json_encode( $db_actions ) );
-
-			// Update DB meta ipp repo
-			if ( ! empty( $new_tables_meta ) ) {
-				$db_meta = empty( $db_meta ) ? array() : $db_meta;
-				$db_meta = array_merge( $db_meta, array(
-					'tables' => $tables,
-					'time'	=> time(),
-					'table_prefix' => $wpdb->prefix
-				) );
-				if ( ! isset( $db_meta['meta'] ) ) {
-					$db_meta['meta'] = array();
-				}
-				foreach ( $new_tables_meta as $table => $meta ) {
-					$db_meta['meta'][ $table ] = $meta;
-				}
-			}
-
-			WP_CLI::success( "Detection of database changes completed in " . ( time() - $start ) . " seconds" );
 			return array(
 				'db_actions' => $db_actions,
 				'db_update_meta' => $db_meta
@@ -1187,20 +1241,24 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 			$source_column_names = array_column($source_columns, 'Field');
 
 			foreach ( $source_columns_details as $col_name => $column_details ) {
-				if ( isset( $target_columns_details[$col_name] ) ) {
+				// Modified column details
+				if ( ! empty( $target_columns_details[$col_name] ) ) {
 					if ( json_encode( $column_details ) !== json_encode( $target_columns_details[$col_name] ) ) {
 						$db_actions['columns_modified'][$col_name] = [
 							'target' => $column_details,
 							'source' => $target_columns_details[$col_name],
 						];
+						$column_details['Default'] = empty( $column_details['Default'] ) ? '': "DEFAULT '{$column_details['Default']}'";
+						$column_details['Collation'] = empty( $column_details['Collation'] ) ? '': "COLLATE '{$column_details['Collation']}'";
 						$queries[] = sprintf(
-							"ALTER TABLE `%s` CHANGE COLUMN `%s` `%s` %s %s %s", // Renaming and modifying column
+							"ALTER TABLE `%s` CHANGE COLUMN `%s` `%s` %s %s %s %s", // Renaming and modifying column
 							$target_table,                // Table name
 							$col_name,             // Old column name (the one being renamed)
 							$col_name,             // New column name (the desired name)
 							$column_details['Type'],      // Data type
 							$column_details['Null'] === 'YES' ? 'NULL' : 'NOT NULL', // Nullability
-							isset($column_details['Default']) ? "DEFAULT '{$column_details['Default']}'" : '' // Default value
+							$column_details['Default'], // Default value,
+							$column_details['Collation'] // Collation
 						);
 					}
 				} else {
@@ -1251,15 +1309,18 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 					}
 
 					if ( ! empty( $old_column_name ) ) {
+						$column_details['Default'] = empty( $column_details['Default'] ) ? '': "DEFAULT '{$column_details['Default']}'";
+						$column_details['Collation'] = empty( $column_details['Collation'] ) ? '': "COLLATE '{$column_details['Collation']}'";
 						// Renaming and modifying column
 						$query = sprintf(
-							"ALTER TABLE `%s` CHANGE COLUMN `%s` `%s` %s %s %s", 
+							"ALTER TABLE `%s` CHANGE COLUMN `%s` `%s` %s %s %s %s", 
 							$target_table,                // Table name
 							$old_column_name,             // Old column name (the one being renamed)
 							$column_name,             // New column name (the desired name)
 							$column_details['Type'],      // Data type
 							$column_details['Null'] === 'YES' ? 'NULL' : 'NOT NULL', // Nullability
-							isset($column_details['Default']) ? "DEFAULT '{$column_details['Default']}'" : '' // Default value
+							$column_details['Default'], // Default value
+							$column_details['Collation'] // Collation
 						);
 
 						

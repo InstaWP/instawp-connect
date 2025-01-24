@@ -799,10 +799,19 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 					}
 
 					$table_fields = array_column( $table_schema, 'Field' );
+					// CREATE TABLE QUERY
+					$create_table = $wpdb->get_row( "SHOW CREATE TABLE `{$table}`", ARRAY_A );
+					if ( ! empty( $create_table ) && ! empty( $create_table['Create Table'] ) ) {
+						$create_table = $create_table['Create Table'];
+					} else {
+						$create_table = '';
+					}
+
 					$meta = array(
 						'table' => $table,
 						'table_schema' => $table_schema,
 						'indexes' => $wpdb->get_results( 'SHOW INDEX FROM ' . $table, ARRAY_A ),
+						'create_table' => $create_table,
 						'fields' => $table_fields,
 						'primary_key' => $primary_key,
 						'modified_at_field' => $modified_at_field,
@@ -1038,6 +1047,7 @@ if ( ! class_exists( 'INSTAWP_IPP_HELPER' ) ) {
 			return array(
 				'tables' => $this->get_tables(),
 				'table_prefix' => $wpdb->prefix,
+				'domain' => $this->get_domain(),
 			);
 		}
 	}

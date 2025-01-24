@@ -1,4 +1,8 @@
 <?php
+/**
+ * InstaWP Pull files
+ * 
+ */
 if ( ! function_exists( 'instawp_fetch_files' ) ) {
 	function instawp_fetch_files( $settings ) {
 
@@ -31,25 +35,32 @@ if ( ! function_exists( 'instawp_fetch_files' ) ) {
         }
 
         // Iterative pull only
-        if ( $is_iterative_pull && ! empty( $migrate_settings['file_actions'] ) && ( ! empty( $migrate_settings['file_actions']['to_delete'] ) || ! empty( $migrate_settings['file_actions']['to_delete_folders'] ) ) ) {
+        if ( $is_iterative_pull ) {
             
-            if ( ! function_exists( 'iwp_ipp_delete_files' ) ) {
-                echo "Error: iwp_ipp_delete_files function not found. \n";
-                return false;
-                
-            } 
-            // delete files and folders
-            $delete_files_response = iwp_ipp_delete_files( 
-                $save_to_directory, 
-                empty( $migrate_settings['file_actions']['to_delete'] ) ? array() : $migrate_settings['file_actions']['to_delete'], 
-                empty( $migrate_settings['file_actions']['to_delete_folders'] ) ? array() : $migrate_settings['file_actions']['to_delete_folders']
-            );
-
-            if ( false === $delete_files_response['status'] ) {
-                foreach ( $delete_files_response['messages'] as $message ) {
-                    echo "Error: $message  \n";
+            if ( ! empty( $migrate_settings['file_actions'] ) && ( ! empty( $migrate_settings['file_actions']['to_delete'] ) || ! empty( $migrate_settings['file_actions']['to_delete_folders'] ) ) ) {
+                if ( ! function_exists( 'iwp_ipp_delete_files' ) ) {
+                    echo "Error: iwp_ipp_delete_files function not found. \n";
+                    return false;
+                    
+                } 
+                // delete files and folders
+                $delete_files_response = iwp_ipp_delete_files( 
+                    $save_to_directory, 
+                    empty( $migrate_settings['file_actions']['to_delete'] ) ? array() : $migrate_settings['file_actions']['to_delete'], 
+                    empty( $migrate_settings['file_actions']['to_delete_folders'] ) ? array() : $migrate_settings['file_actions']['to_delete_folders']
+                );
+    
+                if ( false === $delete_files_response['status'] ) {
+                    foreach ( $delete_files_response['messages'] as $message ) {
+                        echo "Error: $message  \n";
+                    }
                 }
             }
+
+            if ( ! empty( $migrate_settings['file_actions'] ) && ! empty( $migrate_settings['file_actions']['to_send'] ) ) {
+                iwp_progress_bar( 0, 100, 50, $migrate_mode );
+            }
+            
         }
 
         $curl_session      = curl_init( $target_url );
@@ -133,9 +144,7 @@ if ( ! function_exists( 'instawp_fetch_files' ) ) {
 
             if ( $header_status == 'false' || $transfer_complete == 'true' ) {
                 $stopFetching = true;
-                if ( 'true' == $header_status && 'true' == $transfer_complete ) {
-                    echo $header_message . "\n";
-                } else {
+                if ( ! $is_iterative_pull || $transfer_complete != 'true' ) {
                     echo "Error: $header_message\n";
                 }
                 break;

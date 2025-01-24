@@ -535,7 +535,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 		header( 'x-iwp-message: Database information missing.' );
 		die();
 	}
-
+	
 	$excluded_tables       = isset( $migrate_settings['excluded_tables'] ) ? $migrate_settings['excluded_tables'] : array();
 	$excluded_tables_rows  = isset( $migrate_settings['excluded_tables_rows'] ) ? $migrate_settings['excluded_tables_rows'] : array();
 	$total_tracking_tables = (int) $tracking_db->query_count( 'iwp_db_sent' );
