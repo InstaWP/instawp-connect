@@ -77,18 +77,11 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 	 * @return WP_Error|bool
 	 */
 	public function validate_sync_api_request( WP_REST_Request $request ) {
-		// get authorization header value.
-		$bearer_token = sanitize_text_field( $request->get_header( 'authorization' ) );
-
-        if ( ! empty( $bearer_token ) ) {
-		    $bearer_token = str_ireplace( 'bearer', '', $bearer_token );
-		} 
-		
-        $bearer_token = trim( $bearer_token );
-
-		// check if the bearer token is empty
-		if ( empty( $bearer_token ) ) {
-			return new WP_Error( 403, esc_html__( 'Missing token.', 'instawp-connect' ) );
+		// Get bearer token from the request
+		$response = $this->get_bearer_token( $request );
+		// Check if the bearer token is a wp error
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
 		}
 
 		$instawp_api_options = get_option( 'instawp_api_options' );

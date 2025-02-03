@@ -653,15 +653,13 @@ class InstaWP_Rest_Api {
 	}
 
 	/**
-	 * Valid api request and if invalid api key then stop executing.
-	 *
+	 * Get bearer token from header
+	 * 
 	 * @param WP_REST_Request $request
-	 * @param string $option
-	 * @param boolean $match_key
-	 *
-	 * @return WP_Error|bool
+	 * 
+	 * @return string|WP_Error
 	 */
-	public function validate_api_request( WP_REST_Request $request, $option = '', $match_key = false ) {
+	public function get_bearer_token( WP_REST_Request $request ) {
 		// get authorization header value.
 		$bearer_token = sanitize_text_field( $request->get_header( 'authorization' ) );
         if ( ! empty( $bearer_token ) ) {
@@ -674,6 +672,28 @@ class InstaWP_Rest_Api {
 		// check if the bearer token is empty
 		if ( empty( $bearer_token ) ) {
 			return new WP_Error( 401, esc_html__( 'Empty bearer token.', 'instawp-connect' ) );
+		}
+
+		return $bearer_token;
+	}
+
+	/**
+	 * Valid api request and if invalid api key then stop executing.
+	 *
+	 * @param WP_REST_Request $request
+	 * @param string $option
+	 * @param boolean $match_key
+	 *
+	 * @return WP_Error|bool
+	 */
+	public function validate_api_request( WP_REST_Request $request, $option = '', $match_key = false ) {
+		
+		// get bearer token.
+		$bearer_token = $this->get_bearer_token( $request );
+
+		// check if the bearer token is a wp error
+		if ( is_wp_error( $bearer_token ) ) {
+			return $bearer_token;
 		}
 
 		//in some cases Laravel stores api key with ID attached in front of it.
