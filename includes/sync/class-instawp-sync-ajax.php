@@ -556,7 +556,6 @@ class InstaWP_Sync_Ajax {
 			if ( 50 < $media_count ) {
 				$avg_media_count = $media_count / count( $events );
 				$this->sync_per_page =  $avg_media_count > 30 ? 1: INSTAWP_EVENTS_SYNC_PER_PAGE;
-				error_log( 'avg_media_count: ' . $avg_media_count );
 			}
 			// Update sync per page
 			$this->sync_per_page( $this->sync_per_page );
