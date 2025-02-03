@@ -623,7 +623,7 @@ class InstaWP_Sync_Ajax {
 
 					if ( ! $is_upload ) {
 						// Check if media should be uploaded
-						$is_upload = ! in_array( $event->id, $failed_media_events );
+						$is_upload = in_array( $event->id, $failed_media_events );
 					}
 
 					$encrypted_content[] = array(

@@ -201,15 +201,12 @@ class InstaWP_Sync_Parser {
 
 					$response = wp_remote_post( $api_url . '/wp-json/instawp-connect/v1/sync/download-media', array(
 						'timeout'   => 120,
-						'headers'   => array(
-							'Authorization' => 'Bearer ' . $hash,
-							'Referer'       => Helper::wp_site_url(),
-						),
+						'headers'   => instawp_get_migration_headers( $hash ),
 						'sslverify' => false,
-						'body'      => array(
+						'body'      => json_encode( array(
 							'file'     => $data,
 							'media_id' => $data['post_id'],
-						),
+						) ),
 					) );
 
 					// Check for errors

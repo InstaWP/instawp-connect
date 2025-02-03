@@ -78,10 +78,10 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 	 */
 	public function validate_sync_api_request( WP_REST_Request $request ) {
 		// Get bearer token from the request
-		$response = $this->get_bearer_token( $request );
+		$bearer_token = $this->get_bearer_token( $request );
 		// Check if the bearer token is a wp error
-		if ( is_wp_error( $response ) ) {
-			return $this->throw_error( $response );
+		if ( is_wp_error( $bearer_token ) ) {
+			return $this->throw_error( $bearer_token );
 		}
 
 		$instawp_api_options = get_option( 'instawp_api_options' );
@@ -114,7 +114,7 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 		if ( empty( $media_id ) || ! is_numeric( $media_id ) || 1 > intval( $media_id ) ) {
 			return $this->send_response( array(
 				'success' => false,
-				'message' => 'Empty or invalid media id.',
+				'message' => __( 'Empty or invalid media id.', 'instawp-connect' ),
 			) );
 		}
 		
@@ -123,7 +123,7 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 		if ( empty( $file_path ) || ! file_exists( $file_path ) ) {
 			return $this->send_response( array(
 				'success' => false,
-				'message' => 'File not found.',
+				'message' => __( 'File not found.', 'instawp-connect' ),
 			) );
 		}
 
@@ -132,7 +132,7 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 		if ( false === $file_type_ext['type'] || empty( $file_type_ext['ext'] ) || ! in_array( $file_type_ext['ext'], array( 'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'mp4', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'csv', 'txt', 'rtf', 'html', 'zip', 'mp3', 'wma', 'mpg', 'flv', 'avi' ) ) ) {
 			return $this->send_response( array(
 				'success' => false,
-				'message' => 'File type not supported.',
+				'message' => __( 'File type not supported.', 'instawp-connect' ),
 			) );
 		}
 
@@ -345,7 +345,7 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 
 			if ( ! $is_upload ) {
 				// Check if media should be uploaded
-				$is_upload = ! in_array( $event->id, $failed_media_events );
+				$is_upload = in_array( $event->id, $failed_media_events );
 			}
 
 			$contents[] = array(

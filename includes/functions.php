@@ -399,6 +399,27 @@ if ( ! function_exists( 'instawp_set_staging_sites_list' ) ) {
 	}
 }
 
+/**
+ * Get Migration headers
+ * 
+ * @param string $hash
+ * 
+ * @return array
+ */
+if ( ! function_exists( 'instawp_get_migration_headers' ) ) {
+	function instawp_get_migration_headers( $hash ) {
+		return array(
+			'Authorization' => 'Bearer ' . $hash,
+			'X-IWP-AUTH'    => $hash,
+			'User-Agent'    => 'InstaWP Migration Service',
+			'Content-Type'  => 'application/json',
+			'Cache-Control' => 'no-cache',
+			'Cookie'        => 'instawp_skip_splash=true',
+			'Referer'       => Helper::wp_site_url(),
+		);
+	}
+}
+
 if ( ! function_exists( 'instawp_get_connected_sites_list' ) ) {
 	function instawp_get_connected_sites_list( $insta_only = false ) {
 		$staging_sites = instawp_get_staging_sites_list( $insta_only );
