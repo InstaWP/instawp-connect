@@ -227,7 +227,7 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 //      $wpdb->query( "DROP TABLE IF EXISTS `iwp_options`;" );
 
 		if ( 'hard' === $reset_type ) {
-			if ( $disconnect_connect ) {
+			if ( $disconnect_connect && instawp_is_connected_url_valid() ) {
 				instawp_disconnect_connect();
 			}
 			
