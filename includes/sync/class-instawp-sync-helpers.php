@@ -25,6 +25,11 @@ defined( 'ABSPATH' ) || die;
 class InstaWP_Sync_Helpers {
 
 	/**
+	 * Sync parser log option name
+	 */
+	public static $iwp_sync_parser_log = 'iwp_sync_parser_log';
+
+	/**
 	 * get post type singular name
 	 *
 	 * @param $post_type
@@ -39,6 +44,76 @@ class InstaWP_Sync_Helpers {
 
 		return '';
 	}
+
+	/**
+	 * Get or set failed direct download attachment events
+	 * 
+	 * @param array $event_ids
+	 * 
+	 * @return array
+	 */
+	public static function failed_direct_process_media_events( $event_ids = array() ) {
+		// Get failed direct download attachment events
+		$failed_events = get_option( 'iwp_failed_direct_process_media_events' );
+		$failed_events = empty( $failed_events ) ? array() : $failed_events;
+
+		if ( ! empty( $event_ids['add'] ) || ( ! empty( $failed_events ) && ! empty( $event_ids['remove'] ) ) ) {
+			// Add event ids in failed direct download attachment events
+			if ( ! empty( $event_ids['add'] ) && is_array( $event_ids['add'] ) ) {
+				$event_ids['add'] = array_map( 'intval', $event_ids['add'] );
+				$failed_events = array_merge( $failed_events, $event_ids['add'] );
+			}
+
+			// Remove event ids from failed direct download attachment events
+			if ( ! empty( $event_ids['remove'] ) && is_array( $event_ids['remove'] ) ) {
+				$event_ids['remove'] = array_map( 'intval', $event_ids['remove'] );
+				$failed_events = array_diff( $failed_events, $event_ids['remove'] );
+			}
+			$failed_events = array_unique( $failed_events );
+			update_option( 'iwp_failed_direct_process_media_events', $failed_events );
+		}
+		
+		return $failed_events;
+	}
+
+	/**
+	 * Get or set current sync parser log
+	 *
+	 * @param string $message current sync parser message
+	 * @param boolean $error has error
+	 *
+	 * @return array sync parser log
+	 */
+	public static function get_set_sync_parser_log( $message = '', $error = false ) {
+		// Current event ID
+		global $iwp_sync_process_event_id;
+		if ( empty( $iwp_sync_process_event_id ) ) {
+			return array();
+		}
+
+		// Get sync parser log
+		$log = get_option( self::$iwp_sync_parser_log );
+		$log = empty( $log ) ? array() : $log;
+
+		if ( empty( $log[$iwp_sync_process_event_id] ) ) {
+			$log[$iwp_sync_process_event_id] = array(
+				'message' => array(),
+			);
+		}
+
+		if ( ! empty( $message ) ) {
+			$log[$iwp_sync_process_event_id]['message'][] = $message;
+			if ( true === $error ) {
+				$log[$iwp_sync_process_event_id]['error'] = true;
+				$log[$iwp_sync_process_event_id]['error_message'] = $message;
+				error_log( $message );
+			}
+
+			update_option( self::$iwp_sync_parser_log, $log );
+		}
+
+		return $log;
+	} 
 
 	/*
      * Update post metas
@@ -181,12 +256,34 @@ class InstaWP_Sync_Helpers {
 	}
 
 	public static function sync_response( $data, $log_data = array(), $args = array() ) {
+		// Get global log
+		$log  = self::get_set_sync_parser_log();
+		$log = empty( $log[$data->id] ) ? array() : $log[$data->id];
+		// Check error
+		$error = ( isset( $log['error'] ) && true === $log['error'] ) ? true : false;
+		// Check message
+		if ( ! empty( $log['message'] ) ) {
+			// Flush log data
+			update_option( self::$iwp_sync_parser_log, array() );
+			// Encode message
+			$log['message'] = json_encode( $log['message'] );
+			if ( ! empty( $log_data[$data->id] ) ) {
+				if ( is_string( $log_data[$data->id] ) ) {
+					$log_data[$data->id] .= "\n" . $log['message'];
+				} else if ( is_array( $log_data[$data->id] ) ) {
+					$log_data[$data->id][] = $log['message'];
+				}
+			} else {
+				$log_data[$data->id] = $log['message'];
+			} 
+		}
+
 		$data = array(
 			'data' => wp_parse_args( $args, array(
 				'id'      => $data->id,
 				'hash'    => $data->event_hash,
-				'status'  => 'completed',
-				'message' => 'Sync successfully.',
+				'status'  => $error ? 'pending' : 'completed',
+				'message' => $error ? $log['error_message'] : 'Sync successfully.',
 			) ),
 		);
 

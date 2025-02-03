@@ -61,6 +61,100 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 			'callback'            => array( $this, 'events_summary' ),
 			'permission_callback' => '__return_true',
 		) );
+
+		register_rest_route( $this->namespace . '/' . $this->version, '/sync/download-media', array(
+			'methods'             => 'POST',
+			'callback'            => array( $this, 'download_media' ),
+			'permission_callback' => array( $this, 'validate_sync_api_request' ),
+		) );
+	}
+
+	/**
+	 * Valid api request and if invalid api key then stop executing.
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return WP_Error|bool
+	 */
+	public function validate_sync_api_request( WP_REST_Request $request ) {
+		// get authorization header value.
+		$bearer_token = sanitize_text_field( $request->get_header( 'authorization' ) );
+
+        if ( ! empty( $bearer_token ) ) {
+		    $bearer_token = str_ireplace( 'bearer', '', $bearer_token );
+		} 
+		
+        $bearer_token = trim( $bearer_token );
+
+		// check if the bearer token is empty
+		if ( empty( $bearer_token ) ) {
+			return new WP_Error( 403, esc_html__( 'Missing token.', 'instawp-connect' ) );
+		}
+
+		$instawp_api_options = get_option( 'instawp_api_options' );
+
+		// check if the bearer token is empty
+		if ( empty( $instawp_api_options ) || empty( $instawp_api_options['connect_id'] ) || empty( $instawp_api_options['connect_uuid'] ) ) {
+			return new WP_Error( 401, esc_html__( 'Empty API options.', 'instawp-connect' ) );
+		}
+
+		// Prepare hash
+		$hash = hash( 'sha256', $instawp_api_options['connect_id'] . '_' . $instawp_api_options['connect_uuid'] );
+
+		if ( ! hash_equals( $bearer_token, $hash ) ) {
+			return new WP_Error( 401, esc_html__( 'Incorrect token.', 'instawp-connect' ) );
+		}
+
+		return true;
+
+	}
+
+	/**
+	 * Download media files
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function download_media( WP_REST_Request $request ) {
+		// Get media_url from the request
+		$media_id = $request->get_param('media_id');
+		if ( empty( $media_id ) || ! is_numeric( $media_id ) || 1 > intval( $media_id ) ) {
+			return $this->send_response( array(
+				'success' => false,
+				'message' => 'Empty or invalid media id.',
+			) );
+		}
+		
+		$media_id = intval( $media_id );
+		$file_path = get_attached_file( $media_id ); // Full path
+		if ( empty( $file_path ) || ! file_exists( $file_path ) ) {
+			return $this->send_response( array(
+				'success' => false,
+				'message' => 'File not found.',
+			) );
+		}
+
+		$file_type_ext = wp_check_filetype( $file_path );
+
+		if ( false === $file_type_ext['type'] || empty( $file_type_ext['ext'] ) || ! in_array( $file_type_ext['ext'], array( 'jpg','jpeg','png','gif','webp','svg','mp4','pdf','doc','docx','xls','xlsx','csv','txt','rtf','html','zip','mp3','wma','mpg','flv','avi' ) ) ) {
+			return $this->send_response( array(
+				'success' => false,
+				'message' => 'File type not supported.',
+			) );
+		}
+
+		// Serve the file for download
+		header('Content-Description: File Transfer');
+		header('Content-Type: ' . $file_type_ext['type'] );
+		header('Content-Disposition: attachment; filename="' . basename( $file_path ) . '"');
+		header('Expires: 0');
+		header('Cache-Control: must-revalidate');
+		header('Pragma: public');
+		header('Content-Length: ' . filesize( $file_path ));
+	
+		readfile( $file_path );
+		exit;
 	}
 
 	/**
@@ -241,7 +335,13 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 
 		$data     = array( 'total_events' => INSTAWP_EVENTS_SYNC_PER_PAGE );
 		$contents = array();
-
+		// Check if website is on local
+		$is_website_on_local = instawp_is_website_on_local();
+		$is_upload = $is_website_on_local;
+		if ( ! $is_upload ) {
+			// Get failed direct download media events
+			$failed_media_events = InstaWP_Sync_Helpers::failed_direct_process_media_events();
+		}
 		foreach ( $events as $event ) {
 			$event_hash = $event->event_hash;
 			$content    = json_decode( $event->details, true );
@@ -251,10 +351,15 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 				$wpdb->update( INSTAWP_DB_TABLE_EVENT_SYNC_LOGS, array( 'event_hash' => $event_hash ), array( 'id' => $event->id ) );
 			}
 
+			if ( ! $is_upload ) {
+				// Check if media should be uploaded
+				$is_upload = ! in_array( $event->id, $failed_media_events );
+			}
+
 			$contents[] = array(
 				'id'         => $event->id,
 				'event_hash' => $event_hash,
-				'details'    => InstaWP_Sync_Parser::process_attachments( $content ),
+				'details'    => InstaWP_Sync_Parser::process_attachments( $content, $connect_id, $is_upload ),
 				'event_name' => $event->event_name,
 				'event_slug' => $event->event_slug,
 				'event_type' => $event->event_type,
@@ -489,6 +594,9 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 				$has_log = $wpdb->get_var(
 					$wpdb->prepare( "SELECT id FROM " . INSTAWP_DB_TABLE_EVENT_SYNC_LOGS . " WHERE `event_hash`=%s AND `status`=%s", $event->event_hash, 'completed' ) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 				);
+
+				global $iwp_sync_process_event_id;
+				$iwp_sync_process_event_id = $event->id;
 
 				if ( $has_log ) {
 					$response_data               = InstaWP_Sync_Helpers::sync_response( $event );

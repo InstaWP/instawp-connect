@@ -19,6 +19,7 @@
 
 use InstaWP\Connect\Helpers\Curl;
 use InstaWP\Connect\Helpers\Option;
+use InstaWP\Connect\Helpers\Helper;
 
 defined( 'ABSPATH' ) || die;
 
@@ -152,67 +153,147 @@ class InstaWP_Sync_Parser {
 		if ( empty( $data ) ) {
 			return $attachment_id;
 		}
+		try {
+			$attachment = InstaWP_Sync_Helpers::get_post_by_reference( 'attachment', $data['reference_id'], $data['post_name'] );
+			if ( empty( $attachment ) ) {
+				
+				$image_url  = empty( $data['url'] ) ? $data['path']: $data['url'];
+				if ( false === wp_http_validate_url( $image_url ) ) {
+					error_log( 'Invalid image URL Sync: ' . $image_url );
+					return $attachment_id;
+				}
 
-		$attachment = InstaWP_Sync_Helpers::get_post_by_reference( 'attachment', $data['reference_id'], $data['post_name'] );
-		if ( empty( $attachment ) ) {
-            $image_url  = isset( $data['url'] ) ? $data['url'] : $data['path'];
-			if ( false === wp_http_validate_url( $image_url ) ) {
-				error_log( 'Invalid image URL Sync: ' . $image_url );
-				return $attachment_id;
+				$image_url = esc_url( $image_url );
+				$failed_message = 'Error: failed_process_attachment ' . $image_url . ' ';
+				if ( empty( $data['url'] ) && ! empty( $data['post_id'] ) && ! empty( $data['path'] ) ) {
+					// media path
+					$data['path'] = esc_url( $data['path'] );
+					// get connected site list
+					$staging_sites = instawp_get_connected_sites_list();
+					if ( empty( $staging_sites ) ) {
+						InstaWP_Sync_Helpers::get_set_sync_parser_log( $failed_message . 'No connected site found.', true );
+						return $attachment_id;
+					}
+
+					$api_url = '';
+					// Get connected site
+					$hash = '';
+					foreach ( $staging_sites as $site ) {
+						if ( false !== strpos( $data['path'], $site['url'] ) ) {
+							$api_url = esc_url( $site['url'] );
+							if ( empty( $site['uuid'] ) && ! empty( $site['data'] ) && ! empty( $site['data']['uuid'] ) ) {
+								$site['uuid'] = $site['data']['uuid'];
+							}
+							if ( empty( $site['uuid'] ) ) {
+								InstaWP_Sync_Helpers::get_set_sync_parser_log( $failed_message . 'Connected site details not found.', true );
+								return $attachment_id;
+							}
+							// Prepare hash
+							$hash = hash( 'sha256', $site['connect_id'] . '_' . $site['uuid'] );
+							break;
+						}
+					}
+
+					if ( empty( $api_url ) || empty( $hash ) ) {
+						InstaWP_Sync_Helpers::get_set_sync_parser_log( $failed_message . 'Media path not matched with connected sites.', true );
+						return $attachment_id;
+					}
+
+					$response = wp_remote_post( $api_url . '/wp-json/instawp-connect/v1/sync/download-media', [
+						'timeout'   => 120,
+						'headers'	=> array(
+							'Authorization' => 'Bearer ' . $hash,
+							'Referer'       => Helper::wp_site_url(),
+						),
+						'sslverify' => false,
+						'body'      => [
+							'file'  => $data,
+							'media_id' => $data['post_id'],
+						],
+					] );
+
+					// Check for errors
+					if ( is_wp_error( $response ) ) {
+						InstaWP_Sync_Helpers::get_set_sync_parser_log( $failed_message . '' . $response->get_error_message(), true );
+						return $attachment_id;
+					}
+					// Get response http code
+					$response_code = wp_remote_retrieve_response_code( $response );
+					// Get file content
+					$image_data = wp_remote_retrieve_body($response);
+					if ( 200 !== $response_code ) {
+						InstaWP_Sync_Helpers::get_set_sync_parser_log( $failed_message . 'Response_code ' . $response_code . '. Error message ' . $image_data, true );
+						return $attachment_id;
+					}
+					
+					
+				} else {
+					
+					$image_data = file_get_contents( $image_url ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+					if ( $image_data === false ) {
+						$image_data = file_get_contents( $data['path'] ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+					}
+				}
+
+				if ( empty( $image_data ) ) {
+					// backward compatibility
+					if ( ! empty( $data['base_data'] ) ) {
+						$image_data = base64_decode( $data['base_data'] ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
+					} else {
+						return $attachment_id;
+					}
+				}
+
+				$upload_dir = wp_upload_dir();
+				$file_name  = wp_unique_filename( $upload_dir['path'], $data['basename'] );
+				$save_path  = $upload_dir['path'] . DIRECTORY_SEPARATOR . $file_name;
+
+				file_put_contents( $save_path, $image_data ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+
+				$attachment = wp_parse_args( array(
+					'guid' => $save_path,
+				), self::prepare_post_data( $data['post'] ) );
+
+				$parent_post_id = 0;
+
+				if ( ! empty( $data['post_parent'] ) ) {
+					$parent_post_id            = self::parse_post_events( $data['post_parent'] );
+					$attachment['post_parent'] = $parent_post_id;
+				}
+
+				require_once( ABSPATH . 'wp-admin/includes/image.php' );
+				require_once( ABSPATH . 'wp-admin/includes/file.php' );
+				require_once( ABSPATH . 'wp-admin/includes/media.php' );
+
+				$attachment_id = wp_insert_attachment( $attachment, $save_path, $parent_post_id );
+
+				if ( ! is_wp_error( $attachment_id ) ) {
+					self::process_post_meta( $data['post_meta'], $attachment_id );
+
+					$attachment_data = wp_generate_attachment_metadata( $attachment_id, $save_path );
+					wp_update_attachment_metadata( $attachment_id, $attachment_data );
+
+					InstaWP_Sync_Helpers::set_post_reference_id( $attachment_id, $data['reference_id'] );
+				}
+			} else {
+				$attachment_id = empty( $attachment->ID ) ? 0 : intval( $attachment->ID );
+				if ( 0 < $attachment_id ) {
+					wp_update_post( self::prepare_post_data( $data['post'], $attachment_id ) );
+					self::process_scaled_image( $data, $attachment_id );
+					self::process_post_meta( $data['post_meta'], $attachment_id );
+				}
 			}
-			$image_data = file_get_contents( $image_url ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-
-            if ( $image_data === false ) {
-                $image_data = file_get_contents( $data['path'] ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-            }
-
-            if ( $image_data === false ) {
-                // backward compatibility
-                if ( ! empty( $data['base_data'] ) ) {
-                    $image_data = base64_decode( $data['base_data'] ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
-                } else {
-                    return $attachment_id;
-                }
-            }
-
-			$upload_dir = wp_upload_dir();
-			$file_name  = wp_unique_filename( $upload_dir['path'], $data['basename'] );
-			$save_path  = $upload_dir['path'] . DIRECTORY_SEPARATOR . $file_name;
-
-			file_put_contents( $save_path, $image_data ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-
-			$attachment = wp_parse_args( array(
-				'guid' => $save_path,
-			), self::prepare_post_data( $data['post'] ) );
-
-			$parent_post_id = 0;
-
-			if ( ! empty( $data['post_parent'] ) ) {
-				$parent_post_id            = self::parse_post_events( $data['post_parent'] );
-				$attachment['post_parent'] = $parent_post_id;
-			}
-
-			require_once( ABSPATH . 'wp-admin/includes/image.php' );
-			require_once( ABSPATH . 'wp-admin/includes/file.php' );
-			require_once( ABSPATH . 'wp-admin/includes/media.php' );
-
-			$attachment_id = wp_insert_attachment( $attachment, $save_path, $parent_post_id );
-
-			if ( ! is_wp_error( $attachment_id ) ) {
-		        self::process_post_meta( $data['post_meta'], $attachment_id );
-
-				$attachment_data = wp_generate_attachment_metadata( $attachment_id, $save_path );
-				wp_update_attachment_metadata( $attachment_id, $attachment_data );
-
-                InstaWP_Sync_Helpers::set_post_reference_id( $attachment_id, $data['reference_id'] );
-			}
-		} else {
-			$attachment_id = empty( $attachment->ID ) ? 0 : intval( $attachment->ID );
-			if ( 0 < $attachment_id ) {
-				wp_update_post( self::prepare_post_data( $data['post'], $attachment_id ) );
-				self::process_scaled_image( $data, $attachment_id );
-            	self::process_post_meta( $data['post_meta'], $attachment_id );
-			}
+		} catch (\Throwable $th) {
+			error_log(
+				sprintf(
+					'Failed to process image (%s) in %s on line %d. Error: %s. Stack Trace: %s',
+					$image_url,            // Image URL
+					$th->getFile(),        // File where error occurred
+					$th->getLine(),        // Line number of error
+					$th->getMessage(),     // Error message
+					$th->getTraceAsString() // Stack trace
+				)
+			);
 		}
 
 		return $attachment_id;
@@ -1398,20 +1479,107 @@ class InstaWP_Sync_Parser {
         return array_merge( $fields, $data );
     }
 
-    public static function process_attachments( $array_data ) {
-		if ( empty( $array_data ) || ! is_array( $array_data ) ) {
-			return $array_data;
+	/**
+	 * Sleep for 5 seconds every 25 attachments
+	 * 
+	 * @param int $process_count
+	 * 
+	 * @return int $process_count
+	 */
+	public static function check_sleep( $process_count ) {
+		$process_count++;
+		if ( 0 === $process_count % 25 ) {
+			// sleep for 5 seconds
+			sleep( 5 );
+		}
+		return $process_count;
+	}
+
+	/**
+	 * Is already uploaded
+	 * 
+	 * @param array $media
+	 * @param array $list media post id list
+	 * 
+	 * @return boolean
+	 */
+	public static function is_already_uploaded( $media, $list ) {
+		return ( ! empty( $media['post_id'] ) && in_array( $media['post_id'], $list ) );
+	}
+
+	/**
+	 * Add media in process list
+	 * 
+	 * @param array $media
+	 * 
+	 */
+	public static function add_media_in_process_list( $media, &$processed_media_ids ) {
+		if ( ! empty( $media['post_id'] ) && ! empty( $media['url'] ) && ! in_array( $media['post_id'], $processed_media_ids ) ) {
+			$processed_media_ids[] = $media['post_id'];
+		}
+	}
+
+	/**
+	 * Get set processed attachments
+	 * 
+	 * @param int $dest_connect_id
+	 * @param array $processed_ids
+	 * 
+	 * @return array
+	 */
+	public static function get_set_processed_attachments( $dest_connect_id, $processed_ids = array() ) {
+		// Get processed media ids
+		$iwp_sync_processed_media_ids = get_option( 'iwp_sync_processed_media_ids' );
+		$iwp_sync_processed_media_ids = empty( $iwp_sync_processed_media_ids ) ? array() : $iwp_sync_processed_media_ids;
+		
+		if ( 0 < count( $processed_ids ) ) {
+			// Update processed media ids
+			$iwp_sync_processed_media_ids[$dest_connect_id] = $processed_ids;
+			update_option( 'iwp_sync_processed_media_ids', $iwp_sync_processed_media_ids );
 		}
 
+		// Get processed media ids against destination connect id
+		$processed_media_ids =  empty( $iwp_sync_processed_media_ids[$dest_connect_id] ) ? array() : $iwp_sync_processed_media_ids[$dest_connect_id];
+
+		return $processed_media_ids;
+	}
+
+
+    public static function process_attachments( $array_data, $dest_connect_id, $is_upload ) {
+		if ( ! $is_upload || empty( $array_data ) || ! is_array( $array_data ) ) {
+			return $array_data;
+		}
+		
+		// Get processed media ids
+		$processed_media_ids = InstaWP_Sync_Parser::get_set_processed_attachments( $dest_connect_id );
+
+		$process_count = 0;
         foreach ( ( array ) $array_data as $key => $value ) {
             if ( in_array( $key, array( 'attachment', 'featured_image' ) ) ) {
+				// Continue if already uploaded before
+				if ( InstaWP_Sync_Parser::is_already_uploaded( $value, $processed_media_ids ) ) {
+					continue;
+				}
+				$process_count = InstaWP_Sync_Parser::check_sleep( $process_count );
                 $array_data[ $key ] = InstaWP_Sync_Parser::upload_attachment( $value );
+				InstaWP_Sync_Parser::add_media_in_process_list( $array_data[ $key ], $processed_media_ids );
+				InstaWP_Sync_Parser::get_set_processed_attachments( $dest_connect_id, $processed_media_ids );
             } elseif ( in_array( $key, array( 'media', 'product_gallery' ) ) ) {
-                $array_data[ $key ] = array_map( function ( $value ) {
-                    return InstaWP_Sync_Parser::upload_attachment( $value );
+                $array_data[ $key ] = array_map( function ( $value ) use ( &$process_count, &$processed_media_ids ) {
+					// Continue if already uploaded before
+					if ( InstaWP_Sync_Parser::is_already_uploaded( $value, $processed_media_ids ) ) {
+						return $value;
+					}
+
+					// Sleep if needed
+					$process_count = InstaWP_Sync_Parser::check_sleep( $process_count );
+                    $value = InstaWP_Sync_Parser::upload_attachment( $value );
+					InstaWP_Sync_Parser::add_media_in_process_list( $value, $processed_media_ids );
+					return $value;
                 }, $value );
+				InstaWP_Sync_Parser::get_set_processed_attachments( $dest_connect_id, $processed_media_ids );
             } elseif ( is_array( $value ) ) {
-                $array_data[ $key ] = self::process_attachments( $value );
+                $array_data[ $key ] = self::process_attachments( $value, $dest_connect_id, $is_upload );
             }
         }
         
