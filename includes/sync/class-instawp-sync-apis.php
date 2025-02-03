@@ -99,7 +99,6 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 		}
 
 		return true;
-
 	}
 
 	/**
@@ -130,7 +129,7 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 
 		$file_type_ext = wp_check_filetype( $file_path );
 
-		if ( false === $file_type_ext['type'] || empty( $file_type_ext['ext'] ) || ! in_array( $file_type_ext['ext'], array( 'jpg','jpeg','png','gif','webp','svg','mp4','pdf','doc','docx','xls','xlsx','csv','txt','rtf','html','zip','mp3','wma','mpg','flv','avi' ) ) ) {
+		if ( false === $file_type_ext['type'] || empty( $file_type_ext['ext'] ) || ! in_array( $file_type_ext['ext'], array( 'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'mp4', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'csv', 'txt', 'rtf', 'html', 'zip', 'mp3', 'wma', 'mpg', 'flv', 'avi' ) ) ) {
 			return $this->send_response( array(
 				'success' => false,
 				'message' => 'File type not supported.',

@@ -157,7 +157,7 @@ class InstaWP_Sync_Parser {
 			$attachment = InstaWP_Sync_Helpers::get_post_by_reference( 'attachment', $data['reference_id'], $data['post_name'] );
 			if ( empty( $attachment ) ) {
 				
-				$image_url  = empty( $data['url'] ) ? $data['path']: $data['url'];
+				$image_url  = empty( $data['url'] ) ? $data['path'] : $data['url'];
 				if ( false === wp_http_validate_url( $image_url ) ) {
 					error_log( 'Invalid image URL Sync: ' . $image_url );
 					return $attachment_id;
@@ -199,18 +199,18 @@ class InstaWP_Sync_Parser {
 						return $attachment_id;
 					}
 
-					$response = wp_remote_post( $api_url . '/wp-json/instawp-connect/v1/sync/download-media', [
+					$response = wp_remote_post( $api_url . '/wp-json/instawp-connect/v1/sync/download-media', array(
 						'timeout'   => 120,
-						'headers'	=> array(
+						'headers'   => array(
 							'Authorization' => 'Bearer ' . $hash,
 							'Referer'       => Helper::wp_site_url(),
 						),
 						'sslverify' => false,
-						'body'      => [
-							'file'  => $data,
+						'body'      => array(
+							'file'     => $data,
 							'media_id' => $data['post_id'],
-						],
-					] );
+						),
+					) );
 
 					// Check for errors
 					if ( is_wp_error( $response ) ) {
@@ -224,10 +224,8 @@ class InstaWP_Sync_Parser {
 					if ( 200 !== $response_code ) {
 						InstaWP_Sync_Helpers::get_set_sync_parser_log( $failed_message . 'Response_code ' . $response_code . '. Error message ' . $image_data, true );
 						return $attachment_id;
-					}
-					
-					
-				} else {
+					}               
+} else {
 					
 					$image_data = file_get_contents( $image_url ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 					if ( $image_data === false ) {
@@ -283,7 +281,7 @@ class InstaWP_Sync_Parser {
 					self::process_post_meta( $data['post_meta'], $attachment_id );
 				}
 			}
-		} catch (\Throwable $th) {
+		} catch ( \Throwable $th ) {
 			error_log(
 				sprintf(
 					'Failed to process image (%s) in %s on line %d. Error: %s. Stack Trace: %s',
@@ -1487,7 +1485,7 @@ class InstaWP_Sync_Parser {
 	 * @return int $process_count
 	 */
 	public static function check_sleep( $process_count ) {
-		$process_count++;
+		++$process_count;
 		if ( 0 === $process_count % 25 ) {
 			// sleep for 5 seconds
 			sleep( 5 );
@@ -1534,12 +1532,12 @@ class InstaWP_Sync_Parser {
 		
 		if ( 0 < count( $processed_ids ) ) {
 			// Update processed media ids
-			$iwp_sync_processed_media_ids[$dest_connect_id] = $processed_ids;
+			$iwp_sync_processed_media_ids[ $dest_connect_id ] = $processed_ids;
 			update_option( 'iwp_sync_processed_media_ids', $iwp_sync_processed_media_ids );
 		}
 
 		// Get processed media ids against destination connect id
-		$processed_media_ids =  empty( $iwp_sync_processed_media_ids[$dest_connect_id] ) ? array() : $iwp_sync_processed_media_ids[$dest_connect_id];
+		$processed_media_ids = empty( $iwp_sync_processed_media_ids[ $dest_connect_id ] ) ? array() : $iwp_sync_processed_media_ids[ $dest_connect_id ];
 
 		return $processed_media_ids;
 	}

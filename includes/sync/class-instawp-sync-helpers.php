@@ -95,17 +95,17 @@ class InstaWP_Sync_Helpers {
 		$log = get_option( self::$iwp_sync_parser_log );
 		$log = empty( $log ) ? array() : $log;
 
-		if ( empty( $log[$iwp_sync_process_event_id] ) ) {
-			$log[$iwp_sync_process_event_id] = array(
+		if ( empty( $log[ $iwp_sync_process_event_id ] ) ) {
+			$log[ $iwp_sync_process_event_id ] = array(
 				'message' => array(),
 			);
 		}
 
 		if ( ! empty( $message ) ) {
-			$log[$iwp_sync_process_event_id]['message'][] = $message;
+			$log[ $iwp_sync_process_event_id ]['message'][] = $message;
 			if ( true === $error ) {
-				$log[$iwp_sync_process_event_id]['error'] = true;
-				$log[$iwp_sync_process_event_id]['error_message'] = $message;
+				$log[ $iwp_sync_process_event_id ]['error'] = true;
+				$log[ $iwp_sync_process_event_id ]['error_message'] = $message;
 				error_log( $message );
 			}
 
@@ -258,7 +258,7 @@ class InstaWP_Sync_Helpers {
 	public static function sync_response( $data, $log_data = array(), $args = array() ) {
 		// Get global log
 		$log  = self::get_set_sync_parser_log();
-		$log = empty( $log[$data->id] ) ? array() : $log[$data->id];
+		$log = empty( $log[ $data->id ] ) ? array() : $log[ $data->id ];
 		// Check error
 		$error = ( isset( $log['error'] ) && true === $log['error'] ) ? true : false;
 		// Check message
@@ -267,14 +267,14 @@ class InstaWP_Sync_Helpers {
 			update_option( self::$iwp_sync_parser_log, array() );
 			// Encode message
 			$log['message'] = json_encode( $log['message'] );
-			if ( ! empty( $log_data[$data->id] ) ) {
-				if ( is_string( $log_data[$data->id] ) ) {
-					$log_data[$data->id] .= "\n" . $log['message'];
-				} else if ( is_array( $log_data[$data->id] ) ) {
-					$log_data[$data->id][] = $log['message'];
+			if ( ! empty( $log_data[ $data->id ] ) ) {
+				if ( is_string( $log_data[ $data->id ] ) ) {
+					$log_data[ $data->id ] .= "\n" . $log['message'];
+				} elseif ( is_array( $log_data[ $data->id ] ) ) {
+					$log_data[ $data->id ][] = $log['message'];
 				}
 			} else {
-				$log_data[$data->id] = $log['message'];
+				$log_data[ $data->id ] = $log['message'];
 			} 
 		}
 
