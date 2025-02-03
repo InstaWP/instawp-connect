@@ -149,8 +149,8 @@ class InstaWP_Tools {
 			'db_username'      => DB_USER,
 			'db_password'      => DB_PASSWORD,
 			'db_name'          => DB_NAME,
-			'db_charset'       => DB_CHARSET,
-			'db_collate'       => DB_COLLATE,
+			'db_charset'       => defined( 'DB_CHARSET' ) ? DB_CHARSET : 'utf8mb4',
+			'db_collate'       => defined( 'DB_COLLATE' ) ? DB_COLLATE : '',
 			'table_prefix'     => $table_prefix,
 			'site_url'         => Helper::wp_site_url(),
 		);
@@ -499,7 +499,7 @@ include $file_path;';
 			unset( $config_constants['DB_HOST'] );
 		}
 
-        if ( isset( $config_constants['MYSQL_CLIENT_FLAGS'] ) ) {
+		if ( isset( $config_constants['MYSQL_CLIENT_FLAGS'] ) ) {
 			unset( $config_constants['MYSQL_CLIENT_FLAGS'] );
 		}
 

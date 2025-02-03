@@ -625,5 +625,5 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 
 	header( "x-iwp-progress: $avg_progress" );
 
-	echo implode( "\n", $sqlStatements );
+	echo implode( "\n", $sqlStatements ) . "\n\n";
 }
