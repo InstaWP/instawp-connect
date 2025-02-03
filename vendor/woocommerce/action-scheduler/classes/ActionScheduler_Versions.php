@@ -55,6 +55,12 @@ class ActionScheduler_Versions {
 	/**
 	 * Get registered sources.
 	 *
+	 * Use with caution: this method is only available as of Action Scheduler's 3.9.1
+	 * release and, owing to the way Action Scheduler is loaded, it's possible that the
+	 * class definition used at runtime will belong to an earlier version.
+	 *
+	 * @since 3.9.1
+	 *
 	 * @return array<string, string>
 	 */
 	public function get_sources() {
@@ -122,65 +128,24 @@ class ActionScheduler_Versions {
 	 *         'name' => 'Name',
 	 *     ]
 	 *
+	 * @deprecated 3.9.2 Use ActionScheduler_SystemInformation::active_source().
+	 *
 	 * @return array
 	 */
 	public function active_source(): array {
-		$file         = __FILE__;
-		$dir          = __DIR__;
-		$plugins      = get_plugins();
-		$plugin_files = array_keys( $plugins );
-
-		foreach ( $plugin_files as $plugin_file ) {
-			$plugin_path = trailingslashit( WP_PLUGIN_DIR ) . dirname( $plugin_file );
-			$plugin_file = trailingslashit( WP_PLUGIN_DIR ) . $plugin_file;
-
-			if ( 0 !== strpos( dirname( $dir ), $plugin_path ) ) {
-				continue;
-			}
-
-			$plugin_data = get_plugin_data( $plugin_file );
-
-			if ( ! is_array( $plugin_data ) || empty( $plugin_data['Name'] ) ) {
-				continue;
-			}
-
-			return array(
-				'type' => 'plugin',
-				'name' => $plugin_data['Name'],
-			);
-		}
-
-		$themes = (array) search_theme_directories();
-
-		foreach ( $themes as $slug => $data ) {
-			$needle = trailingslashit( $data['theme_root'] ) . $slug . '/';
-
-			if ( 0 !== strpos( $file, $needle ) ) {
-				continue;
-			}
-
-			$theme = wp_get_theme( $slug );
-
-			if ( ! is_object( $theme ) || ! is_a( $theme, \WP_Theme::class ) ) {
-				continue;
-			}
-
-			return array(
-				'type' => 'theme',
-				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
-				'name' => $theme->Name,
-			);
-		}
-
-		return array();
+		_deprecated_function( __METHOD__, '3.9.2', 'ActionScheduler_SystemInformation::active_source()' );
+		return ActionScheduler_SystemInformation::active_source();
 	}
 
 	/**
 	 * Returns the directory path for the currently active installation of Action Scheduler.
 	 *
+	 * @deprecated 3.9.2 Use ActionScheduler_SystemInformation::active_source_path().
+	 *
 	 * @return string
 	 */
 	public function active_source_path(): string {
-		return trailingslashit( dirname( __DIR__ ) );
+		_deprecated_function( __METHOD__, '3.9.2', 'ActionScheduler_SystemInformation::active_source_path()' );
+		return ActionScheduler_SystemInformation::active_source_path();
 	}
 }

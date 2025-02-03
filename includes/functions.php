@@ -1295,3 +1295,14 @@ if ( ! function_exists( 'instawp_disconnect_connect' ) ) {
     }
 }
 
+if ( ! function_exists( 'instawp_is_connected_url_valid' ) ) {
+    function instawp_is_connected_url_valid() {
+		$connect_url = Helper::get_connect_url();
+		$current_url = Helper::wp_site_url();
+
+		if ( ! empty( $connect_url ) && $connect_url !== $current_url ) {
+			return false;
+		}
+        return true;
+    }
+}
