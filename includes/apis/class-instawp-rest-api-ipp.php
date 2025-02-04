@@ -268,7 +268,7 @@ class InstaWP_Rest_Api_IPP extends InstaWP_Rest_Api {
 		$settings = $this->helper->sanitize_array( $settings );
 		$args = InstaWP_Tools::get_migrate_args( 
 			array(
-				'settings' => http_build_query( $settings )
+				'settings' => $settings
 			) 
 		);
 

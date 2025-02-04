@@ -498,6 +498,12 @@ delete_option( 'instawp_db_offset' );
                                 </a>
                             </div>
                         </div>
+                        <div class="instawp-rate-plugin m-4 p-4 text-sm text-blue-800 rounded-lg bg-blue-50 flex items-center" role="alert">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5">
+                                <path fill-rule="evenodd" d="M16.403 12.652a3 3 0 0 0 0-5.304 3 3 0 0 0-3.75-3.751 3 3 0 0 0-5.305 0 3 3 0 0 0-3.751 3.75 3 3 0 0 0 0 5.305 3 3 0 0 0 3.75 3.751 3 3 0 0 0 5.305 0 3 3 0 0 0 3.751-3.75Zm-2.546-4.46a.75.75 0 0 0-1.214-.883l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clip-rule="evenodd"/>
+                            </svg>
+                            <span class="ml-1"><?php esc_html_e( 'We hope you are enjoying InstaWP.', 'instawp-connect' ); ?><a class="ml-2 underline focus:outline-none focus:shadow-none focus:text-blue-800" target="_blank" href="<?php echo esc_url_raw( 'https://wordpress.org/support/plugin/instawp-connect/reviews/?filter=5#new-post' ); ?>"><?php esc_html_e( 'Rate us on WordPress.org', 'instawp-connect' ); ?></a></span>
+                        </div>
                     </div>
                     <div class="migration-error hidden">
                         <div class="relative bg-white rounded-lg border border-red-200 text-red-800 rounded-lg bg-red-50 py-4">

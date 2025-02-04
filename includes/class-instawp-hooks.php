@@ -15,6 +15,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 
 		public function __construct() {
 			add_action( 'instawp_connect_connected', array( $this, 'handle_connected' ) );
+			add_action( 'load-tools_page_instawp', array( $this, 'handle_connection_state' ) );
 			add_action( 'admin_init', array( $this, 'disconnect_site' ) );
 			add_action( 'admin_init', array( $this, 'generate_api_key' ) );
 			add_action( 'update_option', array( $this, 'manage_update_option' ), 10, 3 );
@@ -47,6 +48,12 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			$connect_plan_id = Helper::get_connect_plan_id();
 			if ( $connect_plan_id && ! Option::get_option( "instawp_connect_plan_{$connect_plan_id}_timestamp" ) ) {
 				Option::update_option( "instawp_connect_plan_{$connect_plan_id}_timestamp", current_time( 'mysql' ) );
+			}
+		}
+
+		public function handle_connection_state() {
+			if ( ! instawp_is_connected_url_valid() ) {
+				instawp_reset_running_migration( 'hard' );
 			}
 		}
 

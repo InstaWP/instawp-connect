@@ -124,7 +124,13 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			exit;
 		} 
 
+		// Add files list to the database
 		foreach ( $migrate_settings['file_actions']['to_send'] as $file ) {
+
+			if ( empty( $file['filepath'] ) ) {
+				continue;
+			}
+
 			$filepath = $file['filepath'];
 
 			if ( ! is_valid_file( $filepath ) ) {

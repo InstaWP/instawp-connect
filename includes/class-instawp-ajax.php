@@ -753,8 +753,10 @@ class InstaWP_Ajax {
 		check_ajax_referer( 'instawp-connect', 'security' );
 
 		$check_api = isset( $_POST['api'] ) && filter_var( wp_unslash( $_POST['api'] ), FILTER_VALIDATE_BOOLEAN ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash)
-		if ( $check_api ) {
+		
+		if ( $check_api && instawp_is_connected_url_valid() ) {
 			$disconnect_res = instawp_disconnect_connect();
+
 			if ( ! $disconnect_res['success'] ) {
 				wp_send_json_error( array(
 					'message' => $disconnect_res['message'],

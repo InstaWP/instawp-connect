@@ -251,8 +251,8 @@ class ActionScheduler_AdminView extends ActionScheduler_AdminView_Deprecated {
 		}
 
 		$as_version       = ActionScheduler_Versions::instance()->latest_version();
-		$as_source        = ActionScheduler_Versions::instance()->active_source();
-		$as_source_path   = ActionScheduler_Versions::instance()->active_source_path();
+		$as_source        = ActionScheduler_SystemInformation::active_source();
+		$as_source_path   = ActionScheduler_SystemInformation::active_source_path();
 		$as_source_markup = sprintf( '<code>%s</code>', esc_html( $as_source_path ) );
 
 		if ( ! empty( $as_source ) ) {

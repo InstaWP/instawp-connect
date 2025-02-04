@@ -1,10 +1,10 @@
 === Action Scheduler ===
 Contributors: Automattic, wpmuguru, claudiosanches, peterfabian1000, vedjain, jamosova, obliviousharmony, konamiman, sadowski, royho, barryhughes-1
 Tags: scheduler, cron
-Stable tag: 3.9.1
+Stable tag: 3.9.2
 License: GPLv3
 Requires at least: 6.5
-Tested up to: 6.5
+Tested up to: 6.7
 Requires PHP: 7.1
 
 Action Scheduler - Job Queue for WordPress
@@ -46,6 +46,9 @@ Action Scheduler is developed and maintained by [Automattic](http://automattic.c
 Collaboration is cool. We'd love to work with you to improve Action Scheduler. [Pull Requests](https://github.com/woocommerce/action-scheduler/pulls) welcome.
 
 == Changelog ==
+
+= 3.9.2 - 2025-02-03 =
+* Fixed fatal errors by moving version info methods to a new class and deprecating conflicting ones in ActionScheduler_Versions
 
 = 3.9.1 - 2025-01-21 =
 * A number of new WP CLI commands have been added, making it easier to manage actions in the terminal and from scripts.

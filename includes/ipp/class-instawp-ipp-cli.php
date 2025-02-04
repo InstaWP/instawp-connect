@@ -477,8 +477,9 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 				if (  ! empty( $target_checksums ) ) {
 					$excluded_paths = $settings['excluded_paths'];
 		
+					// Prepare files to send
 					foreach ( $checksums as $path_hash => $file ) {
-						if ( ! empty( $file['is_dir'] ) || in_array( $file['relative_path'], $excluded_paths ) || false !== strpos( $file['relative_path'], 'plugins/instawp-connect' ) || false !== strpos( $file['relative_path'], 'instawp-autologin' ) || false !== strpos( $file['relative_path'], 'migrate-p' ) ) {
+						if ( empty( $file['filepath'] ) || ! empty( $file['is_dir'] ) || in_array( $file['relative_path'], $excluded_paths ) || false !== strpos( $file['relative_path'], 'plugins/instawp-connect' ) || false !== strpos( $file['relative_path'], 'instawp-autologin' ) || false !== strpos( $file['relative_path'], 'migrate-p' ) ) {
 							continue;
 						}
 						if ( ! isset( $target_checksums[$path_hash] ) || ( $target_checksums[$path_hash]['relative_path'] === $file['relative_path'] && $target_checksums[$path_hash]['checksum'] !== $file['checksum'] ) ) {
@@ -492,6 +493,8 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 							$action['to_send'][] = $file;
 						}
 					}
+
+					// Prepare files or folders to delete
 					foreach ( $target_checksums as $path_hash => $file ) {
 						if ( ! isset( $checksums[$path_hash] ) && ! in_array( $file['relative_path'], $excluded_paths ) && false === strpos( $file['relative_path'], 'instawp-autologin' ) && false === strpos( $file['relative_path'], 'migrate-p' ) ) {
 							if ( isset( $file['is_dir'] ) && true === $file['is_dir'] ) {
@@ -823,8 +826,9 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 				if (  ! empty( $checksums ) ) {
 					$excluded_paths = $settings['excluded_paths'];
 		
+					// Prepare files to send
 					foreach ( $checksums as $path_hash => $file ) {
-						if ( ! empty( $file['is_dir'] ) || in_array( $file['relative_path'], $excluded_paths ) || false !== strpos( $file['relative_path'], 'plugins/instawp-connect' ) || false !== strpos( $file['relative_path'], 'instawp-autologin' ) || false !== strpos( $file['relative_path'], 'migrate-p' ) ) {
+						if ( empty( $file['filepath'] ) || ! empty( $file['is_dir'] ) || in_array( $file['relative_path'], $excluded_paths ) || false !== strpos( $file['relative_path'], 'plugins/instawp-connect' ) || false !== strpos( $file['relative_path'], 'instawp-autologin' ) || false !== strpos( $file['relative_path'], 'migrate-p' ) ) {
 							continue;
 						}
 						if ( ! isset( $target_checksums[$path_hash] ) || ( $target_checksums[$path_hash]['relative_path'] === $file['relative_path'] && $target_checksums[$path_hash]['checksum'] !== $file['checksum'] ) || ! ( $file['filepath'] ) ) {
@@ -838,12 +842,16 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 							$action['to_send'][] = $file;
 						}
 					}
+
+					// Prepare files or folders to delete
 					foreach ( $target_checksums as $path_hash => $file ) {
 						if ( ! isset( $checksums[$path_hash] ) && ! in_array( $file['relative_path'], $excluded_paths ) && false === strpos( $file['relative_path'], 'instawp-autologin' ) && false === strpos( $file['relative_path'], 'migrate-p' ) ) {
 							if ( isset( $file['is_dir'] ) && true === $file['is_dir'] ) {
+								// delete folders
 								$action['to_delete_folders'][] = $file;
 							} else if ( iwp_ipp_can_delete_file( $file ) ) {
 								$action['deleted_files_count']++;
+								// delete file
 								$action['to_delete'][] = $file;
 							}
 						}
@@ -1530,9 +1538,10 @@ if ( ! class_exists( 'INSTAWP_IPP_CLI_Commands' ) ) {
 				$this->staging_url . '/wp-json/instawp-connect/v3/'.$group.'' . $path, 
 				array( 
 					'timeout'   => 200,
-					'body' => $body,
+					'body' => json_encode( $body ),
 					'headers' => array(
 						'Authorization' => 'Bearer ' . $this->api_key,
+						'Content-Type'  => 'application/json',
 						'staging'       => $this->is_staging,
 					),
 				) 

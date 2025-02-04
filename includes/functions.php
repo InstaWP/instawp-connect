@@ -227,7 +227,7 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 //      $wpdb->query( "DROP TABLE IF EXISTS `iwp_options`;" );
 
 		if ( 'hard' === $reset_type ) {
-			if ( $disconnect_connect ) {
+			if ( $disconnect_connect && instawp_is_connected_url_valid() ) {
 				instawp_disconnect_connect();
 			}
 			
@@ -396,6 +396,27 @@ if ( ! function_exists( 'instawp_set_staging_sites_list' ) ) {
         }
 
         return false;
+	}
+}
+
+/**
+ * Get Migration headers
+ * 
+ * @param string $hash
+ * 
+ * @return array
+ */
+if ( ! function_exists( 'instawp_get_migration_headers' ) ) {
+	function instawp_get_migration_headers( $hash ) {
+		return array(
+			'Authorization' => 'Bearer ' . $hash,
+			'X-IWP-AUTH'    => $hash,
+			'User-Agent'    => 'InstaWP Migration Service',
+			'Content-Type'  => 'application/json',
+			'Cache-Control' => 'no-cache',
+			'Cookie'        => 'instawp_skip_splash=true',
+			'Referer'       => Helper::wp_site_url(),
+		);
 	}
 }
 
@@ -1295,3 +1316,14 @@ if ( ! function_exists( 'instawp_disconnect_connect' ) ) {
     }
 }
 
+if ( ! function_exists( 'instawp_is_connected_url_valid' ) ) {
+    function instawp_is_connected_url_valid() {
+		$connect_url = Helper::get_connect_url();
+		$current_url = Helper::wp_site_url();
+
+		if ( ! empty( $connect_url ) && $connect_url !== $current_url ) {
+			return false;
+		}
+        return true;
+    }
+}

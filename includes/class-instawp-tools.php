@@ -1027,10 +1027,7 @@ include $file_path;';
 		global $wpdb;
 
 		if ( empty( $migrate_settings ) ) {
-			$settings_str = isset( $posted_data['settings'] ) ? $posted_data['settings'] : '';
-
-			parse_str( $settings_str, $settings_arr );
-
+			$settings_arr = self::parse_settings( $posted_data );
 			$migrate_settings = Helper::get_args_option( 'migrate_settings', $settings_arr, array() );
 		}
 
@@ -1082,6 +1079,25 @@ include $file_path;';
 		return self::process_migration_settings( $migrate_settings );
 	}
 
+
+	/**
+	 * Parse settings
+	 * 
+	 * @param array $params 
+	 * 
+	 * @return array
+	 */
+	public static function parse_settings( $params ) {
+		$settings_str = isset( $params['settings'] ) ? $params['settings'] : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		if ( is_array( $settings_str ) ) {
+			$settings_arr = $settings_str;
+		} else {
+			parse_str( $settings_str, $settings_arr );
+		}
+
+		return $settings_arr;
+	}
+
 	/**
 	 * Get migrate args
 	 * 
@@ -1097,9 +1113,8 @@ include $file_path;';
 		if ( empty( $params ) ) {
 			return $response;
 		}
-		$settings_str = isset( $params['settings'] ) ? $params['settings'] : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-
-		parse_str( $settings_str, $settings_arr );
+		
+		$settings_arr = self::parse_settings( $params );
 
 		global $wp_version, $wpdb;
 
