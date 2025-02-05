@@ -202,7 +202,7 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 
 					if ( isset( $assoc_args['disconnect'] ) && instawp_is_connected_url_valid() ) {
 						$disconnect_res = $this->handle_disconnect();
-						if ( ! $disconnect_res ) {
+						if ( ! $disconnect_res && ! isset( $assoc_args['force'] )) {
 							return false;
 						}
 					}
