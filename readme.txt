@@ -102,6 +102,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 - NEW: Dynamic sync batch size adjustment.
 - Added: Media import from source with sync server fallback on errors.
 - Fix: Prevent duplicate image uploads during sync.
+- Added: Exception handling in events receiver API
 
 = 0.1.0.79 - 23 January 2025 =
 - FIX: Fixed default username for magic login.

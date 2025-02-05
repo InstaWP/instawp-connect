@@ -228,7 +228,12 @@ class InstaWP_Sync_Ajax {
 
 			$response = $this->sync_upload( $packed_data );
 			if ( ! isset( $response['success'] ) || $response['success'] !== true ) {
-				$this->send_error( $response['message'] );
+				$this->send_error( 
+					$response['message'],
+					array(
+						'http_code' => $response['code'],
+					) 
+				);
 			}
 
 			$sync_id = ! empty( $response['data']['sync_id'] ) ? $response['data']['sync_id'] : '';
@@ -429,10 +434,11 @@ class InstaWP_Sync_Ajax {
 		) );
 	}
 
-	private function send_error( $message = 'Something went wrong' ) {
+	private function send_error( $message = 'Something went wrong', $details = array() ) {
 		wp_send_json( array(
 			'success' => false,
 			'message' => $message,
+			'details' => $details,
 		) );
 	}
 
