@@ -583,39 +583,46 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 			$sync_message = isset( $bodyArr->sync_message ) ? $bodyArr->sync_message : '';
 
 			foreach ( $encrypted_contents as $event ) {
-				$has_log = $wpdb->get_var(
-					$wpdb->prepare( "SELECT id FROM " . INSTAWP_DB_TABLE_EVENT_SYNC_LOGS . " WHERE `event_hash`=%s AND `status`=%s", $event->event_hash, 'completed' ) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-				);
+				try {
+					$has_log = $wpdb->get_var(
+						$wpdb->prepare( "SELECT id FROM " . INSTAWP_DB_TABLE_EVENT_SYNC_LOGS . " WHERE `event_hash`=%s AND `status`=%s", $event->event_hash, 'completed' ) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+					);
 
-				global $iwp_sync_process_event_id;
-				$iwp_sync_process_event_id = $event->id;
+					global $iwp_sync_process_event_id;
+					$iwp_sync_process_event_id = $event->id;
 
-				if ( $has_log ) {
-					$response_data               = InstaWP_Sync_Helpers::sync_response( $event );
-					$sync_response[ $event->id ] = $response_data['data'];
-				} else {
-					if ( empty( $event->event_slug ) || empty( $event->details ) ) {
-						continue;
-					}
-
-					$reference_id        = ( ! empty( $event->source_id ) ) ? sanitize_text_field( $event->source_id ) : null;
-					$event->reference_id = $reference_id;
-
-					$response_data = ( array ) apply_filters( 'instawp/filters/2waysync/process_event', array(), $event, $source_url );
-					if ( ! empty( $response_data['data'] ) ) {
+					if ( $has_log ) {
+						$response_data               = InstaWP_Sync_Helpers::sync_response( $event );
 						$sync_response[ $event->id ] = $response_data['data'];
+					} else {
+						if ( empty( $event->event_slug ) || empty( $event->details ) ) {
+							continue;
+						}
+
+						$reference_id        = ( ! empty( $event->source_id ) ) ? sanitize_text_field( $event->source_id ) : null;
+						$event->reference_id = $reference_id;
+
+						$response_data = ( array ) apply_filters( 'instawp/filters/2waysync/process_event', array(), $event, $source_url );
+						if ( ! empty( $response_data['data'] ) ) {
+							$sync_response[ $event->id ] = $response_data['data'];
+						}
+
+						if ( ! empty( $response_data['log_data'] ) ) {
+							$this->logs = array_merge( $this->logs, $response_data['log_data'] );
+						}
+
+						// record logs
+						$this->event_sync_logs( $event, $source_url, $sync_response );
 					}
 
-					if ( ! empty( $response_data['log_data'] ) ) {
-						$this->logs = array_merge( $this->logs, $response_data['log_data'] );
-					}
+					$progress        = intval( ( $count / $total_op ) * 100 );
+					$progress_status = ( $progress < 100 ) ? 'in_progress' : 'completed';
 
-					// record logs
-					$this->event_sync_logs( $event, $source_url, $sync_response );
+				} catch ( \Exception $e ) {
+					$progress        = isset( $progress ) ? $progress : intval( ( $count / $total_op ) * 100 );
+					$progress_status = 'failed';
+					$sync_message = $e->getMessage();
 				}
-
-				$progress        = intval( ( $count / $total_op ) * 100 );
-				$progress_status = ( $progress < 100 ) ? 'in_progress' : 'completed';
 
 				/**
 				 * Update api for cloud
@@ -630,6 +637,7 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 						'logs'          => $this->logs,
 					),
 				);
+				
 				$this->sync_update( $sync_id, $sync_update );
 				++ $count;
 			}
