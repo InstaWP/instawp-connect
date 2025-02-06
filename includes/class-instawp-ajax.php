@@ -701,7 +701,7 @@ class InstaWP_Ajax {
 
 		$check_api = isset( $_POST['api'] ) && filter_var( wp_unslash( $_POST['api'] ), FILTER_VALIDATE_BOOLEAN ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash)
 		
-		if ( $check_api && instawp_is_connected_url_valid() ) {
+		if ( $check_api && instawp_is_connected_origin_valid() ) {
 			$disconnect_res = instawp_disconnect_connect();
 
 			if ( ! $disconnect_res['success'] ) {

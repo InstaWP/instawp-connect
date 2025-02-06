@@ -52,7 +52,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 		}
 
 		public function handle_connection_state() {
-			if ( ! instawp_is_connected_url_valid() ) {
+			if ( ! instawp_is_connected_origin_valid() ) {
 				instawp_reset_running_migration( 'hard' );
 			}
 		}

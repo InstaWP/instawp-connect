@@ -200,7 +200,7 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 						instawp_delete_sync_entries();
 					}
 
-					if ( isset( $assoc_args['disconnect'] ) && instawp_is_connected_url_valid() ) {
+					if ( isset( $assoc_args['disconnect'] ) && instawp_is_connected_origin_valid() ) {
 						$disconnect_res = $this->handle_disconnect();
 						if ( ! $disconnect_res && ! isset( $assoc_args['force'] )) {
 							return false;
@@ -210,7 +210,7 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 					instawp_reset_running_migration( 'hard', false );
 				},
 				'disconnect'           => function() { // wp instawp disconnect
-					if ( instawp_is_connected_url_valid() ) {
+					if ( instawp_is_connected_origin_valid() ) {
 						return $this->handle_disconnect();
 					}
 					return false;
