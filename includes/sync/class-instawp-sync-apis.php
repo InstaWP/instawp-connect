@@ -620,7 +620,8 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 
 				} catch ( \Exception $e ) {
 					$progress        = isset( $progress ) ? $progress : intval( ( $count / $total_op ) * 100 );
-					$progress_status = 'failed';
+					//Allowed status: 'pending', 'in_progress', 'completed', 'error'
+					$progress_status = 'error'; 
 					$sync_message = $e->getMessage();
 				}
 
