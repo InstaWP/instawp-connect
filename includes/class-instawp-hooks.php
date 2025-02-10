@@ -79,7 +79,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 				$today_date          = new DateTime( current_time( 'mysql' ) );
 				$diff                = $today_date->diff( $plan_activated_date );
 				$remaining_days      = $current_plan['trial'] - $diff->days;
-				
+
 				if ( $remaining_days <= 0 ) {
 					$api_response = Curl::do_curl( "connects/{$connect_id}/delete", array(), array(), 'DELETE' );
 
@@ -125,24 +125,24 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 				return;
 			}
 
-			$api_key        = Helper::get_api_key();
 			$access_token   = isset( $_REQUEST['access_token'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['access_token'] ) ) : '';
-            $jwt            = isset( $_REQUEST['jwt'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['jwt'] ) ) : '';
+			$jwt            = isset( $_REQUEST['jwt'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['jwt'] ) ) : '';
 			$success_status = isset( $_REQUEST['success'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['success'] ) ) : '';
 			$instawp_nonce  = isset( $_REQUEST['instawp-nonce'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['instawp-nonce'] ) ) : '';
 
-			if ( 'true' === $success_status && empty( $api_key ) && $api_key !== $access_token && wp_verify_nonce( $instawp_nonce, 'instawp_connect_nonce' ) ) {
-				Helper::instawp_generate_api_key( $access_token, $jwt );
+			if ( ! empty( $access_token ) && ! empty( $jwt ) && ! empty( $success_status ) && ! empty( $instawp_nonce ) ) {
+				$api_key = Helper::get_api_key();
 
-				wp_safe_redirect( admin_url( 'tools.php?page=instawp' ) );
-				exit();
+				if ( 'true' === $success_status && empty( $api_key ) && $api_key !== $access_token && wp_verify_nonce( $instawp_nonce, 'instawp_connect_nonce' ) ) {
+					Helper::instawp_generate_api_key( $access_token, $jwt );
+
+					wp_safe_redirect( admin_url( 'tools.php?page=instawp' ) );
+					exit();
+				}
 			}
 		}
 
 		public function handle_auto_login_request() {
-			if ( empty( Helper::get_api_key() ) ) {
-				return;
-			}
 
 			$url_args       = array_map( 'sanitize_text_field', $_GET );
 			$redirect_path  = Helper::get_args_option( 'redir', $url_args );
@@ -152,6 +152,10 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			$login_username = base64_decode( $login_username ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
 
 			if ( empty( $reauth ) || empty( $login_code ) || empty( $login_username ) ) {
+				return;
+			}
+
+			if ( empty( Helper::get_api_key() ) ) {
 				return;
 			}
 
@@ -176,14 +180,15 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 		}
 
 		public function handle_temporary_login_request() {
-			if ( empty( Helper::get_api_key() ) ) {
-				return;
-			}
 
 			$url_args    = array_map( 'sanitize_text_field', $_GET );
 			$login_token = Helper::get_args_option( 'iwp-temp-login', $url_args );
 
 			if ( empty( $login_token ) || instawp_is_bot_request() ) {
+				return;
+			}
+
+			if ( empty( Helper::get_api_key() ) ) {
 				return;
 			}
 
