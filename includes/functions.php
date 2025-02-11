@@ -216,11 +216,9 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 			}
 		}
 
-        foreach ( array( 'fwd.php', 'dest.php', 'iwp_log.txt' ) as $file ) {
-            if ( file_exists( ABSPATH . $file ) ) {
-                wp_delete_file( ABSPATH . $file );
-            }
-        }
+		// Clean proxy files regarding pull and push migration
+		InstaWP_Tools::clean_instawpbackups_dir( ABSPATH . 'iwp-serve', true );
+		InstaWP_Tools::clean_instawpbackups_dir( ABSPATH . 'iwp-dest', true );
 
 //      $wpdb->query( "DROP TABLE IF EXISTS `iwp_db_sent`;" );
 //      $wpdb->query( "DROP TABLE IF EXISTS `iwp_files_sent`;" );

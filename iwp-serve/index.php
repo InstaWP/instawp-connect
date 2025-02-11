@@ -2,7 +2,7 @@
 set_time_limit( 0 );
 error_reporting( 0 );
 
-include_once 'includes/functions-pull-push.php';
+include_once '../includes/functions-pull-push.php';
 
 $migrate_key   = isset( $_POST['migrate_key'] ) ? $_POST['migrate_key'] : '';
 $api_signature = isset( $_POST['api_signature'] ) ? $_POST['api_signature'] : '';
