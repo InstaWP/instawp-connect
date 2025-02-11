@@ -2,7 +2,11 @@
 set_time_limit( 0 );
 error_reporting( 0 );
 
-include_once 'includes/functions-pull-push.php';
+if ( ! defined( 'IWP_PLUGIN_DIR' ) ) {
+	define( 'IWP_PLUGIN_DIR', dirname( dirname( __FILE__ ) ) . DIRECTORY_SEPARATOR );
+}
+
+include_once IWP_PLUGIN_DIR . 'includes' . DIRECTORY_SEPARATOR . 'functions-pull-push.php';
 
 if ( ! isset( $_SERVER['HTTP_X_IWP_MIGRATE_KEY'] ) || empty( $migrate_key = $_SERVER['HTTP_X_IWP_MIGRATE_KEY'] ) ) {
 	header( 'x-iwp-status: false' );
