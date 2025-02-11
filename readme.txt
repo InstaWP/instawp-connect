@@ -101,8 +101,9 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 = 0.1.0.80 - =
 - NEW: Dynamic sync batch size adjustment.
 - Added: Media import from source with sync server fallback on errors.
+- Added: Exception handling in 2 Way Sync events receiver API.
 - Fix: Prevent duplicate image uploads during sync.
-- Added: Exception handling in events receiver API
+- Fix: Store connect origin to check if the connect is valid for the current domain.
 
 = 0.1.0.79 - 23 January 2025 =
 - FIX: Fixed default username for magic login.
