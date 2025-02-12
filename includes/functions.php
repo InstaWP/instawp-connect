@@ -1290,7 +1290,7 @@ if ( ! function_exists( 'instawp_connect_activate_plan' ) ) {
 
 
 if ( ! function_exists( 'instawp_disconnect_connect' ) ) {
-    function instawp_disconnect_connect() {
+    function instawp_disconnect_connect( $type = 'disconnect' ) {
         $connect_id = instawp_get_connect_id();
         if ( empty( $connect_id ) ) {
             return array(
@@ -1299,7 +1299,7 @@ if ( ! function_exists( 'instawp_disconnect_connect' ) ) {
             );
         }
 
-        $api_response = Curl::do_curl( "connects/{$connect_id}/disconnect" );
+        $api_response = Curl::do_curl( "connects/{$connect_id}/{$type}" );
         if ( empty( $api_response['success'] ) ) {
             return array(
                 'success' => false,

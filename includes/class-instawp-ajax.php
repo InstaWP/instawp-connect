@@ -700,8 +700,9 @@ class InstaWP_Ajax {
 		check_ajax_referer( 'instawp-connect', 'security' );
 
 		$check_api = isset( $_POST['api'] ) && filter_var( wp_unslash( $_POST['api'] ), FILTER_VALIDATE_BOOLEAN ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash)
+		$is_valid  = instawp_is_connected_origin_valid();
 		
-		if ( $check_api && instawp_is_connected_origin_valid() ) {
+		if ( $check_api && $is_valid ) {
 			$disconnect_res = instawp_disconnect_connect();
 
 			if ( ! $disconnect_res['success'] ) {
@@ -709,6 +710,10 @@ class InstaWP_Ajax {
 					'message' => $disconnect_res['message'],
 				) );
 			}
+		}
+
+		if ( $is_valid ) {
+			instawp_disconnect_connect( 'delete' );
 		}
 
 		instawp_reset_running_migration( 'hard' );
