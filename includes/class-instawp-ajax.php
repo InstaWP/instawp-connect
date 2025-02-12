@@ -703,7 +703,7 @@ class InstaWP_Ajax {
 			$check_api = isset( $_POST['api'] ) && filter_var( wp_unslash( $_POST['api'] ), FILTER_VALIDATE_BOOLEAN ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash)
 			
 			if ( $check_api ) {
-				$disconnect_res = instawp_disconnect_connect();
+				$disconnect_res = instawp_destroy_connect();
 	
 				if ( ! $disconnect_res['success'] ) {
 					wp_send_json_error( array(
@@ -711,7 +711,7 @@ class InstaWP_Ajax {
 					) );
 				}
 			} else {
-				instawp_disconnect_connect( 'delete' ); // force disconnect quietly
+				instawp_destroy_connect( 'delete' ); // force disconnect quietly
 			}
 		}
 

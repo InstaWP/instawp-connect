@@ -205,7 +205,7 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 						
 						if ( ! $disconnect_res ) {
 							if ( isset( $assoc_args['force'] ) ) {
-								instawp_disconnect_connect( 'delete' ); // force disconnect quietly
+								instawp_destroy_connect( 'delete' ); // force disconnect quietly
 							} else {
 								return false;
 							}
@@ -220,7 +220,7 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 
 						if ( ! $disconnect_res ) {
 							if ( isset( $assoc_args['force'] ) ) {
-								instawp_disconnect_connect( 'delete' ); // force disconnect quietly
+								instawp_destroy_connect( 'delete' ); // force disconnect quietly
 								return true;
 							}
 							return false;
@@ -319,7 +319,7 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 		 * @return bool
 		 */
 		private function handle_disconnect() {
-			$disconnect_res = instawp_disconnect_connect();
+			$disconnect_res = instawp_destroy_connect();
 			
 			if ( ! $disconnect_res['success'] ) {
 				WP_CLI::error( $disconnect_res['message'] );
