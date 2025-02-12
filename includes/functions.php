@@ -1299,7 +1299,12 @@ if ( ! function_exists( 'instawp_disconnect_connect' ) ) {
             );
         }
 
-        $api_response = Curl::do_curl( "connects/{$connect_id}/{$type}" );
+		if ( $type === 'delete' ) {
+			$api_response = Curl::do_curl( "connects/{$connect_id}/delete", array(), array(), 'DELETE' );
+		} else {
+			$api_response = Curl::do_curl( "connects/{$connect_id}/disconnect" );
+		}
+
         if ( empty( $api_response['success'] ) ) {
             return array(
                 'success' => false,
