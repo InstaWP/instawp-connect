@@ -7,7 +7,7 @@
  * @wordpress-plugin
  * Plugin Name:       InstaWP Connect
  * Description:       1-click WordPress plugin for Staging, Migrations, Management, Sync and Companion plugin for InstaWP.
- * Version:           0.1.0.79
+ * Version:           0.1.0.80
  * Author:            InstaWP Team
  * Author URI:        https://instawp.com/
  * License:           GPL-3.0+
@@ -27,7 +27,7 @@ if ( ! defined( 'WPINC' ) ) {
 
 global $wpdb;
 
-defined( 'INSTAWP_PLUGIN_VERSION' ) || define( 'INSTAWP_PLUGIN_VERSION', '0.1.0.79' );
+defined( 'INSTAWP_PLUGIN_VERSION' ) || define( 'INSTAWP_PLUGIN_VERSION', '0.1.0.80' );
 defined( 'INSTAWP_API_DOMAIN_PROD' ) || define( 'INSTAWP_API_DOMAIN_PROD', 'https://app.instawp.io' );
 
 $wp_plugin_url   = WP_PLUGIN_URL . '/' . plugin_basename( __DIR__ ) . '/';
@@ -155,29 +155,3 @@ add_filter( 'got_rewrite', '__return_true' );
 
 run_instawp();
 
-
-add_action( 'wp_head', function () {
-	if ( isset( $_GET['debug'] ) ) {
-
-//		$migrate_key         = 'uv66xs7dhn189ez7t1oz3wzea2w8x60h1ohmzzpe';
-//		$migrate_settings    = [];
-//		$api_signature       = hash( 'sha512', $migrate_key . wp_generate_uuid4() );
-//		$serve_file_response = InstaWP_Tools::generate_serve_file_response( $migrate_key, $api_signature, $migrate_settings );
-//		$serve_file_url      = Helper::get_args_option( 'serve_url', $serve_file_response );
-//		$serve_file_url = 'https://07z.935.myftpupload.com/wp-content/plugins/instawp-connect/iwp-serve/';
-		$serve_file_url = 'https://07z.935.myftpupload.com/iwp-serve/';
-//		$serve_file_url = 'https://07z.935.myftpupload.com/fwd';
-
-		echo "<pre>";
-		print_r( $serve_file_url );
-		echo "</pre>";
-
-
-		echo "<pre>";
-		var_dump( InstaWP_Tools::is_migrate_file_accessible( $serve_file_url ) );
-		echo "</pre>";
-
-
-		die();
-	}
-}, 0 );
