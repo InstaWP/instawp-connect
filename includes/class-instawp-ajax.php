@@ -699,21 +699,20 @@ class InstaWP_Ajax {
 	public function disconnect_api() {
 		check_ajax_referer( 'instawp-connect', 'security' );
 
-		$check_api = isset( $_POST['api'] ) && filter_var( wp_unslash( $_POST['api'] ), FILTER_VALIDATE_BOOLEAN ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash)
-		$is_valid  = instawp_is_connected_origin_valid();
-		
-		if ( $check_api && $is_valid ) {
-			$disconnect_res = instawp_disconnect_connect();
-
-			if ( ! $disconnect_res['success'] ) {
-				wp_send_json_error( array(
-					'message' => $disconnect_res['message'],
-				) );
+		if ( instawp_is_connected_origin_valid() ) {
+			$check_api = isset( $_POST['api'] ) && filter_var( wp_unslash( $_POST['api'] ), FILTER_VALIDATE_BOOLEAN ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash)
+			
+			if ( $check_api ) {
+				$disconnect_res = instawp_disconnect_connect();
+	
+				if ( ! $disconnect_res['success'] ) {
+					wp_send_json_error( array(
+						'message' => $disconnect_res['message'],
+					) );
+				}
+			} else {
+				instawp_disconnect_connect( 'delete' ); // force disconnect quietly
 			}
-		}
-
-		if ( $is_valid ) {
-			instawp_disconnect_connect( 'delete' );
 		}
 
 		instawp_reset_running_migration( 'hard' );
