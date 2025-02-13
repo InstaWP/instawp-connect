@@ -216,11 +216,9 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 			}
 		}
 
-        foreach ( array( 'fwd.php', 'dest.php', 'iwp_log.txt' ) as $file ) {
-            if ( file_exists( ABSPATH . $file ) ) {
-                wp_delete_file( ABSPATH . $file );
-            }
-        }
+		// Clean proxy files regarding pull and push migration
+		InstaWP_Tools::clean_instawpbackups_dir( ABSPATH . 'iwp-serve', true );
+		InstaWP_Tools::clean_instawpbackups_dir( ABSPATH . 'iwp-dest', true );
 
 //      $wpdb->query( "DROP TABLE IF EXISTS `iwp_db_sent`;" );
 //      $wpdb->query( "DROP TABLE IF EXISTS `iwp_files_sent`;" );
@@ -228,7 +226,7 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 
 		if ( 'hard' === $reset_type ) {
 			if ( $disconnect_connect && instawp_is_connected_origin_valid() ) {
-				instawp_disconnect_connect();
+				instawp_destroy_connect();
 			}
 			
 			delete_option( 'instawp_backup_part_size' );
@@ -1291,8 +1289,8 @@ if ( ! function_exists( 'instawp_connect_activate_plan' ) ) {
 }
 
 
-if ( ! function_exists( 'instawp_disconnect_connect' ) ) {
-    function instawp_disconnect_connect() {
+if ( ! function_exists( 'instawp_destroy_connect' ) ) {
+    function instawp_destroy_connect( $mode = 'disconnect' ) {
         $connect_id = instawp_get_connect_id();
         if ( empty( $connect_id ) ) {
             return array(
@@ -1301,7 +1299,12 @@ if ( ! function_exists( 'instawp_disconnect_connect' ) ) {
             );
         }
 
-        $api_response = Curl::do_curl( "connects/{$connect_id}/disconnect" );
+		if ( $mode === 'delete' ) {
+			$api_response = Curl::do_curl( "connects/{$connect_id}/delete", array(), array(), 'DELETE' );
+		} else {
+			$api_response = Curl::do_curl( "connects/{$connect_id}/disconnect" );
+		}
+
         if ( empty( $api_response['success'] ) ) {
             return array(
                 'success' => false,

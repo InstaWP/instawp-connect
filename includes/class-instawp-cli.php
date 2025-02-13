@@ -195,23 +195,36 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 					$option = new Option();
 					$option->delete( array( 'instawp_api_options', 'instawp_connect_id_options' ) );
 				},
-				'hard-reset'           => function( $args, $assoc_args ) { // wp instawp hard-reset
+				'hard-reset'           => function( $args, $assoc_args ) { // wp instawp hard-reset --clear-events --disconnect --force
 					if ( isset( $assoc_args['clear-events'] ) ) {
 						instawp_delete_sync_entries();
 					}
 
 					if ( isset( $assoc_args['disconnect'] ) && instawp_is_connected_origin_valid() ) {
 						$disconnect_res = $this->handle_disconnect();
-						if ( ! $disconnect_res && ! isset( $assoc_args['force'] )) {
-							return false;
+						
+						if ( ! $disconnect_res ) {
+							if ( isset( $assoc_args['force'] ) ) {
+								instawp_destroy_connect( 'delete' ); // force disconnect quietly
+							} else {
+								return false;
+							}
 						}
 					}
 
 					instawp_reset_running_migration( 'hard', false );
 				},
-				'disconnect'           => function() { // wp instawp disconnect
+				'disconnect'           => function( $args, $assoc_args ) { // wp instawp disconnect --force
 					if ( instawp_is_connected_origin_valid() ) {
-						return $this->handle_disconnect();
+						$disconnect_res = $this->handle_disconnect();
+
+						if ( ! $disconnect_res ) {
+							if ( isset( $assoc_args['force'] ) ) {
+								instawp_destroy_connect( 'delete' ); // force disconnect quietly
+								return true;
+							}
+							return false;
+						}
 					}
 					return false;
 				},
@@ -306,7 +319,7 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 		 * @return bool
 		 */
 		private function handle_disconnect() {
-			$disconnect_res = instawp_disconnect_connect();
+			$disconnect_res = instawp_destroy_connect();
 			
 			if ( ! $disconnect_res['success'] ) {
 				WP_CLI::error( $disconnect_res['message'] );

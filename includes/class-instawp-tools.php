@@ -104,7 +104,7 @@ class InstaWP_Tools {
 		return false;
 	}
 
-	public static function clean_instawpbackups_dir( $instawpbackups_dir = '' ) {
+	public static function clean_instawpbackups_dir( $instawpbackups_dir = '', $clean_self = false ) {
 
 		if ( empty( $instawpbackups_dir ) ) {
 			$instawpbackups_dir = WP_CONTENT_DIR . '/' . INSTAWP_DEFAULT_BACKUP_DIR;
@@ -130,7 +130,9 @@ class InstaWP_Tools {
 
 		closedir( $instawpbackups_dir_handle );
 
-//      rmdir( $instawpbackups_dir );
+		if ( $clean_self ) {
+			rmdir( $instawpbackups_dir );
+		}
 
 		return true;
 	}
@@ -174,22 +176,24 @@ class InstaWP_Tools {
 		$wpdb->query( "DROP TABLE IF EXISTS `iwp_options`;" );
 
 		return array(
-			'serve_url'        => INSTAWP_PLUGIN_URL . 'serve.php',
+			'serve_url'        => INSTAWP_PLUGIN_URL . 'iwp-serve/',
 			'migrate_settings' => $migrate_settings,
 		);
 	}
 
-	public static function generate_forwarded_file( $forwarded_path = ABSPATH, $file_name = 'fwd.php' ) {
+	public static function generate_proxy_serve_url( $forwarded_path = ABSPATH, $file_name = '' ) {
 
-		$forwarded_content      = '<?php
+		$forwarded_content = '<?php
 /* Copyright (c) InstaWP Inc. */
 
 $path_structure = array(
     __DIR__,
+    \'..\',
     \'wp-content\',
     \'plugins\',
     \'instawp-connect\',
-    \'serve.php\',
+    \'iwp-serve\',
+    \'index.php\',
 );
 $file_path      = implode( DIRECTORY_SEPARATOR, $path_structure );
 
@@ -200,11 +204,24 @@ if ( ! is_readable( $file_path ) ) {
 }
 
 include $file_path;';
-		$forwarded_file_path    = $forwarded_path . DIRECTORY_SEPARATOR . $file_name;
+
+		$file_name           = empty( $file_name ) ? 'iwp-serve' . DIRECTORY_SEPARATOR . 'index.php' : $file_name;
+		$forwarded_file_path = $forwarded_path . DIRECTORY_SEPARATOR . $file_name;
+
+		// Create the directory first in the root
+		$directory = dirname( $forwarded_file_path );
+		if ( ! is_dir( $directory ) ) {
+			if ( ! mkdir( $directory, 0777, true ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir
+				error_log( 'Could not create directory: ' . $directory );
+
+				return false;
+			}
+		}
+
 		$forwarded_file_created = file_put_contents( $forwarded_file_path, $forwarded_content ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 
 		if ( $forwarded_file_created ) {
-			return Helper::wp_site_url( $file_name );
+			return Helper::wp_site_url( 'iwp-serve/' );
 		}
 
 		error_log( 'Could not create the forwarded file' );
@@ -271,16 +288,18 @@ include $file_path;';
 		$dest_file_path = $root_dir_path . $info_filename;
 
 		if ( file_put_contents( $dest_file_path, $data_encrypted ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-			$dest_url = INSTAWP_PLUGIN_URL . 'dest.php';
+			$dest_url = INSTAWP_PLUGIN_URL . 'iwp-dest/';
 
 			if ( ! self::is_migrate_file_accessible( $dest_url ) ) {
-				$forwarded_content      = '<?php
+				$forwarded_content = '<?php
 $path_structure = array(
 	__DIR__,
+	\'..\',
 	\'wp-content\',
 	\'plugins\',
 	\'instawp-connect\',
-	\'dest.php\', 
+    \'iwp-dest\',
+    \'index.php\',
 );
 $file_path      = implode( DIRECTORY_SEPARATOR, $path_structure );
 
@@ -291,12 +310,24 @@ if ( ! is_readable( $file_path ) ) {
 }
 
 include $file_path;';
-				$file_name              = 'dest.php';
-				$forwarded_file_path    = ABSPATH . $file_name;
+
+				$forwarded_file_path = ABSPATH . DIRECTORY_SEPARATOR . 'iwp-dest' . DIRECTORY_SEPARATOR . 'index.php';;
+
+				// Create the directory first in the root
+				$directory = dirname( $forwarded_file_path );
+				if ( ! is_dir( $directory ) ) {
+					if ( ! mkdir( $directory, 0777, true ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir
+						error_log( 'Could not create directory: ' . $directory );
+
+						return false;
+					}
+				}
+
+
 				$forwarded_file_created = file_put_contents( $forwarded_file_path, $forwarded_content ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 
 				if ( $forwarded_file_created ) {
-					return Helper::wp_site_url( $file_name );
+					return Helper::wp_site_url( 'iwp-dest/' );
 				}
 			}
 
@@ -499,7 +530,7 @@ include $file_path;';
 			unset( $config_constants['DB_HOST'] );
 		}
 
-        if ( isset( $config_constants['MYSQL_CLIENT_FLAGS'] ) ) {
+		if ( isset( $config_constants['MYSQL_CLIENT_FLAGS'] ) ) {
 			unset( $config_constants['MYSQL_CLIENT_FLAGS'] );
 		}
 
@@ -940,6 +971,9 @@ include $file_path;';
 		// Clean InstaWP backup directory
 		self::clean_instawpbackups_dir();
 
+		self::clean_instawpbackups_dir( ABSPATH . 'iwp-serve', true );
+		self::clean_instawpbackups_dir( ABSPATH . 'iwp-dest', true );
+
 		delete_option( 'current_file_index' );
 		delete_option( 'total_files' );
 
@@ -947,7 +981,7 @@ include $file_path;';
 
 		// Generate serve file in instawpbackups directory
 		$serve_file_response = self::generate_serve_file_response( $migrate_key, $api_signature, $migrate_settings );
-		$serve_file_url      = Helper::get_args_option( 'serve_url', $serve_file_response );
+		$serve_url           = Helper::get_args_option( 'serve_url', $serve_file_response );
 		$migrate_settings    = Helper::get_args_option( 'migrate_settings', $serve_file_response );
 		$tracking_db         = self::get_tracking_database( $migrate_key );
 
@@ -959,28 +993,22 @@ include $file_path;';
 			empty( $tracking_db->get_option( 'api_signature' ) ) ||
 			empty( $tracking_db->get_option( 'db_host' ) ) ||
 			empty( $tracking_db->get_option( 'db_username' ) ) ||
-			//          empty( $tracking_db->get_option( 'db_password' ) ) ||
 			empty( $tracking_db->get_option( 'db_name' ) )
 		) {
 			return new WP_Error( 404, esc_html__( 'API Signature and others data could not set properly', 'instawp-connect' ) );
 		}
 
 		// Check accessibility of serve.php file
-		if ( empty( $serve_file_url ) || ! self::is_migrate_file_accessible( $serve_file_url ) ) {
+		if ( empty( $serve_url ) || ! self::is_migrate_file_accessible( $serve_url ) ) {
 
-			$serve_file_url = self::generate_forwarded_file();
+			$serve_url = self::generate_proxy_serve_url();
 
-			// Check accessibility of fwd.php file
-			if ( empty( $serve_file_url ) || ! self::is_migrate_file_accessible( $serve_file_url ) ) {
+			// Check accessibility of proxy serve url
+			if ( empty( $serve_url ) || ! self::is_migrate_file_accessible( $serve_url ) ) {
 				// Serve through WordPress
-				$serve_file_url = Helper::wp_site_url( 'serve-instawp' );
-				$serve_with_wp  = true;
+				$serve_url     = Helper::wp_site_url( 'serve-instawp' );
+				$serve_with_wp = true;
 			}
-
-			// Check if none of them are accessible, then throw error
-//          if ( ! self::is_migrate_file_accessible( $serve_file_url ) ) {
-//              return new WP_Error( 403, esc_html__( 'InstaWP could not access the forwarded file due to security issue.', 'instawp-connect' ) );
-//          }
 		}
 
 		$iwpdb_main_path = INSTAWP_PLUGIN_DIR . 'includes/class-instawp-iwpdb.php';
@@ -996,7 +1024,7 @@ include $file_path;';
 		}
 
 		return array(
-			'serve_url'        => $serve_file_url,
+			'serve_url'        => $serve_url,
 			'serve_with_wp'    => $serve_with_wp,
 			'migrate_key'      => $migrate_key,
 			'api_signature'    => $api_signature,
@@ -1422,8 +1450,11 @@ include $file_path;';
 					continue;
 				}
 
-				$status_res_data = Helper::get_args_option( 'data', $status_res, array() );
-				$restore_status  = Helper::get_args_option( 'status', $status_res_data, 0 );
+				$status_res_data     = Helper::get_args_option( 'data', $status_res, array() );
+				$percentage_complete = Helper::get_args_option( 'percentage_complete', $status_res_data, 0 );
+				$restore_status      = Helper::get_args_option( 'status', $status_res_data );
+
+				error_log( "local_push_migration_progress: {$percentage_complete}" );
 
 				if ( $restore_status === 'completed' ) {
 					break;
