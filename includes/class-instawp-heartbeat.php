@@ -29,6 +29,7 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 				as_schedule_recurring_action( time(), DAY_IN_SECONDS, 'instawp_send_heartbeat', array(), 'instawp-connect' );
 			}
 
+			// Sayan will review here
 			if ( ! as_has_scheduled_action( 'instawp_handle_heartbeat_status', array(), 'instawp-connect' ) ) {
 				as_schedule_recurring_action( time(), DAY_IN_SECONDS, 'instawp_handle_heartbeat_status', array(), 'instawp-connect' );
 			}
@@ -37,10 +38,10 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 			$heartbeat = empty( $heartbeat ) ? 'on' : $heartbeat;
 
 			if ( 'on' === $heartbeat ) {
-				$interval = Option::get_option( 'instawp_api_heartbeat', 240 );
-				$interval = empty( $interval ) ? 240 : (int) $interval;
-
 				if ( ! as_has_scheduled_action( 'instawp_handle_heartbeat', array(), 'instawp-connect' ) ) {
+					$interval = Option::get_option( 'instawp_api_heartbeat', 240 );
+					$interval = empty( $interval ) ? 240 : (int) $interval;
+
 					as_schedule_recurring_action( time(), ( $interval * MINUTE_IN_SECONDS ), 'instawp_handle_heartbeat', array(), 'instawp-connect' );
 				}
 			}

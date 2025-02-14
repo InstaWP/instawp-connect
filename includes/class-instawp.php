@@ -379,7 +379,7 @@ class instaWP {
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-tools.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-hooks.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-cli.php';
-		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-updates.php';
+		// require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-updates.php';
 		// require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-checksum.php';
 
 		if ( ! defined( 'IWP_PLUGIN_DISABLE_HEARTBEAT' ) || IWP_PLUGIN_DISABLE_HEARTBEAT !== true ) {
