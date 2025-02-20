@@ -288,7 +288,12 @@ include $file_path;';
 		$dest_file_path = $root_dir_path . $info_filename;
 
 		if ( file_put_contents( $dest_file_path, $data_encrypted ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-			$dest_url = INSTAWP_PLUGIN_URL . 'iwp-dest/';
+
+			$dest_url = INSTAWP_PLUGIN_URL . 'iwp-dest' . DIRECTORY_SEPARATOR;
+
+			if ( is_dir( $root_dir_path . '__wp__' ) ) {
+				$dest_url = INSTAWP_PLUGIN_URL . 'iwp-dest' . DIRECTORY_SEPARATOR . 'index.php';
+			}
 
 			if ( ! self::is_migrate_file_accessible( $dest_url ) ) {
 				$forwarded_content = '<?php
