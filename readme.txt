@@ -98,6 +98,9 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 0.1.0.83 =
+- FIX: Optimized query for fetching sync events.
+
 = 0.1.0.81 - 24 February 2025 =
 - NEW: Added new plugin page banner.
 - FIX: Fixed push migration support for WP Cloud infrastructure.
