@@ -166,14 +166,19 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 			require_once ABSPATH . 'wp-admin/includes/file.php';
 		}
 
-		$plugin_slug        = INSTAWP_PLUGIN_SLUG . '/' . INSTAWP_PLUGIN_SLUG . '.php';
-		$response           = array(
+		$plugin_slug           = INSTAWP_PLUGIN_SLUG . '/' . INSTAWP_PLUGIN_SLUG . '.php';
+		$response              = array(
 			'success'       => true,
 			'sso_login_url' => Helper::wp_site_url(),
 		);
-		$migrate_group_uuid = $request->get_param( 'migrate_group_uuid' );
-		$migration_status   = $request->get_param( 'status' );
-		$migration_details  = Option::get_option( 'instawp_migration_details' );
+		$clear_connect         = $request->get_param( 'clear_connect' );
+		$clear_connect         = ! in_array( 'clear_connect', array_keys( $request->get_params() ) ) ? false : $clear_connect;
+		$delete_connect_plugin = $request->get_param( 'delete_connect_plugin' );
+		$delete_connect_plugin = ! in_array( 'delete_connect_plugin', array_keys( $request->get_params() ) ) ? false : $delete_connect_plugin;
+		$migrate_group_uuid    = $request->get_param( 'migrate_group_uuid' );
+		$migration_status      = $request->get_param( 'status' );
+		$migration_details     = Option::get_option( 'instawp_migration_details' );
+		$plugins_to_delete     = [];
 
 		$migration_details['migrate_group_uuid'] = $migrate_group_uuid;
 		$migration_details['status']             = $migration_status;
@@ -218,21 +223,47 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 		update_option( 'nfd_coming_soon', false );
 
 		// reset everything and remove connection
-		instawp_reset_running_migration( 'hard', true );
-
-		// deactivate instawp-connect plugin
-		deactivate_plugins( $plugin_slug );
-
-		$is_deleted = delete_plugins( array( $plugin_slug ) );
-
-		if ( is_wp_error( $is_deleted ) ) {
-			$response['success']       = false;
-			$response['cleanup_error'] = $is_deleted->get_error_message();
+		if ( $clear_connect ) {
+			instawp_reset_running_migration( 'hard', true );
 		}
 
-		if ( $response['success'] ) {
-			$response['message'] = esc_html__( 'Post migration cleanup completed.', 'instawp-connect' );
+		$post_uninstalls = $request->get_param( 'post_uninstalls' );
+		$post_uninstalls = ! empty( $post_uninstalls ) ? $post_uninstalls : [];
+
+		foreach ( $post_uninstalls as $post_uninstall_item ) {
+			$plugins_to_delete[] = $post_uninstall_item;
 		}
+
+		// Adding instawp-connect plugin to delete after the migration if delete connect plugin flag is enabled
+		if ( $delete_connect_plugin ) {
+			$plugins_to_delete[] = array(
+				'slug'   => $plugin_slug,
+				'type'   => 'plugin',
+				'delete' => true,
+			);
+		}
+
+		foreach ( $plugins_to_delete as $plugin ) {
+
+			$_slug   = InstaWP_Setting::get_args_option( 'slug', $plugin );
+			$_delete = (bool) InstaWP_Setting::get_args_option( 'delete', $plugin, false );
+
+			deactivate_plugins( $_slug );
+
+			if ( $_delete ) {
+				$is_deleted = delete_plugins( array( $_slug ) );
+
+				if ( is_wp_error( $is_deleted ) ) {
+					$response['uninstall'][ $_slug ] = array(
+						'slug'    => $_slug,
+						'success' => false,
+						'message' => $is_deleted->get_error_message(),
+					);
+				}
+			}
+		}
+
+		$response['message'] = esc_html__( 'Post migration cleanup completed.', 'instawp-connect' );
 
 		return $this->send_response( $response );
 	}
