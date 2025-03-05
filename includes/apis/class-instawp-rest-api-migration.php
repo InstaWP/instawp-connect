@@ -172,9 +172,9 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 			'sso_login_url' => Helper::wp_site_url(),
 		);
 		$clear_connect         = $request->get_param( 'clear_connect' );
-		$clear_connect         = ! in_array( 'clear_connect', array_keys( $request->get_params() ) ) ? false : $clear_connect;
+		$clear_connect         = ! in_array( 'clear_connect', array_keys( $request->get_params() ) ) ? true : $clear_connect;
 		$delete_connect_plugin = $request->get_param( 'delete_connect_plugin' );
-		$delete_connect_plugin = ! in_array( 'delete_connect_plugin', array_keys( $request->get_params() ) ) ? false : $delete_connect_plugin;
+		$delete_connect_plugin = ! in_array( 'delete_connect_plugin', array_keys( $request->get_params() ) ) ? true : $delete_connect_plugin;
 		$migrate_group_uuid    = $request->get_param( 'migrate_group_uuid' );
 		$migration_status      = $request->get_param( 'status' );
 		$migration_details     = Option::get_option( 'instawp_migration_details' );
