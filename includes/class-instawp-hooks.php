@@ -79,7 +79,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 				$today_date          = new DateTime( current_time( 'mysql' ) );
 				$diff                = $today_date->diff( $plan_activated_date );
 				$remaining_days      = $current_plan['trial'] - $diff->days;
-				
+
 				if ( $remaining_days <= 0 ) {
 					$api_response = Curl::do_curl( "connects/{$connect_id}/delete", array(), array(), 'DELETE' );
 
@@ -127,7 +127,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 
 			$api_key        = Helper::get_api_key();
 			$access_token   = isset( $_REQUEST['access_token'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['access_token'] ) ) : '';
-            $jwt            = isset( $_REQUEST['jwt'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['jwt'] ) ) : '';
+			$jwt            = isset( $_REQUEST['jwt'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['jwt'] ) ) : '';
 			$success_status = isset( $_REQUEST['success'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['success'] ) ) : '';
 			$instawp_nonce  = isset( $_REQUEST['instawp-nonce'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['instawp-nonce'] ) ) : '';
 
@@ -229,6 +229,24 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 						'href'   => admin_url( 'tools.php?page=instawp' ),
 						'meta'   => array(
 							'class' => 'instawp-staging-site',
+						),
+						'parent' => 'top-secondary',
+					)
+				);
+			}
+
+			$migration_details = Option::get_option( 'instawp_migration_details' );
+			$migration_status  = InstaWP_Setting::get_args_option( 'status', $migration_details );
+			$tracking_url      = InstaWP_Setting::get_args_option( 'tracking_url', $migration_details );
+
+			if ( $migration_status === 'initiated' && ! empty( $tracking_url ) ) {
+				$admin_bar->add_node(
+					array(
+						'id'     => 'instawp_mig_in_progress',
+						'title'  => __( 'Migration in Progress', 'instawp-connect' ),
+						'href'   => $tracking_url,
+						'meta'   => array(
+							'class' => 'instawp-mig-in-progress',
 						),
 						'parent' => 'top-secondary',
 					)

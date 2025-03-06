@@ -155,3 +155,14 @@ add_filter( 'got_rewrite', '__return_true' );
 
 run_instawp();
 
+
+add_action( 'wp_head', function () {
+	if ( isset( $_GET['debug'] ) ) {
+
+		echo "<pre>";
+		print_r( get_option( 'instawp_migration_details' ) );
+		echo "</pre>";
+
+		die();
+	}
+}, 0 );
