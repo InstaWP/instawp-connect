@@ -237,9 +237,11 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 
 			$migration_details = Option::get_option( 'instawp_migration_details' );
 			$migration_status  = InstaWP_Setting::get_args_option( 'status', $migration_details );
-			$tracking_url      = InstaWP_Setting::get_args_option( 'tracking_url', $migration_details );
 
-			if ( $migration_status === 'initiated' && ! empty( $tracking_url ) ) {
+			if ( $migration_status === 'initiated' ) {
+
+				$tracking_url = InstaWP_Setting::get_args_option( 'tracking_url', $migration_details );
+
 				$admin_bar->add_node(
 					array(
 						'id'     => 'instawp_mig_in_progress',
