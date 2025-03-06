@@ -49,6 +49,7 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 		}
 
 		$migrate_key              = sanitize_text_field( $request->get_param( 'migrate_key' ) );
+		$is_end_to_end            = sanitize_text_field( $request->get_param( 'is_end_to_end' ) );
 		$migrate_settings         = $request->get_param( 'migrate_settings' );
 		$migrate_settings['mode'] = 'pull';
 		$pre_check_response       = InstaWP_Tools::get_pull_pre_check_response( $migrate_key, $migrate_settings );
@@ -70,11 +71,12 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 		$pre_check_response['wp_admin_email']      = get_bloginfo( 'admin_email' );
 
 		Option::update_option( 'instawp_migration_details', array(
-			'migrate_key' => $migrate_key,
+			'migrate_key'   => $migrate_key,
+			'is_end_to_end' => $is_end_to_end,
 			//'dest_url'    => Helper::get_args_option( 'serve_url', $pre_check_response ),
-			'started_at'  => current_time( 'mysql', 1 ),
-			'status'      => 'initiated',
-			'mode'        => 'pull',
+			'started_at'    => current_time( 'mysql', 1 ),
+			'status'        => 'initiated',
+			'mode'          => 'pull',
 		) );
 
 		return $this->send_response( $pre_check_response );
@@ -116,12 +118,15 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 			return $this->throw_error( new WP_Error( 403, esc_html__( 'Could not create destination file.', 'instawp-connect' ) ) );
 		}
 
+		$is_end_to_end = sanitize_text_field( $request->get_param( 'is_end_to_end' ) );
+
 		Option::update_option( 'instawp_migration_details', array(
-			'migrate_key' => $migrate_key,
-			'dest_url'    => $dest_file_url,
-			'started_at'  => current_time( 'mysql', 1 ),
-			'status'      => 'initiated',
-			'mode'        => 'push',
+			'migrate_key'   => $migrate_key,
+			'is_end_to_end' => $is_end_to_end,
+			'dest_url'      => $dest_file_url,
+			'started_at'    => current_time( 'mysql', 1 ),
+			'status'        => 'initiated',
+			'mode'          => 'push',
 		) );
 
 		$migrate_settings['has_zip_archive'] = class_exists( 'ZipArchive' );

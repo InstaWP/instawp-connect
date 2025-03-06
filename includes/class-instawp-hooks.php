@@ -237,16 +237,18 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 
 			$migration_details = Option::get_option( 'instawp_migration_details' );
 			$migration_status  = InstaWP_Setting::get_args_option( 'status', $migration_details );
+			$is_end_to_end     = (bool) InstaWP_Setting::get_args_option( 'is_end_to_end', $migration_details );
 
-			if ( $migration_status === 'initiated' ) {
+			if ( $migration_status === 'initiated' && $is_end_to_end ) {
 
-				$tracking_url = InstaWP_Setting::get_args_option( 'tracking_url', $migration_details );
+				$e2e_tracking_url = InstaWP_Setting::get_args_option( 'e2e_tracking_url', $migration_details );
+				$e2e_tracking_url = empty( $e2e_tracking_url ) ? '#' : $e2e_tracking_url;
 
 				$admin_bar->add_node(
 					array(
 						'id'     => 'instawp_mig_in_progress',
 						'title'  => __( 'Migration in Progress', 'instawp-connect' ),
-						'href'   => $tracking_url,
+						'href'   => $e2e_tracking_url,
 						'meta'   => array(
 							'class' => 'instawp-mig-in-progress',
 						),
