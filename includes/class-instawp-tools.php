@@ -1316,7 +1316,10 @@ include $file_path;';
 	}
 
 	public static function get_localize_data() {
-		return array(
+
+		global $current_screen;
+
+		$localize_data = array(
 			'ajax_url' => admin_url( 'admin-ajax.php' ),
 			'trans'    => array(
 				'create_staging_site_txt' => __( 'Please create staging sites first.', 'instawp-connect' ),
@@ -1327,6 +1330,18 @@ include $file_path;';
 			),
 			'security' => wp_create_nonce( 'instawp-connect' ),
 		);
+
+		if ( $current_screen->base === 'plugins' ) {
+			$migration_details = Option::get_option( 'instawp_migration_details' );
+			$migration_status  = InstaWP_Setting::get_args_option( 'status', $migration_details );
+			$is_end_to_end     = (bool) InstaWP_Setting::get_args_option( 'is_end_to_end', $migration_details );
+
+			if ( $migration_status === 'initiated' && $is_end_to_end ) {
+				$localize_data['mig_in_progress'] = 'yes';
+			}
+		}
+
+		return apply_filters( 'instawp/filters/localize_data', $localize_data );
 	}
 
 	public static function cli_archive_wordpress_db() {

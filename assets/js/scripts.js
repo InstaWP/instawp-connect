@@ -1498,7 +1498,6 @@
         });
     });
 
-
     $(document).on('click', '.instawp-update-plugin', function (e) {
         e.preventDefault();
 

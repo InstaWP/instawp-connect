@@ -255,7 +255,24 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 						'parent' => 'top-secondary',
 					)
 				);
+
+				add_action( 'admin_footer', array( $this, 'deactivation_warning_modal' ) );
 			}
+		}
+
+		public function deactivation_warning_modal() {
+			?>
+            <div id="deactivate-modal" class="deactivate-modal">
+                <div class="deactivate-modal-content">
+                    <h3><?php esc_html_e( 'Are you sure?', 'instawp-connect' ); ?></h3>
+                    <p><?php esc_html_e( 'An active migration is in progress. Deactivating the plugin will stop the migration. Do you want to proceed?', 'instawp-connect' ); ?></p>
+                    <div class="deactivate-modal-actions">
+                        <button id="confirm-deactivate" class="deactivate-modal-confirm"><?php esc_html_e( 'Yes, Deactivate', 'instawp-connect' ); ?></button>
+                        <button id="cancel-deactivate" class="deactivate-modal-cancel"><?php esc_html_e( 'No, Continue Migration', 'instawp-connect' ); ?></button>
+                    </div>
+                </div>
+            </div>
+			<?php
 		}
 
 		public function add_instawp_menu_icon( WP_Admin_Bar $admin_bar ) {

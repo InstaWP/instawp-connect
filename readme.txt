@@ -98,6 +98,9 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 0.1.0.83 - =
+- FIX: Removed un-used codes.
+
 = 0.1.0.82 - 5 March 2025 =
 - FIX: Optimized query for fetching sync events.
 - FIX: Fixed post migration cleanup for auto migration of demo site.
