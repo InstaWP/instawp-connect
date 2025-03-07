@@ -21,7 +21,7 @@ class InstaWP_Rest_Api {
 
 		add_action( 'rest_api_init', array( $this, 'add_api_routes' ) );
 		add_filter( 'rest_authentication_errors', array( $this, 'rest_access' ), 999 );
-        add_filter( 'bb_exclude_endpoints_from_restriction', array( $this, 'endpoints_from_restriction_callback' ), 99, 2 );
+		add_filter( 'bb_exclude_endpoints_from_restriction', array( $this, 'endpoints_from_restriction_callback' ), 99, 2 );
 		add_action( 'init', array( $this, 'perform_actions' ), 0 );
 	}
 
@@ -44,11 +44,11 @@ class InstaWP_Rest_Api {
 			'permission_callback' => '__return_true',
 		) );
 
-        register_rest_route( $this->namespace . '/' . $this->version_2, '/refresh-staging-sites-list', array(
-            'methods'             => 'POST',
-            'callback'            => array( $this, 'refresh_staging_sites_list' ),
-            'permission_callback' => '__return_true',
-        ) );
+		register_rest_route( $this->namespace . '/' . $this->version_2, '/refresh-staging-sites-list', array(
+			'methods'             => 'POST',
+			'callback'            => array( $this, 'refresh_staging_sites_list' ),
+			'permission_callback' => '__return_true',
+		) );
 
 		register_rest_route( $this->namespace . '/' . $this->version_2, '/disconnect', array(
 			'methods'             => 'POST',
@@ -68,38 +68,38 @@ class InstaWP_Rest_Api {
 			'permission_callback' => '__return_true',
 		) );
 
-        register_rest_route( $this->namespace . '/' . $this->version_2, '/temporary-login', array(
-            array(
-                'methods'             => 'POST',
-                'callback'            => array( $this, 'temporary_login' ),
-                'args'                => array(
-                    'i' => array(
-                        'required'          => true,
-                        'validate_callback' => function( $param, $request, $key ) {
-                            return is_numeric( $param );
-                        },
-                    ),
-                    'e' => array(
-                        'required'          => true,
-                        'validate_callback' => function( $param, $request, $key ) {
-                            return strtotime( $param ) !== false;
-                        },
-                    ),
-                    'r' => array(
-                        'default'           => 1,
-                        'validate_callback' => function( $param, $request, $key ) {
-                            return is_numeric( $param );
-                        },
-                    ),
-                ),
-                'permission_callback' => '__return_true',
-            ),
-            array(
-                'methods'             => 'DELETE',
-                'callback'            => array( $this, 'delete_temporary_login' ),
-                'permission_callback' => '__return_true',
-            ),
-        ) );
+		register_rest_route( $this->namespace . '/' . $this->version_2, '/temporary-login', array(
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( $this, 'temporary_login' ),
+				'args'                => array(
+					'i' => array(
+						'required'          => true,
+						'validate_callback' => function ( $param, $request, $key ) {
+							return is_numeric( $param );
+						},
+					),
+					'e' => array(
+						'required'          => true,
+						'validate_callback' => function ( $param, $request, $key ) {
+							return strtotime( $param ) !== false;
+						},
+					),
+					'r' => array(
+						'default'           => 1,
+						'validate_callback' => function ( $param, $request, $key ) {
+							return is_numeric( $param );
+						},
+					),
+				),
+				'permission_callback' => '__return_true',
+			),
+			array(
+				'methods'             => 'DELETE',
+				'callback'            => array( $this, 'delete_temporary_login' ),
+				'permission_callback' => '__return_true',
+			),
+		) );
 
 		register_rest_route( $this->namespace . '/' . $this->version_2, '/heartbeat', array(
 			'methods'             => 'GET',
@@ -113,19 +113,19 @@ class InstaWP_Rest_Api {
 			'permission_callback' => '__return_true',
 		) );
 
-        register_rest_route( $this->namespace . '/' . $this->version_3, '/create-update-task', array(
-            'methods'             => 'POST',
-            'callback'            => array( $this, 'create_update_task' ),
-            'args'                => array(
-                'items' => array(
-                    'required'          => true,
-                    'validate_callback' => function( $param, $request, $key ) {
-                        return is_array( $param );
-                    },
-                ),
-            ),
-            'permission_callback' => '__return_true',
-        ) );
+		register_rest_route( $this->namespace . '/' . $this->version_3, '/create-update-task', array(
+			'methods'             => 'POST',
+			'callback'            => array( $this, 'create_update_task' ),
+			'args'                => array(
+				'items' => array(
+					'required'          => true,
+					'validate_callback' => function ( $param, $request, $key ) {
+						return is_array( $param );
+					},
+				),
+			),
+			'permission_callback' => '__return_true',
+		) );
 	}
 
 	/**
@@ -228,21 +228,21 @@ class InstaWP_Rest_Api {
 			$api_domain      = rtrim( $api_domain, '/' );
 			$allowed_domains = array(
 				'https://stage.instawp.io',
-				'https://dev.instawp.io', 
+				'https://dev.instawp.io',
 				'https://app.instawp.io',
 			);
 
-			$domain_to_set = defined( 'INSTAWP_API_DOMAIN' ) 
+			$domain_to_set = defined( 'INSTAWP_API_DOMAIN' )
 				? INSTAWP_API_DOMAIN
 				: ( in_array( $api_domain, $allowed_domains ) ? $api_domain : '' );
-				
+
 			if ( empty( $domain_to_set ) ) {
 				return $this->send_response( array(
 					'status'  => false,
 					'message' => esc_html__( 'Invalid API domain parameter passed.', 'instawp-connect' ),
 				) );
 			}
-			
+
 			Helper::set_api_domain( $domain_to_set );
 		}
 
@@ -351,26 +351,26 @@ class InstaWP_Rest_Api {
 		) );
 	}
 
-    /**
-     * Refresh staging site list.
-     *
-     * @param WP_REST_Request $request
-     *
-     * @return WP_Error|WP_HTTP_Response|WP_REST_Response
-     */
-    public function refresh_staging_sites_list( WP_REST_Request $request ) {
-        $response = $this->validate_api_request( $request );
-        if ( is_wp_error( $response ) ) {
-            return $this->throw_error( $response );
-        }
+	/**
+	 * Refresh staging site list.
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return WP_Error|WP_HTTP_Response|WP_REST_Response
+	 */
+	public function refresh_staging_sites_list( WP_REST_Request $request ) {
+		$response = $this->validate_api_request( $request );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
 
-        instawp_set_staging_sites_list();
+		instawp_set_staging_sites_list();
 
-        return $this->send_response( array(
-            'status'  => true,
-            'message' => __( 'Staging Site List Refreshed.', 'instawp-connect' ),
-        ) );
-    }
+		return $this->send_response( array(
+			'status'  => true,
+			'message' => __( 'Staging Site List Refreshed.', 'instawp-connect' ),
+		) );
+	}
 
 	/**
 	 * Handle response for disconnect api
@@ -404,8 +404,12 @@ class InstaWP_Rest_Api {
 			return $this->throw_error( $response );
 		}
 
-		$param_user     = $request->get_param( 's' );
-		$redirect       = $request->get_param( 'redir' );
+		$param_user = $request->get_param( 's' );
+		$redirect   = $request->get_param( 'redir' );
+
+		error_log( 'received payload. s: ' . $param_user );
+		error_log( 'received payload. redir: ' . $redirect );
+
 		$login_userinfo = instawp_get_user_to_login( base64_decode( $param_user ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
 
 		if ( is_wp_error( $login_userinfo ) ) {
@@ -424,7 +428,7 @@ class InstaWP_Rest_Api {
 		if ( ! empty( $redirect ) ) {
 			$args['redir'] = rawurlencode( $redirect );
 		}
-		$auto_login_url    = add_query_arg( $args, Helper::wp_site_url() );
+		$auto_login_url = add_query_arg( $args, Helper::wp_site_url() );
 
 		Option::update_option( 'instawp_login_code', array(
 			'code'       => $login_code,
@@ -459,92 +463,92 @@ class InstaWP_Rest_Api {
 		}
 
 		return $this->send_response( array(
-            'success' => true,
-            'message' => $setting ? __( 'Activity log is enabled.', 'instawp-connect' ) : __( 'Activity log is disabled.', 'instawp-connect' ),
-        ) );
+			'success' => true,
+			'message' => $setting ? __( 'Activity log is enabled.', 'instawp-connect' ) : __( 'Activity log is disabled.', 'instawp-connect' ),
+		) );
 	}
 
-    /**
-     * Temporary Auto login url generate
-     * */
-    public function temporary_login( WP_REST_Request $request ) {
+	/**
+	 * Temporary Auto login url generate
+	 * */
+	public function temporary_login( WP_REST_Request $request ) {
 
-        $response = $this->validate_api_request( $request );
-        if ( is_wp_error( $response ) ) {
-            return $this->throw_error( $response );
-        }
+		$response = $this->validate_api_request( $request );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
 
-        $param_user_id = $request->get_param( 'i' );
-        $param_expiry  = $request->get_param( 'e' );
-        $param_reuse   = $request->get_param( 'r' );
+		$param_user_id = $request->get_param( 'i' );
+		$param_expiry  = $request->get_param( 'e' );
+		$param_reuse   = $request->get_param( 'r' );
 
-        $user_to_login = get_userdata( $param_user_id );
-        if ( ! $user_to_login instanceof \WP_User ) {
-            return $this->send_response( array(
-                'success' => false,
-                'message' => esc_html__( 'No login information found.', 'instawp-connect' ),
-            ) );
-        }
+		$user_to_login = get_userdata( $param_user_id );
+		if ( ! $user_to_login instanceof \WP_User ) {
+			return $this->send_response( array(
+				'success' => false,
+				'message' => esc_html__( 'No login information found.', 'instawp-connect' ),
+			) );
+		}
 
-        $token       = Helper::get_random_string( 120 );
-        $expiry_time = get_date_from_gmt( $param_expiry, 'U' );
+		$token       = Helper::get_random_string( 120 );
+		$expiry_time = get_date_from_gmt( $param_expiry, 'U' );
 
-        $user_metas = array(
-            '_instawp_temporary_login'            => 'yes',
-            '_instawp_temporary_login_token'      => $token,
-            '_instawp_temporary_login_expiration' => $expiry_time,
-            '_instawp_temporary_login_attempt'    => $param_reuse,
-        );
+		$user_metas = array(
+			'_instawp_temporary_login'            => 'yes',
+			'_instawp_temporary_login_token'      => $token,
+			'_instawp_temporary_login_expiration' => $expiry_time,
+			'_instawp_temporary_login_attempt'    => $param_reuse,
+		);
 
-        foreach ( $user_metas as $meta_key => $meta_value ) {
-            update_user_meta( $user_to_login->ID, $meta_key, $meta_value );
-        }
+		foreach ( $user_metas as $meta_key => $meta_value ) {
+			update_user_meta( $user_to_login->ID, $meta_key, $meta_value );
+		}
 
-        $login_url = add_query_arg( array(
-            'iwp-temp-login' => $token,
-        ), Helper::wp_site_url() );
+		$login_url = add_query_arg( array(
+			'iwp-temp-login' => $token,
+		), Helper::wp_site_url() );
 
-        return $this->send_response( array(
-            'success'   => true,
-            'login_url' => $login_url,
-        ) );
-    }
+		return $this->send_response( array(
+			'success'   => true,
+			'login_url' => $login_url,
+		) );
+	}
 
-    /**
-     * Temporary Auto login url delete all
-     * */
-    public function delete_temporary_login( WP_REST_Request $request ) {
+	/**
+	 * Temporary Auto login url delete all
+	 * */
+	public function delete_temporary_login( WP_REST_Request $request ) {
 
-        $response = $this->validate_api_request( $request );
-        if ( is_wp_error( $response ) ) {
-            return $this->throw_error( $response );
-        }
+		$response = $this->validate_api_request( $request );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
 
-        $param_user_id = $request->get_param( 'i' );
-        if ( ! empty( $param_user_id ) ) {
-            $user_ids = array( $param_user_id );
-        } else {
-            $user_ids = get_users( array(
-                'meta_key'   => '_instawp_temporary_login',
-                'meta_value' => 'yes',
-                'fields'     => 'ID',
-            ) );
-        }
+		$param_user_id = $request->get_param( 'i' );
+		if ( ! empty( $param_user_id ) ) {
+			$user_ids = array( $param_user_id );
+		} else {
+			$user_ids = get_users( array(
+				'meta_key'   => '_instawp_temporary_login',
+				'meta_value' => 'yes',
+				'fields'     => 'ID',
+			) );
+		}
 
-        if ( ! empty( $user_ids ) ) {
-            foreach ( $user_ids as $user_id ) {
-                delete_user_meta( $user_id, '_instawp_temporary_login' );
-                delete_user_meta( $user_id, '_instawp_temporary_login_token' );
-                delete_user_meta( $user_id, '_instawp_temporary_login_expiration' );
-                delete_user_meta( $user_id, '_instawp_temporary_login_attempt' );
-            }
-        }
+		if ( ! empty( $user_ids ) ) {
+			foreach ( $user_ids as $user_id ) {
+				delete_user_meta( $user_id, '_instawp_temporary_login' );
+				delete_user_meta( $user_id, '_instawp_temporary_login_token' );
+				delete_user_meta( $user_id, '_instawp_temporary_login_expiration' );
+				delete_user_meta( $user_id, '_instawp_temporary_login_attempt' );
+			}
+		}
 
-        return $this->send_response( array(
-            'success' => true,
-            'message' => __( 'All Temporary logins are removed.', 'instawp-connect' ),
-        ) );
-    }
+		return $this->send_response( array(
+			'success' => true,
+			'message' => __( 'All Temporary logins are removed.', 'instawp-connect' ),
+		) );
+	}
 
 	/**
 	 * Handle response for heartbeat endpoint
@@ -584,37 +588,37 @@ class InstaWP_Rest_Api {
 		return $this->send_response( $info );
 	}
 
-    /**
-     * Handle create update task api
-     *
-     * @param WP_REST_Request $request
-     *
-     * @return WP_REST_Response
-     */
-    public function create_update_task( WP_REST_Request $request ) {
-        $response = $this->validate_api_request( $request );
-        if ( is_wp_error( $response ) ) {
-            return $this->throw_error( $response );
-        }
+	/**
+	 * Handle create update task api
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function create_update_task( WP_REST_Request $request ) {
+		$response = $this->validate_api_request( $request );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
 
-        $parameters = $this->filter_params( $request );
-        $items      = ! empty( $parameters['items'] ) ? array_map( 'sanitize_text_field', $parameters['items'] ) : array();
+		$parameters = $this->filter_params( $request );
+		$items      = ! empty( $parameters['items'] ) ? array_map( 'sanitize_text_field', $parameters['items'] ) : array();
 
-        if ( empty( $items ) ) {
-            return $this->send_response( array(
-                'success' => false,
-                'message' => __( 'No items found', 'instawp-connect' ),
-            ) );
-        }
+		if ( empty( $items ) ) {
+			return $this->send_response( array(
+				'success' => false,
+				'message' => __( 'No items found', 'instawp-connect' ),
+			) );
+		}
 
-        as_unschedule_all_actions( 'instawp_create_update_task', array( $items ), 'instawp-connect' );
-        as_enqueue_async_action( 'instawp_create_update_task', array( $items ), 'instawp-connect' );
+		as_unschedule_all_actions( 'instawp_create_update_task', array( $items ), 'instawp-connect' );
+		as_enqueue_async_action( 'instawp_create_update_task', array( $items ), 'instawp-connect' );
 
-        return $this->send_response( array(
-            'success' => true,
-            'message' => __( 'Update task create successfully', 'instawp-connect' ),
-        ) );
-    }
+		return $this->send_response( array(
+			'success' => true,
+			'message' => __( 'Update task create successfully', 'instawp-connect' ),
+		) );
+	}
 
 	/**
 	 * Checks for a current route being requested, and processes the allowlist
@@ -633,15 +637,16 @@ class InstaWP_Rest_Api {
 		return $instawp_route ? true : $access;
 	}
 
-    /**
-     * Bypass BuddyBoss endpoints blocking
-     */
-    public function endpoints_from_restriction_callback( $default_exclude_endpoint, $current_endpoint ) {
-        if ( strpos( $current_endpoint, 'instawp-connect' ) !== false ) {
-            $default_exclude_endpoint[] = $current_endpoint;
-        }
-        return $default_exclude_endpoint;
-    }
+	/**
+	 * Bypass BuddyBoss endpoints blocking
+	 */
+	public function endpoints_from_restriction_callback( $default_exclude_endpoint, $current_endpoint ) {
+		if ( strpos( $current_endpoint, 'instawp-connect' ) !== false ) {
+			$default_exclude_endpoint[] = $current_endpoint;
+		}
+
+		return $default_exclude_endpoint;
+	}
 
 	/**
 	 * Check if Current REST route contains instawp or not
@@ -654,20 +659,20 @@ class InstaWP_Rest_Api {
 
 	/**
 	 * Get bearer token from header
-	 * 
+	 *
 	 * @param WP_REST_Request $request
-	 * 
+	 *
 	 * @return string|WP_Error
 	 */
 	public function get_bearer_token( WP_REST_Request $request ) {
 		// get authorization header value.
 		$bearer_token = sanitize_text_field( $request->get_header( 'authorization' ) );
-        if ( ! empty( $bearer_token ) ) {
-		    $bearer_token = str_ireplace( 'bearer', '', $bearer_token );
-        } else {
-            $bearer_token = sanitize_text_field( $request->get_header( 'x_iwp_auth' ) );
-        }
-        $bearer_token = trim( $bearer_token );
+		if ( ! empty( $bearer_token ) ) {
+			$bearer_token = str_ireplace( 'bearer', '', $bearer_token );
+		} else {
+			$bearer_token = sanitize_text_field( $request->get_header( 'x_iwp_auth' ) );
+		}
+		$bearer_token = trim( $bearer_token );
 
 		// check if the bearer token is empty
 		if ( empty( $bearer_token ) ) {
@@ -687,7 +692,7 @@ class InstaWP_Rest_Api {
 	 * @return WP_Error|bool
 	 */
 	public function validate_api_request( WP_REST_Request $request, $option = '', $match_key = false ) {
-		
+
 		// get bearer token.
 		$bearer_token = $this->get_bearer_token( $request );
 
@@ -702,28 +707,28 @@ class InstaWP_Rest_Api {
 		$api_key_exploded = explode( '|', $api_key );
 
 		if ( count( $api_key_exploded ) > 1 ) {
-            $api_key = $api_key_exploded[1];
-        }
+			$api_key = $api_key_exploded[1];
+		}
 
-        if ( empty( $api_key ) ) {
-            return new WP_Error( 403, esc_html__( 'Empty api key.', 'instawp-connect' ) );
-        }
+		if ( empty( $api_key ) ) {
+			return new WP_Error( 403, esc_html__( 'Empty api key.', 'instawp-connect' ) );
+		}
 
-        $is_matched = false;
+		$is_matched = false;
 
-        // match the api key with bearer token
-        if ( $match_key && hash_equals( $api_key, $bearer_token ) ) {
-            $is_matched = true;
-        }
+		// match the api key with bearer token
+		if ( $match_key && hash_equals( $api_key, $bearer_token ) ) {
+			$is_matched = true;
+		}
 
-        if ( ! $is_matched ) {
-            $api_key_hash = hash( 'sha256', $api_key );
+		if ( ! $is_matched ) {
+			$api_key_hash = hash( 'sha256', $api_key );
 
-            // match the api key hash with bearer token
-            if ( ! hash_equals( $api_key_hash, $bearer_token ) ) {
-                return new WP_Error( 403, esc_html__( 'Invalid bearer token.', 'instawp-connect' ) );
-            }
-        }
+			// match the api key hash with bearer token
+			if ( ! hash_equals( $api_key_hash, $bearer_token ) ) {
+				return new WP_Error( 403, esc_html__( 'Invalid bearer token.', 'instawp-connect' ) );
+			}
+		}
 
 		if ( ! empty( $option ) && ! $this->is_enabled( $option ) ) {
 			$message = sprintf( 'Setting is disabled! Please enable %s Option from InstaWP Connect <a href="%s" target="_blank">Remote Management settings</a> page.',
