@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.6
 Tested up to: 6.7
 Requires PHP: 7.0
-Stable tag: 0.1.0.82
+Stable tag: 0.1.0.83
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -98,10 +98,13 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
-= 0.1.0.83 - =
+= 0.1.0.83 - 07 March 2025 =
+- NEW: Added plugin deactivation warning while there is a migration in progress.
+- NEW: Added migration in progress notification on the top admin bar.
 - FIX: Removed un-used codes.
+- FIX: Added email support on magic login api.
 
-= 0.1.0.82 - 5 March 2025 =
+= 0.1.0.82 - 05 March 2025 =
 - FIX: Optimized query for fetching sync events.
 - FIX: Fixed post migration cleanup for auto migration of demo site.
 
