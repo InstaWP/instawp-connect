@@ -407,9 +407,6 @@ class InstaWP_Rest_Api {
 		$param_user = $request->get_param( 's' );
 		$redirect   = $request->get_param( 'redir' );
 
-		error_log( 'received payload. s: ' . $param_user );
-		error_log( 'received payload. redir: ' . $redirect );
-
 		$login_userinfo = instawp_get_user_to_login( base64_decode( $param_user ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
 
 		if ( is_wp_error( $login_userinfo ) ) {

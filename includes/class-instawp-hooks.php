@@ -307,15 +307,9 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 				}
 
 				if ( current_user_can( 'manage_options' ) ) {
-					$admin_bar->add_menu( array(
-						'parent' => 'instawp',
-						'id'     => 'instawp-tools',
-						'title'  => __( 'Tools', 'instawp-connect' ),
-						'href'   => '#',
-					) );
 
 					$admin_bar->add_menu( array(
-						'parent' => 'instawp-tools',
+						'parent' => 'instawp',
 						'id'     => 'instawp-clear-cache',
 						'title'  => __( 'Purge All Cache', 'instawp-connect' ),
 						'href'   => '#',
@@ -323,6 +317,13 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 							'class'  => 'instawp-tools',
 							'target' => 'cache',
 						),
+					) );
+
+					$admin_bar->add_menu( array(
+						'parent' => 'instawp',
+						'id'     => 'instawp-tools',
+						'title'  => __( 'Tools', 'instawp-connect' ),
+						'href'   => '#',
 					) );
 
 					$admin_bar->add_menu( array(
