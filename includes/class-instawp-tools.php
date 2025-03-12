@@ -1107,6 +1107,11 @@ include $file_path;';
 		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:action_scheduler_hybrid_store_demarkation';
 		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:_transient_timeout_action_scheduler_last_pastdue_actions_check';
 		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:_transient_action_scheduler_last_pastdue_actions_check';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:nfd_data_connection_attempts';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:nfd_data_module_version';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:_transient_timeout_nfd_data_connection_throttle';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:_transient_nfd_data_connection_throttle';
+		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:nfd_data_token';
 
 		$migrate_settings['excluded_tables_rows'] = $excluded_tables_rows;
 
@@ -1331,7 +1336,7 @@ include $file_path;';
 			'security' => wp_create_nonce( 'instawp-connect' ),
 		);
 
-		if ( $current_screen->base === 'plugins' ) {
+		if ( $current_screen && isset( $current_screen->base ) && $current_screen->base === 'plugins' ) {
 			$migration_details = Option::get_option( 'instawp_migration_details' );
 			$migration_status  = InstaWP_Setting::get_args_option( 'status', $migration_details );
 			$is_end_to_end     = (bool) InstaWP_Setting::get_args_option( 'is_end_to_end', $migration_details );
