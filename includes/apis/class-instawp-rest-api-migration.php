@@ -60,7 +60,7 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 
 		global $wp_version;
 
-		$pre_check_response['source_domain']       = Helper::wp_site_url();
+		$pre_check_response['source_domain']       = Helper::wp_site_url( '', true );
 		$pre_check_response['php_version']         = PHP_VERSION;
 		$pre_check_response['wp_version']          = $wp_version;
 		$pre_check_response['plugin_version']      = INSTAWP_PLUGIN_VERSION;
@@ -174,7 +174,7 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 		$plugin_slug           = INSTAWP_PLUGIN_SLUG . '/' . INSTAWP_PLUGIN_SLUG . '.php';
 		$response              = array(
 			'success'       => true,
-			'sso_login_url' => Helper::wp_site_url(),
+			'sso_login_url' => Helper::wp_site_url( '', true ),
 		);
 		$clear_connect         = $request->get_param( 'clear_connect' );
 		$clear_connect         = ! in_array( 'clear_connect', array_keys( $request->get_params() ) ) ? true : $clear_connect;
@@ -185,8 +185,9 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 		$migration_details     = Option::get_option( 'instawp_migration_details' );
 		$plugins_to_delete     = [];
 
-		$migration_details['migrate_group_uuid'] = $migrate_group_uuid;
-		$migration_details['status']             = $migration_status;
+		$migration_details['migrate_group_uuid']  = $migrate_group_uuid;
+		$migration_details['status']              = $migration_status;
+		$migration_details['post_cleanup_called'] = true;
 
 		Option::update_option( 'instawp_last_migration_details', $migration_details );
 

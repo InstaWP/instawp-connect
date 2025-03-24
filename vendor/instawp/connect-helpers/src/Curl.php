@@ -37,7 +37,7 @@ class Curl {
 				'Authorization' => 'Bearer ' . $api_key,
 				'Accept'        => 'application/json',
 				'Content-Type'  => 'application/json',
-				'Referer'       => Helper::wp_site_url(),
+				'Referer'       => Helper::wp_site_url('', true ),
 			)
 		);
 

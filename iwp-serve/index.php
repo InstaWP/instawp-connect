@@ -1,6 +1,12 @@
 <?php
-set_time_limit( 0 );
-error_reporting( 0 );
+//set_time_limit( 0 );
+//error_reporting( 0 );
+
+echo "<pre>";
+var_dump( $_REQUEST );
+echo "</pre>";
+
+exit();
 
 if ( ! defined( 'IWP_PLUGIN_DIR' ) ) {
 	define( 'IWP_PLUGIN_DIR', dirname( dirname( __FILE__ ) ) . DIRECTORY_SEPARATOR );
@@ -11,9 +17,11 @@ include_once IWP_PLUGIN_DIR . 'includes' . DIRECTORY_SEPARATOR . 'functions-pull
 $migrate_key   = isset( $_POST['migrate_key'] ) ? $_POST['migrate_key'] : '';
 $api_signature = isset( $_POST['api_signature'] ) ? $_POST['api_signature'] : '';
 
+
+
 if ( empty( $migrate_key ) ) {
 	header( 'x-iwp-status: false' );
-	header( 'x-iwp-message: The migration key from fetch script is empty. All received data: ' . json_encode( $_POST ) );
+	header( 'x-iwp-message: The migration key from fetch script is empty 222. All received data: ' . json_encode( $_POST ) );
 	die();
 }
 

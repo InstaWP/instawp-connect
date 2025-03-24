@@ -62,10 +62,12 @@ class Helper {
 				do_action( 'instawp_connect_connected', $connect_id );
 			} else {
 				error_log( 'instawp_generate_api_key connect id not found in response.' );
+
 				return false;
 			}
 		} else {
 			error_log( 'generate_api_key error, response from connects api: ' . wp_json_encode( $connect_response ) );
+
 			return false;
 		}
 
@@ -81,14 +83,16 @@ class Helper {
 		$response = Curl::do_curl( "connects/{$connect_id}/generate-token", array(), array(), 'GET' );
 		if ( ! empty( $response['success'] ) ) {
 			$jwt = ! empty( $response['data']['token'] ) ? $response['data']['token'] : '';
-			
+
 			if ( ! empty( $jwt ) ) {
 				self::set_jwt( $jwt );
+
 				return true;
 			}
 		}
 
 		error_log( 'generate_jwt error, response from generate-token api: ' . wp_json_encode( $response ) );
+
 		return false;
 	}
 
@@ -183,12 +187,12 @@ class Helper {
 	public static function get_admin_username() {
 		if ( current_user_can( 'manage_options' ) ) {
 			$current_user = wp_get_current_user();
-			
+
 			if ( ! empty( $current_user ) ) {
 				return $current_user->user_login;
 			}
 		}
-		
+
 		$username = '';
 
 		foreach (
@@ -328,7 +332,7 @@ class Helper {
 		return ! empty( $plan_id ) ? (int) $plan_id : $default_plan_id;
 	}
 
-	public static function wp_site_url( $path = '' ) {
+	public static function wp_site_url( $path = '', $check_ssl = false ) {
 		global $wpdb;
 
 		$site_url = $wpdb->get_var( "SELECT option_value FROM {$wpdb->options} WHERE option_name = 'siteurl'" );
@@ -339,6 +343,15 @@ class Helper {
 
 		if ( $path && is_string( $path ) ) {
 			$site_url .= '/' . ltrim( $path, '/' );
+		}
+
+		if ( $check_ssl ) {
+			$parsed_url = parse_url( $site_url );
+			$protocol   = isset( $parsed_url['scheme'] ) ? $parsed_url['scheme'] : 'unknown';
+
+			if ( $protocol !== 'https' ) {
+				$site_url = site_url( $path );
+			}
 		}
 
 		return $site_url;
