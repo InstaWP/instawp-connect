@@ -258,6 +258,20 @@ class InstaWP_Sync_Ajax {
 
 			$response = $this->sync_upload( $packed_data );
 			if ( ! isset( $response['success'] ) || $response['success'] !== true ) {
+				if ( ! empty( $response['code'] ) ) {
+					$response['message'] = 'HTTP Code: ' . $response['code'] . '. ' . $response['message'];
+					$response['code']    = intval( $response['code'] );
+					if ( 429 === $response['code'] ) {
+						// Too many requests. Decrease sync per page.
+						$this->sync_per_page( 2 < $this->sync_per_page ? 2 : 1 );
+						$response['message'] .= __( ' Please try again.', 'instawp-connect' );
+					} elseif ( 500 <= $response['code'] ) {
+						$response['message'] .= __( " Please check the destination site's connection and try again.", 'instawp-connect' );
+					}
+				} elseif ( false !== stripos( $response['message'], 'cURL error 28' ) ) {
+					$response['message'] = $response['message'] . ' ' . __( ' Please increase the PHP max_execution_time and try again.', 'instawp-connect' );
+				}
+
 				$this->send_error(
 					$response['message'],
 					array(
@@ -579,9 +593,14 @@ class InstaWP_Sync_Ajax {
 	 * @return int
 	 */
 	public function sync_per_page( $sync_per_page = 0 ) {
+		// Return default sync per page if security is not set.
+		if ( empty( $_POST['security'] ) ) {
+			return INSTAWP_EVENTS_SYNC_PER_PAGE;
+		}
+
 		$sync_per_page = intval( $sync_per_page );
 		if ( 0 < $sync_per_page ) {
-			set_transient( 'instawp_sync_per_page', $sync_per_page, 1800 );
+			set_transient( 'instawp_sync_per_page', $sync_per_page, 3600 );
 			return $sync_per_page;
 		}
 		$sync_per_page = get_transient( 'instawp_sync_per_page' );
