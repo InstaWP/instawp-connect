@@ -176,7 +176,7 @@ class InstaWP_Sync_Menu {
 						'menu-item-position'    => $value->menu_order,
 						'menu-item-title'       => $value->title,
 						'menu-item-type'        => $value->type,
-						'menu-item-url'         => str_replace( $source_url, Helper::wp_site_url(), $value->url ),
+						'menu-item-url'         => str_replace( $source_url, Helper::wp_site_url( '', true ), $value->url ),
 						'menu-item-description' => $value->description,
 						'menu-item-attr-title'  => $value->attr_title,
 						'menu-item-target'      => $value->target,

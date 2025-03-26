@@ -1,4 +1,5 @@
-<?php
+<?php global $migrate_id;
+
 /**
  * @link              https://instawp.com/
  * @since             0.0.1
@@ -7,7 +8,7 @@
  * @wordpress-plugin
  * Plugin Name:       InstaWP Connect
  * Description:       1-click WordPress plugin for Staging, Migrations, Management, Sync and Companion plugin for InstaWP.
- * Version:           0.1.0.83
+ * Version:           0.1.0.85
  * Author:            InstaWP Team
  * Author URI:        https://instawp.com/
  * License:           GPL-3.0+
@@ -27,11 +28,11 @@ if ( ! defined( 'WPINC' ) ) {
 
 global $wpdb;
 
-defined( 'INSTAWP_PLUGIN_VERSION' ) || define( 'INSTAWP_PLUGIN_VERSION', '0.1.0.83' );
+defined( 'INSTAWP_PLUGIN_VERSION' ) || define( 'INSTAWP_PLUGIN_VERSION', '0.1.0.85' );
 defined( 'INSTAWP_API_DOMAIN_PROD' ) || define( 'INSTAWP_API_DOMAIN_PROD', 'https://app.instawp.io' );
 
 $wp_plugin_url   = WP_PLUGIN_URL . '/' . plugin_basename( __DIR__ ) . '/';
-$parsed_site_url = wp_parse_url( site_url() );
+$parsed_site_url = wp_parse_url( get_option( 'siteurl' ) );
 
 if ( isset( $parsed_site_url['scheme'] ) && strtolower( $parsed_site_url['scheme'] ) === 'http' ) {
 	$is_protocol_https = ( ! empty( $_SERVER['HTTPS'] ) && $_SERVER['HTTPS'] !== 'off' ) || ( ! empty( $_SERVER['SERVER_PORT'] ) && $_SERVER['SERVER_PORT'] === 443 );
@@ -92,7 +93,7 @@ function instawp_plugin_activate() {
 
 	$connect_id = instawp_get_connect_id();
 	if ( ! empty( $connect_id ) ) {
-		$response = Curl::do_curl( "connects/{$connect_id}/restore", array( 'url' => Helper::wp_site_url() ) );
+		$response = Curl::do_curl( "connects/{$connect_id}/restore", array( 'url' => Helper::wp_site_url( '', true ) ) );
 		if ( empty( $response['success'] ) ) {
 			Option::delete_option( 'instawp_api_options' );
 		}

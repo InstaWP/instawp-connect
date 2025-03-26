@@ -407,9 +407,6 @@ class InstaWP_Rest_Api {
 		$param_user = $request->get_param( 's' );
 		$redirect   = $request->get_param( 'redir' );
 
-		error_log( 'received payload. s: ' . $param_user );
-		error_log( 'received payload. redir: ' . $redirect );
-
 		$login_userinfo = instawp_get_user_to_login( base64_decode( $param_user ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
 
 		if ( is_wp_error( $login_userinfo ) ) {
@@ -428,7 +425,7 @@ class InstaWP_Rest_Api {
 		if ( ! empty( $redirect ) ) {
 			$args['redir'] = rawurlencode( $redirect );
 		}
-		$auto_login_url = add_query_arg( $args, Helper::wp_site_url() );
+		$auto_login_url = add_query_arg( $args, Helper::wp_site_url( '', true ) );
 
 		Option::update_option( 'instawp_login_code', array(
 			'code'       => $login_code,
@@ -506,7 +503,7 @@ class InstaWP_Rest_Api {
 
 		$login_url = add_query_arg( array(
 			'iwp-temp-login' => $token,
-		), Helper::wp_site_url() );
+		), Helper::wp_site_url( '', true ) );
 
 		return $this->send_response( array(
 			'success'   => true,
