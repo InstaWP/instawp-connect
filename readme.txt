@@ -101,6 +101,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 = 0.1.0.86 -  =
 - FIX: Yoast seo meta data sync.
+- Fix: Optimized fetch sync per page. 
 
 = 0.1.0.85 - 25 March 2025 =
 - FIX: Fixed pull migration SSL support issue.
