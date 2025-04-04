@@ -18,9 +18,8 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 			$this->table_name = INSTAWP_DB_TABLE_ACTIVITY_LOGS;
 
             add_action( 'init', array( $this, 'register_events' ) );
-			add_action( 'init', array( $this, 'create_table' ) );
-            add_action( 'add_option_instawp_activity_log', array( $this, 'clear_action' ) );
-            add_action( 'update_option_instawp_activity_log', array( $this, 'clear_action' ) );
+            add_action( 'add_option_instawp_activity_log', array( $this, 'clear_action' ), 10, 2 );
+            add_action( 'update_option_instawp_activity_log', array( $this, 'clear_action' ), 10, 2 );
             add_action( 'add_option_instawp_activity_log_interval_minutes', array( $this, 'clear_action' ) );
             add_action( 'update_option_instawp_activity_log_interval_minutes', array( $this, 'clear_action' ) );
 			add_action( 'instawp_handle_non_critical_logs', array( $this, 'send_log_data' ) );
@@ -28,20 +27,30 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 
         public function register_events() {
             $setting = Option::get_option( 'instawp_activity_log', 'off' );
+			if ( $setting !== 'on' ) {
+				return;
+			}
+
             $activity_log_interval = Option::get_option( 'instawp_activity_log_interval', 'instantly' );
             $activity_log_interval = empty( $activity_log_interval ) ? 'instantly' : $activity_log_interval;
 
-            if ( $setting === 'on' && $activity_log_interval === 'every_x_minutes' ) {
-                $interval = Option::get_option( 'instawp_activity_log_interval_minutes', 5 );
-                $interval = empty( $interval ) ? 5 : (int) $interval;
+            if ( $activity_log_interval !== 'every_x_minutes' ) {
+				return;
+			}
 
-                if ( ! as_has_scheduled_action( 'instawp_handle_non_critical_logs', array(), 'instawp-connect' ) ) {
-                    as_schedule_recurring_action( time(), ( $interval * MINUTE_IN_SECONDS ), 'instawp_handle_non_critical_logs', array(), 'instawp-connect' );
-                }
+            $interval = Option::get_option( 'instawp_activity_log_interval_minutes', 5 );
+            $interval = empty( $interval ) ? 5 : (int) $interval;
+
+        	if ( ! as_has_scheduled_action( 'instawp_handle_non_critical_logs', array(), 'instawp-connect' ) ) {
+                as_schedule_recurring_action( time(), ( $interval * MINUTE_IN_SECONDS ), 'instawp_handle_non_critical_logs', array(), 'instawp-connect' );
             }
         }
 
-        public function clear_action() {
+        public function clear_action( $name, $value ) {
+			if ( $value === 'on' ) {
+				$this->create_table();
+			}
+
             as_unschedule_all_actions( 'instawp_handle_non_critical_logs', array(), 'instawp-connect' );
         }
 
