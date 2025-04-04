@@ -16,7 +16,7 @@ function instawp_connect_0_1_0_65_migration() {
 				'Authorization' => 'Bearer ' . $api_key,
 				'Accept'        => 'application/json',
 				'Content-Type'  => 'application/json',
-				'Referer'       => Helper::wp_site_url(),
+				'Referer'       => Helper::wp_site_url('', true ),
 			),
 			'timeout'         => 60,
 			'redirection'     => 10,

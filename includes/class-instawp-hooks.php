@@ -134,7 +134,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 				$api_key = Helper::get_api_key();
 
 				if ( 'true' === $success_status && empty( $api_key ) && $api_key !== $access_token && wp_verify_nonce( $instawp_nonce, 'instawp_connect_nonce' ) ) {
-					Helper::instawp_generate_api_key( $access_token, $jwt );
+					Helper::generate_api_key( $access_token, $jwt );
 
 					wp_safe_redirect( admin_url( 'tools.php?page=instawp' ) );
 					exit();
@@ -239,6 +239,45 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 					)
 				);
 			}
+
+			$migration_details = Option::get_option( 'instawp_migration_details' );
+			$migration_status  = InstaWP_Setting::get_args_option( 'status', $migration_details );
+			$is_end_to_end     = (bool) InstaWP_Setting::get_args_option( 'is_end_to_end', $migration_details );
+
+			if ( $migration_status === 'initiated' && $is_end_to_end ) {
+
+				$e2e_tracking_url = InstaWP_Setting::get_args_option( 'e2e_tracking_url', $migration_details );
+				$e2e_tracking_url = empty( $e2e_tracking_url ) ? '#' : $e2e_tracking_url;
+
+				$admin_bar->add_node(
+					array(
+						'id'     => 'instawp_mig_in_progress',
+						'title'  => __( 'Migration in Progress', 'instawp-connect' ),
+						'href'   => $e2e_tracking_url,
+						'meta'   => array(
+							'class' => 'instawp-mig-in-progress',
+						),
+						'parent' => 'top-secondary',
+					)
+				);
+
+				add_action( 'admin_footer', array( $this, 'deactivation_warning_modal' ) );
+			}
+		}
+
+		public function deactivation_warning_modal() {
+			?>
+            <div id="deactivate-modal" class="deactivate-modal">
+                <div class="deactivate-modal-content">
+                    <h3><?php esc_html_e( 'Are you sure?', 'instawp-connect' ); ?></h3>
+                    <p><?php esc_html_e( 'An active migration is in progress. Deactivating the plugin will stop the migration. Do you want to proceed?', 'instawp-connect' ); ?></p>
+                    <div class="deactivate-modal-actions">
+                        <button id="confirm-deactivate" class="deactivate-modal-confirm"><?php esc_html_e( 'Yes, Deactivate', 'instawp-connect' ); ?></button>
+                        <button id="cancel-deactivate" class="deactivate-modal-cancel"><?php esc_html_e( 'No, Continue Migration', 'instawp-connect' ); ?></button>
+                    </div>
+                </div>
+            </div>
+			<?php
 		}
 
 		public function add_instawp_menu_icon( WP_Admin_Bar $admin_bar ) {
@@ -273,15 +312,9 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 				}
 
 				if ( current_user_can( 'manage_options' ) ) {
-					$admin_bar->add_menu( array(
-						'parent' => 'instawp',
-						'id'     => 'instawp-tools',
-						'title'  => __( 'Tools', 'instawp-connect' ),
-						'href'   => '#',
-					) );
 
 					$admin_bar->add_menu( array(
-						'parent' => 'instawp-tools',
+						'parent' => 'instawp',
 						'id'     => 'instawp-clear-cache',
 						'title'  => __( 'Purge All Cache', 'instawp-connect' ),
 						'href'   => '#',
@@ -289,6 +322,13 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 							'class'  => 'instawp-tools',
 							'target' => 'cache',
 						),
+					) );
+
+					$admin_bar->add_menu( array(
+						'parent' => 'instawp',
+						'id'     => 'instawp-tools',
+						'title'  => __( 'Tools', 'instawp-connect' ),
+						'href'   => '#',
 					) );
 
 					$admin_bar->add_menu( array(

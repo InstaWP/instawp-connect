@@ -65,11 +65,6 @@ class instaWP {
 			$this->can_bundle              = ( class_exists( 'ZipArchive' ) || class_exists( 'PharData' ) );
 		}
 
-		// if connect id is empty then remove all connection
-//      if ( empty( $this->connect_id ) ) {
-//          instawp_reset_running_migration( 'hard' );
-//      }
-
 		if ( is_admin() ) {
 			$this->set_locale();
 			$this->define_admin_hook();

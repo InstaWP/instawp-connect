@@ -172,8 +172,9 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 
 						$jwt     = ! empty( $assoc_args['jwt'] ) ? $assoc_args['jwt'] : '';
 						$managed = ! isset( $assoc_args['unmanaged'] );
+						$plan_id = ! empty( $assoc_args['plan-id'] ) ? $assoc_args['plan-id'] : 0;
 
-						Helper::generate_api_key( $args[0], $jwt, $managed );
+						Helper::generate_api_key( $args[0], $jwt, $managed, $plan_id );
 
 						if ( isset( $args[1] ) ) {
 							$this->set_connect_mode( $args[1] );

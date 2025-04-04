@@ -49,6 +49,7 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 		}
 
 		$migrate_key              = sanitize_text_field( $request->get_param( 'migrate_key' ) );
+		$is_end_to_end            = sanitize_text_field( $request->get_param( 'is_end_to_end' ) );
 		$migrate_settings         = $request->get_param( 'migrate_settings' );
 		$migrate_settings['mode'] = 'pull';
 		$pre_check_response       = InstaWP_Tools::get_pull_pre_check_response( $migrate_key, $migrate_settings );
@@ -59,7 +60,7 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 
 		global $wp_version;
 
-		$pre_check_response['source_domain']       = Helper::wp_site_url();
+		$pre_check_response['source_domain']       = Helper::wp_site_url( '', true );
 		$pre_check_response['php_version']         = PHP_VERSION;
 		$pre_check_response['wp_version']          = $wp_version;
 		$pre_check_response['plugin_version']      = INSTAWP_PLUGIN_VERSION;
@@ -70,11 +71,12 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 		$pre_check_response['wp_admin_email']      = get_bloginfo( 'admin_email' );
 
 		Option::update_option( 'instawp_migration_details', array(
-			'migrate_key' => $migrate_key,
+			'migrate_key'   => $migrate_key,
+			'is_end_to_end' => $is_end_to_end,
 			//'dest_url'    => Helper::get_args_option( 'serve_url', $pre_check_response ),
-			'started_at'  => current_time( 'mysql', 1 ),
-			'status'      => 'initiated',
-			'mode'        => 'pull',
+			'started_at'    => current_time( 'mysql', 1 ),
+			'status'        => 'initiated',
+			'mode'          => 'pull',
 		) );
 
 		return $this->send_response( $pre_check_response );
@@ -116,12 +118,15 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 			return $this->throw_error( new WP_Error( 403, esc_html__( 'Could not create destination file.', 'instawp-connect' ) ) );
 		}
 
+		$is_end_to_end = sanitize_text_field( $request->get_param( 'is_end_to_end' ) );
+
 		Option::update_option( 'instawp_migration_details', array(
-			'migrate_key' => $migrate_key,
-			'dest_url'    => $dest_file_url,
-			'started_at'  => current_time( 'mysql', 1 ),
-			'status'      => 'initiated',
-			'mode'        => 'push',
+			'migrate_key'   => $migrate_key,
+			'is_end_to_end' => $is_end_to_end,
+			'dest_url'      => $dest_file_url,
+			'started_at'    => current_time( 'mysql', 1 ),
+			'status'        => 'initiated',
+			'mode'          => 'push',
 		) );
 
 		$migrate_settings['has_zip_archive'] = class_exists( 'ZipArchive' );
@@ -166,17 +171,23 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 			require_once ABSPATH . 'wp-admin/includes/file.php';
 		}
 
-		$plugin_slug        = INSTAWP_PLUGIN_SLUG . '/' . INSTAWP_PLUGIN_SLUG . '.php';
-		$response           = array(
+		$plugin_slug           = INSTAWP_PLUGIN_SLUG . '/' . INSTAWP_PLUGIN_SLUG . '.php';
+		$response              = array(
 			'success'       => true,
-			'sso_login_url' => Helper::wp_site_url(),
+			'sso_login_url' => Helper::wp_site_url( '', true ),
 		);
-		$migrate_group_uuid = $request->get_param( 'migrate_group_uuid' );
-		$migration_status   = $request->get_param( 'status' );
-		$migration_details  = Option::get_option( 'instawp_migration_details' );
+		$clear_connect         = $request->get_param( 'clear_connect' );
+		$clear_connect         = ! in_array( 'clear_connect', array_keys( $request->get_params() ) ) ? true : $clear_connect;
+		$delete_connect_plugin = $request->get_param( 'delete_connect_plugin' );
+		$delete_connect_plugin = ! in_array( 'delete_connect_plugin', array_keys( $request->get_params() ) ) ? true : $delete_connect_plugin;
+		$migrate_group_uuid    = $request->get_param( 'migrate_group_uuid' );
+		$migration_status      = $request->get_param( 'status' );
+		$migration_details     = Option::get_option( 'instawp_migration_details' );
+		$plugins_to_delete     = [];
 
-		$migration_details['migrate_group_uuid'] = $migrate_group_uuid;
-		$migration_details['status']             = $migration_status;
+		$migration_details['migrate_group_uuid']  = $migrate_group_uuid;
+		$migration_details['status']              = $migration_status;
+		$migration_details['post_cleanup_called'] = true;
 
 		Option::update_option( 'instawp_last_migration_details', $migration_details );
 
@@ -218,21 +229,47 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 		update_option( 'nfd_coming_soon', false );
 
 		// reset everything and remove connection
-		instawp_reset_running_migration( 'hard', true );
-
-		// deactivate instawp-connect plugin
-		deactivate_plugins( $plugin_slug );
-
-		$is_deleted = delete_plugins( array( $plugin_slug ) );
-
-		if ( is_wp_error( $is_deleted ) ) {
-			$response['success']       = false;
-			$response['cleanup_error'] = $is_deleted->get_error_message();
+		if ( $clear_connect ) {
+			instawp_reset_running_migration( 'hard', true );
 		}
 
-		if ( $response['success'] ) {
-			$response['message'] = esc_html__( 'Post migration cleanup completed.', 'instawp-connect' );
+		$post_uninstalls = $request->get_param( 'post_uninstalls' );
+		$post_uninstalls = ! empty( $post_uninstalls ) ? $post_uninstalls : [];
+
+		foreach ( $post_uninstalls as $post_uninstall_item ) {
+			$plugins_to_delete[] = $post_uninstall_item;
 		}
+
+		// Adding instawp-connect plugin to delete after the migration if delete connect plugin flag is enabled
+		if ( $delete_connect_plugin ) {
+			$plugins_to_delete[] = array(
+				'slug'   => $plugin_slug,
+				'type'   => 'plugin',
+				'delete' => true,
+			);
+		}
+
+		foreach ( $plugins_to_delete as $plugin ) {
+
+			$_slug   = InstaWP_Setting::get_args_option( 'slug', $plugin );
+			$_delete = (bool) InstaWP_Setting::get_args_option( 'delete', $plugin, false );
+
+			deactivate_plugins( $_slug );
+
+			if ( $_delete ) {
+				$is_deleted = delete_plugins( array( $_slug ) );
+
+				if ( is_wp_error( $is_deleted ) ) {
+					$response['uninstall'][ $_slug ] = array(
+						'slug'    => $_slug,
+						'success' => false,
+						'message' => $is_deleted->get_error_message(),
+					);
+				}
+			}
+		}
+
+		$response['message'] = esc_html__( 'Post migration cleanup completed.', 'instawp-connect' );
 
 		return $this->send_response( $response );
 	}

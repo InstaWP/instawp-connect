@@ -153,11 +153,19 @@ msgstr ""
 msgid "Purge All Cache"
 msgstr ""
 
+<<<<<<< HEAD
 #: includes/class-instawp-hooks.php:297, includes/class-instawp-setting.php:249, includes/class-instawp-setting.php:621, includes/apis/class-instawp-rest-api.php:965
 msgid "Database Manager"
 msgstr ""
 
 #: includes/class-instawp-hooks.php:309
+=======
+#: includes/class-instawp-hooks.php:292, includes/class-instawp-setting.php:249, includes/class-instawp-setting.php:621, includes/apis/class-instawp-rest-api.php:965
+msgid "Database Manager"
+msgstr ""
+
+#: includes/class-instawp-hooks.php:304
+>>>>>>> 9b0a4a79b44c0dc87933d44b1e19ecf5e29ca153
 msgid "Shortcuts"
 msgstr ""
 
@@ -565,6 +573,7 @@ msgstr ""
 msgid "Invalid Migration ID"
 msgstr ""
 
+<<<<<<< HEAD
 #: includes/class-instawp-tools.php:740
 msgid "API key not found"
 msgstr ""
@@ -630,6 +639,73 @@ msgid "SFTP upload failed for files."
 msgstr ""
 
 #: includes/class-instawp-tools.php:1526
+=======
+#: includes/class-instawp-tools.php:745
+msgid "API key not found"
+msgstr ""
+
+#: includes/class-instawp-tools.php:970
+msgid "Root directory for this WordPress installation could not find."
+msgstr ""
+
+#: includes/class-instawp-tools.php:994
+msgid "Tracking database could not found."
+msgstr ""
+
+#: includes/class-instawp-tools.php:1003
+msgid "API Signature and others data could not set properly"
+msgstr ""
+
+#: includes/class-instawp-tools.php:1024
+msgid "InstaWP could not access or read required files from your WordPress directory due to file permission issue."
+msgstr ""
+
+#: includes/class-instawp-tools.php:1026
+msgid "Learn more."
+msgstr ""
+
+#: includes/class-instawp-tools.php:1234
+msgid "Launch %s"
+msgstr ""
+
+#: includes/class-instawp-tools.php:1322
+msgid "Please create staging sites first."
+msgstr ""
+
+#: includes/class-instawp-tools.php:1323
+msgid "Skip"
+msgstr ""
+
+#: includes/class-instawp-tools.php:1324
+msgid "Do you really want to disconnect the plugin? It will completely remove the existing staging sites from the plugin."
+msgstr ""
+
+#: includes/class-instawp-tools.php:1325
+msgid "Do you still want to disconnect the plugin?"
+msgstr ""
+
+#: includes/class-instawp-tools.php:1373
+msgid "Zip archive is not opening."
+msgstr ""
+
+#: includes/class-instawp-tools.php:1426
+msgid "No compression method find."
+msgstr ""
+
+#: includes/class-instawp-tools.php:1473
+msgid "Site ID not found in site create response."
+msgstr ""
+
+#: includes/class-instawp-tools.php:1512
+msgid "SFTP login failed."
+msgstr ""
+
+#: includes/class-instawp-tools.php:1523
+msgid "SFTP upload failed for files."
+msgstr ""
+
+#: includes/class-instawp-tools.php:1531
+>>>>>>> 9b0a4a79b44c0dc87933d44b1e19ecf5e29ca153
 msgid "SFTP upload failed for database."
 msgstr ""
 
@@ -701,6 +777,7 @@ msgstr ""
 msgid "Could not create destination file."
 msgstr ""
 
+<<<<<<< HEAD
 #: includes/apis/class-instawp-rest-api-migration.php:193
 msgid "Installation failed"
 msgstr ""
@@ -714,6 +791,21 @@ msgid "Error getting SSO login url."
 msgstr ""
 
 #: includes/apis/class-instawp-rest-api-migration.php:234
+=======
+#: includes/apis/class-instawp-rest-api-migration.php:198
+msgid "Installation failed"
+msgstr ""
+
+#: includes/apis/class-instawp-rest-api-migration.php:219
+msgid "sso_url_class_not_found: This class NewfoldLabs\WP\Module\Migration\Services\MigrationSSO not found."
+msgstr ""
+
+#: includes/apis/class-instawp-rest-api-migration.php:214
+msgid "Error getting SSO login url."
+msgstr ""
+
+#: includes/apis/class-instawp-rest-api-migration.php:266
+>>>>>>> 9b0a4a79b44c0dc87933d44b1e19ecf5e29ca153
 msgid "Post migration cleanup completed."
 msgstr ""
 
@@ -825,6 +917,7 @@ msgstr ""
 msgid "Route not allowed"
 msgstr ""
 
+<<<<<<< HEAD
 #: includes/sync/class-instawp-sync-ajax.php:336
 msgid "%1$u %2$s %3$s"
 msgstr ""
@@ -838,11 +931,27 @@ msgid "Show more"
 msgstr ""
 
 #: includes/sync/class-instawp-sync-ajax.php:350
+=======
+#: includes/sync/class-instawp-sync-ajax.php:366
+msgid "%1$u %2$s %3$s"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-ajax.php:354
+msgid "%1$u %2$s"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-ajax.php:360
+msgid "Show more"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-ajax.php:382
+>>>>>>> 9b0a4a79b44c0dc87933d44b1e19ecf5e29ca153
 msgid "Waiting for Sync to Start (%d event)"
 msgid_plural "Waiting for Sync to Start (%d events)"
 msgstr[0] ""
 msgstr[1] ""
 
+<<<<<<< HEAD
 #: includes/sync/class-instawp-sync-ajax.php:358
 msgid "Events loaded"
 msgstr ""
@@ -864,6 +973,29 @@ msgid "« Previous"
 msgstr ""
 
 #: includes/sync/class-instawp-sync-ajax.php:492
+=======
+#: includes/sync/class-instawp-sync-ajax.php:390
+msgid "Events loaded"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-ajax.php:390, includes/sync/class-instawp-sync-ajax.php:461
+msgid "No pending events found!"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-ajax.php:457
+msgid "You have reached your sync limit. Remaining quota %1$s out of %2$s."
+msgstr ""
+
+#: includes/sync/class-instawp-sync-ajax.php:453
+msgid " Completed (0 out of %d events)"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-ajax.php:535
+msgid "« Previous"
+msgstr ""
+
+#: includes/sync/class-instawp-sync-ajax.php:536
+>>>>>>> 9b0a4a79b44c0dc87933d44b1e19ecf5e29ca153
 msgid "Next »"
 msgstr ""
 

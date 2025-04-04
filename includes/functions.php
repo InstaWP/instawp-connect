@@ -101,7 +101,7 @@ if ( ! function_exists( 'instawp_delete_sync_entries' ) ) {
 		);
 
 		foreach ( $tables as $table ) {
-			$wpdb->query("TRUNCATE TABLE {$table}");
+			$wpdb->query( "TRUNCATE TABLE {$table}" );
 		}
 	}
 }
@@ -228,7 +228,7 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 			if ( $disconnect_connect && instawp_is_connected_origin_valid() ) {
 				instawp_destroy_connect();
 			}
-			
+
 			delete_option( 'instawp_backup_part_size' );
 			delete_option( 'instawp_max_file_size_allowed' );
 			delete_option( 'instawp_reset_type' );
@@ -245,8 +245,8 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 			delete_option( 'instawp_rm_debug_log' );
 			delete_option( 'instawp_last_heartbeat_sent' );
 			delete_option( 'instawp_is_staging' );
-            delete_option( 'instawp_staging_sites' );
-            delete_option( 'instawp_is_event_syncing' );
+			delete_option( 'instawp_staging_sites' );
+			delete_option( 'instawp_is_event_syncing' );
 
 			delete_transient( 'instawp_migration_completed' );
 
@@ -368,10 +368,10 @@ if ( ! function_exists( 'instawp_set_staging_sites_list' ) ) {
 			}
 		}
 
-        $connect_id = instawp_get_connect_id();
-        if ( empty( $connect_id ) ) {
-            return false;
-        }
+		$connect_id = instawp_get_connect_id();
+		if ( empty( $connect_id ) ) {
+			return false;
+		}
 
 		$api_response = Curl::do_curl( 'connects/' . $connect_id . '/staging-sites', array(), array(), 'GET' );
 
@@ -390,18 +390,18 @@ if ( ! function_exists( 'instawp_set_staging_sites_list' ) ) {
 
 			Option::update_option( 'instawp_staging_sites', $staging_sites );
 
-            return true;
-        }
+			return true;
+		}
 
-        return false;
+		return false;
 	}
 }
 
 /**
  * Get Migration headers
- * 
+ *
  * @param string $hash
- * 
+ *
  * @return array
  */
 if ( ! function_exists( 'instawp_get_migration_headers' ) ) {
@@ -413,7 +413,7 @@ if ( ! function_exists( 'instawp_get_migration_headers' ) ) {
 			'Content-Type'  => 'application/json',
 			'Cache-Control' => 'no-cache',
 			'Cookie'        => 'instawp_skip_splash=true',
-			'Referer'       => Helper::wp_site_url(),
+			'Referer'       => Helper::wp_site_url( '', true ),
 		);
 	}
 }
@@ -784,13 +784,16 @@ if ( ! function_exists( 'instawp_get_user_to_login' ) ) {
 		if ( username_exists( $username ) ) {
 			$user_to_login = get_user_by( 'login', $username );
 			$message       = esc_html__( 'Login information for the given username', 'instawp-connect' );
+		} elseif ( is_email( $username ) ) {
+			$user_to_login = get_user_by( 'email', $username );
+			$message       = esc_html__( 'Login information could not found with username, but found with the given email address.', 'instawp-connect' );
 		} elseif ( ! empty( $default_username = Option::get_option( 'instawp_default_username' ) ) && ! empty( $default_username ) ) {
 			$user_to_login = get_user_by( 'login', $default_username );
-			$message       = esc_html__( 'Login information for the given username didn\'t found, You are going to login with default login username.', 'instawp-connect' );
+			$message       = esc_html__( 'Login information for the given username/email didn\'t found, You are going to login with default login username.', 'instawp-connect' );
 		} else {
 			$admin_users   = get_users( array( 'role' => 'administrator' ) );
 			$user_to_login = is_array( $admin_users ) && isset( $admin_users[0] ) ? $admin_users[0] : false;
-			$message       = esc_html__( 'No login found with given username and default username, You are going to login with first admin user.', 'instawp-connect' );
+			$message       = esc_html__( 'No login found with given username/email and default username, You are going to login with first admin user.', 'instawp-connect' );
 		}
 
 		if ( ! $user_to_login instanceof WP_User ) {
@@ -805,305 +808,305 @@ if ( ! function_exists( 'instawp_get_user_to_login' ) ) {
 }
 
 if ( ! function_exists( 'instawp_get_user_by_token' ) ) {
-    /**
-     * @param $token
-     *
-     * @return \WP_User|null
-     */
-    function instawp_get_user_by_token( $token ) {
-        $users = get_users( array(
-            'meta_key'   => '_instawp_temporary_login_token',
-            'meta_value' => $token,
-        ) );
+	/**
+	 * @param $token
+	 *
+	 * @return \WP_User|null
+	 */
+	function instawp_get_user_by_token( $token ) {
+		$users = get_users( array(
+			'meta_key'   => '_instawp_temporary_login_token',
+			'meta_value' => $token,
+		) );
 
-        if ( empty( $users ) ) {
-            return null;
-        }
+		if ( empty( $users ) ) {
+			return null;
+		}
 
-        return $users[0];
-    }
+		return $users[0];
+	}
 }
 
 if ( ! function_exists( 'instawp_is_user_login_expired' ) ) {
-    function instawp_is_user_login_expired( $user_id ) {
-        $expiration = get_user_meta( $user_id, '_instawp_temporary_login_expiration', true );
+	function instawp_is_user_login_expired( $user_id ) {
+		$expiration = get_user_meta( $user_id, '_instawp_temporary_login_expiration', true );
 
-        if ( empty( $expiration ) ) {
-            return true;
-        }
+		if ( empty( $expiration ) ) {
+			return true;
+		}
 
-        return time() > $expiration;
-    }
+		return time() > $expiration;
+	}
 }
 
 if ( ! function_exists( 'instawp_is_user_attempt_expired' ) ) {
-    function instawp_is_user_attempt_expired( $user_id ) {
-        $attempt = get_user_meta( $user_id, '_instawp_temporary_login_attempt', true );
+	function instawp_is_user_attempt_expired( $user_id ) {
+		$attempt = get_user_meta( $user_id, '_instawp_temporary_login_attempt', true );
 
-        if ( empty( $attempt ) ) {
-            return true;
-        }
+		if ( empty( $attempt ) ) {
+			return true;
+		}
 
-        return $attempt <= 0;
-    }
+		return $attempt <= 0;
+	}
 }
 
 if ( ! function_exists( 'instawp_reduce_login_attempt' ) ) {
-    function instawp_reduce_login_attempt( $user_id ) {
-        $attempt = get_user_meta( $user_id, '_instawp_temporary_login_attempt', true );
+	function instawp_reduce_login_attempt( $user_id ) {
+		$attempt = get_user_meta( $user_id, '_instawp_temporary_login_attempt', true );
 
-        if ( empty( $attempt ) ) {
-            return false;
-        }
+		if ( empty( $attempt ) ) {
+			return false;
+		}
 
-        --$attempt;
+		-- $attempt;
 
-        return update_user_meta( $user_id, '_instawp_temporary_login_attempt', $attempt );
-    }
+		return update_user_meta( $user_id, '_instawp_temporary_login_attempt', $attempt );
+	}
 }
 
 if ( ! function_exists( 'instawp_is_bot_request' ) ) {
-    function instawp_is_bot_request() {
-        $user_agent      = isset( $_SERVER['HTTP_USER_AGENT'] ) ? $_SERVER['HTTP_USER_AGENT'] : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-        $referer         = isset( $_SERVER['HTTP_REFERER'] ) ? $_SERVER['HTTP_REFERER'] : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-        $bot_user_agents = array(
-            'googlebot',
-            'bingbot',
-            'slurp',
-            'duckduckbot',
-            'baiduspider',
-            'yandexbot',
-            'sogou',
-            'exabot',
-            'facebot',
-            'ia_archiver',
-            'mediapartners-google',
-            'adsbot-google',
-            'feedfetcher-google',
-            'google-read-aloud',
-            'google-structured-data-testing-tool',
-            'googlebot-image',
-            'googlebot-news',
-            'googlebot-video',
-            'bingpreview',
-            'msnbot',
-            'aolbuild',
-            'ask jeeves',
-            'fast-webcrawler',
-            'gigablast',
-            'infoseek',
-            'inktomi',
-            'looksmart',
-            'lycos',
-            'bingbot',
-            'msnbot',
-            'bingpreview',
-            'facebookexternalhit',
-            'linkedinbot',
-            'twitterbot',
-            'applebot',
-            'petalbot',
-            'mj12bot',
-            'ahrefsbot',
-            'semrushbot',
-            'dotbot',
-            'zoominfobot',
-            'yandeximages',
-            'yandexvideo',
-            'yandeximages',
-            'yandexmedia',
-            'yandexblogs',
-            'yandexfavicons',
-            'yandexdirect',
-            'yandexsearchshop',
-            'yandexmetrika',
-            'yandexnews',
-            'yandexbrowser',
-            'yandexmobile',
-            'yandexreplay',
-            'baidu',
-            'baiduspider',
-            'baiduimagespider',
-            'baidunews',
-            'baiduvideo',
-            'baidutranscoder',
-            'baidufed',
-            'baidulocal',
-            'baidumap',
-            'baidutop',
-            'baidumobile',
-            'baiduapimonitor',
-            'baidu-wapspider',
-            'baidumoniitor',
-            'sogou spider',
-            'sogou inst spider',
-            'sogou spider2',
-            'sogou mobile spider',
-            'sogou news spider',
-            'sogou video spider',
-            'exabot',
-            'seznam',
-            'seznambot',
-            'seznam zbozi',
-            'seznam-ppc-cz',
-            'seznam-social',
-            'seznam-tout',
-            'seznam-dispute',
-            'seznam-kr',
-            'seznam-nachricht',
-            'mojeekbot',
-            'mojeek',
-            'teoma',
-            'gigabot',
-            'gigabotfast',
-            'gigabotvideo',
-            'gigabotimage',
-            'ia_archiver',
-            'dotbot',
-            'MJ12bot',
-            'ahrefsbot',
-            'semrushbot',
-            'zoominfobot',
-            'spinn3r',
-            'aboundexbot',
-            'curious george',
-            'sitelock spider',
-            'blexbot',
-            'wotbox',
-            'rogerbot',
-            'embedly',
-            'linkfluence',
-            'backlink-crawler',
-            'twitterbot',
-            'redditbot',
-            'pinterestbot',
-            'slackbot',
-            'whatsapp',
-            'flipboard',
-            'tumblr',
-            'vkshare',
-            'okhttp',
-            'discordbot',
-            'skypeuripreview',
-            'telegrambot',
-            'applebot',
-            'scrapy',
-            'phpscraper',
-            'python-urllib',
-            'lxml',
-            'pycurl',
-            'httpclient',
-            'okhttp',
-            'httpful',
-            'guzzle',
-            'httpclient',
-            'postman',
-            'curl',
-            'wget',
-            'python-requests',
-            'python-urllib',
-            'java',
-            'go-http-client',
-            'okhttp',
-            'perl',
-            'libwww-perl',
-            'mechanize',
-            'node-fetch',
-            'axios',
-            'httpie',
-            'requests',
-            'botify',
-            'deepcrawl',
-            'screaming frog',
-            'onpage.org',
-            'contentkingapp',
-            'ubermetrics',
-            'sitebulb',
-            'serpstatbot',
-            'audisto',
-            'seobility',
-            'siteanalyzer',
-            'seochatbot',
-            'linkdex',
-            'scrapybot',
-            'serpwoo',
-            'pythons',
-            'awario',
-            'monitorbacklinks',
-            'digg',
-            'bingpreview',
-            'aboundexbot',
-            'top100bot',
-            'topsy',
-            'tineye',
-            'proximic',
-            'gigablast',
-            'yacybot',
-            'everyone-webcrawler',
-            'nutch',
-            'commoncrawl',
-            'semanticbot',
-            'gocrawler',
-            'scrapy',
-            'scrapybot',
-            'curl',
-            'wget',
-            'python',
-            'php',
-            'perl',
-            'java',
-            'go-http-client',
-            'rust',
-            'dotbot',
-            'httpclient',
-            'axios',
-            'pycurl',
-            'okhttp',
-            'requests',
-            'guzzle',
-            'httpie',
-            'node-fetch',
-            'dart',
-            'ahrefsbot',
-            'semrushbot',
-            'dotbot',
-            'mj12bot',
-            'petalbot',
-            'zoominfobot',
-            'spinn3r',
-            'curious george',
-            'wotbox',
-            'blexbot',
-            'archive.org',
-            'ia_archiver',
-            'archive',
-            'crawler',
-        );
-        $known_domains   = array(
-            'facebook.com',
-            'twitter.com',
-            'linkedin.com',
-            'whatsapp.com',
-            'slack.com',
-            'telegram.org',
-            'discord.com',
-            'pinterest.com',
-        );
+	function instawp_is_bot_request() {
+		$user_agent      = isset( $_SERVER['HTTP_USER_AGENT'] ) ? $_SERVER['HTTP_USER_AGENT'] : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$referer         = isset( $_SERVER['HTTP_REFERER'] ) ? $_SERVER['HTTP_REFERER'] : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$bot_user_agents = array(
+			'googlebot',
+			'bingbot',
+			'slurp',
+			'duckduckbot',
+			'baiduspider',
+			'yandexbot',
+			'sogou',
+			'exabot',
+			'facebot',
+			'ia_archiver',
+			'mediapartners-google',
+			'adsbot-google',
+			'feedfetcher-google',
+			'google-read-aloud',
+			'google-structured-data-testing-tool',
+			'googlebot-image',
+			'googlebot-news',
+			'googlebot-video',
+			'bingpreview',
+			'msnbot',
+			'aolbuild',
+			'ask jeeves',
+			'fast-webcrawler',
+			'gigablast',
+			'infoseek',
+			'inktomi',
+			'looksmart',
+			'lycos',
+			'bingbot',
+			'msnbot',
+			'bingpreview',
+			'facebookexternalhit',
+			'linkedinbot',
+			'twitterbot',
+			'applebot',
+			'petalbot',
+			'mj12bot',
+			'ahrefsbot',
+			'semrushbot',
+			'dotbot',
+			'zoominfobot',
+			'yandeximages',
+			'yandexvideo',
+			'yandeximages',
+			'yandexmedia',
+			'yandexblogs',
+			'yandexfavicons',
+			'yandexdirect',
+			'yandexsearchshop',
+			'yandexmetrika',
+			'yandexnews',
+			'yandexbrowser',
+			'yandexmobile',
+			'yandexreplay',
+			'baidu',
+			'baiduspider',
+			'baiduimagespider',
+			'baidunews',
+			'baiduvideo',
+			'baidutranscoder',
+			'baidufed',
+			'baidulocal',
+			'baidumap',
+			'baidutop',
+			'baidumobile',
+			'baiduapimonitor',
+			'baidu-wapspider',
+			'baidumoniitor',
+			'sogou spider',
+			'sogou inst spider',
+			'sogou spider2',
+			'sogou mobile spider',
+			'sogou news spider',
+			'sogou video spider',
+			'exabot',
+			'seznam',
+			'seznambot',
+			'seznam zbozi',
+			'seznam-ppc-cz',
+			'seznam-social',
+			'seznam-tout',
+			'seznam-dispute',
+			'seznam-kr',
+			'seznam-nachricht',
+			'mojeekbot',
+			'mojeek',
+			'teoma',
+			'gigabot',
+			'gigabotfast',
+			'gigabotvideo',
+			'gigabotimage',
+			'ia_archiver',
+			'dotbot',
+			'MJ12bot',
+			'ahrefsbot',
+			'semrushbot',
+			'zoominfobot',
+			'spinn3r',
+			'aboundexbot',
+			'curious george',
+			'sitelock spider',
+			'blexbot',
+			'wotbox',
+			'rogerbot',
+			'embedly',
+			'linkfluence',
+			'backlink-crawler',
+			'twitterbot',
+			'redditbot',
+			'pinterestbot',
+			'slackbot',
+			'whatsapp',
+			'flipboard',
+			'tumblr',
+			'vkshare',
+			'okhttp',
+			'discordbot',
+			'skypeuripreview',
+			'telegrambot',
+			'applebot',
+			'scrapy',
+			'phpscraper',
+			'python-urllib',
+			'lxml',
+			'pycurl',
+			'httpclient',
+			'okhttp',
+			'httpful',
+			'guzzle',
+			'httpclient',
+			'postman',
+			'curl',
+			'wget',
+			'python-requests',
+			'python-urllib',
+			'java',
+			'go-http-client',
+			'okhttp',
+			'perl',
+			'libwww-perl',
+			'mechanize',
+			'node-fetch',
+			'axios',
+			'httpie',
+			'requests',
+			'botify',
+			'deepcrawl',
+			'screaming frog',
+			'onpage.org',
+			'contentkingapp',
+			'ubermetrics',
+			'sitebulb',
+			'serpstatbot',
+			'audisto',
+			'seobility',
+			'siteanalyzer',
+			'seochatbot',
+			'linkdex',
+			'scrapybot',
+			'serpwoo',
+			'pythons',
+			'awario',
+			'monitorbacklinks',
+			'digg',
+			'bingpreview',
+			'aboundexbot',
+			'top100bot',
+			'topsy',
+			'tineye',
+			'proximic',
+			'gigablast',
+			'yacybot',
+			'everyone-webcrawler',
+			'nutch',
+			'commoncrawl',
+			'semanticbot',
+			'gocrawler',
+			'scrapy',
+			'scrapybot',
+			'curl',
+			'wget',
+			'python',
+			'php',
+			'perl',
+			'java',
+			'go-http-client',
+			'rust',
+			'dotbot',
+			'httpclient',
+			'axios',
+			'pycurl',
+			'okhttp',
+			'requests',
+			'guzzle',
+			'httpie',
+			'node-fetch',
+			'dart',
+			'ahrefsbot',
+			'semrushbot',
+			'dotbot',
+			'mj12bot',
+			'petalbot',
+			'zoominfobot',
+			'spinn3r',
+			'curious george',
+			'wotbox',
+			'blexbot',
+			'archive.org',
+			'ia_archiver',
+			'archive',
+			'crawler',
+		);
+		$known_domains   = array(
+			'facebook.com',
+			'twitter.com',
+			'linkedin.com',
+			'whatsapp.com',
+			'slack.com',
+			'telegram.org',
+			'discord.com',
+			'pinterest.com',
+		);
 
-        foreach ( $bot_user_agents as $bot ) {
-            if ( stripos( $user_agent, $bot ) !== false ) {
-                return true;
-            }
-        }
+		foreach ( $bot_user_agents as $bot ) {
+			if ( stripos( $user_agent, $bot ) !== false ) {
+				return true;
+			}
+		}
 
-        foreach ( $known_domains as $domain ) {
-            if ( stripos( $referer, $domain ) !== false ) {
-                return true;
-            }
-        }
+		foreach ( $known_domains as $domain ) {
+			if ( stripos( $referer, $domain ) !== false ) {
+				return true;
+			}
+		}
 
-        return false;
-    }
+		return false;
+	}
 }
 
 
@@ -1255,8 +1258,8 @@ if ( ! function_exists( 'instawp_array_recursive_diff' ) ) {
 }
 
 if ( ! function_exists( 'instawp_connect_activate_plan' ) ) {
-    function instawp_connect_activate_plan( $plan_id ) {
-        $connect_id = instawp_get_connect_id();
+	function instawp_connect_activate_plan( $plan_id ) {
+		$connect_id = instawp_get_connect_id();
 		if ( empty( $connect_id ) ) {
 			return array(
 				'success' => false,
@@ -1264,16 +1267,16 @@ if ( ! function_exists( 'instawp_connect_activate_plan' ) ) {
 			);
 		}
 
-        $response = Curl::do_curl( "connects/{$connect_id}/subscribe", array(
-            'plan_id' => $plan_id,
-        ) );    
+		$response = Curl::do_curl( "connects/{$connect_id}/subscribe", array(
+			'plan_id' => $plan_id,
+		) );
 
-        if ( empty( $response['success'] ) ) {
-            return array(
-                'success' => false,
-                'message' => $response['message'],
-            );
-        }
+		if ( empty( $response['success'] ) ) {
+			return array(
+				'success' => false,
+				'message' => $response['message'],
+			);
+		}
 
 		Option::update_option( 'instawp_connect_plan_id', $plan_id );
 
@@ -1281,23 +1284,22 @@ if ( ! function_exists( 'instawp_connect_activate_plan' ) ) {
 			Option::update_option( "instawp_connect_plan_{$plan_id}_timestamp", current_time( 'mysql' ) );
 		}
 
-        return array(
+		return array(
 			'success' => true,
 			'message' => __( 'Plan activated successfully', 'instawp-connect' ),
 		);
-    }
+	}
 }
 
-
 if ( ! function_exists( 'instawp_destroy_connect' ) ) {
-    function instawp_destroy_connect( $mode = 'disconnect' ) {
-        $connect_id = instawp_get_connect_id();
-        if ( empty( $connect_id ) ) {
-            return array(
-                'success' => false,
-                'message' => __( 'Connect ID not found', 'instawp-connect' ),
-            );
-        }
+	function instawp_destroy_connect( $mode = 'disconnect' ) {
+		$connect_id = instawp_get_connect_id();
+		if ( empty( $connect_id ) ) {
+			return array(
+				'success' => false,
+				'message' => __( 'Connect ID not found', 'instawp-connect' ),
+			);
+		}
 
 		if ( $mode === 'delete' ) {
 			$api_response = Curl::do_curl( "connects/{$connect_id}/delete", array(), array(), 'DELETE' );
@@ -1305,28 +1307,29 @@ if ( ! function_exists( 'instawp_destroy_connect' ) ) {
 			$api_response = Curl::do_curl( "connects/{$connect_id}/disconnect" );
 		}
 
-        if ( empty( $api_response['success'] ) ) {
-            return array(
-                'success' => false,
-                'message' => $api_response['message'],
-            );
-        }
+		if ( empty( $api_response['success'] ) ) {
+			return array(
+				'success' => false,
+				'message' => $api_response['message'],
+			);
+		}
 
-        return array(
-            'success' => true,
-            'message' => __( 'Connect disconnected successfully', 'instawp-connect' ),
-        );
-    }
+		return array(
+			'success' => true,
+			'message' => __( 'Connect disconnected successfully', 'instawp-connect' ),
+		);
+	}
 }
 
 if ( ! function_exists( 'instawp_is_connected_origin_valid' ) ) {
-    function instawp_is_connected_origin_valid() {
+	function instawp_is_connected_origin_valid() {
 		$connect_origin = Helper::get_connect_origin();
-		$current_url 	= Helper::wp_site_url();
+		$current_url    = Helper::wp_site_url( '', true );
 
 		if ( ! empty( $connect_origin ) ) {
 			return hash_equals( $connect_origin, md5( $current_url ) );
 		}
-        return true;
-    }
+
+		return true;
+	}
 }

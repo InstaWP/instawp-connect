@@ -4,11 +4,11 @@ namespace InstaWP\Connect\Helpers;
 
 class Helper {
 
-	public static function instawp_generate_api_key( $api_key, $jwt = '', $managed = true ) {
-		return self::generate_api_key( $api_key, $jwt, $managed );
+	public static function instawp_generate_api_key( $api_key, $jwt = '', $managed = true, $plan_id = 0 ) {
+		return self::generate_api_key( $api_key, $jwt, $managed, $plan_id );
 	}
 
-	public static function generate_api_key( $api_key, $jwt = '', $managed = true ) {
+	public static function generate_api_key( $api_key, $jwt = '', $managed = true, $plan_id = 0 ) {
 		if ( empty( $api_key ) ) {
 			error_log( 'instawp_generate_api_key empty api_key parameter' );
 
@@ -24,7 +24,7 @@ class Helper {
 				Option::update_option( 'instawp_api_options', array_merge( $api_options, array(
 					'api_key'  => $api_key,
 					'jwt'      => $jwt,
-					'origin'   => md5( self::wp_site_url() ),
+					'origin'   => md5( self::wp_site_url( '', true ) ),
 					'response' => $api_response['data'],
 				) ) );
 			}
@@ -42,7 +42,7 @@ class Helper {
 			'title'          => get_bloginfo( 'name' ),
 			'icon'           => get_site_icon_url(),
 			'username'       => base64_encode( self::get_admin_username() ),
-			'plan_id'        => self::get_connect_plan_id(),
+			'plan_id'        => $plan_id ? $plan_id : self::get_connect_plan_id(),
 			'managed'        => $managed,
 		);
 		$connect_response = Curl::do_curl( 'connects', $connect_body, array(), 'POST', 'v1' );
@@ -59,13 +59,19 @@ class Helper {
 					self::generate_jwt( $connect_id );
 				}
 
+				if ( $plan_id ) {
+					self::set_connect_plan_id( $plan_id );
+				}
+
 				do_action( 'instawp_connect_connected', $connect_id );
 			} else {
 				error_log( 'instawp_generate_api_key connect id not found in response.' );
+
 				return false;
 			}
 		} else {
 			error_log( 'generate_api_key error, response from connects api: ' . wp_json_encode( $connect_response ) );
+
 			return false;
 		}
 
@@ -81,14 +87,16 @@ class Helper {
 		$response = Curl::do_curl( "connects/{$connect_id}/generate-token", array(), array(), 'GET' );
 		if ( ! empty( $response['success'] ) ) {
 			$jwt = ! empty( $response['data']['token'] ) ? $response['data']['token'] : '';
-			
+
 			if ( ! empty( $jwt ) ) {
 				self::set_jwt( $jwt );
+
 				return true;
 			}
 		}
 
 		error_log( 'generate_jwt error, response from generate-token api: ' . wp_json_encode( $response ) );
+
 		return false;
 	}
 
@@ -183,12 +191,12 @@ class Helper {
 	public static function get_admin_username() {
 		if ( current_user_can( 'manage_options' ) ) {
 			$current_user = wp_get_current_user();
-			
+
 			if ( ! empty( $current_user ) ) {
 				return $current_user->user_login;
 			}
 		}
-		
+
 		$username = '';
 
 		foreach (
@@ -328,7 +336,15 @@ class Helper {
 		return ! empty( $plan_id ) ? (int) $plan_id : $default_plan_id;
 	}
 
-	public static function wp_site_url( $path = '' ) {
+	public static function set_connect_plan_id( $plan_id ) {
+		if ( ! Option::get_option( "instawp_connect_plan_{$plan_id}_timestamp" ) ) {
+			Option::update_option( "instawp_connect_plan_{$plan_id}_timestamp", current_time( 'mysql' ) );
+		}
+
+		return Option::update_option( 'instawp_connect_plan_id', $plan_id );
+	}
+
+	public static function wp_site_url( $path = '', $check_ssl = false ) {
 		global $wpdb;
 
 		$site_url = $wpdb->get_var( "SELECT option_value FROM {$wpdb->options} WHERE option_name = 'siteurl'" );
@@ -339,6 +355,15 @@ class Helper {
 
 		if ( $path && is_string( $path ) ) {
 			$site_url .= '/' . ltrim( $path, '/' );
+		}
+
+		if ( $check_ssl ) {
+			$parsed_url = parse_url( $site_url );
+			$protocol   = isset( $parsed_url['scheme'] ) ? $parsed_url['scheme'] : 'unknown';
+
+			if ( $protocol !== 'https' ) {
+				$site_url = site_url( $path );
+			}
 		}
 
 		return $site_url;

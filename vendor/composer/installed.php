@@ -22,6 +22,10 @@
         'instawp/connect-helpers' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
+<<<<<<< HEAD
+=======
+            'reference' => 'b236dbe7c628c78c5755ee2cad01dbe8f9c93f3a',
+>>>>>>> 9b0a4a79b44c0dc87933d44b1e19ecf5e29ca153
             'type' => 'library',
             'install_path' => __DIR__ . '/../instawp/connect-helpers',
             'aliases' => array(
