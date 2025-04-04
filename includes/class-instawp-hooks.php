@@ -445,12 +445,15 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 
 			global $current_user;
 
-			$can_show       = 'off' === Option::get_option( 'instawp_hide_plugin_icon_topbar', 'off' );
-			$sync_tab_roles = Option::get_option( 'instawp_sync_tab_roles', array( 'administrator' ) );
-			$sync_tab_roles = ! is_array( $sync_tab_roles ) || empty( $sync_tab_roles ) ? array( 'administrator' ) : $sync_tab_roles;
-
-			if ( $can_show && empty( array_intersect( $sync_tab_roles, $current_user->roles ) ) ) {
-				$can_show = false;
+			$can_show = 'off' === Option::get_option( 'instawp_hide_plugin_icon_topbar', 'off' );
+			
+			if ( $can_show ) {
+				$sync_tab_roles = Option::get_option( 'instawp_sync_tab_roles', array( 'administrator' ) );
+				$sync_tab_roles = ! is_array( $sync_tab_roles ) || empty( $sync_tab_roles ) ? array( 'administrator' ) : $sync_tab_roles;
+				
+				if ( empty( array_intersect( $sync_tab_roles, $current_user->roles ) ) ) {
+					$can_show = false;
+				}
 			}
 
 			if ( $can_show ) {
