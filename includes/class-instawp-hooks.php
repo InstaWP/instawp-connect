@@ -130,10 +130,10 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			$success_status = isset( $_REQUEST['success'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['success'] ) ) : '';
 			$instawp_nonce  = isset( $_REQUEST['instawp-nonce'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['instawp-nonce'] ) ) : '';
 
-			if ( ! empty( $access_token ) && ! empty( $jwt ) && ! empty( $success_status ) && ! empty( $instawp_nonce ) ) {
+			if ( ! empty( $access_token ) && ! empty( $jwt ) && 'true' === $success_status && wp_verify_nonce( $instawp_nonce, 'instawp_connect_nonce' ) ) {
 				$api_key = Helper::get_api_key();
 
-				if ( 'true' === $success_status && empty( $api_key ) && $api_key !== $access_token && wp_verify_nonce( $instawp_nonce, 'instawp_connect_nonce' ) ) {
+				if ( empty( $api_key ) && $api_key !== $access_token ) {
 					Helper::generate_api_key( $access_token, $jwt );
 
 					wp_safe_redirect( admin_url( 'tools.php?page=instawp' ) );
@@ -450,7 +450,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			if ( $can_show ) {
 				$sync_tab_roles = Option::get_option( 'instawp_sync_tab_roles', array( 'administrator' ) );
 				$sync_tab_roles = ! is_array( $sync_tab_roles ) || empty( $sync_tab_roles ) ? array( 'administrator' ) : $sync_tab_roles;
-				
+
 				if ( empty( array_intersect( $sync_tab_roles, $current_user->roles ) ) ) {
 					$can_show = false;
 				}
