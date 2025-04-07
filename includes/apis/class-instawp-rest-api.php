@@ -246,18 +246,15 @@ class InstaWP_Rest_Api {
 			Helper::set_api_domain( $domain_to_set );
 		}
 
-		if ( ! empty( $plan_id ) ) {
-			Option::update_option( 'instawp_connect_plan_id', $plan_id );
-		}
-
-		if ( ! Helper::instawp_generate_api_key( $api_key, $jwt, $managed ) ) {
+		if ( ! Helper::generate_api_key( $api_key, $jwt, $managed, $plan_id ) ) {
 			return $this->send_response( array(
 				'status'  => false,
 				'message' => esc_html__( 'API Key is not valid.', 'instawp-connect' ),
 			) );
 		}
 
-		if ( empty( $connect_id = instawp_get_connect_id() ) ) {
+		$connect_id = instawp_get_connect_id();
+		if ( empty( $connect_id ) ) {
 			return $this->send_response( array(
 				'status'  => false,
 				'message' => esc_html__( 'Something went wrong during connecting to InstaWP.', 'instawp-connect' ),

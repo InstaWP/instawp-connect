@@ -132,7 +132,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			$instawp_nonce  = isset( $_REQUEST['instawp-nonce'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['instawp-nonce'] ) ) : '';
 
 			if ( 'true' === $success_status && empty( $api_key ) && $api_key !== $access_token && wp_verify_nonce( $instawp_nonce, 'instawp_connect_nonce' ) ) {
-				Helper::instawp_generate_api_key( $access_token, $jwt );
+				Helper::generate_api_key( $access_token, $jwt );
 
 				wp_safe_redirect( admin_url( 'tools.php?page=instawp' ) );
 				exit();

@@ -1291,7 +1291,6 @@ if ( ! function_exists( 'instawp_connect_activate_plan' ) ) {
 	}
 }
 
-
 if ( ! function_exists( 'instawp_destroy_connect' ) ) {
 	function instawp_destroy_connect( $mode = 'disconnect' ) {
 		$connect_id = instawp_get_connect_id();

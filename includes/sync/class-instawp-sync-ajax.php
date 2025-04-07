@@ -579,6 +579,11 @@ class InstaWP_Sync_Ajax {
 	 * @return int
 	 */
 	public function sync_per_page( $sync_per_page = 0 ) {
+		// Return default sync per page if security is not set.
+		if ( empty( $_POST['security'] ) ) {
+			return INSTAWP_EVENTS_SYNC_PER_PAGE;
+		}
+
 		$sync_per_page = intval( $sync_per_page );
 		if ( 0 < $sync_per_page ) {
 			set_transient( 'instawp_sync_per_page', $sync_per_page, 1800 );
