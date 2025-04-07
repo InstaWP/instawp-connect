@@ -32,6 +32,37 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 			'callback'            => array( $this, 'handle_post_migration_cleanup' ),
 			'permission_callback' => '__return_true',
 		) );
+
+		register_rest_route( $this->namespace . '/' . $this->version_3, '/update-migration', array(
+			'methods'             => 'POST',
+			'callback'            => array( $this, 'handle_update_migration' ),
+			'permission_callback' => '__return_true',
+		) );
+	}
+
+	/**
+	 * Handle update migration API
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function handle_update_migration( WP_REST_Request $request ) {
+
+		$response = $this->validate_api_request( $request );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
+
+		$is_end_to_end = sanitize_text_field( $request->get_param( 'is_end_to_end' ) );
+		$status        = sanitize_text_field( $request->get_param( 'status' ) );
+
+		Option::update_option( 'instawp_migration_details', array(
+			'is_end_to_end' => $is_end_to_end,
+			'status'        => $status,
+		) );
+
+		return $this->send_response( [ 'success' => true, 'message' => esc_html__( 'Migration details updated successfully.', 'instawp-connect' ) ] );
 	}
 
 	/**

@@ -72,7 +72,7 @@ if ( ! function_exists( 'adminer_object' ) ) {
 	}
 }
 
-$file_name = get_query_var( 'instawp-database-manager' );
+$file_name = sanitize_file_name( get_query_var( 'instawp-database-manager' ) );
 if ( ! empty( $file_name ) ) {
     $file_path = \InstaWP\Connect\Helpers\DatabaseManager::get_file_path( $file_name );
 
