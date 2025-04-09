@@ -2,9 +2,9 @@
 Contributors: instawp
 Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.6
-Tested up to: 6.7
+Tested up to: 6.8
 Requires PHP: 7.0
-Stable tag: 0.1.0.85
+Stable tag: 0.1.0.86
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -98,10 +98,12 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
-
-= 0.1.0.86 -  =
-- FIX: Yoast seo meta data sync.
-- Fix: Optimized fetch sync per page. 
+= 0.1.0.86 - 09 April 2025 =
+- NEW: Exposed update migration API handle post migration activities on the website.
+- FIX: Yoast seo metadata sync.
+- Fix: Optimized fetch sync per page.
+- FIX: InstaWP pull migration issue fixed.
+- FIX: Performance optimization done to the entire plugin.
 
 = 0.1.0.85 - 25 March 2025 =
 - FIX: Fixed pull migration SSL support issue.
