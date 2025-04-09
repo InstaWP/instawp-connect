@@ -18,8 +18,8 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 			$this->table_name = INSTAWP_DB_TABLE_ACTIVITY_LOGS;
 
             add_action( 'init', array( $this, 'register_events' ) );
-            add_action( 'add_option_instawp_activity_log', array( $this, 'clear_action' ), 10, 2 );
-            add_action( 'update_option_instawp_activity_log', array( $this, 'clear_action' ), 10, 2 );
+            add_action( 'add_option_instawp_activity_log', array( $this, 'clear_action_create_table' ), 10, 2 );
+            add_action( 'update_option_instawp_activity_log', array( $this, 'clear_action_create_table' ), 10, 2 );
             add_action( 'add_option_instawp_activity_log_interval_minutes', array( $this, 'clear_action' ) );
             add_action( 'update_option_instawp_activity_log_interval_minutes', array( $this, 'clear_action' ) );
 			add_action( 'instawp_handle_non_critical_logs', array( $this, 'send_log_data' ) );
@@ -46,11 +46,15 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
             }
         }
 
-        public function clear_action( $name, $value ) {
+		public function clear_action_create_table( $name, $value ) {
 			if ( $value === 'on' ) {
 				$this->create_table();
 			}
 
+            $this->clear_action();
+        }
+
+        public function clear_action() {
             as_unschedule_all_actions( 'instawp_handle_non_critical_logs', array(), 'instawp-connect' );
         }
 
