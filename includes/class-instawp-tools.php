@@ -17,7 +17,7 @@ class InstaWP_Tools {
 
 		$log_args             = array(
 			'migrate_id'  => $migrate_id,
-			'url'         => Helper::wp_site_url('', true ),
+			'url'         => Helper::wp_site_url( '', true ),
 			'type'        => 'plugin',
 			'label'       => $label,
 			'description' => $description,
@@ -154,7 +154,7 @@ class InstaWP_Tools {
 			'db_charset'       => DB_CHARSET,
 			'db_collate'       => DB_COLLATE,
 			'table_prefix'     => $table_prefix,
-			'site_url'         => Helper::wp_site_url('', true ),
+			'site_url'         => Helper::wp_site_url( '', true ),
 		);
 		$options_data_str       = wp_json_encode( $options_data );
 		$passphrase             = openssl_digest( $migrate_key, 'SHA256', true );
@@ -266,7 +266,7 @@ include $file_path;';
 			'db_name'             => DB_NAME,
 			'db_charset'          => DB_CHARSET,
 			'db_collate'          => DB_COLLATE,
-			'site_url'            => defined( 'WP_SITEURL' ) ? WP_SITEURL : Helper::wp_site_url('', true ),
+			'site_url'            => defined( 'WP_SITEURL' ) ? WP_SITEURL : Helper::wp_site_url( '', true ),
 			'home_url'            => defined( 'WP_HOME' ) ? WP_HOME : home_url(),
 			'instawp_api_options' => maybe_serialize( Option::get_option( 'instawp_api_options' ) ),
 		), $migrate_settings );
@@ -541,6 +541,10 @@ include $file_path;';
 
 		if ( isset( $config_constants['ABSPATH'] ) ) {
 			$config_constants['ABSPATH'] = "dirname( __FILE__ ) . '/'";
+		}
+
+		if ( isset( $config_constants['WP_PLUGIN_DIR'] ) ) {
+			unset( $config_constants['WP_PLUGIN_DIR'] );
 		}
 
 		foreach ( $config_constants as $key => $value ) {
@@ -1304,7 +1308,7 @@ include $file_path;';
                 <img class="instawp-logo-image" src="https://app.instawp.io/images/insta-logo-image.svg" alt="InstaWP Logo">
             </div>
             <div class="instawp-details">
-                <h3 class="instawp-details-title"><?php echo esc_url( Helper::wp_site_url('', true ) ); ?></h3>
+                <h3 class="instawp-details-title"><?php echo esc_url( Helper::wp_site_url( '', true ) ); ?></h3>
                 <p class="instawp-details-info">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 animate-spin inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
@@ -1561,7 +1565,7 @@ include $file_path;';
 		$restore_args = array(
 			'file_bkp'      => basename( $file_path ),
 			'db_bkp'        => basename( $db_path ),
-			'source_domain' => str_replace( array( 'https://', 'http://' ), '', Helper::wp_site_url('', true ) ),
+			'source_domain' => str_replace( array( 'https://', 'http://' ), '', Helper::wp_site_url( '', true ) ),
 		);
 		$restore_res  = Curl::do_curl( "connects/{$connect_id}/sites/{$site_id}/restore-raw", $restore_args, array(), 'PUT' );
 
