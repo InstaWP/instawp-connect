@@ -129,6 +129,30 @@ class InstaWP_Rest_Api {
 	}
 
 	/**
+	 * Checks a plaintext application password against a hashed password.
+	 *
+	 * @since wordpress 6.8.0
+	 *
+	 * @param string $password Plaintext password.
+	 * @param string $hash     Hash of the password to check against.
+	 * @param int    $user_id User ID.
+	 * @return bool Whether the password matches the hashed password.
+	 */
+	public function check_password( $password, $hash, $user_id ) {
+		if ( ! str_starts_with( $hash, '$generic$' ) ) {
+			/*
+			 * If the hash doesn't start with `$generic$`, it is a hash created with `wp_hash_password()`.
+			 * This is the case for application passwords created before wordpress 6.8.0.
+			 */
+			return wp_check_password( $password, $hash, $user_id );
+		} else if ( function_exists( 'wp_verify_fast_hash' ) ) {
+			return wp_verify_fast_hash( $password, $hash );
+		}
+
+		return false;
+	}
+
+	/**
 	 * Handle website config set.
 	 *
 	 * @param WP_REST_Request $request
@@ -188,7 +212,7 @@ class InstaWP_Rest_Api {
 		foreach ( $application_passwords as $password_data ) {
 			$password = isset( $password_data['password'] ) ? $password_data['password'] : '';
 
-			if ( wp_check_password( $application_password, $password, $wp_user->ID ) ) {
+			if ( $this->check_password( $application_password, $password, $wp_user->ID ) ) {
 				$is_validated = true;
 				break;
 			}

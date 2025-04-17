@@ -98,6 +98,9 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 0.1.0.87 - 17 April 2025 =
+- FIX: Application password verification issue.
+
 = 0.1.0.86 - 09 April 2025 =
 - NEW: Exposed update migration API handle post migration activities on the website.
 - FIX: Yoast seo metadata sync.
