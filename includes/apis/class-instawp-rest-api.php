@@ -145,9 +145,11 @@ class InstaWP_Rest_Api {
 			 * This is the case for application passwords created before wordpress 6.8.0.
 			 */
 			return wp_check_password( $password, $hash, $user_id );
+		} else if ( function_exists( 'wp_verify_fast_hash' ) ) {
+			return wp_verify_fast_hash( $password, $hash );
 		}
 
-		return function_exists( 'wp_verify_fast_hash' ) && wp_verify_fast_hash( $password, $hash );
+		return false;
 	}
 
 	/**
