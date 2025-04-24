@@ -173,6 +173,7 @@ class InstaWP_Rest_Api {
 		if ( empty( $wp_username ) || empty( $application_password ) ) {
 			return $this->send_response( array(
 				'status'  => false,
+				'success' => false,
 				'message' => esc_html__( 'This request is not authorized.', 'instawp-connect' ),
 			) );
 		}
@@ -180,6 +181,7 @@ class InstaWP_Rest_Api {
 		if ( empty( $api_key ) ) {
 			return $this->send_response( array(
 				'status'  => false,
+				'success' => false,
 				'message' => esc_html__( 'API key and JWT token is required.', 'instawp-connect' ),
 			) );
 		}
@@ -194,6 +196,7 @@ class InstaWP_Rest_Api {
 		if ( ! $wp_user instanceof WP_User ) {
 			return $this->send_response( array(
 				'status'  => false,
+				'success' => false,
 				'message' => esc_html__( 'No user found with the provided username.', 'instawp-connect' ),
 			) );
 		}
@@ -202,6 +205,7 @@ class InstaWP_Rest_Api {
 		if ( ! user_can( $wp_user, 'manage_options' ) ) {
 			return $this->send_response( array(
 				'status'  => false,
+				'success' => false,
 				'message' => esc_html__( 'This user does not have capability to config the website.', 'instawp-connect' ),
 			) );
 		}
@@ -221,6 +225,7 @@ class InstaWP_Rest_Api {
 		if ( ! $is_validated ) {
 			return $this->send_response( array(
 				'status'  => false,
+				'success' => false,
 				'message' => esc_html__( 'Application password does not match.', 'instawp-connect' ),
 			) );
 		}
@@ -243,6 +248,7 @@ class InstaWP_Rest_Api {
 		if ( ! empty( instawp_get_connect_id() ) ) {
 			return $this->send_response( array(
 				'status'  => true,
+				'success' => true,
 				'message' => esc_html__( 'This website is already connected!', 'instawp-connect' ),
 			) );
 		}
@@ -263,6 +269,7 @@ class InstaWP_Rest_Api {
 			if ( empty( $domain_to_set ) ) {
 				return $this->send_response( array(
 					'status'  => false,
+					'success' => false,
 					'message' => esc_html__( 'Invalid API domain parameter passed.', 'instawp-connect' ),
 				) );
 			}
@@ -273,6 +280,7 @@ class InstaWP_Rest_Api {
 		if ( ! Helper::generate_api_key( $api_key, $jwt, $managed, $plan_id ) ) {
 			return $this->send_response( array(
 				'status'  => false,
+				'success' => false,
 				'message' => esc_html__( 'API Key is not valid.', 'instawp-connect' ),
 			) );
 		}
@@ -281,12 +289,14 @@ class InstaWP_Rest_Api {
 		if ( empty( $connect_id ) ) {
 			return $this->send_response( array(
 				'status'  => false,
+				'success' => false,
 				'message' => esc_html__( 'Something went wrong during connecting to InstaWP.', 'instawp-connect' ),
 			) );
 		}
 
 		return $this->send_response( array(
 			'status'     => true,
+			'success' 	 => true,
 			'connect_id' => $connect_id,
 			'message'    => esc_html__( 'Connected.', 'instawp-connect' ),
 		) );
