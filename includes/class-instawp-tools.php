@@ -342,23 +342,42 @@ include $file_path;';
 		return false;
 	}
 
-	public static function is_migrate_file_accessible( $file_url ) {
+	/**
+	 * Check if the migrate file is accessible.
+	 *
+	 * @param string $file_url The URL of the migrate file.
+	 * @param bool   $in_details Whether to include details in the error message.
+	 *
+	 * @return bool|array Returns true if the file is accessible, false otherwise.
+	 */
+	public static function is_migrate_file_accessible( $file_url, $in_details = false ) {
+		$result = array(
+			'is_accessible' => false,
+			'message'       => '',
+		);
+		try {
+			$response = wp_remote_post(
+				INSTAWP_API_DOMAIN_PROD . '/public/check/?url=' . rawurlencode( $file_url ),
+				array(
+					'timeout'   => 30,
+					'sslverify' => false, // Set to true if your server configuration allows SSL verification
+				)
+			);
 
-		$response = wp_remote_post( INSTAWP_API_DOMAIN_PROD . '/public/check/?url=' . rawurlencode( $file_url ), array(
-			'timeout'   => 30,
-			'sslverify' => false, // Set to true if your server configuration allows SSL verification
-		) );
-
-		if ( is_wp_error( $response ) ) {
-			error_log( 'HTTP Error: ' . $response->get_error_message() );
-
-			return false;
+			if ( is_wp_error( $response ) ) {
+				$result['message'] = $response->get_error_message();
+				error_log( 'HTTP Error: ' . $result['message'] );
+			} else {
+				$status_code = wp_remote_retrieve_response_code( $response );
+				// Check if the request was successful (status code 200)
+				$result['status_code']   = $status_code;
+				$result['is_accessible'] = $status_code === 200;
+			}
+		} catch ( \Throwable $th ) {
+			$result['message'] = $th->getMessage();
 		}
 
-		$status_code = wp_remote_retrieve_response_code( $response );
-
-		// Check if the request was successful (status code 200)
-		return $status_code === 200;
+		return $in_details ? $result : $result['is_accessible'];
 	}
 
 	public static function process_migration_settings( $migrate_settings = array() ) {
@@ -1097,25 +1116,25 @@ include $file_path;';
 		// Remove instawp connect options
 		$excluded_tables_rows = Helper::get_args_option( 'excluded_tables_rows', $migrate_settings, array() );
 
-		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_api_options';
-		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_connect_id_options';
-		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_sync_parent_connect_data';
-		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_migration_details';
-		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_last_migration_details';
-		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_api_key_config_completed';
-		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_is_event_syncing';
-		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_staging_sites';
-		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_is_staging';
-		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:schema-ActionScheduler_StoreSchema';
-		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:schema-ActionScheduler_LoggerSchema';
-		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:action_scheduler_hybrid_store_demarkation';
-		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:_transient_timeout_action_scheduler_last_pastdue_actions_check';
-		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:_transient_action_scheduler_last_pastdue_actions_check';
-		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:nfd_data_connection_attempts';
-		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:nfd_data_module_version';
-		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:_transient_timeout_nfd_data_connection_throttle';
-		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:_transient_nfd_data_connection_throttle';
-		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:nfd_data_token';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_api_options';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_connect_id_options';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_sync_parent_connect_data';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_migration_details';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_last_migration_details';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_api_key_config_completed';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_is_event_syncing';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_staging_sites';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_is_staging';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:schema-ActionScheduler_StoreSchema';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:schema-ActionScheduler_LoggerSchema';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:action_scheduler_hybrid_store_demarkation';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:_transient_timeout_action_scheduler_last_pastdue_actions_check';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:_transient_action_scheduler_last_pastdue_actions_check';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:nfd_data_connection_attempts';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:nfd_data_module_version';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:_transient_timeout_nfd_data_connection_throttle';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:_transient_nfd_data_connection_throttle';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:nfd_data_token';
 
 		$migrate_settings['excluded_tables_rows'] = $excluded_tables_rows;
 

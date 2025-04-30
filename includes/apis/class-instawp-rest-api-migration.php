@@ -143,10 +143,10 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 		$migrate_settings = InstaWP_Tools::get_migrate_settings( array(), array( 'mode' => 'push' ) );
 		$api_signature    = hash( 'sha512', $migrate_key . wp_generate_uuid4() );
 		$dest_file_url    = InstaWP_Tools::generate_destination_file( $migrate_key, $api_signature, $migrate_settings );
-
+		$is_migrate_file_accessible = InstaWP_Tools::is_migrate_file_accessible( $dest_file_url, true );
 		// Check accessibility of serve file
-		if ( ! InstaWP_Tools::is_migrate_file_accessible( $dest_file_url ) ) {
-			return $this->throw_error( new WP_Error( 403, esc_html__( 'Could not create destination file.', 'instawp-connect' ) ) );
+		if ( ! $is_migrate_file_accessible['is_accessible'] ) {
+			return $this->throw_error( new WP_Error( 403, esc_html__( 'Could not create destination file.'. json_encode( $is_migrate_file_accessible ), 'instawp-connect' ) ) );
 		}
 
 		$is_end_to_end = sanitize_text_field( $request->get_param( 'is_end_to_end' ) );

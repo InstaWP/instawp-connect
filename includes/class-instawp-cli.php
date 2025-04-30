@@ -176,7 +176,7 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 
 						Helper::generate_api_key( $args[0], $jwt, $managed, $plan_id );
 
-						if ( isset( $args[1] ) ) {
+						if ( ! empty( $args[1] ) ) {
 							$this->set_connect_mode( $args[1] );
 						}
 					},
@@ -187,7 +187,7 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 						}
 						Helper::set_api_domain( $args[0] );
 
-						if ( isset( $args[1] ) ) {
+						if ( ! empty( $args[1] ) ) {
 							$this->set_connect_mode( $args[1] );
 						}
 					},
@@ -299,7 +299,8 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 			try {
 				$payload = json_decode( base64_decode( $data ), true );
 				if ( json_last_error() !== JSON_ERROR_NONE ) {
-					throw new \Exception( 'Invalid payload format' );
+					$input_data = is_array( $data ) ? json_encode( $data ) : $data;
+					throw new \Exception( 'Invalid payload format. Json error: ' . json_last_error_msg() . ' Payload: ' . $input_data );
 				}
 	
 				if ( ! empty( $payload['mode']['name'] ) ) {
