@@ -100,6 +100,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 = 0.1.0.88 - Beta =
 - Fix: V1 API response code
+- Fix: Details in error messages
 
 = 0.1.0.87 - 17 April 2025 =
 - FIX: Application password verification issue.
