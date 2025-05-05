@@ -100,8 +100,8 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 = 0.1.0.88 - 05 May 2025 =
 - Fix: V1 API response code
-- Fix: Details in error messages
-- Fix: End to end migration create push destination file
+- Fix: Enhanced clarity in error messages
+- Fix: Push destination file handling in end-to-end migration
 
 = 0.1.0.87 - 17 April 2025 =
 - FIX: Application password verification issue.
