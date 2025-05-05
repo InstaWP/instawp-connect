@@ -350,7 +350,7 @@ include $file_path;';
 				if ( $accessible_file['is_accessible'] ) {
 					$result['dest_url'] = $dest_url;
 				} else {
-					$result['error'] = 'Destination file ' . $dest_url . ' is not accessible' . json_encode( $accessible_file );
+					$result['error'] = 'Destination file is not accessible' . json_encode( $accessible_file );
 				}
 			} else {
 				$result['error'] = 'Could not create the destination file or forwarded file. Path: ' . $forwarded_file_path;
