@@ -331,7 +331,7 @@ include $file_path;';
 
 			include $file_path;';
 
-			$forwarded_file_path = $root_dir_path . 'iwp-dest' . DIRECTORY_SEPARATOR . 'index.php';;
+			$forwarded_file_path = $root_dir_path . 'iwp-dest' . DIRECTORY_SEPARATOR . 'index.php';
 
 			// Create the directory first in the root
 			$directory = dirname( $forwarded_file_path );
