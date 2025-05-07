@@ -98,6 +98,10 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 0.1.0.89 - 07 May 2025 =
+- Improvement: New plugin screen.
+- Updated: Adminer database manager.
+
 = 0.1.0.88 - 05 May 2025 =
 - Fix: V1 API response code
 - Fix: Enhanced clarity in error messages
