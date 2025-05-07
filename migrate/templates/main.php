@@ -6,7 +6,7 @@
 use InstaWP\Connect\Helpers\Helper;
 use InstaWP\Connect\Helpers\Option;
 
-global $staging_sites, $instawp_settings;
+global $instawp_settings;
 
 $current             = get_site_transient( 'update_plugins' );
 $plugin_file         = plugin_basename( INSTAWP_PLUGIN_FILE );
@@ -35,29 +35,30 @@ if ( isset( $current->response[ $plugin_file ] ) ) {
 //		return;
 //	}
 //}
-
-$connect_classes = array();
+$connect_id      = Helper::get_connect_id();
+$connect_api_key = Helper::get_api_key();
+$connect_domain  = Helper::get_api_domain();
+$connect_classes = [ 'nav-content' ];
 $staging_sites   = instawp_get_connected_sites_list();
 
 $syncing_status    = Option::get_option( 'instawp_is_event_syncing' );
-$migration_details = Option::get_option( 'instawp_migration_details', array() );
+$migration_details = Option::get_option( 'instawp_migration_details', [] );
+$plugin_nav_items  = InstaWP_Setting::get_plugin_nav_items();
 
 $instawp_settings['instawp_is_event_syncing']  = $syncing_status;
 $instawp_settings['instawp_migration_details'] = $migration_details;
 
-instawp()->is_connected = ! empty( Helper::get_api_key() );
+instawp()->is_connected = ! empty( $connect_id );
 
 if ( ! instawp()->is_connected ) {
 	$connect_classes[] = 'p-0';
 }
-
 ?>
 
 <div class="wrap instawp-wrap box-width pt-10">
-
 	<?php if ( $update_available ) : ?>
         <div class="pb-4 flex items-center justify-center">
-            <div class="bg-yellow-50 border-l-4 border-yellow-500 text-yellow-700 p-4 text-left w-full" role="alert">
+            <div class="bg-yellow-50 border-l-4 border-yellow-500 text-yellow-700 p-4 text-left w-full shadow rounded" role="alert">
                 <div class="flex justify-between items-center transition-all duration-300">
                     <p class="max-w-[85%]">
                         <span class="inline-block"><?php printf( wp_kses_post( __( 'A new version of InstaWP Connect (%1$s) is available. You are using an older version (%2$s), it is recommended to update.', 'instawp-connect' ) ), $new_version_number, INSTAWP_PLUGIN_VERSION ); ?></span>
@@ -68,15 +69,19 @@ if ( ! instawp()->is_connected ) {
             </div>
         </div>
 	<?php endif; ?>
-
-
     <div class="w-full">
         <div class="bg-white shadow-md rounded-lg">
 			<?php include INSTAWP_PLUGIN_DIR . '/migrate/templates/navbar.php'; ?>
-            <div class="nav-content bg-grayCust-400 shadow-md rounded-bl-lg rounded-br-lg <?php echo esc_attr( implode( ' ', $connect_classes ) ); ?>">
-				<?php foreach ( InstaWP_Setting::get_plugin_nav_items() as $item_key => $item ) {
-					include INSTAWP_PLUGIN_DIR . 'migrate/templates/part-' . $item_key . '.php';
-				} ?>
+            <div class="bg-grayCust-400 shadow-md rounded-bl-lg rounded-br-lg <?php echo esc_attr( implode( ' ', $connect_classes ) ); ?>">
+                <?php foreach ( $plugin_nav_items as $item_key => $item ) {
+                    if ( instawp()->is_connected || $item_key === 'developer' ) {
+                        include INSTAWP_PLUGIN_DIR . 'migrate/templates/part-' . sanitize_file_name( $item_key ) . '.php';
+                    } else { ?>
+                        <div class="nav-item-content <?= esc_attr( $item_key ); ?> bg-white rounded-md">
+                            <?php include INSTAWP_PLUGIN_DIR . '/migrate/templates/part-create-connect.php'; ?>
+                        </div>
+                    <?php }
+                } ?>
             </div>
         </div>
     </div>

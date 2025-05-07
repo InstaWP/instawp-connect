@@ -1,47 +1,60 @@
 <?php
+
 /**
  * Migrate template - Main
  */
 
 use InstaWP\Connect\Helpers\Helper;
 
-$api_domain       = Helper::get_api_domain();
-$current_tab      = isset( $_GET['tab'] ) ? sanitize_text_field( wp_unslash( $_GET['tab'] ) ) : '';
-$plugin_nav_items = InstaWP_Setting::get_plugin_nav_items();
+$api_response   = Helper::get_response();
+$email          = Helper::get_args_option( $api_response, 'email' );
+$team_name      = Helper::get_args_option( $api_response, 'team_name' );
+$current_tab    = isset( $_GET['tab'] ) ? sanitize_text_field( wp_unslash( $_GET['tab'] ) ) : '';
+$is_app_connect = strpos( $connect_domain, 'app' ) !== false;
 
 if ( ! in_array( $current_tab, array_keys( $plugin_nav_items ) ) ) {
-	$current_tab = '';
-}
+    $current_tab = '';
+} ?>
 
-?>
-
-<div class="flex border-b justify-between shadow-md rounded-tl-lg rounded-tr-lg border-grayCust-100 instawp-current-tab" current-tab="<?php echo esc_attr( $current_tab ); ?>">
+<div class="flex border-b justify-between shadow-md rounded-tl-lg rounded-tr-lg border-grayCust-100 instawp-current-tab" current-tab="<?php echo esc_attr($current_tab); ?>">
     <div class="flex items-center nav-items">
-		<?php foreach ( $plugin_nav_items as $item_key => $item ) {
-			$icon  = isset( $item['icon'] ) ? $item['icon'] : '';
-			$label = isset( $item['label'] ) ? $item['label'] : '';
+        <?php foreach ( $plugin_nav_items as $item_key => $item ) {
+            $icon  = isset( $item['icon'] ) ? $item['icon'] : '';
+            $label = isset( $item['label'] ) ? $item['label'] : '';
 
-			printf( '<div id="%s" class="nav-item"><a class="flex items-center px-4 py-5 border-b-2 border-transparent hover:text-primary-900 text-sm font-medium">%s<span>%s</span></a></div>',
+            printf(
+                '<div id="%s" class="nav-item"><a class="flex items-center px-4 py-5 border-b-2 border-transparent hover:text-secondary text-sm font-medium">%s<span>%s</span></a></div>',
                 esc_html( $item_key ),
                 $icon, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-                esc_html( $label ) );
-		} ?>
+                esc_html( $label )
+            );
+        } ?>
     </div>
-    <div class="flex items-center text-sm font-medium">
-		<?php if ( empty( Helper::get_api_key() ) ) : ?>
-            <div class="flex items-center text-grayCust-1300"><?php esc_html_e( 'Please connect InstaWP account', 'instawp-connect' ); ?></div>
-            <button type="button" class="instawp-button-connect px-4 rounded-lg py-2 border border-primary-900 text-primary-900 text-sm font-medium ml-3 mr-3">
-                <span><?php esc_html_e( 'Connect', 'instawp-connect' ); ?></span>
-            </button>
-		<?php else : ?>
-            <span class="w-1 h-1 <?= strpos( $api_domain, 'stage' ) !== false ? 'bg-amber-600' : 'bg-primary-700'; ?> rounded-full mr-2"></span>
-            <a href="<?php echo esc_url( sprintf( '%s/connects/%s/dashboard', Helper::get_api_domain(), instawp()->connect_id ) ); ?>" target="_blank" class="mr-4 focus:ring-0 hover:ring-0 focus:outline-0 hover:outline-0 <?= strpos( $api_domain, 'stage' ) !== false ? 'text-amber-600 hover:text-amber-600 focus:text-amber-600' : 'text-primary-700 hover:text-primary-700 focus:text-primary-700'; ?>">
-	            <?php if ( defined('CONNECT_WHITELABEL' ) && CONNECT_WHITELABEL ) {
-                    esc_html_e( 'Managed Website', 'instawp-connect' );
-                } else {
-		            esc_html_e( 'Your website is connected', 'instawp-connect' );
-	            } ?>
-            </a>
-		<?php endif; ?>
-    </div>
+
+    <?php if ( empty( $connect_api_key ) ) : ?>
+        <div class="flex items-center text-sm font-medium">
+            <div class="flex items-center gap-2 pr-4">
+                <span class="w-1 h-1 bg-red-600 rounded-full"></span>
+                <span class="text-red-600"><?php esc_html_e( 'Your account is not connected', 'instawp-connect' ); ?></span>
+            </div>
+        </div>
+    <?php else : ?>
+        <div class="flex gap-1 flex-col items-end justify-center text-sm font-medium px-4">
+            <div class="flex items-center gap-2">
+                <span class="w-1 h-1 <?= $is_app_connect ? 'bg-primary-700' : 'bg-amber-600'; ?> rounded-full"></span>
+                <a href="<?php echo esc_url( sprintf( '%s/connects/%s/dashboard', $connect_domain, instawp()->connect_id ) ); ?>" target="_blank" class="focus:ring-0 hover:ring-0 focus:outline-0 hover:outline-0 <?= $is_app_connect ? 'text-primary-700 hover:text-primary-700 focus:text-primary-700' : 'text-amber-600 hover:text-amber-600 focus:text-amber-600'; ?>">
+                    <?php if ( defined( 'CONNECT_WHITELABEL' ) && CONNECT_WHITELABEL === true ) {
+                        esc_html_e( 'Managed Website', 'instawp-connect' );
+                    } else {
+                        esc_html_e( 'Your account is connected', 'instawp-connect' );
+                    } ?>
+                </a>
+            </div>
+            <?php if ( ! empty( $email ) && ! empty( $team_name ) ) : ?>
+                <div class="text-grayCust-50 text-xs">
+                    <span><?= esc_html( $email ); ?></span> | <span><?= esc_html( $team_name ); ?></span>
+                </div>
+            <?php endif; ?>
+        </div>
+    <?php endif; ?>
 </div>

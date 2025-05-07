@@ -5,7 +5,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;800;900&display=swap');
 
 :root {
-    --instawp-color-primary: #005E54;
+    --instawp-color-primary: #15B881;
     --instawp-color-gray: #9CA3AF;
     --instawp-color-green: #13bf85;
     --instawp-color-red: #d93f21;
@@ -76,7 +76,7 @@ body[class*="instawp"] #wpbody {
 }
 
 input:checked + .slider {
-    background-color: #005E54;
+    background-color: #15B881;
 }
 
 input:checked + .slider:before {
@@ -321,7 +321,7 @@ input:checked + .slider-toggle:before {
 
 .instawp-wrap .nav-items .nav-item.active > a > svg > path,
 .instawp-wrap .nav-items .nav-item > a:hover > svg > path {
-    fill: var(--instawp-color-primary);
+    fill: #15B881;
     /*stroke: var(--instawp-color-primary);*/
     stroke: none;
     /*stroke: var(--instawp-color-gray);*/
@@ -500,7 +500,7 @@ input:checked + .slider-toggle:before {
 
 .screen-nav.active .screen-nav-icon {
     --tw-bg-opacity: 1;
-    background-color: rgb(0 94 84 / var(--tw-bg-opacity));
+    background-color: #15B881;
 }
 
 .screen-nav:not(.active) .screen-nav-icon > img,
@@ -578,7 +578,9 @@ input:checked + .slider-toggle:before {
 .instawp-checkbox[type='radio'],
 .instawp-option-selector[type='checkbox'],
 .instawp-option-selector[type='radio'] {
-    color: rgb(0 94 84 / 1);
+    color: #15B881;
+    box-shadow: none !important;
+    outline: none !important;
 }
 
 .instawp-option-selector[type='checkbox'] {

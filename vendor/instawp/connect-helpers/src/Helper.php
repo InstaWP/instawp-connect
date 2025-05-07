@@ -18,10 +18,10 @@ class Helper {
 		$api_response = Curl::do_curl( 'check-key?jwt=' . $jwt, array(), array(), 'GET', 'v1', $api_key );
 
 		if ( ! empty( $api_response['data']['status'] ) ) {
-			$api_options = Option::get_option( 'instawp_api_options', array() );
+			$api_options = self::get_options();
 
 			if ( is_array( $api_options ) && is_array( $api_response['data'] ) ) {
-				Option::update_option( 'instawp_api_options', array_merge( $api_options, array(
+				self::set_settings( array_merge( $api_options, array(
 					'api_key'  => $api_key,
 					'jwt'      => $jwt,
 					'origin'   => md5( self::wp_site_url( '', true ) ),
@@ -214,8 +214,12 @@ class Helper {
 		return $username;
 	}
 
+	public static function get_options( $default = [] ) {
+		return Option::get_option( 'instawp_api_options', $default );
+	}
+
 	public static function get_api_key( $return_hashed = false, $default_key = '' ) {
-		$api_options = Option::get_option( 'instawp_api_options' );
+		$api_options = self::get_options();
 		$api_key     = self::get_args_option( 'api_key', $api_options, $default_key );
 
 		if ( ! $return_hashed ) {
@@ -233,31 +237,37 @@ class Helper {
 	}
 
 	public static function get_connect_id() {
-		$api_options = Option::get_option( 'instawp_api_options' );
+		$api_options = self::get_options();
 
 		return self::get_args_option( 'connect_id', $api_options );
 	}
 
 	public static function get_connect_uuid() {
-		$api_options = Option::get_option( 'instawp_api_options' );
+		$api_options = self::get_options();
 
 		return self::get_args_option( 'connect_uuid', $api_options );
 	}
 
 	public static function get_connect_origin() {
-		$api_options = Option::get_option( 'instawp_api_options' );
+		$api_options = self::get_options();
 
 		return self::get_args_option( 'origin', $api_options );
 	}
 
 	public static function get_jwt() {
-		$api_options = Option::get_option( 'instawp_api_options' );
+		$api_options = self::get_options();
 
 		return self::get_args_option( 'jwt', $api_options );
 	}
 
+	public static function get_response() {
+		$api_options = self::get_options();
+
+		return self::get_args_option( 'response', $api_options, [] );
+	}
+
 	public static function get_api_domain( $default_domain = '' ) {
-		$api_options = Option::get_option( 'instawp_api_options' );
+		$api_options = self::get_options();
 
 		if ( empty( $default_domain ) && defined( 'INSTAWP_API_DOMAIN_PROD' ) ) {
 			$default_domain = INSTAWP_API_DOMAIN_PROD;
@@ -283,39 +293,43 @@ class Helper {
 		return 'https://api.instawp.io';
 	}
 
+	public static function set_settings( $settings ) {
+		return Option::update_option( 'instawp_api_options', $settings );
+	}
+
 	public static function set_api_key( $api_key ) {
-		$api_options            = Option::get_option( 'instawp_api_options' );
+		$api_options            = self::get_options();
 		$api_options['api_key'] = $api_key;
 
-		return Option::update_option( 'instawp_api_options', $api_options );
+		return self::set_settings( $api_options );
 	}
 
 	public static function set_connect_id( $connect_id ) {
-		$api_options               = Option::get_option( 'instawp_api_options' );
+		$api_options               = self::get_options();
 		$api_options['connect_id'] = intval( $connect_id );
 
-		return Option::update_option( 'instawp_api_options', $api_options );
+		return self::set_settings( $api_options );
 	}
 
 	public static function set_connect_uuid( $connect_uuid ) {
-		$api_options                 = Option::get_option( 'instawp_api_options' );
+		$api_options                 = self::get_options();
 		$api_options['connect_uuid'] = $connect_uuid;
 
-		return Option::update_option( 'instawp_api_options', $api_options );
+		return self::set_settings( $api_options );
 	}
 
 	public static function set_connect_origin( $origin ) {
-		$api_options           = Option::get_option( 'instawp_api_options' );
+		$api_options           = self::get_options();
 		$api_options['origin'] = $origin;
 
-		return Option::update_option( 'instawp_api_options', $api_options );
+		return self::set_settings( $api_options );
 	}
 
 	public static function set_jwt( $jwt ) {
-		$api_options        = Option::get_option( 'instawp_api_options' );
+		$api_options        = self::get_options();
 		$api_options['jwt'] = $jwt;
 
-		return Option::update_option( 'instawp_api_options', $api_options );
+		return self::set_settings( $api_options );
 	}
 
 	public static function set_api_domain( $api_domain = '' ) {
@@ -323,10 +337,10 @@ class Helper {
 			$api_domain = esc_url_raw( 'https://app.instawp.io' );
 		}
 
-		$api_options            = Option::get_option( 'instawp_api_options' );
+		$api_options            = self::get_options();
 		$api_options['api_url'] = $api_domain;
 
-		return Option::update_option( 'instawp_api_options', $api_options );
+		return self::set_settings( $api_options );
 	}
 
 	public static function get_connect_plan_id() {
