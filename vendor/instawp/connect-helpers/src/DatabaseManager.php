@@ -14,7 +14,7 @@ class DatabaseManager {
 
 		$file_name = Helper::get_random_string( 10 );
 		$token     = md5( $file_name );
-		$url       = 'https://github.com/vrana/adminer/releases/download/v5.3.0/adminer-5.3.0-mysql-en.php';
+		$url       = 'https://github.com/vrana/adminer/releases/download/v5.3.0/adminer-5.3.0-mysql.php';
 
 		$response = wp_remote_get( $url );
 		if ( is_wp_error( $response ) ) {
