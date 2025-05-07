@@ -4,13 +4,24 @@
  */
 
 $features = [
-    'Plugin & Theme Updates',
     'Magic Login',
     'Database Manager',
     'Purge Cache',
     'Manage Website',
     'Manage Users',
     'Staging Creation',
+    'Plugin & Theme Updates',
+];
+
+$pro_features = [
+    'Scheduled Updates of Plugin, Themes & Core',
+    'Scheduled & Manual Report Generation',
+    'Automated & Manual Vulnerability Scanning',
+    'Automated & Manual Performance Scanning',
+    'Uptime Monitoring',
+    'WP Config Manager',
+    'Activity Logs',
+    'All Free Features',
 ];
 ?>
 
@@ -25,16 +36,44 @@ $features = [
         <div class="text-lg font-medium text-grayCust-200 mb-1"><?php esc_html_e( 'Connect this site to your InstaWP Account', 'instawp-connect' ); ?></div>
         <div class="text-sm font-normal text-grayCust-50 mb-5"><?php esc_html_e( 'Authorize the InstaWP Connect Plugin for staging creation, site management, and more.', 'instawp-connect' ); ?></div>
         
-        <div class="flex flex-wrap items-center justify-center gap-4 mb-5 w-[760px] border border-dashed border-gray-300 p-5 border-x-0">
-            <?php foreach ( $features as $feature ) :?>
-                <div class="flex items-center gap-2">
-                    <svg width="17" height="16" viewBox="0 0 17 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <rect x="0.5" width="16" height="16" rx="8" fill="#D1FAE5"/>
-                        <path fill-rule="evenodd" clip-rule="evenodd" d="M11.8986 4.92661L7.12531 9.53328L5.85865 8.17994C5.62531 7.95994 5.25865 7.94661 4.99198 8.13328C4.73198 8.32661 4.65865 8.66661 4.81865 8.93994L6.31865 11.3799C6.46531 11.6066 6.71865 11.7466 7.00531 11.7466C7.27865 11.7466 7.53865 11.6066 7.68531 11.3799C7.92531 11.0666 12.5053 5.60661 12.5053 5.60661C13.1053 4.99328 12.3786 4.45328 11.8986 4.91994V4.92661Z" fill="#15B881"/>
-                    </svg>
-                    <span class="text-sm font-normal text-grayCust-50"><?php echo esc_html( $feature );?></span>
-                </div>
-            <?php endforeach;?>
+        <div class="flex items-center mb-5 bg-gray-50 py-5 rounded w-[950px]"> 
+            <div class="flex flex-col items-center justify-center gap-1 px-8 w-28">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd" clip-rule="evenodd" d="M18.8116 3.2538C19.2552 3.3716 19.6268 3.67418 19.832 4.08466C20.6057 5.63206 21.1831 6.57121 21.7641 7.33267C22.3521 8.10344 22.9742 8.73442 23.9204 9.68064C26.107 11.8673 27.2008 14.7364 27.2008 17.6003C27.2008 20.4641 26.107 23.3332 23.9204 25.5198C19.5465 29.8937 12.4551 29.8937 8.08118 25.5198C5.89457 23.3332 4.80079 20.4641 4.80078 17.6003C4.80078 14.7364 5.89456 11.8673 8.08119 9.68064C8.53878 9.22304 9.22697 9.08615 9.82485 9.3338C10.4227 9.58145 10.8126 10.1649 10.8126 10.812C10.8126 12.6037 10.9244 13.9689 11.4485 15.0579C11.7366 15.6566 12.1861 16.242 12.9609 16.7644C13.1459 15.0672 13.4848 12.9994 13.9428 11.0366C14.3034 9.49132 14.7518 7.94856 15.2856 6.66205C15.5526 6.01857 15.8545 5.40586 16.1973 4.87685C16.5311 4.36192 16.9599 3.83792 17.5134 3.46892C17.8953 3.21435 18.368 3.13601 18.8116 3.2538ZM19.3949 24.1943C17.5204 26.0688 14.4812 26.0688 12.6067 24.1943C11.6694 23.2571 11.2008 22.0286 11.2008 20.8002C11.2008 20.8002 12.6067 21.6002 15.2009 21.6002C15.2009 20.0002 16.0009 15.2002 17.2009 14.4002C18.0009 16.0002 18.4576 16.4688 19.3949 17.4061C20.3322 18.3434 20.8008 19.5718 20.8008 20.8002C20.8008 22.0286 20.3322 23.2571 19.3949 24.1943Z" fill="#9CA3AF"/>
+                </svg>
+                <span class="font-medium"><?php esc_html_e( 'Free', 'instawp-connect' ); ?></span>
+            </div>
+            <div class="grid grid-cols-4 items-center gap-4 border-l border-dashed pl-6">
+                <?php foreach ( $features as $feature ) :?>
+                    <div class="flex items-center gap-2">
+                        <svg width="17" height="16" viewBox="0 0 17 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="0.5" width="16" height="16" rx="8" fill="#D1FAE5"/>
+                            <path fill-rule="evenodd" clip-rule="evenodd" d="M11.8986 4.92661L7.12531 9.53328L5.85865 8.17994C5.62531 7.95994 5.25865 7.94661 4.99198 8.13328C4.73198 8.32661 4.65865 8.66661 4.81865 8.93994L6.31865 11.3799C6.46531 11.6066 6.71865 11.7466 7.00531 11.7466C7.27865 11.7466 7.53865 11.6066 7.68531 11.3799C7.92531 11.0666 12.5053 5.60661 12.5053 5.60661C13.1053 4.99328 12.3786 4.45328 11.8986 4.91994V4.92661Z" fill="#15B881"/>
+                        </svg>
+                        <span class="text-sm font-normal text-grayCust-50"><?php echo esc_html( $feature );?></span>
+                    </div>
+                <?php endforeach;?>
+            </div>
+        </div>
+
+        <div class="flex items-center mb-5 bg-amber-50 py-5 rounded w-[950px]">
+            <div class="flex flex-col items-center justify-center gap-1 px-8 w-28">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd" clip-rule="evenodd" d="M18.8116 3.2538C19.2552 3.3716 19.6268 3.67418 19.832 4.08466C20.6057 5.63206 21.1831 6.57121 21.7641 7.33267C22.3521 8.10344 22.9742 8.73442 23.9204 9.68064C26.107 11.8673 27.2008 14.7364 27.2008 17.6003C27.2008 20.4641 26.107 23.3332 23.9204 25.5198C19.5465 29.8937 12.4551 29.8937 8.08118 25.5198C5.89457 23.3332 4.80079 20.4641 4.80078 17.6003C4.80078 14.7364 5.89456 11.8673 8.08119 9.68064C8.53878 9.22304 9.22697 9.08615 9.82485 9.3338C10.4227 9.58145 10.8126 10.1649 10.8126 10.812C10.8126 12.6037 10.9244 13.9689 11.4485 15.0579C11.7366 15.6566 12.1861 16.242 12.9609 16.7644C13.1459 15.0672 13.4848 12.9994 13.9428 11.0366C14.3034 9.49132 14.7518 7.94856 15.2856 6.66205C15.5526 6.01857 15.8545 5.40586 16.1973 4.87685C16.5311 4.36192 16.9599 3.83792 17.5134 3.46892C17.8953 3.21435 18.368 3.13601 18.8116 3.2538ZM19.3949 24.1943C17.5204 26.0688 14.4812 26.0688 12.6067 24.1943C11.6694 23.2571 11.2008 22.0286 11.2008 20.8002C11.2008 20.8002 12.6067 21.6002 15.2009 21.6002C15.2009 20.0002 16.0009 15.2002 17.2009 14.4002C18.0009 16.0002 18.4576 16.4688 19.3949 17.4061C20.3322 18.3434 20.8008 19.5718 20.8008 20.8002C20.8008 22.0286 20.3322 23.2571 19.3949 24.1943Z" fill="#FBBF24"/>
+                </svg>
+                <span class="font-medium"><?php esc_html_e( 'Advanced', 'instawp-connect' ); ?></span>
+            </div>
+            <div class="grid grid-cols-2 items-center gap-4 border-l border-dashed pl-6">
+                <?php foreach ( $pro_features as $feature ) :?>
+                    <div class="flex items-center gap-2">
+                        <svg width="17" height="16" viewBox="0 0 17 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="0.5" width="16" height="16" rx="8" fill="#FEF3C7"/>
+                            <path fill-rule="evenodd" clip-rule="evenodd" d="M11.8986 4.92661L7.12531 9.53328L5.85865 8.17994C5.62531 7.95994 5.25865 7.94661 4.99198 8.13328C4.73198 8.32661 4.65865 8.66661 4.81865 8.93994L6.31865 11.3799C6.46531 11.6066 6.71865 11.7466 7.00531 11.7466C7.27865 11.7466 7.53865 11.6066 7.68531 11.3799C7.92531 11.0666 12.5053 5.60661 12.5053 5.60661C13.1053 4.99328 12.3786 4.45328 11.8986 4.91994V4.92661Z" fill="#FBBF24"/>
+                        </svg>
+                        <span class="text-sm font-normal text-grayCust-50"><?php echo esc_html( $feature );?></span>
+                    </div>
+                <?php endforeach;?>
+            </div>
         </div>
         <a class="instawp-button-connect cursor-pointer	px-7 py-3 inline-flex items-center mx-auto rounded-md shadow-sm bg-secondary text-white hover:text-white active:text-white focus:text-white focus:shadow-none font-medium text-sm">
             <img src="<?php echo esc_url( instaWP::get_asset_url( 'migrate/assets/images/icon-plus.svg' ) ); ?>" class="mr-2" alt="">
