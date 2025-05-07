@@ -354,7 +354,11 @@ if ( ! function_exists( 'instawp_get_staging_sites_list' ) ) {
 			return strtotime( $b['timestamp'] ) - strtotime( $a['timestamp'] );
 		} );
 
-		return $staging_sites;
+		return array_map( function( $site ) {
+			$site['is_parent'] = false;
+
+			return $site;
+		}, $staging_sites );
 	}
 }
 
@@ -433,6 +437,7 @@ if ( ! function_exists( 'instawp_get_connected_sites_list' ) ) {
 				if ( ! array_key_exists( 'connect_id', $parent_connect_data ) ) {
 					$parent_connect_data['connect_id'] = Helper::get_args_option( 'id', $parent_connect_data, '' );
 				}
+				$parent_connect_data['is_parent'] = true;
 
 				$staging_sites[] = $parent_connect_data;
 			}

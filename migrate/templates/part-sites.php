@@ -3,26 +3,17 @@
  * Migrate template - Create Site
  */
 
-
 use InstaWP\Connect\Helpers\Helper;
-use InstaWP\Connect\Helpers\Option;
-
-global $staging_sites;
 
 $staging_sites_count = is_array( $staging_sites ) ? count( $staging_sites ) : 0;
 $pagination          = 10;
-$parent_connect_data = Option::get_option( 'instawp_sync_parent_connect_data', array() );
+$parent_connect_data = array_filter( $staging_sites, function( $site ) {
+	return $site['is_parent'] === true;
+} );
 
 if ( ! empty( $parent_connect_data ) ) {
-	$parent_domain = preg_replace( "(^https?://)", '', Helper::get_args_option( 'domain', $parent_connect_data, '' ) );
+	$parent_domain = preg_replace( "(^https?://)", '', Helper::get_args_option( 'url', $parent_connect_data, '' ) );
 }
-
-$connect_id    = instawp_get_connect_id();
-$staging_sites = get_option( 'instawp_staging_sites' );
-if ( empty( $connect_id ) && ! empty( $staging_sites ) ) {
-    delete_option( 'instawp_staging_sites' );
-}
-
 ?>
 
 <div class="nav-item-content sites bg-white rounded-md p-6" data-pagination="<?php echo esc_attr( $pagination ); ?>">
@@ -33,7 +24,7 @@ if ( empty( $connect_id ) && ! empty( $staging_sites ) ) {
                     <img src="<?php echo esc_url( instaWP::get_asset_url( 'migrate/assets/images/staging.svg' ) ); ?>" class="mx-auto" alt="">
                 </div>
 				<?php if ( isset( $parent_domain ) && ! empty( $parent_domain ) ) { ?>
-                    <div class="text-sm font-medium text-grayCust-200"><?php printf( esc_html__( 'This is a staging site connected to %s', 'instawp-connect' ), '<a target="_blank" class="text-primary-900 focus:outline-none focus:ring-0 hover:text-primary-900 border-b border-transparent border-1 border-dashed hover:border-primary-700" href="' . esc_url( $parent_domain ) . '">' . esc_html( $parent_domain ) . '</a>' ); ?></div>
+                    <div class="text-sm font-medium text-grayCust-200"><?php printf( esc_html__( 'This is a staging site connected to %s', 'instawp-connect' ), '<a target="_blank" class="text-secondary focus:outline-none focus:ring-0 hover:text-secondary border-b border-transparent border-1 border-dashed hover:border-primary-700" href="' . esc_url( $parent_domain ) . '">' . esc_html( $parent_domain ) . '</a>' ); ?></div>
 				<?php } else { ?>
                     <div class="text-sm font-medium text-grayCust-200"><?php printf( esc_html__( 'This is a staging site', 'instawp-connect' ) ); ?></div>
 				<?php } ?>
@@ -70,16 +61,16 @@ if ( empty( $connect_id ) && ! empty( $staging_sites ) ) {
         <div class="mt-6 flow-root">
             <div class="-my-2 -mx-6 lg:-mx-8">
                 <div class="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
-                    <div class="shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
-                        <table class="min-w-full divide-y divide-gray-300">
+                    <div class="sm:rounded-lg">
+                        <table class="min-w-full divide-y divide-gray-300 shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
                             <thead class="bg-gray-50 sm:rounded-lg">
-                            <tr class="sm:rounded-lg">
-                                <th scope="col" class="px-4 py-4  uppercase text-left text-sm font-medium text-grayCust-900 sm:rounded-lg"><?php esc_html_e( 'Site Name', 'instawp-connect' ); ?></th>
-                                <th scope="col" class="px-4 py-4 text-left uppercase text-sm font-medium text-grayCust-900"><?php esc_html_e( 'Username', 'instawp-connect' ); ?></th>
-                                <th scope="col" class="px-4 py-4 text-left uppercase text-sm font-medium text-grayCust-900"><?php esc_html_e( 'Password', 'instawp-connect' ); ?></th>
-                                <th scope="col" class="px-4 py-4 text-left uppercase text-sm font-medium text-grayCust-900"><?php esc_html_e( 'Created date', 'instawp-connect' ); ?></th>
-                                <th scope="col" class="px-4 py-4 text-center uppercase text-sm font-medium text-grayCust-900 sm:rounded-lg"><?php esc_html_e( 'Actions', 'instawp-connect' ); ?></th>
-                            </tr>
+                                <tr class="sm:rounded-lg">
+                                    <th scope="col" class="px-4 py-4  uppercase text-left text-sm font-medium text-grayCust-900 sm:rounded-lg"><?php esc_html_e( 'Site Name', 'instawp-connect' ); ?></th>
+                                    <th scope="col" class="px-4 py-4 text-left uppercase text-sm font-medium text-grayCust-900"><?php esc_html_e( 'Username', 'instawp-connect' ); ?></th>
+                                    <th scope="col" class="px-4 py-4 text-left uppercase text-sm font-medium text-grayCust-900"><?php esc_html_e( 'Password', 'instawp-connect' ); ?></th>
+                                    <th scope="col" class="px-4 py-4 text-left uppercase text-sm font-medium text-grayCust-900"><?php esc_html_e( 'Created date', 'instawp-connect' ); ?></th>
+                                    <th scope="col" class="px-4 py-4 text-center uppercase text-sm font-medium text-grayCust-900 sm:rounded-lg"><?php esc_html_e( 'Actions', 'instawp-connect' ); ?></th>
+                                </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-200 bg-white sm:rounded-lg">
 							<?php foreach ( $staging_sites as $index => $site ) :
@@ -93,24 +84,24 @@ if ( empty( $connect_id ) && ! empty( $staging_sites ) ) {
 								$datetime = $datetime !== '' ? wp_date( 'M j, Y', strtotime( $datetime ) ) : '';
 								?>
                                 <tr class="staging-site-list sm:rounded-lg">
-                                    <td class="whitespace-nowrap py-8 px-4 text-sm font-medium flex items-center text-grayCust-300 sm:rounded-lg">
+                                    <td class="whitespace-nowrap my-2 px-4 py-4 text-sm font-medium flex items-center text-grayCust-300 sm:rounded-lg">
 										<?php
-										printf( '<img src="%s" class="mr-2" alt=""><a target="_blank" class="focus:outline-none focus:ring-0 hover:text-primary-900 border-b border-transparent border-1 border-dashed hover:border-primary-700" href="%s">%s</a>',
+										printf( '<img src="%s" class="mr-2" alt=""><a target="_blank" class="focus:outline-none focus:ring-0 hover:text-secondary border-b border-transparent border-1 border-dashed hover:border-primary-700" href="%s">%s</a>',
 											esc_url( instaWP::get_asset_url( 'assets/images/staging.svg' ) ),
 											esc_url_raw( $site_name ), esc_html( $site_name )
 										);
 										?>
                                     </td>
-                                    <td class="whitespace-nowrap px-4 py-6 font-medium text-sm text-grayCust-300">
+                                    <td class="whitespace-nowrap font-medium text-sm text-grayCust-300 px-4">
                                         <span><?php echo esc_html( $username ); ?></span>
                                     </td>
-                                    <td class="whitespace-nowrap px-4 py-8 font-medium text-sm text-grayCust-300 flex items-center">
-                                        <span aria-label="<?php echo esc_attr__( 'This password is same as production, due to security reasons, we don\'t know or keep the plain-text password', 'instawp-connect' ); ?>" class="hint--top hint--medium cursor-pointer"><?php echo esc_html( $password ); ?></span>
+                                    <td class="whitespace-nowrap font-medium text-sm text-grayCust-300 px-4">
+                                        <span class="flex items-center" aria-label="<?php echo esc_attr__( 'This password is same as production, due to security reasons, we don\'t know or keep the plain-text password', 'instawp-connect' ); ?>" class="hint--top hint--medium cursor-pointer"><?php echo esc_html( $password ); ?></span>
                                     </td>
-                                    <td class="whitespace-nowrap text-left px-4 py-6 font-medium text-sm text-grayCust-300">
+                                    <td class="whitespace-nowrap text-left font-medium text-sm text-grayCust-300 px-4">
                                         <span><?php echo esc_html( $datetime ); ?></span>
                                     </td>
-                                    <td class="whitespace-nowrap px-4 py-6 font-medium text-sm text-grayCust-300 sm:rounded-lg">
+                                    <td class="whitespace-nowrap font-medium text-sm text-grayCust-300 px-4 sm:rounded-lg">
                                         <div class="flex items-center justify-center">
 											<?php if ( $auto_login_url ) : ?>
                                                 <a href="<?php echo esc_url( $auto_login_url ); ?>" target="_blank" type="button" aria-label="<?php esc_attr_e( 'Magic Login', 'instawp-connect' ); ?>" class="relative flex items-center px-2.5 w-11 h-9 lg:px-3 rounded-md border border-grayCust-350 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:z-10 focus:outline-none focus:ring-0 focus:border-grayCust-350 hint--top hint--rounded">
