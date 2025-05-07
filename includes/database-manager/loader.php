@@ -28,30 +28,29 @@ if ( ! function_exists( 'adminer_object' ) ) {
                 <style>
                     #version,
                     #dbs,
-                    #breadcrumb,
                     .version,
                     p.logout {
                         display: none;
                     }
-                    #menu {
+                    /* #menu {
                         top: 0;
                     }
                     #content {
                         margin-top: 0;
                         padding: 10px 10px 10px 0 !important;
-                    }
+                    } */
                     #menu h1 {
                         padding: .8em 1em !important;
                         background-image: none;
                     }
-                    /* #breadcrumb > a:nth-child(1) {
+                    #breadcrumb > a:nth-child(1) {
                         pointer-events: none;
                         color: inherit;
                     }
                     #breadcrumb > a:nth-child(2) {
                         pointer-events: none;
                         color: inherit;
-                    } */
+                    }
                     .footer > div > fieldset > div > p {
                         color: transparent;
                         display: inline-block;
