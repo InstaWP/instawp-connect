@@ -7,8 +7,8 @@
 use InstaWP\Connect\Helpers\Helper;
 
 $api_response   = Helper::get_response();
-$email          = Helper::get_args_option( $api_response, 'email' );
-$team_name      = Helper::get_args_option( $api_response, 'team_name' );
+$email          = Helper::get_args_option( 'email', $api_response );
+$team_name      = Helper::get_args_option( 'team_name', $api_response );
 $current_tab    = isset( $_GET['tab'] ) ? sanitize_text_field( wp_unslash( $_GET['tab'] ) ) : '';
 $is_app_connect = strpos( $connect_domain, 'app' ) !== false;
 
