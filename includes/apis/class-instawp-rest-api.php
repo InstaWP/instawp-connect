@@ -167,7 +167,7 @@ class InstaWP_Rest_Api {
 		$jwt                  = isset( $parameters['token'] ) ? sanitize_text_field( $parameters['token'] ) : '';
 		$api_key              = isset( $parameters['api_key'] ) ? sanitize_text_field( $parameters['api_key'] ) : '';
 		$api_domain           = isset( $parameters['api_domain'] ) ? sanitize_text_field( $parameters['api_domain'] ) : '';
-		$plan_id              = isset( $parameters['advance_connect_plan_id'] ) ? intval( $parameters['advance_connect_plan_id'] ) : 0;
+		$plan_id              = isset( $parameters['plan_id'] ) ? intval( $parameters['plan_id'] ) : 0;
 		$managed              = isset( $parameters['managed'] ) ? boolval( $parameters['managed'] ) : true;
 
 		if ( empty( $wp_username ) || empty( $application_password ) ) {

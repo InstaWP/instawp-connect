@@ -1272,7 +1272,7 @@ if ( ! function_exists( 'instawp_connect_activate_plan' ) ) {
 			);
 		}
 
-		$response = Curl::do_curl( "connects/{$connect_id}/subscribe", array(
+		$response = Curl::do_curl( "connects/{$connect_id}/advanced-plan", array(
 			'plan_id' => $plan_id,
 		) );
 

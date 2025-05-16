@@ -344,7 +344,7 @@ class Helper {
 	}
 
 	public static function get_connect_plan_id() {
-		$default_plan_id = defined( 'INSTAWP_CONNECT_PLAN_ID' ) ? INSTAWP_CONNECT_PLAN_ID : 1;
+		$default_plan_id = defined( 'INSTAWP_CONNECT_PLAN_ID' ) ? INSTAWP_CONNECT_PLAN_ID : 0;
 		$plan_id         = Option::get_option( 'instawp_connect_plan_id', $default_plan_id );
 
 		return ! empty( $plan_id ) ? (int) $plan_id : $default_plan_id;
