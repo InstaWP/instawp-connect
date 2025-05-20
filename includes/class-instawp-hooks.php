@@ -16,7 +16,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 		public function __construct() {
 			add_action( 'instawp_connect_connected', array( $this, 'handle_connected' ) );
 			add_action( 'load-tools_page_instawp', array( $this, 'handle_connection_state' ) );
-			add_action( 'admin_init', array( $this, 'disconnect_site' ) );
+			add_action( 'admin_init', array( $this, 'disconnect_whitelabel_site' ) );
 			add_action( 'admin_init', array( $this, 'generate_api_key' ) );
 			add_action( 'update_option', array( $this, 'manage_update_option' ), 10, 3 );
 			add_action( 'init', array( $this, 'handle_hard_disable_seo_visibility' ) );
@@ -57,7 +57,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			}
 		}
 
-		public function disconnect_site() {
+		public function disconnect_whitelabel_site() {
 			if ( ! defined( 'CONNECT_WHITELABEL' ) || CONNECT_WHITELABEL !== true ) {
 				return;
 			}

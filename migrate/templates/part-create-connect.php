@@ -4,24 +4,25 @@
  */
 
 $features = [
-    'Magic Login',
+    'Plugin & Theme Updates',
     'Database Manager',
-    'Purge Cache',
     'Manage Website',
     'Manage Users',
+    'Magic Login',
+    'Purge Cache',
     'Staging Creation',
-    'Plugin & Theme Updates',
 ];
 
 $pro_features = [
-    'Scheduled Updates of Plugin, Themes & Core',
-    'Scheduled & Manual Report Generation',
-    'Automated & Manual Vulnerability Scanning',
-    'Automated & Manual Performance Scanning',
+    'Scheduled Updates',
+    'Automated Vulnerability Scanning',
+    'Activity Logs',
+    'Report Generation',
+    'Automated Core Web Vitals Scanning',
+    'Visual Regression (soon)',
     'Uptime Monitoring',
     'WP Config Manager',
-    'Activity Logs',
-    'All Free Features',
+    'Backups (soon)',
 ];
 ?>
 
@@ -43,7 +44,7 @@ $pro_features = [
                 </svg>
                 <span class="font-medium"><?php esc_html_e( 'Free', 'instawp-connect' ); ?></span>
             </div>
-            <div class="grid grid-cols-4 items-center gap-4 border-l border-dashed pl-6">
+            <div class="grid grid-cols-[auto_auto_auto_auto] items-center gap-x-8 gap-y-4 border-l border-dashed pl-6">
                 <?php foreach ( $features as $feature ) :?>
                     <div class="flex items-center gap-2">
                         <svg width="17" height="16" viewBox="0 0 17 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -63,7 +64,7 @@ $pro_features = [
                 </svg>
                 <span class="font-medium"><?php esc_html_e( 'Advanced', 'instawp-connect' ); ?></span>
             </div>
-            <div class="grid grid-cols-2 items-center gap-4 border-l border-dashed pl-6">
+            <div class="grid grid-cols-[auto_auto_auto] items-center gap-x-8 gap-y-4 border-l border-dashed pl-6">
                 <?php foreach ( $pro_features as $feature ) :?>
                     <div class="flex items-center gap-2">
                         <svg width="17" height="16" viewBox="0 0 17 16" fill="none" xmlns="http://www.w3.org/2000/svg">
