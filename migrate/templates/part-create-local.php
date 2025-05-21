@@ -2,6 +2,7 @@
 /**
  * Connect to InstaWP Screen
  */
+defined( 'ABSPATH' ) || exit;
 
 $sh_command = 'wp instawp local push';
 

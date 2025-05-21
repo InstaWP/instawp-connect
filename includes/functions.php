@@ -1283,11 +1283,7 @@ if ( ! function_exists( 'instawp_connect_activate_plan' ) ) {
 			);
 		}
 
-		Option::update_option( 'instawp_connect_plan_id', $plan_id );
-
-		if ( ! Option::get_option( "instawp_connect_plan_{$plan_id}_timestamp" ) ) {
-			Option::update_option( "instawp_connect_plan_{$plan_id}_timestamp", current_time( 'mysql' ) );
-		}
+		Helper::set_connect_plan_id( $plan_id );
 
 		return array(
 			'success' => true,
@@ -1333,6 +1329,21 @@ if ( ! function_exists( 'instawp_is_connected_origin_valid' ) ) {
 
 		if ( ! empty( $connect_origin ) ) {
 			return hash_equals( $connect_origin, md5( $current_url ) );
+		}
+
+		return true;
+	}
+}
+
+if ( ! function_exists( 'instawp_is_connect_whitelabelled' ) ) {
+	function instawp_is_connect_whitelabelled() {
+		if ( ! defined( 'CONNECT_WHITELABEL' ) || CONNECT_WHITELABEL !== true ) {
+			return false;
+		}
+
+		$plans = defined( 'CONNECT_WHITELABEL_PLAN_DETAILS' ) && is_array( CONNECT_WHITELABEL_PLAN_DETAILS ) ? CONNECT_WHITELABEL_PLAN_DETAILS : array();
+		if ( empty( $plans ) ) {
+			return false;
 		}
 
 		return true;

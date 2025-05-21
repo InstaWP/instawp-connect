@@ -2,6 +2,7 @@
 /**
  * Connect to InstaWP Screen
  */
+defined( 'ABSPATH' ) || exit;
 
 $error_title   = __( 'We have removed support for local sites for now.', 'instawp-connect' );
 $error_message = __( 'You may use a third party backup and restore plugin such as WP Vivid or Everest Backup.', 'instawp-connect' );

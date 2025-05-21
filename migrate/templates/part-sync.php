@@ -5,6 +5,8 @@
 
 use InstaWP\Connect\Helpers\Helper;
 
+defined( 'ABSPATH' ) || exit;
+
 global $instawp_settings;
 
 if ( instawp()->is_staging && instawp()->is_parent_on_local ) { ?>

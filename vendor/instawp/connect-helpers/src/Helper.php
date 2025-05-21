@@ -42,9 +42,12 @@ class Helper {
 			'title'          => get_bloginfo( 'name' ),
 			'icon'           => get_site_icon_url(),
 			'username'       => base64_encode( self::get_admin_username() ),
-			'plan_id'        => $plan_id ? $plan_id : self::get_connect_plan_id(),
 			'managed'        => $managed,
 		);
+		$plan_id          = $plan_id ? $plan_id : self::get_connect_plan_id();
+		if ( ! empty( $plan_id ) ) {
+			$connect_body['plan_id'] = $plan_id;
+		}
 		$connect_response = Curl::do_curl( 'connects', $connect_body, array(), 'POST', 'v1' );
 
 		if ( ! empty( $connect_response['data']['status'] ) ) {
@@ -59,7 +62,7 @@ class Helper {
 					self::generate_jwt( $connect_id );
 				}
 
-				if ( $plan_id ) {
+				if ( ! empty( $plan_id ) ) {
 					self::set_connect_plan_id( $plan_id );
 				}
 
@@ -343,19 +346,56 @@ class Helper {
 		return self::set_settings( $api_options );
 	}
 
-	public static function get_connect_plan_id() {
-		$default_plan_id = defined( 'INSTAWP_CONNECT_PLAN_ID' ) ? INSTAWP_CONNECT_PLAN_ID : 1;
-		$plan_id         = Option::get_option( 'instawp_connect_plan_id', $default_plan_id );
+	public static function get_connect_plan() {
+		$api_options = self::get_options();
+		$plan_id     = self::get_args_option( 'plan_id', $api_options );
 
-		return ! empty( $plan_id ) ? (int) $plan_id : $default_plan_id;
+		if ( empty( $plan_id ) ) {
+			return [];
+		}
+
+		return [
+			'plan_id'        => $plan_id,
+			'plan_timestamp' => self::get_args_option( "plan_{$plan_id}_timestamp", $api_options ),
+		];
+	}
+
+	public static function get_connect_plan_id() {
+		$connect_plan = self::get_connect_plan();
+
+		return self::get_args_option( 'plan_id', $connect_plan );
 	}
 
 	public static function set_connect_plan_id( $plan_id ) {
-		if ( ! Option::get_option( "instawp_connect_plan_{$plan_id}_timestamp" ) ) {
-			Option::update_option( "instawp_connect_plan_{$plan_id}_timestamp", current_time( 'mysql' ) );
+		$api_options = self::get_options();
+
+		if ( ! empty( $plan_id ) ) {
+			$key = "plan_{$plan_id}_timestamp";
+
+			if ( ! isset( $api_options[ $key ] ) ) {
+				$api_options[ $key ] = current_time('mysql' );
+			}
+
+			$api_options['plan_id'] = $plan_id;
+		} else {
+			unset( $api_options['plan_id'] );
 		}
 
-		return Option::update_option( 'instawp_connect_plan_id', $plan_id );
+		return self::set_settings( $api_options );
+	}
+
+	public static function remove_connect_plan_id() {
+		$api_options = self::get_options();
+		$plan_id     = self::get_args_option( 'plan_id', $api_options );
+
+		if ( empty( $plan_id ) ) {
+			return false;
+		}
+
+		unset( $api_options['plan_id'] );
+		unset( $api_options["plan_{$plan_id}_timestamp"] );
+
+		return self::set_settings( $api_options );
 	}
 
 	public static function wp_site_url( $path = '', $check_ssl = false ) {

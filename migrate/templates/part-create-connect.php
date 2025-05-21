@@ -2,6 +2,7 @@
 /**
  * Connect to InstaWP Screen
  */
+defined( 'ABSPATH' ) || exit;
 
 $features = [
     'Plugin & Theme Updates',

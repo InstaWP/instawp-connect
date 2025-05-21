@@ -3,7 +3,7 @@
  * Template Migration - Main
  */
 
-
+defined( 'ABSPATH' ) || exit;
 ?>
 
 <div class="wrap instawp-migrate-wrap box-width rounded-2xl pt-8">

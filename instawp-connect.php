@@ -62,8 +62,6 @@ defined( 'INSTAWP_DB_TABLE_ACTIVITY_LOGS' ) || define( 'INSTAWP_DB_TABLE_ACTIVIT
 defined( 'INSTAWP_DEFAULT_MAX_FILE_SIZE_ALLOWED' ) || define( 'INSTAWP_DEFAULT_MAX_FILE_SIZE_ALLOWED', 50 );
 defined( 'INSTAWP_EVENTS_SYNC_PER_PAGE' ) || define( 'INSTAWP_EVENTS_SYNC_PER_PAGE', 5 );
 defined( 'INSTAWP_API_URL' ) || define( 'INSTAWP_API_URL', '/api/v1' );
-defined( 'INSTAWP_CONNECT_PLAN_ID' ) || define( 'INSTAWP_CONNECT_PLAN_ID', 1 );
-defined( 'INSTAWP_CONNECT_PLAN_EXPIRE_DAYS' ) || define( 'INSTAWP_CONNECT_PLAN_EXPIRE_DAYS', 0 );
 
 /**
  * @global instaWP $instawp_plugin
@@ -98,23 +96,6 @@ function instawp_plugin_activate() {
 			Option::delete_option( 'instawp_api_options' );
 		}
 	}
-
-	$default_plan_id          = INSTAWP_CONNECT_PLAN_ID;
-	$default_plan_expire_days = INSTAWP_CONNECT_PLAN_EXPIRE_DAYS;
-
-	if ( defined( 'CONNECT_WHITELABEL' ) && CONNECT_WHITELABEL && defined( 'CONNECT_WHITELABEL_PLAN_DETAILS' ) && is_array( CONNECT_WHITELABEL_PLAN_DETAILS ) ) {
-		$default_plan = array_filter( CONNECT_WHITELABEL_PLAN_DETAILS, function ( $plan ) {
-			return $plan['default'] === true;
-		} );
-
-		if ( ! empty( $default_plan ) ) {
-			$default_plan_id          = $default_plan[0]['plan_id'];
-			$default_plan_expire_days = $default_plan[0]['trial'];
-		}
-	}
-
-	Option::update_option( 'instawp_connect_plan_id', $default_plan_id );
-	Option::update_option( 'instawp_connect_plan_expire_days', $default_plan_expire_days );
 }
 
 /*Deactivate Hook Handle*/
