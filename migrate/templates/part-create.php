@@ -5,6 +5,8 @@
 
 use InstaWP\Connect\Helpers\Helper;
 
+defined( 'ABSPATH' ) || exit;
+
 global $instawp_settings;
 
 $nav_item_classes  = array( 'nav-item-content' );

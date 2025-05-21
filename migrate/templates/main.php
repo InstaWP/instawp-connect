@@ -6,6 +6,8 @@
 use InstaWP\Connect\Helpers\Helper;
 use InstaWP\Connect\Helpers\Option;
 
+defined( 'ABSPATH' ) || exit;
+
 global $instawp_settings;
 
 $current             = get_site_transient( 'update_plugins' );

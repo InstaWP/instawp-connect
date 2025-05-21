@@ -3,6 +3,7 @@
  * Migrate template - Management
  */
 
+defined( 'ABSPATH' ) || exit;
 ?>
 
 <div class="nav-item-content developer bg-white rounded-md p-6">

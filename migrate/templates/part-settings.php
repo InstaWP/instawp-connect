@@ -3,6 +3,7 @@
  * Migrate template - Settings
  */
 
+defined( 'ABSPATH' ) || exit;
 ?>
 
 <div class="nav-item-content settings bg-white rounded-md p-6">

@@ -5,6 +5,8 @@
 
 use InstaWP\Connect\Helpers\Helper;
 
+defined( 'ABSPATH' ) || exit;
+
 $staging_sites_count = is_array( $staging_sites ) ? count( $staging_sites ) : 0;
 $pagination          = 10;
 $parent_connect_data = array_filter( $staging_sites, function( $site ) {
