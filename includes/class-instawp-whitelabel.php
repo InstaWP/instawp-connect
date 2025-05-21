@@ -43,17 +43,12 @@ if ( ! class_exists( 'InstaWP_WhiteLabel' ) ) {
 				return;
 			}
 
-			$plans = CONNECT_WHITELABEL_PLAN_DETAILS;
-			if ( empty( $plans ) ) {
-				return;
-			}
-
 			$connect_plan = Helper::get_connect_plan();
 			if ( empty( $connect_plan ) ) {
 				return;
 			}
 
-			$current_plan = array_filter( $plans, function ( $plan ) use ( $connect_plan ) {
+			$current_plan = array_filter( CONNECT_WHITELABEL_PLAN_DETAILS, function ( $plan ) use ( $connect_plan ) {
 				return $plan['plan_id'] === $connect_plan['plan_id'];
 			} );
 			
