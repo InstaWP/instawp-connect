@@ -42,9 +42,12 @@ class Helper {
 			'title'          => get_bloginfo( 'name' ),
 			'icon'           => get_site_icon_url(),
 			'username'       => base64_encode( self::get_admin_username() ),
-			'plan_id'        => $plan_id ? $plan_id : self::get_connect_plan_id(),
 			'managed'        => $managed,
 		);
+		$plan_id          = $plan_id ? $plan_id : self::get_connect_plan_id();
+		if ( ! empty( $plan_id ) ) {
+			$connect_body['plan_id'] = $plan_id;
+		}
 		$connect_response = Curl::do_curl( 'connects', $connect_body, array(), 'POST', 'v1' );
 
 		if ( ! empty( $connect_response['data']['status'] ) ) {
@@ -59,7 +62,7 @@ class Helper {
 					self::generate_jwt( $connect_id );
 				}
 
-				if ( $plan_id ) {
+				if ( ! empty( $plan_id ) ) {
 					self::set_connect_plan_id( $plan_id );
 				}
 
@@ -372,7 +375,7 @@ class Helper {
 			if ( ! isset( $api_options[ $key ] ) ) {
 				$api_options[ $key ] = current_time('mysql' );
 			}
-			
+
 			$api_options['plan_id'] = $plan_id;
 		} else {
 			unset( $api_options['plan_id'] );
