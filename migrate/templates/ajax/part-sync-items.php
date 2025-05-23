@@ -1,4 +1,7 @@
-<?php if ( ! empty( $events ) ) : ?>
+<?php 
+defined( 'ABSPATH' ) || exit;
+
+if ( ! empty( $events ) ) : ?>
     <?php foreach ( $events as $event ) : ?>
         <?php
             $event_status     = $event->status;

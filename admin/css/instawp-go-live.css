@@ -98,7 +98,7 @@
 .instawp-go-live-wrap .live-btn {
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
     border-radius: 6px;
-    background: #005E54;
+    background: #15B881;
     border: 0;
     font-weight: 600;
     font-size: 14px;
@@ -131,7 +131,7 @@
     font-weight: 400;
     font-size: 14px;
     line-height: 20px;
-    color: #005E54;
+    color: #15B881;
     margin-left: 5px;
     transition: 0.3s;
 }
@@ -218,7 +218,7 @@
 }
 
 .instawp-go-live-wrap .trail-padding p span {
-    color: #005E54;
+    color: #15B881;
     cursor: pointer;
 }
 

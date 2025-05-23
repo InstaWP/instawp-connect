@@ -49,21 +49,17 @@ class instaWP {
 
 		$this->load_dependencies();
 
-		$this->version                 = INSTAWP_PLUGIN_VERSION;
-		$this->plugin_name             = INSTAWP_PLUGIN_SLUG;
+		$this->version     = INSTAWP_PLUGIN_VERSION;
+		$this->plugin_name = INSTAWP_PLUGIN_SLUG;
+
+		$this->connect_id              = instawp_get_connect_id();
 		$this->api_key                 = Helper::get_api_key();
 		$this->is_connected            = ! empty( $this->api_key );
 		$this->is_on_local             = instawp_is_website_on_local();
-		$this->connect_id              = instawp_get_connect_id();
 		$this->is_staging              = (bool) Option::get_option( 'instawp_is_staging', false );
 		$this->is_parent_on_local      = (bool) Option::get_option( 'instawp_parent_is_on_local', false );
 		$this->has_unsupported_plugins = ! empty( InstaWP_Tools::get_unsupported_active_plugins() );
 		$this->can_bundle              = ( class_exists( 'ZipArchive' ) || class_exists( 'PharData' ) );
-
-		// if connect id is empty then remove all connection
-//      if ( empty( $this->connect_id ) ) {
-//          instawp_reset_running_migration( 'hard' );
-//      }
 
 		if ( is_admin() ) {
 			$this->set_locale();
@@ -94,12 +90,12 @@ class instaWP {
 			);
 		}
 
-        try {
-            $wp_config = new WPConfig( $params );
-            $wp_config->set();
-        } catch ( \Exception $e ) {
-            error_log( $e->getMessage() );
-        }
+		try {
+			$wp_config = new WPConfig( $params );
+			$wp_config->set();
+		} catch ( \Exception $e ) {
+			error_log( $e->getMessage() );
+		}
 	}
 
 	public function register_actions() {
@@ -373,8 +369,9 @@ class instaWP {
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-database-management.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-tools.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-hooks.php';
+		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-whitelabel.php';
 		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-cli.php';
-		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-updates.php';
+		// require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-updates.php';
 		// require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-checksum.php';
 
 		if ( ! defined( 'IWP_PLUGIN_DISABLE_HEARTBEAT' ) || IWP_PLUGIN_DISABLE_HEARTBEAT !== true ) {
@@ -403,7 +400,7 @@ class instaWP {
 		if ( $setting === 'on' ) {
 			require_once INSTAWP_PLUGIN_DIR . '/includes/activity-log/class-instawp-activity-log.php';
 
-			$files = array( 'posts', 'attachments', 'users', 'menus', 'plugins', 'themes', 'taxonomies', 'widgets' );
+			$files = array( 'core', 'posts', 'attachments', 'users', 'menus', 'plugins', 'themes', 'taxonomies', 'widgets' );
 			foreach ( $files as $file ) {
 				require_once INSTAWP_PLUGIN_DIR . '/includes/activity-log/class-instawp-activity-log-' . $file . '.php';
 			}

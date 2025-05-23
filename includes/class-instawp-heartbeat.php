@@ -19,9 +19,8 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 			add_action( 'update_option_instawp_api_heartbeat', array( $this, 'clear_heartbeat_action' ) );
 			add_action( 'add_option_instawp_rm_heartbeat', array( $this, 'clear_heartbeat_action' ) );
 			add_action( 'update_option_instawp_rm_heartbeat', array( $this, 'clear_heartbeat_action' ) );
-			add_action( 'instawp_handle_heartbeat', array( $this, 'send_heartbeat_data' ) );
-			add_action( 'instawp_send_heartbeat', array( $this, 'send_heartbeat_data' ) );
-			add_action( 'instawp_handle_heartbeat_status', array( $this, 'handle_heartbeat_status' ) );
+			add_action( 'instawp_send_heartbeat', array( $this, 'send_heartbeat_data' ) ); // Every 24 hours
+			add_action( 'instawp_handle_heartbeat', array( $this, 'handle_heartbeat_data' ) ); // User defined interval
 		}
 
 		public function register_events() {
@@ -29,18 +28,14 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 				as_schedule_recurring_action( time(), DAY_IN_SECONDS, 'instawp_send_heartbeat', array(), 'instawp-connect' );
 			}
 
-			if ( ! as_has_scheduled_action( 'instawp_handle_heartbeat_status', array(), 'instawp-connect' ) ) {
-				as_schedule_recurring_action( time(), DAY_IN_SECONDS, 'instawp_handle_heartbeat_status', array(), 'instawp-connect' );
-			}
-
 			$heartbeat = Option::get_option( 'instawp_rm_heartbeat', 'on' );
 			$heartbeat = empty( $heartbeat ) ? 'on' : $heartbeat;
 
 			if ( 'on' === $heartbeat ) {
-				$interval = Option::get_option( 'instawp_api_heartbeat', 240 );
-				$interval = empty( $interval ) ? 240 : (int) $interval;
-
 				if ( ! as_has_scheduled_action( 'instawp_handle_heartbeat', array(), 'instawp-connect' ) ) {
+					$interval = Option::get_option( 'instawp_api_heartbeat', 240 );
+					$interval = empty( $interval ) ? 240 : (int) $interval;
+
 					as_schedule_recurring_action( time(), ( $interval * MINUTE_IN_SECONDS ), 'instawp_handle_heartbeat', array(), 'instawp-connect' );
 				}
 			}
@@ -51,17 +46,40 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 		}
 
 		public function send_heartbeat_data() {
-			self::send_heartbeat();
-		}
-
-		public function handle_heartbeat_status() {
-			$disabled = Option::get_option( 'instawp_rm_heartbeat_failed' );
-			if ( ! $disabled ) {
+			$heartbeat_response = self::send_heartbeat();
+			if ( ! $heartbeat_response['success'] ) {
 				return;
 			}
 
-			if ( self::send_heartbeat() ) {
+			$failed_count = Option::get_option( 'instawp_heartbeat_failed', 0 );
+			$failed_count = $failed_count ? $failed_count : 0;
+
+			if ( $failed_count > 10 ) {
+				Option::delete_option( 'instawp_heartbeat_failed' );
 				Option::update_option( 'instawp_rm_heartbeat', 'on' );
+			}
+		}
+
+		public function handle_heartbeat_data() {
+			$heartbeat_response = self::send_heartbeat();
+
+			if ( $heartbeat_response['success'] ) {
+				Option::delete_option( 'instawp_heartbeat_failed' );
+			} else {
+				$failed_count = Option::get_option( 'instawp_heartbeat_failed', 0 );
+				$failed_count = $failed_count ? $failed_count : 0;
+
+				++$failed_count;
+
+				Option::update_option( 'instawp_heartbeat_failed', $failed_count );
+
+				if ( $failed_count > 10 ) {
+					Option::update_option( 'instawp_rm_heartbeat', 'off' );
+
+					if ( intval( $heartbeat_response['response_code'] ) === 404 ) {
+						instawp_reset_running_migration( 'hard' );
+					}
+				}
 			}
 		}
 
@@ -94,6 +112,8 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
             $database_size = ! empty( $sizes_data['database_size']['raw'] ) ? $sizes_data['database_size']['raw'] : 0;
 
 			return array(
+				'title'             => get_bloginfo( 'name' ),
+				'icon'              => get_site_icon_url(),
 				'wp_version'        => $wp_version,
 				'php_version'       => $php_version,
 				'plugin_version'    => INSTAWP_PLUGIN_VERSION,
@@ -116,8 +136,6 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 		}
 
 		public static function send_heartbeat( $connect_id = null ) {
-			global $wpdb;
-
 			if ( defined( 'INSTAWP_DEBUG_LOG' ) && true === INSTAWP_DEBUG_LOG ) {
 				error_log( "HEARTBEAT RAN AT : " . date( 'd-m-Y, H:i:s, h:i:s' ) );
 			}
@@ -130,11 +148,9 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 				return false;
 			}
 
-			$last_sent_data = get_option( 'instawp_heartbeat_sent_data', array() );
 			$heartbeat_data = self::prepare_data();
 			$heartbeat_body = wp_json_encode( array(
 				'site_information' => $heartbeat_data,
-				'new_changes'      => instawp_array_recursive_diff( $heartbeat_data, $last_sent_data ),
 			) );
 			$heartbeat_body = base64_encode( $heartbeat_body ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
 
@@ -142,39 +158,17 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 			$response_code      = Helper::get_args_option( 'code', $heartbeat_response );
 			$success            = intval( $response_code ) === 200;
 
-			if ( ! $success ) {
-				$failed_count = Option::get_option( 'instawp_heartbeat_failed', 0 );
-				$failed_count = $failed_count ? $failed_count : 0;
-
-				++$failed_count;
-
-				if ( $failed_count > 10 ) {
-					Option::update_option( 'instawp_rm_heartbeat', 'off' );
-					Option::update_option( 'instawp_rm_heartbeat_failed', true );
-
-					delete_option( 'instawp_heartbeat_failed' );
-					as_unschedule_all_actions( 'instawp_handle_heartbeat', array(), 'instawp-connect' );
-
-					if ( intval( $response_code ) === 404 ) {
-						instawp_reset_running_migration( 'hard' );
-					}
-				} else {
-					Option::update_option( 'instawp_heartbeat_failed', $failed_count );
-				}
-			} else {
-				delete_option( 'instawp_heartbeat_failed' );
-				delete_option( 'instawp_rm_heartbeat_failed' );
-
-				Option::update_option( 'instawp_heartbeat_sent_data', $heartbeat_data );
-			}
-
 			if ( defined( 'INSTAWP_DEBUG_LOG' ) && INSTAWP_DEBUG_LOG ) {
 				error_log( "Print Heartbeat API Curl Response Start" );
 				error_log( wp_json_encode( $heartbeat_response, true ) );
 				error_log( "Print Heartbeat API Curl Response End" );
 			}
 
-			return $success;
+			return [
+				'success' => $success,
+				'response' => $heartbeat_response,
+				'response_code' => $response_code,
+			];
 		}
 	}
 }

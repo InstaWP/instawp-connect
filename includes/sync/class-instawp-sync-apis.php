@@ -61,6 +61,92 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 			'callback'            => array( $this, 'events_summary' ),
 			'permission_callback' => '__return_true',
 		) );
+
+		register_rest_route( $this->namespace . '/' . $this->version, '/sync/download-media', array(
+			'methods'             => 'POST',
+			'callback'            => array( $this, 'download_media' ),
+			'permission_callback' => array( $this, 'validate_sync_api_request' ),
+		) );
+	}
+
+	/**
+	 * Valid api request and if invalid api key then stop executing.
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return WP_Error|bool
+	 */
+	public function validate_sync_api_request( WP_REST_Request $request ) {
+		// Get bearer token from the request
+		$bearer_token = $this->get_bearer_token( $request );
+		// Check if the bearer token is a wp error
+		if ( is_wp_error( $bearer_token ) ) {
+			return $this->throw_error( $bearer_token );
+		}
+
+		$instawp_api_options = get_option( 'instawp_api_options' );
+
+		// check if the bearer token is empty
+		if ( empty( $instawp_api_options ) || empty( $instawp_api_options['connect_id'] ) || empty( $instawp_api_options['connect_uuid'] ) ) {
+			return new WP_Error( 401, esc_html__( 'Empty API options.', 'instawp-connect' ) );
+		}
+
+		// Prepare hash
+		$hash = hash( 'sha256', $instawp_api_options['connect_id'] . '_' . $instawp_api_options['connect_uuid'] );
+
+		if ( ! hash_equals( $bearer_token, $hash ) ) {
+			return new WP_Error( 401, esc_html__( 'Incorrect token.', 'instawp-connect' ) );
+		}
+
+		return true;
+	}
+
+	/**
+	 * Download media files
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function download_media( WP_REST_Request $request ) {
+		// Get media_url from the request
+		$media_id = $request->get_param('media_id');
+		if ( empty( $media_id ) || ! is_numeric( $media_id ) || 1 > intval( $media_id ) ) {
+			return $this->send_response( array(
+				'success' => false,
+				'message' => __( 'Empty or invalid media id.', 'instawp-connect' ),
+			) );
+		}
+		
+		$media_id = intval( $media_id );
+		$file_path = get_attached_file( $media_id ); // Full path
+		if ( empty( $file_path ) || ! file_exists( $file_path ) ) {
+			return $this->send_response( array(
+				'success' => false,
+				'message' => __( 'File not found.', 'instawp-connect' ),
+			) );
+		}
+
+		$file_type_ext = wp_check_filetype( $file_path );
+
+		if ( false === $file_type_ext['type'] || empty( $file_type_ext['ext'] ) || ! in_array( $file_type_ext['ext'], array( 'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'mp4', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'csv', 'txt', 'rtf', 'html', 'zip', 'mp3', 'wma', 'mpg', 'flv', 'avi' ) ) ) {
+			return $this->send_response( array(
+				'success' => false,
+				'message' => __( 'File type not supported.', 'instawp-connect' ),
+			) );
+		}
+
+		// Serve the file for download
+		header('Content-Description: File Transfer');
+		header('Content-Type: ' . $file_type_ext['type'] );
+		header('Content-Disposition: attachment; filename="' . basename( $file_path ) . '"');
+		header('Expires: 0');
+		header('Cache-Control: must-revalidate');
+		header('Pragma: public');
+		header('Content-Length: ' . filesize( $file_path ));
+	
+		readfile( $file_path );
+		exit;
 	}
 
 	/**
@@ -81,30 +167,30 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 
 		global $wpdb;
 
-		$params         = $request->get_params();
-		$connect_id     = ! empty( $params['connect_id'] ) ? intval( $params['connect_id'] ) : 0;
+		$params     = $request->get_params();
+		$connect_id = ! empty( $params['connect_id'] ) ? intval( $params['connect_id'] ) : 0;
 
-        if ( empty( $connect_id ) ) {
-            return $this->send_response( array(
-                'success' => false,
-                'message' => 'Connect ID is required.',
-            ) );
-        }
+		if ( empty( $connect_id ) ) {
+			return $this->send_response( array(
+				'success' => false,
+				'message' => 'Connect ID is required.',
+			) );
+		}
 
 		$num_page       = ! empty( $params['num_page'] ) ? intval( $params['num_page'] ) : 1;
 		$items_per_page = ! empty( $params['items_per_page'] ) ? intval( $params['items_per_page'] ) : 10;
 		$filter_status  = ! empty( $params['type'] ) ? $params['type'] : 'all';
 		$offset         = ( $num_page * $items_per_page ) - $items_per_page;
 
-        $staging_sites = instawp_get_connected_sites_list();
-        $connect_ids   = wp_list_pluck( $staging_sites, 'connect_id' );
+		$staging_sites = instawp_get_connected_sites_list();
+		$connect_ids   = wp_list_pluck( $staging_sites, 'connect_id' );
 
-        if ( ! in_array( $connect_id, $connect_ids ) ) {
-            return $this->send_response( array(
-                'success' => false,
-                'message' => 'There is no sites present with the provided Connect ID.',
-            ) );
-        }
+		if ( ! in_array( $connect_id, $connect_ids ) ) {
+			return $this->send_response( array(
+				'success' => false,
+				'message' => 'There is no sites present with the provided Connect ID.',
+			) );
+		}
 
 		$staging_site = instawp_get_site_detail_by_connect_id( $connect_id, 'data' );
 		$site_created = '1970-01-01 00:00:00';
@@ -183,12 +269,12 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 		$params     = $request->get_params();
 		$connect_id = ! empty( $params['connect_id'] ) ? intval( $params['connect_id'] ) : 0;
 
-        if ( empty( $connect_id ) ) {
-            return $this->send_response( array(
-                'success' => false,
-                'message' => 'Connect ID is required.',
-            ) );
-        }
+		if ( empty( $connect_id ) ) {
+			return $this->send_response( array(
+				'success' => false,
+				'message' => 'Connect ID is required.',
+			) );
+		}
 
 		$event_ids = isset( $params['event_ids'] ) ? (array) $params['event_ids'] : array();
 		$event_ids = array_map( 'intval', $event_ids );
@@ -202,14 +288,14 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 		}
 
 		$staging_sites = instawp_get_connected_sites_list();
-        $connect_ids   = wp_list_pluck( $staging_sites, 'connect_id' );
+		$connect_ids   = wp_list_pluck( $staging_sites, 'connect_id' );
 
-        if ( ! in_array( $connect_id, $connect_ids ) ) {
-            return $this->send_response( array(
-                'success' => false,
-                'message' => 'There is no sites present with the provided Connect ID.',
-            ) );
-        }
+		if ( ! in_array( $connect_id, $connect_ids ) ) {
+			return $this->send_response( array(
+				'success' => false,
+				'message' => 'There is no sites present with the provided Connect ID.',
+			) );
+		}
 
 		$events = $this->sync->generate_pending_sync_events( $connect_id, $event_ids );
 
@@ -241,7 +327,13 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 
 		$data     = array( 'total_events' => INSTAWP_EVENTS_SYNC_PER_PAGE );
 		$contents = array();
-
+		// Check if website is on local
+		$is_website_on_local = instawp_is_website_on_local();
+		$is_upload = $is_website_on_local;
+		if ( ! $is_upload ) {
+			// Get failed direct download media events
+			$failed_media_events = InstaWP_Sync_Helpers::failed_direct_process_media_events();
+		}
 		foreach ( $events as $event ) {
 			$event_hash = $event->event_hash;
 			$content    = json_decode( $event->details, true );
@@ -251,10 +343,15 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 				$wpdb->update( INSTAWP_DB_TABLE_EVENT_SYNC_LOGS, array( 'event_hash' => $event_hash ), array( 'id' => $event->id ) );
 			}
 
+			if ( ! $is_upload ) {
+				// Check if media should be uploaded
+				$is_upload = in_array( $event->id, $failed_media_events );
+			}
+
 			$contents[] = array(
 				'id'         => $event->id,
 				'event_hash' => $event_hash,
-				'details'    => InstaWP_Sync_Parser::process_attachments( $content ),
+				'details'    => InstaWP_Sync_Parser::process_attachments( $content, $connect_id, $is_upload ),
 				'event_name' => $event->event_name,
 				'event_slug' => $event->event_slug,
 				'event_type' => $event->event_type,
@@ -281,7 +378,7 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 			'upload_wp_user'    => $user_id,
 			'sync_message'      => $message,
 			'source_connect_id' => instawp()->connect_id,
-			'source_url'        => get_site_url(),
+			'source_url'        => Helper::wp_site_url(),
 		);
 
 		$response = $this->sync->sync_upload( $packed_data );
@@ -387,22 +484,22 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 		$params     = $request->get_params();
 		$connect_id = ! empty( $params['connect_id'] ) ? intval( $params['connect_id'] ) : 0;
 
-        if ( empty( $connect_id ) ) {
-            return $this->send_response( array(
-                'success' => false,
-                'message' => 'Connect ID is required.',
-            ) );
-        }
+		if ( empty( $connect_id ) ) {
+			return $this->send_response( array(
+				'success' => false,
+				'message' => 'Connect ID is required.',
+			) );
+		}
 
 		$staging_sites = instawp_get_connected_sites_list();
-        $connect_ids   = wp_list_pluck( $staging_sites, 'connect_id' );
+		$connect_ids   = wp_list_pluck( $staging_sites, 'connect_id' );
 
-        if ( ! in_array( $connect_id, $connect_ids ) ) {
-            return $this->send_response( array(
-                'success' => false,
-                'message' => 'There is no sites present with the provided Connect ID.',
-            ) );
-        }
+		if ( ! in_array( $connect_id, $connect_ids ) ) {
+			return $this->send_response( array(
+				'success' => false,
+				'message' => 'There is no sites present with the provided Connect ID.',
+			) );
+		}
 
 		$staging_site = instawp_get_site_detail_by_connect_id( $connect_id, 'data' );
 		$site_created = '1970-01-01 00:00:00';
@@ -486,36 +583,47 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 			$sync_message = isset( $bodyArr->sync_message ) ? $bodyArr->sync_message : '';
 
 			foreach ( $encrypted_contents as $event ) {
-				$has_log = $wpdb->get_var(
-					$wpdb->prepare( "SELECT id FROM " . INSTAWP_DB_TABLE_EVENT_SYNC_LOGS . " WHERE `event_hash`=%s AND `status`=%s", $event->event_hash, 'completed' ) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-				);
+				try {
+					$has_log = $wpdb->get_var(
+						$wpdb->prepare( "SELECT id FROM " . INSTAWP_DB_TABLE_EVENT_SYNC_LOGS . " WHERE `event_hash`=%s AND `status`=%s", $event->event_hash, 'completed' ) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+					);
 
-				if ( $has_log ) {
-					$response_data               = InstaWP_Sync_Helpers::sync_response( $event );
-					$sync_response[ $event->id ] = $response_data['data'];
-				} else {
-					if ( empty( $event->event_slug ) || empty( $event->details ) ) {
-						continue;
-					}
+					global $iwp_sync_process_event_id;
+					$iwp_sync_process_event_id = $event->id;
 
-					$reference_id        = ( ! empty( $event->source_id ) ) ? sanitize_text_field( $event->source_id ) : null;
-					$event->reference_id = $reference_id;
-
-					$response_data = ( array ) apply_filters( 'instawp/filters/2waysync/process_event', array(), $event, $source_url );
-					if ( ! empty( $response_data['data'] ) ) {
+					if ( $has_log ) {
+						$response_data               = InstaWP_Sync_Helpers::sync_response( $event );
 						$sync_response[ $event->id ] = $response_data['data'];
+					} else {
+						if ( empty( $event->event_slug ) || empty( $event->details ) ) {
+							continue;
+						}
+
+						$reference_id        = ( ! empty( $event->source_id ) ) ? sanitize_text_field( $event->source_id ) : null;
+						$event->reference_id = $reference_id;
+
+						$response_data = ( array ) apply_filters( 'instawp/filters/2waysync/process_event', array(), $event, $source_url );
+						if ( ! empty( $response_data['data'] ) ) {
+							$sync_response[ $event->id ] = $response_data['data'];
+						}
+
+						if ( ! empty( $response_data['log_data'] ) ) {
+							$this->logs = array_merge( $this->logs, $response_data['log_data'] );
+						}
+
+						// record logs
+						$this->event_sync_logs( $event, $source_url, $sync_response );
 					}
 
-					if ( ! empty( $response_data['log_data'] ) ) {
-						$this->logs = array_merge( $this->logs, $response_data['log_data'] );
-					}
+					$progress        = intval( ( $count / $total_op ) * 100 );
+					$progress_status = ( $progress < 100 ) ? 'in_progress' : 'completed';
 
-					// record logs
-					$this->event_sync_logs( $event, $source_url, $sync_response );
+				} catch ( \Exception $e ) {
+					$progress        = isset( $progress ) ? $progress : intval( ( $count / $total_op ) * 100 );
+					//Allowed status: 'pending', 'in_progress', 'completed', 'error'
+					$progress_status = 'error'; 
+					$sync_message = $e->getMessage();
 				}
-
-				$progress        = intval( ( $count / $total_op ) * 100 );
-				$progress_status = ( $progress < 100 ) ? 'in_progress' : 'completed';
 
 				/**
 				 * Update api for cloud
@@ -530,6 +638,7 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 						'logs'          => $this->logs,
 					),
 				);
+				
 				$this->sync_update( $sync_id, $sync_update );
 				++ $count;
 			}

@@ -1,4 +1,5 @@
-<?php
+<?php global $migrate_id;
+
 /**
  * @link              https://instawp.com/
  * @since             0.0.1
@@ -7,7 +8,7 @@
  * @wordpress-plugin
  * Plugin Name:       InstaWP Connect
  * Description:       1-click WordPress plugin for Staging, Migrations, Management, Sync and Companion plugin for InstaWP.
- * Version:           0.1.0.66
+ * Version:           0.1.0.90
  * Author:            InstaWP Team
  * Author URI:        https://instawp.com/
  * License:           GPL-3.0+
@@ -27,12 +28,11 @@ if ( ! defined( 'WPINC' ) ) {
 
 global $wpdb;
 
-defined( 'INSTAWP_PLUGIN_VERSION' ) || define( 'INSTAWP_PLUGIN_VERSION', '0.1.0.66' );
+defined( 'INSTAWP_PLUGIN_VERSION' ) || define( 'INSTAWP_PLUGIN_VERSION', '0.1.0.90' );
 defined( 'INSTAWP_API_DOMAIN_PROD' ) || define( 'INSTAWP_API_DOMAIN_PROD', 'https://app.instawp.io' );
 
 $wp_plugin_url   = WP_PLUGIN_URL . '/' . plugin_basename( __DIR__ ) . '/';
-$wp_site_url     = get_option( 'siteurl' );
-$parsed_site_url = wp_parse_url( $wp_site_url );
+$parsed_site_url = wp_parse_url( get_option( 'siteurl' ) );
 
 if ( isset( $parsed_site_url['scheme'] ) && strtolower( $parsed_site_url['scheme'] ) === 'http' ) {
 	$is_protocol_https = ( ! empty( $_SERVER['HTTPS'] ) && $_SERVER['HTTPS'] !== 'off' ) || ( ! empty( $_SERVER['SERVER_PORT'] ) && $_SERVER['SERVER_PORT'] === 443 );
@@ -79,21 +79,21 @@ function instawp_plugin_activate() {
 	//set default user for sync settings if user empty
 	$default_user = Option::get_option( 'instawp_default_user' );
 	if ( empty( $default_user ) ) {
-		update_option( 'instawp_default_user', get_current_user_id() );
+		Option::update_option( 'instawp_default_user', get_current_user_id() );
 	}
 
 	$instawp_sync_tab_roles = Option::get_option( 'instawp_sync_tab_roles' );
 	if ( empty( $instawp_sync_tab_roles ) ) {
 		$user  = wp_get_current_user();
 		$roles = ( array ) $user->roles;
-		update_option( 'instawp_sync_tab_roles', $roles );
+		Option::update_option( 'instawp_sync_tab_roles', $roles );
 	}
 
 	$connect_id = instawp_get_connect_id();
 	if ( ! empty( $connect_id ) ) {
-		$response = Curl::do_curl( "connects/{$connect_id}/restore", array( 'url' => site_url() ) );
+		$response = Curl::do_curl( "connects/{$connect_id}/restore", array( 'url' => Helper::wp_site_url( '', true ) ) );
 		if ( empty( $response['success'] ) ) {
-			delete_option( 'instawp_api_options' );
+			Option::delete_option( 'instawp_api_options' );
 		}
 	}
 }
@@ -101,7 +101,8 @@ function instawp_plugin_activate() {
 /*Deactivate Hook Handle*/
 function instawp_plugin_deactivate() {
 	InstaWP_Tools::instawp_reset_permalink();
-	delete_option( 'instawp_last_heartbeat_sent' );
+	Option::delete_option( 'instawp_last_heartbeat_sent' );
+	Option::delete_option( 'instawp_migration_details' );
 
 	$connect_id = instawp_get_connect_id();
 	if ( ! empty( $connect_id ) ) {

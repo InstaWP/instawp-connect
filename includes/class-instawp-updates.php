@@ -11,6 +11,7 @@ if ( ! class_exists( 'InstaWP_Updates' ) ) {
 
 		private static $updates = array(
 			'0.1.0.65' => 'updates/update-0.1.0.65.php',
+			'0.1.0.70' => 'updates/update-0.1.0.70.php',
 		);
 
 		public function __construct() {

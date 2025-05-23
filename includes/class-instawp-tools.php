@@ -17,7 +17,7 @@ class InstaWP_Tools {
 
 		$log_args             = array(
 			'migrate_id'  => $migrate_id,
-			'url'         => site_url(),
+			'url'         => Helper::wp_site_url( '', true ),
 			'type'        => 'plugin',
 			'label'       => $label,
 			'description' => $description,
@@ -104,7 +104,7 @@ class InstaWP_Tools {
 		return false;
 	}
 
-	public static function clean_instawpbackups_dir( $instawpbackups_dir = '' ) {
+	public static function clean_instawpbackups_dir( $instawpbackups_dir = '', $clean_self = false ) {
 
 		if ( empty( $instawpbackups_dir ) ) {
 			$instawpbackups_dir = WP_CONTENT_DIR . '/' . INSTAWP_DEFAULT_BACKUP_DIR;
@@ -130,7 +130,9 @@ class InstaWP_Tools {
 
 		closedir( $instawpbackups_dir_handle );
 
-//      rmdir( $instawpbackups_dir );
+		if ( $clean_self ) {
+			rmdir( $instawpbackups_dir );
+		}
 
 		return true;
 	}
@@ -152,13 +154,15 @@ class InstaWP_Tools {
 			'db_charset'       => DB_CHARSET,
 			'db_collate'       => DB_COLLATE,
 			'table_prefix'     => $table_prefix,
-			'site_url'         => site_url(),
+			'site_url'         => Helper::wp_site_url( '', true ),
 		);
 		$options_data_str       = wp_json_encode( $options_data );
 		$passphrase             = openssl_digest( $migrate_key, 'SHA256', true );
-		$options_data_encrypted = openssl_encrypt( $options_data_str, 'AES-256-CBC', $passphrase );
+		$openssl_iv             = openssl_random_pseudo_bytes( 16 );
+		$options_data_encrypted = openssl_encrypt( $options_data_str, 'AES-256-CBC', $passphrase, 0, $openssl_iv );
+		$final_encrypted_data   = base64_encode( $openssl_iv . base64_decode( $options_data_encrypted ) );
 		$options_data_filename  = INSTAWP_BACKUP_DIR . 'options-' . $migrate_key . '.txt';
-		$options_data_stored    = file_put_contents( $options_data_filename, $options_data_encrypted ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+		$options_data_stored    = file_put_contents( $options_data_filename, $final_encrypted_data );
 
 		if ( ! $options_data_stored ) {
 			return false;
@@ -172,22 +176,24 @@ class InstaWP_Tools {
 		$wpdb->query( "DROP TABLE IF EXISTS `iwp_options`;" );
 
 		return array(
-			'serve_url'        => INSTAWP_PLUGIN_URL . 'serve.php',
+			'serve_url'        => INSTAWP_PLUGIN_URL . 'iwp-serve/',
 			'migrate_settings' => $migrate_settings,
 		);
 	}
 
-	public static function generate_forwarded_file( $forwarded_path = ABSPATH, $file_name = 'fwd.php' ) {
+	public static function generate_proxy_serve_url( $forwarded_path = ABSPATH, $file_name = '' ) {
 
-		$forwarded_content      = '<?php
+		$forwarded_content = '<?php
 /* Copyright (c) InstaWP Inc. */
 
 $path_structure = array(
     __DIR__,
+    \'..\',
     \'wp-content\',
     \'plugins\',
     \'instawp-connect\',
-    \'serve.php\',
+    \'iwp-serve\',
+    \'index.php\',
 );
 $file_path      = implode( DIRECTORY_SEPARATOR, $path_structure );
 
@@ -198,11 +204,24 @@ if ( ! is_readable( $file_path ) ) {
 }
 
 include $file_path;';
-		$forwarded_file_path    = $forwarded_path . DIRECTORY_SEPARATOR . $file_name;
+
+		$file_name           = empty( $file_name ) ? 'iwp-serve' . DIRECTORY_SEPARATOR . 'index.php' : $file_name;
+		$forwarded_file_path = $forwarded_path . DIRECTORY_SEPARATOR . $file_name;
+
+		// Create the directory first in the root
+		$directory = dirname( $forwarded_file_path );
+		if ( ! is_dir( $directory ) ) {
+			if ( ! mkdir( $directory, 0777, true ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir
+				error_log( 'Could not create directory: ' . $directory );
+
+				return false;
+			}
+		}
+
 		$forwarded_file_created = file_put_contents( $forwarded_file_path, $forwarded_content ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 
 		if ( $forwarded_file_created ) {
-			return site_url( $file_name );
+			return Helper::wp_site_url( 'iwp-serve/', true );
 		}
 
 		error_log( 'Could not create the forwarded file' );
@@ -235,6 +254,120 @@ include $file_path;';
 
 	public static function generate_destination_file( $migrate_key, $api_signature, $migrate_settings = array() ) {
 
+		$result = array(
+			'dest_url' => false,
+			'error'  => 'Could not create the destination db file',
+		);
+		try {
+			
+			if ( ! function_exists( 'iwp_get_root_dir' ) ) {
+				include_once 'functions-pull-push.php';
+			}
+
+			$data = array_merge( array(
+				'api_signature'       => $api_signature,
+				'db_host'             => DB_HOST,
+				'db_username'         => DB_USER,
+				'db_password'         => DB_PASSWORD,
+				'db_name'             => DB_NAME,
+				'db_charset'          => DB_CHARSET,
+				'db_collate'          => DB_COLLATE,
+				'site_url'            => defined( 'WP_SITEURL' ) ? WP_SITEURL : Helper::wp_site_url( '', true ),
+				'home_url'            => defined( 'WP_HOME' ) ? WP_HOME : home_url(),
+				'instawp_api_options' => maybe_serialize( Option::get_option( 'instawp_api_options' ) ),
+			), $migrate_settings );
+
+			$options_data_str       = wp_json_encode( $data );
+			$passphrase             = openssl_digest( $migrate_key, 'SHA256', true );
+			$openssl_iv             = openssl_random_pseudo_bytes( 16 );
+			$options_data_encrypted = openssl_encrypt( $options_data_str, 'AES-256-CBC', $passphrase, 0, $openssl_iv );
+			$data_encrypted         = base64_encode( $openssl_iv . base64_decode( $options_data_encrypted ) );
+			$root_dir               = iwp_get_root_dir();
+			$info_filename          = 'migrate-push-db-' . substr( $migrate_key, 0, 5 ) . '.txt';
+
+			if ( isset( $root_dir['status'] ) && $root_dir['status'] === true ) {
+				$root_dir_path = isset( $root_dir['root_path'] ) ? $root_dir['root_path'] . DIRECTORY_SEPARATOR : ABSPATH;
+			} else {
+				$root_dir_path = ABSPATH;
+			}
+
+			$dest_file_path = $root_dir_path . $info_filename;
+
+			if ( ! file_put_contents( $dest_file_path, $data_encrypted ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+				return $result;
+			}
+
+			$dest_url = INSTAWP_PLUGIN_URL . 'iwp-dest' . DIRECTORY_SEPARATOR;
+
+			// Check if __wp__ directory exists. If it does, then use that
+			$is_wpcloud = is_dir( $root_dir_path . '__wp__' );
+			if ( $is_wpcloud ) {
+				$dest_url = INSTAWP_PLUGIN_URL . 'iwp-dest' . DIRECTORY_SEPARATOR . 'index.php';
+			}
+			
+			if ( self::is_migrate_file_accessible( $dest_url ) ) {
+				$result['dest_url'] = $dest_url;
+				return $result;
+			}
+
+			// If file is not accessible then create it and try again
+			$forwarded_content = '<?php
+			$path_structure = array(
+				__DIR__,
+				\'..\',
+				\'wp-content\',
+				\'plugins\',
+				\'instawp-connect\',
+				\'iwp-dest\',
+				\'index.php\',
+			);
+			$file_path      = implode( DIRECTORY_SEPARATOR, $path_structure );
+
+			if ( ! is_readable( $file_path ) ) {
+				header( \'x-iwp-status: false\' );
+				header( \'x-iwp-message: File is not readable\' );
+				exit( 2004 );
+			}
+
+			include $file_path;';
+
+			$forwarded_file_path = $root_dir_path . 'iwp-dest' . DIRECTORY_SEPARATOR . 'index.php';
+
+			// Create the directory first in the root
+			$directory = dirname( $forwarded_file_path );
+			if ( ! is_dir( $directory ) ) {
+				if ( ! mkdir( $directory, 0777, true ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir
+					$result['error'] = 'Could not create directory: ' . $directory;
+					return $result;
+				}
+			}
+
+			if ( file_put_contents( $forwarded_file_path, $forwarded_content ) ) { // phpcs:ignore WordPress.WP.AlternateFunctions.file_system_operations_file_put_contents
+				$dest_url = Helper::wp_site_url( $is_wpcloud ? 'iwp-dest/index.php': 'iwp-dest/', true );
+
+				// Check if the forwarded file is accessible
+				$accessible_file = self::is_migrate_file_accessible( $dest_url, true );
+				if ( $accessible_file['is_accessible'] ) {
+					$result['dest_url'] = $dest_url;
+				} else {
+					$result['error'] = 'Destination file is not accessible' . json_encode( $accessible_file );
+				}
+			} else {
+				$result['error'] = 'Could not create the destination file or forwarded file. Path: ' . $forwarded_file_path;
+			}
+		} catch (\Throwable $th) {
+			$result['error'] = 'Could not create the destination file. Error:' . $th->getMessage();
+		}
+
+		return $result;
+	}
+
+	public static function generate_destination_file_bak( $migrate_key, $api_signature, $migrate_settings = array() ) {
+
+		if ( ! function_exists( 'iwp_get_root_dir' ) ) {
+			include_once 'functions-pull-push.php';
+		}
+
 		$data = array_merge( array(
 			'api_signature'       => $api_signature,
 			'db_host'             => DB_HOST,
@@ -243,27 +376,45 @@ include $file_path;';
 			'db_name'             => DB_NAME,
 			'db_charset'          => DB_CHARSET,
 			'db_collate'          => DB_COLLATE,
-			'site_url'            => defined( 'WP_SITEURL' ) ? WP_SITEURL : site_url(),
+			'site_url'            => defined( 'WP_SITEURL' ) ? WP_SITEURL : Helper::wp_site_url( '', true ),
 			'home_url'            => defined( 'WP_HOME' ) ? WP_HOME : home_url(),
 			'instawp_api_options' => maybe_serialize( Option::get_option( 'instawp_api_options' ) ),
 		), $migrate_settings );
 
-		$jsonString     = wp_json_encode( $data );
-		$passphrase     = openssl_digest( $migrate_key, 'SHA256', true );
-		$data_encrypted = openssl_encrypt( $jsonString, 'AES-256-CBC', $passphrase );
-		$dest_file_path = INSTAWP_BACKUP_DIR . 'migrate-push-db-' . substr( $migrate_key, 0, 5 ) . '.txt';
+		$options_data_str       = wp_json_encode( $data );
+		$passphrase             = openssl_digest( $migrate_key, 'SHA256', true );
+		$openssl_iv             = openssl_random_pseudo_bytes( 16 );
+		$options_data_encrypted = openssl_encrypt( $options_data_str, 'AES-256-CBC', $passphrase, 0, $openssl_iv );
+		$data_encrypted         = base64_encode( $openssl_iv . base64_decode( $options_data_encrypted ) );
+		$root_dir               = iwp_get_root_dir();
+		$info_filename          = 'migrate-push-db-' . substr( $migrate_key, 0, 5 ) . '.txt';
+
+		if ( isset( $root_dir['status'] ) && $root_dir['status'] === true ) {
+			$root_dir_path = isset( $root_dir['root_path'] ) ? $root_dir['root_path'] . DIRECTORY_SEPARATOR : ABSPATH;
+		} else {
+			$root_dir_path = ABSPATH;
+		}
+
+		$dest_file_path = $root_dir_path . $info_filename;
 
 		if ( file_put_contents( $dest_file_path, $data_encrypted ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-			$dest_url = INSTAWP_PLUGIN_URL . 'dest.php';
+
+			$dest_url = INSTAWP_PLUGIN_URL . 'iwp-dest' . DIRECTORY_SEPARATOR;
+
+			if ( is_dir( $root_dir_path . '__wp__' ) ) {
+				$dest_url = INSTAWP_PLUGIN_URL . 'iwp-dest' . DIRECTORY_SEPARATOR . 'index.php';
+			}
 
 			if ( ! self::is_migrate_file_accessible( $dest_url ) ) {
-				$forwarded_content      = '<?php
+				$forwarded_content = '<?php
 $path_structure = array(
 	__DIR__,
+	\'..\',
 	\'wp-content\',
 	\'plugins\',
 	\'instawp-connect\',
-	\'dest.php\', 
+    \'iwp-dest\',
+    \'index.php\',
 );
 $file_path      = implode( DIRECTORY_SEPARATOR, $path_structure );
 
@@ -274,12 +425,24 @@ if ( ! is_readable( $file_path ) ) {
 }
 
 include $file_path;';
-				$file_name              = 'dest.php';
-				$forwarded_file_path    = ABSPATH . $file_name;
+
+				$forwarded_file_path = ABSPATH . DIRECTORY_SEPARATOR . 'iwp-dest' . DIRECTORY_SEPARATOR . 'index.php';;
+
+				// Create the directory first in the root
+				$directory = dirname( $forwarded_file_path );
+				if ( ! is_dir( $directory ) ) {
+					if ( ! mkdir( $directory, 0777, true ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir
+						error_log( 'Could not create directory: ' . $directory );
+
+						return false;
+					}
+				}
+
+
 				$forwarded_file_created = file_put_contents( $forwarded_file_path, $forwarded_content ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 
 				if ( $forwarded_file_created ) {
-					return site_url( $file_name );
+					return Helper::wp_site_url( 'iwp-dest/', true );
 				}
 			}
 
@@ -289,23 +452,43 @@ include $file_path;';
 		return false;
 	}
 
-	public static function is_migrate_file_accessible( $file_url ) {
+	/**
+	 * Check if the migrate file is accessible.
+	 *
+	 * @param string $file_url The URL of the migrate file.
+	 * @param bool   $in_details Whether to include details in the error message.
+	 *
+	 * @return bool|array Returns true if the file is accessible, false otherwise.
+	 */
+	public static function is_migrate_file_accessible( $file_url, $in_details = false ) {
+		$result = array(
+			'is_accessible' => false,
+			'message'       => '',
+			'file_url'      => $file_url,
+		);
+		try {
+			$response = wp_remote_post(
+				INSTAWP_API_DOMAIN_PROD . '/public/check/?url=' . rawurlencode( $file_url ),
+				array(
+					'timeout'   => 30,
+					'sslverify' => false, // Set to true if your server configuration allows SSL verification
+				)
+			);
 
-		$response = wp_remote_post( INSTAWP_API_DOMAIN_PROD . '/public/check/?url=' . rawurlencode( $file_url ), array(
-			'timeout'   => 30,
-			'sslverify' => false, // Set to true if your server configuration allows SSL verification
-		) );
-
-		if ( is_wp_error( $response ) ) {
-			error_log( 'HTTP Error: ' . $response->get_error_message() );
-
-			return false;
+			if ( is_wp_error( $response ) ) {
+				$result['message'] = $response->get_error_message();
+				error_log( 'HTTP Error: ' . $result['message'] );
+			} else {
+				$status_code = wp_remote_retrieve_response_code( $response );
+				// Check if the request was successful (status code 200)
+				$result['status_code']   = $status_code;
+				$result['is_accessible'] = $status_code === 200;
+			}
+		} catch ( \Throwable $th ) {
+			$result['message'] = $th->getMessage();
 		}
 
-		$status_code = wp_remote_retrieve_response_code( $response );
-
-		// Check if the request was successful (status code 200)
-		return $status_code === 200;
+		return $in_details ? $result : $result['is_accessible'];
 	}
 
 	public static function process_migration_settings( $migrate_settings = array() ) {
@@ -336,37 +519,47 @@ include $file_path;';
 
 		// Remove __wp__ folder for WPC file structure
 		if ( is_dir( $wp_root_dir . '/__wp__' ) ) {
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/__wp__';
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-admin';
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-includes';
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-cli.yml';
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/index.php';
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-load.php';
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-activate.php';
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-blog-header.php';
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-comments-post.php';
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-config-sample.php';
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-cron.php';
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-links-opml.php';
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-login.php';
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-mail.php';
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-settings.php';
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-signup.php';
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-trackback.php';
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/xmlrpc.php';
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/.ftpquota';
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/.htaccess';
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/error_log';
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/license.txt';
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/readme.html';
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/robots.txt';
-			$migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-config.php';
+			$migrate_settings['excluded_paths'][] = '__wp__';
+			$migrate_settings['excluded_paths'][] = 'wp-admin';
+			$migrate_settings['excluded_paths'][] = 'wp-includes';
+			$migrate_settings['excluded_paths'][] = 'wp-cli.yml';
+//          $migrate_settings['excluded_paths'][] = 'index.php';
+//          $migrate_settings['excluded_paths'][] = 'wp-load.php';
+//          $migrate_settings['excluded_paths'][] = 'wp-activate.php';
+//          $migrate_settings['excluded_paths'][] = 'wp-blog-header.php';
+//          $migrate_settings['excluded_paths'][] = 'wp-comments-post.php';
+//          $migrate_settings['excluded_paths'][] = 'wp-config-sample.php';
+//          $migrate_settings['excluded_paths'][] = 'wp-cron.php';
+//          $migrate_settings['excluded_paths'][] = 'wp-links-opml.php';
+//          $migrate_settings['excluded_paths'][] = 'wp-login.php';
+//          $migrate_settings['excluded_paths'][] = 'wp-mail.php';
+//          $migrate_settings['excluded_paths'][] = 'wp-settings.php';
+//          $migrate_settings['excluded_paths'][] = 'wp-signup.php';
+//          $migrate_settings['excluded_paths'][] = 'wp-trackback.php';
+			$migrate_settings['excluded_paths'][] = 'xmlrpc.php';
+			$migrate_settings['excluded_paths'][] = '.ftpquota';
+			$migrate_settings['excluded_paths'][] = '.htaccess';
+			$migrate_settings['excluded_paths'][] = 'error_log';
+			$migrate_settings['excluded_paths'][] = 'license.txt';
+			$migrate_settings['excluded_paths'][] = 'readme.html';
+			$migrate_settings['excluded_paths'][] = 'robots.txt';
+
+//          if ( empty( $migrate_settings['mode'] ) || 'pull' == $migrate_settings['mode'] ) {
+//              $migrate_settings['excluded_paths'][] = $wp_root_dir . '/wp-config.php';
+//          }
 		}
 
 		// Skip index.html file forcefully
 		$migrate_settings['excluded_paths'][] = 'index.html';
 		$migrate_settings['excluded_paths'][] = '.user.ini';
-		$migrate_settings['excluded_paths'][] = 'wp-config.php';
+		$migrate_settings['excluded_paths'][] = '.htaccess';
+
+		if ( empty( $migrate_settings['mode'] ) || 'pull' == $migrate_settings['mode'] ) {
+			$migrate_settings['excluded_paths'][] = 'wp-config.php';
+		}
+
+		// Skip instawp-connect plugin
+		$migrate_settings['excluded_paths'][] = $relative_dir . '/plugins/instawp-connect';
 
 		// Skip mu-pluginsold folder
 		$migrate_settings['excluded_paths'][] = $relative_dir . '/mu-plugins/mu-pluginsold';
@@ -391,12 +584,9 @@ include $file_path;';
 		$migrate_settings['excluded_paths'][] = $relative_dir . '/object-cache-iwp.php';
 
 		// Get inventory settings
-		$migrate_settings = InstaWP_Tools::inventory_migration_settings(
-			$migrate_settings,
-			$options,
-			$relative_dir,
-			$wp_root_dir
-		);
+		if ( empty( $migrate_settings['mode'] ) || 'pull' == $migrate_settings['mode'] ) {
+			$migrate_settings = InstaWP_Tools::inventory_migration_settings( $migrate_settings, $options, $relative_dir, $wp_root_dir );
+		}
 
 		if ( in_array( 'skip_media_folder', $options ) ) {
 			$upload_dir      = wp_upload_dir();
@@ -417,30 +607,31 @@ include $file_path;';
 
 	public static function get_wp_config_constants( $config_path = '' ) {
 
+		if ( ! function_exists( 'iwp_debug' ) ) {
+			include_once 'functions-pull-push.php';
+		}
+
+		$root_dir_data = iwp_get_root_dir();
+		$root_dir_find = isset( $root_dir_data['status'] ) ? $root_dir_data['status'] : false;
+		$root_dir_path = isset( $root_dir_data['root_path'] ) ? $root_dir_data['root_path'] : '';
+
+		if ( ! $root_dir_find ) {
+			return array();
+		}
+
 		if ( empty( $config_path ) ) {
-			$config_path = ABSPATH . 'wp-config.php';
+			$config_path = $root_dir_path . DIRECTORY_SEPARATOR . 'wp-config.php';
 		}
 
 		$config_contents  = file_get_contents( $config_path );
 		$config_constants = array();
 
 		if ( $config_contents ) {
-			// Match define statements like: define('CONSTANT_NAME', 'value');
-			preg_match_all( "/define\s*\(\s*['\"]([^'\"]+)['\"]\s*,\s*([^)]+)\)/", $config_contents, $matches );
+			preg_match_all( '/(?<=^|;|<\?php\s|<\?\s)(\h*define\s*\(\s*[\'"](\w*?)[\'"]\s*)(,\s*(\'\'|""|\'.*?[^\\\\]\'|".*?[^\\\\]"|.*?)\s*)((?:,\s*(?:true|false)\s*)?\)\s*;)/ims', $config_contents, $constants );
 
-			if ( ! empty( $matches[1] ) ) {
-				foreach ( $matches[1] as $index => $constant ) {
-					$value = trim( $matches[2][ $index ] );
-					// Remove quotes if present
-					$value = preg_replace( "/^['\"](.*)['\"]$/", "$1", $value );
-
-					// Only store if constant isn't already defined
-					if ( ! defined( $constant ) ) {
-						$config_constants[ $constant ] = $value;
-					} else {
-						// Get actual runtime value if constant is already defined
-						$config_constants[ $constant ] = constant( $constant );
-					}
+			if ( ! empty( $constants[0] ) && ! empty( $constants[1] ) && ! empty( $constants[2] ) && ! empty( $constants[3] ) && ! empty( $constants[4] ) && ! empty( $constants[5] ) ) {
+				foreach ( $constants[2] as $index => $name ) {
+					$config_constants[ $name ] = $constants[4][ $index ];
 				}
 			}
 		}
@@ -474,11 +665,43 @@ include $file_path;';
 			unset( $config_constants['DB_HOST'] );
 		}
 
+		if ( isset( $config_constants['MYSQL_CLIENT_FLAGS'] ) ) {
+			unset( $config_constants['MYSQL_CLIENT_FLAGS'] );
+		}
+
 		if ( isset( $config_constants['ABSPATH'] ) ) {
 			$config_constants['ABSPATH'] = "dirname( __FILE__ ) . '/'";
 		}
 
+		if ( isset( $config_constants['WP_PLUGIN_DIR'] ) ) {
+			unset( $config_constants['WP_PLUGIN_DIR'] );
+		}
+
+		foreach ( $config_constants as $key => $value ) {
+			$config_constants[ $key ] = base64_encode( $value );
+		}
+
 		return $config_constants;
+	}
+
+	public static function is_base64( $s ) {
+		// Check if there are valid base64 characters
+		if ( ! preg_match( '/^[a-zA-Z0-9\/\r\n+]*={0,2}$/', $s ) ) {
+			return false;
+		}
+
+		// Decode the string in strict mode and check the results
+		$decoded = base64_decode( $s, true );
+		if ( false === $decoded ) {
+			return false;
+		}
+
+		// Encode the string again
+		if ( base64_encode( $decoded ) != $s ) {
+			return false;
+		}
+
+		return true;
 	}
 
 	public static function inventory_migration_settings( $migrate_settings, $options, $relative_dir, $wp_root_dir ) {
@@ -556,7 +779,7 @@ include $file_path;';
 				$api_options = get_option( 'instawp_api_options', array() );
 				$is_staging  = ( ! empty( $api_options ) && ! empty( $api_options['api_url'] ) && false !== stripos( $api_options['api_url'], 'stage' ) ) ? 1 : 0;
 				// Get data from api
-				$inventory_data = InstaWP_Tools::inventory_api_call( $encoded_api_key, 'checksum', $is_staging, array( 'items' => $inventory_data, ) );
+				$inventory_data = InstaWP_Tools::inventory_api_call( $encoded_api_key, 'checksum', $is_staging, array( 'items' => $inventory_data ) );
 
 				if ( ! empty( $inventory_data['success'] ) && ! empty( $inventory_data['data'] ) ) {
 					$inventory_data = $inventory_data['data'];
@@ -626,7 +849,6 @@ include $file_path;';
 					if ( 0 < $total_inventory_files && ! empty( $migrate_settings['inventory_items'] ) ) {
 						$migrate_settings['inventory_items']['total_files'] = $total_inventory_files;
 					}
-
 				} else {
 					if ( empty( $inventory_data ) || ! is_array( $inventory_data ) ) {
 						$inventory_data = array();
@@ -888,6 +1110,9 @@ include $file_path;';
 		// Clean InstaWP backup directory
 		self::clean_instawpbackups_dir();
 
+		self::clean_instawpbackups_dir( ABSPATH . 'iwp-serve', true );
+		self::clean_instawpbackups_dir( ABSPATH . 'iwp-dest', true );
+
 		delete_option( 'current_file_index' );
 		delete_option( 'total_files' );
 
@@ -895,7 +1120,7 @@ include $file_path;';
 
 		// Generate serve file in instawpbackups directory
 		$serve_file_response = self::generate_serve_file_response( $migrate_key, $api_signature, $migrate_settings );
-		$serve_file_url      = Helper::get_args_option( 'serve_url', $serve_file_response );
+		$serve_url           = Helper::get_args_option( 'serve_url', $serve_file_response );
 		$migrate_settings    = Helper::get_args_option( 'migrate_settings', $serve_file_response );
 		$tracking_db         = self::get_tracking_database( $migrate_key );
 
@@ -907,28 +1132,22 @@ include $file_path;';
 			empty( $tracking_db->get_option( 'api_signature' ) ) ||
 			empty( $tracking_db->get_option( 'db_host' ) ) ||
 			empty( $tracking_db->get_option( 'db_username' ) ) ||
-			//          empty( $tracking_db->get_option( 'db_password' ) ) ||
 			empty( $tracking_db->get_option( 'db_name' ) )
 		) {
 			return new WP_Error( 404, esc_html__( 'API Signature and others data could not set properly', 'instawp-connect' ) );
 		}
 
 		// Check accessibility of serve.php file
-		if ( empty( $serve_file_url ) || ! self::is_migrate_file_accessible( $serve_file_url ) ) {
+		if ( empty( $serve_url ) || ! self::is_migrate_file_accessible( $serve_url ) ) {
 
-			$serve_file_url = self::generate_forwarded_file();
+			$serve_url = self::generate_proxy_serve_url();
 
-			// Check accessibility of fwd.php file
-			if ( empty( $serve_file_url ) || ! self::is_migrate_file_accessible( $serve_file_url ) ) {
+			// Check accessibility of proxy serve url
+			if ( empty( $serve_url ) || ! self::is_migrate_file_accessible( $serve_url ) ) {
 				// Serve through WordPress
-				$serve_file_url = site_url( 'serve-instawp' );
-				$serve_with_wp  = true;
+				$serve_url     = Helper::wp_site_url( 'serve-instawp/', true );
+				$serve_with_wp = true;
 			}
-
-			// Check if none of them are accessible, then throw error
-//			if ( ! self::is_migrate_file_accessible( $serve_file_url ) ) {
-//				return new WP_Error( 403, esc_html__( 'InstaWP could not access the forwarded file due to security issue.', 'instawp-connect' ) );
-//			}
 		}
 
 		$iwpdb_main_path = INSTAWP_PLUGIN_DIR . 'includes/class-instawp-iwpdb.php';
@@ -944,7 +1163,7 @@ include $file_path;';
 		}
 
 		return array(
-			'serve_url'        => $serve_file_url,
+			'serve_url'        => $serve_url,
 			'serve_with_wp'    => $serve_with_wp,
 			'migrate_key'      => $migrate_key,
 			'api_signature'    => $api_signature,
@@ -1008,24 +1227,68 @@ include $file_path;';
 		// Remove instawp connect options
 		$excluded_tables_rows = Helper::get_args_option( 'excluded_tables_rows', $migrate_settings, array() );
 
-		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_api_options';
-		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_connect_id_options';
-		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_sync_parent_connect_data';
-		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_migration_details';
-		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_last_migration_details';
-		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_api_key_config_completed';
-		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_is_event_syncing';
-		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_staging_sites';
-		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:instawp_is_staging';
-		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:schema-ActionScheduler_StoreSchema';
-		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:schema-ActionScheduler_LoggerSchema';
-		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:action_scheduler_hybrid_store_demarkation';
-		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:_transient_timeout_action_scheduler_last_pastdue_actions_check';
-		$excluded_tables_rows["{$wpdb->prefix}options"][] = 'option_name:_transient_action_scheduler_last_pastdue_actions_check';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_api_options';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_connect_id_options';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_sync_parent_connect_data';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_migration_details';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_last_migration_details';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_api_key_config_completed';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_is_event_syncing';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_staging_sites';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:instawp_is_staging';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:schema-ActionScheduler_StoreSchema';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:schema-ActionScheduler_LoggerSchema';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:action_scheduler_hybrid_store_demarkation';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:_transient_timeout_action_scheduler_last_pastdue_actions_check';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:_transient_action_scheduler_last_pastdue_actions_check';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:nfd_data_connection_attempts';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:nfd_data_module_version';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:_transient_timeout_nfd_data_connection_throttle';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:_transient_nfd_data_connection_throttle';
+		$excluded_tables_rows[ "{$wpdb->prefix}options" ][] = 'option_name:nfd_data_token';
 
 		$migrate_settings['excluded_tables_rows'] = $excluded_tables_rows;
 
+		$migrate_settings['source_ip_address'] = self::get_user_ip_address();
+
 		return self::process_migration_settings( $migrate_settings );
+	}
+
+	public static function get_user_ip_address() {
+		// Check for IPv6 and IPv4 validation
+		$ip_pattern = '/^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$|^(?:(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,7}:|(?:[0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,5}(?::[0-9a-fA-F]{1,4}){1,2}|(?:[0-9a-fA-F]{1,4}:){1,4}(?::[0-9a-fA-F]{1,4}){1,3}|(?:[0-9a-fA-F]{1,4}:){1,3}(?::[0-9a-fA-F]{1,4}){1,4}|(?:[0-9a-fA-F]{1,4}:){1,2}(?::[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:(?:(?::[0-9a-fA-F]{1,4}){1,6})|:(?:(?::[0-9a-fA-F]{1,4}){1,7}|:))$/';
+
+		// Array of possible IP address server variables
+		$ip_sources = array(
+			'HTTP_CLIENT_IP',
+			'HTTP_X_FORWARDED_FOR',
+			'HTTP_X_FORWARDED',
+			'HTTP_X_CLUSTER_CLIENT_IP',
+			'HTTP_FORWARDED_FOR',
+			'HTTP_FORWARDED',
+			'REMOTE_ADDR',
+		);
+
+		// Loop through possible IP sources
+		foreach ( $ip_sources as $source ) {
+			if ( isset( $_SERVER[ $source ] ) ) {
+				$ip = $_SERVER[ $source ];
+
+				// Handle X-Forwarded-For header which may contain multiple IPs
+				if ( $source === 'HTTP_X_FORWARDED_FOR' ) {
+					$ips = explode( ',', $ip );
+					$ip  = trim( $ips[0] ); // Get the first IP in the list
+				}
+
+				// Validate IP format
+				if ( filter_var( $ip, FILTER_VALIDATE_IP ) && preg_match( $ip_pattern, $ip ) ) {
+					return $ip;
+				}
+			}
+		}
+
+		// If no valid IP is found, return a fallback
+		return '0.0.0.0';
 	}
 
 	/**
@@ -1175,7 +1438,7 @@ include $file_path;';
                 <img class="instawp-logo-image" src="https://app.instawp.io/images/insta-logo-image.svg" alt="InstaWP Logo">
             </div>
             <div class="instawp-details">
-                <h3 class="instawp-details-title"><?php echo esc_url( site_url() ); ?></h3>
+                <h3 class="instawp-details-title"><?php echo esc_url( Helper::wp_site_url( '', true ) ); ?></h3>
                 <p class="instawp-details-info">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 animate-spin inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
@@ -1192,7 +1455,10 @@ include $file_path;';
 	}
 
 	public static function get_localize_data() {
-		return array(
+
+		global $current_screen;
+
+		$localize_data = array(
 			'ajax_url' => admin_url( 'admin-ajax.php' ),
 			'trans'    => array(
 				'create_staging_site_txt' => __( 'Please create staging sites first.', 'instawp-connect' ),
@@ -1203,6 +1469,18 @@ include $file_path;';
 			),
 			'security' => wp_create_nonce( 'instawp-connect' ),
 		);
+
+		if ( $current_screen && isset( $current_screen->base ) && $current_screen->base === 'plugins' ) {
+			$migration_details = Option::get_option( 'instawp_migration_details' );
+			$migration_status  = InstaWP_Setting::get_args_option( 'status', $migration_details );
+			$is_end_to_end     = (bool) InstaWP_Setting::get_args_option( 'is_end_to_end', $migration_details );
+
+			if ( $migration_status === 'initiated' && $is_end_to_end ) {
+				$localize_data['mig_in_progress'] = 'yes';
+			}
+		}
+
+		return apply_filters( 'instawp/filters/localize_data', $localize_data );
 	}
 
 	public static function cli_archive_wordpress_db() {
@@ -1331,8 +1609,11 @@ include $file_path;';
 					continue;
 				}
 
-				$status_res_data = Helper::get_args_option( 'data', $status_res, array() );
-				$restore_status  = Helper::get_args_option( 'status', $status_res_data, 0 );
+				$status_res_data     = Helper::get_args_option( 'data', $status_res, array() );
+				$percentage_complete = Helper::get_args_option( 'percentage_complete', $status_res_data, 0 );
+				$restore_status      = Helper::get_args_option( 'status', $status_res_data );
+
+				error_log( "local_push_migration_progress: {$percentage_complete}" );
 
 				if ( $restore_status === 'completed' ) {
 					break;
@@ -1414,7 +1695,7 @@ include $file_path;';
 		$restore_args = array(
 			'file_bkp'      => basename( $file_path ),
 			'db_bkp'        => basename( $db_path ),
-			'source_domain' => str_replace( array( 'https://', 'http://' ), '', site_url() ),
+			'source_domain' => str_replace( array( 'https://', 'http://' ), '', Helper::wp_site_url( '', true ) ),
 		);
 		$restore_res  = Curl::do_curl( "connects/{$connect_id}/sites/{$site_id}/restore-raw", $restore_args, array(), 'PUT' );
 

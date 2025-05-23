@@ -95,7 +95,7 @@ if ( ! class_exists( 'InstaWP_Migration' ) ) {
 					$old_api_key = Helper::get_args_option( 'api_key', $api_options );
 
 					if ( ! empty( $api_key ) && $api_key !== $old_api_key ) {
-						$api_key_check_response = Helper::instawp_generate_api_key( $api_key );
+						$api_key_check_response = Helper::generate_api_key( $api_key );
 						if ( ! $api_key_check_response ) {
 							wp_send_json_error( array(
 								'message' => esc_html__( 'Error. Invalid API Key', 'instawp-connect' ),

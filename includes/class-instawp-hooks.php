@@ -14,6 +14,8 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 	class InstaWP_Hooks {
 
 		public function __construct() {
+			add_action( 'instawp_connect_connected', array( $this, 'handle_connected' ) );
+			add_action( 'load-tools_page_instawp', array( $this, 'handle_connection_state' ) );
 			add_action( 'admin_init', array( $this, 'generate_api_key' ) );
 			add_action( 'update_option', array( $this, 'manage_update_option' ), 10, 3 );
 			add_action( 'init', array( $this, 'handle_hard_disable_seo_visibility' ) );
@@ -38,8 +40,18 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			add_action( 'parse_request', array( $this, 'handle_migration_through_wp' ) );
 		}
 
-		public function handle_migration_through_wp( $wp ) {
+		public function handle_connected( $connect_id ) {
+			instawp_send_heartbeat( $connect_id );
+			instawp_set_staging_sites_list();
+		}
 
+		public function handle_connection_state() {
+			if ( ! instawp_is_connected_origin_valid() ) {
+				instawp_reset_running_migration( 'hard' );
+			}
+		}
+
+		public function handle_migration_through_wp( $wp ) {
 			if ( isset( $wp->query_vars['instawp_serve'] ) ) {
 				$serve_file = INSTAWP_PLUGIN_DIR . 'serve.php';
 
@@ -57,7 +69,6 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 		}
 
 		public function add_query_vars( $query_vars ) {
-
 			$query_vars[] = 'instawp_serve';
 
 			return $query_vars;
@@ -72,24 +83,24 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 				return;
 			}
 
-			$api_key        = Helper::get_api_key();
 			$access_token   = isset( $_REQUEST['access_token'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['access_token'] ) ) : '';
-            $jwt            = isset( $_REQUEST['jwt'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['jwt'] ) ) : '';
+			$jwt            = isset( $_REQUEST['jwt'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['jwt'] ) ) : '';
 			$success_status = isset( $_REQUEST['success'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['success'] ) ) : '';
 			$instawp_nonce  = isset( $_REQUEST['instawp-nonce'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['instawp-nonce'] ) ) : '';
 
-			if ( 'true' === $success_status && empty( $api_key ) && $api_key !== $access_token && wp_verify_nonce( $instawp_nonce, 'instawp_connect_nonce' ) ) {
-				Helper::instawp_generate_api_key( $access_token, $jwt );
+			if ( ! empty( $access_token ) && ! empty( $jwt ) && 'true' === $success_status && wp_verify_nonce( $instawp_nonce, 'instawp_connect_nonce' ) ) {
+				$api_key = Helper::get_api_key();
 
-				wp_safe_redirect( admin_url( 'tools.php?page=instawp' ) );
-				exit();
+				if ( empty( $api_key ) && $api_key !== $access_token ) {
+					Helper::generate_api_key( $access_token, $jwt );
+
+					wp_safe_redirect( admin_url( 'tools.php?page=instawp' ) );
+					exit();
+				}
 			}
 		}
 
 		public function handle_auto_login_request() {
-			if ( empty( Helper::get_api_key() ) ) {
-				return;
-			}
 
 			$url_args       = array_map( 'sanitize_text_field', $_GET );
 			$redirect_path  = Helper::get_args_option( 'redir', $url_args );
@@ -99,6 +110,10 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			$login_username = base64_decode( $login_username ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
 
 			if ( empty( $reauth ) || empty( $login_code ) || empty( $login_username ) ) {
+				return;
+			}
+
+			if ( empty( Helper::get_api_key() ) ) {
 				return;
 			}
 
@@ -123,14 +138,15 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 		}
 
 		public function handle_temporary_login_request() {
-			if ( empty( Helper::get_api_key() ) ) {
-				return;
-			}
 
 			$url_args    = array_map( 'sanitize_text_field', $_GET );
 			$login_token = Helper::get_args_option( 'iwp-temp-login', $url_args );
 
 			if ( empty( $login_token ) || instawp_is_bot_request() ) {
+				return;
+			}
+
+			if ( empty( Helper::get_api_key() ) ) {
 				return;
 			}
 
@@ -181,6 +197,45 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 					)
 				);
 			}
+
+			$migration_details = Option::get_option( 'instawp_migration_details' );
+			$migration_status  = InstaWP_Setting::get_args_option( 'status', $migration_details );
+			$is_end_to_end     = (bool) InstaWP_Setting::get_args_option( 'is_end_to_end', $migration_details );
+
+			if ( $migration_status === 'initiated' && $is_end_to_end ) {
+
+				$e2e_tracking_url = InstaWP_Setting::get_args_option( 'e2e_tracking_url', $migration_details );
+				$e2e_tracking_url = empty( $e2e_tracking_url ) ? '#' : $e2e_tracking_url;
+
+				$admin_bar->add_node(
+					array(
+						'id'     => 'instawp_mig_in_progress',
+						'title'  => __( 'Migration in Progress', 'instawp-connect' ),
+						'href'   => $e2e_tracking_url,
+						'meta'   => array(
+							'class' => 'instawp-mig-in-progress',
+						),
+						'parent' => 'top-secondary',
+					)
+				);
+
+				add_action( 'admin_footer', array( $this, 'deactivation_warning_modal' ) );
+			}
+		}
+
+		public function deactivation_warning_modal() {
+			?>
+            <div id="deactivate-modal" class="deactivate-modal">
+                <div class="deactivate-modal-content">
+                    <h3><?php esc_html_e( 'Are you sure?', 'instawp-connect' ); ?></h3>
+                    <p><?php esc_html_e( 'An active migration is in progress. Deactivating the plugin will stop the migration. Do you want to proceed?', 'instawp-connect' ); ?></p>
+                    <div class="deactivate-modal-actions">
+                        <button id="confirm-deactivate" class="deactivate-modal-confirm"><?php esc_html_e( 'Yes, Deactivate', 'instawp-connect' ); ?></button>
+                        <button id="cancel-deactivate" class="deactivate-modal-cancel"><?php esc_html_e( 'No, Continue Migration', 'instawp-connect' ); ?></button>
+                    </div>
+                </div>
+            </div>
+			<?php
 		}
 
 		public function add_instawp_menu_icon( WP_Admin_Bar $admin_bar ) {
@@ -217,13 +272,6 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 				if ( current_user_can( 'manage_options' ) ) {
 					$admin_bar->add_menu( array(
 						'parent' => 'instawp',
-						'id'     => 'instawp-tools',
-						'title'  => __( 'Tools', 'instawp-connect' ),
-						'href'   => '#',
-					) );
-
-					$admin_bar->add_menu( array(
-						'parent' => 'instawp-tools',
 						'id'     => 'instawp-clear-cache',
 						'title'  => __( 'Purge All Cache', 'instawp-connect' ),
 						'href'   => '#',
@@ -231,6 +279,13 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 							'class'  => 'instawp-tools',
 							'target' => 'cache',
 						),
+					) );
+
+					$admin_bar->add_menu( array(
+						'parent' => 'instawp',
+						'id'     => 'instawp-tools',
+						'title'  => __( 'Tools', 'instawp-connect' ),
+						'href'   => '#',
 					) );
 
 					$admin_bar->add_menu( array(
@@ -347,12 +402,15 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 
 			global $current_user;
 
-			$can_show       = 'off' === Option::get_option( 'instawp_hide_plugin_icon_topbar', 'off' );
-			$sync_tab_roles = Option::get_option( 'instawp_sync_tab_roles', array( 'administrator' ) );
-			$sync_tab_roles = ! is_array( $sync_tab_roles ) || empty( $sync_tab_roles ) ? array( 'administrator' ) : $sync_tab_roles;
+			$can_show = 'off' === Option::get_option( 'instawp_hide_plugin_icon_topbar', 'off' );
+			
+			if ( $can_show ) {
+				$sync_tab_roles = Option::get_option( 'instawp_sync_tab_roles', array( 'administrator' ) );
+				$sync_tab_roles = ! is_array( $sync_tab_roles ) || empty( $sync_tab_roles ) ? array( 'administrator' ) : $sync_tab_roles;
 
-			if ( $can_show && empty( array_intersect( $sync_tab_roles, $current_user->roles ) ) ) {
-				$can_show = false;
+				if ( empty( array_intersect( $sync_tab_roles, $current_user->roles ) ) ) {
+					$can_show = false;
+				}
 			}
 
 			if ( $can_show ) {
