@@ -278,7 +278,12 @@ class InstaWP_Rest_Api {
 			Helper::set_api_domain( $domain_to_set );
 		}
 
-		if ( ! Helper::generate_api_key( $api_key, $jwt, $managed, $plan_id ) ) {
+		$config = [
+			'managed' => $managed,
+			'plan_id' => $plan_id,
+		];
+
+		if ( ! Helper::generate_api_key( $api_key, $jwt, $config ) ) {
 			return $this->send_response( array(
 				'status'  => false,
 				'success' => false,

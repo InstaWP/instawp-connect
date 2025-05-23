@@ -4,11 +4,11 @@ namespace InstaWP\Connect\Helpers;
 
 class Helper {
 
-	public static function instawp_generate_api_key( $api_key, $jwt = '', $managed = true, $plan_id = 0 ) {
-		return self::generate_api_key( $api_key, $jwt, $managed, $plan_id );
+	public static function instawp_generate_api_key( $api_key, $jwt = '', $config = [] ) {
+		return self::generate_api_key( $api_key, $jwt, $config );
 	}
 
-	public static function generate_api_key( $api_key, $jwt = '', $managed = true, $plan_id = 0 ) {
+	public static function generate_api_key( $api_key, $jwt = '', $config = [] ) {
 		if ( empty( $api_key ) ) {
 			error_log( 'instawp_generate_api_key empty api_key parameter' );
 
@@ -38,16 +38,20 @@ class Helper {
 			'url'            => self::wp_site_url(),
 			'wp_version'     => get_bloginfo( 'version' ),
 			'php_version'    => phpversion(),
-			'plugin_version' => INSTAWP_PLUGIN_VERSION,
 			'title'          => get_bloginfo( 'name' ),
 			'icon'           => get_site_icon_url(),
 			'username'       => base64_encode( self::get_admin_username() ),
-			'managed'        => $managed,
+			'managed'        => is_bool( $config ) ? $config : true,
 		);
-		$plan_id          = $plan_id ? $plan_id : self::get_connect_plan_id();
-		if ( ! empty( $plan_id ) ) {
-			$connect_body['plan_id'] = $plan_id;
+
+		if ( defined( 'INSTAWP_PLUGIN_VERSION' ) ) {
+			$connect_body['plugin_version'] = INSTAWP_PLUGIN_VERSION;
 		}
+
+		if ( is_array( $config ) ) {
+			$connect_body = array_merge( $connect_body, $config );
+		}
+
 		$connect_response = Curl::do_curl( 'connects', $connect_body, array(), 'POST', 'v1' );
 
 		if ( ! empty( $connect_response['data']['status'] ) ) {
