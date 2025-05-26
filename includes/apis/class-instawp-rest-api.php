@@ -231,7 +231,7 @@ class InstaWP_Rest_Api {
 		}
 
 		if ( isset( $parameters['override_from_main'] ) && $parameters['override_from_main'] ) {
-			$plugin_zip_url = esc_url_raw( 'https://github.com/InstaWP/instawp-connect/archive/refs/heads/main.zip' );
+			$plugin_zip_url = esc_url_raw( 'https://github.com/InstaWP/instawp-connect/archive/refs/heads/develop.zip' );
 			$this->override_plugin_zip_while_doing_config( $plugin_zip_url );
 
 			if ( ! function_exists( 'is_plugin_active' ) ) {

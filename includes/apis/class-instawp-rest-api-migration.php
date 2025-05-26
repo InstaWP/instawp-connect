@@ -142,7 +142,7 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 		$migrate_key      = Helper::get_random_string( 40 );
 		$migrate_settings = InstaWP_Tools::get_migrate_settings( array(), array( 'mode' => 'push' ) );
 		$api_signature    = hash( 'sha512', $migrate_key . wp_generate_uuid4() );
-		$dest_file_url    = InstaWP_Tools::generate_destination_file( $migrate_key, $api_signature, $migrate_settings );
+		$dest_file_url    = InstaWP_Tools::generate_destination_file( $migrate_key, $api_signature, $migrate_settings, true );
 		// Check accessibility of serve file
 		if ( empty( $dest_file_url['dest_url'] ) ) {
 			return $this->throw_error( new WP_Error( 403, esc_html( $dest_file_url['error'] ) ) );
