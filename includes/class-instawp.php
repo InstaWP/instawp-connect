@@ -73,6 +73,8 @@ class instaWP {
 		add_action( 'instawp_clean_migrate_files', array( $this, 'clean_migrate_files' ) );
 		add_action( 'add_option_instawp_enable_wp_debug', array( $this, 'toggle_wp_debug' ), 10, 2 );
 		add_action( 'update_option_instawp_enable_wp_debug', array( $this, 'toggle_wp_debug' ), 10, 2 );
+		add_action( 'add_option_instawp_rm_debug_log', array( $this, 'toggle_wp_debug' ), 10, 2 );
+		add_action( 'update_option_instawp_rm_debug_log', array( $this, 'toggle_wp_debug' ), 10, 2 );
 	}
 
 	public function toggle_wp_debug( $old_value, $value ) {
