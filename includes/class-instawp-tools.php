@@ -252,7 +252,7 @@ include $file_path;';
 		return $tracking_db;
 	}
 
-	public static function generate_destination_file( $migrate_key, $api_signature, $migrate_settings = array() ) {
+	public static function generate_destination_file( $migrate_key, $api_signature, $migrate_settings = array(), $in_details = false ) {
 
 		$result = array(
 			'dest_url' => false,
@@ -294,7 +294,7 @@ include $file_path;';
 			$dest_file_path = $root_dir_path . $info_filename;
 
 			if ( ! file_put_contents( $dest_file_path, $data_encrypted ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-				return $result;
+				return $in_details ? $result : $result['dest_url'];
 			}
 
 			$dest_url = INSTAWP_PLUGIN_URL . 'iwp-dest' . DIRECTORY_SEPARATOR;
@@ -307,7 +307,7 @@ include $file_path;';
 			
 			if ( self::is_migrate_file_accessible( $dest_url ) ) {
 				$result['dest_url'] = $dest_url;
-				return $result;
+				return $in_details ? $result : $result['dest_url'];
 			}
 
 			// If file is not accessible then create it and try again
@@ -338,7 +338,7 @@ include $file_path;';
 			if ( ! is_dir( $directory ) ) {
 				if ( ! mkdir( $directory, 0777, true ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir
 					$result['error'] = 'Could not create directory: ' . $directory;
-					return $result;
+					return $in_details ? $result : $result['dest_url'];
 				}
 			}
 
@@ -359,7 +359,11 @@ include $file_path;';
 			$result['error'] = 'Could not create the destination file. Error:' . $th->getMessage();
 		}
 
-		return $result;
+		if ( false === $in_details && empty( $result['dest_url'] ) ) {
+			error_log( $result['error'] );
+		}
+
+		return $in_details ? $result : $result['dest_url'];
 	}
 
 	public static function generate_destination_file_bak( $migrate_key, $api_signature, $migrate_settings = array() ) {
@@ -426,7 +430,7 @@ if ( ! is_readable( $file_path ) ) {
 
 include $file_path;';
 
-				$forwarded_file_path = ABSPATH . DIRECTORY_SEPARATOR . 'iwp-dest' . DIRECTORY_SEPARATOR . 'index.php';;
+				$forwarded_file_path = ABSPATH . DIRECTORY_SEPARATOR . 'iwp-dest' . DIRECTORY_SEPARATOR . 'index.php';
 
 				// Create the directory first in the root
 				$directory = dirname( $forwarded_file_path );
