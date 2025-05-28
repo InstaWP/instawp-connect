@@ -2,14 +2,16 @@
 /**
  * Migrate template - Management
  */
-$connect_id = instawp_get_connect_id();
-$disconnected = get_option( 'instawp_connect_disconnected' );
+
+defined( 'ABSPATH' ) || exit;
+
+$disconnected = get_option( 'instawp_connect_plan_disconnected' );
 ?>
 
 <div class="nav-item-content site-management bg-white rounded-md p-6">
     <div class="p-8 space-y-6">
         <div class="flex items-center gap-2 flex-col">
-            <?php if ( CONNECT_WHITELABEL_TEAM_ICON ) { ?>
+            <?php if ( defined( 'CONNECT_WHITELABEL_TEAM_ICON' ) && CONNECT_WHITELABEL_TEAM_ICON ) { ?>
                 <img src="<?php echo esc_url( CONNECT_WHITELABEL_TEAM_ICON ); ?>" alt="logo" class="h-10" />
             <?php } ?>
             <h2 class="text-sm text-grayCust-550">

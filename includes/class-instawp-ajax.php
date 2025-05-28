@@ -739,7 +739,7 @@ class InstaWP_Ajax {
 		}
 
 		$connect_id   = instawp_get_connect_id();
-		$disconnected = Option::get_option( 'instawp_connect_disconnected' );
+		$disconnected = Option::get_option( 'instawp_connect_plan_disconnected' );
 
 		if ( ! empty( $disconnected ) ) {
 			$response = Curl::do_curl( "connects/{$connect_id}/restore", array( 'url' => site_url() ) );
@@ -751,7 +751,7 @@ class InstaWP_Ajax {
 				Helper::generate_api_key( $api_key, $jwt );
 				$connect_id = instawp_get_connect_id();
 			}
-			Option::delete_option( 'instawp_connect_disconnected' );
+			Option::delete_option( 'instawp_connect_plan_disconnected' );
 		}
 
 		$response = instawp_connect_activate_plan( $plan_id );

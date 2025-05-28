@@ -6,6 +6,8 @@
 
 use InstaWP\Connect\Helpers\Helper;
 
+defined( 'ABSPATH' ) || exit;
+
 $api_response   = Helper::get_response();
 $email          = Helper::get_args_option( 'email', $api_response );
 $team_name      = Helper::get_args_option( 'team_name', $api_response );
@@ -43,14 +45,14 @@ if ( ! in_array( $current_tab, array_keys( $plugin_nav_items ) ) ) {
             <div class="flex items-center gap-2">
                 <span class="w-1 h-1 <?= $is_app_connect ? 'bg-primary-700' : 'bg-amber-600'; ?> rounded-full"></span>
                 <a href="<?php echo esc_url( sprintf( '%s/connects/%s/dashboard', $connect_domain, instawp()->connect_id ) ); ?>" target="_blank" class="focus:ring-0 hover:ring-0 focus:outline-0 hover:outline-0 <?= $is_app_connect ? 'text-primary-700 hover:text-primary-700 focus:text-primary-700' : 'text-amber-600 hover:text-amber-600 focus:text-amber-600'; ?>">
-                    <?php if ( defined( 'CONNECT_WHITELABEL' ) && CONNECT_WHITELABEL === true ) {
+                    <?php if ( instawp_is_connect_whitelabelled() ) {
                         esc_html_e( 'Managed Website', 'instawp-connect' );
                     } else {
                         esc_html_e( 'Your account is connected', 'instawp-connect' );
                     } ?>
                 </a>
             </div>
-            <?php if ( ! empty( $email ) && ! empty( $team_name ) ) : ?>
+            <?php if ( ! instawp_is_connect_whitelabelled() && ! empty( $email ) && ! empty( $team_name ) ) : ?>
                 <div class="text-grayCust-50 text-xs">
                     <span><?= esc_html( $email ); ?></span> | <span><?= esc_html( $team_name ); ?></span>
                 </div>

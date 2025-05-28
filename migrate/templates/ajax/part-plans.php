@@ -1,18 +1,28 @@
-<?php 
-$connect_id     = instawp_get_connect_id();
-$current_plan = (int) get_option( 'instawp_connect_plan_id', INSTAWP_CONNECT_PLAN_ID );
-$plans        = defined( 'CONNECT_WHITELABEL_PLAN_DETAILS' ) && is_array( CONNECT_WHITELABEL_PLAN_DETAILS ) ? CONNECT_WHITELABEL_PLAN_DETAILS : array();
+<?php
+
+use InstaWP\Connect\Helpers\Helper;
+
+defined( 'ABSPATH' ) || exit;
+
+$current_plan = Helper::get_connect_plan();
+$plans        = CONNECT_WHITELABEL_PLAN_DETAILS;
 
 foreach ( $plans as $plan ) {
-    $plan_activated = get_option( "instawp_connect_plan_{$plan['plan_id']}_timestamp" );
-    if ( $plan_activated ) {
-        $plan_activated_date = new DateTime( $plan_activated ); 
+    $plan_id = (int) $plan['plan_id'];
+    if ( ! $plan_id ) {
+        continue;
+    }
+
+    if ( ! empty( $current_plan['plan_timestamp'] ) ) {
+        $plan_activated_date = new DateTime( $current_plan['plan_timestamp'] ); 
         $today_date          = new DateTime( current_time( 'mysql' ) );
         $diff                = $today_date->diff( $plan_activated_date );
         $duration            = $diff->days;
     }
-    $remaining_days = isset( $duration ) ? $plan['trial'] - $duration : 0;
-    $is_current_plan = $current_plan === $plan['plan_id'] && ! empty( $connect_id );
+
+    $trial           = isset( $plan['trial'] ) ? (int) $plan['trial'] : 0;
+    $remaining_days  = isset( $duration ) ? $trial - $duration : $trial;
+    $is_current_plan = ! empty( $current_plan['plan_id'] ) && $current_plan['plan_id'] === $plan_id && ! empty( $connect_id );
 
     $tick_class = 'absolute -top-8 -right-2 h-5 w-5 bg-blueCust-200 rounded-full';
     $box_class = 'md:w-1/2 w-full p-6 rounded-lg space-y-6 relative';
@@ -56,13 +66,13 @@ foreach ( $plans as $plan ) {
                     $btn_class .= ' bg-blueCust-100 text-white';
                 }
             } elseif ( $plan['free'] ) {
-                    $btn_text = __( 'Select Plan', 'instawp-connect' );
-                    if ( $remaining_days < 1 ) {
-                        $btn_class .= ' text-grayCust-450 pointer-events-none';
-                    }
-                } else {
-                    $btn_text = __( 'Get Complete Protection', 'instawp-connect' );
-                    $btn_class .= ' bg-blueCust-200 text-white';
+                $btn_text = __( 'Select Plan', 'instawp-connect' );
+                if ( $remaining_days < 1 ) {
+                    $btn_class .= ' text-grayCust-450 pointer-events-none';
+                }
+            } else {
+                $btn_text = __( 'Get Complete Protection', 'instawp-connect' );
+                $btn_class .= ' bg-blueCust-200 text-white';
             }
         ?>
         <button class="instawp-connect-plan-btn <?= esc_attr( $btn_class ) ?>" data-plan-id="<?= esc_attr( $plan['plan_id'] ) ?>"><?= esc_html( $btn_text ); ?></button>
@@ -72,7 +82,7 @@ foreach ( $plans as $plan ) {
                 <span class="font-semibold text-base text-grayCust-800 uppercase"><?= esc_html__( 'Plan Info', 'instawp-connect' ); ?></span>
                 <?php if ( $remaining_days > 0 ) { ?>
                     <span class="inline-flex items-center rounded-full bg-yellowCust-150 px-3 py-1 text-sm font-medium text-yellowCust-200"><?= esc_html( $remaining_days ); ?> <?= esc_html__( 'days remaining', 'instawp-connect' ); ?></span>
-                <?php } elseif ( $plan['trial'] > 0 ) { ?>
+                <?php } elseif ( $trial > 0 ) { ?>
                     <span class="inline-flex items-center rounded-full bg-redCust-150 px-3 py-1 text-sm font-medium text-redCust-200"><?= esc_html__( 'Plan expired', 'instawp-connect' ); ?></span>
                 <?php } ?>
             </div>
