@@ -289,14 +289,6 @@ class InstaWP_Rest_Api {
 				Helper::set_api_domain( $domain_to_set );
 			}
 
-			if ( ! Helper::generate_api_key( $api_key, $jwt, $config ) ) {
-				return $this->send_response( array(
-					'status'  => false,
-					'success' => false,
-					'message' => esc_html__( 'API Key is not valid.', 'instawp-connect' ),
-				) );
-			}
-
 			// Generate API Key
 			$response = Helper::generate_api_key( $api_key, $jwt, $config );
 			if ( false === $response ) {
