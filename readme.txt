@@ -98,6 +98,9 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 0.1.0.93 -  =
+- Added: Support for migration without creating Connects
+
 = 0.1.0.92 - 28 May 2025 =
 - Fix: Debug Log not enabling for Site Management
 
