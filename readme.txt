@@ -100,6 +100,8 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 = 0.1.0.93 -  =
 - Added: Support for migration without creating Connects
+- Update: instawp_last_migration_details option after plugin install
+- Update: exclude wp-settings.php file migration for wp cloud
 
 = 0.1.0.92 - 28 May 2025 =
 - Fix: Debug Log not enabling for Site Management
