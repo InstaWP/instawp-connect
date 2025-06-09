@@ -145,7 +145,11 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 			}
 
 			if ( empty( $connect_id ) ) {
-				return false;
+				return [
+					'success' => false,
+					'response' => [],
+					'response_code' => 404,
+				];
 			}
 
 			$heartbeat_data = self::prepare_data();

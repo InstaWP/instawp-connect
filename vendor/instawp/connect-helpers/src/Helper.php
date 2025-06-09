@@ -9,80 +9,112 @@ class Helper {
 	}
 
 	public static function generate_api_key( $api_key, $jwt = '', $config = [] ) {
-		if ( empty( $api_key ) ) {
-			error_log( 'instawp_generate_api_key empty api_key parameter' );
-
-			return false;
-		}
-
-		$api_response = Curl::do_curl( 'check-key?jwt=' . $jwt, array(), array(), 'GET', 'v1', $api_key );
-
-		if ( ! empty( $api_response['data']['status'] ) ) {
-			$api_options = self::get_options();
-
-			if ( is_array( $api_options ) && is_array( $api_response['data'] ) ) {
-				self::set_settings( array_merge( $api_options, array(
-					'api_key'  => $api_key,
-					'jwt'      => $jwt,
-					'origin'   => md5( self::wp_site_url( '', true ) ),
-					'response' => $api_response['data'],
-				) ) );
-			}
-		} else {
-			error_log( 'instawp_generate_api_key error, response from check-key api: ' . wp_json_encode( $api_response ) );
-
-			return false;
-		}
-
-		$connect_body     = array(
-			'url'            => self::wp_site_url(),
-			'wp_version'     => get_bloginfo( 'version' ),
-			'php_version'    => phpversion(),
-			'title'          => get_bloginfo( 'name' ),
-			'icon'           => get_site_icon_url(),
-			'username'       => base64_encode( self::get_admin_username() ),
-			'managed'        => is_bool( $config ) ? $config : true,
-		);
-
-		if ( defined( 'INSTAWP_PLUGIN_VERSION' ) ) {
-			$connect_body['plugin_version'] = INSTAWP_PLUGIN_VERSION;
-		}
-
-		if ( is_array( $config ) ) {
-			$connect_body = array_merge( $connect_body, $config );
-		}
-
-		$connect_response = Curl::do_curl( 'connects', $connect_body, array(), 'POST', 'v1' );
-
-		if ( ! empty( $connect_response['data']['status'] ) ) {
-			$connect_id   = ! empty( $connect_response['data']['id'] ) ? intval( $connect_response['data']['id'] ) : '';
-			$connect_uuid = isset( $connect_response['data']['uuid'] ) ? $connect_response['data']['uuid'] : '';
-
-			if ( $connect_id && $connect_uuid ) {
-				self::set_connect_id( $connect_id );
-				self::set_connect_uuid( $connect_uuid );
-
-				if ( empty( $jwt ) ) {
-					self::generate_jwt( $connect_id );
-				}
-
-				if ( ! empty( $plan_id ) ) {
-					self::set_connect_plan_id( $plan_id );
-				}
-
-				do_action( 'instawp_connect_connected', $connect_id );
-			} else {
-				error_log( 'instawp_generate_api_key connect id not found in response.' );
+		try {
+			if ( empty( $api_key ) ) {
+				error_log( 'instawp_generate_api_key empty api_key parameter' );
 
 				return false;
 			}
-		} else {
-			error_log( 'generate_api_key error, response from connects api: ' . wp_json_encode( $connect_response ) );
+
+			$api_response = Curl::do_curl( 'check-key?jwt=' . $jwt, array(), array(), 'GET', 'v1', $api_key );
+
+			if ( ! empty( $api_response['data']['status'] ) ) {
+				$api_options = self::get_options();
+
+				if ( is_array( $api_options ) && is_array( $api_response['data'] ) ) {
+					self::set_settings( array_merge( $api_options, array(
+						'api_key'  => $api_key,
+						'jwt'      => $jwt,
+						'origin'   => md5( self::wp_site_url( '', true ) ),
+						'response' => $api_response['data'],
+					) ) );
+				}
+			} else {
+				error_log( 'instawp_generate_api_key error, response from check-key api: ' . wp_json_encode( $api_response ) );
+
+				return false;
+			}
+
+			$connect_body     = array(
+				'url'            => self::wp_site_url(),
+				'wp_version'     => get_bloginfo( 'version' ),
+				'php_version'    => phpversion(),
+				'title'          => get_bloginfo( 'name' ),
+				'icon'           => get_site_icon_url(),
+				'username'       => base64_encode( self::get_admin_username() ),
+				'managed'        => is_bool( $config ) ? $config : true,
+			);
+
+			if ( defined( 'INSTAWP_PLUGIN_VERSION' ) ) {
+				$connect_body['plugin_version'] = INSTAWP_PLUGIN_VERSION;
+			}
+
+			if ( is_array( $config ) ) {
+				$connect_body = array_merge( $connect_body, $config );
+
+				if ( ! empty( $config['e2e_mig_wo_connects'] ) && ! empty( $config['group_uuid'] ) ) {
+					self::set_mig_gid( $config['group_uuid'] );
+					return $connect_body;
+				}
+
+				/**
+				 * Migrate White Label
+				 * @param bool e2e_mig_push_request is the end to end migration push request
+				 * @param string wlm_slug is the white label migration slug of the migration
+				 */
+				if ( ! empty( $config['e2e_mig_push_request'] ) || ! empty( $config['wlm_slug'] ) ) {
+					$mig_request = Curl::do_curl( 'migrates-v3/'.$config['wlm_slug'].'/e2e-push-request', $connect_body, array(), 'POST', 'v2' );
+
+					if ( ! empty( $mig_request['success'] ) && ! empty( $mig_request['data']['group_uuid'] ) ) {
+						self::set_mig_gid( $mig_request['data']['group_uuid'] );
+						return true;
+					}
+					
+					return false;
+				}
+			}
+
+			$connect_response = Curl::do_curl( 'connects', $connect_body, array(), 'POST', 'v1' );
+
+			if ( ! empty( $connect_response['data']['status'] ) ) {
+				$connect_id   = ! empty( $connect_response['data']['id'] ) ? intval( $connect_response['data']['id'] ) : '';
+				$connect_uuid = isset( $connect_response['data']['uuid'] ) ? $connect_response['data']['uuid'] : '';
+
+				if ( $connect_id && $connect_uuid ) {
+					self::set_connect_id( $connect_id );
+					self::set_connect_uuid( $connect_uuid );
+
+					if ( empty( $jwt ) ) {
+						self::generate_jwt( $connect_id );
+					}
+
+					if ( ! empty( $plan_id ) ) {
+						self::set_connect_plan_id( $plan_id );
+					}
+
+					do_action( 'instawp_connect_connected', $connect_id );
+				} else {
+					error_log( 'instawp_generate_api_key connect id not found in response.' );
+
+					return false;
+				}
+			} else {
+				error_log( 'generate_api_key error, response from connects api: ' . wp_json_encode( $connect_response ) );
+
+				return false;
+			}
+
+			return true;
+		} catch (\Throwable $th) {
+			error_log( 'generate_api_key error, exception: ' . wp_json_encode( array(
+				'message' => $th->getMessage(),
+                'line' => $th->getLine(),
+                'file' => $th->getFile(),
+				'params' => isset( $config ) ? $config : null,
+			) ) );
 
 			return false;
 		}
-
-		return true;
 	}
 
 	public static function generate_jwt( $connect_id = '' ) {
@@ -323,6 +355,35 @@ class Helper {
 		$api_options['connect_uuid'] = $connect_uuid;
 
 		return self::set_settings( $api_options );
+	}
+
+	/**
+	 * Set migration group id
+	 */
+	public static function set_mig_gid( $group_uuid ) {
+		$api_options                 = self::get_options();
+		$api_options['group_uuid'] = $group_uuid;
+
+		return self::set_settings( $api_options );
+	}
+
+	/**
+	 * Get migration group id
+	 */
+	public static function get_mig_gid() {
+		$api_options = self::get_options();
+
+		return self::get_args_option( 'group_uuid', $api_options );
+	}
+
+	/**
+	 * Has migration group id
+	 */
+	public static function has_mig_gid( $group_uuid ) {
+		if ( empty( $group_uuid ) ) {
+			return false;
+		}
+		return $group_uuid === self::get_mig_gid();
 	}
 
 	public static function set_connect_origin( $origin ) {

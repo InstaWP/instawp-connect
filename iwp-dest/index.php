@@ -315,6 +315,8 @@ if ( $file_type === 'db' ) {
 				$mysqli->query( "DELETE FROM `{$table_prefix}options` WHERE `option_name` = 'instawp_is_staging'" );
 				$mysqli->query( "DELETE FROM `{$table_prefix}options` WHERE `option_name` = 'instawp_sync_connect_id'" );
 				$mysqli->query( "UPDATE `{$table_prefix}options` SET `option_value` = '1' WHERE `option_name` = 'blog_public'" );
+				// Remove trailing index.php
+				$mysqli->query( "UPDATE `{$table_prefix}options` SET `option_value` = TRIM(TRAILING '/' FROM REPLACE(option_value, '/index.php', '')) WHERE `option_name` IN ('siteurl', 'home')" );
 			}
 		}
 

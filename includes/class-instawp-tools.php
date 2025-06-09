@@ -523,6 +523,10 @@ include $file_path;';
 
 		// Remove __wp__ folder for WPC file structure
 		if ( is_dir( $wp_root_dir . '/__wp__' ) ) {
+			// In wp cloud exclude wp-settings.php file
+			if ( ! empty( $migrate_settings['mode'] ) && 'push' === $migrate_settings['mode'] ) {
+				$migrate_settings['excluded_paths'][] = 'wp-settings.php';
+			}
 			$migrate_settings['excluded_paths'][] = '__wp__';
 			$migrate_settings['excluded_paths'][] = 'wp-admin';
 			$migrate_settings['excluded_paths'][] = 'wp-includes';
