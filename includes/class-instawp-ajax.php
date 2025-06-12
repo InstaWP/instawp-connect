@@ -358,6 +358,7 @@ class InstaWP_Ajax {
 			'migrate_key'         => $migrate_key,
 			'serve_url'           => $serve_url,
 			'api_signature'       => $api_signature,
+			'plan_id'             => Helper::get_args_option( 'plan_id', $migrate_settings, null ),
 		);
 
 		if ( ! empty( $site_name = Helper::get_args_option( 'site_name', $migrate_settings ) ) ) {

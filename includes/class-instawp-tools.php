@@ -1475,6 +1475,7 @@ include $file_path;';
 				'disconnect_confirm_txt'  => __( 'Do you still want to disconnect the plugin?', 'instawp-connect' ),
 				'stages'                  => InstaWP_Setting::get_stages(),
 			),
+			'api_domain' => Helper::get_api_domain(),
 			'security' => wp_create_nonce( 'instawp-connect' ),
 		);
 

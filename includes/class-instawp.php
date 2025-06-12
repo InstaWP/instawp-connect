@@ -340,14 +340,18 @@ class instaWP {
 		}
 
 		$remaining_site       = (int) Helper::get_args_option( 'remaining_site', $api_response_data, '0' );
-		$can_proceed          = $remaining_site > 0;
-		$issue_for            = 'remaining_site';
 		$available_disk_space = (int) Helper::get_args_option( 'remaining_disk_space', $api_response_data, '0' );
-
-
-		$total_site_size = round( $total_size / 1048576, 2 );
+		$has_payment_method   = (bool) Helper::get_args_option( 'has_payment_method', $api_response_data, false );
+		$can_proceed          = $has_payment_method === true;
+		$issue_for            = 'no_payment_method';
+		$total_site_size      = round( $total_size / 1048576, 2 );
 
 		$api_response_data['require_disk_space'] = $total_site_size;
+
+		if ( $can_proceed ) {
+			$can_proceed = $remaining_site > 0;
+			$issue_for   = 'remaining_site';
+		}
 
 		if ( $can_proceed ) {
 			$can_proceed = $total_site_size < $available_disk_space;

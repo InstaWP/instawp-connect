@@ -325,8 +325,23 @@
             });
         };
 
-    $(document).on('click', '.instawp-copy-cmd', function () {
+    let popupWindow = null;
+    let intervalChecker = null;
 
+    $(document).on('click', '.instawp-add-credit-card', function () {
+        $(this).addClass('pointer-events-none');
+        clearInterval(intervalChecker);
+        popupWindow = window.open(plugin_object.api_domain + '/card', '_blank', 'width=1024,height=768');
+        intervalChecker = setInterval(function () {
+        if (popupWindow && popupWindow.closed) {
+            clearInterval(intervalChecker);
+            $('.payment-method-warning').addClass('hidden');
+            $('.instawp-add-credit-card').removeClass('pointer-events-none');
+        }
+        }, 500);
+    });
+
+    $(document).on('click', '.instawp-copy-cmd', function () {
         let inputField = document.createElement('input'),
             el_copy_block = $(this),
             el_copy_text = el_copy_block.find('.copy-text'),
@@ -381,6 +396,7 @@
     $(document).on('change', '#instawp-screen', function () {
 
         let create_container = $('.instawp-wrap .nav-item-content.create'),
+            el_screen_buttons = create_container.find('.screen-buttons'),
             el_btn_back = create_container.find('.instawp-button-migrate.back'),
             el_btn_continue = create_container.find('.instawp-button-migrate.continue'),
             el_instawp_screen = create_container.find('#instawp-screen'),
@@ -388,10 +404,13 @@
             el_screen_nav_items = create_container.find('.screen-nav-items > li'),
             el_screen = create_container.find('.screen');
 
+        el_screen_buttons.removeClass('hidden');
+
         // Adjusting Back/Continue Buttons
         if (screen_current <= 1) {
             el_btn_back.addClass('hidden');
         } else if (screen_current >= 5) {
+            el_screen_buttons.addClass('hidden');
             el_btn_back.addClass('hidden');
             el_btn_continue.addClass('hidden');
         } else {
@@ -406,27 +425,51 @@
         }
 
         // Changing Screen Nav
+        // el_screen_nav_items.each(function (index) {
+        //     let el_screen_nav_current = $(this),
+        //         el_screen_nav_current_inner = el_screen_nav_current.find('.screen-nav'),
+        //         el_screen_nav_current_line = el_screen_nav_current.find('.screen-nav .screen-nav-line');
+
+        //     if (index < screen_current) {
+        //         el_screen_nav_current_inner.addClass('active');
+        //     } else {
+        //         el_screen_nav_current_inner.removeClass('active');
+        //     }
+
+        //     if (index < (screen_current - 1)) {
+        //         el_screen_nav_current_line.addClass('bg-secondary').removeClass('bg-gray-200');
+        //     } else {
+        //         el_screen_nav_current_line.addClass('bg-gray-200').removeClass('bg-secondary');
+        //     }
+        // });
+
+        // Changing Screen
+        // el_screen.removeClass('active');
+        // el_screen.parent().find('.screen-' + screen_current).addClass('active');
+
+        // Update screen navigation items
         el_screen_nav_items.each(function (index) {
             let el_screen_nav_current = $(this),
                 el_screen_nav_current_inner = el_screen_nav_current.find('.screen-nav'),
                 el_screen_nav_current_line = el_screen_nav_current.find('.screen-nav .screen-nav-line');
 
-            if (index < screen_current) {
-                el_screen_nav_current_inner.addClass('active');
-            } else {
-                el_screen_nav_current_inner.removeClass('active');
-            }
+            // Toggle 'active' for nav
+            el_screen_nav_current_inner.toggleClass('active', index < screen_current);
 
-            if (index < (screen_current - 1)) {
-                el_screen_nav_current_line.addClass('bg-secondary').removeClass('bg-gray-200');
-            } else {
-                el_screen_nav_current_line.addClass('bg-gray-200').removeClass('bg-secondary');
-            }
+            // Update line colors
+            el_screen_nav_current_line
+                .toggleClass('bg-secondary', index < (screen_current - 1))
+                .toggleClass('bg-gray-200', index >= (screen_current - 1));
         });
 
-        // Changing Screen
-        el_screen.removeClass('active');
-        el_screen.parent().find('.screen-' + screen_current).addClass('active');
+        // Efficient screen switch (avoid flicker)
+        let current_active_screen = el_screen.filter('.active'),
+            new_active_screen = el_screen.parent().find('.screen-' + screen_current);
+
+        if (!new_active_screen.hasClass('active')) {
+            current_active_screen.removeClass('active');
+            new_active_screen.addClass('active');
+        }
 
         // Initiating Migration
         if (screen_current === 5) {
@@ -452,6 +495,12 @@
 
             // For Preview Screens
             el_selected_staging_options.append('<div class="' + option_id + ' border-secondary border card-active py-2 px-4 text-xs font-medium rounded-lg">' + option_label + '</div>');
+        }
+
+        if (el_selected_staging_options.children().length > 0) {
+            el_selected_staging_options.parent().removeClass('hidden');
+        } else {
+            el_selected_staging_options.parent().addClass('hidden');
         }
     });
 
@@ -559,6 +608,7 @@
             el_confirmation_preview = create_container.find('.confirmation-preview'),
             el_confirmation_warning = create_container.find('.confirmation-warning'),
             el_instawp_screen = create_container.find('#instawp-screen'),
+            el_payment_method_warning = create_container.find('.payment-method-warning'),
             screen_current = parseInt(el_instawp_screen.val()),
             screen_next = screen_current + parseInt(screen_increment),
             instawp_migrate_type = $('input[name="migrate_settings[type]"]:checked').val();
@@ -584,6 +634,7 @@
             el_screen_buttons.removeClass('justify-between').addClass('justify-end');
             el_instawp_site_name.addClass('hidden');
             el_screen_doing_request.addClass('loading');
+            el_payment_method_warning.addClass('hidden');
 
             $.ajax({
                 type: 'POST',
@@ -595,12 +646,19 @@
                     'security': plugin_object.security,
                 },
                 success: function (response) {
-
                     if (response.success) {
                         el_screen_doing_request.removeClass('loading');
                         el_instawp_screen.val(screen_next).trigger('change');
                     } else {
-                        create_container.addClass('warning');
+                        //create_container.addClass('warning');
+                        if (response.data.issue_for === 'no_payment_method') {
+                            el_screen_buttons.addClass('justify-between').removeClass('justify-end');
+                            el_instawp_site_name.removeClass('hidden');
+                            el_screen_doing_request.removeClass('loading');
+                            el_payment_method_warning.removeClass('hidden');
+                            return;
+                        }
+                        
                         el_confirmation_preview.addClass('hidden');
                         el_confirmation_warning.removeClass('hidden');
                         el_confirmation_warning.find('a').attr('href', response.data.button_url).html(response.data.button_text);
