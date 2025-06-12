@@ -479,15 +479,14 @@ input:checked + .slider-toggle:before {
 }
 
 .instawp-wrap .nav-item-content.create .screen {
-    max-height: 0;
     opacity: 0;
-    visibility: hidden;
+    display: none;
     transition: opacity 0.2s ease;
 }
 
 .instawp-wrap .nav-item-content.create .screen.active {
     opacity: 1;
-    visibility: visible;
+    display: block;
 }
 
 .screen-nav:not(.active) .screen-nav-icon {
