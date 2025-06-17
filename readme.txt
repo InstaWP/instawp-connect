@@ -98,6 +98,9 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 0.1.0.94 -  =
+- Fixed: Destination migration file path for Elementor cloud.
+
 = 0.1.0.93 - 09 June 2025 =
 - Added: Migration support without requiring Connects
 - Updated: instawp_last_migration_details option post plugin installation
