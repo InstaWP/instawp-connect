@@ -300,7 +300,7 @@ include $file_path;';
 			$dest_url = INSTAWP_PLUGIN_URL . 'iwp-dest' . DIRECTORY_SEPARATOR;
 
 			// Check if __wp__ directory exists. If it does, then use that
-			$is_wpcloud = is_dir( $root_dir_path . '__wp__' );
+			$is_wpcloud = is_dir( $root_dir_path . '__wp__' ) || ( ! empty( $_SERVER['SERVER_NAME'] ) && strpos( $_SERVER['SERVER_NAME'], 'elementor.cloud' ) !== false );
 			if ( $is_wpcloud ) {
 				$dest_url = INSTAWP_PLUGIN_URL . 'iwp-dest' . DIRECTORY_SEPARATOR . 'index.php';
 			}
