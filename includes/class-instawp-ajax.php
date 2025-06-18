@@ -783,7 +783,9 @@ class InstaWP_Ajax {
 
 		$site_plans = instawp()->is_connected ? instawp_get_plans() : array();
 		if ( empty( $site_plans['plans']['sites'] ) ) {
-			wp_send_json_error();
+			wp_send_json_error( array(
+				'message' => esc_html__( 'No plans found.', 'instawp-connect' ),
+			) );
 		}
 
 		ob_start();

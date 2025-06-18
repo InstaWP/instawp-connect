@@ -441,17 +441,22 @@
                         'security': plugin_object.security,
                     },
                     success: function (response) {
-                        el_staging_plan_container.removeClass('hidden').html(response.data.content);
                         el_screen_loading_request.removeClass('loading');
                         el_instawp_site_name.removeClass('hidden');
                         el_screen_buttons.removeClass('justify-end').addClass('justify-between');
-                        create_container.find('.staging-plans input[type="radio"]:not(:disabled)').first().prop('checked', true);
 
-                        if (response.data.has_payment_method) {
-                            el_payment_method_warning.addClass('hidden');
-                            el_btn_continue.removeAttr('disabled');
+                        if (response.success) {
+                            el_staging_plan_container.removeClass('hidden').html(response.data.content);
+                            create_container.find('.staging-plans input[type="radio"]:not(:disabled)').first().prop('checked', true);
+
+                            if (response.data.has_payment_method) {
+                                el_payment_method_warning.addClass('hidden');
+                                el_btn_continue.removeAttr('disabled');
+                            } else {
+                                el_payment_method_warning.removeClass('hidden');
+                            }
                         } else {
-                            el_payment_method_warning.removeClass('hidden');
+                            el_btn_continue.removeAttr('disabled');
                         }
                     }
                 });
