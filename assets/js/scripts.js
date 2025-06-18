@@ -336,6 +336,7 @@
         if (popupWindow && popupWindow.closed) {
             clearInterval(intervalChecker);
             $('.payment-method-warning').addClass('hidden');
+            $('.instawp-button-migrate.continue').removeAttr('disabled');
             $('.instawp-add-credit-card').removeClass('pointer-events-none');
         }
         }, 500);
@@ -402,6 +403,10 @@
             el_instawp_screen = create_container.find('#instawp-screen'),
             screen_current = parseInt(el_instawp_screen.val()),
             el_screen_nav_items = create_container.find('.screen-nav-items > li'),
+            el_screen_loading_request = el_screen_buttons.find('p.loading-request'),
+            el_instawp_site_name = el_screen_buttons.find('.instawp-site-name'),
+            el_staging_plan_container = create_container.find('.staging-plan-container'),
+            el_payment_method_warning = create_container.find('.payment-method-warning'),
             el_screen = create_container.find('.screen');
 
         el_screen_buttons.removeClass('hidden');
@@ -419,9 +424,43 @@
         }
 
         if (screen_current === 4) {
-            el_btn_continue.text('Create Staging');
+            el_btn_continue.text(plugin_object.trans.create_staging_txt);
+            if (create_container.find('.staging-plans').length === 0) {
+                $.ajax({
+                    type: 'POST',
+                    url: plugin_object.ajax_url,
+                    context: this,
+                    beforeSend: function () {
+                        el_btn_continue.attr('disabled', true);
+                        el_screen_loading_request.addClass('loading');
+                        el_instawp_site_name.addClass('hidden');
+                        el_screen_buttons.removeClass('justify-between').addClass('justify-end');
+                    },
+                    data: {
+                        'action': 'instawp_get_site_plans',
+                        'security': plugin_object.security,
+                    },
+                    success: function (response) {
+                        el_staging_plan_container.removeClass('hidden').html(response.data.content);
+                        el_screen_loading_request.removeClass('loading');
+                        el_instawp_site_name.removeClass('hidden');
+                        el_screen_buttons.removeClass('justify-end').addClass('justify-between');
+                        create_container.find('.staging-plans input[type="radio"]:not(:disabled)').first().prop('checked', true);
+
+                        if (response.data.has_payment_method) {
+                            el_payment_method_warning.addClass('hidden');
+                            el_btn_continue.removeAttr('disabled');
+                        } else {
+                            el_payment_method_warning.removeClass('hidden');
+                        }
+                    }
+                });
+            }
         } else {
-            el_btn_continue.text('Next Step');
+            el_btn_continue.text(plugin_object.trans.next_step_txt).removeAttr('disabled');
+            el_screen_loading_request.removeClass('loading');
+            el_instawp_site_name.removeClass('hidden');
+            el_screen_buttons.removeClass('justify-end').addClass('justify-between');
         }
 
         // Changing Screen Nav
@@ -475,6 +514,8 @@
         if (screen_current === 5) {
             instawp_migrate_init();
         }
+
+        $(document).trigger('instawp_migrate_screen_change', [screen_current]);
     });
 
     $(document).on('change', '.instawp-wrap .instawp-option-selector', function () {
@@ -635,7 +676,9 @@
             el_instawp_site_name.addClass('hidden');
             el_screen_doing_request.addClass('loading');
             el_payment_method_warning.addClass('hidden');
-
+            el_btn_migrate.attr('disabled', true);
+            create_container.find('.instawp-button-migrate.back').attr('disabled', true);
+            
             $.ajax({
                 type: 'POST',
                 url: plugin_object.ajax_url,
@@ -651,6 +694,7 @@
                         el_instawp_screen.val(screen_next).trigger('change');
                     } else {
                         //create_container.addClass('warning');
+                        create_container.find('.instawp-button-migrate.back').removeAttr('disabled');
                         if (response.data.issue_for === 'no_payment_method') {
                             el_screen_buttons.addClass('justify-between').removeClass('justify-end');
                             el_instawp_site_name.removeClass('hidden');
@@ -659,6 +703,7 @@
                             return;
                         }
                         
+                        el_btn_migrate.removeAttr('disabled');
                         el_confirmation_preview.addClass('hidden');
                         el_confirmation_warning.removeClass('hidden');
                         el_confirmation_warning.find('a').attr('href', response.data.button_url).html(response.data.button_text);

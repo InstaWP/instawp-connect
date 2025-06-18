@@ -25,6 +25,7 @@ class InstaWP_Ajax {
 		add_action( 'wp_ajax_instawp_skip_item', array( $this, 'skip_item' ) );
 		add_action( 'wp_ajax_instawp_change_plan', array( $this, 'change_plan' ) );
 		add_action( 'wp_ajax_instawp_update_plugin', array( $this, 'update_plugin' ) );
+		add_action( 'wp_ajax_instawp_get_site_plans', array( $this, 'get_site_plans' ) );
 	}
 
 	public function update_plugin() {
@@ -771,6 +772,29 @@ class InstaWP_Ajax {
 			'message' => esc_html__( 'Plan changed successfully.', 'instawp-connect' ),
 			'plans'   => $data,
 		) );
+	}
+
+	public function get_site_plans() {
+		check_ajax_referer( 'instawp-connect', 'security' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error();
+		}
+
+		$site_plans = instawp()->is_connected ? instawp_get_plans() : array();
+		if ( empty( $site_plans['plans']['sites'] ) ) {
+			wp_send_json_error();
+		}
+
+		ob_start();
+		include INSTAWP_PLUGIN_DIR . '/migrate/templates/ajax/part-site-plans.php';
+		$content = ob_get_clean();
+
+		unset( $site_plans['plans'] );
+
+		wp_send_json_success( array_merge( array(
+			'content' => $content,
+		), $site_plans ) );
 	}
 }
 
