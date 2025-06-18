@@ -563,7 +563,7 @@ class InstaWP_Ajax {
                                 </svg>
                             </div>
 						<?php endif; ?> 
-                        <input name="migrate_settings[excluded_paths][]" id="<?php echo esc_attr( $element_id ); ?>" value="<?php echo esc_attr( $data['relative_path'] ); ?>" type="checkbox" class="instawp-checkbox exclude-file-item !mt-0 !mr-3 rounded border-gray-300 text-secondary focus:ring-secondary <?php echo esc_html( $data['name'] ); ?> <?php echo esc_attr( str_replace( '/', '-', $data['relative_path'] ) ); ?>" <?php checked( $is_checked || $is_item_checked || $is_select_all, true ); ?> <?php disabled( $is_disabled || $is_item_checked, true ); ?> data-size="<?php echo esc_html( $data['size'] ); ?>" data-count="<?php echo esc_html( $data['count'] ); ?>">
+                        <input name="migrate_settings[excluded_paths][]" id="<?php echo esc_attr( $element_id ); ?>" value="<?php echo esc_attr( $data['relative_path'] ); ?>" type="checkbox" class="instawp-checkbox exclude-file-item !mt-0 !mr-3 rounded border-gray-300 text-primary-900 focus:ring-primary-900 <?php echo esc_html( $data['name'] ); ?> <?php echo esc_attr( str_replace( '/', '-', $data['relative_path'] ) ); ?>" <?php checked( $is_checked || $is_item_checked || $is_select_all, true ); ?> <?php disabled( $is_disabled || $is_item_checked, true ); ?> data-size="<?php echo esc_html( $data['size'] ); ?>" data-count="<?php echo esc_html( $data['count'] ); ?>">
                         <label for="<?php echo esc_attr( $element_id ); ?>" class="text-sm font-medium text-grayCust-800 truncate"<?php echo ( $data['type'] === 'file' ) ? ' style="width: calc(400px - 1em);"' : ''; ?>><?php echo esc_html( $data['name'] ); ?></label>
                     </div>
                     <div class="flex items-center" style="width: 105px;">
@@ -604,7 +604,7 @@ class InstaWP_Ajax {
                     <div class="flex flex-col gap-5 item">
                         <div class="flex justify-between items-center">
                             <div class="flex items-center cursor-pointer" style="transform: translate(0em);">
-                                <input name="instawp_migrate[excluded_tables][]" id="<?php echo esc_attr( $element_id ); ?>" value="<?php echo esc_attr( $table['name'] ); ?>" type="checkbox" class="instawp-checkbox exclude-database-item !mt-0 !mr-3 rounded border-gray-300 text-secondary focus:ring-secondary" data-size="<?php echo esc_html( $table['size'] ); ?>">
+                                <input name="instawp_migrate[excluded_tables][]" id="<?php echo esc_attr( $element_id ); ?>" value="<?php echo esc_attr( $table['name'] ); ?>" type="checkbox" class="instawp-checkbox exclude-database-item !mt-0 !mr-3 rounded border-gray-300 text-primary-900 focus:ring-primary-900" data-size="<?php echo esc_html( $table['size'] ); ?>">
                                 <label for="<?php echo esc_attr( $element_id ); ?>" class="text-sm font-medium text-grayCust-800 truncate" style="width: calc(400px - 1em);"><?php echo esc_html( $table['name'] ); ?> (<?php printf( esc_html__( '%s rows', 'instawp-connect' ), esc_html( $table['rows'] ) ); ?>)</label>
                             </div>
                             <div class="flex items-center" style="width: 105px;">
@@ -658,7 +658,7 @@ class InstaWP_Ajax {
 					<?php foreach ( $list_data as $data ) {
 						$element_id = wp_generate_uuid4(); ?>
                         <div class="flex justify-between items-center text-xs">
-                            <input type="checkbox" name="instawp_migrate[migrate_settings][]" id="<?php echo esc_attr( $element_id ); ?>" value="<?php echo esc_attr( $data['relative_path'] ); ?>" class="instawp-checkbox exclude-file-item large-file !mt-0 !mr-3 rounded border-gray-300 text-secondary focus:ring-secondary" data-size="<?php echo esc_html( $data['size'] ); ?>" data-count="1" <?php checked( $skip, true ); ?>>
+                            <input type="checkbox" name="instawp_migrate[migrate_settings][]" id="<?php echo esc_attr( $element_id ); ?>" value="<?php echo esc_attr( $data['relative_path'] ); ?>" class="instawp-checkbox exclude-file-item large-file !mt-0 !mr-3 rounded border-gray-300 text-primary-900 focus:ring-primary-900" data-size="<?php echo esc_html( $data['size'] ); ?>" data-count="1" <?php checked( $skip, true ); ?>>
                             <label for="<?php echo esc_attr( $element_id ); ?>"><?php echo esc_html( $data['relative_path'] ); ?> (<?php echo esc_html( instawp()->get_file_size_with_unit( $data['size'] ) ); ?>)</label>
                         </div>
 					<?php } ?>
