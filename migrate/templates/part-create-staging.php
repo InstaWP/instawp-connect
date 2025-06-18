@@ -84,14 +84,14 @@ delete_option( 'instawp_db_offset' );
 						<?php endif; ?>
                         <div class="relative flex space-x-3">
                             <div>
-                                <div class="screen-nav-icon h-8 w-8 rounded-full border-2 border-secondary flex items-center justify-center <?php echo ( $index === 0 ) ? 'bg-secondary' : 'bg-white'; ?>">
+                                <div class="screen-nav-icon h-8 w-8 rounded-full border-2 border-primary-900 flex items-center justify-center <?php echo ( $index === 0 ) ? 'bg-primary-900' : 'bg-white'; ?>">
                                     <img src="<?php echo esc_url( instaWP::get_asset_url( 'migrate/assets/images/true-icon.svg' ) ); ?>" alt="True Icon">
-                                    <span class="w-2 h-2 bg-secondary rounded"></span>
+                                    <span class="w-2 h-2 bg-primary-900 rounded"></span>
                                 </div>
                             </div>
                             <div class="flex justify-between items-center">
                                 <div>
-                                    <p class="screen-nav-label text-xs font-medium uppercase <?php echo ( $index === 0 ) ? 'text-secondary' : 'text-grayCust-50'; ?>"><?php echo esc_html( $screen ); ?></p>
+                                    <p class="screen-nav-label text-xs font-medium uppercase <?php echo ( $index === 0 ) ? 'text-primary-900' : 'text-grayCust-50'; ?>"><?php echo esc_html( $screen ); ?></p>
                                 </div>
                             </div>
                         </div>
@@ -114,8 +114,8 @@ delete_option( 'instawp_db_offset' );
                         </div>
                         <div class="flex flex-col items-start gap-3">
                             <div class="flex justify-between items-center text-xss">
-                                <input type="checkbox" name="instawp_migrate[whitelist_ip]" id="whitelist-ip" value="yes" class="instawp-checkbox !mt-0 !mr-3 rounded border-gray-300 text-secondary focus:ring-secondary">
-                                <label for="whitelist-ip" class="mr-2"><?php esc_html_e( 'Yes, Whitelist IP', 'instawp-connect' ); ?></label>(<a class="cursor-pointer focus:outline-none focus:ring-0 hover:text-secondary border-b border-transparent border-1 border-dashed hover:border-primary-700" href="https://silicondales.com/tutorials/wordpress/whitelist-ip-wordfence/" target="_blank">Documentation</a>)
+                                <input type="checkbox" name="instawp_migrate[whitelist_ip]" id="whitelist-ip" value="yes" class="instawp-checkbox !mt-0 !mr-3 rounded border-gray-300 text-primary-900 focus:ring-primary-900">
+                                <label for="whitelist-ip" class="mr-2"><?php esc_html_e( 'Yes, Whitelist IP', 'instawp-connect' ); ?></label>(<a class="cursor-pointer focus:outline-none focus:ring-0 hover:text-primary-900 border-b border-transparent border-1 border-dashed hover:border-primary-700" href="https://silicondales.com/tutorials/wordpress/whitelist-ip-wordfence/" target="_blank">Documentation</a>)
                             </div>
                         </div>
                     </div>
@@ -130,7 +130,7 @@ delete_option( 'instawp_db_offset' );
                             </div>
                         </div>
                         <div>
-                            <input id="quick_staging" name="migrate_settings[type]" value="quick" type="radio" class="instawp-option-selector !size-4 !m-0 border-grayCust-350 text-secondary foucs:ring-1 focus:ring-secondary">
+                            <input id="quick_staging" name="migrate_settings[type]" value="quick" type="radio" class="instawp-option-selector !size-4 !m-0 border-grayCust-350 text-primary-900 foucs:ring-1 focus:ring-primary-900">
                         </div>
                     </div>
                     <div for="full_staging" class="instawp-staging-type cursor-pointer flex justify-between items-center border mb-4 flex p-4 rounded-xl">
@@ -142,7 +142,7 @@ delete_option( 'instawp_db_offset' );
                             </div>
                         </div>
                         <div>
-                            <input id="full_staging" name="migrate_settings[type]" value="full" type="radio" class="instawp-option-selector !size-4 !m-0 border-grayCust-350 text-secondary foucs:ring-1 focus:ring-secondary">
+                            <input id="full_staging" name="migrate_settings[type]" value="full" type="radio" class="instawp-option-selector !size-4 !m-0 border-grayCust-350 text-primary-900 foucs:ring-1 focus:ring-primary-900">
                         </div>
                     </div>
                     <div for="custom_staging" class="instawp-staging-type cursor-pointer flex justify-between items-center border flex p-4 rounded-xl">
@@ -154,7 +154,7 @@ delete_option( 'instawp_db_offset' );
                             </div>
                         </div>
                         <div>
-                            <input id="custom_staging" name="migrate_settings[type]" value="custom" type="radio" class="instawp-option-selector !size-4 !m-0 border-grayCust-350 text-secondary foucs:ring-1 focus:ring-secondary">
+                            <input id="custom_staging" name="migrate_settings[type]" value="custom" type="radio" class="instawp-option-selector !size-4 !m-0 border-grayCust-350 text-primary-900 foucs:ring-1 focus:ring-primary-900">
                         </div>
                     </div>
                 </div>
@@ -169,10 +169,10 @@ delete_option( 'instawp_db_offset' );
                         <div class="text-[16px] font-semibold mb-2"><?php echo esc_html( InstaWP_Setting::get_args_option( 'label', $customize_option ) ); ?></div>
                         <div class="grid grid-cols-3 gap-5 mb-4">
 							<?php foreach ( InstaWP_Setting::get_args_option( 'options', $customize_option, array() ) as $option_id => $label ) : ?>
-                                <!--relative flex items-start border border-secondary card-active p-3 px-4 rounded-lg-->
+                                <!--relative flex items-start border border-primary-900 card-active p-3 px-4 rounded-lg-->
                                 <label for="<?php echo esc_attr( $option_id ); ?>" class="relative flex items-start border border-grayCust-350 p-3 px-4 rounded-lg">
                                     <span>
-                                        <input id="<?php echo esc_attr( $option_id ); ?>" name="migrate_settings[options][]" value="<?php echo esc_attr( $option_id ); ?>" type="checkbox" class="instawp-option-selector rounded border-gray-300 text-secondary focus:ring-secondary">
+                                        <input id="<?php echo esc_attr( $option_id ); ?>" name="migrate_settings[options][]" value="<?php echo esc_attr( $option_id ); ?>" type="checkbox" class="instawp-option-selector rounded border-gray-300 text-primary-900 focus:ring-primary-900">
                                     </span>
                                     <span class="ml-2 text-sm">
                                         <span class="option-label font-medium text-sm"><?php echo esc_html( $label ); ?></span>
@@ -188,7 +188,7 @@ delete_option( 'instawp_db_offset' );
                     <div class="text-grayCust-200 text-lg font-bold"><?php esc_html_e( '3. Exclude', 'instawp-connect' ); ?></div>
                     <button type="button" class="instawp-refresh-exclude-screen">
                         <svg class="w-4 h-4" viewBox="0 0 14 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path fill-rule="evenodd" clip-rule="evenodd" style="fill: #15B881;"
+                            <path fill-rule="evenodd" clip-rule="evenodd" style="fill: #005E54;"
                                     d="M1.59995 0.800049C2.09701 0.800049 2.49995 1.20299 2.49995 1.70005V3.59118C3.64303 2.42445 5.23642 1.70005 6.99995 1.70005C9.74442 1.70005 12.0768 3.45444 12.9412 5.90013C13.1069 6.36877 12.8612 6.88296 12.3926 7.0486C11.924 7.21425 11.4098 6.96862 11.2441 6.49997C10.6259 4.75097 8.95787 3.50005 6.99995 3.50005C5.52851 3.50005 4.22078 4.20657 3.39937 5.30005H6.09995C6.59701 5.30005 6.99995 5.70299 6.99995 6.20005C6.99995 6.6971 6.59701 7.10005 6.09995 7.10005H1.59995C1.10289 7.10005 0.699951 6.6971 0.699951 6.20005V1.70005C0.699951 1.20299 1.10289 0.800049 1.59995 0.800049ZM1.6073 8.95149C2.07594 8.78585 2.59014 9.03148 2.75578 9.50013C3.37396 11.2491 5.04203 12.5 6.99995 12.5C8.47139 12.5 9.77912 11.7935 10.6005 10.7L7.89995 10.7C7.40289 10.7 6.99995 10.2971 6.99995 9.80005C6.99995 9.30299 7.40289 8.90005 7.89995 8.90005H12.3999C12.6386 8.90005 12.8676 8.99487 13.0363 9.16365C13.2051 9.33243 13.3 9.56135 13.3 9.80005V14.3C13.3 14.7971 12.897 15.2 12.4 15.2C11.9029 15.2 11.5 14.7971 11.5 14.3V12.4089C10.3569 13.5757 8.76348 14.3 6.99995 14.3C4.25549 14.3 1.92309 12.5457 1.05867 10.1C0.893024 9.63132 1.13866 9.11714 1.6073 8.95149Z"></path>
                         </svg>
                     </button>
@@ -204,7 +204,7 @@ delete_option( 'instawp_db_offset' );
 									<?php foreach ( $list_data as $data ) {
 										$element_id = wp_generate_uuid4(); ?>
                                         <div class="flex justify-between items-center text-xs">
-                                            <input type="checkbox" name="migrate_settings[excluded_paths][]" id="<?php echo esc_attr( $element_id ); ?>" value="<?php echo esc_attr( $data['relative_path'] ); ?>" class="instawp-checkbox exclude-file-item large-file !mt-0 !mr-3 rounded border-gray-300 text-secondary focus:ring-secondary" data-size="<?php echo esc_html( $data['size'] ); ?>" data-count="1">
+                                            <input type="checkbox" name="migrate_settings[excluded_paths][]" id="<?php echo esc_attr( $element_id ); ?>" value="<?php echo esc_attr( $data['relative_path'] ); ?>" class="instawp-checkbox exclude-file-item large-file !mt-0 !mr-3 rounded border-gray-300 text-primary-900 focus:ring-primary-900" data-size="<?php echo esc_html( $data['size'] ); ?>" data-count="1">
                                             <label for="<?php echo esc_attr( $element_id ); ?>"><?php echo esc_html( $data['relative_path'] ); ?> (<?php echo esc_html( instawp()->get_file_size_with_unit( $data['size'] ) ); ?>)</label>
                                         </div>
 									<?php } ?>
@@ -223,18 +223,18 @@ delete_option( 'instawp_db_offset' );
                                 </div>
                                 <div class="flex flex-row items-center justify-between gap-5">
                                     <div class="text-left text-sm font-medium text-grayCust-900">
-                                        <input type="checkbox" id="instawp-files-select-all" class="instawp-checkbox !mr-1 rounded border-gray-300 text-secondary focus:ring-secondary" disabled="disabled" style="margin-top: -2px;">
+                                        <input type="checkbox" id="instawp-files-select-all" class="instawp-checkbox !mr-1 rounded border-gray-300 text-primary-900 focus:ring-primary-900" disabled="disabled" style="margin-top: -2px;">
                                         <label for="instawp-files-select-all"><?php esc_html_e( 'Select All', 'instawp-connect' ); ?></label>
                                     </div>
-                                    <div class="text-left text-sm font-medium text-secondary pointer-events-none flex flex-row items-center justify-between gap-1 cursor-pointer instawp-files-sort-by" data-sort="none">
+                                    <div class="text-left text-sm font-medium text-primary-900 pointer-events-none flex flex-row items-center justify-between gap-1 cursor-pointer instawp-files-sort-by" data-sort="none">
                                         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <path d="M7 16V4M7 4L3 8M7 4L11 8M17 8V20M17 20L21 16M17 20L13 16" stroke="#15B881" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                            <path d="M7 16V4M7 4L3 8M7 4L11 8M17 8V20M17 20L21 16M17 20L13 16" stroke="#005E54" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                                         </svg>
 										<?php esc_html_e( 'Size', 'instawp-connect' ); ?>
                                     </div>
                                 </div>
                             </div>
-                            <div class="expand-files-list text-center cursor-pointer text-secondary p-4 hidden">
+                            <div class="expand-files-list text-center cursor-pointer text-primary-900 p-4 hidden">
                                 <svg width="8" height="5" viewBox="0 0 8 5" fill="none" xmlns="http://www.w3.org/2000/svg" class="inline mr-1">
                                     <path d="M4.75504 4.09984L5.74004 3.11484L7.34504 1.50984C7.68004 1.16984 7.44004 0.589844 6.96004 0.589844L3.84504 0.589844L1.04004 0.589843C0.560037 0.589843 0.320036 1.16984 0.660037 1.50984L3.25004 4.09984C3.66004 4.51484 4.34004 4.51484 4.75504 4.09984Z" fill="#4F4F4F"></path>
                                 </svg>
@@ -261,18 +261,18 @@ delete_option( 'instawp_db_offset' );
                                 </div>
                                 <div class="flex flex-row items-center justify-between gap-5">
                                     <div class="text-left text-sm font-medium text-grayCust-900">
-                                        <input type="checkbox" id="instawp-database-select-all" class="instawp-checkbox !mr-1 rounded border-gray-300 text-secondary focus:ring-secondary" style="margin-top: -2px;">
+                                        <input type="checkbox" id="instawp-database-select-all" class="instawp-checkbox !mr-1 rounded border-gray-300 text-primary-900 focus:ring-primary-900" style="margin-top: -2px;">
                                         <label for="instawp-database-select-all"><?php esc_html_e( 'Select All', 'instawp-connect' ); ?></label>
                                     </div>
-                                    <div class="text-left text-sm font-medium text-secondary flex flex-row items-center justify-between gap-1 cursor-pointer instawp-database-sort-by" data-sort="none">
+                                    <div class="text-left text-sm font-medium text-primary-900 flex flex-row items-center justify-between gap-1 cursor-pointer instawp-database-sort-by" data-sort="none">
                                         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <path d="M7 16V4M7 4L3 8M7 4L11 8M17 8V20M17 20L21 16M17 20L13 16" stroke="#15B881" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                            <path d="M7 16V4M7 4L3 8M7 4L11 8M17 8V20M17 20L21 16M17 20L13 16" stroke="#005E54" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                                         </svg>
 										<?php esc_html_e( 'Size', 'instawp-connect' ); ?>
                                     </div>
                                 </div>
                             </div>
-                            <div class="expand-database-list text-center cursor-pointer text-secondary p-4">
+                            <div class="expand-database-list text-center cursor-pointer text-primary-900 p-4">
                                 <svg width="8" height="5" viewBox="0 0 8 5" fill="none" xmlns="http://www.w3.org/2000/svg" class="inline mr-1">
                                     <path d="M4.75504 4.09984L5.74004 3.11484L7.34504 1.50984C7.68004 1.16984 7.44004 0.589844 6.96004 0.589844L3.84504 0.589844L1.04004 0.589843C0.560037 0.589843 0.320036 1.16984 0.660037 1.50984L3.25004 4.09984C3.66004 4.51484 4.34004 4.51484 4.75504 4.09984Z" fill="#4F4F4F"></path>
                                 </svg>
@@ -286,7 +286,7 @@ delete_option( 'instawp_db_offset' );
                                             <div class="flex flex-col gap-5 item">
                                                 <div class="flex justify-between items-center">
                                                     <div class="flex items-center cursor-pointer" style="transform: translate(0em);">
-                                                        <input name="migrate_settings[excluded_tables][]" id="<?php echo esc_attr( $element_id ); ?>" value="<?php echo esc_attr( $table['name'] ); ?>" type="checkbox" class="instawp-checkbox exclude-database-item !mt-0 !mr-3 rounded border-gray-300 text-secondary focus:ring-secondary <?= in_array( $table['name'], $log_tables_to_exclude ) ? 'log-table' : ''; ?>" data-size="<?php echo esc_html( $table['size'] ); ?>">
+                                                        <input name="migrate_settings[excluded_tables][]" id="<?php echo esc_attr( $element_id ); ?>" value="<?php echo esc_attr( $table['name'] ); ?>" type="checkbox" class="instawp-checkbox exclude-database-item !mt-0 !mr-3 rounded border-gray-300 text-primary-900 focus:ring-primary-900 <?= in_array( $table['name'], $log_tables_to_exclude ) ? 'log-table' : ''; ?>" data-size="<?php echo esc_html( $table['size'] ); ?>">
                                                         <label for="<?php echo esc_attr( $element_id ); ?>" class="text-sm font-medium text-grayCust-800 truncate" style="width: calc(400px - 1em);"><?php echo esc_html( $table['name'] ); ?> (<?php printf( esc_html__( '%s rows', 'instawp-connect' ), esc_html( $table['rows'] ) ); ?>)</label>
                                                     </div>
                                                     <div class="flex items-center" style="width: 105px;">
@@ -337,7 +337,7 @@ delete_option( 'instawp_db_offset' );
                     <div class="p-6 custom-bg rounded-lg warning-details border my-6 text-left">
                         <div class="flex items-center mb-6">
                             <div class="text-grayCust-900 text-base text-left font-normal w-48"><?php esc_html_e( 'Remaining Sites', 'instawp-connect' ); ?></div>
-                            <div class="flex items-center text-secondary text-base">
+                            <div class="flex items-center text-primary-900 text-base">
                                 <span class="remaining-site"></span>
                                 <span>/</span>
                                 <span class="user-allow-site"></span>
@@ -345,13 +345,13 @@ delete_option( 'instawp_db_offset' );
                         </div>
                         <div class="flex items-center mb-6">
                             <div class="text-grayCust-900 text-base text-left font-normal w-48"><?php esc_html_e( 'Available Disk Space', 'instawp-connect' ); ?></div>
-                            <div class="flex items-center text-secondary text-base">
+                            <div class="flex items-center text-primary-900 text-base">
                                 <span><span class="remaining-disk-space"></span>mb available out of <span class="user-allow-disk-space"></span>mb</span>
                             </div>
                         </div>
                         <div class="flex items-center">
                             <div class="text-grayCust-900 text-base text-left font-normal w-48"><?php esc_html_e( 'Require Disk Space', 'instawp-connect' ); ?></div>
-                            <div class="flex items-center text-secondary text-base">
+                            <div class="flex items-center text-primary-900 text-base">
                                 <span class="require-disk-space"></span>
                                 <span class="ml-1"><?php esc_html_e( 'MB', 'instawp-connect' ); ?></span>
                             </div>
@@ -376,7 +376,7 @@ delete_option( 'instawp_db_offset' );
             <div class="screen screen-5 <?= $current_create_screen === 5 ? 'active' : ''; ?>">
                 <div class="flex justify-between items-center">
                     <div class="text-grayCust-200 text-lg font-bold"><?php esc_html_e( '4. Creating Staging', 'instawp-connect' ); ?></div>
-                    <span class="instawp-migration-loader text-secondary text-base font-normal"
+                    <span class="instawp-migration-loader text-primary-900 text-base font-normal"
                             data-in-progress-text="<?php esc_attr_e( 'In Progress...', 'instawp-connect' ); ?>"
                             data-error-text="<?php esc_attr_e( 'Migration Failed', 'instawp-connect' ); ?>"
                             data-complete-text="<?php esc_attr_e( 'Completed', 'instawp-connect' ); ?>">
@@ -462,7 +462,7 @@ delete_option( 'instawp_db_offset' );
                             </div>
                         </div>
                         <div class="instawp-track-migration-area bg-grayCust-250 px-5 py-4 rounded-bl-lg rounded-br-lg flex content-center items-center <?= empty( $tracking_url ) ? 'justify-end' : 'justify-between' ?>">
-                            <a class="instawp-track-migration text-secondary hover:text-secondary focus:ring-0 text-sm text-left flex items-center <?= empty( $tracking_url ) ? 'hidden' : '' ?>" href="<?php echo esc_url( $tracking_url ); ?>" target="_blank">
+                            <a class="instawp-track-migration text-primary-900 hover:text-primary-900 focus:ring-0 text-sm text-left flex items-center <?= empty( $tracking_url ) ? 'hidden' : '' ?>" href="<?php echo esc_url( $tracking_url ); ?>" target="_blank">
                                 <span class="mr-2"><?php esc_html_e( 'Track Migration', 'instawp-connect' ); ?></span>
                                 <img src="<?php echo esc_url( instaWP::get_asset_url( 'migrate/assets/images/share-icon.svg' ) ); ?>" class="inline ml-1" alt="">
                             </a>
@@ -476,7 +476,7 @@ delete_option( 'instawp_db_offset' );
                         <div class="p-6 custom-bg">
                             <div class="flex items-center mb-6">
                                 <div class="text-grayCust-900 text-base font-normal w-24"><?php esc_html_e( 'URL', 'instawp-connect' ); ?></div>
-                                <div class="flex items-center cursor-pointer text-secondary border-b font-medium text-base border-dashed border-secondary ">
+                                <div class="flex items-center cursor-pointer text-primary-900 border-b font-medium text-base border-dashed border-primary-900 ">
                                     <a target="_blank" id="instawp-site-url" class="focus:shadow-none focus:outline-0">
                                         <span></span>
                                         <img src="<?php echo esc_url( instaWP::get_asset_url( 'migrate/assets/images/share-icon.svg' ) ); ?>" class="inline ml-1" alt="">
@@ -540,7 +540,7 @@ delete_option( 'instawp_db_offset' );
         </div>
 
         <div class="screen-buttons-last hidden border-t bg-grayCust-250 px-6 py-4 rounded-bl-lg rounded-br-lg flex justify-between">
-            <a href="<?php esc_url( admin_url( 'tools.php?page=instawp' ) ); ?>" class="text-secondary text-sm focus:outline-0 focus:shadow-none font-medium cursor-pointer flex items-center instawp-create-another-site">
+            <a href="<?php esc_url( admin_url( 'tools.php?page=instawp' ) ); ?>" class="text-primary-900 text-sm focus:outline-0 focus:shadow-none font-medium cursor-pointer flex items-center instawp-create-another-site">
                 <span class="text-xl mr-1 -mt-1 self-center">+</span>
                 <span><?php esc_html_e( 'Create another Staging Site', 'instawp-connect' ); ?></span>
             </a>
@@ -562,10 +562,10 @@ delete_option( 'instawp_db_offset' );
                 </div>
                 <div class="flex items-center ml-2 focus-visible:outline-none">
                     <div class="flex items-center focus-visible:outline-none placeholder-text">
-                        <p class="truncate cursor-pointer text-sm hover:border-secondary border-b border-transparent focus-visible:outline-none" data-text="<?= esc_attr__( 'Enter Site Name', 'instawp-connect' ) ?>"><?= esc_html__( 'Enter Site Name', 'instawp-connect' ) ?></p>
+                        <p class="truncate cursor-pointer text-sm hover:border-primary-900 border-b border-transparent focus-visible:outline-none" data-text="<?= esc_attr__( 'Enter Site Name', 'instawp-connect' ) ?>"><?= esc_html__( 'Enter Site Name', 'instawp-connect' ) ?></p>
                     </div>
                     <div class="focus-visible:outline-none site-name-input-wrap hidden">
-                        <input id="site-prefix" name="migrate_settings[site_name]" data-postfix="" class="w-44 border-b-[1px] border-secondary focus-visible:outline-none bg-transparent" placeholder="<?= esc_attr__( 'Enter Site Name (max 16 characters)', 'instawp-connect' ) ?>" autocomplete="off" maxlength="16">
+                        <input id="site-prefix" name="migrate_settings[site_name]" data-postfix="" class="w-44 border-b-[1px] border-primary-900 focus-visible:outline-none bg-transparent" placeholder="<?= esc_attr__( 'Enter Site Name (max 16 characters)', 'instawp-connect' ) ?>" autocomplete="off" maxlength="16">
                     </div>
                 </div>
             </div>

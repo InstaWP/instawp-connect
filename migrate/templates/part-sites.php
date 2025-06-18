@@ -26,7 +26,7 @@ if ( ! empty( $parent_connect_data ) ) {
                     <img src="<?php echo esc_url( instaWP::get_asset_url( 'migrate/assets/images/staging.svg' ) ); ?>" class="mx-auto" alt="">
                 </div>
 				<?php if ( isset( $parent_domain ) && ! empty( $parent_domain ) ) { ?>
-                    <div class="text-sm font-medium text-grayCust-200"><?php printf( esc_html__( 'This is a staging site connected to %s', 'instawp-connect' ), '<a target="_blank" class="text-secondary focus:outline-none focus:ring-0 hover:text-secondary border-b border-transparent border-1 border-dashed hover:border-primary-700" href="' . esc_url( $parent_domain ) . '">' . esc_html( $parent_domain ) . '</a>' ); ?></div>
+                    <div class="text-sm font-medium text-grayCust-200"><?php printf( esc_html__( 'This is a staging site connected to %s', 'instawp-connect' ), '<a target="_blank" class="text-primary-900 focus:outline-none focus:ring-0 hover:text-primary-900 border-b border-transparent border-1 border-dashed hover:border-primary-700" href="' . esc_url( $parent_domain ) . '">' . esc_html( $parent_domain ) . '</a>' ); ?></div>
 				<?php } else { ?>
                     <div class="text-sm font-medium text-grayCust-200"><?php printf( esc_html__( 'This is a staging site', 'instawp-connect' ) ); ?></div>
 				<?php } ?>
@@ -88,7 +88,7 @@ if ( ! empty( $parent_connect_data ) ) {
                                 <tr class="staging-site-list sm:rounded-lg">
                                     <td class="whitespace-nowrap my-2 px-4 py-4 text-sm font-medium flex items-center text-grayCust-300 sm:rounded-lg">
 										<?php
-										printf( '<img src="%s" class="mr-2" alt=""><a target="_blank" class="focus:outline-none focus:ring-0 hover:text-secondary border-b border-transparent border-1 border-dashed hover:border-primary-700" href="%s">%s</a>',
+										printf( '<img src="%s" class="mr-2" alt=""><a target="_blank" class="focus:outline-none focus:ring-0 hover:text-primary-900 border-b border-transparent border-1 border-dashed hover:border-primary-700" href="%s">%s</a>',
 											esc_url( instaWP::get_asset_url( 'assets/images/staging.svg' ) ),
 											esc_url_raw( $site_name ), esc_html( $site_name )
 										);

@@ -16,7 +16,7 @@ defined( 'ABSPATH' ) || exit;
             $is_free_plan_disabled = $site_plan['name'] === 'free' && $site_plans['free_site_count'] > 3; ?>
             <label class="w-full cursor-pointer relative">
                 <input type="radio" name="migrate_settings[plan_id]" id="staging-plan-<?php echo esc_attr( $key + 1 ); ?>" value="<?php echo esc_attr( $site_plan['id'] ); ?>" class="peer !hidden" <?php disabled( $is_free_plan_disabled, true ); ?> />
-                <div class="border pl-10 pr-4 font-medium rounded-lg flex items-center justify-between w-full cursor-pointer peer-disabled:opacity-50 peer-disabled:cursor-not-allowed peer-checked:border-secondary peer-checked:bg-teal-900 peer-checked:bg-opacity-5">
+                <div class="border pl-10 pr-4 font-medium rounded-lg flex items-center justify-between w-full cursor-pointer peer-disabled:opacity-50 peer-disabled:cursor-not-allowed peer-checked:border-primary-900 peer-checked:bg-teal-900 peer-checked:bg-opacity-5">
                     <div class="flex items-center gap-2 w-full py-2 cursor-pointer">
                         <span><?php echo esc_html( $site_plan['display_name'] ); ?></span>
                         <?php if ( ! empty( $site_plan['description'] ) ) { ?>
@@ -34,7 +34,7 @@ defined( 'ABSPATH' ) || exit;
                         <?php } ?>
                     </div>
                 </div>
-                <div class="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 rounded-full peer-checked:border-secondary peer-checked:border-4 border flex items-center justify-center transition-colors bg-white"></div>
+                <div class="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 rounded-full peer-checked:border-primary-900 peer-checked:border-4 border flex items-center justify-center transition-colors bg-white"></div>
             </label>
         <?php } ?>
     </div>
