@@ -522,7 +522,8 @@ input:checked + .slider-toggle:before {
     position: relative;
 }
 
-.nav-item-content.create.active .screen-buttons p.doing-request {
+.nav-item-content.create.active .screen-buttons p.doing-request,
+.nav-item-content.create.active .screen-buttons p.loading-request {
     position: absolute;
     top: 50%;
     left: 50px;
@@ -531,11 +532,13 @@ input:checked + .slider-toggle:before {
     display: none;
 }
 
-.nav-item-content.create.active .screen-buttons p.doing-request.loading {
+.nav-item-content.create.active .screen-buttons p.doing-request.loading,
+.nav-item-content.create.active .screen-buttons p.loading-request.loading {
     display: inline-block;
 }
 
-.nav-item-content.create.active .screen-buttons p.doing-request:after {
+.nav-item-content.create.active .screen-buttons p.doing-request:after,
+.nav-item-content.create.active .screen-buttons p.loading-request:after {
     content: ' ';
     position: absolute;
     height: 18px;

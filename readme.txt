@@ -99,6 +99,8 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 == Changelog ==
 
 = 0.1.0.94 -  =
+- NEW: Site Plan Selection in Confirmation screen.
+- Fixed: UI issues and back/next navigation state.
 - Fixed: Destination migration file path for Elementor cloud.
 
 = 0.1.0.93 - 09 June 2025 =

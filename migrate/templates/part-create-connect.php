@@ -4,7 +4,7 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-$features = [
+$features = array(
     'Plugin & Theme Updates',
     'Database Manager',
     'Manage Website',
@@ -12,9 +12,9 @@ $features = [
     'Magic Login',
     'Purge Cache',
     'Staging Creation',
-];
+);
 
-$pro_features = [
+$pro_features = array(
     'Scheduled Updates',
     'Automated Vulnerability Scanning',
     'Activity Logs',
@@ -24,7 +24,7 @@ $pro_features = [
     'Uptime Monitoring',
     'WP Config Manager',
     'Backups (soon)',
-];
+);
 ?>
 
 <div class="bg-white text-center rounded-md py-20 flex items-center justify-center">

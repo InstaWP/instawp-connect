@@ -526,6 +526,7 @@ select#event-action-type {
 .changes-btn.loading:after,
 td.event-sync-cell.loading:after,
 .exclude-files-container > .loading:after,
+.staging-plan-container > .loading:after,
 .exclude-database-container > .loading:after {
     content: ' ';
     position: absolute;
@@ -543,6 +544,7 @@ td.event-sync-cell.loading:after,
 
 td.event-sync-cell.loading,
 .exclude-files-container > .loading,
+.staging-plan-container > .loading,
 .exclude-database-container > .loading {
     padding: 20px;
     text-align: center;

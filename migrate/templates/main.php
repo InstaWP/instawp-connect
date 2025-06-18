@@ -29,22 +29,22 @@ if ( isset( $current->response[ $plugin_file ] ) ) {
  */
 
 //if ( ! empty( $_GET['debug'] ) && current_user_can( 'manage_options' ) ) {
-//	$file_path = INSTAWP_PLUGIN_DIR . '/migrate/templates/debug/' . sanitize_file_name( wp_unslash( $_GET['debug'] ) ) . '.php';
+//  $file_path = INSTAWP_PLUGIN_DIR . '/migrate/templates/debug/' . sanitize_file_name( wp_unslash( $_GET['debug'] ) ) . '.php';
 //
-//	if ( file_exists( $file_path ) ) {
-//		include $file_path;
+//  if ( file_exists( $file_path ) ) {
+//      include $file_path;
 //
-//		return;
-//	}
+//      return;
+//  }
 //}
 $connect_id      = Helper::get_connect_id();
 $connect_api_key = Helper::get_api_key();
 $connect_domain  = Helper::get_api_domain();
-$connect_classes = [ 'nav-content' ];
+$connect_classes = array( 'nav-content' );
 $staging_sites   = instawp_get_connected_sites_list();
 
 $syncing_status    = Option::get_option( 'instawp_is_event_syncing' );
-$migration_details = Option::get_option( 'instawp_migration_details', [] );
+$migration_details = Option::get_option( 'instawp_migration_details', array() );
 $plugin_nav_items  = InstaWP_Setting::get_plugin_nav_items();
 
 $instawp_settings['instawp_is_event_syncing']  = $syncing_status;

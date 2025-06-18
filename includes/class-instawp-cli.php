@@ -173,10 +173,10 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 						$jwt     = ! empty( $assoc_args['jwt'] ) ? $assoc_args['jwt'] : '';
 						$managed = ! isset( $assoc_args['unmanaged'] );
 						$plan_id = ! empty( $assoc_args['plan-id'] ) ? $assoc_args['plan-id'] : 0;
-						$config  = [
+						$config  = array(
 							'managed' => $managed,
 							'plan_id' => $plan_id,
-						];
+						);
 						
 						Helper::generate_api_key( $args[0], $jwt, $config );
 

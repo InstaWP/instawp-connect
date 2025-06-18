@@ -62,7 +62,10 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 			'status'        => $status,
 		) );
 
-		return $this->send_response( [ 'success' => true, 'message' => esc_html__( 'Migration details updated successfully.', 'instawp-connect' ) ] );
+		return $this->send_response( array(
+			'success' => true,
+			'message' => esc_html__( 'Migration details updated successfully.', 'instawp-connect' ),
+		) );
 	}
 
 	/**
@@ -216,7 +219,7 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 			$migrate_group_uuid    = $request->get_param( 'migrate_group_uuid' );
 			$migration_status      = $request->get_param( 'status' );
 			$migration_details     = Option::get_option( 'instawp_migration_details' );
-			$plugins_to_delete     = [];
+			$plugins_to_delete     = array();
 
 			$migration_details['migrate_group_uuid']  = $migrate_group_uuid;
 			$migration_details['status']              = $migration_status;
@@ -268,7 +271,7 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 			}
 
 			$post_uninstalls = $request->get_param( 'post_uninstalls' );
-			$post_uninstalls = ! empty( $post_uninstalls ) ? $post_uninstalls : [];
+			$post_uninstalls = ! empty( $post_uninstalls ) ? $post_uninstalls : array();
 
 			foreach ( $post_uninstalls as $post_uninstall_item ) {
 				$plugins_to_delete[] = $post_uninstall_item;
@@ -306,13 +309,13 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 			$response['message'] = esc_html__( 'Post migration cleanup completed.', 'instawp-connect' );
 
 			return $this->send_response( $response );
-		} catch (\Throwable $th) {
+		} catch ( \Throwable $th ) {
 			$response = array(
-				'success'       => false,
-				'message'       => $th->getMessage(),
-				'line_number' 	=> $th->getLine(),
-				'file'          => $th->getFile(),
-				'response'		=> $response
+				'success'     => false,
+				'message'     => $th->getMessage(),
+				'line_number' => $th->getLine(),
+				'file'        => $th->getFile(),
+				'response'    => $response,
 			);
 			error_log( 'migration clean up exception: ' . json_encode( $response ) );
 			return $this->send_response( $response );
