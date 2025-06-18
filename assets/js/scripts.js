@@ -404,7 +404,6 @@
             screen_current = parseInt(el_instawp_screen.val()),
             el_screen_nav_items = create_container.find('.screen-nav-items > li'),
             el_screen_loading_request = el_screen_buttons.find('p.loading-request'),
-            el_instawp_site_name = el_screen_buttons.find('.instawp-site-name'),
             el_staging_plan_container = create_container.find('.staging-plan-container'),
             el_payment_method_warning = create_container.find('.payment-method-warning'),
             el_screen = create_container.find('.screen');
@@ -432,20 +431,16 @@
                     context: this,
                     beforeSend: function () {
                         el_btn_continue.attr('disabled', true);
-                        el_screen_loading_request.addClass('loading');
-                        el_instawp_site_name.addClass('hidden');
-                        el_screen_buttons.removeClass('justify-between').addClass('justify-end');
+                        el_screen_loading_request.removeClass('hidden');
                     },
                     data: {
                         'action': 'instawp_get_site_plans',
                         'security': plugin_object.security,
                     },
                     success: function (response) {
-                        el_screen_loading_request.removeClass('loading');
-                        el_instawp_site_name.removeClass('hidden');
-                        el_screen_buttons.removeClass('justify-end').addClass('justify-between');
+                        el_screen_loading_request.addClass('hidden');
 
-                        if (response.success) {
+                        if (response.success && response.data && !response.data.is_legacy) {
                             el_staging_plan_container.removeClass('hidden').html(response.data.content);
                             create_container.find('.staging-plans input[type="radio"]:not(:disabled)').first().prop('checked', true);
 
@@ -463,8 +458,7 @@
             }
         } else {
             el_btn_continue.text(plugin_object.trans.next_step_txt).removeAttr('disabled');
-            el_screen_loading_request.removeClass('loading');
-            el_instawp_site_name.removeClass('hidden');
+            el_screen_loading_request.addClass('hidden');
             el_screen_buttons.removeClass('justify-end').addClass('justify-between');
         }
 
