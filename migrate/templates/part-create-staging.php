@@ -554,23 +554,25 @@ delete_option( 'instawp_db_offset' );
         </div>
 
         <div class="screen-buttons border-t <?php echo esc_attr( ! empty( $migrate_id ) ? 'hidden' : '' ); ?> bg-grayCust-250 px-6 py-4 rounded-bl-lg rounded-br-lg flex justify-between">
-            <div class="instawp-site-name flex items-center focus-visible:outline-none cursor-pointer hint--top hint--rounded" aria-label="<?= esc_attr__( 'Leave blank for Auto Generated name', 'instawp-connect' ) ?>" style="max-width: 350px;">
-                <div class="focus-visible:outline-none">
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" class="size-4">
-                        <path d="M1 5H13M5 5L5 13M4.2 1H9.8C10.9201 1 11.4802 1 11.908 1.21799C12.2843 1.40973 12.5903 1.71569 12.782 2.09202C13 2.51984 13 3.0799 13 4.2V9.8C13 10.9201 13 11.4802 12.782 11.908C12.5903 12.2843 12.2843 12.5903 11.908 12.782C11.4802 13 10.9201 13 9.8 13H4.2C3.07989 13 2.51984 13 2.09202 12.782C1.71569 12.5903 1.40973 12.2843 1.21799 11.908C1 11.4802 1 10.9201 1 9.8V4.2C1 3.07989 1 2.51984 1.21799 2.09202C1.40973 1.71569 1.71569 1.40973 2.09202 1.21799C2.51984 1 3.0799 1 4.2 1Z" stroke="#374151" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                </div>
-                <div class="flex items-center ml-2 focus-visible:outline-none">
-                    <div class="flex items-center focus-visible:outline-none placeholder-text">
-                        <p class="truncate cursor-pointer text-sm hover:border-primary-900 border-b border-transparent focus-visible:outline-none" data-text="<?= esc_attr__( 'Enter Site Name', 'instawp-connect' ) ?>"><?= esc_html__( 'Enter Site Name', 'instawp-connect' ) ?></p>
+            <div class="flex items-center gap-5 relative">
+                <div class="instawp-site-name flex items-center focus-visible:outline-none cursor-pointer hint--top hint--rounded" aria-label="<?= esc_attr__( 'Leave blank for Auto Generated name', 'instawp-connect' ) ?>" style="max-width: 350px;">
+                    <div class="focus-visible:outline-none">
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" class="size-4">
+                            <path d="M1 5H13M5 5L5 13M4.2 1H9.8C10.9201 1 11.4802 1 11.908 1.21799C12.2843 1.40973 12.5903 1.71569 12.782 2.09202C13 2.51984 13 3.0799 13 4.2V9.8C13 10.9201 13 11.4802 12.782 11.908C12.5903 12.2843 12.2843 12.5903 11.908 12.782C11.4802 13 10.9201 13 9.8 13H4.2C3.07989 13 2.51984 13 2.09202 12.782C1.71569 12.5903 1.40973 12.2843 1.21799 11.908C1 11.4802 1 10.9201 1 9.8V4.2C1 3.07989 1 2.51984 1.21799 2.09202C1.40973 1.71569 1.71569 1.40973 2.09202 1.21799C2.51984 1 3.0799 1 4.2 1Z" stroke="#374151" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
                     </div>
-                    <div class="focus-visible:outline-none site-name-input-wrap hidden">
-                        <input id="site-prefix" name="migrate_settings[site_name]" data-postfix="" class="w-44 border-b-[1px] border-primary-900 focus-visible:outline-none bg-transparent" placeholder="<?= esc_attr__( 'Enter Site Name (max 16 characters)', 'instawp-connect' ) ?>" autocomplete="off" maxlength="16">
+                    <div class="flex items-center ml-2 focus-visible:outline-none">
+                        <div class="flex items-center focus-visible:outline-none placeholder-text">
+                            <p class="truncate cursor-pointer text-sm hover:border-primary-900 border-b border-transparent focus-visible:outline-none" data-text="<?= esc_attr__( 'Enter Site Name', 'instawp-connect' ) ?>"><?= esc_html__( 'Enter Site Name', 'instawp-connect' ) ?></p>
+                        </div>
+                        <div class="focus-visible:outline-none site-name-input-wrap hidden">
+                            <input id="site-prefix" name="migrate_settings[site_name]" data-postfix="" class="w-44 border-b-[1px] border-primary-900 focus-visible:outline-none bg-transparent" placeholder="<?= esc_attr__( 'Enter Site Name (max 16 characters)', 'instawp-connect' ) ?>" autocomplete="off" maxlength="16">
+                        </div>
                     </div>
                 </div>
+                <p class="loading-request hidden"></p>
             </div>
             <p class="doing-request"><span class="loader"></span><?php esc_html_e( 'Checking usages...', 'instawp-connect' ); ?></p>
-            <p class="loading-request"><span class="loader"></span><?php esc_html_e( 'Loading plans...', 'instawp-connect' ); ?></p>
             <input name="migrate_settings[screen]" type="hidden" id="instawp-screen" value="<?= esc_attr( $current_create_screen ); ?>">
             <div class="button-group">
                 <button type="button" data-increment="-1" class="instawp-button-migrate back hidden shadow-sm border border-grayCust-350 mr-4 rounded-md py-2 px-8 bg-white text-sm font-medium disabled:cursor-not-allowed disabled:opacity-70"><?php esc_html_e( 'Back', 'instawp-connect' ); ?></button>
