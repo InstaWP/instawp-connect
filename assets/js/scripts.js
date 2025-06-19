@@ -694,11 +694,18 @@
                     } else {
                         //create_container.addClass('warning');
                         create_container.find('.instawp-button-migrate.back').removeAttr('disabled');
-                        if (response.data.issue_for === 'no_payment_method') {
+                        if (response.data.issue_for === 'no_payment_method' || response.data.issue_for === 'free_site_count') {
                             el_screen_buttons.addClass('justify-between').removeClass('justify-end');
                             el_instawp_site_name.removeClass('hidden');
                             el_screen_doing_request.removeClass('loading');
-                            el_payment_method_warning.removeClass('hidden');
+
+                            if (response.data.issue_for === 'free_site_count') {
+                                alert('Free limit reached');
+                                location.reload();
+                            } else {
+                                el_payment_method_warning.removeClass('hidden');
+                            }
+
                             return;
                         }
                         
