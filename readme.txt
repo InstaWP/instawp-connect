@@ -102,6 +102,8 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 - NEW: Site Plan Selection in Confirmation screen.
 - Fixed: UI issues and back/next navigation state.
 - Fixed: Destination migration file path for Elementor cloud.
+- Added: Mega Menu sync support.
+- Fixed: Reduced excessive event log for user_roles option sync.
 
 = 0.1.0.93 - 09 June 2025 =
 - Added: Migration support without requiring Connects
