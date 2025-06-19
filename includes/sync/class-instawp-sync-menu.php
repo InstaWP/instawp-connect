@@ -295,6 +295,9 @@ class InstaWP_Sync_Menu {
 			}
 			update_post_meta( $menu_item_id, '_megamenu', $megamenu );
 		}
+
+		// Clear megamenu cache and generate new css
+		do_action( 'megamenu_delete_cache' );
 	}
 
 	private function get_nav_menu( $source_id, $menu ) {
