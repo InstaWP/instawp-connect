@@ -33,7 +33,7 @@ if ( ! in_array( $current_tab, array_keys( $plugin_nav_items ) ) ) {
         } ?>
     </div>
 
-    <?php if ( empty( $connect_api_key ) ) : ?>
+    <?php if ( empty( $connect_api_key ) || empty( $connect_id ) ) : ?>
         <div class="flex items-center text-sm font-medium">
             <div class="flex items-center gap-2 pr-4">
                 <span class="w-1 h-1 bg-red-600 rounded-full"></span>
