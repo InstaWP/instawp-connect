@@ -13,7 +13,7 @@ defined( 'ABSPATH' ) || exit;
     </div>
     <div class="flex flex-col gap-3 w-full basis-4/5">
         <?php foreach ( $site_plans['plans']['sites'] as $key => $site_plan ) {
-            $is_free_plan_disabled = $site_plan['name'] === 'free' && $site_plans['free_site_count'] > 3; ?>
+            $is_free_plan_disabled = $site_plan['name'] === 'free' && $site_plans['free_site_count'] >= 3; ?>
             <label class="w-full cursor-pointer relative">
                 <input type="radio" name="migrate_settings[plan_id]" id="staging-plan-<?php echo esc_attr( $key + 1 ); ?>" value="<?php echo esc_attr( $site_plan['id'] ); ?>" class="peer !hidden" <?php disabled( $is_free_plan_disabled, true ); ?> />
                 <div class="border pl-10 pr-4 font-medium rounded-lg flex items-center justify-between w-full cursor-pointer peer-disabled:opacity-50 peer-disabled:cursor-not-allowed peer-checked:border-primary-900 peer-checked:bg-teal-900 peer-checked:bg-opacity-5">
