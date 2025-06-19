@@ -351,7 +351,7 @@ class instaWP {
 
 		if ( $can_proceed && $free_site_count !== null ) {
 			$can_proceed = intval( $free_site_count ) < 3;
-			$issue_for   = 'free_site_count';
+			$issue_for   = 'free_site_limit_exceeded';
 		}
 
 		if ( $can_proceed ) {
