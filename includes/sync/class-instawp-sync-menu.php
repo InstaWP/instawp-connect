@@ -1,7 +1,6 @@
 <?php
 
 use InstaWP\Connect\Helpers\Helper;
-use Sentry\Util\JSON;
 
 defined( 'ABSPATH' ) || exit;
 
