@@ -29,22 +29,22 @@ if ( isset( $current->response[ $plugin_file ] ) ) {
  */
 
 //if ( ! empty( $_GET['debug'] ) && current_user_can( 'manage_options' ) ) {
-//	$file_path = INSTAWP_PLUGIN_DIR . '/migrate/templates/debug/' . sanitize_file_name( wp_unslash( $_GET['debug'] ) ) . '.php';
+//  $file_path = INSTAWP_PLUGIN_DIR . '/migrate/templates/debug/' . sanitize_file_name( wp_unslash( $_GET['debug'] ) ) . '.php';
 //
-//	if ( file_exists( $file_path ) ) {
-//		include $file_path;
+//  if ( file_exists( $file_path ) ) {
+//      include $file_path;
 //
-//		return;
-//	}
+//      return;
+//  }
 //}
 $connect_id      = Helper::get_connect_id();
 $connect_api_key = Helper::get_api_key();
 $connect_domain  = Helper::get_api_domain();
-$connect_classes = [ 'nav-content' ];
+$connect_classes = array( 'nav-content' );
 $staging_sites   = instawp_get_connected_sites_list();
 
 $syncing_status    = Option::get_option( 'instawp_is_event_syncing' );
-$migration_details = Option::get_option( 'instawp_migration_details', [] );
+$migration_details = Option::get_option( 'instawp_migration_details', array() );
 $plugin_nav_items  = InstaWP_Setting::get_plugin_nav_items();
 
 $instawp_settings['instawp_is_event_syncing']  = $syncing_status;
@@ -66,7 +66,7 @@ if ( ! instawp()->is_connected ) {
                         <span class="inline-block"><?php printf( wp_kses_post( __( 'A new version of InstaWP Connect (%1$s) is available. You are using an older version (%2$s), it is recommended to update.', 'instawp-connect' ) ), $new_version_number, INSTAWP_PLUGIN_VERSION ); ?></span>
                         <span class="instawp-update-notice hidden bg-red-700 text-gray-200 px-1.5 py-[2px] mt-2 rounded-sm transition-all duration-300"><?php esc_html_e( 'Could not update the plugin!', 'instawp-connect' ); ?></span>
                     </p>
-					<?php printf( wp_kses_post( __( '<p class="cursor-pointer px-4 py-2 text-xs font-medium text-center inline-flex items-center text-white bg-primary-700 rounded-3xl hover:bg-primary-800 hover:text-white ease-linear duration-300 instawp-update-plugin" data-plugin="%s">Update Now</p>', 'instawp-connect' ) ), esc_attr( $plugin_file ) ); ?>
+					<?php printf( wp_kses_post( __( '<p class="cursor-pointer px-4 py-2 text-xs font-medium text-center inline-flex items-center text-white bg-secondary rounded-3xl hover:bg-primary-900 hover:text-white ease-linear duration-300 instawp-update-plugin" data-plugin="%s">Update Now</p>', 'instawp-connect' ) ), esc_attr( $plugin_file ) ); ?>
                 </div>
             </div>
         </div>

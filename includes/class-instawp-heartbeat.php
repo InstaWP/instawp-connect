@@ -145,11 +145,11 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 			}
 
 			if ( empty( $connect_id ) ) {
-				return [
-					'success' => false,
-					'response' => [],
+				return array(
+					'success'       => false,
+					'response'      => array(),
 					'response_code' => 404,
-				];
+				);
 			}
 
 			$heartbeat_data = self::prepare_data();
@@ -168,11 +168,11 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 				error_log( "Print Heartbeat API Curl Response End" );
 			}
 
-			return [
-				'success' => $success,
-				'response' => $heartbeat_response,
+			return array(
+				'success'       => $success,
+				'response'      => $heartbeat_response,
 				'response_code' => $response_code,
-			];
+			);
 		}
 	}
 }

@@ -4,7 +4,7 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-$features = [
+$features = array(
     'Plugin & Theme Updates',
     'Database Manager',
     'Manage Website',
@@ -12,9 +12,9 @@ $features = [
     'Magic Login',
     'Purge Cache',
     'Staging Creation',
-];
+);
 
-$pro_features = [
+$pro_features = array(
     'Scheduled Updates',
     'Automated Vulnerability Scanning',
     'Activity Logs',
@@ -24,7 +24,7 @@ $pro_features = [
     'Uptime Monitoring',
     'WP Config Manager',
     'Backups (soon)',
-];
+);
 ?>
 
 <div class="bg-white text-center rounded-md py-20 flex items-center justify-center">
@@ -50,7 +50,7 @@ $pro_features = [
                     <div class="flex items-center gap-2">
                         <svg width="17" height="16" viewBox="0 0 17 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <rect x="0.5" width="16" height="16" rx="8" fill="#D1FAE5"/>
-                            <path fill-rule="evenodd" clip-rule="evenodd" d="M11.8986 4.92661L7.12531 9.53328L5.85865 8.17994C5.62531 7.95994 5.25865 7.94661 4.99198 8.13328C4.73198 8.32661 4.65865 8.66661 4.81865 8.93994L6.31865 11.3799C6.46531 11.6066 6.71865 11.7466 7.00531 11.7466C7.27865 11.7466 7.53865 11.6066 7.68531 11.3799C7.92531 11.0666 12.5053 5.60661 12.5053 5.60661C13.1053 4.99328 12.3786 4.45328 11.8986 4.91994V4.92661Z" fill="#15B881"/>
+                            <path fill-rule="evenodd" clip-rule="evenodd" d="M11.8986 4.92661L7.12531 9.53328L5.85865 8.17994C5.62531 7.95994 5.25865 7.94661 4.99198 8.13328C4.73198 8.32661 4.65865 8.66661 4.81865 8.93994L6.31865 11.3799C6.46531 11.6066 6.71865 11.7466 7.00531 11.7466C7.27865 11.7466 7.53865 11.6066 7.68531 11.3799C7.92531 11.0666 12.5053 5.60661 12.5053 5.60661C13.1053 4.99328 12.3786 4.45328 11.8986 4.91994V4.92661Z" fill="#005E54"/>
                         </svg>
                         <span class="text-sm font-normal text-grayCust-50"><?php echo esc_html( $feature );?></span>
                     </div>

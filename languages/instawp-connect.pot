@@ -5,7 +5,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2025-06-12 12:11+0000\n"
+"POT-Creation-Date: 2025-06-19 07:42+0000\n"
 "X-Poedit-Basepath: ..\n"
 "X-Poedit-KeywordsList: __;_e;_ex:1,2c;_n:1,2;_n_noop:1,2;_nx:1,2,4c;_nx_noop:1,2,3c;_x:1,2c;esc_attr__;esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c\n"
 "X-Poedit-SearchPath-0: .\n"
@@ -17,7 +17,7 @@ msgstr ""
 msgid "Settings"
 msgstr ""
 
-#: admin/class-instawp-admin.php:76, includes/class-instawp-hooks.php:314, includes/class-instawp-setting.php:38
+#: admin/class-instawp-admin.php:76, includes/class-instawp-hooks.php:314, includes/class-instawp-setting.php:38, includes/class-instawp-tools.php:1477
 msgid "Create Staging"
 msgstr ""
 
@@ -65,27 +65,27 @@ msgstr ""
 msgid "Setting is already disabled."
 msgstr ""
 
-#: includes/apis/class-instawp-rest-api-migration.php:65
+#: includes/apis/class-instawp-rest-api-migration.php:67
 msgid "Migration details updated successfully."
 msgstr ""
 
-#: includes/apis/class-instawp-rest-api-migration.php:131
+#: includes/apis/class-instawp-rest-api-migration.php:134
 msgid "Migration could not initiate because the allow_url_fopen is set to false."
 msgstr ""
 
-#: includes/apis/class-instawp-rest-api-migration.php:236
+#: includes/apis/class-instawp-rest-api-migration.php:239
 msgid "Installation failed"
 msgstr ""
 
-#: includes/apis/class-instawp-rest-api-migration.php:259
+#: includes/apis/class-instawp-rest-api-migration.php:262
 msgid "sso_url_class_not_found: This class NewfoldLabs\WP\Module\Migration\Services\MigrationSSO not found."
 msgstr ""
 
-#: includes/apis/class-instawp-rest-api-migration.php:254
+#: includes/apis/class-instawp-rest-api-migration.php:257
 msgid "Error getting SSO login url."
 msgstr ""
 
-#: includes/apis/class-instawp-rest-api-migration.php:306
+#: includes/apis/class-instawp-rest-api-migration.php:309
 msgid "Post migration cleanup completed."
 msgstr ""
 
@@ -233,68 +233,72 @@ msgstr ""
 msgid "Debug Log"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:143
+#: includes/class-instawp-ajax.php:144
 msgid "Migration failed."
 msgstr ""
 
-#: includes/class-instawp-ajax.php:265
+#: includes/class-instawp-ajax.php:266
 msgid "Migrate key or item is missing!"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:278
+#: includes/class-instawp-ajax.php:279
 msgid "Can not initiate database."
 msgstr ""
 
-#: includes/class-instawp-ajax.php:324
+#: includes/class-instawp-ajax.php:325
 msgid "Error: Empty serve url found in pre-check response."
 msgstr ""
 
-#: includes/class-instawp-ajax.php:337
+#: includes/class-instawp-ajax.php:338
 msgid "Error: Empty api signature found in pre-check response."
 msgstr ""
 
-#: includes/class-instawp-ajax.php:387
+#: includes/class-instawp-ajax.php:388
 msgid "Could not create migrate id."
 msgstr ""
 
-#: includes/class-instawp-ajax.php:441
+#: includes/class-instawp-ajax.php:442
 msgid "Communication Error"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:442
+#: includes/class-instawp-ajax.php:443
 msgid "Something went wrong."
 msgstr ""
 
-#: includes/class-instawp-ajax.php:458
+#: includes/class-instawp-ajax.php:459
 msgid "Connect Again"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:469, includes/class-instawp-hooks.php:388
+#: includes/class-instawp-ajax.php:470, includes/class-instawp-hooks.php:388
 msgid "Contact Support"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:475
+#: includes/class-instawp-ajax.php:476
 msgid "Increase Limit"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:503
+#: includes/class-instawp-ajax.php:504
 msgid "Empty folder!"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:607
+#: includes/class-instawp-ajax.php:608
 msgid "%s rows"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:654
+#: includes/class-instawp-ajax.php:655
 msgid "We have identified following large files in your installation:"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:722
+#: includes/class-instawp-ajax.php:723
 msgid "Plugin reset successfully."
 msgstr ""
 
-#: includes/class-instawp-ajax.php:771
+#: includes/class-instawp-ajax.php:772
 msgid "Plan changed successfully."
+msgstr ""
+
+#: includes/class-instawp-ajax.php:787
+msgid "No plans found."
 msgstr ""
 
 #: includes/class-instawp-cli.php:242
@@ -793,27 +797,31 @@ msgstr ""
 msgid "Do you still want to disconnect the plugin?"
 msgstr ""
 
-#: includes/class-instawp-tools.php:1536
+#: includes/class-instawp-tools.php:1478
+msgid "Next Step"
+msgstr ""
+
+#: includes/class-instawp-tools.php:1538
 msgid "Zip archive is not opening."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1589
+#: includes/class-instawp-tools.php:1591
 msgid "No compression method find."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1636
+#: includes/class-instawp-tools.php:1638
 msgid "Site ID not found in site create response."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1675
+#: includes/class-instawp-tools.php:1677
 msgid "SFTP login failed."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1686
+#: includes/class-instawp-tools.php:1688
 msgid "SFTP upload failed for files."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1694
+#: includes/class-instawp-tools.php:1696
 msgid "SFTP upload failed for database."
 msgstr ""
 

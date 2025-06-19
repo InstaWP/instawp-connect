@@ -256,7 +256,7 @@ include $file_path;';
 
 		$result = array(
 			'dest_url' => false,
-			'error'  => 'Could not create the destination db file',
+			'error'    => 'Could not create the destination db file',
 		);
 		try {
 			
@@ -343,7 +343,7 @@ include $file_path;';
 			}
 
 			if ( file_put_contents( $forwarded_file_path, $forwarded_content ) ) { // phpcs:ignore WordPress.WP.AlternateFunctions.file_system_operations_file_put_contents
-				$dest_url = Helper::wp_site_url( $is_wpcloud ? 'iwp-dest/index.php': 'iwp-dest/', true );
+				$dest_url = Helper::wp_site_url( $is_wpcloud ? 'iwp-dest/index.php' : 'iwp-dest/', true );
 
 				// Check if the forwarded file is accessible
 				$accessible_file = self::is_migrate_file_accessible( $dest_url, true );
@@ -355,7 +355,7 @@ include $file_path;';
 			} else {
 				$result['error'] = 'Could not create the destination file or forwarded file. Path: ' . $forwarded_file_path;
 			}
-		} catch (\Throwable $th) {
+		} catch ( \Throwable $th ) {
 			$result['error'] = 'Could not create the destination file. Error:' . $th->getMessage();
 		}
 
@@ -1467,16 +1467,18 @@ include $file_path;';
 		global $current_screen;
 
 		$localize_data = array(
-			'ajax_url' => admin_url( 'admin-ajax.php' ),
-			'trans'    => array(
+			'ajax_url'   => admin_url( 'admin-ajax.php' ),
+			'trans'      => array(
 				'create_staging_site_txt' => __( 'Please create staging sites first.', 'instawp-connect' ),
 				'skip_item_txt'           => __( 'Skip', 'instawp-connect' ),
 				'disconnect_txt'          => __( 'Do you really want to disconnect the plugin? It will completely remove the existing staging sites from the plugin.', 'instawp-connect' ),
 				'disconnect_confirm_txt'  => __( 'Do you still want to disconnect the plugin?', 'instawp-connect' ),
 				'stages'                  => InstaWP_Setting::get_stages(),
+				'create_staging_txt'      => __( 'Create Staging', 'instawp-connect' ),
+				'next_step_txt'           => __( 'Next Step', 'instawp-connect' ),
 			),
 			'api_domain' => Helper::get_api_domain(),
-			'security' => wp_create_nonce( 'instawp-connect' ),
+			'security'   => wp_create_nonce( 'instawp-connect' ),
 		);
 
 		if ( $current_screen && isset( $current_screen->base ) && $current_screen->base === 'plugins' ) {

@@ -252,7 +252,7 @@
                         el_migration_download_log.data('migrate-id', response.data.migrate_id);
                         el_migration_download_log.data('server-logs', response.data.server_logs);
 
-                        el_migration_loader.removeClass('text-secondary').addClass('text-red-700').text(el_migration_loader.data('error-text'));
+                        el_migration_loader.removeClass('text-primary-900').addClass('text-red-700').text(el_migration_loader.data('error-text'));
                         el_migration_progress_wrap.addClass('hidden');
                         el_migration_error_wrap.removeClass('hidden');
                         el_screen_buttons_last.removeClass('hidden');
@@ -315,7 +315,7 @@
                     } else {
                         create_container.removeClass('loading');
                         el_migration_progress_wrap.addClass('hidden');
-                        el_migration_loader.removeClass('text-secondary').addClass('text-red-700').text(el_migration_loader.data('error-text'));
+                        el_migration_loader.removeClass('text-primary-900').addClass('text-red-700').text(el_migration_loader.data('error-text'));
                         el_migration_error_message.html(response.data.message);
                         el_migration_download_log.addClass('hidden');
                         el_migration_error_wrap.removeClass('hidden');
@@ -336,6 +336,7 @@
         if (popupWindow && popupWindow.closed) {
             clearInterval(intervalChecker);
             $('.payment-method-warning').addClass('hidden');
+            $('.instawp-button-migrate.continue').removeAttr('disabled');
             $('.instawp-add-credit-card').removeClass('pointer-events-none');
         }
         }, 500);
@@ -402,6 +403,9 @@
             el_instawp_screen = create_container.find('#instawp-screen'),
             screen_current = parseInt(el_instawp_screen.val()),
             el_screen_nav_items = create_container.find('.screen-nav-items > li'),
+            el_screen_loading_request = el_screen_buttons.find('p.loading-request'),
+            el_staging_plan_container = create_container.find('.staging-plan-container'),
+            el_payment_method_warning = create_container.find('.payment-method-warning'),
             el_screen = create_container.find('.screen');
 
         el_screen_buttons.removeClass('hidden');
@@ -419,9 +423,43 @@
         }
 
         if (screen_current === 4) {
-            el_btn_continue.text('Create Staging');
+            el_btn_continue.text(plugin_object.trans.create_staging_txt);
+            if (create_container.find('.staging-plans').length === 0) {
+                $.ajax({
+                    type: 'POST',
+                    url: plugin_object.ajax_url,
+                    context: this,
+                    beforeSend: function () {
+                        el_btn_continue.attr('disabled', true);
+                        el_screen_loading_request.removeClass('hidden');
+                    },
+                    data: {
+                        'action': 'instawp_get_site_plans',
+                        'security': plugin_object.security,
+                    },
+                    success: function (response) {
+                        el_screen_loading_request.addClass('hidden');
+
+                        if (response.success && response.data && !response.data.is_legacy) {
+                            el_staging_plan_container.removeClass('hidden').html(response.data.content);
+                            create_container.find('.staging-plans input[type="radio"]:not(:disabled)').first().prop('checked', true);
+
+                            if (response.data.has_payment_method) {
+                                el_payment_method_warning.addClass('hidden');
+                                el_btn_continue.removeAttr('disabled');
+                            } else {
+                                el_payment_method_warning.removeClass('hidden');
+                            }
+                        } else {
+                            el_btn_continue.removeAttr('disabled');
+                        }
+                    }
+                });
+            }
         } else {
-            el_btn_continue.text('Next Step');
+            el_btn_continue.text(plugin_object.trans.next_step_txt).removeAttr('disabled');
+            el_screen_loading_request.addClass('hidden');
+            el_screen_buttons.removeClass('justify-end').addClass('justify-between');
         }
 
         // Changing Screen Nav
@@ -437,9 +475,9 @@
         //     }
 
         //     if (index < (screen_current - 1)) {
-        //         el_screen_nav_current_line.addClass('bg-secondary').removeClass('bg-gray-200');
+        //         el_screen_nav_current_line.addClass('bg-primary-900').removeClass('bg-gray-200');
         //     } else {
-        //         el_screen_nav_current_line.addClass('bg-gray-200').removeClass('bg-secondary');
+        //         el_screen_nav_current_line.addClass('bg-gray-200').removeClass('bg-primary-900');
         //     }
         // });
 
@@ -458,7 +496,7 @@
 
             // Update line colors
             el_screen_nav_current_line
-                .toggleClass('bg-secondary', index < (screen_current - 1))
+                .toggleClass('bg-primary-900', index < (screen_current - 1))
                 .toggleClass('bg-gray-200', index >= (screen_current - 1));
         });
 
@@ -475,6 +513,8 @@
         if (screen_current === 5) {
             instawp_migrate_init();
         }
+
+        $(document).trigger('instawp_migrate_screen_change', [screen_current]);
     });
 
     $(document).on('change', '.instawp-wrap .instawp-option-selector', function () {
@@ -486,15 +526,15 @@
             option_label = el_option_selector_wrap.find('.option-label').text();
 
         if (el_option_selector_wrap.hasClass('card-active')) {
-            el_option_selector_wrap.removeClass('card-active border-secondary').addClass('border-grayCust-350');
+            el_option_selector_wrap.removeClass('card-active border-primary-900').addClass('border-grayCust-350');
 
             // For Preview Screens
             el_selected_staging_options.find('.' + option_id).remove();
         } else {
-            el_option_selector_wrap.removeClass('border-grayCust-350').addClass('card-active border-secondary');
+            el_option_selector_wrap.removeClass('border-grayCust-350').addClass('card-active border-primary-900');
 
             // For Preview Screens
-            el_selected_staging_options.append('<div class="' + option_id + ' border-secondary border card-active py-2 px-4 text-xs font-medium rounded-lg">' + option_label + '</div>');
+            el_selected_staging_options.append('<div class="' + option_id + ' border-primary-900 border card-active py-2 px-4 text-xs font-medium rounded-lg">' + option_label + '</div>');
         }
 
         if (el_selected_staging_options.children().length > 0) {
@@ -543,7 +583,7 @@
         el_migration_progress_wrap.removeClass('hidden');
         el_migration_loader.text(el_migration_loader.data('in-progress-text'));
 
-        create_container.find('.card-active').removeClass('card-active border-secondary');
+        create_container.find('.card-active').removeClass('card-active border-primary-900');
         create_container.find('.confirmation-preview .selected-staging-options').html('');
 
         create_container.find('.screen-buttons-last').addClass('hidden');
@@ -563,9 +603,9 @@
             el_skip_media_folders = $('input#skip_media_folder'),
             el_skip_large_files = $('input#skip_large_files');
 
-        el_staging_type_wrapper.find('.instawp-staging-type').removeClass('card-active border-secondary');
+        el_staging_type_wrapper.find('.instawp-staging-type').removeClass('card-active border-primary-900');
         el_staging_type_wrapper.find('input[type="radio"]').prop('checked', false);
-        el_staging_type.addClass('card-active border-secondary');
+        el_staging_type.addClass('card-active border-primary-900');
         el_staging_type.find('input[type="radio"]').prop('checked', true);
 
         // For Preview Screens
@@ -635,7 +675,9 @@
             el_instawp_site_name.addClass('hidden');
             el_screen_doing_request.addClass('loading');
             el_payment_method_warning.addClass('hidden');
-
+            el_btn_migrate.attr('disabled', true);
+            create_container.find('.instawp-button-migrate.back').attr('disabled', true);
+            
             $.ajax({
                 type: 'POST',
                 url: plugin_object.ajax_url,
@@ -651,14 +693,23 @@
                         el_instawp_screen.val(screen_next).trigger('change');
                     } else {
                         //create_container.addClass('warning');
-                        if (response.data.issue_for === 'no_payment_method') {
+                        create_container.find('.instawp-button-migrate.back').removeAttr('disabled');
+                        if (response.data.issue_for === 'no_payment_method' || response.data.issue_for === 'free_site_limit_exceeded') {
                             el_screen_buttons.addClass('justify-between').removeClass('justify-end');
                             el_instawp_site_name.removeClass('hidden');
                             el_screen_doing_request.removeClass('loading');
-                            el_payment_method_warning.removeClass('hidden');
+
+                            if (response.data.issue_for === 'free_site_limit_exceeded') {
+                                alert('Free limit reached');
+                                location.reload();
+                            } else {
+                                el_payment_method_warning.removeClass('hidden');
+                            }
+
                             return;
                         }
                         
+                        el_btn_migrate.removeAttr('disabled');
                         el_confirmation_preview.addClass('hidden');
                         el_confirmation_warning.removeClass('hidden');
                         el_confirmation_warning.find('a').attr('href', response.data.button_url).html(response.data.button_text);
@@ -686,11 +737,11 @@
                         el_confirmation_warning.find('.require-disk-space').html(response.data.require_disk_space);
 
                         if (response.data.issue_for === 'remaining_site') {
-                            el_confirmation_warning.find('.remaining-site').parent().removeClass('text-secondary').addClass('text-red-500');
+                            el_confirmation_warning.find('.remaining-site').parent().removeClass('text-primary-900').addClass('text-red-500');
                         }
 
                         if (response.data.issue_for === 'remaining_disk_space') {
-                            el_confirmation_warning.find('.remaining-disk-space').parent().removeClass('text-secondary').addClass('text-red-500');
+                            el_confirmation_warning.find('.remaining-disk-space').parent().removeClass('text-primary-900').addClass('text-red-500');
                         }
                     }
                 }
@@ -860,8 +911,8 @@
             nav_item_content_all = $('.instawp-wrap .nav-content .nav-item-content'),
             nav_item_content_target = nav_item_content_all.parent().find('.' + this_nav_item_id);
 
-        all_nav_items.removeClass('active').find('a').removeClass('text-secondary border-secondary').addClass('border-transparent');
-        this_nav_item.addClass('active').find('a').removeClass('border-transparent').addClass('text-secondary border-secondary');
+        all_nav_items.removeClass('active').find('a').removeClass('text-primary-900 border-primary-900').addClass('border-transparent');
+        this_nav_item.addClass('active').find('a').removeClass('border-transparent').addClass('text-primary-900 border-primary-900');
 
         nav_item_content_all.removeClass('active');
         nav_item_content_target.addClass('active');
@@ -1175,12 +1226,12 @@
                         'security': plugin_object.security
                     },
                     beforeSend: function () {
-                        parentEl.find('.cursor-pointer').append('<svg role="status" class="instawp-loader inline ml-3 w-4 h-4 text-secondary animate-spin" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg"><path data-v-fe125208="" d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="#E5E7EB"></path><path data-v-fe125208="" d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentColor"></path></svg>');
+                        parentEl.find('.cursor-pointer').append('<svg role="status" class="instawp-loader inline ml-3 w-4 h-4 text-primary-900 animate-spin" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg"><path data-v-fe125208="" d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="#E5E7EB"></path><path data-v-fe125208="" d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentColor"></path></svg>');
                     },
                     success: function (response) {
                         // parentEl.find('.sub-item').removeClass('hidden').html(response.data);
                         parentEl.append('<div class="pl-5 sub-item">' + response.data.content + '</div>');
-                        //inputLabel.after('<svg role="status" class="inline ml-3 w-4 h-4 text-secondary opacity-70" fill="none" xmlns="http://www.w3.org/2000/svg"> <path style="fill: #15B881;" fill-rule="evenodd" clip-rule="evenodd" d="M1.59995 0.800049C2.09701 0.800049 2.49995 1.20299 2.49995 1.70005V3.59118C3.64303 2.42445 5.23642 1.70005 6.99995 1.70005C9.74442 1.70005 12.0768 3.45444 12.9412 5.90013C13.1069 6.36877 12.8612 6.88296 12.3926 7.0486C11.924 7.21425 11.4098 6.96862 11.2441 6.49997C10.6259 4.75097 8.95787 3.50005 6.99995 3.50005C5.52851 3.50005 4.22078 4.20657 3.39937 5.30005H6.09995C6.59701 5.30005 6.99995 5.70299 6.99995 6.20005C6.99995 6.6971 6.59701 7.10005 6.09995 7.10005H1.59995C1.10289 7.10005 0.699951 6.6971 0.699951 6.20005V1.70005C0.699951 1.20299 1.10289 0.800049 1.59995 0.800049ZM1.6073 8.95149C2.07594 8.78585 2.59014 9.03148 2.75578 9.50013C3.37396 11.2491 5.04203 12.5 6.99995 12.5C8.47139 12.5 9.77912 11.7935 10.6005 10.7L7.89995 10.7C7.40289 10.7 6.99995 10.2971 6.99995 9.80005C6.99995 9.30299 7.40289 8.90005 7.89995 8.90005H12.3999C12.6386 8.90005 12.8676 8.99487 13.0363 9.16365C13.2051 9.33243 13.3 9.56135 13.3 9.80005V14.3C13.3 14.7971 12.897 15.2 12.4 15.2C11.9029 15.2 11.5 14.7971 11.5 14.3V12.4089C10.3569 13.5757 8.76348 14.3 6.99995 14.3C4.25549 14.3 1.92309 12.5457 1.05867 10.1C0.893024 9.63132 1.13866 9.11714 1.6073 8.95149Z"></path> </svg>')
+                        //inputLabel.after('<svg role="status" class="inline ml-3 w-4 h-4 text-primary-900 opacity-70" fill="none" xmlns="http://www.w3.org/2000/svg"> <path style="fill: #005E54;" fill-rule="evenodd" clip-rule="evenodd" d="M1.59995 0.800049C2.09701 0.800049 2.49995 1.20299 2.49995 1.70005V3.59118C3.64303 2.42445 5.23642 1.70005 6.99995 1.70005C9.74442 1.70005 12.0768 3.45444 12.9412 5.90013C13.1069 6.36877 12.8612 6.88296 12.3926 7.0486C11.924 7.21425 11.4098 6.96862 11.2441 6.49997C10.6259 4.75097 8.95787 3.50005 6.99995 3.50005C5.52851 3.50005 4.22078 4.20657 3.39937 5.30005H6.09995C6.59701 5.30005 6.99995 5.70299 6.99995 6.20005C6.99995 6.6971 6.59701 7.10005 6.09995 7.10005H1.59995C1.10289 7.10005 0.699951 6.6971 0.699951 6.20005V1.70005C0.699951 1.20299 1.10289 0.800049 1.59995 0.800049ZM1.6073 8.95149C2.07594 8.78585 2.59014 9.03148 2.75578 9.50013C3.37396 11.2491 5.04203 12.5 6.99995 12.5C8.47139 12.5 9.77912 11.7935 10.6005 10.7L7.89995 10.7C7.40289 10.7 6.99995 10.2971 6.99995 9.80005C6.99995 9.30299 7.40289 8.90005 7.89995 8.90005H12.3999C12.6386 8.90005 12.8676 8.99487 13.0363 9.16365C13.2051 9.33243 13.3 9.56135 13.3 9.80005V14.3C13.3 14.7971 12.897 15.2 12.4 15.2C11.9029 15.2 11.5 14.7971 11.5 14.3V12.4089C10.3569 13.5757 8.76348 14.3 6.99995 14.3C4.25549 14.3 1.92309 12.5457 1.05867 10.1C0.893024 9.63132 1.13866 9.11714 1.6073 8.95149Z"></path> </svg>')
                         imgEl.removeClass('rotate-icon');
                         parentEl.find('.instawp-loader').remove();
                     },
@@ -1500,7 +1551,7 @@
         e.preventDefault();
 
         let el = $(this);
-        el.prop('disabled', true).addClass('opacity-50').append('<svg class="instawp-loader inline ml-3 w-4 h-4 text-secondary animate-spin" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="#E5E7EB"></path><path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentColor"></path></svg>');
+        el.prop('disabled', true).addClass('opacity-50').append('<svg class="instawp-loader inline ml-3 w-4 h-4 text-primary-900 animate-spin" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="#E5E7EB"></path><path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentColor"></path></svg>');
 
         $.ajax({
             type: 'POST',
@@ -1529,7 +1580,7 @@
     $(document).on('click', '#instawp-protect-site-btn', function (e) {
         e.preventDefault();
         let el = $(this);
-        el.prop('disabled', true).addClass('opacity-50').append('<svg class="instawp-loader inline ml-3 w-4 h-4 text-secondary animate-spin" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="#E5E7EB"></path><path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentColor"></path></svg>');
+        el.prop('disabled', true).addClass('opacity-50').append('<svg class="instawp-loader inline ml-3 w-4 h-4 text-primary-900 animate-spin" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="#E5E7EB"></path><path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentColor"></path></svg>');
 
         let plan_id = $(document).find('.instawp-connect-plan-btn:not(.pointer-events-none)').first().data('plan-id');
         $.ajax({
@@ -1568,7 +1619,7 @@
             context: this,
             beforeSend: function () {
                 updateNoticeArea.addClass('hidden').removeClass('inline-block');
-                updateButton.prepend('<svg role="status" class="instawp-loader inline w-3 h-3 mr-1 text-secondary animate-spin" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg"><path data-v-fe125208="" d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="#E5E7EB"></path><path data-v-fe125208="" d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentColor"></path></svg>');
+                updateButton.prepend('<svg role="status" class="instawp-loader inline w-3 h-3 mr-1 text-primary-900 animate-spin" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg"><path data-v-fe125208="" d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="#E5E7EB"></path><path data-v-fe125208="" d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentColor"></path></svg>');
             },
             complete: function () {
                 updateButton.find('.instawp-loader').remove();
