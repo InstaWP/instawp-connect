@@ -342,6 +342,7 @@ class instaWP {
 		$remaining_site       = (int) Helper::get_args_option( 'remaining_site', $api_response_data, '0' );
 		$available_disk_space = (int) Helper::get_args_option( 'remaining_disk_space', $api_response_data, '0' );
 		$has_payment_method   = (bool) Helper::get_args_option( 'has_payment_method', $api_response_data, false );
+		$is_legacy            = (bool) Helper::get_args_option( 'is_legacy', $api_response_data, false );
 		$free_site_count      = Helper::get_args_option( 'free_site_count', $api_response_data, null );
 		$can_proceed          = $has_payment_method === true;
 		$issue_for            = 'no_payment_method';
@@ -349,7 +350,7 @@ class instaWP {
 
 		$api_response_data['require_disk_space'] = $total_site_size;
 
-		if ( $can_proceed && $free_site_count !== null ) {
+		if ( $can_proceed && ! $is_legacy && $free_site_count !== null ) {
 			$can_proceed = intval( $free_site_count ) < 3;
 			$issue_for   = 'free_site_limit_exceeded';
 		}

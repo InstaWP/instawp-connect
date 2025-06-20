@@ -438,6 +438,7 @@
                         'security': plugin_object.security,
                     },
                     success: function (response) {
+                        //console.log(response);
                         el_screen_loading_request.addClass('hidden');
 
                         if (response.success && response.data && !response.data.is_legacy) {

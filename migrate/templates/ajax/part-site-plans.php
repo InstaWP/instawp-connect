@@ -13,6 +13,28 @@ defined( 'ABSPATH' ) || exit;
     </div>
     <div class="flex flex-col gap-3 w-full basis-4/5">
         <?php foreach ( $site_plans['plans']['sites'] as $key => $site_plan ) {
+            // $features = array_filter( $site_plan['features'], function( $feature ) {
+            //     return $feature['is_visible'] === true;
+            // } );
+
+            // $features_to_show = [];
+            // foreach ( $features as $feature ) {
+            //     $features_to_show[ $feature['feature'] ] = $feature;
+            // }
+
+            // $feature_items = [];
+            // if ( ! empty( $features_to_show['disk_quota']['value'] ) ) {
+            //     $feature_items[] = ( $features_to_show['disk_quota']['value'] / 1000 ) . ' GB';
+            // }
+
+            // if ( ! empty( $features_to_show['cdn']['value'] ) ) {
+            //     $feature_items[] = 'CDN';
+            // }
+
+            // if ( ! empty( $features_to_show['backup_ui']['value'] ) ) {
+            //     $feature_items[] = 'Backups';
+            // }
+
             $is_free_plan_disabled = $site_plan['name'] === 'free' && $site_plans['free_site_count'] >= 3; ?>
             <label class="w-full cursor-pointer relative">
                 <input type="radio" name="migrate_settings[plan_id]" id="staging-plan-<?php echo esc_attr( $key + 1 ); ?>" value="<?php echo esc_attr( $site_plan['id'] ); ?>" class="peer !hidden" <?php disabled( $is_free_plan_disabled, true ); ?> />
