@@ -49,7 +49,7 @@ $iwpdb_git_path  = WP_ROOT . DIRECTORY_SEPARATOR . 'wp-content' . DIRECTORY_SEPA
 
 if ( file_exists( $iwpdb_main_path ) && is_readable( $iwpdb_main_path ) ) {
 	require_once( $iwpdb_main_path );
-} elseif ( file_exists( $iwpdb_git_path ) && is_readable( $iwpdb_main_path ) ) {
+} elseif ( file_exists( $iwpdb_git_path ) && is_readable( $iwpdb_git_path ) ) {
 	require_once( $iwpdb_git_path );
 } else {
 	header( 'x-iwp-status: false' );

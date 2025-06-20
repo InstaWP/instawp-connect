@@ -16,6 +16,10 @@ class InstaWP_Sync_Menu {
 		add_filter( 'instawp/filters/2waysync/process_event', array( $this, 'parse_event' ), 10, 3 );
 	}
 
+	public function has_megamenu() {
+		return class_exists( 'Mega_Menu' );
+	}
+
 	/**
 	 * Function for nav menu created or updated.
 	 *
@@ -46,6 +50,12 @@ class InstaWP_Sync_Menu {
 				} elseif ( $item->type === 'taxonomy' ) {
 					$item->object_name  = get_term( $item->object_id )->slug;
 					$item->reference_id = InstaWP_Sync_Helpers::get_term_reference_id( $item->object_id );
+				}
+
+				$item->post_meta = [];
+				// Mega Menu
+				if ( $this->has_megamenu() && ! empty( $item->post_type ) && $item->post_type === 'nav_menu_item' ) {
+					$item->post_meta['_megamenu'] = get_post_meta( $item->ID, '_megamenu', true );
 				}
 
 				return $item;
@@ -145,6 +155,16 @@ class InstaWP_Sync_Menu {
 			}
 
 			if ( ! empty( $menu['items'] ) ) {
+				$has_megamenu = $this->has_megamenu();
+				if ( $has_megamenu ) {
+					$megamenu_data = array(
+						'items' => array(),
+						'post_ids' => array(
+							'search' => array(),
+							'replace' => array(),
+						),
+					);
+				}
 				foreach ( $menu['items'] as $value ) {
 					$value = ( object ) $value;
 
@@ -158,6 +178,16 @@ class InstaWP_Sync_Menu {
 						$menu_item_parent_id = $parent_child[ $value->menu_item_parent ];
 					} else {
 						$menu_item_parent_id = 0;
+					}
+
+					// If the menu item is a megamenu, store the megamenu data.
+					if ( $has_megamenu && ! empty( $value->ID ) && ! empty( $value->post_meta ) && ! empty( $value->post_meta['_megamenu'] ) ) {
+						$megamenu_data['items'][$menu_item_id] = $value->post_meta['_megamenu'];
+						$search = '"id":"' . $value->ID . '"';
+						if ( ! in_array( $search, $megamenu_data['post_ids']['search'] ) ) {
+							$megamenu_data['post_ids']['search'][] = $search;
+							$megamenu_data['post_ids']['replace'][] = '"id":"' . $menu_item_id . '"';
+						}
 					}
 
 					if ( $value->type === 'post_type' ) {
@@ -187,6 +217,10 @@ class InstaWP_Sync_Menu {
 
 					// Update the menu nav item with all information.
 					wp_update_nav_menu_item( $menu_id, $menu_item_id, $args );
+				}
+
+				if ( $has_megamenu && ! empty( $megamenu_data['items'] ) ) {
+					$this->parse_megamenu( $megamenu_data );
 				}
 			}
 
@@ -224,6 +258,45 @@ class InstaWP_Sync_Menu {
 		}
 
 		return $response;
+	}
+
+	/**
+	 * Parse megamenu
+	 * 
+	 * @param $megamenu_data
+	 * 
+	 * @return void
+	 */
+	public function parse_megamenu( $megamenu_data ) {
+		$search  = $megamenu_data['post_ids']['search'];
+		$replace = $megamenu_data['post_ids']['replace'];	
+		foreach ( $megamenu_data['items'] as $menu_item_id => $megamenu ) {
+			// Unserialize
+			if ( is_string( $megamenu ) ) {
+				$megamenu = maybe_unserialize( $megamenu );
+			}
+
+			if ( ! is_array( $megamenu ) ) {
+				continue;
+			}
+
+			$megamenu = json_encode( $megamenu );
+			if ( ! is_string( $megamenu ) ) {
+				error_log( 'Sync megamenu json encode failed. Menu item id: ' . $menu_item_id );
+				continue;
+			}
+			// Search and replace post ids
+			$megamenu = str_replace( $search, $replace, $megamenu );
+			$megamenu = json_decode( $megamenu, true );
+			if ( ! is_array( $megamenu ) ) {
+				error_log( 'Sync megamenu json decode failed. Menu item id: ' . $menu_item_id );
+				continue;
+			}
+			update_post_meta( $menu_item_id, '_megamenu', $megamenu );
+		}
+
+		// Clear megamenu cache and generate new css
+		do_action( 'megamenu_delete_cache' );
 	}
 
 	private function get_nav_menu( $source_id, $menu ) {

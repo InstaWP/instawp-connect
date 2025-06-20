@@ -1,9 +1,9 @@
 <?php return array(
     'root' => array(
         'name' => 'instawp/connect',
-        'pretty_version' => 'dev-main',
-        'version' => 'dev-main',
-        'reference' => '0e7e75d9f301bf64b563717ead98388d1b438364',
+        'pretty_version' => 'dev-develop',
+        'version' => 'dev-develop',
+        'reference' => '75416dbe93f8623224ab9ff84c6edba8fb36aa12',
         'type' => 'wordpress-plugin',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -11,9 +11,9 @@
     ),
     'versions' => array(
         'instawp/connect' => array(
-            'pretty_version' => 'dev-main',
-            'version' => 'dev-main',
-            'reference' => '0e7e75d9f301bf64b563717ead98388d1b438364',
+            'pretty_version' => 'dev-develop',
+            'version' => 'dev-develop',
+            'reference' => '75416dbe93f8623224ab9ff84c6edba8fb36aa12',
             'type' => 'wordpress-plugin',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
@@ -49,9 +49,9 @@
             'dev_requirement' => false,
         ),
         'phpseclib/phpseclib' => array(
-            'pretty_version' => '3.0.43',
-            'version' => '3.0.43.0',
-            'reference' => '709ec107af3cb2f385b9617be72af8cf62441d02',
+            'pretty_version' => '3.0.44',
+            'version' => '3.0.44.0',
+            'reference' => '1d0b5e7e1434678411787c5a0535e68907cf82d9',
             'type' => 'library',
             'install_path' => __DIR__ . '/../phpseclib/phpseclib',
             'aliases' => array(),

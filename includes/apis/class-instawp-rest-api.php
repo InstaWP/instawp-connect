@@ -131,7 +131,7 @@ class InstaWP_Rest_Api {
 	/**
 	 * Checks a plaintext application password against a hashed password.
 	 *
-	 * @since wordpress 6.8.0
+	 * @since WordPress 6.8.0
 	 *
 	 * @param string $password Plaintext password.
 	 * @param string $hash     Hash of the password to check against.
@@ -142,10 +142,10 @@ class InstaWP_Rest_Api {
 		if ( ! str_starts_with( $hash, '$generic$' ) ) {
 			/*
 			 * If the hash doesn't start with `$generic$`, it is a hash created with `wp_hash_password()`.
-			 * This is the case for application passwords created before wordpress 6.8.0.
+             * This is the case for application passwords created before WordPress 6.8.0.
 			 */
 			return wp_check_password( $password, $hash, $user_id );
-		} else if ( function_exists( 'wp_verify_fast_hash' ) ) {
+		} elseif ( function_exists( 'wp_verify_fast_hash' ) ) {
 			return wp_verify_fast_hash( $password, $hash );
 		}
 
@@ -246,12 +246,12 @@ class InstaWP_Rest_Api {
 				}
 			}
 
-			$config = [
-				'managed' 				=> $managed,
-				'plan_id' 				=> $plan_id,
-				'e2e_mig_wo_connects'  	=> ! empty( $parameters['e2e_mig_wo_connects'] ),
-				'group_uuid'           	=> ( empty( $parameters['group_uuid'] ) || ! is_string( $parameters['group_uuid'] ) ) ? '' : sanitize_key( $parameters['group_uuid'] )
-			];
+			$config = array(
+				'managed'             => $managed,
+				'plan_id'             => $plan_id,
+				'e2e_mig_wo_connects' => ! empty( $parameters['e2e_mig_wo_connects'] ),
+				'group_uuid'          => ( empty( $parameters['group_uuid'] ) || ! is_string( $parameters['group_uuid'] ) ) ? '' : sanitize_key( $parameters['group_uuid'] ),
+			);
 
 			// Is migration only config
 			$migration_only_config = ( $config['e2e_mig_wo_connects'] && ! empty( $config['group_uuid'] ) );
@@ -302,17 +302,17 @@ class InstaWP_Rest_Api {
 			if ( $migration_only_config ) {
 				if ( Helper::has_mig_gid( $config['group_uuid'] ) ) {
 					return $this->send_response( array(
-						'status'     => true,
-						'success' 	 => true,
-						'data' 		 => $response,
-						'message'    => esc_html__( 'Connected.', 'instawp-connect' ),
+						'status'  => true,
+						'success' => true,
+						'data'    => $response,
+						'message' => esc_html__( 'Connected.', 'instawp-connect' ),
 					) );
 				} else {
 					return $this->send_response( array(
-						'status'  => false,
-						'success' => false,
+						'status'     => false,
+						'success'    => false,
 						'group_uuid' => $config['group_uuid'],
-						'message' => esc_html__( 'Something went wrong during connecting to InstaWP.', 'instawp-connect' ),
+						'message'    => esc_html__( 'Something went wrong during connecting to InstaWP.', 'instawp-connect' ),
 					) );
 				}
 			}
@@ -328,18 +328,18 @@ class InstaWP_Rest_Api {
 
 			return $this->send_response( array(
 				'status'     => true,
-				'success' 	 => true,
+				'success'    => true,
 				'connect_id' => $connect_id,
 				'message'    => esc_html__( 'Connected.', 'instawp-connect' ),
 			) );
-		} catch (\Throwable $th) {
+		} catch ( \Throwable $th ) {
 			return $this->send_response( array(
 				'status'  => false,
 				'success' => false,
 				'message' => $th->getMessage(),
-                'line' => $th->getLine(),
-                'file' => $th->getFile(),
-				'params' => isset( $parameters ) ? $parameters : null,
+                'line'    => $th->getLine(),
+                'file'    => $th->getFile(),
+				'params'  => isset( $parameters ) ? $parameters : null,
 			) );
 		}
 	}

@@ -1349,3 +1349,21 @@ if ( ! function_exists( 'instawp_is_connect_whitelabelled' ) ) {
 		return true;
 	}
 }
+
+if ( ! function_exists( 'instawp_get_plans' ) ) {
+	/**
+	 * Get plans
+	 *
+	 * @return array
+	 */
+	function instawp_get_plans() {
+		$response = array();
+		$api_response = Curl::do_curl( 'connects/plans', array(), array(), 'GET' );
+
+		if ( $api_response['success'] ) {
+			$response = Helper::get_args_option( 'data', $api_response, array() );
+		}
+
+		return $response;
+	}
+}

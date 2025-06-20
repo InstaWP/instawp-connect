@@ -5,7 +5,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;800;900&display=swap');
 
 :root {
-    --instawp-color-primary: #15B881;
+    --instawp-color-primary: #005E54;
     --instawp-color-gray: #9CA3AF;
     --instawp-color-green: #13bf85;
     --instawp-color-red: #d93f21;
@@ -76,7 +76,7 @@ body[class*="instawp"] #wpbody {
 }
 
 input:checked + .slider {
-    background-color: #15B881;
+    background-color: #005E54;
 }
 
 input:checked + .slider:before {
@@ -321,7 +321,7 @@ input:checked + .slider-toggle:before {
 
 .instawp-wrap .nav-items .nav-item.active > a > svg > path,
 .instawp-wrap .nav-items .nav-item > a:hover > svg > path {
-    fill: #15B881;
+    fill: #005E54;
     /*stroke: var(--instawp-color-primary);*/
     stroke: none;
     /*stroke: var(--instawp-color-gray);*/
@@ -479,18 +479,14 @@ input:checked + .slider-toggle:before {
 }
 
 .instawp-wrap .nav-item-content.create .screen {
-    height: 0;
-    visibility: hidden;
     opacity: 0;
-    -webkit-transition: all .2s ease;
-    -moz-transition: all .2s ease;
-    transition: all .2s ease;
+    display: none;
+    transition: opacity 0.2s ease;
 }
 
 .instawp-wrap .nav-item-content.create .screen.active {
-    height: auto;
-    visibility: visible;
     opacity: 1;
+    display: block;
 }
 
 .screen-nav:not(.active) .screen-nav-icon {
@@ -500,7 +496,7 @@ input:checked + .slider-toggle:before {
 
 .screen-nav.active .screen-nav-icon {
     --tw-bg-opacity: 1;
-    background-color: #15B881;
+    background-color: #005E54;
 }
 
 .screen-nav:not(.active) .screen-nav-icon > img,
@@ -554,6 +550,20 @@ input:checked + .slider-toggle:before {
     margin: -8px -8px;
 }
 
+.nav-item-content.create.active .screen-buttons p.loading-request:after {
+    content: ' ';
+    position: absolute;
+    height: 18px;
+    width: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    border-radius: 50%;
+    border: 3px solid rgba(74, 138, 244, 0.2);
+    border-right-color: var(--instawp-color-green);
+    animation: loading 1s linear infinite;
+    margin: -8px -8px;
+}
+
 .exclude-files-container::-webkit-scrollbar,
 .exclude-database-container::-webkit-scrollbar {
     width: 5px;
@@ -578,7 +588,7 @@ input:checked + .slider-toggle:before {
 .instawp-checkbox[type='radio'],
 .instawp-option-selector[type='checkbox'],
 .instawp-option-selector[type='radio'] {
-    color: #15B881;
+    color: #005E54;
     box-shadow: none !important;
     outline: none !important;
 }
