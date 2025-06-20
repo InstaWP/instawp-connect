@@ -5,7 +5,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2025-06-19 07:42+0000\n"
+"POT-Creation-Date: 2025-06-20 06:51+0000\n"
 "X-Poedit-Basepath: ..\n"
 "X-Poedit-KeywordsList: __;_e;_ex:1,2c;_n:1,2;_n_noop:1,2;_nx:1,2,4c;_nx_noop:1,2,3c;_x:1,2c;esc_attr__;esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c\n"
 "X-Poedit-SearchPath-0: .\n"
@@ -931,35 +931,35 @@ msgstr ""
 msgid "WP Customizer Changes"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-menu.php:39
+#: includes/sync/class-instawp-sync-menu.php:43
 msgid "Nav Menu updated"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-menu.php:36
+#: includes/sync/class-instawp-sync-menu.php:40
 msgid "Nav Menu created"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-menu.php:91
+#: includes/sync/class-instawp-sync-menu.php:101
 msgid "Nav Menu deleted"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-menu.php:204
+#: includes/sync/class-instawp-sync-menu.php:238
 msgid "Can not find nav menu"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-menu.php:215
+#: includes/sync/class-instawp-sync-menu.php:249
 msgid "Can not delete Nav Menu."
 msgstr ""
 
-#: includes/sync/class-instawp-sync-option.php:29
+#: includes/sync/class-instawp-sync-option.php:30
 msgid "Option added"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-option.php:43
+#: includes/sync/class-instawp-sync-option.php:44
 msgid "Option updated"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-option.php:53
+#: includes/sync/class-instawp-sync-option.php:92
 msgid "Option deleted"
 msgstr ""
 
