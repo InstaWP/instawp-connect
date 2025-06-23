@@ -327,6 +327,10 @@ delete_option( 'instawp_db_offset' );
                             <div class="text-grayCust-900 text-base font-normal mr-4 basis-1/5"><?php esc_html_e( 'Tables Selected', 'instawp-connect' ); ?></div>
                             <div class="text-grayCust-300 text-base font-medium items-center flex mr-6 selected-db-tables basis-4/5"></div>
                         </div>
+                        <div class="flex items-center files-size-container">
+                            <div class="text-grayCust-900 text-base font-normal mr-4 basis-1/5"><?php esc_html_e( 'Space Required', 'instawp-connect' ); ?></div>
+                            <div class="text-grayCust-300 text-base font-medium items-center flex mr-6 total-size basis-4/5"><?php esc_html_e( 'Calculating...', 'instawp-connect' ); ?></div>
+                        </div>
                         <div class="staging-plan-container hidden"></div>
                     </div>
                 </div>
@@ -346,11 +350,16 @@ delete_option( 'instawp_db_offset' );
                         <div class="flex items-center mb-6">
                             <div class="text-grayCust-900 text-base text-left font-normal w-48"><?php esc_html_e( 'Available Disk Space', 'instawp-connect' ); ?></div>
                             <div class="flex items-center text-primary-900 text-base">
-                                <span><span class="remaining-disk-space"></span>mb available out of <span class="user-allow-disk-space"></span>mb</span>
+                                <span>
+                                    <span class="remaining-disk-space"></span> 
+                                    <?php esc_html_e( 'MB available out of', 'instawp-connect' ); ?> 
+                                    <span class="user-allow-disk-space"></span>
+                                    <?php esc_html_e( 'MB', 'instawp-connect' ); ?>
+                                </span>
                             </div>
                         </div>
                         <div class="flex items-center">
-                            <div class="text-grayCust-900 text-base text-left font-normal w-48"><?php esc_html_e( 'Require Disk Space', 'instawp-connect' ); ?></div>
+                            <div class="text-grayCust-900 text-base text-left font-normal w-48"><?php esc_html_e( 'Required Disk Space', 'instawp-connect' ); ?></div>
                             <div class="flex items-center text-primary-900 text-base">
                                 <span class="require-disk-space"></span>
                                 <span class="ml-1"><?php esc_html_e( 'MB', 'instawp-connect' ); ?></span>
@@ -521,6 +530,23 @@ delete_option( 'instawp_db_offset' );
                 </div>
             </div>
         </div>
+
+        <div class="flex items-center justify-center hidden custom-plan-warning border-t">
+            <div class="bg-yellow-50 text-yellow-700 p-4 text-left w-full" role="alert">
+                <div class="flex justify-between items-center transition-all duration-300">
+                    <div class="flex gap-3 justify-center">
+                        <svg width="16" height="14" viewBox="0 0 16 14" fill="none" xmlns="http://www.w3.org/2000/svg" class="mt-1">
+                            <path fill-rule="evenodd" clip-rule="evenodd" d="M6.25706 1.09858C7.02167 -0.260724 8.97875 -0.260725 9.74336 1.09858L15.3237 11.0191C16.0736 12.3523 15.1102 13.9996 13.5805 13.9996H2.4199C0.890251 13.9996 -0.0731769 12.3523 0.676753 11.0191L6.25706 1.09858ZM9.00012 10.9998C9.00012 11.552 8.55241 11.9998 8.00012 11.9998C7.44784 11.9998 7.00012 11.552 7.00012 10.9998C7.00012 10.4475 7.44784 9.99976 8.00012 9.99976C8.55241 9.99976 9.00012 10.4475 9.00012 10.9998ZM8.00012 2.99976C7.44784 2.99976 7.00012 3.44747 7.00012 3.99976V6.99976C7.00012 7.55204 7.44784 7.99976 8.00012 7.99976C8.55241 7.99976 9.00012 7.55204 9.00012 6.99976V3.99976C9.00012 3.44747 8.55241 2.99976 8.00012 2.99976Z" fill="#FBBF24"/>
+                        </svg>
+                        <div class="flex flex-col gap-1 text-sm leading-5">
+                            <div class="font-medium text-yellow-800"><?php esc_html_e( 'Custom Plan Required', 'instawp-connect' ); ?></div>
+                            <div class="font-normal text-yellow-700"><?php printf( esc_html__( 'Please contact support to create a custom plan with %s disk quota.', 'instawp-connect' ), '<span class="disk-quota-value"></span>' ); ?></div>
+                        </div>
+                    </div>
+                    <a href="mailto:support@instawp.com" class="font-medium text-yellow-800 py-2 cursor-pointer instawp-add-credit-card"><?php esc_html_e( 'Contact Support', 'instawp-connect' ); ?></a>
+                </div>
+            </div>
+        </div>
         
         <div class="flex items-center justify-center hidden payment-method-warning border-t">
             <div class="bg-yellow-50 text-yellow-700 p-4 text-left w-full" role="alert">
@@ -530,11 +556,11 @@ delete_option( 'instawp_db_offset' );
                             <path fill-rule="evenodd" clip-rule="evenodd" d="M6.25706 1.09858C7.02167 -0.260724 8.97875 -0.260725 9.74336 1.09858L15.3237 11.0191C16.0736 12.3523 15.1102 13.9996 13.5805 13.9996H2.4199C0.890251 13.9996 -0.0731769 12.3523 0.676753 11.0191L6.25706 1.09858ZM9.00012 10.9998C9.00012 11.552 8.55241 11.9998 8.00012 11.9998C7.44784 11.9998 7.00012 11.552 7.00012 10.9998C7.00012 10.4475 7.44784 9.99976 8.00012 9.99976C8.55241 9.99976 9.00012 10.4475 9.00012 10.9998ZM8.00012 2.99976C7.44784 2.99976 7.00012 3.44747 7.00012 3.99976V6.99976C7.00012 7.55204 7.44784 7.99976 8.00012 7.99976C8.55241 7.99976 9.00012 7.55204 9.00012 6.99976V3.99976C9.00012 3.44747 8.55241 2.99976 8.00012 2.99976Z" fill="#FBBF24"/>
                         </svg>
                         <div class="flex flex-col gap-1 text-sm leading-5">
-                            <div class="font-medium text-yellow-800">Add Credit Card First!</div>
-                            <div class="font-normal text-yellow-700">You need to add your credit card first to create site.</div>
+                            <div class="font-medium text-yellow-800"><?php esc_html_e( 'Add Credit Card First!', 'instawp-connect' ); ?></div>
+                            <div class="font-normal text-yellow-700"><?php esc_html_e( 'You need to add your credit card first to create site.', 'instawp-connect' ); ?></div>
                         </div>
                     </div>
-                    <div class="font-medium text-yellow-800 py-2 cursor-pointer instawp-add-credit-card">Add Credit Card</div>
+                    <div class="font-medium text-yellow-800 py-2 cursor-pointer instawp-add-credit-card"><?php esc_html_e( 'Add Credit Card', 'instawp-connect' ); ?></div>
                 </div>
             </div>
         </div>
