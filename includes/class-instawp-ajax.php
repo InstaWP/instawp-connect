@@ -780,28 +780,30 @@ class InstaWP_Ajax {
 			wp_send_json_error();
 		}
 
-		$site_plans = instawp()->is_connected ? instawp_get_plans() : array();
-		if ( empty( $site_plans['plans']['sites'] ) ) {
-			wp_send_json_error( array(
-				'message' => esc_html__( 'No plans found.', 'instawp-connect' ),
-			) );
-		}
-
 		$migrate_settings = InstaWP_Tools::get_migrate_settings( $_POST );
 		$total_files_size = InstaWP_Tools::get_total_sizes( 'files', $migrate_settings );
 		$total_db_size    = InstaWP_Tools::get_total_sizes( 'db' );
+
+		$total_size = $total_files_size + $total_db_size;
+		$site_plans = instawp()->is_connected ? instawp_get_plans() : array();
+		$site_plans = array_merge( $site_plans, array(
+			'size'    => instawp()->get_file_size_with_unit( $total_size, 'MB', false ),
+			'size_gb' => instawp()->get_file_size_with_unit( $total_size, 'GB', false ),
+		) );
+
+		if ( empty( $site_plans['plans']['sites'] ) ) {
+			$site_plans['message'] = esc_html__( 'No plans found.', 'instawp-connect' );
+			wp_send_json_error( $site_plans );
+		}
 
 		ob_start();
 		include INSTAWP_PLUGIN_DIR . '/migrate/templates/ajax/part-site-plans.php';
 		$content = ob_get_clean();
 
 		unset( $site_plans['plans'] );
+		$site_plans['content'] = $content;
 
-		wp_send_json_success( array_merge( array(
-			'content' => $content,
-			'size'    => instawp()->get_file_size_with_unit( $total_files_size + $total_db_size, 'MB', false ),
-			'size_gb' => instawp()->get_file_size_with_unit( $total_files_size + $total_db_size, 'GB', false ),
-		), $site_plans ) );
+		wp_send_json_success( $site_plans );
 	}
 }
 
