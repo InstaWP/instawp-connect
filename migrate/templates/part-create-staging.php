@@ -329,7 +329,7 @@ delete_option( 'instawp_db_offset' );
                         </div>
                         <div class="flex items-center files-size-container">
                             <div class="text-grayCust-900 text-base font-normal mr-4 basis-1/5"><?php esc_html_e( 'Space Required', 'instawp-connect' ); ?></div>
-                            <div class="text-grayCust-300 text-base font-medium items-center flex mr-6 total-size basis-4/5"><?php esc_html_e( 'Calculating...', 'instawp-connect' ); ?></div>
+                            <div class="text-grayCust-300 text-base font-medium items-center flex mr-6 total-size basis-4/5"><?php esc_html_e( 'Calculating size', 'instawp-connect' ); ?> (0%)</div>
                         </div>
                         <div class="staging-plan-container hidden"></div>
                     </div>
@@ -566,12 +566,16 @@ delete_option( 'instawp_db_offset' );
         </div>
 
         <div class="screen-buttons-last hidden border-t bg-grayCust-250 px-6 py-4 rounded-bl-lg rounded-br-lg flex justify-between">
-            <a href="<?php esc_url( admin_url( 'tools.php?page=instawp' ) ); ?>" class="text-primary-900 text-sm focus:outline-0 focus:shadow-none font-medium cursor-pointer flex items-center instawp-create-another-site">
-                <span class="text-xl mr-1 -mt-1 self-center">+</span>
+            <a href="<?php esc_url( admin_url( 'tools.php?page=instawp' ) ); ?>" class="text-primary-900 text-sm focus:outline-0 focus:shadow-none font-medium cursor-pointer flex items-center gap-1 instawp-create-another-site">
+                <span class="text-xl mr-1 self-center leading-none flex items-center">
+                    <svg width="15" height="14" viewBox="0 0 15 14" fill="none" xmlns="http://www.w3.org/2000/svg" class="size-2.5 fill-primary-900">
+                        <path fill-rule="evenodd" clip-rule="evenodd" d="M7.5 0C8.05228 0 8.5 0.447715 8.5 1V6H13.5C14.0523 6 14.5 6.44772 14.5 7C14.5 7.55228 14.0523 8 13.5 8H8.5V13C8.5 13.5523 8.05228 14 7.5 14C6.94772 14 6.5 13.5523 6.5 13V8H1.5C0.947715 8 0.5 7.55228 0.5 7C0.5 6.44771 0.947715 6 1.5 6L6.5 6V1C6.5 0.447715 6.94772 0 7.5 0Z"></path>
+                    </svg>
+                </span>
                 <span><?php esc_html_e( 'Create another Staging Site', 'instawp-connect' ); ?></span>
             </a>
             <div class="text-grayCust-900 text-sm font-medium cursor-pointer flex items-center instawp-show-staging-sites">
-                <span><?php esc_html_e( 'Show my staging sites', 'instawp-connect' ); ?></span>
+                <span><?php esc_html_e( 'Show my Staging Sites', 'instawp-connect' ); ?></span>
                 <div class="flex items-center ml-2">
                     <img src="<?php echo esc_url( instaWP::get_asset_url( 'migrate/assets/images/right-icon.svg' ) ); ?>" alt="">
                     <img src="<?php echo esc_url( instaWP::get_asset_url( 'migrate/assets/images/right-icon.svg' ) ); ?>" alt="">
