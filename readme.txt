@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.6
 Tested up to: 6.8
 Requires PHP: 7.0
-Stable tag: 0.1.1.1
+Stable tag: 0.1.1.2
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -98,9 +98,10 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
-= 0.1.1.2 =
+= 0.1.1.2 - 24 June 2025 =
 - Added: Plan validation and auto select plan based on site size.
 - Fixed: Plan description text.
+- Fixed: Untranslated texts.
 
 = 0.1.1.1 - 20 June 2025 =
 - Fixed: Staging site can't be created for some users.

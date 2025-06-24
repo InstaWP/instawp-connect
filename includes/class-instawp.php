@@ -281,19 +281,21 @@ class instaWP {
 		return $info['size'];
 	}
 
-	public function get_file_size_with_unit( $size, $unit = "" ) {
-		if ( ( ! $unit && $size >= 1 << 30 ) || $unit === "GB" ) {
-			return number_format( $size / ( 1 << 30 ), 2 ) . " GB";
+	public function get_file_size_with_unit( $size, $unit = "", $binary = true ) {
+		$base = $binary ? 1024 : 1000;
+	
+		if ( ( ! $unit && $size >= $base ** 3 ) || $unit === "GB" ) {
+			return number_format( $size / ( $base ** 3 ), 2 ) . " GB";
 		}
-
-		if ( ( ! $unit && $size >= 1 << 20 ) || $unit === "MB" ) {
-			return number_format( $size / ( 1 << 20 ), 2 ) . " MB";
+	
+		if ( ( ! $unit && $size >= $base ** 2 ) || $unit === "MB" ) {
+			return number_format( $size / ( $base ** 2 ), 2 ) . " MB";
 		}
-
-		if ( ( ! $unit && $size >= 1 << 10 ) || $unit === "KB" ) {
-			return number_format( $size / ( 1 << 10 ), 2 ) . " KB";
+	
+		if ( ( ! $unit && $size >= $base ) || $unit === "KB" ) {
+			return number_format( $size / $base, 2 ) . " KB";
 		}
-
+	
 		return number_format( $size ) . " B";
 	}
 

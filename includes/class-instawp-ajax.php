@@ -799,8 +799,8 @@ class InstaWP_Ajax {
 
 		wp_send_json_success( array_merge( array(
 			'content' => $content,
-			'size'    => instawp()->get_file_size_with_unit( $total_files_size + $total_db_size ),
-			'size_gb' => instawp()->get_file_size_with_unit( $total_files_size + $total_db_size, 'GB' ),
+			'size'    => instawp()->get_file_size_with_unit( $total_files_size + $total_db_size, 'MB', false ),
+			'size_gb' => instawp()->get_file_size_with_unit( $total_files_size + $total_db_size, 'GB', false ),
 		), $site_plans ) );
 	}
 }
