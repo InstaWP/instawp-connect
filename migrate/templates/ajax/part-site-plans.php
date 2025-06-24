@@ -2,7 +2,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-$total_files_size_mb = $total_files_size / (1024 * 1024);
+$total_files_size_mb = $total_files_size / (1000 * 1000);
 ?>
 
 <div class="flex items-start staging-plans">
