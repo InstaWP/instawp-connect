@@ -327,6 +327,9 @@
 
     let popupWindow = null;
     let intervalChecker = null;
+    let ajaxRequest = null;
+    let progress = 0;
+    let progressInterval;
 
     $(document).on('click', '.instawp-add-credit-card', function () {
         $(this).addClass('pointer-events-none');
@@ -408,9 +411,6 @@
             el_custom_plan_warning = create_container.find('.custom-plan-warning'),
             el_screen = create_container.find('.screen');
 
-        let progress = 0,
-            progressInterval;
-
         el_screen_buttons.removeClass('hidden');
 
         // Adjusting Back/Continue Buttons
@@ -424,17 +424,19 @@
             el_btn_back.removeClass('hidden');
             el_btn_continue.removeClass('hidden');
         }
+        clearInterval(progressInterval);
 
         if (screen_current === 4) {
             el_btn_continue.text(plugin_object.trans.create_staging_txt);
             if ( ! create_container.find('.files-size-container .total-size').hasClass('loaded') ) {
-                $.ajax({
+                ajaxRequest = $.ajax({
                     type: 'POST',
                     url: plugin_object.ajax_url,
                     context: this,
                     beforeSend: function () {
                         el_btn_continue.attr('disabled', true);
                         el_screen_loading_request.removeClass('hidden');
+                        //el_btn_back.attr('disabled', true);
 
                         progress = 0;
                         create_container.find('.files-size-container .total-size').text(plugin_object.trans.calculating_size_txt + ' (0%)');
@@ -443,8 +445,11 @@
                             if (progress < 90) {
                                 progress += Math.floor(Math.random() * 5) + 2; // 2% to 6%
                                 progress = Math.min(progress, 90);
-                                create_container.find('.files-size-container .total-size').text(plugin_object.trans.calculating_size_txt + ' (' + progress + '%)');
+                            } else if (progress < 99) {
+                                progress += Math.random() < 0.3 ? 1 : 0; // Very slow increase
+                                progress = Math.min(progress, 99);
                             }
+                            create_container.find('.files-size-container .total-size').text(plugin_object.trans.calculating_size_txt + ' (' + progress + '%)');
                         }, 300);
                     },
                     data: {
@@ -455,6 +460,7 @@
                     success: function (response) {
                         clearInterval(progressInterval);
                         create_container.find('.files-size-container .total-size').text(plugin_object.trans.calculating_size_txt + ' (100%)');
+                        //el_btn_back.removeAttr('disabled');
 
                         setTimeout(function () {
                             create_container.find('.files-size-container .total-size').html(response.data.size + ' (' + response.data.size_gb + ')').addClass('loaded');
@@ -484,6 +490,11 @@
                 });
             }
         } else {
+            if (ajaxRequest && ajaxRequest.readyState !== 4) {
+                ajaxRequest.abort();
+                ajaxRequest = null;
+                create_container.find('.files-size-container .total-size').text(plugin_object.trans.calculating_size_txt + ' (0%)');
+            }
             el_btn_continue.text(plugin_object.trans.next_step_txt).removeAttr('disabled');
             el_screen_loading_request.addClass('hidden');
             el_screen_buttons.removeClass('justify-end').addClass('justify-between');
