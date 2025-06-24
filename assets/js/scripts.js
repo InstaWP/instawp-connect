@@ -488,6 +488,10 @@
                         }, 500);
                     }
                 });
+            } else {
+                if (!el_custom_plan_warning.hasClass('hidden')) {
+                    el_btn_continue.attr('disabled', true);
+                }
             }
         } else {
             if (ajaxRequest && ajaxRequest.readyState !== 4) {
@@ -733,7 +737,7 @@
                         //create_container.addClass('warning');
                         create_container.find('.instawp-button-migrate.back').removeAttr('disabled');
 
-                        if (response.data.issue_for === 'storage_limit_exceeded' || response.data.issue_for === 'no_payment_method' || response.data.issue_for === 'free_site_limit_exceeded') {
+                        if (response.data.issue_for === 'storage_limit_exceeded' || response.data.issue_for === 'no_payment_method' || response.data.issue_for === 'free_site_limit_exceeded' || response.data.issue_for === 'no_plan_found') {
                             el_screen_buttons.addClass('justify-between').removeClass('justify-end');
                             el_instawp_site_name.removeClass('hidden');
                             el_screen_doing_request.removeClass('loading');
@@ -743,6 +747,9 @@
                                 location.reload();
                             } else if (response.data.issue_for === 'storage_limit_exceeded') {
                                 alert('Storage limit exceeded');
+                                location.reload();
+                            } else if (response.data.issue_for === 'no_plan_found') {
+                                alert('No plan found');
                                 location.reload();
                             } else {
                                 el_payment_method_warning.removeClass('hidden');
