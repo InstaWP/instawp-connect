@@ -329,7 +329,7 @@ delete_option( 'instawp_db_offset' );
                         </div>
                         <div class="flex items-center files-size-container">
                             <div class="text-grayCust-900 text-base font-normal mr-4 basis-1/5"><?php esc_html_e( 'Space Required', 'instawp-connect' ); ?></div>
-                            <div class="text-grayCust-300 text-base font-medium items-center flex mr-6 total-size basis-4/5"><?php esc_html_e( 'Calculating size (0%)', 'instawp-connect' ); ?></div>
+                            <div class="text-grayCust-300 text-base font-medium items-center flex mr-6 total-size basis-4/5"><?php esc_html_e( 'Calculating size', 'instawp-connect' ); ?> (0%)</div>
                         </div>
                         <div class="staging-plan-container hidden"></div>
                     </div>
