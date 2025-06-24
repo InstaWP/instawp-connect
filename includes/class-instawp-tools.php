@@ -998,7 +998,24 @@ include $file_path;';
 		return $unsupported_active_plugins;
 	}
 
-	public static function get_total_sizes( $type = 'files', $migrate_settings = array() ) {
+	public static function get_total_sizes( $type = 'files', $migrate_settings = array(), $force_check = false ) {
+		if ( isset( $migrate_settings['plan_id'] ) ) {
+			unset( $migrate_settings['plan_id'] );
+		}
+
+		$hash      = md5( json_encode( $migrate_settings ) );
+		$cache_key = 'instawp_site_size_check_' . $type . '_' . $hash;
+
+		if ( ! $force_check ) {
+			$cached_size = get_transient( $cache_key );
+
+			if ( $cached_size ) {
+				return intval( $cached_size );
+			}
+		}
+
+		$size = 0;
+
 		if ( $type === 'files' ) {
 			$total_size_to_skip = 0;
 			$total_files        = instawp_get_dir_contents( '/' );
@@ -1030,19 +1047,22 @@ include $file_path;';
 				}
 			}
 
-			return $total_files_size - $total_size_to_skip;
+			$size = $total_files_size - $total_size_to_skip;
 		}
-
+		
 		if ( $type === 'db' ) {
 			$tables       = instawp_get_database_details();
 			$tables_sizes = array_map( function ( $data ) {
 				return isset( $data['size'] ) ? $data['size'] : 0;
 			}, $tables );
-
-			return array_sum( $tables_sizes );
+			
+			$size = array_sum( $tables_sizes );
 		}
+		
+		// Cache the size for 1 hour
+		set_transient( $cache_key, intval( $size ), HOUR_IN_SECONDS );
 
-		return 0;
+		return $size;
 	}
 
 	public static function is_wp_root_available( $find_with_files = 'wp-load.php', $find_with_dir = '' ) {
@@ -1476,6 +1496,7 @@ include $file_path;';
 				'stages'                  => InstaWP_Setting::get_stages(),
 				'create_staging_txt'      => __( 'Create Staging', 'instawp-connect' ),
 				'next_step_txt'           => __( 'Next Step', 'instawp-connect' ),
+				'calculating_size_txt'    => __( 'Calculating size', 'instawp-connect' ),
 			),
 			'api_domain' => Helper::get_api_domain(),
 			'security'   => wp_create_nonce( 'instawp-connect' ),

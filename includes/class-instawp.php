@@ -281,19 +281,21 @@ class instaWP {
 		return $info['size'];
 	}
 
-	public function get_file_size_with_unit( $size, $unit = "" ) {
-		if ( ( ! $unit && $size >= 1 << 30 ) || $unit === "GB" ) {
-			return number_format( $size / ( 1 << 30 ), 2 ) . " GB";
+	public function get_file_size_with_unit( $size, $unit = "", $binary = true ) {
+		$base = $binary ? 1024 : 1000;
+	
+		if ( ( ! $unit && $size >= $base ** 3 ) || $unit === "GB" ) {
+			return number_format( $size / ( $base ** 3 ), 2 ) . " GB";
 		}
-
-		if ( ( ! $unit && $size >= 1 << 20 ) || $unit === "MB" ) {
-			return number_format( $size / ( 1 << 20 ), 2 ) . " MB";
+	
+		if ( ( ! $unit && $size >= $base ** 2 ) || $unit === "MB" ) {
+			return number_format( $size / ( $base ** 2 ), 2 ) . " MB";
 		}
-
-		if ( ( ! $unit && $size >= 1 << 10 ) || $unit === "KB" ) {
-			return number_format( $size / ( 1 << 10 ), 2 ) . " KB";
+	
+		if ( ( ! $unit && $size >= $base ) || $unit === "KB" ) {
+			return number_format( $size / $base, 2 ) . " KB";
 		}
-
+	
 		return number_format( $size ) . " B";
 	}
 
@@ -321,10 +323,13 @@ class instaWP {
 	}
 
 
-	public function instawp_check_usage_on_cloud( $total_size = 0 ) {
+	public function instawp_check_usage_on_cloud( $migrate_settings = array() ) {
+		$total_files_size = InstaWP_Tools::get_total_sizes( 'files', $migrate_settings );
+		$total_db_size    = InstaWP_Tools::get_total_sizes( 'db' );
+		$plan_id          = Helper::get_args_option( 'plan_id', $migrate_settings, 0 );
 
 		// connects/<connect_id>/usage
-		$api_response        = Curl::do_curl( "connects/{$this->connect_id}/usage", array(), array(), 'GET', 'v1' );
+		$api_response        = Curl::do_curl( "connects/{$this->connect_id}/usage?plan_id={$plan_id}", array(), array(), 'GET', 'v1' );
 		$api_response_status = Helper::get_args_option( 'success', $api_response, false );
 		$api_response_data   = Helper::get_args_option( 'data', $api_response, array() );
 
@@ -339,31 +344,51 @@ class instaWP {
 			);
 		}
 
-		$remaining_site       = (int) Helper::get_args_option( 'remaining_site', $api_response_data, '0' );
-		$available_disk_space = (int) Helper::get_args_option( 'remaining_disk_space', $api_response_data, '0' );
-		$has_payment_method   = (bool) Helper::get_args_option( 'has_payment_method', $api_response_data, false );
-		$is_legacy            = (bool) Helper::get_args_option( 'is_legacy', $api_response_data, false );
-		$free_site_count      = Helper::get_args_option( 'free_site_count', $api_response_data, null );
-		$can_proceed          = $has_payment_method === true;
-		$issue_for            = 'no_payment_method';
-		$total_site_size      = round( $total_size / 1048576, 2 );
+		$is_legacy = (bool) Helper::get_args_option( 'is_legacy', $api_response_data, false );
 
-		$api_response_data['require_disk_space'] = $total_site_size;
+		if ( $is_legacy ) {
+			$remaining_site       = (int) Helper::get_args_option( 'remaining_site', $api_response_data, '0' );
+			$available_disk_space = (int) Helper::get_args_option( 'remaining_disk_space', $api_response_data, '0' );
+			$can_proceed          = $remaining_site > 0;
+			$issue_for            = 'remaining_site';
+			$total_site_size      = round( $total_files_size / 1048576, 2 );
 
-		if ( $can_proceed && ! $is_legacy && $free_site_count !== null ) {
-			$can_proceed = intval( $free_site_count ) < 3;
-			$issue_for   = 'free_site_limit_exceeded';
+			if ( $can_proceed ) {
+				$can_proceed = $total_site_size < $available_disk_space;
+				$issue_for   = 'remaining_disk_space';
+			}
+		} else {
+			$has_payment_method = (bool) Helper::get_args_option( 'has_payment_method', $api_response_data, false );
+			$free_site_count    = Helper::get_args_option( 'free_site_count', $api_response_data, null );
+			$current_plan       = Helper::get_args_option( 'plan', $api_response_data, null );
+			$can_proceed        = $has_payment_method === true;
+			$issue_for          = 'no_payment_method';
+			$total_site_size    = round( ( $total_files_size + $total_db_size ) / 1000000, 2 );
+
+			if ( $can_proceed ) {
+				$can_proceed = $current_plan !== null && is_array( $current_plan );
+				$issue_for   = 'no_plan_found';
+			}
+
+			if ( $can_proceed && $current_plan['name'] === 'free' && $free_site_count !== null ) {
+				$can_proceed = intval( $free_site_count ) < 3;
+				$issue_for   = 'free_site_limit_exceeded';
+			}
+
+			if ( $can_proceed ) {
+				$disk_quota = array_filter( $current_plan['features'], function( $feature ) {
+					return $feature['feature'] === 'disk_quota';
+				} );
+				$disk_quota = ! empty( $disk_quota ) ? array_shift( $disk_quota ) : null;
+				
+				if ( ! empty( $disk_quota ) ) {
+					$can_proceed = $total_site_size <= (int) $disk_quota['value'];
+					$issue_for   = 'storage_limit_exceeded';
+				}
+			}
 		}
 
-		if ( $can_proceed ) {
-			$can_proceed = $remaining_site > 0;
-			$issue_for   = 'remaining_site';
-		}
-
-		if ( $can_proceed ) {
-			$can_proceed = $total_site_size < $available_disk_space;
-			$issue_for   = 'remaining_disk_space';
-		}
+		$api_response_data['required_disk_space'] = $total_site_size;
 
 		return array_merge( array(
 			'can_proceed' => $can_proceed,
