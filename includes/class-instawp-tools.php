@@ -1060,7 +1060,7 @@ include $file_path;';
 		}
 		
 		// Cache the size for 1 hour
-		set_transient( $cache_key, $size, HOUR_IN_SECONDS );
+		set_transient( $cache_key, intval( $size ), HOUR_IN_SECONDS );
 
 		return $size;
 	}
@@ -1496,7 +1496,7 @@ include $file_path;';
 				'stages'                  => InstaWP_Setting::get_stages(),
 				'create_staging_txt'      => __( 'Create Staging', 'instawp-connect' ),
 				'next_step_txt'           => __( 'Next Step', 'instawp-connect' ),
-				'calculating_txt'         => __( 'Calculating...', 'instawp-connect' ),
+				'calculating_size_txt'    => __( 'Calculating size', 'instawp-connect' ),
 			),
 			'api_domain' => Helper::get_api_domain(),
 			'security'   => wp_create_nonce( 'instawp-connect' ),

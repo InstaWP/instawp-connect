@@ -408,6 +408,9 @@
             el_custom_plan_warning = create_container.find('.custom-plan-warning'),
             el_screen = create_container.find('.screen');
 
+        let progress = 0,
+            progressInterval;
+
         el_screen_buttons.removeClass('hidden');
 
         // Adjusting Back/Continue Buttons
@@ -432,6 +435,17 @@
                     beforeSend: function () {
                         el_btn_continue.attr('disabled', true);
                         el_screen_loading_request.removeClass('hidden');
+
+                        progress = 0;
+                        create_container.find('.files-size-container .total-size').text(plugin_object.trans.calculating_size_txt + ' (0%)');
+
+                        progressInterval = setInterval(() => {
+                            if (progress < 90) {
+                                progress += Math.floor(Math.random() * 5) + 2; // 2% to 6%
+                                progress = Math.min(progress, 90);
+                                create_container.find('.files-size-container .total-size').text(plugin_object.trans.calculating_size_txt + ' (' + progress + '%)');
+                            }
+                        }, 300);
                     },
                     data: {
                         'action': 'instawp_get_site_plans',
@@ -439,28 +453,33 @@
                         'security': plugin_object.security,
                     },
                     success: function (response) {
-                        create_container.find('.files-size-container .total-size').html(response.data.size).addClass('loaded');
-                        el_screen_loading_request.addClass('hidden');
+                        clearInterval(progressInterval);
+                        create_container.find('.files-size-container .total-size').text(plugin_object.trans.calculating_size_txt + ' (100%)');
 
-                        if (response.success && response.data && !response.data.is_legacy) {
-                            el_staging_plan_container.removeClass('hidden').html(response.data.content);
-                            const firstEnabledRadio = create_container.find('.staging-plans input[type="radio"]:not(:disabled)').first();
-                            if (firstEnabledRadio.length) {
-                                firstEnabledRadio.prop('checked', true);
+                        setTimeout(function () {
+                            create_container.find('.files-size-container .total-size').html(response.data.size + ' (' + response.data.size_gb + ')').addClass('loaded');
+                            el_screen_loading_request.addClass('hidden');
 
-                                if (response.data.has_payment_method) {
-                                    el_payment_method_warning.addClass('hidden');
-                                    el_btn_continue.removeAttr('disabled');
+                            if (response.success && response.data && !response.data.is_legacy) {
+                                el_staging_plan_container.removeClass('hidden').html(response.data.content);
+                                const firstEnabledRadio = create_container.find('.staging-plans input[type="radio"]:not(:disabled)').first();
+                                if (firstEnabledRadio.length) {
+                                    firstEnabledRadio.prop('checked', true);
+
+                                    if (response.data.has_payment_method) {
+                                        el_payment_method_warning.addClass('hidden');
+                                        el_btn_continue.removeAttr('disabled');
+                                    } else {
+                                        el_payment_method_warning.removeClass('hidden');
+                                    }
                                 } else {
-                                    el_payment_method_warning.removeClass('hidden');
+                                    el_custom_plan_warning.removeClass('hidden');
+                                    el_custom_plan_warning.find('.disk-quota-value').html(response.data.files);
                                 }
                             } else {
-                                el_custom_plan_warning.removeClass('hidden');
-                                el_custom_plan_warning.find('.disk-quota-value').html(response.data.files);
+                                el_btn_continue.removeAttr('disabled');
                             }
-                        } else {
-                            el_btn_continue.removeAttr('disabled');
-                        }
+                        }, 500);
                     }
                 });
             }
@@ -1040,7 +1059,7 @@
     });
 
     $(document).on('change', '.instawp-wrap .nav-item-content.create input[type="radio"]:not(.plan-selector), .instawp-wrap .nav-item-content.create input[type="checkbox"]:not(.plan-selector)', function () {
-        $(document).find('.files-size-container .total-size').html(plugin_object.trans.calculating_txt).removeClass('loaded');
+        $(document).find('.files-size-container .total-size').html(plugin_object.trans.calculating_size_txt + ' (0%)').removeClass('loaded');
         $(document).find('.staging-plan-container').html('').addClass('hidden');
     });
 
