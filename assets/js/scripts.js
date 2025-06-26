@@ -463,7 +463,7 @@
                         //el_btn_back.removeAttr('disabled');
 
                         setTimeout(function () {
-                            create_container.find('.files-size-container .total-size').html(response.data.size + ' (' + response.data.size_gb + ')').addClass('loaded');
+                            create_container.find('.files-size-container .total-size').html(response.data.total_size_formatted).addClass('loaded');
                             el_screen_loading_request.addClass('hidden');
 
                             if (response.success && response.data && !response.data.is_legacy) {
@@ -480,7 +480,7 @@
                                     }
                                 } else {
                                     el_custom_plan_warning.removeClass('hidden');
-                                    el_custom_plan_warning.find('.disk-quota-value').html(response.data.files);
+                                    el_custom_plan_warning.find('.disk-quota-value').html(response.data.total_size_formatted);
                                 }
                             } else {
                                 el_btn_continue.removeAttr('disabled');
