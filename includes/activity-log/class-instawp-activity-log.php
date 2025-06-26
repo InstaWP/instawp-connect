@@ -26,8 +26,7 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 		}
 
         public function register_events() {
-            $setting = Option::get_option( 'instawp_activity_log', 'off' );
-			if ( $setting !== 'on' ) {
+			if ( ! instawp()->activity_log_enabled ) {
 				return;
 			}
 
@@ -47,6 +46,8 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
         }
 
 		public function clear_action_create_table( $name, $value ) {
+			instawp()->activity_log_enabled = $value === 'on';
+			
 			if ( $value === 'on' ) {
 				$this->create_table();
 			}
@@ -156,23 +157,25 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 			$args['severity'] = $this->get_severity( $args['action'] );
 			$args             = $this->setup_userdata( $args );
 
-			$wpdb->insert(
-				$this->table_name,
-				array(
-					'action'         => $args['action'],
-					'severity'       => $args['severity'],
-					'object_type'    => $args['object_type'],
-					'object_subtype' => $args['object_subtype'],
-					'object_name'    => $args['object_name'],
-					'object_id'      => $args['object_id'],
-					'user_id'        => $args['user_id'],
-					'user_name'      => $args['user_name'],
-					'user_caps'      => $args['user_caps'],
-					'user_ip'        => $args['user_ip'],
-					'timestamp'      => $args['timestamp'],
-				),
-				array( '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s', '%s' )
-			);
+			if ( $wpdb->get_var( "SHOW TABLES LIKE '{$this->table_name}'" ) === $this->table_name ) {
+				$wpdb->insert(
+					$this->table_name,
+					array(
+						'action'         => $args['action'],
+						'severity'       => $args['severity'],
+						'object_type'    => $args['object_type'],
+						'object_subtype' => $args['object_subtype'],
+						'object_name'    => $args['object_name'],
+						'object_id'      => $args['object_id'],
+						'user_id'        => $args['user_id'],
+						'user_name'      => $args['user_name'],
+						'user_caps'      => $args['user_caps'],
+						'user_ip'        => $args['user_ip'],
+						'timestamp'      => $args['timestamp'],
+					),
+					array( '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s', '%s' )
+				);
+			}
 
             $activity_log_interval = Option::get_option( 'instawp_activity_log_interval', 'instantly' );
             $activity_log_interval = empty( $activity_log_interval ) ? 'instantly' : $activity_log_interval;

@@ -691,9 +691,12 @@ class InstaWP_Ajax {
 			wp_send_json_error();
 		}
 
-		Option::update_option( $option_name, $option_value );
+		$result = Option::update_option( $option_name, $option_value );
+		if ( ! $result ) {
+			wp_send_json_error();
+		}
+		
 		wp_cache_flush();
-
 		wp_send_json_success();
 	}
 
@@ -783,27 +786,45 @@ class InstaWP_Ajax {
 		$migrate_settings = InstaWP_Tools::get_migrate_settings( $_POST );
 		$total_files_size = InstaWP_Tools::get_total_sizes( 'files', $migrate_settings );
 		$total_db_size    = InstaWP_Tools::get_total_sizes( 'db' );
+		$total_size       = $total_files_size + $total_db_size;
 
-		$total_size = $total_files_size + $total_db_size;
-		$site_plans = instawp()->is_connected ? instawp_get_plans() : array();
-		$site_plans = array_merge( $site_plans, array(
-			'size'    => instawp()->get_file_size_with_unit( $total_size, 'MB', false ),
-			'size_gb' => instawp()->get_file_size_with_unit( $total_size, 'GB', false ),
+		$base = 1000;
+		$gb = $total_size / ( $base ** 3 );
+		$mb = $total_size / ( $base ** 2 );
+	
+		if ( $mb > $base ) {
+			$total_size_formatted = number_format( $gb, 2 ) . ' GB';
+		} elseif ( $gb >= 0.01 ) {
+			$total_size_formatted = number_format( $mb, 2 ) . ' MB (' . number_format( $gb, 2 ) . ' GB)';
+		} else {
+			$total_size_formatted = number_format( $mb, 2 ) . ' MB';
+		}
+
+		$plan_data = instawp()->is_connected ? instawp_get_plans() : array();
+		$site_plans = ! empty( $plan_data['plans']['sites'] ) ? (array) $plan_data['plans']['sites'] : array();
+
+		if ( isset( $plan_data['plans'] ) ) {
+			unset( $plan_data['plans'] );
+		}
+
+		$site_data = array_merge( $plan_data, array(
+			'total_size' => $total_size,
+			'total_size_formatted' => $total_size_formatted,
 		) );
 
-		if ( empty( $site_plans['plans']['sites'] ) ) {
-			$site_plans['message'] = esc_html__( 'No plans found.', 'instawp-connect' );
-			wp_send_json_error( $site_plans );
+		if ( empty( $site_plans ) ) {
+			$site_data['message'] = esc_html__( 'No plans found.', 'instawp-connect' );
+
+			wp_send_json_error( $site_data );
 		}
 
 		ob_start();
 		include INSTAWP_PLUGIN_DIR . '/migrate/templates/ajax/part-site-plans.php';
 		$content = ob_get_clean();
 
-		unset( $site_plans['plans'] );
-		$site_plans['content'] = $content;
+		$site_data['content'] = $content;
 
-		wp_send_json_success( $site_plans );
+		wp_send_json_success( $site_data );
 	}
 }
 

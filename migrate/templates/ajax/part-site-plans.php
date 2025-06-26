@@ -13,7 +13,7 @@ $total_files_size_mb = $total_files_size / (1000 * 1000);
         </svg>
     </div>
     <div class="flex flex-col gap-3 w-full basis-4/5">
-        <?php foreach ( $site_plans['plans']['sites'] as $key => $site_plan ) {
+        <?php foreach ( $site_plans as $key => $site_plan ) {
             // Filter visible features once
             $visible_features = array_filter( $site_plan['features'], function( $feature ) {
                 return $feature['is_visible'] === true;
@@ -41,7 +41,7 @@ $total_files_size_mb = $total_files_size / (1000 * 1000);
             // Determine if plan is disabled
             $is_free_plan = $site_plan['name'] === 'free';
             $disk_quota_exceeded = isset( $features_to_show['disk_quota']['value'] ) && $total_files_size_mb > $features_to_show['disk_quota']['value'];
-            $is_free_plan_disabled = $is_free_plan && ( $site_plans['free_site_count'] >= 3 || $disk_quota_exceeded );
+            $is_free_plan_disabled = $is_free_plan && ( $site_data['free_site_count'] >= 3 || $disk_quota_exceeded );
             $is_plan_disabled = $is_free_plan_disabled || ( ! $is_free_plan && $disk_quota_exceeded );
             ?>
             <label class="w-full cursor-pointer relative">
