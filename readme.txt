@@ -100,6 +100,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 = 0.1.1.3 - 26 June 2025 =
 - Fixed: Activity Logs not working.
+- Fixed: bunny.net CDN cache purging was not working.
 
 = 0.1.1.2 - 24 June 2025 =
 - Added: Plan validation and auto select plan based on site size.
