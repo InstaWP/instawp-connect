@@ -101,8 +101,19 @@ class instaWP {
 	}
 
 	public function register_actions() {
-		if ( ! as_has_scheduled_action( 'instawp_prepare_large_files_list', array(), 'instawp-connect' ) ) {
-			as_schedule_recurring_action( time(), HOUR_IN_SECONDS, 'instawp_prepare_large_files_list', array(), 'instawp-connect' );
+		// Handle adaptive scanning schedule
+		$current_interval = $this->get_adaptive_scan_interval();
+		$last_interval = get_option( 'instawp_last_scan_interval', 0 );
+		
+		if ( ! as_has_scheduled_action( 'instawp_prepare_large_files_list', array(), 'instawp-connect' ) || $current_interval !== $last_interval ) {
+			// Unschedule existing action if interval changed
+			if ( $current_interval !== $last_interval ) {
+				as_unschedule_all_actions( 'instawp_prepare_large_files_list', array(), 'instawp-connect' );
+			}
+			
+			// Schedule with new interval
+			as_schedule_recurring_action( time(), $current_interval, 'instawp_prepare_large_files_list', array(), 'instawp-connect' );
+			update_option( 'instawp_last_scan_interval', $current_interval );
 		}
 
 		if ( ! as_has_scheduled_action( 'instawp_clean_migrate_files', array(), 'instawp-connect' ) ) {
@@ -394,6 +405,29 @@ class instaWP {
 			'can_proceed' => $can_proceed,
 			'issue_for'   => ( $can_proceed ? '' : $issue_for ),
 		), $api_response_data );
+	}
+
+	/**
+	 * Get adaptive scan interval based on site staging activity
+	 *
+	 * @return int Interval in seconds
+	 */
+	private function get_adaptive_scan_interval() {
+		// Check if site has recent staging activity
+		$last_staging = get_option( 'instawp_last_staging_created', 0 );
+		$days_since_staging = ( time() - $last_staging ) / DAY_IN_SECONDS;
+		
+		// Determine interval based on activity
+		if ( $days_since_staging < 7 ) {
+			// Active staging site - scan hourly
+			return HOUR_IN_SECONDS;
+		} elseif ( $days_since_staging < 30 ) {
+			// Moderate activity - scan every 12 hours
+			return 12 * HOUR_IN_SECONDS;
+		} else {
+			// Low activity - scan daily
+			return DAY_IN_SECONDS;
+		}
 	}
 
 	private function load_dependencies() {
