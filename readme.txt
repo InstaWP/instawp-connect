@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.6
 Tested up to: 6.8
 Requires PHP: 7.0
-Stable tag: 0.1.1.4
+Stable tag: 0.1.1.3
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -98,14 +98,12 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
-= 0.1.1.4 - 03 July 2025 =
+= 0.1.1.3 - 03 July 2025 =
 - Improved: Optimized sync query performance
 - Added: Retry mechanism for sync failures 
 - Added: Error logs
 - Added: Exclusion of custom plugin/theme sync events
 - Fixed: Migration issues on sites with a single PHP worker
-
-= 0.1.1.3 - 26 June 2025 =
 - Fixed: Activity Logs not working.
 - Fixed: bunny.net CDN cache purging was not working.
 
