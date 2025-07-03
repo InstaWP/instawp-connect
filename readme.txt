@@ -103,6 +103,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 - Added: Retry mechanism for sync failures 
 - Added: Error logs
 - Added: Exclusion of custom plugin/theme sync events
+- Fixed: Migration issues on sites with a single PHP worker
 
 = 0.1.1.3 - 26 June 2025 =
 - Fixed: Activity Logs not working.
