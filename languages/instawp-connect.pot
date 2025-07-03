@@ -5,7 +5,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2025-06-24 06:35+0000\n"
+"POT-Creation-Date: 2025-07-03 10:22+0000\n"
 "X-Poedit-Basepath: ..\n"
 "X-Poedit-KeywordsList: __;_e;_ex:1,2c;_n:1,2;_n_noop:1,2;_nx:1,2,4c;_nx_noop:1,2,3c;_x:1,2c;esc_attr__;esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c\n"
 "X-Poedit-SearchPath-0: .\n"
@@ -17,7 +17,7 @@ msgstr ""
 msgid "Settings"
 msgstr ""
 
-#: admin/class-instawp-admin.php:76, includes/class-instawp-hooks.php:314, includes/class-instawp-setting.php:38, includes/class-instawp-tools.php:1497
+#: admin/class-instawp-admin.php:76, includes/class-instawp-hooks.php:314, includes/class-instawp-setting.php:38, includes/class-instawp-tools.php:1511
 msgid "Create Staging"
 msgstr ""
 
@@ -169,7 +169,7 @@ msgstr ""
 msgid "Activity log is disabled."
 msgstr ""
 
-#: includes/apis/class-instawp-rest-api.php:559, includes/functions.php:805
+#: includes/apis/class-instawp-rest-api.php:559, includes/functions.php:889
 msgid "No login information found."
 msgstr ""
 
@@ -289,15 +289,15 @@ msgstr ""
 msgid "We have identified following large files in your installation:"
 msgstr ""
 
-#: includes/class-instawp-ajax.php:722
+#: includes/class-instawp-ajax.php:725
 msgid "Plugin reset successfully."
 msgstr ""
 
-#: includes/class-instawp-ajax.php:771
+#: includes/class-instawp-ajax.php:774
 msgid "Plan changed successfully."
 msgstr ""
 
-#: includes/class-instawp-ajax.php:786
+#: includes/class-instawp-ajax.php:816
 msgid "No plans found."
 msgstr ""
 
@@ -753,79 +753,79 @@ msgstr ""
 msgid "Invalid Migration ID"
 msgstr ""
 
-#: includes/class-instawp-tools.php:887
+#: includes/class-instawp-tools.php:900
 msgid "API key not found"
 msgstr ""
 
-#: includes/class-instawp-tools.php:1132
+#: includes/class-instawp-tools.php:1145
 msgid "Root directory for this WordPress installation could not find."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1156
+#: includes/class-instawp-tools.php:1169
 msgid "Tracking database could not found."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1165
+#: includes/class-instawp-tools.php:1178
 msgid "API Signature and others data could not set properly"
 msgstr ""
 
-#: includes/class-instawp-tools.php:1186
+#: includes/class-instawp-tools.php:1200
 msgid "InstaWP could not access or read required files from your WordPress directory due to file permission issue."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1188
+#: includes/class-instawp-tools.php:1202
 msgid "Learn more."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1401
+#: includes/class-instawp-tools.php:1415
 msgid "Launch %s"
 msgstr ""
 
-#: includes/class-instawp-tools.php:1492
+#: includes/class-instawp-tools.php:1506
 msgid "Please create staging sites first."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1493
+#: includes/class-instawp-tools.php:1507
 msgid "Skip"
 msgstr ""
 
-#: includes/class-instawp-tools.php:1494
+#: includes/class-instawp-tools.php:1508
 msgid "Do you really want to disconnect the plugin? It will completely remove the existing staging sites from the plugin."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1495
+#: includes/class-instawp-tools.php:1509
 msgid "Do you still want to disconnect the plugin?"
 msgstr ""
 
-#: includes/class-instawp-tools.php:1498
+#: includes/class-instawp-tools.php:1512
 msgid "Next Step"
 msgstr ""
 
-#: includes/class-instawp-tools.php:1499
+#: includes/class-instawp-tools.php:1513
 msgid "Calculating size"
 msgstr ""
 
-#: includes/class-instawp-tools.php:1559
+#: includes/class-instawp-tools.php:1573
 msgid "Zip archive is not opening."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1612
+#: includes/class-instawp-tools.php:1626
 msgid "No compression method find."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1659
+#: includes/class-instawp-tools.php:1673
 msgid "Site ID not found in site create response."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1698
+#: includes/class-instawp-tools.php:1712
 msgid "SFTP login failed."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1709
+#: includes/class-instawp-tools.php:1723
 msgid "SFTP upload failed for files."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1717
+#: includes/class-instawp-tools.php:1731
 msgid "SFTP upload failed for database."
 msgstr ""
 
@@ -833,77 +833,77 @@ msgstr ""
 msgid "Site Management"
 msgstr ""
 
-#: includes/functions.php:269
+#: includes/functions.php:353
 msgid "Migration aborted forcefully"
 msgstr ""
 
-#: includes/functions.php:801
+#: includes/functions.php:885
 msgid "No login found with given username/email and default username, You are going to login with first admin user."
 msgstr ""
 
-#: includes/functions.php:797
+#: includes/functions.php:881
 msgid "Login information for the given username/email didn't found, You are going to login with default login username."
 msgstr ""
 
-#: includes/functions.php:794
+#: includes/functions.php:878
 msgid "Login information could not found with username, but found with the given email address."
 msgstr ""
 
-#: includes/functions.php:791
+#: includes/functions.php:875
 msgid "Login information for the given username"
 msgstr ""
 
-#: includes/functions.php:1271, includes/functions.php:1301
+#: includes/functions.php:1355, includes/functions.php:1385
 msgid "Connect ID not found"
 msgstr ""
 
-#: includes/functions.php:1290
+#: includes/functions.php:1374
 msgid "Plan activated successfully"
 msgstr ""
 
-#: includes/functions.php:1320
+#: includes/functions.php:1404
 msgid "Connect disconnected successfully"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-ajax.php:366
+#: includes/sync/class-instawp-sync-ajax.php:371
 msgid "%1$u %2$s %3$s"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-ajax.php:354
+#: includes/sync/class-instawp-sync-ajax.php:359
 msgid "%1$u %2$s"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-ajax.php:360
+#: includes/sync/class-instawp-sync-ajax.php:365
 msgid "Show more"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-ajax.php:382
+#: includes/sync/class-instawp-sync-ajax.php:387
 msgid "Waiting for Sync to Start (%d event)"
 msgid_plural "Waiting for Sync to Start (%d events)"
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/sync/class-instawp-sync-ajax.php:390
+#: includes/sync/class-instawp-sync-ajax.php:395
 msgid "Events loaded"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-ajax.php:390, includes/sync/class-instawp-sync-ajax.php:461
+#: includes/sync/class-instawp-sync-ajax.php:395, includes/sync/class-instawp-sync-ajax.php:466
 msgid "No pending events found!"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-ajax.php:457
+#: includes/sync/class-instawp-sync-ajax.php:462
 msgid "You have reached your sync limit. Remaining quota %1$s out of %2$s."
 msgstr ""
 
-#: includes/sync/class-instawp-sync-ajax.php:453
+#: includes/sync/class-instawp-sync-ajax.php:458
 msgid " Completed (0 out of %d events)"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-ajax.php:535
+#: includes/sync/class-instawp-sync-ajax.php:557
 msgid "« Previous"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-ajax.php:536
+#: includes/sync/class-instawp-sync-ajax.php:558
 msgid "Next »"
 msgstr ""
 
@@ -1011,7 +1011,7 @@ msgstr ""
 msgid "Theme %s not found at destination."
 msgstr ""
 
-#: includes/sync/class-instawp-sync-post.php:87, includes/sync/class-instawp-sync-post.php:235, includes/sync/class-instawp-sync-term.php:54
+#: includes/sync/class-instawp-sync-post.php:87, includes/sync/class-instawp-sync-post.php:284, includes/sync/class-instawp-sync-term.php:54
 msgid "%s modified"
 msgstr ""
 
@@ -1031,15 +1031,15 @@ msgstr ""
 msgid "%s deleted"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-post.php:164
+#: includes/sync/class-instawp-sync-post.php:208
 msgid "Media created"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-post.php:181, includes/sync/class-instawp-sync-post.php:218
+#: includes/sync/class-instawp-sync-post.php:225, includes/sync/class-instawp-sync-post.php:267
 msgid "Media updated"
 msgstr ""
 
-#: includes/sync/class-instawp-sync-post.php:198
+#: includes/sync/class-instawp-sync-post.php:247
 msgid "Media deleted"
 msgstr ""
 

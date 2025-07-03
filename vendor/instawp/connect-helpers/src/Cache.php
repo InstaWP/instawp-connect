@@ -326,24 +326,23 @@ class Cache {
 		if ( is_plugin_active( 'bunnycdn/bunnycdn.php' ) ) {
 			$message = '';
 
-			if ( class_exists( '\BunnyCdn' ) && method_exists( '\BunnyCdn', 'getOptions' ) ) {
-				$options = \BunnyCdn::getOptions();
-				$domain  = 'instawpcom.b-cdn.net';
+			if ( function_exists( 'bunnycdn_admin_container' ) ) {
+				$container = bunnycdn_admin_container();
 
-				if ( ! empty( $domain ) ) {
-					$response = wp_remote_post( 'https://bunnycdn.com/api/pullzone/purgeCacheByHostname?hostname=' . $domain, [
-						'headers' => [
-							'AccessKey' => htmlspecialchars( $options['api_key'] ),
-						],
-					] );
-					if ( is_wp_error( $response ) ) {
-						$message = $response->get_error_message();
+				try {
+					$config = $container->getCdnConfig();
+
+					if ( ( $config->isEnabled() || $config->isAccelerated() ) && ! $config->isAgencyMode() ) {
+						$pullzoneId = $config->getPullzoneId();
+						if ( $pullzoneId !== null ) {
+							$container->getApiClient()->purgePullzoneCache( $pullzoneId );
+						} else {
+							$message = 'Pullzone ID not found.';
+						}
 					}
-				} else {
-					$message = 'CDN Domain is empty.';
+				} catch ( \Exception $e ) {
+					$message = 'Purge failed: ' . esc_html( $e->getMessage() );
 				}
-			} else {
-				$message = 'Class or Method not exists.';
 			}
 
 			$results[] = [

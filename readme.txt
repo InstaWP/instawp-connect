@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.6
 Tested up to: 6.8
 Requires PHP: 7.0
-Stable tag: 0.1.1.2
+Stable tag: 0.1.1.3
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -97,6 +97,15 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 You can report security bugs through the Patchstack Vulnerability Disclosure Program. The Patchstack team helps validate, triage, and handle any security vulnerabilities. [Report a security vulnerability](https://patchstack.com/database/vdp/instawp-connect).
 
 == Changelog ==
+
+= 0.1.1.3 - 03 July 2025 =
+- Improved: Optimized sync query performance
+- Added: Retry mechanism for sync failures 
+- Added: Error logs
+- Added: Exclusion of custom plugin/theme sync events
+- Fixed: Migration issues on sites with a single PHP worker
+- Fixed: Activity Logs not working.
+- Fixed: bunny.net CDN cache purging was not working.
 
 = 0.1.1.2 - 24 June 2025 =
 - Added: Plan validation and auto select plan based on site size.

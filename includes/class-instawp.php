@@ -39,6 +39,8 @@ class instaWP {
 
 	public $can_bundle = false;
 
+	public $activity_log_enabled = false;
+
 	public $api_key = null;
 
 	public $connect_id = null;
@@ -283,20 +285,28 @@ class instaWP {
 
 	public function get_file_size_with_unit( $size, $unit = "", $binary = true ) {
 		$base = $binary ? 1024 : 1000;
-	
-		if ( ( ! $unit && $size >= $base ** 3 ) || $unit === "GB" ) {
-			return number_format( $size / ( $base ** 3 ), 2 ) . " GB";
+		$units = array( 'B', 'KB', 'MB', 'GB' );
+		$exponents = array( 0, 1, 2, 3 );
+		
+		// If unit is specified, find its index
+		if ( $unit ) {
+			$unit_index = array_search( strtoupper( $unit ), $units );
+			if ( $unit_index !== false ) {
+				$exponent = $exponents[ $unit_index ];
+				return number_format( $size / ( $base ** $exponent ), 2 ) . " {$units[$unit_index]}";
+			}
 		}
-	
-		if ( ( ! $unit && $size >= $base ** 2 ) || $unit === "MB" ) {
-			return number_format( $size / ( $base ** 2 ), 2 ) . " MB";
+		
+		// Auto-determine appropriate unit
+		$exponent = 0;
+		for ( $i = count( $exponents ) - 1; $i >= 0; $i-- ) {
+			if ( $size >= ( $base ** $exponents[ $i ] ) ) {
+				$exponent = $exponents[ $i ];
+				break;
+			}
 		}
-	
-		if ( ( ! $unit && $size >= $base ) || $unit === "KB" ) {
-			return number_format( $size / $base, 2 ) . " KB";
-		}
-	
-		return number_format( $size ) . " B";
+		
+		return number_format( $size / ( $base ** $exponent ), 2 ) . " {$units[$exponent]}";
 	}
 
 	public function get_current_mode( $data_to_get = '' ) {
@@ -431,16 +441,17 @@ class instaWP {
 
 		$files = array( 'option', 'plugin-theme', 'post', 'term', 'menu', 'user', 'customizer', 'wc' );
 		foreach ( $files as $file ) {
-			require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-' . $file . '.php';
+			require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-' . sanitize_file_name( $file ) . '.php';
 		}
 
-		$setting = Option::get_option( 'instawp_activity_log', 'off' );
-		if ( $setting === 'on' ) {
-			require_once INSTAWP_PLUGIN_DIR . '/includes/activity-log/class-instawp-activity-log.php';
+		require_once INSTAWP_PLUGIN_DIR . '/includes/activity-log/class-instawp-activity-log.php';
+		
+		$this->activity_log_enabled = Option::get_option( 'instawp_activity_log', 'off' ) === 'on';
 
+		if ( $this->activity_log_enabled ) {
 			$files = array( 'core', 'posts', 'attachments', 'users', 'menus', 'plugins', 'themes', 'taxonomies', 'widgets' );
 			foreach ( $files as $file ) {
-				require_once INSTAWP_PLUGIN_DIR . '/includes/activity-log/class-instawp-activity-log-' . $file . '.php';
+				require_once INSTAWP_PLUGIN_DIR . '/includes/activity-log/class-instawp-activity-log-' . sanitize_file_name( $file ) . '.php';
 			}
 		}
 	}
