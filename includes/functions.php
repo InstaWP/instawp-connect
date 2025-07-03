@@ -89,6 +89,90 @@ if ( ! function_exists( 'instawp_create_db_tables' ) ) {
 	}
 }
 
+if ( ! function_exists( 'instawp_connect_add_plugin_log' ) ) {
+	/**
+	 * Log error
+	 *
+	 * @param array $paylod payload
+	 * @param Throwable|null $th
+	 *
+	 * @return void
+	 */
+	function instawp_connect_add_plugin_log( $payload, $th = null ) {
+		$log = get_option( 'instawp_connect_plugin_log' );
+
+		$log = ( empty( $log ) || ! is_array( $log ) ) ? array() : $log;
+
+		if ( 150 < count( $log ) ) {
+			// Remove first 50 entries
+			$log = array_slice($log,50);
+		}
+
+		$error = is_array( $payload ) ? instawp_sanitize_data( $payload ) : array(
+			'payload' => sanitize_text_field( $payload )
+		);
+		$error['time'] = date( 'Y-m-d H:i:s' );
+
+		if ( ! empty( $th ) ) { 
+			$error = array_merge( $error, [
+				'error' => $th->getMessage(),
+				'line' => $th->getLine(),
+				'file' => $th->getFile(),
+			]);
+		}
+
+		$log[] = $error;
+		update_option(
+			'instawp_connect_plugin_log',
+			$log
+		);
+	}
+}
+
+if ( ! function_exists( 'get_set_sync_config_data' ) ) {
+	function get_set_sync_config_data( $key, $config_data = null ) {
+		$config = get_option( 'iwp_sync_config_data' );
+		$config = ( empty( $config ) || ! is_array( $config ) ) ? array() : $config;
+
+		if ( empty( $config_data ) ) {
+			return isset( $config[ $key ] ) && is_array( $config[ $key ] ) ? $config[ $key ] : array();
+		} 
+
+		$config[ $key ] = instawp_sanitize_data( $config_data );
+		update_option( 'iwp_sync_config_data', $config );
+	}
+}
+
+if ( ! function_exists( 'instawp_sanitize_data' ) ) {
+	/**
+	 * Sanitize data
+	 * 
+	 * @param array|string $data data
+	 * 
+	 * @return array|string sanitized data
+	 */
+	function instawp_sanitize_data( $data ) {
+		if ( empty( $data ) ) {
+			return $data;
+		}
+
+		if ( is_array( $data ) ) {
+			foreach ( $data as $key => $value ) {
+				if ( is_array( $value ) ) {
+					$data[ $key ] = instawp_sanitize_data( $value );
+				} else {
+					$data[ $key ] = sanitize_text_field( $value );
+				}
+			}
+		} else if ( is_string( $data ) ) {
+			$data = sanitize_text_field( $data );
+		} else {
+			$data = '';
+		}
+		return $data;
+	}
+}
+
 if ( ! function_exists( 'instawp_delete_sync_entries' ) ) {
 	function instawp_delete_sync_entries() {
 		global $wpdb;

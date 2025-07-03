@@ -21,7 +21,7 @@ if ( ! empty( $events ) ) : ?>
             if ( $event_status === 'completed' ) {
                 $label_classes[]   = 'hint--left hint--success';
                 $label_attributes .= sprintf(' aria-label="%s: %s"', __(  'Synced', 'instawp-connect' ), wp_date( 'M j, Y H:i A', strtotime( $event->synced_date ) ) );
-            } elseif ( $event_status !== 'pending' ) {
+            } else if ( ! empty( $event->synced_message ) ) {
                 $label_classes[]   = 'hint--left';
                 $label_attributes .= sprintf(' aria-label="%s"', $event->synced_message );
             }

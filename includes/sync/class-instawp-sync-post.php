@@ -148,6 +148,46 @@ class InstaWP_Sync_Post {
 		$this->handle_post_events( $event_name, 'post_delete', $post );
 	}
 
+	private function is_zip_php_file( $file_path ) {
+		return ( substr( $file_path, -4) === '.zip' || substr( $file_path, -4) === '.rar' || substr( $file_path, -4) === '.php' );
+	}
+
+	public function is_media_plugin_theme_zip( $postData ) {
+		if ( empty( $postData ) || 'attachment' !== $postData->post_type || empty( $postData->guid ) || 'private' !== $postData->post_status || ! $this->is_zip_php_file( $postData->guid ) ) {
+			return false;
+		}
+
+		$context = get_post_meta( $postData->ID, '_wp_attachment_context', true );
+
+		// Check if context is upgrader means plugin or theme install
+		if ( empty( $context ) || 'upgrader' !== $context ) {
+			return false;
+		}
+
+		// Get slug
+		$slug = basename($postData->guid);
+		$slug = explode('.', $slug);
+		$slug = $slug[0];
+
+		// Check if slug is on wordpress.org
+		foreach ( array('plugin', 'theme') as $item_type ) {
+			if ( Helper::is_on_wordpress_org( $slug, $item_type ) ) {
+				return true;
+			}
+		}
+
+		// Check if slug is in exclude list
+		$exclude_slugs = get_set_sync_config_data( 'exclude_upload_plugin_theme_slugs' );
+
+		if ( empty( $exclude_slugs ) || ! in_array( $slug, $exclude_slugs ) ) {
+			// Add slug
+			$exclude_slugs[] = $slug;
+			get_set_sync_config_data( 'exclude_upload_plugin_theme_slugs', $exclude_slugs );
+		}
+		
+		return true;
+	}
+
 	/**
 	 * Function for `add_attachment` action-hook
 	 *
@@ -161,6 +201,10 @@ class InstaWP_Sync_Post {
 		}
 
 		$attachment = get_post( $attachment_id );
+		if ( $this->is_media_plugin_theme_zip( $attachment ) ) {
+			return;
+		}
+
 		$event_name = esc_html__( 'Media created', 'instawp-connect' );
 		$this->handle_post_events( $event_name, 'post_new', $attachment );
 	}
@@ -195,6 +239,11 @@ class InstaWP_Sync_Post {
 		}
 
 		$attachment = get_post( $attachment_id );
+
+		if ( $this->is_media_plugin_theme_zip( $attachment ) ) {
+			return;
+		}
+
 		$event_name = esc_html__( 'Media deleted', 'instawp-connect' );
 		$this->handle_post_events( $event_name, 'post_delete', $attachment );
 	}

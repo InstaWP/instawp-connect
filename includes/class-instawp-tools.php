@@ -469,6 +469,7 @@ include $file_path;';
 			'is_accessible' => false,
 			'message'       => '',
 			'file_url'      => $file_url,
+			'error'			=> false,
 		);
 		try {
 			$response = wp_remote_post(
@@ -481,7 +482,13 @@ include $file_path;';
 
 			if ( is_wp_error( $response ) ) {
 				$result['message'] = $response->get_error_message();
-				error_log( 'HTTP Error: ' . $result['message'] );
+				$result['error']   = true;
+				instawp_connect_add_plugin_log(
+					array(
+						'title'   => 'is_migrate_file_accessible error',
+						'message' => $result['message'],
+					)
+				);
 			} else {
 				$status_code = wp_remote_retrieve_response_code( $response );
 				// Check if the request was successful (status code 200)
@@ -489,6 +496,12 @@ include $file_path;';
 				$result['is_accessible'] = $status_code === 200;
 			}
 		} catch ( \Throwable $th ) {
+			instawp_connect_add_plugin_log(
+				array(
+					'title'   => 'is_migrate_file_accessible exception',
+				),
+				$th
+			);
 			$result['message'] = $th->getMessage();
 		}
 
@@ -1170,8 +1183,9 @@ include $file_path;';
 
 			$serve_url = self::generate_proxy_serve_url();
 
+			$accessible_file = empty( $serve_url ) ? array() : self::is_migrate_file_accessible( $serve_url, true );
 			// Check accessibility of proxy serve url
-			if ( empty( $serve_url ) || ! self::is_migrate_file_accessible( $serve_url ) ) {
+			if ( empty( $serve_url ) || empty( $accessible_file ) || ( ! $accessible_file['is_accessible'] && ! $accessible_file['error'] ) ) {
 				// Serve through WordPress
 				$serve_url     = Helper::wp_site_url( 'serve-instawp/', true );
 				$serve_with_wp = true;
