@@ -543,6 +543,11 @@ class InstaWP_Sync_Plugin_Theme {
 				$title     = $details['name'];
 				$source_id = $details['stylesheet'];
 		}
+		// Exclude uploaded plugin or theme slug
+		$exclude_slugs = get_set_sync_config_data( 'exclude_upload_plugin_theme_slugs' );
+		if ( ! empty( $exclude_slugs ) && is_array( $exclude_slugs ) && is_string( $source_id ) && in_array( $source_id, $exclude_slugs ) ) {
+			return;
+		}
 		InstaWP_Sync_DB::insert_update_event( $event_name, $event_slug, $type, $source_id, $title, $details );
 	}
 
