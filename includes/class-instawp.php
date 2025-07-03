@@ -62,7 +62,6 @@ class instaWP {
 		$this->is_parent_on_local      = (bool) Option::get_option( 'instawp_parent_is_on_local', false );
 		$this->has_unsupported_plugins = ! empty( InstaWP_Tools::get_unsupported_active_plugins() );
 		$this->can_bundle              = ( class_exists( 'ZipArchive' ) || class_exists( 'PharData' ) );
-		$this->activity_log_enabled    = Option::get_option( 'instawp_activity_log', 'off' ) === 'on';
 
 		if ( is_admin() ) {
 			$this->set_locale();
@@ -446,6 +445,8 @@ class instaWP {
 		}
 
 		require_once INSTAWP_PLUGIN_DIR . '/includes/activity-log/class-instawp-activity-log.php';
+		
+		$this->activity_log_enabled = Option::get_option( 'instawp_activity_log', 'off' ) === 'on';
 
 		if ( $this->activity_log_enabled ) {
 			$files = array( 'core', 'posts', 'attachments', 'users', 'menus', 'plugins', 'themes', 'taxonomies', 'widgets' );
