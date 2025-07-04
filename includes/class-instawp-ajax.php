@@ -288,6 +288,9 @@ class InstaWP_Ajax {
 			wp_send_json_error();
 		}
 
+		// Track staging creation activity for adaptive scanning
+		update_option( 'instawp_last_staging_created', time() );
+
 		$settings_str = isset( $_POST['settings'] ) ? $_POST['settings'] : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 
 		parse_str( $settings_str, $settings_arr );

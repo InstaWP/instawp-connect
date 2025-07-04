@@ -75,6 +75,8 @@ delete_option( 'instawp_last_heartbeat_sent' );
 delete_option( 'instawp_is_staging' );
 delete_option( 'instawp_is_event_syncing' );
 delete_option( 'instawp_staging_sites' );
+delete_option( 'instawp_last_staging_created' );
+delete_option( 'instawp_last_scan_interval' );
 
 delete_transient( 'instawp_migration_completed' );
 delete_transient( 'instawp_generate_large_files' );
