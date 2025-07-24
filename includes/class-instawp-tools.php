@@ -347,6 +347,12 @@ include $file_path;';
 
 				// Check if the forwarded file is accessible
 				$accessible_file = self::is_migrate_file_accessible( $dest_url, true );
+
+				// If file is not accessible then try again by using file name
+				if ( ! $is_wpcloud && ! $accessible_file['is_accessible'] ) {
+					$dest_url = Helper::wp_site_url( 'iwp-dest/index.php', true );
+				}
+
 				if ( $accessible_file['is_accessible'] ) {
 					$result['dest_url'] = $dest_url;
 				} else {
