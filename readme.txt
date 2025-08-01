@@ -99,7 +99,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 == Changelog ==
 
 = 0.1.1.4 - Beta =
-- Fixed: Destination migration file path for GoDaddy.
+- Fixed: Source and Destination migration file path.
 
 = 0.1.1.3 - 03 July 2025 =
 - Improved: Optimized sync query performance
