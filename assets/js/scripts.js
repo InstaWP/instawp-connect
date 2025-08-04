@@ -1479,6 +1479,153 @@
     });
     // Remote Management settings save end //
 
+    // Settings Confirmation Modal Management //
+    let pendingSettingsAction = null;
+
+    // Show confirmation modal
+    function showSettingsConfirmationModal(title, message, action) {
+        $('#modal-title').text(title);
+        $('#modal-message').text(message);
+        pendingSettingsAction = action;
+        $('#instawp-settings-modal').removeClass('hidden');
+    }
+
+    // Hide confirmation modal
+    function hideSettingsConfirmationModal() {
+        $('#instawp-settings-modal').addClass('hidden');
+        pendingSettingsAction = null;
+    }
+
+    // Modal confirm button click
+    $(document).on('click', '#modal-confirm', function() {
+        if (pendingSettingsAction) {
+            pendingSettingsAction();
+        }
+        hideSettingsConfirmationModal();
+    });
+
+    // Modal cancel button click
+    $(document).on('click', '#modal-cancel', function() {
+        if (pendingSettingsAction && pendingSettingsAction.revert) {
+            pendingSettingsAction.revert();
+        }
+        hideSettingsConfirmationModal();
+    });
+
+    // Close modal when clicking outside
+    $(document).on('click', '#instawp-settings-modal', function(e) {
+        if (e.target === this) {
+            if (pendingSettingsAction && pendingSettingsAction.revert) {
+                pendingSettingsAction.revert();
+            }
+            hideSettingsConfirmationModal();
+        }
+    });
+
+    // Override the original save-ajax change handler with confirmation
+    $(document).off('change', '.save-ajax');
+    $(document).on('change', '.save-ajax', function (e) {
+        e.preventDefault();
+        
+        let $toggle = $(this);
+        let name = $toggle.attr('id');
+        let value = $toggle.is(':checked') ? 'on' : 'off';
+        let fieldTitle = $toggle.closest('.instawp-single-field').find('label span').first().text();
+        
+        let message = 'Are you sure you want to ' + (value === 'on' ? 'enable' : 'disable') + ' "' + fieldTitle + '"?';
+        
+        showSettingsConfirmationModal(
+            'Confirm Setting Change',
+            message,
+            {
+                // Action to execute on confirm
+                execute: function() {
+                    ajaxSaveManagementSettings(name, value);
+                    
+                    if ('instawp_hide_plugin_icon_topbar' === name && 'on' === value) {
+                        $('#wp-admin-bar-instawp').hide();
+                    } else if ('instawp_hide_plugin_icon_topbar' === name && 'off' === value) {
+                        setTimeout(function () {
+                            window.location.reload();
+                        }, 1000);
+                    }
+                },
+                // Action to execute on cancel (revert toggle)
+                revert: function() {
+                    $toggle.prop('checked', value === 'off');
+                }
+            }
+        );
+        
+        // Store the action properly
+        pendingSettingsAction = function() {
+            ajaxSaveManagementSettings(name, value);
+            
+            if ('instawp_hide_plugin_icon_topbar' === name && 'on' === value) {
+                $('#wp-admin-bar-instawp').hide();
+            } else if ('instawp_hide_plugin_icon_topbar' === name && 'off' === value) {
+                setTimeout(function () {
+                    window.location.reload();
+                }, 1000);
+            }
+        };
+        
+        // Store revert function
+        pendingSettingsAction.revert = function() {
+            $toggle.prop('checked', value === 'off');
+        };
+    });
+
+    // Override the original form submit handler with confirmation
+    $(document).off('submit', '.settings .instawp-form, .developer .instawp-form');
+    $(document).on('submit', '.settings .instawp-form, .developer .instawp-form', function (e) {
+        e.preventDefault();
+        
+        let $form = $(this);
+        
+        showSettingsConfirmationModal(
+            'Confirm Save Changes',
+            'Are you sure you want to save all the changes you have made to the settings?',
+            null
+        );
+        
+        pendingSettingsAction = function() {
+            let this_form_data = $form.serialize();
+            let this_form_response = $form.find('.instawp-form-response');
+
+            this_form_response.html('');
+            $form.addClass('loading');
+
+            $.ajax({
+                type: 'POST', 
+                url: plugin_object.ajax_url, 
+                context: this, 
+                data: {
+                    'action': 'instawp_update_settings', 
+                    'form_data': this_form_data,
+                }, 
+                success: function (response) {
+                    setTimeout(function () {
+                        $form.removeClass('loading');
+
+                        if (response.success) {
+                            this_form_response.addClass('success').html(response.data.message);
+                        } else {
+                            this_form_response.addClass('error').html(response.data.message);
+                        }
+                    }, 1000);
+
+                    setTimeout(function () {
+                        this_form_response.removeClass('success error').html('');
+                    }, 3000);
+                }
+            });
+        };
+        
+        return false;
+    });
+    // Settings Confirmation Modal Management End //
+
     $(document).on('click', '.sites .page-item', function (e) {
         e.preventDefault();
         let el = $(this);
