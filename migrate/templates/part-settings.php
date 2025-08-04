@@ -28,4 +28,16 @@ defined( 'ABSPATH' ) || exit;
             </div>
         </div>
     </form>
+    
+    <!-- Settings Confirmation Modal -->
+    <div id="settings-confirmation-modal" class="deactivate-modal">
+        <div class="deactivate-modal-content">
+            <h3 id="settings-modal-title"><?php esc_html_e( 'Confirm Changes', 'instawp-connect' ); ?></h3>
+            <p id="settings-modal-message"><?php esc_html_e( 'Are you sure you want to make this change?', 'instawp-connect' ); ?></p>
+            <div class="deactivate-modal-actions">
+                <button id="confirm-settings-change" class="deactivate-modal-cancel"><?php esc_html_e( 'Yes, Continue', 'instawp-connect' ); ?></button>
+                <button id="cancel-settings-change" class="deactivate-modal-confirm"><?php esc_html_e( 'Cancel', 'instawp-connect' ); ?></button>
+            </div>
+        </div>
+    </div>
 </div>

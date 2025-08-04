@@ -918,37 +918,152 @@
         });
     });
 
-    $(document).on('submit', '.settings .instawp-form, .developer .instawp-form', function (e) {
+    // Settings confirmation modal variables
+    let pendingFormSubmission = null;
+    let pendingToggleChange = null;
 
+    // Handle form submission with confirmation
+    $(document).on('submit', '.settings .instawp-form, .developer .instawp-form', function (e) {
         e.preventDefault();
 
-        let this_form = $(this), this_form_data = this_form.serialize(), this_form_response = this_form.find('.instawp-form-response');
-
-        this_form_response.html('');
-        this_form.addClass('loading');
-
-        $.ajax({
-            type: 'POST', url: plugin_object.ajax_url, context: this, data: {
-                'action': 'instawp_update_settings', 'form_data': this_form_data,
-            }, success: function (response) {
-
-                setTimeout(function () {
-                    this_form.removeClass('loading');
-
-                    if (response.success) {
-                        this_form_response.addClass('success').html(response.data.message);
-                    } else {
-                        this_form_response.addClass('error').html(response.data.message);
-                    }
-                }, 1000);
-
-                setTimeout(function () {
-                    this_form_response.removeClass('success error').html('');
-                }, 3000);
-            }
-        });
+        let this_form = $(this);
+        
+        // Store the form for later submission
+        pendingFormSubmission = this_form;
+        
+        // Show confirmation modal
+        $('#settings-modal-title').text('Confirm Save Changes');
+        $('#settings-modal-message').text('Are you sure you want to save all the settings changes?');
+        $('#settings-confirmation-modal').fadeIn('100');
 
         return false;
+    });
+
+    // Handle toggle switch changes with confirmation
+    $(document).on('change', '.settings .toggle-checkbox, .developer .toggle-checkbox', function (e) {
+        e.preventDefault();
+        
+        let toggle = $(this);
+        let toggleLabel = toggle.closest('.field').find('.field-label').text().trim() || 'this setting';
+        let newState = toggle.is(':checked') ? 'enable' : 'disable';
+        
+        // Store the toggle for later processing
+        pendingToggleChange = {
+            toggle: toggle,
+            originalState: !toggle.is(':checked')
+        };
+        
+        // Revert the toggle visually until confirmed
+        toggle.prop('checked', !toggle.is(':checked'));
+        
+        // Show confirmation modal
+        $('#settings-modal-title').text('Confirm Setting Change');
+        $('#settings-modal-message').text('Are you sure you want to ' + newState + ' "' + toggleLabel + '"?');
+        $('#settings-confirmation-modal').fadeIn('100');
+
+        return false;
+    });
+
+    // Handle confirmation modal actions
+    $(document).on('click', '#confirm-settings-change', function (e) {
+        e.preventDefault();
+        $('#settings-confirmation-modal').fadeOut('100');
+        
+        if (pendingFormSubmission) {
+            // Process the form submission
+            let this_form = pendingFormSubmission;
+            let this_form_data = this_form.serialize();
+            let this_form_response = this_form.find('.instawp-form-response');
+
+            this_form_response.html('');
+            this_form.addClass('loading');
+
+            $.ajax({
+                type: 'POST', 
+                url: plugin_object.ajax_url, 
+                context: this, 
+                data: {
+                    'action': 'instawp_update_settings', 
+                    'form_data': this_form_data,
+                }, 
+                success: function (response) {
+                    setTimeout(function () {
+                        this_form.removeClass('loading');
+
+                        if (response.success) {
+                            this_form_response.addClass('success').html(response.data.message);
+                        } else {
+                            this_form_response.addClass('error').html(response.data.message);
+                        }
+                    }, 1000);
+
+                    setTimeout(function () {
+                        this_form_response.removeClass('success error').html('');
+                    }, 3000);
+                }
+            });
+            
+            pendingFormSubmission = null;
+        }
+        
+        if (pendingToggleChange) {
+            // Apply the toggle change
+            let toggle = pendingToggleChange.toggle;
+            toggle.prop('checked', !pendingToggleChange.originalState);
+            
+            // Trigger the form submission for the toggle change
+            let this_form = toggle.closest('.instawp-form');
+            let this_form_data = this_form.serialize();
+            let this_form_response = this_form.find('.instawp-form-response');
+
+            this_form_response.html('');
+            this_form.addClass('loading');
+
+            $.ajax({
+                type: 'POST', 
+                url: plugin_object.ajax_url, 
+                context: this, 
+                data: {
+                    'action': 'instawp_update_settings', 
+                    'form_data': this_form_data,
+                }, 
+                success: function (response) {
+                    setTimeout(function () {
+                        this_form.removeClass('loading');
+
+                        if (response.success) {
+                            this_form_response.addClass('success').html(response.data.message);
+                        } else {
+                            this_form_response.addClass('error').html(response.data.message);
+                        }
+                    }, 1000);
+
+                    setTimeout(function () {
+                        this_form_response.removeClass('success error').html('');
+                    }, 3000);
+                }
+            });
+            
+            pendingToggleChange = null;
+        }
+    });
+
+    $(document).on('click', '#cancel-settings-change', function (e) {
+        e.preventDefault();
+        $('#settings-confirmation-modal').fadeOut('100');
+        
+        // Clear pending actions without applying them
+        pendingFormSubmission = null;
+        pendingToggleChange = null;
+    });
+
+    // Close modal when clicking outside
+    $(document).on('click', '#settings-confirmation-modal', function (e) {
+        if (e.target === this) {
+            $(this).fadeOut('100');
+            pendingFormSubmission = null;
+            pendingToggleChange = null;
+        }
     });
 
     $(document).on('click', '.instawp-wrap .nav-items .nav-item > a', function () {
