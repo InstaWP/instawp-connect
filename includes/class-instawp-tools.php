@@ -310,6 +310,16 @@ include $file_path;';
 				return $in_details ? $result : $result['dest_url'];
 			}
 
+			// If file is not accessible then try again by using file name
+			if ( false === strpos( $dest_url, 'index.php' )  ) {
+				$dest_url = $dest_url . 'index.php';
+				// Check if the forwarded file is accessible
+				if ( self::is_migrate_file_accessible( $dest_url ) ) {
+					$result['dest_url'] = $dest_url;
+					return $in_details ? $result : $result['dest_url'];
+				}
+			}
+
 			// If file is not accessible then create it and try again
 			$forwarded_content = '<?php
 			$path_structure = array(
@@ -347,6 +357,14 @@ include $file_path;';
 
 				// Check if the forwarded file is accessible
 				$accessible_file = self::is_migrate_file_accessible( $dest_url, true );
+
+				// If file is not accessible then try again by using file name
+				if ( ! $is_wpcloud && ! $accessible_file['is_accessible'] ) {
+					$dest_url = Helper::wp_site_url( 'iwp-dest/index.php', true );
+					// Check if the forwarded file is accessible
+					$accessible_file = self::is_migrate_file_accessible( $dest_url, true );
+				}
+
 				if ( $accessible_file['is_accessible'] ) {
 					$result['dest_url'] = $dest_url;
 				} else {
@@ -1124,6 +1142,49 @@ include $file_path;';
 		return $is_find_root_dir;
 	}
 
+	public static function get_serve_url( $serve_url = '' ) {
+		$res = array(
+			'serve_url'     => $serve_url,
+			'serve_with_wp' => false,
+		);
+		if ( ! empty( $res['serve_url'] ) ) {
+			if ( self::is_migrate_file_accessible( $res['serve_url'] ) ) {
+				return $res;
+			}
+
+			if ( false === strpos( $res['serve_url'], 'index.php' ) ) {
+				$res['serve_url'] = untrailingslashit( $res['serve_url'] ) . DIRECTORY_SEPARATOR . 'index.php';
+				if ( self::is_migrate_file_accessible( $res['serve_url'] ) ) {
+					return $res;	
+				}
+			}
+		}
+		
+		$res['serve_url'] = self::generate_proxy_serve_url();
+
+		
+		if ( ! empty( $res['serve_url'] ) ) {
+			if ( self::is_migrate_file_accessible( $res['serve_url'] ) ) {
+				return $res;
+			}
+
+			if ( false === strpos( $res['serve_url'], 'index.php' ) ) {
+				$res['serve_url'] = untrailingslashit( $res['serve_url'] ) . DIRECTORY_SEPARATOR . 'index.php';
+			}
+		}
+
+		$accessible_file = empty( $res['serve_url'] ) ? array() : self::is_migrate_file_accessible( $res['serve_url'], true );
+		// Check accessibility of proxy serve url
+		if ( empty( $res['serve_url'] ) || empty( $accessible_file ) || ( ! $accessible_file['is_accessible'] && ! $accessible_file['error'] ) ) {
+			// Serve through WordPress
+			$res['serve_url']     = Helper::wp_site_url( 'serve-instawp/', true );
+			$res['serve_with_wp'] = true;
+		}
+
+		return $res;
+		
+	}
+
 	public static function get_pull_pre_check_response( $migrate_key, $migrate_settings = array() ) {
 
 		$is_wp_root_available = self::is_wp_root_available();
@@ -1179,18 +1240,10 @@ include $file_path;';
 		}
 
 		// Check accessibility of serve.php file
-		if ( empty( $serve_url ) || ! self::is_migrate_file_accessible( $serve_url ) ) {
+		$server_res = self::get_serve_url( $serve_url );
 
-			$serve_url = self::generate_proxy_serve_url();
-
-			$accessible_file = empty( $serve_url ) ? array() : self::is_migrate_file_accessible( $serve_url, true );
-			// Check accessibility of proxy serve url
-			if ( empty( $serve_url ) || empty( $accessible_file ) || ( ! $accessible_file['is_accessible'] && ! $accessible_file['error'] ) ) {
-				// Serve through WordPress
-				$serve_url     = Helper::wp_site_url( 'serve-instawp/', true );
-				$serve_with_wp = true;
-			}
-		}
+		$serve_url     = $server_res['serve_url'];
+		$serve_with_wp = $server_res['serve_with_wp'];
 
 		$iwpdb_main_path = INSTAWP_PLUGIN_DIR . 'includes/class-instawp-iwpdb.php';
 

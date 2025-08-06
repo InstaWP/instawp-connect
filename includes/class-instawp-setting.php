@@ -562,8 +562,8 @@ class InstaWP_Setting {
 
 		// Section - Management
 		$settings['management'] = array(
-			'title'      => __( 'Remote Management (Beta)', 'instawp-connect' ),
-			'desc'       => sprintf( __( 'Update your website\'s remote management settings. To use this feature in the InstaWP dashboard, switch on the beta program from %s section.', 'instawp-connect' ), '<a href="https://app.instawp.io/user/profile" target="_blank">' . __( 'My Accounts', 'instawp-connect' ) . '</a>' ),
+			'title'      => __( 'Site Management', 'instawp-connect' ),
+			'desc'       => sprintf( __( 'Update your website\'s site management settings. To use this feature in the InstaWP dashboard, switch on the beta program from %s section.', 'instawp-connect' ), '<a href="https://app.instawp.io/user/profile" target="_blank">' . __( 'My Accounts', 'instawp-connect' ) . '</a>' ),
 			'grid_class' => 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6',
 			'fields'     => array(
 				array(

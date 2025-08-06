@@ -59,7 +59,7 @@ if ( ! class_exists( 'InstaWP_Migration' ) ) {
 			}
 
 			$return_url      = urlencode( admin_url( 'tools.php?page=instawp&instawp-nonce=' . wp_create_nonce( 'instawp_connect_nonce' ) ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.urlencode_urlencode
-			$connect_api_url = Helper::get_api_domain() . '/authorize?source=InstaWP Connect&return_url=' . $return_url;
+			$connect_api_url = Helper::get_api_domain() . '/authorize?source=connect_manage&return_url=' . $return_url;
 
 			wp_send_json_success( array( 'connect_url' => $connect_api_url ) );
 		}
