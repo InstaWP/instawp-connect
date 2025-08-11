@@ -5,7 +5,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2025-08-01 10:38+0000\n"
+"POT-Creation-Date: 2025-08-11 07:45+0000\n"
 "X-Poedit-Basepath: ..\n"
 "X-Poedit-KeywordsList: __;_e;_ex:1,2c;_n:1,2;_n_noop:1,2;_nx:1,2,4c;_nx_noop:1,2,3c;_x:1,2c;esc_attr__;esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c\n"
 "X-Poedit-SearchPath-0: .\n"
@@ -17,7 +17,7 @@ msgstr ""
 msgid "Settings"
 msgstr ""
 
-#: admin/class-instawp-admin.php:76, includes/class-instawp-hooks.php:314, includes/class-instawp-setting.php:38, includes/class-instawp-tools.php:1564
+#: admin/class-instawp-admin.php:76, includes/class-instawp-hooks.php:314, includes/class-instawp-setting.php:38, includes/class-instawp-tools.php:1573
 msgid "Create Staging"
 msgstr ""
 
@@ -85,7 +85,7 @@ msgstr ""
 msgid "Error getting SSO login url."
 msgstr ""
 
-#: includes/apis/class-instawp-rest-api-migration.php:309
+#: includes/apis/class-instawp-rest-api-migration.php:323
 msgid "Post migration cleanup completed."
 msgstr ""
 
@@ -753,79 +753,79 @@ msgstr ""
 msgid "Invalid Migration ID"
 msgstr ""
 
-#: includes/class-instawp-tools.php:918
+#: includes/class-instawp-tools.php:927
 msgid "API key not found"
 msgstr ""
 
-#: includes/class-instawp-tools.php:1206
+#: includes/class-instawp-tools.php:1215
 msgid "Root directory for this WordPress installation could not find."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1230
+#: includes/class-instawp-tools.php:1239
 msgid "Tracking database could not found."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1239
+#: includes/class-instawp-tools.php:1248
 msgid "API Signature and others data could not set properly"
 msgstr ""
 
-#: includes/class-instawp-tools.php:1253
+#: includes/class-instawp-tools.php:1262
 msgid "InstaWP could not access or read required files from your WordPress directory due to file permission issue."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1255
+#: includes/class-instawp-tools.php:1264
 msgid "Learn more."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1468
+#: includes/class-instawp-tools.php:1477
 msgid "Launch %s"
 msgstr ""
 
-#: includes/class-instawp-tools.php:1559
+#: includes/class-instawp-tools.php:1568
 msgid "Please create staging sites first."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1560
+#: includes/class-instawp-tools.php:1569
 msgid "Skip"
 msgstr ""
 
-#: includes/class-instawp-tools.php:1561
+#: includes/class-instawp-tools.php:1570
 msgid "Do you really want to disconnect the plugin? It will completely remove the existing staging sites from the plugin."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1562
+#: includes/class-instawp-tools.php:1571
 msgid "Do you still want to disconnect the plugin?"
 msgstr ""
 
-#: includes/class-instawp-tools.php:1565
+#: includes/class-instawp-tools.php:1574
 msgid "Next Step"
 msgstr ""
 
-#: includes/class-instawp-tools.php:1566
+#: includes/class-instawp-tools.php:1575
 msgid "Calculating size"
 msgstr ""
 
-#: includes/class-instawp-tools.php:1626
+#: includes/class-instawp-tools.php:1635
 msgid "Zip archive is not opening."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1679
+#: includes/class-instawp-tools.php:1688
 msgid "No compression method find."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1726
+#: includes/class-instawp-tools.php:1735
 msgid "Site ID not found in site create response."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1765
+#: includes/class-instawp-tools.php:1774
 msgid "SFTP login failed."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1776
+#: includes/class-instawp-tools.php:1785
 msgid "SFTP upload failed for files."
 msgstr ""
 
-#: includes/class-instawp-tools.php:1784
+#: includes/class-instawp-tools.php:1793
 msgid "SFTP upload failed for database."
 msgstr ""
 
