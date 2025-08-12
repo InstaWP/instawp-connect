@@ -598,14 +598,7 @@ include $file_path;';
 		}
 
 		// Exclude plugins
-		foreach ( array(
-			'instawp-connect',
-			'instawp-connect-main',
-			'iwp-migration-helper',
-			'iwp-migration-helper-main',
-			'iwp-demo-helper',
-			'iwp-demo-helper-main',
-		) as $plugin_slug ) {
+		foreach ( instawp_mig_excluded_plugins( true ) as $plugin_slug ) {
 			$migrate_settings['excluded_paths'][] = $relative_dir . DIRECTORY_SEPARATOR . 'plugins' . DIRECTORY_SEPARATOR . $plugin_slug;
 		}
 
