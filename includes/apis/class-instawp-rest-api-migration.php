@@ -278,13 +278,7 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 			}
 
 			// Adding helper plugins to delete
-			foreach ( array(
-			'iwp-migration-helper',
-			'iwp-migration-helper-main',
-			'iwp-migration-helper-settings',
-			'iwp-demo-helper',
-			'iwp-demo-helper-main',
-			) as $del_helper_plugin ) {
+			foreach ( instawp_mig_excluded_plugins() as $del_helper_plugin ) {
 				$plugins_to_delete[] = array(
 					'slug'   => $del_helper_plugin . DIRECTORY_SEPARATOR . ( str_replace( '-main', '', $del_helper_plugin ) ) . '.php',
 					'type'   => 'plugin',

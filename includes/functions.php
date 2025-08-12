@@ -1346,6 +1346,34 @@ if ( ! function_exists( 'instawp_array_recursive_diff' ) ) {
 	}
 }
 
+if ( ! function_exists( 'instawp_mig_excluded_plugins' ) ) {
+	/**
+	 * Get excluded plugins list for migration
+	 *
+	 * @param bool $connect_plugin
+	 *
+	 * @return array
+	 */
+	function instawp_mig_excluded_plugins( $connect_plugin = false ) {
+		$plugins = array(
+			'iwp-migration-helper',
+			'iwp-migration-helper-main',
+			'iwp-migration-helper-settings',
+			'iwp-demo-helper',
+			'iwp-demo-helper-main',
+		);
+
+		if ( $connect_plugin ) {
+			$plugins = array_merge( $plugins, array(
+				'instawp-connect',
+				'instawp-connect-main'
+			));
+		}
+
+		return apply_filters( 'instawp_migration_excluded_plugins', $plugins );
+	}
+}
+
 if ( ! function_exists( 'instawp_connect_activate_plan' ) ) {
 	function instawp_connect_activate_plan( $plan_id ) {
 		$connect_id = instawp_get_connect_id();
