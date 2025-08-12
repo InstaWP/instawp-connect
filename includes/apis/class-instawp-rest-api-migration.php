@@ -277,6 +277,15 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 				$plugins_to_delete[] = $post_uninstall_item;
 			}
 
+			// Adding helper plugins to delete
+			foreach ( instawp_mig_excluded_plugins() as $del_helper_plugin ) {
+				$plugins_to_delete[] = array(
+					'slug'   => $del_helper_plugin . DIRECTORY_SEPARATOR . ( str_replace( '-main', '', $del_helper_plugin ) ) . '.php',
+					'type'   => 'plugin',
+					'delete' => true,
+				);
+			}
+
 			// Adding instawp-connect plugin to delete after the migration if delete connect plugin flag is enabled
 			if ( $delete_connect_plugin ) {
 				$plugins_to_delete[] = array(

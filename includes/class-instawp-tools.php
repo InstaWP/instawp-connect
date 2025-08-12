@@ -597,8 +597,10 @@ include $file_path;';
 			$migrate_settings['excluded_paths'][] = 'wp-config.php';
 		}
 
-		// Skip instawp-connect plugin
-		$migrate_settings['excluded_paths'][] = $relative_dir . '/plugins/instawp-connect';
+		// Exclude plugins
+		foreach ( instawp_mig_excluded_plugins( true ) as $plugin_slug ) {
+			$migrate_settings['excluded_paths'][] = $relative_dir . DIRECTORY_SEPARATOR . 'plugins' . DIRECTORY_SEPARATOR . $plugin_slug;
+		}
 
 		// Skip mu-pluginsold folder
 		$migrate_settings['excluded_paths'][] = $relative_dir . '/mu-plugins/mu-pluginsold';
