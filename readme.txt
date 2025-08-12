@@ -98,7 +98,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
-= 0.1.1.6 - 11 August 2025 =
+= 0.1.1.6 - 12 August 2025 =
 - Fixed: Removed migration helper plugins after migration.
 - Fixed: Excluded migration helper plugins from migration.
 
