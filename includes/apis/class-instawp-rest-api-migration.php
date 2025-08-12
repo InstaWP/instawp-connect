@@ -281,6 +281,7 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 			foreach ( array(
 			'iwp-migration-helper',
 			'iwp-migration-helper-main',
+			'iwp-migration-helper-settings',
 			'iwp-demo-helper',
 			'iwp-demo-helper-main',
 			) as $del_helper_plugin ) {
