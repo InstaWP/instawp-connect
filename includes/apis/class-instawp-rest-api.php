@@ -110,7 +110,7 @@ class InstaWP_Rest_Api {
 		register_rest_route( $this->namespace . '/' . $this->version_3, '/site-usage', array(
 			'methods'             => 'GET',
 			'callback'            => array( $this, 'site_usage' ),
-			'permission_callback' => '__return_true',
+			'permission_callback' => array( $this, 'check_api_key_permission' ),
 		) );
 
 		register_rest_route( $this->namespace . '/' . $this->version_3, '/create-update-task', array(
@@ -1051,6 +1051,22 @@ class InstaWP_Rest_Api {
 		}
 
 		return $options;
+	}
+
+	/**
+	 * Permission callback to check API key authentication
+	 *
+	 * @param WP_REST_Request $request
+	 * @return bool|WP_Error
+	 */
+	public function check_api_key_permission( WP_REST_Request $request ) {
+		$response = $this->validate_api_request( $request );
+		
+		if ( is_wp_error( $response ) ) {
+			return $response;
+		}
+		
+		return true;
 	}
 }
 
