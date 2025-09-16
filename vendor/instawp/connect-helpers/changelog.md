@@ -1,3 +1,8 @@
+v1.0.6
+======
+- Added: Error log
+- Added: Generate API Key without connect option
+
 v1.0.5
 ======
 - Fixed: bunny CDN cache purging mechanism

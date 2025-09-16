@@ -501,7 +501,7 @@ include $file_path;';
 			if ( is_wp_error( $response ) ) {
 				$result['message'] = $response->get_error_message();
 				$result['error']   = true;
-				instawp_connect_add_plugin_log(
+				Helper::add_error_log(
 					array(
 						'title'   => 'is_migrate_file_accessible error',
 						'message' => $result['message'],
@@ -514,7 +514,7 @@ include $file_path;';
 				$result['is_accessible'] = $status_code === 200;
 			}
 		} catch ( \Throwable $th ) {
-			instawp_connect_add_plugin_log(
+			Helper::add_error_log(
 				array(
 					'title'   => 'is_migrate_file_accessible exception',
 				),
@@ -1566,6 +1566,7 @@ include $file_path;';
 				'create_staging_txt'      => __( 'Create Staging', 'instawp-connect' ),
 				'next_step_txt'           => __( 'Next Step', 'instawp-connect' ),
 				'calculating_size_txt'    => __( 'Calculating size', 'instawp-connect' ),
+				'copied'				  => __( 'Copied', 'instawp-connect' ),
 			),
 			'api_domain' => Helper::get_api_domain(),
 			'security'   => wp_create_nonce( 'instawp-connect' ),
