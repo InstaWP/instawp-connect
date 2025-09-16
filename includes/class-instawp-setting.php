@@ -237,6 +237,7 @@ class InstaWP_Setting {
 				echo '<div class="inline-block w-full instawp-qa-tools">';
 				echo '<button type="button" class="instawp-manager" data-type="database">' . esc_html__( 'Database Manager', 'instawp-connect' ) . '</button>';
 				echo '<button type="button" class="instawp-manager" data-type="debug_log">' . esc_html__( 'Debug Log', 'instawp-connect' ) . '</button>';
+				echo '<button type="button" class="instawp-manager" data-type="error_log" title="' . esc_attr__( 'Copy error log', 'instawp-connect' ) . '" >' . esc_html__( 'Error Log', 'instawp-connect' ) . '</button>';
 				echo '</div>';
 
 				break;

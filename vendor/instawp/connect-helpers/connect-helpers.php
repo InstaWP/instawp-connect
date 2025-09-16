@@ -9,7 +9,7 @@
  *
  * @wordpress-plugin
  * Plugin Name:       InstaWP Connect Helpers
- * Version:           1.0.4
+ * Version:           1.0.6
  * Plugin URI:        https://instawp.com
  * Description:       Helpers Package for InstaWP Remote Features.
  * Author:            InstaWP
@@ -25,15 +25,18 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Class Autoloading.
  */
-$path = dirname( __FILE__ ) . '/vendor/autoload.php';
+$path = __DIR__ . '/vendor/autoload.php';
 if ( file_exists( $path ) ) {
-    include $path;
+	include $path;
 } else {
-    add_action( 'admin_notices', function() {
-        ?>
-        <div class="notice notice-error">
-            <p><?php _e( 'Please run <code>composer install</code> to use InstaWP Connect Helpers Package as a plugin.', 'connect-helpers' ); ?></p>
-        </div>
-        <?php
-    } );
+	add_action(
+		'admin_notices',
+		function () {
+			?>
+		<div class="notice notice-error">
+			<p><?php _e( 'Please run <code>composer install</code> to use InstaWP Connect Helpers Package as a plugin.', 'connect-helpers' ); ?></p>
+		</div>
+			<?php
+		}
+	);
 }
