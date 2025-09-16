@@ -99,8 +99,10 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 == Changelog ==
 
 = 0.1.1.7 - 16 September 2025 =
-- Fixed: Staging site status restore.
-- Fixed: Display correct connect team name.
+- Fixed: Staging site status restore issue.
+- Fixed: Display of the correct connected team name.
+- Improved: Error logging.
+- Updated: Dependency packages.
 
 = 0.1.1.6 - 12 August 2025 =
 - Fixed: Removed migration helper plugins after migration.
