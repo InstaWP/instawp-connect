@@ -101,15 +101,15 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 
 			$post_data = array();
 			foreach ( get_post_types() as $post_type ) {
-				$post_data[ $post_type ] = ( array ) wp_count_posts( $post_type );
+				$post_data[ $post_type ] = (array) wp_count_posts( $post_type );
 			}
 
 			$inventory = new Inventory();
 			$site_data = $inventory->fetch();
 
-            unset( $sizes_data['total_size'] );
-            $total_size    = array_sum( array_filter( wp_list_pluck( $sizes_data, 'raw' ) ) );
-            $database_size = ! empty( $sizes_data['database_size']['raw'] ) ? $sizes_data['database_size']['raw'] : 0;
+			unset( $sizes_data['total_size'] );
+			$total_size    = array_sum( array_filter( wp_list_pluck( $sizes_data, 'raw' ) ) );
+			$database_size = ! empty( $sizes_data['database_size']['raw'] ) ? $sizes_data['database_size']['raw'] : 0;
 
 			return array(
 				'title'             => get_bloginfo( 'name' ),
@@ -137,7 +137,7 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 
 		public static function send_heartbeat( $connect_id = null ) {
 			if ( defined( 'INSTAWP_DEBUG_LOG' ) && true === INSTAWP_DEBUG_LOG ) {
-				error_log( "HEARTBEAT RAN AT : " . date( 'd-m-Y, H:i:s, h:i:s' ) );
+				error_log( 'HEARTBEAT RAN AT : ' . date( 'd-m-Y, H:i:s, h:i:s' ) );
 			}
 
 			if ( empty( $connect_id ) ) {
@@ -153,9 +153,11 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 			}
 
 			$heartbeat_data = self::prepare_data();
-			$heartbeat_body = wp_json_encode( array(
-				'site_information' => $heartbeat_data,
-			) );
+			$heartbeat_body = wp_json_encode(
+				array(
+					'site_information' => $heartbeat_data,
+				)
+			);
 			$heartbeat_body = base64_encode( $heartbeat_body ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
 
 			$heartbeat_response = Curl::do_curl( "connects/{$connect_id}/heartbeat", array( $heartbeat_body ), array(), 'POST', 'v1' );
@@ -163,9 +165,9 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 			$success            = intval( $response_code ) === 200;
 
 			if ( defined( 'INSTAWP_DEBUG_LOG' ) && INSTAWP_DEBUG_LOG ) {
-				error_log( "Print Heartbeat API Curl Response Start" );
+				error_log( 'Print Heartbeat API Curl Response Start' );
 				error_log( wp_json_encode( $heartbeat_response, true ) );
-				error_log( "Print Heartbeat API Curl Response End" );
+				error_log( 'Print Heartbeat API Curl Response End' );
 			}
 
 			return array(

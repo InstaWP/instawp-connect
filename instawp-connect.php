@@ -8,7 +8,7 @@
  * @wordpress-plugin
  * Plugin Name:       InstaWP Connect
  * Description:       1-click WordPress plugin for Staging, Migrations, Management, Sync and Companion plugin for InstaWP.
- * Version:           0.1.1.6
+ * Version:           0.1.1.7
  * Author:            InstaWP Team
  * Author URI:        https://instawp.com/
  * License:           GPL-3.0+
@@ -28,7 +28,7 @@ if ( ! defined( 'WPINC' ) ) {
 
 global $wpdb;
 
-defined( 'INSTAWP_PLUGIN_VERSION' ) || define( 'INSTAWP_PLUGIN_VERSION', '0.1.1.6' );
+defined( 'INSTAWP_PLUGIN_VERSION' ) || define( 'INSTAWP_PLUGIN_VERSION', '0.1.1.7' );
 defined( 'INSTAWP_API_DOMAIN_PROD' ) || define( 'INSTAWP_API_DOMAIN_PROD', 'https://app.instawp.io' );
 
 $wp_plugin_url   = WP_PLUGIN_URL . '/' . plugin_basename( __DIR__ ) . '/';
@@ -76,7 +76,7 @@ function instawp_plugin_activate() {
 	InstaWP_Tools::instawp_reset_permalink();
 	do_action( 'instawp_prepare_large_files_list' );
 
-	//set default user for sync settings if user empty
+	// set default user for sync settings if user empty
 	$default_user = Option::get_option( 'instawp_default_user' );
 	if ( empty( $default_user ) ) {
 		Option::update_option( 'instawp_default_user', get_current_user_id() );
@@ -85,7 +85,7 @@ function instawp_plugin_activate() {
 	$instawp_sync_tab_roles = Option::get_option( 'instawp_sync_tab_roles' );
 	if ( empty( $instawp_sync_tab_roles ) ) {
 		$user  = wp_get_current_user();
-		$roles = ( array ) $user->roles;
+		$roles = (array) $user->roles;
 		Option::update_option( 'instawp_sync_tab_roles', $roles );
 	}
 
