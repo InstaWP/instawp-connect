@@ -64,7 +64,7 @@ class InstaWP_Admin {
 			add_filter( 'all_plugins', array( $this, 'handle_instawp_plugin_display' ) );
 		}
 
-		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ), 99 );
 	}
 
 	public function add_action_links( $links ) {
@@ -127,7 +127,10 @@ class InstaWP_Admin {
 			add_menu_page(
 				esc_html__( 'InstaWP - Migrate', 'instawp-connect' ),
 				esc_html__( 'InstaWP - Migrate', 'instawp-connect' ),
-				'manage_options', 'instawp-template-migrate', array( $this, 'render_template_migrate_page' ), 2
+				'manage_options',
+				'instawp-template-migrate',
+				array( $this, 'render_template_migrate_page' ),
+				2
 			);
 			remove_menu_page( 'instawp-template-migrate' );
 
@@ -147,7 +150,10 @@ class InstaWP_Admin {
 		add_management_page(
 			defined( 'IWP_PLUGIN_NAME' ) ? IWP_PLUGIN_NAME : esc_html__( 'InstaWP', 'instawp-connect' ),
 			defined( 'IWP_PLUGIN_NAME' ) ? IWP_PLUGIN_NAME : esc_html__( 'InstaWP', 'instawp-connect' ),
-			InstaWP_Setting::get_allowed_role(), 'instawp', array( $this, 'render_migrate_page' ), 1
+			InstaWP_Setting::get_allowed_role(),
+			'instawp',
+			array( $this, 'render_migrate_page' ),
+			1
 		);
 	}
 
