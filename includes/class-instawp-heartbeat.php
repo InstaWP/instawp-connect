@@ -135,6 +135,65 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 			);
 		}
 
+		/**
+		 * Set last sent heartbeat data
+		 *
+		 * @param array  $data Heartbeat data
+		 * @param string $connect_id Connection ID
+		 *
+		 * @return bool
+		 */
+		public static function set_last_heartbeat_data( $data, $connect_id ) {
+			if ( empty( $data ) || empty( $connect_id ) ) {
+				return false;
+			}
+			// Get last heartbeat.
+			$hearbeats = self::get_last_heartbeat_data();
+			// If last heartbeat is not empty.
+			if ( ! empty( $hearbeats[ $connect_id ] ) && $data === $hearbeats[ $connect_id ] ) {
+				return false;
+			}
+			// Set last heartbeat.
+			$hearbeats[ $connect_id ] = $data;
+			Option::update_option( 'instawp_last_heartbeat_data', $hearbeats );
+			return true;
+		}
+
+		/**
+		 * Get last sent heartbeat data.
+		 *
+		 * @param string $connect_id Connection ID.
+		 *
+		 * @return array
+		 */
+		public static function get_last_heartbeat_data( $connect_id = null ) {
+			$hearbeats = Option::get_option( 'instawp_last_heartbeat_data', array() );
+			$hearbeats = is_array( $hearbeats ) ? $hearbeats : array();
+			if ( empty( $connect_id ) ) {
+				return $hearbeats;
+			}
+			return ( empty( $hearbeats ) || empty( $hearbeats[ $connect_id ] ) ) ? '' : $hearbeats[ $connect_id ];
+		}
+
+		/**
+		 * Check if new heartbeat data.
+		 *
+		 * @param array  $data Heartbeat data.
+		 * @param string $connect_id Connection ID.
+		 *
+		 * @return bool
+		 */
+		public static function has_new_heartbeat_data( $data, $connect_id ) {
+			return self::get_last_heartbeat_data( $connect_id ) !== $data;
+		}
+
+		/**
+		 * Send heartbeat data.
+		 *
+		 * @param string $connect_id Connection ID.
+		 *
+		 * @return array
+		 */
 		public static function send_heartbeat( $connect_id = null ) {
 			if ( defined( 'INSTAWP_DEBUG_LOG' ) && true === INSTAWP_DEBUG_LOG ) {
 				error_log( 'HEARTBEAT RAN AT : ' . date( 'd-m-Y, H:i:s, h:i:s' ) );
@@ -159,8 +218,16 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 				)
 			);
 			$heartbeat_body = base64_encode( $heartbeat_body ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
+			// If no new heartbeat data.
+			$heartbeat_body = self::has_new_heartbeat_data( $heartbeat_body, $connect_id ) ? $heartbeat_body : null;
 
-			$heartbeat_response = Curl::do_curl( "connects/{$connect_id}/heartbeat", array( $heartbeat_body ), array(), 'POST', 'v1' );
+			$heartbeat_response = Curl::do_curl(
+				"connects/{$connect_id}/heartbeat",
+				empty( $heartbeat_body ) ? array() : array( $heartbeat_body ),
+				array(),
+				'POST',
+				'v1'
+			);
 			$response_code      = Helper::get_args_option( 'code', $heartbeat_response );
 			$success            = intval( $response_code ) === 200;
 
@@ -168,6 +235,10 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 				error_log( 'Print Heartbeat API Curl Response Start' );
 				error_log( wp_json_encode( $heartbeat_response, true ) );
 				error_log( 'Print Heartbeat API Curl Response End' );
+			}
+
+			if ( $success && ! empty( $heartbeat_body ) ) {
+				self::set_last_heartbeat_data( $heartbeat_body, $connect_id );
 			}
 
 			return array(
