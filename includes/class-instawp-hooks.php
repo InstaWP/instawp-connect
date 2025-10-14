@@ -92,7 +92,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 				$api_key = Helper::get_api_key();
 
 				if ( empty( $api_key ) && $api_key !== $access_token ) {
-					Helper::generate_api_key( $access_token, $jwt );
+					instawp_create_api_connect( $access_token, $jwt );
 
 					wp_safe_redirect( admin_url( 'tools.php?page=instawp' ) );
 					exit();
@@ -225,16 +225,16 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 
 		public function deactivation_warning_modal() {
 			?>
-            <div id="deactivate-modal" class="deactivate-modal">
-                <div class="deactivate-modal-content">
-                    <h3><?php esc_html_e( 'Are you sure?', 'instawp-connect' ); ?></h3>
-                    <p><?php esc_html_e( 'An active migration is in progress. Deactivating the plugin will stop the migration. Do you want to proceed?', 'instawp-connect' ); ?></p>
-                    <div class="deactivate-modal-actions">
-                        <button id="confirm-deactivate" class="deactivate-modal-confirm"><?php esc_html_e( 'Yes, Deactivate', 'instawp-connect' ); ?></button>
-                        <button id="cancel-deactivate" class="deactivate-modal-cancel"><?php esc_html_e( 'No, Continue Migration', 'instawp-connect' ); ?></button>
-                    </div>
-                </div>
-            </div>
+			<div id="deactivate-modal" class="deactivate-modal">
+				<div class="deactivate-modal-content">
+					<h3><?php esc_html_e( 'Are you sure?', 'instawp-connect' ); ?></h3>
+					<p><?php esc_html_e( 'An active migration is in progress. Deactivating the plugin will stop the migration. Do you want to proceed?', 'instawp-connect' ); ?></p>
+					<div class="deactivate-modal-actions">
+						<button id="confirm-deactivate" class="deactivate-modal-confirm"><?php esc_html_e( 'Yes, Deactivate', 'instawp-connect' ); ?></button>
+						<button id="cancel-deactivate" class="deactivate-modal-cancel"><?php esc_html_e( 'No, Continue Migration', 'instawp-connect' ); ?></button>
+					</div>
+				</div>
+			</div>
 			<?php
 		}
 
@@ -256,141 +256,165 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			}
 
 			if ( $this->can_show_navbar() ) {
-				$admin_bar->add_menu( array(
-					'id'    => 'instawp',
-					'title' => $nav_icon,
-					'href'  => admin_url( 'tools.php?page=instawp' ),
-					'meta'  => array(
-						'class' => implode( ' ', $meta_classes ),
-					),
-				) );
+				$admin_bar->add_menu(
+					array(
+						'id'    => 'instawp',
+						'title' => $nav_icon,
+						'href'  => admin_url( 'tools.php?page=instawp' ),
+						'meta'  => array(
+							'class' => implode( ' ', $meta_classes ),
+						),
+					)
+				);
 
 				if ( defined( 'IWP_PLUGIN_TOPBAR_ICON' ) ) {
 					return;
 				}
 
 				if ( current_user_can( 'manage_options' ) ) {
-					$admin_bar->add_menu( array(
-						'parent' => 'instawp',
-						'id'     => 'instawp-clear-cache',
-						'title'  => __( 'Purge All Cache', 'instawp-connect' ),
-						'href'   => '#',
-						'meta'   => array(
-							'class'  => 'instawp-tools',
-							'target' => 'cache',
-						),
-					) );
+					$admin_bar->add_menu(
+						array(
+							'parent' => 'instawp',
+							'id'     => 'instawp-clear-cache',
+							'title'  => __( 'Purge All Cache', 'instawp-connect' ),
+							'href'   => '#',
+							'meta'   => array(
+								'class'  => 'instawp-tools',
+								'target' => 'cache',
+							),
+						)
+					);
 
-					$admin_bar->add_menu( array(
-						'parent' => 'instawp',
-						'id'     => 'instawp-tools',
-						'title'  => __( 'Tools', 'instawp-connect' ),
-						'href'   => '#',
-					) );
+					$admin_bar->add_menu(
+						array(
+							'parent' => 'instawp',
+							'id'     => 'instawp-tools',
+							'title'  => __( 'Tools', 'instawp-connect' ),
+							'href'   => '#',
+						)
+					);
 
-					$admin_bar->add_menu( array(
-						'parent' => 'instawp-tools',
-						'id'     => 'instawp-database-manager',
-						'title'  => __( 'Database Manager', 'instawp-connect' ),
-						'href'   => '#',
-						'meta'   => array(
-							'class'  => 'instawp-tools',
-							'target' => 'database',
-						),
-					) );
+					$admin_bar->add_menu(
+						array(
+							'parent' => 'instawp-tools',
+							'id'     => 'instawp-database-manager',
+							'title'  => __( 'Database Manager', 'instawp-connect' ),
+							'href'   => '#',
+							'meta'   => array(
+								'class'  => 'instawp-tools',
+								'target' => 'database',
+							),
+						)
+					);
 				}
 
-				$admin_bar->add_menu( array(
-					'parent' => 'instawp',
-					'id'     => 'instawp-shortcuts',
-					'title'  => __( 'Shortcuts', 'instawp-connect' ),
-					'href'   => '#',
-				) );
+				$admin_bar->add_menu(
+					array(
+						'parent' => 'instawp',
+						'id'     => 'instawp-shortcuts',
+						'title'  => __( 'Shortcuts', 'instawp-connect' ),
+						'href'   => '#',
+					)
+				);
 
 				if ( ! instawp()->is_staging ) {
-					$admin_bar->add_menu( array(
-						'parent' => 'instawp-shortcuts',
-						'id'     => 'instawp-create-staging',
-						'title'  => __( 'Create Staging', 'instawp-connect' ),
-						'href'   => admin_url( 'tools.php?page=instawp&step=1' ),
-						'meta'   => array(
-							'class'  => 'instawp-shortcuts',
-							'target' => 'create',
-						),
-					) );
+					$admin_bar->add_menu(
+						array(
+							'parent' => 'instawp-shortcuts',
+							'id'     => 'instawp-create-staging',
+							'title'  => __( 'Create Staging', 'instawp-connect' ),
+							'href'   => admin_url( 'tools.php?page=instawp&step=1' ),
+							'meta'   => array(
+								'class'  => 'instawp-shortcuts',
+								'target' => 'create',
+							),
+						)
+					);
 				}
 
-				$admin_bar->add_menu( array(
-					'parent' => 'instawp-shortcuts',
-					'id'     => 'instawp-staging-sites',
-					'title'  => __( 'Staging Sites', 'instawp-connect' ),
-					'href'   => admin_url( 'tools.php?page=instawp' ),
-					'meta'   => array(
-						'class'  => 'instawp-shortcuts',
-						'target' => 'sites',
-					),
-				) );
-
-				if ( ! instawp()->is_staging ) {
-					$admin_bar->add_menu( array(
+				$admin_bar->add_menu(
+					array(
 						'parent' => 'instawp-shortcuts',
-						'id'     => 'instawp-manage',
-						'title'  => __( 'Manage', 'instawp-connect' ),
+						'id'     => 'instawp-staging-sites',
+						'title'  => __( 'Staging Sites', 'instawp-connect' ),
 						'href'   => admin_url( 'tools.php?page=instawp' ),
 						'meta'   => array(
 							'class'  => 'instawp-shortcuts',
-							'target' => 'manage',
+							'target' => 'sites',
 						),
-					) );
+					)
+				);
+
+				if ( ! instawp()->is_staging ) {
+					$admin_bar->add_menu(
+						array(
+							'parent' => 'instawp-shortcuts',
+							'id'     => 'instawp-manage',
+							'title'  => __( 'Manage', 'instawp-connect' ),
+							'href'   => admin_url( 'tools.php?page=instawp' ),
+							'meta'   => array(
+								'class'  => 'instawp-shortcuts',
+								'target' => 'manage',
+							),
+						)
+					);
 				}
 
-				$admin_bar->add_menu( array(
-					'parent' => 'instawp-shortcuts',
-					'id'     => 'instawp-sync',
-					'title'  => __( 'Sync (Beta)', 'instawp-connect' ),
-					'href'   => admin_url( 'tools.php?page=instawp' ),
-					'meta'   => array(
-						'class'  => 'instawp-shortcuts',
-						'target' => 'sync',
-					),
-				) );
+				$admin_bar->add_menu(
+					array(
+						'parent' => 'instawp-shortcuts',
+						'id'     => 'instawp-sync',
+						'title'  => __( 'Sync (Beta)', 'instawp-connect' ),
+						'href'   => admin_url( 'tools.php?page=instawp' ),
+						'meta'   => array(
+							'class'  => 'instawp-shortcuts',
+							'target' => 'sync',
+						),
+					)
+				);
 
-				$admin_bar->add_menu( array(
-					'parent' => 'instawp-shortcuts',
-					'id'     => 'instawp-settings',
-					'title'  => __( 'Settings', 'instawp-connect' ),
-					'href'   => admin_url( 'tools.php?page=instawp' ),
-					'meta'   => array(
-						'class'  => 'instawp-shortcuts',
-						'target' => 'settings',
-					),
-				) );
+				$admin_bar->add_menu(
+					array(
+						'parent' => 'instawp-shortcuts',
+						'id'     => 'instawp-settings',
+						'title'  => __( 'Settings', 'instawp-connect' ),
+						'href'   => admin_url( 'tools.php?page=instawp' ),
+						'meta'   => array(
+							'class'  => 'instawp-shortcuts',
+							'target' => 'settings',
+						),
+					)
+				);
 
 				$connect_id = Helper::get_connect_id();
 
 				if ( ! empty( $connect_id ) && current_user_can( 'manage_options' ) ) {
 					$app_domain = Helper::get_api_domain();
-					$admin_bar->add_menu( array(
-						'parent' => 'instawp',
-						'id'     => 'instawp-app-dashboard',
-						'title'  => __( 'Go to InstaWP ➝', 'instawp-connect' ),
-						'href'   => "$app_domain/connects/$connect_id/dashboard",
-						'meta'   => array(
-							'target' => '_blank',
-						),
-					) );
+					$admin_bar->add_menu(
+						array(
+							'parent' => 'instawp',
+							'id'     => 'instawp-app-dashboard',
+							'title'  => __( 'Go to InstaWP ➝', 'instawp-connect' ),
+							'href'   => "$app_domain/connects/$connect_id/dashboard",
+							'meta'   => array(
+								'target' => '_blank',
+							),
+						)
+					);
 				}
 
 				if ( current_user_can( 'manage_options' ) ) {
-					$admin_bar->add_menu( array(
-						'parent' => 'instawp',
-						'id'     => 'instawp-support',
-						'title'  => __( 'Contact Support', 'instawp-connect' ),
-						'href'   => 'https://instawp.com/support?utm_source=plugin_settings',
-						'meta'   => array(
-							'target' => '_blank',
-						),
-					) );
+					$admin_bar->add_menu(
+						array(
+							'parent' => 'instawp',
+							'id'     => 'instawp-support',
+							'title'  => __( 'Contact Support', 'instawp-connect' ),
+							'href'   => 'https://instawp.com/support?utm_source=plugin_settings',
+							'meta'   => array(
+								'target' => '_blank',
+							),
+						)
+					);
 				}
 			}
 		}
@@ -403,7 +427,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			global $current_user;
 
 			$can_show = 'off' === Option::get_option( 'instawp_hide_plugin_icon_topbar', 'off' );
-			
+
 			if ( $can_show ) {
 				$sync_tab_roles = Option::get_option( 'instawp_sync_tab_roles', array( 'administrator' ) );
 				$sync_tab_roles = ! is_array( $sync_tab_roles ) || empty( $sync_tab_roles ) ? array( 'administrator' ) : $sync_tab_roles;
@@ -466,10 +490,11 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			$cache_cleared = get_transient( 'instawp_cache_purged' );
 			if ( ! $cache_cleared ) {
 				return;
-			} ?>
-            <div class="notice notice-success is-dismissible">
-                <p><?php printf( esc_html__( 'Cache cleared for %s.', 'instawp-connect' ), esc_html( join( ', ', wp_list_pluck( $cache_cleared, 'name' ) ) ) ); ?></p>
-            </div>
+			}
+			?>
+			<div class="notice notice-success is-dismissible">
+				<p><?php printf( esc_html__( 'Cache cleared for %s.', 'instawp-connect' ), esc_html( join( ', ', wp_list_pluck( $cache_cleared, 'name' ) ) ) ); ?></p>
+			</div>
 			<?php
 			delete_transient( 'instawp_cache_purged' );
 		}
@@ -606,13 +631,15 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 				$update_info = get_core_updates();
 
 				if ( ! empty( $update_info ) && $update_info[0]->response === 'upgrade' ) {
-					$installer             = new Updater( array(
+					$installer             = new Updater(
 						array(
-							'type'    => 'core',
-							'slug'    => 'wordpress',
-							'version' => $update_info[0]->version,
-						),
-					) );
+							array(
+								'type'    => 'core',
+								'slug'    => 'wordpress',
+								'version' => $update_info[0]->version,
+							),
+						)
+					);
 					$response              = $installer->update();
 					$response_data['core'] = $response['wordpress'];
 				}
