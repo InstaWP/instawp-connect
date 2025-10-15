@@ -15,29 +15,45 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 	}
 
 	public function add_api_routes() {
-		register_rest_route( $this->namespace . '/' . $this->version_3, '/pull', array(
-			'methods'             => 'POST',
-			'callback'            => array( $this, 'handle_pull_api' ),
-			'permission_callback' => '__return_true',
-		) );
+		register_rest_route(
+			$this->namespace . '/' . $this->version_3,
+			'/pull',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( $this, 'handle_pull_api' ),
+				'permission_callback' => '__return_true',
+			)
+		);
 
-		register_rest_route( $this->namespace . '/' . $this->version_3, '/push', array(
-			'methods'             => 'POST',
-			'callback'            => array( $this, 'handle_push_api' ),
-			'permission_callback' => '__return_true',
-		) );
+		register_rest_route(
+			$this->namespace . '/' . $this->version_3,
+			'/push',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( $this, 'handle_push_api' ),
+				'permission_callback' => '__return_true',
+			)
+		);
 
-		register_rest_route( $this->namespace . '/' . $this->version_3, '/post-cleanup', array(
-			'methods'             => 'POST',
-			'callback'            => array( $this, 'handle_post_migration_cleanup' ),
-			'permission_callback' => '__return_true',
-		) );
+		register_rest_route(
+			$this->namespace . '/' . $this->version_3,
+			'/post-cleanup',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( $this, 'handle_post_migration_cleanup' ),
+				'permission_callback' => '__return_true',
+			)
+		);
 
-		register_rest_route( $this->namespace . '/' . $this->version_3, '/update-migration', array(
-			'methods'             => 'POST',
-			'callback'            => array( $this, 'handle_update_migration' ),
-			'permission_callback' => '__return_true',
-		) );
+		register_rest_route(
+			$this->namespace . '/' . $this->version_3,
+			'/update-migration',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( $this, 'handle_update_migration' ),
+				'permission_callback' => '__return_true',
+			)
+		);
 	}
 
 	/**
@@ -57,15 +73,20 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 		$is_end_to_end = sanitize_text_field( $request->get_param( 'is_end_to_end' ) );
 		$status        = sanitize_text_field( $request->get_param( 'status' ) );
 
-		Option::update_option( 'instawp_migration_details', array(
-			'is_end_to_end' => $is_end_to_end,
-			'status'        => $status,
-		) );
+		Option::update_option(
+			'instawp_migration_details',
+			array(
+				'is_end_to_end' => $is_end_to_end,
+				'status'        => $status,
+			)
+		);
 
-		return $this->send_response( array(
-			'success' => true,
-			'message' => esc_html__( 'Migration details updated successfully.', 'instawp-connect' ),
-		) );
+		return $this->send_response(
+			array(
+				'success' => true,
+				'message' => esc_html__( 'Migration details updated successfully.', 'instawp-connect' ),
+			)
+		);
 	}
 
 	/**
@@ -104,14 +125,17 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 		$pre_check_response['active_plugins']      = Option::get_option( 'active_plugins' );
 		$pre_check_response['wp_admin_email']      = get_bloginfo( 'admin_email' );
 
-		Option::update_option( 'instawp_migration_details', array(
-			'migrate_key'   => $migrate_key,
-			'is_end_to_end' => $is_end_to_end,
-			//'dest_url'    => Helper::get_args_option( 'serve_url', $pre_check_response ),
-			'started_at'    => current_time( 'mysql', 1 ),
-			'status'        => 'initiated',
-			'mode'          => 'pull',
-		) );
+		Option::update_option(
+			'instawp_migration_details',
+			array(
+				'migrate_key'   => $migrate_key,
+				'is_end_to_end' => $is_end_to_end,
+				// 'dest_url'    => Helper::get_args_option( 'serve_url', $pre_check_response ),
+				'started_at'    => current_time( 'mysql', 1 ),
+				'status'        => 'initiated',
+				'mode'          => 'pull',
+			)
+		);
 
 		return $this->send_response( $pre_check_response );
 	}
@@ -155,14 +179,17 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 
 		$is_end_to_end = sanitize_text_field( $request->get_param( 'is_end_to_end' ) );
 
-		Option::update_option( 'instawp_migration_details', array(
-			'migrate_key'   => $migrate_key,
-			'is_end_to_end' => $is_end_to_end,
-			'dest_url'      => $dest_file_url,
-			'started_at'    => current_time( 'mysql', 1 ),
-			'status'        => 'initiated',
-			'mode'          => 'push',
-		) );
+		Option::update_option(
+			'instawp_migration_details',
+			array(
+				'migrate_key'   => $migrate_key,
+				'is_end_to_end' => $is_end_to_end,
+				'dest_url'      => $dest_file_url,
+				'started_at'    => current_time( 'mysql', 1 ),
+				'status'        => 'initiated',
+				'mode'          => 'push',
+			)
+		);
 
 		$migrate_settings['has_zip_archive'] = class_exists( 'ZipArchive' );
 		$migrate_settings['has_phar_data']   = class_exists( 'PharData' );
@@ -189,7 +216,7 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 	 * @return WP_REST_Response
 	 */
 	public function handle_post_migration_cleanup( WP_REST_Request $request ) {
-		
+
 		try {
 			// Flushing db cache after migration
 			wp_cache_flush();
@@ -228,7 +255,7 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 			Option::update_option( 'instawp_last_migration_details', $migration_details );
 			// Install the plugins if there is any in the request
 			$post_installs = $request->get_param( 'post_installs' );
-			
+
 			if ( ! empty( $post_installs ) && is_array( $post_installs ) ) {
 				$installer         = new Helpers\Installer( $post_installs );
 				$post_installs_res = $installer->start();
@@ -243,8 +270,6 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 
 				$response['post_installs'] = $post_installs_res;
 			}
-
-			Option::update_option( 'instawp_last_migration_details', $migration_details );
 
 			// SSO Url for the Bluehost
 			if ( class_exists( 'NewfoldLabs\WP\Module\Migration\Services\MigrationSSO' ) ) {
@@ -264,6 +289,10 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 
 			// disable bluehost coming soon notice
 			update_option( 'nfd_coming_soon', false );
+
+			$migration_details['status'] = in_array( $migration_status, array( 'aborted', 'failed', 'timeout' ) ) ? $migration_status : 'completed';
+
+			Option::update_option( 'instawp_last_migration_details', $migration_details );
 
 			// reset everything and remove connection
 			if ( $clear_connect ) {

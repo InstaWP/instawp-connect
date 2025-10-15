@@ -126,35 +126,40 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 			if ( empty( $args[0] ) ) {
 				return false;
 			}
-		
+
 			$command    = $args[0];
 			$subcommand = isset( $args[1] ) ? $args[1] : '';
 
 			// Command handler mapping
 			$commands = array(
 				'local'                => array(
-					'push' => function() { // wp instawp local push
+					'push' => function () {
+						// wp instawp local push
 						$this->cli_local_push();
 					},
 				),
-				'set-waas-mode'        => function( $args ) { // wp instawp set-waas-mode https://instawp.com
+				'set-waas-mode'        => function ( $args ) {
+					// wp instawp set-waas-mode https://instawp.com
 					if ( empty( $args[0] ) ) {
 						WP_CLI::error( 'WaaS URL is required' );
 						return false;
 					}
 
 					try {
-						$wp_config = new WPConfig( array(
-							'INSTAWP_CONNECT_MODE'     => 'WAAS_GO_LIVE',
-							'INSTAWP_CONNECT_WAAS_URL' => $args[0],
-						) );
+						$wp_config = new WPConfig(
+							array(
+								'INSTAWP_CONNECT_MODE'     => 'WAAS_GO_LIVE',
+								'INSTAWP_CONNECT_WAAS_URL' => $args[0],
+							)
+						);
 						$wp_config->set();
 					} catch ( \Exception $e ) {
 						WP_CLI::error( $e->getMessage() );
 						return false;
 					}
 				},
-				'reset-waas-mode'      => function() { // wp instawp reset-waas-mode
+				'reset-waas-mode'      => function () {
+					// wp instawp reset-waas-mode
 					try {
 						$wp_config = new WPConfig( array( 'INSTAWP_CONNECT_MODE', 'INSTAWP_CONNECT_WAAS_URL' ) );
 						$wp_config->delete();
@@ -164,7 +169,8 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 					}
 				},
 				'config-set'           => array(
-					'api-key'    => function( $args, $assoc_args ) { // wp instawp config-set api-key 1234567890
+					'api-key'    => function ( $args, $assoc_args ) {
+						// wp instawp config-set api-key 1234567890
 						if ( empty( $args[0] ) ) {
 							WP_CLI::error( 'API key value is required' );
 							return false;
@@ -177,14 +183,15 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 							'managed' => $managed,
 							'plan_id' => $plan_id,
 						);
-						
-						Helper::generate_api_key( $args[0], $jwt, $config );
+
+						instawp_create_api_connect( $args[0], $jwt, $config );
 
 						if ( ! empty( $args[1] ) ) {
 							$this->set_connect_mode( $args[1] );
 						}
 					},
-					'api-domain' => function( $args ) { // wp instawp config-set api-domain https://instawp.com
+					'api-domain' => function ( $args ) {
+						// wp instawp config-set api-domain https://instawp.com
 						if ( empty( $args[0] ) ) {
 							WP_CLI::error( 'API domain value is required' );
 							return false;
@@ -196,18 +203,20 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 						}
 					},
 				),
-				'config-remove'        => function() { // wp instawp config-remove
+				'config-remove'        => function () {
+					// wp instawp config-remove
 					$option = new Option();
 					$option->delete( array( 'instawp_api_options', 'instawp_connect_id_options' ) );
 				},
-				'hard-reset'           => function( $args, $assoc_args ) { // wp instawp hard-reset --clear-events --disconnect --force
+				'hard-reset'           => function ( $args, $assoc_args ) {
+					// wp instawp hard-reset --clear-events --disconnect --force
 					if ( isset( $assoc_args['clear-events'] ) ) {
 						instawp_delete_sync_entries();
 					}
 
 					if ( isset( $assoc_args['disconnect'] ) && instawp_is_connected_origin_valid() ) {
 						$disconnect_res = $this->handle_disconnect();
-						
+
 						if ( ! $disconnect_res ) {
 							if ( isset( $assoc_args['force'] ) ) {
 								instawp_destroy_connect( 'delete' ); // force disconnect quietly
@@ -219,7 +228,8 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 
 					instawp_reset_running_migration( 'hard', false );
 				},
-				'disconnect'           => function( $args, $assoc_args ) { // wp instawp disconnect --force
+				'disconnect'           => function ( $args, $assoc_args ) {
+					// wp instawp disconnect --force
 					if ( instawp_is_connected_origin_valid() ) {
 						$disconnect_res = $this->handle_disconnect();
 
@@ -233,10 +243,12 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 					}
 					return false;
 				},
-				'clear-events'         => function() { // wp instawp clear-events
+				'clear-events'         => function () {
+					// wp instawp clear-events
 					instawp_delete_sync_entries();
 				},
-				'activate-plan'        => function( $args ) { // wp instawp activate-plan 123
+				'activate-plan'        => function ( $args ) {
+					// wp instawp activate-plan 123
 					$plan_id = isset( $args[0] ) ? intval( $args[0] ) : 0;
 					if ( empty( $plan_id ) ) {
 						WP_CLI::error( __( 'Plan ID is required', 'instawp-connect' ) );
@@ -249,10 +261,12 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 						return false;
 					}
 				},
-				'refresh-staging-list' => function() { // wp instawp refresh-staging-list
+				'refresh-staging-list' => function () {
+					// wp instawp refresh-staging-list
 					instawp_set_staging_sites_list();
 				},
-				'staging-set'          => function( $args ) { // wp instawp staging-set 123
+				'staging-set'          => function ( $args ) {
+					// wp instawp staging-set 123
 					if ( empty( $args[0] ) ) {
 						WP_CLI::error( __( 'Staging ID is required', 'instawp-connect' ) );
 						return false;
@@ -263,7 +277,8 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 					instawp_get_source_site_detail();
 				},
 				'reset'                => array(
-					'staging' => function() { // wp instawp reset staging
+					'staging' => function () {
+						// wp instawp reset staging
 						delete_option( 'instawp_sync_connect_id' );
 						delete_option( 'instawp_is_staging' );
 
@@ -271,20 +286,22 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 					},
 				),
 				'scan'                 => array(
-					'summary'   => function() { // wp instawp scan summary
+					'summary'   => function () {
+						// wp instawp scan summary
 						$this->handle_scan_summary();
 					},
-					'slow-item' => function() { // wp instawp scan slow-item
+					'slow-item' => function () {
+						// wp instawp scan slow-item
 						$this->handle_scan_slow_items();
 					},
 				),
 			);
-		
+
 			// Execute command if it exists
 			if ( isset( $commands[ $command ] ) ) {
 				unset( $args[0] );
 				$args = array_values( $args );
-				
+
 				if ( is_array( $commands[ $command ] ) && isset( $commands[ $command ][ $subcommand ] ) && is_callable( $commands[ $command ][ $subcommand ] ) ) {
 					unset( $args[0] );
 					$args = array_values( $args );
@@ -294,7 +311,7 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 					return $commands[ $command ]( $args, $assoc_args ) !== false;
 				}
 			}
-		
+
 			return false;
 		}
 
@@ -306,11 +323,11 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 					$input_data = is_array( $data ) ? json_encode( $data ) : $data;
 					throw new \Exception( 'Invalid payload format. Json error: ' . json_last_error_msg() . ' Payload: ' . $input_data );
 				}
-	
+
 				if ( ! empty( $payload['mode']['name'] ) ) {
 					$wp_config = new WPConfig( array( 'INSTAWP_CONNECT_MODE' => $payload['mode']['name'] ) );
 					$wp_config->set();
-					
+
 					WP_CLI::success( 'Mode configuration updated successfully' );
 				}
 			} catch ( \Exception $e ) {
@@ -321,12 +338,12 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 
 		/**
 		 * Handle disconnect operation
-		 * 
+		 *
 		 * @return bool
 		 */
 		private function handle_disconnect() {
 			$disconnect_res = instawp_destroy_connect();
-			
+
 			if ( ! $disconnect_res['success'] ) {
 				WP_CLI::error( $disconnect_res['message'] );
 				return false;
@@ -335,44 +352,48 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 			WP_CLI::success( $disconnect_res['message'] );
 			return true;
 		}
-		
+
 		// Helper methods for scan functionality
 		private function handle_scan_summary() {
-			$wp_scanner = new WPScanner();
+			$wp_scanner  = new WPScanner();
 			$summary_res = $wp_scanner->scan_summary();
-		
-			if ( is_wp_error($summary_res) ) {
-				WP_CLI::error($summary_res->get_error_message());
+
+			if ( is_wp_error( $summary_res ) ) {
+				WP_CLI::error( $summary_res->get_error_message() );
 				return false;
 			}
-		
-			if ( ! is_array($summary_res) ) {
-				WP_CLI::error(__('Failed: Could not create performance summary.', 'instawp-connect'));
+
+			if ( ! is_array( $summary_res ) ) {
+				WP_CLI::error( __( 'Failed: Could not create performance summary.', 'instawp-connect' ) );
 				return false;
 			}
-		
-			WP_CLI::success(__('Performance Summary of this website is given below:', 'instawp-connect'));
-			$this->render_cli_from_array($summary_res);
+
+			WP_CLI::success( __( 'Performance Summary of this website is given below:', 'instawp-connect' ) );
+			$this->render_cli_from_array( $summary_res );
 		}
-		
+
 		private function handle_scan_slow_items() {
 			$wp_scanner = new WPScanner();
 			$slow_items = $wp_scanner->scan_slow_items();
-		
+
 			if ( is_wp_error( $slow_items ) || ! is_array( $slow_items ) ) {
 				WP_CLI::error( __( 'Failed: Could not calculate slow items.', 'instawp-connect' ) );
 				return false;
 			}
-		
-			$slow_items_table = array_map( function( $item, $index ) {
-				return array(
-					'ID'         => $index + 1,
-					'Name'       => $item[2],
-					'Type'       => $item[3],
-					'Time Taken' => $item[1],
-				);
-			}, $slow_items, array_keys( $slow_items ) );
-		
+
+			$slow_items_table = array_map(
+				function ( $item, $index ) {
+					return array(
+						'ID'         => $index + 1,
+						'Name'       => $item[2],
+						'Type'       => $item[3],
+						'Time Taken' => $item[1],
+					);
+				},
+				$slow_items,
+				array_keys( $slow_items )
+			);
+
 			WP_CLI::success( __( 'Slow items of this website are given below: (Top is the slowest one)', 'instawp-connect' ) );
 			WP_CLI\Utils\format_items( 'table', $slow_items_table, array( 'ID', 'Name', 'Type', 'Time Taken' ) );
 		}
@@ -415,5 +436,3 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 }
 
 INSTAWP_CLI_Commands::instance();
-
-

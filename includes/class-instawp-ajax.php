@@ -792,7 +792,7 @@ class InstaWP_Ajax {
 				$jwt     = Helper::get_jwt();
 
 				// Create new connect if not exists
-				Helper::generate_api_key( $api_key, $jwt );
+				instawp_create_api_connect( $api_key, $jwt );
 				$connect_id = instawp_get_connect_id();
 			}
 			Option::delete_option( 'instawp_connect_plan_disconnected' );

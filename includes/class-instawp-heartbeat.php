@@ -229,6 +229,7 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 				'v1'
 			);
 			$response_code      = Helper::get_args_option( 'code', $heartbeat_response );
+			$response_data      = Helper::get_args_option( 'data', $heartbeat_response, array() );
 			$success            = intval( $response_code ) === 200;
 
 			if ( defined( 'INSTAWP_DEBUG_LOG' ) && INSTAWP_DEBUG_LOG ) {
@@ -237,8 +238,13 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 				error_log( 'Print Heartbeat API Curl Response End' );
 			}
 
-			if ( $success && ! empty( $heartbeat_body ) ) {
-				self::set_last_heartbeat_data( $heartbeat_body, $connect_id );
+			if ( $success ) {
+				if ( ! empty( $heartbeat_body ) ) {
+					self::set_last_heartbeat_data( $heartbeat_body, $connect_id );
+				}
+			} elseif ( ! empty( $response_data ) && isset( $response_data['remove_connect'] ) && true === $response_data['remove_connect'] ) {
+				// Remove connect.
+				instawp_reset_running_migration( 'hard' );
 			}
 
 			return array(

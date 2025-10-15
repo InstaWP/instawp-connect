@@ -191,6 +191,24 @@ if ( ! function_exists( 'instawp_update_migration_stages' ) ) {
 	}
 }
 
+if ( ! function_exists( 'instawp_create_api_connect' ) ) {
+	/**
+	 * Create api connect.
+	 *
+	 * @param string $api_key
+	 * @param string $jwt
+	 * @param array  $config
+	 * @return bool
+	 */
+	function instawp_create_api_connect( $api_key, $jwt = '', $config = array() ) {
+		if ( empty( $config ) || ( is_array( $config ) && empty( $config['group_uuid'] ) ) ) {
+			require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-heartbeat.php';
+			$config['site_information'] = InstaWP_Heartbeat::prepare_data();
+		}
+		return Helper::generate_api_key( $api_key, $jwt, $config );
+	}
+}
+
 
 if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 	/**
