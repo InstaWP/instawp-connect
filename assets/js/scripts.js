@@ -57,6 +57,29 @@
         return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
     }
 
+    // Simple toast notifications (top-right)
+    let instawpToastContainer = null;
+    let ensureToastContainer = () => {
+        if (!instawpToastContainer) {
+            instawpToastContainer = $('<div class="instawp-toast-container"></div>')
+                .css({ position: 'fixed', top: '16px', right: '16px', zIndex: 99999, display: 'flex', flexDirection: 'column', gap: '8px' });
+            $('body').append(instawpToastContainer);
+        }
+        return instawpToastContainer;
+    }
+
+    let showInstawpToast = (message, type = 'success') => {
+        let container = ensureToastContainer();
+        let bg = (type === 'success') ? '#059669' : '#DC2626'; // emerald-600 / red-600
+        let toast = $('<div class="instawp-toast"></div>')
+            .css({ background: bg, color: '#fff', padding: '10px 14px', borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1)' })
+            .text(message || (type === 'success' ? 'Success. Settings updated.' : 'Error. Please try again.'));
+        container.append(toast);
+        setTimeout(function () {
+            toast.fadeOut(300, function () { $(this).remove(); });
+        }, 3000);
+    }
+
     let elapsedInterval = null;
 
     let updateTimer = (startTime) => {
@@ -922,9 +945,8 @@
 
         e.preventDefault();
 
-        let this_form = $(this), this_form_data = this_form.serialize(), this_form_response = this_form.find('.instawp-form-response');
+        let this_form = $(this), this_form_data = this_form.serialize();
 
-        this_form_response.html('');
         this_form.addClass('loading');
 
         $.ajax({
@@ -936,15 +958,11 @@
                     this_form.removeClass('loading');
 
                     if (response.success) {
-                        this_form_response.addClass('success').html(response.data.message);
+                        showInstawpToast(response.data.message, 'success');
                     } else {
-                        this_form_response.addClass('error').html(response.data.message);
+                        showInstawpToast(response.data.message, 'error');
                     }
                 }, 1000);
-
-                setTimeout(function () {
-                    this_form_response.removeClass('success error').html('');
-                }, 3000);
             }
         });
 
