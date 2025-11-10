@@ -252,7 +252,7 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 			$migration_details['status']              = $migration_status;
 			$migration_details['post_cleanup_called'] = true;
 
-			Option::update_option( 'instawp_last_migration_details', $migration_details );
+			// Option::update_option( 'instawp_last_migration_details', $migration_details );
 			// Install the plugins if there is any in the request
 			$post_installs = $request->get_param( 'post_installs' );
 
@@ -322,6 +322,11 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 					'type'   => 'plugin',
 					'delete' => true,
 				);
+			}
+
+			// Cleaning up migrations and backup files
+			if ( $migration_details['status'] === 'completed' ) {
+				InstaWP_Tools::clean_iwp_files_dir();
 			}
 
 			foreach ( $plugins_to_delete as $plugin ) {
