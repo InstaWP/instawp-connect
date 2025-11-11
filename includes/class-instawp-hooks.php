@@ -478,28 +478,38 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 
 			$nonce = empty( $_GET['iwp_nonce'] ) ? '' : sanitize_text_field( wp_unslash( $_GET['iwp_nonce'] ) );
 
-			if ( empty( $nonce ) || ! wp_verify_nonce( $nonce, 'instawp-connect' ) || ! instawp_is_admin() ) {
+			if ( empty( $nonce ) || ! wp_verify_nonce( $nonce, 'instawp-connect' ) ) {
 				Helper::add_error_log(
 					array(
-						'error'        => 'Invalid user attempt to reset running migration or set connect id.',
+						'error'        => 'Invalid nonce to reset running migration or set connect id.',
 						'iwp_nonce'    => $nonce,
 						'connect_id'   => $connect_id,
 						'admin_page'   => $admin_page,
 						'clear_action' => $clear_action,
 					)
 				);
-				wp_safe_redirect( admin_url() );
-				exit();
-			}
+				wp_die( __( 'Security verification failed', 'instawp-connect' ) );
+			} elseif ( ! instawp_is_admin() ) {
+				Helper::add_error_log(
+					array(
+						'error'        => 'Invalid user to reset running migration or set connect id.',
+						'iwp_nonce'    => $nonce,
+						'connect_id'   => $connect_id,
+						'admin_page'   => $admin_page,
+						'clear_action' => $clear_action,
+					)
+				);
+				wp_die( __( 'Unauthorized', 'instawp-connect' ) );
+			} else {
+				if ( ! empty( $connect_id ) && ! empty( Helper::get_options() ) && empty( Helper::get_connect_id() ) ) {
+					Helper::set_connect_id( $connect_id );
+				}
 
-			if ( ! empty( $connect_id ) && ! empty( Helper::get_options() ) && empty( Helper::get_connect_id() ) ) {
-				Helper::set_connect_id( $connect_id );
-			}
-
-			if ( $to_clear ) {
-				instawp_reset_running_migration( 'soft', true );
-				wp_safe_redirect( admin_url( 'tools.php?page=instawp' ) );
-				exit();
+				if ( $to_clear ) {
+					instawp_reset_running_migration( 'soft', true );
+					wp_safe_redirect( admin_url( 'tools.php?page=instawp' ) );
+					exit();
+				}
 			}
 		}
 
