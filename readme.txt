@@ -98,9 +98,10 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
-= 0.1.2.0 - 10 November 2025 =
+= 0.1.2.0 - 11 November 2025 =
 - Fixed: Migration status updates.
 - Fixed: Cleanup of migration files.
+- Enhanced: Security and authentication checks for admin endpoints
 
 = 0.1.1.9 - 14 October 2025 =
 - Optimized: Improved connect cleanup process based on heartbeat responses.

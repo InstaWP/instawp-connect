@@ -19,7 +19,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			add_action( 'admin_init', array( $this, 'generate_api_key' ) );
 			add_action( 'update_option', array( $this, 'manage_update_option' ), 10, 3 );
 			add_action( 'init', array( $this, 'handle_hard_disable_seo_visibility' ) );
-			add_action( 'admin_init', array( $this, 'handle_clear_all' ) );
+			add_action( 'admin_init', array( $this, 'handle_clear_all' ), 999 );
 
 			if ( ! is_multisite() || is_main_site() ) {
 				add_action( 'admin_bar_menu', array( $this, 'add_instawp_menu_icon' ), 999 );
@@ -470,13 +470,28 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			$clear_action = isset( $_GET['clear'] ) ? sanitize_text_field( wp_unslash( $_GET['clear'] ) ) : '';
 			$connect_id   = isset( $_GET['connect_id'] ) ? intval( $_GET['connect_id'] ) : 0;
 
-			if ( ! empty( $connect_id ) ) {
+			$to_clear = ( 'instawp' === $admin_page && 'all' === $clear_action );
+
+			if ( empty( $connect_id ) && ! $to_clear ) {
+				return;
+			}
+
+			if ( ! instawp_is_admin() ) {
+				Helper::add_error_log(
+					array(
+						'error' => 'Invalid user attempt to reset running migration or set connect id.',
+					)
+				);
+				wp_safe_redirect( admin_url() );
+				exit();
+			}
+
+			if ( ! empty( $connect_id ) && ! empty( Helper::get_options() ) && empty( Helper::get_connect_id() ) ) {
 				Helper::set_connect_id( $connect_id );
 			}
 
-			if ( 'instawp' === $admin_page && 'all' === $clear_action ) {
+			if ( $to_clear ) {
 				instawp_reset_running_migration( 'soft', true );
-
 				wp_safe_redirect( admin_url( 'tools.php?page=instawp' ) );
 				exit();
 			}

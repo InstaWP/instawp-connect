@@ -2064,6 +2064,14 @@ include $file_path;';
 				}
 			}
 
+			foreach ( array_merge(
+				glob( ABSPATH . 'instawp-sql-*' )
+			) as $file_to_del ) {
+				if ( is_file( $file_to_del ) ) {
+					$files[] = $file_to_del;
+				}
+			}
+
 			$failed_to_del = array();
 			foreach ( $files as $file ) {
 				if ( file_exists( $file ) && is_file( $file ) && ! unlink( $file ) ) {
