@@ -489,7 +489,9 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 					)
 				);
 				wp_die( __( 'Security verification failed', 'instawp-connect' ) );
-			} elseif ( ! instawp_is_admin() ) {
+			}
+
+			if ( ! instawp_is_admin() ) {
 				Helper::add_error_log(
 					array(
 						'error'        => 'Invalid user to reset running migration or set connect id.',
@@ -500,16 +502,16 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 					)
 				);
 				wp_die( __( 'Unauthorized', 'instawp-connect' ) );
-			} else {
-				if ( ! empty( $connect_id ) && ! empty( Helper::get_options() ) && empty( Helper::get_connect_id() ) ) {
-					Helper::set_connect_id( $connect_id );
-				}
+			}
 
-				if ( $to_clear ) {
-					instawp_reset_running_migration( 'soft', true );
-					wp_safe_redirect( admin_url( 'tools.php?page=instawp' ) );
-					exit();
-				}
+			if ( ! empty( $connect_id ) && ! empty( Helper::get_options() ) && empty( Helper::get_connect_id() ) ) {
+				Helper::set_connect_id( $connect_id );
+			}
+
+			if ( $to_clear ) {
+				instawp_reset_running_migration( 'soft', true );
+				wp_safe_redirect( admin_url( 'tools.php?page=instawp' ) );
+				exit();
 			}
 		}
 
