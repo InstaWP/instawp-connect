@@ -884,7 +884,7 @@
 
         if (confirm('Do you really want to abort the migration?')) {
             clearInterval(create_container.attr('interval-id'));
-            window.location = window.location.href.split("?")[0] + '?page=instawp&clear=all';
+            window.location = window.location.href.split("?")[0] + '?page=instawp&clear=all&iwp_nonce=' + plugin_object.security;
         }
     });
 

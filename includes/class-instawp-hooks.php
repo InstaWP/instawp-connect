@@ -476,10 +476,16 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 				return;
 			}
 
-			if ( ! instawp_is_admin() ) {
+			$nonce = empty( $_GET['iwp_nonce'] ) ? '' : sanitize_text_field( wp_unslash( $_GET['iwp_nonce'] ) );
+
+			if ( empty( $nonce ) || ! wp_verify_nonce( $nonce, 'instawp-connect' ) || ! instawp_is_admin() ) {
 				Helper::add_error_log(
 					array(
-						'error' => 'Invalid user attempt to reset running migration or set connect id.',
+						'error'        => 'Invalid user attempt to reset running migration or set connect id.',
+						'iwp_nonce'    => $nonce,
+						'connect_id'   => $connect_id,
+						'admin_page'   => $admin_page,
+						'clear_action' => $clear_action,
 					)
 				);
 				wp_safe_redirect( admin_url() );
