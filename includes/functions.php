@@ -209,6 +209,39 @@ if ( ! function_exists( 'instawp_create_api_connect' ) ) {
 	}
 }
 
+if ( ! function_exists( 'instawp_is_admin' ) ) {
+	/**
+	 * Check if user is admin
+	 *
+	 * @param string $check_permission
+	 * @return bool
+	 */
+	function instawp_is_admin( $check_permission = 'manage_options' ) {
+		// Check if we're in admin area first (lightweight check)
+		if ( ! function_exists( 'is_admin' ) || ! is_admin() ) {
+			return false;
+		}
+
+		if ( ! function_exists( 'wp_get_current_user' ) && file_exists( ABSPATH . 'wp-includes/pluggable.php' ) ) {
+			require_once ABSPATH . 'wp-includes/pluggable.php';
+		}
+
+		if ( ! function_exists( 'current_user_can' ) && file_exists( ABSPATH . 'wp-includes/capabilities.php' ) ) {
+			require_once ABSPATH . 'wp-includes/capabilities.php';
+		}
+
+		if ( ! function_exists( 'wp_get_current_user' ) || ! function_exists( 'current_user_can' ) ) {
+			return false;
+		}
+
+		if ( ! function_exists( 'is_user_logged_in' ) || ! is_user_logged_in() ) {
+			return false;
+		}
+
+		return current_user_can( $check_permission );
+	}
+}
+
 
 if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 	/**
