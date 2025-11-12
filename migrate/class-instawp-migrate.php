@@ -118,7 +118,7 @@ if ( ! class_exists( 'InstaWP_Migration' ) ) {
 				Option::update_option( $field_id, $field_value );
 			}
 
-			wp_send_json_success( array( 'message' => esc_html__( 'Success. Settings updated.', 'instawp-connect' ) ) );
+			wp_send_json_success( array( 'message' => esc_html__( 'Saved successfully.', 'instawp-connect' ) ) );
 		}
 
 		/**

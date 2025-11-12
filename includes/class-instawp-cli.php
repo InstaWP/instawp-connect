@@ -227,6 +227,7 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 					}
 
 					instawp_reset_running_migration( 'hard', false );
+					InstaWP_Tools::clean_iwp_files_dir();
 				},
 				'disconnect'           => function ( $args, $assoc_args ) {
 					// wp instawp disconnect --force
