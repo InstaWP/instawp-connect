@@ -11,8 +11,17 @@ defined( 'ABSPATH' ) || exit;
 
 class InstaWP_Sync_Plugin_Theme {
 
+	/**
+	 * Store copied zip file paths temporarily
+	 * Key: package path, Value: copied zip URL
+	 *
+	 * @var array
+	 */
+	private $copied_zip_files = array();
+
     public function __construct() {
 	    // Plugin and Theme actions
+			add_filter( 'upgrader_source_selection', array( $this, 'copy_uploaded_plugin_zip' ), 5, 4 );
 	    add_action( 'upgrader_process_complete', array( $this, 'install_update_action' ), 10, 2 );
 	    add_action( 'activated_plugin', array( $this, 'activate_plugin' ), 10, 2 );
 	    add_action( 'deactivated_plugin', array( $this, 'deactivate_plugin' ), 10, 2 );
@@ -23,6 +32,97 @@ class InstaWP_Sync_Plugin_Theme {
 	    // Process event
 	    add_filter( 'instawp/filters/2waysync/process_event', array( $this, 'parse_event' ), 10, 2 );
     }
+
+		/**
+		 * Function for `upgrader_source_selection` filter-hook.
+		 * Copy the original uploaded zip file before WordPress deletes it.
+		 *
+		 * @param string      $source        File source location.
+		 * @param string      $remote_source Remote file source location.
+		 * @param WP_Upgrader $upgrader      WP_Upgrader instance.
+		 * @param array       $hook_extra    Extra arguments passed to hooked filters.
+		 *
+		 * @return string
+		 */
+		public function copy_uploaded_plugin_zip( $source, $remote_source, $upgrader, $hook_extra ) {
+			// Only process plugin installations
+			if ( empty( $hook_extra['type'] ) || $hook_extra['type'] !== 'plugin' ) {
+				return $source;
+			}
+
+			// Only process install actions (not updates)
+			if ( empty( $hook_extra['action'] ) || $hook_extra['action'] !== 'install' ) {
+				return $source;
+			}
+
+			// Get the package path from the upgrader object
+			// The package is stored in skin->options['package'] during run()
+			$package = null;
+			if ( isset( $upgrader->skin->options['package'] ) ) {
+				$package = $upgrader->skin->options['package'];
+			}
+
+			if ( empty( $package ) ) {
+				return $source;
+			}
+
+			// Check if it's a local file (uploaded zip) vs remote URL (WordPress.org)
+			// Local files will have a file path, remote URLs will start with http:// or https://
+			if ( filter_var( $package, FILTER_VALIDATE_URL ) && ( strpos( $package, 'http://' ) === 0 || strpos( $package, 'https://' ) === 0 ) ) {
+				// It's a remote URL (likely WordPress.org), skip copying
+				return $source;
+			}
+
+			// Check if it's a valid local zip file
+			if ( ! file_exists( $package ) || ! is_file( $package ) ) {
+				return $source;
+			}
+
+			// Verify it's a zip file
+			$file_extension = strtolower( pathinfo( $package, PATHINFO_EXTENSION ) );
+			if ( $file_extension !== 'zip' ) {
+				return $source;
+			}
+
+			// Copy the zip file to instawp-sync directory
+			$upload_dir = wp_upload_dir();
+			if ( ! empty( $upload_dir['error'] ) ) {
+				return $source;
+			}
+
+			// Create instawp-sync directory if it doesn't exist
+			$sync_dir = $upload_dir['basedir'] . '/instawp-sync';
+			if ( ! file_exists( $sync_dir ) ) {
+				wp_mkdir_p( $sync_dir );
+			}
+
+			// Generate a unique filename for the copied zip
+			$original_filename = basename( $package );
+			$zip_filename = sanitize_file_name( $original_filename );
+			// Add timestamp to ensure uniqueness
+			$path_info = pathinfo( $zip_filename );
+			$zip_filename = $path_info['filename'] . '-' . time() . '.' . $path_info['extension'];
+			$copied_zip_path = $sync_dir . '/' . $zip_filename;
+			$copied_zip_url = $upload_dir['baseurl'] . '/instawp-sync/' . $zip_filename;
+
+			// Copy the file
+			if ( copy( $package, $copied_zip_path ) ) {
+				// Store the copied zip path/URL for later use
+				// Use a transient key based on the package path hash
+				$package_hash = md5( $package );
+				$transient_key = 'instawp_copied_zip_' . $package_hash;
+				set_transient( $transient_key, array(
+					'original_path' => $package,
+					'copied_path'   => $copied_zip_path,
+					'copied_url'    => $copied_zip_url,
+				), HOUR_IN_SECONDS );
+
+				// Also store in class property for immediate access
+				$this->copied_zip_files[ $package ] = $copied_zip_url;
+			}
+
+			return $source;
+		}
 
 	/**
 	 * Function for `upgrader_process_complete` action-hook.
@@ -62,9 +162,24 @@ class InstaWP_Sync_Plugin_Theme {
 					'data' => $data,
 				);
 
-				if ( Helper::is_on_wordpress_org( $slug[0], $hook_extra['type'] ) ) {
-					$this->parse_plugin_theme_event( $event_name, $event_slug, $details, $hook_extra['type'] );
+				// Check if it's a custom plugin (not on WordPress.org)
+				// If custom, try to use the copied original zip file, otherwise create a new zip
+				if ( ! Helper::is_on_wordpress_org( $slug[0], $hook_extra['type'] ) ) {
+					$zip_url = $this->get_copied_plugin_zip( $upgrader );
+					
+					// If we don't have a copied zip, fall back to creating one from the plugin directory
+					if ( ! $zip_url ) {
+						$plugin_dir = $upgrader->skin->result['local_destination'] . '/' . $slug[0];
+						$zip_url = $this->create_plugin_zip( $plugin_dir, $slug[0] );
+					}
+					
+					if ( $zip_url ) {
+						$details['zip_url'] = $zip_url;
+						$details['is_custom'] = true;
+					}	
 				}
+				// Allow both WordPress.org and custom uploaded plugins to sync
+				$this->parse_plugin_theme_event( $event_name, $event_slug, $details, $hook_extra['type'] );
 			}
 
 			if ( 'update' === $hook_extra['action'] ) {
@@ -238,7 +353,9 @@ class InstaWP_Sync_Plugin_Theme {
 		// plugin install
 		if ( $v->event_slug === 'plugin_install' ) {
 			if ( ! empty( $v->details->slug ) ) {
-				$response = $this->install_item( $v->details->slug, 'plugin' )[0];
+				// Check if zip_url is available for custom plugins
+				$zip_url = isset( $v->details->zip_url ) ? $v->details->zip_url : null;
+				$response = $this->install_item( $v->details->slug, 'plugin', false, $zip_url )[0];
 
 				if ( ! $response['success'] ) {
 					$logs[ $v->id ] = $response['message'];
@@ -543,11 +660,7 @@ class InstaWP_Sync_Plugin_Theme {
 				$title     = $details['name'];
 				$source_id = $details['stylesheet'];
 		}
-		// Exclude uploaded plugin or theme slug
-		$exclude_slugs = get_set_sync_config_data( 'exclude_upload_plugin_theme_slugs' );
-		if ( ! empty( $exclude_slugs ) && is_array( $exclude_slugs ) && is_string( $source_id ) && in_array( $source_id, $exclude_slugs ) ) {
-			return;
-		}
+		
 		InstaWP_Sync_DB::insert_update_event( $event_name, $event_slug, $type, $source_id, $title, $details );
 	}
 
@@ -591,11 +704,16 @@ class InstaWP_Sync_Plugin_Theme {
 	/**
 	 * Plugin or Theme install
 	 */
-	public function install_item( $item, $type, $activate = false ) {
+	public function install_item( $item, $type, $activate = false, $zip_url = null ) {
+		// If zip_url is provided, use it as the source (custom plugin/theme)
+		// Otherwise, try to install from WordPress.org
+		$source = ( ! empty( $zip_url ) ) ? 'url' : 'wp.org';
+		$slug = ( ! empty( $zip_url ) ) ? $zip_url : $item;
+
 		$installer = new Installer( array(
 			array(
-				'slug'     => $item,
-				'source'   => 'wp.org',
+				'slug'     => $slug,
+				'source'   => $source,
 				'type'     => $type,
 				'activate' => $activate,
 			),
@@ -629,6 +747,154 @@ class InstaWP_Sync_Plugin_Theme {
 		$installed_plugins = get_plugins();
 
 		return array_key_exists( $plugin_slug, $installed_plugins ) || in_array( $plugin_slug, $installed_plugins, true );
+	}
+
+	/**
+	 * Get the copied original zip file URL if available
+	 *
+	 * @param WP_Upgrader $upgrader The upgrader instance
+	 *
+	 * @return string|false Zip file URL on success, false on failure
+	 */
+	private function get_copied_plugin_zip( $upgrader ) {
+		// Try to get the package path from the upgrader
+		// The package might be stored in the upgrader's skin options
+		$package = null;
+		
+		if ( isset( $upgrader->skin->options['package'] ) ) {
+			$package = $upgrader->skin->options['package'];
+		} elseif ( isset( $upgrader->skin->result['source'] ) ) {
+			// Sometimes the source path is available in the result
+			$package = $upgrader->skin->result['source'];
+		}
+
+		if ( empty( $package ) ) {
+			// Try to find it from transients by checking recent ones
+			// This is a fallback method
+			global $wpdb;
+			$transients = $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT option_value FROM {$wpdb->options} 
+					WHERE option_name LIKE %s 
+					ORDER BY option_id DESC 
+					LIMIT 10",
+					$wpdb->esc_like( '_transient_instawp_copied_zip_' ) . '%'
+				)
+			);
+
+			foreach ( $transients as $transient ) {
+				$data = maybe_unserialize( $transient->option_value );
+				if ( is_array( $data ) && isset( $data['copied_url'] ) && file_exists( $data['copied_path'] ) ) {
+					return $data['copied_url'];
+				}
+			}
+			
+			return false;
+		}
+
+		// Check class property first
+		if ( isset( $this->copied_zip_files[ $package ] ) ) {
+			$copied_url = $this->copied_zip_files[ $package ];
+			if ( $this->verify_copied_zip_exists( $copied_url ) ) {
+				return $copied_url;
+			}
+		}
+
+		// Check transient
+		$package_hash = md5( $package );
+		$transient_key = 'instawp_copied_zip_' . $package_hash;
+		$copied_data = get_transient( $transient_key );
+
+		if ( $copied_data && is_array( $copied_data ) && isset( $copied_data['copied_url'] ) ) {
+			if ( $this->verify_copied_zip_exists( $copied_data['copied_url'] ) ) {
+				return $copied_data['copied_url'];
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Verify that a copied zip file still exists
+	 *
+	 * @param string $zip_url The zip file URL
+	 *
+	 * @return bool True if file exists, false otherwise
+	 */
+	private function verify_copied_zip_exists( $zip_url ) {
+		$upload_dir = wp_upload_dir();
+		$base_url = $upload_dir['baseurl'];
+		$base_dir = $upload_dir['basedir'];
+
+		// Convert URL to path
+		if ( strpos( $zip_url, $base_url ) === 0 ) {
+			$relative_path = str_replace( $base_url, '', $zip_url );
+			$zip_path = $base_dir . $relative_path;
+			return file_exists( $zip_path ) && is_file( $zip_path );
+		}
+
+		return false;
+	}
+
+	/**
+	 * Create a zip file from a plugin directory
+	 * This is a fallback method when the original zip is not available
+	 *
+	 * @param string $plugin_dir Full path to the plugin directory
+	 * @param string $plugin_slug Plugin slug
+	 *
+	 * @return string|false Zip file URL on success, false on failure
+	 */
+	private function create_plugin_zip( $plugin_dir, $plugin_slug ) {
+		if ( ! class_exists( 'ZipArchive' ) ) {
+			return false;
+		}
+
+		if ( ! file_exists( $plugin_dir ) || ! is_dir( $plugin_dir ) ) {
+			return false;
+		}
+
+		$upload_dir = wp_upload_dir();
+		if ( ! empty( $upload_dir['error'] ) ) {
+			return false;
+		}
+
+		// Create instawp-sync directory in uploads if it doesn't exist
+		$sync_dir = $upload_dir['basedir'] . '/instawp-sync';
+		if ( ! file_exists( $sync_dir ) ) {
+			wp_mkdir_p( $sync_dir );
+		}
+
+		$zip_filename = $plugin_slug . '-' . time() . '.zip';
+		$zip_path = $sync_dir . '/' . $zip_filename;
+		$zip_url = $upload_dir['baseurl'] . '/instawp-sync/' . $zip_filename;
+
+		$zip = new ZipArchive();
+		if ( $zip->open( $zip_path, ZipArchive::CREATE | ZipArchive::OVERWRITE ) !== true ) {
+			return false;
+		}
+
+		// Create recursive directory iterator
+		$files = new RecursiveIteratorIterator(
+			new RecursiveDirectoryIterator( $plugin_dir, RecursiveDirectoryIterator::SKIP_DOTS ),
+			RecursiveIteratorIterator::LEAVES_ONLY
+		);
+
+		foreach ( $files as $file ) {
+			if ( ! $file->isDir() ) {
+				$file_path = $file->getRealPath();
+				$relative_path = substr( $file_path, strlen( $plugin_dir ) + 1 );
+				$zip->addFile( $file_path, $plugin_slug . '/' . $relative_path );
+			}
+		}
+
+		$zip->close();
+
+		if ( file_exists( $zip_path ) ) {
+			return $zip_url;
+		}
+
+		return false;
 	}
 }
 
