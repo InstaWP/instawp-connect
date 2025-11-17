@@ -1,812 +1,1021 @@
 <?php
-/**
- * @link       https://instawp.com/
- * @since      1.0
- *
- * @package    instawp
- * @subpackage instawp/includes
- */
 
-use InstaWP\Connect\Helpers\Curl;
+use InstaWP\Connect\Helpers\Activator;
+use InstaWP\Connect\Helpers\Deactivator;
 use InstaWP\Connect\Helpers\Helper;
-use InstaWP\Connect\Helpers\Option;
+use InstaWP\Connect\Helpers\Installer;
+use InstaWP\Connect\Helpers\Uninstaller;
+use InstaWP\Connect\Helpers\Updater;
 
 defined( 'ABSPATH' ) || exit;
 
-class InstaWP_Sync_Ajax {
+class InstaWP_Sync_Plugin_Theme {
 
-	private $wpdb;
+	/**
+	 * Store copied zip file paths temporarily
+	 * Key: package path, Value: copied zip URL
+	 *
+	 * @var array
+	 */
+	private $copied_zip_files = array();
 
-	public $sync_per_page = 5;
+    public function __construct() {
+	    // Plugin and Theme actions
+			add_filter( 'upgrader_source_selection', array( $this, 'copy_uploaded_plugin_zip' ), 5, 4 );
+	    add_action( 'upgrader_process_complete', array( $this, 'install_update_action' ), 10, 2 );
+	    add_action( 'activated_plugin', array( $this, 'activate_plugin' ), 10, 2 );
+	    add_action( 'deactivated_plugin', array( $this, 'deactivate_plugin' ), 10, 2 );
+	    add_action( 'deleted_plugin', array( $this, 'delete_plugin' ), 10, 2 );
+	    add_action( 'switch_theme', array( $this, 'switch_theme' ), 10, 3 );
+	    add_action( 'deleted_theme', array( $this, 'delete_theme' ), 10, 2 );
 
-	public function __construct() {
-		global $wpdb;
+	    // Process event
+	    add_filter( 'instawp/filters/2waysync/process_event', array( $this, 'parse_event' ), 10, 2 );
+	    
+	    // Hook into event status update to delete zip files when events are marked as completed
+	    add_action( 'instawp_sync_event_completed', array( $this, 'handle_completed_event' ), 10, 2 );
+    }
 
-		$this->wpdb          = $wpdb;
-		$this->sync_per_page = $this->sync_per_page();
-		// The wp_ajax_ hook only fires for logged-in users
-		add_action( 'wp_ajax_instawp_is_event_syncing', array( $this, 'is_event_syncing' ) );
-		add_action( 'wp_ajax_instawp_get_site_events', array( $this, 'get_site_events' ) );
-		add_action( 'wp_ajax_instawp_handle_select2', array( $this, 'handle_select2' ) );
-		add_action( 'wp_ajax_instawp_pack_events', array( $this, 'pack_events' ) );
-		add_action( 'wp_ajax_instawp_sync_changes', array( $this, 'sync_changes' ) );
-		add_action( 'wp_ajax_instawp_get_events_summary', array( $this, 'get_events_summary' ) );
-		add_action( 'wp_ajax_instawp_delete_events', array( $this, 'delete_events' ) );
-		add_action( 'wp_ajax_instawp_calculate_events', array( $this, 'calculate_events' ) );
-	}
+		/**
+		 * Function for `upgrader_source_selection` filter-hook.
+		 * Copy the original uploaded zip file before WordPress deletes it.
+		 *
+		 * @param string      $source        File source location.
+		 * @param string      $remote_source Remote file source location.
+		 * @param WP_Upgrader $upgrader      WP_Upgrader instance.
+		 * @param array       $hook_extra    Extra arguments passed to hooked filters.
+		 *
+		 * @return string
+		 */
+		public function copy_uploaded_plugin_zip( $source, $remote_source, $upgrader, $hook_extra ) {
+			// Only process plugin installations
+			if ( empty( $hook_extra['type'] ) || $hook_extra['type'] !== 'plugin' ) {
+				return $source;
+			}
 
-	public function is_event_syncing() {
-		check_ajax_referer( 'instawp-connect', 'security' );
+			// Only process install actions (not updates)
+			if ( empty( $hook_extra['action'] ) || $hook_extra['action'] !== 'install' ) {
+				return $source;
+			}
 
-		if ( ! current_user_can( InstaWP_Setting::get_allowed_role() ) ) {
-			$this->send_error( 'Can\'t perform this action.' );
-		}
-
-		$sync_status = ! empty( $_POST['sync_status'] ) ? intval( $_POST['sync_status'] ) : 0;
-		Option::update_option( 'instawp_is_event_syncing', $sync_status );
-
-		instawp_create_db_tables();
-
-		$message = ( $sync_status === 1 ) ? 'Syncing enabled!' : 'Syncing disabled!';
-		wp_send_json(
-			array(
-				'sync_status' => $sync_status,
-				'message'     => $message,
-			)
-		);
-	}
-
-	public function get_site_events() {
-		check_ajax_referer( 'instawp-connect', 'security' );
-
-		if ( ! current_user_can( InstaWP_Setting::get_allowed_role() ) ) {
-			$this->send_error( 'Can\'t perform this action.' );
-		}
-
-		instawp_create_db_tables();
-
-		global $wpdb;
-
-		$connect_id     = ! empty( $_POST['connect_id'] ) ? intval( $_POST['connect_id'] ) : 0;
-		$filter_status  = ! empty( $_POST['filter_status'] ) ? sanitize_text_field( wp_unslash( $_POST['filter_status'] ) ) : 'all';
-		$page           = isset( $_POST['epage'] ) ? abs( (int) $_POST['epage'] ) : 1;
-		$page           = max( $page, 1 );
-		$items_per_page = 20;
-		$offset         = ( $page * $items_per_page ) - $items_per_page;
-
-		$staging_site = instawp_get_site_detail_by_connect_id( $connect_id, 'data' );
-		$site_created = '1970-01-01 00:00:00';
-
-		if ( ! empty( $staging_site ) && isset( $staging_site['created_at'] ) ) {
-			$site_created = date( 'Y-m-d h:i:s', strtotime( $staging_site['created_at'] ) );
-		}
-
-		$total = $wpdb->get_var(
-			$wpdb->prepare( 'SELECT COUNT(*) AS total_events FROM ' . INSTAWP_DB_TABLE_EVENTS . ' WHERE `date` >= %s', $site_created )
-		);
-
-		$events = $wpdb->get_results(
-			$wpdb->prepare( 'SELECT * FROM ' . INSTAWP_DB_TABLE_EVENTS . ' WHERE `date` >= %s ORDER BY `date` DESC, `id` DESC LIMIT %d, %d', $site_created, $offset, $items_per_page ) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		);
-		// Total number of events at this point.
-		$query_event_total = count( $events );
-
-		$events = array_map(
-			function ( $event ) use ( $connect_id ) {
-				$event_row = InstaWP_Sync_DB::get_sync_event_by_id( $connect_id, $event->event_hash );
-
-				if ( $event_row ) {
-						$event->status         = ! empty( $event_row->status ) ? $event_row->status : 'pending';
-						$event->synced_date    = ! empty( $event_row->date ) ? $event_row->date : $event->date;
-						$event->synced_message = ! empty( $event_row->synced_message ) ? $event_row->synced_message : $event->synced_message;
-
-					if ( $event->status === 'completed' ) {
-						$event->log = ! empty( $event_row->log ) ? $event_row->log : '';
+			// Get the package path from WordPress attachment ID
+			// WordPress stores uploaded plugin zip files as media attachments
+			$package = null;
+			
+			if ( isset( $upgrader->skin->options['url'] ) ) {
+				$url = $upgrader->skin->options['url'];
+				
+				// Check if URL contains package parameter (WordPress attachment ID)
+				// Format: update.php?action=upload-plugin&package=21
+				if ( strpos( $url, 'package=' ) !== false ) {
+					parse_str( parse_url( $url, PHP_URL_QUERY ), $params );
+					if ( ! empty( $params['package'] ) ) {
+						$attachment_id = intval( $params['package'] );
+						
+						// Get the file path from the attachment
+						$file_path = get_attached_file( $attachment_id );
+						if ( ! empty( $file_path ) && file_exists( $file_path ) && is_file( $file_path ) && pathinfo( $file_path, PATHINFO_EXTENSION ) === 'zip' ) {
+							$package = $file_path;
+						} 
 					}
 				}
-
-				return $event;
-			},
-			$events
-		);
-		$events = $this->filter_events( $events );
-
-		if ( $filter_status !== 'all' ) {
-			$events = array_filter(
-				$events,
-				function ( $event ) use ( $filter_status ) {
-					return $filter_status === $event->status;
-				}
-			);
-		}
-
-		// Total number of events after filtering.
-		$total = $total - ( $query_event_total - count( $events ) );
-		// $total  = count( $events );
-		// $events = array_slice( $events, $offset, $items_per_page );
-
-		ob_start();
-		include INSTAWP_PLUGIN_DIR . '/migrate/templates/ajax/part-sync-items.php';
-		$data = ob_get_clean();
-
-		$this->send_success(
-			'Event fetched.',
-			array(
-				'results'    => $data,
-				'pagination' => $this->get_events_sync_list_pagination( $total, $items_per_page, $page ),
-			)
-		);
-	}
-
-	public function handle_select2() {
-		if ( isset( $_GET['event'] ) ) {
-			if ( $_GET['event'] === 'instawp_get_users' ) {
-				$keyword = ! empty( $_GET['term'] ) ? sanitize_text_field( wp_unslash( $_GET['term'] ) ) : '';
-				$args    = array(
-					'search'         => $keyword,
-					'paged'          => 1,
-					'search_columns' => array( 'user_login', 'user_nicename', 'user_email' ),
-					'fields'         => array( 'id', 'user_login' ),
-				);
-				$users   = get_users( $args );
-				$this->send_success(
-					'Users loaded',
-					array(
-						'results' => $users,
-						'opt_col' => array(
-							'text' => 'user_login',
-							'id'   => 'ID',
-						),
-					)
-				);
-			} elseif ( $_GET['event'] === 'instawp_get_users_exclude_current' ) {
-				$keyword = ! empty( $_GET['term'] ) ? sanitize_text_field( wp_unslash( $_GET['term'] ) ) : '';
-				$args    = array(
-					'search'         => $keyword,
-					'paged'          => 1,
-					'exclude'        => get_current_user_id(),
-					'search_columns' => array( 'user_login', 'user_nicename', 'user_email' ),
-					'fields'         => array( 'id', 'user_login' ),
-				);
-				$users   = get_users( $args );
-				$this->send_success(
-					'Users loaded',
-					array(
-						'results' => $users,
-						'opt_col' => array(
-							'text' => 'user_login',
-							'id'   => 'ID',
-						),
-					)
-				);
-			} elseif ( $_GET['event'] === 'instawp_sync_tab_roles' ) {
-				$results   = array();
-				$all_roles = wp_roles()->roles;
-				foreach ( $all_roles as $slug => $role ) {
-					$results[] = array(
-						'id'   => $slug,
-						'name' => $role['name'],
-					);
-				}
-				$this->send_success(
-					'Users loaded',
-					array(
-						'results' => $results,
-						'opt_col' => array(
-							'text' => 'name',
-							'id'   => 'id',
-						),
-					)
-				);
 			}
+
+			if ( empty( $package ) ) {
+				return $source;
+			}
+
+			// Check if it's a local file (uploaded zip) vs remote URL (WordPress.org)
+			// Local files will have a file path, remote URLs will start with http:// or https://
+			if ( filter_var( $package, FILTER_VALIDATE_URL ) && ( strpos( $package, 'http://' ) === 0 || strpos( $package, 'https://' ) === 0 ) ) {
+				// It's a remote URL (likely WordPress.org), skip copying
+				return $source;
+			}
+
+			// Check if it's a valid local zip file
+			if ( ! file_exists( $package ) || ! is_file( $package ) ) {
+				return $source;
+			}
+
+			// Verify it's a zip file
+			$file_extension = strtolower( pathinfo( $package, PATHINFO_EXTENSION ) );
+			if ( $file_extension !== 'zip' ) {
+				return $source;
+			}
+
+			// Copy the zip file to INSTAWP_BACKUP_DIR/sync directory
+			if ( ! defined( 'INSTAWP_BACKUP_DIR' ) ) {
+				return $source;
+			}
+
+			// Create sync subdirectory in backup directory if it doesn't exist
+			// INSTAWP_BACKUP_DIR already has trailing separator
+			$sync_dir = INSTAWP_BACKUP_DIR . 'sync';
+			if ( ! file_exists( $sync_dir ) ) {
+				wp_mkdir_p( $sync_dir );
+			}
+
+			// Generate a unique filename for the copied zip
+			$original_filename = basename( $package );
+			$zip_filename = sanitize_file_name( $original_filename );
+			// Add timestamp to ensure uniqueness
+			$path_info = pathinfo( $zip_filename );
+			$zip_filename = $path_info['filename'] . '-' . time() . '.' . $path_info['extension'];
+			$copied_zip_path = $sync_dir . DIRECTORY_SEPARATOR . $zip_filename;
+
+			// Generate URL for the zip file
+			// INSTAWP_BACKUP_DIR is: WP_CONTENT_DIR/instawpbackups/
+			// We need: wp-content/instawpbackups/sync/filename.zip
+			$backup_dir_relative = str_replace( WP_CONTENT_DIR . DIRECTORY_SEPARATOR, '', INSTAWP_BACKUP_DIR );
+			$backup_dir_relative = str_replace( DIRECTORY_SEPARATOR, '/', $backup_dir_relative );
+			$copied_zip_url = content_url( $backup_dir_relative . 'sync/' . $zip_filename );
+
+			// Copy the file
+			if ( copy( $package, $copied_zip_path ) ) {
+				// Store in class property for same-request access
+				// The zip_url will be stored in event details when the event is saved
+				$this->copied_zip_files[ $package ] = $copied_zip_url;
+			}
+
+			return $source;
 		}
-	}
 
-	public function pack_events() {
-		check_ajax_referer( 'instawp-connect', 'security' );
-
-		if ( ! current_user_can( InstaWP_Setting::get_allowed_role() ) ) {
-			$this->send_error( 'Can\'t perform this action.' );
+	/**
+	 * Function for `upgrader_process_complete` action-hook.
+	 *
+	 * @param WP_Upgrader $upgrader   WP_Upgrader instance. In other contexts this might be a Theme_Upgrader, Plugin_Upgrader, Core_Upgrade, or Language_Pack_Upgrader instance.
+	 * @param array       $hook_extra Array of bulk item update data.
+	 *
+	 * @return void
+	 */
+	public function install_update_action( $upgrader, $hook_extra ) {
+		if ( empty( $hook_extra['type'] ) || empty( $hook_extra['action'] ) ) {
+			return;
 		}
 
-		try {
-			$events = $this->get_pending_sync_events();
-			if ( ! empty( $events ) ) {
-				$data = array();
-				foreach ( $events as $row ) {
-					if ( ! empty( $row->event_type ) ) {
-						$count                    = isset( $data[ $row->event_type ] ) ? $data[ $row->event_type ] : 0;
-						$data[ $row->event_type ] = $count + 1;
+		$event_slug = $hook_extra['type'] . '_' . $hook_extra['action'];
+		$event_name = sprintf( esc_html__('%1$s %2$s%3$s', 'instawp-connect' ), ucfirst( $hook_extra['type'] ), $hook_extra['action'], $hook_extra['action'] === 'update' ? 'd' : 'ed' );
+
+		// hooks for plugins and record the plugin.
+		if ( InstaWP_Sync_Helpers::can_sync( 'plugin' ) && $hook_extra['type'] === 'plugin' ) {
+
+			if ( ! function_exists( 'get_plugin_data' ) ) {
+				require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
+			}
+
+			if ( 'install' === $hook_extra['action'] ) {
+				$path = $upgrader->plugin_info();
+				if ( ! $path ) {
+					return;
+				}
+
+				$data    = get_plugin_data( $upgrader->skin->result['local_destination'] . '/' . $path, true, false );
+				$slug    = explode( '/', $path );
+				$details = array(
+					'name' => $data['Name'],
+					'slug' => $slug[0],
+					'path' => $path,
+					'data' => $data,
+				);
+
+				// Check if it's a custom plugin (not on WordPress.org)
+				// If custom, try to use the copied original zip file
+				if ( ! Helper::is_on_wordpress_org( $slug[0], $hook_extra['type'] ) ) {
+					$zip_url = $this->get_copied_plugin_zip( $upgrader );
+					
+					if ( $zip_url ) {
+						$details['zip_url'] = $zip_url;
+						$details['is_custom'] = true;
 					}
 				}
-				$data['total_events'] = count( $events );
-				$this->send_success( 'The data has packed successfully as JSON from WP DB', $data );
-			} else {
-				$this->send_error( 'The events are not available' );
-			}
-		} catch ( Exception $e ) {
-			$this->send_error( 'Caught Exception: ' . $e->getMessage() );
-		}
-	}
-
-	public function sync_changes() {
-		check_ajax_referer( 'instawp-connect', 'security' );
-
-		$debug_data = array();
-		if ( ! current_user_can( InstaWP_Setting::get_allowed_role() ) ) {
-			$this->send_error( 'Can\'t perform this action.' );
-		}
-
-		$dest_connect_id = ! empty( $_POST['dest_connect_id'] ) ? intval( $_POST['dest_connect_id'] ) : '';
-		if ( empty( $dest_connect_id ) ) {
-			$this->send_error( 'Invalid destination.' );
-		}
-
-		$message = isset( $_POST['sync_message'] ) ? sanitize_textarea_field( wp_unslash( $_POST['sync_message'] ) ) : '';
-		$data    = ! empty( $_POST['data'] ) ? wp_unslash( $_POST['data'] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-		$events  = $this->get_wp_events( $dest_connect_id );
-
-		if ( isset( $events['success'] ) && $events['success'] === true ) {
-			$packed_data = array(
-				'encrypted_content' => wp_json_encode( $events['data']['contents'] ),
-				'dest_connect_id'   => $dest_connect_id,
-				'changes'           => $data,
-				'upload_wp_user'    => get_current_user_id(),
-				'sync_message'      => $message,
-				'source_connect_id' => instawp()->connect_id,
-				'source_url'        => Helper::wp_site_url(),
-			);
-
-			$debug_data['sync_upload_packed_data'] = $packed_data;
-			$response                              = $this->sync_upload( $packed_data );
-			$debug_data['sync_upload_response']    = $response;
-
-			if ( ! isset( $response['success'] ) || $response['success'] !== true ) {
-				Helper::add_error_log(
-					array(
-						'message'  => 'sync_changes > sync_upload failed',
-						'response' => $response,
-					)
-				);
-
-				$this->send_error(
-					$response['message'],
-					array(
-						'http_code' => isset( $response['code'] ) ? $response['code'] : '',
-					)
-				);
+				// Allow both WordPress.org and custom uploaded plugins to sync
+				$this->parse_plugin_theme_event( $event_name, $event_slug, $details, $hook_extra['type'] );
 			}
 
-			$sync_id = ! empty( $response['data']['sync_id'] ) ? $response['data']['sync_id'] : '';
-			if ( empty( $sync_id ) ) {
-				$this->send_error( 'Sync ID missing!' );
-			}
-
-			$this->update_sync_events_status( $dest_connect_id, $sync_id );
-
-			$batch_data      = Option::get_option( 'instawp_event_batch_data' );
-			$total_completed = $batch_data['total_completed'] + count( $events['data']['contents'] );
-			$percentage      = round( ( $batch_data['current_batch'] * 100 ) / intval( $batch_data['total_batch'] ) );
-			$next_batch      = $batch_data['current_batch'] + 1;
-
-			$result = array(
-				'count'             => $batch_data['total_events'],
-				'current_batch'     => $batch_data['current_batch'],
-				'next_batch'        => $next_batch,
-				'total_completed'   => $total_completed,
-				'percent_completed' => $percentage,
-				'per_batch'         => $this->sync_per_page,
-				'total_batch'       => intval( $batch_data['total_batch'] ),
-				'progress_text'     => $percentage . '%' . sprintf( ' Completed (%u out of %s events)', $total_completed, intval( $batch_data['total_events'] ) ),
-			);
-
-			$batch_data['current_batch']   = $next_batch;
-			$batch_data['total_completed'] = $total_completed;
-
-			Option::update_option( 'instawp_event_batch_data', $batch_data );
-
-			$this->send_success( $response['message'], $result );
-		} else {
-			$this->send_error( 'No pending events found!' );
-		}
-	}
-
-	public function get_events_summary() {
-		check_ajax_referer( 'instawp-connect', 'security' );
-
-		if ( ! current_user_can( InstaWP_Setting::get_allowed_role() ) ) {
-			$this->send_error( 'Can\'t perform this action.' );
-		}
-
-		// $where  = "`status`='completed'";
-		$where      = "`status` IN ('completed', 'invalid', 'error')";
-		$where2     = array();
-		$connect_id = ! empty( $_POST['connect_id'] ) ? intval( $_POST['connect_id'] ) : 0;
-		$entry_ids  = ! empty( $_POST['ids'] ) ? array_map( 'intval', explode( ',', sanitize_text_field( wp_unslash( $_POST['ids'] ) ) ) ) : array();
-
-		if ( $connect_id > 0 ) {
-			$where       .= ' AND `connect_id`=' . $connect_id;
-			$staging_site = instawp_get_site_detail_by_connect_id( $connect_id, 'data' );
-
-			if ( ! empty( $staging_site ) && isset( $staging_site['created_at'] ) && ! instawp()->is_staging ) {
-				$staging_site_created = date( 'Y-m-d h:i:s', strtotime( $staging_site['created_at'] ) );
-				$where2[]             = "`date` >= '" . $staging_site_created . "'";
-			}
-		}
-
-		if ( ! empty( $entry_ids ) ) {
-			$entry_ids = join( ', ', $entry_ids );
-			$where2[]  = "`id` IN($entry_ids)";
-		}
-
-		$where2 = empty( $where2 ) ? '1=1' : join( ' AND ', $where2 );
-
-		// $query   = "SELECT event_name, COUNT(*) as event_count FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE $where2 AND `event_hash` NOT IN (SELECT event_hash AS id FROM " . INSTAWP_DB_TABLE_EVENT_SITES . " WHERE $where) GROUP BY event_name HAVING event_count > 0";
-		// $results = $this->wpdb->get_results( $query ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-
-		$query  = 'SELECT * FROM ' . INSTAWP_DB_TABLE_EVENTS . " WHERE $where2 AND `event_hash` NOT IN (SELECT event_hash AS id FROM " . INSTAWP_DB_TABLE_EVENT_SITES . " WHERE $where)";
-		$events = $this->wpdb->get_results( $query ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		$events = $this->filter_events( $events );
-
-		$results = array();
-
-		foreach ( $events as $event ) {
-			if ( ! isset( $results[ $event->event_name ] ) ) {
-				$results[ $event->event_name ] = 0;
-			}
-			++$results[ $event->event_name ];
-		}
-
-		$html = '<ul class="list">';
-		if ( ! empty( $results ) ) {
-			$i = 0;
-			foreach ( $results as $event_name => $event_count ) {
-				$html .= '<li class="event-type-count ' . ( $i > 2 ? 'hidden' : '' ) . '">';
-				$html .= sprintf( __( '%1$u %2$s', 'instawp-connect' ), $event_count, ucfirst( str_replace( '_', ' ', $event_name ) ) );
-				$html .= '</li>';
-				++$i;
-			}
-
-			$html .= '<li class="event-type-count-show-more" style="display:none">';
-			$html .= '<a href="javascript:void(0)" class="load-more-event-type">' . esc_html( __( 'Show more', 'instawp-connect' ) ) . '</a>';
-			$html .= '</li>';
-		} else {
-			$results = array( 'Post', 'Page', 'Theme', 'Plugin' );
-			foreach ( $results as $row ) {
-				$html .= '<li class="event-type-count">';
-				$html .= sprintf( __( '%1$u %2$s %3$s', 'instawp-connect' ), 0, $row, in_array( $row, array( 'Page', 'Post' ) ) ? 'modified' : 'installed' );
-				$html .= '</li>';
-			}
-		}
-		$html .= '</ul>';
-
-		delete_option( 'instawp_event_batch_data' );
-
-		$total_events = $this->get_pending_sync_events( true );
-
-		$this->send_success(
-			'Summery fetched',
-			array(
-				'html'          => $html,
-				'count'         => $total_events,
-				'progress_text' => sprintf(
-					_n(
-						'Waiting for Sync to Start (%d event)',
-						'Waiting for Sync to Start (%d events)',
-						$total_events,
-						'instawp-connect'
-					),
-					$total_events
-				),
-				'message'       => $total_events > 0 ? __( 'Events loaded', 'instawp-connect' ) : __( 'No pending events found!', 'instawp-connect' ),
-			)
-		);
-	}
-
-	public function delete_events() {
-		check_ajax_referer( 'instawp-connect', 'security' );
-
-		if ( ! current_user_can( InstaWP_Setting::get_allowed_role() ) ) {
-			$this->send_error( 'Can\'t perform this action.' );
-		}
-
-		if ( ! empty( $_POST['ids'] ) ) {
-			global $wpdb;
-
-			$ids          = array_map( 'intval', explode( ',', sanitize_text_field( wp_unslash( $_POST['ids'] ) ) ) );
-			$placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
-
-			$wpdb->query(
-				$wpdb->prepare( 'DELETE FROM ' . INSTAWP_DB_TABLE_EVENTS . " WHERE id IN ($placeholders)", $ids ) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-			);
-
-			if ( ! empty( $_POST['connect_id'] ) ) {
-				$wpdb->query(
-					$wpdb->prepare( 'DELETE FROM ' . INSTAWP_DB_TABLE_EVENT_SITES . " WHERE event_id IN ($placeholders)", $ids ) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
-				);
-			}
-
-			$this->send_success( 'Data deleted' );
-		}
-	}
-
-	public function calculate_events() {
-		check_ajax_referer( 'instawp-connect', 'security' );
-
-		if ( ! current_user_can( InstaWP_Setting::get_allowed_role() ) ) {
-			$this->send_error( 'Can\'t perform this action.' );
-		}
-
-		$total_events = $this->get_pending_sync_events( true );
-
-		if ( $total_events > 0 ) {
-			delete_option( 'instawp_event_batch_data' );
-
-			$sync_quota_response = $this->get_connect_quota_remaining_limit();
-			if ( ! empty( $sync_quota_response ) ) {
-				if ( $sync_quota_response['remaining'] >= $total_events ) {
-					$batch_data = array(
-						'per_batch'         => $this->sync_per_page,
-						'total_batch'       => ceil( $total_events / $this->sync_per_page ),
-						'total_events'      => $total_events,
-						'current_batch'     => 1,
-						'percent_completed' => 0,
-						'total_completed'   => 0,
-					);
-					Option::update_option( 'instawp_event_batch_data', $batch_data );
-
-					$this->send_success(
-						'Event fetched.',
-						array(
-							'count'         => $total_events,
-							'page'          => 1,
-							'per_page'      => $this->sync_per_page,
-							'progress_text' => '0%' . sprintf( __( ' Completed (0 out of %d events)', 'instawp-connect' ), $total_events ),
-						)
-					);
+			if ( 'update' === $hook_extra['action'] ) {
+				if ( isset( $hook_extra['bulk'] ) && $hook_extra['bulk'] ) {
+					$paths = $hook_extra['plugins'];
 				} else {
-					$this->send_error( sprintf( __( 'You have reached your sync limit. Remaining quota %1$s out of %2$s.', 'instawp-connect' ), $sync_quota_response['remaining'], $sync_quota_response['sync_quota_limit'] ) );
-				}
-			}
-		} else {
-			$this->send_error( __( 'No pending events found!', 'instawp-connect' ) );
-		}
-	}
-
-	private function send_success( $message, $data = array() ) {
-		wp_send_json(
-			array(
-				'success' => true,
-				'message' => $message,
-				'data'    => $data,
-			)
-		);
-	}
-
-	private function send_error( $message = 'Something went wrong', $details = array() ) {
-		wp_send_json(
-			array(
-				'success' => false,
-				'message' => $message,
-				'details' => $details,
-			)
-		);
-	}
-
-	public function update_sync_events_status( $connect_id, $sync_id ) {
-		try {
-			// Get sync status against sync_id
-			$response = $this->get_sync_object( $sync_id );
-			if ( $response['success'] === true ) {
-				$sync_response = isset( $response['data']['changes']['changes']['sync_response'] ) ? $response['data']['changes']['changes']['sync_response'] : array();
-				// Failed process attachment
-				$failed_process_attachment = array(
-					'add'    => array(),
-					'remove' => array(),
-				);
-				foreach ( $sync_response as $data ) {
-					if ( ! empty( $data['status'] ) && 'pending' === $data['status'] && strpos( $data['message'], 'failed_process_attachment' ) !== false ) {
-						$failed_process_attachment['add'][] = $data['id'];
-					} else {
-						$failed_process_attachment['remove'][] = $data['id'];
+					$plugin_slug = isset( $upgrader->skin->plugin ) ? $upgrader->skin->plugin : $hook_extra['plugin'];
+					if ( empty( $plugin_slug ) ) {
+						return;
 					}
-					InstaWP_Sync_DB::insert(
-						INSTAWP_DB_TABLE_EVENT_SITES,
-						array(
-							'event_id'       => $data['id'],
-							'event_hash'     => $data['hash'],
-							'connect_id'     => $connect_id,
-							'status'         => $data['status'],
-							'synced_message' => $data['message'],
-							'date'           => current_time( 'mysql', 1 ),
-						)
-					);
+
+					$paths = array( $plugin_slug );
 				}
 
-				// Update failed process attachment
-				InstaWP_Sync_Helpers::failed_direct_process_media_events(
-					$failed_process_attachment
+				foreach ( $paths as $path ) {
+					$data    = get_plugin_data( WP_PLUGIN_DIR . '/' . $path, true, false );
+					$slug    = explode( '/', $path );
+					$details = array(
+						'name' => $data['Name'],
+						'slug' => $slug[0],
+						'path' => $path,
+						'data' => $data,
+					);
+
+					$this->parse_plugin_theme_event( $event_name, $event_slug, $details, $hook_extra['type'] );
+				}
+			}
+		}
+
+		// hooks for theme and record the event
+		if ( InstaWP_Sync_Helpers::can_sync( 'theme' ) && $hook_extra['type'] === 'theme' ) {
+
+			if ( 'install' === $hook_extra['action'] ) {
+				wp_clean_themes_cache();
+				$details = array(
+					'name'       => ! empty( $upgrader->new_theme_data['Name'] ) ? $upgrader->new_theme_data['Name'] : ucfirst( $upgrader->result['destination_name'] ),
+					'stylesheet' => $upgrader->result['destination_name'],
+					'data'       => isset( $upgrader->new_theme_data ) ? $upgrader->new_theme_data : array(),
 				);
-			} else {
-				Helper::add_error_log(
-					array(
-						'message'    => 'update_sync_events_status failed',
-						'connect_id' => $connect_id,
-						'sync_id'    => $sync_id,
-						'response'   => $response,
-					)
-				);
+
+				if ( Helper::is_on_wordpress_org( $upgrader->result['destination_name'], $hook_extra['type'] ) ) {
+					$this->parse_plugin_theme_event( $event_name, $event_slug, $details, $hook_extra['type'] );
+				}
 			}
 
-			return $response;
-		} catch ( \Throwable $e ) {
-			Helper::add_error_log(
-				array(
-					'message'    => 'update_sync_events_status exception',
-					'connect_id' => $connect_id,
-					'sync_id'    => $sync_id,
-				),
-				$e
-			);
-			return array(
-				'success' => false,
-				'message' => 'Caught Exception: ' . $e->getMessage(),
-			);
+			if ( 'update' === $hook_extra['action'] ) {
+				if ( isset( $hook_extra['bulk'] ) && $hook_extra['bulk'] ) {
+					$slugs = $hook_extra['themes'];
+				} else {
+					$slugs = array( $upgrader->skin->theme );
+				}
+
+				foreach ( $slugs as $slug ) {
+					$theme   = wp_get_theme( $slug );
+					$details = array(
+						'name'       => $theme->display( 'Name' ),
+						'stylesheet' => $theme->get_stylesheet(),
+					);
+
+					$this->parse_plugin_theme_event( $event_name, $event_slug, $details, $hook_extra['type'] );
+				}
+			}
 		}
 	}
 
-	private function get_events_sync_list_pagination( $total, $items_per_page, $page ) {
-		return paginate_links(
-			array(
-				'base'      => '%_%',
-				'format'    => '?page=instawp&epage=%#%',
-				'prev_text' => __( '« Previous', 'instawp-connect' ),
-				'next_text' => __( 'Next »', 'instawp-connect' ),
-				'show_all'  => false,
-				'total'     => ceil( $total / $items_per_page ),
-				'current'   => $page,
-				'type'      => 'plain',
-				'prev_next' => true,
-				'class'     => 'instawp_sync_event_pagination',
-			)
+	/**
+	 * Function for `deactivated_plugin` action-hook.
+	 *
+	 * @param string $plugin Path to the plugin file relative to the plugins directory.
+	 * @param $network_wide
+	 *
+	 * @return void
+	 */
+	public function deactivate_plugin( $plugin, $network_wide ) {
+		if ( ! InstaWP_Sync_Helpers::can_sync( 'plugin' ) ) {
+			return;
+		}
+
+		if ( $plugin !== 'instawp-connect/instawp-connect.php' ) {
+			$this->parse_plugin_theme_event( __('Plugin deactivated', 'instawp-connect' ), 'deactivate_plugin', $plugin, 'plugin' );
+		}
+	}
+	/**
+	 * Function for `activated_plugin` action-hook.
+	 *
+	 * @param string $plugin       Path to the plugin file relative to the plugins directory.
+	 * @param bool   $network_wide Whether to enable the plugin for all sites in the network or just the current site. Multisite only.
+	 *
+	 * @return void
+	 */
+	public function activate_plugin( $plugin, $network_wide ) {
+		if ( ! InstaWP_Sync_Helpers::can_sync( 'plugin' ) ) {
+			return;
+		}
+
+		if ( $plugin !== 'instawp-connect/instawp-connect.php' ) {
+			$this->parse_plugin_theme_event( __('Plugin activated', 'instawp-connect' ), 'activate_plugin', $plugin, 'plugin' );
+		}
+	}
+
+	/**
+	 * Function for `deleted_plugin` action-hook.
+	 *
+	 * @param string $plugin Path to the plugin file relative to the plugins directory.
+	 *
+	 * @return void
+	 */
+	public function delete_plugin( $plugin, $deleted ) {
+		if ( ! InstaWP_Sync_Helpers::can_sync( 'plugin' ) ) {
+			return;
+		}
+
+		if ( $deleted && $plugin !== 'instawp-connect/instawp-connect.php' ) {
+			$this->parse_plugin_theme_event( __( 'Plugin deleted', 'instawp-connect' ), 'deleted_plugin', $plugin, 'plugin' );
+		}
+	}
+
+	/**
+	 * Function for `switch_theme` action-hook.
+	 *
+	 * @param string   $new_name  Name of the new theme.
+	 * @param WP_Theme $new_theme WP_Theme instance of the new theme.
+	 * @param WP_Theme $old_theme WP_Theme instance of the old theme.
+	 *
+	 * @return void
+	 */
+	public function switch_theme( $new_name, $new_theme, $old_theme ) {
+		if ( ! InstaWP_Sync_Helpers::can_sync( 'theme' ) ) {
+			return;
+		}
+
+		$details    = array(
+			'name'       => $new_name,
+			'stylesheet' => $new_theme->get_stylesheet(),
 		);
+		$event_name = __('Theme switched', 'instawp-connect' );
+		$this->parse_plugin_theme_event( $event_name, 'switch_theme', $details, 'theme' );
 	}
 
-	public function sync_upload( $data = null, $retry = 0 ) {
-		try {
-			$response   = array();
-			$connect_id = instawp_get_connect_id();
-			$retry      = intval( $retry ) + 1;
-			// connects/<connect_id>/syncs
-			$response = Curl::do_curl( "connects/{$connect_id}/syncs", $data );
-
-			if ( $retry < 3 && ( ! empty( $response['message'] ) && strpos( $response['message'], 'cURL error 28:' ) !== false ) || ( ! empty( $response['code'] ) && 500 <= intval( $response['code'] ) ) ) {
-				sleep( 2 );
-				Helper::add_error_log(
-					array(
-						'message'  => 'sync_upload retrying',
-						'retry'    => $retry,
-						'response' => $response,
-					)
-				);
-				$response = $this->sync_upload( $data, $retry );
-			}
-		} catch ( \Throwable $th ) {
-			Helper::add_error_log(
-				array(
-					'message'  => 'sync_upload exception',
-					'response' => $response,
-				),
-				$th
-			);
-			$response = array(
-				'success'  => false,
-				'response' => $response,
-				'message'  => 'Caught Exception: ' . $th->getMessage(),
-				'code'     => 500,
-			);
+	/**
+	 * Function for `deleted_theme` action-hook.
+	 *
+	 * @param string $stylesheet Stylesheet of the theme to delete.
+	 * @param bool   $deleted    Whether the theme deletion was successful.
+	 *
+	 * @return void
+	 */
+	public function delete_theme( $stylesheet, $deleted ) {
+		if ( ! InstaWP_Sync_Helpers::can_sync( 'theme' ) ) {
+			return;
 		}
-		return $response;
+
+		$theme   = wp_get_theme( $stylesheet );
+		$details = array(
+			'name'       => $theme->display( 'Name' ),
+			'stylesheet' => $stylesheet,
+		);
+
+		if ( $deleted ) {
+			$this->parse_plugin_theme_event( __( 'Theme deleted', 'instawp-connect' ), 'deleted_theme', $details, 'theme' );
+		}
 	}
 
-	public function get_sync_object( $sync_id = null ) {
-		$connect_id = instawp_get_connect_id();
+	public function parse_event( $response, $v ) {
+		if ( strpos( $v->event_type, 'plugin' ) === false && strpos( $v->event_type, 'theme' ) === false ) {
+			return $response;
+		}
 
-		// connects/<connect_id>/syncs
-		return Curl::do_curl( "connects/{$connect_id}/syncs/{$sync_id}", array(), array(), 'GET' );
+		$logs = array();
+
+		// plugin install
+		if ( $v->event_slug === 'plugin_install' ) {
+			if ( ! empty( $v->details->slug ) ) {
+				// Check if zip_url is available for custom plugins
+				$zip_url = isset( $v->details->zip_url ) ? $v->details->zip_url : null;
+				$response = $this->install_item( $v->details->slug, 'plugin', false, $zip_url )[0];
+
+				if ( ! $response['success'] ) {
+					$logs[ $v->id ] = $response['message'];
+
+					return InstaWP_Sync_Helpers::sync_response( $v, $logs, array(
+						'status'  => 'error',
+						'message' => $logs[ $v->id ],
+					) );
+				}
+
+				// Delete zip file after successful installation
+				// This will delete on source site (where file exists) and skip on destination site
+				if ( ! empty( $zip_url ) ) {
+					$this->delete_zip_file( $zip_url );
+				}
+			} else {
+				$logs[ $v->id ] = __( 'Slug missing.', 'instawp-connect' );
+
+				return InstaWP_Sync_Helpers::sync_response( $v, $logs, array(
+					'status'  => 'error',
+					'message' => $logs[ $v->id ],
+				) );
+			}
+		}
+
+		// plugin activate
+		if ( $v->event_slug === 'activate_plugin' ) {
+			// try to install plugin if not exists.
+			if ( ! $this->is_plugin_installed( $v->details ) ) {
+				$slug = explode( '/', $v->details );
+
+				if ( Helper::is_on_wordpress_org( $slug[0], 'plugin' ) ) {
+					$response = $this->install_item( $slug[0], 'plugin', true )[0];
+
+					if ( ! $response['success'] ) {
+						$logs[ $v->id ] = $response['message'];
+
+						return InstaWP_Sync_Helpers::sync_response( $v, $logs, array(
+							'status'  => 'error',
+							'message' => $logs[ $v->id ],
+						) );
+					}
+				}
+			}
+
+			if ( $this->is_plugin_installed( $v->details ) ) {
+				$response = $this->activate_item( $v->details, 'plugin' )[0];
+
+				if ( ! $response['success'] ) {
+					$logs[ $v->id ] = $response['message'];
+
+					return InstaWP_Sync_Helpers::sync_response( $v, $logs, array(
+						'status'  => 'error',
+						'message' => $logs[ $v->id ],
+					) );
+				}
+			} else {
+				$logs[ $v->id ] = sprintf( __( 'Plugin %s not found at destination.', 'instawp-connect' ), $v->details );
+
+				return InstaWP_Sync_Helpers::sync_response( $v, $logs, array(
+					'status'  => 'invalid',
+					'message' => $logs[ $v->id ],
+				) );
+			}
+		}
+
+		// plugin deactivate
+		if ( $v->event_slug === 'deactivate_plugin' ) {
+			if ( $this->is_plugin_installed( $v->details ) ) {
+				$response = $this->deactivate_item( $v->details );
+
+				if ( ! $response['success'] ) {
+					$logs[ $v->id ] = $response['message'];
+
+					return InstaWP_Sync_Helpers::sync_response( $v, $logs, array(
+						'status'  => 'error',
+						'message' => $logs[ $v->id ],
+					) );
+				}
+			} else {
+				$logs[ $v->id ] = sprintf( __( 'Plugin %s not found at destination.', 'instawp-connect' ), $v->details );
+
+				return InstaWP_Sync_Helpers::sync_response( $v, $logs, array(
+					'status'  => 'invalid',
+					'message' => $logs[ $v->id ],
+				) );
+			}
+		}
+
+		// plugin update
+		if ( $v->event_slug === 'plugin_update' ) {
+			if ( ! empty( $v->details->path ) ) {
+				if ( $this->is_plugin_installed( $v->details->path ) ) {
+					$response = $this->update_item( $v->details->path, 'plugin' );
+					
+					if ( isset( $response[ $v->details->path ] ) ) {
+						$response = $response[ $v->details->path ];
+					} elseif ( isset( $response[0] ) ) {
+						$response = $response[0];
+					}
+
+					if ( isset( $response['success'] ) && false === $response['success'] ) {
+						$logs[ $v->id ] = $response['message'];
+
+						return InstaWP_Sync_Helpers::sync_response( $v, $logs, array(
+							'status'  => 'error',
+							'message' => $logs[ $v->id ],
+						) );
+					}
+				} else {
+					$logs[ $v->id ] = sprintf( __( 'Plugin %s not found at destination.', 'instawp-connect' ), $v->details->path );
+
+					return InstaWP_Sync_Helpers::sync_response( $v, $logs, array(
+						'status'  => 'invalid',
+						'message' => $logs[ $v->id ],
+					) );
+				}
+			} else {
+				$logs[ $v->id ] = __( 'Plugin file missing.', 'instawp-connect' );
+
+				return InstaWP_Sync_Helpers::sync_response( $v, $logs, array(
+					'status'  => 'error',
+					'message' => $logs[ $v->id ],
+				) );
+			}
+		}
+
+		// plugin delete
+		if ( $v->event_slug === 'deleted_plugin' ) {
+			if ( $this->is_plugin_installed( $v->details ) ) {
+				$response = $this->uninstall_item( $v->details, 'plugin' )[0];
+
+				if ( ! $response['success'] ) {
+					$logs[ $v->id ] = $response['message'];
+
+					return InstaWP_Sync_Helpers::sync_response( $v, $logs, array(
+						'status'  => 'error',
+						'message' => $logs[ $v->id ],
+					) );
+				}
+			} else {
+				$logs[ $v->id ] = sprintf( __( 'Plugin %s not found at destination.', 'instawp-connect' ), $v->details );
+
+				return InstaWP_Sync_Helpers::sync_response( $v, $logs, array(
+					'status'  => 'invalid',
+					'message' => $logs[ $v->id ],
+				) );
+			}
+		}
+
+		// theme install
+		if ( $v->event_slug === 'theme_install' ) {
+			if ( ! empty( $v->details->stylesheet ) ) {
+				$response = $this->install_item( $v->details->stylesheet, 'theme' )[0];
+
+				if ( ! $response['success'] ) {
+					$logs[ $v->id ] = $response['message'];
+
+					return InstaWP_Sync_Helpers::sync_response( $v, $logs, array(
+						'status'  => 'error',
+						'message' => $logs[ $v->id ],
+					) );
+				}
+			} else {
+				$logs[ $v->id ] = __( 'Stylesheet missing.', 'instawp-connect' );
+
+				return InstaWP_Sync_Helpers::sync_response( $v, $logs, array(
+					'status'  => 'error',
+					'message' => $logs[ $v->id ],
+				) );
+			}
+		}
+
+		// theme switch
+		if ( $v->event_slug === 'switch_theme' ) {
+			$stylesheet = $v->details->stylesheet;
+			$theme      = wp_get_theme( $stylesheet );
+
+			if ( ! $theme->exists() ) {
+				$response = $this->install_item( $stylesheet, 'theme' )[0];
+
+				if ( ! $response['success'] ) {
+					$logs[ $v->id ] = $response['message'];
+
+					return InstaWP_Sync_Helpers::sync_response( $v, $logs, array(
+						'status'  => 'error',
+						'message' => $logs[ $v->id ],
+					) );
+				}
+			}
+
+			$theme = wp_get_theme( $stylesheet );
+			if ( $theme->exists() ) {
+				$response = $this->activate_item( $stylesheet, 'theme' )[0];
+
+				if ( ! $response['success'] ) {
+					$logs[ $v->id ] = $response['message'];
+
+					return InstaWP_Sync_Helpers::sync_response( $v, $logs, array(
+						'status'  => 'error',
+						'message' => $logs[ $v->id ],
+					) );
+				}
+			} else {
+				$logs[ $v->id ] = sprintf( __( 'Theme %s not found at destination.', 'instawp-connect' ), $stylesheet );
+
+				return InstaWP_Sync_Helpers::sync_response( $v, $logs, array(
+					'status'  => 'invalid',
+					'message' => $logs[ $v->id ],
+				) );
+			}
+		}
+
+		// theme update
+		if ( $v->event_slug === 'theme_update' ) {
+			$stylesheet = $v->details->stylesheet;
+			$theme      = wp_get_theme( $stylesheet );
+
+			if ( $theme->exists() ) {
+				$response = $this->update_item( $stylesheet, 'theme' );
+
+				if ( isset( $response[ $stylesheet ] ) ) {
+					$response = $response[ $stylesheet ];
+				} elseif ( isset( $response[0] ) ) {
+					$response = $response[0];
+				}
+
+				if ( isset( $response['success'] ) && false === $response['success'] ) {
+					$logs[ $v->id ] = $response['message'];
+
+					return InstaWP_Sync_Helpers::sync_response( $v, $logs, array(
+						'status'  => 'error',
+						'message' => $logs[ $v->id ],
+					) );
+				}
+			} else {
+				$logs[ $v->id ] = sprintf( __( 'Theme %s not found at destination.', 'instawp-connect' ), $stylesheet );
+
+				return InstaWP_Sync_Helpers::sync_response( $v, $logs, array(
+					'status'  => 'invalid',
+					'message' => $logs[ $v->id ],
+				) );
+			}
+		}
+
+		// theme delete
+		if ( $v->event_slug === 'deleted_theme' ) {
+			$stylesheet = $v->details->stylesheet;
+			$theme      = wp_get_theme( $stylesheet );
+
+			if ( $theme->exists() ) {
+				$response = $this->uninstall_item( $stylesheet, 'theme' )[0];
+
+				if ( ! $response['success'] ) {
+					$logs[ $v->id ] = $response['message'];
+
+					return InstaWP_Sync_Helpers::sync_response( $v, $logs, array(
+						'status'  => 'error',
+						'message' => $logs[ $v->id ],
+					) );
+				}
+			} else {
+				$logs[ $v->id ] = sprintf( __( 'Theme %s not found at destination.', 'instawp-connect' ), $stylesheet );
+
+				return InstaWP_Sync_Helpers::sync_response( $v, $logs, array(
+					'status'  => 'invalid',
+					'message' => $logs[ $v->id ],
+				) );
+			}
+		}
+
+		return InstaWP_Sync_Helpers::sync_response( $v, $logs );
 	}
 
-	public function get_connect_quota_remaining_limit() {
-		$connect_id = instawp_get_connect_id();
+	/**
+	 * Function parse_plugin_theme_event
+	 * @param $event_name
+	 * @param $event_slug
+	 * @param $details
+	 * @param $type
+	 * @return void
+	 */
+	private function parse_plugin_theme_event( $event_name, $event_slug, $details, $type ) {
+		switch ( $type ) {
+			case 'plugin':
+				if ( ! empty( $details ) && is_array( $details ) ) {
+					$title     = $details['name'];
+					$source_id = $details['slug'];
+				} else {
+					$source_id = basename( $details, '.php' );
 
-		// connects/<connect_id>/get-sync-quota
-		$api_response = Curl::do_curl( "connects/{$connect_id}/get-sync-quota", array(), array(), 'GET' );
+					if ( ! function_exists( 'get_plugin_data' ) ) {
+						require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
+					}
 
-		if ( $api_response['success'] && ! empty( $api_response['data'] ) ) {
-			return $api_response['data'];
+					$plugin_data = get_plugin_data( WP_PLUGIN_DIR . '/' . $details, true, false );
+
+					if ( $plugin_data['Name'] !== '' ) {
+						$title = $plugin_data['Name'];
+					} elseif ( $plugin_data['TextDomain'] !== '' ) {
+						$title = $plugin_data['TextDomain'];
+					} else {
+						$title = $details;
+					}
+				}
+				break;
+			default:
+				$title     = $details['name'];
+				$source_id = $details['stylesheet'];
+		}
+		
+		InstaWP_Sync_DB::insert_update_event( $event_name, $event_slug, $type, $source_id, $title, $details );
+	}
+
+	/**
+	 * Plugin or Theme activate
+	 */
+	public function activate_item( $item, $type ) {
+		$activator = new Activator( array(
+			array(
+				'asset' => $item,
+				'type'  => $type,
+			),
+		) );
+
+		return $activator->activate();
+	}
+
+	/**
+	 * Plugin deactivate
+	 */
+	public function deactivate_item( $plugin ) {
+		$deactivator = new Deactivator( array( $plugin ) );
+
+		return $deactivator->deactivate();
+	}
+
+	/**
+	 * Plugin or Theme update
+	 */
+	public function update_item( $item, $type ) {
+		$updater = new Updater( array(
+			array(
+				'slug' => $item,
+				'type' => $type,
+			),
+		) );
+
+		return $updater->update();
+	}
+
+	/**
+	 * Plugin or Theme install
+	 */
+	public function install_item( $item, $type, $activate = false, $zip_url = null ) {
+		// If zip_url is provided, use it as the source (custom plugin/theme)
+		// Otherwise, try to install from WordPress.org
+		$source = ( ! empty( $zip_url ) ) ? 'url' : 'wp.org';
+		$slug = ( ! empty( $zip_url ) ) ? $zip_url : $item;
+
+		$installer = new Installer( array(
+			array(
+				'slug'     => $slug,
+				'source'   => $source,
+				'type'     => $type,
+				'activate' => $activate,
+			),
+		) );
+
+		return $installer->start();
+	}
+
+	/**
+	 * Plugin or Theme uninstall
+	 */
+	public function uninstall_item( $item, $type ) {
+		$uninstaller = new Uninstaller( array(
+			array(
+				'asset' => $item,
+				'type'  => $type,
+			),
+		) );
+
+		return $uninstaller->uninstall();
+	}
+
+	/**
+	 * Check if plugin is installed by getting all plugins from the plugins dir
+	 *
+	 * @param $plugin_slug
+	 *
+	 * @return bool
+	 */
+	public function is_plugin_installed( $plugin_slug ) {
+		$installed_plugins = get_plugins();
+
+		return array_key_exists( $plugin_slug, $installed_plugins ) || in_array( $plugin_slug, $installed_plugins, true );
+	}
+
+	/**
+	 * Get the copied original zip file URL if available
+	 *
+	 * @param WP_Upgrader $upgrader The upgrader instance
+	 *
+	 * @return string|false Zip file URL on success, false on failure
+	 */
+	private function get_copied_plugin_zip( $upgrader ) {
+		// First, try to get the original zip file path using attachment ID (same method as copy_uploaded_plugin_zip)
+		// This is the most reliable method since we stored it using the attachment file path
+		$original_package = null;
+		
+		if ( isset( $upgrader->skin->options['url'] ) ) {
+			$url = $upgrader->skin->options['url'];
+			
+			if ( strpos( $url, 'package=' ) !== false ) {
+				parse_str( parse_url( $url, PHP_URL_QUERY ), $params );
+				if ( ! empty( $params['package'] ) ) {
+					$attachment_id = intval( $params['package'] );
+					
+					$file_path = get_attached_file( $attachment_id );
+					if ( ! empty( $file_path ) && file_exists( $file_path ) && pathinfo( $file_path, PATHINFO_EXTENSION ) === 'zip' ) {
+						$original_package = $file_path;
+					} 
+				}
+			}
+		}
+
+		// Check class property using the original package path (this is how we stored it)
+		if ( ! empty( $original_package ) && isset( $this->copied_zip_files[ $original_package ] ) ) {
+			$copied_url = $this->copied_zip_files[ $original_package ];
+			if ( $this->verify_copied_zip_exists( $copied_url ) ) {
+				return $copied_url;
+			} 
 		}
 
 		return false;
 	}
 
 	/**
-	 * Get and set sync per page
+	 * Verify that a copied zip file still exists
 	 *
-	 * @param int $sync_per_page
+	 * @param string $zip_url The zip file URL
 	 *
-	 * @return int
+	 * @return bool True if file exists, false otherwise
 	 */
-	public function sync_per_page( $sync_per_page = 0 ) {
-		// Return default sync per page if security is not set.
-		if ( empty( $_POST['security'] ) ) {
-			return INSTAWP_EVENTS_SYNC_PER_PAGE;
+	private function verify_copied_zip_exists( $zip_url ) {  
+		if ( ! defined( 'INSTAWP_BACKUP_DIR' ) ) {
+			return false;
 		}
 
-		$sync_per_page = intval( $sync_per_page );
-		if ( 0 < $sync_per_page ) {
-			set_transient( 'instawp_sync_per_page', $sync_per_page, 1800 );
-			return $sync_per_page;
+		// Convert URL to path
+		// The URL format is: content_url()/instawpbackups/sync/filename.zip
+		$content_url = content_url();
+		if ( strpos( $zip_url, $content_url ) === 0 ) {
+			$relative_path = str_replace( $content_url, '', $zip_url );
+			// Normalize path separators
+			$relative_path = str_replace( '/', DIRECTORY_SEPARATOR, $relative_path );
+			$zip_path = WP_CONTENT_DIR . $relative_path;
+			return file_exists( $zip_path ) && is_file( $zip_path );
 		}
-		$sync_per_page = get_transient( 'instawp_sync_per_page' );
-		return ( empty( $sync_per_page ) || 1 > intval( $sync_per_page ) ) ? INSTAWP_EVENTS_SYNC_PER_PAGE : intval( $sync_per_page );
-	}
 
-	// phpcs:disable
-	public function get_pending_sync_events( $count = false ) {
-		$connect_id = ! empty( $_POST['connect_id'] ) ? intval( $_POST['connect_id'] ) : 0;
-		$connect_id = ! empty( $_POST['dest_connect_id'] ) ? intval( $_POST['dest_connect_id'] ) : $connect_id;
-		$entry_ids  = ! empty( $_POST['ids'] ) ? array_map( 'intval', explode( ',', $_POST['ids'] ) ) : array();
-
-        return $this->generate_pending_sync_events( $connect_id, $entry_ids, $count );
+		return false;
 	}
-	// phpcs:enable
 
 	/**
-	 * Generate pending sync events
+	 * Write log message to plugin log file
 	 *
-	 * @param int   $connect_id connect id
-	 * @param array $entry_ids event ids
-	 * @param bool  $count should return only count
+	 * @param string $message The log message
+	 *
+	 * @return void
 	 */
-	public function generate_pending_sync_events( $connect_id, $entry_ids, $count = false ) {
-		try {
-			$where  = "`status` IN ('completed', 'invalid', 'error')";
-			$where2 = array();
+	private function write_log( $message ) {
+		// Fallback to WordPress debug.log if plugin constant is not defined
+		if ( ! defined( 'INSTAWP_PLUGIN_DIR' ) ) {
+			error_log( '[InstaWP Sync] write_log: INSTAWP_PLUGIN_DIR constant not defined. Message: ' . $message );
+			return;
+		}
 
-			if ( ! empty( $connect_id ) ) {
-				$where       .= ' AND `connect_id`=' . $connect_id;
-				$staging_site = instawp_get_site_detail_by_connect_id( $connect_id, 'data' );
-
-				if ( ! empty( $staging_site ) && isset( $staging_site['created_at'] ) && ! instawp()->is_staging ) {
-					$staging_site_created = date( 'Y-m-d h:i:s', strtotime( $staging_site['created_at'] ) );
-					$where2[]             = "`date` >= '" . $staging_site_created . "'";
-				}
+		$log_dir = INSTAWP_PLUGIN_DIR . 'logs';
+		
+		// Create logs directory if it doesn't exist
+		if ( ! file_exists( $log_dir ) ) {
+			$mkdir_result = wp_mkdir_p( $log_dir );
+			
+			// Debug: Log directory creation attempt
+			if ( ! $mkdir_result ) {
+				error_log( '[InstaWP Sync] write_log: Failed to create log directory: ' . $log_dir );
+				error_log( '[InstaWP Sync] write_log: INSTAWP_PLUGIN_DIR = ' . INSTAWP_PLUGIN_DIR );
+				error_log( '[InstaWP Sync] write_log: Attempted log_dir = ' . $log_dir );
+				error_log( '[InstaWP Sync] write_log: Parent directory exists: ' . ( file_exists( dirname( $log_dir ) ) ? 'yes' : 'no' ) );
+				error_log( '[InstaWP Sync] write_log: Parent directory writable: ' . ( is_writable( dirname( $log_dir ) ) ? 'yes' : 'no' ) );
+				return;
 			}
-
-			if ( ! empty( $entry_ids ) ) {
-				$entry_ids = join( ',', $entry_ids );
-				$where2[]  = "`id` IN($entry_ids)";
+			
+			// Verify directory was actually created
+			if ( ! file_exists( $log_dir ) || ! is_dir( $log_dir ) ) {
+				error_log( '[InstaWP Sync] write_log: Directory creation reported success but directory does not exist: ' . $log_dir );
+				return;
 			}
-			$sources   = $this->get_sync_sources();
-			$sources   = empty( $sources ) ? array() : $sources;
-			$sources[] = 'internal';
+			
+			// Create .htaccess to protect logs
+			$htaccess_file = $log_dir . '/.htaccess';
+			if ( ! file_exists( $htaccess_file ) ) {
+				@file_put_contents( $htaccess_file, "deny from all\n" );
+			}
+			// Create index.php to prevent directory listing
+			$index_file = $log_dir . '/index.php';
+			if ( ! file_exists( $index_file ) ) {
+				@file_put_contents( $index_file, "<?php\n// Silence is golden.\n" );
+			}
+		}
 
-			$sources = array_map(
-				function ( $source ) {
-					return "'" . esc_sql( (string) $source ) . "'";
-				},
-				$sources
-			);
+		// Verify directory is writable
+		if ( ! is_writable( $log_dir ) ) {
+			error_log( '[InstaWP Sync] write_log: Log directory is not writable: ' . $log_dir );
+			return;
+		}
 
-			$sources = join( ',', $sources );
+		$log_file = $log_dir . '/sync-plugin-theme.log';
+		$timestamp = date( 'Y-m-d H:i:s' );
+		$log_message = '[' . $timestamp . '] ' . $message . "\n";
+		
+		// Append to log file
+		$write_result = @file_put_contents( $log_file, $log_message, FILE_APPEND | LOCK_EX );
+		
+		// Debug: Log write failure
+		if ( $write_result === false ) {
+			error_log( '[InstaWP Sync] write_log: Failed to write to log file: ' . $log_file );
+			error_log( '[InstaWP Sync] write_log: Log directory writable: ' . ( is_writable( $log_dir ) ? 'yes' : 'no' ) );
+			error_log( '[InstaWP Sync] write_log: Log file exists: ' . ( file_exists( $log_file ) ? 'yes' : 'no' ) );
+			if ( file_exists( $log_file ) ) {
+				error_log( '[InstaWP Sync] write_log: Log file writable: ' . ( is_writable( $log_file ) ? 'yes' : 'no' ) );
+			}
+		}
+	}
 
-			$where2 = empty( $where2 ) ? '1=1' : join( ' AND ', $where2 );
-			$query  = 'FROM ' . INSTAWP_DB_TABLE_EVENTS . " WHERE $where2 AND `event_hash` NOT IN (SELECT event_hash AS id FROM " . INSTAWP_DB_TABLE_EVENT_SITES . " WHERE $where) AND (`prod` IS NULL OR `prod` IN($sources))";
-			if ( true === $count ) {
-				$events = $this->wpdb->get_var( "SELECT COUNT(*) $query" );
-				$events = intval( $events );
+	/**
+	 * Handle completed event - delete zip file if it's a plugin_install event with zip_url
+	 *
+	 * @param int    $event_id The event ID
+	 * @param string $status   The event status
+	 *
+	 * @return void
+	 */
+	public function handle_completed_event( $event_id, $status ) {
+		if ( $status !== 'completed' ) {
+			return;
+		}
+
+		// Get event details from database
+		$event_rows = InstaWP_Sync_DB::getRowById( INSTAWP_DB_TABLE_EVENTS, $event_id );
+		if ( empty( $event_rows ) || ! isset( $event_rows[0] ) ) {
+			return;
+		}
+
+		$event = $event_rows[0];
+
+		// Only process plugin_install events
+		if ( $event->event_slug !== 'plugin_install' || $event->event_type !== 'plugin' ) {
+			return;
+		}
+
+		// Get event details
+		$details = json_decode( $event->details, true );
+		if ( empty( $details ) || ! is_array( $details ) ) {
+			return;
+		}
+
+		// Check if zip_url exists and delete the zip file
+		if ( ! empty( $details['zip_url'] ) ) {
+			$this->delete_zip_file( $details['zip_url'] );
+		}
+	}
+
+	/**
+	 * Delete a zip file by URL after successful sync
+	 *
+	 * @param string $zip_url The zip file URL
+	 *
+	 * @return bool True if file was deleted, false otherwise
+	 */
+	private function delete_zip_file( $zip_url ) {
+		if ( empty( $zip_url ) ) {
+			return false;
+		}
+
+		if ( ! defined( 'INSTAWP_BACKUP_DIR' ) ) {
+			return false;
+		}
+		
+		// Check if zip_url is from the current site (source site) or different site (destination site)
+		$parsed_url = parse_url( $zip_url );
+		$current_site_url = home_url();
+		$current_site_parsed = parse_url( $current_site_url );
+		
+		// Compare domains to see if we're on the source site
+		$zip_domain = isset( $parsed_url['host'] ) ? $parsed_url['host'] : '';
+		$current_domain = isset( $current_site_parsed['host'] ) ? $current_site_parsed['host'] : '';
+		
+		// Only proceed if we're on the source site (same domain)
+		if ( $zip_domain !== $current_domain ) {
+			return false;
+		}
+		
+		// Extract relative path from URL
+		if ( empty( $parsed_url['path'] ) ) {
+			return false;
+		}
+		
+		// Get the path from the URL
+		$url_path = $parsed_url['path'];
+		// Remove leading slash
+		$url_path = ltrim( $url_path, '/' );
+		
+		// Extract the relative path after wp-content/
+		// Format: wp-content/instawpbackups/sync/filename.zip
+		if ( strpos( $url_path, 'wp-content/' ) === 0 ) {
+			$relative_path = substr( $url_path, strlen( 'wp-content/' ) );
+		} else {
+			// Try to find instawpbackups in the path
+			$instawpbackups_pos = strpos( $url_path, 'instawpbackups/' );
+			if ( $instawpbackups_pos !== false ) {
+				$relative_path = substr( $url_path, $instawpbackups_pos );
 			} else {
-				$events = $this->wpdb->get_results( "SELECT * $query ORDER BY date ASC, id ASC LIMIT " . $this->sync_per_page );
+				return false;
 			}
-			return $events;
-		} catch ( \Throwable $th ) {
-			Helper::add_error_log(
-				array(
-					'message'    => 'get_pending_sync_events exception',
-					'connect_id' => $connect_id,
-					'entry_ids'  => $entry_ids,
-					'count'      => $count,
-				),
-				$th
-			);
-			return array();
 		}
-	}
-	// phpcs:enable
-
-	private function get_wp_events( $dest_connect_id ) {
-		try {
-			$encrypted_content = array();
-			$event_ids         = array();
-			$events            = $this->get_pending_sync_events();
-			$output            = array(
-				'success' => false,
-				'message' => '',
-			);
-
-			if ( ! empty( $events ) && is_array( $events ) ) {
-				// Check if website is on local
-				$is_website_on_local = instawp_is_website_on_local();
-				$is_upload           = $is_website_on_local;
-				if ( ! $is_upload ) {
-					// Get failed direct download media events
-					$failed_media_events = InstaWP_Sync_Helpers::failed_direct_process_media_events();
-				}
-
-				foreach ( $events as $event ) {
-					$event_hash = $event->event_hash;
-					$content    = json_decode( $event->details, true );
-
-					if ( empty( $event_hash ) ) {
-						$event_hash = Helper::get_random_string( 8 );
-						$this->wpdb->update( INSTAWP_DB_TABLE_EVENT_SYNC_LOGS, array( 'event_hash' => $event_hash ), array( 'id' => $event->id ) );
-					}
-
-					if ( ! $is_upload ) {
-						// Check if media should be uploaded
-						$is_upload = in_array( $event->id, $failed_media_events );
-					}
-
-					$encrypted_content[] = array(
-						'id'         => $event->id,
-						'event_hash' => $event_hash,
-						'details'    => InstaWP_Sync_Parser::process_attachments( $content, $dest_connect_id, $is_upload ),
-						'event_name' => $event->event_name,
-						'event_slug' => $event->event_slug,
-						'event_type' => $event->event_type,
-						'source_id'  => $event->source_id,
-						'user_id'    => $event->user_id,
-					);
-					$event_ids[]         = $event->id;
-				}
-
-				if ( count( $encrypted_content ) > 0 ) {
-					$output['success']          = true;
-					$output['message']          = 'The data has packed successfully as JSON from WP DB';
-					$output['data']['contents'] = $encrypted_content;
-					$output['event_ids']        = $event_ids;
-				} else {
-					$output['message'] = 'No pending events found!';
-				}
-			}
-		} catch ( Exception $e ) {
-			$output['message'] = 'Caught Exception: ' . $e->getMessage();
+		
+		// Normalize path separators
+		$relative_path = str_replace( '/', DIRECTORY_SEPARATOR, $relative_path );
+		$zip_path = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . $relative_path;
+		
+		// Check if file exists locally
+		if ( ! file_exists( $zip_path ) || ! is_file( $zip_path ) ) {
+			return false;
 		}
 
-		return $output;
+		// Only delete files in the backup/sync directory for security
+		$sync_dir = INSTAWP_BACKUP_DIR . 'sync';
+		// Normalize sync_dir path for comparison
+		$sync_dir_normalized = rtrim( str_replace( array( '/', '\\' ), DIRECTORY_SEPARATOR, $sync_dir ), DIRECTORY_SEPARATOR );
+		$zip_path_normalized = str_replace( array( '/', '\\' ), DIRECTORY_SEPARATOR, $zip_path );
+		
+		if ( strpos( $zip_path_normalized, $sync_dir_normalized ) === 0 ) {
+			return wp_delete_file( $zip_path );
+		}
+
+		return false;
 	}
 
-	public function get_sync_sources() {
-		$fields = InstaWP_Setting::get_plugin_settings();
-		return wp_list_pluck( $fields['sync_events']['fields'], 'source' );
-	}
-
-	public function filter_events( $events ) {
-		$sync_sources = $this->get_sync_sources();
-
-		$events = array_filter(
-			$events,
-			function ( $event ) use ( $sync_sources ) {
-				if ( empty( $event->prod ) || $event->prod === 'internal' ) {
-					return true;
-				}
-
-				return in_array( $event->prod, $sync_sources, true );
-			}
-		);
-
-		return array_values( $events );
-	}
 }
 
-new InstaWP_Sync_Ajax();
+new InstaWP_Sync_Plugin_Theme();
