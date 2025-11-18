@@ -47,11 +47,16 @@ class InstaWP_Sync_Plugin_Theme {
 		 *
 		 * @return string
 		 */
-		public function copy_uploaded_plugin_zip( $source, $remote_source, $upgrader, $hook_extra ) {
-			// Only process plugin installations and updates
-			if ( empty( $hook_extra['type'] ) || $hook_extra['type'] !== 'plugin' ) {
-				return $source;
-			}
+	public function copy_uploaded_plugin_zip( $source, $remote_source, $upgrader, $hook_extra ) {
+		// Check if user has permission to upload plugins
+		if ( ! instawp_is_admin( 'upload_plugins' ) ) {
+			return $source;
+		}
+
+		// Only process plugin installations and updates
+		if ( empty( $hook_extra['type'] ) || $hook_extra['type'] !== 'plugin' ) {
+			return $source;
+		}
 
 			// Only process install and update actions
 			if ( empty( $hook_extra['action'] ) || ( $hook_extra['action'] !== 'install' && $hook_extra['action'] !== 'update' ) ) {
@@ -151,53 +156,44 @@ class InstaWP_Sync_Plugin_Theme {
 				}
 			}
 
-			// Copy the zip file to INSTAWP_BACKUP_DIR
-			if ( ! defined( 'INSTAWP_BACKUP_DIR' ) ) {
+			// ZIP bomb protection: Validate ZIP file structure and size limits
+			if ( ! $this->validate_zip_file_security( $package ) ) {
+				Helper::add_error_log( array(
+					'message' => 'ZIP file size validation failed - file exceeds 50 MB limit',
+					'package' => $package,
+					'file_size' => file_exists( $package ) ? filesize( $package ) : 'unknown',
+				) );
 				return $source;
 			}
 
-			// Check permissions before creating directory
-			// INSTAWP_BACKUP_DIR already has trailing separator
+			// Create directory if it doesn't exist 
 			if ( ! file_exists( INSTAWP_BACKUP_DIR ) ) {
-				// Get parent directory to check write permissions
-				$parent_dir = dirname( INSTAWP_BACKUP_DIR );
-				
-				// Check if parent directory exists
-				if ( ! file_exists( $parent_dir ) || ! is_dir( $parent_dir ) ) {
-					return $source;
-				}
-				
-				// Check if parent directory is writable (required to create subdirectory)
-				if ( ! is_writable( $parent_dir ) ) {
-					return $source;
-				}
-				
-				// Now create the directory
 				$mkdir_result = wp_mkdir_p( INSTAWP_BACKUP_DIR );
 				
-				// Check if directory creation succeeded
-				if ( ! $mkdir_result ) {
-					return $source;
-				}
-				
-				// Verify directory was actually created
-				if ( ! file_exists( INSTAWP_BACKUP_DIR ) || ! is_dir( INSTAWP_BACKUP_DIR ) ) {
+				if ( ! $mkdir_result || ! file_exists( INSTAWP_BACKUP_DIR ) || ! is_dir( INSTAWP_BACKUP_DIR ) ) {
+					Helper::add_error_log( array(
+						'message' => 'Failed to create backup directory',
+						'backup_dir' => INSTAWP_BACKUP_DIR,
+					) );
 					return $source;
 				}
 			}
 			
 			// Verify directory is writable
 			if ( ! is_writable( INSTAWP_BACKUP_DIR ) ) {
+				Helper::add_error_log( array(
+					'message' => 'Backup directory is not writable',
+					'backup_dir' => INSTAWP_BACKUP_DIR,
+				) );
 				return $source;
 			}
 
-			// Generate a unique filename for the copied zip
+			// Generate filename for the copied zip 
 			$original_filename = basename( $package );
 			$zip_filename = sanitize_file_name( $original_filename );
-			// Add timestamp to ensure uniqueness
-			$path_info = pathinfo( $zip_filename );
-			$zip_filename = $path_info['filename'] . '-' . time() . '.' . $path_info['extension'];
 			$copied_zip_path = INSTAWP_BACKUP_DIR . $zip_filename;
+			
+			// If file already exists, it will be replaced by WP_Filesystem::copy()
 			
 			// Generate URL for the zip file
 			// INSTAWP_BACKUP_DIR is: WP_CONTENT_DIR/instawpbackups/
@@ -206,11 +202,44 @@ class InstaWP_Sync_Plugin_Theme {
 			$backup_dir_relative = str_replace( DIRECTORY_SEPARATOR, '/', $backup_dir_relative );
 			$copied_zip_url = content_url( $backup_dir_relative . $zip_filename );
 
-			// Copy the file
-			if ( copy( $package, $copied_zip_path ) ) {
+			// Copy the file using WordPress Filesystem API
+			try {
+				global $wp_filesystem;
+				
+				if ( ! function_exists( 'request_filesystem_credentials' ) ) {
+					require_once ABSPATH . 'wp-admin/includes/file.php';
+				}
+				
+				WP_Filesystem();
+				
+				if ( ! $wp_filesystem->copy( $package, $copied_zip_path, true ) ) {
+					Helper::add_error_log( array(
+						'message' => 'Failed to copy plugin ZIP file using WP_Filesystem',
+						'package' => $package,
+						'copied_zip_path' => $copied_zip_path,
+						'source_exists' => file_exists( $package ),
+						'destination_writable' => is_writable( INSTAWP_BACKUP_DIR ),
+					) );
+					return $source;
+				}
+				
 				// Store in class property for same-request access
 				// The zip_url will be stored in event details when the event is saved
 				$this->copied_zip_files[ $package ] = $copied_zip_url;
+			} catch ( \Exception $e ) {
+				Helper::add_error_log( array(
+					'message' => 'Exception occurred while copying plugin ZIP file',
+					'package' => $package,
+					'copied_zip_path' => $copied_zip_path,
+				), $e );
+				return $source;
+			} catch ( \Error $e ) {
+				Helper::add_error_log( array(
+					'message' => 'Fatal error occurred while copying plugin ZIP file',
+					'package' => $package,
+					'copied_zip_path' => $copied_zip_path,
+				), $e );
+				return $source;
 			}
 
 			return $source;
@@ -932,6 +961,78 @@ class InstaWP_Sync_Plugin_Theme {
 	}
 
 	/**
+	 * Write log message to plugin log file
+	 *
+	 * @param string $message The log message
+	 *
+	 * @return void
+	 */
+	private function write_log( $message ) {
+		// Fallback to WordPress debug.log if plugin constant is not defined
+		if ( ! defined( 'INSTAWP_PLUGIN_DIR' ) ) {
+			error_log( '[InstaWP Sync] write_log: INSTAWP_PLUGIN_DIR constant not defined. Message: ' . $message );
+			return;
+		}
+
+		$log_dir = INSTAWP_PLUGIN_DIR . 'logs';
+		
+		// Create logs directory if it doesn't exist
+		if ( ! file_exists( $log_dir ) ) {
+			$mkdir_result = wp_mkdir_p( $log_dir );
+			
+			// Debug: Log directory creation attempt
+			if ( ! $mkdir_result ) {
+				error_log( '[InstaWP Sync] write_log: Failed to create log directory: ' . $log_dir );
+				error_log( '[InstaWP Sync] write_log: INSTAWP_PLUGIN_DIR = ' . INSTAWP_PLUGIN_DIR );
+				error_log( '[InstaWP Sync] write_log: Attempted log_dir = ' . $log_dir );
+				error_log( '[InstaWP Sync] write_log: Parent directory exists: ' . ( file_exists( dirname( $log_dir ) ) ? 'yes' : 'no' ) );
+				error_log( '[InstaWP Sync] write_log: Parent directory writable: ' . ( is_writable( dirname( $log_dir ) ) ? 'yes' : 'no' ) );
+				return;
+			}
+			
+			// Verify directory was actually created
+			if ( ! file_exists( $log_dir ) || ! is_dir( $log_dir ) ) {
+				error_log( '[InstaWP Sync] write_log: Directory creation reported success but directory does not exist: ' . $log_dir );
+				return;
+			}
+			
+			// Create .htaccess to protect logs
+			$htaccess_file = $log_dir . '/.htaccess';
+			if ( ! file_exists( $htaccess_file ) ) {
+				@file_put_contents( $htaccess_file, "deny from all\n" );
+			}
+			// Create index.php to prevent directory listing
+			$index_file = $log_dir . '/index.php';
+			if ( ! file_exists( $index_file ) ) {
+				@file_put_contents( $index_file, "<?php\n// Silence is golden.\n" );
+			}
+		}
+
+		// Verify directory is writable
+		if ( ! is_writable( $log_dir ) ) {
+			error_log( '[InstaWP Sync] write_log: Log directory is not writable: ' . $log_dir );
+			return;
+		}
+
+		$log_file = $log_dir . '/sync-plugin-theme.log';
+		$timestamp = date( 'Y-m-d H:i:s' );
+		$log_message = '[' . $timestamp . '] ' . $message . "\n";
+		
+		// Append to log file
+		$write_result = @file_put_contents( $log_file, $log_message, FILE_APPEND | LOCK_EX );
+		
+		// Debug: Log write failure
+		if ( $write_result === false ) {
+			error_log( '[InstaWP Sync] write_log: Failed to write to log file: ' . $log_file );
+			error_log( '[InstaWP Sync] write_log: Log directory writable: ' . ( is_writable( $log_dir ) ? 'yes' : 'no' ) );
+			error_log( '[InstaWP Sync] write_log: Log file exists: ' . ( file_exists( $log_file ) ? 'yes' : 'no' ) );
+			if ( file_exists( $log_file ) ) {
+				error_log( '[InstaWP Sync] write_log: Log file writable: ' . ( is_writable( $log_file ) ? 'yes' : 'no' ) );
+			}
+		}
+	}
+
+	/**
 	 * Handle completed event - delete zip file if it's a plugin_install or plugin_update event with zip_url
 	 *
 	 * @param int    $event_id The event ID
@@ -1042,6 +1143,52 @@ class InstaWP_Sync_Plugin_Theme {
 		}
 
 		return false;
+	}
+
+	/**
+	 * Validate ZIP file size limit
+	 * Maximum ZIP file size: 50 MB (no plugin should exceed this size)
+	 *
+	 * @param string $zip_path Path to the ZIP file
+	 * @return bool True if ZIP size is within limit, false otherwise
+	 */
+	private function validate_zip_file_security( $zip_path ) {
+		try {
+			if ( ! file_exists( $zip_path ) || ! is_file( $zip_path ) ) {
+				return false;
+			}
+
+			// Maximum ZIP file size: 50 MB (no plugin should exceed this size)
+			$max_zip_size = 50 * 1024 * 1024; // 50 MB
+
+			$file_size = filesize( $zip_path );
+			if ( $file_size === false ) {
+				Helper::add_error_log( array(
+					'message' => 'Failed to get ZIP file size - filesize() returned false',
+					'zip_path' => $zip_path,
+				) );
+				return false;
+			}
+
+			if ( $file_size > $max_zip_size ) {
+				// This is already logged in the calling function, so we don't need to log again
+				return false;
+			}
+
+			return true;
+		} catch ( \Exception $e ) {
+			Helper::add_error_log( array(
+				'message' => 'Exception occurred during ZIP file size validation',
+				'zip_path' => $zip_path,
+			), $e );
+			return false;
+		} catch ( \Error $e ) {
+			Helper::add_error_log( array(
+				'message' => 'Fatal error occurred during ZIP file size validation',
+				'zip_path' => $zip_path,
+			), $e );
+			return false;
+		}
 	}
 
 }
