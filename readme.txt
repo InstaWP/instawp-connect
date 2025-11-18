@@ -98,8 +98,9 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
-= 0.1.2.1 - 14 November 2025 =
+= 0.1.2.1 - 18 November 2025 =
 - Fixed: Cleanup of migration backup files.
+- Fixed: Generation of destination file URL
 
 = 0.1.2.0 - 11 November 2025 =
 - Fixed: Migration status updates.
