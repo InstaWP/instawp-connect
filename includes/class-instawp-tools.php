@@ -528,7 +528,7 @@ include $file_path;';
 			return set_url_scheme( $plugin_url );
 		}
 
-		sleep( 5 );
+		sleep( 2 );
 		$plugin_url = Helper::wp_site_url( $plugin_url );
 		Helper::add_error_log(
 			array(
@@ -536,31 +536,25 @@ include $file_path;';
 				'INSTAWP_PLUGIN_URL' => INSTAWP_PLUGIN_URL,
 				'new_url'            => $plugin_url,
 				'WP_PLUGIN_URL'      => WP_PLUGIN_URL,
-			),
+			)
 		);
 
 		if ( filter_var( $plugin_url, FILTER_VALIDATE_URL ) ) {
-			return $plugin_url;
+			return trailingslashit( $plugin_url );
 		}
 
-		if ( ! empty( $_SERVER['HTTP_HOST'] ) ) {
-			// Preserve plugin directory path
-			$path       = '/' . ltrim( INSTAWP_PLUGIN_URL, '/' );
-			$plugin_url = set_url_scheme( $_SERVER['HTTP_HOST'] . $path );
+		// Safe fallback preserving path format
+		$path       = '/' . ltrim( INSTAWP_PLUGIN_URL, '/' );
+		$plugin_url = get_home_url( null, $path );
 
-			Helper::add_error_log(
-				array(
-					'title'   => 'destination_file url: Incorrect plugin url',
-					'new_url' => $plugin_url,
-				)
-			);
+		Helper::add_error_log(
+			array(
+				'title'   => 'destination_file url: Incorrect plugin url',
+				'new_url' => $plugin_url,
+			)
+		);
 
-			if ( filter_var( $plugin_url, FILTER_VALIDATE_URL ) ) {
-				return $plugin_url;
-			}
-		}
-
-		return $plugin_url;
+		return trailingslashit( $plugin_url );
 	}
 
 	public static function generate_destination_file( $migrate_key, $api_signature, $migrate_settings = array(), $in_details = false ) {
