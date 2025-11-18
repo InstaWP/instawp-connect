@@ -53,10 +53,11 @@ class InstaWP_Sync_Plugin_Theme {
 			return $source;
 		}
 
-		// Only process plugin installations and updates
-		if ( empty( $hook_extra['type'] ) || $hook_extra['type'] !== 'plugin' ) {
+		// Only process plugin/theme installations and updates
+		if ( empty( $hook_extra['type'] ) || ! in_array( $hook_extra['type'], array( 'plugin', 'theme' ), true ) ) {
 			return $source;
 		}
+		
 
 			// Only process install and update actions
 			if ( empty( $hook_extra['action'] ) || ( $hook_extra['action'] !== 'install' && $hook_extra['action'] !== 'update' ) ) {
@@ -344,11 +345,19 @@ class InstaWP_Sync_Plugin_Theme {
 					'name'       => ! empty( $upgrader->new_theme_data['Name'] ) ? $upgrader->new_theme_data['Name'] : ucfirst( $upgrader->result['destination_name'] ),
 					'stylesheet' => $upgrader->result['destination_name'],
 					'data'       => isset( $upgrader->new_theme_data ) ? $upgrader->new_theme_data : array(),
-				);
+				); 
 
-				if ( Helper::is_on_wordpress_org( $upgrader->result['destination_name'], $hook_extra['type'] ) ) {
-					$this->parse_plugin_theme_event( $event_name, $event_slug, $details, $hook_extra['type'] );
+				// Check if custom theme (not on WordPress.org)
+				if ( ! Helper::is_on_wordpress_org( $upgrader->result['destination_name'], 'theme' ) ) {
+					$zip_url = $this->get_copied_plugin_zip( $upgrader );
+					if ( $zip_url ) {
+						$details['zip_url'] = $zip_url;
+						$details['is_custom'] = true;
+					}
 				}
+
+				// ALWAYS sync theme install (custom or WP.org)
+				$this->parse_plugin_theme_event( $event_name, $event_slug, $details, 'theme' );
 			}
 
 			if ( 'update' === $hook_extra['action'] ) {
@@ -364,6 +373,14 @@ class InstaWP_Sync_Plugin_Theme {
 						'name'       => $theme->display( 'Name' ),
 						'stylesheet' => $theme->get_stylesheet(),
 					);
+
+					if ( ! Helper::is_on_wordpress_org( $slug, 'theme' ) ) {
+						$zip_url = $this->get_copied_plugin_zip( $upgrader );
+						if ( $zip_url ) {
+							$details['zip_url'] = $zip_url;
+							$details['is_custom'] = true;
+						}
+					}
 
 					$this->parse_plugin_theme_event( $event_name, $event_slug, $details, $hook_extra['type'] );
 				}
@@ -641,9 +658,12 @@ class InstaWP_Sync_Plugin_Theme {
 		}
 
 		// theme install
-		if ( $v->event_slug === 'theme_install' ) {
+		if ( $v->event_slug === 'theme_install' ) { 
 			if ( ! empty( $v->details->stylesheet ) ) {
-				$response = $this->install_item( $v->details->stylesheet, 'theme' )[0];
+				// Support custom theme installation using zip_url if available
+				$zip_url = $v->details->zip_url ?? null;
+
+				$response = $this->install_item( $v->details->stylesheet, 'theme', false, $zip_url )[0];
 
 				if ( ! $response['success'] ) {
 					$logs[ $v->id ] = $response['message'];
@@ -652,6 +672,11 @@ class InstaWP_Sync_Plugin_Theme {
 						'status'  => 'error',
 						'message' => $logs[ $v->id ],
 					) );
+				}
+
+				// Delete ZIP file on source site after successful theme install
+				if ( ! empty( $zip_url ) ) {
+					$this->delete_zip_file( $zip_url );
 				}
 			} else {
 				$logs[ $v->id ] = __( 'Stylesheet missing.', 'instawp-connect' );
