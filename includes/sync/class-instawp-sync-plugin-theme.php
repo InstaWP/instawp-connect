@@ -57,7 +57,6 @@ class InstaWP_Sync_Plugin_Theme {
 		if ( empty( $hook_extra['type'] ) || ! in_array( $hook_extra['type'], array( 'plugin', 'theme' ), true ) ) {
 			return $source;
 		}
-		
 
 			// Only process install and update actions
 			if ( empty( $hook_extra['action'] ) || ( $hook_extra['action'] !== 'install' && $hook_extra['action'] !== 'update' ) ) {
