@@ -16,7 +16,7 @@ class InstaWP_Sync_Post {
 	public function __construct() {
 		// Post Actions.
 		add_action( 'transition_post_status', array( $this, 'transition_post_status' ), 10, 3 );
-		add_action( 'wp_after_insert_post', array( $this, 'save_post' ), 999, 2 );
+		add_action( 'wp_insert_post', array( $this, 'save_post' ), 999, 2 );
 
 		add_action( 'before_delete_post', array( $this, 'delete_post' ), 10, 2 );
 
@@ -38,6 +38,8 @@ class InstaWP_Sync_Post {
 
 		// Process Events.
 		add_filter( 'instawp/filters/2waysync/process_event', array( $this, 'parse_event' ), 10, 2 );
+
+		add_action( 'wp_after_insert_post', array( $this, 'sync_featured_image_after_save' ), 20, 3 );
 	}
 
 	/**
@@ -122,6 +124,37 @@ class InstaWP_Sync_Post {
 		// Re-hook this function.
         add_action( 'save_post', array( $this, 'save_post' ), 999, 2 );
 	}
+
+	public function sync_featured_image_after_save( $post_id, $post, $update ) {
+
+    // Only sync supported post types
+    if ( ! $this->can_sync_post( $post ) ) {
+        return;
+    }
+
+    // Skip drafts, autosaves, revisions
+    if ( in_array( $post->post_status, array( 'auto-draft', 'inherit' ) ) ) {
+        return;
+    }
+    if ( wp_is_post_revision( $post_id ) ) {
+        return;
+    }
+
+    // Check if featured image exists
+    $thumb_id = get_post_thumbnail_id( $post_id );
+    if ( empty( $thumb_id ) ) {
+        return; // No featured image, skip
+    }
+
+    // Fire sync event (post_change)
+    $event_name = sprintf(
+        '%s modified',
+        InstaWP_Sync_Helpers::get_post_type_name( $post->post_type )
+    );
+
+    $this->handle_post_events( $event_name, 'post_change', $post );
+	}
+
 
 	/**
 	 * Function for `before_delete_post` action-hook.
