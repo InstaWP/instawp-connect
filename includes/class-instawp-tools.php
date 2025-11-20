@@ -137,7 +137,7 @@ class InstaWP_Tools {
 	}
 
 
-	public static function del_directory( $remove_path ) {
+	private static function del_directory( $remove_path ) {
 
 		$result = array(
 			'success'      => false,
@@ -146,135 +146,256 @@ class InstaWP_Tools {
 			'failed_files' => array(),
 		);
 
-		$path = untrailingslashit( $remove_path );
+		try {
 
-		/**
-		 * Do not remove wp-content/plugins/, wp-content/themes/, wp-content/mu-plugins/, wp-content/uploads/, wp-admin/, wp-includes/
-		 */
+			$path = untrailingslashit( $remove_path );
 
-		// Check if path exists and is a directory FIRST
-		if ( ! file_exists( $remove_path ) || ! is_dir( $remove_path ) ) {
-			$result['message'] = __( 'Directory does not exist', 'instawp-connect' );
-			Helper::add_error_log( $result );
-			return $result;
-		}
+			/**
+			 * Do not remove wp-content/plugins/, wp-content/themes/, wp-content/mu-plugins/, wp-content/uploads/, wp-admin/, wp-includes/
+			 */
 
-		// Canonicalize paths for secure comparison
-		$canonical_path           = realpath( $path );
-		$canonical_wp_content_dir = realpath( untrailingslashit( WP_CONTENT_DIR ) );
-		$canonical_abspath        = realpath( untrailingslashit( ABSPATH ) );
-		$canonical_plugins_dir    = realpath( WP_CONTENT_DIR . '/plugins' );
-		$canonical_mu_plugins_dir = realpath( WP_CONTENT_DIR . '/mu-plugins' );
-		$canonical_themes_dir     = realpath( WP_CONTENT_DIR . '/themes' );
-		$canonical_uploads_dir    = realpath( WP_CONTENT_DIR . '/uploads' );
-		$canonical_wp_admin       = realpath( ABSPATH . 'wp-admin' );
-		$canonical_wp_includes    = realpath( ABSPATH . 'wp-includes' );
-
-		// Normalize path separators for cross-platform compatibility
-		if ( $canonical_path !== false ) {
-			$canonical_path = wp_normalize_path( $canonical_path );
-		}
-		if ( $canonical_abspath !== false ) {
-			$canonical_abspath = wp_normalize_path( $canonical_abspath );
-		}
-		if ( $canonical_wp_content_dir !== false ) {
-			$canonical_wp_content_dir = wp_normalize_path( $canonical_wp_content_dir );
-		}
-		if ( $canonical_plugins_dir !== false ) {
-			$canonical_plugins_dir = wp_normalize_path( $canonical_plugins_dir );
-		}
-		if ( $canonical_mu_plugins_dir !== false ) {
-			$canonical_mu_plugins_dir = wp_normalize_path( $canonical_mu_plugins_dir );
-		}
-		if ( $canonical_themes_dir !== false ) {
-			$canonical_themes_dir = wp_normalize_path( $canonical_themes_dir );
-		}
-		if ( $canonical_uploads_dir !== false ) {
-			$canonical_uploads_dir = wp_normalize_path( $canonical_uploads_dir );
-		}
-		if ( $canonical_wp_admin !== false ) {
-			$canonical_wp_admin = wp_normalize_path( $canonical_wp_admin );
-		}
-		if ( $canonical_wp_includes !== false ) {
-			$canonical_wp_includes = wp_normalize_path( $canonical_wp_includes );
-		}
-
-		// Security: Ensure path is valid and within WordPress installation
-		if ( $canonical_path === false ||
-			$canonical_abspath === false ||
-			strpos( $canonical_path . '/', $canonical_abspath . '/' ) !== 0 ) {
-			$result['message'] = __( 'Directory is outside WordPress installation', 'instawp-connect' );
-			Helper::add_error_log( $result );
-			return $result;
-		}
-
-		// Validate against protected directories using canonicalized paths
-		if ( $canonical_path === $canonical_wp_content_dir ||
-			$canonical_path === $canonical_abspath ||
-			( $canonical_plugins_dir !== false && $canonical_path === $canonical_plugins_dir ) ||
-			( $canonical_mu_plugins_dir !== false && $canonical_path === $canonical_mu_plugins_dir ) ||
-			( $canonical_themes_dir !== false && $canonical_path === $canonical_themes_dir ) ||
-			( $canonical_uploads_dir !== false && $canonical_path === $canonical_uploads_dir ) ||
-			( $canonical_wp_admin !== false && $canonical_path === $canonical_wp_admin ) ||
-			( $canonical_wp_includes !== false && $canonical_path === $canonical_wp_includes ) ||
-			// Check if path is within protected directories
-			( $canonical_plugins_dir !== false && strpos( $canonical_path . '/', $canonical_plugins_dir . '/' ) === 0 ) ||
-			( $canonical_themes_dir !== false && strpos( $canonical_path . '/', $canonical_themes_dir . '/' ) === 0 ) ||
-			( $canonical_mu_plugins_dir !== false && strpos( $canonical_path . '/', $canonical_mu_plugins_dir . '/' ) === 0 ) ||
-			( $canonical_uploads_dir !== false && strpos( $canonical_path . '/', $canonical_uploads_dir . '/' ) === 0 ) ||
-			( $canonical_wp_admin !== false && strpos( $canonical_path . '/', $canonical_wp_admin . '/' ) === 0 ) ||
-			( $canonical_wp_includes !== false && strpos( $canonical_path . '/', $canonical_wp_includes . '/' ) === 0 ) ) {
-			$result['message'] = __( 'Cannot remove protected WordPress directories', 'instawp-connect' );
-			Helper::add_error_log( $result );
-			return $result;
-		}
-
-		/**
-		 * Recursively remove all files and directories in the folder. Process deepest items first
-		 * UNIX_PATHS ensure proper handling of hidden files during directory deletion
-		 */
-		$remove_items = new RecursiveIteratorIterator(
-			new RecursiveDirectoryIterator(
-				$remove_path,
-				RecursiveDirectoryIterator::SKIP_DOTS | RecursiveDirectoryIterator::UNIX_PATHS
-			),
-			RecursiveIteratorIterator::CHILD_FIRST
-		);
-
-		$result = array(
-			'success'      => true,
-			'failed_dir'   => array(),
-			'failed_files' => array(),
-		);
-
-		foreach ( $remove_items as $remove_item ) {
-			if ( $remove_item->isDir() ) {
-				if ( ! rmdir( $remove_item->getPathname() ) ) {
-					$result['failed_dir'][] = $remove_item->getPathname();
-					continue;
-				}
-			} elseif ( ! unlink( $remove_item->getPathname() ) ) {
-				$result['failed_files'][] = $remove_item->getPathname();
-				continue;
+			// Check if path exists and is a directory FIRST
+			if ( ! file_exists( $remove_path ) || ! is_dir( $remove_path ) ) {
+				$result['message'] = __( 'Directory does not exist', 'instawp-connect' );
+				Helper::add_error_log( $result );
+				return $result;
 			}
-		}
 
-		if ( ! rmdir( $remove_path ) ) {
-			$result['failed_dir'][] = $remove_path;
-		}
+			// Canonicalize paths for secure comparison
+			$canonical_path           = realpath( $path );
+			$canonical_wp_content_dir = realpath( untrailingslashit( WP_CONTENT_DIR ) );
+			$canonical_abspath        = realpath( untrailingslashit( ABSPATH ) );
+			$canonical_plugins_dir    = realpath( WP_CONTENT_DIR . '/plugins' );
+			$canonical_mu_plugins_dir = realpath( WP_CONTENT_DIR . '/mu-plugins' );
+			$canonical_themes_dir     = realpath( WP_CONTENT_DIR . '/themes' );
+			$canonical_uploads_dir    = realpath( WP_CONTENT_DIR . '/uploads' );
+			$canonical_wp_admin       = realpath( ABSPATH . 'wp-admin' );
+			$canonical_wp_includes    = realpath( ABSPATH . 'wp-includes' );
 
-		// Check if there were any failures (FIXED LOGIC)
-		if ( ! empty( $result['failed_dir'] ) || ! empty( $result['failed_files'] ) ) {
+			// Normalize path separators for cross-platform compatibility
+			if ( $canonical_path !== false ) {
+				$canonical_path = wp_normalize_path( $canonical_path );
+			}
+			if ( $canonical_abspath !== false ) {
+				$canonical_abspath = wp_normalize_path( $canonical_abspath );
+			}
+			if ( $canonical_wp_content_dir !== false ) {
+				$canonical_wp_content_dir = wp_normalize_path( $canonical_wp_content_dir );
+			}
+			if ( $canonical_plugins_dir !== false ) {
+				$canonical_plugins_dir = wp_normalize_path( $canonical_plugins_dir );
+			}
+			if ( $canonical_mu_plugins_dir !== false ) {
+				$canonical_mu_plugins_dir = wp_normalize_path( $canonical_mu_plugins_dir );
+			}
+			if ( $canonical_themes_dir !== false ) {
+				$canonical_themes_dir = wp_normalize_path( $canonical_themes_dir );
+			}
+			if ( $canonical_uploads_dir !== false ) {
+				$canonical_uploads_dir = wp_normalize_path( $canonical_uploads_dir );
+			}
+			if ( $canonical_wp_admin !== false ) {
+				$canonical_wp_admin = wp_normalize_path( $canonical_wp_admin );
+			}
+			if ( $canonical_wp_includes !== false ) {
+				$canonical_wp_includes = wp_normalize_path( $canonical_wp_includes );
+			}
+
+			// Security: Ensure path is valid and within WordPress installation
+			if ( $canonical_path === false ||
+				$canonical_abspath === false ||
+				strpos( $canonical_path . '/', $canonical_abspath . '/' ) !== 0 ) {
+				$result['message'] = __( 'Directory is outside WordPress installation', 'instawp-connect' );
+				Helper::add_error_log( $result );
+				return $result;
+			}
+
+			// Validate against protected directories using canonicalized paths
+			if ( $canonical_path === $canonical_wp_content_dir ||
+				$canonical_path === $canonical_abspath ||
+				( $canonical_plugins_dir !== false && $canonical_path === $canonical_plugins_dir ) ||
+				( $canonical_mu_plugins_dir !== false && $canonical_path === $canonical_mu_plugins_dir ) ||
+				( $canonical_themes_dir !== false && $canonical_path === $canonical_themes_dir ) ||
+				( $canonical_uploads_dir !== false && $canonical_path === $canonical_uploads_dir ) ||
+				( $canonical_wp_admin !== false && $canonical_path === $canonical_wp_admin ) ||
+				( $canonical_wp_includes !== false && $canonical_path === $canonical_wp_includes ) ||
+				// Check if path is within protected directories
+				( $canonical_plugins_dir !== false && strpos( $canonical_path . '/', $canonical_plugins_dir . '/' ) === 0 ) ||
+				( $canonical_themes_dir !== false && strpos( $canonical_path . '/', $canonical_themes_dir . '/' ) === 0 ) ||
+				( $canonical_mu_plugins_dir !== false && strpos( $canonical_path . '/', $canonical_mu_plugins_dir . '/' ) === 0 ) ||
+				( $canonical_uploads_dir !== false && strpos( $canonical_path . '/', $canonical_uploads_dir . '/' ) === 0 ) ||
+				( $canonical_wp_admin !== false && strpos( $canonical_path . '/', $canonical_wp_admin . '/' ) === 0 ) ||
+				( $canonical_wp_includes !== false && strpos( $canonical_path . '/', $canonical_wp_includes . '/' ) === 0 ) ) {
+				$result['message'] = __( 'Cannot remove protected WordPress directories', 'instawp-connect' );
+				Helper::add_error_log( $result );
+				return $result;
+			}
+
+			/**
+			 * Recursively remove all files and directories in the folder. Process deepest items first
+			 * UNIX_PATHS ensure proper handling of hidden files during directory deletion
+			 */
+			$remove_items = new RecursiveIteratorIterator(
+				new RecursiveDirectoryIterator(
+					$remove_path,
+					RecursiveDirectoryIterator::SKIP_DOTS | RecursiveDirectoryIterator::UNIX_PATHS
+				),
+				RecursiveIteratorIterator::CHILD_FIRST
+			);
+
+			$result = array(
+				'success'      => true,
+				'failed_dir'   => array(),
+				'failed_files' => array(),
+			);
+
+			foreach ( $remove_items as $remove_item ) {
+				$pathname = $remove_item->getPathname();
+				// FIX 1: Check for symbolic links first
+				if ( is_link( $pathname ) ) {
+					if ( ! @unlink( $pathname ) ) {
+						$result['failed_files'][] = $pathname . ' (symlink)';
+					}
+					continue;
+				} elseif ( $remove_item->isDir() ) {
+					// Clear stat cache to get fresh directory state
+					clearstatcache( true, $pathname );
+					if ( ! @rmdir( $pathname ) ) {
+						// Attempt to fix permissions and retry
+						@chmod( $pathname, 0755 );
+						// Try manual cleanup if still has items
+						self::force_empty_directory( $pathname );
+						clearstatcache( true, $pathname );
+
+						if ( ! @rmdir( $pathname ) ) {
+							// Debug: Check what's preventing deletion
+							$debug_info = $pathname;
+
+							// Check if directory is truly empty
+							$contents = @scandir( $pathname );
+							if ( $contents && count( $contents ) > 2 ) {
+								$file_count  = count( $contents ) - 2; // Exclude . and ..
+								$debug_info .= ' (' . $file_count . ' items remaining)';
+							}
+
+							// Check permissions
+							$perms = @fileperms( $pathname );
+							if ( $perms !== false ) {
+								$debug_info .= ' (perms: ' . substr( sprintf( '%o', $perms ), -4 ) . ')';
+							}
+
+							$result['failed_dir'][] = $debug_info;
+							continue;
+						}
+					}
+				} else {
+					// Handle regular files
+					if ( ! is_writable( $pathname ) ) {
+						@chmod( $pathname, 0666 );
+					}
+
+					if ( ! @unlink( $pathname ) ) {
+						$result['failed_files'][] = $pathname;
+					}
+				}
+			}
+
+			// Final removal of the root directory
+			clearstatcache( true, $remove_path );
+			if ( ! @rmdir( $remove_path ) ) {
+				// Try permission fix
+				@chmod( $remove_path, 0755 );
+				// Try manual cleanup if still has items
+				self::force_empty_directory( $remove_path );
+				clearstatcache( true, $remove_path );
+
+				if ( ! @rmdir( $remove_path ) ) {
+					$debug_info = $remove_path;
+					$contents   = @scandir( $remove_path );
+					if ( $contents && count( $contents ) > 2 ) {
+						$file_count  = count( $contents ) - 2;
+						$debug_info .= ' (' . $file_count . ' items remaining)';
+					}
+
+					// Check permissions
+					$perms = @fileperms( $remove_path );
+					if ( $perms !== false ) {
+						$debug_info .= ' (perms: ' . substr( sprintf( '%o', $perms ), -4 ) . ')';
+					}
+
+					$result['failed_dir'][] = $debug_info;
+				}
+			}
+
+			// Check if there were any failures (FIXED LOGIC)
+			if ( ! empty( $result['failed_dir'] ) || ! empty( $result['failed_files'] ) ) {
+				$result['success'] = false;
+				$result['message'] = __( 'Failed to remove directory', 'instawp-connect' );
+				Helper::add_error_log( $result );
+			} else {
+				$result['success'] = true;
+				$result['message'] = __( 'Directory deleted successfully', 'instawp-connect' );
+			}
+		} catch ( \Throwable $th ) {
 			$result['success'] = false;
-			$result['message'] = __( 'Failed to remove directory', 'instawp-connect' );
-			Helper::add_error_log( $result );
-		} else {
-			$result['success'] = true;
-			$result['message'] = __( 'Directory deleted successfully', 'instawp-connect' );
+			$result['message'] = __( 'Failed to remove directory', 'instawp-connect' ) . ': ' . $th->getMessage();
+			Helper::add_error_log( $result, $th );
 		}
 
 		return $result;
 	}
+
+	/**
+	 * Force empty a directory by manually scanning and removing all contents
+	 * This is a fallback when RecursiveIteratorIterator misses files
+	 *
+	 * @param string $directory_path The directory to empty
+	 * @return array Result with success status
+	 */
+	private static function force_empty_directory( $directory_path ) {
+		$result = array( 'success' => true );
+
+		try {
+			$items = @scandir( $directory_path );
+
+			if ( ! $items ) {
+				return array( 'success' => false );
+			}
+
+			foreach ( $items as $item ) {
+				if ( $item === '.' || $item === '..' ) {
+					continue;
+				}
+
+				$item_path = $directory_path . '/' . $item;
+
+				// Handle symbolic links first
+				if ( is_link( $item_path ) ) {
+					@unlink( $item_path );
+					continue;
+				}
+
+				if ( is_dir( $item_path ) ) {
+					// Recursively empty subdirectory
+					self::force_empty_directory( $item_path );
+					clearstatcache( true, $item_path );
+					@chmod( $item_path, 0755 );
+					@rmdir( $item_path );
+				} else {
+					// Remove file
+					@chmod( $item_path, 0666 );
+					@unlink( $item_path );
+				}
+			}
+		} catch ( \Throwable $th ) {
+			$result['success'] = false;
+			$result['message'] = __( 'Failed to remove directory', 'instawp-connect' ) . ': ' . $th->getMessage();
+			Helper::add_error_log( $result, $th );
+		}
+
+		return $result;
+	}
+
 
 	public static function generate_serve_file_response( $migrate_key, $api_signature, $migrate_settings = array() ) {
 
@@ -391,6 +512,51 @@ include $file_path;';
 		return $tracking_db;
 	}
 
+	/**
+	 * Get plugin url
+	 */
+	public static function get_plugin_url() {
+		if ( filter_var( INSTAWP_PLUGIN_URL, FILTER_VALIDATE_URL ) ) {
+			return INSTAWP_PLUGIN_URL;
+		}
+
+		$plugin_url = INSTAWP_PLUGIN_URL;
+		$parsed     = wp_parse_url( $plugin_url );
+
+		// URL contains a host but missing scheme (e.g., //example.com/path)
+		if ( isset( $parsed['host'] ) ) {
+			return set_url_scheme( $plugin_url );
+		}
+
+		sleep( 2 );
+		$plugin_url = Helper::wp_site_url( $plugin_url );
+		Helper::add_error_log(
+			array(
+				'title'              => 'destination_file url: Incorrect plugin url',
+				'INSTAWP_PLUGIN_URL' => INSTAWP_PLUGIN_URL,
+				'new_url'            => $plugin_url,
+				'WP_PLUGIN_URL'      => WP_PLUGIN_URL,
+			)
+		);
+
+		if ( filter_var( $plugin_url, FILTER_VALIDATE_URL ) ) {
+			return trailingslashit( $plugin_url );
+		}
+
+		// Safe fallback preserving path format
+		$path       = '/' . ltrim( INSTAWP_PLUGIN_URL, '/' );
+		$plugin_url = get_home_url( null, $path );
+
+		Helper::add_error_log(
+			array(
+				'title'   => 'destination_file url: Incorrect plugin url',
+				'new_url' => $plugin_url,
+			)
+		);
+
+		return trailingslashit( $plugin_url );
+	}
+
 	public static function generate_destination_file( $migrate_key, $api_signature, $migrate_settings = array(), $in_details = false ) {
 
 		$result = array(
@@ -445,12 +611,14 @@ include $file_path;';
 				return $in_details ? $result : $result['dest_url'];
 			}
 
-			$dest_url = INSTAWP_PLUGIN_URL . 'iwp-dest' . DIRECTORY_SEPARATOR;
+			$plugin_url = self::get_plugin_url();
+
+			$dest_url = $plugin_url . 'iwp-dest' . DIRECTORY_SEPARATOR;
 
 			// Check if __wp__ directory exists. If it does, then use that
 			$is_wpcloud = is_dir( $root_dir_path . '__wp__' ) || ( ! empty( $_SERVER['SERVER_NAME'] ) && strpos( $_SERVER['SERVER_NAME'], 'elementor.cloud' ) !== false );
 			if ( $is_wpcloud ) {
-				$dest_url = INSTAWP_PLUGIN_URL . 'iwp-dest' . DIRECTORY_SEPARATOR . 'index.php';
+				$dest_url = $plugin_url . 'iwp-dest' . DIRECTORY_SEPARATOR . 'index.php';
 			}
 
 			if ( self::is_migrate_file_accessible( $dest_url ) ) {
@@ -568,98 +736,6 @@ include $file_path;';
 		}
 
 		return $in_details ? $result : $result['dest_url'];
-	}
-
-	public static function generate_destination_file_bak( $migrate_key, $api_signature, $migrate_settings = array() ) {
-
-		if ( ! function_exists( 'iwp_get_root_dir' ) ) {
-			include_once 'functions-pull-push.php';
-		}
-
-		$data = array_merge(
-			array(
-				'api_signature'       => $api_signature,
-				'db_host'             => DB_HOST,
-				'db_username'         => DB_USER,
-				'db_password'         => DB_PASSWORD,
-				'db_name'             => DB_NAME,
-				'db_charset'          => DB_CHARSET,
-				'db_collate'          => DB_COLLATE,
-				'site_url'            => defined( 'WP_SITEURL' ) ? WP_SITEURL : Helper::wp_site_url( '', true ),
-				'home_url'            => defined( 'WP_HOME' ) ? WP_HOME : home_url(),
-				'instawp_api_options' => maybe_serialize( Option::get_option( 'instawp_api_options' ) ),
-			),
-			$migrate_settings
-		);
-
-		$options_data_str       = wp_json_encode( $data );
-		$passphrase             = openssl_digest( $migrate_key, 'SHA256', true );
-		$openssl_iv             = openssl_random_pseudo_bytes( 16 );
-		$options_data_encrypted = openssl_encrypt( $options_data_str, 'AES-256-CBC', $passphrase, 0, $openssl_iv );
-		$data_encrypted         = base64_encode( $openssl_iv . base64_decode( $options_data_encrypted ) );
-		$root_dir               = iwp_get_root_dir();
-		$info_filename          = 'migrate-push-db-' . substr( $migrate_key, 0, 5 ) . '.txt';
-
-		if ( isset( $root_dir['status'] ) && $root_dir['status'] === true ) {
-			$root_dir_path = isset( $root_dir['root_path'] ) ? $root_dir['root_path'] . DIRECTORY_SEPARATOR : ABSPATH;
-		} else {
-			$root_dir_path = ABSPATH;
-		}
-
-		$dest_file_path = $root_dir_path . $info_filename;
-
-		if ( file_put_contents( $dest_file_path, $data_encrypted ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-
-			$dest_url = INSTAWP_PLUGIN_URL . 'iwp-dest' . DIRECTORY_SEPARATOR;
-
-			if ( is_dir( $root_dir_path . '__wp__' ) ) {
-				$dest_url = INSTAWP_PLUGIN_URL . 'iwp-dest' . DIRECTORY_SEPARATOR . 'index.php';
-			}
-
-			if ( ! self::is_migrate_file_accessible( $dest_url ) ) {
-				$forwarded_content = '<?php
-$path_structure = array(
-	__DIR__,
-	\'..\',
-	\'wp-content\',
-	\'plugins\',
-	\'instawp-connect\',
-    \'iwp-dest\',
-    \'index.php\',
-);
-$file_path      = implode( DIRECTORY_SEPARATOR, $path_structure );
-
-if ( ! is_readable( $file_path ) ) {
-	header( \'x-iwp-status: false\' );
-	header( \'x-iwp-message: File is not readable\' );
-	exit( 2004 );
-}
-
-include $file_path;';
-
-				$forwarded_file_path = ABSPATH . DIRECTORY_SEPARATOR . 'iwp-dest' . DIRECTORY_SEPARATOR . 'index.php';
-
-				// Create the directory first in the root
-				$directory = dirname( $forwarded_file_path );
-				if ( ! is_dir( $directory ) ) {
-					if ( ! mkdir( $directory, 0777, true ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir
-						error_log( 'Could not create directory: ' . $directory );
-
-						return false;
-					}
-				}
-
-				$forwarded_file_created = file_put_contents( $forwarded_file_path, $forwarded_content ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-
-				if ( $forwarded_file_created ) {
-					return Helper::wp_site_url( 'iwp-dest/', true );
-				}
-			}
-
-			return $dest_url;
-		}
-
-		return false;
 	}
 
 	/**
@@ -2106,16 +2182,12 @@ include $file_path;';
 					glob( WP_CONTENT_DIR . DIRECTORY_SEPARATOR . 'mu-plugins-*' ),
 					glob( WP_CONTENT_DIR . DIRECTORY_SEPARATOR . 'themes-*' ),
 				) as $folder_to_del ) {
-					if ( is_dir( $folder_to_del ) ) {
-						$folders[] = $folder_to_del;
-					}
+					$folders[] = $folder_to_del;
 				}
 			}
 
 			foreach ( $folders as $folder ) {
-				if ( is_dir( $folder ) ) {
-					self::del_directory( $folder );
-				}
+				self::del_directory( $folder );
 			}
 			// Delete IWP directories : end
 		} catch ( \Throwable $th ) {
