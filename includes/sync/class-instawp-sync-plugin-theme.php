@@ -57,10 +57,7 @@ class InstaWP_Sync_Plugin_Theme {
 		if ( empty( $hook_extra['type'] ) || ! in_array( $hook_extra['type'], array( 'plugin', 'theme' ), true ) ) {
 			return $source;
 		}
-<<<<<<< Updated upstream
-=======
 		
->>>>>>> Stashed changes
 
 			// Only process install and update actions
 			if ( empty( $hook_extra['action'] ) || ( $hook_extra['action'] !== 'install' && $hook_extra['action'] !== 'update' ) ) {
@@ -170,11 +167,7 @@ class InstaWP_Sync_Plugin_Theme {
 				return $source;
 			}
 
-<<<<<<< Updated upstream
-			// Create directory if it doesn't exist 
-=======
 			// Create main backup directory if it doesn't exist 
->>>>>>> Stashed changes
 			if ( ! file_exists( INSTAWP_BACKUP_DIR ) ) {
 				$mkdir_result = wp_mkdir_p( INSTAWP_BACKUP_DIR );
 				
@@ -187,11 +180,7 @@ class InstaWP_Sync_Plugin_Theme {
 				}
 			}
 			
-<<<<<<< Updated upstream
-			// Verify directory is writable
-=======
 			// Verify main backup directory is writable
->>>>>>> Stashed changes
 			if ( ! is_writable( INSTAWP_BACKUP_DIR ) ) {
 				Helper::add_error_log( array(
 					'message' => 'Backup directory is not writable',
@@ -200,12 +189,6 @@ class InstaWP_Sync_Plugin_Theme {
 				return $source;
 			}
 
-<<<<<<< Updated upstream
-			// Generate filename for the copied zip 
-			$original_filename = basename( $package );
-			$zip_filename = sanitize_file_name( $original_filename );
-			$copied_zip_path = INSTAWP_BACKUP_DIR . $zip_filename;
-=======
 			// Determine type (plugin or theme) from hook_extra
 			$type = isset( $hook_extra['type'] ) ? $hook_extra['type'] : 'plugin';
 			
@@ -231,23 +214,15 @@ class InstaWP_Sync_Plugin_Theme {
 			$original_filename = basename( $package );
 			$zip_filename = sanitize_file_name( $original_filename );
 			$copied_zip_path = $type_backup_dir . $zip_filename;
->>>>>>> Stashed changes
 			
 			// If file already exists, it will be replaced by WP_Filesystem::copy()
 			
 			// Generate URL for the zip file
 			// INSTAWP_BACKUP_DIR is: WP_CONTENT_DIR/instawpbackups/
-<<<<<<< Updated upstream
-			// We need: wp-content/instawpbackups/filename.zip
-			$backup_dir_relative = str_replace( WP_CONTENT_DIR . DIRECTORY_SEPARATOR, '', INSTAWP_BACKUP_DIR );
-			$backup_dir_relative = str_replace( DIRECTORY_SEPARATOR, '/', $backup_dir_relative );
-			$copied_zip_url = content_url( $backup_dir_relative . $zip_filename );
-=======
 			// We need: wp-content/instawpbackups/plugins/filename.zip or wp-content/instawpbackups/themes/filename.zip
 			$backup_dir_relative = str_replace( WP_CONTENT_DIR . DIRECTORY_SEPARATOR, '', INSTAWP_BACKUP_DIR );
 			$backup_dir_relative = str_replace( DIRECTORY_SEPARATOR, '/', $backup_dir_relative );
 			$copied_zip_url = content_url( $backup_dir_relative . $subdirectory . '/' . $zip_filename );
->>>>>>> Stashed changes
 
 			// Copy the file using WordPress Filesystem API
 			try {
@@ -261,19 +236,11 @@ class InstaWP_Sync_Plugin_Theme {
 				
 				if ( ! $wp_filesystem->copy( $package, $copied_zip_path, true ) ) {
 					Helper::add_error_log( array(
-<<<<<<< Updated upstream
-						'message' => 'Failed to copy plugin ZIP file using WP_Filesystem',
-						'package' => $package,
-						'copied_zip_path' => $copied_zip_path,
-						'source_exists' => file_exists( $package ),
-						'destination_writable' => is_writable( INSTAWP_BACKUP_DIR ),
-=======
 						'message' => 'Failed to copy ZIP file using WP_Filesystem',
 						'package' => $package,
 						'copied_zip_path' => $copied_zip_path,
 						'type' => $type,
 						'source_exists' => file_exists( $package ),
->>>>>>> Stashed changes
 					) );
 					return $source;
 				}
@@ -283,30 +250,18 @@ class InstaWP_Sync_Plugin_Theme {
 				$this->copied_zip_files[ $package ] = $copied_zip_url;
 			} catch ( \Exception $e ) {
 				Helper::add_error_log( array(
-<<<<<<< Updated upstream
-					'message' => 'Exception occurred while copying plugin ZIP file',
-					'package' => $package,
-					'copied_zip_path' => $copied_zip_path,
-=======
 					'message' => 'Exception occurred while copying ZIP file',
 					'package' => $package,
 					'copied_zip_path' => $copied_zip_path,
 					'type' => $type,
->>>>>>> Stashed changes
 				), $e );
 				return $source;
 			} catch ( \Error $e ) {
 				Helper::add_error_log( array(
-<<<<<<< Updated upstream
-					'message' => 'Fatal error occurred while copying plugin ZIP file',
-					'package' => $package,
-					'copied_zip_path' => $copied_zip_path,
-=======
 					'message' => 'Fatal error occurred while copying ZIP file',
 					'package' => $package,
 					'copied_zip_path' => $copied_zip_path,
 					'type' => $type,
->>>>>>> Stashed changes
 				), $e );
 				return $source;
 			}
@@ -1040,11 +995,7 @@ class InstaWP_Sync_Plugin_Theme {
 		}
 
 		// Convert URL to path
-<<<<<<< Updated upstream
-		// The URL format is: content_url()/instawpbackups/filename.zip
-=======
 		// The URL format is: content_url()/instawpbackups/plugins/filename.zip or content_url()/instawpbackups/themes/filename.zip
->>>>>>> Stashed changes
 		$content_url = content_url();
 		if ( strpos( $zip_url, $content_url ) === 0 ) {
 			$relative_path = str_replace( $content_url, '', $zip_url );
@@ -1208,11 +1159,7 @@ class InstaWP_Sync_Plugin_Theme {
 		$url_path = ltrim( $url_path, '/' );
 		
 		// Extract the relative path after wp-content/
-<<<<<<< Updated upstream
-		// Format: wp-content/instawpbackups/filename.zip
-=======
 		// Format: wp-content/instawpbackups/plugins/filename.zip or wp-content/instawpbackups/themes/filename.zip
->>>>>>> Stashed changes
 		if ( strpos( $url_path, 'wp-content/' ) === 0 ) {
 			$relative_path = substr( $url_path, strlen( 'wp-content/' ) );
 		} else {
