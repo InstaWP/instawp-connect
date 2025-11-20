@@ -71,17 +71,6 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 				$retry_delay = $this->calculate_retry_delay( $failed_count );
 				$next_attempt = $last_attempt + $retry_delay;
 				
-				if ( defined( 'INSTAWP_DEBUG_LOG' ) && INSTAWP_DEBUG_LOG ) {
-					error_log( sprintf( 
-						'[HEARTBEAT RETRY] Too soon to retry. Last attempt: %s, Failed count: %d, Retry delay: %d seconds (%s), Next attempt: %s', 
-						date( 'Y-m-d H:i:s', $last_attempt ),
-						$failed_count,
-						$retry_delay,
-						$this->format_delay( $retry_delay ),
-						date( 'Y-m-d H:i:s', $next_attempt )
-					) );
-				}
-				
 				// Only reschedule if we're not already past the next attempt time
 				if ( $next_attempt > time() ) {
 					as_unschedule_all_actions( 'instawp_handle_heartbeat', array(), 'instawp-connect' );
@@ -98,13 +87,6 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 			if ( $heartbeat_response['success'] ) {
 				// Success: reset everything and restore normal schedule
 				$failed_count = Option::get_option( 'instawp_heartbeat_failed', 0 );
-				
-				if ( defined( 'INSTAWP_DEBUG_LOG' ) && INSTAWP_DEBUG_LOG ) {
-					error_log( sprintf( 
-						'[HEARTBEAT SUCCESS] Heartbeat succeeded. Resetting failed count (was: %d) and restoring normal schedule.', 
-						$failed_count
-					) );
-				}
 				
 				Option::delete_option( 'instawp_heartbeat_failed' );
 				Option::delete_option( 'instawp_heartbeat_last_attempt' );
@@ -125,16 +107,6 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 				// Calculate retry delay with exponential backoff
 				$retry_delay = $this->calculate_retry_delay( $failed_count );
 				$next_attempt = time() + $retry_delay;
-				
-				if ( defined( 'INSTAWP_DEBUG_LOG' ) && INSTAWP_DEBUG_LOG ) {
-					error_log( sprintf( 
-						'[HEARTBEAT FAILURE] Attempt failed. Failed count: %d, Retry delay: %d seconds (%s), Next attempt scheduled: %s', 
-						$failed_count,
-						$retry_delay,
-						$this->format_delay( $retry_delay ),
-						date( 'Y-m-d H:i:s', $next_attempt )
-					) );
-				}
 				
 				// Unschedule recurring action and schedule single retry
 				as_unschedule_all_actions( 'instawp_handle_heartbeat', array(), 'instawp-connect' );
