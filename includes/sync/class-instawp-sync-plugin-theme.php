@@ -1006,78 +1006,6 @@ class InstaWP_Sync_Plugin_Theme {
 	}
 
 	/**
-	 * Write log message to plugin log file
-	 *
-	 * @param string $message The log message
-	 *
-	 * @return void
-	 */
-	private function write_log( $message ) {
-		// Fallback to WordPress debug.log if plugin constant is not defined
-		if ( ! defined( 'INSTAWP_PLUGIN_DIR' ) ) {
-			error_log( '[InstaWP Sync] write_log: INSTAWP_PLUGIN_DIR constant not defined. Message: ' . $message );
-			return;
-		}
-
-		$log_dir = INSTAWP_PLUGIN_DIR . 'logs';
-		
-		// Create logs directory if it doesn't exist
-		if ( ! file_exists( $log_dir ) ) {
-			$mkdir_result = wp_mkdir_p( $log_dir );
-			
-			// Debug: Log directory creation attempt
-			if ( ! $mkdir_result ) {
-				error_log( '[InstaWP Sync] write_log: Failed to create log directory: ' . $log_dir );
-				error_log( '[InstaWP Sync] write_log: INSTAWP_PLUGIN_DIR = ' . INSTAWP_PLUGIN_DIR );
-				error_log( '[InstaWP Sync] write_log: Attempted log_dir = ' . $log_dir );
-				error_log( '[InstaWP Sync] write_log: Parent directory exists: ' . ( file_exists( dirname( $log_dir ) ) ? 'yes' : 'no' ) );
-				error_log( '[InstaWP Sync] write_log: Parent directory writable: ' . ( is_writable( dirname( $log_dir ) ) ? 'yes' : 'no' ) );
-				return;
-			}
-			
-			// Verify directory was actually created
-			if ( ! file_exists( $log_dir ) || ! is_dir( $log_dir ) ) {
-				error_log( '[InstaWP Sync] write_log: Directory creation reported success but directory does not exist: ' . $log_dir );
-				return;
-			}
-			
-			// Create .htaccess to protect logs
-			$htaccess_file = $log_dir . '/.htaccess';
-			if ( ! file_exists( $htaccess_file ) ) {
-				@file_put_contents( $htaccess_file, "deny from all\n" );
-			}
-			// Create index.php to prevent directory listing
-			$index_file = $log_dir . '/index.php';
-			if ( ! file_exists( $index_file ) ) {
-				@file_put_contents( $index_file, "<?php\n// Silence is golden.\n" );
-			}
-		}
-
-		// Verify directory is writable
-		if ( ! is_writable( $log_dir ) ) {
-			error_log( '[InstaWP Sync] write_log: Log directory is not writable: ' . $log_dir );
-			return;
-		}
-
-		$log_file = $log_dir . '/sync-plugin-theme.log';
-		$timestamp = date( 'Y-m-d H:i:s' );
-		$log_message = '[' . $timestamp . '] ' . $message . "\n";
-		
-		// Append to log file
-		$write_result = @file_put_contents( $log_file, $log_message, FILE_APPEND | LOCK_EX );
-		
-		// Debug: Log write failure
-		if ( $write_result === false ) {
-			error_log( '[InstaWP Sync] write_log: Failed to write to log file: ' . $log_file );
-			error_log( '[InstaWP Sync] write_log: Log directory writable: ' . ( is_writable( $log_dir ) ? 'yes' : 'no' ) );
-			error_log( '[InstaWP Sync] write_log: Log file exists: ' . ( file_exists( $log_file ) ? 'yes' : 'no' ) );
-			if ( file_exists( $log_file ) ) {
-				error_log( '[InstaWP Sync] write_log: Log file writable: ' . ( is_writable( $log_file ) ? 'yes' : 'no' ) );
-			}
-		}
-	}
-
-	/**
 	 * Handle completed event - delete zip file if it's a plugin_install or plugin_update event with zip_url
 	 *
 	 * @param int    $event_id The event ID
@@ -1124,10 +1052,6 @@ class InstaWP_Sync_Plugin_Theme {
 	 */
 	private function delete_zip_file( $zip_url ) {
 		if ( empty( $zip_url ) ) {
-			return false;
-		}
-
-		if ( ! defined( 'INSTAWP_BACKUP_DIR' ) ) {
 			return false;
 		}
 		
