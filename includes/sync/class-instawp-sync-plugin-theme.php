@@ -21,7 +21,7 @@ class InstaWP_Sync_Plugin_Theme {
 
     public function __construct() {
 	    // Plugin and Theme actions
-			add_filter( 'upgrader_source_selection', array( $this, 'copy_uploaded_plugin_zip' ), 5, 4 );
+		add_filter( 'upgrader_source_selection', array( $this, 'copy_uploaded_plugin_zip' ), 5, 4 );
 	    add_action( 'upgrader_process_complete', array( $this, 'install_update_action' ), 10, 2 );
 	    add_action( 'activated_plugin', array( $this, 'activate_plugin' ), 10, 2 );
 	    add_action( 'deactivated_plugin', array( $this, 'deactivate_plugin' ), 10, 2 );
@@ -57,10 +57,7 @@ class InstaWP_Sync_Plugin_Theme {
 		if ( empty( $hook_extra['type'] ) || ! in_array( $hook_extra['type'], array( 'plugin', 'theme' ), true ) ) {
 			return $source;
 		}
-<<<<<<< Updated upstream
-=======
 		
->>>>>>> Stashed changes
 
 			// Only process install and update actions
 			if ( empty( $hook_extra['action'] ) || ( $hook_extra['action'] !== 'install' && $hook_extra['action'] !== 'update' ) ) {
@@ -170,11 +167,7 @@ class InstaWP_Sync_Plugin_Theme {
 				return $source;
 			}
 
-<<<<<<< Updated upstream
-			// Create directory if it doesn't exist 
-=======
 			// Create main backup directory if it doesn't exist 
->>>>>>> Stashed changes
 			if ( ! file_exists( INSTAWP_BACKUP_DIR ) ) {
 				$mkdir_result = wp_mkdir_p( INSTAWP_BACKUP_DIR );
 				
@@ -187,11 +180,7 @@ class InstaWP_Sync_Plugin_Theme {
 				}
 			}
 			
-<<<<<<< Updated upstream
-			// Verify directory is writable
-=======
 			// Verify main backup directory is writable
->>>>>>> Stashed changes
 			if ( ! is_writable( INSTAWP_BACKUP_DIR ) ) {
 				Helper::add_error_log( array(
 					'message' => 'Backup directory is not writable',
@@ -200,12 +189,6 @@ class InstaWP_Sync_Plugin_Theme {
 				return $source;
 			}
 
-<<<<<<< Updated upstream
-			// Generate filename for the copied zip 
-			$original_filename = basename( $package );
-			$zip_filename = sanitize_file_name( $original_filename );
-			$copied_zip_path = INSTAWP_BACKUP_DIR . $zip_filename;
-=======
 			// Determine type (plugin or theme) from hook_extra
 			$type = isset( $hook_extra['type'] ) ? $hook_extra['type'] : 'plugin';
 			
@@ -227,27 +210,16 @@ class InstaWP_Sync_Plugin_Theme {
 				}
 			}
 
-			// Generate filename for the copied zip 
-			$original_filename = basename( $package );
-			$zip_filename = sanitize_file_name( $original_filename );
+			// Generate filename for the copied zip
+			// For custom plugins/themes, use slug-based naming
+			$slug         = $this->extract_slug_from_zip( $package, $type );
+			$base_name    = $slug ? $slug . '.zip' : basename( $package );
+			$zip_filename = sanitize_file_name( $base_name );
+			
 			$copied_zip_path = $type_backup_dir . $zip_filename;
->>>>>>> Stashed changes
 			
-			// If file already exists, it will be replaced by WP_Filesystem::copy()
-			
-			// Generate URL for the zip file
-			// INSTAWP_BACKUP_DIR is: WP_CONTENT_DIR/instawpbackups/
-<<<<<<< Updated upstream
-			// We need: wp-content/instawpbackups/filename.zip
-			$backup_dir_relative = str_replace( WP_CONTENT_DIR . DIRECTORY_SEPARATOR, '', INSTAWP_BACKUP_DIR );
-			$backup_dir_relative = str_replace( DIRECTORY_SEPARATOR, '/', $backup_dir_relative );
-			$copied_zip_url = content_url( $backup_dir_relative . $zip_filename );
-=======
-			// We need: wp-content/instawpbackups/plugins/filename.zip or wp-content/instawpbackups/themes/filename.zip
-			$backup_dir_relative = str_replace( WP_CONTENT_DIR . DIRECTORY_SEPARATOR, '', INSTAWP_BACKUP_DIR );
-			$backup_dir_relative = str_replace( DIRECTORY_SEPARATOR, '/', $backup_dir_relative );
-			$copied_zip_url = content_url( $backup_dir_relative . $subdirectory . '/' . $zip_filename );
->>>>>>> Stashed changes
+			$backup_dir_relative = INSTAWP_DEFAULT_BACKUP_DIR . '/';
+			$copied_zip_url      = content_url( $backup_dir_relative . $subdirectory . '/' . $zip_filename );
 
 			// Copy the file using WordPress Filesystem API
 			try {
@@ -261,19 +233,11 @@ class InstaWP_Sync_Plugin_Theme {
 				
 				if ( ! $wp_filesystem->copy( $package, $copied_zip_path, true ) ) {
 					Helper::add_error_log( array(
-<<<<<<< Updated upstream
-						'message' => 'Failed to copy plugin ZIP file using WP_Filesystem',
-						'package' => $package,
-						'copied_zip_path' => $copied_zip_path,
-						'source_exists' => file_exists( $package ),
-						'destination_writable' => is_writable( INSTAWP_BACKUP_DIR ),
-=======
 						'message' => 'Failed to copy ZIP file using WP_Filesystem',
 						'package' => $package,
 						'copied_zip_path' => $copied_zip_path,
 						'type' => $type,
 						'source_exists' => file_exists( $package ),
->>>>>>> Stashed changes
 					) );
 					return $source;
 				}
@@ -283,30 +247,18 @@ class InstaWP_Sync_Plugin_Theme {
 				$this->copied_zip_files[ $package ] = $copied_zip_url;
 			} catch ( \Exception $e ) {
 				Helper::add_error_log( array(
-<<<<<<< Updated upstream
-					'message' => 'Exception occurred while copying plugin ZIP file',
-					'package' => $package,
-					'copied_zip_path' => $copied_zip_path,
-=======
 					'message' => 'Exception occurred while copying ZIP file',
 					'package' => $package,
 					'copied_zip_path' => $copied_zip_path,
 					'type' => $type,
->>>>>>> Stashed changes
 				), $e );
 				return $source;
 			} catch ( \Error $e ) {
 				Helper::add_error_log( array(
-<<<<<<< Updated upstream
-					'message' => 'Fatal error occurred while copying plugin ZIP file',
-					'package' => $package,
-					'copied_zip_path' => $copied_zip_path,
-=======
 					'message' => 'Fatal error occurred while copying ZIP file',
 					'package' => $package,
 					'copied_zip_path' => $copied_zip_path,
 					'type' => $type,
->>>>>>> Stashed changes
 				), $e );
 				return $source;
 			}
@@ -1040,11 +992,7 @@ class InstaWP_Sync_Plugin_Theme {
 		}
 
 		// Convert URL to path
-<<<<<<< Updated upstream
-		// The URL format is: content_url()/instawpbackups/filename.zip
-=======
 		// The URL format is: content_url()/instawpbackups/plugins/filename.zip or content_url()/instawpbackups/themes/filename.zip
->>>>>>> Stashed changes
 		$content_url = content_url();
 		if ( strpos( $zip_url, $content_url ) === 0 ) {
 			$relative_path = str_replace( $content_url, '', $zip_url );
@@ -1055,78 +1003,6 @@ class InstaWP_Sync_Plugin_Theme {
 		}
 
 		return false;
-	}
-
-	/**
-	 * Write log message to plugin log file
-	 *
-	 * @param string $message The log message
-	 *
-	 * @return void
-	 */
-	private function write_log( $message ) {
-		// Fallback to WordPress debug.log if plugin constant is not defined
-		if ( ! defined( 'INSTAWP_PLUGIN_DIR' ) ) {
-			error_log( '[InstaWP Sync] write_log: INSTAWP_PLUGIN_DIR constant not defined. Message: ' . $message );
-			return;
-		}
-
-		$log_dir = INSTAWP_PLUGIN_DIR . 'logs';
-		
-		// Create logs directory if it doesn't exist
-		if ( ! file_exists( $log_dir ) ) {
-			$mkdir_result = wp_mkdir_p( $log_dir );
-			
-			// Debug: Log directory creation attempt
-			if ( ! $mkdir_result ) {
-				error_log( '[InstaWP Sync] write_log: Failed to create log directory: ' . $log_dir );
-				error_log( '[InstaWP Sync] write_log: INSTAWP_PLUGIN_DIR = ' . INSTAWP_PLUGIN_DIR );
-				error_log( '[InstaWP Sync] write_log: Attempted log_dir = ' . $log_dir );
-				error_log( '[InstaWP Sync] write_log: Parent directory exists: ' . ( file_exists( dirname( $log_dir ) ) ? 'yes' : 'no' ) );
-				error_log( '[InstaWP Sync] write_log: Parent directory writable: ' . ( is_writable( dirname( $log_dir ) ) ? 'yes' : 'no' ) );
-				return;
-			}
-			
-			// Verify directory was actually created
-			if ( ! file_exists( $log_dir ) || ! is_dir( $log_dir ) ) {
-				error_log( '[InstaWP Sync] write_log: Directory creation reported success but directory does not exist: ' . $log_dir );
-				return;
-			}
-			
-			// Create .htaccess to protect logs
-			$htaccess_file = $log_dir . '/.htaccess';
-			if ( ! file_exists( $htaccess_file ) ) {
-				@file_put_contents( $htaccess_file, "deny from all\n" );
-			}
-			// Create index.php to prevent directory listing
-			$index_file = $log_dir . '/index.php';
-			if ( ! file_exists( $index_file ) ) {
-				@file_put_contents( $index_file, "<?php\n// Silence is golden.\n" );
-			}
-		}
-
-		// Verify directory is writable
-		if ( ! is_writable( $log_dir ) ) {
-			error_log( '[InstaWP Sync] write_log: Log directory is not writable: ' . $log_dir );
-			return;
-		}
-
-		$log_file = $log_dir . '/sync-plugin-theme.log';
-		$timestamp = date( 'Y-m-d H:i:s' );
-		$log_message = '[' . $timestamp . '] ' . $message . "\n";
-		
-		// Append to log file
-		$write_result = @file_put_contents( $log_file, $log_message, FILE_APPEND | LOCK_EX );
-		
-		// Debug: Log write failure
-		if ( $write_result === false ) {
-			error_log( '[InstaWP Sync] write_log: Failed to write to log file: ' . $log_file );
-			error_log( '[InstaWP Sync] write_log: Log directory writable: ' . ( is_writable( $log_dir ) ? 'yes' : 'no' ) );
-			error_log( '[InstaWP Sync] write_log: Log file exists: ' . ( file_exists( $log_file ) ? 'yes' : 'no' ) );
-			if ( file_exists( $log_file ) ) {
-				error_log( '[InstaWP Sync] write_log: Log file writable: ' . ( is_writable( $log_file ) ? 'yes' : 'no' ) );
-			}
-		}
 	}
 
 	/**
@@ -1178,10 +1054,6 @@ class InstaWP_Sync_Plugin_Theme {
 		if ( empty( $zip_url ) ) {
 			return false;
 		}
-
-		if ( ! defined( 'INSTAWP_BACKUP_DIR' ) ) {
-			return false;
-		}
 		
 		// Check if zip_url is from the current site (source site) or different site (destination site)
 		$parsed_url = parse_url( $zip_url );
@@ -1208,11 +1080,7 @@ class InstaWP_Sync_Plugin_Theme {
 		$url_path = ltrim( $url_path, '/' );
 		
 		// Extract the relative path after wp-content/
-<<<<<<< Updated upstream
-		// Format: wp-content/instawpbackups/filename.zip
-=======
 		// Format: wp-content/instawpbackups/plugins/filename.zip or wp-content/instawpbackups/themes/filename.zip
->>>>>>> Stashed changes
 		if ( strpos( $url_path, 'wp-content/' ) === 0 ) {
 			$relative_path = substr( $url_path, strlen( 'wp-content/' ) );
 		} else {
@@ -1244,6 +1112,60 @@ class InstaWP_Sync_Plugin_Theme {
 		}
 
 		return false;
+	}
+
+	/**
+	 * Extract plugin or theme slug from ZIP file structure
+	 * 
+	 * Simply gets the first folder name from the ZIP file.
+	 *
+	 * @param string $zip_path Path to the ZIP file
+	 * @param string $type Type: 'plugin' or 'theme' (not used, kept for compatibility)
+	 * @return string|false Plugin/theme slug on success, false on failure
+	 */
+	private function extract_slug_from_zip( $zip_path, $type = 'plugin' ) {
+		if ( ! file_exists( $zip_path ) || ! is_file( $zip_path ) ) {
+			return false;
+		}
+
+		// Check if ZipArchive is available
+		if ( ! class_exists( 'ZipArchive' ) ) {
+			return false;
+		}
+
+		$zip = new ZipArchive();
+		if ( $zip->open( $zip_path ) !== true ) {
+			return false;
+		}
+
+		$slug = false;
+		
+		// Get the first folder name from the ZIP
+		for ( $i = 0; $i < $zip->numFiles; $i++ ) {
+			$entry_name = $zip->getNameIndex( $i );
+			
+			if ( $entry_name === false ) {
+				continue;
+			}
+
+			// Skip Mac OS X metadata
+			if ( strpos( $entry_name, '__MACOSX/' ) === 0 || strpos( $entry_name, '.DS_Store' ) !== false ) {
+				continue;
+			}
+
+			// Get the first directory name
+			if ( strpos( $entry_name, '/' ) !== false ) {
+				$path_parts = explode( '/', trim( $entry_name, '/' ) );
+				if ( ! empty( $path_parts[0] ) && $path_parts[0] !== '.' && $path_parts[0] !== '..' ) {
+					$slug = $path_parts[0];
+					break;
+				}
+			}
+		}
+
+		$zip->close();
+
+		return $slug;
 	}
 
 	/**
