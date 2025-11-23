@@ -211,10 +211,22 @@ class InstaWP_Sync_Plugin_Theme {
 			}
 
 			// Generate filename for the copied zip
-			// For custom plugins/themes, use slug-based naming
-			$slug         = $this->extract_slug_from_zip( $package, $type );
-			$base_name    = $slug ? $slug . '.zip' : basename( $package );
-			$zip_filename = sanitize_file_name( $base_name );
+			// Always use slug-based naming for consistency - no fallback to filename
+			$slug = $this->extract_slug_from_zip( $package, $type );
+			
+			// If slug extraction failed, we cannot proceed with slug-based naming
+			// Log error and skip copying to prevent inconsistent naming
+			if ( ! $slug ) {
+				Helper::add_error_log( array(
+					'message' => 'Failed to extract slug from ZIP file structure - cannot use slug-based naming. Skipping file copy.',
+					'package' => $package,
+					'type' => $type,
+				) );
+				return $source;
+			}
+			
+			// Always use slug-based naming
+			$zip_filename = sanitize_file_name( $slug . '.zip' );
 			
 			$copied_zip_path = $type_backup_dir . $zip_filename;
 			
@@ -1117,7 +1129,7 @@ class InstaWP_Sync_Plugin_Theme {
 	/**
 	 * Extract plugin or theme slug from ZIP file structure
 	 * 
-	 * Simply gets the first folder name from the ZIP file.
+	 * Gets the first folder name from the ZIP file.
 	 *
 	 * @param string $zip_path Path to the ZIP file
 	 * @param string $type Type: 'plugin' or 'theme' (not used, kept for compatibility)
@@ -1157,9 +1169,13 @@ class InstaWP_Sync_Plugin_Theme {
 			if ( strpos( $entry_name, '/' ) !== false ) {
 				$path_parts = explode( '/', trim( $entry_name, '/' ) );
 				if ( ! empty( $path_parts[0] ) && $path_parts[0] !== '.' && $path_parts[0] !== '..' ) {
-					$slug = $path_parts[0];
+					$slug = sanitize_file_name( $path_parts[0] );
 					break;
 				}
+			} else {
+				// If entry has no directory separator, it might be a root-level file
+				// Skip these as they don't indicate the plugin/theme structure
+				continue;
 			}
 		}
 
