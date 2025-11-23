@@ -316,7 +316,7 @@ class InstaWP_Sync_Plugin_Theme {
 				}
 				// Allow both WordPress.org and custom uploaded plugins to sync
 				$this->parse_plugin_theme_event( $event_name, $event_slug, $details, $hook_extra['type'] );
-			}
+			} 
 
 			if ( 'update' === $hook_extra['action'] ) {
 				if ( isset( $hook_extra['bulk'] ) && $hook_extra['bulk'] ) {
