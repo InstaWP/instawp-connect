@@ -1131,6 +1131,10 @@ class InstaWP_Sync_Plugin_Theme {
 	 * @return bool True if file was deleted, false otherwise
 	 */
 	private function delete_zip_file( $zip_url ) {
+		if ( ! instawp_is_admin( 'upload_plugins' ) ) {
+			return false;
+		}
+
 		if ( empty( $zip_url ) ) {
 			return false;
 		}
@@ -1289,15 +1293,9 @@ class InstaWP_Sync_Plugin_Theme {
 			}
 
 			return true;
-		} catch ( \Exception $e ) {
+		} catch ( \Throwable $e ) {
 			Helper::add_error_log( array(
-				'message' => 'Exception occurred during ZIP file size validation',
-				'zip_path' => $zip_path,
-			), $e );
-			return false;
-		} catch ( \Error $e ) {
-			Helper::add_error_log( array(
-				'message' => 'Fatal error occurred during ZIP file size validation',
+				'message' => ( $e instanceof \Error ? 'Fatal error' : 'Exception' ) . ' occurred during ZIP file size validation',
 				'zip_path' => $zip_path,
 			), $e );
 			return false;
