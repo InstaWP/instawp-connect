@@ -5,7 +5,7 @@ namespace InstaWP\Connect\Helpers;
 class Curl {
 
 	public static function do_curl( $endpoint, $body = array(), $headers = array(), $method = 'POST', $api_version = 'v2', $api_key = '', $api_domain = '' ) {
-		$api_url = ! empty( $api_domain ) ? $api_domain : Helper::get_api_domain();
+		$api_url = ! empty( $api_domain ) ? $api_domain : Helper::get_api_domain( '', true );
 
 		if ( empty( $api_url ) ) {
 			return array(

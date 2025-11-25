@@ -452,7 +452,7 @@ class Helper {
 		return self::get_args_option( 'response', $api_options, array() );
 	}
 
-	public static function get_api_domain( $default_domain = '' ) {
+	public static function get_api_domain( $default_domain = '', $translate_localhost = false ) {
 		$api_options = self::get_options();
 
 		if ( empty( $default_domain ) && defined( 'INSTAWP_API_DOMAIN_PROD' ) ) {
@@ -463,7 +463,42 @@ class Helper {
 			$default_domain = esc_url_raw( 'https://app.instawp.io' );
 		}
 
-		return self::get_args_option( 'api_url', $api_options, $default_domain );
+		$api_domain = self::get_args_option( 'api_url', $api_options, $default_domain );
+
+		// Convert localhost to Docker internal IP for container-to-container communication
+		// Only translate when explicitly requested (for server-side API calls)
+		// Browser redirects should use localhost as-is
+		if ( $translate_localhost && strpos( $api_domain, 'localhost' ) !== false ) {
+			$gateway_ip = self::get_docker_gateway_ip();
+			if ( $gateway_ip ) {
+				$api_domain = str_replace( 'localhost', $gateway_ip, $api_domain );
+			}
+		}
+
+		return $api_domain;
+	}
+
+	/**
+	 * Get Docker gateway IP for container-to-container communication
+	 *
+	 * @return string|false Gateway IP or false if not in Docker
+	 */
+	private static function get_docker_gateway_ip() {
+		// Method 1: Check if we can reach the client-app container by known Docker IP
+		$docker_ips = array(
+			'10.5.0.10',  // macvlan network IP for client-app
+			'172.17.0.1', // Default Docker bridge gateway
+			'host.docker.internal', // Docker Desktop host
+		);
+
+		foreach ( $docker_ips as $ip ) {
+			// Quick check if IP is reachable (just check if it's a valid IP format)
+			if ( filter_var( $ip, FILTER_VALIDATE_IP ) || $ip === 'host.docker.internal' ) {
+				return $ip;
+			}
+		}
+
+		return false;
 	}
 
 	public static function get_api_server_domain() {
@@ -550,6 +585,9 @@ class Helper {
 	public static function set_api_domain( $api_domain = '' ) {
 		if ( empty( $api_domain ) ) {
 			$api_domain = esc_url_raw( 'https://app.instawp.io' );
+		} else {
+			// Allow both http and https for API domain (for local development)
+			$api_domain = esc_url_raw( $api_domain, array( 'http', 'https' ) );
 		}
 
 		$api_options            = self::get_options();
