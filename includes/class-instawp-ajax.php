@@ -101,8 +101,10 @@ class InstaWP_Ajax {
 				wp_send_json_error( array( 'message' => $result->get_error_message() ) );
 			}
 
-			if ( empty( $result['success'] ) ) {
-				$message = $result['message'] ?? __( 'This site is not hosted with InstaWP.', 'instawp-connect' );
+			if ( ! is_array( $result ) || empty( $result['success'] ) ) {
+				$message = is_array( $result ) && isset( $result['message'] )
+					? $result['message']
+					: __( 'This site is not hosted with InstaWP.', 'instawp-connect' );
 				wp_send_json_error( array( 'message' => $message ) );
 			}
 
