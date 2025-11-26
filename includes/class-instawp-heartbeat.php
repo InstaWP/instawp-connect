@@ -13,7 +13,7 @@ defined( 'ABSPATH' ) || exit;
 if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 	class InstaWP_Heartbeat {
 
-		const MIN_RETRY_DELAY = HOUR_IN_SECONDS;
+		const MIN_RETRY_DELAY = 3600; // 1 hour in seconds
 		const MAX_FAILURES_BEFORE_DISABLE = 10;
 		const MAX_RETRY_DELAY_HOURS = 4;
 
