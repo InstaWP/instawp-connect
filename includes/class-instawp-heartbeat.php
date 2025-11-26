@@ -90,8 +90,6 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 
 			if ( $heartbeat_response['success'] ) {
 				// Success: reset everything and restore normal schedule
-				$failed_count = Option::get_option( 'instawp_heartbeat_failed', 0 );
-
 				Option::delete_option( 'instawp_heartbeat_failed' );
 				Option::delete_option( 'instawp_heartbeat_last_attempt' );
 
