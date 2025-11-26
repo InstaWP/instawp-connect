@@ -13,6 +13,10 @@ defined( 'ABSPATH' ) || exit;
 if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 	class InstaWP_Heartbeat {
 
+		const MIN_RETRY_DELAY = HOUR_IN_SECONDS;
+		const MAX_FAILURES_BEFORE_DISABLE = 10;
+		const MAX_RETRY_DELAY_HOURS = 4;
+
 		public function __construct() {
 			add_action( 'init', array( $this, 'register_events' ) );
 			add_action( 'add_option_instawp_api_heartbeat', array( $this, 'clear_heartbeat_action' ) );
@@ -54,18 +58,50 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 			$failed_count = Option::get_option( 'instawp_heartbeat_failed', 0 );
 			$failed_count = $failed_count ? $failed_count : 0;
 
-			if ( $failed_count > 10 ) {
+			if ( $failed_count > self::MAX_FAILURES_BEFORE_DISABLE ) {
 				Option::delete_option( 'instawp_heartbeat_failed' );
 				Option::update_option( 'instawp_rm_heartbeat', 'on' );
 			}
 		}
 
 		public function handle_heartbeat_data() {
+			// Check if we should skip this heartbeat due to recent failure (minimum 60 minutes)
+			$last_attempt = Option::get_option( 'instawp_heartbeat_last_attempt', 0 );
+			$min_retry_delay = self::MIN_RETRY_DELAY;
+
+			if ( $last_attempt > 0 && ( time() - $last_attempt ) < $min_retry_delay ) {
+				// Too soon to retry, reschedule for later
+				$failed_count = Option::get_option( 'instawp_heartbeat_failed', 0 );
+				$retry_delay = $this->calculate_retry_delay( $failed_count );
+				$next_attempt = $last_attempt + $retry_delay;
+
+				// Only reschedule if we're not already past the next attempt time
+				if ( $next_attempt > time() ) {
+					as_unschedule_all_actions( 'instawp_handle_heartbeat', array(), 'instawp-connect' );
+					as_schedule_single_action( $next_attempt, 'instawp_handle_heartbeat', array(), 'instawp-connect' );
+				}
+				return;
+			}
+
+			// Update last attempt time
+			Option::update_option( 'instawp_heartbeat_last_attempt', time() );
+
 			$heartbeat_response = self::send_heartbeat();
 
 			if ( $heartbeat_response['success'] ) {
+				// Success: reset everything and restore normal schedule
+				$failed_count = Option::get_option( 'instawp_heartbeat_failed', 0 );
+
 				Option::delete_option( 'instawp_heartbeat_failed' );
+				Option::delete_option( 'instawp_heartbeat_last_attempt' );
+
+				// Reschedule recurring action with normal interval
+				as_unschedule_all_actions( 'instawp_handle_heartbeat', array(), 'instawp-connect' );
+				$interval = Option::get_option( 'instawp_api_heartbeat', 240 );
+				$interval = empty( $interval ) ? 240 : (int) $interval;
+				as_schedule_recurring_action( time(), ( $interval * MINUTE_IN_SECONDS ), 'instawp_handle_heartbeat', array(), 'instawp-connect' );
 			} else {
+				// Failure: implement exponential backoff
 				$failed_count = Option::get_option( 'instawp_heartbeat_failed', 0 );
 				$failed_count = $failed_count ? $failed_count : 0;
 
@@ -73,7 +109,15 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 
 				Option::update_option( 'instawp_heartbeat_failed', $failed_count );
 
-				if ( $failed_count > 10 ) {
+				// Calculate retry delay with exponential backoff
+				$retry_delay = $this->calculate_retry_delay( $failed_count );
+				$next_attempt = time() + $retry_delay;
+
+				// Unschedule recurring action and schedule single retry
+				as_unschedule_all_actions( 'instawp_handle_heartbeat', array(), 'instawp-connect' );
+				as_schedule_single_action( $next_attempt, 'instawp_handle_heartbeat', array(), 'instawp-connect' );
+
+				if ( $failed_count > self::MAX_FAILURES_BEFORE_DISABLE ) {
 					Option::update_option( 'instawp_rm_heartbeat', 'off' );
 
 					if ( intval( $heartbeat_response['response_code'] ) === 404 ) {
@@ -81,6 +125,29 @@ if ( ! class_exists( 'InstaWP_Heartbeat' ) ) {
 					}
 				}
 			}
+		}
+
+		/**
+		 * Calculate retry delay based on failed count with exponential backoff
+		 * Pattern: 1hr → 2hrs → 3hrs → 4hrs (capped at 4hrs)
+		 *
+		 * @param int $failed_count Number of consecutive failures
+		 * @return int Delay in seconds
+		 */
+		private function calculate_retry_delay( $failed_count ) {
+			// Minimum delay: 60 minutes (1 hour)
+			$min_delay = self::MIN_RETRY_DELAY;
+
+			// Exponential backoff pattern:
+			// Failed 1: 1 hour (60 min)
+			// Failed 2: 2 hours (120 min)
+			// Failed 3: 3 hours (180 min)
+			// Failed 4+: 4 hours (240 min) - capped
+			$delay_hours = min( $failed_count, self::MAX_RETRY_DELAY_HOURS );
+			$delay_seconds = $delay_hours * self::MIN_RETRY_DELAY;
+
+			// Ensure minimum delay of 60 minutes
+			return max( $delay_seconds, $min_delay );
 		}
 
 		public static function prepare_data() {
