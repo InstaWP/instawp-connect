@@ -13,7 +13,7 @@
             },
             success: function (response) {
                 console.log(response)
-                if (el.attr('target') === 'cache') {
+                if (el.attr('target') === 'cache' || el.attr('target') === 'cdn-cache') {
                     const urlObj = new URL(window.location.href);
                     urlObj.searchParams.delete('instawp-cache-cleared');
                     urlObj.searchParams.set('instawp-cache-cleared', '1');
@@ -24,6 +24,10 @@
             },
             error: function (jqXHR, textStatus, errorThrown) {
                 console.log(errorThrown);
+                // Show error for cdn-cache type
+                if (el.attr('target') === 'cdn-cache' && jqXHR.responseJSON?.data?.message) {
+                    alert(jqXHR.responseJSON.data.message);
+                }
             }
         });
     });

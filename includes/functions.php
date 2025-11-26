@@ -866,6 +866,32 @@ if ( ! function_exists( 'instawp_send_connect_log' ) ) {
 }
 
 
+if ( ! function_exists( 'instawp_purge_cdn_cache' ) ) {
+	/**
+	 * Purge CDN cache for the connected site via InstaWP API.
+	 * Only works for sites hosted with InstaWP.
+	 *
+	 * @return array|WP_Error Response from API or error
+	 */
+	function instawp_purge_cdn_cache() {
+		$connect_id = instawp()->connect_id;
+
+		if ( empty( $connect_id ) ) {
+			return new WP_Error( 'no_connect_id', __( 'Site is not connected to InstaWP.', 'instawp-connect' ) );
+		}
+
+		$response = Curl::do_curl(
+			"connects/{$connect_id}/purge-cache",
+			array(),
+			array(),
+			'POST'
+		);
+
+		return $response;
+	}
+}
+
+
 if ( ! function_exists( 'instawp_send_heartbeat' ) ) {
 	/**
 	 * Send heartbeat to InstaWP
