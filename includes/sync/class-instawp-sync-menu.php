@@ -20,6 +20,7 @@ class InstaWP_Sync_Menu {
 		add_action( 'pre_delete_term', array( $this, 'delete_nav_menu' ), 10, 2 );
 
 		// Customizer menu changes
+		// Priority 20: Run after core Customizer save handlers (priority 10) to ensure menu items are persisted before syncing
 		add_action( 'customize_save_after', array( $this, 'sync_customizer_menu_changes' ), 20 );
 		add_action( 'wp_update_nav_menu_item', array( $this, 'track_menu_item_update' ), 10, 3 );
 
@@ -108,7 +109,7 @@ class InstaWP_Sync_Menu {
 		}
 
 		$menu_details = ( array ) get_term( $menu_id, $taxonomy );
-		$source_id    = InstaWP_Sync_Helpers::get_term_reference_id( $menu_id );;
+		$source_id    = InstaWP_Sync_Helpers::get_term_reference_id( $menu_id );
 		$event_name = __( 'Nav Menu deleted', 'instawp-connect' );
 
 		InstaWP_Sync_DB::insert_update_event( $event_name, 'nav_menu_deleted', $taxonomy, $source_id, $menu_details['name'], $menu_details );
@@ -404,6 +405,11 @@ class InstaWP_Sync_Menu {
 			return;
 		}
 
+		// Verify user has permission to manage menus
+		if ( ! instawp_is_admin( 'edit_theme_options' ) ) {
+			return;
+		}
+
 		// Get all menus that were modified during this Customizer save
 		$modified_menus = $this->customizer_modified_menus;
 
@@ -411,21 +417,36 @@ class InstaWP_Sync_Menu {
 		// The Customizer uses settings like 'nav_menu[456]'
 		$settings = $manager->settings();
 		foreach ( $settings as $setting_id => $setting ) {
-			// Check for nav_menu settings (these are menu containers)
-			if ( preg_match( '/^nav_menu\[(\d+)\]$/', $setting_id, $matches ) ) {
-				$menu_id = intval( $matches[1] );
-				if ( ! in_array( $menu_id, $modified_menus, true ) ) {
-					$modified_menus[] = $menu_id;
-				}
+		// Check for nav_menu settings (these are menu containers)
+		if ( preg_match( '/^nav_menu\[(\d+)\]$/', $setting_id, $matches ) ) {
+			$menu_id = intval( $matches[1] );
+			
+			// Validate menu ID: must be positive integer
+			if ( $menu_id > 0 && ! in_array( $menu_id, $modified_menus, true ) ) {
+				$modified_menus[] = $menu_id;
 			}
+		}
 		}
 
 		// Sync all modified menus
-		foreach ( $modified_menus as $menu_id ) {
-			$menu = wp_get_nav_menu_object( $menu_id );
-			if ( $menu && ! is_wp_error( $menu ) ) {
-				// Trigger menu update sync
-				$this->create_or_update_nav_menu( $menu_id, array() );
+		// Fetch all menus in a single query instead of multiple queries
+		if ( ! empty( $modified_menus ) ) {
+			$all_menus = wp_get_nav_menus( array( 'include' => $modified_menus ) );
+			
+			// Create a lookup array for quick access
+			$menus_by_id = array();
+			foreach ( $all_menus as $menu ) {
+				if ( ! is_wp_error( $menu ) ) {
+					$menus_by_id[ $menu->term_id ] = $menu;
+				}
+			}
+			
+			// Sync only menus that exist
+			foreach ( $modified_menus as $menu_id ) {
+				if ( isset( $menus_by_id[ $menu_id ] ) ) {
+					// Trigger menu update sync
+					$this->create_or_update_nav_menu( $menu_id, array() );
+				}
 			}
 		}
 
