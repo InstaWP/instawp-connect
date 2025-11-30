@@ -207,20 +207,7 @@ class InstaWP_Sync_Plugin_Theme {
 			}
 		}
 
-		// Generate filename for the copied zip
-		// Always use slug-based naming for consistency - no fallback to filename
-		$slug = $this->extract_slug_from_zip( $package, $type );
-		
-		// If slug extraction failed, we cannot proceed with slug-based naming
-		// Log error and skip copying to prevent inconsistent naming
-		if ( ! $slug ) {
-			Helper::add_error_log( array(
-				'message' => 'Failed to extract slug from ZIP file structure - cannot use slug-based naming. Skipping file copy.',
-				'package' => $package,
-				'type' => $type,
-			) );
-			return $source;
-		}
+		$slug = basename( $source );
 			
 		// Always use slug-based naming
 		$zip_filename = sanitize_file_name( $slug . '.zip' );
