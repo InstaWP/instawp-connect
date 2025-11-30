@@ -238,24 +238,16 @@ class InstaWP_Sync_Plugin_Theme {
 				return $source;
 			}
 			
-			$this->store_zip_record( $slug, $type, $copied_zip_url );
-		} catch ( \Exception $e ) {
-			Helper::add_error_log( array(
-				'message' => 'Exception occurred while copying ZIP file',
-				'package' => $package,
-				'copied_zip_path' => $copied_zip_path,
-				'type' => $type,
-			), $e );
-			return $source;
-		} catch ( \Error $e ) {
-			Helper::add_error_log( array(
-				'message' => 'Fatal error occurred while copying ZIP file',
-				'package' => $package,
-				'copied_zip_path' => $copied_zip_path,
-				'type' => $type,
-			), $e );
-			return $source;
-		}
+		$this->store_zip_record( $slug, $type, $copied_zip_url );
+	} catch ( \Throwable $e ) {
+		Helper::add_error_log( array(
+			'message' => 'Error occurred while copying ZIP file',
+			'package' => $package,
+			'copied_zip_path' => $copied_zip_path,
+			'type' => $type,
+		), $e );
+		return $source;
+	}
 
 		return $source;
 	}
