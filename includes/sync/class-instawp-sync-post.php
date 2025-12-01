@@ -224,7 +224,13 @@ class InstaWP_Sync_Post {
 			InstaWP_Sync_Helpers::get_post_type_name( $post->post_type )
 		);
 
+		// Unhook this function so it doesn't loop infinitely
+		remove_action( 'wp_after_insert_post', array( $this, 'sync_featured_image_after_save' ), 20 );
+
 		$this->handle_post_events( $event_name, 'post_change', $post );
+
+		// Re-hook this function
+		add_action( 'wp_after_insert_post', array( $this, 'sync_featured_image_after_save' ), 20, 3 );
 	}
 
 	/**
