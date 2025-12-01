@@ -1184,64 +1184,6 @@ class InstaWP_Sync_Plugin_Theme {
 	}
 
 	/**
-	 * Extract plugin or theme slug from ZIP file structure
-	 * 
-	 * Gets the first folder name from the ZIP file.
-	 *
-	 * @param string $zip_path Path to the ZIP file
-	 * @param string $type Type: 'plugin' or 'theme' (not used, kept for compatibility)
-	 * @return string|false Plugin/theme slug on success, false on failure
-	 */
-	private function extract_slug_from_zip( $zip_path, $type = 'plugin' ) {
-		if ( ! file_exists( $zip_path ) || ! is_file( $zip_path ) ) {
-			return false;
-		}
-
-		// Check if ZipArchive is available
-		if ( ! class_exists( 'ZipArchive' ) ) {
-			return false;
-		}
-
-		$zip = new ZipArchive();
-		if ( $zip->open( $zip_path ) !== true ) {
-			return false;
-		}
-
-		$slug = false;
-		
-		// Get the first folder name from the ZIP
-		for ( $i = 0; $i < $zip->numFiles; $i++ ) {
-			$entry_name = $zip->getNameIndex( $i );
-			
-			if ( $entry_name === false ) {
-				continue;
-			}
-
-			// Skip Mac OS X metadata
-			if ( strpos( $entry_name, '__MACOSX/' ) === 0 || strpos( $entry_name, '.DS_Store' ) !== false ) {
-				continue;
-			}
-
-			// Get the first directory name
-			if ( strpos( $entry_name, '/' ) !== false ) {
-				$path_parts = explode( '/', trim( $entry_name, '/' ) );
-				if ( ! empty( $path_parts[0] ) && $path_parts[0] !== '.' && $path_parts[0] !== '..' ) {
-					$slug = sanitize_file_name( $path_parts[0] );
-					break;
-				}
-			} else {
-				// If entry has no directory separator, it might be a root-level file
-				// Skip these as they don't indicate the plugin/theme structure
-				continue;
-			}
-		}
-
-		$zip->close();
-
-		return $slug;
-	}
-
-	/**
 	 * Validate ZIP file size limit
 	 * Maximum ZIP file size: 50 MB (no plugin should exceed this size)
 	 *
@@ -1267,7 +1209,12 @@ class InstaWP_Sync_Plugin_Theme {
 			}
 
 			if ( $file_size > $max_zip_size ) {
-				// This is already logged in the calling function, so we don't need to log again
+				Helper::add_error_log( array(
+					'message'    => 'ZIP file exceeds maximum allowed size',
+					'zip_path'   => $zip_path,
+					'file_size'  => $file_size,
+					'max_size'   => $max_zip_size,
+				) );
 				return false;
 			}
 
