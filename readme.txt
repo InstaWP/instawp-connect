@@ -98,8 +98,9 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
-= 0.1.2.2 - beta =
+= 0.1.2.2 - 01 December 2025 =
 - Fixed: 403 error on migration cleanup API call.
+- Added: Purge cdn cache
 
 = 0.1.2.1 - 18 November 2025 =
 - Fixed: Cleanup of migration backup files.
