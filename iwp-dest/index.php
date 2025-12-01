@@ -3,10 +3,10 @@ set_time_limit( 0 );
 error_reporting( 0 );
 
 if ( ! defined( 'IWP_PLUGIN_DIR' ) ) {
-	define( 'IWP_PLUGIN_DIR', dirname( dirname( __FILE__ ) ) . DIRECTORY_SEPARATOR );
+	define( 'IWP_PLUGIN_DIR', dirname( __DIR__ ) . DIRECTORY_SEPARATOR );
 }
 
-include_once IWP_PLUGIN_DIR . 'includes' . DIRECTORY_SEPARATOR . 'functions-pull-push.php';
+require_once IWP_PLUGIN_DIR . 'includes' . DIRECTORY_SEPARATOR . 'functions-pull-push.php';
 
 if ( ! isset( $_SERVER['HTTP_X_IWP_MIGRATE_KEY'] ) || empty( $migrate_key = $_SERVER['HTTP_X_IWP_MIGRATE_KEY'] ) ) {
 	header( 'x-iwp-status: false' );
@@ -21,7 +21,7 @@ $root_dir_path = isset( $root_dir_data['root_path'] ) ? $root_dir_data['root_pat
 if ( ! $root_dir_find ) {
 	header( 'x-iwp-status: false' );
 	header( 'x-iwp-message: Could not find wp-config.php in the parent directories.' );
-	echo "Could not find wp-config.php in the parent directories.";
+	echo 'Could not find wp-config.php in the parent directories.';
 	exit( 2 );
 }
 
@@ -225,64 +225,71 @@ if ( $file_type === 'db' ) {
 
 	if ( extension_loaded( 'mysqli' ) ) {
 
-		if ( isset( $_SERVER['HTTP_X_IWP_PROGRESS'] ) ) {
-			$log_content = "x-iwp-progress: {$_SERVER['HTTP_X_IWP_PROGRESS']}\n";
+		$iwp_progress = isset( $_SERVER['HTTP_X_IWP_PROGRESS'] ) ? (int) $_SERVER['HTTP_X_IWP_PROGRESS'] : 0;
+		if ( 0 < $iwp_progress ) {
+			$log_content = "x-iwp-progress: {$iwp_progress}\n";
 			file_put_contents( $log_file_path, $log_content, FILE_APPEND );
 		}
 
-		if ( isset( $_SERVER['HTTP_X_IWP_PROGRESS'] ) && $_SERVER['HTTP_X_IWP_PROGRESS'] == 100 ) {
+		if ( 100 === $iwp_progress ) {
 
-			// Retaining user after migration
-			if ( $retain_user ) {
+			try {
+				// Retaining user after migration
+				if ( isset( $retain_user ) && $retain_user && isset( $user_details ) && is_array( $user_details ) && ! empty( $user_details['data'] ) ) {
 
-				$user_details_data  = isset( $user_details['data'] ) ? (array) $user_details['data'] : array();
-				$user_details_caps  = isset( $user_details['caps'] ) ? (array) $user_details['caps'] : array();
-				$user_details_roles = isset( $user_details['roles'] ) ? (array) $user_details['roles'] : array();
+					$user_details_data  = isset( $user_details['data'] ) ? (array) $user_details['data'] : array();
+					$user_details_caps  = isset( $user_details['caps'] ) ? (array) $user_details['caps'] : array();
+					$user_details_roles = isset( $user_details['roles'] ) ? (array) $user_details['roles'] : array();
 
-				$user_data = array(
-					'user_login'          => isset( $user_details_data['user_login'] ) ? $user_details_data['user_login'] : '',
-					'user_pass'           => isset( $user_details_data['user_pass'] ) ? base64_decode( $user_details_data['user_pass'] ) : '',
-					'user_nicename'       => isset( $user_details_data['user_nicename'] ) ? $user_details_data['user_nicename'] : '',
-					'user_email'          => isset( $user_details_data['user_email'] ) ? $user_details_data['user_email'] : '',
-					'user_url'            => isset( $user_details_data['user_url'] ) ? $user_details_data['user_url'] : '',
-					'user_registered'     => isset( $user_details_data['user_registered'] ) ? $user_details_data['user_registered'] : '',
-					'user_activation_key' => isset( $user_details_data['user_activation_key'] ) ? $user_details_data['user_activation_key'] : '',
-					'user_status'         => isset( $user_details_data['user_status'] ) ? $user_details_data['user_status'] : '',
-					'display_name'        => isset( $user_details_data['display_name'] ) ? $user_details_data['display_name'] : '',
-				);
+					$user_data = array(
+						'user_login'          => isset( $user_details_data['user_login'] ) ? $user_details_data['user_login'] : '',
+						'user_pass'           => isset( $user_details_data['user_pass'] ) ? base64_decode( $user_details_data['user_pass'] ) : '',
+						'user_nicename'       => isset( $user_details_data['user_nicename'] ) ? $user_details_data['user_nicename'] : '',
+						'user_email'          => isset( $user_details_data['user_email'] ) ? $user_details_data['user_email'] : '',
+						'user_url'            => isset( $user_details_data['user_url'] ) ? $user_details_data['user_url'] : '',
+						'user_registered'     => isset( $user_details_data['user_registered'] ) ? $user_details_data['user_registered'] : '',
+						'user_activation_key' => isset( $user_details_data['user_activation_key'] ) ? $user_details_data['user_activation_key'] : '',
+						'user_status'         => isset( $user_details_data['user_status'] ) ? $user_details_data['user_status'] : '',
+						'display_name'        => isset( $user_details_data['display_name'] ) ? $user_details_data['display_name'] : '',
+					);
 
-				$fields = implode( ', ', array_keys( $user_data ) );
-				$values = "'" . implode( "', '", array_map( array( $mysqli, 'real_escape_string' ), $user_data ) ) . "'";
-				$query  = "INSERT INTO {$table_prefix}users ($fields) VALUES ($values)";
+					$fields = implode( ', ', array_keys( $user_data ) );
+					$values = "'" . implode( "', '", array_map( array( $mysqli, 'real_escape_string' ), $user_data ) ) . "'";
+					$query  = "INSERT INTO {$table_prefix}users ($fields) VALUES ($values)";
 
-				$query_response = $mysqli->query( $query );
+					$query_response = $mysqli->query( $query );
 
-				if ( $query_response ) {
-					$user_id = $mysqli->insert_id;
+					if ( $query_response ) {
+						$user_id = $mysqli->insert_id;
 
-					if ( $user_id ) {
-						// Set user capabilities
-						$caps_key   = $mysqli->real_escape_string( $table_prefix . 'capabilities' );
-						$caps_value = $mysqli->real_escape_string( iwp_maybe_serialize( $user_details_caps ) );
-						$caps_query = "INSERT INTO {$table_prefix}usermeta (user_id, meta_key, meta_value) VALUES ($user_id, '$caps_key', '$caps_value')";
-						$mysqli->query( $caps_query );
+						if ( $user_id ) {
+							// Set user capabilities
+							$caps_key   = $mysqli->real_escape_string( $table_prefix . 'capabilities' );
+							$caps_value = $mysqli->real_escape_string( iwp_maybe_serialize( $user_details_caps ) );
+							$caps_query = "INSERT INTO {$table_prefix}usermeta (user_id, meta_key, meta_value) VALUES ($user_id, '$caps_key', '$caps_value')";
+							$mysqli->query( $caps_query );
 
-						// Set user roles
-						$roles_key   = $mysqli->real_escape_string( $table_prefix . 'user_level' );
-						$roles_value = $mysqli->real_escape_string( max( array_keys( $user_details_roles ) ) );
-						$roles_query = "INSERT INTO {$table_prefix}usermeta (user_id, meta_key, meta_value) VALUES ($user_id, '$roles_key', '$roles_value')";
-						$mysqli->query( $roles_query );
+							// Set user roles
+							$roles_key   = $mysqli->real_escape_string( $table_prefix . 'user_level' );
+							$roles_value = $mysqli->real_escape_string( max( array_keys( $user_details_roles ) ) );
+							$roles_query = "INSERT INTO {$table_prefix}usermeta (user_id, meta_key, meta_value) VALUES ($user_id, '$roles_key', '$roles_value')";
+							$mysqli->query( $roles_query );
+						}
+					}
+
+					if ( $mysqli->error ) {
+						file_put_contents( $log_file_path, 'insert response: ' . $mysqli->error . "\n", FILE_APPEND );
 					}
 				}
-
-				if ( $mysqli->error ) {
-					file_put_contents( $log_file_path, "insert response: " . $mysqli->error . "\n", FILE_APPEND );
-				}
+			} catch ( \Throwable $th ) {
+				file_put_contents( $log_file_path, 'iwp-dest retain user exception: ' . $th->getMessage() . "\n", FILE_APPEND );
 			}
 
 
 			// update instawp_api_options after the push db finished
 			if ( ! empty( $instawp_api_options ) ) {
+				file_put_contents( $log_file_path, 'Going to update instawp_api_options' . "\n", FILE_APPEND );
+
 				$is_insert_failed = false;
 
 				try {
@@ -293,7 +300,7 @@ if ( $file_type === 'db' ) {
 						$is_insert_failed = true;
 					}
 				} catch ( Exception $e ) {
-					file_put_contents( $log_file_path, "insert exception: " . $e->getMessage() . "\n", FILE_APPEND );
+					file_put_contents( $log_file_path, 'insert exception: ' . $e->getMessage() . "\n", FILE_APPEND );
 
 					$is_insert_failed = true;
 				}
@@ -317,17 +324,21 @@ if ( $file_type === 'db' ) {
 				$mysqli->query( "UPDATE `{$table_prefix}options` SET `option_value` = '1' WHERE `option_name` = 'blog_public'" );
 				// Remove trailing index.php
 				$mysqli->query( "UPDATE `{$table_prefix}options` SET `option_value` = TRIM(TRAILING '/' FROM REPLACE(option_value, '/index.php', '')) WHERE `option_name` IN ('siteurl', 'home')" );
+			} else {
+				file_put_contents( $log_file_path, 'instawp_api_options not found to update' . "\n", FILE_APPEND );
 			}
 		}
 
 		$mysqli->close();
 	} else {
+
+		file_put_contents( $log_file_path, 'mysql extension not loaded. skipping reset instawp_api_options and retain users' . "\n", FILE_APPEND );
 		mysql_close( $connection );
 	}
 
-//	if ( file_exists( $file_save_path ) ) {
-//		unlink( $file_save_path );
-//	}
+	// if ( file_exists( $file_save_path ) ) {
+	// unlink( $file_save_path );
+	// }
 }
 
 $is_wp_config_file = false;
@@ -339,15 +350,15 @@ if ( $file_type === 'zip' ) {
 			$res = $zip->open( $file_save_path );
 
 			if ( $res === true || $zip->status == 0 ) {
-				$extracted_files = [];
-				for ( $i = 0; $i < $zip->numFiles; $i ++ ) {
+				$extracted_files = array();
+				for ( $i = 0; $i < $zip->numFiles; $i++ ) {
 					$file_name = $zip->getNameIndex( $i );
 
 					if ( false !== strpos( $directory_name, DIRECTORY_SEPARATOR . 'wp-content' ) || false !== strpos( $directory_name, DIRECTORY_SEPARATOR . 'wp-includes' ) || false !== strpos( $directory_name, DIRECTORY_SEPARATOR . 'wp-admin' ) ) {
 						if ( ! array_contains_str( $directory_name . DIRECTORY_SEPARATOR . $file_name, $excluded_paths ) && ! str_contains( $file_name, 'instawp-autologin' ) ) {
 							$extracted_files[] = $file_name;
 						}
-					} else if ( ! in_array( $file_name, $excluded_paths ) && ! str_contains( $file_name, 'instawp-autologin' ) ) {
+					} elseif ( ! in_array( $file_name, $excluded_paths ) && ! str_contains( $file_name, 'instawp-autologin' ) ) {
 						$extracted_files[] = $file_name;
 					}
 				}
@@ -365,15 +376,15 @@ if ( $file_type === 'zip' ) {
 				}
 			} else {
 				echo "Couldn't extract $file_save_path.zip.\n";
-				echo "ZipArchive Error (status): " . $zip->status . " - " . zipStatusString( $zip->status ) . "\n";
-				echo "ZipArchive System Error (statusSys): " . $zip->statusSys . "\n";
+				echo 'ZipArchive Error (status): ' . $zip->status . ' - ' . zipStatusString( $zip->status ) . "\n";
+				echo 'ZipArchive System Error (statusSys): ' . $zip->statusSys . "\n";
 
 				header( 'x-iwp-status: false' );
 				header( "x-iwp-message: Couldn\'t extract $file_save_path .zip.\n" );
 				die();
 			}
 		} catch ( Exception $e ) {
-			echo "Error: " . $e->getMessage();
+			echo 'Error: ' . $e->getMessage();
 
 			header( 'x-iwp-status: false' );
 			header( 'x-iwp-message: ' . $e->getMessage() . "\n" );
@@ -382,7 +393,7 @@ if ( $file_type === 'zip' ) {
 	} elseif ( class_exists( 'PharData' ) ) {
 		try {
 			$phar            = new PharData( $file_save_path );
-			$extracted_files = [];
+			$extracted_files = array();
 
 			try {
 				$phar     = new PharData( $file_save_path );
@@ -393,7 +404,6 @@ if ( $file_type === 'zip' ) {
 					// $file_name         = str_replace( 'phar://', '', $file_name );
 					$extracted_files[] = $file_name;
 				}
-
 			} catch ( Throwable $e ) {
 				header( 'x-iwp-status: false' );
 				header( 'x-iwp-message: Error in extracting zip file using PharData. Actual error message is - ' . $e->getMessage() );
@@ -411,7 +421,7 @@ if ( $file_type === 'zip' ) {
 				unlink( $file_save_path );
 			}
 		} catch ( Exception $e ) {
-			echo "Error: " . $e->getMessage();
+			echo 'Error: ' . $e->getMessage();
 
 			header( 'x-iwp-status: false' );
 			header( 'x-iwp-message: ' . $e->getMessage() . "\n" );
@@ -478,7 +488,7 @@ if ( str_contains( $file_relative_path, 'wp-config.php' ) || $is_wp_config_file 
 		$wp_config
 	);
 
-	$current_domain = str_replace( [ 'https://', 'http://' ], '', rtrim( $home_url, '/\\' ) );
+	$current_domain = str_replace( array( 'https://', 'http://' ), '', rtrim( $home_url, '/\\' ) );
 	$wp_config      = preg_replace(
 		"/'DOMAIN_CURRENT_SITE',\s*'[^']*'/",
 		"'DOMAIN_CURRENT_SITE', '$current_domain'",
@@ -498,7 +508,7 @@ if ( str_contains( $file_relative_path, 'wp-config.php' ) || $is_wp_config_file 
 		);
 
 		foreach ( $config_lines as $key => $line ) {
-			if ( str_contains( $line, "DB_COLLATE" ) ) {
+			if ( str_contains( $line, 'DB_COLLATE' ) ) {
 				$line_number = $key;
 				break;
 			}
@@ -508,10 +518,9 @@ if ( str_contains( $file_relative_path, 'wp-config.php' ) || $is_wp_config_file 
 			array_splice( $config_lines, $line_number + 1, 0, $new_lines );
 		}
 
-		file_put_contents( $wp_config_path, implode( "", $config_lines ) );
+		file_put_contents( $wp_config_path, implode( '', $config_lines ) );
 	}
 }
 
 header( 'x-iwp-status: true' );
 header( 'x-iwp-message: Success! ' . $file_relative_path );
-
