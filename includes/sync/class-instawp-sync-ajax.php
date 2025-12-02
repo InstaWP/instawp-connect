@@ -521,6 +521,11 @@ class InstaWP_Sync_Ajax {
 							'date'           => current_time( 'mysql', 1 ),
 						)
 					);
+					
+					// Fire action hook when event is marked as completed
+					if ( ! empty( $data['status'] ) && $data['status'] === 'completed' ) {
+						do_action( 'instawp_sync_event_completed', $data['id'], $data['status'] );
+					}
 				}
 
 				// Update failed process attachment
