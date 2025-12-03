@@ -85,6 +85,30 @@ class InstaWP_Ajax {
 			$cache_api = new Cache();
 			$response  = $cache_api->clean();
 
+			// Also purge InstaCDN (silent - don't block on errors)
+			$cdn_result = instawp_purge_cdn_cache();
+			if ( ! is_wp_error( $cdn_result ) && ! empty( $cdn_result['success'] ) ) {
+				$response[] = array( 'name' => 'InstaCDN' );
+			}
+
+			set_transient( 'instawp_cache_purged', $response, 300 );
+			wp_send_json_success( $response );
+		} elseif ( $type === 'cdn-cache' ) {
+			// InstaCDN-only purge (show error if not InstaSite)
+			$result = instawp_purge_cdn_cache();
+
+			if ( is_wp_error( $result ) ) {
+				wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+			}
+
+			if ( ! is_array( $result ) || empty( $result['success'] ) ) {
+				$message = is_array( $result ) && isset( $result['message'] )
+					? $result['message']
+					: __( 'This site is not hosted with InstaWP.', 'instawp-connect' );
+				wp_send_json_error( array( 'message' => $message ) );
+			}
+
+			$response = array( array( 'name' => 'InstaCDN' ) );
 			set_transient( 'instawp_cache_purged', $response, 300 );
 			wp_send_json_success( $response );
 		} elseif ( $type === 'debug_log' ) {

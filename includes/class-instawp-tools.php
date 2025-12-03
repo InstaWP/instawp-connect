@@ -211,7 +211,7 @@ class InstaWP_Tools {
 			}
 
 			// Validate against protected directories using canonicalized paths
-			if ( $canonical_path === $canonical_wp_content_dir ||
+			if ( false === strpos( $canonical_path, 'plugins/iwp-' ) && ( $canonical_path === $canonical_wp_content_dir ||
 				$canonical_path === $canonical_abspath ||
 				( $canonical_plugins_dir !== false && $canonical_path === $canonical_plugins_dir ) ||
 				( $canonical_mu_plugins_dir !== false && $canonical_path === $canonical_mu_plugins_dir ) ||
@@ -225,7 +225,7 @@ class InstaWP_Tools {
 				( $canonical_mu_plugins_dir !== false && strpos( $canonical_path . '/', $canonical_mu_plugins_dir . '/' ) === 0 ) ||
 				( $canonical_uploads_dir !== false && strpos( $canonical_path . '/', $canonical_uploads_dir . '/' ) === 0 ) ||
 				( $canonical_wp_admin !== false && strpos( $canonical_path . '/', $canonical_wp_admin . '/' ) === 0 ) ||
-				( $canonical_wp_includes !== false && strpos( $canonical_path . '/', $canonical_wp_includes . '/' ) === 0 ) ) {
+				( $canonical_wp_includes !== false && strpos( $canonical_path . '/', $canonical_wp_includes . '/' ) === 0 ) ) ) {
 				$result['message'] = __( 'Cannot remove protected WordPress directories', 'instawp-connect' );
 				Helper::add_error_log( $result );
 				return $result;
@@ -2181,6 +2181,8 @@ include $file_path;';
 					glob( WP_CONTENT_DIR . DIRECTORY_SEPARATOR . 'plugins-*' ),
 					glob( WP_CONTENT_DIR . DIRECTORY_SEPARATOR . 'mu-plugins-*' ),
 					glob( WP_CONTENT_DIR . DIRECTORY_SEPARATOR . 'themes-*' ),
+					glob( WP_CONTENT_DIR . DIRECTORY_SEPARATOR . 'plugins' . DIRECTORY_SEPARATOR . 'iwp-demo-helper-*' ),
+					glob( WP_CONTENT_DIR . DIRECTORY_SEPARATOR . 'plugins' . DIRECTORY_SEPARATOR . 'iwp-migration-helper-*' ),
 				) as $folder_to_del ) {
 					$folders[] = $folder_to_del;
 				}

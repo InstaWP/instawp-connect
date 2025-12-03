@@ -288,6 +288,19 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 					$admin_bar->add_menu(
 						array(
 							'parent' => 'instawp',
+							'id'     => 'instawp-clear-cdn-cache',
+							'title'  => __( 'Purge InstaCDN', 'instawp-connect' ),
+							'href'   => '#',
+							'meta'   => array(
+								'class'  => 'instawp-tools',
+								'target' => 'cdn-cache',
+							),
+						)
+					);
+
+					$admin_bar->add_menu(
+						array(
+							'parent' => 'instawp',
 							'id'     => 'instawp-tools',
 							'title'  => __( 'Tools', 'instawp-connect' ),
 							'href'   => '#',
