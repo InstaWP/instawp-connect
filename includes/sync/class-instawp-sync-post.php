@@ -18,6 +18,7 @@ class InstaWP_Sync_Post {
 	 * @var array
 	 */
 	private $recently_processed_posts = array();
+	private $featured_image_cache = array();
 
 	public function __construct() {
 		// Post Actions.
@@ -129,7 +130,7 @@ class InstaWP_Sync_Post {
 
 		// Track that we just processed this post
 		$this->recently_processed_posts[ $post_id ] = array(
-			'timestamp' => time(),
+			'timestamp' => current_time( 'timestamp' ),
 			'event_slug' => $this->post_events[ $post_id ]['action'],
 		);
 
@@ -151,16 +152,35 @@ class InstaWP_Sync_Post {
 			return;
 		}
 
-		// Check if featured image exists
-		$thumb_id = get_post_thumbnail_id( $post_id );
-		if ( empty( $thumb_id ) ) {
-			return; // No featured image, skip
+		// Cache featured image lookup for this request
+		if ( isset( $this->featured_image_cache[ $post_id ] ) ) {
+			$thumb_id = $this->featured_image_cache[ $post_id ];
+		} else {
+			$thumb_id = get_post_thumbnail_id( $post_id );
+			$this->featured_image_cache[ $post_id ] = $thumb_id;
 		}
+
+		// Skip if no featured image
+		if ( empty( $thumb_id ) ) {
+			return;
+		}
+
+		// Detect if featured image actually changed
+		$previous_thumb = get_post_meta( $post_id, '_instawp_last_synced_thumb', true );
+
+		if ( (int) $previous_thumb === (int) $thumb_id ) {
+			// No change → skip heavy sync logic
+			return;
+		}
+
+		// Save the new thumbnail ID to mark it processed
+		update_post_meta( $post_id, '_instawp_last_synced_thumb', $thumb_id );
+
 
 		// Check if this post was just processed in the same request (within last 5 seconds)
 		if ( isset( $this->recently_processed_posts[ $post_id ] ) ) {
 			$processed_info = $this->recently_processed_posts[ $post_id ];
-			$time_diff = time() - $processed_info['timestamp'];
+			$time_diff = current_time( 'timestamp' ) - $processed_info['timestamp'];
 			
 			// If processed within last 5 seconds, update existing event instead of creating new one
 			if ( $time_diff <= 5 ) {
@@ -174,13 +194,11 @@ class InstaWP_Sync_Post {
 						WHERE event_slug = %s 
 						AND source_id = %s 
 						AND event_type = %s
-						AND TIMESTAMPDIFF(SECOND, date, %s) <= 5
 						ORDER BY id DESC 
 						LIMIT 1",
 						$processed_info['event_slug'],
 						$reference_id,
-						$post->post_type,
-						current_time( 'mysql', 1 )
+						$post->post_type
 					) );
 					
 					if ( $event_id ) {
