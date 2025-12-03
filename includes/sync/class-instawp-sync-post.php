@@ -228,7 +228,7 @@ class InstaWP_Sync_Post {
 								
 								// Update the event with new data
 								$wpdb->update(
-									INSTAWP_DB_TABLE_EVENTS,
+									$table_name,
 									array( 'details' => wp_json_encode( $updated_data ) ),
 									array( 'id' => $event_id ),
 									array( '%s' ),
