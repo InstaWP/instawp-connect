@@ -13,6 +13,13 @@ class InstaWP_Sync_Post {
 	 */
 	private $post_events = array();
 
+	/**
+	 * Track recently processed posts to prevent duplicate events
+	 * @var array
+	 */
+	private $recently_processed_posts = array();
+	private $featured_image_cache = array();
+
 	public function __construct() {
 		// Post Actions.
 		add_action( 'transition_post_status', array( $this, 'transition_post_status' ), 10, 3 );
@@ -38,6 +45,8 @@ class InstaWP_Sync_Post {
 
 		// Process Events.
 		add_filter( 'instawp/filters/2waysync/process_event', array( $this, 'parse_event' ), 10, 2 );
+
+		add_action( 'wp_after_insert_post', array( $this, 'sync_featured_image_after_save' ), 20, 3 );
 	}
 
 	/**
@@ -119,8 +128,123 @@ class InstaWP_Sync_Post {
 			$post 
 		);
 
+		// Track that we just processed this post
+		$this->recently_processed_posts[ $post_id ] = array(
+			'timestamp' => current_time( 'timestamp' ),
+			'event_slug' => $this->post_events[ $post_id ]['action'],
+		);
+
 		// Re-hook this function.
         add_action( 'save_post', array( $this, 'save_post' ), 999, 2 );
+	}
+
+	public function sync_featured_image_after_save( $post_id, $post, $update ) {
+		// Only sync supported post types
+		if ( ! $this->can_sync_post( $post ) ) {
+			return;
+		}
+
+		// Skip drafts, autosaves, revisions
+		if ( in_array( $post->post_status, array( 'auto-draft', 'inherit' ) ) ) {
+			return;
+		}
+		if ( wp_is_post_revision( $post_id ) ) {
+			return;
+		}
+
+		// Cache featured image lookup for this request
+		if ( isset( $this->featured_image_cache[ $post_id ] ) ) {
+			$thumb_id = $this->featured_image_cache[ $post_id ];
+		} else {
+			$thumb_id = get_post_thumbnail_id( $post_id );
+			$this->featured_image_cache[ $post_id ] = $thumb_id;
+		}
+
+		// Skip if no featured image
+		if ( empty( $thumb_id ) ) {
+			return;
+		}
+
+		// Detect if featured image actually changed
+		$previous_thumb = get_post_meta( $post_id, '_instawp_last_synced_thumb', true );
+
+		if ( (int) $previous_thumb === (int) $thumb_id ) {
+			// No change → skip heavy sync logic
+			return;
+		}
+
+		// Save the new thumbnail ID to mark it processed
+		update_post_meta( $post_id, '_instawp_last_synced_thumb', $thumb_id );
+
+
+		// Check if this post was just processed in the same request (within last 5 seconds)
+		if ( isset( $this->recently_processed_posts[ $post_id ] ) ) {
+			$processed_info = $this->recently_processed_posts[ $post_id ];
+			$time_diff = current_time( 'timestamp' ) - $processed_info['timestamp'];
+			
+			// If processed within last 5 seconds, update existing event instead of creating new one
+			if ( $time_diff <= 5 ) {
+				// Get the reference ID for this post
+				$reference_id = InstaWP_Sync_Helpers::get_post_reference_id( $post_id );
+				if ( ! empty( $reference_id ) ) {
+					// Get the existing event using the same method as insert_update_event
+					global $wpdb;
+					$event_id = $wpdb->get_var( $wpdb->prepare(
+						"SELECT id FROM " . INSTAWP_DB_TABLE_EVENTS . " 
+						WHERE event_slug = %s 
+						AND source_id = %s 
+						AND event_type = %s
+						ORDER BY id DESC 
+						LIMIT 1",
+						$processed_info['event_slug'],
+						$reference_id,
+						$post->post_type
+					) );
+					
+					if ( $event_id ) {
+						// Get existing event details
+						$event = $wpdb->get_row( $wpdb->prepare(
+							"SELECT * FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE id = %d",
+							$event_id
+						) );
+						
+						if ( $event ) {
+							// Parse existing event details
+							$details = json_decode( $event->details, true );
+							
+							// Check if featured image is already included
+							if ( empty( $details['featured_image'] ) ) {
+								// Regenerate post data with featured image
+								$updated_data = InstaWP_Sync_Parser::parse_post_data( $post );
+								
+								// Update the event with new data
+								$wpdb->update(
+									INSTAWP_DB_TABLE_EVENTS,
+									array( 'details' => wp_json_encode( $updated_data ) ),
+									array( 'id' => $event_id ),
+									array( '%s' ),
+									array( '%d' )
+								);
+							}
+							
+							// Remove from tracking to prevent further updates
+							unset( $this->recently_processed_posts[ $post_id ] );
+							return;
+						}
+					}
+				}
+			}
+		}
+
+		// If not recently processed, or update failed, create new event
+		$event_name = sprintf(
+			'%s modified',
+			InstaWP_Sync_Helpers::get_post_type_name( $post->post_type )
+		);
+
+		remove_action( 'wp_after_insert_post', array( $this, 'sync_featured_image_after_save' ), 20 );
+		$this->handle_post_events( $event_name, 'post_change', $post );
+		add_action( 'wp_after_insert_post', array( $this, 'sync_featured_image_after_save' ), 20, 3 );
 	}
 
 	/**
