@@ -18,6 +18,11 @@ class InstaWP_Sync_Post {
 	 * @var array
 	 */
 	private $recently_processed_posts = array();
+
+	/**
+	 * Cache of featured image IDs per post for the current request.
+	 * @var array
+	 */
 	private $featured_image_cache = array();
 
 	public function __construct() {
@@ -171,11 +176,10 @@ class InstaWP_Sync_Post {
 		if ( (int) $previous_thumb === (int) $thumb_id ) {
 			// No change → skip heavy sync logic
 			return;
-		}
+		}  
 
 		// Save the new thumbnail ID to mark it processed
 		update_post_meta( $post_id, '_instawp_last_synced_thumb', $thumb_id );
-
 
 		// Check if this post was just processed in the same request (within last 5 seconds)
 		if ( isset( $this->recently_processed_posts[ $post_id ] ) ) {
@@ -189,24 +193,29 @@ class InstaWP_Sync_Post {
 				if ( ! empty( $reference_id ) ) {
 					// Get the existing event using the same method as insert_update_event
 					global $wpdb;
-					$event_id = $wpdb->get_var( $wpdb->prepare(
-						"SELECT id FROM " . INSTAWP_DB_TABLE_EVENTS . " 
-						WHERE event_slug = %s 
-						AND source_id = %s 
-						AND event_type = %s
-						ORDER BY id DESC 
-						LIMIT 1",
-						$processed_info['event_slug'],
-						$reference_id,
-						$post->post_type
-					) );
+					$table_name = esc_sql( INSTAWP_DB_TABLE_EVENTS );
+					$event_id   = $wpdb->get_var(
+						$wpdb->prepare(
+							"SELECT id FROM {$table_name}
+							WHERE event_slug = %s
+							AND source_id = %s
+							AND event_type = %s
+							ORDER BY id DESC
+							LIMIT 1",
+							$processed_info['event_slug'],
+							$reference_id,
+							$post->post_type
+						)
+					);
 					
 					if ( $event_id ) {
 						// Get existing event details
-						$event = $wpdb->get_row( $wpdb->prepare(
-							"SELECT * FROM " . INSTAWP_DB_TABLE_EVENTS . " WHERE id = %d",
-							$event_id
-						) );
+						$event = $wpdb->get_row(
+							$wpdb->prepare(
+								"SELECT * FROM {$table_name} WHERE id = %d",
+								$event_id
+							)
+						);
 						
 						if ( $event ) {
 							// Parse existing event details
@@ -243,8 +252,13 @@ class InstaWP_Sync_Post {
 		);
 
 		remove_action( 'wp_after_insert_post', array( $this, 'sync_featured_image_after_save' ), 20 );
-		$this->handle_post_events( $event_name, 'post_change', $post );
-		add_action( 'wp_after_insert_post', array( $this, 'sync_featured_image_after_save' ), 20, 3 );
+
+		try {
+			$this->handle_post_events( $event_name, 'post_change', $post );
+		} finally {
+			// Ensure the hook is always restored, even if an exception is thrown.
+			add_action( 'wp_after_insert_post', array( $this, 'sync_featured_image_after_save' ), 20, 3 );
+		}
 	}
 
 	/**
