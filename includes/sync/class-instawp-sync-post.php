@@ -194,9 +194,11 @@ class InstaWP_Sync_Post {
 					// Get the existing event using the same method as insert_update_event
 					global $wpdb;
 					$table_name = esc_sql( INSTAWP_DB_TABLE_EVENTS );
-					$event_id   = $wpdb->get_var(
+
+					// Single query: fetch latest matching event row
+					$event = $wpdb->get_row(
 						$wpdb->prepare(
-							"SELECT id FROM {$table_name}
+							"SELECT * FROM {$table_name}
 							WHERE event_slug = %s
 							AND source_id = %s
 							AND event_type = %s
@@ -207,39 +209,31 @@ class InstaWP_Sync_Post {
 							$post->post_type
 						)
 					);
-					
-					if ( $event_id ) {
-						// Get existing event details
-						$event = $wpdb->get_row(
-							$wpdb->prepare(
-								"SELECT * FROM {$table_name} WHERE id = %d",
-								$event_id
-							)
-						);
+
+					if ( $event ) {
+						$event_id = (int) $event->id;
+
+						// Parse existing event details
+						$details = json_decode( $event->details, true );
 						
-						if ( $event ) {
-							// Parse existing event details
-							$details = json_decode( $event->details, true );
+						// Check if featured image is already included
+						if ( empty( $details['featured_image'] ) ) {
+							// Regenerate post data with featured image
+							$updated_data = InstaWP_Sync_Parser::parse_post_data( $post );
 							
-							// Check if featured image is already included
-							if ( empty( $details['featured_image'] ) ) {
-								// Regenerate post data with featured image
-								$updated_data = InstaWP_Sync_Parser::parse_post_data( $post );
-								
-								// Update the event with new data
-								$wpdb->update(
-									$table_name,
-									array( 'details' => wp_json_encode( $updated_data ) ),
-									array( 'id' => $event_id ),
-									array( '%s' ),
-									array( '%d' )
-								);
-							}
-							
-							// Remove from tracking to prevent further updates
-							unset( $this->recently_processed_posts[ $post_id ] );
-							return;
+							// Update the event with new data
+							$wpdb->update(
+								$table_name,
+								array( 'details' => wp_json_encode( $updated_data ) ),
+								array( 'id' => $event_id ),
+								array( '%s' ),
+								array( '%d' )
+							);
 						}
+						
+						// Remove from tracking to prevent further updates
+						unset( $this->recently_processed_posts[ $post_id ] );
+						return;
 					}
 				}
 			}
