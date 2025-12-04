@@ -536,6 +536,24 @@ class Cache {
 			];
 		}
 
+		// InstaWP CDN Cache (Bunny CDN Pull Zone).
+		if ( function_exists( 'instawp_purge_cdn_cache' ) ) {
+			$message = '';
+
+			$cdn_response = instawp_purge_cdn_cache();
+			if ( is_wp_error( $cdn_response ) ) {
+				$message = $cdn_response->get_error_message();
+			} elseif ( ! ( isset( $cdn_response['success'] ) && $cdn_response['success'] ) ) {
+				$message = $cdn_response['message'] ?? 'CDN purge failed.';
+			}
+
+			$results[] = [
+				'slug'    => 'instawp-cdn',
+				'name'    => 'InstaWP CDN',
+				'message' => $message
+			];
+		}
+
 		return array_map( function( $result ) {
 			$message = trim( $result['message'] );
 			unset( $result['message'] );
