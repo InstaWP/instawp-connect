@@ -2,7 +2,7 @@
 Contributors: instawp
 Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.6
-Tested up to: 6.8
+Tested up to: 6.9
 Requires PHP: 7.0
 Stable tag: 0.1.2.2
 License: GPLv3 or later
@@ -97,6 +97,10 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 You can report security bugs through the Patchstack Vulnerability Disclosure Program. The Patchstack team helps validate, triage, and handle any security vulnerabilities. [Report a security vulnerability](https://patchstack.com/database/vdp/instawp-connect).
 
 == Changelog ==
+
+= 0.1.2.3 - Beta =
+- Enhanced: Made the user-agent in API calls consistent.
+- Added: Delay in displaying the success screen for staging site creation to ensure it appears only when the site is fully ready.
 
 = 0.1.2.2 - 01 December 2025 =
 - Fixed: 403 error on migration cleanup API call.

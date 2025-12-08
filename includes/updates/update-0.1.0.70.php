@@ -43,7 +43,7 @@ function instawp_connect_0_1_0_70_migration() {
 			'timeout'         => 60,
 			'redirection'     => 10,
 			'httpversion'     => '1.1',
-			'user-agent'      => isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '',
+			'user-agent'      => Helper::getInstaWPUserAgent( 'update/subscribe' ),
 			'sslverify'       => false,
 			'sslverifyhost'   => false,
 			'follow_location' => true,
