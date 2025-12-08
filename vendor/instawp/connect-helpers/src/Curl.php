@@ -76,6 +76,13 @@ class Curl {
 			'max_redirects'   => 10,
 		);
 
+		/**
+		 *  If unset WordPress itself add user-agent.
+		 */
+		if ( empty( $args['user-agent'] ) ) {
+			unset( $args['user-agent'] );
+		}
+
 		if ( ! empty( $body ) ) {
 			$args['body'] = is_array( $body ) ? wp_json_encode( $body ) : $body;
 		}

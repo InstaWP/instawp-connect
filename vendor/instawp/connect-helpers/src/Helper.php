@@ -9,6 +9,28 @@ class Helper {
 	}
 
 	/**
+	 * Get InstaWP User Agent
+	 *
+	 * @param null|array|string $agentIdentifier
+	 * @return string
+	 */
+	public static function getInstaWPUserAgent( $agentIdentifier = null ) {
+		$userAgentItems = array(
+			'InstaWP/1.0 (https://instawp.com; support@instawp.com)',
+		);
+
+		if ( ! empty( $agentIdentifier ) ) {
+			if ( is_array( $agentIdentifier ) ) {
+				$userAgentItems = array_merge( $userAgentItems, $agentIdentifier );
+			} else {
+				$userAgentItems[] = $agentIdentifier;
+			}
+		}
+
+		return implode( ' ', $userAgentItems );
+	}
+
+	/**
 	 * Add error log
 	 *
 	 * @param array|string $payload

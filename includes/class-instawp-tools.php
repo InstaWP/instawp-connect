@@ -757,8 +757,9 @@ include $file_path;';
 			$response = wp_remote_post(
 				INSTAWP_API_DOMAIN_PROD . '/public/check/?url=' . rawurlencode( $file_url ),
 				array(
-					'timeout'   => 30,
-					'sslverify' => false, // Set to true if your server configuration allows SSL verification
+					'timeout'    => 30,
+					'sslverify'  => false, // Set to true if your server configuration allows SSL verification
+					'user-agent' => Helper::getInstaWPUserAgent( 'connect/disconnect' ),
 				)
 			);
 
@@ -1192,11 +1193,12 @@ include $file_path;';
 		$response = wp_remote_post(
 			esc_url( 'https://inventory.instawp.io/wp-json/instawp-checksum/v1/' . sanitize_key( $end_point ) ),
 			array(
-				'body'    => $body,
-				'headers' => array(
+				'body'       => $body,
+				'headers'    => array(
 					'Authorization' => 'Bearer ' . $api_key,
 					'staging'       => $is_staging,
 				),
+				'user-agent' => Helper::getInstaWPUserAgent( 'connect/disconnect' ),
 			)
 		);
 

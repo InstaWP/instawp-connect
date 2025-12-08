@@ -1,3 +1,7 @@
+v1.0.7
+======
+- Added: User agent helper function
+
 v1.0.6
 ======
 - Added: Error log
