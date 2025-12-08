@@ -100,6 +100,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 = 0.1.2.3 - Beta =
 - Enhanced: Made the user-agent in API calls consistent.
+- Added: Delay in displaying the success screen for staging site creation to ensure it appears only when the site is fully ready.
 
 = 0.1.2.2 - 01 December 2025 =
 - Fixed: 403 error on migration cleanup API call.
