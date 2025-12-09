@@ -20,6 +20,12 @@ class InstaWP_Rest_Api_Manage extends InstaWP_Rest_Api {
 			'permission_callback' => '__return_true',
 		) );
 
+		register_rest_route( $this->namespace . '/' . $this->version_2 . '/manage', '/purge-cdn-cache', array(
+			'methods'             => 'POST',
+			'callback'            => array( $this, 'purge_cdn_cache' ),
+			'permission_callback' => '__return_true',
+		) );
+
 		register_rest_route( $this->namespace . '/' . $this->version_2 . '/manage', '/inventory', array(
 			'methods'             => 'GET',
 			'callback'            => array( $this, 'get_inventory' ),
@@ -149,6 +155,36 @@ class InstaWP_Rest_Api_Manage extends InstaWP_Rest_Api {
 		$response  = $cache_api->clean();
 
 		return $this->send_response( $response );
+	}
+
+	/**
+	 * Handle response for CDN cache purge endpoint.
+	 * Purges the InstaWP CDN (Bunny) cache for sites hosted with InstaWP.
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function purge_cdn_cache( WP_REST_Request $request ) {
+
+		$response = $this->validate_api_request( $request );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
+
+		$result = instawp_purge_cdn_cache();
+
+		if ( is_wp_error( $result ) ) {
+			return $this->send_response( array(
+				'success' => false,
+				'message' => $result->get_error_message(),
+			) );
+		}
+
+		return $this->send_response( array(
+			'success' => isset( $result['success'] ) && $result['success'],
+			'message' => $result['message'] ?? __( 'CDN cache purge request sent.', 'instawp-connect' ),
+		) );
 	}
 
 	/**

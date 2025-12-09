@@ -211,7 +211,7 @@ class InstaWP_Tools {
 			}
 
 			// Validate against protected directories using canonicalized paths
-			if ( $canonical_path === $canonical_wp_content_dir ||
+			if ( false === strpos( $canonical_path, 'plugins/iwp-' ) && ( $canonical_path === $canonical_wp_content_dir ||
 				$canonical_path === $canonical_abspath ||
 				( $canonical_plugins_dir !== false && $canonical_path === $canonical_plugins_dir ) ||
 				( $canonical_mu_plugins_dir !== false && $canonical_path === $canonical_mu_plugins_dir ) ||
@@ -225,7 +225,7 @@ class InstaWP_Tools {
 				( $canonical_mu_plugins_dir !== false && strpos( $canonical_path . '/', $canonical_mu_plugins_dir . '/' ) === 0 ) ||
 				( $canonical_uploads_dir !== false && strpos( $canonical_path . '/', $canonical_uploads_dir . '/' ) === 0 ) ||
 				( $canonical_wp_admin !== false && strpos( $canonical_path . '/', $canonical_wp_admin . '/' ) === 0 ) ||
-				( $canonical_wp_includes !== false && strpos( $canonical_path . '/', $canonical_wp_includes . '/' ) === 0 ) ) {
+				( $canonical_wp_includes !== false && strpos( $canonical_path . '/', $canonical_wp_includes . '/' ) === 0 ) ) ) {
 				$result['message'] = __( 'Cannot remove protected WordPress directories', 'instawp-connect' );
 				Helper::add_error_log( $result );
 				return $result;
@@ -765,8 +765,9 @@ include $file_path;';
 			$response = wp_remote_post(
 				INSTAWP_API_DOMAIN_PROD . '/public/check/?url=' . rawurlencode( $file_url ),
 				array(
-					'timeout'   => 30,
-					'sslverify' => false, // Set to true if your server configuration allows SSL verification
+					'timeout'    => 30,
+					'sslverify'  => false, // Set to true if your server configuration allows SSL verification
+					'user-agent' => Helper::getInstaWPUserAgent( 'connect/disconnect' ),
 				)
 			);
 
@@ -1229,11 +1230,12 @@ include $file_path;';
 		$response = wp_remote_post(
 			esc_url( 'https://inventory.instawp.io/wp-json/instawp-checksum/v1/' . sanitize_key( $end_point ) ),
 			array(
-				'body'    => $body,
-				'headers' => array(
+				'body'       => $body,
+				'headers'    => array(
 					'Authorization' => 'Bearer ' . $api_key,
 					'staging'       => $is_staging,
 				),
+				'user-agent' => Helper::getInstaWPUserAgent( 'connect/disconnect' ),
 			)
 		);
 
@@ -2224,6 +2226,8 @@ include $file_path;';
 					glob( WP_CONTENT_DIR . DIRECTORY_SEPARATOR . 'plugins-*' ),
 					glob( WP_CONTENT_DIR . DIRECTORY_SEPARATOR . 'mu-plugins-*' ),
 					glob( WP_CONTENT_DIR . DIRECTORY_SEPARATOR . 'themes-*' ),
+					glob( WP_CONTENT_DIR . DIRECTORY_SEPARATOR . 'plugins' . DIRECTORY_SEPARATOR . 'iwp-demo-helper-*' ),
+					glob( WP_CONTENT_DIR . DIRECTORY_SEPARATOR . 'plugins' . DIRECTORY_SEPARATOR . 'iwp-migration-helper-*' ),
 				) as $folder_to_del ) {
 					$folders[] = $folder_to_del;
 				}
