@@ -19,12 +19,6 @@ class InstaWP_Sync_Post {
 	 */
 	private $recently_processed_posts = array();
 
-	/**
-	 * Cache of featured image IDs per post for the current request.
-	 * @var array
-	 */
-	private $featured_image_cache = array();
-
 	public function __construct() {
 		// Post Actions.
 		add_action( 'transition_post_status', array( $this, 'transition_post_status' ), 10, 3 );
@@ -199,7 +193,7 @@ class InstaWP_Sync_Post {
 
 		// Fetch the event from database where source_id = reference_id.
 		global $wpdb;
-		$table_name = esc_sql( INSTAWP_DB_TABLE_EVENTS );
+		$table_name = INSTAWP_DB_TABLE_EVENTS;
 
 		$event = $wpdb->get_row(
 			$wpdb->prepare(
