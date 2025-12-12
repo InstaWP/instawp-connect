@@ -51,7 +51,9 @@ class InstaWP_Sync_Post {
 		// Process Events.
 		add_filter( 'instawp/filters/2waysync/process_event', array( $this, 'parse_event' ), 10, 2 );
 
-		add_action( 'wp_after_insert_post', array( $this, 'sync_featured_image_after_save' ), 20, 3 );
+		// Handle featured image sync via post meta hooks.
+		add_action( 'updated_post_meta', array( $this, 'sync_featured_image_on_meta_update' ), 10, 4 );
+		add_action( 'added_post_meta', array( $this, 'sync_featured_image_on_meta_update' ), 10, 4 );
 	}
 
 	/**
@@ -143,13 +145,40 @@ class InstaWP_Sync_Post {
         add_action( 'save_post', array( $this, 'save_post' ), 999, 2 );
 	}
 
-	public function sync_featured_image_after_save( $post_id, $post, $update ) {
-		// Only sync supported post types
+	/**
+	 * Handle featured image sync when _thumbnail_id meta is updated.
+	 * This hook fires after the meta is saved, ensuring we can access it.
+	 *
+	 * @param int    $meta_id    ID of updated metadata entry.
+	 * @param int    $post_id    Post ID.
+	 * @param string $meta_key   Meta key.
+	 * @param mixed  $meta_value Meta value.
+	 *
+	 * @return void
+	 */
+	public function sync_featured_image_on_meta_update( $meta_id, $post_id, $meta_key, $meta_value ) {
+		// Only process _thumbnail_id meta updates.
+		if ( '_thumbnail_id' !== $meta_key ) {
+			return;
+		}
+
+		// Check if syncing is enabled.
+		if ( ! InstaWP_Sync_Helpers::can_sync( 'post' ) ) {
+			return;
+		}
+
+		// Get the post object.
+		$post = get_post( $post_id );
+		if ( ! $post instanceof WP_Post ) {
+			return;
+		}
+
+		// Only sync supported post types.
 		if ( ! $this->can_sync_post( $post ) ) {
 			return;
 		}
 
-		// Skip drafts, autosaves, revisions
+		// Skip drafts, autosaves, revisions.
 		if ( in_array( $post->post_status, array( 'auto-draft', 'inherit' ) ) ) {
 			return;
 		}
@@ -157,102 +186,72 @@ class InstaWP_Sync_Post {
 			return;
 		}
 
-		// Cache featured image lookup for this request
-		if ( isset( $this->featured_image_cache[ $post_id ] ) ) {
-			$thumb_id = $this->featured_image_cache[ $post_id ];
-		} else {
-			$thumb_id = get_post_thumbnail_id( $post_id );
-			$this->featured_image_cache[ $post_id ] = $thumb_id;
-		}
-
-		// Skip if no featured image
-		if ( empty( $thumb_id ) ) {
+		// Skip if no thumbnail value.
+		if ( empty( $meta_value ) ) {
 			return;
 		}
 
-		// Detect if featured image actually changed
-		$previous_thumb = get_post_meta( $post_id, '_instawp_last_synced_thumb', true );
-
-		if ( (int) $previous_thumb === (int) $thumb_id ) {
-			// No change → skip heavy sync logic
+		// Get the reference ID for this post.
+		$reference_id = InstaWP_Sync_Helpers::get_post_reference_id( $post_id );
+		if ( empty( $reference_id ) ) {
 			return;
-		}  
+		}
 
-		// Save the new thumbnail ID to mark it processed
-		update_post_meta( $post_id, '_instawp_last_synced_thumb', $thumb_id );
+		// Fetch the event from database where source_id = reference_id.
+		global $wpdb;
+		$table_name = esc_sql( INSTAWP_DB_TABLE_EVENTS );
 
-		// Check if this post was just processed in the same request (within last 5 seconds)
-		if ( isset( $this->recently_processed_posts[ $post_id ] ) ) {
-			$processed_info = $this->recently_processed_posts[ $post_id ];
-			$time_diff = current_time( 'timestamp' ) - $processed_info['timestamp'];
-			
-			// If processed within last 5 seconds, update existing event instead of creating new one
-			if ( $time_diff <= 5 ) {
-				// Get the reference ID for this post
-				$reference_id = InstaWP_Sync_Helpers::get_post_reference_id( $post_id );
-				if ( ! empty( $reference_id ) ) {
-					// Get the existing event using the same method as insert_update_event
-					global $wpdb;
-					$table_name = esc_sql( INSTAWP_DB_TABLE_EVENTS );
+		$event = $wpdb->get_row(
+			$wpdb->prepare(
+				"SELECT * FROM {$table_name}
+				WHERE source_id = %s
+				AND event_type = %s
+				ORDER BY id DESC
+				LIMIT 1",
+				$reference_id,
+				$post->post_type
+			)
+		);
 
-					// Single query: fetch latest matching event row
-					$event = $wpdb->get_row(
-						$wpdb->prepare(
-							"SELECT * FROM {$table_name}
-							WHERE event_slug = %s
-							AND source_id = %s
-							AND event_type = %s
-							ORDER BY id DESC
-							LIMIT 1",
-							$processed_info['event_slug'],
-							$reference_id,
-							$post->post_type
-						)
-					);
+		if ( ! $event ) {
+			return;
+		}
 
-					if ( $event ) {
-						$event_id = (int) $event->id;
+		// Parse existing event details.
+		$details = json_decode( $event->details, true );
+		if ( ! is_array( $details ) ) {
+			return;
+		}
 
-						// Parse existing event details
-						$details = json_decode( $event->details, true );
-						
-						// Check if featured image is already included
-						if ( empty( $details['featured_image'] ) ) {
-							// Regenerate post data with featured image
-							$updated_data = InstaWP_Sync_Parser::parse_post_data( $post );
-							
-							// Update the event with new data
-							$wpdb->update(
-								$table_name,
-								array( 'details' => wp_json_encode( $updated_data ) ),
-								array( 'id' => $event_id ),
-								array( '%s' ),
-								array( '%d' )
-							);
-						}
-						
-						// Remove from tracking to prevent further updates
-						unset( $this->recently_processed_posts[ $post_id ] );
-						return;
-					}
-				}
+		// Ensure post_meta exists and is an array.
+		if ( ! isset( $details['post_meta'] ) || ! is_array( $details['post_meta'] ) ) {
+			$details['post_meta'] = array();
+		}
+
+		// Normalize meta value (added_post_meta passes raw value, updated_post_meta passes scalar)
+		$thumb_value = is_array( $meta_value ) ? reset( $meta_value ) : $meta_value;
+
+		// Update the _thumbnail_id in post_meta section as string value inside array.
+		$details['post_meta']['_thumbnail_id'] = array( (string) $thumb_value );
+
+		// Also update the featured_image block so destination site can sync the attachment.
+		// Use 'full' size to ensure we sync the original image, not a thumbnail.
+		$attachment_id = (int) $thumb_value;
+		if ( $attachment_id > 0 ) {
+			$attachment = get_post( $attachment_id );
+			if ( $attachment && 'attachment' === $attachment->post_type ) {
+				$details['featured_image'] = InstaWP_Sync_Parser::generate_attachment_data( $attachment_id, 'full' );
 			}
 		}
 
-		// If not recently processed, or update failed, create new event
-		$event_name = sprintf(
-			'%s modified',
-			InstaWP_Sync_Helpers::get_post_type_name( $post->post_type )
+		// Update the event in the database.
+		$wpdb->update(
+			$table_name,
+			array( 'details' => wp_json_encode( $details ) ),
+			array( 'id' => (int) $event->id ),
+			array( '%s' ),
+			array( '%d' )
 		);
-
-		remove_action( 'wp_after_insert_post', array( $this, 'sync_featured_image_after_save' ), 20 );
-
-		try {
-			$this->handle_post_events( $event_name, 'post_change', $post );
-		} finally {
-			// Ensure the hook is always restored, even if an exception is thrown.
-			add_action( 'wp_after_insert_post', array( $this, 'sync_featured_image_after_save' ), 20, 3 );
-		}
 	}
 
 	/**
