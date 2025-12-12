@@ -13,12 +13,6 @@ class InstaWP_Sync_Post {
 	 */
 	private $post_events = array();
 
-	/**
-	 * Track recently processed posts to prevent duplicate events
-	 * @var array
-	 */
-	private $recently_processed_posts = array();
-
 	public function __construct() {
 		// Post Actions.
 		add_action( 'transition_post_status', array( $this, 'transition_post_status' ), 10, 3 );
@@ -127,12 +121,6 @@ class InstaWP_Sync_Post {
 			$this->post_events[ $post_id ]['event_name'], 
 			$this->post_events[ $post_id ]['action'], 
 			$post 
-		);
-
-		// Track that we just processed this post
-		$this->recently_processed_posts[ $post_id ] = array(
-			'timestamp' => current_time( 'timestamp' ),
-			'event_slug' => $this->post_events[ $post_id ]['action'],
 		);
 
 		// Re-hook this function.
