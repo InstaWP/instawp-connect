@@ -150,26 +150,26 @@ class InstaWP_Sync_Post {
 			return;
 		}
 
-		$post = get_post( $post_id );
+		$map = $this->get_missing_featured_img_map();
 
-		$event = $this->get_event_for_featured_image_sync( $post_id, $post );
+		if ( ! isset( $map[ $post_id ] ) ) {
+			return;
+		} 
+
+		global $wpdb;
+		$table_name = INSTAWP_DB_TABLE_EVENTS;
+		$event_id = (int) $map[ $post_id ];
+
+		$event      = $wpdb->get_row(
+			$wpdb->prepare(
+				"SELECT * FROM {$table_name} WHERE id = %d LIMIT 1",
+				$event_id
+			)
+		);
+
 		if ( ! $event ) {
 			return;
 		}
-
-		// Check if syncing is enabled.
-		if ( ! InstaWP_Sync_Helpers::can_sync( 'post' ) ) {
-			return;
-		}
-
-		
-
-		// Only sync supported post types.
-		if ( ! $this->can_sync_post( $post ) ) {
-			return;
-		}
-
-		
 
 		// Parse existing event details.
 		$details = json_decode( $event->details, true );
@@ -200,13 +200,7 @@ class InstaWP_Sync_Post {
 		// Also update the featured_image block so destination site can sync the attachment.
 		// Use 'full' size to ensure we sync the original image, not a thumbnail.
 		$attachment_id = (int) $thumb_value;
-		if ( $attachment_id > 0 ) {
-			$attachment = get_post( $attachment_id );
-			$details['featured_image'] = InstaWP_Sync_Parser::generate_attachment_data( $attachment_id, 'full' );
-		}
-
-		global $wpdb;
-		$table_name = INSTAWP_DB_TABLE_EVENTS;
+		$details['featured_image'] = InstaWP_Sync_Parser::generate_attachment_data( $attachment_id, 'full' );
 
 		// Update the event in the database.
 		$updated = $wpdb->update(
@@ -232,8 +226,8 @@ class InstaWP_Sync_Post {
 			return;
 		}
 
-		// If this post was tracked as "missing featured image on create", clear it now.
-		$this->remove_missing_featured_img_record( $post_id );
+		unset( $map[ $post_id ] );
+		$this->set_missing_featured_img_map( $map );
 	}
 
 	/**
@@ -491,41 +485,6 @@ class InstaWP_Sync_Post {
 	}
 
 	/**
-	 * Get the event to be updated for featured image sync.
-	 * Uses the explicit mapping stored in the missing-featured-image option.
-	 *
-	 * @param int     $post_id Post ID.
-	 * @param WP_Post $post    Post object.
-	 *
-	 * @return object|null
-	 */
-	private function get_event_for_featured_image_sync( $post_id, $post ) {
-		$post_id = (int) $post_id;
-		if ( $post_id <= 0 || ! ( $post instanceof WP_Post ) ) {
-			return null;
-		}
-
-		$map = $this->get_missing_featured_img_map();
-		if ( isset( $map[ $post_id ] ) ) {
-			$event_id = (int) $map[ $post_id ];
-			if ( $event_id > 0 ) {
-				global $wpdb;
-				$table_name = INSTAWP_DB_TABLE_EVENTS;
-				$event      = $wpdb->get_row(
-					$wpdb->prepare(
-						"SELECT * FROM {$table_name} WHERE id = %d LIMIT 1",
-						$event_id
-					)
-				);
-				if ( $event ) {
-					return $event;
-				}
-			}
-		}
-		return null;
-	}
-
-	/**
 	 * Get the option map storing post_id => event_id.
 	 *
 	 * @return array
@@ -556,13 +515,7 @@ class InstaWP_Sync_Post {
 	 * @return void
 	 */
 	private function add_missing_featured_img_record( $post_id, $event_id ) {
-		$post_id  = (int) $post_id;
-		$event_id = (int) $event_id;
-		if ( $post_id <= 0 || $event_id <= 0 ) {
-			return;
-		}
-
-		$map            = $this->get_missing_featured_img_map();
+		$map = $this->get_missing_featured_img_map();
 		$map[ $post_id ] = $event_id;
 		$this->set_missing_featured_img_map( $map );
 	}
@@ -575,11 +528,6 @@ class InstaWP_Sync_Post {
 	 * @return void
 	 */
 	private function remove_missing_featured_img_record( $post_id ) {
-		$post_id = (int) $post_id;
-		if ( $post_id <= 0 ) {
-			return;
-		}
-
 		$map = $this->get_missing_featured_img_map();
 		if ( isset( $map[ $post_id ] ) ) {
 			unset( $map[ $post_id ] );
