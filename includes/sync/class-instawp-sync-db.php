@@ -105,8 +105,11 @@ class InstaWP_Sync_DB {
 		$event_id = self::existing_update_events( self::$tables['ch_table'], $event_slug, $source_id );
 		if ( $event_id && is_numeric( $event_id ) ) {
 			self::update( INSTAWP_DB_TABLE_EVENTS, $data, $event_id );
+			return (int) $event_id;
 		} else {
 			self::insert( INSTAWP_DB_TABLE_EVENTS, $data );
+			$insert_id = (int) self::wpdb()->insert_id;
+			return $insert_id > 0 ? $insert_id : 0;
 		}
 	}
 
