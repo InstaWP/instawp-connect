@@ -373,10 +373,16 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 	 * @return void
 	 */
 	private function fix_elementor_google_fonts_urls() {
-		$upload_dir        = wp_upload_dir();
+		$upload_dir          = wp_upload_dir();
 		$elementor_fonts_dir = $upload_dir['basedir'] . '/elementor/google-fonts';
 
 		if ( ! is_dir( $elementor_fonts_dir ) ) {
+			return;
+		}
+
+		// Resolve the real base path for security validation
+		$real_base = realpath( $elementor_fonts_dir );
+		if ( false === $real_base ) {
 			return;
 		}
 
@@ -391,11 +397,27 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 		}
 
 		foreach ( $css_files as $css_file ) {
-			if ( ! is_file( $css_file ) || ! is_readable( $css_file ) ) {
+			// Security: Validate file extension
+			if ( pathinfo( $css_file, PATHINFO_EXTENSION ) !== 'css' ) {
 				continue;
 			}
 
-			$content = file_get_contents( $css_file );
+			// Security: Validate path is within the expected directory (prevent directory traversal)
+			$real_path = realpath( $css_file );
+			if ( false === $real_path || strpos( $real_path, $real_base ) !== 0 ) {
+				continue;
+			}
+
+			if ( ! is_file( $real_path ) || ! is_readable( $real_path ) ) {
+				continue;
+			}
+
+			// Security: Check write permissions before attempting to write
+			if ( ! wp_is_writable( $real_path ) ) {
+				continue;
+			}
+
+			$content = file_get_contents( $real_path );
 			if ( false === $content ) {
 				continue;
 			}
@@ -414,7 +436,7 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 
 			// Only update if changes were made
 			if ( $updated_content !== $content ) {
-				file_put_contents( $css_file, $updated_content );
+				file_put_contents( $real_path, $updated_content );
 			}
 		}
 	}
