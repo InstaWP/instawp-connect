@@ -150,34 +150,26 @@ class InstaWP_Sync_Post {
 			return;
 		}
 
+		$post = get_post( $post_id );
+
+		$event = $this->get_event_for_featured_image_sync( $post_id, $post );
+		if ( ! $event ) {
+			return;
+		}
+
 		// Check if syncing is enabled.
 		if ( ! InstaWP_Sync_Helpers::can_sync( 'post' ) ) {
 			return;
 		}
 
-		// Get the post object.
-		$post = get_post( $post_id );
-		if ( ! $post instanceof WP_Post ) {
-			return;
-		}
+		
 
 		// Only sync supported post types.
 		if ( ! $this->can_sync_post( $post ) ) {
 			return;
 		}
 
-		// Skip drafts, autosaves, revisions.
-		if ( in_array( $post->post_status, array( 'auto-draft', 'inherit' ) ) ) {
-			return;
-		}
-		if ( wp_is_post_revision( $post_id ) ) {
-			return;
-		}
-
-		$event = $this->get_event_for_featured_image_sync( $post_id, $post );
-		if ( ! $event ) {
-			return;
-		}
+		
 
 		// Parse existing event details.
 		$details = json_decode( $event->details, true );
