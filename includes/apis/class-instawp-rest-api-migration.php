@@ -422,15 +422,15 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 				continue;
 			}
 
-			// Check if file contains domain references that need updating
-			if ( strpos( $content, 'src: url(https://' ) === false ) {
+			// Check if file contains domain references that need updating (HTTP or HTTPS)
+			if ( strpos( $content, 'src: url(https://' ) === false && strpos( $content, 'src: url(http://' ) === false ) {
 				continue;
 			}
 
-			// Replace any domain in CSS URL references with current domain
+			// Replace any domain in CSS URL references with current domain (handles both HTTP and HTTPS)
 			$updated_content = preg_replace(
-				'#src: url\(https://[^/]+/wp-content/uploads/elementor/google-fonts/#',
-				'src: url(https://' . $current_domain . '/wp-content/uploads/elementor/google-fonts/',
+				'#src: url\(https?://[^/]+(/wp-content/uploads/elementor/google-fonts/)#',
+				'src: url(https://' . $current_domain . '$1',
 				$content
 			);
 
