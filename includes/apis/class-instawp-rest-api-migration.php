@@ -327,6 +327,7 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 			// Cleaning up migrations and backup files
 			if ( $migration_details['status'] === 'completed' ) {
 				InstaWP_Tools::clean_iwp_files_dir();
+				$this->fix_elementor_google_fonts_urls();
 			}
 
 			foreach ( $plugins_to_delete as $plugin ) {
@@ -362,6 +363,59 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 			);
 			error_log( 'migration clean up exception: ' . json_encode( $response ) );
 			return $this->send_response( $response );
+		}
+	}
+
+	/**
+	 * Fix Elementor Google Fonts domain references in CSS files.
+	 * Replaces old domain URLs with the current site URL in Elementor's cached font CSS files.
+	 *
+	 * @return void
+	 */
+	private function fix_elementor_google_fonts_urls() {
+		$upload_dir        = wp_upload_dir();
+		$elementor_fonts_dir = $upload_dir['basedir'] . '/elementor/google-fonts';
+
+		if ( ! is_dir( $elementor_fonts_dir ) ) {
+			return;
+		}
+
+		$current_url = site_url();
+		// Remove protocol for replacement pattern
+		$current_domain = preg_replace( '#^https?://#', '', $current_url );
+
+		// Find all CSS files in the directory
+		$css_files = glob( $elementor_fonts_dir . '/*.css' );
+		if ( empty( $css_files ) ) {
+			return;
+		}
+
+		foreach ( $css_files as $css_file ) {
+			if ( ! is_file( $css_file ) || ! is_readable( $css_file ) ) {
+				continue;
+			}
+
+			$content = file_get_contents( $css_file );
+			if ( false === $content ) {
+				continue;
+			}
+
+			// Check if file contains domain references that need updating
+			if ( strpos( $content, 'src: url(https://' ) === false ) {
+				continue;
+			}
+
+			// Replace any domain in CSS URL references with current domain
+			$updated_content = preg_replace(
+				'#src: url\(https://[^/]+/wp-content/uploads/elementor/google-fonts/#',
+				'src: url(https://' . $current_domain . '/wp-content/uploads/elementor/google-fonts/',
+				$content
+			);
+
+			// Only update if changes were made
+			if ( $updated_content !== $content ) {
+				file_put_contents( $css_file, $updated_content );
+			}
 		}
 	}
 }
