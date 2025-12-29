@@ -331,15 +331,25 @@ if ( $file_type === 'db' ) {
 			// Fix CSS URLs in uploads folder after migration
 			try {
 				$current_domain = isset( $site_url ) ? preg_replace( '#^https?://#', '', rtrim( $site_url, '/' ) ) : '';
+				$real_root_path = realpath( $root_dir_path );
 
-				if ( ! empty( $current_domain ) ) {
+				// Validate domain using PHP's built-in URL validation
+				if ( ! empty( $current_domain ) && ! filter_var( 'https://' . $current_domain, FILTER_VALIDATE_URL ) ) {
+					file_put_contents( $log_file_path, 'Invalid domain for CSS fix: ' . $current_domain . "\n", FILE_APPEND );
+					$current_domain = '';
+				}
+
+				if ( ! empty( $current_domain ) && false !== $real_root_path ) {
 					$css_dirs = array(
-						$root_dir_path . '/wp-content/uploads/elementor/google-fonts/css',
-						$root_dir_path . '/wp-content/uploads/elementor/css',
+						$real_root_path . '/wp-content/uploads/elementor/google-fonts/css',
+						$real_root_path . '/wp-content/uploads/elementor/css',
 					);
 
 					foreach ( $css_dirs as $css_dir ) {
-						if ( ! is_dir( $css_dir ) ) {
+						$real_css_dir = realpath( $css_dir );
+
+						// Skip if directory doesn't exist or is outside root path (path traversal protection)
+						if ( false === $real_css_dir || 0 !== strpos( $real_css_dir, $real_root_path ) ) {
 							continue;
 						}
 
@@ -349,11 +359,24 @@ if ( $file_type === 'db' ) {
 						}
 
 						foreach ( $css_files as $css_file ) {
-							if ( ! is_file( $css_file ) || ! is_readable( $css_file ) || ! is_writable( $css_file ) ) {
+							$real_css_file = realpath( $css_file );
+
+							// Skip if file doesn't exist, is outside root path, or is not accessible
+							if ( false === $real_css_file || 0 !== strpos( $real_css_file, $real_root_path ) ) {
+								continue;
+							}
+							if ( ! is_file( $real_css_file ) || ! is_readable( $real_css_file ) || ! is_writable( $real_css_file ) ) {
 								continue;
 							}
 
-							$content = file_get_contents( $css_file );
+							// Skip files larger than 1MB
+							$file_size = filesize( $real_css_file );
+							if ( false === $file_size || $file_size > 1024 * 1024 ) {
+								file_put_contents( $log_file_path, 'Skipping large CSS file: ' . basename( $real_css_file ) . "\n", FILE_APPEND );
+								continue;
+							}
+
+							$content = file_get_contents( $real_css_file );
 							if ( false === $content ) {
 								continue;
 							}
@@ -369,14 +392,15 @@ if ( $file_type === 'db' ) {
 							);
 
 							if ( null !== $updated && $updated !== $content ) {
-								file_put_contents( $css_file, $updated );
-								file_put_contents( $log_file_path, 'Fixed CSS URL: ' . basename( $css_file ) . "\n", FILE_APPEND );
+								file_put_contents( $real_css_file, $updated );
+								file_put_contents( $log_file_path, 'Fixed CSS URL: ' . basename( $real_css_file ) . "\n", FILE_APPEND );
 							}
 						}
 					}
 				}
 			} catch ( \Throwable $th ) {
-				file_put_contents( $log_file_path, 'CSS URL fix error: ' . $th->getMessage() . "\n", FILE_APPEND );
+				$error_file = isset( $css_file ) ? $css_file : 'unknown';
+				file_put_contents( $log_file_path, "CSS URL fix error in {$error_file}: " . $th->getMessage() . "\n", FILE_APPEND );
 			}
 		}
 
