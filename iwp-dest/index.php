@@ -327,6 +327,57 @@ if ( $file_type === 'db' ) {
 			} else {
 				file_put_contents( $log_file_path, 'instawp_api_options not found to update' . "\n", FILE_APPEND );
 			}
+
+			// Fix CSS URLs in uploads folder after migration
+			try {
+				$current_domain = isset( $site_url ) ? preg_replace( '#^https?://#', '', rtrim( $site_url, '/' ) ) : '';
+
+				if ( ! empty( $current_domain ) ) {
+					$css_dirs = array(
+						$root_dir_path . '/wp-content/uploads/elementor/google-fonts/css',
+						$root_dir_path . '/wp-content/uploads/elementor/css',
+					);
+
+					foreach ( $css_dirs as $css_dir ) {
+						if ( ! is_dir( $css_dir ) ) {
+							continue;
+						}
+
+						$css_files = glob( $css_dir . '/*.css' );
+						if ( empty( $css_files ) ) {
+							continue;
+						}
+
+						foreach ( $css_files as $css_file ) {
+							if ( ! is_file( $css_file ) || ! is_readable( $css_file ) || ! is_writable( $css_file ) ) {
+								continue;
+							}
+
+							$content = file_get_contents( $css_file );
+							if ( false === $content ) {
+								continue;
+							}
+
+							// Replace old domain URLs with current domain
+							$updated = preg_replace_callback(
+								'#url\(\s*[\'"]?(https?://[^/]+)?(/wp-content/uploads/[^\'")\s]+)[\'"]?\s*\)#i',
+								function ( $matches ) use ( $current_domain ) {
+									$path = isset( $matches[2] ) ? $matches[2] : '';
+									return "url('https://" . $current_domain . $path . "')";
+								},
+								$content
+							);
+
+							if ( null !== $updated && $updated !== $content ) {
+								file_put_contents( $css_file, $updated );
+								file_put_contents( $log_file_path, 'Fixed CSS URL: ' . basename( $css_file ) . "\n", FILE_APPEND );
+							}
+						}
+					}
+				}
+			} catch ( \Throwable $th ) {
+				file_put_contents( $log_file_path, 'CSS URL fix error: ' . $th->getMessage() . "\n", FILE_APPEND );
+			}
 		}
 
 		$mysqli->close();
