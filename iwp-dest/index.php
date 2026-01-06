@@ -364,7 +364,7 @@ if ( $file_type === 'db' ) {
 							}
 
 							// Skip if file is not accessible
-							if ( ! is_file( $real_css_file ) || ! is_readable( $real_css_file ) || ! is_writable( $real_css_file ) ) {
+							if ( ! is_file( $real_css_file ) || ! is_writable( $real_css_file ) ) {
 								continue;
 							}
 
