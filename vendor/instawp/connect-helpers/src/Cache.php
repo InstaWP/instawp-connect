@@ -522,8 +522,8 @@ class Cache {
 		if ( is_plugin_active( 'cloudflare/cloudflare.php' ) ) {
 			$message = '';
 
-			if ( class_exists( '\CF\WordPress\Hooks' ) && method_exists( '\CF\WordPress\Hooks', 'purgeCacheEverything' ) ) {
-				$cf = new \CF\WordPress\Hooks();
+			if ( class_exists( '\Cloudflare\APO\WordPress\Hooks' ) && method_exists( '\Cloudflare\APO\WordPress\Hooks', 'purgeCacheEverything' ) ) {
+				$cf = new \Cloudflare\APO\WordPress\Hooks();
 				$cf->purgeCacheEverything();
 			} else {
 				$message = 'Class or Method not exists.';
