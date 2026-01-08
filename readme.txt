@@ -98,14 +98,12 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
-= 0.1.2.4 - Beta =
-- Added: Session fallback for migration options data when file is temporarily inaccessible.
-- Fixed: Migration failure at 74-76% due to options file read issues.
-- Fixed: Pull API errors not being returned properly to the server.
-
 = 0.1.2.3 - Beta =
 - Enhanced: Made the user-agent in API calls consistent.
 - Added: Delay in displaying the success screen for staging site creation to ensure it appears only when the site is fully ready.
+- Added: Session fallback for migration options data when file is temporarily inaccessible.
+- Fixed: Migration failure at 74-76% due to options file read issues.
+- Fixed: Pull API errors not being returned properly to the server.
 
 = 0.1.2.2 - 01 December 2025 =
 - Fixed: 403 error on migration cleanup API call.
