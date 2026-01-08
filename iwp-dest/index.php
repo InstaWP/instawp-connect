@@ -350,42 +350,50 @@ if ( $file_type === 'db' ) {
 							\RecursiveIteratorIterator::LEAVES_ONLY
 						);
 
-						foreach ( $iterator as $file ) {
-							// Strictly check for .css extension
-							if ( 'css' !== strtolower( $file->getExtension() ) ) {
+						$old_domain = null;
+
+						foreach ($iterator as $file) {
+							if ('css' !== strtolower($file->getExtension())) {
 								continue;
 							}
-
+							
 							$real_css_file = $file->getRealPath();
-
-							// Skip if file doesn't exist or is outside root path (path traversal protection)
-							if ( false === $real_css_file || 0 !== strpos( $real_css_file, $real_root_path ) ) {
+							
+							if (false === $real_css_file || 0 !== strpos($real_css_file, $real_root_path)) {
 								continue;
 							}
-
-							// Skip if file is not accessible
-							if ( ! is_file( $real_css_file ) || ! is_writable( $real_css_file ) ) {
+							
+							if (!is_file($real_css_file) || !is_writable($real_css_file)) {
 								continue;
 							}
-
-							$content = file_get_contents( $real_css_file );
-							if ( false === $content ) {
+							
+							$content = file_get_contents($real_css_file);
+							if (false === $content || false === stripos($content, 'url(')) {
 								continue;
 							}
-
-							// Replace old domain URLs with current domain
-							$updated = preg_replace_callback(
-								'#url\(\s*[\'"]?(https?://[^/]+)?(/wp-content/uploads/[^\'")\s]+)[\'"]?\s*\)#i',
-								function ( $matches ) use ( $current_domain ) {
-									$path = isset( $matches[2] ) ? $matches[2] : '';
-									return "url('https://" . $current_domain . $path . "')";
-								},
-								$content
-							);
-
-							if ( null !== $updated && $updated !== $content ) {
-								file_put_contents( $real_css_file, $updated );
-								file_put_contents( $log_file_path, 'Fixed CSS URL: ' . basename( $real_css_file ) . "\n", FILE_APPEND );
+							
+							// If we haven't found the old domain yet, search for it
+							if (null === $old_domain) {
+								if (preg_match('#url\(\s*[\'"]?https?://([^/]+)/wp-content/uploads/#i', $content, $match)) {
+									if ($match[1] !== $current_domain && filter_var('https://' . $match[1], FILTER_VALIDATE_URL)) {
+										$old_domain = $match[1];
+										file_put_contents($log_file_path, "Found old domain: {$old_domain}\n", FILE_APPEND);
+									}
+								}
+							}
+							
+							// If old domain is found, do replacement
+							if ($old_domain) {
+								$updated = str_replace(
+									["https://{$old_domain}/", "http://{$old_domain}/"],
+									["https://{$current_domain}/", "https://{$current_domain}/"],
+									$content
+								);
+								
+								if ($updated !== $content) {
+									file_put_contents($real_css_file, $updated);
+									file_put_contents($log_file_path, 'Fixed CSS URL: ' . basename($real_css_file) . "\n", FILE_APPEND);
+								}
 							}
 						}
 					}
