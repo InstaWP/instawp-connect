@@ -1,8 +1,10 @@
 /.wordpress-org
 /.git
 /.github
+/.claude
 /node_modules
 /build
+/doc
 
 .distignore
 .gitignore
@@ -14,3 +16,4 @@ package.json
 package-lock.json
 phpcs.xml
 README.md
+CLAUDE.md

@@ -1,18 +1,18 @@
-const gulp = require( 'gulp' ),
-    del = require( 'del' ),
-    wpPot = require( 'gulp-wp-pot' ),
-    zip = require( 'gulp-zip' );
-const { series, parallel } = require( 'gulp' );
+const gulp = require('gulp'),
+    del = require('del'),
+    wpPot = require('gulp-wp-pot'),
+    zip = require('gulp-zip');
+const { series, parallel } = require('gulp');
 
 // Pot Path
-var potPath = [ './*.php', 'includes/*.php', 'includes/**/*.php', 'admin/*.php', 'admin/**/*.php', 'cli/*.php' ];
+var potPath = ['./*.php', 'includes/*.php', 'includes/**/*.php', 'admin/*.php', 'admin/**/*.php', 'cli/*.php'];
 
 // ZIP Path
-var zipPath = [ 
-    './', 
-    './**', 
-    './**', 
-    '!./.git/**', 
+var zipPath = [
+    './',
+    './**',
+    './**',
+    '!./.git/**',
     '!./**/.gitignore',
     '!./**/*.md',
     '!./**/*.scss',
@@ -20,49 +20,50 @@ var zipPath = [
     '!./**/composer.json',
     '!./**/tailwind.config.js',
     '!./**/auth.json',
-    '!./**/.gitignore', 
-    '!./**/LICENSE', 
-    '!./**/phpunit*', 
-    '!./tests/**', 
-    '!./node_modules/**', 
-    '!./build/**', 
-    '!./gulpfile.js', 
-    '!./package.json', 
-    '!./package-lock.json', 
-    '!./composer.json', 
-    '!./composer.lock', 
-    '!./phpcs.xml', 
-    '!./LICENSE', 
-    '!./README.md', 
-    '!./vendor/bin/**', 
-    '!./vendor/**/*.txt', 
+    '!./**/.gitignore',
+    '!./**/LICENSE',
+    '!./**/phpunit*',
+    '!./tests/**',
+    '!./node_modules/**',
+    '!./build/**',
+    '!./gulpfile.js',
+    '!./package.json',
+    '!./package-lock.json',
+    '!./composer.json',
+    '!./composer.lock',
+    '!./phpcs.xml',
+    '!./LICENSE',
+    '!./README.md',
+    '!./CLAUDE.md',
+    '!./vendor/bin/**',
+    '!./vendor/**/*.txt',
     '!./includes/file-manager/instawp*.php',
     '!./includes/database-manager/instawp*.php',
 ];
 
 // Clean CSS, JS and ZIP
 function clean_files() {
-    let cleanPath = [ '../instawp-connect.zip' ];
-    return del( cleanPath, { force : true } ); 
+    let cleanPath = ['../instawp-connect.zip'];
+    return del(cleanPath, { force: true });
 }
 
 // Create POT file
 function create_pot() {
-    return gulp.src( potPath )
-        .pipe( wpPot( {
+    return gulp.src(potPath)
+        .pipe(wpPot({
             domain: 'instawp-connect',
             package: 'InstaWP Connect',
             copyrightText: 'InstaWP',
             ignoreTemplateNameHeader: true
-        } ) )
-        .pipe( gulp.dest( 'languages/instawp-connect.pot' ) );
+        }))
+        .pipe(gulp.dest('languages/instawp-connect.pot'));
 }
 
 // Create ZIP file
 function create_zip() {
-    return gulp.src( zipPath, { base : '../' } )
-        .pipe( zip( 'instawp-connect.zip' ) )
-        .pipe( gulp.dest( '../' ) )
+    return gulp.src(zipPath, { base: '../' })
+        .pipe(zip('instawp-connect.zip'))
+        .pipe(gulp.dest('../'))
 }
 
-exports.default = series( clean_files, create_pot, create_zip );
+exports.default = series(clean_files, create_pot, create_zip);
