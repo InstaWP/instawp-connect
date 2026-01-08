@@ -1502,12 +1502,25 @@ include $file_path;';
 
 		// Generate serve file in instawpbackups directory
 		$serve_file_response = self::generate_serve_file_response( $migrate_key, $api_signature, $migrate_settings );
-		$serve_url           = Helper::get_args_option( 'serve_url', $serve_file_response );
-		$migrate_settings    = Helper::get_args_option( 'migrate_settings', $serve_file_response );
-		$tracking_db         = self::get_tracking_database( $migrate_key );
+
+		if ( false === $serve_file_response ) {
+			return new WP_Error(
+				403,
+				sprintf(
+					'%s <a class="underline" href="%s">%s</a>',
+					esc_html__( 'InstaWP could not generate required files (serve file) due to file permission issue.', 'instawp-connect' ),
+					INSTAWP_DOCS_URL_PLUGIN,
+					esc_html__( 'Learn more.', 'instawp-connect' )
+				)
+			);
+		}
+
+		$serve_url        = Helper::get_args_option( 'serve_url', $serve_file_response );
+		$migrate_settings = Helper::get_args_option( 'migrate_settings', $serve_file_response );
+		$tracking_db      = self::get_tracking_database( $migrate_key );
 
 		if ( ! $tracking_db ) {
-			new WP_Error( 404, esc_html__( 'Tracking database could not found.', 'instawp-connect' ) );
+			return new WP_Error( 404, esc_html__( 'Tracking database could not be found.', 'instawp-connect' ) );
 		}
 
 		if (

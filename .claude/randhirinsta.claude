@@ -1,0 +1,31 @@
+# Developer: randhirinsta
+# Project-specific preferences and learnings
+
+## Coding Preferences
+- WordPress plugin development
+- PHP backend focus
+- Migration/backup functionality
+
+## Project Context
+- InstaWP Connect plugin for WordPress site migration
+- Uses standalone PHP scripts (iwp-serve/, iwp-dest/) that run WITHOUT WordPress loaded
+- Cannot rely on WordPress functions or database for bootstrap operations
+- File operations can be unreliable on shared hosting environments
+
+## Technical Learnings
+
+### IWPDB Class (class-instawp-iwpdb.php)
+- Bootstrap problem: needs DB credentials from file before connecting to database
+- File-based storage (`options-{key}.txt`) is unreliable on some servers
+- SQLite is not a solution as it's also file-based
+- Preferred approach: Split storage
+  - DB credentials only in file (small, static, read once)
+  - All other migration state in MySQL `iwp_options` table (reliable, ACID)
+
+### Migration Architecture
+- External server calls `iwp-serve/index.php` with `migrate_key` and `api_signature`
+- Options file contains encrypted data (AES-256-CBC) with migration settings
+- Cannot pass all options in POST as they change during migration on performing server
+
+## Notes
+- Add new learnings below as the project evolves
