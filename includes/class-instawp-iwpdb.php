@@ -296,7 +296,9 @@ class IWPDB {
 		$options_data_encrypted = '';
 
 		// Try file first
-		if ( file_exists( $options_data_filename ) && is_readable( $options_data_filename ) ) {
+		if ( ! file_exists( $options_data_filename ) ) {
+			$this->last_error = 'Migration file does not exist.';
+		} else if ( is_readable( $options_data_filename ) ) {
 			$options_data_encrypted = file_get_contents( $options_data_filename );
 		}
 
@@ -307,7 +309,7 @@ class IWPDB {
 			// Fallback to session
 			$options_data_encrypted = $_SESSION['iwp_options_data'];
 		} else {
-			$this->last_error = 'Options file not accessible and no session data';
+			$this->last_error = ' Options file not accessible and no session data.';
 			return false;
 		}
 
