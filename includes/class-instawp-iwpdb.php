@@ -309,7 +309,7 @@ class IWPDB {
 			// Fallback to session
 			$options_data_encrypted = $_SESSION['iwp_options_data'];
 		} else {
-			$this->last_error = ' Options file not accessible and no session data.';
+			$this->last_error .= ' Options file not accessible and no session data.';
 			return false;
 		}
 
@@ -322,7 +322,7 @@ class IWPDB {
 		$this->options_data     = json_decode( $options_data_decrypted, true );
 
 		if ( empty( $this->options_data ) ) {
-			$this->last_error = 'Options data decryption failed';
+			$this->last_error .= 'Options data decryption failed';
 			return false;
 		}
 
