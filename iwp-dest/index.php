@@ -327,6 +327,81 @@ if ( $file_type === 'db' ) {
 			} else {
 				file_put_contents( $log_file_path, 'instawp_api_options not found to update' . "\n", FILE_APPEND );
 			}
+
+			// Fix CSS URLs in uploads folder after migration
+			try {
+				$current_domain = isset( $site_url ) ? preg_replace( '#^https?://#', '', rtrim( $site_url, '/' ) ) : '';
+				$real_root_path = realpath( $root_dir_path );
+
+				// Validate domain using PHP's built-in URL validation
+				if ( ! empty( $current_domain ) && ! filter_var( 'https://' . $current_domain, FILTER_VALIDATE_URL ) ) {
+					file_put_contents( $log_file_path, 'Invalid domain for CSS fix: ' . $current_domain . "\n", FILE_APPEND );
+					$current_domain = '';
+				}
+
+				if ( ! empty( $current_domain ) && false !== $real_root_path ) {
+					$uploads_dir = $real_root_path . '/wp-content/uploads';
+					$real_uploads_dir = realpath( $uploads_dir );
+
+					// Skip if uploads directory doesn't exist or is outside root path (path traversal protection)
+					if ( false !== $real_uploads_dir && 0 === strpos( $real_uploads_dir, $real_root_path ) ) {
+						$iterator = new \RecursiveIteratorIterator(
+							new \RecursiveDirectoryIterator( $real_uploads_dir, \FilesystemIterator::SKIP_DOTS ),
+							\RecursiveIteratorIterator::LEAVES_ONLY
+						);
+
+						$old_domain = null;
+
+						foreach ($iterator as $file) {
+							if ('css' !== strtolower($file->getExtension())) {
+								continue;
+							}
+							
+							$real_css_file = $file->getRealPath();
+							
+							if (false === $real_css_file || 0 !== strpos($real_css_file, $real_root_path)) {
+								continue;
+							}
+							
+							if (!is_file($real_css_file) || !is_writable($real_css_file)) {
+								continue;
+							}
+							
+							$content = file_get_contents($real_css_file);
+							if (false === $content || false === stripos($content, 'url(')) {
+								continue;
+							}
+							
+							// If we haven't found the old domain yet, search for it
+							if (null === $old_domain) {
+								if (preg_match('#url\(\s*[\'"]?https?://([^/]+)/wp-content/uploads/#i', $content, $match)) {
+									if ($match[1] !== $current_domain && filter_var('https://' . $match[1], FILTER_VALIDATE_URL)) {
+										$old_domain = $match[1];
+										file_put_contents($log_file_path, "Found old domain: {$old_domain}\n", FILE_APPEND);
+									}
+								}
+							}
+							
+							// If old domain is found, do replacement
+							if ($old_domain) {
+								$updated = str_replace(
+									["https://{$old_domain}/", "http://{$old_domain}/"],
+									["https://{$current_domain}/", "https://{$current_domain}/"],
+									$content
+								);
+								
+								if ($updated !== $content) {
+									file_put_contents($real_css_file, $updated);
+									file_put_contents($log_file_path, 'Fixed CSS URL: ' . basename($real_css_file) . "\n", FILE_APPEND);
+								}
+							}
+						}
+					}
+				}
+			} catch ( \Throwable $th ) {
+				$error_file = isset( $file ) ? $file->getPathname() : 'unknown';
+				file_put_contents( $log_file_path, "CSS URL fix error in {$error_file}: " . $th->getMessage() . "\n", FILE_APPEND );
+			}
 		}
 
 		$mysqli->close();
