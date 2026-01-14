@@ -142,8 +142,17 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			// Test if the limited iterator has any items
 			$limitedIterator->rewind();
 			if ( ! $limitedIterator->valid() ) {
+				// Check if we've processed all files - this is success, not error
+				if ( $currentFileIndex >= $totalFiles ) {
+					header( 'x-iwp-status: true' );
+					header( 'x-iwp-transfer-complete: true' );
+					header( "x-iwp-message: All files have been indexed. Current file index: $currentFileIndex, Total files: $totalFiles" );
+					exit;
+				}
+
+				// Otherwise it's a real error - iterator is empty but we haven't processed all files
 				header( 'x-iwp-status: false' );
-				header( "x-iwp-message: LimitIterator is empty. Current file index: $currentFileIndex, Batch size: " . BATCH_SIZE );
+				header( "x-iwp-message: LimitIterator is empty unexpectedly. Current file index: $currentFileIndex, Batch size: " . BATCH_SIZE . ", Total files: $totalFiles" );
 				die();
 			}
 		} catch ( Exception $e ) {
