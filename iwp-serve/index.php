@@ -3,10 +3,10 @@ set_time_limit( 0 );
 error_reporting( 0 );
 
 if ( ! defined( 'IWP_PLUGIN_DIR' ) ) {
-	define( 'IWP_PLUGIN_DIR', dirname( dirname( __FILE__ ) ) . DIRECTORY_SEPARATOR );
+	define( 'IWP_PLUGIN_DIR', dirname( __DIR__ ) . DIRECTORY_SEPARATOR );
 }
 
-include_once IWP_PLUGIN_DIR . 'includes' . DIRECTORY_SEPARATOR . 'functions-pull-push.php';
+require_once IWP_PLUGIN_DIR . 'includes' . DIRECTORY_SEPARATOR . 'functions-pull-push.php';
 
 $migrate_key   = isset( $_POST['migrate_key'] ) ? $_POST['migrate_key'] : '';
 $api_signature = isset( $_POST['api_signature'] ) ? $_POST['api_signature'] : '';
@@ -31,7 +31,7 @@ $root_dir_path = isset( $root_dir_data['root_path'] ) ? $root_dir_data['root_pat
 if ( ! $root_dir_find ) {
 	header( 'x-iwp-status: false' );
 	header( 'x-iwp-message: Could not find wp-config.php in the parent directories.' );
-	echo "Could not find wp-config.php in the parent directories.";
+	echo 'Could not find wp-config.php in the parent directories.';
 	exit( 2 );
 }
 
@@ -45,24 +45,20 @@ $root_dir_path = implode( DIRECTORY_SEPARATOR, $root_dir_path_arr );
 
 defined( 'CHUNK_SIZE' ) | define( 'CHUNK_SIZE', 2 * 1024 * 1024 );
 defined( 'BATCH_ZIP_SIZE' ) | define( 'BATCH_ZIP_SIZE', 50 );
-defined( 'MAX_ZIP_SIZE' ) | define( 'MAX_ZIP_SIZE', 1024 * 1024 ); //1mb
+defined( 'MAX_ZIP_SIZE' ) | define( 'MAX_ZIP_SIZE', 1024 * 1024 ); // 1mb
 defined( 'CHUNK_DB_SIZE' ) | define( 'CHUNK_DB_SIZE', 100 );
 defined( 'BATCH_SIZE' ) | define( 'BATCH_SIZE', 100 );
 defined( 'WP_ROOT' ) | define( 'WP_ROOT', $root_dir_path );
 defined( 'INSTAWP_BACKUP_DIR' ) | define( 'INSTAWP_BACKUP_DIR', WP_ROOT . DIRECTORY_SEPARATOR . 'wp-content' . DIRECTORY_SEPARATOR . 'instawpbackups' . DIRECTORY_SEPARATOR );
 
-$iwpdb_main_path = WP_ROOT . DIRECTORY_SEPARATOR . 'wp-content' . DIRECTORY_SEPARATOR . 'plugins' . DIRECTORY_SEPARATOR . 'instawp-connect' . DIRECTORY_SEPARATOR . 'includes' . DIRECTORY_SEPARATOR . 'class-instawp-iwpdb.php';
-$iwpdb_git_path  = WP_ROOT . DIRECTORY_SEPARATOR . 'wp-content' . DIRECTORY_SEPARATOR . 'plugins' . DIRECTORY_SEPARATOR . 'instawp-connect-main' . DIRECTORY_SEPARATOR . 'includes' . DIRECTORY_SEPARATOR . 'class-instawp-iwpdb.php';
-
+$iwpdb_main_path = IWP_PLUGIN_DIR . 'includes' . DIRECTORY_SEPARATOR . 'class-instawp-iwpdb.php';
 if ( file_exists( $iwpdb_main_path ) && is_readable( $iwpdb_main_path ) ) {
-	require_once( $iwpdb_main_path );
-} elseif ( file_exists( $iwpdb_git_path ) && is_readable( $iwpdb_git_path ) ) {
-	require_once( $iwpdb_git_path );
+	require_once $iwpdb_main_path;
 } else {
 	header( 'x-iwp-status: false' );
-	header( 'x-iwp-message: The migration script could not find `class-instawp-iwpdb.php` inside the plugin directory.' );
+	header( 'x-iwp-message: The migration script could not find `class-instawp-iwpdb.php` inside the plugin directory. Filepath:' . $iwpdb_main_path );
 	header( 'x-iwp-root-path: ' . WP_ROOT );
-	echo "The migration script could not find the `class-instawp-iwpdb` inside the plugin directory.";
+	echo 'The migration script could not find the `class-instawp-iwpdb` inside the plugin directory.';
 	exit( 2 );
 }
 
@@ -134,7 +130,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			$totalFiles = iterator_count( $iterator );
 
 			if ( $totalFiles == 0 ) {
-				throw new Exception( "No files found in the iterator." );
+				throw new Exception( 'No files found in the iterator.' );
 			}
 
 			$limitedIterator = new LimitIterator( $iterator, $currentFileIndex, BATCH_SIZE );
@@ -160,16 +156,19 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		$fileIndex = 0;
 
 		if ( $handle_config_separately ) {
-			$totalFiles            += 1;
+			$totalFiles           += 1;
 			$config_file_size      = filesize( $config_file_path );
 			$config_file_path_hash = hash( 'sha256', $config_file_size );
 
-			$tracking_db->insert( 'iwp_files_sent', array(
-				'filepath'      => $tracking_db->use_wpdb ? $config_file_path : "'$config_file_path'",
-				'filepath_hash' => $tracking_db->use_wpdb ? $config_file_path_hash : "'$config_file_path_hash'",
-				'sent'          => 0,
-				'size'          => $tracking_db->use_wpdb ? $config_file_size : "'$config_file_size'",
-			) );
+			$tracking_db->insert(
+				'iwp_files_sent',
+				array(
+					'filepath'      => $tracking_db->use_wpdb ? $config_file_path : "'$config_file_path'",
+					'filepath_hash' => $tracking_db->use_wpdb ? $config_file_path_hash : "'$config_file_path_hash'",
+					'sent'          => 0,
+					'size'          => $tracking_db->use_wpdb ? $config_file_size : "'$config_file_size'",
+				)
+			);
 		}
 
 		$tracking_db->db_update_option( 'total_files', $totalFiles );
@@ -183,12 +182,15 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 				$filepath = $file->getPathname();
 				$filesize = $file->getSize();
 			} catch ( Exception $e ) {
-				$tracking_db->insert( 'iwp_files_sent', array(
-					'filepath'      => $tracking_db->use_wpdb ? $filepath : "'$filepath'",
-					'filepath_hash' => "",
-					'sent'          => 5,
-					'size'          => $tracking_db->use_wpdb ? $filesize : "'$filesize'",
-				) );
+				$tracking_db->insert(
+					'iwp_files_sent',
+					array(
+						'filepath'      => $tracking_db->use_wpdb ? $filepath : "'$filepath'",
+						'filepath_hash' => '',
+						'sent'          => 5,
+						'size'          => $tracking_db->use_wpdb ? $filesize : "'$filesize'",
+					)
+				);
 				continue;
 			}
 
@@ -196,12 +198,15 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
 			if ( ! is_valid_file( $filepath ) ) {
 				try {
-					$tracking_db->insert( 'iwp_files_sent', array(
-						'filepath'      => $tracking_db->use_wpdb ? $filepath : "'$filepath'",
-						'filepath_hash' => $tracking_db->use_wpdb ? $filepath_hash : "'$filepath_hash'",
-						'sent'          => 5,
-						'size'          => $tracking_db->use_wpdb ? $filesize : "'$filesize'",
-					) );
+					$tracking_db->insert(
+						'iwp_files_sent',
+						array(
+							'filepath'      => $tracking_db->use_wpdb ? $filepath : "'$filepath'",
+							'filepath_hash' => $tracking_db->use_wpdb ? $filepath_hash : "'$filepath_hash'",
+							'sent'          => 5,
+							'size'          => $tracking_db->use_wpdb ? $filesize : "'$filesize'",
+						)
+					);
 				} catch ( Exception $e ) {
 				}
 				continue;
@@ -212,13 +217,16 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
 			if ( ! $row ) {
 				try {
-					$tracking_db->insert( 'iwp_files_sent', array(
-						'filepath'      => $tracking_db->use_wpdb ? $filepath : "'$filepath'",
-						'filepath_hash' => $tracking_db->use_wpdb ? $filepath_hash : "'$filepath_hash'",
-						'sent'          => 0,
-						'size'          => $tracking_db->use_wpdb ? $filesize : "'$filesize'",
-					) );
-					++ $fileIndex;
+					$tracking_db->insert(
+						'iwp_files_sent',
+						array(
+							'filepath'      => $tracking_db->use_wpdb ? $filepath : "'$filepath'",
+							'filepath_hash' => $tracking_db->use_wpdb ? $filepath_hash : "'$filepath_hash'",
+							'sent'          => 0,
+							'size'          => $tracking_db->use_wpdb ? $filesize : "'$filesize'",
+						)
+					);
+					++$fileIndex;
 				} catch ( Exception $e ) {
 					header( 'x-iwp-status: false' );
 					header( 'x-iwp-message: Insert to tracking database (iwp_files_sent table) was failed. Actual error message is: ' . $e->getMessage() );
@@ -244,24 +252,27 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			exit;
 		}
 
-		$tracking_db->create_file_indexes( 'iwp_files_sent', array(
-			'idx_sent'      => 'sent',
-			'idx_file_size' => 'size',
-		) );
+		$tracking_db->create_file_indexes(
+			'iwp_files_sent',
+			array(
+				'idx_sent'      => 'sent',
+				'idx_file_size' => 'size',
+			)
+		);
 
 		// Send plugin and theme inventory
 		iwp_send_plugin_theme_inventory( $migrate_settings );
 	}
 
 
-	//TODO: this query runs every time even if there are no files to zip, may be we can cache the result in first time and don't run the query
+	// TODO: this query runs every time even if there are no files to zip, may be we can cache the result in first time and don't run the query
 
 	$is_archive_available = false;
 	$unsentFiles          = array();
 
 	if ( class_exists( 'ZipArchive' ) || class_exists( 'PharData' ) ) {
 		$is_archive_available   = true;
-		$unsent_files_query_res = $tracking_db->query( "SELECT id,filepath,size FROM iwp_files_sent WHERE sent = 0 and size < " . MAX_ZIP_SIZE . " ORDER by size LIMIT " . BATCH_ZIP_SIZE );
+		$unsent_files_query_res = $tracking_db->query( 'SELECT id,filepath,size FROM iwp_files_sent WHERE sent = 0 and size < ' . MAX_ZIP_SIZE . ' ORDER by size LIMIT ' . BATCH_ZIP_SIZE );
 
 		if ( $unsent_files_query_res instanceof mysqli_result ) {
 			$tracking_db->fetch_rows( $unsent_files_query_res, $unsentFiles );
@@ -277,7 +288,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			send_by_zip( $tracking_db, $unsentFiles, $progress_percentage, 'phardata', $handle_config_separately );
 		} else {
 			// Neither ZipArchive nor PharData is available
-			die( "No archive library available!" );
+			die( 'No archive library available!' );
 		}
 	} else {
 
@@ -289,7 +300,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			$fileId       = $row['id'];
 			$filePath     = $row['filepath'];
 			$file_name    = basename( $filePath );
-			$relativePath = ltrim( str_replace( WP_ROOT, "", $filePath ), DIRECTORY_SEPARATOR );
+			$relativePath = ltrim( str_replace( WP_ROOT, '', $filePath ), DIRECTORY_SEPARATOR );
 			$filePath     = process_files( $tracking_db, $filePath, $relativePath );
 
 			if ( $handle_config_separately && $file_name === 'wp-config.php' ) {
@@ -328,12 +339,15 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
 				if ( ! is_valid_file( $filepath ) ) {
 					try {
-						$tracking_db->insert( 'iwp_files_sent', array(
-							'filepath'      => $tracking_db->use_wpdb ? $filepath : "'$filepath'",
-							'filepath_hash' => $tracking_db->use_wpdb ? $filepath_hash : "'$filepath_hash'",
-							'sent'          => 5,
-							'size'          => $tracking_db->use_wpdb ? $filesize : "'$filesize'",
-						) );
+						$tracking_db->insert(
+							'iwp_files_sent',
+							array(
+								'filepath'      => $tracking_db->use_wpdb ? $filepath : "'$filepath'",
+								'filepath_hash' => $tracking_db->use_wpdb ? $filepath_hash : "'$filepath_hash'",
+								'sent'          => 5,
+								'size'          => $tracking_db->use_wpdb ? $filesize : "'$filesize'",
+							)
+						);
 					} catch ( Exception $e ) {
 					}
 					continue;
@@ -344,13 +358,16 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 
 				if ( ! $row ) {
 					try {
-						$tracking_db->insert( 'iwp_files_sent', array(
-							'filepath'      => "'$filepath'",
-							'filepath_hash' => "'$filepath_hash'",
-							'sent'          => 0,
-							'size'          => "'$filesize'",
-						) );
-						++ $fileIndex;
+						$tracking_db->insert(
+							'iwp_files_sent',
+							array(
+								'filepath'      => "'$filepath'",
+								'filepath_hash' => "'$filepath_hash'",
+								'sent'          => 0,
+								'size'          => "'$filesize'",
+							)
+						);
+						++$fileIndex;
 					} catch ( Exception $e ) {
 						header( 'x-iwp-status: false' );
 						header( 'x-iwp-message: Insert to iwp_files_sent failed. Actual error: ' . $e->getMessage() );
@@ -510,11 +527,14 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 		foreach ( $tracking_db->get_all_tables() as $table_name => $rows_count ) {
 			if ( ! in_array( $table_name, $excluded_tables ) ) {
 				$table_name_hash = hash( 'sha256', $table_name );
-				$tracking_db->insert( 'iwp_db_sent', array(
-					'table_name'      => "'$table_name'",
-					'table_name_hash' => "'$table_name_hash'",
-					'rows_total'      => $rows_count,
-				) );
+				$tracking_db->insert(
+					'iwp_db_sent',
+					array(
+						'table_name'      => "'$table_name'",
+						'table_name_hash' => "'$table_name_hash'",
+						'rows_total'      => $rows_count,
+					)
+				);
 			}
 		}
 	}
@@ -573,45 +593,51 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 		}
 
 		while ( $dataRow = $result->fetch_assoc() ) {
-			$columns         = array_map( function ( $value ) {
+			$columns         = array_map(
+				function ( $value ) {
 
-				global $tracking_db;
+					global $tracking_db;
 
-				if ( is_array( $value ) && empty( $value ) ) {
-					return array();
-				} elseif ( is_string( $value ) && empty( $value ) ) {
-					return '';
-				}
-
-				return $tracking_db->conn->real_escape_string( $value );
-			}, array_keys( $dataRow ) );
-			$values          = array_map( function ( $value ) {
-
-				global $tracking_db;
-
-				if ( is_numeric( $value ) ) {
-					// If $value has leading zero it will mark as string and bypass returning as numeric
-					if ( substr( $value, 0, 1 ) !== '0' ) {
-						return $value;
+					if ( is_array( $value ) && empty( $value ) ) {
+							return array();
+					} elseif ( is_string( $value ) && empty( $value ) ) {
+						return '';
 					}
-				} elseif ( is_null( $value ) ) {
-					return "NULL";
-				} elseif ( is_array( $value ) && empty( $value ) ) {
-					$value = array();
-				} elseif ( is_string( $value ) ) {
-					$value = $tracking_db->conn->real_escape_string( $value );
-				}
 
-				return "'" . $value . "'";
-			}, array_values( $dataRow ) );
-			$sql             = "INSERT IGNORE INTO `$curr_table_name` (`" . implode( "`, `", $columns ) . "`) VALUES (" . implode( ", ", $values ) . ");";
+					return $tracking_db->conn->real_escape_string( $value );
+				},
+				array_keys( $dataRow )
+			);
+			$values          = array_map(
+				function ( $value ) {
+
+					global $tracking_db;
+
+					if ( is_numeric( $value ) ) {
+							// If $value has leading zero it will mark as string and bypass returning as numeric
+						if ( substr( $value, 0, 1 ) !== '0' ) {
+							return $value;
+						}
+					} elseif ( is_null( $value ) ) {
+						return 'NULL';
+					} elseif ( is_array( $value ) && empty( $value ) ) {
+						$value = array();
+					} elseif ( is_string( $value ) ) {
+						$value = $tracking_db->conn->real_escape_string( $value );
+					}
+
+					return "'" . $value . "'";
+				},
+				array_values( $dataRow )
+			);
+			$sql             = "INSERT IGNORE INTO `$curr_table_name` (`" . implode( '`, `', $columns ) . '`) VALUES (' . implode( ', ', $values ) . ');';
 			$sqlStatements[] = $sql;
 		}
 	}
 
 	$sql_statements_count = count( $sqlStatements );
 	$curr_table_info      = $tracking_db->get_row( 'iwp_db_sent', array( 'table_name_hash' => hash( 'sha256', $curr_table_name ) ) );
-	$offset               += $sql_statements_count;
+	$offset              += $sql_statements_count;
 
 	$all_tables     = $tracking_db->get_rows( 'iwp_db_sent' );
 	$rows_total_all = 0;
@@ -623,7 +649,14 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 	}
 
 	// Update the offset and rows_finished
-	$tracking_db->update( 'iwp_db_sent', array( 'offset' => $offset, 'completed' => '2' ), array( 'table_name_hash' => hash( 'sha256', $curr_table_name ) ) );
+	$tracking_db->update(
+		'iwp_db_sent',
+		array(
+			'offset'    => $offset,
+			'completed' => '2',
+		),
+		array( 'table_name_hash' => hash( 'sha256', $curr_table_name ) )
+	);
 
 	// Mark table as completed if all rows were fetched
 	if ( count( $sqlStatements ) < CHUNK_DB_SIZE ) {
