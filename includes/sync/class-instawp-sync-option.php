@@ -120,6 +120,7 @@ class InstaWP_Sync_Option {
 			|| strpos( $option, '_transient' ) !== false
 			|| strpos( $option, 'instawp' ) !== false
 			|| strpos( $option, 'action_scheduler' ) !== false
+			|| strpos( $option, 'widget_' ) === 0 // Widget options are handled by InstaWP_Sync_Widget
 		) {
 			return true;
 		}
