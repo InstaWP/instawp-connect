@@ -51,18 +51,14 @@ defined( 'BATCH_SIZE' ) | define( 'BATCH_SIZE', 100 );
 defined( 'WP_ROOT' ) | define( 'WP_ROOT', $root_dir_path );
 defined( 'INSTAWP_BACKUP_DIR' ) | define( 'INSTAWP_BACKUP_DIR', WP_ROOT . DIRECTORY_SEPARATOR . 'wp-content' . DIRECTORY_SEPARATOR . 'instawpbackups' . DIRECTORY_SEPARATOR );
 
-$iwpdb_main_path = WP_ROOT . DIRECTORY_SEPARATOR . 'wp-content' . DIRECTORY_SEPARATOR . 'plugins' . DIRECTORY_SEPARATOR . 'instawp-connect' . DIRECTORY_SEPARATOR . 'includes' . DIRECTORY_SEPARATOR . 'class-instawp-iwpdb.php';
-$iwpdb_git_path  = WP_ROOT . DIRECTORY_SEPARATOR . 'wp-content' . DIRECTORY_SEPARATOR . 'plugins' . DIRECTORY_SEPARATOR . 'instawp-connect-main' . DIRECTORY_SEPARATOR . 'includes' . DIRECTORY_SEPARATOR . 'class-instawp-iwpdb.php';
-
+$iwpdb_main_path = IWP_PLUGIN_DIR . 'includes' . DIRECTORY_SEPARATOR . 'class-instawp-iwpdb.php';
 if ( file_exists( $iwpdb_main_path ) && is_readable( $iwpdb_main_path ) ) {
-	require_once( $iwpdb_main_path );
-} elseif ( file_exists( $iwpdb_git_path ) && is_readable( $iwpdb_git_path ) ) {
-	require_once( $iwpdb_git_path );
+	require_once $iwpdb_main_path;
 } else {
 	header( 'x-iwp-status: false' );
-	header( 'x-iwp-message: The migration script could not find `class-instawp-iwpdb.php` inside the plugin directory.' );
+	header( 'x-iwp-message: The migration script could not find `class-instawp-iwpdb.php` inside the plugin directory. Filepath:' . $iwpdb_main_path );
 	header( 'x-iwp-root-path: ' . WP_ROOT );
-	echo "The migration script could not find the `class-instawp-iwpdb` inside the plugin directory.";
+	echo 'The migration script could not find the `class-instawp-iwpdb` inside the plugin directory.';
 	exit( 2 );
 }
 
