@@ -1458,8 +1458,10 @@ include $file_path;';
 		// Check accessibility of proxy serve url
 		if ( empty( $res['serve_url'] ) || empty( $accessible_file ) || ! $accessible_file['is_accessible'] ) {
 			// Serve through WordPress
-			$res['serve_url']     = Helper::wp_site_url( 'serve-instawp/', true );
-			$res['serve_with_wp'] = true;
+			$res['serve_url'] = Helper::wp_site_url( 'serve-instawp/', true );
+			if ( self::is_migrate_file_accessible( $res['serve_url'] ) ) {
+				$res['serve_with_wp'] = true;
+			}
 		}
 
 		return $res;
