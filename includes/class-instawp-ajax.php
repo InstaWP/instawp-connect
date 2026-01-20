@@ -229,7 +229,7 @@ class InstaWP_Ajax {
 			$db_offset = Option::get_option( 'instawp_db_offset', 0 );
 			$db_offset = empty( $db_offset ) ? 0 : $db_offset;
 
-			$db_query_res = $tracking_db->query( "SELECT id, table_name, offset, rows_total, completed FROM iwp_db_sent WHERE completed != 0 LIMIT {$db_offset}, 18446744073709551615" );
+			$db_query_res = $tracking_db->query( "SELECT id, table_name, `offset`, rows_total, completed FROM iwp_db_sent WHERE completed != 0 LIMIT {$db_offset}, 18446744073709551615" );
 			if ( $db_query_res instanceof mysqli_result ) {
 				$tracking_db->fetch_rows( $db_query_res, $sendingDB );
 			}
