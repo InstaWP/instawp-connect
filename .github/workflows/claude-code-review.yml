@@ -68,9 +68,32 @@ jobs:
                - Abstractions at the right level (not too high, not too low)
 
             **ALSO REVIEW FOR:**
-            - WordPress Coding Standards (tabs, snake_case with instawp_/iwp_ prefix, PHPDoc)
-            - Security (sanitization, prepared statements, escaped output, no SQL injection/XSS)
-            - Performance (minimize queries, efficient algorithms, memory usage for large migrations)
+            - Code quality and best practices
+              * WordPress Coding Standards (tabs, snake_case with instawp_/iwp_ prefix, PHPDoc)
+              * Clean, readable, and maintainable code
+              * Proper use of WordPress APIs and functions
+            - Potential bugs or issues
+              * Logic errors and edge cases
+              * Null/undefined handling
+              * Race conditions or timing issues
+              * Error-prone patterns
+            - Security concerns
+              * Input sanitization and validation
+              * SQL injection prevention (prepared statements)
+              * XSS prevention (escaped output)
+              * CSRF protection where applicable
+              * Secure data handling and storage
+            - Performance considerations
+              * Minimize database queries
+              * Efficient algorithms and data structures
+              * Memory usage (critical for large migrations)
+              * Avoid unnecessary loops and operations
+              * Proper caching strategies
+            - Test coverage
+              * Are critical paths tested?
+              * Edge cases covered?
+              * Regression test considerations
+              * Manual testing requirements
             - Backward compatibility (no breaking changes, graceful deprecation)
             - Proper error handling with meaningful messages
             - Works in standalone mode (migration scripts run WITHOUT WordPress context)
