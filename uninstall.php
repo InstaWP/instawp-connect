@@ -7,6 +7,10 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 	exit;
 }
 
+if ( ! class_exists( 'InstaWP\Connect\Helpers\Helper' ) && function_exists( 'plugin_dir_path' ) ) {
+	require_once plugin_dir_path( __FILE__ ) . 'vendor/autoload.php';
+}
+
 global $wpdb;
 
 defined( 'INSTAWP_DEFAULT_BACKUP_DIR' ) || define( 'INSTAWP_DEFAULT_BACKUP_DIR', 'instawpbackups' );
@@ -44,7 +48,7 @@ if ( ! empty( $connect_id ) && ! empty( $api_key ) ) {
 		'timeout'         => 60,
 		'redirection'     => 10,
 		'httpversion'     => '1.1',
-		'user-agent'      => Helper::getInstaWPUserAgent( 'connect/disconnect' ),
+		'user-agent'      => class_exists( 'InstaWP\Connect\Helpers\Helper' ) ? Helper::getInstaWPUserAgent( 'connect/disconnect' ) : 'InstaWP/1.0 (https://instawp.com; support@instawp.com) connect/disconnect',
 		'sslverify'       => false,
 		'sslverifyhost'   => false,
 		'follow_location' => true,
