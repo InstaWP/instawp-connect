@@ -104,6 +104,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 - Added: Session fallback for migration options data when file is temporarily inaccessible.
 - Fixed: Migration failure at 74-76% due to options file read issues.
 - Fixed: Pull API errors not being returned properly to the server.
+- Fixed: Database query for migration progress.
 
 = 0.1.2.2 - 01 December 2025 =
 - Fixed: 403 error on migration cleanup API call.

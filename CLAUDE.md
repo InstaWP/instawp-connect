@@ -51,6 +51,26 @@ WordPress plugin for site migration, backup, and staging functionality.
 - Uses mysqli directly when WordPress is not available
 - Encrypted options file stores DB credentials for bootstrap
 
+### Core Architectural Principles
+
+**Data Layer Abstraction:**
+- **Handle data at its storage layer (options), not at its semantic layer (widgets, theme mods, etc.)**
+  - Work directly with the underlying storage mechanism (e.g., `wp_options` table)
+  - Avoid working with high-level abstractions like widgets, theme mods, or customizer settings
+  - This ensures complete data capture and avoids WordPress API limitations
+
+**Design Principles:**
+- **DRY (Don't Repeat Yourself)**: Eliminate code duplication through proper abstraction
+- **SSOT (Single Source of Truth)**: One authoritative source for each piece of data
+- **SoC (Separation of Concerns)**: Keep different responsibilities in separate, focused modules
+- **Proper Abstraction**: Create core-level implementations that enforce these principles
+
+**Implementation Guidelines:**
+- Build core utility functions that can be reused across features
+- Centralize data access patterns in dedicated classes
+- Use dependency injection and composition over inheritance
+- Keep business logic separate from data access logic
+
 ## Code Standards
 
 **ALWAYS follow [WordPress Coding Standards](https://developer.wordpress.org/coding-standards/wordpress-coding-standards/):**
