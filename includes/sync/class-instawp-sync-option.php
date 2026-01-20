@@ -7,12 +7,13 @@ defined( 'ABSPATH' ) || exit;
 class InstaWP_Sync_Option {
 
 	public $options_meta_name = 'instawp_2waysync_options_metadata';
+
 	public function __construct() {
-		// Update option
 		add_action( 'added_option', array( $this, 'added_option' ), 10, 2 );
 		add_action( 'updated_option', array( $this, 'updated_option' ), 10, 3 );
 		add_action( 'deleted_option', array( $this, 'deleted_option' ) );
 		add_action( 'init', array( $this, 'purge_instawp_option_cache' ) );
+
 		// Process event
 		add_filter( 'instawp/filters/2waysync/process_event', array( $this, 'parse_event' ), 10, 2 );
 	}
@@ -36,7 +37,7 @@ class InstaWP_Sync_Option {
 			return;
 		}
 
-		if ( ! $this->is_protected_option( $option ) && $this->has_update( $option ) ) {
+		if ( ! $this->is_protected_option( $option ) && $this->has_update( $option, $old_value, $value ) ) {
 			$data = array(
 				'name'  => $option,
 				'value' => maybe_serialize( $value ),
@@ -59,11 +60,23 @@ class InstaWP_Sync_Option {
 	/**
 	 * Check if some specific option like user roles has been updated in last 24 hours
 	 *
-	 * @param string $option Option name
+	 * @param string $option    Option name.
+	 * @param mixed  $old_value Old value.
+	 * @param mixed  $new_value New value.
 	 *
 	 * @return bool
 	 */
-	public function has_update( $option ) {
+	public function has_update( $option, $old_value = null, $new_value = null ) {
+		// Skip sidebars_widgets if only array_version changed
+		if ( 'sidebars_widgets' === $option && is_array( $old_value ) && is_array( $new_value ) ) {
+			$old_copy = $old_value;
+			$new_copy = $new_value;
+			unset( $old_copy['array_version'], $new_copy['array_version'] );
+			if ( $old_copy === $new_copy ) {
+				return false;
+			}
+		}
+
 		global $wpdb;
 		$user_role_option = $wpdb->prefix . 'user_roles';
 		if ( $option === $user_role_option ) {
@@ -114,7 +127,7 @@ class InstaWP_Sync_Option {
 	}
 
 	private function is_protected_option( $option ) {
-		$excluded_options = array( 'cron', 'instawp_api_options', 'siteurl', 'home', 'blog_public', 'permalink_structure', 'rewrite_rules', 'recently_activated', 'active_plugins', 'theme_switched', 'sidebars_widgets', 'theme_switch_menu_locations', 'recovery_mode_email_last_sent', 'recovery_keys', 'auto_updater.lock', 'elementor_version', 'elementor_log', 'iwp_connect_helper_error_log', 'iwp_failed_direct_process_media_events', 'iwp_sync_processed_media_ids', 'iwp_sync_config_data', 'iwp_mig_helper_error_log', 'instawp_last_heartbeat_data', $this->options_meta_name );
+		$excluded_options = array( 'cron', 'instawp_api_options', 'siteurl', 'home', 'blog_public', 'permalink_structure', 'rewrite_rules', 'recently_activated', 'active_plugins', 'theme_switched', 'theme_switch_menu_locations', 'recovery_mode_email_last_sent', 'recovery_keys', 'auto_updater.lock', 'elementor_version', 'elementor_log', 'iwp_connect_helper_error_log', 'iwp_failed_direct_process_media_events', 'iwp_sync_processed_media_ids', 'iwp_sync_config_data', 'iwp_mig_helper_error_log', 'instawp_last_heartbeat_data', $this->options_meta_name );
 
 		if ( in_array( $option, $excluded_options, true )
 			|| strpos( $option, '_transient' ) !== false
