@@ -488,12 +488,6 @@ class InstaWP_Setting {
 				'default' => 'on',
 			),
 			array(
-				'id'      => 'widget',
-				'title'   => __( 'Widgets', 'instawp-connect' ),
-				'tooltip' => __( 'Enabling this option will allow plugin to log widget changes including add, remove, update and reorder.', 'instawp-connect' ),
-				'default' => 'on',
-			),
-			array(
 				'id'      => 'customizer',
 				'title'   => __( 'WP Customizer', 'instawp-connect' ),
 				'tooltip' => __( 'Enabling this option will allow plugin to log WP Customizer.', 'instawp-connect' ),
