@@ -27,5 +27,39 @@
 - Options file contains encrypted data (AES-256-CBC) with migration settings
 - Cannot pass all options in POST as they change during migration on performing server
 
+### SQL Reserved Keywords
+- `offset` is a reserved keyword in MySQL/MariaDB
+- Always wrap column name `offset` in backticks: `offset`
+- Applies to both SELECT queries and CREATE TABLE statements
+
+## Core Architectural Principles (MANDATORY)
+
+### 1. Data Layer Abstraction
+**Rule: Handle data at its storage layer (options), NOT at its semantic layer (widgets, theme mods, etc.)**
+- Work directly with `wp_options` table or underlying storage mechanisms
+- Avoid high-level WordPress APIs (widgets API, customizer API) that might miss data
+- Ensures complete data capture without abstraction limitations
+- Example: Don't use `get_theme_mods()`, use `get_option('theme_mods_' . $theme)`
+
+### 2. DRY (Don't Repeat Yourself)
+- Eliminate code duplication through proper abstraction
+- Extract shared functionality into reusable core utilities
+- Before writing new code, check if similar functionality exists
+
+### 3. SSOT (Single Source of Truth)
+- One authoritative source for each piece of data
+- Avoid data duplication across multiple locations
+- Clear, unidirectional data flow
+
+### 4. SoC (Separation of Concerns)
+- Keep different responsibilities properly separated
+- Business logic separate from data access logic
+- Focused, single-purpose modules
+
+### 5. Proper Abstraction
+- Build core-level implementations that enforce above principles
+- Create utility functions that can be reused across features
+- Abstractions at the right level (not too high, not too low)
+
 ## Notes
 - Add new learnings below as the project evolves

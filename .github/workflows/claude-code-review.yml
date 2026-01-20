@@ -42,13 +42,47 @@ jobs:
           
           # Direct prompt for automated review (no @claude mention needed)
           direct_prompt: |
-            Please review this pull request and provide feedback on:
-            - Code quality and best practices
-            - Potential bugs or issues
-            - Performance considerations
-            - Security concerns
-            - Test coverage
-            
+            Please review this pull request for InstaWP Connect WordPress plugin.
+
+            **CRITICAL ARCHITECTURAL PRINCIPLES TO ENFORCE:**
+
+            1. **Data Layer Abstraction** - Handle data at its storage layer (options), NOT at its semantic layer (widgets, theme mods, etc.)
+               - Work directly with wp_options table or underlying storage
+               - Avoid high-level WordPress APIs that might miss data
+               - Ensure complete data capture without abstraction limitations
+
+            2. **DRY (Don't Repeat Yourself)** - Eliminate code duplication through proper abstraction
+               - Check for duplicated code that should be extracted into shared functions
+               - Consolidate similar patterns into reusable utilities
+
+            3. **SSOT (Single Source of Truth)** - One authoritative source for each piece of data
+               - Avoid data duplication across multiple locations
+               - Ensure clear, unidirectional data flow
+
+            4. **SoC (Separation of Concerns)** - Keep different responsibilities properly separated
+               - Business logic separate from data access logic
+               - Concerns isolated in focused, single-purpose modules
+
+            5. **Proper Abstraction** - Core-level implementation to enforce above principles
+               - Build core utility functions for reuse across features
+               - Abstractions at the right level (not too high, not too low)
+
+            **ALSO REVIEW FOR:**
+            - WordPress Coding Standards (tabs, snake_case with instawp_/iwp_ prefix, PHPDoc)
+            - Security (sanitization, prepared statements, escaped output, no SQL injection/XSS)
+            - Performance (minimize queries, efficient algorithms, memory usage for large migrations)
+            - Backward compatibility (no breaking changes, graceful deprecation)
+            - Proper error handling with meaningful messages
+            - Works in standalone mode (migration scripts run WITHOUT WordPress context)
+
+            **COMMON ANTI-PATTERNS TO FLAG:**
+            - Working with semantic layer (widgets API) instead of storage layer (options table)
+            - Code duplication instead of extracting reusable functions
+            - Data redundancy (storing same data in multiple places)
+            - Mixed concerns (business logic mixed with data access)
+            - File system reliance (unreliable on shared hosting)
+            - Assuming WordPress is loaded in migration scripts
+
             Be constructive and helpful in your feedback.
 
           # Optional: Use sticky comments to make Claude reuse the same comment on subsequent pushes to the same PR
