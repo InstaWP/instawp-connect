@@ -243,21 +243,25 @@
                             typeof response.data.dest_wp.auto_login_url !== 'undefined'
                         ) {
 
-                            el_migration_progress_wrap.addClass('hidden');
-                            el_site_detail_wrap.removeClass('hidden');
-                            el_migration_loader.text(el_migration_loader.data('complete-text'));
+                            let delay = (typeof response.data.delay_success !== 'undefined' && response.data.delay_success !== null) ? parseInt(response.data.delay_success) : 1;
+                            delay = 0 === delay ? 1 : delay * 1000;
+                            setTimeout(() => {
+                                el_migration_progress_wrap.addClass('hidden');
+                                el_site_detail_wrap.removeClass('hidden');
+                                el_migration_loader.text(el_migration_loader.data('complete-text'));
 
-                            // Remove active class
-                            el_stage_wrapper.find('.stage-status').removeClass('active');
+                                // Remove active class
+                                el_stage_wrapper.find('.stage-status').removeClass('active');
 
-                            el_site_detail_wrap.find('#instawp-site-url').attr('href', response.data.dest_wp.url).find('span').html(response.data.dest_wp.url);
-                            el_site_detail_wrap.find('#instawp-site-username').html(response.data.dest_wp.username);
-                            el_site_detail_wrap.find('#instawp-site-password').html(response.data.dest_wp.password);
-                            el_site_detail_wrap.find('#instawp-site-magic-url').attr('href', response.data.dest_wp.auto_login_url);
+                                el_site_detail_wrap.find('#instawp-site-url').attr('href', response.data.dest_wp.url).find('span').html(response.data.dest_wp.url);
+                                el_site_detail_wrap.find('#instawp-site-username').html(response.data.dest_wp.username);
+                                el_site_detail_wrap.find('#instawp-site-password').html(response.data.dest_wp.password);
+                                el_site_detail_wrap.find('#instawp-site-magic-url').attr('href', response.data.dest_wp.auto_login_url);
 
-                            // screen-buttons-last
-                            el_screen_buttons.addClass('hidden');
-                            el_screen_buttons_last.removeClass('hidden');
+                                // screen-buttons-last
+                                el_screen_buttons.addClass('hidden');
+                                el_screen_buttons_last.removeClass('hidden');
+                            }, delay);
                         }
                     }
                 } else {

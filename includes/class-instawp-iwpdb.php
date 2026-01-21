@@ -25,7 +25,7 @@ class IWPDB {
 		$this->migrate_key = $key;
 
 		if ( ! $this->set_options_data() ) {
-			throw new Exception( 'Failed to set options data. The options data file maybe deleted.' );
+			throw new Exception( 'Failed to set options data. ' . $this->last_error );
 		}
 
 		if ( ! $this->connect_database() ) {
@@ -292,26 +292,41 @@ class IWPDB {
 	}
 
 	public function set_options_data() {
-		$options_data_filename = INSTAWP_BACKUP_DIR . 'options-' . $this->migrate_key . '.txt';
+		$options_data_filename  = INSTAWP_BACKUP_DIR . 'options-' . $this->migrate_key . '.txt';
+		$options_data_encrypted = '';
 
-		if ( ! is_readable( $options_data_filename ) ) {
+		// Try file first
+		if ( ! file_exists( $options_data_filename ) ) {
+			$this->last_error = 'Migration file does not exist.';
+		} else if ( is_readable( $options_data_filename ) ) {
+			$options_data_encrypted = file_get_contents( $options_data_filename );
+		}
+
+		// If file read successful, store in session
+		if ( ! empty( $options_data_encrypted ) ) {
+			$_SESSION['iwp_options_data'] = $options_data_encrypted;
+		} elseif ( ! empty( $_SESSION['iwp_options_data'] ) ) {
+			// Fallback to session
+			$options_data_encrypted = $_SESSION['iwp_options_data'];
+		} else {
+			$this->last_error .= ' Options file not accessible and no session data.';
 			return false;
 		}
 
-		$options_data_encrypted = file_get_contents( $options_data_filename );
+		// Decrypt
+		$passphrase             = openssl_digest( $this->migrate_key, 'SHA256', true );
+		$decoded_data           = base64_decode( $options_data_encrypted );
+		$openssl_iv             = substr( $decoded_data, 0, 16 );
+		$encrypted_data         = substr( $decoded_data, 16 );
+		$options_data_decrypted = openssl_decrypt( base64_encode( $encrypted_data ), 'AES-256-CBC', $passphrase, 0, $openssl_iv );
+		$this->options_data     = json_decode( $options_data_decrypted, true );
 
-		if ( $options_data_encrypted ) {
-			$passphrase             = openssl_digest( $this->migrate_key, 'SHA256', true );
-			$decoded_data           = base64_decode( $options_data_encrypted );
-			$openssl_iv             = substr( $decoded_data, 0, 16 );
-			$encrypted_data         = substr( $decoded_data, 16 );
-			$options_data_decrypted = openssl_decrypt( base64_encode( $encrypted_data ), 'AES-256-CBC', $passphrase, 0, $openssl_iv );
-			$this->options_data     = json_decode( $options_data_decrypted, true );
-
-			return true;
+		if ( empty( $this->options_data ) ) {
+			$this->last_error .= 'Options data decryption failed';
+			return false;
 		}
 
-		return false;
+		return true;
 	}
 
 	public function get_option( $option_name = '', $default = '' ) {

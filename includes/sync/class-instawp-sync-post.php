@@ -5,6 +5,10 @@ use InstaWP\Connect\Helpers\Helper;
 defined( 'ABSPATH' ) || exit;
 
 class InstaWP_Sync_Post {
+	/**
+	 * Option name to store post_id => event_id mapping when a post is created without featured image.
+	 */
+	const IWP_SYNC_MISSING_FEATURE_IMG_OPTION = 'iwp_sync_missing_feature_img';
 
 	/**
 	 * Post Events
@@ -38,6 +42,10 @@ class InstaWP_Sync_Post {
 
 		// Process Events.
 		add_filter( 'instawp/filters/2waysync/process_event', array( $this, 'parse_event' ), 10, 2 );
+
+		// Handle featured image sync via post meta hooks.
+		add_action( 'updated_post_meta', array( $this, 'sync_featured_image_on_meta_update' ), 10, 4 );
+		add_action( 'added_post_meta', array( $this, 'sync_featured_image_on_meta_update' ), 10, 4 );
 	}
 
 	/**
@@ -124,6 +132,105 @@ class InstaWP_Sync_Post {
 	}
 
 	/**
+	 * Handle featured image sync when _thumbnail_id meta is updated.
+	 * This hook fires after the meta is saved, ensuring we can access it.
+	 *
+	 * @param int    $meta_id    ID of updated metadata entry.
+	 * @param int    $post_id    Post ID.
+	 * @param string $meta_key   Meta key.
+	 * @param mixed  $meta_value Meta value.
+	 *
+	 * @return void
+	 */
+	public function sync_featured_image_on_meta_update( $meta_id, $post_id, $meta_key, $meta_value ) {
+		$allowed_meta_keys = array( '_thumbnail_id' );
+
+		// Only process allowed meta updates.
+		if ( empty( $meta_key ) || ! in_array( $meta_key, $allowed_meta_keys, true ) ) {
+			return;
+		}
+
+		$map = $this->get_missing_featured_img_map();
+
+		if ( ! isset( $map[ $post_id ] ) ) {
+			return;
+		} 
+
+		global $wpdb;
+		$table_name = INSTAWP_DB_TABLE_EVENTS;
+		$event_id = (int) $map[ $post_id ];
+
+		$event      = $wpdb->get_row(
+			$wpdb->prepare(
+				"SELECT * FROM {$table_name} WHERE id = %d LIMIT 1",
+				$event_id
+			)
+		);
+
+		if ( ! $event ) {
+			return;
+		}
+
+		// Parse existing event details.
+		$details = json_decode( $event->details, true );
+		if ( JSON_ERROR_NONE !== json_last_error() || ! is_array( $details ) ) {
+			Helper::add_error_log( array(
+				'message'    => 'Invalid JSON in event details',
+				'event_id'   => (int) $event->id,
+				'post_id'    => (int) $post_id,
+				'meta_id'    => (int) $meta_id,
+				'meta_key'   => is_scalar( $meta_key ) ? (string) $meta_key : 'non-scalar',
+				'json_error' => function_exists( 'json_last_error_msg' ) ? json_last_error_msg() : (string) json_last_error(),
+			) );
+
+			return;
+		}
+
+		// Ensure post_meta exists and is an array.
+		if ( ! isset( $details['post_meta'] ) || ! is_array( $details['post_meta'] ) ) {
+			$details['post_meta'] = array();
+		}
+
+		// Normalize meta value (added_post_meta passes raw value, updated_post_meta passes scalar)
+		$thumb_value = is_array( $meta_value ) ? reset( $meta_value ) : $meta_value;
+
+		// Update the _thumbnail_id in post_meta section as string value inside array.
+		$details['post_meta']['_thumbnail_id'] = array( (string) $thumb_value );
+
+		// Also update the featured_image block so destination site can sync the attachment.
+		// Use 'full' size to ensure we sync the original image, not a thumbnail.
+		$attachment_id = (int) $thumb_value;
+		$details['featured_image'] = InstaWP_Sync_Parser::generate_attachment_data( $attachment_id, 'full' );
+
+		// Update the event in the database.
+		$updated = $wpdb->update(
+			$table_name,
+			array( 'details' => wp_json_encode( $details ) ),
+			array( 'id' => (int) $event->id ),
+			array( '%s' ),
+			array( '%d' )
+		);
+
+		if ( false === $updated ) {
+			Helper::add_error_log( array(
+				'message'     => 'Featured image event update failed',
+				'table'       => $table_name,
+				'event_id'    => (int) $event->id,
+				'post_id'     => (int) $post_id,
+				'meta_id'     => (int) $meta_id,
+				'meta_key'    => is_scalar( $meta_key ) ? (string) $meta_key : 'non-scalar',
+				'last_error'  => isset( $wpdb->last_error ) ? $wpdb->last_error : '',
+				'last_query'  => isset( $wpdb->last_query ) ? $wpdb->last_query : '',
+			) );
+
+			return;
+		}
+
+		unset( $map[ $post_id ] );
+		$this->set_missing_featured_img_map( $map );
+	}
+
+	/**
 	 * Function for `before_delete_post` action-hook.
 	 *
 	 * @param int     $post_id Post ID.
@@ -143,6 +250,9 @@ class InstaWP_Sync_Post {
 		if ( in_array( $post->post_status, array( 'auto-draft', 'inherit' ) ) ) {
 			return;
 		}
+
+		// Cleanup: ensure we don't keep stale mapping around.
+		$this->remove_missing_featured_img_record( $post_id );
 
 		$event_name = sprintf( __( '%s deleted', 'instawp-connect' ), InstaWP_Sync_Helpers::get_post_type_name( $post->post_type ) );
 		$this->handle_post_events( $event_name, 'post_delete', $post );
@@ -365,7 +475,63 @@ class InstaWP_Sync_Post {
 		$data       = apply_filters( 'instawp/filters/2waysync/post_data', $data, $event_type, $post );
 
 		if ( is_array( $data ) && ! empty( $reference_id ) ) {
-			InstaWP_Sync_DB::insert_update_event( $event_name, $event_slug, $event_type, $reference_id, $title, $data );
+			$event_id = InstaWP_Sync_DB::insert_update_event( $event_name, $event_slug, $event_type, $reference_id, $title, $data );
+
+			// Track newly created (non-attachment) posts that don't yet have a featured image.
+			if ( 'post_new' === $event_slug && 'attachment' !== $event_type && empty( $data['post_meta']['_thumbnail_id'] ) && $event_id > 0 ) {
+				$this->add_missing_featured_img_record( $post->ID, $event_id );
+			}
+		}
+	}
+
+	/**
+	 * Get the option map storing post_id => event_id.
+	 *
+	 * @return array
+	 */
+	private function get_missing_featured_img_map() {
+		$map = get_option( self::IWP_SYNC_MISSING_FEATURE_IMG_OPTION, array() );
+		return is_array( $map ) ? $map : array();
+	}
+
+	/**
+	 * Persist the option map storing post_id => event_id.
+	 *
+	 * @param array $map Map.
+	 *
+	 * @return void
+	 */
+	private function set_missing_featured_img_map( $map ) {
+		$map = is_array( $map ) ? $map : array();
+		update_option( self::IWP_SYNC_MISSING_FEATURE_IMG_OPTION, $map );
+	}
+
+	/**
+	 * Add a post_id => event_id record for later featured image syncing.
+	 *
+	 * @param int $post_id  Post ID.
+	 * @param int $event_id Event ID.
+	 *
+	 * @return void
+	 */
+	private function add_missing_featured_img_record( $post_id, $event_id ) {
+		$map = $this->get_missing_featured_img_map();
+		$map[ $post_id ] = $event_id;
+		$this->set_missing_featured_img_map( $map );
+	}
+
+	/**
+	 * Remove a post_id record from the missing-featured-image option.
+	 *
+	 * @param int $post_id Post ID.
+	 *
+	 * @return void
+	 */
+	private function remove_missing_featured_img_record( $post_id ) {
+		$map = $this->get_missing_featured_img_map();
+		if ( isset( $map[ $post_id ] ) ) {
+			unset( $map[ $post_id ] );
+			$this->set_missing_featured_img_map( $map );
 		}
 	}
 

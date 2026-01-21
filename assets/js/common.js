@@ -13,6 +13,12 @@
             },
             success: function (response) {
                 console.log(response)
+                // Check if response indicates failure (wp_send_json_error returns success: false)
+                if (!response.success) {
+                    var message = response.data?.message || 'An error occurred. Please try again.';
+                    alert(message);
+                    return;
+                }
                 if (el.attr('target') === 'cache' || el.attr('target') === 'cdn-cache') {
                     const urlObj = new URL(window.location.href);
                     urlObj.searchParams.delete('instawp-cache-cleared');
@@ -24,10 +30,8 @@
             },
             error: function (jqXHR, textStatus, errorThrown) {
                 console.log(errorThrown);
-                // Show error for cdn-cache type
-                if (el.attr('target') === 'cdn-cache' && jqXHR.responseJSON?.data?.message) {
-                    alert(jqXHR.responseJSON.data.message);
-                }
+                var message = jqXHR.responseJSON?.data?.message || 'Request failed. Please try again.';
+                alert(message);
             }
         });
     });

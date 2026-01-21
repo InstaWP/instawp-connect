@@ -17,6 +17,13 @@ if ( empty( $migrate_key ) ) {
 	die();
 }
 
+// Start session with migrate_key hash as session ID for consistency across requests
+if ( session_status() === PHP_SESSION_NONE ) {
+	@ini_set( 'session.gc_maxlifetime', 86400 ); // 24 hours - ignore if ini_set disabled
+	session_id( substr( hash( 'sha256', $migrate_key ), 0, 32 ) );
+	session_start();
+}
+
 $root_dir_data = iwp_get_root_dir();
 $root_dir_find = isset( $root_dir_data['status'] ) ? $root_dir_data['status'] : false;
 $root_dir_path = isset( $root_dir_data['root_path'] ) ? $root_dir_data['root_path'] : '';
@@ -44,18 +51,14 @@ defined( 'BATCH_SIZE' ) | define( 'BATCH_SIZE', 100 );
 defined( 'WP_ROOT' ) | define( 'WP_ROOT', $root_dir_path );
 defined( 'INSTAWP_BACKUP_DIR' ) | define( 'INSTAWP_BACKUP_DIR', WP_ROOT . DIRECTORY_SEPARATOR . 'wp-content' . DIRECTORY_SEPARATOR . 'instawpbackups' . DIRECTORY_SEPARATOR );
 
-$iwpdb_main_path = WP_ROOT . DIRECTORY_SEPARATOR . 'wp-content' . DIRECTORY_SEPARATOR . 'plugins' . DIRECTORY_SEPARATOR . 'instawp-connect' . DIRECTORY_SEPARATOR . 'includes' . DIRECTORY_SEPARATOR . 'class-instawp-iwpdb.php';
-$iwpdb_git_path  = WP_ROOT . DIRECTORY_SEPARATOR . 'wp-content' . DIRECTORY_SEPARATOR . 'plugins' . DIRECTORY_SEPARATOR . 'instawp-connect-main' . DIRECTORY_SEPARATOR . 'includes' . DIRECTORY_SEPARATOR . 'class-instawp-iwpdb.php';
-
+$iwpdb_main_path = IWP_PLUGIN_DIR . 'includes' . DIRECTORY_SEPARATOR . 'class-instawp-iwpdb.php';
 if ( file_exists( $iwpdb_main_path ) && is_readable( $iwpdb_main_path ) ) {
-	require_once( $iwpdb_main_path );
-} elseif ( file_exists( $iwpdb_git_path ) && is_readable( $iwpdb_git_path ) ) {
-	require_once( $iwpdb_git_path );
+	require_once $iwpdb_main_path;
 } else {
 	header( 'x-iwp-status: false' );
-	header( 'x-iwp-message: The migration script could not find `class-instawp-iwpdb.php` inside the plugin directory.' );
+	header( 'x-iwp-message: The migration script could not find `class-instawp-iwpdb.php` inside the plugin directory. Filepath:' . $iwpdb_main_path );
 	header( 'x-iwp-root-path: ' . WP_ROOT );
-	echo "The migration script could not find the `class-instawp-iwpdb` inside the plugin directory.";
+	echo 'The migration script could not find the `class-instawp-iwpdb` inside the plugin directory.';
 	exit( 2 );
 }
 
@@ -135,8 +138,17 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			// Test if the limited iterator has any items
 			$limitedIterator->rewind();
 			if ( ! $limitedIterator->valid() ) {
+				// Check if we've processed all files - this is success, not error
+				if ( $currentFileIndex >= $totalFiles ) {
+					header( 'x-iwp-status: true' );
+					header( 'x-iwp-transfer-complete: true' );
+					header( "x-iwp-message: All files have been indexed. Current file index: $currentFileIndex, Total files: $totalFiles" );
+					exit;
+				}
+
+				// Otherwise it's a real error - iterator is empty but we haven't processed all files
 				header( 'x-iwp-status: false' );
-				header( "x-iwp-message: LimitIterator is empty. Current file index: $currentFileIndex, Batch size: " . BATCH_SIZE );
+				header( "x-iwp-message: LimitIterator is empty unexpectedly. Current file index: $currentFileIndex, Batch size: " . BATCH_SIZE . ", Total files: $totalFiles" );
 				die();
 			}
 		} catch ( Exception $e ) {
@@ -521,6 +533,7 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 		header( 'x-iwp-status: true' );
 		header( 'x-iwp-transfer-complete: true' );
 		header( 'x-iwp-message: No more tables to process.' );
+		session_destroy();
 		die();
 	}
 

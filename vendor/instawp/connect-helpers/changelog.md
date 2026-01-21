@@ -1,3 +1,11 @@
+v1.0.8
+======
+- Fixed: Update Cloudflare namespace from CF\ to Cloudflare\APO\ for compatibility with Cloudflare plugin v4.14.0+
+
+v1.0.7
+======
+- Added: User agent helper function
+
 v1.0.6
 ======
 - Added: Error log

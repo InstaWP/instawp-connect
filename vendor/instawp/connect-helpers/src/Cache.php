@@ -522,8 +522,8 @@ class Cache {
 		if ( is_plugin_active( 'cloudflare/cloudflare.php' ) ) {
 			$message = '';
 
-			if ( class_exists( '\CF\WordPress\Hooks' ) && method_exists( '\CF\WordPress\Hooks', 'purgeCacheEverything' ) ) {
-				$cf = new \CF\WordPress\Hooks();
+			if ( class_exists( '\Cloudflare\APO\WordPress\Hooks' ) && method_exists( '\Cloudflare\APO\WordPress\Hooks', 'purgeCacheEverything' ) ) {
+				$cf = new \Cloudflare\APO\WordPress\Hooks();
 				$cf->purgeCacheEverything();
 			} else {
 				$message = 'Class or Method not exists.';
@@ -532,6 +532,24 @@ class Cache {
 			$results[] = [
 				'slug'    => 'cloudflare',
 				'name'    => 'Cloudflare',
+				'message' => $message
+			];
+		}
+
+		// InstaWP CDN Cache (Bunny CDN Pull Zone).
+		if ( function_exists( 'instawp_purge_cdn_cache' ) ) {
+			$message = '';
+
+			$cdn_response = instawp_purge_cdn_cache();
+			if ( is_wp_error( $cdn_response ) ) {
+				$message = $cdn_response->get_error_message();
+			} elseif ( ! ( isset( $cdn_response['success'] ) && $cdn_response['success'] ) ) {
+				$message = $cdn_response['message'] ?? 'CDN purge failed.';
+			}
+
+			$results[] = [
+				'slug'    => 'instawp-cdn',
+				'name'    => 'InstaWP CDN',
 				'message' => $message
 			];
 		}
