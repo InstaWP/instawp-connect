@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.6
 Tested up to: 6.9
 Requires PHP: 7.0
-Stable tag: 0.1.2.2
+Stable tag: 0.1.2.3
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -98,13 +98,13 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
-= 0.1.2.3 - Beta =
-- Enhanced: Made the user-agent in API calls consistent.
-- Added: Delay in displaying the success screen for staging site creation to ensure it appears only when the site is fully ready.
-- Added: Session fallback for migration options data when file is temporarily inaccessible.
-- Fixed: Migration failure at 74-76% due to options file read issues.
-- Fixed: Pull API errors not being returned properly to the server.
-- Fixed: Database query for migration progress.
+= 0.1.2.3 - 21 January 2026 =
+- Enhanced: Standardized the user-agent used in API calls.
+- Added: Delay before showing the staging site success screen to ensure the site is fully ready.
+- Added: Session fallback for migration options when the options file is temporarily unavailable.
+- Fixed: Migration failures caused by options file read issues during execution.
+- Fixed: Pull API errors not being correctly returned to the server.
+- Fixed: Database query used for tracking migration progress.
 
 = 0.1.2.2 - 01 December 2025 =
 - Fixed: 403 error on migration cleanup API call.
