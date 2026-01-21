@@ -242,6 +242,105 @@ if ( ! function_exists( 'iwp_maybe_serialize' ) ) {
 	}
 }
 
+if ( ! function_exists( 'iwp_serialized_search_replace' ) ) {
+	/**
+	 * Safely performs search and replace on data that may contain serialized PHP data.
+	 * This function properly handles serialized strings by unserializing, replacing,
+	 * and re-serializing with correct string lengths.
+	 *
+	 * @param string $search  The string to search for.
+	 * @param string $replace The replacement string.
+	 * @param mixed  $data    The data to process (can be serialized string, array, object, or plain string).
+	 *
+	 * @return mixed The data with search/replace performed, maintaining serialization integrity.
+	 */
+	function iwp_serialized_search_replace( $search, $replace, $data ) {
+		// Handle null or empty data
+		if ( $data === null || $data === '' ) {
+			return $data;
+		}
+
+		// If it's a string, check if it's serialized
+		if ( is_string( $data ) ) {
+			// Check if the string is serialized
+			if ( iwp_is_serialized( $data, false ) ) {
+				// Try to unserialize
+				$unserialized = @unserialize( $data );
+
+				// If unserialization was successful
+				if ( $unserialized !== false || $data === 'b:0;' ) {
+					// Recursively process the unserialized data
+					$processed = iwp_serialized_search_replace( $search, $replace, $unserialized );
+					// Re-serialize the processed data
+					return serialize( $processed );
+				}
+			}
+
+			// For non-serialized strings, do simple replacement
+			return str_replace( $search, $replace, $data );
+		}
+
+		// Handle arrays
+		if ( is_array( $data ) ) {
+			$result = array();
+			foreach ( $data as $key => $value ) {
+				// Process the key if it's a string
+				$new_key = is_string( $key ) ? str_replace( $search, $replace, $key ) : $key;
+				// Recursively process the value
+				$result[ $new_key ] = iwp_serialized_search_replace( $search, $replace, $value );
+			}
+			return $result;
+		}
+
+		// Handle objects
+		if ( is_object( $data ) ) {
+			// Clone the object to avoid modifying the original
+			$clone = clone $data;
+			// Get all properties (including private and protected via reflection or casting)
+			$vars = get_object_vars( $clone );
+
+			foreach ( $vars as $key => $value ) {
+				// Process the property name if needed
+				$new_key = str_replace( $search, $replace, $key );
+
+				// Recursively process the value
+				$new_value = iwp_serialized_search_replace( $search, $replace, $value );
+
+				// Update the object property
+				if ( $new_key === $key ) {
+					$clone->$key = $new_value;
+				} else {
+					// If key changed, unset old and set new
+					unset( $clone->$key );
+					$clone->$new_key = $new_value;
+				}
+			}
+			return $clone;
+		}
+
+		// Return other types (int, float, bool, null) as-is
+		return $data;
+	}
+}
+
+if ( ! function_exists( 'iwp_serialized_search_replace_array' ) ) {
+	/**
+	 * Performs search and replace with multiple search/replace pairs.
+	 * Useful for bulk URL replacements during migration.
+	 *
+	 * @param array $replacements Associative array of search => replace pairs.
+	 * @param mixed $data         The data to process.
+	 *
+	 * @return mixed The data with all replacements performed.
+	 */
+	function iwp_serialized_search_replace_array( $replacements, $data ) {
+		foreach ( $replacements as $search => $replace ) {
+			$data = iwp_serialized_search_replace( $search, $replace, $data );
+		}
+		return $data;
+	}
+}
+
 if ( ! function_exists( 'zipStatusString' ) ) {
 	function zipStatusString( $status ) {
 		if ( ! class_exists( 'ZipArchive' ) ) {
