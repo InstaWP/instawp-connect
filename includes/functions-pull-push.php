@@ -242,101 +242,242 @@ if ( ! function_exists( 'iwp_maybe_serialize' ) ) {
 	}
 }
 
-if ( ! function_exists( 'iwp_serialized_search_replace' ) ) {
+if ( ! function_exists( 'iwp_fix_serialized_string' ) ) {
 	/**
-	 * Safely performs search and replace on data that may contain serialized PHP data.
-	 * This function properly handles serialized strings by unserializing, replacing,
-	 * and re-serializing with correct string lengths.
+	 * Fixes serialized string length after search-replace using regex.
+	 * This is a fast, memory-efficient approach that works directly on string data.
+	 *
+	 * @param string $data The string containing serialized data.
+	 *
+	 * @return string The string with corrected serialized lengths.
+	 */
+	function iwp_fix_serialized_string( $data ) {
+		// Pattern to match serialized strings: s:LENGTH:"CONTENT";
+		// Handles content that may contain escaped characters
+		// Uses possessive quantifiers for better performance
+		$pattern = '/(s:)\d+(:")((?:[^"\\\\]++|\\\\.)*)(";\}?)/';
+
+		return preg_replace_callback( $pattern, function ( $matches ) {
+			$content     = $matches[3];
+			// Calculate actual byte length (not character length for multibyte)
+			$byte_length = strlen( $content );
+			return $matches[1] . $byte_length . $matches[2] . $content . $matches[4];
+		}, $data );
+	}
+}
+
+if ( ! function_exists( 'iwp_search_replace_in_string' ) ) {
+	/**
+	 * Performs search-replace on a string and fixes serialized data lengths.
+	 * Handles plain text, JSON, and serialized PHP data efficiently.
 	 *
 	 * @param string $search  The string to search for.
 	 * @param string $replace The replacement string.
-	 * @param mixed  $data    The data to process (can be serialized string, array, object, or plain string).
+	 * @param string $data    The string data to process.
 	 *
-	 * @return mixed The data with search/replace performed, maintaining serialization integrity.
+	 * @return string The processed string with corrected serialized lengths.
 	 */
-	function iwp_serialized_search_replace( $search, $replace, $data ) {
-		// Handle null or empty data
-		if ( $data === null || $data === '' ) {
+	function iwp_search_replace_in_string( $search, $replace, $data ) {
+		if ( empty( $data ) || empty( $search ) ) {
 			return $data;
 		}
 
-		// If it's a string, check if it's serialized
-		if ( is_string( $data ) ) {
-			// Check if the string is serialized
-			if ( iwp_is_serialized( $data, false ) ) {
-				// Try to unserialize
-				$unserialized = @unserialize( $data );
-
-				// If unserialization was successful
-				if ( $unserialized !== false || $data === 'b:0;' ) {
-					// Recursively process the unserialized data
-					$processed = iwp_serialized_search_replace( $search, $replace, $unserialized );
-					// Re-serialize the processed data
-					return serialize( $processed );
-				}
-			}
-
-			// For non-serialized strings, do simple replacement
-			return str_replace( $search, $replace, $data );
+		// Skip if search string not found (fast check)
+		if ( strpos( $data, $search ) === false ) {
+			return $data;
 		}
 
-		// Handle arrays
-		if ( is_array( $data ) ) {
-			$result = array();
-			foreach ( $data as $key => $value ) {
-				// Process the key if it's a string
-				$new_key = is_string( $key ) ? str_replace( $search, $replace, $key ) : $key;
-				// Recursively process the value
-				$result[ $new_key ] = iwp_serialized_search_replace( $search, $replace, $value );
-			}
+		// Perform the replacement
+		$data = str_replace( $search, $replace, $data );
+
+		// Fix serialized string lengths if the data contains serialized patterns
+		if ( preg_match( '/s:\d+:"/', $data ) ) {
+			$data = iwp_fix_serialized_string( $data );
+		}
+
+		return $data;
+	}
+}
+
+if ( ! function_exists( 'iwp_search_replace_in_sql_file' ) ) {
+	/**
+	 * Performs search-replace on a SQL dump file with serialization-safe handling.
+	 * Processes file in chunks for memory efficiency.
+	 *
+	 * @param string $input_file   Path to the input SQL file.
+	 * @param string $output_file  Path to the output SQL file.
+	 * @param array  $replacements Associative array of search => replace pairs.
+	 * @param int    $chunk_size   Lines to process at a time (default: 1000).
+	 *
+	 * @return array Result with status, message, and stats.
+	 */
+	function iwp_search_replace_in_sql_file( $input_file, $output_file, $replacements, $chunk_size = 1000 ) {
+		$result = array(
+			'success'      => false,
+			'message'      => '',
+			'lines'        => 0,
+			'replacements' => 0,
+		);
+
+		if ( ! file_exists( $input_file ) ) {
+			$result['message'] = 'Input file does not exist: ' . $input_file;
 			return $result;
 		}
 
-		// Handle objects
-		if ( is_object( $data ) ) {
-			// Clone the object to avoid modifying the original
-			$clone = clone $data;
-			// Get all properties (including private and protected via reflection or casting)
-			$vars = get_object_vars( $clone );
-
-			foreach ( $vars as $key => $value ) {
-				// Process the property name if needed
-				$new_key = str_replace( $search, $replace, $key );
-
-				// Recursively process the value
-				$new_value = iwp_serialized_search_replace( $search, $replace, $value );
-
-				// Update the object property
-				if ( $new_key === $key ) {
-					$clone->$key = $new_value;
-				} else {
-					// If key changed, unset old and set new
-					unset( $clone->$key );
-					$clone->$new_key = $new_value;
-				}
-			}
-			return $clone;
+		if ( empty( $replacements ) ) {
+			$result['message'] = 'No replacements provided';
+			return $result;
 		}
 
-		// Return other types (int, float, bool, null) as-is
-		return $data;
+		$input_handle = fopen( $input_file, 'rb' );
+		if ( ! $input_handle ) {
+			$result['message'] = 'Cannot open input file: ' . $input_file;
+			return $result;
+		}
+
+		$output_handle = fopen( $output_file, 'wb' );
+		if ( ! $output_handle ) {
+			fclose( $input_handle );
+			$result['message'] = 'Cannot create output file: ' . $output_file;
+			return $result;
+		}
+
+		$search_strings  = array_keys( $replacements );
+		$replace_strings = array_values( $replacements );
+		$line_count      = 0;
+		$replace_count   = 0;
+
+		while ( ! feof( $input_handle ) ) {
+			$line = fgets( $input_handle );
+			if ( $line === false ) {
+				break;
+			}
+
+			$line_count++;
+			$original_line = $line;
+
+			// Check if any search string exists in this line (fast pre-check)
+			$needs_processing = false;
+			foreach ( $search_strings as $search ) {
+				if ( strpos( $line, $search ) !== false ) {
+					$needs_processing = true;
+					break;
+				}
+			}
+
+			if ( $needs_processing ) {
+				// Perform all replacements
+				$line = str_replace( $search_strings, $replace_strings, $line );
+
+				// Fix serialized string lengths if needed
+				if ( preg_match( '/s:\d+:"/', $line ) ) {
+					$line = iwp_fix_serialized_string( $line );
+				}
+
+				if ( $line !== $original_line ) {
+					$replace_count++;
+				}
+			}
+
+			fwrite( $output_handle, $line );
+		}
+
+		fclose( $input_handle );
+		fclose( $output_handle );
+
+		$result['success']      = true;
+		$result['message']      = 'Search-replace completed successfully';
+		$result['lines']        = $line_count;
+		$result['replacements'] = $replace_count;
+
+		return $result;
+	}
+}
+
+if ( ! function_exists( 'iwp_search_replace_in_sql_file_inplace' ) ) {
+	/**
+	 * Performs search-replace on a SQL dump file in-place.
+	 * Creates a temporary file and replaces the original on success.
+	 *
+	 * @param string $sql_file     Path to the SQL file.
+	 * @param array  $replacements Associative array of search => replace pairs.
+	 *
+	 * @return array Result with status and stats.
+	 */
+	function iwp_search_replace_in_sql_file_inplace( $sql_file, $replacements ) {
+		$temp_file = $sql_file . '.tmp.' . uniqid();
+
+		$result = iwp_search_replace_in_sql_file( $sql_file, $temp_file, $replacements );
+
+		if ( $result['success'] ) {
+			// Replace original with processed file
+			if ( ! unlink( $sql_file ) ) {
+				unlink( $temp_file );
+				$result['success'] = false;
+				$result['message'] = 'Failed to remove original file';
+				return $result;
+			}
+
+			if ( ! rename( $temp_file, $sql_file ) ) {
+				$result['success'] = false;
+				$result['message'] = 'Failed to rename temporary file';
+				return $result;
+			}
+		} else {
+			// Clean up temp file on failure
+			if ( file_exists( $temp_file ) ) {
+				unlink( $temp_file );
+			}
+		}
+
+		return $result;
+	}
+}
+
+if ( ! function_exists( 'iwp_serialized_search_replace' ) ) {
+	/**
+	 * Performs search-replace on a string with serialization-safe handling.
+	 * This is a convenience wrapper for single string operations.
+	 *
+	 * For better performance on large datasets, use iwp_search_replace_in_sql_file()
+	 * to process database dump files directly.
+	 *
+	 * @param string $search  The string to search for.
+	 * @param string $replace The replacement string.
+	 * @param string $data    The string data to process.
+	 *
+	 * @return string The processed string.
+	 */
+	function iwp_serialized_search_replace( $search, $replace, $data ) {
+		return iwp_search_replace_in_string( $search, $replace, $data );
 	}
 }
 
 if ( ! function_exists( 'iwp_serialized_search_replace_array' ) ) {
 	/**
-	 * Performs search and replace with multiple search/replace pairs.
-	 * Useful for bulk URL replacements during migration.
+	 * Performs search-replace with multiple pairs on a string.
 	 *
-	 * @param array $replacements Associative array of search => replace pairs.
-	 * @param mixed $data         The data to process.
+	 * @param array  $replacements Associative array of search => replace pairs.
+	 * @param string $data         The string data to process.
 	 *
-	 * @return mixed The data with all replacements performed.
+	 * @return string The processed string.
 	 */
 	function iwp_serialized_search_replace_array( $replacements, $data ) {
-		foreach ( $replacements as $search => $replace ) {
-			$data = iwp_serialized_search_replace( $search, $replace, $data );
+		if ( empty( $data ) || empty( $replacements ) ) {
+			return $data;
 		}
+
+		$search_strings  = array_keys( $replacements );
+		$replace_strings = array_values( $replacements );
+
+		// Perform all replacements at once (more efficient)
+		$data = str_replace( $search_strings, $replace_strings, $data );
+
+		// Fix serialized string lengths if needed
+		if ( preg_match( '/s:\d+:"/', $data ) ) {
+			$data = iwp_fix_serialized_string( $data );
+		}
+
 		return $data;
 	}
 }

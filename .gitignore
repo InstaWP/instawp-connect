@@ -15,3 +15,6 @@ package-lock.json
 .idea/
 auth.json
 .vscode
+
+# Ignore Claude directory
+.claude/
