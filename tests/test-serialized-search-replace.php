@@ -65,142 +65,6 @@ class IWP_Test_Serialized_Search_Replace {
 	}
 
 	/**
-	 * Test iwp_fix_serialized_string function.
-	 */
-	public function test_fix_serialized_string() {
-		echo "\n--- Testing iwp_fix_serialized_string ---\n";
-
-		// Test: Corrupted serialized string (wrong length)
-		$corrupted = 's:13:"https://newdomain.example.com";';
-		$fixed     = iwp_fix_serialized_string( $corrupted );
-		$this->assertEquals(
-			's:29:"https://newdomain.example.com";',
-			$fixed,
-			'Fixes corrupted serialized string length'
-		);
-
-		// Test: Already correct length (http://example.com = 18 chars)
-		$correct = 's:18:"http://example.com";';
-		$fixed   = iwp_fix_serialized_string( $correct );
-		$this->assertEquals( $correct, $fixed, 'Preserves correct serialized string' );
-
-		// Test: Multiple serialized strings in one line
-		// https://newsite.example.com = 27 chars
-		$multi = 'a:2:{s:3:"url";s:14:"http://old.com";s:4:"name";s:4:"test";}';
-		$replaced = str_replace( 'http://old.com', 'https://newsite.example.com', $multi );
-		$fixed = iwp_fix_serialized_string( $replaced );
-		$this->assertTrue(
-			strpos( $fixed, 's:27:"https://newsite.example.com"' ) !== false,
-			'Fixes multiple serialized strings in one line'
-		);
-
-		// Test: Nested serialized data
-		$nested = 's:47:"a:1:{s:3:"url";s:19:"http://example.com";}";';
-		$replaced = str_replace( 'http://example.com', 'https://newsite.com', $nested );
-		$fixed = iwp_fix_serialized_string( $replaced );
-		// Verify it can be processed
-		$this->assertTrue(
-			strpos( $fixed, 'https://newsite.com' ) !== false,
-			'Handles nested serialized data'
-		);
-	}
-
-	/**
-	 * Test iwp_search_replace_in_string function.
-	 */
-	public function test_search_replace_in_string() {
-		echo "\n--- Testing iwp_search_replace_in_string ---\n";
-
-		// Test: Plain string replacement
-		$result = iwp_search_replace_in_string(
-			'http://old.com',
-			'https://new.com',
-			'Visit http://old.com today!'
-		);
-		$this->assertEquals(
-			'Visit https://new.com today!',
-			$result,
-			'Plain string replacement works'
-		);
-
-		// Test: Serialized string with length change
-		$serialized = 's:14:"http://old.com";';
-		$result = iwp_search_replace_in_string(
-			'http://old.com',
-			'https://newsite.example.com',
-			$serialized
-		);
-		$this->assertEquals(
-			's:27:"https://newsite.example.com";',
-			$result,
-			'Serialized string length corrected after replacement'
-		);
-
-		// Test: Empty data
-		$result = iwp_search_replace_in_string( 'search', 'replace', '' );
-		$this->assertEquals( '', $result, 'Empty string returns empty' );
-
-		// Test: No match found (fast path)
-		$result = iwp_search_replace_in_string( 'notfound', 'replace', 'some data' );
-		$this->assertEquals( 'some data', $result, 'No match returns original data' );
-
-		// Test: JSON data (should work without corruption)
-		$json = '{"url":"http://old.com","name":"test"}';
-		$result = iwp_search_replace_in_string( 'http://old.com', 'https://new.com', $json );
-		$this->assertEquals(
-			'{"url":"https://new.com","name":"test"}',
-			$result,
-			'JSON data replaced correctly'
-		);
-	}
-
-	/**
-	 * Test iwp_serialized_search_replace (convenience wrapper).
-	 */
-	public function test_serialized_search_replace() {
-		echo "\n--- Testing iwp_serialized_search_replace ---\n";
-
-		// Test: Basic replacement
-		$result = iwp_serialized_search_replace(
-			'http://oldsite.com',
-			'https://newsite.com',
-			's:18:"http://oldsite.com";'
-		);
-		$this->assertEquals(
-			's:19:"https://newsite.com";',
-			$result,
-			'Basic serialized replacement works'
-		);
-
-		// Test: Array in serialized format
-		$data = 'a:2:{s:4:"home";s:18:"http://oldsite.com";s:5:"admin";s:24:"http://oldsite.com/admin";}';
-		$result = iwp_serialized_search_replace( 'http://oldsite.com', 'https://newsite.com', $data );
-		$unserialized = @unserialize( $result );
-		$this->assertTrue( is_array( $unserialized ), 'Result is valid serialized array' );
-		$this->assertEquals( 'https://newsite.com', $unserialized['home'], 'Array value replaced' );
-	}
-
-	/**
-	 * Test iwp_serialized_search_replace_array for multiple replacements.
-	 */
-	public function test_serialized_search_replace_array() {
-		echo "\n--- Testing iwp_serialized_search_replace_array ---\n";
-
-		$replacements = array(
-			'http://oldsite.com'  => 'https://newsite.com',
-			'/var/www/oldsite'    => '/home/user/newsite',
-		);
-
-		$data = 'a:2:{s:3:"url";s:18:"http://oldsite.com";s:4:"path";s:19:"/var/www/oldsite/wp";}';
-		$result = iwp_serialized_search_replace_array( $replacements, $data );
-
-		$unserialized = @unserialize( $result );
-		$this->assertTrue( is_array( $unserialized ), 'Multiple replacements result is valid' );
-		$this->assertEquals( 'https://newsite.com', $unserialized['url'], 'URL replaced' );
-		$this->assertEquals( '/home/user/newsite/wp', $unserialized['path'], 'Path replaced' );
-	}
-
-	/**
 	 * Test SQL file processing.
 	 */
 	public function test_search_replace_in_sql_file() {
@@ -227,7 +91,7 @@ SQL;
 		$result = iwp_search_replace_in_sql_file( $input_file, $output_file, $replacements );
 
 		$this->assertTrue( $result['success'], 'SQL file processing succeeded' );
-		$this->assertTrue( $result['lines'] >= 5, 'Processed expected number of lines' );
+		$this->assertTrue( $result['statements'] >= 5, 'Processed expected number of statements' );
 		$this->assertTrue( $result['replacements'] > 0, 'Made replacements' );
 
 		// Verify output file content
@@ -322,7 +186,7 @@ SQL;
 				'content' => "Visit {$test['search']} today!",
 			) );
 
-			$result = iwp_serialized_search_replace( $test['search'], $test['replace'], $original );
+			$result = iwp_serialized_str_replace( $test['search'], $test['replace'], $original );
 
 			// Key test: can we unserialize without corruption?
 			$unserialized = @unserialize( $result );
@@ -352,17 +216,33 @@ SQL;
 
 		// UTF-8 content
 		$data = serialize( array( 'text' => 'Visit http://oldsite.com — café ™' ) );
-		$result = iwp_serialized_search_replace( $search, $replace, $data );
+		$result = iwp_serialized_str_replace( $search, $replace, $data );
 		$unserialized = @unserialize( $result );
 		$this->assertTrue( is_array( $unserialized ), 'UTF-8 data valid after replacement' );
 
 		// Escaped quotes
 		$data = 's:30:"http://oldsite.com/path?a=\"b\"";';
-		$result = iwp_serialized_search_replace( $search, $replace, $data );
+		$result = iwp_serialized_str_replace( $search, $replace, $data );
 		$this->assertTrue(
 			strpos( $result, 'https://newsite.com' ) !== false,
 			'Escaped quotes handled'
 		);
+
+		// Nested JSON data (plain, not serialized)
+		$json = '{"menus": [{"url": "http://oldsite.com/page1", "children": [{"url": "http://oldsite.com/subpage"}]}, {"url": "http://oldsite.com/page2"}]}';
+		$result = str_replace( $search, $replace, $json );
+		$decoded = json_decode( $result, true );
+		$this->assertTrue( is_array( $decoded ), 'Nested JSON remains valid after replacement' );
+		$this->assertEquals( 'https://newsite.com/page1', $decoded['menus'][0]['url'], 'Nested JSON URL replaced' );
+		$this->assertEquals( 'https://newsite.com/subpage', $decoded['menus'][0]['children'][0]['url'], 'Deeply nested JSON URL replaced' );
+
+		// JSON inside serialized PHP string
+		$json_in_serialized = serialize( $json );
+		$result = iwp_serialized_str_replace( $search, $replace, $json_in_serialized );
+		$unserialized = @unserialize( $result );
+		$this->assertTrue( $unserialized !== false, 'Serialized JSON unserializes after replacement' );
+		$decoded = json_decode( $unserialized, true );
+		$this->assertTrue( is_array( $decoded ), 'JSON inside serialized PHP remains valid' );
 	}
 
 	/**
@@ -378,8 +258,8 @@ SQL;
 		// What standard str_replace produces (CORRUPTED)
 		$corrupted = str_replace( $search, $replace, $data );
 
-		// Our safe function
-		$safe = iwp_serialized_search_replace( $search, $replace, $data );
+		// Our safe function (serialized-aware replacement)
+		$safe = iwp_serialized_str_replace( $search, $replace, $data );
 
 		// Try to unserialize both
 		$corrupted_result = @unserialize( $corrupted );
@@ -422,7 +302,7 @@ SQL;
 		$elapsed = microtime( true ) - $start_time;
 
 		$this->assertTrue( $result['success'], 'Large file processing succeeded' );
-		$this->assertEquals( 1000, $result['lines'], 'Processed all lines' );
+		$this->assertEquals( 1000, $result['statements'], 'Processed all statements' );
 		$this->assertEquals( 1000, $result['replacements'], 'Made replacements in all lines' );
 
 		echo "  Processed 1000 lines in " . round( $elapsed * 1000, 2 ) . "ms\n";
@@ -444,10 +324,6 @@ SQL;
 		echo "Running Optimized Serialized Search-Replace Tests\n";
 		echo "===========================================\n";
 
-		$this->test_fix_serialized_string();
-		$this->test_search_replace_in_string();
-		$this->test_serialized_search_replace();
-		$this->test_serialized_search_replace_array();
 		$this->test_search_replace_in_sql_file();
 		$this->test_search_replace_in_sql_file_inplace();
 		$this->test_error_handling();
