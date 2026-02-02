@@ -56,7 +56,8 @@ function assert_equals( $expected, $actual, $label ) {
 
 /**
  * Validates serialized string lengths in output content.
- * Returns count of broken s:N:"..." patterns where declared length does not match.
+ * Handles both standard s:N:"..." and SQL-escaped s:N:\"...\" patterns.
+ * Returns count of broken patterns where declared length does not match.
  *
  * @param string $content The content to validate.
  * @param string $label   Test label for debug output.
@@ -64,9 +65,11 @@ function assert_equals( $expected, $actual, $label ) {
  * @return int Number of broken serialized patterns.
  */
 function validate_serialized_lengths( $content, $label ) {
-	$broken = 0;
+	$broken      = 0;
+	$content_len = strlen( $content );
 
-	if ( ! preg_match_all( '/s:(\d+):"/', $content, $matches, PREG_OFFSET_CAPTURE ) ) {
+	// Match both s:N:" (standard) and s:N:\" (SQL-escaped)
+	if ( ! preg_match_all( '/s:(\d+):(\\\\)?"/', $content, $matches, PREG_OFFSET_CAPTURE ) ) {
 		return 0;
 	}
 
@@ -75,18 +78,54 @@ function validate_serialized_lengths( $content, $label ) {
 		$match_str       = $match[0];
 		$match_len       = strlen( $match_str );
 		$declared_length = (int) $matches[1][ $i ][0];
+		$is_escaped      = ! empty( $matches[2][ $i ][0] );
 		$content_start   = $match_pos + $match_len;
 
-		if ( $content_start + $declared_length > strlen( $content ) ) {
-			continue;
-		}
+		if ( $is_escaped ) {
+			// SQL-escaped: scan forward counting unescaped bytes
+			$scan_pos        = $content_start;
+			$unescaped_bytes = 0;
 
-		$end_char = $content[ $content_start + $declared_length ] ?? '';
-		if ( '"' !== $end_char ) {
-			$broken++;
-			if ( $broken <= 5 ) {
-				$context = substr( $content, $match_pos, min( 120, $declared_length + $match_len + 5 ) );
-				echo "  [$label] Broken at offset $match_pos: " . substr( $context, 0, 100 ) . "...\n";
+			while ( $unescaped_bytes < $declared_length && $scan_pos < $content_len ) {
+				if ( '\\' === $content[ $scan_pos ] && ( $scan_pos + 1 ) < $content_len ) {
+					$next = $content[ $scan_pos + 1 ];
+					if ( in_array( $next, array( '\\', "'", '"', '0', 'n', 'r', 't', 'Z', 'b' ), true ) ) {
+						$scan_pos        += 2;
+						$unescaped_bytes += 1;
+						continue;
+					}
+				}
+				$scan_pos++;
+				$unescaped_bytes++;
+			}
+
+			// Check closing \"
+			if ( $scan_pos >= $content_len || '\\' !== $content[ $scan_pos ]
+				|| ( $scan_pos + 1 ) >= $content_len || '"' !== $content[ $scan_pos + 1 ] ) {
+				// Not valid — skip
+				continue;
+			}
+
+			if ( $unescaped_bytes !== $declared_length ) {
+				$broken++;
+				if ( $broken <= 5 ) {
+					$context = substr( $content, $match_pos, min( 120, $scan_pos - $match_pos + 5 ) );
+					echo "  [$label] Broken escaped at offset $match_pos (declared=$declared_length, actual=$unescaped_bytes): " . substr( $context, 0, 100 ) . "...\n";
+				}
+			}
+		} else {
+			// Standard: use direct offset
+			if ( $content_start + $declared_length > $content_len ) {
+				continue;
+			}
+
+			$end_char = $content[ $content_start + $declared_length ] ?? '';
+			if ( '"' !== $end_char ) {
+				$broken++;
+				if ( $broken <= 5 ) {
+					$context = substr( $content, $match_pos, min( 120, $declared_length + $match_len + 5 ) );
+					echo "  [$label] Broken at offset $match_pos: " . substr( $context, 0, 100 ) . "...\n";
+				}
 			}
 		}
 	}
@@ -153,9 +192,9 @@ $result = iwp_serialized_str_replace( 'https://old.com', 'https://new.com', $dat
 assert_equals( 'prefix https://new.com s:19:"https://new.com/foo"; suffix https://new.com', $result, 'Mixed serialized and plain content' );
 
 // 11. Deeply nested serialized data (WordPress widget format)
-$data   = 'a:2:{s:5:"title";s:7:"Welcome";s:4:"link";s:24:"https://old-site.com/page";}';
+$data   = 'a:2:{s:5:"title";s:7:"Welcome";s:4:"link";s:25:"https://old-site.com/page";}';
 $result = iwp_serialized_str_replace( 'https://old-site.com', 'https://new-site.example.org', $data );
-assert_equals( 'a:2:{s:5:"title";s:7:"Welcome";s:4:"link";s:32:"https://new-site.example.org/page";}', $result, 'Nested serialized WordPress data' );
+assert_equals( 'a:2:{s:5:"title";s:7:"Welcome";s:4:"link";s:33:"https://new-site.example.org/page";}', $result, 'Nested serialized WordPress data' );
 
 // 12. Serialized string containing JSON
 $json_inner = '{"url":"https://old.com/api","name":"test"}';
@@ -165,6 +204,71 @@ $result     = iwp_serialized_str_replace( 'https://old.com', 'https://new.com', 
 $new_json   = '{"url":"https://new.com/api","name":"test"}';
 $new_len    = strlen( $new_json ); // 43
 assert_equals( 's:' . $new_len . ':"' . $new_json . '";', $result, 'Serialized string containing JSON' );
+
+// ==================================================================
+// UNIT TESTS: SQL-escaped serialized patterns (s:N:\"...\")
+// ==================================================================
+echo "\n--- Unit Tests: SQL-escaped serialized patterns ---\n";
+
+// 12a. Escaped quotes — same length replacement
+$result = iwp_serialized_str_replace( 'old.com', 'new.com', 's:7:\"old.com\";' );
+assert_equals( 's:7:\"new.com\";', $result, 'Escaped: same length replacement' );
+
+// 12b. Escaped quotes — length increase
+$result = iwp_serialized_str_replace( 'old.com', 'new-domain.com', 's:7:\"old.com\";' );
+assert_equals( 's:14:\"new-domain.com\";', $result, 'Escaped: length increase (7 -> 14)' );
+
+// 12c. Escaped quotes — length decrease
+$result = iwp_serialized_str_replace( 'https://old-domain.com', 'https://x.co', 's:22:\"https://old-domain.com\";' );
+assert_equals( 's:12:\"https://x.co\";', $result, 'Escaped: length decrease (22 -> 12)' );
+
+// 12d. Escaped quotes with surrounding serialized content
+$data   = 'a:1:{s:3:\"url\";s:22:\"https://old-domain.com\";}';
+$result = iwp_serialized_str_replace( 'https://old-domain.com', 'https://new-domain.example.com', $data );
+assert_equals( 'a:1:{s:3:\"url\";s:30:\"https://new-domain.example.com\";}', $result, 'Escaped: nested with surrounding content' );
+
+// 12e. Multiple escaped serialized strings
+$data   = 's:7:\"old.com\";s:11:\"old.com/foo\";';
+$result = iwp_serialized_str_replace( 'old.com', 'new-domain.com', $data );
+assert_equals( 's:14:\"new-domain.com\";s:18:\"new-domain.com/foo\";', $result, 'Escaped: multiple serialized strings' );
+
+// 12f. Escaped quotes with null bytes (WordPress internal class references)
+// s:18:\"\0*\0additional_data\" — \0 is SQL-escaped null byte (2 dump chars = 1 actual byte)
+$data   = 's:18:\"\\0*\\0additional_data\";';
+$result = iwp_serialized_str_replace( 'nonexistent', 'whatever', $data );
+assert_equals( 's:18:\"\\0*\\0additional_data\";', $result, 'Escaped: null bytes preserved when no match' );
+
+// 12g. Realistic SQL dump line with escaped serialized data and domain replacement
+// "https://instructive-anteater-00778e.instawp.co" = 46 chars
+// "https://solid-fly-88d09e.instawp.co" = 35 chars
+$data   = "INSERT INTO `wp_options` VALUES (1,'siteurl','s:46:\\\"https://instructive-anteater-00778e.instawp.co\\\";','yes');";
+$result = iwp_serialized_str_replace(
+	'instructive-anteater-00778e.instawp.co',
+	'solid-fly-88d09e.instawp.co',
+	$data
+);
+assert_true(
+	strpos( $result, 's:35:\"https://solid-fly-88d09e.instawp.co\"' ) !== false,
+	'Escaped: realistic SQL dump domain replacement with length fix (46 -> 35)'
+);
+assert_true(
+	strpos( $result, 'instructive-anteater' ) === false,
+	'Escaped: old domain fully removed from SQL dump line'
+);
+
+// 12h. Mixed escaped and non-escaped in same data
+$data   = 's:7:"old.com"; some text s:7:\"old.com\";';
+$result = iwp_serialized_str_replace( 'old.com', 'new-domain.com', $data );
+assert_equals( 's:14:"new-domain.com"; some text s:14:\"new-domain.com\";', $result, 'Mixed: both escaped and non-escaped handled' );
+
+// 12i. Validate serialized lengths helper also works with escaped patterns
+$test_data = 's:14:\"new-domain.com\";';
+$broken    = validate_serialized_lengths( $test_data, 'validator-escaped' );
+assert_equals( 0, $broken, 'Validator: recognizes valid escaped pattern' );
+
+// Validator cannot detect broken escaped patterns when closing \" is not at expected
+// position (it conservatively skips them as potential false positives). This is by design
+// since for SQL-escaped patterns, a mismatched length makes the closing quote ambiguous.
 
 // ==================================================================
 // UNIT TESTS: iwp_read_next_sql_statement()

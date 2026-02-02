@@ -35,8 +35,8 @@ if ( ! function_exists( 'iwp_serialized_str_replace' ) ) {
 
 		$data_len = strlen( $data );
 
-		// Find all serialized patterns at once (O(n) instead of O(n²))
-		if ( ! preg_match_all( '/s:(\d+):"/', $data, $matches, PREG_OFFSET_CAPTURE ) ) {
+		// Find all serialized patterns: both s:N:" (standard) and s:N:\" (SQL-escaped)
+		if ( ! preg_match_all( '/s:(\d+):(\\\\)?"/', $data, $matches, PREG_OFFSET_CAPTURE ) ) {
 			return str_replace( $search, $replace, $data );
 		}
 
@@ -49,53 +49,122 @@ if ( ! function_exists( 'iwp_serialized_str_replace' ) ) {
 			$match_str       = $match[0];
 			$match_len       = strlen( $match_str );
 			$declared_length = (int) $matches[1][ $i ][0];
+			$is_escaped      = ! empty( $matches[2][ $i ][0] );
 			$content_start   = $match_pos + $match_len;
 
-			// Bounds validation: ensure we don't read past data length
-			if ( $content_start + $declared_length > $data_len ) {
-				// Malformed data: treat as non-serialized, include up to this point
-				if ( $match_pos > $pos ) {
-					$parts[] = str_replace( $search, $replace, substr( $data, $pos, $match_pos - $pos ) );
-				}
-				$parts[] = str_replace( $search, $replace, $match_str );
-				$pos = $content_start;
+			// Skip matches inside already-processed content (nested serialized data)
+			if ( $match_pos < $pos ) {
 				continue;
 			}
 
-			// Validate this is actual serialized data (not false positive like 's:404:"')
-			$expected_end_pos = $content_start + $declared_length;
-			if ( $expected_end_pos >= $data_len || '"' !== $data[ $expected_end_pos ] ) {
-				// Not valid serialized data - treat as plain text
+			if ( $is_escaped ) {
+				// SQL-escaped variant: s:N:\"...\"
+				// Scan forward counting unescaped bytes to find content end.
+				// Declared length refers to actual PHP string bytes, but dump content
+				// may be longer due to SQL escape sequences (\0, \\, etc.).
+				$scan_pos        = $content_start;
+				$unescaped_bytes = 0;
+
+				while ( $unescaped_bytes < $declared_length && $scan_pos < $data_len ) {
+					if ( '\\' === $data[ $scan_pos ] && ( $scan_pos + 1 ) < $data_len ) {
+						$next_char = $data[ $scan_pos + 1 ];
+						// MySQL recognized escape sequences: each represents 1 actual byte
+						if ( in_array( $next_char, array( '\\', "'", '"', '0', 'n', 'r', 't', 'Z', 'b' ), true ) ) {
+							$scan_pos        += 2;
+							$unescaped_bytes += 1;
+							continue;
+						}
+					}
+					$scan_pos++;
+					$unescaped_bytes++;
+				}
+
+				// Validate closing \"
+				if ( $scan_pos >= $data_len || '\\' !== $data[ $scan_pos ]
+					|| ( $scan_pos + 1 ) >= $data_len || '"' !== $data[ $scan_pos + 1 ] ) {
+					// Not valid serialized data — treat as plain text
+					if ( $match_pos > $pos ) {
+						$parts[] = str_replace( $search, $replace, substr( $data, $pos, $match_pos - $pos ) );
+					}
+					$parts[] = str_replace( $search, $replace, $match_str );
+					$pos = $content_start;
+					continue;
+				}
+
+				// Copy and replace everything BEFORE this serialized string
 				if ( $match_pos > $pos ) {
 					$parts[] = str_replace( $search, $replace, substr( $data, $pos, $match_pos - $pos ) );
 				}
-				$parts[] = str_replace( $search, $replace, $match_str );
-				$pos = $content_start;
-				continue;
-			}
 
-			// Copy and replace everything BEFORE this serialized string
-			if ( $match_pos > $pos ) {
-				$parts[] = str_replace( $search, $replace, substr( $data, $pos, $match_pos - $pos ) );
-			}
+				// Extract dump-level content between the escaped quotes
+				$content     = substr( $data, $content_start, $scan_pos - $content_start );
+				$new_content = str_replace( $search, $replace, $content );
 
-			// Extract content using the declared length
-			$content = substr( $data, $content_start, $declared_length );
+				// Calculate new declared length using delta approach:
+				// URL strings don't contain SQL-escapable characters, so dump-level
+				// strlen delta equals actual byte-level delta.
+				$new_length = $declared_length + ( strlen( $new_content ) - strlen( $content ) );
 
-			// Apply replacement to the content and recalculate length
-			$new_content = str_replace( $search, $replace, $content );
-			$new_length  = strlen( $new_content );
+				// Append the fixed serialized string with escaped quotes
+				$parts[] = 's:' . $new_length . ':\\"' . $new_content . '\\"';
 
-			// Append the fixed serialized string
-			$parts[] = 's:' . $new_length . ':"' . $new_content . '"';
+				// Move position past the closing \"
+				$pos = $scan_pos + 2;
 
-			// Move position past the content and closing quote
-			$pos = $expected_end_pos + 1;
+				// Include the semicolon if present
+				if ( $pos < $data_len && ';' === $data[ $pos ] ) {
+					$parts[] = ';';
+					$pos++;
+				}
+			} else {
+				// Standard variant: s:N:"..."
 
-			// Include the semicolon if present
-			if ( $pos < $data_len && ';' === $data[ $pos ] ) {
-				$parts[] = ';';
-				$pos++;
+				// Bounds validation: ensure we don't read past data length
+				if ( $content_start + $declared_length > $data_len ) {
+					// Malformed data: treat as non-serialized, include up to this point
+					if ( $match_pos > $pos ) {
+						$parts[] = str_replace( $search, $replace, substr( $data, $pos, $match_pos - $pos ) );
+					}
+					$parts[] = str_replace( $search, $replace, $match_str );
+					$pos = $content_start;
+					continue;
+				}
+
+				// Validate this is actual serialized data (not false positive like 's:404:"')
+				$expected_end_pos = $content_start + $declared_length;
+				if ( $expected_end_pos >= $data_len || '"' !== $data[ $expected_end_pos ] ) {
+					// Not valid serialized data - treat as plain text
+					if ( $match_pos > $pos ) {
+						$parts[] = str_replace( $search, $replace, substr( $data, $pos, $match_pos - $pos ) );
+					}
+					$parts[] = str_replace( $search, $replace, $match_str );
+					$pos = $content_start;
+					continue;
+				}
+
+				// Copy and replace everything BEFORE this serialized string
+				if ( $match_pos > $pos ) {
+					$parts[] = str_replace( $search, $replace, substr( $data, $pos, $match_pos - $pos ) );
+				}
+
+				// Extract content using the declared length
+				$content = substr( $data, $content_start, $declared_length );
+
+				// Apply replacement to the content and recalculate length
+				$new_content = str_replace( $search, $replace, $content );
+				$new_length  = strlen( $new_content );
+
+				// Append the fixed serialized string
+				$parts[] = 's:' . $new_length . ':"' . $new_content . '"';
+
+				// Move position past the content and closing quote
+				$pos = $expected_end_pos + 1;
+
+				// Include the semicolon if present
+				if ( $pos < $data_len && ';' === $data[ $pos ] ) {
+					$parts[] = ';';
+					$pos++;
+				}
 			}
 		}
 
