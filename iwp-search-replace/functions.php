@@ -379,26 +379,33 @@ if ( ! function_exists( 'iwp_search_replace_in_sql_file_inplace' ) ) {
 	 * @return array Result with status and stats.
 	 */
 	function iwp_search_replace_in_sql_file_inplace( $sql_file, $replacements ) {
-		$temp_file = $sql_file . '.tmp.' . uniqid();
+		$temp_file   = $sql_file . '.tmp.' . uniqid();
+		$backup_file = $sql_file . '.backup.' . uniqid();
 
 		$result = iwp_search_replace_in_sql_file( $sql_file, $temp_file, $replacements );
 
 		if ( $result['success'] ) {
-			// Replace original with processed file
-			if ( ! unlink( $sql_file ) ) {
+			// Atomic replacement: backup -> swap -> cleanup
+			// This prevents data loss if rename fails after delete.
+			if ( ! rename( $sql_file, $backup_file ) ) {
 				unlink( $temp_file );
 				$result['success'] = false;
-				$result['message'] = 'Failed to remove original file';
+				$result['message'] = 'Failed to backup original file';
 				return $result;
 			}
 
 			if ( ! rename( $temp_file, $sql_file ) ) {
+				// Restore original from backup.
+				rename( $backup_file, $sql_file );
 				$result['success'] = false;
 				$result['message'] = 'Failed to rename temporary file';
 				return $result;
 			}
+
+			// Success - remove backup file.
+			unlink( $backup_file );
 		} else {
-			// Clean up temp file on failure
+			// Clean up temp file on failure.
 			if ( file_exists( $temp_file ) ) {
 				unlink( $temp_file );
 			}

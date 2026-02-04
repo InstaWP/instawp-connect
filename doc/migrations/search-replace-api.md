@@ -105,6 +105,36 @@ curl -X POST \
 - Output directory existence and writability checks
 - JSON input validation
 
+## Best Practices
+
+### Use Protocol-Prefixed Domain Replacements
+
+**Problem**: Replacing bare domains (without protocol) will also affect email addresses, causing corruption.
+
+**Example of the issue**:
+```
+Search:  abc.com
+Replace: bluehost.com/website_899988sd
+
+Result:
+- https://abc.com → https://bluehost.com/website_899988sd ✓
+- admin@abc.com  → admin@bluehost.com/website_899988sd  ✗ (broken email)
+```
+
+**Recommendation**: Always use protocol-prefixed replacements to avoid corrupting email addresses:
+
+```json
+{
+    "replacements": {
+        "https://abc.com": "https://bluehost.com/website_899988sd",
+        "http://abc.com": "https://bluehost.com/website_899988sd",
+        "//abc.com": "//bluehost.com/website_899988sd"
+    }
+}
+```
+
+This ensures URLs are replaced correctly while email addresses like `admin@abc.com` remain intact.
+
 ## Architecture
 
 The search-replace functions in `iwp-search-replace/functions.php` serve as the Single Source of Truth (SSOT). The existing `includes/functions-pull-push.php` includes this file via `require_once`, ensuring DRY compliance. All functions are wrapped in `function_exists()` guards for safe inclusion from multiple entry points.

@@ -62,6 +62,18 @@ if ( empty( $input['replacements'] ) || ! is_array( $input['replacements'] ) ) {
 	iwp_sr_send_error( 'Missing or invalid required field: replacements (must be a non-empty object)', 400 );
 }
 
+// Validate for overlapping replacement patterns to prevent unintended replacements.
+foreach ( $input['replacements'] as $search => $replace ) {
+	foreach ( $input['replacements'] as $other_search => $other_replace ) {
+		if ( $search !== $other_search && strpos( $replace, $other_search ) !== false ) {
+			iwp_sr_send_error(
+				"Overlapping pattern detected: '$other_search' found in replacement '$replace'. This could cause unintended replacements. Use single domain replacement or ensure replacement values don't contain other search patterns.",
+				400
+			);
+		}
+	}
+}
+
 $input_file   = $input['input_file'];
 $output_file  = $input['output_file'];
 $replacements = $input['replacements'];
