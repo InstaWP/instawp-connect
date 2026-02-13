@@ -331,7 +331,7 @@ class InstaWP_Rest_Api {
 				);
 
 				// Allow development environments
-				for ($dev_env=1; $dev_env <= 9; $dev_env++) { 
+				for ( $dev_env = 1; $dev_env <= 9; $dev_env++ ) { 
 					$allowed_domains[] = 'https://client.dev' . $dev_env . '.instawp.me';
 				}
 
