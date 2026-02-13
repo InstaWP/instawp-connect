@@ -141,6 +141,31 @@ doc/
 - Include code examples where applicable
 - Keep documentation in sync with code changes
 
+## Plugin Code Patterns
+
+### Logging
+- **NEVER use `error_log()`** — use `Helper::add_error_log()` from connect-helpers instead
+- **Log failures only** — do not log success paths, debug info, or entry/exit of methods
+- Keep logging minimal: only when an operation fails and the failure is actionable
+
+### Debouncing / Rate Limiting
+- **Do NOT use per-item transients** with `md5()` hashes for debouncing
+- Use a **single `wp_options` key** with structure: `array( $item_id => array( 'data' => ..., 'expire' => time() + N ) )`
+- Clean expired entries before adding new ones
+- Pass `false` as third arg to `update_option()` to disable autoload for transient-like data
+
+### Conditional Logic
+- Use `if/elseif` chains when conditions are mutually exclusive — not separate `if` blocks
+- Merge branches that have identical bodies (e.g., "new publish" and "update publish" both just need `'publish' === $new_status`)
+
+### WordPress Hooks
+- Do NOT skip `DOING_AUTOSAVE` unless there is a specific reason — autosaves may be legitimate content updates
+- Always check `wp_is_post_revision()` to skip revision saves
+
+### Data Structures
+- When collecting items keyed by ID, use the ID as the array key (`$array[ $id ] = $value`) instead of `$array[] = $value` + `array_unique()`
+- Use `array_values()` when passing keyed arrays to APIs that expect sequential arrays
+
 ## Developer-Specific Preferences
 Developer preference files are stored in `.claude/{git_username}.claude` where `{git_username}` is from `git config user.name` (e.g., `.claude/randhirinsta.claude`).
 These files are gitignored and contain:

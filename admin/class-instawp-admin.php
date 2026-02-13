@@ -158,11 +158,11 @@ class InstaWP_Admin {
 	}
 
 	function render_template_migrate_page() {
-		include INSTAWP_PLUGIN_DIR . '/migrate/templates/main-migrate.php';
+		include INSTAWP_PLUGIN_DIR . 'migrate/templates/main-migrate.php';
 	}
 
 	function render_migrate_page() {
-		include INSTAWP_PLUGIN_DIR . '/migrate/templates/main.php';
+		include INSTAWP_PLUGIN_DIR . 'migrate/templates/main.php';
 	}
 
 	public function enqueue_scripts() {

@@ -126,7 +126,7 @@ class InstaWP_Sync_Ajax {
 		// $events = array_slice( $events, $offset, $items_per_page );
 
 		ob_start();
-		include INSTAWP_PLUGIN_DIR . '/migrate/templates/ajax/part-sync-items.php';
+		include INSTAWP_PLUGIN_DIR . 'migrate/templates/ajax/part-sync-items.php';
 		$data = ob_get_clean();
 
 		$this->send_success(

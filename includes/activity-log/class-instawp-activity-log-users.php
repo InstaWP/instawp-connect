@@ -76,6 +76,18 @@ class InstaWP_Activity_Log_Users {
 	}
 
 	public function hooks_wrong_password( $username ) {
+		$daily_limit    = apply_filters( 'instawp/activity_log/failed_login_daily_limit', 100 );
+		$transient_key  = 'instawp_failed_login_count_' . gmdate( 'Y-m-d' );
+		$current_count  = (int) get_transient( $transient_key );
+
+		if ( $current_count >= $daily_limit ) {
+			// Update the aggregated count but don't log individual attempts
+			set_transient( $transient_key, $current_count + 1, DAY_IN_SECONDS );
+			return;
+		}
+
+		set_transient( $transient_key, $current_count + 1, DAY_IN_SECONDS );
+
 		InstaWP_Activity_Log::insert_log( array(
 			'action'         => 'user_failed_login',
 			'object_type'    => 'Users',
