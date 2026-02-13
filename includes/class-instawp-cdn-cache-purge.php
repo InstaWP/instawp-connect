@@ -70,7 +70,12 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 				return;
 			}
 
-			// Debounce: skip if recently purged.
+			// Skip if already pending in current request (fastest check).
+			if ( isset( $this->pending_urls[ $post->ID ] ) ) {
+				return;
+			}
+
+			// Debounce: skip if recently purged (database check).
 			$purge_data = get_option( 'instawp_cdn_purge_queue', array() );
 			if ( isset( $purge_data[ $post->ID ] ) && $purge_data[ $post->ID ]['expire'] > time() ) {
 				return;
