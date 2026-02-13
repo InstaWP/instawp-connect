@@ -296,6 +296,28 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 						$this->handle_scan_slow_items();
 					},
 				),
+				'purge-url'            => function ( $args ) {
+					// wp instawp purge-url <url>
+					$url = isset( $args[0] ) ? esc_url_raw( $args[0] ) : '';
+					if ( empty( $url ) ) {
+						WP_CLI::error( __( 'URL is required. Usage: wp instawp purge-url <url>', 'instawp-connect' ) );
+						return false;
+					}
+
+					if ( ! filter_var( $url, FILTER_VALIDATE_URL ) ) {
+						WP_CLI::error( __( 'Invalid URL provided.', 'instawp-connect' ) );
+						return false;
+					}
+
+					$response = InstaWP_CDN_Cache_Purge::purge_url( $url );
+					if ( $response && ! empty( $response['success'] ) && false !== $response['success'] ) {
+						WP_CLI::success( sprintf( __( 'CDN cache purged for URL: %s', 'instawp-connect' ), $url ) );
+					} else {
+						$message = ! empty( $response['message'] ) ? $response['message'] : __( 'Unknown error', 'instawp-connect' );
+						WP_CLI::error( sprintf( __( 'Failed to purge CDN cache: %s', 'instawp-connect' ), $message ) );
+						return false;
+					}
+				},
 			);
 
 			// Execute command if it exists

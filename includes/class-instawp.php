@@ -444,6 +444,8 @@ class instaWP {
 			require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-' . sanitize_file_name( $file ) . '.php';
 		}
 
+		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-cdn-cache-purge.php';
+
 		require_once INSTAWP_PLUGIN_DIR . '/includes/activity-log/class-instawp-activity-log.php';
 		
 		$this->activity_log_enabled = Option::get_option( 'instawp_activity_log', 'off' ) === 'on';

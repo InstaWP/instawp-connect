@@ -354,6 +354,14 @@ class InstaWP_Setting {
 					'title'    => class_exists( '\Edge_Cache_Plugin' ) ? esc_html__( 'Hide InstaWP Menu & Edge Cache to Users', 'instawp-connect' ) : esc_html__( 'Hide InstaWP Menu to Users', 'instawp-connect' ),
 					'options'  => self::get_select2_default_selected_option( 'instawp_hide_plugin_to_users' ),
 				),
+				array(
+					'id'      => 'instawp_cdn_auto_purge',
+					'type'    => 'toggle',
+					'title'   => __( 'CDN Auto Cache Purge', 'instawp-connect' ),
+					'tooltip' => __( 'Automatically purge CDN cache when posts are published, updated, or trashed.', 'instawp-connect' ),
+					'class'   => 'save-ajax',
+					'default' => 'on',
+				),
 			),
 		);
 
