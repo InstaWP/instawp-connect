@@ -407,53 +407,51 @@ class instaWP {
 	}
 
 	private function load_dependencies() {
-		require_once INSTAWP_PLUGIN_DIR . '/admin/class-instawp-admin.php';
+		require_once INSTAWP_PLUGIN_DIR . 'admin/class-instawp-admin.php';
 
-		require_once INSTAWP_PLUGIN_DIR . '/migrate/class-instawp-migrate.php';
+		require_once INSTAWP_PLUGIN_DIR . 'migrate/class-instawp-migrate.php';
 
-		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-migrate-log.php';
-		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-ajax.php';
-		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-setting.php';
-		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-database-management.php';
-		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-tools.php';
-		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-hooks.php';
-		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-whitelabel.php';
-		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-cli.php';
-		// require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-updates.php';
-		// require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-checksum.php';
+		require_once INSTAWP_PLUGIN_DIR . 'includes/class-instawp-migrate-log.php';
+		require_once INSTAWP_PLUGIN_DIR . 'includes/class-instawp-ajax.php';
+		require_once INSTAWP_PLUGIN_DIR . 'includes/class-instawp-setting.php';
+		require_once INSTAWP_PLUGIN_DIR . 'includes/class-instawp-database-management.php';
+		require_once INSTAWP_PLUGIN_DIR . 'includes/class-instawp-tools.php';
+		require_once INSTAWP_PLUGIN_DIR . 'includes/class-instawp-hooks.php';
+		require_once INSTAWP_PLUGIN_DIR . 'includes/class-instawp-whitelabel.php';
+		require_once INSTAWP_PLUGIN_DIR . 'includes/class-instawp-cli.php';
+		// require_once INSTAWP_PLUGIN_DIR . 'includes/class-instawp-updates.php';
+		// require_once INSTAWP_PLUGIN_DIR . 'includes/class-instawp-checksum.php';
 
 		if ( ! defined( 'IWP_PLUGIN_DISABLE_HEARTBEAT' ) || IWP_PLUGIN_DISABLE_HEARTBEAT !== true ) {
-			require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-heartbeat.php';
+			require_once INSTAWP_PLUGIN_DIR . 'includes/class-instawp-heartbeat.php';
 		}
 
-		require_once INSTAWP_PLUGIN_DIR . '/includes/apis/class-instawp-rest-api.php';
-		require_once INSTAWP_PLUGIN_DIR . '/includes/apis/class-instawp-rest-api-content.php';
-		require_once INSTAWP_PLUGIN_DIR . '/includes/apis/class-instawp-rest-api-manage.php';
-		require_once INSTAWP_PLUGIN_DIR . '/includes/apis/class-instawp-rest-api-migration.php';
-		require_once INSTAWP_PLUGIN_DIR . '/includes/apis/class-instawp-rest-api-woocommerce.php';
+		require_once INSTAWP_PLUGIN_DIR . 'includes/apis/class-instawp-rest-api.php';
+		require_once INSTAWP_PLUGIN_DIR . 'includes/apis/class-instawp-rest-api-content.php';
+		require_once INSTAWP_PLUGIN_DIR . 'includes/apis/class-instawp-rest-api-manage.php';
+		require_once INSTAWP_PLUGIN_DIR . 'includes/apis/class-instawp-rest-api-migration.php';
+		require_once INSTAWP_PLUGIN_DIR . 'includes/apis/class-instawp-rest-api-woocommerce.php';
 
-		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-db.php';
-		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-helpers.php';
-		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-parser.php';
-		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-ajax.php';
-		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-apis.php';
-		require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-customize-setting.php';
+		require_once INSTAWP_PLUGIN_DIR . 'includes/sync/class-instawp-sync-db.php';
+		require_once INSTAWP_PLUGIN_DIR . 'includes/sync/class-instawp-sync-helpers.php';
+		require_once INSTAWP_PLUGIN_DIR . 'includes/sync/class-instawp-sync-parser.php';
+		require_once INSTAWP_PLUGIN_DIR . 'includes/sync/class-instawp-sync-ajax.php';
+		require_once INSTAWP_PLUGIN_DIR . 'includes/sync/class-instawp-sync-apis.php';
+		require_once INSTAWP_PLUGIN_DIR . 'includes/sync/class-instawp-sync-customize-setting.php';
 
-		$files = array( 'option', 'plugin-theme', 'post', 'term', 'menu', 'user', 'customizer', 'wc' );
-		foreach ( $files as $file ) {
-			require_once INSTAWP_PLUGIN_DIR . '/includes/sync/class-instawp-sync-' . sanitize_file_name( $file ) . '.php';
+		foreach ( array( 'option', 'plugin-theme', 'post', 'term', 'menu', 'user', 'customizer', 'wc' ) as $file ) {
+			require_once INSTAWP_PLUGIN_DIR . 'includes/sync/class-instawp-sync-' . $file . '.php';
 		}
 
-		require_once INSTAWP_PLUGIN_DIR . '/includes/class-instawp-cdn-cache-purge.php';
+		require_once INSTAWP_PLUGIN_DIR . 'includes/class-instawp-cdn-cache-purge.php';
 
-		require_once INSTAWP_PLUGIN_DIR . '/includes/activity-log/class-instawp-activity-log.php';
+		require_once INSTAWP_PLUGIN_DIR . 'includes/activity-log/class-instawp-activity-log.php';
 		
 		$this->activity_log_enabled = Option::get_option( 'instawp_activity_log', 'off' ) === 'on';
 
 		if ( $this->activity_log_enabled ) {
-			$files = array( 'core', 'posts', 'attachments', 'users', 'menus', 'plugins', 'themes', 'taxonomies', 'widgets' );
-			foreach ( $files as $file ) {
-				require_once INSTAWP_PLUGIN_DIR . '/includes/activity-log/class-instawp-activity-log-' . sanitize_file_name( $file ) . '.php';
+			foreach ( array( 'core', 'posts', 'attachments', 'users', 'menus', 'plugins', 'themes', 'taxonomies', 'widgets' ) as $file ) {
+				require_once INSTAWP_PLUGIN_DIR . 'includes/activity-log/class-instawp-activity-log-' . $file . '.php';
 			}
 		}
 	}

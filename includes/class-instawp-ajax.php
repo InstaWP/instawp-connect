@@ -833,7 +833,7 @@ class InstaWP_Ajax {
 		}
 
 		ob_start();
-		include INSTAWP_PLUGIN_DIR . '/migrate/templates/ajax/part-plans.php';
+		include INSTAWP_PLUGIN_DIR . 'migrate/templates/ajax/part-plans.php';
 		$data = ob_get_clean();
 
 		wp_send_json_success(
@@ -890,7 +890,7 @@ class InstaWP_Ajax {
 		}
 
 		ob_start();
-		include INSTAWP_PLUGIN_DIR . '/migrate/templates/ajax/part-site-plans.php';
+		include INSTAWP_PLUGIN_DIR . 'migrate/templates/ajax/part-site-plans.php';
 		$content = ob_get_clean();
 
 		$site_data['content'] = $content;

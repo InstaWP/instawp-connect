@@ -330,6 +330,11 @@ class InstaWP_Rest_Api {
 					'https://app.instawp.io',
 				);
 
+				// Allow development environments
+				for ( $dev_env = 1; $dev_env <= 9; $dev_env++ ) { 
+					$allowed_domains[] = 'https://client.dev' . $dev_env . '.instawp.me';
+				}
+
 				$domain_to_set = defined( 'INSTAWP_API_DOMAIN' )
 					? INSTAWP_API_DOMAIN
 					: ( in_array( $api_domain, $allowed_domains ) ? $api_domain : '' );
@@ -339,7 +344,7 @@ class InstaWP_Rest_Api {
 						array(
 							'status'  => false,
 							'success' => false,
-							'message' => esc_html__( 'Invalid API domain parameter passed.', 'instawp-connect' ),
+							'message' => esc_html__( 'Invalid API domain parameter passed.', 'instawp-connect' ) . $api_domain,
 						)
 					);
 				}

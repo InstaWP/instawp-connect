@@ -29,7 +29,7 @@ if ( isset( $current->response[ $plugin_file ] ) ) {
  */
 
 //if ( ! empty( $_GET['debug'] ) && current_user_can( 'manage_options' ) ) {
-//  $file_path = INSTAWP_PLUGIN_DIR . '/migrate/templates/debug/' . sanitize_file_name( wp_unslash( $_GET['debug'] ) ) . '.php';
+//  $file_path = INSTAWP_PLUGIN_DIR . 'migrate/templates/debug/' . sanitize_file_name( wp_unslash( $_GET['debug'] ) ) . '.php';
 //
 //  if ( file_exists( $file_path ) ) {
 //      include $file_path;
@@ -73,14 +73,14 @@ if ( ! instawp()->is_connected ) {
 	<?php endif; ?>
     <div class="w-full">
         <div class="bg-white shadow-md rounded-lg">
-			<?php include INSTAWP_PLUGIN_DIR . '/migrate/templates/navbar.php'; ?>
+			<?php include INSTAWP_PLUGIN_DIR . 'migrate/templates/navbar.php'; ?>
             <div class="bg-grayCust-400 shadow-md rounded-bl-lg rounded-br-lg <?php echo esc_attr( implode( ' ', $connect_classes ) ); ?>">
                 <?php foreach ( $plugin_nav_items as $item_key => $item ) {
                     if ( instawp()->is_connected || $item_key === 'developer' ) {
                         include INSTAWP_PLUGIN_DIR . 'migrate/templates/part-' . sanitize_file_name( $item_key ) . '.php';
                     } else { ?>
                         <div class="nav-item-content <?= esc_attr( $item_key ); ?> bg-white rounded-md">
-                            <?php include INSTAWP_PLUGIN_DIR . '/migrate/templates/part-create-connect.php'; ?>
+                            <?php include INSTAWP_PLUGIN_DIR . 'migrate/templates/part-create-connect.php'; ?>
                         </div>
                     <?php }
                 } ?>
