@@ -32,6 +32,7 @@ Activity logging captures all changes on connected sites. Events are recorded an
 | `InstaWP_Sync_Menu` | Navigation menus |
 | `InstaWP_Sync_Customizer` | Customizer changes |
 | `InstaWP_Sync_WC` | WooCommerce data (products, orders) |
+| `InstaWP_Sync_HappyFiles` | HappyFiles Pro folders and assignments |
 | `InstaWP_Sync_Option` | WordPress options |
 | `InstaWP_Sync_DB` | Database operations |
 
@@ -54,6 +55,39 @@ Activity logging captures all changes on connected sites. Events are recorded an
 - Error logging and retry mechanisms
 - Bearer token authentication
 - Batch processing (default: 5 items per page)
+
+## HappyFiles Pro
+
+Dedicated sync support for HappyFiles Pro media/post folder management. HappyFiles organizes WordPress media and posts into folders using custom taxonomies (`happyfiles_category` for attachments, `hf_cat_{post_type}` for other post types).
+
+### How to Enable
+
+HappyFiles sync is automatically active when:
+- Global 2-way sync is enabled (`instawp_is_event_syncing` = 1)
+- HappyFiles Pro plugin is active on the site (`happyfiles_category` taxonomy exists)
+
+No separate toggle is required.
+
+### Supported Sync Events
+
+| Event Slug | Description |
+|------------|-------------|
+| `happyfiles_folder_created` | Folder creation (name, parent, position, color) |
+| `happyfiles_folder_updated` | Folder rename or move to different parent |
+| `happyfiles_folder_deleted` | Folder deletion |
+| `happyfiles_assignment_changed` | File/post moved to or from a folder |
+| `happyfiles_folder_meta_updated` | Folder position or color changed |
+| `happyfiles_folder_meta_deleted` | Folder color cleared |
+
+### Key File
+
+- `includes/sync/class-instawp-sync-happyfiles.php` — Main sync module
+
+### Known Limitations
+
+- HappyFiles Pro must be installed on both source and destination sites for folder sync to work
+- If a folder's parent does not exist on the destination, it will be created automatically
+- HappyFiles taxonomies are excluded from the generic term sync to prevent duplicate events
 
 ## Workflow
 
