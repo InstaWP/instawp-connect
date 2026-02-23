@@ -120,7 +120,9 @@ class InstaWP_Tools {
 				if ( file_exists( $file_path ) ) {
 					if ( is_dir( $file_path ) ) {
 						self::clean_instawpbackups_dir( $file_path );
-					} else {
+					} elseif ( ! function_exists( 'instawp_is_options_file_protected' ) || ! instawp_is_options_file_protected( $file_path ) ) {
+						// Skip deletion of options-{key}.txt belonging to an active migration.
+						// The iwp-serve endpoint needs this file for DB credentials during pull.
 						wp_delete_file( $file_path );
 					}
 				}
@@ -1384,6 +1386,12 @@ include $file_path;';
 		$searching_tier   = 10;
 
 		if ( ! empty( $find_with_files ) ) {
+			// Use ABSPATH first (handles symlinked plugins correctly)
+			if ( defined( 'ABSPATH' ) && file_exists( ABSPATH . $find_with_files ) ) {
+				return true;
+			}
+
+			// Fallback: traverse up from __DIR__
 			$level            = 0;
 			$root_path_dir    = __DIR__;
 			$root_path        = __DIR__;
@@ -1404,6 +1412,12 @@ include $file_path;';
 		}
 
 		if ( ! empty( $find_with_dir ) ) {
+			// Use ABSPATH first (handles symlinked plugins correctly)
+			if ( defined( 'ABSPATH' ) && is_dir( ABSPATH . $find_with_dir ) ) {
+				return true;
+			}
+
+			// Fallback: traverse up from __DIR__
 			$level            = 0;
 			$root_path_dir    = __DIR__;
 			$root_path        = __DIR__;
@@ -1863,6 +1877,21 @@ include $file_path;';
 				'next_step_txt'           => __( 'Next Step', 'instawp-connect' ),
 				'calculating_size_txt'    => __( 'Calculating size', 'instawp-connect' ),
 				'copied'                  => __( 'Copied', 'instawp-connect' ),
+				'http_error'              => __( 'HTTP Error', 'instawp-connect' ),
+				'unexpected_error'        => __( 'An unexpected error occurred', 'instawp-connect' ),
+				'server_error'            => __( 'Server error', 'instawp-connect' ),
+				'http_status_text'        => array(
+					'400' => __( 'Bad Request', 'instawp-connect' ),
+					'401' => __( 'Unauthorized', 'instawp-connect' ),
+					'403' => __( 'Forbidden', 'instawp-connect' ),
+					'404' => __( 'Not Found', 'instawp-connect' ),
+					'408' => __( 'Request Timeout', 'instawp-connect' ),
+					'429' => __( 'Too Many Requests', 'instawp-connect' ),
+					'500' => __( 'Internal Server Error', 'instawp-connect' ),
+					'502' => __( 'Bad Gateway', 'instawp-connect' ),
+					'503' => __( 'Service Unavailable', 'instawp-connect' ),
+					'504' => __( 'Gateway Timeout', 'instawp-connect' ),
+				),
 			),
 			'api_domain' => Helper::get_api_domain(),
 			'security'   => wp_create_nonce( 'instawp-connect' ),

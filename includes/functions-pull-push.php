@@ -14,6 +14,24 @@ if ( ! function_exists( 'iwp_debug' ) ) {
 	}
 }
 
+if ( ! function_exists( 'iwp_get_script_dir' ) ) {
+	/**
+	 * Get the directory of the entry script via SCRIPT_FILENAME.
+	 * Unlike __DIR__, SCRIPT_FILENAME preserves the symlink path,
+	 * so traversal from it can find the WordPress root even when
+	 * the plugin is symlinked (e.g., via npm run plugin:link).
+	 */
+	function iwp_get_script_dir() {
+		if ( isset( $_SERVER['SCRIPT_FILENAME'] ) ) {
+			$script_dir = dirname( $_SERVER['SCRIPT_FILENAME'] );
+			if ( is_dir( $script_dir ) ) {
+				return $script_dir;
+			}
+		}
+		return __DIR__;
+	}
+}
+
 if ( ! function_exists( 'iwp_get_wp_root_directory' ) ) {
 	function iwp_get_wp_root_directory( $find_with_files = 'wp-load.php', $find_with_dir = '' ) {
 		$is_find_root_dir = true;
@@ -35,6 +53,27 @@ if ( ! function_exists( 'iwp_get_wp_root_directory' ) ) {
 					break;
 				}
 			}
+
+			// Fallback: try from SCRIPT_FILENAME path (handles symlinked plugins)
+			if ( ! $is_find_root_dir ) {
+				$script_dir = iwp_get_script_dir();
+				if ( $script_dir !== __DIR__ ) {
+					$level            = 0;
+					$root_path_dir    = $script_dir;
+					$root_path        = $script_dir;
+					$is_find_root_dir = true;
+
+					while ( ! file_exists( $root_path . DIRECTORY_SEPARATOR . $find_with_files ) ) {
+						++ $level;
+						$root_path = dirname( $root_path_dir, $level );
+
+						if ( $level > 10 ) {
+							$is_find_root_dir = false;
+							break;
+						}
+					}
+				}
+			}
 		}
 
 		if ( ! empty( $find_with_dir ) ) {
@@ -50,6 +89,27 @@ if ( ! function_exists( 'iwp_get_wp_root_directory' ) ) {
 				if ( $level > 10 ) {
 					$is_find_root_dir = false;
 					break;
+				}
+			}
+
+			// Fallback: try from SCRIPT_FILENAME path (handles symlinked plugins)
+			if ( ! $is_find_root_dir ) {
+				$script_dir = iwp_get_script_dir();
+				if ( $script_dir !== __DIR__ ) {
+					$level            = 0;
+					$root_path_dir    = $script_dir;
+					$root_path        = $script_dir;
+					$is_find_root_dir = true;
+
+					while ( ! is_dir( $root_path . DIRECTORY_SEPARATOR . $find_with_dir ) ) {
+						++ $level;
+						$root_path = dirname( $root_path_dir, $level );
+
+						if ( $level > 10 ) {
+							$is_find_root_dir = false;
+							break;
+						}
+					}
 				}
 			}
 		}
