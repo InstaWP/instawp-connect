@@ -73,13 +73,11 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 		$is_end_to_end = sanitize_text_field( $request->get_param( 'is_end_to_end' ) );
 		$status        = sanitize_text_field( $request->get_param( 'status' ) );
 
-		Option::update_option(
-			'instawp_migration_details',
-			array(
-				'is_end_to_end' => $is_end_to_end,
-				'status'        => $status,
-			)
-		);
+		$existing                   = Option::get_option( 'instawp_migration_details', array() );
+		$existing['is_end_to_end']  = $is_end_to_end;
+		$existing['status']         = $status;
+
+		Option::update_option( 'instawp_migration_details', $existing );
 
 		return $this->send_response(
 			array(
@@ -103,7 +101,53 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 			return $this->throw_error( $response );
 		}
 
-		$migrate_key              = sanitize_text_field( $request->get_param( 'migrate_key' ) );
+		$migrate_key = sanitize_text_field( $request->get_param( 'migrate_key' ) );
+
+		// Prevent a new migration from destroying an active one's options file.
+		// get_pull_pre_check_response() calls clean_instawpbackups_dir() which deletes ALL files,
+		// including the options-{key}.txt needed by the in-progress migration's iwp-serve endpoint.
+		// - Different key + active migration → 409 error (protects active options file)
+		// - Same key (idempotent retry) → allowed through (file will be safely recreated)
+		// - No active migration → allowed through (normal flow)
+		// - Stale migration (>24h or terminated on client-app) → auto-cleared and allowed through
+		$existing_migration   = Option::get_option( 'instawp_migration_details', array() );
+		$existing_key         = Helper::get_args_option( 'migrate_key', $existing_migration );
+		$existing_status      = Helper::get_args_option( 'status', $existing_migration );
+		$existing_started_at  = Helper::get_args_option( 'started_at', $existing_migration );
+		$terminal_statuses    = array( 'completed', 'failed', 'aborted', 'timeout' );
+		$is_stale             = ! empty( $existing_started_at ) && ( time() - strtotime( $existing_started_at ) ) > DAY_IN_SECONDS;
+
+		if ( ! empty( $existing_key ) && ! in_array( $existing_status, $terminal_statuses, true ) && $existing_key !== $migrate_key ) {
+			$should_clear = false;
+
+			// Check with client-app if the existing migration is still active using source_url.
+			$source_url   = rawurlencode( Helper::wp_site_url( '', true ) );
+			$api_response = Curl::do_curl( "migrates-v3/check-status?source_url={$source_url}", array(), array(), 'GET' );
+			$api_data     = Helper::get_args_option( 'data', $api_response, array() );
+			$api_status   = Helper::get_args_option( 'status', $api_data );
+
+			// If client-app says migration is terminal or not found — clear it.
+			if ( in_array( $api_status, $terminal_statuses, true ) || ( isset( $api_response['success'] ) && ! $api_response['success'] ) ) {
+				$should_clear = true;
+			}
+
+			// Fallback: treat migration older than 24 hours as stale.
+			if ( ! $should_clear && $is_stale ) {
+				$should_clear = true;
+			}
+
+			if ( $should_clear ) {
+				instawp_reset_running_migration();
+			} else {
+				return $this->throw_error(
+					new WP_Error(
+						409,
+						esc_html__( 'A migration is already in progress. Please wait for it to complete or reset it before starting a new one.', 'instawp-connect' )
+					)
+				);
+			}
+		}
+
 		$is_end_to_end            = sanitize_text_field( $request->get_param( 'is_end_to_end' ) );
 		$migrate_settings         = $request->get_param( 'migrate_settings' );
 		$migrate_settings['mode'] = 'pull';

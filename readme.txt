@@ -98,6 +98,12 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 0.1.2.5 - Beta =
+- Fixed: WordPress root directory detection failing when plugin is installed as a symlink.
+- Optimized: Admin dashboard JavaScript and improved error message handling.
+- Fixed: Missing migration file detection during migration.
+- Added: Prevent initiating a new migration when one is already in progress.
+
 = 0.1.2.4 - 13 February 2026 =
 - Fixed: Purge content cache on edit.
 - Optimized: Codebase.
