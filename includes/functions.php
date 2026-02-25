@@ -243,6 +243,42 @@ if ( ! function_exists( 'instawp_is_admin' ) ) {
 }
 
 
+if ( ! function_exists( 'instawp_is_options_file_protected' ) ) {
+	/**
+	 * Check if a migration options file should be protected from deletion.
+	 * Only protects options-{key}.txt that matches the current active migration.
+	 *
+	 * @param string $file_path Full path to the file.
+	 *
+	 * @return bool True if file should NOT be deleted.
+	 */
+	function instawp_is_options_file_protected( $file_path ) {
+		$filename = basename( $file_path );
+
+		// Only protect options-{key}.txt files
+		if ( 0 !== strpos( $filename, 'options-' ) || '.txt' !== substr( $filename, -4 ) ) {
+			return false;
+		}
+
+		// Allow deletion if file is older than 24 hours (stale/abandoned migration)
+		if ( file_exists( $file_path ) && ( time() - filemtime( $file_path ) ) > 86400 ) {
+			return false;
+		}
+
+		// Protect only if active migration option has matching key
+		if ( function_exists( 'get_option' ) ) {
+			$migration_details = get_option( 'instawp_migration_details', array() );
+			$active_key        = isset( $migration_details['migrate_key'] ) ? $migration_details['migrate_key'] : '';
+
+			if ( ! empty( $active_key ) && $filename === 'options-' . $active_key . '.txt' ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+}
+
 if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 	/**
 	 * Reset running migration
@@ -262,12 +298,25 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 		// Delete migration details
 		delete_option( 'instawp_migration_details' );
 
+		// Explicitly delete the options file for this migration. The option was already
+		// deleted above, so instawp_is_options_file_protected() will no longer guard it.
+		// This ensures cleanup even if the general file loop below is guarded.
+		if ( ! empty( $migrate_key ) ) {
+			$options_file = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . INSTAWP_DEFAULT_BACKUP_DIR . DIRECTORY_SEPARATOR . 'options-' . $migrate_key . '.txt';
+			if ( file_exists( $options_file ) ) {
+				wp_delete_file( $options_file );
+			}
+		}
+
 		$reset_type = empty( $reset_type ) ? Option::get_option( 'instawp_reset_type', 'soft' ) : $reset_type;
 
 		if ( ! in_array( $reset_type, array( 'soft', 'hard' ) ) ) {
 			return false;
 		}
 
+		// Clean remaining backup files. The guard prevents deleting options-{key}.txt
+		// belonging to a different active migration (e.g., if reset is called by cron
+		// while another migration is running on the same site).
 		$instawp_backup_dir = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . INSTAWP_DEFAULT_BACKUP_DIR . DIRECTORY_SEPARATOR;
 		if ( file_exists( $instawp_backup_dir ) ) {
 			$files_to_delete = scandir( $instawp_backup_dir );
@@ -275,7 +324,7 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 			$files_to_delete = array_diff( $files_to_delete, array( '.', '..' ) );
 
 			foreach ( $files_to_delete as $file ) {
-				if ( is_file( $instawp_backup_dir . $file ) ) {
+				if ( is_file( $instawp_backup_dir . $file ) && ! instawp_is_options_file_protected( $instawp_backup_dir . $file ) ) {
 					wp_delete_file( $instawp_backup_dir . $file );
 				}
 			}
