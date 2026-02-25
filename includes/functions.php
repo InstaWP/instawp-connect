@@ -261,7 +261,7 @@ if ( ! function_exists( 'instawp_is_options_file_protected' ) ) {
 		}
 
 		// Allow deletion if file is older than 24 hours (stale/abandoned migration)
-		if ( file_exists( $file_path ) && ( time() - filemtime( $file_path ) ) > DAY_IN_SECONDS ) {
+		if ( file_exists( $file_path ) && ( time() - filemtime( $file_path ) ) > 86400 ) {
 			return false;
 		}
 
