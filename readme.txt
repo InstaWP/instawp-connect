@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.6
 Tested up to: 6.9
 Requires PHP: 7.0
-Stable tag: 0.1.2.4
+Stable tag: 0.1.2.5
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -98,7 +98,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
-= 0.1.2.5 - Beta =
+= 0.1.2.5 - 25 February 2026 =
 - Fixed: WordPress root directory detection failing when plugin is installed as a symlink.
 - Optimized: Admin dashboard JavaScript and improved error message handling.
 - Fixed: Missing migration file detection during migration.
