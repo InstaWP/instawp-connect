@@ -302,6 +302,9 @@ if ( ! function_exists( 'iwp_maybe_serialize' ) ) {
 	}
 }
 
+// Load search-replace functions from the standalone module (SSOT).
+require_once dirname( __DIR__ ) . DIRECTORY_SEPARATOR . 'iwp-search-replace' . DIRECTORY_SEPARATOR . 'functions.php';
+
 if ( ! function_exists( 'zipStatusString' ) ) {
 	function zipStatusString( $status ) {
 		if ( ! class_exists( 'ZipArchive' ) ) {
