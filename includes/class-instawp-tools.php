@@ -755,6 +755,14 @@ include $file_path;';
 			'file_url'      => $file_url,
 			'error'         => false,
 		);
+
+		// Skip external accessibility check for local development URLs
+		if ( self::is_local_development_url( $file_url ) ) {
+			$result['is_accessible'] = true;
+			$result['message']       = 'Local development - skipping external check';
+			return $in_details ? $result : $result['is_accessible'];
+		}
+
 		try {
 			$response = wp_remote_post(
 				INSTAWP_API_DOMAIN_PROD . '/public/check/?url=' . rawurlencode( $file_url ),
@@ -791,6 +799,35 @@ include $file_path;';
 		}
 
 		return $in_details ? $result : $result['is_accessible'];
+	}
+
+	/**
+	 * Check if a URL is for local development (not publicly accessible).
+	 *
+	 * @param string $url The URL to check.
+	 * @return bool True if local development URL.
+	 */
+	private static function is_local_development_url( $url ) {
+		$local_patterns = array(
+			'localhost',
+			'.local',
+			'.test',
+			'.dev',
+			'127.0.0.1',
+			'10.5.0.',       // Docker macvlan network
+			'172.17.',       // Docker bridge network
+			'172.18.',       // Docker custom networks
+			'192.168.',      // Local network
+			'-local.instawp', // InstaWP local dev pattern (e.g., vik-local.instawp.me)
+		);
+
+		foreach ( $local_patterns as $pattern ) {
+			if ( strpos( $url, $pattern ) !== false ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	public static function process_migration_settings( $migrate_settings = array() ) {
@@ -1483,6 +1520,12 @@ include $file_path;';
 
 		$is_wp_root_available = self::is_wp_root_available();
 		$serve_with_wp        = false;
+
+		// Fallback: If ABSPATH is defined and wp-load.php exists, WordPress root is available
+		// This handles symlinked plugin directories where __DIR__ walking fails
+		if ( ! $is_wp_root_available && defined( 'ABSPATH' ) && file_exists( ABSPATH . 'wp-load.php' ) ) {
+			$is_wp_root_available = true;
+		}
 
 		if ( ! $is_wp_root_available ) {
 			$is_wp_root_available = self::is_wp_root_available( 'wp-config.php' );
