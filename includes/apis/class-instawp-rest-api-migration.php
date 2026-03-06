@@ -3,6 +3,7 @@
 use InstaWP\Connect\Helpers;
 use InstaWP\Connect\Helpers\Helper;
 use InstaWP\Connect\Helpers\Option;
+use InstaWP\Connect\Helpers\Curl;
 
 defined( 'ABSPATH' ) || die;
 
