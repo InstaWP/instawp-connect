@@ -763,10 +763,6 @@ class InstaWP_Ajax {
 	public function disconnect_api() {
 		check_ajax_referer( 'instawp-connect', 'security' );
 
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error();
-		}
-
 		if ( instawp_is_connected_origin_valid() ) {
 			$check_api = isset( $_POST['api'] ) && filter_var( wp_unslash( $_POST['api'] ), FILTER_VALIDATE_BOOLEAN ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash)
 
@@ -797,10 +793,6 @@ class InstaWP_Ajax {
 	public function refresh_staging_sites() {
 		check_ajax_referer( 'instawp-connect', 'security' );
 
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error();
-		}
-
 		instawp_set_staging_sites_list();
 
 		wp_send_json_success();
@@ -808,10 +800,6 @@ class InstaWP_Ajax {
 
 	public function change_plan() {
 		check_ajax_referer( 'instawp-connect', 'security' );
-
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error();
-		}
 
 		$plan_id = isset( $_POST['plan_id'] ) ? intval( $_POST['plan_id'] ) : 0;
 		if ( ! $plan_id ) {

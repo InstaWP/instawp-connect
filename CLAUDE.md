@@ -71,34 +71,6 @@ WordPress plugin for site migration, backup, and staging functionality.
 - Use dependency injection and composition over inheritance
 - Keep business logic separate from data access logic
 
-## Security Checklist (CRITICAL)
-
-### AJAX Handler Authorization
-**Every `wp_ajax_` handler MUST have both:**
-1. `check_ajax_referer( 'instawp-connect', 'security' );` — verifies nonce (CSRF protection)
-2. `current_user_can( 'manage_options' )` or `current_user_can( InstaWP_Setting::get_allowed_role() )` — verifies authorization
-
-A nonce alone is NOT sufficient. Nonces only prove the request came from a logged-in user's browser session — any Subscriber/Author/Editor can obtain the nonce from page source and call the action. Without a capability check, this is a **Broken Access Control vulnerability (CWE-862)**.
-
-**Pattern to follow:**
-```php
-public function my_ajax_handler() {
-    check_ajax_referer( 'instawp-connect', 'security' );
-
-    if ( ! current_user_can( 'manage_options' ) ) {
-        wp_send_json_error();
-    }
-
-    // ... handler logic
-}
-```
-
-### REST API Routes
-REST routes use `'permission_callback' => '__return_true'` but validate bearer tokens (API key hash) inside the handler via `validate_api_request()`. This is functionally secure but should ideally be moved to proper `permission_callback` functions for WordPress best practices.
-
-### Past Incidents
-- **v0.1.2.5 (Mar 2026)**: `disconnect_api()`, `refresh_staging_sites()`, `change_plan()` in `class-instawp-ajax.php` were missing `current_user_can('manage_options')`. `handle_select2()` in `class-instawp-sync-ajax.php` was missing both nonce check and capability check — any authenticated user could enumerate WordPress users. All fixed.
-
 ## Code Standards
 
 **ALWAYS follow [WordPress Coding Standards](https://developer.wordpress.org/coding-standards/wordpress-coding-standards/):**
