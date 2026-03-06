@@ -139,6 +139,12 @@ class InstaWP_Sync_Ajax {
 	}
 
 	public function handle_select2() {
+		check_ajax_referer( 'instawp-connect', 'security' );
+
+		if ( ! current_user_can( InstaWP_Setting::get_allowed_role() ) ) {
+			$this->send_error( 'Can\'t perform this action.' );
+		}
+
 		if ( isset( $_GET['event'] ) ) {
 			if ( $_GET['event'] === 'instawp_get_users' ) {
 				$keyword = ! empty( $_GET['term'] ) ? sanitize_text_field( wp_unslash( $_GET['term'] ) ) : '';
