@@ -1,0 +1,361 @@
+name: Release Notification
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - trunk
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to use for context (for testing)'
+        required: false
+        default: ''
+
+jobs:
+  release-notify:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Resolve PR context
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            PR_NUM="${{ inputs.pr_number }}"
+            if [ -z "$PR_NUM" ]; then
+              PR_NUM=$(gh pr list --state merged --base trunk --limit 1 --json number --jq '.[0].number')
+            fi
+            PR_JSON=$(gh pr view "$PR_NUM" --json number,title,author,url)
+            echo "number=$(echo "$PR_JSON" | jq -r '.number')" >> "$GITHUB_OUTPUT"
+            echo "title=$(echo "$PR_JSON" | jq -r '.title')" >> "$GITHUB_OUTPUT"
+            echo "author=$(echo "$PR_JSON" | jq -r '.author.login')" >> "$GITHUB_OUTPUT"
+            echo "url=$(echo "$PR_JSON" | jq -r '.url')" >> "$GITHUB_OUTPUT"
+          else
+            echo "number=${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
+            echo "title=${{ github.event.pull_request.title }}" >> "$GITHUB_OUTPUT"
+            echo "author=${{ github.event.pull_request.user.login }}" >> "$GITHUB_OUTPUT"
+            echo "url=${{ github.event.pull_request.html_url }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Get commits since last notification
+        id: commits
+        run: |
+          LAST_TAG=$(git tag -l 'release-notify/*' --sort=-creatordate | head -n1)
+          if [ -z "$LAST_TAG" ]; then
+            echo "No previous release-notify tag found, using last 30 commits"
+            COMMIT_LOG=$(git log --oneline --no-merges -30)
+            DIFF_STATS=$(git diff --stat HEAD~30 HEAD 2>/dev/null || echo "Unable to get diff stats")
+          else
+            echo "Last release-notify tag: $LAST_TAG"
+            COMMIT_LOG=$(git log --oneline --no-merges "${LAST_TAG}..HEAD")
+            DIFF_STATS=$(git diff --stat "${LAST_TAG}..HEAD")
+          fi
+
+          COMMIT_COUNT=$(echo "$COMMIT_LOG" | grep -c . || true)
+          echo "commit_count=${COMMIT_COUNT}" >> "$GITHUB_OUTPUT"
+
+          {
+            echo "commit_log<<COMMITS_EOF"
+            echo "$COMMIT_LOG"
+            echo "COMMITS_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+          {
+            echo "diff_stats<<DIFF_EOF"
+            echo "$DIFF_STATS"
+            echo "DIFF_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "Found $COMMIT_COUNT commits since last notification"
+
+      - name: Claude Analysis
+        if: steps.commits.outputs.commit_count != '0'
+        id: claude
+        uses: anthropics/claude-code-action@beta
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            You are analyzing a production release for the instawp-connect repository (WordPress plugin for site migration, staging, and backup — connects WordPress sites to the InstaWP platform for one-click staging, push/pull migrations, and remote management).
+
+            A PR was just merged to production:
+            - PR: #${{ steps.pr.outputs.number }} - ${{ steps.pr.outputs.title }}
+            - Author: ${{ steps.pr.outputs.author }}
+
+            Commits since last notification:
+            ${{ steps.commits.outputs.commit_log }}
+
+            File change statistics:
+            ${{ steps.commits.outputs.diff_stats }}
+
+            Analyze these changes and output ONLY a valid JSON object (no markdown fences, no explanation, no other text) with exactly these fields:
+
+            {
+              "should_notify": true/false - set false ONLY if changes are exclusively docs, CI config, code style, or comments with zero user impact,
+              "summary": "1-2 sentence executive summary of what changed and why it matters",
+              "risk_level": "low|medium|high" - low for minor fixes, medium for feature work, high for breaking changes or security fixes,
+              "support_notes": "- bullet points for support team\n- user-facing changes, new behaviors, potential questions",
+              "marketing_notes": "- bullet points for marketing about features worth highlighting (empty string if purely technical)",
+              "changelog": "### Added\n- items\n### Improved\n- items\n### Fixed\n- items\n### Security\n- items (omit empty categories)"
+            }
+          claude_args: '--max-turns 3'
+
+      - name: Post to Slack
+        id: slack
+        if: steps.commits.outputs.commit_count != '0'
+        env:
+          SLACK_WEBHOOK: ${{ secrets.RELEASE_SLACK_WEBHOOK }}
+          CLAUDE_ACTION_OUTPUT: ${{ steps.claude.outputs.result }}
+          PR_URL: ${{ steps.pr.outputs.url }}
+          PR_TITLE: ${{ steps.pr.outputs.title }}
+          PR_AUTHOR: ${{ steps.pr.outputs.author }}
+          COMMIT_COUNT: ${{ steps.commits.outputs.commit_count }}
+        run: |
+          # Extract Claude's JSON response using python3 for robust parsing
+          EXEC_FILE="/home/runner/work/_temp/claude-execution-output.json"
+
+          python3 -c '
+          import json, os, sys
+
+          def extract_json_with_should_notify(text):
+              if not text or not isinstance(text, str):
+                  return None
+              text = text.strip()
+              try:
+                  obj = json.loads(text)
+                  if isinstance(obj, dict) and "should_notify" in obj:
+                      return json.dumps(obj)
+              except Exception:
+                  pass
+              # Brace-matching to find JSON blocks in surrounding text
+              brace_depth = 0
+              start = None
+              for i, ch in enumerate(text):
+                  if ch == "{":
+                      if brace_depth == 0:
+                          start = i
+                      brace_depth += 1
+                  elif ch == "}":
+                      brace_depth -= 1
+                      if brace_depth == 0 and start is not None:
+                          try:
+                              obj = json.loads(text[start:i+1])
+                              if isinstance(obj, dict) and "should_notify" in obj:
+                                  return json.dumps(obj)
+                          except Exception:
+                              pass
+                          start = None
+              return None
+
+          def search_events(events):
+              """Search a list of event dicts for result containing should_notify."""
+              for ev in events:
+                  if not isinstance(ev, dict):
+                      continue
+                  if ev.get("type") == "result":
+                      raw = ev.get("result", "")
+                      if isinstance(raw, dict) and "should_notify" in raw:
+                          return json.dumps(raw)
+                      if isinstance(raw, str):
+                          r = extract_json_with_should_notify(raw)
+                          if r:
+                              return r
+                  # Also check subResult or nested content
+                  for key in ("result", "content", "text", "output"):
+                      val = ev.get(key, "")
+                      if isinstance(val, str) and "should_notify" in val:
+                          r = extract_json_with_should_notify(val)
+                          if r:
+                              return r
+              return None
+
+          # 1. Try action output
+          action_output = os.environ.get("CLAUDE_ACTION_OUTPUT", "")
+          r = extract_json_with_should_notify(action_output)
+          if r:
+              print(r)
+              sys.exit(0)
+
+          # 2. Try execution output file
+          exec_file = os.environ.get("EXEC_FILE", "/home/runner/work/_temp/claude-execution-output.json")
+          if not os.path.exists(exec_file):
+              sys.exit(1)
+
+          with open(exec_file) as f:
+              content = f.read()
+          print(f"Exec file: {len(content)} bytes", file=sys.stderr)
+
+          # Try as JSON array first
+          try:
+              data = json.loads(content)
+              if isinstance(data, list):
+                  r = search_events(data)
+                  if r:
+                      print(r)
+                      sys.exit(0)
+          except Exception:
+              pass
+
+          # Try as JSONL (one JSON object per line)
+          for line in content.splitlines():
+              line = line.strip()
+              if not line:
+                  continue
+              try:
+                  obj = json.loads(line)
+              except Exception:
+                  continue
+              if isinstance(obj, dict):
+                  r = search_events([obj])
+                  if r:
+                      print(r)
+                      sys.exit(0)
+
+          # Last resort: search raw text
+          r = extract_json_with_should_notify(content)
+          if r:
+              print(r)
+              sys.exit(0)
+
+          sys.exit(1)
+          ' > /tmp/claude_extracted.json 2>/tmp/claude_extract.log || true
+
+          CLAUDE_OUTPUT=""
+          if [ -f /tmp/claude_extracted.json ] && [ -s /tmp/claude_extracted.json ]; then
+            CLAUDE_OUTPUT=$(cat /tmp/claude_extracted.json)
+          fi
+
+          if [ -z "$CLAUDE_OUTPUT" ] || ! echo "$CLAUDE_OUTPUT" | jq -e '.should_notify' > /dev/null 2>&1; then
+            echo "::warning::Could not extract Claude JSON output."
+            cat /tmp/claude_extract.log 2>/dev/null || true
+            if [ -f "$EXEC_FILE" ]; then
+              echo "Execution file last 5 lines:"
+              tail -5 "$EXEC_FILE" 2>/dev/null || true
+              echo "---"
+              echo "Searching for 'should_notify' in execution file:"
+              grep -c "should_notify" "$EXEC_FILE" 2>/dev/null || echo "Not found"
+              echo "Searching for 'result' type entries:"
+              grep -c '"type"' "$EXEC_FILE" 2>/dev/null || echo "Not found"
+            fi
+            echo "notified=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "Extracted Claude output: ${#CLAUDE_OUTPUT} chars"
+
+          if [ -z "$SLACK_WEBHOOK" ]; then
+            echo "::warning::RELEASE_SLACK_WEBHOOK secret is not set. Skipping."
+            echo "notified=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          SHOULD_NOTIFY=$(echo "$CLAUDE_OUTPUT" | jq -r '.should_notify')
+          if [ "$SHOULD_NOTIFY" != "true" ]; then
+            echo "Claude determined notification is not warranted. Skipping."
+            echo "notified=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          SUMMARY=$(echo "$CLAUDE_OUTPUT" | jq -r '.summary')
+          RISK_LEVEL=$(echo "$CLAUDE_OUTPUT" | jq -r '.risk_level')
+          SUPPORT_NOTES=$(echo "$CLAUDE_OUTPUT" | jq -r '.support_notes')
+          MARKETING_NOTES=$(echo "$CLAUDE_OUTPUT" | jq -r '.marketing_notes')
+          CHANGELOG=$(echo "$CLAUDE_OUTPUT" | jq -r '.changelog')
+
+          case "$RISK_LEVEL" in
+            low) RISK_EMOJI="🟢" ;;
+            medium) RISK_EMOJI="🟡" ;;
+            high) RISK_EMOJI="🔴" ;;
+            *) RISK_EMOJI="⚪" ;;
+          esac
+
+          PAYLOAD=$(jq -n \
+            --arg repo "instawp-connect" \
+            --arg summary "$SUMMARY" \
+            --arg risk "$RISK_EMOJI $RISK_LEVEL" \
+            --arg pr_url "$PR_URL" \
+            --arg pr_title "$PR_TITLE" \
+            --arg pr_author "$PR_AUTHOR" \
+            --arg commits "$COMMIT_COUNT" \
+            --arg support "$SUPPORT_NOTES" \
+            --arg changelog "$CHANGELOG" \
+            --arg marketing "$MARKETING_NOTES" \
+            --arg timestamp "$(date -u '+%Y-%m-%d %H:%M UTC')" \
+            '{
+              blocks: ([
+                {
+                  type: "header",
+                  text: { type: "plain_text", text: "\($repo) — Release Deployed", emoji: true }
+                },
+                {
+                  type: "section",
+                  fields: [
+                    { type: "mrkdwn", text: "*PR:* <\($pr_url)|\($pr_title)>" },
+                    { type: "mrkdwn", text: "*Author:* \($pr_author)" },
+                    { type: "mrkdwn", text: "*Commits:* \($commits)" },
+                    { type: "mrkdwn", text: "*Risk:* \($risk)" }
+                  ]
+                },
+                { type: "divider" },
+                {
+                  type: "section",
+                  text: { type: "mrkdwn", text: "*Summary*\n\($summary)" }
+                },
+                {
+                  type: "section",
+                  text: { type: "mrkdwn", text: "*🎧 Support Notes*\n\($support)" }
+                },
+                {
+                  type: "section",
+                  text: { type: "mrkdwn", text: "*📜 Changelog*\n\($changelog)" }
+                }
+              ] + (if $marketing != "" then [{
+                type: "section",
+                text: { type: "mrkdwn", text: "*📣 Marketing Notes*\n\($marketing)" }
+              }] else [] end) + [
+                {
+                  type: "context",
+                  elements: [
+                    { type: "mrkdwn", text: "\($timestamp) • Generated by Claude AI" }
+                  ]
+                }
+              ])
+            }')
+
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X POST "$SLACK_WEBHOOK" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD")
+
+          if [ "$RESPONSE" = "200" ]; then
+            echo "Successfully posted to Slack"
+            echo "notified=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::Slack webhook returned HTTP $RESPONSE"
+            echo "notified=false" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+
+      - name: Create release-notify tag
+        if: steps.slack.outputs.notified == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="release-notify/$(date -u '+%Y-%m-%d-%H%M%S')"
+          SHA=$(git rev-parse HEAD)
+          gh api repos/${{ github.repository }}/git/refs \
+            -f ref="refs/tags/$TAG" \
+            -f sha="$SHA"
+          echo "Created tag: $TAG"
