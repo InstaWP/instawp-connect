@@ -100,6 +100,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 = 0.1.2.6 - 06 March 2026 =
 - Security: Added authorization checks to AJAX handlers to prevent unauthorized access by low-privilege users.
+- Fixed: curl not found.
 
 = 0.1.2.5 - 25 February 2026 =
 - Fixed: WordPress root directory detection failing when plugin is installed as a symlink.
