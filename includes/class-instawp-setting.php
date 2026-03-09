@@ -218,7 +218,8 @@ class InstaWP_Setting {
 				if ( $multiple ) {
 					$attributes[] = 'multiple';
 				}
-				echo '<select ' . ( $remote === true ? 'data-ajax--url="' . esc_url( admin_url( 'admin-ajax.php?action=' . $action . '&event=' . $event ) ) . '"' : '' ) . implode( ' ', $attributes ) . ' name="' . esc_attr( $field_name ) . ( $multiple ? '[]' : '' ) . '" id="' . esc_attr( $field_name_class ) . '" class="' . esc_attr( $css_class ) . '">'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+				$ajax_data_url = $remote === true ? 'data-ajax--url="' . esc_url( add_query_arg( 'security', wp_create_nonce( 'instawp-connect' ), admin_url( 'admin-ajax.php?action=' . $action . '&event=' . $event ) ) ) . '"' : '';
+				echo '<select ' . $ajax_data_url . implode( ' ', $attributes ) . ' name="' . esc_attr( $field_name ) . ( $multiple ? '[]' : '' ) . '" id="' . esc_attr( $field_name_class ) . '" class="' . esc_attr( $css_class ) . '">'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 				if ( ! empty( $field_placeholder ) ) {
 					echo '<option value="">' . esc_html( $field_placeholder ) . '</option>';
 				}

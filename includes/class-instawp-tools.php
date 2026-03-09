@@ -9,6 +9,21 @@ defined( 'ABSPATH' ) || exit;
 
 class InstaWP_Tools {
 
+	/**
+	 * Verify an AJAX request: validates nonce and user capability.
+	 * Sends a JSON error response and exits if either check fails.
+	 *
+	 * @param string $capability Required capability. Default 'manage_options'.
+	 * @param array  $error_data Data passed to wp_send_json_error(). Empty array uses the default message.
+	 */
+	public static function verify_ajax_request( $capability = 'manage_options', $error_data = array() ) {
+		check_ajax_referer( 'instawp-connect', 'security' );
+
+		if ( ! instawp_is_admin( $capability, false ) ) {
+			wp_send_json_error( empty( $error_data ) ? array( 'message' => "Can't perform this action." ) : $error_data );
+		}
+	}
+
 	public static function send_migration_log( $migrate_id, $label = '', $description = '', $payload = array() ) {
 
 		if ( ! is_int( $migrate_id ) ) {
