@@ -216,9 +216,9 @@ if ( ! function_exists( 'instawp_is_admin' ) ) {
 	 * @param string $check_permission
 	 * @return bool
 	 */
-	function instawp_is_admin( $check_permission = 'manage_options' ) {
+	function instawp_is_admin( $check_permission = 'manage_options', $check_admin = true ) {
 		// Check if we're in admin area first (lightweight check)
-		if ( ! function_exists( 'is_admin' ) || ! is_admin() ) {
+		if ( $check_admin && ( ! function_exists( 'is_admin' ) || ! is_admin() ) ) {
 			return false;
 		}
 
@@ -234,7 +234,7 @@ if ( ! function_exists( 'instawp_is_admin' ) ) {
 			return false;
 		}
 
-		if ( ! function_exists( 'is_user_logged_in' ) || ! is_user_logged_in() ) {
+		if ( $check_admin && ( ! function_exists( 'is_user_logged_in' ) || ! is_user_logged_in() ) ) {
 			return false;
 		}
 
