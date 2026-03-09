@@ -29,16 +29,7 @@ class InstaWP_Ajax {
 	}
 
 	public function update_plugin() {
-		check_ajax_referer( 'instawp-connect', 'security' );
-
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error(
-				array(
-					'updated'    => false,
-					'permission' => false,
-				)
-			);
-		}
+		InstaWP_Tools::verify_ajax_request( 'manage_options', array( 'updated' => false, 'permission' => false ) );
 
 		$plugin_updater = new Updater(
 			array(
@@ -68,11 +59,7 @@ class InstaWP_Ajax {
 	}
 
 	public function process_ajax() {
-		check_ajax_referer( 'instawp-connect', 'security' );
-
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error();
-		}
+		InstaWP_Tools::verify_ajax_request();
 
 		$type = isset( $_POST['type'] ) ? sanitize_text_field( wp_unslash( $_POST['type'] ) ) : 'file';
 
@@ -121,11 +108,7 @@ class InstaWP_Ajax {
 	}
 
 	public function migrate_progress() {
-		check_ajax_referer( 'instawp-connect', 'security' );
-
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error();
-		}
+		InstaWP_Tools::verify_ajax_request();
 
 		$visibility        = isset( $_POST['visible'] ) && filter_var( wp_unslash( $_POST['visible'] ), FILTER_VALIDATE_BOOLEAN );
 		$progress          = array(
@@ -297,11 +280,7 @@ class InstaWP_Ajax {
 	}
 
 	public function skip_item() {
-		check_ajax_referer( 'instawp-connect', 'security' );
-
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error();
-		}
+		InstaWP_Tools::verify_ajax_request();
 
 		$item              = isset( $_POST['item'] ) ? sanitize_text_field( wp_unslash( $_POST['item'] ) ) : '';
 		$item_type         = isset( $_POST['type'] ) ? sanitize_text_field( wp_unslash( $_POST['type'] ) ) : 'file';
@@ -328,11 +307,7 @@ class InstaWP_Ajax {
 
 
 	public function migrate_init() {
-		check_ajax_referer( 'instawp-connect', 'security' );
-
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error();
-		}
+		InstaWP_Tools::verify_ajax_request();
 
 		$settings_str = isset( $_POST['settings'] ) ? $_POST['settings'] : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 
@@ -464,11 +439,7 @@ class InstaWP_Ajax {
 	}
 
 	public function check_usages_limit() {
-		check_ajax_referer( 'instawp-connect', 'security' );
-
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error();
-		}
+		InstaWP_Tools::verify_ajax_request();
 
 		$migrate_settings     = InstaWP_Tools::get_migrate_settings( $_POST );
 		$check_usage_response = instawp()->instawp_check_usage_on_cloud( $migrate_settings );
@@ -529,11 +500,7 @@ class InstaWP_Ajax {
 	}
 
 	public function get_dir_contents() {
-		check_ajax_referer( 'instawp-connect', 'security' );
-
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error();
-		}
+		InstaWP_Tools::verify_ajax_request();
 
 		// phpcs:disable
 		$path                = isset( $_POST['path'] ) ? sanitize_text_field( wp_unslash( $_POST['path'] ) ) : '/';
@@ -636,11 +603,7 @@ class InstaWP_Ajax {
 	}
 
 	public function get_database_tables() {
-		check_ajax_referer( 'instawp-connect', 'security' );
-
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error();
-		}
+		InstaWP_Tools::verify_ajax_request();
 
 		$sort_by    = isset( $_POST['sort_by'] ) ? sanitize_text_field( wp_unslash( $_POST['sort_by'] ) ) : false;
 		$tables     = instawp_get_database_details( $sort_by );
@@ -684,11 +647,7 @@ class InstaWP_Ajax {
 	}
 
 	public function get_large_files() {
-		check_ajax_referer( 'instawp-connect', 'security' );
-
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error();
-		}
+		InstaWP_Tools::verify_ajax_request();
 
 		$skip     = isset( $_POST['skip'] ) && filter_var( $_POST['skip'], FILTER_VALIDATE_BOOLEAN ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash
 		$generate = isset( $_POST['generate'] ) && filter_var( $_POST['generate'], FILTER_VALIDATE_BOOLEAN ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash
@@ -734,11 +693,7 @@ class InstaWP_Ajax {
 	}
 
 	public function save_management_settings() {
-		check_ajax_referer( 'instawp-connect', 'security' );
-
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error();
-		}
+		InstaWP_Tools::verify_ajax_request();
 
 		$option_name  = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '';
 		$option_value = isset( $_POST['value'] ) ? sanitize_text_field( wp_unslash( $_POST['value'] ) ) : '';
@@ -761,11 +716,7 @@ class InstaWP_Ajax {
 	}
 
 	public function disconnect_api() {
-		check_ajax_referer( 'instawp-connect', 'security' );
-
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error();
-		}
+		InstaWP_Tools::verify_ajax_request();
 
 		if ( instawp_is_connected_origin_valid() ) {
 			$check_api = isset( $_POST['api'] ) && filter_var( wp_unslash( $_POST['api'] ), FILTER_VALIDATE_BOOLEAN ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash)
@@ -795,11 +746,7 @@ class InstaWP_Ajax {
 	}
 
 	public function refresh_staging_sites() {
-		check_ajax_referer( 'instawp-connect', 'security' );
-
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error();
-		}
+		InstaWP_Tools::verify_ajax_request();
 
 		instawp_set_staging_sites_list();
 
@@ -807,11 +754,7 @@ class InstaWP_Ajax {
 	}
 
 	public function change_plan() {
-		check_ajax_referer( 'instawp-connect', 'security' );
-
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error();
-		}
+		InstaWP_Tools::verify_ajax_request();
 
 		$plan_id = isset( $_POST['plan_id'] ) ? intval( $_POST['plan_id'] ) : 0;
 		if ( ! $plan_id ) {
@@ -857,11 +800,7 @@ class InstaWP_Ajax {
 	}
 
 	public function get_site_plans() {
-		check_ajax_referer( 'instawp-connect', 'security' );
-
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error();
-		}
+		InstaWP_Tools::verify_ajax_request();
 
 		$migrate_settings = InstaWP_Tools::get_migrate_settings( $_POST );
 		$total_files_size = InstaWP_Tools::get_total_sizes( 'files', $migrate_settings );

@@ -36,11 +36,7 @@ class InstaWP_Sync_Ajax {
 	}
 
 	public function is_event_syncing() {
-		check_ajax_referer( 'instawp-connect', 'security' );
-
-		if ( ! current_user_can( InstaWP_Setting::get_allowed_role() ) ) {
-			$this->send_error( 'Can\'t perform this action.' );
-		}
+		InstaWP_Tools::verify_ajax_request( InstaWP_Setting::get_allowed_role() );
 
 		$sync_status = ! empty( $_POST['sync_status'] ) ? intval( $_POST['sync_status'] ) : 0;
 		Option::update_option( 'instawp_is_event_syncing', $sync_status );
@@ -57,11 +53,7 @@ class InstaWP_Sync_Ajax {
 	}
 
 	public function get_site_events() {
-		check_ajax_referer( 'instawp-connect', 'security' );
-
-		if ( ! current_user_can( InstaWP_Setting::get_allowed_role() ) ) {
-			$this->send_error( 'Can\'t perform this action.' );
-		}
+		InstaWP_Tools::verify_ajax_request( InstaWP_Setting::get_allowed_role() );
 
 		instawp_create_db_tables();
 
@@ -139,11 +131,7 @@ class InstaWP_Sync_Ajax {
 	}
 
 	public function handle_select2() {
-		check_ajax_referer( 'instawp-connect', 'security' );
-
-		if ( ! current_user_can( InstaWP_Setting::get_allowed_role() ) ) {
-			$this->send_error( 'Can\'t perform this action.' );
-		}
+		InstaWP_Tools::verify_ajax_request( InstaWP_Setting::get_allowed_role() );
 
 		if ( isset( $_GET['event'] ) ) {
 			if ( $_GET['event'] === 'instawp_get_users' ) {
@@ -209,11 +197,7 @@ class InstaWP_Sync_Ajax {
 	}
 
 	public function pack_events() {
-		check_ajax_referer( 'instawp-connect', 'security' );
-
-		if ( ! current_user_can( InstaWP_Setting::get_allowed_role() ) ) {
-			$this->send_error( 'Can\'t perform this action.' );
-		}
+		InstaWP_Tools::verify_ajax_request( InstaWP_Setting::get_allowed_role() );
 
 		try {
 			$events = $this->get_pending_sync_events();
@@ -236,12 +220,9 @@ class InstaWP_Sync_Ajax {
 	}
 
 	public function sync_changes() {
-		check_ajax_referer( 'instawp-connect', 'security' );
+		InstaWP_Tools::verify_ajax_request( InstaWP_Setting::get_allowed_role() );
 
 		$debug_data = array();
-		if ( ! current_user_can( InstaWP_Setting::get_allowed_role() ) ) {
-			$this->send_error( 'Can\'t perform this action.' );
-		}
 
 		$dest_connect_id = ! empty( $_POST['dest_connect_id'] ) ? intval( $_POST['dest_connect_id'] ) : '';
 		if ( empty( $dest_connect_id ) ) {
@@ -318,11 +299,7 @@ class InstaWP_Sync_Ajax {
 	}
 
 	public function get_events_summary() {
-		check_ajax_referer( 'instawp-connect', 'security' );
-
-		if ( ! current_user_can( InstaWP_Setting::get_allowed_role() ) ) {
-			$this->send_error( 'Can\'t perform this action.' );
-		}
+		InstaWP_Tools::verify_ajax_request( InstaWP_Setting::get_allowed_role() );
 
 		// $where  = "`status`='completed'";
 		$where      = "`status` IN ('completed', 'invalid', 'error')";
@@ -410,11 +387,7 @@ class InstaWP_Sync_Ajax {
 	}
 
 	public function delete_events() {
-		check_ajax_referer( 'instawp-connect', 'security' );
-
-		if ( ! current_user_can( InstaWP_Setting::get_allowed_role() ) ) {
-			$this->send_error( 'Can\'t perform this action.' );
-		}
+		InstaWP_Tools::verify_ajax_request( InstaWP_Setting::get_allowed_role() );
 
 		if ( ! empty( $_POST['ids'] ) ) {
 			global $wpdb;
@@ -437,11 +410,7 @@ class InstaWP_Sync_Ajax {
 	}
 
 	public function calculate_events() {
-		check_ajax_referer( 'instawp-connect', 'security' );
-
-		if ( ! current_user_can( InstaWP_Setting::get_allowed_role() ) ) {
-			$this->send_error( 'Can\'t perform this action.' );
-		}
+		InstaWP_Tools::verify_ajax_request( InstaWP_Setting::get_allowed_role() );
 
 		$total_events = $this->get_pending_sync_events( true );
 

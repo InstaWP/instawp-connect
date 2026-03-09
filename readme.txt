@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.6
 Tested up to: 6.9
 Requires PHP: 7.0
-Stable tag: 0.1.2.6
+Stable tag: 0.1.2.7
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -98,8 +98,10 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
-= 0.1.2.6 - 06 March 2026 =
+= 0.1.2.7 - 09 March 2026 =
 - Security: Added authorization checks to AJAX handlers to prevent unauthorized access by low-privilege users.
+
+= 0.1.2.6 - 06 March 2026 =
 - Fixed: Class Curl not found.
 
 = 0.1.2.5 - 25 February 2026 =
