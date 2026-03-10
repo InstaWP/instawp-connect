@@ -439,6 +439,30 @@ class InstaWP_Sync_Helpers {
 	}
 
 	/**
+	 * Check if post is built with Bricks Builder
+	 *
+	 * @param int $post_id Post ID.
+	 * @return bool True if built with Bricks, false otherwise.
+	 */
+	public static function is_built_with_bricks( $post_id ) {
+		if ( ! defined( 'BRICKS_VERSION' ) && ! class_exists( '\Bricks\Database' ) ) {
+			return false;
+		}
+
+		$bricks_data = get_post_meta( $post_id, '_bricks_page_content_2', true );
+		return ! empty( $bricks_data ) && is_array( $bricks_data );
+	}
+
+	/**
+	 * Get Bricks meta keys for content areas
+	 *
+	 * @return array Array of Bricks meta keys.
+	 */
+	public static function get_bricks_meta_keys() {
+		return array( '_bricks_page_content_2', '_bricks_page_header_2', '_bricks_page_footer_2' );
+	}
+
+	/**
 	 * Prepare post, term and user ids
 	 *
 	 * @param array $data
