@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.6
 Tested up to: 6.9
 Requires PHP: 7.0
-Stable tag: 0.1.2.7
+Stable tag: 0.1.2.8
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -97,6 +97,9 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 You can report security bugs through the Patchstack Vulnerability Disclosure Program. The Patchstack team helps validate, triage, and handle any security vulnerabilities. [Report a security vulnerability](https://patchstack.com/database/vdp/instawp-connect).
 
 == Changelog ==
+
+= 0.1.2.8 - 17 March 2026 =
+- Added: CONNECT_HIDE_ACCOUNT_INFO constant to hide team details
 
 = 0.1.2.7 - 09 March 2026 =
 - Security: Added authorization checks to AJAX handlers to prevent unauthorized access by low-privilege users.

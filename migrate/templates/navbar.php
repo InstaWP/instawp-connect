@@ -52,7 +52,7 @@ if ( ! in_array( $current_tab, array_keys( $plugin_nav_items ) ) ) {
                     } ?>
                 </a>
             </div>
-            <?php if ( ! instawp_is_connect_whitelabelled() && ! empty( $email ) && ! empty( $team_name ) ) : ?>
+            <?php if ( ! instawp_is_connect_whitelabelled() && ! instawp_is_account_info_hidden() && ! empty( $email ) && ! empty( $team_name ) ) : ?>
                 <div class="text-grayCust-50 text-xs">
                     <span><?= esc_html( $email ); ?></span> | <span><?= esc_html( $team_name ); ?></span>
                 </div>

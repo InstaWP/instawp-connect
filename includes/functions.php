@@ -1563,6 +1563,22 @@ if ( ! function_exists( 'instawp_is_connect_whitelabelled' ) ) {
 	}
 }
 
+if ( ! function_exists( 'instawp_is_account_info_hidden' ) ) {
+	/**
+	 * Check if account information should be hidden.
+	 *
+	 * Returns true when the CONNECT_HIDE_ACCOUNT_INFO constant is defined and
+	 * set to true. Define this constant in wp-config.php to suppress account
+	 * details (e.g. API key, plan info) from the plugin UI — useful for
+	 * white-label or managed hosting deployments.
+	 *
+	 * @return bool True if account info should be hidden, false otherwise.
+	 */
+	function instawp_is_account_info_hidden() {
+		return defined( 'CONNECT_HIDE_ACCOUNT_INFO' ) && CONNECT_HIDE_ACCOUNT_INFO === true;
+	}
+}
+
 if ( ! function_exists( 'instawp_get_plans' ) ) {
 	/**
 	 * Get plans
