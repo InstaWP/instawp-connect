@@ -28,6 +28,7 @@ One-time connection setup links a WordPress site to an InstaWP account via API k
 | `instawp_send_heartbeat()` | Check connection status |
 | `instawp_get_connect_id()` | Retrieve stored connection ID |
 | `instawp_destroy_connect()` | Disconnect site from InstaWP |
+| `instawp_is_account_info_hidden()` | Check if account info should be hidden |
 
 ## REST API Endpoints (v2/manage)
 
@@ -44,6 +45,19 @@ One-time connection setup links a WordPress site to an InstaWP account via API k
 | `/auto-update` | Configure auto-updates |
 | `/configuration` | Get/set site configuration |
 | `/user` | Add/manage users |
+
+## White-Label / Account Info Hiding
+
+Define `CONNECT_HIDE_ACCOUNT_INFO` in `wp-config.php` to suppress account details
+(API key, plan info, etc.) from the plugin UI:
+
+```php
+define( 'CONNECT_HIDE_ACCOUNT_INFO', true );
+```
+
+Use `instawp_is_account_info_hidden()` in templates and UI code to conditionally
+render account-related sections. This is intended for white-label or managed
+hosting deployments where end-users should not see InstaWP account credentials.
 
 ## Features
 
