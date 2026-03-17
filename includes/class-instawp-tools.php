@@ -997,12 +997,40 @@ include $file_path;';
 			unset( $config_constants['MYSQL_CLIENT_FLAGS'] );
 		}
 
+		// Security keys and salts must not be transferred — staging site with same keys
+		// as source allows auth cookie forgery between the two environments.
+		$security_keys = array( 'AUTH_KEY', 'SECURE_AUTH_KEY', 'LOGGED_IN_KEY', 'NONCE_KEY',
+			'AUTH_SALT', 'SECURE_AUTH_SALT', 'LOGGED_IN_SALT', 'NONCE_SALT' );
+		foreach ( $security_keys as $security_key ) {
+			unset( $config_constants[ $security_key ] );
+		}
+
 		if ( isset( $config_constants['ABSPATH'] ) ) {
-			$config_constants['ABSPATH'] = "dirname( __FILE__ ) . '/'";
+			unset( $config_constants['ABSPATH'] );
 		}
 
 		if ( isset( $config_constants['WP_PLUGIN_DIR'] ) ) {
 			unset( $config_constants['WP_PLUGIN_DIR'] );
+		}
+
+		// Resolve PHP variables and expressions in constant values.
+		// The regex extracts raw code strings — e.g., $wp_memory_limit instead of '256M',
+		// or $_SERVER['HTTP_HOST'] instead of the actual host value.
+		// Simple variables ($var) are resolved via $$var_name. Anything else that starts
+		// with $ (superglobals, array access, expressions) is removed since it can't be
+		// safely transferred as a literal string.
+		foreach ( $config_constants as $key => $value ) {
+			if ( preg_match( '/^\$([a-zA-Z_]\w*)$/', $value, $var_match ) ) {
+				$var_name = $var_match[1];
+				if ( isset( $$var_name ) ) {
+					$config_constants[ $key ] = var_export( $$var_name, true );
+				} else {
+					unset( $config_constants[ $key ] );
+				}
+			} elseif ( preg_match( '/^\$/', $value ) ) {
+				// Superglobals like $_SERVER['HTTP_HOST'] or complex expressions — can't resolve safely.
+				unset( $config_constants[ $key ] );
+			}
 		}
 
 		foreach ( $config_constants as $key => $value ) {

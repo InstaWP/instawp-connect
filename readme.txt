@@ -98,6 +98,13 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 0.1.2.9 - beta =
+- Fixed: Database connection errors after migration caused by incomplete database transfer.
+- Improved: Database transfer reliability with two-phase streaming and delivery confirmation.
+- Improved: Validation of database integrity before completing migration.
+- Security: Excluded sensitive authentication constants from migration transfer.
+- Fixed: Certain wp-config values not being handled correctly during migration.
+
 = 0.1.2.8 - 17 March 2026 =
 - Added: CONNECT_HIDE_ACCOUNT_INFO constant to hide team details
 
