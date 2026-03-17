@@ -1563,6 +1563,12 @@ if ( ! function_exists( 'instawp_is_connect_whitelabelled' ) ) {
 	}
 }
 
+if ( ! function_exists( 'instawp_is_account_info_hidden' ) ) {
+	function instawp_is_account_info_hidden() {
+		return defined( 'CONNECT_HIDE_ACCOUNT_INFO' ) && CONNECT_HIDE_ACCOUNT_INFO === true;
+	}
+}
+
 if ( ! function_exists( 'instawp_get_plans' ) ) {
 	/**
 	 * Get plans
