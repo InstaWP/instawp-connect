@@ -497,6 +497,26 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 		die();
 	}
 
+	// Process client confirmation from previous iteration.
+	// Only advance tracking when the client confirms it received the data.
+	$confirmed_table_hash = isset( $_POST['confirmed_table_hash'] ) ? $_POST['confirmed_table_hash'] : '';
+	$confirmed_offset     = isset( $_POST['confirmed_offset'] ) ? intval( $_POST['confirmed_offset'] ) : -1;
+	$confirmed_is_last    = isset( $_POST['confirmed_is_last'] ) && $_POST['confirmed_is_last'] === '1';
+
+	if ( ! empty( $confirmed_table_hash ) && $confirmed_offset >= 0 ) {
+		// Don't allow offset to go backward (prevents reset-to-0 bug from empty/stale confirmations).
+		$current_row    = $tracking_db->get_row( 'iwp_db_sent', array( 'table_name_hash' => $confirmed_table_hash ) );
+		$current_offset = isset( $current_row['offset'] ) ? (int) $current_row['offset'] : 0;
+
+		if ( $confirmed_offset >= $current_offset ) {
+			$update_data = array( 'offset' => $confirmed_offset );
+			if ( $confirmed_is_last ) {
+				$update_data['completed'] = '1';
+			}
+			$tracking_db->update( 'iwp_db_sent', $update_data, array( 'table_name_hash' => $confirmed_table_hash ) );
+		}
+	}
+
 	$excluded_tables       = isset( $migrate_settings['excluded_tables'] ) ? $migrate_settings['excluded_tables'] : array();
 	$excluded_tables_rows  = isset( $migrate_settings['excluded_tables_rows'] ) ? $migrate_settings['excluded_tables_rows'] : array();
 	$total_tracking_tables = (int) $tracking_db->query_count( 'iwp_db_sent' );
@@ -524,6 +544,42 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 		}
 	}
 
+	// === TWO-PHASE STREAMING ===
+	// Phase 1 (schema): Send ALL CREATE TABLE IF NOT EXISTS statements in one response.
+	// Phase 2 (data):   Send INSERT batches with confirm-before-update flow.
+	// Client must send schema_confirmed=1 after validating core tables to enter data phase.
+	$schema_confirmed = isset( $_POST['schema_confirmed'] ) && $_POST['schema_confirmed'] === '1';
+
+	if ( ! $schema_confirmed ) {
+		// Schema phase: send CREATE TABLE IF NOT EXISTS for every tracked table.
+		$all_tracked  = $tracking_db->get_rows( 'iwp_db_sent' );
+		$schema_count = 0;
+		$schema_sql   = '';
+
+		foreach ( $all_tracked as $row ) {
+			$tbl           = $row['table_name'];
+			$create_result = $tracking_db->query( "SHOW CREATE TABLE `$tbl`" );
+			if ( $create_result ) {
+				$create_row = $create_result->fetch_assoc();
+				if ( isset( $create_row['Create Table'] ) ) {
+					$create_sql = $create_row['Create Table'];
+					if ( strpos( $create_sql, 'IF NOT EXISTS' ) === false ) {
+						$create_sql = preg_replace( '/^CREATE TABLE/', 'CREATE TABLE IF NOT EXISTS', $create_sql );
+					}
+					$schema_sql .= $create_sql . ";\n\n";
+					$schema_count++;
+				}
+			}
+		}
+
+		header( 'x-iwp-status: true' );
+		header( 'x-iwp-phase: schema' );
+		header( "x-iwp-schema-count: $schema_count" );
+		header( 'x-iwp-progress: 1' );
+		echo $schema_sql;
+		die();
+	}
+
 	$result = $tracking_db->get_row( 'iwp_db_sent', array( 'completed' => '2' ) );
 	if ( empty( $result ) ) {
 		$result = $tracking_db->get_row( 'iwp_db_sent', array( 'completed' => '0' ) );
@@ -538,14 +594,11 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 	}
 
 	$curr_table_name = isset( $result['table_name'] ) ? $result['table_name'] : '';
-	$offset          = isset( $result['offset'] ) ? $result['offset'] : '';
+	// $result_offset is the confirmed offset from tracking DB (not yet advanced for this batch).
+	// Used later to calculate the new offset the client should confirm.
+	$result_offset   = isset( $result['offset'] ) ? (int) $result['offset'] : 0;
+	$offset          = $result_offset;
 	$sqlStatements   = array();
-
-	// Check if it's the first batch of rows for this table
-	if ( $offset == 0 && $create_table_sql = $tracking_db->query( "SHOW CREATE TABLE `$curr_table_name`" ) ) {
-		$createRow = $create_table_sql->fetch_assoc();
-		echo $createRow['Create Table'] . ";\n\n";
-	}
 
 	if ( ! in_array( $curr_table_name, $excluded_tables ) ) {
 
@@ -627,20 +680,26 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 		$finished_total += isset( $table_data['offset'] ) ? $table_data['offset'] : 0;
 	}
 
-	// Update the offset and rows_finished
-	$tracking_db->update( 'iwp_db_sent', array( 'offset' => $offset, 'completed' => '2' ), array( 'table_name_hash' => hash( 'sha256', $curr_table_name ) ) );
-
-	// Mark table as completed if all rows were fetched
-	if ( count( $sqlStatements ) < CHUNK_DB_SIZE ) {
-		$tracking_db->update( 'iwp_db_sent', array( 'completed' => '1' ), array( 'table_name_hash' => hash( 'sha256', $curr_table_name ) ) );
-	}
+	// Mark table as in-progress but do NOT advance offset.
+	// Offset is only advanced when the client confirms receipt in the next request.
+	// This prevents data loss when a response is lost in transit (Bug 2.1+2.2).
+	$tracking_db->update( 'iwp_db_sent', array( 'completed' => '2' ), array( 'table_name_hash' => hash( 'sha256', $curr_table_name ) ) );
 
 	$completed_tables   = (int) $tracking_db->query_count( 'iwp_db_sent', array( 'completed' => '1' ) );
 	$tracking_progress  = $completed_tables === 0 || $total_tracking_tables === 0 ? 0 : number_format( ( $completed_tables * 100 ) / $total_tracking_tables, 2, '.', '' );
 	$row_based_progress = number_format( $finished_total / $rows_total_all * 100, 2, '.', '' );
 	$avg_progress       = round( ( (float) $row_based_progress + (float) $tracking_progress ) / 2 );
 
+	// Tell the client what to confirm in its next request. The client echoes these values
+	// back as confirmed_table_hash, confirmed_offset, confirmed_is_last — only then does
+	// the server advance the tracking offset (see confirmation block at top of DB section).
+	$new_offset    = $result_offset + $sql_statements_count;
+	$is_last_batch = $sql_statements_count < CHUNK_DB_SIZE ? '1' : '0';
+
 	header( "x-iwp-progress: $avg_progress" );
+	header( 'x-iwp-table-hash: ' . hash( 'sha256', $curr_table_name ) );
+	header( "x-iwp-confirmed-offset: $new_offset" );
+	header( "x-iwp-last-batch: $is_last_batch" );
 
 	echo implode( "\n", $sqlStatements );
 }
