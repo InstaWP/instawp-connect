@@ -552,6 +552,11 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 			return $this->throw_error( $response );
 		}
 
+		// Ensure sufficient execution time for processing sync events.
+		if ( function_exists( 'set_time_limit' ) ) {
+			@set_time_limit( 300 );
+		}
+
 		global $wpdb;
 
 		$body    = $req->get_body();
