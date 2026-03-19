@@ -266,13 +266,13 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 			// Flushing db cache after migration
 			wp_cache_flush();
 
-			// Sanitize wp-config.php after migration to fix platform-specific paths
-			$this->sanitize_wp_config();
-
 			$response = $this->validate_api_request( $request );
 			if ( is_wp_error( $response ) ) {
 				return $this->throw_error( $response );
 			}
+
+			// Sanitize wp-config.php after migration to fix platform-specific paths
+			$this->sanitize_wp_config();
 
 			if ( ! function_exists( 'deactivate_plugins' ) ) {
 				require_once ABSPATH . 'wp-admin/includes/plugin.php';
@@ -560,7 +560,7 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 			}
 		} catch ( \Throwable $e ) {
 			// Sanitization failure should never break the migration.
-			Helper::add_error_log( 'wp-config sanitization error: ' . $e->getMessage() );
+			Helper::add_error_log( 'wp-config sanitization error: ' . $e->getMessage(), $e );
 		}
 	}
 }
