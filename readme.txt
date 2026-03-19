@@ -99,6 +99,9 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 == Changelog ==
 
 = 0.1.2.9 - beta =
+- Fixed: Site reconnection failing when API key exists but connect ID is missing or site was disconnected.
+- Fixed: Platform-specific paths in wp-config.php (Bitnami, Plesk, cPanel) causing Fatal errors after migration.
+- Improved: Sync resilience with timeout handling and user-friendly error messages for 2-way sync operations.
 - Fixed: Database connection errors after migration caused by incomplete database transfer.
 - Improved: Database transfer reliability with two-phase streaming and delivery confirmation.
 - Improved: Validation of database integrity before completing migration.
