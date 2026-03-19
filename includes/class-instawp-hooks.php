@@ -91,7 +91,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			if ( ! empty( $access_token ) && ! empty( $jwt ) && 'true' === $success_status && wp_verify_nonce( $instawp_nonce, 'instawp_connect_nonce' ) ) {
 				$api_key = Helper::get_api_key();
 
-				if ( empty( $api_key ) && $api_key !== $access_token ) {
+				if ( empty( $api_key ) || $api_key !== $access_token ) {
 					instawp_create_api_connect( $access_token, $jwt );
 
 					wp_safe_redirect( admin_url( 'tools.php?page=instawp' ) );
