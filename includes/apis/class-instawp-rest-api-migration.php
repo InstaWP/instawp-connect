@@ -271,6 +271,9 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 				return $this->throw_error( $response );
 			}
 
+			// Sanitize wp-config.php after migration to fix platform-specific paths
+			$this->sanitize_wp_config();
+
 			if ( ! function_exists( 'deactivate_plugins' ) ) {
 				require_once ABSPATH . 'wp-admin/includes/plugin.php';
 			}
@@ -407,6 +410,157 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 			);
 			error_log( 'migration clean up exception: ' . json_encode( $response ) );
 			return $this->send_response( $response );
+		}
+	}
+
+	/**
+	 * Sanitize wp-config.php after migration to remove platform-specific paths.
+	 *
+	 * When sites are migrated from platform-specific hosting (e.g., Bitnami, Plesk, cPanel),
+	 * wp-config.php often contains hardcoded paths that don't exist on the destination server,
+	 * causing Fatal errors and 504 Gateway Timeouts.
+	 *
+	 * @return void
+	 */
+	private function sanitize_wp_config() {
+		try {
+			$wp_config_path = ABSPATH . 'wp-config.php';
+			if ( ! file_exists( $wp_config_path ) ) {
+				$wp_config_path = dirname( ABSPATH ) . '/wp-config.php';
+			}
+			if ( ! file_exists( $wp_config_path ) || ! is_writable( $wp_config_path ) ) {
+				return;
+			}
+
+			$content = file_get_contents( $wp_config_path );
+			if ( empty( $content ) ) {
+				return;
+			}
+
+			$modified = false;
+
+			// Platform-specific path patterns that indicate a migrated wp-config.
+			$platform_patterns = array(
+				'/bitnami/',
+				'/opt/bitnami/',
+				'/app/public/',
+				'/srv/htdocs/',
+				'/nas/content/',
+			);
+
+			// 1. Fix WP_DEBUG_LOG if it points to a non-existent directory.
+			if ( preg_match( "/define\s*\(\s*['\"]WP_DEBUG_LOG['\"]\s*,\s*['\"](.+?)['\"]\s*\)/", $content, $matches ) ) {
+				$debug_log_path = $matches[1];
+				$debug_log_dir  = dirname( $debug_log_path );
+
+				$is_platform_path = false;
+				foreach ( $platform_patterns as $pattern ) {
+					if ( false !== strpos( $debug_log_path, $pattern ) ) {
+						$is_platform_path = true;
+						break;
+					}
+				}
+
+				if ( $is_platform_path || ! is_dir( $debug_log_dir ) ) {
+					$content  = preg_replace(
+						"/define\s*\(\s*['\"]WP_DEBUG_LOG['\"]\s*,\s*['\"].+?['\"]\s*\)/",
+						"define( 'WP_DEBUG_LOG', true )",
+						$content
+					);
+					$modified = true;
+				}
+			}
+
+			// 2. Remove WP_CONTENT_DIR if it references platform-specific or non-existent paths.
+			if ( preg_match( "/define\s*\(\s*['\"]WP_CONTENT_DIR['\"]\s*,\s*['\"](.+?)['\"]\s*\)/", $content, $matches ) ) {
+				$content_dir   = $matches[1];
+				$should_remove = false;
+
+				foreach ( $platform_patterns as $pattern ) {
+					if ( false !== strpos( $content_dir, $pattern ) ) {
+						$should_remove = true;
+						break;
+					}
+				}
+
+				// Also remove if the path doesn't exist on this server.
+				if ( ! $should_remove && ! is_dir( $content_dir ) ) {
+					$should_remove = true;
+				}
+
+				if ( $should_remove ) {
+					$content  = preg_replace(
+						"/define\s*\(\s*['\"]WP_CONTENT_DIR['\"]\s*,\s*['\"].+?['\"]\s*\);\s*\n?/",
+						'',
+						$content
+					);
+					$modified = true;
+				}
+			}
+
+			// Also handle WP_CONTENT_DIR defined with a constant expression using an undefined constant.
+			if ( preg_match( "/define\s*\(\s*['\"]WP_CONTENT_DIR['\"]\s*,\s*(?!__DIR__)([A-Z_]+)\s*\.\s*/", $content, $matches ) ) {
+				$used_constant = $matches[1];
+				// If the constant used is not ABSPATH (defined at the bottom of wp-config)
+				// or __DIR__, it will likely cause a fatal error. Remove the definition.
+				if ( 'ABSPATH' !== $used_constant && '__DIR__' !== $used_constant ) {
+					$content  = preg_replace(
+						"/define\s*\(\s*['\"]WP_CONTENT_DIR['\"]\s*,\s*[^)]+\);\s*\n?/",
+						'',
+						$content
+					);
+					$modified = true;
+				}
+			}
+
+			// 3. Remove WP_CONTENT_URL if it references platform-specific paths.
+			if ( preg_match( "/define\s*\(\s*['\"]WP_CONTENT_URL['\"]\s*,\s*['\"](.+?)['\"]\s*\)/", $content, $matches ) ) {
+				$content_url   = $matches[1];
+				$should_remove = false;
+
+				foreach ( $platform_patterns as $pattern ) {
+					if ( false !== strpos( $content_url, $pattern ) ) {
+						$should_remove = true;
+						break;
+					}
+				}
+
+				if ( $should_remove ) {
+					$content  = preg_replace(
+						"/define\s*\(\s*['\"]WP_CONTENT_URL['\"]\s*,\s*['\"].+?['\"]\s*\);\s*\n?/",
+						'',
+						$content
+					);
+					$modified = true;
+				}
+			}
+
+			// 4. Remove WP_PLUGIN_DIR / WP_PLUGIN_URL / WPMU_PLUGIN_DIR / WPMU_PLUGIN_URL / UPLOADS
+			// if they reference platform-specific paths.
+			$plugin_constants = array( 'WP_PLUGIN_DIR', 'WP_PLUGIN_URL', 'WPMU_PLUGIN_DIR', 'WPMU_PLUGIN_URL', 'UPLOADS' );
+			foreach ( $plugin_constants as $constant_name ) {
+				if ( preg_match( "/define\s*\(\s*['\"]" . $constant_name . "['\"]\s*,\s*['\"](.+?)['\"]\s*\)/", $content, $matches ) ) {
+					$path_value = $matches[1];
+					foreach ( $platform_patterns as $pattern ) {
+						if ( false !== strpos( $path_value, $pattern ) ) {
+							$content  = preg_replace(
+								"/define\s*\(\s*['\"]" . $constant_name . "['\"]\s*,\s*['\"].+?['\"]\s*\);\s*\n?/",
+								'',
+								$content
+							);
+							$modified = true;
+							break;
+						}
+					}
+				}
+			}
+
+			if ( $modified ) {
+				file_put_contents( $wp_config_path, $content );
+			}
+		} catch ( \Throwable $e ) {
+			// Sanitization failure should never break the migration.
+			Helper::add_error_log( 'wp-config sanitization error: ' . $e->getMessage(), $e );
 		}
 	}
 }
