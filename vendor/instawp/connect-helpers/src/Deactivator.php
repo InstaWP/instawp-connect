@@ -26,11 +26,31 @@ class Deactivator {
 			require_once ABSPATH . 'wp-admin/includes/plugin.php';
 		}
 
-		deactivate_plugins( $this->args );
+		$results = [];
 
-		return [
-			'success' => true,
-			'message' => esc_html( 'Success!' )
-		];
+		foreach ( $this->args as $item ) {
+			if ( ! isset( $item['type'], $item['asset'] ) ) {
+				$results[] = [
+					'success' => false,
+					'message' => esc_html( 'Required parameters are missing!' ),
+				];
+				continue;
+			}
+
+			if ( 'plugin' === $item['type'] ) {
+				deactivate_plugins( $item['asset'] );
+				$results[] = [
+					'success' => true,
+					'message' => esc_html( 'Success!' ),
+				];
+			} else {
+				$results[] = [
+					'success' => false,
+					'message' => esc_html( 'Only plugins can be deactivated!' ),
+				];
+			}
+		}
+
+		return $results;
 	}
 }
