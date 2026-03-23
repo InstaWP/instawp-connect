@@ -14,7 +14,7 @@ class Deactivator {
 		if ( count( $this->args ) < 1 ) {
 			return [
 				'success' => false,
-				'message' => esc_html( 'Minimum 1 item is required!' ),
+				'message' => esc_html__( 'Minimum 1 item is required!', 'connect-helpers' ),
 			];
 		}
 
@@ -32,7 +32,8 @@ class Deactivator {
 			if ( ! isset( $item['type'], $item['asset'] ) ) {
 				$results[] = [
 					'success' => false,
-					'message' => esc_html( 'Required parameters are missing!' ),
+					'message' => esc_html__( 'Required parameters are missing!', 'connect-helpers' ),
+					'item' 	  => $item,
 				];
 				continue;
 			}
@@ -41,12 +42,14 @@ class Deactivator {
 				deactivate_plugins( $item['asset'] );
 				$results[] = [
 					'success' => true,
-					'message' => esc_html( 'Success!' ),
+					'message' => esc_html__( 'Success!', 'connect-helpers' ),
+					'item' 	  => $item,
 				];
 			} else {
 				$results[] = [
 					'success' => false,
-					'message' => esc_html( 'Only plugins can be deactivated!' ),
+					'message' => esc_html__( 'Only plugins can be deactivated!', 'connect-helpers' ),
+					'item' 	  => $item,
 				];
 			}
 		}
