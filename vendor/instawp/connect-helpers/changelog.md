@@ -1,3 +1,7 @@
+v1.0.9
+======
+- Fixed: Deactivator parses structured input matching Activator pattern
+
 v1.0.8
 ======
 - Fixed: Update Cloudflare namespace from CF\ to Cloudflare\APO\ for compatibility with Cloudflare plugin v4.14.0+
