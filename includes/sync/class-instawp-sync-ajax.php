@@ -222,6 +222,11 @@ class InstaWP_Sync_Ajax {
 	public function sync_changes() {
 		InstaWP_Tools::verify_ajax_request( InstaWP_Setting::get_allowed_role() );
 
+		// Ensure sufficient execution time for sync operations.
+		if ( function_exists( 'set_time_limit' ) ) {
+			@set_time_limit( 300 );
+		}
+
 		$debug_data = array();
 
 		$dest_connect_id = ! empty( $_POST['dest_connect_id'] ) ? intval( $_POST['dest_connect_id'] ) : '';
@@ -256,10 +261,26 @@ class InstaWP_Sync_Ajax {
 					)
 				);
 
+				$error_message = isset( $response['message'] ) ? $response['message'] : __( 'Sync failed.', 'instawp-connect' );
+				$http_code     = isset( $response['code'] ) ? intval( $response['code'] ) : 0;
+
+				// Provide user-friendly error messages for common failure types.
+				if ( false !== strpos( $error_message, 'cURL error 28:' ) ) {
+					$error_message = __( 'Sync timed out. The destination site may be slow or unreachable. Please try again or sync fewer events at a time.', 'instawp-connect' );
+				} elseif ( 502 === $http_code || 503 === $http_code || 504 === $http_code ) {
+					$error_message = sprintf(
+						/* translators: %d: HTTP status code */
+						__( 'The destination site returned a %d error. It may be temporarily overloaded. Please wait a moment and try again.', 'instawp-connect' ),
+						$http_code
+					);
+				} elseif ( false !== strpos( $error_message, 'cURL error 7:' ) || false !== strpos( $error_message, 'cURL error 6:' ) ) {
+					$error_message = __( 'Could not connect to the destination site. Please verify the site is online and try again.', 'instawp-connect' );
+				}
+
 				$this->send_error(
-					$response['message'],
+					$error_message,
 					array(
-						'http_code' => isset( $response['code'] ) ? $response['code'] : '',
+						'http_code' => $http_code,
 					)
 				);
 			}
@@ -554,6 +575,11 @@ class InstaWP_Sync_Ajax {
 
 	public function sync_upload( $data = null, $retry = 0 ) {
 		try {
+			// Ensure sufficient time for upload and retries.
+			if ( function_exists( 'set_time_limit' ) ) {
+				@set_time_limit( 300 );
+			}
+
 			$response   = array();
 			$connect_id = instawp_get_connect_id();
 			$retry      = intval( $retry ) + 1;

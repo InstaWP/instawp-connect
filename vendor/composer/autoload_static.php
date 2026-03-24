@@ -13,30 +13,30 @@ class ComposerStaticInitbc4230231e9e48017a738b41afd9f581
     );
 
     public static $prefixLengthsPsr4 = array (
-        'p' => 
+        'p' =>
         array (
             'phpseclib3\\' => 11,
         ),
-        'P' => 
+        'P' =>
         array (
             'ParagonIE\\ConstantTime\\' => 23,
         ),
-        'I' => 
+        'I' =>
         array (
             'InstaWP\\Connect\\Helpers\\' => 24,
         ),
     );
 
     public static $prefixDirsPsr4 = array (
-        'phpseclib3\\' => 
+        'phpseclib3\\' =>
         array (
             0 => __DIR__ . '/..' . '/phpseclib/phpseclib/phpseclib',
         ),
-        'ParagonIE\\ConstantTime\\' => 
+        'ParagonIE\\ConstantTime\\' =>
         array (
             0 => __DIR__ . '/..' . '/paragonie/constant_time_encoding/src',
         ),
-        'InstaWP\\Connect\\Helpers\\' => 
+        'InstaWP\\Connect\\Helpers\\' =>
         array (
             0 => __DIR__ . '/..' . '/instawp/connect-helpers/src',
         ),
