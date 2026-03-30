@@ -82,6 +82,9 @@ class Updater {
 			require_once ABSPATH . 'wp-admin/includes/class-automatic-upgrader-skin.php';
 		}
 
+		// Capture version before upgrade for verification
+		$old_version = get_bloginfo( 'version' );
+
 		$skin     = new \Automatic_Upgrader_Skin();
 		$upgrader = new \Core_Upgrader( $skin );
 		$result   = $upgrader->upgrade( $update, [
@@ -90,6 +93,9 @@ class Updater {
 
 		delete_site_transient( 'update_core' );
 		wp_version_check( [], true );
+
+		// Re-read version after upgrade to verify it actually changed
+		$new_version = get_bloginfo( 'version' );
 
 		if ( is_wp_error( $result ) ) {
 			if ( $result->get_error_data() && is_string( $result->get_error_data() ) ) {
@@ -104,10 +110,19 @@ class Updater {
 		}
 
 		$message = isset( $error_message ) ? trim( $error_message ) : '';
+		$success = empty( $message );
+
+		// Verify version actually changed — upgrader may report success without updating
+		if ( $success && $old_version === $new_version ) {
+			$success = false;
+			$message = esc_html( 'Update completed but version unchanged.' );
+		}
 
 		return [
-			'message' => empty( $message ) ? esc_html( 'Success!' ) : $message,
-			'success' => empty( $message ),
+			'message'     => $success ? esc_html( 'Success!' ) : $message,
+			'success'     => $success,
+			'old_version' => $old_version,
+			'new_version' => $new_version,
 		];
 	}
 
@@ -151,10 +166,16 @@ class Updater {
 		add_filter( 'automatic_updater_disabled', '__return_false', 201 );
 		add_filter( "auto_update_{$type}", '__return_true', 201 );
 
-		$skin   = new \Automatic_Upgrader_Skin();
-		$result = false;
+		$skin        = new \Automatic_Upgrader_Skin();
+		$result      = false;
+		$old_version = '';
+		$new_version = '';
 
 		if ( 'plugin' === $type ) {
+			// Capture current version before upgrade
+			$plugin_data = get_plugin_data( WP_PLUGIN_DIR . '/' . $item );
+			$old_version = isset($plugin_data['Version']) ? $plugin_data['Version'] : '';
+
 			wp_update_plugins();
 
 			$upgrader = new \Plugin_Upgrader( $skin );
@@ -204,15 +225,27 @@ class Updater {
 			}
 
 			wp_clean_plugins_cache();
-			wp_update_plugins();
+
+			// Re-read version after upgrade to verify it actually changed
+			// Note: get_plugin_data() reads directly from disk, no transient needed
+			$plugin_data = get_plugin_data( WP_PLUGIN_DIR . '/' . $item );
+			$new_version = isset($plugin_data['Version']) ? $plugin_data['Version'] : '';
 		} elseif ( 'theme' === $type ) {
+			// Capture current version before upgrade
+			$theme_obj   = wp_get_theme( $item );
+			$old_version = $theme_obj->get( 'Version' );
+
 			wp_update_themes();
 
 			$upgrader = new \Theme_Upgrader( $skin );
 			$result   = $upgrader->upgrade( $item );
 
 			wp_clean_themes_cache();
-			wp_update_themes();
+
+			// Re-read version after upgrade to verify it actually changed
+			// Note: wp_get_theme() reads directly from disk, no transient needed
+			$theme_obj   = wp_get_theme( $item );
+			$new_version = $theme_obj->get( 'Version' );
 		}
 
 		remove_filter( 'automatic_updater_disabled', '__return_false', 201 );
@@ -228,19 +261,35 @@ class Updater {
 			$message = isset( $error_message ) ? trim( $error_message ) : '';
 
 			return [
-				'message' => empty( $message ) ? esc_html( 'Success!' ) : $message,
-				'success' => empty( $message ),
+				'message'     => empty( $message ) ? esc_html( 'Success!' ) : $message,
+				'success'     => empty( $message ),
+				'old_version' => $old_version,
+				'new_version' => $new_version,
 			];
-		} else if ( $result === null ) {
+		} elseif ( $result === null ) {
+			// No update in WordPress transient — plugin/theme is already at latest version
 			return [
-				'message' => esc_html( 'Update not available for this item!' ),
-				'success' => false,
+				'message'     => esc_html( 'Already up to date.' ),
+				'success'     => true,
+				'old_version' => $old_version,
+				'new_version' => $new_version,
 			];
 		}
 
+		// Verify version actually changed — upgrader may report success without updating files
+		$success = (bool) $result;
+		$message = $success ? esc_html( 'Success!' ) : esc_html( 'Update Failed!' );
+
+		if ( $success && ! empty( $old_version ) && $old_version === $new_version ) {
+			$success = false;
+			$message = esc_html( 'Update completed but version unchanged.' );
+		}
+
 		return [
-			'message' => $result ? esc_html( 'Success!' ) : esc_html( 'Update Failed!' ),
-			'success' => $result,
+			'message'     => $message,
+			'success'     => $success,
+			'old_version' => $old_version,
+			'new_version' => $new_version,
 		];
 	}
 }
