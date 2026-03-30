@@ -174,7 +174,7 @@ class Updater {
 		if ( 'plugin' === $type ) {
 			// Capture current version before upgrade
 			$plugin_data = get_plugin_data( WP_PLUGIN_DIR . '/' . $item );
-			$old_version = $plugin_data['Version'] ?? '';
+			$old_version = isset($plugin_data['Version']) ? $plugin_data['Version'] : '';
 
 			wp_update_plugins();
 
@@ -229,7 +229,7 @@ class Updater {
 			// Re-read version after upgrade to verify it actually changed
 			// Note: get_plugin_data() reads directly from disk, no transient needed
 			$plugin_data = get_plugin_data( WP_PLUGIN_DIR . '/' . $item );
-			$new_version = $plugin_data['Version'] ?? '';
+			$new_version = isset($plugin_data['Version']) ? $plugin_data['Version'] : '';
 		} elseif ( 'theme' === $type ) {
 			// Capture current version before upgrade
 			$theme_obj   = wp_get_theme( $item );

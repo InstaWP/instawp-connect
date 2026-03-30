@@ -22,7 +22,7 @@ class Uninstaller {
 		foreach ( $this->args as $item ) {
 			if ( ! isset( $item['type'], $item['asset'] ) ) {
 				// Key by asset for consistency with Updater (keyed by slug)
-				$results[ $item['asset'] ?? 'unknown' ] = [
+				$results[ isset($item['asset']) ? $item['asset'] : 'unknown' ] = [
 					'success' => false,
 					'message' => esc_html( 'Required parameters are missing!' ),
 				];
