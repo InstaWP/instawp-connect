@@ -40,7 +40,7 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 			delete_option( 'instawp_parent_is_on_local' );
 
 			// Create Site
-			if ( is_wp_error( $create_site_res = InstaWP_Tools::create_insta_site() ) ) {
+			if ( is_wp_error( $create_site_res = InstaWP_Tools::create_insta_site( true ) ) ) {
 				die( esc_html( $create_site_res->get_error_message() ) );
 			}
 

@@ -98,6 +98,12 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+
+= 0.1.3.1 - Beta =
+- Improved: Local push site creation and restore now handle task errors gracefully.
+- Improved: Local push now uses current site WP and PHP versions for staging site.
+- Improved: Local push now creates a reserved site for better reliability.
+
 = 0.1.3.0 - 31 March 2026 =
 - Fixed: Improved response details
 - Optimized: Plugin and theme updates
