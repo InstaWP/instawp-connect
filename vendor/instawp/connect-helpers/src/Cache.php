@@ -544,7 +544,7 @@ class Cache {
 			if ( is_wp_error( $cdn_response ) ) {
 				$message = $cdn_response->get_error_message();
 			} elseif ( ! ( isset( $cdn_response['success'] ) && $cdn_response['success'] ) ) {
-				$message = $cdn_response['message'] ?? 'CDN purge failed.';
+				$message = isset($cdn_response['message']) ? $cdn_response['message'] : 'CDN purge failed.';
 			}
 
 			$results[] = [

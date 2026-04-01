@@ -14,21 +14,23 @@ class Uninstaller {
 		if ( count( $this->args ) < 1 || count( $this->args ) > 5 ) {
 			return [
 				'success' => false,
-				'message' => esc_html( 'Minimum 1 and Maximum 5 updates are allowed!' ),
+				'message' => esc_html( 'Minimum 1 and Maximum 5 items are allowed!' ),
 			];
 		}
 
 		$results = [];
 		foreach ( $this->args as $item ) {
 			if ( ! isset( $item['type'], $item['asset'] ) ) {
-				$results[] = [
+				// Key by asset for consistency with Updater (keyed by slug)
+				$results[ isset($item['asset']) ? $item['asset'] : 'unknown' ] = [
 					'success' => false,
 					'message' => esc_html( 'Required parameters are missing!' ),
 				];
 				continue;
 			}
 
-			$results[] = $this->uninstaller( $item['type'], $item['asset'] );
+			// Key results by asset slug for consistency with Updater response format
+			$results[ $item['asset'] ] = $this->uninstaller( $item['type'], $item['asset'] );
 		}
 
 		return $results;
@@ -39,10 +41,13 @@ class Uninstaller {
 			require_once ABSPATH . 'wp-admin/includes/file.php';
 		}
 
-		$response = [
-			'success' => true,
-			'message' => esc_html( 'Success!' )
-		];
+		// Handle unknown type — avoid undefined $deleted variable
+		if ( ! in_array( $type, array( 'plugin', 'theme' ), true ) ) {
+			return array(
+				'success' => false,
+				'message' => esc_html( 'Unknown type: ' . $type ),
+			);
+		}
 
 		if ( 'plugin' === $type ) {
 			if ( ! function_exists( 'delete_plugins' ) || ! function_exists( 'is_plugin_active' ) || ! function_exists( 'deactivate_plugins' ) ) {
@@ -55,6 +60,13 @@ class Uninstaller {
 
 			$deleted = delete_plugins( array( $item ) );
 
+			// Verify plugin files are actually gone
+			if ( ! is_wp_error( $deleted ) && file_exists( WP_PLUGIN_DIR . '/' . $item ) ) {
+				return array(
+					'success' => false,
+					'message' => esc_html( 'Delete reported success but plugin files still exist.' ),
+				);
+			}
 		} elseif ( 'theme' === $type ) {
 
 			if ( ! function_exists( 'delete_theme' ) ) {
@@ -66,13 +78,34 @@ class Uninstaller {
 			}
 
 			$deleted = delete_theme( $item );
+
+			// Verify theme is actually gone
+			if ( ! is_wp_error( $deleted ) && wp_get_theme( $item )->exists() ) {
+				return array(
+					'success' => false,
+					'message' => esc_html( 'Delete reported success but theme still exists.' ),
+				);
+			}
 		}
 
-		$response = array(
-			'success' => ! is_wp_error( $deleted ),
-			'message' => is_wp_error( $deleted ) ? $deleted->get_error_message() : '',
-		);
+		// Check for WP_Error or false return from delete functions
+		if ( is_wp_error( $deleted ) ) {
+			return array(
+				'success' => false,
+				'message' => $deleted->get_error_message(),
+			);
+		}
 
-		return $response;
+		if ( $deleted === false ) {
+			return array(
+				'success' => false,
+				'message' => esc_html( 'Deletion failed.' ),
+			);
+		}
+
+		return array(
+			'success' => true,
+			'message' => esc_html( 'Success!' ),
+		);
 	}
 }

@@ -22,14 +22,15 @@ class Activator {
 
 		foreach ( $this->args as $item ) {
 			if ( ! isset( $item['type'], $item['asset'] ) ) {
-				$results[] = [
+				// Key by asset for consistency with Updater response format
+				$results[ isset($item['asset']) ? $item['asset'] : 'unknown' ] = [
 					'success' => false,
 					'message' => esc_html( 'Required parameters are missing!' ),
 				];
 				continue;
 			}
 
-			$results[] = $this->activator( $item['type'], $item['asset'] );
+			$results[ $item['asset'] ] = $this->activator( $item['type'], $item['asset'] );
 		}
 
 		return $results;
@@ -40,37 +41,61 @@ class Activator {
 			require_once ABSPATH . 'wp-admin/includes/file.php';
 		}
 
-		$response = [
-			'success' => true,
-			'message' => esc_html( 'Success!' )
-		];
+		// Handle unknown type instead of returning blind success
+		if ( ! in_array( $type, array( 'plugin', 'theme' ), true ) ) {
+			return array(
+				'success' => false,
+				'message' => esc_html( 'Unknown type: ' . $type ),
+			);
+		}
 
 		if ( 'plugin' === $type ) {
-			if ( ! function_exists( 'activate_plugin' ) ) {
+			if ( ! function_exists( 'activate_plugin' ) || ! function_exists( 'is_plugin_active' ) ) {
 				require_once ABSPATH . 'wp-admin/includes/plugin.php';
 			}
 
 			$activate = activate_plugin( $item );
-			$response = array(
-				'success' => ! is_wp_error( $activate ),
-				'message' => is_wp_error( $activate ) ? $activate->get_error_message() : '',
+
+			if ( is_wp_error( $activate ) ) {
+				return array(
+					'success' => false,
+					'message' => $activate->get_error_message(),
+				);
+			}
+
+			// Verify the plugin is actually active after activation
+			if ( ! is_plugin_active( $item ) ) {
+				return array(
+					'success' => false,
+					'message' => esc_html( 'Activation completed but plugin is not active.' ),
+				);
+			}
+
+			return array(
+				'success' => true,
+				'message' => esc_html( 'Success!' ),
 			);
 
 		} elseif ( 'theme' === $type ) {
 
-			if ( ! function_exists( 'switch_theme' ) ) {
+			if ( ! function_exists( 'switch_theme' ) || ! function_exists( 'get_stylesheet' ) ) {
 				require_once ABSPATH . 'wp-includes/theme.php';
 			}
 
 			switch_theme( $item );
-			if ( current_action() === 'wp_die_handler' ) {
-				$response = [
-					'success' => false,
-					'message' => esc_html( 'Theme Activation Failed!' ),
-				];
-			}
-		}
 
-		return $response;
+			// Verify the active theme actually changed
+			if ( get_stylesheet() !== $item ) {
+				return array(
+					'success' => false,
+					'message' => esc_html( 'Theme activation failed — active theme did not change.' ),
+				);
+			}
+
+			return array(
+				'success' => true,
+				'message' => esc_html( 'Success!' ),
+			);
+		}
 	}
 }
