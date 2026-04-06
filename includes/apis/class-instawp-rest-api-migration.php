@@ -364,7 +364,9 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 			}
 
 			// Adding instawp-connect plugin to delete after the migration if delete connect plugin flag is enabled
-			if ( $delete_connect_plugin ) {
+			// Skip if site has an active connect_id — plugin is still needed for the connection
+			$connect_id = instawp_get_connect_id();
+			if ( $delete_connect_plugin && empty( $connect_id ) ) {
 				$plugins_to_delete[] = array(
 					'slug'   => $plugin_slug,
 					'type'   => 'plugin',
