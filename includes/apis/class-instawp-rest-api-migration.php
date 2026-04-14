@@ -444,21 +444,36 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 	 * wp-config.php often contains hardcoded paths that don't exist on the destination server,
 	 * causing Fatal errors and 504 Gateway Timeouts.
 	 *
-	 * @return void
+	 * Public so it can be invoked via WP-CLI `wp eval` from HestiaCP migration scripts
+	 * on pure pull migrations where the post-migration cleanup REST endpoint is not called.
+	 *
+	 * @return array {
+	 *     @type bool   $success  Whether the operation completed without error.
+	 *     @type bool   $modified Whether wp-config.php was actually changed.
+	 *     @type string $message  Human-readable status message.
+	 * }
 	 */
-	private function sanitize_wp_config() {
+	public function sanitize_wp_config() {
 		try {
 			$wp_config_path = ABSPATH . 'wp-config.php';
 			if ( ! file_exists( $wp_config_path ) ) {
 				$wp_config_path = dirname( ABSPATH ) . '/wp-config.php';
 			}
 			if ( ! file_exists( $wp_config_path ) || ! is_writable( $wp_config_path ) ) {
-				return;
+				return array(
+					'success'  => false,
+					'modified' => false,
+					'message'  => 'wp-config.php not found or not writable.',
+				);
 			}
 
 			$content = file_get_contents( $wp_config_path );
 			if ( empty( $content ) ) {
-				return;
+				return array(
+					'success'  => false,
+					'modified' => false,
+					'message'  => 'wp-config.php is empty or unreadable.',
+				);
 			}
 
 			$modified = false;
@@ -580,11 +595,34 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 			}
 
 			if ( $modified ) {
-				file_put_contents( $wp_config_path, $content );
+				$bytes = file_put_contents( $wp_config_path, $content );
+				if ( false === $bytes ) {
+					return array(
+						'success'  => false,
+						'modified' => false,
+						'message'  => 'Failed to write sanitized wp-config.php.',
+					);
+				}
+				return array(
+					'success'  => true,
+					'modified' => true,
+					'message'  => 'wp-config.php sanitized successfully.',
+				);
 			}
+
+			return array(
+				'success'  => true,
+				'modified' => false,
+				'message'  => 'wp-config.php already clean, no changes needed.',
+			);
 		} catch ( \Throwable $e ) {
 			// Sanitization failure should never break the migration.
 			Helper::add_error_log( 'wp-config sanitization error: ' . $e->getMessage(), $e );
+			return array(
+				'success'  => false,
+				'modified' => false,
+				'message'  => 'wp-config sanitization error: ' . $e->getMessage(),
+			);
 		}
 	}
 }
