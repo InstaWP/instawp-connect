@@ -379,6 +379,28 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 				InstaWP_Tools::clean_iwp_files_dir();
 			}
 
+			// Hard guard: if instawp-connect is in the delete list and the site is
+			// still connected or is a staging site, remove it. Covers every path
+			// that can append it (white-label post_uninstalls, delete_connect_plugin
+			// default, future code). Reuses $connect_id from the pre-filter above.
+			$connect_index = array_search( $plugin_slug, array_column( $plugins_to_delete, 'slug' ), true );
+			if ( false !== $connect_index ) {
+				$is_staging_site = (bool) Option::get_option( 'instawp_is_staging' );
+				$parent_connect  = Option::get_option( 'instawp_sync_connect_id' );
+
+				if ( ! empty( $connect_id ) || $is_staging_site || ! empty( $parent_connect ) ) {
+					unset( $plugins_to_delete[ $connect_index ] );
+					Helper::add_error_log(
+						'Removed instawp-connect from post_migration_cleanup delete list — site is connected/staging',
+						array(
+							'connect_id'        => $connect_id,
+							'is_staging'        => $is_staging_site,
+							'parent_connect_id' => $parent_connect,
+						)
+					);
+				}
+			}
+
 			foreach ( $plugins_to_delete as $plugin ) {
 
 				$_slug   = InstaWP_Setting::get_args_option( 'slug', $plugin );
