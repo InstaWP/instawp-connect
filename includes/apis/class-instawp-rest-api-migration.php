@@ -342,9 +342,19 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 
 			Option::update_option( 'instawp_last_migration_details', $migration_details );
 
-			// reset everything and remove connection
+			$connect_id = instawp_get_connect_id();
+
+			// Reset migration state. Connected sites (with a valid connect_id)
+			// get a soft reset that cleans migration temp data only — their
+			// instawp_api_options, instawp_is_staging etc. must survive so the
+			// site stays connected to the dashboard. Disconnected sites get the
+			// full hard reset + server-side disconnect as before.
 			if ( $clear_connect ) {
-				instawp_reset_running_migration( 'hard', true );
+				if ( ! empty( $connect_id ) ) {
+					instawp_reset_running_migration();
+				} else {
+					instawp_reset_running_migration( 'hard', true );
+				}
 			}
 
 			$post_uninstalls = $request->get_param( 'post_uninstalls' );
@@ -365,7 +375,6 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 
 			// Adding instawp-connect plugin to delete after the migration if delete connect plugin flag is enabled
 			// Skip if site has an active connect_id — plugin is still needed for the connection
-			$connect_id = instawp_get_connect_id();
 			if ( $delete_connect_plugin && empty( $connect_id ) ) {
 				$plugins_to_delete[] = array(
 					'slug'   => $plugin_slug,
