@@ -136,6 +136,19 @@ All code must be:
 - Use feature detection instead of version checks where possible
 - Deprecate old functions gracefully before removal
 
+### Variable Declaration Before Use
+- **NEVER use a variable before declaring it** — even if PHP won't fatal on it, it produces bugs and undefined behavior
+- Before writing any code block that references a variable, verify where that variable is declared in the current scope
+- When moving code blocks (e.g., reordering logic), trace ALL variable dependencies and move declarations above their first use
+- When adding new code that references an existing variable, confirm the declaration line number is ABOVE the new code — do not assume
+
+### Self-Review Before Presenting Edits
+- After writing an edit, re-read the FULL diff and trace every variable reference to its declaration
+- Check that no variable is used before its assignment in the new ordering
+- Check that moved/deleted code doesn't leave dangling references
+- If an edit reorders logic, draw the dependency chain: which variables feed into which lines, and does the new order satisfy all dependencies?
+- Do NOT rely on the user to catch scope errors — catch them yourself before presenting
+
 ### Syntax Error Free
 - All code must be free of syntax errors before committing
 - Validate PHP syntax using `php -l filename.php` before finalizing changes
