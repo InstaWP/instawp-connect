@@ -1589,7 +1589,7 @@ include $file_path;';
 			return new WP_Error( 404, esc_html__( 'API Signature and others data could not set properly', 'instawp-connect' ) );
 		}
 
-		// Check accessibility of serve.php file
+		// Check accessibility of iwp-serve/index.php
 		$server_res = self::get_serve_url( $serve_url );
 
 		$serve_url     = $server_res['serve_url'];
@@ -2050,21 +2050,22 @@ include $file_path;';
 		return new WP_Error( 'no_method_find', esc_html__( 'No compression method find.', 'instawp-connect' ) );
 	}
 
-	public static function create_insta_site() {
+	public static function create_insta_site( $is_reserved = false ) {
 		$connect_id = instawp_get_connect_id();
 
 		// Creating new blank site
 		$sites_args        = array(
-			'wp_version'  => '6.3',
-			'php_version' => '7.4',
-			'is_reserved' => false,
+			'wp_version'  => function_exists('get_bloginfo') ? get_bloginfo( 'version' ): '6.9.4',
+			'php_version' => function_exists('phpversion') ? phpversion(): '8.3',
+			'is_reserved' => $is_reserved,
 		);
+
 		$sites_res         = Curl::do_curl( "connects/{$connect_id}/sites/create-staging", $sites_args );
 		$sites_res_status  = (bool) Helper::get_args_option( 'success', $sites_res, true );
-		$sites_res_message = Helper::get_args_option( 'message', $sites_res, true );
+		$sites_res_message = Helper::get_args_option( 'message', $sites_res );
 
 		if ( ! $sites_res_status ) {
-			return new WP_Error( 'could_not_create_site', $sites_res_message );
+			return new WP_Error( 'could_not_create_site', sanitize_text_field( $sites_res_message ) );
 		}
 
 		$sites_res_data = Helper::get_args_option( 'data', $sites_res, array() );
@@ -2085,7 +2086,12 @@ include $file_path;';
 
 				error_log( "local_push_migration_progress: {$percentage_complete}" );
 
-				if ( $restore_status === 'completed' ) {
+				if ( $restore_status === 'error' ) {
+					$comment      = Helper::get_args_option( 'comment', $status_res_data, 'Error: ' . esc_html__( 'Failed to create site with WordPress ', 'instawp-connect' ) . $sites_args['wp_version'] . '& Php ' . $sites_args['php_version'] );
+					$comment = explode('Error:', $comment, 2);
+					return new WP_Error( 'could_not_create_site', sanitize_text_field( isset($comment[1]) ? $comment[1] : $comment[0] ) );
+					break;
+				} else if ( $restore_status === 'completed' ) {
 					break;
 				}
 
@@ -2191,7 +2197,12 @@ include $file_path;';
 
 			error_log( "local_push_migration_progress: {$percentage_complete}" );
 
-			if ( $restore_status === 'completed' ) {
+			if ( $restore_status === 'error' ) {
+				$comment      = Helper::get_args_option( 'comment', $status_res_data, 'Error: ' . esc_html__( 'Failed to restore the created site from the given backup.', 'instawp-connect' ) );
+				$comment = explode('Error:', $comment, 2);
+				return new WP_Error( 'restore_raw_api_failed', sanitize_text_field( isset($comment[1]) ? $comment[1] : $comment[0] ) );
+				break;
+			} else if ( $restore_status === 'completed' ) {
 				break;
 			}
 

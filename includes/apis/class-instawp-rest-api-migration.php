@@ -342,9 +342,19 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 
 			Option::update_option( 'instawp_last_migration_details', $migration_details );
 
-			// reset everything and remove connection
+			$connect_id = instawp_get_connect_id();
+
+			// Reset migration state. Connected sites (with a valid connect_id)
+			// get a soft reset that cleans migration temp data only — their
+			// instawp_api_options, instawp_is_staging etc. must survive so the
+			// site stays connected to the dashboard. Disconnected sites get the
+			// full hard reset + server-side disconnect as before.
 			if ( $clear_connect ) {
-				instawp_reset_running_migration( 'hard', true );
+				if ( ! empty( $connect_id ) ) {
+					instawp_reset_running_migration();
+				} else {
+					instawp_reset_running_migration( 'hard', true );
+				}
 			}
 
 			$post_uninstalls = $request->get_param( 'post_uninstalls' );
@@ -364,7 +374,8 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 			}
 
 			// Adding instawp-connect plugin to delete after the migration if delete connect plugin flag is enabled
-			if ( $delete_connect_plugin ) {
+			// Skip if site has an active connect_id — plugin is still needed for the connection
+			if ( $delete_connect_plugin && empty( $connect_id ) ) {
 				$plugins_to_delete[] = array(
 					'slug'   => $plugin_slug,
 					'type'   => 'plugin',
@@ -375,6 +386,28 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 			// Cleaning up migrations and backup files
 			if ( $migration_details['status'] === 'completed' ) {
 				InstaWP_Tools::clean_iwp_files_dir();
+			}
+
+			// Hard guard: if instawp-connect is in the delete list and the site is
+			// still connected or is a staging site, remove it. Covers every path
+			// that can append it (white-label post_uninstalls, delete_connect_plugin
+			// default, future code). Reuses $connect_id from the pre-filter above.
+			$connect_index = array_search( $plugin_slug, array_column( $plugins_to_delete, 'slug' ), true );
+			if ( false !== $connect_index ) {
+				$is_staging_site = (bool) Option::get_option( 'instawp_is_staging' );
+				$parent_connect  = Option::get_option( 'instawp_sync_connect_id' );
+
+				if ( ! empty( $connect_id ) || $is_staging_site || ! empty( $parent_connect ) ) {
+					unset( $plugins_to_delete[ $connect_index ] );
+					Helper::add_error_log(
+						'Removed instawp-connect from post_migration_cleanup delete list — site is connected/staging',
+						array(
+							'connect_id'        => $connect_id,
+							'is_staging'        => $is_staging_site,
+							'parent_connect_id' => $parent_connect,
+						)
+					);
+				}
 			}
 
 			foreach ( $plugins_to_delete as $plugin ) {
@@ -420,21 +453,36 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 	 * wp-config.php often contains hardcoded paths that don't exist on the destination server,
 	 * causing Fatal errors and 504 Gateway Timeouts.
 	 *
-	 * @return void
+	 * Public so it can be invoked via WP-CLI `wp eval` from HestiaCP migration scripts
+	 * on pure pull migrations where the post-migration cleanup REST endpoint is not called.
+	 *
+	 * @return array {
+	 *     @type bool   $success  Whether the operation completed without error.
+	 *     @type bool   $modified Whether wp-config.php was actually changed.
+	 *     @type string $message  Human-readable status message.
+	 * }
 	 */
-	private function sanitize_wp_config() {
+	public function sanitize_wp_config() {
 		try {
 			$wp_config_path = ABSPATH . 'wp-config.php';
 			if ( ! file_exists( $wp_config_path ) ) {
 				$wp_config_path = dirname( ABSPATH ) . '/wp-config.php';
 			}
 			if ( ! file_exists( $wp_config_path ) || ! is_writable( $wp_config_path ) ) {
-				return;
+				return array(
+					'success'  => false,
+					'modified' => false,
+					'message'  => 'wp-config.php not found or not writable.',
+				);
 			}
 
 			$content = file_get_contents( $wp_config_path );
 			if ( empty( $content ) ) {
-				return;
+				return array(
+					'success'  => false,
+					'modified' => false,
+					'message'  => 'wp-config.php is empty or unreadable.',
+				);
 			}
 
 			$modified = false;
@@ -556,11 +604,34 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 			}
 
 			if ( $modified ) {
-				file_put_contents( $wp_config_path, $content );
+				$bytes = file_put_contents( $wp_config_path, $content );
+				if ( false === $bytes ) {
+					return array(
+						'success'  => false,
+						'modified' => false,
+						'message'  => 'Failed to write sanitized wp-config.php.',
+					);
+				}
+				return array(
+					'success'  => true,
+					'modified' => true,
+					'message'  => 'wp-config.php sanitized successfully.',
+				);
 			}
+
+			return array(
+				'success'  => true,
+				'modified' => false,
+				'message'  => 'wp-config.php already clean, no changes needed.',
+			);
 		} catch ( \Throwable $e ) {
 			// Sanitization failure should never break the migration.
 			Helper::add_error_log( 'wp-config sanitization error: ' . $e->getMessage(), $e );
+			return array(
+				'success'  => false,
+				'modified' => false,
+				'message'  => 'wp-config sanitization error: ' . $e->getMessage(),
+			);
 		}
 	}
 }

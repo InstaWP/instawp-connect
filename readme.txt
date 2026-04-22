@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.6
 Tested up to: 6.9
 Requires PHP: 7.0
-Stable tag: 0.1.3.0
+Stable tag: 0.1.3.1
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -97,6 +97,14 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 You can report security bugs through the Patchstack Vulnerability Disclosure Program. The Patchstack team helps validate, triage, and handle any security vulnerabilities. [Report a security vulnerability](https://patchstack.com/database/vdp/instawp-connect).
 
 == Changelog ==
+
+
+= 0.1.3.1 - 22 April 2026 =
+- Improved: Local push site creation and restore now handle task errors gracefully.
+- Improved: Local push now uses current site WP and PHP versions for staging site.
+- Improved: Local push now creates a reserved site for better reliability.
+- Improved: Migration cleanup will no longer remove the InstaWP Connect plugin if the site is connected and managed via InstaWP.
+- Fixed: Serve URL 404 error on `/serve-instawp/` WordPress-routed migration fallback.
 
 = 0.1.3.0 - 31 March 2026 =
 - Fixed: Improved response details
