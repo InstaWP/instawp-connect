@@ -1589,7 +1589,7 @@ include $file_path;';
 			return new WP_Error( 404, esc_html__( 'API Signature and others data could not set properly', 'instawp-connect' ) );
 		}
 
-		// Check accessibility of serve.php file
+		// Check accessibility of iwp-serve/index.php
 		$server_res = self::get_serve_url( $serve_url );
 
 		$serve_url     = $server_res['serve_url'];
