@@ -2218,29 +2218,35 @@ include $file_path;';
 	public static function clean_iwp_files_dir() {
 		try {
 			// Delete IWP files : Start
-			$files = array(
-				ABSPATH . 'iwp-db-received.sql',
-				ABSPATH . 'iwp-push-log.txt',
-			);
+			$files = array();
+
+			// Broad globs cover both legacy non-hashed names and new
+			// hashed names in a single pattern.
+			foreach ( (array) glob( ABSPATH . 'iwp-*.sql' ) as $iwp_sql_path ) {
+				$files[] = $iwp_sql_path;
+			}
+			foreach ( (array) glob( ABSPATH . 'iwp-*.txt' ) as $iwp_txt_path ) {
+				$files[] = $iwp_txt_path;
+			}
 
 			$keep_files = 'on' === Option::get_option( 'instawp_keep_db_sql_after_migration', 'off' );
 			if ( ! $keep_files ) {
-				$files[] = ABSPATH . 'db.sql';
+				foreach ( (array) glob( ABSPATH . 'db*.sql' ) as $db_dump_path ) {
+					$files[] = $db_dump_path;
+				}
+				foreach ( (array) glob( WP_CONTENT_DIR . DIRECTORY_SEPARATOR . 'db*.sql' ) as $wp_content_db_dump_path ) {
+					$files[] = $wp_content_db_dump_path;
+				}
 			}
 
-			foreach ( array_merge(
-				glob( ABSPATH . 'migrate-push-db-*' ),
-				glob( WP_CONTENT_DIR . DIRECTORY_SEPARATOR . 'db-*' )
-			) as $file_to_del ) {
+			foreach ( (array) glob( ABSPATH . 'migrate-push-db-*' ) as $file_to_del ) {
 				$fil_ext = pathinfo( $file_to_del, PATHINFO_EXTENSION );
-				if ( is_file( $file_to_del ) && in_array( $fil_ext, array( 'sql', 'txt', 'log' ) ) ) {
+				if ( is_file( $file_to_del ) && in_array( $fil_ext, array( 'sql', 'txt', 'log' ), true ) ) {
 					$files[] = $file_to_del;
 				}
 			}
 
-			foreach ( array_merge(
-				glob( ABSPATH . 'instawp-sql-*' )
-			) as $file_to_del ) {
+			foreach ( (array) glob( ABSPATH . 'instawp-sql-*' ) as $file_to_del ) {
 				if ( is_file( $file_to_del ) ) {
 					$files[] = $file_to_del;
 				}
