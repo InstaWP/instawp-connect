@@ -1047,12 +1047,16 @@ if ( ! function_exists( 'iwp_cleanup_stale_migration_files' ) ) {
 	 * Runs at the start of every new migration as a fallback for hosts
 	 * where register_shutdown_function() is disabled by disable_functions.
 	 *
-	 * Patterns are intentionally broad (iwp-*.sql / db*.sql / iwp-*.txt)
-	 * so both legacy and hashed filenames are caught by the same glob.
+	 * Patterns are intentionally broad (iwp-*.sql / iwp-*.txt / db*.sql /
+	 * migrate-push-db-* / instawp-sql-*) so both legacy and hashed filenames
+	 * are caught, and the encrypted credentials sidecar uploaded by the
+	 * source plugin (migrate-push-db-<5chars>.txt) is also reclaimed.
 	 *
 	 * @param string $root_dir_path The WordPress root path.
 	 * @param string $exclude_hash  Hash of the current in-flight migration;
 	 *                              files whose name contains this substring are skipped.
+	 *                              (Note: migrate-push-db-<5chars>.txt uses a different
+	 *                              naming scheme and is protected by mtime alone.)
 	 * @param int    $stale_seconds Mtime threshold in seconds (default 21600).
 	 * @return void
 	 */
@@ -1063,7 +1067,9 @@ if ( ! function_exists( 'iwp_cleanup_stale_migration_files' ) ) {
 			(array) glob( $root . 'iwp-*.sql' ),
 			(array) glob( $root . 'iwp-*.txt' ),
 			(array) glob( $root . 'db*.sql' ),
-			(array) glob( $wp_content . 'db*.sql' )
+			(array) glob( $wp_content . 'db*.sql' ),
+			(array) glob( $root . 'migrate-push-db-*' ),
+			(array) glob( $root . 'instawp-sql-*' )
 		);
 
 		$current_time = time();
