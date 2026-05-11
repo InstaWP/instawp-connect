@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.6
 Tested up to: 6.9
 Requires PHP: 7.0
-Stable tag: 0.1.3.1
+Stable tag: 0.1.3.2
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -98,6 +98,10 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+
+= 0.1.3.2 - 12 May 2026 =
+- Security: Migration files on the destination site now use unguessable hashed filenames for stronger privacy.
+- Improved: Each push migration automatically cleans up leftover artifact files at start for a cleaner destination site.
 
 = 0.1.3.1 - 22 April 2026 =
 - Improved: Local push site creation and restore now handle task errors gracefully.
