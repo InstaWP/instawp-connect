@@ -661,7 +661,7 @@ class InstaWP_Setting {
 					'id'      => 'instawp_keep_db_sql_after_migration',
 					'type'    => 'toggle',
 					'title'   => __( 'Keep DB SQL File', 'instawp-connect' ),
-					'tooltip' => __( 'Enabling this option will keep the db.sql file after migration on destination website.', 'instawp-connect' ),
+					'tooltip' => __( 'Enabling this option will keep the migration database SQL dump file on the destination website after migration.', 'instawp-connect' ),
 					'class'   => 'save-ajax',
 					'default' => 'off',
 				),

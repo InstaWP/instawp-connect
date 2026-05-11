@@ -870,11 +870,18 @@ if ( ! function_exists( 'iwp_backup_wp_core_folders' ) ) {
 }
 
 if ( ! function_exists( 'iwp_backup_wp_database' ) ) {
-	function iwp_backup_wp_database( $db_host, $db_username, $db_password, $db_name, $root_dir_path = '', $timestamp = '' ) {
+	function iwp_backup_wp_database( $db_host, $db_username, $db_password, $db_name, $root_dir_path = '', $timestamp = '', $migration_key_hash = '' ) {
 
-		$root_dir_path = empty( $root_dir_path ) ? dirname( __FILE__ ) : $root_dir_path;
-		$timestamp     = empty( $timestamp ) ? date( 'YmdHi' ) : $timestamp;
-		$backup_file   = $root_dir_path . DIRECTORY_SEPARATOR . "wp-content" . DIRECTORY_SEPARATOR . "db-{$timestamp}.sql";
+		$root_dir_path     = empty( $root_dir_path ) ? dirname( __FILE__ ) : $root_dir_path;
+		$timestamp         = empty( $timestamp ) ? date( 'YmdHi' ) : $timestamp;
+		// Embed the per-migration hash in the backup filename so the pre-migration
+		// destination DB dump isn't downloadable by a guessable timestamp URL.
+		// Falls back to the legacy timestamp-only name if no hash is supplied
+		// (preserves behavior for any ad-hoc callers).
+		$backup_file_basename = '' !== $migration_key_hash
+			? "db-{$migration_key_hash}-{$timestamp}.sql"
+			: "db-{$timestamp}.sql";
+		$backup_file       = $root_dir_path . DIRECTORY_SEPARATOR . "wp-content" . DIRECTORY_SEPARATOR . $backup_file_basename;
 		$pdo           = null;
 		$mysqli        = null;
 
@@ -967,6 +974,112 @@ if ( ! function_exists( 'iwp_backup_wp_database' ) ) {
 		return [
 			'db_file_path' => $backup_file,
 		];
+	}
+}
+
+if ( ! function_exists( 'iwp_get_migration_key_hash' ) ) {
+	/**
+	 * Per-migration filename suffix derived from the migrate key.
+	 *
+	 * 16 hex chars = 64 bits of entropy. Deterministic for a given key so
+	 * writers and cleaners derive the same filename for the same migration.
+	 *
+	 * @param string $migrate_key The migration key from the request.
+	 * @return string 16-char hex suffix.
+	 */
+	function iwp_get_migration_key_hash( $migrate_key ) {
+		return substr( hash( 'sha256', (string) $migrate_key ), 0, 16 );
+	}
+}
+
+if ( ! function_exists( 'iwp_get_migration_file_paths' ) ) {
+	/**
+	 * Absolute paths of every per-migration file identified by $key_hash.
+	 *
+	 * Single source of truth for filenames written during a push migration.
+	 * Used by iwp-dest writers, the shutdown handler, and the API cleanup.
+	 *
+	 * @param string $root_dir_path The WordPress root path (no trailing separator required).
+	 * @param string $key_hash      Suffix from iwp_get_migration_key_hash().
+	 * @return string[] Absolute paths.
+	 */
+	function iwp_get_migration_file_paths( $root_dir_path, $key_hash ) {
+		$root                 = rtrim( $root_dir_path, DIRECTORY_SEPARATOR );
+		$migration_file_paths = array(
+			$root . DIRECTORY_SEPARATOR . 'db-' . $key_hash . '.sql',
+			$root . DIRECTORY_SEPARATOR . 'iwp-db-received-' . $key_hash . '.sql',
+			$root . DIRECTORY_SEPARATOR . 'iwp-push-log-' . $key_hash . '.txt',
+		);
+		$dest_backup_pattern  = $root . DIRECTORY_SEPARATOR . 'wp-content' . DIRECTORY_SEPARATOR . 'db-' . $key_hash . '-*.sql';
+		foreach ( (array) glob( $dest_backup_pattern ) as $dest_backup_path ) {
+			$migration_file_paths[] = $dest_backup_path;
+		}
+		return $migration_file_paths;
+	}
+}
+
+if ( ! function_exists( 'iwp_delete_migration_files' ) ) {
+	/**
+	 * Delete the current migration's files. Idempotent. Always deletes —
+	 * this is called from the shutdown handler on failed migrations where
+	 * partial dumps are useless regardless of the user's keep setting.
+	 *
+	 * @param string $root_dir_path The WordPress root path.
+	 * @param string $key_hash      Suffix from iwp_get_migration_key_hash().
+	 * @return void
+	 */
+	function iwp_delete_migration_files( $root_dir_path, $key_hash ) {
+		foreach ( iwp_get_migration_file_paths( $root_dir_path, $key_hash ) as $migration_file_path ) {
+			if ( is_file( $migration_file_path ) ) {
+				@unlink( $migration_file_path );
+			}
+		}
+	}
+}
+
+if ( ! function_exists( 'iwp_cleanup_stale_migration_files' ) ) {
+	/**
+	 * Self-healing sweep: delete orphaned migration files left behind by
+	 * prior runs that crashed without cleanup. Only touches files with
+	 * mtime older than $stale_seconds (default 6h — well past any realistic
+	 * migration runtime, so it cannot race with a running migration).
+	 *
+	 * Runs at the start of every new migration as a fallback for hosts
+	 * where register_shutdown_function() is disabled by disable_functions.
+	 *
+	 * Patterns are intentionally broad (iwp-*.sql / db*.sql / iwp-*.txt)
+	 * so both legacy and hashed filenames are caught by the same glob.
+	 *
+	 * @param string $root_dir_path The WordPress root path.
+	 * @param string $exclude_hash  Hash of the current in-flight migration;
+	 *                              files whose name contains this substring are skipped.
+	 * @param int    $stale_seconds Mtime threshold in seconds (default 21600).
+	 * @return void
+	 */
+	function iwp_cleanup_stale_migration_files( $root_dir_path, $exclude_hash = '', $stale_seconds = 21600 ) {
+		$root            = rtrim( $root_dir_path, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
+		$wp_content      = $root . 'wp-content' . DIRECTORY_SEPARATOR;
+		$candidate_paths = array_merge(
+			(array) glob( $root . 'iwp-*.sql' ),
+			(array) glob( $root . 'iwp-*.txt' ),
+			(array) glob( $root . 'db*.sql' ),
+			(array) glob( $wp_content . 'db*.sql' )
+		);
+
+		$current_time = time();
+		foreach ( $candidate_paths as $candidate_path ) {
+			if ( ! is_file( $candidate_path ) ) {
+				continue;
+			}
+			$candidate_name = basename( $candidate_path );
+			if ( '' !== $exclude_hash && false !== strpos( $candidate_name, $exclude_hash ) ) {
+				continue;
+			}
+			if ( $current_time - filemtime( $candidate_path ) < $stale_seconds ) {
+				continue;
+			}
+			@unlink( $candidate_path );
+		}
 	}
 }
 

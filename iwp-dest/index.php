@@ -25,8 +25,14 @@ if ( ! $root_dir_find ) {
 	exit( 2 );
 }
 
-$log_file_path     = $root_dir_path . DIRECTORY_SEPARATOR . 'iwp-push-log.txt';
-$received_db_path  = $root_dir_path . DIRECTORY_SEPARATOR . 'iwp-db-received.sql';
+// Per-migration filename suffix. Makes the on-disk paths for db.sql, the
+// audit log, the push log and the destination pre-migration DB backup
+// unguessable so a partial file that survives a crash cannot be
+// downloaded by URL on the staging domain.
+$migration_key_hash = iwp_get_migration_key_hash( $migrate_key );
+
+$log_file_path     = $root_dir_path . DIRECTORY_SEPARATOR . 'iwp-push-log-' . $migration_key_hash . '.txt';
+$received_db_path  = $root_dir_path . DIRECTORY_SEPARATOR . 'iwp-db-received-' . $migration_key_hash . '.sql';
 $options_data_path = $root_dir_path . DIRECTORY_SEPARATOR . 'migrate-push-db-' . substr( $migrate_key, 0, 5 ) . '.txt';
 
 if ( file_exists( $options_data_path ) ) {
@@ -69,8 +75,14 @@ if ( isset( $_POST['check'] ) ) {
 		die();
 	}
 
+	// First call of a fresh push migration — clear any orphaned per-migration
+	// files left behind by prior runs that crashed without API cleanup. Bounded
+	// by mtime > 6h so it can never touch a concurrent in-flight migration's
+	// files, and skips this migration's own hash via $exclude_hash.
+	iwp_cleanup_stale_migration_files( $root_dir_path, $migration_key_hash );
+
 	$timestamp            = date( 'YmdHi' );
-	$db_backup_response   = iwp_backup_wp_database( $db_host, $db_username, $db_password, $db_name, $root_dir_path, $timestamp );
+	$db_backup_response   = iwp_backup_wp_database( $db_host, $db_username, $db_password, $db_name, $root_dir_path, $timestamp, $migration_key_hash );
 	$core_backup_response = iwp_backup_wp_core_folders( $root_dir_path, $excluded_paths, $timestamp );
 
 	header( 'x-iwp-zip: ' . $has_zip_archive );
@@ -113,6 +125,13 @@ if ( ! $file_input_stream ) {
 }
 
 if ( $file_relative_path === 'db.sql' ) {
+	// Override the on-disk filename so the dump isn't downloadable by guessing
+	// '/db.sql'. The wire format (X-File-Relative-Path: db.sql) is unchanged,
+	// so older source plugins continue to interop with no coordinated upgrade.
+	// File permissions are left to the host's default umask — tightening them
+	// here (e.g. 0600) can prevent clean_iwp_files_dir() from deleting on
+	// suEXEC/suPHP hosts where iwp-dest and the WP cleanup run as different users.
+	$file_save_path = $root_dir_path . DIRECTORY_SEPARATOR . 'db-' . $migration_key_hash . '.sql';
 	if ( file_exists( $file_save_path ) ) {
 		unlink( $file_save_path );
 	}
