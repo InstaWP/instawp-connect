@@ -4,10 +4,49 @@ namespace InstaWP\Connect\Helpers;
 
 class Updater {
 
+	/**
+	 * wp_options key that durably records the WordPress core version
+	 * the site was on immediately BEFORE its most recent core upgrade
+	 * via instawp-connect. The rollback path verifies its requested
+	 * target against this value before installing anything, so the
+	 * plugin owns the truth for "what is a valid rollback target?"
+	 * regardless of what the caller claims. Shape:
+	 *   [ 'version' => '6.7.2', 'next' => '6.9.4', 'updated_at' => 1715520000 ]
+	 */
+	const LAST_CORE_VERSION_OPTION = 'instawp_last_core_version';
+
 	public $args;
 
 	public function __construct( array $args = [] ) {
 		$this->args = $args;
+	}
+
+	/**
+	 * Read the snapshot of the WP core version the site was on just
+	 * before its most recent instawp-connect-driven upgrade. Returns
+	 * null when no upgrade has been recorded yet.
+	 */
+	private function get_last_core_version_snapshot() {
+		$val = get_option( self::LAST_CORE_VERSION_OPTION, null );
+
+		return is_array( $val ) ? $val : null;
+	}
+
+	/**
+	 * Record the WP core version the site is on right now, plus the
+	 * version we're about to install. autoload=false because this is
+	 * only read during upgrade flows.
+	 */
+	private function set_last_core_version_snapshot( $current, $next ) {
+		update_option(
+			self::LAST_CORE_VERSION_OPTION,
+			[
+				'version'    => (string) $current,
+				'next'       => (string) $next,
+				'updated_at' => time(),
+			],
+			false
+		);
 	}
 
 	public function update() {
@@ -28,7 +67,23 @@ class Updater {
 				continue;
 			}
 
-			$results[ $update['slug'] ] = 'core' === $update['type'] ? $this->core_updater( $update ) : $this->updater( $update['type'], $update['slug'] );
+			// Routing for type='core':
+			//   - allow_downgrade flag (or action='rollback') →
+			//     core_downgrade() which doctors the update_core
+			//     transient and then DELEGATES to core_updater(). All
+			//     install/orchestration logic stays in core_updater() —
+			//     strictly one path through Core_Upgrader.
+			//   - Anything else → core_updater() directly (forward).
+			if ( 'core' === $update['type'] ) {
+				$is_rollback = ! empty( $update['allow_downgrade'] )
+					|| ( isset( $update['action'] ) && 'rollback' === $update['action'] );
+
+				$results[ $update['slug'] ] = $is_rollback
+					? $this->core_downgrade( $update )
+					: $this->core_updater( $update );
+			} else {
+				$results[ $update['slug'] ] = $this->updater( $update['type'], $update['slug'] );
+			}
 		}
 
 		return $results;
