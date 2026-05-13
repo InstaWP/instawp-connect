@@ -4,49 +4,10 @@ namespace InstaWP\Connect\Helpers;
 
 class Updater {
 
-	/**
-	 * wp_options key that durably records the WordPress core version
-	 * the site was on immediately BEFORE its most recent core upgrade
-	 * via instawp-connect. The rollback path verifies its requested
-	 * target against this value before installing anything, so the
-	 * plugin owns the truth for "what is a valid rollback target?"
-	 * regardless of what the caller claims. Shape:
-	 *   [ 'version' => '6.7.2', 'next' => '6.9.4', 'updated_at' => 1715520000 ]
-	 */
-	const LAST_CORE_VERSION_OPTION = 'instawp_last_core_version';
-
 	public $args;
 
 	public function __construct( array $args = [] ) {
 		$this->args = $args;
-	}
-
-	/**
-	 * Read the snapshot of the WP core version the site was on just
-	 * before its most recent instawp-connect-driven upgrade. Returns
-	 * null when no upgrade has been recorded yet.
-	 */
-	private function get_last_core_version_snapshot() {
-		$val = get_option( self::LAST_CORE_VERSION_OPTION, null );
-
-		return is_array( $val ) ? $val : null;
-	}
-
-	/**
-	 * Record the WP core version the site is on right now, plus the
-	 * version we're about to install. autoload=false because this is
-	 * only read during upgrade flows.
-	 */
-	private function set_last_core_version_snapshot( $current, $next ) {
-		update_option(
-			self::LAST_CORE_VERSION_OPTION,
-			[
-				'version'    => (string) $current,
-				'next'       => (string) $next,
-				'updated_at' => time(),
-			],
-			false
-		);
 	}
 
 	public function update() {
@@ -67,23 +28,7 @@ class Updater {
 				continue;
 			}
 
-			// Routing for type='core':
-			//   - allow_downgrade flag (or action='rollback') →
-			//     core_downgrade() which doctors the update_core
-			//     transient and then DELEGATES to core_updater(). All
-			//     install/orchestration logic stays in core_updater() —
-			//     strictly one path through Core_Upgrader.
-			//   - Anything else → core_updater() directly (forward).
-			if ( 'core' === $update['type'] ) {
-				$is_rollback = ! empty( $update['allow_downgrade'] )
-					|| ( isset( $update['action'] ) && 'rollback' === $update['action'] );
-
-				$results[ $update['slug'] ] = $is_rollback
-					? $this->core_downgrade( $update )
-					: $this->core_updater( $update );
-			} else {
-				$results[ $update['slug'] ] = $this->updater( $update['type'], $update['slug'] );
-			}
+			$results[ $update['slug'] ] = 'core' === $update['type'] ? $this->core_updater( $update ) : $this->updater( $update['type'], $update['slug'] );
 		}
 
 		return $results;
@@ -140,12 +85,6 @@ class Updater {
 		// Capture version before upgrade for verification
 		$old_version = get_bloginfo( 'version' );
 
-		// Snapshot the pre-upgrade version into wp_options so a future
-		// rollback request has a verified target. Written here (before
-		// Core_Upgrader runs) so it survives even if the upgrader
-		// crashes mid-way — the site is in a known prior state.
-		$this->set_last_core_version_snapshot( $old_version, $args['version'] );
-
 		$skin     = new \Automatic_Upgrader_Skin();
 		$upgrader = new \Core_Upgrader( $skin );
 		$result   = $upgrader->upgrade( $update, [
@@ -154,6 +93,9 @@ class Updater {
 
 		delete_site_transient( 'update_core' );
 		wp_version_check( [], true );
+
+		// Re-read version after upgrade to verify it actually changed
+		$new_version = get_bloginfo( 'version' );
 
 		if ( is_wp_error( $result ) ) {
 			if ( $result->get_error_data() && is_string( $result->get_error_data() ) ) {
@@ -170,14 +112,11 @@ class Updater {
 		$message = isset( $error_message ) ? trim( $error_message ) : '';
 		$success = empty( $message );
 
-		// new_version reported back is the version we asked
-		// Core_Upgrader to install — accurate on success. On failure we
-		// report old_version because nothing was installed. We do NOT
-		// compare get_bloginfo() before vs after the upgrade because
-		// $wp_version is a cached PHP global that Core_Upgrader does
-		// not refresh in-process. WP itself trusts Core_Upgrader's
-		// return value (is_wp_error check above) and so do we.
-		$new_version = $success ? (string) $args['version'] : $old_version;
+		// Verify version actually changed — upgrader may report success without updating
+		if ( $success && $old_version === $new_version ) {
+			$success = false;
+			$message = esc_html( 'Update completed but version unchanged.' );
+		}
 
 		return [
 			'message'     => $success ? esc_html( 'Success!' ) : $message,
@@ -185,135 +124,6 @@ class Updater {
 			'old_version' => $old_version,
 			'new_version' => $new_version,
 		];
-	}
-
-	private function core_downgrade( array $args = [] ) {
-		$args = wp_parse_args( $args, [
-			'locale'  => get_locale(),
-			'version' => '',
-		] );
-
-		// 1. Verify against the plugin's own snapshot.
-		$snapshot = $this->get_last_core_version_snapshot();
-		if ( empty( $snapshot ) || empty( $snapshot['version'] ) ) {
-			Helper::add_error_log( 'core_downgrade: rejected — no snapshot recorded' );
-
-			return [
-				'message' => esc_html( 'No previous core version recorded' ),
-				'success' => false,
-			];
-		}
-
-		if ( empty( $args['version'] ) ) {
-			$args['version'] = $snapshot['version'];
-		} elseif ( (string) $args['version'] !== (string) $snapshot['version'] ) {
-			Helper::add_error_log( sprintf(
-				'core_downgrade: rejected — stored %s, requested %s',
-				$snapshot['version'],
-				$args['version']
-			) );
-
-			return [
-				'message' => sprintf(
-					/* translators: 1: stored version, 2: requested version */
-					esc_html__( 'Rollback target mismatch (stored: %1$s, requested: %2$s)', 'instawp-connect' ),
-					$snapshot['version'],
-					$args['version']
-				),
-				'success' => false,
-			];
-		}
-
-		$target_version = $args['version'];
-
-		// 2. Reject malformed version strings before going to the network.
-		if ( ! preg_match( '/^\d+(\.\d+){1,2}([\-\.][A-Za-z0-9]+)?$/', (string) $target_version ) ) {
-			Helper::add_error_log( sprintf(
-				'core_downgrade: rejected malformed version "%s"', $target_version
-			) );
-
-			return [
-				'message' => esc_html( 'Update not found!' ),
-				'success' => false,
-			];
-		}
-
-		// 3. Canonical WP.org package URL. en_US / empty locale → no
-		//    prefix; other locales → "<locale>/" before the filename.
-		$locale_prefix = ( 'en_US' === $args['locale'] || empty( $args['locale'] ) )
-			? ''
-			: $args['locale'] . '/';
-		$package_url = sprintf(
-			'https://downloads.wordpress.org/release/%swordpress-%s.zip',
-			$locale_prefix,
-			rawurlencode( $target_version )
-		);
-
-		// 4. Pre-flight HEAD — accept 200/301/302. Catches 404s before
-		//    invoking Core_Upgrader so failures surface cleanly.
-		$head = wp_remote_head( $package_url, [ 'timeout' => 15, 'redirection' => 5 ] );
-		if ( is_wp_error( $head )
-			|| ! in_array( (int) wp_remote_retrieve_response_code( $head ), [ 200, 301, 302 ], true )
-		) {
-			Helper::add_error_log( sprintf(
-				'core_downgrade: package %s unavailable (code: %s)',
-				$package_url,
-				is_wp_error( $head ) ? $head->get_error_message() : wp_remote_retrieve_response_code( $head )
-			) );
-
-			return [
-				'message' => esc_html( 'Update not found!' ),
-				'success' => false,
-			];
-		}
-
-		// 5. Filter callback that rewrites the update_core transient.
-		$rewrite_offer = function ( $updates ) use ( $target_version, $package_url ) {
-			if ( ! is_object( $updates ) || empty( $updates->updates ) ) {
-				$updates                  = new \stdClass();
-				$updates->last_checked    = time();
-				$updates->version_checked = get_bloginfo( 'version' );
-				$updates->updates         = [ new \stdClass() ];
-				$updates->updates[0]->response        = 'upgrade';
-				$updates->updates[0]->locale          = get_locale();
-				$updates->updates[0]->php_version     = '5.6.20';
-				$updates->updates[0]->mysql_version   = '5.0';
-				$updates->updates[0]->new_files       = true;
-				$updates->updates[0]->partial_version = '';
-				$updates->updates[0]->packages        = new \stdClass();
-			}
-
-			$updates->updates[0]->current               = $target_version;
-			$updates->updates[0]->version               = $target_version;
-			$updates->updates[0]->download              = $package_url;
-			$updates->updates[0]->new_files             = true;
-			$updates->updates[0]->packages->full        = $package_url;
-			$updates->updates[0]->packages->no_content  = '';
-			$updates->updates[0]->packages->new_bundled = '';
-			$updates->updates[0]->packages->partial     = '';
-			$updates->updates[0]->packages->rollback    = '';
-
-			return $updates;
-		};
-
-		// 6. Hook filters before the delegated call.
-		add_filter( 'pre_site_transient_update_core', $rewrite_offer, 10, 1 );
-		add_filter( 'site_transient_update_core', $rewrite_offer, 10, 1 );
-		delete_site_transient( 'update_core' );
-
-		// 7. Delegate to core_updater() — find_core_update() now sees
-		//    the rewritten offer and Core_Upgrader runs with no
-		//    special casing.
-		$result = $this->core_updater( [
-			'version' => $target_version,
-			'locale'  => $args['locale'],
-		] );
-
-		// 8. Always tear down our filters.
-		remove_filter( 'pre_site_transient_update_core', $rewrite_offer, 10 );
-		remove_filter( 'site_transient_update_core', $rewrite_offer, 10 );
-
-		return $result;
 	}
 
 	private function updater( $type, $item ) {
