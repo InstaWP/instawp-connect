@@ -1,9 +1,9 @@
 <?php return array(
     'root' => array(
         'name' => 'instawp/connect',
-        'pretty_version' => 'dev-develop',
-        'version' => 'dev-develop',
-        'reference' => '938e2e37a2f9badba7adac588b26452beecf0e26',
+        'pretty_version' => '1.0.0+no-version-set',
+        'version' => '1.0.0.0',
+        'reference' => null,
         'type' => 'wordpress-plugin',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -11,9 +11,9 @@
     ),
     'versions' => array(
         'instawp/connect' => array(
-            'pretty_version' => 'dev-develop',
-            'version' => 'dev-develop',
-            'reference' => '938e2e37a2f9badba7adac588b26452beecf0e26',
+            'pretty_version' => '1.0.0+no-version-set',
+            'version' => '1.0.0.0',
+            'reference' => null,
             'type' => 'wordpress-plugin',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
@@ -22,7 +22,7 @@
         'instawp/connect-helpers' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => 'd86499211ea400619409c64243f1103d723873c0',
+            'reference' => 'e88699574d7a7defb2690de7cf17d42e7ef9c9b2',
             'type' => 'library',
             'install_path' => __DIR__ . '/../instawp/connect-helpers',
             'aliases' => array(
@@ -49,9 +49,9 @@
             'dev_requirement' => false,
         ),
         'phpseclib/phpseclib' => array(
-            'pretty_version' => '3.0.50',
-            'version' => '3.0.50.0',
-            'reference' => 'aa6ad8321ed103dc3624fb600a25b66ebf78ec7b',
+            'pretty_version' => '3.0.52',
+            'version' => '3.0.52.0',
+            'reference' => '2adaefc83df2ec548558307690f376dd7d4f4fce',
             'type' => 'library',
             'install_path' => __DIR__ . '/../phpseclib/phpseclib',
             'aliases' => array(),
@@ -67,9 +67,9 @@
             'dev_requirement' => false,
         ),
         'wp-cli/wp-config-transformer' => array(
-            'pretty_version' => 'v1.4.5',
-            'version' => '1.4.5.0',
-            'reference' => '8f5e66c717a7371dfb6559086880bee528aee858',
+            'pretty_version' => 'v1.4.6',
+            'version' => '1.4.6.0',
+            'reference' => '1ef18784990b85b35202c2d68dbbc4a8fe6615b6',
             'type' => 'library',
             'install_path' => __DIR__ . '/../wp-cli/wp-config-transformer',
             'aliases' => array(),
