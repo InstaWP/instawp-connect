@@ -107,6 +107,25 @@ class Updater {
 			require_once ABSPATH . 'wp-admin/includes/misc.php';
 		}
 
+		// Refresh WordPress's cached core-update offer before resolving
+		// the target. The `update_core` site transient can be stale —
+		// most importantly right after a rollback: that rollback request
+		// rebuilt the transient from a stale wp_get_wp_version() (a
+		// per-request static the Core_Upgrader cannot change in-process),
+		// so it still advertises the previous version with
+		// response='latest'. find_core_update() would then return that
+		// offer and Core_Upgrader rejects the upgrade as "WordPress is
+		// at the latest version.". This call runs in a fresh request, so
+		// wp_get_wp_version() now reports the real current version —
+		// deleting the transient and forcing wp_version_check() rebuilds
+		// a correct offer, so the update succeeds on the first attempt.
+		// Skipped for the downgrade path, which installs its own
+		// doctored offer via the pre_site_transient_update_core filter.
+		if ( empty( $args['skip_core_check'] ) ) {
+			delete_site_transient( 'update_core' );
+			wp_version_check( [], true );
+		}
+
 		$update = find_core_update( $args['version'], $args['locale'] );
 		if ( ! $update ) {
 			return [
@@ -305,8 +324,12 @@ class Updater {
 		//    the rewritten offer and Core_Upgrader runs with no
 		//    special casing.
 		$result = $this->core_updater( [
-			'version' => $target_version,
-			'locale'  => $args['locale'],
+			'version'         => $target_version,
+			'locale'          => $args['locale'],
+			// Downgrade already deletes the transient and installs its
+			// own rewritten offer via filters — a forced wp_version_check
+			// in core_updater() would just be a wasted remote call.
+			'skip_core_check' => true,
 		] );
 
 		// 8. Always tear down our filters.

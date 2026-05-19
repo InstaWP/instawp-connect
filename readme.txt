@@ -98,8 +98,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
-
-= 0.1.3.3 - Beta =
+= 0.1.3.3 - 19 May 2026 =
 - Added: WordPress core rollback support — the plugin now snapshots the current core version before every core upgrade and can roll back to that recorded version on request.
 
 = 0.1.3.2 - 12 May 2026 =
