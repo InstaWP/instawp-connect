@@ -1,3 +1,9 @@
+v1.1.1
+======
+- Added: WordPress core rollback support.
+- Added: Pre-upgrade core version snapshot for verified rollback targets.
+- Improved: Core update verification logic.
+
 v1.1.0
 ======
 - Fixed: Improved response details

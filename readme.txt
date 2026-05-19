@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.6
 Tested up to: 6.9
 Requires PHP: 7.0
-Stable tag: 0.1.3.2
+Stable tag: 0.1.3.3
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -98,6 +98,8 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 0.1.3.3 - 19 May 2026 =
+- Added: WordPress core rollback support — the plugin now snapshots the current core version before every core upgrade and can roll back to that recorded version on request.
 
 = 0.1.3.2 - 12 May 2026 =
 - Security: Migration files on the destination site now use unguessable hashed filenames for stronger privacy.
