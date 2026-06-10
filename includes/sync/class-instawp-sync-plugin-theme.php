@@ -551,10 +551,10 @@ class InstaWP_Sync_Plugin_Theme {
 			}
 
 			if ( $this->is_plugin_installed( $v->details ) ) {
-				$response = $this->activate_item( $v->details, 'plugin' )[0];
+				$response = $this->get_item_response( $this->activate_item( $v->details, 'plugin' ), $v->details );
 
-				if ( ! $response['success'] ) {
-					$logs[ $v->id ] = $response['message'];
+				if ( empty( $response['success'] ) ) {
+					$logs[ $v->id ] = $response['message'] ?? '';
 
 					return InstaWP_Sync_Helpers::sync_response( $v, $logs, array(
 						'status'  => 'error',
@@ -574,10 +574,10 @@ class InstaWP_Sync_Plugin_Theme {
 		// plugin deactivate
 		if ( $v->event_slug === 'deactivate_plugin' ) {
 			if ( $this->is_plugin_installed( $v->details ) ) {
-				$response = $this->deactivate_item( $v->details );
+				$response = $this->get_item_response( $this->deactivate_item( $v->details ), $v->details );
 
-				if ( ! $response['success'] ) {
-					$logs[ $v->id ] = $response['message'];
+				if ( empty( $response['success'] ) ) {
+					$logs[ $v->id ] = $response['message'] ?? '';
 
 					return InstaWP_Sync_Helpers::sync_response( $v, $logs, array(
 						'status'  => 'error',
@@ -643,10 +643,10 @@ class InstaWP_Sync_Plugin_Theme {
 		// plugin delete
 		if ( $v->event_slug === 'deleted_plugin' ) {
 			if ( $this->is_plugin_installed( $v->details ) ) {
-				$response = $this->uninstall_item( $v->details, 'plugin' )[0];
+				$response = $this->get_item_response( $this->uninstall_item( $v->details, 'plugin' ), $v->details );
 
-				if ( ! $response['success'] ) {
-					$logs[ $v->id ] = $response['message'];
+				if ( empty( $response['success'] ) ) {
+					$logs[ $v->id ] = $response['message'] ?? '';
 
 					return InstaWP_Sync_Helpers::sync_response( $v, $logs, array(
 						'status'  => 'error',
@@ -714,10 +714,10 @@ class InstaWP_Sync_Plugin_Theme {
 
 			$theme = wp_get_theme( $stylesheet );
 			if ( $theme->exists() ) {
-				$response = $this->activate_item( $stylesheet, 'theme' )[0];
+				$response = $this->get_item_response( $this->activate_item( $stylesheet, 'theme' ), $stylesheet );
 
-				if ( ! $response['success'] ) {
-					$logs[ $v->id ] = $response['message'];
+				if ( empty( $response['success'] ) ) {
+					$logs[ $v->id ] = $response['message'] ?? '';
 
 					return InstaWP_Sync_Helpers::sync_response( $v, $logs, array(
 						'status'  => 'error',
@@ -772,10 +772,10 @@ class InstaWP_Sync_Plugin_Theme {
 			$theme      = wp_get_theme( $stylesheet );
 
 			if ( $theme->exists() ) {
-				$response = $this->uninstall_item( $stylesheet, 'theme' )[0];
+				$response = $this->get_item_response( $this->uninstall_item( $stylesheet, 'theme' ), $stylesheet );
 
-				if ( ! $response['success'] ) {
-					$logs[ $v->id ] = $response['message'];
+				if ( empty( $response['success'] ) ) {
+					$logs[ $v->id ] = $response['message'] ?? '';
 
 					return InstaWP_Sync_Helpers::sync_response( $v, $logs, array(
 						'status'  => 'error',
@@ -853,9 +853,40 @@ class InstaWP_Sync_Plugin_Theme {
 	 * Plugin deactivate
 	 */
 	public function deactivate_item( $plugin ) {
-		$deactivator = new Deactivator( array( $plugin ) );
+		// Deactivator expects each item as an [ 'asset' => ..., 'type' => ... ] pair.
+		// Passing a bare string skipped deactivation and returned "Required parameters are missing!".
+		$deactivator = new Deactivator( array(
+			array(
+				'asset' => $plugin,
+				'type'  => 'plugin',
+			),
+		) );
 
 		return $deactivator->deactivate();
+	}
+
+	/**
+	 * Normalize an item-action response (activate / deactivate / uninstall).
+	 *
+	 * Activator/Deactivator/Uninstaller return results keyed by asset slug, while
+	 * Installer keys them numerically. Resolves the single result for the given
+	 * asset, falling back to the first numeric entry, then the response itself.
+	 *
+	 * @param mixed  $response Raw response from the helper class.
+	 * @param string $asset    Asset slug used as the array key (plugin path / theme stylesheet).
+	 * @return array
+	 */
+	private function get_item_response( $response, $asset ) {
+		if ( ! is_array( $response ) ) {
+			return array();
+		}
+		if ( isset( $response[ $asset ] ) ) {
+			return $response[ $asset ];
+		}
+		if ( isset( $response[0] ) ) {
+			return $response[0];
+		}
+		return $response;
 	}
 
 	/**
