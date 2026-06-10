@@ -1,3 +1,10 @@
+v1.1.2
+======
+- Added: Migration engine detection (v3/v4) via `getMigrationEngine()`.
+- Added: Unified `instaMigrateRequest()` that auto-routes to the v3 (InstaWP Connect) or v4 (InstaMigrate + AI agent) flow.
+- Added: InstaMigrate plugin install helper and API key retrieval.
+- Added: Migration URL and group id getters/setters.
+
 v1.1.1
 ======
 - Added: WordPress core rollback support.

@@ -9,6 +9,311 @@ class Helper {
 	}
 
 	/**
+	 * Get Migration Engine
+	 *
+	 * Hits client-app's GET /api/v2/migrate-v4/engine and returns which migration engine is active
+	 * ('v3' | 'v4') so callers branch their flow before deciding which migration API to hit.
+	 *
+	 * @param string $api_key api key
+	 * @param string $migration_mode optional flow the engine is being resolved for (e.g. 'e2e' | 'push')
+	 *
+	 * @return array
+	 */
+	public static function getMigrationEngine( $api_key, $migration_mode = '' ) {
+		if ( empty( $api_key ) ) {
+			return self::sendResponse( false, 'API key is required.' );
+		}
+
+		// Forward the flow as a query param so client-app knows which flow asked (logged there).
+		$endpoint = ! empty( $migration_mode )
+			? add_query_arg( 'migration_mode', $migration_mode, 'migrate-v4/engine' )
+			: 'migrate-v4/engine';
+
+		$response = Curl::do_curl( $endpoint, array(), array(), 'GET', 'v2', $api_key );
+
+		if ( empty( $response['success'] ) || empty( $response['data']['engine'] ) ) {
+			return self::sendResponse( false, empty( $response['message'] ) ? 'Something went wrong.' : esc_html( $response['message'] ) );
+		}
+
+		if ( ! in_array( $response['data']['engine'], array('v3','v4') ) ) {
+			return self::sendResponse( false, 'Wrong migration engine ' . $response['data']['engine'] );
+		}
+
+		return self::sendResponse(
+			true,
+			'',
+			array( 'engine' => $response['data']['engine'] )
+		);
+		
+	}
+
+	/**
+	 * Insta Migrate Request
+	 *
+	 * @param string $api_key api key
+	 * @param string $wlm_slug white label migration slug
+	 *
+	 * @return array
+	 *
+	 */
+	public static function instaMigrateRequest( $api_key, $wlm_slug, $locale = '' ) {
+		if ( empty( $api_key ) ) {
+			return self::sendResponse( false, 'API key is required.' );
+		}
+
+		if ( empty( $wlm_slug )  ) {
+			return self::sendResponse( false, 'White label migration slug is required.' );
+		}
+
+		$locale = empty( $locale ) || ! is_string( $locale ) ?  get_locale(): $locale;
+
+		$locale = sanitize_key( $locale );
+
+		$wlm_slug = sanitize_key( $wlm_slug );
+
+		// e2e flow — tell client-app which flow is resolving the engine.
+		$engine = self::getMigrationEngine( $api_key, 'e2e' );
+
+		if ( ! $engine['success'] ) {
+			return $engine;
+		}
+
+		$engine = $engine['data']['engine'];
+		
+		return $engine === 'v3' ? self::v3MigrationRequest($api_key, $wlm_slug, $locale) : self::v4MigrationRequest($api_key, $wlm_slug, $locale);
+	}
+
+	/**
+	 * Insta Migrate V4 Request. i.e. based on InstaMigrate plugin + AI agent
+	 *
+	 * @param string $api_key api key
+	 * @param string $wlm_slug white label migration slug
+	 * @param string $locale locale
+	 *
+	 * @return array
+	 *
+	 */
+	private static function v4MigrationRequest($api_key, $wlm_slug, $locale = ''){
+		$install = self::installInstaMigrate();
+
+		if ( ! $install['success'] ) {
+			return $install;
+		}
+		
+		$insta_mig_key = self::getInstaMigrateApiKey();
+
+		if ( ! $insta_mig_key['success'] ) {
+			return $insta_mig_key;
+		}
+
+		$param = array(
+			'destination_url'   => self::wp_site_url(),
+			'wp_version'  		=> get_bloginfo( 'version' ),
+			'php_version' 		=> phpversion(),
+			'title'       		=> get_bloginfo( 'name' ),
+			'plugin_api_key' 	=> $insta_mig_key['data']['insta_mig_key'],
+			'locale'			=> $locale,
+		);
+
+		$mig_request = Curl::do_curl( 'migrate-v4/' . $wlm_slug . '/e2e-mig', $param, array(), 'POST', 'v2', $api_key );
+
+		if ( ! empty( $mig_request['success'] ) && ! empty( $mig_request['data']['migration_url'] ) ) {
+			return self::sendResponse( 
+				true, 
+				'Migration requested with destination site details. Please visit given url and connect source site to continue migrate site.',
+				array(
+					'migration_url' => $mig_request['data']['migration_url']
+				)
+			);
+		}
+
+		return self::sendResponse( false, empty( $mig_request['message'] ) ? 'Something went wrong.': esc_html( $mig_request['message'] ) );
+	}
+
+	/**
+	 * Insta Migrate V3 Request. i.e. based on InstaWP Connect plugin
+	 *
+	 * @param string $api_key api key
+	 * @param string $wlm_slug white label migration slug
+	 * @param string $locale locale
+	 *
+	 * @return array
+	 *
+	 */
+	private static function v3MigrationRequest($api_key, $wlm_slug, $locale = ''){
+		$install = self::installInstaWPConnect();
+
+		if ( ! $install['success'] ) {
+			return $install;
+		}
+		
+		$generate_api_key = self::generate_api_key( 
+			$api_key, 
+			'',  
+			array(
+				'e2e_mig_push_request' => true,
+				'wlm_slug'             => $wlm_slug,
+				'managed'              => false,
+				'locale'			   => $locale,
+			)
+		);
+
+		if ( ! $generate_api_key ) {
+			delete_option( 'instawp_api_options' );
+			return self::sendResponse( false, 'Failed to connect site.' );
+		}
+
+		return self::sendResponse( 
+			true, 
+			'Migration requested with destination site details. Please visit given url and connect source site to continue migrate site.',
+			array(
+				'migration_url' => Helper::get_migration_url(),
+			)
+		);
+	}
+
+	/**
+	 * Send Response
+	 */
+	public static function sendResponse( $success = true, $message = '', $data = array() ) {
+		return array(
+			'success' 	=> $success,
+			'message' 	=> $message,
+			'data'		=> $data
+		);
+	}
+
+	/**
+	 * Install instamigrate plugin
+	 */
+	public static function installInstaMigrate( $retry = false ) {
+		try {
+	
+			if ( class_exists( '\InstaMigrate' ) ) {
+				return self::sendResponse();
+			}
+
+			if ( ! function_exists( 'get_plugins' ) || ! function_exists( 'get_mu_plugins' ) ) {
+				if ( file_exists( ABSPATH . 'wp-admin/includes/plugin.php' ) ) {
+					require_once ABSPATH . 'wp-admin/includes/plugin.php';
+				}
+			}
+
+			if ( ! function_exists( 'is_plugin_active' ) ) {
+				return self::sendResponse( false, 'Plugin methods not loaded. Failed to install the InstaMigrate plugin.' );
+			}
+
+			// Check if plugin is active
+			if ( ! is_plugin_active( 'instamigrate/insta-migrate.php' ) ) {
+				$params    = array(
+					array(
+						'slug'     => 'instamigrate',
+						'type'     => 'plugin',
+						'activate' => true,
+					),
+				);
+				// Install and active plugin
+				$installer = new Installer( $params );
+				$response  = $installer->start();
+
+				if ( $response[0]['success'] ) {
+					if ( class_exists( '\InstaMigrate' ) && defined('INSTA_MIGRATE_OPTION_KEY') ) {
+						return self::sendResponse();
+					} else {
+						return self::sendResponse( false, 'After install INSTA_MIGRATE_OPTION_KEY not defined.' );
+					}
+				} else {
+					if ( ! $retry ) {
+						return self::installInstaMigrate( true );
+					}
+					$message = $response[0]['message'] ? $response[0]['message'] : 'Failed to install or activate the InstaMigrate plugin.';
+					return self::sendResponse( false, $message );
+				}
+			}
+
+			return self::sendResponse();
+		} catch (\Throwable $th) {
+			return self::sendResponse( false, $th->getMessage() );
+		}
+	}
+
+	/**
+	 * Install instamigrate plugin
+	 */
+	public static function installInstaWPConnect( $retry = false ) {
+		try {
+	
+			if ( class_exists( '\instaWP' ) ) {
+				return self::sendResponse();
+			}
+
+			if ( ! function_exists( 'get_plugins' ) || ! function_exists( 'get_mu_plugins' ) ) {
+				if ( file_exists( ABSPATH . 'wp-admin/includes/plugin.php' ) ) {
+					require_once ABSPATH . 'wp-admin/includes/plugin.php';
+				}
+			}
+
+			if ( ! function_exists( 'is_plugin_active' ) ) {
+				return self::sendResponse( false, 'Plugin methods not loaded. Failed to install the InstaMigrate plugin.' );
+			}
+
+			// Check if plugin is active
+			if ( ! is_plugin_active( 'instawp-connect/instawp-connect.php' ) ) {
+				$params    = array(
+					array(
+						'slug'     => 'instawp-connect',
+						'type'     => 'plugin',
+						'activate' => true,
+					),
+				);
+				// Install and active plugin
+				$installer = new Installer( $params );
+				$response  = $installer->start();
+
+				if ( $response[0]['success'] ) {
+					if ( class_exists( '\instaWP' ) && defined('INSTAWP_PLUGIN_VERSION') ) {
+						return self::sendResponse();
+					} else {
+						return self::sendResponse( false, 'After install INSTAWP_PLUGIN_VERSION not defined.' );
+					}
+				} else {
+					if ( ! $retry ) {
+						return self::installInstaWPConnect( true );
+					}
+					$message = $response[0]['message'] ? $response[0]['message'] : 'Failed to install or activate the InstaWP Connect plugin.';
+					return self::sendResponse( false, $message );
+				}
+			}
+
+			return self::sendResponse();
+		} catch (\Throwable $th) {
+			return self::sendResponse( false, $th->getMessage() );
+		}
+	}
+
+	// Get insta migrate plugin api key
+	public static function getInstaMigrateApiKey() {
+		// Added a leading \ to force global namespace resolution on both the guard
+        if ( ! class_exists('\InstaMigrate') || ! defined('INSTA_MIGRATE_OPTION_KEY') ) {
+			return self::sendResponse( false, 'InstaMigrate plugin is not installed or activated' );
+        }
+
+		$plugin = \InstaMigrate::instance();
+        $plugin->ensure_api_key(); // idempotent: generates only if missing
+
+        $insta_mig_key = is_multisite()
+            ? get_site_option(INSTA_MIGRATE_OPTION_KEY)
+            : get_option(INSTA_MIGRATE_OPTION_KEY);
+
+		if ( empty( $insta_mig_key ) ) {
+			return self::sendResponse( false, 'Failed to generate plugin API key.' );
+		}
+		return self::sendResponse( true, '', [
+			'insta_mig_key' => $insta_mig_key
+		] );
+    }
+
+	/**
 	 * Get InstaWP User Agent
 	 *
 	 * @param null|array|string $agentIdentifier
@@ -167,12 +472,19 @@ class Helper {
 				if ( ! empty( $config['e2e_mig_push_request'] ) || ! empty( $config['wlm_slug'] ) ) {
 					$mig_request = Curl::do_curl( 'migrates-v3/' . $config['wlm_slug'] . '/e2e-push-request', $connect_body, array(), 'POST', 'v2' );
 
-					if ( ! empty( $mig_request['success'] ) && ! empty( $mig_request['data']['group_uuid'] ) ) {
-						self::set_mig_gid( $mig_request['data']['group_uuid'] );
-						return true;
+					if ( empty( $mig_request['success'] ) ) {
+						return false;
 					}
 
-					return false;
+					if ( ! empty( $mig_request['data']['migration_url'] ) ) {
+						self::set_migration_url( $mig_request['data']['migration_url'] );
+					}
+					
+					if ( ! empty( $mig_request['data']['group_uuid'] ) ) {
+						self::set_mig_gid( $mig_request['data']['group_uuid'] );
+					}
+						
+					return true;
 				}
 			}
 
@@ -526,6 +838,16 @@ class Helper {
 		return self::set_settings( $api_options );
 	}
 
+	
+	/**
+	 * Set migration url
+	 */
+	public static function set_migration_url( $url ) {
+		$api_options               = self::get_options();
+		$api_options['migration_url'] = $url;
+		return self::set_settings( $api_options );
+	}
+
 	/**
 	 * Set migration group id
 	 */
@@ -534,6 +856,15 @@ class Helper {
 		$api_options['group_uuid'] = $group_uuid;
 
 		return self::set_settings( $api_options );
+	}
+
+	/**
+	 * Get migration url
+	 */
+	public static function get_migration_url() {
+		$api_options = self::get_options();
+
+		return self::get_args_option( 'migration_url', $api_options );
 	}
 
 	/**
