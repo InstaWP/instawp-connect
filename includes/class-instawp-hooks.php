@@ -455,10 +455,8 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			}
 
 			if ( $can_show ) {
-				$selected_users = Option::get_option( 'instawp_hide_plugin_to_users' );
-				if ( ! empty( $selected_users ) && is_array( $selected_users ) && in_array( get_current_user_id(), $selected_users ) ) {
-					$can_show = false;
-				}
+				// Respects show-list (whitelist) precedence over hide-list (blacklist). See InstaWP_Setting::can_user_see_menu().
+				$can_show = InstaWP_Setting::can_user_see_menu( $current_user->ID );
 			}
 
 			return $can_show;
@@ -615,9 +613,9 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 		}
 
 		public function remove_edge_cache_submenu( $can_show, $current_user ) {
-			$selected_users = Option::get_option( 'instawp_hide_plugin_to_users' );
-			if ( ! empty( $selected_users ) && is_array( $selected_users ) ) {
-				$can_show = ! in_array( $current_user->ID, $selected_users );
+			// Respects show-list (whitelist) precedence over hide-list (blacklist). See InstaWP_Setting::can_user_see_menu().
+			if ( $can_show ) {
+				$can_show = InstaWP_Setting::can_user_see_menu( $current_user->ID );
 			}
 
 			return $can_show;

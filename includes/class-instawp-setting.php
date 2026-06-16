@@ -104,6 +104,45 @@ class InstaWP_Setting {
 		return $allowed_role;
 	}
 
+	/**
+	 * Determine whether a given user is allowed to see the InstaWP menu / topbar icon.
+	 *
+	 * Precedence (highest to lowest):
+	 * 1. Show-list (whitelist) is non-empty  -> visible ONLY to users in the list, hidden for everyone else.
+	 *    When the whitelist is in use, the hide-list is ignored (the whitelist is the explicit, stricter rule).
+	 * 2. Hide-list (blacklist) is non-empty   -> hidden only for the listed users (existing behavior).
+	 * 3. Neither list configured              -> visible (default; role gating is handled separately by the caller).
+	 *
+	 * Role-based visibility (get_allowed_role / sync_tab_roles) is enforced by the caller and is intentionally
+	 * not duplicated here, so this method only decides the per-user list precedence.
+	 *
+	 * @param int $user_id User ID to evaluate. Defaults to the current user.
+	 *
+	 * @return bool True if the user should see the InstaWP menu / icon.
+	 */
+	public static function can_user_see_menu( $user_id = 0 ) {
+		$user_id = $user_id ? (int) $user_id : get_current_user_id();
+
+		$show_users = Option::get_option( 'instawp_show_plugin_to_users' );
+		$show_users = ! empty( $show_users ) && is_array( $show_users ) ? array_map( 'intval', $show_users ) : array();
+
+		// Whitelist active: only listed users may see the menu.
+		if ( ! empty( $show_users ) ) {
+			return in_array( $user_id, $show_users, true );
+		}
+
+		$hide_users = Option::get_option( 'instawp_hide_plugin_to_users' );
+		$hide_users = ! empty( $hide_users ) && is_array( $hide_users ) ? array_map( 'intval', $hide_users ) : array();
+
+		// Blacklist active: hide the menu only for listed users.
+		if ( ! empty( $hide_users ) ) {
+			return ! in_array( $user_id, $hide_users, true );
+		}
+
+		// Default: visible.
+		return true;
+	}
+
 	public static function generate_section_field( $field = array() ) {
 		$field_id            = self::get_args_option( 'id', $field );
 		$field_name          = self::get_args_option( 'name', $field );
@@ -353,7 +392,19 @@ class InstaWP_Setting {
 					'action'   => 'instawp_handle_select2',
 					'event'    => 'instawp_get_users_exclude_current',
 					'title'    => class_exists( '\Edge_Cache_Plugin' ) ? esc_html__( 'Hide InstaWP Menu & Edge Cache to Users', 'instawp-connect' ) : esc_html__( 'Hide InstaWP Menu to Users', 'instawp-connect' ),
+					'tooltip'  => esc_html__( 'Hide the InstaWP menu from the selected users. Ignored when "Show InstaWP Menu only to selected users" has any users selected.', 'instawp-connect' ),
 					'options'  => self::get_select2_default_selected_option( 'instawp_hide_plugin_to_users' ),
+				),
+				array(
+					'id'       => 'instawp_show_plugin_to_users',
+					'type'     => 'select2',
+					'remote'   => true,
+					'multiple' => true,
+					'action'   => 'instawp_handle_select2',
+					'event'    => 'instawp_get_users',
+					'title'    => esc_html__( 'Show InstaWP Menu only to selected users', 'instawp-connect' ),
+					'tooltip'  => esc_html__( 'When one or more users are selected, the InstaWP menu and topbar icon are shown ONLY to those users and hidden from everyone else (subject to the allowed role). Takes precedence over "Hide InstaWP Menu to Users". Leave empty to keep the default behavior.', 'instawp-connect' ),
+					'options'  => self::get_select2_default_selected_option( 'instawp_show_plugin_to_users' ),
 				),
 				array(
 					'id'      => 'instawp_cdn_auto_purge',
@@ -742,7 +793,7 @@ class InstaWP_Setting {
 			}
 
 			return $role_options;
-		} elseif ( $option === 'instawp_hide_plugin_to_users' ) {
+		} elseif ( $option === 'instawp_hide_plugin_to_users' || $option === 'instawp_show_plugin_to_users' ) {
 			$users_data     = array();
 			$selected_users = Option::get_option( $option );
 			$selected_users = ! empty( $selected_users ) ? $selected_users : array();
