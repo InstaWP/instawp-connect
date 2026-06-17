@@ -100,7 +100,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 = 0.1.3.4 - Beta =
 - Added: Migration engine detection — end-to-end migrations now auto-route to the v3 or v4 (InstaMigrate) flow.
-- Fixed: Two-way sync no longer emits PHP warnings and now correctly reports plugin/theme activate, deactivate, and delete results.
+- Fixed: Two-way sync no PHP warnings.
 - Updated: Dependency packages.
 
 = 0.1.3.3 - 19 May 2026 =
