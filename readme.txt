@@ -98,7 +98,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
-= 0.1.3.4 - 17-06-2026 =
+= 0.1.3.4 - 17 June 2026 =
 - Added: Migration engine detection — end-to-end migrations now auto-route to the v3 or v4 (InstaMigrate) flow.
 - Fixed: Two-way sync no PHP warnings.
 - Updated: Dependency packages.
