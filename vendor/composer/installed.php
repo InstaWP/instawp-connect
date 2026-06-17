@@ -22,7 +22,7 @@
         'instawp/connect-helpers' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '2795feb9935b51f707ded82709438b5d5796a778',
+            'reference' => 'e40678f5a7fd3e678e2706a0e72af76b97a3fd5f',
             'type' => 'library',
             'install_path' => __DIR__ . '/../instawp/connect-helpers',
             'aliases' => array(
@@ -49,9 +49,9 @@
             'dev_requirement' => false,
         ),
         'phpseclib/phpseclib' => array(
-            'pretty_version' => '3.0.52',
-            'version' => '3.0.52.0',
-            'reference' => '2adaefc83df2ec548558307690f376dd7d4f4fce',
+            'pretty_version' => '3.0.55',
+            'version' => '3.0.55.0',
+            'reference' => 'db9744e6d47e742b1f974e965ad49bdd041105af',
             'type' => 'library',
             'install_path' => __DIR__ . '/../phpseclib/phpseclib',
             'aliases' => array(),
