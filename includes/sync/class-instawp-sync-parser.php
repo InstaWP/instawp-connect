@@ -549,8 +549,28 @@ class InstaWP_Sync_Parser {
 
 			// Flattens the post meta array by replacing single-element arrays with their sole element.
 			$flat_meta = InstaWP_Sync_Helpers::flat_post_meta( $data['post_meta'] );
-			// If edit with elementor then get media from elementor data
-			if ( ! empty( $flat_meta['_elementor_data'] ) && InstaWP_Sync_Helpers::is_built_with_elementor( $post->ID ) && is_string( $flat_meta['_elementor_data'] ) ) {
+
+			// If built with Bricks Builder, get media from Bricks data
+			if ( InstaWP_Sync_Helpers::is_built_with_bricks( $post->ID ) ) {
+				$bricks_meta_keys = InstaWP_Sync_Helpers::get_bricks_meta_keys();
+				$bricks_media = array();
+
+				foreach ( $bricks_meta_keys as $bricks_meta_key ) {
+					if ( ! empty( $flat_meta[ $bricks_meta_key ] ) && is_array( $flat_meta[ $bricks_meta_key ] ) ) {
+						$bricks_elements = $flat_meta[ $bricks_meta_key ];
+						$bricks_media = array_merge( $bricks_media, self::get_media_from_bricks_content( $bricks_elements ) );
+						$data['ids'] = self::extract_dynamic_bricks_data( $bricks_elements, $data['ids'] );
+					}
+				}
+
+				// Also get media from post content (for any non-Bricks content)
+				if ( ! empty( $post_content ) ) {
+					$bricks_media = array_merge( $bricks_media, self::get_media_from_content( $post_content ) );
+				}
+
+				$data['media'] = $bricks_media;
+			} elseif ( ! empty( $flat_meta['_elementor_data'] ) && InstaWP_Sync_Helpers::is_built_with_elementor( $post->ID ) && is_string( $flat_meta['_elementor_data'] ) ) {
+				// If edit with elementor then get media from elementor data
 				$data['media'] = self::get_media_from_content( wp_unslash( $flat_meta['_elementor_data'] ) );
 				$data['ids'] = self::extract_dynamic_elementor_data( json_decode( $flat_meta['_elementor_data'], true ), $data['ids'] );
 			} elseif ( ! empty( $post_content ) ) {
@@ -558,8 +578,8 @@ class InstaWP_Sync_Parser {
 				if ( has_blocks( $post_content ) ) {
 					// Get dynamic data
 					$data['ids'] = self::extract_dynamic_gutenberg_data( parse_blocks( $post_content ), $data['ids'] );
-				}           
-}
+				}
+			}
 		}
 
         if ( $post_parent_id > 0 ) {
@@ -978,9 +998,10 @@ class InstaWP_Sync_Parser {
 		}
 
 		self::replace_elementor_metadata( $post_id, $replace_data );
+		self::replace_bricks_metadata( $post_id, $replace_data );
 	}
 
-	
+
 	/**
 	 * Replace Elementor metadata
 	 * Replaces post and term ids in Elementor data.
@@ -1424,7 +1445,478 @@ class InstaWP_Sync_Parser {
 		);
 	}
 
-	
+	/**
+	 * Get media from Bricks Builder content
+	 *
+	 * @param array $elements Bricks elements array.
+	 * @return array Array of media data.
+	 */
+	public static function get_media_from_bricks_content( $elements ) {
+		$media = array();
+		if ( empty( $elements ) || ! is_array( $elements ) ) {
+			return $media;
+		}
+
+		foreach ( $elements as $element ) {
+			if ( empty( $element['settings'] ) || ! is_array( $element['settings'] ) ) {
+				continue;
+			}
+
+			$settings = $element['settings'];
+
+			// Process image element
+			if ( ! empty( $settings['image'] ) && is_array( $settings['image'] ) ) {
+				$image_data = self::extract_bricks_image_data( $settings['image'] );
+				if ( ! empty( $image_data ) ) {
+					$media[] = $image_data;
+				}
+			}
+
+			// Process background image
+			if ( ! empty( $settings['_background']['image'] ) && is_array( $settings['_background']['image'] ) ) {
+				$image_data = self::extract_bricks_image_data( $settings['_background']['image'] );
+				if ( ! empty( $image_data ) ) {
+					$media[] = $image_data;
+				}
+			}
+
+			// Process gallery images
+			if ( ! empty( $settings['images'] ) && is_array( $settings['images'] ) ) {
+				foreach ( $settings['images'] as $image ) {
+					if ( is_array( $image ) ) {
+						$image_data = self::extract_bricks_image_data( $image );
+						if ( ! empty( $image_data ) ) {
+							$media[] = $image_data;
+						}
+					}
+				}
+			}
+
+			// Process carousel/slider images
+			if ( ! empty( $settings['items'] ) && is_array( $settings['items'] ) ) {
+				foreach ( $settings['items'] as $item ) {
+					if ( ! empty( $item['image'] ) && is_array( $item['image'] ) ) {
+						$image_data = self::extract_bricks_image_data( $item['image'] );
+						if ( ! empty( $image_data ) ) {
+							$media[] = $image_data;
+						}
+					}
+				}
+			}
+
+			// Process video poster
+			if ( ! empty( $settings['videoPoster'] ) && is_array( $settings['videoPoster'] ) ) {
+				$image_data = self::extract_bricks_image_data( $settings['videoPoster'] );
+				if ( ! empty( $image_data ) ) {
+					$media[] = $image_data;
+				}
+			}
+		}
+
+		return $media;
+	}
+
+	/**
+	 * Extract image data from Bricks image settings
+	 *
+	 * @param array $image_settings Bricks image settings.
+	 * @return array|null Attachment data or null.
+	 */
+	private static function extract_bricks_image_data( $image_settings ) {
+		if ( empty( $image_settings['id'] ) || empty( $image_settings['url'] ) ) {
+			return null;
+		}
+
+		// Skip if using dynamic data
+		if ( ! empty( $image_settings['useDynamicData'] ) ) {
+			return null;
+		}
+
+		$attachment_id = intval( $image_settings['id'] );
+		if ( $attachment_id <= 0 ) {
+			return null;
+		}
+
+		$attachment_data = self::generate_attachment_data( $attachment_id );
+		if ( empty( $attachment_data ) ) {
+			return null;
+		}
+
+		return array_merge( $attachment_data, array(
+			'size'           => isset( $image_settings['size'] ) ? $image_settings['size'] : 'full',
+			'attachment_url' => $image_settings['url'],
+		) );
+	}
+
+	/**
+	 * Extract dynamic data from Bricks Builder elements
+	 *
+	 * @param array $elements Bricks elements array.
+	 * @param array $dynamic_data Existing dynamic data.
+	 * @return array Dynamic data with post_ids, term_ids, user_ids.
+	 */
+	public static function extract_dynamic_bricks_data( $elements, $dynamic_data = array() ) {
+		if ( empty( $elements ) || ! is_array( $elements ) ) {
+			return $dynamic_data;
+		}
+
+		if ( ! isset( $dynamic_data['post_ids'] ) ) {
+			$dynamic_data = array(
+				'post_ids' => array(),
+				'term_ids' => array(),
+				'user_ids' => array(),
+			);
+		}
+
+		foreach ( $elements as $element ) {
+			if ( empty( $element['settings'] ) || ! is_array( $element['settings'] ) ) {
+				continue;
+			}
+
+			$settings = $element['settings'];
+
+			// Extract image IDs
+			self::extract_bricks_image_ids( $settings, $dynamic_data );
+
+			// Extract post IDs from query settings
+			if ( ! empty( $settings['query'] ) && is_array( $settings['query'] ) ) {
+				$query = $settings['query'];
+
+				// Include/exclude post IDs
+				foreach ( array( 'post__in', 'post__not_in' ) as $key ) {
+					if ( ! empty( $query[ $key ] ) ) {
+						$ids = is_array( $query[ $key ] ) ? $query[ $key ] : explode( ',', $query[ $key ] );
+						foreach ( $ids as $id ) {
+							self::add_reference_data( $dynamic_data, trim( $id ) );
+						}
+					}
+				}
+
+				// Category/tag IDs
+				foreach ( array( 'cat', 'category__in', 'category__not_in', 'tag__in', 'tag__not_in' ) as $key ) {
+					if ( ! empty( $query[ $key ] ) ) {
+						$ids = is_array( $query[ $key ] ) ? $query[ $key ] : explode( ',', $query[ $key ] );
+						$taxonomy = strpos( $key, 'tag' ) !== false ? 'post_tag' : 'category';
+						foreach ( $ids as $id ) {
+							self::add_reference_data( $dynamic_data, trim( $id ), 'term_ids', $taxonomy );
+						}
+					}
+				}
+
+				// Author IDs
+				if ( ! empty( $query['author__in'] ) ) {
+					$ids = is_array( $query['author__in'] ) ? $query['author__in'] : explode( ',', $query['author__in'] );
+					foreach ( $ids as $id ) {
+						self::add_reference_data( $dynamic_data, trim( $id ), 'user_ids' );
+					}
+				}
+			}
+
+			// Extract IDs from link settings
+			if ( ! empty( $settings['link'] ) && is_array( $settings['link'] ) ) {
+				if ( ! empty( $settings['link']['postId'] ) ) {
+					self::add_reference_data( $dynamic_data, $settings['link']['postId'] );
+				}
+			}
+
+			// Extract IDs from posts element
+			if ( ! empty( $settings['posts_include'] ) ) {
+				$ids = is_array( $settings['posts_include'] ) ? $settings['posts_include'] : explode( ',', $settings['posts_include'] );
+				foreach ( $ids as $id ) {
+					self::add_reference_data( $dynamic_data, trim( $id ) );
+				}
+			}
+			if ( ! empty( $settings['posts_exclude'] ) ) {
+				$ids = is_array( $settings['posts_exclude'] ) ? $settings['posts_exclude'] : explode( ',', $settings['posts_exclude'] );
+				foreach ( $ids as $id ) {
+					self::add_reference_data( $dynamic_data, trim( $id ) );
+				}
+			}
+
+			// Extract term IDs
+			if ( ! empty( $settings['terms_include'] ) ) {
+				$ids = is_array( $settings['terms_include'] ) ? $settings['terms_include'] : explode( ',', $settings['terms_include'] );
+				foreach ( $ids as $id ) {
+					self::add_reference_data( $dynamic_data, trim( $id ), 'term_ids' );
+				}
+			}
+			if ( ! empty( $settings['terms_exclude'] ) ) {
+				$ids = is_array( $settings['terms_exclude'] ) ? $settings['terms_exclude'] : explode( ',', $settings['terms_exclude'] );
+				foreach ( $ids as $id ) {
+					self::add_reference_data( $dynamic_data, trim( $id ), 'term_ids' );
+				}
+			}
+		}
+
+		return $dynamic_data;
+	}
+
+	/**
+	 * Extract image IDs from Bricks element settings
+	 *
+	 * @param array $settings Element settings.
+	 * @param array $dynamic_data Dynamic data reference.
+	 */
+	private static function extract_bricks_image_ids( $settings, &$dynamic_data ) {
+		// Main image
+		if ( ! empty( $settings['image']['id'] ) && empty( $settings['image']['useDynamicData'] ) ) {
+			self::add_reference_data( $dynamic_data, $settings['image']['id'] );
+		}
+
+		// Background image
+		if ( ! empty( $settings['_background']['image']['id'] ) && empty( $settings['_background']['image']['useDynamicData'] ) ) {
+			self::add_reference_data( $dynamic_data, $settings['_background']['image']['id'] );
+		}
+
+		// Gallery images
+		if ( ! empty( $settings['images'] ) && is_array( $settings['images'] ) ) {
+			foreach ( $settings['images'] as $image ) {
+				if ( ! empty( $image['id'] ) && empty( $image['useDynamicData'] ) ) {
+					self::add_reference_data( $dynamic_data, $image['id'] );
+				}
+			}
+		}
+
+		// Carousel/slider items
+		if ( ! empty( $settings['items'] ) && is_array( $settings['items'] ) ) {
+			foreach ( $settings['items'] as $item ) {
+				if ( ! empty( $item['image']['id'] ) && empty( $item['image']['useDynamicData'] ) ) {
+					self::add_reference_data( $dynamic_data, $item['image']['id'] );
+				}
+			}
+		}
+
+		// Video poster
+		if ( ! empty( $settings['videoPoster']['id'] ) && empty( $settings['videoPoster']['useDynamicData'] ) ) {
+			self::add_reference_data( $dynamic_data, $settings['videoPoster']['id'] );
+		}
+
+		// Icon (SVG)
+		if ( ! empty( $settings['icon']['id'] ) ) {
+			self::add_reference_data( $dynamic_data, $settings['icon']['id'] );
+		}
+	}
+
+	/**
+	 * Replace Bricks Builder metadata
+	 * Replaces post, term, and user IDs in Bricks data.
+	 *
+	 * @param int   $post_id      The post ID.
+	 * @param array $replace_data The data for replacement.
+	 */
+	public static function replace_bricks_metadata( $post_id, $replace_data ) {
+		if ( ! InstaWP_Sync_Helpers::is_built_with_bricks( $post_id ) ) {
+			return;
+		}
+
+		$bricks_meta_keys = InstaWP_Sync_Helpers::get_bricks_meta_keys();
+
+		foreach ( $bricks_meta_keys as $meta_key ) {
+			$bricks_data = get_post_meta( $post_id, $meta_key, true );
+
+			if ( empty( $bricks_data ) || ! is_array( $bricks_data ) ) {
+				continue;
+			}
+
+			$updated_data = self::replace_in_bricks_data( $bricks_data, $replace_data );
+
+			if ( $updated_data !== $bricks_data ) {
+				update_metadata( 'post', $post_id, $meta_key, $updated_data );
+			}
+		}
+	}
+
+	/**
+	 * Replace items in Bricks Builder data
+	 *
+	 * @param array $elements     Bricks elements array.
+	 * @param array $replace_data Array of items to replace.
+	 * @return array Modified Bricks elements.
+	 */
+	private static function replace_in_bricks_data( $elements, $replace_data ) {
+		if ( empty( $elements ) || ! is_array( $elements ) ) {
+			return $elements;
+		}
+
+		foreach ( $elements as &$element ) {
+			if ( empty( $element['settings'] ) || ! is_array( $element['settings'] ) ) {
+				continue;
+			}
+
+			$element['settings'] = self::process_bricks_settings( $element['settings'], $replace_data );
+		}
+
+		return $elements;
+	}
+
+	/**
+	 * Process Bricks element settings for replacements
+	 *
+	 * @param array $settings     Element settings.
+	 * @param array $replace_data Replacement data.
+	 * @return array Modified settings.
+	 */
+	private static function process_bricks_settings( $settings, $replace_data ) {
+		// Replace main image
+		if ( ! empty( $settings['image'] ) && is_array( $settings['image'] ) && empty( $settings['image']['useDynamicData'] ) ) {
+			$settings['image'] = self::replace_bricks_image( $settings['image'], $replace_data );
+		}
+
+		// Replace background image
+		if ( ! empty( $settings['_background']['image'] ) && is_array( $settings['_background']['image'] ) && empty( $settings['_background']['image']['useDynamicData'] ) ) {
+			$settings['_background']['image'] = self::replace_bricks_image( $settings['_background']['image'], $replace_data );
+		}
+
+		// Replace gallery images
+		if ( ! empty( $settings['images'] ) && is_array( $settings['images'] ) ) {
+			foreach ( $settings['images'] as $key => $image ) {
+				if ( is_array( $image ) && empty( $image['useDynamicData'] ) ) {
+					$settings['images'][ $key ] = self::replace_bricks_image( $image, $replace_data );
+				}
+			}
+		}
+
+		// Replace carousel/slider items
+		if ( ! empty( $settings['items'] ) && is_array( $settings['items'] ) ) {
+			foreach ( $settings['items'] as $key => $item ) {
+				if ( ! empty( $item['image'] ) && is_array( $item['image'] ) && empty( $item['image']['useDynamicData'] ) ) {
+					$settings['items'][ $key ]['image'] = self::replace_bricks_image( $item['image'], $replace_data );
+				}
+			}
+		}
+
+		// Replace video poster
+		if ( ! empty( $settings['videoPoster'] ) && is_array( $settings['videoPoster'] ) && empty( $settings['videoPoster']['useDynamicData'] ) ) {
+			$settings['videoPoster'] = self::replace_bricks_image( $settings['videoPoster'], $replace_data );
+		}
+
+		// Replace icon (SVG)
+		if ( ! empty( $settings['icon']['id'] ) && isset( $replace_data['post_ids'][ $settings['icon']['id'] ] ) ) {
+			$new_id = $replace_data['post_ids'][ $settings['icon']['id'] ];
+			$settings['icon']['id'] = $new_id;
+			if ( ! empty( $settings['icon']['url'] ) ) {
+				$settings['icon']['url'] = wp_get_attachment_url( $new_id );
+			}
+		}
+
+		// Replace query settings
+		if ( ! empty( $settings['query'] ) && is_array( $settings['query'] ) ) {
+			$settings['query'] = self::replace_bricks_query_ids( $settings['query'], $replace_data );
+		}
+
+		// Replace link postId
+		if ( ! empty( $settings['link']['postId'] ) && isset( $replace_data['post_ids'][ $settings['link']['postId'] ] ) ) {
+			$settings['link']['postId'] = $replace_data['post_ids'][ $settings['link']['postId'] ];
+		}
+
+		// Replace posts include/exclude
+		foreach ( array( 'posts_include', 'posts_exclude' ) as $key ) {
+			if ( ! empty( $settings[ $key ] ) ) {
+				$settings[ $key ] = self::replace_ids_in_list( $settings[ $key ], $replace_data['post_ids'] );
+			}
+		}
+
+		// Replace terms include/exclude
+		foreach ( array( 'terms_include', 'terms_exclude' ) as $key ) {
+			if ( ! empty( $settings[ $key ] ) ) {
+				$settings[ $key ] = self::replace_ids_in_list( $settings[ $key ], $replace_data['term_ids'] );
+			}
+		}
+
+		return $settings;
+	}
+
+	/**
+	 * Replace Bricks image data
+	 *
+	 * @param array $image        Image settings.
+	 * @param array $replace_data Replacement data.
+	 * @return array Modified image settings.
+	 */
+	private static function replace_bricks_image( $image, $replace_data ) {
+		if ( empty( $image['id'] ) ) {
+			return $image;
+		}
+
+		$old_id = $image['id'];
+
+		// Replace by ID mapping
+		if ( isset( $replace_data['post_ids'][ $old_id ] ) ) {
+			$new_id = $replace_data['post_ids'][ $old_id ];
+			$image['id'] = $new_id;
+
+			// Update URL
+			$size = isset( $image['size'] ) ? $image['size'] : 'full';
+			$new_url = wp_get_attachment_image_url( $new_id, $size );
+			if ( $new_url ) {
+				$image['url'] = $new_url;
+			}
+		} elseif ( ! empty( $image['url'] ) && ! empty( $replace_data['urls'] ) ) {
+			// Replace by URL mapping
+			$old_url = wp_unslash( $image['url'] );
+			if ( isset( $replace_data['urls'][ $old_url ] ) ) {
+				$image['url'] = $replace_data['urls'][ $old_url ];
+			}
+		}
+
+		return $image;
+	}
+
+	/**
+	 * Replace IDs in Bricks query settings
+	 *
+	 * @param array $query        Query settings.
+	 * @param array $replace_data Replacement data.
+	 * @return array Modified query settings.
+	 */
+	private static function replace_bricks_query_ids( $query, $replace_data ) {
+		// Post IDs
+		foreach ( array( 'post__in', 'post__not_in' ) as $key ) {
+			if ( ! empty( $query[ $key ] ) ) {
+				$query[ $key ] = self::replace_ids_in_list( $query[ $key ], $replace_data['post_ids'] );
+			}
+		}
+
+		// Term IDs
+		foreach ( array( 'cat', 'category__in', 'category__not_in', 'tag__in', 'tag__not_in' ) as $key ) {
+			if ( ! empty( $query[ $key ] ) ) {
+				$query[ $key ] = self::replace_ids_in_list( $query[ $key ], $replace_data['term_ids'] );
+			}
+		}
+
+		// Author IDs
+		if ( ! empty( $query['author__in'] ) ) {
+			$query['author__in'] = self::replace_ids_in_list( $query['author__in'], $replace_data['user_ids'] );
+		}
+
+		return $query;
+	}
+
+	/**
+	 * Replace IDs in a comma-separated list or array
+	 *
+	 * @param mixed $ids         IDs as array or comma-separated string.
+	 * @param array $id_mapping  ID mapping array.
+	 * @return mixed Modified IDs in same format as input.
+	 */
+	private static function replace_ids_in_list( $ids, $id_mapping ) {
+		if ( empty( $ids ) || empty( $id_mapping ) ) {
+			return $ids;
+		}
+
+		$is_string = is_string( $ids );
+		$ids_array = $is_string ? array_map( 'trim', explode( ',', $ids ) ) : $ids;
+
+		foreach ( $ids_array as $key => $id ) {
+			if ( isset( $id_mapping[ $id ] ) ) {
+				$ids_array[ $key ] = $id_mapping[ $id ];
+			}
+		}
+
+		return $is_string ? implode( ',', $ids_array ) : $ids_array;
+	}
+
+
     public static function upload_attachment( $fields = array() ) {
         $attachment_id = isset( $fields['post_id'] ) ? $fields['post_id'] : 0;
         $connect_id    = instawp_get_connect_id();
