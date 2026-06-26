@@ -1742,13 +1742,27 @@ include $file_path;';
 	}
 
 	/**
-	 * Reset permalink structure
+	 * Reset permalink structure.
 	 *
-	 * @param $hard
+	 * Registers the `serve-instawp` migration endpoint and refreshes the rewrite
+	 * rules. Defaults to a SOFT flush ($hard = false): the rewrite rules are
+	 * regenerated in the database (so the endpoint and permalinks keep working)
+	 * WITHOUT rewriting the site's .htaccess.
+	 *
+	 * A hard flush is intentionally avoided here because it has no benefit for the
+	 * callers (cache clear, database manager) and is actively harmful on multilingual
+	 * sites: WPML (and similar plugins using "languages in directories") filter
+	 * home_url() during .htaccess generation, so a hard flush writes
+	 * `RewriteBase /<lang>/` + `RewriteRule . /<lang>/index.php` even though WordPress
+	 * is installed at the web root. That non-existent target causes an infinite
+	 * internal-redirect loop (Apache AH00124) and a site-wide HTTP 500. Pass
+	 * $hard = true only when the .htaccess itself genuinely needs to be regenerated.
+	 *
+	 * @param bool $hard Whether to also rewrite .htaccess. Default false (soft flush).
 	 *
 	 * @return void
 	 */
-	public static function instawp_reset_permalink( $hard = true ) {
+	public static function instawp_reset_permalink( $hard = false ) {
 
 		global $wp_rewrite;
 
