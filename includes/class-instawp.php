@@ -103,13 +103,29 @@ class instaWP {
 	}
 
 	public function register_actions() {
-		if ( ! as_has_scheduled_action( 'instawp_prepare_large_files_list', array(), 'instawp-connect' ) ) {
-			as_schedule_recurring_action( time(), HOUR_IN_SECONDS, 'instawp_prepare_large_files_list', array(), 'instawp-connect' );
-		}
+		$this->unschedule_large_files_list();
 
 		if ( ! as_has_scheduled_action( 'instawp_clean_migrate_files', array(), 'instawp-connect' ) ) {
 			as_schedule_recurring_action( time(), DAY_IN_SECONDS, 'instawp_clean_migrate_files', array(), 'instawp-connect' );
 		}
+	}
+
+	/**
+	 * Cancel the legacy hourly large files scan.
+	 *
+	 * The list is built on demand now, but sites upgrading from an earlier version still carry the
+	 * recurring action, so it has to be unscheduled once.
+	 *
+	 * @return void
+	 */
+	private function unschedule_large_files_list() {
+		if ( 'yes' === Option::get_option( 'instawp_large_files_cron_removed' ) ) {
+			return;
+		}
+
+		as_unschedule_all_actions( 'instawp_prepare_large_files_list', array(), 'instawp-connect' );
+
+		Option::update_option( 'instawp_large_files_cron_removed', 'yes', true );
 	}
 
 	public function clean_migrate_files() {
@@ -123,7 +139,30 @@ class instaWP {
 		}
 	}
 
+	/**
+	 * Build the large files list, but only when it is missing or stale.
+	 *
+	 * Scanning ABSPATH is a full recursive stat() walk, so it runs only when a screen actually needs
+	 * the list and the cached result has expired.
+	 *
+	 * @return void
+	 */
+	public function maybe_prepare_large_files_list() {
+		if ( get_transient( 'instawp_generate_large_files' ) ) {
+			return;
+		}
+
+		$this->prepare_large_files_list();
+	}
+
 	public function prepare_large_files_list() {
+		if ( ! apply_filters( 'instawp_large_files_scan_enabled', true ) ) {
+			set_transient( 'instawp_generate_large_files', true, HOUR_IN_SECONDS );
+			Option::update_option( 'instawp_large_files_list', array() );
+
+			return;
+		}
+
 		$maxbytes = (int) Option::get_option( 'instawp_max_file_size_allowed', INSTAWP_DEFAULT_MAX_FILE_SIZE_ALLOWED );
 		$maxbytes = $maxbytes ? $maxbytes : INSTAWP_DEFAULT_MAX_FILE_SIZE_ALLOWED;
 		$maxbytes = ( $maxbytes * 1024 * 1024 );
@@ -158,7 +197,7 @@ class instaWP {
 
 	public function clear_staging_sites_list() {
 		delete_option( 'instawp_large_files_list' );
-		do_action( 'instawp_prepare_large_files_list' );
+		delete_transient( 'instawp_generate_large_files' );
 	}
 
 	private function set_locale() {

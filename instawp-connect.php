@@ -59,7 +59,6 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/functions.php';
 
 function instawp_plugin_activate() {
 	InstaWP_Tools::instawp_reset_permalink();
-	do_action( 'instawp_prepare_large_files_list' );
 
 	// set default user for sync settings if user empty
 	$default_user = Option::get_option( 'instawp_default_user' );

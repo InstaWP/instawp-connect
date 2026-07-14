@@ -38,6 +38,7 @@ $customize_options     = array(
 $current_create_screen = isset( $_GET['screen'] ) ? intval( $_GET['screen'] ) : 1;
 $tables                = instawp_get_database_details();
 $log_tables_to_exclude = InstaWP_Tools::get_log_tables_to_exclude();
+instawp()->maybe_prepare_large_files_list();
 $list_data             = Option::get_option( 'instawp_large_files_list' );
 $migration_details     = Helper::get_args_option( 'instawp_migration_details', $instawp_settings );
 $tracking_url          = Helper::get_args_option( 'tracking_url', $migration_details );
