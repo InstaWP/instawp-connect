@@ -576,11 +576,6 @@ span.select2-selection.select2-selection {
     line-height: unset !important;
 }
 
-#select-all-event:checked, .single-event-cb:checked {
-    border-color: #6b7280 !important;
-    background: #fff !important;
-}
-
 @keyframes blink {
     50% {
         opacity: 0;
