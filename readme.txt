@@ -100,6 +100,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 = 0.1.3.6 - 22 July 2026 =
 - Fixed: Checkbox checked state not visible on the events screen in admin dashboard.
+- Fixed: Large files list is now built on demand instead of an hourly full-filesystem scan.
 
 = 0.1.3.5 - 29 June 2026 =
 - Fixed: Soft flush rewrite rules on cache clear.
