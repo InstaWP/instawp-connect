@@ -60,6 +60,7 @@ if ( ! empty( $connect_id ) && ! empty( $api_key ) ) {
 
 delete_option( 'instawp_api_options' );
 delete_option( 'instawp_large_files_list' );
+delete_option( 'instawp_large_files_cron_removed' );
 delete_option( 'instawp_backup_part_size' );
 delete_option( 'instawp_max_file_size_allowed' );
 delete_option( 'instawp_reset_type' );
