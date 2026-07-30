@@ -298,7 +298,16 @@ class instaWP {
 		$files_total = 0;
 		try {
 			if ( $path !== false && $path !== '' && file_exists( $path ) ) {
-				foreach ( new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $path, FilesystemIterator::SKIP_DOTS ) ) as $object ) {
+				// CATCH_GET_CHILD: skip an unreadable sub-directory and keep walking instead of
+				// throwing UnexpectedValueException, which would abort the whole walk and return a
+				// partial/zero total silently (a completed migration with file_size=0). Matches the
+				// iterator flags used in functions-pull-push.php / class-instawp-tools.php.
+				$iterator = new RecursiveIteratorIterator(
+					new RecursiveDirectoryIterator( $path, FilesystemIterator::SKIP_DOTS ),
+					RecursiveIteratorIterator::LEAVES_ONLY,
+					RecursiveIteratorIterator::CATCH_GET_CHILD
+				);
+				foreach ( $iterator as $object ) {
 					try {
 						$bytes_total += $object->getSize();
 						++ $files_total;
@@ -308,6 +317,9 @@ class instaWP {
 				}
 			}
 		} catch ( Exception $e ) {
+			// Do not swallow silently — a failed walk returning 0 bytes must be observable so it is
+			// not mistaken for a genuinely empty directory (root cause of file_size=0 migrations).
+			Helper::add_error_log( 'get_directory_info() failed for path: ' . $path . ' - ' . $e->getMessage(), $e );
 		}
 
 		return array(
