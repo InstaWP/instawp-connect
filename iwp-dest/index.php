@@ -222,24 +222,81 @@ if ( $file_type === 'db' ) {
 		}
 	}
 
-	$sql_commands = file_get_contents( $file_save_path );
-	$commands     = explode( ";\n\n", $sql_commands );
+	// Stream the db chunk from disk and execute statements incrementally.
+	// Loading the whole chunk with file_get_contents() + explode() peaked at
+	// ~2-3x the chunk size in RAM, which OOM'd / hit PHP-FPM's
+	// request_terminate_timeout on the destination and returned an unhandled
+	// HTTP 500 (empty body). Reading in bounded blocks and splitting on the
+	// ";\n\n" statement delimiter keeps memory flat regardless of chunk size.
+	$delimiter     = ";\n\n";
+	$delimiter_len = strlen( $delimiter );
+	$has_mysqli    = extension_loaded( 'mysqli' );
 
-	file_put_contents( $received_db_path, $sql_commands, FILE_APPEND );
+	$db_read_stream = fopen( $file_save_path, 'rb' );
+	if ( ! $db_read_stream ) {
+		header( 'x-iwp-status: false' );
+		header( 'x-iwp-message: Can\'t open db file stream for import. ' . $file_save_path );
+		die();
+	}
+	$audit_stream = fopen( $received_db_path, 'ab' );
 
-	foreach ( $commands as $command ) {
-		if ( ! empty( trim( $command ) ) ) {
-			if ( extension_loaded( 'mysqli' ) ) {
-				if ( ! $mysqli->query( $command ) ) {
-					die( 'Error executing command: ' . $mysqli->error );
-				}
-			} else {
-				$result = mysql_query( $command );
-				if ( ! $result ) {
-					die( 'Error executing command: ' . mysql_error() );
-				}
+	// Executes one statement; on failure emits a *handled* response
+	// (x-iwp-status: false) so the pusher's app-error retry engages instead of
+	// silently treating the absent header as success.
+	$iwp_run_sql = function ( $command ) use ( $has_mysqli, $mysqli ) {
+		$command = trim( $command );
+		if ( '' === $command ) {
+			return;
+		}
+		if ( $has_mysqli ) {
+			if ( ! $mysqli->query( $command ) ) {
+				header( 'x-iwp-status: false' );
+				header( 'x-iwp-message: Error executing command: ' . $mysqli->error );
+				die();
+			}
+		} else {
+			if ( ! mysql_query( $command ) ) {
+				header( 'x-iwp-status: false' );
+				header( 'x-iwp-message: Error executing command: ' . mysql_error() );
+				die();
 			}
 		}
+	};
+
+	$buffer = '';
+	while ( ! feof( $db_read_stream ) ) {
+		$block = fread( $db_read_stream, 1048576 ); // 1 MB
+		if ( false === $block ) {
+			break; // read error — stop rather than risk a busy loop
+		}
+		if ( '' === $block ) {
+			continue; // nothing read this pass; feof() guards termination
+		}
+
+		if ( $audit_stream ) {
+			fwrite( $audit_stream, $block );
+		}
+
+		$buffer .= $block;
+
+		// Execute every complete statement now in the buffer; keep the trailing
+		// partial statement (no delimiter yet) for the next read.
+		$offset = 0;
+		while ( false !== ( $pos = strpos( $buffer, $delimiter, $offset ) ) ) {
+			$iwp_run_sql( substr( $buffer, $offset, $pos - $offset ) );
+			$offset = $pos + $delimiter_len;
+		}
+		if ( $offset > 0 ) {
+			$buffer = substr( $buffer, $offset );
+		}
+	}
+
+	// Flush the final statement (the tail after the last delimiter).
+	$iwp_run_sql( $buffer );
+
+	fclose( $db_read_stream );
+	if ( $audit_stream ) {
+		fclose( $audit_stream );
 	}
 
 	if ( extension_loaded( 'mysqli' ) ) {
