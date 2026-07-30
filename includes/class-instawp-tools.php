@@ -10,6 +10,27 @@ defined( 'ABSPATH' ) || exit;
 class InstaWP_Tools {
 
 	/**
+	 * Whether the most recent files size scan (get_total_sizes( 'files' )) could not be fully
+	 * completed — e.g. a directory was unreadable and its subtree was skipped. When true the reported
+	 * file size is partial, so a caller should not treat it (or a resulting 0) as authoritative. Read
+	 * it via last_files_scan_had_error() right after calling get_total_sizes( 'files', ... ).
+	 *
+	 * @var bool
+	 */
+	protected static $files_scan_error = false;
+
+	/**
+	 * Whether the last files size scan was incomplete (partial/failed). Pairs with the client-app
+	 * completion guard so an incomplete scan can fail a migration loudly instead of shipping a
+	 * silently-wrong (often zero) file size as a success.
+	 *
+	 * @return bool
+	 */
+	public static function last_files_scan_had_error() {
+		return self::$files_scan_error;
+	}
+
+	/**
 	 * Verify an AJAX request: validates nonce and user capability.
 	 * Sends a JSON error response and exits if either check fails.
 	 *
@@ -1355,6 +1376,12 @@ include $file_path;';
 		$hash      = md5( json_encode( $migrate_settings ) );
 		$cache_key = 'instawp_site_size_check_' . $type . '_' . $hash;
 
+		// A failed/partial files scan is never cached (see below), so a cache hit is by definition a
+		// clean scan — clear the flag before an early return so the getter reflects that.
+		if ( $type === 'files' ) {
+			self::$files_scan_error = false;
+		}
+
 		if ( ! $force_check ) {
 			$cached_size = get_transient( $cache_key );
 
@@ -1368,7 +1395,16 @@ include $file_path;';
 		if ( $type === 'files' ) {
 			$total_size_to_skip = 0;
 			$total_files        = instawp_get_dir_contents( '/' );
-			$total_files_sizes  = array_map(
+
+			// A top-level directory reported an incomplete scan — the total is partial, not authoritative.
+			foreach ( $total_files as $entry ) {
+				if ( ! empty( $entry['error'] ) ) {
+					self::$files_scan_error = true;
+					break;
+				}
+			}
+
+			$total_files_sizes = array_map(
 				function ( $data ) {
 					return isset( $data['size'] ) ? $data['size'] : 0;
 				},
@@ -1415,6 +1451,14 @@ include $file_path;';
 			);
 
 			$size = array_sum( $tables_sizes );
+		}
+
+		// Do not cache a files size we could not fully compute — otherwise a partial (often zero) size
+		// would be served for an hour and ship as a clean success. Let the next call retry the scan.
+		if ( $type === 'files' && self::$files_scan_error ) {
+			Helper::add_error_log( 'get_total_sizes: files size scan incomplete, not caching. Partial size=' . intval( $size ) );
+
+			return $size;
 		}
 
 		// Cache the size for 1 hour
