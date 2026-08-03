@@ -190,14 +190,17 @@ class InstaWP_Tools {
 	 *
 	 * - index.php ("Silence is golden.") — makes mod_dir serve it instead of letting
 	 *   mod_autoindex generate a listing that would leak the key through the filename.
-	 * - .htaccess — denies direct HTTP access to `*.txt` (the options files) while
+	 * - .htaccess — denies direct HTTP access to the sensitive migration artifacts
+	 *   (`*.txt` options files, plus any `*.sql`/`*.sqlite` database dumps) while
 	 *   leaving `*.zip` reachable, because plugin/theme sync serves `plugins/*.zip`
-	 *   and `themes/*.zip` out of this same tree over HTTP. The rule is scoped to
-	 *   `*.txt` rather than `deny from all` for that reason, and the deny is safe for
-	 *   the plugin itself, which only ever reads the options file from the filesystem
-	 *   (never over HTTP). It is wrapped in mod_authz_core / legacy IfModule blocks so
-	 *   it works on both Apache 2.4 and 2.2, and is inert (not a 500) where .htaccess
-	 *   overrides are disabled.
+	 *   and `themes/*.zip` out of this same tree over HTTP. The rule is extension-scoped
+	 *   rather than `deny from all` for that reason, and the deny is safe for the plugin
+	 *   itself, which only ever reads these files from the filesystem (never over HTTP).
+	 *   It prefers the mod_access_compat form (Order/Deny — the same the migration-log
+	 *   guard uses, permitted under `AllowOverride Limit`) and falls back to
+	 *   `Require all denied` only where mod_access_compat is absent, so it works on
+	 *   Apache 2.4 and 2.2 and is inert (not a 500) where .htaccess overrides are
+	 *   disabled.
 	 *
 	 *   This is Apache-layer defense-in-depth only: an nginx front-end (or nginx+Apache
 	 *   host that serves static files with `try_files $uri`) returns the file directly
@@ -244,23 +247,27 @@ class InstaWP_Tools {
 
 			// The two guard files written into each directory. Kept in a map so each is
 			// written independently — a directory that already carries index.php from an
-			// earlier run still gets the .htaccess added on a later call. The .htaccess is
-			// *.txt-scoped so it never blocks the *.zip files sync serves over HTTP, and
-			// works on Apache 2.4 (mod_authz_core) and 2.2 alike.
-			$guard_files = array(
+			// earlier run still gets the .htaccess added on a later call. The .htaccess
+			// denies only sensitive extensions (*.txt/*.sql/*.sqlite) so it never blocks
+			// the *.zip files sync serves over HTTP. It prefers the mod_access_compat form
+			// (permitted under AllowOverride Limit, like the migration-log guard) and
+			// falls back to Require only where that module is absent.
+			$deny_pattern = '<FilesMatch "\.(txt|sql|sqlite)$">';
+			$guard_files  = array(
 				'index.php' => "<?php\n// Silence is golden.\n",
 				'.htaccess' => implode( "\n", array(
-					'# InstaWP: deny direct HTTP access to the encrypted migration options files',
-					'# (options-{key}.txt). PHP filesystem reads are unaffected; sync .zip stays reachable.',
-					'<IfModule mod_authz_core.c>',
-					"\t" . '<FilesMatch "\.txt$">',
-					"\t\t" . 'Require all denied',
-					"\t" . '</FilesMatch>',
-					'</IfModule>',
-					'<IfModule !mod_authz_core.c>',
-					"\t" . '<FilesMatch "\.txt$">',
+					'# InstaWP: deny direct HTTP access to migration credential/database artifacts',
+					'# (options-{key}.txt and any .sql/.sqlite). PHP filesystem reads are unaffected;',
+					'# plugin/theme sync .zip stays reachable.',
+					'<IfModule mod_access_compat.c>',
+					"\t" . $deny_pattern,
 					"\t\t" . 'Order Allow,Deny',
 					"\t\t" . 'Deny from all',
+					"\t" . '</FilesMatch>',
+					'</IfModule>',
+					'<IfModule !mod_access_compat.c>',
+					"\t" . $deny_pattern,
+					"\t\t" . 'Require all denied',
 					"\t" . '</FilesMatch>',
 					'</IfModule>',
 					'',
