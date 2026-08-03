@@ -992,6 +992,60 @@ if ( ! function_exists( 'iwp_get_migration_key_hash' ) ) {
 	}
 }
 
+if ( ! function_exists( 'iwp_sanitize_relative_path' ) ) {
+	/**
+	 * Sanitise a migration file path received over the network.
+	 *
+	 * Leading separators are stripped rather than rejected. That is deliberate and is
+	 * exactly what the receiver already does today: joining "/wp-content/x.php" to the
+	 * root yields "<root>//wp-content/x.php", which resolves to the same file as the
+	 * stripped form. Rejecting them instead would break senders that legitimately produce
+	 * one — notably a Windows source, where iwp-serve strips with DIRECTORY_SEPARATOR
+	 * ("\") and so leaves a leading "/" on forward-slash paths untouched.
+	 *
+	 * What genuinely cannot be made safe is rejected outright: null bytes, `..` segments
+	 * and Windows drive letters. Those never occur in a well-formed transfer, since the
+	 * source derives every path from a filesystem walk rooted at WP_ROOT.
+	 *
+	 * @param string $relative_path Value taken from the X-File-Relative-Path header.
+	 *
+	 * @return string|false Sanitised root-relative path, or false when unusable.
+	 */
+	function iwp_sanitize_relative_path( $relative_path ) {
+
+		if ( ! is_string( $relative_path ) || '' === trim( $relative_path ) ) {
+			return false;
+		}
+
+		// Null byte truncation.
+		if ( false !== strpos( $relative_path, "\0" ) ) {
+			return false;
+		}
+
+		// Compare against a forward-slash copy so a Windows-style path cannot slip past
+		// the segment checks. The value returned keeps its original separators.
+		$normalized_path = str_replace( '\\', '/', $relative_path );
+
+		// Windows drive letter — the source failed to strip WP_ROOT, so the path is
+		// meaningless on this machine. Already broken today; fail loudly instead.
+		if ( preg_match( '#^[a-zA-Z]:/#', $normalized_path ) ) {
+			return false;
+		}
+
+		// Any parent-directory segment, wherever it appears in the path.
+		foreach ( explode( '/', $normalized_path ) as $path_segment ) {
+			if ( '..' === $path_segment ) {
+				return false;
+			}
+		}
+
+		// Strip leading separators so the path is unambiguously root-relative.
+		$relative_path = ltrim( $relative_path, "/\\" );
+
+		return '' === $relative_path ? false : $relative_path;
+	}
+}
+
 if ( ! function_exists( 'iwp_get_migration_file_paths' ) ) {
 	/**
 	 * Absolute paths of every per-migration file identified by $key_hash.

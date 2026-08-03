@@ -17,6 +17,7 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			add_action( 'instawp_connect_connected', array( $this, 'handle_connected' ) );
 			add_action( 'load-tools_page_instawp', array( $this, 'handle_connection_state' ) );
 			add_action( 'admin_init', array( $this, 'generate_api_key' ) );
+			add_action( 'admin_init', array( $this, 'protect_backups_dir' ) );
 			add_action( 'update_option', array( $this, 'manage_update_option' ), 10, 3 );
 			add_action( 'init', array( $this, 'handle_hard_disable_seo_visibility' ) );
 			add_action( 'admin_init', array( $this, 'handle_clear_all' ), 999 );
@@ -43,6 +44,34 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 		public function handle_connected( $connect_id ) {
 			instawp_send_heartbeat( $connect_id );
 			instawp_set_staging_sites_list();
+		}
+
+		/**
+		 * Retrofit the directory-listing guard onto an existing backups directory.
+		 *
+		 * Sites that already ran a migration have the directory — and often leftover
+		 * options-{key}.txt files — on disk right now, while create_instawpbackups_dir()
+		 * is only reached when a migration starts. Without this they would stay listable
+		 * until their next migration.
+		 *
+		 * The option check keeps this to one filesystem probe per guard revision instead
+		 * of one on every admin request.
+		 *
+		 * @return void
+		 */
+		public function protect_backups_dir() {
+
+			$guard_version = '1';
+
+			if ( Option::get_option( 'instawp_backups_dir_guarded' ) === $guard_version ) {
+				return;
+			}
+
+			// Only record the guard as done once it is actually in place, so a transient
+			// permission problem is retried on a later request instead of latching.
+			if ( InstaWP_Tools::protect_instawpbackups_dir() ) {
+				Option::update_option( 'instawp_backups_dir_guarded', $guard_version );
+			}
 		}
 
 		public function handle_connection_state() {

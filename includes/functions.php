@@ -279,6 +279,56 @@ if ( ! function_exists( 'instawp_is_options_file_protected' ) ) {
 	}
 }
 
+if ( ! function_exists( 'instawp_delete_migration_options_file' ) ) {
+	/**
+	 * Delete the encrypted migration options file(s) from the backups directory.
+	 *
+	 * The filename (`options-{migrate_key}.txt`) doubles as the key material used to
+	 * decrypt its own contents — the site's database credentials and the migration
+	 * api_signature — so it must not outlive the migration that produced it.
+	 *
+	 * Unlike the loops in instawp_reset_running_migration() this ignores the
+	 * instawp_is_options_file_protected() guard: callers use it at points where the
+	 * migration is already finished, so there is no active migration left to protect.
+	 *
+	 * @param string $migrate_key Delete only this migration's file. Empty string deletes
+	 *                            every options file left in the directory.
+	 *
+	 * @return int Number of files deleted.
+	 */
+	function instawp_delete_migration_options_file( $migrate_key = '' ) {
+
+		if ( ! defined( 'INSTAWP_DEFAULT_BACKUP_DIR' ) ) {
+			return 0;
+		}
+
+		$backup_dir = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . INSTAWP_DEFAULT_BACKUP_DIR . DIRECTORY_SEPARATOR;
+
+		if ( ! is_dir( $backup_dir ) ) {
+			return 0;
+		}
+
+		// A specific key targets one file; an empty key sweeps whatever is left behind by
+		// migrations that crashed before reaching their own cleanup.
+		if ( ! empty( $migrate_key ) ) {
+			$options_files = array( $backup_dir . 'options-' . $migrate_key . '.txt' );
+		} else {
+			$options_files = (array) glob( $backup_dir . 'options-*.txt' );
+		}
+
+		$deleted_count = 0;
+
+		foreach ( $options_files as $options_file ) {
+			if ( ! empty( $options_file ) && is_file( $options_file ) ) {
+				wp_delete_file( $options_file );
+				$deleted_count ++;
+			}
+		}
+
+		return $deleted_count;
+	}
+}
+
 if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 	/**
 	 * Reset running migration
@@ -324,6 +374,12 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 			$files_to_delete = array_diff( $files_to_delete, array( '.', '..' ) );
 
 			foreach ( $files_to_delete as $file ) {
+				// Leave the index.php listing guard in place — the directory survives this
+				// cleanup, so removing its guard would re-expose it to directory listing.
+				if ( class_exists( 'InstaWP_Tools' ) && InstaWP_Tools::is_dir_guard_file( $file ) ) {
+					continue;
+				}
+
 				if ( is_file( $instawp_backup_dir . $file ) && ! instawp_is_options_file_protected( $instawp_backup_dir . $file ) ) {
 					wp_delete_file( $instawp_backup_dir . $file );
 				}
