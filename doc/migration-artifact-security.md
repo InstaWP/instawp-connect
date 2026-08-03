@@ -31,6 +31,12 @@ and `themes/` sub-directories. Apache's `mod_dir` then serves that file instead
 of letting `mod_autoindex` generate a listing, which is what would otherwise
 expose the migration key through the filename.
 
+Both `protect_instawpbackups_dir()` and `create_instawpbackups_dir()` derive the
+default path from `WP_CONTENT_DIR` and `INSTAWP_DEFAULT_BACKUP_DIR`, and return
+early (`false`) when either constant is undefined — a defensive guard for callers
+that fire before the constants are set. `false` leaves `instawp_backups_dir_guarded`
+unset so a later request retries.
+
 It is called from:
 
 - `InstaWP_Tools::create_instawpbackups_dir()` — on **every** call, not only
@@ -43,6 +49,15 @@ It is called from:
   rather than a filesystem probe. The option is only recorded once the guard is
   actually in place, so a transient permission failure is retried rather than
   latched.
+- `InstaWP_Hooks::protect_backups_dir_on_upgrade()` on `upgrader_process_complete`
+  — `admin_init` only fires when an admin loads wp-admin, so it never reaches a
+  site that updates unattended. This hook re-asserts the guard after the plugin is
+  updated, including background auto-updates that run in cron with no logged-in
+  user. It is scoped to updates whose payload actually includes this plugin
+  (`options['type'] === 'plugin'` and the plugin basename present in
+  `options['plugins']` or `options['plugin']`), and clears
+  `instawp_backups_dir_guarded` first so the version gate cannot short-circuit the
+  re-check.
 - `InstaWP_Sync_Plugin_Theme` after it creates the tree — sync builds these
   directories with `wp_mkdir_p()` directly, so a site that only syncs and never
   migrates would otherwise never get a guard.

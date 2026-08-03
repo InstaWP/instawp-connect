@@ -18,6 +18,10 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			add_action( 'load-tools_page_instawp', array( $this, 'handle_connection_state' ) );
 			add_action( 'admin_init', array( $this, 'generate_api_key' ) );
 			add_action( 'admin_init', array( $this, 'protect_backups_dir' ) );
+			// admin_init only fires when an admin loads wp-admin, so it never reaches a site
+			// updated unattended. Re-assert the guard after this plugin is updated — including
+			// background auto-updates that run in cron with no logged-in user.
+			add_action( 'upgrader_process_complete', array( $this, 'protect_backups_dir_on_upgrade' ), 10, 2 );
 			add_action( 'update_option', array( $this, 'manage_update_option' ), 10, 3 );
 			add_action( 'init', array( $this, 'handle_hard_disable_seo_visibility' ) );
 			add_action( 'admin_init', array( $this, 'handle_clear_all' ), 999 );
@@ -72,6 +76,49 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			if ( InstaWP_Tools::protect_instawpbackups_dir() ) {
 				Option::update_option( 'instawp_backups_dir_guarded', $guard_version );
 			}
+		}
+
+		/**
+		 * Re-assert the directory-listing guard after this plugin is updated.
+		 *
+		 * Fires on upgrader_process_complete, which unlike admin_init runs during
+		 * unattended background updates (auto-update via cron) where no admin is logged
+		 * in. Scoped to updates that actually include this plugin so unrelated plugin,
+		 * theme or core updates are ignored. Clears the guard flag first so the version
+		 * gate in protect_backups_dir() cannot short-circuit the re-check.
+		 *
+		 * @param WP_Upgrader $upgrader Upgrader instance (unused).
+		 * @param array       $options  Update context: type, action and affected items.
+		 *
+		 * @return void
+		 */
+		public function protect_backups_dir_on_upgrade( $upgrader, $options ) {
+
+			if ( empty( $options['type'] ) || 'plugin' !== $options['type'] ) {
+				return;
+			}
+
+			$plugin_basename = defined( 'INSTAWP_PLUGIN_SLUG' )
+				? INSTAWP_PLUGIN_SLUG . '/' . INSTAWP_PLUGIN_SLUG . '.php'
+				: 'instawp-connect/instawp-connect.php';
+
+			// The affected plugins arrive as 'plugins' for bulk/auto updates and 'plugin'
+			// for a single manual update; normalise both into one list.
+			$updated_plugins = array();
+			if ( ! empty( $options['plugins'] ) && is_array( $options['plugins'] ) ) {
+				$updated_plugins = $options['plugins'];
+			} elseif ( ! empty( $options['plugin'] ) ) {
+				$updated_plugins = array( $options['plugin'] );
+			}
+
+			if ( ! in_array( $plugin_basename, $updated_plugins, true ) ) {
+				return;
+			}
+
+			// Force a re-check even if a previous run already recorded the guard version.
+			Option::delete_option( 'instawp_backups_dir_guarded' );
+
+			$this->protect_backups_dir();
 		}
 
 		public function handle_connection_state() {

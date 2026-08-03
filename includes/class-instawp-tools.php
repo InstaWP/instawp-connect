@@ -105,6 +105,12 @@ class InstaWP_Tools {
 	public static function create_instawpbackups_dir( $instawpbackups_dir = '' ) {
 
 		if ( empty( $instawpbackups_dir ) ) {
+			// Guard against being called before the constants that form the default path are
+			// defined; without them there is no directory to create or protect.
+			if ( ! defined( 'WP_CONTENT_DIR' ) || ! defined( 'INSTAWP_DEFAULT_BACKUP_DIR' ) ) {
+				return false;
+			}
+
 			$instawpbackups_dir = WP_CONTENT_DIR . '/' . INSTAWP_DEFAULT_BACKUP_DIR;
 		}
 
@@ -187,6 +193,14 @@ class InstaWP_Tools {
 	public static function protect_instawpbackups_dir( $instawpbackups_dir = '' ) {
 
 		if ( empty( $instawpbackups_dir ) ) {
+			// The default path is derived from these constants, so bail defensively if the
+			// method is reached before WordPress (or the plugin bootstrap) has defined them —
+			// e.g. from a hook that fires very early. Returning false leaves the guard flag
+			// unset so a later request retries.
+			if ( ! defined( 'WP_CONTENT_DIR' ) || ! defined( 'INSTAWP_DEFAULT_BACKUP_DIR' ) ) {
+				return false;
+			}
+
 			$instawpbackups_dir = WP_CONTENT_DIR . '/' . INSTAWP_DEFAULT_BACKUP_DIR;
 		}
 
