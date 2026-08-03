@@ -105,11 +105,17 @@ $req_order          = isset( $_GET['r'] ) ? intval( $_GET['r'] ) : 1;
 // everything below writes straight to the path it names. Leading separators are stripped
 // (which resolves to the same file the receiver already writes today), while `..`
 // segments, null bytes and drive letters are rejected.
+// Preserve the original header value for diagnostics before it is replaced by the
+// sanitised result below, so a rejected transfer is debuggable from the response.
+// Strip CR/LF/NUL so it is safe to echo back in a response header (PHP's header()
+// already refuses line breaks, this also keeps the value readable in migration logs).
+$requested_relative_path = str_replace( array( "\r", "\n", "\0" ), '', $file_relative_path );
+
 $file_relative_path = iwp_sanitize_relative_path( $file_relative_path );
 
 if ( false === $file_relative_path ) {
 	header( 'x-iwp-status: false' );
-	header( 'x-iwp-message: The migration script rejected an invalid file path.' );
+	header( 'x-iwp-message: The migration script rejected an invalid file path. Provided path: ' . $requested_relative_path );
 	die();
 }
 
@@ -126,7 +132,7 @@ $file_save_path_test = str_replace( '\\', '/', $file_save_path );
 
 if ( 0 !== strpos( $file_save_path_test, $root_dir_prefix ) ) {
 	header( 'x-iwp-status: false' );
-	header( 'x-iwp-message: The migration script rejected a file path outside the site root.' );
+	header( 'x-iwp-message: The migration script rejected a file path outside the site root. Provided path: ' . $requested_relative_path );
 	die();
 }
 
