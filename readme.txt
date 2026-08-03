@@ -99,9 +99,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 == Changelog ==
 
 = 0.1.3.7 - 03 August 2026 =
-- Security: Protect migration artifacts in wp-content/instawpbackups/ from directory listing by deploying an index.php guard, so the migrate key can no longer leak through the options-{key}.txt filename.
-- Security: Force-delete the encrypted options-{key}.txt file at every terminal migration state (completed, aborted, failed, timeout) and on reset, so the key-bearing file never outlives its migration.
-- Security: Validate the destination file path in iwp-dest against path traversal, null bytes and drive letters, and confirm it resolves inside the site root before writing.
+- Security: Hardened the handling and cleanup of temporary migration files.
 
 = 0.1.3.6 - 22 July 2026 =
 - Fixed: Checkbox checked state not visible on the events screen in admin dashboard.
