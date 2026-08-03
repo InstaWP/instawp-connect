@@ -298,34 +298,43 @@ if ( ! function_exists( 'instawp_delete_migration_options_file' ) ) {
 	 */
 	function instawp_delete_migration_options_file( $migrate_key = '' ) {
 
-		if ( ! defined( 'INSTAWP_DEFAULT_BACKUP_DIR' ) ) {
-			return 0;
-		}
-
-		$backup_dir = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . INSTAWP_DEFAULT_BACKUP_DIR . DIRECTORY_SEPARATOR;
-
-		if ( ! is_dir( $backup_dir ) ) {
-			return 0;
-		}
-
-		// A specific key targets one file; an empty key sweeps whatever is left behind by
-		// migrations that crashed before reaching their own cleanup.
-		if ( ! empty( $migrate_key ) ) {
-			$options_files = array( $backup_dir . 'options-' . $migrate_key . '.txt' );
-		} else {
-			$options_files = (array) glob( $backup_dir . 'options-*.txt' );
-		}
-
-		$deleted_count = 0;
-
-		foreach ( $options_files as $options_file ) {
-			if ( ! empty( $options_file ) && is_file( $options_file ) ) {
-				wp_delete_file( $options_file );
-				$deleted_count ++;
+		// Runs at migration terminal states and on reset; a failure must never fatal those
+		// flows, so the whole body is wrapped.
+		try {
+			if ( ! defined( 'INSTAWP_DEFAULT_BACKUP_DIR' ) || ! defined( 'WP_CONTENT_DIR' ) ) {
+				return 0;
 			}
-		}
 
-		return $deleted_count;
+			$backup_dir = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . INSTAWP_DEFAULT_BACKUP_DIR . DIRECTORY_SEPARATOR;
+
+			if ( ! is_dir( $backup_dir ) ) {
+				return 0;
+			}
+
+			// A specific key targets one file; an empty key sweeps whatever is left behind by
+			// migrations that crashed before reaching their own cleanup. basename() keeps a
+			// malformed key from ever resolving outside the backups directory.
+			if ( ! empty( $migrate_key ) ) {
+				$options_files = array( $backup_dir . 'options-' . basename( $migrate_key ) . '.txt' );
+			} else {
+				$options_files = (array) glob( $backup_dir . 'options-*.txt' );
+			}
+
+			$deleted_count = 0;
+
+			foreach ( $options_files as $options_file ) {
+				if ( ! empty( $options_file ) && is_file( $options_file ) ) {
+					wp_delete_file( $options_file );
+					$deleted_count ++;
+				}
+			}
+
+			return $deleted_count;
+		} catch ( \Throwable $th ) {
+			Helper::add_error_log( array( 'title' => 'instawp: instawp_delete_migration_options_file failed' ), $th );
+
+			return 0;
+		}
 	}
 }
 

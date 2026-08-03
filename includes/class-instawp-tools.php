@@ -104,30 +104,37 @@ class InstaWP_Tools {
 
 	public static function create_instawpbackups_dir( $instawpbackups_dir = '' ) {
 
-		if ( empty( $instawpbackups_dir ) ) {
-			// Guard against being called before the constants that form the default path are
-			// defined; without them there is no directory to create or protect.
-			if ( ! defined( 'WP_CONTENT_DIR' ) || ! defined( 'INSTAWP_DEFAULT_BACKUP_DIR' ) ) {
-				return false;
+		// Wrapped so a filesystem or environment edge case can never fatal the caller.
+		try {
+			if ( empty( $instawpbackups_dir ) ) {
+				// Guard against being called before the constants that form the default path are
+				// defined; without them there is no directory to create or protect.
+				if ( ! defined( 'WP_CONTENT_DIR' ) || ! defined( 'INSTAWP_DEFAULT_BACKUP_DIR' ) ) {
+					return false;
+				}
+
+				$instawpbackups_dir = WP_CONTENT_DIR . '/' . INSTAWP_DEFAULT_BACKUP_DIR;
 			}
 
-			$instawpbackups_dir = WP_CONTENT_DIR . '/' . INSTAWP_DEFAULT_BACKUP_DIR;
+			$dir_created = false;
+
+			if ( ! is_dir( $instawpbackups_dir ) ) {
+				// Permissions are intentionally left at 0777: some shared hosts run the web
+				// server and PHP as different users and both need to write into this tree.
+				$dir_created = mkdir( $instawpbackups_dir, 0777, true ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir
+			}
+
+			// Always re-assert the listing guards, not only when the directory was just
+			// created. On every site that has already run a migration the directory exists,
+			// so a guard written inside the mkdir branch above would never reach them.
+			self::protect_instawpbackups_dir( $instawpbackups_dir );
+
+			return $dir_created;
+		} catch ( \Throwable $th ) {
+			Helper::add_error_log( array( 'title' => 'instawp: create_instawpbackups_dir failed' ), $th );
+
+			return false;
 		}
-
-		$dir_created = false;
-
-		if ( ! is_dir( $instawpbackups_dir ) ) {
-			// Permissions are intentionally left at 0777: some shared hosts run the web
-			// server and PHP as different users and both need to write into this tree.
-			$dir_created = mkdir( $instawpbackups_dir, 0777, true ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir
-		}
-
-		// Always re-assert the listing guards, not only when the directory was just
-		// created. On every site that has already run a migration the directory exists,
-		// so a guard written inside the mkdir branch above would never reach them.
-		self::protect_instawpbackups_dir( $instawpbackups_dir );
-
-		return $dir_created;
 	}
 
 	/**
@@ -192,56 +199,64 @@ class InstaWP_Tools {
 	 */
 	public static function protect_instawpbackups_dir( $instawpbackups_dir = '' ) {
 
-		if ( empty( $instawpbackups_dir ) ) {
-			// The default path is derived from these constants, so bail defensively if the
-			// method is reached before WordPress (or the plugin bootstrap) has defined them —
-			// e.g. from a hook that fires very early. Returning false leaves the guard flag
-			// unset so a later request retries.
-			if ( ! defined( 'WP_CONTENT_DIR' ) || ! defined( 'INSTAWP_DEFAULT_BACKUP_DIR' ) ) {
-				return false;
+		// Wrapped so a filesystem or environment edge case can never fatal the request
+		// that triggered the guard (admin_init, upgrader_process_complete, sync, migration).
+		try {
+			if ( empty( $instawpbackups_dir ) ) {
+				// The default path is derived from these constants, so bail defensively if the
+				// method is reached before WordPress (or the plugin bootstrap) has defined them —
+				// e.g. from a hook that fires very early. Returning false leaves the guard flag
+				// unset so a later request retries.
+				if ( ! defined( 'WP_CONTENT_DIR' ) || ! defined( 'INSTAWP_DEFAULT_BACKUP_DIR' ) ) {
+					return false;
+				}
+
+				$instawpbackups_dir = WP_CONTENT_DIR . '/' . INSTAWP_DEFAULT_BACKUP_DIR;
 			}
 
-			$instawpbackups_dir = WP_CONTENT_DIR . '/' . INSTAWP_DEFAULT_BACKUP_DIR;
+			$instawpbackups_dir = untrailingslashit( $instawpbackups_dir );
+
+			if ( ! is_dir( $instawpbackups_dir ) ) {
+				// Nothing on disk to protect yet — create_instawpbackups_dir() guards the
+				// directory at creation time, so this is a success rather than a failure.
+				return true;
+			}
+
+			// Guard the backups root plus the two sub-directories that hold sync artifacts.
+			// migration-log/ writes its own guards in InstaWP_Migrate_Log::get_path().
+			$dirs_to_protect = array(
+				$instawpbackups_dir,
+				$instawpbackups_dir . DIRECTORY_SEPARATOR . 'plugins',
+				$instawpbackups_dir . DIRECTORY_SEPARATOR . 'themes',
+			);
+
+			$all_dirs_guarded = true;
+
+			foreach ( $dirs_to_protect as $dir_to_protect ) {
+				if ( ! is_dir( $dir_to_protect ) ) {
+					continue;
+				}
+
+				$index_file = $dir_to_protect . DIRECTORY_SEPARATOR . 'index.php';
+
+				if ( file_exists( $index_file ) ) {
+					continue;
+				}
+
+				// Silence is golden — mirrors the guard WordPress core ships in wp-content.
+				// A failed write is reported so the caller does not record the directory as
+				// guarded and can retry later.
+				if ( ! is_writable( $dir_to_protect ) || ! @file_put_contents( $index_file, "<?php\n// Silence is golden.\n" ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+					$all_dirs_guarded = false;
+				}
+			}
+
+			return $all_dirs_guarded;
+		} catch ( \Throwable $th ) {
+			Helper::add_error_log( array( 'title' => 'instawp: protect_instawpbackups_dir failed' ), $th );
+
+			return false;
 		}
-
-		$instawpbackups_dir = untrailingslashit( $instawpbackups_dir );
-
-		if ( ! is_dir( $instawpbackups_dir ) ) {
-			// Nothing on disk to protect yet — create_instawpbackups_dir() guards the
-			// directory at creation time, so this is a success rather than a failure.
-			return true;
-		}
-
-		// Guard the backups root plus the two sub-directories that hold sync artifacts.
-		// migration-log/ writes its own guards in InstaWP_Migrate_Log::get_path().
-		$dirs_to_protect = array(
-			$instawpbackups_dir,
-			$instawpbackups_dir . DIRECTORY_SEPARATOR . 'plugins',
-			$instawpbackups_dir . DIRECTORY_SEPARATOR . 'themes',
-		);
-
-		$all_dirs_guarded = true;
-
-		foreach ( $dirs_to_protect as $dir_to_protect ) {
-			if ( ! is_dir( $dir_to_protect ) ) {
-				continue;
-			}
-
-			$index_file = $dir_to_protect . DIRECTORY_SEPARATOR . 'index.php';
-
-			if ( file_exists( $index_file ) ) {
-				continue;
-			}
-
-			// Silence is golden — mirrors the guard WordPress core ships in wp-content.
-			// A failed write is reported so the caller does not record the directory as
-			// guarded and can retry later.
-			if ( ! is_writable( $dir_to_protect ) || ! @file_put_contents( $index_file, "<?php\n// Silence is golden.\n" ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-				$all_dirs_guarded = false;
-			}
-		}
-
-		return $all_dirs_guarded;
 	}
 
 	public static function clean_instawpbackups_dir( $instawpbackups_dir = '', $clean_self = false ) {

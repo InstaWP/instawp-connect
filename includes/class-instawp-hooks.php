@@ -65,16 +65,22 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 		 */
 		public function protect_backups_dir() {
 
-			$guard_version = '1';
+			// Wrapped so a filesystem or environment edge case can never fatal the
+			// admin_init request this runs on.
+			try {
+				$guard_version = '1';
 
-			if ( Option::get_option( 'instawp_backups_dir_guarded' ) === $guard_version ) {
-				return;
-			}
+				if ( Option::get_option( 'instawp_backups_dir_guarded' ) === $guard_version ) {
+					return;
+				}
 
-			// Only record the guard as done once it is actually in place, so a transient
-			// permission problem is retried on a later request instead of latching.
-			if ( InstaWP_Tools::protect_instawpbackups_dir() ) {
-				Option::update_option( 'instawp_backups_dir_guarded', $guard_version );
+				// Only record the guard as done once it is actually in place, so a transient
+				// permission problem is retried on a later request instead of latching.
+				if ( InstaWP_Tools::protect_instawpbackups_dir() ) {
+					Option::update_option( 'instawp_backups_dir_guarded', $guard_version );
+				}
+			} catch ( \Throwable $th ) {
+				Helper::add_error_log( array( 'title' => 'instawp: protect_backups_dir failed' ), $th );
 			}
 		}
 
@@ -94,31 +100,36 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 		 */
 		public function protect_backups_dir_on_upgrade( $upgrader, $options ) {
 
-			if ( empty( $options['type'] ) || 'plugin' !== $options['type'] ) {
-				return;
+			// Runs on upgrader_process_complete; a failure here must not break the update.
+			try {
+				if ( empty( $options['type'] ) || 'plugin' !== $options['type'] ) {
+					return;
+				}
+
+				$plugin_basename = defined( 'INSTAWP_PLUGIN_SLUG' )
+					? INSTAWP_PLUGIN_SLUG . '/' . INSTAWP_PLUGIN_SLUG . '.php'
+					: 'instawp-connect/instawp-connect.php';
+
+				// The affected plugins arrive as 'plugins' for bulk/auto updates and 'plugin'
+				// for a single manual update; normalise both into one list.
+				$updated_plugins = array();
+				if ( ! empty( $options['plugins'] ) && is_array( $options['plugins'] ) ) {
+					$updated_plugins = $options['plugins'];
+				} elseif ( ! empty( $options['plugin'] ) ) {
+					$updated_plugins = array( $options['plugin'] );
+				}
+
+				if ( ! in_array( $plugin_basename, $updated_plugins, true ) ) {
+					return;
+				}
+
+				// Force a re-check even if a previous run already recorded the guard version.
+				Option::delete_option( 'instawp_backups_dir_guarded' );
+
+				$this->protect_backups_dir();
+			} catch ( \Throwable $th ) {
+				Helper::add_error_log( array( 'title' => 'instawp: protect_backups_dir_on_upgrade failed' ), $th );
 			}
-
-			$plugin_basename = defined( 'INSTAWP_PLUGIN_SLUG' )
-				? INSTAWP_PLUGIN_SLUG . '/' . INSTAWP_PLUGIN_SLUG . '.php'
-				: 'instawp-connect/instawp-connect.php';
-
-			// The affected plugins arrive as 'plugins' for bulk/auto updates and 'plugin'
-			// for a single manual update; normalise both into one list.
-			$updated_plugins = array();
-			if ( ! empty( $options['plugins'] ) && is_array( $options['plugins'] ) ) {
-				$updated_plugins = $options['plugins'];
-			} elseif ( ! empty( $options['plugin'] ) ) {
-				$updated_plugins = array( $options['plugin'] );
-			}
-
-			if ( ! in_array( $plugin_basename, $updated_plugins, true ) ) {
-				return;
-			}
-
-			// Force a re-check even if a previous run already recorded the guard version.
-			Option::delete_option( 'instawp_backups_dir_guarded' );
-
-			$this->protect_backups_dir();
 		}
 
 		public function handle_connection_state() {

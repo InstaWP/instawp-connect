@@ -37,6 +37,13 @@ early (`false`) when either constant is undefined — a defensive guard for call
 that fire before the constants are set. `false` leaves `instawp_backups_dir_guarded`
 unset so a later request retries.
 
+Every guard entry point — `protect_instawpbackups_dir()`,
+`create_instawpbackups_dir()`, and the `InstaWP_Hooks::protect_backups_dir()` /
+`protect_backups_dir_on_upgrade()` handlers — is wrapped in `try/catch (\Throwable)`
+and logs failures via `Helper::add_error_log()`. A filesystem or environment fault
+therefore degrades to "guard not written, retry later" rather than fataling the
+`admin_init` or `upgrader_process_complete` request that triggered it.
+
 It is called from:
 
 - `InstaWP_Tools::create_instawpbackups_dir()` — on **every** call, not only
@@ -96,7 +103,10 @@ goes.
 `instawp_delete_migration_options_file( $migrate_key = '' )` deletes a specific
 migration's options file, or sweeps every `options-*.txt` when called with no
 key. It ignores the `instawp_is_options_file_protected()` guard, since every
-caller runs at a point where the migration is already over.
+caller runs at a point where the migration is already over. The keyed form runs
+`$migrate_key` through `basename()` so a malformed key can never resolve outside
+the backups directory, and the whole function is wrapped in `try/catch (\Throwable)`
+so a terminal-cleanup or reset flow cannot be fataled by a delete failure.
 
 Deletion points:
 
