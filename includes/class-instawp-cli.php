@@ -25,8 +25,11 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 
 			global $wp_version;
 
-			// Files backup
-			if ( is_wp_error( $archive_path_file = InstaWP_Tools::cli_archive_wordpress_files() ) ) {
+			// Files backup. The exclusion list has to be passed here: it was previously
+			// computed further down (for the migration API payload only) and never reached
+			// the archiver, so host-specific files such as the source .htaccess were copied
+			// verbatim to the destination.
+			if ( is_wp_error( $archive_path_file = InstaWP_Tools::cli_archive_wordpress_files( 'zip', InstaWP_Tools::get_local_push_excluded_paths() ) ) ) {
 				die( esc_html( $archive_path_file->get_error_message() ) );
 			}
 			WP_CLI::success( 'Files backup created successfully.' );
@@ -41,6 +44,11 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 
 			// Create Site
 			if ( is_wp_error( $create_site_res = InstaWP_Tools::create_insta_site( true ) ) ) {
+
+				// Nothing has been uploaded yet, but the local archives are already on disk
+				// and can be several gigabytes, so they are not left behind.
+				InstaWP_Tools::cli_delete_local_archives( array( $archive_path_file, $archive_path_db ) );
+
 				die( esc_html( $create_site_res->get_error_message() ) );
 			}
 
@@ -71,6 +79,10 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 			$migrate_res_data    = Helper::get_args_option( 'data', $migrate_res, array() );
 
 			if ( ! $migrate_res_status ) {
+
+				// Still nothing uploaded at this point, so only the local copies need clearing.
+				InstaWP_Tools::cli_delete_local_archives( array( $archive_path_file, $archive_path_db ) );
+
 				die( esc_html( $migrate_res_message ) );
 			}
 
@@ -88,6 +100,9 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 				// Mark the migration failed
 				instawp_update_migration_stages( array( 'failed' => true ), $migrate_id, $migrate_key );
 
+				// An upload may have completed before the failure, so clear both ends.
+				InstaWP_Tools::cli_cleanup_migration_artifacts( $site_id, $archive_path_file, $archive_path_db );
+
 				die( esc_html( $file_upload_status->get_error_message() ) );
 			}
 
@@ -97,8 +112,14 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 				// Mark the migration failed
 				instawp_update_migration_stages( array( 'failed' => true ), $migrate_id, $migrate_key );
 
+				InstaWP_Tools::cli_cleanup_migration_artifacts( $site_id, $archive_path_file, $archive_path_db );
+
 				die( esc_html( $file_upload_status->get_error_message() ) );
 			}
+
+			// The restore has consumed the uploaded copies, so clear them from the docroot
+			// and from the local temp directory before finishing up.
+			InstaWP_Tools::cli_cleanup_migration_artifacts( $site_id, $archive_path_file, $archive_path_db );
 
 			// Mark the migration failed
 			instawp_update_migration_stages( array( 'migration-finished' => true ), $migrate_id, $migrate_key );

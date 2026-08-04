@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.6
 Tested up to: 7.0
 Requires PHP: 7.0
-Stable tag: 0.1.3.7
+Stable tag: 0.1.3.8
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -97,6 +97,11 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 You can report security bugs through the Patchstack Vulnerability Disclosure Program. The Patchstack team helps validate, triage, and handle any security vulnerabilities. [Report a security vulnerability](https://patchstack.com/database/vdp/instawp-connect).
 
 == Changelog ==
+
+= 0.1.3.8 - 04 August 2026 =
+- Fixed: Local push migration copied the source site's .htaccess, wp-config.php, caches and log files to the destination, which could leave the migrated site redirecting to the original domain.
+- Security: Local push migration now removes the transferred backup and database files from the destination site and the local machine once the migration completes.
+- Fixed: Local push migration from Windows stored files in the backup using their full local path, which produced an empty site on the destination.
 
 = 0.1.3.7 - 03 August 2026 =
 - Security: Hardened the handling and cleanup of temporary migration files.
