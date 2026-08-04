@@ -28,6 +28,27 @@ class WPConfig extends \WPConfigTransformer {
         'DOMAIN_CURRENT_SITE',
     ];
 
+    // InstaCache (Valkey/Redis) object-cache config is platform-managed and must never be
+    // round-tripped through the Config Manager: array-valued constants (WP_REDIS_PASSWORD =
+    // [acl_user, acl_pass]; WP_REDIS_SERVERS/CLUSTER/SENTINEL/SHARDS/*_GROUPS) collapse to a
+    // mangled string on save, breaking object-cache auth. A prefix match blacklists the whole
+    // family (present and future) rather than an enumerated, quickly-stale list.
+    protected $blacklisted_prefixes = [
+        'WP_REDIS_',
+    ];
+
+    protected function is_blacklisted( $constant ) {
+        if ( in_array( $constant, $this->blacklisted, true ) ) {
+            return true;
+        }
+        foreach ( $this->blacklisted_prefixes as $prefix ) {
+            if ( 0 === strpos( $constant, $prefix ) ) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public function __construct( array $constants = [], $is_cli = false, $read_only = false ) {
         $file = ABSPATH . 'wp-config.php';
         if ( ! file_exists( $file ) ) {
@@ -61,7 +82,7 @@ class WPConfig extends \WPConfigTransformer {
         ];
 
         foreach ( $this->wp_configs['constant'] as $constant => $data ) {
-            if ( ! $this->is_cli && ( preg_match( '/[a-z]/', $constant ) || in_array( $constant, $this->blacklisted, true ) ) ) {
+            if ( ! $this->is_cli && ( preg_match( '/[a-z]/', $constant ) || $this->is_blacklisted( $constant ) ) ) {
                 continue;
             }
 
@@ -104,7 +125,7 @@ class WPConfig extends \WPConfigTransformer {
                 continue;
             }
 
-            if ( ! $this->is_cli && ( preg_match( '/[a-z]/', $key ) || in_array( $key, $this->blacklisted, true ) ) ) {
+            if ( ! $this->is_cli && ( preg_match( '/[a-z]/', $key ) || $this->is_blacklisted( $key ) ) ) {
                 continue;
             }
 
