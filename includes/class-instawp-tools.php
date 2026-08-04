@@ -104,19 +104,204 @@ class InstaWP_Tools {
 
 	public static function create_instawpbackups_dir( $instawpbackups_dir = '' ) {
 
-		if ( empty( $instawpbackups_dir ) ) {
-			$instawpbackups_dir = WP_CONTENT_DIR . '/' . INSTAWP_DEFAULT_BACKUP_DIR;
-		}
+		// Wrapped so a filesystem or environment edge case can never fatal the caller.
+		try {
+			if ( empty( $instawpbackups_dir ) ) {
+				// Guard against being called before the constants that form the default path are
+				// defined; without them there is no directory to create or protect.
+				if ( ! defined( 'WP_CONTENT_DIR' ) || ! defined( 'INSTAWP_DEFAULT_BACKUP_DIR' ) ) {
+					return false;
+				}
 
-		if ( ! is_dir( $instawpbackups_dir ) ) {
-			if ( mkdir( $instawpbackups_dir, 0777, true ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir
-				return true;
-			} else {
-				return false;
+				$instawpbackups_dir = WP_CONTENT_DIR . '/' . INSTAWP_DEFAULT_BACKUP_DIR;
 			}
+
+			$dir_created = false;
+
+			if ( ! is_dir( $instawpbackups_dir ) ) {
+				// Permissions are intentionally left at 0777: some shared hosts run the web
+				// server and PHP as different users and both need to write into this tree.
+				$dir_created = mkdir( $instawpbackups_dir, 0777, true ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir
+			}
+
+			// Always re-assert the listing guards, not only when the directory was just
+			// created. On every site that has already run a migration the directory exists,
+			// so a guard written inside the mkdir branch above would never reach them.
+			self::protect_instawpbackups_dir( $instawpbackups_dir );
+
+			return $dir_created;
+		} catch ( \Throwable $th ) {
+			Helper::add_error_log( array( 'title' => 'instawp: create_instawpbackups_dir failed' ), $th );
+
+			return false;
+		}
+	}
+
+	/**
+	 * Names of the files that keep a directory from being listed over HTTP.
+	 * Kept in one place so the cleanup routines can recognise and preserve them.
+	 *
+	 * @return string[]
+	 */
+	public static function get_dir_guard_files() {
+		return array( 'index.php', 'index.html', '.htaccess' );
+	}
+
+	/**
+	 * Check whether a path is one of the directory-listing guard files.
+	 *
+	 * @param string $file_path Full path or bare filename.
+	 *
+	 * @return bool
+	 */
+	public static function is_dir_guard_file( $file_path ) {
+		return in_array( basename( $file_path ), self::get_dir_guard_files(), true );
+	}
+
+	/**
+	 * Check whether a directory is the backups directory or one of its sub-directories.
+	 *
+	 * Used to scope guard-file handling to the backups tree only, since the cleanup
+	 * helpers are also pointed at ABSPATH/iwp-serve and ABSPATH/iwp-dest.
+	 *
+	 * @param string $dir_path Directory path to test.
+	 *
+	 * @return bool
+	 */
+	public static function is_inside_backups_dir( $dir_path ) {
+
+		if ( empty( $dir_path ) || ! defined( 'INSTAWP_DEFAULT_BACKUP_DIR' ) ) {
+			return false;
 		}
 
-		return false;
+		$backups_dir = wp_normalize_path( untrailingslashit( WP_CONTENT_DIR . '/' . INSTAWP_DEFAULT_BACKUP_DIR ) );
+		$dir_path    = wp_normalize_path( untrailingslashit( $dir_path ) );
+
+		return $dir_path === $backups_dir || 0 === strpos( $dir_path, $backups_dir . '/' );
+	}
+
+	/**
+	 * Drop the directory-listing guards into the backups directory so it cannot be
+	 * listed or its credential files fetched over HTTP.
+	 *
+	 * This directory holds `options-{migrate_key}.txt`, whose filename doubles as the
+	 * key material used to decrypt its own contents (the site's database credentials
+	 * and the migration api_signature). Two guard files are written:
+	 *
+	 * - index.php ("Silence is golden.") — makes mod_dir serve it instead of letting
+	 *   mod_autoindex generate a listing that would leak the key through the filename.
+	 * - .htaccess — denies direct HTTP access to the sensitive migration artifacts
+	 *   (`*.txt` options files, plus any `*.sql`/`*.sqlite` database dumps) while
+	 *   leaving `*.zip` reachable, because plugin/theme sync serves `plugins/*.zip`
+	 *   and `themes/*.zip` out of this same tree over HTTP. The rule is extension-scoped
+	 *   rather than `deny from all` for that reason, and the deny is safe for the plugin
+	 *   itself, which only ever reads these files from the filesystem (never over HTTP).
+	 *   It prefers the mod_access_compat form (Order/Deny — the same the migration-log
+	 *   guard uses, permitted under `AllowOverride Limit`) and falls back to
+	 *   `Require all denied` only where mod_access_compat is absent, so it works on
+	 *   Apache 2.4 and 2.2 and is inert (not a 500) where .htaccess overrides are
+	 *   disabled.
+	 *
+	 *   This is Apache-layer defense-in-depth only: an nginx front-end (or nginx+Apache
+	 *   host that serves static files with `try_files $uri`) returns the file directly
+	 *   without consulting .htaccess, so it does not protect there. The cross-server
+	 *   guarantee is instead that the options file is force-deleted at every terminal
+	 *   migration state — see instawp_delete_migration_options_file().
+	 *
+	 * @param string $instawpbackups_dir Directory to protect. Defaults to the backups dir.
+	 *
+	 * @return bool True when every existing target directory carries a guard.
+	 */
+	public static function protect_instawpbackups_dir( $instawpbackups_dir = '' ) {
+
+		// Wrapped so a filesystem or environment edge case can never fatal the request
+		// that triggered the guard (admin_init, upgrader_process_complete, sync, migration).
+		try {
+			if ( empty( $instawpbackups_dir ) ) {
+				// The default path is derived from these constants, so bail defensively if the
+				// method is reached before WordPress (or the plugin bootstrap) has defined them —
+				// e.g. from a hook that fires very early. Returning false leaves the guard flag
+				// unset so a later request retries.
+				if ( ! defined( 'WP_CONTENT_DIR' ) || ! defined( 'INSTAWP_DEFAULT_BACKUP_DIR' ) ) {
+					return false;
+				}
+
+				$instawpbackups_dir = WP_CONTENT_DIR . '/' . INSTAWP_DEFAULT_BACKUP_DIR;
+			}
+
+			$instawpbackups_dir = untrailingslashit( $instawpbackups_dir );
+
+			if ( ! is_dir( $instawpbackups_dir ) ) {
+				// Nothing on disk to protect yet — create_instawpbackups_dir() guards the
+				// directory at creation time, so this is a success rather than a failure.
+				return true;
+			}
+
+			// Guard the backups root plus the two sub-directories that hold sync artifacts.
+			// migration-log/ writes its own guards in InstaWP_Migrate_Log::get_path().
+			$dirs_to_protect = array(
+				$instawpbackups_dir,
+				$instawpbackups_dir . DIRECTORY_SEPARATOR . 'plugins',
+				$instawpbackups_dir . DIRECTORY_SEPARATOR . 'themes',
+			);
+
+			// The two guard files written into each directory. Kept in a map so each is
+			// written independently — a directory that already carries index.php from an
+			// earlier run still gets the .htaccess added on a later call. The .htaccess
+			// denies only sensitive extensions (*.txt/*.sql/*.sqlite) so it never blocks
+			// the *.zip files sync serves over HTTP. It prefers the mod_access_compat form
+			// (permitted under AllowOverride Limit, like the migration-log guard) and
+			// falls back to Require only where that module is absent.
+			$deny_pattern = '<FilesMatch "\.(txt|sql|sqlite)$">';
+			$guard_files  = array(
+				'index.php' => "<?php\n// Silence is golden.\n",
+				'.htaccess' => implode( "\n", array(
+					'# InstaWP: deny direct HTTP access to migration credential/database artifacts',
+					'# (options-{key}.txt and any .sql/.sqlite). PHP filesystem reads are unaffected;',
+					'# plugin/theme sync .zip stays reachable.',
+					'<IfModule mod_access_compat.c>',
+					"\t" . $deny_pattern,
+					"\t\t" . 'Order Allow,Deny',
+					"\t\t" . 'Deny from all',
+					"\t" . '</FilesMatch>',
+					'</IfModule>',
+					'<IfModule !mod_access_compat.c>',
+					"\t" . $deny_pattern,
+					"\t\t" . 'Require all denied',
+					"\t" . '</FilesMatch>',
+					'</IfModule>',
+					'',
+				) ),
+			);
+
+			$all_dirs_guarded = true;
+
+			foreach ( $dirs_to_protect as $dir_to_protect ) {
+				if ( ! is_dir( $dir_to_protect ) ) {
+					continue;
+				}
+
+				foreach ( $guard_files as $guard_name => $guard_contents ) {
+					$guard_path = $dir_to_protect . DIRECTORY_SEPARATOR . $guard_name;
+
+					if ( file_exists( $guard_path ) ) {
+						continue;
+					}
+
+					// A failed write is reported so the caller does not record the directory
+					// as guarded and can retry later.
+					if ( ! is_writable( $dir_to_protect ) || ! @file_put_contents( $guard_path, $guard_contents ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+						$all_dirs_guarded = false;
+					}
+				}
+			}
+
+			return $all_dirs_guarded;
+		} catch ( \Throwable $th ) {
+			Helper::add_error_log( array( 'title' => 'instawp: protect_instawpbackups_dir failed' ), $th );
+
+			return false;
+		}
 	}
 
 	public static function clean_instawpbackups_dir( $instawpbackups_dir = '', $clean_self = false ) {
@@ -129,12 +314,21 @@ class InstaWP_Tools {
 			return false;
 		}
 
+		// Preserve the index.php listing guard, but only inside the backups tree and only
+		// when the directory itself is being kept. This same method is also called on
+		// ABSPATH/iwp-serve and ABSPATH/iwp-dest, where deleting index.php is the entire
+		// point, and a surviving guard would additionally make the rmdir() below fail.
+		$keep_dir_guards = ! $clean_self && self::is_inside_backups_dir( $instawpbackups_dir );
+
 		while ( false !== ( $file = readdir( $instawpbackups_dir_handle ) ) ) {
 			if ( $file !== '.' && $file !== '..' ) {
 				$file_path = $instawpbackups_dir . DIRECTORY_SEPARATOR . $file;
 				if ( file_exists( $file_path ) ) {
 					if ( is_dir( $file_path ) ) {
 						self::clean_instawpbackups_dir( $file_path );
+					} elseif ( $keep_dir_guards && self::is_dir_guard_file( $file ) ) {
+						// Keep the directory listing guard in place across cleanups.
+						continue;
 					} elseif ( ! function_exists( 'instawp_is_options_file_protected' ) || ! instawp_is_options_file_protected( $file_path ) ) {
 						// Skip deletion of options-{key}.txt belonging to an active migration.
 						// The iwp-serve endpoint needs this file for DB credentials during pull.
@@ -2231,6 +2425,14 @@ include $file_path;';
 	 */
 	public static function clean_iwp_files_dir() {
 		try {
+			// Drop the encrypted migration options files first. This runs before (and
+			// independently of) the $keep_files check below: that setting is about
+			// retaining database dumps for debugging, and must never extend the life of a
+			// file whose own name is the key to the credentials inside it.
+			if ( function_exists( 'instawp_delete_migration_options_file' ) ) {
+				instawp_delete_migration_options_file();
+			}
+
 			// Delete IWP files : Start
 			$files = array();
 

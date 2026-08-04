@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.6
 Tested up to: 7.0
 Requires PHP: 7.0
-Stable tag: 0.1.3.6
+Stable tag: 0.1.3.7
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -97,6 +97,11 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 You can report security bugs through the Patchstack Vulnerability Disclosure Program. The Patchstack team helps validate, triage, and handle any security vulnerabilities. [Report a security vulnerability](https://patchstack.com/database/vdp/instawp-connect).
 
 == Changelog ==
+
+= 0.1.3.7 - 03 August 2026 =
+- Security: Hardened the handling and cleanup of temporary migration files.
+- Fixed: Config Manager no longer lists or rewrites platform-managed object cache constants (WP_REDIS_*), which could break object cache authentication on save.
+- Fixed: Config Manager no longer shows a constant defined inside a conditional block (such as a WP-CLI only setting) as if it applied to the whole site, and no longer rewrites it on save.
 
 = 0.1.3.6 - 22 July 2026 =
 - Fixed: Checkbox checked state not visible on the events screen in admin dashboard.

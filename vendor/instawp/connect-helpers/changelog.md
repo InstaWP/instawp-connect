@@ -1,3 +1,9 @@
+v1.1.3
+======
+- Fixed: Config Manager no longer reports a constant whose `define()` sits inside a conditional block (e.g. the InstaCache `if ( WP_CLI )` guard) as global wp-config, and no longer rewrites or removes one.
+- Fixed: `WP_REDIS_*` object-cache config is excluded from Config Manager reads and writes, so saving a setting can no longer corrupt the Valkey ACL password.
+- Added: `set()`/`delete()` return a `skipped` list naming the constants that were protected, so a caller can tell a save apart from a silent no-op.
+
 v1.1.2
 ======
 - Added: Migration engine detection (v3/v4) via `getMigrationEngine()`.

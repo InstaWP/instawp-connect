@@ -207,6 +207,12 @@ class InstaWP_Sync_Plugin_Theme {
 			}
 		}
 
+		// Sync creates these directories with wp_mkdir_p() rather than through
+		// InstaWP_Tools::create_instawpbackups_dir(), so the listing guard has to be
+		// asserted here too — otherwise a site that only ever syncs (and never migrates)
+		// would leave the backups tree listable.
+		InstaWP_Tools::protect_instawpbackups_dir();
+
 		$slug = basename( $source );
 			
 		// Always use slug-based naming

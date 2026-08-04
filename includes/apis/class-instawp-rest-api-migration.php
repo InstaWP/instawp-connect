@@ -342,6 +342,12 @@ class InstaWP_Rest_Api_Migration extends InstaWP_Rest_Api {
 
 			Option::update_option( 'instawp_last_migration_details', $migration_details );
 
+			// The migration has reached a terminal state, so the encrypted options file is
+			// no longer needed. Deleted here rather than relying on clean_iwp_files_dir()
+			// below, which only runs for 'completed' — an aborted, failed or timed out
+			// migration would otherwise leave the file (and its key-bearing name) on disk.
+			instawp_delete_migration_options_file( Helper::get_args_option( 'migrate_key', $migration_details ) );
+
 			$connect_id = instawp_get_connect_id();
 
 			// Reset migration state. Connected sites (with a valid connect_id)
