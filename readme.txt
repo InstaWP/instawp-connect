@@ -100,6 +100,8 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 = 0.1.3.7 - 03 August 2026 =
 - Security: Hardened the handling and cleanup of temporary migration files.
+- Fixed: Config Manager no longer lists or rewrites platform-managed object cache constants (WP_REDIS_*), which could break object cache authentication on save.
+- Fixed: Config Manager no longer shows a constant defined inside a conditional block (such as a WP-CLI only setting) as if it applied to the whole site, and no longer rewrites it on save.
 
 = 0.1.3.6 - 22 July 2026 =
 - Fixed: Checkbox checked state not visible on the events screen in admin dashboard.
