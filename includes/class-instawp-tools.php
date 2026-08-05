@@ -10,6 +10,15 @@ defined( 'ABSPATH' ) || exit;
 class InstaWP_Tools {
 
 	/**
+	 * Minimum free space required in the temp directory before a local push starts.
+	 *
+	 * The files archive and the database dump are both written there before upload, so
+	 * running out of space mid-run wastes the whole transfer. 2 GB is a floor, not an
+	 * estimate of the site size — it only catches an already-full disk up front.
+	 */
+	const CLI_MIN_FREE_DISK_BYTES = 2147483648;
+
+	/**
 	 * Verify an AJAX request: validates nonce and user capability.
 	 * Sends a JSON error response and exits if either check fails.
 	 *
@@ -2116,13 +2125,97 @@ include $file_path;';
 		return apply_filters( 'instawp/filters/localize_data', $localize_data );
 	}
 
+	/**
+	 * Requirements that have to hold before a local push is attempted.
+	 *
+	 * Checked up front so a missing dependency is reported as one clear message rather
+	 * than surfacing later as a raw error from whichever component happened to need it.
+	 *
+	 * Deliberately capability-based rather than platform-based: the command is not
+	 * restricted to any operating system, it just needs a compression extension, a
+	 * writable temp directory and a working database export.
+	 *
+	 * @return true|WP_Error
+	 */
+	public static function cli_local_push_preflight() {
+
+		$errors = array();
+
+		if ( ! class_exists( 'ZipArchive' ) && ! class_exists( 'PharData' ) ) {
+			$errors[] = esc_html__( 'Neither the ZipArchive nor the PharData PHP extension is available; one is required to build the backup.', 'instawp-connect' );
+		}
+
+		$temp_dir = get_temp_dir();
+
+		if ( empty( $temp_dir ) || ! is_dir( $temp_dir ) ) {
+			$errors[] = esc_html__( 'The PHP temporary directory could not be located.', 'instawp-connect' );
+		} elseif ( ! is_writable( $temp_dir ) ) {
+			/* translators: %s: temporary directory path. */
+			$errors[] = sprintf( esc_html__( 'The temporary directory is not writable: %s', 'instawp-connect' ), $temp_dir );
+		} else {
+			// The archive and the database dump are both written here before upload, so a
+			// full disk fails the migration halfway through rather than up front.
+			$free_space = @disk_free_space( $temp_dir ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+
+			if ( false !== $free_space && $free_space < self::CLI_MIN_FREE_DISK_BYTES ) {
+				$errors[] = sprintf(
+					/* translators: 1: temporary directory path, 2: human readable free space. */
+					esc_html__( 'Not enough free space in the temporary directory %1$s (%2$s available). The backup is written there before it is uploaded.', 'instawp-connect' ),
+					$temp_dir,
+					size_format( $free_space )
+				);
+			}
+		}
+
+		if ( ! empty( $errors ) ) {
+			return new WP_Error( 'local_push_preflight_failed', implode( ' ', $errors ) );
+		}
+
+		return true;
+	}
+
+	/**
+	 * Export the database to a file in the temp directory.
+	 *
+	 * @return string|WP_Error Path to the dump, or WP_Error when the export failed.
+	 */
 	public static function cli_archive_wordpress_db() {
 
 		$archive_dir  = get_temp_dir();
 		$archive_name = 'wordpress_db_backup_' . date( 'Y-m-d_H-i-s' );
 		$db_file_name = $archive_dir . $archive_name . '.sql';
 
-		WP_CLI::runcommand( 'db export ' . $db_file_name );
+		// exit_error => false so a failing export is reported here with its own stderr
+		// instead of halting WP-CLI with a bare message from the underlying tool. The
+		// export shells out to mysqldump, so this is where a missing or unreachable
+		// mysqldump surfaces.
+		$export = WP_CLI::runcommand(
+			'db export ' . escapeshellarg( $db_file_name ),
+			array(
+				'exit_error' => false,
+				'return'     => 'all',
+			)
+		);
+
+		$return_code = is_object( $export ) && isset( $export->return_code ) ? (int) $export->return_code : 0;
+
+		if ( 0 !== $return_code ) {
+			$stderr = is_object( $export ) && ! empty( $export->stderr ) ? trim( $export->stderr ) : '';
+
+			return new WP_Error(
+				'db_export_failed',
+				sprintf(
+					/* translators: %s: error output from the database export. */
+					esc_html__( 'Database export failed. %s', 'instawp-connect' ),
+					'' !== $stderr ? $stderr : esc_html__( 'Check that the database is reachable and that mysqldump is installed and on the PATH.', 'instawp-connect' )
+				)
+			);
+		}
+
+		// A zero exit code with no usable file still means there is nothing to upload.
+		if ( ! file_exists( $db_file_name ) || 0 === filesize( $db_file_name ) ) {
+			return new WP_Error( 'db_export_failed', esc_html__( 'The database export produced an empty file.', 'instawp-connect' ) );
+		}
 
 		return $db_file_name;
 	}
@@ -2683,7 +2776,41 @@ include $file_path;';
 		self::cli_delete_local_archives( array( $file_path, $db_path ) );
 	}
 
-	public static function cli_upload_using_sftp( $site_id, $file_path, $db_path ) {
+	/**
+	 * Record a migration stage transition.
+	 *
+	 * Wrapped so the identifiers are checked first: instawp_update_migration_stages()
+	 * falls back to the stored migrate_id option when passed an empty one, which for a
+	 * CLI run could attribute the stage to an unrelated migration left over from the
+	 * admin UI.
+	 *
+	 * @param array  $stages      Stage keys to set.
+	 * @param string $migrate_id  Migration id.
+	 * @param string $migrate_key Migration key.
+	 *
+	 * @return void
+	 */
+	protected static function cli_update_stage( $stages, $migrate_id, $migrate_key ) {
+
+		if ( empty( $migrate_id ) || empty( $migrate_key ) ) {
+			return;
+		}
+
+		instawp_update_migration_stages( $stages, $migrate_id, $migrate_key );
+	}
+
+	/**
+	 * Upload the files archive and the database dump to the destination over SFTP.
+	 *
+	 * @param int    $site_id     Destination site id.
+	 * @param string $file_path   Local path of the files archive.
+	 * @param string $db_path     Local path of the database dump.
+	 * @param string $migrate_id  Migration id, for stage reporting. Optional.
+	 * @param string $migrate_key Migration key, for stage reporting. Optional.
+	 *
+	 * @return true|WP_Error
+	 */
+	public static function cli_upload_using_sftp( $site_id, $file_path, $db_path, $migrate_id = '', $migrate_key = '' ) {
 
 		$connection = self::cli_get_sftp_connection( $site_id );
 
@@ -2694,19 +2821,29 @@ include $file_path;';
 		$sftp      = $connection['sftp'];
 		$sftp_host = $connection['host'];
 
+		// Stages are reported around each transfer rather than around the method as a
+		// whole, so the dashboard reflects which artifact is actually moving.
+		self::cli_update_stage( array( 'push-files-in-progress' => true ), $migrate_id, $migrate_key );
+
 		$sftp_file_upload_status = $sftp->put( "web/$sftp_host/public_html/" . basename( $file_path ), $file_path, SFTP::SOURCE_LOCAL_FILE );
 
 		if ( ! $sftp_file_upload_status ) {
 			return new WP_Error( 'sftp_file_upload_failed', esc_html__( 'SFTP upload failed for files.', 'instawp-connect' ) );
 		}
 
+		self::cli_update_stage( array( 'push-files-finished' => true ), $migrate_id, $migrate_key );
+
 		WP_CLI::success( 'File uploaded successfully using SFTP.' );
+
+		self::cli_update_stage( array( 'push-db-in-progress' => true ), $migrate_id, $migrate_key );
 
 		$sftp_db_upload_status = $sftp->put( "web/$sftp_host/public_html/" . basename( $db_path ), $db_path, SFTP::SOURCE_LOCAL_FILE );
 
 		if ( ! $sftp_db_upload_status ) {
 			return new WP_Error( 'sftp_db_upload_failed', esc_html__( 'SFTP upload failed for database.', 'instawp-connect' ) );
 		}
+
+		self::cli_update_stage( array( 'push-db-finished' => true ), $migrate_id, $migrate_key );
 
 		WP_CLI::success( 'Database uploaded successfully using SFTP.' );
 

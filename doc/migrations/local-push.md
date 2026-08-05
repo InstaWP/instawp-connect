@@ -17,14 +17,54 @@ content. Everything is derived from the plugin's own defaults.
 
 ## Workflow
 
-1. `cli_archive_wordpress_files()` builds a zip of the docroot
-2. `cli_archive_wordpress_db()` exports the database via `wp db export`
-3. `create_insta_site()` provisions a blank destination site
-4. A `migrates-v3/local-push` record is created for tracking
-5. `cli_upload_using_sftp()` uploads the zip and the SQL dump to the destination
-6. `cli_restore_website()` calls the `restore-raw` API and polls until it completes
-7. Both artifacts are deleted from the destination and from the local temp directory
-8. `migrates-v3/finish-local-staging` finalises the destination configuration
+1. `cli_local_push_preflight()` verifies the environment can complete the run
+2. `cli_archive_wordpress_files()` builds a zip of the docroot
+3. `cli_archive_wordpress_db()` exports the database via `wp db export`
+4. `create_insta_site()` provisions a blank destination site
+5. A `migrates-v3/local-push` record is created for tracking, carrying the site sizes
+6. `cli_upload_using_sftp()` uploads the zip and the SQL dump to the destination
+7. `cli_restore_website()` calls the `restore-raw` API and polls until it completes
+8. Both artifacts are deleted from the destination and from the local temp directory
+9. `migrates-v3/finish-local-staging` finalises the destination configuration
+
+## Preflight
+
+`cli_local_push_preflight()` runs before any work and fails with a single message
+naming everything that is missing:
+
+- `ZipArchive` or `PharData` must be available
+- the PHP temp directory must exist and be writable
+- at least `InstaWP_Tools::CLI_MIN_FREE_DISK_BYTES` must be free there
+
+The checks are **capability-based, not platform-based** — the command is not
+restricted to any operating system. The failure that was historically read as "this
+only works on macOS" was `wp db export` needing `mysqldump` on the `PATH`;
+`cli_archive_wordpress_db()` now returns a `WP_Error` carrying the underlying stderr
+instead of letting an unrelated error surface.
+
+## Progress reporting
+
+The tracking record is updated as the run proceeds. Local push previously wrote only
+`migration-finished`, so a migration appeared never to have started and the dashboard
+showed no size at all.
+
+| Point in the flow | Stage recorded |
+|---|---|
+| before upload | `push-initiated` |
+| around the files transfer | `push-files-in-progress`, `push-files-finished` |
+| around the database transfer | `push-db-in-progress`, `push-db-finished` |
+| after the restore completes | `push-finished` |
+| at the end | `migration-finished` |
+| any failure | `failed` |
+
+`file_size` and `db_size` are sent when the migration record is **created**, not via
+`update-status` — the same point and the same `get_total_sizes()` helpers the standard
+push flow uses, so the dashboard reads consistently across migration modes.
+
+Stage updates go through `InstaWP_Tools::cli_update_stage()`, which requires both the
+migration id and key. `instawp_update_migration_stages()` falls back to the stored
+`migrate_id` option when passed an empty one, which under WP-CLI could attribute a
+stage to an unrelated migration left over from the admin UI.
 
 ## Artifact cleanup
 

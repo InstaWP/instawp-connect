@@ -25,6 +25,13 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 
 			global $wp_version;
 
+			// Checked before any work starts, so a missing compression extension, an
+			// unwritable temp directory or a full disk is reported as one clear message
+			// instead of surfacing later as a raw error from whichever step needed it.
+			if ( is_wp_error( $preflight = InstaWP_Tools::cli_local_push_preflight() ) ) {
+				WP_CLI::error( $preflight->get_error_message() );
+			}
+
 			// Files backup. The exclusion list has to be passed here: it was previously
 			// computed further down (for the migration API payload only) and never reached
 			// the archiver, so host-specific files such as the source .htaccess were copied
@@ -38,9 +45,19 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 
 			// Database backup
 			$archive_path_db = InstaWP_Tools::cli_archive_wordpress_db();
-			WP_CLI::success( 'Database backup created successfully.' );
 
 			delete_option( 'instawp_parent_is_on_local' );
+
+			// The export shells out to mysqldump, so this is where an unreachable database
+			// or a missing mysqldump is caught. The files archive already exists at this
+			// point and would otherwise be orphaned in the temp directory.
+			if ( is_wp_error( $archive_path_db ) ) {
+				InstaWP_Tools::cli_delete_local_archives( array( $archive_path_file ) );
+
+				WP_CLI::error( $archive_path_db->get_error_message() );
+			}
+
+			WP_CLI::success( 'Database backup created successfully.' );
 
 			// Create Site
 			if ( is_wp_error( $create_site_res = InstaWP_Tools::create_insta_site( true ) ) ) {
@@ -71,6 +88,12 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 				'php_version'       => PHP_VERSION,
 				'wp_version'        => $wp_version,
 				'plugin_version'    => INSTAWP_PLUGIN_VERSION,
+				// Sizes are recorded when the migration is created, which is why they were
+				// left at zero for local push: the standard flow sends them here and this one
+				// did not. The same helpers are used so the dashboard reads consistently
+				// across migration modes.
+				'file_size'         => InstaWP_Tools::get_total_sizes( 'files', $migrate_settings ),
+				'db_size'           => InstaWP_Tools::get_total_sizes( 'db' ),
 				'migrate_key'       => $migrate_key,
 			);
 			$migrate_res         = Curl::do_curl( 'migrates-v3/local-push', $migrate_args );
@@ -94,8 +117,14 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 			// Wait 10 seconds
 			sleep( 10 );
 
-			// Upload files and db using SFTP
-			if ( is_wp_error( $file_upload_status = InstaWP_Tools::cli_upload_using_sftp( $site_id, $archive_path_file, $archive_path_db ) ) ) {
+			// Marks the transfer as under way. Local push previously recorded no stage at
+			// all between creating the migration and finishing it, so the dashboard showed
+			// a migration that never appeared to start.
+			instawp_update_migration_stages( array( 'push-initiated' => true ), $migrate_id, $migrate_key );
+
+			// Upload files and db using SFTP. The migration identifiers are passed so the
+			// per-artifact stages are recorded as each transfer starts and completes.
+			if ( is_wp_error( $file_upload_status = InstaWP_Tools::cli_upload_using_sftp( $site_id, $archive_path_file, $archive_path_db, $migrate_id, $migrate_key ) ) ) {
 
 				// Mark the migration failed
 				instawp_update_migration_stages( array( 'failed' => true ), $migrate_id, $migrate_key );
@@ -130,11 +159,14 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 				die( esc_html( $file_upload_status->get_error_message() ) );
 			}
 
+			// The transfer and the restore are both done at this point.
+			instawp_update_migration_stages( array( 'push-finished' => true ), $migrate_id, $migrate_key );
+
 			// The restore has consumed the uploaded copies, so clear them from the docroot
 			// and from the local temp directory before finishing up.
 			InstaWP_Tools::cli_cleanup_migration_artifacts( $site_id, $archive_path_file, $archive_path_db );
 
-			// Mark the migration failed
+			// Mark the migration finished
 			instawp_update_migration_stages( array( 'migration-finished' => true ), $migrate_id, $migrate_key );
 
 			// Finish configuration of the staging website
