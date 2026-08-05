@@ -100,8 +100,21 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 				// Mark the migration failed
 				instawp_update_migration_stages( array( 'failed' => true ), $migrate_id, $migrate_key );
 
-				// An upload may have completed before the failure, so clear both ends.
-				InstaWP_Tools::cli_cleanup_migration_artifacts( $site_id, $archive_path_file, $archive_path_db );
+				// When the failure was in setting up the connection itself, nothing was
+				// uploaded and retrying it would only fail again — with a cleanup warning
+				// that obscures the real error. Anything later means a file may already have
+				// landed on the destination, so both ends are cleared.
+				$connection_failed = in_array(
+					$file_upload_status->get_error_code(),
+					array( 'sftp_enable_failed', 'sftp_login_failed' ),
+					true
+				);
+
+				if ( $connection_failed ) {
+					InstaWP_Tools::cli_delete_local_archives( array( $archive_path_file, $archive_path_db ) );
+				} else {
+					InstaWP_Tools::cli_cleanup_migration_artifacts( $site_id, $archive_path_file, $archive_path_db );
+				}
 
 				die( esc_html( $file_upload_status->get_error_message() ) );
 			}

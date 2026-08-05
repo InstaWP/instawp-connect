@@ -2280,8 +2280,14 @@ include $file_path;';
 
 			foreach ( $limitedIterator as $file ) {
 				if ( ! $file->isDir() ) {
-					$filePath     = $file->getRealPath();
-					$relativePath = str_replace( $abspath_prefix, '', str_replace( '\\', '/', $filePath ) );
+					$filePath       = $file->getRealPath();
+					$normalizedPath = str_replace( '\\', '/', $filePath );
+
+					// Stripped only where it is genuinely the prefix. A global replace would
+					// also rewrite a later occurrence of the same string inside the path.
+					$relativePath = 0 === strpos( $normalizedPath, $abspath_prefix )
+						? substr( $normalizedPath, strlen( $abspath_prefix ) )
+						: $normalizedPath;
 
 					if ( ! is_readable( $filePath ) ) {
 						error_log( 'Can not read file: ' . $filePath );
@@ -2485,7 +2491,7 @@ include $file_path;';
 	 * @param string $file_path Local path of the uploaded files archive.
 	 * @param string $db_path   Local path of the uploaded database dump.
 	 *
-	 * @return true|WP_Error
+	 * @return int|WP_Error Number of artifacts actually removed, or WP_Error on failure.
 	 */
 	public static function cli_delete_remote_artifacts( $site_id, $file_path, $db_path ) {
 
@@ -2498,6 +2504,7 @@ include $file_path;';
 		$sftp      = $connection['sftp'];
 		$sftp_host = $connection['host'];
 		$failed    = array();
+		$removed   = 0;
 
 		foreach ( array( $file_path, $db_path ) as $path ) {
 
@@ -2530,7 +2537,10 @@ include $file_path;';
 
 			if ( ! $sftp->delete( $remote_path, false ) ) {
 				$failed[] = $remote_path;
+				continue;
 			}
+
+			++$removed;
 		}
 
 		if ( ! empty( $failed ) ) {
@@ -2544,7 +2554,9 @@ include $file_path;';
 			);
 		}
 
-		return true;
+		// A count rather than a bare true, so the caller can tell "removed something" from
+		// "there was nothing to remove" and not report a cleanup that never happened.
+		return $removed;
 	}
 
 	/**
@@ -2616,6 +2628,20 @@ include $file_path;';
 	}
 
 	/**
+	 * Emit a WP-CLI success message when running under WP-CLI.
+	 *
+	 * @param string $message Message to display.
+	 *
+	 * @return void
+	 */
+	protected static function cli_success( $message ) {
+
+		if ( class_exists( 'WP_CLI' ) ) {
+			WP_CLI::success( $message );
+		}
+	}
+
+	/**
 	 * Remove the migration artifacts from the destination and the local machine.
 	 *
 	 * Called on every exit path of the local push command, including the failure paths
@@ -2635,9 +2661,23 @@ include $file_path;';
 		if ( is_wp_error( $remote_cleanup ) ) {
 			// Surfaced rather than swallowed: a leftover artifact is a data exposure, so the
 			// operator needs the path in order to remove it by hand.
-			WP_CLI::warning( $remote_cleanup->get_error_message() );
-		} else {
-			WP_CLI::success( 'Migration files removed from the destination server.' );
+			self::cli_warn( $remote_cleanup->get_error_message() );
+		} elseif ( $remote_cleanup > 0 ) {
+			// Only reported when something was actually deleted. Claiming a removal that did
+			// not happen — for instance when the upload failed before either file landed —
+			// would be the same false success this command is being fixed for.
+			self::cli_success(
+				sprintf(
+					/* translators: %d: number of files removed from the destination. */
+					_n(
+						'%d migration file removed from the destination server.',
+						'%d migration files removed from the destination server.',
+						$remote_cleanup,
+						'instawp-connect'
+					),
+					$remote_cleanup
+				)
+			);
 		}
 
 		self::cli_delete_local_archives( array( $file_path, $db_path ) );
