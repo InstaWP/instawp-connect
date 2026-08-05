@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.6
 Tested up to: 7.0
 Requires PHP: 7.0
-Stable tag: 0.1.3.9
+Stable tag: 0.1.3.8
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -98,15 +98,13 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
-= 0.1.3.9 - 04 August 2026 =
-- Fixed: Local push migration reported no progress and no site size in the dashboard, so a migration appeared never to start and finished without ever showing what was transferred.
-- Improved: Local push now checks its requirements before starting and reports exactly what is missing, instead of failing part way through with an unclear error.
-- Improved: A failed database export during local push is now reported with the underlying reason rather than an unrelated error.
-
 = 0.1.3.8 - 04 August 2026 =
 - Fixed: Local push migration copied the source site's .htaccess, wp-config.php, caches and log files to the destination, which could leave the migrated site redirecting to the original domain.
 - Security: Local push migration now removes the transferred backup and database files from the destination site and the local machine once the migration completes.
 - Fixed: Local push migration from Windows stored files in the backup using their full local path, which produced an empty site on the destination.
+- Fixed: Local push migration reported no progress and no site size in the dashboard, so a migration appeared never to start and finished without ever showing what was transferred.
+- Improved: Local push now checks its requirements before starting and reports exactly what is missing, instead of failing part way through with an unclear error.
+- Improved: A failed database export during local push is now reported with the underlying reason rather than an unrelated error.
 
 = 0.1.3.7 - 03 August 2026 =
 - Security: Hardened the handling and cleanup of temporary migration files.
