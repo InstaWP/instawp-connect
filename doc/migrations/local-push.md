@@ -98,7 +98,6 @@ The archive skips the paths returned by
 | `.htaccess` | Carries the origin host's PHP handlers and canonical-redirect rules |
 | `.user.ini` | Host-specific PHP configuration |
 | `index.html` | Would shadow `index.php` on the destination |
-| `wp-config.php` | Regenerated on the destination; also carries source DB credentials |
 | `wp-content/.htaccess` | Same as the docroot `.htaccess` |
 | `wp-content/cache`, `wp-content/et-cache`, `wp-content/upgrade` | Stale as soon as the domain changes |
 | `wp-content/object-cache-iwp.php` | Points at the source's cache backend |
@@ -134,6 +133,23 @@ passed in by the caller rather than hardcoded into `cli_archive_wordpress_files(
 
 **`vendor` is intentionally not on this list.** Composer dependencies are runtime code;
 removing them breaks any plugin that ships one.
+
+### wp-config.php must stay in the archive
+
+`process_migration_settings()` excludes `wp-config.php`, but only for the pull/staging
+flow — that destination writes its own. Local push must **not** copy that exclusion.
+
+`v-instawp-wordpress-restore` clears the docroot (`rm -rf wp-*`) before extracting, then
+reads the extracted `wp-config.php` to patch `DB_NAME` / `DB_USER` / `DB_PASSWORD` into
+it. It never creates one. Omitting it from the archive leaves the site with no config and
+no database, and the restore fails with:
+
+```
+ls: cannot access 'wp-config.php': No such file or directory
+```
+
+The source credentials the file carries are overwritten by that same step, so shipping it
+costs nothing.
 
 WordPress core (`wp-admin`, `wp-includes`) **is** included in the archive.
 

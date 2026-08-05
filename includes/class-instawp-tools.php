@@ -2234,6 +2234,14 @@ include $file_path;';
 	 * Only host-specific files, caches and logs are listed here. WordPress core
 	 * (wp-admin / wp-includes) is intentionally left in the archive.
 	 *
+	 * wp-config.php is deliberately NOT excluded. process_migration_settings() does
+	 * exclude it, but only for the pull/staging flow, whose destination writes its own.
+	 * The restore behind local push clears the docroot and then reads the extracted
+	 * wp-config.php to patch DB_NAME / DB_USER / DB_PASSWORD into it — it never creates
+	 * one. Leaving it out of the archive therefore produces a site with no wp-config and
+	 * no database, which reports as a failed restore. The source credentials it carries
+	 * are overwritten by that same step.
+	 *
 	 * @return array Relative, forward-slash separated paths to skip.
 	 */
 	public static function get_local_push_excluded_paths() {
@@ -2250,8 +2258,6 @@ include $file_path;';
 			'.htaccess',
 			'.user.ini',
 			'index.html',
-			// Regenerated on the destination; copying it would also carry the source DB credentials.
-			'wp-config.php',
 			$relative_dir . DIRECTORY_SEPARATOR . '.htaccess',
 			// Caches are stale the moment the site changes domain.
 			$relative_dir . DIRECTORY_SEPARATOR . 'cache',
