@@ -36,7 +36,7 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 			// computed further down (for the migration API payload only) and never reached
 			// the archiver, so host-specific files such as the source .htaccess were copied
 			// verbatim to the destination.
-			if ( is_wp_error( $archive_path_file = InstaWP_Tools::cli_archive_wordpress_files( 'zip', InstaWP_Tools::get_local_push_excluded_paths() ) ) ) {
+			if ( is_wp_error( $archive_path_file = InstaWP_Tools::cli_archive_wordpress_files( 'zip', InstaWP_Tools::get_local_push_excluded_paths(), InstaWP_Tools::get_local_push_excluded_dir_names() ) ) ) {
 				die( esc_html( $archive_path_file->get_error_message() ) );
 			}
 			WP_CLI::success( 'Files backup created successfully.' );

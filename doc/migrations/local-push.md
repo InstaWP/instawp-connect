@@ -110,6 +110,31 @@ In addition, any file named `error_log` or `debug.log` is skipped **at any depth
 Hosts such as cPanel write an `error_log` into every directory that throws; these are
 useless on the destination and disclose the source's absolute filesystem paths.
 
+### Pruned directory names
+
+`get_local_push_excluded_dir_names()` returns names that are pruned wherever they
+appear, since they live under whichever theme or plugin has a build setup:
+
+| Name | Reason |
+|------|--------|
+| `node_modules` | Node build tooling; never loaded at runtime |
+| `.git` | Version control metadata (matched as a file too — a submodule checkout has `.git` as a file) |
+| `.github` | CI configuration |
+| `.wordpress-org` | WordPress.org listing assets: screenshots, banners, icons |
+
+Rejecting the directory stops the iterator descending into it, so its contents are
+never enumerated. That is where the saving is: a single `node_modules` can hold more
+files than the rest of the site combined, and the cost lands three times over —
+walking, zipping and uploading.
+
+This is a judgement call rather than a rule. A theme or plugin that ships runtime
+JavaScript inside `node_modules` would lose it. That is rare and the trade is worth it
+for a developer machine, but it is why the list is deliberately short and why it is
+passed in by the caller rather than hardcoded into `cli_archive_wordpress_files()`.
+
+**`vendor` is intentionally not on this list.** Composer dependencies are runtime code;
+removing them breaks any plugin that ships one.
+
 WordPress core (`wp-admin`, `wp-includes`) **is** included in the archive.
 
 ### Why not `migrate_settings['excluded_paths']`?

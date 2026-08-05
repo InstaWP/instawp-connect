@@ -2267,7 +2267,53 @@ include $file_path;';
 		);
 	}
 
-	public static function cli_archive_wordpress_files( $type = 'zip', $dirs_to_skip = array() ) {
+	/**
+	 * Directory names pruned from a local-push archive wherever they appear.
+	 *
+	 * Matched by name at any depth rather than by path, because these live under
+	 * whichever theme or plugin happens to have a build setup. Pruning the directory
+	 * stops the iterator descending into it at all, which is where the saving is: a
+	 * single node_modules can hold more files than the rest of the site combined, and
+	 * the cost lands three times over — walking, zipping and uploading.
+	 *
+	 * All of these are build, tooling or publishing metadata that WordPress never loads
+	 * at runtime. Applied to local push only, where the source is a developer machine
+	 * and they are near-certain to be present.
+	 *
+	 * Note this is a judgement call, not a rule: a theme or plugin that ships runtime
+	 * JavaScript inside node_modules would lose it. That is rare and the trade is worth
+	 * it here, but it is the reason this list is deliberately short and specific.
+	 *
+	 * `vendor` is intentionally NOT included — Composer dependencies are runtime code and
+	 * removing them breaks any plugin that ships one.
+	 *
+	 * @return array Directory names to prune.
+	 */
+	public static function get_local_push_excluded_dir_names() {
+		return array(
+			// Node build tooling.
+			'node_modules',
+			// Version control and CI metadata.
+			'.git',
+			'.github',
+			// WordPress.org listing assets: screenshots, banners, icons.
+			'.wordpress-org',
+		);
+	}
+
+	/**
+	 * Build an archive of the WordPress installation.
+	 *
+	 * @param string $type              Archive type, 'zip' or 'tgz'.
+	 * @param array  $dirs_to_skip      Relative paths to exclude.
+	 * @param array  $dir_names_to_skip Directory names pruned wherever they appear. Passed
+	 *                                  in rather than hardcoded so the policy belongs to
+	 *                                  the caller: what is safe to drop from a developer
+	 *                                  machine is not necessarily safe elsewhere.
+	 *
+	 * @return string|WP_Error Path to the archive.
+	 */
+	public static function cli_archive_wordpress_files( $type = 'zip', $dirs_to_skip = array(), $dir_names_to_skip = array() ) {
 
 		$archive_dir         = get_temp_dir();
 		$archive_name        = 'wordpress_backup_' . date( 'Y-m-d_H-i-s' );
@@ -2334,12 +2380,23 @@ include $file_path;';
 			// absolute filesystem paths).
 			$skip_basenames = array( 'error_log', 'debug.log' );
 
-			$filter_directory = function ( SplFileInfo $file, $key, RecursiveDirectoryIterator $iterator ) use ( $skip_folders, $skip_basenames, $normalize_path ) {
+			// Caller-supplied directory names. Rejecting a directory here stops the
+			// iterator descending into it, so the contents are never enumerated.
+			$skip_dir_names = array_filter( array_map( 'strval', (array) $dir_names_to_skip ) );
 
+			$filter_directory = function ( SplFileInfo $file, $key, RecursiveDirectoryIterator $iterator ) use ( $skip_folders, $skip_basenames, $skip_dir_names, $normalize_path ) {
+
+				$basename      = $file->getBasename();
 				$sub_path      = $normalize_path( $iterator->getSubPath() );
-				$relative_path = '' !== $sub_path ? $sub_path . '/' . $file->getBasename() : $file->getBasename();
+				$relative_path = '' !== $sub_path ? $sub_path . '/' . $basename : $basename;
 
-				if ( ! $file->isDir() && in_array( $file->getBasename(), $skip_basenames, true ) ) {
+				// Not restricted to directories: in a submodule or worktree checkout .git is
+				// a file rather than a directory, and it is no more wanted in either form.
+				if ( in_array( $basename, $skip_dir_names, true ) ) {
+					return false;
+				}
+
+				if ( ! $file->isDir() && in_array( $basename, $skip_basenames, true ) ) {
 					return false;
 				}
 
