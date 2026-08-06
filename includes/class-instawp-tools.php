@@ -190,17 +190,32 @@ class InstaWP_Tools {
 	}
 
 	/**
-	 * Drop an index.php into the backups directory so it cannot be listed over HTTP.
+	 * Drop the directory-listing guards into the backups directory so it cannot be
+	 * listed or its credential files fetched over HTTP.
 	 *
 	 * This directory holds `options-{migrate_key}.txt`, whose filename doubles as the
 	 * key material used to decrypt its own contents (the site's database credentials
-	 * and the migration api_signature). On Apache hosts with mod_autoindex enabled a
-	 * directory listing therefore leaks the migration key itself, so an index.php is
-	 * written to make mod_dir serve it instead of generating a listing.
+	 * and the migration api_signature). Two guard files are written:
 	 *
-	 * No .htaccess is written on purpose: plugin/theme sync serves `plugins/*.zip` and
-	 * `themes/*.zip` out of this same tree over HTTP, and an `Options` directive returns
-	 * a 500 on hosts that restrict AllowOverride.
+	 * - index.php ("Silence is golden.") — makes mod_dir serve it instead of letting
+	 *   mod_autoindex generate a listing that would leak the key through the filename.
+	 * - .htaccess — denies direct HTTP access to the sensitive migration artifacts
+	 *   (`*.txt` options files, plus any `*.sql`/`*.sqlite` database dumps) while
+	 *   leaving `*.zip` reachable, because plugin/theme sync serves `plugins/*.zip`
+	 *   and `themes/*.zip` out of this same tree over HTTP. The rule is extension-scoped
+	 *   rather than `deny from all` for that reason, and the deny is safe for the plugin
+	 *   itself, which only ever reads these files from the filesystem (never over HTTP).
+	 *   It prefers the mod_access_compat form (Order/Deny — the same the migration-log
+	 *   guard uses, permitted under `AllowOverride Limit`) and falls back to
+	 *   `Require all denied` only where mod_access_compat is absent, so it works on
+	 *   Apache 2.4 and 2.2 and is inert (not a 500) where .htaccess overrides are
+	 *   disabled.
+	 *
+	 *   This is Apache-layer defense-in-depth only: an nginx front-end (or nginx+Apache
+	 *   host that serves static files with `try_files $uri`) returns the file directly
+	 *   without consulting .htaccess, so it does not protect there. The cross-server
+	 *   guarantee is instead that the options file is force-deleted at every terminal
+	 *   migration state — see instawp_delete_migration_options_file().
 	 *
 	 * @param string $instawpbackups_dir Directory to protect. Defaults to the backups dir.
 	 *
@@ -239,6 +254,35 @@ class InstaWP_Tools {
 				$instawpbackups_dir . DIRECTORY_SEPARATOR . 'themes',
 			);
 
+			// The two guard files written into each directory. Kept in a map so each is
+			// written independently — a directory that already carries index.php from an
+			// earlier run still gets the .htaccess added on a later call. The .htaccess
+			// denies only sensitive extensions (*.txt/*.sql/*.sqlite) so it never blocks
+			// the *.zip files sync serves over HTTP. It prefers the mod_access_compat form
+			// (permitted under AllowOverride Limit, like the migration-log guard) and
+			// falls back to Require only where that module is absent.
+			$deny_pattern = '<FilesMatch "\.(txt|sql|sqlite)$">';
+			$guard_files  = array(
+				'index.php' => "<?php\n// Silence is golden.\n",
+				'.htaccess' => implode( "\n", array(
+					'# InstaWP: deny direct HTTP access to migration credential/database artifacts',
+					'# (options-{key}.txt and any .sql/.sqlite). PHP filesystem reads are unaffected;',
+					'# plugin/theme sync .zip stays reachable.',
+					'<IfModule mod_access_compat.c>',
+					"\t" . $deny_pattern,
+					"\t\t" . 'Order Allow,Deny',
+					"\t\t" . 'Deny from all',
+					"\t" . '</FilesMatch>',
+					'</IfModule>',
+					'<IfModule !mod_access_compat.c>',
+					"\t" . $deny_pattern,
+					"\t\t" . 'Require all denied',
+					"\t" . '</FilesMatch>',
+					'</IfModule>',
+					'',
+				) ),
+			);
+
 			$all_dirs_guarded = true;
 
 			foreach ( $dirs_to_protect as $dir_to_protect ) {
@@ -246,17 +290,18 @@ class InstaWP_Tools {
 					continue;
 				}
 
-				$index_file = $dir_to_protect . DIRECTORY_SEPARATOR . 'index.php';
+				foreach ( $guard_files as $guard_name => $guard_contents ) {
+					$guard_path = $dir_to_protect . DIRECTORY_SEPARATOR . $guard_name;
 
-				if ( file_exists( $index_file ) ) {
-					continue;
-				}
+					if ( file_exists( $guard_path ) ) {
+						continue;
+					}
 
-				// Silence is golden — mirrors the guard WordPress core ships in wp-content.
-				// A failed write is reported so the caller does not record the directory as
-				// guarded and can retry later.
-				if ( ! is_writable( $dir_to_protect ) || ! @file_put_contents( $index_file, "<?php\n// Silence is golden.\n" ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-					$all_dirs_guarded = false;
+					// A failed write is reported so the caller does not record the directory
+					// as guarded and can retry later.
+					if ( ! is_writable( $dir_to_protect ) || ! @file_put_contents( $guard_path, $guard_contents ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+						$all_dirs_guarded = false;
+					}
 				}
 			}
 
