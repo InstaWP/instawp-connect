@@ -98,13 +98,11 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
-= 0.1.3.8 - 05 August 2026 =
-- Fixed: Local push copied the source site's .htaccess, wp-config.php, caches and log files, which could leave the migrated site redirecting to the original domain.
-- Fixed: Local push from Windows produced an empty destination site.
-- Fixed: Local push now reports progress and site size in the dashboard.
-- Security: Local push removes the transferred backup and database files from both the destination and the local machine.
-- Improved: Local push skips build and version control folders (node_modules, .git, .github, .wordpress-org) for faster transfers.
-- Improved: Local push checks its requirements before starting and reports database export failures clearly.
+= 0.1.3.8 - Beta =
+- Improved: Local push no longer copies host-specific configuration, caches, logs, or build and version control folders to the destination.
+- Improved: Local push reports progress and site size, checks its requirements before starting, and reports failures more clearly.
+- Fixed: Local push from Windows now transfers files correctly.
+- Security: Hardened cleanup of temporary migration files.
 
 = 0.1.3.7 - 03 August 2026 =
 - Security: Hardened the handling and cleanup of temporary migration files.
