@@ -25,8 +25,11 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 
 			global $wp_version;
 
-			// Files backup
-			if ( is_wp_error( $archive_path_file = InstaWP_Tools::cli_archive_wordpress_files() ) ) {
+			// Files backup. The exclusion list has to be passed here: it was previously
+			// computed further down (for the migration API payload only) and never reached
+			// the archiver, so host-specific files such as the source .htaccess were copied
+			// verbatim to the destination.
+			if ( is_wp_error( $archive_path_file = InstaWP_Tools::cli_archive_wordpress_files( 'zip', InstaWP_Tools::get_local_push_excluded_paths(), InstaWP_Tools::get_local_push_excluded_dir_names() ) ) ) {
 				die( esc_html( $archive_path_file->get_error_message() ) );
 			}
 			WP_CLI::success( 'Files backup created successfully.' );
@@ -35,12 +38,27 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 
 			// Database backup
 			$archive_path_db = InstaWP_Tools::cli_archive_wordpress_db();
-			WP_CLI::success( 'Database backup created successfully.' );
 
 			delete_option( 'instawp_parent_is_on_local' );
 
+			// The export shells out to mysqldump, so this is where an unreachable database
+			// or a missing mysqldump is caught. The files archive already exists at this
+			// point and would otherwise be orphaned in the temp directory.
+			if ( is_wp_error( $archive_path_db ) ) {
+				InstaWP_Tools::cli_delete_local_archives( array( $archive_path_file ) );
+
+				WP_CLI::error( $archive_path_db->get_error_message() );
+			}
+
+			WP_CLI::success( 'Database backup created successfully.' );
+
 			// Create Site
 			if ( is_wp_error( $create_site_res = InstaWP_Tools::create_insta_site( true ) ) ) {
+
+				// Nothing has been uploaded yet, but the local archives are already on disk
+				// and can be several gigabytes, so they are not left behind.
+				InstaWP_Tools::cli_delete_local_archives( array( $archive_path_file, $archive_path_db ) );
+
 				die( esc_html( $create_site_res->get_error_message() ) );
 			}
 
@@ -63,6 +81,12 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 				'php_version'       => PHP_VERSION,
 				'wp_version'        => $wp_version,
 				'plugin_version'    => INSTAWP_PLUGIN_VERSION,
+				// Sizes are recorded when the migration is created, which is why they were
+				// left at zero for local push: the standard flow sends them here and this one
+				// did not. The same helpers are used so the dashboard reads consistently
+				// across migration modes.
+				'file_size'         => InstaWP_Tools::get_total_sizes( 'files', $migrate_settings ),
+				'db_size'           => InstaWP_Tools::get_total_sizes( 'db' ),
 				'migrate_key'       => $migrate_key,
 			);
 			$migrate_res         = Curl::do_curl( 'migrates-v3/local-push', $migrate_args );
@@ -71,6 +95,10 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 			$migrate_res_data    = Helper::get_args_option( 'data', $migrate_res, array() );
 
 			if ( ! $migrate_res_status ) {
+
+				// Still nothing uploaded at this point, so only the local copies need clearing.
+				InstaWP_Tools::cli_delete_local_archives( array( $archive_path_file, $archive_path_db ) );
+
 				die( esc_html( $migrate_res_message ) );
 			}
 
@@ -82,11 +110,33 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 			// Wait 10 seconds
 			sleep( 10 );
 
-			// Upload files and db using SFTP
-			if ( is_wp_error( $file_upload_status = InstaWP_Tools::cli_upload_using_sftp( $site_id, $archive_path_file, $archive_path_db ) ) ) {
+			// Marks the transfer as under way. Local push previously recorded no stage at
+			// all between creating the migration and finishing it, so the dashboard showed
+			// a migration that never appeared to start.
+			instawp_update_migration_stages( array( 'push-initiated' => true ), $migrate_id, $migrate_key );
+
+			// Upload files and db using SFTP. The migration identifiers are passed so the
+			// per-artifact stages are recorded as each transfer starts and completes.
+			if ( is_wp_error( $file_upload_status = InstaWP_Tools::cli_upload_using_sftp( $site_id, $archive_path_file, $archive_path_db, $migrate_id, $migrate_key ) ) ) {
 
 				// Mark the migration failed
 				instawp_update_migration_stages( array( 'failed' => true ), $migrate_id, $migrate_key );
+
+				// When the failure was in setting up the connection itself, nothing was
+				// uploaded and retrying it would only fail again — with a cleanup warning
+				// that obscures the real error. Anything later means a file may already have
+				// landed on the destination, so both ends are cleared.
+				$connection_failed = in_array(
+					$file_upload_status->get_error_code(),
+					array( 'sftp_enable_failed', 'sftp_login_failed' ),
+					true
+				);
+
+				if ( $connection_failed ) {
+					InstaWP_Tools::cli_delete_local_archives( array( $archive_path_file, $archive_path_db ) );
+				} else {
+					InstaWP_Tools::cli_cleanup_migration_artifacts( $site_id, $archive_path_file, $archive_path_db );
+				}
 
 				die( esc_html( $file_upload_status->get_error_message() ) );
 			}
@@ -97,10 +147,19 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 				// Mark the migration failed
 				instawp_update_migration_stages( array( 'failed' => true ), $migrate_id, $migrate_key );
 
+				InstaWP_Tools::cli_cleanup_migration_artifacts( $site_id, $archive_path_file, $archive_path_db );
+
 				die( esc_html( $file_upload_status->get_error_message() ) );
 			}
 
-			// Mark the migration failed
+			// The transfer and the restore are both done at this point.
+			instawp_update_migration_stages( array( 'push-finished' => true ), $migrate_id, $migrate_key );
+
+			// The restore has consumed the uploaded copies, so clear them from the docroot
+			// and from the local temp directory before finishing up.
+			InstaWP_Tools::cli_cleanup_migration_artifacts( $site_id, $archive_path_file, $archive_path_db );
+
+			// Mark the migration finished
 			instawp_update_migration_stages( array( 'migration-finished' => true ), $migrate_id, $migrate_key );
 
 			// Finish configuration of the staging website
