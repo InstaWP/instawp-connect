@@ -10,15 +10,6 @@ defined( 'ABSPATH' ) || exit;
 class InstaWP_Tools {
 
 	/**
-	 * Minimum free space required in the temp directory before a local push starts.
-	 *
-	 * The files archive and the database dump are both written there before upload, so
-	 * running out of space mid-run wastes the whole transfer. 2 GB is a floor, not an
-	 * estimate of the site size — it only catches an already-full disk up front.
-	 */
-	const CLI_MIN_FREE_DISK_BYTES = 2147483648;
-
-	/**
 	 * Verify an AJAX request: validates nonce and user capability.
 	 * Sends a JSON error response and exits if either check fails.
 	 *
@@ -2171,55 +2162,6 @@ include $file_path;';
 	}
 
 	/**
-	 * Requirements that have to hold before a local push is attempted.
-	 *
-	 * Checked up front so a missing dependency is reported as one clear message rather
-	 * than surfacing later as a raw error from whichever component happened to need it.
-	 *
-	 * Deliberately capability-based rather than platform-based: the command is not
-	 * restricted to any operating system, it just needs a compression extension, a
-	 * writable temp directory and a working database export.
-	 *
-	 * @return true|WP_Error
-	 */
-	public static function cli_local_push_preflight() {
-
-		$errors = array();
-
-		if ( ! class_exists( 'ZipArchive' ) && ! class_exists( 'PharData' ) ) {
-			$errors[] = esc_html__( 'Neither the ZipArchive nor the PharData PHP extension is available; one is required to build the backup.', 'instawp-connect' );
-		}
-
-		$temp_dir = get_temp_dir();
-
-		if ( empty( $temp_dir ) || ! is_dir( $temp_dir ) ) {
-			$errors[] = esc_html__( 'The PHP temporary directory could not be located.', 'instawp-connect' );
-		} elseif ( ! is_writable( $temp_dir ) ) {
-			/* translators: %s: temporary directory path. */
-			$errors[] = sprintf( esc_html__( 'The temporary directory is not writable: %s', 'instawp-connect' ), $temp_dir );
-		} else {
-			// The archive and the database dump are both written here before upload, so a
-			// full disk fails the migration halfway through rather than up front.
-			$free_space = @disk_free_space( $temp_dir ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
-
-			if ( false !== $free_space && $free_space < self::CLI_MIN_FREE_DISK_BYTES ) {
-				$errors[] = sprintf(
-					/* translators: 1: temporary directory path, 2: human readable free space. */
-					esc_html__( 'Not enough free space in the temporary directory %1$s (%2$s available). The backup is written there before it is uploaded.', 'instawp-connect' ),
-					$temp_dir,
-					size_format( $free_space )
-				);
-			}
-		}
-
-		if ( ! empty( $errors ) ) {
-			return new WP_Error( 'local_push_preflight_failed', implode( ' ', $errors ) );
-		}
-
-		return true;
-	}
-
-	/**
 	 * Export the database to a file in the temp directory.
 	 *
 	 * @return string|WP_Error Path to the dump, or WP_Error when the export failed.
@@ -2504,7 +2446,18 @@ include $file_path;';
 				}
 			}
 
-			$zip->close();
+			// ZipArchive writes the archive on close, so this is where a full disk, a
+			// permission problem or a corrupt entry actually surfaces. Ignoring the return
+			// value would hand back the path to a truncated archive as though it had been
+			// written successfully, and the migration would carry on and restore it.
+			if ( ! $zip->close() ) {
+				self::cli_delete_local_archives( array( $archive_path ) );
+
+				return new WP_Error(
+					'zip_close_failed',
+					esc_html__( 'The backup archive could not be written. Check the free space and permissions on the temporary directory.', 'instawp-connect' )
+				);
+			}
 
 			return $archive_path;
 		}

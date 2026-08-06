@@ -100,7 +100,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 = 0.1.3.8 - Beta =
 - Improved: Local push no longer copies host-specific configuration, caches, logs, or build and version control folders to the destination.
-- Improved: Local push reports progress and site size, checks its requirements before starting, and reports failures more clearly.
+- Improved: Local push reports progress and site size, and reports backup failures more clearly.
 - Fixed: Local push from Windows now transfers files correctly.
 - Security: Hardened cleanup of temporary migration files.
 

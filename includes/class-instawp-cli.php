@@ -25,13 +25,6 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 
 			global $wp_version;
 
-			// Checked before any work starts, so a missing compression extension, an
-			// unwritable temp directory or a full disk is reported as one clear message
-			// instead of surfacing later as a raw error from whichever step needed it.
-			if ( is_wp_error( $preflight = InstaWP_Tools::cli_local_push_preflight() ) ) {
-				WP_CLI::error( $preflight->get_error_message() );
-			}
-
 			// Files backup. The exclusion list has to be passed here: it was previously
 			// computed further down (for the migration API payload only) and never reached
 			// the archiver, so host-specific files such as the source .htaccess were copied

@@ -17,30 +17,35 @@ content. Everything is derived from the plugin's own defaults.
 
 ## Workflow
 
-1. `cli_local_push_preflight()` verifies the environment can complete the run
-2. `cli_archive_wordpress_files()` builds a zip of the docroot
-3. `cli_archive_wordpress_db()` exports the database via `wp db export`
-4. `create_insta_site()` provisions a blank destination site
-5. A `migrates-v3/local-push` record is created for tracking, carrying the site sizes
-6. `cli_upload_using_sftp()` uploads the zip and the SQL dump to the destination
-7. `cli_restore_website()` calls the `restore-raw` API and polls until it completes
-8. Both artifacts are deleted from the destination and from the local temp directory
-9. `migrates-v3/finish-local-staging` finalises the destination configuration
+1. `cli_archive_wordpress_files()` builds a zip of the docroot
+2. `cli_archive_wordpress_db()` exports the database via `wp db export`
+3. `create_insta_site()` provisions a blank destination site
+4. A `migrates-v3/local-push` record is created for tracking, carrying the site sizes
+5. `cli_upload_using_sftp()` uploads the zip and the SQL dump to the destination
+6. `cli_restore_website()` calls the `restore-raw` API and polls until it completes
+7. Both artifacts are deleted from the destination and from the local temp directory
+8. `migrates-v3/finish-local-staging` finalises the destination configuration
 
-## Preflight
+## Failure detection
 
-`cli_local_push_preflight()` runs before any work and fails with a single message
-naming everything that is missing:
+Each step reports its own failure rather than being predicted by an up-front
+environment check — a missing compression extension already returns
+`no_method_find`, and an unwritable temp directory already returns
+`zip_is_not_opening`.
 
-- `ZipArchive` or `PharData` must be available
-- the PHP temp directory must exist and be writable
-- at least `InstaWP_Tools::CLI_MIN_FREE_DISK_BYTES` must be free there
+Two places needed the return value actually checked:
 
-The checks are **capability-based, not platform-based** — the command is not
-restricted to any operating system. The failure that was historically read as "this
-only works on macOS" was `wp db export` needing `mysqldump` on the `PATH`;
-`cli_archive_wordpress_db()` now returns a `WP_Error` carrying the underlying stderr
-instead of letting an unrelated error surface.
+- **`$zip->close()`** — ZipArchive writes the archive on close, so a full disk, a
+  permission problem or a corrupt entry surfaces there and nowhere earlier.
+  Discarding the result handed back the path to a truncated archive as though it
+  had been written, and the migration went on to upload and restore it.
+- **`cli_archive_wordpress_db()`** — the export runs with `exit_error => false`, so a
+  failure returns a `WP_Error` carrying the underlying stderr and a zero-byte dump is
+  treated as a failure. Previously the path was returned regardless of whether
+  anything had been written, which is how a missing `mysqldump` was read as "local
+  push only works on macOS".
+
+The command is not restricted to any operating system.
 
 ## Progress reporting
 
