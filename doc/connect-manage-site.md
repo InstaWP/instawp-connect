@@ -74,3 +74,44 @@ Sites are authenticated using:
 - `connect_id` - Unique site identifier
 - `connect_uuid` - Secret token for API calls
 - Bearer token authentication for REST requests
+
+All of these live in the single `instawp_api_options` option. Deleting that option
+disconnects the site: `validate_api_request()` in
+`includes/apis/class-instawp-rest-api.php` then returns
+`403 {"success":false,"message":"Empty api key."}` for every endpoint, and the site
+keeps serving traffic normally while reporting nothing back to the dashboard.
+
+### Activation re-pairing (`instawp_plugin_activate`)
+
+On activation a site that already holds a `connect_id` calls
+`POST connects/{connect_id}/restore` to re-pair itself. Activation runs on plugin
+update, on manual reactivation, and after a migration — `v-instawp-migrate-pull` in
+instacp reactivates the plugin as part of its develop-branch override.
+
+`instawp_api_options` is deleted **only when that call comes back with a 4xx**, which
+is the only way the API can authoritatively refuse the connect. `Curl::do_curl()`
+also returns `success = false` when it never reached the server:
+
+| Failure | `code` | Credentials |
+|---|---|---|
+| Empty api key / api domain (local guard, returns before any request) | absent | kept |
+| `WP_Error` — DNS, TLS, connection refused, timeout | absent | kept |
+| 5xx, or a proxy HTML error page that `json_decode()`s to `null` | 5xx / 0 | kept |
+| 4xx — connect deleted, key revoked, URL rejected | 4xx | deleted |
+
+Retaining the credentials on a non-authoritative failure is deliberate. The delete is
+unrecoverable, and the site is far more likely to be behind a momentary network blip
+than genuinely revoked. A stale connect is caught by the dashboard's inactivity
+badge instead.
+
+**Manual regression check.** On a connected staging site:
+
+1. Confirm the channel works — `wp option get instawp_api_options` shows an `api_key`,
+   and a connect endpoint returns something other than `403 Empty api key`.
+2. Make InstaWP unreachable from the site without changing anything else, e.g. add
+   `127.0.0.1 app.instawp.io` to `/etc/hosts`, or set
+   `add_filter( 'pre_http_request', '__return_wp_error' )` in an mu-plugin.
+3. `wp plugin deactivate instawp-connect && wp plugin activate instawp-connect`.
+4. `wp option get instawp_api_options` must still contain the `api_key`. Before this
+   guard the option was gone and the site was permanently disconnected.
+5. Undo step 2, reactivate again, and confirm the restore call now succeeds.

@@ -76,8 +76,41 @@ function instawp_plugin_activate() {
 	$connect_id = instawp_get_connect_id();
 	if ( ! empty( $connect_id ) ) {
 		$response = Curl::do_curl( "connects/{$connect_id}/restore", array( 'url' => Helper::wp_site_url( '', true ) ) );
+
+		/**
+		 * Only forget the credentials when the API has authoritatively refused this
+		 * connect, which it can only do with a 4xx.
+		 *
+		 * Curl::do_curl() also reports success = false when it never reached the
+		 * server at all: its empty api key / api domain guards return early, and a
+		 * WP_Error from a DNS, TLS or timeout failure is reported the same way.
+		 * Neither carries a 'code'. A 5xx, or a proxy HTML error page that
+		 * json_decode()s to null, is a fault on our side rather than a verdict on
+		 * this site.
+		 *
+		 * Treating any of those as "this connect is gone" is unrecoverable: deleting
+		 * instawp_api_options destroys the site's api_key, after which every
+		 * instawp-connect REST endpoint returns 403 "Empty api key" and backups,
+		 * updates, vulnerability scans, activity logs and magic login all stop
+		 * working until the customer reconnects the site by hand. Activation runs on
+		 * plugin update and is re-triggered by a migration, so a momentary blip was
+		 * enough to permanently disconnect a live site.
+		 */
+		$response_code = isset( $response['code'] ) ? intval( $response['code'] ) : 0;
+
 		if ( empty( $response['success'] ) ) {
-			Option::delete_option( 'instawp_api_options' );
+			if ( $response_code >= 400 && $response_code < 500 ) {
+				Option::delete_option( 'instawp_api_options' );
+			} else {
+				Helper::add_error_log(
+					array(
+						'title'         => 'Connect restore failed without an authoritative response - keeping instawp_api_options',
+						'connect_id'    => $connect_id,
+						'response_code' => $response_code,
+						'message'       => isset( $response['message'] ) ? $response['message'] : '',
+					)
+				);
+			}
 		}
 	}
 }

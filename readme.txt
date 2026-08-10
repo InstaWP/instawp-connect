@@ -99,6 +99,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 == Changelog ==
 
 = 0.1.3.8 - Beta =
+- Fixed: A connected site no longer disconnects itself when the plugin is activated while InstaWP is briefly unreachable. Previously a DNS, TLS, timeout or server error during activation deleted the site's API key, and every connect feature (backups, updates, vulnerability scans, magic login) stayed broken until the site was reconnected by hand.
 - Improved: Local push no longer copies host-specific configuration, caches, logs, or build and version control folders to the destination.
 - Improved: Local push reports progress and site size, and reports backup failures more clearly.
 - Fixed: Local push from Windows now transfers files correctly.
