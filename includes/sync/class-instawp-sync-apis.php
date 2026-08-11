@@ -216,27 +216,33 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 					break;
 				}
 			}
+
+			// Serve the file for download
+			header('Content-Description: File Transfer');
+			header('Content-Type: ' . $file_type_ext['type'] );
+			header('Content-Disposition: attachment; filename="' . basename( $file_path ) . '"');
+			header('Expires: 0');
+			header('Cache-Control: must-revalidate');
+			header('Pragma: public');
+			header('Content-Length: ' . filesize( $file_path ));
+
+			readfile( $file_path );
+			exit;
 		} catch ( \Throwable $th ) {
 			Helper::add_error_log( array( 'title' => 'instawp: sync download-media failed' ), $th );
+
+			// If the transfer already started, the headers and part of the body are out and the
+			// peer is reading binary. Appending a JSON error would only corrupt what it receives,
+			// so the request is ended instead and the peer sees a truncated download.
+			if ( headers_sent() ) {
+				exit;
+			}
 
 			return $this->send_response( array(
 				'success' => false,
 				'message' => __( 'File not found.', 'instawp-connect' ),
 			) );
 		}
-
-		// Serve the file for download. Left outside the try block on purpose: once the headers
-		// and the first bytes are out there is nothing left to recover into a response.
-		header('Content-Description: File Transfer');
-		header('Content-Type: ' . $file_type_ext['type'] );
-		header('Content-Disposition: attachment; filename="' . basename( $file_path ) . '"');
-		header('Expires: 0');
-		header('Cache-Control: must-revalidate');
-		header('Pragma: public');
-		header('Content-Length: ' . filesize( $file_path ));
-
-		readfile( $file_path );
-		exit;
 	}
 
 	/**
