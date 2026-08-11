@@ -35,7 +35,9 @@ if ( ! function_exists( 'instawp_create_db_tables' ) ) {
 			prod varchar(128) NOT NULL,
 			status varchar(50) NOT NULL DEFAULT 'pending',
 			synced_message varchar(128),
-			PRIMARY KEY (id)
+			PRIMARY KEY (id),
+			KEY date (date),
+			KEY event_hash (event_hash)
         ) $charset_collate;";
 
 		maybe_create_table( INSTAWP_DB_TABLE_EVENTS, $sql_create_events_table );
@@ -48,7 +50,9 @@ if ( ! function_exists( 'instawp_create_db_tables' ) ) {
 			status varchar(50) NOT NULL DEFAULT 'pending',
 			synced_message text NULL,
             date datetime NOT NULL,
-            PRIMARY KEY (id)
+            PRIMARY KEY (id),
+            KEY date (date),
+            KEY event_hash (event_hash)
         ) $charset_collate;";
 
 		maybe_create_table( INSTAWP_DB_TABLE_EVENT_SITES, $sql_create_sync_history_table );
@@ -66,7 +70,8 @@ if ( ! function_exists( 'instawp_create_db_tables' ) ) {
             source_connect_id int(20) NOT NULL,
             source_url varchar(128),
             date datetime NOT NULL,
-            PRIMARY KEY (id)
+            PRIMARY KEY (id),
+            KEY date (date)
             ) $charset_collate;";
 
 		maybe_create_table( INSTAWP_DB_TABLE_SYNC_HISTORY, $sql_create_event_sites_table );
@@ -80,7 +85,9 @@ if ( ! function_exists( 'instawp_create_db_tables' ) ) {
 			status varchar(50) NOT NULL DEFAULT 'pending',
 			logs text NOT NULL,
 			date datetime NOT NULL,
-			PRIMARY KEY (id)
+			PRIMARY KEY (id),
+			KEY date (date),
+			KEY event_hash (event_hash)
         ) $charset_collate;";
 
 		maybe_create_table( INSTAWP_DB_TABLE_EVENT_SYNC_LOGS, $sql_create_event_sync_log_table );
@@ -117,6 +124,258 @@ if ( ! function_exists( 'instawp_delete_sync_entries' ) ) {
 		foreach ( $tables as $table ) {
 			$wpdb->query( "TRUNCATE TABLE {$table}" );
 		}
+	}
+}
+
+if ( ! function_exists( 'instawp_get_sync_retention_days' ) ) {
+	/**
+	 * How many days of two-way sync bookkeeping to keep.
+	 *
+	 * Return 0 (or less) from the filter to keep everything and disable pruning.
+	 *
+	 * @return int
+	 */
+	function instawp_get_sync_retention_days() {
+		$days = apply_filters( 'instawp/filters/sync_retention_days', 90 );
+
+		return min( 3650, max( 0, intval( $days ) ) );
+	}
+}
+
+if ( ! function_exists( 'instawp_prune_sync_entries' ) ) {
+	/**
+	 * Delete two-way sync rows older than the retention window.
+	 *
+	 * The sync tables are append-only: nothing removes an event once it has been recorded, and
+	 * every `post modified` event carries a full content payload, so the events table grows without
+	 * a bound for the whole life of the site. Runs daily from the `instawp_prune_sync_entries`
+	 * scheduled action.
+	 *
+	 * Which key is safe to prune on differs per table, because only two of them are written by this
+	 * site. `instawp_events` and `instawp_event_sites` share this site's `events.id`, so an event
+	 * can take its site rows with it. `instawp_event_sync_logs` and `instawp_sync_history` are
+	 * written when the OTHER site pushes to us: their `event_id` / `event_hash` belong to the
+	 * sender's tables and only look like local ids, so they can be pruned on age alone.
+	 *
+	 * @return int Number of rows deleted.
+	 */
+	function instawp_prune_sync_entries() {
+		global $wpdb;
+
+		// Ahead of the retention check: the event_hash index also serves the already-applied
+		// lookup on every inbound event, which matters whether or not pruning is switched on.
+		instawp_add_sync_table_indexes();
+
+		$days = instawp_get_sync_retention_days();
+
+		if ( $days < 1 ) {
+			return 0;
+		}
+
+		$cutoff     = gmdate( 'Y-m-d H:i:s', time() - ( $days * DAY_IN_SECONDS ) );
+		$budget     = min( 500000, max( 1, intval( apply_filters( 'instawp/filters/sync_prune_max_rows', 10000 ) ) ) );
+		$batch_size = min( 5000, max( 1, intval( apply_filters( 'instawp/filters/sync_prune_batch_size', 500 ) ) ) );
+		$batch_size = min( $batch_size, $budget );
+		$deleted    = 0;
+
+		// Events, together with the per-site status rows that hang off them.
+		if ( instawp_db_table_exists( INSTAWP_DB_TABLE_EVENTS ) ) {
+			$has_event_sites = instawp_db_table_exists( INSTAWP_DB_TABLE_EVENT_SITES );
+
+			while ( $deleted < $budget ) {
+				$limit     = min( $batch_size, $budget - $deleted );
+				$event_ids = $wpdb->get_col(
+					$wpdb->prepare( 'SELECT id FROM ' . INSTAWP_DB_TABLE_EVENTS . ' WHERE `date` < %s ORDER BY id ASC LIMIT %d', $cutoff, $limit ) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+				);
+
+				if ( empty( $event_ids ) ) {
+					break;
+				}
+
+				$event_ids    = array_map( 'intval', $event_ids );
+				$placeholders = implode( ',', array_fill( 0, count( $event_ids ), '%d' ) );
+
+				// Events first, then their site rows — the order the existing delete paths use.
+				// If the second statement fails the site rows are left orphaned, which the stray
+				// sweep below clears; failing the other way round would leave the events looking
+				// unsynced and re-queue a 90-day-old payload over whatever is live now.
+				$removed = $wpdb->query(
+					$wpdb->prepare( 'DELETE FROM ' . INSTAWP_DB_TABLE_EVENTS . " WHERE id IN ($placeholders)", $event_ids ) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+				);
+
+				// A failed DELETE returns false, and the same rows would be selected again next
+				// time round, so stop rather than spin on it.
+				if ( ! is_numeric( $removed ) || intval( $removed ) < 1 ) {
+					break;
+				}
+
+				$deleted += intval( $removed );
+
+				if ( $has_event_sites ) {
+					$removed_sites = $wpdb->query(
+						$wpdb->prepare( 'DELETE FROM ' . INSTAWP_DB_TABLE_EVENT_SITES . " WHERE event_id IN ($placeholders)", $event_ids ) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+					);
+
+					$deleted += is_numeric( $removed_sites ) ? intval( $removed_sites ) : 0;
+				}
+
+				if ( count( $event_ids ) < $limit ) {
+					break;
+				}
+			}
+
+			// Site rows whose event_hash is gone from the events table: every read joins on that
+			// hash, so they can no longer be reached. Both delete paths already remove them with
+			// the event, so this only catches strays.
+			if ( $has_event_sites ) {
+				$deleted += instawp_prune_sync_table( INSTAWP_DB_TABLE_EVENT_SITES, $cutoff, $batch_size, $budget - $deleted, ' AND `event_hash` NOT IN ( SELECT `event_hash` FROM ' . INSTAWP_DB_TABLE_EVENTS . ' )' );
+			}
+		}
+
+		// Written by the site pushing to us, so age is the only key that means anything here.
+		foreach ( array( INSTAWP_DB_TABLE_EVENT_SYNC_LOGS, INSTAWP_DB_TABLE_SYNC_HISTORY ) as $table ) {
+			if ( instawp_db_table_exists( $table ) ) {
+				$deleted += instawp_prune_sync_table( $table, $cutoff, $batch_size, $budget - $deleted );
+			}
+		}
+
+		do_action( 'instawp/actions/sync_entries_pruned', $deleted, $cutoff );
+
+		return $deleted;
+	}
+}
+
+if ( ! function_exists( 'instawp_prune_sync_table' ) ) {
+	/**
+	 * Delete rows older than a cutoff from one sync table, in batches.
+	 *
+	 * @param string $table_name  Sync table name — a plugin constant, never user input.
+	 * @param string $cutoff      MySQL datetime in UTC. Rows older than this go.
+	 * @param int    $batch_size  Rows per DELETE.
+	 * @param int    $budget      Most rows to delete in total.
+	 * @param string $extra_where Additional SQL appended to the WHERE clause. Caller-controlled
+	 *                            literal SQL — never build it from request data, and it must
+	 *                            contain no `%`, since it lands in the prepare() format string.
+	 *
+	 * @return int Number of rows deleted.
+	 */
+	function instawp_prune_sync_table( $table_name, $cutoff, $batch_size, $budget, $extra_where = '' ) {
+		global $wpdb;
+
+		$deleted = 0;
+
+		while ( $deleted < $budget ) {
+			$limit   = min( $batch_size, $budget - $deleted );
+			$removed = $wpdb->query(
+				$wpdb->prepare( "DELETE FROM {$table_name} WHERE `date` < %s {$extra_where} ORDER BY id ASC LIMIT %d", $cutoff, $limit ) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			);
+
+			if ( ! is_numeric( $removed ) || intval( $removed ) < 1 ) {
+				break;
+			}
+
+			$deleted += intval( $removed );
+
+			if ( intval( $removed ) < $limit ) {
+				break;
+			}
+		}
+
+		return $deleted;
+	}
+}
+
+if ( ! function_exists( 'instawp_add_sync_table_indexes' ) ) {
+	/**
+	 * Index the columns the sync tables are read and pruned by.
+	 *
+	 * The tables shipped with only a primary key, so every lookup by `date` (the events list, the
+	 * pruner) and by `event_hash` (the already-synced check on every inbound event) scans the whole
+	 * table. Runs once per site — new installs get the indexes from CREATE TABLE. The done flag is
+	 * only set once every index is actually in place, so a site that is missing a column, or where
+	 * the ALTER is refused, is retried on the next run instead of being written off.
+	 *
+	 * @return void
+	 */
+	function instawp_add_sync_table_indexes() {
+		global $wpdb;
+
+		if ( 'yes' === Option::get_option( 'instawp_sync_tables_indexed' ) ) {
+			return;
+		}
+
+		$indexes = array(
+			INSTAWP_DB_TABLE_EVENTS          => array( 'date', 'event_hash' ),
+			INSTAWP_DB_TABLE_EVENT_SITES     => array( 'date', 'event_hash' ),
+			INSTAWP_DB_TABLE_EVENT_SYNC_LOGS => array( 'date', 'event_hash' ),
+			INSTAWP_DB_TABLE_SYNC_HISTORY    => array( 'date' ),
+		);
+
+		$complete = true;
+
+		foreach ( $indexes as $table_name => $columns ) {
+			if ( ! instawp_db_table_exists( $table_name ) ) {
+				continue;
+			}
+
+			foreach ( $columns as $column ) {
+				$exists = $wpdb->get_var(
+					$wpdb->prepare( 'SELECT `INDEX_NAME` FROM `INFORMATION_SCHEMA`.`STATISTICS` WHERE `TABLE_SCHEMA`=%s AND `TABLE_NAME`=%s AND `INDEX_NAME`=%s', $wpdb->dbname, $table_name, $column )
+				);
+
+				if ( ! empty( $exists ) ) {
+					continue;
+				}
+
+				// An install old enough to predate the column is repaired by
+				// instawp_alter_db_tables() on a normal request, not from here.
+				$has_column = $wpdb->get_var(
+					$wpdb->prepare( 'SELECT `COLUMN_NAME` FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `TABLE_SCHEMA`=%s AND `TABLE_NAME`=%s AND `COLUMN_NAME`=%s', $wpdb->dbname, $table_name, $column )
+				);
+
+				if ( empty( $has_column ) ) {
+					$complete = false;
+					continue;
+				}
+
+				$suppressed = $wpdb->suppress_errors( true );
+				$added      = $wpdb->query( "ALTER TABLE {$table_name} ADD INDEX `{$column}` (`{$column}`)" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				$wpdb->suppress_errors( $suppressed );
+
+				if ( false === $added ) {
+					$complete = false;
+
+					Helper::add_error_log( array(
+						'title'   => 'instawp: could not index a two-way sync table',
+						'message' => $table_name . '.' . $column . ' — ' . $wpdb->last_error,
+					) );
+				}
+			}
+		}
+
+		if ( $complete ) {
+			Option::update_option( 'instawp_sync_tables_indexed', 'yes', true );
+		}
+	}
+}
+
+if ( ! function_exists( 'instawp_db_table_exists' ) ) {
+	/**
+	 * Whether a database table exists.
+	 *
+	 * The sync tables are only created once two-way sync has been switched on, so every
+	 * maintenance query has to check first.
+	 *
+	 * @param string $table_name
+	 *
+	 * @return bool
+	 */
+	function instawp_db_table_exists( $table_name ) {
+		global $wpdb;
+
+		$found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table_name ) ) );
+
+		return $found === $table_name;
 	}
 }
 

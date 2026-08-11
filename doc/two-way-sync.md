@@ -70,6 +70,63 @@ downloads when the auth header was omitted.
 The callback additionally requires the requested ID to be an `attachment` post and the resolved
 file to sit inside the uploads directory, and it only serves the extensions in its allowlist.
 
+## Retention
+
+The sync tables are append-only — nothing removed a row once it had been written, and every
+"post modified" event carries a full content payload. On a busy site that made
+`wp_instawp_events` the largest table in the database (74 MB for 4,155 rows, ~18 KB/row, going
+back 22 months, on one customer site).
+
+`instawp_prune_sync_entries()` (in `includes/functions.php`) deletes rows older than the retention
+window. It runs daily from the `instawp_prune_sync_entries` Action Scheduler action, registered in
+`instaWP::register_actions()` alongside `instawp_clean_migrate_files`.
+
+| Filter | Default | Purpose |
+|--------|---------|---------|
+| `instawp/filters/sync_retention_days` | `90` | Age at which a row is dropped. `0` disables pruning entirely. |
+| `instawp/filters/sync_prune_batch_size` | `500` | Rows per `DELETE`, capped at 5,000 and never larger than the run's ceiling. |
+| `instawp/filters/sync_prune_max_rows` | `10000` | Rows one run may delete across all four tables, so the first pass over a large backlog stays bounded. A batch already selected is finished before the run stops, so the total can exceed this by up to one batch. A backlog bigger than the ceiling drains over several days. |
+
+### Which key each table is pruned on
+
+Only two of the four tables are written by this site, and that decides what is safe to key on.
+
+`wp_instawp_events` and `wp_instawp_event_sites` share this site's `events.id`, so deleting an
+event also deletes its site rows. The events go first and the site rows second — the order the
+existing delete paths use — because a failure between the two statements must leave orphaned site
+rows (harmless, and cleaned by the sweep below) rather than events with no site rows, which
+`generate_pending_sync_events()` would read as unsynced and re-queue.
+
+Site rows left behind are then swept if they are past the window **and** their `event_hash` is gone
+from the events table — every read joins on that hash, so such a row can no longer be reached. Both
+delete paths already remove site rows with their event, so the sweep only catches strays. Keying it
+on the hash rather than on age alone is deliberate: dropping a live event's site row would make an
+already-synced event look pending again.
+
+`wp_instawp_event_sync_logs` and `wp_instawp_sync_history` are written when the **other** site
+pushes to us (`InstaWP_Sync_Apis::event_sync_logs()`, `::sync_history_save()`). Their `event_id`
+and `event_hash` are the **sender's**, from the sender's tables — they merely look like local ids
+and collide with them one-for-one. Pruning those two by `event_id` against local ids would delete
+unrelated rows of any age, including the `status='completed'` log row that `events_receiver()`
+reads to decide an event has already been applied. So they are pruned on age alone.
+
+### Indexes
+
+The tables shipped with only a primary key, so every lookup by `date` (the events list, this
+pruner) and by `event_hash` (the already-applied check on every inbound event) scanned the whole
+table. `CREATE TABLE` now declares those indexes, and `instawp_add_sync_table_indexes()` adds them
+once to existing sites on the first prune (tracked by the `instawp_sync_tables_indexed` option).
+
+### Observability
+
+Each run fires `do_action( 'instawp/actions/sync_entries_pruned', $deleted, $cutoff )`.
+
+Trade-off: an event still pending when it ages out is dropped from the queue, so a staging site
+that has not synced for longer than the window will not receive those changes. That is deliberate
+— replaying a 90-day-old content snapshot would overwrite whatever is live now — but it is a
+behaviour change for sites that let events pile up. Raise
+`instawp/filters/sync_retention_days` (or return `0`) to keep them.
+
 ## Features
 
 - Event filtering by type (posts, users, plugins, etc.)

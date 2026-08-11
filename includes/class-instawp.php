@@ -73,6 +73,7 @@ class instaWP {
 		add_action( 'add_option_instawp_max_file_size_allowed', array( $this, 'clear_staging_sites_list' ) );
 		add_action( 'update_option_instawp_max_file_size_allowed', array( $this, 'clear_staging_sites_list' ) );
 		add_action( 'instawp_clean_migrate_files', array( $this, 'clean_migrate_files' ) );
+		add_action( 'instawp_prune_sync_entries', 'instawp_prune_sync_entries' );
 		add_action( 'add_option_instawp_enable_wp_debug', array( $this, 'toggle_wp_debug' ), 10, 2 );
 		add_action( 'update_option_instawp_enable_wp_debug', array( $this, 'toggle_wp_debug' ), 10, 2 );
 		add_action( 'add_option_instawp_rm_debug_log', array( $this, 'toggle_wp_debug' ), 10, 2 );
@@ -107,6 +108,10 @@ class instaWP {
 
 		if ( ! as_has_scheduled_action( 'instawp_clean_migrate_files', array(), 'instawp-connect' ) ) {
 			as_schedule_recurring_action( time(), DAY_IN_SECONDS, 'instawp_clean_migrate_files', array(), 'instawp-connect' );
+		}
+
+		if ( ! as_has_scheduled_action( 'instawp_prune_sync_entries', array(), 'instawp-connect' ) ) {
+			as_schedule_recurring_action( time(), DAY_IN_SECONDS, 'instawp_prune_sync_entries', array(), 'instawp-connect' );
 		}
 	}
 
