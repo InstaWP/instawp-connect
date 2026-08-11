@@ -136,68 +136,97 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 	public function download_media( WP_REST_Request $request ) {
 		// Defence in depth: validate again inside the callback so a future change to the
 		// route registration or to the permission callback cannot expose media files.
+		// Kept outside the try block so an authorization failure can never be swallowed.
 		$validated = $this->validate_sync_api_request( $request );
 		if ( is_wp_error( $validated ) ) {
 			// Returned as is, WordPress converts it into the proper HTTP error response.
 			return $validated;
 		}
 
-		// Get media_url from the request
-		$media_id = $request->get_param('media_id');
-		if ( empty( $media_id ) || ! is_numeric( $media_id ) || 1 > intval( $media_id ) ) {
-			return $this->send_response( array(
-				'success' => false,
-				'message' => __( 'Empty or invalid media id.', 'instawp-connect' ),
-			) );
-		}
+		// Everything from here up to the transfer only prepares the file, so a failure can
+		// still be reported as a normal response. The transfer itself stays outside.
+		try {
+			// Get media_url from the request
+			$media_id = $request->get_param('media_id');
+			if ( empty( $media_id ) || ! is_numeric( $media_id ) || 1 > intval( $media_id ) ) {
+				return $this->send_response( array(
+					'success' => false,
+					'message' => __( 'Empty or invalid media id.', 'instawp-connect' ),
+				) );
+			}
 
-		$media_id = intval( $media_id );
+			$media_id = intval( $media_id );
 
-		// Only real attachments may be served. get_attached_file() also resolves any other
-		// post type that happens to carry _wp_attached_file meta.
-		if ( 'attachment' !== get_post_type( $media_id ) ) {
+			// Only real attachments may be served. get_attached_file() also resolves any other
+			// post type that happens to carry _wp_attached_file meta.
+			if ( 'attachment' !== get_post_type( $media_id ) ) {
+				return $this->send_response( array(
+					'success' => false,
+					'message' => __( 'File not found.', 'instawp-connect' ),
+				) );
+			}
+
+			$file_path = get_attached_file( $media_id ); // Full path
+			if ( empty( $file_path ) || ! file_exists( $file_path ) ) {
+				return $this->send_response( array(
+					'success' => false,
+					'message' => __( 'File not found.', 'instawp-connect' ),
+				) );
+			}
+
+			// Keep the served file inside the uploads directory. _wp_attached_file can hold an
+			// absolute path, so a tampered meta value could otherwise point anywhere on disk.
+			// The comparison stays lexical on purpose: resolving symlinks would break sites that
+			// symlink an uploads sub folder to shared media, and placing a symlink inside uploads
+			// already needs filesystem access, which makes this endpoint pointless to an attacker.
+			$upload_dir      = wp_get_upload_dir();
+			$upload_base_dir = empty( $upload_dir['basedir'] ) ? '' : wp_normalize_path( $upload_dir['basedir'] );
+			$normalized_path = wp_normalize_path( $file_path );
+
+			if ( empty( $upload_base_dir ) || false !== strpos( $normalized_path, '../' ) || 0 !== strpos( $normalized_path, trailingslashit( $upload_base_dir ) ) ) {
+				// Logged locally because the file does exist, the caller keeps the generic
+				// message so the response can not be used to probe which media ids exist.
+				Helper::add_error_log( array(
+					'title'   => 'instawp: sync download-media rejected a file outside the uploads directory',
+					'message' => $normalized_path,
+				) );
+
+				return $this->send_response( array(
+					'success' => false,
+					'message' => __( 'File not found.', 'instawp-connect' ),
+				) );
+			}
+
+			$file_type_ext = wp_check_filetype( $file_path );
+
+			if ( false === $file_type_ext['type'] || empty( $file_type_ext['ext'] ) || ! in_array( $file_type_ext['ext'], array( 'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'mp4', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'csv', 'txt', 'rtf', 'html', 'zip', 'mp3', 'wma', 'mpg', 'flv', 'avi' ) ) ) {
+				return $this->send_response( array(
+					'success' => false,
+					'message' => __( 'File type not supported.', 'instawp-connect' ),
+				) );
+			}
+
+			// Discard anything already buffered (notices, BOM) so the file bytes stay intact.
+			// Bounded like wp_ob_end_flush_all(): a buffer that can not be removed, for example
+			// with zlib.output_compression on, keeps ob_get_level() unchanged and would otherwise
+			// spin until the request times out.
+			$ob_levels = ob_get_level();
+			for ( $i = 0; $i < $ob_levels; $i ++ ) {
+				if ( ! @ob_end_clean() ) { // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+					break;
+				}
+			}
+		} catch ( \Throwable $th ) {
+			Helper::add_error_log( array( 'title' => 'instawp: sync download-media failed' ), $th );
+
 			return $this->send_response( array(
 				'success' => false,
 				'message' => __( 'File not found.', 'instawp-connect' ),
 			) );
 		}
 
-		$file_path = get_attached_file( $media_id ); // Full path
-		if ( empty( $file_path ) || ! file_exists( $file_path ) ) {
-			return $this->send_response( array(
-				'success' => false,
-				'message' => __( 'File not found.', 'instawp-connect' ),
-			) );
-		}
-
-		// Keep the served file inside the uploads directory. _wp_attached_file can hold an
-		// absolute path, so a tampered meta value could otherwise point anywhere on disk.
-		$upload_dir      = wp_get_upload_dir();
-		$upload_base_dir = empty( $upload_dir['basedir'] ) ? '' : wp_normalize_path( $upload_dir['basedir'] );
-		$normalized_path = wp_normalize_path( $file_path );
-
-		if ( empty( $upload_base_dir ) || false !== strpos( $normalized_path, '../' ) || 0 !== strpos( $normalized_path, trailingslashit( $upload_base_dir ) ) ) {
-			return $this->send_response( array(
-				'success' => false,
-				'message' => __( 'File not found.', 'instawp-connect' ),
-			) );
-		}
-
-		$file_type_ext = wp_check_filetype( $file_path );
-
-		if ( false === $file_type_ext['type'] || empty( $file_type_ext['ext'] ) || ! in_array( $file_type_ext['ext'], array( 'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'mp4', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'csv', 'txt', 'rtf', 'html', 'zip', 'mp3', 'wma', 'mpg', 'flv', 'avi' ) ) ) {
-			return $this->send_response( array(
-				'success' => false,
-				'message' => __( 'File type not supported.', 'instawp-connect' ),
-			) );
-		}
-
-		// Discard anything already buffered (notices, BOM) so the file bytes stay intact.
-		while ( ob_get_level() > 0 ) {
-			ob_end_clean();
-		}
-
-		// Serve the file for download
+		// Serve the file for download. Left outside the try block on purpose: once the headers
+		// and the first bytes are out there is nothing left to recover into a response.
 		header('Content-Description: File Transfer');
 		header('Content-Type: ' . $file_type_ext['type'] );
 		header('Content-Disposition: attachment; filename="' . basename( $file_path ) . '"');
@@ -205,7 +234,7 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 		header('Cache-Control: must-revalidate');
 		header('Pragma: public');
 		header('Content-Length: ' . filesize( $file_path ));
-	
+
 		readfile( $file_path );
 		exit;
 	}
