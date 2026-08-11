@@ -121,10 +121,31 @@ once to existing sites on the first prune (tracked by the `instawp_sync_tables_i
 
 Each run fires `do_action( 'instawp/actions/sync_entries_pruned', $deleted, $cutoff )`.
 
-Trade-off: an event still pending when it ages out is dropped from the queue, so a staging site
-that has not synced for longer than the window will not receive those changes. That is deliberate
-— replaying a 90-day-old content snapshot would overwrite whatever is live now — but it is a
-behaviour change for sites that let events pile up. Raise
+### What ageing out actually costs
+
+An event that is still queued when it ages out is deleted, so it will never sync. Which events those
+are is worth stating precisely, because `instawp_events.status` does **not** decide it — no read
+path filters on that column, which is why long-lived sites carry tables where every row still reads
+`pending`.
+
+`generate_pending_sync_events()` (`class-instawp-sync-ajax.php:677`) builds the queue as events
+whose `event_hash` is **not** already recorded in `wp_instawp_event_sites` with
+`status IN ('completed','invalid','error')` for that `connect_id` — i.e. not yet dealt with by that
+destination. The `status IN (…)` there applies to the **site rows**, not to the events. Two further
+conditions narrow it:
+
+- `prod` must be one of the accepted sync sources.
+- on the **parent** side only (`! instawp()->is_staging`), `date >= ` the staging site's
+  `created_at`. A staging site connected today therefore never sees events recorded before it
+  existed, pruned or not.
+
+So the exposure is narrow but real: a destination connected **more than the retention window ago**
+that has left events undrained loses them. In the **staging → parent** direction there is no
+`created_at` floor at all, so age is the only thing standing between an undrained event and the
+pruner.
+
+That is deliberate — replaying a 90-day-old content snapshot would overwrite whatever is live now —
+but it is a behaviour change for sites that let events pile up. Raise
 `instawp/filters/sync_retention_days` (or return `0`) to keep them.
 
 ## Features
