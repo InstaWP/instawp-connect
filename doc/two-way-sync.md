@@ -46,6 +46,30 @@ Activity logging captures all changes on connected sites. Events are recorded an
 | GET | `/instawp-connect/v1/sync/summary` | Event summary |
 | POST | `/instawp-connect/v1/sync/download-media` | Download media files |
 
+### `sync/download-media` authorization
+
+This endpoint streams raw attachment bytes to the paired site, so it is gated harder than the
+event endpoints. `InstaWP_Sync_Apis::validate_sync_api_request()` runs both as the route's
+`permission_callback` and again at the top of the callback, and denies the request unless:
+
+1. The request carries `Authorization: Bearer <hash>` or `X-IWP-AUTH: <hash>`, where
+   `<hash>` is `sha256( connect_id . '_' . connect_uuid )` of the site being called.
+   The caller builds these headers with `instawp_get_migration_headers()`.
+2. The site is connected — `instawp_api_options` holds both `connect_id` and `connect_uuid`.
+3. The token matches the locally derived hash (`hash_equals()`).
+
+The `instawp_is_event_syncing` toggle is deliberately **not** part of this check. The peer site
+requests media while it processes events, which can happen after the toggle was switched off on
+this side, so gating on it would break legitimate syncs.
+
+Every denial returns a `WP_Error` — never a `WP_REST_Response`. A permission callback that
+returns anything other than `true`, `false`, `null` or `WP_Error` is read as "authorized" by
+`WP_REST_Server`, which is how CVE-class issue 86d406d23 allowed unauthenticated media
+downloads when the auth header was omitted.
+
+The callback additionally requires the requested ID to be an `attachment` post and the resolved
+file to sit inside the uploads directory, and it only serves the extensions in its allowlist.
+
 ## Features
 
 - Event filtering by type (posts, users, plugins, etc.)

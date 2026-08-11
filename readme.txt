@@ -103,6 +103,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 - Improved: Local push reports progress and site size, and reports backup failures more clearly.
 - Fixed: Local push from Windows now transfers files correctly.
 - Security: Hardened cleanup of temporary migration files.
+- Security: Hardened authentication and file handling for two-way sync media transfers.
 
 = 0.1.3.7 - 03 August 2026 =
 - Security: Hardened the handling and cleanup of temporary migration files.
