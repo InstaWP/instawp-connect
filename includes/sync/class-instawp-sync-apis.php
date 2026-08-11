@@ -143,8 +143,9 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 			return $validated;
 		}
 
-		// Everything from here up to the transfer only prepares the file, so a failure can
-		// still be reported as a normal response. The transfer itself stays outside.
+		// Preparing the file and serving it both run under the guard below. A failure while
+		// preparing still becomes a normal response, a failure once the transfer started can
+		// only end the request, which is what the headers_sent() check in the catch does.
 		try {
 			// Get media_url from the request
 			$media_id = $request->get_param('media_id');
