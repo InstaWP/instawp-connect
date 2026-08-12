@@ -659,6 +659,8 @@ if ( ! function_exists( 'instawp_has_content_modified_before' ) ) {
 
 		// Only WordPress internals are excluded here - anything the user can see counts as
 		// content for this hint, even post types two-way sync would not have recorded.
+		// wp_navigation and wp_global_styles are in the list because a block theme creates
+		// them by itself: without them an empty site would look like it held old content.
 		$post_id = $wpdb->get_var(
 			$wpdb->prepare(
 				// The lower bound skips rows with a zeroed post_modified_gmt, which would
@@ -669,7 +671,7 @@ if ( ! function_exists( 'instawp_has_content_modified_before' ) ) {
 				"SELECT ID FROM {$wpdb->posts}
 				WHERE post_modified_gmt < %s
 				AND post_modified_gmt > '0000-00-00 00:00:00'
-				AND post_type NOT IN ( 'revision', 'nav_menu_item', 'custom_css', 'customize_changeset', 'oembed_cache', 'user_request' )
+				AND post_type NOT IN ( 'revision', 'nav_menu_item', 'custom_css', 'customize_changeset', 'oembed_cache', 'user_request', 'wp_navigation', 'wp_global_styles' )
 				AND post_status NOT IN ( 'auto-draft', 'trash' )
 				LIMIT 1",
 				$datetime_gmt

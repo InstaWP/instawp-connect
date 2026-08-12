@@ -104,7 +104,9 @@ explanation. To make it explainable:
   and `update_option_instawp_is_event_syncing`, so it covers the first-ever write as well as later
   changes, and repeat writes of the same value do not move the timestamp.
 - `instawp_has_content_modified_before()` reports whether any content was last modified before a
-  given moment.
+  given moment. It excludes WordPress internals, including the `wp_navigation` and
+  `wp_global_styles` posts a block theme creates by itself - without those an empty site looks like
+  it holds old content - and rows with a zeroed `post_modified_gmt`, which would match any cut-off.
 - `migrate/templates/part-sync.php` uses the two to pick the empty-state copy: a site holding
   content older than the recording start is told that those changes were not recorded and to use a
   full push instead, while a genuinely quiet site keeps the plain "Start Listening for Changes"
