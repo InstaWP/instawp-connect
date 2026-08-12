@@ -4,6 +4,7 @@
  */
 
 use InstaWP\Connect\Helpers\Helper;
+use InstaWP\Connect\Helpers\Option;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -33,6 +34,38 @@ if ( instawp()->is_staging && instawp()->is_parent_on_local ) { ?>
 $syncing_status = (bool) Helper::get_args_option( 'instawp_is_event_syncing', $instawp_settings );
 $events         = $syncing_status ? InstaWP_Sync_DB::total_events() : array();
 
+$empty_state_title   = __( 'No Data found!', 'instawp-connect' );
+$empty_state_message = __( 'Start Listening for Changes', 'instawp-connect' );
+$empty_state_hint    = '';
+
+if ( empty( $events ) ) {
+	// Recording is a live hook and never backfills, so anything last touched before it
+	// started produced no event. Sites enabled before this option shipped have no
+	// timestamp - fall back to "now", which still tells us whether the site has content.
+	$listening_since = $syncing_status ? Option::get_option( 'instawp_event_syncing_enabled_at', '' ) : '';
+	$content_cutoff  = ! empty( $listening_since ) ? $listening_since : current_time( 'mysql', true );
+
+	if ( instawp_has_content_modified_before( $content_cutoff ) ) {
+		if ( $syncing_status ) {
+			$empty_state_title = __( 'No changes recorded yet', 'instawp-connect' );
+
+			if ( ! empty( $listening_since ) ) {
+				$empty_state_message = sprintf(
+					/* translators: %s: date and time listening was turned on, in the site's timezone. */
+					__( 'Listening started on %s. Changes made before then were not recorded.', 'instawp-connect' ),
+					get_date_from_gmt( $listening_since, get_option( 'date_format' ) . ' ' . get_option( 'time_format' ) )
+				);
+			} else {
+				$empty_state_message = __( 'Changes made before listening was turned on were not recorded.', 'instawp-connect' );
+			}
+
+			$empty_state_hint = __( 'Content that was already on this site is not listed here. To copy it to the destination site, run a full push from your InstaWP dashboard instead. Anything you change from now on will show up here automatically.', 'instawp-connect' );
+		} else {
+			$empty_state_hint = __( 'Listening is not retroactive - only changes made after you turn it on appear here. To copy content that is already on this site, run a full push from your InstaWP dashboard instead.', 'instawp-connect' );
+		}
+	}
+}
+
 ?>
 <div class="nav-item-content sync bg-white rounded-md p-6">
 	<?php if ( empty( $events ) ) : ?>
@@ -44,8 +77,11 @@ $events         = $syncing_status ? InstaWP_Sync_DB::total_events() : array();
                             <path d="M13 17H25H13ZM19 11V23V11ZM1 25V5C1 3.93913 1.42143 2.92172 2.17157 2.17157C2.92172 1.42143 3.93913 1 5 1H17L21 5H33C34.0609 5 35.0783 5.42143 35.8284 6.17157C36.5786 6.92172 37 7.93913 37 9V25C37 26.0609 36.5786 27.0783 35.8284 27.8284C35.0783 28.5786 34.0609 29 33 29H5C3.93913 29 2.92172 28.5786 2.17157 27.8284C1.42143 27.0783 1 26.0609 1 25Z" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
                     </div>
-                    <div class="text-sm font-medium text-grayCust-200 mb-2"><?php esc_html_e( 'No Data found!', 'instawp-connect' ); ?></div>
-                    <div class="text-sm font-normal text-grayCust-50 mb-1"><?php esc_html_e( 'Start Listening for Changes', 'instawp-connect' ); ?></div>
+                    <div class="text-sm font-medium text-grayCust-200 mb-2"><?php echo esc_html( $empty_state_title ); ?></div>
+                    <div class="text-sm font-normal text-grayCust-50 mb-1"><?php echo esc_html( $empty_state_message ); ?></div>
+					<?php if ( ! empty( $empty_state_hint ) ) : ?>
+                        <div class="text-sm font-normal text-grayCust-50 mb-1 max-w-[85%] mx-auto"><?php echo esc_html( $empty_state_hint ); ?></div>
+					<?php endif; ?>
                     <div class="instawp_is_event_syncing">
                         <label class="toggle-control">
                             <input type="checkbox" <?php checked( $syncing_status, 1 ); ?> name="instawp_is_event_syncing" id="instawp_is_event_syncing" class="toggle-checkbox">

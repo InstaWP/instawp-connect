@@ -23,6 +23,10 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 			// background auto-updates that run in cron with no logged-in user.
 			add_action( 'upgrader_process_complete', array( $this, 'protect_backups_dir_on_upgrade' ), 10, 2 );
 			add_action( 'update_option', array( $this, 'manage_update_option' ), 10, 3 );
+			// Both hooks pass the new value as the second argument, so one handler covers the
+			// first time the option is created and every later change.
+			add_action( 'add_option_instawp_is_event_syncing', array( $this, 'event_syncing_option_added' ), 10, 2 );
+			add_action( 'update_option_instawp_is_event_syncing', array( $this, 'event_syncing_option_updated' ), 10, 2 );
 			add_action( 'init', array( $this, 'handle_hard_disable_seo_visibility' ) );
 			add_action( 'admin_init', array( $this, 'handle_clear_all' ), 999 );
 
@@ -566,6 +570,55 @@ if ( ! class_exists( 'InstaWP_Hooks' ) ) {
 
 			if ( 'blog_public' === $option_name && intval( $old_value ) === 0 && intval( $new_value ) === 1 ) {
 				Option::update_option( 'instawp_changed_option_blog_public', time() );
+			}
+		}
+
+		/**
+		 * `instawp_is_event_syncing` did not exist yet, so this is its first write.
+		 *
+		 * @param string $option_name Option name.
+		 * @param mixed  $new_value   Value being stored.
+		 *
+		 * @return void
+		 */
+		public function event_syncing_option_added( $option_name, $new_value ) {
+			$this->record_event_syncing_enabled_at( 0, $new_value );
+		}
+
+		/**
+		 * `instawp_is_event_syncing` changed value.
+		 *
+		 * @param mixed $old_value Previous value.
+		 * @param mixed $new_value Value being stored.
+		 *
+		 * @return void
+		 */
+		public function event_syncing_option_updated( $old_value, $new_value ) {
+			$this->record_event_syncing_enabled_at( $old_value, $new_value );
+		}
+
+		/**
+		 * Remember the moment change recording was switched on.
+		 *
+		 * Recording is a live hook - it never backfills - so the Sync tab needs to know
+		 * when it started to explain why content created before that is not listed.
+		 * Only a genuine off -> on transition stamps the option, so repeat writes of the
+		 * same value (several code paths set it to 1) do not move the timestamp.
+		 *
+		 * @param mixed $old_value Previous value.
+		 * @param mixed $new_value Value being stored.
+		 *
+		 * @return void
+		 */
+		private function record_event_syncing_enabled_at( $old_value, $new_value ) {
+			if ( intval( $old_value ) === intval( $new_value ) ) {
+				return;
+			}
+
+			if ( 1 === intval( $new_value ) ) {
+				Option::update_option( 'instawp_event_syncing_enabled_at', current_time( 'mysql', true ) );
+			} else {
+				Option::delete_option( 'instawp_event_syncing_enabled_at' );
 			}
 		}
 

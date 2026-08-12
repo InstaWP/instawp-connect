@@ -426,6 +426,7 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 			delete_option( 'instawp_is_staging' );
 			delete_option( 'instawp_staging_sites' );
 			delete_option( 'instawp_is_event_syncing' );
+			delete_option( 'instawp_event_syncing_enabled_at' );
 
 			delete_transient( 'instawp_migration_completed' );
 
@@ -636,6 +637,42 @@ if ( ! function_exists( 'instawp_get_connected_sites_list' ) ) {
 	}
 }
 
+if ( ! function_exists( 'instawp_has_content_modified_before' ) ) {
+	/**
+	 * Does the site hold any content that was last touched before the given moment?
+	 *
+	 * Change recording is a live hook - nothing is backfilled - so content that was
+	 * created or edited before recording started never produced an event. This tells
+	 * the Sync tab whether an empty event list is explained by that, rather than by
+	 * the site genuinely having no changes.
+	 *
+	 * @param string $datetime_gmt Cut-off as a GMT `Y-m-d H:i:s` string.
+	 *
+	 * @return bool
+	 */
+	function instawp_has_content_modified_before( $datetime_gmt ) {
+		global $wpdb;
+
+		if ( empty( $datetime_gmt ) ) {
+			return false;
+		}
+
+		// Only WordPress internals are excluded here - anything the user can see counts as
+		// content for this hint, even post types two-way sync would not have recorded.
+		$post_id = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT ID FROM {$wpdb->posts}
+				WHERE post_modified_gmt < %s
+				AND post_type NOT IN ( 'revision', 'nav_menu_item', 'custom_css', 'customize_changeset', 'oembed_cache', 'user_request' )
+				AND post_status NOT IN ( 'auto-draft', 'trash' )
+				LIMIT 1",
+				$datetime_gmt
+			)
+		);
+
+		return ! empty( $post_id );
+	}
+}
 
 if ( ! function_exists( 'instawp_get_database_details' ) ) {
 	/**

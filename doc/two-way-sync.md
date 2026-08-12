@@ -86,3 +86,27 @@ file to sit inside the uploads directory, and it only serves the extensions in i
 3. Events can be reviewed before syncing
 4. Sync processes events and pushes/pulls changes
 5. Media files downloaded as needed
+
+## Recording is not retroactive
+
+Change recording is a live hook: `InstaWP_Sync_Helpers::can_sync()` is evaluated while
+`wp_insert_post` / `wp_update_post` fires, and turning the `instawp_is_event_syncing` toggle on
+creates the sync tables but backfills nothing. Content authored before recording started therefore
+produces no event and never appears in the Sync tab.
+
+That is the common first-run case - recording is off by default, so a customer usually builds a
+staging site first and finds the Sync tab afterwards, at go-live, with an empty list and no
+explanation. To make it explainable:
+
+- `InstaWP_Hooks::record_event_syncing_enabled_at()` stamps `instawp_event_syncing_enabled_at`
+  (GMT `Y-m-d H:i:s`) on every genuine off -> on transition of `instawp_is_event_syncing`, and
+  clears it when recording is turned off. It is hooked to both `add_option_instawp_is_event_syncing`
+  and `update_option_instawp_is_event_syncing`, so it covers the first-ever write as well as later
+  changes, and repeat writes of the same value do not move the timestamp.
+- `instawp_has_content_modified_before()` reports whether any content was last modified before a
+  given moment.
+- `migrate/templates/part-sync.php` uses the two to pick the empty-state copy: a site holding
+  content older than the recording start is told that those changes were not recorded and to use a
+  full push instead, while a genuinely quiet site keeps the plain "Start Listening for Changes"
+  message. Sites that enabled recording before this option shipped have no timestamp and fall back
+  to the same explanation without a date.
