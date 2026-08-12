@@ -70,6 +70,25 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 	}
 
 	/**
+	 * Build an authorization WP_Error suitable for a permission callback.
+	 *
+	 * A permission callback must return true, false, null or a WP_Error. Any other
+	 * return value (a WP_REST_Response included) is treated as "authorized" by
+	 * WP_REST_Server, so every denial path has to hand back a real WP_Error with an
+	 * explicit HTTP status attached.
+	 *
+	 * @param string $message Error message to expose to the caller.
+	 * @param int    $status  Optional HTTP status code. Defaults to 401/403 based on login state.
+	 *
+	 * @return WP_Error
+	 */
+	private function sync_api_error( $message, $status = 0 ) {
+		$status = empty( $status ) ? rest_authorization_required_code() : intval( $status );
+
+		return new WP_Error( 'instawp_sync_rest_forbidden', $message, array( 'status' => $status ) );
+	}
+
+	/**
 	 * Valid api request and if invalid api key then stop executing.
 	 *
 	 * @param WP_REST_Request $request
@@ -79,24 +98,30 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 	public function validate_sync_api_request( WP_REST_Request $request ) {
 		// Get bearer token from the request
 		$bearer_token = $this->get_bearer_token( $request );
-		// Check if the bearer token is a wp error
+		// A missing or empty token must deny the request. The WP_Error has to be returned
+		// as is, wrapping it in a WP_REST_Response would authorize the request instead.
 		if ( is_wp_error( $bearer_token ) ) {
-			return $this->throw_error( $bearer_token );
+			return $this->sync_api_error( $bearer_token->get_error_message() );
 		}
 
 		$instawp_api_options = get_option( 'instawp_api_options' );
 
-		// check if the bearer token is empty
+		// Without connect details there is no shared secret to compare the token against.
 		if ( empty( $instawp_api_options ) || empty( $instawp_api_options['connect_id'] ) || empty( $instawp_api_options['connect_uuid'] ) ) {
-			return new WP_Error( 401, esc_html__( 'Empty API options.', 'instawp-connect' ) );
+			return $this->sync_api_error( esc_html__( 'Empty API options.', 'instawp-connect' ) );
 		}
 
 		// Prepare hash
 		$hash = hash( 'sha256', $instawp_api_options['connect_id'] . '_' . $instawp_api_options['connect_uuid'] );
 
-		if ( ! hash_equals( $bearer_token, $hash ) ) {
-			return new WP_Error( 401, esc_html__( 'Incorrect token.', 'instawp-connect' ) );
+		// Known value first, user supplied value second, as hash_equals() expects.
+		if ( ! hash_equals( $hash, $bearer_token ) ) {
+			return $this->sync_api_error( esc_html__( 'Incorrect token.', 'instawp-connect' ) );
 		}
+
+		// Note: the instawp_is_event_syncing toggle is intentionally NOT checked here. Media is
+		// requested by the peer site while it processes events, which can happen after the toggle
+		// has been switched off on this side, so gating on it would break legitimate syncs.
 
 		return true;
 	}
@@ -109,44 +134,116 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 	 * @return WP_REST_Response
 	 */
 	public function download_media( WP_REST_Request $request ) {
-		// Get media_url from the request
-		$media_id = $request->get_param('media_id');
-		if ( empty( $media_id ) || ! is_numeric( $media_id ) || 1 > intval( $media_id ) ) {
-			return $this->send_response( array(
-				'success' => false,
-				'message' => __( 'Empty or invalid media id.', 'instawp-connect' ),
-			) );
+		// Defence in depth: validate again inside the callback so a future change to the
+		// route registration or to the permission callback cannot expose media files.
+		// Kept outside the try block so an authorization failure can never be swallowed.
+		$validated = $this->validate_sync_api_request( $request );
+		if ( is_wp_error( $validated ) ) {
+			// Returned as is, WordPress converts it into the proper HTTP error response.
+			return $validated;
 		}
-		
-		$media_id = intval( $media_id );
-		$file_path = get_attached_file( $media_id ); // Full path
-		if ( empty( $file_path ) || ! file_exists( $file_path ) ) {
+
+		// Preparing the file and serving it both run under the guard below. A failure while
+		// preparing still becomes a normal response, a failure once the transfer started can
+		// only end the request, which is what the headers_sent() check in the catch does.
+		try {
+			// Get media_url from the request
+			$media_id = $request->get_param('media_id');
+			if ( empty( $media_id ) || ! is_numeric( $media_id ) || 1 > intval( $media_id ) ) {
+				return $this->send_response( array(
+					'success' => false,
+					'message' => __( 'Empty or invalid media id.', 'instawp-connect' ),
+				) );
+			}
+
+			$media_id = intval( $media_id );
+
+			// Only real attachments may be served. get_attached_file() also resolves any other
+			// post type that happens to carry _wp_attached_file meta.
+			if ( 'attachment' !== get_post_type( $media_id ) ) {
+				return $this->send_response( array(
+					'success' => false,
+					'message' => __( 'File not found.', 'instawp-connect' ),
+				) );
+			}
+
+			$file_path = get_attached_file( $media_id ); // Full path
+			if ( empty( $file_path ) || ! file_exists( $file_path ) ) {
+				return $this->send_response( array(
+					'success' => false,
+					'message' => __( 'File not found.', 'instawp-connect' ),
+				) );
+			}
+
+			// Keep the served file inside the uploads directory. _wp_attached_file can hold an
+			// absolute path, so a tampered meta value could otherwise point anywhere on disk.
+			// The comparison stays lexical on purpose: resolving symlinks would break sites that
+			// symlink an uploads sub folder to shared media, and placing a symlink inside uploads
+			// already needs filesystem access, which makes this endpoint pointless to an attacker.
+			$upload_dir      = wp_get_upload_dir();
+			$upload_base_dir = empty( $upload_dir['basedir'] ) ? '' : wp_normalize_path( $upload_dir['basedir'] );
+			$normalized_path = wp_normalize_path( $file_path );
+
+			if ( empty( $upload_base_dir ) || false !== strpos( $normalized_path, '../' ) || 0 !== strpos( $normalized_path, trailingslashit( $upload_base_dir ) ) ) {
+				// Logged locally because the file does exist, the caller keeps the generic
+				// message so the response can not be used to probe which media ids exist.
+				Helper::add_error_log( array(
+					'title'   => 'instawp: sync download-media rejected a file outside the uploads directory',
+					'message' => $normalized_path,
+				) );
+
+				return $this->send_response( array(
+					'success' => false,
+					'message' => __( 'File not found.', 'instawp-connect' ),
+				) );
+			}
+
+			$file_type_ext = wp_check_filetype( $file_path );
+
+			if ( false === $file_type_ext['type'] || empty( $file_type_ext['ext'] ) || ! in_array( $file_type_ext['ext'], array( 'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'mp4', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'csv', 'txt', 'rtf', 'html', 'zip', 'mp3', 'wma', 'mpg', 'flv', 'avi' ) ) ) {
+				return $this->send_response( array(
+					'success' => false,
+					'message' => __( 'File type not supported.', 'instawp-connect' ),
+				) );
+			}
+
+			// Discard anything already buffered (notices, BOM) so the file bytes stay intact.
+			// Bounded like wp_ob_end_flush_all(): a buffer that can not be removed, for example
+			// with zlib.output_compression on, keeps ob_get_level() unchanged and would otherwise
+			// spin until the request times out.
+			$ob_levels = ob_get_level();
+			for ( $i = 0; $i < $ob_levels; $i ++ ) {
+				if ( ! @ob_end_clean() ) { // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+					break;
+				}
+			}
+
+			// Serve the file for download
+			header('Content-Description: File Transfer');
+			header('Content-Type: ' . $file_type_ext['type'] );
+			header('Content-Disposition: attachment; filename="' . basename( $file_path ) . '"');
+			header('Expires: 0');
+			header('Cache-Control: must-revalidate');
+			header('Pragma: public');
+			header('Content-Length: ' . filesize( $file_path ));
+
+			readfile( $file_path );
+			exit;
+		} catch ( \Throwable $th ) {
+			Helper::add_error_log( array( 'title' => 'instawp: sync download-media failed' ), $th );
+
+			// If the transfer already started, the headers and part of the body are out and the
+			// peer is reading binary. Appending a JSON error would only corrupt what it receives,
+			// so the request is ended instead and the peer sees a truncated download.
+			if ( headers_sent() ) {
+				exit;
+			}
+
 			return $this->send_response( array(
 				'success' => false,
 				'message' => __( 'File not found.', 'instawp-connect' ),
 			) );
 		}
-
-		$file_type_ext = wp_check_filetype( $file_path );
-
-		if ( false === $file_type_ext['type'] || empty( $file_type_ext['ext'] ) || ! in_array( $file_type_ext['ext'], array( 'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'mp4', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'csv', 'txt', 'rtf', 'html', 'zip', 'mp3', 'wma', 'mpg', 'flv', 'avi' ) ) ) {
-			return $this->send_response( array(
-				'success' => false,
-				'message' => __( 'File type not supported.', 'instawp-connect' ),
-			) );
-		}
-
-		// Serve the file for download
-		header('Content-Description: File Transfer');
-		header('Content-Type: ' . $file_type_ext['type'] );
-		header('Content-Disposition: attachment; filename="' . basename( $file_path ) . '"');
-		header('Expires: 0');
-		header('Cache-Control: must-revalidate');
-		header('Pragma: public');
-		header('Content-Length: ' . filesize( $file_path ));
-	
-		readfile( $file_path );
-		exit;
 	}
 
 	/**
