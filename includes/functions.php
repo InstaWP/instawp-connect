@@ -661,8 +661,11 @@ if ( ! function_exists( 'instawp_has_content_modified_before' ) ) {
 		// content for this hint, even post types two-way sync would not have recorded.
 		$post_id = $wpdb->get_var(
 			$wpdb->prepare(
-				// The lower bound skips rows with a zeroed post_modified_gmt - legacy and
-				// WXR-imported content - which would otherwise match any cut-off.
+				// The lower bound skips rows with a zeroed post_modified_gmt, which would
+				// otherwise match any cut-off: legacy and WXR-imported content, but also
+				// drafts that have never been re-saved (core zeroes the date for those).
+				// A hint that stays quiet on a site of untouched drafts is the better
+				// trade than one that fires on a site whose content is all newer.
 				"SELECT ID FROM {$wpdb->posts}
 				WHERE post_modified_gmt < %s
 				AND post_modified_gmt > '0000-00-00 00:00:00'

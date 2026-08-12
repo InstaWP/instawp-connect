@@ -764,9 +764,13 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 
 			// The delete above removed the option, so re-enabling it goes through add_option()
 			// and stamps a fresh instawp_event_syncing_enabled_at. This round trip is internal
-			// bookkeeping, not the user turning recording on, so put the real start time back.
+			// bookkeeping, not the user turning recording on, so put back exactly what was
+			// there before - including nothing, which is the state of every site that had
+			// recording on before the timestamp existed.
 			if ( ! empty( $enabled_at ) ) {
 				Option::update_option( 'instawp_event_syncing_enabled_at', $enabled_at );
+			} else {
+				Option::delete_option( 'instawp_event_syncing_enabled_at' );
 			}
 		}
 
