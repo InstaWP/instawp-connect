@@ -98,7 +98,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
-= 0.1.3.8 - Beta =
+= 0.1.3.8 - 12 August 2026 =
 - Improved: Local push no longer copies host-specific configuration, caches, logs, or build and version control folders to the destination.
 - Improved: Local push reports progress and site size, and reports backup failures more clearly.
 - Fixed: Local push from Windows now transfers files correctly.
