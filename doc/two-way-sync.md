@@ -119,7 +119,10 @@ Two places must not be allowed to move the timestamp:
   `delete_option()` then `update_option()`, which core routes through `add_option()`. That fires the
   hook and would re-stamp the option on **every received sync**, making a healthy destination site
   claim recording started at the last sync. It therefore saves the value before the delete and
-  restores it after.
+  restores it after — **including when there was none**, which is the case that actually bites:
+  nothing backfills the option, so every destination that upgrades has recording on and no
+  timestamp, and restoring only non-empty values would let the first inbound sync manufacture one
+  and keep it alive forever.
 - `InstaWP_Tools` excludes the option from the `wp_options` rows a migration copies, next to
   `instawp_is_event_syncing`. Otherwise a push or pull carries the **source's** start time to a
   destination that keeps its own recording flag, and nothing later corrects it.
