@@ -670,11 +670,13 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 		$source_connect_id  = $bodyArr->source_connect_id;
 		$source_url         = $bodyArr->source_url;
 		$is_enabled         = false;
+		$enabled_at         = '';
 		$changes            = array();
 		$sync_response      = array();
 
 		if ( get_option( 'instawp_is_event_syncing' ) ) {
 			$is_enabled = true;
+			$enabled_at = Option::get_option( 'instawp_event_syncing_enabled_at', '' );
 		}
 
 		delete_option( 'instawp_is_event_syncing' );
@@ -759,6 +761,13 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 		#enable is back if syncing already enabled at the destination
 		if ( $is_enabled ) {
 			Option::update_option( 'instawp_is_event_syncing', 1 );
+
+			// The delete above removed the option, so re-enabling it goes through add_option()
+			// and stamps a fresh instawp_event_syncing_enabled_at. This round trip is internal
+			// bookkeeping, not the user turning recording on, so put the real start time back.
+			if ( ! empty( $enabled_at ) ) {
+				Option::update_option( 'instawp_event_syncing_enabled_at', $enabled_at );
+			}
 		}
 
 		return $this->send_response( array(

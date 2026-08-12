@@ -108,5 +108,18 @@ explanation. To make it explainable:
 - `migrate/templates/part-sync.php` uses the two to pick the empty-state copy: a site holding
   content older than the recording start is told that those changes were not recorded and to use a
   full push instead, while a genuinely quiet site keeps the plain "Start Listening for Changes"
-  message. Sites that enabled recording before this option shipped have no timestamp and fall back
-  to the same explanation without a date.
+  message. Sites that turned recording on before the timestamp shipped have none, and deliberately
+  keep the original copy - without a start time there is no way to tell a missed-content site from
+  a quiet one, and claiming the wrong one is worse than saying nothing.
+
+Two places must not be allowed to move the timestamp:
+
+- `InstaWP_Sync_Apis::events_receiver()` turns recording **off** while it applies incoming changes
+  (so applying them does not generate local events) and turns it back on afterwards - via
+  `delete_option()` then `update_option()`, which core routes through `add_option()`. That fires the
+  hook and would re-stamp the option on **every received sync**, making a healthy destination site
+  claim recording started at the last sync. It therefore saves the value before the delete and
+  restores it after.
+- `InstaWP_Tools` excludes the option from the `wp_options` rows a migration copies, next to
+  `instawp_is_event_syncing`. Otherwise a push or pull carries the **source's** start time to a
+  destination that keeps its own recording flag, and nothing later corrects it.

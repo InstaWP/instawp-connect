@@ -38,31 +38,30 @@ $empty_state_title   = __( 'No Data found!', 'instawp-connect' );
 $empty_state_message = __( 'Start Listening for Changes', 'instawp-connect' );
 $empty_state_hint    = '';
 
+// Recording is a live hook and never backfills, so content last touched before it started
+// produced no event. An empty list on a site full of such content is not the same thing as
+// an empty list on a site with nothing to sync, and the copy should not say it is.
 if ( empty( $events ) ) {
-	// Recording is a live hook and never backfills, so anything last touched before it
-	// started produced no event. Sites enabled before this option shipped have no
-	// timestamp - fall back to "now", which still tells us whether the site has content.
-	$listening_since = $syncing_status ? Option::get_option( 'instawp_event_syncing_enabled_at', '' ) : '';
-	$content_cutoff  = ! empty( $listening_since ) ? $listening_since : current_time( 'mysql', true );
+	if ( $syncing_status ) {
+		$listening_since = Option::get_option( 'instawp_event_syncing_enabled_at', '' );
+		$listening_since = is_string( $listening_since ) ? $listening_since : '';
 
-	if ( instawp_has_content_modified_before( $content_cutoff ) ) {
-		if ( $syncing_status ) {
-			$empty_state_title = __( 'No changes recorded yet', 'instawp-connect' );
-
-			if ( ! empty( $listening_since ) ) {
-				$empty_state_message = sprintf(
-					/* translators: %s: date and time listening was turned on, in the site's timezone. */
-					__( 'Listening started on %s. Changes made before then were not recorded.', 'instawp-connect' ),
-					get_date_from_gmt( $listening_since, get_option( 'date_format' ) . ' ' . get_option( 'time_format' ) )
-				);
-			} else {
-				$empty_state_message = __( 'Changes made before listening was turned on were not recorded.', 'instawp-connect' );
-			}
-
-			$empty_state_hint = __( 'Content that was already on this site is not listed here. To copy it to the destination site, run a full push from your InstaWP dashboard instead. Anything you change from now on will show up here automatically.', 'instawp-connect' );
-		} else {
-			$empty_state_hint = __( 'Listening is not retroactive - only changes made after you turn it on appear here. To copy content that is already on this site, run a full push from your InstaWP dashboard instead.', 'instawp-connect' );
+		// Only explain the gap when the start time is actually known. Sites that turned
+		// recording on before this option shipped keep the original copy rather than be
+		// told they missed changes when they may simply have had none.
+		if ( '' !== $listening_since && instawp_has_content_modified_before( $listening_since ) ) {
+			$empty_state_title   = __( 'No changes recorded yet', 'instawp-connect' );
+			$empty_state_message = sprintf(
+				/* translators: %s: date and time listening was turned on, in the site's timezone. */
+				__( 'Listening started on %s. Changes made before then were not recorded.', 'instawp-connect' ),
+				get_date_from_gmt( $listening_since, get_option( 'date_format' ) . ' ' . get_option( 'time_format' ) )
+			);
+			$empty_state_hint    = __( 'Content that was already on this site is not listed here. To copy it to the destination site, run a full push from your InstaWP dashboard instead. Anything you change from now on will show up here automatically.', 'instawp-connect' );
 		}
+	} elseif ( instawp_has_content_modified_before( current_time( 'mysql', true ) ) ) {
+		// Recording is off and the site already holds content - say so next to the toggle,
+		// so the caveat is read now rather than discovered after switching it on.
+		$empty_state_hint = __( 'Listening is not retroactive - only changes made after you turn it on appear here. To copy content that is already on this site, run a full push from your InstaWP dashboard instead.', 'instawp-connect' );
 	}
 }
 
