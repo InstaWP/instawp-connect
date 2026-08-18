@@ -608,6 +608,8 @@ class InstaWP_Ajax {
 		$sort_by    = isset( $_POST['sort_by'] ) ? sanitize_text_field( wp_unslash( $_POST['sort_by'] ) ) : false;
 		$tables     = instawp_get_database_details( $sort_by );
 		$table_size = array_sum( wp_list_pluck( $tables, 'size' ) );
+		// Core tables are rendered disabled: excluding one guarantees the migration fails at the destination's schema check.
+		$protected_core_tables = InstaWP_Tools::get_protected_core_tables();
 
 		ob_start();
 		if ( ! empty( $tables ) ) {
@@ -616,11 +618,12 @@ class InstaWP_Ajax {
 				<?php
 				foreach ( $tables as $table ) {
 					$element_id = wp_generate_uuid4();
+					$is_core    = in_array( $table['name'], $protected_core_tables, true );
 					?>
 					<div class="flex flex-col gap-5 item">
 						<div class="flex justify-between items-center">
-							<div class="flex items-center cursor-pointer" style="transform: translate(0em);">
-								<input name="instawp_migrate[excluded_tables][]" id="<?php echo esc_attr( $element_id ); ?>" value="<?php echo esc_attr( $table['name'] ); ?>" type="checkbox" class="instawp-checkbox exclude-database-item !mt-0 !mr-3 rounded border-gray-300 text-primary-900 focus:ring-primary-900" data-size="<?php echo esc_html( $table['size'] ); ?>">
+							<div class="flex items-center cursor-pointer" style="transform: translate(0em);"<?php echo $is_core ? ' title="' . esc_attr__( 'WordPress needs this table to run. It cannot be excluded.', 'instawp-connect' ) . '"' : ''; ?>>
+								<input name="instawp_migrate[excluded_tables][]" id="<?php echo esc_attr( $element_id ); ?>" value="<?php echo esc_attr( $table['name'] ); ?>" type="checkbox" class="instawp-checkbox exclude-database-item !mt-0 !mr-3 rounded border-gray-300 text-primary-900 focus:ring-primary-900 <?php echo $is_core ? 'core-table' : ''; ?>" data-size="<?php echo esc_html( $table['size'] ); ?>" <?php disabled( $is_core, true ); ?>>
 								<label for="<?php echo esc_attr( $element_id ); ?>" class="text-sm font-medium text-grayCust-800 truncate" style="width: calc(400px - 1em);"><?php echo esc_html( $table['name'] ); ?> (<?php printf( esc_html__( '%s rows', 'instawp-connect' ), esc_html( $table['rows'] ) ); ?>)</label>
 							</div>
 							<div class="flex items-center" style="width: 105px;">

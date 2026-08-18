@@ -38,7 +38,33 @@ The destination server initiates the migration by requesting data from the sourc
 | `skip_media_folder` | Exclude `/wp-content/uploads` |
 | `excluded_plugins` | Skip specific plugins |
 | `excluded_themes` | Skip specific themes |
-| `excluded_tables` | Skip specific database tables |
+| `excluded_tables` | Skip specific database tables (WP core tables are always removed from this list — see below) |
+
+### WP core tables can never be excluded
+
+`process_migration_settings()` strips the nine tables the destination validates —
+`options`, `posts`, `postmeta`, `terms`, `termmeta`, `term_taxonomy`,
+`term_relationships`, `users`, `usermeta` — out of `excluded_tables` before the
+settings are written to the options file. It runs after the
+`instawp/filters/process_migration_settings` filter, so it is the last word.
+
+This is not a preference. `iwp-serve` tracks (and therefore emits
+`CREATE TABLE`) only the tables *absent* from `excluded_tables`, and the
+destination's schema phase aborts after 3 attempts when any of those nine is
+missing — the migration fails with "Could not validate core tables after 3
+attempts" and the customer is left with an empty site stuck in "creating".
+
+Two things to know about the rest of the list:
+
+- The destination **drops every existing table** before importing the dump, so an
+  excluded table is *absent* on the staging site, not left at its fresh-install
+  state. Excluding `wp_comments`, for example, produces a working site that logs a
+  database error whenever core touches comments. That is deliberate — excluding
+  comments is a legitimate space saving — but it is a real tradeoff, not a no-op.
+- The protection covers the **current blog's** tables. The wizard lists every table
+  in the database (a bare `SHOW TABLE STATUS`), so on a multisite network another
+  blog's core tables and the network tables are still listed and are not protected.
+  Multisite is out of scope for this guard.
 
 ## Options Data Storage
 

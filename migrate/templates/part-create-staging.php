@@ -38,6 +38,8 @@ $customize_options     = array(
 $current_create_screen = isset( $_GET['screen'] ) ? intval( $_GET['screen'] ) : 1;
 $tables                = instawp_get_database_details();
 $log_tables_to_exclude = InstaWP_Tools::get_log_tables_to_exclude();
+// Core tables are rendered disabled: excluding one guarantees the migration fails at the destination's schema check.
+$protected_core_tables = InstaWP_Tools::get_protected_core_tables();
 instawp()->maybe_prepare_large_files_list();
 $list_data             = Option::get_option( 'instawp_large_files_list' );
 $migration_details     = Helper::get_args_option( 'instawp_migration_details', $instawp_settings );
@@ -283,11 +285,12 @@ delete_option( 'instawp_db_offset' );
 								<?php if ( ! empty( $tables ) ) { ?>
                                     <div class="flex flex-col gap-5">
 										<?php foreach ( $tables as $table ) {
-											$element_id = wp_generate_uuid4(); ?>
+											$element_id  = wp_generate_uuid4();
+											$is_core     = in_array( $table['name'], $protected_core_tables, true ); ?>
                                             <div class="flex flex-col gap-5 item">
                                                 <div class="flex justify-between items-center">
-                                                    <div class="flex items-center cursor-pointer" style="transform: translate(0em);">
-                                                        <input name="migrate_settings[excluded_tables][]" id="<?php echo esc_attr( $element_id ); ?>" value="<?php echo esc_attr( $table['name'] ); ?>" type="checkbox" class="instawp-checkbox exclude-database-item !mt-0 !mr-3 rounded border-gray-300 text-primary-900 focus:ring-primary-900 <?= in_array( $table['name'], $log_tables_to_exclude ) ? 'log-table' : ''; ?>" data-size="<?php echo esc_html( $table['size'] ); ?>">
+                                                    <div class="flex items-center cursor-pointer" style="transform: translate(0em);"<?php echo $is_core ? ' title="' . esc_attr__( 'WordPress needs this table to run. It cannot be excluded.', 'instawp-connect' ) . '"' : ''; ?>>
+                                                        <input name="migrate_settings[excluded_tables][]" id="<?php echo esc_attr( $element_id ); ?>" value="<?php echo esc_attr( $table['name'] ); ?>" type="checkbox" class="instawp-checkbox exclude-database-item !mt-0 !mr-3 rounded border-gray-300 text-primary-900 focus:ring-primary-900 <?= in_array( $table['name'], $log_tables_to_exclude ) ? 'log-table' : ''; ?> <?php echo $is_core ? 'core-table' : ''; ?>" data-size="<?php echo esc_html( $table['size'] ); ?>" <?php disabled( $is_core, true ); ?>>
                                                         <label for="<?php echo esc_attr( $element_id ); ?>" class="text-sm font-medium text-grayCust-800 truncate" style="width: calc(400px - 1em);"><?php echo esc_html( $table['name'] ); ?> (<?php printf( esc_html__( '%s rows', 'instawp-connect' ), esc_html( $table['rows'] ) ); ?>)</label>
                                                     </div>
                                                     <div class="flex items-center" style="width: 105px;">

@@ -98,6 +98,9 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 0.1.3.9 - Unreleased =
+- Fixed: Creating a staging site no longer hangs forever when WordPress core tables were excluded on the Exclude step. Those tables are now always migrated, and their checkboxes are disabled so "Select All" cannot tick them.
+
 = 0.1.3.8 - 12 August 2026 =
 - Improved: Local push no longer copies host-specific configuration, caches, logs, or build and version control folders to the destination.
 - Improved: Local push reports progress and site size, and reports backup failures more clearly.

@@ -1108,7 +1108,9 @@
             parentEl = el.closest('.item'),
             subEl = parentEl.find('.sub-item .instawp-checkbox.exclude-database-item');
 
-        if ($(document).find('.exclude-database-container .instawp-checkbox.exclude-database-item').not(':checked').length) {
+        // Core tables are rendered disabled and can never be ticked, so they must not
+        // count here — otherwise "Select All" would untick itself the moment it is used.
+        if ($(document).find('.exclude-database-container .instawp-checkbox.exclude-database-item').not(":disabled").not(':checked').length) {
             $(document).find('#instawp-database-select-all').prop("checked", false);
         } else {
             $(document).find('#instawp-database-select-all').prop("checked", true);
