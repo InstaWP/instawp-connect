@@ -32,6 +32,7 @@ class InstaWP_Sync_Ajax {
 		add_action( 'wp_ajax_instawp_sync_changes', array( $this, 'sync_changes' ) );
 		add_action( 'wp_ajax_instawp_get_events_summary', array( $this, 'get_events_summary' ) );
 		add_action( 'wp_ajax_instawp_delete_events', array( $this, 'delete_events' ) );
+		add_action( 'wp_ajax_instawp_clear_all_events', array( $this, 'clear_all_events' ) );
 		add_action( 'wp_ajax_instawp_calculate_events', array( $this, 'calculate_events' ) );
 	}
 
@@ -428,6 +429,25 @@ class InstaWP_Sync_Ajax {
 
 			$this->send_success( 'Data deleted' );
 		}
+	}
+
+	/**
+	 * Delete ALL sync events for this site in one action.
+	 *
+	 * Clears every row from the events table (and its per-destination
+	 * sync-status table) that `delete_events()` operates on, regardless of
+	 * pagination or current selection. Uses the same nonce + capability
+	 * checks as `delete_events()`.
+	 */
+	public function clear_all_events() {
+		InstaWP_Tools::verify_ajax_request( InstaWP_Setting::get_allowed_role() );
+
+		global $wpdb;
+
+		$wpdb->query( 'TRUNCATE TABLE ' . INSTAWP_DB_TABLE_EVENTS ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		$wpdb->query( 'TRUNCATE TABLE ' . INSTAWP_DB_TABLE_EVENT_SITES ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+
+		$this->send_success( 'All events cleared' );
 	}
 
 	public function calculate_events() {
