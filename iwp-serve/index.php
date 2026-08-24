@@ -647,20 +647,29 @@ if ( isset( $_REQUEST['serve_type'] ) && 'db' === $_REQUEST['serve_type'] ) {
 
 				global $tracking_db;
 
-				if ( is_numeric( $value ) ) {
-					// If $value has leading zero it will mark as string and bypass returning as numeric
-					if ( substr( $value, 0, 1 ) !== '0' ) {
-						return $value;
-					}
-				} elseif ( is_null( $value ) ) {
-					return "NULL";
-				} elseif ( is_array( $value ) && empty( $value ) ) {
-					$value = array();
-				} elseif ( is_string( $value ) ) {
-					$value = $tracking_db->conn->real_escape_string( $value );
+				// Every non-NULL value is escaped and quoted — never emitted bare.
+				//
+				// mysqli returns each column of fetch_assoc() as a PHP string (native types are
+				// not enabled on this connection), and MySQL coerces a quoted literal into a
+				// numeric column, so quoting is always safe and never changes what is stored.
+				//
+				// Emitting bare values broke on numeric-LOOKING strings, because is_numeric()
+				// accepts scientific notation: a hex colour such as 8e7183 was written into the
+				// statement unquoted, MySQL read it as 8 x 10^7183 and rejected the whole
+				// statement at PARSE time with "ERROR 1367 Illegal double '8e7183' value found
+				// during parsing". INSERT IGNORE cannot skip a parse error, so a single such row
+				// aborted the entire database import. Numeric-looking strings that do not
+				// overflow were worse still — they were silently coerced, so '1e5' landed as
+				// 100000, ' 12' as 12, '.5' as 0.5 and '+5' as 5, with no error at all.
+				if ( null === $value ) {
+					return 'NULL';
 				}
 
-				return "'" . $value . "'";
+				if ( is_array( $value ) ) {
+					$value = '';
+				}
+
+				return "'" . $tracking_db->conn->real_escape_string( (string) $value ) . "'";
 			}, array_values( $dataRow ) );
 			$sql             = "INSERT IGNORE INTO `$curr_table_name` (`" . implode( "`, `", $columns ) . "`) VALUES (" . implode( ", ", $values ) . ");";
 			$sqlStatements[] = $sql;

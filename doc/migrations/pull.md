@@ -40,6 +40,24 @@ The destination server initiates the migration by requesting data from the sourc
 | `excluded_themes` | Skip specific themes |
 | `excluded_tables` | Skip specific database tables |
 
+## Database Row Serialisation
+
+`iwp-serve/index.php` reads each source table with `SELECT * ... LIMIT/OFFSET` and turns every row into an `INSERT IGNORE` statement that the destination replays.
+
+**Invariant: every non-NULL value is escaped with `real_escape_string()` and wrapped in single quotes. Values are never emitted bare.** `mysqli`'s `fetch_assoc()` returns each column as a PHP string (native types are not enabled on this connection), and MySQL coerces a quoted literal into a numeric column, so quoting is always safe and never changes what is stored. SQL `NULL` is the only unquoted output.
+
+The previous implementation emitted anything `is_numeric()` accepted (except values starting with `0`) without quotes, which broke two ways:
+
+| Source value | Emitted bare as | MySQL result |
+|--------------|-----------------|--------------|
+| `8e7183` (a hex colour) | `8e7183` | `ERROR 1367 Illegal double '8e7183' value found during parsing` |
+| `1e5` | `1e5` | silently stored as `100000` |
+| `.5` | `.5` | silently stored as `0.5` |
+| `+5` | `+5` | silently stored as `5` |
+| ` 12` (leading space) | ` 12` | silently stored as `12` |
+
+`is_numeric()` accepts scientific notation, so a plain string such as `8e7183` is read by MySQL as 8 × 10^7183, which overflows a double. Error 1367 is raised at **parse** time, so `INSERT IGNORE` cannot skip the row — the `mysql` client stops at the first error and the entire database import aborts, leaving the destination half-populated. Non-overflowing tokens produced no error at all and corrupted the value silently.
+
 ## Options Data Storage
 
 The migration stores credentials and settings in an encrypted file (`options-{migrate_key}.txt`). To handle cases where the file becomes temporarily inaccessible, a PHP session fallback is used.
