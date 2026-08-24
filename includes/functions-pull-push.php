@@ -33,14 +33,73 @@ if ( ! function_exists( 'iwp_get_script_dir' ) ) {
 }
 
 if ( ! function_exists( 'iwp_get_wp_root_directory' ) ) {
+	/**
+	 * Find WordPress root directory by traversing up from the current directory.
+	 *
+	 * This function handles symlinked plugin installations by trying multiple
+	 * starting paths: the real path (__DIR__), and the request URI path which
+	 * preserves symlink paths.
+	 *
+	 * @param string $find_with_files File to look for (e.g., 'wp-load.php', 'wp-config.php')
+	 * @param string $find_with_dir   Directory to look for (e.g., 'wp', 'flywheel-config')
+	 * @return array Array with 'status' (bool) and 'root_path' (string)
+	 */
 	function iwp_get_wp_root_directory( $find_with_files = 'wp-load.php', $find_with_dir = '' ) {
+		// Build list of starting directories to try
+		// This handles symlinked plugins where __DIR__ resolves to the real path
+		$starting_dirs = array( __DIR__ );
+
+		// Try to get the symlink path from REQUEST_URI or SCRIPT_FILENAME
+		if ( isset( $_SERVER['SCRIPT_FILENAME'] ) ) {
+			$script_dir = dirname( $_SERVER['SCRIPT_FILENAME'] );
+			if ( $script_dir !== __DIR__ && ! in_array( $script_dir, $starting_dirs ) ) {
+				$starting_dirs[] = $script_dir;
+			}
+		}
+
+		// Also try DOCUMENT_ROOT based path construction from REQUEST_URI
+		if ( isset( $_SERVER['DOCUMENT_ROOT'] ) && isset( $_SERVER['REQUEST_URI'] ) ) {
+			$request_path = parse_url( $_SERVER['REQUEST_URI'], PHP_URL_PATH );
+			if ( $request_path ) {
+				$doc_root_path = $_SERVER['DOCUMENT_ROOT'] . dirname( $request_path );
+				if ( is_dir( $doc_root_path ) && ! in_array( $doc_root_path, $starting_dirs ) ) {
+					$starting_dirs[] = $doc_root_path;
+				}
+			}
+		}
+
+		foreach ( $starting_dirs as $start_dir ) {
+			$result = iwp_find_wp_root_from_dir( $start_dir, $find_with_files, $find_with_dir );
+			if ( $result['status'] ) {
+				return $result;
+			}
+		}
+
+		// If all attempts failed, return the last result
+		return array(
+			'status'    => false,
+			'root_path' => '',
+		);
+	}
+}
+
+if ( ! function_exists( 'iwp_find_wp_root_from_dir' ) ) {
+	/**
+	 * Helper function to find WordPress root from a specific starting directory.
+	 *
+	 * @param string $start_dir       Starting directory to traverse from
+	 * @param string $find_with_files File to look for
+	 * @param string $find_with_dir   Directory to look for
+	 * @return array Array with 'status' (bool) and 'root_path' (string)
+	 */
+	function iwp_find_wp_root_from_dir( $start_dir, $find_with_files = '', $find_with_dir = '' ) {
 		$is_find_root_dir = true;
 		$root_path        = '';
 
 		if ( ! empty( $find_with_files ) ) {
 			$level            = 0;
-			$root_path_dir    = __DIR__;
-			$root_path        = __DIR__;
+			$root_path_dir    = $start_dir;
+			$root_path        = $start_dir;
 			$is_find_root_dir = true;
 
 			while ( ! file_exists( $root_path . DIRECTORY_SEPARATOR . $find_with_files ) ) {
@@ -78,8 +137,8 @@ if ( ! function_exists( 'iwp_get_wp_root_directory' ) ) {
 
 		if ( ! empty( $find_with_dir ) ) {
 			$level            = 0;
-			$root_path_dir    = __DIR__;
-			$root_path        = __DIR__;
+			$root_path_dir    = $start_dir;
+			$root_path        = $start_dir;
 			$is_find_root_dir = true;
 			while ( ! is_dir( $root_path . DIRECTORY_SEPARATOR . $find_with_dir ) ) {
 

@@ -62,9 +62,7 @@ $total_files_size_mb = $total_files_size / (1000 * 1000);
                         <?php } ?>
                     </div>
                     <div class="font-medium whitespace-nowrap">
-                        <?php if ( $is_free_plan ) { ?>
-                            <?php echo esc_html( $site_plan['rate']['monthly'] ); ?><span class="text-xs text-gray-500 font-light">/mo</span>
-                        <?php } else { ?>
+                        <?php if ( ! $is_free_plan ) { ?>
                             <?php echo esc_html( $site_plan['rate']['monthly'] ); ?><span class="text-xs text-gray-500 font-light">/mo - <?php echo esc_html( $site_plan['rate']['daily'] ); ?>/day</span>
                         <?php } ?>
                     </div>
