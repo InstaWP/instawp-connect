@@ -1,18 +1,25 @@
-name: Deploy  to WordPress.org
+name: Deploy to WordPress.org
 on:
   push:
     tags:
     - "*"
-    
+
 jobs:
   tag:
     name: New tag
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@master
-    - name: Build # Remove or modify this step as needed
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Verify tag is on main branch
       run: |
-        echo "building"
+        TAG_COMMIT=$(git rev-list -n 1 ${{ github.ref_name }})
+        if ! git merge-base --is-ancestor "$TAG_COMMIT" origin/main; then
+          echo "::error::Tag ${{ github.ref_name }} does not point to a commit on the main branch. Aborting deploy."
+          exit 1
+        fi
+        echo "Tag ${{ github.ref_name }} verified on main branch."
     - name: Install Subversion
       run: sudo apt-get install subversion
     - name: WordPress Plugin Deploy
