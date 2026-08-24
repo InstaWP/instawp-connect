@@ -40,6 +40,43 @@ The destination server initiates the migration by requesting data from the sourc
 | `excluded_themes` | Skip specific themes |
 | `excluded_tables` | Skip specific database tables |
 
+## wp-config.php Handling
+
+**On a pull, `wp-config.php` is never transferred.** The destination has its own database
+credentials, so overwriting its config would leave the migrated site unable to connect to
+its database. `InstaWP_Tools::process_migration_settings()` therefore appends `wp-config.php`
+to `excluded_paths` whenever the mode is `pull` (or unset).
+
+### The above-root config
+
+`iwp-serve/index.php` looks for `wp-config.php` next to `wp-load.php` (`WP_ROOT`). Some
+stacks — FlyWP's Docker layout, Bedrock-style installs, some Local/Flywheel setups — keep it
+one directory **above** the web root instead. In that case `$handle_config_separately` is set
+and the file is queued into `iwp_files_sent` directly, because the exclusion list is only
+applied by `get_iterator_items()`, which walks `WP_ROOT` and can never see it.
+
+That direct insert used to bypass `excluded_paths` entirely, so a pull from such a source did
+ship the source's `wp-config.php` and clobbered the destination's own — the migrated site then
+failed with *"Error establishing a database connection"*. Since then, the separate handling is
+skipped when `wp-config.php` is present in `excluded_paths`:
+
+```php
+if ( $handle_config_separately && in_array( 'wp-config.php', $excluded_paths, true ) ) {
+    $handle_config_separately = false;
+}
+```
+
+Push and end-to-end do **not** exclude `wp-config.php`, so they keep the separate handling;
+`iwp-dest/index.php` rewrites the DB constants for the destination on arrival.
+
+### Sanitisation ordering
+
+When the config *is* transferred (push / end-to-end), `$relativePath` is normalised to
+`wp-config.php` **before** `process_files()` runs, so its `wp-config.php` branch applies the
+source→destination URL replacement, comments out `WP_SITEURL` / `WP_HOME` / `COOKIE_DOMAIN`,
+and applies the Flywheel `ABSPATH` and GridPane include fixes. Normalising after that call
+(as it once did) meant an above-root config shipped completely raw.
+
 ## Options Data Storage
 
 The migration stores credentials and settings in an encrypted file (`options-{migrate_key}.txt`). To handle cases where the file becomes temporarily inaccessible, a PHP session fallback is used.

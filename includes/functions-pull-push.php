@@ -457,11 +457,26 @@ if ( ! function_exists( 'send_by_zip' ) ) {
 		foreach ( $unsentFiles as $file ) {
 			$tracking_db->update( 'iwp_files_sent', array( 'sent' => 2 ), array( 'id' => $file['id'] ) );
 
-			$filePath         = isset( $file['filepath'] ) ? $file['filepath'] : '';
-			$relativePath     = ltrim( str_replace( WP_ROOT, "", $filePath ), DIRECTORY_SEPARATOR );
+			$filePath     = isset( $file['filepath'] ) ? $file['filepath'] : '';
+			$file_name    = basename( $filePath );
+			$relativePath = ltrim( str_replace( WP_ROOT, "", $filePath ), DIRECTORY_SEPARATOR );
+
+			/**
+			 * Normalise an above-root wp-config.php to the archive root BEFORE process_files(),
+			 * so that function's `$relativePath === 'wp-config.php'` sanitiser actually matches.
+			 * While this ran after process_files() the separately handled config shipped raw —
+			 * no source→destination URL replacement, no commenting of WP_SITEURL / WP_HOME /
+			 * COOKIE_DOMAIN, and no Flywheel ABSPATH or GridPane include fixes.
+			 *
+			 * $file_name is read from the original path, since process_files() may return a
+			 * temporary file whose basename is no longer wp-config.php.
+			 */
+			if ( $handle_config_separately && 'wp-config.php' === $file_name ) {
+				$relativePath = $file_name;
+			}
+
 			$filePath         = process_files( $tracking_db, $filePath, $relativePath );
 			$file_fopen_check = fopen( $filePath, 'r' );
-			$file_name        = basename( $filePath );
 
 			if ( ! $file_fopen_check ) {
 				$tracking_db->update( 'iwp_files_sent', array( 'sent' => 3 ), array( 'id' => $file['id'] ) ); // mark as failed
@@ -490,10 +505,6 @@ if ( ! function_exists( 'send_by_zip' ) ) {
 				header( 'x-iwp-error: ' . 'Invalid file: : ' . $filePath );
 
 				continue;
-			}
-
-			if ( $handle_config_separately && $file_name === 'wp-config.php' ) {
-				$relativePath = $file_name;
 			}
 
 			$added_to_zip = true;
