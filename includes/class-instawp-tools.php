@@ -1813,6 +1813,49 @@ include $file_path;';
 	}
 
 	/**
+	 * Action Scheduler tables that are excluded from every migration by default.
+	 *
+	 * Filter `instawp/filters/excluded_scheduler_tables` to change the set -- REMOVE a name to
+	 * carry that table to the destination as before. `mode` in $migrate_settings is 'pull' on
+	 * the client-app pull, 'push' on the REST push API, and empty on the wizard-ajax and WP-CLI
+	 * paths, so a filter can vary the set per migration type.
+	 *
+	 * Adding a name here is subject to the same rules as any other exclusion -- in particular,
+	 * do NOT add a WP core table; excluding one leaves the destination without a schema for it
+	 * and the migration fails schema validation.
+	 *
+	 * Only string entries survive: a filter returning a bare true, or an array containing one,
+	 * would otherwise match every table under iwp-serve's non-strict in_array() and exclude the
+	 * entire database. Non-string entries are dropped rather than honoured, so a malformed
+	 * filter degrades to today's behaviour instead of emptying the migration.
+	 *
+	 * @param array $migrate_settings Settings for the migration being prepared.
+	 *
+	 * @return string[] Prefixed table names.
+	 */
+	public static function get_excluded_scheduler_tables( $migrate_settings = array() ) {
+
+		global $wpdb;
+
+		$scheduler_tables = apply_filters(
+			'instawp/filters/excluded_scheduler_tables',
+			array(
+				$wpdb->prefix . 'actionscheduler_actions',
+				$wpdb->prefix . 'actionscheduler_claims',
+				$wpdb->prefix . 'actionscheduler_groups',
+				$wpdb->prefix . 'actionscheduler_logs',
+			),
+			$migrate_settings
+		);
+
+		if ( ! is_array( $scheduler_tables ) ) {
+			return array();
+		}
+
+		return array_values( array_filter( $scheduler_tables, 'is_string' ) );
+	}
+
+	/**
 	 * Tables the staging wizard's "Skip Log Tables" toggle ticks on the Exclude step.
 	 *
 	 * This only tags checkboxes in the UI; it is not a default. actionscheduler_logs is now
@@ -1873,37 +1916,31 @@ include $file_path;';
 		$excluded_tables[] = $wpdb->prefix . 'rank_math_analytics_gsc';
 		$excluded_tables[] = $wpdb->prefix . 'rank_math_redirections_cache';
 
-		// Exclude the Action Scheduler bookkeeping tables. They hold no site content, and on a
-		// site with a busy scheduler they are big enough to use up the whole transfer window on
-		// their own: one measured case sent 70,514 rows / 41 MB of actionscheduler_actions and
-		// 298,700 rows / 30 MB of actionscheduler_claims, which was 90.6% of everything that
-		// transferred before the destination hit its time ceiling and killed the pull. They are
-		// also drained first in practice (iwp-serve queues tables in SHOW TABLES order, which
-		// MySQL sorts by name), so that budget is spent before any content is reached -- but
-		// the size alone is reason enough, whatever the order turns out to be.
+		// Exclude the Action Scheduler bookkeeping tables. They hold no site content, and two
+		// separate facts make them worth dropping:
+		//
+		// Size -- they are the ongoing saving. One measured case carried 70,514 rows / 41 MB in
+		// actionscheduler_actions and 298,700 rows / 30 MB in actionscheduler_claims, ~71 MB of
+		// pure bookkeeping on every migration from that site.
+		//
+		// Order -- this is what turns "slow" into "nothing arrived". iwp-serve queues tables in
+		// SHOW TABLES order (MySQL sorts by name) and drains them one at a time, so these are at
+		// the front on every migration. In that same case they were 90.6% of everything that
+		// transferred before the destination hit its time ceiling and killed the pull, and not a
+		// single wp_options row was sent -- even though the tables were only ~6.5% of the
+		// database. Size alone would not have produced that; being drained first did.
 		//
 		// Safe to drop: Action Scheduler recreates all four tables from its own schema on the
 		// destination, via register_tables() on `init` priority 1. The cost is that PENDING
 		// ONE-OFF actions are not carried over -- recurring actions are re-registered by their
 		// plugin on init, but a queued one-off (an unsent WooCommerce order email, say) is lost.
-		//
-		// Filterable so a site that genuinely needs its queue can keep it. Re-adding a name here
-		// only makes that table transfer as before, so the filter cannot break a migration.
-		$scheduler_tables = apply_filters(
-			'instawp/filters/excluded_scheduler_tables',
-			array(
-				$wpdb->prefix . 'actionscheduler_actions',
-				$wpdb->prefix . 'actionscheduler_claims',
-				$wpdb->prefix . 'actionscheduler_groups',
-				$wpdb->prefix . 'actionscheduler_logs',
-			)
-		);
+		$scheduler_tables = self::get_excluded_scheduler_tables( $migrate_settings );
 
-		if ( is_array( $scheduler_tables ) ) {
-			$excluded_tables = array_merge( $excluded_tables, $scheduler_tables );
-		}
+		$excluded_tables = array_merge( $excluded_tables, $scheduler_tables );
 
-		$migrate_settings['excluded_tables'] = $excluded_tables;
+		// The staging wizard's "Skip Log Tables" toggle can also contribute actionscheduler_logs,
+		// so collapse duplicates rather than sending the same name twice.
+		$migrate_settings['excluded_tables'] = array_values( array_unique( $excluded_tables ) );
 
 		// Remove instawp connect options
 		$excluded_tables_rows = Helper::get_args_option( 'excluded_tables_rows', $migrate_settings, array() );
