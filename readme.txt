@@ -98,6 +98,9 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 0.1.3.9 - Unreleased =
+- Improved: Migrating or creating a staging site no longer copies the Action Scheduler background-job tables. On sites with a busy scheduler these were large enough to use up the whole transfer window before the site's own content was reached. Action Scheduler rebuilds them on the destination; any one-off job still waiting in its queue is not carried over. (Does not apply to the WP-CLI local push, which exports the whole database.)
+
 = 0.1.3.8 - 12 August 2026 =
 - Improved: Local push no longer copies host-specific configuration, caches, logs, or build and version control folders to the destination.
 - Improved: Local push reports progress and site size, and reports backup failures more clearly.
