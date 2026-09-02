@@ -19,6 +19,38 @@ use InstaWP\Connect\Helpers\WPConfig;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * RecursiveDirectoryIterator that records subdirectories it could not descend into.
+ *
+ * Used together with RecursiveIteratorIterator::CATCH_GET_CHILD: an unreadable subdirectory is
+ * skipped (so one bad directory no longer aborts the whole walk) while still being counted, letting
+ * a size scan tell a genuinely small/empty tree apart from one it only partially read.
+ *
+ * The counter is static because RecursiveDirectoryIterator::getChildren() spawns a fresh instance
+ * per subdirectory; a single request is single-threaded, so callers reset it before a walk and read
+ * it after.
+ */
+class InstaWP_Counting_Directory_Iterator extends RecursiveDirectoryIterator {
+
+	/**
+	 * Number of subdirectories that could not be opened during the current walk.
+	 *
+	 * @var int
+	 */
+	public static $unreadable_dirs = 0;
+
+	#[\ReturnTypeWillChange]
+	public function getChildren() {
+		try {
+			return parent::getChildren();
+		} catch ( Exception $e ) {
+			++ self::$unreadable_dirs;
+			// Re-throw so CATCH_GET_CHILD skips this branch instead of aborting the entire walk.
+			throw $e;
+		}
+	}
+}
+
 class instaWP {
 
 	protected $plugin_name;
@@ -171,7 +203,12 @@ class instaWP {
 
 		if ( $path !== '' && file_exists( $path ) && is_readable( $path ) ) {
 			try {
-				foreach ( new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $path, FilesystemIterator::SKIP_DOTS ) ) as $object ) {
+				$iterator = new RecursiveIteratorIterator(
+					new RecursiveDirectoryIterator( $path, FilesystemIterator::SKIP_DOTS ),
+					RecursiveIteratorIterator::LEAVES_ONLY,
+					RecursiveIteratorIterator::CATCH_GET_CHILD
+				);
+				foreach ( $iterator as $object ) {
 					try {
 						if ( $object->getSize() > $maxbytes && strpos( $object->getPath(), 'instawpbackups' ) === false ) {
 							$data[] = array(
@@ -186,8 +223,8 @@ class instaWP {
 						continue;
 					}
 				}
-			} catch ( \Exception $e ) {
-				error_log( 'error in prepare_large_files_list: ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			} catch ( Exception $e ) {
+				Helper::add_error_log( 'prepare_large_files_list: large files scan aborted', $e );
 			}
 		}
 
@@ -263,6 +300,7 @@ class instaWP {
 						'full_path'     => $normalized_path,
 						'size'          => $directory_info['size'],
 						'count'         => $directory_info['count'],
+						'error'         => ! empty( $directory_info['error'] ),
 						'type'          => 'folder',
 					);
 				}
@@ -296,9 +334,18 @@ class instaWP {
 	public function get_directory_info( $path ) {
 		$bytes_total = 0;
 		$files_total = 0;
+		$scan_error  = false;
+
+		InstaWP_Counting_Directory_Iterator::$unreadable_dirs = 0;
+
 		try {
 			if ( $path !== false && $path !== '' && file_exists( $path ) ) {
-				foreach ( new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $path, FilesystemIterator::SKIP_DOTS ) ) as $object ) {
+				$iterator = new RecursiveIteratorIterator(
+					new InstaWP_Counting_Directory_Iterator( $path, FilesystemIterator::SKIP_DOTS ),
+					RecursiveIteratorIterator::LEAVES_ONLY,
+					RecursiveIteratorIterator::CATCH_GET_CHILD
+				);
+				foreach ( $iterator as $object ) {
 					try {
 						$bytes_total += $object->getSize();
 						++ $files_total;
@@ -308,11 +355,31 @@ class instaWP {
 				}
 			}
 		} catch ( Exception $e ) {
+			// The scan could not be completed at all (e.g. the top-level directory itself was
+			// unreadable). Flag it so callers can tell a failed scan apart from an empty directory,
+			// instead of silently returning a partial/zero size.
+			$scan_error = true;
+			Helper::add_error_log( 'get_directory_info: directory scan aborted for path ' . $path, $e );
+		}
+
+		// CATCH_GET_CHILD keeps the walk going when a subdirectory cannot be opened, but those
+		// subtrees are then missing from the totals. Surface that so a partial scan is not mistaken
+		// for a genuinely small directory.
+		if ( InstaWP_Counting_Directory_Iterator::$unreadable_dirs > 0 ) {
+			$scan_error = true;
+			Helper::add_error_log(
+				sprintf(
+					'get_directory_info: skipped %d unreadable subdirectory(ies) under %s; size is partial',
+					InstaWP_Counting_Directory_Iterator::$unreadable_dirs,
+					$path
+				)
+			);
 		}
 
 		return array(
 			'size'  => $bytes_total,
 			'count' => $files_total,
+			'error' => $scan_error,
 		);
 	}
 
