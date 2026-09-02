@@ -151,7 +151,11 @@ class InstaWP_Sync_DB {
 	public static function get_sync_event_by_id( $connect_id, $event_id ) {
 		$table_name = self::$tables['se_table'];
 
-		return self::wpdb()->get_row( self::wpdb()->prepare( "SELECT * FROM {$table_name} WHERE `connect_id`=%s AND `event_hash`=%s", $connect_id, $event_id ) );
+		// A new row is inserted on every sync attempt for the same event, so an event that
+		// failed once and succeeded on retry has several rows here. Take the most recent one
+		// — without the ORDER BY, get_row() returns the lowest id, i.e. the first (failed)
+		// attempt, which is why such an event shows as Pending forever.
+		return self::wpdb()->get_row( self::wpdb()->prepare( "SELECT * FROM {$table_name} WHERE `connect_id`=%s AND `event_hash`=%s ORDER BY `id` DESC LIMIT 1", $connect_id, $event_id ) );
 	}
 
 	/*
