@@ -2,7 +2,16 @@
 
 defined( 'ABSPATH' ) || exit;
 
-$total_files_size_mb = $total_files_size / (1000 * 1000);
+/*
+ * Size the plan against files AND the database.
+ *
+ * get_site_plans() already computes $total_size = $total_files_size + $total_db_size, but this
+ * threshold only ever read $total_files_size — so a site with a small filesystem and a large
+ * database could select a plan that cannot hold it, and then block at Preparation partway through
+ * the migration. Both variables are in scope here because the template is include()d from inside
+ * get_site_plans().
+ */
+$total_size_mb = $total_size / (1000 * 1000);
 ?>
 
 <div class="flex items-start staging-plans">
@@ -40,7 +49,7 @@ $total_files_size_mb = $total_files_size / (1000 * 1000);
 
             // Determine if plan is disabled
             $is_free_plan = $site_plan['name'] === 'free';
-            $disk_quota_exceeded = isset( $features_to_show['disk_quota']['value'] ) && $total_files_size_mb > $features_to_show['disk_quota']['value'];
+            $disk_quota_exceeded = isset( $features_to_show['disk_quota']['value'] ) && $total_size_mb > $features_to_show['disk_quota']['value'];
             $is_free_plan_disabled = $is_free_plan && ( $site_data['free_site_count'] >= 3 || $disk_quota_exceeded );
             $is_plan_disabled = $is_free_plan_disabled || ( ! $is_free_plan && $disk_quota_exceeded );
             ?>
