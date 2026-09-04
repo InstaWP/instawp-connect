@@ -315,10 +315,12 @@ class InstaWP_Staging_V4 {
 	/**
 	 * Total source size in MB — files AND database.
 	 *
-	 * Decimal MB (1000^2), matching the plan picker's own arithmetic, so the number the user saw
-	 * disabling plans is the number client-app validates against.
+	 * Decimal MB (1000^2), the same arithmetic the plan picker uses — but DELIBERATELY NOT the same
+	 * number. The picker subtracts every selected exclusion; this subtracts only the ones
+	 * build_exclude() can transmit, so this number is larger. See the call site in run() for why
+	 * that divergence exists and why it is the safe direction.
 	 *
-	 * @param array $migrate_settings Migration settings.
+	 * @param array $exclude The transmitted exclusion set, as returned by build_exclude().
 	 *
 	 * @return float
 	 */
@@ -391,6 +393,8 @@ class InstaWP_Staging_V4 {
 		$key_response = Helper::getInstaMigrateApiKey();
 
 		if ( empty( $key_response['success'] ) ) {
+			self::log_orphaned_instamigrate( 'instamigrate key unreadable' );
+
 			return new WP_Error(
 				'instamigrate_key_missing',
 				Helper::get_args_option( 'message', $key_response, esc_html__( 'Could not read the InstaMigrate API key.', 'instawp-connect' ) )
@@ -400,6 +404,8 @@ class InstaWP_Staging_V4 {
 		$api_key = Helper::get_args_option( 'insta_mig_key', Helper::get_args_option( 'data', $key_response, array() ), '' );
 
 		if ( empty( $api_key ) ) {
+			self::log_orphaned_instamigrate( 'instamigrate returned an empty key' );
+
 			return new WP_Error( 'instamigrate_key_missing', esc_html__( 'InstaMigrate returned an empty API key.', 'instawp-connect' ) );
 		}
 
@@ -569,6 +575,11 @@ class InstaWP_Staging_V4 {
 		}
 
 		Helper::add_error_log( 'V4 staging: instamigrate installed but the migration did not start (' . $reason . ')' );
+
+		// Cleared once announced. Otherwise the flag outlives the run that set it, and a LATER run
+		// that installed nothing (instamigrate already active) would re-log the same line on every
+		// failure, filling a 150-entry ring with a claim that is no longer true.
+		Option::delete_option( 'instawp_instamigrate_orphaned' );
 	}
 }
 

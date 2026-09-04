@@ -126,12 +126,22 @@ and runs `wp instawp reset staging` before linking it to its parent, dispatched 
 on the terminal `completed` event. So the plugin deliberately does not attempt this, and
 `build_exclude()` reading only `excluded_paths`/`excluded_tables` is correct rather than an omission.
 
-⚠ **HARD ROLLOUT DEPENDENCY — this repair is NOT MERGED.** It lives on client-app PR #3148
-(`feat/plugin-staging-v4`) and exists on no released client-app. A code review looking for it on
-`dev` correctly found nothing. Until #3148 ships, **turning `MIGRATION_ENGINE=v4` on for staging
-would hand every destination the source's `instawp_api_options`, `instawp_is_staging` and
-`insta_migrate_api_key`** — the migration would "succeed" and sync would silently point at the
-parent. The engine flag is the control: it must not flip for staging before #3148 is deployed.
+⚠ **HARD ROLLOUT DEPENDENCY — NONE of the server side is merged, and the engine flag is
+ALL-OR-NOTHING.** Both halves of that sentence were wrong in an earlier revision of this doc and
+matter more than the repair itself:
+
+1. **It is not just the repair that is unmerged.** `POST v2/migrate-v4/staging-init` — the endpoint
+   this flow posts to — does not exist on client-app `dev` either. #3148 ships the whole server
+   side, not a finishing touch on top of something already live.
+2. **There is no staging-scoped flag to withhold.** `GET v2/migrate-v4/engine` answers purely from
+   the global `MIGRATION_ENGINE` env var; the `migration_mode` parameter it accepts is logged for
+   visibility and does not affect the answer. So the correct constraint is not "do not flip it for
+   staging" — it is that **`MIGRATION_ENGINE=v4` cannot be enabled for ANY flow until #3148 ships**,
+   or #3148 must itself add per-context gating.
+
+Enable it earlier and every V4 destination keeps the source's `instawp_api_options`,
+`instawp_is_staging` and `insta_migrate_api_key`: the migration reports success while sync silently
+points at the parent.
 
 If that repair is ever removed, the same silent data-identity bug returns. It is the one part of
 this feature that fails invisibly.
@@ -156,6 +166,19 @@ debug-info AJAX endpoint returns verbatim, i.e. the payload customers paste into
 The redaction lives in `add_error_log()`, not in `sanitize_data()`. `sanitize_data()` is a shared,
 general-purpose sanitiser whose callers intend to KEEP what it returns, so dropping fields there
 would silently corrupt their data. Redact at the sink, not in the sanitiser.
+
+**Names are not enough on their own, so values are scrubbed too.** A credential routinely travels
+inside a value under an innocuous key — `Curl::do_curl()` logs `api_url`, and a URL can carry the
+credential in its query string (`check-key?jwt=…` is a real call, and an expired jwt is exactly the
+4xx that triggers logging). `api_url` matches no needle, so key matching alone let the whole value
+through. Every string leaf now goes through `scrub_credentials_in_text()`, whose needle list is
+DERIVED from `REDACTED_LOG_KEYS` rather than hand-written — a hand-written subset was the first bug
+here, and it missed `jwt` and `insta_mig_key`, this feature's own credential.
+
+⚠ **This lives in a VENDORED copy of a `dev-main` dependency.** `composer.json` requires
+`instawp/connect-helpers: dev-main`, so the next `composer update` reverts all of it with no test to
+notice. Upstreamed as InstaWP/connect-helpers#24; that PR must land, and is part of this rollout
+dependency list.
 
 ⚠ **Still open, out of scope here:** `Curl::do_curl()` also writes `error_log( 'API HEADERS - ' … )`
 under `INSTAWP_DEBUG_LOG`, which puts the full `Authorization: Bearer <api_key>` into the PHP error

@@ -305,6 +305,15 @@
             }
         },
         instawp_staging_v4_fail = (create_container, message) => {
+            // Guard against both terminal handlers running. clearInterval stops new polls but any
+            // request already in flight still settles, so a run that gave up after N failures could
+            // then receive a `completed` — leaving a green header above a red error box.
+            if (create_container.hasClass('completed') || create_container.hasClass('migration-failed')) {
+                return;
+            }
+
+            create_container.addClass('migration-failed');
+
             let el_error_wrap = create_container.find('.migration-error'),
                 el_loader = create_container.find('.instawp-migration-loader');
 
@@ -316,7 +325,9 @@
             // The template's .error-message <p> is EMPTY — there is no default to fall back to, so
             // an absent reason would render a red box with an icon, a button and no words. Fall back
             // to the loader's translated "Migration Failed".
-            el_error_wrap.find('.error-message').html(
+            // .text(), not .html(): this is a server-supplied string and the fallback is plain
+            // text anyway, so there is nothing to gain from rendering it as markup on an admin page.
+            el_error_wrap.find('.error-message').text(
                 message && message.length > 0 ? message : el_loader.data('error-text')
             );
 
@@ -328,13 +339,24 @@
             create_container.find('.migration-running').addClass('hidden');
         },
         instawp_staging_v4_complete = (create_container) => {
-            // `completed` has to look terminal too. Clearing the poll alone left the run frozen on
-            // "In Progress..." after a SUCCESSFUL migration — the same defect as the failed case,
-            // and just as misleading.
+            // `completed` has to look terminal too, and the first attempt at this made it LESS
+            // terminal than `failed`: the header said "Completed" while the spinner kept turning,
+            // the progress bars sat at 0%, and a live Abort button remained — on a migration that
+            // had already succeeded. Abort navigates to ?clear=all, so it was not merely cosmetic.
+            //
+            // Mirrors what V3's completed path does: hide the live-progress furniture, and give the
+            // user a forward action. `.migration-running` deliberately STAYS visible — the Track
+            // Migration link lives inside it and is the whole point of this flow.
+            if (create_container.hasClass('completed')) {
+                return;
+            }
+
             let el_loader = create_container.find('.instawp-migration-loader');
 
             create_container.addClass('completed');
             el_loader.text(el_loader.data('complete-text'));
+            create_container.find('#visibility-box, .full-screen-btn, .instawp-migrate-abort').addClass('hidden');
+            create_container.find('.screen-buttons-last').removeClass('hidden');
         },
         instawp_staging_v4_watch = (create_container) => {
             let failures = 0;

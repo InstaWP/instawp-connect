@@ -369,6 +369,10 @@ class Helper {
 		'salt',
 		'signature',
 		'credential',
+		// Catches `auth`, `authorization` and `oauth_*`. Known, accepted collision: a field named
+		// `author` is also redacted. Losing an author name from an error log is a trivial cost
+		// against leaking an authorization value, which is the trade being made deliberately.
+		'auth',
 	);
 
 	/**
@@ -395,6 +399,20 @@ class Helper {
 
 			if ( is_array( $value ) ) {
 				$data[ $key ] = self::redact_for_log( $value );
+				continue;
+			}
+
+			/*
+			 * EVERY string leaf, not only the ones with a credential-shaped NAME.
+			 *
+			 * Key matching alone is not enough here, because a credential routinely travels inside
+			 * a value under an innocuous key: Curl::do_curl logs `api_url`, and a URL can carry the
+			 * credential in its query string (`check-key?jwt=…` is a real call, and an expired jwt
+			 * is exactly the 4xx that triggers logging). `api_url` matches no needle, so without
+			 * this the whole value went in verbatim.
+			 */
+			if ( is_string( $value ) ) {
+				$data[ $key ] = self::scrub_credentials_in_text( $value );
 			}
 		}
 
@@ -417,15 +435,44 @@ class Helper {
 			return $text;
 		}
 
-		// ?token=…&  /  &api_key=…  — keep the parameter name, drop the value.
+		/*
+		 * The needle alternation is DERIVED from REDACTED_LOG_KEYS rather than hand-listed. A
+		 * hand-written subset is the bug that shipped first: it covered six of eleven names, so
+		 * shapes the key-based redactor already treats as secret — jwt, insta_mig_key, pwd — passed
+		 * through here untouched. Underscores are matched as optional separators so api_key,
+		 * apikey, api-key and x-api-key all resolve to the same needle.
+		 */
+		$needles = array();
+
+		foreach ( self::REDACTED_LOG_KEYS as $needle ) {
+			$needles[] = str_replace( '_', '[-_]?', preg_quote( $needle, '/' ) );
+		}
+
+		$alternation = implode( '|', $needles );
+
+		// name=value in a query string or a form body. Keeps the NAME, drops the value, so the log
+		// still says which credential was involved. Not anchored on ? or & so a bare `token=…`
+		// inside a sentence is caught too.
 		$text = preg_replace(
-			'/([?&](?:[A-Za-z0-9_\-]*(?:token|api_?key|secret|password|signature|salt)[A-Za-z0-9_\-]*)=)[^&\s]+/i',
+			'/((?:^|[?&\s;])[A-Za-z0-9_\-\[\]]*(?:' . $alternation . ')[A-Za-z0-9_\-\[\]]*=)[^&\s;]+/i',
 			'$1[redacted]',
 			$text
 		);
 
-		// Authorization: Bearer <value>  /  Basic <value>
-		$text = preg_replace( '/\b(Bearer|Basic)\s+[A-Za-z0-9._~+\/=-]+/i', '$1 [redacted]', $text );
+		// "name":"value" — a json_encode'd body inlined into a message.
+		$text = preg_replace(
+			'/("[A-Za-z0-9_\-]*(?:' . $alternation . ')[A-Za-z0-9_\-]*"\s*:\s*")[^"]*(")/i',
+			'$1[redacted]$2',
+			$text
+		);
+
+		/*
+		 * Authorization: Bearer <value>. The length floor is load-bearing — without it this
+		 * mangles ordinary English: "Basic authentication failed" became "Basic [redacted] failed",
+		 * and "Bearer token missing from request" lost its meaning. Real credentials on this sink
+		 * are far longer than 20 characters; English words after Bearer/Basic are not.
+		 */
+		$text = preg_replace( '/\b(Bearer|Basic)\s+([A-Za-z0-9._~+\/=-]{20,})/i', '$1 [redacted]', $text );
 
 		return $text;
 	}
@@ -442,7 +489,8 @@ class Helper {
 		}
 
 		$error         = is_array( $payload ) ? self::redact_for_log( self::sanitize_data( $payload ) ) : array(
-			'message' => sanitize_text_field( $payload ),
+			// Scrubbed too: a string payload reached the log with no redaction of any kind.
+			'message' => self::scrub_credentials_in_text( sanitize_text_field( $payload ) ),
 		);
 		$error['time'] = date( 'Y-m-d H:i:s' );
 
