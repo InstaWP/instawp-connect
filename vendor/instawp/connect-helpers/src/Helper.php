@@ -393,6 +393,17 @@ class Helper {
 	 *
 	 * @return array|string sanitized data
 	 */
+	/**
+	 * Field names whose VALUE must never be written to the error log.
+	 *
+	 * add_error_log() persists to an option that the plugin's own debug-info AJAX endpoint returns
+	 * verbatim — the payload customers paste into support tickets. Curl::do_curl() logs the whole
+	 * request body on any 4xx/5xx, so any credential travelling in a body lands there by default.
+	 * Matched on a substring so `plugin_api_key`, `insta_mig_key`, `wp_app_password` and friends are
+	 * all covered without maintaining an exact list.
+	 */
+	const REDACTED_LOG_KEYS = array( 'password', 'api_key', 'apikey', 'secret', 'token', 'jwt', '_key' );
+
 	public static function sanitize_data( $data ) {
 		if ( empty( $data ) ) {
 			return $data;
@@ -400,6 +411,11 @@ class Helper {
 
 		if ( is_array( $data ) ) {
 			foreach ( $data as $key => $value ) {
+				if ( self::is_redacted_log_key( $key ) ) {
+					$data[ $key ] = '[redacted]';
+					continue;
+				}
+
 				if ( is_array( $value ) ) {
 					$data[ $key ] = self::sanitize_data( $value );
 				} else {
@@ -412,6 +428,29 @@ class Helper {
 			$data = '';
 		}
 		return $data;
+	}
+
+	/**
+	 * Does this array key name a credential that must not be logged?
+	 *
+	 * @param mixed $key Array key from the payload being logged.
+	 *
+	 * @return bool
+	 */
+	private static function is_redacted_log_key( $key ) {
+		if ( ! is_string( $key ) ) {
+			return false;
+		}
+
+		$key = strtolower( $key );
+
+		foreach ( self::REDACTED_LOG_KEYS as $needle ) {
+			if ( false !== strpos( $key, $needle ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	public static function generate_api_key( $api_key, $jwt = '', $config = array() ) {

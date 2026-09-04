@@ -107,6 +107,12 @@ lands empty instead of missing.
 - **Anything sensitive in `metadata`.** That block round-trips through the migration agent and lands
   in its state files.
 
+Credentials that DO travel in a request body are kept out of the plugin's error log:
+`Helper::sanitize_data()` redacts any key containing `password`, `api_key`, `secret`, `token`, `jwt`
+or `_key`. This matters because `Curl::do_curl()` logs the whole request body on any 4xx/5xx, and
+`add_error_log()` persists to an option the debug-info AJAX endpoint returns verbatim — the payload
+customers paste into support tickets.
+
 ## Failure handling
 
 If client-app cannot be reached *after* `instamigrate` has been installed, the run records
