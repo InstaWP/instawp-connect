@@ -23,6 +23,10 @@
  * @package InstaWP
  */
 
+use InstaWP\Connect\Helpers\Curl;
+use InstaWP\Connect\Helpers\Helper;
+use InstaWP\Connect\Helpers\Option;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -180,7 +184,7 @@ class InstaWP_Staging_V4 {
 			'plugin_api_key'    => $api_key,
 			'total_size_mb'     => $total_size_mb,
 			'parent_connect_id' => $connect_id,
-			'plan_id'           => $plan_id,
+			'plan_id'           => empty( $plan_id ) ? null : $plan_id,
 			'wp_version'        => get_bloginfo( 'version' ),
 			'php_version'       => PHP_VERSION,
 			'is_multisite'      => is_multisite(),
@@ -219,13 +223,21 @@ class InstaWP_Staging_V4 {
 
 		// Step 5: create the destination site and start. This is client-app's EXISTING endpoint —
 		// unchanged, and shared with the hosted import wizard.
-		$start = Curl::do_curl(
-			'live-import/' . $uuid . '/start',
-			array(
-				'plan_id'          => $plan_id,
-				'server_group_id'  => (int) Helper::get_args_option( 'server_group_id', $migrate_settings, 0 ),
-			)
-		);
+		// Omit rather than send a literal 0: start() validates plan_id as required|integer for a
+		// non-legacy user, so 0 passes validation and fails later inside canCreateSiteWithPlan with a
+		// worse message than "plan_id is required".
+		$start_args      = array();
+		$server_group_id = (int) Helper::get_args_option( 'server_group_id', $migrate_settings, 0 );
+
+		if ( ! empty( $plan_id ) ) {
+			$start_args['plan_id'] = $plan_id;
+		}
+
+		if ( ! empty( $server_group_id ) ) {
+			$start_args['server_group_id'] = $server_group_id;
+		}
+
+		$start = Curl::do_curl( 'live-import/' . $uuid . '/start', $start_args );
 
 		if ( empty( $start['success'] ) ) {
 			self::mark_instamigrate_orphaned();
@@ -314,25 +326,48 @@ class InstaWP_Staging_V4 {
 		$paths  = (array) Helper::get_args_option( 'excluded_paths', $migrate_settings, array() );
 		$tables = (array) Helper::get_args_option( 'excluded_tables', $migrate_settings, array() );
 
-		$content_dir = wp_normalize_path( WP_CONTENT_DIR );
-		$relative    = array();
+		/*
+		 * `excluded_paths` values are ROOT-RELATIVE, not absolute. The checkbox value is
+		 * $data['relative_path'] (migrate/templates/part-create-staging.php:208), the hardcoded ones
+		 * are 'wp-admin' / 'wp-includes' (class-instawp-tools.php:1032), and get_total_sizes()
+		 * re-absolutises them with instawp_get_root_path() . '/' . $path before use.
+		 *
+		 * An earlier revision compared them against the ABSOLUTE WP_CONTENT_DIR, so every entry was
+		 * dropped and exclude.paths was always empty. That was worse than a no-op: get_total_sizes()
+		 * DOES honour the exclusions, so a user excluding a large uploads directory was sized for the
+		 * small site, passed the plan check, and the agent then copied the full one.
+		 */
+		$root        = wp_normalize_path( rtrim( instawp_get_root_path(), '/' ) );
+		$content_abs = wp_normalize_path( untrailingslashit( WP_CONTENT_DIR ) );
+		$content_rel = trim( str_replace( $root, '', $content_abs ), '/' );
+
+		$relative = array();
 
 		foreach ( $paths as $path ) {
-			$path = wp_normalize_path( (string) $path );
+			$path = trim( wp_normalize_path( (string) $path ), '/' );
 
-			if ( '' === $path ) {
+			if ( '' === $path || '' === $content_rel ) {
 				continue;
 			}
 
-			// Anything outside wp-content has no representation in the agent's vocabulary.
-			if ( 0 !== strpos( $path, $content_dir ) ) {
+			// Excluding wp-content itself has no representation — the agent's paths are relative TO
+			// it. Dropping it silently would turn "exclude everything" into "exclude nothing", so it
+			// is skipped explicitly and left for the caller to notice.
+			if ( $path === $content_rel ) {
 				continue;
 			}
 
-			$relative[] = ltrim( substr( $path, strlen( $content_dir ) ), '/' );
+			// Match on the separator so a sibling directory (wp-content-backup) cannot match.
+			if ( 0 !== strpos( $path, $content_rel . '/' ) ) {
+				continue;
+			}
+
+			$relative[] = substr( $path, strlen( $content_rel ) + 1 );
 		}
 
-		$protected = array( $wpdb->prefix . 'options', $wpdb->prefix . 'sitemeta' );
+		// wp_sitemeta is keyed off base_prefix, not prefix: on a subsite $wpdb->prefix is wp_2_,
+		// and wp_2_sitemeta does not exist — so a real wp_sitemeta entry would slip past the filter.
+		$protected = array( $wpdb->prefix . 'options', $wpdb->base_prefix . 'sitemeta' );
 		$skippable = array();
 
 		foreach ( $tables as $table ) {

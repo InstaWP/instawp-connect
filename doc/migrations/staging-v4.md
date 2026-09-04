@@ -86,8 +86,9 @@ The chosen URL is persisted in `instawp_staging_v4_details`, mirroring how V3 pe
 
 The agent's vocabulary differs from V3's in three ways that matter:
 
-- **`paths` are wp-content-relative.** V3's absolute paths are mapped; anything outside `wp-content`
-  has no representation and is dropped.
+- **`paths` are wp-content-relative.** V3's exclusions are ROOT-relative (`wp-admin`, `wp-includes`,
+  and the checkbox's `relative_path`), so they are re-based onto `wp-content`; anything outside it —
+  including `wp-content` itself — has no representation and is dropped.
 - **A glob's `*` crosses `/`.** `uploads/*` takes the whole tree, not one level. Worth saying in any
   UI copy, because it is not what most people expect.
 - **`options` and `sitemeta` are never skippable.** The agent strips them server-side whatever is
