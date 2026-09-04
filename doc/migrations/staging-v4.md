@@ -135,15 +135,33 @@ matter more than the repair itself:
    (`POST v2/live-import/{uuid}/start` and `GET v2/migrations/{uuid}/status`) DO already exist on
    `dev` and are registered unconditionally, outside the engine gate. An earlier revision of this
    note said #3148 "ships the whole server side", which overstated it in the other direction.
-2. **There is no staging-scoped flag to withhold.** `GET v2/migrate-v4/engine` answers purely from
-   the global `MIGRATION_ENGINE` env var; the `migration_mode` parameter it accepts is logged for
-   visibility and does not affect the answer. So the correct constraint is not "do not flip it for
-   staging" — it is that **`MIGRATION_ENGINE=v4` cannot be enabled for ANY flow until #3148 ships**,
-   or #3148 must itself add per-context gating.
+2. **There is no staging-scoped flag to withhold** — `GET v2/migrate-v4/engine` answers purely from
+   the global `MIGRATION_ENGINE` env var (its `migration_mode` parameter is logged and never read).
 
-Enable it earlier and every V4 destination keeps the source's `instawp_api_options`,
-`instawp_is_staging` and `insta_migrate_api_key`: the migration reports success while sync silently
-points at the parent.
+3. ⚠⚠ **AND THE FLAG IS ALREADY `v4` IN PRODUCTION.** Observed by QA on 2026-09-04: prod client-app
+   returns `engine: v4` for a real connected site today. So "do not flip the flag until #3148 ships"
+   is NOT the control — the flag is already flipped, and the only thing keeping it harmless is that
+   no released plugin contains any V4 code.
+
+   **The control is therefore the PLUGIN RELEASE, not the flag.** `migrate_init()` returns inside the
+   V4 branch, so once `is_enabled()` is true **V3 is never reached**; and `run()` on a failing
+   `staging-init` returns a `WP_Error` with no fallback. Ship this branch to wp.org before #3148 is
+   deployed and **staging creation fails outright for every user who updates** — `staging-init` does
+   not exist on prod, so every attempt 404s.
+
+   Order of operations, in this sequence and no other:
+   1. Merge and DEPLOY client-app #3148 (which adds `staging-init`).
+   2. Verify `POST v2/migrate-v4/staging-init` responds on prod.
+   3. Only then release the plugin.
+
+   Alternatively, decide deliberately to add a V3 fallback when `staging-init` is unavailable — that
+   would make the ordering non-fatal, but it contradicts the "engine flip is all-or-nothing" decision
+   and is a design change, not a fix. It has not been made.
+
+Getting the order wrong the other way — plugin first — breaks staging for everyone. Getting the
+identity repair wrong keeps the source's `instawp_api_options`, `instawp_is_staging` and
+`insta_migrate_api_key` on the destination: the migration reports success while sync silently points
+at the parent.
 
 If that repair is ever removed, the same silent data-identity bug returns. It is the one part of
 this feature that fails invisibly.
@@ -164,6 +182,13 @@ and quota rejections are a normal outcome — while `add_error_log()` persists t
 debug-info AJAX endpoint returns verbatim, i.e. the payload customers paste into support tickets.
 `salt` and `signature` are not incidental: `migrate_settings.wp_config_constants` carries every
 `define()` from wp-config.php, so the four auth SALTs pass through this sink.
+
+**Known, accepted over-redaction.** The `_key` needle also matches `migrate_key`, so a validation
+message returned under that field name is redacted along with it — QA observed
+`"The migrate key field is required."` being replaced. That costs a useful support message. It is
+kept because `_key` is the only needle covering `insta_mig_key`, and a leaked migration key is worse
+than a lost validation string. If it becomes a real support problem, the fix is a narrower needle
+list, not loosening the value redaction.
 
 The redaction lives in `add_error_log()`, not in `sanitize_data()`. `sanitize_data()` is a shared,
 general-purpose sanitiser whose callers intend to KEEP what it returns, so dropping fields there
