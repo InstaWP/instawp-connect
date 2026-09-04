@@ -401,6 +401,35 @@ class Helper {
 		return $data;
 	}
 
+	/**
+	 * Strip credential VALUES out of a free-text string.
+	 *
+	 * The key-based redactor cannot help here: this is for text that merely quotes a credential
+	 * (an exception message naming the URL that failed). Covers the two shapes that actually occur
+	 * on this sink — a query parameter and a bearer/authorization value.
+	 *
+	 * @param string $text text to scrub.
+	 *
+	 * @return string
+	 */
+	private static function scrub_credentials_in_text( $text ) {
+		if ( ! is_string( $text ) || '' === $text ) {
+			return $text;
+		}
+
+		// ?token=…&  /  &api_key=…  — keep the parameter name, drop the value.
+		$text = preg_replace(
+			'/([?&](?:[A-Za-z0-9_\-]*(?:token|api_?key|secret|password|signature|salt)[A-Za-z0-9_\-]*)=)[^&\s]+/i',
+			'$1[redacted]',
+			$text
+		);
+
+		// Authorization: Bearer <value>  /  Basic <value>
+		$text = preg_replace( '/\b(Bearer|Basic)\s+[A-Za-z0-9._~+\/=-]+/i', '$1 [redacted]', $text );
+
+		return $text;
+	}
+
 	public static function add_error_log( $payload, $th = null ) {
 		$log_name = 'iwp_connect_helper_error_log';
 		$log      = self::get_options( array(), $log_name );
@@ -421,7 +450,11 @@ class Helper {
 			$error = array_merge(
 				$error,
 				array(
-					'error' => $th->getMessage(),
+					// Scrubbed by VALUE, not by key. redact_for_log() matches field NAMES, and this
+					// field is called 'error' — so passing it through the redactor would do nothing
+					// at all. An exception message routinely quotes the URL that threw, which on
+					// this sink can carry ?token=/?api_key= or an Authorization value.
+					'error' => self::scrub_credentials_in_text( $th->getMessage() ),
 					'line'  => $th->getLine(),
 					'file'  => $th->getFile(),
 				)

@@ -104,18 +104,37 @@ The agent's vocabulary differs from V3's in three ways that matter:
 Table exclusions become `skip_table_data`, which ships the schema and drops the rows, so the table
 lands empty instead of missing.
 
+**The size sent to the API is deliberately not the plan picker's number.** The picker
+(`InstaWP_Ajax::get_site_plans()`) sizes with the full migration settings, so it subtracts
+`wp-admin`, `wp-includes` and any root-level path the user ticked. `total_size_mb()` subtracts only
+what `build_exclude()` actually transmits, which includes none of those — so the number sent is
+LARGER, by roughly 25-40 MB at minimum. That direction is deliberate: it can never under-state what
+the agent will copy. The cost is that a user sitting exactly on a plan boundary can pass the picker
+and then be told by the API to size up. Closing that gap means teaching the picker the same
+transmitted-only rule — not handing the raw settings back to `total_size_mb()`, which is the bug
+this replaced.
+
 **V3's `excluded_tables_rows` has no V4 equivalent, and that is expected.** V3 keeps the connect
 identity off the destination at source, by excluding individual `wp_options` rows
 (`instawp_api_options`, `instawp_connect_id_options`, `instawp_is_staging`, `instawp_staging_sites`,
 `instawp_migration_details`). V4 has no row-level exclusion at any level, and `options` is
 unskippable anyway — so the destination DOES arrive holding the source's connect identity.
 
-It is repaired afterwards, on the client-app side: on the terminal `completed` event
-`StagingLinkService` re-asserts the destination's own api key and domain and runs
-`wp instawp reset staging` before linking it to its parent. So the plugin deliberately does not
-attempt this, and `build_exclude()` reading only `excluded_paths`/`excluded_tables` is correct rather
-than an omission. If that repair is ever removed, this becomes a silent data-identity bug — the site
-migrates fine and sync points at the wrong place.
+It is repaired afterwards, on the client-app side:
+`app/Services/Migration/StagingLinkService.php` re-asserts the destination's own api key and domain
+and runs `wp instawp reset staging` before linking it to its parent, dispatched as `LinkStagingSite`
+on the terminal `completed` event. So the plugin deliberately does not attempt this, and
+`build_exclude()` reading only `excluded_paths`/`excluded_tables` is correct rather than an omission.
+
+⚠ **HARD ROLLOUT DEPENDENCY — this repair is NOT MERGED.** It lives on client-app PR #3148
+(`feat/plugin-staging-v4`) and exists on no released client-app. A code review looking for it on
+`dev` correctly found nothing. Until #3148 ships, **turning `MIGRATION_ENGINE=v4` on for staging
+would hand every destination the source's `instawp_api_options`, `instawp_is_staging` and
+`insta_migrate_api_key`** — the migration would "succeed" and sync would silently point at the
+parent. The engine flag is the control: it must not flip for staging before #3148 is deployed.
+
+If that repair is ever removed, the same silent data-identity bug returns. It is the one part of
+this feature that fails invisibly.
 
 ## Two things deliberately NOT sent
 

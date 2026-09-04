@@ -98,8 +98,8 @@ class InstaWP_Staging_V4 {
 
 		wp_send_json_success(
 			array(
-				'uuid'   => $uuid,
-				'status' => Helper::get_args_option( 'status', $data, '' ),
+				'uuid'      => $uuid,
+				'status'    => Helper::get_args_option( 'status', $data, '' ),
 				// Carried through so a `failed` status can say WHY. Without it the wizard can only
 				// show a generic failure, which is barely better than the silent spinner it used to
 				// show.
@@ -211,8 +211,22 @@ class InstaWP_Staging_V4 {
 		// computed against what we transmit rather than what the user selected. See total_size_mb().
 		$exclude = self::build_exclude( $migrate_settings );
 
-		// Measured locally — files AND database. This is the number client-app sizes the plan
-		// against, so it must match what the plan picker showed the user.
+		/*
+		 * Measured locally — files AND database — and DELIBERATELY NOT identical to the plan
+		 * picker's number.
+		 *
+		 * get_site_plans() sizes with the full $migrate_settings, so it subtracts wp-admin,
+		 * wp-includes and any root-level path the user ticked. This subtracts only what
+		 * build_exclude() actually transmits, which excludes none of those. So this number is
+		 * LARGER than the picker's, by the size of the root-level exclusions (~25-40 MB at minimum,
+		 * more if the user ticked something big at root).
+		 *
+		 * The divergence is in the safe direction — we never under-state what the agent will copy —
+		 * but it is real: a user sitting exactly on a plan boundary can pass the picker and then be
+		 * told by the API to size up. Fixing that properly means teaching the picker the same
+		 * transmitted-only rule; do not "fix" it by handing the raw settings back to this function,
+		 * which is the bug this replaced.
+		 */
 		$total_size_mb = self::total_size_mb( $exclude );
 
 		// Step 2 + 3: the plugin is the source, so it provisions its own credential. Nothing leaves
@@ -242,6 +256,8 @@ class InstaWP_Staging_V4 {
 		$response = Curl::do_curl( 'migrate-v4/staging-init', $payload );
 
 		if ( empty( $response['success'] ) ) {
+			self::log_orphaned_instamigrate( 'staging-init refused' );
+
 			return new WP_Error(
 				'staging_init_failed',
 				Helper::get_args_option( 'message', $response, esc_html__( 'Could not start the staging migration.', 'instawp-connect' ) ),
@@ -255,6 +271,8 @@ class InstaWP_Staging_V4 {
 		$uuid = Helper::get_args_option( 'uuid', $data, '' );
 
 		if ( empty( $uuid ) ) {
+			self::log_orphaned_instamigrate( 'no migration reference returned' );
+
 			return new WP_Error( 'no_migration_reference', esc_html__( 'InstaWP did not return a migration reference.', 'instawp-connect' ) );
 		}
 
@@ -277,6 +295,8 @@ class InstaWP_Staging_V4 {
 		$start = Curl::do_curl( 'live-import/' . $uuid . '/start', $start_args );
 
 		if ( empty( $start['success'] ) ) {
+			self::log_orphaned_instamigrate( 'destination site creation failed' );
+
 			return new WP_Error( 'site_create_failed', Helper::get_args_option( 'message', $start, esc_html__( 'Could not create the staging site.', 'instawp-connect' ) ) );
 		}
 
@@ -521,9 +541,34 @@ class InstaWP_Staging_V4 {
 	 * @return void
 	 */
 	private static function mark_instamigrate_orphaned() {
+		/*
+		 * NO LOG LINE HERE. This is called on the SUCCESS path, right after a real install and
+		 * before the migration reference exists, so a message reading "the migration did not start"
+		 * fired on every healthy first run — permanently, into a 150-entry ring the debug-info
+		 * endpoint hands back verbatim to customers — while the actual failures logged nothing.
+		 * The signal was exactly inverted. Setting the flag is the bookkeeping; ANNOUNCING an
+		 * orphan is a different event and belongs where the run actually gives up.
+		 */
 		Option::update_option( 'instawp_instamigrate_orphaned', time(), false );
+	}
 
-		Helper::add_error_log( 'V4 staging: instamigrate installed but the migration did not start' );
+	/**
+	 * Announce that we installed instamigrate and the run then failed.
+	 *
+	 * Called at each give-up point, where the claim is actually true. The flag itself is set
+	 * earlier, at install time, so it survives paths that never reach here.
+	 *
+	 * @param string $reason why the run stopped.
+	 *
+	 * @return void
+	 */
+	private static function log_orphaned_instamigrate( $reason ) {
+		if ( empty( Option::get_option( 'instawp_instamigrate_orphaned' ) ) ) {
+			// We did not install it, so it is not ours to report.
+			return;
+		}
+
+		Helper::add_error_log( 'V4 staging: instamigrate installed but the migration did not start (' . $reason . ')' );
 	}
 }
 

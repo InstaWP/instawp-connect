@@ -305,17 +305,36 @@
             }
         },
         instawp_staging_v4_fail = (create_container, message) => {
-            let el_error_wrap = create_container.find('.migration-error');
+            let el_error_wrap = create_container.find('.migration-error'),
+                el_loader = create_container.find('.instawp-migration-loader');
 
-            // Only overwrite when the server actually gave us a reason. Every user-facing string in
-            // this file comes from the server (it is what makes them translatable), so an empty
-            // message leaves the template's own default text in place rather than inventing an
-            // untranslated English one here.
-            if (message && message.length > 0) {
-                el_error_wrap.find('.error-message').html(message);
-            }
+            // The header still says "In Progress..." otherwise — a purple in-progress label sitting
+            // next to a red error box. V3 does exactly this at its own error path; the strings are
+            // translated data-attributes on the element, so nothing is hardcoded here.
+            el_loader.removeClass('text-primary-900').addClass('text-red-700').text(el_loader.data('error-text'));
+
+            // The template's .error-message <p> is EMPTY — there is no default to fall back to, so
+            // an absent reason would render a red box with an icon, a button and no words. Fall back
+            // to the loader's translated "Migration Failed".
+            el_error_wrap.find('.error-message').html(
+                message && message.length > 0 ? message : el_loader.data('error-text')
+            );
+
+            // V4 never populates data-migrate-id / data-server-logs, so this button would download
+            // an empty `undefined-log.txt`. V3 hides it on its error path for the same reason.
+            el_error_wrap.find('.instawp-download-log').addClass('hidden');
+
             el_error_wrap.removeClass('hidden');
             create_container.find('.migration-running').addClass('hidden');
+        },
+        instawp_staging_v4_complete = (create_container) => {
+            // `completed` has to look terminal too. Clearing the poll alone left the run frozen on
+            // "In Progress..." after a SUCCESSFUL migration — the same defect as the failed case,
+            // and just as misleading.
+            let el_loader = create_container.find('.instawp-migration-loader');
+
+            create_container.addClass('completed');
+            el_loader.text(el_loader.data('complete-text'));
         },
         instawp_staging_v4_watch = (create_container) => {
             let failures = 0;
@@ -360,6 +379,8 @@
 
                         if ('failed' === response.data.status) {
                             instawp_staging_v4_fail(create_container, response.data.message);
+                        } else {
+                            instawp_staging_v4_complete(create_container);
                         }
                     }
                 }).fail(function () {
