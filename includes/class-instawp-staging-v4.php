@@ -35,7 +35,13 @@ defined( 'ABSPATH' ) || exit;
 class InstaWP_Staging_V4 {
 
 	/**
-	 * Option holding the last V4 staging run, so the agent URL survives a closed tab.
+	 * Option holding the last V4 staging run (uuid + agent URL).
+	 *
+	 * ⚠ Persisted but NOT yet resumed. Nothing re-enters the watcher from this option on page load:
+	 * the resume path in scripts.js is V3-only, gated on a server-rendered `loading` class a V4 run
+	 * never sets. So closing the tab currently DOES lose the live view, and this option is a record
+	 * for support and a future resume, not a working one. Do not describe it as tab-safe until a V4
+	 * resume actually reads it.
 	 *
 	 * Mirrors how V3 persists instawp_migration_details.
 	 */
@@ -92,9 +98,13 @@ class InstaWP_Staging_V4 {
 
 		wp_send_json_success(
 			array(
-				'uuid'      => $uuid,
-				'status'    => Helper::get_args_option( 'status', $data, '' ),
-				'agent_url' => $agent_url,
+				'uuid'   => $uuid,
+				'status' => Helper::get_args_option( 'status', $data, '' ),
+				// Carried through so a `failed` status can say WHY. Without it the wizard can only
+				// show a generic failure, which is barely better than the silent spinner it used to
+				// show.
+				'message'   => Helper::get_args_option( 'error_message', $data, '' ),
+				'agent_url' => esc_url_raw( $agent_url ),
 			)
 		);
 	}
@@ -111,13 +121,43 @@ class InstaWP_Staging_V4 {
 			return false;
 		}
 
+		/*
+		 * CACHED, for two reasons that both bite V3.
+		 *
+		 * migrate_init() calls this as its FIRST statement on every Create-Staging click, v3 runs
+		 * included, and Curl::do_curl scales its timeout off max_execution_time up to 290s. Uncached,
+		 * V3 inherits client-app reachability as a latency and failure surface it never had — which
+		 * would break "V4 is additive, V3 untouched" behaviourally even though the diff is +22/-0.
+		 * A v4 run also asked twice (once from the caller, once at the top of run()), so this halves
+		 * that too.
+		 *
+		 * Keyed on the api key so re-connecting the site to a different account re-reads it, and
+		 * short enough (5 min) that flipping MIGRATION_ENGINE server-side takes effect promptly.
+		 */
+		$cache_key = 'instawp_migration_engine_' . md5( $api_key );
+		$cached    = get_transient( $cache_key );
+
+		if ( false !== $cached ) {
+			return 'v4' === $cached;
+		}
+
 		// NOTE the return shape. Every connect-helpers method used in this class returns
 		// Helper::sendResponse()'s envelope — array( 'success', 'message', 'data' ) — never a bare
 		// value and never a WP_Error. Comparing the return directly against 'v4' silently yields
 		// false forever.
 		$response = Helper::getMigrationEngine( $api_key, 'staging' );
 
-		return ! empty( $response['success'] ) && 'v4' === Helper::get_args_option( 'engine', Helper::get_args_option( 'data', $response, array() ), '' );
+		if ( empty( $response['success'] ) ) {
+			// NOT cached. An unreachable client-app must not pin the site to v3 for five minutes,
+			// and falling through to V3 is the safe direction anyway.
+			return false;
+		}
+
+		$engine = Helper::get_args_option( 'engine', Helper::get_args_option( 'data', $response, array() ), '' );
+
+		set_transient( $cache_key, $engine, 5 * MINUTE_IN_SECONDS );
+
+		return 'v4' === $engine;
 	}
 
 	/**
@@ -167,9 +207,13 @@ class InstaWP_Staging_V4 {
 		$migrate_settings = InstaWP_Tools::get_migrate_settings( $posted );
 		$plan_id          = (int) Helper::get_args_option( 'plan_id', $migrate_settings, 0 );
 
+		// Order matters: the exclusions must be built BEFORE the site is sized, because the size is
+		// computed against what we transmit rather than what the user selected. See total_size_mb().
+		$exclude = self::build_exclude( $migrate_settings );
+
 		// Measured locally — files AND database. This is the number client-app sizes the plan
 		// against, so it must match what the plan picker showed the user.
-		$total_size_mb = self::total_size_mb( $migrate_settings );
+		$total_size_mb = self::total_size_mb( $exclude );
 
 		// Step 2 + 3: the plugin is the source, so it provisions its own credential. Nothing leaves
 		// the site except the key itself.
@@ -188,7 +232,7 @@ class InstaWP_Staging_V4 {
 			'wp_version'        => get_bloginfo( 'version' ),
 			'php_version'       => PHP_VERSION,
 			'is_multisite'      => is_multisite(),
-			'exclude'           => self::build_exclude( $migrate_settings ),
+			'exclude'           => $exclude,
 		);
 
 		// NOTE: the legacy disk allowance is deliberately NOT sent. client-app derives it itself from
@@ -198,11 +242,6 @@ class InstaWP_Staging_V4 {
 		$response = Curl::do_curl( 'migrate-v4/staging-init', $payload );
 
 		if ( empty( $response['success'] ) ) {
-			// FAIL-SAFE: instamigrate is installed but no migration exists. Leaving it silently
-			// installed on a customer's production site is the worst outcome here, so record that it
-			// needs cleaning up and tell the caller plainly.
-			self::mark_instamigrate_orphaned();
-
 			return new WP_Error(
 				'staging_init_failed',
 				Helper::get_args_option( 'message', $response, esc_html__( 'Could not start the staging migration.', 'instawp-connect' ) ),
@@ -216,8 +255,6 @@ class InstaWP_Staging_V4 {
 		$uuid = Helper::get_args_option( 'uuid', $data, '' );
 
 		if ( empty( $uuid ) ) {
-			self::mark_instamigrate_orphaned();
-
 			return new WP_Error( 'no_migration_reference', esc_html__( 'InstaWP did not return a migration reference.', 'instawp-connect' ) );
 		}
 
@@ -240,8 +277,6 @@ class InstaWP_Staging_V4 {
 		$start = Curl::do_curl( 'live-import/' . $uuid . '/start', $start_args );
 
 		if ( empty( $start['success'] ) ) {
-			self::mark_instamigrate_orphaned();
-
 			return new WP_Error( 'site_create_failed', Helper::get_args_option( 'message', $start, esc_html__( 'Could not create the staging site.', 'instawp-connect' ) ) );
 		}
 
@@ -267,8 +302,32 @@ class InstaWP_Staging_V4 {
 	 *
 	 * @return float
 	 */
-	private static function total_size_mb( $migrate_settings ) {
-		$files = InstaWP_Tools::get_total_sizes( 'files', $migrate_settings );
+	private static function total_size_mb( $exclude ) {
+		/*
+		 * Sized against the exclusions we ACTUALLY TRANSMIT, not the ones the user selected.
+		 *
+		 * get_total_sizes() subtracts every entry in excluded_paths, including root-level ones
+		 * ('wp-admin', 'wp-includes', and anything the user ticks in the file browser, which is
+		 * rooted at the SITE ROOT, not wp-content). build_exclude() can only transmit
+		 * wp-content-relative paths, because that is the agent's contract. Passing the raw settings
+		 * here therefore sized the site as though root-level exclusions applied while the agent
+		 * never received them -- the same direction of failure as the round-1 bug: sized small,
+		 * passed the plan check, agent copies more than the plan holds.
+		 *
+		 * Subtracting only the transmitted set makes that class of mismatch FAIL SAFE. Whatever the
+		 * agent's copy scope turns out to be, this number can never be smaller than what it copies,
+		 * so the worst outcome is a plan larger than strictly needed. (What the agent copies at root
+		 * level is not knowable from this repo -- do not "optimise" this by measuring wp-content
+		 * alone without confirming that against the agent contract first.)
+		 */
+		$content_rel = self::content_rel();
+		$transmitted = array();
+
+		foreach ( (array) Helper::get_args_option( 'paths', $exclude, array() ) as $relative_path ) {
+			$transmitted[] = $content_rel . '/' . $relative_path;
+		}
+
+		$files = InstaWP_Tools::get_total_sizes( 'files', array( 'excluded_paths' => $transmitted ) );
 		$db    = InstaWP_Tools::get_total_sizes( 'db' );
 
 		return round( ( $files + $db ) / ( 1000 * 1000 ), 2 );
@@ -280,6 +339,11 @@ class InstaWP_Staging_V4 {
 	 * @return string|WP_Error
 	 */
 	private static function provision_instamigrate() {
+		// Whether instamigrate was ALREADY here. installInstaMigrate() reports success when the
+		// class already exists, so without this we would mark ourselves responsible for a plugin we
+		// did not install and cannot claim to clean up.
+		$pre_existing = class_exists( '\\InstaMigrate' );
+
 		$installed = Helper::installInstaMigrate();
 
 		if ( empty( $installed['success'] ) ) {
@@ -287,6 +351,21 @@ class InstaWP_Staging_V4 {
 				'instamigrate_install_failed',
 				Helper::get_args_option( 'message', $installed, esc_html__( 'Could not install InstaMigrate.', 'instawp-connect' ) )
 			);
+		}
+
+		/*
+		 * Marked HERE, immediately after a real install, and cleared in remember_run() once the
+		 * migration is actually referenced.
+		 *
+		 * It used to be marked at each individual failure site further down, which missed the two
+		 * early returns below (getInstaMigrateApiKey failing, and an empty key) -- both of which
+		 * are precisely "installed, but no migration". Marking at the point the obligation is
+		 * INCURRED rather than at each place it might be discharged means no future early return
+		 * can silently skip it. Same shape as the idempotency lesson: gate the cheap bookkeeping,
+		 * never make the restore optional.
+		 */
+		if ( ! $pre_existing ) {
+			self::mark_instamigrate_orphaned();
 		}
 
 		$key_response = Helper::getInstaMigrateApiKey();
@@ -320,6 +399,20 @@ class InstaWP_Staging_V4 {
 	 *
 	 * @return array
 	 */
+	private static function content_rel() {
+		/*
+		 * basename( WP_CONTENT_DIR ), matching the PRODUCER exactly
+		 * (class-instawp-tools.php:1010). An earlier revision derived this by stripping
+		 * instawp_get_root_path() out of WP_CONTENT_DIR with str_replace, which agrees only when
+		 * wp-content sits directly under the root. On Bedrock (WP_CONTENT_DIR outside ABSPATH) or
+		 * where instawp_get_root_path() returns DOCUMENT_ROOT rather than ABSPATH, str_replace
+		 * stripped nothing, every path failed the prefix test, and 100% of exclusions were dropped
+		 * silently -- the round-1 bug, returning under a different layout. str_replace was also
+		 * unanchored, replacing every occurrence rather than the prefix.
+		 */
+		return basename( wp_normalize_path( untrailingslashit( WP_CONTENT_DIR ) ) );
+	}
+
 	private static function build_exclude( $migrate_settings ) {
 		global $wpdb;
 
@@ -336,10 +429,14 @@ class InstaWP_Staging_V4 {
 		 * dropped and exclude.paths was always empty. That was worse than a no-op: get_total_sizes()
 		 * DOES honour the exclusions, so a user excluding a large uploads directory was sized for the
 		 * small site, passed the plan check, and the agent then copied the full one.
+		 *
+		 * Anything this function DROPS (root-level entries: wp-admin, wp-includes, and whatever the
+		 * user ticks in the file browser, which is rooted at the site root) is dropped from the
+		 * SIZING too — total_size_mb() measures against this function's OUTPUT, not against
+		 * $migrate_settings. Keep those two together: sizing against the user's selection while
+		 * transmitting a subset is what created the bug above, in both of its revisions.
 		 */
-		$root        = wp_normalize_path( rtrim( instawp_get_root_path(), '/' ) );
-		$content_abs = wp_normalize_path( untrailingslashit( WP_CONTENT_DIR ) );
-		$content_rel = trim( str_replace( $root, '', $content_abs ), '/' );
+		$content_rel = self::content_rel();
 
 		$relative = array();
 
@@ -389,13 +486,16 @@ class InstaWP_Staging_V4 {
 	}
 
 	/**
-	 * Persist the run so the tracking URL survives a closed tab.
+	 * Persist the run. See DETAILS_OPTION — this is not yet read back on page load.
 	 *
 	 * @param string $uuid client-app's migration reference.
 	 *
 	 * @return void
 	 */
 	private static function remember_run( $uuid ) {
+		// The migration exists, so the install is accounted for.
+		Option::delete_option( 'instawp_instamigrate_orphaned' );
+
 		Option::update_option(
 			self::DETAILS_OPTION,
 			array(
@@ -407,9 +507,16 @@ class InstaWP_Staging_V4 {
 	}
 
 	/**
-	 * Record that instamigrate was installed for a migration that never started.
+	 * Record that WE installed instamigrate, pending a migration that references it.
 	 *
-	 * The plugin is left on the customer's production site otherwise, with nothing to explain it.
+	 * ⚠ This is a DIAGNOSTIC BREADCRUMB, not a rollback. Nothing reads this option and nothing
+	 * uninstalls instamigrate: if the run dies after the install, the plugin stays on the
+	 * customer's site and this option plus the error-log line are the only record of why. Set on a
+	 * real install, cleared by remember_run() once a migration references it, so a lingering value
+	 * means exactly "we installed this and the run never started".
+	 *
+	 * Do not describe this as rollback anywhere. Implementing actual cleanup (an admin notice, or
+	 * deactivate-and-delete when the flag is older than an hour) is a separate change.
 	 *
 	 * @return void
 	 */

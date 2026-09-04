@@ -343,6 +343,64 @@ class Helper {
 	 *
 	 * @return void
 	 */
+	/**
+	 * Field names whose VALUE must never be written to the error log.
+	 *
+	 * add_error_log() persists to an option that the plugin's own debug-info AJAX endpoint returns
+	 * verbatim — the payload customers paste into support tickets. Curl::do_curl() logs the whole
+	 * request body on any 4xx/5xx, and a 4xx is ROUTINE here (plan and quota rejections are normal),
+	 * so any credential travelling in a body lands there by default.
+	 *
+	 * Matched on a substring, so `plugin_api_key`, `insta_mig_key` and `wp_app_password` are covered
+	 * without maintaining an exact list. `salt` and `signature` matter more than they look:
+	 * migrate_settings.wp_config_constants carries EVERY define() from wp-config.php, which means
+	 * AUTH_SALT / SECURE_AUTH_SALT / LOGGED_IN_SALT / NONCE_SALT — and api_signature is sent on the
+	 * V3 serve endpoint.
+	 */
+	const REDACTED_LOG_KEYS = array(
+		'password',
+		'pwd',
+		'api_key',
+		'apikey',
+		'secret',
+		'token',
+		'jwt',
+		'_key',
+		'salt',
+		'signature',
+		'credential',
+	);
+
+	/**
+	 * Strip credential values immediately before they are written to the log.
+	 *
+	 * Deliberately NOT folded into sanitize_data(): that is a shared, general-purpose sanitiser used
+	 * by callers that intend to KEEP what it returns, and silently dropping fields there would
+	 * corrupt their data. Redaction belongs at the sink, not in the sanitiser.
+	 *
+	 * @param array $data payload about to be logged.
+	 *
+	 * @return array
+	 */
+	private static function redact_for_log( $data ) {
+		if ( ! is_array( $data ) ) {
+			return $data;
+		}
+
+		foreach ( $data as $key => $value ) {
+			if ( self::is_redacted_log_key( $key ) ) {
+				$data[ $key ] = '[redacted]';
+				continue;
+			}
+
+			if ( is_array( $value ) ) {
+				$data[ $key ] = self::redact_for_log( $value );
+			}
+		}
+
+		return $data;
+	}
+
 	public static function add_error_log( $payload, $th = null ) {
 		$log_name = 'iwp_connect_helper_error_log';
 		$log      = self::get_options( array(), $log_name );
@@ -354,7 +412,7 @@ class Helper {
 			$log = array_slice( $log, 50 );
 		}
 
-		$error         = is_array( $payload ) ? self::sanitize_data( $payload ) : array(
+		$error         = is_array( $payload ) ? self::redact_for_log( self::sanitize_data( $payload ) ) : array(
 			'message' => sanitize_text_field( $payload ),
 		);
 		$error['time'] = date( 'Y-m-d H:i:s' );
@@ -393,17 +451,6 @@ class Helper {
 	 *
 	 * @return array|string sanitized data
 	 */
-	/**
-	 * Field names whose VALUE must never be written to the error log.
-	 *
-	 * add_error_log() persists to an option that the plugin's own debug-info AJAX endpoint returns
-	 * verbatim — the payload customers paste into support tickets. Curl::do_curl() logs the whole
-	 * request body on any 4xx/5xx, so any credential travelling in a body lands there by default.
-	 * Matched on a substring so `plugin_api_key`, `insta_mig_key`, `wp_app_password` and friends are
-	 * all covered without maintaining an exact list.
-	 */
-	const REDACTED_LOG_KEYS = array( 'password', 'api_key', 'apikey', 'secret', 'token', 'jwt', '_key' );
-
 	public static function sanitize_data( $data ) {
 		if ( empty( $data ) ) {
 			return $data;
@@ -411,11 +458,6 @@ class Helper {
 
 		if ( is_array( $data ) ) {
 			foreach ( $data as $key => $value ) {
-				if ( self::is_redacted_log_key( $key ) ) {
-					$data[ $key ] = '[redacted]';
-					continue;
-				}
-
 				if ( is_array( $value ) ) {
 					$data[ $key ] = self::sanitize_data( $value );
 				} else {

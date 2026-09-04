@@ -80,7 +80,12 @@ rather than the fallback hardcoded, so the moment a hosted URL exists for this r
 no code change.
 
 The chosen URL is persisted in `instawp_staging_v4_details`, mirroring how V3 persists
-`instawp_migration_details`, so closing the tab does not lose the run.
+`instawp_migration_details`.
+
+⚠ **Not yet resumed on page load.** Nothing reads that option back into the watcher — the resume path
+in `scripts.js` is V3-only, gated on a server-rendered `loading` class a V4 run never sets. Closing the
+tab therefore loses the live view today; the stored URL is a record for support and the hook a future
+resume will use. Stated plainly because the earlier wording claimed the opposite.
 
 ## Exclusions are translated, not passed through
 
@@ -99,6 +104,19 @@ The agent's vocabulary differs from V3's in three ways that matter:
 Table exclusions become `skip_table_data`, which ships the schema and drops the rows, so the table
 lands empty instead of missing.
 
+**V3's `excluded_tables_rows` has no V4 equivalent, and that is expected.** V3 keeps the connect
+identity off the destination at source, by excluding individual `wp_options` rows
+(`instawp_api_options`, `instawp_connect_id_options`, `instawp_is_staging`, `instawp_staging_sites`,
+`instawp_migration_details`). V4 has no row-level exclusion at any level, and `options` is
+unskippable anyway — so the destination DOES arrive holding the source's connect identity.
+
+It is repaired afterwards, on the client-app side: on the terminal `completed` event
+`StagingLinkService` re-asserts the destination's own api key and domain and runs
+`wp instawp reset staging` before linking it to its parent. So the plugin deliberately does not
+attempt this, and `build_exclude()` reading only `excluded_paths`/`excluded_tables` is correct rather
+than an omission. If that repair is ever removed, this becomes a silent data-identity bug — the site
+migrates fine and sync points at the wrong place.
+
 ## Two things deliberately NOT sent
 
 - **The legacy disk allowance.** client-app derives it itself from `planAllow`/`planUsed`. A quota
@@ -108,17 +126,39 @@ lands empty instead of missing.
   in its state files.
 
 Credentials that DO travel in a request body are kept out of the plugin's error log:
-`Helper::sanitize_data()` redacts any key containing `password`, `api_key`, `secret`, `token`, `jwt`
-or `_key`. This matters because `Curl::do_curl()` logs the whole request body on any 4xx/5xx, and
-`add_error_log()` persists to an option the debug-info AJAX endpoint returns verbatim — the payload
-customers paste into support tickets.
+`Helper::add_error_log()` redacts any key containing `password`, `pwd`, `api_key`, `apikey`,
+`secret`, `token`, `jwt`, `_key`, `salt`, `signature` or `credential`. This matters because
+`Curl::do_curl()` logs the whole request body on any 4xx/5xx — and a 4xx is ROUTINE here, since plan
+and quota rejections are a normal outcome — while `add_error_log()` persists to an option the
+debug-info AJAX endpoint returns verbatim, i.e. the payload customers paste into support tickets.
+`salt` and `signature` are not incidental: `migrate_settings.wp_config_constants` carries every
+`define()` from wp-config.php, so the four auth SALTs pass through this sink.
+
+The redaction lives in `add_error_log()`, not in `sanitize_data()`. `sanitize_data()` is a shared,
+general-purpose sanitiser whose callers intend to KEEP what it returns, so dropping fields there
+would silently corrupt their data. Redact at the sink, not in the sanitiser.
+
+⚠ **Still open, out of scope here:** `Curl::do_curl()` also writes `error_log( 'API HEADERS - ' … )`
+under `INSTAWP_DEBUG_LOG`, which puts the full `Authorization: Bearer <api_key>` into the PHP error
+log — and the plugin hands customers a link to `wp-content/debug.log`. Pre-existing and untouched by
+this branch; it needs its own fix.
 
 ## Failure handling
 
 If client-app cannot be reached *after* `instamigrate` has been installed, the run records
-`instawp_instamigrate_orphaned` and logs through `Helper::add_error_log()`. Leaving the plugin
-silently installed on a customer's production site with nothing to explain it is the worst available
-outcome, so it is recorded rather than ignored.
+`instawp_instamigrate_orphaned` and logs through `Helper::add_error_log()`.
+
+The flag is set at the point of a REAL install (skipped when instamigrate was already active, so we
+never claim responsibility for a plugin we did not install) and cleared by `remember_run()` once a
+migration references it. Setting it where the obligation is *incurred*, rather than at each site
+where it might be discharged, is deliberate: an earlier revision marked it at three individual
+failure sites and missed the two early returns in `provision_instamigrate()` — which are exactly the
+"installed, but no migration" case.
+
+⚠ **This is a breadcrumb, not a rollback.** Nothing reads the option and nothing uninstalls
+instamigrate, so the plugin does stay on the customer's site. A lingering value means precisely "we
+installed this and the run never started". Real cleanup — an admin notice, or deactivate-and-delete
+once the flag is stale — is a separate change and is not implemented.
 
 ## Return shapes — the trap worth knowing
 

@@ -290,7 +290,35 @@
             }
         });
     },
+        // Stop a V4 watch and return the wizard to a non-running state. `loading` is added in
+        // instawp_migrate_init's beforeSend and only `doing-ajax` is removed on complete, and
+        // elapsedInterval is started on the v4 branch — so both have to be undone here or the UI
+        // stays visually mid-migration forever.
+        instawp_staging_v4_stop = (create_container, watcher) => {
+            clearInterval(watcher);
+            create_container.removeAttr('interval-id');
+            create_container.removeClass('loading');
+
+            if (elapsedInterval) {
+                clearInterval(elapsedInterval);
+                elapsedInterval = null;
+            }
+        },
+        instawp_staging_v4_fail = (create_container, message) => {
+            let el_error_wrap = create_container.find('.migration-error');
+
+            // Only overwrite when the server actually gave us a reason. Every user-facing string in
+            // this file comes from the server (it is what makes them translatable), so an empty
+            // message leaves the template's own default text in place rather than inventing an
+            // untranslated English one here.
+            if (message && message.length > 0) {
+                el_error_wrap.find('.error-message').html(message);
+            }
+            el_error_wrap.removeClass('hidden');
+            create_container.find('.migration-running').addClass('hidden');
+        },
         instawp_staging_v4_watch = (create_container) => {
+            let failures = 0;
 
             // V4 staging: the migration agent owns the live view, so we poll only until it hands us
             // a URL, then surface the wizard's existing "track migration" link. Deliberately NOT the
@@ -301,8 +329,20 @@
                     'security': plugin_object.security,
                 }, function (response) {
                     if (!response.success) {
+                        // Give up rather than poll admin-ajax every 3s for the life of the page.
+                        // Some failures are permanent (the run option is gone, client-app 4xx) and
+                        // are indistinguishable here from a transient blip, so bound the retries.
+                        failures += 1;
+
+                        if (failures >= 5) {
+                            instawp_staging_v4_stop(create_container, watcher);
+                            instawp_staging_v4_fail(create_container, response.data && response.data.message);
+                        }
+
                         return;
                     }
+
+                    failures = 0;
 
                     // Prefer migration_url, fall back to tracking_url — resolved server-side and
                     // handed over as agent_url.
@@ -311,8 +351,23 @@
                         create_container.find('.instawp-track-migration-area').removeClass('justify-end').addClass('justify-between');
                     }
 
+                    // A terminal status must LOOK terminal. Clearing the poll alone left the
+                    // spinner turning and the elapsed timer counting up forever, so `failed`
+                    // rendered identically to `completed` and to still-in-progress — the user was
+                    // never told the migration had failed.
                     if (['completed', 'failed'].indexOf(response.data.status) !== -1) {
-                        clearInterval(watcher);
+                        instawp_staging_v4_stop(create_container, watcher);
+
+                        if ('failed' === response.data.status) {
+                            instawp_staging_v4_fail(create_container, response.data.message);
+                        }
+                    }
+                }).fail(function () {
+                    failures += 1;
+
+                    if (failures >= 5) {
+                        instawp_staging_v4_stop(create_container, watcher);
+                        instawp_staging_v4_fail(create_container, '');
                     }
                 });
             }, 3000);
