@@ -130,9 +130,11 @@ on the terminal `completed` event. So the plugin deliberately does not attempt t
 ALL-OR-NOTHING.** Both halves of that sentence were wrong in an earlier revision of this doc and
 matter more than the repair itself:
 
-1. **It is not just the repair that is unmerged.** `POST v2/migrate-v4/staging-init` — the endpoint
-   this flow posts to — does not exist on client-app `dev` either. #3148 ships the whole server
-   side, not a finishing touch on top of something already live.
+1. **`POST v2/migrate-v4/staging-init` does not exist on client-app `dev`** — verified against live
+   `dev`, not a local checkout. It is the one endpoint #3148 must add. The other two this flow calls
+   (`POST v2/live-import/{uuid}/start` and `GET v2/migrations/{uuid}/status`) DO already exist on
+   `dev` and are registered unconditionally, outside the engine gate. An earlier revision of this
+   note said #3148 "ships the whole server side", which overstated it in the other direction.
 2. **There is no staging-scoped flag to withhold.** `GET v2/migrate-v4/engine` answers purely from
    the global `MIGRATION_ENGINE` env var; the `migration_mode` parameter it accepts is logged for
    visibility and does not affect the answer. So the correct constraint is not "do not flip it for

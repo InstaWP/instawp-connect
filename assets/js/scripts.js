@@ -347,7 +347,11 @@
             // Mirrors what V3's completed path does: hide the live-progress furniture, and give the
             // user a forward action. `.migration-running` deliberately STAYS visible — the Track
             // Migration link lives inside it and is the whole point of this flow.
-            if (create_container.hasClass('completed')) {
+            // Checks BOTH classes. An earlier version checked only `completed`, which left the
+            // exact ordering the fail() comment describes wide open: give up after 5 failures, then
+            // an in-flight poll settles with `completed` and writes a green "Completed" header over
+            // a red error box, revealing the forward actions while .migration-error is showing.
+            if (create_container.hasClass('completed') || create_container.hasClass('migration-failed')) {
                 return;
             }
 
@@ -355,7 +359,10 @@
 
             create_container.addClass('completed');
             el_loader.text(el_loader.data('complete-text'));
-            create_container.find('#visibility-box, .full-screen-btn, .instawp-migrate-abort').addClass('hidden');
+            // .instawp-progress-* are SIBLINGS of #visibility-box, not children, and the V4 path
+            // never updates them — so without this they sit at "Files 0% / Database 0%" beside a
+            // "Completed" header.
+            create_container.find('#visibility-box, .full-screen-btn, .instawp-migrate-abort, .instawp-progress-files, .instawp-progress-db').addClass('hidden');
             create_container.find('.screen-buttons-last').removeClass('hidden');
         },
         instawp_staging_v4_watch = (create_container) => {

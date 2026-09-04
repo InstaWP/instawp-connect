@@ -519,8 +519,10 @@ class InstaWP_Staging_V4 {
 	 * @return void
 	 */
 	private static function remember_run( $uuid ) {
-		// The migration exists, so the install is accounted for.
+		// The migration exists, so the install is accounted for — clear both the flag and the
+		// once-only log latch, so a genuinely new orphan later on is reported again.
 		Option::delete_option( 'instawp_instamigrate_orphaned' );
+		Option::delete_option( 'instawp_instamigrate_orphan_logged' );
 
 		Option::update_option(
 			self::DETAILS_OPTION,
@@ -574,12 +576,27 @@ class InstaWP_Staging_V4 {
 			return;
 		}
 
+		if ( ! empty( Option::get_option( 'instawp_instamigrate_orphan_logged' ) ) ) {
+			// Already announced for this outstanding install. Says it once, not once per attempt.
+			return;
+		}
+
 		Helper::add_error_log( 'V4 staging: instamigrate installed but the migration did not start (' . $reason . ')' );
 
-		// Cleared once announced. Otherwise the flag outlives the run that set it, and a LATER run
-		// that installed nothing (instamigrate already active) would re-log the same line on every
-		// failure, filling a 150-entry ring with a claim that is no longer true.
-		Option::delete_option( 'instawp_instamigrate_orphaned' );
+		/*
+		 * The ORPHAN FLAG IS KEPT; only the re-logging is suppressed, via a separate option.
+		 *
+		 * An earlier revision deleted the flag here, on the reasoning that a later run would
+		 * otherwise re-log a claim that was no longer true. That reasoning was wrong: nothing
+		 * uninstalls instamigrate, so after a failure the plugin IS still orphaned and the claim
+		 * stays true. Deleting the flag destroyed the only durable record of it at the exact moment
+		 * it became accurate — and that flag is what a future admin notice or cleanup is meant to
+		 * read, so clearing it here would have made that feature impossible to build.
+		 *
+		 * remember_run() remains the only place the flag is cleared, because a migration
+		 * referencing instamigrate is the only thing that makes it non-orphaned.
+		 */
+		Option::update_option( 'instawp_instamigrate_orphan_logged', time(), false );
 	}
 }
 

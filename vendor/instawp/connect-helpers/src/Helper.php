@@ -435,6 +435,8 @@ class Helper {
 			return $text;
 		}
 
+		$original = $text;
+
 		/*
 		 * The needle alternation is DERIVED from REDACTED_LOG_KEYS rather than hand-listed. A
 		 * hand-written subset is the bug that shipped first: it covered six of eleven names, so
@@ -445,7 +447,12 @@ class Helper {
 		$needles = array();
 
 		foreach ( self::REDACTED_LOG_KEYS as $needle ) {
-			$needles[] = str_replace( '_', '[-_]?', preg_quote( $needle, '/' ) );
+			/*
+			 * INTERIOR underscores only. A blanket str_replace turned the needle `_key` into
+			 * `[-_]?key`, i.e. bare `key` — which then redacted `key=`, `keywords=` and `monkey=`.
+			 * Over-redaction is not a safe direction: it destroys the log line support reads.
+			 */
+			$needles[] = preg_replace( '/(?<=.)_(?=.)/', '[-_]?', preg_quote( $needle, '/' ) );
 		}
 
 		$alternation = implode( '|', $needles );
@@ -454,14 +461,14 @@ class Helper {
 		// still says which credential was involved. Not anchored on ? or & so a bare `token=…`
 		// inside a sentence is caught too.
 		$text = preg_replace(
-			'/((?:^|[?&\s;])[A-Za-z0-9_\-\[\]]*(?:' . $alternation . ')[A-Za-z0-9_\-\[\]]*=)[^&\s;]+/i',
+			'/((?:^|[?&\s;])[A-Za-z0-9_\-\[\]]*(?:' . $alternation . ')[A-Za-z0-9_\-\[\]]*=)[^&\s;"}]+/i',
 			'$1[redacted]',
 			$text
 		);
 
 		// "name":"value" — a json_encode'd body inlined into a message.
 		$text = preg_replace(
-			'/("[A-Za-z0-9_\-]*(?:' . $alternation . ')[A-Za-z0-9_\-]*"\s*:\s*")[^"]*(")/i',
+			'/("[A-Za-z0-9_\-]*(?:' . $alternation . ')[A-Za-z0-9_\-]*"\s*:\s*")(?:[^"\\\\]|\\\\.)*(")/i',
 			'$1[redacted]$2',
 			$text
 		);
@@ -472,9 +479,25 @@ class Helper {
 		 * and "Bearer token missing from request" lost its meaning. Real credentials on this sink
 		 * are far longer than 20 characters; English words after Bearer/Basic are not.
 		 */
+		// Context first, and length-independent: anything after `Authorization:` is a credential
+		// whatever its length. The floor below could not catch `Basic YWRtaW46YWJj` (18 chars).
+		$text = preg_replace( '/(Authorization\s*[:=]\s*(?:Bearer|Basic)\s+)\S+/i', '$1[redacted]', $text );
+
+		// Then the bare form, where only length separates a credential from ordinary English:
+		// without the floor, "Basic authentication failed" became "Basic [redacted] failed".
 		$text = preg_replace( '/\b(Bearer|Basic)\s+([A-Za-z0-9._~+\/=-]{20,})/i', '$1 [redacted]', $text );
 
-		return $text;
+		/*
+		 * FAIL SAFE, in the direction that keeps the log honest rather than empty.
+		 *
+		 * preg_replace() returns NULL on a compile failure or a backtrack-limit hit, and a null
+		 * assigned back would silently replace the whole message with nothing. That is a real risk
+		 * here: an earlier revision of the JSON rule failed to compile (a `\\` inside a character
+		 * class became `\]`, so the class never terminated) and every logged payload would have
+		 * been blanked. Returning the unscrubbed original is the lesser evil of the two — a log we
+		 * can read and redact later beats a log that is gone.
+		 */
+		return null === $text ? $original : $text;
 	}
 
 	public static function add_error_log( $payload, $th = null ) {
