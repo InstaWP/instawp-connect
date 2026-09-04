@@ -35,6 +35,26 @@ Steps 4 and 5 are two calls on purpose: step 4 records what must happen, step 5 
 the hosted wizard uses, so everything downstream — site creation, SSH provisioning, the agent call,
 the completion webhook — is shared rather than duplicated.
 
+## How it is wired to the Create-Staging button
+
+The button is unchanged. `InstaWP_Ajax::migrate_init()` — the V3 entry point — gains a single early
+branch:
+
+```php
+if ( InstaWP_Staging_V4::is_enabled() ) {
+    // delegate to InstaWP_Staging_V4::run(), return its result
+}
+```
+
+That is the **only** line of the V3 flow this feature adds. Everything below it is untouched and
+still runs whenever the engine says `v3`. Delegating here rather than giving the button a second
+endpoint keeps the existing UI, its nonce and its capability check exactly as they are.
+
+The response carries `engine: 'v4'`, and `assets/js/scripts.js` branches on it: a v4 run polls
+`instawp_staging_status_v4` for the agent URL and populates the wizard's existing
+`.instawp-track-migration` link, instead of running the V3 progress loop — there is no V3 migration
+row for that loop to report on.
+
 ## AJAX actions
 
 | Action | Purpose |

@@ -126,21 +126,41 @@ class InstaWP_Staging_V4 {
 		// browser session — any subscriber can read it out of the page source.
 		InstaWP_Tools::verify_ajax_request();
 
+		$result = self::run( $_POST ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error( array_merge(
+				array( 'message' => $result->get_error_message() ),
+				(array) $result->get_error_data()
+			) );
+		}
+
+		wp_send_json_success( $result );
+	}
+
+	/**
+	 * Run the V4 staging sequence.
+	 *
+	 * Separate from the AJAX handler so the existing Create-Staging flow can delegate to it without
+	 * going through a second HTTP round trip. Returns the data payload, or a WP_Error whose error
+	 * data carries anything extra the caller should surface (e.g. recommended_plan_id).
+	 *
+	 * @param array $posted The posted request data.
+	 *
+	 * @return array|WP_Error
+	 */
+	public static function run( $posted ) {
 		if ( ! self::is_enabled() ) {
-			wp_send_json_error( array( 'message' => esc_html__( 'The V4 migration engine is not enabled for this site.', 'instawp-connect' ) ) );
+			return new WP_Error( 'engine_not_v4', esc_html__( 'The V4 migration engine is not enabled for this site.', 'instawp-connect' ) );
 		}
 
 		$connect_id = instawp_get_connect_id();
 
 		if ( empty( $connect_id ) ) {
-			wp_send_json_error( array( 'message' => esc_html__( 'This site is not connected to InstaWP.', 'instawp-connect' ) ) );
+			return new WP_Error( 'not_connected', esc_html__( 'This site is not connected to InstaWP.', 'instawp-connect' ) );
 		}
 
-		$settings_str = isset( $_POST['settings'] ) ? $_POST['settings'] : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-
-		parse_str( $settings_str, $settings_arr );
-
-		$migrate_settings = InstaWP_Tools::get_migrate_settings( $_POST ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$migrate_settings = InstaWP_Tools::get_migrate_settings( $posted );
 		$plan_id          = (int) Helper::get_args_option( 'plan_id', $migrate_settings, 0 );
 
 		// Measured locally — files AND database. This is the number client-app sizes the plan
@@ -152,7 +172,7 @@ class InstaWP_Staging_V4 {
 		$api_key = self::provision_instamigrate();
 
 		if ( is_wp_error( $api_key ) ) {
-			wp_send_json_error( array( 'message' => $api_key->get_error_message() ) );
+			return $api_key;
 		}
 
 		$payload = array(
@@ -179,9 +199,10 @@ class InstaWP_Staging_V4 {
 			// needs cleaning up and tell the caller plainly.
 			self::mark_instamigrate_orphaned();
 
-			wp_send_json_error(
+			return new WP_Error(
+				'staging_init_failed',
+				Helper::get_args_option( 'message', $response, esc_html__( 'Could not start the staging migration.', 'instawp-connect' ) ),
 				array(
-					'message'             => Helper::get_args_option( 'message', $response, esc_html__( 'Could not start the staging migration.', 'instawp-connect' ) ),
 					'recommended_plan_id' => Helper::get_args_option( 'recommended_plan_id', Helper::get_args_option( 'data', $response, array() ), 0 ),
 				)
 			);
@@ -192,7 +213,8 @@ class InstaWP_Staging_V4 {
 
 		if ( empty( $uuid ) ) {
 			self::mark_instamigrate_orphaned();
-			wp_send_json_error( array( 'message' => esc_html__( 'InstaWP did not return a migration reference.', 'instawp-connect' ) ) );
+
+			return new WP_Error( 'no_migration_reference', esc_html__( 'InstaWP did not return a migration reference.', 'instawp-connect' ) );
 		}
 
 		// Step 5: create the destination site and start. This is client-app's EXISTING endpoint —
@@ -207,16 +229,19 @@ class InstaWP_Staging_V4 {
 
 		if ( empty( $start['success'] ) ) {
 			self::mark_instamigrate_orphaned();
-			wp_send_json_error( array( 'message' => Helper::get_args_option( 'message', $start, esc_html__( 'Could not create the staging site.', 'instawp-connect' ) ) ) );
+
+			return new WP_Error( 'site_create_failed', Helper::get_args_option( 'message', $start, esc_html__( 'Could not create the staging site.', 'instawp-connect' ) ) );
 		}
 
 		self::remember_run( $uuid );
 
-		wp_send_json_success(
-			array(
-				'uuid'    => $uuid,
-				'message' => esc_html__( 'Staging site creation started.', 'instawp-connect' ),
-			)
+		return array(
+			// The wizard branches on this: a v4 run polls staging_status_v4 for the agent URL
+			// instead of the V3 progress endpoint.
+			'engine'     => 'v4',
+			'uuid'       => $uuid,
+			'started_at' => time(),
+			'message'    => esc_html__( 'Staging site creation started.', 'instawp-connect' ),
 		);
 	}
 

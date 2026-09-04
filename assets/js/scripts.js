@@ -290,6 +290,35 @@
             }
         });
     },
+        instawp_staging_v4_watch = (create_container) => {
+
+            // V4 staging: the migration agent owns the live view, so we poll only until it hands us
+            // a URL, then surface the wizard's existing "track migration" link. Deliberately NOT the
+            // V3 progress loop — there is no V3 migration row to report on.
+            let watcher = setInterval(function () {
+                $.post(plugin_object.ajax_url, {
+                    'action': 'instawp_staging_status_v4',
+                    'security': plugin_object.security,
+                }, function (response) {
+                    if (!response.success) {
+                        return;
+                    }
+
+                    // Prefer migration_url, fall back to tracking_url — resolved server-side and
+                    // handed over as agent_url.
+                    if (typeof response.data.agent_url !== 'undefined' && response.data.agent_url.length > 0) {
+                        create_container.find('.instawp-track-migration').attr('href', response.data.agent_url).removeClass('hidden');
+                        create_container.find('.instawp-track-migration-area').removeClass('justify-end').addClass('justify-between');
+                    }
+
+                    if (['completed', 'failed'].indexOf(response.data.status) !== -1) {
+                        clearInterval(watcher);
+                    }
+                });
+            }, 3000);
+
+            create_container.attr('interval-id', watcher);
+        },
         instawp_migrate_init = () => {
 
             let create_container = $('.instawp-wrap .nav-item-content.create'),
@@ -322,6 +351,19 @@
                     console.log(response);
 
                     if (response.success) {
+                        // The engine decides the path. V3 below is untouched.
+                        if (response.data.engine === 'v4') {
+                            if (!elapsedInterval) {
+                                elapsedInterval = setInterval(() => {
+                                    updateTimer(response.data.started_at)
+                                }, 1000);
+                            }
+
+                            instawp_staging_v4_watch(create_container);
+
+                            return;
+                        }
+
                         if (!elapsedInterval) {
                             elapsedInterval = setInterval(() => {
                                 updateTimer(response.data.started_at)

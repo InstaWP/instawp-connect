@@ -309,6 +309,28 @@ class InstaWP_Ajax {
 	public function migrate_init() {
 		InstaWP_Tools::verify_ajax_request();
 
+		/*
+		 * V4 branch. The engine decides which path runs; V3 below is untouched and still runs
+		 * whenever the engine says v3, so this is the ONLY line of the V3 flow this change adds.
+		 *
+		 * Delegating here rather than giving the button a second endpoint keeps the existing
+		 * Create-Staging UI, its nonce and its capability check exactly as they are — the response
+		 * carries `engine: 'v4'` so the wizard knows to poll for the agent URL instead of the V3
+		 * progress endpoint.
+		 */
+		if ( InstaWP_Staging_V4::is_enabled() ) {
+			$result = InstaWP_Staging_V4::run( $_POST ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+
+			if ( is_wp_error( $result ) ) {
+				wp_send_json_error( array_merge(
+					array( 'message' => $result->get_error_message() ),
+					(array) $result->get_error_data()
+				) );
+			}
+
+			wp_send_json_success( $result );
+		}
+
 		$settings_str = isset( $_POST['settings'] ) ? $_POST['settings'] : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 
 		parse_str( $settings_str, $settings_arr );
