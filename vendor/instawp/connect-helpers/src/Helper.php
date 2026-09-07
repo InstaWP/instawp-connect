@@ -422,26 +422,37 @@ class Helper {
 	 *
 	 * @return string
 	 */
+	/** Memoised needle alternation for scrub_credentials_in_text(). */
+	private static $scrub_alternation = null;
+
 	private static function scrub_credentials_in_text( $text ) {
 		if ( ! is_string( $text ) || '' === $text ) {
 			return $text;
 		}
 
 		/*
-		 * A very long single token can push these patterns past PCRE's backtrack limit, which costs
-		 * real CPU on an admin-ajax request before failing. Nothing legitimate on this sink is this
-		 * large, so refuse rather than chew on it: the caller keeps a readable message and the key
-		 * based redaction in redact_for_log() still applies.
+		 * CEILING, AND IT FAILS CLOSED.
+		 *
+		 * An earlier revision returned the value verbatim above the limit and justified it with
+		 * "the key-based redaction still applies". That is false for exactly the case that matters:
+		 * Curl::do_curl logs `'args' => $body`, and $body may be a raw JSON STRING — the key is
+		 * `args`, which matches no needle, so a 20k+ body containing "api_key":"..." went to the log
+		 * in the clear. It was the one place the design failed open.
+		 *
+		 * The limit itself was also ~20x tighter than needed. Measured, the backtrack cliff in the
+		 * name=value rule is between 400 KB and 800 KB (800 KB took ~50s before exhausting), so
+		 * 256 KB keeps the DoS protection while putting the bailout out of reach of any legitimate
+		 * payload on this sink.
 		 */
-		if ( strlen( $text ) > 20000 ) {
-			return $text;
+		if ( strlen( $text ) > 262144 ) {
+			return '[redacted: value exceeded scrub limit (' . strlen( $text ) . ' bytes)]';
 		}
 
 		$original = $text;
 
 		/*
 		 * The needle alternation is DERIVED from REDACTED_LOG_KEYS rather than hand-listed. A
-		 * hand-written subset is the bug that shipped first: it covered six of eleven names, so
+		 * hand-written subset is the bug that shipped first: it covered six of twelve names, so
 		 * shapes the key-based redactor already treats as secret - jwt, insta_mig_key, pwd - passed
 		 * through here untouched. Underscores are matched as optional separators so api_key,
 		 * apikey, api-key and x-api-key all resolve to the same needle.
@@ -450,23 +461,45 @@ class Helper {
 		 * i.e. bare `key`, which then redacted `key=`, `keywords=` and `monkey=`. Over-redaction is
 		 * not a safe direction - it destroys the log line support reads.
 		 */
-		$needles = array();
+		// Built once. It is a constant derived from a constant, and rebuilding it per string leaf
+		// was measured at 55% of the whole per-leaf cost.
+		if ( null === self::$scrub_alternation ) {
+			$needles = array();
 
-		foreach ( self::REDACTED_LOG_KEYS as $needle ) {
-			$needles[] = preg_replace( '/(?<=.)_(?=.)/', '[-_]?', preg_quote( $needle, '/' ) );
+			foreach ( self::REDACTED_LOG_KEYS as $needle ) {
+				$needles[] = preg_replace( '/(?<=.)_(?=.)/', '[-_]?', preg_quote( $needle, '/' ) );
+			}
+
+			self::$scrub_alternation = implode( '|', $needles );
 		}
 
-		$alternation = implode( '|', $needles );
+		$alternation = self::$scrub_alternation;
+
+		/*
+		 * name=value, via a CALLBACK so the never-redacted allowlist applies to values too.
+		 *
+		 * Key matching alone was not enough: `last_query` is not a needle, but its VALUE contains
+		 * `meta_key=_thumbnail_id`, so the logged SQL came back as `WHERE meta_key=[redacted]` —
+		 * destroying the one detail that line exists to carry. The allowlist has to be consulted
+		 * against the matched NAME, which a plain replacement string cannot do.
+		 */
+		$nameValue = '/((?:^|[?&\s;])([A-Za-z0-9_\-\[\]]*(?:' . $alternation . ')[A-Za-z0-9_\-\[\]]*)=)"?[^&\s;}"]+"?/i';
+
+		$result = preg_replace_callback(
+			$nameValue,
+			static function ( $m ) {
+				return self::is_redacted_log_key( $m[2] ) ? $m[1] . '[redacted]' : $m[0];
+			},
+			$text
+		);
+
+		if ( null === $result ) {
+			return $text;
+		}
+
+		$text = $result;
 
 		$rules = array(
-			// name=value in a query string or a form body. Keeps the NAME, drops the value, so the
-			// log still says which credential was involved. Not anchored on ? or & so a bare
-			// `token=...` inside a sentence is caught too. Bounded by " and } so a JSON body
-			// inlined into a message keeps everything after the credential.
-			array(
-				'/((?:^|[?&\s;])[A-Za-z0-9_\-\[\]]*(?:' . $alternation . ')[A-Za-z0-9_\-\[\]]*=)[^&\s;"}]+/i',
-				'$1[redacted]',
-			),
 			// "name":"value" - a json_encode'd body inlined into a message.
 			array(
 				'/("[A-Za-z0-9_\-]*(?:' . $alternation . ')[A-Za-z0-9_\-]*"\s*:\s*")(?:[^"\\\\]|\\\\.)*(")/i',
@@ -496,7 +529,10 @@ class Helper {
 			 * later beats a log that is gone.
 			 */
 			if ( null === $result ) {
-				return $original;
+				// $text, NOT $original: earlier rules may already have redacted something, and
+				// returning the original would hand those values back. $text is provably non-null
+				// here (only ever assigned from a non-null result), so this is strictly safer.
+				return $text;
 			}
 
 			$text = $result;
@@ -596,7 +632,21 @@ class Helper {
 	 *
 	 * @return bool
 	 */
+	/**
+	 * Names that look like a needle but are diagnostics, and must survive.
+	 *
+	 * `_key` matches `meta_key`, which the sync code logs as the entire point of its failure line
+	 * ("which meta key failed?"), and `auth` matches `author` / `post_author`. Redacting those
+	 * removes the information the log exists to carry, which is a different way of destroying it
+	 * than blanking the message.
+	 */
+	const NEVER_REDACTED_LOG_KEYS = array( 'meta_key', 'migrate_key', 'author', 'post_author' );
+
 	private static function is_redacted_log_key( $key ) {
+		if ( in_array( strtolower( (string) $key ), self::NEVER_REDACTED_LOG_KEYS, true ) ) {
+			return false;
+		}
+
 		if ( ! is_string( $key ) ) {
 			return false;
 		}
