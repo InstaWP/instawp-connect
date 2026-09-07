@@ -178,6 +178,13 @@ matter more than the repair itself:
    would make the ordering non-fatal, but it contradicts the "engine flip is all-or-nothing" decision
    and is a design change, not a fix. It has not been made.
 
+**V3 IS NOT BEING TURNED OFF.** client-app carries a separate `MIGRATE_V3_DEPRECATED` flag
+(default false) for exactly this: `MIGRATION_ENGINE` says which engine a NEW migration uses, while
+that flag says whether the V3 surface is still served at all. Every released plugin still ships the
+V3 engine and still calls the `migrates-v3` routes, and we do not control when a customer updates —
+so V3 keeps working for months yet. Nothing reads that flag today; it is named ahead of the code
+that will honour it.
+
 Getting the order wrong the other way — plugin first — breaks staging for everyone. Getting the
 identity repair wrong keeps the source's `instawp_api_options`, `instawp_is_staging` and
 `insta_migrate_api_key` on the destination: the migration reports success while sync silently points
