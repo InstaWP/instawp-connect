@@ -138,45 +138,32 @@ matter more than the repair itself:
 2. **There is no staging-scoped flag to withhold** — `GET v2/migrate-v4/engine` answers purely from
    the global `MIGRATION_ENGINE` env var (its `migration_mode` parameter is logged and never read).
 
-3. ⚠⚠ **AND THE FLAG IS ALREADY `v4` IN PRODUCTION.** Observed by QA on 2026-09-04: prod client-app
-   returns `engine: v4` for a real connected site today. So "do not flip the flag until #3148 ships"
-   is NOT the control — the flag is already flipped, and the only thing keeping it harmless is that
-   no released plugin contains any V4 code.
+3. ⚠ **`MIGRATION_ENGINE` IS ALREADY `v4` IN PRODUCTION** (observed by QA, 2026-09-04). That used to
+   make the plugin release order dangerous, because `migrate_init()` returns inside its V4 branch —
+   once the plugin believes v4 it never reaches V3 — so releasing before the server side deployed
+   would have 404'd every Create Staging click AND left instamigrate installed behind it.
 
-   **The control is therefore the PLUGIN RELEASE, not the flag.** `migrate_init()` returns inside the
-   V4 branch, so once `is_enabled()` is true **V3 is never reached**; and `run()` on a failing
-   `staging-init` returns a `WP_Error` with no fallback. Ship this branch to wp.org before #3148 is
-   deployed and **staging creation fails outright for every user who updates** — `staging-init` does
-   not exist on prod, so every attempt 404s.
+   **RESOLVED: staging now has its OWN flag, and V3 staging is NOT being turned off.**
+   `MIGRATION_STAGING_ENGINE` → `const.migration_agent.staging_engine`, defaulting to **`v3`**.
+   `GET v2/migrate-v4/engine` reads the `migration_mode` parameter the plugin already sends
+   (`'staging'`) and answers from that flag; every other caller still answers from
+   `MIGRATION_ENGINE`. `staging-init` is registered under the same staging flag rather than the
+   global one.
 
-   Order of operations, in this sequence and no other:
-   1. Merge and DEPLOY client-app #3167 (which adds `staging-init`).
+   Two consequences worth being explicit about:
+   - **An early plugin release is now inert.** With the flag at `v3` the plugin's `is_enabled()`
+     returns false and V3 runs, exactly as it does today. The release order below is still the
+     correct one, but getting it wrong is no longer harmful.
+   - **V3 staging keeps working**, deliberately, for a few more months — every released plugin still
+     ships the V3 engine and it is not being retired yet.
+
+   Order of operations:
+   1. Deploy client-app #3167 (which adds `staging-init` and this flag).
    2. Verify `POST v2/migrate-v4/staging-init` responds on prod.
-   3. Only then release the plugin.
-
-   **What "release the plugin" mechanically means here — both triggers are irreversible and neither
-   asks for confirmation:**
-   - `.github/workflows/svn-deploy.yml` deploys to wp.org on **any tag push** (`tags: - "*"`). A
-     stray tag ships the plugin.
-   - `.github/workflows/wp-readme-update.yml` republishes the readme and assets to wp.org on **any
-     push to `main`**.
-
-   **Rollback lever — `MIGRATION_ENGINE=v3`.** Verified: `staging-init` is registered INSIDE the
-   engine gate (`routes/api/migrate_v4.php:91` opens the `if`, `:321` is the route), so setting the
-   flag back to `v3` both closes the plugin's V4 branch — within its 5-minute engine transient — and
-   unregisters the endpoint. That is the lever to reach for if staging breaks after a release;
-   un-releasing from wp.org is not one.
-
-   **Version lives in FOUR places, and they currently disagree.** `instawp-connect.php:11`
-   (`Version: 0.1.3.8`), `instawp-connect.php:31` (`INSTAWP_PLUGIN_VERSION = '0.1.3.8'`),
-   `readme.txt:7` (`Stable tag: 0.1.3.9` — **already bumped, and it is the wp.org-visible half**),
-   and the `readme.txt` changelog heading `= 0.1.3.9 - Beta =`, which still needs a date. Whoever
-   cuts the release must reconcile all four; today wp.org would be told 0.1.3.9 is stable while the
-   plugin header declares 0.1.3.8.
-
-   Alternatively, decide deliberately to add a V3 fallback when `staging-init` is unavailable — that
-   would make the ordering non-fatal, but it contradicts the "engine flip is all-or-nothing" decision
-   and is a design change, not a fix. It has not been made.
+   3. Release the plugin.
+   4. **Only then** set `MIGRATION_STAGING_ENGINE=v4`. That is the switch that actually turns this
+      feature on, and it is reversible: setting it back to `v3` closes the plugin's V4 branch within
+      its 5-minute engine transient and unregisters the endpoint.
 
 Getting the order wrong the other way — plugin first — breaks staging for everyone. Getting the
 identity repair wrong keeps the source's `instawp_api_options`, `instawp_is_staging` and
