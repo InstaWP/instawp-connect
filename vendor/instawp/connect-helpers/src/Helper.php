@@ -361,6 +361,9 @@ class Helper {
 		'salt',
 		'signature',
 		'credential',
+		// Matched by `_key` too, but named explicitly: it is a credential, not the diagnostic its
+		// name suggests, and that is worth stating where the list is read rather than inferred.
+		'migrate_key',
 		// Catches `auth`, `authorization` and `oauth_*`. Known, accepted collision: a field named
 		// `author` is also redacted. Losing an author name from an error log is a trivial cost
 		// against leaking an authorization value, which is the trade being made deliberately.
@@ -506,15 +509,16 @@ class Helper {
 	const NEVER_REDACTED_LOG_KEYS = array( 'meta_key', 'author', 'post_author' );
 
 	private static function is_redacted_log_key( $key ) {
-		if ( in_array( strtolower( (string) $key ), self::NEVER_REDACTED_LOG_KEYS, true ) ) {
-			return false;
-		}
-
 		if ( ! is_string( $key ) ) {
 			return false;
 		}
 
 		$key = strtolower( $key );
+
+		// Diagnostics that the `_key` / `auth` substrings would otherwise swallow.
+		if ( in_array( $key, self::NEVER_REDACTED_LOG_KEYS, true ) ) {
+			return false;
+		}
 
 		foreach ( self::REDACTED_LOG_KEYS as $needle ) {
 			if ( false !== strpos( $key, $needle ) ) {
