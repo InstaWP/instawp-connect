@@ -385,26 +385,12 @@ class Helper {
 
 		foreach ( $data as $key => $value ) {
 			if ( self::is_redacted_log_key( $key ) ) {
-				$data[ $key ] = '[redacted]';
+				$data[ $key ] = '';
 				continue;
 			}
 
 			if ( is_array( $value ) ) {
 				$data[ $key ] = self::redact_for_log( $value );
-				continue;
-			}
-
-			/*
-			 * EVERY string leaf, not only the ones with a credential-shaped NAME.
-			 *
-			 * Key matching alone is not enough here, because a credential routinely travels inside
-			 * a value under an innocuous key: Curl::do_curl logs `api_url`, and a URL can carry the
-			 * credential in its query string (`check-key?jwt=…` is a real call, and an expired jwt
-			 * is exactly the 4xx that triggers logging). `api_url` matches no needle, so without
-			 * this the whole value went in verbatim.
-			 */
-			if ( is_string( $value ) ) {
-				$data[ $key ] = self::scrub_credentials_in_text( $value );
 			}
 		}
 
@@ -422,125 +408,6 @@ class Helper {
 	 *
 	 * @return string
 	 */
-	/** Memoised needle alternation for scrub_credentials_in_text(). */
-	private static $scrub_alternation = null;
-
-	private static function scrub_credentials_in_text( $text ) {
-		if ( ! is_string( $text ) || '' === $text ) {
-			return $text;
-		}
-
-		/*
-		 * CEILING, AND IT FAILS CLOSED.
-		 *
-		 * An earlier revision returned the value verbatim above the limit and justified it with
-		 * "the key-based redaction still applies". That is false for exactly the case that matters:
-		 * Curl::do_curl logs `'args' => $body`, and $body may be a raw JSON STRING — the key is
-		 * `args`, which matches no needle, so a 20k+ body containing "api_key":"..." went to the log
-		 * in the clear. It was the one place the design failed open.
-		 *
-		 * The limit itself was also ~20x tighter than needed. Measured, the backtrack cliff in the
-		 * name=value rule is between 400 KB and 800 KB (800 KB took ~50s before exhausting), so
-		 * 256 KB keeps the DoS protection while putting the bailout out of reach of any legitimate
-		 * payload on this sink.
-		 */
-		if ( strlen( $text ) > 262144 ) {
-			return '[redacted: value exceeded scrub limit (' . strlen( $text ) . ' bytes)]';
-		}
-
-		$original = $text;
-
-		/*
-		 * The needle alternation is DERIVED from REDACTED_LOG_KEYS rather than hand-listed. A
-		 * hand-written subset is the bug that shipped first: it covered six of twelve names, so
-		 * shapes the key-based redactor already treats as secret - jwt, insta_mig_key, pwd - passed
-		 * through here untouched. Underscores are matched as optional separators so api_key,
-		 * apikey, api-key and x-api-key all resolve to the same needle.
-		 *
-		 * INTERIOR underscores only: a blanket str_replace turned the needle `_key` into `[-_]?key`,
-		 * i.e. bare `key`, which then redacted `key=`, `keywords=` and `monkey=`. Over-redaction is
-		 * not a safe direction - it destroys the log line support reads.
-		 */
-		// Built once. It is a constant derived from a constant, and rebuilding it per string leaf
-		// was measured at 55% of the whole per-leaf cost.
-		if ( null === self::$scrub_alternation ) {
-			$needles = array();
-
-			foreach ( self::REDACTED_LOG_KEYS as $needle ) {
-				$needles[] = preg_replace( '/(?<=.)_(?=.)/', '[-_]?', preg_quote( $needle, '/' ) );
-			}
-
-			self::$scrub_alternation = implode( '|', $needles );
-		}
-
-		$alternation = self::$scrub_alternation;
-
-		/*
-		 * name=value, via a CALLBACK so the never-redacted allowlist applies to values too.
-		 *
-		 * Key matching alone was not enough: `last_query` is not a needle, but its VALUE contains
-		 * `meta_key=_thumbnail_id`, so the logged SQL came back as `WHERE meta_key=[redacted]` —
-		 * destroying the one detail that line exists to carry. The allowlist has to be consulted
-		 * against the matched NAME, which a plain replacement string cannot do.
-		 */
-		$nameValue = '/((?:^|[?&\s;])([A-Za-z0-9_\-\[\]]*(?:' . $alternation . ')[A-Za-z0-9_\-\[\]]*)=)"?[^&\s;}"]+"?/i';
-
-		$result = preg_replace_callback(
-			$nameValue,
-			static function ( $m ) {
-				return self::is_redacted_log_key( $m[2] ) ? $m[1] . '[redacted]' : $m[0];
-			},
-			$text
-		);
-
-		if ( null === $result ) {
-			return $text;
-		}
-
-		$text = $result;
-
-		$rules = array(
-			// "name":"value" - a json_encode'd body inlined into a message.
-			array(
-				'/("[A-Za-z0-9_\-]*(?:' . $alternation . ')[A-Za-z0-9_\-]*"\s*:\s*")(?:[^"\\\\]|\\\\.)*(")/i',
-				'$1[redacted]$2',
-			),
-			// Context first and length-independent: anything after `Authorization:` is a credential
-			// whatever its length. The floor below cannot catch `Basic YWRtaW46YWJj` (18 chars).
-			array( '/(Authorization\s*[:=]\s*(?:Bearer|Basic)\s+)\S+/i', '$1[redacted]' ),
-			// Then the bare form, where only length separates a credential from ordinary English:
-			// without the floor, "Basic authentication failed" became "Basic [redacted] failed".
-			array( '/\b(Bearer|Basic)\s+([A-Za-z0-9._~+\/=-]{20,})/i', '$1 [redacted]' ),
-		);
-
-		foreach ( $rules as $rule ) {
-			$result = preg_replace( $rule[0], $rule[1], $text );
-
-			/*
-			 * FAIL SAFE, PER RULE. preg_replace() returns NULL on a compile failure or a
-			 * backtrack-limit hit.
-			 *
-			 * Checking only after the LAST rule was not enough and was the bug here: a null from an
-			 * earlier rule was passed as the subject of the next one, where it is coerced to "" -
-			 * so the final value was an empty string, not null, the guard never fired, and the
-			 * whole message was silently blanked. Exactly the outcome this guard claims to prevent.
-			 *
-			 * Returning the unscrubbed original is the lesser evil: a log we can read and redact
-			 * later beats a log that is gone.
-			 */
-			if ( null === $result ) {
-				// $text, NOT $original: earlier rules may already have redacted something, and
-				// returning the original would hand those values back. $text is provably non-null
-				// here (only ever assigned from a non-null result), so this is strictly safer.
-				return $text;
-			}
-
-			$text = $result;
-		}
-
-		return $text;
-	}
-
 	/**
 	 * Add error log
 	 *
@@ -562,7 +429,7 @@ class Helper {
 
 		$error         = is_array( $payload ) ? self::redact_for_log( self::sanitize_data( $payload ) ) : array(
 			// Scrubbed too: a string payload reached the log with no redaction of any kind.
-			'message' => self::scrub_credentials_in_text( sanitize_text_field( $payload ) ),
+			'message' => sanitize_text_field( $payload ),
 		);
 		$error['time'] = date( 'Y-m-d H:i:s' );
 
@@ -570,11 +437,7 @@ class Helper {
 			$error = array_merge(
 				$error,
 				array(
-					// Scrubbed by VALUE, not by key. redact_for_log() matches field NAMES, and this
-					// field is called 'error' — so passing it through the redactor would do nothing
-					// at all. An exception message routinely quotes the URL that threw, which on
-					// this sink can carry ?token=/?api_key= or an Authorization value.
-					'error' => self::scrub_credentials_in_text( $th->getMessage() ),
+					'error' => $th->getMessage(),
 					'line'  => $th->getLine(),
 					'file'  => $th->getFile(),
 				)
@@ -640,7 +503,7 @@ class Helper {
 	 * removes the information the log exists to carry, which is a different way of destroying it
 	 * than blanking the message.
 	 */
-	const NEVER_REDACTED_LOG_KEYS = array( 'meta_key', 'migrate_key', 'author', 'post_author' );
+	const NEVER_REDACTED_LOG_KEYS = array( 'meta_key', 'author', 'post_author' );
 
 	private static function is_redacted_log_key( $key ) {
 		if ( in_array( strtolower( (string) $key ), self::NEVER_REDACTED_LOG_KEYS, true ) ) {
