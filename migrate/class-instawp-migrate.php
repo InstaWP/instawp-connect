@@ -76,6 +76,7 @@ if ( ! class_exists( 'InstaWP_Migration' ) ) {
 				$form_data,
 				array(
 					'instawp_hide_plugin_to_users' => array(),
+					'instawp_show_plugin_to_users' => array(),
 					'instawp_sync_tab_roles'       => array(),
 				)
 			);
