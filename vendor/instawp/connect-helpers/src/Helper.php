@@ -401,17 +401,6 @@ class Helper {
 	}
 
 	/**
-	 * Strip credential VALUES out of a free-text string.
-	 *
-	 * The key-based redactor cannot help here: this is for text that merely quotes a credential
-	 * (an exception message naming the URL that failed). Covers the two shapes that actually occur
-	 * on this sink — a query parameter and a bearer/authorization value.
-	 *
-	 * @param string $text text to scrub.
-	 *
-	 * @return string
-	 */
-	/**
 	 * Add error log
 	 *
 	 * @param array|string $payload
