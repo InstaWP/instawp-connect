@@ -336,14 +336,6 @@ class Helper {
 	}
 
 	/**
-	 * Add error log
-	 *
-	 * @param array|string $payload
-	 * @param Throwable    $th
-	 *
-	 * @return void
-	 */
-	/**
 	 * Field names whose VALUE must never be written to the error log.
 	 *
 	 * add_error_log() persists to an option that the plugin's own debug-info AJAX endpoint returns
@@ -435,71 +427,92 @@ class Helper {
 			return $text;
 		}
 
+		/*
+		 * A very long single token can push these patterns past PCRE's backtrack limit, which costs
+		 * real CPU on an admin-ajax request before failing. Nothing legitimate on this sink is this
+		 * large, so refuse rather than chew on it: the caller keeps a readable message and the key
+		 * based redaction in redact_for_log() still applies.
+		 */
+		if ( strlen( $text ) > 20000 ) {
+			return $text;
+		}
+
 		$original = $text;
 
 		/*
 		 * The needle alternation is DERIVED from REDACTED_LOG_KEYS rather than hand-listed. A
 		 * hand-written subset is the bug that shipped first: it covered six of eleven names, so
-		 * shapes the key-based redactor already treats as secret — jwt, insta_mig_key, pwd — passed
+		 * shapes the key-based redactor already treats as secret - jwt, insta_mig_key, pwd - passed
 		 * through here untouched. Underscores are matched as optional separators so api_key,
 		 * apikey, api-key and x-api-key all resolve to the same needle.
+		 *
+		 * INTERIOR underscores only: a blanket str_replace turned the needle `_key` into `[-_]?key`,
+		 * i.e. bare `key`, which then redacted `key=`, `keywords=` and `monkey=`. Over-redaction is
+		 * not a safe direction - it destroys the log line support reads.
 		 */
 		$needles = array();
 
 		foreach ( self::REDACTED_LOG_KEYS as $needle ) {
-			/*
-			 * INTERIOR underscores only. A blanket str_replace turned the needle `_key` into
-			 * `[-_]?key`, i.e. bare `key` — which then redacted `key=`, `keywords=` and `monkey=`.
-			 * Over-redaction is not a safe direction: it destroys the log line support reads.
-			 */
 			$needles[] = preg_replace( '/(?<=.)_(?=.)/', '[-_]?', preg_quote( $needle, '/' ) );
 		}
 
 		$alternation = implode( '|', $needles );
 
-		// name=value in a query string or a form body. Keeps the NAME, drops the value, so the log
-		// still says which credential was involved. Not anchored on ? or & so a bare `token=…`
-		// inside a sentence is caught too.
-		$text = preg_replace(
-			'/((?:^|[?&\s;])[A-Za-z0-9_\-\[\]]*(?:' . $alternation . ')[A-Za-z0-9_\-\[\]]*=)[^&\s;"}]+/i',
-			'$1[redacted]',
-			$text
+		$rules = array(
+			// name=value in a query string or a form body. Keeps the NAME, drops the value, so the
+			// log still says which credential was involved. Not anchored on ? or & so a bare
+			// `token=...` inside a sentence is caught too. Bounded by " and } so a JSON body
+			// inlined into a message keeps everything after the credential.
+			array(
+				'/((?:^|[?&\s;])[A-Za-z0-9_\-\[\]]*(?:' . $alternation . ')[A-Za-z0-9_\-\[\]]*=)[^&\s;"}]+/i',
+				'$1[redacted]',
+			),
+			// "name":"value" - a json_encode'd body inlined into a message.
+			array(
+				'/("[A-Za-z0-9_\-]*(?:' . $alternation . ')[A-Za-z0-9_\-]*"\s*:\s*")(?:[^"\\\\]|\\\\.)*(")/i',
+				'$1[redacted]$2',
+			),
+			// Context first and length-independent: anything after `Authorization:` is a credential
+			// whatever its length. The floor below cannot catch `Basic YWRtaW46YWJj` (18 chars).
+			array( '/(Authorization\s*[:=]\s*(?:Bearer|Basic)\s+)\S+/i', '$1[redacted]' ),
+			// Then the bare form, where only length separates a credential from ordinary English:
+			// without the floor, "Basic authentication failed" became "Basic [redacted] failed".
+			array( '/\b(Bearer|Basic)\s+([A-Za-z0-9._~+\/=-]{20,})/i', '$1 [redacted]' ),
 		);
 
-		// "name":"value" — a json_encode'd body inlined into a message.
-		$text = preg_replace(
-			'/("[A-Za-z0-9_\-]*(?:' . $alternation . ')[A-Za-z0-9_\-]*"\s*:\s*")(?:[^"\\\\]|\\\\.)*(")/i',
-			'$1[redacted]$2',
-			$text
-		);
+		foreach ( $rules as $rule ) {
+			$result = preg_replace( $rule[0], $rule[1], $text );
 
-		/*
-		 * Authorization: Bearer <value>. The length floor is load-bearing — without it this
-		 * mangles ordinary English: "Basic authentication failed" became "Basic [redacted] failed",
-		 * and "Bearer token missing from request" lost its meaning. Real credentials on this sink
-		 * are far longer than 20 characters; English words after Bearer/Basic are not.
-		 */
-		// Context first, and length-independent: anything after `Authorization:` is a credential
-		// whatever its length. The floor below could not catch `Basic YWRtaW46YWJj` (18 chars).
-		$text = preg_replace( '/(Authorization\s*[:=]\s*(?:Bearer|Basic)\s+)\S+/i', '$1[redacted]', $text );
+			/*
+			 * FAIL SAFE, PER RULE. preg_replace() returns NULL on a compile failure or a
+			 * backtrack-limit hit.
+			 *
+			 * Checking only after the LAST rule was not enough and was the bug here: a null from an
+			 * earlier rule was passed as the subject of the next one, where it is coerced to "" -
+			 * so the final value was an empty string, not null, the guard never fired, and the
+			 * whole message was silently blanked. Exactly the outcome this guard claims to prevent.
+			 *
+			 * Returning the unscrubbed original is the lesser evil: a log we can read and redact
+			 * later beats a log that is gone.
+			 */
+			if ( null === $result ) {
+				return $original;
+			}
 
-		// Then the bare form, where only length separates a credential from ordinary English:
-		// without the floor, "Basic authentication failed" became "Basic [redacted] failed".
-		$text = preg_replace( '/\b(Bearer|Basic)\s+([A-Za-z0-9._~+\/=-]{20,})/i', '$1 [redacted]', $text );
+			$text = $result;
+		}
 
-		/*
-		 * FAIL SAFE, in the direction that keeps the log honest rather than empty.
-		 *
-		 * preg_replace() returns NULL on a compile failure or a backtrack-limit hit, and a null
-		 * assigned back would silently replace the whole message with nothing. That is a real risk
-		 * here: an earlier revision of the JSON rule failed to compile (a `\\` inside a character
-		 * class became `\]`, so the class never terminated) and every logged payload would have
-		 * been blanked. Returning the unscrubbed original is the lesser evil of the two — a log we
-		 * can read and redact later beats a log that is gone.
-		 */
-		return null === $text ? $original : $text;
+		return $text;
 	}
 
+	/**
+	 * Add error log
+	 *
+	 * @param array|string $payload
+	 * @param Throwable    $th
+	 *
+	 * @return void
+	 */
 	public static function add_error_log( $payload, $th = null ) {
 		$log_name = 'iwp_connect_helper_error_log';
 		$log      = self::get_options( array(), $log_name );

@@ -90,8 +90,13 @@ class InstaWP_Staging_V4 {
 		$tracking_url  = Helper::get_args_option( 'tracking_url', $data, '' );
 		$agent_url     = ! empty( $migration_url ) ? $migration_url : $tracking_url;
 
+		// Compare the ESCAPED form against the escaped value we stored, not the raw one — otherwise
+		// any URL that esc_url_raw() alters looks different on every 3s poll and rewrites the option
+		// each time.
+		$agent_url = esc_url_raw( $agent_url );
+
 		if ( ! empty( $agent_url ) && $agent_url !== Helper::get_args_option( 'agent_url', (array) $details, '' ) ) {
-			$details['agent_url'] = esc_url_raw( $agent_url );
+			$details['agent_url'] = $agent_url;
 
 			Option::update_option( self::DETAILS_OPTION, $details, false );
 		}
@@ -368,26 +373,36 @@ class InstaWP_Staging_V4 {
 
 		$installed = Helper::installInstaMigrate();
 
+		/*
+		 * MARK BEFORE THE SUCCESS CHECK, and decide from the SITE not from the return value.
+		 *
+		 * installInstaMigrate() reports success=false in a case where the plugin IS installed and
+		 * activated: the installer succeeds, but `class_exists('\InstaMigrate')` /
+		 * INSTA_MIGRATE_OPTION_KEY are not yet defined in the same request, so it returns
+		 * 'After install INSTA_MIGRATE_OPTION_KEY not defined.' (connect-helpers Helper.php:219-224).
+		 * That is the most likely first-click outcome, and it is exactly "we installed it and the
+		 * migration never started" — the case the flag exists for. Marking after the success check
+		 * skipped it, which is the same defect this guard was moved here to fix once already.
+		 *
+		 * class_exists() cannot be the signal for the same reason it fails above. active_plugins is
+		 * read from the DB and does not depend on what this request has loaded.
+		 */
+		if ( ! $pre_existing ) {
+			foreach ( (array) get_option( 'active_plugins', array() ) as $plugin_file ) {
+				if ( 0 === strpos( (string) $plugin_file, 'instamigrate/' ) ) {
+					self::mark_instamigrate_orphaned();
+					break;
+				}
+			}
+		}
+
 		if ( empty( $installed['success'] ) ) {
+			self::log_orphaned_instamigrate( 'instamigrate installed but did not initialise' );
+
 			return new WP_Error(
 				'instamigrate_install_failed',
 				Helper::get_args_option( 'message', $installed, esc_html__( 'Could not install InstaMigrate.', 'instawp-connect' ) )
 			);
-		}
-
-		/*
-		 * Marked HERE, immediately after a real install, and cleared in remember_run() once the
-		 * migration is actually referenced.
-		 *
-		 * It used to be marked at each individual failure site further down, which missed the two
-		 * early returns below (getInstaMigrateApiKey failing, and an empty key) -- both of which
-		 * are precisely "installed, but no migration". Marking at the point the obligation is
-		 * INCURRED rather than at each place it might be discharged means no future early return
-		 * can silently skip it. Same shape as the idempotency lesson: gate the cheap bookkeeping,
-		 * never make the restore optional.
-		 */
-		if ( ! $pre_existing ) {
-			self::mark_instamigrate_orphaned();
 		}
 
 		$key_response = Helper::getInstaMigrateApiKey();
