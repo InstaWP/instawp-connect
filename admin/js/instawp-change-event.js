@@ -152,6 +152,22 @@ jQuery(document).ready(function ($) {
         }
     });
 
+    $(document).on('click', '#instawp-clear-all-events', function () {
+        if (confirm('This will remove all sync events. Continue?')) {
+            let formData = new FormData();
+            let site_id = $("#staging-site-sync").val();
+            formData.append('site_id', site_id);
+            formData.append('action', 'instawp_clear_all_events');
+            baseCall(formData, () => {
+                get_site_events();
+                display_event_action_dropdown();
+                $("body").find('#select-all-event').prop('checked', false);
+            }, (message) => {
+                alert(message);
+            });
+        }
+    });
+
     $(document).on('click', '.instawp-refresh-events', function () {
         get_site_events();
     });
