@@ -66,9 +66,25 @@ $total_size_mb = $total_size / (1000 * 1000);
                         <?php if ( ! empty( $feature_items ) ) { ?>
                             <span class="text-blue-800 text-xs font-medium bg-blue-50 px-2 py-1 rounded-md truncate"><?php echo esc_html( implode( ', ', $feature_items ) ); ?></span>
                         <?php } ?>
-                        <?php if ( $is_free_plan_disabled ) { ?>
+                        <?php
+                        /*
+                         * The REASON, not a blanket label. `3 sites exhausted` used to render for
+                         * either cause, so a user with zero staging sites and a large database was
+                         * told they had used three — and a PAID plan disabled on size got no label
+                         * at all, just a greyed row with no explanation. Sizing now counts the
+                         * database too, which routes many more users down the size branch, so the
+                         * label has to distinguish them.
+                         */
+                        if ( $is_free_plan && $site_data['free_site_count'] >= 3 ) {
+                            ?>
                             <span class="text-xs text-gray-500 font-light"><?php esc_html_e( '3 sites exhausted', 'instawp-connect' ); ?></span>
-                        <?php } ?>
+                            <?php
+                        } elseif ( $disk_quota_exceeded ) {
+                            ?>
+                            <span class="text-xs text-gray-500 font-light"><?php esc_html_e( 'Too small for this site', 'instawp-connect' ); ?></span>
+                            <?php
+                        }
+                        ?>
                     </div>
                     <div class="font-medium whitespace-nowrap">
                         <?php if ( $is_free_plan ) { ?>

@@ -51,7 +51,6 @@ class InstaWP_Staging_V4 {
 	 * InstaWP_Staging_V4 constructor.
 	 */
 	public function __construct() {
-		add_action( 'wp_ajax_instawp_staging_init_v4', array( $this, 'staging_init' ) );
 		add_action( 'wp_ajax_instawp_staging_status_v4', array( $this, 'staging_status' ) );
 	}
 
@@ -166,28 +165,6 @@ class InstaWP_Staging_V4 {
 	}
 
 	/**
-	 * AJAX: create a staging site through the V4 engine.
-	 *
-	 * The agent URL is not known yet at this point — poll staging_status() for it.
-	 */
-	public function staging_init() {
-		// Nonce AND capability. A nonce alone only proves the request came from a logged-in
-		// browser session — any subscriber can read it out of the page source.
-		InstaWP_Tools::verify_ajax_request();
-
-		$result = self::run( $_POST ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
-
-		if ( is_wp_error( $result ) ) {
-			wp_send_json_error( array_merge(
-				array( 'message' => $result->get_error_message() ),
-				(array) $result->get_error_data()
-			) );
-		}
-
-		wp_send_json_success( $result );
-	}
-
-	/**
 	 * Run the V4 staging sequence.
 	 *
 	 * Separate from the AJAX handler so the existing Create-Staging flow can delegate to it without
@@ -261,7 +238,19 @@ class InstaWP_Staging_V4 {
 		$response = Curl::do_curl( 'migrate-v4/staging-init', $payload );
 
 		if ( empty( $response['success'] ) ) {
-			self::log_orphaned_instamigrate( 'staging-init refused' );
+			/*
+			 * The CODE matters, and was being discarded. A 404 here means client-app has not
+			 * deployed staging-init yet — a release-ordering fault, not anything the user did — and
+			 * it looks identical to a plan or quota rejection unless the code is recorded. Whoever
+			 * reads this log on release day needs to be able to tell them apart at a glance.
+			 */
+			$code = (int) Helper::get_args_option( 'code', $response, 0 );
+
+			self::log_orphaned_instamigrate(
+				404 === $code || 501 === $code
+					? 'staging-init not available on client-app (HTTP ' . $code . ') — deploy ordering'
+					: 'staging-init refused (HTTP ' . $code . ')'
+			);
 
 			return new WP_Error(
 				'staging_init_failed',
@@ -366,10 +355,45 @@ class InstaWP_Staging_V4 {
 	 * @return string|WP_Error
 	 */
 	private static function provision_instamigrate() {
-		// Whether instamigrate was ALREADY here. installInstaMigrate() reports success when the
-		// class already exists, so without this we would mark ourselves responsible for a plugin we
-		// did not install and cannot claim to clean up.
-		$pre_existing = class_exists( '\\InstaMigrate' );
+		/*
+		 * `install_plugins`, NOT just `manage_options`.
+		 *
+		 * verify_ajax_request() gates these handlers on manage_options, which is the right check for
+		 * "may configure InstaWP" but NOT for "may put files on this filesystem". Installer::install()
+		 * runs Plugin_Upgrader with overwrite_package and then activate_plugin(), and checks no
+		 * capability of its own — so without this an AJAX endpoint installs a plugin on the strength
+		 * of manage_options alone.
+		 *
+		 * On single-site WP an Administrator holds both, so nothing changes. On MULTISITE a subsite
+		 * Administrator holds manage_options but NOT install_plugins (WP strips it from
+		 * non-super-admins), so this is the difference between a subsite admin writing to the
+		 * filesystem and not. It is also how WP enforces DISALLOW_FILE_MODS, which many managed hosts
+		 * set: that is mapped through install_plugins, so skipping the capability skips the host's
+		 * policy too.
+		 *
+		 * Same CWE-862 class as the v0.1.2.5 incident, one layer further in: the nonce and
+		 * manage_options are present, but the capability that actually matches the side effect is not.
+		 */
+		if ( ! current_user_can( 'install_plugins' ) ) {
+			return new WP_Error(
+				'cannot_install_plugins',
+				esc_html__( 'You do not have permission to install plugins on this site.', 'instawp-connect' )
+			);
+		}
+
+		/*
+		 * PRESENCE ON DISK, not class_exists().
+		 *
+		 * class_exists('\InstaMigrate') conflates "not installed" with "installed but DEACTIVATED".
+		 * On a site where the user had deliberately deactivated instamigrate, the class is not
+		 * loaded, so this read false, installInstaMigrate() saw is_plugin_active() false, and the
+		 * Installer ran with overwrite_package => true — OVERWRITING their copy and re-activating a
+		 * plugin they had turned off. The wrong breadcrumb was the lesser half of that.
+		 *
+		 * The file either exists or it does not, whatever this request has loaded.
+		 */
+		$plugin_file  = WP_PLUGIN_DIR . '/instamigrate/insta-migrate.php';
+		$pre_existing = file_exists( $plugin_file );
 
 		$installed = Helper::installInstaMigrate();
 
@@ -387,13 +411,14 @@ class InstaWP_Staging_V4 {
 		 * class_exists() cannot be the signal for the same reason it fails above. active_plugins is
 		 * read from the DB and does not depend on what this request has loaded.
 		 */
-		if ( ! $pre_existing ) {
-			foreach ( (array) get_option( 'active_plugins', array() ) as $plugin_file ) {
-				if ( 0 === strpos( (string) $plugin_file, 'instamigrate/' ) ) {
-					self::mark_instamigrate_orphaned();
-					break;
-				}
-			}
+		/*
+		 * Marked on PRESENCE, not on activation. An install whose activate_plugin() then failed
+		 * leaves the files on the customer's site with no active_plugins entry — which is exactly
+		 * "we put files there and nothing started", the case the flag exists for, and the one an
+		 * activation-based check misses.
+		 */
+		if ( ! $pre_existing && file_exists( $plugin_file ) ) {
+			self::mark_instamigrate_orphaned();
 		}
 
 		if ( empty( $installed['success'] ) ) {
