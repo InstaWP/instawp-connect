@@ -101,7 +101,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 = 0.1.3.9 - Beta =
 - Added: Staging sites can now be created through the new migration engine, with live progress tracked on InstaWP.
 - Fixed: The plan selector now sizes your site by its files and database together, so a large database no longer lets you pick a plan that cannot hold it.
-- Security: Known credential fields are now redacted from the plugin's error log.
+- Security: Credential fields such as API keys, tokens and passwords are now removed from the plugin's error log.
 - Fixed: The Sync (Beta) event list no longer keeps showing a failed attempt after a later sync of the same change has succeeded.
 
 = 0.1.3.8 - 12 August 2026 =
