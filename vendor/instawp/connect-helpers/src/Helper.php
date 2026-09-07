@@ -431,7 +431,15 @@ class Helper {
 		}
 
 		$error         = is_array( $payload ) ? self::redact_for_log( self::sanitize_data( $payload ) ) : array(
-			// Scrubbed too: a string payload reached the log with no redaction of any kind.
+			/*
+			 * A STRING payload is NOT redacted — by design, and worth stating because the comment
+			 * that used to sit here said the opposite (it described a text scrubber that has since
+			 * been deleted). Redaction is key-based: there are no keys in a bare string to match.
+			 *
+			 * So a caller that interpolates a credential into a message — `Authorization: Bearer …`,
+			 * `?api_key=…` — logs it verbatim. If that matters for a given call site, pass an ARRAY
+			 * with the credential under its own key and it will be blanked.
+			 */
 			'message' => sanitize_text_field( $payload ),
 		);
 		$error['time'] = date( 'Y-m-d H:i:s' );

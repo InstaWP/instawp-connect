@@ -355,6 +355,14 @@ class InstaWP_Staging_V4 {
 	 * @return string|WP_Error
 	 */
 	private static function provision_instamigrate() {
+		$plugin_file  = WP_PLUGIN_DIR . '/instamigrate/insta-migrate.php';
+		$pre_existing = file_exists( $plugin_file );
+
+		// is_plugin_active() and activate_plugin() are wp-admin only; admin-ajax does not load them.
+		if ( ! function_exists( 'is_plugin_active' ) && file_exists( ABSPATH . 'wp-admin/includes/plugin.php' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		}
+
 		/*
 		 * `install_plugins`, NOT just `manage_options`.
 		 *
@@ -374,7 +382,7 @@ class InstaWP_Staging_V4 {
 		 * Same CWE-862 class as the v0.1.2.5 incident, one layer further in: the nonce and
 		 * manage_options are present, but the capability that actually matches the side effect is not.
 		 */
-		if ( ! current_user_can( 'install_plugins' ) ) {
+		if ( ! $pre_existing && ! current_user_can( 'install_plugins' ) ) {
 			return new WP_Error(
 				'cannot_install_plugins',
 				esc_html__( 'You do not have permission to install plugins on this site.', 'instawp-connect' )
@@ -392,9 +400,39 @@ class InstaWP_Staging_V4 {
 		 *
 		 * The file either exists or it does not, whatever this request has loaded.
 		 */
-		$plugin_file  = WP_PLUGIN_DIR . '/instamigrate/insta-migrate.php';
-		$pre_existing = file_exists( $plugin_file );
 
+		/*
+		 * ALREADY ON DISK BUT DEACTIVATED: activate it, do NOT reinstall.
+		 *
+		 * QA FAIL, and the defect the previous commit only half fixed. $pre_existing was consulted
+		 * by the orphan-marking branch alone, while installInstaMigrate() was still called
+		 * unconditionally — and it gates internally on is_plugin_active(), so a plugin the customer
+		 * had deliberately DEACTIVATED went through Installer::install() with
+		 * overwrite_package => true. Measured: their copy's md5 and mtime both changed and
+		 * active_plugins gained the entry. We overwrote a file they own and switched it back on.
+		 *
+		 * Activation still needs its own capability: install_plugins (checked above) is not
+		 * activate_plugins, and on multisite they are held by different people.
+		 */
+		if ( $pre_existing && ! is_plugin_active( 'instamigrate/insta-migrate.php' ) ) {
+			if ( ! current_user_can( 'activate_plugins' ) ) {
+				return new WP_Error(
+					'cannot_activate_plugins',
+					esc_html__( 'InstaMigrate is installed but not active, and you do not have permission to activate plugins on this site.', 'instawp-connect' )
+				);
+			}
+
+			$activated = activate_plugin( 'instamigrate/insta-migrate.php' );
+
+			if ( is_wp_error( $activated ) ) {
+				return $activated;
+			}
+		}
+
+		/*
+		 * Safe to call unconditionally now: if we activated above, is_plugin_active() is true and
+		 * installInstaMigrate() skips the Installer entirely, so it cannot reach overwrite_package.
+		 */
 		$installed = Helper::installInstaMigrate();
 
 		/*
