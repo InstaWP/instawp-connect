@@ -131,16 +131,20 @@ class InstaWP_Staging_V4 {
 	 * it. Returned as lines rather than one blob so the caller can render them the way its own
 	 * output expects.
 	 *
+	 * ⚠ __(), not esc_html__(). This goes to a TERMINAL, not to HTML — escaping turned the
+	 * placeholder in `instawp local push <name>` into `&lt;name&gt;`, in the one line the reader is
+	 * meant to copy and run.
+	 *
 	 * @return list<string>
 	 */
 	public static function local_push_moved_notice() {
 		return array(
-			esc_html__( 'Local push now lives in the InstaWP CLI, not in this plugin.', 'instawp-connect' ),
+			__( 'Local push now lives in the InstaWP CLI, not in this plugin.', 'instawp-connect' ),
 			'',
-			esc_html__( '  Install:  npm install -g @instawp/cli', 'instawp-connect' ),
-			esc_html__( '  Then run: instawp local push <name>', 'instawp-connect' ),
+			__( '  Install:  npm install -g @instawp/cli', 'instawp-connect' ),
+			__( '  Then run: instawp local push <name>', 'instawp-connect' ),
 			'',
-			esc_html__( 'It does the same job — creates the destination site and deploys this one to it — and is maintained there. Docs: https://github.com/InstaWP/cli', 'instawp-connect' ),
+			__( 'It does the same job — creates the destination site and deploys this one to it — and is maintained there. Docs: https://github.com/InstaWP/cli', 'instawp-connect' ),
 		);
 	}
 
