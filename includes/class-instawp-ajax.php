@@ -318,31 +318,29 @@ class InstaWP_Ajax {
 		 * carries `engine: 'v4'` so the wizard knows to poll for the agent URL instead of the V3
 		 * progress endpoint.
 		 */
-		if ( InstaWP_Staging_V4::is_enabled() ) {
-			$result = InstaWP_Staging_V4::run( $_POST ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$result = InstaWP_Staging_V4::run( $_POST ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 
-			if ( is_wp_error( $result ) ) {
-				wp_send_json_error( array_merge(
-					array( 'message' => $result->get_error_message() ),
-					(array) $result->get_error_data()
-				) );
-			}
-
-			wp_send_json_success( $result );
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error( array_merge(
+				array( 'message' => $result->get_error_message() ),
+				(array) $result->get_error_data()
+			) );
 		}
 
-		/*
-		 * V3 IS NO LONGER REACHABLE FROM THIS BUTTON. Everything below is the V3 flow, kept for
-		 * reference and for the routes the other side of an in-flight migration still calls; it is
-		 * not started from here any more. Previously this fell through, so an unreachable client-app
-		 * silently ran a V3 migration.
-		 */
-		$refusal = InstaWP_Staging_V4::v3_refusal_error();
+		wp_send_json_success( $result );
 
-		wp_send_json_error( array(
-			'message' => $refusal->get_error_message(),
-			'code'    => $refusal->get_error_code(),
-		) );
+		/*
+		 * EVERYTHING BELOW IS UNREACHABLE — V3 IS DEPRECATED IN THIS BUILD.
+		 *
+		 * Both wp_send_json_* calls above exit, so this button always runs V4 and never falls
+		 * through. There is no engine check any more: the plugin does not ask client-app which
+		 * engine to use, it uses V4. That removes a client-app round trip from every click, and with
+		 * it the hole where an unreachable client-app answered "not v4" and silently ran V3.
+		 *
+		 * The V3 flow is left in place on purpose. It is retired as one deliberate deletion, not
+		 * eroded a method at a time — do not tidy it away piecemeal, and do not read its presence
+		 * as the button still being able to reach it.
+		 */
 
 		$settings_str = isset( $_POST['settings'] ) ? $_POST['settings'] : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 

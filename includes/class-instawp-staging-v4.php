@@ -13,11 +13,10 @@
  * download. It therefore enters client-app's pipeline at the point that wizard reaches after step 3.
  *
  * THE SEQUENCE:
- *   1. confirm the V4 engine is live               Helper::getMigrationEngine()
- *   2. install + activate instamigrate locally     Helper::installInstaMigrate()
- *   3. read its API key                            Helper::getInstaMigrateApiKey()
- *   4. seed the migration                          POST v2/migrate-v4/staging-init
- *   5. create the destination + start              POST v2/live-import/{uuid}/start
+ *   1. install + activate instamigrate locally     Helper::installInstaMigrate()
+ *   2. read its API key                            Helper::getInstaMigrateApiKey()
+ *   3. seed the migration                          POST v2/migrate-v4/staging-init
+ *   4. create the destination + start              POST v2/live-import/{uuid}/start
  *   6. hand the user the agent's own screen        migration_url, else tracking_url; persisted
  *
  * @package InstaWP
@@ -131,67 +130,6 @@ class InstaWP_Staging_V4 {
 	}
 
 	/**
-	 * Is the V4 migration engine live for this site?
-	 *
-	 * @return bool
-	 */
-	/**
-	 * Refuse to start a V3 migration from this build.
-	 *
-	 * ⚠ THIS IS A DELIBERATE CAPABILITY REMOVAL, not a safety net. From this release the plugin will
-	 * not START a V3 migration by any local route: the Create-Staging button and `wp instawp local
-	 * push` both call this, and both stop here when the engine is not v4.
-	 *
-	 * WHY IT IS UNCONDITIONAL. is_enabled() cannot tell "the engine is v3" apart from "client-app
-	 * could not be reached" — both return false — so a guard that only blocked a confirmed v3 would
-	 * fall through to V3 on any transient outage, which is the exact hole this closes. Refusing in
-	 * both cases is what makes "V3 cannot be triggered" true rather than usually true.
-	 *
-	 * The outage case loses nothing real: a V3 run started while client-app is unreachable dies on
-	 * its own client-app call moments later (measured: cURL 28 after the pre-check). This converts a
-	 * slow, confusing failure into an immediate, explanatory one.
-	 *
-	 * NOT blocked, and deliberately so — these REPORT on a migration rather than start one, and
-	 * gating them would hide a run that already happened from the customer who ran it:
-	 *   - instawp_migrate_progress (reads instawp_migration_details)
-	 *   - the migration REST routes, which the other side of an in-flight migration calls
-	 *   - `wp instawp staging-set`, `refresh-staging-list` and the config-set family
-	 *
-	 * @return WP_Error|null WP_Error when the caller must stop, null when V4 is live and may proceed.
-	 */
-	public static function refuse_v3_migration( $context = 'ui' ) {
-		if ( self::is_enabled() ) {
-			return null;
-		}
-
-		return self::v3_refusal_error( $context );
-	}
-
-	/**
-	 * The refusal itself, with no engine call.
-	 *
-	 * Split from refuse_v3_migration() so a caller that has ALREADY asked is_enabled() does not ask
-	 * again. is_enabled() deliberately does not cache a failure, so on an unreachable client-app a
-	 * second call is a second request — migrate_init() would have waited out the timeout twice.
-	 *
-	 * ⚠ THIS WORDING IS FOR THE DASHBOARD ONLY, and retrying really is the right advice there:
-	 * staging still exists, it runs on V4, and it works as soon as client-app is reachable. The CLI
-	 * must NOT reuse it — `wp instawp local push` has moved to the standalone InstaWP CLI and is
-	 * never coming back, so "check your connection and try again" would send that reader to debug a
-	 * connection that is not the problem. See local_push_moved_notice().
-	 *
-	 * @param string $context reserved; the dashboard is the only caller today.
-	 *
-	 * @return WP_Error
-	 */
-	public static function v3_refusal_error( $context = 'ui' ) {
-		return new WP_Error(
-			'instawp_v3_migration_retired',
-			esc_html__( 'Migrations from this plugin now run on InstaWP\'s current migration service, which this site cannot reach right now. The previous migration engine has been retired in this version, so there is nothing to fall back to. Check that the site is still connected to InstaWP and try again.', 'instawp-connect' )
-		);
-	}
-
-	/**
 	 * Where `wp instawp local push` went.
 	 *
 	 * Deliberately NOT a WP_Error and deliberately not phrased as a failure. The command has moved
@@ -213,52 +151,6 @@ class InstaWP_Staging_V4 {
 		);
 	}
 
-	public static function is_enabled() {
-		$api_key = Helper::get_api_key();
-
-		if ( empty( $api_key ) ) {
-			return false;
-		}
-
-		/*
-		 * CACHED, for two reasons that both bite V3.
-		 *
-		 * migrate_init() calls this as its FIRST statement on every Create-Staging click, v3 runs
-		 * included, and Curl::do_curl scales its timeout off max_execution_time up to 290s. Uncached,
-		 * V3 inherits client-app reachability as a latency and failure surface it never had — which
-		 * would break "V4 is additive, V3 untouched" behaviourally even though the diff is +22/-0.
-		 * A v4 run also asked twice (once from the caller, once at the top of run()), so this halves
-		 * that too.
-		 *
-		 * Keyed on the api key so re-connecting the site to a different account re-reads it, and
-		 * short enough (5 min) that flipping MIGRATION_ENGINE server-side takes effect promptly.
-		 */
-		$cache_key = 'instawp_migration_engine_' . md5( $api_key );
-		$cached    = get_transient( $cache_key );
-
-		if ( false !== $cached ) {
-			return 'v4' === $cached;
-		}
-
-		// NOTE the return shape. Every connect-helpers method used in this class returns
-		// Helper::sendResponse()'s envelope — array( 'success', 'message', 'data' ) — never a bare
-		// value and never a WP_Error. Comparing the return directly against 'v4' silently yields
-		// false forever.
-		$response = Helper::getMigrationEngine( $api_key, 'staging' );
-
-		if ( empty( $response['success'] ) ) {
-			// NOT cached. An unreachable client-app must not pin the site to v3 for five minutes,
-			// and falling through to V3 is the safe direction anyway.
-			return false;
-		}
-
-		$engine = Helper::get_args_option( 'engine', Helper::get_args_option( 'data', $response, array() ), '' );
-
-		set_transient( $cache_key, $engine, 5 * MINUTE_IN_SECONDS );
-
-		return 'v4' === $engine;
-	}
-
 	/**
 	 * Run the V4 staging sequence.
 	 *
@@ -271,10 +163,6 @@ class InstaWP_Staging_V4 {
 	 * @return array|WP_Error
 	 */
 	public static function run( $posted ) {
-		if ( ! self::is_enabled() ) {
-			return new WP_Error( 'engine_not_v4', esc_html__( 'The V4 migration engine is not enabled for this site.', 'instawp-connect' ) );
-		}
-
 		$connect_id = instawp_get_connect_id();
 
 		if ( empty( $connect_id ) ) {
@@ -543,9 +431,8 @@ class InstaWP_Staging_V4 {
 		 *
 		 * class_exists() cannot be the signal for the same reason it fails above. active_plugins is
 		 * read from the DB and does not depend on what this request has loaded.
-		 */
-		/*
-		 * Marked on PRESENCE, not on activation. An install whose activate_plugin() then failed
+		 *
+		 * And marked on PRESENCE, not on activation: an install whose activate_plugin() then failed
 		 * leaves the files on the customer's site with no active_plugins entry — which is exactly
 		 * "we put files there and nothing started", the case the flag exists for, and the one an
 		 * activation-based check misses.
