@@ -68,20 +68,33 @@ $total_size_mb = $total_size / (1000 * 1000);
                         <?php } ?>
                         <?php
                         /*
-                         * The REASON, not a blanket label. `3 sites exhausted` used to render for
-                         * either cause, so a user with zero staging sites and a large database was
-                         * told they had used three — and a PAID plan disabled on size got no label
-                         * at all, just a greyed row with no explanation. Sizing now counts the
-                         * database too, which routes many more users down the size branch, so the
-                         * label has to distinguish them.
+                         * The free-plan branch is UNCHANGED from develop. Only the `elseif` is new:
+                         * a PAID plan disabled on size previously got no label at all, just a greyed
+                         * row with no explanation — and sizing now counts the database as well as
+                         * the files, which routes many more rows down that branch.
+                         *
+                         * New free sites are withdrawn upstream (client-app
+                         * const.free_site_creation_enabled, default off, makes getSiteCreationPlans()
+                         * reject every is_free plan), so in practice no free row reaches this list
+                         * and the first branch does not fire. Left exactly as it was rather than
+                         * deleted: removing it is a separate decision from fixing the size label.
                          */
-                        if ( $is_free_plan && $site_data['free_site_count'] >= 3 ) {
+                        if ( $is_free_plan_disabled ) {
                             ?>
                             <span class="text-xs text-gray-500 font-light"><?php esc_html_e( '3 sites exhausted', 'instawp-connect' ); ?></span>
                             <?php
                         } elseif ( $disk_quota_exceeded ) {
                             ?>
-                            <span class="text-xs text-gray-500 font-light"><?php esc_html_e( 'Too small for this site', 'instawp-connect' ); ?></span>
+                            <span class="text-xs text-gray-500 font-light"><?php
+                                /* translators: 1: this site's total size in GB, 2: the plan's storage in GB. */
+                                echo esc_html(
+                                    sprintf(
+                                        __( 'Too small — this site is %1$s GB, plan holds %2$s GB', 'instawp-connect' ),
+                                        number_format_i18n( $total_size_mb / 1000, 2 ),
+                                        number_format_i18n( $features_to_show['disk_quota']['value'] / 1000, 2 )
+                                    )
+                                );
+                            ?></span>
                             <?php
                         }
                         ?>

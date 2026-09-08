@@ -48,6 +48,23 @@ class InstaWP_Staging_V4 {
 	const DETAILS_OPTION = 'instawp_staging_v4_details';
 
 	/**
+	 * WE installed instamigrate and no migration has referenced it yet.
+	 *
+	 * Set at install time so it survives every path that never reaches the end of the run; cleared
+	 * only by remember_run(), because a migration referencing instamigrate is the one thing that
+	 * makes the install non-orphaned.
+	 */
+	const ORPHAN_OPTION = 'instawp_instamigrate_orphaned';
+
+	/**
+	 * The orphan above has already been written to the error log once.
+	 *
+	 * Separate from ORPHAN_OPTION on purpose: the flag is the durable record and must survive, while
+	 * this only stops the same outstanding install being announced once per attempt.
+	 */
+	const ORPHAN_LOGGED_OPTION = 'instawp_instamigrate_orphan_logged';
+
+	/**
 	 * InstaWP_Staging_V4 constructor.
 	 */
 	public function __construct() {
@@ -599,8 +616,8 @@ class InstaWP_Staging_V4 {
 	private static function remember_run( $uuid ) {
 		// The migration exists, so the install is accounted for — clear both the flag and the
 		// once-only log latch, so a genuinely new orphan later on is reported again.
-		Option::delete_option( 'instawp_instamigrate_orphaned' );
-		Option::delete_option( 'instawp_instamigrate_orphan_logged' );
+		Option::delete_option( self::ORPHAN_OPTION );
+		Option::delete_option( self::ORPHAN_LOGGED_OPTION );
 
 		Option::update_option(
 			self::DETAILS_OPTION,
@@ -635,7 +652,7 @@ class InstaWP_Staging_V4 {
 		 * The signal was exactly inverted. Setting the flag is the bookkeeping; ANNOUNCING an
 		 * orphan is a different event and belongs where the run actually gives up.
 		 */
-		Option::update_option( 'instawp_instamigrate_orphaned', time(), false );
+		Option::update_option( self::ORPHAN_OPTION, time(), false );
 	}
 
 	/**
@@ -649,12 +666,23 @@ class InstaWP_Staging_V4 {
 	 * @return void
 	 */
 	private static function log_orphaned_instamigrate( $reason ) {
-		if ( empty( Option::get_option( 'instawp_instamigrate_orphaned' ) ) ) {
+		/*
+		 * Every caller passes a literal today, but this string is CONCATENATED into the error log:
+		 * a non-string reason would emit "Array" (with a PHP notice) or fatal on an object with no
+		 * __toString, and it would do so on the failure path — the one place the log is the only
+		 * record of what happened. Coerce rather than refuse: losing the reason text is a far
+		 * smaller loss than losing the line.
+		 */
+		if ( ! is_string( $reason ) ) {
+			$reason = is_scalar( $reason ) ? (string) $reason : 'unspecified';
+		}
+
+		if ( empty( Option::get_option( self::ORPHAN_OPTION ) ) ) {
 			// We did not install it, so it is not ours to report.
 			return;
 		}
 
-		if ( ! empty( Option::get_option( 'instawp_instamigrate_orphan_logged' ) ) ) {
+		if ( ! empty( Option::get_option( self::ORPHAN_LOGGED_OPTION ) ) ) {
 			// Already announced for this outstanding install. Says it once, not once per attempt.
 			return;
 		}
@@ -674,7 +702,7 @@ class InstaWP_Staging_V4 {
 		 * remember_run() remains the only place the flag is cleared, because a migration
 		 * referencing instamigrate is the only thing that makes it non-orphaned.
 		 */
-		Option::update_option( 'instawp_instamigrate_orphan_logged', time(), false );
+		Option::update_option( self::ORPHAN_LOGGED_OPTION, time(), false );
 	}
 }
 
