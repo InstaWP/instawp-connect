@@ -2,7 +2,16 @@ name: Deploy  to WordPress.org
 on:
   push:
     tags:
-    - "*"
+    # Release tags only. This was "*", which matched ANY tag name — so a tag
+    # created for something other than a release (e.g. pinning a commit for
+    # reference) published that commit to WordPress.org. That happened on
+    # 2026-09-07: a tag named "incident-14ypaj0acdw" deployed its commit to
+    # SVN trunk. Every release this plugin has ever cut is a bare version
+    # number (0.0.2, 0.1.3.8, ...), so requiring a digit-led "N.N" prefix
+    # covers all of them and excludes names like that one.
+    # To pin a commit without publishing it, use a ref outside refs/tags —
+    # e.g. refs/incident/<name> — which no workflow watches.
+    - "[0-9]+.[0-9]+*"
     
 jobs:
   tag:
