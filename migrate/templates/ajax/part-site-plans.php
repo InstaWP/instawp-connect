@@ -91,7 +91,10 @@ $total_size_mb = $total_size_bytes / (1000 * 1000);
                         ?>
                     </div>
                     <div class="font-medium whitespace-nowrap">
-                        <?php echo esc_html( $site_plan['rate']['monthly'] ); ?><span class="text-xs text-gray-500 font-light">/mo - <?php echo esc_html( $site_plan['rate']['daily'] ); ?>/day</span>
+                        <?php echo esc_html( $site_plan['rate']['monthly'] ); ?><span class="text-xs text-gray-500 font-light">/mo<?php
+                        // Guarded: this template renders inside get_site_plans()'s ob_start(), so a
+                        // notice here is captured into the response and printed in the plan list.
+                        if ( isset( $site_plan['rate']['daily'] ) ) { ?> - <?php echo esc_html( $site_plan['rate']['daily'] ); ?>/day<?php } ?></span>
                     </div>
                 </div>
                 <div class="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 rounded-full peer-checked:border-primary-900 peer-checked:border-4 border flex items-center justify-center transition-colors bg-white"></div>
