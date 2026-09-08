@@ -10,8 +10,26 @@ defined( 'ABSPATH' ) || exit;
  * database could select a plan that cannot hold it, and then block at Preparation partway through
  * the migration. Both variables are in scope here because the template is include()d from inside
  * get_site_plans().
+ *
+ * That include() is exactly why the value is checked rather than trusted. The template has no
+ * parameters: it reads whatever its caller happens to have in scope, so a second caller, or a
+ * refactor of get_site_plans(), can leave $total_size unset with nothing to catch it. Unset would
+ * divide null and yield 0.0 with a notice, and 0 is the WORST possible default here — every plan
+ * looks big enough, nothing is disabled, and the guard silently disappears in the one case it
+ * exists for.
+ *
+ * So: prefer $total_size, fall back to files-only (develop's behaviour, wrong for a large database
+ * but far better than nothing), and only then 0.
+ *
+ * A zero that reaches the API is refused there — StagingRequestValidator::planFitsSource() treats
+ * an unknown source size as a 422, not a pass. That is what makes this fallback survivable rather
+ * than a hole; it is a UI convenience, and the server is the gate.
  */
-$total_size_mb = $total_size / (1000 * 1000);
+$total_size_bytes = ( isset( $total_size ) && is_numeric( $total_size ) && $total_size > 0 )
+    ? $total_size
+    : ( ( isset( $total_files_size ) && is_numeric( $total_files_size ) && $total_files_size > 0 ) ? $total_files_size : 0 );
+
+$total_size_mb = $total_size_bytes / (1000 * 1000);
 ?>
 
 <div class="flex items-start staging-plans">
