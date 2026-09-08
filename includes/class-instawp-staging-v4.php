@@ -159,12 +159,12 @@ class InstaWP_Staging_V4 {
 	 *
 	 * @return WP_Error|null WP_Error when the caller must stop, null when V4 is live and may proceed.
 	 */
-	public static function refuse_v3_migration() {
+	public static function refuse_v3_migration( $context = 'ui' ) {
 		if ( self::is_enabled() ) {
 			return null;
 		}
 
-		return self::v3_refusal_error();
+		return self::v3_refusal_error( $context );
 	}
 
 	/**
@@ -174,12 +174,42 @@ class InstaWP_Staging_V4 {
 	 * again. is_enabled() deliberately does not cache a failure, so on an unreachable client-app a
 	 * second call is a second request — migrate_init() would have waited out the timeout twice.
 	 *
+	 * ⚠ THIS WORDING IS FOR THE DASHBOARD ONLY, and retrying really is the right advice there:
+	 * staging still exists, it runs on V4, and it works as soon as client-app is reachable. The CLI
+	 * must NOT reuse it — `wp instawp local push` has moved to the standalone InstaWP CLI and is
+	 * never coming back, so "check your connection and try again" would send that reader to debug a
+	 * connection that is not the problem. See local_push_moved_notice().
+	 *
+	 * @param string $context reserved; the dashboard is the only caller today.
+	 *
 	 * @return WP_Error
 	 */
-	public static function v3_refusal_error() {
+	public static function v3_refusal_error( $context = 'ui' ) {
 		return new WP_Error(
 			'instawp_v3_migration_retired',
 			esc_html__( 'Migrations from this plugin now run on InstaWP\'s current migration service, which this site cannot reach right now. The previous migration engine has been retired in this version, so there is nothing to fall back to. Check that the site is still connected to InstaWP and try again.', 'instawp-connect' )
+		);
+	}
+
+	/**
+	 * Where `wp instawp local push` went.
+	 *
+	 * Deliberately NOT a WP_Error and deliberately not phrased as a failure. The command has moved
+	 * to the standalone InstaWP CLI, which offers the same `instawp local push` — so the reader does
+	 * not need to be told something went wrong, they need to be told where it is now and how to get
+	 * it. Returned as lines rather than one blob so the caller can render them the way its own
+	 * output expects.
+	 *
+	 * @return list<string>
+	 */
+	public static function local_push_moved_notice() {
+		return array(
+			esc_html__( 'Local push now lives in the InstaWP CLI, not in this plugin.', 'instawp-connect' ),
+			'',
+			esc_html__( '  Install:  npm install -g @instawp/cli', 'instawp-connect' ),
+			esc_html__( '  Then run: instawp local push <name>', 'instawp-connect' ),
+			'',
+			esc_html__( 'It does the same job — creates the destination site and deploys this one to it — and is maintained there. Docs: https://github.com/InstaWP/cli', 'instawp-connect' ),
 		);
 	}
 

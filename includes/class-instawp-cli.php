@@ -28,14 +28,31 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 			 * could still start a full V3 migration whatever the server said. Refused here, at the
 			 * top, before any archive is built: everything below this point writes multi-gigabyte
 			 * files to the temp directory and only then contacts client-app.
+			 *
+			 * ⚠ UNCONDITIONAL, and it does NOT ask the engine. This command has not been disabled
+			 * pending an engine — it has MOVED, to the standalone InstaWP CLI (@instawp/cli), which
+			 * offers the same `instawp local push`. Asking the engine first would let it run on any
+			 * site already on v4, which is every site — the opposite of stopping it — and would put
+			 * a client-app round trip in front of an answer that never depended on it.
+			 *
+			 * Reported with log(), not error(): nothing has gone wrong, so this reads as a
+			 * signpost rather than a failure. ⚠ That also means the command now exits 0. A script
+			 * that ran it in CI will not notice the change from the exit status alone — flagged to
+			 * the owner on PR #541; say the word and this becomes warning() + a non-zero exit.
 			 */
-			$refusal = InstaWP_Staging_V4::refuse_v3_migration();
-
-			if ( is_wp_error( $refusal ) ) {
-				WP_CLI::error( $refusal->get_error_message() );
-
-				return false;
+			foreach ( InstaWP_Staging_V4::local_push_moved_notice() as $line ) {
+				WP_CLI::log( $line );
 			}
+
+			return false;
+
+			/*
+			 * EVERYTHING BELOW IS NOW UNREACHABLE, and is left in place on purpose.
+			 *
+			 * V3 is being retired as one deliberate deletion, not eroded a method at a time, so the
+			 * implementation stays until that change. Do not "tidy" it away piecemeal, and do not
+			 * take its presence as a sign the command still works.
+			 */
 
 			global $wp_version;
 
