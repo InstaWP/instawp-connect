@@ -135,6 +135,54 @@ class InstaWP_Staging_V4 {
 	 *
 	 * @return bool
 	 */
+	/**
+	 * Refuse to start a V3 migration from this build.
+	 *
+	 * ⚠ THIS IS A DELIBERATE CAPABILITY REMOVAL, not a safety net. From this release the plugin will
+	 * not START a V3 migration by any local route: the Create-Staging button and `wp instawp local
+	 * push` both call this, and both stop here when the engine is not v4.
+	 *
+	 * WHY IT IS UNCONDITIONAL. is_enabled() cannot tell "the engine is v3" apart from "client-app
+	 * could not be reached" — both return false — so a guard that only blocked a confirmed v3 would
+	 * fall through to V3 on any transient outage, which is the exact hole this closes. Refusing in
+	 * both cases is what makes "V3 cannot be triggered" true rather than usually true.
+	 *
+	 * The outage case loses nothing real: a V3 run started while client-app is unreachable dies on
+	 * its own client-app call moments later (measured: cURL 28 after the pre-check). This converts a
+	 * slow, confusing failure into an immediate, explanatory one.
+	 *
+	 * NOT blocked, and deliberately so — these REPORT on a migration rather than start one, and
+	 * gating them would hide a run that already happened from the customer who ran it:
+	 *   - instawp_migrate_progress (reads instawp_migration_details)
+	 *   - the migration REST routes, which the other side of an in-flight migration calls
+	 *   - `wp instawp staging-set`, `refresh-staging-list` and the config-set family
+	 *
+	 * @return WP_Error|null WP_Error when the caller must stop, null when V4 is live and may proceed.
+	 */
+	public static function refuse_v3_migration() {
+		if ( self::is_enabled() ) {
+			return null;
+		}
+
+		return self::v3_refusal_error();
+	}
+
+	/**
+	 * The refusal itself, with no engine call.
+	 *
+	 * Split from refuse_v3_migration() so a caller that has ALREADY asked is_enabled() does not ask
+	 * again. is_enabled() deliberately does not cache a failure, so on an unreachable client-app a
+	 * second call is a second request — migrate_init() would have waited out the timeout twice.
+	 *
+	 * @return WP_Error
+	 */
+	public static function v3_refusal_error() {
+		return new WP_Error(
+			'instawp_v3_migration_retired',
+			esc_html__( 'Migrations from this plugin now run on InstaWP\'s current migration service, which this site cannot reach right now. The previous migration engine has been retired in this version, so there is nothing to fall back to. Check that the site is still connected to InstaWP and try again.', 'instawp-connect' )
+		);
+	}
+
 	public static function is_enabled() {
 		$api_key = Helper::get_api_key();
 

@@ -331,6 +331,19 @@ class InstaWP_Ajax {
 			wp_send_json_success( $result );
 		}
 
+		/*
+		 * V3 IS NO LONGER REACHABLE FROM THIS BUTTON. Everything below is the V3 flow, kept for
+		 * reference and for the routes the other side of an in-flight migration still calls; it is
+		 * not started from here any more. Previously this fell through, so an unreachable client-app
+		 * silently ran a V3 migration.
+		 */
+		$refusal = InstaWP_Staging_V4::v3_refusal_error();
+
+		wp_send_json_error( array(
+			'message' => $refusal->get_error_message(),
+			'code'    => $refusal->get_error_code(),
+		) );
+
 		$settings_str = isset( $_POST['settings'] ) ? $_POST['settings'] : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 
 		parse_str( $settings_str, $settings_arr );

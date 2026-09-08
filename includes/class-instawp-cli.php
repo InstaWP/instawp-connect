@@ -23,6 +23,20 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 
 		public function cli_local_push() {
 
+			/*
+			 * `wp instawp local push` had NO engine check of any kind — it was the one route that
+			 * could still start a full V3 migration whatever the server said. Refused here, at the
+			 * top, before any archive is built: everything below this point writes multi-gigabyte
+			 * files to the temp directory and only then contacts client-app.
+			 */
+			$refusal = InstaWP_Staging_V4::refuse_v3_migration();
+
+			if ( is_wp_error( $refusal ) ) {
+				WP_CLI::error( $refusal->get_error_message() );
+
+				return false;
+			}
+
 			global $wp_version;
 
 			// Files backup. The exclusion list has to be passed here: it was previously
