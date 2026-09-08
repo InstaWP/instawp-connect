@@ -47,11 +47,21 @@ $total_size_mb = $total_size / (1000 * 1000);
                 $feature_items[] = sprintf( __( '%s GB Storage', 'instawp-connect' ), $features_to_show['disk_quota']['value'] / 1000 );
             }
 
-            // Determine if plan is disabled
-            $is_free_plan = $site_plan['name'] === 'free';
+            /*
+             * Disabled on SIZE, and only on size.
+             *
+             * The free-plan handling that used to live here is gone: new free sites are withdrawn
+             * upstream, so no free plan reaches this list. client-app's getSiteCreationPlans()
+             * (app/Traits/PayPerUse.php) rejects every is_free plan unless
+             * const.free_site_creation_enabled is true, and that defaults to false.
+             *
+             * ⚠ That flag is the coupling. Setting FREE_SITE_CREATION_ENABLED=true on client-app
+             * puts free plans back in this list, and this template no longer has the 3-site cap
+             * label or the free price format — so re-enabling free site creation is now a change in
+             * BOTH repositories, not just an env var. Removed deliberately (review of PR #541).
+             */
             $disk_quota_exceeded = isset( $features_to_show['disk_quota']['value'] ) && $total_size_mb > $features_to_show['disk_quota']['value'];
-            $is_free_plan_disabled = $is_free_plan && ( $site_data['free_site_count'] >= 3 || $disk_quota_exceeded );
-            $is_plan_disabled = $is_free_plan_disabled || ( ! $is_free_plan && $disk_quota_exceeded );
+            $is_plan_disabled = $disk_quota_exceeded;
             ?>
             <label class="w-full cursor-pointer relative">
                 <input type="radio" 
@@ -68,22 +78,11 @@ $total_size_mb = $total_size / (1000 * 1000);
                         <?php } ?>
                         <?php
                         /*
-                         * The free-plan branch is UNCHANGED from develop. Only the `elseif` is new:
-                         * a PAID plan disabled on size previously got no label at all, just a greyed
-                         * row with no explanation — and sizing now counts the database as well as
-                         * the files, which routes many more rows down that branch.
-                         *
-                         * New free sites are withdrawn upstream (client-app
-                         * const.free_site_creation_enabled, default off, makes getSiteCreationPlans()
-                         * reject every is_free plan), so in practice no free row reaches this list
-                         * and the first branch does not fire. Left exactly as it was rather than
-                         * deleted: removing it is a separate decision from fixing the size label.
+                         * Say WHY, with both numbers. A plan disabled on size used to render no
+                         * label at all — just a greyed row — and sizing now counts the database as
+                         * well as the files, which routes many more rows down here.
                          */
-                        if ( $is_free_plan_disabled ) {
-                            ?>
-                            <span class="text-xs text-gray-500 font-light"><?php esc_html_e( '3 sites exhausted', 'instawp-connect' ); ?></span>
-                            <?php
-                        } elseif ( $disk_quota_exceeded ) {
+                        if ( $disk_quota_exceeded ) {
                             ?>
                             <span class="text-xs text-gray-500 font-light"><?php
                                 /* translators: 1: this site's total size in GB, 2: the plan's storage in GB. */
@@ -100,11 +99,7 @@ $total_size_mb = $total_size / (1000 * 1000);
                         ?>
                     </div>
                     <div class="font-medium whitespace-nowrap">
-                        <?php if ( $is_free_plan ) { ?>
-                            <?php echo esc_html( $site_plan['rate']['monthly'] ); ?><span class="text-xs text-gray-500 font-light">/mo</span>
-                        <?php } else { ?>
-                            <?php echo esc_html( $site_plan['rate']['monthly'] ); ?><span class="text-xs text-gray-500 font-light">/mo - <?php echo esc_html( $site_plan['rate']['daily'] ); ?>/day</span>
-                        <?php } ?>
+                        <?php echo esc_html( $site_plan['rate']['monthly'] ); ?><span class="text-xs text-gray-500 font-light">/mo - <?php echo esc_html( $site_plan['rate']['daily'] ); ?>/day</span>
                     </div>
                 </div>
                 <div class="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 rounded-full peer-checked:border-primary-900 peer-checked:border-4 border flex items-center justify-center transition-colors bg-white"></div>
