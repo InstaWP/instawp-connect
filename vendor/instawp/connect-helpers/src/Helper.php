@@ -489,13 +489,6 @@ class Helper {
 	}
 
 	/**
-	 * Does this array key name a credential that must not be logged?
-	 *
-	 * @param mixed $key Array key from the payload being logged.
-	 *
-	 * @return bool
-	 */
-	/**
 	 * Names that look like a needle but are diagnostics, and must survive.
 	 *
 	 * `_key` matches `meta_key`, which the sync code logs as the entire point of its failure line
@@ -505,6 +498,13 @@ class Helper {
 	 */
 	const NEVER_REDACTED_LOG_KEYS = array( 'meta_key', 'author', 'post_author' );
 
+	/**
+	 * Does this array key name a credential that must not be logged?
+	 *
+	 * @param mixed $key Array key from the payload being logged.
+	 *
+	 * @return bool
+	 */
 	private static function is_redacted_log_key( $key ) {
 		if ( ! is_string( $key ) ) {
 			return false;

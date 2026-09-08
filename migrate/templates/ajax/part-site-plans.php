@@ -3,27 +3,12 @@
 defined( 'ABSPATH' ) || exit;
 
 /*
- * Size the plan against files AND the database.
+ * Files AND database: a small filesystem with a large database could otherwise pick a plan that
+ * cannot hold it.
  *
- * get_site_plans() already computes $total_size = $total_files_size + $total_db_size, but this
- * threshold only ever read $total_files_size — so a site with a small filesystem and a large
- * database could select a plan that cannot hold it, and then block at Preparation partway through
- * the migration. Both variables are in scope here because the template is include()d from inside
- * get_site_plans().
- *
- * That include() is exactly why the value is checked rather than trusted. The template has no
- * parameters: it reads whatever its caller happens to have in scope, so a second caller, or a
- * refactor of get_site_plans(), can leave $total_size unset with nothing to catch it. Unset would
- * divide null and yield 0.0 with a notice, and 0 is the WORST possible default here — every plan
- * looks big enough, nothing is disabled, and the guard silently disappears in the one case it
- * exists for.
- *
- * So: prefer $total_size, fall back to files-only (develop's behaviour, wrong for a large database
- * but far better than nothing), and only then 0.
- *
- * A zero that reaches the API is refused there — StagingRequestValidator::planFitsSource() treats
- * an unknown source size as a 422, not a pass. That is what makes this fallback survivable rather
- * than a hole; it is a UI convenience, and the server is the gate.
+ * Checked, not trusted: this template takes no parameters and reads whatever its caller has in
+ * scope, so an unset $total_size would divide to 0 — and 0 disables nothing, which is the one
+ * case the check exists for. A 0 that does get through is refused by the API.
  */
 $total_size_bytes = ( isset( $total_size ) && is_numeric( $total_size ) && $total_size > 0 )
     ? $total_size
@@ -66,17 +51,11 @@ $total_size_mb = $total_size_bytes / (1000 * 1000);
             }
 
             /*
-             * Disabled on SIZE, and only on size.
+             * Size is the only reason a plan is disabled — free-plan handling is gone, because
+             * getSiteCreationPlans() drops every free plan unless FREE_SITE_CREATION_ENABLED.
              *
-             * The free-plan handling that used to live here is gone: new free sites are withdrawn
-             * upstream, so no free plan reaches this list. client-app's getSiteCreationPlans()
-             * (app/Traits/PayPerUse.php) rejects every is_free plan unless
-             * const.free_site_creation_enabled is true, and that defaults to false.
-             *
-             * ⚠ That flag is the coupling. Setting FREE_SITE_CREATION_ENABLED=true on client-app
-             * puts free plans back in this list, and this template no longer has the 3-site cap
-             * label or the free price format — so re-enabling free site creation is now a change in
-             * BOTH repositories, not just an env var. Removed deliberately (review of PR #541).
+             * ⚠ Turning that flag back on is now a change here too: this template no longer has
+             * the 3-site cap label or the free price format.
              */
             $disk_quota_exceeded = isset( $features_to_show['disk_quota']['value'] ) && $total_size_mb > $features_to_show['disk_quota']['value'];
             $is_plan_disabled = $disk_quota_exceeded;
@@ -95,11 +74,6 @@ $total_size_mb = $total_size_bytes / (1000 * 1000);
                             <span class="text-blue-800 text-xs font-medium bg-blue-50 px-2 py-1 rounded-md truncate"><?php echo esc_html( implode( ', ', $feature_items ) ); ?></span>
                         <?php } ?>
                         <?php
-                        /*
-                         * Say WHY, with both numbers. A plan disabled on size used to render no
-                         * label at all — just a greyed row — and sizing now counts the database as
-                         * well as the files, which routes many more rows down here.
-                         */
                         if ( $disk_quota_exceeded ) {
                             ?>
                             <span class="text-xs text-gray-500 font-light"><?php

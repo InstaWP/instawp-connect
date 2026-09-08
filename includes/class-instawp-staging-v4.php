@@ -1,23 +1,16 @@
 <?php
 /**
- * Staging creation over the V4 migration engine.
+ * Staging creation from wp-admin.
  *
- * ADDITIVE BY DESIGN. This file adds a second, parallel path for creating a staging site; it does not
- * modify the V3 engine in any way. V3 keeps working untouched and is removed later as one deliberate
- * change rather than eroded here — which also keeps this diff reviewable and the revert trivial.
+ * Runs inside the source site, so it can install instamigrate, mint its key and measure the site
+ * locally — which is why it enters client-app's import pipeline directly rather than going through
+ * the hosted wizard's credential steps.
  *
- * WHY THE PLUGIN CAN SKIP MOST OF THE HOSTED WIZARD. instawp-connect runs INSIDE the source site, so
- * it already holds everything client-app's live-import wizard spends its first three steps
- * collecting: it installs instamigrate locally, mints its API key, and measures the site with
- * InstaWP_Tools::get_total_sizes(). No application password, no authorize popup, no manual plugin
- * download. It therefore enters client-app's pipeline at the point that wizard reaches after step 3.
- *
- * THE SEQUENCE:
  *   1. install + activate instamigrate locally     Helper::installInstaMigrate()
  *   2. read its API key                            Helper::getInstaMigrateApiKey()
  *   3. seed the migration                          POST v2/migrate-v4/staging-init
  *   4. create the destination + start              POST v2/live-import/{uuid}/start
- *   6. hand the user the agent's own screen        migration_url, else tracking_url; persisted
+ *   5. hand the user the agent's own screen        migration_url, else tracking_url; persisted
  *
  * @package InstaWP
  */
@@ -177,20 +170,11 @@ class InstaWP_Staging_V4 {
 		$exclude = self::build_exclude( $migrate_settings );
 
 		/*
-		 * Measured locally — files AND database — and DELIBERATELY NOT identical to the plan
-		 * picker's number.
+		 * Sized against what we actually TRANSMIT, so this is larger than the plan picker's number
+		 * — the picker also subtracts root-level exclusions we do not send. Safe direction, but a
+		 * user on a plan boundary can pass the picker and still be told to size up.
 		 *
-		 * get_site_plans() sizes with the full $migrate_settings, so it subtracts wp-admin,
-		 * wp-includes and any root-level path the user ticked. This subtracts only what
-		 * build_exclude() actually transmits, which excludes none of those. So this number is
-		 * LARGER than the picker's, by the size of the root-level exclusions (~25-40 MB at minimum,
-		 * more if the user ticked something big at root).
-		 *
-		 * The divergence is in the safe direction — we never under-state what the agent will copy —
-		 * but it is real: a user sitting exactly on a plan boundary can pass the picker and then be
-		 * told by the API to size up. Fixing that properly means teaching the picker the same
-		 * transmitted-only rule; do not "fix" it by handing the raw settings back to this function,
-		 * which is the bug this replaced.
+		 * Do not "fix" that by passing the raw settings here; the picker is the side to change.
 		 */
 		$total_size_mb = self::total_size_mb( $exclude );
 
@@ -655,17 +639,9 @@ class InstaWP_Staging_V4 {
 		Helper::add_error_log( 'V4 staging: instamigrate installed but the migration did not start (' . $reason . ')' );
 
 		/*
-		 * The ORPHAN FLAG IS KEPT; only the re-logging is suppressed, via a separate option.
-		 *
-		 * An earlier revision deleted the flag here, on the reasoning that a later run would
-		 * otherwise re-log a claim that was no longer true. That reasoning was wrong: nothing
-		 * uninstalls instamigrate, so after a failure the plugin IS still orphaned and the claim
-		 * stays true. Deleting the flag destroyed the only durable record of it at the exact moment
-		 * it became accurate — and that flag is what a future admin notice or cleanup is meant to
-		 * read, so clearing it here would have made that feature impossible to build.
-		 *
-		 * remember_run() remains the only place the flag is cleared, because a migration
-		 * referencing instamigrate is the only thing that makes it non-orphaned.
+		 * Suppress the re-logging, never the flag. Nothing uninstalls instamigrate, so after a
+		 * failure the site IS still orphaned and the flag must survive to say so — remember_run()
+		 * is the only place it is cleared.
 		 */
 		Option::update_option( self::ORPHAN_LOGGED_OPTION, time(), false );
 	}

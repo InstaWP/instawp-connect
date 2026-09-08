@@ -100,7 +100,6 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 = 0.1.3.9 - Beta =
 - Added: Staging sites are now created through the new migration engine, with live progress tracked on InstaWP.
-- Changed: The previous migration engine has been retired. Staging always uses the new engine, so the plugin no longer asks InstaWP which one to use.
 - Changed: `wp instawp local push` has moved to the InstaWP CLI (`npm install -g @instawp/cli`). Running it in the plugin now tells you where to find it.
 - Fixed: The plan selector now sizes your site by its files and database together, so a large database no longer lets you pick a plan that cannot hold it.
 - Security: Credential fields such as API keys, tokens and passwords are now removed from the plugin's error log.
