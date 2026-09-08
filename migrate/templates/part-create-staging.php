@@ -403,7 +403,20 @@ delete_option( 'instawp_db_offset' );
 							); ?>
                         </div>
 
-                        <div class="p-5 flex flex-col gap-4">
+                        <?php // V4 staging: the migration agent owns the live view, so this replaces the
+                        // Files/Database bars and the stage list rather than sitting alongside them. Those
+                        // widgets are fed by the V3 progress endpoint, which a V4 run never calls -- left
+                        // visible they sit at "0%" and "Processing (0/N stages)" for the whole migration and
+                        // read as a stalled run. scripts.js unhides this and hides them on the v4 branch. ?>
+                        <div class="instawp-v4-running hidden p-5 text-sm text-grayCust-900">
+							<?php esc_html_e( 'Your staging site is being created. Progress is shown on the migration page — open it with the link below. You can safely close this tab.', 'instawp-connect' ); ?>
+                        </div>
+
+                        <?php // instawp-v3-progress wraps EVERYTHING the V3 progress endpoint feeds: both bars,
+                        // their labels and the stage list. Named so the V4 branch can retire it in one
+                        // selector -- hiding the bars alone would leave the "Files" and "Database" labels
+                        // behind as orphans. ?>
+                        <div class="instawp-v3-progress p-5 flex flex-col gap-4">
                             <div class="flex items-center">
                                 <div class="w-24 text-grayCust-900 text-base font-normal"><?php esc_html_e( 'Files', 'instawp-connect' ); ?></div>
                                 <div class="instawp-progress-files text-border rounded-xl w-full text-bg py-4 flex items-center px-4">

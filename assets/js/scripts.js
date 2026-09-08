@@ -290,6 +290,24 @@
             }
         });
     },
+        // The V3 progress apparatus is driven by the V3 progress endpoint, which a V4 run never
+        // calls. Left in place it shows "Files 0%", "Database 0%" and "Processing (0/N stages)" for
+        // the entire migration and reads as a stalled run -- which is exactly how it was reported.
+        // So the V4 branch strips it at the START, not at completion, and shows only the notice and
+        // the Track Migration link.
+        //
+        // Abort goes with it. It navigates to ?clear=all, which clears LOCAL plugin state only; the
+        // agent-side migration keeps running regardless. Offering it here promises a cancel we
+        // cannot perform.
+        instawp_staging_v4_chrome = (create_container) => {
+            // .instawp-v3-progress is the whole block -- both bars, their "Files"/"Database"
+            // labels and the stage list. Hiding the bars by their own classes would leave the
+            // labels behind.
+            create_container.find('.instawp-v3-progress, .instawp-migrate-abort, .notice-serve-with-wp')
+                .addClass('hidden');
+
+            create_container.find('.instawp-v4-running').removeClass('hidden');
+        },
         // Stop a V4 watch and return the wizard to a non-running state. `loading` is added in
         // instawp_migrate_init's beforeSend and only `doing-ajax` is removed on complete, and
         // elapsedInterval is started on the v4 branch — so both have to be undone here or the UI
@@ -359,10 +377,9 @@
 
             create_container.addClass('completed');
             el_loader.text(el_loader.data('complete-text'));
-            // .instawp-progress-* are SIBLINGS of #visibility-box, not children, and the V4 path
-            // never updates them — so without this they sit at "Files 0% / Database 0%" beside a
-            // "Completed" header.
-            create_container.find('#visibility-box, .full-screen-btn, .instawp-migrate-abort, .instawp-progress-files, .instawp-progress-db').addClass('hidden');
+            // instawp_staging_v4_chrome() already hid the V3 progress apparatus at start; what is
+            // left to retire here is the in-progress notice, which is now untrue.
+            create_container.find('.instawp-v4-running').addClass('hidden');
             create_container.find('.screen-buttons-last').removeClass('hidden');
         },
         instawp_staging_v4_watch = (create_container) => {
@@ -458,6 +475,11 @@
                     if (response.success) {
                         // The engine decides the path. V3 below is untouched.
                         if (response.data.engine === 'v4') {
+                            // Before the watcher, so the dead V3 widgets are never painted: run()
+                            // does not return the agent URL, so the first poll is ~3s away and the
+                            // user would otherwise spend that time looking at 0% bars.
+                            instawp_staging_v4_chrome(create_container);
+
                             if (!elapsedInterval) {
                                 elapsedInterval = setInterval(() => {
                                     updateTimer(response.data.started_at)
