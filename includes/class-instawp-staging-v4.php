@@ -27,17 +27,31 @@ defined( 'ABSPATH' ) || exit;
 class InstaWP_Staging_V4 {
 
 	/**
-	 * Option holding the last V4 staging run (uuid + agent URL).
+	 * Option holding the last V4 staging run (uuid, start time, agent URL, finish time).
 	 *
-	 * ⚠ Persisted but NOT yet resumed. Nothing re-enters the watcher from this option on page load:
-	 * the resume path in scripts.js is V3-only, gated on a server-rendered `loading` class a V4 run
-	 * never sets. So closing the tab currently DOES lose the live view, and this option is a record
-	 * for support and a future resume, not a working one. Do not describe it as tab-safe until a V4
-	 * resume actually reads it.
+	 * READ BACK ON PAGE LOAD by resumable_run(): part-create.php stamps a class from it, and
+	 * scripts.js re-enters the watcher. Closing the tab therefore no longer loses the live view,
+	 * within RESUME_WINDOW.
 	 *
-	 * Mirrors how V3 persists instawp_migration_details.
+	 * Mirrors how V3 persists instawp_migration_details, except V3 resumes off a `loading` class
+	 * driven by instawp_migration_details.migrate_id — a V4 run has no migrate_id and must never set
+	 * that class, because it starts the V3 progress poll against a migration row that does not exist.
 	 */
 	const DETAILS_OPTION = 'instawp_staging_v4_details';
+
+	/**
+	 * How long after `started_at` a run is still worth re-entering on page load.
+	 *
+	 * The option has no expiry of its own, so without a window a run from any point in the past
+	 * would reopen the "migration in progress" view forever — including runs whose outcome we never
+	 * saw because the tab was closed before a poll returned a terminal status.
+	 *
+	 * 12h is chosen against the WORK, not the UI: a large source can migrate for hours, and the
+	 * cost of being wrong differs sharply by direction. Too short and we abandon a live migration's
+	 * view while it is still running; too long and the first poll returns a terminal status and the
+	 * screen corrects itself in three seconds. So this errs long deliberately.
+	 */
+	const RESUME_WINDOW = 12 * HOUR_IN_SECONDS;
 
 	/**
 	 * WE installed instamigrate and no migration has referenced it yet.
@@ -71,6 +85,42 @@ class InstaWP_Staging_V4 {
 	 * first appear on the status response. Once seen the chosen one is persisted, which is what lets
 	 * the customer close the tab and come back.
 	 */
+	/**
+	 * The stored run, if it is still worth re-entering the watcher for on page load.
+	 *
+	 * ONE place decides resumability, because two would drift: part-create.php stamps the class,
+	 * part-create-staging.php seeds the link, and scripts.js acts on the class — all three must
+	 * agree about whether a run is live, or the page renders "in progress" with no poll behind it.
+	 *
+	 * Refuses a run that has no uuid, one already marked finished by a terminal poll, and one older
+	 * than RESUME_WINDOW.
+	 *
+	 * @return array the run details, or an empty array when there is nothing to resume.
+	 */
+	public static function resumable_run() {
+		$details = (array) Option::get_option( self::DETAILS_OPTION );
+
+		if ( empty( Helper::get_args_option( 'uuid', $details, '' ) ) ) {
+			return array();
+		}
+
+		// A terminal poll stamped it. The record stays for support; it just stops reopening.
+		if ( ! empty( Helper::get_args_option( 'finished_at', $details, 0 ) ) ) {
+			return array();
+		}
+
+		$started_at = (int) Helper::get_args_option( 'started_at', $details, 0 );
+
+		// A missing or zero start time fails CLOSED. It is not evidence the run is recent, and an
+		// absent timestamp would otherwise read as "started at the epoch" or as "always resumable"
+		// depending on which way the comparison happened to be written.
+		if ( $started_at <= 0 || ( time() - $started_at ) > self::RESUME_WINDOW ) {
+			return array();
+		}
+
+		return $details;
+	}
+
 	public function staging_status() {
 		InstaWP_Tools::verify_ajax_request();
 
@@ -103,16 +153,37 @@ class InstaWP_Staging_V4 {
 		// each time.
 		$agent_url = esc_url_raw( $agent_url );
 
-		if ( ! empty( $agent_url ) && $agent_url !== Helper::get_args_option( 'agent_url', (array) $details, '' ) ) {
-			$details['agent_url'] = $agent_url;
+		$status  = Helper::get_args_option( 'status', $data, '' );
+		$details = (array) $details;
+		$dirty   = false;
 
+		if ( ! empty( $agent_url ) && $agent_url !== Helper::get_args_option( 'agent_url', $details, '' ) ) {
+			$details['agent_url'] = $agent_url;
+			$dirty                = true;
+		}
+
+		/*
+		 * Stamp the run finished so resumable_run() stops reopening it.
+		 *
+		 * Without this the ONLY thing retiring a completed run is RESUME_WINDOW, so for up to 12
+		 * hours after a migration finished every wp-admin page load would reopen "Creating
+		 * Staging", poll once, and correct itself — a flash of a migration the customer already
+		 * saw finish. The window then does what it is actually for: retiring runs whose outcome we
+		 * never observed because the tab was closed first.
+		 */
+		if ( in_array( $status, array( 'completed', 'failed' ), true ) && empty( $details['finished_at'] ) ) {
+			$details['finished_at'] = time();
+			$dirty                  = true;
+		}
+
+		if ( $dirty ) {
 			Option::update_option( self::DETAILS_OPTION, $details, false );
 		}
 
 		wp_send_json_success(
 			array(
 				'uuid'      => $uuid,
-				'status'    => Helper::get_args_option( 'status', $data, '' ),
+				'status'    => $status,
 				// Carried through so a `failed` status can say WHY. Without it the wizard can only
 				// show a generic failure, which is barely better than the silent spinner it used to
 				// show.

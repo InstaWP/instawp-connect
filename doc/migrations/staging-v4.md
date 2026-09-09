@@ -82,10 +82,24 @@ no code change.
 The chosen URL is persisted in `instawp_staging_v4_details`, mirroring how V3 persists
 `instawp_migration_details`.
 
-⚠ **Not yet resumed on page load.** Nothing reads that option back into the watcher — the resume path
-in `scripts.js` is V3-only, gated on a server-rendered `loading` class a V4 run never sets. Closing the
-tab therefore loses the live view today; the stored URL is a record for support and the hook a future
-resume will use. Stated plainly because the earlier wording claimed the opposite.
+**Resumed on page load**, within a 12-hour window. `InstaWP_Staging_V4::resumable_run()` is the single
+place that decides whether the stored run is still live; `part-create.php` stamps an
+`instawp-v4-resume` class from it and seeds `data-v4-started-at`, and `scripts.js` re-enters screen 5,
+the elapsed timer and the watcher. The stored `agent_url` also seeds the Track Migration link, so a
+customer returning to the tab gets it on first paint rather than after a poll round-trip.
+
+Three things that make it behave:
+
+- **It is not the `loading` class.** That one starts the V3 progress poll, which reads a `migrates_v3`
+  row a V4 run never creates. The two resume paths are kept apart by construction, not by the
+  coincidence that a V4 run writes no `migrate_id`.
+- **A terminal poll stamps `finished_at`**, so a finished run stops reopening. Without it the only
+  thing retiring a completed run would be the window, and every page load for 12 hours would flash
+  "Creating Staging" before correcting itself.
+- **The window errs long on purpose.** A large source can migrate for hours; abandoning a live
+  migration's view is worse than reopening a finished one, which the first poll corrects in ~3s.
+
+A run whose start time is missing or zero is refused rather than treated as recent.
 
 ## Exclusions are translated, not passed through
 

@@ -1021,6 +1021,28 @@
             create_container.attr('interval-id', setInterval(instawp_migrate_progress, 3000));
         }
 
+        // V4 staging resume. The server decides whether the stored run is still live
+        // (InstaWP_Staging_V4::resumable_run) and stamps this class; here we only re-enter the
+        // screen and the watcher. Kept off the `loading` branch above deliberately: that one starts
+        // the V3 progress poll, which reads a migrates_v3 row a V4 run never creates.
+        if (create_container.hasClass('instawp-v4-resume')) {
+            el_instawp_screen.val(5).trigger('change');
+
+            instawp_staging_v4_chrome(create_container);
+
+            // From the run's OWN start time, not from page load — otherwise a migration resumed an
+            // hour in reports itself as having just begun.
+            let v4StartedAt = parseInt(create_container.attr('data-v4-started-at'), 10);
+
+            if (!elapsedInterval && v4StartedAt > 0) {
+                elapsedInterval = setInterval(() => {
+                    updateTimer(v4StartedAt)
+                }, 1000);
+            }
+
+            instawp_staging_v4_watch(create_container);
+        }
+
         const fieldValue = getQueryParameter('field');
         if (fieldValue) {
             blinkElement('.instawp-' + fieldValue + '-field', 3, 250);

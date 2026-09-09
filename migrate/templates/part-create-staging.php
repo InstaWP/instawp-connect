@@ -42,6 +42,18 @@ instawp()->maybe_prepare_large_files_list();
 $list_data             = Option::get_option( 'instawp_large_files_list' );
 $migration_details     = Helper::get_args_option( 'instawp_migration_details', $instawp_settings );
 $tracking_url          = Helper::get_args_option( 'tracking_url', $migration_details );
+
+/*
+ * V4 staging resume: seed the SAME anchor from the stored run, so a customer returning to the tab
+ * gets the link on first paint rather than after a poll round-trip. agent_url is only written once
+ * a poll has returned one, so it can legitimately be absent on a run that is still creating its
+ * destination site — in which case this leaves $tracking_url alone and the watcher fills it in.
+ */
+$v4_run = InstaWP_Staging_V4::resumable_run();
+
+if ( ! empty( $v4_run ) ) {
+	$tracking_url = Helper::get_args_option( 'agent_url', $v4_run, $tracking_url );
+}
 $migrate_id            = Helper::get_args_option( 'migrate_id', $migration_details );
 $serve_with_wp         = (bool) Helper::get_args_option( 'serve_with_wp', $migration_details );
 $whitelist_ip          = instawp_whitelist_ip();
