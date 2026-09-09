@@ -993,7 +993,19 @@
         }
     });
 
-    $(document).on('ready', function () {
+    /*
+     * WAS `$(document).on('ready', …)`, which has been DEAD since jQuery 3.0 removed that API.
+     * WordPress ships jQuery 3.7.1, so every statement in this block has silently never executed —
+     * the V4 staging resume added on this branch was built on a handler that already never fired,
+     * which is exactly why it reviewed as correct and did nothing on the site.
+     *
+     * ⚠ This one line revives FIVE dormant behaviours, not just the V4 resume: the staging-site
+     * list pagination reveal, the last-viewed tab restore, the V3 `loading` progress resume, the
+     * ?field= blink, and the site-name input's mousedown blur handler. All look intended, none has
+     * run in production for as long as this site has been on jQuery 3, so none is covered by
+     * anybody's experience of how the plugin currently behaves.
+     */
+    $(function () {
         let create_container = $('.instawp-wrap .nav-item-content.create'),
             el_instawp_current_tab = $('.instawp-wrap .instawp-current-tab'),
             el_instawp_current_tab_data = el_instawp_current_tab.attr('current-tab'),

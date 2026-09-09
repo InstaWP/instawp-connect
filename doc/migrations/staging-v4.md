@@ -101,6 +101,12 @@ Three things that make it behave:
 
 A run whose start time is missing or zero is refused rather than treated as recent.
 
+⚠ **The resume lives in `scripts.js`'s document-ready block, and that block was dead.** It was written
+as `$(document).on('ready', …)`, an API jQuery removed in 3.0; WordPress ships 3.7.1, so nothing in it
+ran — including the V3 progress resume and the tab restore, which had been dormant far longer. It is
+now `$(function () { … })`. If a page-load behaviour in this plugin appears not to work at all, check
+that first: the symptom is total silence rather than an error, and the code reads as correct.
+
 ## Exclusions are translated, not passed through
 
 The agent's vocabulary differs from V3's in three ways that matter:
