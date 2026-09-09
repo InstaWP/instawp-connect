@@ -1106,12 +1106,17 @@
         // screen and the watcher. Kept off the `loading` branch above deliberately: that one starts
         // the V3 progress poll, which reads a migrates_v3 row a V4 run never creates.
         if (create_container.hasClass('instawp-v4-resume')) {
-            // Resuming, not starting: see the guard in the #instawp-screen change handler. The
-            // migration already exists; re-running init would create a second one.
-            create_container.data('instawp-resuming', true);
-            el_instawp_screen.val(5).trigger('change');
-
-            instawp_staging_v4_chrome(create_container);
+            /*
+             * NO screen switch here, deliberately. part-create-staging.php renders screen 5, the V4
+             * notice, the seeded link and the hidden V3 block server-side, so the screen is already
+             * correct before this runs -- and stays correct even if the JS never does.
+             *
+             * The screen used to be set with el_instawp_screen.val(5).trigger('change'), which runs
+             * the #instawp-screen handler, which calls instawp_migrate_init(). Every refresh during
+             * a live run therefore STARTED ANOTHER MIGRATION, and when that failed it hid
+             * .migration-running so the screen disappeared. All this block owes the page now is the
+             * poll.
+             */
 
             // From the run's OWN start time, not from page load — otherwise a migration resumed an
             // hour in reports itself as having just begun.

@@ -43,26 +43,41 @@ $list_data             = Option::get_option( 'instawp_large_files_list' );
 $migration_details     = Helper::get_args_option( 'instawp_migration_details', $instawp_settings );
 $tracking_url          = Helper::get_args_option( 'tracking_url', $migration_details );
 
-/*
- * V4 staging resume: seed the SAME anchor from the stored run, so a customer returning to the tab
- * gets the link on first paint rather than after a poll round-trip. agent_url is only written once
- * a poll has returned one, so it can legitimately be absent on a run that is still creating its
- * destination site — in which case this leaves $tracking_url alone and the watcher fills it in.
- */
-$v4_run = InstaWP_Staging_V4::resumable_run();
-
-if ( ! empty( $v4_run ) ) {
-	$tracking_url = Helper::get_args_option( 'agent_url', $v4_run, $tracking_url );
-}
 $migrate_id            = Helper::get_args_option( 'migrate_id', $migration_details );
 $serve_with_wp         = (bool) Helper::get_args_option( 'serve_with_wp', $migration_details );
+
+/*
+ * V4 staging resume, rendered SERVER-SIDE.
+ *
+ * `.screen` is display:none and `.screen.active` is display:block (migrate/assets/css/style.css
+ * :481,487), so which step is on screen is decided entirely by $current_create_screen -- no
+ * JavaScript involved. Setting it here is the same mechanism `screen-buttons` has always used to
+ * hide itself from $migrate_id on a live V3 migration.
+ *
+ * That is the point of doing it here. The previous attempt reached screen 5 from scripts.js by
+ * triggering the #instawp-screen change handler, which ALSO calls instawp_migrate_init() -- so every
+ * refresh during a run started another migration, and when that failed it hid .migration-running and
+ * the screen vanished. Rendering server-side removes the path instead of guarding it, and the screen
+ * survives a refresh even if the JS never runs.
+ *
+ * $tracking_url is seeded from the stored agent_url so the link is on the first paint rather than a
+ * poll round-trip away. It can legitimately be absent on a run still creating its destination site,
+ * in which case the watcher fills it in.
+ */
+$v4_run      = InstaWP_Staging_V4::resumable_run();
+$v4_resuming = ! empty( $v4_run );
+
+if ( $v4_resuming ) {
+	$tracking_url          = Helper::get_args_option( 'agent_url', $v4_run, $tracking_url );
+	$current_create_screen = 5;
+}
 $whitelist_ip          = instawp_whitelist_ip();
 
 delete_option( 'instawp_files_offset' );
 delete_option( 'instawp_db_offset' );
 ?>
 
-<div class="bg-white text-center rounded-md py-20 flex items-center justify-center connected <?= empty( $migrate_id ) ? '' : 'hidden'; ?>">
+<div class="bg-white text-center rounded-md py-20 flex items-center justify-center connected <?= empty( $migrate_id ) && ! $v4_resuming ? '' : 'hidden'; ?>">
     <div class="w-2/3">
         <div class="mb-4">
             <img src="<?php echo esc_url( instaWP::get_asset_url( 'migrate/assets/images/connected.svg' ) ); ?>" class="mx-auto" alt="">
@@ -86,25 +101,25 @@ delete_option( 'instawp_db_offset' );
     </div>
 </div>
 
-<div class="flex p-8 items-start create-staging <?= empty( $migrate_id ) ? 'hidden' : ''; ?>">
+<div class="flex p-8 items-start create-staging <?= empty( $migrate_id ) && ! $v4_resuming ? 'hidden' : ''; ?>">
     <div class="left-width">
         <ul role="list" class="screen-nav-items -mb-8">
 			<?php foreach ( $staging_screens as $index => $screen ) : ?>
                 <li>
-                    <div class="screen-nav relative pb-8 <?php echo ( $index === 0 ) ? 'active' : ''; ?>">
+                    <div class="screen-nav relative pb-8 <?php echo ( $v4_resuming || $index === 0 ) ? 'active' : ''; ?>">
 						<?php if ( $index < 4 ) : ?>
                             <span class="screen-nav-line absolute left-4 top-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true"></span>
 						<?php endif; ?>
                         <div class="relative flex space-x-3">
                             <div>
-                                <div class="screen-nav-icon h-8 w-8 rounded-full border-2 border-primary-900 flex items-center justify-center <?php echo ( $index === 0 ) ? 'bg-primary-900' : 'bg-white'; ?>">
+                                <div class="screen-nav-icon h-8 w-8 rounded-full border-2 border-primary-900 flex items-center justify-center <?php echo ( $v4_resuming || $index === 0 ) ? 'bg-primary-900' : 'bg-white'; ?>">
                                     <img src="<?php echo esc_url( instaWP::get_asset_url( 'migrate/assets/images/true-icon.svg' ) ); ?>" alt="True Icon">
                                     <span class="w-2 h-2 bg-primary-900 rounded"></span>
                                 </div>
                             </div>
                             <div class="flex justify-between items-center">
                                 <div>
-                                    <p class="screen-nav-label text-xs font-medium uppercase <?php echo ( $index === 0 ) ? 'text-primary-900' : 'text-grayCust-50'; ?>"><?php echo esc_html( $screen ); ?></p>
+                                    <p class="screen-nav-label text-xs font-medium uppercase <?php echo ( $v4_resuming || $index === 0 ) ? 'text-primary-900' : 'text-grayCust-50'; ?>"><?php echo esc_html( $screen ); ?></p>
                                 </div>
                             </div>
                         </div>
@@ -430,10 +445,18 @@ delete_option( 'instawp_db_offset' );
 						 * .instawp-migration-loader above.
 						 */
 						?>
-                        <div class="instawp-v4-running hidden p-5 text-sm text-grayCust-900"
+                        <div class="instawp-v4-running <?php echo esc_attr( $v4_resuming ? '' : 'hidden' ); ?> p-5 text-sm text-grayCust-900"
                              data-waiting-text="<?php esc_attr_e( 'Creating your staging site. The migration link will appear here once it is ready — you can leave this page and come back, it will pick up where it left off.', 'instawp-connect' ); ?>"
                              data-tracking-text="<?php esc_attr_e( 'Your staging site is being created. Follow the migration with the link below — you can safely close this tab.', 'instawp-connect' ); ?>">
-							<?php esc_html_e( 'Creating your staging site. The migration link will appear here once it is ready — you can leave this page and come back, it will pick up where it left off.', 'instawp-connect' ); ?>
+							<?php
+							// Matches what is rendered BELOW: a resumed run whose agent_url is already
+							// stored shows the link on this same paint, so promising one is wrong.
+							echo esc_html(
+								empty( $tracking_url )
+									? __( 'Creating your staging site. The migration link will appear here once it is ready — you can leave this page and come back, it will pick up where it left off.', 'instawp-connect' )
+									: __( 'Your staging site is being created. Follow the migration with the link below — you can safely close this tab.', 'instawp-connect' )
+							);
+							?>
                         </div>
 
                         <?php
@@ -461,7 +484,7 @@ delete_option( 'instawp_db_offset' );
                         // their labels and the stage list. Named so the V4 branch can retire it in one
                         // selector -- hiding the bars alone would leave the "Files" and "Database" labels
                         // behind as orphans. ?>
-                        <div class="instawp-v3-progress p-5 flex flex-col gap-4">
+                        <div class="instawp-v3-progress p-5 flex flex-col gap-4 <?php echo esc_attr( $v4_resuming ? 'hidden' : '' ); ?>">
                             <div class="flex items-center">
                                 <div class="w-24 text-grayCust-900 text-base font-normal"><?php esc_html_e( 'Files', 'instawp-connect' ); ?></div>
                                 <div class="instawp-progress-files text-border rounded-xl w-full text-bg py-4 flex items-center px-4">
@@ -534,7 +557,7 @@ delete_option( 'instawp_db_offset' );
                                 <span class="mr-2"><?php esc_html_e( 'Track Migration', 'instawp-connect' ); ?></span>
                                 <img src="<?php echo esc_url( instaWP::get_asset_url( 'migrate/assets/images/share-icon.svg' ) ); ?>" class="inline ml-1" alt="">
                             </a>
-                            <button type="button" class="instawp-migrate-abort shadow-sm border border-grayCust-350 rounded-md py-2 px-8 bg-white text-sm font-medium text-red-400"><?php esc_html_e( 'Abort', 'instawp-connect' ); ?></button>
+                            <button type="button" class="instawp-migrate-abort <?php echo esc_attr( $v4_resuming ? 'hidden' : '' ); ?> shadow-sm border border-grayCust-350 rounded-md py-2 px-8 bg-white text-sm font-medium text-red-400"><?php esc_html_e( 'Abort', 'instawp-connect' ); ?></button>
                         </div>
                     </div>
                     <div class="migration-completed hidden border border-grayCust-100 rounded-lg">
@@ -642,7 +665,7 @@ delete_option( 'instawp_db_offset' );
             </div>
         </div>
 
-        <div class="screen-buttons border-t <?php echo esc_attr( ! empty( $migrate_id ) ? 'hidden' : '' ); ?> bg-grayCust-250 px-6 py-4 rounded-bl-lg rounded-br-lg flex justify-between">
+        <div class="screen-buttons border-t <?php echo esc_attr( ! empty( $migrate_id ) || $v4_resuming ? 'hidden' : '' ); ?> bg-grayCust-250 px-6 py-4 rounded-bl-lg rounded-br-lg flex justify-between">
             <div class="flex items-center gap-5 relative">
                 <div class="instawp-site-name flex items-center focus-visible:outline-none cursor-pointer hint--top hint--rounded" aria-label="<?= esc_attr__( 'Leave blank for Auto Generated name', 'instawp-connect' ) ?>" style="max-width: 350px;">
                     <div class="focus-visible:outline-none">
