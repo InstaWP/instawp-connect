@@ -231,6 +231,30 @@ class InstaWP_Staging_V4 {
 	 * @return array|WP_Error
 	 */
 	public static function run( $posted ) {
+		/*
+		 * IDEMPOTENT ON AN IN-FLIGHT RUN, and this is a safety guard rather than a nicety.
+		 *
+		 * Nothing else stopped this method starting a SECOND staging migration: it installs
+		 * instamigrate, seeds a migration_imports row and creates a destination SITE, so a repeat
+		 * call bills a second site and orphans the first run's record when remember_run() overwrites
+		 * the option. Reachable three ways -- a double-click on Create Staging, a second wp-admin
+		 * tab, and (until the fix that accompanies this) the page-load resume, which re-entered
+		 * screen 5 by triggering the change handler that calls migrate_init().
+		 *
+		 * Returning the EXISTING run rather than an error is deliberate: every caller wants to end
+		 * up watching the live migration, and that is exactly what the returned uuid does.
+		 */
+		$in_flight = self::resumable_run();
+
+		if ( ! empty( $in_flight ) ) {
+			return array(
+				'engine'     => 'v4',
+				'uuid'       => Helper::get_args_option( 'uuid', $in_flight, '' ),
+				'started_at' => (int) Helper::get_args_option( 'started_at', $in_flight, time() ),
+				'message'    => esc_html__( 'A staging migration is already in progress.', 'instawp-connect' ),
+			);
+		}
+
 		$connect_id = instawp_get_connect_id();
 
 		if ( empty( $connect_id ) ) {

@@ -793,7 +793,18 @@
         }
 
         // Initiating Migration
-        if (screen_current === 5) {
+        //
+        // A RESUME also lands here: both resume paths reach screen 5 by
+        // el_instawp_screen.val(5).trigger('change'), which runs this handler. Without the flag
+        // that meant every page refresh during a live run called instawp_migrate_init() again --
+        // starting a SECOND staging migration, and, when it failed, hiding .migration-running so
+        // the screen vanished. That is the "still not visible after refresh" report.
+        //
+        // The flag is consumed here rather than cleared by the resume block, so it cannot leak into
+        // a later, genuine screen change within the same page load.
+        if (screen_current === 5 && create_container.data('instawp-resuming')) {
+            create_container.removeData('instawp-resuming');
+        } else if (screen_current === 5) {
             // BEFORE the request, not in its success callback. The screen has just been switched a
             // few lines above, and instawp_migrate_init() runs staging-init + start -- which is
             // destination SITE CREATION, tens of seconds. Applying the V4 chrome on success meant
@@ -1084,6 +1095,8 @@
         }
 
         if (create_container.hasClass('loading')) {
+            // Resuming, not starting: see the guard in the #instawp-screen change handler.
+            create_container.data('instawp-resuming', true);
             el_instawp_screen.val(5).trigger('change');
             create_container.attr('interval-id', setInterval(instawp_migrate_progress, 3000));
         }
@@ -1093,6 +1106,9 @@
         // screen and the watcher. Kept off the `loading` branch above deliberately: that one starts
         // the V3 progress poll, which reads a migrates_v3 row a V4 run never creates.
         if (create_container.hasClass('instawp-v4-resume')) {
+            // Resuming, not starting: see the guard in the #instawp-screen change handler. The
+            // migration already exists; re-running init would create a second one.
+            create_container.data('instawp-resuming', true);
             el_instawp_screen.val(5).trigger('change');
 
             instawp_staging_v4_chrome(create_container);
