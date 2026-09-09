@@ -420,8 +420,41 @@ delete_option( 'instawp_db_offset' );
                         // widgets are fed by the V3 progress endpoint, which a V4 run never calls -- left
                         // visible they sit at "0%" and "Processing (0/N stages)" for the whole migration and
                         // read as a stalled run. scripts.js unhides this and hides them on the v4 branch. ?>
-                        <div class="instawp-v4-running hidden p-5 text-sm text-grayCust-900">
-							<?php esc_html_e( 'Your staging site is being created. Progress is shown on the migration page — open it with the link below. You can safely close this tab.', 'instawp-connect' ); ?>
+                        <?php
+						/*
+						 * TWO messages, because for the first few minutes there is no link to point at.
+						 * The agent URL only exists once client-app has created the destination site and
+						 * started the migration, so a single line saying "open it with the link below"
+						 * describes a link that is not there yet. scripts.js swaps to the tracking text
+						 * when a poll returns the URL, using the same data-attribute idiom as
+						 * .instawp-migration-loader above.
+						 */
+						?>
+                        <div class="instawp-v4-running hidden p-5 text-sm text-grayCust-900"
+                             data-waiting-text="<?php esc_attr_e( 'Creating your staging site. The migration link will appear here once it is ready — you can leave this page and come back, it will pick up where it left off.', 'instawp-connect' ); ?>"
+                             data-tracking-text="<?php esc_attr_e( 'Your staging site is being created. Follow the migration with the link below — you can safely close this tab.', 'instawp-connect' ); ?>">
+							<?php esc_html_e( 'Creating your staging site. The migration link will appear here once it is ready — you can leave this page and come back, it will pick up where it left off.', 'instawp-connect' ); ?>
+                        </div>
+
+                        <?php
+						/*
+						 * Non-terminal errors. client-app can report an error_message while the run is
+						 * still `migrating` -- a destination whose SSH is unusable, say -- and the
+						 * terminal failure UI below never fires for those, so the admin was told
+						 * nothing at all while the run sat there. Shown here instead, inside the
+						 * running panel so the run and its link stay visible, and dismissible because
+						 * some of these resolve on a retry.
+						 *
+						 * Deliberately NOT the .migration-error block further down: that one hides
+						 * .migration-running, which would take the tracking link away with it.
+						 */
+						?>
+                        <div class="instawp-v4-error hidden mx-5 mt-5 p-4 text-sm text-red-700 rounded-lg bg-red-50 border border-red-200 flex items-start gap-3" role="alert">
+                            <span class="instawp-v4-error-message flex-1"></span>
+                            <button type="button" class="instawp-v4-error-dismiss text-red-700 hover:text-red-900 font-medium flex-shrink-0"
+                                    aria-label="<?php esc_attr_e( 'Dismiss', 'instawp-connect' ); ?>">
+								<?php esc_html_e( 'Dismiss', 'instawp-connect' ); ?>
+                            </button>
                         </div>
 
                         <?php // instawp-v3-progress wraps EVERYTHING the V3 progress endpoint feeds: both bars,

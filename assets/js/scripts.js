@@ -306,7 +306,40 @@
             create_container.find('.instawp-v3-progress, .instawp-migrate-abort, .notice-serve-with-wp')
                 .addClass('hidden');
 
-            create_container.find('.instawp-v4-running').removeClass('hidden');
+            // Which message depends on whether a link is already on screen, and BOTH cases are
+            // real: a fresh start has none for the first few minutes, while a RESUMED run had its
+            // href seeded server-side from the stored agent_url and shows it on first paint.
+            // Deciding here rather than at each call site keeps the two paths from drifting.
+            let el_notice = create_container.find('.instawp-v4-running'),
+                el_link = create_container.find('.instawp-track-migration'),
+                has_link = el_link.length > 0 && !el_link.hasClass('hidden');
+
+            el_notice.text(el_notice.data(has_link ? 'tracking-text' : 'waiting-text'));
+            el_notice.removeClass('hidden');
+        },
+        /*
+         * Surface a non-terminal error, once per distinct message.
+         *
+         * Keyed on the MESSAGE, not on a boolean: the watcher polls every 3s, so a shown-once flag
+         * would suppress a second, different error, and re-showing on every poll would resurrect a
+         * notice the admin just dismissed. Storing the dismissed text means the same error stays
+         * dismissed while a NEW one still gets through.
+         */
+        instawp_staging_v4_notice = (create_container, message) => {
+            if (typeof message !== 'string' || message.length === 0) {
+                return;
+            }
+
+            let el_error = create_container.find('.instawp-v4-error');
+
+            if (el_error.data('dismissed') === message) {
+                return;
+            }
+
+            // .text(), not .html(): this is a server-supplied string that quotes the destination's
+            // own output, so it must never be rendered as markup on an admin page.
+            el_error.find('.instawp-v4-error-message').text(message);
+            el_error.removeClass('hidden');
         },
         // Stop a V4 watch and return the wizard to a non-running state. `loading` is added in
         // instawp_migrate_init's beforeSend and only `doing-ajax` is removed on complete, and
@@ -414,7 +447,19 @@
                     if (typeof response.data.agent_url !== 'undefined' && response.data.agent_url.length > 0) {
                         create_container.find('.instawp-track-migration').attr('href', response.data.agent_url).removeClass('hidden');
                         create_container.find('.instawp-track-migration-area').removeClass('justify-end').addClass('justify-between');
+
+                        // Now that a link exists, stop telling the user one is coming.
+                        let el_v4_notice = create_container.find('.instawp-v4-running');
+
+                        el_v4_notice.text(el_v4_notice.data('tracking-text'));
                     }
+
+                    // A run can carry an error while client-app still reports a NON-terminal status —
+                    // an unusable destination SSH, say. The terminal handler below never fires for
+                    // those, so without this the admin watches a spinner that will never resolve and
+                    // is told nothing. Shown inside the running panel so the link stays put, and
+                    // dismissible because some of these clear on a retry.
+                    instawp_staging_v4_notice(create_container, response.data.message);
 
                     // A terminal status must LOOK terminal. Clearing the poll alone left the
                     // spinner turning and the elapsed timer counting up forever, so `failed`
@@ -749,6 +794,16 @@
 
         // Initiating Migration
         if (screen_current === 5) {
+            // BEFORE the request, not in its success callback. The screen has just been switched a
+            // few lines above, and instawp_migrate_init() runs staging-init + start -- which is
+            // destination SITE CREATION, tens of seconds. Applying the V4 chrome on success meant
+            // the V3 bars and the "Processing (0/N stages)" list were on screen for that entire
+            // window, which is what "it shows the old screen first" was.
+            //
+            // Safe unconditionally here: migrate_init() is V4-only on this branch, so screen 5 is
+            // always a V4 run. If a V3 path is ever restored, gate this on the engine.
+            instawp_staging_v4_chrome(create_container);
+
             instawp_migrate_init();
         }
 
@@ -1107,6 +1162,15 @@
                 }
             }
         });
+    });
+
+    // Remembers WHAT was dismissed rather than THAT something was, so the next poll does not
+    // resurrect this message while a genuinely new one still gets through.
+    $(document).on('click', '.instawp-wrap .instawp-v4-error-dismiss', function () {
+        let el_error = $(this).closest('.instawp-v4-error');
+
+        el_error.data('dismissed', el_error.find('.instawp-v4-error-message').text());
+        el_error.addClass('hidden');
     });
 
     $(document).on('click', '.instawp-wrap .instawp-migrate-abort', function () {
