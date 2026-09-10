@@ -567,6 +567,23 @@ class InstaWP_Staging_V4 {
 			Option::update_option( self::DETAILS_OPTION, $details, false );
 		}
 
+		/*
+		 * Retire the agent here too -- this is the one path that fires while the user is WATCHING.
+		 *
+		 * client-app pushes v1/migration-finished on every terminal outcome, but that is an outbound
+		 * call to a customer's site and it can simply not arrive. Without this, a failed push left
+		 * instamigrate installed and active on the source for up to STATUS_CHECK_INTERVAL, and only
+		 * then if an admin holding delete_plugins happened to load wp-admin.
+		 *
+		 * AFTER the option write, so finished_at is persisted even when the delete fails, and gated
+		 * on the same terminal check rather than on $dirty -- a second poll arriving after the first
+		 * already stamped it is not dirty, and would otherwise skip the cleanup entirely.
+		 * cleanup_instamigrate() is idempotent: it returns early once the files are gone.
+		 */
+		if ( in_array( $status, array( 'completed', 'failed' ), true ) ) {
+			self::cleanup_instamigrate();
+		}
+
 		wp_send_json_success(
 			array(
 				'uuid'      => $uuid,
