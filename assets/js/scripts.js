@@ -347,9 +347,12 @@
             el_error.removeClass('hidden');
         },
         // Stop a V4 watch and return the wizard to a non-running state. `loading` is added in
-        // instawp_migrate_init's beforeSend and only `doing-ajax` is removed on complete, and
-        // elapsedInterval is started on the v4 branch — so both have to be undone here or the UI
-        // stays visually mid-migration forever.
+        // instawp_migrate_init's beforeSend and only `doing-ajax` is removed on complete, so it has
+        // to be undone here or the UI stays visually mid-migration forever.
+        //
+        // The elapsedInterval clear below is now defensive only -- the V4 branches no longer start
+        // one -- but it is kept because this helper also runs after a V3 screen has been on the page,
+        // and leaking a per-second interval is worse than a redundant clearInterval.
         instawp_staging_v4_stop = (create_container, watcher) => {
             clearInterval(watcher);
             create_container.removeAttr('interval-id');
@@ -534,12 +537,18 @@
                             // user would otherwise spend that time looking at 0% bars.
                             instawp_staging_v4_chrome(create_container);
 
-                            if (!elapsedInterval) {
-                                elapsedInterval = setInterval(() => {
-                                    updateTimer(response.data.started_at)
-                                }, 1000);
-                            }
-
+                            /*
+                             * NO elapsed timer on V4, deliberately.
+                             *
+                             * updateTimer() parses `startTime + " UTC"`, a MySQL datetime -- what V3
+                             * sends. V4 sends time(), an epoch int, so `new Date("1757505600 UTC")`
+                             * is Invalid Date and the element was set to empty text every second for
+                             * the life of the page. It was invisible either way: #visibility-timer
+                             * lives inside .instawp-v3-progress, which chrome() has just hidden.
+                             *
+                             * Not repaired, because the agent's own page -- the one the Track
+                             * Migration link leads to -- already shows elapsed time.
+                             */
                             instawp_staging_v4_watch(create_container);
 
                             return;
@@ -1160,16 +1169,10 @@
              * poll.
              */
 
-            // From the run's OWN start time, not from page load — otherwise a migration resumed an
-            // hour in reports itself as having just begun.
-            let v4StartedAt = parseInt(create_container.attr('data-v4-started-at'), 10);
-
-            if (!elapsedInterval && v4StartedAt > 0) {
-                elapsedInterval = setInterval(() => {
-                    updateTimer(v4StartedAt)
-                }, 1000);
-            }
-
+            // No elapsed timer here either -- see the v4 branch in instawp_migrate_init(). The
+            // comment this replaces claimed it counted from the run's own start time rather than
+            // from page load, which was true of the argument and irrelevant to the result: the value
+            // never parsed, so nothing was ever rendered.
             instawp_staging_v4_watch(create_container);
         }
 
