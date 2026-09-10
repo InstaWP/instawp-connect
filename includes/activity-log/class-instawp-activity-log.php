@@ -30,6 +30,13 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 		 */
 		const LOG_RETENTION_DAYS = 30;
 
+		/** Rows deleted per statement, and statements per sweep. */
+		const PRUNE_BATCH_SIZE  = 500;
+		const PRUNE_MAX_BATCHES = 20;
+
+		/** Option (autoloaded, one int) recording when the retention sweep last ran. */
+		const PRUNE_STAMP_OPTION = 'instawp_activity_log_pruned_at';
+
 		public function __construct() {
 			$this->table_name = INSTAWP_DB_TABLE_ACTIVITY_LOGS;
 
@@ -76,16 +83,19 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
         }
 
 		public function send_log_data( $critical = false ) {
+			// Before the connect-id check on purpose: a disconnected site is one of the two
+			// "backlog that can never be delivered" cases retention exists for, and gating
+			// the sweep behind delivery would skip exactly those sites.
+			if ( ! $critical ) {
+				$this->prune_stale_logs();
+			}
+
 			$connect_id = instawp_get_connect_id();
 			if ( ! $connect_id ) {
 				return;
 			}
 
 			global $wpdb;
-
-			if ( ! $critical ) {
-				$this->prune_stale_logs();
-			}
 
             if ( $critical ) {
                 $query = $wpdb->prepare( "SELECT * FROM {$this->table_name} WHERE severity=%s ORDER BY id ASC LIMIT %d", 'critical', self::LOG_BATCH_SIZE ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -131,11 +141,15 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 		}
 
 		/**
-		 * Retention: drop rows older than LOG_RETENTION_DAYS regardless of
-		 * send status, in small batches, so a backlog that can never be
-		 * delivered (unreachable API, revoked key) doesn't grow the table
-		 * forever. Bounded per call so a first run against an already-huge
-		 * table doesn't hold a long-running delete lock.
+		 * Retention: drop rows older than LOG_RETENTION_DAYS regardless of send status, so
+		 * a backlog that can never be delivered (unreachable API, revoked key, disconnected
+		 * site) doesn't grow the table forever.
+		 *
+		 * Deleted in PRUNE_BATCH_SIZE statements rather than one, so a first sweep against
+		 * an already-huge table never holds a long delete lock, and up to PRUNE_MAX_BATCHES
+		 * of them per sweep, because a single bounded statement per day cannot outrun a
+		 * site inserting faster than that -- the site this was written for had accumulated
+		 * 155,110 rows.
 		 *
 		 * @return void
 		 */
@@ -144,27 +158,43 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 
 			/*
 			 * In 'instantly' mode send_log_data() runs on EVERY logged event, so this must
-			 * not become a DELETE per page load. Once a day is enough for a 30-day window,
-			 * and the transient is set before the query so a slow first sweep on an
-			 * already-huge table cannot be re-entered by concurrent requests.
+			 * not become a DELETE per page load. Once a day is enough for a 30-day window.
+			 *
+			 * An autoloaded option rather than a transient: a transient on a site with a
+			 * persistent object cache whose backend is unreachable reads false and writes
+			 * nowhere, so the gate would silently open on every single event -- the exact
+			 * failure it is here to prevent. The stamp is written BEFORE the deletes so a
+			 * slow first sweep cannot be re-entered concurrently.
 			 */
-			if ( get_transient( 'instawp_activity_log_pruned' ) ) {
+			$last_pruned = (int) get_option( self::PRUNE_STAMP_OPTION, 0 );
+
+			if ( $last_pruned > ( time() - DAY_IN_SECONDS ) ) {
 				return;
 			}
 
-			set_transient( 'instawp_activity_log_pruned', 1, DAY_IN_SECONDS );
+			update_option( self::PRUNE_STAMP_OPTION, time(), true );
 
-			if ( $wpdb->get_var( "SHOW TABLES LIKE '{$this->table_name}'" ) !== $this->table_name ) {
+			$table_like = method_exists( $wpdb, 'esc_like' ) ? $wpdb->esc_like( $this->table_name ) : $this->table_name;
+
+			if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_like ) ) !== $this->table_name ) {
 				return;
 			}
 
-			$wpdb->query(
-				$wpdb->prepare(
-					"DELETE FROM {$this->table_name} WHERE timestamp < %s ORDER BY id ASC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-					gmdate( 'Y-m-d H:i:s', strtotime( '-' . self::LOG_RETENTION_DAYS . ' days' ) ),
-					500
-				)
-			);
+			$cutoff = gmdate( 'Y-m-d H:i:s', strtotime( '-' . self::LOG_RETENTION_DAYS . ' days' ) );
+
+			for ( $batch = 0; $batch < self::PRUNE_MAX_BATCHES; $batch ++ ) {
+				$wpdb->query(
+					$wpdb->prepare(
+						"DELETE FROM {$this->table_name} WHERE timestamp < %s ORDER BY id ASC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+						$cutoff,
+						self::PRUNE_BATCH_SIZE
+					)
+				);
+
+				if ( self::PRUNE_BATCH_SIZE > (int) $wpdb->rows_affected ) {
+					break;
+				}
+			}
 		}
 
 		public function create_table() {

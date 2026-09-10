@@ -420,9 +420,9 @@ class Helper {
 	const ERROR_LOG_RESET_BYTES = 4000000; // ~4MB.
 
 	/**
-	 * Recursion bounds for sanitize_data(). It is a shared helper run over
-	 * arbitrary API request/response bodies, so neither depth nor breadth is
-	 * ours to trust.
+	 * Recursion bounds sanitize_data() applies WHEN A CALLER ASKS FOR THEM. The log sink
+	 * does; nobody else does. See the note on sanitize_data() for why they are not on by
+	 * default.
 	 */
 	const SANITIZE_MAX_DEPTH    = 10;
 	const SANITIZE_MAX_ELEMENTS = 500;
@@ -444,7 +444,7 @@ class Helper {
 			$log = array_slice( $log, -1 * self::ERROR_LOG_KEEP_ENTRIES );
 		}
 
-		$error         = is_array( $payload ) ? self::redact_for_log( self::sanitize_data( $payload ) ) : array(
+		$error         = is_array( $payload ) ? self::redact_for_log( self::sanitize_data( $payload, self::SANITIZE_MAX_ELEMENTS ) ) : array(
 			/*
 			 * A STRING payload is NOT redacted — by design, and worth stating because the comment
 			 * that used to sit here said the opposite (it described a text scrubber that has since
@@ -501,9 +501,30 @@ class Helper {
 		);
 
 		if ( null !== $stored_bytes && self::ERROR_LOG_RESET_BYTES < (int) $stored_bytes ) {
-			self::set_settings( array(), $log_name );
+			/*
+			 * delete_option(), NOT set_settings( array() ). update_option() reads
+			 * $old_value = get_option( $option ) before it compares, so writing an empty
+			 * array here would unserialize the very blob this branch exists to avoid
+			 * loading -- at ~5x expansion, a 26MB row is well over 100MB of PHP arrays.
+			 * delete_option() reads only the `autoload` column.
+			 */
+			Option::delete_option( $log_name );
 
-			return array();
+			/*
+			 * Leave a marker rather than nothing. This accessor is reachable from the
+			 * plugin's debug-info endpoint, so a support engineer can be the one who
+			 * triggers the discard, and an empty log is indistinguishable from a healthy
+			 * one. The option is already gone, so this write has nothing left to load.
+			 */
+			$marker = array(
+				array(
+					'message' => 'Error log discarded: it had reached ' . (int) $stored_bytes . ' bytes, past the ' . self::ERROR_LOG_RESET_BYTES . '-byte ceiling.',
+					'time'    => date( 'Y-m-d H:i:s' ),
+				),
+			);
+			self::set_settings( $marker, $log_name );
+
+			return $marker;
 		}
 
 		$log = self::get_options( array(), $log_name );
@@ -551,9 +572,16 @@ class Helper {
 	private static function cut_bytes( $value, $max_bytes ) {
 		$cut = substr( $value, 0, $max_bytes );
 
-		// Drop a trailing partial sequence -- a UTF-8 character spans at most 4 bytes,
-		// so at most 3 trailing bytes can be an incomplete one. preg_match( '//u' )
-		// returns false on an invalid subject, which is the validity test here.
+		/*
+		 * Only repair what WE broke. Running the loop on a value that was ALREADY invalid
+		 * UTF-8 before the cut shortens it without making it valid, so check the input
+		 * first. A character spans at most 4 bytes, so at most 3 trailing bytes can be a
+		 * partial one; preg_match( '//u' ) returning false is the validity test.
+		 */
+		if ( ! preg_match( '//u', $value ) ) {
+			return $cut;
+		}
+
 		for ( $i = 0; $i < 3 && '' !== $cut && ! preg_match( '//u', $cut ); $i ++ ) {
 			$cut = substr( $cut, 0, -1 );
 		}
@@ -584,7 +612,26 @@ class Helper {
 			$encoded = is_string( $value ) ? $value : wp_json_encode( $value );
 			$encoded = is_string( $encoded ) ? $encoded : maybe_serialize( $value );
 
-			$entry[ $key ] = self::cut_bytes( $encoded, $max_field_bytes ) . '... [truncated, original ' . strlen( $encoded ) . ' bytes]';
+			$entry[ $key ] = self::cut_bytes( $encoded, $max_field_bytes ) . '... [truncated, encoded form was ' . strlen( $encoded ) . ' bytes]';
+		}
+
+		/*
+		 * The per-field pass alone does NOT enforce the entry ceiling: many fields each
+		 * just under the field budget still add up past it. That matters because an entry
+		 * above the TOTAL ceiling is one enforce_log_byte_cap() can never shed. Drop the
+		 * largest remaining field until the entry fits -- bounded by the field count, and
+		 * each pass strictly shrinks the entry, so it terminates.
+		 */
+		$fields = count( $entry );
+		for ( $i = 0; $i < $fields && self::ERROR_LOG_MAX_ENTRY_BYTES < self::log_size( $entry ); $i ++ ) {
+			$sizes = array();
+			foreach ( $entry as $key => $value ) {
+				$sizes[ $key ] = self::log_size( $value );
+			}
+
+			arsort( $sizes );
+			$largest           = key( $sizes );
+			$entry[ $largest ] = '[dropped, ' . $sizes[ $largest ] . ' bytes]';
 		}
 
 		return $entry;
@@ -599,6 +646,25 @@ class Helper {
 	 * @return array
 	 */
 	private static function enforce_log_byte_cap( $log ) {
+		if ( self::ERROR_LOG_MAX_TOTAL_BYTES >= self::log_size( $log ) ) {
+			return $log;
+		}
+
+		// Size each entry ONCE. Re-serialising the whole log per shift is quadratic, and
+		// the path that reaches here with a real backlog is the self-heal one, where the
+		// log is already megabytes.
+		$sizes = array();
+		foreach ( $log as $entry ) {
+			$sizes[] = self::log_size( $entry );
+		}
+
+		$total = array_sum( $sizes );
+		while ( 1 < count( $log ) && self::ERROR_LOG_MAX_TOTAL_BYTES < $total ) {
+			array_shift( $log );
+			$total -= array_shift( $sizes );
+		}
+
+		// The per-entry sum omits the array envelope, so settle it exactly.
 		while ( 1 < count( $log ) && self::ERROR_LOG_MAX_TOTAL_BYTES < self::log_size( $log ) ) {
 			array_shift( $log );
 		}
@@ -609,34 +675,43 @@ class Helper {
 	/**
 	 * Sanitize data
 	 *
-	 * Shared on untrusted-shaped data (arbitrary API request/response
-	 * bodies), so recursion is bounded on both depth and array size to keep
-	 * one adversarial or oversized payload from exhausting memory.
+	 * Recursion bounds are OPT-IN and default to OFF, so this call is unchanged for every
+	 * existing caller. That is deliberate: this is a shared, general-purpose sanitiser and
+	 * at least one caller KEEPS what it returns -- instawp-connect's get_set_sync_config_data()
+	 * writes it straight back into an option -- so silently replacing elements here would
+	 * corrupt stored data rather than trim a log line. Same reason redact_for_log() is not
+	 * folded in. add_error_log() is a sink and asks for the bounds; nobody else gets them.
 	 *
-	 * @param array|string $data  data
-	 * @param int          $depth internal recursion depth guard
+	 * @param array|string $data         data
+	 * @param int          $max_elements per-array element ceiling, 0 (default) for unbounded
+	 * @param int          $depth        internal recursion depth
 	 *
 	 * @return array|string sanitized data
 	 */
-	public static function sanitize_data( $data, $depth = 0 ) {
+	public static function sanitize_data( $data, $max_elements = 0, $depth = 0 ) {
 		if ( empty( $data ) ) {
 			return $data;
 		}
 
-		if ( self::SANITIZE_MAX_DEPTH < $depth ) {
+		if ( 0 < $max_elements && self::SANITIZE_MAX_DEPTH < $depth ) {
 			return is_scalar( $data ) ? sanitize_text_field( (string) $data ) : '[max depth exceeded]';
 		}
 
 		if ( is_array( $data ) ) {
-			$count = 0;
-			foreach ( $data as $key => $value ) {
-				if ( self::SANITIZE_MAX_ELEMENTS <= $count++ ) {
-					$data[ $key ] = '[truncated: too many elements]';
-					continue;
-				}
+			if ( 0 < $max_elements && $max_elements < count( $data ) ) {
+				/*
+				 * SLICE, don't mark in place. Replacing each surplus value while keeping
+				 * its key bounds the WORK and not the MEMORY -- a 155,110-element array
+				 * still costs 155,110 hashtable slots -- and memory is the point here.
+				 */
+				$dropped               = count( $data ) - $max_elements;
+				$data                  = array_slice( $data, 0, $max_elements, true );
+				$data['iwp_truncated'] = '[truncated: ' . $dropped . ' more elements]';
+			}
 
+			foreach ( $data as $key => $value ) {
 				if ( is_array( $value ) ) {
-					$data[ $key ] = self::sanitize_data( $value, $depth + 1 );
+					$data[ $key ] = self::sanitize_data( $value, $max_elements, $depth + 1 );
 				} else {
 					$data[ $key ] = sanitize_text_field( $value );
 				}
