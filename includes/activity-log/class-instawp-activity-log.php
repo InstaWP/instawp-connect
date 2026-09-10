@@ -14,6 +14,22 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 
 		private $table_name;
 
+		/**
+		 * Cap on rows sent (and re-logged on failure) per send_log_data() call.
+		 * Without this, a site whose uploads keep failing accumulates rows
+		 * unboundedly, and each retry re-sends AND re-logs the whole backlog as
+		 * a single Curl::do_curl() body, which is what grew
+		 * iwp_connect_helper_error_log to tens of MB on affected sites.
+		 */
+		const LOG_BATCH_SIZE = 200;
+
+		/**
+		 * Rows this old are dropped outright regardless of send status, so a
+		 * backlog that can never be delivered (unreachable API, revoked key)
+		 * doesn't grow the table forever.
+		 */
+		const LOG_RETENTION_DAYS = 30;
+
 		public function __construct() {
 			$this->table_name = INSTAWP_DB_TABLE_ACTIVITY_LOGS;
 
@@ -67,10 +83,14 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 
 			global $wpdb;
 
+			if ( ! $critical ) {
+				$this->prune_stale_logs();
+			}
+
             if ( $critical ) {
-                $query = $wpdb->prepare( "SELECT * FROM {$this->table_name} WHERE severity=%s", 'critical' ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                $query = $wpdb->prepare( "SELECT * FROM {$this->table_name} WHERE severity=%s ORDER BY id ASC LIMIT %d", 'critical', self::LOG_BATCH_SIZE ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
             } else {
-                $query = $wpdb->prepare( "SELECT * FROM {$this->table_name} WHERE severity!=%s", 'critical' ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                $query = $wpdb->prepare( "SELECT * FROM {$this->table_name} WHERE severity!=%s ORDER BY id ASC LIMIT %d", 'critical', self::LOG_BATCH_SIZE ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
             }
 
 			$log_ids = $logs = array();
@@ -108,6 +128,43 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 					$wpdb->prepare( "DELETE FROM {$this->table_name} WHERE id IN ($placeholders)", $log_ids ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 				);
 			}
+		}
+
+		/**
+		 * Retention: drop rows older than LOG_RETENTION_DAYS regardless of
+		 * send status, in small batches, so a backlog that can never be
+		 * delivered (unreachable API, revoked key) doesn't grow the table
+		 * forever. Bounded per call so a first run against an already-huge
+		 * table doesn't hold a long-running delete lock.
+		 *
+		 * @return void
+		 */
+		private function prune_stale_logs() {
+			global $wpdb;
+
+			/*
+			 * In 'instantly' mode send_log_data() runs on EVERY logged event, so this must
+			 * not become a DELETE per page load. Once a day is enough for a 30-day window,
+			 * and the transient is set before the query so a slow first sweep on an
+			 * already-huge table cannot be re-entered by concurrent requests.
+			 */
+			if ( get_transient( 'instawp_activity_log_pruned' ) ) {
+				return;
+			}
+
+			set_transient( 'instawp_activity_log_pruned', 1, DAY_IN_SECONDS );
+
+			if ( $wpdb->get_var( "SHOW TABLES LIKE '{$this->table_name}'" ) !== $this->table_name ) {
+				return;
+			}
+
+			$wpdb->query(
+				$wpdb->prepare(
+					"DELETE FROM {$this->table_name} WHERE timestamp < %s ORDER BY id ASC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+					gmdate( 'Y-m-d H:i:s', strtotime( '-' . self::LOG_RETENTION_DAYS . ' days' ) ),
+					500
+				)
+			);
 		}
 
 		public function create_table() {
