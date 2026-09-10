@@ -305,7 +305,8 @@ class InstaWP_Staging_V4 {
 		$status = Helper::get_args_option( 'status', Helper::get_args_option( 'data', $response, array() ), '' );
 
 		if ( in_array( $status, array( 'completed', 'failed' ), true ) ) {
-			self::cleanup_instamigrate();
+			// Status in hand from the call above — no second request.
+			self::cleanup_instamigrate( $status );
 		}
 	}
 
@@ -335,7 +336,7 @@ class InstaWP_Staging_V4 {
 	 *
 	 * @return bool
 	 */
-	private static function run_allows_cleanup() {
+	private static function run_allows_cleanup( $known_status = null ) {
 		$details = (array) Option::get_option( self::DETAILS_OPTION );
 		$uuid    = (string) Helper::get_args_option( 'uuid', $details, '' );
 
@@ -358,6 +359,22 @@ class InstaWP_Staging_V4 {
 			return true;
 		}
 
+		/*
+		 * Reuse a status the caller already has, rather than asking twice.
+		 *
+		 * Two callers reach here having just read this exact field: the 6h arm of
+		 * run_cleanup_check(), and staging_status(), which is the plugin's 3s poll and fetched the
+		 * status to render the screen. Re-requesting it there would double the traffic on the
+		 * user-facing path to re-learn something we were told a microsecond ago.
+		 *
+		 * What is passed is the STATUS, not permission. Whether a given status means "safe to
+		 * delete" is still decided here and nowhere else, so a caller cannot wave the guard through
+		 * — which is the whole point of the check living at this end.
+		 */
+		if ( is_string( $known_status ) && '' !== $known_status ) {
+			return in_array( $known_status, array( 'completed', 'failed' ), true );
+		}
+
 		$response = Curl::do_curl( 'migrations/' . $uuid . '/status', array(), array(), 'GET' );
 
 		if ( empty( $response['success'] ) ) {
@@ -375,7 +392,7 @@ class InstaWP_Staging_V4 {
 		return in_array( $status, array( 'completed', 'failed' ), true );
 	}
 
-	public static function cleanup_instamigrate() {
+	public static function cleanup_instamigrate( $known_status = null ) {
 		$plugin_file = WP_PLUGIN_DIR . '/instamigrate/insta-migrate.php';
 
 		/*
@@ -421,7 +438,7 @@ class InstaWP_Staging_V4 {
 		 * is the deliberate backstop for a run whose outcome never arrives, and it is bounded by the
 		 * same deadline it always was.
 		 */
-		if ( ! self::run_allows_cleanup() ) {
+		if ( ! self::run_allows_cleanup( $known_status ) ) {
 			return false;
 		}
 
@@ -704,7 +721,8 @@ class InstaWP_Staging_V4 {
 		 * cleanup_instamigrate() is idempotent: it returns early once the files are gone.
 		 */
 		if ( in_array( $status, array( 'completed', 'failed' ), true ) ) {
-			self::cleanup_instamigrate();
+			// This poll already fetched the status to render the screen; reuse it.
+			self::cleanup_instamigrate( $status );
 		}
 
 		wp_send_json_success(
