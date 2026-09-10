@@ -1256,15 +1256,36 @@
             return;
         }
 
-        el_button.prop('disabled', true);
+        /*
+         * Say something IMMEDIATELY.
+         *
+         * The request behind this is slow -- the plugin calls client-app, which tells the agent to
+         * stop and then deletes the destination site -- and the screen only catches up on the next
+         * 3s poll. Disabling alone left the button reading "Cancel Migration" throughout, so the
+         * click looked ignored and the outcome arrived seconds later with nothing in between.
+         *
+         * Original label kept rather than re-read from a data attribute, so the restore below
+         * cannot disagree with what was actually on the button.
+         */
+        let original_text = el_button.text();
+
+        el_button.prop('disabled', true).text(el_button.data('cancelling-text'));
 
         $.post(plugin_object.ajax_url, {
             'action': 'instawp_staging_cancel_v4',
             'security': plugin_object.security,
-        }).always(function () {
-            // Re-enabled either way. On success the poll hides the button within 3s; on failure the
-            // run is still live and cancelling remains something the user may retry.
-            el_button.prop('disabled', false);
+        }).done(function (response) {
+            if (response && response.success) {
+                // Left disabled and still reading "Cancelling...": the run IS ending, and the poll
+                // hides the whole button within 3s. Restoring the label here would flash "Cancel
+                // Migration" back onto a migration that is already stopping.
+                return;
+            }
+
+            el_button.prop('disabled', false).text(original_text);
+        }).fail(function () {
+            // The run is still live, so cancelling remains something the user may retry.
+            el_button.prop('disabled', false).text(original_text);
         });
     });
 

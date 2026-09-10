@@ -186,6 +186,36 @@ class InstaWP_Staging_V4 {
 		$uuid    = Helper::get_args_option( 'uuid', $details, '' );
 
 		if ( empty( $uuid ) ) {
+			/*
+			 * No run, but we may still have installed instamigrate for one that never started.
+			 *
+			 * remember_run() only fires after live-import/start succeeds, and every arm below is
+			 * gated on that uuid -- so a staging-init that 404s or is refused left the plugin
+			 * installed and ACTIVE with no path out at all. ORPHAN_OPTION is exactly that record:
+			 * set on a real install, cleared once a migration references it, so a lingering value
+			 * means "we installed this and the run never started".
+			 *
+			 * Same deadline as a live run rather than a second number. There is no migration to
+			 * protect here, so it could be shorter -- but a user whose first attempt failed often
+			 * retries within minutes, and provision_instamigrate() would then reinstall what we had
+			 * just removed.
+			 */
+			$orphaned_at = (int) Option::get_option( self::ORPHAN_OPTION, 0 );
+
+			if ( $orphaned_at > 0 && ( time() - $orphaned_at ) > self::CLEANUP_DEADLINE ) {
+				self::cleanup_instamigrate();
+
+				Option::delete_option( self::ORPHAN_OPTION );
+				Option::delete_option( self::ORPHAN_LOGGED_OPTION );
+			}
+
+			return;
+		}
+
+		// Already removed, so neither arm has anything to do. Checked before the deadlines because
+		// the run record now OUTLIVES the cleanup -- it is kept for the watcher and the resume -- so
+		// without this every admin page load would re-run the 6h status call forever.
+		if ( ! empty( Helper::get_args_option( 'instamigrate_removed_at', $details, 0 ) ) ) {
 			return;
 		}
 
@@ -265,12 +295,23 @@ class InstaWP_Staging_V4 {
 	public static function cleanup_instamigrate() {
 		$plugin_file = WP_PLUGIN_DIR . '/instamigrate/insta-migrate.php';
 
-		// Forget the run FIRST and unconditionally. Whatever happens to the files, this run is over --
-		// and a bookkeeping entry that survives a failed delete is what would re-fire this on every
-		// subsequent admin page load.
-		self::forget_run();
-
+		/*
+		 * The run record is LEFT ALONE. An earlier revision deleted it here, which broke two things:
+		 *
+		 *  - staging_status() reads the uuid from it, so once it was gone the watcher's next poll
+		 *    answered "No staging migration in progress", and five of those (15 seconds) painted
+		 *    "Migration Failed" over a migration that had just SUCCEEDED. client-app's completion
+		 *    push races a 3s poll, so that was the normal ending, not a corner case.
+		 *  - it also removed the only state resumable_run() and the 48h arm read, so nothing could
+		 *    retry a delete that had failed -- while the REST handler's docblock claimed admin_init
+		 *    would.
+		 *
+		 * What retires the run is instamigrate_removed_at below, written only when the files are
+		 * actually gone.
+		 */
 		if ( ! file_exists( $plugin_file ) ) {
+			self::mark_instamigrate_removed();
+
 			return true;
 		}
 
@@ -313,14 +354,44 @@ class InstaWP_Staging_V4 {
 			return false;
 		}
 
+		self::mark_instamigrate_removed();
+
 		return true;
 	}
 
 	/**
-	 * Drop the stored run so nothing resumes, polls or re-checks it.
+	 * Is this uuid the run we are currently holding?
+	 *
+	 * Public because the REST handler needs it and the run details are deliberately not exposed --
+	 * they carry the agent URL.
+	 *
+	 * An EMPTY stored uuid answers false: with no run of our own, a notification naming one cannot be
+	 * about us.
 	 */
-	private static function forget_run() {
-		Option::delete_option( self::DETAILS_OPTION );
+	public static function is_current_run( $uuid ) {
+		$details = (array) Option::get_option( self::DETAILS_OPTION );
+		$stored  = (string) Helper::get_args_option( 'uuid', $details, '' );
+
+		return '' !== $stored && $stored === (string) $uuid;
+	}
+
+	/**
+	 * Record that instamigrate is gone, so the deadline arms stop looking at this run.
+	 *
+	 * A flag on the run rather than deleting the run: the watcher, resumable_run() and the status
+	 * poll all still need the uuid, and removing a plugin is not the same event as the migration
+	 * ending. Written ONLY after the files are confirmed gone, so a failed delete stays retryable.
+	 */
+	private static function mark_instamigrate_removed() {
+		$details = (array) Option::get_option( self::DETAILS_OPTION );
+
+		if ( empty( Helper::get_args_option( 'uuid', $details, '' ) ) ) {
+			return;
+		}
+
+		$details['instamigrate_removed_at'] = time();
+
+		Option::update_option( self::DETAILS_OPTION, $details, false );
 	}
 
 	public static function resumable_run() {
@@ -953,14 +1024,13 @@ class InstaWP_Staging_V4 {
 	/**
 	 * Record that WE installed instamigrate, pending a migration that references it.
 	 *
-	 * ⚠ This is a DIAGNOSTIC BREADCRUMB, not a rollback. Nothing reads this option and nothing
-	 * uninstalls instamigrate: if the run dies after the install, the plugin stays on the
-	 * customer's site and this option plus the error-log line are the only record of why. Set on a
-	 * real install, cleared by remember_run() once a migration references it, so a lingering value
-	 * means exactly "we installed this and the run never started".
+	 * Set on a real install, cleared by remember_run() once a migration references it, so a
+	 * lingering value means exactly "we installed this and the run never started".
 	 *
-	 * Do not describe this as rollback anywhere. Implementing actual cleanup (an admin notice, or
-	 * deactivate-and-delete when the flag is older than an hour) is a separate change.
+	 * READ by maybe_cleanup_instamigrate(), which removes the plugin once the flag is older than
+	 * CLEANUP_DEADLINE. It was a diagnostic breadcrumb until then -- a staging-init that failed left
+	 * instamigrate installed and active with no path out, because every other cleanup arm is gated
+	 * on a run uuid that a failed init never produced.
 	 *
 	 * @return void
 	 */

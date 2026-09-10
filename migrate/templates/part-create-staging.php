@@ -578,7 +578,8 @@ delete_option( 'instawp_db_offset' );
 							 */
 							?>
                             <button type="button" class="instawp-v4-cancel <?php echo esc_attr( $v4_resuming ? '' : 'hidden' ); ?> shadow-sm border border-grayCust-350 rounded-md py-2 px-8 bg-white text-sm font-medium text-red-400"
-                                    data-confirm="<?php esc_attr_e( 'Are you sure you want to cancel this migration? The destination site will be deleted.', 'instawp-connect' ); ?>"><?php esc_html_e( 'Cancel Migration', 'instawp-connect' ); ?></button>
+                                    data-confirm="<?php esc_attr_e( 'Are you sure you want to cancel this migration? The destination site will be deleted.', 'instawp-connect' ); ?>"
+                                    data-cancelling-text="<?php esc_attr_e( 'Cancelling...', 'instawp-connect' ); ?>"><?php esc_html_e( 'Cancel Migration', 'instawp-connect' ); ?></button>
                         </div>
                     </div>
                     <div class="migration-completed hidden border border-grayCust-100 rounded-lg">

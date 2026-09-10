@@ -554,6 +554,29 @@ class InstaWP_Rest_Api {
 			return $this->throw_error( $response );
 		}
 
+		/*
+		 * WHICH run finished matters.
+		 *
+		 * NotifySourceMigrationFinished retries (tries=2, 60s backoff), and a staging run can start
+		 * within that window -- a user whose first attempt failed retries immediately. A late
+		 * delivery for run #1 would then delete run #2's instamigrate mid-migration, breaking a
+		 * migration that was going fine.
+		 *
+		 * Ignored rather than refused: a notification for a run we no longer hold is not an error
+		 * client-app can act on, and answering non-2xx would only make it retry a delivery that will
+		 * never match.
+		 */
+		$uuid = sanitize_text_field( (string) $request->get_param( 'uuid' ) );
+
+		if ( ! empty( $uuid ) && ! InstaWP_Staging_V4::is_current_run( $uuid ) ) {
+			return $this->send_response(
+				array(
+					'status'  => true,
+					'message' => __( 'Notification is for a different migration; ignored.', 'instawp-connect' ),
+				)
+			);
+		}
+
 		InstaWP_Staging_V4::cleanup_instamigrate();
 
 		return $this->send_response(
