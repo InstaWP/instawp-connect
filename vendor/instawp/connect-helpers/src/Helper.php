@@ -409,6 +409,7 @@ class Helper {
 	const ERROR_LOG_MAX_ENTRIES     = 150;
 	const ERROR_LOG_KEEP_ENTRIES    = 100;
 	const ERROR_LOG_MAX_ENTRY_BYTES = 20000; // ~20KB per stored entry.
+	const ERROR_LOG_MAX_TOTAL_BYTES = 1000000; // ~1MB for the whole option.
 
 	/**
 	 * What a collapsed entry may carry over. Bounded so the collapse itself provably
@@ -416,7 +417,6 @@ class Helper {
 	 */
 	const COLLAPSE_KEEP_FIELDS = 8;
 	const COLLAPSE_KEEP_BYTES  = 1000;
-	const ERROR_LOG_MAX_TOTAL_BYTES = 1000000; // ~1MB for the whole option.
 
 	/**
 	 * Above this stored size the option is discarded outright rather than trimmed:
@@ -694,7 +694,14 @@ class Helper {
 				'time'    => date( 'Y-m-d H:i:s' ),
 			);
 
-			foreach ( $entry as $key => $value ) {
+			/*
+			 * REVERSED, and that is the whole point of the loop. add_error_log() appends the
+			 * code-authored diagnostics LAST -- a Throwable's error/file/line, then the
+			 * timestamp -- so insertion order hands every slot to whichever payload fields
+			 * happen to come first and drops the diagnostics in the common shape. The copy
+			 * is over an entry already bounded to SANITIZE_MAX_ELEMENTS keys.
+			 */
+			foreach ( array_reverse( $entry, true ) as $key => $value ) {
 				if ( self::COLLAPSE_KEEP_FIELDS <= count( $kept ) ) {
 					break;
 				}
