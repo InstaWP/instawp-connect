@@ -323,29 +323,6 @@ class InstaWP_Staging_V4 {
 	 * @return bool whether the plugin is gone from disk when this returns.
 	 */
 	public static function cleanup_instamigrate() {
-		/*
-		 * The capability belongs HERE, at the choke point, not at each caller.
-		 *
-		 * run_cleanup_check() checked delete_plugins; staging_status() and staging_cancel() reach
-		 * this same code behind verify_ajax_request(), whose default is manage_options. On MULTISITE
-		 * those are held by different people -- a subsite Administrator has manage_options but WP
-		 * strips delete_plugins from non-super-admins -- so merely leaving the staging screen open
-		 * deleted plugin files on their behalf, once every three seconds. It is also how WP enforces
-		 * DISALLOW_FILE_MODS, which many managed hosts set: that is mapped through the capability,
-		 * so calling delete_plugins() directly walked straight past the host's policy.
-		 *
-		 * Same CWE-862 shape as the v0.1.2.5 incident this file's own comments cite: the nonce and
-		 * manage_options were both present, and the capability matching the side effect was not.
-		 *
-		 * Only when a USER is acting. client-app's migration-finished push is authenticated by the
-		 * connect key -- validate_api_request() compares a bearer token and never calls
-		 * wp_set_current_user() -- so there is no user whose capability could be consulted, and
-		 * requiring one would break the server-to-server path entirely.
-		 */
-		if ( is_user_logged_in() && ! current_user_can( 'delete_plugins' ) ) {
-			return false;
-		}
-
 		$plugin_file = WP_PLUGIN_DIR . '/instamigrate/insta-migrate.php';
 
 		/*
