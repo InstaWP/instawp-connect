@@ -23,6 +23,56 @@
         return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`
     }
 
+    /**
+     * Mirror of normalise_site_name() in includes/class-instawp-staging-v4.php.
+     *
+     * Deliberately NOT the same rules as the preview below the field: that one drops invalid
+     * characters, this one turns them into hyphens, so "a!!b" previews as "ab" but reaches the
+     * server as "a-b". Only the server's rules can predict the server's answer, and predicting it
+     * is the entire job here -- keep the two functions in step.
+     */
+    let instawp_normalise_site_name = (value) => {
+        return String(value).trim().toLowerCase()
+            .replace(/[^a-z0-9-]/g, '-')
+            .replace(/-+/g, '-')
+            .replace(/^-+|-+$/g, '');
+    };
+
+    /**
+     * Refuse a site name client-app will reject, and say so on the field.
+     *
+     * client-app requires min:3 AFTER its own normalisation and answers 422 otherwise -- but only
+     * once instamigrate is installed and a migration_imports row exists, so a two-character typo
+     * surfaces as a late failure on work that has already started. Catching it here keeps it a
+     * field-level correction.
+     *
+     * An EMPTY name is valid: the server generates one.
+     */
+    let instawp_site_name_is_valid = (el_input) => {
+        let value = el_input.val();
+
+        if (typeof value === 'undefined' || value.length === 0) {
+            return true;
+        }
+
+        if (instawp_normalise_site_name(value).length >= 3) {
+            el_input[0].setCustomValidity('');
+
+            return true;
+        }
+
+        // reportValidity() rather than a notice of our own: the browser already knows how to put a
+        // message on a field, in the admin's language, without us building anything.
+        //
+        // Fallback text because setCustomValidity(undefined) renders the literal string "undefined":
+        // a browser holding a cached copy of the template from before data-too-short-text existed
+        // would otherwise show that to the admin.
+        el_input[0].setCustomValidity(el_input.data('too-short-text') || 'Please use at least 3 letters or numbers for the site name.');
+        el_input[0].reportValidity();
+
+        return false;
+    };
+
     let blinkElement = (selector, times, interval) => {
         let blinkCount = 0;
         let blinkInterval = setInterval(function () {
@@ -365,8 +415,8 @@
         },
         instawp_staging_v4_fail = (create_container, message) => {
             // Guard against both terminal handlers running. clearInterval stops new polls but any
-            // request already in flight still settles, so a run that gave up after N failures could
-            // then receive a `completed` — leaving a green header above a red error box.
+            // request already in flight still settles, so a poll that reported `failed` can be
+            // followed by one carrying `completed` — leaving a green header above a red error box.
             if (create_container.hasClass('completed') || create_container.hasClass('migration-failed')) {
                 return;
             }
@@ -410,8 +460,8 @@
             // user a forward action. `.migration-running` deliberately STAYS visible — the Track
             // Migration link lives inside it and is the whole point of this flow.
             // Checks BOTH classes. An earlier version checked only `completed`, which left the
-            // exact ordering the fail() comment describes wide open: give up after 5 failures, then
-            // an in-flight poll settles with `completed` and writes a green "Completed" header over
+            // exact ordering the fail() comment describes wide open: report `failed`, then an
+            // in-flight poll settles with `completed` and writes a green "Completed" header over
             // a red error box, revealing the forward actions while .migration-error is showing.
             if (create_container.hasClass('completed') || create_container.hasClass('migration-failed')) {
                 return;
@@ -428,8 +478,6 @@
             create_container.find('.screen-buttons-last').removeClass('hidden');
         },
         instawp_staging_v4_watch = (create_container) => {
-            let failures = 0;
-
             // V4 staging: the migration agent owns the live view, so we poll only until it hands us
             // a URL, then surface the wizard's existing "track migration" link. Deliberately NOT the
             // V3 progress loop — there is no V3 migration row to report on.
@@ -439,20 +487,17 @@
                     'security': plugin_object.security,
                 }, function (response) {
                     if (!response.success) {
-                        // Give up rather than poll admin-ajax every 3s for the life of the page.
-                        // Some failures are permanent (the run option is gone, client-app 4xx) and
-                        // are indistinguishable here from a transient blip, so bound the retries.
-                        failures += 1;
-
-                        if (failures >= 5) {
-                            instawp_staging_v4_stop(create_container, watcher);
-                            instawp_staging_v4_fail(create_container, response.data && response.data.message);
-                        }
-
+                        // Our poll failed; the MIGRATION did not. These are two different facts,
+                        // and an earlier version conflated them: five failed polls painted
+                        // "Migration Failed" and hid .migration-running — which is where the Track
+                        // Migration link lives — on a run that was still going perfectly well.
+                        //
+                        // So say nothing and change nothing. The screen keeps reading In Progress
+                        // with the tracking link intact, and polling continues so the view
+                        // self-heals the moment the connection comes back. Only a terminal `failed`
+                        // from the branch below is allowed to report failure.
                         return;
                     }
-
-                    failures = 0;
 
                     // Prefer migration_url, fall back to tracking_url — resolved server-side and
                     // handed over as agent_url.
@@ -487,12 +532,9 @@
                         }
                     }
                 }).fail(function () {
-                    failures += 1;
-
-                    if (failures >= 5) {
-                        instawp_staging_v4_stop(create_container, watcher);
-                        instawp_staging_v4_fail(create_container, '');
-                    }
+                    // Transport failure — offline, a proxy blip, admin-ajax briefly 5xx. Same
+                    // reasoning as the !response.success branch above: this says nothing about the
+                    // migration, so leave the screen alone and keep polling.
                 });
             }, 3000);
 
@@ -1025,6 +1067,21 @@
             el_instawp_screen.val(screen_next).trigger('change');
         } else {
 
+            // Last point at which the site name is still just a field. Past here the limit check
+            // runs, screen 5 renders and the run starts, so a name the server will refuse has to
+            // be caught now -- see instawp_site_name_is_valid().
+            let el_site_name_field = create_container.find('input#site-prefix');
+
+            if (el_site_name_field.length > 0 && !instawp_site_name_is_valid(el_site_name_field)) {
+                // Put the field back in front of the admin: by now the click that got us here has
+                // usually closed it behind the preview text.
+                el_instawp_site_name.removeClass('hidden');
+                el_site_name_field.closest('.site-name-input-wrap').removeClass('hidden');
+                el_site_name_field.focus();
+
+                return;
+            }
+
             // Check limit
             el_screen_buttons.removeClass('justify-between').addClass('justify-end');
             el_instawp_site_name.addClass('hidden');
@@ -1181,6 +1238,12 @@
             blinkElement('.instawp-' + fieldValue + '-field', 3, 250);
         }
 
+        // A custom validity message sticks until it is cleared, so a stale one would keep blocking
+        // a name the admin has already fixed.
+        $(document).on('input', 'input#site-prefix', function () {
+            this.setCustomValidity('');
+        });
+
         $(document).mousedown(function (event) {
 
             let el_instawp_site_name = $('.instawp-site-name'),
@@ -1196,6 +1259,11 @@
             if (!$target.closest('.instawp-site-name .site-name-input-wrap input#site-prefix').length) {
 
                 if (typeof el_site_name_input.val() !== 'undefined' && el_site_name_input.val().length > 0) {
+                    // Hold the field open rather than accepting a name the server will refuse.
+                    if (!instawp_site_name_is_valid(el_site_name_input)) {
+                        return;
+                    }
+
                     let website_name = '';
 
                     website_name = el_site_name_input.val();

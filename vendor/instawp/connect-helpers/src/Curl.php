@@ -107,9 +107,12 @@ class Curl {
 		if ( defined( 'INSTAWP_DEBUG_LOG' ) && INSTAWP_DEBUG_LOG ) {
 			// Same reason as below, on the debug path: this one goes to the SERVER error log rather
 			// than the customer-visible option, but a credential in any log is still a credential.
+			//
+			// Request headers are deliberately NOT logged. They hold the same values on every call,
+			// so the line told a reader nothing about the individual request it sat next to. Keep it
+			// that way.
 			error_log( 'API URL - ' . $logged_api_url );
 			error_log( 'API ARGS - ' . is_array( $body ) ? wp_json_encode( $body ) : $body );
-			error_log( 'API HEADERS - ' . wp_json_encode( $headers ) );
 			error_log( 'API Response - ' . wp_json_encode( $response ) );
 		}
 

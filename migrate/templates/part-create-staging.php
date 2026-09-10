@@ -700,7 +700,17 @@ delete_option( 'instawp_db_offset' );
                             <p class="truncate cursor-pointer text-sm hover:border-primary-900 border-b border-transparent focus-visible:outline-none" data-text="<?= esc_attr__( 'Enter Site Name', 'instawp-connect' ) ?>"><?= esc_html__( 'Enter Site Name', 'instawp-connect' ) ?></p>
                         </div>
                         <div class="focus-visible:outline-none site-name-input-wrap hidden">
-                            <input id="site-prefix" name="migrate_settings[site_name]" data-postfix="" class="w-44 border-b-[1px] border-primary-900 focus-visible:outline-none bg-transparent" placeholder="<?= esc_attr__( 'Enter Site Name (max 16 characters)', 'instawp-connect' ) ?>" autocomplete="off" maxlength="16">
+                            <?php
+							/*
+							 * minlength/data-too-short-text pair with instawp_site_name_is_valid() in
+							 * scripts.js. The server requires at least 3 characters AFTER normalising the
+							 * name, and rejects a shorter one only once the migration has already begun --
+							 * so the length is checked here, before that point, rather than reported after.
+							 *
+							 * maxlength stays at 16, comfortably inside the server's 30.
+							 */
+							?>
+                            <input id="site-prefix" name="migrate_settings[site_name]" data-postfix="" class="w-44 border-b-[1px] border-primary-900 focus-visible:outline-none bg-transparent" placeholder="<?= esc_attr__( 'Enter Site Name (max 16 characters)', 'instawp-connect' ) ?>" autocomplete="off" minlength="3" maxlength="16" data-too-short-text="<?= esc_attr__( 'Please use at least 3 letters or numbers for the site name.', 'instawp-connect' ) ?>">
                         </div>
                     </div>
                 </div>

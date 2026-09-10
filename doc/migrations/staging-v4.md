@@ -221,43 +221,10 @@ this feature that fails invisibly.
 - **Anything sensitive in `metadata`.** That block round-trips through the migration agent and lands
   in its state files.
 
-Credentials that DO travel in a request body are kept out of the plugin's error log:
-`Helper::add_error_log()` redacts any key containing `password`, `pwd`, `api_key`, `apikey`,
-`secret`, `token`, `jwt`, `_key`, `salt`, `signature` or `credential`. This matters because
-`Curl::do_curl()` logs the whole request body on any 4xx/5xx — and a 4xx is ROUTINE here, since plan
-and quota rejections are a normal outcome — while `add_error_log()` persists to an option the
-debug-info AJAX endpoint returns verbatim, i.e. the payload customers paste into support tickets.
-`salt` and `signature` are not incidental: `migrate_settings.wp_config_constants` carries every
-`define()` from wp-config.php, so the four auth SALTs pass through this sink.
-
-**Known, accepted over-redaction.** The `_key` needle also matches `migrate_key`, so a validation
-message returned under that field name is redacted along with it — QA observed
-`"The migrate key field is required."` being replaced. That costs a useful support message. It is
-kept because `_key` is the only needle covering `insta_mig_key`, and a leaked migration key is worse
-than a lost validation string. If it becomes a real support problem, the fix is a narrower needle
-list, not loosening the value redaction.
-
-The redaction lives in `add_error_log()`, not in `sanitize_data()`. `sanitize_data()` is a shared,
-general-purpose sanitiser whose callers intend to KEEP what it returns, so dropping fields there
-would silently corrupt their data. Redact at the sink, not in the sanitiser.
-
-**Names are not enough on their own, so values are scrubbed too.** A credential routinely travels
-inside a value under an innocuous key — `Curl::do_curl()` logs `api_url`, and a URL can carry the
-credential in its query string (`check-key?jwt=…` is a real call, and an expired jwt is exactly the
-4xx that triggers logging). `api_url` matches no needle, so key matching alone let the whole value
-through. Every string leaf now goes through `scrub_credentials_in_text()`, whose needle list is
-DERIVED from `REDACTED_LOG_KEYS` rather than hand-written — a hand-written subset was the first bug
-here, and it missed `jwt` and `insta_mig_key`, this feature's own credential.
-
-⚠ **This lives in a VENDORED copy of a `dev-main` dependency.** `composer.json` requires
-`instawp/connect-helpers: dev-main`, so the next `composer update` reverts all of it with no test to
-notice. Upstreamed as InstaWP/connect-helpers#24; that PR must land, and is part of this rollout
-dependency list.
-
-⚠ **Still open, out of scope here:** `Curl::do_curl()` also writes `error_log( 'API HEADERS - ' … )`
-under `INSTAWP_DEBUG_LOG`, which puts the full `Authorization: Bearer <api_key>` into the PHP error
-log — and the plugin hands customers a link to `wp-content/debug.log`. Pre-existing and untouched by
-this branch; it needs its own fix.
+⚠ **`connect-helpers` is vendored from a `dev-main` dependency.** `composer.json` requires
+`instawp/connect-helpers: dev-main`, so the next `composer update` overwrites
+`vendor/instawp/connect-helpers/` with whatever upstream `main` holds, and no test notices. Any change
+made to the vendored copy must be merged upstream before release, or it disappears.
 
 ## Failure handling
 
