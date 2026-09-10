@@ -60,6 +60,24 @@ class InstaWP_Staging_V4 {
 	 * only by remember_run(), because a migration referencing instamigrate is the one thing that
 	 * makes the install non-orphaned.
 	 */
+	/**
+	 * How long after `started_at` we keep deferring to a run that has not finished.
+	 *
+	 * Past this, instamigrate is removed whatever the status says. Deliberately well beyond any
+	 * plausible migration -- anything still going after two days is wedged, not slow -- because the
+	 * cost of being wrong here is destructive: the cancel that accompanies it also deletes the
+	 * destination site.
+	 */
+	const CLEANUP_DEADLINE = 48 * HOUR_IN_SECONDS;
+
+	/**
+	 * How often an admin page load may ask client-app whether the run has finished.
+	 *
+	 * admin_init fires on EVERY wp-admin request, so without a throttle a busy dashboard would call
+	 * client-app dozens of times a minute for a run whose answer changes once.
+	 */
+	const STATUS_CHECK_INTERVAL = 6 * HOUR_IN_SECONDS;
+
 	const ORPHAN_OPTION = 'instawp_instamigrate_orphaned';
 
 	/**
@@ -75,6 +93,8 @@ class InstaWP_Staging_V4 {
 	 */
 	public function __construct() {
 		add_action( 'wp_ajax_instawp_staging_status_v4', array( $this, 'staging_status' ) );
+		add_action( 'wp_ajax_instawp_staging_cancel_v4', array( $this, 'staging_cancel' ) );
+		add_action( 'admin_init', array( $this, 'maybe_cleanup_instamigrate' ) );
 	}
 
 	/**
@@ -97,6 +117,212 @@ class InstaWP_Staging_V4 {
 	 *
 	 * @return array the run details, or an empty array when there is nothing to resume.
 	 */
+	/**
+	 * AJAX: cancel the run this site started, and take the agent back off.
+	 *
+	 * client-app's cancel does three things: it tells the agent to stop, claims the terminal
+	 * transition as `failed`, and DELETES the destination site. The button's confirm text says so --
+	 * a user stopping a slow migration would not otherwise expect to lose the site.
+	 *
+	 * A 422 is SUCCESS from here. It means client-app already considers the run terminal and we were
+	 * simply never told, so the run is over either way and the only honest thing to do is stop
+	 * showing it as live. Treating it as an error would leave the screen spinning on a migration that
+	 * has finished -- which is the failure this whole flow exists to stop.
+	 */
+	public function staging_cancel() {
+		InstaWP_Tools::verify_ajax_request();
+
+		$details = (array) Option::get_option( self::DETAILS_OPTION );
+		$uuid    = Helper::get_args_option( 'uuid', $details, '' );
+
+		if ( empty( $uuid ) ) {
+			wp_send_json_error( array( 'message' => esc_html__( 'No staging migration in progress.', 'instawp-connect' ) ) );
+		}
+
+		$response = Curl::do_curl( 'migrations/' . $uuid . '/cancel' );
+		$code     = (int) Helper::get_args_option( 'code', $response, 0 );
+
+		// Anything other than success or an already-terminal 422 leaves the run alone: the migration is
+		// still live, and deleting instamigrate under it would break the run we failed to stop.
+		if ( empty( $response['success'] ) && 422 !== $code ) {
+			wp_send_json_error(
+				array(
+					'message' => Helper::get_args_option( 'message', $response, esc_html__( 'Could not cancel the migration.', 'instawp-connect' ) ),
+				)
+			);
+		}
+
+		// The run is terminal now, so its instamigrate is serving nothing.
+		self::cleanup_instamigrate();
+
+		// No payload. The caller does not branch on this -- the watcher is already polling and owns
+		// what the screen shows, so anything returned here would be a second source of truth for a
+		// question the next poll answers correctly three seconds later.
+		wp_send_json_success();
+	}
+
+	/**
+	 * admin_init: retire instamigrate once its migration can no longer use it.
+	 *
+	 * Two arms, cheapest first, because this runs on EVERY wp-admin request:
+	 *
+	 *   past CLEANUP_DEADLINE  -> cancel the run and delete, WITHOUT asking client-app. Past two days
+	 *                             the status cannot change the outcome, so spending an HTTP call to
+	 *                             reach the same answer is waste.
+	 *   past STATUS_CHECK_INTERVAL -> ask client-app. Terminal, delete. Anything else -- including an
+	 *                             error or no reply -- leave it and look again later. Nothing is
+	 *                             deleted on a guess.
+	 *
+	 * Gated on delete_plugins rather than manage_options: this ends in delete_plugins(), and the two
+	 * are held by different people on multisite. It is also how WP routes DISALLOW_FILE_MODS, which
+	 * many managed hosts set -- skipping the capability would skip the host's policy with it.
+	 */
+	public function maybe_cleanup_instamigrate() {
+		if ( ! is_user_logged_in() || ! current_user_can( 'delete_plugins' ) ) {
+			return;
+		}
+
+		$details = (array) Option::get_option( self::DETAILS_OPTION );
+		$uuid    = Helper::get_args_option( 'uuid', $details, '' );
+
+		if ( empty( $uuid ) ) {
+			return;
+		}
+
+		$started_at = (int) Helper::get_args_option( 'started_at', $details, 0 );
+
+		/*
+		 * A missing or zero start time fails CLOSED -- it is not evidence the run is old, and treating
+		 * it as epoch would make every such run instantly past the deadline and delete on the next
+		 * admin load. resumable_run() takes the same position on the same field.
+		 */
+		if ( $started_at <= 0 ) {
+			return;
+		}
+
+		$age = time() - $started_at;
+
+		if ( $age > self::CLEANUP_DEADLINE ) {
+			/*
+			 * Cancel BEFORE deleting: cancelling tells the agent to stop, and deleting first would
+			 * leave it working against a plugin that is no longer there.
+			 *
+			 * A 422 here is not a failure. It means client-app already considers the run terminal and
+			 * we were simply never told -- which is the same situation, so the cleanup proceeds. Only
+			 * the deletion is unconditional; the cancel is best-effort.
+			 */
+			Curl::do_curl( 'migrations/' . $uuid . '/cancel' );
+
+			self::cleanup_instamigrate();
+
+			return;
+		}
+
+		$last_checked = (int) Helper::get_args_option( 'cleanup_checked_at', $details, 0 );
+
+		if ( ( time() - $last_checked ) < self::STATUS_CHECK_INTERVAL ) {
+			return;
+		}
+
+		/*
+		 * Stamped BEFORE the call, not after.
+		 *
+		 * The request below can be slow or fail outright, and a stamp written afterwards is never
+		 * reached on those paths -- so every subsequent admin page load would re-fire it. Throttling
+		 * on the ATTEMPT is what makes this once per six hours rather than once per request whenever
+		 * client-app is unwell.
+		 */
+		$details['cleanup_checked_at'] = time();
+
+		Option::update_option( self::DETAILS_OPTION, $details, false );
+
+		$response = Curl::do_curl( 'migrations/' . $uuid . '/status', array(), array(), 'GET' );
+
+		if ( empty( $response['success'] ) ) {
+			return;
+		}
+
+		$status = Helper::get_args_option( 'status', Helper::get_args_option( 'data', $response, array() ), '' );
+
+		if ( in_array( $status, array( 'completed', 'failed' ), true ) ) {
+			self::cleanup_instamigrate();
+		}
+	}
+
+	/**
+	 * Remove instamigrate from THIS site, and forget the run that needed it.
+	 *
+	 * We install instamigrate to serve one migration; once that migration can no longer progress
+	 * there is nothing left for it to do, and leaving an active migration agent on a customer's
+	 * production site is not a neutral default.
+	 *
+	 * Deletes whoever installed it -- a deliberate decision, not an oversight. provision_instamigrate()
+	 * takes care NOT to overwrite a pre-existing copy; this does not extend that courtesy, so a
+	 * customer who had instamigrate before a staging run will not have it afterwards.
+	 *
+	 * @return bool whether the plugin is gone from disk when this returns.
+	 */
+	public static function cleanup_instamigrate() {
+		$plugin_file = WP_PLUGIN_DIR . '/instamigrate/insta-migrate.php';
+
+		// Forget the run FIRST and unconditionally. Whatever happens to the files, this run is over --
+		// and a bookkeeping entry that survives a failed delete is what would re-fire this on every
+		// subsequent admin page load.
+		self::forget_run();
+
+		if ( ! file_exists( $plugin_file ) ) {
+			return true;
+		}
+
+		/*
+		 * BOTH includes, every time.
+		 *
+		 * delete_plugins() lives in wp-admin/includes/plugin.php and needs the filesystem API from
+		 * file.php. Neither is loaded in a REST request, which is exactly how the client-app
+		 * notification arrives -- so relying on the admin bootstrap would work on the admin_init path
+		 * and fatal on the push path. provision_instamigrate() already guards plugin.php the same way.
+		 */
+		if ( ! function_exists( 'delete_plugins' ) && file_exists( ABSPATH . 'wp-admin/includes/plugin.php' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		}
+
+		if ( ! function_exists( 'request_filesystem_credentials' ) && file_exists( ABSPATH . 'wp-admin/includes/file.php' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+		}
+
+		if ( ! function_exists( 'delete_plugins' ) ) {
+			Helper::add_error_log( 'InstaMigrate cleanup: delete_plugins() unavailable' );
+
+			return false;
+		}
+
+		// Deactivate before deleting. delete_plugins() removes the files either way, but an entry left
+		// in active_plugins for a directory that no longer exists is what produces "plugin file does
+		// not exist" on the next admin load.
+		if ( is_plugin_active( 'instamigrate/insta-migrate.php' ) ) {
+			deactivate_plugins( 'instamigrate/insta-migrate.php', true );
+		}
+
+		$deleted = delete_plugins( array( 'instamigrate/insta-migrate.php' ) );
+
+		if ( is_wp_error( $deleted ) || false === $deleted ) {
+			Helper::add_error_log(
+				'InstaMigrate cleanup: delete failed - ' . ( is_wp_error( $deleted ) ? $deleted->get_error_message() : 'unknown' )
+			);
+
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
+	 * Drop the stored run so nothing resumes, polls or re-checks it.
+	 */
+	private static function forget_run() {
+		Option::delete_option( self::DETAILS_OPTION );
+	}
+
 	public static function resumable_run() {
 		$details = (array) Option::get_option( self::DETAILS_OPTION );
 

@@ -316,6 +316,11 @@
 
             el_notice.text(el_notice.data(has_link ? 'tracking-text' : 'waiting-text'));
             el_notice.removeClass('hidden');
+
+            // The V4 twin of the Abort button hidden just above. Revealed here rather than rendered
+            // visible, so it can only appear on a live V4 run -- never on V3, and never on a screen
+            // that is not actually polling.
+            create_container.find('.instawp-v4-cancel').removeClass('hidden');
         },
         /*
          * Surface a non-terminal error, once per distinct message.
@@ -365,6 +370,9 @@
 
             create_container.addClass('migration-failed');
 
+            // Nothing left to cancel once the run is terminal.
+            create_container.find('.instawp-v4-cancel').addClass('hidden');
+
             let el_error_wrap = create_container.find('.migration-error'),
                 el_loader = create_container.find('.instawp-migration-loader');
 
@@ -413,6 +421,7 @@
             // instawp_staging_v4_chrome() already hid the V3 progress apparatus at start; what is
             // left to retire here is the in-progress notice, which is now untrue.
             create_container.find('.instawp-v4-running').addClass('hidden');
+            create_container.find('.instawp-v4-cancel').addClass('hidden');
             create_container.find('.screen-buttons-last').removeClass('hidden');
         },
         instawp_staging_v4_watch = (create_container) => {
@@ -1192,6 +1201,42 @@
 
         el_error.data('dismissed', el_error.find('.instawp-v4-error-message').text());
         el_error.addClass('hidden');
+    });
+
+    /*
+     * Cancel a live V4 run.
+     *
+     * Deliberately does NOT decide what the screen should then show. The watcher is already polling
+     * every 3s and already owns the terminal handling -- completed vs failed, the both-handlers
+     * guard, the message. Repeating that decision here would be a second copy to keep in step, and
+     * it would be wrong in the race this endpoint is most likely to lose: a 422 means the run had
+     * ALREADY finished, and the poll reports that correctly while a local guess would not.
+     *
+     * So: ask, post, re-enable. The next poll tells the truth. Mirrors client-app's own cancel
+     * button, which posts and then simply re-fetches status.
+     *
+     * Separate from the Abort handler below, which is V3's: that one clears a local interval and
+     * navigates to ?clear=all, abandoning the screen while a V4 agent carries on migrating.
+     */
+    $(document).on('click', '.instawp-wrap .instawp-v4-cancel', function () {
+        let el_button = $(this);
+
+        // The confirm NAMES the consequence, in client-app's words: cancelling deletes the
+        // destination site, and V3's "Do you really want to abort the migration?" does not say so.
+        if (!confirm(el_button.data('confirm'))) {
+            return;
+        }
+
+        el_button.prop('disabled', true);
+
+        $.post(plugin_object.ajax_url, {
+            'action': 'instawp_staging_cancel_v4',
+            'security': plugin_object.security,
+        }).always(function () {
+            // Re-enabled either way. On success the poll hides the button within 3s; on failure the
+            // run is still live and cancelling remains something the user may retry.
+            el_button.prop('disabled', false);
+        });
     });
 
     $(document).on('click', '.instawp-wrap .instawp-migrate-abort', function () {

@@ -66,6 +66,25 @@ class InstaWP_Rest_Api {
 			)
 		);
 
+		/*
+		 * client-app tells the SOURCE that its migration reached a terminal state, so the agent
+		 * plugin it installed for that run can be removed.
+		 *
+		 * A route of its own rather than more work inside refresh-staging-sites-list: that endpoint
+		 * fires only on the SUCCESS path and means "rebuild your staging list", client-app treats
+		 * its failure as cosmetic, and it is called in contexts that have nothing to do with a
+		 * migration ending.
+		 */
+		register_rest_route(
+			$this->namespace . '/' . $this->version,
+			'/migration-finished',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( $this, 'migration_finished' ),
+				'permission_callback' => '__return_true',
+			)
+		);
+
 		register_rest_route(
 			$this->namespace . '/' . $this->version_2,
 			'/disconnect',
@@ -518,6 +537,33 @@ class InstaWP_Rest_Api {
 	 *
 	 * @return WP_Error|WP_HTTP_Response|WP_REST_Response
 	 */
+	/**
+	 * The run this site installed instamigrate for has finished; take the agent back off.
+	 *
+	 * Answers 200 even when the delete fails. client-app calls this to report a migration OUTCOME --
+	 * the outcome is true whatever happened to our files, and a non-2xx would invite it to retry a
+	 * terminal event. The failure is logged where it belongs instead, and admin_init retries it.
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function migration_finished( WP_REST_Request $request ) {
+		$response = $this->validate_api_request( $request );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
+
+		InstaWP_Staging_V4::cleanup_instamigrate();
+
+		return $this->send_response(
+			array(
+				'status'  => true,
+				'message' => __( 'Migration agent removed.', 'instawp-connect' ),
+			)
+		);
+	}
+
 	public function refresh_staging_sites_list( WP_REST_Request $request ) {
 		$response = $this->validate_api_request( $request );
 		if ( is_wp_error( $response ) ) {

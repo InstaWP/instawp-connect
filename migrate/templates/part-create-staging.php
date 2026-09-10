@@ -558,6 +558,27 @@ delete_option( 'instawp_db_offset' );
                                 <img src="<?php echo esc_url( instaWP::get_asset_url( 'migrate/assets/images/share-icon.svg' ) ); ?>" class="inline ml-1" alt="">
                             </a>
                             <button type="button" class="instawp-migrate-abort <?php echo esc_attr( $v4_resuming ? 'hidden' : '' ); ?> shadow-sm border border-grayCust-350 rounded-md py-2 px-8 bg-white text-sm font-medium text-red-400"><?php esc_html_e( 'Abort', 'instawp-connect' ); ?></button>
+                            <?php
+							/*
+							 * The V4 twin of Abort, and a SEPARATE element on purpose.
+							 *
+							 * Abort is V3's: its handler clears a local interval and navigates to
+							 * ?clear=all, which for a V4 run would abandon the screen while the agent
+							 * carried on migrating. instawp_staging_v4_chrome() hides it for exactly
+							 * that reason. Reusing the element would mean branching V3's handler --
+							 * this branch's rule is that V3 is branched AROUND, never modified.
+							 *
+							 * Visibility follows $v4_resuming, the same way its siblings do -- the notice
+							 * above and the V3 block below. A RESUMED page never runs chrome(): the
+							 * resume path renders the running screen server-side precisely so it is
+							 * correct even if the JS never executes, so a button that waited for
+							 * chrome() would be invisible on exactly the page most likely to need it.
+							 * chrome() still reveals it on a fresh start, where the server rendered
+							 * the not-yet-running screen.
+							 */
+							?>
+                            <button type="button" class="instawp-v4-cancel <?php echo esc_attr( $v4_resuming ? '' : 'hidden' ); ?> shadow-sm border border-grayCust-350 rounded-md py-2 px-8 bg-white text-sm font-medium text-red-400"
+                                    data-confirm="<?php esc_attr_e( 'Are you sure you want to cancel this migration? The destination site will be deleted.', 'instawp-connect' ); ?>"><?php esc_html_e( 'Cancel Migration', 'instawp-connect' ); ?></button>
                         </div>
                     </div>
                     <div class="migration-completed hidden border border-grayCust-100 rounded-lg">
