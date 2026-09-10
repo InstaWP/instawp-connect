@@ -584,6 +584,43 @@ class InstaWP_Staging_V4 {
 	 */
 	public static function run( $posted ) {
 		/*
+		 * Every ANTICIPATED failure below returns a WP_Error, which migrate_init() turns into
+		 * wp_send_json_error() and the wizard renders in .migration-error. An unanticipated THROW had
+		 * no such path, and the UI handles it worse than a plain 500: beforeSend adds `loading`,
+		 * `complete` removes only `doing-ajax`, and there is no .fail() handler -- so the screen span
+		 * forever with nothing said. A user watching that has no way to tell it from a slow migration.
+		 *
+		 * Converted to the WP_Error the caller already knows how to show. Throwable, not Exception:
+		 * this walks the filesystem to size the site and drives Plugin_Upgrader to install
+		 * instamigrate, and a TypeError out of either is not an Exception.
+		 *
+		 * A throw AFTER provision_instamigrate() leaves instamigrate on the site with no run recorded.
+		 * That is the orphan case, and it is covered: the flag is written at install time and
+		 * maybe_cleanup_instamigrate() removes an orphan older than CLEANUP_DEADLINE.
+		 */
+		try {
+			return self::start_run( $posted );
+		} catch ( \Throwable $e ) {
+			Helper::add_error_log( 'Staging V4 run failed: ' . $e->getMessage() );
+
+			// The message is OURS, not the exception's: $e->getMessage() can carry a file path, a query
+			// or a truncated response body, and this string is rendered straight into the wizard.
+			return new WP_Error(
+				'staging_run_failed',
+				esc_html__( 'Could not start the staging migration. Please try again.', 'instawp-connect' )
+			);
+		}
+	}
+
+	/**
+	 * The body of run(). See run() for why it is wrapped.
+	 *
+	 * @param array $posted The posted request data.
+	 *
+	 * @return array|WP_Error
+	 */
+	private static function start_run( $posted ) {
+		/*
 		 * IDEMPOTENT ON AN IN-FLIGHT RUN, and this is a safety guard rather than a nicety.
 		 *
 		 * Nothing else stopped this method starting a SECOND staging migration: it installs
