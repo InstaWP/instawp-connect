@@ -48,7 +48,41 @@ class InstaWP_Admin {
 			self::$_is_waas_mode = true;
 		}
 
-		self::$_assets_version = defined( 'INSTAWP_DEBUG_LOG' ) && INSTAWP_DEBUG_LOG ? time() : INSTAWP_PLUGIN_VERSION;
+		/*
+		 * Debug builds version assets by their newest MTIME, not by time().
+		 *
+		 * time() changes on every request, so the browser re-downloaded every admin asset on every
+		 * page load and nothing was ever cached -- the version string was different before the reader
+		 * had finished the page. An mtime changes only when a file actually changes, so an edit is
+		 * picked up on the next load AND an unchanged asset still caches.
+		 *
+		 * Only OUR files are stat'ed. The vendored ones (select2, hint, tailwind) do not change during
+		 * development, so including them would cost stat calls to learn nothing.
+		 */
+		if ( defined( 'INSTAWP_DEBUG_LOG' ) && INSTAWP_DEBUG_LOG ) {
+			$asset_mtimes = array();
+
+			foreach ( array(
+				'assets/js/scripts.js',
+				'assets/js/common.js',
+				'assets/css/common.min.css',
+				'migrate/assets/css/style.css',
+				'admin/js/instawp-change-event.js',
+				'admin/css/instawp-change-event.css',
+			) as $asset_rel_path ) {
+				$asset_abs_path = INSTAWP_PLUGIN_DIR . $asset_rel_path;
+
+				if ( is_readable( $asset_abs_path ) ) {
+					$asset_mtimes[] = (int) filemtime( $asset_abs_path );
+				}
+			}
+
+			// Falls back to the plugin version when nothing could be stat'ed, so a missing or
+			// unreadable asset never yields an empty ?ver= -- which caches worse than any value.
+			self::$_assets_version = empty( $asset_mtimes ) ? INSTAWP_PLUGIN_VERSION : (string) max( $asset_mtimes );
+		} else {
+			self::$_assets_version = INSTAWP_PLUGIN_VERSION;
+		}
 
 		$this->plugin_name = $plugin_name;
 		$this->version     = $version;

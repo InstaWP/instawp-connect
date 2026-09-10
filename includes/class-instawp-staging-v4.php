@@ -264,6 +264,40 @@ class InstaWP_Staging_V4 {
 		$migrate_settings = InstaWP_Tools::get_migrate_settings( $posted );
 		$plan_id          = (int) Helper::get_args_option( 'plan_id', $migrate_settings, 0 );
 
+		/*
+		 * The subdomain prefix the user typed (part-create-staging.php:681,
+		 * migrate_settings[site_name]). It was collected and then never read: neither the
+		 * staging-init payload nor $start_args carried it, so every plugin-created staging site got
+		 * an auto-generated name however carefully the user named it.
+		 *
+		 * Trimmed, not validated. start() applies min:3 / max:30 / [a-zA-Z0-9-] and a SafeSiteName
+		 * uniqueness rule, and duplicating any of that here would only let the two disagree.
+		 */
+		$site_name = trim( (string) Helper::get_args_option( 'site_name', $migrate_settings, '' ) );
+
+		/*
+		 * Never ship OUR OWN plugin to the destination.
+		 *
+		 * The destination is given a fresh instawp-connect by client-app's post-migration repair,
+		 * which installs it after deleting the identity options the migrated wp_options carried
+		 * over. Sending the source's copy as well only creates a window: plugin code present on the
+		 * destination can run -- and phone home holding the PARENT's inherited credentials -- in the
+		 * gap between the migration finishing and the repair running. That is how a staging site
+		 * came to overwrite its parent's connect record.
+		 *
+		 * Root-relative on purpose: build_exclude() expects paths under the wp-content directory
+		 * NAME and rewrites them relative to it, so this must be composed from content_rel() rather
+		 * than hardcoding 'wp-content' -- the two disagree on Bedrock and anywhere WP_CONTENT_DIR is
+		 * renamed.
+		 *
+		 * Excluding it also removes it from the SIZE, since total_size_mb() measures build_exclude()'s
+		 * output. That is correct: we do not transmit it, so it must not be charged against the plan.
+		 */
+		$excluded_paths   = (array) Helper::get_args_option( 'excluded_paths', $migrate_settings, array() );
+		$excluded_paths[] = self::content_rel() . '/plugins/' . INSTAWP_PLUGIN_SLUG;
+
+		$migrate_settings['excluded_paths'] = $excluded_paths;
+
 		// Order matters: the exclusions must be built BEFORE the site is sized, because the size is
 		// computed against what we transmit rather than what the user selected. See total_size_mb().
 		$exclude = self::build_exclude( $migrate_settings );
@@ -294,6 +328,9 @@ class InstaWP_Staging_V4 {
 			'wp_version'        => get_bloginfo( 'version' ),
 			'php_version'       => PHP_VERSION,
 			'is_multisite'      => is_multisite(),
+			// Recorded on the row as part of the source analysis. start() below is what actually
+			// applies it, but sending it here keeps the row a faithful record of the request.
+			'site_name'         => '' === $site_name ? null : $site_name,
 			'exclude'           => $exclude,
 		);
 
@@ -350,6 +387,16 @@ class InstaWP_Staging_V4 {
 
 		if ( ! empty( $server_group_id ) ) {
 			$start_args['server_group_id'] = $server_group_id;
+		}
+
+		/*
+		 * THIS is the one that takes effect: SiteImportLiveController::start() reads site_name from
+		 * the REQUEST, and -- unlike wp_version and php_version two lines below it there -- does not
+		 * fall back to the stored source analysis. Omitted when empty so start()'s `nullable` rule
+		 * is satisfied rather than being handed an empty string to reject.
+		 */
+		if ( '' !== $site_name ) {
+			$start_args['site_name'] = $site_name;
 		}
 
 		$start = Curl::do_curl( 'live-import/' . $uuid . '/start', $start_args );
