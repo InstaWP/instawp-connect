@@ -409,6 +409,33 @@ class InstaWP_Staging_V4 {
 	}
 
 	/**
+	 * Make a typed site name into one start() will accept.
+	 *
+	 * V3 did this (class-instawp-ajax.php:401-403) and V4 did not, so a name as ordinary as
+	 * "My Site" -- fine under V3 -- reached start()'s `[a-zA-Z0-9-]` rule and 422'd. The input carries
+	 * only maxlength, no pattern, so nothing stops a space being typed. Worse, it failed LATE: the
+	 * name is not checked by staging-init, so instamigrate was already installed and a
+	 * migration_imports row already created before start() refused it.
+	 *
+	 * Deliberately STRICTER than V3, which kept underscores ([^a-z0-9-_]). client-app's rule has no
+	 * underscore, so preserving it would reproduce the same late 422 for `acme_staging`.
+	 *
+	 * Trailing and repeated dashes are collapsed: "My  Site!" would otherwise become "my--site-", and
+	 * a trailing dash is a poor subdomain even where the rule allows it.
+	 *
+	 * @param string $site_name The name as typed.
+	 *
+	 * @return string A name matching [a-z0-9-], or '' when nothing usable is left.
+	 */
+	private static function normalise_site_name( $site_name ) {
+		$site_name = strtolower( trim( (string) $site_name ) );
+		$site_name = preg_replace( '/[^a-z0-9-]/', '-', $site_name );
+		$site_name = preg_replace( '/-+/', '-', $site_name );
+
+		return trim( (string) $site_name, '-' );
+	}
+
+	/**
 	 * Is this uuid the run we are currently holding?
 	 *
 	 * Public because the REST handler needs it and the run details are deliberately not exposed --
@@ -670,7 +697,7 @@ class InstaWP_Staging_V4 {
 		 * Trimmed, not validated. start() applies min:3 / max:30 / [a-zA-Z0-9-] and a SafeSiteName
 		 * uniqueness rule, and duplicating any of that here would only let the two disagree.
 		 */
-		$site_name = trim( (string) Helper::get_args_option( 'site_name', $migrate_settings, '' ) );
+		$site_name = self::normalise_site_name( Helper::get_args_option( 'site_name', $migrate_settings, '' ) );
 
 		/*
 		 * Never ship OUR OWN plugin to the destination.
