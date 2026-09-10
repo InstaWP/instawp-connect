@@ -531,13 +531,6 @@ class InstaWP_Rest_Api {
 	}
 
 	/**
-	 * Refresh staging site list.
-	 *
-	 * @param WP_REST_Request $request
-	 *
-	 * @return WP_Error|WP_HTTP_Response|WP_REST_Response
-	 */
-	/**
 	 * The run this site installed instamigrate for has finished; take the agent back off.
 	 *
 	 * Answers 200 even when the delete fails. client-app calls this to report a migration OUTCOME --
@@ -598,6 +591,13 @@ class InstaWP_Rest_Api {
 		);
 	}
 
+	/**
+	 * Refresh staging site list.
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return WP_Error|WP_HTTP_Response|WP_REST_Response
+	 */
 	public function refresh_staging_sites_list( WP_REST_Request $request ) {
 		$response = $this->validate_api_request( $request );
 		if ( is_wp_error( $response ) ) {

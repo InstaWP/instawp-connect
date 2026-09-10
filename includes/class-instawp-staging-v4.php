@@ -346,6 +346,32 @@ class InstaWP_Staging_V4 {
 		}
 
 		/*
+		 * `delete_plugins`, and ONLY when a user is driving this.
+		 *
+		 * Two callers reach here, and they need opposite answers:
+		 *
+		 *  - The REST push from client-app is authenticated by API key. validate_api_request() never
+		 *    calls wp_set_current_user(), so there is no WP user at all -- is_user_logged_in() is
+		 *    false and cleanup proceeds. That is the path that MUST always run: the migration is over
+		 *    and the agent has to come off regardless of who happens to be logged in.
+		 *  - staging_status() and staging_cancel() arrive over admin-ajax, where verify_ajax_request()
+		 *    has checked a nonce and manage_options. That is the right check for "may configure
+		 *    InstaWP" but not for "may remove files from this filesystem", so the capability matching
+		 *    the side effect is checked here.
+		 *
+		 * On single-site WP an Administrator holds both and nothing changes. On MULTISITE a subsite
+		 * Administrator holds manage_options but NOT delete_plugins, and delete_plugins is also how WP
+		 * enforces DISALLOW_FILE_MODS -- where delete_plugins() would fail anyway, so this only turns
+		 * a silent failure into an early return.
+		 *
+		 * Mirrors provision_instamigrate()'s install_plugins check on the way in, and the identical
+		 * gate run_cleanup_check() already applies on the admin_init path.
+		 */
+		if ( is_user_logged_in() && ! current_user_can( 'delete_plugins' ) ) {
+			return false;
+		}
+
+		/*
 		 * BOTH includes, every time.
 		 *
 		 * delete_plugins() lives in wp-admin/includes/plugin.php and needs the filesystem API from
