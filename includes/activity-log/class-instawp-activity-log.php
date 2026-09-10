@@ -83,12 +83,15 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
         }
 
 		public function send_log_data( $critical = false ) {
-			// Before the connect-id check on purpose: a disconnected site is one of the two
-			// "backlog that can never be delivered" cases retention exists for, and gating
-			// the sweep behind delivery would skip exactly those sites.
-			if ( ! $critical ) {
-				$this->prune_stale_logs();
-			}
+			/*
+			 * Unconditional, and before the connect-id check, on purpose. Both guards it
+			 * used to sit behind excluded a case retention exists for: a DISCONNECTED site
+			 * never reaches the body at all, and in 'every_x_minutes' mode with no Action
+			 * Scheduler runner the critical path -- called inline from insert() -- is the
+			 * only caller that still fires. The sweep is day-gated, so running it here
+			 * costs a single autoloaded option read.
+			 */
+			$this->prune_stale_logs();
 
 			$connect_id = instawp_get_connect_id();
 			if ( ! $connect_id ) {
@@ -163,8 +166,9 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 			 * An autoloaded option rather than a transient: a transient on a site with a
 			 * persistent object cache whose backend is unreachable reads false and writes
 			 * nowhere, so the gate would silently open on every single event -- the exact
-			 * failure it is here to prevent. The stamp is written BEFORE the deletes so a
-			 * slow first sweep cannot be re-entered concurrently.
+			 * failure it is here to prevent. The stamp is written BEFORE the deletes, which
+			 * NARROWS the window for a concurrent re-entry rather than closing it -- read
+			 * and write are not atomic. Bounded and idempotent if it happens.
 			 */
 			$last_pruned = (int) get_option( self::PRUNE_STAMP_OPTION, 0 );
 

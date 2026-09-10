@@ -617,21 +617,45 @@ class Helper {
 
 		/*
 		 * The per-field pass alone does NOT enforce the entry ceiling: many fields each
-		 * just under the field budget still add up past it. That matters because an entry
-		 * above the TOTAL ceiling is one enforce_log_byte_cap() can never shed. Drop the
-		 * largest remaining field until the entry fits -- bounded by the field count, and
-		 * each pass strictly shrinks the entry, so it terminates.
+		 * under the field budget still add up past it, and an entry above the TOTAL
+		 * ceiling is one enforce_log_byte_cap() can never evict. So drop the largest
+		 * fields, biggest first, sized ONCE -- re-measuring the whole entry per pass is
+		 * quadratic on an error path Curl::do_curl() retries ten times.
+		 *
+		 * Best-effort by construction, and deliberately not claimed otherwise: this
+		 * rewrites VALUES and never KEYS, and for a very short value the marker is longer
+		 * than what it replaces. The collapse below, not this loop, is what makes the
+		 * ceiling hold.
 		 */
-		$fields = count( $entry );
-		for ( $i = 0; $i < $fields && self::ERROR_LOG_MAX_ENTRY_BYTES < self::log_size( $entry ); $i ++ ) {
+		if ( self::ERROR_LOG_MAX_ENTRY_BYTES < self::log_size( $entry ) ) {
 			$sizes = array();
 			foreach ( $entry as $key => $value ) {
 				$sizes[ $key ] = self::log_size( $value );
 			}
 
 			arsort( $sizes );
-			$largest           = key( $sizes );
-			$entry[ $largest ] = '[dropped, ' . $sizes[ $largest ] . ' bytes]';
+
+			$total = self::log_size( $entry );
+
+			foreach ( $sizes as $key => $size ) {
+				if ( self::ERROR_LOG_MAX_ENTRY_BYTES >= $total ) {
+					break;
+				}
+
+				$marker        = '[dropped, ' . $size . ' bytes]';
+				$total         = $total - $size + strlen( $marker );
+				$entry[ $key ] = $marker;
+			}
+		}
+
+		if ( self::ERROR_LOG_MAX_ENTRY_BYTES < self::log_size( $entry ) ) {
+			// Nothing above sheds KEY bytes, so an entry carrying very many long keys
+			// survives all of it. Replace the whole entry rather than store one the
+			// total-byte cap can never evict.
+			$entry = array(
+				'message' => '[entry discarded: ' . count( $entry ) . ' fields, ' . self::log_size( $entry ) . ' bytes, past the ' . self::ERROR_LOG_MAX_ENTRY_BYTES . '-byte ceiling]',
+				'time'    => date( 'Y-m-d H:i:s' ),
+			);
 		}
 
 		return $entry;
@@ -704,9 +728,11 @@ class Helper {
 				 * its key bounds the WORK and not the MEMORY -- a 155,110-element array
 				 * still costs 155,110 hashtable slots -- and memory is the point here.
 				 */
-				$dropped               = count( $data ) - $max_elements;
-				$data                  = array_slice( $data, 0, $max_elements, true );
-				$data['iwp_truncated'] = '[truncated: ' . $dropped . ' more elements]';
+				$dropped                    = count( $data ) - $max_elements;
+				$data                       = array_slice( $data, 0, $max_elements, true );
+				// Namespaced because it can still shadow a payload key of the same name;
+				// on the log path that costs a truncated value we were dropping anyway.
+				$data['__instawp_truncated'] = '[truncated: ' . $dropped . ' more elements]';
 			}
 
 			foreach ( $data as $key => $value ) {
