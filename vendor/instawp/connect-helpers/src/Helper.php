@@ -409,6 +409,13 @@ class Helper {
 	const ERROR_LOG_MAX_ENTRIES     = 150;
 	const ERROR_LOG_KEEP_ENTRIES    = 100;
 	const ERROR_LOG_MAX_ENTRY_BYTES = 20000; // ~20KB per stored entry.
+
+	/**
+	 * What a collapsed entry may carry over. Bounded so the collapse itself provably
+	 * cannot breach ERROR_LOG_MAX_ENTRY_BYTES: 8 x 1000 plus the marker.
+	 */
+	const COLLAPSE_KEEP_FIELDS = 8;
+	const COLLAPSE_KEEP_BYTES  = 1000;
 	const ERROR_LOG_MAX_TOTAL_BYTES = 1000000; // ~1MB for the whole option.
 
 	/**
@@ -627,35 +634,79 @@ class Helper {
 		 * than what it replaces. The collapse below, not this loop, is what makes the
 		 * ceiling hold.
 		 */
-		if ( self::ERROR_LOG_MAX_ENTRY_BYTES < self::log_size( $entry ) ) {
+		$size = self::log_size( $entry );
+
+		if ( self::ERROR_LOG_MAX_ENTRY_BYTES < $size ) {
+			/*
+			 * serialize(), NOT log_size(), for the running total. log_size() is asymmetric
+			 * by design -- bare strlen for a string, the serialized `s:N:"...";` form for an
+			 * array -- so mixing the two under-counts a replaced ARRAY field by its marker's
+			 * ~10-byte envelope. That under-count made the loop break while the entry was
+			 * still over, handing a perfectly salvageable entry to the collapse below: on a
+			 * 200-array-field entry it discarded 139 usable fields that shedding would have
+			 * kept. Serialized bytes on both sides makes the arithmetic exact, because
+			 * replacing a value changes only that element's value bytes.
+			 */
 			$sizes = array();
 			foreach ( $entry as $key => $value ) {
-				$sizes[ $key ] = self::log_size( $value );
+				$sizes[ $key ] = strlen( serialize( $value ) );
 			}
 
 			arsort( $sizes );
 
-			$total = self::log_size( $entry );
+			/*
+			 * `$size - array_sum( $sizes )` is exactly the envelope plus the serialized KEY
+			 * bytes -- the floor this loop cannot get below, because it only ever rewrites
+			 * values. When that floor is already over the ceiling, shedding is futile AND
+			 * destructive: it would replace every diagnostic with a marker on its way to
+			 * failing, and the collapse below would then have nothing worth carrying over.
+			 */
+			if ( self::ERROR_LOG_MAX_ENTRY_BYTES >= $size - array_sum( $sizes ) ) {
+					foreach ( $sizes as $key => $field_size ) {
+					if ( self::ERROR_LOG_MAX_ENTRY_BYTES >= $size ) {
+						break;
+					}
 
-			foreach ( $sizes as $key => $size ) {
-				if ( self::ERROR_LOG_MAX_ENTRY_BYTES >= $total ) {
-					break;
+					$marker        = '[dropped, ' . $field_size . ' bytes]';
+					$size          = $size - $field_size + strlen( serialize( $marker ) );
+					$entry[ $key ] = $marker;
 				}
-
-				$marker        = '[dropped, ' . $size . ' bytes]';
-				$total         = $total - $size + strlen( $marker );
-				$entry[ $key ] = $marker;
 			}
 		}
 
-		if ( self::ERROR_LOG_MAX_ENTRY_BYTES < self::log_size( $entry ) ) {
-			// Nothing above sheds KEY bytes, so an entry carrying very many long keys
-			// survives all of it. Replace the whole entry rather than store one the
-			// total-byte cap can never evict.
-			$entry = array(
-				'message' => '[entry discarded: ' . count( $entry ) . ' fields, ' . self::log_size( $entry ) . ' bytes, past the ' . self::ERROR_LOG_MAX_ENTRY_BYTES . '-byte ceiling]',
+		/*
+		 * Re-measure rather than trust the running total. It is an optimisation for the
+		 * loop's break condition; the ceiling is an invariant, and the last defect here was
+		 * precisely an arithmetic drift, so the guard does not get to depend on arithmetic.
+		 */
+		$size = self::log_size( $entry );
+
+		if ( self::ERROR_LOG_MAX_ENTRY_BYTES < $size ) {
+			/*
+			 * Only KEY bytes can still get us here, and nothing above sheds those. Replace
+			 * the entry -- but carry over the small, code-authored diagnostics (a
+			 * Throwable's file/line/error, the timestamp) instead of throwing away the half
+			 * that was never the problem. Bounded by COLLAPSE_KEEP_FIELDS/BYTES so the
+			 * replacement cannot itself breach the ceiling.
+			 */
+			$kept = array(
+				'message' => '[entry discarded: ' . count( $entry ) . ' fields, ' . $size . ' bytes, past the ' . self::ERROR_LOG_MAX_ENTRY_BYTES . '-byte ceiling]',
 				'time'    => date( 'Y-m-d H:i:s' ),
 			);
+
+			foreach ( $entry as $key => $value ) {
+				if ( self::COLLAPSE_KEEP_FIELDS <= count( $kept ) ) {
+					break;
+				}
+
+				if ( isset( $kept[ $key ] ) || self::COLLAPSE_KEEP_BYTES < strlen( serialize( $key ) ) + strlen( serialize( $value ) ) ) {
+					continue;
+				}
+
+				$kept[ $key ] = $value;
+			}
+
+			$entry = $kept;
 		}
 
 		return $entry;
