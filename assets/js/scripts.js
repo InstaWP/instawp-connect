@@ -566,7 +566,11 @@
                         create_container.removeClass('loading');
                         el_migration_progress_wrap.addClass('hidden');
                         el_migration_loader.removeClass('text-primary-900').addClass('text-red-700').text(el_migration_loader.data('error-text'));
-                        el_migration_error_message.html(response.data.message);
+                        // .text(), not .html(). This branch now also renders V4 failures, whose
+                        // message is client-app's own string forwarded verbatim by run() -- a remote
+                        // string reaching an admin page. Every V4 handler added on this branch uses
+                        // .text() for the same reason; this was the one sink that did not.
+                        el_migration_error_message.text(response.data.message);
                         el_migration_download_log.addClass('hidden');
                         el_migration_error_wrap.removeClass('hidden');
                         // create_container.find('#instawp-screen').val(4).trigger('change');

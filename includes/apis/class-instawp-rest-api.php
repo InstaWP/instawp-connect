@@ -568,7 +568,12 @@ class InstaWP_Rest_Api {
 		 */
 		$uuid = sanitize_text_field( (string) $request->get_param( 'uuid' ) );
 
-		if ( ! empty( $uuid ) && ! InstaWP_Staging_V4::is_current_run( $uuid ) ) {
+		/*
+		 * FAILS CLOSED. An earlier revision skipped this check when `uuid` was absent, so any caller
+		 * that omitted the field deleted whatever instamigrate the site held -- including one serving a
+		 * migration in progress, which is the exact race the guard exists to stop.
+		 */
+		if ( ! InstaWP_Staging_V4::is_current_run( $uuid ) ) {
 			return $this->send_response(
 				array(
 					'status'  => true,

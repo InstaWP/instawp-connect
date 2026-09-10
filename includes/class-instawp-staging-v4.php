@@ -225,10 +225,18 @@ class InstaWP_Staging_V4 {
 			$orphaned_at = (int) Option::get_option( self::ORPHAN_OPTION, 0 );
 
 			if ( $orphaned_at > 0 && ( time() - $orphaned_at ) > self::CLEANUP_DEADLINE ) {
-				self::cleanup_instamigrate();
-
-				Option::delete_option( self::ORPHAN_OPTION );
-				Option::delete_option( self::ORPHAN_LOGGED_OPTION );
+				/*
+				 * Gated on the RESULT. cleanup_instamigrate() returns false when delete_plugins() is
+				 * unavailable, throws, or hands back a WP_Error -- a read-only mount, DISALLOW_FILE_MODS,
+				 * no filesystem credentials. Clearing the flag regardless destroyed the only record
+				 * that we installed it, so nothing ever retried and instamigrate stayed on a
+				 * customer's production site for good. The uuid arm already gets this right:
+				 * instamigrate_removed_at is written only on confirmed removal.
+				 */
+				if ( self::cleanup_instamigrate() ) {
+					Option::delete_option( self::ORPHAN_OPTION );
+					Option::delete_option( self::ORPHAN_LOGGED_OPTION );
+				}
 			}
 
 			return;
