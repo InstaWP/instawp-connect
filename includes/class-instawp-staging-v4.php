@@ -178,6 +178,28 @@ class InstaWP_Staging_V4 {
 	 * many managed hosts set -- skipping the capability would skip the host's policy with it.
 	 */
 	public function maybe_cleanup_instamigrate() {
+		/*
+		 * NOTHING escapes this method.
+		 *
+		 * It is on admin_init, so it runs on EVERY wp-admin request -- and it reaches out over HTTP
+		 * (Curl::do_curl) and into the filesystem (delete_plugins). A throw from either would be a
+		 * white screen on every admin page, for a background tidy-up the admin did not ask for and
+		 * cannot see. Failing quietly and trying again in six hours is always the better trade here.
+		 *
+		 * Throwable, not Exception: a TypeError or a missing-function Error out of WordPress internals
+		 * is exactly the class of failure that would otherwise take the dashboard down.
+		 */
+		try {
+			$this->run_cleanup_check();
+		} catch ( \Throwable $e ) {
+			Helper::add_error_log( 'InstaMigrate cleanup check failed: ' . $e->getMessage() );
+		}
+	}
+
+	/**
+	 * The body of the admin_init check. See maybe_cleanup_instamigrate() for why it is wrapped.
+	 */
+	private function run_cleanup_check() {
 		if ( ! is_user_logged_in() || ! current_user_can( 'delete_plugins' ) ) {
 			return;
 		}
@@ -340,11 +362,30 @@ class InstaWP_Staging_V4 {
 		// Deactivate before deleting. delete_plugins() removes the files either way, but an entry left
 		// in active_plugins for a directory that no longer exists is what produces "plugin file does
 		// not exist" on the next admin load.
-		if ( is_plugin_active( 'instamigrate/insta-migrate.php' ) ) {
-			deactivate_plugins( 'instamigrate/insta-migrate.php', true );
+		// Same reasoning as the delete below: deactivate_plugins() fires deactivation hooks, and a
+		// fatal in somebody else's hook must not become our caller's fatal.
+		try {
+			if ( is_plugin_active( 'instamigrate/insta-migrate.php' ) ) {
+				deactivate_plugins( 'instamigrate/insta-migrate.php', true );
+			}
+		} catch ( \Throwable $e ) {
+			Helper::add_error_log( 'InstaMigrate cleanup: deactivate threw - ' . $e->getMessage() );
 		}
 
-		$deleted = delete_plugins( array( 'instamigrate/insta-migrate.php' ) );
+		/*
+		 * delete_plugins() touches the filesystem through WP_Filesystem, which can fail in ways that
+		 * throw rather than return WP_Error -- no credentials, a read-only mount, an unwritable
+		 * plugins directory. Every caller of this method is a background one (admin_init, a REST
+		 * notification, the cancel handler), so a throw here would surface as a white screen or a
+		 * 500 on work the user is not waiting for.
+		 */
+		try {
+			$deleted = delete_plugins( array( 'instamigrate/insta-migrate.php' ) );
+		} catch ( \Throwable $e ) {
+			Helper::add_error_log( 'InstaMigrate cleanup: delete threw - ' . $e->getMessage() );
+
+			return false;
+		}
 
 		if ( is_wp_error( $deleted ) || false === $deleted ) {
 			Helper::add_error_log(
@@ -395,7 +436,21 @@ class InstaWP_Staging_V4 {
 	}
 
 	public static function resumable_run() {
-		$details = (array) Option::get_option( self::DETAILS_OPTION );
+		/*
+		 * Answering "no run" is always safe; throwing is not.
+		 *
+		 * Three template paths call this while RENDERING the migrate screen -- part-create.php stamps
+		 * a class from it and part-create-staging.php seeds the link -- so an exception here blanks the
+		 * page the user came to use. The worst a false negative costs is a resume that does not
+		 * reappear; the watcher and the deadline arms still hold the run.
+		 */
+		try {
+			$details = (array) Option::get_option( self::DETAILS_OPTION );
+		} catch ( \Throwable $e ) {
+			Helper::add_error_log( 'InstaMigrate resume check failed: ' . $e->getMessage() );
+
+			return array();
+		}
 
 		if ( empty( Helper::get_args_option( 'uuid', $details, '' ) ) ) {
 			return array();

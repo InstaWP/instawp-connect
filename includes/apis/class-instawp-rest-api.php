@@ -577,7 +577,13 @@ class InstaWP_Rest_Api {
 			);
 		}
 
-		InstaWP_Staging_V4::cleanup_instamigrate();
+		// The docblock above promises 200 even when the delete fails, and a throw would break that
+		// promise -- client-app would retry a terminal notification that can never succeed.
+		try {
+			InstaWP_Staging_V4::cleanup_instamigrate();
+		} catch ( \Throwable $e ) {
+			Helper::add_error_log( 'InstaMigrate cleanup via REST failed: ' . $e->getMessage() );
+		}
 
 		return $this->send_response(
 			array(
