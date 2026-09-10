@@ -14,6 +14,29 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 
 		private $table_name;
 
+		/**
+		 * Cap on rows sent (and re-logged on failure) per send_log_data() call.
+		 * Without this, a site whose uploads keep failing accumulates rows
+		 * unboundedly, and each retry re-sends AND re-logs the whole backlog as
+		 * a single Curl::do_curl() body, which is what grew
+		 * iwp_connect_helper_error_log to tens of MB on affected sites.
+		 */
+		const LOG_BATCH_SIZE = 200;
+
+		/**
+		 * Rows this old are dropped outright regardless of send status, so a
+		 * backlog that can never be delivered (unreachable API, revoked key)
+		 * doesn't grow the table forever.
+		 */
+		const LOG_RETENTION_DAYS = 30;
+
+		/** Rows deleted per statement, and statements per sweep. */
+		const PRUNE_BATCH_SIZE  = 500;
+		const PRUNE_MAX_BATCHES = 20;
+
+		/** Option (autoloaded, one int) recording when the retention sweep last ran. */
+		const PRUNE_STAMP_OPTION = 'instawp_activity_log_pruned_at';
+
 		public function __construct() {
 			$this->table_name = INSTAWP_DB_TABLE_ACTIVITY_LOGS;
 
@@ -60,6 +83,16 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
         }
 
 		public function send_log_data( $critical = false ) {
+			/*
+			 * Unconditional, and before the connect-id check, on purpose. Both guards it
+			 * used to sit behind excluded a case retention exists for: a DISCONNECTED site
+			 * never reaches the body at all, and in 'every_x_minutes' mode with no Action
+			 * Scheduler runner the critical path -- called inline from insert() -- is the
+			 * only caller that still fires. The sweep is day-gated, so running it here
+			 * costs a single autoloaded option read.
+			 */
+			$this->prune_stale_logs();
+
 			$connect_id = instawp_get_connect_id();
 			if ( ! $connect_id ) {
 				return;
@@ -68,9 +101,9 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 			global $wpdb;
 
             if ( $critical ) {
-                $query = $wpdb->prepare( "SELECT * FROM {$this->table_name} WHERE severity=%s", 'critical' ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                $query = $wpdb->prepare( "SELECT * FROM {$this->table_name} WHERE severity=%s ORDER BY id ASC LIMIT %d", 'critical', self::LOG_BATCH_SIZE ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
             } else {
-                $query = $wpdb->prepare( "SELECT * FROM {$this->table_name} WHERE severity!=%s", 'critical' ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                $query = $wpdb->prepare( "SELECT * FROM {$this->table_name} WHERE severity!=%s ORDER BY id ASC LIMIT %d", 'critical', self::LOG_BATCH_SIZE ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
             }
 
 			$log_ids = $logs = array();
@@ -107,6 +140,64 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 				$wpdb->query(
 					$wpdb->prepare( "DELETE FROM {$this->table_name} WHERE id IN ($placeholders)", $log_ids ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 				);
+			}
+		}
+
+		/**
+		 * Retention: drop rows older than LOG_RETENTION_DAYS regardless of send status, so
+		 * a backlog that can never be delivered (unreachable API, revoked key, disconnected
+		 * site) doesn't grow the table forever.
+		 *
+		 * Deleted in PRUNE_BATCH_SIZE statements rather than one, so a first sweep against
+		 * an already-huge table never holds a long delete lock, and up to PRUNE_MAX_BATCHES
+		 * of them per sweep, because a single bounded statement per day cannot outrun a
+		 * site inserting faster than that -- the site this was written for had accumulated
+		 * 155,110 rows.
+		 *
+		 * @return void
+		 */
+		private function prune_stale_logs() {
+			global $wpdb;
+
+			/*
+			 * In 'instantly' mode send_log_data() runs on EVERY logged event, so this must
+			 * not become a DELETE per page load. Once a day is enough for a 30-day window.
+			 *
+			 * An autoloaded option rather than a transient: a transient on a site with a
+			 * persistent object cache whose backend is unreachable reads false and writes
+			 * nowhere, so the gate would silently open on every single event -- the exact
+			 * failure it is here to prevent. The stamp is written BEFORE the deletes, which
+			 * NARROWS the window for a concurrent re-entry rather than closing it -- read
+			 * and write are not atomic. Bounded and idempotent if it happens.
+			 */
+			$last_pruned = (int) get_option( self::PRUNE_STAMP_OPTION, 0 );
+
+			if ( $last_pruned > ( time() - DAY_IN_SECONDS ) ) {
+				return;
+			}
+
+			update_option( self::PRUNE_STAMP_OPTION, time(), true );
+
+			$table_like = method_exists( $wpdb, 'esc_like' ) ? $wpdb->esc_like( $this->table_name ) : $this->table_name;
+
+			if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_like ) ) !== $this->table_name ) {
+				return;
+			}
+
+			$cutoff = gmdate( 'Y-m-d H:i:s', strtotime( '-' . self::LOG_RETENTION_DAYS . ' days' ) );
+
+			for ( $batch = 0; $batch < self::PRUNE_MAX_BATCHES; $batch ++ ) {
+				$wpdb->query(
+					$wpdb->prepare(
+						"DELETE FROM {$this->table_name} WHERE timestamp < %s ORDER BY id ASC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+						$cutoff,
+						self::PRUNE_BATCH_SIZE
+					)
+				);
+
+				if ( self::PRUNE_BATCH_SIZE > (int) $wpdb->rows_affected ) {
+					break;
+				}
 			}
 		}
 
