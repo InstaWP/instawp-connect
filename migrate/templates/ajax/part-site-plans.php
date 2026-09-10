@@ -2,7 +2,19 @@
 
 defined( 'ABSPATH' ) || exit;
 
-$total_files_size_mb = $total_files_size / (1000 * 1000);
+/*
+ * Files AND database: a small filesystem with a large database could otherwise pick a plan that
+ * cannot hold it.
+ *
+ * Checked, not trusted: this template takes no parameters and reads whatever its caller has in
+ * scope, so an unset $total_size would divide to 0 — and 0 disables nothing, which is the one
+ * case the check exists for. A 0 that does get through is refused by the API.
+ */
+$total_size_bytes = ( isset( $total_size ) && is_numeric( $total_size ) && $total_size > 0 )
+    ? $total_size
+    : ( ( isset( $total_files_size ) && is_numeric( $total_files_size ) && $total_files_size > 0 ) ? $total_files_size : 0 );
+
+$total_size_mb = $total_size_bytes / (1000 * 1000);
 ?>
 
 <div class="flex items-start staging-plans">
@@ -38,11 +50,15 @@ $total_files_size_mb = $total_files_size / (1000 * 1000);
                 $feature_items[] = sprintf( __( '%s GB Storage', 'instawp-connect' ), $features_to_show['disk_quota']['value'] / 1000 );
             }
 
-            // Determine if plan is disabled
-            $is_free_plan = $site_plan['name'] === 'free';
-            $disk_quota_exceeded = isset( $features_to_show['disk_quota']['value'] ) && $total_files_size_mb > $features_to_show['disk_quota']['value'];
-            $is_free_plan_disabled = $is_free_plan && ( $site_data['free_site_count'] >= 3 || $disk_quota_exceeded );
-            $is_plan_disabled = $is_free_plan_disabled || ( ! $is_free_plan && $disk_quota_exceeded );
+            /*
+             * Size is the only reason a plan is disabled — free-plan handling is gone, because
+             * getSiteCreationPlans() drops every free plan unless FREE_SITE_CREATION_ENABLED.
+             *
+             * ⚠ Turning that flag back on is now a change here too: this template no longer has
+             * the 3-site cap label or the free price format.
+             */
+            $disk_quota_exceeded = isset( $features_to_show['disk_quota']['value'] ) && $total_size_mb > $features_to_show['disk_quota']['value'];
+            $is_plan_disabled = $disk_quota_exceeded;
             ?>
             <label class="w-full cursor-pointer relative">
                 <input type="radio" 
@@ -57,16 +73,31 @@ $total_files_size_mb = $total_files_size / (1000 * 1000);
                         <?php if ( ! empty( $feature_items ) ) { ?>
                             <span class="text-blue-800 text-xs font-medium bg-blue-50 px-2 py-1 rounded-md truncate"><?php echo esc_html( implode( ', ', $feature_items ) ); ?></span>
                         <?php } ?>
-                        <?php if ( $is_free_plan_disabled ) { ?>
-                            <span class="text-xs text-gray-500 font-light"><?php esc_html_e( '3 sites exhausted', 'instawp-connect' ); ?></span>
-                        <?php } ?>
+                        <?php
+                        if ( $disk_quota_exceeded ) {
+                            ?>
+                            <span class="text-xs text-gray-500 font-light"><?php
+                                /* translators: 1: this site's total size in GB, 2: the plan's storage in GB. */
+                                echo esc_html(
+                                    sprintf(
+                                        __( 'Too small — this site is %1$s GB, plan holds %2$s GB', 'instawp-connect' ),
+                                        number_format_i18n( $total_size_mb / 1000, 2 ),
+                                        number_format_i18n( $features_to_show['disk_quota']['value'] / 1000, 2 )
+                                    )
+                                );
+                            ?></span>
+                            <?php
+                        }
+                        ?>
                     </div>
                     <div class="font-medium whitespace-nowrap">
-                        <?php if ( $is_free_plan ) { ?>
-                            <?php echo esc_html( $site_plan['rate']['monthly'] ); ?><span class="text-xs text-gray-500 font-light">/mo</span>
-                        <?php } else { ?>
-                            <?php echo esc_html( $site_plan['rate']['monthly'] ); ?><span class="text-xs text-gray-500 font-light">/mo - <?php echo esc_html( $site_plan['rate']['daily'] ); ?>/day</span>
-                        <?php } ?>
+                        <?php
+                        // Both rates are guarded: this template renders inside get_site_plans()'s
+                        // ob_start(), so a notice raised here is captured into the returned HTML and
+                        // printed to the user in the middle of the plan list.
+                        echo esc_html( isset( $site_plan['rate']['monthly'] ) ? $site_plan['rate']['monthly'] : '' );
+                        ?><span class="text-xs text-gray-500 font-light">/mo<?php
+                        if ( isset( $site_plan['rate']['daily'] ) ) { ?> - <?php echo esc_html( $site_plan['rate']['daily'] ); ?>/day<?php } ?></span>
                     </div>
                 </div>
                 <div class="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 rounded-full peer-checked:border-primary-900 peer-checked:border-4 border flex items-center justify-center transition-colors bg-white"></div>

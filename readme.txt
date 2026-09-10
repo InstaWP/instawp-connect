@@ -99,6 +99,10 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 == Changelog ==
 
 = 0.1.3.9 - Beta =
+- Added: Staging sites are now created through the new migration engine, with live progress tracked on InstaWP.
+- Deprecated: Local push command.
+- Fixed: The plan selector now accounts for both file and database size when checking plan capacity.
+- Security: Hardened diagnostic logging.
 - Fixed: The Sync (Beta) event list no longer keeps showing a failed attempt after a later sync of the same change has succeeded.
 
 = 0.1.3.8 - 12 August 2026 =

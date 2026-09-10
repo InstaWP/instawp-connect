@@ -309,6 +309,20 @@ class InstaWP_Ajax {
 	public function migrate_init() {
 		InstaWP_Tools::verify_ajax_request();
 
+		$result = InstaWP_Staging_V4::run( $_POST ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error( array_merge(
+				array( 'message' => $result->get_error_message() ),
+				(array) $result->get_error_data()
+			) );
+		}
+
+		wp_send_json_success( $result );
+
+		// Unreachable: both wp_send_json_* above exit. Kept until the old engine is removed in one
+		// deliberate deletion — do not tidy it away piecemeal.
+
 		$settings_str = isset( $_POST['settings'] ) ? $_POST['settings'] : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 
 		parse_str( $settings_str, $settings_arr );

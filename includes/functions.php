@@ -357,6 +357,17 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 		// Delete migration details
 		delete_option( 'instawp_migration_details' );
 
+		/*
+		 * The V4 run record too, or "start over" cannot reach a V4 run at all.
+		 *
+		 * A V4 run that never receives a terminal status keeps resumable_run() answering yes for the
+		 * whole RESUME_WINDOW: every wp-admin load forces the wizard to screen 5, hides the screen
+		 * buttons and Abort, and start_run() refuses to begin another. Without this line the ONLY
+		 * thing that cleared the option was uninstall.php -- so a customer whose client-app went
+		 * quiet mid-run had no way out of the staging screen short of removing the plugin.
+		 */
+		delete_option( 'instawp_staging_v4_details' );
+
 		// Explicitly delete the options file for this migration. The option was already
 		// deleted above, so instawp_is_options_file_protected() will no longer guard it.
 		// This ensures cleanup even if the general file loop below is guarded.

@@ -42,15 +42,42 @@ instawp()->maybe_prepare_large_files_list();
 $list_data             = Option::get_option( 'instawp_large_files_list' );
 $migration_details     = Helper::get_args_option( 'instawp_migration_details', $instawp_settings );
 $tracking_url          = Helper::get_args_option( 'tracking_url', $migration_details );
+
 $migrate_id            = Helper::get_args_option( 'migrate_id', $migration_details );
 $serve_with_wp         = (bool) Helper::get_args_option( 'serve_with_wp', $migration_details );
+
+/*
+ * V4 staging resume, rendered SERVER-SIDE.
+ *
+ * `.screen` is display:none and `.screen.active` is display:block (migrate/assets/css/style.css
+ * :481,487), so which step is on screen is decided entirely by $current_create_screen -- no
+ * JavaScript involved. Setting it here is the same mechanism `screen-buttons` has always used to
+ * hide itself from $migrate_id on a live V3 migration.
+ *
+ * That is the point of doing it here. The previous attempt reached screen 5 from scripts.js by
+ * triggering the #instawp-screen change handler, which ALSO calls instawp_migrate_init() -- so every
+ * refresh during a run started another migration, and when that failed it hid .migration-running and
+ * the screen vanished. Rendering server-side removes the path instead of guarding it, and the screen
+ * survives a refresh even if the JS never runs.
+ *
+ * $tracking_url is seeded from the stored agent_url so the link is on the first paint rather than a
+ * poll round-trip away. It can legitimately be absent on a run still creating its destination site,
+ * in which case the watcher fills it in.
+ */
+$v4_run      = InstaWP_Staging_V4::resumable_run();
+$v4_resuming = ! empty( $v4_run );
+
+if ( $v4_resuming ) {
+	$tracking_url          = Helper::get_args_option( 'agent_url', $v4_run, $tracking_url );
+	$current_create_screen = 5;
+}
 $whitelist_ip          = instawp_whitelist_ip();
 
 delete_option( 'instawp_files_offset' );
 delete_option( 'instawp_db_offset' );
 ?>
 
-<div class="bg-white text-center rounded-md py-20 flex items-center justify-center connected <?= empty( $migrate_id ) ? '' : 'hidden'; ?>">
+<div class="bg-white text-center rounded-md py-20 flex items-center justify-center connected <?= empty( $migrate_id ) && ! $v4_resuming ? '' : 'hidden'; ?>">
     <div class="w-2/3">
         <div class="mb-4">
             <img src="<?php echo esc_url( instaWP::get_asset_url( 'migrate/assets/images/connected.svg' ) ); ?>" class="mx-auto" alt="">
@@ -74,25 +101,25 @@ delete_option( 'instawp_db_offset' );
     </div>
 </div>
 
-<div class="flex p-8 items-start create-staging <?= empty( $migrate_id ) ? 'hidden' : ''; ?>">
+<div class="flex p-8 items-start create-staging <?= empty( $migrate_id ) && ! $v4_resuming ? 'hidden' : ''; ?>">
     <div class="left-width">
         <ul role="list" class="screen-nav-items -mb-8">
 			<?php foreach ( $staging_screens as $index => $screen ) : ?>
                 <li>
-                    <div class="screen-nav relative pb-8 <?php echo ( $index === 0 ) ? 'active' : ''; ?>">
+                    <div class="screen-nav relative pb-8 <?php echo ( $v4_resuming || $index === 0 ) ? 'active' : ''; ?>">
 						<?php if ( $index < 4 ) : ?>
                             <span class="screen-nav-line absolute left-4 top-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true"></span>
 						<?php endif; ?>
                         <div class="relative flex space-x-3">
                             <div>
-                                <div class="screen-nav-icon h-8 w-8 rounded-full border-2 border-primary-900 flex items-center justify-center <?php echo ( $index === 0 ) ? 'bg-primary-900' : 'bg-white'; ?>">
+                                <div class="screen-nav-icon h-8 w-8 rounded-full border-2 border-primary-900 flex items-center justify-center <?php echo ( $v4_resuming || $index === 0 ) ? 'bg-primary-900' : 'bg-white'; ?>">
                                     <img src="<?php echo esc_url( instaWP::get_asset_url( 'migrate/assets/images/true-icon.svg' ) ); ?>" alt="True Icon">
                                     <span class="w-2 h-2 bg-primary-900 rounded"></span>
                                 </div>
                             </div>
                             <div class="flex justify-between items-center">
                                 <div>
-                                    <p class="screen-nav-label text-xs font-medium uppercase <?php echo ( $index === 0 ) ? 'text-primary-900' : 'text-grayCust-50'; ?>"><?php echo esc_html( $screen ); ?></p>
+                                    <p class="screen-nav-label text-xs font-medium uppercase <?php echo ( $v4_resuming || $index === 0 ) ? 'text-primary-900' : 'text-grayCust-50'; ?>"><?php echo esc_html( $screen ); ?></p>
                                 </div>
                             </div>
                         </div>
@@ -403,7 +430,61 @@ delete_option( 'instawp_db_offset' );
 							); ?>
                         </div>
 
-                        <div class="p-5 flex flex-col gap-4">
+                        <?php // V4 staging: the migration agent owns the live view, so this replaces the
+                        // Files/Database bars and the stage list rather than sitting alongside them. Those
+                        // widgets are fed by the V3 progress endpoint, which a V4 run never calls -- left
+                        // visible they sit at "0%" and "Processing (0/N stages)" for the whole migration and
+                        // read as a stalled run. scripts.js unhides this and hides them on the v4 branch. ?>
+                        <?php
+						/*
+						 * TWO messages, because for the first few minutes there is no link to point at.
+						 * The agent URL only exists once client-app has created the destination site and
+						 * started the migration, so a single line saying "open it with the link below"
+						 * describes a link that is not there yet. scripts.js swaps to the tracking text
+						 * when a poll returns the URL, using the same data-attribute idiom as
+						 * .instawp-migration-loader above.
+						 */
+						?>
+                        <div class="instawp-v4-running <?php echo esc_attr( $v4_resuming ? '' : 'hidden' ); ?> p-5 text-sm text-grayCust-900"
+                             data-waiting-text="<?php esc_attr_e( 'Creating your staging site. The migration link will appear here once it is ready — you can leave this page and come back, it will pick up where it left off.', 'instawp-connect' ); ?>"
+                             data-tracking-text="<?php esc_attr_e( 'Your staging site is being created. Follow the migration with the link below — you can safely close this tab.', 'instawp-connect' ); ?>">
+							<?php
+							// Matches what is rendered BELOW: a resumed run whose agent_url is already
+							// stored shows the link on this same paint, so promising one is wrong.
+							echo esc_html(
+								empty( $tracking_url )
+									? __( 'Creating your staging site. The migration link will appear here once it is ready — you can leave this page and come back, it will pick up where it left off.', 'instawp-connect' )
+									: __( 'Your staging site is being created. Follow the migration with the link below — you can safely close this tab.', 'instawp-connect' )
+							);
+							?>
+                        </div>
+
+                        <?php
+						/*
+						 * Non-terminal errors. client-app can report an error_message while the run is
+						 * still `migrating` -- a destination whose SSH is unusable, say -- and the
+						 * terminal failure UI below never fires for those, so the admin was told
+						 * nothing at all while the run sat there. Shown here instead, inside the
+						 * running panel so the run and its link stay visible, and dismissible because
+						 * some of these resolve on a retry.
+						 *
+						 * Deliberately NOT the .migration-error block further down: that one hides
+						 * .migration-running, which would take the tracking link away with it.
+						 */
+						?>
+                        <div class="instawp-v4-error hidden mx-5 mt-5 p-4 text-sm text-red-700 rounded-lg bg-red-50 border border-red-200 flex items-start gap-3" role="alert">
+                            <span class="instawp-v4-error-message flex-1"></span>
+                            <button type="button" class="instawp-v4-error-dismiss text-red-700 hover:text-red-900 font-medium flex-shrink-0"
+                                    aria-label="<?php esc_attr_e( 'Dismiss', 'instawp-connect' ); ?>">
+								<?php esc_html_e( 'Dismiss', 'instawp-connect' ); ?>
+                            </button>
+                        </div>
+
+                        <?php // instawp-v3-progress wraps EVERYTHING the V3 progress endpoint feeds: both bars,
+                        // their labels and the stage list. Named so the V4 branch can retire it in one
+                        // selector -- hiding the bars alone would leave the "Files" and "Database" labels
+                        // behind as orphans. ?>
+                        <div class="instawp-v3-progress p-5 flex flex-col gap-4 <?php echo esc_attr( $v4_resuming ? 'hidden' : '' ); ?>">
                             <div class="flex items-center">
                                 <div class="w-24 text-grayCust-900 text-base font-normal"><?php esc_html_e( 'Files', 'instawp-connect' ); ?></div>
                                 <div class="instawp-progress-files text-border rounded-xl w-full text-bg py-4 flex items-center px-4">
@@ -476,7 +557,29 @@ delete_option( 'instawp_db_offset' );
                                 <span class="mr-2"><?php esc_html_e( 'Track Migration', 'instawp-connect' ); ?></span>
                                 <img src="<?php echo esc_url( instaWP::get_asset_url( 'migrate/assets/images/share-icon.svg' ) ); ?>" class="inline ml-1" alt="">
                             </a>
-                            <button type="button" class="instawp-migrate-abort shadow-sm border border-grayCust-350 rounded-md py-2 px-8 bg-white text-sm font-medium text-red-400"><?php esc_html_e( 'Abort', 'instawp-connect' ); ?></button>
+                            <button type="button" class="instawp-migrate-abort <?php echo esc_attr( $v4_resuming ? 'hidden' : '' ); ?> shadow-sm border border-grayCust-350 rounded-md py-2 px-8 bg-white text-sm font-medium text-red-400"><?php esc_html_e( 'Abort', 'instawp-connect' ); ?></button>
+                            <?php
+							/*
+							 * The V4 twin of Abort, and a SEPARATE element on purpose.
+							 *
+							 * Abort is V3's: its handler clears a local interval and navigates to
+							 * ?clear=all, which for a V4 run would abandon the screen while the agent
+							 * carried on migrating. instawp_staging_v4_chrome() hides it for exactly
+							 * that reason. Reusing the element would mean branching V3's handler --
+							 * this branch's rule is that V3 is branched AROUND, never modified.
+							 *
+							 * Visibility follows $v4_resuming, the same way its siblings do -- the notice
+							 * above and the V3 block below. A RESUMED page never runs chrome(): the
+							 * resume path renders the running screen server-side precisely so it is
+							 * correct even if the JS never executes, so a button that waited for
+							 * chrome() would be invisible on exactly the page most likely to need it.
+							 * chrome() still reveals it on a fresh start, where the server rendered
+							 * the not-yet-running screen.
+							 */
+							?>
+                            <button type="button" class="instawp-v4-cancel <?php echo esc_attr( $v4_resuming ? '' : 'hidden' ); ?> shadow-sm border border-grayCust-350 rounded-md py-2 px-8 bg-white text-sm font-medium text-red-400"
+                                    data-confirm="<?php esc_attr_e( 'Are you sure you want to cancel this migration? The destination site will be deleted.', 'instawp-connect' ); ?>"
+                                    data-cancelling-text="<?php esc_attr_e( 'Cancelling...', 'instawp-connect' ); ?>"><?php esc_html_e( 'Cancel Migration', 'instawp-connect' ); ?></button>
                         </div>
                     </div>
                     <div class="migration-completed hidden border border-grayCust-100 rounded-lg">
@@ -584,7 +687,7 @@ delete_option( 'instawp_db_offset' );
             </div>
         </div>
 
-        <div class="screen-buttons border-t <?php echo esc_attr( ! empty( $migrate_id ) ? 'hidden' : '' ); ?> bg-grayCust-250 px-6 py-4 rounded-bl-lg rounded-br-lg flex justify-between">
+        <div class="screen-buttons border-t <?php echo esc_attr( ! empty( $migrate_id ) || $v4_resuming ? 'hidden' : '' ); ?> bg-grayCust-250 px-6 py-4 rounded-bl-lg rounded-br-lg flex justify-between">
             <div class="flex items-center gap-5 relative">
                 <div class="instawp-site-name flex items-center focus-visible:outline-none cursor-pointer hint--top hint--rounded" aria-label="<?= esc_attr__( 'Leave blank for Auto Generated name', 'instawp-connect' ) ?>" style="max-width: 350px;">
                     <div class="focus-visible:outline-none">
@@ -597,7 +700,17 @@ delete_option( 'instawp_db_offset' );
                             <p class="truncate cursor-pointer text-sm hover:border-primary-900 border-b border-transparent focus-visible:outline-none" data-text="<?= esc_attr__( 'Enter Site Name', 'instawp-connect' ) ?>"><?= esc_html__( 'Enter Site Name', 'instawp-connect' ) ?></p>
                         </div>
                         <div class="focus-visible:outline-none site-name-input-wrap hidden">
-                            <input id="site-prefix" name="migrate_settings[site_name]" data-postfix="" class="w-44 border-b-[1px] border-primary-900 focus-visible:outline-none bg-transparent" placeholder="<?= esc_attr__( 'Enter Site Name (max 16 characters)', 'instawp-connect' ) ?>" autocomplete="off" maxlength="16">
+                            <?php
+							/*
+							 * minlength/data-too-short-text pair with instawp_site_name_is_valid() in
+							 * scripts.js. The server requires at least 3 characters AFTER normalising the
+							 * name, and rejects a shorter one only once the migration has already begun --
+							 * so the length is checked here, before that point, rather than reported after.
+							 *
+							 * maxlength stays at 16, comfortably inside the server's 30.
+							 */
+							?>
+                            <input id="site-prefix" name="migrate_settings[site_name]" data-postfix="" class="w-44 border-b-[1px] border-primary-900 focus-visible:outline-none bg-transparent" placeholder="<?= esc_attr__( 'Enter Site Name (max 16 characters)', 'instawp-connect' ) ?>" autocomplete="off" minlength="3" maxlength="16" data-too-short-text="<?= esc_attr__( 'Please use at least 3 letters or numbers for the site name.', 'instawp-connect' ) ?>">
                         </div>
                     </div>
                 </div>

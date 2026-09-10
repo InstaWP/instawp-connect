@@ -89,10 +89,30 @@ class Curl {
 
 		$response = wp_remote_request( $api_url, $args );
 
+		/*
+		 * The URL is LOGGED, so it must not carry a credential.
+		 *
+		 * add_error_log() redacts by KEY NAME -- password, api_key, token, jwt and so on -- which
+		 * cannot see a secret sitting inside a value. `api_url` matches no needle, and at least one
+		 * caller builds its endpoint as `check-key?jwt=<token>` (Helper::check_api_key). An expired
+		 * or invalid JWT is a routine 4xx, so the whole token was written verbatim into the option
+		 * that the debug-info endpoint hands back to the customer.
+		 *
+		 * Stripping the query string fixes the CLASS rather than that one caller: any credential any
+		 * endpoint ever puts in a query string is covered, including ones added later. The scheme,
+		 * host and path all survive, which is what makes the line worth logging at all.
+		 */
+		$logged_api_url = strtok( $api_url, '?' );
+
 		if ( defined( 'INSTAWP_DEBUG_LOG' ) && INSTAWP_DEBUG_LOG ) {
-			error_log( 'API URL - ' . $api_url );
+			// Same reason as below, on the debug path: this one goes to the SERVER error log rather
+			// than the customer-visible option, but a credential in any log is still a credential.
+			//
+			// Request headers are deliberately NOT logged. They hold the same values on every call,
+			// so the line told a reader nothing about the individual request it sat next to. Keep it
+			// that way.
+			error_log( 'API URL - ' . $logged_api_url );
 			error_log( 'API ARGS - ' . is_array( $body ) ? wp_json_encode( $body ) : $body );
-			error_log( 'API HEADERS - ' . wp_json_encode( $headers ) );
 			error_log( 'API Response - ' . wp_json_encode( $response ) );
 		}
 
@@ -106,7 +126,7 @@ class Curl {
 				array(
 					'message' => $error_message,
 					'args'    => $body,
-					'api_url' => $api_url,
+					'api_url' => $logged_api_url,
 				)
 			);
 
@@ -126,7 +146,7 @@ class Curl {
 		if ( ! empty( $response_code ) && 400 <= intval( $response_code ) ) {
 			Helper::add_error_log(
 				array(
-					'api_url'       => $api_url,
+					'api_url'       => $logged_api_url,
 					'response_code' => $response_code,
 					'args'          => $body,
 					'response'      => $api_response,

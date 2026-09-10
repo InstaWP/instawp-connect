@@ -23,6 +23,56 @@
         return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`
     }
 
+    /**
+     * Mirror of normalise_site_name() in includes/class-instawp-staging-v4.php.
+     *
+     * Deliberately NOT the same rules as the preview below the field: that one drops invalid
+     * characters, this one turns them into hyphens, so "a!!b" previews as "ab" but reaches the
+     * server as "a-b". Only the server's rules can predict the server's answer, and predicting it
+     * is the entire job here -- keep the two functions in step.
+     */
+    let instawp_normalise_site_name = (value) => {
+        return String(value).trim().toLowerCase()
+            .replace(/[^a-z0-9-]/g, '-')
+            .replace(/-+/g, '-')
+            .replace(/^-+|-+$/g, '');
+    };
+
+    /**
+     * Refuse a site name client-app will reject, and say so on the field.
+     *
+     * client-app requires min:3 AFTER its own normalisation and answers 422 otherwise -- but only
+     * once instamigrate is installed and a migration_imports row exists, so a two-character typo
+     * surfaces as a late failure on work that has already started. Catching it here keeps it a
+     * field-level correction.
+     *
+     * An EMPTY name is valid: the server generates one.
+     */
+    let instawp_site_name_is_valid = (el_input) => {
+        let value = el_input.val();
+
+        if (typeof value === 'undefined' || value.length === 0) {
+            return true;
+        }
+
+        if (instawp_normalise_site_name(value).length >= 3) {
+            el_input[0].setCustomValidity('');
+
+            return true;
+        }
+
+        // reportValidity() rather than a notice of our own: the browser already knows how to put a
+        // message on a field, in the admin's language, without us building anything.
+        //
+        // Fallback text because setCustomValidity(undefined) renders the literal string "undefined":
+        // a browser holding a cached copy of the template from before data-too-short-text existed
+        // would otherwise show that to the admin.
+        el_input[0].setCustomValidity(el_input.data('too-short-text') || 'Please use at least 3 letters or numbers for the site name.');
+        el_input[0].reportValidity();
+
+        return false;
+    };
+
     let blinkElement = (selector, times, interval) => {
         let blinkCount = 0;
         let blinkInterval = setInterval(function () {
@@ -290,6 +340,206 @@
             }
         });
     },
+        // The V3 progress apparatus is driven by the V3 progress endpoint, which a V4 run never
+        // calls. Left in place it shows "Files 0%", "Database 0%" and "Processing (0/N stages)" for
+        // the entire migration and reads as a stalled run -- which is exactly how it was reported.
+        // So the V4 branch strips it at the START, not at completion, and shows only the notice and
+        // the Track Migration link.
+        //
+        // Abort goes with it. It navigates to ?clear=all, which clears LOCAL plugin state only; the
+        // agent-side migration keeps running regardless. Offering it here promises a cancel we
+        // cannot perform.
+        instawp_staging_v4_chrome = (create_container) => {
+            // .instawp-v3-progress is the whole block -- both bars, their "Files"/"Database"
+            // labels and the stage list. Hiding the bars by their own classes would leave the
+            // labels behind.
+            create_container.find('.instawp-v3-progress, .instawp-migrate-abort, .notice-serve-with-wp')
+                .addClass('hidden');
+
+            // Which message depends on whether a link is already on screen, and BOTH cases are
+            // real: a fresh start has none for the first few minutes, while a RESUMED run had its
+            // href seeded server-side from the stored agent_url and shows it on first paint.
+            // Deciding here rather than at each call site keeps the two paths from drifting.
+            let el_notice = create_container.find('.instawp-v4-running'),
+                el_link = create_container.find('.instawp-track-migration'),
+                has_link = el_link.length > 0 && !el_link.hasClass('hidden');
+
+            el_notice.text(el_notice.data(has_link ? 'tracking-text' : 'waiting-text'));
+            el_notice.removeClass('hidden');
+
+            // The V4 twin of the Abort button hidden just above. Revealed here rather than rendered
+            // visible, so it can only appear on a live V4 run -- never on V3, and never on a screen
+            // that is not actually polling.
+            create_container.find('.instawp-v4-cancel').removeClass('hidden');
+        },
+        /*
+         * Surface a non-terminal error, once per distinct message.
+         *
+         * Keyed on the MESSAGE, not on a boolean: the watcher polls every 3s, so a shown-once flag
+         * would suppress a second, different error, and re-showing on every poll would resurrect a
+         * notice the admin just dismissed. Storing the dismissed text means the same error stays
+         * dismissed while a NEW one still gets through.
+         */
+        instawp_staging_v4_notice = (create_container, message) => {
+            if (typeof message !== 'string' || message.length === 0) {
+                return;
+            }
+
+            let el_error = create_container.find('.instawp-v4-error');
+
+            if (el_error.data('dismissed') === message) {
+                return;
+            }
+
+            // .text(), not .html(): this is a server-supplied string that quotes the destination's
+            // own output, so it must never be rendered as markup on an admin page.
+            el_error.find('.instawp-v4-error-message').text(message);
+            el_error.removeClass('hidden');
+        },
+        // Stop a V4 watch and return the wizard to a non-running state. `loading` is added in
+        // instawp_migrate_init's beforeSend and only `doing-ajax` is removed on complete, so it has
+        // to be undone here or the UI stays visually mid-migration forever.
+        //
+        // The elapsedInterval clear below is now defensive only -- the V4 branches no longer start
+        // one -- but it is kept because this helper also runs after a V3 screen has been on the page,
+        // and leaking a per-second interval is worse than a redundant clearInterval.
+        instawp_staging_v4_stop = (create_container, watcher) => {
+            clearInterval(watcher);
+            create_container.removeAttr('interval-id');
+            create_container.removeClass('loading');
+
+            if (elapsedInterval) {
+                clearInterval(elapsedInterval);
+                elapsedInterval = null;
+            }
+        },
+        instawp_staging_v4_fail = (create_container, message) => {
+            // Guard against both terminal handlers running. clearInterval stops new polls but any
+            // request already in flight still settles, so a poll that reported `failed` can be
+            // followed by one carrying `completed` — leaving a green header above a red error box.
+            if (create_container.hasClass('completed') || create_container.hasClass('migration-failed')) {
+                return;
+            }
+
+            create_container.addClass('migration-failed');
+
+            // Nothing left to cancel once the run is terminal.
+            create_container.find('.instawp-v4-cancel').addClass('hidden');
+
+            let el_error_wrap = create_container.find('.migration-error'),
+                el_loader = create_container.find('.instawp-migration-loader');
+
+            // The header still says "In Progress..." otherwise — a purple in-progress label sitting
+            // next to a red error box. V3 does exactly this at its own error path; the strings are
+            // translated data-attributes on the element, so nothing is hardcoded here.
+            el_loader.removeClass('text-primary-900').addClass('text-red-700').text(el_loader.data('error-text'));
+
+            // The template's .error-message <p> is EMPTY — there is no default to fall back to, so
+            // an absent reason would render a red box with an icon, a button and no words. Fall back
+            // to the loader's translated "Migration Failed".
+            // .text(), not .html(): this is a server-supplied string and the fallback is plain
+            // text anyway, so there is nothing to gain from rendering it as markup on an admin page.
+            el_error_wrap.find('.error-message').text(
+                message && message.length > 0 ? message : el_loader.data('error-text')
+            );
+
+            // V4 never populates data-migrate-id / data-server-logs, so this button would download
+            // an empty `undefined-log.txt`. V3 hides it on its error path for the same reason.
+            el_error_wrap.find('.instawp-download-log').addClass('hidden');
+
+            el_error_wrap.removeClass('hidden');
+            create_container.find('.migration-running').addClass('hidden');
+        },
+        instawp_staging_v4_complete = (create_container) => {
+            // `completed` has to look terminal too, and the first attempt at this made it LESS
+            // terminal than `failed`: the header said "Completed" while the spinner kept turning,
+            // the progress bars sat at 0%, and a live Abort button remained — on a migration that
+            // had already succeeded. Abort navigates to ?clear=all, so it was not merely cosmetic.
+            //
+            // Mirrors what V3's completed path does: hide the live-progress furniture, and give the
+            // user a forward action. `.migration-running` deliberately STAYS visible — the Track
+            // Migration link lives inside it and is the whole point of this flow.
+            // Checks BOTH classes. An earlier version checked only `completed`, which left the
+            // exact ordering the fail() comment describes wide open: report `failed`, then an
+            // in-flight poll settles with `completed` and writes a green "Completed" header over
+            // a red error box, revealing the forward actions while .migration-error is showing.
+            if (create_container.hasClass('completed') || create_container.hasClass('migration-failed')) {
+                return;
+            }
+
+            let el_loader = create_container.find('.instawp-migration-loader');
+
+            create_container.addClass('completed');
+            el_loader.text(el_loader.data('complete-text'));
+            // instawp_staging_v4_chrome() already hid the V3 progress apparatus at start; what is
+            // left to retire here is the in-progress notice, which is now untrue.
+            create_container.find('.instawp-v4-running').addClass('hidden');
+            create_container.find('.instawp-v4-cancel').addClass('hidden');
+            create_container.find('.screen-buttons-last').removeClass('hidden');
+        },
+        instawp_staging_v4_watch = (create_container) => {
+            // V4 staging: the migration agent owns the live view, so we poll only until it hands us
+            // a URL, then surface the wizard's existing "track migration" link. Deliberately NOT the
+            // V3 progress loop — there is no V3 migration row to report on.
+            let watcher = setInterval(function () {
+                $.post(plugin_object.ajax_url, {
+                    'action': 'instawp_staging_status_v4',
+                    'security': plugin_object.security,
+                }, function (response) {
+                    if (!response.success) {
+                        // Our poll failed; the MIGRATION did not. These are two different facts,
+                        // and an earlier version conflated them: five failed polls painted
+                        // "Migration Failed" and hid .migration-running — which is where the Track
+                        // Migration link lives — on a run that was still going perfectly well.
+                        //
+                        // So say nothing and change nothing. The screen keeps reading In Progress
+                        // with the tracking link intact, and polling continues so the view
+                        // self-heals the moment the connection comes back. Only a terminal `failed`
+                        // from the branch below is allowed to report failure.
+                        return;
+                    }
+
+                    // Prefer migration_url, fall back to tracking_url — resolved server-side and
+                    // handed over as agent_url.
+                    if (typeof response.data.agent_url !== 'undefined' && response.data.agent_url.length > 0) {
+                        create_container.find('.instawp-track-migration').attr('href', response.data.agent_url).removeClass('hidden');
+                        create_container.find('.instawp-track-migration-area').removeClass('justify-end').addClass('justify-between');
+
+                        // Now that a link exists, stop telling the user one is coming.
+                        let el_v4_notice = create_container.find('.instawp-v4-running');
+
+                        el_v4_notice.text(el_v4_notice.data('tracking-text'));
+                    }
+
+                    // A run can carry an error while client-app still reports a NON-terminal status —
+                    // an unusable destination SSH, say. The terminal handler below never fires for
+                    // those, so without this the admin watches a spinner that will never resolve and
+                    // is told nothing. Shown inside the running panel so the link stays put, and
+                    // dismissible because some of these clear on a retry.
+                    instawp_staging_v4_notice(create_container, response.data.message);
+
+                    // A terminal status must LOOK terminal. Clearing the poll alone left the
+                    // spinner turning and the elapsed timer counting up forever, so `failed`
+                    // rendered identically to `completed` and to still-in-progress — the user was
+                    // never told the migration had failed.
+                    if (['completed', 'failed'].indexOf(response.data.status) !== -1) {
+                        instawp_staging_v4_stop(create_container, watcher);
+
+                        if ('failed' === response.data.status) {
+                            instawp_staging_v4_fail(create_container, response.data.message);
+                        } else {
+                            instawp_staging_v4_complete(create_container);
+                        }
+                    }
+                }).fail(function () {
+                    // Transport failure — offline, a proxy blip, admin-ajax briefly 5xx. Same
+                    // reasoning as the !response.success branch above: this says nothing about the
+                    // migration, so leave the screen alone and keep polling.
+                });
+            }, 3000);
+
+            create_container.attr('interval-id', watcher);
+        },
         instawp_migrate_init = () => {
 
             let create_container = $('.instawp-wrap .nav-item-content.create'),
@@ -322,6 +572,30 @@
                     console.log(response);
 
                     if (response.success) {
+                        // The engine decides the path. V3 below is untouched.
+                        if (response.data.engine === 'v4') {
+                            // Before the watcher, so the dead V3 widgets are never painted: run()
+                            // does not return the agent URL, so the first poll is ~3s away and the
+                            // user would otherwise spend that time looking at 0% bars.
+                            instawp_staging_v4_chrome(create_container);
+
+                            /*
+                             * NO elapsed timer on V4, deliberately.
+                             *
+                             * updateTimer() parses `startTime + " UTC"`, a MySQL datetime -- what V3
+                             * sends. V4 sends time(), an epoch int, so `new Date("1757505600 UTC")`
+                             * is Invalid Date and the element was set to empty text every second for
+                             * the life of the page. It was invisible either way: #visibility-timer
+                             * lives inside .instawp-v3-progress, which chrome() has just hidden.
+                             *
+                             * Not repaired, because the agent's own page -- the one the Track
+                             * Migration link leads to -- already shows elapsed time.
+                             */
+                            instawp_staging_v4_watch(create_container);
+
+                            return;
+                        }
+
                         if (!elapsedInterval) {
                             elapsedInterval = setInterval(() => {
                                 updateTimer(response.data.started_at)
@@ -343,7 +617,11 @@
                         create_container.removeClass('loading');
                         el_migration_progress_wrap.addClass('hidden');
                         el_migration_loader.removeClass('text-primary-900').addClass('text-red-700').text(el_migration_loader.data('error-text'));
-                        el_migration_error_message.html(response.data.message);
+                        // .text(), not .html(). This branch now also renders V4 failures, whose
+                        // message is client-app's own string forwarded verbatim by run() -- a remote
+                        // string reaching an admin page. Every V4 handler added on this branch uses
+                        // .text() for the same reason; this was the one sink that did not.
+                        el_migration_error_message.text(response.data.message);
                         el_migration_download_log.addClass('hidden');
                         el_migration_error_wrap.removeClass('hidden');
                         // create_container.find('#instawp-screen').val(4).trigger('change');
@@ -579,7 +857,28 @@
         }
 
         // Initiating Migration
-        if (screen_current === 5) {
+        //
+        // A RESUME also lands here: both resume paths reach screen 5 by
+        // el_instawp_screen.val(5).trigger('change'), which runs this handler. Without the flag
+        // that meant every page refresh during a live run called instawp_migrate_init() again --
+        // starting a SECOND staging migration, and, when it failed, hiding .migration-running so
+        // the screen vanished. That is the "still not visible after refresh" report.
+        //
+        // The flag is consumed here rather than cleared by the resume block, so it cannot leak into
+        // a later, genuine screen change within the same page load.
+        if (screen_current === 5 && create_container.data('instawp-resuming')) {
+            create_container.removeData('instawp-resuming');
+        } else if (screen_current === 5) {
+            // BEFORE the request, not in its success callback. The screen has just been switched a
+            // few lines above, and instawp_migrate_init() runs staging-init + start -- which is
+            // destination SITE CREATION, tens of seconds. Applying the V4 chrome on success meant
+            // the V3 bars and the "Processing (0/N stages)" list were on screen for that entire
+            // window, which is what "it shows the old screen first" was.
+            //
+            // Safe unconditionally here: migrate_init() is V4-only on this branch, so screen 5 is
+            // always a V4 run. If a V3 path is ever restored, gate this on the engine.
+            instawp_staging_v4_chrome(create_container);
+
             instawp_migrate_init();
         }
 
@@ -624,7 +923,36 @@
     }
 
     $(document).on('click', '.browse-staging-btn, .instawp-show-staging-sites', function (e) {
+        /*
+         * Switch tab FIRST, then refresh.
+         *
+         * The tab click persists `instawp_admin_current` to localStorage, and the refresh below
+         * ends in a full page reload -- so doing it in this order is what brings the user back on
+         * the Staging Sites tab rather than on whatever they had open before.
+         *
+         * Landing on that tab is not enough on its own: its list is rendered from the
+         * `instawp_staging_sites` option, which is a CACHE. A site that has just finished migrating
+         * is not in it, so the user arrives at a list that does not contain the thing they came to
+         * see.
+         */
         $(document).find('.nav-items > #sites > a').trigger('click');
+
+        /*
+         * Reuse the refresh button's own handler rather than repeating its AJAX call here. It
+         * already does the whole job -- posts instawp_refresh_staging_sites, spins its icon, marks
+         * the form loading, reloads on success and alerts on failure -- and a second copy would be
+         * one more thing to keep in step with it.
+         *
+         * part-sites.php is always in the DOM (main.php includes every tab's template and toggles
+         * .active), so this element exists even when that tab has never been opened. Guarded anyway:
+         * the button is rendered twice there, and not at all if the nav item is hidden for this
+         * site.
+         */
+        let el_refresh = $(document).find('.instawp-refresh-staging-sites').first();
+
+        if (el_refresh.length > 0) {
+            el_refresh.trigger('click');
+        }
     });
 
     $(document).on('click', '.instawp-wrap .instawp-migration-start-over', function (e) {
@@ -739,6 +1067,21 @@
             el_instawp_screen.val(screen_next).trigger('change');
         } else {
 
+            // Last point at which the site name is still just a field. Past here the limit check
+            // runs, screen 5 renders and the run starts, so a name the server will refuse has to
+            // be caught now -- see instawp_site_name_is_valid().
+            let el_site_name_field = create_container.find('input#site-prefix');
+
+            if (el_site_name_field.length > 0 && !instawp_site_name_is_valid(el_site_name_field)) {
+                // Put the field back in front of the admin: by now the click that got us here has
+                // usually closed it behind the preview text.
+                el_instawp_site_name.removeClass('hidden');
+                el_site_name_field.closest('.site-name-input-wrap').removeClass('hidden');
+                el_site_name_field.focus();
+
+                return;
+            }
+
             // Check limit
             el_screen_buttons.removeClass('justify-between').addClass('justify-end');
             el_instawp_site_name.addClass('hidden');
@@ -824,7 +1167,19 @@
         }
     });
 
-    $(document).on('ready', function () {
+    /*
+     * WAS `$(document).on('ready', …)`, which has been DEAD since jQuery 3.0 removed that API.
+     * WordPress ships jQuery 3.7.1, so every statement in this block has silently never executed —
+     * the V4 staging resume added on this branch was built on a handler that already never fired,
+     * which is exactly why it reviewed as correct and did nothing on the site.
+     *
+     * ⚠ This one line revives FIVE dormant behaviours, not just the V4 resume: the staging-site
+     * list pagination reveal, the last-viewed tab restore, the V3 `loading` progress resume, the
+     * ?field= blink, and the site-name input's mousedown blur handler. All look intended, none has
+     * run in production for as long as this site has been on jQuery 3, so none is covered by
+     * anybody's experience of how the plugin currently behaves.
+     */
+    $(function () {
         let create_container = $('.instawp-wrap .nav-item-content.create'),
             el_instawp_current_tab = $('.instawp-wrap .instawp-current-tab'),
             el_instawp_current_tab_data = el_instawp_current_tab.attr('current-tab'),
@@ -848,14 +1203,46 @@
         }
 
         if (create_container.hasClass('loading')) {
+            // Resuming, not starting: see the guard in the #instawp-screen change handler.
+            create_container.data('instawp-resuming', true);
             el_instawp_screen.val(5).trigger('change');
             create_container.attr('interval-id', setInterval(instawp_migrate_progress, 3000));
+        }
+
+        // V4 staging resume. The server decides whether the stored run is still live
+        // (InstaWP_Staging_V4::resumable_run) and stamps this class; here we only re-enter the
+        // screen and the watcher. Kept off the `loading` branch above deliberately: that one starts
+        // the V3 progress poll, which reads a migrates_v3 row a V4 run never creates.
+        if (create_container.hasClass('instawp-v4-resume')) {
+            /*
+             * NO screen switch here, deliberately. part-create-staging.php renders screen 5, the V4
+             * notice, the seeded link and the hidden V3 block server-side, so the screen is already
+             * correct before this runs -- and stays correct even if the JS never does.
+             *
+             * The screen used to be set with el_instawp_screen.val(5).trigger('change'), which runs
+             * the #instawp-screen handler, which calls instawp_migrate_init(). Every refresh during
+             * a live run therefore STARTED ANOTHER MIGRATION, and when that failed it hid
+             * .migration-running so the screen disappeared. All this block owes the page now is the
+             * poll.
+             */
+
+            // No elapsed timer here either -- see the v4 branch in instawp_migrate_init(). The
+            // comment this replaces claimed it counted from the run's own start time rather than
+            // from page load, which was true of the argument and irrelevant to the result: the value
+            // never parsed, so nothing was ever rendered.
+            instawp_staging_v4_watch(create_container);
         }
 
         const fieldValue = getQueryParameter('field');
         if (fieldValue) {
             blinkElement('.instawp-' + fieldValue + '-field', 3, 250);
         }
+
+        // A custom validity message sticks until it is cleared, so a stale one would keep blocking
+        // a name the admin has already fixed.
+        $(document).on('input', 'input#site-prefix', function () {
+            this.setCustomValidity('');
+        });
 
         $(document).mousedown(function (event) {
 
@@ -872,6 +1259,11 @@
             if (!$target.closest('.instawp-site-name .site-name-input-wrap input#site-prefix').length) {
 
                 if (typeof el_site_name_input.val() !== 'undefined' && el_site_name_input.val().length > 0) {
+                    // Hold the field open rather than accepting a name the server will refuse.
+                    if (!instawp_site_name_is_valid(el_site_name_input)) {
+                        return;
+                    }
+
                     let website_name = '';
 
                     website_name = el_site_name_input.val();
@@ -903,6 +1295,72 @@
                     }, 1000);
                 }
             }
+        });
+    });
+
+    // Remembers WHAT was dismissed rather than THAT something was, so the next poll does not
+    // resurrect this message while a genuinely new one still gets through.
+    $(document).on('click', '.instawp-wrap .instawp-v4-error-dismiss', function () {
+        let el_error = $(this).closest('.instawp-v4-error');
+
+        el_error.data('dismissed', el_error.find('.instawp-v4-error-message').text());
+        el_error.addClass('hidden');
+    });
+
+    /*
+     * Cancel a live V4 run.
+     *
+     * Deliberately does NOT decide what the screen should then show. The watcher is already polling
+     * every 3s and already owns the terminal handling -- completed vs failed, the both-handlers
+     * guard, the message. Repeating that decision here would be a second copy to keep in step, and
+     * it would be wrong in the race this endpoint is most likely to lose: a 422 means the run had
+     * ALREADY finished, and the poll reports that correctly while a local guess would not.
+     *
+     * So: ask, post, re-enable. The next poll tells the truth. Mirrors client-app's own cancel
+     * button, which posts and then simply re-fetches status.
+     *
+     * Separate from the Abort handler below, which is V3's: that one clears a local interval and
+     * navigates to ?clear=all, abandoning the screen while a V4 agent carries on migrating.
+     */
+    $(document).on('click', '.instawp-wrap .instawp-v4-cancel', function () {
+        let el_button = $(this);
+
+        // The confirm NAMES the consequence, in client-app's words: cancelling deletes the
+        // destination site, and V3's "Do you really want to abort the migration?" does not say so.
+        if (!confirm(el_button.data('confirm'))) {
+            return;
+        }
+
+        /*
+         * Say something IMMEDIATELY.
+         *
+         * The request behind this is slow -- the plugin calls client-app, which tells the agent to
+         * stop and then deletes the destination site -- and the screen only catches up on the next
+         * 3s poll. Disabling alone left the button reading "Cancel Migration" throughout, so the
+         * click looked ignored and the outcome arrived seconds later with nothing in between.
+         *
+         * Original label kept rather than re-read from a data attribute, so the restore below
+         * cannot disagree with what was actually on the button.
+         */
+        let original_text = el_button.text();
+
+        el_button.prop('disabled', true).text(el_button.data('cancelling-text'));
+
+        $.post(plugin_object.ajax_url, {
+            'action': 'instawp_staging_cancel_v4',
+            'security': plugin_object.security,
+        }).done(function (response) {
+            if (response && response.success) {
+                // Left disabled and still reading "Cancelling...": the run IS ending, and the poll
+                // hides the whole button within 3s. Restoring the label here would flash "Cancel
+                // Migration" back onto a migration that is already stopping.
+                return;
+            }
+
+            el_button.prop('disabled', false).text(original_text);
+        }).fail(function () {
+            // The run is still live, so cancelling remains something the user may retry.
+            el_button.prop('disabled', false).text(original_text);
         });
     });
 
