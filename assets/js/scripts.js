@@ -868,7 +868,36 @@
     }
 
     $(document).on('click', '.browse-staging-btn, .instawp-show-staging-sites', function (e) {
+        /*
+         * Switch tab FIRST, then refresh.
+         *
+         * The tab click persists `instawp_admin_current` to localStorage, and the refresh below
+         * ends in a full page reload -- so doing it in this order is what brings the user back on
+         * the Staging Sites tab rather than on whatever they had open before.
+         *
+         * Landing on that tab is not enough on its own: its list is rendered from the
+         * `instawp_staging_sites` option, which is a CACHE. A site that has just finished migrating
+         * is not in it, so the user arrives at a list that does not contain the thing they came to
+         * see.
+         */
         $(document).find('.nav-items > #sites > a').trigger('click');
+
+        /*
+         * Reuse the refresh button's own handler rather than repeating its AJAX call here. It
+         * already does the whole job -- posts instawp_refresh_staging_sites, spins its icon, marks
+         * the form loading, reloads on success and alerts on failure -- and a second copy would be
+         * one more thing to keep in step with it.
+         *
+         * part-sites.php is always in the DOM (main.php includes every tab's template and toggles
+         * .active), so this element exists even when that tab has never been opened. Guarded anyway:
+         * the button is rendered twice there, and not at all if the nav item is hidden for this
+         * site.
+         */
+        let el_refresh = $(document).find('.instawp-refresh-staging-sites').first();
+
+        if (el_refresh.length > 0) {
+            el_refresh.trigger('click');
+        }
     });
 
     $(document).on('click', '.instawp-wrap .instawp-migration-start-over', function (e) {
