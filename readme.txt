@@ -104,6 +104,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 - Fixed: The plan selector now accounts for both file and database size when checking plan capacity.
 - Security: Hardened diagnostic logging.
 - Fixed: The Sync (Beta) event list no longer keeps showing a failed attempt after a later sync of the same change has succeeded.
+- Security: Custom plugin and theme archives copied for Sync (Beta) are now stored under an unguessable filename and removed once the sync has run, instead of being left behind under a predictable one.
 
 = 0.1.3.8 - 12 August 2026 =
 - Improved: Local push no longer copies host-specific configuration, caches, logs, or build and version control folders to the destination.

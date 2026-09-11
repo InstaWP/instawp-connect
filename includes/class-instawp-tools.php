@@ -196,6 +196,10 @@ class InstaWP_Tools {
 	 *   and `themes/*.zip` out of this same tree over HTTP. The rule is extension-scoped
 	 *   rather than `deny from all` for that reason, and the deny is safe for the plugin
 	 *   itself, which only ever reads these files from the filesystem (never over HTTP).
+	 *   Those zips are NOT protected by this file and must not rely on it: the secret is
+	 *   in the URL instead — InstaWP_Sync_Plugin_Theme gives each copy a random 32-char
+	 *   filename suffix and sweeps it once the sync event is done. Do not reintroduce a
+	 *   predictable name on the assumption that something here is guarding the directory.
 	 *   It prefers the mod_access_compat form (Order/Deny — the same the migration-log
 	 *   guard uses, permitted under `AllowOverride Limit`) and falls back to
 	 *   `Require all denied` only where mod_access_compat is absent, so it works on

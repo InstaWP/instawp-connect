@@ -17,6 +17,15 @@ class InstaWP_Sync_Plugin_Theme {
 	 */
 	const ZIP_STORAGE_OPTION = 'instawp_sync_custom_zip_urls';
 
+	/**
+	 * How long a copied zip may survive on disk before the daily sweep removes it.
+	 *
+	 * The copy only has to outlive the sync event that carries its URL, so this is a
+	 * backstop for the cases where that event never reaches `completed` — no destination
+	 * connected, sync paused, or a failed push. Filterable via `instawp_sync_zip_retention`.
+	 */
+	const ZIP_RETENTION = 86400; // DAY_IN_SECONDS
+
 	public function __construct() {
 		// Plugin and Theme actions
 		add_filter( 'upgrader_source_selection', array( $this, 'copy_uploaded_plugin_zip' ), 5, 4 );
@@ -32,6 +41,10 @@ class InstaWP_Sync_Plugin_Theme {
 		
 		// Hook into event status update to delete zip files when events are marked as completed
 		add_action( 'instawp_sync_event_completed', array( $this, 'handle_completed_event' ), 10, 2 );
+
+		// Backstop for copies whose event never completes. Rides the existing daily
+		// Action Scheduler action rather than registering a second recurring action.
+		add_action( 'instawp_clean_migrate_files', array( $this, 'purge_stale_zip_copies' ) );
 	}
 
 	/**
@@ -214,9 +227,12 @@ class InstaWP_Sync_Plugin_Theme {
 		InstaWP_Tools::protect_instawpbackups_dir();
 
 		$slug = basename( $source );
-			
-		// Always use slug-based naming
-		$zip_filename = sanitize_file_name( $slug . '.zip' );
+
+		// A slug-based name made the copy publicly guessable: anyone who knows a premium
+		// plugin's folder name could fetch the licensed archive straight out of this
+		// directory. The copy has to stay reachable over HTTP (the destination site
+		// downloads it by URL during sync), so the URL itself has to carry the secret.
+		$zip_filename = sanitize_file_name( $slug . '-' . wp_generate_password( 32, false ) . '.zip' );
 
 		$copied_zip_path = $type_backup_dir . $zip_filename;
 
@@ -243,7 +259,13 @@ class InstaWP_Sync_Plugin_Theme {
 				) );
 				return $source;
 			}
-			
+
+		// Each copy now lands on its own random path instead of overwriting a fixed one, so
+		// the previous copy for this slug has to be removed explicitly or it is orphaned by
+		// the record update below. Done only after the new copy is safely in place, so a
+		// failed copy never leaves a pending sync event pointing at a file we just deleted.
+		$this->delete_recorded_zip( $slug, $type );
+
 		$this->store_zip_record( $slug, $type, $copied_zip_url );
 	} catch ( \Throwable $e ) {
 		Helper::add_error_log( array(
@@ -1122,8 +1144,12 @@ class InstaWP_Sync_Plugin_Theme {
 
 		$event = $event_rows[0];
 
-		// Only process plugin_install and plugin_update events
-		if ( $event->event_type !== 'plugin' || ( $event->event_slug !== 'plugin_install' && $event->event_slug !== 'plugin_update' ) ) {
+		// Only process install/update events, for plugins AND themes. Theme events carry a
+		// zip_url exactly like plugin events do (see install_update_action()), so excluding
+		// them left every custom theme copy on disk for good.
+		$copying_events = array( 'plugin_install', 'plugin_update', 'theme_install', 'theme_update' );
+
+		if ( ! in_array( $event->event_type, array( 'plugin', 'theme' ), true ) || ! in_array( $event->event_slug, $copying_events, true ) ) {
 			return;
 		}
 
@@ -1218,6 +1244,119 @@ class InstaWP_Sync_Plugin_Theme {
 		}
 
 		return false;
+	}
+
+	/**
+	 * Delete the copy currently recorded for a slug, then drop its record.
+	 *
+	 * Called before a new copy is stored: each copy now has a random name rather than
+	 * overwriting a fixed one, so without this the previous file would be left on disk
+	 * with nothing pointing at it.
+	 *
+	 * @param string $slug
+	 * @param string $type
+	 *
+	 * @return void
+	 */
+	private function delete_recorded_zip( $slug, $type ) {
+		$records = $this->get_zip_records();
+
+		if ( empty( $records[ $type ][ $slug ]['zip_url'] ) ) {
+			return;
+		}
+
+		$this->delete_zip_file( $records[ $type ][ $slug ]['zip_url'] );
+
+		// delete_zip_file() only prunes the record when it actually removed a file, so the
+		// record is dropped here too — the copy it names is superseded either way.
+		$this->remove_zip_record( $slug, $type );
+	}
+
+	/**
+	 * Remove copied zips that have outlived the sync event carrying their URL.
+	 *
+	 * Deletion is otherwise driven by `instawp_sync_event_completed`, which never fires
+	 * when there is no destination connected, sync is paused, or the push failed — the
+	 * copy then stays on disk indefinitely. Runs on the existing daily
+	 * `instawp_clean_migrate_files` action.
+	 *
+	 * Sweeps the directory rather than the stored records so that copies with no record
+	 * (including fixed-name copies written by earlier versions) are cleaned up too.
+	 *
+	 * @return void
+	 */
+	public function purge_stale_zip_copies() {
+		if ( ! defined( 'INSTAWP_BACKUP_DIR' ) ) {
+			return;
+		}
+
+		$retention = (int) apply_filters( 'instawp_sync_zip_retention', self::ZIP_RETENTION );
+
+		// A non-positive retention would delete copies the moment they are written, which
+		// breaks sync rather than securing it.
+		if ( $retention < 1 ) {
+			$retention = self::ZIP_RETENTION;
+		}
+
+		$cutoff  = time() - $retention;
+		$swept   = false;
+
+		foreach ( array( 'plugins', 'themes' ) as $subdirectory ) {
+			$zip_files = glob( INSTAWP_BACKUP_DIR . $subdirectory . DIRECTORY_SEPARATOR . '*.zip' );
+
+			if ( empty( $zip_files ) || ! is_array( $zip_files ) ) {
+				continue;
+			}
+
+			foreach ( $zip_files as $zip_file ) {
+				if ( ! is_file( $zip_file ) ) {
+					continue;
+				}
+
+				$modified = filemtime( $zip_file );
+
+				if ( false === $modified || $modified > $cutoff ) {
+					continue;
+				}
+
+				if ( wp_delete_file( $zip_file ) ) {
+					$swept = true;
+				}
+			}
+		}
+
+		if ( $swept ) {
+			$this->prune_missing_zip_records();
+		}
+	}
+
+	/**
+	 * Drop records whose file is no longer on disk.
+	 *
+	 * @return void
+	 */
+	private function prune_missing_zip_records() {
+		$records  = $this->get_zip_records();
+		$modified = false;
+
+		foreach ( $records as $type => $items ) {
+			if ( ! is_array( $items ) ) {
+				continue;
+			}
+
+			foreach ( $items as $slug => $data ) {
+				if ( empty( $data['zip_url'] ) || $this->verify_copied_zip_exists( $data['zip_url'] ) ) {
+					continue;
+				}
+
+				unset( $records[ $type ][ $slug ] );
+				$modified = true;
+			}
+		}
+
+		if ( $modified ) {
+			Option::update_option( self::ZIP_STORAGE_OPTION, $records );
+		}
 	}
 
 	/**
