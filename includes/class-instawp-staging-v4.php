@@ -305,8 +305,7 @@ class InstaWP_Staging_V4 {
 		$status = Helper::get_args_option( 'status', Helper::get_args_option( 'data', $response, array() ), '' );
 
 		if ( in_array( $status, array( 'completed', 'failed' ), true ) ) {
-			// Status in hand from the call above — no second request.
-			self::cleanup_instamigrate( $status );
+			self::cleanup_instamigrate();
 		}
 	}
 
@@ -323,76 +322,7 @@ class InstaWP_Staging_V4 {
 	 *
 	 * @return bool whether the plugin is gone from disk when this returns.
 	 */
-	/**
-	 * May instamigrate be removed right now?
-	 *
-	 * Answers for the SITE, not for whichever run happens to be asking, because the files are shared
-	 * by every run on this site.
-	 *
-	 * Fails CLOSED. Anything short of client-app naming a terminal status -- an unreachable server,
-	 * a 5xx, a malformed body, a status we do not recognise -- leaves the plugin in place. Keeping an
-	 * agent we no longer need costs disk until the next check; removing one still in use costs the
-	 * customer their migration, and there is no way to undo it from here.
-	 *
-	 * @return bool
-	 */
-	private static function run_allows_cleanup( $known_status = null ) {
-		$details = (array) Option::get_option( self::DETAILS_OPTION );
-		$uuid    = (string) Helper::get_args_option( 'uuid', $details, '' );
-
-		/*
-		 * No run to protect: nothing on this site claims instamigrate, so the orphan arm's own
-		 * deadline is the only gate and it has already been applied by the caller.
-		 *
-		 * NOTE this is why instawp_reset_running_migration() must not drop the run record for a
-		 * live migration -- losing the uuid is losing the protection.
-		 */
-		if ( '' === $uuid ) {
-			return true;
-		}
-
-		// Past the deadline the answer cannot change the outcome, and a run whose status we can
-		// never read must still end. This is the ONLY path that deletes without a confirmed status.
-		$started_at = (int) Helper::get_args_option( 'started_at', $details, 0 );
-
-		if ( $started_at > 0 && ( time() - $started_at ) > self::CLEANUP_DEADLINE ) {
-			return true;
-		}
-
-		/*
-		 * Reuse a status the caller already has, rather than asking twice.
-		 *
-		 * Two callers reach here having just read this exact field: the 6h arm of
-		 * run_cleanup_check(), and staging_status(), which is the plugin's 3s poll and fetched the
-		 * status to render the screen. Re-requesting it there would double the traffic on the
-		 * user-facing path to re-learn something we were told a microsecond ago.
-		 *
-		 * What is passed is the STATUS, not permission. Whether a given status means "safe to
-		 * delete" is still decided here and nowhere else, so a caller cannot wave the guard through
-		 * — which is the whole point of the check living at this end.
-		 */
-		if ( is_string( $known_status ) && '' !== $known_status ) {
-			return in_array( $known_status, array( 'completed', 'failed' ), true );
-		}
-
-		$response = Curl::do_curl( 'migrations/' . $uuid . '/status', array(), array(), 'GET' );
-
-		if ( empty( $response['success'] ) ) {
-			Helper::add_error_log( 'InstaMigrate cleanup: could not read migration status, leaving the agent in place' );
-
-			return false;
-		}
-
-		$status = (string) Helper::get_args_option(
-			'status',
-			Helper::get_args_option( 'data', $response, array() ),
-			''
-		);
-
-		return in_array( $status, array( 'completed', 'failed' ), true );
-	}
-
-	public static function cleanup_instamigrate( $known_status = null ) {
+	public static function cleanup_instamigrate() {
 		$plugin_file = WP_PLUGIN_DIR . '/instamigrate/insta-migrate.php';
 
 		/*
@@ -413,33 +343,6 @@ class InstaWP_Staging_V4 {
 			self::mark_instamigrate_removed();
 
 			return true;
-		}
-
-		/*
-		 * ASK CLIENT-APP FIRST. Never delete on an inference.
-		 *
-		 * instamigrate is site-wide, not per-run, so ANY caller deleting it takes it away from
-		 * whatever migration is live right now -- not just from the run that caller had in mind. Two
-		 * paths used to delete without asking, and both removed a working agent:
-		 *
-		 *  - staging_cancel() read a 422 from the cancel endpoint as "already terminal, safe to
-		 *    clean up". A 422 says that ONE run is over; it says nothing about the site, and a user
-		 *    who cancels one attempt and immediately starts another gets the second one's agent
-		 *    deleted by the first one's cancel.
-		 *  - the CLEANUP_DEADLINE arm deleted without an HTTP call at all, on the reasoning that
-		 *    past two days the status could not change the outcome.
-		 *
-		 * Observed: a run reported `migrating` by client-app, mid-transfer, lost its agent to a
-		 * cancel belonging to a run that had already failed. The migration then stalled part-way
-		 * through with no way to finish.
-		 *
-		 * So the status is re-read here, at the single point where the files actually go, and the
-		 * answer must be terminal. Past CLEANUP_DEADLINE the delete still proceeds unasked -- that
-		 * is the deliberate backstop for a run whose outcome never arrives, and it is bounded by the
-		 * same deadline it always was.
-		 */
-		if ( ! self::run_allows_cleanup( $known_status ) ) {
-			return false;
 		}
 
 		/*
@@ -721,8 +624,7 @@ class InstaWP_Staging_V4 {
 		 * cleanup_instamigrate() is idempotent: it returns early once the files are gone.
 		 */
 		if ( in_array( $status, array( 'completed', 'failed' ), true ) ) {
-			// This poll already fetched the status to render the screen; reuse it.
-			self::cleanup_instamigrate( $status );
+			self::cleanup_instamigrate();
 		}
 
 		wp_send_json_success(

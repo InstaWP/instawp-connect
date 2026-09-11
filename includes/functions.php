@@ -357,6 +357,17 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 		// Delete migration details
 		delete_option( 'instawp_migration_details' );
 
+		/*
+		 * The V4 run record too, or "start over" cannot reach a V4 run at all.
+		 *
+		 * A V4 run that never receives a terminal status keeps resumable_run() answering yes for the
+		 * whole RESUME_WINDOW: every wp-admin load forces the wizard to screen 5, hides the screen
+		 * buttons and Abort, and start_run() refuses to begin another. Without this line the ONLY
+		 * thing that cleared the option was uninstall.php -- so a customer whose client-app went
+		 * quiet mid-run had no way out of the staging screen short of removing the plugin.
+		 */
+		delete_option( 'instawp_staging_v4_details' );
+
 		// Explicitly delete the options file for this migration. The option was already
 		// deleted above, so instawp_is_options_file_protected() will no longer guard it.
 		// This ensures cleanup even if the general file loop below is guarded.
@@ -371,27 +382,6 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 
 		if ( ! in_array( $reset_type, array( 'soft', 'hard' ) ) ) {
 			return false;
-		}
-
-		/*
-		 * The V4 run record, but ONLY on an explicit abort.
-		 *
-		 * It is dropped so "start over" can reach a V4 run at all: a run that never receives a
-		 * terminal status keeps resumable_run() answering yes for the whole RESUME_WINDOW, forcing
-		 * the wizard to screen 5 on every wp-admin load with no way out but removing the plugin.
-		 *
-		 * Gated, because this function is not only reached by aborts. InstaWP::clean_migrate_files()
-		 * calls it with the defaults whenever `instawp_migration_details` carries no migrate_id and
-		 * no migrate_key -- fields only a V3 migration ever sets, so the condition is true for the
-		 * whole of every V4 run. Ungated, routine V3 housekeeping silently deleted the record of a
-		 * live V4 migration.
-		 *
-		 * Losing it is not cosmetic: the uuid in this option is what cleanup_instamigrate() reads to
-		 * ask client-app whether the run is over. With no uuid there is nothing to ask about, and the
-		 * guard that keeps a live migration's agent installed has nothing to stand on.
-		 */
-		if ( 'hard' === $reset_type || $abort_forcefully ) {
-			delete_option( 'instawp_staging_v4_details' );
 		}
 
 		// Clean remaining backup files. The guard prevents deleting options-{key}.txt
