@@ -89,6 +89,14 @@ class InstaWP_Staging_V4 {
 	const ORPHAN_LOGGED_OPTION = 'instawp_instamigrate_orphan_logged';
 
 	/**
+	 * Statuses after which nothing on the source is needed.
+	 *
+	 * The ONLY place this list lives. It used to be written out inline at three sites, and a list
+	 * copied three times is a list that will one day be edited in two of them.
+	 */
+	const TERMINAL_STATUSES = array( 'completed', 'failed' );
+
+	/**
 	 * InstaWP_Staging_V4 constructor.
 	 */
 	public function __construct() {
@@ -296,15 +304,9 @@ class InstaWP_Staging_V4 {
 
 		Option::update_option( self::DETAILS_OPTION, $details, false );
 
-		$response = Curl::do_curl( 'migrations/' . $uuid . '/status', array(), array(), 'GET' );
-
-		if ( empty( $response['success'] ) ) {
-			return;
-		}
-
-		$status = Helper::get_args_option( 'status', Helper::get_args_option( 'data', $response, array() ), '' );
-
-		if ( in_array( $status, array( 'completed', 'failed' ), true ) ) {
+		// An unreadable status comes back as '' and is never terminal, so a client-app outage leaves
+		// the plugin in place until the next check rather than deleting on silence.
+		if ( self::is_terminal_status( self::fetch_run_status( $uuid ) ) ) {
 			self::cleanup_instamigrate();
 		}
 	}
@@ -478,6 +480,83 @@ class InstaWP_Staging_V4 {
 	}
 
 	/**
+	 * Ask client-app for a run's current status.
+	 *
+	 * The one implementation of a request that was previously duplicated in run_cleanup_check() and
+	 * staging_status(). Returns '' when the status cannot be read -- an unreachable server, a non-2xx,
+	 * a body without the field -- and NEVER a guess. '' is not a terminal status, so every caller that
+	 * tests the result with is_terminal_status() fails closed for free.
+	 *
+	 * @param string $uuid The migration_imports uuid.
+	 *
+	 * @return string The status, or '' when unknown.
+	 */
+	public static function fetch_run_status( $uuid ) {
+		/*
+		 * Throwable, not Exception, and caught HERE rather than at each caller. This is reached from
+		 * admin_init, the 3s poll, a daily scheduled job, the heartbeat, WP-CLI and a REST handler; a
+		 * TypeError out of the HTTP layer would otherwise take down whichever of those happened to be
+		 * running. Catching it once, at the source, means every caller fails closed for free: a throw
+		 * is "unknown", and unknown is never terminal.
+		 */
+		try {
+			$response = Curl::do_curl( 'migrations/' . $uuid . '/status', array(), array(), 'GET' );
+
+			if ( empty( $response['success'] ) ) {
+				return '';
+			}
+
+			return (string) Helper::get_args_option( 'status', Helper::get_args_option( 'data', $response, array() ), '' );
+		} catch ( \Throwable $e ) {
+			Helper::add_error_log( 'Migration status check failed: ' . $e->getMessage() );
+
+			return '';
+		}
+	}
+
+	/**
+	 * Is this a status after which the source may be cleaned up?
+	 *
+	 * @param string $status A status as reported by client-app.
+	 *
+	 * @return bool
+	 */
+	public static function is_terminal_status( $status ) {
+		return in_array( (string) $status, self::TERMINAL_STATUSES, true );
+	}
+
+	/**
+	 * Has the run this site is holding ended, according to client-app RIGHT NOW?
+	 *
+	 * The gate every AUTOMATIC deletion goes through before touching either the instamigrate plugin
+	 * or the run record. Not the user's own Cancel: that follows a confirmation box, and the
+	 * confirmation is the decision.
+	 *
+	 * Fails closed by construction -- see fetch_run_status(). No stored run answers true: with
+	 * nothing to protect there is nothing to refuse, and the orphan arm has its own deadline.
+	 *
+	 * @return bool
+	 */
+	public static function run_has_ended() {
+		// Guarded for the same reason as fetch_run_status(), and to the same end: "could not
+		// confirm" answers false, and false leaves everything in place.
+		try {
+			$details = (array) Option::get_option( self::DETAILS_OPTION );
+			$uuid    = (string) Helper::get_args_option( 'uuid', $details, '' );
+
+			if ( '' === $uuid ) {
+				return true;
+			}
+
+			return self::is_terminal_status( self::fetch_run_status( $uuid ) );
+		} catch ( \Throwable $e ) {
+			Helper::add_error_log( 'Could not confirm the migration has ended: ' . $e->getMessage() );
+
+			return false;
+		}
+	}
+
+	/**
 	 * Record that instamigrate is gone, so the deadline arms stop looking at this run.
 	 *
 	 * A flag on the run rather than deleting the run: the watcher, resumable_run() and the status
@@ -601,7 +680,7 @@ class InstaWP_Staging_V4 {
 		 * saw finish. The window then does what it is actually for: retiring runs whose outcome we
 		 * never observed because the tab was closed first.
 		 */
-		if ( in_array( $status, array( 'completed', 'failed' ), true ) && empty( $details['finished_at'] ) ) {
+		if ( self::is_terminal_status( $status ) && empty( $details['finished_at'] ) ) {
 			$details['finished_at'] = time();
 			$dirty                  = true;
 		}
@@ -623,8 +702,15 @@ class InstaWP_Staging_V4 {
 		 * already stamped it is not dirty, and would otherwise skip the cleanup entirely.
 		 * cleanup_instamigrate() is idempotent: it returns early once the files are gone.
 		 */
-		if ( in_array( $status, array( 'completed', 'failed' ), true ) ) {
-			self::cleanup_instamigrate();
+		if ( self::is_terminal_status( $status ) ) {
+			// The response below is what tells the screen the run ended. A throw from delete_plugins()
+			// -- a read-only mount, missing filesystem credentials -- must not turn that into a 500
+			// and leave the user watching a spinner on a migration that has finished.
+			try {
+				self::cleanup_instamigrate();
+			} catch ( \Throwable $e ) {
+				Helper::add_error_log( 'InstaMigrate cleanup after terminal poll failed: ' . $e->getMessage() );
+			}
 		}
 
 		wp_send_json_success(
