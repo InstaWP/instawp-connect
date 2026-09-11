@@ -43,8 +43,13 @@ class InstaWP_Sync_Plugin_Theme {
 	 *
 	 * Anything in these directories that does NOT match carries a guessable name from an
 	 * earlier version and is the exposure being remediated.
+	 *
+	 * The leading separator is optional because a slug that sanitizes to empty leaves the
+	 * random part alone. Note wp_generate_password() is pluggable and its result passes
+	 * through the `random_password` filter, so a site overriding either with non-alphanumeric
+	 * output would make a fresh copy fail this test and be purged as legacy.
 	 */
-	const ZIP_UNGUESSABLE_PATTERN = '/-[A-Za-z0-9]{32}\.zip$/';
+	const ZIP_UNGUESSABLE_PATTERN = '/(^|-)[A-Za-z0-9]{32}\.zip$/';
 
 	/**
 	 * Bumped whenever the one-time purge below needs to run again on existing sites.
@@ -1141,18 +1146,38 @@ class InstaWP_Sync_Plugin_Theme {
 			return false;
 		}
 
-		// Convert URL to path
-		// The URL format is: content_url()/instawpbackups/plugins/filename.zip or content_url()/instawpbackups/themes/filename.zip
-		$content_url = content_url();
-		if ( strpos( $zip_url, $content_url ) === 0 ) {
-			$relative_path = str_replace( $content_url, '', $zip_url );
-			// Normalize path separators
-			$relative_path = str_replace( '/', DIRECTORY_SEPARATOR, $relative_path );
-			$zip_path = WP_CONTENT_DIR . $relative_path;
-			return file_exists( $zip_path ) && is_file( $zip_path );
+		// Convert URL to path, comparing on the PATH only.
+		//
+		// Comparing the absolute URLs would be wrong: content_url() is
+		// set_url_scheme( WP_CONTENT_URL ) with no explicit scheme, and set_url_scheme()
+		// rewrites the scheme from is_ssl() on the CURRENT request. So a URL recorded over
+		// https fails an absolute prefix test in any http context — WP-CLI cron invoked
+		// without --url (which is the DISABLE_WP_CRON population this feature's sweeps were
+		// added for), a site that has since moved http→https, or a loopback behind
+		// proxy-terminated TLS. The file would be reported missing while sitting on disk,
+		// which would make prune_missing_zip_records() discard the whole record set — and
+		// purge_stale_zip_copies() treats an unrecorded copy as residue, so the next sweep
+		// would delete live copies whose events are still pending and retire those events
+		// permanently. The path is scheme- and host-independent, and is the same join
+		// recorded_zip_basenames() uses.
+		$url_path     = wp_parse_url( $zip_url, PHP_URL_PATH );
+		$content_path = wp_parse_url( content_url(), PHP_URL_PATH );
+
+		if ( empty( $url_path ) ) {
+			return false;
 		}
 
-		return false;
+		$content_path = is_string( $content_path ) ? untrailingslashit( $content_path ) : '';
+
+		if ( '' !== $content_path && strpos( $url_path, $content_path . '/' ) !== 0 ) {
+			return false;
+		}
+
+		$relative_path = substr( $url_path, strlen( $content_path ) );
+		$relative_path = str_replace( '/', DIRECTORY_SEPARATOR, $relative_path );
+		$zip_path      = WP_CONTENT_DIR . $relative_path;
+
+		return file_exists( $zip_path ) && is_file( $zip_path );
 	}
 
 	/**
@@ -1319,6 +1344,23 @@ class InstaWP_Sync_Plugin_Theme {
 	 * @return void
 	 */
 	public function purge_stale_zip_copies() {
+		// Both sweeps sit on instawp_clean_migrate_files at the same priority and this one
+		// runs first, so an uncaught throw here would abort the rest of the chain — taking
+		// purge_guessable_zip_copies_once() with it on exactly the sites where its admin_init
+		// leg never fires, i.e. the ones nobody logs into.
+		try {
+			$this->sweep_stale_zip_copies();
+		} catch ( \Throwable $th ) {
+			Helper::add_error_log( array( 'title' => 'instawp: purge_stale_zip_copies failed' ), $th );
+		}
+	}
+
+	/**
+	 * The age-based sweep itself. See purge_stale_zip_copies() for why it is wrapped.
+	 *
+	 * @return void
+	 */
+	private function sweep_stale_zip_copies() {
 		if ( ! defined( 'INSTAWP_BACKUP_DIR' ) ) {
 			return;
 		}
@@ -1378,10 +1420,22 @@ class InstaWP_Sync_Plugin_Theme {
 			}
 
 			$remaining = false;
+			$recorded  = $this->recorded_zip_basenames();
+			$pending   = 0;
 
 			foreach ( $this->zip_copies() as $zip_file ) {
-				if ( preg_match( self::ZIP_UNGUESSABLE_PATTERN, basename( $zip_file ) ) ) {
+				$name = basename( $zip_file );
+
+				if ( preg_match( self::ZIP_UNGUESSABLE_PATTERN, $name ) ) {
 					continue;
+				}
+
+				// A legacy copy can still be recorded, i.e. its sync event has not completed.
+				// Purging it ends that sync rather than delaying it (see ZIP_MAX_LIFETIME), and
+				// the exposure wins — but the user's next sync then fails at the destination
+				// with nothing to explain it, so the count is logged for support.
+				if ( isset( $recorded[ $name ] ) ) {
+					$pending++;
 				}
 
 				$this->delete_zip_path( $zip_file );
@@ -1391,13 +1445,23 @@ class InstaWP_Sync_Plugin_Theme {
 				}
 			}
 
+			if ( $pending > 0 ) {
+				Helper::add_error_log( array(
+					'title'   => 'instawp: purged predictably-named sync copies with a pending event',
+					'message' => 'Those plugins/themes must be re-uploaded on the source to sync again.',
+					'count'   => $pending,
+				) );
+			}
+
 			$this->prune_missing_zip_records();
 
 			// Recorded only once nothing guessable is left, so a transient permission problem
 			// is retried on a later request instead of latching the site as remediated. Same
 			// reasoning as the directory guard in InstaWP_Hooks::protect_backups_dir().
 			if ( ! $remaining ) {
-				Option::update_option( 'instawp_sync_zip_purged', self::ZIP_PURGE_VERSION );
+				// Autoloaded: this is read on every admin_init once latched, and a
+				// non-autoloaded read is a query per request on a site with no object cache.
+				Option::update_option( 'instawp_sync_zip_purged', self::ZIP_PURGE_VERSION, true );
 			}
 		} catch ( \Throwable $th ) {
 			// Runs on admin_init; a filesystem edge case must never fatal the request. The

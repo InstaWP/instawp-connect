@@ -112,7 +112,7 @@ Lifecycle:
 | Written | On `upgrader_source_selection`, with a record in the `instawp_sync_custom_zip_urls` option. Any previous copy for the same slug is deleted. |
 | Consumed | The destination downloads it; on `instawp_sync_event_completed` the source deletes the copy and drops its record. Covers plugin **and** theme events. |
 | Backstop | `purge_stale_zip_copies()` on the daily `instawp_clean_migrate_files` action. **Unrecorded** copies go after `ZIP_RETENTION` (24h) — nothing holds their URL, so they can never be consumed. **Recorded** copies survive until `ZIP_MAX_LIFETIME` (30 days), because their event may still be pending. |
-| Remediation | `purge_guessable_zip_copies_once()` removes any copy whose name is *not* in the random format, once per site, on `admin_init` and on the daily action. Not age-based: a guessable name is the exposure, so it goes on sight. |
+| Remediation | `purge_guessable_zip_copies_once()` removes any copy whose name is *not* in the random format, once per site, on `admin_init` and on the daily action. Not age-based: a guessable name is the exposure, so it goes on sight — **including a legacy copy whose event is still pending, which ends that one sync** (the count is logged so support can explain it; the user re-uploads that plugin on the source). |
 
 The record doubles as the pending marker — a copy is recorded from the moment it is written until
 its event completes — so no query against the events table is needed to tell a live copy from
