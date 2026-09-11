@@ -350,14 +350,6 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 	function instawp_reset_running_migration( $reset_type = 'soft', $abort_forcefully = false, $clear_events = false, $disconnect_connect = false ) {
 		global $wpdb;
 
-		/*
-		 * NO gate on the function, deliberately. Eleven callers reach it; ten are a user action
-		 * (disconnect, ?clear=all, WP-CLI), connection-loss recovery (heartbeat 404, origin invalid),
-		 * or client-app instructing us to reset -- and in the recovery cases the connect is already
-		 * gone, so a check that needed client-app could never succeed and a gate here refused them
-		 * forever. Everything V3 below runs for every caller exactly as it always has. The V4 record
-		 * is the one thing guarded, further down, and only that.
-		 */
 		$migration_details = Option::get_option( 'instawp_migration_details' );
 		$migrate_id        = Helper::get_args_option( 'migrate_id', $migration_details );
 		$migrate_key       = Helper::get_args_option( 'migrate_key', $migration_details );
@@ -366,24 +358,15 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 		delete_option( 'instawp_migration_details' );
 
 		/*
-		 * The V4 run record -- GUARDED, unlike everything else in this function.
+		 * The V4 run record too, or "start over" cannot reach a V4 run at all.
 		 *
-		 * This function is reached by the daily housekeeping job whenever no V3 migration is in
-		 * flight, which is the whole of every V4 run. An unconditional delete here wiped the record of
-		 * a migration client-app still reported as live. So the V4 record goes through the V4 class's
-		 * own retirement: refused while the record says the run is live and under 48h; otherwise the
-		 * run is cancelled if we never saw it end, the agent plugin removed, and only then -- once
-		 * the plugin is confirmed gone, so a failed delete stays retryable -- the record deleted.
-		 *
-		 * A live V4 run therefore survives every reset, including a user's "start over": their route
-		 * to stop a live run is the Cancel button, which cancels at client-app first. And nothing V3
-		 * above or below is affected by the answer.
+		 * A V4 run that never receives a terminal status keeps resumable_run() answering yes for the
+		 * whole RESUME_WINDOW: every wp-admin load forces the wizard to screen 5, hides the screen
+		 * buttons and Abort, and start_run() refuses to begin another. Without this line the ONLY
+		 * thing that cleared the option was uninstall.php -- so a customer whose client-app went
+		 * quiet mid-run had no way out of the staging screen short of removing the plugin.
 		 */
-		if ( class_exists( 'InstaWP_Staging_V4' ) ) {
-			InstaWP_Staging_V4::retire_run();
-		} else {
-			delete_option( 'instawp_staging_v4_details' );
-		}
+		delete_option( 'instawp_staging_v4_details' );
 
 		// Explicitly delete the options file for this migration. The option was already
 		// deleted above, so instawp_is_options_file_protected() will no longer guard it.

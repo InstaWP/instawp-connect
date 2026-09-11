@@ -5,7 +5,6 @@
 /node_modules
 /build
 /doc
-/tests
 
 .distignore
 .gitignore
@@ -16,6 +15,5 @@ composer.lock
 package.json
 package-lock.json
 phpcs.xml
-phpunit.xml
 README.md
 CLAUDE.md

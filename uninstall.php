@@ -72,6 +72,8 @@ delete_option( 'instawp_api_heartbeat' );
 delete_option( 'instawp_rm_file_manager' );
 delete_option( 'instawp_migration_details' );
 delete_option( 'instawp_staging_v4_details' );
+delete_option( 'instawp_instamigrate_orphaned' );
+delete_option( 'instawp_instamigrate_orphan_logged' );
 delete_option( 'instawp_rm_database_manager' );
 delete_option( 'instawp_rm_install_plugin_theme' );
 delete_option( 'instawp_rm_config_management' );

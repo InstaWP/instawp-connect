@@ -226,80 +226,22 @@ this feature that fails invisibly.
 `vendor/instawp/connect-helpers/` with whatever upstream `main` holds, and no test notices. Any change
 made to the vendored copy must be merged upstream before release, or it disappears.
 
-## The run record, and how instamigrate comes off again
+## Failure handling
 
-One option, `instawp_staging_v4_details`, holds the whole lifecycle of a run -- from before
-instamigrate is installed to after it is removed:
+If client-app cannot be reached *after* `instamigrate` has been installed, the run records
+`instawp_instamigrate_orphaned` and logs through `Helper::add_error_log()`.
 
-| field | written by | when |
-|---|---|---|
-| `status` | every transition below | see the vocabulary |
-| `installing_at` | `provision_instamigrate()` | before the install is attempted |
-| `installed_at` | `provision_instamigrate()` | once the plugin file is on the site (decided from the site, not the installer's return value) |
-| `uuid`, `started_at` | `remember_run()` | after `live-import/{uuid}/start` succeeds |
-| `agent_url` | the poll | first time client-app reports one |
-| `finished_at` | the poll, the push, or Cancel | on a terminal status |
-| `instamigrate_removed_at` | `cleanup_instamigrate()` | on confirmed removal |
+The flag is set at the point of a REAL install (skipped when instamigrate was already active, so we
+never claim responsibility for a plugin we did not install) and cleared by `remember_run()` once a
+migration references it. Setting it where the obligation is *incurred*, rather than at each site
+where it might be discharged, is deliberate: an earlier revision marked it at three individual
+failure sites and missed the two early returns in `provision_instamigrate()` — which are exactly the
+"installed, but no migration" case.
 
-**Status vocabulary.** Three of our own before client-app has anything to say, then client-app's
-status verbatim:
-
-```
-installing -> installed -> started -> <migrating | blocked | ...> -> completed | failed
-```
-
-**The record is kept current by three channels** that exist for other reasons: the 3s poll
-(`staging_status()`, which fetches the status to draw the screen), client-app's terminal push
-(`v1/migration-finished`, uuid-guarded, the only channel that reaches a site whose tab is closed),
-and the user's own Cancel.
-
-**Every cleanup decision reads the record and nothing else.** `cleanup_allowed()`:
-
-- a V3 migration in flight -> no
-- no record -> yes (nothing to protect)
-- record terminal -> yes
-- not terminal, under `CLEANUP_DEADLINE` (48h) -> no
-- 48h or older, whatever the status -> yes, forced
-
-No request is made to client-app to decide. Every earlier design asked at decision time, and every
-failure came from that question being unanswerable at the wrong moment -- a revoked token, a deleted
-connect, an outage -- and "unknown" either deleting a live run's agent or locking a site out of
-cleaning up at all. Read locally, staleness can only *delay* a cleanup; it cannot cause a premature
-one.
-
-The 48h anchor is `started_at`, else `installed_at`, else `installing_at`; a record with no usable
-timestamp fails closed. On the forced path a best-effort `migrations/{uuid}/cancel` goes out first,
-so the agent is told to stop before the plugin is pulled from under it -- the one outbound request
-the cleanup ever makes.
-
-**Nobody calls cleanup after writing. The record's own option hooks do.** The class registers
-static handlers on `add_option_`, `update_option_` and `delete_option_` for `instawp_staging_v4_details`.
-A write that makes the record terminal, or a delete, removes the plugin; any other write does
-nothing. So the poll, the push, Cancel and every reset path just write what they know -- the
-plugin's presence follows the record. (WordPress fires `update_option_*` only on a real change, so a
-poll re-writing the same status is free.)
-
-The one thing a hook cannot see is time. `retire_run()` is the clock-driven path: when
-`cleanup_allowed()` says yes it cancels the run if we never saw it end, removes the plugin, and --
-only once the plugin is confirmed gone, so a failed delete stays retryable -- deletes the record.
-It is called from admin_init (for an admin holding `delete_plugins`), and from inside
-`instawp_reset_running_migration()` in place of the unconditional `delete_option` the V4 record
-used to get there. The hook reactor deliberately does NOT apply the deadline: an old run's status
-write must not force the plugin off without the cancel that only `retire_run()` sends.
-
-**The V3 flow is untouched.** `InstaWP::clean_migrate_files()` -- the daily housekeeping job -- still
-tests V3's `migrate_id`/`migrate_key` inline and resets whenever no V3 migration is in flight,
-exactly as before V4 existed. The V4 guard lives inside the reset, on the V4 record alone: every V3
-thing the reset does still happens for every one of its eleven callers; only the V4 record is
-refused while its run is live. So a live V4 run survives every reset, including a user's "start
-over" -- their route to stop one is the Cancel button, which cancels at client-app first.
-
-The user's Cancel is deliberately not gated -- the confirmation box is the decision.
-
-**"Installed, run never started"** is not a separate flag any more: it is a record at
-`STATUS_INSTALLED` with no uuid, retired by the same deadline. It is announced once through
-`Helper::add_error_log()` at the point the run gives up, and the once-only latch survives a retry
-against the same outstanding install.
+⚠ **This is a breadcrumb, not a rollback.** Nothing reads the option and nothing uninstalls
+instamigrate, so the plugin does stay on the customer's site. A lingering value means precisely "we
+installed this and the run never started". Real cleanup — an admin notice, or deactivate-and-delete
+once the flag is stale — is a separate change and is not implemented.
 
 ## Return shapes — the trap worth knowing
 

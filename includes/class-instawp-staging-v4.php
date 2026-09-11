@@ -27,13 +27,7 @@ defined( 'ABSPATH' ) || exit;
 class InstaWP_Staging_V4 {
 
 	/**
-	 * Option holding the last V4 staging run -- its WHOLE lifecycle, from before instamigrate is
-	 * installed to after it is removed: status, installing_at, installed_at, uuid, started_at,
-	 * agent_url, finished_at, instamigrate_removed_at.
-	 *
-	 * The single source of truth for every cleanup decision (cleanup_allowed()). Written by
-	 * provision_instamigrate(), remember_run(), the poll, the REST push and Cancel; never by an
-	 * outbound request made for the purpose of deciding.
+	 * Option holding the last V4 staging run (uuid, start time, agent URL, finish time).
 	 *
 	 * READ BACK ON PAGE LOAD by resumable_run(): part-create.php stamps a class from it, and
 	 * scripts.js re-enters the watcher. Closing the tab therefore no longer loses the live view,
@@ -77,24 +71,22 @@ class InstaWP_Staging_V4 {
 	const CLEANUP_DEADLINE = 48 * HOUR_IN_SECONDS;
 
 	/**
-	 * Our own lifecycle statuses, written before client-app has anything to say.
+	 * How often an admin page load may ask client-app whether the run has finished.
 	 *
-	 * After the run starts the record carries client-app's status VERBATIM (migrating, blocked,
-	 * completed, failed ...), written by whichever channel learns it -- the poll, the push, Cancel.
-	 * These three cover the stretch before that: instamigrate is being put on the site, is on the
-	 * site, and the run has been handed to client-app.
+	 * admin_init fires on EVERY wp-admin request, so without a throttle a busy dashboard would call
+	 * client-app dozens of times a minute for a run whose answer changes once.
 	 */
-	const STATUS_INSTALLING = 'installing';
-	const STATUS_INSTALLED  = 'installed';
-	const STATUS_STARTED    = 'started';
+	const STATUS_CHECK_INTERVAL = 6 * HOUR_IN_SECONDS;
+
+	const ORPHAN_OPTION = 'instawp_instamigrate_orphaned';
 
 	/**
-	 * Statuses after which nothing on the source is needed.
+	 * The orphan above has already been written to the error log once.
 	 *
-	 * The ONLY place this list lives. It used to be written out inline at three sites, and a list
-	 * copied three times is a list that will one day be edited in two of them.
+	 * Separate from ORPHAN_OPTION on purpose: the flag is the durable record and must survive, while
+	 * this only stops the same outstanding install being announced once per attempt.
 	 */
-	const TERMINAL_STATUSES = array( 'completed', 'failed' );
+	const ORPHAN_LOGGED_OPTION = 'instawp_instamigrate_orphan_logged';
 
 	/**
 	 * InstaWP_Staging_V4 constructor.
@@ -103,21 +95,6 @@ class InstaWP_Staging_V4 {
 		add_action( 'wp_ajax_instawp_staging_status_v4', array( $this, 'staging_status' ) );
 		add_action( 'wp_ajax_instawp_staging_cancel_v4', array( $this, 'staging_cancel' ) );
 		add_action( 'admin_init', array( $this, 'maybe_cleanup_instamigrate' ) );
-
-		/*
-		 * THE PLUGIN'S PRESENCE FOLLOWS THE RECORD.
-		 *
-		 * Nobody calls cleanup after writing the record; the record's own option hooks do. A writer
-		 * -- the poll, client-app's push, the user's Cancel, a reset -- just writes what it knows,
-		 * and on_record_changed() decides once, from the new value, whether instamigrate may go.
-		 * That is the whole reason there is one rule and not one call site per writer.
-		 *
-		 * Static callables on purpose: WordPress deduplicates a hook on its callable, so however
-		 * many times this class is constructed there is exactly one handler.
-		 */
-		add_action( 'add_option_' . self::DETAILS_OPTION, array( __CLASS__, 'on_record_added' ), 10, 2 );
-		add_action( 'update_option_' . self::DETAILS_OPTION, array( __CLASS__, 'on_record_updated' ), 10, 2 );
-		add_action( 'delete_option_' . self::DETAILS_OPTION, array( __CLASS__, 'on_record_deleted' ) );
 	}
 
 	/**
@@ -175,8 +152,8 @@ class InstaWP_Staging_V4 {
 			);
 		}
 
-		// The run is terminal now. Record it; the record's update hook removes the agent.
-		self::record_update( array( 'status' => 'failed', 'finished_at' => time() ) );
+		// The run is terminal now, so its instamigrate is serving nothing.
+		self::cleanup_instamigrate();
 
 		// No payload. The caller does not branch on this -- the watcher is already polling and owns
 		// what the screen shows, so anything returned here would be a second source of truth for a
@@ -187,11 +164,14 @@ class InstaWP_Staging_V4 {
 	/**
 	 * admin_init: retire instamigrate once its migration can no longer use it.
 	 *
-	 * One question, answered from the run record alone -- see cleanup_allowed(). NO request to
-	 * client-app is made here. This runs on EVERY wp-admin request, and a decision that depended on
-	 * client-app answering at that exact moment was the cause of every earlier failure in this area:
-	 * a revoked token, a deleted connect or a brief outage each read as "unknown", and unknown either
-	 * deleted a live run's agent or locked a site out of cleaning up at all.
+	 * Two arms, cheapest first, because this runs on EVERY wp-admin request:
+	 *
+	 *   past CLEANUP_DEADLINE  -> cancel the run and delete, WITHOUT asking client-app. Past two days
+	 *                             the status cannot change the outcome, so spending an HTTP call to
+	 *                             reach the same answer is waste.
+	 *   past STATUS_CHECK_INTERVAL -> ask client-app. Terminal, delete. Anything else -- including an
+	 *                             error or no reply -- leave it and look again later. Nothing is
+	 *                             deleted on a guess.
 	 *
 	 * Gated on delete_plugins rather than manage_options: this ends in delete_plugins(), and the two
 	 * are held by different people on multisite. It is also how WP routes DISALLOW_FILE_MODS, which
@@ -201,118 +181,132 @@ class InstaWP_Staging_V4 {
 		/*
 		 * NOTHING escapes this method.
 		 *
-		 * It is on admin_init, so it runs on EVERY wp-admin request -- and it reaches into the
-		 * filesystem (delete_plugins). A throw would be a white screen on every admin page, for a
-		 * background tidy-up the admin did not ask for and cannot see. Failing quietly and trying
-		 * again on the next load is always the better trade here.
+		 * It is on admin_init, so it runs on EVERY wp-admin request -- and it reaches out over HTTP
+		 * (Curl::do_curl) and into the filesystem (delete_plugins). A throw from either would be a
+		 * white screen on every admin page, for a background tidy-up the admin did not ask for and
+		 * cannot see. Failing quietly and trying again in six hours is always the better trade here.
 		 *
 		 * Throwable, not Exception: a TypeError or a missing-function Error out of WordPress internals
 		 * is exactly the class of failure that would otherwise take the dashboard down.
 		 */
 		try {
-			if ( ! is_user_logged_in() || ! current_user_can( 'delete_plugins' ) ) {
-				return;
-			}
-
-			self::retire_run();
+			$this->run_cleanup_check();
 		} catch ( \Throwable $e ) {
 			Helper::add_error_log( 'InstaMigrate cleanup check failed: ' . $e->getMessage() );
 		}
 	}
 
 	/**
-	 * React to the record changing. The ONE place instamigrate is removed in response to an event.
-	 *
-	 * Fired by WordPress on add_option / update_option / delete_option of DETAILS_OPTION -- and only
-	 * on a real change, since update_option() does nothing for an equal value. Reacts to an ENDING:
-	 * the record now says terminal, or the record is gone. Anything else, nothing happens.
-	 *
-	 * Deliberately NOT cleanup_allowed(): that rule includes the 48h deadline, and the deadline is
-	 * the clock's business, not an event's. A status write landing on a run that happens to be old
-	 * must not force the plugin off without the cancel that retire_run() sends first -- so the
-	 * deadline is answered only there, on a schedule, and here only endings count.
-	 *
-	 * Re-entrant by construction: cleanup_instamigrate() stamps instamigrate_removed_at back onto
-	 * the record, which fires this again. The guard makes that second firing a no-op rather than a
-	 * second delete attempt.
-	 *
-	 * @param array $record The record as it now is; empty when deleted.
+	 * The body of the admin_init check. See maybe_cleanup_instamigrate() for why it is wrapped.
 	 */
-	private static function on_record_changed( $record ) {
-		static $reacting = false;
-
-		if ( $reacting ) {
+	private function run_cleanup_check() {
+		if ( ! is_user_logged_in() || ! current_user_can( 'delete_plugins' ) ) {
 			return;
 		}
 
-		$reacting = true;
+		$details = (array) Option::get_option( self::DETAILS_OPTION );
+		$uuid    = Helper::get_args_option( 'uuid', $details, '' );
 
-		try {
-			$record = is_array( $record ) ? $record : array();
+		if ( empty( $uuid ) ) {
+			/*
+			 * No run, but we may still have installed instamigrate for one that never started.
+			 *
+			 * remember_run() only fires after live-import/start succeeds, and every arm below is
+			 * gated on that uuid -- so a staging-init that 404s or is refused left the plugin
+			 * installed and ACTIVE with no path out at all. ORPHAN_OPTION is exactly that record:
+			 * set on a real install, cleared once a migration references it, so a lingering value
+			 * means "we installed this and the run never started".
+			 *
+			 * Same deadline as a live run rather than a second number. There is no migration to
+			 * protect here, so it could be shorter -- but a user whose first attempt failed often
+			 * retries within minutes, and provision_instamigrate() would then reinstall what we had
+			 * just removed.
+			 */
+			$orphaned_at = (int) Option::get_option( self::ORPHAN_OPTION, 0 );
 
-			if ( empty( $record ) || self::record_is_terminal( $record ) ) {
-				self::cleanup_instamigrate();
+			if ( $orphaned_at > 0 && ( time() - $orphaned_at ) > self::CLEANUP_DEADLINE ) {
+				/*
+				 * Gated on the RESULT. cleanup_instamigrate() returns false when delete_plugins() is
+				 * unavailable, throws, or hands back a WP_Error -- a read-only mount, DISALLOW_FILE_MODS,
+				 * no filesystem credentials. Clearing the flag regardless destroyed the only record
+				 * that we installed it, so nothing ever retried and instamigrate stayed on a
+				 * customer's production site for good. The uuid arm already gets this right:
+				 * instamigrate_removed_at is written only on confirmed removal.
+				 */
+				if ( self::cleanup_instamigrate() ) {
+					Option::delete_option( self::ORPHAN_OPTION );
+					Option::delete_option( self::ORPHAN_LOGGED_OPTION );
+				}
 			}
-		} catch ( \Throwable $e ) {
-			Helper::add_error_log( 'InstaMigrate cleanup on record change failed: ' . $e->getMessage() );
-		} finally {
-			$reacting = false;
-		}
-	}
 
-	/** add_option_{option}: ( $option, $value ). */
-	public static function on_record_added( $option, $value ) {
-		self::on_record_changed( $value );
-	}
-
-	/** update_option_{option}: ( $old_value, $value, $option ). */
-	public static function on_record_updated( $old_value, $value ) {
-		self::on_record_changed( $value );
-	}
-
-	/** delete_option_{option}: ( $option ). Nothing left to protect. */
-	public static function on_record_deleted() {
-		self::on_record_changed( array() );
-	}
-
-	/**
-	 * The TIME-driven retirement: admin_init and the daily job.
-	 *
-	 * The hooks above react to the record changing, but a run that goes quiet writes nothing, so
-	 * the 48h backstop needs something on a clock to look. This is it. When the record allows
-	 * cleanup it cancels the run if we never saw it end, removes the plugin, and -- only once the
-	 * plugin is confirmed gone, so a failed delete stays retryable on the next load -- deletes the
-	 * record. The delete then fires on_record_deleted(), which finds nothing left to do.
-	 *
-	 * The cancel is the ONLY outbound request the cleanup ever makes, and only on the forced path:
-	 * cancelling tells the agent to stop, and deleting first would leave it working against a
-	 * plugin that is no longer there. A 422 means client-app already considers the run terminal,
-	 * which is the same situation.
-	 *
-	 * @return bool true when the site is clean -- no plugin, no record -- false when left alone.
-	 */
-	public static function retire_run() {
-		$record = self::read_record();
-
-		if ( ! self::cleanup_allowed( $record ) ) {
-			return false;
+			return;
 		}
 
-		$uuid = (string) Helper::get_args_option( 'uuid', $record, '' );
+		// Already removed, so neither arm has anything to do. Checked before the deadlines because
+		// the run record now OUTLIVES the cleanup -- it is kept for the watcher and the resume -- so
+		// without this every admin page load would re-run the 6h status call forever.
+		if ( ! empty( Helper::get_args_option( 'instamigrate_removed_at', $details, 0 ) ) ) {
+			return;
+		}
 
-		if ( '' !== $uuid && ! self::record_is_terminal( $record ) ) {
+		$started_at = (int) Helper::get_args_option( 'started_at', $details, 0 );
+
+		/*
+		 * A missing or zero start time fails CLOSED -- it is not evidence the run is old, and treating
+		 * it as epoch would make every such run instantly past the deadline and delete on the next
+		 * admin load. resumable_run() takes the same position on the same field.
+		 */
+		if ( $started_at <= 0 ) {
+			return;
+		}
+
+		$age = time() - $started_at;
+
+		if ( $age > self::CLEANUP_DEADLINE ) {
+			/*
+			 * Cancel BEFORE deleting: cancelling tells the agent to stop, and deleting first would
+			 * leave it working against a plugin that is no longer there.
+			 *
+			 * A 422 here is not a failure. It means client-app already considers the run terminal and
+			 * we were simply never told -- which is the same situation, so the cleanup proceeds. Only
+			 * the deletion is unconditional; the cancel is best-effort.
+			 */
 			Curl::do_curl( 'migrations/' . $uuid . '/cancel' );
+
+			self::cleanup_instamigrate();
+
+			return;
 		}
 
-		if ( ! self::cleanup_instamigrate() ) {
-			return false;
+		$last_checked = (int) Helper::get_args_option( 'cleanup_checked_at', $details, 0 );
+
+		if ( ( time() - $last_checked ) < self::STATUS_CHECK_INTERVAL ) {
+			return;
 		}
 
-		if ( ! empty( $record ) ) {
-			Option::delete_option( self::DETAILS_OPTION );
+		/*
+		 * Stamped BEFORE the call, not after.
+		 *
+		 * The request below can be slow or fail outright, and a stamp written afterwards is never
+		 * reached on those paths -- so every subsequent admin page load would re-fire it. Throttling
+		 * on the ATTEMPT is what makes this once per six hours rather than once per request whenever
+		 * client-app is unwell.
+		 */
+		$details['cleanup_checked_at'] = time();
+
+		Option::update_option( self::DETAILS_OPTION, $details, false );
+
+		$response = Curl::do_curl( 'migrations/' . $uuid . '/status', array(), array(), 'GET' );
+
+		if ( empty( $response['success'] ) ) {
+			return;
 		}
 
-		return true;
+		$status = Helper::get_args_option( 'status', Helper::get_args_option( 'data', $response, array() ), '' );
+
+		if ( in_array( $status, array( 'completed', 'failed' ), true ) ) {
+			self::cleanup_instamigrate();
+		}
 	}
 
 	/**
@@ -484,166 +478,6 @@ class InstaWP_Staging_V4 {
 	}
 
 	/**
-	 * Is this a status after which the source may be cleaned up?
-	 *
-	 * @param string $status A status as reported by client-app.
-	 *
-	 * @return bool
-	 */
-	public static function is_terminal_status( $status ) {
-		return in_array( (string) $status, self::TERMINAL_STATUSES, true );
-	}
-
-	/**
-	 * May instamigrate and the run record be cleaned up right now? LOCAL read only.
-	 *
-	 *   a V3 migration in flight      -> no  (different engine, same site, still a live migration)
-	 *   no record at all              -> yes (nothing to protect)
-	 *   record says terminal          -> yes
-	 *   not terminal, under 48h old   -> no
-	 *   anything 48h or older         -> yes, FORCED -- the bounded backstop for a run whose end
-	 *                                    we never saw
-	 *
-	 * No request to client-app, by design. The record is kept current by the channels that exist
-	 * anyway -- the 3s poll, client-app's terminal push, the user's Cancel -- and a decision made
-	 * from it can only ever be LATE, never early: staleness delays a cleanup, it cannot cause a
-	 * premature one. Every earlier design asked client-app at decision time, and every failure came
-	 * from that question being unanswerable at the wrong moment.
-	 *
-	 * @param array|null $details The record, or null to read it.
-	 *
-	 * @return bool
-	 */
-	public static function cleanup_allowed( $details = null ) {
-		try {
-			if ( self::v3_run_in_flight() ) {
-				return false;
-			}
-
-			if ( null === $details ) {
-				$details = self::read_record();
-			}
-
-			if ( empty( $details ) ) {
-				return true;
-			}
-
-			if ( self::record_is_terminal( $details ) ) {
-				return true;
-			}
-
-			return self::record_is_past_deadline( $details );
-		} catch ( \Throwable $e ) {
-			Helper::add_error_log( 'Could not decide whether cleanup is allowed: ' . $e->getMessage() );
-
-			return false;
-		}
-	}
-
-	/**
-	 * Does the record itself say the run is over?
-	 *
-	 * Three signals, any one sufficient. `status` is the one this design writes; finished_at and
-	 * instamigrate_removed_at are accepted too so a record written by an earlier plugin version --
-	 * which stamped those but carried no status -- still reads as ended after upgrade.
-	 */
-	private static function record_is_terminal( array $details ) {
-		return self::is_terminal_status( Helper::get_args_option( 'status', $details, '' ) )
-			|| ! empty( Helper::get_args_option( 'finished_at', $details, 0 ) )
-			|| ! empty( Helper::get_args_option( 'instamigrate_removed_at', $details, 0 ) );
-	}
-
-	/**
-	 * Is the record older than CLEANUP_DEADLINE?
-	 *
-	 * Anchored on the run's start when it started, otherwise on the install -- the point at which
-	 * we took responsibility for instamigrate being on the site. A record with no usable timestamp
-	 * fails CLOSED: it is not evidence the run is old, and reading it as epoch would force-delete
-	 * on the next admin load.
-	 */
-	private static function record_is_past_deadline( array $details ) {
-		$anchor = (int) Helper::get_args_option( 'started_at', $details, 0 );
-
-		if ( $anchor <= 0 ) {
-			$anchor = (int) Helper::get_args_option( 'installed_at', $details, 0 );
-		}
-
-		if ( $anchor <= 0 ) {
-			$anchor = (int) Helper::get_args_option( 'installing_at', $details, 0 );
-		}
-
-		return $anchor > 0 && ( time() - $anchor ) > self::CLEANUP_DEADLINE;
-	}
-
-	/**
-	 * Record a terminal status reported from outside the poll -- client-app's push.
-	 *
-	 * Public because the REST handler needs it; narrow because that is all it needs. Only a status
-	 * cleanup_allowed() will read as terminal is accepted, so no caller can use this to move a
-	 * record anywhere but "ended".
-	 *
-	 * @param string $status A terminal status.
-	 */
-	public static function record_terminal( $status ) {
-		if ( ! self::is_terminal_status( $status ) ) {
-			return;
-		}
-
-		$details = self::read_record();
-		$fields  = array( 'status' => (string) $status );
-
-		if ( empty( Helper::get_args_option( 'finished_at', $details, 0 ) ) ) {
-			$fields['finished_at'] = time();
-		}
-
-		self::record_update( $fields );
-	}
-
-	/**
-	 * The run record, always as an array.
-	 *
-	 * NOT `(array) Option::get_option( ... )`: a missing option comes back as false, and
-	 * `(array) false` is `array( false )` -- one element, so empty() is false and every "no record"
-	 * branch is skipped. Read with an array default and refuse anything that is not one.
-	 *
-	 * @return array
-	 */
-	private static function read_record() {
-		$details = Option::get_option( self::DETAILS_OPTION, array() );
-
-		return is_array( $details ) ? $details : array();
-	}
-
-	/**
-	 * Merge fields into the run record. The one writer every lifecycle transition goes through.
-	 *
-	 * Merges rather than replaces so a transition never drops what an earlier one recorded -- the
-	 * poll writing a status must not lose installing_at, and remember_run() writing the uuid must
-	 * not lose installed_at, because the deadline is anchored on those.
-	 *
-	 * @param array $fields Fields to set.
-	 */
-	private static function record_update( array $fields ) {
-		Option::update_option( self::DETAILS_OPTION, array_merge( self::read_record(), $fields ), false );
-	}
-
-	/**
-	 * Is a V3 migration in flight on this site?
-	 *
-	 * The identifiers are the signal, not a status: V3 writes migrate_id and migrate_key when a run
-	 * starts and instawp_reset_running_migration() clears the whole record when it ends, so their
-	 * presence means live. Both engines are answered by cleanup_allowed(), which asks this first.
-	 *
-	 * @return bool
-	 */
-	private static function v3_run_in_flight() {
-		$details = (array) Option::get_option( 'instawp_migration_details', array() );
-
-		return '' !== (string) Helper::get_args_option( 'migrate_id', $details, '' )
-			|| '' !== (string) Helper::get_args_option( 'migrate_key', $details, '' );
-	}
-
-	/**
 	 * Record that instamigrate is gone, so the deadline arms stop looking at this run.
 	 *
 	 * A flag on the run rather than deleting the run: the watcher, resumable_run() and the status
@@ -749,16 +583,9 @@ class InstaWP_Staging_V4 {
 		// each time.
 		$agent_url = esc_url_raw( $agent_url );
 
-		$status  = (string) Helper::get_args_option( 'status', $data, '' );
+		$status  = Helper::get_args_option( 'status', $data, '' );
 		$details = (array) $details;
 		$dirty   = false;
-
-		// The poll is the record's main source of truth after the run starts: client-app's status,
-		// verbatim, every 3s. cleanup_allowed() reads THIS rather than asking client-app itself.
-		if ( '' !== $status && $status !== (string) Helper::get_args_option( 'status', $details, '' ) ) {
-			$details['status'] = $status;
-			$dirty             = true;
-		}
 
 		if ( ! empty( $agent_url ) && $agent_url !== Helper::get_args_option( 'agent_url', $details, '' ) ) {
 			$details['agent_url'] = $agent_url;
@@ -774,7 +601,7 @@ class InstaWP_Staging_V4 {
 		 * saw finish. The window then does what it is actually for: retiring runs whose outcome we
 		 * never observed because the tab was closed first.
 		 */
-		if ( self::is_terminal_status( $status ) && empty( $details['finished_at'] ) ) {
+		if ( in_array( $status, array( 'completed', 'failed' ), true ) && empty( $details['finished_at'] ) ) {
 			$details['finished_at'] = time();
 			$dirty                  = true;
 		}
@@ -783,9 +610,23 @@ class InstaWP_Staging_V4 {
 			Option::update_option( self::DETAILS_OPTION, $details, false );
 		}
 
-		// No cleanup call here. The status just written above is what retires the agent -- the
-		// record's update hook reacts to a terminal value the moment update_option() commits it,
-		// before this response is even built. The poll's job is to keep the record current.
+		/*
+		 * Retire the agent here too -- this is the one path that fires while the user is WATCHING.
+		 *
+		 * client-app pushes v1/migration-finished on every terminal outcome, but that is an outbound
+		 * call to a customer's site and it can simply not arrive. Without this, a failed push left
+		 * instamigrate installed and active on the source for up to STATUS_CHECK_INTERVAL, and only
+		 * then if an admin holding delete_plugins happened to load wp-admin.
+		 *
+		 * AFTER the option write, so finished_at is persisted even when the delete fails, and gated
+		 * on the same terminal check rather than on $dirty -- a second poll arriving after the first
+		 * already stamped it is not dirty, and would otherwise skip the cleanup entirely.
+		 * cleanup_instamigrate() is idempotent: it returns early once the files are gone.
+		 */
+		if ( in_array( $status, array( 'completed', 'failed' ), true ) ) {
+			self::cleanup_instamigrate();
+		}
+
 		wp_send_json_success(
 			array(
 				'uuid'      => $uuid,
@@ -1186,59 +1027,32 @@ class InstaWP_Staging_V4 {
 		}
 
 		/*
-		 * A NEW record, written before anything is put on the site.
-		 *
-		 * This is the start of a lifecycle: start_run() has already refused to reach here while a
-		 * previous run is resumable, so whatever record exists is finished or expired and is replaced
-		 * rather than merged. installing_at is the earliest timestamp the deadline can anchor on --
-		 * if the install itself hangs, that is still "we took responsibility at this moment".
-		 */
-		$fresh = array(
-			'status'        => self::STATUS_INSTALLING,
-			'installing_at' => time(),
-		);
-
-		if ( $pre_existing ) {
-			// Same install still outstanding from a previous attempt: its "announced once" latch is
-			// carried over, so a user retrying five times is told about the orphan once, not five
-			// times. Everything else about the old record is deliberately dropped.
-			$latch = Helper::get_args_option( 'orphan_logged_at', self::read_record(), 0 );
-
-			if ( ! empty( $latch ) ) {
-				$fresh['orphan_logged_at'] = $latch;
-			}
-		}
-
-		Option::update_option( self::DETAILS_OPTION, $fresh, false );
-
-		/*
 		 * Safe to call unconditionally now: if we activated above, is_plugin_active() is true and
 		 * installInstaMigrate() skips the Installer entirely, so it cannot reach overwrite_package.
 		 */
 		$installed = Helper::installInstaMigrate();
 
 		/*
-		 * INSTALLED is decided from the SITE, not from the return value, and BEFORE the success check.
+		 * MARK BEFORE THE SUCCESS CHECK, and decide from the SITE not from the return value.
 		 *
 		 * installInstaMigrate() reports success=false in a case where the plugin IS installed and
 		 * activated: the installer succeeds, but `class_exists('\InstaMigrate')` /
 		 * INSTA_MIGRATE_OPTION_KEY are not yet defined in the same request, so it returns
 		 * 'After install INSTA_MIGRATE_OPTION_KEY not defined.' (connect-helpers Helper.php:219-224).
 		 * That is the most likely first-click outcome, and it is exactly "we installed it and the
-		 * migration never started" -- the case the deadline exists for. Recording it after the
-		 * success check skipped it, which is the same defect this was moved here to fix once already.
+		 * migration never started" — the case the flag exists for. Marking after the success check
+		 * skipped it, which is the same defect this guard was moved here to fix once already.
 		 *
-		 * Presence, not activation: an install whose activate_plugin() then failed leaves the files
-		 * on the customer's site with no active_plugins entry -- files we put there, that nothing
-		 * started, and that an activation-based check would miss.
+		 * class_exists() cannot be the signal for the same reason it fails above. active_plugins is
+		 * read from the DB and does not depend on what this request has loaded.
+		 *
+		 * And marked on PRESENCE, not on activation: an install whose activate_plugin() then failed
+		 * leaves the files on the customer's site with no active_plugins entry — which is exactly
+		 * "we put files there and nothing started", the case the flag exists for, and the one an
+		 * activation-based check misses.
 		 */
-		if ( file_exists( $plugin_file ) ) {
-			self::record_update(
-				array(
-					'status'       => self::STATUS_INSTALLED,
-					'installed_at' => time(),
-				)
-			);
+		if ( ! $pre_existing && file_exists( $plugin_file ) ) {
+			self::mark_instamigrate_orphaned();
 		}
 
 		if ( empty( $installed['success'] ) ) {
@@ -1379,16 +1193,44 @@ class InstaWP_Staging_V4 {
 	 * @return void
 	 */
 	private static function remember_run( $uuid ) {
-		// MERGED into the record provision_instamigrate() began, never a fresh write: installing_at
-		// and installed_at must survive, because the deadline anchors on them when a run has no
-		// started_at. STATUS_STARTED lasts until the first poll replaces it with client-app's own.
-		self::record_update(
+		// The migration exists, so the install is accounted for — clear both the flag and the
+		// once-only log latch, so a genuinely new orphan later on is reported again.
+		Option::delete_option( self::ORPHAN_OPTION );
+		Option::delete_option( self::ORPHAN_LOGGED_OPTION );
+
+		Option::update_option(
+			self::DETAILS_OPTION,
 			array(
 				'uuid'       => $uuid,
 				'started_at' => time(),
-				'status'     => self::STATUS_STARTED,
-			)
+			),
+			false
 		);
+	}
+
+	/**
+	 * Record that WE installed instamigrate, pending a migration that references it.
+	 *
+	 * Set on a real install, cleared by remember_run() once a migration references it, so a
+	 * lingering value means exactly "we installed this and the run never started".
+	 *
+	 * READ by maybe_cleanup_instamigrate(), which removes the plugin once the flag is older than
+	 * CLEANUP_DEADLINE. It was a diagnostic breadcrumb until then -- a staging-init that failed left
+	 * instamigrate installed and active with no path out, because every other cleanup arm is gated
+	 * on a run uuid that a failed init never produced.
+	 *
+	 * @return void
+	 */
+	private static function mark_instamigrate_orphaned() {
+		/*
+		 * NO LOG LINE HERE. This is called on the SUCCESS path, right after a real install and
+		 * before the migration reference exists, so a message reading "the migration did not start"
+		 * fired on every healthy first run — permanently, into a 150-entry ring the debug-info
+		 * endpoint hands back verbatim to customers — while the actual failures logged nothing.
+		 * The signal was exactly inverted. Setting the flag is the bookkeeping; ANNOUNCING an
+		 * orphan is a different event and belongs where the run actually gives up.
+		 */
+		Option::update_option( self::ORPHAN_OPTION, time(), false );
 	}
 
 	/**
@@ -1413,23 +1255,24 @@ class InstaWP_Staging_V4 {
 			$reason = is_scalar( $reason ) ? (string) $reason : 'unspecified';
 		}
 
-		$details = self::read_record();
-
-		if ( empty( Helper::get_args_option( 'installed_at', $details, 0 ) ) ) {
-			// We did not put it there, so it is not ours to report.
+		if ( empty( Option::get_option( self::ORPHAN_OPTION ) ) ) {
+			// We did not install it, so it is not ours to report.
 			return;
 		}
 
-		if ( ! empty( Helper::get_args_option( 'orphan_logged_at', $details, 0 ) ) ) {
-			// Already announced for this install. Says it once, not once per attempt.
+		if ( ! empty( Option::get_option( self::ORPHAN_LOGGED_OPTION ) ) ) {
+			// Already announced for this outstanding install. Says it once, not once per attempt.
 			return;
 		}
 
 		Helper::add_error_log( 'V4 staging: instamigrate installed but the migration did not start (' . $reason . ')' );
 
-		// Suppress the re-logging only. The record stays at STATUS_INSTALLED with its timestamps, so
-		// the deadline still retires the plugin; a user who retries within minutes gets it reused.
-		self::record_update( array( 'orphan_logged_at' => time() ) );
+		/*
+		 * Suppress the re-logging, never the flag. Nothing uninstalls instamigrate, so after a
+		 * failure the site IS still orphaned and the flag must survive to say so — remember_run()
+		 * is the only place it is cleared.
+		 */
+		Option::update_option( self::ORPHAN_LOGGED_OPTION, time(), false );
 	}
 }
 
