@@ -117,7 +117,10 @@ class InstaWP_Staging_V4 {
 		 */
 		add_action( 'add_option_' . self::DETAILS_OPTION, array( __CLASS__, 'on_record_added' ), 10, 2 );
 		add_action( 'update_option_' . self::DETAILS_OPTION, array( __CLASS__, 'on_record_updated' ), 10, 2 );
-		add_action( 'delete_option_' . self::DETAILS_OPTION, array( __CLASS__, 'on_record_deleted' ) );
+		// The generic BEFORE-delete action, not delete_option_{name}: that one fires after the row
+		// is gone and passes only the name, and whether the plugin is ours to remove is written in
+		// the record. This one fires first, with the record still readable.
+		add_action( 'delete_option', array( __CLASS__, 'on_record_deleting' ) );
 	}
 
 	/**
@@ -165,9 +168,22 @@ class InstaWP_Staging_V4 {
 		$response = Curl::do_curl( 'migrations/' . $uuid . '/cancel' );
 		$code     = (int) Helper::get_args_option( 'code', $response, 0 );
 
-		// Anything other than success or an already-terminal 422 leaves the run alone: the migration is
-		// still live, and deleting instamigrate under it would break the run we failed to stop.
-		if ( empty( $response['success'] ) && 422 !== $code ) {
+		/*
+		 * Which failures still end the run from here:
+		 *
+		 *   422  client-app already considers it terminal -- same situation as success.
+		 *   401  our token is gone (disconnected, or the connect deleted in client-app).
+		 *   403  we are no longer allowed to act on it.
+		 *   404  client-app does not have this run.
+		 *
+		 * In all four, this site can no longer influence the migration and the user has confirmed
+		 * they want out. Refusing would lock them on the staging screen for RESUME_WINDOW with no
+		 * exit -- a reset no longer clears a live record, and the connect-gone cases are exactly
+		 * the ones where nothing else can succeed either. Everything else (a 5xx, no reply) is
+		 * transient: the migration is still live, and deleting instamigrate under it would break
+		 * the run we failed to stop, so the user is told and can try again.
+		 */
+		if ( empty( $response['success'] ) && ! in_array( $code, array( 401, 403, 404, 422 ), true ) ) {
 			wp_send_json_error(
 				array(
 					'message' => Helper::get_args_option( 'message', $response, esc_html__( 'Could not cancel the migration.', 'instawp-connect' ) ),
@@ -214,7 +230,28 @@ class InstaWP_Staging_V4 {
 				return;
 			}
 
-			self::retire_run();
+			$record = self::read_record();
+
+			if ( empty( $record ) ) {
+				return;
+			}
+
+			/*
+			 * Past the deadline, retire the run outright. Otherwise, on a terminal record, only RETRY
+			 * a plugin removal the hook may have failed -- and leave the record where it is.
+			 *
+			 * admin_init fires on admin-ajax.php too, BEFORE the ajax action runs. Deleting a
+			 * terminal record here would race the watcher: Cancel writes `failed`, the hook removes
+			 * the plugin, and 3s later the next poll's admin_init would delete the record before
+			 * staging_status() could read it -- "No staging migration in progress", which the JS
+			 * deliberately ignores, and the screen spins on "Cancelling..." forever. The record
+			 * outlives the terminal event for exactly that reason; the reset retires it later.
+			 */
+			if ( self::record_is_past_deadline( $record ) ) {
+				self::retire_run();
+			} elseif ( self::record_is_terminal( $record ) && empty( Helper::get_args_option( 'instamigrate_removed_at', $record, 0 ) ) ) {
+				self::cleanup_instamigrate();
+			}
 		} catch ( \Throwable $e ) {
 			Helper::add_error_log( 'InstaMigrate cleanup check failed: ' . $e->getMessage() );
 		}
@@ -270,9 +307,22 @@ class InstaWP_Staging_V4 {
 		self::on_record_changed( $value );
 	}
 
-	/** delete_option_{option}: ( $option ). Nothing left to protect. */
-	public static function on_record_deleted() {
-		self::on_record_changed( array() );
+	/**
+	 * delete_option (generic, fires BEFORE the delete): ( $option ).
+	 *
+	 * A record being deleted is a run being retired. The plugin goes with it -- but only if the
+	 * record says it was ours, which is why this reads it before it is gone.
+	 */
+	public static function on_record_deleting( $option ) {
+		if ( self::DETAILS_OPTION !== $option ) {
+			return;
+		}
+
+		$record = self::read_record();
+
+		if ( ! empty( $record ) && self::record_owns_plugin( $record ) ) {
+			self::on_record_changed( array() );
+		}
 	}
 
 	/**
@@ -294,6 +344,16 @@ class InstaWP_Staging_V4 {
 	public static function retire_run() {
 		$record = self::read_record();
 
+		/*
+		 * No record means no run of ours -- and NOT "a stray plugin to sweep". instamigrate is put on
+		 * sites by other flows too: client-app's hosted migration installs it over SSH, so does the
+		 * migration helper, and customers install it from wp.org. With no record we have no claim on
+		 * it, and every admin load deleting it would take a hosted migration's agent away mid-run.
+		 */
+		if ( empty( $record ) ) {
+			return true;
+		}
+
 		if ( ! self::cleanup_allowed( $record ) ) {
 			return false;
 		}
@@ -304,15 +364,27 @@ class InstaWP_Staging_V4 {
 			Curl::do_curl( 'migrations/' . $uuid . '/cancel' );
 		}
 
-		if ( ! self::cleanup_instamigrate() ) {
+		// The plugin is ours to remove when we started a run with it, or when we installed it for
+		// one that never started. A record from a run that reused the customer's own copy and never
+		// started leaves that copy alone.
+		if ( self::record_owns_plugin( $record ) && ! self::cleanup_instamigrate() ) {
 			return false;
 		}
 
-		if ( ! empty( $record ) ) {
-			Option::delete_option( self::DETAILS_OPTION );
-		}
+		Option::delete_option( self::DETAILS_OPTION );
 
 		return true;
+	}
+
+	/**
+	 * Does this record give us a claim on the instamigrate that is on the site?
+	 *
+	 * We started a run with it (uuid), or we put it there (installed_at -- stamped only on a real
+	 * install, never for a copy the customer already had).
+	 */
+	private static function record_owns_plugin( array $record ) {
+		return '' !== (string) Helper::get_args_option( 'uuid', $record, '' )
+			|| ! empty( Helper::get_args_option( 'installed_at', $record, 0 ) );
 	}
 
 	/**
@@ -780,7 +852,9 @@ class InstaWP_Staging_V4 {
 		}
 
 		if ( $dirty ) {
-			Option::update_option( self::DETAILS_OPTION, $details, false );
+			// MERGE, do not overwrite. $details was read at the top of this request; a push landing
+			// between that read and here would be wiped by writing the whole array back.
+			self::record_update( array_intersect_key( $details, array_flip( array( 'agent_url', 'status', 'finished_at' ) ) ) );
 		}
 
 		// No cleanup call here. The status just written above is what retires the agent -- the
@@ -1233,12 +1307,15 @@ class InstaWP_Staging_V4 {
 		 * started, and that an activation-based check would miss.
 		 */
 		if ( file_exists( $plugin_file ) ) {
-			self::record_update(
-				array(
-					'status'       => self::STATUS_INSTALLED,
-					'installed_at' => time(),
-				)
-			);
+			$fields = array( 'status' => self::STATUS_INSTALLED );
+
+			// installed_at is the claim "WE put this here". A copy the customer already had gets the
+			// status but not the claim, so an orphan log or a 48h orphan delete can never touch it.
+			if ( ! $pre_existing ) {
+				$fields['installed_at'] = time();
+			}
+
+			self::record_update( $fields );
 		}
 
 		if ( empty( $installed['success'] ) ) {

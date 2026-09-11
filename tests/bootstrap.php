@@ -178,6 +178,8 @@ namespace {
 			return false;
 		}
 
+		// As WordPress: the generic action BEFORE the row goes, then the specific one after.
+		do_action( 'delete_option', $key );
 		unset( IWP_Test_World::$options[ $key ] );
 		do_action( 'delete_option_' . $key, $key );
 
@@ -380,7 +382,8 @@ namespace {
 namespace InstaWP\Connect\Helpers {
 
 	class Option {
-		public static function get_option( $key, $default = false ) {
+		/** Default is array(), as in the real connect-helpers Option -- not WordPress's false. */
+		public static function get_option( $key, $default = array() ) {
 			return \get_option( $key, $default );
 		}
 
@@ -404,16 +407,21 @@ namespace InstaWP\Connect\Helpers {
 			\IWP_Test_World::$log[] = $payload;
 		}
 
-		/** The installer, faked: puts the file on the "site" unless told to fail. */
+		/**
+		 * The installer, faked. ALWAYS puts the file on the "site"; $install_succeeds controls only
+		 * what it REPORTS. That is the documented first-click case: the installer succeeds, but
+		 * INSTA_MIGRATE_OPTION_KEY is not defined in the same request, so it returns success=false
+		 * with the plugin sitting right there.
+		 */
 		public static function installInstaMigrate() {
 			\IWP_Test_World::$install_calls++;
 
-			if ( ! \IWP_Test_World::$install_succeeds ) {
-				return array( 'success' => false, 'message' => 'simulated install failure' );
-			}
-
 			if ( ! \IWP_Test_World::instamigrate_installed() ) {
 				\IWP_Test_World::install_instamigrate();
+			}
+
+			if ( ! \IWP_Test_World::$install_succeeds ) {
+				return array( 'success' => false, 'message' => 'After install INSTA_MIGRATE_OPTION_KEY not defined.' );
 			}
 
 			return array( 'success' => true );

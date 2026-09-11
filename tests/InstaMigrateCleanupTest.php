@@ -255,21 +255,45 @@ final class InstaMigrateCleanupTest extends TestCase {
 		// defined in the same request, so installInstaMigrate() returns success=false.
 		IWP_Test_World::$logged_in = true;
 		IWP_Test_World::$caps      = array( 'install_plugins' );
-		IWP_Test_World::$install_succeeds = false;
-		IWP_Test_World::install_instamigrate(); // files present regardless
+		IWP_Test_World::$install_succeeds = false; // the fake still places the file
 
 		$result = $this->provision();
 
+		$r = $this->record();
 		$this->assertInstanceOf( 'WP_Error', $result );
-		$this->assertSame( 'installed', $this->record()['status'], 'we put files there; the deadline must know' );
+		$this->assertSame( 'installed', $r['status'], 'we put files there; the deadline must know' );
+		$this->assertNotEmpty( $r['installed_at'], 'and the claim that they are OURS is recorded' );
 		$this->assertNotEmpty( IWP_Test_World::$log, 'and it is announced once' );
+	}
+
+	public function test_provision_never_claims_a_copy_the_customer_already_had() {
+		IWP_Test_World::$logged_in = true;
+		IWP_Test_World::$caps      = array( 'install_plugins' );
+		IWP_Test_World::install_instamigrate(); // theirs, before we ever ran
+		IWP_Test_World::$install_succeeds = false;
+
+		$this->provision();
+
+		$r = $this->record();
+		$this->assertSame( 'installed', $r['status'] );
+		$this->assertArrayNotHasKey( 'installed_at', $r, 'no claim on a plugin we did not install' );
+		$this->assertCount( 0, IWP_Test_World::$log, 'and no orphan announced for it' );
+	}
+
+	public function test_an_orphaned_run_on_the_customers_own_copy_leaves_it_alone_past_the_deadline() {
+		// status installed, no installed_at, no uuid: their plugin, our failed staging-init, 48h ago.
+		IWP_Test_World::$options[ InstaWP_Staging_V4::DETAILS_OPTION ] = array( 'status' => 'installed', 'installing_at' => time() - $this->past_deadline() );
+		IWP_Test_World::install_instamigrate();
+
+		$this->assertTrue( InstaWP_Staging_V4::retire_run(), 'the stale record is retired' );
+		$this->assertTrue( IWP_Test_World::instamigrate_installed(), 'but their plugin is not ours to remove' );
+		$this->assertSame( array(), $this->record() );
 	}
 
 	public function test_provision_announces_an_orphan_once_not_once_per_attempt() {
 		IWP_Test_World::$logged_in = true;
 		IWP_Test_World::$caps      = array( 'install_plugins' );
 		IWP_Test_World::$install_succeeds = false;
-		IWP_Test_World::install_instamigrate();
 
 		$this->provision();
 		$this->provision();
@@ -365,8 +389,7 @@ final class InstaMigrateCleanupTest extends TestCase {
 		new InstaWP_Staging_V4();
 		new InstaWP_Staging_V4();
 
-		foreach ( array( 'add_option_', 'update_option_', 'delete_option_' ) as $prefix ) {
-			$tag = $prefix . InstaWP_Staging_V4::DETAILS_OPTION;
+		foreach ( array( 'add_option_' . InstaWP_Staging_V4::DETAILS_OPTION, 'update_option_' . InstaWP_Staging_V4::DETAILS_OPTION, 'delete_option' ) as $tag ) {
 			$this->assertCount( 1, IWP_Test_World::$hooks[ $tag ] ?? array(), $tag . ': static callables deduplicate, however often the class is built' );
 		}
 	}
@@ -411,13 +434,32 @@ final class InstaMigrateCleanupTest extends TestCase {
 		$this->assertFalse( IWP_Test_World::instamigrate_installed() );
 	}
 
-	public function test_deleting_the_record_removes_the_plugin() {
+	public function test_deleting_the_record_of_our_run_removes_the_plugin() {
 		$this->store_run( 'migrating' );
 		IWP_Test_World::install_instamigrate();
 
 		delete_option( InstaWP_Staging_V4::DETAILS_OPTION );
 
-		$this->assertFalse( IWP_Test_World::instamigrate_installed(), 'no record, nothing to protect: the plugin follows the record' );
+		$this->assertFalse( IWP_Test_World::instamigrate_installed(), 'a run being retired takes its agent with it' );
+	}
+
+	public function test_deleting_a_record_that_never_owned_the_plugin_leaves_it() {
+		IWP_Test_World::$options[ InstaWP_Staging_V4::DETAILS_OPTION ] = array( 'status' => 'installed', 'installing_at' => time() - 60 );
+		IWP_Test_World::install_instamigrate();
+
+		delete_option( InstaWP_Staging_V4::DETAILS_OPTION );
+
+		$this->assertTrue( IWP_Test_World::instamigrate_installed(), 'the hook reads the record BEFORE it goes, and this one gave us no claim' );
+	}
+
+	public function test_deleting_a_different_option_does_nothing() {
+		$this->store_run( 'migrating' );
+		IWP_Test_World::install_instamigrate();
+
+		update_option( 'something_else', 1 );
+		delete_option( 'something_else' );
+
+		$this->assertTrue( IWP_Test_World::instamigrate_installed(), 'the generic delete_option action must be filtered by name' );
 	}
 
 	public function test_an_unchanged_write_fires_nothing() {
@@ -508,11 +550,14 @@ final class InstaMigrateCleanupTest extends TestCase {
 		$this->assertNotEmpty( $this->record(), 'deleting the record with the plugin still there would orphan it for good' );
 	}
 
-	public function test_retire_with_no_record_still_sweeps_a_stray_plugin() {
+	public function test_retire_with_no_record_touches_nothing() {
+		// instamigrate arrives on sites by other routes -- client-app's hosted migration installs it
+		// over SSH, the migration helper, the customer from wp.org. With no record we have no claim,
+		// and sweeping it would take a hosted migration's agent away mid-run.
 		IWP_Test_World::install_instamigrate();
 
 		$this->assertTrue( InstaWP_Staging_V4::retire_run() );
-		$this->assertFalse( IWP_Test_World::instamigrate_installed() );
+		$this->assertTrue( IWP_Test_World::instamigrate_installed(), 'not ours; not touched' );
 	}
 
 	// =============================================================================================
@@ -619,15 +664,39 @@ final class InstaMigrateCleanupTest extends TestCase {
 		$this->assertCount( 0, IWP_Test_World::$curl_calls, 'admin_init makes no request' );
 	}
 
-	public function test_admin_init_finishes_a_terminal_run_whose_delete_had_failed() {
+	public function test_admin_init_retries_the_plugin_on_a_terminal_run_but_keeps_the_record() {
 		$this->admin_with_delete_plugins();
 		$this->store_run( 'failed' );
 		IWP_Test_World::install_instamigrate();
 
 		$this->admin_init();
 
-		$this->assertFalse( IWP_Test_World::instamigrate_installed() );
-		$this->assertSame( array(), $this->record() );
+		$this->assertFalse( IWP_Test_World::instamigrate_installed(), 'the delete the hook may have failed is retried' );
+		$this->assertSame( 'failed', $this->record()['status'], 'but the record stays: the watcher still needs it' );
+	}
+
+	public function test_admin_init_never_deletes_a_terminal_record_out_from_under_the_watcher() {
+		// The race: admin_init fires on admin-ajax.php BEFORE the ajax action. Cancel writes
+		// `failed`; 3s later the poll arrives, admin_init runs first, and if it deleted the record
+		// staging_status() would find nothing and the screen would spin on "Cancelling..." forever.
+		$this->admin_with_delete_plugins();
+		$this->store_run( 'failed', 3, array( 'finished_at' => time() - 3, 'instamigrate_removed_at' => time() - 3 ) );
+		IWP_Test_World::client_app_reports( 'failed' );
+
+		$this->admin_init();          // the poll request's admin_init
+		$sent = $this->poll();        // then its ajax action
+
+		$this->assertTrue( $sent->success, 'the poll must still be able to report the ending' );
+		$this->assertSame( 'failed', $sent->payload['status'] );
+	}
+
+	public function test_admin_init_does_not_retry_a_removal_already_recorded() {
+		$this->admin_with_delete_plugins();
+		$this->store_run( 'completed', 600, array( 'instamigrate_removed_at' => time() - 60 ) );
+
+		$this->admin_init();
+
+		$this->assertCount( 0, IWP_Test_World::$deleted_plugins );
 	}
 
 	public function test_admin_init_forces_past_the_deadline_with_a_cancel_first() {
@@ -908,6 +977,28 @@ final class InstaMigrateCleanupTest extends TestCase {
 		$this->assertTrue( $sent->success );
 		$this->assertSame( 'failed', $this->record()['status'] );
 		$this->assertFalse( IWP_Test_World::instamigrate_installed() );
+	}
+
+	#[DataProvider( 'connect_gone_codes' )]
+	public function test_user_cancel_still_ends_the_run_when_client_app_no_longer_knows_it( $code ) {
+		// Token revoked, connect deleted, run not found: this site can no longer influence the
+		// migration, and the user has confirmed they want out. Refusing would lock them on the
+		// staging screen for RESUME_WINDOW with no exit -- a reset no longer clears a live record.
+		$this->store_run( 'migrating' );
+		IWP_Test_World::install_instamigrate();
+		IWP_Test_World::$curl_responder = function () use ( $code ) {
+			return array( 'success' => false, 'message' => 'refused', 'data' => array(), 'code' => $code );
+		};
+
+		$sent = $this->cancel();
+
+		$this->assertTrue( $sent->success );
+		$this->assertSame( 'failed', $this->record()['status'] );
+		$this->assertFalse( IWP_Test_World::instamigrate_installed() );
+	}
+
+	public static function connect_gone_codes() {
+		return array( array( 401 ), array( 403 ), array( 404 ) );
 	}
 
 	public function test_user_cancel_changes_nothing_when_the_cancel_itself_fails() {
