@@ -45,7 +45,9 @@ class InstaWP_Sync_Plugin_Theme {
 	 * earlier version and is the exposure being remediated.
 	 *
 	 * The leading separator is optional because a slug that sanitizes to empty leaves the
-	 * random part alone. Note wp_generate_password() is pluggable and its result passes
+	 * random part alone. Known and accepted gap: a legacy copy whose slug happens to be
+	 * exactly 32 alphanumerics with no hyphen reads as unguessable and survives the purge.
+	 * The age-based sweep still reaches it. Note wp_generate_password() is pluggable and its result passes
 	 * through the `random_password` filter, so a site overriding either with non-alphanumeric
 	 * output would make a fresh copy fail this test and be purged as legacy.
 	 */
@@ -1177,6 +1179,14 @@ class InstaWP_Sync_Plugin_Theme {
 		$relative_path = str_replace( '/', DIRECTORY_SEPARATOR, $relative_path );
 		$zip_path      = WP_CONTENT_DIR . $relative_path;
 
+		// Only ever answers for the backups tree. This is read-only and the URLs come from
+		// our own option, so there is no exploit path today — but the empty-$content_path
+		// branch otherwise accepts any path, and delete_zip_file() already contains itself
+		// the same way. Structural beats circumstantial.
+		if ( strpos( $zip_path, INSTAWP_BACKUP_DIR ) !== 0 ) {
+			return false;
+		}
+
 		return file_exists( $zip_path ) && is_file( $zip_path );
 	}
 
@@ -1421,7 +1431,7 @@ class InstaWP_Sync_Plugin_Theme {
 
 			$remaining = false;
 			$recorded  = $this->recorded_zip_basenames();
-			$pending   = 0;
+			$purged    = array();
 
 			foreach ( $this->zip_copies() as $zip_file ) {
 				$name = basename( $zip_file );
@@ -1430,26 +1440,36 @@ class InstaWP_Sync_Plugin_Theme {
 					continue;
 				}
 
-				// A legacy copy can still be recorded, i.e. its sync event has not completed.
-				// Purging it ends that sync rather than delaying it (see ZIP_MAX_LIFETIME), and
-				// the exposure wins — but the user's next sync then fails at the destination
-				// with nothing to explain it, so the count is logged for support.
-				if ( isset( $recorded[ $name ] ) ) {
-					$pending++;
-				}
-
 				$this->delete_zip_path( $zip_file );
 
 				if ( file_exists( $zip_file ) ) {
 					$remaining = true;
+					continue;
+				}
+
+				// A legacy copy can still be recorded, i.e. its sync event may not have
+				// completed. Purging it ends that sync rather than delaying it (see
+				// ZIP_MAX_LIFETIME) and the exposure wins — but the user's next sync then
+				// fails at the destination with nothing to explain it, so it is logged.
+				//
+				// Counted only AFTER a confirmed delete. Counting before would both report
+				// files that are still on disk and, on the permission failure $remaining
+				// exists for, write one log entry per admin request for ever, because the
+				// latch below is deliberately not set so the purge retries.
+				if ( isset( $recorded[ $name ] ) ) {
+					$purged[] = $name;
 				}
 			}
 
-			if ( $pending > 0 ) {
+			if ( ! empty( $purged ) ) {
+				// The filename IS the slug — that is the defect being remediated — so naming
+				// them exposes nothing the site owner does not already have, and without them
+				// the entry cannot tell support which plugin to have the user re-upload.
 				Helper::add_error_log( array(
-					'title'   => 'instawp: purged predictably-named sync copies with a pending event',
-					'message' => 'Those plugins/themes must be re-uploaded on the source to sync again.',
-					'count'   => $pending,
+					'title'   => 'instawp: purged predictably-named sync copies that still held a record',
+					'message' => 'Any of these whose sync had not yet completed must be re-uploaded on the source to sync again.',
+					'count'   => count( $purged ),
+					'files'   => implode( ', ', $purged ),
 				) );
 			}
 
