@@ -18,13 +18,38 @@ class InstaWP_Sync_Plugin_Theme {
 	const ZIP_STORAGE_OPTION = 'instawp_sync_custom_zip_urls';
 
 	/**
-	 * How long a copied zip may survive on disk before the daily sweep removes it.
+	 * How long an UNRECORDED copy may survive on disk before the daily sweep removes it.
 	 *
-	 * The copy only has to outlive the sync event that carries its URL, so this is a
-	 * backstop for the cases where that event never reaches `completed` — no destination
-	 * connected, sync paused, or a failed push. Filterable via `instawp_sync_zip_retention`.
+	 * A copy with no record behind it can never be consumed — nothing holds its URL — so it
+	 * is pure residue. Filterable via `instawp_sync_zip_retention`.
 	 */
 	const ZIP_RETENTION = 86400; // DAY_IN_SECONDS
+
+	/**
+	 * Hard cap on a RECORDED copy, whose sync event may still be pending.
+	 *
+	 * Deliberately far longer than ZIP_RETENTION. A pending event whose zip has been swept
+	 * is not merely delayed: `generate_pending_sync_events()` excludes any event that has an
+	 * `event_sites` row with status completed/invalid/error, and a 404 on the copy retires
+	 * the event as `error` — so the destination never receives that plugin and the user has
+	 * to re-upload it on the source. Sweeping a live copy therefore costs the sync
+	 * permanently, which is why the guessable-name purge below is keyed on the NAME rather
+	 * than on age. Filterable via `instawp_sync_zip_max_lifetime`.
+	 */
+	const ZIP_MAX_LIFETIME = 2592000; // 30 * DAY_IN_SECONDS
+
+	/**
+	 * A copy written by this version: `<slug>-<32 alphanumerics>.zip`.
+	 *
+	 * Anything in these directories that does NOT match carries a guessable name from an
+	 * earlier version and is the exposure being remediated.
+	 */
+	const ZIP_UNGUESSABLE_PATTERN = '/-[A-Za-z0-9]{32}\.zip$/';
+
+	/**
+	 * Bumped whenever the one-time purge below needs to run again on existing sites.
+	 */
+	const ZIP_PURGE_VERSION = '1';
 
 	public function __construct() {
 		// Plugin and Theme actions
@@ -45,6 +70,13 @@ class InstaWP_Sync_Plugin_Theme {
 		// Backstop for copies whose event never completes. Rides the existing daily
 		// Action Scheduler action rather than registering a second recurring action.
 		add_action( 'instawp_clean_migrate_files', array( $this, 'purge_stale_zip_copies' ) );
+
+		// Remediation for copies ALREADY on disk under a guessable name. Deliberately on
+		// both hooks: admin_init reaches a site whose cron is disabled (DISABLE_WP_CRON with
+		// no system cron, where the daily action never runs at all), and the daily action
+		// reaches a site nobody logs into. An option flag keeps it to one probe per site.
+		add_action( 'admin_init', array( $this, 'purge_guessable_zip_copies_once' ) );
+		add_action( 'instawp_clean_migrate_files', array( $this, 'purge_guessable_zip_copies_once' ) );
 	}
 
 	/**
@@ -1267,8 +1299,9 @@ class InstaWP_Sync_Plugin_Theme {
 
 		$this->delete_zip_file( $records[ $type ][ $slug ]['zip_url'] );
 
-		// delete_zip_file() only prunes the record when it actually removed a file, so the
-		// record is dropped here too — the copy it names is superseded either way.
+		// delete_zip_file() prunes the record only on a truthy return from wp_delete_file(),
+		// which older WordPress does not give, so its pruning cannot be relied on. The record
+		// is dropped here unconditionally — the copy it names is superseded either way.
 		$this->remove_zip_record( $slug, $type );
 	}
 
@@ -1290,16 +1323,98 @@ class InstaWP_Sync_Plugin_Theme {
 			return;
 		}
 
-		$retention = (int) apply_filters( 'instawp_sync_zip_retention', self::ZIP_RETENTION );
+		$retention = $this->bounded_age( 'instawp_sync_zip_retention', self::ZIP_RETENTION );
+		$lifetime  = $this->bounded_age( 'instawp_sync_zip_max_lifetime', self::ZIP_MAX_LIFETIME );
 
-		// A non-positive retention would delete copies the moment they are written, which
-		// breaks sync rather than securing it.
-		if ( $retention < 1 ) {
-			$retention = self::ZIP_RETENTION;
+		// The record IS the pending marker: a copy is recorded from the moment it is written
+		// until the event that carries its URL completes (handle_completed_event) or is
+		// superseded (delete_recorded_zip). So a recorded copy may still be needed and gets
+		// the long cap, while an unrecorded one can never be consumed by anything and is
+		// residue. No query against the events table is needed to tell them apart.
+		$recorded = $this->recorded_zip_basenames();
+		$now      = time();
+
+		foreach ( $this->zip_copies() as $zip_file ) {
+			$modified = filemtime( $zip_file );
+
+			if ( false === $modified ) {
+				continue;
+			}
+
+			$age     = $now - $modified;
+			$max_age = isset( $recorded[ basename( $zip_file ) ] ) ? $lifetime : $retention;
+
+			if ( $age <= $max_age ) {
+				continue;
+			}
+
+			$this->delete_zip_path( $zip_file );
 		}
 
-		$cutoff  = time() - $retention;
-		$swept   = false;
+		// Unconditional: wp_delete_file() returns void on older WordPress, so nothing here
+		// can reliably report whether a file was removed. This is one option read.
+		$this->prune_missing_zip_records();
+	}
+
+	/**
+	 * Remove every copy whose filename is guessable, once per site.
+	 *
+	 * This is the remediation half, and it is deliberately NOT age-based: the exposure is
+	 * the predictable name, so a copy carrying one is removed on sight rather than after a
+	 * grace period. Copies written by this version are never touched, because their name
+	 * is not guessable and sweeping a live one would cost the sync permanently (see
+	 * ZIP_MAX_LIFETIME).
+	 *
+	 * @return void
+	 */
+	public function purge_guessable_zip_copies_once() {
+		try {
+			if ( Option::get_option( 'instawp_sync_zip_purged' ) === self::ZIP_PURGE_VERSION ) {
+				return;
+			}
+
+			if ( ! defined( 'INSTAWP_BACKUP_DIR' ) ) {
+				return;
+			}
+
+			$remaining = false;
+
+			foreach ( $this->zip_copies() as $zip_file ) {
+				if ( preg_match( self::ZIP_UNGUESSABLE_PATTERN, basename( $zip_file ) ) ) {
+					continue;
+				}
+
+				$this->delete_zip_path( $zip_file );
+
+				if ( file_exists( $zip_file ) ) {
+					$remaining = true;
+				}
+			}
+
+			$this->prune_missing_zip_records();
+
+			// Recorded only once nothing guessable is left, so a transient permission problem
+			// is retried on a later request instead of latching the site as remediated. Same
+			// reasoning as the directory guard in InstaWP_Hooks::protect_backups_dir().
+			if ( ! $remaining ) {
+				Option::update_option( 'instawp_sync_zip_purged', self::ZIP_PURGE_VERSION );
+			}
+		} catch ( \Throwable $th ) {
+			// Runs on admin_init; a filesystem edge case must never fatal the request. The
+			// flag is not recorded, so the purge is retried on a later request.
+			Helper::add_error_log( array( 'title' => 'instawp: purge_guessable_zip_copies_once failed' ), $th );
+		}
+	}
+
+	/**
+	 * Every copied zip on disk, across both sub-directories.
+	 *
+	 * Only `*.zip` is matched, so the index.php and .htaccess guards are never candidates.
+	 *
+	 * @return array
+	 */
+	private function zip_copies() {
+		$copies = array();
 
 		foreach ( array( 'plugins', 'themes' ) as $subdirectory ) {
 			$zip_files = glob( INSTAWP_BACKUP_DIR . $subdirectory . DIRECTORY_SEPARATOR . '*.zip' );
@@ -1309,25 +1424,88 @@ class InstaWP_Sync_Plugin_Theme {
 			}
 
 			foreach ( $zip_files as $zip_file ) {
-				if ( ! is_file( $zip_file ) ) {
-					continue;
-				}
-
-				$modified = filemtime( $zip_file );
-
-				if ( false === $modified || $modified > $cutoff ) {
-					continue;
-				}
-
-				if ( wp_delete_file( $zip_file ) ) {
-					$swept = true;
+				if ( is_file( $zip_file ) ) {
+					$copies[] = $zip_file;
 				}
 			}
 		}
 
-		if ( $swept ) {
-			$this->prune_missing_zip_records();
+		return $copies;
+	}
+
+	/**
+	 * Filenames of the copies currently named by a stored record, keyed by basename.
+	 *
+	 * Matched on basename rather than full path on purpose: the record holds a URL and the
+	 * sweep holds a glob() path, and reconciling those two into one comparable string
+	 * depends on WP_CONTENT_DIR and on separator handling. A basename needs neither. Names
+	 * carry 32 random characters so a collision across the two sub-directories is not a
+	 * practical concern, and the failure direction is safe either way — a mismatch keeps a
+	 * file longer, it never deletes a live one.
+	 *
+	 * @return array
+	 */
+	private function recorded_zip_basenames() {
+		$names = array();
+
+		foreach ( $this->get_zip_records() as $items ) {
+			if ( ! is_array( $items ) ) {
+				continue;
+			}
+
+			foreach ( $items as $data ) {
+				if ( empty( $data['zip_url'] ) ) {
+					continue;
+				}
+
+				$path = wp_parse_url( $data['zip_url'], PHP_URL_PATH );
+
+				if ( ! empty( $path ) ) {
+					$names[ basename( $path ) ] = true;
+				}
+			}
 		}
+
+		return $names;
+	}
+
+	/**
+	 * Delete one copied zip, refusing anything outside the backups directory.
+	 *
+	 * The sweeps deliberately do not route through delete_zip_file(), which is gated on
+	 * instawp_is_admin() — that requires is_admin() AND a logged-in user, neither of which
+	 * holds under Action Scheduler, so a gated sweep would be a silent no-op.
+	 *
+	 * @param string $zip_path
+	 *
+	 * @return void
+	 */
+	private function delete_zip_path( $zip_path ) {
+		$backup_dir = rtrim( str_replace( array( '/', '\\' ), DIRECTORY_SEPARATOR, INSTAWP_BACKUP_DIR ), DIRECTORY_SEPARATOR );
+		$normalized = str_replace( array( '/', '\\' ), DIRECTORY_SEPARATOR, $zip_path );
+
+		if ( strpos( $normalized, $backup_dir . DIRECTORY_SEPARATOR ) !== 0 ) {
+			return;
+		}
+
+		wp_delete_file( $zip_path );
+	}
+
+	/**
+	 * Read an age in seconds from a filter, falling back to the default when unusable.
+	 *
+	 * A non-positive value would delete copies the moment they are written, which breaks
+	 * sync rather than securing it.
+	 *
+	 * @param string $filter
+	 * @param int    $default
+	 *
+	 * @return int
+	 */
+	private function bounded_age( $filter, $default ) {
+		$value = (int) apply_filters( $filter, $default );
+
+		return $value > 0 ? $value : $default;
 	}
 
 	/**
@@ -1345,7 +1523,9 @@ class InstaWP_Sync_Plugin_Theme {
 			}
 
 			foreach ( $items as $slug => $data ) {
-				if ( empty( $data['zip_url'] ) || $this->verify_copied_zip_exists( $data['zip_url'] ) ) {
+				// A record with no URL names nothing and can never be resolved, so it is
+				// dropped alongside the ones whose file has gone.
+				if ( ! empty( $data['zip_url'] ) && $this->verify_copied_zip_exists( $data['zip_url'] ) ) {
 					continue;
 				}
 

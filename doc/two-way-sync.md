@@ -86,3 +86,40 @@ file to sit inside the uploads directory, and it only serves the extensions in i
 3. Events can be reviewed before syncing
 4. Sync processes events and pushes/pulls changes
 5. Media files downloaded as needed
+
+## Custom plugin and theme archives
+
+A plugin or theme installed from a **zip upload** does not exist on WordPress.org, so the
+destination cannot fetch it by slug. `InstaWP_Sync_Plugin_Theme::copy_uploaded_plugin_zip()`
+therefore copies the uploaded archive into `wp-content/instawpbackups/{plugins,themes}/` and puts
+its URL in the sync event as `zip_url`; the destination downloads that URL over HTTP and installs
+from it (`install_item()` / `update_item()` with `source = 'url'`).
+
+**The copy is web-reachable by design, so its name is the only thing protecting it.** The
+directory's `.htaccess` deliberately exempts `.zip` for exactly this reason, and on nginx-fronted
+hosting that file is not consulted for `.zip` at all. Each copy is therefore named
+`<slug>-<32 random alphanumerics>.zip`.
+
+> ⚠️ **Never give these copies a predictable name.** An earlier version named them `<slug>.zip`,
+> which meant anyone who knew a premium plugin's folder name could download the licensed archive
+> from any site that had synced it (FS#3467). Nothing in that directory guards them — the entropy
+> in the filename is the whole control.
+
+Lifecycle:
+
+| Stage | What happens |
+|---|---|
+| Written | On `upgrader_source_selection`, with a record in the `instawp_sync_custom_zip_urls` option. Any previous copy for the same slug is deleted. |
+| Consumed | The destination downloads it; on `instawp_sync_event_completed` the source deletes the copy and drops its record. Covers plugin **and** theme events. |
+| Backstop | `purge_stale_zip_copies()` on the daily `instawp_clean_migrate_files` action. **Unrecorded** copies go after `ZIP_RETENTION` (24h) — nothing holds their URL, so they can never be consumed. **Recorded** copies survive until `ZIP_MAX_LIFETIME` (30 days), because their event may still be pending. |
+| Remediation | `purge_guessable_zip_copies_once()` removes any copy whose name is *not* in the random format, once per site, on `admin_init` and on the daily action. Not age-based: a guessable name is the exposure, so it goes on sight. |
+
+The record doubles as the pending marker — a copy is recorded from the moment it is written until
+its event completes — so no query against the events table is needed to tell a live copy from
+residue.
+
+**Why a recorded copy gets a long window rather than a short one:** sweeping a copy whose event is
+still pending does not merely delay the sync, it ends it.
+`InstaWP_Sync_Ajax::generate_pending_sync_events()` excludes any event with an `event_sites` row in
+status `completed`/`invalid`/`error`, and a 404 on the copy retires the event as `error`. The
+destination then never receives that plugin and the user has to re-upload it on the source.
