@@ -10,9 +10,14 @@
  * learn the status (the poll, client-app's push, the user's Cancel), and every cleanup decision reads
  * the record and nothing else. Past 48h it is forced.
  *
- * Staleness can only delay a cleanup, never cause a premature one. That is what these tests pin:
- * the decision itself, the record's lifecycle, every call site, and the two paths that are
- * DELIBERATELY not gated -- the user's own confirmed Cancel, and the 48h backstop.
+ * Staleness can only delay a cleanup, never cause a premature one.
+ *
+ * And nobody CALLS cleanup after writing. The record's own option hooks react: a write that makes
+ * the record terminal, or a delete, removes the plugin. Writers just write. The one thing a hook
+ * cannot see is time, so admin_init and the daily job call retire_run() for the 48h backstop.
+ *
+ * That is what these tests pin: the decision, the hooks, the lifecycle, every writer, the clock, and
+ * the two paths DELIBERATELY not gated -- the user's own confirmed Cancel, and the 48h backstop.
  */
 
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -27,25 +32,35 @@ final class InstaMigrateCleanupTest extends TestCase {
 	}
 
 	/**
-	 * A stored run at a given status and age. The shape the lifecycle writes: installing_at and
-	 * installed_at from provision, uuid/started_at from remember_run, then whatever the case adds.
+	 * A stored run at a given status and age -- a PRECONDITION, so written straight into the option
+	 * store with no hooks. "The record already says X" is a state, not an event; the events are
+	 * what each test then triggers. (Writing through update_option() here would fire the record's
+	 * hooks at setup time and clean up before the test had begun.)
+	 *
+	 * The shape the lifecycle writes: installing_at and installed_at from provision, uuid/started_at
+	 * from remember_run, then whatever the case adds.
 	 */
 	private function store_run( $status, $age_seconds = 600, array $extra = array() ) {
 		$t = time() - $age_seconds;
 
-		update_option(
-			InstaWP_Staging_V4::DETAILS_OPTION,
-			array_merge(
-				array(
-					'status'        => $status,
-					'installing_at' => $t - 30,
-					'installed_at'  => $t - 20,
-					'uuid'          => self::UUID,
-					'started_at'    => $t,
-				),
-				$extra
+		IWP_Test_World::$options[ InstaWP_Staging_V4::DETAILS_OPTION ] = array_merge(
+			array(
+				'status'        => $status,
+				'installing_at' => $t - 30,
+				'installed_at'  => $t - 20,
+				'uuid'          => self::UUID,
+				'started_at'    => $t,
 			),
-			false
+			$extra
+		);
+	}
+
+	/** An orphaned install: instamigrate on the site, no run ever started. Silent, as above. */
+	private function store_orphan( $age_seconds ) {
+		IWP_Test_World::$options[ InstaWP_Staging_V4::DETAILS_OPTION ] = array(
+			'status'        => 'installed',
+			'installing_at' => time() - $age_seconds - 10,
+			'installed_at'  => time() - $age_seconds,
 		);
 	}
 
@@ -138,10 +153,10 @@ final class InstaMigrateCleanupTest extends TestCase {
 
 	public function test_a_record_from_an_older_plugin_version_still_reads_as_ended() {
 		// Earlier versions stamped finished_at / instamigrate_removed_at and carried no status.
-		update_option( InstaWP_Staging_V4::DETAILS_OPTION, array( 'uuid' => self::UUID, 'started_at' => time() - 600, 'finished_at' => time() - 60 ), false );
+		IWP_Test_World::$options[ InstaWP_Staging_V4::DETAILS_OPTION ] = array( 'uuid' => self::UUID, 'started_at' => time() - 600, 'finished_at' => time() - 60 );
 		$this->assertTrue( InstaWP_Staging_V4::cleanup_allowed(), 'finished_at alone must count' );
 
-		update_option( InstaWP_Staging_V4::DETAILS_OPTION, array( 'uuid' => self::UUID, 'started_at' => time() - 600, 'instamigrate_removed_at' => time() - 60 ), false );
+		IWP_Test_World::$options[ InstaWP_Staging_V4::DETAILS_OPTION ] = array( 'uuid' => self::UUID, 'started_at' => time() - 600, 'instamigrate_removed_at' => time() - 60 );
 		$this->assertTrue( InstaWP_Staging_V4::cleanup_allowed(), 'instamigrate_removed_at alone must count' );
 	}
 
@@ -150,29 +165,25 @@ final class InstaMigrateCleanupTest extends TestCase {
 	// ---------------------------------------------------------------------------------------------
 
 	public function test_deadline_anchors_on_the_install_when_the_run_never_started() {
-		update_option(
-			InstaWP_Staging_V4::DETAILS_OPTION,
-			array( 'status' => 'installed', 'installing_at' => time() - $this->past_deadline() - 10, 'installed_at' => time() - $this->past_deadline() ),
-			false
-		);
+		$this->store_orphan( $this->past_deadline() );
 
 		$this->assertTrue( InstaWP_Staging_V4::cleanup_allowed(), 'an install with no run is retired by the same deadline' );
 	}
 
 	public function test_deadline_anchors_on_installing_when_the_install_never_finished() {
-		update_option( InstaWP_Staging_V4::DETAILS_OPTION, array( 'status' => 'installing', 'installing_at' => time() - $this->past_deadline() ), false );
+		IWP_Test_World::$options[ InstaWP_Staging_V4::DETAILS_OPTION ] = array( 'status' => 'installing', 'installing_at' => time() - $this->past_deadline() );
 
 		$this->assertTrue( InstaWP_Staging_V4::cleanup_allowed() );
 	}
 
 	public function test_a_record_with_no_timestamp_fails_closed_rather_than_reading_as_ancient() {
-		update_option( InstaWP_Staging_V4::DETAILS_OPTION, array( 'status' => 'migrating', 'uuid' => self::UUID ), false );
+		IWP_Test_World::$options[ InstaWP_Staging_V4::DETAILS_OPTION ] = array( 'status' => 'migrating', 'uuid' => self::UUID );
 
 		$this->assertFalse( InstaWP_Staging_V4::cleanup_allowed(), 'no timestamp is not evidence of age' );
 	}
 
 	public function test_a_fresh_install_waits_out_the_deadline() {
-		update_option( InstaWP_Staging_V4::DETAILS_OPTION, array( 'status' => 'installed', 'installing_at' => time() - 90, 'installed_at' => time() - 60 ), false );
+		$this->store_orphan( 60 );
 
 		$this->assertFalse( InstaWP_Staging_V4::cleanup_allowed(), 'a user who retries within minutes would have it reinstalled' );
 	}
@@ -270,7 +281,7 @@ final class InstaMigrateCleanupTest extends TestCase {
 	}
 
 	public function test_remember_run_merges_into_the_record_and_marks_started() {
-		update_option( InstaWP_Staging_V4::DETAILS_OPTION, array( 'status' => 'installed', 'installing_at' => 100, 'installed_at' => 200 ), false );
+		IWP_Test_World::$options[ InstaWP_Staging_V4::DETAILS_OPTION ] = array( 'status' => 'installed', 'installing_at' => 100, 'installed_at' => 200 );
 
 		$m = new ReflectionMethod( 'InstaWP_Staging_V4', 'remember_run' );
 		$m->setAccessible( true );
@@ -347,51 +358,161 @@ final class InstaMigrateCleanupTest extends TestCase {
 	}
 
 	// =============================================================================================
-	// cleanup_if_allowed(): the one sequence every automatic path runs.
+	// THE HOOKS. The record's option hooks are the one place an EVENT removes the plugin.
 	// =============================================================================================
 
-	public function test_sequence_leaves_a_live_run_alone() {
+	public function test_the_class_registers_the_three_record_hooks_once() {
+		new InstaWP_Staging_V4();
+		new InstaWP_Staging_V4();
+
+		foreach ( array( 'add_option_', 'update_option_', 'delete_option_' ) as $prefix ) {
+			$tag = $prefix . InstaWP_Staging_V4::DETAILS_OPTION;
+			$this->assertCount( 1, IWP_Test_World::$hooks[ $tag ] ?? array(), $tag . ': static callables deduplicate, however often the class is built' );
+		}
+	}
+
+	public function test_a_write_that_makes_the_record_terminal_removes_the_plugin() {
 		$this->store_run( 'migrating' );
 		IWP_Test_World::install_instamigrate();
 
-		$this->assertFalse( InstaWP_Staging_V4::cleanup_if_allowed() );
-		$this->assertTrue( IWP_Test_World::instamigrate_installed() );
+		update_option( InstaWP_Staging_V4::DETAILS_OPTION, array_merge( $this->record(), array( 'status' => 'completed' ) ) );
+
+		$this->assertFalse( IWP_Test_World::instamigrate_installed(), 'the update hook is what retires the agent' );
+		$this->assertNotEmpty( $this->record()['instamigrate_removed_at'] );
 		$this->assertCount( 0, IWP_Test_World::$curl_calls );
 	}
 
-	public function test_sequence_removes_on_terminal_without_cancelling() {
-		$this->store_run( 'completed' );
+	public function test_a_write_that_leaves_the_record_live_removes_nothing() {
+		$this->store_run( 'started' );
 		IWP_Test_World::install_instamigrate();
 
-		$this->assertTrue( InstaWP_Staging_V4::cleanup_if_allowed() );
-		$this->assertFalse( IWP_Test_World::instamigrate_installed() );
-		$this->assertCount( 0, IWP_Test_World::curl_calls_to( '/cancel' ), 'a run that ended needs no cancelling' );
+		update_option( InstaWP_Staging_V4::DETAILS_OPTION, array_merge( $this->record(), array( 'status' => 'migrating' ) ) );
+
+		$this->assertTrue( IWP_Test_World::instamigrate_installed() );
 	}
 
-	public function test_sequence_cancels_first_when_forcing_a_run_never_seen_to_end() {
+	public function test_a_write_on_an_old_but_live_record_does_not_force_the_plugin_off() {
+		// The deadline belongs to the clock (retire_run), which cancels first. An event must not
+		// short-circuit that by force-removing without the cancel.
 		$this->store_run( 'migrating', $this->past_deadline() );
 		IWP_Test_World::install_instamigrate();
 
-		$this->assertTrue( InstaWP_Staging_V4::cleanup_if_allowed() );
-		$this->assertCount( 1, IWP_Test_World::curl_calls_to( 'migrations/' . self::UUID . '/cancel' ), 'tell the agent to stop before pulling the plugin out from under it' );
-		$this->assertCount( 0, IWP_Test_World::curl_calls_to( '/status' ), 'still never asks the status' );
+		update_option( InstaWP_Staging_V4::DETAILS_OPTION, array_merge( $this->record(), array( 'status' => 'blocked' ) ) );
+
+		$this->assertTrue( IWP_Test_World::instamigrate_installed(), 'events react to endings; the deadline is not an event' );
+	}
+
+	public function test_the_first_write_of_a_terminal_record_also_removes_the_plugin() {
+		IWP_Test_World::install_instamigrate();
+
+		update_option( InstaWP_Staging_V4::DETAILS_OPTION, array( 'status' => 'failed', 'uuid' => self::UUID, 'started_at' => time() - 60 ) );
+
+		$this->assertContains( 'add_option_' . InstaWP_Staging_V4::DETAILS_OPTION, IWP_Test_World::$fired, 'a first write is add_option, not update_option' );
 		$this->assertFalse( IWP_Test_World::instamigrate_installed() );
 	}
 
-	public function test_sequence_does_not_cancel_an_orphan_that_has_no_run() {
-		update_option( InstaWP_Staging_V4::DETAILS_OPTION, array( 'status' => 'installed', 'installing_at' => time() - $this->past_deadline(), 'installed_at' => time() - $this->past_deadline() ), false );
+	public function test_deleting_the_record_removes_the_plugin() {
+		$this->store_run( 'migrating' );
 		IWP_Test_World::install_instamigrate();
 
-		$this->assertTrue( InstaWP_Staging_V4::cleanup_if_allowed() );
+		delete_option( InstaWP_Staging_V4::DETAILS_OPTION );
+
+		$this->assertFalse( IWP_Test_World::instamigrate_installed(), 'no record, nothing to protect: the plugin follows the record' );
+	}
+
+	public function test_an_unchanged_write_fires_nothing() {
+		$this->store_run( 'completed' );
+		IWP_Test_World::install_instamigrate();
+
+		update_option( InstaWP_Staging_V4::DETAILS_OPTION, $this->record() );
+
+		$this->assertNotContains( 'update_option_' . InstaWP_Staging_V4::DETAILS_OPTION, IWP_Test_World::$fired );
+		$this->assertTrue( IWP_Test_World::instamigrate_installed(), 'WordPress does not fire on an equal value, so neither does the cleanup' );
+	}
+
+	public function test_the_reactor_does_not_re_enter_itself() {
+		// cleanup_instamigrate() stamps instamigrate_removed_at, which is itself a record write.
+		$this->store_run( 'migrating' );
+		IWP_Test_World::install_instamigrate();
+
+		update_option( InstaWP_Staging_V4::DETAILS_OPTION, array_merge( $this->record(), array( 'status' => 'completed' ) ) );
+
+		$this->assertCount( 1, IWP_Test_World::$deleted_plugins, 'one delete, however many times the record was written on the way' );
+	}
+
+	public function test_a_failed_delete_on_the_hook_leaves_the_record_retryable() {
+		$this->store_run( 'migrating' );
+		IWP_Test_World::install_instamigrate();
+		IWP_Test_World::$delete_result = new WP_Error( 'fs', 'read-only' );
+
+		update_option( InstaWP_Staging_V4::DETAILS_OPTION, array_merge( $this->record(), array( 'status' => 'completed' ) ) );
+
+		$this->assertTrue( IWP_Test_World::instamigrate_installed() );
+		$this->assertSame( 'completed', $this->record()['status'], 'the ending is recorded even though the delete failed' );
+		$this->assertArrayNotHasKey( 'instamigrate_removed_at', $this->record(), 'so the clock can retry it' );
+	}
+
+	// =============================================================================================
+	// THE CLOCK: retire_run(). What admin_init and the daily job call, because time is not an event.
+	// =============================================================================================
+
+	public function test_retire_leaves_a_live_run_alone() {
+		$this->store_run( 'migrating' );
+		IWP_Test_World::install_instamigrate();
+
+		$this->assertFalse( InstaWP_Staging_V4::retire_run() );
+		$this->assertTrue( IWP_Test_World::instamigrate_installed() );
+		$this->assertNotEmpty( $this->record() );
+		$this->assertCount( 0, IWP_Test_World::$curl_calls );
+	}
+
+	public function test_retire_removes_plugin_and_record_on_a_terminal_run_whose_delete_had_failed() {
+		// The retry path: the hook tried when the run ended, the filesystem refused, the record kept
+		// its terminal status. The next admin load finishes the job.
+		$this->store_run( 'completed' );
+		IWP_Test_World::install_instamigrate();
+
+		$this->assertTrue( InstaWP_Staging_V4::retire_run() );
+		$this->assertFalse( IWP_Test_World::instamigrate_installed() );
+		$this->assertSame( array(), $this->record(), 'the record goes only once the plugin is confirmed gone' );
+		$this->assertCount( 0, IWP_Test_World::curl_calls_to( '/cancel' ), 'a run that ended needs no cancelling' );
+	}
+
+	public function test_retire_forces_past_the_deadline_with_a_cancel_first() {
+		$this->store_run( 'migrating', $this->past_deadline() );
+		IWP_Test_World::install_instamigrate();
+
+		$this->assertTrue( InstaWP_Staging_V4::retire_run() );
+		$this->assertCount( 1, IWP_Test_World::curl_calls_to( 'migrations/' . self::UUID . '/cancel' ), 'tell the agent to stop before pulling the plugin out from under it' );
+		$this->assertCount( 0, IWP_Test_World::curl_calls_to( '/status' ), 'still never asks the status' );
+		$this->assertFalse( IWP_Test_World::instamigrate_installed() );
+		$this->assertSame( array(), $this->record() );
+	}
+
+	public function test_retire_does_not_cancel_an_orphan_that_has_no_run() {
+		$this->store_orphan( $this->past_deadline() );
+		IWP_Test_World::install_instamigrate();
+
+		$this->assertTrue( InstaWP_Staging_V4::retire_run() );
 		$this->assertCount( 0, IWP_Test_World::$curl_calls, 'no uuid, nothing to cancel' );
 		$this->assertFalse( IWP_Test_World::instamigrate_installed() );
 	}
 
-	public function test_sequence_is_a_no_op_once_removal_is_recorded() {
-		$this->store_run( 'completed', 600, array( 'instamigrate_removed_at' => time() - 60 ) );
+	public function test_retire_keeps_the_record_when_the_delete_fails() {
+		$this->store_run( 'completed' );
+		IWP_Test_World::install_instamigrate();
+		IWP_Test_World::$delete_result = new WP_Error( 'fs', 'read-only' );
 
-		$this->assertTrue( InstaWP_Staging_V4::cleanup_if_allowed() );
-		$this->assertCount( 0, IWP_Test_World::$deleted_plugins );
+		$this->assertFalse( InstaWP_Staging_V4::retire_run() );
+		$this->assertTrue( IWP_Test_World::instamigrate_installed() );
+		$this->assertNotEmpty( $this->record(), 'deleting the record with the plugin still there would orphan it for good' );
+	}
+
+	public function test_retire_with_no_record_still_sweeps_a_stray_plugin() {
+		IWP_Test_World::install_instamigrate();
+
+		$this->assertTrue( InstaWP_Staging_V4::retire_run() );
+		$this->assertFalse( IWP_Test_World::instamigrate_installed() );
 	}
 
 	// =============================================================================================
@@ -429,7 +550,7 @@ final class InstaMigrateCleanupTest extends TestCase {
 		$this->assertArrayNotHasKey( 'finished_at', $this->record() );
 	}
 
-	public function test_poll_removes_the_plugin_and_records_the_end_on_terminal() {
+	public function test_poll_records_the_end_and_the_hook_removes_the_plugin() {
 		$this->store_run( 'migrating' );
 		IWP_Test_World::install_instamigrate();
 		IWP_Test_World::client_app_reports( 'completed' );
@@ -498,7 +619,7 @@ final class InstaMigrateCleanupTest extends TestCase {
 		$this->assertCount( 0, IWP_Test_World::$curl_calls, 'admin_init makes no request' );
 	}
 
-	public function test_admin_init_removes_once_the_record_says_terminal() {
+	public function test_admin_init_finishes_a_terminal_run_whose_delete_had_failed() {
 		$this->admin_with_delete_plugins();
 		$this->store_run( 'failed' );
 		IWP_Test_World::install_instamigrate();
@@ -506,6 +627,7 @@ final class InstaMigrateCleanupTest extends TestCase {
 		$this->admin_init();
 
 		$this->assertFalse( IWP_Test_World::instamigrate_installed() );
+		$this->assertSame( array(), $this->record() );
 	}
 
 	public function test_admin_init_forces_past_the_deadline_with_a_cancel_first() {
@@ -521,7 +643,7 @@ final class InstaMigrateCleanupTest extends TestCase {
 
 	public function test_admin_init_retires_an_orphaned_install_after_the_deadline() {
 		$this->admin_with_delete_plugins();
-		update_option( InstaWP_Staging_V4::DETAILS_OPTION, array( 'status' => 'installed', 'installing_at' => time() - $this->past_deadline(), 'installed_at' => time() - $this->past_deadline() ), false );
+		$this->store_orphan( $this->past_deadline() );
 		IWP_Test_World::install_instamigrate();
 
 		$this->admin_init();
@@ -578,7 +700,7 @@ final class InstaMigrateCleanupTest extends TestCase {
 		$this->assertSame( 'migrating', $this->record()['status'] );
 	}
 
-	public function test_rest_push_records_the_end_and_removes_the_plugin() {
+	public function test_rest_push_records_the_end_and_the_hook_removes_the_plugin() {
 		// The tab-closed case: the poll never saw it end; this is how the plugin learns.
 		$this->store_run( 'migrating' );
 		IWP_Test_World::install_instamigrate();
@@ -612,13 +734,16 @@ final class InstaMigrateCleanupTest extends TestCase {
 		$this->assertSame( 'completed', $this->record()['status'] );
 	}
 
-	public function test_rest_push_without_a_status_still_cleans_a_record_already_ended() {
+	public function test_rest_push_without_a_status_writes_nothing_and_removes_nothing() {
+		// A terminal record with the plugin still present means an earlier delete failed. That is
+		// the clock's retry, not the push's: the push only ever writes what it carries.
 		$this->store_run( 'completed' );
 		IWP_Test_World::install_instamigrate();
 
 		$this->rest_push( self::UUID );
 
-		$this->assertFalse( IWP_Test_World::instamigrate_installed() );
+		$this->assertTrue( IWP_Test_World::instamigrate_installed() );
+		$this->assertNotContains( 'update_option_' . InstaWP_Staging_V4::DETAILS_OPTION, IWP_Test_World::$fired );
 	}
 
 	public function test_rest_push_answers_200_even_when_the_delete_throws() {
@@ -662,6 +787,17 @@ final class InstaMigrateCleanupTest extends TestCase {
 		$this->assertFalse( IWP_Test_World::instamigrate_installed(), 'the agent comes off too' );
 		$this->assertCount( 1, IWP_Test_World::$reset_calls );
 		$this->assertSame( array(), $this->record() );
+	}
+
+	public function test_daily_job_does_not_reset_while_the_plugin_could_not_be_removed() {
+		$this->store_run( 'completed' );
+		IWP_Test_World::install_instamigrate();
+		IWP_Test_World::$delete_result = new WP_Error( 'fs', 'read-only' );
+
+		$this->daily_job();
+
+		$this->assertCount( 0, IWP_Test_World::$reset_calls, 'resetting would wipe the only record that a retry is owed' );
+		$this->assertNotEmpty( $this->record() );
 	}
 
 	public function test_daily_job_forces_past_the_deadline() {
@@ -713,7 +849,7 @@ final class InstaMigrateCleanupTest extends TestCase {
 		$this->fail( 'staging_cancel() must end in wp_send_json_*' );
 	}
 
-	public function test_user_cancel_records_the_end_and_removes_the_plugin() {
+	public function test_user_cancel_records_the_end_and_the_hook_removes_the_plugin() {
 		$this->store_run( 'migrating' );
 		IWP_Test_World::install_instamigrate();
 		IWP_Test_World::$curl_responder = function () {

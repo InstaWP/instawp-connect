@@ -272,12 +272,24 @@ timestamp fails closed. On the forced path a best-effort `migrations/{uuid}/canc
 so the agent is told to stop before the plugin is pulled from under it -- the one outbound request
 the cleanup ever makes.
 
-**Who runs it.** `cleanup_if_allowed()` is the single sequence: admin_init (for an admin holding
-`delete_plugins`), the daily `instawp_clean_migrate_files` job (which then also resets the record),
-and the REST push. The user's Cancel is deliberately not gated -- the confirmation box is the
-decision. `instawp_reset_running_migration()` itself is not gated either: ten of its eleven callers
-are user actions, connection-loss recovery, or client-app instructing us, and several run precisely
-when the connect is gone.
+**Nobody calls cleanup after writing. The record's own option hooks do.** The class registers
+static handlers on `add_option_`, `update_option_` and `delete_option_` for `instawp_staging_v4_details`.
+A write that makes the record terminal, or a delete, removes the plugin; any other write does
+nothing. So the poll, the push, Cancel and every reset path just write what they know -- the
+plugin's presence follows the record. (WordPress fires `update_option_*` only on a real change, so a
+poll re-writing the same status is free.)
+
+The one thing a hook cannot see is time. `retire_run()` is the clock-driven path, called from
+admin_init (for an admin holding `delete_plugins`) and the daily `instawp_clean_migrate_files` job:
+when `cleanup_allowed()` says yes it cancels the run if we never saw it end, removes the plugin,
+and -- only once the plugin is confirmed gone, so a failed delete stays retryable -- deletes the
+record. The hook reactor deliberately does NOT apply the deadline: an old run's status write must
+not force the plugin off without the cancel that only `retire_run()` sends.
+
+The user's Cancel is deliberately not gated -- the confirmation box is the decision.
+`instawp_reset_running_migration()` itself is not gated either: ten of its eleven callers are user
+actions, connection-loss recovery, or client-app instructing us, and several run precisely when the
+connect is gone. Its `delete_option` of the record simply fires the delete hook.
 
 **"Installed, run never started"** is not a separate flag any more: it is a record at
 `STATUS_INSTALLED` with no uuid, retired by the same deadline. It is announced once through

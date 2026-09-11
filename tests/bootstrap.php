@@ -49,6 +49,8 @@ namespace {
 		public static $log             = array();
 		public static $install_succeeds = true;
 		public static $install_calls    = 0;
+		public static $hooks           = array();
+		public static $fired           = array();
 
 		public static function reset() {
 			self::$options         = array();
@@ -62,6 +64,7 @@ namespace {
 			self::$log             = array();
 			self::$install_succeeds = true;
 			self::$install_calls    = 0;
+			self::$fired           = array();
 
 			self::rmdir_recursive( WP_PLUGIN_DIR );
 			mkdir( WP_PLUGIN_DIR, 0777, true );
@@ -144,20 +147,69 @@ namespace {
 		return array_key_exists( $key, IWP_Test_World::$options ) ? IWP_Test_World::$options[ $key ] : $default;
 	}
 
+	/**
+	 * Faithful to WordPress where it matters here: a first write fires add_option_{$key}, a changed
+	 * write fires update_option_{$key}, and an UNCHANGED write fires nothing and returns false. The
+	 * code under test reacts to the record through these hooks, so their firing rules are the
+	 * behaviour being tested, not incidental.
+	 */
 	function update_option( $key, $value, $autoload = null ) {
+		if ( ! array_key_exists( $key, IWP_Test_World::$options ) ) {
+			IWP_Test_World::$options[ $key ] = $value;
+			do_action( 'add_option_' . $key, $key, $value );
+
+			return true;
+		}
+
+		$old = IWP_Test_World::$options[ $key ];
+
+		if ( $old === $value ) {
+			return false;
+		}
+
 		IWP_Test_World::$options[ $key ] = $value;
+		do_action( 'update_option_' . $key, $old, $value, $key );
 
 		return true;
 	}
 
 	function delete_option( $key ) {
+		if ( ! array_key_exists( $key, IWP_Test_World::$options ) ) {
+			return false;
+		}
+
 		unset( IWP_Test_World::$options[ $key ] );
+		do_action( 'delete_option_' . $key, $key );
 
 		return true;
 	}
 
-	function add_action() {}
-	function add_filter() {}
+	/**
+	 * A minimal hook registry. Deduplicates on the callable exactly as WordPress does, so the class
+	 * registering its static handlers on every construction -- once in production, once per test
+	 * instance here -- yields one handler, not one per instance.
+	 */
+	function add_action( $tag, $callable, $priority = 10, $accepted_args = 1 ) {
+		if ( is_array( $callable ) ) {
+			$id = ( is_object( $callable[0] ) ? spl_object_hash( $callable[0] ) : $callable[0] ) . '::' . $callable[1];
+		} else {
+			$id = is_object( $callable ) ? spl_object_hash( $callable ) : (string) $callable;
+		}
+
+		IWP_Test_World::$hooks[ $tag ][ $id ] = array( $callable, $accepted_args );
+	}
+
+	function add_filter( $tag, $callable, $priority = 10, $accepted_args = 1 ) {
+		add_action( $tag, $callable, $priority, $accepted_args );
+	}
+
+	function do_action( $tag, ...$args ) {
+		IWP_Test_World::$fired[] = $tag;
+
+		foreach ( isset( IWP_Test_World::$hooks[ $tag ] ) ? IWP_Test_World::$hooks[ $tag ] : array() as $entry ) {
+			call_user_func_array( $entry[0], array_slice( $args, 0, $entry[1] ) );
+		}
+	}
 
 	function is_user_logged_in() {
 		return IWP_Test_World::$logged_in;

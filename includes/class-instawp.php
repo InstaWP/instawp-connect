@@ -144,13 +144,11 @@ class instaWP {
 		 *
 		 * Refusing here costs nothing: the job runs again tomorrow.
 		 */
-		if ( class_exists( 'InstaWP_Staging_V4' ) ) {
-			if ( ! InstaWP_Staging_V4::cleanup_allowed() ) {
-				return;
-			}
-
-			// Allowed means terminal, or past the deadline: either way the agent comes off too.
-			InstaWP_Staging_V4::cleanup_if_allowed();
+		// retire_run() is the record's own retirement: refused while the run is live, and once
+		// allowed it removes the agent and the record -- the record first only after the agent is
+		// confirmed gone, so a failed delete stays retryable tomorrow. Only a clean site is reset.
+		if ( class_exists( 'InstaWP_Staging_V4' ) && ! InstaWP_Staging_V4::retire_run() ) {
+			return;
 		}
 
 		instawp_reset_running_migration();

@@ -103,6 +103,21 @@ class InstaWP_Staging_V4 {
 		add_action( 'wp_ajax_instawp_staging_status_v4', array( $this, 'staging_status' ) );
 		add_action( 'wp_ajax_instawp_staging_cancel_v4', array( $this, 'staging_cancel' ) );
 		add_action( 'admin_init', array( $this, 'maybe_cleanup_instamigrate' ) );
+
+		/*
+		 * THE PLUGIN'S PRESENCE FOLLOWS THE RECORD.
+		 *
+		 * Nobody calls cleanup after writing the record; the record's own option hooks do. A writer
+		 * -- the poll, client-app's push, the user's Cancel, a reset -- just writes what it knows,
+		 * and on_record_changed() decides once, from the new value, whether instamigrate may go.
+		 * That is the whole reason there is one rule and not one call site per writer.
+		 *
+		 * Static callables on purpose: WordPress deduplicates a hook on its callable, so however
+		 * many times this class is constructed there is exactly one handler.
+		 */
+		add_action( 'add_option_' . self::DETAILS_OPTION, array( __CLASS__, 'on_record_added' ), 10, 2 );
+		add_action( 'update_option_' . self::DETAILS_OPTION, array( __CLASS__, 'on_record_updated' ), 10, 2 );
+		add_action( 'delete_option_' . self::DETAILS_OPTION, array( __CLASS__, 'on_record_deleted' ) );
 	}
 
 	/**
@@ -160,10 +175,8 @@ class InstaWP_Staging_V4 {
 			);
 		}
 
-		// The run is terminal now. Record it -- the user's Cancel is one of the three channels that
-		// keep the record current -- then the agent is serving nothing.
+		// The run is terminal now. Record it; the record's update hook removes the agent.
 		self::record_update( array( 'status' => 'failed', 'finished_at' => time() ) );
-		self::cleanup_instamigrate();
 
 		// No payload. The caller does not branch on this -- the watcher is already polling and owns
 		// what the screen shows, so anything returned here would be a second source of truth for a
@@ -201,43 +214,105 @@ class InstaWP_Staging_V4 {
 				return;
 			}
 
-			self::cleanup_if_allowed();
+			self::retire_run();
 		} catch ( \Throwable $e ) {
 			Helper::add_error_log( 'InstaMigrate cleanup check failed: ' . $e->getMessage() );
 		}
 	}
 
 	/**
-	 * Run the cleanup if -- and only if -- the record says we may. The one sequence every automatic
-	 * path executes: admin_init, the daily job, and client-app's terminal push.
+	 * React to the record changing. The ONE place instamigrate is removed in response to an event.
 	 *
-	 * Past the deadline a best-effort cancel goes first: cancelling tells the agent to stop, and
-	 * deleting first would leave it working against a plugin that is no longer there. A 422 means
-	 * client-app already considers the run terminal, which is the same situation. This is the ONLY
-	 * outbound request the cleanup ever makes, and only on the forced path.
+	 * Fired by WordPress on add_option / update_option / delete_option of DETAILS_OPTION -- and only
+	 * on a real change, since update_option() does nothing for an equal value. Reacts to an ENDING:
+	 * the record now says terminal, or the record is gone. Anything else, nothing happens.
 	 *
-	 * @return bool true when instamigrate is gone (removed now, or already), false when left alone.
+	 * Deliberately NOT cleanup_allowed(): that rule includes the 48h deadline, and the deadline is
+	 * the clock's business, not an event's. A status write landing on a run that happens to be old
+	 * must not force the plugin off without the cancel that retire_run() sends first -- so the
+	 * deadline is answered only there, on a schedule, and here only endings count.
+	 *
+	 * Re-entrant by construction: cleanup_instamigrate() stamps instamigrate_removed_at back onto
+	 * the record, which fires this again. The guard makes that second firing a no-op rather than a
+	 * second delete attempt.
+	 *
+	 * @param array $record The record as it now is; empty when deleted.
 	 */
-	public static function cleanup_if_allowed() {
-		$details = self::read_record();
+	private static function on_record_changed( $record ) {
+		static $reacting = false;
 
-		if ( ! empty( Helper::get_args_option( 'instamigrate_removed_at', $details, 0 ) ) ) {
-			return true;
+		if ( $reacting ) {
+			return;
 		}
 
-		if ( ! self::cleanup_allowed( $details ) ) {
+		$reacting = true;
+
+		try {
+			$record = is_array( $record ) ? $record : array();
+
+			if ( empty( $record ) || self::record_is_terminal( $record ) ) {
+				self::cleanup_instamigrate();
+			}
+		} catch ( \Throwable $e ) {
+			Helper::add_error_log( 'InstaMigrate cleanup on record change failed: ' . $e->getMessage() );
+		} finally {
+			$reacting = false;
+		}
+	}
+
+	/** add_option_{option}: ( $option, $value ). */
+	public static function on_record_added( $option, $value ) {
+		self::on_record_changed( $value );
+	}
+
+	/** update_option_{option}: ( $old_value, $value, $option ). */
+	public static function on_record_updated( $old_value, $value ) {
+		self::on_record_changed( $value );
+	}
+
+	/** delete_option_{option}: ( $option ). Nothing left to protect. */
+	public static function on_record_deleted() {
+		self::on_record_changed( array() );
+	}
+
+	/**
+	 * The TIME-driven retirement: admin_init and the daily job.
+	 *
+	 * The hooks above react to the record changing, but a run that goes quiet writes nothing, so
+	 * the 48h backstop needs something on a clock to look. This is it. When the record allows
+	 * cleanup it cancels the run if we never saw it end, removes the plugin, and -- only once the
+	 * plugin is confirmed gone, so a failed delete stays retryable on the next load -- deletes the
+	 * record. The delete then fires on_record_deleted(), which finds nothing left to do.
+	 *
+	 * The cancel is the ONLY outbound request the cleanup ever makes, and only on the forced path:
+	 * cancelling tells the agent to stop, and deleting first would leave it working against a
+	 * plugin that is no longer there. A 422 means client-app already considers the run terminal,
+	 * which is the same situation.
+	 *
+	 * @return bool true when the site is clean -- no plugin, no record -- false when left alone.
+	 */
+	public static function retire_run() {
+		$record = self::read_record();
+
+		if ( ! self::cleanup_allowed( $record ) ) {
 			return false;
 		}
 
-		$uuid = (string) Helper::get_args_option( 'uuid', $details, '' );
+		$uuid = (string) Helper::get_args_option( 'uuid', $record, '' );
 
-		if ( '' !== $uuid && ! self::record_is_terminal( $details ) ) {
-			// Forced by the deadline on a run we never saw end. Tell client-app before pulling the
-			// agent out from under it.
+		if ( '' !== $uuid && ! self::record_is_terminal( $record ) ) {
 			Curl::do_curl( 'migrations/' . $uuid . '/cancel' );
 		}
 
-		return self::cleanup_instamigrate();
+		if ( ! self::cleanup_instamigrate() ) {
+			return false;
+		}
+
+		if ( ! empty( $record ) ) {
+			Option::delete_option( self::DETAILS_OPTION );
+		}
+
+		return true;
 	}
 
 	/**
@@ -708,30 +783,9 @@ class InstaWP_Staging_V4 {
 			Option::update_option( self::DETAILS_OPTION, $details, false );
 		}
 
-		/*
-		 * Retire the agent here too -- this is the one path that fires while the user is WATCHING.
-		 *
-		 * client-app pushes v1/migration-finished on every terminal outcome, but that is an outbound
-		 * call to a customer's site and it can simply not arrive. Without this, a failed push would
-		 * leave instamigrate installed and active on the source until CLEANUP_DEADLINE forced it off
-		 * -- two days, for a run the user watched finish.
-		 *
-		 * AFTER the option write, so finished_at is persisted even when the delete fails, and gated
-		 * on the same terminal check rather than on $dirty -- a second poll arriving after the first
-		 * already stamped it is not dirty, and would otherwise skip the cleanup entirely.
-		 * cleanup_instamigrate() is idempotent: it returns early once the files are gone.
-		 */
-		if ( self::is_terminal_status( $status ) ) {
-			// The response below is what tells the screen the run ended. A throw from delete_plugins()
-			// -- a read-only mount, missing filesystem credentials -- must not turn that into a 500
-			// and leave the user watching a spinner on a migration that has finished.
-			try {
-				self::cleanup_instamigrate();
-			} catch ( \Throwable $e ) {
-				Helper::add_error_log( 'InstaMigrate cleanup after terminal poll failed: ' . $e->getMessage() );
-			}
-		}
-
+		// No cleanup call here. The status just written above is what retires the agent -- the
+		// record's update hook reacts to a terminal value the moment update_option() commits it,
+		// before this response is even built. The poll's job is to keep the record current.
 		wp_send_json_success(
 			array(
 				'uuid'      => $uuid,

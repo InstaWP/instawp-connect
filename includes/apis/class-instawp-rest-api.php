@@ -577,32 +577,26 @@ class InstaWP_Rest_Api {
 
 		// The docblock above promises 200 even when the delete fails, and a throw would break that
 		// promise -- client-app would retry a terminal notification that can never succeed.
-		$removed = false;
-
+		/*
+		 * The push is one of the three channels that keep the run record current -- the others are
+		 * the poll and the user's Cancel -- and the ONLY one that reaches a site whose tab is closed.
+		 * It writes what it knows and nothing more: the record's update hook removes the agent the
+		 * moment a terminal value is committed. No request back to client-app; an inbound
+		 * notification is not us asking.
+		 *
+		 * record_terminal() ignores a non-terminal status, so a push carrying anything else cannot
+		 * move a finished record back to "live".
+		 */
 		try {
-			/*
-			 * The push is one of the three channels that keep the run record current -- the others
-			 * are the poll and the user's Cancel -- and the ONLY one that reaches a site whose tab is
-			 * closed. Record what it says, then let the record decide, exactly as admin_init and the
-			 * daily job do. No request back to client-app: an inbound notification is not us asking.
-			 *
-			 * Only a terminal status is written. The endpoint exists to announce an ending; a push
-			 * carrying anything else is not one we act on, and must not be able to move a finished
-			 * record back to "live".
-			 */
-			$status = sanitize_text_field( (string) $request->get_param( 'status' ) );
-
-			if ( InstaWP_Staging_V4::is_terminal_status( $status ) ) {
-				InstaWP_Staging_V4::record_terminal( $status );
-			}
-
-			$removed = InstaWP_Staging_V4::cleanup_if_allowed();
+			InstaWP_Staging_V4::record_terminal( sanitize_text_field( (string) $request->get_param( 'status' ) ) );
 		} catch ( \Throwable $e ) {
-			Helper::add_error_log( 'InstaMigrate cleanup via REST failed: ' . $e->getMessage() );
+			Helper::add_error_log( 'Recording migration-finished failed: ' . $e->getMessage() );
 		}
 
 		// 200 either way, per the docblock -- but say what actually happened. A refused cleanup
 		// reported as "removed" would send anyone reading the log looking in the wrong place.
+		$removed = ! file_exists( WP_PLUGIN_DIR . '/instamigrate/insta-migrate.php' );
+
 		return $this->send_response(
 			array(
 				'status'  => true,
