@@ -129,18 +129,12 @@ class instaWP {
 	}
 
 	public function clean_migrate_files() {
-
-		$migration_details = Option::get_option( 'instawp_migration_details', array() );
-		$migrate_id        = Helper::get_args_option( 'migrate_id', $migration_details );
-		$migrate_key       = Helper::get_args_option( 'migrate_key', $migration_details );
-
-		if ( ! empty( $migrate_id ) || ! empty( $migrate_key ) ) {
-			return;
-		}
-
 		/*
-		 * A V4 run sets neither field above, so for the whole of one this job used to reset daily --
-		 * wiping the record of a migration client-app still reported as live.
+		 * Housekeeping must not touch a migration that is still running -- V3 or V4.
+		 *
+		 * One question, one method: run_has_ended() answers for whichever engine holds the run. This
+		 * job used to test V3's identifiers inline and knew nothing of V4, so for the whole of a V4
+		 * run it reset daily, wiping the record of a migration client-app still reported as live.
 		 *
 		 * The gate lives HERE, not in instawp_reset_running_migration(). This is the one passive caller
 		 * of the reset: no user behind it, no lost connection, no instruction from client-app. The ten

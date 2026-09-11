@@ -541,6 +541,19 @@ class InstaWP_Staging_V4 {
 		// Guarded for the same reason as fetch_run_status(), and to the same end: "could not
 		// confirm" answers false, and false leaves everything in place.
 		try {
+			/*
+			 * WHICH ENGINE holds the run decides which record answers.
+			 *
+			 * V3 keeps its state in instawp_migration_details and V4 in DETAILS_OPTION; they never
+			 * share one. Without this check the method read only the V4 record, so on a site running
+			 * a V3 migration it answered "ended" -- true of the V4 run that did not exist, and wrong
+			 * about the migration that did. The callers happened to pre-check V3 inline; that is
+			 * callers covering for the method, and it is now the method's own job.
+			 */
+			if ( self::v3_run_in_flight() ) {
+				return false;
+			}
+
 			$details = (array) Option::get_option( self::DETAILS_OPTION );
 			$uuid    = (string) Helper::get_args_option( 'uuid', $details, '' );
 
@@ -562,6 +575,23 @@ class InstaWP_Staging_V4 {
 
 			return false;
 		}
+	}
+
+	/**
+	 * Is a V3 migration in flight on this site?
+	 *
+	 * The identifiers are the signal, not a status: V3 writes migrate_id and migrate_key when a run
+	 * starts and instawp_reset_running_migration() clears the whole record when it ends, so their
+	 * presence means live. This is the same test InstaWP::clean_migrate_files() used to make inline,
+	 * moved here so both engines are answered by one method.
+	 *
+	 * @return bool
+	 */
+	private static function v3_run_in_flight() {
+		$details = (array) Option::get_option( 'instawp_migration_details', array() );
+
+		return '' !== (string) Helper::get_args_option( 'migrate_id', $details, '' )
+			|| '' !== (string) Helper::get_args_option( 'migrate_key', $details, '' );
 	}
 
 	/**

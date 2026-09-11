@@ -38,6 +38,14 @@ final class InstaMigrateCleanupTest extends TestCase {
 		return (array) get_option( InstaWP_Staging_V4::DETAILS_OPTION, array() );
 	}
 
+	/** A V3 migration in flight: the record V3 writes, with the identifiers a live run carries. */
+	private function store_v3_run() {
+		update_option(
+			'instawp_migration_details',
+			array( 'migrate_id' => 7, 'migrate_key' => 'k', 'status' => 'initiated', 'mode' => 'pull' )
+		);
+	}
+
 	private function admin_with_delete_plugins() {
 		IWP_Test_World::$logged_in = true;
 		IWP_Test_World::$caps      = array( 'manage_options', 'delete_plugins' );
@@ -133,6 +141,29 @@ final class InstaMigrateCleanupTest extends TestCase {
 
 		$this->assertTrue( InstaWP_Staging_V4::run_has_ended() );
 		$this->assertCount( 0, IWP_Test_World::$curl_calls );
+	}
+
+	public function test_run_has_ended_is_false_while_a_v3_migration_is_in_flight() {
+		// No V4 record at all. Before the engine check this answered "ended" -- true of the V4 run
+		// that did not exist, wrong about the V3 run that did.
+		$this->store_v3_run();
+
+		$this->assertFalse( InstaWP_Staging_V4::run_has_ended(), 'a V3 run is a live migration' );
+		$this->assertCount( 0, IWP_Test_World::$curl_calls, 'V3 state is local; nothing to ask client-app' );
+	}
+
+	public function test_run_has_ended_answers_v3_before_looking_at_the_v4_record() {
+		$this->store_v3_run();
+		$this->store_run( self::ENDED_UUID, array( 'finished_at' => time() - 60 ) );
+
+		$this->assertFalse( InstaWP_Staging_V4::run_has_ended(), 'a stale V4 record must not outvote a live V3 run' );
+	}
+
+	public function test_a_finished_v3_migration_leaves_no_identifiers_and_does_not_block() {
+		// V3 completion resets the whole record; what is left carries no migrate_id/migrate_key.
+		update_option( 'instawp_migration_details', array( 'status' => 'completed' ) );
+
+		$this->assertTrue( InstaWP_Staging_V4::run_has_ended() );
 	}
 
 	// =============================================================================================
@@ -436,6 +467,19 @@ final class InstaMigrateCleanupTest extends TestCase {
 		$this->assertStringContainsString( 'still live', $data['message'], 'must not claim removal it did not perform' );
 	}
 
+	public function test_rest_push_refuses_while_a_v3_migration_is_in_flight() {
+		// Should never happen -- a site does not run both -- but the safe answer is the same one.
+		$this->store_v3_run();
+		$this->store_run( self::ENDED_UUID );
+		IWP_Test_World::install_instamigrate();
+		IWP_Test_World::client_app_reports( 'failed' );
+
+		$data = $this->rest_push( self::ENDED_UUID );
+
+		$this->assertTrue( IWP_Test_World::instamigrate_installed() );
+		$this->assertStringContainsString( 'still live', $data['message'] );
+	}
+
 	public function test_rest_push_answers_200_even_when_the_delete_throws() {
 		$this->store_run( self::ENDED_UUID );
 		IWP_Test_World::install_instamigrate();
@@ -501,8 +545,17 @@ final class InstaMigrateCleanupTest extends TestCase {
 		$this->assertCount( 1, IWP_Test_World::$reset_calls, 'the pre-V4 behaviour, unchanged' );
 	}
 
-	public function test_daily_job_defers_to_a_v3_migration_before_anything_else() {
-		update_option( 'instawp_migration_details', array( 'migrate_id' => 7, 'migrate_key' => 'k' ) );
+	public function test_daily_job_refuses_while_a_v3_migration_is_in_flight() {
+		$this->store_v3_run();
+
+		$this->daily_job();
+
+		$this->assertCount( 0, IWP_Test_World::$reset_calls, 'the pre-V4 guarantee, now answered by run_has_ended()' );
+		$this->assertNotEmpty( get_option( 'instawp_migration_details' ) );
+	}
+
+	public function test_daily_job_defers_to_v3_even_when_a_stale_v4_record_says_ended() {
+		$this->store_v3_run();
 		$this->store_run( self::ENDED_UUID );
 		IWP_Test_World::client_app_reports( 'failed' );
 
@@ -601,6 +654,17 @@ final class InstaMigrateCleanupTest extends TestCase {
 			$this->assertTrue( IWP_Test_World::instamigrate_installed(), $name . ' removed the agent of a run client-app reports as migrating' );
 			$this->assertNotEmpty( $this->record(), $name . ' wiped the record of a live run' );
 		}
+	}
+
+	public function test_no_automatic_path_resets_a_live_v3_migration() {
+		// The daily job is the only automatic path that reaches the reset; the others delete the
+		// agent, which V3 never installs. Pinned on its own because V3 is the engine most sites
+		// still run, and this is the guarantee they had before V4 existed.
+		$this->store_v3_run();
+
+		$this->daily_job();
+
+		$this->assertCount( 0, IWP_Test_World::$reset_calls, 'housekeeping reset a running V3 migration' );
 	}
 }
 
