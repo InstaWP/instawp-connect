@@ -129,29 +129,14 @@ class instaWP {
 	}
 
 	public function clean_migrate_files() {
-		/*
-		 * Housekeeping must not touch a migration that is still running -- V3 or V4.
-		 *
-		 * One question, one method: cleanup_allowed() answers for whichever engine holds the run,
-		 * from the run record alone -- no request to client-app. This job used to test V3's
-		 * identifiers inline and knew nothing of V4, so for the whole of a V4 run it reset daily,
-		 * wiping the record of a migration client-app still reported as live.
-		 *
-		 * The gate lives HERE, not in instawp_reset_running_migration(). This is the one passive caller
-		 * of the reset: no user behind it, no lost connection, no instruction from client-app. The ten
-		 * others are exactly those things, and several of them run precisely when the connect is gone
-		 * -- so a status check there could never succeed and refused them forever.
-		 *
-		 * Refusing here costs nothing: the job runs again tomorrow.
-		 */
-		// retire_run() is the record's own retirement: refused while the run is live, and once
-		// allowed it removes the agent and the record -- the record first only after the agent is
-		// confirmed gone, so a failed delete stays retryable tomorrow. Only a clean site is reset.
-		if ( class_exists( 'InstaWP_Staging_V4' ) && ! InstaWP_Staging_V4::retire_run() ) {
-			return;
-		}
 
-		instawp_reset_running_migration();
+		$migration_details = Option::get_option( 'instawp_migration_details', array() );
+		$migrate_id        = Helper::get_args_option( 'migrate_id', $migration_details );
+		$migrate_key       = Helper::get_args_option( 'migrate_key', $migration_details );
+
+		if ( empty( $migrate_id ) && empty( $migrate_key ) ) {
+			instawp_reset_running_migration();
+		}
 	}
 
 	/**

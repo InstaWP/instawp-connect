@@ -279,17 +279,22 @@ nothing. So the poll, the push, Cancel and every reset path just write what they
 plugin's presence follows the record. (WordPress fires `update_option_*` only on a real change, so a
 poll re-writing the same status is free.)
 
-The one thing a hook cannot see is time. `retire_run()` is the clock-driven path, called from
-admin_init (for an admin holding `delete_plugins`) and the daily `instawp_clean_migrate_files` job:
-when `cleanup_allowed()` says yes it cancels the run if we never saw it end, removes the plugin,
-and -- only once the plugin is confirmed gone, so a failed delete stays retryable -- deletes the
-record. The hook reactor deliberately does NOT apply the deadline: an old run's status write must
-not force the plugin off without the cancel that only `retire_run()` sends.
+The one thing a hook cannot see is time. `retire_run()` is the clock-driven path: when
+`cleanup_allowed()` says yes it cancels the run if we never saw it end, removes the plugin, and --
+only once the plugin is confirmed gone, so a failed delete stays retryable -- deletes the record.
+It is called from admin_init (for an admin holding `delete_plugins`), and from inside
+`instawp_reset_running_migration()` in place of the unconditional `delete_option` the V4 record
+used to get there. The hook reactor deliberately does NOT apply the deadline: an old run's status
+write must not force the plugin off without the cancel that only `retire_run()` sends.
+
+**The V3 flow is untouched.** `InstaWP::clean_migrate_files()` -- the daily housekeeping job -- still
+tests V3's `migrate_id`/`migrate_key` inline and resets whenever no V3 migration is in flight,
+exactly as before V4 existed. The V4 guard lives inside the reset, on the V4 record alone: every V3
+thing the reset does still happens for every one of its eleven callers; only the V4 record is
+refused while its run is live. So a live V4 run survives every reset, including a user's "start
+over" -- their route to stop one is the Cancel button, which cancels at client-app first.
 
 The user's Cancel is deliberately not gated -- the confirmation box is the decision.
-`instawp_reset_running_migration()` itself is not gated either: ten of its eleven callers are user
-actions, connection-loss recovery, or client-app instructing us, and several run precisely when the
-connect is gone. Its `delete_option` of the record simply fires the delete hook.
 
 **"Installed, run never started"** is not a separate flag any more: it is a record at
 `STATUS_INSTALLED` with no uuid, retired by the same deadline. It is announced once through

@@ -758,7 +758,8 @@ final class InstaMigrateCleanupTest extends TestCase {
 	}
 
 	// =============================================================================================
-	// CALL SITE 4 -- clean_migrate_files(): the daily job. Never resets without the record's say-so.
+	// CALL SITE 4 -- clean_migrate_files(): the daily job. Its V3 flow is UNTOUCHED -- it still resets
+	// whenever no V3 migration is in flight -- and the V4 record is guarded INSIDE the reset.
 	// =============================================================================================
 
 	private function daily_job() {
@@ -766,14 +767,15 @@ final class InstaMigrateCleanupTest extends TestCase {
 	}
 
 	#[DataProvider( 'live_statuses' )]
-	public function test_daily_job_refuses_while_the_record_says_live( $status ) {
+	public function test_daily_job_resets_v3_state_but_the_live_v4_record_survives_it( $status ) {
 		$this->store_run( $status );
 		IWP_Test_World::install_instamigrate();
 
 		$this->daily_job();
 
-		$this->assertCount( 0, IWP_Test_World::$reset_calls, 'housekeeping wiped a live run (' . $status . ')' );
-		$this->assertNotEmpty( $this->record() );
+		$this->assertCount( 1, IWP_Test_World::$reset_calls, 'the V3 flow is unchanged: no V3 run, so it resets' );
+		$this->assertNotEmpty( $this->record(), 'housekeeping wiped a live run (' . $status . ')' );
+		$this->assertSame( $status, $this->record()['status'] );
 		$this->assertTrue( IWP_Test_World::instamigrate_installed() );
 		$this->assertCount( 0, IWP_Test_World::$curl_calls );
 	}
@@ -789,15 +791,16 @@ final class InstaMigrateCleanupTest extends TestCase {
 		$this->assertSame( array(), $this->record() );
 	}
 
-	public function test_daily_job_does_not_reset_while_the_plugin_could_not_be_removed() {
+	public function test_daily_job_keeps_the_v4_record_while_the_plugin_could_not_be_removed() {
 		$this->store_run( 'completed' );
 		IWP_Test_World::install_instamigrate();
 		IWP_Test_World::$delete_result = new WP_Error( 'fs', 'read-only' );
 
 		$this->daily_job();
 
-		$this->assertCount( 0, IWP_Test_World::$reset_calls, 'resetting would wipe the only record that a retry is owed' );
-		$this->assertNotEmpty( $this->record() );
+		$this->assertCount( 1, IWP_Test_World::$reset_calls, 'V3 housekeeping still runs' );
+		$this->assertNotEmpty( $this->record(), 'but the V4 record is the only proof a retry is owed, and it stays' );
+		$this->assertTrue( IWP_Test_World::instamigrate_installed() );
 	}
 
 	public function test_daily_job_forces_past_the_deadline() {
@@ -832,7 +835,34 @@ final class InstaMigrateCleanupTest extends TestCase {
 
 		$this->daily_job();
 
-		$this->assertCount( 0, IWP_Test_World::$reset_calls );
+		$this->assertCount( 0, IWP_Test_World::$reset_calls, 'the inline V3 check, exactly as before V4 existed' );
+	}
+
+	// ---------------------------------------------------------------------------------------------
+	// THE RESET ITSELF: every one of its eleven callers gets the same V4 behaviour.
+	// ---------------------------------------------------------------------------------------------
+
+	public function test_any_reset_leaves_a_live_v4_record_and_its_plugin_alone() {
+		// disconnect, ?clear=all, heartbeat-404, WP-CLI ... all reach the same function.
+		$this->store_run( 'migrating' );
+		IWP_Test_World::install_instamigrate();
+		update_option( 'instawp_migration_details', array( 'anything' => 'v3' ) );
+
+		instawp_reset_running_migration( 'hard' );
+
+		$this->assertFalse( get_option( 'instawp_migration_details' ), 'V3 state is reset as it always was' );
+		$this->assertSame( 'migrating', $this->record()['status'], 'the V4 record survives every reset while live' );
+		$this->assertTrue( IWP_Test_World::instamigrate_installed() );
+	}
+
+	public function test_any_reset_retires_a_terminal_v4_record() {
+		$this->store_run( 'failed' );
+		IWP_Test_World::install_instamigrate();
+
+		instawp_reset_running_migration();
+
+		$this->assertSame( array(), $this->record() );
+		$this->assertFalse( IWP_Test_World::instamigrate_installed() );
 	}
 
 	// =============================================================================================

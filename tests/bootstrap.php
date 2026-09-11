@@ -364,8 +364,10 @@ namespace {
 	function instawp_reset_running_migration( $reset_type = 'soft', $abort_forcefully = false, $clear_events = false, $disconnect_connect = false ) {
 		IWP_Test_World::$reset_calls[] = func_get_args();
 
+		// Mirrors the real function's handling of the two records: V3's is deleted unconditionally,
+		// V4's goes through its own guarded retirement.
 		delete_option( 'instawp_migration_details' );
-		delete_option( 'instawp_staging_v4_details' );
+		InstaWP_Staging_V4::retire_run();
 
 		return true;
 	}
