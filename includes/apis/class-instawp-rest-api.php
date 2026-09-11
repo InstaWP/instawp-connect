@@ -582,9 +582,12 @@ class InstaWP_Rest_Api {
 		try {
 			$status = sanitize_text_field( (string) $request->get_param( 'status' ) );
 
-			if ( in_array( $status, array( 'completed', 'failed' ), true ) ) {
-				$details = (array) Option::get_option( InstaWP_Staging_V4::DETAILS_OPTION );
+			$details = (array) Option::get_option( InstaWP_Staging_V4::DETAILS_OPTION );
 
+			// Only a terminal status is written, and never over one: the record's first ending stands.
+			if ( in_array( $status, array( 'completed', 'failed' ), true )
+				&& ! in_array( Helper::get_args_option( 'status', $details, '' ), array( 'completed', 'failed' ), true )
+			) {
 				$details['status'] = $status;
 
 				if ( empty( $details['finished_at'] ) ) {

@@ -39,6 +39,9 @@ class InstaWP_Staging_V4 {
 	 */
 	const DETAILS_OPTION = 'instawp_staging_v4_details';
 
+	/** The agent plugin, as WordPress names it: the one slug every install, activate and delete uses. */
+	const INSTAMIGRATE_PLUGIN = 'instamigrate/insta-migrate.php';
+
 	/**
 	 * How long after `started_at` a run is still worth re-entering on page load.
 	 *
@@ -111,10 +114,6 @@ class InstaWP_Staging_V4 {
 	 * @param mixed $value     The record as it now is.
 	 */
 	public static function on_record_updated( $old_value = null, $value = null ) {
-		if ( ! class_exists( 'InstaMigrate' ) ) {
-			return;
-		}
-
 		$value = is_array( $value ) ? $value : array();
 
 		if ( in_array( isset( $value['status'] ) ? $value['status'] : '', array( 'completed', 'failed' ), true ) ) {
@@ -128,9 +127,7 @@ class InstaWP_Staging_V4 {
 	 * @param string $option The option name.
 	 */
 	public static function on_record_deleted( $option = '' ) {
-		if ( class_exists( 'InstaMigrate' ) ) {
-			self::cleanup_instamigrate();
-		}
+		self::cleanup_instamigrate();
 	}
 
 	/**
@@ -205,11 +202,15 @@ class InstaWP_Staging_V4 {
 			);
 		}
 
-		// The run is terminal now. Record it; the record's update hook removes instamigrate.
-		$details['status']      = 'failed';
-		$details['finished_at'] = time();
+		// The run is terminal now. Record it; the record's update hook removes instamigrate. Unless the
+		// record already says it ended -- a 422 means client-app got there first, and the poll may
+		// already have written how: a completed run must not be rewritten as failed.
+		if ( ! in_array( Helper::get_args_option( 'status', $details, '' ), array( 'completed', 'failed' ), true ) ) {
+			$details['status']      = 'failed';
+			$details['finished_at'] = time();
 
-		Option::update_option( self::DETAILS_OPTION, $details, false );
+			Option::update_option( self::DETAILS_OPTION, $details, false );
+		}
 
 		// No payload. The caller does not branch on this -- the watcher is already polling and owns
 		// what the screen shows, so anything returned here would be a second source of truth for a
@@ -278,15 +279,9 @@ class InstaWP_Staging_V4 {
 		 * here would surface as a fatal in whatever request happened to write the record.
 		 */
 		try {
-			// The class before the file: no InstaMigrate loaded means nothing of ours to remove, and it is
-			// answered without touching the filesystem or any constant that may not exist.
-			if ( ! class_exists( 'InstaMigrate' ) ) {
-				self::mark_instamigrate_removed();
-
-				return true;
-			}
-
-			$plugin_file = WP_PLUGIN_DIR . '/instamigrate/insta-migrate.php';
+			// delete_plugins() takes the SLUG, so WP_PLUGIN_DIR is needed only for the shortcut below --
+			// never for the delete itself. Undefined means "cannot take the shortcut", not "cannot clean".
+			$plugin_file = defined( 'WP_PLUGIN_DIR' ) ? WP_PLUGIN_DIR . '/' . self::INSTAMIGRATE_PLUGIN : '';
 
 			/*
 			 * The run record is LEFT ALONE. An earlier revision deleted it here, which broke two things:
@@ -302,7 +297,7 @@ class InstaWP_Staging_V4 {
 			 * What retires the run is instamigrate_removed_at below, written only when the files are
 			 * actually gone.
 			 */
-			if ( ! file_exists( $plugin_file ) ) {
+			if ( '' !== $plugin_file && ! file_exists( $plugin_file ) ) {
 				self::mark_instamigrate_removed();
 
 				return true;
@@ -362,8 +357,8 @@ class InstaWP_Staging_V4 {
 			// Same reasoning as the delete below: deactivate_plugins() fires deactivation hooks, and a
 			// fatal in somebody else's hook must not become our caller's fatal.
 			try {
-				if ( is_plugin_active( 'instamigrate/insta-migrate.php' ) ) {
-					deactivate_plugins( 'instamigrate/insta-migrate.php', true );
+				if ( is_plugin_active( self::INSTAMIGRATE_PLUGIN ) ) {
+					deactivate_plugins( self::INSTAMIGRATE_PLUGIN, true );
 				}
 			} catch ( \Throwable $e ) {
 				Helper::add_error_log( 'InstaMigrate cleanup: deactivate threw - ' . $e->getMessage() );
@@ -377,7 +372,7 @@ class InstaWP_Staging_V4 {
 			 * 500 on work the user is not waiting for.
 			 */
 			try {
-				$deleted = delete_plugins( array( 'instamigrate/insta-migrate.php' ) );
+				$deleted = delete_plugins( array( self::INSTAMIGRATE_PLUGIN ) );
 			} catch ( \Throwable $e ) {
 				Helper::add_error_log( 'InstaMigrate cleanup: delete threw - ' . $e->getMessage() );
 
@@ -560,8 +555,12 @@ class InstaWP_Staging_V4 {
 			$dirty                = true;
 		}
 
+		// A terminal status is final: once the record says the run ended, nothing rewrites it --
+		// not a later poll, not Cancel, not the push.
+		$already_ended = in_array( Helper::get_args_option( 'status', $details, '' ), array( 'completed', 'failed' ), true );
+
 		// client-app's status, verbatim. The record's update hook reads it to decide about the plugin.
-		if ( '' !== $status && $status !== Helper::get_args_option( 'status', $details, '' ) ) {
+		if ( ! $already_ended && '' !== $status && $status !== Helper::get_args_option( 'status', $details, '' ) ) {
 			$details['status'] = $status;
 			$dirty             = true;
 		}
@@ -575,7 +574,7 @@ class InstaWP_Staging_V4 {
 		 * saw finish. The window then does what it is actually for: retiring runs whose outcome we
 		 * never observed because the tab was closed first.
 		 */
-		if ( in_array( $status, array( 'completed', 'failed' ), true ) && empty( $details['finished_at'] ) ) {
+		if ( ! $already_ended && in_array( $status, array( 'completed', 'failed' ), true ) && empty( $details['finished_at'] ) ) {
 			// The migration's OWN completion time when client-app sent one -- DETAILS_RETENTION is
 			// measured from when the run ended, not from when this poll happened to notice.
 			$completed_at = strtotime( (string) Helper::get_args_option( 'completed_at', $data, '' ) );
@@ -702,6 +701,11 @@ class InstaWP_Staging_V4 {
 				'message'    => esc_html__( 'A staging migration is already in progress.', 'instawp-connect' ),
 			);
 		}
+
+		// The run has begun, from the user's point of view. Recorded NOW so an attempt that installs
+		// instamigrate and then fails before remember_run() -- staging-init refused, live-import/start
+		// failed -- still has a clock: the 48h check retires it, and the delete hook removes the plugin.
+		Option::update_option( self::DETAILS_OPTION, array( 'started_at' => time() ), false );
 
 		$connect_id = instawp_get_connect_id();
 
@@ -916,7 +920,7 @@ class InstaWP_Staging_V4 {
 	 * @return string|WP_Error
 	 */
 	private static function provision_instamigrate() {
-		$plugin_file  = WP_PLUGIN_DIR . '/instamigrate/insta-migrate.php';
+		$plugin_file  = WP_PLUGIN_DIR . '/' . self::INSTAMIGRATE_PLUGIN;
 		$pre_existing = file_exists( $plugin_file );
 
 		// is_plugin_active() and activate_plugin() are wp-admin only; admin-ajax does not load them.
@@ -975,7 +979,7 @@ class InstaWP_Staging_V4 {
 		 * Activation still needs its own capability: install_plugins (checked above) is not
 		 * activate_plugins, and on multisite they are held by different people.
 		 */
-		if ( $pre_existing && ! is_plugin_active( 'instamigrate/insta-migrate.php' ) ) {
+		if ( $pre_existing && ! is_plugin_active( self::INSTAMIGRATE_PLUGIN ) ) {
 			if ( ! current_user_can( 'activate_plugins' ) ) {
 				return new WP_Error(
 					'cannot_activate_plugins',
@@ -983,7 +987,7 @@ class InstaWP_Staging_V4 {
 				);
 			}
 
-			$activated = activate_plugin( 'instamigrate/insta-migrate.php' );
+			$activated = activate_plugin( self::INSTAMIGRATE_PLUGIN );
 
 			if ( is_wp_error( $activated ) ) {
 				return $activated;
