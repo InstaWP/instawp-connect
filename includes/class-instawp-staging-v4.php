@@ -548,6 +548,14 @@ class InstaWP_Staging_V4 {
 				return true;
 			}
 
+			// What the plugin has already SEEN outranks a fresh request. finished_at is stamped by the
+			// poll on a terminal status and instamigrate_removed_at on confirmed removal; either one
+			// means the run ended, and a run known to have ended must not become "unconfirmed" just
+			// because client-app is unreachable at this moment. No round trip when the answer is local.
+			if ( ! empty( $details['finished_at'] ) || ! empty( $details['instamigrate_removed_at'] ) ) {
+				return true;
+			}
+
 			return self::is_terminal_status( self::fetch_run_status( $uuid ) );
 		} catch ( \Throwable $e ) {
 			Helper::add_error_log( 'Could not confirm the migration has ended: ' . $e->getMessage() );

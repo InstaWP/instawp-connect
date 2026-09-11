@@ -577,20 +577,28 @@ class InstaWP_Rest_Api {
 
 		// The docblock above promises 200 even when the delete fails, and a throw would break that
 		// promise -- client-app would retry a terminal notification that can never succeed.
+		$removed = false;
+
 		try {
 			// The push SAYS the run ended; confirm it before removing anything. A notification can be
 			// delayed, replayed, or simply wrong, and the plugin is the site's only agent.
 			if ( InstaWP_Staging_V4::run_has_ended() ) {
 				InstaWP_Staging_V4::cleanup_instamigrate();
+
+				$removed = true;
 			}
 		} catch ( \Throwable $e ) {
 			Helper::add_error_log( 'InstaMigrate cleanup via REST failed: ' . $e->getMessage() );
 		}
 
+		// 200 either way, per the docblock -- but say what actually happened. A refused cleanup
+		// reported as "removed" would send anyone reading the log looking in the wrong place.
 		return $this->send_response(
 			array(
 				'status'  => true,
-				'message' => __( 'Migration agent removed.', 'instawp-connect' ),
+				'message' => $removed
+					? __( 'Migration agent removed.', 'instawp-connect' )
+					: __( 'Migration still live; agent left in place.', 'instawp-connect' ),
 			)
 		);
 	}

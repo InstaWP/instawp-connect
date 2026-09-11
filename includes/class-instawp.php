@@ -134,9 +134,26 @@ class instaWP {
 		$migrate_id        = Helper::get_args_option( 'migrate_id', $migration_details );
 		$migrate_key       = Helper::get_args_option( 'migrate_key', $migration_details );
 
-		if ( empty( $migrate_id ) && empty( $migrate_key ) ) {
-			instawp_reset_running_migration();
+		if ( ! empty( $migrate_id ) || ! empty( $migrate_key ) ) {
+			return;
 		}
+
+		/*
+		 * A V4 run sets neither field above, so for the whole of one this job used to reset daily --
+		 * wiping the record of a migration client-app still reported as live.
+		 *
+		 * The gate lives HERE, not in instawp_reset_running_migration(). This is the one passive caller
+		 * of the reset: no user behind it, no lost connection, no instruction from client-app. The ten
+		 * others are exactly those things, and several of them run precisely when the connect is gone
+		 * -- so a status check there could never succeed and refused them forever.
+		 *
+		 * Refusing here costs nothing: the job runs again tomorrow.
+		 */
+		if ( class_exists( 'InstaWP_Staging_V4' ) && ! InstaWP_Staging_V4::run_has_ended() ) {
+			return;
+		}
+
+		instawp_reset_running_migration();
 	}
 
 	/**

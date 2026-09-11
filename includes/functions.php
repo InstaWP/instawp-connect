@@ -351,26 +351,14 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 		global $wpdb;
 
 		/*
-		 * A live V4 run owns this site's migration state. Nothing below may touch it until client-app
-		 * says the run has ended.
+		 * NO status gate here, deliberately. Eleven callers reach this function; ten of them are a user
+		 * action (disconnect, ?clear=all, WP-CLI), connection-loss recovery (heartbeat 404, origin
+		 * invalid), or client-app instructing us to reset -- and in the recovery cases the connect is
+		 * already gone, so a status check could never succeed and a gate here refused them forever.
+		 * disconnect_api() even revokes the token BEFORE calling this, then reports success.
 		 *
-		 * FIRST, ahead of every delete, the backup sweep and the hard-reset branch -- not a guard on
-		 * the one V4 line. This function is not only reached by aborts: InstaWP::clean_migrate_files()
-		 * calls it from a DAILY scheduled job whenever instawp_migration_details carries no migrate_id
-		 * and no migrate_key, fields only a V3 migration ever sets, so that condition holds for the
-		 * whole of every V4 run. Ungated, routine housekeeping wiped the record of a migration that
-		 * was still running.
-		 *
-		 * An explicit abort of a live V4 run is refused too, and that is intended: the user's route to
-		 * stop one is the Cancel button, which cancels at client-app first. Once that reports terminal
-		 * -- or when there is no V4 run at all -- this proceeds exactly as before.
-		 *
-		 * class_exists(): this file loads before the class does.
+		 * The one passive caller, InstaWP::clean_migrate_files(), carries its own gate.
 		 */
-		if ( class_exists( 'InstaWP_Staging_V4' ) && ! InstaWP_Staging_V4::run_has_ended() ) {
-			return false;
-		}
-
 		$migration_details = Option::get_option( 'instawp_migration_details' );
 		$migrate_id        = Helper::get_args_option( 'migrate_id', $migration_details );
 		$migrate_key       = Helper::get_args_option( 'migrate_key', $migration_details );
