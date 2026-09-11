@@ -271,115 +271,135 @@ class InstaWP_Staging_V4 {
 	 * @return bool whether the plugin is gone from disk when this returns.
 	 */
 	public static function cleanup_instamigrate() {
-		$plugin_file = WP_PLUGIN_DIR . '/instamigrate/insta-migrate.php';
-
 		/*
-		 * The run record is LEFT ALONE. An earlier revision deleted it here, which broke two things:
-		 *
-		 *  - staging_status() reads the uuid from it, so once it was gone the watcher's next poll
-		 *    answered "No staging migration in progress", and five of those (15 seconds) painted
-		 *    "Migration Failed" over a migration that had just SUCCEEDED. client-app's completion
-		 *    push races a 3s poll, so that was the normal ending, not a corner case.
-		 *  - it also removed the only state resumable_run() and the 48h arm read, so nothing could
-		 *    retry a delete that had failed -- while the REST handler's docblock claimed admin_init
-		 *    would.
-		 *
-		 * What retires the run is instamigrate_removed_at below, written only when the files are
-		 * actually gone.
+		 * Nothing escapes. This is reached from option hooks that fire wherever the record is written
+		 * -- admin-ajax, REST, cron, WP-CLI -- and not every one of those has the admin bootstrap
+		 * behind it: WP_PLUGIN_DIR can be undefined, which on PHP 8 is an Error, not a notice. A throw
+		 * here would surface as a fatal in whatever request happened to write the record.
 		 */
-		if ( ! file_exists( $plugin_file ) ) {
+		try {
+			// The class before the file: no InstaMigrate loaded means nothing of ours to remove, and it is
+			// answered without touching the filesystem or any constant that may not exist.
+			if ( ! class_exists( 'InstaMigrate' ) ) {
+				self::mark_instamigrate_removed();
+
+				return true;
+			}
+
+			$plugin_file = WP_PLUGIN_DIR . '/instamigrate/insta-migrate.php';
+
+			/*
+			 * The run record is LEFT ALONE. An earlier revision deleted it here, which broke two things:
+			 *
+			 *  - staging_status() reads the uuid from it, so once it was gone the watcher's next poll
+			 *    answered "No staging migration in progress", and five of those (15 seconds) painted
+			 *    "Migration Failed" over a migration that had just SUCCEEDED. client-app's completion
+			 *    push races a 3s poll, so that was the normal ending, not a corner case.
+			 *  - it also removed the only state resumable_run() and the 48h arm read, so nothing could
+			 *    retry a delete that had failed -- while the REST handler's docblock claimed admin_init
+			 *    would.
+			 *
+			 * What retires the run is instamigrate_removed_at below, written only when the files are
+			 * actually gone.
+			 */
+			if ( ! file_exists( $plugin_file ) ) {
+				self::mark_instamigrate_removed();
+
+				return true;
+			}
+
+			/*
+			 * `delete_plugins`, and ONLY when a user is driving this.
+			 *
+			 * Two callers reach here, and they need opposite answers:
+			 *
+			 *  - The REST push from client-app is authenticated by API key. validate_api_request() never
+			 *    calls wp_set_current_user(), so there is no WP user at all -- is_user_logged_in() is
+			 *    false and cleanup proceeds. That is the path that MUST always run: the migration is over
+			 *    and the agent has to come off regardless of who happens to be logged in.
+			 *  - staging_status() and staging_cancel() arrive over admin-ajax, where verify_ajax_request()
+			 *    has checked a nonce and manage_options. That is the right check for "may configure
+			 *    InstaWP" but not for "may remove files from this filesystem", so the capability matching
+			 *    the side effect is checked here.
+			 *
+			 * On single-site WP an Administrator holds both and nothing changes. On MULTISITE a subsite
+			 * Administrator holds manage_options but NOT delete_plugins, and delete_plugins is also how WP
+			 * enforces DISALLOW_FILE_MODS -- where delete_plugins() would fail anyway, so this only turns
+			 * a silent failure into an early return.
+			 *
+			 * Mirrors provision_instamigrate()'s install_plugins check on the way in, and the identical
+			 * gate maybe_cleanup_instamigrate() already applies on the admin_init path.
+			 */
+			if ( is_user_logged_in() && ! current_user_can( 'delete_plugins' ) ) {
+				return false;
+			}
+
+			/*
+			 * BOTH includes, every time.
+			 *
+			 * delete_plugins() lives in wp-admin/includes/plugin.php and needs the filesystem API from
+			 * file.php. Neither is loaded in a REST request, which is exactly how the client-app
+			 * notification arrives -- so relying on the admin bootstrap would work on the admin_init path
+			 * and fatal on the push path. provision_instamigrate() already guards plugin.php the same way.
+			 */
+			if ( ! function_exists( 'delete_plugins' ) && file_exists( ABSPATH . 'wp-admin/includes/plugin.php' ) ) {
+				require_once ABSPATH . 'wp-admin/includes/plugin.php';
+			}
+
+			if ( ! function_exists( 'request_filesystem_credentials' ) && file_exists( ABSPATH . 'wp-admin/includes/file.php' ) ) {
+				require_once ABSPATH . 'wp-admin/includes/file.php';
+			}
+
+			if ( ! function_exists( 'delete_plugins' ) ) {
+				Helper::add_error_log( 'InstaMigrate cleanup: delete_plugins() unavailable' );
+
+				return false;
+			}
+
+			// Deactivate before deleting. delete_plugins() removes the files either way, but an entry left
+			// in active_plugins for a directory that no longer exists is what produces "plugin file does
+			// not exist" on the next admin load.
+			// Same reasoning as the delete below: deactivate_plugins() fires deactivation hooks, and a
+			// fatal in somebody else's hook must not become our caller's fatal.
+			try {
+				if ( is_plugin_active( 'instamigrate/insta-migrate.php' ) ) {
+					deactivate_plugins( 'instamigrate/insta-migrate.php', true );
+				}
+			} catch ( \Throwable $e ) {
+				Helper::add_error_log( 'InstaMigrate cleanup: deactivate threw - ' . $e->getMessage() );
+			}
+
+			/*
+			 * delete_plugins() touches the filesystem through WP_Filesystem, which can fail in ways that
+			 * throw rather than return WP_Error -- no credentials, a read-only mount, an unwritable
+			 * plugins directory. Every caller of this method is a background one (admin_init, a REST
+			 * notification, the cancel handler), so a throw here would surface as a white screen or a
+			 * 500 on work the user is not waiting for.
+			 */
+			try {
+				$deleted = delete_plugins( array( 'instamigrate/insta-migrate.php' ) );
+			} catch ( \Throwable $e ) {
+				Helper::add_error_log( 'InstaMigrate cleanup: delete threw - ' . $e->getMessage() );
+
+				return false;
+			}
+
+			if ( is_wp_error( $deleted ) || false === $deleted ) {
+				Helper::add_error_log(
+					'InstaMigrate cleanup: delete failed - ' . ( is_wp_error( $deleted ) ? $deleted->get_error_message() : 'unknown' )
+				);
+
+				return false;
+			}
+
 			self::mark_instamigrate_removed();
 
 			return true;
-		}
-
-		/*
-		 * `delete_plugins`, and ONLY when a user is driving this.
-		 *
-		 * Two callers reach here, and they need opposite answers:
-		 *
-		 *  - The REST push from client-app is authenticated by API key. validate_api_request() never
-		 *    calls wp_set_current_user(), so there is no WP user at all -- is_user_logged_in() is
-		 *    false and cleanup proceeds. That is the path that MUST always run: the migration is over
-		 *    and the agent has to come off regardless of who happens to be logged in.
-		 *  - staging_status() and staging_cancel() arrive over admin-ajax, where verify_ajax_request()
-		 *    has checked a nonce and manage_options. That is the right check for "may configure
-		 *    InstaWP" but not for "may remove files from this filesystem", so the capability matching
-		 *    the side effect is checked here.
-		 *
-		 * On single-site WP an Administrator holds both and nothing changes. On MULTISITE a subsite
-		 * Administrator holds manage_options but NOT delete_plugins, and delete_plugins is also how WP
-		 * enforces DISALLOW_FILE_MODS -- where delete_plugins() would fail anyway, so this only turns
-		 * a silent failure into an early return.
-		 *
-		 * Mirrors provision_instamigrate()'s install_plugins check on the way in, and the identical
-		 * gate maybe_cleanup_instamigrate() already applies on the admin_init path.
-		 */
-		if ( is_user_logged_in() && ! current_user_can( 'delete_plugins' ) ) {
-			return false;
-		}
-
-		/*
-		 * BOTH includes, every time.
-		 *
-		 * delete_plugins() lives in wp-admin/includes/plugin.php and needs the filesystem API from
-		 * file.php. Neither is loaded in a REST request, which is exactly how the client-app
-		 * notification arrives -- so relying on the admin bootstrap would work on the admin_init path
-		 * and fatal on the push path. provision_instamigrate() already guards plugin.php the same way.
-		 */
-		if ( ! function_exists( 'delete_plugins' ) && file_exists( ABSPATH . 'wp-admin/includes/plugin.php' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/plugin.php';
-		}
-
-		if ( ! function_exists( 'request_filesystem_credentials' ) && file_exists( ABSPATH . 'wp-admin/includes/file.php' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/file.php';
-		}
-
-		if ( ! function_exists( 'delete_plugins' ) ) {
-			Helper::add_error_log( 'InstaMigrate cleanup: delete_plugins() unavailable' );
-
-			return false;
-		}
-
-		// Deactivate before deleting. delete_plugins() removes the files either way, but an entry left
-		// in active_plugins for a directory that no longer exists is what produces "plugin file does
-		// not exist" on the next admin load.
-		// Same reasoning as the delete below: deactivate_plugins() fires deactivation hooks, and a
-		// fatal in somebody else's hook must not become our caller's fatal.
-		try {
-			if ( is_plugin_active( 'instamigrate/insta-migrate.php' ) ) {
-				deactivate_plugins( 'instamigrate/insta-migrate.php', true );
-			}
 		} catch ( \Throwable $e ) {
-			Helper::add_error_log( 'InstaMigrate cleanup: deactivate threw - ' . $e->getMessage() );
-		}
-
-		/*
-		 * delete_plugins() touches the filesystem through WP_Filesystem, which can fail in ways that
-		 * throw rather than return WP_Error -- no credentials, a read-only mount, an unwritable
-		 * plugins directory. Every caller of this method is a background one (admin_init, a REST
-		 * notification, the cancel handler), so a throw here would surface as a white screen or a
-		 * 500 on work the user is not waiting for.
-		 */
-		try {
-			$deleted = delete_plugins( array( 'instamigrate/insta-migrate.php' ) );
-		} catch ( \Throwable $e ) {
-			Helper::add_error_log( 'InstaMigrate cleanup: delete threw - ' . $e->getMessage() );
+			Helper::add_error_log( 'InstaMigrate cleanup failed: ' . $e->getMessage() );
 
 			return false;
 		}
-
-		if ( is_wp_error( $deleted ) || false === $deleted ) {
-			Helper::add_error_log(
-				'InstaMigrate cleanup: delete failed - ' . ( is_wp_error( $deleted ) ? $deleted->get_error_message() : 'unknown' )
-			);
-
-			return false;
-		}
-
-		self::mark_instamigrate_removed();
-
-		return true;
 	}
 
 	/**
