@@ -226,22 +226,63 @@ this feature that fails invisibly.
 `vendor/instawp/connect-helpers/` with whatever upstream `main` holds, and no test notices. Any change
 made to the vendored copy must be merged upstream before release, or it disappears.
 
-## Failure handling
+## The run record, and how instamigrate comes off again
 
-If client-app cannot be reached *after* `instamigrate` has been installed, the run records
-`instawp_instamigrate_orphaned` and logs through `Helper::add_error_log()`.
+One option, `instawp_staging_v4_details`, holds the whole lifecycle of a run -- from before
+instamigrate is installed to after it is removed:
 
-The flag is set at the point of a REAL install (skipped when instamigrate was already active, so we
-never claim responsibility for a plugin we did not install) and cleared by `remember_run()` once a
-migration references it. Setting it where the obligation is *incurred*, rather than at each site
-where it might be discharged, is deliberate: an earlier revision marked it at three individual
-failure sites and missed the two early returns in `provision_instamigrate()` — which are exactly the
-"installed, but no migration" case.
+| field | written by | when |
+|---|---|---|
+| `status` | every transition below | see the vocabulary |
+| `installing_at` | `provision_instamigrate()` | before the install is attempted |
+| `installed_at` | `provision_instamigrate()` | once the plugin file is on the site (decided from the site, not the installer's return value) |
+| `uuid`, `started_at` | `remember_run()` | after `live-import/{uuid}/start` succeeds |
+| `agent_url` | the poll | first time client-app reports one |
+| `finished_at` | the poll, the push, or Cancel | on a terminal status |
+| `instamigrate_removed_at` | `cleanup_instamigrate()` | on confirmed removal |
 
-⚠ **This is a breadcrumb, not a rollback.** Nothing reads the option and nothing uninstalls
-instamigrate, so the plugin does stay on the customer's site. A lingering value means precisely "we
-installed this and the run never started". Real cleanup — an admin notice, or deactivate-and-delete
-once the flag is stale — is a separate change and is not implemented.
+**Status vocabulary.** Three of our own before client-app has anything to say, then client-app's
+status verbatim:
+
+```
+installing -> installed -> started -> <migrating | blocked | ...> -> completed | failed
+```
+
+**The record is kept current by three channels** that exist for other reasons: the 3s poll
+(`staging_status()`, which fetches the status to draw the screen), client-app's terminal push
+(`v1/migration-finished`, uuid-guarded, the only channel that reaches a site whose tab is closed),
+and the user's own Cancel.
+
+**Every cleanup decision reads the record and nothing else.** `cleanup_allowed()`:
+
+- a V3 migration in flight -> no
+- no record -> yes (nothing to protect)
+- record terminal -> yes
+- not terminal, under `CLEANUP_DEADLINE` (48h) -> no
+- 48h or older, whatever the status -> yes, forced
+
+No request is made to client-app to decide. Every earlier design asked at decision time, and every
+failure came from that question being unanswerable at the wrong moment -- a revoked token, a deleted
+connect, an outage -- and "unknown" either deleting a live run's agent or locking a site out of
+cleaning up at all. Read locally, staleness can only *delay* a cleanup; it cannot cause a premature
+one.
+
+The 48h anchor is `started_at`, else `installed_at`, else `installing_at`; a record with no usable
+timestamp fails closed. On the forced path a best-effort `migrations/{uuid}/cancel` goes out first,
+so the agent is told to stop before the plugin is pulled from under it -- the one outbound request
+the cleanup ever makes.
+
+**Who runs it.** `cleanup_if_allowed()` is the single sequence: admin_init (for an admin holding
+`delete_plugins`), the daily `instawp_clean_migrate_files` job (which then also resets the record),
+and the REST push. The user's Cancel is deliberately not gated -- the confirmation box is the
+decision. `instawp_reset_running_migration()` itself is not gated either: ten of its eleven callers
+are user actions, connection-loss recovery, or client-app instructing us, and several run precisely
+when the connect is gone.
+
+**"Installed, run never started"** is not a separate flag any more: it is a record at
+`STATUS_INSTALLED` with no uuid, retired by the same deadline. It is announced once through
+`Helper::add_error_log()` at the point the run gives up, and the once-only latch survives a retry
+against the same outstanding install.
 
 ## Return shapes — the trap worth knowing
 

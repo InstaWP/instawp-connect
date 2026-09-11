@@ -47,6 +47,8 @@ namespace {
 		public static $deleted_plugins = array();
 		public static $reset_calls     = array();
 		public static $log             = array();
+		public static $install_succeeds = true;
+		public static $install_calls    = 0;
 
 		public static function reset() {
 			self::$options         = array();
@@ -58,6 +60,8 @@ namespace {
 			self::$deleted_plugins = array();
 			self::$reset_calls     = array();
 			self::$log             = array();
+			self::$install_succeeds = true;
+			self::$install_calls    = 0;
 
 			self::rmdir_recursive( WP_PLUGIN_DIR );
 			mkdir( WP_PLUGIN_DIR, 0777, true );
@@ -168,6 +172,10 @@ namespace {
 	}
 
 	function deactivate_plugins( $plugins, $silent = false ) {}
+
+	function activate_plugin( $plugin ) {
+		return null;
+	}
 
 	function request_filesystem_credentials() {
 		return true;
@@ -340,6 +348,25 @@ namespace InstaWP\Connect\Helpers {
 
 		public static function add_error_log( $payload, $th = null ) {
 			\IWP_Test_World::$log[] = $payload;
+		}
+
+		/** The installer, faked: puts the file on the "site" unless told to fail. */
+		public static function installInstaMigrate() {
+			\IWP_Test_World::$install_calls++;
+
+			if ( ! \IWP_Test_World::$install_succeeds ) {
+				return array( 'success' => false, 'message' => 'simulated install failure' );
+			}
+
+			if ( ! \IWP_Test_World::instamigrate_installed() ) {
+				\IWP_Test_World::install_instamigrate();
+			}
+
+			return array( 'success' => true );
+		}
+
+		public static function getInstaMigrateApiKey() {
+			return array( 'success' => true, 'data' => array( 'insta_mig_key' => 'test-key' ) );
 		}
 	}
 

@@ -132,9 +132,10 @@ class instaWP {
 		/*
 		 * Housekeeping must not touch a migration that is still running -- V3 or V4.
 		 *
-		 * One question, one method: run_has_ended() answers for whichever engine holds the run. This
-		 * job used to test V3's identifiers inline and knew nothing of V4, so for the whole of a V4
-		 * run it reset daily, wiping the record of a migration client-app still reported as live.
+		 * One question, one method: cleanup_allowed() answers for whichever engine holds the run,
+		 * from the run record alone -- no request to client-app. This job used to test V3's
+		 * identifiers inline and knew nothing of V4, so for the whole of a V4 run it reset daily,
+		 * wiping the record of a migration client-app still reported as live.
 		 *
 		 * The gate lives HERE, not in instawp_reset_running_migration(). This is the one passive caller
 		 * of the reset: no user behind it, no lost connection, no instruction from client-app. The ten
@@ -143,8 +144,13 @@ class instaWP {
 		 *
 		 * Refusing here costs nothing: the job runs again tomorrow.
 		 */
-		if ( class_exists( 'InstaWP_Staging_V4' ) && ! InstaWP_Staging_V4::run_has_ended() ) {
-			return;
+		if ( class_exists( 'InstaWP_Staging_V4' ) ) {
+			if ( ! InstaWP_Staging_V4::cleanup_allowed() ) {
+				return;
+			}
+
+			// Allowed means terminal, or past the deadline: either way the agent comes off too.
+			InstaWP_Staging_V4::cleanup_if_allowed();
 		}
 
 		instawp_reset_running_migration();
