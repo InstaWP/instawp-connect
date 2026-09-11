@@ -575,12 +575,29 @@ class InstaWP_Rest_Api {
 			);
 		}
 
-		// The docblock above promises 200 even when the delete fails, and a throw would break that
+		// Record the ending client-app is reporting; the record's update hook removes instamigrate.
+		// Only a terminal status is written -- this endpoint announces endings and nothing else.
+		// The docblock above promises 200 even when that fails, and a throw would break that
 		// promise -- client-app would retry a terminal notification that can never succeed.
 		try {
-			InstaWP_Staging_V4::cleanup_instamigrate();
+			$status = sanitize_text_field( (string) $request->get_param( 'status' ) );
+
+			$details = (array) Option::get_option( InstaWP_Staging_V4::DETAILS_OPTION );
+
+			// Only a terminal status is written, and never over one: the record's first ending stands.
+			if ( in_array( $status, array( 'completed', 'failed' ), true )
+				&& ! in_array( Helper::get_args_option( 'status', $details, '' ), array( 'completed', 'failed' ), true )
+			) {
+				$details['status'] = $status;
+
+				if ( empty( $details['finished_at'] ) ) {
+					$details['finished_at'] = time();
+				}
+
+				Option::update_option( InstaWP_Staging_V4::DETAILS_OPTION, $details, false );
+			}
 		} catch ( \Throwable $e ) {
-			Helper::add_error_log( 'InstaMigrate cleanup via REST failed: ' . $e->getMessage() );
+			Helper::add_error_log( 'Recording migration-finished failed: ' . $e->getMessage() );
 		}
 
 		return $this->send_response(
