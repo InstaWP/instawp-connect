@@ -71,12 +71,12 @@ class InstaWP_Staging_V4 {
 	const CLEANUP_DEADLINE = 48 * HOUR_IN_SECONDS;
 
 	/**
-	 * How often an admin page load may ask client-app whether the run has finished.
+	 * How long a finished run's record is kept before it is deleted.
 	 *
-	 * admin_init fires on EVERY wp-admin request, so without a throttle a busy dashboard would call
-	 * client-app dozens of times a minute for a run whose answer changes once.
+	 * The plugin comes off the moment the run ends; the record stays six hours so the admin can look
+	 * at how it ended. Measured from the migration's own completion time, not from when we noticed.
 	 */
-	const STATUS_CHECK_INTERVAL = 6 * HOUR_IN_SECONDS;
+	const DETAILS_RETENTION = 6 * HOUR_IN_SECONDS;
 
 	const ORPHAN_OPTION = 'instawp_instamigrate_orphaned';
 
@@ -95,6 +95,59 @@ class InstaWP_Staging_V4 {
 		add_action( 'wp_ajax_instawp_staging_status_v4', array( $this, 'staging_status' ) );
 		add_action( 'wp_ajax_instawp_staging_cancel_v4', array( $this, 'staging_cancel' ) );
 		add_action( 'admin_init', array( $this, 'maybe_cleanup_instamigrate' ) );
+
+		// The record's own option hooks remove instamigrate. Writers just write; nobody calls cleanup.
+		add_action( 'update_option_' . self::DETAILS_OPTION, array( __CLASS__, 'on_record_updated' ), 10, 2 );
+		add_action( 'delete_option_' . self::DETAILS_OPTION, array( __CLASS__, 'on_record_deleted' ) );
+	}
+
+	/**
+	 * update_option_{record}: the record changed. A terminal status means the plugin comes off.
+	 *
+	 * Reads only. Never writes the option, so it never re-fires itself. Defaults on both parameters
+	 * so nothing WordPress passes (or does not pass) can throw.
+	 *
+	 * @param mixed $old_value The previous record.
+	 * @param mixed $value     The record as it now is.
+	 */
+	public static function on_record_updated( $old_value = null, $value = null ) {
+		if ( ! class_exists( 'InstaMigrate' ) ) {
+			return;
+		}
+
+		$value = is_array( $value ) ? $value : array();
+
+		if ( in_array( isset( $value['status'] ) ? $value['status'] : '', array( 'completed', 'failed' ), true ) ) {
+			self::cleanup_instamigrate();
+		}
+	}
+
+	/**
+	 * delete_option_{record}: the record is gone, so the plugin goes with it.
+	 *
+	 * @param string $option The option name.
+	 */
+	public static function on_record_deleted( $option = '' ) {
+		if ( class_exists( 'InstaMigrate' ) ) {
+			self::cleanup_instamigrate();
+		}
+	}
+
+	/**
+	 * Is this record past its retention -- terminal, and the migration completed more than
+	 * DETAILS_RETENTION ago? The one condition for deleting the record, used by admin_init and by
+	 * instawp_reset_running_migration().
+	 *
+	 * @param mixed $details The record.
+	 *
+	 * @return bool
+	 */
+	public static function details_expired( $details ) {
+		$details = is_array( $details ) ? $details : array();
+
+		return in_array( isset( $details['status'] ) ? $details['status'] : '', array( 'completed', 'failed' ), true )
+			&& ! empty( $details['finished_at'] )
+			&& ( time() - (int) $details['finished_at'] ) > self::DETAILS_RETENTION;
 	}
 
 	/**
@@ -152,8 +205,11 @@ class InstaWP_Staging_V4 {
 			);
 		}
 
-		// The run is terminal now, so its instamigrate is serving nothing.
-		self::cleanup_instamigrate();
+		// The run is terminal now. Record it; the record's update hook removes instamigrate.
+		$details['status']      = 'failed';
+		$details['finished_at'] = time();
+
+		Option::update_option( self::DETAILS_OPTION, $details, false );
 
 		// No payload. The caller does not branch on this -- the watcher is already polling and owns
 		// what the screen shows, so anything returned here would be a second source of truth for a
@@ -162,150 +218,42 @@ class InstaWP_Staging_V4 {
 	}
 
 	/**
-	 * admin_init: retire instamigrate once its migration can no longer use it.
+	 * admin_init: delete a run record that has outlived its use. Two time checks, nothing else.
 	 *
-	 * Two arms, cheapest first, because this runs on EVERY wp-admin request:
+	 *   finished, and DETAILS_RETENTION has passed since the migration completed -> delete it
+	 *   started, and CLEANUP_DEADLINE has passed with no end ever recorded          -> delete it
 	 *
-	 *   past CLEANUP_DEADLINE  -> cancel the run and delete, WITHOUT asking client-app. Past two days
-	 *                             the status cannot change the outcome, so spending an HTTP call to
-	 *                             reach the same answer is waste.
-	 *   past STATUS_CHECK_INTERVAL -> ask client-app. Terminal, delete. Anything else -- including an
-	 *                             error or no reply -- leave it and look again later. Nothing is
-	 *                             deleted on a guess.
+	 * The delete fires the record's delete hook, which removes instamigrate if it is still there.
+	 * No request to client-app is made here, and cleanup is never called directly.
 	 *
-	 * Gated on delete_plugins rather than manage_options: this ends in delete_plugins(), and the two
-	 * are held by different people on multisite. It is also how WP routes DISALLOW_FILE_MODS, which
-	 * many managed hosts set -- skipping the capability would skip the host's policy with it.
+	 * Gated on delete_plugins rather than manage_options: the delete hook ends in delete_plugins(),
+	 * and the two are held by different people on multisite. It is also how WP routes
+	 * DISALLOW_FILE_MODS, which many managed hosts set.
 	 */
 	public function maybe_cleanup_instamigrate() {
-		/*
-		 * NOTHING escapes this method.
-		 *
-		 * It is on admin_init, so it runs on EVERY wp-admin request -- and it reaches out over HTTP
-		 * (Curl::do_curl) and into the filesystem (delete_plugins). A throw from either would be a
-		 * white screen on every admin page, for a background tidy-up the admin did not ask for and
-		 * cannot see. Failing quietly and trying again in six hours is always the better trade here.
-		 *
-		 * Throwable, not Exception: a TypeError or a missing-function Error out of WordPress internals
-		 * is exactly the class of failure that would otherwise take the dashboard down.
-		 */
+		// On admin_init, so on EVERY wp-admin request: a throw would be a white screen on every
+		// admin page for a tidy-up the admin did not ask for. Throwable, not Exception -- a TypeError
+		// out of WordPress internals is exactly the class of failure that would take the dashboard down.
 		try {
-			$this->run_cleanup_check();
-		} catch ( \Throwable $e ) {
-			Helper::add_error_log( 'InstaMigrate cleanup check failed: ' . $e->getMessage() );
-		}
-	}
-
-	/**
-	 * The body of the admin_init check. See maybe_cleanup_instamigrate() for why it is wrapped.
-	 */
-	private function run_cleanup_check() {
-		if ( ! is_user_logged_in() || ! current_user_can( 'delete_plugins' ) ) {
-			return;
-		}
-
-		$details = (array) Option::get_option( self::DETAILS_OPTION );
-		$uuid    = Helper::get_args_option( 'uuid', $details, '' );
-
-		if ( empty( $uuid ) ) {
-			/*
-			 * No run, but we may still have installed instamigrate for one that never started.
-			 *
-			 * remember_run() only fires after live-import/start succeeds, and every arm below is
-			 * gated on that uuid -- so a staging-init that 404s or is refused left the plugin
-			 * installed and ACTIVE with no path out at all. ORPHAN_OPTION is exactly that record:
-			 * set on a real install, cleared once a migration references it, so a lingering value
-			 * means "we installed this and the run never started".
-			 *
-			 * Same deadline as a live run rather than a second number. There is no migration to
-			 * protect here, so it could be shorter -- but a user whose first attempt failed often
-			 * retries within minutes, and provision_instamigrate() would then reinstall what we had
-			 * just removed.
-			 */
-			$orphaned_at = (int) Option::get_option( self::ORPHAN_OPTION, 0 );
-
-			if ( $orphaned_at > 0 && ( time() - $orphaned_at ) > self::CLEANUP_DEADLINE ) {
-				/*
-				 * Gated on the RESULT. cleanup_instamigrate() returns false when delete_plugins() is
-				 * unavailable, throws, or hands back a WP_Error -- a read-only mount, DISALLOW_FILE_MODS,
-				 * no filesystem credentials. Clearing the flag regardless destroyed the only record
-				 * that we installed it, so nothing ever retried and instamigrate stayed on a
-				 * customer's production site for good. The uuid arm already gets this right:
-				 * instamigrate_removed_at is written only on confirmed removal.
-				 */
-				if ( self::cleanup_instamigrate() ) {
-					Option::delete_option( self::ORPHAN_OPTION );
-					Option::delete_option( self::ORPHAN_LOGGED_OPTION );
-				}
+			if ( ! is_user_logged_in() || ! current_user_can( 'delete_plugins' ) ) {
+				return;
 			}
 
-			return;
-		}
+			$details = (array) Option::get_option( self::DETAILS_OPTION );
 
-		// Already removed, so neither arm has anything to do. Checked before the deadlines because
-		// the run record now OUTLIVES the cleanup -- it is kept for the watcher and the resume -- so
-		// without this every admin page load would re-run the 6h status call forever.
-		if ( ! empty( Helper::get_args_option( 'instamigrate_removed_at', $details, 0 ) ) ) {
-			return;
-		}
+			if ( self::details_expired( $details ) ) {
+				delete_option( self::DETAILS_OPTION );
 
-		$started_at = (int) Helper::get_args_option( 'started_at', $details, 0 );
+				return;
+			}
 
-		/*
-		 * A missing or zero start time fails CLOSED -- it is not evidence the run is old, and treating
-		 * it as epoch would make every such run instantly past the deadline and delete on the next
-		 * admin load. resumable_run() takes the same position on the same field.
-		 */
-		if ( $started_at <= 0 ) {
-			return;
-		}
+			$started_at = (int) Helper::get_args_option( 'started_at', $details, 0 );
 
-		$age = time() - $started_at;
-
-		if ( $age > self::CLEANUP_DEADLINE ) {
-			/*
-			 * Cancel BEFORE deleting: cancelling tells the agent to stop, and deleting first would
-			 * leave it working against a plugin that is no longer there.
-			 *
-			 * A 422 here is not a failure. It means client-app already considers the run terminal and
-			 * we were simply never told -- which is the same situation, so the cleanup proceeds. Only
-			 * the deletion is unconditional; the cancel is best-effort.
-			 */
-			Curl::do_curl( 'migrations/' . $uuid . '/cancel' );
-
-			self::cleanup_instamigrate();
-
-			return;
-		}
-
-		$last_checked = (int) Helper::get_args_option( 'cleanup_checked_at', $details, 0 );
-
-		if ( ( time() - $last_checked ) < self::STATUS_CHECK_INTERVAL ) {
-			return;
-		}
-
-		/*
-		 * Stamped BEFORE the call, not after.
-		 *
-		 * The request below can be slow or fail outright, and a stamp written afterwards is never
-		 * reached on those paths -- so every subsequent admin page load would re-fire it. Throttling
-		 * on the ATTEMPT is what makes this once per six hours rather than once per request whenever
-		 * client-app is unwell.
-		 */
-		$details['cleanup_checked_at'] = time();
-
-		Option::update_option( self::DETAILS_OPTION, $details, false );
-
-		$response = Curl::do_curl( 'migrations/' . $uuid . '/status', array(), array(), 'GET' );
-
-		if ( empty( $response['success'] ) ) {
-			return;
-		}
-
-		$status = Helper::get_args_option( 'status', Helper::get_args_option( 'data', $response, array() ), '' );
-
-		if ( in_array( $status, array( 'completed', 'failed' ), true ) ) {
-			self::cleanup_instamigrate();
+			if ( $started_at > 0 && ( time() - $started_at ) > self::CLEANUP_DEADLINE ) {
+				delete_option( self::DETAILS_OPTION );
+			}
+		} catch ( \Throwable $e ) {
+			Helper::add_error_log( 'InstaMigrate cleanup check failed: ' . $e->getMessage() );
 		}
 	}
 
@@ -365,7 +313,7 @@ class InstaWP_Staging_V4 {
 		 * a silent failure into an early return.
 		 *
 		 * Mirrors provision_instamigrate()'s install_plugins check on the way in, and the identical
-		 * gate run_cleanup_check() already applies on the admin_init path.
+		 * gate maybe_cleanup_instamigrate() already applies on the admin_init path.
 		 */
 		if ( is_user_logged_in() && ! current_user_can( 'delete_plugins' ) ) {
 			return false;
@@ -592,6 +540,12 @@ class InstaWP_Staging_V4 {
 			$dirty                = true;
 		}
 
+		// client-app's status, verbatim. The record's update hook reads it to decide about the plugin.
+		if ( '' !== $status && $status !== Helper::get_args_option( 'status', $details, '' ) ) {
+			$details['status'] = $status;
+			$dirty             = true;
+		}
+
 		/*
 		 * Stamp the run finished so resumable_run() stops reopening it.
 		 *
@@ -602,7 +556,11 @@ class InstaWP_Staging_V4 {
 		 * never observed because the tab was closed first.
 		 */
 		if ( in_array( $status, array( 'completed', 'failed' ), true ) && empty( $details['finished_at'] ) ) {
-			$details['finished_at'] = time();
+			// The migration's OWN completion time when client-app sent one -- DETAILS_RETENTION is
+			// measured from when the run ended, not from when this poll happened to notice.
+			$completed_at = strtotime( (string) Helper::get_args_option( 'completed_at', $data, '' ) );
+
+			$details['finished_at'] = $completed_at ? $completed_at : time();
 			$dirty                  = true;
 		}
 
@@ -610,22 +568,8 @@ class InstaWP_Staging_V4 {
 			Option::update_option( self::DETAILS_OPTION, $details, false );
 		}
 
-		/*
-		 * Retire the agent here too -- this is the one path that fires while the user is WATCHING.
-		 *
-		 * client-app pushes v1/migration-finished on every terminal outcome, but that is an outbound
-		 * call to a customer's site and it can simply not arrive. Without this, a failed push left
-		 * instamigrate installed and active on the source for up to STATUS_CHECK_INTERVAL, and only
-		 * then if an admin holding delete_plugins happened to load wp-admin.
-		 *
-		 * AFTER the option write, so finished_at is persisted even when the delete fails, and gated
-		 * on the same terminal check rather than on $dirty -- a second poll arriving after the first
-		 * already stamped it is not dirty, and would otherwise skip the cleanup entirely.
-		 * cleanup_instamigrate() is idempotent: it returns early once the files are gone.
-		 */
-		if ( in_array( $status, array( 'completed', 'failed' ), true ) ) {
-			self::cleanup_instamigrate();
-		}
+		// No cleanup call: writing a terminal status above is what removes instamigrate. See
+		// on_record_updated().
 
 		wp_send_json_success(
 			array(
