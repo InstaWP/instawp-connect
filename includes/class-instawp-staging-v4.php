@@ -89,6 +89,47 @@ class InstaWP_Staging_V4 {
 	 */
 	const TERMINAL_STATUSES = array( 'completed', 'failed', 'aborted' );
 
+	/**
+	 * How long a Cancel click holds the per-run cancel lock (see staging_cancel()).
+	 *
+	 * The lock is written BEFORE the call to client-app, so a second click, a page refresh or a second
+	 * tab cannot fire the cancel API again while the first request is still out. Two minutes comfortably
+	 * covers a real cancel round-trip (seconds) and still frees the button on its own if a request died
+	 * without an answer.
+	 */
+	const CANCEL_LOCK_TTL = 2 * MINUTE_IN_SECONDS;
+
+	/**
+	 * Transient key of the cancel lock. Per run (uuid), so a new run is never blocked by an old one.
+	 *
+	 * @param string $uuid The run uuid.
+	 *
+	 * @return string
+	 */
+	private static function cancel_lock_key( $uuid ) {
+		return 'instawp_staging_v4_cancel_' . md5( (string) $uuid );
+	}
+
+	/**
+	 * Is a cancel request for this run still waiting on client-app?
+	 *
+	 * True only while the lock reads `requested` -- once client-app has answered, the lock reads `done`
+	 * (and the record carries the ending), so the screen can show the result instead of "in progress".
+	 * Read by staging_cancel(), staging_status() and the template, so a refreshed page and the poll
+	 * agree with the click that started it.
+	 *
+	 * @param string $uuid The run uuid.
+	 *
+	 * @return bool
+	 */
+	public static function cancel_in_progress( $uuid ) {
+		if ( empty( $uuid ) ) {
+			return false;
+		}
+
+		return 'requested' === get_transient( self::cancel_lock_key( $uuid ) );
+	}
+
 	const ORPHAN_OPTION = 'instawp_instamigrate_orphaned';
 
 	/**
@@ -186,6 +227,13 @@ class InstaWP_Staging_V4 {
 	 * simply never told, so the run is over either way and the only honest thing to do is stop
 	 * showing it as live. Treating it as an error would leave the screen spinning on a migration that
 	 * has finished -- which is the failure this whole flow exists to stop.
+	 *
+	 * The API is called at most once per run while a request is out: a per-run transient lock
+	 * (CANCEL_LOCK_TTL) is taken before the call, repeats are answered "in progress" without calling
+	 * again, and the lock is released only when the call fails -- the one case a retry is allowed.
+	 *
+	 * Responds with { status, message, cancelling } so the screen shows the ending as soon as this
+	 * returns, rather than on the next poll.
 	 */
 	public function staging_cancel() {
 		InstaWP_Tools::verify_ajax_request();
@@ -197,12 +245,46 @@ class InstaWP_Staging_V4 {
 			wp_send_json_error( array( 'message' => esc_html__( 'No staging migration in progress.', 'instawp-connect' ) ) );
 		}
 
+		$recorded_status = Helper::get_args_option( 'status', $details, '' );
+
+		// 1. The run already ended (a poll, the migration-finished push, or an earlier cancel recorded it).
+		// Nothing to cancel, so no API call -- hand back the ending so the screen can show it right away.
+		if ( in_array( $recorded_status, self::TERMINAL_STATUSES, true ) ) {
+			wp_send_json_success(
+				array(
+					'status'     => $recorded_status,
+					'message'    => '',
+					'cancelling' => false,
+				)
+			);
+		}
+
+		$lock_key = self::cancel_lock_key( $uuid );
+
+		// 2. A cancel for this run is already out (a repeated click, a refreshed page, another tab). Do not
+		// call the API again; tell the screen a cancellation is in progress and let the poll show the end.
+		if ( false !== get_transient( $lock_key ) ) {
+			wp_send_json_success(
+				array(
+					'status'     => '',
+					'message'    => esc_html__( 'Cancellation in progress...', 'instawp-connect' ),
+					'cancelling' => true,
+				)
+			);
+		}
+
+		// 3. Take the lock BEFORE the API call, so nothing arriving while the request is out can fire it again.
+		set_transient( $lock_key, 'requested', self::CANCEL_LOCK_TTL );
+
 		$response = Curl::do_curl( 'migrations/' . $uuid . '/cancel' );
 		$code     = (int) Helper::get_args_option( 'code', $response, 0 );
 
 		// Anything other than success or an already-terminal 422 leaves the run alone: the migration is
-		// still live, and deleting instamigrate under it would break the run we failed to stop.
+		// still live, and deleting instamigrate under it would break the run we failed to stop. The lock is
+		// released so the admin can try again -- a failed response is the one case a retry is allowed.
 		if ( empty( $response['success'] ) && 422 !== $code ) {
+			delete_transient( $lock_key );
+
 			wp_send_json_error(
 				array(
 					'message' => Helper::get_args_option( 'message', $response, esc_html__( 'Could not cancel the migration.', 'instawp-connect' ) ),
@@ -210,22 +292,50 @@ class InstaWP_Staging_V4 {
 			);
 		}
 
-		// The run is terminal now. Record it as `aborted` -- the same word client-app claims for a cancel,
-		// so the screen reads "Migration Aborted" whichever side notices first, never "Migration Failed"
-		// for a run the customer stopped on purpose. The record's update hook removes instamigrate. Unless
-		// the record already says it ended -- a 422 means client-app got there first, and the poll may
-		// already have written how: a completed run must not be rewritten as aborted.
-		if ( ! in_array( Helper::get_args_option( 'status', $details, '' ), self::TERMINAL_STATUSES, true ) ) {
-			$details['status']      = 'aborted';
+		// Which ending to record. A 200 carries client-app's row -- `aborted` with its reason. A 422 means
+		// client-app already considers the run over and says nothing about HOW, and it may well have
+		// COMPLETED a moment before the click; so the run's real status is read once instead of guessed.
+		// If that read yields nothing terminal, `aborted` stands: the admin asked to stop and client-app
+		// will not run it any further.
+		$data = (array) Helper::get_args_option( 'data', $response, array() );
+
+		if ( 422 === $code ) {
+			$status_response = Curl::do_curl( 'migrations/' . $uuid . '/status', array(), array(), 'GET' );
+			$data            = ! empty( $status_response['success'] ) ? (array) Helper::get_args_option( 'data', $status_response, array() ) : array();
+		}
+
+		$ending  = Helper::get_args_option( 'status', $data, '' );
+		$ending  = in_array( $ending, self::TERMINAL_STATUSES, true ) ? $ending : 'aborted';
+		$message = (string) Helper::get_args_option( 'error_message', $data, '' );
+
+		// Record the ending -- `aborted`, the same word client-app claims for a cancel, so the screen never
+		// reads "Migration Failed" for a run the customer stopped on purpose. The record's update hook
+		// removes instamigrate. Unless the record already says it ended: a poll may have written how
+		// while the request was out, and the first recorded ending stands.
+		$details = (array) Option::get_option( self::DETAILS_OPTION );
+
+		if ( in_array( Helper::get_args_option( 'status', $details, '' ), self::TERMINAL_STATUSES, true ) ) {
+			$ending = Helper::get_args_option( 'status', $details, '' );
+		} else {
+			$details['status']      = $ending;
 			$details['finished_at'] = time();
 
 			Option::update_option( self::DETAILS_OPTION, $details, false );
 		}
 
-		// No payload. The caller does not branch on this -- the watcher is already polling and owns
-		// what the screen shows, so anything returned here would be a second source of truth for a
-		// question the next poll answers correctly three seconds later.
-		wp_send_json_success();
+		// Answered: the lock now reads `done` for the rest of its life, so a stray repeat still makes no
+		// API call, while cancel_in_progress() stops reporting "in progress".
+		set_transient( $lock_key, 'done', self::CANCEL_LOCK_TTL );
+
+		// The ending goes back to the click handler, which paints "Migration Aborted" (or whatever the run
+		// really ended as) immediately -- the admin does not wait for the next poll or refresh the page.
+		wp_send_json_success(
+			array(
+				'status'     => $ending,
+				'message'    => $message,
+				'cancelling' => false,
+			)
+		);
 	}
 
 	/**
@@ -609,6 +719,9 @@ class InstaWP_Staging_V4 {
 				// show.
 				'message'   => Helper::get_args_option( 'error_message', $data, '' ),
 				'agent_url' => esc_url_raw( $agent_url ),
+				// A cancel request for this run is still out (another tab, or a refresh mid-cancel), so the
+				// watcher keeps the Cancel button disabled and reading "Cancellation in progress...".
+				'cancelling' => self::cancel_in_progress( $uuid ),
 			)
 		);
 	}

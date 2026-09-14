@@ -264,6 +264,24 @@ chrome (Cancel hidden, reason in the red box) with the "Migration Aborted" heade
 customer stopped on purpose must not read "Migration Failed". client-app also records WHO cancelled
 in its `migrates_v4.extra_info` (`cancelled_by_user`, `cancel_source`); the plugin does not need it.
 
+### One cancel at a time
+
+Cancel calls client-app **at most once per run while a request is out**:
+
+1. If the record already holds an ending, `staging_cancel()` returns it — no API call.
+2. If the per-run transient `instawp_staging_v4_cancel_<md5(uuid)>` exists, it answers
+   `cancelling: true` — no API call.
+3. Otherwise it sets the transient to `requested` (`CANCEL_LOCK_TTL`, 2 min) **before** calling
+   `POST migrations/{uuid}/cancel`. A failed call deletes it (the only case a retry is allowed); a
+   success or 422 records the ending, sets it to `done`, and returns `{ status, message }`. On a 422 the
+   run's real status is read once, so a run that completed just before the click is shown as completed.
+
+The screen follows the same lock: the button is disabled the moment the confirm is accepted, a
+repeated click shows "Cancellation in progress...", the returned ending is painted immediately
+("Migration Aborted" — no poll wait, no refresh), `staging_status()` reports `cancelling` so another
+tab or a refreshed page keeps the button disabled, and the template renders it disabled while
+`InstaWP_Staging_V4::cancel_in_progress()` is true.
+
 Compatibility: a plugin older than this accepts only `completed|failed` from `migration-finished`
 and its watcher never treats `aborted` as terminal, so against a current client-app a cancel made
 from InstaWP leaves that screen polling until `RESUME_WINDOW` / `CLEANUP_DEADLINE` retire the run.
