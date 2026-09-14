@@ -130,6 +130,109 @@ class InstaWP_Staging_V4 {
 		return 'requested' === get_transient( self::cancel_lock_key( $uuid ) );
 	}
 
+	/**
+	 * A Cancel clicked while the run is still STARTING -- start_run() has recorded `started_at` but not
+	 * yet the uuid (instamigrate install + staging-init + live-import/start take tens of seconds).
+	 *
+	 * There is nothing to send to client-app yet, so the click is remembered here and honoured by
+	 * start_run() at its next checkpoint, or by the first status poll if the start finished before it
+	 * could see it. Value: array( 'started_at' => the start it belongs to, 'requested_at' => time ).
+	 */
+	const CANCEL_PENDING_OPTION = 'instawp_staging_v4_cancel_pending';
+
+	/**
+	 * How long after a start began a Cancel is still treated as "cancel the starting run". Far beyond a
+	 * real start (seconds to a couple of minutes); an older record without a uuid is a start that died.
+	 */
+	const CANCEL_PENDING_WINDOW = 15 * MINUTE_IN_SECONDS;
+
+	/**
+	 * Take the pending cancel for this start, if there is one. Deletes it, so it is acted on once.
+	 *
+	 * Read straight from the database, NOT through get_option(): start_run() is one long request, and
+	 * WordPress caches an option (or its absence) for the rest of the request after the first read, so
+	 * a cancel written by another request mid-start would otherwise never be seen at a later checkpoint.
+	 *
+	 * Matched on started_at so a leftover from an earlier start can never cancel a new one.
+	 *
+	 * @param int $started_at The start's own started_at.
+	 *
+	 * @return bool True when a cancel was requested for this start.
+	 */
+	private static function consume_pending_cancel( $started_at ) {
+		global $wpdb;
+
+		if ( empty( $started_at ) ) {
+			return false;
+		}
+
+		$raw = $wpdb->get_var( $wpdb->prepare( "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s LIMIT 1", self::CANCEL_PENDING_OPTION ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+
+		if ( empty( $raw ) ) {
+			return false;
+		}
+
+		$pending = maybe_unserialize( $raw );
+
+		if ( ! is_array( $pending ) || (int) Helper::get_args_option( 'started_at', $pending, 0 ) !== (int) $started_at ) {
+			return false;
+		}
+
+		Option::delete_option( self::CANCEL_PENDING_OPTION );
+
+		return true;
+	}
+
+	/**
+	 * Stop a start that the admin cancelled while it was running. Called from start_run()'s checkpoints.
+	 *
+	 *  - no uuid yet (nothing was sent to client-app): record the run as aborted locally.
+	 *  - uuid known: cancel it on client-app through the same path as the Cancel button.
+	 *
+	 * @param string $uuid       The run uuid, or '' before staging-init answered.
+	 * @param int    $started_at The start's started_at.
+	 *
+	 * @return array|null The init response carrying the ending, or null when client-app refused the
+	 *                    cancel -- the caller then carries on as if nothing was clicked, and the admin
+	 *                    can cancel again from the running screen.
+	 */
+	private static function abort_start( $uuid, $started_at ) {
+		if ( '' === $uuid ) {
+			// Recording the ending fires the record's update hook, which removes instamigrate if it is there.
+			Option::update_option(
+				self::DETAILS_OPTION,
+				array(
+					'started_at'  => $started_at,
+					'status'      => 'aborted',
+					'finished_at' => time(),
+				),
+				false
+			);
+
+			return array(
+				'engine'     => 'v4',
+				'uuid'       => '',
+				'started_at' => $started_at,
+				'status'     => 'aborted',
+				'message'    => '',
+			);
+		}
+
+		$result = self::request_cancel( $uuid );
+
+		if ( empty( $result['success'] ) || '' === $result['status'] ) {
+			return null;
+		}
+
+		return array(
+			'engine'     => 'v4',
+			'uuid'       => $uuid,
+			'started_at' => $started_at,
+			'status'     => $result['status'],
+			'message'    => $result['message'],
+		);
+	}
+
 	const ORPHAN_OPTION = 'instawp_instamigrate_orphaned';
 
 	/**
@@ -238,38 +341,94 @@ class InstaWP_Staging_V4 {
 	public function staging_cancel() {
 		InstaWP_Tools::verify_ajax_request();
 
-		$details = (array) Option::get_option( self::DETAILS_OPTION );
-		$uuid    = Helper::get_args_option( 'uuid', $details, '' );
+		$details    = (array) Option::get_option( self::DETAILS_OPTION );
+		$uuid       = Helper::get_args_option( 'uuid', $details, '' );
+		$started_at = (int) Helper::get_args_option( 'started_at', $details, 0 );
 
 		if ( empty( $uuid ) ) {
+			/*
+			 * The run is still STARTING: start_run() has recorded started_at but not the uuid yet. This used
+			 * to answer "No staging migration in progress.", which re-enabled the button mid-start. Accept
+			 * the cancel instead -- start_run() (or the first status poll) acts on it -- and keep the
+			 * screen locked on "Cancellation in progress...".
+			 */
+			if ( $started_at > 0
+				&& ( time() - $started_at ) < self::CANCEL_PENDING_WINDOW
+				&& ! in_array( Helper::get_args_option( 'status', $details, '' ), self::TERMINAL_STATUSES, true )
+			) {
+				Option::update_option(
+					self::CANCEL_PENDING_OPTION,
+					array(
+						'started_at'   => $started_at,
+						'requested_at' => time(),
+					),
+					false
+				);
+
+				wp_send_json_success(
+					array(
+						'status'     => '',
+						'message'    => esc_html__( 'Cancellation in progress...', 'instawp-connect' ),
+						'cancelling' => true,
+					)
+				);
+			}
+
 			wp_send_json_error( array( 'message' => esc_html__( 'No staging migration in progress.', 'instawp-connect' ) ) );
 		}
 
+		$result = self::request_cancel( $uuid );
+
+		if ( empty( $result['success'] ) ) {
+			wp_send_json_error( array( 'message' => $result['message'] ) );
+		}
+
+		wp_send_json_success(
+			array(
+				'status'     => $result['status'],
+				'message'    => $result['message'],
+				'cancelling' => $result['cancelling'],
+			)
+		);
+	}
+
+	/**
+	 * Cancel a run that has a uuid -- the one place the cancel API is called. Shared by the Cancel
+	 * button, start_run()'s checkpoints and the status poll, so all three follow the same lock and
+	 * record the same ending.
+	 *
+	 * 1. Run already ended -> its status, no API call.
+	 * 2. Cancel lock held (repeat click, refresh, other tab) -> "in progress", no API call.
+	 * 3. Lock taken BEFORE the call. A failed call releases it (the one case a retry is allowed); a
+	 *    success or 422 records the ending and marks the lock done.
+	 *
+	 * @param string $uuid The run uuid.
+	 *
+	 * @return array { success: bool, status: string ('' while in progress), message: string, cancelling: bool }
+	 */
+	private static function request_cancel( $uuid ) {
+		$details         = (array) Option::get_option( self::DETAILS_OPTION );
 		$recorded_status = Helper::get_args_option( 'status', $details, '' );
 
 		// 1. The run already ended (a poll, the migration-finished push, or an earlier cancel recorded it).
-		// Nothing to cancel, so no API call -- hand back the ending so the screen can show it right away.
 		if ( in_array( $recorded_status, self::TERMINAL_STATUSES, true ) ) {
-			wp_send_json_success(
-				array(
-					'status'     => $recorded_status,
-					'message'    => '',
-					'cancelling' => false,
-				)
+			return array(
+				'success'    => true,
+				'status'     => $recorded_status,
+				'message'    => '',
+				'cancelling' => false,
 			);
 		}
 
 		$lock_key = self::cancel_lock_key( $uuid );
 
-		// 2. A cancel for this run is already out (a repeated click, a refreshed page, another tab). Do not
-		// call the API again; tell the screen a cancellation is in progress and let the poll show the end.
+		// 2. A cancel for this run is already out. Do not call the API again.
 		if ( false !== get_transient( $lock_key ) ) {
-			wp_send_json_success(
-				array(
-					'status'     => '',
-					'message'    => esc_html__( 'Cancellation in progress...', 'instawp-connect' ),
-					'cancelling' => true,
-				)
+			return array(
+				'success'    => true,
+				'status'     => '',
+				'message'    => esc_html__( 'Cancellation in progress...', 'instawp-connect' ),
+				'cancelling' => true,
 			);
 		}
 
@@ -281,22 +440,22 @@ class InstaWP_Staging_V4 {
 
 		// Anything other than success or an already-terminal 422 leaves the run alone: the migration is
 		// still live, and deleting instamigrate under it would break the run we failed to stop. The lock is
-		// released so the admin can try again -- a failed response is the one case a retry is allowed.
+		// released so the admin can try again.
 		if ( empty( $response['success'] ) && 422 !== $code ) {
 			delete_transient( $lock_key );
 
-			wp_send_json_error(
-				array(
-					'message' => Helper::get_args_option( 'message', $response, esc_html__( 'Could not cancel the migration.', 'instawp-connect' ) ),
-				)
+			return array(
+				'success'    => false,
+				'status'     => '',
+				'message'    => Helper::get_args_option( 'message', $response, esc_html__( 'Could not cancel the migration.', 'instawp-connect' ) ),
+				'cancelling' => false,
 			);
 		}
 
 		// Which ending to record. A 200 carries client-app's row -- `aborted` with its reason. A 422 means
-		// client-app already considers the run over and says nothing about HOW, and it may well have
-		// COMPLETED a moment before the click; so the run's real status is read once instead of guessed.
-		// If that read yields nothing terminal, `aborted` stands: the admin asked to stop and client-app
-		// will not run it any further.
+		// client-app already considers the run over without saying HOW (it may have COMPLETED a moment
+		// before the click), so the run's real status is read once instead of guessed. If that read yields
+		// nothing terminal, `aborted` stands: the admin asked to stop and client-app will not run it further.
 		$data = (array) Helper::get_args_option( 'data', $response, array() );
 
 		if ( 422 === $code ) {
@@ -308,33 +467,31 @@ class InstaWP_Staging_V4 {
 		$ending  = in_array( $ending, self::TERMINAL_STATUSES, true ) ? $ending : 'aborted';
 		$message = (string) Helper::get_args_option( 'error_message', $data, '' );
 
-		// Record the ending -- `aborted`, the same word client-app claims for a cancel, so the screen never
-		// reads "Migration Failed" for a run the customer stopped on purpose. The record's update hook
-		// removes instamigrate. Unless the record already says it ended: a poll may have written how
-		// while the request was out, and the first recorded ending stands.
+		// Record the ending -- never over one already recorded: a poll may have written how the run ended
+		// while the request was out, and the first recorded ending stands. The record's update hook removes
+		// instamigrate. The uuid is written too, because a cancel honoured by start_run() before
+		// remember_run() finds a record that does not carry it yet.
 		$details = (array) Option::get_option( self::DETAILS_OPTION );
 
 		if ( in_array( Helper::get_args_option( 'status', $details, '' ), self::TERMINAL_STATUSES, true ) ) {
 			$ending = Helper::get_args_option( 'status', $details, '' );
 		} else {
+			$details['uuid']        = $uuid;
 			$details['status']      = $ending;
 			$details['finished_at'] = time();
 
 			Option::update_option( self::DETAILS_OPTION, $details, false );
 		}
 
-		// Answered: the lock now reads `done` for the rest of its life, so a stray repeat still makes no
-		// API call, while cancel_in_progress() stops reporting "in progress".
+		// Answered: the lock reads `done` for the rest of its life, so a stray repeat still makes no API
+		// call, while cancel_in_progress() stops reporting "in progress".
 		set_transient( $lock_key, 'done', self::CANCEL_LOCK_TTL );
 
-		// The ending goes back to the click handler, which paints "Migration Aborted" (or whatever the run
-		// really ended as) immediately -- the admin does not wait for the next poll or refresh the page.
-		wp_send_json_success(
-			array(
-				'status'     => $ending,
-				'message'    => $message,
-				'cancelling' => false,
-			)
+		return array(
+			'success'    => true,
+			'status'     => $ending,
+			'message'    => $message,
+			'cancelling' => false,
 		);
 	}
 
@@ -644,6 +801,14 @@ class InstaWP_Staging_V4 {
 			wp_send_json_error( array( 'message' => esc_html__( 'No staging migration in progress.', 'instawp-connect' ) ) );
 		}
 
+		// A Cancel clicked while this run was still starting, that landed after start_run()'s last
+		// checkpoint. Honour it now, before reading the status, so this very poll reports the ending.
+		if ( self::consume_pending_cancel( (int) Helper::get_args_option( 'started_at', (array) $details, 0 ) ) ) {
+			self::request_cancel( $uuid );
+
+			$details = Option::get_option( self::DETAILS_OPTION );
+		}
+
 		$response = Curl::do_curl( 'migrations/' . $uuid . '/status', array(), array(), 'GET' );
 
 		if ( empty( $response['success'] ) ) {
@@ -828,7 +993,12 @@ class InstaWP_Staging_V4 {
 		// The run has begun, from the user's point of view. Recorded NOW so an attempt that installs
 		// instamigrate and then fails before remember_run() -- staging-init refused, live-import/start
 		// failed -- still has a clock: the 48h check retires it, and the delete hook removes the plugin.
-		Option::update_option( self::DETAILS_OPTION, array( 'started_at' => time() ), false );
+		$started_at = time();
+
+		// A fresh start: a cancel left pending for an earlier start must never stop this one.
+		Option::delete_option( self::CANCEL_PENDING_OPTION );
+
+		Option::update_option( self::DETAILS_OPTION, array( 'started_at' => $started_at ), false );
 
 		$connect_id = instawp_get_connect_id();
 
@@ -885,6 +1055,11 @@ class InstaWP_Staging_V4 {
 		 * Do not "fix" that by passing the raw settings here; the picker is the side to change.
 		 */
 		$total_size_mb = self::total_size_mb( $exclude );
+
+		// Checkpoint 1 -- cancelled before anything was installed or sent: stop here, nothing to undo.
+		if ( self::consume_pending_cancel( $started_at ) ) {
+			return self::abort_start( '', $started_at );
+		}
 
 		// Step 2 + 3: the plugin is the source, so it provisions its own credential. Nothing leaves
 		// the site except the key itself.
@@ -948,6 +1123,16 @@ class InstaWP_Staging_V4 {
 			return new WP_Error( 'no_migration_reference', esc_html__( 'InstaWP did not return a migration reference.', 'instawp-connect' ) );
 		}
 
+		// Checkpoint 2 -- cancelled after client-app created the import but BEFORE the destination site is
+		// requested: cancel it now, so no site is created at all. If client-app refuses, carry on.
+		if ( self::consume_pending_cancel( $started_at ) ) {
+			$aborted = self::abort_start( $uuid, $started_at );
+
+			if ( null !== $aborted ) {
+				return $aborted;
+			}
+		}
+
 		// Step 5: create the destination site and start. This is client-app's EXISTING endpoint —
 		// unchanged, and shared with the hosted import wizard.
 		// Omit rather than send a literal 0: start() validates plan_id as required|integer for a
@@ -982,14 +1167,25 @@ class InstaWP_Staging_V4 {
 			return new WP_Error( 'site_create_failed', Helper::get_args_option( 'message', $start, esc_html__( 'Could not create the staging site.', 'instawp-connect' ) ) );
 		}
 
-		self::remember_run( $uuid );
+		self::remember_run( $uuid, $started_at );
+
+		// Checkpoint 3 -- cancelled while the destination site was being requested: the run exists now, so
+		// cancel it straight away (client-app deletes the destination). If client-app refuses, the run is
+		// returned as live and the admin can cancel again from the running screen.
+		if ( self::consume_pending_cancel( $started_at ) ) {
+			$aborted = self::abort_start( $uuid, $started_at );
+
+			if ( null !== $aborted ) {
+				return $aborted;
+			}
+		}
 
 		return array(
 			// The wizard branches on this: a v4 run polls staging_status_v4 for the agent URL
 			// instead of the V3 progress endpoint.
 			'engine'     => 'v4',
 			'uuid'       => $uuid,
-			'started_at' => time(),
+			'started_at' => $started_at,
 			'message'    => esc_html__( 'Staging site creation started.', 'instawp-connect' ),
 		);
 	}
@@ -1283,7 +1479,7 @@ class InstaWP_Staging_V4 {
 	 *
 	 * @return void
 	 */
-	private static function remember_run( $uuid ) {
+	private static function remember_run( $uuid, $started_at = 0 ) {
 		// The migration exists, so the install is accounted for — clear both the flag and the
 		// once-only log latch, so a genuinely new orphan later on is reported again.
 		Option::delete_option( self::ORPHAN_OPTION );
@@ -1293,7 +1489,8 @@ class InstaWP_Staging_V4 {
 			self::DETAILS_OPTION,
 			array(
 				'uuid'       => $uuid,
-				'started_at' => time(),
+				// The start's own clock, not a new one: a cancel clicked during the start is matched on it.
+				'started_at' => $started_at ? (int) $started_at : time(),
 			),
 			false
 		);

@@ -641,6 +641,16 @@
                     if (response.success) {
                         // The engine decides the path. V3 below is untouched.
                         if (response.data.engine === 'v4') {
+                            // The admin clicked Cancel while the run was still starting, and
+                            // start_run() already honoured it: the response carries the ending.
+                            // Show it now -- "Migration Aborted" -- instead of starting a watcher
+                            // for a run that is already over.
+                            if (['completed', 'failed', 'aborted'].indexOf(response.data.status) !== -1) {
+                                instawp_staging_v4_finish(create_container, response.data.status, response.data.message);
+
+                                return;
+                            }
+
                             // Before the watcher, so the dead V3 widgets are never painted: run()
                             // does not return the agent URL, so the first poll is ~3s away and the
                             // user would otherwise spend that time looking at 0% bars.
