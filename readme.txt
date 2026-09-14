@@ -105,6 +105,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 - Security: Hardened diagnostic logging.
 - Fixed: The Sync (Beta) event list no longer keeps showing a failed attempt after a later sync of the same change has succeeded.
 - Fixed: Activity log sync now sends in bounded batches and stops retrying a request the server has already refused, so a site whose logs could not be delivered no longer accumulates them until the sync runs out of memory.
+- Changed: Pending activity-log entries are now capped so a site whose sync has been broken can recover on its own. Nothing is deleted while the sync is working; only after it has been failing continuously for 24 hours are the oldest entries trimmed, to 10,000 entries or 30 days. Entries for deletions and major core updates are held separately under a 100,000 cap and are never aged out. All limits are filterable.
 
 = 0.1.3.8 - 12 August 2026 =
 - Improved: Local push no longer copies host-specific configuration, caches, logs, or build and version control folders to the destination.
