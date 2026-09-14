@@ -104,6 +104,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 - Fixed: The plan selector now accounts for both file and database size when checking plan capacity.
 - Security: Hardened diagnostic logging.
 - Fixed: The Sync (Beta) event list no longer keeps showing a failed attempt after a later sync of the same change has succeeded.
+- Fixed: Activity log sync now sends in bounded batches and stops retrying a request the server has already refused, so a site whose logs could not be delivered no longer accumulates them until the sync runs out of memory.
 
 = 0.1.3.8 - 12 August 2026 =
 - Improved: Local push no longer copies host-specific configuration, caches, logs, or build and version control folders to the destination.

@@ -59,7 +59,57 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
             as_unschedule_all_actions( 'instawp_handle_non_critical_logs', array(), 'instawp-connect' );
         }
 
+		/**
+		 * How many pending rows one send may carry.
+		 *
+		 * The payload is built in memory from every row the SELECT returns, so an unbounded query is
+		 * what makes a backlog fatal: the bigger the table, the bigger the payload, the sooner the run
+		 * dies of memory exhaustion -- and a run that dies deletes nothing, so the table is larger
+		 * still by the next attempt. Bounding the batch bounds the memory whatever the table size.
+		 */
+		const BATCH_SIZE = 500;
+
+		/**
+		 * Send attempts, and the wall-clock budget they share.
+		 *
+		 * Curl::do_curl() waits up to 60s (80s where max_execution_time allows) for one request, so a
+		 * plain "retry N times" loop blocks for N * 60s inside a single request -- past the FPM
+		 * request_terminate_timeout that then kills it. The budget is checked BEFORE each retry, so a
+		 * slow failure (a timeout) buys no second attempt while a fast one (connection refused, an
+		 * immediate 5xx) still does. Whatever is left unsent stays in the table for the next run.
+		 */
+		const MAX_ATTEMPTS = 3;
+		const RETRY_BUDGET = 30;
+
+		/**
+		 * Retention bounds, applied whether or not sending works.
+		 *
+		 * Rows are deleted only after the API accepts them, which is correct while the API is
+		 * reachable and unbounded when it is not: a site that has been failing for weeks accumulates
+		 * rows it can never send and has no way back on its own. These caps give it one.
+		 *
+		 * The row cap discards rows that were never delivered, so it is deliberately NOT applied
+		 * while sending is working -- a busy site whose backlog is merely draining slowly must not
+		 * lose logs it is about to send. Only the age cap applies unconditionally: a row nobody has
+		 * managed to send in RETENTION_DAYS is dead weight either way.
+		 */
+		const RETENTION_ROWS = 10000;
+		const RETENTION_DAYS = 30;
+
+		/**
+		 * Guards the retention sweep so it costs one option read per hour, not one per event.
+		 */
+		const RETENTION_TRANSIENT = 'instawp_activity_log_retention';
+
+		/**
+		 * Set for this long after every accepted send; its absence is what "sending is broken" means.
+		 */
+		const SEND_OK_TRANSIENT = 'instawp_activity_log_send_ok';
+		const SEND_OK_TTL       = 2 * HOUR_IN_SECONDS;
+
 		public function send_log_data( $critical = false ) {
+			$this->enforce_retention();
+
 			$connect_id = instawp_get_connect_id();
 			if ( ! $connect_id ) {
 				return;
@@ -67,11 +117,12 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 
 			global $wpdb;
 
-            if ( $critical ) {
-                $query = $wpdb->prepare( "SELECT * FROM {$this->table_name} WHERE severity=%s", 'critical' ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-            } else {
-                $query = $wpdb->prepare( "SELECT * FROM {$this->table_name} WHERE severity!=%s", 'critical' ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-            }
+			$operator = $critical ? '=' : '!=';
+			$query    = $wpdb->prepare(
+				"SELECT * FROM {$this->table_name} WHERE severity {$operator} %s ORDER BY id ASC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				'critical',
+				self::BATCH_SIZE
+			);
 
 			$log_ids = $logs = array();
 			$results = $wpdb->get_results( $query );
@@ -86,6 +137,8 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 				$log_ids[] = $result->id;
 			}
 
+			unset( $results );
+
             if ( empty( $log_ids ) ) {
                 return;
             }
@@ -93,19 +146,106 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 			$success    = false;
             $api_domain = Helper::get_api_server_domain();
             $jwt        = Helper::get_jwt();
+			$deadline   = microtime( true ) + self::RETRY_BUDGET;
 
-			for ( $i = 0; $i < 10; $i ++ ) {
+			for ( $attempt = 0; $attempt < self::MAX_ATTEMPTS; $attempt ++ ) {
+				if ( $attempt > 0 ) {
+					// No budget left to absorb another request of unknown length.
+					if ( microtime( true ) >= $deadline ) {
+						break;
+					}
+					sleep( $attempt );
+				}
+
 				$response = Curl::do_curl( "connects/{$connect_id}/activity-log", array( 'activity_logs' => $logs ), array(), 'POST', null, $jwt, $api_domain );
-                if ( intval( $response['code'] ) === 200 ) {
+
+				// do_curl() omits 'code' entirely when it never reached the server -- a WP_Error, or
+				// its own empty api-key / api-domain guards -- so this is not an HTTP status of 0.
+				$code = isset( $response['code'] ) ? intval( $response['code'] ) : 0;
+
+                if ( 200 === $code ) {
 					$success = true;
+					break;
+				}
+
+				if ( ! $this->is_retryable_code( $code ) ) {
 					break;
 				}
 			}
 
 			if ( $success ) {
+				set_transient( self::SEND_OK_TRANSIENT, 1, self::SEND_OK_TTL );
+
 				$placeholders = implode( ',', array_fill( 0, count( $log_ids ), '%d' ) );
 				$wpdb->query(
 					$wpdb->prepare( "DELETE FROM {$this->table_name} WHERE id IN ($placeholders)", $log_ids ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+				);
+			}
+		}
+
+		/**
+		 * Is another attempt at this response worth the wall clock?
+		 *
+		 * A 4xx is the server answering and refusing, and it will refuse the same payload again --
+		 * the exception being 408/429, which are explicitly "come back". Anything else (a 5xx, or a
+		 * request that never arrived) may well work on the next try.
+		 *
+		 * @param int $code
+		 * @return bool
+		 */
+		private function is_retryable_code( $code ) {
+			if ( 408 === $code || 429 === $code ) {
+				return true;
+			}
+
+			return ! ( $code >= 400 && $code < 500 );
+		}
+
+		/**
+		 * Keep the pending-log table bounded, regardless of whether sending is working.
+		 *
+		 * Runs at most hourly: send_log_data() is called inline from insert() on every event when the
+		 * interval is "instantly", and this must not add queries to that path.
+		 *
+		 * @return void
+		 */
+		private function enforce_retention() {
+			if ( get_transient( self::RETENTION_TRANSIENT ) ) {
+				return;
+			}
+
+			set_transient( self::RETENTION_TRANSIENT, 1, HOUR_IN_SECONDS );
+
+			global $wpdb;
+
+			// esc_like: the table prefix makes "_" a LIKE wildcard, and get_var would then return
+			// whichever near-miss table sorted first rather than ours.
+			if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $this->table_name ) ) ) !== $this->table_name ) {
+				return;
+			}
+
+			$max_rows = (int) apply_filters( 'instawp/filters/activity_log_retention_rows', self::RETENTION_ROWS );
+			$max_days = (int) apply_filters( 'instawp/filters/activity_log_retention_days', self::RETENTION_DAYS );
+
+			// Only trim undelivered rows once sending has actually stopped working; see the constant.
+			if ( $max_rows > 0 && ! get_transient( self::SEND_OK_TRANSIENT ) ) {
+				// The id of the newest row that is already past the cap; everything at or below it is
+				// older still. Walking the primary key like this keeps the trim off a table scan.
+				$cutoff_id = $wpdb->get_var(
+					$wpdb->prepare( "SELECT id FROM {$this->table_name} ORDER BY id DESC LIMIT 1 OFFSET %d", $max_rows ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				);
+
+				if ( ! empty( $cutoff_id ) ) {
+					$wpdb->query(
+						$wpdb->prepare( "DELETE FROM {$this->table_name} WHERE id <= %d", $cutoff_id ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+					);
+				}
+			}
+
+			if ( $max_days > 0 ) {
+				// timestamp is written as current_time( 'mysql', 1 ), i.e. UTC -- so compare in UTC.
+				$wpdb->query(
+					$wpdb->prepare( "DELETE FROM {$this->table_name} WHERE timestamp < %s", gmdate( 'Y-m-d H:i:s', time() - ( $max_days * DAY_IN_SECONDS ) ) ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				);
 			}
 		}
