@@ -488,6 +488,46 @@
             create_container.find('.instawp-v4-cancel').addClass('hidden');
             create_container.find('.screen-buttons-last').removeClass('hidden');
         },
+        /*
+         * Put the Cancel button in one of its three states. The single writer of its label and
+         * disabled flag, so the click handler, the watcher and a refreshed page cannot disagree.
+         *
+         *   idle        -> enabled, "Cancel Migration" (only after the server said the cancel failed)
+         *   requesting  -> disabled, "Cancelling..."  (this tab's request is out)
+         *   in-progress -> disabled, "Cancellation in progress..." (a repeat click, another tab, a
+         *                  refresh mid-cancel, or a request whose answer never arrived)
+         */
+        instawp_staging_v4_cancel_state = (create_container, state) => {
+            let el_button = create_container.find('.instawp-v4-cancel');
+
+            if ('idle' === state) {
+                el_button.removeClass('instawp-v4-cancelling').prop('disabled', false).text(el_button.data('cancel-text'));
+
+                return;
+            }
+
+            el_button
+                .addClass('instawp-v4-cancelling')
+                .prop('disabled', true)
+                .text('requesting' === state ? el_button.data('cancelling-text') : el_button.data('in-progress-text'));
+        },
+        /*
+         * Show a run's ending NOW and stop watching. Shared by the poll and the Cancel response, so
+         * "Migration Aborted" appears the moment the cancel answers instead of on the next poll.
+         * fail()/complete() already refuse to paint a second ending over the first, so a poll that
+         * was in flight when the cancel answered cannot overwrite it.
+         */
+        instawp_staging_v4_finish = (create_container, status, message) => {
+            instawp_staging_v4_stop(create_container, parseInt(create_container.attr('interval-id'), 10));
+
+            if ('aborted' === status) {
+                instawp_staging_v4_fail(create_container, message, true);
+            } else if ('failed' === status) {
+                instawp_staging_v4_fail(create_container, message, false);
+            } else if ('completed' === status) {
+                instawp_staging_v4_complete(create_container);
+            }
+        },
         instawp_staging_v4_watch = (create_container) => {
             // V4 staging: the migration agent owns the live view, so we poll only until it hands us
             // a URL, then surface the wizard's existing "track migration" link. Deliberately NOT the
@@ -497,6 +537,12 @@
                     'action': 'instawp_staging_status_v4',
                     'security': plugin_object.security,
                 }, function (response) {
+                    // The ending is already on screen (the Cancel response painted it while this
+                    // poll was in flight). Nothing a late poll says may change the screen now.
+                    if (create_container.hasClass('completed') || create_container.hasClass('migration-failed')) {
+                        return;
+                    }
+
                     if (!response.success) {
                         // Our poll failed; the MIGRATION did not. These are two different facts,
                         // and an earlier version conflated them: five failed polls painted
@@ -538,15 +584,19 @@
                     // client-app's, or the agent's — and reuses the failure chrome with an
                     // "Migration Aborted" header rather than "Migration Failed".
                     if (['completed', 'failed', 'aborted'].indexOf(response.data.status) !== -1) {
-                        instawp_staging_v4_stop(create_container, watcher);
+                        instawp_staging_v4_finish(create_container, response.data.status, response.data.message);
 
-                        if ('aborted' === response.data.status) {
-                            instawp_staging_v4_fail(create_container, response.data.message, true);
-                        } else if ('failed' === response.data.status) {
-                            instawp_staging_v4_fail(create_container, response.data.message, false);
-                        } else {
-                            instawp_staging_v4_complete(create_container);
-                        }
+                        return;
+                    }
+
+                    // Still running. Keep the Cancel button in step with the server's cancel lock:
+                    // locked while a cancel request is out (another tab, a refresh mid-cancel, or this
+                    // tab's request whose answer was lost), and released only once the server no longer
+                    // holds one and this tab is not waiting on its own request.
+                    if (response.data.cancelling) {
+                        instawp_staging_v4_cancel_state(create_container, 'in-progress');
+                    } else if (!create_container.data('cancel-inflight') && create_container.find('.instawp-v4-cancel').hasClass('instawp-v4-cancelling')) {
+                        instawp_staging_v4_cancel_state(create_container, 'idle');
                     }
                 }).fail(function () {
                     // Transport failure — offline, a proxy blip, admin-ajax briefly 5xx. Same
@@ -591,6 +641,16 @@
                     if (response.success) {
                         // The engine decides the path. V3 below is untouched.
                         if (response.data.engine === 'v4') {
+                            // The admin clicked Cancel while the run was still starting, and
+                            // start_run() already honoured it: the response carries the ending.
+                            // Show it now -- "Migration Aborted" -- instead of starting a watcher
+                            // for a run that is already over.
+                            if (['completed', 'failed', 'aborted'].indexOf(response.data.status) !== -1) {
+                                instawp_staging_v4_finish(create_container, response.data.status, response.data.message);
+
+                                return;
+                            }
+
                             // Before the watcher, so the dead V3 widgets are never painted: run()
                             // does not return the agent URL, so the first poll is ~3s away and the
                             // user would otherwise spend that time looking at 0% bars.
@@ -1340,7 +1400,23 @@
      * navigates to ?clear=all, abandoning the screen while a V4 agent carries on migrating.
      */
     $(document).on('click', '.instawp-wrap .instawp-v4-cancel', function () {
-        let el_button = $(this);
+        let el_button = $(this),
+            create_container = $('.instawp-wrap .nav-item-content.create');
+
+        /*
+         * A cancel is already under way (or the run has ended): stop HERE -- no confirm, no request.
+         * A disabled button fires no click, so this guards every other way in: a double-click racing
+         * the disable, a stale handler, a page state restored by the browser.
+         */
+        if (el_button.hasClass('instawp-v4-cancelling') || create_container.data('cancel-inflight')) {
+            instawp_staging_v4_cancel_state(create_container, 'in-progress');
+
+            return;
+        }
+
+        if (create_container.hasClass('completed') || create_container.hasClass('migration-failed')) {
+            return;
+        }
 
         // The confirm NAMES the consequence, in client-app's words: cancelling deletes the
         // destination site, and V3's "Do you really want to abort the migration?" does not say so.
@@ -1348,36 +1424,51 @@
             return;
         }
 
-        /*
-         * Say something IMMEDIATELY.
-         *
-         * The request behind this is slow -- the plugin calls client-app, which tells the agent to
-         * stop and then deletes the destination site -- and the screen only catches up on the next
-         * 3s poll. Disabling alone left the button reading "Cancel Migration" throughout, so the
-         * click looked ignored and the outcome arrived seconds later with nothing in between.
-         *
-         * Original label kept rather than re-read from a data attribute, so the restore below
-         * cannot disagree with what was actually on the button.
-         */
-        let original_text = el_button.text();
+        // Re-checked after the dialog: it blocks, and a poll can report an ending or a cancel from
+        // another tab while it is open.
+        if (el_button.hasClass('instawp-v4-cancelling') || create_container.hasClass('completed') || create_container.hasClass('migration-failed')) {
+            return;
+        }
 
-        el_button.prop('disabled', true).text(el_button.data('cancelling-text'));
+        // Locked IMMEDIATELY, before the request exists, so nothing can start a second one.
+        create_container.data('cancel-inflight', true);
+        instawp_staging_v4_cancel_state(create_container, 'requesting');
 
         $.post(plugin_object.ajax_url, {
             'action': 'instawp_staging_cancel_v4',
             'security': plugin_object.security,
         }).done(function (response) {
+            create_container.data('cancel-inflight', false);
+
             if (response && response.success) {
-                // Left disabled and still reading "Cancelling...": the run IS ending, and the poll
-                // hides the whole button within 3s. Restoring the label here would flash "Cancel
-                // Migration" back onto a migration that is already stopping.
+                let data = response.data || {},
+                    status = data.status || '';
+
+                // The server answered with the run's ending: show it NOW -- "Migration Aborted" for a
+                // cancel -- instead of leaving "Cancelling..." up until the next poll or a refresh.
+                if (['completed', 'failed', 'aborted'].indexOf(status) !== -1) {
+                    instawp_staging_v4_finish(create_container, status, data.message);
+
+                    return;
+                }
+
+                // The server already had a cancel out for this run (another tab / a refresh): keep the
+                // button locked; the watcher shows the ending when it lands.
+                instawp_staging_v4_cancel_state(create_container, 'in-progress');
+
                 return;
             }
 
-            el_button.prop('disabled', false).text(original_text);
+            // The server says the cancel FAILED and has released its lock: the run is still live, so
+            // cancelling is something the admin may retry. Say why.
+            instawp_staging_v4_cancel_state(create_container, 'idle');
+            instawp_staging_v4_notice(create_container, response && response.data && response.data.message ? response.data.message : '');
         }).fail(function () {
-            // The run is still live, so cancelling remains something the user may retry.
-            el_button.prop('disabled', false).text(original_text);
+            // No answer at all -- the request may well have reached client-app. Stay locked and let the
+            // watcher decide: it shows the ending, or releases the button once the server reports no
+            // cancel in progress.
+            create_container.data('cancel-inflight', false);
+            instawp_staging_v4_cancel_state(create_container, 'in-progress');
         });
     });
 

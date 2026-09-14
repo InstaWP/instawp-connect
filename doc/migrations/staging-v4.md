@@ -264,6 +264,45 @@ chrome (Cancel hidden, reason in the red box) with the "Migration Aborted" heade
 customer stopped on purpose must not read "Migration Failed". client-app also records WHO cancelled
 in its `migrates_v4.extra_info` (`cancelled_by_user`, `cancel_source`); the plugin does not need it.
 
+### One cancel at a time
+
+Cancel calls client-app **at most once per run while a request is out**:
+
+1. If the record already holds an ending, `staging_cancel()` returns it — no API call.
+2. If the per-run transient `instawp_staging_v4_cancel_<md5(uuid)>` exists, it answers
+   `cancelling: true` — no API call.
+3. Otherwise it sets the transient to `requested` (`CANCEL_LOCK_TTL`, 2 min) **before** calling
+   `POST migrations/{uuid}/cancel`. A failed call deletes it (the only case a retry is allowed); a
+   success or 422 records the ending, sets it to `done`, and returns `{ status, message }`. On a 422 the
+   run's real status is read once, so a run that completed just before the click is shown as completed.
+
+The screen follows the same lock: the button is disabled the moment the confirm is accepted, a
+repeated click shows "Cancellation in progress...", the returned ending is painted immediately
+("Migration Aborted" — no poll wait, no refresh), `staging_status()` reports `cancelling` so another
+tab or a refreshed page keeps the button disabled, and the template renders it disabled while
+`InstaWP_Staging_V4::cancel_in_progress()` is true.
+
+### Cancel while the run is starting
+
+**Create Staging** reveals Cancel immediately, but `start_run()` needs tens of seconds (install
+instamigrate → `staging-init` → `live-import/start`) before `remember_run()` stores the uuid. A Cancel
+in that window has nothing to send to client-app yet, so instead of answering "No staging migration in
+progress." (which re-enabled the button) `staging_cancel()` stores a pending cancel in
+`instawp_staging_v4_cancel_pending` (matched on the start's `started_at`) and answers
+`cancelling: true`. It is honoured at the first place that can act on it:
+
+| Where | Effect |
+|---|---|
+| `start_run()` before installing instamigrate | nothing created; record set to `aborted` |
+| `start_run()` after `staging-init`, before `live-import/start` | import cancelled on client-app; **no destination site is created** |
+| `start_run()` after `remember_run()` | run cancelled on client-app (destination deleted) |
+| first `staging_status()` poll (the click landed after the last checkpoint) | run cancelled, the same poll reports the ending |
+
+The init response then carries `status: aborted`, and the screen shows "Migration Aborted" without
+starting the watcher. The pending option is read straight from the database because `start_run()` is
+one long request and `get_option()` would keep serving the value it read first. All cancel paths share
+`request_cancel()`, so they follow the same lock.
+
 Compatibility: a plugin older than this accepts only `completed|failed` from `migration-finished`
 and its watcher never treats `aborted` as terminal, so against a current client-app a cancel made
 from InstaWP leaves that screen polling until `RESUME_WINDOW` / `CLEANUP_DEADLINE` retire the run.

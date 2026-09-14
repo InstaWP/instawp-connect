@@ -67,6 +67,11 @@ $serve_with_wp         = (bool) Helper::get_args_option( 'serve_with_wp', $migra
 $v4_run      = InstaWP_Staging_V4::resumable_run();
 $v4_resuming = ! empty( $v4_run );
 
+// A cancel request for the resumed run is still out (the page was refreshed mid-cancel, or another tab
+// clicked it). The Cancel button is then rendered disabled and reading "Cancellation in progress...", so
+// a refresh can never hand back an enabled button that would fire the cancel API again.
+$v4_cancelling = $v4_resuming && InstaWP_Staging_V4::cancel_in_progress( Helper::get_args_option( 'uuid', $v4_run, '' ) );
+
 if ( $v4_resuming ) {
 	$tracking_url          = Helper::get_args_option( 'agent_url', $v4_run, $tracking_url );
 	$current_create_screen = 5;
@@ -578,9 +583,14 @@ delete_option( 'instawp_db_offset' );
 							 * the not-yet-running screen.
 							 */
 							?>
-                            <button type="button" class="instawp-v4-cancel <?php echo esc_attr( $v4_resuming ? '' : 'hidden' ); ?> shadow-sm border border-grayCust-350 rounded-md py-2 px-8 bg-white text-sm font-medium text-red-400"
+                            <?php // data-cancel-text is the idle label the JS restores after a failed cancel; the
+                            // label rendered here may already be the in-progress one after a refresh. ?>
+                            <button type="button" class="instawp-v4-cancel <?php echo esc_attr( $v4_resuming ? '' : 'hidden' ); ?> <?php echo esc_attr( $v4_cancelling ? 'instawp-v4-cancelling' : '' ); ?> shadow-sm border border-grayCust-350 rounded-md py-2 px-8 bg-white text-sm font-medium text-red-400"
+                                    <?php disabled( $v4_cancelling ); ?>
                                     data-confirm="<?php esc_attr_e( 'Are you sure you want to cancel this migration? The destination site will be deleted.', 'instawp-connect' ); ?>"
-                                    data-cancelling-text="<?php esc_attr_e( 'Cancelling...', 'instawp-connect' ); ?>"><?php esc_html_e( 'Cancel Migration', 'instawp-connect' ); ?></button>
+                                    data-cancel-text="<?php esc_attr_e( 'Cancel Migration', 'instawp-connect' ); ?>"
+                                    data-cancelling-text="<?php esc_attr_e( 'Cancelling...', 'instawp-connect' ); ?>"
+                                    data-in-progress-text="<?php esc_attr_e( 'Cancellation in progress...', 'instawp-connect' ); ?>"><?php $v4_cancelling ? esc_html_e( 'Cancellation in progress...', 'instawp-connect' ) : esc_html_e( 'Cancel Migration', 'instawp-connect' ); ?></button>
                         </div>
                     </div>
                     <div class="migration-completed hidden border border-grayCust-100 rounded-lg">
