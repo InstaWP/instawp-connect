@@ -70,48 +70,80 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 		const BATCH_SIZE = 500;
 
 		/**
-		 * Send attempts, and the wall-clock budget they share.
+		 * Send attempts, and how quickly a failure has to arrive to be worth retrying.
 		 *
-		 * Curl::do_curl() waits up to 60s (80s where max_execution_time allows) for one request, so a
-		 * plain "retry N times" loop blocks for N * 60s inside a single request -- past the FPM
-		 * request_terminate_timeout that then kills it. The budget is checked BEFORE each retry, so a
-		 * slow failure (a timeout) buys no second attempt while a fast one (connection refused, an
-		 * immediate 5xx) still does. Whatever is left unsent stays in the table for the next run.
+		 * Curl::do_curl() waits 60s, 80s, 110s or 290s for a single request depending on the site's
+		 * max_execution_time (see connect-helpers Curl.php), so a plain "retry N times" loop blocks
+		 * for N times that inside one request -- the old loop of 10 could sit there for 600s and more
+		 * on a pool whose request_terminate_timeout is 90.
+		 *
+		 * A retry is therefore only taken when the loop SO FAR has been fast. A connection refused or
+		 * an immediate 5xx is worth another go; an attempt that failed by timing out means the
+		 * endpoint is struggling, and the recurring action five minutes from now is the better retry
+		 * than a second timeout stacked onto this request.
+		 *
+		 * Worst case becomes one request timeout plus a few fast attempts, rather than ten timeouts.
+		 * The single-request timeout itself lives in connect-helpers and is out of scope here.
 		 */
-		const MAX_ATTEMPTS = 3;
-		const RETRY_BUDGET = 30;
+		const MAX_ATTEMPTS      = 3;
+		const RETRY_MAX_ELAPSED = 5;
 
 		/**
-		 * Retention bounds, applied whether or not sending works.
+		 * Retention bounds, so a site whose sync has been broken for weeks can recover on its own.
 		 *
-		 * Rows are deleted only after the API accepts them, which is correct while the API is
-		 * reachable and unbounded when it is not: a site that has been failing for weeks accumulates
-		 * rows it can never send and has no way back on its own. These caps give it one.
+		 * These DELETE rows that were never delivered, which is why they are hedged three ways:
 		 *
-		 * The row cap discards rows that were never delivered, so it is deliberately NOT applied
-		 * while sending is working -- a busy site whose backlog is merely draining slowly must not
-		 * lose logs it is about to send. Only the age cap applies unconditionally: a row nobody has
-		 * managed to send in RETENTION_DAYS is dead weight either way.
+		 * - They apply only once sending has been failing CONTINUOUSLY for RETENTION_GRACE, measured
+		 *   from a positive first-failure stamp. The absence of a success marker is deliberately not
+		 *   the signal: a site that has only just been upgraded has never recorded a success either,
+		 *   and trimming on that would destroy the very backlog this exists to drain.
+		 * - The sweep runs AFTER the send attempt, never before, so the stamp it reads is current.
+		 * - `critical` rows -- a post, user, theme or plugin DELETED, or a major core update -- are
+		 *   held apart under a far larger cap and are never aged out. They are the part of an audit
+		 *   trail worth keeping, and must not be evictable by ordinary post_updated volume.
+		 *
+		 * The resulting rule is one sentence: nothing is deleted except after successful delivery,
+		 * unless the sync has been failing without let-up for a day.
 		 */
-		const RETENTION_ROWS = 10000;
-		const RETENTION_DAYS = 30;
+		const RETENTION_ROWS          = 10000;
+		const RETENTION_ROWS_CRITICAL = 100000;
+		const RETENTION_DAYS          = 30;
+		const RETENTION_GRACE         = DAY_IN_SECONDS;
 
 		/**
-		 * Guards the retention sweep so it costs one option read per hour, not one per event.
+		 * Caps the retention sweep at one pass per hour.
+		 *
+		 * Note this does NOT make the surrounding reads hourly -- send_log_data() is called inline
+		 * from insert() on every event when the interval is "instantly", so the transient read
+		 * happens that often too. Only the sweep itself is rate limited.
 		 */
 		const RETENTION_TRANSIENT = 'instawp_activity_log_retention';
 
 		/**
-		 * Set for this long after every accepted send; its absence is what "sending is broken" means.
+		 * Unix time of the first failure of the current streak; absent whenever sending last worked.
+		 *
+		 * An option rather than a transient: it has to survive an object-cache flush, because losing
+		 * it restarts the grace period and delays a stuck site's recovery.
 		 */
-		const SEND_OK_TRANSIENT = 'instawp_activity_log_send_ok';
-		const SEND_OK_TTL       = 2 * HOUR_IN_SECONDS;
+		const FAILING_SINCE_OPTION = 'instawp_activity_log_failing_since';
 
 		public function send_log_data( $critical = false ) {
+			$this->send_pending_logs( $critical );
 			$this->enforce_retention();
+		}
 
+		/**
+		 * Send one bounded batch of pending rows, and delete them if the API took them.
+		 *
+		 * @param bool $critical Send the critical rows rather than everything else.
+		 * @return void
+		 */
+		private function send_pending_logs( $critical ) {
 			$connect_id = instawp_get_connect_id();
 			if ( ! $connect_id ) {
+				// Not connected is not a passing hiccup: nothing can be delivered until somebody
+				// reconnects the site, and the table grows for the whole of that time.
+				$this->mark_send_failed();
 				return;
 			}
 
@@ -121,7 +153,7 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 			$query    = $wpdb->prepare(
 				"SELECT * FROM {$this->table_name} WHERE severity {$operator} %s ORDER BY id ASC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				'critical',
-				self::BATCH_SIZE
+				$this->batch_size()
 			);
 
 			$log_ids = $logs = array();
@@ -139,19 +171,20 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 
 			unset( $results );
 
-            if ( empty( $log_ids ) ) {
-                return;
-            }
+			if ( empty( $log_ids ) ) {
+				// Nothing pending says nothing about whether sending works, so leave the stamp alone.
+				return;
+			}
 
 			$success    = false;
             $api_domain = Helper::get_api_server_domain();
             $jwt        = Helper::get_jwt();
-			$deadline   = microtime( true ) + self::RETRY_BUDGET;
+			$started    = microtime( true );
 
 			for ( $attempt = 0; $attempt < self::MAX_ATTEMPTS; $attempt ++ ) {
 				if ( $attempt > 0 ) {
-					// No budget left to absorb another request of unknown length.
-					if ( microtime( true ) >= $deadline ) {
+					// Only a fast failure earns a retry -- see RETRY_MAX_ELAPSED.
+					if ( ( microtime( true ) - $started ) >= self::RETRY_MAX_ELAPSED ) {
 						break;
 					}
 					sleep( $attempt );
@@ -163,7 +196,7 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 				// its own empty api-key / api-domain guards -- so this is not an HTTP status of 0.
 				$code = isset( $response['code'] ) ? intval( $response['code'] ) : 0;
 
-                if ( 200 === $code ) {
+				if ( 200 === $code ) {
 					$success = true;
 					break;
 				}
@@ -173,14 +206,26 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 				}
 			}
 
-			if ( $success ) {
-				set_transient( self::SEND_OK_TRANSIENT, 1, self::SEND_OK_TTL );
-
-				$placeholders = implode( ',', array_fill( 0, count( $log_ids ), '%d' ) );
-				$wpdb->query(
-					$wpdb->prepare( "DELETE FROM {$this->table_name} WHERE id IN ($placeholders)", $log_ids ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
-				);
+			if ( ! $success ) {
+				$this->mark_send_failed();
+				return;
 			}
+
+			$this->mark_send_ok();
+
+			$placeholders = implode( ',', array_fill( 0, count( $log_ids ), '%d' ) );
+			$wpdb->query(
+				$wpdb->prepare( "DELETE FROM {$this->table_name} WHERE id IN ($placeholders)", $log_ids ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+			);
+		}
+
+		/**
+		 * @return int Rows per send, never below one.
+		 */
+		private function batch_size() {
+			$size = (int) apply_filters( 'instawp/filters/activity_log_batch_size', self::BATCH_SIZE );
+
+			return $size > 0 ? $size : self::BATCH_SIZE;
 		}
 
 		/**
@@ -202,15 +247,38 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 		}
 
 		/**
-		 * Keep the pending-log table bounded, regardless of whether sending is working.
-		 *
-		 * Runs at most hourly: send_log_data() is called inline from insert() on every event when the
-		 * interval is "instantly", and this must not add queries to that path.
+		 * @return void
+		 */
+		private function mark_send_ok() {
+			if ( get_option( self::FAILING_SINCE_OPTION ) ) {
+				delete_option( self::FAILING_SINCE_OPTION );
+			}
+		}
+
+		/**
+		 * @return void
+		 */
+		private function mark_send_failed() {
+			// add_option() does not overwrite, so the stamp keeps recording the FIRST failure of the
+			// current streak rather than sliding forward to the most recent one.
+			add_option( self::FAILING_SINCE_OPTION, time(), '', 'no' );
+		}
+
+		/**
+		 * Trim the pending-log table, but only once the sync has been broken long enough to mean it.
 		 *
 		 * @return void
 		 */
 		private function enforce_retention() {
 			if ( get_transient( self::RETENTION_TRANSIENT ) ) {
+				return;
+			}
+
+			$failing_since = (int) get_option( self::FAILING_SINCE_OPTION );
+			$grace         = (int) apply_filters( 'instawp/filters/activity_log_retention_grace', self::RETENTION_GRACE );
+
+			// Healthy, or failing only briefly: nothing here is allowed to delete an undelivered row.
+			if ( $failing_since <= 0 || ( time() - $failing_since ) < $grace ) {
 				return;
 			}
 
@@ -224,30 +292,63 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 				return;
 			}
 
-			$max_rows = (int) apply_filters( 'instawp/filters/activity_log_retention_rows', self::RETENTION_ROWS );
+			$this->trim_to_row_cap( false, (int) apply_filters( 'instawp/filters/activity_log_retention_rows', self::RETENTION_ROWS ) );
+			$this->trim_to_row_cap( true, (int) apply_filters( 'instawp/filters/activity_log_retention_rows_critical', self::RETENTION_ROWS_CRITICAL ) );
+
 			$max_days = (int) apply_filters( 'instawp/filters/activity_log_retention_days', self::RETENTION_DAYS );
 
-			// Only trim undelivered rows once sending has actually stopped working; see the constant.
-			if ( $max_rows > 0 && ! get_transient( self::SEND_OK_TRANSIENT ) ) {
-				// The id of the newest row that is already past the cap; everything at or below it is
-				// older still. Walking the primary key like this keeps the trim off a table scan.
-				$cutoff_id = $wpdb->get_var(
-					$wpdb->prepare( "SELECT id FROM {$this->table_name} ORDER BY id DESC LIMIT 1 OFFSET %d", $max_rows ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-				);
-
-				if ( ! empty( $cutoff_id ) ) {
-					$wpdb->query(
-						$wpdb->prepare( "DELETE FROM {$this->table_name} WHERE id <= %d", $cutoff_id ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-					);
-				}
-			}
-
 			if ( $max_days > 0 ) {
-				// timestamp is written as current_time( 'mysql', 1 ), i.e. UTC -- so compare in UTC.
+				// Non-critical only, and in UTC: timestamp is written as current_time( 'mysql', 1 ).
 				$wpdb->query(
-					$wpdb->prepare( "DELETE FROM {$this->table_name} WHERE timestamp < %s", gmdate( 'Y-m-d H:i:s', time() - ( $max_days * DAY_IN_SECONDS ) ) ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+					$wpdb->prepare(
+						"DELETE FROM {$this->table_name} WHERE severity != %s AND timestamp < %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+						'critical',
+						gmdate( 'Y-m-d H:i:s', time() - ( $max_days * DAY_IN_SECONDS ) )
+					)
 				);
 			}
+		}
+
+		/**
+		 * Keep at most $max_rows of one severity class, dropping the oldest.
+		 *
+		 * The two classes are capped separately and never compete: a burst of post_updated events
+		 * must not be able to evict a plugin_deleted that has not been delivered yet.
+		 *
+		 * @param bool $critical Cap the critical rows rather than everything else.
+		 * @param int  $max_rows Zero or less disables this cap entirely.
+		 * @return void
+		 */
+		private function trim_to_row_cap( $critical, $max_rows ) {
+			if ( $max_rows <= 0 ) {
+				return;
+			}
+
+			global $wpdb;
+
+			$operator = $critical ? '=' : '!=';
+
+			// The id of the newest row of this class that is already past the cap; everything at or
+			// below it is older still. Walking the primary key keeps the trim off a table scan.
+			$cutoff_id = $wpdb->get_var(
+				$wpdb->prepare(
+					"SELECT id FROM {$this->table_name} WHERE severity {$operator} %s ORDER BY id DESC LIMIT 1 OFFSET %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+					'critical',
+					$max_rows
+				)
+			);
+
+			if ( null === $cutoff_id ) {
+				return;
+			}
+
+			$wpdb->query(
+				$wpdb->prepare(
+					"DELETE FROM {$this->table_name} WHERE severity {$operator} %s AND id <= %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+					'critical',
+					$cutoff_id
+				)
+			);
 		}
 
 		public function create_table() {
