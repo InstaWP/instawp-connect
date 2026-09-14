@@ -93,7 +93,7 @@ Three things that make it behave:
 - **It is not the `loading` class.** That one starts the V3 progress poll, which reads a `migrates_v3`
   row a V4 run never creates. The two resume paths are kept apart by construction, not by the
   coincidence that a V4 run writes no `migrate_id`.
-- **A terminal poll stamps `finished_at`**, so a finished run stops reopening. Without it the only
+- **A terminal poll (`completed`, `failed` or `aborted`) stamps `finished_at`**, so a finished run stops reopening. Without it the only
   thing retiring a completed run would be the window, and every page load for 12 hours would flash
   "Creating Staging" before correcting itself.
 - **The window errs long on purpose.** A large source can migrate for hours; abandoning a live
@@ -242,6 +242,32 @@ failure sites and missed the two early returns in `provision_instamigrate()` —
 instamigrate, so the plugin does stay on the customer's site. A lingering value means precisely "we
 installed this and the run never started". Real cleanup — an admin notice, or deactivate-and-delete
 once the flag is stale — is a separate change and is not implemented.
+
+## Cancel and endings
+
+A run has exactly three endings, listed once in `InstaWP_Staging_V4::TERMINAL_STATUSES` and read by
+every terminal check (`on_record_updated()`, `details_expired()`, `staging_cancel()`,
+`staging_status()`, the `migration-finished` REST endpoint; the watcher in `scripts.js` mirrors it):
+
+| Status      | Meaning                                                | Screen header        |
+|-------------|--------------------------------------------------------|----------------------|
+| `completed` | migrated and linked                                    | Completed            |
+| `failed`    | the migration broke                                    | Migration Failed     |
+| `aborted`   | a deliberate stop — Cancel here, on InstaWP, or the agent | Migration Aborted |
+
+**A cancel is `aborted`, never `failed`.** "Cancel Migration" calls `POST migrations/{uuid}/cancel`;
+client-app tells the agent to stop, claims its row `aborted`, deletes the destination site (the
+button's confirm text says so), and notifies `migration-finished` with `status=aborted`. Locally
+`staging_cancel()` records `aborted` too, so the record is right even if that notification never
+arrives. The same word is used whichever side notices first, and the screen reuses the failure
+chrome (Cancel hidden, reason in the red box) with the "Migration Aborted" header — a run the
+customer stopped on purpose must not read "Migration Failed". client-app also records WHO cancelled
+in its `migrates_v4.extra_info` (`cancelled_by_user`, `cancel_source`); the plugin does not need it.
+
+Compatibility: a plugin older than this accepts only `completed|failed` from `migration-finished`
+and its watcher never treats `aborted` as terminal, so against a current client-app a cancel made
+from InstaWP leaves that screen polling until `RESUME_WINDOW` / `CLEANUP_DEADLINE` retire the run.
+A cancel clicked in the old plugin still cleans up locally.
 
 ## Return shapes — the trap worth knowing
 

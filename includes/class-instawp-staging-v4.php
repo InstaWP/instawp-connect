@@ -81,6 +81,14 @@ class InstaWP_Staging_V4 {
 	 */
 	const DETAILS_RETENTION = 6 * HOUR_IN_SECONDS;
 
+	/**
+	 * Every ending client-app can report for a run: `completed`, `failed`, and `aborted` (a cancel --
+	 * ours, the customer's from client-app, or the agent's). The ONE list every terminal check in the
+	 * plugin reads (this class, the migration-finished REST endpoint, and the watcher in scripts.js
+	 * mirrors it), so a new ending is added here and nowhere else. Five inline copies used to drift.
+	 */
+	const TERMINAL_STATUSES = array( 'completed', 'failed', 'aborted' );
+
 	const ORPHAN_OPTION = 'instawp_instamigrate_orphaned';
 
 	/**
@@ -116,7 +124,7 @@ class InstaWP_Staging_V4 {
 	public static function on_record_updated( $old_value = null, $value = null ) {
 		$value = is_array( $value ) ? $value : array();
 
-		if ( in_array( isset( $value['status'] ) ? $value['status'] : '', array( 'completed', 'failed' ), true ) ) {
+		if ( in_array( isset( $value['status'] ) ? $value['status'] : '', self::TERMINAL_STATUSES, true ) ) {
 			self::cleanup_instamigrate();
 		}
 	}
@@ -142,7 +150,7 @@ class InstaWP_Staging_V4 {
 	public static function details_expired( $details ) {
 		$details = is_array( $details ) ? $details : array();
 
-		return in_array( isset( $details['status'] ) ? $details['status'] : '', array( 'completed', 'failed' ), true )
+		return in_array( isset( $details['status'] ) ? $details['status'] : '', self::TERMINAL_STATUSES, true )
 			&& ! empty( $details['finished_at'] )
 			&& ( time() - (int) $details['finished_at'] ) > self::DETAILS_RETENTION;
 	}
@@ -171,7 +179,7 @@ class InstaWP_Staging_V4 {
 	 * AJAX: cancel the run this site started, and take the agent back off.
 	 *
 	 * client-app's cancel does three things: it tells the agent to stop, claims the terminal
-	 * transition as `failed`, and DELETES the destination site. The button's confirm text says so --
+	 * transition as `aborted`, and DELETES the destination site. The button's confirm text says so --
 	 * a user stopping a slow migration would not otherwise expect to lose the site.
 	 *
 	 * A 422 is SUCCESS from here. It means client-app already considers the run terminal and we were
@@ -202,11 +210,13 @@ class InstaWP_Staging_V4 {
 			);
 		}
 
-		// The run is terminal now. Record it; the record's update hook removes instamigrate. Unless the
-		// record already says it ended -- a 422 means client-app got there first, and the poll may
-		// already have written how: a completed run must not be rewritten as failed.
-		if ( ! in_array( Helper::get_args_option( 'status', $details, '' ), array( 'completed', 'failed' ), true ) ) {
-			$details['status']      = 'failed';
+		// The run is terminal now. Record it as `aborted` -- the same word client-app claims for a cancel,
+		// so the screen reads "Migration Aborted" whichever side notices first, never "Migration Failed"
+		// for a run the customer stopped on purpose. The record's update hook removes instamigrate. Unless
+		// the record already says it ended -- a 422 means client-app got there first, and the poll may
+		// already have written how: a completed run must not be rewritten as aborted.
+		if ( ! in_array( Helper::get_args_option( 'status', $details, '' ), self::TERMINAL_STATUSES, true ) ) {
+			$details['status']      = 'aborted';
 			$details['finished_at'] = time();
 
 			Option::update_option( self::DETAILS_OPTION, $details, false );
@@ -557,7 +567,7 @@ class InstaWP_Staging_V4 {
 
 		// A terminal status is final: once the record says the run ended, nothing rewrites it --
 		// not a later poll, not Cancel, not the push.
-		$already_ended = in_array( Helper::get_args_option( 'status', $details, '' ), array( 'completed', 'failed' ), true );
+		$already_ended = in_array( Helper::get_args_option( 'status', $details, '' ), self::TERMINAL_STATUSES, true );
 
 		// client-app's status, verbatim. The record's update hook reads it to decide about the plugin.
 		if ( ! $already_ended && '' !== $status && $status !== Helper::get_args_option( 'status', $details, '' ) ) {
@@ -574,7 +584,7 @@ class InstaWP_Staging_V4 {
 		 * saw finish. The window then does what it is actually for: retiring runs whose outcome we
 		 * never observed because the tab was closed first.
 		 */
-		if ( ! $already_ended && in_array( $status, array( 'completed', 'failed' ), true ) && empty( $details['finished_at'] ) ) {
+		if ( ! $already_ended && in_array( $status, self::TERMINAL_STATUSES, true ) && empty( $details['finished_at'] ) ) {
 			// The migration's OWN completion time when client-app sent one -- DETAILS_RETENTION is
 			// measured from when the run ended, not from when this poll happened to notice.
 			$completed_at = strtotime( (string) Helper::get_args_option( 'completed_at', $data, '' ) );

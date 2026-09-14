@@ -416,6 +416,7 @@ delete_option( 'instawp_db_offset' );
                     <span class="instawp-migration-loader text-primary-900 text-base font-normal"
                             data-in-progress-text="<?php esc_attr_e( 'In Progress...', 'instawp-connect' ); ?>"
                             data-error-text="<?php esc_attr_e( 'Migration Failed', 'instawp-connect' ); ?>"
+                            data-aborted-text="<?php esc_attr_e( 'Migration Aborted', 'instawp-connect' ); ?>"
                             data-complete-text="<?php esc_attr_e( 'Completed', 'instawp-connect' ); ?>">
                         <?php esc_html_e( 'In Progress...', 'instawp-connect' ); ?>
                     </span>
