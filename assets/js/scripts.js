@@ -413,7 +413,11 @@
                 elapsedInterval = null;
             }
         },
-        instawp_staging_v4_fail = (create_container, message) => {
+        // `is_aborted` switches the header from "Migration Failed" to "Migration Aborted". Everything
+        // else is shared on purpose: an abort is terminal, hides Cancel, and carries its reason in
+        // the same red box — only the word differs, and it must never read "Failed" for a run the
+        // customer stopped themselves.
+        instawp_staging_v4_fail = (create_container, message, is_aborted) => {
             // Guard against both terminal handlers running. clearInterval stops new polls but any
             // request already in flight still settles, so a poll that reported `failed` can be
             // followed by one carrying `completed` — leaving a green header above a red error box.
@@ -421,26 +425,33 @@
                 return;
             }
 
+            // `.migration-failed` stays as the "terminal, not completed" guard for both endings;
+            // `.migration-aborted` is added alongside so styling can tell them apart.
             create_container.addClass('migration-failed');
+
+            if (is_aborted) {
+                create_container.addClass('migration-aborted');
+            }
 
             // Nothing left to cancel once the run is terminal.
             create_container.find('.instawp-v4-cancel').addClass('hidden');
 
             let el_error_wrap = create_container.find('.migration-error'),
-                el_loader = create_container.find('.instawp-migration-loader');
+                el_loader = create_container.find('.instawp-migration-loader'),
+                header_text = is_aborted ? el_loader.data('aborted-text') : el_loader.data('error-text');
 
             // The header still says "In Progress..." otherwise — a purple in-progress label sitting
             // next to a red error box. V3 does exactly this at its own error path; the strings are
             // translated data-attributes on the element, so nothing is hardcoded here.
-            el_loader.removeClass('text-primary-900').addClass('text-red-700').text(el_loader.data('error-text'));
+            el_loader.removeClass('text-primary-900').addClass('text-red-700').text(header_text);
 
             // The template's .error-message <p> is EMPTY — there is no default to fall back to, so
             // an absent reason would render a red box with an icon, a button and no words. Fall back
-            // to the loader's translated "Migration Failed".
+            // to the loader's translated header ("Migration Failed" / "Migration Aborted").
             // .text(), not .html(): this is a server-supplied string and the fallback is plain
             // text anyway, so there is nothing to gain from rendering it as markup on an admin page.
             el_error_wrap.find('.error-message').text(
-                message && message.length > 0 ? message : el_loader.data('error-text')
+                message && message.length > 0 ? message : header_text
             );
 
             // V4 never populates data-migrate-id / data-server-logs, so this button would download
@@ -522,11 +533,17 @@
                     // spinner turning and the elapsed timer counting up forever, so `failed`
                     // rendered identically to `completed` and to still-in-progress — the user was
                     // never told the migration had failed.
-                    if (['completed', 'failed'].indexOf(response.data.status) !== -1) {
+                    //
+                    // Mirrors InstaWP_Staging_V4::TERMINAL_STATUSES. `aborted` is a cancel — ours,
+                    // client-app's, or the agent's — and reuses the failure chrome with an
+                    // "Migration Aborted" header rather than "Migration Failed".
+                    if (['completed', 'failed', 'aborted'].indexOf(response.data.status) !== -1) {
                         instawp_staging_v4_stop(create_container, watcher);
 
-                        if ('failed' === response.data.status) {
-                            instawp_staging_v4_fail(create_container, response.data.message);
+                        if ('aborted' === response.data.status) {
+                            instawp_staging_v4_fail(create_container, response.data.message, true);
+                        } else if ('failed' === response.data.status) {
+                            instawp_staging_v4_fail(create_container, response.data.message, false);
                         } else {
                             instawp_staging_v4_complete(create_container);
                         }

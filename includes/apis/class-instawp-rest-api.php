@@ -585,8 +585,10 @@ class InstaWP_Rest_Api {
 			$details = (array) Option::get_option( InstaWP_Staging_V4::DETAILS_OPTION );
 
 			// Only a terminal status is written, and never over one: the record's first ending stands.
-			if ( in_array( $status, array( 'completed', 'failed' ), true )
-				&& ! in_array( Helper::get_args_option( 'status', $details, '' ), array( 'completed', 'failed' ), true )
+			// `aborted` is accepted alongside completed/failed -- it is what client-app sends for a
+			// cancel, and dropping it here left the run "in progress" on the source forever.
+			if ( in_array( $status, InstaWP_Staging_V4::TERMINAL_STATUSES, true )
+				&& ! in_array( Helper::get_args_option( 'status', $details, '' ), InstaWP_Staging_V4::TERMINAL_STATUSES, true )
 			) {
 				$details['status'] = $status;
 
