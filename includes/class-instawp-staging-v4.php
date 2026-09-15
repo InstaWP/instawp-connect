@@ -1117,6 +1117,17 @@ class InstaWP_Staging_V4 {
 		$data = Helper::get_args_option( 'data', $response, array() );
 		$uuid = Helper::get_args_option( 'uuid', $data, '' );
 
+		/*
+		 * client-app found a migration already running for this site (its single duplicate guard) that is
+		 * not an import this plugin can watch -- e.g. a V4 API migration: `existing` is set but there is no
+		 * import uuid. Point the admin at that migration instead of the generic "no reference" error.
+		 */
+		if ( empty( $uuid ) && ! empty( $data['existing'] ) ) {
+			self::log_orphaned_instamigrate( 'a migration is already in progress for this site' );
+
+			return self::existing_migration_error( $response, $data );
+		}
+
 		if ( empty( $uuid ) ) {
 			self::log_orphaned_instamigrate( 'no migration reference returned' );
 
@@ -1165,6 +1176,25 @@ class InstaWP_Staging_V4 {
 			self::log_orphaned_instamigrate( 'destination site creation failed' );
 
 			return new WP_Error( 'site_create_failed', Helper::get_args_option( 'message', $start, esc_html__( 'Could not create the staging site.', 'instawp-connect' ) ) );
+		}
+
+		/*
+		 * client-app refused to start a second run for this site and handed back the one already in flight
+		 * (`existing`). Watch THAT run: remembering our own uuid would poll an import that never starts.
+		 * With no uuid to watch (not an import), show where the running migration is instead.
+		 */
+		$start_data = Helper::get_args_option( 'data', $start, array() );
+
+		if ( ! empty( $start_data['existing'] ) ) {
+			$existing_uuid = Helper::get_args_option( 'uuid', $start_data, '' );
+
+			if ( empty( $existing_uuid ) ) {
+				self::log_orphaned_instamigrate( 'a migration is already in progress for this site' );
+
+				return self::existing_migration_error( $start, $start_data );
+			}
+
+			$uuid = $existing_uuid;
 		}
 
 		self::remember_run( $uuid, $started_at );
@@ -1479,6 +1509,25 @@ class InstaWP_Staging_V4 {
 	 *
 	 * @return void
 	 */
+	/**
+	 * The admin-facing refusal when client-app reports a migration already running for this site that
+	 * the plugin cannot watch.
+	 *
+	 * Uses client-app's own message and appends the running migration's url so the admin can open it.
+	 * Plain text on purpose: the wizard renders this message with .text() (assets/js/scripts.js).
+	 *
+	 * @param array $response The client-app response (for its message).
+	 * @param array $data     The response's `data` (for migration_url).
+	 *
+	 * @return WP_Error
+	 */
+	private static function existing_migration_error( $response, $data ) {
+		$message = Helper::get_args_option( 'message', $response, esc_html__( 'A migration is already in progress for this site.', 'instawp-connect' ) );
+		$url     = esc_url_raw( Helper::get_args_option( 'migration_url', $data, '' ) );
+
+		return new WP_Error( 'migration_in_progress', empty( $url ) ? $message : $message . ' ' . $url );
+	}
+
 	private static function remember_run( $uuid, $started_at = 0 ) {
 		// The migration exists, so the install is accounted for — clear both the flag and the
 		// once-only log latch, so a genuinely new orphan later on is reported again.
