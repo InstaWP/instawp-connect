@@ -243,6 +243,26 @@ instamigrate, so the plugin does stay on the customer's site. A lingering value 
 installed this and the run never started". Real cleanup — an admin notice, or deactivate-and-delete
 once the flag is stale — is a separate change and is not implemented.
 
+### Site already under migration
+
+client-app runs one duplicate guard for every migration trigger point (`V4MigrationService::duplicateGuard()`):
+a site url that is the source or destination of a running migration cannot start another one. When the
+running migration belongs to the same user (an import) or team (a V4 migration), client-app answers with
+success and `data.existing = true` instead of creating anything; any other owner gets a plain refusal
+("Migration is in progress already.").
+
+`start_run()` handles both `existing` answers:
+
+| Where | Answer | Plugin does |
+|---|---|---|
+| `staging-init` | `existing` with an import `uuid` | carries on as normal — `start` on that uuid returns the in-flight run, which is watched |
+| `staging-init` | `existing`, no `uuid` (e.g. a V4 API migration) | returns `WP_Error('migration_in_progress')` with client-app's message and the running `migration_url` |
+| `live-import/{uuid}/start` | `existing` with another import's `uuid` | watches **that** uuid (`remember_run()`), not its own never-started import |
+| `live-import/{uuid}/start` | `existing`, no `uuid` | same `migration_in_progress` error |
+
+The url is appended as plain text: the wizard renders the message with `.text()`. Both refusal paths call
+`log_orphaned_instamigrate()`, because instamigrate was already provisioned for a run that will not start.
+
 ## Cancel and endings
 
 A run has exactly three endings, listed once in `InstaWP_Staging_V4::TERMINAL_STATUSES` and read by
