@@ -336,6 +336,126 @@ class Helper {
 	}
 
 	/**
+	 * Error log bounds.
+	 *
+	 * The log is bounded on two axes, because either one alone is a legal path to a huge option:
+	 * ERROR_LOG_MAX_ENTRIES bounds how MANY entries are kept, ERROR_LOG_MAX_ENTRY_BYTES bounds how
+	 * big any ONE of them may be. Curl::do_curl() logs the entire failed request body on any
+	 * 4xx/5xx, and a 4xx is an ordinary outcome, so a single multi-megabyte entry is the normal
+	 * case here rather than the exotic one — and twenty of those is still twenty entries.
+	 */
+	const ERROR_LOG_NAME            = 'iwp_connect_helper_error_log';
+	const ERROR_LOG_VERSION_NAME    = 'iwp_connect_helper_error_log_version';
+	const ERROR_LOG_MAX_ENTRIES     = 20;
+	const ERROR_LOG_MAX_ENTRY_BYTES = 5120;
+
+	/**
+	 * Whether one log entry is too large to store.
+	 *
+	 * Measures the entry as it will actually be persisted — after sanitising, redaction and the
+	 * Throwable merge — so the number this compares is the number that lands in the option.
+	 *
+	 * Uses json_encode() rather than wp_json_encode() deliberately: on a failed encode
+	 * wp_json_encode() calls _wp_json_sanity_check(), which recursively walks and re-encodes the
+	 * whole structure — the exact traversal this guard exists to avoid. Plain json_encode() returns
+	 * false and stops.
+	 *
+	 * @param array $error entry about to be appended to the log.
+	 *
+	 * @return bool
+	 */
+	private static function is_entry_too_big( $error ) {
+		/*
+		 * JSON_UNESCAPED_UNICODE so the measure is the entry's real byte length. Without it every
+		 * non-ASCII character is escaped to \uXXXX — 3x for accented Latin or Cyrillic, 12x for a
+		 * 4-byte emoji — which would hand a Japanese site an effective ceiling under 2KB while an
+		 * English site got the full 5KB.
+		 */
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode
+		$encoded = json_encode( $error, JSON_UNESCAPED_UNICODE );
+
+		/*
+		 * json_encode() returns FALSE on invalid UTF-8, recursion or depth overflow, and
+		 * strlen( false ) is 0 — so an unguarded `strlen( json_encode( $e ) ) > N` silently PASSES
+		 * for exactly the entries it exists to catch.
+		 *
+		 * But unencodable is NOT the same as large, and treating it as large would be a regression:
+		 * a Throwable message carrying one stray byte is merged in below without going through
+		 * sanitize_text_field()'s wp_check_invalid_utf8(), and such an entry is small, useful and
+		 * logged today. So fall back to a measure that does not have that failure mode.
+		 * maybe_serialize() runs a little larger than JSON for this shape, which makes the fallback
+		 * marginally stricter than the main path — the safe direction.
+		 */
+		if ( false === $encoded ) {
+			$encoded = maybe_serialize( $error );
+		}
+
+		/*
+		 * is_string() before strlen(), because maybe_serialize() returns its argument UNCHANGED
+		 * for a scalar rather than serialising it. It can only hand back a non-string when $error
+		 * is itself a scalar, which cannot be large — so an unmeasurable value here is KEPT rather
+		 * than dropped. (Defensive: add_error_log() always builds $error as an array, so this
+		 * branch is not reachable from the call site.)
+		 */
+		if ( ! is_string( $encoded ) ) {
+			return false;
+		}
+
+		return self::ERROR_LOG_MAX_ENTRY_BYTES < strlen( $encoded );
+	}
+
+	/**
+	 * Clear the persisted error log once per plugin version.
+	 *
+	 * Called by both add_error_log() and get_error_log(). The check runs at most once per PHP
+	 * request (the static guard) and the wipe at most once per plugin version (the marker option),
+	 * so a plugin upgrade starts every site from a clean slate rather than inheriting whatever the
+	 * previous version left behind.
+	 *
+	 * Uses delete_option() rather than writing an empty array: update_option() reads and
+	 * unserializes the OLD value before comparing it, which is precisely the blob this exists to
+	 * get rid of. delete_option() reads only the `autoload` column.
+	 *
+	 * @return void
+	 */
+	public static function reset_error_log() {
+		static $checked = false;
+
+		if ( $checked ) {
+			return;
+		}
+
+		/*
+		 * No version to key the reset off (library used outside instawp-connect) => never wipe.
+		 * Checked BEFORE the static is set: a call made before the constant is defined must not
+		 * disable the reset for the rest of the process. Nothing is read or written on this path,
+		 * so re-checking costs nothing.
+		 */
+		if ( ! defined( 'INSTAWP_PLUGIN_VERSION' ) ) {
+			return;
+		}
+
+		$checked = true;
+
+		if ( INSTAWP_PLUGIN_VERSION === Option::get_option( self::ERROR_LOG_VERSION_NAME, '' ) ) {
+			return;
+		}
+
+		/*
+		 * Marker first, and abandon the reset if it does not land. The static only guards within a
+		 * request, so a delete that succeeds while the marker write fails would wipe the log again
+		 * on every subsequent request, for ever, with nothing recording why. A false return here
+		 * means either a real write failure or a concurrent worker that already claimed this
+		 * version — skipping is correct in both.
+		 */
+		if ( ! Option::update_option( self::ERROR_LOG_VERSION_NAME, INSTAWP_PLUGIN_VERSION ) ) {
+			return;
+		}
+
+		Option::delete_option( self::ERROR_LOG_NAME );
+	}
+
+	/**
 	 * Add error log
 	 *
 	 * @param array|string $payload
@@ -344,34 +464,71 @@ class Helper {
 	 * @return void
 	 */
 	public static function add_error_log( $payload, $th = null ) {
-		$log_name = 'iwp_connect_helper_error_log';
-		$log      = self::get_options( array(), $log_name );
+		/*
+		 * The whole body is wrapped, because this is the sink that CATCH BLOCKS call: almost every
+		 * caller is already handling a failure, so an exception raised in here would replace their
+		 * error with an unrelated one and lose the original. Nothing this function does is worth
+		 * that, so a failure to log is swallowed rather than propagated — and it cannot be logged,
+		 * for the obvious reason.
+		 *
+		 * \Throwable, not \Exception: an \Error (a TypeError out of a stringy helper, an
+		 * out-of-memory on a large payload) is exactly the class of failure worth containing here,
+		 * and the plugin's floor is PHP 7.0.
+		 */
+		try {
+			/*
+			 * First, and ahead of both the read and the size bail below. Ahead of the read, because
+			 * reading the log, resetting, then writing that array back would resurrect everything the
+			 * reset just deleted. Ahead of the bail, because a site whose only traffic is oversized
+			 * entries would otherwise never reach the reset at all.
+			 */
+			self::reset_error_log();
 
-		$log = ( empty( $log ) || ! is_array( $log ) ) ? array() : $log;
+			$log_name = self::ERROR_LOG_NAME;
+			$log      = self::get_options( array(), $log_name );
 
-		if ( 150 < count( $log ) ) {
-			// Remove first 50 entries
-			$log = array_slice( $log, 50 );
-		}
+			$log = ( empty( $log ) || ! is_array( $log ) ) ? array() : $log;
 
-		$error         = is_array( $payload ) ? self::sanitize_data( $payload ) : array(
-			'message' => sanitize_text_field( $payload ),
-		);
-		$error['time'] = date( 'Y-m-d H:i:s' );
-
-		if ( ! empty( $th ) ) {
-			$error = array_merge(
-				$error,
-				array(
-					'error' => $th->getMessage(),
-					'line'  => $th->getLine(),
-					'file'  => $th->getFile(),
-				)
+			$error         = is_array( $payload ) ? self::sanitize_data( $payload ) : array(
+				'message' => sanitize_text_field( $payload ),
 			);
-		}
+			$error['time'] = date( 'Y-m-d H:i:s' );
 
-		$log[] = $error;
-		self::set_settings( $log, $log_name );
+			if ( ! empty( $th ) ) {
+				$error = array_merge(
+					$error,
+					array(
+						'error' => $th->getMessage(),
+						'line'  => $th->getLine(),
+						'file'  => $th->getFile(),
+					)
+				);
+			}
+
+			/*
+			 * Skip an oversized entry entirely, and leave what is already stored alone. Measured here
+			 * rather than on the raw $payload so the check sees exactly what would be persisted.
+			 */
+			if ( self::is_entry_too_big( $error ) ) {
+				return;
+			}
+
+			$log[] = $error;
+
+			/*
+			 * Trimmed AFTER the append, with a negative slice. Trimming before it (`> 20` then slice)
+			 * leaves 21 entries and only converges one write at a time; this collapses a legacy
+			 * 150-entry log to exactly 20 on the very next write. array_slice() reindexes, so the log
+			 * stays a JSON list rather than becoming an object.
+			 */
+			if ( self::ERROR_LOG_MAX_ENTRIES < count( $log ) ) {
+				$log = array_slice( $log, - self::ERROR_LOG_MAX_ENTRIES );
+			}
+
+			self::set_settings( $log, $log_name );
+		} catch ( \Throwable $e ) {
+			return;
+		}
 	}
 
 	/**
@@ -380,7 +537,9 @@ class Helper {
 	 * @return array
 	 */
 	public static function get_error_log() {
-		$log = self::get_options( array(), 'iwp_connect_helper_error_log' );
+		self::reset_error_log();
+
+		$log = self::get_options( array(), self::ERROR_LOG_NAME );
 		$log = ( empty( $log ) || ! is_array( $log ) ) ? array() : $log;
 
 		return $log;
