@@ -338,44 +338,46 @@ class Helper {
 	/**
 	 * Error log bounds.
 	 *
-	 * ERROR_LOG_MAX_PAYLOAD_BYTES is measured as JSON, on the payload as it arrives — before
-	 * sanitize_data() walks it. That walk is a recursive per-element copy with no breadth or depth
-	 * guard, and it is what exhausts memory on a large payload, so the cheapest place to refuse one
-	 * is before it happens. Curl::do_curl() logs the whole failed request body on any 4xx/5xx, and
-	 * a 4xx is an ordinary outcome, so an oversized payload is the normal case here, not the exotic
-	 * one.
+	 * The log is bounded on two axes, because either one alone is a legal path to a huge option:
+	 * ERROR_LOG_MAX_ENTRIES bounds how MANY entries are kept, ERROR_LOG_MAX_ENTRY_BYTES bounds how
+	 * big any ONE of them may be. Curl::do_curl() logs the entire failed request body on any
+	 * 4xx/5xx, and a 4xx is an ordinary outcome, so a single multi-megabyte entry is the normal
+	 * case here rather than the exotic one — and twenty of those is still twenty entries.
 	 */
-	const ERROR_LOG_NAME              = 'iwp_connect_helper_error_log';
-	const ERROR_LOG_VERSION_NAME      = 'iwp_connect_helper_error_log_version';
-	const ERROR_LOG_MAX_ENTRIES       = 20;
-	const ERROR_LOG_MAX_PAYLOAD_BYTES = 5120;
+	const ERROR_LOG_NAME            = 'iwp_connect_helper_error_log';
+	const ERROR_LOG_VERSION_NAME    = 'iwp_connect_helper_error_log_version';
+	const ERROR_LOG_MAX_ENTRIES     = 20;
+	const ERROR_LOG_MAX_ENTRY_BYTES = 5120;
 
 	/**
-	 * Whether a payload is too large to be worth logging.
+	 * Whether one log entry is too large to store.
+	 *
+	 * Measures the entry as it will actually be persisted — after sanitising, redaction and the
+	 * Throwable merge — so the number this compares is the number that lands in the option.
 	 *
 	 * Uses json_encode() rather than wp_json_encode() deliberately: on a failed encode
 	 * wp_json_encode() calls _wp_json_sanity_check(), which recursively walks and re-encodes the
 	 * whole structure — the exact traversal this guard exists to avoid. Plain json_encode() returns
 	 * false and stops.
 	 *
-	 * @param array|string $payload payload about to be logged.
+	 * @param array $error entry about to be appended to the log.
 	 *
 	 * @return bool
 	 */
-	private static function is_payload_too_big( $payload ) {
+	private static function is_entry_too_big( $error ) {
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode
-		$encoded = json_encode( $payload );
+		$encoded = json_encode( $error );
 
 		/*
 		 * json_encode() returns FALSE on invalid UTF-8, recursion or depth overflow, and
-		 * strlen( false ) is 0 — so an unguarded `strlen( json_encode( $p ) ) > N` silently PASSES
-		 * for exactly the pathological payloads it exists to catch. Unmeasurable is too big.
+		 * strlen( false ) is 0 — so an unguarded `strlen( json_encode( $e ) ) > N` silently PASSES
+		 * for exactly the pathological entries it exists to catch. Unmeasurable is too big.
 		 */
 		if ( false === $encoded ) {
 			return true;
 		}
 
-		return self::ERROR_LOG_MAX_PAYLOAD_BYTES < strlen( $encoded );
+		return self::ERROR_LOG_MAX_ENTRY_BYTES < strlen( $encoded );
 	}
 
 	/**
@@ -424,16 +426,12 @@ class Helper {
 	 */
 	public static function add_error_log( $payload, $th = null ) {
 		/*
-		 * First, and ahead of the size bail below. Ahead of the read, because reading the log,
-		 * resetting, then writing that array back would resurrect everything the reset just
-		 * deleted. Ahead of the bail, because a site whose only traffic is oversized payloads
-		 * would otherwise never reach the reset at all.
+		 * First, and ahead of both the read and the size bail below. Ahead of the read, because
+		 * reading the log, resetting, then writing that array back would resurrect everything the
+		 * reset just deleted. Ahead of the bail, because a site whose only traffic is oversized
+		 * entries would otherwise never reach the reset at all.
 		 */
 		self::reset_error_log();
-
-		if ( self::is_payload_too_big( $payload ) ) {
-			return;
-		}
 
 		$log_name = self::ERROR_LOG_NAME;
 		$log      = self::get_options( array(), $log_name );
@@ -454,6 +452,14 @@ class Helper {
 					'file'  => $th->getFile(),
 				)
 			);
+		}
+
+		/*
+		 * Skip an oversized entry entirely, and leave what is already stored alone. Measured here
+		 * rather than on the raw $payload so the check sees exactly what would be persisted.
+		 */
+		if ( self::is_entry_too_big( $error ) ) {
+			return;
 		}
 
 		$log[] = $error;
