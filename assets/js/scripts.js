@@ -1625,6 +1625,13 @@
             subEl = subEl.not('.uploads').not('[class*=uploads-]');
         }
 
+        // A protected row is disabled by the renderer, but the last line of this handler
+        // sets .prop("disabled", ...) on every sub-row from the parent's state -- which
+        // would RE-ENABLE it the moment the parent is unticked. Reachable only on a
+        // layout where wp-content is nested (see get_protected_paths()'s known gap), but
+        // a guard that a stray click can undo is not a guard.
+        subEl = subEl.not('.protected-path');
+
         // wp-content is rendered disabled and can never be ticked, so it must not count
         // here — otherwise "Select All" would untick itself the moment it is used.
         if ($(document).find('.exclude-files-container .instawp-checkbox.exclude-file-item:not(.large-file)').not(":disabled").not(':checked').length) {
