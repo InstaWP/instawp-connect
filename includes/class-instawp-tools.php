@@ -1124,7 +1124,87 @@ include $file_path;';
 
 		$migrate_settings['wp_config_constants'] = self::get_wp_config_constants();
 
-		return apply_filters( 'instawp/filters/process_migration_settings', $migrate_settings );
+		$migrate_settings = apply_filters( 'instawp/filters/process_migration_settings', $migrate_settings );
+
+		// Applied last, after the filter, so nothing can put a core table back into the exclusion list.
+		$migrate_settings['excluded_tables'] = self::drop_core_tables_from_exclusion( Helper::get_args_option( 'excluded_tables', $migrate_settings, array() ) );
+
+		return $migrate_settings;
+	}
+
+	/**
+	 * WP core tables that must never be excluded from a migration.
+	 *
+	 * These are the tables the destination validates a CREATE TABLE statement for
+	 * during the schema phase of a pull. iwp-serve only emits CREATE TABLE for
+	 * tables it is tracking, and it tracks only the tables absent from
+	 * excluded_tables — so excluding any of these makes the migration fail with
+	 * "Could not validate core tables after 3 attempts".
+	 *
+	 * Names are read off $wpdb rather than built by concatenating a prefix, so they
+	 * match what SHOW TABLE STATUS reports for this site exactly: $wpdb->users
+	 * honours CUSTOM_USER_TABLE, and on a multisite sub-site $wpdb->options is that
+	 * blog's wp_N_options.
+	 *
+	 * Scope: this covers the CURRENT blog only. instawp_get_database_details() lists
+	 * every table in the database, so on a multisite network another blog's core
+	 * tables and the network tables (blogs, site, sitemeta, ...) are still offered
+	 * in the UI and are NOT protected here. Multisite is out of scope for this guard.
+	 *
+	 * @return array Table names, prefixed for the current site.
+	 */
+	public static function get_protected_core_tables() {
+
+		global $wpdb;
+
+		$core_tables = array(
+			$wpdb->options,
+			$wpdb->posts,
+			$wpdb->postmeta,
+			$wpdb->terms,
+			$wpdb->termmeta,
+			$wpdb->term_taxonomy,
+			$wpdb->term_relationships,
+			$wpdb->users,
+			$wpdb->usermeta,
+		);
+
+		return array_values( array_filter( array_unique( $core_tables ) ) );
+	}
+
+	/**
+	 * Remove any WP core table from a list of tables to exclude.
+	 *
+	 * A migration that excludes a core table can only fail, so the exclusion is
+	 * dropped rather than honoured. The UI disables these checkboxes, so reaching
+	 * this means the request came from somewhere else (REST, WP-CLI, a stale form)
+	 * — worth a log entry.
+	 *
+	 * @param array $excluded_tables Table names the caller asked to exclude.
+	 *
+	 * @return array The same list without any core table.
+	 */
+	public static function drop_core_tables_from_exclusion( $excluded_tables = array() ) {
+
+		if ( empty( $excluded_tables ) || ! is_array( $excluded_tables ) ) {
+			return array();
+		}
+
+		$core_tables = self::get_protected_core_tables();
+		$dropped     = array_intersect( $excluded_tables, $core_tables );
+
+		if ( empty( $dropped ) ) {
+			return $excluded_tables;
+		}
+
+		Helper::add_error_log(
+			array(
+				'message' => 'Refused to exclude WP core tables from a migration; the destination cannot restore without them.',
+				'tables'  => implode( ', ', $dropped ),
+			)
+		);
+
+		return array_values( array_diff( $excluded_tables, $core_tables ) );
 	}
 
 	public static function get_wp_config_constants( $config_path = '' ) {
