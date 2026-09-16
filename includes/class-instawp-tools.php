@@ -1126,7 +1126,12 @@ include $file_path;';
 
 		$migrate_settings = apply_filters( 'instawp/filters/process_migration_settings', $migrate_settings );
 
-		// Applied last, after the filter, so nothing can put a core table back into the exclusion list.
+		// Applied last, after the filter, so nothing can put a core table back into the
+		// exclusion list. This is the single choke point for EVERY mode and entry point —
+		// V3 pull, V4 staging, push, REST and WP-CLI all reach excluded_tables through
+		// get_migrate_settings(), which calls this function as its last act. The guard is
+		// therefore not pull-specific, even though only the pull path has a destination
+		// schema check to fail on.
 		$migrate_settings['excluded_tables'] = self::drop_core_tables_from_exclusion( Helper::get_args_option( 'excluded_tables', $migrate_settings, array() ) );
 
 		return $migrate_settings;
@@ -1187,9 +1192,21 @@ include $file_path;';
 	 * instead would silently protect nothing on a layout where the two disagree —
 	 * Flywheel, or any install whose DOCUMENT_ROOT is not ABSPATH.
 	 *
-	 * Returns an empty array when wp-content does not live under that root (Bedrock,
-	 * or a symlinked content dir whose real path is elsewhere). There is no row to
-	 * protect in that case, so there is nothing to do rather than something to guess.
+	 * Returns an empty array when WP_CONTENT_DIR does not live under that root, which
+	 * is a layout where the file browser cannot be showing a wp-content row either —
+	 * so there is nothing to protect rather than something to guess. Bedrock is NOT
+	 * such a layout and is NOT an exception: its root falls through to DOCUMENT_ROOT
+	 * (/srv/app/web), so this returns 'app' and the producer independently yields
+	 * 'app' too. Nor is a symlinked wp-content, because get_directory_contents()
+	 * never calls realpath() — it normalizes a constructed $dir . '/' . $value, and
+	 * WP_CONTENT_DIR is likewise unresolved, so the two agree. The real fail-open
+	 * cases are a WP_CONTENT_DIR genuinely outside the browse root, and a
+	 * DOCUMENT_ROOT that is not an ancestor of ABSPATH.
+	 *
+	 * KNOWN GAP: on "WordPress in its own directory" with wp-config.php moved up a
+	 * level, this correctly returns 'wp/wp-content' and protects that row — but the
+	 * top-level 'wp' row is not protected, so Select All can still take the whole
+	 * install. Protecting it would need a second rule about ABSPATH, not wp-content.
 	 *
 	 * @return array Root-relative paths, or an empty array.
 	 */
@@ -1201,6 +1218,22 @@ include $file_path;';
 		// $root carries its own trailing slash, so this cannot match a sibling directory
 		// (/var/www/html-backup/wp-content against a /var/www/html/ root).
 		if ( '' === $root || 0 !== strpos( $content, $root ) ) {
+			// Failing open here protects nothing, and silence is how that becomes
+			// undiagnosable: class-instawp-staging-v4.php's own docblock records a
+			// shipped bug where every path failed a prefix test and 100% of exclusions
+			// were dropped without a trace. One entry per request, not per row.
+			static $logged = false;
+			if ( ! $logged ) {
+				$logged = true;
+				Helper::add_error_log(
+					array(
+						'message'        => 'wp-content is not under the migration browse root, so it cannot be protected from exclusion on the Exclude step.',
+						'browse_root'    => $root,
+						'wp_content_dir' => $content,
+					)
+				);
+			}
+
 			return array();
 		}
 
