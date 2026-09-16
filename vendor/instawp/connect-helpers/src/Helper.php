@@ -447,12 +447,23 @@ class Helper {
 		 * But unencodable is NOT the same as large, and treating it as large would be a regression:
 		 * a Throwable message carrying one stray byte is merged in below without going through
 		 * sanitize_text_field()'s wp_check_invalid_utf8(), and such an entry is small, useful and
-		 * logged today. So fall back to a measure that cannot fail. serialize() runs a little
-		 * larger than JSON for this shape, which makes the fallback marginally stricter than the
-		 * main path — the safe direction.
+		 * logged today. So fall back to a measure that does not have that failure mode.
+		 * maybe_serialize() runs a little larger than JSON for this shape, which makes the fallback
+		 * marginally stricter than the main path — the safe direction.
 		 */
 		if ( false === $encoded ) {
-			return self::ERROR_LOG_MAX_ENTRY_BYTES < strlen( serialize( $error ) );
+			$encoded = maybe_serialize( $error );
+		}
+
+		/*
+		 * is_string() before strlen(), because maybe_serialize() returns its argument UNCHANGED
+		 * for a scalar rather than serialising it. It can only hand back a non-string when $error
+		 * is itself a scalar, which cannot be large — so an unmeasurable value here is KEPT rather
+		 * than dropped. (Defensive: add_error_log() always builds $error as an array, so this
+		 * branch is not reachable from the call site.)
+		 */
+		if ( ! is_string( $encoded ) ) {
+			return false;
 		}
 
 		return self::ERROR_LOG_MAX_ENTRY_BYTES < strlen( $encoded );
@@ -519,64 +530,79 @@ class Helper {
 	 */
 	public static function add_error_log( $payload, $th = null ) {
 		/*
-		 * First, and ahead of both the read and the size bail below. Ahead of the read, because
-		 * reading the log, resetting, then writing that array back would resurrect everything the
-		 * reset just deleted. Ahead of the bail, because a site whose only traffic is oversized
-		 * entries would otherwise never reach the reset at all.
+		 * The whole body is wrapped, because this is the sink that CATCH BLOCKS call: almost every
+		 * caller is already handling a failure, so an exception raised in here would replace their
+		 * error with an unrelated one and lose the original. Nothing this function does is worth
+		 * that, so a failure to log is swallowed rather than propagated — and it cannot be logged,
+		 * for the obvious reason.
+		 *
+		 * \Throwable, not \Exception: an \Error (a TypeError out of a stringy helper, an
+		 * out-of-memory on a large payload) is exactly the class of failure worth containing here,
+		 * and the plugin's floor is PHP 7.0.
 		 */
-		self::reset_error_log();
-
-		$log_name = self::ERROR_LOG_NAME;
-		$log      = self::get_options( array(), $log_name );
-
-		$log = ( empty( $log ) || ! is_array( $log ) ) ? array() : $log;
-
-		$error         = is_array( $payload ) ? self::redact_for_log( self::sanitize_data( $payload ) ) : array(
+		try {
 			/*
-			 * A STRING payload is NOT redacted — by design, and worth stating because the comment
-			 * that used to sit here said the opposite (it described a text scrubber that has since
-			 * been deleted). Redaction is key-based: there are no keys in a bare string to match.
-			 *
-			 * So a caller that interpolates a credential into a message — `Authorization: Bearer …`,
-			 * `?api_key=…` — logs it verbatim. If that matters for a given call site, pass an ARRAY
-			 * with the credential under its own key and it will be blanked.
+			 * First, and ahead of both the read and the size bail below. Ahead of the read, because
+			 * reading the log, resetting, then writing that array back would resurrect everything the
+			 * reset just deleted. Ahead of the bail, because a site whose only traffic is oversized
+			 * entries would otherwise never reach the reset at all.
 			 */
-			'message' => sanitize_text_field( $payload ),
-		);
-		$error['time'] = date( 'Y-m-d H:i:s' );
+			self::reset_error_log();
 
-		if ( ! empty( $th ) ) {
-			$error = array_merge(
-				$error,
-				array(
-					'error' => $th->getMessage(),
-					'line'  => $th->getLine(),
-					'file'  => $th->getFile(),
-				)
+			$log_name = self::ERROR_LOG_NAME;
+			$log      = self::get_options( array(), $log_name );
+
+			$log = ( empty( $log ) || ! is_array( $log ) ) ? array() : $log;
+
+			$error         = is_array( $payload ) ? self::redact_for_log( self::sanitize_data( $payload ) ) : array(
+				/*
+				 * A STRING payload is NOT redacted — by design, and worth stating because the comment
+				 * that used to sit here said the opposite (it described a text scrubber that has since
+				 * been deleted). Redaction is key-based: there are no keys in a bare string to match.
+				 *
+				 * So a caller that interpolates a credential into a message — `Authorization: Bearer …`,
+				 * `?api_key=…` — logs it verbatim. If that matters for a given call site, pass an ARRAY
+				 * with the credential under its own key and it will be blanked.
+				 */
+				'message' => sanitize_text_field( $payload ),
 			);
-		}
+			$error['time'] = date( 'Y-m-d H:i:s' );
 
-		/*
-		 * Skip an oversized entry entirely, and leave what is already stored alone. Measured here
-		 * rather than on the raw $payload so the check sees exactly what would be persisted.
-		 */
-		if ( self::is_entry_too_big( $error ) ) {
+			if ( ! empty( $th ) ) {
+				$error = array_merge(
+					$error,
+					array(
+						'error' => $th->getMessage(),
+						'line'  => $th->getLine(),
+						'file'  => $th->getFile(),
+					)
+				);
+			}
+
+			/*
+			 * Skip an oversized entry entirely, and leave what is already stored alone. Measured here
+			 * rather than on the raw $payload so the check sees exactly what would be persisted.
+			 */
+			if ( self::is_entry_too_big( $error ) ) {
+				return;
+			}
+
+			$log[] = $error;
+
+			/*
+			 * Trimmed AFTER the append, with a negative slice. Trimming before it (`> 20` then slice)
+			 * leaves 21 entries and only converges one write at a time; this collapses a legacy
+			 * 150-entry log to exactly 20 on the very next write. array_slice() reindexes, so the log
+			 * stays a JSON list rather than becoming an object.
+			 */
+			if ( self::ERROR_LOG_MAX_ENTRIES < count( $log ) ) {
+				$log = array_slice( $log, - self::ERROR_LOG_MAX_ENTRIES );
+			}
+
+			self::set_settings( $log, $log_name );
+		} catch ( \Throwable $e ) {
 			return;
 		}
-
-		$log[] = $error;
-
-		/*
-		 * Trimmed AFTER the append, with a negative slice. Trimming before it (`> 20` then slice)
-		 * leaves 21 entries and only converges one write at a time; this collapses a legacy
-		 * 150-entry log to exactly 20 on the very next write. array_slice() reindexes, so the log
-		 * stays a JSON list rather than becoming an object.
-		 */
-		if ( self::ERROR_LOG_MAX_ENTRIES < count( $log ) ) {
-			$log = array_slice( $log, - self::ERROR_LOG_MAX_ENTRIES );
-		}
-
-		self::set_settings( $log, $log_name );
 	}
 
 	/**
