@@ -401,6 +401,85 @@ class Helper {
 	}
 
 	/**
+	 * Error log bounds.
+	 *
+	 * ERROR_LOG_MAX_PAYLOAD_BYTES is measured as JSON, on the payload as it arrives — before
+	 * sanitize_data() walks it. That walk is a recursive per-element copy with no breadth or depth
+	 * guard, and it is what exhausts memory on a large payload, so the cheapest place to refuse one
+	 * is before it happens. Curl::do_curl() logs the whole failed request body on any 4xx/5xx, and
+	 * a 4xx is an ordinary outcome, so an oversized payload is the normal case here, not the exotic
+	 * one.
+	 */
+	const ERROR_LOG_NAME              = 'iwp_connect_helper_error_log';
+	const ERROR_LOG_VERSION_NAME      = 'iwp_connect_helper_error_log_version';
+	const ERROR_LOG_MAX_ENTRIES       = 20;
+	const ERROR_LOG_MAX_PAYLOAD_BYTES = 5120;
+
+	/**
+	 * Whether a payload is too large to be worth logging.
+	 *
+	 * Uses json_encode() rather than wp_json_encode() deliberately: on a failed encode
+	 * wp_json_encode() calls _wp_json_sanity_check(), which recursively walks and re-encodes the
+	 * whole structure — the exact traversal this guard exists to avoid. Plain json_encode() returns
+	 * false and stops.
+	 *
+	 * @param array|string $payload payload about to be logged.
+	 *
+	 * @return bool
+	 */
+	private static function is_payload_too_big( $payload ) {
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode
+		$encoded = json_encode( $payload );
+
+		/*
+		 * json_encode() returns FALSE on invalid UTF-8, recursion or depth overflow, and
+		 * strlen( false ) is 0 — so an unguarded `strlen( json_encode( $p ) ) > N` silently PASSES
+		 * for exactly the pathological payloads it exists to catch. Unmeasurable is too big.
+		 */
+		if ( false === $encoded ) {
+			return true;
+		}
+
+		return self::ERROR_LOG_MAX_PAYLOAD_BYTES < strlen( $encoded );
+	}
+
+	/**
+	 * Clear the persisted error log once per plugin version.
+	 *
+	 * Called by both add_error_log() and get_error_log(). The check runs at most once per PHP
+	 * request (the static guard) and the wipe at most once per plugin version (the marker option),
+	 * so a plugin upgrade starts every site from a clean slate rather than inheriting whatever the
+	 * previous version left behind.
+	 *
+	 * Uses delete_option() rather than writing an empty array: update_option() reads and
+	 * unserializes the OLD value before comparing it, which is precisely the blob this exists to
+	 * get rid of. delete_option() reads only the `autoload` column.
+	 *
+	 * @return void
+	 */
+	public static function reset_error_log() {
+		static $checked = false;
+
+		if ( $checked ) {
+			return;
+		}
+
+		$checked = true;
+
+		// No version to key the reset off (library used outside instawp-connect) => never wipe.
+		if ( ! defined( 'INSTAWP_PLUGIN_VERSION' ) ) {
+			return;
+		}
+
+		if ( INSTAWP_PLUGIN_VERSION === Option::get_option( self::ERROR_LOG_VERSION_NAME, '' ) ) {
+			return;
+		}
+
+		Option::delete_option( self::ERROR_LOG_NAME );
+		Option::update_option( self::ERROR_LOG_VERSION_NAME, INSTAWP_PLUGIN_VERSION );
+	}
+
+	/**
 	 * Add error log
 	 *
 	 * @param array|string $payload
@@ -409,15 +488,22 @@ class Helper {
 	 * @return void
 	 */
 	public static function add_error_log( $payload, $th = null ) {
-		$log_name = 'iwp_connect_helper_error_log';
+		/*
+		 * First, and ahead of the size bail below. Ahead of the read, because reading the log,
+		 * resetting, then writing that array back would resurrect everything the reset just
+		 * deleted. Ahead of the bail, because a site whose only traffic is oversized payloads
+		 * would otherwise never reach the reset at all.
+		 */
+		self::reset_error_log();
+
+		if ( self::is_payload_too_big( $payload ) ) {
+			return;
+		}
+
+		$log_name = self::ERROR_LOG_NAME;
 		$log      = self::get_options( array(), $log_name );
 
 		$log = ( empty( $log ) || ! is_array( $log ) ) ? array() : $log;
-
-		if ( 150 < count( $log ) ) {
-			// Remove first 50 entries
-			$log = array_slice( $log, 50 );
-		}
 
 		$error         = is_array( $payload ) ? self::redact_for_log( self::sanitize_data( $payload ) ) : array(
 			/*
@@ -445,6 +531,17 @@ class Helper {
 		}
 
 		$log[] = $error;
+
+		/*
+		 * Trimmed AFTER the append, with a negative slice. Trimming before it (`> 20` then slice)
+		 * leaves 21 entries and only converges one write at a time; this collapses a legacy
+		 * 150-entry log to exactly 20 on the very next write. array_slice() reindexes, so the log
+		 * stays a JSON list rather than becoming an object.
+		 */
+		if ( self::ERROR_LOG_MAX_ENTRIES < count( $log ) ) {
+			$log = array_slice( $log, - self::ERROR_LOG_MAX_ENTRIES );
+		}
+
 		self::set_settings( $log, $log_name );
 	}
 
@@ -454,7 +551,9 @@ class Helper {
 	 * @return array
 	 */
 	public static function get_error_log() {
-		$log = self::get_options( array(), 'iwp_connect_helper_error_log' );
+		self::reset_error_log();
+
+		$log = self::get_options( array(), self::ERROR_LOG_NAME );
 		$log = ( empty( $log ) || ! is_array( $log ) ) ? array() : $log;
 
 		return $log;
