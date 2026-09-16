@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.6
 Tested up to: 7.0
 Requires PHP: 7.0
-Stable tag: 0.1.3.8.1
+Stable tag: 0.1.3.9
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -98,7 +98,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
-= 0.1.3.8.1 - 16 September 2026 =
+= 0.1.3.9 - 16 September 2026 =
 - Fixed: The plugin's internal error log could grow without limit and, on sites with many failing API calls, use enough memory to fail the background job writing it. It now keeps only the 20 most recent entries, skips any single entry larger than 5KB, and clears itself once after each plugin update.
 - Fixed: Two-way sync no longer copies the error log's internal version marker between sites, which could clear the log on the receiving site.
 
