@@ -1625,7 +1625,9 @@
             subEl = subEl.not('.uploads').not('[class*=uploads-]');
         }
 
-        if ($(document).find('.exclude-files-container .instawp-checkbox.exclude-file-item:not(.large-file)').not(':checked').length) {
+        // wp-content is rendered disabled and can never be ticked, so it must not count
+        // here — otherwise "Select All" would untick itself the moment it is used.
+        if ($(document).find('.exclude-files-container .instawp-checkbox.exclude-file-item:not(.large-file)').not(":disabled").not(':checked').length) {
             $(document).find('#instawp-files-select-all').prop("checked", false);
         } else {
             $(document).find('#instawp-files-select-all').prop("checked", true);

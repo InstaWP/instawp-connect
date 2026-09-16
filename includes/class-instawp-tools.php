@@ -1173,6 +1173,43 @@ include $file_path;';
 	}
 
 	/**
+	 * Root-relative paths that must never be excluded from a migration.
+	 *
+	 * Only wp-content. The destination drops and reimports the database, so a
+	 * migration that leaves wp-content behind delivers a site whose options row
+	 * names a theme and a plugin set that are not there — no theme, no plugins, no
+	 * uploads. "Select All" on the Exclude step's file list is one click away from
+	 * exactly that, which is how FS#3593 produced four runs with file_size = 0.
+	 *
+	 * The value is derived against instawp_get_root_path(), matching the PRODUCER of
+	 * the checkbox values exactly (InstaWP::get_directory_contents(), which strips
+	 * that same prefix off the normalized real path). Deriving it against ABSPATH
+	 * instead would silently protect nothing on a layout where the two disagree —
+	 * Flywheel, or any install whose DOCUMENT_ROOT is not ABSPATH.
+	 *
+	 * Returns an empty array when wp-content does not live under that root (Bedrock,
+	 * or a symlinked content dir whose real path is elsewhere). There is no row to
+	 * protect in that case, so there is nothing to do rather than something to guess.
+	 *
+	 * @return array Root-relative paths, or an empty array.
+	 */
+	public static function get_protected_paths() {
+
+		$root    = wp_normalize_path( instawp_get_root_path() . DIRECTORY_SEPARATOR );
+		$content = wp_normalize_path( untrailingslashit( WP_CONTENT_DIR ) );
+
+		// $root carries its own trailing slash, so this cannot match a sibling directory
+		// (/var/www/html-backup/wp-content against a /var/www/html/ root).
+		if ( '' === $root || 0 !== strpos( $content, $root ) ) {
+			return array();
+		}
+
+		$relative = trim( substr( $content, strlen( $root ) ), '/' );
+
+		return '' === $relative ? array() : array( $relative );
+	}
+
+	/**
 	 * Remove any WP core table from a list of tables to exclude.
 	 *
 	 * A migration that excludes a core table can only fail, so the exclusion is

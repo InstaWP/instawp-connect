@@ -40,6 +40,11 @@ The destination server initiates the migration by requesting data from the sourc
 | `excluded_themes` | Skip specific themes |
 | `excluded_tables` | Skip specific database tables (WP core tables are always removed from this list — see below) |
 
+The Exclude step also renders the `wp-content` row disabled, so "Select All" on the file
+list cannot produce a migration that transfers nothing. That is a UI guard only: unlike the
+core tables, an excluded `wp-content` is honoured if it arrives from somewhere else, because
+it yields a degraded site rather than a migration that cannot complete.
+
 ### WP core tables can never be excluded
 
 `process_migration_settings()` strips the nine tables the destination validates —
