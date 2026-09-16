@@ -104,6 +104,8 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 - Fixed: The plan selector now accounts for both file and database size when checking plan capacity.
 - Security: Hardened diagnostic logging.
 - Fixed: The Sync (Beta) event list no longer keeps showing a failed attempt after a later sync of the same change has succeeded.
+- Fixed: Creating a staging site no longer hangs forever when WordPress core tables were excluded on the Exclude step. Those tables are now always migrated, and their checkboxes are disabled so "Select All" cannot tick them.
+- Fixed: The wp-content folder itself can no longer be excluded on the Exclude step, so "Select All" can no longer skip the whole content directory in one click.
 
 = 0.1.3.8 - 12 August 2026 =
 - Improved: Local push no longer copies host-specific configuration, caches, logs, or build and version control folders to the destination.

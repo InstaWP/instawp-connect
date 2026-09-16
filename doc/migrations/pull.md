@@ -38,7 +38,60 @@ The destination server initiates the migration by requesting data from the sourc
 | `skip_media_folder` | Exclude `/wp-content/uploads` |
 | `excluded_plugins` | Skip specific plugins |
 | `excluded_themes` | Skip specific themes |
-| `excluded_tables` | Skip specific database tables |
+| `excluded_tables` | Skip specific database tables (WP core tables are always removed from this list — see below) |
+
+The Exclude step also renders the **top-level `wp-content` row** disabled, so "Select All"
+on the file list cannot exclude the whole content directory in one click.
+
+Two limits, both deliberate and both worth knowing before relying on this:
+
+- **It is the root row only.** Expanding `wp-content` first and then clicking "Select All"
+  still ticks `wp-content/plugins`, `/themes` and `/uploads`, which reaches a comparably
+  broken site. Those rows are left enabled because excluding them individually is a
+  supported choice — `skip_media_folder` exists precisely to drop `/uploads`, and
+  `active_plugins_only` / `active_themes_only` narrow the other two. Guarding "the user
+  excluded effectively everything" needs a submit-time check on the resulting size, not
+  more disabled checkboxes.
+- **It is a UI guard only.** Unlike the core tables, an excluded `wp-content` arriving from
+  WP-CLI, the REST migration endpoint, a filter or a stale form is still honoured, because
+  it yields a degraded site rather than a migration that cannot complete. (A browser cannot
+  submit it even if something ticks it: `jQuery.serialize()` omits disabled controls.)
+
+### WP core tables can never be excluded
+
+`process_migration_settings()` strips the nine tables the destination validates —
+`options`, `posts`, `postmeta`, `terms`, `termmeta`, `term_taxonomy`,
+`term_relationships`, `users`, `usermeta` — out of `excluded_tables` before the
+settings are written to the options file. It runs after the
+`instawp/filters/process_migration_settings` filter, so it is the last word.
+
+Although this file documents the pull path, the guard is **not** pull-specific.
+`process_migration_settings()` is the single choke point every mode reaches —
+V3 pull, V4 staging, push, the REST migration endpoint and WP-CLI all arrive at
+`excluded_tables` through `get_migrate_settings()`, which calls it as its last act.
+Only the pull path has a destination schema check to fail on, but a core table is
+dropped from the exclusion list on all of them.
+
+This is not a preference. `iwp-serve` tracks (and therefore emits
+`CREATE TABLE`) only the tables *absent* from `excluded_tables`, and the
+destination's schema phase aborts after 3 attempts when any of those nine is
+missing — the migration fails with "Could not validate core tables after 3
+attempts" and the customer is left with an empty site stuck in "creating".
+
+Two things to know about the rest of the list:
+
+- **The destination does not drop its existing tables.** `v-instawp-migrate-pull`'s
+  `wp db clean --yes` is commented out (line 264) and the import is a plain
+  `mysql --binary-mode` of a dump whose schema statements are
+  `CREATE TABLE IF NOT EXISTS`. So an excluded table is *absent* on the staging site
+  only when the source's `table_prefix` differs from the fresh install's; when the
+  prefixes match it survives at its **fresh-install state** instead. Either way
+  excluding a table is a real tradeoff and not a no-op — excluding `wp_comments`
+  gives you a site with no comments or an empty comments table, never the source's.
+- The protection covers the **current blog's** tables. The wizard lists every table
+  in the database (a bare `SHOW TABLE STATUS`), so on a multisite network another
+  blog's core tables and the network tables are still listed and are not protected.
+  Multisite is out of scope for this guard.
 
 ## Options Data Storage
 
