@@ -365,16 +365,29 @@ class Helper {
 	 * @return bool
 	 */
 	private static function is_entry_too_big( $error ) {
+		/*
+		 * JSON_UNESCAPED_UNICODE so the measure is the entry's real byte length. Without it every
+		 * non-ASCII character is escaped to \uXXXX — 3x for accented Latin or Cyrillic, 12x for a
+		 * 4-byte emoji — which would hand a Japanese site an effective ceiling under 2KB while an
+		 * English site got the full 5KB.
+		 */
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode
-		$encoded = json_encode( $error );
+		$encoded = json_encode( $error, JSON_UNESCAPED_UNICODE );
 
 		/*
 		 * json_encode() returns FALSE on invalid UTF-8, recursion or depth overflow, and
 		 * strlen( false ) is 0 — so an unguarded `strlen( json_encode( $e ) ) > N` silently PASSES
-		 * for exactly the pathological entries it exists to catch. Unmeasurable is too big.
+		 * for exactly the entries it exists to catch.
+		 *
+		 * But unencodable is NOT the same as large, and treating it as large would be a regression:
+		 * a Throwable message carrying one stray byte is merged in below without going through
+		 * sanitize_text_field()'s wp_check_invalid_utf8(), and such an entry is small, useful and
+		 * logged today. So fall back to a measure that cannot fail. serialize() runs a little
+		 * larger than JSON for this shape, which makes the fallback marginally stricter than the
+		 * main path — the safe direction.
 		 */
 		if ( false === $encoded ) {
-			return true;
+			return self::ERROR_LOG_MAX_ENTRY_BYTES < strlen( serialize( $error ) );
 		}
 
 		return self::ERROR_LOG_MAX_ENTRY_BYTES < strlen( $encoded );
@@ -401,19 +414,34 @@ class Helper {
 			return;
 		}
 
-		$checked = true;
-
-		// No version to key the reset off (library used outside instawp-connect) => never wipe.
+		/*
+		 * No version to key the reset off (library used outside instawp-connect) => never wipe.
+		 * Checked BEFORE the static is set: a call made before the constant is defined must not
+		 * disable the reset for the rest of the process. Nothing is read or written on this path,
+		 * so re-checking costs nothing.
+		 */
 		if ( ! defined( 'INSTAWP_PLUGIN_VERSION' ) ) {
 			return;
 		}
+
+		$checked = true;
 
 		if ( INSTAWP_PLUGIN_VERSION === Option::get_option( self::ERROR_LOG_VERSION_NAME, '' ) ) {
 			return;
 		}
 
+		/*
+		 * Marker first, and abandon the reset if it does not land. The static only guards within a
+		 * request, so a delete that succeeds while the marker write fails would wipe the log again
+		 * on every subsequent request, for ever, with nothing recording why. A false return here
+		 * means either a real write failure or a concurrent worker that already claimed this
+		 * version — skipping is correct in both.
+		 */
+		if ( ! Option::update_option( self::ERROR_LOG_VERSION_NAME, INSTAWP_PLUGIN_VERSION ) ) {
+			return;
+		}
+
 		Option::delete_option( self::ERROR_LOG_NAME );
-		Option::update_option( self::ERROR_LOG_VERSION_NAME, INSTAWP_PLUGIN_VERSION );
 	}
 
 	/**
