@@ -103,6 +103,8 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 - Deprecated: Local push command.
 - Fixed: The plan selector now accounts for both file and database size when checking plan capacity.
 - Security: Hardened diagnostic logging.
+- Fixed: The plugin's internal error log could grow without limit and, on sites with many failing API calls, use enough memory to fail the background job writing it. It now keeps only the 20 most recent entries, skips any single entry larger than 5KB, and clears itself once after each plugin update.
+- Fixed: Two-way sync no longer copies the error log's internal version marker between sites, which could clear the log on the receiving site.
 - Fixed: The Sync (Beta) event list no longer keeps showing a failed attempt after a later sync of the same change has succeeded.
 
 = 0.1.3.8 - 12 August 2026 =
