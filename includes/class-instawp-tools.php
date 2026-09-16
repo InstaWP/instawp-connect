@@ -10,6 +10,15 @@ defined( 'ABSPATH' ) || exit;
 class InstaWP_Tools {
 
 	/**
+	 * Option-name prefix for the get_protected_paths() fail-open latch.
+	 *
+	 * The full name carries an md5 of the browse root and WP_CONTENT_DIR, so the
+	 * warning is logged once per LAYOUT rather than once per AJAX request.
+	 */
+	const PROTECTED_PATHS_FAIL_OPEN_OPTION = 'instawp_protected_paths_fail_open';
+
+
+	/**
 	 * Verify an AJAX request: validates nonce and user capability.
 	 * Sends a JSON error response and exits if either check fails.
 	 *
@@ -1132,6 +1141,13 @@ include $file_path;';
 		// get_migrate_settings(), which calls this function as its last act. The guard is
 		// therefore not pull-specific, even though only the pull path has a destination
 		// schema check to fail on.
+		//
+		// On V4 that is a deliberate behaviour change, not a side effect: V4 turns
+		// excluded_tables into skip_table_data, which ships the schema and drops the rows,
+		// so a core table there lands EMPTY rather than missing and the destination check
+		// cannot fire. The guard removes that capability (previously only options and
+		// sitemeta were protected, agent-side). Kept global because its value is that no
+		// entry point can put a core table back — see doc/migrations/staging-v4.md.
 		$migrate_settings['excluded_tables'] = self::drop_core_tables_from_exclusion( Helper::get_args_option( 'excluded_tables', $migrate_settings, array() ) );
 
 		return $migrate_settings;
@@ -1180,11 +1196,12 @@ include $file_path;';
 	/**
 	 * Root-relative paths that must never be excluded from a migration.
 	 *
-	 * Only wp-content. The destination drops and reimports the database, so a
-	 * migration that leaves wp-content behind delivers a site whose options row
-	 * names a theme and a plugin set that are not there — no theme, no plugins, no
-	 * uploads. "Select All" on the Exclude step's file list is one click away from
-	 * exactly that, which is how FS#3593 produced four runs with file_size = 0.
+	 * Only wp-content. Nothing else on the destination restores it — the database
+	 * arrives from the source and names a theme and a plugin set, and the files that
+	 * would satisfy it were never sent — so the site comes up with no theme, no
+	 * plugins and no uploads whatever the options row says. "Select All" on the
+	 * Exclude step's file list is one click away from exactly that, which is how
+	 * FS#3593 produced four runs with file_size = 0.
 	 *
 	 * The value is derived against instawp_get_root_path(), matching the PRODUCER of
 	 * the checkbox values exactly (InstaWP::get_directory_contents(), which strips
@@ -1218,13 +1235,25 @@ include $file_path;';
 		// $root carries its own trailing slash, so this cannot match a sibling directory
 		// (/var/www/html-backup/wp-content against a /var/www/html/ root).
 		if ( '' === $root || 0 !== strpos( $content, $root ) ) {
-			// Failing open here protects nothing, and silence is how that becomes
-			// undiagnosable: class-instawp-staging-v4.php's own docblock records a
-			// shipped bug where every path failed a prefix test and 100% of exclusions
-			// were dropped without a trace. One entry per request, not per row.
-			static $logged = false;
-			if ( ! $logged ) {
-				$logged = true;
+			/*
+			 * Failing open here protects nothing, and silence is how that becomes
+			 * undiagnosable: class-instawp-staging-v4.php's own docblock records a
+			 * shipped bug where every path failed a prefix test and 100% of exclusions
+			 * were dropped without a trace.
+			 *
+			 * Latched on an OPTION, not a static. A static is per-REQUEST, and the
+			 * Exclude step issues one instawp_get_dir_contents request per folder
+			 * expand, per sort and per refresh — so on an affected layout a static
+			 * would write a near-identical entry per click into the 150-entry
+			 * iwp_connect_helper_error_log ring that the debug-info endpoint hands
+			 * back to customers, evicting 50 real entries at a time. Keyed on the two
+			 * values that define the layout, so a genuinely different one still logs.
+			 * Same cure class-instawp-staging-v4.php uses (ORPHAN_LOGGED_OPTION).
+			 */
+			$latch = self::PROTECTED_PATHS_FAIL_OPEN_OPTION . '_' . md5( $root . '|' . $content );
+
+			if ( empty( Option::get_option( $latch ) ) ) {
+				Option::update_option( $latch, time(), false );
 				Helper::add_error_log(
 					array(
 						'message'        => 'wp-content is not under the migration browse root, so it cannot be protected from exclusion on the Exclude step.',
@@ -1264,7 +1293,10 @@ include $file_path;';
 		$dropped     = array_intersect( $excluded_tables, $core_tables );
 
 		if ( empty( $dropped ) ) {
-			return $excluded_tables;
+			// array_values() on BOTH branches: excluded_tables can arrive associative
+			// (migrate_settings[excluded_tables][foo]=...), and a list on one path and
+			// an object on the other would json_encode differently into the options file.
+			return array_values( $excluded_tables );
 		}
 
 		Helper::add_error_log(
