@@ -124,6 +124,18 @@ The agent's vocabulary differs from V3's in three ways that matter:
 Table exclusions become `skip_table_data`, which ships the schema and drops the rows, so the table
 lands empty instead of missing.
 
+**The core-table guard applies here too, and that is a deliberate behaviour change.**
+`InstaWP_Tools::process_migration_settings()` strips the nine WP core tables out of
+`excluded_tables` for every mode (see `doc/migrations/pull.md`), and V4 reads `excluded_tables`
+after that, so you can no longer skip the DATA of `posts`, `postmeta`, `terms`, `termmeta`,
+`term_taxonomy`, `term_relationships`, `users` or `usermeta` on a V4 staging run — only `options`
+and `sitemeta` were protected before. The destination schema check that motivates the guard cannot
+fire on V4 (the schema is always shipped), so this removes a capability rather than preventing a
+failure. It is kept global on purpose: the guard's whole value is that no entry point, filter or
+stale form can put a core table back, and a staging site with an empty `users` table is a footgun
+of the same family as one with no `users` table at all. If a real use case for emptying a core
+table on V4 turns up, the fix is an explicit opt-in, not a hole in the choke point.
+
 **The size sent to the API is deliberately not the plan picker's number.** The picker
 (`InstaWP_Ajax::get_site_plans()`) sizes with the full migration settings, so it subtracts
 `wp-admin`, `wp-includes` and any root-level path the user ticked. `total_size_mb()` subtracts only
