@@ -1625,7 +1625,16 @@
             subEl = subEl.not('.uploads').not('[class*=uploads-]');
         }
 
-        if ($(document).find('.exclude-files-container .instawp-checkbox.exclude-file-item:not(.large-file)').not(':checked').length) {
+        // A protected row is disabled by the renderer, but the last line of this handler
+        // sets .prop("disabled", ...) on every sub-row from the parent's state -- which
+        // would RE-ENABLE it the moment the parent is unticked. Reachable only on a
+        // layout where wp-content is nested (see get_protected_paths()'s known gap), but
+        // a guard that a stray click can undo is not a guard.
+        subEl = subEl.not('.protected-path');
+
+        // wp-content is rendered disabled and can never be ticked, so it must not count
+        // here — otherwise "Select All" would untick itself the moment it is used.
+        if ($(document).find('.exclude-files-container .instawp-checkbox.exclude-file-item:not(.large-file)').not(":disabled").not(':checked').length) {
             $(document).find('#instawp-files-select-all').prop("checked", false);
         } else {
             $(document).find('#instawp-files-select-all').prop("checked", true);
@@ -1674,7 +1683,9 @@
             parentEl = el.closest('.item'),
             subEl = parentEl.find('.sub-item .instawp-checkbox.exclude-database-item');
 
-        if ($(document).find('.exclude-database-container .instawp-checkbox.exclude-database-item').not(':checked').length) {
+        // Core tables are rendered disabled and can never be ticked, so they must not
+        // count here — otherwise "Select All" would untick itself the moment it is used.
+        if ($(document).find('.exclude-database-container .instawp-checkbox.exclude-database-item').not(":disabled").not(':checked').length) {
             $(document).find('#instawp-database-select-all').prop("checked", false);
         } else {
             $(document).find('#instawp-database-select-all').prop("checked", true);
