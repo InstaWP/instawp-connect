@@ -12,6 +12,24 @@ defined( 'ABSPATH' ) || exit;
 if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 	class InstaWP_Activity_Log {
 
+		/** Rows per request. */
+		const BATCH_SIZE = 500;
+
+		/** Requests per send run; anything left goes to a scheduled follow-up. */
+		const MAX_BATCHES = 10;
+
+		/** Unsent rows kept locally; older ones are dropped. */
+		const MAX_PENDING_ROWS = 10000;
+
+		/** Minimum seconds between non-critical sends, and the base of the failure backoff. */
+		const SEND_THROTTLE = 15;
+
+		/** Longest wait after repeated failures, in seconds. */
+		const MAX_BACKOFF = 3600;
+
+		/** Single option holding next_send / retry_after / failures. */
+		const SEND_STATE_OPTION = 'instawp_activity_log_send_state';
+
 		private $table_name;
 
 		public function __construct() {
@@ -59,55 +77,166 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
             as_unschedule_all_actions( 'instawp_handle_non_critical_logs', array(), 'instawp-connect' );
         }
 
+		/**
+		 * Send queued activity logs to the API in bounded batches.
+		 *
+		 * Every logged event calls this in "instantly" mode, so it must stay cheap and must never
+		 * re-send the whole table: an earlier version POSTed every queued row with 10 inline retries
+		 * on each event, and when the API timed out after storing the batch, the same rows were
+		 * stored again on every retry (ClickUp 14ypaj0dejd, ~22M duplicate logs/day from one site).
+		 *
+		 * - At most BATCH_SIZE rows per request and MAX_BATCHES requests per run, oldest first.
+		 * - One attempt per batch. A failure backs off exponentially instead of retrying inline.
+		 * - Non-critical sends are throttled; rows left behind are picked up by a scheduled follow-up.
+		 *
+		 * @param bool $critical Send only critical rows, right away (skips the throttle, not the failure backoff).
+		 *
+		 * @return void
+		 */
 		public function send_log_data( $critical = false ) {
 			$connect_id = instawp_get_connect_id();
-			if ( ! $connect_id ) {
+			if ( ! $connect_id || ! instawp()->activity_log_enabled ) {
 				return;
 			}
 
+			$state = $this->get_send_state();
+			$now   = time();
+
+			if ( $state['retry_after'] > $now || ( ! $critical && $state['next_send'] > $now ) ) {
+				$this->schedule_follow_up( max( $state['retry_after'], $state['next_send'] ) );
+				return;
+			}
+
+			// Claim the slot before the first request so concurrent events skip instead of sending the same rows.
+			$state['next_send'] = $now + self::SEND_THROTTLE;
+			$this->save_send_state( $state );
+
+			$this->trim_pending_rows();
+
 			global $wpdb;
 
-            if ( $critical ) {
-                $query = $wpdb->prepare( "SELECT * FROM {$this->table_name} WHERE severity=%s", 'critical' ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-            } else {
-                $query = $wpdb->prepare( "SELECT * FROM {$this->table_name} WHERE severity!=%s", 'critical' ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-            }
+			$api_domain = Helper::get_api_server_domain();
+			$jwt        = Helper::get_jwt();
+			$last_id    = 0;
+			$has_more   = false;
 
-			$log_ids = $logs = array();
-			$results = $wpdb->get_results( $query );
+			for ( $batch = 0; $batch < self::MAX_BATCHES; $batch++ ) {
+				if ( $critical ) {
+					$query = $wpdb->prepare( "SELECT * FROM {$this->table_name} WHERE severity=%s AND id>%d ORDER BY id ASC LIMIT %d", 'critical', $last_id, self::BATCH_SIZE ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				} else {
+					$query = $wpdb->prepare( "SELECT * FROM {$this->table_name} WHERE id>%d ORDER BY id ASC LIMIT %d", $last_id, self::BATCH_SIZE ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				}
 
-			foreach ( $results as $result ) {
-				$logs[] = array(
-                    'action'    => $result->action,
-					'data_type' => current( explode( '_', $result->action ) ),
-					'meta'      => array(),
-					'data'      => array( ( array ) $result ),
-				);
-				$log_ids[] = $result->id;
-			}
-
-            if ( empty( $log_ids ) ) {
-                return;
-            }
-
-			$success    = false;
-            $api_domain = Helper::get_api_server_domain();
-            $jwt        = Helper::get_jwt();
-
-			for ( $i = 0; $i < 10; $i ++ ) {
-				$response = Curl::do_curl( "connects/{$connect_id}/activity-log", array( 'activity_logs' => $logs ), array(), 'POST', null, $jwt, $api_domain );
-                if ( intval( $response['code'] ) === 200 ) {
-					$success = true;
+				$results = $wpdb->get_results( $query ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+				if ( empty( $results ) ) {
+					$has_more = false;
 					break;
 				}
-			}
 
-			if ( $success ) {
+				$logs    = array();
+				$log_ids = array();
+				foreach ( $results as $result ) {
+					$logs[]    = array(
+						'action'    => $result->action,
+						'data_type' => current( explode( '_', $result->action ) ),
+						'meta'      => array(),
+						'data'      => array( ( array ) $result ),
+					);
+					$log_ids[] = (int) $result->id;
+				}
+
+				$response = Curl::do_curl( "connects/{$connect_id}/activity-log", array( 'activity_logs' => $logs ), array(), 'POST', null, $jwt, $api_domain );
+				$code     = isset( $response['code'] ) ? intval( $response['code'] ) : 0; // No 'code' key when the request itself fails.
+
+				if ( 200 !== $code ) {
+					$state['failures']    = $state['failures'] + 1;
+					$state['retry_after'] = time() + min( self::MAX_BACKOFF, self::SEND_THROTTLE * pow( 2, min( $state['failures'], 10 ) ) );
+					$this->save_send_state( $state );
+					$this->schedule_follow_up( $state['retry_after'] );
+					return;
+				}
+
 				$placeholders = implode( ',', array_fill( 0, count( $log_ids ), '%d' ) );
 				$wpdb->query(
 					$wpdb->prepare( "DELETE FROM {$this->table_name} WHERE id IN ($placeholders)", $log_ids ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 				);
+
+				$last_id  = end( $log_ids );
+				$has_more = count( $results ) === self::BATCH_SIZE;
+				if ( ! $has_more ) {
+					break;
+				}
 			}
+
+			$state['failures']    = 0;
+			$state['retry_after'] = 0;
+			$this->save_send_state( $state );
+
+			if ( $has_more ) {
+				$this->schedule_follow_up( $state['next_send'] );
+			}
+		}
+
+		/**
+		 * Schedule one follow-up send, unless one (or the "every X minutes" recurring action) is already pending.
+		 *
+		 * as_next_scheduled_action() returns an int only for a pending action; it returns true while the action
+		 * is running, and a running follow-up that still has rows left must be able to queue the next one.
+		 *
+		 * @param int $timestamp When to run.
+		 *
+		 * @return void
+		 */
+		private function schedule_follow_up( $timestamp ) {
+			if ( ! function_exists( 'as_next_scheduled_action' ) || is_int( as_next_scheduled_action( 'instawp_handle_non_critical_logs', array(), 'instawp-connect' ) ) ) {
+				return;
+			}
+
+			as_schedule_single_action( max( time() + self::SEND_THROTTLE, (int) $timestamp ), 'instawp_handle_non_critical_logs', array(), 'instawp-connect' );
+		}
+
+		/**
+		 * Keep at most MAX_PENDING_ROWS unsent rows, dropping the oldest, so an unreachable API cannot grow the table without bound.
+		 *
+		 * @return void
+		 */
+		private function trim_pending_rows() {
+			global $wpdb;
+
+			$cutoff = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$this->table_name} ORDER BY id DESC LIMIT 1 OFFSET %d", self::MAX_PENDING_ROWS ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			if ( empty( $cutoff ) ) {
+				return;
+			}
+
+			$deleted = $wpdb->query( $wpdb->prepare( "DELETE FROM {$this->table_name} WHERE id<=%d", $cutoff ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			Helper::add_error_log( array(
+				'message' => 'Activity log backlog over limit, dropped oldest unsent rows',
+				'dropped' => (int) $deleted,
+				'limit'   => self::MAX_PENDING_ROWS,
+			) );
+		}
+
+		/**
+		 * @return array{next_send:int, retry_after:int, failures:int}
+		 */
+		private function get_send_state() {
+			$state = Option::get_option( self::SEND_STATE_OPTION, array() );
+			$state = is_array( $state ) ? $state : array();
+
+			return array(
+				'next_send'   => isset( $state['next_send'] ) ? (int) $state['next_send'] : 0,
+				'retry_after' => isset( $state['retry_after'] ) ? (int) $state['retry_after'] : 0,
+				'failures'    => isset( $state['failures'] ) ? (int) $state['failures'] : 0,
+			);
+		}
+
+		/**
+		 * @param array $state Send state from get_send_state().
+		 *
+		 * @return void
+		 */
+		private function save_send_state( array $state ) {
+			update_option( self::SEND_STATE_OPTION, $state, false );
 		}
 
 		public function create_table() {
