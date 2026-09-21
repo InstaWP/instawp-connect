@@ -866,6 +866,16 @@ class InstaWP_Staging_V4 {
 
 			$details['finished_at'] = $completed_at ? $completed_at : time();
 			$dirty                  = true;
+
+			/*
+			 * "Enable Sync Recording" ticked on the wizard: switch recording on for this (source) site,
+			 * exactly as the V3 engine did on migration-finished. Only on `completed` -- a failed or
+			 * aborted run has no staging site to record changes for. Inside the first-terminal-status
+			 * block on purpose, so it runs once per run and not on every later poll.
+			 */
+			if ( 'completed' === $status && ! empty( $details['enable_event_syncing'] ) ) {
+				Option::update_option( 'instawp_is_event_syncing', 1 );
+			}
 		}
 
 		if ( $dirty ) {
@@ -1008,6 +1018,18 @@ class InstaWP_Staging_V4 {
 
 		$migrate_settings = InstaWP_Tools::get_migrate_settings( $posted );
 		$plan_id          = (int) Helper::get_args_option( 'plan_id', $migrate_settings, 0 );
+
+		/*
+		 * The wizard's "Enable Sync Recording" option (migrate_settings[options][] = enable_event_syncing).
+		 *
+		 * The V3 engine turned this into instawp_is_event_syncing on the source once the migration
+		 * finished (class-instawp-ajax.php, migration-finished branch). That code is unreachable now
+		 * that migrate_init() routes every run through here, so the option was collected and then
+		 * never read -- the card could be ticked and nothing happened. It is carried on the run
+		 * record and applied by staging_status() when client-app reports the run completed.
+		 */
+		$migrate_options      = (array) Helper::get_args_option( 'options', $migrate_settings, array() );
+		$enable_event_syncing = in_array( 'enable_event_syncing', $migrate_options, true );
 
 		/*
 		 * The subdomain prefix the user typed (part-create-staging.php:681,
@@ -1197,7 +1219,7 @@ class InstaWP_Staging_V4 {
 			$uuid = $existing_uuid;
 		}
 
-		self::remember_run( $uuid, $started_at );
+		self::remember_run( $uuid, $started_at, $enable_event_syncing );
 
 		// Checkpoint 3 -- cancelled while the destination site was being requested: the run exists now, so
 		// cancel it straight away (client-app deletes the destination). If client-app refuses, the run is
@@ -1503,13 +1525,6 @@ class InstaWP_Staging_V4 {
 	}
 
 	/**
-	 * Persist the run. See DETAILS_OPTION — this is not yet read back on page load.
-	 *
-	 * @param string $uuid client-app's migration reference.
-	 *
-	 * @return void
-	 */
-	/**
 	 * The admin-facing refusal when client-app reports a migration already running for this site that
 	 * the plugin cannot watch.
 	 *
@@ -1528,21 +1543,34 @@ class InstaWP_Staging_V4 {
 		return new WP_Error( 'migration_in_progress', empty( $url ) ? $message : $message . ' ' . $url );
 	}
 
-	private static function remember_run( $uuid, $started_at = 0 ) {
+	/**
+	 * Persist the run record.
+	 *
+	 * @param string $uuid                 client-app's migration reference.
+	 * @param int    $started_at           When the start began (the start's own clock).
+	 * @param bool   $enable_event_syncing The wizard's "Enable Sync Recording" option. Kept on the record
+	 *                                     so staging_status() can act on it when the run completes.
+	 *
+	 * @return void
+	 */
+	private static function remember_run( $uuid, $started_at = 0, $enable_event_syncing = false ) {
 		// The migration exists, so the install is accounted for — clear both the flag and the
 		// once-only log latch, so a genuinely new orphan later on is reported again.
 		Option::delete_option( self::ORPHAN_OPTION );
 		Option::delete_option( self::ORPHAN_LOGGED_OPTION );
 
-		Option::update_option(
-			self::DETAILS_OPTION,
-			array(
-				'uuid'       => $uuid,
-				// The start's own clock, not a new one: a cancel clicked during the start is matched on it.
-				'started_at' => $started_at ? (int) $started_at : time(),
-			),
-			false
+		$details = array(
+			'uuid'       => $uuid,
+			// The start's own clock, not a new one: a cancel clicked during the start is matched on it.
+			'started_at' => $started_at ? (int) $started_at : time(),
 		);
+
+		// Only written when set, so the record stays minimal for the common case.
+		if ( $enable_event_syncing ) {
+			$details['enable_event_syncing'] = true;
+		}
+
+		Option::update_option( self::DETAILS_OPTION, $details, false );
 	}
 
 	/**

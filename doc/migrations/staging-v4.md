@@ -124,6 +124,15 @@ The agent's vocabulary differs from V3's in three ways that matter:
 Table exclusions become `skip_table_data`, which ships the schema and drops the rows, so the table
 lands empty instead of missing.
 
+**Every render of the Tables list must use the same field name.** The wizard submits the whole
+form serialised and `InstaWP_Tools::get_migrate_settings()` reads only the `migrate_settings` key,
+so a table checkbox is honoured only when it is named `migrate_settings[excluded_tables][]`. The
+initial render (`part-create-staging.php`) always was; the Sort/Size re-render
+(`InstaWP_Ajax::get_database_tables()`) used `instawp_migrate[excluded_tables][]` until it was
+fixed, so anything ticked AFTER sorting was silently copied to the destination. The re-render now
+also re-ticks the selection the user had before sorting (sent back as `checked[]`, core tables
+excepted) and keeps the `log-table` class so "Skip Log Tables" keeps working after a sort.
+
 **The core-table guard applies here too, and that is a deliberate behaviour change.**
 `InstaWP_Tools::process_migration_settings()` strips the nine WP core tables out of
 `excluded_tables` for every mode (see `doc/migrations/pull.md`), and V4 reads `excluded_tables`
@@ -224,6 +233,17 @@ at the parent.
 
 If that repair is ever removed, the same silent data-identity bug returns. It is the one part of
 this feature that fails invisibly.
+
+## "Enable Sync Recording"
+
+The wizard's Sync option (`migrate_settings[options][] = enable_event_syncing`) is a SOURCE-side
+setting: on V3 it flipped `instawp_is_event_syncing` on the parent once the run finished. V4 never
+read `options`, so the card was collected and ignored. It is now stored on the run record
+(`enable_event_syncing => true`, written by `remember_run()` only when ticked) and applied by
+`staging_status()` inside the first-terminal-status block, and only when that status is
+`completed` — a failed or aborted run has no staging site to record changes for. Because it is
+applied by the poll, a run whose completion is never observed (tab closed and not reopened within
+`RESUME_WINDOW`) leaves recording off; the user turns it on from the Sync tab as before.
 
 ## Two things deliberately NOT sent
 

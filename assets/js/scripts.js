@@ -1728,10 +1728,16 @@
     });
 
     $(document).on('click', '.instawp-database-sort-by', function () {
+        // Remember what the user already ticked BEFORE the list is wiped below: the sorted list is
+        // rebuilt server-side and used to come back with nothing selected.
+        let checked_tables = $(document).find('.exclude-database-container .exclude-database-item:checked').map(function () {
+            return $(this).val();
+        }).get();
+
         $(document).find('.instawp-database-sort-by').addClass('pointer-events-none');
         $(document).find('.exclude-database-container').removeClass('p-4 h-80').html('<div class="loading"></div>');
         $(document).find('#instawp-database-select-all').prop("checked", false).prop("disabled", true);
-        $(document).trigger("instawpLoadDatabase", [true]);
+        $(document).trigger("instawpLoadDatabase", [true, checked_tables]);
     });
 
     $(document).on('instawpLoadDirectory', function (e, sort) {
@@ -1779,9 +1785,12 @@
         }
     });
 
-    $(document).on('instawpLoadDatabase', function (e, sort) {
+    $(document).on('instawpLoadDatabase', function (e, sort, checked_tables) {
         let el_sort_by = $(document).find('.instawp-database-sort-by').attr('data-sort'),
             el_loading = $(document).find('.exclude-database-container > .loading');
+
+        // Only the Sort/Size click passes a selection to restore; the refresh button intentionally resets it.
+        checked_tables = Array.isArray(checked_tables) ? checked_tables : [];
 
         if (el_sort_by === 'none' && sort) {
             el_sort_by = 'descending';
@@ -1801,6 +1810,8 @@
                 data: {
                     'action': 'instawp_get_database_tables',
                     'sort_by': el_sort_by,
+                    // The server re-ticks these in the sorted list (core tables are never re-ticked).
+                    'checked': checked_tables,
                     'security': plugin_object.security
                 },
                 success: function (response) {
