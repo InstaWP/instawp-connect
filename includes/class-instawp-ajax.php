@@ -627,6 +627,11 @@ class InstaWP_Ajax {
 		$table_size = array_sum( wp_list_pluck( $tables, 'size' ) );
 		// Core tables are rendered disabled: excluding one guarantees the migration fails at the destination's schema check.
 		$protected_core_tables = InstaWP_Tools::get_protected_core_tables();
+		// Log tables carry the `log-table` class so the "Skip Log Tables" option can still tick them after a re-render.
+		$log_tables_to_exclude = InstaWP_Tools::get_log_tables_to_exclude();
+		// Tables the user had already ticked before clicking Sort/Size. The list is rebuilt from scratch, so
+		// without this every prior selection was lost the moment the list was sorted.
+		$checked_tables = isset( $_POST['checked'] ) ? array_map( 'sanitize_text_field', wp_unslash( (array) $_POST['checked'] ) ) : array();
 
 		ob_start();
 		if ( ! empty( $tables ) ) {
@@ -636,11 +641,23 @@ class InstaWP_Ajax {
 				foreach ( $tables as $table ) {
 					$element_id = wp_generate_uuid4();
 					$is_core    = in_array( $table['name'], $protected_core_tables, true );
+					$is_log     = in_array( $table['name'], $log_tables_to_exclude, true );
+					// A core table can never be checked, whatever the client sent back.
+					$is_checked = ! $is_core && in_array( $table['name'], $checked_tables, true );
 					?>
 					<div class="flex flex-col gap-5 item">
 						<div class="flex justify-between items-center">
 							<div class="flex items-center cursor-pointer" style="transform: translate(0em);"<?php echo $is_core ? ' title="' . esc_attr__( 'WordPress needs this table to run. It cannot be excluded.', 'instawp-connect' ) . '"' : ''; ?>>
-								<input name="instawp_migrate[excluded_tables][]" id="<?php echo esc_attr( $element_id ); ?>" value="<?php echo esc_attr( $table['name'] ); ?>" type="checkbox" class="instawp-checkbox exclude-database-item !mt-0 !mr-3 rounded border-gray-300 text-primary-900 focus:ring-primary-900 <?php echo $is_core ? 'core-table' : ''; ?>" data-size="<?php echo esc_html( $table['size'] ); ?>" <?php disabled( $is_core, true ); ?>>
+								<?php
+								/*
+								 * The field name MUST be migrate_settings[excluded_tables][] — the same name the initial
+								 * render uses (migrate/templates/part-create-staging.php). The wizard submits the whole
+								 * form serialised and InstaWP_Tools::get_migrate_settings() only reads the
+								 * `migrate_settings` key, so the previous `instawp_migrate[...]` name meant every table
+								 * ticked AFTER a Sort/Size click was silently ignored and copied to the destination anyway.
+								 */
+								?>
+								<input name="migrate_settings[excluded_tables][]" id="<?php echo esc_attr( $element_id ); ?>" value="<?php echo esc_attr( $table['name'] ); ?>" type="checkbox" class="instawp-checkbox exclude-database-item !mt-0 !mr-3 rounded border-gray-300 text-primary-900 focus:ring-primary-900 <?php echo $is_log ? 'log-table' : ''; ?> <?php echo $is_core ? 'core-table' : ''; ?>" data-size="<?php echo esc_html( $table['size'] ); ?>" <?php checked( $is_checked, true ); ?> <?php disabled( $is_core, true ); ?>>
 								<label for="<?php echo esc_attr( $element_id ); ?>" class="text-sm font-medium text-grayCust-800 truncate" style="width: calc(400px - 1em);"><?php echo esc_html( $table['name'] ); ?> (<?php printf( esc_html__( '%s rows', 'instawp-connect' ), esc_html( $table['rows'] ) ); ?>)</label>
 							</div>
 							<div class="flex items-center" style="width: 105px;">
