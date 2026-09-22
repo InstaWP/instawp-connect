@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.6
 Tested up to: 7.0
 Requires PHP: 7.0
-Stable tag: 0.1.3.9
+Stable tag: 0.1.4.0
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -98,7 +98,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
-= 0.1.3.9 - Beta =
+= 0.1.4.0 - 22 September 2026 =
 - Added: Staging sites are now created through the new migration engine, with live progress tracked on InstaWP.
 - Deprecated: Local push command.
 - Fixed: The plan selector now accounts for both file and database size when checking plan capacity.
@@ -106,6 +106,9 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 - Fixed: The Sync (Beta) event list no longer keeps showing a failed attempt after a later sync of the same change has succeeded.
 - Fixed: Creating a staging site no longer hangs forever when WordPress core tables were excluded on the Exclude step. Those tables are now always migrated, and their checkboxes are disabled so "Select All" cannot tick them.
 - Fixed: The wp-content folder itself can no longer be excluded on the Exclude step, so "Select All" can no longer skip the whole content directory in one click.
+
+= 0.1.3.9 - 16 September 2026 =
+- Improved: Optimized the plugin's internal error log.
 
 = 0.1.3.8 - 12 August 2026 =
 - Improved: Local push no longer copies host-specific configuration, caches, logs, or build and version control folders to the destination.
