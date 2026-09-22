@@ -66,6 +66,25 @@ class InstaWP_Rest_Api {
 			)
 		);
 
+		/*
+		 * client-app tells the SOURCE that its migration reached a terminal state, so the agent
+		 * plugin it installed for that run can be removed.
+		 *
+		 * A route of its own rather than more work inside refresh-staging-sites-list: that endpoint
+		 * fires only on the SUCCESS path and means "rebuild your staging list", client-app treats
+		 * its failure as cosmetic, and it is called in contexts that have nothing to do with a
+		 * migration ending.
+		 */
+		register_rest_route(
+			$this->namespace . '/' . $this->version,
+			'/migration-finished',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( $this, 'migration_finished' ),
+				'permission_callback' => '__return_true',
+			)
+		);
+
 		register_rest_route(
 			$this->namespace . '/' . $this->version_2,
 			'/disconnect',
@@ -507,6 +526,86 @@ class InstaWP_Rest_Api {
 			array(
 				'status'  => true,
 				'message' => __( 'Site has been marked as staging', 'instawp-connect' ),
+			)
+		);
+	}
+
+	/**
+	 * The run this site installed instamigrate for has finished; take the agent back off.
+	 *
+	 * Answers 200 even when the delete fails. client-app calls this to report a migration OUTCOME --
+	 * the outcome is true whatever happened to our files, and a non-2xx would invite it to retry a
+	 * terminal event. The failure is logged where it belongs instead, and admin_init retries it.
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function migration_finished( WP_REST_Request $request ) {
+		$response = $this->validate_api_request( $request );
+		if ( is_wp_error( $response ) ) {
+			return $this->throw_error( $response );
+		}
+
+		/*
+		 * WHICH run finished matters.
+		 *
+		 * NotifySourceMigrationFinished retries (tries=2, 60s backoff), and a staging run can start
+		 * within that window -- a user whose first attempt failed retries immediately. A late
+		 * delivery for run #1 would then delete run #2's instamigrate mid-migration, breaking a
+		 * migration that was going fine.
+		 *
+		 * Ignored rather than refused: a notification for a run we no longer hold is not an error
+		 * client-app can act on, and answering non-2xx would only make it retry a delivery that will
+		 * never match.
+		 */
+		$uuid = sanitize_text_field( (string) $request->get_param( 'uuid' ) );
+
+		/*
+		 * FAILS CLOSED. An earlier revision skipped this check when `uuid` was absent, so any caller
+		 * that omitted the field deleted whatever instamigrate the site held -- including one serving a
+		 * migration in progress, which is the exact race the guard exists to stop.
+		 */
+		if ( ! InstaWP_Staging_V4::is_current_run( $uuid ) ) {
+			return $this->send_response(
+				array(
+					'status'  => true,
+					'message' => __( 'Notification is for a different migration; ignored.', 'instawp-connect' ),
+				)
+			);
+		}
+
+		// Record the ending client-app is reporting; the record's update hook removes instamigrate.
+		// Only a terminal status is written -- this endpoint announces endings and nothing else.
+		// The docblock above promises 200 even when that fails, and a throw would break that
+		// promise -- client-app would retry a terminal notification that can never succeed.
+		try {
+			$status = sanitize_text_field( (string) $request->get_param( 'status' ) );
+
+			$details = (array) Option::get_option( InstaWP_Staging_V4::DETAILS_OPTION );
+
+			// Only a terminal status is written, and never over one: the record's first ending stands.
+			// `aborted` is accepted alongside completed/failed -- it is what client-app sends for a
+			// cancel, and dropping it here left the run "in progress" on the source forever.
+			if ( in_array( $status, InstaWP_Staging_V4::TERMINAL_STATUSES, true )
+				&& ! in_array( Helper::get_args_option( 'status', $details, '' ), InstaWP_Staging_V4::TERMINAL_STATUSES, true )
+			) {
+				$details['status'] = $status;
+
+				if ( empty( $details['finished_at'] ) ) {
+					$details['finished_at'] = time();
+				}
+
+				Option::update_option( InstaWP_Staging_V4::DETAILS_OPTION, $details, false );
+			}
+		} catch ( \Throwable $e ) {
+			Helper::add_error_log( 'Recording migration-finished failed: ' . $e->getMessage() );
+		}
+
+		return $this->send_response(
+			array(
+				'status'  => true,
+				'message' => __( 'Migration agent removed.', 'instawp-connect' ),
 			)
 		);
 	}

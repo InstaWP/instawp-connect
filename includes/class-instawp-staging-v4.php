@@ -1,0 +1,1644 @@
+<?php
+/**
+ * Staging creation from wp-admin.
+ *
+ * Runs inside the source site, so it can install instamigrate, mint its key and measure the site
+ * locally — which is why it enters client-app's import pipeline directly rather than going through
+ * the hosted wizard's credential steps.
+ *
+ *   1. install + activate instamigrate locally     Helper::installInstaMigrate()
+ *   2. read its API key                            Helper::getInstaMigrateApiKey()
+ *   3. seed the migration                          POST v2/migrate-v4/staging-init
+ *   4. create the destination + start              POST v2/live-import/{uuid}/start
+ *   5. hand the user the agent's own screen        migration_url, else tracking_url; persisted
+ *
+ * @package InstaWP
+ */
+
+use InstaWP\Connect\Helpers\Curl;
+use InstaWP\Connect\Helpers\Helper;
+use InstaWP\Connect\Helpers\Option;
+
+defined( 'ABSPATH' ) || exit;
+
+/**
+ * Class InstaWP_Staging_V4
+ */
+class InstaWP_Staging_V4 {
+
+	/**
+	 * Option holding the last V4 staging run (uuid, start time, agent URL, finish time).
+	 *
+	 * READ BACK ON PAGE LOAD by resumable_run(): part-create.php stamps a class from it, and
+	 * scripts.js re-enters the watcher. Closing the tab therefore no longer loses the live view,
+	 * within RESUME_WINDOW.
+	 *
+	 * Mirrors how V3 persists instawp_migration_details, except V3 resumes off a `loading` class
+	 * driven by instawp_migration_details.migrate_id — a V4 run has no migrate_id and must never set
+	 * that class, because it starts the V3 progress poll against a migration row that does not exist.
+	 */
+	const DETAILS_OPTION = 'instawp_staging_v4_details';
+
+	/** The agent plugin, as WordPress names it: the one slug every install, activate and delete uses. */
+	const INSTAMIGRATE_PLUGIN = 'instamigrate/insta-migrate.php';
+
+	/**
+	 * How long after `started_at` a run is still worth re-entering on page load.
+	 *
+	 * The option has no expiry of its own, so without a window a run from any point in the past
+	 * would reopen the "migration in progress" view forever — including runs whose outcome we never
+	 * saw because the tab was closed before a poll returned a terminal status.
+	 *
+	 * 12h is chosen against the WORK, not the UI: a large source can migrate for hours, and the
+	 * cost of being wrong differs sharply by direction. Too short and we abandon a live migration's
+	 * view while it is still running; too long and the first poll returns a terminal status and the
+	 * screen corrects itself in three seconds. So this errs long deliberately.
+	 */
+	const RESUME_WINDOW = 12 * HOUR_IN_SECONDS;
+
+	/**
+	 * WE installed instamigrate and no migration has referenced it yet.
+	 *
+	 * Set at install time so it survives every path that never reaches the end of the run; cleared
+	 * only by remember_run(), because a migration referencing instamigrate is the one thing that
+	 * makes the install non-orphaned.
+	 */
+	/**
+	 * How long after `started_at` we keep deferring to a run that has not finished.
+	 *
+	 * Past this, instamigrate is removed whatever the status says. Deliberately well beyond any
+	 * plausible migration -- anything still going after two days is wedged, not slow -- because the
+	 * cost of being wrong here is destructive: the cancel that accompanies it also deletes the
+	 * destination site.
+	 */
+	const CLEANUP_DEADLINE = 48 * HOUR_IN_SECONDS;
+
+	/**
+	 * How long a finished run's record is kept before it is deleted.
+	 *
+	 * The plugin comes off the moment the run ends; the record stays six hours so the admin can look
+	 * at how it ended. Measured from the migration's own completion time, not from when we noticed.
+	 */
+	const DETAILS_RETENTION = 6 * HOUR_IN_SECONDS;
+
+	/**
+	 * Every ending client-app can report for a run: `completed`, `failed`, and `aborted` (a cancel --
+	 * ours, the customer's from client-app, or the agent's). The ONE list every terminal check in the
+	 * plugin reads (this class, the migration-finished REST endpoint, and the watcher in scripts.js
+	 * mirrors it), so a new ending is added here and nowhere else. Five inline copies used to drift.
+	 */
+	const TERMINAL_STATUSES = array( 'completed', 'failed', 'aborted' );
+
+	/**
+	 * How long a Cancel click holds the per-run cancel lock (see staging_cancel()).
+	 *
+	 * The lock is written BEFORE the call to client-app, so a second click, a page refresh or a second
+	 * tab cannot fire the cancel API again while the first request is still out. Two minutes comfortably
+	 * covers a real cancel round-trip (seconds) and still frees the button on its own if a request died
+	 * without an answer.
+	 */
+	const CANCEL_LOCK_TTL = 2 * MINUTE_IN_SECONDS;
+
+	/**
+	 * Transient key of the cancel lock. Per run (uuid), so a new run is never blocked by an old one.
+	 *
+	 * @param string $uuid The run uuid.
+	 *
+	 * @return string
+	 */
+	private static function cancel_lock_key( $uuid ) {
+		return 'instawp_staging_v4_cancel_' . md5( (string) $uuid );
+	}
+
+	/**
+	 * Is a cancel request for this run still waiting on client-app?
+	 *
+	 * True only while the lock reads `requested` -- once client-app has answered, the lock reads `done`
+	 * (and the record carries the ending), so the screen can show the result instead of "in progress".
+	 * Read by staging_cancel(), staging_status() and the template, so a refreshed page and the poll
+	 * agree with the click that started it.
+	 *
+	 * @param string $uuid The run uuid.
+	 *
+	 * @return bool
+	 */
+	public static function cancel_in_progress( $uuid ) {
+		if ( empty( $uuid ) ) {
+			return false;
+		}
+
+		return 'requested' === get_transient( self::cancel_lock_key( $uuid ) );
+	}
+
+	/**
+	 * A Cancel clicked while the run is still STARTING -- start_run() has recorded `started_at` but not
+	 * yet the uuid (instamigrate install + staging-init + live-import/start take tens of seconds).
+	 *
+	 * There is nothing to send to client-app yet, so the click is remembered here and honoured by
+	 * start_run() at its next checkpoint, or by the first status poll if the start finished before it
+	 * could see it. Value: array( 'started_at' => the start it belongs to, 'requested_at' => time ).
+	 */
+	const CANCEL_PENDING_OPTION = 'instawp_staging_v4_cancel_pending';
+
+	/**
+	 * How long after a start began a Cancel is still treated as "cancel the starting run". Far beyond a
+	 * real start (seconds to a couple of minutes); an older record without a uuid is a start that died.
+	 */
+	const CANCEL_PENDING_WINDOW = 15 * MINUTE_IN_SECONDS;
+
+	/**
+	 * Take the pending cancel for this start, if there is one. Deletes it, so it is acted on once.
+	 *
+	 * Read straight from the database, NOT through get_option(): start_run() is one long request, and
+	 * WordPress caches an option (or its absence) for the rest of the request after the first read, so
+	 * a cancel written by another request mid-start would otherwise never be seen at a later checkpoint.
+	 *
+	 * Matched on started_at so a leftover from an earlier start can never cancel a new one.
+	 *
+	 * @param int $started_at The start's own started_at.
+	 *
+	 * @return bool True when a cancel was requested for this start.
+	 */
+	private static function consume_pending_cancel( $started_at ) {
+		global $wpdb;
+
+		if ( empty( $started_at ) ) {
+			return false;
+		}
+
+		$raw = $wpdb->get_var( $wpdb->prepare( "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s LIMIT 1", self::CANCEL_PENDING_OPTION ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+
+		if ( empty( $raw ) ) {
+			return false;
+		}
+
+		$pending = maybe_unserialize( $raw );
+
+		if ( ! is_array( $pending ) || (int) Helper::get_args_option( 'started_at', $pending, 0 ) !== (int) $started_at ) {
+			return false;
+		}
+
+		Option::delete_option( self::CANCEL_PENDING_OPTION );
+
+		return true;
+	}
+
+	/**
+	 * Stop a start that the admin cancelled while it was running. Called from start_run()'s checkpoints.
+	 *
+	 *  - no uuid yet (nothing was sent to client-app): record the run as aborted locally.
+	 *  - uuid known: cancel it on client-app through the same path as the Cancel button.
+	 *
+	 * @param string $uuid       The run uuid, or '' before staging-init answered.
+	 * @param int    $started_at The start's started_at.
+	 *
+	 * @return array|null The init response carrying the ending, or null when client-app refused the
+	 *                    cancel -- the caller then carries on as if nothing was clicked, and the admin
+	 *                    can cancel again from the running screen.
+	 */
+	private static function abort_start( $uuid, $started_at ) {
+		if ( '' === $uuid ) {
+			// Recording the ending fires the record's update hook, which removes instamigrate if it is there.
+			Option::update_option(
+				self::DETAILS_OPTION,
+				array(
+					'started_at'  => $started_at,
+					'status'      => 'aborted',
+					'finished_at' => time(),
+				),
+				false
+			);
+
+			return array(
+				'engine'     => 'v4',
+				'uuid'       => '',
+				'started_at' => $started_at,
+				'status'     => 'aborted',
+				'message'    => '',
+			);
+		}
+
+		$result = self::request_cancel( $uuid );
+
+		if ( empty( $result['success'] ) || '' === $result['status'] ) {
+			return null;
+		}
+
+		return array(
+			'engine'     => 'v4',
+			'uuid'       => $uuid,
+			'started_at' => $started_at,
+			'status'     => $result['status'],
+			'message'    => $result['message'],
+		);
+	}
+
+	const ORPHAN_OPTION = 'instawp_instamigrate_orphaned';
+
+	/**
+	 * The orphan above has already been written to the error log once.
+	 *
+	 * Separate from ORPHAN_OPTION on purpose: the flag is the durable record and must survive, while
+	 * this only stops the same outstanding install being announced once per attempt.
+	 */
+	const ORPHAN_LOGGED_OPTION = 'instawp_instamigrate_orphan_logged';
+
+	/**
+	 * InstaWP_Staging_V4 constructor.
+	 */
+	public function __construct() {
+		add_action( 'wp_ajax_instawp_staging_status_v4', array( $this, 'staging_status' ) );
+		add_action( 'wp_ajax_instawp_staging_cancel_v4', array( $this, 'staging_cancel' ) );
+		add_action( 'admin_init', array( $this, 'maybe_cleanup_instamigrate' ) );
+
+		// The record's own option hooks remove instamigrate. Writers just write; nobody calls cleanup.
+		add_action( 'update_option_' . self::DETAILS_OPTION, array( __CLASS__, 'on_record_updated' ), 10, 2 );
+		add_action( 'delete_option_' . self::DETAILS_OPTION, array( __CLASS__, 'on_record_deleted' ) );
+	}
+
+	/**
+	 * update_option_{record}: the record changed. A terminal status means the plugin comes off.
+	 *
+	 * Reads only. Never writes the option, so it never re-fires itself. Defaults on both parameters
+	 * so nothing WordPress passes (or does not pass) can throw.
+	 *
+	 * @param mixed $old_value The previous record.
+	 * @param mixed $value     The record as it now is.
+	 */
+	public static function on_record_updated( $old_value = null, $value = null ) {
+		$value = is_array( $value ) ? $value : array();
+
+		if ( in_array( isset( $value['status'] ) ? $value['status'] : '', self::TERMINAL_STATUSES, true ) ) {
+			self::cleanup_instamigrate();
+		}
+	}
+
+	/**
+	 * delete_option_{record}: the record is gone, so the plugin goes with it.
+	 *
+	 * @param string $option The option name.
+	 */
+	public static function on_record_deleted( $option = '' ) {
+		self::cleanup_instamigrate();
+	}
+
+	/**
+	 * Is this record past its retention -- terminal, and the migration completed more than
+	 * DETAILS_RETENTION ago? The one condition for deleting the record, used by admin_init and by
+	 * instawp_reset_running_migration().
+	 *
+	 * @param mixed $details The record.
+	 *
+	 * @return bool
+	 */
+	public static function details_expired( $details ) {
+		$details = is_array( $details ) ? $details : array();
+
+		return in_array( isset( $details['status'] ) ? $details['status'] : '', self::TERMINAL_STATUSES, true )
+			&& ! empty( $details['finished_at'] )
+			&& ( time() - (int) $details['finished_at'] ) > self::DETAILS_RETENTION;
+	}
+
+	/**
+	 * AJAX: read the run's status, and capture the agent's URL once it exists.
+	 *
+	 * Neither URL is available when staging_init() returns. client-app only contacts the migration
+	 * agent after the destination site has finished provisioning, so both are null until then and
+	 * first appear on the status response. Once seen the chosen one is persisted, which is what lets
+	 * the customer close the tab and come back.
+	 */
+	/**
+	 * The stored run, if it is still worth re-entering the watcher for on page load.
+	 *
+	 * ONE place decides resumability, because two would drift: part-create.php stamps the class,
+	 * part-create-staging.php seeds the link, and scripts.js acts on the class — all three must
+	 * agree about whether a run is live, or the page renders "in progress" with no poll behind it.
+	 *
+	 * Refuses a run that has no uuid, one already marked finished by a terminal poll, and one older
+	 * than RESUME_WINDOW.
+	 *
+	 * @return array the run details, or an empty array when there is nothing to resume.
+	 */
+	/**
+	 * AJAX: cancel the run this site started, and take the agent back off.
+	 *
+	 * client-app's cancel does three things: it tells the agent to stop, claims the terminal
+	 * transition as `aborted`, and DELETES the destination site. The button's confirm text says so --
+	 * a user stopping a slow migration would not otherwise expect to lose the site.
+	 *
+	 * A 422 is SUCCESS from here. It means client-app already considers the run terminal and we were
+	 * simply never told, so the run is over either way and the only honest thing to do is stop
+	 * showing it as live. Treating it as an error would leave the screen spinning on a migration that
+	 * has finished -- which is the failure this whole flow exists to stop.
+	 *
+	 * The API is called at most once per run while a request is out: a per-run transient lock
+	 * (CANCEL_LOCK_TTL) is taken before the call, repeats are answered "in progress" without calling
+	 * again, and the lock is released only when the call fails -- the one case a retry is allowed.
+	 *
+	 * Responds with { status, message, cancelling } so the screen shows the ending as soon as this
+	 * returns, rather than on the next poll.
+	 */
+	public function staging_cancel() {
+		InstaWP_Tools::verify_ajax_request();
+
+		$details    = (array) Option::get_option( self::DETAILS_OPTION );
+		$uuid       = Helper::get_args_option( 'uuid', $details, '' );
+		$started_at = (int) Helper::get_args_option( 'started_at', $details, 0 );
+
+		if ( empty( $uuid ) ) {
+			/*
+			 * The run is still STARTING: start_run() has recorded started_at but not the uuid yet. This used
+			 * to answer "No staging migration in progress.", which re-enabled the button mid-start. Accept
+			 * the cancel instead -- start_run() (or the first status poll) acts on it -- and keep the
+			 * screen locked on "Cancellation in progress...".
+			 */
+			if ( $started_at > 0
+				&& ( time() - $started_at ) < self::CANCEL_PENDING_WINDOW
+				&& ! in_array( Helper::get_args_option( 'status', $details, '' ), self::TERMINAL_STATUSES, true )
+			) {
+				Option::update_option(
+					self::CANCEL_PENDING_OPTION,
+					array(
+						'started_at'   => $started_at,
+						'requested_at' => time(),
+					),
+					false
+				);
+
+				wp_send_json_success(
+					array(
+						'status'     => '',
+						'message'    => esc_html__( 'Cancellation in progress...', 'instawp-connect' ),
+						'cancelling' => true,
+					)
+				);
+			}
+
+			wp_send_json_error( array( 'message' => esc_html__( 'No staging migration in progress.', 'instawp-connect' ) ) );
+		}
+
+		$result = self::request_cancel( $uuid );
+
+		if ( empty( $result['success'] ) ) {
+			wp_send_json_error( array( 'message' => $result['message'] ) );
+		}
+
+		wp_send_json_success(
+			array(
+				'status'     => $result['status'],
+				'message'    => $result['message'],
+				'cancelling' => $result['cancelling'],
+			)
+		);
+	}
+
+	/**
+	 * Cancel a run that has a uuid -- the one place the cancel API is called. Shared by the Cancel
+	 * button, start_run()'s checkpoints and the status poll, so all three follow the same lock and
+	 * record the same ending.
+	 *
+	 * 1. Run already ended -> its status, no API call.
+	 * 2. Cancel lock held (repeat click, refresh, other tab) -> "in progress", no API call.
+	 * 3. Lock taken BEFORE the call. A failed call releases it (the one case a retry is allowed); a
+	 *    success or 422 records the ending and marks the lock done.
+	 *
+	 * @param string $uuid The run uuid.
+	 *
+	 * @return array { success: bool, status: string ('' while in progress), message: string, cancelling: bool }
+	 */
+	private static function request_cancel( $uuid ) {
+		$details         = (array) Option::get_option( self::DETAILS_OPTION );
+		$recorded_status = Helper::get_args_option( 'status', $details, '' );
+
+		// 1. The run already ended (a poll, the migration-finished push, or an earlier cancel recorded it).
+		if ( in_array( $recorded_status, self::TERMINAL_STATUSES, true ) ) {
+			return array(
+				'success'    => true,
+				'status'     => $recorded_status,
+				'message'    => '',
+				'cancelling' => false,
+			);
+		}
+
+		$lock_key = self::cancel_lock_key( $uuid );
+
+		// 2. A cancel for this run is already out. Do not call the API again.
+		if ( false !== get_transient( $lock_key ) ) {
+			return array(
+				'success'    => true,
+				'status'     => '',
+				'message'    => esc_html__( 'Cancellation in progress...', 'instawp-connect' ),
+				'cancelling' => true,
+			);
+		}
+
+		// 3. Take the lock BEFORE the API call, so nothing arriving while the request is out can fire it again.
+		set_transient( $lock_key, 'requested', self::CANCEL_LOCK_TTL );
+
+		$response = Curl::do_curl( 'migrations/' . $uuid . '/cancel' );
+		$code     = (int) Helper::get_args_option( 'code', $response, 0 );
+
+		// Anything other than success or an already-terminal 422 leaves the run alone: the migration is
+		// still live, and deleting instamigrate under it would break the run we failed to stop. The lock is
+		// released so the admin can try again.
+		if ( empty( $response['success'] ) && 422 !== $code ) {
+			delete_transient( $lock_key );
+
+			return array(
+				'success'    => false,
+				'status'     => '',
+				'message'    => Helper::get_args_option( 'message', $response, esc_html__( 'Could not cancel the migration.', 'instawp-connect' ) ),
+				'cancelling' => false,
+			);
+		}
+
+		// Which ending to record. A 200 carries client-app's row -- `aborted` with its reason. A 422 means
+		// client-app already considers the run over without saying HOW (it may have COMPLETED a moment
+		// before the click), so the run's real status is read once instead of guessed. If that read yields
+		// nothing terminal, `aborted` stands: the admin asked to stop and client-app will not run it further.
+		$data = (array) Helper::get_args_option( 'data', $response, array() );
+
+		if ( 422 === $code ) {
+			$status_response = Curl::do_curl( 'migrations/' . $uuid . '/status', array(), array(), 'GET' );
+			$data            = ! empty( $status_response['success'] ) ? (array) Helper::get_args_option( 'data', $status_response, array() ) : array();
+		}
+
+		$ending  = Helper::get_args_option( 'status', $data, '' );
+		$ending  = in_array( $ending, self::TERMINAL_STATUSES, true ) ? $ending : 'aborted';
+		$message = (string) Helper::get_args_option( 'error_message', $data, '' );
+
+		// Record the ending -- never over one already recorded: a poll may have written how the run ended
+		// while the request was out, and the first recorded ending stands. The record's update hook removes
+		// instamigrate. The uuid is written too, because a cancel honoured by start_run() before
+		// remember_run() finds a record that does not carry it yet.
+		$details = (array) Option::get_option( self::DETAILS_OPTION );
+
+		if ( in_array( Helper::get_args_option( 'status', $details, '' ), self::TERMINAL_STATUSES, true ) ) {
+			$ending = Helper::get_args_option( 'status', $details, '' );
+		} else {
+			$details['uuid']        = $uuid;
+			$details['status']      = $ending;
+			$details['finished_at'] = time();
+
+			Option::update_option( self::DETAILS_OPTION, $details, false );
+		}
+
+		// Answered: the lock reads `done` for the rest of its life, so a stray repeat still makes no API
+		// call, while cancel_in_progress() stops reporting "in progress".
+		set_transient( $lock_key, 'done', self::CANCEL_LOCK_TTL );
+
+		return array(
+			'success'    => true,
+			'status'     => $ending,
+			'message'    => $message,
+			'cancelling' => false,
+		);
+	}
+
+	/**
+	 * admin_init: delete a run record that has outlived its use. Two time checks, nothing else.
+	 *
+	 *   finished, and DETAILS_RETENTION has passed since the migration completed -> delete it
+	 *   started, and CLEANUP_DEADLINE has passed with no end ever recorded          -> delete it
+	 *
+	 * The delete fires the record's delete hook, which removes instamigrate if it is still there.
+	 * No request to client-app is made here, and cleanup is never called directly.
+	 *
+	 * Gated on delete_plugins rather than manage_options: the delete hook ends in delete_plugins(),
+	 * and the two are held by different people on multisite. It is also how WP routes
+	 * DISALLOW_FILE_MODS, which many managed hosts set.
+	 */
+	public function maybe_cleanup_instamigrate() {
+		// On admin_init, so on EVERY wp-admin request: a throw would be a white screen on every
+		// admin page for a tidy-up the admin did not ask for. Throwable, not Exception -- a TypeError
+		// out of WordPress internals is exactly the class of failure that would take the dashboard down.
+		try {
+			if ( ! is_user_logged_in() || ! current_user_can( 'delete_plugins' ) ) {
+				return;
+			}
+
+			$details = (array) Option::get_option( self::DETAILS_OPTION );
+
+			if ( self::details_expired( $details ) ) {
+				delete_option( self::DETAILS_OPTION );
+
+				return;
+			}
+
+			$started_at = (int) Helper::get_args_option( 'started_at', $details, 0 );
+
+			if ( $started_at > 0 && ( time() - $started_at ) > self::CLEANUP_DEADLINE ) {
+				delete_option( self::DETAILS_OPTION );
+			}
+		} catch ( \Throwable $e ) {
+			Helper::add_error_log( 'InstaMigrate cleanup check failed: ' . $e->getMessage() );
+		}
+	}
+
+	/**
+	 * Remove instamigrate from THIS site, and forget the run that needed it.
+	 *
+	 * We install instamigrate to serve one migration; once that migration can no longer progress
+	 * there is nothing left for it to do, and leaving an active migration agent on a customer's
+	 * production site is not a neutral default.
+	 *
+	 * Deletes whoever installed it -- a deliberate decision, not an oversight. provision_instamigrate()
+	 * takes care NOT to overwrite a pre-existing copy; this does not extend that courtesy, so a
+	 * customer who had instamigrate before a staging run will not have it afterwards.
+	 *
+	 * @return bool whether the plugin is gone from disk when this returns.
+	 */
+	public static function cleanup_instamigrate() {
+		/*
+		 * Nothing escapes. This is reached from option hooks that fire wherever the record is written
+		 * -- admin-ajax, REST, cron, WP-CLI -- and not every one of those has the admin bootstrap
+		 * behind it: WP_PLUGIN_DIR can be undefined, which on PHP 8 is an Error, not a notice. A throw
+		 * here would surface as a fatal in whatever request happened to write the record.
+		 */
+		try {
+			// delete_plugins() takes the SLUG, so WP_PLUGIN_DIR is needed only for the shortcut below --
+			// never for the delete itself. Undefined means "cannot take the shortcut", not "cannot clean".
+			$plugin_file = defined( 'WP_PLUGIN_DIR' ) ? WP_PLUGIN_DIR . '/' . self::INSTAMIGRATE_PLUGIN : '';
+
+			/*
+			 * The run record is LEFT ALONE. An earlier revision deleted it here, which broke two things:
+			 *
+			 *  - staging_status() reads the uuid from it, so once it was gone the watcher's next poll
+			 *    answered "No staging migration in progress", and five of those (15 seconds) painted
+			 *    "Migration Failed" over a migration that had just SUCCEEDED. client-app's completion
+			 *    push races a 3s poll, so that was the normal ending, not a corner case.
+			 *  - it also removed the only state resumable_run() and the 48h arm read, so nothing could
+			 *    retry a delete that had failed -- while the REST handler's docblock claimed admin_init
+			 *    would.
+			 *
+			 * What retires the run is instamigrate_removed_at below, written only when the files are
+			 * actually gone.
+			 */
+			if ( '' !== $plugin_file && ! file_exists( $plugin_file ) ) {
+				self::mark_instamigrate_removed();
+
+				return true;
+			}
+
+			/*
+			 * `delete_plugins`, and ONLY when a user is driving this.
+			 *
+			 * Two callers reach here, and they need opposite answers:
+			 *
+			 *  - The REST push from client-app is authenticated by API key. validate_api_request() never
+			 *    calls wp_set_current_user(), so there is no WP user at all -- is_user_logged_in() is
+			 *    false and cleanup proceeds. That is the path that MUST always run: the migration is over
+			 *    and the agent has to come off regardless of who happens to be logged in.
+			 *  - staging_status() and staging_cancel() arrive over admin-ajax, where verify_ajax_request()
+			 *    has checked a nonce and manage_options. That is the right check for "may configure
+			 *    InstaWP" but not for "may remove files from this filesystem", so the capability matching
+			 *    the side effect is checked here.
+			 *
+			 * On single-site WP an Administrator holds both and nothing changes. On MULTISITE a subsite
+			 * Administrator holds manage_options but NOT delete_plugins, and delete_plugins is also how WP
+			 * enforces DISALLOW_FILE_MODS -- where delete_plugins() would fail anyway, so this only turns
+			 * a silent failure into an early return.
+			 *
+			 * Mirrors provision_instamigrate()'s install_plugins check on the way in, and the identical
+			 * gate maybe_cleanup_instamigrate() already applies on the admin_init path.
+			 */
+			if ( is_user_logged_in() && ! current_user_can( 'delete_plugins' ) ) {
+				return false;
+			}
+
+			/*
+			 * BOTH includes, every time.
+			 *
+			 * delete_plugins() lives in wp-admin/includes/plugin.php and needs the filesystem API from
+			 * file.php. Neither is loaded in a REST request, which is exactly how the client-app
+			 * notification arrives -- so relying on the admin bootstrap would work on the admin_init path
+			 * and fatal on the push path. provision_instamigrate() already guards plugin.php the same way.
+			 */
+			if ( ! function_exists( 'delete_plugins' ) && file_exists( ABSPATH . 'wp-admin/includes/plugin.php' ) ) {
+				require_once ABSPATH . 'wp-admin/includes/plugin.php';
+			}
+
+			if ( ! function_exists( 'request_filesystem_credentials' ) && file_exists( ABSPATH . 'wp-admin/includes/file.php' ) ) {
+				require_once ABSPATH . 'wp-admin/includes/file.php';
+			}
+
+			if ( ! function_exists( 'delete_plugins' ) ) {
+				Helper::add_error_log( 'InstaMigrate cleanup: delete_plugins() unavailable' );
+
+				return false;
+			}
+
+			// Deactivate before deleting. delete_plugins() removes the files either way, but an entry left
+			// in active_plugins for a directory that no longer exists is what produces "plugin file does
+			// not exist" on the next admin load.
+			// Same reasoning as the delete below: deactivate_plugins() fires deactivation hooks, and a
+			// fatal in somebody else's hook must not become our caller's fatal.
+			try {
+				if ( is_plugin_active( self::INSTAMIGRATE_PLUGIN ) ) {
+					deactivate_plugins( self::INSTAMIGRATE_PLUGIN, true );
+				}
+			} catch ( \Throwable $e ) {
+				Helper::add_error_log( 'InstaMigrate cleanup: deactivate threw - ' . $e->getMessage() );
+			}
+
+			/*
+			 * delete_plugins() touches the filesystem through WP_Filesystem, which can fail in ways that
+			 * throw rather than return WP_Error -- no credentials, a read-only mount, an unwritable
+			 * plugins directory. Every caller of this method is a background one (admin_init, a REST
+			 * notification, the cancel handler), so a throw here would surface as a white screen or a
+			 * 500 on work the user is not waiting for.
+			 */
+			try {
+				$deleted = delete_plugins( array( self::INSTAMIGRATE_PLUGIN ) );
+			} catch ( \Throwable $e ) {
+				Helper::add_error_log( 'InstaMigrate cleanup: delete threw - ' . $e->getMessage() );
+
+				return false;
+			}
+
+			if ( is_wp_error( $deleted ) || false === $deleted ) {
+				Helper::add_error_log(
+					'InstaMigrate cleanup: delete failed - ' . ( is_wp_error( $deleted ) ? $deleted->get_error_message() : 'unknown' )
+				);
+
+				return false;
+			}
+
+			self::mark_instamigrate_removed();
+
+			return true;
+		} catch ( \Throwable $e ) {
+			Helper::add_error_log( 'InstaMigrate cleanup failed: ' . $e->getMessage() );
+
+			return false;
+		}
+	}
+
+	/**
+	 * Make a typed site name into one start() will accept.
+	 *
+	 * V3 did this (class-instawp-ajax.php:401-403) and V4 did not, so a name as ordinary as
+	 * "My Site" -- fine under V3 -- reached start()'s `[a-zA-Z0-9-]` rule and 422'd. The input carries
+	 * only maxlength, no pattern, so nothing stops a space being typed. Worse, it failed LATE: the
+	 * name is not checked by staging-init, so instamigrate was already installed and a
+	 * migration_imports row already created before start() refused it.
+	 *
+	 * Deliberately STRICTER than V3, which kept underscores ([^a-z0-9-_]). client-app's rule has no
+	 * underscore, so preserving it would reproduce the same late 422 for `acme_staging`.
+	 *
+	 * Trailing and repeated dashes are collapsed: "My  Site!" would otherwise become "my--site-", and
+	 * a trailing dash is a poor subdomain even where the rule allows it.
+	 *
+	 * @param string $site_name The name as typed.
+	 *
+	 * @return string A name matching [a-z0-9-], or '' when nothing usable is left.
+	 */
+	private static function normalise_site_name( $site_name ) {
+		$site_name = strtolower( trim( (string) $site_name ) );
+		$site_name = preg_replace( '/[^a-z0-9-]/', '-', $site_name );
+		$site_name = preg_replace( '/-+/', '-', $site_name );
+
+		return trim( (string) $site_name, '-' );
+	}
+
+	/**
+	 * Is this uuid the run we are currently holding?
+	 *
+	 * Public because the REST handler needs it and the run details are deliberately not exposed --
+	 * they carry the agent URL.
+	 *
+	 * An EMPTY stored uuid answers false: with no run of our own, a notification naming one cannot be
+	 * about us.
+	 */
+	public static function is_current_run( $uuid ) {
+		$details = (array) Option::get_option( self::DETAILS_OPTION );
+		$stored  = (string) Helper::get_args_option( 'uuid', $details, '' );
+
+		return '' !== $stored && $stored === (string) $uuid;
+	}
+
+	/**
+	 * Record that instamigrate is gone, so the deadline arms stop looking at this run.
+	 *
+	 * A flag on the run rather than deleting the run: the watcher, resumable_run() and the status
+	 * poll all still need the uuid, and removing a plugin is not the same event as the migration
+	 * ending. Written ONLY after the files are confirmed gone, so a failed delete stays retryable.
+	 */
+	private static function mark_instamigrate_removed() {
+		$details = (array) Option::get_option( self::DETAILS_OPTION );
+
+		if ( empty( Helper::get_args_option( 'uuid', $details, '' ) ) ) {
+			return;
+		}
+
+		$details['instamigrate_removed_at'] = time();
+
+		/*
+		 * Stamp finished_at here too, or the run stays "resumable" for the full window.
+		 *
+		 * Only staging_status() wrote it, so a cancel, a migration-finished push, or the 48h arm
+		 * removed the agent and left the run looking live. resumable_run() then kept reopening
+		 * screen 5 on every wp-admin load -- with the screen buttons and Abort hidden -- and
+		 * start_run() kept refusing a new run, for up to RESUME_WINDOW. A user who CANCELLED was
+		 * locked out of the wizard by the act of cancelling.
+		 *
+		 * Safe as a general rule: every caller of this method has established the run is over --
+		 * a terminal status, an explicit cancel, or a deadline. There is no path that removes the
+		 * agent from a run still expected to progress.
+		 */
+		if ( empty( $details['finished_at'] ) ) {
+			$details['finished_at'] = time();
+		}
+
+		Option::update_option( self::DETAILS_OPTION, $details, false );
+	}
+
+	public static function resumable_run() {
+		/*
+		 * Answering "no run" is always safe; throwing is not.
+		 *
+		 * Three template paths call this while RENDERING the migrate screen -- part-create.php stamps
+		 * a class from it and part-create-staging.php seeds the link -- so an exception here blanks the
+		 * page the user came to use. The worst a false negative costs is a resume that does not
+		 * reappear; the watcher and the deadline arms still hold the run.
+		 */
+		try {
+			$details = (array) Option::get_option( self::DETAILS_OPTION );
+		} catch ( \Throwable $e ) {
+			Helper::add_error_log( 'InstaMigrate resume check failed: ' . $e->getMessage() );
+
+			return array();
+		}
+
+		if ( empty( Helper::get_args_option( 'uuid', $details, '' ) ) ) {
+			return array();
+		}
+
+		// A terminal poll stamped it. The record stays for support; it just stops reopening.
+		if ( ! empty( Helper::get_args_option( 'finished_at', $details, 0 ) ) ) {
+			return array();
+		}
+
+		$started_at = (int) Helper::get_args_option( 'started_at', $details, 0 );
+
+		// A missing or zero start time fails CLOSED. It is not evidence the run is recent, and an
+		// absent timestamp would otherwise read as "started at the epoch" or as "always resumable"
+		// depending on which way the comparison happened to be written.
+		if ( $started_at <= 0 || ( time() - $started_at ) > self::RESUME_WINDOW ) {
+			return array();
+		}
+
+		return $details;
+	}
+
+	public function staging_status() {
+		InstaWP_Tools::verify_ajax_request();
+
+		$details = Option::get_option( self::DETAILS_OPTION );
+		$uuid    = Helper::get_args_option( 'uuid', (array) $details, '' );
+
+		if ( empty( $uuid ) ) {
+			wp_send_json_error( array( 'message' => esc_html__( 'No staging migration in progress.', 'instawp-connect' ) ) );
+		}
+
+		// A Cancel clicked while this run was still starting, that landed after start_run()'s last
+		// checkpoint. Honour it now, before reading the status, so this very poll reports the ending.
+		if ( self::consume_pending_cancel( (int) Helper::get_args_option( 'started_at', (array) $details, 0 ) ) ) {
+			self::request_cancel( $uuid );
+
+			$details = Option::get_option( self::DETAILS_OPTION );
+		}
+
+		$response = Curl::do_curl( 'migrations/' . $uuid . '/status', array(), array(), 'GET' );
+
+		if ( empty( $response['success'] ) ) {
+			wp_send_json_error( array( 'message' => Helper::get_args_option( 'message', $response, esc_html__( 'Could not read the migration status.', 'instawp-connect' ) ) ) );
+		}
+
+		$data = Helper::get_args_option( 'data', $response, array() );
+
+		// ALWAYS prefer migration_url — the agent's hosted flow page, carrying its session token.
+		// tracking_url (public, token-less, never expires) is the fallback, and is what this flow
+		// gets today: our migrates_v4 row is created by the webhook, which never sees a hosted URL.
+		// Written as a preference rather than hardcoding the fallback so that the moment a hosted
+		// URL does exist for this route, it is used with no change here.
+		$migration_url = Helper::get_args_option( 'migration_url', $data, '' );
+		$tracking_url  = Helper::get_args_option( 'tracking_url', $data, '' );
+		$agent_url     = ! empty( $migration_url ) ? $migration_url : $tracking_url;
+
+		// Compare the ESCAPED form against the escaped value we stored, not the raw one — otherwise
+		// any URL that esc_url_raw() alters looks different on every 3s poll and rewrites the option
+		// each time.
+		$agent_url = esc_url_raw( $agent_url );
+
+		$status  = Helper::get_args_option( 'status', $data, '' );
+		$details = (array) $details;
+		$dirty   = false;
+
+		if ( ! empty( $agent_url ) && $agent_url !== Helper::get_args_option( 'agent_url', $details, '' ) ) {
+			$details['agent_url'] = $agent_url;
+			$dirty                = true;
+		}
+
+		// A terminal status is final: once the record says the run ended, nothing rewrites it --
+		// not a later poll, not Cancel, not the push.
+		$already_ended = in_array( Helper::get_args_option( 'status', $details, '' ), self::TERMINAL_STATUSES, true );
+
+		// client-app's status, verbatim. The record's update hook reads it to decide about the plugin.
+		if ( ! $already_ended && '' !== $status && $status !== Helper::get_args_option( 'status', $details, '' ) ) {
+			$details['status'] = $status;
+			$dirty             = true;
+		}
+
+		/*
+		 * Stamp the run finished so resumable_run() stops reopening it.
+		 *
+		 * Without this the ONLY thing retiring a completed run is RESUME_WINDOW, so for up to 12
+		 * hours after a migration finished every wp-admin page load would reopen "Creating
+		 * Staging", poll once, and correct itself — a flash of a migration the customer already
+		 * saw finish. The window then does what it is actually for: retiring runs whose outcome we
+		 * never observed because the tab was closed first.
+		 */
+		if ( ! $already_ended && in_array( $status, self::TERMINAL_STATUSES, true ) && empty( $details['finished_at'] ) ) {
+			// The migration's OWN completion time when client-app sent one -- DETAILS_RETENTION is
+			// measured from when the run ended, not from when this poll happened to notice.
+			$completed_at = strtotime( (string) Helper::get_args_option( 'completed_at', $data, '' ) );
+
+			$details['finished_at'] = $completed_at ? $completed_at : time();
+			$dirty                  = true;
+
+			/*
+			 * "Enable Sync Recording" ticked on the wizard: switch recording on for this (source) site,
+			 * exactly as the V3 engine did on migration-finished. Only on `completed` -- a failed or
+			 * aborted run has no staging site to record changes for. Inside the first-terminal-status
+			 * block on purpose, so it runs once per run and not on every later poll.
+			 */
+			if ( 'completed' === $status && ! empty( $details['enable_event_syncing'] ) ) {
+				Option::update_option( 'instawp_is_event_syncing', 1 );
+			}
+		}
+
+		if ( $dirty ) {
+			Option::update_option( self::DETAILS_OPTION, $details, false );
+		}
+
+		// No cleanup call: writing a terminal status above is what removes instamigrate. See
+		// on_record_updated().
+
+		wp_send_json_success(
+			array(
+				'uuid'      => $uuid,
+				'status'    => $status,
+				// Carried through so a `failed` status can say WHY. Without it the wizard can only
+				// show a generic failure, which is barely better than the silent spinner it used to
+				// show.
+				'message'   => Helper::get_args_option( 'error_message', $data, '' ),
+				'agent_url' => esc_url_raw( $agent_url ),
+				// A cancel request for this run is still out (another tab, or a refresh mid-cancel), so the
+				// watcher keeps the Cancel button disabled and reading "Cancellation in progress...".
+				'cancelling' => self::cancel_in_progress( $uuid ),
+			)
+		);
+	}
+
+	/**
+	 * Where `wp instawp local push` went.
+	 *
+	 * Deliberately NOT a WP_Error and deliberately not phrased as a failure. The command has moved
+	 * to the standalone InstaWP CLI, which offers the same `instawp local push` — so the reader does
+	 * not need to be told something went wrong, they need to be told where it is now and how to get
+	 * it. Returned as lines rather than one blob so the caller can render them the way its own
+	 * output expects.
+	 *
+	 * ⚠ __(), not esc_html__(). This goes to a TERMINAL, not to HTML — escaping turned the
+	 * placeholder in `instawp local push <name>` into `&lt;name&gt;`, in the one line the reader is
+	 * meant to copy and run.
+	 *
+	 * @return list<string>
+	 */
+	public static function local_push_moved_notice() {
+		return array(
+			__( 'Local push now lives in the InstaWP CLI, not in this plugin.', 'instawp-connect' ),
+			'',
+			__( '  Install:  npm install -g @instawp/cli', 'instawp-connect' ),
+			__( '  Then run: instawp local push <name>', 'instawp-connect' ),
+			'',
+			__( 'It does the same job — creates the destination site and deploys this one to it — and is maintained there. Docs: https://github.com/InstaWP/cli', 'instawp-connect' ),
+		);
+	}
+
+	/**
+	 * Run the V4 staging sequence.
+	 *
+	 * Separate from the AJAX handler so the existing Create-Staging flow can delegate to it without
+	 * going through a second HTTP round trip. Returns the data payload, or a WP_Error whose error
+	 * data carries anything extra the caller should surface (e.g. recommended_plan_id).
+	 *
+	 * @param array $posted The posted request data.
+	 *
+	 * @return array|WP_Error
+	 */
+	public static function run( $posted ) {
+		/*
+		 * Every ANTICIPATED failure below returns a WP_Error, which migrate_init() turns into
+		 * wp_send_json_error() and the wizard renders in .migration-error. An unanticipated THROW had
+		 * no such path, and the UI handles it worse than a plain 500: beforeSend adds `loading`,
+		 * `complete` removes only `doing-ajax`, and there is no .fail() handler -- so the screen span
+		 * forever with nothing said. A user watching that has no way to tell it from a slow migration.
+		 *
+		 * Converted to the WP_Error the caller already knows how to show. Throwable, not Exception:
+		 * this walks the filesystem to size the site and drives Plugin_Upgrader to install
+		 * instamigrate, and a TypeError out of either is not an Exception.
+		 *
+		 * A throw AFTER provision_instamigrate() leaves instamigrate on the site with no run recorded.
+		 * That is the orphan case, and it is covered: the flag is written at install time and
+		 * maybe_cleanup_instamigrate() removes an orphan older than CLEANUP_DEADLINE.
+		 */
+		try {
+			return self::start_run( $posted );
+		} catch ( \Throwable $e ) {
+			Helper::add_error_log( 'Staging V4 run failed: ' . $e->getMessage() );
+
+			// The message is OURS, not the exception's: $e->getMessage() can carry a file path, a query
+			// or a truncated response body, and this string is rendered straight into the wizard.
+			return new WP_Error(
+				'staging_run_failed',
+				esc_html__( 'Could not start the staging migration. Please try again.', 'instawp-connect' )
+			);
+		}
+	}
+
+	/**
+	 * The body of run(). See run() for why it is wrapped.
+	 *
+	 * @param array $posted The posted request data.
+	 *
+	 * @return array|WP_Error
+	 */
+	private static function start_run( $posted ) {
+		/*
+		 * IDEMPOTENT ON AN IN-FLIGHT RUN, and this is a safety guard rather than a nicety.
+		 *
+		 * Nothing else stopped this method starting a SECOND staging migration: it installs
+		 * instamigrate, seeds a migration_imports row and creates a destination SITE, so a repeat
+		 * call bills a second site and orphans the first run's record when remember_run() overwrites
+		 * the option. Reachable three ways -- a double-click on Create Staging, a second wp-admin
+		 * tab, and (until the fix that accompanies this) the page-load resume, which re-entered
+		 * screen 5 by triggering the change handler that calls migrate_init().
+		 *
+		 * Returning the EXISTING run rather than an error is deliberate: every caller wants to end
+		 * up watching the live migration, and that is exactly what the returned uuid does.
+		 */
+		$in_flight = self::resumable_run();
+
+		if ( ! empty( $in_flight ) ) {
+			return array(
+				'engine'     => 'v4',
+				'uuid'       => Helper::get_args_option( 'uuid', $in_flight, '' ),
+				'started_at' => (int) Helper::get_args_option( 'started_at', $in_flight, time() ),
+				'message'    => esc_html__( 'A staging migration is already in progress.', 'instawp-connect' ),
+			);
+		}
+
+		// The run has begun, from the user's point of view. Recorded NOW so an attempt that installs
+		// instamigrate and then fails before remember_run() -- staging-init refused, live-import/start
+		// failed -- still has a clock: the 48h check retires it, and the delete hook removes the plugin.
+		$started_at = time();
+
+		// A fresh start: a cancel left pending for an earlier start must never stop this one.
+		Option::delete_option( self::CANCEL_PENDING_OPTION );
+
+		Option::update_option( self::DETAILS_OPTION, array( 'started_at' => $started_at ), false );
+
+		$connect_id = instawp_get_connect_id();
+
+		if ( empty( $connect_id ) ) {
+			return new WP_Error( 'not_connected', esc_html__( 'This site is not connected to InstaWP.', 'instawp-connect' ) );
+		}
+
+		$migrate_settings = InstaWP_Tools::get_migrate_settings( $posted );
+		$plan_id          = (int) Helper::get_args_option( 'plan_id', $migrate_settings, 0 );
+
+		/*
+		 * The wizard's "Enable Sync Recording" option (migrate_settings[options][] = enable_event_syncing).
+		 *
+		 * The V3 engine turned this into instawp_is_event_syncing on the source once the migration
+		 * finished (class-instawp-ajax.php, migration-finished branch). That code is unreachable now
+		 * that migrate_init() routes every run through here, so the option was collected and then
+		 * never read -- the card could be ticked and nothing happened. It is carried on the run
+		 * record and applied by staging_status() when client-app reports the run completed.
+		 */
+		$migrate_options      = (array) Helper::get_args_option( 'options', $migrate_settings, array() );
+		$enable_event_syncing = in_array( 'enable_event_syncing', $migrate_options, true );
+
+		/*
+		 * The subdomain prefix the user typed (part-create-staging.php:681,
+		 * migrate_settings[site_name]). It was collected and then never read: neither the
+		 * staging-init payload nor $start_args carried it, so every plugin-created staging site got
+		 * an auto-generated name however carefully the user named it.
+		 *
+		 * Trimmed, not validated. start() applies min:3 / max:30 / [a-zA-Z0-9-] and a SafeSiteName
+		 * uniqueness rule, and duplicating any of that here would only let the two disagree.
+		 */
+		$site_name = self::normalise_site_name( Helper::get_args_option( 'site_name', $migrate_settings, '' ) );
+
+		/*
+		 * Never ship OUR OWN plugin to the destination.
+		 *
+		 * The destination is given a fresh instawp-connect by client-app's post-migration repair,
+		 * which installs it after deleting the identity options the migrated wp_options carried
+		 * over. Sending the source's copy as well only creates a window: plugin code present on the
+		 * destination can run -- and phone home holding the PARENT's inherited credentials -- in the
+		 * gap between the migration finishing and the repair running. That is how a staging site
+		 * came to overwrite its parent's connect record.
+		 *
+		 * Root-relative on purpose: build_exclude() expects paths under the wp-content directory
+		 * NAME and rewrites them relative to it, so this must be composed from content_rel() rather
+		 * than hardcoding 'wp-content' -- the two disagree on Bedrock and anywhere WP_CONTENT_DIR is
+		 * renamed.
+		 *
+		 * Excluding it also removes it from the SIZE, since total_size_mb() measures build_exclude()'s
+		 * output. That is correct: we do not transmit it, so it must not be charged against the plan.
+		 */
+		$excluded_paths   = (array) Helper::get_args_option( 'excluded_paths', $migrate_settings, array() );
+		$excluded_paths[] = self::content_rel() . '/plugins/' . INSTAWP_PLUGIN_SLUG;
+
+		$migrate_settings['excluded_paths'] = $excluded_paths;
+
+		// Order matters: the exclusions must be built BEFORE the site is sized, because the size is
+		// computed against what we transmit rather than what the user selected. See total_size_mb().
+		$exclude = self::build_exclude( $migrate_settings );
+
+		/*
+		 * Sized against what we actually TRANSMIT, so this is larger than the plan picker's number
+		 * — the picker also subtracts root-level exclusions we do not send. Safe direction, but a
+		 * user on a plan boundary can pass the picker and still be told to size up.
+		 *
+		 * Do not "fix" that by passing the raw settings here; the picker is the side to change.
+		 */
+		$total_size_mb = self::total_size_mb( $exclude );
+
+		// Checkpoint 1 -- cancelled before anything was installed or sent: stop here, nothing to undo.
+		if ( self::consume_pending_cancel( $started_at ) ) {
+			return self::abort_start( '', $started_at );
+		}
+
+		// Step 2 + 3: the plugin is the source, so it provisions its own credential. Nothing leaves
+		// the site except the key itself.
+		$api_key = self::provision_instamigrate();
+
+		if ( is_wp_error( $api_key ) ) {
+			return $api_key;
+		}
+
+		$payload = array(
+			'source_url'        => Helper::wp_site_url( '', true ),
+			'plugin_api_key'    => $api_key,
+			'total_size_mb'     => $total_size_mb,
+			'parent_connect_id' => $connect_id,
+			'plan_id'           => empty( $plan_id ) ? null : $plan_id,
+			'wp_version'        => get_bloginfo( 'version' ),
+			'php_version'       => PHP_VERSION,
+			'is_multisite'      => is_multisite(),
+			// Recorded on the row as part of the source analysis. start() below is what actually
+			// applies it, but sending it here keeps the row a faithful record of the request.
+			'site_name'         => '' === $site_name ? null : $site_name,
+			'exclude'           => $exclude,
+		);
+
+		// NOTE: the legacy disk allowance is deliberately NOT sent. client-app derives it itself from
+		// planAllow/planUsed at migration-start time — a quota supplied by the caller could be
+		// inflated, and it is exactly the kind of number the server must not take on trust.
+
+		$response = Curl::do_curl( 'migrate-v4/staging-init', $payload );
+
+		if ( empty( $response['success'] ) ) {
+			/*
+			 * The CODE matters, and was being discarded. A 404 here means client-app has not
+			 * deployed staging-init yet — a release-ordering fault, not anything the user did — and
+			 * it looks identical to a plan or quota rejection unless the code is recorded. Whoever
+			 * reads this log on release day needs to be able to tell them apart at a glance.
+			 */
+			$code = (int) Helper::get_args_option( 'code', $response, 0 );
+
+			self::log_orphaned_instamigrate(
+				404 === $code || 501 === $code
+					? 'staging-init not available on client-app (HTTP ' . $code . ') — deploy ordering'
+					: 'staging-init refused (HTTP ' . $code . ')'
+			);
+
+			return new WP_Error(
+				'staging_init_failed',
+				Helper::get_args_option( 'message', $response, esc_html__( 'Could not start the staging migration.', 'instawp-connect' ) ),
+				array(
+					'recommended_plan_id' => Helper::get_args_option( 'recommended_plan_id', Helper::get_args_option( 'data', $response, array() ), 0 ),
+				)
+			);
+		}
+
+		$data = Helper::get_args_option( 'data', $response, array() );
+		$uuid = Helper::get_args_option( 'uuid', $data, '' );
+
+		/*
+		 * client-app found a migration already running for this site (its single duplicate guard) that is
+		 * not an import this plugin can watch -- e.g. a V4 API migration: `existing` is set but there is no
+		 * import uuid. Point the admin at that migration instead of the generic "no reference" error.
+		 */
+		if ( empty( $uuid ) && ! empty( $data['existing'] ) ) {
+			self::log_orphaned_instamigrate( 'a migration is already in progress for this site' );
+
+			return self::existing_migration_error( $response, $data );
+		}
+
+		if ( empty( $uuid ) ) {
+			self::log_orphaned_instamigrate( 'no migration reference returned' );
+
+			return new WP_Error( 'no_migration_reference', esc_html__( 'InstaWP did not return a migration reference.', 'instawp-connect' ) );
+		}
+
+		// Checkpoint 2 -- cancelled after client-app created the import but BEFORE the destination site is
+		// requested: cancel it now, so no site is created at all. If client-app refuses, carry on.
+		if ( self::consume_pending_cancel( $started_at ) ) {
+			$aborted = self::abort_start( $uuid, $started_at );
+
+			if ( null !== $aborted ) {
+				return $aborted;
+			}
+		}
+
+		// Step 5: create the destination site and start. This is client-app's EXISTING endpoint —
+		// unchanged, and shared with the hosted import wizard.
+		// Omit rather than send a literal 0: start() validates plan_id as required|integer for a
+		// non-legacy user, so 0 passes validation and fails later inside canCreateSiteWithPlan with a
+		// worse message than "plan_id is required".
+		$start_args      = array();
+		$server_group_id = (int) Helper::get_args_option( 'server_group_id', $migrate_settings, 0 );
+
+		if ( ! empty( $plan_id ) ) {
+			$start_args['plan_id'] = $plan_id;
+		}
+
+		if ( ! empty( $server_group_id ) ) {
+			$start_args['server_group_id'] = $server_group_id;
+		}
+
+		/*
+		 * THIS is the one that takes effect: SiteImportLiveController::start() reads site_name from
+		 * the REQUEST, and -- unlike wp_version and php_version two lines below it there -- does not
+		 * fall back to the stored source analysis. Omitted when empty so start()'s `nullable` rule
+		 * is satisfied rather than being handed an empty string to reject.
+		 */
+		if ( '' !== $site_name ) {
+			$start_args['site_name'] = $site_name;
+		}
+
+		$start = Curl::do_curl( 'live-import/' . $uuid . '/start', $start_args );
+
+		if ( empty( $start['success'] ) ) {
+			self::log_orphaned_instamigrate( 'destination site creation failed' );
+
+			return new WP_Error( 'site_create_failed', Helper::get_args_option( 'message', $start, esc_html__( 'Could not create the staging site.', 'instawp-connect' ) ) );
+		}
+
+		/*
+		 * client-app refused to start a second run for this site and handed back the one already in flight
+		 * (`existing`). Watch THAT run: remembering our own uuid would poll an import that never starts.
+		 * With no uuid to watch (not an import), show where the running migration is instead.
+		 */
+		$start_data = Helper::get_args_option( 'data', $start, array() );
+
+		if ( ! empty( $start_data['existing'] ) ) {
+			$existing_uuid = Helper::get_args_option( 'uuid', $start_data, '' );
+
+			if ( empty( $existing_uuid ) ) {
+				self::log_orphaned_instamigrate( 'a migration is already in progress for this site' );
+
+				return self::existing_migration_error( $start, $start_data );
+			}
+
+			$uuid = $existing_uuid;
+		}
+
+		self::remember_run( $uuid, $started_at, $enable_event_syncing );
+
+		// Checkpoint 3 -- cancelled while the destination site was being requested: the run exists now, so
+		// cancel it straight away (client-app deletes the destination). If client-app refuses, the run is
+		// returned as live and the admin can cancel again from the running screen.
+		if ( self::consume_pending_cancel( $started_at ) ) {
+			$aborted = self::abort_start( $uuid, $started_at );
+
+			if ( null !== $aborted ) {
+				return $aborted;
+			}
+		}
+
+		return array(
+			// The wizard branches on this: a v4 run polls staging_status_v4 for the agent URL
+			// instead of the V3 progress endpoint.
+			'engine'     => 'v4',
+			'uuid'       => $uuid,
+			'started_at' => $started_at,
+			'message'    => esc_html__( 'Staging site creation started.', 'instawp-connect' ),
+		);
+	}
+
+	/**
+	 * Total source size in MB — files AND database.
+	 *
+	 * Decimal MB (1000^2), the same arithmetic the plan picker uses — but DELIBERATELY NOT the same
+	 * number. The picker subtracts every selected exclusion; this subtracts only the ones
+	 * build_exclude() can transmit, so this number is larger. See the call site in run() for why
+	 * that divergence exists and why it is the safe direction.
+	 *
+	 * @param array $exclude The transmitted exclusion set, as returned by build_exclude().
+	 *
+	 * @return float
+	 */
+	private static function total_size_mb( $exclude ) {
+		/*
+		 * Sized against the exclusions we ACTUALLY TRANSMIT, not the ones the user selected.
+		 *
+		 * get_total_sizes() subtracts every entry in excluded_paths, including root-level ones
+		 * ('wp-admin', 'wp-includes', and anything the user ticks in the file browser, which is
+		 * rooted at the SITE ROOT, not wp-content). build_exclude() can only transmit
+		 * wp-content-relative paths, because that is the agent's contract. Passing the raw settings
+		 * here therefore sized the site as though root-level exclusions applied while the agent
+		 * never received them -- the same direction of failure as the round-1 bug: sized small,
+		 * passed the plan check, agent copies more than the plan holds.
+		 *
+		 * Subtracting only the transmitted set makes that class of mismatch FAIL SAFE. Whatever the
+		 * agent's copy scope turns out to be, this number can never be smaller than what it copies,
+		 * so the worst outcome is a plan larger than strictly needed. (What the agent copies at root
+		 * level is not knowable from this repo -- do not "optimise" this by measuring wp-content
+		 * alone without confirming that against the agent contract first.)
+		 */
+		$content_rel = self::content_rel();
+		$transmitted = array();
+
+		foreach ( (array) Helper::get_args_option( 'paths', $exclude, array() ) as $relative_path ) {
+			$transmitted[] = $content_rel . '/' . $relative_path;
+		}
+
+		$files = InstaWP_Tools::get_total_sizes( 'files', array( 'excluded_paths' => $transmitted ) );
+		$db    = InstaWP_Tools::get_total_sizes( 'db' );
+
+		return round( ( $files + $db ) / ( 1000 * 1000 ), 2 );
+	}
+
+	/**
+	 * Install and activate instamigrate, and return its API key.
+	 *
+	 * @return string|WP_Error
+	 */
+	private static function provision_instamigrate() {
+		$plugin_file  = WP_PLUGIN_DIR . '/' . self::INSTAMIGRATE_PLUGIN;
+		$pre_existing = file_exists( $plugin_file );
+
+		// is_plugin_active() and activate_plugin() are wp-admin only; admin-ajax does not load them.
+		if ( ! function_exists( 'is_plugin_active' ) && file_exists( ABSPATH . 'wp-admin/includes/plugin.php' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		}
+
+		/*
+		 * `install_plugins`, NOT just `manage_options`.
+		 *
+		 * verify_ajax_request() gates these handlers on manage_options, which is the right check for
+		 * "may configure InstaWP" but NOT for "may put files on this filesystem". Installer::install()
+		 * runs Plugin_Upgrader with overwrite_package and then activate_plugin(), and checks no
+		 * capability of its own — so without this an AJAX endpoint installs a plugin on the strength
+		 * of manage_options alone.
+		 *
+		 * On single-site WP an Administrator holds both, so nothing changes. On MULTISITE a subsite
+		 * Administrator holds manage_options but NOT install_plugins (WP strips it from
+		 * non-super-admins), so this is the difference between a subsite admin writing to the
+		 * filesystem and not. It is also how WP enforces DISALLOW_FILE_MODS, which many managed hosts
+		 * set: that is mapped through install_plugins, so skipping the capability skips the host's
+		 * policy too.
+		 *
+		 * Same CWE-862 class as the v0.1.2.5 incident, one layer further in: the nonce and
+		 * manage_options are present, but the capability that actually matches the side effect is not.
+		 */
+		if ( ! $pre_existing && ! current_user_can( 'install_plugins' ) ) {
+			return new WP_Error(
+				'cannot_install_plugins',
+				esc_html__( 'You do not have permission to install plugins on this site.', 'instawp-connect' )
+			);
+		}
+
+		/*
+		 * PRESENCE ON DISK, not class_exists().
+		 *
+		 * class_exists('\InstaMigrate') conflates "not installed" with "installed but DEACTIVATED".
+		 * On a site where the user had deliberately deactivated instamigrate, the class is not
+		 * loaded, so this read false, installInstaMigrate() saw is_plugin_active() false, and the
+		 * Installer ran with overwrite_package => true — OVERWRITING their copy and re-activating a
+		 * plugin they had turned off. The wrong breadcrumb was the lesser half of that.
+		 *
+		 * The file either exists or it does not, whatever this request has loaded.
+		 */
+
+		/*
+		 * ALREADY ON DISK BUT DEACTIVATED: activate it, do NOT reinstall.
+		 *
+		 * QA FAIL, and the defect the previous commit only half fixed. $pre_existing was consulted
+		 * by the orphan-marking branch alone, while installInstaMigrate() was still called
+		 * unconditionally — and it gates internally on is_plugin_active(), so a plugin the customer
+		 * had deliberately DEACTIVATED went through Installer::install() with
+		 * overwrite_package => true. Measured: their copy's md5 and mtime both changed and
+		 * active_plugins gained the entry. We overwrote a file they own and switched it back on.
+		 *
+		 * Activation still needs its own capability: install_plugins (checked above) is not
+		 * activate_plugins, and on multisite they are held by different people.
+		 */
+		if ( $pre_existing && ! is_plugin_active( self::INSTAMIGRATE_PLUGIN ) ) {
+			if ( ! current_user_can( 'activate_plugins' ) ) {
+				return new WP_Error(
+					'cannot_activate_plugins',
+					esc_html__( 'InstaMigrate is installed but not active, and you do not have permission to activate plugins on this site.', 'instawp-connect' )
+				);
+			}
+
+			$activated = activate_plugin( self::INSTAMIGRATE_PLUGIN );
+
+			if ( is_wp_error( $activated ) ) {
+				return $activated;
+			}
+		}
+
+		/*
+		 * Safe to call unconditionally now: if we activated above, is_plugin_active() is true and
+		 * installInstaMigrate() skips the Installer entirely, so it cannot reach overwrite_package.
+		 */
+		$installed = Helper::installInstaMigrate();
+
+		/*
+		 * MARK BEFORE THE SUCCESS CHECK, and decide from the SITE not from the return value.
+		 *
+		 * installInstaMigrate() reports success=false in a case where the plugin IS installed and
+		 * activated: the installer succeeds, but `class_exists('\InstaMigrate')` /
+		 * INSTA_MIGRATE_OPTION_KEY are not yet defined in the same request, so it returns
+		 * 'After install INSTA_MIGRATE_OPTION_KEY not defined.' (connect-helpers Helper.php:219-224).
+		 * That is the most likely first-click outcome, and it is exactly "we installed it and the
+		 * migration never started" — the case the flag exists for. Marking after the success check
+		 * skipped it, which is the same defect this guard was moved here to fix once already.
+		 *
+		 * class_exists() cannot be the signal for the same reason it fails above. active_plugins is
+		 * read from the DB and does not depend on what this request has loaded.
+		 *
+		 * And marked on PRESENCE, not on activation: an install whose activate_plugin() then failed
+		 * leaves the files on the customer's site with no active_plugins entry — which is exactly
+		 * "we put files there and nothing started", the case the flag exists for, and the one an
+		 * activation-based check misses.
+		 */
+		if ( ! $pre_existing && file_exists( $plugin_file ) ) {
+			self::mark_instamigrate_orphaned();
+		}
+
+		if ( empty( $installed['success'] ) ) {
+			self::log_orphaned_instamigrate( 'instamigrate installed but did not initialise' );
+
+			return new WP_Error(
+				'instamigrate_install_failed',
+				Helper::get_args_option( 'message', $installed, esc_html__( 'Could not install InstaMigrate.', 'instawp-connect' ) )
+			);
+		}
+
+		$key_response = Helper::getInstaMigrateApiKey();
+
+		if ( empty( $key_response['success'] ) ) {
+			self::log_orphaned_instamigrate( 'instamigrate key unreadable' );
+
+			return new WP_Error(
+				'instamigrate_key_missing',
+				Helper::get_args_option( 'message', $key_response, esc_html__( 'Could not read the InstaMigrate API key.', 'instawp-connect' ) )
+			);
+		}
+
+		$api_key = Helper::get_args_option( 'insta_mig_key', Helper::get_args_option( 'data', $key_response, array() ), '' );
+
+		if ( empty( $api_key ) ) {
+			self::log_orphaned_instamigrate( 'instamigrate returned an empty key' );
+
+			return new WP_Error( 'instamigrate_key_missing', esc_html__( 'InstaMigrate returned an empty API key.', 'instawp-connect' ) );
+		}
+
+		return $api_key;
+	}
+
+	/**
+	 * Translate the wizard's exclusions into the migration agent's vocabulary.
+	 *
+	 * The agent's contract differs from V3's in three ways that matter:
+	 *   - paths are WP-CONTENT-RELATIVE, so selections are mapped rather than passed through;
+	 *   - a glob's * crosses /, so uploads/* takes the whole tree, not one level;
+	 *   - options and sitemeta are NEVER skippable. They are stripped server-side whatever we send,
+	 *     so they are dropped here instead of appearing to be honoured.
+	 *
+	 * @param array $migrate_settings Migration settings.
+	 *
+	 * @return array
+	 */
+	private static function content_rel() {
+		/*
+		 * basename( WP_CONTENT_DIR ), matching the PRODUCER exactly
+		 * (class-instawp-tools.php:1010). An earlier revision derived this by stripping
+		 * instawp_get_root_path() out of WP_CONTENT_DIR with str_replace, which agrees only when
+		 * wp-content sits directly under the root. On Bedrock (WP_CONTENT_DIR outside ABSPATH) or
+		 * where instawp_get_root_path() returns DOCUMENT_ROOT rather than ABSPATH, str_replace
+		 * stripped nothing, every path failed the prefix test, and 100% of exclusions were dropped
+		 * silently -- the round-1 bug, returning under a different layout. str_replace was also
+		 * unanchored, replacing every occurrence rather than the prefix.
+		 */
+		return basename( wp_normalize_path( untrailingslashit( WP_CONTENT_DIR ) ) );
+	}
+
+	private static function build_exclude( $migrate_settings ) {
+		global $wpdb;
+
+		$paths  = (array) Helper::get_args_option( 'excluded_paths', $migrate_settings, array() );
+		$tables = (array) Helper::get_args_option( 'excluded_tables', $migrate_settings, array() );
+
+		/*
+		 * `excluded_paths` values are ROOT-RELATIVE, not absolute. The checkbox value is
+		 * $data['relative_path'] (migrate/templates/part-create-staging.php:208), the hardcoded ones
+		 * are 'wp-admin' / 'wp-includes' (class-instawp-tools.php:1032), and get_total_sizes()
+		 * re-absolutises them with instawp_get_root_path() . '/' . $path before use.
+		 *
+		 * An earlier revision compared them against the ABSOLUTE WP_CONTENT_DIR, so every entry was
+		 * dropped and exclude.paths was always empty. That was worse than a no-op: get_total_sizes()
+		 * DOES honour the exclusions, so a user excluding a large uploads directory was sized for the
+		 * small site, passed the plan check, and the agent then copied the full one.
+		 *
+		 * Anything this function DROPS (root-level entries: wp-admin, wp-includes, and whatever the
+		 * user ticks in the file browser, which is rooted at the site root) is dropped from the
+		 * SIZING too — total_size_mb() measures against this function's OUTPUT, not against
+		 * $migrate_settings. Keep those two together: sizing against the user's selection while
+		 * transmitting a subset is what created the bug above, in both of its revisions.
+		 */
+		$content_rel = self::content_rel();
+
+		$relative = array();
+
+		foreach ( $paths as $path ) {
+			$path = trim( wp_normalize_path( (string) $path ), '/' );
+
+			if ( '' === $path || '' === $content_rel ) {
+				continue;
+			}
+
+			// Excluding wp-content itself has no representation — the agent's paths are relative TO
+			// it. Dropping it silently would turn "exclude everything" into "exclude nothing", so it
+			// is skipped explicitly and left for the caller to notice.
+			if ( $path === $content_rel ) {
+				continue;
+			}
+
+			// Match on the separator so a sibling directory (wp-content-backup) cannot match.
+			if ( 0 !== strpos( $path, $content_rel . '/' ) ) {
+				continue;
+			}
+
+			$relative[] = substr( $path, strlen( $content_rel ) + 1 );
+		}
+
+		// wp_sitemeta is keyed off base_prefix, not prefix: on a subsite $wpdb->prefix is wp_2_,
+		// and wp_2_sitemeta does not exist — so a real wp_sitemeta entry would slip past the filter.
+		$protected = array( $wpdb->prefix . 'options', $wpdb->base_prefix . 'sitemeta' );
+		$skippable = array();
+
+		foreach ( $tables as $table ) {
+			$table = (string) $table;
+
+			if ( '' === $table || in_array( $table, $protected, true ) ) {
+				continue;
+			}
+
+			$skippable[] = $table;
+		}
+
+		return array_filter(
+			array(
+				'paths'           => array_values( array_unique( array_filter( $relative ) ) ),
+				'skip_table_data' => array_values( array_unique( $skippable ) ),
+			)
+		);
+	}
+
+	/**
+	 * The admin-facing refusal when client-app reports a migration already running for this site that
+	 * the plugin cannot watch.
+	 *
+	 * Uses client-app's own message and appends the running migration's url so the admin can open it.
+	 * Plain text on purpose: the wizard renders this message with .text() (assets/js/scripts.js).
+	 *
+	 * @param array $response The client-app response (for its message).
+	 * @param array $data     The response's `data` (for migration_url).
+	 *
+	 * @return WP_Error
+	 */
+	private static function existing_migration_error( $response, $data ) {
+		$message = Helper::get_args_option( 'message', $response, esc_html__( 'A migration is already in progress for this site.', 'instawp-connect' ) );
+		$url     = esc_url_raw( Helper::get_args_option( 'migration_url', $data, '' ) );
+
+		return new WP_Error( 'migration_in_progress', empty( $url ) ? $message : $message . ' ' . $url );
+	}
+
+	/**
+	 * Persist the run record.
+	 *
+	 * @param string $uuid                 client-app's migration reference.
+	 * @param int    $started_at           When the start began (the start's own clock).
+	 * @param bool   $enable_event_syncing The wizard's "Enable Sync Recording" option. Kept on the record
+	 *                                     so staging_status() can act on it when the run completes.
+	 *
+	 * @return void
+	 */
+	private static function remember_run( $uuid, $started_at = 0, $enable_event_syncing = false ) {
+		// The migration exists, so the install is accounted for — clear both the flag and the
+		// once-only log latch, so a genuinely new orphan later on is reported again.
+		Option::delete_option( self::ORPHAN_OPTION );
+		Option::delete_option( self::ORPHAN_LOGGED_OPTION );
+
+		$details = array(
+			'uuid'       => $uuid,
+			// The start's own clock, not a new one: a cancel clicked during the start is matched on it.
+			'started_at' => $started_at ? (int) $started_at : time(),
+		);
+
+		// Only written when set, so the record stays minimal for the common case.
+		if ( $enable_event_syncing ) {
+			$details['enable_event_syncing'] = true;
+		}
+
+		Option::update_option( self::DETAILS_OPTION, $details, false );
+	}
+
+	/**
+	 * Record that WE installed instamigrate, pending a migration that references it.
+	 *
+	 * Set on a real install, cleared by remember_run() once a migration references it, so a
+	 * lingering value means exactly "we installed this and the run never started".
+	 *
+	 * READ by maybe_cleanup_instamigrate(), which removes the plugin once the flag is older than
+	 * CLEANUP_DEADLINE. It was a diagnostic breadcrumb until then -- a staging-init that failed left
+	 * instamigrate installed and active with no path out, because every other cleanup arm is gated
+	 * on a run uuid that a failed init never produced.
+	 *
+	 * @return void
+	 */
+	private static function mark_instamigrate_orphaned() {
+		/*
+		 * NO LOG LINE HERE. This is called on the SUCCESS path, right after a real install and
+		 * before the migration reference exists, so a message reading "the migration did not start"
+		 * fired on every healthy first run — permanently, into a 150-entry ring the debug-info
+		 * endpoint hands back verbatim to customers — while the actual failures logged nothing.
+		 * The signal was exactly inverted. Setting the flag is the bookkeeping; ANNOUNCING an
+		 * orphan is a different event and belongs where the run actually gives up.
+		 */
+		Option::update_option( self::ORPHAN_OPTION, time(), false );
+	}
+
+	/**
+	 * Announce that we installed instamigrate and the run then failed.
+	 *
+	 * Called at each give-up point, where the claim is actually true. The flag itself is set
+	 * earlier, at install time, so it survives paths that never reach here.
+	 *
+	 * @param string $reason why the run stopped.
+	 *
+	 * @return void
+	 */
+	private static function log_orphaned_instamigrate( $reason ) {
+		/*
+		 * Every caller passes a literal today, but this string is CONCATENATED into the error log:
+		 * a non-string reason would emit "Array" (with a PHP notice) or fatal on an object with no
+		 * __toString, and it would do so on the failure path — the one place the log is the only
+		 * record of what happened. Coerce rather than refuse: losing the reason text is a far
+		 * smaller loss than losing the line.
+		 */
+		if ( ! is_string( $reason ) ) {
+			$reason = is_scalar( $reason ) ? (string) $reason : 'unspecified';
+		}
+
+		if ( empty( Option::get_option( self::ORPHAN_OPTION ) ) ) {
+			// We did not install it, so it is not ours to report.
+			return;
+		}
+
+		if ( ! empty( Option::get_option( self::ORPHAN_LOGGED_OPTION ) ) ) {
+			// Already announced for this outstanding install. Says it once, not once per attempt.
+			return;
+		}
+
+		Helper::add_error_log( 'V4 staging: instamigrate installed but the migration did not start (' . $reason . ')' );
+
+		/*
+		 * Suppress the re-logging, never the flag. Nothing uninstalls instamigrate, so after a
+		 * failure the site IS still orphaned and the flag must survive to say so — remember_run()
+		 * is the only place it is cleared.
+		 */
+		Option::update_option( self::ORPHAN_LOGGED_OPTION, time(), false );
+	}
+}
+
+new InstaWP_Staging_V4();

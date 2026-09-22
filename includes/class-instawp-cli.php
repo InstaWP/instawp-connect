@@ -23,6 +23,22 @@ if ( ! class_exists( 'INSTAWP_CLI_Commands' ) ) {
 
 		public function cli_local_push() {
 
+			/*
+			 * Stops here, before the archives — everything below writes multi-gigabyte files to
+			 * temp before it contacts client-app.
+			 *
+			 * log(), not error(): the command has moved rather than failed, so it exits 0. A CI
+			 * script will not notice from the exit status alone.
+			 */
+			foreach ( InstaWP_Staging_V4::local_push_moved_notice() as $line ) {
+				WP_CLI::log( $line );
+			}
+
+			return false;
+
+			// Unreachable. Kept until the old engine is removed in one deliberate deletion — do not
+			// tidy it away piecemeal.
+
 			global $wp_version;
 
 			// Files backup. The exclusion list has to be passed here: it was previously

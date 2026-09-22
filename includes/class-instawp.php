@@ -452,6 +452,7 @@ class instaWP {
 
 		require_once INSTAWP_PLUGIN_DIR . 'includes/class-instawp-migrate-log.php';
 		require_once INSTAWP_PLUGIN_DIR . 'includes/class-instawp-ajax.php';
+		require_once INSTAWP_PLUGIN_DIR . 'includes/class-instawp-staging-v4.php';
 		require_once INSTAWP_PLUGIN_DIR . 'includes/class-instawp-setting.php';
 		require_once INSTAWP_PLUGIN_DIR . 'includes/class-instawp-database-management.php';
 		require_once INSTAWP_PLUGIN_DIR . 'includes/class-instawp-tools.php';

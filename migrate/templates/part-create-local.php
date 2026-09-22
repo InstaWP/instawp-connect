@@ -4,7 +4,7 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-$sh_command = 'wp instawp local push';
+$sh_command = 'npm install -g @instawp/cli && instawp local push';
 
 ?>
 
@@ -14,8 +14,8 @@ $sh_command = 'wp instawp local push';
             <img src="<?php echo esc_url( instaWP::get_asset_url( 'migrate/assets/images/staging.svg' ) ); ?>" class="mx-auto" alt="">
         </div>
 
-        <div class="text-sm text-gray-700 font-medium text-grayCust-200 mb-1"><?php esc_html_e( 'Support for Local websites is back!', 'instawp-connect' ) ?></div>
-        <div class="text-center inline-block text-sm font-normal text-grayCust-50 mb-2"><?php esc_html_e( 'Run the following command on the root folder of your Local website. It will push the website to connected InstaWP account.', 'instawp-connect' ) ?></div>
+        <div class="text-sm text-gray-700 font-medium text-grayCust-200 mb-1"><?php esc_html_e( 'Push a Local website with the InstaWP CLI', 'instawp-connect' ) ?></div>
+        <div class="text-center inline-block text-sm font-normal text-grayCust-50 mb-2"><?php esc_html_e( 'Local push now lives in the InstaWP CLI rather than this plugin. Run the following in the root folder of your Local website; it will push the site to your connected InstaWP account.', 'instawp-connect' ) ?></div>
 
         <pre>
             <div class="bg-gray-900 rounded-md flex flex-col">

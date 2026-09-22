@@ -10,6 +10,15 @@ defined( 'ABSPATH' ) || exit;
 class InstaWP_Tools {
 
 	/**
+	 * Option-name prefix for the get_protected_paths() fail-open latch.
+	 *
+	 * The full name carries an md5 of the browse root and WP_CONTENT_DIR, so the
+	 * warning is logged once per LAYOUT rather than once per AJAX request.
+	 */
+	const PROTECTED_PATHS_FAIL_OPEN_OPTION = 'instawp_protected_paths_fail_open';
+
+
+	/**
 	 * Verify an AJAX request: validates nonce and user capability.
 	 * Sends a JSON error response and exits if either check fails.
 	 *
@@ -1124,7 +1133,180 @@ include $file_path;';
 
 		$migrate_settings['wp_config_constants'] = self::get_wp_config_constants();
 
-		return apply_filters( 'instawp/filters/process_migration_settings', $migrate_settings );
+		$migrate_settings = apply_filters( 'instawp/filters/process_migration_settings', $migrate_settings );
+
+		// Applied last, after the filter, so nothing can put a core table back into the
+		// exclusion list. This is the single choke point for EVERY mode and entry point —
+		// V3 pull, V4 staging, push, REST and WP-CLI all reach excluded_tables through
+		// get_migrate_settings(), which calls this function as its last act. The guard is
+		// therefore not pull-specific, even though only the pull path has a destination
+		// schema check to fail on.
+		//
+		// On V4 that is a deliberate behaviour change, not a side effect: V4 turns
+		// excluded_tables into skip_table_data, which ships the schema and drops the rows,
+		// so a core table there lands EMPTY rather than missing and the destination check
+		// cannot fire. The guard removes that capability (previously only options and
+		// sitemeta were protected, agent-side). Kept global because its value is that no
+		// entry point can put a core table back — see doc/migrations/staging-v4.md.
+		$migrate_settings['excluded_tables'] = self::drop_core_tables_from_exclusion( Helper::get_args_option( 'excluded_tables', $migrate_settings, array() ) );
+
+		return $migrate_settings;
+	}
+
+	/**
+	 * WP core tables that must never be excluded from a migration.
+	 *
+	 * These are the tables the destination validates a CREATE TABLE statement for
+	 * during the schema phase of a pull. iwp-serve only emits CREATE TABLE for
+	 * tables it is tracking, and it tracks only the tables absent from
+	 * excluded_tables — so excluding any of these makes the migration fail with
+	 * "Could not validate core tables after 3 attempts".
+	 *
+	 * Names are read off $wpdb rather than built by concatenating a prefix, so they
+	 * match what SHOW TABLE STATUS reports for this site exactly: $wpdb->users
+	 * honours CUSTOM_USER_TABLE, and on a multisite sub-site $wpdb->options is that
+	 * blog's wp_N_options.
+	 *
+	 * Scope: this covers the CURRENT blog only. instawp_get_database_details() lists
+	 * every table in the database, so on a multisite network another blog's core
+	 * tables and the network tables (blogs, site, sitemeta, ...) are still offered
+	 * in the UI and are NOT protected here. Multisite is out of scope for this guard.
+	 *
+	 * @return array Table names, prefixed for the current site.
+	 */
+	public static function get_protected_core_tables() {
+
+		global $wpdb;
+
+		$core_tables = array(
+			$wpdb->options,
+			$wpdb->posts,
+			$wpdb->postmeta,
+			$wpdb->terms,
+			$wpdb->termmeta,
+			$wpdb->term_taxonomy,
+			$wpdb->term_relationships,
+			$wpdb->users,
+			$wpdb->usermeta,
+		);
+
+		return array_values( array_filter( array_unique( $core_tables ) ) );
+	}
+
+	/**
+	 * Root-relative paths that must never be excluded from a migration.
+	 *
+	 * Only wp-content. Nothing else on the destination restores it — the database
+	 * arrives from the source and names a theme and a plugin set, and the files that
+	 * would satisfy it were never sent — so the site comes up with no theme, no
+	 * plugins and no uploads whatever the options row says. "Select All" on the
+	 * Exclude step's file list is one click away from exactly that, which is how
+	 * FS#3593 produced four runs with file_size = 0.
+	 *
+	 * The value is derived against instawp_get_root_path(), matching the PRODUCER of
+	 * the checkbox values exactly (InstaWP::get_directory_contents(), which strips
+	 * that same prefix off the normalized real path). Deriving it against ABSPATH
+	 * instead would silently protect nothing on a layout where the two disagree —
+	 * Flywheel, or any install whose DOCUMENT_ROOT is not ABSPATH.
+	 *
+	 * Returns an empty array when WP_CONTENT_DIR does not live under that root, which
+	 * is a layout where the file browser cannot be showing a wp-content row either —
+	 * so there is nothing to protect rather than something to guess. Bedrock is NOT
+	 * such a layout and is NOT an exception: its root falls through to DOCUMENT_ROOT
+	 * (/srv/app/web), so this returns 'app' and the producer independently yields
+	 * 'app' too. Nor is a symlinked wp-content, because get_directory_contents()
+	 * never calls realpath() — it normalizes a constructed $dir . '/' . $value, and
+	 * WP_CONTENT_DIR is likewise unresolved, so the two agree. The real fail-open
+	 * cases are a WP_CONTENT_DIR genuinely outside the browse root, and a
+	 * DOCUMENT_ROOT that is not an ancestor of ABSPATH.
+	 *
+	 * KNOWN GAP: on "WordPress in its own directory" with wp-config.php moved up a
+	 * level, this correctly returns 'wp/wp-content' and protects that row — but the
+	 * top-level 'wp' row is not protected, so Select All can still take the whole
+	 * install. Protecting it would need a second rule about ABSPATH, not wp-content.
+	 *
+	 * @return array Root-relative paths, or an empty array.
+	 */
+	public static function get_protected_paths() {
+
+		$root    = wp_normalize_path( instawp_get_root_path() . DIRECTORY_SEPARATOR );
+		$content = wp_normalize_path( untrailingslashit( WP_CONTENT_DIR ) );
+
+		// $root carries its own trailing slash, so this cannot match a sibling directory
+		// (/var/www/html-backup/wp-content against a /var/www/html/ root).
+		if ( '' === $root || 0 !== strpos( $content, $root ) ) {
+			/*
+			 * Failing open here protects nothing, and silence is how that becomes
+			 * undiagnosable: class-instawp-staging-v4.php's own docblock records a
+			 * shipped bug where every path failed a prefix test and 100% of exclusions
+			 * were dropped without a trace.
+			 *
+			 * Latched on an OPTION, not a static. A static is per-REQUEST, and the
+			 * Exclude step issues one instawp_get_dir_contents request per folder
+			 * expand, per sort and per refresh — so on an affected layout a static
+			 * would write a near-identical entry per click into the 150-entry
+			 * iwp_connect_helper_error_log ring that the debug-info endpoint hands
+			 * back to customers, evicting 50 real entries at a time. Keyed on the two
+			 * values that define the layout, so a genuinely different one still logs.
+			 * Same cure class-instawp-staging-v4.php uses (ORPHAN_LOGGED_OPTION).
+			 */
+			$latch = self::PROTECTED_PATHS_FAIL_OPEN_OPTION . '_' . md5( $root . '|' . $content );
+
+			if ( empty( Option::get_option( $latch ) ) ) {
+				Option::update_option( $latch, time(), false );
+				Helper::add_error_log(
+					array(
+						'message'        => 'wp-content is not under the migration browse root, so it cannot be protected from exclusion on the Exclude step.',
+						'browse_root'    => $root,
+						'wp_content_dir' => $content,
+					)
+				);
+			}
+
+			return array();
+		}
+
+		$relative = trim( substr( $content, strlen( $root ) ), '/' );
+
+		return '' === $relative ? array() : array( $relative );
+	}
+
+	/**
+	 * Remove any WP core table from a list of tables to exclude.
+	 *
+	 * A migration that excludes a core table can only fail, so the exclusion is
+	 * dropped rather than honoured. The UI disables these checkboxes, so reaching
+	 * this means the request came from somewhere else (REST, WP-CLI, a stale form)
+	 * — worth a log entry.
+	 *
+	 * @param array $excluded_tables Table names the caller asked to exclude.
+	 *
+	 * @return array The same list without any core table.
+	 */
+	public static function drop_core_tables_from_exclusion( $excluded_tables = array() ) {
+
+		if ( empty( $excluded_tables ) || ! is_array( $excluded_tables ) ) {
+			return array();
+		}
+
+		$core_tables = self::get_protected_core_tables();
+		$dropped     = array_intersect( $excluded_tables, $core_tables );
+
+		if ( empty( $dropped ) ) {
+			// array_values() on BOTH branches: excluded_tables can arrive associative
+			// (migrate_settings[excluded_tables][foo]=...), and a list on one path and
+			// an object on the other would json_encode differently into the options file.
+			return array_values( $excluded_tables );
+		}
+
+		Helper::add_error_log(
+			array(
+				'message' => 'Refused to exclude WP core tables from a migration; the destination cannot restore without them.',
+				'tables'  => implode( ', ', $dropped ),
+			)
+		);
+
+		return array_values( array_diff( $excluded_tables, $core_tables ) );
 	}
 
 	public static function get_wp_config_constants( $config_path = '' ) {

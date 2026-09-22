@@ -309,6 +309,20 @@ class InstaWP_Ajax {
 	public function migrate_init() {
 		InstaWP_Tools::verify_ajax_request();
 
+		$result = InstaWP_Staging_V4::run( $_POST ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error( array_merge(
+				array( 'message' => $result->get_error_message() ),
+				(array) $result->get_error_data()
+			) );
+		}
+
+		wp_send_json_success( $result );
+
+		// Unreachable: both wp_send_json_* above exit. Kept until the old engine is removed in one
+		// deliberate deletion — do not tidy it away piecemeal.
+
 		$settings_str = isset( $_POST['settings'] ) ? $_POST['settings'] : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 
 		parse_str( $settings_str, $settings_arr );
@@ -530,6 +544,8 @@ class InstaWP_Ajax {
 		$template_path  = wp_normalize_path( $current_theme->get_template_directory() );
 		$total_size     = 0;
 		$total_files    = 0;
+		// wp-content is rendered disabled: excluding it delivers a site with no theme, plugins or uploads.
+		$protected_paths = InstaWP_Tools::get_protected_paths();
 
 		ob_start();
 		foreach ( $dir_data as $key => $data ) {
@@ -565,13 +581,14 @@ class InstaWP_Ajax {
 				}
 			}
 
-			$is_checked  = ( in_array( $data['full_path'], $paths ) || $skip_media || $theme_item_checked || $plugin_item_checked );
-			$is_disabled = ( $is_checked || $can_perform_theme_check || $can_perform_plugin_check );
-			$element_id  = wp_generate_uuid4(); ?>
+			$is_checked   = ( in_array( $data['full_path'], $paths ) || $skip_media || $theme_item_checked || $plugin_item_checked );
+			$is_disabled  = ( $is_checked || $can_perform_theme_check || $can_perform_plugin_check );
+			$is_protected = in_array( $data['relative_path'], $protected_paths, true );
+			$element_id   = wp_generate_uuid4(); ?>
 
 			<div class="flex flex-col gap-5 item">
 				<div class="flex justify-between items-center">
-					<div class="flex items-center cursor-pointer" style="transform: translate(0em);">
+					<div class="flex items-center cursor-pointer" style="transform: translate(0em);"<?php echo $is_protected ? ' title="' . esc_attr__( 'WordPress needs this folder to run. It cannot be excluded.', 'instawp-connect' ) . '"' : ''; ?>>
 						<?php if ( $data['type'] === 'folder' ) : ?>
 							<div class="p-2 pl-0 expand-folder" data-expand-folder="<?php echo esc_attr( $data['relative_path'] ); ?>">
 								<svg width="8" height="5" viewBox="0 0 8 5" fill="none" xmlns="http://www.w3.org/2000/svg" class="rotate-icon">
@@ -579,7 +596,7 @@ class InstaWP_Ajax {
 								</svg>
 							</div>
 						<?php endif; ?> 
-						<input name="migrate_settings[excluded_paths][]" id="<?php echo esc_attr( $element_id ); ?>" value="<?php echo esc_attr( $data['relative_path'] ); ?>" type="checkbox" class="instawp-checkbox exclude-file-item !mt-0 !mr-3 rounded border-gray-300 text-primary-900 focus:ring-primary-900 <?php echo esc_html( $data['name'] ); ?> <?php echo esc_attr( str_replace( '/', '-', $data['relative_path'] ) ); ?>" <?php checked( $is_checked || $is_item_checked || $is_select_all, true ); ?> <?php disabled( $is_disabled || $is_item_checked, true ); ?> data-size="<?php echo esc_html( $data['size'] ); ?>" data-count="<?php echo esc_html( $data['count'] ); ?>">
+						<input name="migrate_settings[excluded_paths][]" id="<?php echo esc_attr( $element_id ); ?>" value="<?php echo esc_attr( $data['relative_path'] ); ?>" type="checkbox" class="instawp-checkbox exclude-file-item !mt-0 !mr-3 rounded border-gray-300 text-primary-900 focus:ring-primary-900 <?php echo esc_html( $data['name'] ); ?> <?php echo esc_attr( str_replace( '/', '-', $data['relative_path'] ) ); ?> <?php echo $is_protected ? 'protected-path' : ''; ?>" <?php checked( ! $is_protected && ( $is_checked || $is_item_checked || $is_select_all ), true ); ?> <?php disabled( $is_protected || $is_disabled || $is_item_checked, true ); ?> data-size="<?php echo esc_html( $data['size'] ); ?>" data-count="<?php echo esc_html( $data['count'] ); ?>">
 						<label for="<?php echo esc_attr( $element_id ); ?>" class="text-sm font-medium text-grayCust-800 truncate"<?php echo ( $data['type'] === 'file' ) ? ' style="width: calc(400px - 1em);"' : ''; ?>><?php echo esc_html( $data['name'] ); ?></label>
 					</div>
 					<div class="flex items-center" style="width: 105px;">
@@ -608,6 +625,13 @@ class InstaWP_Ajax {
 		$sort_by    = isset( $_POST['sort_by'] ) ? sanitize_text_field( wp_unslash( $_POST['sort_by'] ) ) : false;
 		$tables     = instawp_get_database_details( $sort_by );
 		$table_size = array_sum( wp_list_pluck( $tables, 'size' ) );
+		// Core tables are rendered disabled: excluding one guarantees the migration fails at the destination's schema check.
+		$protected_core_tables = InstaWP_Tools::get_protected_core_tables();
+		// Log tables carry the `log-table` class so the "Skip Log Tables" option can still tick them after a re-render.
+		$log_tables_to_exclude = InstaWP_Tools::get_log_tables_to_exclude();
+		// Tables the user had already ticked before clicking Sort/Size. The list is rebuilt from scratch, so
+		// without this every prior selection was lost the moment the list was sorted.
+		$checked_tables = isset( $_POST['checked'] ) ? array_map( 'sanitize_text_field', wp_unslash( (array) $_POST['checked'] ) ) : array();
 
 		ob_start();
 		if ( ! empty( $tables ) ) {
@@ -616,11 +640,24 @@ class InstaWP_Ajax {
 				<?php
 				foreach ( $tables as $table ) {
 					$element_id = wp_generate_uuid4();
+					$is_core    = in_array( $table['name'], $protected_core_tables, true );
+					$is_log     = in_array( $table['name'], $log_tables_to_exclude, true );
+					// A core table can never be checked, whatever the client sent back.
+					$is_checked = ! $is_core && in_array( $table['name'], $checked_tables, true );
 					?>
 					<div class="flex flex-col gap-5 item">
 						<div class="flex justify-between items-center">
-							<div class="flex items-center cursor-pointer" style="transform: translate(0em);">
-								<input name="instawp_migrate[excluded_tables][]" id="<?php echo esc_attr( $element_id ); ?>" value="<?php echo esc_attr( $table['name'] ); ?>" type="checkbox" class="instawp-checkbox exclude-database-item !mt-0 !mr-3 rounded border-gray-300 text-primary-900 focus:ring-primary-900" data-size="<?php echo esc_html( $table['size'] ); ?>">
+							<div class="flex items-center cursor-pointer" style="transform: translate(0em);"<?php echo $is_core ? ' title="' . esc_attr__( 'WordPress needs this table to run. It cannot be excluded.', 'instawp-connect' ) . '"' : ''; ?>>
+								<?php
+								/*
+								 * The field name MUST be migrate_settings[excluded_tables][] — the same name the initial
+								 * render uses (migrate/templates/part-create-staging.php). The wizard submits the whole
+								 * form serialised and InstaWP_Tools::get_migrate_settings() only reads the
+								 * `migrate_settings` key, so the previous `instawp_migrate[...]` name meant every table
+								 * ticked AFTER a Sort/Size click was silently ignored and copied to the destination anyway.
+								 */
+								?>
+								<input name="migrate_settings[excluded_tables][]" id="<?php echo esc_attr( $element_id ); ?>" value="<?php echo esc_attr( $table['name'] ); ?>" type="checkbox" class="instawp-checkbox exclude-database-item !mt-0 !mr-3 rounded border-gray-300 text-primary-900 focus:ring-primary-900 <?php echo $is_log ? 'log-table' : ''; ?> <?php echo $is_core ? 'core-table' : ''; ?>" data-size="<?php echo esc_html( $table['size'] ); ?>" <?php checked( $is_checked, true ); ?> <?php disabled( $is_core, true ); ?>>
 								<label for="<?php echo esc_attr( $element_id ); ?>" class="text-sm font-medium text-grayCust-800 truncate" style="width: calc(400px - 1em);"><?php echo esc_html( $table['name'] ); ?> (<?php printf( esc_html__( '%s rows', 'instawp-connect' ), esc_html( $table['rows'] ) ); ?>)</label>
 							</div>
 							<div class="flex items-center" style="width: 105px;">

@@ -357,6 +357,18 @@ if ( ! function_exists( 'instawp_reset_running_migration' ) ) {
 		// Delete migration details
 		delete_option( 'instawp_migration_details' );
 
+		/*
+		 * The V4 run record -- only once its run has ended and its retention has passed.
+		 *
+		 * This function is reached by the daily V3 housekeeping job, so an unconditional delete here
+		 * wiped the record of a V4 migration that was still running. The record now goes only when
+		 * InstaWP_Staging_V4 says it has expired: terminal, and DETAILS_RETENTION past the migration's
+		 * completion. The delete fires the record's delete hook, which removes instamigrate.
+		 */
+		if ( class_exists( 'InstaWP_Staging_V4' ) && InstaWP_Staging_V4::details_expired( get_option( 'instawp_staging_v4_details' ) ) ) {
+			delete_option( 'instawp_staging_v4_details' );
+		}
+
 		// Explicitly delete the options file for this migration. The option was already
 		// deleted above, so instawp_is_options_file_protected() will no longer guard it.
 		// This ensures cleanup even if the general file loop below is guarded.
