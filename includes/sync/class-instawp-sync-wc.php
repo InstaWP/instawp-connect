@@ -422,64 +422,67 @@ class InstaWP_Sync_WC {
 
 			kses_remove_filters();
 			InstaWP_Sync_Helpers::allow_unfiltered_html();
-			foreach ( $details['line_items'] as $line_item ) {
-				if ( empty( $line_item ) || empty( $line_item['reference_id'] ) || empty( $line_item['data'] ) ) {
-					continue;
-				}
-
-				$product_id = InstaWP_Sync_Helpers::get_post_by_reference( $line_item['post_data']['post_type'], $line_item['reference_id'], $line_item['post_data']['post_name'] );
-				if ( ! $product_id ) {
-					$product_id = InstaWP_Sync_Parser::create_or_update_post( $line_item['post_data'], $line_item['meta_data'], $line_item['reference_id'] );
-				}
-
-				// Product Variation 
-				if ( ! empty( $line_item['variation_data'] ) ) {
-					$variation_id = InstaWP_Sync_Helpers::get_post_by_reference( $line_item['variation_data']['post_data']['post_type'], $line_item['variation_data']['reference_id'], $line_item['variation_data']['post_data']['post_name'] );
-					if ( ! $variation_id ) {
-						$variation_id = InstaWP_Sync_Parser::create_or_update_post( $line_item['variation_data']['post_data'], $line_item['variation_data']['meta_data'], $line_item['variation_data']['reference_id'] );
+			try {
+				foreach ( $details['line_items'] as $line_item ) {
+					if ( empty( $line_item ) || empty( $line_item['reference_id'] ) || empty( $line_item['data'] ) ) {
+						continue;
 					}
-					$product = wc_get_product( $variation_id );
-				} else {
-					$product = wc_get_product( $product_id );
-				}
 
-				
-				if ( empty( $product ) ) {
-					continue;
-				}
-
-				$args = array();
-				
-				// Add line item arguments
-				foreach ( array(
-					'name',
-					'subtotal',
-					'total',
-					'taxes',
-					'tax_class',
-				) as $line_item_key ) {
-					if ( ! empty( $line_item['data'][ $line_item_key ] ) ) {
-						$args[ $line_item_key ] = $line_item['data'][ $line_item_key ];
+					$product_id = InstaWP_Sync_Helpers::get_post_by_reference( $line_item['post_data']['post_type'], $line_item['reference_id'], $line_item['post_data']['post_name'] );
+					if ( ! $product_id ) {
+						$product_id = InstaWP_Sync_Parser::create_or_update_post( $line_item['post_data'], $line_item['meta_data'], $line_item['reference_id'] );
 					}
-				}
-				
-				// Add product to order
-				$item_id = $order->add_product( $product, $line_item['quantity'], $args );
 
-				// Set meta if available
-				if ( ! empty( $item_id ) && ! empty( $line_item['data']['meta_data'] ) ) {
-					// Get the WC_Order_Item_Product object by item ID
-					$wc_item = $order->get_item( $item_id );
-					if ( ! empty( $wc_item ) ) {
-						foreach ( $line_item['data']['meta_data'] as $product_meta ) {
-							$wc_item->update_meta_data( $product_meta['key'], $product_meta['value'] );
+					// Product Variation 
+					if ( ! empty( $line_item['variation_data'] ) ) {
+						$variation_id = InstaWP_Sync_Helpers::get_post_by_reference( $line_item['variation_data']['post_data']['post_type'], $line_item['variation_data']['reference_id'], $line_item['variation_data']['post_data']['post_name'] );
+						if ( ! $variation_id ) {
+							$variation_id = InstaWP_Sync_Parser::create_or_update_post( $line_item['variation_data']['post_data'], $line_item['variation_data']['meta_data'], $line_item['variation_data']['reference_id'] );
 						}
-						$wc_item->save();
+						$product = wc_get_product( $variation_id );
+					} else {
+						$product = wc_get_product( $product_id );
 					}
-				}           
-}
-			InstaWP_Sync_Helpers::restore_unfiltered_html();
-			kses_init_filters();
+
+				
+					if ( empty( $product ) ) {
+						continue;
+					}
+
+					$args = array();
+				
+					// Add line item arguments
+					foreach ( array(
+						'name',
+						'subtotal',
+						'total',
+						'taxes',
+						'tax_class',
+					) as $line_item_key ) {
+						if ( ! empty( $line_item['data'][ $line_item_key ] ) ) {
+							$args[ $line_item_key ] = $line_item['data'][ $line_item_key ];
+						}
+					}
+				
+					// Add product to order
+					$item_id = $order->add_product( $product, $line_item['quantity'], $args );
+
+					// Set meta if available
+					if ( ! empty( $item_id ) && ! empty( $line_item['data']['meta_data'] ) ) {
+						// Get the WC_Order_Item_Product object by item ID
+						$wc_item = $order->get_item( $item_id );
+						if ( ! empty( $wc_item ) ) {
+							foreach ( $line_item['data']['meta_data'] as $product_meta ) {
+								$wc_item->update_meta_data( $product_meta['key'], $product_meta['value'] );
+							}
+							$wc_item->save();
+						}
+					}           
+	}
+			} finally {
+				InstaWP_Sync_Helpers::restore_unfiltered_html();
+				kses_init_filters();
+			}
 
 			foreach ( $details['shipping_lines'] as $shipping_item ) {
 				$wc_item = new \WC_Order_Item_Shipping();
@@ -515,9 +518,12 @@ class InstaWP_Sync_WC {
 
 				kses_remove_filters();
 				InstaWP_Sync_Helpers::allow_unfiltered_html();
-				InstaWP_Sync_Parser::create_or_update_post( $coupon_item['post_data'], $coupon_item['meta_data'], $coupon_item['reference_id'] );
-				InstaWP_Sync_Helpers::restore_unfiltered_html();
-				kses_init_filters();
+				try {
+					InstaWP_Sync_Parser::create_or_update_post( $coupon_item['post_data'], $coupon_item['meta_data'], $coupon_item['reference_id'] );
+				} finally {
+					InstaWP_Sync_Helpers::restore_unfiltered_html();
+					kses_init_filters();
+				}
 
 				$coupon_code    = $coupon_item['data']['code'];
 				$coupon         = new \WC_Coupon( $coupon_code );

@@ -567,8 +567,14 @@ class InstaWP_Sync_Helpers {
 	 *
 	 * `map_meta_cap` is used rather than `user_has_cap` because it is the only one of the two
 	 * that also covers multisite: there core maps `unfiltered_html` to `do_not_allow` for any
-	 * user without `manage_network`, and has_cap() unsets `do_not_allow` from the granted set,
+	 * user failing `is_super_admin()`, and has_cap() unsets `do_not_allow` from the granted set,
 	 * so a `user_has_cap` grant could never satisfy it.
+	 *
+	 * DISALLOW_UNFILTERED_HTML is respected. Core documents that constant as denying the
+	 * capability to everyone "even admins and super admins", so a site owner who sets it has made
+	 * an explicit decision this plugin does not override. The consequence is deliberate and worth
+	 * knowing: on such a site Elementor still kses-sanitises synced documents, so inline SVG and
+	 * <style> blocks will not survive a sync. That is a stated limit, not an oversight.
 	 *
 	 * @param string[] $caps Primitive capabilities required of the user.
 	 * @param string   $cap  Capability being checked.
@@ -576,6 +582,14 @@ class InstaWP_Sync_Helpers {
 	 * @return string[]
 	 */
 	public static function grant_unfiltered_html_cap( $caps, $cap ) {
-		return 'unfiltered_html' === $cap ? array( 'exist' ) : $caps;
+		if ( 'unfiltered_html' !== $cap ) {
+			return $caps;
+		}
+
+		if ( defined( 'DISALLOW_UNFILTERED_HTML' ) && DISALLOW_UNFILTERED_HTML ) {
+			return $caps;
+		}
+
+		return array( 'exist' );
 	}
 }

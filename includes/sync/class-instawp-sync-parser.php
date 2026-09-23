@@ -437,70 +437,71 @@ class InstaWP_Sync_Parser {
 
 		kses_remove_filters();
 		InstaWP_Sync_Helpers::allow_unfiltered_html();
+		try {
+			if ( $wp_post['post_type'] === 'attachment' ) {
+	            $attachment = array_merge( $details['attachment'], array(
+	                'reference_id' => $details['reference_id'],
+	                'post_parent'  => $parent_data,
+	                'post_meta'    => $post_meta,
+	                'post'         => $wp_post,
+	            ) );
 
-		if ( $wp_post['post_type'] === 'attachment' ) {
-            $attachment = array_merge( $details['attachment'], array(
-                'reference_id' => $details['reference_id'],
-                'post_parent'  => $parent_data,
-                'post_meta'    => $post_meta,
-                'post'         => $wp_post,
-            ) );
+				$wp_post['ID'] = self::process_attachment_data( $attachment );
+			} else {
+				$featured_image = isset( $details['featured_image'] ) ? $details['featured_image'] : array();
+				$content_media  = isset( $details['media'] ) ? $details['media'] : array();
+				$taxonomies     = isset( $details['taxonomies'] ) ? $details['taxonomies'] : array();
+				$wp_post['ID']  = self::create_or_update_post( $wp_post, $post_meta, $details['reference_id'] );
 
-			$wp_post['ID'] = self::process_attachment_data( $attachment );
-		} else {
-			$featured_image = isset( $details['featured_image'] ) ? $details['featured_image'] : array();
-			$content_media  = isset( $details['media'] ) ? $details['media'] : array();
-			$taxonomies     = isset( $details['taxonomies'] ) ? $details['taxonomies'] : array();
-			$wp_post['ID']  = self::create_or_update_post( $wp_post, $post_meta, $details['reference_id'] );
+				delete_post_thumbnail( $wp_post['ID'] );
 
-			delete_post_thumbnail( $wp_post['ID'] );
-
-			if ( ! empty( $featured_image ) ) {
-				$attachment_id = self::process_attachment_data( $featured_image );
-				if ( ! empty( $attachment_id ) ) {
-					set_post_thumbnail( $wp_post['ID'], $attachment_id );
-				}
-			}
-
-			do_action( 'instawp/actions/2waysync/process_event_post', $wp_post, $details );
-
-			InstaWP_Sync_Helpers::reset_post_terms( $wp_post['ID'] );
-
-			foreach ( $taxonomies as $taxonomy => $terms ) {
-				$term_ids = array();
-				foreach ( $terms as $term ) {
-					$term = ( array ) $term;
-					if ( ! term_exists( $term['slug'], $taxonomy ) ) {
-						$inserted_term = wp_insert_term( $term['name'], $taxonomy, array(
-							'description' => $term['description'],
-							'slug'        => $term['slug'],
-							'parent'      => 0,
-						) );
-						if ( ! is_wp_error( $inserted_term ) ) {
-							$term_ids[] = $inserted_term['term_id'];
-						}
-					} else {
-						$get_term_by = ( array ) get_term_by( 'slug', $term['slug'], $taxonomy );
-						$term_ids[]  = $get_term_by['term_id'];
+				if ( ! empty( $featured_image ) ) {
+					$attachment_id = self::process_attachment_data( $featured_image );
+					if ( ! empty( $attachment_id ) ) {
+						set_post_thumbnail( $wp_post['ID'], $attachment_id );
 					}
 				}
-				wp_set_post_terms( $wp_post['ID'], $term_ids, $taxonomy );
-			}
+
+				do_action( 'instawp/actions/2waysync/process_event_post', $wp_post, $details );
+
+				InstaWP_Sync_Helpers::reset_post_terms( $wp_post['ID'] );
+
+				foreach ( $taxonomies as $taxonomy => $terms ) {
+					$term_ids = array();
+					foreach ( $terms as $term ) {
+						$term = ( array ) $term;
+						if ( ! term_exists( $term['slug'], $taxonomy ) ) {
+							$inserted_term = wp_insert_term( $term['name'], $taxonomy, array(
+								'description' => $term['description'],
+								'slug'        => $term['slug'],
+								'parent'      => 0,
+							) );
+							if ( ! is_wp_error( $inserted_term ) ) {
+								$term_ids[] = $inserted_term['term_id'];
+							}
+						} else {
+							$get_term_by = ( array ) get_term_by( 'slug', $term['slug'], $taxonomy );
+							$term_ids[]  = $get_term_by['term_id'];
+						}
+					}
+					wp_set_post_terms( $wp_post['ID'], $term_ids, $taxonomy );
+				}
 			
-			self::replace_media_items( $content_media, $wp_post['ID'], $details );
+				self::replace_media_items( $content_media, $wp_post['ID'], $details );
+			}
+
+			if ( ! empty( $parent_data ) ) {
+				$parent_post_id = self::parse_post_events( $parent_data );
+
+				wp_update_post( array(
+					'ID'          => $wp_post['ID'],
+					'post_parent' => $parent_post_id,
+				) );
+			}
+		} finally {
+			InstaWP_Sync_Helpers::restore_unfiltered_html();
+			kses_init_filters();
 		}
-
-		if ( ! empty( $parent_data ) ) {
-			$parent_post_id = self::parse_post_events( $parent_data );
-
-			wp_update_post( array(
-				'ID'          => $wp_post['ID'],
-				'post_parent' => $parent_post_id,
-			) );
-		}
-
-		InstaWP_Sync_Helpers::restore_unfiltered_html();
-		kses_init_filters();
 
 		clean_post_cache( $wp_post['ID'] );
 
