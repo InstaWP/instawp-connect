@@ -497,7 +497,8 @@ class InstaWP_Sync_Helpers {
 	}
 
 	/**
-	 * Depth counter for the `unfiltered_html` grant below.
+	 * Depth counter for the write window below -- it governs both the `unfiltered_html` grant
+	 * and the kses pair.
 	 *
 	 * parse_post_events() recurses for a post parent, so the windows nest; without a
 	 * counter the inner window's restore would revoke the grant while the outer one is
@@ -541,8 +542,15 @@ class InstaWP_Sync_Helpers {
 	 * @return void
 	 */
 	public static function disable_content_filters() {
+		// Deliberately OUTSIDE the depth guard, and idempotent. A nested frame must re-assert this
+		// even when the counter is already above zero, because something inside the window may have
+		// put core's filters back -- parse_post_data() calls kses_init_filters() bare. Today the
+		// capture hooks that reach it are disarmed during an inbound sync (events_receiver() deletes
+		// `instawp_is_event_syncing` for the duration, so can_sync() is false), but that is a
+		// property of a distant function and this line makes the window correct without it.
+		kses_remove_filters();
+
 		if ( 0 === self::$unfiltered_html_depth ) {
-			kses_remove_filters();
 			add_filter( 'map_meta_cap', array( __CLASS__, 'grant_unfiltered_html_cap' ), 10, 2 );
 		}
 
@@ -567,7 +575,12 @@ class InstaWP_Sync_Helpers {
 
 		if ( 0 === self::$unfiltered_html_depth ) {
 			remove_filter( 'map_meta_cap', array( __CLASS__, 'grant_unfiltered_html_cap' ), 10 );
-			kses_init_filters();
+
+			// kses_init(), not kses_init_filters(): core's own state-restoring wrapper only installs
+			// the filters when the acting user cannot `unfiltered_html`, so a site that legitimately
+			// had them off does not get them switched on by us. Correct only BECAUSE the grant is
+			// dropped on the line above -- reversed, it would see our own grant and install nothing.
+			kses_init();
 		}
 	}
 
