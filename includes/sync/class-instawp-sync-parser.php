@@ -571,7 +571,14 @@ class InstaWP_Sync_Parser {
             }
         }
 
-		kses_init_filters();
+		// Only when no write window is open. This is a READ window; a write window that is still
+		// in-flight removed those filters on purpose, and putting them back here would re-sanitise
+		// the content it is about to write. Reached via the capture hooks, which are disarmed
+		// during an inbound sync -- but that is a property of a distant function, and the guard
+		// makes this correct without depending on it.
+		if ( ! InstaWP_Sync_Helpers::content_filters_disabled() ) {
+			kses_init_filters();
+		}
 
 		return $data;
 	}
