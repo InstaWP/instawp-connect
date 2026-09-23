@@ -436,6 +436,7 @@ class InstaWP_Sync_Parser {
 		}
 
 		kses_remove_filters();
+		InstaWP_Sync_Helpers::allow_unfiltered_html();
 
 		if ( $wp_post['post_type'] === 'attachment' ) {
             $attachment = array_merge( $details['attachment'], array(
@@ -498,6 +499,7 @@ class InstaWP_Sync_Parser {
 			) );
 		}
 
+		InstaWP_Sync_Helpers::restore_unfiltered_html();
 		kses_init_filters();
 
 		clean_post_cache( $wp_post['ID'] );

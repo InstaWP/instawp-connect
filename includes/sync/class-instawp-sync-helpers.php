@@ -495,4 +495,87 @@ class InstaWP_Sync_Helpers {
 
 		return $data;
 	}
+
+	/**
+	 * Depth counter for the `unfiltered_html` grant below.
+	 *
+	 * parse_post_events() recurses for a post parent, so the windows nest; without a
+	 * counter the inner window's restore would revoke the grant while the outer one is
+	 * still writing.
+	 *
+	 * @var int
+	 */
+	private static $unfiltered_html_depth = 0;
+
+	/**
+	 * Grant `unfiltered_html` for the duration of a sync WRITE.
+	 *
+	 * Plugins register `register_meta()` sanitize callbacks that strip HTML unless the acting
+	 * user can `unfiltered_html`. Elementor does exactly this for `_elementor_data` and
+	 * `_elementor_page_settings` (modules/wp-rest/classes/elementor-post-meta.php), running
+	 * `wp_kses_post()` over every string in the document when the check fails.
+	 *
+	 * A sync request authenticates with this plugin's own API key, so there is no logged-in
+	 * WordPress user and the check is always false. `kses_remove_filters()` does NOT cover
+	 * this: it only removes core's *content* filters (`content_save_pre` and friends), never a
+	 * `register_meta()` sanitize callback -- and that callback runs on every `update_metadata()`
+	 * call, not just on REST writes.
+	 *
+	 * The result was silent, unrecoverable content loss on the destination: inline `<svg>` and
+	 * `<style>` blocks removed from Elementor widgets, and every `style="..."` attribute
+	 * rewritten by `safecss_filter_attr()`.
+	 *
+	 * This deliberately mirrors the posture `kses_remove_filters()` already sets for post_content
+	 * in the same window -- the two halves of one write should agree about whether the payload is
+	 * trusted.
+	 *
+	 * Always pair with {@see self::restore_unfiltered_html()}.
+	 *
+	 * @return void
+	 */
+	public static function allow_unfiltered_html() {
+		if ( 0 === self::$unfiltered_html_depth ) {
+			add_filter( 'map_meta_cap', array( __CLASS__, 'grant_unfiltered_html_cap' ), 10, 2 );
+		}
+
+		++ self::$unfiltered_html_depth;
+	}
+
+	/**
+	 * Revoke the grant made by {@see self::allow_unfiltered_html()}.
+	 *
+	 * @return void
+	 */
+	public static function restore_unfiltered_html() {
+		if ( self::$unfiltered_html_depth <= 0 ) {
+			self::$unfiltered_html_depth = 0;
+
+			return;
+		}
+
+		-- self::$unfiltered_html_depth;
+
+		if ( 0 === self::$unfiltered_html_depth ) {
+			remove_filter( 'map_meta_cap', array( __CLASS__, 'grant_unfiltered_html_cap' ), 10 );
+		}
+	}
+
+	/**
+	 * Map `unfiltered_html` to `exist`, which WP_User::has_cap() grants unconditionally
+	 * ("Everyone is allowed to exist"), so the grant also works for the anonymous user a
+	 * key-authenticated sync request runs as.
+	 *
+	 * `map_meta_cap` is used rather than `user_has_cap` because it is the only one of the two
+	 * that also covers multisite: there core maps `unfiltered_html` to `do_not_allow` for any
+	 * user without `manage_network`, and has_cap() unsets `do_not_allow` from the granted set,
+	 * so a `user_has_cap` grant could never satisfy it.
+	 *
+	 * @param string[] $caps Primitive capabilities required of the user.
+	 * @param string   $cap  Capability being checked.
+	 *
+	 * @return string[]
+	 */
+	public static function grant_unfiltered_html_cap( $caps, $cap ) {
+		return 'unfiltered_html' === $cap ? array( 'exist' ) : $caps;
+	}
 }

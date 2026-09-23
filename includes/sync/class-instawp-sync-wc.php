@@ -421,6 +421,7 @@ class InstaWP_Sync_WC {
 			}
 
 			kses_remove_filters();
+			InstaWP_Sync_Helpers::allow_unfiltered_html();
 			foreach ( $details['line_items'] as $line_item ) {
 				if ( empty( $line_item ) || empty( $line_item['reference_id'] ) || empty( $line_item['data'] ) ) {
 					continue;
@@ -477,6 +478,7 @@ class InstaWP_Sync_WC {
 					}
 				}           
 }
+			InstaWP_Sync_Helpers::restore_unfiltered_html();
 			kses_init_filters();
 
 			foreach ( $details['shipping_lines'] as $shipping_item ) {
@@ -512,7 +514,9 @@ class InstaWP_Sync_WC {
 				}
 
 				kses_remove_filters();
+				InstaWP_Sync_Helpers::allow_unfiltered_html();
 				InstaWP_Sync_Parser::create_or_update_post( $coupon_item['post_data'], $coupon_item['meta_data'], $coupon_item['reference_id'] );
+				InstaWP_Sync_Helpers::restore_unfiltered_html();
 				kses_init_filters();
 
 				$coupon_code    = $coupon_item['data']['code'];
