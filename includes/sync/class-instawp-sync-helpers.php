@@ -509,6 +509,19 @@ class InstaWP_Sync_Helpers {
 	private static $unfiltered_html_depth = 0;
 
 	/**
+	 * Is a sync WRITE window currently open?
+	 *
+	 * Exists so the READ window in parse_post_data() can tell the difference between "I removed
+	 * core's kses filters" and "a write window removed them and is still writing", and refrain
+	 * from putting them back underneath it.
+	 *
+	 * @return bool
+	 */
+	public static function content_filters_disabled() {
+		return self::$unfiltered_html_depth > 0;
+	}
+
+	/**
 	 * Open a sync WRITE window: drop core's kses content filters AND grant `unfiltered_html`.
 	 *
 	 * Plugins register `register_meta()` sanitize callbacks that strip HTML unless the acting
@@ -534,8 +547,10 @@ class InstaWP_Sync_Helpers {
 	 * the post's existing post_content through wp_filter_post_kses. That is the very damage class
 	 * this window exists to prevent.
 	 *
-	 * parse_post_data() keeps its own bare kses pair: it is a READ window, so it needs no
-	 * capability grant and nothing it does can be corrupted by an early restore.
+	 * parse_post_data() keeps its own bare kses pair rather than using this one: it is a READ
+	 * window, so it needs no capability grant and widening one during a read would be gratuitous.
+	 * Its restore is gated on {@see self::content_filters_disabled()} so it cannot re-enable
+	 * core's filters underneath an open write window.
 	 *
 	 * Always pair with {@see self::restore_content_filters()}, from a `finally`.
 	 *
@@ -543,12 +558,26 @@ class InstaWP_Sync_Helpers {
 	 */
 	public static function disable_content_filters() {
 		// Deliberately OUTSIDE the depth guard, and idempotent. A nested frame must re-assert this
-		// even when the counter is already above zero, because something inside the window may have
-		// put core's filters back -- parse_post_data() calls kses_init_filters() bare. Today the
-		// capture hooks that reach it are disarmed during an inbound sync (events_receiver() deletes
-		// `instawp_is_event_syncing` for the duration, so can_sync() is false), but that is a
-		// property of a distant function and this line makes the window correct without it.
+		// even when the counter is already above zero, because anything running inside the window
+		// may have put core's filters back -- any plugin hooked on save_post can call
+		// kses_init_filters(). Our own read window (parse_post_data) no longer does; it asks
+		// content_filters_disabled() first. This line is what covers the ones we do not control.
 		kses_remove_filters();
+
+		// Same defect class, two more of core's own: both are registered ONCE from an `init` hook
+		// based on a capability decision taken then, and NEITHER re-checks the capability when it
+		// runs -- so granting the capability inside the window does not reach them and the filter
+		// has to be removed outright. wp_strip_custom_css_from_blocks() (content_save_pre @8, WP
+		// 7.0+) would still strip block custom CSS out of a synced post_content, and
+		// _wp_filter_post_meta_footnotes() (sanitize_post_meta_footnotes, WP 6.3.2+) would still
+		// kses the `footnotes` meta. Both are private core functions, hence function_exists().
+		if ( function_exists( 'wp_custom_css_remove_filters' ) ) {
+			wp_custom_css_remove_filters();
+		}
+
+		if ( function_exists( '_wp_footnotes_remove_filters' ) ) {
+			_wp_footnotes_remove_filters();
+		}
 
 		if ( 0 === self::$unfiltered_html_depth ) {
 			add_filter( 'map_meta_cap', array( __CLASS__, 'grant_unfiltered_html_cap' ), 10, 2 );
@@ -581,6 +610,16 @@ class InstaWP_Sync_Helpers {
 			// had them off does not get them switched on by us. Correct only BECAUSE the grant is
 			// dropped on the line above -- reversed, it would see our own grant and install nothing.
 			kses_init();
+
+			// Same three-way symmetry on the way out, and the same reason for the ordering: each of
+			// these wrappers re-reads the capability, so all three must run AFTER the grant is dropped.
+			if ( function_exists( 'wp_custom_css_kses_init' ) ) {
+				wp_custom_css_kses_init();
+			}
+
+			if ( function_exists( '_wp_footnotes_kses_init' ) ) {
+				_wp_footnotes_kses_init();
+			}
 		}
 	}
 
@@ -606,7 +645,7 @@ class InstaWP_Sync_Helpers {
 	 * @return string[]
 	 */
 	public static function grant_unfiltered_html_cap( $caps, $cap ) {
-		if ( 'unfiltered_html' !== $cap ) {
+		if ( 'unfiltered_html' !== $cap && 'edit_css' !== $cap ) {
 			return $caps;
 		}
 
