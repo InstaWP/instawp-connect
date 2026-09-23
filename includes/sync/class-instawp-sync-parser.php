@@ -435,8 +435,7 @@ class InstaWP_Sync_Parser {
 			return 0;
 		}
 
-		kses_remove_filters();
-		InstaWP_Sync_Helpers::allow_unfiltered_html();
+		InstaWP_Sync_Helpers::disable_content_filters();
 		try {
 			if ( $wp_post['post_type'] === 'attachment' ) {
 	            $attachment = array_merge( $details['attachment'], array(
@@ -499,8 +498,7 @@ class InstaWP_Sync_Parser {
 				) );
 			}
 		} finally {
-			InstaWP_Sync_Helpers::restore_unfiltered_html();
-			kses_init_filters();
+			InstaWP_Sync_Helpers::restore_content_filters();
 		}
 
 		clean_post_cache( $wp_post['ID'] );

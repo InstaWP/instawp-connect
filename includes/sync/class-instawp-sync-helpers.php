@@ -508,7 +508,7 @@ class InstaWP_Sync_Helpers {
 	private static $unfiltered_html_depth = 0;
 
 	/**
-	 * Grant `unfiltered_html` for the duration of a sync WRITE.
+	 * Open a sync WRITE window: drop core's kses content filters AND grant `unfiltered_html`.
 	 *
 	 * Plugins register `register_meta()` sanitize callbacks that strip HTML unless the acting
 	 * user can `unfiltered_html`. Elementor does exactly this for `_elementor_data` and
@@ -525,16 +525,24 @@ class InstaWP_Sync_Helpers {
 	 * `<style>` blocks removed from Elementor widgets, and every `style="..."` attribute
 	 * rewritten by `safecss_filter_attr()`.
 	 *
-	 * This deliberately mirrors the posture `kses_remove_filters()` already sets for post_content
-	 * in the same window -- the two halves of one write should agree about whether the payload is
-	 * trusted.
+	 * The kses pair is folded in here rather than left at the call sites so that both halves of one
+	 * write agree about whether the payload is trusted, and so both are governed by the same
+	 * counter. That second part matters: parse_post_events() recurses for a post parent, and an
+	 * un-counted kses_init_filters() in the inner frame re-enabled core's filters while the OUTER
+	 * window was still open -- after which the outer frame's wp_update_post() call re-sanitised
+	 * the post's existing post_content through wp_filter_post_kses. That is the very damage class
+	 * this window exists to prevent.
 	 *
-	 * Always pair with {@see self::restore_unfiltered_html()}.
+	 * parse_post_data() keeps its own bare kses pair: it is a READ window, so it needs no
+	 * capability grant and nothing it does can be corrupted by an early restore.
+	 *
+	 * Always pair with {@see self::restore_content_filters()}, from a `finally`.
 	 *
 	 * @return void
 	 */
-	public static function allow_unfiltered_html() {
+	public static function disable_content_filters() {
 		if ( 0 === self::$unfiltered_html_depth ) {
+			kses_remove_filters();
 			add_filter( 'map_meta_cap', array( __CLASS__, 'grant_unfiltered_html_cap' ), 10, 2 );
 		}
 
@@ -542,11 +550,13 @@ class InstaWP_Sync_Helpers {
 	}
 
 	/**
-	 * Revoke the grant made by {@see self::allow_unfiltered_html()}.
+	 * Close the window opened by {@see self::disable_content_filters()}.
+	 *
+	 * Safe to call when no window is open, and safe to call more times than it was opened.
 	 *
 	 * @return void
 	 */
-	public static function restore_unfiltered_html() {
+	public static function restore_content_filters() {
 		if ( self::$unfiltered_html_depth <= 0 ) {
 			self::$unfiltered_html_depth = 0;
 
@@ -557,6 +567,7 @@ class InstaWP_Sync_Helpers {
 
 		if ( 0 === self::$unfiltered_html_depth ) {
 			remove_filter( 'map_meta_cap', array( __CLASS__, 'grant_unfiltered_html_cap' ), 10 );
+			kses_init_filters();
 		}
 	}
 
