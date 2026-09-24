@@ -145,6 +145,34 @@ stale form can put a core table back, and a staging site with an empty `users` t
 of the same family as one with no `users` table at all. If a real use case for emptying a core
 table on V4 turns up, the fix is an explicit opt-in, not a hole in the choke point.
 
+**The inventory exclusion is NEVER applied on V4 (FS#3733).** `inventory_migration_settings()`
+checksum-matches each plugin and theme against `inventory.instawp.io` and, on a match, drops the
+files from the transfer and records the item under `inventory_items['with_checksum']` — on the
+understanding that the destination re-downloads them. `build_exclude()` emits only
+`{paths, skip_table_data}`, so V4 never receives `inventory_items`, and the only reconstruction step
+that exists anywhere is on the V3 pull path (`iwp-serve` serves the list, instacp's
+`v-instawp-fetch-files` re-downloads from it). V4 therefore shipped the exclusion half with no
+reinstall half: matched plugins and themes were simply absent from the migrated site, the ACTIVE
+THEME included, on a run that reported `completed` with every gate green.
+
+So the exclusion is now opt-in: `$use_inventory` threads
+`get_migrate_settings()` → `process_migration_settings()` → `inventory_migration_settings()`,
+defaults to **`false`**, and only `generate_serve_file_response()` passes `true`. Two things to know
+before touching it:
+
+- The gate sits **after** the `active_plugins_only` / `active_themes_only` loops, not at the call
+  site. Those are the user's own selection and live in the same function — gating the whole function
+  would silently stop honouring them.
+- **The active theme is never excludable on any path**, including V3, and that covers a child theme's
+  parent template. A missing plugin costs a feature; a missing active theme costs the front end.
+
+Consequence for V4 sizing: transfers are larger than before, and the picker, the usage check and the
+run all gained the same paths, so they still agree with each other — they previously agreed on an
+understated number. One customer-visible edge: `InstaWP::instawp_check_usage_on_cloud()` gates a
+LEGACY plan on `total_files_size < remaining_disk_space`, so a legacy customer near their disk quota
+who previously got through the wizard can now be refused. That refusal is honest — the old number
+under-stated what we would copy — but it is a behaviour change, not a regression.
+
 **The size sent to the API is deliberately not the plan picker's number.** The picker
 (`InstaWP_Ajax::get_site_plans()`) sizes with the full migration settings, so it subtracts
 `wp-admin`, `wp-includes` and any root-level path the user ticked. `total_size_mb()` subtracts only

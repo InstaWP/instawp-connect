@@ -624,9 +624,12 @@ class InstaWP_Tools {
 		// Process migration settings like active plugins/themes only etc.
 		//
 		// This is the ONE place the inventory exclusion is switched on, because this is the one
-		// place that writes the options file iwp-serve reads — and iwp-serve/iwp-dest is the only
-		// reconstruction step that exists anywhere. Hardcoded rather than taken from the caller so
-		// it cannot be turned on from a request. See inventory_migration_settings().
+		// place that writes the options-{key}.txt that iwp-serve reads — and iwp-serve is what
+		// hands inventory_items to the only thing that RECONSTRUCTS from it, instacp's
+		// v-instawp-fetch-files. (Not iwp-dest: it has no inventory step at all. Do not conclude
+		// from that absence that nothing reinstalls and delete this `true`.) Hardcoded rather than
+		// taken from the caller so it cannot be turned on from a request.
+		// See inventory_migration_settings().
 		$migrate_settings       = is_array( $migrate_settings ) ? $migrate_settings : array();
 		$migrate_settings       = self::get_migrate_settings( array(), $migrate_settings, true );
 		$options_data           = array(
@@ -1465,14 +1468,21 @@ include $file_path;';
 	 *     inventory_items['with_checksum'] — ON THE UNDERSTANDING THAT THE DESTINATION
 	 *     RE-DOWNLOADS THEM FROM THAT LIST. It is a bandwidth optimisation, not a user selection.
 	 *
-	 * The only reconstruction step that exists anywhere is iwp-serve/iwp-dest (the V3 engine).
+	 * The only reconstruction step that exists anywhere is on the V3 pull path: iwp-serve ships
+	 * inventory_items out of the options file and instacp's v-instawp-fetch-files re-downloads each
+	 * item from the inventory API. (iwp-dest has no inventory step — its absence is not evidence
+	 * that the V3 half is missing too.)
+	 *
 	 * V4 never even receives inventory_items: InstaWP_Staging_V4::build_exclude() emits
-	 * {paths, skip_table_data} and nothing else, the API forwards those two keys, and the migration
-	 * agent has no concept of an inventory. So on V4 the exclusion half shipped and the reinstall
-	 * half did not exist, and the matched plugins and themes were simply gone from the migrated
-	 * site — silently, because the agent also prunes the missing entries out of active_plugins, so
-	 * wp-admin raises no missing-plugin notice either. The ACTIVE THEME was excludable the same
-	 * way, which is how a migrated site came up unstyled with an empty themes archive (FS#3733).
+	 * {paths, skip_table_data} and nothing else, and the API forwards those two keys. So on V4 the
+	 * exclusion half shipped and the reinstall half did not exist, and the matched plugins and
+	 * themes were simply gone from the migrated site. The ACTIVE THEME was excludable the same way,
+	 * which is how a migrated site came up unstyled with an empty themes archive (FS#3733).
+	 *
+	 * It was silent as well as destructive: per the FS#3733 diagnosis the migration agent also
+	 * prunes the now-missing entries out of the destination's active_plugins, so wp-admin raises no
+	 * missing-plugin notice. That half is outside this repo and is tracked separately — it is not
+	 * fixed by this flag.
 	 *
 	 * Hence $use_inventory, and hence it defaults to FALSE. get_local_push_excluded_paths() already
 	 * made exactly this call for exactly this reason (see its docblock) — it just made it locally,
@@ -2109,10 +2119,13 @@ include $file_path;';
 	 * @param array $migrate_settings Pre-built settings, used instead of $posted_data when given.
 	 * @param bool  $use_inventory    Whether the RECIPIENT reconstructs inventory_items. Off by
 	 *                                default and deliberately NOT readable out of
-	 *                                $migrate_settings: the settings array is built from request
-	 *                                data on every entry point, and a value that turns files into
-	 *                                "someone else will re-download those" must not be settable by
-	 *                                the request. See inventory_migration_settings().
+	 *                                $migrate_settings: that array is built from request data on
+	 *                                every entry point, so a FLAG that turns files into "someone
+	 *                                else will re-download those" must not be settable by the
+	 *                                request. Note this closes the flag only — a caller-supplied
+	 *                                inventory_items still short-circuits
+	 *                                inventory_migration_settings() as it always has.
+	 *                                See inventory_migration_settings().
 	 */
 	public static function get_migrate_settings( $posted_data = array(), $migrate_settings = array(), $use_inventory = false ) {
 
@@ -2491,13 +2504,21 @@ include $file_path;';
 	/**
 	 * Paths that must never be copied into a local-push archive.
 	 *
-	 * This deliberately does NOT reuse migrate_settings['excluded_paths']. That list
-	 * is inventory-aware: process_migration_settings() also excludes plugins and themes
-	 * whose checksum matches the official wp.org build, on the understanding that the
-	 * destination re-downloads them from inventory_items. The local-push flow ships the
-	 * archive straight to the restore-raw API, which has no inventory reconstruction
-	 * step, so honouring that list would silently drop working plugins from the
-	 * migrated site.
+	 * This deliberately does NOT reuse migrate_settings['excluded_paths'].
+	 *
+	 * The original reason was that the list is inventory-aware: process_migration_settings()
+	 * also excluded plugins and themes whose checksum matches the official wp.org build,
+	 * on the understanding that the destination re-downloads them from inventory_items,
+	 * and local push ships the archive straight to the restore-raw API, which has no
+	 * inventory reconstruction step — so honouring that list would silently drop working
+	 * plugins from the migrated site.
+	 *
+	 * That reason is now HISTORICAL: the inventory exclusion is opt-in
+	 * ($use_inventory, see inventory_migration_settings()) and local push never opts in,
+	 * so the list it would read no longer carries inventory paths. Keeping the two lists
+	 * separate is still correct for the reasons below — host-specific files and
+	 * wp-config.php — and it is still the safer default, but do not cite the inventory
+	 * as the justification without re-reading that flag first.
 	 *
 	 * Only host-specific files, caches and logs are listed here. WordPress core
 	 * (wp-admin / wp-includes) is intentionally left in the archive.

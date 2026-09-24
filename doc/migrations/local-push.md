@@ -160,19 +160,27 @@ WordPress core (`wp-admin`, `wp-includes`) **is** included in the archive.
 
 ### Why not `migrate_settings['excluded_paths']`?
 
-`process_migration_settings()` builds an exclusion list that is *inventory-aware*: any
+`process_migration_settings()` can build an exclusion list that is *inventory-aware*: any
 plugin or theme whose checksum matches the official WordPress.org release is added to
 `excluded_paths` and simultaneously recorded in `inventory_items`, so the destination
 can re-download a clean copy instead of transferring it.
 
-That contract has two halves. The v3 pull/push flow implements both — `iwp-dest`
-reconstructs from `inventory_items`. Local push implements neither: it ships a plain
-zip to `restore-raw`, which unpacks the archive and has no inventory step.
+That contract has two halves. Only the v3 pull path implements both: `iwp-serve` hands
+`inventory_items` out of the options file and **instacp's `v-instawp-fetch-files`** is what
+re-downloads each item. (`iwp-dest` has **no** inventory step — an earlier revision of this
+page said it did.) Local push implements neither: it ships a plain zip to `restore-raw`,
+which unpacks the archive and has no inventory step.
 
-Reusing `excluded_paths` here would therefore drop every checksum-matched plugin and
+Reusing `excluded_paths` here would therefore have dropped every checksum-matched plugin and
 theme from the destination with nothing to restore them. `get_local_push_excluded_paths()`
 exists to keep the two lists separate: it covers only files that must never be copied,
 regardless of inventory.
+
+**As of the FS#3733 fix this is belt-and-braces rather than the load-bearing reason.** The
+inventory exclusion is now opt-in — `$use_inventory`, default `false`, and only
+`generate_serve_file_response()` (the v3 serve-file path) passes `true` — so
+`excluded_paths` no longer carries inventory paths on any flow but v3 pull. The lists stay
+separate because of the host-specific files and `wp-config.php` handling described above.
 
 ## Windows
 
