@@ -261,7 +261,17 @@ class InstaWP_Sync_Ajax {
 					)
 				);
 
-				$error_message = isset( $response['message'] ) ? $response['message'] : __( 'Sync failed.', 'instawp-connect' );
+				/*
+				 * is_string() matters as much as isset() here: sync_changes() has no try/catch,
+				 * so the strpos() calls below turn a non-string message into an UNCAUGHT
+				 * TypeError -- a PHP fatal in an AJAX handler, which is exactly the opaque,
+				 * message-less failure this whole change exists to remove. The message is
+				 * whatever client-app relays from the destination, so its type is not ours to
+				 * assume.
+				 */
+				$error_message = isset( $response['message'] ) && is_string( $response['message'] )
+					? $response['message']
+					: __( 'Sync failed.', 'instawp-connect' );
 				$http_code     = isset( $response['code'] ) ? intval( $response['code'] ) : 0;
 
 				// Provide user-friendly error messages for common failure types.
@@ -590,11 +600,18 @@ class InstaWP_Sync_Ajax {
 
 			/*
 			 * A 4xx is a considered answer, not a hiccup: repeating the request cannot change it.
+			 *
 			 * This is checked BEFORE the message, because the message is not ours -- client-app
-			 * relays the destination's own failure text, and a destination that timed out yields
-			 * a 422 whose body contains the literal 'cURL error 28:'. Matching on the text alone
-			 * would therefore retry a permanent refusal, and since the endpoint creates a
-			 * connect_syncs row per call, each retry mints another dead row.
+			 * relays the destination's own failure text. Once client-app#3360 lands, a destination
+			 * that timed out arrives as a 422 whose body contains the literal 'cURL error 28:'
+			 * (today it is still a 500, so this gate is forward-looking on that path). Matching
+			 * on the text alone would therefore retry a permanent refusal.
+			 *
+			 * And the cost of that is worse than a wasted request. This endpoint creates a
+			 * connect_syncs row per call, so each retry mints another dead row -- but a leg that
+			 * timed out timed out WAITING FOR A RESPONSE, so the destination may already have
+			 * applied the events. Retrying a non-idempotent POST there risks applying the sync
+			 * twice, not merely failing twice.
 			 */
 			$is_client_error = 400 <= $code && $code < 500;
 			$is_timeout      = ! $is_client_error
@@ -611,8 +628,8 @@ class InstaWP_Sync_Ajax {
 			 * the three-attempt bound only ever applied to the timeout branch, and a 5xx recursed
 			 * with no bound at all.
 			 *
-			 * Nothing else stopped it either. max_execution_time is not a backstop here: on Linux
-			 * it does not count time spent in blocking calls, and this loop is almost entirely
+			 * Nothing else stopped it either. max_execution_time is not a backstop here: on
+			 * non-Windows it does not count time in blocking calls, and this loop is almost entirely
 			 * curl wait plus sleep( 2 ), so the clock barely advances however long it runs. (The
 			 * set_time_limit( 300 ) above is not the reason -- it makes the per-attempt budget
 			 * LONGER, since Curl::do_curl reads ini_get( 'max_execution_time' ) to pick its own
