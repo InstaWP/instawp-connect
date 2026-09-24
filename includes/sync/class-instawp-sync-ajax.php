@@ -586,7 +586,23 @@ class InstaWP_Sync_Ajax {
 			// connects/<connect_id>/syncs
 			$response = Curl::do_curl( "connects/{$connect_id}/syncs", $data );
 
-			if ( $retry < 3 && ( ! empty( $response['message'] ) && strpos( $response['message'], 'cURL error 28:' ) !== false ) || ( ! empty( $response['code'] ) && 500 <= intval( $response['code'] ) ) ) {
+			$is_timeout      = ! empty( $response['message'] ) && strpos( $response['message'], 'cURL error 28:' ) !== false;
+			$is_server_error = ! empty( $response['code'] ) && 500 <= intval( $response['code'] );
+
+			/*
+			 * The retry ceiling has to cover BOTH conditions.
+			 *
+			 * This read `$retry < 3 && $is_timeout || $is_server_error`, and `&&` binds tighter
+			 * than `||`, so PHP parsed it as `( $retry < 3 && $is_timeout ) || $is_server_error`:
+			 * the three-attempt bound only ever applied to the timeout branch, and a 5xx recursed
+			 * with no bound at all. The PHP clock could not stop it either, because sync_upload
+			 * re-arms set_time_limit( 300 ) on every pass. So one click against a destination the
+			 * app could not push to ran until something upstream cut the request off, and since
+			 * client-app creates the connect_syncs row BEFORE it calls the destination, every pass
+			 * minted another dead row -- 49 of them over eight minutes in the case that found this,
+			 * surfacing to the user as nothing but the source site's own "HTTP Error 503".
+			 */
+			if ( $retry < 3 && ( $is_timeout || $is_server_error ) ) {
 				sleep( 2 );
 				Helper::add_error_log(
 					array(
