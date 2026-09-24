@@ -621,9 +621,14 @@ class InstaWP_Tools {
 
 		global $table_prefix;
 
-		// Process migration settings like active plugins/themes only etc
+		// Process migration settings like active plugins/themes only etc.
+		//
+		// This is the ONE place the inventory exclusion is switched on, because this is the one
+		// place that writes the options file iwp-serve reads — and iwp-serve/iwp-dest is the only
+		// reconstruction step that exists anywhere. Hardcoded rather than taken from the caller so
+		// it cannot be turned on from a request. See inventory_migration_settings().
 		$migrate_settings       = is_array( $migrate_settings ) ? $migrate_settings : array();
-		$migrate_settings       = self::get_migrate_settings( array(), $migrate_settings );
+		$migrate_settings       = self::get_migrate_settings( array(), $migrate_settings, true );
 		$options_data           = array(
 			'api_signature'    => $api_signature,
 			'migrate_settings' => $migrate_settings,
@@ -1011,7 +1016,15 @@ include $file_path;';
 		return $in_details ? $result : $result['is_accessible'];
 	}
 
-	public static function process_migration_settings( $migrate_settings = array() ) {
+	/**
+	 * Build the exclusion lists and the rest of the transmitted migration settings.
+	 *
+	 * @param array $migrate_settings Migration settings.
+	 * @param bool  $use_inventory    Whether the RECIPIENT of these settings reconstructs
+	 *                                inventory_items. Off unless the caller proves otherwise —
+	 *                                see inventory_migration_settings().
+	 */
+	public static function process_migration_settings( $migrate_settings = array(), $use_inventory = false ) {
 
 		$options      = Helper::get_args_option( 'options', $migrate_settings, array() );
 		$relative_dir = str_replace( ABSPATH, '', WP_CONTENT_DIR );
@@ -1116,7 +1129,7 @@ include $file_path;';
 
 		// Get inventory settings
 		if ( empty( $migrate_settings['mode'] ) || 'pull' == $migrate_settings['mode'] ) {
-			$migrate_settings = self::inventory_migration_settings( $migrate_settings, $options, $relative_dir, $wp_root_dir );
+			$migrate_settings = self::inventory_migration_settings( $migrate_settings, $options, $relative_dir, $wp_root_dir, $use_inventory );
 		}
 
 		if ( in_array( 'skip_media_folder', $options ) ) {
@@ -1436,7 +1449,46 @@ include $file_path;';
 		return true;
 	}
 
-	public static function inventory_migration_settings( $migrate_settings, $options, $relative_dir, $wp_root_dir ) {
+	/**
+	 * Apply the "Active Plugins/Themes Only" selections, and — only when the recipient can honour
+	 * it — the inventory exclusion.
+	 *
+	 * TWO DIFFERENT THINGS LIVE HERE, and conflating them is what made this a data-loss bug:
+	 *
+	 *  1. active_plugins_only / active_themes_only. The USER ticked these, they mean "do not send
+	 *     the inactive ones", and nothing has to happen at the destination for that to be correct.
+	 *     They apply on every path, always.
+	 *
+	 *  2. The inventory exclusion. We folder-checksum every plugin and theme, ask
+	 *     inventory.instawp.io whether it already holds that exact slug + version, and on a match
+	 *     drop the files from the transfer and record the item under
+	 *     inventory_items['with_checksum'] — ON THE UNDERSTANDING THAT THE DESTINATION
+	 *     RE-DOWNLOADS THEM FROM THAT LIST. It is a bandwidth optimisation, not a user selection.
+	 *
+	 * The only reconstruction step that exists anywhere is iwp-serve/iwp-dest (the V3 engine).
+	 * V4 never even receives inventory_items: InstaWP_Staging_V4::build_exclude() emits
+	 * {paths, skip_table_data} and nothing else, the API forwards those two keys, and the migration
+	 * agent has no concept of an inventory. So on V4 the exclusion half shipped and the reinstall
+	 * half did not exist, and the matched plugins and themes were simply gone from the migrated
+	 * site — silently, because the agent also prunes the missing entries out of active_plugins, so
+	 * wp-admin raises no missing-plugin notice either. The ACTIVE THEME was excludable the same
+	 * way, which is how a migrated site came up unstyled with an empty themes archive (FS#3733).
+	 *
+	 * Hence $use_inventory, and hence it defaults to FALSE. get_local_push_excluded_paths() already
+	 * made exactly this call for exactly this reason (see its docblock) — it just made it locally,
+	 * by refusing to reuse the list, so V4 never inherited the reasoning. The default is the safe
+	 * direction on purpose: forgetting to opt in costs bandwidth, forgetting to opt out costs the
+	 * customer their plugins.
+	 *
+	 * @param array  $migrate_settings Migration settings.
+	 * @param array  $options          The wizard's option flags.
+	 * @param string $relative_dir     wp-content directory NAME.
+	 * @param string $wp_root_dir      Directory holding the WP root, for non-standard layouts.
+	 * @param bool   $use_inventory    True only when the recipient reconstructs inventory_items.
+	 *
+	 * @return array
+	 */
+	public static function inventory_migration_settings( $migrate_settings, $options, $relative_dir, $wp_root_dir, $use_inventory = false ) {
 
 		if ( ! empty( $migrate_settings['inventory_items'] ) ) {
 			return $migrate_settings;
@@ -1489,6 +1541,21 @@ include $file_path;';
 			}
 		}
 
+		/*
+		 * Everything above is the user's own selection and has already been applied. Everything
+		 * below trades files for a promise that the destination re-downloads them, so it runs only
+		 * where that promise is kept. Placed HERE rather than at the call site precisely because
+		 * the two halves live in one function: gating the whole function would also silently stop
+		 * honouring Active Plugins Only / Active Themes Only, which are ticked in the wizard and
+		 * would then send the inactive plugins the user asked us to leave behind.
+		 *
+		 * Returning early also skips the inventory.instawp.io round trip, which the plan picker and
+		 * the usage check were each paying for on a path that cannot use the result.
+		 */
+		if ( ! $use_inventory ) {
+			return $migrate_settings;
+		}
+
 		// Save invertory items( plugins and themes ) data to process server side
 		try {
 			// Get api key
@@ -1531,6 +1598,28 @@ include $file_path;';
 						if ( empty( $item['slug'] ) || empty( $item['version'] ) || empty( $item['type'] ) || ! in_array( $item['type'], array( 'plugin', 'theme' ), true ) || empty( $item['path'] ) ) {
 							continue;
 						}
+
+						/*
+						 * THE ACTIVE THEME IS NEVER EXCLUDABLE, whatever the checksum says.
+						 *
+						 * Every exclusion here is a bet that the destination re-downloads the item.
+						 * The stake is not the same for every item: a missing plugin costs a
+						 * feature, a missing active theme costs the whole front end — WordPress
+						 * falls back to whatever else it finds, or to nothing. A site whose active
+						 * theme is a stock build is the case MOST likely to match a checksum, not
+						 * the least, so this is not a rare corner (FS#3733: active theme excluded,
+						 * themes archive shipped as 183 bytes).
+						 *
+						 * $is_active is set for both halves of a child/parent pair above, so the
+						 * parent template is covered too — excluding that breaks the site just as
+						 * completely.
+						 *
+						 * No log: on a stock-theme site this is the normal case, not an anomaly.
+						 */
+						if ( 'theme' === $item['type'] && ! empty( $item['is_active'] ) ) {
+							continue;
+						}
+
 						if ( ! empty( $inventory_data[ $item['type'] ][ $item['slug'] ] ) && ! empty( $inventory_data[ $item['type'] ][ $item['slug'] ][ $item['version'] ]['checksum'] ) ) {
 							// get the absolute path of the item
 							$absolute_path = trailingslashit( ABSPATH ) . '' . $item['path'];
@@ -2015,7 +2104,17 @@ include $file_path;';
 		return $log_tables;
 	}
 
-	public static function get_migrate_settings( $posted_data = array(), $migrate_settings = array() ) {
+	/**
+	 * @param array $posted_data      Raw posted request data.
+	 * @param array $migrate_settings Pre-built settings, used instead of $posted_data when given.
+	 * @param bool  $use_inventory    Whether the RECIPIENT reconstructs inventory_items. Off by
+	 *                                default and deliberately NOT readable out of
+	 *                                $migrate_settings: the settings array is built from request
+	 *                                data on every entry point, and a value that turns files into
+	 *                                "someone else will re-download those" must not be settable by
+	 *                                the request. See inventory_migration_settings().
+	 */
+	public static function get_migrate_settings( $posted_data = array(), $migrate_settings = array(), $use_inventory = false ) {
 
 		global $wpdb;
 
@@ -2077,7 +2176,7 @@ include $file_path;';
 
 		$migrate_settings['source_ip_address'] = self::get_user_ip_address();
 
-		return self::process_migration_settings( $migrate_settings );
+		return self::process_migration_settings( $migrate_settings, $use_inventory );
 	}
 
 	public static function get_user_ip_address() {
