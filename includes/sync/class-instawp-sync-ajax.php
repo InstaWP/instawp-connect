@@ -261,7 +261,17 @@ class InstaWP_Sync_Ajax {
 					)
 				);
 
-				$error_message = isset( $response['message'] ) ? $response['message'] : __( 'Sync failed.', 'instawp-connect' );
+				/*
+				 * is_string() matters as much as isset() here: sync_changes() has no try/catch,
+				 * so the strpos() calls below turn a non-string message into an UNCAUGHT
+				 * TypeError -- a PHP fatal in an AJAX handler, which is exactly the opaque,
+				 * message-less failure this whole change exists to remove. The message is
+				 * whatever client-app relays from the destination, so its type is not ours to
+				 * assume.
+				 */
+				$error_message = isset( $response['message'] ) && is_string( $response['message'] )
+					? $response['message']
+					: __( 'Sync failed.', 'instawp-connect' );
 				$http_code     = isset( $response['code'] ) ? intval( $response['code'] ) : 0;
 
 				// Provide user-friendly error messages for common failure types.
@@ -586,7 +596,47 @@ class InstaWP_Sync_Ajax {
 			// connects/<connect_id>/syncs
 			$response = Curl::do_curl( "connects/{$connect_id}/syncs", $data );
 
-			if ( $retry < 3 && ( ! empty( $response['message'] ) && strpos( $response['message'], 'cURL error 28:' ) !== false ) || ( ! empty( $response['code'] ) && 500 <= intval( $response['code'] ) ) ) {
+			$code = empty( $response['code'] ) ? 0 : intval( $response['code'] );
+
+			/*
+			 * A 4xx is a considered answer, not a hiccup -- never repeat one. The status is read
+			 * BEFORE the message because the message is not ours: client-app relays the
+			 * destination's own text, so a substring match on it can be tripped by a permanent
+			 * refusal that merely quotes a transport error. (client-app#3360 also rewrites
+			 * `cURL error NN:` out of what it relays, so today this is belt-and-braces rather
+			 * than the only thing standing between us and a retry storm.)
+			 *
+			 * Retrying costs more than a wasted request: this endpoint creates a connect_syncs
+			 * row per call. Re-APPLYING the events is largely prevented on the destination --
+			 * events_receiver() skips any event_hash that already has a `completed` row in
+			 * INSTAWP_DB_TABLE_EVENT_SYNC_LOGS -- so the exposure is the dead rows plus any event
+			 * whose side effects landed before its log row was written.
+			 */
+			$is_client_error = 400 <= $code && $code < 500;
+			$is_timeout      = ! $is_client_error
+				&& ! empty( $response['message'] )
+				&& is_string( $response['message'] )
+				&& strpos( $response['message'], 'cURL error 28:' ) !== false;
+			$is_server_error = 500 <= $code;
+
+			/*
+			 * The retry ceiling has to cover BOTH conditions.
+			 *
+			 * This read `$retry < 3 && $is_timeout || $is_server_error`, and `&&` binds tighter
+			 * than `||`, so PHP parsed it as `( $retry < 3 && $is_timeout ) || $is_server_error`:
+			 * the bound only ever applied to the timeout branch, and a 5xx recursed with none.
+			 *
+			 * Nothing else stopped it. max_execution_time cannot: on non-Windows it does not
+			 * count time in blocking calls, and this loop is almost entirely curl wait plus
+			 * sleep( 2 ) -- and set_time_limit( 300 ) above re-arms it on every attempt anyway.
+			 * That call also makes each attempt LONGER, since Curl::do_curl reads
+			 * ini_get( 'max_execution_time' ) to choose its own timeout.
+			 *
+			 * client-app creates its connect_syncs row BEFORE calling the destination, so every
+			 * pass minted another dead row until something upstream cut the request off. See
+			 * FS-3729 and the PR for the incident numbers.
+			 */
+			if ( $retry < 3 && ( $is_timeout || $is_server_error ) ) {
 				sleep( 2 );
 				Helper::add_error_log(
 					array(
