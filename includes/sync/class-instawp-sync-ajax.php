@@ -599,19 +599,18 @@ class InstaWP_Sync_Ajax {
 			$code = empty( $response['code'] ) ? 0 : intval( $response['code'] );
 
 			/*
-			 * A 4xx is a considered answer, not a hiccup: repeating the request cannot change it.
+			 * A 4xx is a considered answer, not a hiccup -- never repeat one. The status is read
+			 * BEFORE the message because the message is not ours: client-app relays the
+			 * destination's own text, so a substring match on it can be tripped by a permanent
+			 * refusal that merely quotes a transport error. (client-app#3360 also rewrites
+			 * `cURL error NN:` out of what it relays, so today this is belt-and-braces rather
+			 * than the only thing standing between us and a retry storm.)
 			 *
-			 * This is checked BEFORE the message, because the message is not ours -- client-app
-			 * relays the destination's own failure text. Once client-app#3360 lands, a destination
-			 * that timed out arrives as a 422 whose body contains the literal 'cURL error 28:'
-			 * (today it is still a 500, so this gate is forward-looking on that path). Matching
-			 * on the text alone would therefore retry a permanent refusal.
-			 *
-			 * And the cost of that is worse than a wasted request. This endpoint creates a
-			 * connect_syncs row per call, so each retry mints another dead row -- but a leg that
-			 * timed out timed out WAITING FOR A RESPONSE, so the destination may already have
-			 * applied the events. Retrying a non-idempotent POST there risks applying the sync
-			 * twice, not merely failing twice.
+			 * Retrying costs more than a wasted request: this endpoint creates a connect_syncs
+			 * row per call. Re-APPLYING the events is largely prevented on the destination --
+			 * events_receiver() skips any event_hash that already has a `completed` row in
+			 * INSTAWP_DB_TABLE_EVENT_SYNC_LOGS -- so the exposure is the dead rows plus any event
+			 * whose side effects landed before its log row was written.
 			 */
 			$is_client_error = 400 <= $code && $code < 500;
 			$is_timeout      = ! $is_client_error
@@ -625,21 +624,17 @@ class InstaWP_Sync_Ajax {
 			 *
 			 * This read `$retry < 3 && $is_timeout || $is_server_error`, and `&&` binds tighter
 			 * than `||`, so PHP parsed it as `( $retry < 3 && $is_timeout ) || $is_server_error`:
-			 * the three-attempt bound only ever applied to the timeout branch, and a 5xx recursed
-			 * with no bound at all.
+			 * the bound only ever applied to the timeout branch, and a 5xx recursed with none.
 			 *
-			 * Nothing else stopped it either. max_execution_time is not a backstop here: on
-			 * non-Windows it does not count time in blocking calls, and this loop is almost entirely
-			 * curl wait plus sleep( 2 ), so the clock barely advances however long it runs. (The
-			 * set_time_limit( 300 ) above is not the reason -- it makes the per-attempt budget
-			 * LONGER, since Curl::do_curl reads ini_get( 'max_execution_time' ) to pick its own
-			 * timeout and set_time_limit writes that ini value.)
+			 * Nothing else stopped it. max_execution_time cannot: on non-Windows it does not
+			 * count time in blocking calls, and this loop is almost entirely curl wait plus
+			 * sleep( 2 ) -- and set_time_limit( 300 ) above re-arms it on every attempt anyway.
+			 * That call also makes each attempt LONGER, since Curl::do_curl reads
+			 * ini_get( 'max_execution_time' ) to choose its own timeout.
 			 *
-			 * So one click against a destination the app could not push to ran until something
-			 * upstream cut the request off, and since client-app creates the connect_syncs row
-			 * BEFORE it calls the destination, every pass minted another dead row -- 49 of them
-			 * over eight minutes in the case that found this, surfacing to the user as nothing
-			 * but the source site's own "HTTP Error 503".
+			 * client-app creates its connect_syncs row BEFORE calling the destination, so every
+			 * pass minted another dead row until something upstream cut the request off. See
+			 * FS-3729 and the PR for the incident numbers.
 			 */
 			if ( $retry < 3 && ( $is_timeout || $is_server_error ) ) {
 				sleep( 2 );
