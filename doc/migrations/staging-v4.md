@@ -167,10 +167,13 @@ before touching it:
   parent template. A missing plugin costs a feature; a missing active theme costs the front end.
 
 Consequence for V4 sizing: transfers are larger than before, and the picker, the usage check and the
-run all gained the same paths, so they still agree with each other — they previously agreed on an
-understated number. One customer-visible edge: `InstaWP::instawp_check_usage_on_cloud()` gates a
-LEGACY plan on `total_files_size < remaining_disk_space`, so a legacy customer near their disk quota
-who previously got through the wizard can now be refused. That refusal is honest — the old number
+run all gained the same paths — all three moved in the same direction, where previously all three
+under-stated what would be copied (they still differ from each other by the transmitted-only rule
+below). One customer-visible edge: `InstaWP::instawp_check_usage_on_cloud()` gates on size on BOTH
+of its branches — a LEGACY plan on `total_files_size < remaining_disk_space` (`remaining_disk_space`),
+and any other plan that carries a `disk_quota` feature on files + DB `<= disk_quota`
+(`storage_limit_exceeded`). So a customer near their disk quota who previously got through the
+wizard can now be refused, on either kind of plan. That refusal is honest — the old number
 under-stated what we would copy — but it is a behaviour change, not a regression.
 
 **The size sent to the API is deliberately not the plan picker's number.** The picker
