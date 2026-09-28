@@ -1500,7 +1500,10 @@ include $file_path;';
 	 */
 	public static function inventory_migration_settings( $migrate_settings, $options, $relative_dir, $wp_root_dir, $use_inventory = false ) {
 
-		if ( ! empty( $migrate_settings['inventory_items'] ) ) {
+		// Already-processed settings short-circuit only where the inventory is reconstructed (V3
+		// serve path). Elsewhere a posted inventory_items must not skip the Active Plugins/Themes
+		// Only handling below — it is dropped at the $use_inventory gate instead.
+		if ( $use_inventory && ! empty( $migrate_settings['inventory_items'] ) ) {
 			return $migrate_settings;
 		}
 
@@ -1563,6 +1566,11 @@ include $file_path;';
 		 * the usage check were each paying for on a path that cannot use the result.
 		 */
 		if ( ! $use_inventory ) {
+			// Nothing on this path reinstalls inventory items, so never carry a caller-supplied list.
+			if ( isset( $migrate_settings['inventory_items'] ) ) {
+				unset( $migrate_settings['inventory_items'] );
+			}
+
 			return $migrate_settings;
 		}
 
@@ -2122,10 +2130,10 @@ include $file_path;';
 	 *                                $migrate_settings: that array is built from request data on
 	 *                                every entry point, so a FLAG that turns files into "someone
 	 *                                else will re-download those" must not be settable by the
-	 *                                request. Note this closes the flag only — a caller-supplied
-	 *                                inventory_items still short-circuits
-	 *                                inventory_migration_settings() as it always has.
-	 *                                See inventory_migration_settings().
+	 *                                request. A caller-supplied inventory_items is dropped too
+	 *                                whenever this is false, so it can no longer short-circuit
+	 *                                inventory_migration_settings() on a path that does not
+	 *                                reconstruct it. See inventory_migration_settings().
 	 */
 	public static function get_migrate_settings( $posted_data = array(), $migrate_settings = array(), $use_inventory = false ) {
 
