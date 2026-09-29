@@ -100,7 +100,6 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 = 0.1.4.1 - 29 September 2026 =
 - Fixed: Staging sites no longer miss plugins and themes.
-- Fixed: "Active Plugins Only" and "Active Themes Only" options are always applied.
 
 = 0.1.4.0 - 22 September 2026 =
 - Added: Staging sites are now created through the new migration engine, with live progress tracked on InstaWP.
