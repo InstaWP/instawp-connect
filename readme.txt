@@ -98,7 +98,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
-= 0.1.4.1 - Beta =
+= 0.1.4.1 - 29 September 2026 =
 - Fixed: Staging sites no longer miss plugins and themes.
 - Fixed: "Active Plugins Only" and "Active Themes Only" options are always applied.
 
