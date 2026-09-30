@@ -166,68 +166,31 @@ class InstaWP_Sync_Parser {
 				$image_url = esc_url( $image_url );
 				$failed_message = 'Error: failed_process_attachment ' . $image_url . ' ';
 				if ( empty( $data['url'] ) && ! empty( $data['post_id'] ) && ! empty( $data['path'] ) ) {
-					// media path
-					$data['path'] = esc_url( $data['path'] );
-					// get connected site list
-					$staging_sites = instawp_get_connected_sites_list();
-					if ( empty( $staging_sites ) ) {
-						InstaWP_Sync_Helpers::get_set_sync_parser_log( $failed_message . 'No connected site found.', true );
+					$image_data = self::download_media_from_connected_site( $data );
+					if ( is_wp_error( $image_data ) ) {
+						InstaWP_Sync_Helpers::get_set_sync_parser_log( $failed_message . $image_data->get_error_message(), true );
 						return $attachment_id;
 					}
-
-					$api_url = '';
-					// Get connected site
-					$hash = '';
-					foreach ( $staging_sites as $site ) {
-						if ( false !== strpos( $data['path'], $site['url'] ) ) {
-							$api_url = esc_url( $site['url'] );
-							if ( empty( $site['uuid'] ) && ! empty( $site['data'] ) && ! empty( $site['data']['uuid'] ) ) {
-								$site['uuid'] = $site['data']['uuid'];
-							}
-							if ( empty( $site['uuid'] ) ) {
-								InstaWP_Sync_Helpers::get_set_sync_parser_log( $failed_message . 'Connected site details not found.', true );
-								return $attachment_id;
-							}
-							// Prepare hash
-							$hash = hash( 'sha256', $site['connect_id'] . '_' . $site['uuid'] );
-							break;
-						}
-					}
-
-					if ( empty( $api_url ) || empty( $hash ) ) {
-						InstaWP_Sync_Helpers::get_set_sync_parser_log( $failed_message . 'Media path not matched with connected sites.', true );
-						return $attachment_id;
-					}
-
-					$response = wp_remote_post( $api_url . '/wp-json/instawp-connect/v1/sync/download-media', array(
-						'timeout'    => 120,
-						'headers'    => instawp_get_migration_headers( $hash ),
-						'sslverify'  => false,
-						'user-agent' => Helper::getInstaWPUserAgent( 'sync/download-media' ),
-						'body'       => json_encode( array(
-							'file'     => $data,
-							'media_id' => $data['post_id'],
-						) ),
-					) );
-
-					// Check for errors
-					if ( is_wp_error( $response ) ) {
-						InstaWP_Sync_Helpers::get_set_sync_parser_log( $failed_message . '' . $response->get_error_message(), true );
-						return $attachment_id;
-					}
-					// Get response http code
-					$response_code = wp_remote_retrieve_response_code( $response );
-					// Get file content
-					$image_data = wp_remote_retrieve_body($response);
-					if ( 200 !== $response_code ) {
-						InstaWP_Sync_Helpers::get_set_sync_parser_log( $failed_message . 'Response_code ' . $response_code . '. Error message ' . $image_data, true );
-						return $attachment_id;
-					}               
-} else {
-					
+				} else {
+					// A set $data['url'] is the copy the source uploaded to the InstaWP relay, not the source's uploads URL.
+					$media_data = null;
 					$image_data = file_get_contents( $image_url ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+					if ( $image_data === false && ! empty( $data['url'] ) && ! empty( $data['post_id'] ) && ! empty( $data['path'] ) ) {
+						// Relay copy gone (it is deleted after the first download). Ask the source over the
+						// authenticated sync API, which Protect Site does not gate the way it gates /wp-content/uploads.
+						$media_data = self::download_media_from_connected_site( $data );
+						$image_data = is_wp_error( $media_data ) ? false : $media_data;
+					}
 					if ( $image_data === false ) {
+						// Legacy anonymous fetch, fails with a 401 on a Protect Site source.
 						$image_data = file_get_contents( $data['path'] ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+					}
+					if ( empty( $image_data ) && ! empty( $data['url'] ) && empty( $data['base_data'] ) ) {
+						// Leave the event pending so the source uploads a fresh relay copy on the next push,
+						// instead of completing it with the media missing.
+						$reason = is_wp_error( $media_data ) ? ' Sync API: ' . $media_data->get_error_message() : '';
+						InstaWP_Sync_Helpers::get_set_sync_parser_log( $failed_message . 'Relay, sync API and direct download all failed.' . $reason, true );
+						return $attachment_id;
 					}
 				}
 
@@ -296,6 +259,70 @@ class InstaWP_Sync_Parser {
 	}
 
 	
+	/**
+	 * Download a media file from the connected site it belongs to, over the authenticated sync API.
+	 *
+	 * @param array $data Attachment data, needs post_id and path.
+	 *
+	 * @return string|WP_Error File content, or the reason it could not be downloaded.
+	 */
+	private static function download_media_from_connected_site( $data ) {
+		// media path
+		$data['path'] = esc_url( $data['path'] );
+		// get connected site list
+		$staging_sites = instawp_get_connected_sites_list();
+		if ( empty( $staging_sites ) ) {
+			return new WP_Error( 'instawp_sync_media', 'No connected site found.' );
+		}
+
+		$api_url = '';
+		// Get connected site
+		$hash = '';
+		foreach ( $staging_sites as $site ) {
+			if ( false !== strpos( $data['path'], $site['url'] ) ) {
+				$api_url = esc_url( $site['url'] );
+				if ( empty( $site['uuid'] ) && ! empty( $site['data'] ) && ! empty( $site['data']['uuid'] ) ) {
+					$site['uuid'] = $site['data']['uuid'];
+				}
+				if ( empty( $site['uuid'] ) ) {
+					return new WP_Error( 'instawp_sync_media', 'Connected site details not found.' );
+				}
+				// Prepare hash
+				$hash = hash( 'sha256', $site['connect_id'] . '_' . $site['uuid'] );
+				break;
+			}
+		}
+
+		if ( empty( $api_url ) || empty( $hash ) ) {
+			return new WP_Error( 'instawp_sync_media', 'Media path not matched with connected sites.' );
+		}
+
+		$response = wp_remote_post( $api_url . '/wp-json/instawp-connect/v1/sync/download-media', array(
+			'timeout'    => 120,
+			'headers'    => instawp_get_migration_headers( $hash ),
+			'sslverify'  => false,
+			'user-agent' => Helper::getInstaWPUserAgent( 'sync/download-media' ),
+			'body'       => json_encode( array(
+				'file'     => $data,
+				'media_id' => $data['post_id'],
+			) ),
+		) );
+
+		// Check for errors
+		if ( is_wp_error( $response ) ) {
+			return $response;
+		}
+		// Get response http code
+		$response_code = wp_remote_retrieve_response_code( $response );
+		// Get file content
+		$image_data = wp_remote_retrieve_body( $response );
+		if ( 200 !== $response_code ) {
+			return new WP_Error( 'instawp_sync_media', 'Response_code ' . $response_code . '. Error message ' . $image_data );
+		}
+
+		return $image_data;
+	}
+
 	/**
 	 * Process scaled image, if found in post meta.
 	 *
