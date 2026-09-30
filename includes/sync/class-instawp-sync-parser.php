@@ -175,9 +175,10 @@ class InstaWP_Sync_Parser {
 					// A set $data['url'] is the copy the source uploaded to the InstaWP relay, not the source's uploads URL.
 					$media_data = null;
 					$image_data = file_get_contents( $image_url ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-					if ( $image_data === false && ! empty( $data['url'] ) && ! empty( $data['post_id'] ) && ! empty( $data['path'] ) ) {
+					if ( $image_data === false && ! empty( $data['url'] ) && ! empty( $data['post_id'] ) && ! empty( $data['path'] ) && false !== wp_http_validate_url( $data['path'] ) ) {
 						// Relay copy gone (it is deleted after the first download). Ask the source over the
 						// authenticated sync API, which Protect Site does not gate the way it gates /wp-content/uploads.
+						// Skipped for a local or private source, which is unreachable and could stall until the timeout.
 						$media_data = self::download_media_from_connected_site( $data );
 						$image_data = is_wp_error( $media_data ) ? false : $media_data;
 					}
