@@ -1194,7 +1194,12 @@ class InstaWP_Sync_Plugin_Theme {
 			if ( $events_exists ) {
 				$where = "e.event_type IN ('plugin', 'theme') AND e.details LIKE '%zip_url%'";
 
-				if ( $table_exists( INSTAWP_DB_TABLE_EVENT_SITES ) ) {
+				$sites_exists = $table_exists( INSTAWP_DB_TABLE_EVENT_SITES );
+				if ( ! empty( $wpdb->last_error ) ) {
+					return;
+				}
+
+				if ( $sites_exists ) {
 					$rows = $wpdb->get_col(
 						'SELECT e.details FROM ' . INSTAWP_DB_TABLE_EVENTS . ' e
 						LEFT JOIN ' . INSTAWP_DB_TABLE_EVENT_SITES . " s ON s.event_id = e.id AND s.status = 'completed'
@@ -1274,7 +1279,7 @@ class InstaWP_Sync_Plugin_Theme {
 		$url_path = $parsed_url['path'];
 
 		// Never resolve outside the backups directory
-		if ( in_array( '..', explode( '/', $url_path ), true ) ) {
+		if ( in_array( '..', preg_split( '#[/\\\\]#', $url_path ), true ) ) {
 			return false;
 		}
 		// Remove leading slash
