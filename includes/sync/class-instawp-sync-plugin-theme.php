@@ -1165,7 +1165,7 @@ class InstaWP_Sync_Plugin_Theme {
 	 */
 	public function cleanup_legacy_zips_once() {
 		$attempts = (int) Option::get_option( 'instawp_sync_zips_cleanup_attempts', 0 );
-		if ( ! instawp_is_admin( 'upload_plugins' ) || $attempts >= 3 ) {
+		if ( $attempts >= 3 || ! instawp_is_admin( 'upload_plugins' ) ) {
 			return;
 		}
 
