@@ -247,6 +247,7 @@ class InstaWP_Tools {
 			}
 
 			// Guard the backups root plus the two sub-directories that hold sync artifacts.
+			// plugins/ and themes/ must not be listable: their random folder names keep the zips private.
 			// migration-log/ writes its own guards in InstaWP_Migrate_Log::get_path().
 			$dirs_to_protect = array(
 				$instawpbackups_dir,
