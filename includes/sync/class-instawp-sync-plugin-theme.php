@@ -1287,7 +1287,7 @@ class InstaWP_Sync_Plugin_Theme {
 		$backup_dir_normalized = rtrim( str_replace( array( '/', '\\' ), DIRECTORY_SEPARATOR, INSTAWP_BACKUP_DIR ), DIRECTORY_SEPARATOR );
 		$zip_path_normalized = str_replace( array( '/', '\\' ), DIRECTORY_SEPARATOR, $zip_path );
 		
-		if ( strpos( $zip_path_normalized, $backup_dir_normalized ) === 0 ) {
+		if ( strpos( $zip_path_normalized, $backup_dir_normalized . DIRECTORY_SEPARATOR ) === 0 ) {
 			wp_delete_file( $zip_path );
 			$deleted = ! file_exists( $zip_path );
 
