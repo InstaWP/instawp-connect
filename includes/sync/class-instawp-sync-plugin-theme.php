@@ -227,7 +227,6 @@ class InstaWP_Sync_Plugin_Theme {
 		// asserted here too — otherwise a site that only ever syncs (and never migrates)
 		// would leave the backups tree listable.
 		InstaWP_Tools::protect_instawpbackups_dir();
-		@file_put_contents( $type_backup_dir . 'index.php', "<?php\n// Silence is golden.\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 
 		$slug = basename( $source );
 			
@@ -1318,7 +1317,6 @@ class InstaWP_Sync_Plugin_Theme {
 				// Remove the copy's random folder under plugins/ or themes/ as well
 				$zip_dir = dirname( $zip_path );
 				if ( preg_match( '/^[a-f0-9]{64}$/', basename( $zip_dir ) ) && in_array( basename( dirname( $zip_dir ) ), array( 'plugins', 'themes' ), true ) ) {
-					wp_delete_file( $zip_dir . DIRECTORY_SEPARATOR . 'index.php' );
 					@rmdir( $zip_dir ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
 				}
 			}

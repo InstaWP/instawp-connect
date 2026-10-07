@@ -78,8 +78,8 @@ its URL as `zip_url` in the event. The copy is made only when sync is enabled fo
 
 - **Location:** `wp-content/instawpbackups/{plugins,themes}/<64 random hex chars>/<slug>.zip`. The zip is
   named after the plugin/theme folder. The random folder is what keeps the URL private: on nginx-fronted hosts
-  `.zip` is served without consulting `.htaccess`, so a deny rule cannot protect it. `plugins/`,
-  `themes/` and every random folder carry an `index.php` so folder names cannot be listed.
+  `.zip` is served without consulting `.htaccess`, so a deny rule cannot protect it. `plugins/`
+  and `themes/` carry an `index.php` so the random folder names cannot be listed.
 - **Deletion:** `handle_completed_event()` deletes the zip and its folder as soon as the event is
   marked `completed`, for plugin and theme install/update events, on both the admin-ajax and REST
   sync paths. A site syncing to several destinations loses the copy on the first completion.
