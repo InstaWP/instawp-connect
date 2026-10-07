@@ -1294,9 +1294,9 @@ class InstaWP_Sync_Plugin_Theme {
 			if ( $deleted ) {
 				$this->remove_zip_record_by_url( $zip_url );
 
-				// Remove the copy's random folder under plugins/ or themes/ as well
-				$zip_dir = dirname( $zip_path );
-				if ( preg_match( '/^[a-f0-9]{64}$/', basename( $zip_dir ) ) && in_array( basename( dirname( $zip_dir ) ), array( 'plugins', 'themes' ), true ) ) {
+				// Remove the copy's random folder, only if it is exactly instawpbackups/{plugins,themes}/<64-hex>
+				$zip_dir = dirname( $zip_path_normalized );
+				if ( dirname( $zip_dir, 2 ) === $backup_dir_normalized && in_array( basename( dirname( $zip_dir ) ), array( 'plugins', 'themes' ), true ) && preg_match( '/^[a-f0-9]{64}$/', basename( $zip_dir ) ) ) {
 					@rmdir( $zip_dir ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
 				}
 			}
