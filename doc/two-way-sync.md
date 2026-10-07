@@ -83,10 +83,13 @@ its URL as `zip_url` in the event. The copy is made only when sync is enabled fo
 - **Deletion:** `handle_completed_event()` deletes the zip and its folder as soon as the event is
   marked `completed`, for plugin and theme install/update events, on both the admin-ajax and REST
   sync paths. A site syncing to several destinations loses the copy on the first completion.
-- **Legacy copies:** releases before this change saved copies directly as
-  `instawpbackups/{plugins,themes}/<slug>.zip`, a guessable URL. `cleanup_legacy_zips_once()` runs once on `admin_init` and deletes those top-level zips (not the random folders), except
-  ones referenced by a plugin/theme event with no `completed` row in `wp_instawp_event_sites`. If
-  a table check or the events query fails it deletes nothing and retries on a later admin request. The option
+- **One-time cleanup:** releases before this change saved copies directly as
+  `instawpbackups/{plugins,themes}/<slug>.zip`, a guessable URL, and some copies were never deleted
+  (sync off, theme events, completion over REST). `cleanup_legacy_zips_once()` runs once on
+  `admin_init` and deletes every zip in `plugins/` and `themes/`, in either layout, except those
+  referenced by a `plugin_install`/`plugin_update`/`theme_install`/`theme_update` event with no
+  `completed` row in `wp_instawp_event_sites`. Emptied random folders are removed. If a table check
+  or the events query fails it deletes nothing and retries on a later admin request. The option
   `instawp_legacy_sync_zips_cleaned` records that it has run.
 
 ## Features

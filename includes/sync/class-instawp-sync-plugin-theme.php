@@ -33,7 +33,7 @@ class InstaWP_Sync_Plugin_Theme {
 		// Hook into event status update to delete zip files when events are marked as completed
 		add_action( 'instawp_sync_event_completed', array( $this, 'handle_completed_event' ), 10, 2 );
 
-		// One-time removal of the old slug-named zips in plugins/ and themes/
+		// One-time removal of every copied zip in plugins/ and themes/ not pending sync
 		add_action( 'admin_init', array( $this, 'cleanup_legacy_zips_once' ) );
 	}
 
@@ -1157,9 +1157,10 @@ class InstaWP_Sync_Plugin_Theme {
 	}
 
 	/**
-	 * One-time cleanup of the old slug-named zips in instawpbackups/plugins and
-	 * instawpbackups/themes. Their URLs are guessable, so every one is deleted
-	 * except those still waiting to be synced.
+	 * One-time cleanup of the copied zips in instawpbackups/plugins and
+	 * instawpbackups/themes, both the old slug-named ones (guessable URLs) and any
+	 * left in random folders. Every zip is deleted except those still waiting to
+	 * be synced.
 	 *
 	 * @return void
 	 */
@@ -1175,7 +1176,7 @@ class InstaWP_Sync_Plugin_Theme {
 				return $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) ) === $table;
 			};
 
-			// Plugin/theme events with a zip not yet completed on any connected site.
+			// Plugin/theme install/update events with a zip not yet completed on any connected site.
 			// No events table means sync never ran here, so nothing is pending.
 			$rows          = array();
 			$events_exists = $table_exists( INSTAWP_DB_TABLE_EVENTS );
@@ -1186,7 +1187,7 @@ class InstaWP_Sync_Plugin_Theme {
 			}
 
 			if ( $events_exists ) {
-				$where = "e.event_type IN ('plugin', 'theme') AND e.details LIKE '%zip_url%'";
+				$where = "e.event_slug IN ('plugin_install', 'plugin_update', 'theme_install', 'theme_update') AND e.details LIKE '%zip_url%'";
 
 				$sites_exists = $table_exists( INSTAWP_DB_TABLE_EVENT_SITES );
 				if ( ! empty( $wpdb->last_error ) ) {
@@ -1209,19 +1210,37 @@ class InstaWP_Sync_Plugin_Theme {
 				}
 			}
 
+			// Pending zips keyed by their path under the backups dir, e.g.
+			// plugins/foo.zip (old layout) or plugins/<random>/foo.zip (new layout)
+			$marker  = '/' . INSTAWP_DEFAULT_BACKUP_DIR . '/';
 			$pending = array();
 			foreach ( $rows as $row ) {
 				$details = json_decode( $row, true );
 				if ( ! empty( $details['zip_url'] ) ) {
 					$path = (string) wp_parse_url( $details['zip_url'], PHP_URL_PATH );
-					$pending[ basename( dirname( $path ) ) . '/' . basename( $path ) ] = true;
+					$pos  = strpos( $path, $marker );
+					if ( false !== $pos ) {
+						$pending[ substr( $path, $pos + strlen( $marker ) ) ] = true;
+					}
 				}
 			}
 
-			foreach ( array( 'plugins', 'themes' ) as $legacy_dir ) {
-				foreach ( glob( INSTAWP_BACKUP_DIR . $legacy_dir . DIRECTORY_SEPARATOR . '*.zip' ) ?: array() as $file ) {
-					if ( ! isset( $pending[ $legacy_dir . '/' . basename( $file ) ] ) ) {
-						wp_delete_file( $file );
+			foreach ( array( 'plugins', 'themes' ) as $type_dir ) {
+				$base  = INSTAWP_BACKUP_DIR . $type_dir . DIRECTORY_SEPARATOR;
+				$files = array_merge( glob( $base . '*.zip' ) ?: array(), glob( $base . '*' . DIRECTORY_SEPARATOR . '*.zip' ) ?: array() );
+
+				foreach ( $files as $file ) {
+					$relative = $type_dir . '/' . str_replace( DIRECTORY_SEPARATOR, '/', substr( $file, strlen( $base ) ) );
+					if ( isset( $pending[ $relative ] ) ) {
+						continue;
+					}
+
+					wp_delete_file( $file );
+
+					// Remove the random folder the zip lived in, if it is one
+					$dir = dirname( $file );
+					if ( preg_match( '/^[a-f0-9]{64}$/', basename( $dir ) ) ) {
+						@rmdir( $dir ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
 					}
 				}
 			}
