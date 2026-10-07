@@ -1164,9 +1164,13 @@ class InstaWP_Sync_Plugin_Theme {
 	 * @return void
 	 */
 	public function cleanup_legacy_zips_once() {
-		if ( ! instawp_is_admin( 'upload_plugins' ) || Option::get_option( 'instawp_legacy_sync_zips_cleaned' ) ) {
+		$attempts = (int) Option::get_option( 'instawp_sync_zips_cleanup_attempts', 0 );
+		if ( ! instawp_is_admin( 'upload_plugins' ) || $attempts >= 3 ) {
 			return;
 		}
+
+		// Counted up front, so a request that dies mid-cleanup still uses an attempt
+		Option::update_option( 'instawp_sync_zips_cleanup_attempts', $attempts + 1 );
 
 		try {
 			global $wpdb;
@@ -1181,7 +1185,7 @@ class InstaWP_Sync_Plugin_Theme {
 					AND NOT EXISTS ( SELECT 1 FROM " . INSTAWP_DB_TABLE_EVENT_SITES . " s WHERE s.event_id = e.id AND s.status = 'completed' )"
 				); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery
 
-				// Do not delete anything if pending events could not be read
+				// Do not delete anything if pending events could not be read; retry on a later request
 				if ( ! empty( $wpdb->last_error ) ) {
 					return;
 				}
@@ -1206,7 +1210,8 @@ class InstaWP_Sync_Plugin_Theme {
 			Helper::add_error_log( array( 'message' => 'Sync zip cleanup failed' ), $e );
 		}
 
-		Option::update_option( 'instawp_legacy_sync_zips_cleaned', 1 );
+		// Done, do not run again
+		Option::update_option( 'instawp_sync_zips_cleanup_attempts', 3 );
 	}
 
 	/**
