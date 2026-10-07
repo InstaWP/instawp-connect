@@ -76,8 +76,8 @@ A plugin or theme uploaded as a zip (not on wordpress.org) cannot be re-download
 paired site, so `InstaWP_Sync_Plugin_Theme::copy_uploaded_plugin_zip()` keeps a copy and records
 its URL as `zip_url` in the event. The copy is made only when sync is enabled for that type.
 
-- **Location:** `wp-content/instawpbackups/plugin_zips/<64 random hex chars>/<slug>.zip`. The zip keeps
-  its original filename. The random folder is what keeps the URL private: on nginx-fronted hosts
+- **Location:** `wp-content/instawpbackups/plugin_zips/<64 random hex chars>/<slug>.zip`. The zip is
+  named after the plugin/theme folder. The random folder is what keeps the URL private: on nginx-fronted hosts
   `.zip` is served without consulting `.htaccess`, so a deny rule cannot protect it. `plugin_zips/`
   and every random folder carry an `index.php` so folder names cannot be listed.
 - **Deletion:** `handle_completed_event()` deletes the zip and its folder as soon as the event is

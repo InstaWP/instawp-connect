@@ -203,7 +203,7 @@ class InstaWP_Sync_Plugin_Theme {
 		$type = isset( $hook_extra['type'] ) ? $hook_extra['type'] : 'plugin';
 
 		// Each copy lives in its own random 64-char folder under plugin_zips/, so its URL
-		// cannot be guessed from the plugin/theme slug. The zip keeps its original name.
+		// cannot be guessed from the plugin/theme slug. The zip is named after the plugin/theme folder.
 		try {
 			$folder = bin2hex( random_bytes( 32 ) );
 		} catch ( \Throwable $e ) {
@@ -1183,9 +1183,16 @@ class InstaWP_Sync_Plugin_Theme {
 
 			// Plugin/theme events with a zip not yet completed on any connected site.
 			// No events table means sync never ran here, so nothing is pending.
-			$rows = array();
-			if ( $table_exists( INSTAWP_DB_TABLE_EVENTS ) ) {
-				$where = "e.event_type IN ('plugin', 'theme') AND e.details LIKE '%zip\\_url%'";
+			$rows          = array();
+			$events_exists = $table_exists( INSTAWP_DB_TABLE_EVENTS );
+
+			// Could not even check for the table, so keep everything and retry later
+			if ( ! empty( $wpdb->last_error ) ) {
+				return;
+			}
+
+			if ( $events_exists ) {
+				$where = "e.event_type IN ('plugin', 'theme') AND e.details LIKE '%zip_url%'";
 
 				if ( $table_exists( INSTAWP_DB_TABLE_EVENT_SITES ) ) {
 					$rows = $wpdb->get_col(
@@ -1267,7 +1274,7 @@ class InstaWP_Sync_Plugin_Theme {
 		$url_path = $parsed_url['path'];
 
 		// Never resolve outside the backups directory
-		if ( strpos( $url_path, '..' ) !== false ) {
+		if ( in_array( '..', explode( '/', $url_path ), true ) ) {
 			return false;
 		}
 		// Remove leading slash
