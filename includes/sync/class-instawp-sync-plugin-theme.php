@@ -69,6 +69,11 @@ class InstaWP_Sync_Plugin_Theme {
 			return $source;
 		}
 
+		// No sync event will be recorded, so the copy would never be used or deleted
+		if ( ! InstaWP_Sync_Helpers::can_sync( $hook_extra['type'] ) ) {
+			return $source;
+		}
+
 		// Get the package path from WordPress attachment ID
 		// WordPress stores uploaded plugin zip files as media attachments
 		$package = null;
@@ -1151,7 +1156,9 @@ class InstaWP_Sync_Plugin_Theme {
 
 		// Check if zip_url exists and delete the zip file
 		if ( ! empty( $details['zip_url'] ) ) {
-			$this->delete_zip_file( $details['zip_url'] );
+			// zip_url comes from this site's own events table, and completion can arrive
+			// over REST where is_admin() is false, so skip the capability gate here.
+			$this->delete_zip_file( $details['zip_url'], false );
 		}
 	}
 
@@ -1170,16 +1177,30 @@ class InstaWP_Sync_Plugin_Theme {
 		try {
 			global $wpdb;
 
-			// Plugin/theme events not yet completed on any connected site
-			$rows = $wpdb->get_col(
-				'SELECT e.details FROM ' . INSTAWP_DB_TABLE_EVENTS . ' e
-				LEFT JOIN ' . INSTAWP_DB_TABLE_EVENT_SITES . " s ON s.event_id = e.id AND s.status = 'completed'
-				WHERE e.event_type IN ('plugin', 'theme') AND s.event_id IS NULL"
-			); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery
+			$table_exists = function ( $table ) use ( $wpdb ) {
+				return $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) ) === $table;
+			};
 
-			// Unsure what is pending, so keep everything
-			if ( ! empty( $wpdb->last_error ) ) {
-				return;
+			// Plugin/theme events with a zip not yet completed on any connected site.
+			// No events table means sync never ran here, so nothing is pending.
+			$rows = array();
+			if ( $table_exists( INSTAWP_DB_TABLE_EVENTS ) ) {
+				$where = "e.event_type IN ('plugin', 'theme') AND e.details LIKE '%zip\\_url%'";
+
+				if ( $table_exists( INSTAWP_DB_TABLE_EVENT_SITES ) ) {
+					$rows = $wpdb->get_col(
+						'SELECT e.details FROM ' . INSTAWP_DB_TABLE_EVENTS . ' e
+						LEFT JOIN ' . INSTAWP_DB_TABLE_EVENT_SITES . " s ON s.event_id = e.id AND s.status = 'completed'
+						WHERE $where AND s.event_id IS NULL"
+					); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery
+				} else {
+					$rows = $wpdb->get_col( 'SELECT e.details FROM ' . INSTAWP_DB_TABLE_EVENTS . " e WHERE $where" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery
+				}
+
+				// Unsure what is pending, so keep everything and retry on a later request
+				if ( ! empty( $wpdb->last_error ) ) {
+					return;
+				}
 			}
 
 			$pending = array();
@@ -1192,15 +1213,16 @@ class InstaWP_Sync_Plugin_Theme {
 			}
 
 			foreach ( array( 'plugins', 'themes' ) as $legacy_dir ) {
-				foreach ( (array) glob( INSTAWP_BACKUP_DIR . $legacy_dir . DIRECTORY_SEPARATOR . '*.zip' ) as $file ) {
+				foreach ( glob( INSTAWP_BACKUP_DIR . $legacy_dir . DIRECTORY_SEPARATOR . '*.zip' ) ?: array() as $file ) {
 					if ( ! isset( $pending[ $legacy_dir . '/' . basename( $file ) ] ) ) {
 						wp_delete_file( $file );
 					}
 				}
 			}
+
+			Option::update_option( 'instawp_legacy_sync_zips_cleaned', 1 );
 		} catch ( \Throwable $e ) {
 			Helper::add_error_log( array( 'message' => 'Legacy sync zip cleanup failed' ), $e );
-		} finally {
 			Option::update_option( 'instawp_legacy_sync_zips_cleaned', 1 );
 		}
 	}
@@ -1208,12 +1230,13 @@ class InstaWP_Sync_Plugin_Theme {
 	/**
 	 * Delete a zip file by URL after successful sync
 	 *
-	 * @param string $zip_url The zip file URL
+	 * @param string $zip_url          The zip file URL
+	 * @param bool   $check_capability Require an admin with upload_plugins
 	 *
 	 * @return bool True if file was deleted, false otherwise
 	 */
-	private function delete_zip_file( $zip_url ) {
-		if ( ! instawp_is_admin( 'upload_plugins' ) ) {
+	private function delete_zip_file( $zip_url, $check_capability = true ) {
+		if ( $check_capability && ! instawp_is_admin( 'upload_plugins' ) ) {
 			return false;
 		}
 
@@ -1242,6 +1265,11 @@ class InstaWP_Sync_Plugin_Theme {
 		
 		// Get the path from the URL
 		$url_path = $parsed_url['path'];
+
+		// Never resolve outside the backups directory
+		if ( strpos( $url_path, '..' ) !== false ) {
+			return false;
+		}
 		// Remove leading slash
 		$url_path = ltrim( $url_path, '/' );
 		
