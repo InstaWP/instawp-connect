@@ -86,9 +86,9 @@ its URL as `zip_url` in the event. The copy is made only when sync is enabled fo
 - **One-time cleanup:** releases before this change saved copies directly as
   `instawpbackups/{plugins,themes}/<slug>.zip`, a guessable URL, and some copies were never deleted
   (sync off, theme events, completion over REST). `cleanup_legacy_zips_once()` runs once on
-  `admin_init` and deletes every zip in `plugins/` and `themes/`, in either layout, except those
+  `admin_init` and deletes every zip directly in `plugins/` and `themes/` (the old layout), except those
   referenced by a `plugin_install`/`plugin_update`/`theme_install`/`theme_update` event with no
-  `completed` row in `wp_instawp_event_sites`. Emptied random folders are removed. If the events table
+  `completed` row in `wp_instawp_event_sites`. If the events table
   does not exist, nothing is pending. If the events query fails it deletes nothing and retries on a
   later admin request, at most 3 attempts in total (option `instawp_sync_zips_cleanup_attempts`).
 

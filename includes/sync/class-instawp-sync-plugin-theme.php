@@ -1157,9 +1157,9 @@ class InstaWP_Sync_Plugin_Theme {
 	}
 
 	/**
-	 * One-time cleanup of the copied plugin/theme zips. Deletes every zip in
-	 * instawpbackups/plugins and instawpbackups/themes except the ones still
-	 * pending sync.
+	 * One-time cleanup of the old slug-named zips directly in instawpbackups/plugins
+	 * and instawpbackups/themes (guessable URLs). Deletes all of them except the
+	 * ones still pending sync.
 	 *
 	 * @return void
 	 */
@@ -1198,11 +1198,10 @@ class InstaWP_Sync_Plugin_Theme {
 				}
 			}
 
-			foreach ( array( 'plugins/*.zip', 'plugins/*/*.zip', 'themes/*.zip', 'themes/*/*.zip' ) as $pattern ) {
+			foreach ( array( 'plugins/*.zip', 'themes/*.zip' ) as $pattern ) {
 				foreach ( glob( INSTAWP_BACKUP_DIR . $pattern ) ?: array() as $file ) {
 					if ( ! in_array( wp_normalize_path( $file ), $pending, true ) ) {
 						wp_delete_file( $file );
-						@rmdir( dirname( $file ) ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
 					}
 				}
 			}
