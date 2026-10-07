@@ -98,6 +98,9 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 0.1.4.2 (beta) =
+- Fixed: Hardened the custom plugin sync path.
+
 = 0.1.4.1 - 29 September 2026 =
 - Fixed: Staging sites no longer miss plugins and themes.
 
