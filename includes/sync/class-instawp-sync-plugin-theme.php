@@ -17,6 +17,11 @@ class InstaWP_Sync_Plugin_Theme {
 	 */
 	const ZIP_STORAGE_OPTION = 'instawp_sync_custom_zip_urls';
 
+	/**
+	 * Folder under the backups dir that holds the copied plugin/theme zips
+	 */
+	const ZIP_DIR = 'plugin_zips';
+
 	public function __construct() {
 		// Plugin and Theme actions
 		add_filter( 'upgrader_source_selection', array( $this, 'copy_uploaded_plugin_zip' ), 5, 4 );
@@ -32,6 +37,9 @@ class InstaWP_Sync_Plugin_Theme {
 		
 		// Hook into event status update to delete zip files when events are marked as completed
 		add_action( 'instawp_sync_event_completed', array( $this, 'handle_completed_event' ), 10, 2 );
+
+		// One-time removal of the old slug-named zips in plugins/ and themes/
+		add_action( 'admin_init', array( $this, 'cleanup_legacy_zips_once' ) );
 	}
 
 	/**
@@ -188,11 +196,18 @@ class InstaWP_Sync_Plugin_Theme {
 
 		// Determine type (plugin or theme) from hook_extra
 		$type = isset( $hook_extra['type'] ) ? $hook_extra['type'] : 'plugin';
-		
-		// Create subdirectory based on type: plugins/ or themes/
-		$subdirectory = ( $type === 'theme' ) ? 'themes' : 'plugins';
-		$type_backup_dir = INSTAWP_BACKUP_DIR . $subdirectory . DIRECTORY_SEPARATOR;
-		
+
+		// Each copy lives in its own random 64-char folder under plugin_zips/, so its URL
+		// cannot be guessed from the plugin/theme slug. The zip keeps its original name.
+		try {
+			$folder = bin2hex( random_bytes( 32 ) );
+		} catch ( \Throwable $e ) {
+			Helper::add_error_log( array( 'message' => 'Failed to generate random folder name for zip copy' ), $e );
+			return $source;
+		}
+		$subdirectory    = self::ZIP_DIR . '/' . $folder;
+		$type_backup_dir = INSTAWP_BACKUP_DIR . self::ZIP_DIR . DIRECTORY_SEPARATOR . $folder . DIRECTORY_SEPARATOR;
+
 		// Create type-specific subdirectory if it doesn't exist
 		if ( ! file_exists( $type_backup_dir ) ) {
 			$mkdir_result = wp_mkdir_p( $type_backup_dir );
@@ -212,6 +227,7 @@ class InstaWP_Sync_Plugin_Theme {
 		// asserted here too — otherwise a site that only ever syncs (and never migrates)
 		// would leave the backups tree listable.
 		InstaWP_Tools::protect_instawpbackups_dir();
+		@file_put_contents( $type_backup_dir . 'index.php', "<?php\n// Silence is golden.\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 
 		$slug = basename( $source );
 			
@@ -1122,8 +1138,8 @@ class InstaWP_Sync_Plugin_Theme {
 
 		$event = $event_rows[0];
 
-		// Only process plugin_install and plugin_update events
-		if ( $event->event_type !== 'plugin' || ( $event->event_slug !== 'plugin_install' && $event->event_slug !== 'plugin_update' ) ) {
+		// Only process plugin/theme install and update events
+		if ( ! in_array( $event->event_slug, array( 'plugin_install', 'plugin_update', 'theme_install', 'theme_update' ), true ) ) {
 			return;
 		}
 
@@ -1136,6 +1152,56 @@ class InstaWP_Sync_Plugin_Theme {
 		// Check if zip_url exists and delete the zip file
 		if ( ! empty( $details['zip_url'] ) ) {
 			$this->delete_zip_file( $details['zip_url'] );
+		}
+	}
+
+	/**
+	 * One-time cleanup of the old slug-named zips in instawpbackups/plugins and
+	 * instawpbackups/themes. Their URLs are guessable, so every one is deleted
+	 * except those still waiting to be synced.
+	 *
+	 * @return void
+	 */
+	public function cleanup_legacy_zips_once() {
+		if ( ! instawp_is_admin( 'upload_plugins' ) || Option::get_option( 'instawp_legacy_sync_zips_cleaned' ) ) {
+			return;
+		}
+
+		try {
+			global $wpdb;
+
+			// Plugin/theme events not yet completed on any connected site
+			$rows = $wpdb->get_col(
+				'SELECT e.details FROM ' . INSTAWP_DB_TABLE_EVENTS . ' e
+				LEFT JOIN ' . INSTAWP_DB_TABLE_EVENT_SITES . " s ON s.event_id = e.id AND s.status = 'completed'
+				WHERE e.event_type IN ('plugin', 'theme') AND s.event_id IS NULL"
+			); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery
+
+			// Unsure what is pending, so keep everything
+			if ( ! empty( $wpdb->last_error ) ) {
+				return;
+			}
+
+			$pending = array();
+			foreach ( $rows as $row ) {
+				$details = json_decode( $row, true );
+				if ( ! empty( $details['zip_url'] ) ) {
+					$path = (string) wp_parse_url( $details['zip_url'], PHP_URL_PATH );
+					$pending[ basename( dirname( $path ) ) . '/' . basename( $path ) ] = true;
+				}
+			}
+
+			foreach ( array( 'plugins', 'themes' ) as $legacy_dir ) {
+				foreach ( (array) glob( INSTAWP_BACKUP_DIR . $legacy_dir . DIRECTORY_SEPARATOR . '*.zip' ) as $file ) {
+					if ( ! isset( $pending[ $legacy_dir . '/' . basename( $file ) ] ) ) {
+						wp_delete_file( $file );
+					}
+				}
+			}
+		} catch ( \Throwable $e ) {
+			Helper::add_error_log( array( 'message' => 'Legacy sync zip cleanup failed' ), $e );
+		} finally {
+			Option::update_option( 'instawp_legacy_sync_zips_cleaned', 1 );
 		}
 	}
 
@@ -1208,10 +1274,18 @@ class InstaWP_Sync_Plugin_Theme {
 		$zip_path_normalized = str_replace( array( '/', '\\' ), DIRECTORY_SEPARATOR, $zip_path );
 		
 		if ( strpos( $zip_path_normalized, $backup_dir_normalized ) === 0 ) {
-			$deleted = wp_delete_file( $zip_path );
+			wp_delete_file( $zip_path );
+			$deleted = ! file_exists( $zip_path );
 
 			if ( $deleted ) {
 				$this->remove_zip_record_by_url( $zip_url );
+
+				// Remove the copy's random folder under plugin_zips/ as well
+				$zip_dir = dirname( $zip_path );
+				if ( preg_match( '/^[a-f0-9]{64}$/', basename( $zip_dir ) ) && basename( dirname( $zip_dir ) ) === self::ZIP_DIR ) {
+					wp_delete_file( $zip_dir . DIRECTORY_SEPARATOR . 'index.php' );
+					@rmdir( $zip_dir ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
+				}
 			}
 
 			return $deleted;
