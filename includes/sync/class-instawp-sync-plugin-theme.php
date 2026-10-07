@@ -17,11 +17,6 @@ class InstaWP_Sync_Plugin_Theme {
 	 */
 	const ZIP_STORAGE_OPTION = 'instawp_sync_custom_zip_urls';
 
-	/**
-	 * Folder under the backups dir that holds the copied plugin/theme zips
-	 */
-	const ZIP_DIR = 'plugin_zips';
-
 	public function __construct() {
 		// Plugin and Theme actions
 		add_filter( 'upgrader_source_selection', array( $this, 'copy_uploaded_plugin_zip' ), 5, 4 );
@@ -202,7 +197,7 @@ class InstaWP_Sync_Plugin_Theme {
 		// Determine type (plugin or theme) from hook_extra
 		$type = isset( $hook_extra['type'] ) ? $hook_extra['type'] : 'plugin';
 
-		// Each copy lives in its own random 64-char folder under plugin_zips/, so its URL
+		// Each copy lives in its own random 64-char folder under plugins/ or themes/, so its URL
 		// cannot be guessed from the plugin/theme slug. The zip is named after the plugin/theme folder.
 		try {
 			$folder = bin2hex( random_bytes( 32 ) );
@@ -210,8 +205,9 @@ class InstaWP_Sync_Plugin_Theme {
 			Helper::add_error_log( array( 'message' => 'Failed to generate random folder name for zip copy' ), $e );
 			return $source;
 		}
-		$subdirectory    = self::ZIP_DIR . '/' . $folder;
-		$type_backup_dir = INSTAWP_BACKUP_DIR . self::ZIP_DIR . DIRECTORY_SEPARATOR . $folder . DIRECTORY_SEPARATOR;
+		$type_dir        = ( $type === 'theme' ) ? 'themes' : 'plugins';
+		$subdirectory    = $type_dir . '/' . $folder;
+		$type_backup_dir = INSTAWP_BACKUP_DIR . $type_dir . DIRECTORY_SEPARATOR . $folder . DIRECTORY_SEPARATOR;
 
 		// Create type-specific subdirectory if it doesn't exist
 		if ( ! file_exists( $type_backup_dir ) ) {
@@ -1320,9 +1316,9 @@ class InstaWP_Sync_Plugin_Theme {
 			if ( $deleted ) {
 				$this->remove_zip_record_by_url( $zip_url );
 
-				// Remove the copy's random folder under plugin_zips/ as well
+				// Remove the copy's random folder under plugins/ or themes/ as well
 				$zip_dir = dirname( $zip_path );
-				if ( preg_match( '/^[a-f0-9]{64}$/', basename( $zip_dir ) ) && basename( dirname( $zip_dir ) ) === self::ZIP_DIR ) {
+				if ( preg_match( '/^[a-f0-9]{64}$/', basename( $zip_dir ) ) && in_array( basename( dirname( $zip_dir ) ), array( 'plugins', 'themes' ), true ) ) {
 					wp_delete_file( $zip_dir . DIRECTORY_SEPARATOR . 'index.php' );
 					@rmdir( $zip_dir ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
 				}

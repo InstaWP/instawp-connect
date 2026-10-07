@@ -76,17 +76,17 @@ A plugin or theme uploaded as a zip (not on wordpress.org) cannot be re-download
 paired site, so `InstaWP_Sync_Plugin_Theme::copy_uploaded_plugin_zip()` keeps a copy and records
 its URL as `zip_url` in the event. The copy is made only when sync is enabled for that type.
 
-- **Location:** `wp-content/instawpbackups/plugin_zips/<64 random hex chars>/<slug>.zip`. The zip is
+- **Location:** `wp-content/instawpbackups/{plugins,themes}/<64 random hex chars>/<slug>.zip`. The zip is
   named after the plugin/theme folder. The random folder is what keeps the URL private: on nginx-fronted hosts
-  `.zip` is served without consulting `.htaccess`, so a deny rule cannot protect it. `plugin_zips/`
-  and every random folder carry an `index.php` so folder names cannot be listed.
+  `.zip` is served without consulting `.htaccess`, so a deny rule cannot protect it. `plugins/`,
+  `themes/` and every random folder carry an `index.php` so folder names cannot be listed.
 - **Deletion:** `handle_completed_event()` deletes the zip and its folder as soon as the event is
   marked `completed`, for plugin and theme install/update events, on both the admin-ajax and REST
   sync paths. A site syncing to several destinations loses the copy on the first completion.
-- **Legacy copies:** releases before this change saved copies as `instawpbackups/{plugins,themes}/<slug>.zip`,
-  a guessable URL. `cleanup_legacy_zips_once()` runs once on `admin_init` and deletes them, except
+- **Legacy copies:** releases before this change saved copies directly as
+  `instawpbackups/{plugins,themes}/<slug>.zip`, a guessable URL. `cleanup_legacy_zips_once()` runs once on `admin_init` and deletes those top-level zips (not the random folders), except
   ones referenced by a plugin/theme event with no `completed` row in `wp_instawp_event_sites`. If
-  the events query fails it deletes nothing and retries on a later admin request. The option
+  a table check or the events query fails it deletes nothing and retries on a later admin request. The option
   `instawp_legacy_sync_zips_cleaned` records that it has run.
 
 ## Features
