@@ -206,7 +206,6 @@ class InstaWP_Sync_Plugin_Theme {
 			return $source;
 		}
 		$type_dir        = ( $type === 'theme' ) ? 'themes' : 'plugins';
-		$subdirectory    = $type_dir . '/' . $folder;
 		$type_backup_dir = INSTAWP_BACKUP_DIR . $type_dir . DIRECTORY_SEPARATOR . $folder . DIRECTORY_SEPARATOR;
 
 		// Create type-specific subdirectory if it doesn't exist
@@ -238,7 +237,7 @@ class InstaWP_Sync_Plugin_Theme {
 		$copied_zip_path = $type_backup_dir . $zip_filename;
 
 		$backup_dir_relative = INSTAWP_DEFAULT_BACKUP_DIR . '/';
-		$copied_zip_url      = content_url( $backup_dir_relative . $subdirectory . '/' . $zip_filename );
+		$copied_zip_url      = content_url( $backup_dir_relative . $type_dir . '/' . $folder . '/' . $zip_filename );
 
 		// Copy the file using WordPress Filesystem API
 		try {
