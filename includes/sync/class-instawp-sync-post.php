@@ -24,10 +24,17 @@ class InstaWP_Sync_Post {
 	private $builder_meta_changed = array();
 
 	/**
-	 * Event name/slug last recorded per post in this request, reused when a builder meta change re-snapshots it.
-	 * @var array post_id => array( 'event_name' => string, 'action' => string )
+	 * Event names of posts CREATED in this request, so a builder meta change re-snapshots the post_new
+	 * event instead of adding a post_change next to it.
+	 * @var array post_id => event name
 	 */
-	private $recorded_events = array();
+	private $created_posts = array();
+
+	/**
+	 * Builder layout meta keys, resolved once per request.
+	 * @var array|null
+	 */
+	private $builder_meta_keys = null;
 
 	public function __construct() {
 		// Post Actions.
@@ -75,6 +82,11 @@ class InstaWP_Sync_Post {
 	 * inbound sync and back on before shutdown, so checking only at shutdown would echo every received
 	 * layout back to the sender as a new local change.
 	 *
+	 * Only writes with an author (a logged-in user, including REST/MCP clients, or WP-CLI) count. The
+	 * builders also rewrite their own layout meta unattended: Elementor migrates a document on a
+	 * visitor's page view, and both builders run version upgrades from cron. Recording those would push
+	 * machine rewrites, and on a destination re-echo every layout it just received.
+	 *
 	 * @param int|array $meta_id  Meta ID (an array of IDs for deleted_post_meta).
 	 * @param int       $post_id  Post ID.
 	 * @param string    $meta_key Meta key.
@@ -82,14 +94,23 @@ class InstaWP_Sync_Post {
 	 * @return void
 	 */
 	public function mark_builder_meta_changed( $meta_id, $post_id, $meta_key ) {
-		$meta_keys = (array) apply_filters( 'instawp/filters/2waysync/builder_meta_keys', array(
-			'_fl_builder_data',          // Beaver Builder published layout.
-			'_fl_builder_data_settings', // Beaver Builder published layout settings (custom CSS/JS).
-			'_elementor_data',
-			'_elementor_page_settings',
-		) );
+		if ( null === $this->builder_meta_keys ) {
+			$this->builder_meta_keys = (array) apply_filters( 'instawp/filters/2waysync/builder_meta_keys', array(
+				'_fl_builder_data',          // Beaver Builder published layout.
+				'_fl_builder_data_settings', // Beaver Builder published layout settings (custom CSS/JS).
+				'_elementor_data',
+				'_elementor_page_settings',
+			) );
+		}
 
-		if ( ! in_array( $meta_key, $meta_keys, true ) || ! InstaWP_Sync_Helpers::can_sync( 'post' ) ) {
+		// delete_metadata( …, $delete_all = true ) reports post id 0.
+		if ( (int) $post_id <= 0 || ! in_array( $meta_key, $this->builder_meta_keys, true ) ) {
+			return;
+		}
+
+		// is_user_logged_in() is pluggable: it does not exist yet for a write made before plugins_loaded.
+		$has_author = ( function_exists( 'is_user_logged_in' ) && is_user_logged_in() ) || ( defined( 'WP_CLI' ) && WP_CLI );
+		if ( ! $has_author || wp_doing_cron() || ! InstaWP_Sync_Helpers::can_sync( 'post' ) ) {
 			return;
 		}
 
@@ -125,9 +146,9 @@ class InstaWP_Sync_Post {
 					continue;
 				}
 
-				if ( isset( $this->recorded_events[ $post->ID ] ) ) {
-					$event_name = $this->recorded_events[ $post->ID ]['event_name'];
-					$action     = $this->recorded_events[ $post->ID ]['action'];
+				if ( isset( $this->created_posts[ $post->ID ] ) ) {
+					$event_name = $this->created_posts[ $post->ID ];
+					$action     = 'post_new';
 				} else {
 					$event_name = sprintf( __( '%s modified', 'instawp-connect' ), InstaWP_Sync_Helpers::get_post_type_name( $post->post_type ) );
 					$action     = 'post_change';
@@ -576,11 +597,8 @@ class InstaWP_Sync_Post {
 		if ( is_array( $data ) && ! empty( $reference_id ) ) {
 			$event_id = InstaWP_Sync_DB::insert_update_event( $event_name, $event_slug, $event_type, $reference_id, $title, $data );
 
-			if ( 'post_delete' !== $event_slug ) {
-				$this->recorded_events[ $post->ID ] = array(
-					'event_name' => $event_name,
-					'action'     => $event_slug,
-				);
+			if ( 'post_new' === $event_slug ) {
+				$this->created_posts[ $post->ID ] = $event_name;
 			}
 
 			// Track newly created (non-attachment) posts that don't yet have a featured image.
