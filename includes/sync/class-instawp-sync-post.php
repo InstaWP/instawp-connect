@@ -30,12 +30,6 @@ class InstaWP_Sync_Post {
 	 */
 	private $created_posts = array();
 
-	/**
-	 * Builder layout meta keys, resolved once per request.
-	 * @var array|null
-	 */
-	private $builder_meta_keys = null;
-
 	public function __construct() {
 		// Post Actions.
 		add_action( 'transition_post_status', array( $this, 'transition_post_status' ), 10, 3 );
@@ -94,17 +88,15 @@ class InstaWP_Sync_Post {
 	 * @return void
 	 */
 	public function mark_builder_meta_changed( $meta_id, $post_id, $meta_key ) {
-		if ( null === $this->builder_meta_keys ) {
-			$this->builder_meta_keys = (array) apply_filters( 'instawp/filters/2waysync/builder_meta_keys', array(
-				'_fl_builder_data',          // Beaver Builder published layout.
-				'_fl_builder_data_settings', // Beaver Builder published layout settings (custom CSS/JS).
-				'_elementor_data',
-				'_elementor_page_settings',
-			) );
-		}
+		$meta_keys = (array) apply_filters( 'instawp/filters/2waysync/builder_meta_keys', array(
+			'_fl_builder_data',          // Beaver Builder published layout.
+			'_fl_builder_data_settings', // Beaver Builder published layout settings (custom CSS/JS).
+			'_elementor_data',
+			'_elementor_page_settings',
+		) );
 
 		// delete_metadata( …, $delete_all = true ) reports post id 0.
-		if ( (int) $post_id <= 0 || ! in_array( $meta_key, $this->builder_meta_keys, true ) ) {
+		if ( (int) $post_id <= 0 || ! in_array( $meta_key, $meta_keys, true ) ) {
 			return;
 		}
 
@@ -599,6 +591,9 @@ class InstaWP_Sync_Post {
 
 			if ( 'post_new' === $event_slug ) {
 				$this->created_posts[ $post->ID ] = $event_name;
+			} else {
+				// A later event now holds the newest snapshot; refresh that one, not the creation.
+				unset( $this->created_posts[ $post->ID ] );
 			}
 
 			// Track newly created (non-attachment) posts that don't yet have a featured image.
