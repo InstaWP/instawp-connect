@@ -17,6 +17,18 @@ class InstaWP_Sync_Post {
 	 */
 	private $post_events = array();
 
+	/**
+	 * Posts whose page-builder layout meta changed after their last recorded snapshot in this request.
+	 * @var array post_id => true
+	 */
+	private $builder_meta_changed = array();
+
+	/**
+	 * Event name/slug last recorded per post in this request, reused when a builder meta change re-snapshots it.
+	 * @var array post_id => array( 'event_name' => string, 'action' => string )
+	 */
+	private $recorded_events = array();
+
 	public function __construct() {
 		// Post Actions.
 		add_action( 'transition_post_status', array( $this, 'transition_post_status' ), 10, 3 );
@@ -46,6 +58,90 @@ class InstaWP_Sync_Post {
 		// Handle featured image sync via post meta hooks.
 		add_action( 'updated_post_meta', array( $this, 'sync_featured_image_on_meta_update' ), 10, 4 );
 		add_action( 'added_post_meta', array( $this, 'sync_featured_image_on_meta_update' ), 10, 4 );
+
+		// Page-builder layouts live in post meta, and not every writer follows the meta write with
+		// wp_update_post() (AI/MCP plugins, WP-CLI, custom code). Such an edit fires none of the hooks
+		// above, so the sync would never see it. Track the layout keys and snapshot at shutdown.
+		add_action( 'added_post_meta', array( $this, 'mark_builder_meta_changed' ), 10, 3 );
+		add_action( 'updated_post_meta', array( $this, 'mark_builder_meta_changed' ), 10, 3 );
+		add_action( 'deleted_post_meta', array( $this, 'mark_builder_meta_changed' ), 10, 3 );
+		add_action( 'shutdown', array( $this, 'record_builder_meta_events' ) );
+	}
+
+	/**
+	 * Remember a post whose page-builder layout meta changed in this request.
+	 *
+	 * Recording is checked HERE, at write time: events_receiver() switches it off while it applies an
+	 * inbound sync and back on before shutdown, so checking only at shutdown would echo every received
+	 * layout back to the sender as a new local change.
+	 *
+	 * @param int|array $meta_id  Meta ID (an array of IDs for deleted_post_meta).
+	 * @param int       $post_id  Post ID.
+	 * @param string    $meta_key Meta key.
+	 *
+	 * @return void
+	 */
+	public function mark_builder_meta_changed( $meta_id, $post_id, $meta_key ) {
+		$meta_keys = (array) apply_filters( 'instawp/filters/2waysync/builder_meta_keys', array(
+			'_fl_builder_data',          // Beaver Builder published layout.
+			'_fl_builder_data_settings', // Beaver Builder published layout settings (custom CSS/JS).
+			'_elementor_data',
+			'_elementor_page_settings',
+		) );
+
+		if ( ! in_array( $meta_key, $meta_keys, true ) || ! InstaWP_Sync_Helpers::can_sync( 'post' ) ) {
+			return;
+		}
+
+		// A post id from a switched blog would be looked up in the wrong blog at shutdown.
+		if ( is_multisite() && ms_is_switched() ) {
+			return;
+		}
+
+		$this->builder_meta_changed[ (int) $post_id ] = true;
+	}
+
+	/**
+	 * Snapshot every post whose builder layout changed after its last recorded event in this request.
+	 *
+	 * @return void
+	 */
+	public function record_builder_meta_events() {
+		if ( empty( $this->builder_meta_changed ) || ! InstaWP_Sync_Helpers::can_sync( 'post' ) ) {
+			return;
+		}
+
+		$post_ids                   = array_keys( $this->builder_meta_changed );
+		$this->builder_meta_changed = array();
+
+		foreach ( $post_ids as $post_id ) {
+			try {
+				$post = get_post( $post_id );
+				if ( ! $post instanceof WP_Post || ! $this->can_sync_post( $post ) ) {
+					continue;
+				}
+
+				if ( wp_is_post_autosave( $post->ID ) || wp_is_post_revision( $post->ID ) || in_array( $post->post_status, array( 'auto-draft', 'inherit', 'trash' ), true ) ) {
+					continue;
+				}
+
+				if ( isset( $this->recorded_events[ $post->ID ] ) ) {
+					$event_name = $this->recorded_events[ $post->ID ]['event_name'];
+					$action     = $this->recorded_events[ $post->ID ]['action'];
+				} else {
+					$event_name = sprintf( __( '%s modified', 'instawp-connect' ), InstaWP_Sync_Helpers::get_post_type_name( $post->post_type ) );
+					$action     = 'post_change';
+				}
+
+				$this->handle_post_events( $event_name, $action, $post );
+			} catch ( \Throwable $e ) {
+				Helper::add_error_log( array(
+					'message' => 'Builder meta event failed',
+					'post_id' => (int) $post_id,
+					'error'   => $e->getMessage(),
+				) );
+			}
+		}
 	}
 
 	/**
@@ -474,8 +570,18 @@ class InstaWP_Sync_Post {
 		$title      = $post->post_title;
 		$data       = apply_filters( 'instawp/filters/2waysync/post_data', $data, $event_type, $post );
 
+		// This snapshot already holds every builder meta write made so far in this request.
+		unset( $this->builder_meta_changed[ $post->ID ] );
+
 		if ( is_array( $data ) && ! empty( $reference_id ) ) {
 			$event_id = InstaWP_Sync_DB::insert_update_event( $event_name, $event_slug, $event_type, $reference_id, $title, $data );
+
+			if ( 'post_delete' !== $event_slug ) {
+				$this->recorded_events[ $post->ID ] = array(
+					'event_name' => $event_name,
+					'action'     => $event_slug,
+				);
+			}
 
 			// Track newly created (non-attachment) posts that don't yet have a featured image.
 			if ( 'post_new' === $event_slug && 'attachment' !== $event_type && empty( $data['post_meta']['_thumbnail_id'] ) && $event_id > 0 ) {
