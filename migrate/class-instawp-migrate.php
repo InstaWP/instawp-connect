@@ -108,6 +108,13 @@ if ( ! class_exists( 'InstaWP_Migration' ) ) {
 						}
 						continue;
 					}
+
+					// The API Key field is rendered masked (blank) once a key is stored, so an
+					// unchanged save posts an empty value. Treat blank as "no change" and keep
+					// the stored key rather than overwriting it with an empty string.
+					if ( empty( $api_key ) ) {
+						unset( $field_value['api_key'] );
+					}
 					$field_value = array_merge( $api_options, $field_value );
 				}
 
