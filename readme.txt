@@ -98,6 +98,9 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 0.1.4.3 =
+- Security: Hardened access control on the plugin admin screen and masked the stored API key in the settings UI.
+
 = 0.1.4.2 (beta) =
 - Fixed: Hardened the custom plugin sync path.
 
