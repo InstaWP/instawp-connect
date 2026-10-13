@@ -96,7 +96,15 @@ class InstaWP_Setting {
 		$allowed_role   = 'administrator';
 		$selected_roles = Option::get_option( 'instawp_sync_tab_roles' );
 
-		if ( ! empty( $selected_roles ) ) {
+		// A role listed in the option is only honoured when the current user also holds a
+		// minimum management capability -- Editor-level `manage_categories` or admin
+		// `manage_options`. This prevents a low-privilege role (Subscriber/Author/
+		// Contributor, none of which have `manage_categories`) from ever becoming the
+		// allowed role, even if it was mistakenly added to instawp_sync_tab_roles: such a
+		// user falls through to the 'administrator' default, which they do not have, so
+		// they are denied. The capability gate here also protects the sync AJAX handlers,
+		// which authorise against this same method.
+		if ( ! empty( $selected_roles ) && ( current_user_can( 'manage_categories' ) || current_user_can( 'manage_options' ) ) ) {
 			foreach ( $selected_roles as $role ) {
 				if ( current_user_can( $role ) ) {
 					$allowed_role = $role;

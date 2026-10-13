@@ -4,15 +4,6 @@
  */
 
 defined( 'ABSPATH' ) || exit;
-
-// Settings/Developer tabs (and the API key the Settings tab renders) are for administrators
-// only. Defence-in-depth: even if this template were ever included for a lower-privileged
-// user, never emit its contents without the manage_options capability. Use the global
-// instawp_is_admin() helper (loaded at bootstrap, guards the current_user_can() fatal) and
-// fail closed if it is somehow unavailable.
-if ( ! function_exists( 'instawp_is_admin' ) || ! instawp_is_admin( 'manage_options' ) ) {
-	return;
-}
 ?>
 
 <div class="nav-item-content developer bg-white rounded-md p-6">
