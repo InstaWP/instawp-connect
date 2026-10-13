@@ -4,7 +4,7 @@ Tags: clone, migrate, staging, backup, restore
 Requires at least: 5.6
 Tested up to: 7.1
 Requires PHP: 7.0
-Stable tag: 0.1.4.1
+Stable tag: 0.1.4.2
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -97,6 +97,10 @@ Need support or want to partner with us? Go to our [website](http://instawp.com/
 You can report security bugs through the Patchstack Vulnerability Disclosure Program. The Patchstack team helps validate, triage, and handle any security vulnerabilities. [Report a security vulnerability](https://patchstack.com/database/vdp/instawp-connect).
 
 == Changelog ==
+
+= 0.1.4.2 - 13 October 2026 =
+- Security: Hardened access control on the plugin admin screen and masked the stored API key in the settings UI.
+- Fixed: Hardened the custom plugin sync path.
 
 = 0.1.4.1 - 29 September 2026 =
 - Fixed: Staging sites no longer miss plugins and themes.

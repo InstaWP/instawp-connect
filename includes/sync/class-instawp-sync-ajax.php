@@ -177,6 +177,14 @@ class InstaWP_Sync_Ajax {
 				$results   = array();
 				$all_roles = wp_roles()->roles;
 				foreach ( $all_roles as $slug => $role ) {
+					// Only roles privileged enough to be trusted with Sync Tab Access may be
+					// selected: those holding Editor-level `manage_categories` or admin
+					// `manage_options`. This keeps a low-privilege role off the list, so it
+					// can never be granted access to the plugin page (see get_allowed_role()).
+					$capabilities = isset( $role['capabilities'] ) && is_array( $role['capabilities'] ) ? $role['capabilities'] : array();
+					if ( empty( $capabilities['manage_categories'] ) && empty( $capabilities['manage_options'] ) ) {
+						continue;
+					}
 					$results[] = array(
 						'id'   => $slug,
 						'name' => $role['name'],
