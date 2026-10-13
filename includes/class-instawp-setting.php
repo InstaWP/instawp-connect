@@ -113,10 +113,11 @@ class InstaWP_Setting {
 	 * (Create / Staging / Manage / Settings / Developer) and the data they
 	 * render -- notably the plaintext master API key on the Settings tab.
 	 * Used by get_plugin_nav_items() and the per-tab templates so the gate is
-	 * defined in exactly one place.
+	 * defined in exactly one place. Delegates to instawp_is_admin(), which guards
+	 * against current_user_can() being called before pluggable.php is loaded.
 	 */
 	public static function current_user_can_manage() {
-		return current_user_can( 'manage_options' );
+		return instawp_is_admin( 'manage_options' );
 	}
 
 	public static function generate_section_field( $field = array() ) {
