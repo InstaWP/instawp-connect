@@ -150,7 +150,7 @@ class InstaWP_Admin {
 		add_management_page(
 			defined( 'IWP_PLUGIN_NAME' ) ? IWP_PLUGIN_NAME : esc_html__( 'InstaWP', 'instawp-connect' ),
 			defined( 'IWP_PLUGIN_NAME' ) ? IWP_PLUGIN_NAME : esc_html__( 'InstaWP', 'instawp-connect' ),
-			InstaWP_Setting::get_allowed_role(),
+			INSTAWP_SYNC_ACCESS_CAP,
 			'instawp',
 			array( $this, 'render_migrate_page' ),
 			1

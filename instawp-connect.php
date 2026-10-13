@@ -39,6 +39,7 @@ defined( 'INSTAWP_BACKUP_DIR' ) || define( 'INSTAWP_BACKUP_DIR', WP_CONTENT_DIR 
 defined( 'INSTAWP_DOCS_URL_PLUGIN' ) || define( 'INSTAWP_DOCS_URL_PLUGIN', esc_url( 'https://instawp.to/docs/plugin-errors' ) );
 defined( 'INSTAWP_PLUGIN_SLUG' ) || define( 'INSTAWP_PLUGIN_SLUG', 'instawp-connect' );
 defined( 'INSTAWP_PLUGIN_NAME' ) || define( 'INSTAWP_PLUGIN_NAME', plugin_basename( __FILE__ ) );
+defined( 'INSTAWP_SYNC_ACCESS_CAP' ) || define( 'INSTAWP_SYNC_ACCESS_CAP', 'instawp_sync_access' );
 defined( 'INSTAWP_DB_TABLE_EVENTS' ) || define( 'INSTAWP_DB_TABLE_EVENTS', $wpdb->prefix . 'instawp_events' );
 defined( 'INSTAWP_DB_TABLE_SYNC_HISTORY' ) || define( 'INSTAWP_DB_TABLE_SYNC_HISTORY', $wpdb->prefix . 'instawp_sync_history' );
 defined( 'INSTAWP_DB_TABLE_EVENT_SITES' ) || define( 'INSTAWP_DB_TABLE_EVENT_SITES', $wpdb->prefix . 'instawp_event_sites' );
@@ -119,5 +120,8 @@ function run_instawp() {
 }
 
 add_filter( 'got_rewrite', '__return_true' );
+
+// Dynamically grant the plugin's dedicated admin-page capability (no role mutation).
+add_filter( 'map_meta_cap', 'instawp_map_sync_access_cap', 10, 3 );
 
 run_instawp();

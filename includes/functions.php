@@ -1673,3 +1673,41 @@ if ( ! function_exists( 'instawp_get_plans' ) ) {
 		return $response;
 	}
 }
+
+if ( ! function_exists( 'instawp_map_sync_access_cap' ) ) {
+	/**
+	 * Dynamically grant the plugin's dedicated admin-page capability
+	 * (INSTAWP_SYNC_ACCESS_CAP) from the live instawp_sync_tab_roles option, WITHOUT
+	 * persisting a capability onto any role. A user is granted the cap only if they are
+	 * an administrator, or they hold a role the site admin explicitly selected for Sync
+	 * Tab Access. Roles outside that selection -- including every role below a selected
+	 * one -- never receive it, so a lower-privileged user cannot reach the plugin page.
+	 *
+	 * @param string[] $caps    Primitive capabilities the check is mapped to.
+	 * @param string   $cap     The capability being checked.
+	 * @param int      $user_id The user the check is for.
+	 *
+	 * @return string[]
+	 */
+	function instawp_map_sync_access_cap( $caps, $cap, $user_id ) {
+		if ( ! defined( 'INSTAWP_SYNC_ACCESS_CAP' ) || INSTAWP_SYNC_ACCESS_CAP !== $cap ) {
+			return $caps;
+		}
+
+		// Administrators always have access.
+		if ( user_can( $user_id, 'manage_options' ) ) {
+			return array( 'read' );
+		}
+
+		$user = get_userdata( $user_id );
+		if ( ! $user instanceof WP_User ) {
+			return array( 'do_not_allow' );
+		}
+
+		$selected_roles = Option::get_option( 'instawp_sync_tab_roles', array( 'administrator' ) );
+		$selected_roles = ( is_array( $selected_roles ) && ! empty( $selected_roles ) ) ? $selected_roles : array( 'administrator' );
+
+		// Grant only to a selected role (resolves to a cap every wp-admin role holds); deny otherwise.
+		return array_intersect( (array) $user->roles, $selected_roles ) ? array( 'read' ) : array( 'do_not_allow' );
+	}
+}
