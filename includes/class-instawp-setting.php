@@ -81,7 +81,7 @@ class InstaWP_Setting {
 		// features only; a mixed list such as array( 'administrator', 'subscriber' ) must
 		// not expose the staging, manage, settings or developer tabs -- and the API key the
 		// settings tab renders -- to that lower-privileged user.
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! self::current_user_can_manage() ) {
 			unset( $instawp_nav_items['create'] );
 			unset( $instawp_nav_items['sites'] );
 			unset( $instawp_nav_items['manage'] );
@@ -106,6 +106,17 @@ class InstaWP_Setting {
 		}
 
 		return $allowed_role;
+	}
+
+	/**
+	 * Single source of truth for who may view the plugin's admin-only tabs
+	 * (Create / Staging / Manage / Settings / Developer) and the data they
+	 * render -- notably the plaintext master API key on the Settings tab.
+	 * Used by get_plugin_nav_items() and the per-tab templates so the gate is
+	 * defined in exactly one place.
+	 */
+	public static function current_user_can_manage() {
+		return current_user_can( 'manage_options' );
 	}
 
 	public static function generate_section_field( $field = array() ) {

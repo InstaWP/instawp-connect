@@ -8,7 +8,7 @@ defined( 'ABSPATH' ) || exit;
 // Settings/Developer tabs (and the API key the Settings tab renders) are for administrators
 // only. Defence-in-depth: even if this template were ever included for a lower-privileged
 // user, never emit its contents without the manage_options capability.
-if ( ! current_user_can( 'manage_options' ) ) {
+if ( ! InstaWP_Setting::current_user_can_manage() ) {
 	return;
 }
 ?>
