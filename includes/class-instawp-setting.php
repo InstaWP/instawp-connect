@@ -211,9 +211,9 @@ class InstaWP_Setting {
 					echo '<div id="' . esc_attr( $masked_wrap_id ) . '" class="instawp-masked-field flex items-center gap-2 w-full">';
 					echo '<input type="text" value="' . esc_attr( str_repeat( '•', 16 ) ) . '" class="' . esc_attr( $css_class ) . '" readonly data-iwp-masked-display />';
 					echo '<button type="button" class="whitespace-nowrap text-sm font-medium text-primary-900 underline" data-iwp-masked-edit>' . esc_html__( 'Edit', 'instawp-connect' ) . '</button>';
-					echo '<input ' . implode( ' ', $attributes ) . ' type="' . esc_attr( $field_type ) . '" name="' . esc_attr( $field_name ) . '" id="' . esc_attr( $field_name_class ) . '" value="" autocomplete="off" placeholder="' . esc_attr__( 'Enter a new API key', 'instawp-connect' ) . '" class="hidden ' . esc_attr( $css_class ) . '" data-iwp-masked-input />'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+					echo '<input ' . implode( ' ', $attributes ) . ' type="' . esc_attr( $field_type ) . '" name="' . esc_attr( $field_name ) . '" id="' . esc_attr( $field_name_class ) . '" value="" autocomplete="off" placeholder="' . esc_attr__( 'Enter a new API key', 'instawp-connect' ) . '" class="' . esc_attr( $css_class ) . '" style="display:none;" data-iwp-masked-input />'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 					echo '</div>';
-					echo '<script>(function(){var w=document.getElementById(' . wp_json_encode( $masked_wrap_id ) . ');if(!w){return;}var b=w.querySelector("[data-iwp-masked-edit]"),d=w.querySelector("[data-iwp-masked-display]"),i=w.querySelector("[data-iwp-masked-input]");if(b&&d&&i){b.addEventListener("click",function(){d.classList.add("hidden");b.classList.add("hidden");i.classList.remove("hidden");i.focus();});}})();</script>';
+					echo '<script>(function(){var w=document.getElementById(' . wp_json_encode( $masked_wrap_id ) . ');if(!w){return;}var b=w.querySelector("[data-iwp-masked-edit]"),d=w.querySelector("[data-iwp-masked-display]"),i=w.querySelector("[data-iwp-masked-input]");if(b&&d&&i){b.addEventListener("click",function(){d.style.display="none";b.style.display="none";i.style.display="block";i.focus();});}})();</script>';
 					break;
 				}
 
