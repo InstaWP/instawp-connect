@@ -138,6 +138,7 @@ class InstaWP_Setting {
 		$field_options       = self::get_args_option( 'options', $field, array() );
 		$field_options       = ! is_array( $field_options ) ? array() : $field_options;
 		$field_default_value = self::get_args_option( 'default', $field );
+		$field_mask          = self::get_args_option( 'mask', $field, false );
 		$field_label_class   = self::get_args_option( 'label_class', $field );
 		$field_parent_class  = self::get_args_option( 'parent_class', $field );
 		$field_value         = Option::get_option( $field_id, $field_default_value );
@@ -196,6 +197,25 @@ class InstaWP_Setting {
 			case 'url':
 				$css_class = 'inline-block rounded-md border-grayCust-350 shadow-sm focus:border-primary-900 focus:ring-1 focus:ring-primary-900 sm:text-sm';
 				$css_class = $field_class ? $css_class . ' ' . trim( $field_class ) : 'w-full ' . $css_class;
+
+				// A masked field (the API Key) must never emit its stored value into the page
+				// DOM -- not even for an administrator -- since the raw value in page source
+				// can leak via history, caching, referrers or link prefetchers. When a value
+				// is already saved, show a read-only masked display plus an Edit button; the
+				// real input stays EMPTY and hidden until the user clicks Edit to type a new
+				// value. Submitting it blank keeps the stored value (see the InstaWP_Migration
+				// settings-save handler).
+				if ( $field_mask && '' !== (string) $field_value ) {
+					$masked_wrap_id = $field_name_class . '_masked';
+
+					echo '<div id="' . esc_attr( $masked_wrap_id ) . '" class="instawp-masked-field flex items-center gap-2 w-full">';
+					echo '<input type="text" value="' . esc_attr( str_repeat( '•', 16 ) ) . '" class="' . esc_attr( $css_class ) . '" readonly data-iwp-masked-display />';
+					echo '<button type="button" class="whitespace-nowrap text-sm font-medium text-primary-900 underline" data-iwp-masked-edit>' . esc_html__( 'Edit', 'instawp-connect' ) . '</button>';
+					echo '<input ' . implode( ' ', $attributes ) . ' type="' . esc_attr( $field_type ) . '" name="' . esc_attr( $field_name ) . '" id="' . esc_attr( $field_name_class ) . '" value="" autocomplete="off" placeholder="' . esc_attr__( 'Enter a new API key', 'instawp-connect' ) . '" class="hidden ' . esc_attr( $css_class ) . '" data-iwp-masked-input />'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+					echo '</div>';
+					echo '<script>(function(){var w=document.getElementById(' . wp_json_encode( $masked_wrap_id ) . ');if(!w){return;}var b=w.querySelector("[data-iwp-masked-edit]"),d=w.querySelector("[data-iwp-masked-display]"),i=w.querySelector("[data-iwp-masked-input]");if(b&&d&&i){b.addEventListener("click",function(){d.classList.add("hidden");b.classList.add("hidden");i.classList.remove("hidden");i.focus();});}})();</script>';
+					break;
+				}
 
 				echo '<input ' . implode( ' ', $attributes ) . ' type="' . esc_attr( $field_type ) . '" name="' . esc_attr( $field_name ) . '" id="' . esc_attr( $field_name_class ) . '" value="' . esc_attr( $field_value ) . '" autocomplete="off" placeholder="' . esc_attr( $field_placeholder ) . '" class="' . esc_attr( $css_class ) . '" />'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 				break;
@@ -334,6 +354,7 @@ class InstaWP_Setting {
 					'id'          => 'instawp_api_options',
 					'name'        => 'api_key',
 					'type'        => 'text',
+					'mask'        => true,
 					'title'       => esc_html__( 'API Key', 'instawp-connect' ),
 					'placeholder' => esc_attr( 'gL8tbdZFfG8yQCXu0IycBa' ),
 					'attributes'  => array(//                       'readonly' => true,
