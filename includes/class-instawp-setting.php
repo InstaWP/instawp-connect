@@ -75,14 +75,18 @@ class InstaWP_Setting {
 			unset( $instawp_nav_items['manage'] );
 		}
 
-		$instawp_sync_tab_roles = Option::get_option( 'instawp_sync_tab_roles', array( 'administrator' ) );
-		$instawp_sync_tab_roles = empty( $instawp_sync_tab_roles ) ? array( 'administrator' ) : $instawp_sync_tab_roles;
-
-		if ( ! in_array( 'administrator', $instawp_sync_tab_roles ) ) {
+		// Decide tab visibility by the VIEWING USER's capability, never by whether
+		// 'administrator' happens to be present in the instawp_sync_tab_roles option.
+		// A user who reached this page through an allowed Sync Tab role gets the syncing
+		// features only; a mixed list such as array( 'administrator', 'subscriber' ) must
+		// not expose the staging, manage, settings or developer tabs -- and the API key the
+		// settings tab renders -- to that lower-privileged user.
+		if ( ! current_user_can( 'manage_options' ) ) {
 			unset( $instawp_nav_items['create'] );
 			unset( $instawp_nav_items['sites'] );
 			unset( $instawp_nav_items['manage'] );
 			unset( $instawp_nav_items['settings'] );
+			unset( $instawp_nav_items['developer'] );
 		}
 
 		return apply_filters( 'instawp/filters/plugin_nav_items', $instawp_nav_items );
