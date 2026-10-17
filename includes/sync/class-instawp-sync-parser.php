@@ -423,7 +423,36 @@ class InstaWP_Sync_Parser {
 			$css_file->delete();
 		}
 
+		// Beaver Builder renders uploads/bb-plugin/cache/<id>-layout.css from _fl_builder_data once and
+		// only purges it from its own save path, which a meta write bypasses, so the destination kept
+		// serving the old styling over the new layout. Mirror FLBuilderModel::save_layout().
+		if ( self::has_beaver_builder_meta( $meta_data ) && class_exists( 'FLBuilderModel' ) && function_exists( 'fl_builder_filesystem' ) ) {
+			if ( method_exists( 'FLBuilderModel', 'delete_all_asset_cache' ) ) {
+				FLBuilderModel::delete_all_asset_cache( $post_id );
+			}
+			if ( method_exists( 'FLBuilderModel', 'delete_node_template_asset_cache' ) ) {
+				FLBuilderModel::delete_node_template_asset_cache( $post_id );
+			}
+		}
+
 		delete_post_meta( $post_id, '_edit_lock' );
+	}
+
+	/**
+	 * Whether a synced post-meta payload carries Beaver Builder layout meta (_fl_builder_*).
+	 *
+	 * @param array $meta_data
+	 *
+	 * @return bool
+	 */
+	private static function has_beaver_builder_meta( $meta_data ) {
+		foreach ( array_keys( $meta_data ) as $meta_key ) {
+			if ( 0 === strpos( (string) $meta_key, '_fl_builder_' ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	public static function parse_post_events( $details ) {
