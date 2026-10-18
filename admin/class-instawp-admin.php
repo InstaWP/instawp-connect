@@ -142,8 +142,8 @@ class InstaWP_Admin {
 			return;
 		}
 
-		$selected_users = Option::get_option( 'instawp_hide_plugin_to_users' );
-		if ( ! empty( $selected_users ) && is_array( $selected_users ) && in_array( get_current_user_id(), $selected_users ) ) {
+		// Respects show-list (whitelist) precedence over hide-list (blacklist). See InstaWP_Setting::can_user_see_menu().
+		if ( ! InstaWP_Setting::can_user_see_menu() ) {
 			return;
 		}
 
