@@ -108,6 +108,23 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 		}
 	}
 
+	/**
+	 * Honour the exclusion list for the above-root wp-config.php too.
+	 *
+	 * $excluded_paths is only ever applied by get_iterator_items(), which walks WP_ROOT. A
+	 * config kept one directory ABOVE WP_ROOT is never seen by that iterator, so the separate
+	 * handling below used to insert it straight into the send queue and silently bypass the
+	 * exclusion. On a pull — where process_migration_settings() always excludes wp-config.php —
+	 * that shipped the SOURCE's config to the destination, where it overwrote the destination's
+	 * own DB credentials and left the migrated site unable to connect to its database.
+	 *
+	 * Push and end-to-end do not exclude wp-config.php, so they keep the separate handling and
+	 * iwp-dest rewrites the DB constants on arrival.
+	 */
+	if ( $handle_config_separately && in_array( 'wp-config.php', $excluded_paths, true ) ) {
+		$handle_config_separately = false;
+	}
+
 	$unsent_files_count  = $tracking_db->query_count( 'iwp_files_sent', array( 'sent' => '0' ) );
 	$progress_percentage = 0;
 
@@ -295,11 +312,15 @@ if ( isset( $_REQUEST['serve_type'] ) && 'files' === $_REQUEST['serve_type'] ) {
 			$filePath     = $row['filepath'];
 			$file_name    = basename( $filePath );
 			$relativePath = ltrim( str_replace( WP_ROOT, "", $filePath ), DIRECTORY_SEPARATOR );
-			$filePath     = process_files( $tracking_db, $filePath, $relativePath );
 
-			if ( $handle_config_separately && $file_name === 'wp-config.php' ) {
+			// Normalise before process_files() so its wp-config.php sanitiser matches — same
+			// ordering fix as in send_by_zip().
+			if ( $handle_config_separately && 'wp-config.php' === $file_name ) {
 				$relativePath = $file_name;
 			}
+
+			$filePath = process_files( $tracking_db, $filePath, $relativePath );
+
 			header( 'Content-Type: application/octet-stream' );
 			header( 'x-file-relative-path: ' . $relativePath );
 			header( 'x-iwp-progress: ' . $progress_percentage );
