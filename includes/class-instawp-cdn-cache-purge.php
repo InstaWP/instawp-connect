@@ -34,6 +34,8 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 			add_action( 'upgrader_process_complete', array( $this, 'handle_upgrade_complete' ), 20, 2 );
 			add_action( 'automatic_updates_complete', array( $this, 'handle_automatic_updates_complete' ), 20 );
 			add_action( 'switch_theme', array( $this, 'queue_full_purge' ), 20 );
+			// Replacing a plugin/theme by zip upload completes as action=install, not update.
+			add_action( 'upgrader_overwrote_package', array( $this, 'queue_full_purge' ), 20 );
 			add_action( 'shutdown', array( $this, 'flush_pending_purges' ) );
 		}
 
@@ -143,6 +145,10 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		 */
 		public function queue_full_purge() {
 			if ( ! $this->is_auto_purge_enabled() ) {
+				return;
+			}
+
+			if ( empty( Helper::get_connect_id() ) ) {
 				return;
 			}
 
