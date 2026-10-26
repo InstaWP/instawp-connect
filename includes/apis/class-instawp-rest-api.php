@@ -932,20 +932,14 @@ class InstaWP_Rest_Api {
 			return $disabled;
 		}
 
-		if ( $this->has_login_cookie() ) {
-			return $access;
-		}
-
-		return $this->is_authenticated_instawp_request( $route ) ? true : $access;
+		return $this->is_trusted_instawp_request() ? true : $access;
 	}
 
 	/**
 	 * Bypass BuddyBoss endpoints blocking
 	 */
 	public function endpoints_from_restriction_callback( $default_exclude_endpoint, $current_endpoint ) {
-		$route = $this->get_current_route();
-
-		if ( $this->is_instawp_namespace( $route ) && $this->is_authenticated_instawp_request( $route ) ) {
+		if ( $this->is_trusted_instawp_request() ) {
 			$default_exclude_endpoint[] = $current_endpoint;
 		}
 
@@ -956,9 +950,7 @@ class InstaWP_Rest_Api {
 	 * Check if Current REST route contains instawp or not
 	 */
 	public function perform_actions() {
-		$route = $this->get_current_route();
-
-		if ( $this->is_instawp_namespace( $route ) && ! is_wp_error( $this->get_disabled_route_error( $route ) ) && $this->is_authenticated_instawp_request( $route ) ) {
+		if ( $this->is_trusted_instawp_request() ) {
 			remove_action( 'init', 'csmm_plugin_init' ); // minimal-coming-soon-maintenance-mode support
 		}
 	}
@@ -1224,6 +1216,20 @@ class InstaWP_Rest_Api {
 	 * @var array<string, bool>
 	 */
 	private $auth_results = array();
+
+	/**
+	 * Whether the current request is a genuine InstaWP call to one of the plugin's enabled routes:
+	 * the only case in which other plugins' REST and maintenance blocks are lifted.
+	 *
+	 * @return bool
+	 */
+	protected function is_trusted_instawp_request() {
+		$route = $this->get_current_route();
+
+		return $this->is_instawp_namespace( $route )
+			&& ! is_wp_error( $this->get_disabled_route_error( $route ) )
+			&& $this->is_authenticated_instawp_request( $route );
+	}
 
 	/**
 	 * Whether a route is in the plugin's own namespace.
