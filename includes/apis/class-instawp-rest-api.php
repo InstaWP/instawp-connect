@@ -885,8 +885,10 @@ class InstaWP_Rest_Api {
 	 *
 	 *  1. A route outside the `instawp-connect` namespace is never touched, so WordPress core's
 	 *     cookie and nonce checks keep their verdict on every other route.
-	 *  2. Our routes authenticate with InstaWP's own credentials only and never act on a browser
-	 *     login, so the cookie user is dropped. A forged cross-site request therefore runs as nobody.
+	 *  2. InstaWP never calls our routes with WordPress login cookies, so a request that carries
+	 *     them comes from a browser and keeps the result it already had, credential or not. That
+	 *     includes core's nonce check. Any other request runs as no user: our routes authenticate
+	 *     with InstaWP's own credentials only.
 	 *  3. Another plugin's block is cleared only when the request carries the credential its route
 	 *     requires, see get_route_auth_type(). Anything else keeps the result it already had.
 	 *
@@ -899,7 +901,7 @@ class InstaWP_Rest_Api {
 	public function rest_access( $access ) {
 		$route = $this->get_current_route();
 
-		if ( ! $this->is_instawp_namespace( $route ) ) {
+		if ( ! $this->is_instawp_namespace( $route ) || $this->has_login_cookie() ) {
 			return $access;
 		}
 
@@ -1144,24 +1146,23 @@ class InstaWP_Rest_Api {
 	 * - config:     WordPress username + application password in the request body; used before
 	 *               the site has an API key.
 	 * - sync_token: sha256( connect_id . '_' . connect_uuid ), sent by the peer site in a 2-way sync.
-	 * - api_key:    the site's InstaWP API key (raw or sha256), sent by the InstaWP platform.
+	 * - api_key:    sha256 of the site's InstaWP API key, sent by the InstaWP platform.
+	 * - api_key_or_raw: the API key raw or as sha256; only for handlers that accept the raw key.
 	 *
 	 * @var array<string, string[]>
 	 */
 	protected static $route_auth_map = array(
-		'config'     => array(
+		'config'         => array(
 			'/instawp-connect/v1/config',
 		),
-		'sync_token' => array(
+		'sync_token'     => array(
 			'/instawp-connect/v1/sync/download-media',
 		),
-		'api_key'    => array(
+		'api_key'        => array(
 			'/instawp-connect/v1/mark-parent',
 			'/instawp-connect/v1/mark-staging',
 			'/instawp-connect/v1/migration-finished',
 			'/instawp-connect/v1/sync',
-			'/instawp-connect/v1/sync/events',
-			'/instawp-connect/v1/sync/summary',
 			'/instawp-connect/v2/refresh-staging-sites-list',
 			'/instawp-connect/v2/disconnect',
 			'/instawp-connect/v2/auto-login',
@@ -1199,6 +1200,10 @@ class InstaWP_Rest_Api {
 			'/instawp-connect/v3/site-usage',
 			'/instawp-connect/v3/create-update-task',
 		),
+		'api_key_or_raw' => array(
+			'/instawp-connect/v1/sync/events',
+			'/instawp-connect/v1/sync/summary',
+		),
 	);
 
 	/**
@@ -1206,7 +1211,7 @@ class InstaWP_Rest_Api {
 	 *
 	 * @var array<string, bool>
 	 */
-	private static $auth_results = array();
+	private $auth_results = array();
 
 	/**
 	 * Whether a route is in the plugin's own namespace.
@@ -1248,15 +1253,19 @@ class InstaWP_Rest_Api {
 	 * @return bool
 	 */
 	protected function is_authenticated_instawp_request( $route ) {
-		if ( isset( self::$auth_results[ $route ] ) ) {
-			return self::$auth_results[ $route ];
+		if ( $this->has_login_cookie() ) {
+			return false;
+		}
+
+		if ( isset( $this->auth_results[ $route ] ) ) {
+			return $this->auth_results[ $route ];
 		}
 
 		$auth_type = $this->get_route_auth_type( $route );
 		$result    = false;
 
-		if ( 'api_key' === $auth_type ) {
-			$result = true === $this->validate_api_request( $this->get_request_from_globals( $route ), '', true );
+		if ( 'api_key' === $auth_type || 'api_key_or_raw' === $auth_type ) {
+			$result = true === $this->validate_api_request( $this->get_request_from_globals( $route ), '', 'api_key_or_raw' === $auth_type );
 		} elseif ( 'sync_token' === $auth_type ) {
 			$result = $this->is_valid_sync_token( $this->get_request_from_globals( $route ) );
 		} elseif ( 'config' === $auth_type ) {
@@ -1264,9 +1273,26 @@ class InstaWP_Rest_Api {
 			$result  = true === $this->validate_config_credentials( $this->filter_params( $request ) );
 		}
 
-		self::$auth_results[ $route ] = $result;
+		$this->auth_results[ $route ] = $result;
 
 		return $result;
+	}
+
+	/**
+	 * Whether the request carries a WordPress login cookie.
+	 *
+	 * InstaWP's own calls to these routes never do, so such a request is never exempted.
+	 *
+	 * @return bool
+	 */
+	protected function has_login_cookie() {
+		foreach ( array( 'AUTH_COOKIE', 'SECURE_AUTH_COOKIE', 'LOGGED_IN_COOKIE' ) as $cookie ) {
+			if ( defined( $cookie ) && ! empty( $_COOKIE[ constant( $cookie ) ] ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
