@@ -104,15 +104,12 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 			return $this->sync_api_error( $bearer_token->get_error_message() );
 		}
 
-		$instawp_api_options = get_option( 'instawp_api_options' );
+		$hash = $this->get_sync_token_hash();
 
 		// Without connect details there is no shared secret to compare the token against.
-		if ( empty( $instawp_api_options ) || empty( $instawp_api_options['connect_id'] ) || empty( $instawp_api_options['connect_uuid'] ) ) {
+		if ( '' === $hash ) {
 			return $this->sync_api_error( esc_html__( 'Empty API options.', 'instawp-connect' ) );
 		}
-
-		// Prepare hash
-		$hash = hash( 'sha256', $instawp_api_options['connect_id'] . '_' . $instawp_api_options['connect_uuid'] );
 
 		// Known value first, user supplied value second, as hash_equals() expects.
 		if ( ! hash_equals( $hash, $bearer_token ) ) {

@@ -13,6 +13,13 @@ class InstaWP_Rest_Api {
 	protected $version_2;
 	protected $version_3;
 
+	/**
+	 * Whether the request-wide hooks have been added, see __construct().
+	 *
+	 * @var bool
+	 */
+	private static $request_hooks_added = false;
+
 	public function __construct() {
 		$this->version   = 'v1';
 		$this->version_2 = 'v2';
@@ -20,9 +27,15 @@ class InstaWP_Rest_Api {
 		$this->namespace = 'instawp-connect';
 
 		add_action( 'rest_api_init', array( $this, 'add_api_routes' ) );
-		add_filter( 'rest_authentication_errors', array( $this, 'rest_access' ), 999 );
-		add_filter( 'bb_exclude_endpoints_from_restriction', array( $this, 'endpoints_from_restriction_callback' ), 99, 2 );
-		add_action( 'init', array( $this, 'perform_actions' ), 0 );
+
+		// Every API class extends this one; the request-wide hooks are added by the first only.
+		if ( ! self::$request_hooks_added ) {
+			self::$request_hooks_added = true;
+
+			add_filter( 'rest_authentication_errors', array( $this, 'rest_access' ), 999 );
+			add_filter( 'bb_exclude_endpoints_from_restriction', array( $this, 'endpoints_from_restriction_callback' ), 99, 2 );
+			add_action( 'init', array( $this, 'perform_actions' ), 0 );
+		}
 	}
 
 	public function add_api_routes() {
@@ -255,52 +268,15 @@ class InstaWP_Rest_Api {
 				);
 			}
 
-			$application_password = base64_decode( $application_password ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
-			$application_password = str_replace( ' ', '', $application_password );
-			$wp_username          = base64_decode( $wp_username ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
-			$wp_user              = get_user_by( 'login', $wp_username );
-			$is_validated         = false;
+			// Same check the REST authentication gate runs, see is_authenticated_instawp_request().
+			$credentials = $this->validate_config_credentials( $parameters );
 
-			// Check if WP_User is valid or not
-			if ( ! $wp_user instanceof WP_User ) {
+			if ( is_wp_error( $credentials ) ) {
 				return $this->send_response(
 					array(
 						'status'  => false,
 						'success' => false,
-						'message' => esc_html__( 'No user found with the provided username.', 'instawp-connect' ),
-					)
-				);
-			}
-
-			// Check if the user is an administrator or not
-			if ( ! user_can( $wp_user, 'manage_options' ) ) {
-				return $this->send_response(
-					array(
-						'status'  => false,
-						'success' => false,
-						'message' => esc_html__( 'This user does not have capability to config the website.', 'instawp-connect' ),
-					)
-				);
-			}
-
-			$application_passwords = get_user_meta( $wp_user->ID, '_application_passwords', true );
-			$application_passwords = ! is_array( $application_passwords ) ? array() : $application_passwords;
-
-			foreach ( $application_passwords as $password_data ) {
-				$password = isset( $password_data['password'] ) ? $password_data['password'] : '';
-
-				if ( $this->check_password( $application_password, $password, $wp_user->ID ) ) {
-					$is_validated = true;
-					break;
-				}
-			}
-
-			if ( ! $is_validated ) {
-				return $this->send_response(
-					array(
-						'status'  => false,
-						'success' => false,
-						'message' => esc_html__( 'Application password does not match.', 'instawp-connect' ),
+						'message' => $credentials->get_error_message(),
 					)
 				);
 			}
@@ -901,27 +877,61 @@ class InstaWP_Rest_Api {
 	}
 
 	/**
-	 * Checks for a current route being requested, and processes the allowlist
+	 * Authentication gate for the plugin's REST API.
 	 *
-	 * @param $access
+	 * Hooked late on `rest_authentication_errors` so it can clear blocks that security, privacy and
+	 * maintenance plugins put on unauthenticated REST requests, which would otherwise stop InstaWP
+	 * from reaching its own routes. It does so in three steps:
 	 *
-	 * @return WP_Error|null|boolean
+	 *  1. A route outside the `instawp-connect` namespace is never touched, so WordPress core's
+	 *     cookie and nonce checks keep their verdict on every other route.
+	 *  2. Our routes authenticate with InstaWP's own credentials only and never act on a browser
+	 *     login, so the cookie user is dropped. A forged cross-site request therefore runs as nobody.
+	 *  3. Another plugin's block is cleared only when the request carries the credential its route
+	 *     requires, see get_route_auth_type(). Anything else keeps the result it already had.
+	 *
+	 * The route handlers still run their own credential checks; this gate does not replace them.
+	 *
+	 * @param WP_Error|null|bool $access Result from earlier callbacks.
+	 *
+	 * @return WP_Error|null|bool
 	 */
 	public function rest_access( $access ) {
-		$instawp_route = $this->is_instawp_route();
+		$route = $this->get_current_route();
 
-		if ( is_wp_error( $instawp_route ) ) {
-			return $instawp_route;
+		if ( ! $this->is_instawp_namespace( $route ) ) {
+			return $access;
 		}
 
-		return $instawp_route ? true : $access;
+		wp_set_current_user( 0 );
+
+		$disabled = $this->get_disabled_route_error( $route );
+		if ( is_wp_error( $disabled ) ) {
+			return $disabled;
+		}
+
+		return $this->is_authenticated_instawp_request( $route ) ? true : $access;
 	}
 
 	/**
-	 * Bypass BuddyBoss endpoints blocking
+	 * Exempt an authenticated InstaWP request from BuddyBoss's private REST API restriction.
+	 *
+	 * The decision is made on the route actually being served, not on the endpoint string
+	 * BuddyBoss passes in, so no other route can borrow the exemption.
+	 *
+	 * @param array        $default_exclude_endpoint Endpoints BuddyBoss already exempts.
+	 * @param string|mixed $current_endpoint         Endpoint BuddyBoss is checking.
+	 *
+	 * @return array
 	 */
 	public function endpoints_from_restriction_callback( $default_exclude_endpoint, $current_endpoint ) {
-		if ( strpos( $current_endpoint, 'instawp-connect' ) !== false ) {
+		if ( ! is_array( $default_exclude_endpoint ) || ! is_string( $current_endpoint ) ) {
+			return $default_exclude_endpoint;
+		}
+
+		$route = $this->get_current_route();
+
+		if ( $this->is_instawp_namespace( $route ) && ! is_wp_error( $this->get_disabled_route_error( $route ) ) && $this->is_authenticated_instawp_request( $route ) ) {
 			$default_exclude_endpoint[] = $current_endpoint;
 		}
 
@@ -929,10 +939,12 @@ class InstaWP_Rest_Api {
 	}
 
 	/**
-	 * Check if Current REST route contains instawp or not
+	 * Stop plugins that would block an authenticated InstaWP request before REST routing starts.
 	 */
 	public function perform_actions() {
-		if ( $this->is_instawp_route() === true ) {
+		$route = $this->get_current_route();
+
+		if ( $this->is_instawp_namespace( $route ) && ! is_wp_error( $this->get_disabled_route_error( $route ) ) && $this->is_authenticated_instawp_request( $route ) ) {
 			remove_action( 'init', 'csmm_plugin_init' ); // minimal-coming-soon-maintenance-mode support
 		}
 	}
@@ -1122,55 +1134,334 @@ class InstaWP_Rest_Api {
 	}
 
 	/**
-	 * Check if Current REST route contains instawp or not.
+	 * Every route the plugin registers, grouped by the credential that authenticates it.
 	 *
-	 * @return bool|WP_Error
+	 * Patterns use register_rest_route() syntax and are matched against the whole route, the way
+	 * WP_REST_Server matches a request. A route missing from this list is never exempted from
+	 * other plugins' REST blocks, so add every new route here, under the credential its handler
+	 * checks.
+	 *
+	 * - config:     WordPress username + application password in the request body; used before
+	 *               the site has an API key.
+	 * - sync_token: sha256( connect_id . '_' . connect_uuid ), sent by the peer site in a 2-way sync.
+	 * - api_key:    the site's InstaWP API key (raw or sha256), sent by the InstaWP platform.
+	 *
+	 * @var array<string, string[]>
 	 */
-	protected function is_instawp_route() {
-		$current_route = $this->get_current_route();
+	protected static $route_auth_map = array(
+		'config'     => array(
+			'/instawp-connect/v1/config',
+		),
+		'sync_token' => array(
+			'/instawp-connect/v1/sync/download-media',
+		),
+		'api_key'    => array(
+			'/instawp-connect/v1/mark-parent',
+			'/instawp-connect/v1/mark-staging',
+			'/instawp-connect/v1/migration-finished',
+			'/instawp-connect/v1/sync',
+			'/instawp-connect/v1/sync/events',
+			'/instawp-connect/v1/sync/summary',
+			'/instawp-connect/v2/refresh-staging-sites-list',
+			'/instawp-connect/v2/disconnect',
+			'/instawp-connect/v2/auto-login',
+			'/instawp-connect/v2/activity-logs',
+			'/instawp-connect/v2/temporary-login',
+			'/instawp-connect/v2/heartbeat',
+			'/instawp-connect/v2/content/posts',
+			'/instawp-connect/v2/content/posts/(?P<post_type>[a-z_-]+)',
+			'/instawp-connect/v2/content/media',
+			'/instawp-connect/v2/content/user-roles',
+			'/instawp-connect/v2/content/users',
+			'/instawp-connect/v2/manage/clear-cache',
+			'/instawp-connect/v2/manage/purge-cdn-cache',
+			'/instawp-connect/v2/manage/inventory',
+			'/instawp-connect/v2/manage/install',
+			'/instawp-connect/v2/manage/update',
+			'/instawp-connect/v2/manage/delete',
+			'/instawp-connect/v2/manage/activate',
+			'/instawp-connect/v2/manage/deactivate',
+			'/instawp-connect/v2/manage/auto-update',
+			'/instawp-connect/v2/manage/configuration',
+			'/instawp-connect/v2/manage/user',
+			'/instawp-connect/v2/manage/database-manager',
+			'/instawp-connect/v2/manage/logs',
+			'/instawp-connect/v2/manage/settings',
+			'/instawp-connect/v2/woocommerce/summary',
+			'/instawp-connect/v2/woocommerce/graph',
+			'/instawp-connect/v2/woocommerce/products',
+			'/instawp-connect/v2/woocommerce/orders',
+			'/instawp-connect/v2/woocommerce/users',
+			'/instawp-connect/v3/pull',
+			'/instawp-connect/v3/push',
+			'/instawp-connect/v3/post-cleanup',
+			'/instawp-connect/v3/update-migration',
+			'/instawp-connect/v3/site-usage',
+			'/instawp-connect/v3/create-update-task',
+		),
+	);
 
-		if ( $current_route && strpos( $current_route, 'instawp-connect' ) !== false ) {
-			$endpoints = array(
-				'create' => array( 'pull', 'push', 'post-cleanup' ),
-				'manage' => array( 'manage', 'content', 'woocommerce' ),
-				'sync'   => array( 'sync' ),
-			);
+	/**
+	 * Results of is_authenticated_instawp_request(), per route, for the current request.
+	 *
+	 * @var array<string, bool>
+	 */
+	private static $auth_results = array();
 
-			if ( defined( 'IWP_PLUGIN_DISABLE_FEATURES' ) && is_array( IWP_PLUGIN_DISABLE_FEATURES ) ) {
-				foreach ( IWP_PLUGIN_DISABLE_FEATURES as $key ) {
-					if ( ! isset( $endpoints[ $key ] ) ) {
-						continue;
-					}
+	/**
+	 * Whether a route is in the plugin's own namespace.
+	 *
+	 * Anchored to the start of the route and case-insensitive, matching WP_REST_Server routing.
+	 *
+	 * @param string $route REST route, as returned by get_current_route().
+	 *
+	 * @return bool
+	 */
+	protected function is_instawp_namespace( $route ) {
+		return is_string( $route ) && 1 === preg_match( '@^/instawp-connect/@i', $route );
+	}
 
-					foreach ( $endpoints[ $key ] as $endpoint ) {
-						if ( strpos( $current_route, $endpoint ) !== false ) {
-							return new WP_Error( 400, esc_html__( 'Route not allowed', 'instawp-connect' ) );
-						}
+	/**
+	 * Credential type that authenticates a route, see $route_auth_map.
+	 *
+	 * @param string $route REST route.
+	 *
+	 * @return string Credential type, or '' when the route is not one of ours.
+	 */
+	protected function get_route_auth_type( $route ) {
+		foreach ( self::$route_auth_map as $auth_type => $patterns ) {
+			foreach ( $patterns as $pattern ) {
+				if ( 1 === preg_match( '@^' . $pattern . '$@i', $route ) ) {
+					return $auth_type;
+				}
+			}
+		}
+
+		return '';
+	}
+
+	/**
+	 * Whether the current request carries a valid credential for the route it targets.
+	 *
+	 * @param string $route REST route.
+	 *
+	 * @return bool
+	 */
+	protected function is_authenticated_instawp_request( $route ) {
+		if ( isset( self::$auth_results[ $route ] ) ) {
+			return self::$auth_results[ $route ];
+		}
+
+		$auth_type = $this->get_route_auth_type( $route );
+		$result    = false;
+
+		if ( 'api_key' === $auth_type ) {
+			$result = true === $this->validate_api_request( $this->get_request_from_globals( $route ), '', true );
+		} elseif ( 'sync_token' === $auth_type ) {
+			$result = $this->is_valid_sync_token( $this->get_request_from_globals( $route ) );
+		} elseif ( 'config' === $auth_type ) {
+			$request = $this->get_request_from_globals( $route, true );
+			$result  = true === $this->validate_config_credentials( $this->filter_params( $request ) );
+		}
+
+		self::$auth_results[ $route ] = $result;
+
+		return $result;
+	}
+
+	/**
+	 * Build a WP_REST_Request from the current HTTP request, the same way WP_REST_Server does.
+	 *
+	 * Needed because `rest_authentication_errors` runs before the server hands its own request
+	 * object to anyone.
+	 *
+	 * @param string $route     REST route.
+	 * @param bool   $with_body Whether to read the raw request body.
+	 *
+	 * @return WP_REST_Request
+	 */
+	protected function get_request_from_globals( $route, $with_body = false ) {
+		$method  = isset( $_SERVER['REQUEST_METHOD'] ) ? strtoupper( sanitize_key( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) ) : 'GET';
+		$request = new WP_REST_Request( $method, $route );
+		$server  = function_exists( 'rest_get_server' ) && did_action( 'rest_api_init' ) ? rest_get_server() : new WP_REST_Server();
+
+		$request->set_headers( $server->get_headers( wp_unslash( $_SERVER ) ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$request->set_query_params( wp_unslash( $_GET ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$request->set_body_params( wp_unslash( $_POST ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+
+		if ( $with_body ) {
+			$request->set_body( WP_REST_Server::get_raw_data() );
+		}
+
+		return $request;
+	}
+
+	/**
+	 * Shared token for the 2-way sync peer, or '' when the site is not connected.
+	 *
+	 * @return string
+	 */
+	protected function get_sync_token_hash() {
+		$instawp_api_options = get_option( 'instawp_api_options' );
+
+		if ( empty( $instawp_api_options ) || empty( $instawp_api_options['connect_id'] ) || empty( $instawp_api_options['connect_uuid'] ) ) {
+			return '';
+		}
+
+		return hash( 'sha256', $instawp_api_options['connect_id'] . '_' . $instawp_api_options['connect_uuid'] );
+	}
+
+	/**
+	 * Whether a request carries the 2-way sync peer token.
+	 *
+	 * @param WP_REST_Request $request
+	 *
+	 * @return bool
+	 */
+	protected function is_valid_sync_token( WP_REST_Request $request ) {
+		$hash         = $this->get_sync_token_hash();
+		$bearer_token = $this->get_bearer_token( $request );
+
+		return '' !== $hash && ! is_wp_error( $bearer_token ) && hash_equals( $hash, $bearer_token );
+	}
+
+	/**
+	 * Validate the WordPress username + application password sent to the config route.
+	 *
+	 * @param array $parameters Request parameters.
+	 *
+	 * @return true|WP_Error
+	 */
+	protected function validate_config_credentials( $parameters ) {
+		$wp_username          = isset( $parameters['wp_username'] ) && is_string( $parameters['wp_username'] ) ? sanitize_text_field( $parameters['wp_username'] ) : '';
+		$application_password = isset( $parameters['application_password'] ) && is_string( $parameters['application_password'] ) ? sanitize_text_field( $parameters['application_password'] ) : '';
+
+		if ( empty( $wp_username ) || empty( $application_password ) ) {
+			return new WP_Error( 401, esc_html__( 'This request is not authorized.', 'instawp-connect' ) );
+		}
+
+		$application_password = base64_decode( $application_password ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
+		$application_password = str_replace( ' ', '', $application_password );
+		$wp_username          = base64_decode( $wp_username ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
+		$wp_user              = get_user_by( 'login', $wp_username );
+
+		// Check if WP_User is valid or not
+		if ( ! $wp_user instanceof WP_User ) {
+			return new WP_Error( 403, esc_html__( 'No user found with the provided username.', 'instawp-connect' ) );
+		}
+
+		// Check if the user is an administrator or not
+		if ( ! user_can( $wp_user, 'manage_options' ) ) {
+			return new WP_Error( 403, esc_html__( 'This user does not have capability to config the website.', 'instawp-connect' ) );
+		}
+
+		$application_passwords = get_user_meta( $wp_user->ID, '_application_passwords', true );
+		$application_passwords = ! is_array( $application_passwords ) ? array() : $application_passwords;
+
+		foreach ( $application_passwords as $password_data ) {
+			$password = isset( $password_data['password'] ) ? $password_data['password'] : '';
+
+			if ( $this->check_password( $application_password, $password, $wp_user->ID ) ) {
+				return true;
+			}
+		}
+
+		return new WP_Error( 403, esc_html__( 'Application password does not match.', 'instawp-connect' ) );
+	}
+
+	/**
+	 * Error for a route whose feature is turned off with IWP_PLUGIN_DISABLE_FEATURES.
+	 *
+	 * @param string $route REST route.
+	 *
+	 * @return WP_Error|false
+	 */
+	protected function get_disabled_route_error( $route ) {
+		$endpoints = array(
+			'create' => array( 'pull', 'push', 'post-cleanup' ),
+			'manage' => array( 'manage', 'content', 'woocommerce' ),
+			'sync'   => array( 'sync' ),
+		);
+
+		if ( defined( 'IWP_PLUGIN_DISABLE_FEATURES' ) && is_array( IWP_PLUGIN_DISABLE_FEATURES ) ) {
+			foreach ( IWP_PLUGIN_DISABLE_FEATURES as $key ) {
+				if ( ! isset( $endpoints[ $key ] ) ) {
+					continue;
+				}
+
+				foreach ( $endpoints[ $key ] as $endpoint ) {
+					if ( stripos( $route, $endpoint ) !== false ) {
+						return new WP_Error( 400, esc_html__( 'Route not allowed', 'instawp-connect' ) );
 					}
 				}
 			}
-
-			return true;
 		}
 
 		return false;
 	}
 
 	/**
-	 * Current REST route getter.
+	 * REST route of the current request, or '' when it is not a REST request.
+	 *
+	 * Once WordPress has parsed the request this is exactly the route rest_api_loaded() passes to
+	 * the REST server. Before that (on `init`) it is derived from the URL the same way: a
+	 * `rest_route` query var wins over the pretty-permalink path.
 	 *
 	 * @return string
 	 */
 	protected function get_current_route() {
-		$rest_route = get_query_var( 'rest_route', '/' );
-
-		if ( isset( $GLOBALS['wp']->query_vars['rest_route'] ) ) {
-			$rest_route = $GLOBALS['wp']->query_vars['rest_route'];
-		} elseif ( isset( $_SERVER['REQUEST_URI'] ) ) {
-			$rest_route = $_SERVER['REQUEST_URI']; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		if ( isset( $GLOBALS['wp'] ) && is_object( $GLOBALS['wp'] ) && isset( $GLOBALS['wp']->query_vars['rest_route'] ) ) {
+			$route = $GLOBALS['wp']->query_vars['rest_route'];
+		} elseif ( did_action( 'parse_request' ) ) {
+			return '';
+		} else {
+			$route = $this->get_route_from_url();
 		}
 
-		return ( empty( $rest_route ) || '/' === $rest_route ) ? $rest_route : untrailingslashit( $rest_route );
+		return ( is_string( $route ) && '' !== $route ) ? untrailingslashit( $route ) : '';
+	}
+
+	/**
+	 * REST route from the request URL, for use before WordPress parses the request.
+	 *
+	 * @return string
+	 */
+	protected function get_route_from_url() {
+		// phpcs:disable WordPress.Security.NonceVerification
+		if ( isset( $_POST['rest_route'] ) && is_string( $_POST['rest_route'] ) ) {
+			return wp_unslash( $_POST['rest_route'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		}
+
+		if ( isset( $_GET['rest_route'] ) && is_string( $_GET['rest_route'] ) ) {
+			return wp_unslash( $_GET['rest_route'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		}
+		// phpcs:enable WordPress.Security.NonceVerification
+
+		if ( empty( $_SERVER['REQUEST_URI'] ) || ! is_string( $_SERVER['REQUEST_URI'] ) ) {
+			return '';
+		}
+
+		// Split off the query string the way WP::parse_request() does; wp_parse_url() would read a
+		// leading `//host` as an authority and disagree with core about the path.
+		list( $path ) = explode( '?', (string) wp_unslash( $_SERVER['REQUEST_URI'] ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$home = untrailingslashit( (string) wp_parse_url( home_url(), PHP_URL_PATH ) );
+
+		// WP::parse_request() strips the home path case-insensitively.
+		if ( '' !== $home ) {
+			if ( 0 !== stripos( $path, $home . '/' ) ) {
+				return '';
+			}
+			$path = substr( $path, strlen( $home ) );
+		}
+
+		// Core's REST rewrite rules: `<prefix>/...` and, on PATHINFO permalinks, `index.php/<prefix>/...`.
+		$pattern = '@^/(?:index\.php/)?' . preg_quote( rest_get_url_prefix(), '@' ) . '(/.*)?$@';
+
+		if ( ! preg_match( $pattern, $path, $matches ) ) {
+			return '';
+		}
+
+		return empty( $matches[1] ) ? '/' : $matches[1];
 	}
 
 	/**
