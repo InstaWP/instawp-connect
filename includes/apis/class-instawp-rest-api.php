@@ -936,8 +936,6 @@ class InstaWP_Rest_Api {
 			return $access;
 		}
 
-		wp_set_current_user( 0 );
-
 		return $this->is_authenticated_instawp_request( $route ) ? true : $access;
 	}
 
