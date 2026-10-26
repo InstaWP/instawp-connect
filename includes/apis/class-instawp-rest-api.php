@@ -1314,8 +1314,8 @@ class InstaWP_Rest_Api {
 	/**
 	 * Validate the WordPress username + application password sent to the config route.
 	 *
-	 * Used by set_config() and by the REST authentication gate. The caller checks that both
-	 * fields are present first.
+	 * Used by set_config(), which checks first that both fields are present, and by the REST
+	 * authentication gate, where an empty field fails as "no user found".
 	 *
 	 * @param array $parameters Request parameters.
 	 *
