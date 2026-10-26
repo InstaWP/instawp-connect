@@ -100,6 +100,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 = 0.1.4.3 - 26 October 2026 =
 - Security: Hardened request validation for the plugin's REST API.
+- Fixed: The CDN cache is now cleared automatically after plugin, theme and WordPress core updates, and after switching themes.
 
 = 0.1.4.2 - 13 October 2026 =
 - Security: Hardened access control on the plugin admin screen and masked the stored API key in the settings UI.
