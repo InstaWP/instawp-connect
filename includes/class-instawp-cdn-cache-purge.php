@@ -1,6 +1,7 @@
 <?php
 /**
- * CDN Cache Purge - Auto-purge CDN cache when posts are published, updated, or trashed.
+ * CDN Cache Purge - Auto-purge CDN cache when posts are published, updated, or trashed,
+ * and purge the whole CDN cache after plugin/theme/core updates and theme switches.
  */
 
 use InstaWP\Connect\Helpers\Curl;
@@ -19,10 +20,22 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		private $pending_urls = array();
 
 		/**
+		 * Whether a full CDN purge was requested during the current request.
+		 *
+		 * @var bool
+		 */
+		private $full_purge_pending = false;
+
+		/**
 		 * Constructor.
 		 */
 		public function __construct() {
 			add_action( 'transition_post_status', array( $this, 'handle_post_transition' ), 20, 3 );
+			add_action( 'upgrader_process_complete', array( $this, 'handle_upgrade_complete' ), 20, 2 );
+			add_action( 'automatic_updates_complete', array( $this, 'handle_automatic_updates_complete' ), 20 );
+			add_action( 'switch_theme', array( $this, 'queue_full_purge' ), 20 );
+			// Replacing a plugin/theme by zip upload completes as action=install, not update.
+			add_action( 'upgrader_overwrote_package', array( $this, 'queue_full_purge' ), 20 );
 			add_action( 'shutdown', array( $this, 'flush_pending_purges' ) );
 		}
 
@@ -85,9 +98,76 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		}
 
 		/**
+		 * Queue a full purge after a plugin, theme or core update.
+		 *
+		 * upgrader_process_complete fires for every update source that goes through the
+		 * WP upgrader: the admin screens, WP-CLI, background auto-updates and external
+		 * managers such as ManageWP/MainWP. Installs and translation updates are ignored.
+		 *
+		 * @param WP_Upgrader $upgrader Upgrader instance (unused).
+		 * @param array       $options  Update context: type, action and affected items.
+		 */
+		public function handle_upgrade_complete( $upgrader, $options ) {
+			if ( empty( $options['action'] ) || 'update' !== $options['action'] ) {
+				return;
+			}
+
+			if ( empty( $options['type'] ) || ! in_array( $options['type'], array( 'plugin', 'theme', 'core' ), true ) ) {
+				return;
+			}
+
+			$this->queue_full_purge();
+		}
+
+		/**
+		 * Queue a full purge after a background auto-update run that updated
+		 * a plugin, theme or core (translation-only runs are ignored).
+		 *
+		 * @param array $results Update results keyed by type.
+		 */
+		public function handle_automatic_updates_complete( $results ) {
+			if ( ! is_array( $results ) ) {
+				return;
+			}
+
+			foreach ( array( 'core', 'plugin', 'theme' ) as $type ) {
+				if ( ! empty( $results[ $type ] ) ) {
+					$this->queue_full_purge();
+					return;
+				}
+			}
+		}
+
+		/**
+		 * Request a full CDN purge at the end of the current request.
+		 *
+		 * Coalesced per request, so a bulk update of N items produces one purge.
+		 */
+		public function queue_full_purge() {
+			if ( ! $this->is_auto_purge_enabled() ) {
+				return;
+			}
+
+			if ( empty( Helper::get_connect_id() ) ) {
+				return;
+			}
+
+			$this->full_purge_pending = true;
+		}
+
+		/**
 		 * Flush pending purge URLs on shutdown.
 		 */
 		public function flush_pending_purges() {
+			if ( $this->full_purge_pending ) {
+				// A full purge covers every pending URL.
+				$this->full_purge_pending = false;
+				$this->pending_urls       = array();
+				$this->flush_full_purge();
+
+				return;
+			}
+
 			if ( empty( $this->pending_urls ) ) {
 				return;
 			}
@@ -128,6 +208,32 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 			}
 
 			$this->pending_urls = array();
+		}
+
+		/**
+		 * Purge the whole CDN cache. Runs on shutdown after an update, so a failure
+		 * is logged and swallowed: it must never break the update that triggered it.
+		 */
+		private function flush_full_purge() {
+			try {
+				$response = instawp_purge_cdn_cache();
+
+				if ( is_wp_error( $response ) || empty( $response['success'] ) ) {
+					Helper::add_error_log(
+						array(
+							'message'  => 'CDN full cache purge after update failed',
+							'response' => is_wp_error( $response ) ? $response->get_error_message() : $response,
+						)
+					);
+				}
+			} catch ( \Throwable $th ) {
+				Helper::add_error_log(
+					array(
+						'message' => 'CDN full cache purge after update threw',
+						'error'   => $th->getMessage(),
+					)
+				);
+			}
 		}
 
 		/**

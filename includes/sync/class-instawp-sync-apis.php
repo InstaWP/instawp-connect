@@ -70,63 +70,6 @@ class InstaWP_Sync_Apis extends InstaWP_Rest_Api {
 	}
 
 	/**
-	 * Build an authorization WP_Error suitable for a permission callback.
-	 *
-	 * A permission callback must return true, false, null or a WP_Error. Any other
-	 * return value (a WP_REST_Response included) is treated as "authorized" by
-	 * WP_REST_Server, so every denial path has to hand back a real WP_Error with an
-	 * explicit HTTP status attached.
-	 *
-	 * @param string $message Error message to expose to the caller.
-	 * @param int    $status  Optional HTTP status code. Defaults to 401/403 based on login state.
-	 *
-	 * @return WP_Error
-	 */
-	private function sync_api_error( $message, $status = 0 ) {
-		$status = empty( $status ) ? rest_authorization_required_code() : intval( $status );
-
-		return new WP_Error( 'instawp_sync_rest_forbidden', $message, array( 'status' => $status ) );
-	}
-
-	/**
-	 * Valid api request and if invalid api key then stop executing.
-	 *
-	 * @param WP_REST_Request $request
-	 *
-	 * @return WP_Error|bool
-	 */
-	public function validate_sync_api_request( WP_REST_Request $request ) {
-		// Get bearer token from the request
-		$bearer_token = $this->get_bearer_token( $request );
-		// A missing or empty token must deny the request. The WP_Error has to be returned
-		// as is, wrapping it in a WP_REST_Response would authorize the request instead.
-		if ( is_wp_error( $bearer_token ) ) {
-			return $this->sync_api_error( $bearer_token->get_error_message() );
-		}
-
-		$instawp_api_options = get_option( 'instawp_api_options' );
-
-		// Without connect details there is no shared secret to compare the token against.
-		if ( empty( $instawp_api_options ) || empty( $instawp_api_options['connect_id'] ) || empty( $instawp_api_options['connect_uuid'] ) ) {
-			return $this->sync_api_error( esc_html__( 'Empty API options.', 'instawp-connect' ) );
-		}
-
-		// Prepare hash
-		$hash = hash( 'sha256', $instawp_api_options['connect_id'] . '_' . $instawp_api_options['connect_uuid'] );
-
-		// Known value first, user supplied value second, as hash_equals() expects.
-		if ( ! hash_equals( $hash, $bearer_token ) ) {
-			return $this->sync_api_error( esc_html__( 'Incorrect token.', 'instawp-connect' ) );
-		}
-
-		// Note: the instawp_is_event_syncing toggle is intentionally NOT checked here. Media is
-		// requested by the peer site while it processes events, which can happen after the toggle
-		// has been switched off on this side, so gating on it would break legitimate syncs.
-
-		return true;
-	}
-
-	/**
 	 * Download media files
 	 *
 	 * @param WP_REST_Request $request
