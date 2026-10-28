@@ -1600,15 +1600,26 @@
      *
      * Counts what the "... skipped" summary under the list will show once it is applied: every row
      * it can tick, except a row inside a folder that is ticked too -- the folder already covers it.
-     * The message is translated server-side and carried on the checkbox's data-confirm.
+     * The title and message are translated server-side and carried on the checkbox's data-confirm-*.
+     *
+     * The checkbox stays unticked while the dialog is open; only "Exclude All" in the dialog ticks
+     * it and the rows. Cancel, Escape and a click on the backdrop leave everything as it was.
      */
-    let confirmExcludeAll = (el, subEl, countOf) => {
+    let excludeAllPending = null;
+
+    let closeExcludeAll = () => {
+        excludeAllPending = null;
+        $(document).find('.instawp-exclude-all-popup').removeClass('is-open');
+    };
+
+    let askExcludeAll = (el, subEl, countOf, apply) => {
         let skipped = subEl.not(":disabled"),
             size = 0,
             count = 0;
 
         if (!skipped.length) {
-            return true;
+            apply();
+            return;
         }
 
         skipped.each(function () {
@@ -1622,31 +1633,73 @@
             }
         });
 
-        return confirm(String(el.data('confirm')).replace('%1$s', count).replace('%2$s', formatBytes(size)));
+        el.prop("checked", false);
+        excludeAllPending = apply;
+
+        // Moved to <body> so no wizard container (a hidden step, a transformed row) can clip or hide it.
+        let popup = $(document).find('.instawp-exclude-all-popup').first().appendTo(document.body);
+        popup.find('.instawp-exclude-all-title').text(String(el.data('confirm-title')));
+        popup.find('.instawp-exclude-all-message').text(String(el.data('confirm')).replace('%1$s', count).replace('%2$s', formatBytes(size)));
+        popup.addClass('is-open').find('.instawp-exclude-all-cancel').trigger('focus');
+    };
+
+    $(document).on('click', '.instawp-exclude-all-confirm', function (e) {
+        e.preventDefault();
+        let apply = excludeAllPending;
+
+        closeExcludeAll();
+        if (apply) {
+            apply();
+        }
+    });
+
+    $(document).on('click', '.instawp-exclude-all-cancel', function (e) {
+        e.preventDefault();
+        closeExcludeAll();
+    });
+
+    $(document).on('click', '.instawp-exclude-all-popup', function (e) {
+        if (e.target === this) {
+            closeExcludeAll();
+        }
+    });
+
+    $(document).on('keydown', function (e) {
+        if (e.key === 'Escape' && excludeAllPending) {
+            closeExcludeAll();
+        }
+    });
+
+    // Rows are re-queried when applied: the list can be re-rendered while the dialog is open.
+    let setExcludeAll = (selectAll, rows, checked) => {
+        $(document).find(selectAll).prop("checked", checked);
+        $(document).find(rows).not(":disabled").prop("checked", checked).trigger('change');
     };
 
     $(document).on('change', '#instawp-files-select-all', function () {
         let el = $(this),
-            subEl = $(document).find('.exclude-files-container .instawp-checkbox.exclude-file-item');
+            rows = '.exclude-files-container .instawp-checkbox.exclude-file-item',
+            apply = () => setExcludeAll('#instawp-files-select-all', rows, true);
 
-        if (el.is(":checked") && !confirmExcludeAll(el, subEl, function (item) { return +item.data('count') || 0; })) {
-            el.prop("checked", false);
+        if (!el.is(":checked")) {
+            setExcludeAll('#instawp-files-select-all', rows, false);
             return;
         }
 
-        subEl.not(":disabled").prop("checked", el.is(":checked")).trigger('change');
+        askExcludeAll(el, $(document).find(rows), function (item) { return +item.data('count') || 0; }, apply);
     });
 
     $(document).on('change', '#instawp-database-select-all', function () {
         let el = $(this),
-            subEl = $(document).find('.exclude-database-container .instawp-checkbox.exclude-database-item');
+            rows = '.exclude-database-container .instawp-checkbox.exclude-database-item',
+            apply = () => setExcludeAll('#instawp-database-select-all', rows, true);
 
-        if (el.is(":checked") && !confirmExcludeAll(el, subEl, function () { return 1; })) {
-            el.prop("checked", false);
+        if (!el.is(":checked")) {
+            setExcludeAll('#instawp-database-select-all', rows, false);
             return;
         }
 
-        subEl.not(":disabled").prop("checked", el.is(":checked")).trigger('change');
+        askExcludeAll(el, $(document).find(rows), function () { return 1; }, apply);
     });
 
     $(document).on('change', '.instawp-checkbox.exclude-file-item:not(.large-file)', function () {

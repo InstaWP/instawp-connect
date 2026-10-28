@@ -258,7 +258,7 @@ delete_option( 'instawp_db_offset' );
                                 </div>
                                 <div class="flex flex-row items-center justify-between gap-5">
                                     <div class="text-left text-sm font-medium text-grayCust-900">
-                                        <input type="checkbox" id="instawp-files-select-all" class="instawp-checkbox !mr-1 rounded border-gray-300 text-primary-900 focus:ring-primary-900" disabled="disabled" style="margin-top: -2px;" data-confirm="<?php /* translators: 1: number of files, 2: their total size */ echo esc_attr__( 'Exclude all %1$s files (%2$s)? They will not be copied to the staging site.', 'instawp-connect' ); ?>">
+                                        <input type="checkbox" id="instawp-files-select-all" class="instawp-checkbox !mr-1 rounded border-gray-300 text-primary-900 focus:ring-primary-900" disabled="disabled" style="margin-top: -2px;" data-confirm-title="<?php esc_attr_e( 'Exclude all files?', 'instawp-connect' ); ?>" data-confirm="<?php /* translators: 1: number of files, 2: their total size */ echo esc_attr__( 'Exclude all %1$s files (%2$s)? They will not be copied to the staging site.', 'instawp-connect' ); ?>">
                                         <label for="instawp-files-select-all"><?php esc_html_e( 'Exclude All', 'instawp-connect' ); ?></label>
                                     </div>
                                     <div class="text-left text-sm font-medium text-primary-900 pointer-events-none flex flex-row items-center justify-between gap-1 cursor-pointer instawp-files-sort-by" data-sort="none">
@@ -296,7 +296,7 @@ delete_option( 'instawp_db_offset' );
                                 </div>
                                 <div class="flex flex-row items-center justify-between gap-5">
                                     <div class="text-left text-sm font-medium text-grayCust-900">
-                                        <input type="checkbox" id="instawp-database-select-all" class="instawp-checkbox !mr-1 rounded border-gray-300 text-primary-900 focus:ring-primary-900" style="margin-top: -2px;" data-confirm="<?php /* translators: 1: number of tables, 2: their total size */ echo esc_attr__( 'Exclude the data of all %1$s tables (%2$s)? They will be created empty on the staging site, so anything stored in them (form entries, comments, redirects, plugin settings) will be missing there. Required WordPress tables are always copied.', 'instawp-connect' ); ?>">
+                                        <input type="checkbox" id="instawp-database-select-all" class="instawp-checkbox !mr-1 rounded border-gray-300 text-primary-900 focus:ring-primary-900" style="margin-top: -2px;" data-confirm-title="<?php esc_attr_e( 'Exclude all table data?', 'instawp-connect' ); ?>" data-confirm="<?php /* translators: 1: number of tables, 2: their total size */ echo esc_attr__( 'Exclude the data of all %1$s tables (%2$s)? They will be created empty on the staging site, so anything stored in them (form entries, comments, redirects, plugin settings) will be missing there. Required WordPress tables are always copied.', 'instawp-connect' ); ?>">
                                         <label for="instawp-database-select-all"><?php esc_html_e( 'Exclude All', 'instawp-connect' ); ?></label>
                                     </div>
                                     <div class="text-left text-sm font-medium text-primary-900 flex flex-row items-center justify-between gap-1 cursor-pointer instawp-database-sort-by" data-sort="none">
@@ -336,6 +336,21 @@ delete_option( 'instawp_db_offset' );
 										<?php } ?>
                                     </div>
 								<?php } ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <?php // "Exclude All" confirmation, filled and opened by scripts.js (title and message come from the checkbox's data-confirm-*). ?>
+            <div class="instawp-exclude-all-popup" role="dialog" aria-modal="true" aria-labelledby="instawp-exclude-all-title">
+                <div class="instawp-popup-main">
+                    <div class="instawppopwrap">
+                        <div class="topinstawppopwrap">
+                            <h3 id="instawp-exclude-all-title" class="instawp-exclude-all-title"></h3>
+                            <p class="instawp-exclude-all-message"></p>
+                            <div class="instawp_buttons">
+                                <a href="#" role="button" class="instawp-exclude-all-cancel"><?php esc_html_e( 'Cancel', 'instawp-connect' ); ?></a>
+                                <a href="#" role="button" class="instawp-exclude-all-confirm"><?php esc_html_e( 'Exclude All', 'instawp-connect' ); ?></a>
                             </div>
                         </div>
                     </div>
