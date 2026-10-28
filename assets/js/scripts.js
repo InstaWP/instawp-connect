@@ -1593,9 +1593,46 @@
         subEl.not(":disabled").prop("checked", el.is(":checked")).trigger('change');
     });
 
+    /**
+     * "Exclude All" skips every row in one click, usually over a list that is still collapsed, so
+     * ask first and say what it will skip (FS#4333: one click emptied every plugin table on a
+     * staging site, and the run still reported success).
+     *
+     * Counts what the "... skipped" summary under the list will show once it is applied: every row
+     * it can tick, except a row inside a folder that is ticked too -- the folder already covers it.
+     * The message is translated server-side and carried on the checkbox's data-confirm.
+     */
+    let confirmExcludeAll = (el, subEl, countOf) => {
+        let skipped = subEl.not(":disabled"),
+            size = 0,
+            count = 0;
+
+        if (!skipped.length) {
+            return true;
+        }
+
+        skipped.each(function () {
+            let covered = $(this).closest('.item').parents('.item').toArray().some(function (item) {
+                return skipped.is($(item).find('.instawp-checkbox').first());
+            });
+
+            if (!covered) {
+                size = size + (+$(this).data('size') || 0);
+                count = count + countOf($(this));
+            }
+        });
+
+        return confirm(String(el.data('confirm')).replace('%1$s', count).replace('%2$s', formatBytes(size)));
+    };
+
     $(document).on('change', '#instawp-files-select-all', function () {
         let el = $(this),
             subEl = $(document).find('.exclude-files-container .instawp-checkbox.exclude-file-item');
+
+        if (el.is(":checked") && !confirmExcludeAll(el, subEl, function (item) { return +item.data('count') || 0; })) {
+            el.prop("checked", false);
+            return;
+        }
 
         subEl.not(":disabled").prop("checked", el.is(":checked")).trigger('change');
     });
@@ -1603,6 +1640,11 @@
     $(document).on('change', '#instawp-database-select-all', function () {
         let el = $(this),
             subEl = $(document).find('.exclude-database-container .instawp-checkbox.exclude-database-item');
+
+        if (el.is(":checked") && !confirmExcludeAll(el, subEl, function () { return 1; })) {
+            el.prop("checked", false);
+            return;
+        }
 
         subEl.not(":disabled").prop("checked", el.is(":checked")).trigger('change');
     });
