@@ -1605,11 +1605,20 @@
      * The checkbox stays unticked while the dialog is open; only "Exclude All" in the dialog ticks
      * it and the rows. Cancel, Escape and a click on the backdrop leave everything as it was.
      */
-    let excludeAllPending = null;
+    let excludeAllPending = null,
+        excludeAllOpener = null;
 
+    // Focus goes back to the Exclude All checkbox, or keyboard users are dropped onto <body>.
     let closeExcludeAll = () => {
+        let opener = excludeAllOpener;
+
         excludeAllPending = null;
+        excludeAllOpener = null;
         $(document).find('.instawp-exclude-all-popup').removeClass('is-open');
+
+        if (opener) {
+            opener.trigger('focus');
+        }
     };
 
     let askExcludeAll = (el, subEl, countOf, apply) => {
@@ -1635,11 +1644,12 @@
 
         el.prop("checked", false);
         excludeAllPending = apply;
+        excludeAllOpener = el;
 
         // Moved to <body> so no wizard container (a hidden step, a transformed row) can clip or hide it.
         let popup = $(document).find('.instawp-exclude-all-popup').first().appendTo(document.body);
-        popup.find('.instawp-exclude-all-title').text(String(el.data('confirm-title')));
-        popup.find('.instawp-exclude-all-message').text(String(el.data('confirm')).replace('%1$s', count).replace('%2$s', formatBytes(size)));
+        popup.find('.instawp-exclude-all-title').text(String(el.attr('data-confirm-title')));
+        popup.find('.instawp-exclude-all-message').text(String(el.attr('data-confirm')).replace('%1$s', count).replace('%2$s', formatBytes(size)));
         popup.addClass('is-open').find('.instawp-exclude-all-cancel').trigger('focus');
     };
 

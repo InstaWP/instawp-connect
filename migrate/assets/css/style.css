@@ -834,3 +834,9 @@ input:checked + .slider-toggle:before {
     border-color: var(--instawp-color-primary);
     color: #fff;
 }
+
+/* The Sync popup's `.instawp_buttons a:focus { outline: none }` hides keyboard focus; bring it back here. */
+.instawp-exclude-all-popup .instawp_buttons a:focus-visible {
+    outline: 2px solid var(--instawp-color-primary);
+    outline-offset: 2px;
+}
