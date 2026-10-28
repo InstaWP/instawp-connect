@@ -1593,18 +1593,123 @@
         subEl.not(":disabled").prop("checked", el.is(":checked")).trigger('change');
     });
 
+    /**
+     * "Exclude All" skips every row in one click, usually over a list that is still collapsed, so
+     * ask first and say what it will skip (FS#4333: one click emptied every plugin table on a
+     * staging site, and the run still reported success).
+     *
+     * Counts what the "... skipped" summary under the list will show once it is applied: every row
+     * it can tick, except a row inside a folder that is ticked too -- the folder already covers it.
+     * The title and message are translated server-side and carried on the checkbox's data-confirm-*.
+     *
+     * The checkbox stays unticked while the dialog is open; only "Exclude All" in the dialog ticks
+     * it and the rows. Cancel, Escape and a click on the backdrop leave everything as it was.
+     */
+    let excludeAllPending = null,
+        excludeAllOpener = null;
+
+    // Focus goes back to the Exclude All checkbox, or keyboard users are dropped onto <body>.
+    let closeExcludeAll = () => {
+        let opener = excludeAllOpener;
+
+        excludeAllPending = null;
+        excludeAllOpener = null;
+        $(document).find('.instawp-exclude-all-popup').removeClass('is-open');
+
+        if (opener) {
+            opener.trigger('focus');
+        }
+    };
+
+    let askExcludeAll = (el, subEl, countOf, apply) => {
+        let skipped = subEl.not(":disabled"),
+            size = 0,
+            count = 0;
+
+        if (!skipped.length) {
+            apply();
+            return;
+        }
+
+        skipped.each(function () {
+            let covered = $(this).closest('.item').parents('.item').toArray().some(function (item) {
+                return skipped.is($(item).find('.instawp-checkbox').first());
+            });
+
+            if (!covered) {
+                size = size + (+$(this).data('size') || 0);
+                count = count + countOf($(this));
+            }
+        });
+
+        el.prop("checked", false);
+        excludeAllPending = apply;
+        excludeAllOpener = el;
+
+        // Moved to <body> so no wizard container (a hidden step, a transformed row) can clip or hide it.
+        let popup = $(document).find('.instawp-exclude-all-popup').first().appendTo(document.body);
+        popup.find('.instawp-exclude-all-title').text(String(el.attr('data-confirm-title')));
+        popup.find('.instawp-exclude-all-message').text(String(el.attr('data-confirm')).replace('%1$s', count).replace('%2$s', formatBytes(size)));
+        popup.addClass('is-open').find('.instawp-exclude-all-cancel').trigger('focus');
+    };
+
+    $(document).on('click', '.instawp-exclude-all-confirm', function (e) {
+        e.preventDefault();
+        let apply = excludeAllPending;
+
+        closeExcludeAll();
+        if (apply) {
+            apply();
+        }
+    });
+
+    $(document).on('click', '.instawp-exclude-all-cancel', function (e) {
+        e.preventDefault();
+        closeExcludeAll();
+    });
+
+    $(document).on('click', '.instawp-exclude-all-popup', function (e) {
+        if (e.target === this) {
+            closeExcludeAll();
+        }
+    });
+
+    $(document).on('keydown', function (e) {
+        if (e.key === 'Escape' && excludeAllPending) {
+            closeExcludeAll();
+        }
+    });
+
+    // Rows are re-queried when applied: the list can be re-rendered while the dialog is open.
+    let setExcludeAll = (selectAll, rows, checked) => {
+        $(document).find(selectAll).prop("checked", checked);
+        $(document).find(rows).not(":disabled").prop("checked", checked).trigger('change');
+    };
+
     $(document).on('change', '#instawp-files-select-all', function () {
         let el = $(this),
-            subEl = $(document).find('.exclude-files-container .instawp-checkbox.exclude-file-item');
+            rows = '.exclude-files-container .instawp-checkbox.exclude-file-item',
+            apply = () => setExcludeAll('#instawp-files-select-all', rows, true);
 
-        subEl.not(":disabled").prop("checked", el.is(":checked")).trigger('change');
+        if (!el.is(":checked")) {
+            setExcludeAll('#instawp-files-select-all', rows, false);
+            return;
+        }
+
+        askExcludeAll(el, $(document).find(rows), function (item) { return +item.data('count') || 0; }, apply);
     });
 
     $(document).on('change', '#instawp-database-select-all', function () {
         let el = $(this),
-            subEl = $(document).find('.exclude-database-container .instawp-checkbox.exclude-database-item');
+            rows = '.exclude-database-container .instawp-checkbox.exclude-database-item',
+            apply = () => setExcludeAll('#instawp-database-select-all', rows, true);
 
-        subEl.not(":disabled").prop("checked", el.is(":checked")).trigger('change');
+        if (!el.is(":checked")) {
+            setExcludeAll('#instawp-database-select-all', rows, false);
+            return;
+        }
+
+        askExcludeAll(el, $(document).find(rows), function () { return 1; }, apply);
     });
 
     $(document).on('change', '.instawp-checkbox.exclude-file-item:not(.large-file)', function () {

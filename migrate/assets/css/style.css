@@ -777,3 +777,66 @@ input:checked + .slider-toggle:before {
 /*.select2-container .select2-selection--single .select2-selection__arrow {*/
 /*    top: 5px !important;*/
 /*}*/
+
+/*
+ * "Exclude All" confirmation on the staging Exclude step. Same look as the Sync popup
+ * (admin/css/instawp-change-event.css: .bulk-sync-popup + .instawp_buttons), under its own
+ * class on purpose: .bulk-sync-popup and .sync-changes-btn are driven by the Sync screen's
+ * JS, which would show, hide and disable this dialog too.
+ */
+.instawp-exclude-all-popup {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(107, 114, 128, 0.75);
+    z-index: 99999;
+    text-align: center;
+    overflow: auto;
+}
+
+.instawp-exclude-all-popup.is-open {
+    display: block;
+}
+
+.instawp-exclude-all-popup::after {
+    content: '';
+    display: inline-block;
+    height: 100%;
+    vertical-align: middle;
+    margin-right: -0.25em;
+}
+
+.instawp-exclude-all-popup .instawp-popup-main {
+    max-width: 520px;
+}
+
+.instawp-exclude-all-popup .instawp-popup-main h3 {
+    text-transform: none;
+    margin-bottom: 16px;
+}
+
+.instawp-exclude-all-popup .instawp-exclude-all-message {
+    margin: 0;
+    font-size: 14px;
+    line-height: 20px;
+    color: #4B5563;
+}
+
+.instawp-exclude-all-popup .instawp_buttons {
+    margin-top: 32px;
+}
+
+.instawp-exclude-all-popup .instawp_buttons a.instawp-exclude-all-confirm {
+    background: var(--instawp-color-primary);
+    border-color: var(--instawp-color-primary);
+    color: #fff;
+}
+
+/* The Sync popup's `.instawp_buttons a:focus { outline: none }` hides keyboard focus; bring it back here. */
+.instawp-exclude-all-popup .instawp_buttons a:focus-visible {
+    outline: 2px solid var(--instawp-color-primary);
+    outline-offset: 2px;
+}

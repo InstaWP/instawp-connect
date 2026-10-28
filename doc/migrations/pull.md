@@ -40,12 +40,12 @@ The destination server initiates the migration by requesting data from the sourc
 | `excluded_themes` | Skip specific themes |
 | `excluded_tables` | Skip specific database tables (WP core tables are always removed from this list — see below) |
 
-The Exclude step also renders the **top-level `wp-content` row** disabled, so "Select All"
+The Exclude step also renders the **top-level `wp-content` row** disabled, so "Exclude All"
 on the file list cannot exclude the whole content directory in one click.
 
 Two limits, both deliberate and both worth knowing before relying on this:
 
-- **It is the root row only.** Expanding `wp-content` first and then clicking "Select All"
+- **It is the root row only.** Expanding `wp-content` first and then confirming "Exclude All"
   still ticks `wp-content/plugins`, `/themes` and `/uploads`, which reaches a comparably
   broken site. Those rows are left enabled because excluding them individually is a
   supported choice — `skip_media_folder` exists precisely to drop `/uploads`, and
@@ -56,6 +56,29 @@ Two limits, both deliberate and both worth knowing before relying on this:
   WP-CLI, the REST migration endpoint, a filter or a stale form is still honoured, because
   it yields a degraded site rather than a migration that cannot complete. (A browser cannot
   submit it even if something ticks it: `jQuery.serialize()` omits disabled controls.)
+
+### "Exclude All" asks before it applies
+
+Each list's header checkbox was labelled "Select All", which reads as "include everything" over
+a list where ticked means *skip*. Its list is also collapsed behind an Expand button, so one
+click excluded rows the user never saw. FS#4333: one click emptied every plugin table on a
+staging site, and the run still reported success. Since 0.1.4.4:
+
+- The checkbox is labelled **Exclude All**, and the Expand buttons read **Expand to choose
+  files to exclude** / **Expand to choose tables to exclude**.
+- Ticking Exclude All opens an in-page dialog (`.instawp-exclude-all-popup`, styled like the
+  Sync popup but under its own class, because the Sync screen's JS drives `.bulk-sync-popup`).
+  The dialog names how many files or tables and how much data will be skipped. Its count is
+  the same one the "… skipped" summary under the list shows afterwards: every enabled row,
+  except a row inside a folder that is also excluded.
+- Exclude All stays unticked while the dialog is open, and only the dialog's **Exclude All**
+  button applies it. Cancel, Escape or a backdrop click leave the list as it was. Unticking
+  never asks.
+- The title and message are translated server-side and carried on the checkbox
+  (`data-confirm-title` / `data-confirm`, with `%1$s` = count and `%2$s` = size).
+
+This is a UI guard only, like the `wp-content` row above. It doesn't change what an
+`excluded_tables`/`excluded_paths` request from any other entry point does.
 
 ### WP core tables can never be excluded
 
