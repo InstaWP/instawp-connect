@@ -495,4 +495,164 @@ class InstaWP_Sync_Helpers {
 
 		return $data;
 	}
+
+	/**
+	 * Depth counter for the write window below -- it governs both the `unfiltered_html` grant
+	 * and the kses pair.
+	 *
+	 * parse_post_events() recurses for a post parent, so the windows nest; without a
+	 * counter the inner window's restore would revoke the grant while the outer one is
+	 * still writing.
+	 *
+	 * @var int
+	 */
+	private static $unfiltered_html_depth = 0;
+
+	/**
+	 * Is a sync WRITE window currently open?
+	 *
+	 * Exists so the READ window in parse_post_data() can tell the difference between "I removed
+	 * core's kses filters" and "a write window removed them and is still writing", and refrain
+	 * from putting them back underneath it.
+	 *
+	 * @return bool
+	 */
+	public static function content_filters_disabled() {
+		return self::$unfiltered_html_depth > 0;
+	}
+
+	/**
+	 * Open a sync WRITE window: drop core's kses content filters AND grant `unfiltered_html`.
+	 *
+	 * Plugins register `register_meta()` sanitize callbacks that strip HTML unless the acting
+	 * user can `unfiltered_html`. Elementor does exactly this for `_elementor_data` and
+	 * `_elementor_page_settings` (modules/wp-rest/classes/elementor-post-meta.php), running
+	 * `wp_kses_post()` over every string in the document when the check fails.
+	 *
+	 * A sync request authenticates with this plugin's own API key, so there is no logged-in
+	 * WordPress user and the check is always false. `kses_remove_filters()` does NOT cover
+	 * this: it only removes core's *content* filters (`content_save_pre` and friends), never a
+	 * `register_meta()` sanitize callback -- and that callback runs on every `update_metadata()`
+	 * call, not just on REST writes.
+	 *
+	 * The result was silent, unrecoverable content loss on the destination: inline `<svg>` and
+	 * `<style>` blocks removed from Elementor widgets, and every `style="..."` attribute
+	 * rewritten by `safecss_filter_attr()`.
+	 *
+	 * The kses pair is folded in here rather than left at the call sites so that both halves of one
+	 * write agree about whether the payload is trusted, and so both are governed by the same
+	 * counter. That second part matters: parse_post_events() recurses for a post parent, and an
+	 * un-counted kses_init_filters() in the inner frame re-enabled core's filters while the OUTER
+	 * window was still open -- after which the outer frame's wp_update_post() call re-sanitised
+	 * the post's existing post_content through wp_filter_post_kses. That is the very damage class
+	 * this window exists to prevent.
+	 *
+	 * parse_post_data() keeps its own bare kses pair rather than using this one: it is a READ
+	 * window, so it needs no capability grant and widening one during a read would be gratuitous.
+	 * Its restore is gated on {@see self::content_filters_disabled()} so it cannot re-enable
+	 * core's filters underneath an open write window.
+	 *
+	 * Always pair with {@see self::restore_content_filters()}, from a `finally`.
+	 *
+	 * @return void
+	 */
+	public static function disable_content_filters() {
+		// Deliberately OUTSIDE the depth guard, and idempotent. A nested frame must re-assert this
+		// even when the counter is already above zero, because anything running inside the window
+		// may have put core's filters back -- any plugin hooked on save_post can call
+		// kses_init_filters(). Our own read window (parse_post_data) no longer does; it asks
+		// content_filters_disabled() first. This line is what covers the ones we do not control.
+		kses_remove_filters();
+
+		// Same defect class, two more of core's own: both are registered ONCE from an `init` hook
+		// based on a capability decision taken then, and NEITHER re-checks the capability when it
+		// runs -- so granting the capability inside the window does not reach them and the filter
+		// has to be removed outright. wp_strip_custom_css_from_blocks() (content_save_pre @8, WP
+		// 7.0+) would still strip block custom CSS out of a synced post_content, and
+		// _wp_filter_post_meta_footnotes() (sanitize_post_meta_footnotes, WP 6.3.2+) would still
+		// kses the `footnotes` meta. Both are private core functions, hence function_exists().
+		if ( function_exists( 'wp_custom_css_remove_filters' ) ) {
+			wp_custom_css_remove_filters();
+		}
+
+		if ( function_exists( '_wp_footnotes_remove_filters' ) ) {
+			_wp_footnotes_remove_filters();
+		}
+
+		if ( 0 === self::$unfiltered_html_depth ) {
+			add_filter( 'map_meta_cap', array( __CLASS__, 'grant_unfiltered_html_cap' ), 10, 2 );
+		}
+
+		++ self::$unfiltered_html_depth;
+	}
+
+	/**
+	 * Close the window opened by {@see self::disable_content_filters()}.
+	 *
+	 * Safe to call when no window is open, and safe to call more times than it was opened.
+	 *
+	 * @return void
+	 */
+	public static function restore_content_filters() {
+		if ( self::$unfiltered_html_depth <= 0 ) {
+			self::$unfiltered_html_depth = 0;
+
+			return;
+		}
+
+		-- self::$unfiltered_html_depth;
+
+		if ( 0 === self::$unfiltered_html_depth ) {
+			remove_filter( 'map_meta_cap', array( __CLASS__, 'grant_unfiltered_html_cap' ), 10 );
+
+			// kses_init(), not kses_init_filters(): core's own state-restoring wrapper only installs
+			// the filters when the acting user cannot `unfiltered_html`, so a site that legitimately
+			// had them off does not get them switched on by us. Correct only BECAUSE the grant is
+			// dropped on the line above -- reversed, it would see our own grant and install nothing.
+			kses_init();
+
+			// Same three-way symmetry on the way out, and the same reason for the ordering: each of
+			// these wrappers re-reads the capability, so all three must run AFTER the grant is dropped.
+			if ( function_exists( 'wp_custom_css_kses_init' ) ) {
+				wp_custom_css_kses_init();
+			}
+
+			if ( function_exists( '_wp_footnotes_kses_init' ) ) {
+				_wp_footnotes_kses_init();
+			}
+		}
+	}
+
+	/**
+	 * Map `unfiltered_html` to `exist`, which WP_User::has_cap() grants unconditionally
+	 * ("Everyone is allowed to exist"), so the grant also works for the anonymous user a
+	 * key-authenticated sync request runs as.
+	 *
+	 * `map_meta_cap` is used rather than `user_has_cap` because it is the only one of the two
+	 * that also covers multisite: there core maps `unfiltered_html` to `do_not_allow` for any
+	 * user failing `is_super_admin()`, and has_cap() unsets `do_not_allow` from the granted set,
+	 * so a `user_has_cap` grant could never satisfy it.
+	 *
+	 * DISALLOW_UNFILTERED_HTML is respected. Core documents that constant as denying the
+	 * capability to everyone "even admins and super admins", so a site owner who sets it has made
+	 * an explicit decision this plugin does not override. The consequence is deliberate and worth
+	 * knowing: on such a site Elementor still kses-sanitises synced documents, so inline SVG and
+	 * <style> blocks will not survive a sync. That is a stated limit, not an oversight.
+	 *
+	 * @param string[] $caps Primitive capabilities required of the user.
+	 * @param string   $cap  Capability being checked.
+	 *
+	 * @return string[]
+	 */
+	public static function grant_unfiltered_html_cap( $caps, $cap ) {
+		if ( 'unfiltered_html' !== $cap && 'edit_css' !== $cap ) {
+			return $caps;
+		}
+
+		if ( defined( 'DISALLOW_UNFILTERED_HTML' ) && DISALLOW_UNFILTERED_HTML ) {
+			return $caps;
+		}
+
+		return array( 'exist' );
+	}
 }
