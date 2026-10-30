@@ -185,6 +185,8 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 		 * drain would queue another action and the pile could never shrink. Running actions are ignored on
 		 * purpose, so a running follow-up with rows left can still queue the next one. A pending action due
 		 * later (the "every X minutes" recurring one) does not count, so a drain is not stalled behind it.
+		 * The check is not atomic: two callers can both schedule, leaving two pending actions for a while. They
+		 * merge on the next run, since neither can schedule while the other is pending.
 		 *
 		 * @param int $timestamp When to run.
 		 *

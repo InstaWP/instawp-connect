@@ -31,7 +31,7 @@ State lives in one non-autoloaded option, `instawp_activity_log_send_state`
 (`next_send`, `retry_after`, `failures`). Rows are deleted locally only after the API answers 200.
 
 Each row is sent with its local `id` in `data[0]`, intended as a dedupe key on the API side. A critical send and a
-non-critical run that overlap can both send the same critical rows (at most one batch).
+non-critical run that overlap can both send some of the same critical rows.
 
 ### Why (ClickUp 14ypaj0dejd, Sep 2026)
 
