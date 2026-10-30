@@ -20,7 +20,7 @@ dashboard's activity log and Slack/email triggers.
 | Rule | Value |
 |------|-------|
 | Rows per request | `BATCH_SIZE` = 500, oldest first (`ORDER BY id`) |
-| Requests per run | `MAX_BATCHES` = 10; remaining rows go to a scheduled follow-up |
+| Requests per run | `MAX_BATCHES` = 10; remaining rows go to a scheduled follow-up (at most one pending: skipped if a pending action already runs by then) |
 | Attempts per batch | 1. There is no inline retry |
 | Throttle | non-critical sends at most every `SEND_THROTTLE` = 15s; skipped events schedule a follow-up |
 | Failure backoff | `15s × 2^failures`, capped at `MAX_BACKOFF` = 1h |
@@ -30,7 +30,8 @@ dashboard's activity log and Slack/email triggers.
 State lives in one non-autoloaded option, `instawp_activity_log_send_state`
 (`next_send`, `retry_after`, `failures`). Rows are deleted locally only after the API answers 200.
 
-Each row is sent with its local `id` in `data[0]`, so the API can drop a batch it has already stored.
+Each row is sent with its local `id` in `data[0]`, intended as a dedupe key on the API side. A critical send and a
+non-critical run that overlap can both send the same critical rows (at most one batch).
 
 ### Why (ClickUp 14ypaj0dejd, Sep 2026)
 

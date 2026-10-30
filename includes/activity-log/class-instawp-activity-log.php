@@ -178,21 +178,40 @@ if ( ! class_exists( 'InstaWP_Activity_Log' ) ) {
 		}
 
 		/**
-		 * Schedule one follow-up send, unless one (or the "every X minutes" recurring action) is already pending.
+		 * Schedule one follow-up send, unless a PENDING action on the hook already runs by then.
 		 *
-		 * as_next_scheduled_action() returns an int only for a pending action; it returns true while the action
-		 * is running, and a running follow-up that still has rows left must be able to queue the next one.
+		 * Only pending actions count. as_next_scheduled_action() is not usable here: it returns true whenever
+		 * any action on the hook is RUNNING, even if one is also pending, so every event throttled during a
+		 * drain would queue another action and the pile could never shrink. Running actions are ignored on
+		 * purpose, so a running follow-up with rows left can still queue the next one. A pending action due
+		 * later (the "every X minutes" recurring one) does not count, so a drain is not stalled behind it.
 		 *
 		 * @param int $timestamp When to run.
 		 *
 		 * @return void
 		 */
 		private function schedule_follow_up( $timestamp ) {
-			if ( ! function_exists( 'as_next_scheduled_action' ) || is_int( as_next_scheduled_action( 'instawp_handle_non_critical_logs', array(), 'instawp-connect' ) ) ) {
+			if ( ! function_exists( 'as_get_scheduled_actions' ) ) {
 				return;
 			}
 
-			as_schedule_single_action( max( time() + self::SEND_THROTTLE, (int) $timestamp ), 'instawp_handle_non_critical_logs', array(), 'instawp-connect' );
+			$timestamp = max( time() + self::SEND_THROTTLE, (int) $timestamp );
+			$pending   = as_get_scheduled_actions(
+				array(
+					'hook'         => 'instawp_handle_non_critical_logs',
+					'group'        => 'instawp-connect',
+					'status'       => ActionScheduler_Store::STATUS_PENDING,
+					'date'         => $timestamp,
+					'date_compare' => '<=',
+					'per_page'     => 1,
+				),
+				'ids'
+			);
+			if ( ! empty( $pending ) ) {
+				return;
+			}
+
+			as_schedule_single_action( $timestamp, 'instawp_handle_non_critical_logs', array(), 'instawp-connect' );
 		}
 
 		/**
