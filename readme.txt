@@ -99,8 +99,8 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 == Changelog ==
 
 = 0.1.4.4 - 02 November 2026 =
-- Improved: On the staging Exclude step, "Select All" is now "Exclude All", and excluding everything now asks for confirmation first, showing how many files or tables and how much data will be skipped.
-- Fixed: Activity logs are now sent in small batches, so sites with a large activity log backlog no longer run out of memory or send duplicate logs. Up to 10,000 unsent logs are kept; older ones are discarded.
+- Improved: Staging exclude step now asks for confirmation before excluding everything.
+- Fixed: Improved activity log performance and reliability.
 
 = 0.1.4.3 - 26 October 2026 =
 - Security: Hardened request validation for the plugin's REST API.
