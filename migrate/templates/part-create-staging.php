@@ -258,8 +258,8 @@ delete_option( 'instawp_db_offset' );
                                 </div>
                                 <div class="flex flex-row items-center justify-between gap-5">
                                     <div class="text-left text-sm font-medium text-grayCust-900">
-                                        <input type="checkbox" id="instawp-files-select-all" class="instawp-checkbox !mr-1 rounded border-gray-300 text-primary-900 focus:ring-primary-900" disabled="disabled" style="margin-top: -2px;">
-                                        <label for="instawp-files-select-all"><?php esc_html_e( 'Select All', 'instawp-connect' ); ?></label>
+                                        <input type="checkbox" id="instawp-files-select-all" class="instawp-checkbox !mr-1 rounded border-gray-300 text-primary-900 focus:ring-primary-900" disabled="disabled" style="margin-top: -2px;" data-confirm-title="<?php esc_attr_e( 'Exclude all files?', 'instawp-connect' ); ?>" data-confirm="<?php /* translators: 1: number of files, 2: their total size */ echo esc_attr__( 'Exclude all %1$s files (%2$s)? They will not be copied to the staging site.', 'instawp-connect' ); ?>">
+                                        <label for="instawp-files-select-all"><?php esc_html_e( 'Exclude All', 'instawp-connect' ); ?></label>
                                     </div>
                                     <div class="text-left text-sm font-medium text-primary-900 pointer-events-none flex flex-row items-center justify-between gap-1 cursor-pointer instawp-files-sort-by" data-sort="none">
                                         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -273,7 +273,7 @@ delete_option( 'instawp_db_offset' );
                                 <svg width="8" height="5" viewBox="0 0 8 5" fill="none" xmlns="http://www.w3.org/2000/svg" class="inline mr-1">
                                     <path d="M4.75504 4.09984L5.74004 3.11484L7.34504 1.50984C7.68004 1.16984 7.44004 0.589844 6.96004 0.589844L3.84504 0.589844L1.04004 0.589843C0.560037 0.589843 0.320036 1.16984 0.660037 1.50984L3.25004 4.09984C3.66004 4.51484 4.34004 4.51484 4.75504 4.09984Z" fill="#4F4F4F"></path>
                                 </svg>
-                                <span><?php esc_html_e( 'Expand', 'instawp-connect' ); ?></span>
+                                <span><?php esc_html_e( 'Expand to choose files to exclude', 'instawp-connect' ); ?></span>
                             </div>
                             <div class="overflow-auto exclude-files-container">
                                 <div class="loading"></div>
@@ -296,8 +296,8 @@ delete_option( 'instawp_db_offset' );
                                 </div>
                                 <div class="flex flex-row items-center justify-between gap-5">
                                     <div class="text-left text-sm font-medium text-grayCust-900">
-                                        <input type="checkbox" id="instawp-database-select-all" class="instawp-checkbox !mr-1 rounded border-gray-300 text-primary-900 focus:ring-primary-900" style="margin-top: -2px;">
-                                        <label for="instawp-database-select-all"><?php esc_html_e( 'Select All', 'instawp-connect' ); ?></label>
+                                        <input type="checkbox" id="instawp-database-select-all" class="instawp-checkbox !mr-1 rounded border-gray-300 text-primary-900 focus:ring-primary-900" style="margin-top: -2px;" data-confirm-title="<?php esc_attr_e( 'Exclude all table data?', 'instawp-connect' ); ?>" data-confirm="<?php /* translators: 1: number of tables, 2: their total size */ echo esc_attr__( 'Exclude the data of all %1$s tables (%2$s)? They will be created empty on the staging site, so anything stored in them (form entries, comments, redirects, plugin settings) will be missing there. Required WordPress tables are always copied.', 'instawp-connect' ); ?>">
+                                        <label for="instawp-database-select-all"><?php esc_html_e( 'Exclude All', 'instawp-connect' ); ?></label>
                                     </div>
                                     <div class="text-left text-sm font-medium text-primary-900 flex flex-row items-center justify-between gap-1 cursor-pointer instawp-database-sort-by" data-sort="none">
                                         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -311,7 +311,7 @@ delete_option( 'instawp_db_offset' );
                                 <svg width="8" height="5" viewBox="0 0 8 5" fill="none" xmlns="http://www.w3.org/2000/svg" class="inline mr-1">
                                     <path d="M4.75504 4.09984L5.74004 3.11484L7.34504 1.50984C7.68004 1.16984 7.44004 0.589844 6.96004 0.589844L3.84504 0.589844L1.04004 0.589843C0.560037 0.589843 0.320036 1.16984 0.660037 1.50984L3.25004 4.09984C3.66004 4.51484 4.34004 4.51484 4.75504 4.09984Z" fill="#4F4F4F"></path>
                                 </svg>
-                                <span><?php esc_html_e( 'Expand', 'instawp-connect' ); ?></span>
+                                <span><?php esc_html_e( 'Expand to choose tables to exclude', 'instawp-connect' ); ?></span>
                             </div>
                             <div class="overflow-auto exclude-database-container p-4 h-80 hidden">
 								<?php if ( ! empty( $tables ) ) { ?>
@@ -336,6 +336,21 @@ delete_option( 'instawp_db_offset' );
 										<?php } ?>
                                     </div>
 								<?php } ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <?php // "Exclude All" confirmation, filled and opened by scripts.js (title and message come from the checkbox's data-confirm-*). ?>
+            <div class="instawp-exclude-all-popup" role="dialog" aria-modal="true" aria-labelledby="instawp-exclude-all-title">
+                <div class="instawp-popup-main">
+                    <div class="instawppopwrap">
+                        <div class="topinstawppopwrap">
+                            <h3 id="instawp-exclude-all-title" class="instawp-exclude-all-title"></h3>
+                            <p class="instawp-exclude-all-message"></p>
+                            <div class="instawp_buttons">
+                                <a href="#" role="button" class="instawp-exclude-all-cancel"><?php esc_html_e( 'Cancel', 'instawp-connect' ); ?></a>
+                                <a href="#" role="button" class="instawp-exclude-all-confirm"><?php esc_html_e( 'Exclude All', 'instawp-connect' ); ?></a>
                             </div>
                         </div>
                     </div>
