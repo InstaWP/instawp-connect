@@ -31,11 +31,21 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		const DEFERRED_HOOK = 'instawp_cdn_purge_deferred';
 
 		/**
-		 * Posts changed during the current request, keyed by post ID.
+		 * Posts changed during the current request, keyed by post ID. The value says
+		 * whether the post's listing pages are purged too (true), or only its own URL
+		 * (false, a stock quantity change from a checkout).
 		 *
 		 * @var array
 		 */
 		private $pending_posts = array();
+
+		/**
+		 * Archive URLs of terms removed from a post during the current request,
+		 * keyed by post ID, then URL. Purged only if that post is queued.
+		 *
+		 * @var array
+		 */
+		private $removed_term_urls = array();
 
 		/**
 		 * Extra URLs to purge during the current request (the pages a post used to
@@ -63,12 +73,12 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 
 			// WooCommerce writes that do not go through a post status transition:
 			// stock changes from orders, REST/CSV imports, scheduled sales, quick edit.
-			add_action( 'woocommerce_update_product', array( $this, 'handle_product_id' ), 20 );
-			add_action( 'woocommerce_update_product_variation', array( $this, 'handle_product_id' ), 20 );
-			add_action( 'woocommerce_product_set_stock', array( $this, 'handle_product_object' ), 20 );
-			add_action( 'woocommerce_variation_set_stock', array( $this, 'handle_product_object' ), 20 );
-			add_action( 'woocommerce_product_set_stock_status', array( $this, 'handle_product_id' ), 20 );
-			add_action( 'woocommerce_variation_set_stock_status', array( $this, 'handle_product_id' ), 20 );
+			add_action( 'woocommerce_update_product', array( $this, 'handle_product_save' ), 20 );
+			add_action( 'woocommerce_update_product_variation', array( $this, 'handle_product_save' ), 20 );
+			add_action( 'woocommerce_product_set_stock', array( $this, 'handle_stock_quantity' ), 20 );
+			add_action( 'woocommerce_variation_set_stock', array( $this, 'handle_stock_quantity' ), 20 );
+			add_action( 'woocommerce_product_set_stock_status', array( $this, 'handle_stock_status' ), 20 );
+			add_action( 'woocommerce_variation_set_stock_status', array( $this, 'handle_stock_status' ), 20 );
 
 			add_action( 'upgrader_process_complete', array( $this, 'handle_upgrade_complete' ), 20, 2 );
 			add_action( 'automatic_updates_complete', array( $this, 'handle_automatic_updates_complete' ), 20 );
@@ -97,7 +107,7 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 				return;
 			}
 
-			$this->pending_posts[ $post->ID ] = true;
+			$this->queue_post( $post->ID, true );
 		}
 
 		/**
@@ -161,56 +171,91 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 			}
 
 			$post = get_post( $object_id );
-			if ( ! $post || 'publish' !== $post->post_status || ! $this->is_purgeable_post( $post ) ) {
+			if ( ! $post || ! is_object_in_taxonomy( $post->post_type, $taxonomy ) || ! $this->is_purgeable_post( $post ) ) {
 				return;
 			}
 
-			$this->pending_posts[ $post->ID ] = true;
-
+			// Kept whatever the status: when a save unpublishes a post AND removes a term,
+			// the status is already written by the time terms change. The URLs are used
+			// only if the post is queued (it is published, or was before this save).
 			foreach ( $removed as $tt_id ) {
 				$term = get_term_by( 'term_taxonomy_id', $tt_id, $taxonomy );
 				if ( $term instanceof WP_Term ) {
 					foreach ( $this->get_term_urls( $term ) as $url ) {
-						$this->add_url( $url );
+						$this->removed_term_urls[ $post->ID ][ $url ] = true;
 					}
 				}
+			}
+
+			if ( 'publish' === $post->post_status ) {
+				$this->queue_post( $post->ID, true );
 			}
 		}
 
 		/**
-		 * Queue a WooCommerce product (or a variation's parent) changed outside a
-		 * post status transition.
+		 * A WooCommerce product save outside the editor (REST, import, scheduled sale).
+		 * A checkout also saves every product it sells; in a visitor's request that save
+		 * is only a stock quantity change, so it purges the product's own URL.
 		 *
 		 * @param int $product_id Product or variation ID.
 		 */
-		public function handle_product_id( $product_id ) {
+		public function handle_product_save( $product_id ) {
+			$this->queue_product( $product_id, ! $this->is_visitor_request() );
+		}
+
+		/**
+		 * A stock quantity change. Listings show stock status, not quantity, so only the
+		 * product's own URL is purged.
+		 *
+		 * @param WC_Product $product Product or variation.
+		 */
+		public function handle_stock_quantity( $product ) {
+			if ( is_object( $product ) && method_exists( $product, 'get_id' ) ) {
+				$this->queue_product( $product->get_id(), false );
+			}
+		}
+
+		/**
+		 * A stock status change (e.g. the last item sold): listings change too.
+		 *
+		 * @param int $product_id Product or variation ID.
+		 */
+		public function handle_stock_status( $product_id ) {
+			$this->queue_product( $product_id, true );
+		}
+
+		/**
+		 * Queue a published product, mapping a variation to its parent.
+		 *
+		 * @param int  $product_id    Product or variation ID.
+		 * @param bool $with_listings Whether to purge its listing pages too.
+		 */
+		private function queue_product( $product_id, $with_listings ) {
 			$product_id = absint( $product_id );
 			if ( empty( $product_id ) ) {
 				return;
 			}
 
-			$parent_id = wp_get_post_parent_id( $product_id );
-			if ( $parent_id && 'product_variation' === get_post_type( $product_id ) ) {
-				$product_id = $parent_id;
+			if ( 'product_variation' === get_post_type( $product_id ) ) {
+				$product_id = wp_get_post_parent_id( $product_id );
 			}
 
-			$post = get_post( $product_id );
+			$post = $product_id ? get_post( $product_id ) : null;
 			if ( ! $post || 'publish' !== $post->post_status || ! $this->is_purgeable_post( $post ) ) {
 				return;
 			}
 
-			$this->pending_posts[ $post->ID ] = true;
+			$this->queue_post( $post->ID, $with_listings );
 		}
 
 		/**
-		 * Queue a product from a hook that passes a WC_Product object.
+		 * Queue a post for this request. Purging its listings wins over not purging them.
 		 *
-		 * @param WC_Product $product Product or variation.
+		 * @param int  $post_id       Post ID.
+		 * @param bool $with_listings Whether to purge its listing pages too.
 		 */
-		public function handle_product_object( $product ) {
-			if ( is_object( $product ) && method_exists( $product, 'get_id' ) ) {
-				$this->handle_product_id( $product->get_id() );
-			}
+		private function queue_post( $post_id, $with_listings ) {
+			$this->pending_posts[ $post_id ] = ! empty( $this->pending_posts[ $post_id ] ) || $with_listings;
 		}
 
 		/**
@@ -276,33 +321,39 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		 * purge to WP-Cron instead, so the shopper never waits for the purge call.
 		 */
 		public function flush_pending_purges() {
-			$full = $this->full_purge_pending;
-			$urls = $full ? array() : $this->collect_urls();
+			try {
+				$full = $this->full_purge_pending;
+				$urls = $full ? array() : $this->collect_urls();
 
-			$this->full_purge_pending = false;
-			$this->pending_posts      = array();
-			$this->pending_urls       = array();
+				$this->full_purge_pending = false;
+				$this->pending_posts      = array();
+				$this->removed_term_urls  = array();
+				$this->pending_urls       = array();
 
-			if ( ! $full && empty( $urls ) ) {
-				return;
-			}
+				if ( null === $urls || count( $urls ) > self::MAX_URLS ) {
+					$full = true;
+					$urls = array();
+				}
 
-			if ( count( $urls ) > self::MAX_URLS ) {
-				$full = true;
-				$urls = array();
-			}
+				if ( ! $full && empty( $urls ) ) {
+					return;
+				}
 
-			if ( $this->should_defer() ) {
-				$payload = array(
-					'full' => $full,
-					'urls' => $urls,
+				if ( $this->is_visitor_request() ) {
+					$this->defer( $full, $urls );
+
+					return;
+				}
+
+				$this->send( $full, $urls );
+			} catch ( \Throwable $th ) {
+				Helper::add_error_log(
+					array(
+						'message' => 'CDN cache purge threw',
+						'error'   => $th->getMessage(),
+					)
 				);
-				wp_schedule_single_event( time(), self::DEFERRED_HOOK, array( $payload ) );
-
-				return;
 			}
-
-			$this->send( $full, $urls );
 		}
 
 		/**
@@ -311,18 +362,58 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		 * @param array $payload Array with 'full' (bool) and 'urls' (string[]).
 		 */
 		public function handle_deferred_purge( $payload ) {
-			if ( ! is_array( $payload ) || ! $this->can_purge() ) {
+			try {
+				if ( ! is_array( $payload ) || ! $this->can_purge() ) {
+					return;
+				}
+
+				$full = ! empty( $payload['full'] );
+				$urls = ! empty( $payload['urls'] ) && is_array( $payload['urls'] ) ? array_values( $payload['urls'] ) : array();
+
+				if ( ! $full && empty( $urls ) ) {
+					return;
+				}
+
+				$this->send( $full, $urls );
+			} catch ( \Throwable $th ) {
+				Helper::add_error_log(
+					array(
+						'message' => 'Deferred CDN cache purge threw',
+						'error'   => $th->getMessage(),
+					)
+				);
+			}
+		}
+
+		/**
+		 * Hand a purge to WP-Cron and start the cron runner without waiting for it
+		 * (unless the site runs cron from the system instead).
+		 *
+		 * @param bool  $full Whether to purge the whole CDN cache.
+		 * @param array $urls URLs to purge when not a full purge.
+		 */
+		private function defer( $full, array $urls ) {
+			$payload = array(
+				'full' => $full,
+				'urls' => $urls,
+			);
+
+			$scheduled = wp_schedule_single_event( time(), self::DEFERRED_HOOK, array( $payload ) );
+			if ( false === $scheduled || is_wp_error( $scheduled ) ) {
+				Helper::add_error_log(
+					array(
+						'message' => 'CDN cache purge could not be scheduled',
+						'error'   => is_wp_error( $scheduled ) ? $scheduled->get_error_message() : 'wp_schedule_single_event returned false',
+						'urls'    => $urls,
+					)
+				);
+
 				return;
 			}
 
-			$full = ! empty( $payload['full'] );
-			$urls = ! empty( $payload['urls'] ) && is_array( $payload['urls'] ) ? array_values( $payload['urls'] ) : array();
-
-			if ( ! $full && empty( $urls ) ) {
-				return;
+			if ( ! ( defined( 'DISABLE_WP_CRON' ) && DISABLE_WP_CRON ) ) {
+				spawn_cron();
 			}
-
-			$this->send( $full, $urls );
 		}
 
 		/**
@@ -358,7 +449,7 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		/**
 		 * Collect every URL to purge for the posts changed in this request.
 		 *
-		 * @return array Unique URLs.
+		 * @return array|null Unique URLs, or null when there are too many for one call.
 		 */
 		private function collect_urls() {
 			if ( empty( $this->pending_posts ) && empty( $this->pending_urls ) ) {
@@ -367,9 +458,19 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 
 			$urls = $this->pending_urls;
 
-			foreach ( array_keys( $this->pending_posts ) as $post_id ) {
-				foreach ( $this->get_post_urls( $post_id ) as $url ) {
+			foreach ( $this->pending_posts as $post_id => $with_listings ) {
+				$post_urls = $with_listings ? $this->get_post_urls( $post_id ) : $this->get_permalink_urls( $post_id );
+				if ( ! empty( $this->removed_term_urls[ $post_id ] ) ) {
+					$post_urls = array_merge( $post_urls, array_keys( $this->removed_term_urls[ $post_id ] ) );
+				}
+
+				foreach ( $post_urls as $url ) {
 					$urls[ $url ] = true;
+				}
+
+				// A bulk change ends as one full purge anyway; stop deriving URLs.
+				if ( count( $urls ) > self::MAX_URLS ) {
+					return null;
 				}
 			}
 
@@ -385,7 +486,23 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 			 */
 			$urls = apply_filters( 'instawp_cdn_purge_urls', array_keys( $urls ), array_keys( $this->pending_posts ) );
 
-			return array_values( array_unique( array_filter( (array) $urls, 'is_string' ) ) );
+			return array_values( array_unique( array_filter( (array) $urls, array( $this, 'is_valid_url' ) ) ) );
+		}
+
+		/**
+		 * The URL of a published post on its own.
+		 *
+		 * @param int $post_id Post ID.
+		 *
+		 * @return array URLs.
+		 */
+		private function get_permalink_urls( $post_id ) {
+			$post = get_post( $post_id );
+			if ( ! $post || 'publish' !== $post->post_status ) {
+				return array();
+			}
+
+			return array_filter( array( get_permalink( $post ) ), array( $this, 'is_valid_url' ) );
 		}
 
 		/**
@@ -501,8 +618,11 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		private function get_paged_url( $url, $page ) {
 			global $wp_rewrite;
 
-			if ( $wp_rewrite instanceof WP_Rewrite && $wp_rewrite->using_permalinks() && false === strpos( $url, '?' ) ) {
-				return user_trailingslashit( trailingslashit( $url ) . $wp_rewrite->pagination_base . '/' . $page, 'paged' );
+			if ( $wp_rewrite instanceof WP_Rewrite && $wp_rewrite->using_permalinks() ) {
+				$parts = explode( '?', $url, 2 );
+				$paged = user_trailingslashit( trailingslashit( $parts[0] ) . $wp_rewrite->pagination_base . '/' . $page, 'paged' );
+
+				return isset( $parts[1] ) ? $paged . '?' . $parts[1] : $paged;
 			}
 
 			return add_query_arg( 'paged', $page, $url );
@@ -565,12 +685,13 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		}
 
 		/**
-		 * Whether the purge should leave the current request. True for site visitors
-		 * (checkout, payment callbacks); editors, WP-CLI and cron purge right away.
+		 * Whether the current request comes from a site visitor (checkout, payment
+		 * callback) rather than an editor, WP-CLI or cron. A visitor's purge is
+		 * deferred so they never wait for it.
 		 *
 		 * @return bool
 		 */
-		private function should_defer() {
+		private function is_visitor_request() {
 			if ( ( defined( 'WP_CLI' ) && WP_CLI ) || wp_doing_cron() ) {
 				return false;
 			}

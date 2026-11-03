@@ -11,8 +11,9 @@ changes, so visitors never keep seeing an old page. It is on by default and cont
 | A post, page or product is published, updated, unpublished, trashed or deleted | Every page that shows it (below) |
 | A post's slug changes | The same, plus its old URL |
 | A post is moved out of a category or tag | The same, plus the archive it left |
-| WooCommerce stock or stock status changes (e.g. an order sells the last item) | The product's pages |
-| WooCommerce saves a product outside the editor (REST API, CSV import, scheduled sale, quick edit) | The product's pages |
+| WooCommerce stock status changes (e.g. an order sells the last item) | The product's pages |
+| WooCommerce stock quantity changes (an order that does not sell out) | The product's own URL only: listings show stock status, not quantity |
+| WooCommerce saves a product outside the editor (REST API, CSV import, scheduled sale, quick edit) | The product's pages (own URL only when the save comes from a visitor's checkout) |
 | A variation changes | Its parent product's pages |
 | Plugin, theme or core update, theme switch, zip-replace of a plugin/theme | The whole CDN cache |
 
@@ -60,4 +61,9 @@ add_filter( 'instawp_cdn_purge_listing_pages', function () {
   safety net for these; keep it short.
 - A browser that already holds a page keeps it for as long as the CDN told it to. No purge can
   reach a browser.
-- Deferred purges need WP-Cron to run (WordPress's own loopback, or a system cron).
+- Deferred purges need WP-Cron. The plugin starts the cron runner right away (a non-blocking
+  loopback) unless `DISABLE_WP_CRON` is set, in which case the system cron sends it on its next run.
+- On multilingual sites only the current language's home and archives are derived; on multi-domain
+  setups the purge endpoint drops URLs on another domain.
+- Renaming a term or changing a term's slug, and changing a parent page's slug (which moves its
+  children's URLs), do not trigger a purge yet.
