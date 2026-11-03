@@ -20,10 +20,14 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 	class InstaWP_CDN_Cache_Purge {
 
 		/**
-		 * Most URLs the client-app purge-cache-urls endpoint accepts in one call.
-		 * A larger set is sent as one full purge instead.
+		 * Most URLs sent in one URL purge; a larger set is sent as one full purge.
+		 *
+		 * The endpoint accepts 50, but the URLs are purged one by one server-side
+		 * (about 1-4 s each, measured on PR #583 QA): 11 URLs take ~3 s, 26 take ~30 s,
+		 * and 40 outlived the 60 s HTTP timeout. A full purge is one fast call, so past
+		 * this size it is cheaper for the request that sends it.
 		 */
-		const MAX_URLS = 50;
+		const MAX_URLS = 20;
 
 		/**
 		 * WP-Cron hook that sends a purge deferred out of a visitor's request.
@@ -87,7 +91,9 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 			add_action( 'upgrader_overwrote_package', array( $this, 'queue_full_purge' ), 20 );
 
 			add_action( self::DEFERRED_HOOK, array( $this, 'handle_deferred_purge' ) );
-			add_action( 'shutdown', array( $this, 'flush_pending_purges' ) );
+			// Late, so every other shutdown callback has sent its output before the
+			// response may be finished early.
+			add_action( 'shutdown', array( $this, 'flush_pending_purges' ), 999 );
 		}
 
 		/**
@@ -317,8 +323,8 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 		 *
 		 * One call per request: a full purge if one was requested or if the changed
 		 * posts add up to more URLs than one call accepts, else one URL purge.
-		 * A request from a site visitor (e.g. a checkout reducing stock) hands the
-		 * purge to WP-Cron instead, so the shopper never waits for the purge call.
+		 * The response is finished first (PHP-FPM/LiteSpeed), so nobody waits for the
+		 * purge call; without that, a visitor's purge goes to WP-Cron instead.
 		 */
 		public function flush_pending_purges() {
 			try {
@@ -339,6 +345,23 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 					return;
 				}
 
+				// WP-CLI and cron have no one waiting on a response.
+				if ( ( defined( 'WP_CLI' ) && WP_CLI ) || wp_doing_cron() ) {
+					$this->send( $full, $urls );
+
+					return;
+				}
+
+				// Send the response to the browser first, then purge in this same worker:
+				// nobody waits for the purge and no extra request is made.
+				if ( $this->finish_request() ) {
+					$this->send( $full, $urls );
+
+					return;
+				}
+
+				// No way to finish early (not PHP-FPM/LiteSpeed): a visitor's purge goes to
+				// WP-Cron so they never wait, an editor's is sent here as before.
 				if ( $this->is_visitor_request() ) {
 					$this->defer( $full, $urls );
 
@@ -430,20 +453,65 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 			}
 
 			$response = self::purge_urls( $urls );
+			if ( $response && ! empty( $response['success'] ) ) {
+				return;
+			}
 
-			// Retry once on failure.
-			if ( ! $response || empty( $response['success'] ) ) {
+			// Retry once, but not after a timeout: the server is usually still working
+			// through the first call, and a second one only doubles its load.
+			if ( ! $this->is_timeout( $response ) ) {
 				$response = self::purge_urls( $urls );
-
-				if ( ! $response || empty( $response['success'] ) ) {
-					Helper::add_error_log(
-						array(
-							'message' => 'CDN cache purge failed after retry',
-							'urls'    => $urls,
-						)
-					);
+				if ( $response && ! empty( $response['success'] ) ) {
+					return;
 				}
 			}
+
+			Helper::add_error_log(
+				array(
+					'message' => 'CDN cache purge failed',
+					'error'   => is_array( $response ) && isset( $response['message'] ) ? $response['message'] : '',
+					'urls'    => $urls,
+				)
+			);
+		}
+
+		/**
+		 * Whether a purge response is an HTTP timeout (cURL error 28).
+		 *
+		 * @param mixed $response Response from purge_urls().
+		 *
+		 * @return bool
+		 */
+		private function is_timeout( $response ) {
+			if ( ! is_array( $response ) || empty( $response['message'] ) || ! is_string( $response['message'] ) ) {
+				return false;
+			}
+
+			return false !== stripos( $response['message'], 'cURL error 28' ) || false !== stripos( $response['message'], 'timed out' );
+		}
+
+		/**
+		 * Finish the HTTP response so the client stops waiting, keeping the PHP worker
+		 * running. Available on PHP-FPM and LiteSpeed.
+		 *
+		 * @return bool Whether the response was finished.
+		 */
+		private function finish_request() {
+			// A plugin's open PHP session would stay locked while the purge runs and
+			// block the user's next request; it is fully written by now.
+			if ( function_exists( 'session_status' ) && PHP_SESSION_ACTIVE === session_status() ) {
+				session_write_close();
+			}
+
+			if ( function_exists( 'fastcgi_finish_request' ) ) {
+				return (bool) fastcgi_finish_request();
+			}
+
+			if ( function_exists( 'litespeed_finish_request' ) ) {
+				return (bool) litespeed_finish_request();
+			}
+
+			return false;
 		}
 
 		/**
@@ -478,7 +546,7 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 			 * Filter the URLs purged from the CDN after content changes.
 			 *
 			 * Use it to add pages this class cannot derive, e.g. a menu link to a
-			 * category under a non-canonical path. More than 50 URLs become one
+			 * category under a non-canonical path. More than 20 URLs become one
 			 * full purge.
 			 *
 			 * @param string[] $urls     URLs to purge.
@@ -534,6 +602,7 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 				$listings[] = $archive;
 			}
 
+			$term_urls = array();
 			foreach ( get_object_taxonomies( $post->post_type ) as $taxonomy ) {
 				if ( ! $this->is_listed_taxonomy( $taxonomy ) ) {
 					continue;
@@ -545,26 +614,29 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 				}
 
 				foreach ( $terms as $term ) {
-					$listings = array_merge( $listings, $this->get_term_urls( $term, false ) );
+					$term_urls = array_merge( $term_urls, $this->get_term_urls( $term ) );
 				}
 			}
 
+			// Later pages only for home and the post type archive, where new items land;
+			// term archives get their first page, which keeps a save to ~10 URLs.
 			foreach ( $listings as $listing ) {
 				$urls = array_merge( $urls, $this->with_pagination( $listing ) );
 			}
+
+			$urls = array_merge( $urls, $term_urls );
 
 			return array_filter( $urls, array( $this, 'is_valid_url' ) );
 		}
 
 		/**
-		 * Archive URLs of a term and its ancestors, with pagination by default.
+		 * Archive URLs (first page) of a term and its ancestors.
 		 *
-		 * @param WP_Term $term     Term.
-		 * @param bool    $paginate Whether to add the paginated URLs.
+		 * @param WP_Term $term Term.
 		 *
 		 * @return array URLs.
 		 */
-		private function get_term_urls( $term, $paginate = true ) {
+		private function get_term_urls( $term ) {
 			$term_ids = array_merge( array( (int) $term->term_id ), get_ancestors( $term->term_id, $term->taxonomy, 'taxonomy' ) );
 			$urls     = array();
 
@@ -574,7 +646,7 @@ if ( ! class_exists( 'InstaWP_CDN_Cache_Purge' ) ) {
 					continue;
 				}
 
-				$urls = array_merge( $urls, $paginate ? $this->with_pagination( $link ) : array( $link ) );
+				$urls[] = $link;
 			}
 
 			return $urls;

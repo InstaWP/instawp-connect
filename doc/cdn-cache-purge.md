@@ -26,18 +26,24 @@ Drafts and other unpublished content never trigger a purge.
 - the post type archive (the WooCommerce shop page for products, the blog page for posts)
 - the archive of each public taxonomy term the post has (product categories and tags, post
   categories and tags) and of each parent term
-- page 2 of each of those listings
+- page 2 of the home page and of the post type archive (term archives: first page only)
 
-All of it goes out as one call per request to `connects/{id}/purge-cache-urls`. That endpoint takes
-at most 50 URLs, so a larger set (a bulk edit, an import batch) is sent as one full purge
-(`connects/{id}/purge-cache`) instead.
+A typical product save is about 8-10 URLs. All of it goes out as one call per request to
+`connects/{id}/purge-cache-urls`. The URLs are purged one by one server-side (about 1-4 s each), so a
+set larger than 20 (a bulk edit, an import batch) is sent as one full purge
+(`connects/{id}/purge-cache`) instead. A purge that times out is not retried, since the server is
+usually still working through it.
 
-## Visitor requests do not wait for the purge
+## Nobody waits for the purge
 
-A purge triggered by a site visitor (a checkout that reduces stock, a payment callback) is handed to
-WP-Cron (`instawp_cdn_purge_deferred`) instead of being sent at the end of that request, so the
-shopper's response is never held up by the purge call. Requests from users who can `edit_posts`,
-WP-CLI and cron send the purge right away.
+The purge runs at the very end of the request (`shutdown`, priority 999). On PHP-FPM and LiteSpeed
+the response is sent to the browser first (`fastcgi_finish_request()`), and the purge then runs in
+the same PHP worker. The editor or shopper never waits, there is no extra request, and nothing
+depends on WP-Cron. An open PHP session is closed first so it does not lock the user's next request.
+
+Without that (e.g. mod_php), a purge triggered by a site visitor (checkout, payment callback) is
+handed to WP-Cron (`instawp_cdn_purge_deferred`), and an editor's is sent at the end of the request
+as before. WP-CLI and cron always send it right away.
 
 ## Filters
 
@@ -48,7 +54,7 @@ add_filter( 'instawp_cdn_purge_urls', function ( $urls, $post_ids ) {
 	return $urls;
 }, 10, 2 );
 
-// How many pages of each listing to purge (default 2, max 10).
+// How many pages of the home page and post type archive to purge (default 2, max 10).
 add_filter( 'instawp_cdn_purge_listing_pages', function () {
 	return 3;
 } );
@@ -57,12 +63,12 @@ add_filter( 'instawp_cdn_purge_listing_pages', function () {
 ## Known limits
 
 - Pages that list a post in other ways (related-products blocks, widgets, menus with custom links,
-  page 3 and later of an archive) are not derived. The CDN's own cache lifetime for HTML is the
+  page 2 and later of a term archive, page 3 and later of the shop/home) are not derived. The CDN's own cache lifetime for HTML is the
   safety net for these; keep it short.
 - A browser that already holds a page keeps it for as long as the CDN told it to. No purge can
   reach a browser.
-- Deferred purges need WP-Cron. The plugin starts the cron runner right away (a non-blocking
-  loopback) unless `DISABLE_WP_CRON` is set, in which case the system cron sends it on its next run.
+- The deferred (WP-Cron) fallback needs WP-Cron. The plugin starts the cron runner right away (a
+  non-blocking loopback) unless `DISABLE_WP_CRON` is set, in which case the system cron sends it.
 - On multilingual sites only the current language's home and archives are derived; on multi-domain
   setups the purge endpoint drops URLs on another domain.
 - Renaming a term or changing a term's slug, and changing a parent page's slug (which moves its
